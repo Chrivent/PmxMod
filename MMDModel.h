@@ -94,26 +94,6 @@ namespace saba
 		MMDModel();
 		~MMDModel();
 
-		size_t GetVertexCount() const { return m_positions.size(); }
-		const glm::vec3* GetPositions() const { return m_positions.data(); }
-		const glm::vec3* GetNormals() const { return m_normals.data(); }
-		const glm::vec2* GetUVs() const { return m_uvs.data(); }
-		const glm::vec3* GetUpdatePositions() const { return m_updatePositions.data(); }
-		const glm::vec3* GetUpdateNormals() const { return m_updateNormals.data(); }
-		const glm::vec2* GetUpdateUVs() const { return m_updateUVs.data(); }
-
-		size_t GetIndexElementSize() const { return m_indexElementSize; }
-		size_t GetIndexCount() const { return m_indexCount; }
-		const void* GetIndices() const { return &m_indices[0]; }
-
-		size_t GetMaterialCount() const { return m_materials.size(); }
-		const MMDMaterial* GetMaterials() const { return &m_materials[0]; }
-
-		size_t GetSubMeshCount() const { return m_subMeshes.size(); }
-		const MMDSubMesh* GetSubMeshes() const { return &m_subMeshes[0]; }
-
-		MMDPhysics* GetMMDPhysics() { return m_physicsMan.GetMMDPhysics(); }
-
 		// ノードを初期化する
 		void InitializeAnimation();
 
@@ -144,9 +124,6 @@ namespace saba
 
 		bool Load(const std::string& filepath, const std::string& mmdDataDir);
 		void Destroy();
-
-		const glm::vec3& GetBBoxMin() const { return m_bboxMin; }
-		const glm::vec3& GetBBoxMax() const { return m_bboxMax; }
 
 		enum class SkinningType
 		{

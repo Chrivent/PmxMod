@@ -703,7 +703,7 @@ bool Model::Setup(AppContext& appContext)
 	}
 
 	// Setup vertices
-	size_t vtxCount = m_mmdModel->GetVertexCount();
+	size_t vtxCount = m_mmdModel->m_positions.size();
 	glGenBuffers(1, &m_posVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
@@ -719,11 +719,11 @@ bool Model::Setup(AppContext& appContext)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	size_t idxSize = m_mmdModel->GetIndexElementSize();
-	size_t idxCount = m_mmdModel->GetIndexCount();
+	size_t idxSize = m_mmdModel->m_indexElementSize;
+	size_t idxCount = m_mmdModel->m_indexCount;
 	glGenBuffers(1, &m_ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_mmdModel->GetIndices(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, &m_mmdModel->m_indices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	if (idxSize == 1)
 	{
@@ -794,9 +794,9 @@ bool Model::Setup(AppContext& appContext)
 	glBindVertexArray(0);
 
 	// Setup materials
-	for (size_t i = 0; i < m_mmdModel->GetMaterialCount(); i++)
+	for (size_t i = 0; i < m_mmdModel->m_materials.size(); i++)
 	{
-		const auto& mmdMat = m_mmdModel->GetMaterials()[i];
+		const auto& mmdMat = m_mmdModel->m_materials[i];
 		Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty())
 		{
@@ -850,13 +850,13 @@ void Model::Update(const AppContext& appContext)
 {
 	m_mmdModel->Update();
 
-	size_t vtxCount = m_mmdModel->GetVertexCount();
+	size_t vtxCount = m_mmdModel->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->GetUpdatePositions());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->GetUpdateNormals());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updateNormals.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * vtxCount, m_mmdModel->GetUpdateUVs());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * vtxCount, m_mmdModel->m_updateUVs.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -884,10 +884,10 @@ void Model::Draw(const AppContext& appContext)
 	glEnable(GL_DEPTH_TEST);
 
 	// Draw model
-	size_t subMeshCount = m_mmdModel->GetSubMeshCount();
+	size_t subMeshCount = m_mmdModel->m_subMeshes.size();
 	for (size_t i = 0; i < subMeshCount; i++)
 	{
-		const auto& subMesh = m_mmdModel->GetSubMeshes()[i];
+		const auto& subMesh = m_mmdModel->m_subMeshes[i];
 		const auto& shader = appContext.m_mmdShader;
 		const auto& mat = m_materials[subMesh.m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -1015,7 +1015,7 @@ void Model::Draw(const AppContext& appContext)
 		glUniform1i(shader->m_uShadowMap2, 5);
 		glUniform1i(shader->m_uShadowMap3, 6);
 
-		size_t offset = subMesh.m_beginIndex * m_mmdModel->GetIndexElementSize();
+		size_t offset = subMesh.m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, subMesh.m_vertexCount, m_indexType, (GLvoid*)offset);
 
 		glActiveTexture(GL_TEXTURE0 + 2);
@@ -1041,7 +1041,7 @@ void Model::Draw(const AppContext& appContext)
 	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
 	for (size_t i = 0; i < subMeshCount; i++)
 	{
-		const auto& subMesh = m_mmdModel->GetSubMeshes()[i];
+		const auto& subMesh = m_mmdModel->m_subMeshes[i];
 		int matID = subMesh.m_materialID;
 		const auto& shader = appContext.m_mmdEdgeShader;
 		const auto& mat = m_materials[subMesh.m_materialID];
@@ -1088,7 +1088,7 @@ void Model::Draw(const AppContext& appContext)
 			}
 		}
 
-		size_t offset = subMesh.m_beginIndex * m_mmdModel->GetIndexElementSize();
+		size_t offset = subMesh.m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, subMesh.m_vertexCount, m_indexType, (GLvoid*)offset);
 
 		glBindVertexArray(0);
@@ -1154,7 +1154,7 @@ void Model::Draw(const AppContext& appContext)
 
 	for (size_t i = 0; i < subMeshCount; i++)
 	{
-		const auto& subMesh = m_mmdModel->GetSubMeshes()[i];
+		const auto& subMesh = m_mmdModel->m_subMeshes[i];
 		int matID = subMesh.m_materialID;
 		const auto& mat = m_materials[subMesh.m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -1175,7 +1175,7 @@ void Model::Draw(const AppContext& appContext)
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wsvp[0][0]);
 		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
 
-		size_t offset = subMesh.m_beginIndex * m_mmdModel->GetIndexElementSize();
+		size_t offset = subMesh.m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, subMesh.m_vertexCount, m_indexType, (GLvoid*)offset);
 
 		glBindVertexArray(0);
