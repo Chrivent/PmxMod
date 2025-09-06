@@ -25,11 +25,6 @@
 
 namespace saba
 {
-	PMXModel::PMXModel()
-		: m_parallelUpdateCount(0)
-	{
-	}
-
 	PMXModel::~PMXModel()
 	{
 		Destroy();

@@ -172,6 +172,11 @@ namespace saba
 		return ret;
 	}
 
+	MMDModel::MMDModel()
+		: m_parallelUpdateCount(0)
+	{
+	}
+
 	void MMDModel::SaveBaseAnimation()
 	{
 		auto nodeMan = GetNodeManager();
