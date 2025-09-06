@@ -721,7 +721,7 @@ namespace saba
 				for (const auto& pmxBoneMorphElem : pmxMorph.m_boneMorph)
 				{
 					BoneMorphElement boneMorphElem;
-					boneMorphElem.m_node = m_nodeMan.GetMMDNode(pmxBoneMorphElem.m_boneIndex);
+					boneMorphElem.m_node = m_nodeMan.GetNode(pmxBoneMorphElem.m_boneIndex);
 					boneMorphElem.m_position = pmxBoneMorphElem.m_position * glm::vec3(1, 1, -1);
 					const glm::quat q = pmxBoneMorphElem.m_quaternion;
 					auto invZ = glm::mat3(glm::scale(glm::mat4(1), glm::vec3(1, 1, -1)));
@@ -798,7 +798,7 @@ namespace saba
 			MMDNode* node = nullptr;
 			if (pmxRB.m_boneIndex != -1)
 			{
-				node = m_nodeMan.GetMMDNode(pmxRB.m_boneIndex);
+				node = m_nodeMan.GetNode(pmxRB.m_boneIndex);
 			}
 			if (!rb->Create(pmxRB, this, node))
 			{

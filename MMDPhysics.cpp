@@ -428,9 +428,9 @@ namespace saba
 		}
 		else
 		{
-			MMDNode* root = model->GetNodeManager()->GetMMDNode(0);
+			MMDNode* root = model->GetNodeManager()->GetNode(0);
 			m_offsetMat = glm::inverse(root->m_global) * rbMat;
-			kinematicNode = model->GetNodeManager()->GetMMDNode(0);
+			kinematicNode = model->GetNodeManager()->GetNode(0);
 			overrideNode = false;
 		}
 

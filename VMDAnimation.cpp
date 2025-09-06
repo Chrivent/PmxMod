@@ -200,7 +200,7 @@ namespace saba
 			VMDNodeController* nodeCtrl = nullptr;
 			if (findIt == std::end(nodeCtrlMap))
 			{
-				auto node = m_model->GetNodeManager()->GetMMDNode(nodeName);
+				auto node = m_model->GetNodeManager()->GetNode(nodeName);
 				if (node != nullptr)
 				{
 					auto val = std::make_pair(
@@ -249,7 +249,7 @@ namespace saba
 				VMDIKController* ikCtrl = nullptr;
 				if (findIt == std::end(ikCtrlMap))
 				{
-					auto* ikSolver = m_model->GetIKManager()->GetMMDIKSolver(ikName);
+					auto* ikSolver = m_model->GetIKManager()->GetIKSolver(ikName);
 					if (ikSolver != nullptr)
 					{
 						auto val = std::make_pair(

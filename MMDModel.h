@@ -41,19 +41,19 @@ namespace saba
 				return findIt - m_nodes.begin();
 			}
 		}
-		MMDNode* GetMMDNode(size_t idx)
+		MMDNode* GetNode(size_t idx)
 		{
 			return m_nodes[idx].get();
 		}
 
-		MMDNode* GetMMDNode(const std::string& nodeName)
+		MMDNode* GetNode(const std::string& nodeName)
 		{
 			auto findIdx = FindNodeIndex(nodeName);
 			if (findIdx == NPos)
 			{
 				return nullptr;
 			}
-			return GetMMDNode(findIdx);
+			return GetNode(findIdx);
 		}
 
 		MMDNode* AddNode()
@@ -62,11 +62,6 @@ namespace saba
 			node->m_index = (uint32_t)m_nodes.size();
 			m_nodes.emplace_back(std::move(node));
 			return m_nodes[m_nodes.size() - 1].get();
-		}
-
-		MMDNode* GetNode(size_t i)
-		{
-			return m_nodes[i].get();
 		}
 
 		std::vector<std::unique_ptr<MMDNode>>* GetNodes()
@@ -98,30 +93,25 @@ namespace saba
 				return findIt - m_ikSolvers.begin();
 			}
 		}
-		MMDIkSolver* GetMMDIKSolver(size_t idx)
+		MMDIkSolver* GetIKSolver(size_t idx)
 		{
 			return m_ikSolvers[idx].get();
 		}
 
-		MMDIkSolver* GetMMDIKSolver(const std::string& ikName)
+		MMDIkSolver* GetIKSolver(const std::string& ikName)
 		{
 			auto findIdx = FindIKSolverIndex(ikName);
 			if (findIdx == NPos)
 			{
 				return nullptr;
 			}
-			return GetMMDIKSolver(findIdx);
+			return GetIKSolver(findIdx);
 		}
 
 		MMDIkSolver* AddIKSolver()
 		{
 			m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
 			return m_ikSolvers[m_ikSolvers.size() - 1].get();
-		}
-
-		MMDIkSolver* GetIKSolver(size_t i)
-		{
-			return m_ikSolvers[i].get();
 		}
 
 		std::vector<std::unique_ptr<MMDIkSolver>>* GetIKSolvers()

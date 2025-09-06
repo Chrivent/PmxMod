@@ -61,7 +61,7 @@ namespace saba
 		auto nodeMan = GetNodeManager();
 		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetMMDNode(i);
+			auto node = nodeMan->GetNode(i);
 			node->SaveBaseAnimation();
 		}
 
@@ -75,7 +75,7 @@ namespace saba
 		auto ikMan = GetIKManager();
 		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetMMDIKSolver(i);
+			auto ikSolver = ikMan->GetIKSolver(i);
 			ikSolver->SaveBaseAnimation();
 		}
 	}
@@ -85,7 +85,7 @@ namespace saba
 		auto nodeMan = GetNodeManager();
 		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetMMDNode(i);
+			auto node = nodeMan->GetNode(i);
 			node->LoadBaseAnimation();
 		}
 
@@ -99,7 +99,7 @@ namespace saba
 		auto ikMan = GetIKManager();
 		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetMMDIKSolver(i);
+			auto ikSolver = ikMan->GetIKSolver(i);
 			ikSolver->LoadBaseAnimation();
 		}
 	}
@@ -109,7 +109,7 @@ namespace saba
 		auto nodeMan = GetNodeManager();
 		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetMMDNode(i);
+			auto node = nodeMan->GetNode(i);
 			node->ClearBaseAnimation();
 		}
 
@@ -123,7 +123,7 @@ namespace saba
 		auto ikMan = GetIKManager();
 		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetMMDIKSolver(i);
+			auto ikSolver = ikMan->GetIKSolver(i);
 			ikSolver->ClearBaseAnimation();
 		}
 	}
