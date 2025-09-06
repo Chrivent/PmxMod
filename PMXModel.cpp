@@ -618,10 +618,10 @@ namespace saba
 			}
 			node->SaveInitialTRS();
 		}
-		m_transforms.resize(m_nodeMan.GetNodeCount());
+		m_transforms.resize(m_nodeMan.m_nodes.size());
 
 		m_sortedNodes.clear();
-		m_sortedNodes.reserve(m_nodeMan.GetNodeCount());
+		m_sortedNodes.reserve(m_nodeMan.m_nodes.size());
 		auto* pmxNodes = m_nodeMan.GetNodes();
 		for (auto& pmxNode : (*pmxNodes))
 		{
@@ -778,7 +778,7 @@ namespace saba
 				}
 			};
 
-			for (int32_t morphIdx = 0; morphIdx < int32_t(m_morphMan.GetMorphCount()); morphIdx++)
+			for (int32_t morphIdx = 0; morphIdx < int32_t(m_morphMan.m_morphs.size()); morphIdx++)
 			{
 				fixInifinitGropuMorph(morphIdx);
 				groupMorphStack.clear();

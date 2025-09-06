@@ -59,21 +59,21 @@ namespace saba
 	void MMDModel::SaveBaseAnimation()
 	{
 		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->GetNodeCount(); i++)
+		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
 			auto node = nodeMan->GetMMDNode(i);
 			node->SaveBaseAnimation();
 		}
 
 		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->GetMorphCount(); i++)
+		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
 		{
 			auto morph = morphMan->GetMorph(i);
 			morph->SaveBaseAnimation();
 		}
 
 		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->GetIKSolverCount(); i++)
+		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
 			auto ikSolver = ikMan->GetMMDIKSolver(i);
 			ikSolver->SaveBaseAnimation();
@@ -83,21 +83,21 @@ namespace saba
 	void MMDModel::LoadBaseAnimation()
 	{
 		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->GetNodeCount(); i++)
+		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
 			auto node = nodeMan->GetMMDNode(i);
 			node->LoadBaseAnimation();
 		}
 
 		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->GetMorphCount(); i++)
+		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
 		{
 			auto morph = morphMan->GetMorph(i);
 			morph->LoadBaseAnimation();
 		}
 
 		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->GetIKSolverCount(); i++)
+		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
 			auto ikSolver = ikMan->GetMMDIKSolver(i);
 			ikSolver->LoadBaseAnimation();
@@ -107,21 +107,21 @@ namespace saba
 	void MMDModel::ClearBaseAnimation()
 	{
 		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->GetNodeCount(); i++)
+		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
 		{
 			auto node = nodeMan->GetMMDNode(i);
 			node->ClearBaseAnimation();
 		}
 
 		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->GetMorphCount(); i++)
+		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
 		{
 			auto morph = morphMan->GetMorph(i);
 			morph->ClearBaseAnimation();
 		}
 
 		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->GetIKSolverCount(); i++)
+		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
 		{
 			auto ikSolver = ikMan->GetMMDIKSolver(i);
 			ikSolver->ClearBaseAnimation();

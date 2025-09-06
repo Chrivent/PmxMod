@@ -23,17 +23,14 @@ namespace saba
 	class MMDNodeManager
 	{
 	public:
-		using NodePtr = std::unique_ptr<MMDNode>;
-
 		static const size_t NPos = -1;
 
-		size_t GetNodeCount() { return m_nodes.size(); };
 		size_t FindNodeIndex(const std::string& name)
 		{
 			auto findIt = std::find_if(
 				m_nodes.begin(),
 				m_nodes.end(),
-				[&name](const NodePtr& node) { return node->m_name == name; }
+				[&name](const std::unique_ptr<MMDNode>& node) { return node->m_name == name; }
 			);
 			if (findIt == m_nodes.end())
 			{
@@ -72,29 +69,25 @@ namespace saba
 			return m_nodes[i].get();
 		}
 
-		std::vector<NodePtr>* GetNodes()
+		std::vector<std::unique_ptr<MMDNode>>* GetNodes()
 		{
 			return &m_nodes;
 		}
 
-	private:
-		std::vector<NodePtr>	m_nodes;
+		std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 	};
 
 	class MMDIKManager
 	{
 	public:
-		using IKSolverPtr = std::unique_ptr<MMDIkSolver>;
-
 		static const size_t NPos = -1;
 
-		size_t GetIKSolverCount() { return m_ikSolvers.size(); }
 		size_t FindIKSolverIndex(const std::string& name)
 		{
 			auto findIt = std::find_if(
 				m_ikSolvers.begin(),
 				m_ikSolvers.end(),
-				[&name](const IKSolverPtr& ikSolver) { return ikSolver->GetName() == name; }
+				[&name](const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
 			);
 			if (findIt == m_ikSolvers.end())
 			{
@@ -131,29 +124,25 @@ namespace saba
 			return m_ikSolvers[i].get();
 		}
 
-		std::vector<IKSolverPtr>* GetIKSolvers()
+		std::vector<std::unique_ptr<MMDIkSolver>>* GetIKSolvers()
 		{
 			return &m_ikSolvers;
 		}
 
-	private:
-		std::vector<IKSolverPtr>	m_ikSolvers;
+		std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
 	};
 
 	class MMDMorphManager
 	{
 	public:
-		using MorphPtr = std::unique_ptr<MMDMorph>;
-
 		static const size_t NPos = -1;
 
-		size_t GetMorphCount() { return m_morphs.size(); }
 		size_t FindMorphIndex(const std::string& name)
 		{
 			auto findIt = std::find_if(
 				m_morphs.begin(),
 				m_morphs.end(),
-				[&name](const MorphPtr& morph) { return morph->m_name == name; }
+				[&name](const std::unique_ptr<MMDMorph>& morph) { return morph->m_name == name; }
 			);
 			if (findIt == m_morphs.end())
 			{
@@ -185,21 +174,17 @@ namespace saba
 			return m_morphs[m_morphs.size() - 1].get();
 		}
 
-		std::vector<MorphPtr>* GetMorphs()
+		std::vector<std::unique_ptr<MMDMorph>>* GetMorphs()
 		{
 			return &m_morphs;
 		}
 
-	private:
-		std::vector<MorphPtr>	m_morphs;
+		std::vector<std::unique_ptr<MMDMorph>>	m_morphs;
 	};
 
 	class MMDPhysicsManager
 	{
 	public:
-		using RigidBodyPtr = std::unique_ptr<MMDRigidBody>;
-		using JointPtr = std::unique_ptr<MMDJoint>;
-
 		MMDPhysicsManager();
 		~MMDPhysicsManager();
 
@@ -208,17 +193,15 @@ namespace saba
 		MMDPhysics* GetMMDPhysics();
 
 		MMDRigidBody* AddRigidBody();
-		std::vector<RigidBodyPtr>* GetRigidBodys() { return &m_rigidBodys; }
+		std::vector<std::unique_ptr<MMDRigidBody>>* GetRigidBodys() { return &m_rigidBodys; }
 
 		MMDJoint* AddJoint();
-		std::vector<JointPtr>* GetJoints() { return &m_joints; }
+		std::vector<std::unique_ptr<MMDJoint>>* GetJoints() { return &m_joints; }
 
-
-	private:
 		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
 
-		std::vector<RigidBodyPtr>	m_rigidBodys;
-		std::vector<JointPtr>		m_joints;
+		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodys;
+		std::vector<std::unique_ptr<MMDJoint>>		m_joints;
 	};
 
 	struct MMDSubMesh
