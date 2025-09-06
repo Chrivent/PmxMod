@@ -1,19 +1,16 @@
 ﻿#pragma once
 
-#include "MMDNode.h"
 #include "MMDMaterial.h"
-#include "MMDIkSolver.h"
 #include "MMDMorph.h"
+#include "MMDIkSolver.h"
 #include "PMXFile.h"
 
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-
 #include <future>
 
 namespace saba
@@ -95,34 +92,35 @@ namespace saba
 	{
 	public:
 		MMDModel();
+		~MMDModel();
 
-		virtual MMDNodeManager* GetNodeManager() = 0;
-		virtual MMDIKManager* GetIKManager() = 0;
-		virtual MMDMorphManager* GetMorphManager() = 0;
-		virtual MMDPhysicsManager* GetPhysicsManager() = 0;
+		MMDNodeManager* GetNodeManager() { return &m_nodeMan; }
+		MMDIKManager* GetIKManager() { return &m_ikSolverMan; }
+		MMDMorphManager* GetMorphManager() { return &m_morphMan; };
+		MMDPhysicsManager* GetPhysicsManager() { return &m_physicsMan; }
 
-		virtual size_t GetVertexCount() const = 0;
-		virtual const glm::vec3* GetPositions() const = 0;
-		virtual const glm::vec3* GetNormals() const = 0;
-		virtual const glm::vec2* GetUVs() const = 0;
-		virtual const glm::vec3* GetUpdatePositions() const = 0;
-		virtual const glm::vec3* GetUpdateNormals() const = 0;
-		virtual const glm::vec2* GetUpdateUVs() const = 0;
+		size_t GetVertexCount() const { return m_positions.size(); }
+		const glm::vec3* GetPositions() const { return m_positions.data(); }
+		const glm::vec3* GetNormals() const { return m_normals.data(); }
+		const glm::vec2* GetUVs() const { return m_uvs.data(); }
+		const glm::vec3* GetUpdatePositions() const { return m_updatePositions.data(); }
+		const glm::vec3* GetUpdateNormals() const { return m_updateNormals.data(); }
+		const glm::vec2* GetUpdateUVs() const { return m_updateUVs.data(); }
 
-		virtual size_t GetIndexElementSize() const = 0;
-		virtual size_t GetIndexCount() const = 0;
-		virtual const void* GetIndices() const = 0;
+		size_t GetIndexElementSize() const { return m_indexElementSize; }
+		size_t GetIndexCount() const { return m_indexCount; }
+		const void* GetIndices() const { return &m_indices[0]; }
 
-		virtual size_t GetMaterialCount() const = 0;
-		virtual const MMDMaterial* GetMaterials() const = 0;
+		size_t GetMaterialCount() const { return m_materials.size(); }
+		const MMDMaterial* GetMaterials() const { return &m_materials[0]; }
 
-		virtual size_t GetSubMeshCount() const = 0;
-		virtual const MMDSubMesh* GetSubMeshes() const = 0;
+		size_t GetSubMeshCount() const { return m_subMeshes.size(); }
+		const MMDSubMesh* GetSubMeshes() const { return &m_subMeshes[0]; }
 
-		virtual MMDPhysics* GetMMDPhysics() = 0;
+		MMDPhysics* GetMMDPhysics() { return m_physicsMan.GetMMDPhysics(); }
 
 		// ノードを初期化する
-		virtual void InitializeAnimation() = 0;
+		void InitializeAnimation();
 
 		// ベースアニメーション(アニメーション読み込み時、Physics反映用)
 		void SaveBaseAnimation();
@@ -130,24 +128,30 @@ namespace saba
 		void ClearBaseAnimation();
 
 		// アニメーションの前後で呼ぶ (VMDアニメーションの前後)
-		virtual void BeginAnimation() = 0;
-		virtual void EndAnimation() = 0;
+		void BeginAnimation();
+		void EndAnimation();
 		// Morph
-		virtual void UpdateMorphAnimation() = 0;
+		void UpdateMorphAnimation();
 		// ノードを更新する
 		[[deprecated("Please use UpdateAllAnimation() function")]]
 		void UpdateAnimation();
-		virtual void UpdateNodeAnimation(bool afterPhysicsAnim) = 0;
+		void UpdateNodeAnimation(bool afterPhysicsAnim);
 		// Physicsを更新する
-		virtual void ResetPhysics() = 0;
+		void ResetPhysics();
 		[[deprecated("Please use UpdateAllAnimation() function")]]
 		void UpdatePhysics(float elapsed);
-		virtual void UpdatePhysicsAnimation(float elapsed) = 0;
+		void UpdatePhysicsAnimation(float elapsed);
 		// 頂点を更新する
-		virtual void Update() = 0;
-		virtual void SetParallelUpdateHint(uint32_t parallelCount) = 0;
+		void Update();
+		void SetParallelUpdateHint(uint32_t parallelCount);
 
 		void UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
+
+		bool Load(const std::string& filepath, const std::string& mmdDataDir);
+		void Destroy();
+
+		const glm::vec3& GetBBoxMin() const { return m_bboxMin; }
+		const glm::vec3& GetBBoxMax() const { return m_bboxMax; }
 
 		enum class SkinningType
 		{
@@ -179,7 +183,7 @@ namespace saba
 			};
 		};
 
-	protected: //Todo private
+	private:
 		struct PositionMorph
 		{
 			uint32_t	m_index;
@@ -250,7 +254,23 @@ namespace saba
 			size_t	m_vertexCount;
 		};
 
-	protected: //Todo public
+	private:
+		void SetupParallelUpdate();
+		void Update(const UpdateRange& range);
+
+		void Morph(MMDMorph* morph, float weight);
+
+		void MorphPosition(const PositionMorphData& morphData, float weight);
+
+		void MorphUV(const UVMorphData& morphData, float weight);
+
+		void BeginMorphMaterial();
+		void EndMorphMaterial();
+		void MorphMaterial(const MaterialMorphData& morphData, float weight);
+
+		void MorphBone(const BoneMorphData& morphData, float weight);
+
+	public:
 		std::vector<glm::vec3>	m_positions;
 		std::vector<glm::vec3>	m_normals;
 		std::vector<glm::vec2>	m_uvs;
