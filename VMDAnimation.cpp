@@ -387,8 +387,6 @@ namespace saba
 			m_model->UpdatePhysicsAnimation(1.0f / 30.0f);
 
 			m_model->UpdateNodeAnimation(true);
-
-			m_model->EndAnimation();
 		}
 	}
 

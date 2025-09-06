@@ -17,7 +17,6 @@ namespace saba
 		void AddChild(MMDNode* child);
 		// アニメーションの前後て呼ぶ
 		void BeginUpdateTransform();
-		void EndUpdateTransform();
 
 		void UpdateLocalTransform();
 		void UpdateGlobalTransform();
@@ -61,11 +60,6 @@ namespace saba
 		}
 
 		void UpdateAppendTransform();
-
-	protected:
-		virtual void OnBeginUpdateTransform();
-		virtual void OnEndUpdateTransfrom();
-		virtual void OnUpdateLocalTransform();
 
 	public:
 		uint32_t		m_index;

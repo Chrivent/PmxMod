@@ -103,7 +103,6 @@ namespace saba
 
 		// アニメーションの前後で呼ぶ (VMDアニメーションの前後)
 		void BeginAnimation();
-		void EndAnimation();
 		// Morph
 		void UpdateMorphAnimation();
 		// ノードを更新する

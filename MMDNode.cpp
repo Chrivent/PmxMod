@@ -64,17 +64,33 @@ namespace saba
 	{
 		LoadInitialTRS();
 		m_ikRotate = glm::quat(1, 0, 0, 0);
-		OnBeginUpdateTransform();
-	}
-
-	void MMDNode::EndUpdateTransform()
-	{
-		OnEndUpdateTransfrom();
+		m_appendTranslate = glm::vec3(0);
+		m_appendRotate = glm::quat(1, 0, 0, 0);
 	}
 
 	void MMDNode::UpdateLocalTransform()
 	{
-		OnUpdateLocalTransform();
+		glm::vec3 t = AnimateTranslate();
+		if (m_isAppendTranslate)
+		{
+			t += m_appendTranslate;
+		}
+
+		glm::quat r = AnimateRotate();
+		if (m_enableIK)
+		{
+			r = m_ikRotate * r;
+		}
+		if (m_isAppendRotate)
+		{
+			r = r * m_appendRotate;
+		}
+
+		glm::vec3 s = m_scale;
+
+		m_local = glm::translate(glm::mat4(1), t)
+			* glm::mat4_cast(r)
+			* glm::scale(glm::mat4(1), s);
 	}
 
 	void MMDNode::UpdateGlobalTransform()
@@ -183,40 +199,4 @@ namespace saba
 
 		UpdateLocalTransform();
 	}
-
-	void MMDNode::OnBeginUpdateTransform()
-	{
-		m_appendTranslate = glm::vec3(0);
-		m_appendRotate = glm::quat(1, 0, 0, 0);
-	}
-
-	void MMDNode::OnEndUpdateTransfrom()
-	{
-	}
-
-	void MMDNode::OnUpdateLocalTransform()
-	{
-		glm::vec3 t = AnimateTranslate();
-		if (m_isAppendTranslate)
-		{
-			t += m_appendTranslate;
-		}
-
-		glm::quat r = AnimateRotate();
-		if (m_enableIK)
-		{
-			r = m_ikRotate * r;
-		}
-		if (m_isAppendRotate)
-		{
-			r = r * m_appendRotate;
-		}
-
-		glm::vec3 s = m_scale;
-
-		m_local = glm::translate(glm::mat4(1), t)
-			* glm::mat4_cast(r)
-			* glm::scale(glm::mat4(1), s);
-	}
-
 }

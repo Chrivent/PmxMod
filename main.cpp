@@ -843,7 +843,6 @@ void Model::UpdateAnimation(const AppContext& appContext)
 {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
-	m_mmdModel->EndAnimation();
 }
 
 void Model::Update(const AppContext& appContext)

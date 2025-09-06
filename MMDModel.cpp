@@ -256,8 +256,6 @@ namespace saba
 			}
 		}
 
-		EndAnimation();
-
 		ResetPhysics();
 	}
 
@@ -344,14 +342,6 @@ namespace saba
 		{
 			m_morphPositions[vtxIdx] = glm::vec3(0);
 			m_morphUVs[vtxIdx] = glm::vec4(0);
-		}
-	}
-
-	void MMDModel::EndAnimation()
-	{
-		for (auto& node : m_nodeMan.m_nodes)
-		{
-			node->EndUpdateTransform();
 		}
 	}
 
