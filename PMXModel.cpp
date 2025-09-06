@@ -39,7 +39,7 @@ namespace saba
 	{
 		ClearBaseAnimation();
 
-		for (auto& node : (*m_nodeMan.GetNodes()))
+		for (auto& node : m_nodeMan.m_nodes)
 		{
 			node->m_animTranslate = glm::vec3(0);
 			node->m_animRotate = glm::quat(1, 0, 0, 0);
@@ -47,22 +47,22 @@ namespace saba
 
 		BeginAnimation();
 
-		for (auto& node : (*m_nodeMan.GetNodes()))
+		for (auto& node : m_nodeMan.m_nodes)
 		{
 			node->UpdateLocalTransform();
 		}
 
-		for (auto& morph : (*m_morphMan.GetMorphs()))
+		for (auto& morph : m_morphMan.m_morphs)
 		{
 			morph->m_weight = 0;
 		}
 
-		for (auto& ikSolver : (*m_ikSolverMan.GetIKSolvers()))
+		for (auto& ikSolver : m_ikSolverMan.m_ikSolvers)
 		{
 			ikSolver->Enable(true);
 		}
 
-		for (const auto& node : (*m_nodeMan.GetNodes()))
+		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
 			{
@@ -85,7 +85,7 @@ namespace saba
 			}
 		}
 
-		for (const auto& node : (*m_nodeMan.GetNodes()))
+		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
 			{
@@ -100,7 +100,7 @@ namespace saba
 
 	void PMXModel::BeginAnimation()
 	{
-		for (auto& node : (*m_nodeMan.GetNodes()))
+		for (auto& node : m_nodeMan.m_nodes)
 		{
 			node->BeginUpdateTransform();
 		}
@@ -114,7 +114,7 @@ namespace saba
 
 	void PMXModel::EndAnimation()
 	{
-		for (auto& node : (*m_nodeMan.GetNodes()))
+		for (auto& node : m_nodeMan.m_nodes)
 		{
 			node->EndUpdateTransform();
 		}
@@ -125,7 +125,7 @@ namespace saba
 		// Morph の処理
 		BeginMorphMaterial();
 
-		const auto& morphs = (*m_morphMan.GetMorphs());
+		const auto& morphs = m_morphMan.m_morphs;
 		for (size_t i = 0; i < morphs.size(); i++)
 		{
 			const auto& morph = morphs[i];
@@ -204,8 +204,8 @@ namespace saba
 			return;
 		}
 
-		auto rigidbodys = physicsMan->GetRigidBodys();
-		for (auto& rb : (*rigidbodys))
+		auto& rigidbodys = physicsMan->m_rigidBodys;
+		for (auto& rb : rigidbodys)
 		{
 			rb->SetActivation(false);
 			rb->ResetTransform();
@@ -213,17 +213,17 @@ namespace saba
 
 		physics->Update(1.0f / 60.0f);
 
-		for (auto& rb : (*rigidbodys))
+		for (auto& rb : rigidbodys)
 		{
 			rb->ReflectGlobalTransform();
 		}
 
-		for (auto& rb : (*rigidbodys))
+		for (auto& rb : rigidbodys)
 		{
 			rb->CalcLocalTransform();
 		}
 
-		for (const auto& node : (*m_nodeMan.GetNodes()))
+		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
 			{
@@ -231,7 +231,7 @@ namespace saba
 			}
 		}
 
-		for (auto& rb : (*rigidbodys))
+		for (auto& rb : rigidbodys)
 		{
 			rb->Reset(physics);
 		}
@@ -247,25 +247,25 @@ namespace saba
 			return;
 		}
 
-		auto rigidbodys = physicsMan->GetRigidBodys();
-		for (auto& rb : (*rigidbodys))
+		auto& rigidbodys = physicsMan->m_rigidBodys;
+		for (auto& rb : rigidbodys)
 		{
 			rb->SetActivation(true);
 		}
 
 		physics->Update(elapsed);
 
-		for (auto& rb : (*rigidbodys))
+		for (auto& rb : rigidbodys)
 		{
 			rb->ReflectGlobalTransform();
 		}
 
-		for (auto& rb : (*rigidbodys))
+		for (auto& rb : rigidbodys)
 		{
 			rb->CalcLocalTransform();
 		}
 
-		for (const auto& node : (*m_nodeMan.GetNodes()))
+		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
 			{
@@ -276,7 +276,7 @@ namespace saba
 
 	void PMXModel::Update()
 	{
-		auto& nodes = (*m_nodeMan.GetNodes());
+		auto& nodes = m_nodeMan.m_nodes;
 
 		// スキンメッシュに使用する変形マトリクスを事前計算
 		for (size_t i = 0; i < nodes.size(); i++)
@@ -568,7 +568,7 @@ namespace saba
 		m_addMaterialFactors.resize(m_materials.size());
 
 		// Node
-		m_nodeMan.GetNodes()->reserve(pmx.m_bones.size());
+		m_nodeMan.m_nodes.reserve(pmx.m_bones.size());
 		for (const auto& bone : pmx.m_bones)
 		{
 			auto* node = m_nodeMan.AddNode();
@@ -622,8 +622,8 @@ namespace saba
 
 		m_sortedNodes.clear();
 		m_sortedNodes.reserve(m_nodeMan.m_nodes.size());
-		auto* pmxNodes = m_nodeMan.GetNodes();
-		for (auto& pmxNode : (*pmxNodes))
+		auto& pmxNodes = m_nodeMan.m_nodes;
+		for (auto& pmxNode : pmxNodes)
 		{
 			m_sortedNodes.push_back(pmxNode.get());
 		}
@@ -749,7 +749,7 @@ namespace saba
 			std::function<void(int32_t)> fixInifinitGropuMorph;
 			fixInifinitGropuMorph = [this, &fixInifinitGropuMorph, &groupMorphStack](int32_t morphIdx)
 			{
-				const auto& morphs = (*m_morphMan.GetMorphs());
+				const auto& morphs = m_morphMan.m_morphs;
 				const auto& morph = morphs[morphIdx];
 
 				if (morph->m_morphType == MorphType::Group)
@@ -815,11 +815,11 @@ namespace saba
 			{
 				auto joint = m_physicsMan.AddJoint();
 				MMDNode* node = nullptr;
-				auto rigidBodys = m_physicsMan.GetRigidBodys();
+				auto& rigidBodys = m_physicsMan.m_rigidBodys;
 				bool ret = joint->CreateJoint(
 					pmxJoint,
-					(*rigidBodys)[pmxJoint.m_rigidbodyAIndex].get(),
-					(*rigidBodys)[pmxJoint.m_rigidbodyBIndex].get()
+					rigidBodys[pmxJoint.m_rigidbodyAIndex].get(),
+					rigidBodys[pmxJoint.m_rigidbodyBIndex].get()
 				);
 				if (!ret)
 				{
@@ -848,7 +848,7 @@ namespace saba
 
 		m_indices.clear();
 
-		m_nodeMan.GetNodes()->clear();
+		m_nodeMan.m_nodes.clear();
 
 		m_updateRanges.clear();
 	}
@@ -963,7 +963,7 @@ namespace saba
 			{
 				// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
 
-				auto& nodes = (*m_nodeMan.GetNodes());
+				auto& nodes = m_nodeMan.m_nodes;
 				const auto i0 = vtxInfo->m_sdef.m_boneIndex[0];
 				const auto i1 = vtxInfo->m_sdef.m_boneIndex[1];
 				const auto w0 = vtxInfo->m_sdef.m_boneWeight;
@@ -1074,7 +1074,7 @@ namespace saba
 			for (const auto& groupMorph : groupMorphData.m_groupMorphs)
 			{
 				if (groupMorph.m_morphIndex == -1) { continue; }
-				auto& elemMorph = (*m_morphMan.GetMorphs())[groupMorph.m_morphIndex];
+				auto& elemMorph = m_morphMan.m_morphs[groupMorph.m_morphIndex];
 				Morph(elemMorph.get(), groupMorph.m_weight * weight);
 			}
 			break;

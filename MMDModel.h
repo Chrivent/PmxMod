@@ -64,11 +64,6 @@ namespace saba
 			return m_nodes[m_nodes.size() - 1].get();
 		}
 
-		std::vector<std::unique_ptr<MMDNode>>* GetNodes()
-		{
-			return &m_nodes;
-		}
-
 		std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 	};
 
@@ -112,11 +107,6 @@ namespace saba
 		{
 			m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
 			return m_ikSolvers[m_ikSolvers.size() - 1].get();
-		}
-
-		std::vector<std::unique_ptr<MMDIkSolver>>* GetIKSolvers()
-		{
-			return &m_ikSolvers;
 		}
 
 		std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
@@ -164,11 +154,6 @@ namespace saba
 			return m_morphs[m_morphs.size() - 1].get();
 		}
 
-		std::vector<std::unique_ptr<MMDMorph>>* GetMorphs()
-		{
-			return &m_morphs;
-		}
-
 		std::vector<std::unique_ptr<MMDMorph>>	m_morphs;
 	};
 
@@ -183,10 +168,7 @@ namespace saba
 		MMDPhysics* GetMMDPhysics();
 
 		MMDRigidBody* AddRigidBody();
-		std::vector<std::unique_ptr<MMDRigidBody>>* GetRigidBodys() { return &m_rigidBodys; }
-
 		MMDJoint* AddJoint();
-		std::vector<std::unique_ptr<MMDJoint>>* GetJoints() { return &m_joints; }
 
 		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
 
