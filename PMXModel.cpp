@@ -54,7 +54,7 @@ namespace saba
 
 		for (auto& morph : (*m_morphMan.GetMorphs()))
 		{
-			morph->SetWeight(0);
+			morph->m_weight = 0;
 		}
 
 		for (auto& ikSolver : (*m_ikSolverMan.GetIKSolvers()))
@@ -129,7 +129,7 @@ namespace saba
 		for (size_t i = 0; i < morphs.size(); i++)
 		{
 			const auto& morph = morphs[i];
-			Morph(morph.get(), morph->GetWeight());
+			Morph(morph.get(), morph->m_weight);
 		}
 
 		EndMorphMaterial();
@@ -673,7 +673,7 @@ namespace saba
 		{
 			auto morph = m_morphMan.AddMorph();
 			morph->m_name = pmxMorph.m_name;
-			morph->SetWeight(0.0f);
+			morph->m_weight = 0.0f;
 			morph->m_morphType = MorphType::None;
 			if (pmxMorph.m_morphType == PMXMorphType::Position)
 			{

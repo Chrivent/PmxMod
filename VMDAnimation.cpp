@@ -556,11 +556,11 @@ namespace saba
 
 		if (animWeight == 1.0f)
 		{
-			m_morph->SetWeight(weight);
+			m_morph->m_weight = weight;
 		}
 		else
 		{
-			m_morph->SetWeight(glm::mix(m_morph->GetBaseAnimationWeight(), weight, animWeight));
+			m_morph->m_weight = glm::mix(m_morph->m_saveAnimWeight, weight, animWeight);
 		}
 	}
 

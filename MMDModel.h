@@ -23,11 +23,31 @@ namespace saba
 	class MMDNodeManager
 	{
 	public:
+		using NodePtr = std::unique_ptr<MMDNode>;
+
 		static const size_t NPos = -1;
 
-		virtual size_t GetNodeCount() = 0;
-		virtual size_t FindNodeIndex(const std::string& name) = 0;
-		virtual MMDNode* GetMMDNode(size_t idx) = 0;
+		size_t GetNodeCount() { return m_nodes.size(); };
+		size_t FindNodeIndex(const std::string& name)
+		{
+			auto findIt = std::find_if(
+				m_nodes.begin(),
+				m_nodes.end(),
+				[&name](const NodePtr& node) { return node->m_name == name; }
+			);
+			if (findIt == m_nodes.end())
+			{
+				return NPos;
+			}
+			else
+			{
+				return findIt - m_nodes.begin();
+			}
+		}
+		MMDNode* GetMMDNode(size_t idx)
+		{
+			return m_nodes[idx].get();
+		}
 
 		MMDNode* GetMMDNode(const std::string& nodeName)
 		{
@@ -38,16 +58,57 @@ namespace saba
 			}
 			return GetMMDNode(findIdx);
 		}
+
+		MMDNode* AddNode()
+		{
+			auto node = std::make_unique<MMDNode>();
+			node->m_index = (uint32_t)m_nodes.size();
+			m_nodes.emplace_back(std::move(node));
+			return m_nodes[m_nodes.size() - 1].get();
+		}
+
+		MMDNode* GetNode(size_t i)
+		{
+			return m_nodes[i].get();
+		}
+
+		std::vector<NodePtr>* GetNodes()
+		{
+			return &m_nodes;
+		}
+
+	private:
+		std::vector<NodePtr>	m_nodes;
 	};
 
 	class MMDIKManager
 	{
 	public:
+		using IKSolverPtr = std::unique_ptr<MMDIkSolver>;
+
 		static const size_t NPos = -1;
 
-		virtual size_t GetIKSolverCount() = 0;
-		virtual size_t FindIKSolverIndex(const std::string& name) = 0;
-		virtual MMDIkSolver* GetMMDIKSolver(size_t idx) = 0;
+		size_t GetIKSolverCount() { return m_ikSolvers.size(); }
+		size_t FindIKSolverIndex(const std::string& name)
+		{
+			auto findIt = std::find_if(
+				m_ikSolvers.begin(),
+				m_ikSolvers.end(),
+				[&name](const IKSolverPtr& ikSolver) { return ikSolver->GetName() == name; }
+			);
+			if (findIt == m_ikSolvers.end())
+			{
+				return NPos;
+			}
+			else
+			{
+				return findIt - m_ikSolvers.begin();
+			}
+		}
+		MMDIkSolver* GetMMDIKSolver(size_t idx)
+		{
+			return m_ikSolvers[idx].get();
+		}
 
 		MMDIkSolver* GetMMDIKSolver(const std::string& ikName)
 		{
@@ -58,16 +119,55 @@ namespace saba
 			}
 			return GetMMDIKSolver(findIdx);
 		}
+
+		MMDIkSolver* AddIKSolver()
+		{
+			m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
+			return m_ikSolvers[m_ikSolvers.size() - 1].get();
+		}
+
+		MMDIkSolver* GetIKSolver(size_t i)
+		{
+			return m_ikSolvers[i].get();
+		}
+
+		std::vector<IKSolverPtr>* GetIKSolvers()
+		{
+			return &m_ikSolvers;
+		}
+
+	private:
+		std::vector<IKSolverPtr>	m_ikSolvers;
 	};
 
 	class MMDMorphManager
 	{
 	public:
+		using MorphPtr = std::unique_ptr<MMDMorph>;
+
 		static const size_t NPos = -1;
 
-		virtual size_t GetMorphCount() = 0;
-		virtual size_t FindMorphIndex(const std::string& name) = 0;
-		virtual MMDMorph* GetMorph(size_t idx) = 0;
+		size_t GetMorphCount() { return m_morphs.size(); }
+		size_t FindMorphIndex(const std::string& name)
+		{
+			auto findIt = std::find_if(
+				m_morphs.begin(),
+				m_morphs.end(),
+				[&name](const MorphPtr& morph) { return morph->m_name == name; }
+			);
+			if (findIt == m_morphs.end())
+			{
+				return NPos;
+			}
+			else
+			{
+				return findIt - m_morphs.begin();
+			}
+		}
+		MMDMorph* GetMorph(size_t idx)
+		{
+			return m_morphs[idx].get();
+		}
 
 		MMDMorph* GetMorph(const std::string& name)
 		{
@@ -78,6 +178,20 @@ namespace saba
 			}
 			return GetMorph(findIdx);
 		}
+
+		MMDMorph* AddMorph()
+		{
+			m_morphs.emplace_back(std::make_unique<MMDMorph>());
+			return m_morphs[m_morphs.size() - 1].get();
+		}
+
+		std::vector<MorphPtr>* GetMorphs()
+		{
+			return &m_morphs;
+		}
+
+	private:
+		std::vector<MorphPtr>	m_morphs;
 	};
 
 	class MMDPhysicsManager
@@ -171,153 +285,5 @@ namespace saba
 		virtual void SetParallelUpdateHint(uint32_t parallelCount) = 0;
 
 		void UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
-
-	protected:
-		template <typename NodeType>
-		class MMDNodeManagerT : public MMDNodeManager
-		{
-		public:
-			using NodePtr = std::unique_ptr<NodeType>;
-
-			size_t GetNodeCount() override { return m_nodes.size(); }
-
-			size_t FindNodeIndex(const std::string& name) override
-			{
-				auto findIt = std::find_if(
-					m_nodes.begin(),
-					m_nodes.end(),
-					[&name](const NodePtr& node) { return node->m_name == name; }
-				);
-				if (findIt == m_nodes.end())
-				{
-					return NPos;
-				}
-				else
-				{
-					return findIt - m_nodes.begin();
-				}
-			}
-
-			MMDNode* GetMMDNode(size_t idx) override
-			{
-				return m_nodes[idx].get();
-			}
-
-			NodeType* AddNode()
-			{
-				auto node = std::make_unique<NodeType>();
-				node->m_index = (uint32_t)m_nodes.size();
-				m_nodes.emplace_back(std::move(node));
-				return m_nodes[m_nodes.size() - 1].get();
-			}
-
-			NodeType* GetNode(size_t i)
-			{
-				return m_nodes[i].get();
-			}
-
-			std::vector<NodePtr>* GetNodes()
-			{
-				return &m_nodes;
-			}
-
-		private:
-			std::vector<NodePtr>	m_nodes;
-		};
-
-		template <typename IKSolverType>
-		class MMDIKManagerT : public MMDIKManager
-		{
-		public:
-			using IKSolverPtr = std::unique_ptr<IKSolverType>;
-
-			size_t GetIKSolverCount() override { return m_ikSolvers.size(); }
-
-			size_t FindIKSolverIndex(const std::string& name) override
-			{
-				auto findIt = std::find_if(
-					m_ikSolvers.begin(),
-					m_ikSolvers.end(),
-					[&name](const IKSolverPtr& ikSolver) { return ikSolver->GetName() == name; }
-				);
-				if (findIt == m_ikSolvers.end())
-				{
-					return NPos;
-				}
-				else
-				{
-					return findIt - m_ikSolvers.begin();
-				}
-			}
-
-			MMDIkSolver* GetMMDIKSolver(size_t idx) override
-			{
-				return m_ikSolvers[idx].get();
-			}
-
-			IKSolverType* AddIKSolver()
-			{
-				m_ikSolvers.emplace_back(std::make_unique<IKSolverType>());
-				return m_ikSolvers[m_ikSolvers.size() - 1].get();
-			}
-
-			IKSolverType* GetIKSolver(size_t i)
-			{
-				return m_ikSolvers[i].get();
-			}
-
-			std::vector<IKSolverPtr>* GetIKSolvers()
-			{
-				return &m_ikSolvers;
-			}
-
-		private:
-			std::vector<IKSolverPtr>	m_ikSolvers;
-		};
-
-		template <typename MorphType>
-		class MMDMorphManagerT : public MMDMorphManager
-		{
-		public:
-			using MorphPtr = std::unique_ptr<MorphType>;
-
-			size_t GetMorphCount() override { return m_morphs.size(); }
-
-			size_t FindMorphIndex(const std::string& name) override
-			{
-				auto findIt = std::find_if(
-					m_morphs.begin(),
-					m_morphs.end(),
-					[&name](const MorphPtr& morph) { return morph->m_name == name; }
-				);
-				if (findIt == m_morphs.end())
-				{
-					return NPos;
-				}
-				else
-				{
-					return findIt - m_morphs.begin();
-				}
-			}
-
-			MMDMorph* GetMorph(size_t idx) override
-			{
-				return m_morphs[idx].get();
-			}
-
-			MorphType* AddMorph()
-			{
-				m_morphs.emplace_back(std::make_unique<MorphType>());
-				return m_morphs[m_morphs.size() - 1].get();
-			}
-
-			std::vector<MorphPtr>* GetMorphs()
-			{
-				return &m_morphs;
-			}
-
-		private:
-			std::vector<MorphPtr>	m_morphs;
-		};
 	};
 }

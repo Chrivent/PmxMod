@@ -221,9 +221,9 @@ namespace saba
 		std::vector<MMDSubMesh>		m_subMeshes;
 		std::vector<MMDNode*>		m_sortedNodes;
 
-		MMDNodeManagerT<MMDNode>	m_nodeMan;
-		MMDIKManagerT<MMDIkSolver>	m_ikSolverMan;
-		MMDMorphManagerT<MMDMorph>	m_morphMan;
+		MMDNodeManager				m_nodeMan;
+		MMDIKManager				m_ikSolverMan;
+		MMDMorphManager				m_morphMan;
 		MMDPhysicsManager			m_physicsMan;
 
 		uint32_t							m_parallelUpdateCount;
