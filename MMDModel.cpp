@@ -6,6 +6,122 @@
 
 namespace saba
 {
+	size_t MMDNodeManager::FindNodeIndex(const std::string& name)
+	{
+		auto findIt = std::find_if(
+			m_nodes.begin(),
+			m_nodes.end(),
+			[&name](const std::unique_ptr<MMDNode>& node) { return node->m_name == name; }
+		);
+		if (findIt == m_nodes.end())
+		{
+			return NPos;
+		}
+		else
+		{
+			return findIt - m_nodes.begin();
+		}
+	}
+
+	MMDNode* MMDNodeManager::GetNode(size_t idx)
+	{
+		return m_nodes[idx].get();
+	}
+
+	MMDNode* MMDNodeManager::GetNode(const std::string& nodeName)
+	{
+		auto findIdx = FindNodeIndex(nodeName);
+		if (findIdx == NPos)
+		{
+			return nullptr;
+		}
+		return GetNode(findIdx);
+	}
+
+	MMDNode* MMDNodeManager::AddNode()
+	{
+		auto node = std::make_unique<MMDNode>();
+		node->m_index = (uint32_t)m_nodes.size();
+		m_nodes.emplace_back(std::move(node));
+		return m_nodes[m_nodes.size() - 1].get();
+	}
+
+	size_t MMDIKManager::FindIKSolverIndex(const std::string& name)
+	{
+		auto findIt = std::find_if(
+			m_ikSolvers.begin(),
+			m_ikSolvers.end(),
+			[&name](const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
+		);
+		if (findIt == m_ikSolvers.end())
+		{
+			return NPos;
+		}
+		else
+		{
+			return findIt - m_ikSolvers.begin();
+		}
+	}
+
+	MMDIkSolver* MMDIKManager::GetIKSolver(size_t idx)
+	{
+		return m_ikSolvers[idx].get();
+	}
+
+	MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName)
+	{
+		auto findIdx = FindIKSolverIndex(ikName);
+		if (findIdx == NPos)
+		{
+			return nullptr;
+		}
+		return GetIKSolver(findIdx);
+	}
+
+	MMDIkSolver* MMDIKManager::AddIKSolver()
+	{
+		m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
+		return m_ikSolvers[m_ikSolvers.size() - 1].get();
+	}
+
+	size_t MMDMorphManager::FindMorphIndex(const std::string& name)
+	{
+		auto findIt = std::find_if(
+			m_morphs.begin(),
+			m_morphs.end(),
+			[&name](const std::unique_ptr<MMDMorph>& morph) { return morph->m_name == name; }
+		);
+		if (findIt == m_morphs.end())
+		{
+			return NPos;
+		}
+		else
+		{
+			return findIt - m_morphs.begin();
+		}
+	}
+
+	MMDMorph* MMDMorphManager::GetMorph(size_t idx)
+	{
+		return m_morphs[idx].get();
+	}
+
+	MMDMorph* MMDMorphManager::GetMorph(const std::string& name)
+	{
+		auto findIdx = FindMorphIndex(name);
+		if (findIdx == NPos)
+		{
+			return nullptr;
+		}
+		return GetMorph(findIdx);
+	}
+
+	MMDMorph* MMDMorphManager::AddMorph()
+	{
+		m_morphs.emplace_back(std::make_unique<MMDMorph>());
+		return m_morphs[m_morphs.size() - 1].get();
+	}
+
 	MMDPhysicsManager::MMDPhysicsManager()
 	{
 	}
