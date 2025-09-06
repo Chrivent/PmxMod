@@ -142,10 +142,6 @@ namespace saba
 		return m_morphs[m_morphs.size() - 1].get();
 	}
 
-	MMDPhysicsManager::MMDPhysicsManager()
-	{
-	}
-
 	MMDPhysicsManager::~MMDPhysicsManager()
 	{
 		for (auto& joint : m_joints)
@@ -389,12 +385,6 @@ namespace saba
 		}
 	}
 
-	void MMDModel::UpdateAnimation()
-	{
-		UpdateMorphAnimation();
-		UpdateNodeAnimation(false);
-	}
-
 	void MMDModel::UpdateNodeAnimation(bool afterPhysicsAnim)
 	{
 		for (auto pmxNode : m_sortedNodes)
@@ -497,11 +487,6 @@ namespace saba
 		}
 	}
 
-	void MMDModel::UpdatePhysics(float elapsed)
-	{
-		UpdatePhysicsAnimation(elapsed);
-	}
-
 	void MMDModel::UpdatePhysicsAnimation(float elapsed)
 	{
 		MMDPhysicsManager& physicsMan = m_physicsMan;
@@ -577,11 +562,6 @@ namespace saba
 				m_parallelUpdateFutures[i].wait();
 			}
 		}
-	}
-
-	void MMDModel::SetParallelUpdateHint(uint32_t parallelCount)
-	{
-		m_parallelUpdateCount = parallelCount;
 	}
 
 	void MMDModel::UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed)

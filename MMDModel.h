@@ -63,7 +63,6 @@ namespace saba
 	class MMDPhysicsManager
 	{
 	public:
-		MMDPhysicsManager();
 		~MMDPhysicsManager();
 
 		bool Create();
@@ -108,17 +107,12 @@ namespace saba
 		// Morph
 		void UpdateMorphAnimation();
 		// ノードを更新する
-		[[deprecated("Please use UpdateAllAnimation() function")]]
-		void UpdateAnimation();
 		void UpdateNodeAnimation(bool afterPhysicsAnim);
 		// Physicsを更新する
 		void ResetPhysics();
-		[[deprecated("Please use UpdateAllAnimation() function")]]
-		void UpdatePhysics(float elapsed);
 		void UpdatePhysicsAnimation(float elapsed);
 		// 頂点を更新する
 		void Update();
-		void SetParallelUpdateHint(uint32_t parallelCount);
 
 		void UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
 
