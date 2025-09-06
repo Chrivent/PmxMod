@@ -21,7 +21,6 @@
 #include "File.h"
 #include "UnicodeUtil.h"
 #include "Time.h"
-#include "PMXModel.h"
 #include "VMDFile.h"
 #include "VMDAnimation.h"
 #include "VMDCameraAnimation.h"
@@ -1410,7 +1409,7 @@ bool SampleMain()
 		auto ext = saba::PathUtil::GetExt(input.m_modelPath);
 		if (ext == "pmx")
 		{
-			auto pmxModel = std::make_unique<saba::PMXModel>();
+			auto pmxModel = std::make_unique<saba::MMDModel>();
 			if (!pmxModel->Load(input.m_modelPath, appContext.m_mmdDir))
 			{
 				std::cout << "Failed to load pmx file.\n";

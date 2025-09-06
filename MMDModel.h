@@ -94,11 +94,6 @@ namespace saba
 		MMDModel();
 		~MMDModel();
 
-		MMDNodeManager* GetNodeManager() { return &m_nodeMan; }
-		MMDIKManager* GetIKManager() { return &m_ikSolverMan; }
-		MMDMorphManager* GetMorphManager() { return &m_morphMan; };
-		MMDPhysicsManager* GetPhysicsManager() { return &m_physicsMan; }
-
 		size_t GetVertexCount() const { return m_positions.size(); }
 		const glm::vec3* GetPositions() const { return m_positions.data(); }
 		const glm::vec3* GetNormals() const { return m_normals.data(); }

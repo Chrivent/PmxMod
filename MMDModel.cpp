@@ -267,72 +267,72 @@ namespace saba
 
 	void MMDModel::SaveBaseAnimation()
 	{
-		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
+		auto& nodeMan = m_nodeMan;
+		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetNode(i);
+			auto node = nodeMan.GetNode(i);
 			node->SaveBaseAnimation();
 		}
 
-		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
+		auto& morphMan = m_morphMan;
+		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
 		{
-			auto morph = morphMan->GetMorph(i);
+			auto morph = morphMan.GetMorph(i);
 			morph->SaveBaseAnimation();
 		}
 
-		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
+		auto& ikMan = m_ikSolverMan;
+		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetIKSolver(i);
+			auto ikSolver = ikMan.GetIKSolver(i);
 			ikSolver->SaveBaseAnimation();
 		}
 	}
 
 	void MMDModel::LoadBaseAnimation()
 	{
-		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
+		auto& nodeMan = m_nodeMan;
+		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetNode(i);
+			auto node = nodeMan.GetNode(i);
 			node->LoadBaseAnimation();
 		}
 
-		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
+		auto& morphMan = m_morphMan;
+		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
 		{
-			auto morph = morphMan->GetMorph(i);
+			auto morph = morphMan.GetMorph(i);
 			morph->LoadBaseAnimation();
 		}
 
-		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
+		auto& ikMan = m_ikSolverMan;
+		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetIKSolver(i);
+			auto ikSolver = ikMan.GetIKSolver(i);
 			ikSolver->LoadBaseAnimation();
 		}
 	}
 
 	void MMDModel::ClearBaseAnimation()
 	{
-		auto nodeMan = GetNodeManager();
-		for (size_t i = 0; i < nodeMan->m_nodes.size(); i++)
+		auto& nodeMan = m_nodeMan;
+		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			auto node = nodeMan->GetNode(i);
+			auto node = nodeMan.GetNode(i);
 			node->ClearBaseAnimation();
 		}
 
-		auto morphMan = GetMorphManager();
-		for (size_t i = 0; i < morphMan->m_morphs.size(); i++)
+		auto& morphMan = m_morphMan;
+		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
 		{
-			auto morph = morphMan->GetMorph(i);
+			auto morph = morphMan.GetMorph(i);
 			morph->ClearBaseAnimation();
 		}
 
-		auto ikMan = GetIKManager();
-		for (size_t i = 0; i < ikMan->m_ikSolvers.size(); i++)
+		auto& ikMan = m_ikSolverMan;
+		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
 		{
-			auto ikSolver = ikMan->GetIKSolver(i);
+			auto ikSolver = ikMan.GetIKSolver(i);
 			ikSolver->ClearBaseAnimation();
 		}
 	}
@@ -456,15 +456,15 @@ namespace saba
 
 	void MMDModel::ResetPhysics()
 	{
-		MMDPhysicsManager* physicsMan = GetPhysicsManager();
-		auto physics = physicsMan->GetMMDPhysics();
+		MMDPhysicsManager& physicsMan = m_physicsMan;
+		auto physics = physicsMan.GetMMDPhysics();
 
 		if (physics == nullptr)
 		{
 			return;
 		}
 
-		auto& rigidbodys = physicsMan->m_rigidBodys;
+		auto& rigidbodys = physicsMan.m_rigidBodys;
 		for (auto& rb : rigidbodys)
 		{
 			rb->SetActivation(false);
@@ -504,15 +504,15 @@ namespace saba
 
 	void MMDModel::UpdatePhysicsAnimation(float elapsed)
 	{
-		MMDPhysicsManager* physicsMan = GetPhysicsManager();
-		auto physics = physicsMan->GetMMDPhysics();
+		MMDPhysicsManager& physicsMan = m_physicsMan;
+		auto physics = physicsMan.GetMMDPhysics();
 
 		if (physics == nullptr)
 		{
 			return;
 		}
 
-		auto& rigidbodys = physicsMan->m_rigidBodys;
+		auto& rigidbodys = physicsMan.m_rigidBodys;
 		for (auto& rb : rigidbodys)
 		{
 			rb->SetActivation(true);
