@@ -25,6 +25,14 @@ namespace saba
 		, m_initTranslate(0)
 		, m_initRotate(1, 0, 0, 0)
 		, m_initScale(1)
+		, m_deformDepth(-1)
+		, m_isDeformAfterPhysics(false)
+		, m_appendNode(nullptr)
+		, m_isAppendRotate(false)
+		, m_isAppendTranslate(false)
+		, m_isAppendLocal(false)
+		, m_appendWeight(0)
+		, m_ikSolver(nullptr)
 	{
 	}
 
@@ -112,8 +120,74 @@ namespace saba
 		m_inverseInit = glm::inverse(m_global);
 	}
 
+	void MMDNode::UpdateAppendTransform()
+	{
+		if (m_appendNode == nullptr)
+		{
+			return;
+		}
+
+		if (m_isAppendRotate)
+		{
+			glm::quat appendRotate;
+			if (m_isAppendLocal)
+			{
+				appendRotate = m_appendNode->AnimateRotate();
+			}
+			else
+			{
+				if (m_appendNode->m_appendNode != nullptr)
+				{
+					appendRotate = m_appendNode->m_appendRotate;
+				}
+				else
+				{
+					appendRotate = m_appendNode->AnimateRotate();
+				}
+			}
+
+			if (m_appendNode->m_enableIK)
+			{
+				appendRotate = m_appendNode->m_ikRotate * appendRotate;
+			}
+
+			glm::quat appendQ = glm::slerp(
+				glm::quat(1, 0, 0, 0),
+				appendRotate,
+				m_appendWeight
+			);
+			m_appendRotate = appendQ;
+		}
+
+		if (m_isAppendTranslate)
+		{
+			glm::vec3 appendTranslate(0.0f);
+			if (m_isAppendLocal)
+			{
+				appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
+			}
+			else
+			{
+				if (m_appendNode->m_appendNode != nullptr)
+				{
+					appendTranslate = m_appendNode->m_appendTranslate;
+				}
+				else
+				{
+					appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
+				}
+			}
+
+			m_appendTranslate = appendTranslate * m_appendWeight;
+		}
+
+		UpdateLocalTransform();
+	}
+
 	void MMDNode::OnBeginUpdateTransform()
 	{
+		m_appendTranslate = glm::vec3(0);
+		m_appendRotate = glm::quat(1, 0, 0, 0);
 	}
 
 	void MMDNode::OnEndUpdateTransfrom()
@@ -122,14 +196,27 @@ namespace saba
 
 	void MMDNode::OnUpdateLocalTransform()
 	{
-		auto s = glm::scale(glm::mat4(1), m_scale);
-		auto r = glm::mat4_cast(AnimateRotate());
-		auto t = glm::translate(glm::mat4(1), AnimateTranslate());
+		glm::vec3 t = AnimateTranslate();
+		if (m_isAppendTranslate)
+		{
+			t += m_appendTranslate;
+		}
+
+		glm::quat r = AnimateRotate();
 		if (m_enableIK)
 		{
-			r = glm::mat4_cast(m_ikRotate) * r;
+			r = m_ikRotate * r;
 		}
-		m_local = t * r * s;
+		if (m_isAppendRotate)
+		{
+			r = r * m_appendRotate;
+		}
+
+		glm::vec3 s = m_scale;
+
+		m_local = glm::translate(glm::mat4(1), t)
+			* glm::mat4_cast(r)
+			* glm::scale(glm::mat4(1), s);
 	}
 
 }

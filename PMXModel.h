@@ -15,35 +15,6 @@
 
 namespace saba
 {
-	class PMXNode : public MMDNode
-	{
-	public:
-		PMXNode();
-
-		void UpdateAppendTransform();
-
-	protected:
-		void OnBeginUpdateTransform() override;
-		void OnEndUpdateTransfrom() override;
-		void OnUpdateLocalTransform() override;
-
-	public:
-		int32_t		m_deformDepth;
-		bool		m_isDeformAfterPhysics;
-
-		PMXNode*	m_appendNode;
-		bool		m_isAppendRotate;
-		bool		m_isAppendTranslate;
-		bool		m_isAppendLocal;
-		float		m_appendWeight;
-
-		glm::vec3	m_appendTranslate;
-		glm::quat	m_appendRotate;
-
-		MMDIkSolver*	m_ikSolver;
-
-	};
-
 	class PMXModel : public MMDModel
 	{
 	public:
@@ -192,23 +163,6 @@ namespace saba
 			std::vector<saba::PMXMorph::GroupMorph>		m_groupMorphs;
 		};
 
-		enum class MorphType
-		{
-			None,
-			Position,
-			UV,
-			Material,
-			Bone,
-			Group,
-		};
-
-		class PMXMorph : public MMDMorph
-		{
-		public:
-			MorphType	m_morphType;
-			size_t		m_dataIndex;
-		};
-
 		struct UpdateRange
 		{
 			size_t	m_vertexOffset;
@@ -219,7 +173,7 @@ namespace saba
 		void SetupParallelUpdate();
 		void Update(const UpdateRange& range);
 
-		void Morph(PMXMorph* morph, float weight);
+		void Morph(MMDMorph* morph, float weight);
 
 		void MorphPosition(const PositionMorphData& morphData, float weight);
 
@@ -265,11 +219,11 @@ namespace saba
 
 		std::vector<MMDMaterial>	m_materials;
 		std::vector<MMDSubMesh>		m_subMeshes;
-		std::vector<PMXNode*>		m_sortedNodes;
+		std::vector<MMDNode*>		m_sortedNodes;
 
-		MMDNodeManagerT<PMXNode>	m_nodeMan;
+		MMDNodeManagerT<MMDNode>	m_nodeMan;
 		MMDIKManagerT<MMDIkSolver>	m_ikSolverMan;
-		MMDMorphManagerT<PMXMorph>	m_morphMan;
+		MMDMorphManagerT<MMDMorph>	m_morphMan;
 		MMDPhysicsManager			m_physicsMan;
 
 		uint32_t							m_parallelUpdateCount;

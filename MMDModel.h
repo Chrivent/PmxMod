@@ -288,7 +288,7 @@ namespace saba
 				auto findIt = std::find_if(
 					m_morphs.begin(),
 					m_morphs.end(),
-					[&name](const MorphPtr& morph) { return morph->GetName() == name; }
+					[&name](const MorphPtr& morph) { return morph->m_name == name; }
 				);
 				if (findIt == m_morphs.end())
 				{

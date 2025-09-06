@@ -7,6 +7,8 @@
 
 namespace saba
 {
+	class MMDIkSolver;
+
 	class MMDNode
 	{
 	public:
@@ -58,6 +60,8 @@ namespace saba
 			m_baseAnimRotate = glm::quat(1, 0, 0, 0);
 		}
 
+		void UpdateAppendTransform();
+
 	protected:
 		virtual void OnBeginUpdateTransform();
 		virtual void OnEndUpdateTransfrom();
@@ -92,6 +96,20 @@ namespace saba
 		glm::vec3	m_initTranslate;
 		glm::quat	m_initRotate;
 		glm::vec3	m_initScale;
+
+		int32_t		m_deformDepth;
+		bool		m_isDeformAfterPhysics;
+
+		MMDNode*	m_appendNode;
+		bool		m_isAppendRotate;
+		bool		m_isAppendTranslate;
+		bool		m_isAppendLocal;
+		float		m_appendWeight;
+
+		glm::vec3	m_appendTranslate;
+		glm::quat	m_appendRotate;
+
+		MMDIkSolver* m_ikSolver;
 	};
 }
 

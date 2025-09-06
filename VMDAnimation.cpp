@@ -287,7 +287,7 @@ namespace saba
 		std::map<std::string, MorphControllerPtr> morphCtrlMap;
 		for (auto& morphCtrl : m_morphControllers)
 		{
-			std::string name = morphCtrl->GetMorph()->GetName();
+			std::string name = morphCtrl->GetMorph()->m_name;
 			morphCtrlMap.emplace(std::make_pair(name, std::move(morphCtrl)));
 		}
 		m_morphControllers.clear();
