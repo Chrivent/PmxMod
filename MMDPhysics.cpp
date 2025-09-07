@@ -192,10 +192,10 @@ namespace saba
 			}
 
 			auto currentTime = std::chrono::steady_clock::now();
-			double dt = std::chrono::duration<double>(currentTime - prevTime).count();
+			double deltaTime = std::chrono::duration<double>(currentTime - prevTime).count();
 			prevTime = currentTime;
 
-			m_world->stepSimulation(static_cast<btScalar>(dt), m_maxSubStepCount, static_cast<btScalar>(1.0f / m_fps));
+			m_world->stepSimulation(deltaTime, m_maxSubStepCount, 1.0f / m_fps);
 		}
 
 		_endFlag.store(true);
