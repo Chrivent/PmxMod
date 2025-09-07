@@ -451,7 +451,7 @@ namespace saba
 			rb->ResetTransform();
 		}
 
-		physics->Update(1.0f / 60.0f);
+		//physics->Update(1.0f / 60.0f);
 
 		for (auto& rb : rigidbodys)
 		{
@@ -493,7 +493,7 @@ namespace saba
 			rb->SetActivation(true);
 		}
 
-		physics->Update(elapsed);
+		//physics->Update(elapsed);
 
 		for (auto& rb : rigidbodys)
 		{
@@ -1084,11 +1084,16 @@ namespace saba
 
 		SetupParallelUpdate();
 
+		m_physicsMan.GetMMDPhysics()->ActivePhysics(true);
+
 		return true;
 	}
 
 	void MMDModel::Destroy()
 	{
+		if (auto* phys = m_physicsMan.GetMMDPhysics())
+			phys->ActivePhysics(false);
+
 		m_materials.clear();
 		m_subMeshes.clear();
 

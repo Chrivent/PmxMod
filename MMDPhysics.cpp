@@ -97,6 +97,8 @@ namespace saba
 
 	void MMDPhysics::Destroy()
 	{
+		ActivePhysics(false);
+
 		if (m_world != nullptr && m_groundRB != nullptr)
 		{
 			m_world->removeRigidBody(m_groundRB.get());
@@ -112,13 +114,13 @@ namespace saba
 		m_groundRB = nullptr;
 	}
 
-	void MMDPhysics::Update(float time)
+	/*void MMDPhysics::Update(float time)
 	{
 		if (m_world != nullptr)
 		{
 			m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 		}
-	}
+	}*/
 
 	void MMDPhysics::AddRigidBody(MMDRigidBody * mmdRB)
 	{
@@ -153,6 +155,45 @@ namespace saba
 	btDiscreteDynamicsWorld * MMDPhysics::GetDynamicsWorld() const
 	{
 		return m_world.get();
+	}
+
+	void MMDPhysics::ActivePhysics(bool active)
+	{
+		if (active) {
+			if (_threadFlag.load(std::memory_order_acquire)) return;
+			_stopFlag.store(false, std::memory_order_release);
+			_physicsUpdateThread = std::thread(&MMDPhysics::UpdateByThread, this);
+			_threadFlag.store(true, std::memory_order_release);
+		}
+		else {
+			if (!_threadFlag.load(std::memory_order_acquire)) return;
+			_stopFlag.store(true, std::memory_order_release);
+			if (_physicsUpdateThread.joinable()) _physicsUpdateThread.join();
+			_threadFlag.store(false, std::memory_order_release);
+		}
+	}
+
+	void MMDPhysics::UpdateByThread()
+	{
+		using clock = std::chrono::steady_clock;
+		auto prevTime = clock::now();
+
+		while (true)
+		{
+			if (_stopFlag.load(std::memory_order_relaxed))
+			{
+				break;
+			}
+
+			auto currentTime = clock::now();
+			double dt = std::chrono::duration<double>(currentTime - prevTime).count();
+			prevTime = currentTime;
+
+			{
+				std::lock_guard<std::mutex> lk(_worldMx);
+				m_world->stepSimulation(static_cast<btScalar>(dt), m_maxSubStepCount, static_cast<btScalar>(1.0f / m_fps));
+			}
+		}
 	}
 
 	//*******************
