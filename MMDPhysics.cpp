@@ -112,27 +112,6 @@ namespace saba
 		m_groundRB = nullptr;
 	}
 
-	void MMDPhysics::SetFPS(float fps)
-	{
-		m_fps = fps;
-	}
-
-	float MMDPhysics::GetFPS() const
-	{
-		return static_cast<float>(m_fps);
-	}
-
-	void MMDPhysics::SetMaxSubStepCount(int numSteps)
-	{
-		m_maxSubStepCount = numSteps;
-	}
-
-	int MMDPhysics::GetMaxSubStepCount() const
-	{
-		return m_maxSubStepCount;
-	}
-
-
 	void MMDPhysics::Update(float time)
 	{
 		if (m_world != nullptr)
@@ -145,8 +124,8 @@ namespace saba
 	{
 		m_world->addRigidBody(
 			mmdRB->GetRigidBody(),
-			1 << mmdRB->GetGroup(),
-			mmdRB->GetGroupMask()
+			1 << mmdRB->m_group,
+			mmdRB->m_groupMask
 		);
 	}
 
@@ -498,16 +477,6 @@ namespace saba
 	btRigidBody * MMDRigidBody::GetRigidBody() const
 	{
 		return m_rigidBody.get();
-	}
-
-	uint16_t MMDRigidBody::GetGroup() const
-	{
-		return m_group;
-	}
-
-	uint16_t MMDRigidBody::GetGroupMask() const
-	{
-		return m_groupMask;
 	}
 
 	void MMDRigidBody::SetActivation(bool activation)

@@ -41,8 +41,6 @@ namespace saba
 		void Destroy();
 
 		btRigidBody* GetRigidBody() const;
-		uint16_t GetGroup() const;
-		uint16_t GetGroupMask() const;
 
 		void SetActivation(bool activation);
 		void ResetTransform();
@@ -67,6 +65,7 @@ namespace saba
 		std::unique_ptr<MMDMotionState>		m_kinematicMotionState;
 		std::unique_ptr<btRigidBody>		m_rigidBody;
 
+	public:
 		RigidBodyType	m_rigidBodyType;
 		uint16_t		m_group;
 		uint16_t		m_groupMask;
@@ -106,10 +105,6 @@ namespace saba
 		bool Create();
 		void Destroy();
 
-		void SetFPS(float fps);
-		float GetFPS() const;
-		void SetMaxSubStepCount(int numSteps);
-		int GetMaxSubStepCount() const;
 		void Update(float time);
 
 		void AddRigidBody(MMDRigidBody* mmdRB);
@@ -130,6 +125,7 @@ namespace saba
 		std::unique_ptr<btRigidBody>						m_groundRB;
 		std::unique_ptr<btOverlapFilterCallback>			m_filterCB;
 
+	public:
 		double	m_fps;
 		int		m_maxSubStepCount;
 	};

@@ -72,8 +72,10 @@ namespace saba
 		MMDRigidBody* AddRigidBody();
 		MMDJoint* AddJoint();
 
+	private:
 		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
 
+	public:
 		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodys;
 		std::vector<std::unique_ptr<MMDJoint>>		m_joints;
 	};
