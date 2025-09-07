@@ -222,7 +222,7 @@ namespace saba
 
 		for (auto& ikSolver : m_ikSolverMan.m_ikSolvers)
 		{
-			ikSolver->Enable(true);
+			ikSolver->m_enable = true;
 		}
 
 		for (const auto& node : m_nodeMan.m_nodes)
@@ -914,8 +914,8 @@ namespace saba
 					linkNode->m_enableIK = true;
 				}
 
-				solver->SetIterateCount(bone.m_ikIterationCount);
-				solver->SetLimitAngle(bone.m_ikLimit);
+				solver->m_iterateCount = bone.m_ikIterationCount;
+				solver->m_limitAngle = bone.m_ikLimit;
 			}
 		}
 

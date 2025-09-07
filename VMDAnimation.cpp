@@ -459,7 +459,7 @@ namespace saba
 		}
 		if (m_keys.empty())
 		{
-			m_ikSolver->Enable(true);
+			m_ikSolver->m_enable = true;
 			return;
 		}
 
@@ -483,17 +483,17 @@ namespace saba
 
 		if (weight == 1.0f)
 		{
-			m_ikSolver->Enable(enable);
+			m_ikSolver->m_enable = enable;
 		}
 		else
 		{
 			if (weight < 1.0f)
 			{
-				m_ikSolver->Enable(m_ikSolver->GetBaseAnimationEnabled());
+				m_ikSolver->m_enable = m_ikSolver->GetBaseAnimationEnabled();
 			}
 			else
 			{
-				m_ikSolver->Enable(enable);
+				m_ikSolver->m_enable = enable;
 			}
 		}
 	}
