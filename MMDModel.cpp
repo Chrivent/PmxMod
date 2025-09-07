@@ -1082,9 +1082,9 @@ namespace saba
 
 		ResetPhysics();
 
-		SetupParallelUpdate();
-
 		m_physicsMan.GetMMDPhysics()->ActivePhysics(true);
+
+		SetupParallelUpdate();
 
 		return true;
 	}

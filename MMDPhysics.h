@@ -138,8 +138,7 @@ namespace saba
 		std::thread _physicsUpdateThread;
 		std::atomic<bool> _threadFlag{ false };
 		std::atomic<bool> _stopFlag{ false };
-
-		std::mutex _worldMx;
+		std::atomic<bool> _endFlag{ false };
 	};
 
 }

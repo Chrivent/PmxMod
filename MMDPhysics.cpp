@@ -97,7 +97,12 @@ namespace saba
 
 	void MMDPhysics::Destroy()
 	{
-		ActivePhysics(false);
+		if (_threadFlag == true)
+		{
+			_stopFlag.store(true);
+
+			while (_endFlag.load() == false);
+		}
 
 		if (m_world != nullptr && m_groundRB != nullptr)
 		{
@@ -159,41 +164,41 @@ namespace saba
 
 	void MMDPhysics::ActivePhysics(bool active)
 	{
-		if (active) {
-			if (_threadFlag.load(std::memory_order_acquire)) return;
-			_stopFlag.store(false, std::memory_order_release);
+		if (active == true)
+		{
+			_stopFlag.store(false);
+			_endFlag.store(false);
+			_threadFlag = true;
 			_physicsUpdateThread = std::thread(&MMDPhysics::UpdateByThread, this);
-			_threadFlag.store(true, std::memory_order_release);
+			_physicsUpdateThread.detach();
 		}
-		else {
-			if (!_threadFlag.load(std::memory_order_acquire)) return;
-			_stopFlag.store(true, std::memory_order_release);
-			if (_physicsUpdateThread.joinable()) _physicsUpdateThread.join();
-			_threadFlag.store(false, std::memory_order_release);
+		else
+		{
+			_stopFlag.store(true);
+			while (_endFlag.load() == false);
+			_threadFlag = false;
 		}
 	}
 
 	void MMDPhysics::UpdateByThread()
 	{
-		using clock = std::chrono::steady_clock;
-		auto prevTime = clock::now();
+		auto prevTime = std::chrono::steady_clock::now();
 
 		while (true)
 		{
-			if (_stopFlag.load(std::memory_order_relaxed))
+			if (_stopFlag.load() == true)
 			{
 				break;
 			}
 
-			auto currentTime = clock::now();
+			auto currentTime = std::chrono::steady_clock::now();
 			double dt = std::chrono::duration<double>(currentTime - prevTime).count();
 			prevTime = currentTime;
 
-			{
-				std::lock_guard<std::mutex> lk(_worldMx);
-				m_world->stepSimulation(static_cast<btScalar>(dt), m_maxSubStepCount, static_cast<btScalar>(1.0f / m_fps));
-			}
+			m_world->stepSimulation(static_cast<btScalar>(dt), m_maxSubStepCount, static_cast<btScalar>(1.0f / m_fps));
 		}
+
+		_endFlag.store(true);
 	}
 
 	//*******************
