@@ -13,17 +13,7 @@ namespace saba
 	public:
 		MMDIkSolver();
 
-		std::string GetName() const
-		{
-			if (m_ikNode != nullptr)
-			{
-				return m_ikNode->m_name;
-			}
-			else
-			{
-				return "";
-			}
-		}
+		std::string GetName() const;
 
 		void AddIKChain(MMDNode* node, bool isKnee = false);
 		void AddIKChain(

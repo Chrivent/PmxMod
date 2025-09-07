@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "PMXFile.h"
+#include "Time.h"
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -9,7 +10,6 @@
 #include <memory>
 #include <cinttypes>
 
-#include <mutex>
 #include <thread>
 #include <atomic>
 

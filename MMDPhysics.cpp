@@ -182,7 +182,7 @@ namespace saba
 
 	void MMDPhysics::UpdateByThread()
 	{
-		auto prevTime = std::chrono::steady_clock::now();
+		auto prevTime = GetTime();
 
 		while (true)
 		{
@@ -191,8 +191,8 @@ namespace saba
 				break;
 			}
 
-			auto currentTime = std::chrono::steady_clock::now();
-			double deltaTime = std::chrono::duration<double>(currentTime - prevTime).count();
+			auto currentTime = GetTime();
+			double deltaTime = currentTime - prevTime;
 			prevTime = currentTime;
 
 			m_world->stepSimulation(deltaTime, m_maxSubStepCount, 1.0f / m_fps);
