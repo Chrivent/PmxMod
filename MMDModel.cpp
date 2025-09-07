@@ -892,11 +892,11 @@ namespace saba
 			{
 				auto solver = m_ikSolverMan.AddIKSolver();
 				auto* ikNode = m_nodeMan.GetNode(i);
-				solver->SetIKNode(ikNode);
+				solver->m_ikNode = ikNode;
 				ikNode->m_ikSolver = solver;
 
 				auto* targetNode = m_nodeMan.GetNode(bone.m_ikTargetBoneIndex);
-				solver->SetTargetNode(targetNode);
+				solver->m_ikTarget = targetNode;
 
 				for (const auto& ikLink : bone.m_ikLinks)
 				{

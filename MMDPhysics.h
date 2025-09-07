@@ -38,8 +38,6 @@ namespace saba
 	public:
 		MMDRigidBody();
 		~MMDRigidBody();
-		MMDRigidBody(const MMDRigidBody& rhs) = delete;
-		MMDRigidBody& operator = (const MMDRigidBody& rhs) = delete;
 
 		bool Create(const PMXRigidbody& pmxRigidBody, MMDModel* model, MMDNode* node);
 		void Destroy();
@@ -85,8 +83,6 @@ namespace saba
 	public:
 		MMDJoint();
 		~MMDJoint();
-		MMDJoint(const MMDJoint& rhs) = delete;
-		MMDJoint& operator = (const MMDJoint& rhs) = delete;
 
 		bool CreateJoint(const PMXJoint& pmxJoint, MMDRigidBody* rigidBodyA, MMDRigidBody* rigidBodyB);
 		void Destroy();
@@ -102,9 +98,6 @@ namespace saba
 	public:
 		MMDPhysics();
 		~MMDPhysics();
-
-		MMDPhysics(const MMDPhysics& rhs) = delete;
-		MMDPhysics& operator = (const MMDPhysics& rhs) = delete;
 
 		bool Create();
 		void Destroy();

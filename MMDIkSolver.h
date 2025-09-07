@@ -13,10 +13,6 @@ namespace saba
 	public:
 		MMDIkSolver();
 
-		void SetIKNode(MMDNode* node) { m_ikNode = node; }
-		void SetTargetNode(MMDNode* node) { m_ikTarget = node; }
-		MMDNode* GetIKNode() const { return m_ikNode; }
-		MMDNode* GetTargetNode() const { return m_ikTarget; }
 		std::string GetName() const
 		{
 			if (m_ikNode != nullptr)
@@ -72,7 +68,7 @@ namespace saba
 		};
 		void SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis);
 
-	private:
+	public:
 		std::vector<IKChain>	m_chains;
 		MMDNode*	m_ikNode;
 		MMDNode*	m_ikTarget;
