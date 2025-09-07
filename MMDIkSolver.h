@@ -38,7 +38,6 @@ namespace saba
 		void SaveBaseAnimation() { m_baseAnimEnable = m_enable; }
 		void LoadBaseAnimation() { m_enable = m_baseAnimEnable; }
 		void ClearBaseAnimation() { m_baseAnimEnable = true; }
-		bool GetBaseAnimationEnabled() const { return m_baseAnimEnable; }
 
 	private:
 		struct IKChain

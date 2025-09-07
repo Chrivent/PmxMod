@@ -489,7 +489,7 @@ namespace saba
 		{
 			if (weight < 1.0f)
 			{
-				m_ikSolver->m_enable = m_ikSolver->GetBaseAnimationEnabled();
+				m_ikSolver->m_enable = m_ikSolver->m_baseAnimEnable;
 			}
 			else
 			{
