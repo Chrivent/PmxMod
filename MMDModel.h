@@ -37,6 +37,36 @@ namespace saba
 
 	class VMDAnimation;
 
+	enum class SkinningType
+	{
+		Weight1,
+		Weight2,
+		Weight4,
+		SDEF,
+		DualQuaternion,
+	};
+	struct VertexBoneInfo
+	{
+		SkinningType	m_skinningType;
+		union
+		{
+			struct
+			{
+				int32_t	m_boneIndex[4];
+				float	m_boneWeight[4];
+			};
+			struct
+			{
+				int32_t	m_boneIndex[2];
+				float	m_boneWeight;
+
+				glm::vec3	m_sdefC;
+				glm::vec3	m_sdefR0;
+				glm::vec3	m_sdefR1;
+			} m_sdef;
+		};
+	};
+
 	class MMDModel
 	{
 	public:
@@ -67,36 +97,6 @@ namespace saba
 
 		bool Load(const std::string& filepath, const std::string& mmdDataDir);
 		void Destroy();
-
-		enum class SkinningType
-		{
-			Weight1,
-			Weight2,
-			Weight4,
-			SDEF,
-			DualQuaternion,
-		};
-		struct VertexBoneInfo
-		{
-			SkinningType	m_skinningType;
-			union
-			{
-				struct
-				{
-					int32_t	m_boneIndex[4];
-					float	m_boneWeight[4];
-				};
-				struct
-				{
-					int32_t	m_boneIndex[2];
-					float	m_boneWeight;
-
-					glm::vec3	m_sdefC;
-					glm::vec3	m_sdefR0;
-					glm::vec3	m_sdefR1;
-				} m_sdef;
-			};
-		};
 
 	private:
 		struct PositionMorph

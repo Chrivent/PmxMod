@@ -1011,14 +1011,14 @@ namespace saba
 			glm::mat4 m;
 			switch (vtxInfo->m_skinningType)
 			{
-			case MMDModel::SkinningType::Weight1:
+			case SkinningType::Weight1:
 			{
 				const auto i0 = vtxInfo->m_boneIndex[0];
 				const auto& m0 = transforms[i0];
 				m = m0;
 				break;
 			}
-			case MMDModel::SkinningType::Weight2:
+			case SkinningType::Weight2:
 			{
 				const auto i0 = vtxInfo->m_boneIndex[0];
 				const auto i1 = vtxInfo->m_boneIndex[1];
@@ -1029,7 +1029,7 @@ namespace saba
 				m = m0 * w0 + m1 * w1;
 				break;
 			}
-			case MMDModel::SkinningType::Weight4:
+			case SkinningType::Weight4:
 			{
 				const auto i0 = vtxInfo->m_boneIndex[0];
 				const auto i1 = vtxInfo->m_boneIndex[1];
@@ -1046,7 +1046,7 @@ namespace saba
 				m = m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3;
 				break;
 			}
-			case MMDModel::SkinningType::SDEF:
+			case SkinningType::SDEF:
 			{
 				// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
 
@@ -1071,7 +1071,7 @@ namespace saba
 
 				break;
 			}
-			case MMDModel::SkinningType::DualQuaternion:
+			case SkinningType::DualQuaternion:
 			{
 				//
 				// Skinning with Dual Quaternions
@@ -1108,7 +1108,7 @@ namespace saba
 				break;
 			}
 
-			if (MMDModel::SkinningType::SDEF != vtxInfo->m_skinningType)
+			if (SkinningType::SDEF != vtxInfo->m_skinningType)
 			{
 				*updatePosition = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 				*updateNormal = glm::normalize(glm::mat3(m) * *normal);

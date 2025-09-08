@@ -5,47 +5,23 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <btBulletCollisionCommon.h>
-#include <btBulletDynamicsCommon.h>
-
 namespace saba
 {
-	class MMDMotionState : public btMotionState
+	bool MMDFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const
 	{
-	public:
-		virtual void Reset() = 0;
-		virtual void ReflectGlobalTransform() = 0;
-	};
-
-	namespace
-	{
-		glm::mat4 InvZ(const glm::mat4& m)
+		auto findIt = std::find_if(
+			m_nonFilterProxy.begin(),
+			m_nonFilterProxy.end(),
+			[proxy0, proxy1](const auto& x) {return x == proxy0 || x == proxy1; }
+		);
+		if (findIt != m_nonFilterProxy.end())
 		{
-			const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
-			return invZ * m * invZ;
+			return true;
 		}
+		bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
+		collides = collides && (proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask);
+		return collides;
 	}
-
-	struct MMDFilterCallback : public btOverlapFilterCallback
-	{
-		bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override
-		{
-			auto findIt = std::find_if(
-				m_nonFilterProxy.begin(),
-				m_nonFilterProxy.end(),
-				[proxy0, proxy1](const auto& x) {return x == proxy0 || x == proxy1; }
-			);
-			if (findIt != m_nonFilterProxy.end())
-			{
-				return true;
-			}
-			bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
-			collides = collides && (proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask);
-			return collides;
-		}
-
-		std::vector<btBroadphaseProxy*> m_nonFilterProxy;
-	};
 
 	MMDPhysics::MMDPhysics()
 		: m_fps(120.0f)
