@@ -134,14 +134,14 @@ namespace saba
 
 				float timeRange = float(key1.m_time - key0.m_time);
 				float time = (t - float(key0.m_time)) / timeRange;
-				float tx_x = key0.m_txBezier.FindBezierX(time);
-				float ty_x = key0.m_tyBezier.FindBezierX(time);
-				float tz_x = key0.m_tzBezier.FindBezierX(time);
-				float rot_x = key0.m_rotBezier.FindBezierX(time);
-				float tx_y = key0.m_txBezier.EvalY(tx_x);
-				float ty_y = key0.m_tyBezier.EvalY(ty_x);
-				float tz_y = key0.m_tzBezier.EvalY(tz_x);
-				float rot_y = key0.m_rotBezier.EvalY(rot_x);
+				float tx_x = key1.m_txBezier.FindBezierX(time);
+				float ty_x = key1.m_tyBezier.FindBezierX(time);
+				float tz_x = key1.m_tzBezier.FindBezierX(time);
+				float rot_x = key1.m_rotBezier.FindBezierX(time);
+				float tx_y = key1.m_txBezier.EvalY(tx_x);
+				float ty_y = key1.m_tyBezier.EvalY(ty_x);
+				float tz_y = key1.m_tzBezier.EvalY(tz_x);
+				float rot_y = key1.m_rotBezier.EvalY(rot_x);
 
 				vt = glm::mix(key0.m_translate, key1.m_translate, glm::vec3(tx_y, ty_y, tz_y));
 				q = glm::slerp(key0.m_rotate, key1.m_rotate, rot_y);
