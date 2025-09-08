@@ -97,13 +97,6 @@ namespace saba
 
 	void MMDPhysics::Destroy()
 	{
-		if (_threadFlag == true)
-		{
-			_stopFlag.store(true);
-
-			while (_endFlag.load() == false);
-		}
-
 		if (m_world != nullptr && m_groundRB != nullptr)
 		{
 			m_world->removeRigidBody(m_groundRB.get());
@@ -119,13 +112,13 @@ namespace saba
 		m_groundRB = nullptr;
 	}
 
-	/*void MMDPhysics::Update(float time)
+	void MMDPhysics::Update(float time)
 	{
 		if (m_world != nullptr)
 		{
 			m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 		}
-	}*/
+	}
 
 	void MMDPhysics::AddRigidBody(MMDRigidBody * mmdRB)
 	{
@@ -160,45 +153,6 @@ namespace saba
 	btDiscreteDynamicsWorld * MMDPhysics::GetDynamicsWorld() const
 	{
 		return m_world.get();
-	}
-
-	void MMDPhysics::ActivePhysics(bool active)
-	{
-		if (active == true)
-		{
-			_stopFlag.store(false);
-			_endFlag.store(false);
-			_threadFlag = true;
-			_physicsUpdateThread = std::thread(&MMDPhysics::UpdateByThread, this);
-			_physicsUpdateThread.detach();
-		}
-		else
-		{
-			_stopFlag.store(true);
-			while (_endFlag.load() == false);
-			_threadFlag = false;
-		}
-	}
-
-	void MMDPhysics::UpdateByThread()
-	{
-		auto prevTime = GetTime();
-
-		while (true)
-		{
-			if (_stopFlag.load() == true)
-			{
-				break;
-			}
-
-			auto currentTime = GetTime();
-			double deltaTime = currentTime - prevTime;
-			prevTime = currentTime;
-
-			m_world->stepSimulation(deltaTime, m_maxSubStepCount, 1.0f / m_fps);
-		}
-
-		_endFlag.store(true);
 	}
 
 	//*******************

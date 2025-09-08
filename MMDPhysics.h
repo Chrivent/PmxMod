@@ -102,7 +102,7 @@ namespace saba
 		bool Create();
 		void Destroy();
 
-		//void Update(float time);
+		void Update(float time);
 
 		void AddRigidBody(MMDRigidBody* mmdRB);
 		void RemoveRigidBody(MMDRigidBody* mmdRB);
@@ -125,13 +125,6 @@ namespace saba
 	public:
 		double	m_fps;
 		int		m_maxSubStepCount;
-
-		void ActivePhysics(bool active);
-		void UpdateByThread();
-		std::thread _physicsUpdateThread;
-		std::atomic<bool> _threadFlag{ false };
-		std::atomic<bool> _stopFlag{ false };
-		std::atomic<bool> _endFlag{ false };
 	};
 
 }
