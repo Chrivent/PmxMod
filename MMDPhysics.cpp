@@ -23,109 +23,6 @@ namespace saba
 		return collides;
 	}
 
-	MMDPhysics::MMDPhysics()
-		: m_fps(120.0f)
-		, m_maxSubStepCount(10)
-	{
-	}
-
-	MMDPhysics::~MMDPhysics()
-	{
-		Destroy();
-	}
-
-	bool MMDPhysics::Create()
-	{
-		m_broadphase = std::make_unique<btDbvtBroadphase>();
-		m_collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
-		m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfig.get());
-
-		m_solver = std::make_unique<btSequentialImpulseConstraintSolver>();
-
-		m_world = std::make_unique<btDiscreteDynamicsWorld>(
-			m_dispatcher.get(),
-			m_broadphase.get(),
-			m_solver.get(),
-			m_collisionConfig.get()
-			);
-
-		m_world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
-
-		m_groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
-
-		btTransform groundTransform;
-		groundTransform.setIdentity();
-
-		m_groundMS = std::make_unique<btDefaultMotionState>(groundTransform);
-
-		btRigidBody::btRigidBodyConstructionInfo groundInfo(0, m_groundMS.get(), m_groundShape.get(), btVector3(0, 0, 0));
-		m_groundRB = std::make_unique<btRigidBody>(groundInfo);
-
-		m_world->addRigidBody(m_groundRB.get());
-
-		auto filterCB = std::make_unique<MMDFilterCallback>();
-		filterCB->m_nonFilterProxy.push_back(m_groundRB->getBroadphaseProxy());
-		m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());
-		m_filterCB = std::move(filterCB);
-
-		return true;
-	}
-
-	void MMDPhysics::Destroy()
-	{
-		if (m_world != nullptr && m_groundRB != nullptr)
-		{
-			m_world->removeRigidBody(m_groundRB.get());
-		}
-
-		m_broadphase = nullptr;
-		m_collisionConfig = nullptr;
-		m_dispatcher = nullptr;
-		m_solver = nullptr;
-		m_world = nullptr;
-		m_groundShape = nullptr;
-		m_groundMS = nullptr;
-		m_groundRB = nullptr;
-	}
-
-	void MMDPhysics::Update(float time)
-	{
-		if (m_world != nullptr)
-		{
-			m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
-		}
-	}
-
-	void MMDPhysics::AddRigidBody(MMDRigidBody * mmdRB)
-	{
-		m_world->addRigidBody(
-			mmdRB->GetRigidBody(),
-			1 << mmdRB->m_group,
-			mmdRB->m_groupMask
-		);
-	}
-
-	void MMDPhysics::RemoveRigidBody(MMDRigidBody * mmdRB)
-	{
-		m_world->removeRigidBody(mmdRB->GetRigidBody());
-	}
-
-	void MMDPhysics::AddJoint(MMDJoint * mmdJoint)
-	{
-		if (mmdJoint->GetConstraint() != nullptr)
-		{
-			m_world->addConstraint(mmdJoint->GetConstraint());
-		}
-	}
-
-	void MMDPhysics::RemoveJoint(MMDJoint * mmdJoint)
-	{
-		if (mmdJoint->GetConstraint() != nullptr)
-		{
-			m_world->removeConstraint(mmdJoint->GetConstraint());
-		}
-	}
-
 	btDiscreteDynamicsWorld * MMDPhysics::GetDynamicsWorld() const
 	{
 		return m_world.get();
@@ -636,9 +533,112 @@ namespace saba
 		m_constraint = nullptr;
 	}
 
-	btTypedConstraint * MMDJoint::GetConstraint() const
+	btTypedConstraint* MMDJoint::GetConstraint() const
 	{
 		return m_constraint.get();
+	}
+
+	MMDPhysics::MMDPhysics()
+		: m_fps(120.0f)
+		, m_maxSubStepCount(10)
+	{
+	}
+
+	MMDPhysics::~MMDPhysics()
+	{
+		Destroy();
+	}
+
+	bool MMDPhysics::Create()
+	{
+		m_broadphase = std::make_unique<btDbvtBroadphase>();
+		m_collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
+		m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfig.get());
+
+		m_solver = std::make_unique<btSequentialImpulseConstraintSolver>();
+
+		m_world = std::make_unique<btDiscreteDynamicsWorld>(
+			m_dispatcher.get(),
+			m_broadphase.get(),
+			m_solver.get(),
+			m_collisionConfig.get()
+		);
+
+		m_world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
+
+		m_groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
+
+		btTransform groundTransform;
+		groundTransform.setIdentity();
+
+		m_groundMS = std::make_unique<btDefaultMotionState>(groundTransform);
+
+		btRigidBody::btRigidBodyConstructionInfo groundInfo(0, m_groundMS.get(), m_groundShape.get(), btVector3(0, 0, 0));
+		m_groundRB = std::make_unique<btRigidBody>(groundInfo);
+
+		m_world->addRigidBody(m_groundRB.get());
+
+		auto filterCB = std::make_unique<MMDFilterCallback>();
+		filterCB->m_nonFilterProxy.push_back(m_groundRB->getBroadphaseProxy());
+		m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());
+		m_filterCB = std::move(filterCB);
+
+		return true;
+	}
+
+	void MMDPhysics::Destroy()
+	{
+		if (m_world != nullptr && m_groundRB != nullptr)
+		{
+			m_world->removeRigidBody(m_groundRB.get());
+		}
+
+		m_broadphase = nullptr;
+		m_collisionConfig = nullptr;
+		m_dispatcher = nullptr;
+		m_solver = nullptr;
+		m_world = nullptr;
+		m_groundShape = nullptr;
+		m_groundMS = nullptr;
+		m_groundRB = nullptr;
+	}
+
+	void MMDPhysics::Update(float time)
+	{
+		if (m_world != nullptr)
+		{
+			m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
+		}
+	}
+
+	void MMDPhysics::AddRigidBody(MMDRigidBody* mmdRB)
+	{
+		m_world->addRigidBody(
+			mmdRB->GetRigidBody(),
+			1 << mmdRB->m_group,
+			mmdRB->m_groupMask
+		);
+	}
+
+	void MMDPhysics::RemoveRigidBody(MMDRigidBody* mmdRB)
+	{
+		m_world->removeRigidBody(mmdRB->GetRigidBody());
+	}
+
+	void MMDPhysics::AddJoint(MMDJoint* mmdJoint)
+	{
+		if (mmdJoint->GetConstraint() != nullptr)
+		{
+			m_world->addConstraint(mmdJoint->GetConstraint());
+		}
+	}
+
+	void MMDPhysics::RemoveJoint(MMDJoint* mmdJoint)
+	{
+		if (mmdJoint->GetConstraint() != nullptr)
+		{
+			m_world->removeConstraint(mmdJoint->GetConstraint());
+		}
 	}
 
 	MMDPhysicsManager::~MMDPhysicsManager()
