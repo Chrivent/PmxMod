@@ -938,11 +938,11 @@ void Model::Draw(const AppContext& appContext)
 		glUniform1i(shader->m_uSphereTex, 1);
 		if (mat.m_spTexture != 0)
 		{
-			if (mmdMat.m_spTextureMode == saba::MMDMaterial::SphereTextureMode::Mul)
+			if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Mul)
 			{
 				glUniform1i(shader->m_uSphereTexMode, 1);
 			}
-			else if (mmdMat.m_spTextureMode == saba::MMDMaterial::SphereTextureMode::Add)
+			else if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Add)
 			{
 				glUniform1i(shader->m_uSphereTexMode, 2);
 			}

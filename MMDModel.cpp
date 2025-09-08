@@ -588,7 +588,7 @@ namespace saba
 			mat.m_specularPower = pmxMat.m_specularPower;
 			mat.m_specular = pmxMat.m_specular;
 			mat.m_ambient = pmxMat.m_ambient;
-			mat.m_spTextureMode = MMDMaterial::SphereTextureMode::None;
+			mat.m_spTextureMode = SphereTextureMode::None;
 			mat.m_bothFace = !!((uint8_t)pmxMat.m_drawMode & (uint8_t)PMXDrawModeFlags::BothFace);
 			mat.m_edgeFlag = ((uint8_t)pmxMat.m_drawMode & (uint8_t)PMXDrawModeFlags::DrawEdge) == 0 ? 0 : 1;
 			mat.m_groundShadow = !!((uint8_t)pmxMat.m_drawMode & (uint8_t)PMXDrawModeFlags::GroundShadow);
@@ -625,14 +625,14 @@ namespace saba
 			if (pmxMat.m_sphereTextureIndex != -1)
 			{
 				mat.m_spTexture = PathUtil::Normalize(texturePaths[pmxMat.m_sphereTextureIndex]);
-				mat.m_spTextureMode = MMDMaterial::SphereTextureMode::None;
+				mat.m_spTextureMode = SphereTextureMode::None;
 				if (pmxMat.m_sphereMode == PMXSphereMode::Mul)
 				{
-					mat.m_spTextureMode = MMDMaterial::SphereTextureMode::Mul;
+					mat.m_spTextureMode = SphereTextureMode::Mul;
 				}
 				else if (pmxMat.m_sphereMode == PMXSphereMode::Add)
 				{
-					mat.m_spTextureMode = MMDMaterial::SphereTextureMode::Add;
+					mat.m_spTextureMode = SphereTextureMode::Add;
 				}
 				else if (pmxMat.m_sphereMode == PMXSphereMode::SubTexture)
 				{

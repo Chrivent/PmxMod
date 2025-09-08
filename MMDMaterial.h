@@ -7,15 +7,16 @@
 
 namespace saba
 {
+	enum class SphereTextureMode
+	{
+		None,
+		Mul,
+		Add,
+	};
+
 	struct MMDMaterial
 	{
 		MMDMaterial();
-		enum class SphereTextureMode
-		{
-			None,
-			Mul,
-			Add,
-		};
 
 		glm::vec3		m_diffuse;
 		float			m_alpha;
