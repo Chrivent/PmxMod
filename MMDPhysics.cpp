@@ -32,182 +32,142 @@ namespace saba
 	// MMDRigidBody
 	//*******************
 
-	class DefaultMotionState : public MMDMotionState
+	DefaultMotionState::DefaultMotionState(const glm::mat4& transform)
 	{
-	public:
-		DefaultMotionState(const glm::mat4& transform)
-		{
-			glm::mat4 trans = InvZ(transform);
-			m_transform.setFromOpenGLMatrix(&trans[0][0]);
-			m_initialTransform = m_transform;
-		}
+		glm::mat4 trans = InvZ(transform);
+		m_transform.setFromOpenGLMatrix(&trans[0][0]);
+		m_initialTransform = m_transform;
+	}
 
-		void getWorldTransform(btTransform& worldTransform) const override
-		{
-			worldTransform = m_transform;
-		}
-
-		void setWorldTransform(const btTransform& worldTransform) override
-		{
-			m_transform = worldTransform;
-		}
-
-		virtual void Reset() override
-		{
-			m_transform = m_initialTransform;
-		}
-
-		virtual void ReflectGlobalTransform() override
-		{
-		}
-
-
-	private:
-		btTransform	m_initialTransform;
-		btTransform	m_transform;
-	};
-
-	class DynamicMotionState : public MMDMotionState
+	void DefaultMotionState::getWorldTransform(btTransform& worldTransform) const
 	{
-	public:
-		DynamicMotionState(MMDNode* node, const glm::mat4& offset, bool override = true)
-			: m_node(node)
-			, m_offset(offset)
-			, m_override(override)
-		{
-			m_invOffset = glm::inverse(offset);
-			Reset();
-		}
+		worldTransform = m_transform;
+	}
 
-		void getWorldTransform(btTransform& worldTransform) const override
-		{
-			worldTransform = m_transform;
-		}
-
-		void setWorldTransform(const btTransform& worldTransform) override
-		{
-			m_transform = worldTransform;
-		}
-
-		void Reset() override
-		{
-			glm::mat4 global = InvZ(m_node->m_global * m_offset);
-			m_transform.setFromOpenGLMatrix(&global[0][0]);
-		}
-
-		void ReflectGlobalTransform() override
-		{
-			alignas(16) glm::mat4 world;
-			m_transform.getOpenGLMatrix(&world[0][0]);
-			glm::mat4 btGlobal = InvZ(world) * m_invOffset;
-
-			if (m_override)
-			{
-				m_node->m_global = btGlobal;
-				m_node->UpdateChildTransform();
-			}
-		}
-
-	private:
-		MMDNode*	m_node;
-		glm::mat4	m_offset;
-		glm::mat4	m_invOffset;
-		btTransform	m_transform;
-		bool		m_override;
-	};
-
-	class DynamicAndBoneMergeMotionState : public MMDMotionState
+	void DefaultMotionState::setWorldTransform(const btTransform& worldTransform)
 	{
-	public:
-		DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, bool override = true)
-			: m_node(node)
-			, m_offset(offset)
-			, m_override(override)
-		{
-			m_invOffset = glm::inverse(offset);
-			Reset();
-		}
+		m_transform = worldTransform;
+	}
 
-		void getWorldTransform(btTransform& worldTransform) const override
-		{
-			worldTransform = m_transform;
-		}
-
-		void setWorldTransform(const btTransform& worldTransform) override
-		{
-			m_transform = worldTransform;
-		}
-
-		void Reset() override
-		{
-			glm::mat4 global = InvZ(m_node->m_global * m_offset);
-			m_transform.setFromOpenGLMatrix(&global[0][0]);
-		}
-
-		void ReflectGlobalTransform() override
-		{
-			alignas(16) glm::mat4 world;
-			m_transform.getOpenGLMatrix(&world[0][0]);
-			glm::mat4 btGlobal = InvZ(world) * m_invOffset;
-			glm::mat4 global = m_node->m_global;
-			btGlobal[3] = global[3];
-
-			if (m_override)
-			{
-				m_node->m_global = btGlobal;
-				m_node->UpdateChildTransform();
-			}
-		}
-
-	private:
-		MMDNode*	m_node;
-		glm::mat4	m_offset;
-		glm::mat4	m_invOffset;
-		btTransform	m_transform;
-		bool		m_override;
-
-	};
-
-	class KinematicMotionState : public MMDMotionState
+	void DefaultMotionState::Reset()
 	{
-	public:
-		KinematicMotionState(MMDNode* node, const glm::mat4& offset)
-			: m_node(node)
-			, m_offset(offset)
-		{
-		}
+		m_transform = m_initialTransform;
+	}
 
-		void getWorldTransform(btTransform& worldTransform) const override
-		{
-			glm::mat4 m;
-			if (m_node != nullptr)
-			{
-				m = m_node->m_global * m_offset;
-			}
-			else
-			{
-				m = m_offset;
-			}
-			m = InvZ(m);
-			worldTransform.setFromOpenGLMatrix(&m[0][0]);
-		}
+	void DefaultMotionState::ReflectGlobalTransform()
+	{
+	}
 
-		void setWorldTransform(const btTransform& worldTransform) override
-		{
-		}
+	DynamicMotionState::DynamicMotionState(MMDNode* node, const glm::mat4& offset, bool override)
+		: m_node(node)
+		, m_offset(offset)
+		, m_override(override)
+	{
+		m_invOffset = glm::inverse(offset);
+		Reset();
+	}
 
-		void Reset() override
-		{
-		}
+	void DynamicMotionState::getWorldTransform(btTransform& worldTransform) const
+	{
+		worldTransform = m_transform;
+	}
 
-		void ReflectGlobalTransform() override
-		{
-		}
+	void DynamicMotionState::setWorldTransform(const btTransform& worldTransform)
+	{
+		m_transform = worldTransform;
+	}
 
-	private:
-		MMDNode*	m_node;
-		glm::mat4	m_offset;
-	};
+	void DynamicMotionState::Reset()
+	{
+		glm::mat4 global = InvZ(m_node->m_global * m_offset);
+		m_transform.setFromOpenGLMatrix(&global[0][0]);
+	}
+
+	void DynamicMotionState::ReflectGlobalTransform()
+	{
+		alignas(16) glm::mat4 world;
+		m_transform.getOpenGLMatrix(&world[0][0]);
+		glm::mat4 btGlobal = InvZ(world) * m_invOffset;
+
+		if (m_override)
+		{
+			m_node->m_global = btGlobal;
+			m_node->UpdateChildTransform();
+		}
+	}
+
+	DynamicAndBoneMergeMotionState::DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, bool override)
+		: m_node(node)
+		, m_offset(offset)
+		, m_override(override)
+	{
+		m_invOffset = glm::inverse(offset);
+		Reset();
+	}
+
+	void DynamicAndBoneMergeMotionState::getWorldTransform(btTransform& worldTransform) const
+	{
+		worldTransform = m_transform;
+	}
+
+	void DynamicAndBoneMergeMotionState::setWorldTransform(const btTransform& worldTransform)
+	{
+		m_transform = worldTransform;
+	}
+
+	void DynamicAndBoneMergeMotionState::Reset()
+	{
+		glm::mat4 global = InvZ(m_node->m_global * m_offset);
+		m_transform.setFromOpenGLMatrix(&global[0][0]);
+	}
+
+	void DynamicAndBoneMergeMotionState::ReflectGlobalTransform()
+	{
+		alignas(16) glm::mat4 world;
+		m_transform.getOpenGLMatrix(&world[0][0]);
+		glm::mat4 btGlobal = InvZ(world) * m_invOffset;
+		glm::mat4 global = m_node->m_global;
+		btGlobal[3] = global[3];
+
+		if (m_override)
+		{
+			m_node->m_global = btGlobal;
+			m_node->UpdateChildTransform();
+		}
+	}
+
+	KinematicMotionState::KinematicMotionState(MMDNode* node, const glm::mat4& offset)
+		: m_node(node)
+		, m_offset(offset)
+	{
+	}
+
+	void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const
+	{
+		glm::mat4 m;
+		if (m_node != nullptr)
+		{
+			m = m_node->m_global * m_offset;
+		}
+		else
+		{
+			m = m_offset;
+		}
+		m = InvZ(m);
+		worldTransform.setFromOpenGLMatrix(&m[0][0]);
+	}
+
+	void KinematicMotionState::setWorldTransform(const btTransform& worldTransform)
+	{
+	}
+
+	void KinematicMotionState::Reset()
+	{
+	}
+
+	void KinematicMotionState::ReflectGlobalTransform()
+	{
+	}
 
 	MMDRigidBody::MMDRigidBody()
 		: m_rigidBodyType(RigidBodyType::Kinematic)

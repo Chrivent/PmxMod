@@ -53,6 +53,77 @@ namespace saba
 		std::vector<btBroadphaseProxy*> m_nonFilterProxy;
 	};
 
+	class DefaultMotionState : public MMDMotionState
+	{
+	public:
+		DefaultMotionState(const glm::mat4& transform);
+
+		void getWorldTransform(btTransform& worldTransform) const override;
+		void setWorldTransform(const btTransform& worldTransform) override;
+
+		virtual void Reset() override;
+		virtual void ReflectGlobalTransform() override;
+
+	private:
+		btTransform	m_initialTransform;
+		btTransform	m_transform;
+	};
+
+	class DynamicMotionState : public MMDMotionState
+	{
+	public:
+		DynamicMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
+
+		void getWorldTransform(btTransform& worldTransform) const override;
+		void setWorldTransform(const btTransform& worldTransform) override;
+
+		void Reset() override;
+		void ReflectGlobalTransform() override;
+
+	private:
+		MMDNode* m_node;
+		glm::mat4	m_offset;
+		glm::mat4	m_invOffset;
+		btTransform	m_transform;
+		bool		m_override;
+	};
+
+	class DynamicAndBoneMergeMotionState : public MMDMotionState
+	{
+	public:
+		DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
+
+		void getWorldTransform(btTransform& worldTransform) const override;
+		void setWorldTransform(const btTransform& worldTransform) override;
+
+		void Reset() override;
+		void ReflectGlobalTransform() override;
+
+	private:
+		MMDNode* m_node;
+		glm::mat4	m_offset;
+		glm::mat4	m_invOffset;
+		btTransform	m_transform;
+		bool		m_override;
+
+	};
+
+	class KinematicMotionState : public MMDMotionState
+	{
+	public:
+		KinematicMotionState(MMDNode* node, const glm::mat4& offset);
+
+		void getWorldTransform(btTransform& worldTransform) const override;
+		void setWorldTransform(const btTransform& worldTransform) override;
+
+		void Reset() override;
+		void ReflectGlobalTransform() override;
+
+	private:
+		MMDNode* m_node;
+		glm::mat4	m_offset;
+	};
+
 	class MMDRigidBody
 	{
 	public:
