@@ -58,7 +58,7 @@ namespace saba
 		AddIKChain(std::move(chain));
 	}
 
-	void MMDIkSolver::AddIKChain(MMDIkSolver::IKChain&& chain)
+	void MMDIkSolver::AddIKChain(IKChain&& chain)
 	{
 		m_chains.emplace_back(chain);
 	}

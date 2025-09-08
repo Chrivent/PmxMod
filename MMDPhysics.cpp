@@ -7,6 +7,15 @@
 
 namespace saba
 {
+	namespace
+	{
+		glm::mat4 InvZ(const glm::mat4& m)
+		{
+			const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
+			return invZ * m * invZ;
+		}
+	}
+
 	bool MMDFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const
 	{
 		auto findIt = std::find_if(

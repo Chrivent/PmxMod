@@ -1326,7 +1326,7 @@ namespace saba
 		}
 	}
 
-	MMDModel::MaterialFactor::MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat)
+	MaterialFactor::MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat)
 	{
 		m_diffuse.r = pmxMat.m_diffuse.r;
 		m_diffuse.g = pmxMat.m_diffuse.g;
@@ -1342,7 +1342,7 @@ namespace saba
 		m_toonTextureFactor = pmxMat.m_toonTextureFactor;
 	}
 
-	void MMDModel::MaterialFactor::Mul(const MaterialFactor& val, float weight)
+	void MaterialFactor::Mul(const MaterialFactor& val, float weight)
 	{
 		m_diffuse = glm::mix(m_diffuse, m_diffuse * val.m_diffuse, weight);
 		m_alpha = glm::mix(m_alpha, m_alpha * val.m_alpha, weight);
@@ -1356,7 +1356,7 @@ namespace saba
 		m_toonTextureFactor = glm::mix(m_toonTextureFactor, m_toonTextureFactor * val.m_toonTextureFactor, weight);
 	}
 
-	void MMDModel::MaterialFactor::Add(const MaterialFactor& val, float weight)
+	void MaterialFactor::Add(const MaterialFactor& val, float weight)
 	{
 		m_diffuse += val.m_diffuse * weight;
 		m_alpha += val.m_alpha * weight;

@@ -67,6 +67,76 @@ namespace saba
 		};
 	};
 
+	struct PositionMorph
+	{
+		uint32_t	m_index;
+		glm::vec3	m_position;
+	};
+
+	struct PositionMorphData
+	{
+		std::vector<PositionMorph>	m_morphVertices;
+	};
+
+	struct UVMorph
+	{
+		uint32_t	m_index;
+		glm::vec4	m_uv;
+	};
+
+	struct UVMorphData
+	{
+		std::vector<UVMorph>	m_morphUVs;
+	};
+
+	struct MaterialFactor
+	{
+		MaterialFactor() = default;
+		MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat);
+
+		void Mul(const MaterialFactor& val, float weight);
+		void Add(const MaterialFactor& val, float weight);
+
+		glm::vec3	m_diffuse;
+		float		m_alpha;
+		glm::vec3	m_specular;
+		float		m_specularPower;
+		glm::vec3	m_ambient;
+		glm::vec4	m_edgeColor;
+		float		m_edgeSize;
+		glm::vec4	m_textureFactor;
+		glm::vec4	m_spTextureFactor;
+		glm::vec4	m_toonTextureFactor;
+	};
+
+	struct MaterialMorphData
+	{
+		std::vector<saba::PMXMorph::MaterialMorph>	m_materialMorphs;
+	};
+
+	struct BoneMorphElement
+	{
+		MMDNode* m_node;
+		glm::vec3	m_position;
+		glm::quat	m_rotate;
+	};
+
+	struct BoneMorphData
+	{
+		std::vector<BoneMorphElement>	m_boneMorphs;
+	};
+
+	struct GroupMorphData
+	{
+		std::vector<saba::PMXMorph::GroupMorph>		m_groupMorphs;
+	};
+
+	struct UpdateRange
+	{
+		size_t	m_vertexOffset;
+		size_t	m_vertexCount;
+	};
+
 	class MMDModel
 	{
 	public:
@@ -97,77 +167,6 @@ namespace saba
 
 		bool Load(const std::string& filepath, const std::string& mmdDataDir);
 		void Destroy();
-
-	private:
-		struct PositionMorph
-		{
-			uint32_t	m_index;
-			glm::vec3	m_position;
-		};
-
-		struct PositionMorphData
-		{
-			std::vector<PositionMorph>	m_morphVertices;
-		};
-
-		struct UVMorph
-		{
-			uint32_t	m_index;
-			glm::vec4	m_uv;
-		};
-
-		struct UVMorphData
-		{
-			std::vector<UVMorph>	m_morphUVs;
-		};
-
-		struct MaterialFactor
-		{
-			MaterialFactor() = default;
-			MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat);
-
-			void Mul(const MaterialFactor& val, float weight);
-			void Add(const MaterialFactor& val, float weight);
-
-			glm::vec3	m_diffuse;
-			float		m_alpha;
-			glm::vec3	m_specular;
-			float		m_specularPower;
-			glm::vec3	m_ambient;
-			glm::vec4	m_edgeColor;
-			float		m_edgeSize;
-			glm::vec4	m_textureFactor;
-			glm::vec4	m_spTextureFactor;
-			glm::vec4	m_toonTextureFactor;
-		};
-
-		struct MaterialMorphData
-		{
-			std::vector<saba::PMXMorph::MaterialMorph>	m_materialMorphs;
-		};
-
-		struct BoneMorphElement
-		{
-			MMDNode* m_node;
-			glm::vec3	m_position;
-			glm::quat	m_rotate;
-		};
-
-		struct BoneMorphData
-		{
-			std::vector<BoneMorphElement>	m_boneMorphs;
-		};
-
-		struct GroupMorphData
-		{
-			std::vector<saba::PMXMorph::GroupMorph>		m_groupMorphs;
-		};
-
-		struct UpdateRange
-		{
-			size_t	m_vertexOffset;
-			size_t	m_vertexCount;
-		};
 
 	private:
 		void SetupParallelUpdate();
