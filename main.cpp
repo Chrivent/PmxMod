@@ -1462,13 +1462,13 @@ bool SampleMain()
 		models.emplace_back(std::move(model));
 	}
 
-	double fpsTime = saba::GetTime();
+	auto fpsTime = std::chrono::steady_clock::now();
 	int fpsFrame = 0;
-	double saveTime = saba::GetTime();
+	auto saveTime = std::chrono::steady_clock::now();
 	while (!glfwWindowShouldClose(window))
 	{
-		double time = saba::GetTime();
-		double elapsed = time - saveTime;
+		auto time = std::chrono::steady_clock::now();
+		double elapsed = std::chrono::duration<double>(time - saveTime).count();
 		if (elapsed > 1.0 / 30.0)
 		{
 			elapsed = 1.0 / 30.0;
@@ -1554,8 +1554,8 @@ bool SampleMain()
 		//FPS
 		{
 			fpsFrame++;
-			double time = saba::GetTime();
-			double deltaTime = time - fpsTime;
+			auto time = std::chrono::steady_clock::now();
+			double deltaTime = std::chrono::duration<double>(time - fpsTime).count();
 			if (deltaTime > 1.0)
 			{
 				double fps = double(fpsFrame) / deltaTime;
