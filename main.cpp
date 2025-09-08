@@ -1192,14 +1192,13 @@ void Usage()
 	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
 }
 
-#ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
-#endif
 #include <filesystem>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <windows.h>
 
 // 폴더에서 .pmx/.pmd 찾기
 static std::vector<std::wstring> FindAllPMDPMX(const std::wstring& root) {
@@ -1235,15 +1234,9 @@ static std::string WUtf8(const std::wstring& ws) {
 
 bool SampleMain()
 {
-#ifdef _WIN32
-#include <io.h>
-#include <fcntl.h>
-#include <windows.h>
-
 	_setmode(_fileno(stdin), _O_TEXT);
 	_setmode(_fileno(stdout), _O_TEXT);
 	_setmode(_fileno(stderr), _O_TEXT);
-#endif
 
 	Input currentInput;
 	std::vector<Input> inputModels;
@@ -1357,7 +1350,7 @@ bool SampleMain()
 	}
 #endif // defined(GLFW_TRANSPARENT_FRAMEBUFFER)
 
-	auto window = glfwCreateWindow(1280, 800, "simple mmd viewer", nullptr, nullptr);
+	auto window = glfwCreateWindow(1280, 800, "Pmx Mod", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		return false;
@@ -1377,9 +1370,9 @@ bool SampleMain()
 
 	glfwMakeContextCurrent(window);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cerr << "GLAD init failed\n";
-		return -1;
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
+		return false;
 	}
 
 	/*if (gl3wInit() != 0)
