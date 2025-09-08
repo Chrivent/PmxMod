@@ -3,6 +3,7 @@
 #include "MMDMaterial.h"
 #include "MMDMorph.h"
 #include "MMDIkSolver.h"
+#include "MMDPhysics.h"
 #include "PMXFile.h"
 
 #include <glm/vec2.hpp>
@@ -21,64 +22,11 @@ namespace saba
 	class MMDJoint;
 	struct VPDFile;
 
-	class MMDNodeManager
-	{
-	public:
-		static const size_t NPos = -1;
+	class MMDNodeManager;
+	class MMDIKManager;
+	class MMDMorphManager;
 
-		size_t FindNodeIndex(const std::string& name);
-		MMDNode* GetNode(size_t idx);
-		MMDNode* GetNode(const std::string& nodeName);
-		MMDNode* AddNode();
-
-		std::vector<std::unique_ptr<MMDNode>>	m_nodes;
-	};
-
-	class MMDIKManager
-	{
-	public:
-		static const size_t NPos = -1;
-
-		size_t FindIKSolverIndex(const std::string& name);
-		MMDIkSolver* GetIKSolver(size_t idx);
-		MMDIkSolver* GetIKSolver(const std::string& ikName);
-		MMDIkSolver* AddIKSolver();
-
-		std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
-	};
-
-	class MMDMorphManager
-	{
-	public:
-		static const size_t NPos = -1;
-
-		size_t FindMorphIndex(const std::string& name);
-		MMDMorph* GetMorph(size_t idx);
-		MMDMorph* GetMorph(const std::string& name);
-		MMDMorph* AddMorph();
-
-		std::vector<std::unique_ptr<MMDMorph>>	m_morphs;
-	};
-
-	class MMDPhysicsManager
-	{
-	public:
-		~MMDPhysicsManager();
-
-		bool Create();
-
-		MMDPhysics* GetMMDPhysics();
-
-		MMDRigidBody* AddRigidBody();
-		MMDJoint* AddJoint();
-
-	private:
-		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
-
-	public:
-		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodys;
-		std::vector<std::unique_ptr<MMDJoint>>		m_joints;
-	};
+	class MMDPhysicsManager;
 
 	struct MMDSubMesh
 	{

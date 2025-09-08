@@ -474,5 +474,43 @@ namespace saba
 		chain.m_node->UpdateLocalTransform();
 		chain.m_node->UpdateGlobalTransform();
 	}
+
+	size_t MMDIKManager::FindIKSolverIndex(const std::string& name)
+	{
+		auto findIt = std::find_if(
+			m_ikSolvers.begin(),
+			m_ikSolvers.end(),
+			[&name](const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
+		);
+		if (findIt == m_ikSolvers.end())
+		{
+			return NPos;
+		}
+		else
+		{
+			return findIt - m_ikSolvers.begin();
+		}
+	}
+
+	MMDIkSolver* MMDIKManager::GetIKSolver(size_t idx)
+	{
+		return m_ikSolvers[idx].get();
+	}
+
+	MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName)
+	{
+		auto findIdx = FindIKSolverIndex(ikName);
+		if (findIdx == NPos)
+		{
+			return nullptr;
+		}
+		return GetIKSolver(findIdx);
+	}
+
+	MMDIkSolver* MMDIKManager::AddIKSolver()
+	{
+		m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
+		return m_ikSolvers[m_ikSolvers.size() - 1].get();
+	}
 }
 

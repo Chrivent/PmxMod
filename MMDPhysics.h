@@ -10,9 +10,6 @@
 #include <memory>
 #include <cinttypes>
 
-#include <thread>
-#include <atomic>
-
 // Bullet Types
 class btRigidBody;
 class btCollisionShape;
@@ -127,5 +124,24 @@ namespace saba
 		int		m_maxSubStepCount;
 	};
 
+	class MMDPhysicsManager
+	{
+	public:
+		~MMDPhysicsManager();
+
+		bool Create();
+
+		MMDPhysics* GetMMDPhysics();
+
+		MMDRigidBody* AddRigidBody();
+		MMDJoint* AddJoint();
+
+	private:
+		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
+
+	public:
+		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodys;
+		std::vector<std::unique_ptr<MMDJoint>>		m_joints;
+	};
 }
 

@@ -199,4 +199,44 @@ namespace saba
 
 		UpdateLocalTransform();
 	}
+
+	size_t MMDNodeManager::FindNodeIndex(const std::string& name)
+	{
+		auto findIt = std::find_if(
+			m_nodes.begin(),
+			m_nodes.end(),
+			[&name](const std::unique_ptr<MMDNode>& node) { return node->m_name == name; }
+		);
+		if (findIt == m_nodes.end())
+		{
+			return NPos;
+		}
+		else
+		{
+			return findIt - m_nodes.begin();
+		}
+	}
+
+	MMDNode* MMDNodeManager::GetNode(size_t idx)
+	{
+		return m_nodes[idx].get();
+	}
+
+	MMDNode* MMDNodeManager::GetNode(const std::string& nodeName)
+	{
+		auto findIdx = FindNodeIndex(nodeName);
+		if (findIdx == NPos)
+		{
+			return nullptr;
+		}
+		return GetNode(findIdx);
+	}
+
+	MMDNode* MMDNodeManager::AddNode()
+	{
+		auto node = std::make_unique<MMDNode>();
+		node->m_index = (uint32_t)m_nodes.size();
+		m_nodes.emplace_back(std::move(node));
+		return m_nodes[m_nodes.size() - 1].get();
+	}
 }

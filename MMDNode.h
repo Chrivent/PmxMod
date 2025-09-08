@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <string>
+#include <vector>
+#include <memory>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
@@ -104,6 +106,19 @@ namespace saba
 		glm::quat	m_appendRotate;
 
 		MMDIkSolver* m_ikSolver;
+	};
+
+	class MMDNodeManager
+	{
+	public:
+		static const size_t NPos = -1;
+
+		size_t FindNodeIndex(const std::string& name);
+		MMDNode* GetNode(size_t idx);
+		MMDNode* GetNode(const std::string& nodeName);
+		MMDNode* AddNode();
+
+		std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 	};
 }
 

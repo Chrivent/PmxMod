@@ -62,4 +62,17 @@ namespace saba
 		bool		m_baseAnimEnable;
 
 	};
+
+	class MMDIKManager
+	{
+	public:
+		static const size_t NPos = -1;
+
+		size_t FindIKSolverIndex(const std::string& name);
+		MMDIkSolver* GetIKSolver(size_t idx);
+		MMDIkSolver* GetIKSolver(const std::string& ikName);
+		MMDIkSolver* AddIKSolver();
+
+		std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
+	};
 }
