@@ -22,15 +22,12 @@ namespace saba
 		{
 			return m_ikNode->m_name;
 		}
-		else
-		{
-			return "";
-		}
+		return "";
 	}
 
-	void MMDIkSolver::AddIKChain(MMDNode * node, bool isKnee)
+	void MMDIkSolver::AddIKChain(MMDNode* node, const bool isKnee)
 	{
-		IKChain chain;
+		IKChain chain{};
 		chain.m_node = node;
 		chain.m_enableAxisLimit = isKnee;
 		if (isKnee)
@@ -39,26 +36,26 @@ namespace saba
 			chain.m_limitMax = glm::vec3(glm::radians(180.0f), 0, 0);
 		}
 		chain.m_saveIKRot = glm::quat(1, 0, 0, 0);
-		AddIKChain(std::move(chain));
+		AddIKChain(chain);
 	}
 
 	void MMDIkSolver::AddIKChain(
 		MMDNode * node,
-		bool axisLimit,
+		const bool axisLimit,
 		const glm::vec3 & limixMin,
 		const glm::vec3 & limitMax
 	)
 	{
-		IKChain chain;
+		IKChain chain{};
 		chain.m_node = node;
 		chain.m_enableAxisLimit = axisLimit;
 		chain.m_limitMin = limixMin;
 		chain.m_limitMax = limitMax;
 		chain.m_saveIKRot = glm::quat(1, 0, 0, 0);
-		AddIKChain(std::move(chain));
+		AddIKChain(chain);
 	}
 
-	void MMDIkSolver::AddIKChain(IKChain&& chain)
+	void MMDIkSolver::AddIKChain(IKChain chain)
 	{
 		m_chains.emplace_back(chain);
 	}
@@ -98,7 +95,7 @@ namespace saba
 			}
 			else
 			{
-				for (auto& chain : m_chains)
+				for (const auto& chain : m_chains)
 				{
 					chain.m_node->m_ikRotate = chain.m_saveIKRot;
 					chain.m_node->UpdateLocalTransform();
@@ -111,7 +108,7 @@ namespace saba
 
 	namespace
 	{
-		float NormalizeAngle(float angle)
+		float NormalizeAngle(const float angle)
 		{
 			float ret = angle;
 			while (ret >= glm::two_pi<float>())
@@ -126,73 +123,35 @@ namespace saba
 			return ret;
 		}
 
-		float DiffAngle(float a, float b)
+		float DiffAngle(const float a, const float b)
 		{
-			float diff = NormalizeAngle(a) - NormalizeAngle(b);
+			const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 			if (diff > glm::pi<float>())
 			{
 				return diff - glm::two_pi<float>();
 			}
-			else if (diff < -glm::pi<float>())
+			if (diff < -glm::pi<float>())
 			{
 				return diff + glm::two_pi<float>();
 			}
 			return diff;
 		}
 
-		float ClampAngle(float angle, float minAngle, float maxAngle)
-		{
-			if (minAngle == maxAngle)
-			{
-				return minAngle;
-			}
-
-			float ret = angle;
-			while (ret < minAngle)
-			{
-				ret += glm::two_pi<float>();
-			}
-			if (ret < maxAngle)
-			{
-				return ret;
-			}
-
-			while (ret > maxAngle)
-			{
-				ret -= glm::two_pi<float>();
-			}
-			if (ret > minAngle)
-			{
-				return ret;
-			}
-
-			float minDiff = std::abs(DiffAngle(minAngle, ret));
-			float maxDiff = std::abs(DiffAngle(maxAngle, ret));
-			if (minDiff < maxDiff)
-			{
-				return minAngle;
-			}
-			else
-			{
-				return maxAngle;
-			}
-		}
-
 		glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before)
 		{
 			glm::vec3 r;
-			float sy = -m[0][2];
-			const float e = 1.0e-6f;
-			if ((1.0f - std::abs(sy)) < e)
+			const float sy = -m[0][2];
+			constexpr float e = 1.0e-6f;
+			if (1.0f - std::abs(sy) < e)
 			{
 				r.y = std::asin(sy);
 				// 180°に近いほうを探す
-				float sx = std::sin(before.x);
-				float sz = std::sin(before.z);
+				const float sx = std::sin(before.x);
+				const float sz = std::sin(before.z);
 				if (std::abs(sx) < std::abs(sz))
 				{
 					// Xのほうが0または180
-					float cx = std::cos(before.x);
+					const float cx = std::cos(before.x);
 					if (cx > 0)
 					{
 						r.x = 0;
@@ -206,7 +165,7 @@ namespace saba
 				}
 				else
 				{
-					float cz = std::cos(before.z);
+					const float cz = std::cos(before.z);
 					if (cz > 0)
 					{
 						r.z = 0;
@@ -226,7 +185,7 @@ namespace saba
 				r.z = std::atan2(m[0][1], m[0][0]);
 			}
 
-			constexpr float pi = glm::pi<float>();
+			constexpr auto pi = glm::pi<float>();
 			glm::vec3 tests[] =
 			{
 				{ r.x + pi, pi - r.y, r.z + pi },
@@ -239,13 +198,13 @@ namespace saba
 				{ r.x - pi, -pi - r.y, r.z - pi },
 			};
 
-			float errX = std::abs(DiffAngle(r.x, before.x));
-			float errY = std::abs(DiffAngle(r.y, before.y));
-			float errZ = std::abs(DiffAngle(r.z, before.z));
+			const float errX = std::abs(DiffAngle(r.x, before.x));
+			const float errY = std::abs(DiffAngle(r.y, before.y));
+			const float errZ = std::abs(DiffAngle(r.z, before.z));
 			float minErr = errX + errY + errZ;
 			for (const auto test : tests)
 			{
-				float err = std::abs(DiffAngle(test.x, before.x))
+				const float err = std::abs(DiffAngle(test.x, before.x))
 					+ std::abs(DiffAngle(test.y, before.y))
 					+ std::abs(DiffAngle(test.z, before.z));
 				if (err < minErr)
@@ -256,40 +215,11 @@ namespace saba
 			}
 			return r;
 		}
-
-		glm::quat RotateFromTo(const glm::vec3& from, const glm::vec3& to)
-		{
-			auto const nf = glm::normalize(from);
-			auto const nt = glm::normalize(to);
-			auto const localW = glm::cross(nf, nt);
-			auto dot = glm::dot(nf, nt);
-			if (glm::abs(1.0f + dot) < 1.0e-7)
-			{
-				glm::vec3 v = glm::abs(from);
-				if (v.x < v.y)
-				{
-					if (v.x < v.z) { v = glm::vec3(1, 0, 0); }
-					else { v = glm::vec3(0, 0, 1); }
-				}
-				else
-				{
-					if (v.y < v.z) { v = glm::vec3(0, 1, 0); }
-					else { v = glm::vec3(0, 0, 1); }
-				}
-				auto axis = glm::normalize(glm::cross(from, v));
-				return glm::quat(0, axis);
-			}
-			else
-			{
-				return glm::normalize(glm::quat(1.0f + dot, localW));
-			}
-		}
 	}
 
 	void MMDIkSolver::SolveCore(uint32_t iteration)
 	{
 		auto ikPos = glm::vec3(m_ikNode->m_global[3]);
-		//for (auto& chain : m_chains)
 		for (size_t chainIdx = 0; chainIdx < m_chains.size(); chainIdx++)
 		{
 			auto& chain = m_chains[chainIdx];
@@ -315,7 +245,7 @@ namespace saba
 					SolvePlane(iteration, chainIdx, SolveAxis::X);
 					continue;
 				}
-				else if ((chain.m_limitMin.y != 0 || chain.m_limitMax.y != 0) &&
+				if ((chain.m_limitMin.y != 0 || chain.m_limitMax.y != 0) &&
 					(chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
 					(chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)
 					)
@@ -323,7 +253,7 @@ namespace saba
 					SolvePlane(iteration, chainIdx, SolveAxis::Y);
 					continue;
 				}
-				else if ((chain.m_limitMin.z != 0 || chain.m_limitMax.z != 0) &&
+				if ((chain.m_limitMin.z != 0 || chain.m_limitMax.z != 0) &&
 					(chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
 					(chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0)
 					)
@@ -385,26 +315,20 @@ namespace saba
 	void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis)
 	{
 		int RotateAxisIndex = 0; // X axis
-		glm::vec3 RotateAxis = glm::vec3(1, 0, 0);
-		glm::vec3 Plane = glm::vec3(0, 1, 1);
+		auto RotateAxis = glm::vec3(1, 0, 0);
 		switch (solveAxis)
 		{
 		case SolveAxis::X:
 			RotateAxisIndex = 0; // X axis
 			RotateAxis = glm::vec3(1, 0, 0);
-			Plane = glm::vec3(0, 1, 1);
 			break;
 		case SolveAxis::Y:
 			RotateAxisIndex = 1; // Y axis
 			RotateAxis = glm::vec3(0, 1, 0);
-			Plane = glm::vec3(1, 0, 1);
 			break;
 		case SolveAxis::Z:
 			RotateAxisIndex = 2; // Z axis
 			RotateAxis = glm::vec3(0, 0, 1);
-			Plane = glm::vec3(1, 1, 0);
-			break;
-		default:
 			break;
 		}
 
@@ -425,7 +349,6 @@ namespace saba
 		dot = glm::clamp(dot, -1.0f, 1.0f);
 
 		float angle = std::acos(dot);
-		float angleDeg = glm::degrees(angle);
 
 		angle = glm::clamp(angle, -m_limitAngle, m_limitAngle);
 
@@ -477,29 +400,24 @@ namespace saba
 
 	size_t MMDIKManager::FindIKSolverIndex(const std::string& name)
 	{
-		auto findIt = std::find_if(
-			m_ikSolvers.begin(),
-			m_ikSolvers.end(),
-			[&name](const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
+		const auto findIt = std::ranges::find_if(m_ikSolvers, [&name]
+			(const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
 		);
 		if (findIt == m_ikSolvers.end())
 		{
 			return NPos;
 		}
-		else
-		{
-			return findIt - m_ikSolvers.begin();
-		}
+		return findIt - m_ikSolvers.begin();
 	}
 
-	MMDIkSolver* MMDIKManager::GetIKSolver(size_t idx)
+	MMDIkSolver* MMDIKManager::GetIKSolver(const size_t idx) const
 	{
 		return m_ikSolvers[idx].get();
 	}
 
 	MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName)
 	{
-		auto findIdx = FindIKSolverIndex(ikName);
+		const auto findIdx = FindIKSolverIndex(ikName);
 		if (findIdx == NPos)
 		{
 			return nullptr;

@@ -30,7 +30,7 @@ namespace saba
 	public:
 		MMDIkSolver();
 
-		std::string GetName() const;
+		[[nodiscard]] std::string GetName() const;
 
 		void AddIKChain(MMDNode* node, bool isKnee = false);
 		void AddIKChain(
@@ -47,7 +47,7 @@ namespace saba
 		void ClearBaseAnimation() { m_baseAnimEnable = true; }
 
 	private:
-		void AddIKChain(IKChain&& chain);
+		void AddIKChain(IKChain chain);
 		void SolveCore(uint32_t iteration);
 
 		void SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis);
@@ -66,10 +66,10 @@ namespace saba
 	class MMDIKManager
 	{
 	public:
-		static const size_t NPos = -1;
+		static constexpr size_t NPos = -1;
 
 		size_t FindIKSolverIndex(const std::string& name);
-		MMDIkSolver* GetIKSolver(size_t idx);
+		[[nodiscard]] MMDIkSolver* GetIKSolver(size_t idx) const;
 		MMDIkSolver* GetIKSolver(const std::string& ikName);
 		MMDIkSolver* AddIKSolver();
 
