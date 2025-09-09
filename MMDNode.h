@@ -88,8 +88,8 @@ namespace saba
 		static constexpr size_t NPos = -1;
 
 		size_t FindNodeIndex(const std::string& name);
-		MMDNode* GetNode(size_t idx);
-		MMDNode* GetNode(const std::string& nodeName);
+		MMDNode* GetNodeByIndex(size_t idx) const;
+		MMDNode* GetNodeByName(const std::string& nodeName);
 		MMDNode* AddNode();
 
 		std::vector<std::unique_ptr<MMDNode>>	m_nodes;

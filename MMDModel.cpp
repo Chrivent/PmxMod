@@ -143,7 +143,7 @@ namespace saba
 		auto& nodeMan = m_nodeMan;
 		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			const auto node = nodeMan.GetNode(i);
+			const auto node = nodeMan.GetNodeByIndex(i);
 			node->SaveBaseAnimation();
 		}
 
@@ -167,7 +167,7 @@ namespace saba
 		auto& nodeMan = m_nodeMan;
 		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			const auto node = nodeMan.GetNode(i);
+			const auto node = nodeMan.GetNodeByIndex(i);
 			node->LoadBaseAnimation();
 		}
 
@@ -191,7 +191,7 @@ namespace saba
 		auto& nodeMan = m_nodeMan;
 		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
 		{
-			const auto node = nodeMan.GetNode(i);
+			const auto node = nodeMan.GetNodeByIndex(i);
 			node->ClearBaseAnimation();
 		}
 
@@ -662,7 +662,7 @@ namespace saba
 				}
 				else if (pmxMat.m_sphereMode == PMXSphereMode::SubTexture)
 				{
-					// TODO: SphereTexture が SubTexture の処理
+					// SphereTexture が SubTexture の処理
 				}
 			}
 
@@ -690,11 +690,11 @@ namespace saba
 		for (size_t i = 0; i < pmx.m_bones.size(); i++)
 		{
 			const auto& bone = pmx.m_bones[i];
-			auto* node = m_nodeMan.GetNode(i);
+			auto* node = m_nodeMan.GetNodeByIndex(i);
 			if (bone.m_parentBoneIndex != -1)
 			{
 				const auto& parentBone = pmx.m_bones[bone.m_parentBoneIndex];
-				auto* parent = m_nodeMan.GetNode(bone.m_parentBoneIndex);
+				auto* parent = m_nodeMan.GetNodeByIndex(bone.m_parentBoneIndex);
 				parent->AddChild(node);
 				auto localPos = bone.m_position - parentBone.m_position;
 				localPos.z *= -1;
@@ -723,7 +723,7 @@ namespace saba
 			if ((appendRotate || appendTranslate) && (bone.m_appendBoneIndex != -1))
 			{
 				bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendLocal)) != 0;
-				auto appendNode = m_nodeMan.GetNode(bone.m_appendBoneIndex);
+				auto appendNode = m_nodeMan.GetNodeByIndex(bone.m_appendBoneIndex);
 				float appendWeight = bone.m_appendWeight;
 				node->m_isAppendLocal = appendLocal;
 				node->m_appendNode = appendNode;
@@ -751,16 +751,16 @@ namespace saba
 			if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::IK))
 			{
 				auto solver = m_ikSolverMan.AddIKSolver();
-				auto* ikNode = m_nodeMan.GetNode(i);
+				auto* ikNode = m_nodeMan.GetNodeByIndex(i);
 				solver->m_ikNode = ikNode;
 				ikNode->m_ikSolver = solver;
 
-				auto* targetNode = m_nodeMan.GetNode(bone.m_ikTargetBoneIndex);
+				auto* targetNode = m_nodeMan.GetNodeByIndex(bone.m_ikTargetBoneIndex);
 				solver->m_ikTarget = targetNode;
 
 				for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks)
 				{
-					auto* linkNode = m_nodeMan.GetNode(m_ikBoneIndex);
+					auto* linkNode = m_nodeMan.GetNodeByIndex(m_ikBoneIndex);
 					if (m_enableLimit)
 					{
 						glm::vec3 limitMax = m_limitMin * glm::vec3(-1);
@@ -832,7 +832,7 @@ namespace saba
 				for (const auto& [m_boneIndex, m_position, m_quaternion] : pmxMorph.m_boneMorph)
 				{
 					BoneMorphElement boneMorphElem;
-					boneMorphElem.m_node = m_nodeMan.GetNode(m_boneIndex);
+					boneMorphElem.m_node = m_nodeMan.GetNodeByIndex(m_boneIndex);
 					boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
 					const glm::quat q = m_quaternion;
 					auto invZ = glm::mat3(glm::scale(glm::mat4(1), glm::vec3(1, 1, -1)));
@@ -904,7 +904,7 @@ namespace saba
 			MMDNode* node = nullptr;
 			if (pmxRB.m_boneIndex != -1)
 			{
-				node = m_nodeMan.GetNode(pmxRB.m_boneIndex);
+				node = m_nodeMan.GetNodeByIndex(pmxRB.m_boneIndex);
 			}
 			if (!rb->Create(pmxRB, this, node))
 			{

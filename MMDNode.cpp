@@ -247,19 +247,19 @@ namespace saba
 		return findIt - m_nodes.begin();
 	}
 
-	MMDNode* MMDNodeManager::GetNode(const size_t idx)
+	MMDNode* MMDNodeManager::GetNodeByIndex(const size_t idx) const
 	{
 		return m_nodes[idx].get();
 	}
 
-	MMDNode* MMDNodeManager::GetNode(const std::string& nodeName)
+	MMDNode* MMDNodeManager::GetNodeByName(const std::string& nodeName)
 	{
 		const auto findIdx = FindNodeIndex(nodeName);
 		if (findIdx == NPos)
 		{
 			return nullptr;
 		}
-		return GetNode(findIdx);
+		return GetNodeByIndex(findIdx);
 	}
 
 	MMDNode* MMDNodeManager::AddNode()

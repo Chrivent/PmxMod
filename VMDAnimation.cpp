@@ -200,7 +200,7 @@ namespace saba
 			VMDNodeController* nodeCtrl = nullptr;
 			if (findIt == std::end(nodeCtrlMap))
 			{
-				auto node = m_model->m_nodeMan.GetNode(nodeName);
+				auto node = m_model->m_nodeMan.GetNodeByName(nodeName);
 				if (node != nullptr)
 				{
 					auto val = std::make_pair(

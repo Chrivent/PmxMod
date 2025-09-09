@@ -189,7 +189,7 @@ namespace saba
 	{
 	}
 
-	bool MMDRigidBody::Create(const PMXRigidbody & pmxRigidBody, MMDModel* model, MMDNode * node)
+	bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, MMDModel* model, MMDNode * node)
 	{
 		Destroy();
 
@@ -246,9 +246,9 @@ namespace saba
 		}
 		else
 		{
-			const MMDNode* root = model->m_nodeMan.GetNode(0);
+			const MMDNode* root = model->m_nodeMan.GetNodeByIndex(0);
 			m_offsetMat = glm::inverse(root->m_global) * rbMat;
-			kinematicNode = model->m_nodeMan.GetNode(0);
+			kinematicNode = model->m_nodeMan.GetNodeByIndex(0);
 		}
 
 		btMotionState* MMDMotionState = nullptr;
