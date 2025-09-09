@@ -12,7 +12,6 @@ namespace saba
 		}
 	} // namespace
 
-
 	VMDCameraController::VMDCameraController()
 		: m_startKeyIndex(0)
 	{
