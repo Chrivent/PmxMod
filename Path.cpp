@@ -15,19 +15,12 @@ namespace saba
 
 	std::string PathUtil::GetCWD()
 	{
-		/*std::string workDir;
+		std::string workDir;
 		DWORD sz = GetCurrentDirectoryW(0, nullptr);
 		std::vector<wchar_t> buffer(sz);
-		GetCurrentDirectory(sz, &buffer[0]);
+		GetCurrentDirectory(sz, reinterpret_cast<LPSTR>(&buffer[0]));
 		workDir = ToUtf8String(&buffer[0]);
-		return workDir;*/
-
-		DWORD len = GetCurrentDirectoryW(0, nullptr); // 널 제외 길이
-		if (len == 0) return {};
-		std::wstring wbuf(len + 1, L'\0');            // 널 포함 공간 확보
-		DWORD written = GetCurrentDirectoryW(len + 1, wbuf.data());
-		wbuf.resize(written);                         // 실제 길이로 정리
-		return ToUtf8String(wbuf.c_str());
+		return workDir;
 	}
 
 	std::string PathUtil::GetExecutablePath()

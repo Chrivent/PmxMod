@@ -49,7 +49,7 @@ namespace saba
 
 	template<size_t Size>
 	std::string MMDFileString<Size>::ToUtf8String() const {
-		std::u16string u16Str = saba::ConvertSjisToU16String(m_buffer);
+		const std::u16string u16Str = saba::ConvertSjisToU16String(m_buffer);
 		std::string u8Str;
 		ConvU16ToU8(u16Str, u8Str);
 		return u8Str;

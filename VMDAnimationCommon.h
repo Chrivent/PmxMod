@@ -6,7 +6,7 @@
 namespace saba
 {
 	template <typename KeyType>
-	typename std::vector<KeyType>::const_iterator FindBoundKey(
+	std::vector<KeyType>::const_iterator FindBoundKey(
 		const std::vector<KeyType>&	keys,
 		int32_t						t,
 		size_t						startIdx
