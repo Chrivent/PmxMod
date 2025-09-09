@@ -18,8 +18,7 @@
 
 namespace saba
 {
-	MaterialFactor::MaterialFactor(const PMXMorph::MaterialMorph& pmxMat)
-	{
+	MaterialFactor::MaterialFactor(const PMXMorph::MaterialMorph& pmxMat) {
 		m_diffuse.r = pmxMat.m_diffuse.r;
 		m_diffuse.g = pmxMat.m_diffuse.g;
 		m_diffuse.b = pmxMat.m_diffuse.b;
@@ -34,8 +33,7 @@ namespace saba
 		m_toonTextureFactor = pmxMat.m_toonTextureFactor;
 	}
 
-	void MaterialFactor::Mul(const MaterialFactor& val, const float weight)
-	{
+	void MaterialFactor::Mul(const MaterialFactor& val, const float weight) {
 		m_diffuse = glm::mix(m_diffuse, m_diffuse * val.m_diffuse, weight);
 		m_alpha = glm::mix(m_alpha, m_alpha * val.m_alpha, weight);
 		m_specular = glm::mix(m_specular, m_specular * val.m_specular, weight);
@@ -48,8 +46,7 @@ namespace saba
 		m_toonTextureFactor = glm::mix(m_toonTextureFactor, m_toonTextureFactor * val.m_toonTextureFactor, weight);
 	}
 
-	void MaterialFactor::Add(const MaterialFactor& val, const float weight)
-	{
+	void MaterialFactor::Add(const MaterialFactor& val, const float weight) {
 		m_diffuse += val.m_diffuse * weight;
 		m_alpha += val.m_alpha * weight;
 		m_specular += val.m_specular * weight;
@@ -64,61 +61,53 @@ namespace saba
 
 	MMDModel::MMDModel()
 		: m_indexCount(0)
-		  , m_indexElementSize(0)
-		  , m_bboxMin()
-		  , m_bboxMax()
-		  , m_parallelUpdateCount(0) {
+		, m_indexElementSize(0)
+		, m_bboxMin()
+		, m_bboxMax()
+		, m_parallelUpdateCount(0) {
 	}
 
-	MMDModel::~MMDModel()
-	{
+	MMDModel::~MMDModel() {
 		Destroy();
 	}
 
-	void MMDModel::InitializeAnimation()
-	{
+	void MMDModel::InitializeAnimation() {
 		ClearBaseAnimation();
 
-		for (const auto& node : m_nodeMan.m_nodes)
-		{
+		for (const auto &node: m_nodeMan.m_nodes) {
 			node->m_animTranslate = glm::vec3(0);
 			node->m_animRotate = glm::quat(1, 0, 0, 0);
 		}
 
 		BeginAnimation();
 
-		for (const auto& node : m_nodeMan.m_nodes)
+		for (const auto &node: m_nodeMan.m_nodes)
 			node->UpdateLocalTransform();
 
-		for (const auto& morph : m_morphMan.m_morphs)
+		for (const auto &morph: m_morphMan.m_morphs)
 			morph->m_weight = 0;
 
-		for (const auto& ikSolver : m_ikSolverMan.m_ikSolvers)
+		for (const auto &ikSolver: m_ikSolverMan.m_ikSolvers)
 			ikSolver->m_enable = true;
 
-		for (const auto& node : m_nodeMan.m_nodes)
-		{
+		for (const auto &node: m_nodeMan.m_nodes) {
 			if (node->m_parent == nullptr)
 				node->UpdateGlobalTransform();
 		}
 
-		for (const auto pmxNode : m_sortedNodes)
-		{
-			if (pmxNode->m_appendNode != nullptr)
-			{
+		for (const auto pmxNode: m_sortedNodes) {
+			if (pmxNode->m_appendNode != nullptr) {
 				pmxNode->UpdateAppendTransform();
 				pmxNode->UpdateGlobalTransform();
 			}
-			if (pmxNode->m_ikSolver != nullptr)
-			{
+			if (pmxNode->m_ikSolver != nullptr) {
 				const auto ikSolver = pmxNode->m_ikSolver;
 				ikSolver->Solve();
 				pmxNode->UpdateGlobalTransform();
 			}
 		}
 
-		for (const auto& node : m_nodeMan.m_nodes)
-		{
+		for (const auto &node: m_nodeMan.m_nodes) {
 			if (node->m_parent == nullptr)
 				node->UpdateGlobalTransform();
 		}
@@ -126,99 +115,56 @@ namespace saba
 		ResetPhysics();
 	}
 
-	void MMDModel::SaveBaseAnimation()
-	{
-		auto& nodeMan = m_nodeMan;
-		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
-		{
-			const auto node = nodeMan.GetNodeByIndex(i);
-			node->SaveBaseAnimation();
-		}
+	void MMDModel::SaveBaseAnimation() const {
+		for (size_t i = 0; i < m_nodeMan.m_nodes.size(); i++)
+			m_nodeMan.GetNodeByIndex(i)->SaveBaseAnimation();
 
-		auto& morphMan = m_morphMan;
-		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
-		{
-			const auto morph = morphMan.GetMorph(i);
-			morph->SaveBaseAnimation();
-		}
+		for (size_t i = 0; i < m_morphMan.m_morphs.size(); i++)
+			m_morphMan.GetMorph(i)->SaveBaseAnimation();
 
-		const auto& ikMan = m_ikSolverMan;
-		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
-		{
-			const auto ikSolver = ikMan.GetIKSolver(i);
-			ikSolver->SaveBaseAnimation();
-		}
+		for (size_t i = 0; i < m_ikSolverMan.m_ikSolvers.size(); i++)
+			m_ikSolverMan.GetIKSolver(i)->SaveBaseAnimation();
 	}
 
-	void MMDModel::LoadBaseAnimation()
-	{
-		auto& nodeMan = m_nodeMan;
-		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
-		{
-			const auto node = nodeMan.GetNodeByIndex(i);
-			node->LoadBaseAnimation();
-		}
+	void MMDModel::LoadBaseAnimation() const {
+		for (size_t i = 0; i < m_nodeMan.m_nodes.size(); i++)
+			m_nodeMan.GetNodeByIndex(i)->LoadBaseAnimation();
 
-		auto& morphMan = m_morphMan;
-		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
-		{
-			const auto morph = morphMan.GetMorph(i);
-			morph->LoadBaseAnimation();
-		}
+		for (size_t i = 0; i < m_morphMan.m_morphs.size(); i++)
+			m_morphMan.GetMorph(i)->LoadBaseAnimation();
 
-		const auto& ikMan = m_ikSolverMan;
-		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
-		{
-			const auto ikSolver = ikMan.GetIKSolver(i);
-			ikSolver->LoadBaseAnimation();
-		}
+		for (size_t i = 0; i < m_ikSolverMan.m_ikSolvers.size(); i++)
+			m_ikSolverMan.GetIKSolver(i)->LoadBaseAnimation();
 	}
 
-	void MMDModel::ClearBaseAnimation()
-	{
-		auto& nodeMan = m_nodeMan;
-		for (size_t i = 0; i < nodeMan.m_nodes.size(); i++)
-		{
-			const auto node = nodeMan.GetNodeByIndex(i);
-			node->ClearBaseAnimation();
-		}
+	void MMDModel::ClearBaseAnimation() const {
+		for (size_t i = 0; i < m_nodeMan.m_nodes.size(); i++)
+			m_nodeMan.GetNodeByIndex(i)->ClearBaseAnimation();
 
-		auto& morphMan = m_morphMan;
-		for (size_t i = 0; i < morphMan.m_morphs.size(); i++)
-		{
-			const auto morph = morphMan.GetMorph(i);
-			morph->ClearBaseAnimation();
-		}
+		for (size_t i = 0; i < m_morphMan.m_morphs.size(); i++)
+			m_morphMan.GetMorph(i)->ClearBaseAnimation();
 
-		const auto& ikMan = m_ikSolverMan;
-		for (size_t i = 0; i < ikMan.m_ikSolvers.size(); i++)
-		{
-			const auto ikSolver = ikMan.GetIKSolver(i);
-			ikSolver->ClearBaseAnimation();
-		}
+		for (size_t i = 0; i < m_ikSolverMan.m_ikSolvers.size(); i++)
+			m_ikSolverMan.GetIKSolver(i)->ClearBaseAnimation();
 	}
 
-	void MMDModel::BeginAnimation()
-	{
-		for (const auto& node : m_nodeMan.m_nodes)
+	void MMDModel::BeginAnimation() {
+		for (const auto &node: m_nodeMan.m_nodes)
 			node->BeginUpdateTransform();
 		const size_t vtxCount = m_morphPositions.size();
-		for (size_t vtxIdx = 0; vtxIdx < vtxCount; vtxIdx++)
-		{
+		for (size_t vtxIdx = 0; vtxIdx < vtxCount; vtxIdx++) {
 			m_morphPositions[vtxIdx] = glm::vec3(0);
 			m_morphUVs[vtxIdx] = glm::vec4(0);
 		}
 	}
 
-	void MMDModel::UpdateMorphAnimation()
-	{
+	void MMDModel::UpdateMorphAnimation() {
 		// Morph の処理
 		BeginMorphMaterial();
 
-		const auto& morphs = m_morphMan.m_morphs;
-		for (size_t i = 0; i < morphs.size(); i++)
-		{
-			const auto& morph = morphs[i];
+		const auto &morphs = m_morphMan.m_morphs;
+		for (size_t i = 0; i < morphs.size(); i++) {
+			const auto &morph = morphs[i];
 			Morph(morph.get(), morph->m_weight);
 		}
 
