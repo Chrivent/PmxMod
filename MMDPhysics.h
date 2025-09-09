@@ -113,7 +113,7 @@ namespace saba
 		MMDRigidBody();
 		~MMDRigidBody();
 
-		bool Create(const PMXRigidbody& pmxRigidBody, MMDModel* model, MMDNode* node);
+		bool Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
 		void Destroy();
 
 		btRigidBody* GetRigidBody() const;
