@@ -115,6 +115,13 @@ namespace saba
 		glm::mat4	m_offset;
 	};
 
+	enum class RigidBodyType
+	{
+		Kinematic,
+		Dynamic,
+		Aligned,
+	};
+
 	class MMDRigidBody
 	{
 	public:
@@ -134,14 +141,6 @@ namespace saba
 		void CalcLocalTransform();
 
 		glm::mat4 GetTransform();
-
-	private:
-		enum class RigidBodyType
-		{
-			Kinematic,
-			Dynamic,
-			Aligned,
-		};
 
 	private:
 		std::unique_ptr<btCollisionShape>	m_shape;

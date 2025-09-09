@@ -30,36 +30,11 @@ namespace saba
 		void CalculateInverseInitTransform();
 
 		// ノードの初期化時に呼び出す
-		void SaveInitialTRS()
-		{
-			m_initTranslate = m_translate;
-			m_initRotate = m_rotate;
-			m_initScale = m_scale;
-		}
-		void LoadInitialTRS()
-		{
-			m_translate = m_initTranslate;
-			m_rotate = m_initRotate;
-			m_scale = m_initScale;
-		}
-
-		void SaveBaseAnimation()
-		{
-			m_baseAnimTranslate = m_animTranslate;
-			m_baseAnimRotate = m_animRotate;
-		}
-
-		void LoadBaseAnimation()
-		{
-			m_animTranslate = m_baseAnimTranslate;
-			m_animRotate = m_baseAnimRotate;
-		}
-
-		void ClearBaseAnimation()
-		{
-			m_baseAnimTranslate = glm::vec3(0);
-			m_baseAnimRotate = glm::quat(1, 0, 0, 0);
-		}
+		void SaveInitialTRS();
+		void LoadInitialTRS();
+		void SaveBaseAnimation();
+		void LoadBaseAnimation();
+		void ClearBaseAnimation();
 
 		void UpdateAppendTransform();
 
