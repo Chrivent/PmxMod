@@ -308,7 +308,7 @@ namespace saba
 			return;
 		}
 
-		const auto& rigidBodies = physicsMan.m_rigidBodys;
+		const auto& rigidBodies = physicsMan.m_rigidBodies;
 		for (auto& rb : rigidBodies)
 		{
 			rb->SetActivation(false);
@@ -351,7 +351,7 @@ namespace saba
 			return;
 		}
 
-		const auto& rigidBodies = physicsMan.m_rigidBodys;
+		const auto& rigidBodies = physicsMan.m_rigidBodies;
 		for (auto& rb : rigidBodies)
 		{
 			rb->SetActivation(true);
@@ -896,10 +896,7 @@ namespace saba
 		}
 
 		// Physics
-		if (!m_physicsMan.Create())
-		{
-			return false;
-		}
+		m_physicsMan.Create();
 
 		for (const auto& pmxRB : pmx.m_rigidbodies)
 		{
@@ -923,7 +920,7 @@ namespace saba
 			    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex)
 			{
 				auto joint = m_physicsMan.AddJoint();
-				auto& rigidBodies = m_physicsMan.m_rigidBodys;
+				auto& rigidBodies = m_physicsMan.m_rigidBodies;
 				bool ret = joint->CreateJoint(
 					pmxJoint,
 					rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
