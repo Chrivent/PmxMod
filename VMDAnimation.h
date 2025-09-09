@@ -95,10 +95,10 @@ namespace saba
 
 		bool Add(const VMDFile& vmd);
 		void Destroy();
-		void Evaluate(float t, float weight = 1.0f);
+		void Evaluate(float t, float weight = 1.0f) const;
 
 		// Physics を同期させる
-		void SyncPhysics(float t, int frameCount = 30);
+		void SyncPhysics(float t, int frameCount = 30) const;
 
 	private:
 		int32_t CalculateMaxKeyTime() const;
