@@ -336,7 +336,7 @@ namespace saba
 		chain.m_planeModeAngle = newAngle;
 
 		auto ikRotM = glm::rotate(glm::quat(1, 0, 0, 0), newAngle, RotateAxis)
-							* glm::inverse(chain.m_node->AnimateRotate());
+					* glm::inverse(chain.m_node->AnimateRotate());
 		chain.m_node->m_ikRotate = ikRotM;
 
 		chain.m_node->UpdateLocalTransform();
@@ -345,8 +345,8 @@ namespace saba
 
 	size_t MMDIKManager::FindIKSolverIndex(const std::string& name) {
 		const auto findIt = std::ranges::find_if(m_ikSolvers,
-		[&name](const std::unique_ptr<MMDIkSolver> &ikSolver)
-		{ return ikSolver->GetName() == name; }
+			[&name](const std::unique_ptr<MMDIkSolver> &ikSolver)
+			{ return ikSolver->GetName() == name; }
 		);
 		if (findIt == m_ikSolvers.end())
 			return NPos;

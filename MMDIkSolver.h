@@ -30,7 +30,7 @@ namespace saba
 	public:
 		MMDIkSolver();
 
-		[[nodiscard]] std::string GetName() const;
+		std::string GetName() const;
 
 		void AddIKChain(MMDNode* node, bool isKnee = false);
 		void AddIKChain(
@@ -69,7 +69,7 @@ namespace saba
 		static constexpr size_t NPos = -1;
 
 		size_t FindIKSolverIndex(const std::string& name);
-		[[nodiscard]] MMDIkSolver* GetIKSolver(size_t idx) const;
+		MMDIkSolver* GetIKSolver(size_t idx) const;
 		MMDIkSolver* GetIKSolver(const std::string& ikName);
 		MMDIkSolver* AddIKSolver();
 

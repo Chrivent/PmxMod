@@ -157,8 +157,8 @@ namespace saba
 		// ノードを更新する
 		void UpdateNodeAnimation(bool afterPhysicsAnim) const;
 		// Physicsを更新する
-		void ResetPhysics();
-		void UpdatePhysicsAnimation(float elapsed);
+		void ResetPhysics() const;
+		void UpdatePhysicsAnimation(float elapsed) const;
 		// 頂点を更新する
 		void Update();
 
