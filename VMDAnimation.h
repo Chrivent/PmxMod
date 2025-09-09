@@ -53,75 +53,45 @@ namespace saba
 	class VMDNodeController
 	{
 	public:
-		using KeyType = VMDNodeAnimationKey;
-
 		VMDNodeController();
 
 		void SetNode(MMDNode* node);
 		void Evaluate(float t, float weight = 1.0f);
-		
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
+
 		void SortKeys();
-		const  std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDNode* GetNode() const { return m_node; }
-
-	private:
 		MMDNode*				m_node;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDNodeAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 
 	class VMDMorphController
 	{
 	public:
-		using KeyType = VMDMorphAnimationKey;
-
 		VMDMorphController();
 
 		void SetBlendKeyShape(MMDMorph* morph);
 		void Evaluate(float t, float weight = 1.0f);
 
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
 		void SortKeys();
-		const std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDMorph* GetMorph() const { return m_morph; }
-
-	private:
 		MMDMorph*				m_morph;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDMorphAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 
 	class VMDIKController
 	{
 	public:
-		using KeyType = VMDIKAnimationKey;
-
 		VMDIKController();
 
 		void SetIKSolver(MMDIkSolver* ikSolver);
 		void Evaluate(float t, float weight = 1.0f);
 
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
 		void SortKeys();
-		const std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDIkSolver* GetIkSolver() const { return m_ikSolver; }
-
-	private:
 		MMDIkSolver*			m_ikSolver;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDIKAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 

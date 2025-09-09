@@ -169,7 +169,7 @@ namespace saba
 		std::sort(
 			std::begin(m_keys),
 			std::end(m_keys),
-			[](const KeyType& a, const KeyType& b) { return a.m_time < b.m_time; }
+			[](const VMDNodeAnimationKey& a, const VMDNodeAnimationKey& b) { return a.m_time < b.m_time; }
 		);
 	}
 
@@ -189,7 +189,7 @@ namespace saba
 		std::map<std::string, NodeControllerPtr> nodeCtrlMap;
 		for (auto& nodeCtrl : m_nodeControllers)
 		{
-			std::string name = nodeCtrl->GetNode()->m_name;
+			std::string name = nodeCtrl->m_node->m_name;
 			nodeCtrlMap.emplace(std::make_pair(name, std::move(nodeCtrl)));
 		}
 		m_nodeControllers.clear();
@@ -221,7 +221,7 @@ namespace saba
 			{
 				VMDNodeAnimationKey key;
 				key.Set(motion);
-				nodeCtrl->AddKey(key);
+				nodeCtrl->m_keys.push_back(key);
 			}
 		}
 		m_nodeControllers.reserve(nodeCtrlMap.size());
@@ -236,7 +236,7 @@ namespace saba
 		std::map<std::string, IKControllerPtr> ikCtrlMap;
 		for (auto& ikCtrl : m_ikControllers)
 		{
-			std::string name = ikCtrl->GetIkSolver()->GetName();
+			std::string name = ikCtrl->m_ikSolver->GetName();
 			ikCtrlMap.emplace(std::make_pair(name, std::move(ikCtrl)));
 		}
 		m_ikControllers.clear();
@@ -271,7 +271,7 @@ namespace saba
 					VMDIKAnimationKey key;
 					key.m_time = int32_t(ik.m_frame);
 					key.m_enable = ikInfo.m_enable != 0;
-					ikCtrl->AddKey(key);
+					ikCtrl->m_keys.push_back(key);
 				}
 			}
 		}
@@ -287,7 +287,7 @@ namespace saba
 		std::map<std::string, MorphControllerPtr> morphCtrlMap;
 		for (auto& morphCtrl : m_morphControllers)
 		{
-			std::string name = morphCtrl->GetMorph()->m_name;
+			std::string name = morphCtrl->m_morph->m_name;
 			morphCtrlMap.emplace(std::make_pair(name, std::move(morphCtrl)));
 		}
 		m_morphControllers.clear();
@@ -320,7 +320,7 @@ namespace saba
 				VMDMorphAnimationKey key;
 				key.m_time = int32_t(morph.m_frame);
 				key.m_weight = morph.m_weight;
-				morphCtrl->AddKey(key);
+				morphCtrl->m_keys.push_back(key);
 			}
 		}
 		m_morphControllers.reserve(morphCtrlMap.size());
@@ -395,7 +395,7 @@ namespace saba
 		int32_t maxTime = 0;
 		for (const auto& nodeController : m_nodeControllers)
 		{
-			const auto& keys = nodeController->GetKeys();
+			const auto& keys = nodeController->m_keys;
 			if (!keys.empty())
 			{
 				maxTime = std::max(maxTime, keys.rbegin()->m_time);
@@ -404,7 +404,7 @@ namespace saba
 
 		for (const auto& ikController : m_ikControllers)
 		{
-			const auto& keys = ikController->GetKeys();
+			const auto& keys = ikController->m_keys;
 			if (!keys.empty())
 			{
 				maxTime = std::max(maxTime, keys.rbegin()->m_time);
@@ -413,7 +413,7 @@ namespace saba
 
 		for (const auto& morphController : m_morphControllers)
 		{
-			const auto& keys = morphController->GetKeys();
+			const auto& keys = morphController->m_keys;
 			if (!keys.empty())
 			{
 				maxTime = std::max(maxTime, keys.rbegin()->m_time);
@@ -503,7 +503,7 @@ namespace saba
 		std::sort(
 			std::begin(m_keys),
 			std::end(m_keys),
-			[](const KeyType& a, const KeyType& b) { return a.m_time < b.m_time; }
+			[](const VMDIKAnimationKey& a, const VMDIKAnimationKey& b) { return a.m_time < b.m_time; }
 		);
 	}
 
@@ -567,7 +567,7 @@ namespace saba
 		std::sort(
 			std::begin(m_keys),
 			std::end(m_keys),
-			[](const KeyType& a, const KeyType& b) { return a.m_time < b.m_time; }
+			[](const VMDMorphAnimationKey& a, const VMDMorphAnimationKey& b) { return a.m_time < b.m_time; }
 		);
 	}
 }
