@@ -32,6 +32,8 @@ namespace saba
 		, m_isAppendTranslate(false)
 		, m_isAppendLocal(false)
 		, m_appendWeight(0)
+		, m_appendTranslate()
+		, m_appendRotate()
 		, m_ikSolver(nullptr)
 	{
 	}
@@ -52,7 +54,7 @@ namespace saba
 		}
 		else
 		{
-			auto lastNode = m_child->m_prev;
+			const auto lastNode = m_child->m_prev;
 			lastNode->m_next = child;
 			child->m_prev = lastNode;
 
@@ -86,7 +88,7 @@ namespace saba
 			r = r * m_appendRotate;
 		}
 
-		glm::vec3 s = m_scale;
+		const glm::vec3 s = m_scale;
 
 		m_local = glm::translate(glm::mat4(1), t)
 			* glm::mat4_cast(r)
@@ -111,7 +113,7 @@ namespace saba
 		}
 	}
 
-	void MMDNode::UpdateChildTransform()
+	void MMDNode::UpdateChildTransform() const
 	{
 		MMDNode* child = m_child;
 		while (child != nullptr)
@@ -200,7 +202,7 @@ namespace saba
 				appendRotate = m_appendNode->m_ikRotate * appendRotate;
 			}
 
-			glm::quat appendQ = glm::slerp(
+			const glm::quat appendQ = glm::slerp(
 				glm::quat(1, 0, 0, 0),
 				appendRotate,
 				m_appendWeight
@@ -210,7 +212,7 @@ namespace saba
 
 		if (m_isAppendTranslate)
 		{
-			glm::vec3 appendTranslate(0.0f);
+			glm::vec3 appendTranslate;
 			if (m_isAppendLocal)
 			{
 				appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
@@ -235,29 +237,24 @@ namespace saba
 
 	size_t MMDNodeManager::FindNodeIndex(const std::string& name)
 	{
-		auto findIt = std::find_if(
-			m_nodes.begin(),
-			m_nodes.end(),
-			[&name](const std::unique_ptr<MMDNode>& node) { return node->m_name == name; }
+		const auto findIt = std::ranges::find_if(m_nodes, [&name](const std::unique_ptr<MMDNode>& node)
+			{ return node->m_name == name; }
 		);
 		if (findIt == m_nodes.end())
 		{
 			return NPos;
 		}
-		else
-		{
-			return findIt - m_nodes.begin();
-		}
+		return findIt - m_nodes.begin();
 	}
 
-	MMDNode* MMDNodeManager::GetNode(size_t idx)
+	MMDNode* MMDNodeManager::GetNode(const size_t idx)
 	{
 		return m_nodes[idx].get();
 	}
 
 	MMDNode* MMDNodeManager::GetNode(const std::string& nodeName)
 	{
-		auto findIdx = FindNodeIndex(nodeName);
+		const auto findIdx = FindNodeIndex(nodeName);
 		if (findIdx == NPos)
 		{
 			return nullptr;
@@ -268,7 +265,7 @@ namespace saba
 	MMDNode* MMDNodeManager::AddNode()
 	{
 		auto node = std::make_unique<MMDNode>();
-		node->m_index = (uint32_t)m_nodes.size();
+		node->m_index = static_cast<uint32_t>(m_nodes.size());
 		m_nodes.emplace_back(std::move(node));
 		return m_nodes[m_nodes.size() - 1].get();
 	}
