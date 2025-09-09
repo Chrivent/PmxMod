@@ -1,5 +1,4 @@
 ﻿#include "VMDAnimation.h"
-#include "VMDAnimationCommon.h"
 
 #include <algorithm>
 #include <iterator>

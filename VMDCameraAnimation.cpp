@@ -1,5 +1,4 @@
 ﻿#include "VMDCameraAnimation.h"
-#include "VMDAnimationCommon.h"
 
 namespace saba
 {
