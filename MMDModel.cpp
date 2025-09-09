@@ -7,10 +7,8 @@
 
 #include "Path.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <limits>
 #include <algorithm>

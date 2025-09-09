@@ -19,8 +19,6 @@
 
 #include "Path.h"
 #include "File.h"
-#include "UnicodeUtil.h"
-#include "Time.h"
 #include "VMDFile.h"
 #include "VMDAnimation.h"
 #include "VMDCameraAnimation.h"

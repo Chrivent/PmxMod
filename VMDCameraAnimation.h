@@ -3,7 +3,6 @@
 #include "MMDCamera.h"
 #include "VMDAnimation.h"
 
-#include <cstdint>
 #include <memory>
 
 namespace saba

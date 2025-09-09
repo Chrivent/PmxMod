@@ -3,10 +3,8 @@
 #include "MMDModel.h"
 #include "MMDNode.h"
 #include "VMDFile.h"
-#include "MMDIkSolver.h"
 
 #include <vector>
-#include <algorithm>
 #include <memory>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

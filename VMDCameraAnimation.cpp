@@ -1,8 +1,6 @@
 ﻿#include "VMDCameraAnimation.h"
 #include "VMDAnimationCommon.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 namespace saba
 {
 	namespace
