@@ -16,7 +16,6 @@ namespace saba
 	{
 		glm::mat4 view(1.0f);
 		view = glm::translate(view, glm::vec3(0, 0, std::abs(cam.m_distance)));
-		auto degree = glm::degrees(cam.m_rotate);
 		glm::mat4 rot(1.0f);
 		rot = glm::rotate(rot, cam.m_rotate.y, glm::vec3(0, 1, 0));
 		rot = glm::rotate(rot, cam.m_rotate.z, glm::vec3(0, 0, -1));
