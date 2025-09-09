@@ -18,7 +18,7 @@
 
 namespace saba
 {
-	MaterialFactor::MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat)
+	MaterialFactor::MaterialFactor(const PMXMorph::MaterialMorph& pmxMat)
 	{
 		m_diffuse.r = pmxMat.m_diffuse.r;
 		m_diffuse.g = pmxMat.m_diffuse.g;
@@ -34,7 +34,7 @@ namespace saba
 		m_toonTextureFactor = pmxMat.m_toonTextureFactor;
 	}
 
-	void MaterialFactor::Mul(const MaterialFactor& val, float weight)
+	void MaterialFactor::Mul(const MaterialFactor& val, const float weight)
 	{
 		m_diffuse = glm::mix(m_diffuse, m_diffuse * val.m_diffuse, weight);
 		m_alpha = glm::mix(m_alpha, m_alpha * val.m_alpha, weight);
@@ -48,7 +48,7 @@ namespace saba
 		m_toonTextureFactor = glm::mix(m_toonTextureFactor, m_toonTextureFactor * val.m_toonTextureFactor, weight);
 	}
 
-	void MaterialFactor::Add(const MaterialFactor& val, float weight)
+	void MaterialFactor::Add(const MaterialFactor& val, const float weight)
 	{
 		m_diffuse += val.m_diffuse * weight;
 		m_alpha += val.m_alpha * weight;
@@ -88,26 +88,18 @@ namespace saba
 		BeginAnimation();
 
 		for (const auto& node : m_nodeMan.m_nodes)
-		{
 			node->UpdateLocalTransform();
-		}
 
 		for (const auto& morph : m_morphMan.m_morphs)
-		{
 			morph->m_weight = 0;
-		}
 
 		for (const auto& ikSolver : m_ikSolverMan.m_ikSolvers)
-		{
 			ikSolver->m_enable = true;
-		}
 
 		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
-			{
 				node->UpdateGlobalTransform();
-			}
 		}
 
 		for (const auto pmxNode : m_sortedNodes)
@@ -128,9 +120,7 @@ namespace saba
 		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
-			{
 				node->UpdateGlobalTransform();
-			}
 		}
 
 		ResetPhysics();
@@ -211,9 +201,7 @@ namespace saba
 	void MMDModel::BeginAnimation()
 	{
 		for (const auto& node : m_nodeMan.m_nodes)
-		{
 			node->BeginUpdateTransform();
-		}
 		const size_t vtxCount = m_morphPositions.size();
 		for (size_t vtxIdx = 0; vtxIdx < vtxCount; vtxIdx++)
 		{
@@ -242,9 +230,7 @@ namespace saba
 		for (const auto pmxNode : m_sortedNodes)
 		{
 			if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			{
 				continue;
-			}
 
 			pmxNode->UpdateLocalTransform();
 		}
@@ -252,22 +238,16 @@ namespace saba
 		for (const auto pmxNode : m_sortedNodes)
 		{
 			if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			{
 				continue;
-			}
 
 			if (pmxNode->m_parent == nullptr)
-			{
 				pmxNode->UpdateGlobalTransform();
-			}
 		}
 
 		for (const auto pmxNode : m_sortedNodes)
 		{
 			if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			{
 				continue;
-			}
 
 			if (pmxNode->m_appendNode != nullptr)
 			{
@@ -285,14 +265,10 @@ namespace saba
 		for (const auto pmxNode : m_sortedNodes)
 		{
 			if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			{
 				continue;
-			}
 
 			if (pmxNode->m_parent == nullptr)
-			{
 				pmxNode->UpdateGlobalTransform();
-			}
 		}
 	}
 
@@ -302,9 +278,7 @@ namespace saba
 		const auto physics = physicsMan.GetMMDPhysics();
 
 		if (physics == nullptr)
-		{
 			return;
-		}
 
 		const auto& rigidBodies = physicsMan.m_rigidBodies;
 		for (auto& rb : rigidBodies)
@@ -316,27 +290,19 @@ namespace saba
 		physics->Update(1.0f / 60.0f);
 
 		for (auto& rb : rigidBodies)
-		{
 			rb->ReflectGlobalTransform();
-		}
 
 		for (auto& rb : rigidBodies)
-		{
 			rb->CalcLocalTransform();
-		}
 
 		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
-			{
 				node->UpdateGlobalTransform();
-			}
 		}
 
 		for (auto& rb : rigidBodies)
-		{
 			rb->Reset(physics);
-		}
 	}
 
 	void MMDModel::UpdatePhysicsAnimation(float elapsed)
@@ -345,34 +311,24 @@ namespace saba
 		const auto physics = physicsMan.GetMMDPhysics();
 
 		if (physics == nullptr)
-		{
 			return;
-		}
 
 		const auto& rigidBodies = physicsMan.m_rigidBodies;
 		for (auto& rb : rigidBodies)
-		{
 			rb->SetActivation(true);
-		}
 
 		physics->Update(elapsed);
 
 		for (auto& rb : rigidBodies)
-		{
 			rb->ReflectGlobalTransform();
-		}
 
 		for (auto& rb : rigidBodies)
-		{
 			rb->CalcLocalTransform();
-		}
 
 		for (const auto& node : m_nodeMan.m_nodes)
 		{
 			if (node->m_parent == nullptr)
-			{
 				node->UpdateGlobalTransform();
-			}
 		}
 	}
 
@@ -382,14 +338,10 @@ namespace saba
 
 		// スキンメッシュに使用する変形マトリクスを事前計算
 		for (size_t i = 0; i < nodes.size(); i++)
-		{
 			m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
-		}
 
 		if (m_parallelUpdateCount != m_updateRanges.size())
-		{
 			SetupParallelUpdate();
-		}
 
 		const size_t futureCount = m_parallelUpdateFutures.size();
 		for (size_t i = 0; i < futureCount; i++)
@@ -410,18 +362,14 @@ namespace saba
 		{
 			const size_t rangeIndex = i + 1;
 			if (m_updateRanges[rangeIndex].m_vertexCount != 0)
-			{
 				m_parallelUpdateFutures[i].wait();
-			}
 		}
 	}
 
 	void MMDModel::UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed)
 	{
 		if (vmdAnim != nullptr)
-		{
 			vmdAnim->Evaluate(vmdFrame);
-		}
 
 		UpdateMorphAnimation();
 
@@ -438,9 +386,7 @@ namespace saba
 
 		PMXFile pmx;
 		if (!ReadPMXFile(&pmx, filepath.c_str()))
-		{
 			return false;
-		}
 
 		std::string dirPath = PathUtil::GetDirectoryName(filepath);
 
@@ -490,9 +436,7 @@ namespace saba
 					break;
 				case PMXVertexWeight::SDEF:
 					if (!warnSDEF)
-					{
 						warnSDEF = true;
-					}
 					vtxBoneInfo.m_skinningType = SkinningType::SDEF;
 					{
 						auto w0 = v.m_boneWeights[0];
@@ -518,9 +462,7 @@ namespace saba
 				case PMXVertexWeight::QDEF:
 					vtxBoneInfo.m_skinningType = SkinningType::DualQuaternion;
 					if (!infoQDEF)
-					{
 						infoQDEF = true;
-					}
 					break;
 				default:
 					vtxBoneInfo.m_skinningType = SkinningType::Weight1;
@@ -623,9 +565,7 @@ namespace saba
 
 			// Texture
 			if (pmxMat.m_textureIndex != -1)
-			{
 				mat.m_texture = PathUtil::Normalize(texturePaths[pmxMat.m_textureIndex]);
-			}
 
 			// ToonTexture
 			if (pmxMat.m_toonMode == PMXToonMode::Common)
@@ -640,9 +580,7 @@ namespace saba
 			else if (pmxMat.m_toonMode == PMXToonMode::Separate)
 			{
 				if (pmxMat.m_toonTextureIndex != -1)
-				{
 					mat.m_toonTexture = PathUtil::Normalize(texturePaths[pmxMat.m_toonTextureIndex]);
-				}
 			}
 
 			// SpTexture
@@ -651,13 +589,9 @@ namespace saba
 				mat.m_spTexture = PathUtil::Normalize(texturePaths[pmxMat.m_sphereTextureIndex]);
 				mat.m_spTextureMode = SphereTextureMode::None;
 				if (pmxMat.m_sphereMode == PMXSphereMode::Mul)
-				{
 					mat.m_spTextureMode = SphereTextureMode::Mul;
-				}
 				else if (pmxMat.m_sphereMode == PMXSphereMode::Add)
-				{
 					mat.m_spTextureMode = SphereTextureMode::Add;
-				}
 				else if (pmxMat.m_sphereMode == PMXSphereMode::SubTexture)
 				{
 					// SphereTexture が SubTexture の処理
@@ -735,9 +669,7 @@ namespace saba
 		m_sortedNodes.reserve(m_nodeMan.m_nodes.size());
 		auto& pmxNodes = m_nodeMan.m_nodes;
 		for (auto& pmxNode : pmxNodes)
-		{
 			m_sortedNodes.push_back(pmxNode.get());
-		}
 		std::ranges::stable_sort(m_sortedNodes, [](const MMDNode* x, const MMDNode* y)
 		                         { return x->m_deformDepth < y->m_deformDepth; }
 		);
@@ -766,9 +698,7 @@ namespace saba
 						solver->AddIKChain(linkNode, true, limitMin, limitMax);
 					}
 					else
-					{
 						solver->AddIKChain(linkNode);
-					}
 					linkNode->m_enableIK = true;
 				}
 
@@ -868,13 +798,9 @@ namespace saba
 					{
 						auto& [m_morphIndex, m_weight] = m_groupMorphs[i];
 
-						auto findIt = std::ranges::find(groupMorphStack,
-						                                m_morphIndex
-						);
+						auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 						if (findIt != groupMorphStack.end())
-						{
 							m_morphIndex = -1;
-						}
 						else
 						{
 							groupMorphStack.push_back(morphIdx);
@@ -901,13 +827,9 @@ namespace saba
 			auto rb = m_physicsMan.AddRigidBody();
 			MMDNode* node = nullptr;
 			if (pmxRB.m_boneIndex != -1)
-			{
 				node = m_nodeMan.GetNodeByIndex(pmxRB.m_boneIndex);
-			}
 			if (!rb->Create(pmxRB, this, node))
-			{
 				return false;
-			}
 			m_physicsMan.GetMMDPhysics()->AddRigidBody(rb);
 		}
 
@@ -925,9 +847,7 @@ namespace saba
 					rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
 				);
 				if (!ret)
-				{
 					return false;
-				}
 				m_physicsMan.GetMMDPhysics()->AddJoint(joint);
 			}
 		}
@@ -959,14 +879,10 @@ namespace saba
 	void MMDModel::SetupParallelUpdate()
 	{
 		if (m_parallelUpdateCount == 0)
-		{
 			m_parallelUpdateCount = std::thread::hardware_concurrency();
-		}
 		const size_t maxParallelCount = std::max(static_cast<size_t>(16), static_cast<size_t>(std::thread::hardware_concurrency()));
 		if (m_parallelUpdateCount > maxParallelCount)
-		{
 			m_parallelUpdateCount = 16;
-		}
 
 		m_updateRanges.resize(m_parallelUpdateCount);
 		m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
@@ -1001,9 +917,7 @@ namespace saba
 				m_vertexOffset = offset;
 				m_vertexCount = numVertexCount;
 				if (rangeIdx == 0)
-				{
 					m_vertexCount += vertexCount % m_updateRanges.size();
-				}
 				offset = m_vertexOffset + m_vertexCount;
 			}
 		}
@@ -1105,9 +1019,7 @@ namespace saba
 							w[bi] = vtxInfo->m_boneWeight[bi];
 						}
 						else
-						{
 							w[bi] = 0;
-						}
 					}
 					if (glm::dot(dq[0].real, dq[1].real) < 0) { w[1] *= -1.0f; }
 					if (glm::dot(dq[0].real, dq[2].real) < 0) { w[2] *= -1.0f; }
@@ -1190,27 +1102,19 @@ namespace saba
 	void MMDModel::MorphPosition(const PositionMorphData& morphData, const float weight)
 	{
 		if (weight == 0)
-		{
 			return;
-		}
 
 		for (const auto& [m_index, m_position] : morphData.m_morphVertices)
-		{
 			m_morphPositions[m_index] += m_position * weight;
-		}
 	}
 
 	void MMDModel::MorphUV(const UVMorphData& morphData, const float weight)
 	{
 		if (weight == 0)
-		{
 			return;
-		}
 
 		for (const auto& [m_index, m_uv] : morphData.m_morphUVs)
-		{
 			m_morphUVs[m_index] += m_uv * weight;
-		}
 	}
 
 	void MMDModel::BeginMorphMaterial()
