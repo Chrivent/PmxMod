@@ -400,8 +400,8 @@ namespace saba
 
 	size_t MMDIKManager::FindIKSolverIndex(const std::string& name)
 	{
-		const auto findIt = std::ranges::find_if(m_ikSolvers, [&name]
-			(const std::unique_ptr<MMDIkSolver>& ikSolver) { return ikSolver->GetName() == name; }
+		const auto findIt = std::ranges::find_if(m_ikSolvers, [&name](const std::unique_ptr<MMDIkSolver>& ikSolver)
+			{ return ikSolver->GetName() == name; }
 		);
 		if (findIt == m_ikSolvers.end())
 		{
