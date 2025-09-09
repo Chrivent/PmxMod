@@ -21,8 +21,7 @@ namespace saba
 		, m_bothFace(false)
 		, m_groundShadow(true)
 		, m_shadowCaster(true)
-		, m_shadowReceiver(true)
-	{
+		, m_shadowReceiver(true) {
 	}
 }
 

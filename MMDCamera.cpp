@@ -4,16 +4,14 @@
 
 namespace saba
 {
-	MMDCamera::MMDCamera()
-	{
+	MMDCamera::MMDCamera() {
 		m_interest = glm::vec3(0, 10, 0);
 		m_rotate = glm::vec3(0, 0, 0);
 		m_distance = 50;
 		m_fov = glm::radians(30.0f);
 	}
 
-	MMDLookAtCamera::MMDLookAtCamera(const MMDCamera & cam)
-	{
+	MMDLookAtCamera::MMDLookAtCamera(const MMDCamera & cam) {
 		glm::mat4 view(1.0f);
 		view = glm::translate(view, glm::vec3(0, 0, std::abs(cam.m_distance)));
 		glm::mat4 rot(1.0f);

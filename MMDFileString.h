@@ -13,30 +13,24 @@ namespace saba
 	template <size_t Size>
 	struct MMDFileString
 	{
-		MMDFileString()
-		{
+		MMDFileString() {
 			Clear();
 		}
 
-		void Clear()
-		{
-			for (auto& ch : m_buffer)
-			{
+		void Clear() {
+			for (auto &ch: m_buffer) {
 				ch = '\0';
 			}
 		}
 
-		void Set(const char* str)
-		{
+		void Set(const char* str) {
 			size_t i = 0;
-			while (i < Size && str[i] != '\0')
-			{
+			while (i < Size && str[i] != '\0') {
 				m_buffer[i] = str[i];
 				i++;
 			}
 
-			for (; i < Size + 1; i++)
-			{
+			for (; i < Size + 1; i++) {
 				m_buffer[i] = '\0';
 			}
 		}
@@ -49,14 +43,12 @@ namespace saba
 	};
 
 	template <size_t Size>
-	bool Read(MMDFileString<Size>* str, File& file)
-	{
+	bool Read(MMDFileString<Size>* str, File& file) {
 		return file.Read(str->m_buffer, Size);
 	}
 
 	template<size_t Size>
-	std::string MMDFileString<Size>::ToUtf8String() const
-	{
+	std::string MMDFileString<Size>::ToUtf8String() const {
 		std::u16string u16Str = saba::ConvertSjisToU16String(m_buffer);
 		std::string u8Str;
 		ConvU16ToU8(u16Str, u8Str);
