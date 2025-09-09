@@ -9,30 +9,25 @@ namespace saba
 		, m_dataIndex(0) {
 	}
 
-	void MMDMorph::SaveBaseAnimation()
-	{
+	void MMDMorph::SaveBaseAnimation() {
 		m_saveAnimWeight = m_weight;
 	}
 
-	void MMDMorph::LoadBaseAnimation()
-	{
+	void MMDMorph::LoadBaseAnimation() {
 		m_weight = m_saveAnimWeight;
 	}
 
-	void MMDMorph::ClearBaseAnimation()
-	{
+	void MMDMorph::ClearBaseAnimation() {
 		m_saveAnimWeight = 0;
 	}
 
-	size_t MMDMorphManager::FindMorphIndex(const std::string& name)
-	{
-		const auto findIt = std::ranges::find_if(m_morphs, [&name](const std::unique_ptr<MMDMorph>& morph)
+	size_t MMDMorphManager::FindMorphIndex(const std::string& name) {
+		const auto findIt = std::ranges::find_if(m_morphs,
+			[&name](const std::unique_ptr<MMDMorph> &morph)
 			{ return morph->m_name == name; }
 		);
 		if (findIt == m_morphs.end())
-		{
 			return NPos;
-		}
 		return findIt - m_morphs.begin();
 	}
 
@@ -45,9 +40,7 @@ namespace saba
 	{
 		const auto findIdx = FindMorphIndex(name);
 		if (findIdx == NPos)
-		{
 			return nullptr;
-		}
 		return GetMorph(findIdx);
 	}
 

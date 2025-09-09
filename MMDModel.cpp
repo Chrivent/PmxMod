@@ -907,33 +907,21 @@ namespace saba
 	void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 		switch (morph->m_morphType) {
 			case MorphType::Position:
-				MorphPosition(
-					m_positionMorphDatas[morph->m_dataIndex],
-					weight
-				);
+				MorphPosition(m_positionMorphDatas[morph->m_dataIndex], weight);
 				break;
 			case MorphType::UV:
-				MorphUV(
-					m_uvMorphDatas[morph->m_dataIndex],
-					weight
-				);
+				MorphUV(m_uvMorphDatas[morph->m_dataIndex], weight);
 				break;
 			case MorphType::Material:
-				MorphMaterial(
-					m_materialMorphDatas[morph->m_dataIndex],
-					weight
-				);
+				MorphMaterial(m_materialMorphDatas[morph->m_dataIndex], weight);
 				break;
 			case MorphType::Bone:
-				MorphBone(
-					m_boneMorphDatas[morph->m_dataIndex],
-					weight
-				);
+				MorphBone(m_boneMorphDatas[morph->m_dataIndex], weight);
 				break;
 			case MorphType::Group: {
 				auto &[m_groupMorphs] = m_groupMorphDatas[morph->m_dataIndex];
 				for (const auto &[m_morphIndex, m_weight]: m_groupMorphs) {
-					if (m_morphIndex == -1) { continue; }
+					if (m_morphIndex == -1) continue;
 					auto &elemMorph = m_morphMan.m_morphs[m_morphIndex];
 					Morph(elemMorph.get(), m_weight * weight);
 				}
@@ -1035,14 +1023,12 @@ namespace saba
 			} else {
 				switch (matMorph.m_opType) {
 					case PMXMorph::MaterialMorph::OpType::Mul:
-						for (size_t i = 0; i < m_materials.size(); i++) {
+						for (size_t i = 0; i < m_materials.size(); i++)
 							m_mulMaterialFactors[i].Mul(MaterialFactor(matMorph),weight);
-						}
 						break;
 					case PMXMorph::MaterialMorph::OpType::Add:
-						for (size_t i = 0; i < m_materials.size(); i++) {
+						for (size_t i = 0; i < m_materials.size(); i++)
 							m_addMaterialFactors[i].Add(MaterialFactor(matMorph), weight);
-						}
 						break;
 					default:
 						break;
