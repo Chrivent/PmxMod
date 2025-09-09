@@ -40,7 +40,7 @@ add_executable(PmxMod
     "SjisToUnicode.h"
     "VMDAnimation.cpp"
     "VMDAnimation.h"
-        "VMDCameraAnimation.cpp"
+    "VMDCameraAnimation.cpp"
     "VMDCameraAnimation.h"
     "VMDFile.cpp"
     "VMDFile.h"
