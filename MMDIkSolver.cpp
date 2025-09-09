@@ -19,9 +19,7 @@ namespace saba
 	std::string MMDIkSolver::GetName() const
 	{
 		if (m_ikNode != nullptr)
-		{
 			return m_ikNode->m_name;
-		}
 		return "";
 	}
 
@@ -63,9 +61,8 @@ namespace saba
 	void MMDIkSolver::Solve()
 	{
 		if (!m_enable)
-		{
 			return;
-		}
+
 		// Initialize IKChain
 		for (auto& chain : m_chains)
 		{
@@ -84,14 +81,12 @@ namespace saba
 
 			auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
 			auto ikPos = glm::vec3(m_ikNode->m_global[3]);
-			float dist = glm::length(targetPos - ikPos);
+			const float dist = glm::length(targetPos - ikPos);
 			if (dist < maxDist)
 			{
 				maxDist = dist;
 				for (auto& chain : m_chains)
-				{
 					chain.m_saveIKRot = chain.m_node->m_ikRotate;
-				}
 			}
 			else
 			{
@@ -106,20 +101,30 @@ namespace saba
 		}
 	}
 
+	void MMDIkSolver::SaveBaseAnimation()
+	{
+		m_baseAnimEnable = m_enable;
+	}
+
+	void MMDIkSolver::LoadBaseAnimation()
+	{
+		m_enable = m_baseAnimEnable;
+	}
+
+	void MMDIkSolver::ClearBaseAnimation()
+	{
+		m_baseAnimEnable = true;
+	}
+
 	namespace
 	{
 		float NormalizeAngle(const float angle)
 		{
 			float ret = angle;
 			while (ret >= glm::two_pi<float>())
-			{
 				ret -= glm::two_pi<float>();
-			}
 			while (ret < 0)
-			{
 				ret += glm::two_pi<float>();
-			}
-
 			return ret;
 		}
 
@@ -127,13 +132,9 @@ namespace saba
 		{
 			const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 			if (diff > glm::pi<float>())
-			{
 				return diff - glm::two_pi<float>();
-			}
 			if (diff < -glm::pi<float>())
-			{
 				return diff + glm::two_pi<float>();
-			}
 			return diff;
 		}
 
@@ -225,14 +226,12 @@ namespace saba
 			auto& chain = m_chains[chainIdx];
 			MMDNode* chainNode = chain.m_node;
 			if (chainNode == m_ikTarget)
-			{
 				/*
 				ターゲットとチェインが同じ場合、 chainTargetVec が0ベクトルとなる。
 				その後の計算で求める回転値がnanになるため、計算を行わない
 				対象モデル：ぽんぷ長式比叡.pmx
 				*/
 				continue;
-			}
 
 			if (chain.m_enableAxisLimit)
 			{
@@ -279,9 +278,7 @@ namespace saba
 			float angle = std::acos(dot);
 			float angleDeg = glm::degrees(angle);
 			if (angleDeg < 1.0e-3f)
-			{
 				continue;
-			}
 			angle = glm::clamp(angle, -m_limitAngle, m_limitAngle);
 			auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
 			auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, cross);
@@ -362,28 +359,20 @@ namespace saba
 
 		auto newAngle = chain.m_planeModeAngle;
 		if (dot1 > dot2)
-		{
 			newAngle += angle;
-		}
 		else
-		{
 			newAngle -= angle;
-		}
 		if (iteration == 0)
 		{
 			if (newAngle < chain.m_limitMin[RotateAxisIndex] || newAngle > chain.m_limitMax[RotateAxisIndex])
 			{
 				if (-newAngle > chain.m_limitMin[RotateAxisIndex] && -newAngle < chain.m_limitMax[RotateAxisIndex])
-				{
 					newAngle *= -1;
-				}
 				else
 				{
 					auto halfRad = (chain.m_limitMin[RotateAxisIndex] + chain.m_limitMax[RotateAxisIndex]) * 0.5f;
 					if (glm::abs(halfRad - newAngle) > glm::abs(halfRad + newAngle))
-					{
 						newAngle *= -1;
-					}
 				}
 			}
 		}
@@ -404,9 +393,7 @@ namespace saba
 			{ return ikSolver->GetName() == name; }
 		);
 		if (findIt == m_ikSolvers.end())
-		{
 			return NPos;
-		}
 		return findIt - m_ikSolvers.begin();
 	}
 
@@ -419,9 +406,7 @@ namespace saba
 	{
 		const auto findIdx = FindIKSolverIndex(ikName);
 		if (findIdx == NPos)
-		{
 			return nullptr;
-		}
 		return GetIKSolver(findIdx);
 	}
 

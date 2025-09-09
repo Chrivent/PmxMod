@@ -42,9 +42,9 @@ namespace saba
 
 		void Solve();
 
-		void SaveBaseAnimation() { m_baseAnimEnable = m_enable; }
-		void LoadBaseAnimation() { m_enable = m_baseAnimEnable; }
-		void ClearBaseAnimation() { m_baseAnimEnable = true; }
+		void SaveBaseAnimation();
+		void LoadBaseAnimation();
+		void ClearBaseAnimation();
 
 	private:
 		void AddIKChain(IKChain chain);
