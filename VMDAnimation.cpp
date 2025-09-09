@@ -97,11 +97,6 @@ namespace saba
 	{
 	}
 
-	void VMDNodeController::SetNode(MMDNode * node)
-	{
-		m_node = node;
-	}
-
 	void VMDNodeController::Evaluate(float t, float weight)
 	{
 		if (m_node == nullptr)
@@ -174,19 +169,14 @@ namespace saba
 	}
 
 	VMDAnimation::VMDAnimation()
+		: m_maxKeyTime(0)
 	{
-	}
-
-	bool VMDAnimation::Create(std::shared_ptr<MMDModel> model)
-	{
-		m_model = model;
-		return true;
 	}
 
 	bool VMDAnimation::Add(const VMDFile & vmd)
 	{
 		// Node Controller
-		std::map<std::string, NodeControllerPtr> nodeCtrlMap;
+		std::map<std::string, std::unique_ptr<VMDNodeController>> nodeCtrlMap;
 		for (auto& nodeCtrl : m_nodeControllers)
 		{
 			std::string name = nodeCtrl->m_node->m_name;
@@ -208,7 +198,7 @@ namespace saba
 						std::make_unique<VMDNodeController>()
 					);
 					nodeCtrl = val.second.get();
-					nodeCtrl->SetNode(node);
+					nodeCtrl->m_node = node;
 					nodeCtrlMap.emplace(std::move(val));
 				}
 			}
@@ -233,7 +223,7 @@ namespace saba
 		nodeCtrlMap.clear();
 
 		// IK Contoroller
-		std::map<std::string, IKControllerPtr> ikCtrlMap;
+		std::map<std::string, std::unique_ptr<VMDIKController>> ikCtrlMap;
 		for (auto& ikCtrl : m_ikControllers)
 		{
 			std::string name = ikCtrl->m_ikSolver->GetName();
@@ -257,7 +247,7 @@ namespace saba
 							std::make_unique<VMDIKController>()
 						);
 						ikCtrl = val.second.get();
-						ikCtrl->SetIKSolver(ikSolver);
+						ikCtrl->m_ikSolver = ikSolver;
 						ikCtrlMap.emplace(std::move(val));
 					}
 				}
@@ -284,7 +274,7 @@ namespace saba
 		ikCtrlMap.clear();
 
 		// Morph Controller
-		std::map<std::string, MorphControllerPtr> morphCtrlMap;
+		std::map<std::string, std::unique_ptr<VMDMorphController>> morphCtrlMap;
 		for (auto& morphCtrl : m_morphControllers)
 		{
 			std::string name = morphCtrl->m_morph->m_name;
@@ -306,7 +296,7 @@ namespace saba
 						std::make_unique<VMDMorphController>()
 					);
 					morphCtrl = val.second.get();
-					morphCtrl->SetBlendKeyShape(mmdMorph);
+					morphCtrl->m_morph = mmdMorph;
 					morphCtrlMap.emplace(std::move(val));
 				}
 			}
@@ -378,7 +368,7 @@ namespace saba
 		{
 			m_model->BeginAnimation();
 
-			Evaluate((float)t, float(1 + i) / float(frameCount));
+			Evaluate(t, float(1 + i) / float(frameCount));
 
 			m_model->UpdateMorphAnimation();
 
@@ -446,11 +436,6 @@ namespace saba
 	{
 	}
 
-	void VMDIKController::SetIKSolver(MMDIkSolver * ikSolver)
-	{
-		m_ikSolver = ikSolver;
-	}
-
 	void VMDIKController::Evaluate(float t, float weight)
 	{
 		if (m_ikSolver == nullptr)
@@ -511,11 +496,6 @@ namespace saba
 		: m_morph(nullptr)
 		, m_startKeyIndex(0)
 	{
-	}
-
-	void VMDMorphController::SetBlendKeyShape(MMDMorph* morph)
-	{
-		m_morph = morph;
 	}
 
 	void VMDMorphController::Evaluate(float t, float animWeight)

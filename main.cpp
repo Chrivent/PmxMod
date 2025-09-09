@@ -1416,11 +1416,7 @@ bool SampleMain()
 
 		// Load VMD animation
 		auto vmdAnim = std::make_unique<saba::VMDAnimation>();
-		if (!vmdAnim->Create(model.m_mmdModel))
-		{
-			std::cout << "Failed to create VMDAnimation.\n";
-			return false;
-		}
+		vmdAnim->m_model = model.m_mmdModel;
 		for (const auto& vmdPath : input.m_vmdPaths)
 		{
 			saba::VMDFile vmdFile;
