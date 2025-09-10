@@ -537,10 +537,6 @@ static std::vector<std::string> BuildArgsInteractive(){
 
 int main()
 {
-	_setmode(_fileno(stdin), _O_TEXT);
-	_setmode(_fileno(stdout), _O_TEXT);
-	_setmode(_fileno(stderr), _O_TEXT);
-
 	auto args = BuildArgsInteractive();
 
 	if (!SampleMain(args))
