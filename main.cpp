@@ -2,23 +2,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define  GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include <map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#define	STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_STATIC
-#include "stb_image.h"
-
 #include "Path.h"
-#include "File.h"
 #include "VMDFile.h"
 #include "VMDAnimation.h"
 #include "VMDCameraAnimation.h"

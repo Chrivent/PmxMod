@@ -17,9 +17,9 @@ AppContext::~AppContext()
 bool AppContext::Setup()
 {
 	// Setup resource directory.
-	//m_resourceDir = saba::PathUtil::GetExecutablePath();
-	//m_resourceDir = saba::PathUtil::GetDirectoryName(m_resourceDir);
-	m_resourceDir = saba::PathUtil::Combine("C:\\Users\\Ha Yechan\\Desktop\\PmxMod", "resource");
+	m_resourceDir = saba::PathUtil::GetExecutablePath();
+	m_resourceDir = saba::PathUtil::GetDirectoryName(m_resourceDir);
+	m_resourceDir = saba::PathUtil::Combine(m_resourceDir, "resource");
 	m_shaderDir = saba::PathUtil::Combine(m_resourceDir, "shader");
 	m_mmdDir = saba::PathUtil::Combine(m_resourceDir, "mmd");
 
