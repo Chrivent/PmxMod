@@ -70,58 +70,9 @@ static std::string WUtf8(const std::wstring& ws) {
 	return s;
 }
 
-bool SampleMain()
+bool SampleMain(std::vector<std::string>& args)
 {
-	_setmode(_fileno(stdin), _O_TEXT);
-	_setmode(_fileno(stdout), _O_TEXT);
-	_setmode(_fileno(stderr), _O_TEXT);
-
 	Input currentInput;
-	std::vector<Input> inputModels;
-	bool enableTransparentWindow = false;
-
-	// ---- 모델 폴더 입력 & 선택 ----
-	std::wstring modelRoot = L"C:/Users/Ha Yechan/Desktop/PMXViewer/models";
-	auto modelsFound = FindAllPMDPMX(modelRoot);
-	if (modelsFound.empty()) {
-		std::cerr << "[오류] PMX/PMD가 없습니다: " << WUtf8(modelRoot) << "\n";
-		return false;
-	}
-	std::cout << "\n[모델 목록]\n";
-	for (size_t i = 0; i < modelsFound.size(); ++i)
-		std::cout << i << ": " << WUtf8(modelsFound[i]) << "\n";
-	std::cout << "\n불러올 모델 번호: ";
-	int selModel = -1; std::cin >> selModel; std::cin.ignore(1024, '\n');
-	if (selModel < 0 || selModel >= (int)modelsFound.size()) {
-		std::cerr << "잘못된 선택입니다.\n"; return false;
-	}
-	currentInput.m_modelPath = WUtf8(modelsFound[selModel]);
-
-	// ---- 모션 폴더 입력 & 선택 ----
-	std::wstring motionRoot = L"C:/Users/Ha Yechan/Desktop/PMXViewer/motions";
-	auto motionsFound = FindAllVMD(motionRoot);
-	if (motionsFound.empty()) {
-		std::cerr << "[오류] VMD가 없습니다: " << WUtf8(motionRoot) << "\n";
-		return false;
-	}
-	std::cout << "\n[모션 목록]\n";
-	for (size_t i = 0; i < motionsFound.size(); ++i)
-		std::cout << i << ": " << WUtf8(motionsFound[i]) << "\n";
-	std::cout << "\n불러올 VMD 번호: ";
-	int selVmd = -1; std::cin >> selVmd; std::cin.ignore(1024, '\n');
-	if (selVmd < 0 || selVmd >= (int)motionsFound.size()) {
-		std::cerr << "잘못된 선택입니다.\n"; return false;
-	}
-	currentInput.m_vmdPaths.push_back(WUtf8(motionsFound[selVmd]));
-
-	// ---- 투명 창 여부 ----
-	std::cout << "\n투명 창 사용? (y/N): ";
-	std::string yn; std::getline(std::cin, yn);
-	enableTransparentWindow = (!yn.empty() && (yn[0] == 'y' || yn[0] == 'Y'));
-
-	inputModels.emplace_back(currentInput);
-
-	/*Input currentInput;
 	std::vector<Input> inputModels;
 	bool enableTransparentWindow = false;
 	for (auto argIt = args.begin(); argIt != args.end(); ++argIt)
@@ -167,7 +118,7 @@ bool SampleMain()
 	if (!currentInput.m_modelPath.empty())
 	{
 		inputModels.emplace_back(currentInput);
-	}*/
+	}
 
 	// Initialize glfw
 	if (!glfwInit())
@@ -366,7 +317,13 @@ bool SampleMain()
 
 			glDisable(GL_DEPTH_TEST);
 			glBindVertexArray(appContext.m_copyVAO);
+#if _WIN32
 			glUseProgram(appContext.m_copyTransparentWindowShader);
+#else // !_WIN32
+			glUseProgram(appContext.m_copyShader);
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+#endif
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, appContext.m_transparentFboColorTex);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -400,14 +357,195 @@ bool SampleMain()
 	return true;
 }
 
-#include <Windows.h>
-#include <shellapi.h>
+namespace fs = std::filesystem;
+
+// ===== 하드코딩 경로 =====
+static const fs::path MODEL_DIR  = "C:/Users/Ha Yechan/Desktop/PMXViewer/models";
+static const fs::path MOTION_DIR = "C:/Users/Ha Yechan/Desktop/PMXViewer/motions";
+static const fs::path CAMERA_DIR = "C:/Users/Ha Yechan/Desktop/PMXViewer/cameras";
+
+// 소문자화 (ASCII 확장자 비교용)
+static inline std::string tolower_copy(std::string s){
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c){ return (char)std::tolower(c); });
+    return s;
+}
+
+// --- 안전 출력(helper): u8string을 그대로 write ---
+static inline void PrintU8(const std::u8string& s) {
+    std::cout.write(reinterpret_cast<const char*>(s.c_str()),
+                    static_cast<std::streamsize>(s.size()));
+}
+static inline void PrintPathSafe(const fs::path& p) { PrintU8(p.u8string()); }
+static inline void PrintFilenameSafe(const fs::path& p) { PrintU8(p.filename().u8string()); }
+
+// --- 경로 → UTF-8 std::string (args에 넣을 때 필수) ---
+static inline std::string PathToUtf8(const fs::path& p){
+    auto u8 = p.lexically_normal().u8string();                    // basic_string<char8_t>
+    return std::string(reinterpret_cast<const char*>(u8.c_str()), // → std::string(UTF-8)
+                       u8.size());
+}
+
+// 하위 폴더 나열
+static std::vector<fs::path> ListSubdirs(const fs::path& root){
+    std::vector<fs::path> out;
+    std::error_code ec;
+    if (!fs::exists(root, ec) || !fs::is_directory(root, ec)) return out;
+
+    for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
+         it != end; it.increment(ec)){
+        if (ec) break;
+        if (it->is_directory(ec)) {
+            if (!it->path().filename().native().empty()) // 빈 이름 방지
+                out.push_back(it->path());
+        }
+    }
+    std::sort(out.begin(), out.end(),
+        [](const fs::path& a, const fs::path& b){
+            return a.filename().native() < b.filename().native();
+        });
+    return out;
+}
+
+// dir에서 특정 확장자만(.pmx/.vmd) 나열
+static std::vector<fs::path> ListFilesWithExt(const fs::path& dir, const char* wantExtLower){
+    std::vector<fs::path> out;
+    std::error_code ec;
+    if (!fs::exists(dir, ec) || !fs::is_directory(dir, ec)) return out;
+
+    for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end;
+         it != end; it.increment(ec)){
+        if (ec) break;
+        if (!it->is_regular_file(ec)) continue;
+
+        std::string ext = tolower_copy(it->path().extension().string());
+        if (ext != wantExtLower) continue;
+
+        if (it->path().filename().native().empty()) continue; // 빈 파일명 방지
+        out.push_back(it->path());
+    }
+    std::sort(out.begin(), out.end(),
+        [](const fs::path& a, const fs::path& b){
+            return a.filename().native() < b.filename().native();
+        });
+    return out;
+}
+
+static void PrintIndexed(const std::vector<fs::path>& items, const char* title){
+    std::cout << title << "\n";
+    for (size_t i=0;i<items.size();++i){
+        std::cout << "  [" << i << "] ";
+        PrintFilenameSafe(items[i]);    // 안전 출력
+        std::cout << "\n";
+    }
+}
+
+static std::vector<int> ReadMultiIndex(const std::string& prompt, size_t maxN){
+    std::cout << prompt;
+    std::string line; std::getline(std::cin, line);
+    std::istringstream iss(line);
+    std::vector<int> idxs; int v;
+    while (iss >> v) if (v>=0 && (size_t)v<maxN) idxs.push_back(v);
+    std::sort(idxs.begin(), idxs.end());
+    idxs.erase(std::unique(idxs.begin(), idxs.end()), idxs.end());
+    return idxs;
+}
+
+static int ReadOneIndex(const std::string& prompt, size_t maxN){
+    std::cout << prompt;
+    std::string s; std::getline(std::cin, s);
+    if (s.empty()) return -1;
+    try { int v = std::stoi(s); if (v>=0 && (size_t)v<maxN) return v; } catch(...) {}
+    return -1;
+}
+
+static bool YesNo(const std::string& prompt, bool defNo=true){
+    std::cout << prompt;
+    std::string s; std::getline(std::cin, s);
+    if (s.empty()) return !defNo;
+    char c = (char)std::tolower(s[0]);
+    return (c=='y' || c=='1' || c=='t');
+}
+
+// === 핵심: 간단/짧은 인터랙티브 args 빌더 ===
+static std::vector<std::string> BuildArgsInteractive(){
+    std::vector<std::string> args;
+
+    auto modelFolders = ListSubdirs(MODEL_DIR);
+    auto motions      = ListFilesWithExt(MOTION_DIR, ".vmd");
+    auto cameras      = ListFilesWithExt(CAMERA_DIR, ".vmd");
+
+    if (modelFolders.empty()){
+        std::cout << "[오류] 모델 루트 폴더가 비었어요: ";
+        PrintPathSafe(MODEL_DIR); std::cout << "\n";
+        return args;
+    }
+
+    std::cout << "\n[모델 폴더]\n";
+    PrintIndexed(modelFolders, "");
+    auto modelSel = ReadMultiIndex("추가할 모델 폴더 번호들(공백 구분, 비면 취소): ", modelFolders.size());
+    if (modelSel.empty()){
+        std::cout << "[오류] 모델을 선택하지 않았습니다.\n";
+        return args;
+    }
+
+    if (!motions.empty()){
+        PrintIndexed(motions, "\n[모션 VMD]");
+    }
+    auto motionSel = motions.empty() ? std::vector<int>{}
+                                     : ReadMultiIndex("이 모델들에 붙일 모션 번호들(공백, 비면 없음): ", motions.size());
+
+    // 각 모델 폴더에서 PMX 하나 자동 선택
+    for (int fIdx : modelSel){
+        const fs::path& folder = modelFolders[(size_t)fIdx];
+        auto pmxs = ListFilesWithExt(folder, ".pmx");
+        if (pmxs.empty()){
+            std::cout << "  [건너뜀] ";
+            PrintFilenameSafe(folder);
+            std::cout << " 폴더에 .pmx 없음.\n";
+            continue;
+        }
+        // 폴더에 하나만 있다고 했으니 첫 번째 사용
+        args.push_back("-model");
+        args.push_back(PathToUtf8(pmxs[0]));  // ← 여기!
+
+        for (int mi : motionSel){
+            args.push_back("-vmd");
+            args.push_back(PathToUtf8(motions[(size_t)mi])); // ← 여기!
+        }
+    }
+
+    // 카메라(선택, 0~1)
+    if (!cameras.empty()){
+        PrintIndexed(cameras, "\n[카메라 VMD]");
+        int cIdx = ReadOneIndex("카메라 번호(엔터=없음): ", cameras.size());
+        if (cIdx >= 0){
+            args.push_back("-vmd"); // 마지막에 추가 → 전역 카메라로 적용
+            args.push_back(PathToUtf8(cameras[(size_t)cIdx])); // ← 여기!
+        }
+    }
+
+    if (YesNo("\n투명창 모드 사용? (y/N): ", true)){
+        args.push_back("-transparent");
+    }
+
+    std::cout << "\n[최종 인자]\n";
+    for (auto& s : args) std::cout << s << ' ';
+    std::cout << "\n";
+    return args;
+}
 
 int main()
 {
-	if (!SampleMain()) {
+	_setmode(_fileno(stdin), _O_TEXT);
+	_setmode(_fileno(stdout), _O_TEXT);
+	_setmode(_fileno(stderr), _O_TEXT);
+
+	auto args = BuildArgsInteractive();
+
+	if (!SampleMain(args))
+	{
 		std::cout << "Failed to run.\n";
-		system("pause");
 		return 1;
 	}
 	return 0;
