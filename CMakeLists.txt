@@ -45,6 +45,10 @@ add_executable(PmxMod
     "stb_image.h"
         AppContext.cpp
         AppContext.h
+        MMDShader.cpp
+        MMDShader.h
+        Model.cpp
+        Model.h
 )
 
 target_link_libraries(PmxMod PRIVATE
