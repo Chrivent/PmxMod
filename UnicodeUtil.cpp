@@ -1,6 +1,7 @@
 ﻿#include "UnicodeUtil.h"
 
 #include <stdexcept>
+#include <windows.h>
 
 namespace saba
 {
@@ -418,5 +419,43 @@ namespace saba
 			}
 		}
 		return true;
+	}
+
+	char16_t ConvertSjisToU16Char(const int ch) {
+		char bytes[2];
+		int  len = 0;
+		if ((ch & 0xFF00) != 0) {
+			bytes[0] = static_cast<char>(ch >> 8 & 0xFF);
+			bytes[1] = static_cast<char>(ch & 0xFF);
+			len = 2;
+		} else {
+			bytes[0] = static_cast<char>(ch & 0xFF);
+			len = 1;
+		}
+		wchar_t wBuf[2] = {0, 0};
+		const int n = MultiByteToWideChar(932, MB_ERR_INVALID_CHARS,
+											bytes, len, wBuf, 2);
+		if (n >= 1) return static_cast<char16_t>(wBuf[0]);
+		return u'\uFFFD';
+	}
+
+	std::u16string ConvertSjisToU16String(const char* sjisCode) {
+		if (!sjisCode) return {};
+		const int need = MultiByteToWideChar(932, MB_ERR_INVALID_CHARS,
+											   sjisCode, -1, nullptr, 0);
+		if (need <= 0) return {};
+		std::wstring w; w.resize(static_cast<size_t>(need - 1));
+		if (need > 1) {
+			MultiByteToWideChar(932, MB_ERR_INVALID_CHARS, sjisCode, -1, w.data(), need);
+		}
+		std::u16string u16; u16.resize(w.size());
+		for (size_t i = 0; i < w.size(); ++i) u16[i] = static_cast<char16_t>(w[i]);
+		return u16;
+	}
+
+	std::u32string ConvertSjisToU32String(const char* sjisCode) {
+		std::u32string u32Str;
+		ConvU16ToU32(ConvertSjisToU16String(sjisCode), u32Str);
+		return u32Str;
 	}
 }

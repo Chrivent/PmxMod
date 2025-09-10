@@ -3,8 +3,6 @@
 #include "UnicodeUtil.h"
 #include "File.h"
 
-#include "SjisToUnicode.h"
-
 #include <string>
 
 

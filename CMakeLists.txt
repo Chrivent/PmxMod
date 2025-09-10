@@ -36,8 +36,6 @@ add_executable(PmxMod
     "MMDPhysics.h"
     "PMXFile.cpp"
     "PMXFile.h"
-    "SjisToUnicode.cpp"
-    "SjisToUnicode.h"
     "VMDAnimation.cpp"
     "VMDAnimation.h"
     "VMDCameraAnimation.cpp"
