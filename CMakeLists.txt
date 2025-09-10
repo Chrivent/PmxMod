@@ -42,7 +42,10 @@ add_executable(PmxMod
     "VMDCameraAnimation.h"
     "VMDFile.cpp"
     "VMDFile.h"
-    "stb_image.h")
+    "stb_image.h"
+        AppContext.cpp
+        AppContext.h
+)
 
 target_link_libraries(PmxMod PRIVATE
     glfw
