@@ -30,45 +30,11 @@ void Usage()
 	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
 }
 
-#include <io.h>
-#include <fcntl.h>
 #include <filesystem>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <windows.h>
-
-// 폴더에서 .pmx/.pmd 찾기
-static std::vector<std::wstring> FindAllPMDPMX(const std::wstring& root) {
-	std::vector<std::wstring> out;
-	if (!std::filesystem::exists(root)) return out;
-	for (auto& e : std::filesystem::recursive_directory_iterator(root)) {
-		if (!e.is_regular_file()) continue;
-		auto ext = e.path().extension().wstring();
-		std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
-		if (ext == L".pmx" || ext == L".pmd") out.push_back(e.path().wstring());
-	}
-	return out;
-}
-
-// 폴더에서 .vmd 찾기
-static std::vector<std::wstring> FindAllVMD(const std::wstring& root) {
-	std::vector<std::wstring> out;
-	if (!std::filesystem::exists(root)) return out;
-	for (auto& e : std::filesystem::recursive_directory_iterator(root)) {
-		if (!e.is_regular_file()) continue;
-		if (e.path().extension() == L".vmd") out.push_back(e.path().wstring());
-	}
-	return out;
-}
-
-static std::string WUtf8(const std::wstring& ws) {
-	if (ws.empty()) return {};
-	int n = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), (int)ws.size(), nullptr, 0, nullptr, nullptr);
-	std::string s(n, '\0');
-	WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), (int)ws.size(), s.data(), n, nullptr, nullptr);
-	return s;
-}
 
 bool SampleMain(std::vector<std::string>& args)
 {
