@@ -317,13 +317,7 @@ bool SampleMain(std::vector<std::string>& args)
 
 			glDisable(GL_DEPTH_TEST);
 			glBindVertexArray(appContext.m_copyVAO);
-#if _WIN32
 			glUseProgram(appContext.m_copyTransparentWindowShader);
-#else // !_WIN32
-			glUseProgram(appContext.m_copyShader);
-			glEnable(GL_BLEND);
-			glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-#endif
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, appContext.m_transparentFboColorTex);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
