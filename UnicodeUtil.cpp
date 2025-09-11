@@ -304,47 +304,6 @@ namespace saba
 		return true;
 	}
 
-	bool ConvU32ToU8(const std::u32string& u32Str, std::string& u8Str) {
-		for (auto u32It = u32Str.begin(); u32It != u32Str.end(); ++u32It) {
-			std::array<char, 4> u8Ch;
-			if (!ConvChU32ToU8((*u32It), u8Ch)) {
-				return false;
-			}
-
-			if (u8Ch[0] != 0) {
-				u8Str.push_back(u8Ch[0]);
-			}
-			if (u8Ch[1] != 0) {
-				u8Str.push_back(u8Ch[1]);
-			}
-
-			if (u8Ch[2] != 0) {
-				u8Str.push_back(u8Ch[2]);
-			}
-			if (u8Ch[3] != 0) {
-				u8Str.push_back(u8Ch[3]);
-			}
-		}
-		return true;
-	}
-
-	bool ConvU32ToU16(const std::u32string& u32Str, std::u16string& u16Str) {
-		for (auto u32It = u32Str.begin(); u32It != u32Str.end(); ++u32It) {
-			std::array<char16_t, 2> u16Ch;
-			if (!ConvChU32ToU16((*u32It), u16Ch)) {
-				return false;
-			}
-
-			if (u16Ch[0] != 0) {
-				u16Str.push_back(u16Ch[0]);
-			}
-			if (u16Ch[1] != 0) {
-				u16Str.push_back(u16Ch[1]);
-			}
-		}
-		return true;
-	}
-
 	char16_t ConvertSjisToU16Char(const int ch) {
 		char bytes[2];
 		int  len = 0;
