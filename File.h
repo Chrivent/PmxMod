@@ -26,13 +26,11 @@ namespace saba
 
 		template <typename T>
 		bool Read(T* buffer, size_t count = 1) {
-			if (buffer == nullptr) {
+			if (buffer == nullptr)
 				return false;
-			}
 
-			if (m_fp == nullptr) {
+			if (m_fp == nullptr)
 				return false;
-			}
 			if (fread_s(buffer, sizeof(T) * count, sizeof(T), count, m_fp) != count) {
 				m_badFlag = true;
 				return false;

@@ -3,15 +3,17 @@
 #include "AppContext.h"
 #include "MMDShader.h"
 
+Material::Material(const saba::MMDMaterial &mat)
+	: m_mmdMat(mat) {
+}
+
 bool Model::Setup(AppContext& appContext)
 {
 	if (m_mmdModel == nullptr)
-	{
 		return false;
-	}
 
 	// Setup vertices
-	size_t vtxCount = m_mmdModel->m_positions.size();
+	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glGenBuffers(1, &m_posVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
@@ -27,28 +29,20 @@ bool Model::Setup(AppContext& appContext)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	size_t idxSize = m_mmdModel->m_indexElementSize;
-	size_t idxCount = m_mmdModel->m_indexCount;
+	const size_t idxSize = m_mmdModel->m_indexElementSize;
+	const size_t idxCount = m_mmdModel->m_indexCount;
 	glGenBuffers(1, &m_ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, &m_mmdModel->m_indices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	if (idxSize == 1)
-	{
 		m_indexType = GL_UNSIGNED_BYTE;
-	}
 	else if (idxSize == 2)
-	{
 		m_indexType = GL_UNSIGNED_SHORT;
-	}
 	else if (idxSize == 4)
-	{
 		m_indexType = GL_UNSIGNED_INT;
-	}
 	else
-	{
 		return false;
-	}
 
 	// Setup MMD VAO
 	glGenVertexArrays(1, &m_mmdVAO);
@@ -56,15 +50,15 @@ bool Model::Setup(AppContext& appContext)
 
 	const auto& mmdShader = appContext.m_mmdShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (const void*)0);
+	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inPos);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glVertexAttribPointer(mmdShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (const void*)0);
+	glVertexAttribPointer(mmdShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inNor);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glVertexAttribPointer(mmdShader->m_inUV, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (const void*)0);
+	glVertexAttribPointer(mmdShader->m_inUV, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inUV);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
@@ -77,11 +71,11 @@ bool Model::Setup(AppContext& appContext)
 
 	const auto& mmdEdgeShader = appContext.m_mmdEdgeShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (const void*)0);
+	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glVertexAttribPointer(mmdEdgeShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (const void*)0);
+	glVertexAttribPointer(mmdEdgeShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inNor);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
@@ -94,7 +88,7 @@ bool Model::Setup(AppContext& appContext)
 
 	const auto& mmdGroundShadowShader = appContext.m_mmdGroundShadowShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (const void*)0);
+	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
@@ -108,19 +102,19 @@ bool Model::Setup(AppContext& appContext)
 		Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty())
 		{
-			auto tex = appContext.GetTexture(mmdMat.m_texture);
-			mat.m_texture = tex.m_texture;
-			mat.m_textureHasAlpha = tex.m_hasAlpha;
+			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
+			mat.m_texture = m_texture;
+			mat.m_textureHasAlpha = m_hasAlpha;
 		}
 		if (!mmdMat.m_spTexture.empty())
 		{
-			auto tex = appContext.GetTexture(mmdMat.m_spTexture);
-			mat.m_spTexture = tex.m_texture;
+			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_spTexture);
+			mat.m_spTexture = m_texture;
 		}
 		if (!mmdMat.m_toonTexture.empty())
 		{
-			auto tex = appContext.GetTexture(mmdMat.m_toonTexture);
-			mat.m_toonTexture = tex.m_texture;
+			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_toonTexture);
+			mat.m_toonTexture = m_texture;
 		}
 		m_materials.emplace_back(std::move(mat));
 	}
@@ -130,30 +124,30 @@ bool Model::Setup(AppContext& appContext)
 
 void Model::Clear()
 {
-	if (m_posVBO != 0) { glDeleteBuffers(1, &m_posVBO); }
-	if (m_norVBO != 0) { glDeleteBuffers(1, &m_norVBO); }
-	if (m_uvVBO != 0) { glDeleteBuffers(1, &m_uvVBO); }
-	if (m_ibo != 0) { glDeleteBuffers(1, &m_ibo); }
+	if (m_posVBO != 0) glDeleteBuffers(1, &m_posVBO);
+	if (m_norVBO != 0) glDeleteBuffers(1, &m_norVBO);
+	if (m_uvVBO != 0) glDeleteBuffers(1, &m_uvVBO);
+	if (m_ibo != 0) glDeleteBuffers(1, &m_ibo);
 	m_posVBO = 0;
 	m_norVBO = 0;
 	m_uvVBO = 0;
 	m_ibo = 0;
 
-	if (m_mmdVAO != 0) { glDeleteVertexArrays(1, &m_mmdVAO); }
-	if (m_mmdEdgeVAO != 0) { glDeleteVertexArrays(1, &m_mmdEdgeVAO); }
-	if (m_mmdGroundShadowVAO != 0) { glDeleteVertexArrays(1, &m_mmdGroundShadowVAO); }
+	if (m_mmdVAO != 0) glDeleteVertexArrays(1, &m_mmdVAO);
+	if (m_mmdEdgeVAO != 0) glDeleteVertexArrays(1, &m_mmdEdgeVAO);
+	if (m_mmdGroundShadowVAO != 0) glDeleteVertexArrays(1, &m_mmdGroundShadowVAO);
 	m_mmdVAO = 0;
 	m_mmdEdgeVAO = 0;
 	m_mmdGroundShadowVAO = 0;
 }
 
-void Model::UpdateAnimation(const AppContext& appContext)
+void Model::UpdateAnimation(const AppContext& appContext) const
 {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
-void Model::Update(const AppContext& appContext)
+void Model::Update() const
 {
 	m_mmdModel->Update();
 
@@ -167,7 +161,7 @@ void Model::Update(const AppContext& appContext)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Model::Draw(const AppContext& appContext)
+void Model::Draw(const AppContext& appContext) const
 {
 	const auto& view = appContext.m_viewMat;
 	const auto& proj = appContext.m_projMat;
@@ -175,9 +169,6 @@ void Model::Draw(const AppContext& appContext)
 	auto world = glm::mat4(1.0f);
 	auto wv = view * world;
 	auto wvp = proj * view * world;
-	auto wvit = glm::mat3(view * world);
-	wvit = glm::inverse(wvit);
-	wvit = glm::transpose(wvit);
 
 	glActiveTexture(GL_TEXTURE0 + 3);
 	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
@@ -194,23 +185,19 @@ void Model::Draw(const AppContext& appContext)
 	size_t subMeshCount = m_mmdModel->m_subMeshes.size();
 	for (size_t i = 0; i < subMeshCount; i++)
 	{
-		const auto& subMesh = m_mmdModel->m_subMeshes[i];
+		const auto& [m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
 		const auto& shader = appContext.m_mmdShader;
-		const auto& mat = m_materials[subMesh.m_materialID];
+		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 
 		if (mat.m_mmdMat.m_alpha == 0)
-		{
 			continue;
-		}
 
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdVAO);
 
 		glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-
-		bool alphaBlend = true;
 
 		glUniform3fv(shader->m_uAmbient, 1, &mmdMat.m_ambient[0]);
 		glUniform3fv(shader->m_uDiffuse, 1, &mmdMat.m_diffuse[0]);
@@ -223,15 +210,11 @@ void Model::Draw(const AppContext& appContext)
 		if (mat.m_texture != 0)
 		{
 			if (!mat.m_textureHasAlpha)
-			{
 				// Use Material Alpha
 				glUniform1i(shader->m_uTexMode, 1);
-			}
 			else
-			{
 				// Use Material Alpha * Texture Alpha
 				glUniform1i(shader->m_uTexMode, 2);
-			}
 			glUniform4fv(shader->m_uTexMulFactor, 1, &mmdMat.m_textureMulFactor[0]);
 			glUniform4fv(shader->m_uTexAddFactor, 1, &mmdMat.m_textureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
@@ -247,13 +230,9 @@ void Model::Draw(const AppContext& appContext)
 		if (mat.m_spTexture != 0)
 		{
 			if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Mul)
-			{
 				glUniform1i(shader->m_uSphereTexMode, 1);
-			}
 			else if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Add)
-			{
 				glUniform1i(shader->m_uSphereTexMode, 2);
-			}
 			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mmdMat.m_spTextureMulFactor[0]);
 			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mmdMat.m_spTextureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, mat.m_spTexture);
@@ -289,9 +268,7 @@ void Model::Draw(const AppContext& appContext)
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
 
 		if (mmdMat.m_bothFace)
-		{
 			glDisable(GL_CULL_FACE);
-		}
 		else
 		{
 			glEnable(GL_CULL_FACE);
@@ -305,15 +282,8 @@ void Model::Draw(const AppContext& appContext)
 		}
 		else
 		{
-			if (alphaBlend)
-			{
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
-			else
-			{
-				glDisable(GL_BLEND);
-			}
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 
 		glUniform1i(shader->m_uShadowMapEnabled, 0);
@@ -322,8 +292,8 @@ void Model::Draw(const AppContext& appContext)
 		glUniform1i(shader->m_uShadowMap2, 5);
 		glUniform1i(shader->m_uShadowMap3, 6);
 
-		size_t offset = subMesh.m_beginIndex * m_mmdModel->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, subMesh.m_vertexCount, m_indexType, (GLvoid*)offset);
+		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
+		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, (GLvoid*)offset);
 
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glBindTexture(GL_TEXTURE_2D, 0);

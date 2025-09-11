@@ -16,21 +16,17 @@ namespace saba
 	}
 
 	bool File::OpenFile(const char * filepath, const char * mode) {
-		if (m_fp != nullptr) {
+		if (m_fp != nullptr)
 			Close();
-		}
 		std::wstring wFilepath;
-		if (!TryToWString(filepath, wFilepath)) {
+		if (!TryToWString(filepath, wFilepath))
 			return false;
-		}
 		std::wstring wMode;
-		if (!TryToWString(mode, wMode)) {
+		if (!TryToWString(mode, wMode))
 			return false;
-		}
 		const auto err = _wfopen_s(&m_fp, wFilepath.c_str(), wMode.c_str());
-		if (err != 0) {
+		if (err != 0)
 			return false;
-		}
 
 		m_badFlag = false;
 
@@ -54,9 +50,8 @@ namespace saba
 	}
 
 	bool File::Seek(const int64_t offset, const SeekDir origin) {
-		if (m_fp == nullptr) {
+		if (m_fp == nullptr)
 			return false;
-		}
 		int cOrigin = 0;
 		switch (origin) {
 			case SeekDir::Begin:
@@ -79,9 +74,8 @@ namespace saba
 	}
 
 	int64_t File::Tell() const {
-		if (m_fp == nullptr) {
+		if (m_fp == nullptr)
 			return -1;
-		}
 		return _ftelli64(m_fp);
 	}
 

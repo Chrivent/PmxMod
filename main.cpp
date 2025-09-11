@@ -253,7 +253,7 @@ bool SampleMain(std::vector<std::string>& args)
 			model.UpdateAnimation(appContext);
 
 			// Update Vertices
-			model.Update(appContext);
+			model.Update();
 
 			// Draw
 			model.Draw(appContext);

@@ -8,23 +8,20 @@
 #include "File.h"
 #include "Path.h"
 
-GLuint CreateShader(const GLenum shaderType, const std::string &code)
-{
+GLuint CreateShader(const GLenum shaderType, const std::string &code) {
 	const GLuint shader = glCreateShader(shaderType);
-	if (shader == 0)
-	{
+	if (shader == 0) {
 		std::cout << "Failed to create shader.\n";
 		return 0;
 	}
-	const char* codes[] = { code.c_str() };
-	GLint codesLen[] = { static_cast<GLint>(code.size()) };
+	const char *codes[] = { code.c_str() };
+	const GLint codesLen[] = { static_cast<GLint>(code.size()) };
 	glShaderSource(shader, 1, codes, codesLen);
 	glCompileShader(shader);
 
 	GLint infoLength;
 	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength != 0)
-	{
+	if (infoLength != 0) {
 		std::vector<char> info;
 		info.reserve(infoLength + 1);
 		info.resize(infoLength);
@@ -32,17 +29,14 @@ GLuint CreateShader(const GLenum shaderType, const std::string &code)
 		GLsizei len;
 		glGetShaderInfoLog(shader, infoLength, &len, &info[0]);
 		if (info[infoLength - 1] != '\0')
-		{
 			info.push_back('\0');
-		}
 
 		std::cout << &info[0] << "\n";
 	}
 
 	GLint compileStatus;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-	if (compileStatus != GL_TRUE)
-	{
+	if (compileStatus != GL_TRUE) {
 		glDeleteShader(shader);
 		std::cout << "Failed to compile shader.\n";
 		return 0;
@@ -51,11 +45,9 @@ GLuint CreateShader(const GLenum shaderType, const std::string &code)
 	return shader;
 }
 
-GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
-{
+GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile) {
 	saba::File vsFileText;
-	if (!vsFileText.OpenFile(vsFile.c_str(), "r"))
-	{
+	if (!vsFileText.OpenFile(vsFile.c_str(), "r")) {
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
 	}
@@ -63,8 +55,7 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 	vsFileText.Close();
 
 	saba::File fsFileText;
-	if (!fsFileText.OpenFile(fsFile.c_str(), "r"))
-	{
+	if (!fsFileText.OpenFile(fsFile.c_str(), "r")) {
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
@@ -73,16 +64,16 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 
 	const GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
 	const GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
-	if (vs == 0 || fs == 0)
-	{
-		if (vs != 0) { glDeleteShader(vs); }
-		if (fs != 0) { glDeleteShader(fs); }
+	if (vs == 0 || fs == 0) {
+		if (vs != 0)
+			glDeleteShader(vs);
+		if (fs != 0)
+			glDeleteShader(fs);
 		return 0;
 	}
 
 	const GLuint prog = glCreateProgram();
-	if (prog == 0)
-	{
+	if (prog == 0) {
 		glDeleteShader(vs);
 		glDeleteShader(fs);
 		std::cout << "Failed to create program.\n";
@@ -94,8 +85,7 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 
 	GLint infoLength;
 	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength != 0)
-	{
+	if (infoLength != 0) {
 		std::vector<char> info;
 		info.reserve(infoLength + 1);
 		info.resize(infoLength);
@@ -103,17 +93,14 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 		GLsizei len;
 		glGetProgramInfoLog(prog, infoLength, &len, &info[0]);
 		if (info[infoLength - 1] != '\0')
-		{
 			info.push_back('\0');
-		}
 
 		std::cout << &info[0] << "\n";
 	}
 
 	GLint linkStatus;
 	glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
-	if (linkStatus != GL_TRUE)
-	{
+	if (linkStatus != GL_TRUE) {
 		glDeleteShader(vs);
 		glDeleteShader(fs);
 		std::cout << "Failed to link shader.\n";
@@ -125,21 +112,17 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 	return prog;
 }
 
-MMDShader::~MMDShader()
-{
+MMDShader::~MMDShader() {
 	Clear();
 }
 
-bool MMDShader::Setup(const AppContext& appContext)
-{
+bool MMDShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd.vert"),
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd.frag")
 	);
 	if (m_prog == 0)
-	{
 		return false;
-	}
 
 	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -185,9 +168,8 @@ bool MMDShader::Setup(const AppContext& appContext)
 	return true;
 }
 
-void MMDShader::Clear()
-{
-	if (m_prog != 0) { glDeleteProgram(m_prog); }
+void MMDShader::Clear() {
+	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
@@ -195,21 +177,17 @@ void MMDShader::Clear()
 	MMDEdgeShader
 */
 
-MMDEdgeShader::~MMDEdgeShader()
-{
+MMDEdgeShader::~MMDEdgeShader() {
 	Clear();
 }
 
-bool MMDEdgeShader::Setup(const AppContext& appContext)
-{
+bool MMDEdgeShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.vert"),
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.frag")
 	);
 	if (m_prog == 0)
-	{
 		return false;
-	}
 
 	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -225,9 +203,8 @@ bool MMDEdgeShader::Setup(const AppContext& appContext)
 	return true;
 }
 
-void MMDEdgeShader::Clear()
-{
-	if (m_prog != 0) { glDeleteProgram(m_prog); }
+void MMDEdgeShader::Clear() {
+	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
@@ -235,21 +212,17 @@ void MMDEdgeShader::Clear()
 	MMDGroundShadowShader
 */
 
-MMDGroundShadowShader::~MMDGroundShadowShader()
-{
+MMDGroundShadowShader::~MMDGroundShadowShader() {
 	Clear();
 }
 
-bool MMDGroundShadowShader::Setup(const AppContext& appContext)
-{
+bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.vert"),
 		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.frag")
 	);
 	if (m_prog == 0)
-	{
 		return false;
-	}
 
 	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -261,8 +234,7 @@ bool MMDGroundShadowShader::Setup(const AppContext& appContext)
 	return true;
 }
 
-void MMDGroundShadowShader::Clear()
-{
-	if (m_prog != 0) { glDeleteProgram(m_prog); }
+void MMDGroundShadowShader::Clear() {
+	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }

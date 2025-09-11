@@ -6,10 +6,7 @@
 
 struct Material
 {
-    explicit Material(const saba::MMDMaterial& mat)
-        : m_mmdMat(mat)
-    {
-    }
+    explicit Material(const saba::MMDMaterial& mat);
 
     const saba::MMDMaterial& m_mmdMat;
     GLuint	m_texture = 0;
@@ -40,7 +37,7 @@ struct Model
     bool Setup(AppContext& appContext);
     void Clear();
 
-    void UpdateAnimation(const AppContext& appContext);
-    void Update(const AppContext& appContext);
-    void Draw(const AppContext& appContext);
+    void UpdateAnimation(const AppContext& appContext) const;
+    void Update() const;
+    void Draw(const AppContext& appContext) const;
 };

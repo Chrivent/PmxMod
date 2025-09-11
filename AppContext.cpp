@@ -23,19 +23,16 @@ bool AppContext::Setup() {
 	m_mmdDir = saba::PathUtil::Combine(m_resourceDir, "mmd");
 
 	m_mmdShader = std::make_unique<MMDShader>();
-	if (!m_mmdShader->Setup(*this)) {
+	if (!m_mmdShader->Setup(*this))
 		return false;
-	}
 
 	m_mmdEdgeShader = std::make_unique<MMDEdgeShader>();
-	if (!m_mmdEdgeShader->Setup(*this)) {
+	if (!m_mmdEdgeShader->Setup(*this))
 		return false;
-	}
 
 	m_mmdGroundShadowShader = std::make_unique<MMDGroundShadowShader>();
-	if (!m_mmdGroundShadowShader->Setup(*this)) {
+	if (!m_mmdGroundShadowShader->Setup(*this))
 		return false;
-	}
 
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
@@ -73,25 +70,24 @@ void AppContext::Clear() {
 	m_mmdEdgeShader.reset();
 	m_mmdGroundShadowShader.reset();
 
-	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values) {
+	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
 		glDeleteTextures(1, &m_texture);
-	}
 	m_textures.clear();
 
-	if (m_dummyColorTex != 0) { glDeleteTextures(1, &m_dummyColorTex); }
-	if (m_dummyShadowDepthTex != 0) { glDeleteTextures(1, &m_dummyShadowDepthTex); }
+	if (m_dummyColorTex != 0) glDeleteTextures(1, &m_dummyColorTex);
+	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
 	m_dummyColorTex = 0;
 	m_dummyShadowDepthTex = 0;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	if (m_transparentFbo != 0) { glDeleteFramebuffers(1, &m_transparentFbo); }
-	if (m_transparentMSAAFbo != 0) { glDeleteFramebuffers(1, &m_transparentMSAAFbo); }
-	if (m_transparentFboColorTex != 0) { glDeleteTextures(1, &m_transparentFboColorTex); }
-	if (m_transparentFboMSAAColorRB != 0) { glDeleteRenderbuffers(1, &m_transparentFboMSAAColorRB); }
-	if (m_transparentFboMSAADepthRB != 0) { glDeleteRenderbuffers(1, &m_transparentFboMSAADepthRB); }
-	if (m_copyTransparentWindowShader != 0) { glDeleteProgram(m_copyTransparentWindowShader); }
-	if (m_copyShader != 0) { glDeleteProgram(m_copyShader); }
-	if (m_copyVAO != 0) { glDeleteVertexArrays(1, &m_copyVAO); }
+	if (m_transparentFbo != 0) glDeleteFramebuffers(1, &m_transparentFbo);
+	if (m_transparentMSAAFbo != 0) glDeleteFramebuffers(1, &m_transparentMSAAFbo);
+	if (m_transparentFboColorTex != 0) glDeleteTextures(1, &m_transparentFboColorTex);
+	if (m_transparentFboMSAAColorRB != 0) glDeleteRenderbuffers(1, &m_transparentFboMSAAColorRB);
+	if (m_transparentFboMSAADepthRB != 0) glDeleteRenderbuffers(1, &m_transparentFboMSAADepthRB);
+	if (m_copyTransparentWindowShader != 0) glDeleteProgram(m_copyTransparentWindowShader);
+	if (m_copyShader != 0) glDeleteProgram(m_copyShader);
+	if (m_copyVAO != 0) glDeleteVertexArrays(1, &m_copyVAO);
 
 	m_vmdCameraAnim.reset();
 }
@@ -121,9 +117,8 @@ void AppContext::SetupTransparentFBO() {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_transparentFbo);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_transparentFboColorTex, 0);
-		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
+		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
 			std::cout << "Failed to bind framebuffer.\n";
-		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glBindRenderbuffer(GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
@@ -138,9 +133,8 @@ void AppContext::SetupTransparentFBO() {
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_transparentFboMSAADepthRB);
 		const auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (GL_FRAMEBUFFER_COMPLETE != status) {
+		if (GL_FRAMEBUFFER_COMPLETE != status)
 			std::cout << "Failed to bind framebuffer.\n";
-		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		m_transparentFboWidth = m_screenWidth;
@@ -159,15 +153,11 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 		stbi_set_flip_vertically_on_load(true);
 		saba::File file;
 		if (!file.OpenFile(texturePath.c_str(), "rb"))
-		{
 			return Texture{ 0, false };
-		}
 		int x, y, comp;
 		const int ret = stbi_info_from_file(file.m_fp, &x, &y, &comp);
 		if (ret == 0)
-		{
 			return Texture{ 0, false };
-		}
 
 		GLuint tex;
 		glGenTextures(1, &tex);

@@ -5,7 +5,7 @@
 #include <string>
 
 GLuint CreateShader(GLenum shaderType, const std::string &code);
-GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile);
+GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile);
 
 struct AppContext;
 
