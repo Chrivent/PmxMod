@@ -5,7 +5,6 @@
 
 namespace saba
 {
-	std::wstring ToWString(const std::string& utf8Str);
 	std::string ToUtf8String(const std::wstring& wStr);
 
 	bool TryToWString(const std::string& utf8Str, std::wstring& wStr);
@@ -21,7 +20,6 @@ namespace saba
 	bool ConvChU32ToU16(char32_t u32Ch, std::array<char16_t, 2>& u16Ch);
 
 	bool ConvU8ToU16(const std::string& u8Str, std::u16string& u16Str);
-	bool ConvU8ToU32(const std::string& u8Str, std::u32string& u32Str);
 
 	bool ConvU16ToU8(const std::u16string& u16Str, std::string& u8Str);
 	bool ConvU16ToU32(const std::u16string& u16Str, std::u32string& u32Str);

@@ -5,14 +5,6 @@
 
 namespace saba
 {
-	std::wstring ToWString(const std::string & utf8Str)
-	{
-		std::wstring wStr;
-		if (!TryToWString(utf8Str, wStr))
-			throw std::invalid_argument("Faild to convert wstring.");
-		return wStr;
-	}
-
 	std::string ToUtf8String(const std::wstring & wStr)
 	{
 		std::string utf8Str;
@@ -84,46 +76,46 @@ namespace saba
 		}
 		switch (numBytes) {
 		case 1:
-			u32Ch = static_cast<char32_t>(static_cast<uint8_t>(u8Ch[0]));
+			u32Ch = static_cast<char32_t>(u8Ch[0]);
 			break;
 		case 2:
 			if (!IsU8LaterByte(u8Ch[1])) {
 				return false;
 			}
-			if ((uint8_t(u8Ch[0]) & 0x1E) == 0) {
+			if ((static_cast<uint8_t>(u8Ch[0]) & 0x1E) == 0) {
 				return false;
 			}
 
-			u32Ch = char32_t(u8Ch[0] & 0x1F) << 6;
-			u32Ch |= char32_t(u8Ch[1] & 0x3F);
+			u32Ch = static_cast<char32_t>(u8Ch[0] & 0x1F) << 6;
+			u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F);
 			break;
 		case 3:
 			if (!IsU8LaterByte(u8Ch[1]) || !IsU8LaterByte(u8Ch[2])) {
 				return false;
 			}
-			if ((uint8_t(u8Ch[0]) & 0x0F) == 0 &&
-				(uint8_t(u8Ch[1]) & 0x20) == 0) {
+			if ((static_cast<uint8_t>(u8Ch[0]) & 0x0F) == 0 &&
+				(static_cast<uint8_t>(u8Ch[1]) & 0x20) == 0) {
 				return false;
 			}
 
-			u32Ch = char32_t(u8Ch[0] & 0x0F) << 12;
-			u32Ch |= char32_t(u8Ch[1] & 0x3F) << 6;
-			u32Ch |= char32_t(u8Ch[2] & 0x3F);
+			u32Ch = static_cast<char32_t>(u8Ch[0] & 0x0F) << 12;
+			u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F) << 6;
+			u32Ch |= static_cast<char32_t>(u8Ch[2] & 0x3F);
 			break;
 		case 4:
 			if (!IsU8LaterByte(u8Ch[1]) || !IsU8LaterByte(u8Ch[2]) ||
 				!IsU8LaterByte(u8Ch[3])) {
 				return false;
 			}
-			if ((uint8_t(u8Ch[0]) & 0x07) == 0 &&
-				(uint8_t(u8Ch[1]) & 0x30) == 0) {
+			if ((static_cast<uint8_t>(u8Ch[0]) & 0x07) == 0 &&
+				(static_cast<uint8_t>(u8Ch[1]) & 0x30) == 0) {
 				return false;
 			}
 
-			u32Ch = char32_t(u8Ch[0] & 0x07) << 18;
-			u32Ch |= char32_t(u8Ch[1] & 0x3F) << 12;
-			u32Ch |= char32_t(u8Ch[2] & 0x3F) << 6;
-			u32Ch |= char32_t(u8Ch[3] & 0x3F);
+			u32Ch = static_cast<char32_t>(u8Ch[0] & 0x07) << 18;
+			u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F) << 12;
+			u32Ch |= static_cast<char32_t>(u8Ch[2] & 0x3F) << 6;
+			u32Ch |= static_cast<char32_t>(u8Ch[3] & 0x3F);
 			break;
 		default: ;
 		}
@@ -247,33 +239,6 @@ namespace saba
 			if (u16Ch[1] != 0) {
 				u16Str.push_back(u16Ch[1]);
 			}
-		}
-		return true;
-	}
-
-	bool ConvU8ToU32(const std::string& u8Str, std::u32string& u32Str) {
-		for (auto u8It = u8Str.begin(); u8It != u8Str.end(); ++u8It) {
-			auto numBytes = GetU8ByteCount((*u8It));
-			if (numBytes == 0) {
-				return false;
-			}
-
-			std::array<char, 4> u8Ch;
-			u8Ch[0] = (*u8It);
-			for (int i = 1; i < numBytes; i++) {
-				++u8It;
-				if (u8It == u8Str.end()) {
-					return false;
-				}
-				u8Ch[i] = (*u8It);
-			}
-
-			char32_t u32Ch;
-			if (!ConvChU8ToU32(u8Ch, u32Ch)) {
-				return false;
-			}
-
-			u32Str.push_back(u32Ch);
 		}
 		return true;
 	}
