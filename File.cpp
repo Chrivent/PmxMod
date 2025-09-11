@@ -73,61 +73,6 @@ namespace saba
 		m_badFlag = false;
 	}
 
-	bool File::IsEOF()
-	{
-		return feof(m_fp) != 0;
-	}
-
-	bool File::ReadAll(std::vector<char>* buffer)
-	{
-		if (buffer == nullptr)
-		{
-			return false;
-		}
-
-		buffer->resize(m_fileSize);
-		Seek(0, SeekDir::Begin);
-		if (!Read((*buffer).data(), m_fileSize))
-		{
-			return false;
-		}
-
-		return true;
-	}
-
-	bool File::ReadAll(std::vector<uint8_t>* buffer)
-	{
-		if (buffer == nullptr)
-		{
-			return false;
-		}
-
-		buffer->resize(m_fileSize);
-		Seek(0, SeekDir::Begin);
-		if (!Read((*buffer).data(), m_fileSize))
-		{
-			return false;
-		}
-
-		return true;
-	}
-	bool File::ReadAll(std::vector<int8_t>* buffer)
-	{
-		if (buffer == nullptr)
-		{
-			return false;
-		}
-
-		buffer->resize(m_fileSize);
-		Seek(0, SeekDir::Begin);
-		if (!Read((*buffer).data(), m_fileSize))
-		{
-			return false;
-		}
-
-		return true;
-	}
-
 	bool File::Seek(int64_t offset, SeekDir origin)
 	{
 		if (m_fp == nullptr)
@@ -166,81 +111,20 @@ namespace saba
 		return _ftelli64(m_fp);
 	}
 
-	std::string TextFileReader::ReadLine()
-	{
-		if (!m_file.IsOpen() || IsEof())
-		{
-			return "";
-		}
-
-		std::string line;
-		auto outputIt = std::back_inserter(line);
-		int ch;
-		ch = fgetc(m_file.m_fp);
-		while (ch != EOF && ch != '\r' && ch != '\n')
-		{
-			line.push_back(ch);
-			ch = fgetc(m_file.m_fp);
-		}
-		if (ch != EOF)
-		{
-			if (ch == '\r')
-			{
-				ch = fgetc(m_file.m_fp);
-				if (ch != EOF && ch != '\n')
-				{
-					ungetc(ch, m_file.m_fp);
-				}
-			}
-			else
-			{
-				ch = fgetc(m_file.m_fp);
-				if (ch != EOF)
-				{
-					ungetc(ch, m_file.m_fp);
-				}
-			}
-		}
-
-		return line;
-	}
-
-	void TextFileReader::ReadAllLines(std::vector<std::string>& lines)
-	{
-		lines.clear();
-		if (!m_file.IsOpen() || IsEof())
-		{
-			return;
-		}
-		while (!IsEof())
-		{
-			lines.emplace_back(ReadLine());
-		}
-	}
-
-	std::string TextFileReader::ReadAll()
+	std::string File::ReadAll()
 	{
 		std::string all;
 
-		if (m_file.IsOpen())
+		if (IsOpen())
 		{
-			int ch = fgetc(m_file.m_fp);
+			int ch = fgetc(m_fp);
 			while (ch != EOF)
 			{
 				all.push_back(ch);
-				ch = fgetc(m_file.m_fp);
+				ch = fgetc(m_fp);
 			}
 		}
 		return all;
-	}
-
-	bool TextFileReader::IsEof()
-	{
-		if (!m_file.IsOpen())
-		{
-			return false;
-		}
-		return m_file.IsEOF();
 	}
 }
 

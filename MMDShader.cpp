@@ -53,23 +53,23 @@ GLuint CreateShader(GLenum shaderType, const std::string code)
 
 GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 {
-	saba::TextFileReader vsFileText;
-	if (!vsFileText.m_file.OpenFile(vsFile.c_str(), "r"))
+	saba::File vsFileText;
+	if (!vsFileText.OpenFile(vsFile.c_str(), "r"))
 	{
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
 	}
 	std::string vsCode = vsFileText.ReadAll();
-	vsFileText.m_file.Close();
+	vsFileText.Close();
 
-	saba::TextFileReader fsFileText;
-	if (!fsFileText.m_file.OpenFile(fsFile.c_str(), "r"))
+	saba::File fsFileText;
+	if (!fsFileText.OpenFile(fsFile.c_str(), "r"))
 	{
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
 	std::string fsCode = fsFileText.ReadAll();
-	fsFileText.m_file.Close();
+	fsFileText.Close();
 
 	GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
 	GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
