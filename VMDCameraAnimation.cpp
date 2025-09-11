@@ -130,7 +130,7 @@ namespace saba
 		m_cameraController.reset();
 	}
 
-	void VMDCameraAnimation::Evaluate(float t)
+	void VMDCameraAnimation::Evaluate(const float t)
 	{
 		m_cameraController->Evaluate(t);
 		m_camera = m_cameraController->m_camera;
