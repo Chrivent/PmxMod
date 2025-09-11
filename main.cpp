@@ -1,5 +1,4 @@
-﻿//#include <GL/gl3w.h>
-#include <glad/glad.h>
+﻿#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
@@ -32,7 +31,6 @@ bool SampleMain(std::vector<std::string>& args)
 {
 	Input currentInput;
 	std::vector<Input> inputModels;
-	bool enableTransparentWindow = false;
 	for (auto argIt = args.begin(); argIt != args.end(); ++argIt)
 	{
 		const auto& arg = (*argIt);
@@ -68,10 +66,6 @@ bool SampleMain(std::vector<std::string>& args)
 			}
 			currentInput.m_vmdPaths.push_back((*argIt));
 		}
-		else if (arg == "-transparent")
-		{
-			enableTransparentWindow = true;
-		}
 	}
 	if (!currentInput.m_modelPath.empty())
 	{
@@ -89,13 +83,6 @@ bool SampleMain(std::vector<std::string>& args)
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, appContext.m_msaaSamples);
-#if defined(GLFW_TRANSPARENT_FRAMEBUFFER)
-	if (enableTransparentWindow)
-	{
-		glfwWindowHint(GLFW_SAMPLES, 0);
-		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE);
-	}
-#endif // defined(GLFW_TRANSPARENT_FRAMEBUFFER)
 
 	auto window = glfwCreateWindow(1280, 800, "Pmx Mod", nullptr, nullptr);
 	if (window == nullptr)
@@ -103,29 +90,12 @@ bool SampleMain(std::vector<std::string>& args)
 		return false;
 	}
 
-#if _WIN32 && (GLFW_VERSION_MAJOR >= 3) && (GLFW_VERSION_MINOR >= 3) && (GLFW_VERSION_REVISION >= 3)
-	// The color key was removed from glfw3.3.3. (Windows)
-	if (enableTransparentWindow)
-	{
-		HWND hwnd = glfwGetWin32Window(window);
-		LONG exStyle = GetWindowLongW(hwnd, GWL_EXSTYLE);
-		exStyle |= WS_EX_LAYERED;
-		SetWindowLongW(hwnd, GWL_EXSTYLE, exStyle);
-		SetLayeredWindowAttributes(hwnd, RGB(255, 0, 255), 255, LWA_COLORKEY);
-	}
-#endif // _WIN32
-
 	glfwMakeContextCurrent(window);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		return false;
 	}
-
-	/*if (gl3wInit() != 0)
-	{
-		return false;
-	}*/
 
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
@@ -136,8 +106,6 @@ bool SampleMain(std::vector<std::string>& args)
 		std::cout << "Failed to setup AppContext.\n";
 		return false;
 	}
-
-	appContext.m_enableTransparentWindow = enableTransparentWindow;
 
 	// Load MMD model
 	std::vector<Model> models;
@@ -213,17 +181,8 @@ bool SampleMain(std::vector<std::string>& args)
 		appContext.m_elapsed = float(elapsed);
 		appContext.m_animTime += float(elapsed);
 
-		if (enableTransparentWindow)
-		{
-			appContext.SetupTransparentFBO();
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		}
-		else
-		{
-			glClearColor(1.0f, 0.8f, 0.75f, 1);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		}
+		glClearColor(0.639f, 0.8f, 0.639f, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
@@ -257,31 +216,6 @@ bool SampleMain(std::vector<std::string>& args)
 
 			// Draw
 			model.Draw(appContext);
-		}
-
-		if (enableTransparentWindow)
-		{
-			glDisable(GL_MULTISAMPLE);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glClearColor(0, 0, 0, 1);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, appContext.m_transparentFbo);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, appContext.m_transparentMSAAFbo);
-			glDrawBuffer(GL_BACK);
-			glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-			glDisable(GL_DEPTH_TEST);
-			glBindVertexArray(appContext.m_copyVAO);
-			glUseProgram(appContext.m_copyTransparentWindowShader);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, appContext.m_transparentFboColorTex);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			glBindVertexArray(0);
-			glUseProgram(0);
-			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		glfwSwapBuffers(window);
@@ -411,14 +345,6 @@ static int ReadOneIndex(const std::string& prompt, size_t maxN){
     return -1;
 }
 
-static bool YesNo(const std::string& prompt, bool defNo=true){
-    std::cout << prompt;
-    std::string s; std::getline(std::cin, s);
-    if (s.empty()) return !defNo;
-    char c = (char)std::tolower(s[0]);
-    return (c=='y' || c=='1' || c=='t');
-}
-
 // === 핵심: 간단/짧은 인터랙티브 args 빌더 ===
 static std::vector<std::string> BuildArgsInteractive(){
     std::vector<std::string> args;
@@ -475,10 +401,6 @@ static std::vector<std::string> BuildArgsInteractive(){
             args.push_back("-vmd"); // 마지막에 추가 → 전역 카메라로 적용
             args.push_back(PathToUtf8(cameras[(size_t)cIdx])); // ← 여기!
         }
-    }
-
-    if (YesNo("\n투명창 모드 사용? (y/N): ", true)){
-        args.push_back("-transparent");
     }
 
     std::cout << "\n[최종 인자]\n";

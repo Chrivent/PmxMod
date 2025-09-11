@@ -200,10 +200,10 @@ void Model::Draw(const AppContext& appContext) const {
 		if (mat.m_texture != 0) {
 			if (!mat.m_textureHasAlpha)
 				// Use Material Alpha
-				glUniform1i(shader->m_uTexMode, 1);
+					glUniform1i(shader->m_uTexMode, 1);
 			else
 				// Use Material Alpha * Texture Alpha
-				glUniform1i(shader->m_uTexMode, 2);
+					glUniform1i(shader->m_uTexMode, 2);
 			glUniform4fv(shader->m_uTexMulFactor, 1, &mmdMat.m_textureMulFactor[0]);
 			glUniform4fv(shader->m_uTexAddFactor, 1, &mmdMat.m_textureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
@@ -255,13 +255,8 @@ void Model::Draw(const AppContext& appContext) const {
 			glCullFace(GL_BACK);
 		}
 
-		if (appContext.m_enableTransparentWindow) {
-			glEnable(GL_BLEND);
-			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-		} else {
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		}
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glUniform1i(shader->m_uShadowMapEnabled, 0);
 		glUniform1i(shader->m_uShadowMap0, 3);
@@ -316,13 +311,8 @@ void Model::Draw(const AppContext& appContext) const {
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 
-		if (appContext.m_enableTransparentWindow) {
-			glEnable(GL_BLEND);
-			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-		} else {
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		}
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
@@ -361,24 +351,15 @@ void Model::Draw(const AppContext& appContext) const {
 	auto wsvp = proj * view * shadow * world;
 
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-	if (appContext.m_enableTransparentWindow) {
+	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_NOTEQUAL, 1, 1);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glEnable(GL_STENCIL_TEST);
-	} else {
-		if (shadowColor.a < 1.0f) {
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-			glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_NOTEQUAL, 1, 1);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-			glEnable(GL_STENCIL_TEST);
-		} else
-			glDisable(GL_BLEND);
-	}
+	} else
+		glDisable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
 
 	for (size_t i = 0; i < subMeshCount; i++) {

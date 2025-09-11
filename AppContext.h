@@ -39,16 +39,6 @@ struct AppContext
 
     const int	m_msaaSamples = 4;
 
-    bool		m_enableTransparentWindow = false;
-    uint32_t	m_transparentFboWidth = 0;
-    uint32_t	m_transparentFboHeight = 0;
-    GLuint	m_transparentFboColorTex = 0;
-    GLuint	m_transparentFbo = 0;
-    GLuint	m_transparentFboMSAAColorRB = 0;
-    GLuint	m_transparentFboMSAADepthRB = 0;
-    GLuint	m_transparentMSAAFbo = 0;
-    GLuint	m_copyTransparentWindowShader = 0;
-    GLint	m_copyTransparentWindowShaderTex = -1;
     GLuint	m_copyShader = 0;
     GLint	m_copyShaderTex = -1;
     GLuint	m_copyVAO = 0;
@@ -59,8 +49,6 @@ struct AppContext
 
     bool Setup();
     void Clear();
-
-    void SetupTransparentFBO();
 
     Texture GetTexture(const std::string& texturePath);
 };

@@ -44,14 +44,6 @@ bool AppContext::Setup() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	// Create Copy Transparent Window Shader (only windows)
-	m_copyTransparentWindowShader = CreateShaderProgram(
-		saba::PathUtil::Combine(m_shaderDir, "quad.vert"),
-		saba::PathUtil::Combine(m_shaderDir, "copy_transparent_window.frag")
-	);
-
-	m_copyTransparentWindowShaderTex = glGetUniformLocation(m_copyTransparentWindowShader, "u_Tex");
-
 	// Copy Shader
 	m_copyShader = CreateShaderProgram(
 		saba::PathUtil::Combine(m_shaderDir, "quad.vert"),
@@ -80,69 +72,10 @@ void AppContext::Clear() {
 	m_dummyShadowDepthTex = 0;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	if (m_transparentFbo != 0) glDeleteFramebuffers(1, &m_transparentFbo);
-	if (m_transparentMSAAFbo != 0) glDeleteFramebuffers(1, &m_transparentMSAAFbo);
-	if (m_transparentFboColorTex != 0) glDeleteTextures(1, &m_transparentFboColorTex);
-	if (m_transparentFboMSAAColorRB != 0) glDeleteRenderbuffers(1, &m_transparentFboMSAAColorRB);
-	if (m_transparentFboMSAADepthRB != 0) glDeleteRenderbuffers(1, &m_transparentFboMSAADepthRB);
-	if (m_copyTransparentWindowShader != 0) glDeleteProgram(m_copyTransparentWindowShader);
 	if (m_copyShader != 0) glDeleteProgram(m_copyShader);
 	if (m_copyVAO != 0) glDeleteVertexArrays(1, &m_copyVAO);
 
 	m_vmdCameraAnim.reset();
-}
-
-void AppContext::SetupTransparentFBO() {
-	// Setup FBO
-	if (m_transparentFbo == 0) {
-		glGenFramebuffers(1, &m_transparentFbo);
-		glGenFramebuffers(1, &m_transparentMSAAFbo);
-		glGenTextures(1, &m_transparentFboColorTex);
-		glGenRenderbuffers(1, &m_transparentFboMSAAColorRB);
-		glGenRenderbuffers(1, &m_transparentFboMSAADepthRB);
-	}
-
-	if (m_screenWidth != m_transparentFboWidth || m_screenHeight != m_transparentFboHeight) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, m_transparentFboColorTex);
-		glTexImage2D(
-			GL_TEXTURE_2D, 0, GL_RGBA,
-			m_screenWidth,
-			m_screenHeight,
-			0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
-		);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, m_transparentFbo);
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_transparentFboColorTex, 0);
-		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
-			std::cout << "Failed to bind framebuffer.\n";
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_msaaSamples, GL_RGBA, m_screenWidth, m_screenHeight);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, m_transparentFboMSAADepthRB);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_msaaSamples, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, m_transparentMSAAFbo);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_transparentFboMSAADepthRB);
-		const auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (GL_FRAMEBUFFER_COMPLETE != status)
-			std::cout << "Failed to bind framebuffer.\n";
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		m_transparentFboWidth = m_screenWidth;
-		m_transparentFboHeight = m_screenHeight;
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, m_transparentMSAAFbo);
-	glEnable(GL_MULTISAMPLE);
 }
 
 Texture AppContext::GetTexture(const std::string& texturePath)
