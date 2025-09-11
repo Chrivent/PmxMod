@@ -4,7 +4,6 @@
 
 #include <map>
 
-#include "VMDAnimation.h"
 #include "VMDCameraAnimation.h"
 #include "MMDShader.h"
 

@@ -4,17 +4,17 @@
 
 #define	STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
+#include <ranges>
+
 #include "stb_image.h"
 
 #include "Path.h"
 
-AppContext::~AppContext()
-{
+AppContext::~AppContext() {
 	Clear();
 }
 
-bool AppContext::Setup()
-{
+bool AppContext::Setup() {
 	// Setup resource directory.
 	m_resourceDir = saba::PathUtil::GetExecutablePath();
 	m_resourceDir = saba::PathUtil::GetDirectoryName(m_resourceDir);
@@ -23,20 +23,17 @@ bool AppContext::Setup()
 	m_mmdDir = saba::PathUtil::Combine(m_resourceDir, "mmd");
 
 	m_mmdShader = std::make_unique<MMDShader>();
-	if (!m_mmdShader->Setup(*this))
-	{
+	if (!m_mmdShader->Setup(*this)) {
 		return false;
 	}
 
 	m_mmdEdgeShader = std::make_unique<MMDEdgeShader>();
-	if (!m_mmdEdgeShader->Setup(*this))
-	{
+	if (!m_mmdEdgeShader->Setup(*this)) {
 		return false;
 	}
 
 	m_mmdGroundShadowShader = std::make_unique<MMDGroundShadowShader>();
-	if (!m_mmdGroundShadowShader->Setup(*this))
-	{
+	if (!m_mmdGroundShadowShader->Setup(*this)) {
 		return false;
 	}
 
@@ -71,15 +68,13 @@ bool AppContext::Setup()
 	return true;
 }
 
-void AppContext::Clear()
-{
+void AppContext::Clear() {
 	m_mmdShader.reset();
 	m_mmdEdgeShader.reset();
 	m_mmdGroundShadowShader.reset();
 
-	for (auto& tex : m_textures)
-	{
-		glDeleteTextures(1, &tex.second.m_texture);
+	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values) {
+		glDeleteTextures(1, &m_texture);
 	}
 	m_textures.clear();
 
@@ -101,11 +96,9 @@ void AppContext::Clear()
 	m_vmdCameraAnim.reset();
 }
 
-void AppContext::SetupTransparentFBO()
-{
+void AppContext::SetupTransparentFBO() {
 	// Setup FBO
-	if (m_transparentFbo == 0)
-	{
+	if (m_transparentFbo == 0) {
 		glGenFramebuffers(1, &m_transparentFbo);
 		glGenFramebuffers(1, &m_transparentMSAAFbo);
 		glGenTextures(1, &m_transparentFboColorTex);
@@ -113,8 +106,7 @@ void AppContext::SetupTransparentFBO()
 		glGenRenderbuffers(1, &m_transparentFboMSAADepthRB);
 	}
 
-	if ((m_screenWidth != m_transparentFboWidth) || (m_screenHeight != m_transparentFboHeight))
-	{
+	if (m_screenWidth != m_transparentFboWidth || m_screenHeight != m_transparentFboHeight) {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, m_transparentFboColorTex);
 		glTexImage2D(
@@ -129,30 +121,25 @@ void AppContext::SetupTransparentFBO()
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_transparentFbo);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_transparentFboColorTex, 0);
-		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
-		{
-			std::cout << "Faile to bind framebuffer.\n";
+		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
+			std::cout << "Failed to bind framebuffer.\n";
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glBindRenderbuffer(GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
-		//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_msaaSamples, GL_RGBA, m_screenWidth, m_screenHeight);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 		glBindRenderbuffer(GL_RENDERBUFFER, m_transparentFboMSAADepthRB);
-		//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_msaaSamples, GL_DEPTH24_STENCIL8, m_screenWidth, m_screenHeight);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_transparentMSAAFbo);
-		//glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_transparentFboColorTex, 0);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_transparentFboMSAAColorRB);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_transparentFboMSAADepthRB);
-		auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (GL_FRAMEBUFFER_COMPLETE != status)
-		{
-			std::cout << "Faile to bind framebuffer.\n";
+		const auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (GL_FRAMEBUFFER_COMPLETE != status) {
+			std::cout << "Failed to bind framebuffer.\n";
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -166,17 +153,17 @@ void AppContext::SetupTransparentFBO()
 
 Texture AppContext::GetTexture(const std::string& texturePath)
 {
-	auto it = m_textures.find(texturePath);
+	const auto it = m_textures.find(texturePath);
 	if (it == m_textures.end())
 	{
 		stbi_set_flip_vertically_on_load(true);
 		saba::File file;
-		if (!file.Open(texturePath))
+		if (!file.OpenFile(texturePath.c_str(), "rb"))
 		{
 			return Texture{ 0, false };
 		}
 		int x, y, comp;
-		int ret = stbi_info_from_file(file.GetFilePointer(), &x, &y, &comp);
+		const int ret = stbi_info_from_file(file.GetFilePointer(), &x, &y, &comp);
 		if (ret == 0)
 		{
 			return Texture{ 0, false };
@@ -186,7 +173,6 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 		glGenTextures(1, &tex);
 		glBindTexture(GL_TEXTURE_2D, tex);
 
-		int reqComp = 0;
 		bool hasAlpha = false;
 		if (comp != 4)
 		{
@@ -214,8 +200,5 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 
 		return m_textures[texturePath];
 	}
-	else
-	{
-		return (*it).second;
-	}
+	return it->second;
 }

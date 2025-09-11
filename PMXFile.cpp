@@ -55,7 +55,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadIndex(int32_t* index, uint8_t indexSize, File& file)
@@ -100,7 +100,7 @@ namespace saba
 			default:
 				return false;
 			}
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadHeader(PMXFile* pmxFile, File& file)
@@ -122,7 +122,7 @@ namespace saba
 			Read(&header.m_morphIndexSize, file);
 			Read(&header.m_rigidbodyIndexSize, file);
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadInfo(PMXFile* pmx, File& file)
@@ -134,7 +134,7 @@ namespace saba
 			ReadString(pmx, &info.m_comment, file);
 			ReadString(pmx, &info.m_englishComment, file);
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadVertex(PMXFile* pmx, File& file)
@@ -204,7 +204,7 @@ namespace saba
 				Read(&vertex.m_edgeMag, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadFace(PMXFile* pmx, File& file)
@@ -260,7 +260,7 @@ namespace saba
 				return false;
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadTexture(PMXFile* pmx, File& file)
@@ -278,7 +278,7 @@ namespace saba
 				ReadString(pmx, &tex.m_textureName, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadMaterial(PMXFile* pmx, File& file)
@@ -331,7 +331,7 @@ namespace saba
 				Read(&mat.m_numFaceVertices, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadBone(PMXFile* pmx, File& file)
@@ -414,7 +414,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadMorph(PMXFile* pmx, File& file)
@@ -523,7 +523,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadDisplayFrame(PMXFile* pmx, File& file)
@@ -566,7 +566,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadRigidbody(PMXFile* pmx, File& file)
@@ -603,7 +603,7 @@ namespace saba
 				Read(&rb.m_op, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadJoint(PMXFile* pmx, File& file)
@@ -637,7 +637,7 @@ namespace saba
 				Read(&joint.m_springRotateFactor, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadSoftbody(PMXFile* pmx, File& file)
@@ -726,7 +726,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadPMXFile(PMXFile * pmxFile, File& file)
@@ -786,7 +786,7 @@ namespace saba
 				return false;
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadSoftbody(pmxFile, file))
 				{
@@ -801,7 +801,7 @@ namespace saba
 	bool ReadPMXFile(PMXFile * pmxFile, const char* filename)
 	{
 		File file;
-		if (!file.Open(filename))
+		if (!file.OpenFile(filename, "rb"))
 		{
 			return false;
 		}

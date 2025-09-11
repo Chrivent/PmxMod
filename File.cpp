@@ -44,32 +44,12 @@ namespace saba
 		Seek(0, SeekDir::End);
 		m_fileSize = Tell();
 		Seek(0, SeekDir::Begin);
-		if (IsBad())
+		if (m_badFlag)
 		{
 			Close();
 			return false;
 		}
 		return true;
-	}
-
-	bool File::Open(const char * filepath)
-	{
-		return OpenFile(filepath, "rb");
-	}
-
-	bool File::OpenText(const char * filepath)
-	{
-		return OpenFile(filepath, "r");
-	}
-
-	bool File::Create(const char * filepath)
-	{
-		return OpenFile(filepath, "wb");
-	}
-
-	bool File::CreateText(const char * filepath)
-	{
-		return OpenFile(filepath, "w");
 	}
 
 	void File::Close()
@@ -86,16 +66,6 @@ namespace saba
 	bool File::IsOpen()
 	{
 		return m_fp != nullptr;
-	}
-
-	File::Offset File::GetSize() const
-	{
-		return m_fileSize;
-	}
-
-	bool File::IsBad() const
-	{
-		return m_badFlag;
 	}
 
 	void File::ClearBadFlag()
@@ -163,7 +133,7 @@ namespace saba
 		return true;
 	}
 
-	bool File::Seek(Offset offset, SeekDir origin)
+	bool File::Seek(int64_t offset, SeekDir origin)
 	{
 		if (m_fp == nullptr)
 		{
@@ -192,13 +162,13 @@ namespace saba
 		return true;
 	}
 
-	File::Offset File::Tell()
+	int64_t File::Tell()
 	{
 		if (m_fp == nullptr)
 		{
 			return -1;
 		}
-		return (Offset)_ftelli64(m_fp);
+		return (int64_t)_ftelli64(m_fp);
 	}
 
 	TextFileReader::TextFileReader(const char * filepath)
@@ -213,7 +183,7 @@ namespace saba
 
 	bool TextFileReader::Open(const char * filepath)
 	{
-		return m_file.OpenText(filepath);
+		return m_file.OpenFile(filepath, "r");
 	}
 
 	bool TextFileReader::Open(const std::string & filepath)

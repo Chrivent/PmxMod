@@ -24,7 +24,7 @@ namespace saba
 				return false;
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadMotion(VMDFile* vmd, File& file)
@@ -45,7 +45,7 @@ namespace saba
 				Read(&motion.m_interpolation, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadBlednShape(VMDFile* vmd, File& file)
@@ -64,7 +64,7 @@ namespace saba
 				Read(&morph.m_weight, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadCamera(VMDFile* vmd, File& file)
@@ -87,7 +87,7 @@ namespace saba
 				Read(&camera.m_isPerspective, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadLight(VMDFile* vmd, File& file)
@@ -106,7 +106,7 @@ namespace saba
 				Read(&light.m_position, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadShadow(VMDFile* vmd, File& file)
@@ -125,7 +125,7 @@ namespace saba
 				Read(&shadow.m_distance, file);
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadIK(VMDFile* vmd, File& file)
@@ -154,7 +154,7 @@ namespace saba
 				}
 			}
 
-			return !file.IsBad();
+			return !file.m_badFlag;
 		}
 
 		bool ReadVMDFile(VMDFile* vmd, File& file)
@@ -169,7 +169,7 @@ namespace saba
 				return false;
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadBlednShape(vmd, file))
 				{
@@ -177,7 +177,7 @@ namespace saba
 				}
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadCamera(vmd, file))
 				{
@@ -185,7 +185,7 @@ namespace saba
 				}
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadLight(vmd, file))
 				{
@@ -193,7 +193,7 @@ namespace saba
 				}
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadShadow(vmd, file))
 				{
@@ -201,7 +201,7 @@ namespace saba
 				}
 			}
 
-			if (file.Tell() < file.GetSize())
+			if (file.Tell() < file.m_fileSize)
 			{
 				if (!ReadIK(vmd, file))
 				{
@@ -216,7 +216,7 @@ namespace saba
 	bool ReadVMDFile(VMDFile * vmd, const char * filename)
 	{
 		File file;
-		if (!file.Open(filename))
+		if (!file.OpenFile(filename, "rb"))
 		{
 			return false;
 		}
