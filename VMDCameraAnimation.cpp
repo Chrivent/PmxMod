@@ -4,10 +4,10 @@ namespace saba
 {
 	namespace
 	{
-		void SetVMDBezier(VMDBezier& bezier, int x0, int x1, int y0, int y1)
+		void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1)
 		{
-			bezier.m_cp1 = glm::vec2((float)x0 / 127.0f, (float)y0 / 127.0f);
-			bezier.m_cp2 = glm::vec2((float)x1 / 127.0f, (float)y1 / 127.0f);
+			bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
+			bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
 		}
 	} // namespace
 
@@ -16,14 +16,12 @@ namespace saba
 	{
 	}
 
-	void VMDCameraController::Evaluate(float t)
+	void VMDCameraController::Evaluate(const float t)
 	{
 		if (m_keys.empty())
-		{
 			return;
-		}
 
-		auto boundIt = FindBoundKey(m_keys, int32_t(t), m_startKeyIndex);
+		const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
 		if (boundIt == std::end(m_keys))
 		{
 			const auto& selectKey = m_keys[m_keys.size() - 1];
@@ -34,7 +32,7 @@ namespace saba
 		}
 		else
 		{
-			const auto& selectKey = (*boundIt);
+			const auto& selectKey = *boundIt;
 			m_camera.m_interest = selectKey.m_interest;
 			m_camera.m_rotate = selectKey.m_rotate;
 			m_camera.m_distance = selectKey.m_distance;
