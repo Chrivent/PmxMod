@@ -11,10 +11,6 @@ namespace saba
 	struct MMDFileString
 	{
 		MMDFileString() {
-			Clear();
-		}
-
-		void Clear() {
 			for (auto &ch: m_buffer) {
 				ch = '\0';
 			}
