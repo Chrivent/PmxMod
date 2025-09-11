@@ -46,19 +46,19 @@ namespace saba
 				{
 					float timeRange = float(key1.m_time - key0.m_time);
 					float time = (t - float(key0.m_time)) / timeRange;
-					float ix_x = key0.m_ixBezier.FindBezierX(time);
-					float iy_x = key0.m_iyBezier.FindBezierX(time);
-					float iz_x = key0.m_izBezier.FindBezierX(time);
-					float rotate_x = key0.m_rotateBezier.FindBezierX(time);
-					float distance_x = key0.m_distanceBezier.FindBezierX(time);
-					float fov_x = key0.m_fovBezier.FindBezierX(time);
+					float ix_x = key1.m_ixBezier.FindBezierX(time);
+					float iy_x = key1.m_iyBezier.FindBezierX(time);
+					float iz_x = key1.m_izBezier.FindBezierX(time);
+					float rotate_x = key1.m_rotateBezier.FindBezierX(time);
+					float distance_x = key1.m_distanceBezier.FindBezierX(time);
+					float fov_x = key1.m_fovBezier.FindBezierX(time);
 
-					float ix_y = key0.m_ixBezier.EvalY(ix_x);
-					float iy_y = key0.m_iyBezier.EvalY(iy_x);
-					float iz_y = key0.m_izBezier.EvalY(iz_x);
-					float rotate_y = key0.m_rotateBezier.EvalY(rotate_x);
-					float distance_y = key0.m_distanceBezier.EvalY(distance_x);
-					float fov_y = key0.m_fovBezier.EvalY(fov_x);
+					float ix_y = key1.m_ixBezier.EvalY(ix_x);
+					float iy_y = key1.m_iyBezier.EvalY(iy_x);
+					float iz_y = key1.m_izBezier.EvalY(iz_x);
+					float rotate_y = key1.m_rotateBezier.EvalY(rotate_x);
+					float distance_y = key1.m_distanceBezier.EvalY(distance_x);
+					float fov_y = key1.m_fovBezier.EvalY(fov_x);
 
 					m_camera.m_interest = glm::mix(key0.m_interest, key1.m_interest, glm::vec3(ix_y, iy_y, iz_y));
 					m_camera.m_rotate = glm::mix(key0.m_rotate, key1.m_rotate, rotate_y);
