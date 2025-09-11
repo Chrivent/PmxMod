@@ -3,7 +3,6 @@
 #include "MMDCamera.h"
 #include "VMDAnimation.h"
 
-#include <cstdint>
 #include <memory>
 
 namespace saba
@@ -27,20 +26,14 @@ namespace saba
 	class VMDCameraController
 	{
 	public:
-		using KeyType = VMDCameraAnimationKey;
-
 		VMDCameraController();
 
 		void Evaluate(float t);
-		const MMDCamera& GetCamera() { return m_camera; }
 
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
+		void AddKey(const VMDCameraAnimationKey& key);
+
 		void SortKeys();
 
-	private:
 		std::vector<VMDCameraAnimationKey>	m_keys;
 		MMDCamera							m_camera;
 		size_t								m_startKeyIndex;
@@ -56,12 +49,7 @@ namespace saba
 
 		void Evaluate(float t);
 
-		const MMDCamera& GetCamera() const { return m_camera; }
-
-	private:
-		using CameraControllerPtr = std::unique_ptr<VMDCameraController>;
-
-		CameraControllerPtr	m_cameraController;
+		std::unique_ptr<VMDCameraController>	m_cameraController;
 
 		MMDCamera	m_camera;
 	};

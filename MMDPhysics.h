@@ -1,9 +1,7 @@
 ﻿#pragma once
 
 #include "PMXFile.h"
-#include "Time.h"
 
-#include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
 #include <vector>
@@ -11,18 +9,6 @@
 #include <cinttypes>
 
 #include <btBulletDynamicsCommon.h>
-
-// Bullet Types
-class btRigidBody;
-class btCollisionShape;
-class btTypedConstraint;
-class btDiscreteDynamicsWorld;
-class btBroadphaseInterface;
-class btDefaultCollisionConfiguration;
-class btCollisionDispatcher;
-class btSequentialImpulseConstraintSolver;
-class btMotionState;
-struct btOverlapFilterCallback;
 
 namespace saba
 {
@@ -37,30 +23,30 @@ namespace saba
 		virtual void ReflectGlobalTransform() = 0;
 	};
 
-	struct MMDFilterCallback : public btOverlapFilterCallback
+	struct MMDFilterCallback final : btOverlapFilterCallback
 	{
 		bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
 
 		std::vector<btBroadphaseProxy*> m_nonFilterProxy;
 	};
 
-	class DefaultMotionState : public MMDMotionState
+	class DefaultMotionState final : public MMDMotionState
 	{
 	public:
-		DefaultMotionState(const glm::mat4& transform);
+		explicit DefaultMotionState(const glm::mat4& transform);
 
 		void getWorldTransform(btTransform& worldTransform) const override;
 		void setWorldTransform(const btTransform& worldTransform) override;
 
-		virtual void Reset() override;
-		virtual void ReflectGlobalTransform() override;
+		void Reset() override;
+		void ReflectGlobalTransform() override;
 
 	private:
 		btTransform	m_initialTransform;
 		btTransform	m_transform;
 	};
 
-	class DynamicMotionState : public MMDMotionState
+	class DynamicMotionState final : public MMDMotionState
 	{
 	public:
 		DynamicMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
@@ -79,7 +65,7 @@ namespace saba
 		bool		m_override;
 	};
 
-	class DynamicAndBoneMergeMotionState : public MMDMotionState
+	class DynamicAndBoneMergeMotionState final : public MMDMotionState
 	{
 	public:
 		DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
@@ -96,10 +82,9 @@ namespace saba
 		glm::mat4	m_invOffset;
 		btTransform	m_transform;
 		bool		m_override;
-
 	};
 
-	class KinematicMotionState : public MMDMotionState
+	class KinematicMotionState final : public MMDMotionState
 	{
 	public:
 		KinematicMotionState(MMDNode* node, const glm::mat4& offset);
@@ -128,19 +113,19 @@ namespace saba
 		MMDRigidBody();
 		~MMDRigidBody();
 
-		bool Create(const PMXRigidbody& pmxRigidBody, MMDModel* model, MMDNode* node);
+		bool Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
 		void Destroy();
 
 		btRigidBody* GetRigidBody() const;
 
-		void SetActivation(bool activation);
-		void ResetTransform();
-		void Reset(MMDPhysics* physics);
+		void SetActivation(bool activation) const;
+		void ResetTransform() const;
+		void Reset(const MMDPhysics* physics) const;
 
-		void ReflectGlobalTransform();
-		void CalcLocalTransform();
+		void ReflectGlobalTransform() const;
+		void CalcLocalTransform() const;
 
-		glm::mat4 GetTransform();
+		glm::mat4 GetTransform() const;
 
 	private:
 		std::unique_ptr<btCollisionShape>	m_shape;
@@ -165,7 +150,7 @@ namespace saba
 		MMDJoint();
 		~MMDJoint();
 
-		bool CreateJoint(const PMXJoint& pmxJoint, MMDRigidBody* rigidBodyA, MMDRigidBody* rigidBodyB);
+		bool CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
 		void Destroy();
 
 		btTypedConstraint* GetConstraint() const;
@@ -180,20 +165,20 @@ namespace saba
 		MMDPhysics();
 		~MMDPhysics();
 
-		bool Create();
+		void Create();
 		void Destroy();
 
-		void Update(float time);
+		void Update(float time) const;
 
-		void AddRigidBody(MMDRigidBody* mmdRB);
-		void RemoveRigidBody(MMDRigidBody* mmdRB);
-		void AddJoint(MMDJoint* mmdJoint);
-		void RemoveJoint(MMDJoint* mmdJoint);
+		void AddRigidBody(const MMDRigidBody* mmdRB) const;
+		void RemoveRigidBody(const MMDRigidBody* mmdRB) const;
+		void AddJoint(const MMDJoint* mmdJoint) const;
+		void RemoveJoint(const MMDJoint* mmdJoint) const;
 
 		btDiscreteDynamicsWorld* GetDynamicsWorld() const;
 
 	private:
-		std::unique_ptr<btBroadphaseInterface>				m_broadphase;
+		std::unique_ptr<btBroadphaseInterface>				m_broadPhase;
 		std::unique_ptr<btDefaultCollisionConfiguration>	m_collisionConfig;
 		std::unique_ptr<btCollisionDispatcher>				m_dispatcher;
 		std::unique_ptr<btSequentialImpulseConstraintSolver>	m_solver;
@@ -213,9 +198,9 @@ namespace saba
 	public:
 		~MMDPhysicsManager();
 
-		bool Create();
+		void Create();
 
-		MMDPhysics* GetMMDPhysics();
+		MMDPhysics* GetMMDPhysics() const;
 
 		MMDRigidBody* AddRigidBody();
 		MMDJoint* AddJoint();
@@ -224,7 +209,7 @@ namespace saba
 		std::unique_ptr<MMDPhysics>	m_mmdPhysics;
 
 	public:
-		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodys;
+		std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
 		std::vector<std::unique_ptr<MMDJoint>>		m_joints;
 	};
 }

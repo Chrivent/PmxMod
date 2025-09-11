@@ -22,7 +22,7 @@ namespace saba
 
 		void UpdateLocalTransform();
 		void UpdateGlobalTransform();
-		void UpdateChildTransform();
+		void UpdateChildTransform() const;
 
 		glm::vec3 AnimateTranslate() const;
 		glm::quat AnimateRotate() const;
@@ -38,7 +38,6 @@ namespace saba
 
 		void UpdateAppendTransform();
 
-	public:
 		uint32_t		m_index;
 		std::string		m_name;
 		bool			m_enableIK;
@@ -86,11 +85,11 @@ namespace saba
 	class MMDNodeManager
 	{
 	public:
-		static const size_t NPos = -1;
+		static constexpr size_t NPos = -1;
 
 		size_t FindNodeIndex(const std::string& name);
-		MMDNode* GetNode(size_t idx);
-		MMDNode* GetNode(const std::string& nodeName);
+		MMDNode* GetNodeByIndex(size_t idx) const;
+		MMDNode* GetNodeByName(const std::string& nodeName);
 		MMDNode* AddNode();
 
 		std::vector<std::unique_ptr<MMDNode>>	m_nodes;

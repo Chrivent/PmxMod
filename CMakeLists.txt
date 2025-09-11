@@ -12,40 +12,26 @@ find_package(glm   CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 
 add_executable(PmxMod
-    "Main.cpp"
-    "File.cpp"
-    "File.h"
-    "Path.cpp"
-    "Path.h"
-    "UnicodeUtil.cpp"
-    "UnicodeUtil.h"
-    "MMDCamera.cpp"
-    "MMDCamera.h"
-    "MMDFileString.h"
-    "MMDIkSolver.cpp"
-    "MMDIkSolver.h"
-    "MMDMaterial.cpp"
-    "MMDMaterial.h"
-    "MMDModel.cpp"
-    "MMDModel.h"
-    "MMDMorph.cpp"
-    "MMDMorph.h"
-    "MMDNode.cpp"
-    "MMDNode.h"
-    "MMDPhysics.cpp"
-    "MMDPhysics.h"
-    "PMXFile.cpp"
-    "PMXFile.h"
-    "SjisToUnicode.cpp"
-    "SjisToUnicode.h"
-    "VMDAnimation.cpp"
-    "VMDAnimation.h"
-    "VMDAnimationCommon.h"
-    "VMDCameraAnimation.cpp"
-    "VMDCameraAnimation.h"
-    "VMDFile.cpp"
-    "VMDFile.h"
-    "stb_image.h")
+        Main.cpp
+        File.cpp File.h
+        Path.cpp Path.h
+        UnicodeUtil.cpp UnicodeUtil.h
+        MMDCamera.cpp MMDCamera.h
+        MMDIkSolver.cpp MMDIkSolver.h
+        MMDMaterial.cpp MMDMaterial.h
+        MMDModel.cpp MMDModel.h
+        MMDMorph.cpp MMDMorph.h
+        MMDNode.cpp MMDNode.h
+        MMDPhysics.cpp MMDPhysics.h
+        PMXFile.cpp PMXFile.h
+        VMDAnimation.cpp VMDAnimation.h
+        VMDCameraAnimation.cpp VMDCameraAnimation.h
+        VMDFile.cpp VMDFile.h
+        stb_image.h
+        AppContext.cpp AppContext.h
+        MMDShader.cpp MMDShader.h
+        Model.cpp Model.h
+)
 
 target_link_libraries(PmxMod PRIVATE
     glfw
@@ -57,3 +43,9 @@ target_link_libraries(PmxMod PRIVATE
 )
 
 target_compile_definitions(PmxMod PRIVATE NOMINMAX)
+
+set(RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resource)
+add_custom_command(TARGET PmxMod POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${RESOURCE_DIR} $<TARGET_FILE_DIR:PmxMod>/resource
+)

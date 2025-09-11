@@ -3,10 +3,8 @@
 #include "MMDModel.h"
 #include "MMDNode.h"
 #include "VMDFile.h"
-#include "MMDIkSolver.h"
 
 #include <vector>
-#include <algorithm>
 #include <memory>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -14,12 +12,42 @@
 
 namespace saba
 {
+	template <typename KeyType>
+	std::vector<KeyType>::const_iterator FindBoundKey(
+		const std::vector<KeyType>&	keys,
+		int32_t						t,
+		size_t						startIdx
+	) {
+		if (keys.empty() || keys.size() <= startIdx)
+			return keys.end();
+
+		const auto &key0 = keys[startIdx];
+		if (key0.m_time <= t) {
+			if (startIdx + 1 < keys.size()) {
+				const auto &key1 = keys[startIdx + 1];
+				if (key1.m_time > t)
+					return keys.begin() + startIdx + 1;
+			} else
+				return keys.end();
+		} else if (startIdx != 0) {
+			const auto &key1 = keys[startIdx - 1];
+			if (key1.m_time <= t)
+				return keys.begin() + startIdx;
+		} else
+			return keys.begin();
+
+		auto bundIt = std::upper_bound(keys.begin(), keys.end(), t,
+			[](int32_t lhs, const KeyType &rhs)
+			{ return lhs < rhs.m_time; }
+		);
+		return bundIt;
+	}
+
 	struct VMDBezier
 	{
 		float EvalX(float t) const;
 		float EvalY(float t) const;
 		glm::vec2 Eval(float t) const;
-
 		float FindBezierX(float time) const;
 
 		glm::vec2	m_cp1;
@@ -55,75 +83,39 @@ namespace saba
 	class VMDNodeController
 	{
 	public:
-		using KeyType = VMDNodeAnimationKey;
-
 		VMDNodeController();
 
-		void SetNode(MMDNode* node);
 		void Evaluate(float t, float weight = 1.0f);
-		
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
 		void SortKeys();
-		const  std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDNode* GetNode() const { return m_node; }
-
-	private:
 		MMDNode*				m_node;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDNodeAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 
 	class VMDMorphController
 	{
 	public:
-		using KeyType = VMDMorphAnimationKey;
-
 		VMDMorphController();
 
-		void SetBlendKeyShape(MMDMorph* morph);
 		void Evaluate(float t, float weight = 1.0f);
-
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
 		void SortKeys();
-		const std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDMorph* GetMorph() const { return m_morph; }
-
-	private:
 		MMDMorph*				m_morph;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDMorphAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 
 	class VMDIKController
 	{
 	public:
-		using KeyType = VMDIKAnimationKey;
-
 		VMDIKController();
 
-		void SetIKSolver(MMDIkSolver* ikSolver);
 		void Evaluate(float t, float weight = 1.0f);
-
-		void AddKey(const KeyType& key)
-		{
-			m_keys.push_back(key);
-		}
 		void SortKeys();
-		const std::vector<KeyType>& GetKeys() const { return m_keys; }
 
-		MMDIkSolver* GetIkSolver() const { return m_ikSolver; }
-
-	private:
 		MMDIkSolver*			m_ikSolver;
-		std::vector<KeyType>	m_keys;
+		std::vector<VMDIKAnimationKey>	m_keys;
 		size_t					m_startKeyIndex;
 	};
 
@@ -132,29 +124,22 @@ namespace saba
 	public:
 		VMDAnimation();
 
-		bool Create(std::shared_ptr<MMDModel> model);
 		bool Add(const VMDFile& vmd);
 		void Destroy();
-
-		void Evaluate(float t, float weight = 1.0f);
+		void Evaluate(float t, float weight = 1.0f) const;
 
 		// Physics を同期させる
-		void SyncPhysics(float t, int frameCount = 30);
+		void SyncPhysics(float t, int frameCount = 30) const;
 
-		int32_t GetMaxKeyTime() const { return m_maxKeyTime; };
 	private:
 		int32_t CalculateMaxKeyTime() const;
 
-	private:
-		using NodeControllerPtr = std::unique_ptr<VMDNodeController>;
-		using IKControllerPtr = std::unique_ptr<VMDIKController>;
-		using MorphControllerPtr = std::unique_ptr<VMDMorphController>;
-
-		std::shared_ptr<MMDModel>			m_model;
-		std::vector<NodeControllerPtr>		m_nodeControllers;
-		std::vector<IKControllerPtr>		m_ikControllers;
-		std::vector<MorphControllerPtr>		m_morphControllers;
-		uint32_t	m_maxKeyTime;
+	public:
+		std::shared_ptr<MMDModel>								m_model;
+		std::vector<std::unique_ptr<VMDNodeController>>			m_nodeControllers;
+		std::vector<std::unique_ptr<VMDIKController>>			m_ikControllers;
+		std::vector<std::unique_ptr<VMDMorphController>>		m_morphControllers;
+		uint32_t												m_maxKeyTime;
 	};
 
 }

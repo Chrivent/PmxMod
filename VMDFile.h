@@ -2,7 +2,6 @@
 
 #include "MMDFileString.h"
 
-#include <string>
 #include <cstdint>
 #include <vector>
 #include <array>

@@ -7,10 +7,6 @@ namespace saba {
 	class PathUtil
 	{
 	public:
-		PathUtil() = delete;
-		PathUtil(const PathUtil&) = delete;
-		PathUtil& operator = (const PathUtil&) = delete;
-
 		static std::string GetCWD();
 		static std::string GetExecutablePath();
 		static std::string Combine(const std::vector<std::string>& parts);

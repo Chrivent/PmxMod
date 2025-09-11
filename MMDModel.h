@@ -11,7 +11,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
 #include <string>
-#include <algorithm>
 #include <future>
 
 namespace saba
@@ -92,7 +91,7 @@ namespace saba
 	struct MaterialFactor
 	{
 		MaterialFactor() = default;
-		MaterialFactor(const saba::PMXMorph::MaterialMorph& pmxMat);
+		explicit MaterialFactor(const PMXMorph::MaterialMorph& pmxMat);
 
 		void Mul(const MaterialFactor& val, float weight);
 		void Add(const MaterialFactor& val, float weight);
@@ -111,7 +110,7 @@ namespace saba
 
 	struct MaterialMorphData
 	{
-		std::vector<saba::PMXMorph::MaterialMorph>	m_materialMorphs;
+		std::vector<PMXMorph::MaterialMorph>	m_materialMorphs;
 	};
 
 	struct BoneMorphElement
@@ -128,7 +127,7 @@ namespace saba
 
 	struct GroupMorphData
 	{
-		std::vector<saba::PMXMorph::GroupMorph>		m_groupMorphs;
+		std::vector<PMXMorph::GroupMorph>		m_groupMorphs;
 	};
 
 	struct UpdateRange
@@ -147,23 +146,23 @@ namespace saba
 		void InitializeAnimation();
 
 		// ベースアニメーション(アニメーション読み込み時、Physics反映用)
-		void SaveBaseAnimation();
-		void LoadBaseAnimation();
-		void ClearBaseAnimation();
+		void SaveBaseAnimation() const;
+		void LoadBaseAnimation() const;
+		void ClearBaseAnimation() const;
 
 		// アニメーションの前後で呼ぶ (VMDアニメーションの前後)
 		void BeginAnimation();
 		// Morph
 		void UpdateMorphAnimation();
 		// ノードを更新する
-		void UpdateNodeAnimation(bool afterPhysicsAnim);
+		void UpdateNodeAnimation(bool afterPhysicsAnim) const;
 		// Physicsを更新する
-		void ResetPhysics();
-		void UpdatePhysicsAnimation(float elapsed);
+		void ResetPhysics() const;
+		void UpdatePhysicsAnimation(float elapsed) const;
 		// 頂点を更新する
 		void Update();
 
-		void UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
+		void UpdateAllAnimation(const VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
 
 		bool Load(const std::string& filepath, const std::string& mmdDataDir);
 		void Destroy();
@@ -172,7 +171,7 @@ namespace saba
 		void SetupParallelUpdate();
 		void Update(const UpdateRange& range);
 
-		void Morph(MMDMorph* morph, float weight);
+		void Morph(const MMDMorph* morph, float weight);
 
 		void MorphPosition(const PositionMorphData& morphData, float weight);
 
@@ -182,7 +181,7 @@ namespace saba
 		void EndMorphMaterial();
 		void MorphMaterial(const MaterialMorphData& morphData, float weight);
 
-		void MorphBone(const BoneMorphData& morphData, float weight);
+		static void MorphBone(const BoneMorphData& morphData, float weight);
 
 	public:
 		std::vector<glm::vec3>	m_positions;

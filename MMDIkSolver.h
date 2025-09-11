@@ -42,12 +42,12 @@ namespace saba
 
 		void Solve();
 
-		void SaveBaseAnimation() { m_baseAnimEnable = m_enable; }
-		void LoadBaseAnimation() { m_enable = m_baseAnimEnable; }
-		void ClearBaseAnimation() { m_baseAnimEnable = true; }
+		void SaveBaseAnimation();
+		void LoadBaseAnimation();
+		void ClearBaseAnimation();
 
 	private:
-		void AddIKChain(IKChain&& chain);
+		void AddIKChain(IKChain chain);
 		void SolveCore(uint32_t iteration);
 
 		void SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis);
@@ -66,10 +66,10 @@ namespace saba
 	class MMDIKManager
 	{
 	public:
-		static const size_t NPos = -1;
+		static constexpr size_t NPos = -1;
 
 		size_t FindIKSolverIndex(const std::string& name);
-		MMDIkSolver* GetIKSolver(size_t idx);
+		MMDIkSolver* GetIKSolver(size_t idx) const;
 		MMDIkSolver* GetIKSolver(const std::string& ikName);
 		MMDIkSolver* AddIKSolver();
 
