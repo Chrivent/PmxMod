@@ -26,14 +26,12 @@ namespace saba
 	class VMDCameraController
 	{
 	public:
-		using KeyType = VMDCameraAnimationKey;
-
 		VMDCameraController();
 
 		void Evaluate(float t);
 		const MMDCamera& GetCamera() { return m_camera; }
 
-		void AddKey(const KeyType& key)
+		void AddKey(const VMDCameraAnimationKey& key)
 		{
 			m_keys.push_back(key);
 		}
@@ -58,9 +56,7 @@ namespace saba
 		const MMDCamera& GetCamera() const { return m_camera; }
 
 	private:
-		using CameraControllerPtr = std::unique_ptr<VMDCameraController>;
-
-		CameraControllerPtr	m_cameraController;
+		std::unique_ptr<VMDCameraController>	m_cameraController;
 
 		MMDCamera	m_camera;
 	};

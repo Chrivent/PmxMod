@@ -90,7 +90,7 @@ namespace saba
 		std::sort(
 			std::begin(m_keys),
 			std::end(m_keys),
-			[](const KeyType& a, const KeyType& b) { return a.m_time < b.m_time; }
+			[](const VMDCameraAnimationKey& a, const VMDCameraAnimationKey& b) { return a.m_time < b.m_time; }
 		);
 	}
 
