@@ -4,17 +4,14 @@
 
 #include <string>
 
-GLuint CreateShader(GLenum shaderType, const std::string code);
+GLuint CreateShader(GLenum shaderType, const std::string &code);
 GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile);
 
 struct AppContext;
 
 struct MMDShader
 {
-    ~MMDShader()
-    {
-        Clear();
-    }
+    ~MMDShader();
 
     GLuint	m_prog = 0;
 
@@ -65,10 +62,7 @@ struct MMDShader
 
 struct MMDEdgeShader
 {
-    ~MMDEdgeShader()
-    {
-        Clear();
-    }
+    ~MMDEdgeShader();
 
     GLuint	m_prog = 0;
 
@@ -90,10 +84,7 @@ struct MMDEdgeShader
 
 struct MMDGroundShadowShader
 {
-    ~MMDGroundShadowShader()
-    {
-        Clear();
-    }
+    ~MMDGroundShadowShader();
 
     GLuint	m_prog = 0;
 

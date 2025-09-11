@@ -8,16 +8,16 @@
 #include "File.h"
 #include "Path.h"
 
-GLuint CreateShader(GLenum shaderType, const std::string code)
+GLuint CreateShader(const GLenum shaderType, const std::string &code)
 {
-	GLuint shader = glCreateShader(shaderType);
+	const GLuint shader = glCreateShader(shaderType);
 	if (shader == 0)
 	{
 		std::cout << "Failed to create shader.\n";
 		return 0;
 	}
 	const char* codes[] = { code.c_str() };
-	GLint codesLen[] = { (GLint)code.size() };
+	GLint codesLen[] = { static_cast<GLint>(code.size()) };
 	glShaderSource(shader, 1, codes, codesLen);
 	glCompileShader(shader);
 
@@ -59,7 +59,7 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
 	}
-	std::string vsCode = vsFileText.ReadAll();
+	const std::string vsCode = vsFileText.ReadAll();
 	vsFileText.Close();
 
 	saba::File fsFileText;
@@ -68,11 +68,11 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
-	std::string fsCode = fsFileText.ReadAll();
+	const std::string fsCode = fsFileText.ReadAll();
 	fsFileText.Close();
 
-	GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
-	GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
+	const GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
+	const GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
 	if (vs == 0 || fs == 0)
 	{
 		if (vs != 0) { glDeleteShader(vs); }
@@ -80,7 +80,7 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 		return 0;
 	}
 
-	GLuint prog = glCreateProgram();
+	const GLuint prog = glCreateProgram();
 	if (prog == 0)
 	{
 		glDeleteShader(vs);
@@ -123,6 +123,11 @@ GLuint CreateShaderProgram(const std::string vsFile, const std::string fsFile)
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	return prog;
+}
+
+MMDShader::~MMDShader()
+{
+	Clear();
 }
 
 bool MMDShader::Setup(const AppContext& appContext)
@@ -190,6 +195,11 @@ void MMDShader::Clear()
 	MMDEdgeShader
 */
 
+MMDEdgeShader::~MMDEdgeShader()
+{
+	Clear();
+}
+
 bool MMDEdgeShader::Setup(const AppContext& appContext)
 {
 	m_prog = CreateShaderProgram(
@@ -224,6 +234,11 @@ void MMDEdgeShader::Clear()
 /*
 	MMDGroundShadowShader
 */
+
+MMDGroundShadowShader::~MMDGroundShadowShader()
+{
+	Clear();
+}
 
 bool MMDGroundShadowShader::Setup(const AppContext& appContext)
 {

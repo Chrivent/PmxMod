@@ -292,7 +292,7 @@ namespace saba
 		}
 	}
 
-	void MMDModel::UpdateAllAnimation(VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
+	void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
 		if (vmdAnim != nullptr)
 			vmdAnim->Evaluate(vmdFrame);
 

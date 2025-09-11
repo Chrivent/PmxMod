@@ -162,7 +162,7 @@ namespace saba
 		// 頂点を更新する
 		void Update();
 
-		void UpdateAllAnimation(VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
+		void UpdateAllAnimation(const VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
 
 		bool Load(const std::string& filepath, const std::string& mmdDataDir);
 		void Destroy();

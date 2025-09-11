@@ -5,7 +5,6 @@
 
 #include <string>
 
-
 namespace saba
 {
 	template <size_t Size>
@@ -21,19 +20,6 @@ namespace saba
 			}
 		}
 
-		void Set(const char* str) {
-			size_t i = 0;
-			while (i < Size && str[i] != '\0') {
-				m_buffer[i] = str[i];
-				i++;
-			}
-
-			for (; i < Size + 1; i++) {
-				m_buffer[i] = '\0';
-			}
-		}
-
-		const char* ToCString() const { return m_buffer; }
 		std::string ToString() const { return std::string(m_buffer); }
 		std::string ToUtf8String() const;
 
