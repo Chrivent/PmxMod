@@ -7,7 +7,6 @@
 #include "stb_image.h"
 
 #include "Path.h"
-#include "MMDShader.h"
 
 AppContext::~AppContext()
 {

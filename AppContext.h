@@ -6,16 +6,13 @@
 
 #include "VMDAnimation.h"
 #include "VMDCameraAnimation.h"
+#include "MMDShader.h"
 
 struct Texture
 {
 	GLuint	m_texture;
 	bool	m_hasAlpha;
 };
-
-struct MMDShader;
-struct MMDEdgeShader;
-struct MMDGroundShadowShader;
 
 struct AppContext
 {
