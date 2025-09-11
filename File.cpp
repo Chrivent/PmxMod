@@ -39,7 +39,7 @@ namespace saba
 			return false;
 		}
 
-		ClearBadFlag();
+		m_badFlag = false;
 
 		Seek(0, SeekDir::End);
 		m_fileSize = Tell();
@@ -66,11 +66,6 @@ namespace saba
 	bool File::IsOpen()
 	{
 		return m_fp != nullptr;
-	}
-
-	void File::ClearBadFlag()
-	{
-		m_badFlag = false;
 	}
 
 	bool File::Seek(int64_t offset, SeekDir origin)

@@ -14,7 +14,6 @@ namespace saba
 
 		void Close();
 		bool IsOpen();
-		void ClearBadFlag();
 
 		enum class SeekDir
 		{
