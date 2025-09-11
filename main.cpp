@@ -187,7 +187,7 @@ static std::vector<std::string> BuildArgsInteractive(){
     }
 
 	args.push_back("-scale");
-	args.push_back("1.1f");
+	args.push_back("1.0f");
 	args.push_back("-model");
 	args.push_back("C:\\Users\\Ha Yechan\\Desktop\\PMXViewer\\models\\torisutsuki\\torisutsuki.pmx");
 
