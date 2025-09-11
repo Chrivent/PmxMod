@@ -443,7 +443,7 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 		appContext.m_elapsed  = dt;
 		appContext.m_animTime = t;
 
-		glClearColor(0.639f, 0.8f, 0.639f, 1);
+		glClearColor(0.839f, 0.902f, 0.961f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		int width, height;
