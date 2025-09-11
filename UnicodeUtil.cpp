@@ -36,19 +36,6 @@ namespace saba
 			}
 			wStr = reinterpret_cast<const wchar_t*>(utf16Str.c_str());
 		}
-		else if (sizeof(wchar_t) == sizeof(char32_t))
-		{
-			std::u32string utf32Str;
-			if (!ConvU8ToU32(utf8Str, utf32Str))
-			{
-				return false;
-			}
-			wStr = reinterpret_cast<const wchar_t*>(utf32Str.c_str());
-		}
-		else
-		{
-			return false;
-		}
 
 		return true;
 	}
@@ -62,18 +49,6 @@ namespace saba
 			{
 				return false;
 			}
-		}
-		else if (sizeof(wchar_t) == sizeof(char32_t))
-		{
-			const char32_t* utf32Str = reinterpret_cast<const char32_t*>(wStr.c_str());
-			if (!ConvU32ToU8(utf32Str, utf8Str))
-			{
-				return false;
-			}
-		}
-		else
-		{
-			return false;
 		}
 
 		return true;
@@ -165,8 +140,6 @@ namespace saba
 			u32Ch |= char32_t(u8Ch[2] & 0x3F) << 6;
 			u32Ch |= char32_t(u8Ch[3] & 0x3F);
 			break;
-		default:
-			return false;
 		}
 
 		return true;
