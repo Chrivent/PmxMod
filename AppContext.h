@@ -39,10 +39,6 @@ struct AppContext
 
     const int	m_msaaSamples = 4;
 
-    GLuint	m_copyShader = 0;
-    GLint	m_copyShaderTex = -1;
-    GLuint	m_copyVAO = 0;
-
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
     std::unique_ptr<saba::VMDCameraAnimation>	m_vmdCameraAnim;

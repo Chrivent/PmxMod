@@ -44,16 +44,6 @@ bool AppContext::Setup() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	// Copy Shader
-	m_copyShader = CreateShaderProgram(
-		saba::PathUtil::Combine(m_shaderDir, "quad.vert"),
-		saba::PathUtil::Combine(m_shaderDir, "copy.frag")
-	);
-
-	m_copyShaderTex = glGetUniformLocation(m_copyShader, "u_Tex");
-
-	glGenVertexArrays(1, &m_copyVAO);
-
 	return true;
 }
 
@@ -70,10 +60,6 @@ void AppContext::Clear() {
 	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
 	m_dummyColorTex = 0;
 	m_dummyShadowDepthTex = 0;
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	if (m_copyShader != 0) glDeleteProgram(m_copyShader);
-	if (m_copyVAO != 0) glDeleteVertexArrays(1, &m_copyVAO);
 
 	m_vmdCameraAnim.reset();
 }
