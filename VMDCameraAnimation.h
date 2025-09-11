@@ -29,15 +29,11 @@ namespace saba
 		VMDCameraController();
 
 		void Evaluate(float t);
-		const MMDCamera& GetCamera() { return m_camera; }
 
-		void AddKey(const VMDCameraAnimationKey& key)
-		{
-			m_keys.push_back(key);
-		}
+		void AddKey(const VMDCameraAnimationKey& key);
+
 		void SortKeys();
 
-	private:
 		std::vector<VMDCameraAnimationKey>	m_keys;
 		MMDCamera							m_camera;
 		size_t								m_startKeyIndex;
@@ -53,9 +49,6 @@ namespace saba
 
 		void Evaluate(float t);
 
-		const MMDCamera& GetCamera() const { return m_camera; }
-
-	private:
 		std::unique_ptr<VMDCameraController>	m_cameraController;
 
 		MMDCamera	m_camera;

@@ -85,6 +85,11 @@ namespace saba
 
 	}
 
+	void VMDCameraController::AddKey(const VMDCameraAnimationKey &key)
+	{
+		m_keys.push_back(key);
+	}
+
 	void VMDCameraController::SortKeys()
 	{
 		std::sort(
@@ -140,7 +145,7 @@ namespace saba
 	void VMDCameraAnimation::Evaluate(float t)
 	{
 		m_cameraController->Evaluate(t);
-		m_camera = m_cameraController->GetCamera();
+		m_camera = m_cameraController->m_camera;
 	}
 
 

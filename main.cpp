@@ -236,7 +236,7 @@ bool SampleMain(std::vector<std::string>& args)
 		if (appContext.m_vmdCameraAnim)
 		{
 			appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
-			const auto mmdCam = appContext.m_vmdCameraAnim->GetCamera();
+			const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
 			saba::MMDLookAtCamera lookAtCam(mmdCam);
 			appContext.m_viewMat = glm::lookAt(lookAtCam.m_eye, lookAtCam.m_center, lookAtCam.m_up);
 			appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov, float(width), float(height), 1.0f, 10000.0f);
