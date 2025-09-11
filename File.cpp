@@ -78,11 +78,6 @@ namespace saba
 		return feof(m_fp) != 0;
 	}
 
-	FILE * File::GetFilePointer() const
-	{
-		return m_fp;
-	}
-
 	bool File::ReadAll(std::vector<char>* buffer)
 	{
 		if (buffer == nullptr)
@@ -168,42 +163,12 @@ namespace saba
 		{
 			return -1;
 		}
-		return (int64_t)_ftelli64(m_fp);
-	}
-
-	TextFileReader::TextFileReader(const char * filepath)
-	{
-		Open(filepath);
-	}
-
-	TextFileReader::TextFileReader(const std::string & filepath)
-	{
-		Open(filepath);
-	}
-
-	bool TextFileReader::Open(const char * filepath)
-	{
-		return m_file.OpenFile(filepath, "r");
-	}
-
-	bool TextFileReader::Open(const std::string & filepath)
-	{
-		return Open(filepath.c_str());
-	}
-
-	void TextFileReader::Close()
-	{
-		m_file.Close();
-	}
-
-	bool TextFileReader::IsOpen()
-	{
-		return m_file.IsOpen();
+		return _ftelli64(m_fp);
 	}
 
 	std::string TextFileReader::ReadLine()
 	{
-		if (!IsOpen() || IsEof())
+		if (!m_file.IsOpen() || IsEof())
 		{
 			return "";
 		}
@@ -211,28 +176,28 @@ namespace saba
 		std::string line;
 		auto outputIt = std::back_inserter(line);
 		int ch;
-		ch = fgetc(m_file.GetFilePointer());
+		ch = fgetc(m_file.m_fp);
 		while (ch != EOF && ch != '\r' && ch != '\n')
 		{
 			line.push_back(ch);
-			ch = fgetc(m_file.GetFilePointer());
+			ch = fgetc(m_file.m_fp);
 		}
 		if (ch != EOF)
 		{
 			if (ch == '\r')
 			{
-				ch = fgetc(m_file.GetFilePointer());
+				ch = fgetc(m_file.m_fp);
 				if (ch != EOF && ch != '\n')
 				{
-					ungetc(ch, m_file.GetFilePointer());
+					ungetc(ch, m_file.m_fp);
 				}
 			}
 			else
 			{
-				ch = fgetc(m_file.GetFilePointer());
+				ch = fgetc(m_file.m_fp);
 				if (ch != EOF)
 				{
-					ungetc(ch, m_file.GetFilePointer());
+					ungetc(ch, m_file.m_fp);
 				}
 			}
 		}
@@ -243,7 +208,7 @@ namespace saba
 	void TextFileReader::ReadAllLines(std::vector<std::string>& lines)
 	{
 		lines.clear();
-		if (!IsOpen() || IsEof())
+		if (!m_file.IsOpen() || IsEof())
 		{
 			return;
 		}
@@ -259,11 +224,11 @@ namespace saba
 
 		if (m_file.IsOpen())
 		{
-			int ch = fgetc(m_file.GetFilePointer());
+			int ch = fgetc(m_file.m_fp);
 			while (ch != EOF)
 			{
 				all.push_back(ch);
-				ch = fgetc(m_file.GetFilePointer());
+				ch = fgetc(m_file.m_fp);
 			}
 		}
 		return all;

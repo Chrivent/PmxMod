@@ -21,8 +21,6 @@ namespace saba
 		void ClearBadFlag();
 		bool IsEOF();
 
-		FILE* GetFilePointer() const;
-
 		bool ReadAll(std::vector<char>* buffer);
 		bool ReadAll(std::vector<uint8_t>* buffer);
 		bool ReadAll(std::vector<int8_t>* buffer);
@@ -88,13 +86,6 @@ namespace saba
 	{
 	public:
 		TextFileReader() = default;
-		explicit TextFileReader(const char* filepath);
-		explicit TextFileReader(const std::string& filepath);
-
-		bool Open(const char* filepath);
-		bool Open(const std::string& filepath);
-		void Close();
-		bool IsOpen();
 
 		std::string ReadLine();
 		void ReadAllLines(std::vector<std::string>& lines);

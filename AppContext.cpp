@@ -163,7 +163,7 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 			return Texture{ 0, false };
 		}
 		int x, y, comp;
-		const int ret = stbi_info_from_file(file.GetFilePointer(), &x, &y, &comp);
+		const int ret = stbi_info_from_file(file.m_fp, &x, &y, &comp);
 		if (ret == 0)
 		{
 			return Texture{ 0, false };
@@ -176,7 +176,7 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 		bool hasAlpha = false;
 		if (comp != 4)
 		{
-			uint8_t* image = stbi_load_from_file(file.GetFilePointer(), &x, &y, &comp, STBI_rgb);
+			uint8_t* image = stbi_load_from_file(file.m_fp, &x, &y, &comp, STBI_rgb);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 			stbi_image_free(image);
@@ -184,7 +184,7 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 		}
 		else
 		{
-			uint8_t* image = stbi_load_from_file(file.GetFilePointer(), &x, &y, &comp, STBI_rgb_alpha);
+			uint8_t* image = stbi_load_from_file(file.m_fp, &x, &y, &comp, STBI_rgb_alpha);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 			stbi_image_free(image);
