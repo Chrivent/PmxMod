@@ -31,6 +31,7 @@ add_executable(PmxMod
         AppContext.cpp AppContext.h
         MMDShader.cpp MMDShader.h
         Model.cpp Model.h
+        miniaudio.h
 )
 
 target_link_libraries(PmxMod PRIVATE
