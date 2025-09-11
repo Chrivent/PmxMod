@@ -9,9 +9,7 @@ namespace saba
 	{
 		std::wstring wStr;
 		if (!TryToWString(utf8Str, wStr))
-		{
 			throw std::invalid_argument("Faild to convert wstring.");
-		}
 		return wStr;
 	}
 
@@ -19,9 +17,7 @@ namespace saba
 	{
 		std::string utf8Str;
 		if (!TryToUtf8String(wStr, utf8Str))
-		{
 			throw std::invalid_argument("Failed to convert UTF-8 string.");
-		}
 		return utf8Str;
 	}
 
@@ -31,9 +27,7 @@ namespace saba
 		{
 			std::u16string utf16Str;
 			if (!ConvU8ToU16(utf8Str, utf16Str))
-			{
 				return false;
-			}
 			wStr = reinterpret_cast<const wchar_t*>(utf16Str.c_str());
 		}
 
@@ -44,62 +38,53 @@ namespace saba
 	{
 		if (sizeof(wchar_t) == sizeof(char16_t))
 		{
-			const char16_t* utf16Str = reinterpret_cast<const char16_t*>(wStr.c_str());
+			const auto utf16Str = reinterpret_cast<const char16_t*>(wStr.c_str());
 			if (!ConvU16ToU8(utf16Str, utf8Str))
-			{
 				return false;
-			}
 		}
 
 		return true;
 	}
 
 	namespace {
-		int GetU8ByteCount(char ch) {
-			if (0 <= uint8_t(ch) && uint8_t(ch) < 0x80) {
+		int GetU8ByteCount(const char ch) {
+			if (static_cast<uint8_t>(ch) < 0x80)
 				return 1;
-			}
-			if (0xC2 <= uint8_t(ch) && uint8_t(ch) < 0xE0) {
+			if (0xC2 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xE0)
 				return 2;
-			}
-			if (0xE0 <= uint8_t(ch) && uint8_t(ch) < 0xF0) {
+			if (0xE0 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xF0)
 				return 3;
-			}
-			if (0xF0 <= uint8_t(ch) && uint8_t(ch) < 0xF8) {
+			if (0xF0 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xF8)
 				return 4;
-			}
 			return 0;
 		}
 
-		bool IsU8LaterByte(char ch) {
-			return 0x80 <= uint8_t(ch) && uint8_t(ch) < 0xC0;
+		bool IsU8LaterByte(const char ch) {
+			return 0x80 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xC0;
 		}
 
-		bool IsU16HighSurrogate(char16_t ch) { return 0xD800 <= ch && ch < 0xDC00; }
+		bool IsU16HighSurrogate(const char16_t ch) { return 0xD800 <= ch && ch < 0xDC00; }
 
-		bool IsU16LowSurrogate(char16_t ch) { return 0xDC00 <= ch && ch < 0xE000; }
+		bool IsU16LowSurrogate(const char16_t ch) { return 0xDC00 <= ch && ch < 0xE000; }
 	}  // namespace
 
-	bool ConvChU8ToU16(const std::array<char, 4>& u8Ch,
-		std::array<char16_t, 2>& u16Ch) {
+	bool ConvChU8ToU16(const std::array<char, 4>& u8Ch, std::array<char16_t, 2>& u16Ch) {
 		char32_t u32Ch;
-		if (!ConvChU8ToU32(u8Ch, u32Ch)) {
+		if (!ConvChU8ToU32(u8Ch, u32Ch))
 			return false;
-		}
-		if (!ConvChU32ToU16(u32Ch, u16Ch)) {
+		if (!ConvChU32ToU16(u32Ch, u16Ch))
 			return false;
-		}
 		return true;
 	}
 
 	bool ConvChU8ToU32(const std::array<char, 4>& u8Ch, char32_t& u32Ch) {
-		int numBytes = GetU8ByteCount(u8Ch[0]);
+		const int numBytes = GetU8ByteCount(u8Ch[0]);
 		if (numBytes == 0) {
 			return false;
 		}
 		switch (numBytes) {
 		case 1:
-			u32Ch = char32_t(uint8_t(u8Ch[0]));
+			u32Ch = static_cast<char32_t>(static_cast<uint8_t>(u8Ch[0]));
 			break;
 		case 2:
 			if (!IsU8LaterByte(u8Ch[1])) {
@@ -140,6 +125,7 @@ namespace saba
 			u32Ch |= char32_t(u8Ch[2] & 0x3F) << 6;
 			u32Ch |= char32_t(u8Ch[3] & 0x3F);
 			break;
+		default: ;
 		}
 
 		return true;
