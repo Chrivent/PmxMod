@@ -6,6 +6,13 @@
 
 namespace saba
 {
+	enum class SeekDir
+	{
+		Begin,
+		Current,
+		End,
+	};
+
 	class File
 	{
 	public:
@@ -13,14 +20,7 @@ namespace saba
 		~File();
 
 		void Close();
-		bool IsOpen();
 
-		enum class SeekDir
-		{
-			Begin,
-			Current,
-			End,
-		};
 		bool Seek(int64_t offset, SeekDir origin);
 		int64_t Tell();
 
@@ -32,7 +32,7 @@ namespace saba
 				return false;
 			}
 
-			if (!IsOpen())
+			if (m_fp == nullptr)
 			{
 				return false;
 			}

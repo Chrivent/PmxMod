@@ -63,11 +63,6 @@ namespace saba
 		}
 	}
 
-	bool File::IsOpen()
-	{
-		return m_fp != nullptr;
-	}
-
 	bool File::Seek(int64_t offset, SeekDir origin)
 	{
 		if (m_fp == nullptr)
@@ -110,7 +105,7 @@ namespace saba
 	{
 		std::string all;
 
-		if (IsOpen())
+		if (m_fp != nullptr)
 		{
 			int ch = fgetc(m_fp);
 			while (ch != EOF)
