@@ -21,70 +21,55 @@ struct Input
 	float						m_scale = 1.0f;
 };
 
-void Usage()
-{
+void Usage() {
 	std::cout << "app [-model <pmd|pmx file path>] [-vmd <vmd file path>]\n";
 	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
 }
 
-bool SampleMain(std::vector<std::string>& args)
-{
+bool SampleMain(std::vector<std::string>& args) {
 	Input currentInput;
 	std::vector<Input> inputModels;
-	for (auto argIt = args.begin(); argIt != args.end(); ++argIt)
-	{
-		const auto& arg = (*argIt);
-		if (arg == "-model")
-		{
-			if (!currentInput.m_modelPath.empty())
-			{
+	for (auto argIt = args.begin(); argIt != args.end(); ++argIt) {
+		const auto &arg = *argIt;
+		if (arg == "-model") {
+			if (!currentInput.m_modelPath.empty()) {
 				inputModels.emplace_back(currentInput);
 			}
 
 			++argIt;
-			if (argIt == args.end())
-			{
+			if (argIt == args.end()) {
 				Usage();
 				return false;
 			}
 			currentInput = Input();
-			currentInput.m_modelPath = (*argIt);
-		}
-		else if (arg == "-vmd")
-		{
-			if (currentInput.m_modelPath.empty())
-			{
+			currentInput.m_modelPath = *argIt;
+		} else if (arg == "-vmd") {
+			if (currentInput.m_modelPath.empty()) {
 				Usage();
 				return false;
 			}
 
 			++argIt;
-			if (argIt == args.end())
-			{
+			if (argIt == args.end()) {
 				Usage();
 				return false;
 			}
-			currentInput.m_vmdPaths.push_back((*argIt));
-		}
-		else if (arg == "-scale")
-		{
+			currentInput.m_vmdPaths.push_back(*argIt);
+		} else if (arg == "-scale") {
 			++argIt;
-			if (argIt == args.end())
-			{
+			if (argIt == args.end()) {
 				Usage();
 				return false;
 			}
 			currentInput.m_scale = std::stof(*argIt);
 		}
 	}
-	if (!currentInput.m_modelPath.empty())
-	{
+	if (!currentInput.m_modelPath.empty()) {
 		inputModels.emplace_back(currentInput);
 	}
 
 	// Initialize glfw
-	if (!glfwInit())
-	{
+	if (!glfwInit()) {
 		return false;
 	}
 	AppContext appContext;
@@ -95,15 +80,13 @@ bool SampleMain(std::vector<std::string>& args)
 	glfwWindowHint(GLFW_SAMPLES, appContext.m_msaaSamples);
 
 	auto window = glfwCreateWindow(1280, 800, "Pmx Mod", nullptr, nullptr);
-	if (window == nullptr)
-	{
+	if (window == nullptr) {
 		return false;
 	}
 
 	glfwMakeContextCurrent(window);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
 		return false;
 	}
 
@@ -111,31 +94,25 @@ bool SampleMain(std::vector<std::string>& args)
 	glEnable(GL_MULTISAMPLE);
 
 	// Initialize application
-	if (!appContext.Setup())
-	{
+	if (!appContext.Setup()) {
 		std::cout << "Failed to setup AppContext.\n";
 		return false;
 	}
 
 	// Load MMD model
 	std::vector<Model> models;
-	for (const auto& input : inputModels)
-	{
+	for (const auto &[m_modelPath, m_vmdPaths, m_scale]: inputModels) {
 		// Load MMD model
 		Model model;
-		auto ext = saba::PathUtil::GetExt(input.m_modelPath);
-		if (ext == "pmx")
-		{
+		auto ext = saba::PathUtil::GetExt(m_modelPath);
+		if (ext == "pmx") {
 			auto pmxModel = std::make_unique<saba::MMDModel>();
-			if (!pmxModel->Load(input.m_modelPath, appContext.m_mmdDir))
-			{
+			if (!pmxModel->Load(m_modelPath, appContext.m_mmdDir)) {
 				std::cout << "Failed to load pmx file.\n";
 				return false;
 			}
 			model.m_mmdModel = std::move(pmxModel);
-		}
-		else
-		{
+		} else {
 			std::cout << "Unknown file type. [" << ext << "]\n";
 			return false;
 		}
@@ -144,24 +121,19 @@ bool SampleMain(std::vector<std::string>& args)
 		// Load VMD animation
 		auto vmdAnim = std::make_unique<saba::VMDAnimation>();
 		vmdAnim->m_model = model.m_mmdModel;
-		for (const auto& vmdPath : input.m_vmdPaths)
-		{
+		for (const auto &vmdPath: m_vmdPaths) {
 			saba::VMDFile vmdFile;
-			if (!saba::ReadVMDFile(&vmdFile, vmdPath.c_str()))
-			{
+			if (!saba::ReadVMDFile(&vmdFile, vmdPath.c_str())) {
 				std::cout << "Failed to read VMD file.\n";
 				return false;
 			}
-			if (!vmdAnim->Add(vmdFile))
-			{
+			if (!vmdAnim->Add(vmdFile)) {
 				std::cout << "Failed to add VMDAnimation.\n";
 				return false;
 			}
-			if (!vmdFile.m_cameras.empty())
-			{
+			if (!vmdFile.m_cameras.empty()) {
 				auto vmdCamAnim = std::make_unique<saba::VMDCameraAnimation>();
-				if (!vmdCamAnim->Create(vmdFile))
-				{
+				if (!vmdCamAnim->Create(vmdFile)) {
 					std::cout << "Failed to create VMDCameraAnimation.\n";
 				}
 				appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
@@ -171,7 +143,7 @@ bool SampleMain(std::vector<std::string>& args)
 
 		model.m_vmdAnim = std::move(vmdAnim);
 
-		model.m_scale = input.m_scale;
+		model.m_scale = m_scale;
 
 		model.Setup(appContext);
 
@@ -181,17 +153,15 @@ bool SampleMain(std::vector<std::string>& args)
 	auto fpsTime = std::chrono::steady_clock::now();
 	int fpsFrame = 0;
 	auto saveTime = std::chrono::steady_clock::now();
-	while (!glfwWindowShouldClose(window))
-	{
+	while (!glfwWindowShouldClose(window)) {
 		auto time = std::chrono::steady_clock::now();
 		double elapsed = std::chrono::duration<double>(time - saveTime).count();
-		if (elapsed > 1.0 / 30.0)
-		{
+		if (elapsed > 1.0 / 30.0) {
 			elapsed = 1.0 / 30.0;
 		}
 		saveTime = time;
-		appContext.m_elapsed = float(elapsed);
-		appContext.m_animTime += float(elapsed);
+		appContext.m_elapsed = static_cast<float>(elapsed);
+		appContext.m_animTime += static_cast<float>(elapsed);
 
 		glClearColor(0.639f, 0.8f, 0.639f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -204,22 +174,20 @@ bool SampleMain(std::vector<std::string>& args)
 		glViewport(0, 0, width, height);
 
 		// Setup camera
-		if (appContext.m_vmdCameraAnim)
-		{
+		if (appContext.m_vmdCameraAnim) {
 			appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
 			const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
 			saba::MMDLookAtCamera lookAtCam(mmdCam);
 			appContext.m_viewMat = glm::lookAt(lookAtCam.m_eye, lookAtCam.m_center, lookAtCam.m_up);
-			appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov, float(width), float(height), 1.0f, 10000.0f);
-		}
-		else
-		{
+			appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov, static_cast<float>(width),
+			                                             static_cast<float>(height), 1.0f, 10000.0f);
+		} else {
 			appContext.m_viewMat = glm::lookAt(glm::vec3(0, 10, 50), glm::vec3(0, 10, 0), glm::vec3(0, 1, 0));
-			appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f), float(width), float(height), 1.0f, 10000.0f);
+			appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f), static_cast<float>(width),
+			                                             static_cast<float>(height), 1.0f, 10000.0f);
 		}
 
-		for (auto& model : models)
-		{
+		for (auto &model: models) {
 			// Update Animation
 			model.UpdateAnimation(appContext);
 
@@ -236,14 +204,13 @@ bool SampleMain(std::vector<std::string>& args)
 		//FPS
 		{
 			fpsFrame++;
-			auto time = std::chrono::steady_clock::now();
-			double deltaTime = std::chrono::duration<double>(time - fpsTime).count();
-			if (deltaTime > 1.0)
-			{
-				double fps = double(fpsFrame) / deltaTime;
+			auto currentTime = std::chrono::steady_clock::now();
+			double deltaTime = std::chrono::duration<double>(currentTime - fpsTime).count();
+			if (deltaTime > 1.0) {
+				double fps = static_cast<double>(fpsFrame) / deltaTime;
 				std::cout << fps << " fps\n";
 				fpsFrame = 0;
-				fpsTime = time;
+				fpsTime = currentTime;
 			}
 		}
 	}
@@ -263,23 +230,23 @@ static const fs::path MOTION_DIR = "C:/Users/Ha Yechan/Desktop/PMXViewer/motions
 static const fs::path CAMERA_DIR = "C:/Users/Ha Yechan/Desktop/PMXViewer/cameras";
 
 // 소문자화 (ASCII 확장자 비교용)
-static inline std::string tolower_copy(std::string s){
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c){ return (char)std::tolower(c); });
+static std::string tolower_copy(std::string s){
+    std::ranges::transform(s, s.begin(), [](const unsigned char c)
+    	{ return static_cast<char>(std::tolower(c)); });
     return s;
 }
 
 // --- 안전 출력(helper): u8string을 그대로 write ---
-static inline void PrintU8(const std::u8string& s) {
+static void PrintU8(const std::u8string& s) {
     std::cout.write(reinterpret_cast<const char*>(s.c_str()),
                     static_cast<std::streamsize>(s.size()));
 }
-static inline void PrintPathSafe(const fs::path& p) { PrintU8(p.u8string()); }
-static inline void PrintFilenameSafe(const fs::path& p) { PrintU8(p.filename().u8string()); }
+static void PrintPathSafe(const fs::path& p) { PrintU8(p.u8string()); }
+static void PrintFilenameSafe(const fs::path& p) { PrintU8(p.filename().u8string()); }
 
 // --- 경로 → UTF-8 std::string (args에 넣을 때 필수) ---
-static inline std::string PathToUtf8(const fs::path& p){
-    auto u8 = p.lexically_normal().u8string();                    // basic_string<char8_t>
+static std::string PathToUtf8(const fs::path& p){
+    const auto u8 = p.lexically_normal().u8string();                    // basic_string<char8_t>
     return std::string(reinterpret_cast<const char*>(u8.c_str()), // → std::string(UTF-8)
                        u8.size());
 }
@@ -298,10 +265,8 @@ static std::vector<fs::path> ListSubdirs(const fs::path& root){
                 out.push_back(it->path());
         }
     }
-    std::sort(out.begin(), out.end(),
-        [](const fs::path& a, const fs::path& b){
-            return a.filename().native() < b.filename().native();
-        });
+    std::ranges::sort(out, [](const fs::path& a, const fs::path& b)
+    	{ return a.filename().native() < b.filename().native(); });
     return out;
 }
 
@@ -322,10 +287,8 @@ static std::vector<fs::path> ListFilesWithExt(const fs::path& dir, const char* w
         if (it->path().filename().native().empty()) continue; // 빈 파일명 방지
         out.push_back(it->path());
     }
-    std::sort(out.begin(), out.end(),
-        [](const fs::path& a, const fs::path& b){
-            return a.filename().native() < b.filename().native();
-        });
+    std::ranges::sort(out, [](const fs::path& a, const fs::path& b)
+    	{ return a.filename().native() < b.filename().native(); });
     return out;
 }
 
@@ -342,18 +305,18 @@ static std::vector<int> ReadMultiIndex(const std::string& prompt, size_t maxN){
     std::cout << prompt;
     std::string line; std::getline(std::cin, line);
     std::istringstream iss(line);
-    std::vector<int> idxs; int v;
-    while (iss >> v) if (v>=0 && (size_t)v<maxN) idxs.push_back(v);
-    std::sort(idxs.begin(), idxs.end());
-    idxs.erase(std::unique(idxs.begin(), idxs.end()), idxs.end());
-    return idxs;
+    std::vector<int> indies; int v;
+    while (iss >> v) if (v>=0 && static_cast<size_t>(v)<maxN) indies.push_back(v);
+    std::ranges::sort(indies);
+    indies.erase(std::ranges::unique(indies).begin(), indies.end());
+    return indies;
 }
 
 static int ReadOneIndex(const std::string& prompt, size_t maxN){
     std::cout << prompt;
     std::string s; std::getline(std::cin, s);
     if (s.empty()) return -1;
-    try { int v = std::stoi(s); if (v>=0 && (size_t)v<maxN) return v; } catch(...) {}
+    try { const int v = std::stoi(s); if (v>=0 && static_cast<size_t>(v)<maxN) return v; } catch(...) {}
     return -1;
 }
 
@@ -361,9 +324,9 @@ static int ReadOneIndex(const std::string& prompt, size_t maxN){
 static std::vector<std::string> BuildArgsInteractive(){
     std::vector<std::string> args;
 
-    auto modelFolders = ListSubdirs(MODEL_DIR);
-    auto motions      = ListFilesWithExt(MOTION_DIR, ".vmd");
-    auto cameras      = ListFilesWithExt(CAMERA_DIR, ".vmd");
+    const auto modelFolders = ListSubdirs(MODEL_DIR);
+    const auto motions      = ListFilesWithExt(MOTION_DIR, ".vmd");
+    const auto cameras      = ListFilesWithExt(CAMERA_DIR, ".vmd");
 
     if (modelFolders.empty()){
         std::cout << "[오류] 모델 루트 폴더가 비었어요: ";
@@ -373,7 +336,7 @@ static std::vector<std::string> BuildArgsInteractive(){
 
     std::cout << "\n[모델 폴더]\n";
     PrintIndexed(modelFolders, "");
-    auto modelSel = ReadMultiIndex("추가할 모델 폴더 번호들(공백 구분, 비면 취소): ", modelFolders.size());
+    const auto modelSel = ReadMultiIndex("추가할 모델 폴더 번호들(공백 구분, 비면 취소): ", modelFolders.size());
     if (modelSel.empty()){
         std::cout << "[오류] 모델을 선택하지 않았습니다.\n";
         return args;
@@ -382,12 +345,12 @@ static std::vector<std::string> BuildArgsInteractive(){
     if (!motions.empty()){
         PrintIndexed(motions, "\n[모션 VMD]");
     }
-    auto motionSel = motions.empty() ? std::vector<int>{}
+    const auto motionSel = motions.empty() ? std::vector<int>{}
                                      : ReadMultiIndex("이 모델들에 붙일 모션 번호들(공백, 비면 없음): ", motions.size());
 
     // 각 모델 폴더에서 PMX 하나 자동 선택
-    for (int fIdx : modelSel){
-        const fs::path& folder = modelFolders[(size_t)fIdx];
+    for (const int fIdx : modelSel){
+        const fs::path& folder = modelFolders[static_cast<size_t>(fIdx)];
         auto pmxs = ListFilesWithExt(folder, ".pmx");
         if (pmxs.empty()){
             std::cout << "  [건너뜀] ";
@@ -399,9 +362,9 @@ static std::vector<std::string> BuildArgsInteractive(){
         args.push_back("-model");
         args.push_back(PathToUtf8(pmxs[0]));  // ← 여기!
 
-        for (int mi : motionSel){
+        for (const int mi : motionSel){
             args.push_back("-vmd");
-            args.push_back(PathToUtf8(motions[(size_t)mi])); // ← 여기!
+            args.push_back(PathToUtf8(motions[static_cast<size_t>(mi)])); // ← 여기!
         }
     }
 
@@ -411,7 +374,7 @@ static std::vector<std::string> BuildArgsInteractive(){
         int cIdx = ReadOneIndex("카메라 번호(엔터=없음): ", cameras.size());
         if (cIdx >= 0){
             args.push_back("-vmd"); // 마지막에 추가 → 전역 카메라로 적용
-            args.push_back(PathToUtf8(cameras[(size_t)cIdx])); // ← 여기!
+            args.push_back(PathToUtf8(cameras[static_cast<size_t>(cIdx)])); // ← 여기!
         }
     }
 
@@ -426,12 +389,10 @@ static std::vector<std::string> BuildArgsInteractive(){
     return args;
 }
 
-int main()
-{
+int main() {
 	auto args = BuildArgsInteractive();
 
-	if (!SampleMain(args))
-	{
+	if (!SampleMain(args)) {
 		std::cout << "Failed to run.\n";
 		return 1;
 	}
