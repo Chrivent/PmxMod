@@ -157,7 +157,7 @@ void Model::Draw(const AppContext& appContext) const {
 	const auto &view = appContext.m_viewMat;
 	const auto &proj = appContext.m_projMat;
 
-	auto world = glm::mat4(1.0f);
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 

@@ -34,6 +34,8 @@ struct Model
 
     std::vector<Material>	m_materials;
 
+    float m_scale = 1.0f;
+
     bool Setup(AppContext& appContext);
     void Clear();
 

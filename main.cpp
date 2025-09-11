@@ -3,6 +3,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <windows.h>
 
 #include "Path.h"
 
@@ -13,6 +18,7 @@ struct Input
 {
 	std::string					m_modelPath;
 	std::vector<std::string>	m_vmdPaths;
+	float						m_scale = 1.0f;
 };
 
 void Usage()
@@ -20,12 +26,6 @@ void Usage()
 	std::cout << "app [-model <pmd|pmx file path>] [-vmd <vmd file path>]\n";
 	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
 }
-
-#include <filesystem>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <windows.h>
 
 bool SampleMain(std::vector<std::string>& args)
 {
@@ -65,6 +65,16 @@ bool SampleMain(std::vector<std::string>& args)
 				return false;
 			}
 			currentInput.m_vmdPaths.push_back((*argIt));
+		}
+		else if (arg == "-scale")
+		{
+			++argIt;
+			if (argIt == args.end())
+			{
+				Usage();
+				return false;
+			}
+			currentInput.m_scale = std::stof(*argIt);
 		}
 	}
 	if (!currentInput.m_modelPath.empty())
@@ -160,6 +170,8 @@ bool SampleMain(std::vector<std::string>& args)
 		vmdAnim->SyncPhysics(0.0f);
 
 		model.m_vmdAnim = std::move(vmdAnim);
+
+		model.m_scale = input.m_scale;
 
 		model.Setup(appContext);
 
@@ -402,6 +414,11 @@ static std::vector<std::string> BuildArgsInteractive(){
             args.push_back(PathToUtf8(cameras[(size_t)cIdx])); // ← 여기!
         }
     }
+
+	args.push_back("-scale");
+	args.push_back("1.1f");
+	args.push_back("-model");
+	args.push_back("C:\\Users\\Ha Yechan\\Desktop\\PMXViewer\\models\\torisutsuki\\torisutsuki.pmx");
 
     std::cout << "\n[최종 인자]\n";
     for (auto& s : args) std::cout << s << ' ';
