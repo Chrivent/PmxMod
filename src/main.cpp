@@ -11,11 +11,11 @@
 
 #include "Path.h"
 
-#include "AppContext.h"
-#include "Model.h"
+#include "../AppContext.h"
+#include "../Model.h"
 
 #define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
+#include "../miniaudio.h"
 
 struct Input
 {

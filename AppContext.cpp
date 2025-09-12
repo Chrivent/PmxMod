@@ -6,9 +6,9 @@
 #define STB_IMAGE_STATIC
 #include <ranges>
 
-#include "stb_image.h"
+#include "src/stb_image.h"
 
-#include "Path.h"
+#include "src/Path.h"
 
 AppContext::~AppContext() {
 	Clear();

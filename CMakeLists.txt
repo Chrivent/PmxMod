@@ -12,22 +12,22 @@ find_package(glm   CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 
 add_executable(PmxMod
-        Main.cpp
-        File.cpp File.h
-        Path.cpp Path.h
-        UnicodeUtil.cpp UnicodeUtil.h
-        MMDCamera.cpp MMDCamera.h
-        MMDIkSolver.cpp MMDIkSolver.h
-        MMDMaterial.cpp MMDMaterial.h
-        MMDModel.cpp MMDModel.h
-        MMDMorph.cpp MMDMorph.h
-        MMDNode.cpp MMDNode.h
-        MMDPhysics.cpp MMDPhysics.h
-        PMXFile.cpp PMXFile.h
-        VMDAnimation.cpp VMDAnimation.h
-        VMDCameraAnimation.cpp VMDCameraAnimation.h
-        VMDFile.cpp VMDFile.h
-        stb_image.h
+        src/main.cpp
+        src/File.cpp src/File.h
+        src/Path.cpp src/Path.h
+        src/UnicodeUtil.cpp src/UnicodeUtil.h
+        src/MMDCamera.cpp src/MMDCamera.h
+        src/MMDIkSolver.cpp src/MMDIkSolver.h
+        src/MMDMaterial.cpp src/MMDMaterial.h
+        src/MMDModel.cpp src/MMDModel.h
+        src/MMDMorph.cpp src/MMDMorph.h
+        src/MMDNode.cpp src/MMDNode.h
+        src/MMDPhysics.cpp src/MMDPhysics.h
+        src/PMXFile.cpp src/PMXFile.h
+        src/VMDAnimation.cpp src/VMDAnimation.h
+        src/VMDCameraAnimation.cpp src/VMDCameraAnimation.h
+        src/VMDFile.cpp src/VMDFile.h
+        src/stb_image.h
         AppContext.cpp AppContext.h
         MMDShader.cpp MMDShader.h
         Model.cpp Model.h

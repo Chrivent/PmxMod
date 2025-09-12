@@ -5,8 +5,8 @@
 
 #include "AppContext.h"
 
-#include "File.h"
-#include "Path.h"
+#include "src/File.h"
+#include "src/Path.h"
 
 GLuint CreateShader(const GLenum shaderType, const std::string &code) {
 	const GLuint shader = glCreateShader(shaderType);

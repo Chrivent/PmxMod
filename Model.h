@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-#include "MMDModel.h"
+#include "src/MMDModel.h"
 
 struct Material
 {
