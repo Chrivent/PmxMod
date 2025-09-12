@@ -2,7 +2,6 @@
 
 #include "src/MMDModel.h"
 #include "src/VMDCameraAnimation.h"
-#include "base/Path.h"
 
 #include <memory>
 
