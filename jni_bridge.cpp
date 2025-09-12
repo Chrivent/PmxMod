@@ -59,7 +59,7 @@ JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getPositions(JNIE
     return env->NewDirectByteBuffer(v.data(), v.size() * sizeof(v[0]));
 }
 
-JNIEXPORT jobject JNICALL Java_mod_Native_getIndices(JNIEnv* env, jclass, jlong h) {
+JNIEXPORT jobject JNICALL Java_mod_chrivent_pmxstevemod_Native_getIndices(JNIEnv* env, jclass, jlong h) {
     auto* c = from(h); if (!c) return nullptr;
     auto& idx = c->model->m_indices;                       // std::vector<char>
     return env->NewDirectByteBuffer(idx.data(), idx.size());

@@ -36,16 +36,16 @@ namespace saba
 			}
 
 			vmd->m_motions.resize(motionCount);
-			for (auto& motion : vmd->m_motions)
+			for (auto& [m_boneName, m_frame, m_translate, m_quaternion, m_interpolation] : vmd->m_motions)
 			{
-				Read(&motion.m_boneName, file);
-				Read(&motion.m_frame, file);
-				Read(&motion.m_translate, file);
-				Read(&motion.m_quaternion, file);
-				Read(&motion.m_interpolation, file);
+				Read(&m_boneName, file);
+				Read(&m_frame, file);
+				Read(&m_translate, file);
+				Read(&m_quaternion, file);
+				Read(&m_interpolation, file);
 			}
 
-			return !file.m_badFlag;
+			return true;
 		}
 
 		bool ReadBlendShape(VMDFile* vmd, File& file)

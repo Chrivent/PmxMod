@@ -127,14 +127,14 @@ namespace saba
 
 		bool ReadInfo(PMXFile* pmx, File& file)
 		{
-			auto& info = pmx->m_info;
+			auto& [m_modelName, m_englishModelName, m_comment, m_englishComment] = pmx->m_info;
 
-			ReadString(pmx, &info.m_modelName, file);
-			ReadString(pmx, &info.m_englishModelName, file);
-			ReadString(pmx, &info.m_comment, file);
-			ReadString(pmx, &info.m_englishComment, file);
+			ReadString(pmx, &m_modelName, file);
+			ReadString(pmx, &m_englishModelName, file);
+			ReadString(pmx, &m_comment, file);
+			ReadString(pmx, &m_englishComment, file);
 
-			return !file.m_badFlag;
+			return true;
 		}
 
 		bool ReadVertex(PMXFile* pmx, File& file)
@@ -736,10 +736,7 @@ namespace saba
 				return false;
 			}
 
-			if (!ReadInfo(pmxFile, file))
-			{
-				return false;
-			}
+			ReadInfo(pmxFile, file);
 
 			if (!ReadVertex(pmxFile, file))
 			{

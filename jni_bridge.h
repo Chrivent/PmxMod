@@ -25,7 +25,7 @@ extern "C" {
     JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getPositions(JNIEnv*, jclass, jlong);
     JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getNormals    (JNIEnv*, jclass, jlong);
     JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getUVs            (JNIEnv*, jclass, jlong);
-    JNIEXPORT jobject JNICALL Java_mod_Native_getIndices  (JNIEnv*, jclass, jlong);
+    JNIEXPORT jobject JNICALL Java_mod_chrivent_pmxstevemod_Native_getIndices  (JNIEnv*, jclass, jlong);
 
     JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getSubMeshes(JNIEnv*, jclass, jlong);
     JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getMaterials(JNIEnv*, jclass, jlong);
