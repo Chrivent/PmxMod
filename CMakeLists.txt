@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_VIEWER  "Build standalone OpenGL viewer" ON)
 option(BUILD_BRIDGE  "Build JNI bridge DLL"          ON)
 
-# ---------------------- 코어: pmxcore (STATIC) ----------------------
+# ---------------------- 코어: pmxCore (STATIC) ----------------------
 # OpenGL/GLFW/Shader/Model(렌더)/**main.cpp는 포함하지 마세요**
 set(CORE_SOURCES
         base/File.cpp            base/File.h
@@ -34,9 +34,9 @@ set(CORE_SOURCES
 find_package(glm CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 
-add_library(pmxcore STATIC ${CORE_SOURCES})
-target_link_libraries(pmxcore PUBLIC glm::glm BulletDynamics BulletCollision LinearMath)
-target_compile_definitions(pmxcore PRIVATE NOMINMAX)
+add_library(pmxCore STATIC ${CORE_SOURCES})
+target_link_libraries(pmxCore PUBLIC glm::glm BulletDynamics BulletCollision LinearMath)
+target_compile_definitions(pmxCore PRIVATE)
 
 # ---------------------- 뷰어 실행파일: PmxViewer ----------------------
 if(BUILD_VIEWER)
@@ -51,13 +51,12 @@ if(BUILD_VIEWER)
             external/miniaudio.h
     )
     target_link_libraries(PmxViewer PRIVATE
-            pmxcore
+            pmxCore
             glfw
             glad::glad
-            glm::glm            # (필요시)
-            BulletDynamics BulletCollision LinearMath # (pmxcore가 링크하므로 보통 불필요하지만 안전하게)
+            glm::glm
     )
-    target_compile_definitions(PmxViewer PRIVATE NOMINMAX MINIAUDIO_IMPLEMENTATION)
+    target_compile_definitions(PmxViewer PRIVATE MINIAUDIO_IMPLEMENTATION)
 
     # 리소스 복사
     set(RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resource)
@@ -67,23 +66,22 @@ if(BUILD_VIEWER)
     )
 endif()
 
-# ---------------------- JNI 브리지 DLL: pmxbridge ----------------------
+# ---------------------- JNI 브리지 DLL: pmxBridge ----------------------
 if(BUILD_BRIDGE)
     find_package(JNI REQUIRED)
 
-    add_library(pmxbridge SHARED
+    add_library(pmxBridge SHARED
             jni_bridge.cpp
             external/miniaudio.h     # 음악 싱크를 네이티브에서 쓸 경우에만
     )
-    target_link_libraries(pmxbridge PRIVATE pmxcore)
-    target_include_directories(pmxbridge PRIVATE ${JNI_INCLUDE_DIRS})
-    target_compile_definitions(pmxbridge PRIVATE NOMINMAX MINIAUDIO_IMPLEMENTATION)
-    # JNIEXPORT로 심볼이 노출되므로 별도 export 설정 불필요
+    target_link_libraries(pmxBridge PRIVATE pmxCore)
+    target_include_directories(pmxBridge PRIVATE ${JNI_INCLUDE_DIRS})
+    target_compile_definitions(pmxBridge PRIVATE MINIAUDIO_IMPLEMENTATION)
 endif()
 
 set(FORGE_RUN_DIR "C:/Users/Ha Yechan/Desktop/PmxSteveMod/run")
 
-add_custom_command(TARGET pmxbridge POST_BUILD
+add_custom_command(TARGET pmxBridge POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:pmxbridge> "${FORGE_RUN_DIR}"
+        $<TARGET_FILE:pmxBridge> "${FORGE_RUN_DIR}"
 )
