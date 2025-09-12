@@ -13,14 +13,6 @@ namespace saba
 		auto PathDelimiters = "\\/";
 	}
 
-	std::string PathUtil::GetCWD() {
-		const DWORD sz = GetCurrentDirectoryW(0, nullptr);
-		std::vector<wchar_t> buffer(sz);
-		GetCurrentDirectory(sz, reinterpret_cast<LPSTR>(&buffer[0]));
-		std::string workDir = ToUtf8String(&buffer[0]);
-		return workDir;
-	}
-
 	std::string PathUtil::GetExecutablePath() {
 		std::vector<wchar_t> modulePath(MAX_PATH);
 		if (GetModuleFileNameW(nullptr, modulePath.data(), static_cast<DWORD>(modulePath.size())) == 0)
@@ -61,15 +53,6 @@ namespace saba
 			return path;
 
 		return path.substr(pos + 1, path.size() - pos);
-	}
-
-	std::string PathUtil::GetFilenameWithoutExt(const std::string & path) {
-		std::string filename = GetFilename(path);
-		const auto pos = filename.find_last_of('.');
-		if (pos == std::string::npos)
-			return filename;
-
-		return filename.substr(0, pos);
 	}
 
 	std::string PathUtil::GetExt(const std::string & path) {
