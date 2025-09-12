@@ -14,11 +14,6 @@ struct Core {
 static Core* from(jlong h) { return reinterpret_cast<Core*>(h); }
 
 JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_vmdCameraAnim_reset(JNIEnv *, jclass, jlong h) {
-    if (auto* c = from(h)) {
-        c->model.reset();
-        c->cameraAnimation.reset();
-        delete c;
-    }
     if (auto* c = from(h)) { c->cameraAnimation.reset(); }
 }
 
