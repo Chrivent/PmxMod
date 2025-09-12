@@ -72,7 +72,6 @@ if(BUILD_BRIDGE)
 
     add_library(pmxBridge SHARED
             jni_bridge.cpp
-            external/miniaudio.h     # 음악 싱크를 네이티브에서 쓸 경우에만
     )
     target_link_libraries(pmxBridge PRIVATE pmxCore)
     target_include_directories(pmxBridge PRIVATE ${JNI_INCLUDE_DIRS})
