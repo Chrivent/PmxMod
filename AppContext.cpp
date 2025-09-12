@@ -1,7 +1,5 @@
 #include "AppContext.h"
 
-#include <iostream>
-
 #define	STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #include <ranges>

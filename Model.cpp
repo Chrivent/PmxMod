@@ -95,9 +95,8 @@ bool Model::Setup(AppContext& appContext) {
 	glBindVertexArray(0);
 
 	// Setup materials
-	for (size_t i = 0; i < m_mmdModel->m_materials.size(); i++) {
-		const auto &mmdMat = m_mmdModel->m_materials[i];
-		Material mat(mmdMat);
+	for (const auto & mmdMat : m_mmdModel->m_materials) {
+			Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
 			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
@@ -111,7 +110,7 @@ bool Model::Setup(AppContext& appContext) {
 			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_toonTexture);
 			mat.m_toonTexture = m_texture;
 		}
-		m_materials.emplace_back(std::move(mat));
+		m_materials.emplace_back(mat);
 	}
 
 	return true;
@@ -243,7 +242,7 @@ void Model::Draw(const AppContext& appContext) const {
 
 		glm::vec3 lightColor = appContext.m_lightColor;
 		glm::vec3 lightDir = appContext.m_lightDir;
-		glm::mat3 viewMat = glm::mat3(appContext.m_viewMat);
+		auto viewMat = glm::mat3(appContext.m_viewMat);
 		lightDir = viewMat * lightDir;
 		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
