@@ -13,17 +13,17 @@ struct Core {
 
 static Core* from(jlong h) { return reinterpret_cast<Core*>(h); }
 
-JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_Native_create(JNIEnv*, jclass) {
+JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_create(JNIEnv*, jclass) {
     auto* core = new Core();
     core->model = std::make_unique<saba::MMDModel>();
     return reinterpret_cast<jlong>(core);
 }
 
-JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_Native_destroy(JNIEnv*, jclass, jlong h) {
+JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_destroy(JNIEnv*, jclass, jlong h) {
     if (auto* c = from(h)) { c->model.reset(); delete c; }
 }
 
-JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_Native_loadModel(
+JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_loadModel(
     JNIEnv* env, jclass, jlong h, jstring pmxPath, jobjectArray vmdPaths, jfloat scale)
 {
     auto* c = from(h); if (!c) return JNI_FALSE;
@@ -41,7 +41,7 @@ JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_Native_loadModel(
     return JNI_TRUE;
 }
 
-JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_Native_step(JNIEnv*, jclass, jlong h, jfloat dt) {
+JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_step(JNIEnv*, jclass, jlong h, jfloat dt) {
     auto* c = from(h); if (!c) return;
     c->animTime += dt;
     const float vmdFrame = c->animTime * 30.0f;
@@ -49,17 +49,17 @@ JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_Native_step(JNIEnv*, jclass
 }
 
 // ==== 버퍼 쿼리 예시 (DirectByteBuffer) ====
-JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_Native_getVertexCount(JNIEnv*, jclass, jlong h) {
+JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_getVertexCount(JNIEnv*, jclass, jlong h) {
     auto* c = from(h); return c ? (jint)c->model->m_positions.size() : 0;
 }
 
-JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_Native_getPositions(JNIEnv* env, jclass, jlong h) {
+JNIEXPORT jobject JNICALL Java_net_chrivent_pmxstevemod_src_Native_getPositions(JNIEnv* env, jclass, jlong h) {
     auto* c = from(h); if (!c) return nullptr;
     auto& v = c->model->m_positions;                 // std::vector<glm::vec3>
     return env->NewDirectByteBuffer(v.data(), v.size() * sizeof(v[0]));
 }
 
-JNIEXPORT jobject JNICALL Java_mod_chrivent_pmxstevemod_Native_getIndices(JNIEnv* env, jclass, jlong h) {
+JNIEXPORT jobject JNICALL Java_mod_chrivent_pmxstevemod_src_Native_getIndices(JNIEnv* env, jclass, jlong h) {
     auto* c = from(h); if (!c) return nullptr;
     auto& idx = c->model->m_indices;                       // std::vector<char>
     return env->NewDirectByteBuffer(idx.data(), idx.size());
