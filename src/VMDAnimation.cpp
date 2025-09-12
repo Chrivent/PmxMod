@@ -85,7 +85,7 @@ namespace saba
 		, m_startKeyIndex(0) {
 	}
 
-	void VMDNodeController::Evaluate(const float t, const float weight) {
+	void VMDNodeController::Evaluate(const float t, const float animWeight) {
 		if (m_node == nullptr)
 			return;
 		if (m_keys.empty()) {
@@ -132,14 +132,14 @@ namespace saba
 			}
 		}
 
-		if (weight == 1.0f) {
+		if (animWeight == 1.0f) {
 			m_node->m_animRotate = q;
 			m_node->m_animTranslate = vt;
 		} else {
 			const auto baseQ = m_node->m_baseAnimRotate;
 			const auto baseT = m_node->m_baseAnimTranslate;
-			m_node->m_animRotate = glm::slerp(baseQ, q, weight);
-			m_node->m_animTranslate = glm::mix(baseT, vt, weight);
+			m_node->m_animRotate = glm::slerp(baseQ, q, animWeight);
+			m_node->m_animTranslate = glm::mix(baseT, vt, animWeight);
 		}
 	}
 
@@ -286,15 +286,15 @@ namespace saba
 		m_maxKeyTime = 0;
 	}
 
-	void VMDAnimation::Evaluate(const float t, const float weight) const {
+	void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 		for (auto &nodeCtrl: m_nodeControllers)
-			nodeCtrl->Evaluate(t, weight);
+			nodeCtrl->Evaluate(t, animWeight);
 
 		for (auto &ikCtrl: m_ikControllers)
-			ikCtrl->Evaluate(t, weight);
+			ikCtrl->Evaluate(t, animWeight);
 
 		for (auto &morphCtrl: m_morphControllers)
-			morphCtrl->Evaluate(t, weight);
+			morphCtrl->Evaluate(t, animWeight);
 	}
 
 	void VMDAnimation::SyncPhysics(const float t, const int frameCount) const {
@@ -366,7 +366,7 @@ namespace saba
 		, m_startKeyIndex(0) {
 	}
 
-	void VMDIKController::Evaluate(const float t, const float weight) {
+	void VMDIKController::Evaluate(const float t, const float animWeight) {
 		if (m_ikSolver == nullptr)
 			return;
 		if (m_keys.empty()) {
@@ -388,7 +388,7 @@ namespace saba
 			}
 		}
 
-		if (weight != 1.0f && weight < 1.0f)
+		if (animWeight != 1.0f && animWeight < 1.0f)
 			m_ikSolver->m_enable = m_ikSolver->m_baseAnimEnable;
 		else
 			m_ikSolver->m_enable = enable;

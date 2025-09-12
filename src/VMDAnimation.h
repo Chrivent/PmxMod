@@ -85,7 +85,7 @@ namespace saba
 	public:
 		VMDNodeController();
 
-		void Evaluate(float t, float weight = 1.0f);
+		void Evaluate(float t, float animWeight = 1.0f);
 		void SortKeys();
 
 		MMDNode*				m_node;
@@ -98,7 +98,7 @@ namespace saba
 	public:
 		VMDMorphController();
 
-		void Evaluate(float t, float weight = 1.0f);
+		void Evaluate(float t, float animWeight = 1.0f);
 		void SortKeys();
 
 		MMDMorph*				m_morph;
@@ -111,7 +111,7 @@ namespace saba
 	public:
 		VMDIKController();
 
-		void Evaluate(float t, float weight = 1.0f);
+		void Evaluate(float t, float animWeight = 1.0f);
 		void SortKeys();
 
 		MMDIkSolver*			m_ikSolver;
@@ -126,7 +126,7 @@ namespace saba
 
 		bool Add(const VMDFile& vmd);
 		void Destroy();
-		void Evaluate(float t, float weight = 1.0f) const;
+		void Evaluate(float t, float animWeight = 1.0f) const;
 
 		// Physics を同期させる
 		void SyncPhysics(float t, int frameCount = 30) const;
