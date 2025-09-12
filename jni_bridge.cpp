@@ -7,8 +7,6 @@
 
 struct Core {
     std::unique_ptr<saba::MMDModel> model;
-    // vmd anim 포인터, 시간 누적값, 오디오 컨텍스트 등 필요한 것들
-    float animTime = 0.f;
 };
 
 static Core* from(jlong h) { return reinterpret_cast<Core*>(h); }
@@ -20,7 +18,9 @@ JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_create(JNIEnv*,
 }
 
 JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_destroy(JNIEnv*, jclass, jlong h) {
-    if (auto* c = from(h)) { c->model.reset(); delete c; }
+    if (auto* c = from(h)) {
+        c->model.reset(); delete c;
+    }
 }
 
 JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_loadModel(
@@ -39,13 +39,6 @@ JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_loadModel(
     // scale은 c->model 쪽에서 적용하거나 자바 렌더 쪽에서 행렬로 적용
 
     return JNI_TRUE;
-}
-
-JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_step(JNIEnv*, jclass, jlong h, jfloat dt) {
-    auto* c = from(h); if (!c) return;
-    c->animTime += dt;
-    const float vmdFrame = c->animTime * 30.0f;
-    c->model->UpdateAllAnimation(/*vmdAnim*/nullptr, vmdFrame, /*physicsElapsed*/dt);
 }
 
 // ==== 버퍼 쿼리 예시 (DirectByteBuffer) ====

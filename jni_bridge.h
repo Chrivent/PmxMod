@@ -13,10 +13,6 @@ extern "C" {
 
     JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_loadModel(JNIEnv*, jclass, jlong,
         jstring pmxPath, jobjectArray vmdPaths, jfloat scale);
-    JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_setMusic(JNIEnv*, jclass, jlong,
-        jstring musicPath, jboolean sync);
-
-    JNIEXPORT void    JNICALL Java_net_chrivent_pmxstevemod_src_Native_step(JNIEnv*, jclass, jlong, jfloat);
 
     JNIEXPORT jint    JNICALL Java_net_chrivent_pmxstevemod_src_Native_getVertexCount(JNIEnv*, jclass, jlong);
     JNIEXPORT jint    JNICALL Java_net_chrivent_pmxstevemod_src_Native_getIndexCount(JNIEnv*, jclass, jlong);
