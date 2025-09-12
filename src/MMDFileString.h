@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "UnicodeUtil.h"
-#include "File.h"
+#include "../base/UnicodeUtil.h"
+#include "../base/File.h"
 
 #include <string>
 

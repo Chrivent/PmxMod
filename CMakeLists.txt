@@ -12,10 +12,10 @@ find_package(glm   CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 
 add_executable(PmxMod
-        src/main.cpp
-        src/File.cpp src/File.h
-        src/Path.cpp src/Path.h
-        src/UnicodeUtil.cpp src/UnicodeUtil.h
+        main.cpp
+        base/File.cpp base/File.h
+        base/Path.cpp base/Path.h
+        base/UnicodeUtil.cpp base/UnicodeUtil.h
         src/MMDCamera.cpp src/MMDCamera.h
         src/MMDIkSolver.cpp src/MMDIkSolver.h
         src/MMDMaterial.cpp src/MMDMaterial.h

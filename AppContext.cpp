@@ -8,7 +8,7 @@
 
 #include "src/stb_image.h"
 
-#include "src/Path.h"
+#include "base/Path.h"
 
 AppContext::~AppContext() {
 	Clear();
