@@ -22,7 +22,7 @@ namespace saba
 			return file.Read(valArray, size);
 		}
 
-		bool ReadString(PMXFile* pmx, std::string* val, File& file)
+		bool ReadString(const PMXFile* pmx, std::string* val, File& file)
 		{
 			uint32_t bufSize;
 			if (!Read(&bufSize, file))
@@ -68,7 +68,7 @@ namespace saba
 				Read(&idx, file);
 				if (idx != 0xFF)
 				{
-					*index = (int32_t)idx;
+					*index = static_cast<int32_t>(idx);
 				}
 				else
 				{
@@ -82,7 +82,7 @@ namespace saba
 				Read(&idx, file);
 				if (idx != 0xFFFF)
 				{
-					*index = (int32_t)idx;
+					*index = static_cast<int32_t>(idx);
 				}
 				else
 				{
@@ -94,7 +94,7 @@ namespace saba
 			{
 				uint32_t idx;
 				Read(&idx, file);
-				*index = (int32_t)idx;
+				*index = static_cast<int32_t>(idx);
 			}
 				break;
 			default:
@@ -319,7 +319,7 @@ namespace saba
 				{
 					uint8_t toonIndex;
 					Read(&toonIndex, file);
-					mat.m_toonTextureIndex = (int32_t)toonIndex;
+					mat.m_toonTextureIndex = static_cast<int32_t>(toonIndex);
 				}
 				else
 				{
@@ -355,7 +355,7 @@ namespace saba
 
 				Read(&bone.m_boneFlag, file);
 
-				if (((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::TargetShowMode) == 0)
+				if ((static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::TargetShowMode)) == 0)
 				{
 					Read(&bone.m_positionOffset, file);
 				}
@@ -364,30 +364,30 @@ namespace saba
 					ReadIndex(&bone.m_linkBoneIndex, pmx->m_header.m_boneIndexSize, file);
 				}
 
-				if (((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::AppendRotate) ||
-					((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::AppendTranslate))
+				if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendRotate) ||
+					static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendTranslate))
 				{
 					ReadIndex(&bone.m_appendBoneIndex, pmx->m_header.m_boneIndexSize, file);
 					Read(&bone.m_appendWeight, file);
 				}
 
-				if ((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::FixedAxis)
+				if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::FixedAxis))
 				{
 					Read(&bone.m_fixedAxis, file);
 				}
 
-				if ((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::LocalAxis)
+				if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::LocalAxis))
 				{
 					Read(&bone.m_localXAxis, file);
 					Read(&bone.m_localZAxis, file);
 				}
 
-				if ((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::DeformOuterParent)
+				if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::DeformOuterParent))
 				{
 					Read(&bone.m_keyValue, file);
 				}
 
-				if ((uint16_t)bone.m_boneFlag & (uint16_t)PMXBoneFlags::IK)
+				if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::IK))
 				{
 					ReadIndex(&bone.m_ikTargetBoneIndex, pmx->m_header.m_boneIndexSize, file);
 					Read(&bone.m_ikIterationCount, file);
@@ -400,15 +400,15 @@ namespace saba
 					}
 
 					bone.m_ikLinks.resize(linkCount);
-					for (auto& ikLink : bone.m_ikLinks)
+					for (auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks)
 					{
-						ReadIndex(&ikLink.m_ikBoneIndex, pmx->m_header.m_boneIndexSize, file);
-						Read(&ikLink.m_enableLimit, file);
+						ReadIndex(&m_ikBoneIndex, pmx->m_header.m_boneIndexSize, file);
+						Read(&m_enableLimit, file);
 
-						if (ikLink.m_enableLimit != 0)
+						if (m_enableLimit != 0)
 						{
-							Read(&ikLink.m_limitMin, file);
-							Read(&ikLink.m_limitMax, file);
+							Read(&m_limitMin, file);
+							Read(&m_limitMax, file);
 						}
 					}
 				}
@@ -510,7 +510,7 @@ namespace saba
 						Read(&data.m_weight, file);
 					}
 				}
-				else if (morph.m_morphType == PMXMorphType::Impluse)
+				else if (morph.m_morphType == PMXMorphType::Impulse)
 				{
 					morph.m_impulseMorph.resize(dataCount);
 					for (auto& data : morph.m_impulseMorph)
@@ -551,11 +551,11 @@ namespace saba
 				for (auto& target : displayFrame.m_targets)
 				{
 					Read(&target.m_type, file);
-					if (target.m_type == PMXDispalyFrame::TargetType::BoneIndex)
+					if (target.m_type == PMXDisplayFrame::TargetType::BoneIndex)
 					{
 						ReadIndex(&target.m_index, pmx->m_header.m_boneIndexSize, file);
 					}
-					else if (target.m_type == PMXDispalyFrame::TargetType::MorphIndex)
+					else if (target.m_type == PMXDisplayFrame::TargetType::MorphIndex)
 					{
 						ReadIndex(&target.m_index, pmx->m_header.m_morphIndexSize, file);
 					}
@@ -577,9 +577,9 @@ namespace saba
 				return false;
 			}
 
-			pmx->m_rigidbodies.resize(rbCount);
+			pmx->m_rigidBodies.resize(rbCount);
 
-			for (auto& rb : pmx->m_rigidbodies)
+			for (auto& rb : pmx->m_rigidBodies)
 			{
 				ReadString(pmx, &rb.m_name, file);
 				ReadString(pmx, &rb.m_englishName, file);
@@ -640,7 +640,7 @@ namespace saba
 			return !file.m_badFlag;
 		}
 
-		bool ReadSoftbody(PMXFile* pmx, File& file)
+		bool ReadSoftBody(PMXFile* pmx, File& file)
 		{
 			int32_t sbCount;
 			if (!Read(&sbCount, file))
@@ -706,8 +706,8 @@ namespace saba
 				{
 					return false;
 				}
-				sb.m_anchorRigidbodies.resize(arCount);
-				for (auto& ar : sb.m_anchorRigidbodies)
+				sb.m_anchorRigidBodies.resize(arCount);
+				for (auto& ar : sb.m_anchorRigidBodies)
 				{
 					ReadIndex(&ar.m_rigidBodyIndex, pmx->m_header.m_rigidbodyIndexSize, file);
 					ReadIndex(&ar.m_vertexIndex, pmx->m_header.m_vertexIndexSize, file);
@@ -788,7 +788,7 @@ namespace saba
 
 			if (file.Tell() < file.m_fileSize)
 			{
-				if (!ReadSoftbody(pmxFile, file))
+				if (!ReadSoftBody(pmxFile, file))
 				{
 					return false;
 				}

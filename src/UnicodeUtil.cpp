@@ -159,22 +159,22 @@ namespace saba
 			u8Ch[3] = 0;
 		}
 		else if (u32Ch < 2048) {
-			u8Ch[0] = 0xC0 | static_cast<char>(u32Ch >> 6);
-			u8Ch[1] = 0x80 | static_cast<char>(u32Ch) & 0x3F;
+			u8Ch[0] = static_cast<char>(0xC0 | static_cast<char>(u32Ch >> 6));
+			u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
 			u8Ch[2] = 0;
 			u8Ch[3] = 0;
 		}
 		else if (u32Ch < 65536) {
-			u8Ch[0] = 0xE0 | static_cast<char>(u32Ch >> 12);
-			u8Ch[1] = 0x80 | static_cast<char>(u32Ch >> 6) & 0x3F;
-			u8Ch[2] = 0x80 | static_cast<char>(u32Ch) & 0x3F;
+			u8Ch[0] = static_cast<char>(0xE0 | static_cast<char>(u32Ch >> 12));
+			u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 6) & 0x3F);
+			u8Ch[2] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
 			u8Ch[3] = 0;
 		}
 		else {
-			u8Ch[0] = 0xF0 | static_cast<char>(u32Ch >> 18);
-			u8Ch[1] = 0x80 | static_cast<char>(u32Ch >> 12) & 0x3F;
-			u8Ch[2] = 0x80 | static_cast<char>(u32Ch >> 6) & 0x3F;
-			u8Ch[3] = 0x80 | static_cast<char>(u32Ch) & 0x3F;
+			u8Ch[0] = static_cast<char>(0xF0 | static_cast<char>(u32Ch >> 18));
+			u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 12) & 0x3F);
+			u8Ch[2] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 6) & 0x3F);
+			u8Ch[3] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
 		}
 
 		return true;

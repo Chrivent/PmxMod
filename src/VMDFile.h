@@ -31,8 +31,8 @@ namespace saba
 
 	struct VMDMorph {
 		VMDString<15>	m_blendShapeName;
-		uint32_t		m_frame;
-		float			m_weight;
+		uint32_t		m_frame{};
+		float			m_weight{};
 	};
 
 	struct VMDCamera
@@ -63,7 +63,7 @@ namespace saba
 	struct VMDIkInfo
 	{
 		VMDString<20>	m_name;
-		uint8_t			m_enable;
+		uint8_t			m_enable{};
 	};
 
 	struct VMDIk

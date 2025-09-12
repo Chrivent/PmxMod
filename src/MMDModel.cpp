@@ -467,7 +467,7 @@ namespace saba
 			mat.m_edgeFlag = (static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
 			mat.m_groundShadow = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::GroundShadow));
 			mat.m_shadowCaster = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::CastSelfShadow));
-			mat.m_shadowReceiver = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::RecieveSelfShadow));
+			mat.m_shadowReceiver = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::ReceiveSelfShadow));
 			mat.m_edgeSize = pmxMat.m_edgeSize;
 			mat.m_edgeColor = pmxMat.m_edgeColor;
 
@@ -692,7 +692,7 @@ namespace saba
 		// Physics
 		m_physicsMan.Create();
 
-		for (const auto &pmxRB: pmx.m_rigidbodies) {
+		for (const auto &pmxRB: pmx.m_rigidBodies) {
 			auto rb = m_physicsMan.AddRigidBody();
 			MMDNode *node = nullptr;
 			if (pmxRB.m_boneIndex != -1)

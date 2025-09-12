@@ -117,7 +117,7 @@ namespace saba
 		BothFace = 0x01,
 		GroundShadow = 0x02,
 		CastSelfShadow = 0x04,
-		RecieveSelfShadow = 0x08,
+		ReceiveSelfShadow = 0x08,
 		DrawEdge = 0x10,
 		VertexColor = 0x20,
 		DrawPoint = 0x40,
@@ -280,7 +280,7 @@ namespace saba
 		AddUV4,
 		Material,
 		Flip,
-		Impluse,
+		Impulse,
 	};
 
 	struct PMXMorph
@@ -360,7 +360,7 @@ namespace saba
 		std::vector<ImpulseMorph>	m_impulseMorph;
 	};
 
-	struct PMXDispalyFrame
+	struct PMXDisplayFrame
 	{
 
 		std::string	m_name;
@@ -471,7 +471,7 @@ namespace saba
 		glm::vec3	m_springRotateFactor;
 	};
 
-	struct PMXSoftbody
+	struct PMXSoftBody
 	{
 		std::string	m_name;
 		std::string	m_englishName;
@@ -480,12 +480,12 @@ namespace saba
 		0:TriMesh
 		1:Rope
 		*/
-		enum class SoftbodyType : uint8_t
+		enum class SoftBodyType : uint8_t
 		{
 			TriMesh,
 			Rope,
 		};
-		SoftbodyType	m_type;
+		SoftBodyType	m_type;
 
 		int32_t			m_materialIndex;
 
@@ -497,13 +497,13 @@ namespace saba
 		0x02:クラスタ作成
 		0x04: リンク交雑
 		*/
-		enum class SoftbodyMask : uint8_t
+		enum class SoftBodyMask : uint8_t
 		{
 			BLink = 0x01,
 			Cluster = 0x02,
 			HybridLink = 0x04,
 		};
-		SoftbodyMask	m_flag;
+		SoftBodyMask	m_flag;
 
 		int32_t	m_BLinkLength;
 		int32_t	m_numClusters;
@@ -565,7 +565,7 @@ namespace saba
 			int32_t		m_vertexIndex;
 			uint8_t	m_nearMode; //0:FF 1:ON
 		};
-		std::vector<AnchorRigidbody>	m_anchorRigidbodies;
+		std::vector<AnchorRigidbody>	m_anchorRigidBodies;
 
 		std::vector<int32_t>	m_pinVertexIndices;
 	};
@@ -581,10 +581,10 @@ namespace saba
 		std::vector<PMXMaterial>	m_materials;
 		std::vector<PMXBone>		m_bones;
 		std::vector<PMXMorph>		m_morphs;
-		std::vector<PMXDispalyFrame>	m_displayFrames;
-		std::vector<PMXRigidbody>	m_rigidbodies;
+		std::vector<PMXDisplayFrame>	m_displayFrames;
+		std::vector<PMXRigidbody>	m_rigidBodies;
 		std::vector<PMXJoint>		m_joints;
-		std::vector<PMXSoftbody>	m_softbodies;
+		std::vector<PMXSoftBody>	m_softbodies;
 	};
 
 	bool ReadPMXFile(PMXFile* pmdFile, const char* filename);

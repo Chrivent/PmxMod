@@ -48,7 +48,7 @@ namespace saba
 			return !file.m_badFlag;
 		}
 
-		bool ReadBlednShape(VMDFile* vmd, File& file)
+		bool ReadBlendShape(VMDFile* vmd, File& file)
 		{
 			uint32_t blendShapeCount = 0;
 			if (!Read(&blendShapeCount, file))
@@ -171,7 +171,7 @@ namespace saba
 
 			if (file.Tell() < file.m_fileSize)
 			{
-				if (!ReadBlednShape(vmd, file))
+				if (!ReadBlendShape(vmd, file))
 				{
 					return false;
 				}
