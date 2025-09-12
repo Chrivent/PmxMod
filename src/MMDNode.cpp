@@ -146,9 +146,7 @@ namespace saba
 
 		if (m_isAppendRotate) {
 			glm::quat appendRotate;
-			if (m_isAppendLocal)
-				appendRotate = m_appendNode->AnimateRotate();
-			else if (m_appendNode->m_appendNode != nullptr)
+			if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
 				appendRotate = m_appendNode->m_appendRotate;
 			else
 				appendRotate = m_appendNode->AnimateRotate();
@@ -166,9 +164,7 @@ namespace saba
 
 		if (m_isAppendTranslate) {
 			glm::vec3 appendTranslate;
-			if (m_isAppendLocal)
-				appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
-			else if (m_appendNode->m_appendNode != nullptr)
+			if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
 				appendTranslate = m_appendNode->m_appendTranslate;
 			else
 				appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;

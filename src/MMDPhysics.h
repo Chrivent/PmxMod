@@ -60,7 +60,7 @@ namespace saba
 	private:
 		MMDNode* m_node;
 		glm::mat4	m_offset;
-		glm::mat4	m_invOffset;
+		glm::mat4	m_invOffset{};
 		btTransform	m_transform;
 		bool		m_override;
 	};
@@ -79,7 +79,7 @@ namespace saba
 	private:
 		MMDNode* m_node;
 		glm::mat4	m_offset;
-		glm::mat4	m_invOffset;
+		glm::mat4	m_invOffset{};
 		btTransform	m_transform;
 		bool		m_override;
 	};
@@ -111,7 +111,6 @@ namespace saba
 	{
 	public:
 		MMDRigidBody();
-		~MMDRigidBody();
 
 		bool Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
 		void Destroy();
@@ -147,9 +146,6 @@ namespace saba
 	class MMDJoint
 	{
 	public:
-		MMDJoint();
-		~MMDJoint();
-
 		bool CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
 		void Destroy();
 

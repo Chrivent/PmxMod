@@ -47,7 +47,7 @@ namespace saba
 				= *boundIt;
 
 				if ((m_time - key.m_time) > 1) {
-					const float timeRange = static_cast<float>(m_time - key.m_time);
+					const auto timeRange = static_cast<float>(m_time - key.m_time);
 					const float time = (t - static_cast<float>(key.m_time)) / timeRange;
 					const float ix_x = m_ixBezier.FindBezierX(time);
 					const float iy_x = m_iyBezier.FindBezierX(time);
@@ -102,7 +102,7 @@ namespace saba
 		if (!vmd.m_cameras.empty()) {
 			m_cameraController = std::make_unique<VMDCameraController>();
 			for (const auto &cam: vmd.m_cameras) {
-				VMDCameraAnimationKey key;
+				VMDCameraAnimationKey key{};
 				key.m_time = static_cast<int32_t>(cam.m_frame);
 				key.m_interest = cam.m_interest * glm::vec3(1, 1, -1);
 				key.m_rotate = cam.m_rotate;

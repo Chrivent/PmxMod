@@ -59,7 +59,7 @@ namespace saba
 	}
 
 	glm::vec2 VMDBezier::Eval(const float t) const {
-		return glm::vec2(EvalX(t), EvalY(t));
+		return {EvalX(t), EvalY(t)};
 	}
 
 	float VMDBezier::FindBezierX(const float time) const {
@@ -114,7 +114,7 @@ namespace saba
 							, m_rotBezier]
 				= *boundIt;
 
-				const float timeRange = static_cast<float>(m_time - key.m_time);
+				const auto timeRange = static_cast<float>(m_time - key.m_time);
 				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
 				const float tx_x = m_txBezier.FindBezierX(time);
 				const float ty_x = m_tyBezier.FindBezierX(time);
@@ -181,7 +181,7 @@ namespace saba
 				nodeCtrl = findIt->second.get();
 
 			if (nodeCtrl != nullptr) {
-				VMDNodeAnimationKey key;
+				VMDNodeAnimationKey key{};
 				key.Set(motion);
 				nodeCtrl->m_keys.push_back(key);
 			}
@@ -220,7 +220,7 @@ namespace saba
 					ikCtrl = findIt->second.get();
 
 				if (ikCtrl != nullptr) {
-					VMDIKAnimationKey key;
+					VMDIKAnimationKey key{};
 					key.m_time = static_cast<int32_t>(ik.m_frame);
 					key.m_enable = m_enable != 0;
 					ikCtrl->m_keys.push_back(key);
@@ -260,7 +260,7 @@ namespace saba
 				morphCtrl = findIt->second.get();
 
 			if (morphCtrl != nullptr) {
-				VMDMorphAnimationKey key;
+				VMDMorphAnimationKey key{};
 				key.m_time = static_cast<int32_t>(m_frame);
 				key.m_weight = m_weight;
 				morphCtrl->m_keys.push_back(key);
@@ -388,9 +388,7 @@ namespace saba
 			}
 		}
 
-		if (weight == 1.0f)
-			m_ikSolver->m_enable = enable;
-		else if (weight < 1.0f)
+		if (weight != 1.0f && weight < 1.0f)
 			m_ikSolver->m_enable = m_ikSolver->m_baseAnimEnable;
 		else
 			m_ikSolver->m_enable = enable;
@@ -425,7 +423,7 @@ namespace saba
 				auto [m_time0, m_weight0] = *(boundIt - 1);
 				auto [m_time1, m_weight1] = *boundIt;
 
-				const float timeRange = static_cast<float>(m_time1 - m_time0);
+				const auto timeRange = static_cast<float>(m_time1 - m_time0);
 				const float time = (t - static_cast<float>(m_time0)) / timeRange;
 				weight = (m_weight1 - m_weight0) * time + m_weight0;
 

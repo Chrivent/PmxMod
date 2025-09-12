@@ -30,7 +30,7 @@ namespace saba
 
 	std::string PathUtil::Combine(const std::vector<std::string>& parts) {
 		std::string result;
-		for (const auto part: parts) {
+		for (const auto& part: parts) {
 			if (!part.empty()) {
 				const auto pos = part.find_last_not_of(PathDelimiters);
 				if (pos != std::string::npos) {
@@ -64,7 +64,7 @@ namespace saba
 	}
 
 	std::string PathUtil::GetFilenameWithoutExt(const std::string & path) {
-		const std::string filename = GetFilename(path);
+		std::string filename = GetFilename(path);
 		const auto pos = filename.find_last_of('.');
 		if (pos == std::string::npos)
 			return filename;

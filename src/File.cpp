@@ -85,7 +85,7 @@ namespace saba
 		if (m_fp != nullptr) {
 			int ch = fgetc(m_fp);
 			while (ch != EOF) {
-				all.push_back(ch);
+				all.push_back(static_cast<char>(ch));
 				ch = fgetc(m_fp);
 			}
 		}

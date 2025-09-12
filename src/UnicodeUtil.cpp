@@ -202,7 +202,7 @@ namespace saba
 			if (numBytes == 0)
 				return false;
 
-			std::array<char, 4> u8Ch;
+			std::array<char, 4> u8Ch{};
 			u8Ch[0] = *u8It;
 			for (int i = 1; i < numBytes; i++) {
 				++u8It;
@@ -211,7 +211,7 @@ namespace saba
 				u8Ch[i] = *u8It;
 			}
 
-			std::array<char16_t, 2> u16Ch;
+			std::array<char16_t, 2> u16Ch{};
 			if (!ConvChU8ToU16(u8Ch, u16Ch))
 				return false;
 
@@ -224,7 +224,7 @@ namespace saba
 
 	bool ConvU16ToU8(const std::u16string& u16Str, std::string& u8Str) {
 		for (auto u16It = u16Str.begin(); u16It != u16Str.end(); ++u16It) {
-			std::array<char16_t, 2> u16Ch;
+			std::array<char16_t, 2> u16Ch{};
 			if (IsU16HighSurrogate(*u16It)) {
 				u16Ch[0] = *u16It;
 				++u16It;
@@ -237,7 +237,7 @@ namespace saba
 				u16Ch[1] = 0;
 			}
 
-			std::array<char, 4> u8Ch;
+			std::array<char, 4> u8Ch{};
 			if (!ConvChU16ToU8(u16Ch, u8Ch))
 				return false;
 			if (u8Ch[0] != 0)

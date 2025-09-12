@@ -163,8 +163,8 @@ namespace saba
 		BeginMorphMaterial();
 
 		const auto &morphs = m_morphMan.m_morphs;
-		for (size_t i = 0; i < morphs.size(); i++) {
-			Morph(morphs[i].get(), morphs[i]->m_weight);
+		for (const auto & morph : morphs) {
+			Morph(morph.get(), morph->m_weight);
 		}
 
 		EndMorphMaterial();
@@ -331,7 +331,7 @@ namespace saba
 			m_positions.push_back(pos);
 			m_normals.push_back(nor);
 			m_uvs.push_back(uv);
-			VertexBoneInfo vtxBoneInfo;
+			VertexBoneInfo vtxBoneInfo{};
 			if (PMXVertexWeight::SDEF != v.m_weightType) {
 				vtxBoneInfo.m_boneIndex[0] = v.m_boneIndices[0];
 				vtxBoneInfo.m_boneIndex[1] = v.m_boneIndices[1];
@@ -502,8 +502,8 @@ namespace saba
 
 			m_materials.emplace_back(std::move(mat));
 
-			MMDSubMesh subMesh;
-			subMesh.m_beginIndex = beginIndex;
+			MMDSubMesh subMesh{};
+			subMesh.m_beginIndex = static_cast<int>(beginIndex);
 			subMesh.m_vertexCount = pmxMat.m_numFaceVertices;
 			subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
 			m_subMeshes.push_back(subMesh);
@@ -609,7 +609,7 @@ namespace saba
 				morph->m_dataIndex = m_positionMorphDatas.size();
 				PositionMorphData morphData;
 				for (const auto &[m_vertexIndex, m_position]: pmxMorph.m_positionMorph) {
-					PositionMorph morphVtx;
+					PositionMorph morphVtx{};
 					morphVtx.m_index = m_vertexIndex;
 					morphVtx.m_position = m_position * glm::vec3(1, 1, -1);
 					morphData.m_morphVertices.push_back(morphVtx);
@@ -620,7 +620,7 @@ namespace saba
 				morph->m_dataIndex = m_uvMorphDatas.size();
 				UVMorphData morphData;
 				for (const auto &[m_vertexIndex, m_uv]: pmxMorph.m_uvMorph) {
-					UVMorph morphUV;
+					UVMorph morphUV{};
 					morphUV.m_index = m_vertexIndex;
 					morphUV.m_uv = m_uv;
 					morphData.m_morphUVs.push_back(morphUV);
@@ -639,7 +639,7 @@ namespace saba
 
 				BoneMorphData boneMorphData;
 				for (const auto &[m_boneIndex, m_position, m_quaternion]: pmxMorph.m_boneMorph) {
-					BoneMorphElement boneMorphElem;
+					BoneMorphElement boneMorphElem{};
 					boneMorphElem.m_node = m_nodeMan.GetNodeByIndex(m_boneIndex);
 					boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
 					const glm::quat q = m_quaternion;
@@ -670,9 +670,7 @@ namespace saba
 
 				if (morph->m_morphType == MorphType::Group) {
 					auto &[m_groupMorphs] = m_groupMorphDatas[morph->m_dataIndex];
-					for (size_t i = 0; i < m_groupMorphs.size(); i++) {
-						auto &[m_morphIndex, m_weight] = m_groupMorphs[i];
-
+					for (auto [m_morphIndex, m_weight] : m_groupMorphs) {
 						auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 						if (findIt != groupMorphStack.end())
 							m_morphIndex = -1;

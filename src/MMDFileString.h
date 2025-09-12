@@ -19,7 +19,7 @@ namespace saba
 		std::string ToString() const { return std::string(m_buffer); }
 		std::string ToUtf8String() const;
 
-		char	m_buffer[Size + 1];
+		char	m_buffer[Size + 1]{};
 	};
 
 	template <size_t Size>

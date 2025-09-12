@@ -153,9 +153,6 @@ namespace saba
 		, m_offsetMat(1) {
 	}
 
-	MMDRigidBody::~MMDRigidBody() {
-	}
-
 	bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
 		Destroy();
 
@@ -318,11 +315,6 @@ namespace saba
 	//*******************
 	// MMDJoint
 	//*******************
-	MMDJoint::MMDJoint() {
-	}
-
-	MMDJoint::~MMDJoint() {
-	}
 
 	bool MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
 		Destroy();
