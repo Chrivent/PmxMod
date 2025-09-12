@@ -15,19 +15,7 @@
 #include "Model.h"
 
 #define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
-
-struct Input
-{
-	std::string					m_modelPath;
-	std::vector<std::string>	m_vmdPaths;
-	float						m_scale = 1.0f;
-};
-
-void Usage() {
-	std::cout << "app [-model <pmd|pmx file path>] [-vmd <vmd file path>]\n";
-	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
-}
+#include "external/miniaudio.h"
 
 namespace fs = std::filesystem;
 
@@ -55,8 +43,7 @@ static void PrintFilenameSafe(const fs::path& p) { PrintU8(p.filename().u8string
 // --- 경로 → UTF-8 std::string (args에 넣을 때 필수) ---
 static std::string PathToUtf8(const fs::path& p){
     const auto u8 = p.lexically_normal().u8string();                    // basic_string<char8_t>
-    return std::string(reinterpret_cast<const char*>(u8.c_str()), // → std::string(UTF-8)
-                       u8.size());
+    return { reinterpret_cast<const char*>(u8.c_str()), u8.size() };
 }
 
 // 하위 폴더 나열
@@ -167,11 +154,11 @@ static std::vector<std::string> BuildArgsInteractive(){
             continue;
         }
         // 폴더에 하나만 있다고 했으니 첫 번째 사용
-        args.push_back("-model");
+        args.emplace_back("-model");
         args.push_back(PathToUtf8(pmxs[0]));  // ← 여기!
 
         for (const int mi : motionSel){
-            args.push_back("-vmd");
+            args.emplace_back("-vmd");
             args.push_back(PathToUtf8(motions[static_cast<size_t>(mi)])); // ← 여기!
         }
     }
@@ -181,15 +168,15 @@ static std::vector<std::string> BuildArgsInteractive(){
         PrintIndexed(cameras, "\n[카메라 VMD]");
         const int cIdx = ReadOneIndex("카메라 번호(엔터=없음): ", cameras.size());
         if (cIdx >= 0){
-            args.push_back("-vmd"); // 마지막에 추가 → 전역 카메라로 적용
+            args.emplace_back("-vmd"); // 마지막에 추가 → 전역 카메라로 적용
             args.push_back(PathToUtf8(cameras[static_cast<size_t>(cIdx)])); // ← 여기!
         }
     }
 
-	args.push_back("-scale");
-	args.push_back("1.0f");
-	args.push_back("-model");
-	args.push_back("C:\\Users\\Ha Yechan\\Desktop\\PMXViewer\\models\\torisutsuki\\torisutsuki.pmx");
+	args.emplace_back("-scale");
+	args.emplace_back("1.0f");
+	args.emplace_back("-model");
+	args.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\torisutsuki\torisutsuki.pmx)");
 
     std::cout << "\n[최종 인자]\n";
     for (auto& s : args) std::cout << s << ' ';
@@ -287,8 +274,8 @@ struct AudioContext {
 		if (ma_sound_get_cursor_in_pcm_frames(&sound, &cursorFrames) != MA_SUCCESS)
 			return {0.f, static_cast<float>(prevTimeSec)};
 
-		const double sr = (double)ma_engine_get_sample_rate(&engine); // Hz
-		const double t  = (sr > 0.0) ? (cursorFrames / sr) : prevTimeSec; // seconds
+		const auto sr = static_cast<double>(ma_engine_get_sample_rate(&engine)); // Hz
+		const double t  = sr > 0.0 ? static_cast<double>(cursorFrames) / sr : prevTimeSec; // seconds
 		double dt = t - prevTimeSec;
 		if (dt < 0.0) dt = 0.0;
 
@@ -296,6 +283,18 @@ struct AudioContext {
 		return { static_cast<float>(dt), static_cast<float>(t) };
 	}
 };
+
+struct Input
+{
+	std::string					m_modelPath;
+	std::vector<std::string>	m_vmdPaths;
+	float						m_scale = 1.0f;
+};
+
+void Usage() {
+	std::cout << "app [-model <pmd|pmx file path>] [-vmd <vmd file path>]\n";
+	std::cout << "e.g. app -model model1.pmx -vmd anim1_1.vmd -vmd anim1_2.vmd  -model model2.pmx\n";
+}
 
 bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 	Input currentInput;
@@ -427,7 +426,7 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 		// 원래 코드
 		// appContext.m_elapsed = static_cast<float>(elapsed);
 		// appContext.m_animTime += static_cast<float>(elapsed);
-		float dt = static_cast<float>(elapsed);
+		auto dt = static_cast<float>(elapsed);
 		float t  = appContext.m_animTime + dt;
 
 		// 음악이 있고, 싱크 ON이면 오디오 시간으로 덮어씀

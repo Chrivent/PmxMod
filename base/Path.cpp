@@ -83,11 +83,6 @@ namespace saba
 		return ext;
 	}
 
-	std::string PathUtil::GetDelimiter()
-	{
-		return "\\";
-	}
-
 	std::string PathUtil::Normalize(const std::string & path)
 	{
 		std::string result = path;

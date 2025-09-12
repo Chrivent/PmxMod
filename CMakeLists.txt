@@ -27,11 +27,11 @@ add_executable(PmxMod
         src/VMDAnimation.cpp src/VMDAnimation.h
         src/VMDCameraAnimation.cpp src/VMDCameraAnimation.h
         src/VMDFile.cpp src/VMDFile.h
-        src/stb_image.h
+        external/stb_image.h
         AppContext.cpp AppContext.h
         MMDShader.cpp MMDShader.h
         Model.cpp Model.h
-        miniaudio.h
+        external/miniaudio.h
 )
 
 target_link_libraries(PmxMod PRIVATE

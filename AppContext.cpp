@@ -6,7 +6,7 @@
 #define STB_IMAGE_STATIC
 #include <ranges>
 
-#include "src/stb_image.h"
+#include "external/stb_image.h"
 
 #include "base/Path.h"
 
