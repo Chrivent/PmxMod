@@ -15,24 +15,24 @@ bool Model::Setup(AppContext& appContext) {
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glGenBuffers(1, &m_posVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &m_norVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &m_uvVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	const size_t idxSize = m_mmdModel->m_indexElementSize;
 	const size_t idxCount = m_mmdModel->m_indexCount;
 	glGenBuffers(1, &m_ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, &m_mmdModel->m_indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(idxSize * idxCount), &m_mmdModel->m_indices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	if (idxSize == 1)
 		m_indexType = GL_UNSIGNED_BYTE;
@@ -144,11 +144,11 @@ void Model::Update() const {
 
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), m_mmdModel->m_updatePositions.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updateNormals.data());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), m_mmdModel->m_updateNormals.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * vtxCount, m_mmdModel->m_updateUVs.data());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount), m_mmdModel->m_updateUVs.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
