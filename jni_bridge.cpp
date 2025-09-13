@@ -82,6 +82,9 @@ JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetInd
         const jlong need = (jlong)c->mmdModel->m_indexElementSize * c->mmdModel->m_indexCount;
 
         void* dstPtr = env->GetDirectBufferAddress(dst);
+        jlong cap    = env->GetDirectBufferCapacity(dst);
+        if (!dstPtr || cap < need) return;
+
         std::memcpy(dstPtr, src, (size_t)need);
     }
 }
