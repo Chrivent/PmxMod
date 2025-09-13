@@ -64,16 +64,19 @@ JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_VMDFileCore_1del
 JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetVertexCount(JNIEnv *, jclass, jlong h) {
     if (auto* c = MMDModelFrom(h))
         return static_cast<jint>(c->mmdModel->m_positions.size());
+    return 0;
 }
 
 JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetIndexElementSize(JNIEnv *, jclass, jlong h) {
     if (auto* c = MMDModelFrom(h))
         return static_cast<jint>(c->mmdModel->m_indexElementSize);
+    return 0;
 }
 
 JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetIndexCount(JNIEnv *, jclass, jlong h) {
     if (auto* c = MMDModelFrom(h))
         return static_cast<jint>(c->mmdModel->m_indexCount);
+    return 0;
 }
 
 JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetIndices(JNIEnv * env, jclass, jlong h, jobject dst) {
@@ -92,12 +95,14 @@ JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetInd
 JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetMaterialCount(JNIEnv *, jclass, jlong h) {
     if (auto* c = MMDModelFrom(h))
         return static_cast<jint>(c->mmdModel->m_materials.size());
+    return 0;
 }
 
 JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetMaterial(JNIEnv *, jclass, jlong h, jint idx) {
     if (auto* c = MMDModelFrom(h)) {
         return reinterpret_cast<jlong>(&c->mmdModel->m_materials[idx]);
     }
+    return 0;
 }
 
 JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_vmdCamAnim_1Create(JNIEnv *, jclass, jlong camH, jlong vmdH) {
