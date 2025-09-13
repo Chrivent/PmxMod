@@ -96,7 +96,7 @@ bool Model::Setup(AppContext& appContext) {
 
 	// Setup materials
 	for (const auto & mmdMat : m_mmdModel->m_materials) {
-			Material mat(mmdMat);
+		Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
 			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
