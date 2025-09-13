@@ -11,6 +11,9 @@ extern "C" {
     JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModelCore_1new(JNIEnv*, jclass);
     JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModelCore_1delete(JNIEnv*, jclass, jlong);
 
+    JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_VMDAnimationCore_1new(JNIEnv*, jclass);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_VMDAnimationCore_1delete(JNIEnv*, jclass, jlong);
+
     JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_VMDCameraAnimationCore_1new(JNIEnv*, jclass);
     JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_VMDCameraAnimationCore_1delete(JNIEnv*, jclass, jlong);
 
@@ -25,6 +28,12 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetIndices(JNIEnv *, jclass, jlong, jobject);
     JNIEXPORT jint JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetMaterialCount(JNIEnv *, jclass, jlong);
     JNIEXPORT jlong JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetMaterial(JNIEnv *, jclass, jlong, jint);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1BeginAnimation(JNIEnv*, jclass, jlong);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1UpdateAllAnimation(JNIEnv*, jclass, jlong, jlong, jfloat, jfloat);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1Update(JNIEnv*, jclass, jlong);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetUpdatePositions(JNIEnv*, jclass, jlong, jobject);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetUpdateNormals(JNIEnv*, jclass, jlong, jobject);
+    JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_MMDModel_1GetUpdateUVs(JNIEnv* env, jclass, jlong, jobject);
 
     JNIEXPORT jboolean JNICALL Java_net_chrivent_pmxstevemod_src_Native_vmdCamAnim_1Create(JNIEnv *, jclass, jlong, jlong);
     JNIEXPORT void JNICALL Java_net_chrivent_pmxstevemod_src_Native_vmdCamAnim_1reset(JNIEnv *, jclass, jlong);
