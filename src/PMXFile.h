@@ -13,12 +13,9 @@
 
 namespace saba
 {
-	template <size_t Size>
-	using PMXString = MMDFileString<Size>;
-
 	struct PMXHeader
 	{
-		PMXString<4>	m_magic;
+		MMDFileString<4>	m_magic;
 		float			m_version;
 
 		uint8_t	m_dataSize;
@@ -283,6 +280,52 @@ namespace saba
 		Impulse,
 	};
 
+	struct PositionMorph
+	{
+		int32_t		m_vertexIndex;
+		glm::vec3	m_position;
+	};
+
+	struct UVMorph
+	{
+		int32_t		m_vertexIndex;
+		glm::vec4	m_uv;
+	};
+
+	struct BoneMorph
+	{
+		int32_t		m_boneIndex;
+		glm::vec3	m_position;
+		glm::quat	m_quaternion;
+	};
+
+	struct MaterialMorph
+	{
+		enum class OpType : uint8_t
+		{
+			Mul,
+			Add,
+		};
+
+		int32_t		m_materialIndex;
+		OpType		m_opType;	//0:乗算 1:加算
+		glm::vec4	m_diffuse;
+		glm::vec3	m_specular;
+		float		m_specularPower;
+		glm::vec3	m_ambient;
+		glm::vec4	m_edgeColor;
+		float		m_edgeSize;
+		glm::vec4	m_textureFactor;
+		glm::vec4	m_sphereTextureFactor;
+		glm::vec4	m_toonTextureFactor;
+	};
+
+	struct GroupMorph
+	{
+		int32_t	m_morphIndex;
+		float	m_weight;
+	};
+
 	struct PMXMorph
 	{
 		std::string	m_name;
@@ -290,52 +333,6 @@ namespace saba
 
 		uint8_t			m_controlPanel;	//1:眉(左下) 2:目(左上) 3:口(右上) 4:その他(右下)  | 0:システム予約
 		PMXMorphType	m_morphType;
-
-		struct PositionMorph
-		{
-			int32_t		m_vertexIndex;
-			glm::vec3	m_position;
-		};
-
-		struct UVMorph
-		{
-			int32_t		m_vertexIndex;
-			glm::vec4	m_uv;
-		};
-
-		struct BoneMorph
-		{
-			int32_t		m_boneIndex;
-			glm::vec3	m_position;
-			glm::quat	m_quaternion;
-		};
-
-		struct MaterialMorph
-		{
-			enum class OpType : uint8_t
-			{
-				Mul,
-				Add,
-			};
-
-			int32_t		m_materialIndex;
-			OpType		m_opType;	//0:乗算 1:加算
-			glm::vec4	m_diffuse;
-			glm::vec3	m_specular;
-			float		m_specularPower;
-			glm::vec3	m_ambient;
-			glm::vec4	m_edgeColor;
-			float		m_edgeSize;
-			glm::vec4	m_textureFactor;
-			glm::vec4	m_sphereTextureFactor;
-			glm::vec4	m_toonTextureFactor;
-		};
-
-		struct GroupMorph
-		{
-			int32_t	m_morphIndex;
-			float	m_weight;
-		};
 
 		struct FlipMorph
 		{

@@ -29,9 +29,7 @@ namespace saba
 		VMDCameraController();
 
 		void Evaluate(float t);
-
 		void AddKey(const VMDCameraAnimationKey& key);
-
 		void SortKeys();
 
 		std::vector<VMDCameraAnimationKey>	m_keys;
@@ -46,11 +44,9 @@ namespace saba
 
 		bool Create(const VMDFile& vmd);
 		void Destroy();
-
 		void Evaluate(float t);
 
 		std::unique_ptr<VMDCameraController>	m_cameraController;
-
 		MMDCamera	m_camera;
 	};
 

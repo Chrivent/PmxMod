@@ -11,9 +11,6 @@
 
 namespace saba
 {
-	template <size_t Size>
-	using VMDString = MMDFileString<Size>;
-
 	struct VMDHeader
 	{
 		MMDFileString<30>	m_header;
@@ -22,7 +19,7 @@ namespace saba
 
 	struct VMDMotion
 	{
-		VMDString<15>	m_boneName;
+		MMDFileString<15>	m_boneName;
 		uint32_t		m_frame;
 		glm::vec3		m_translate;
 		glm::quat		m_quaternion;
@@ -30,7 +27,7 @@ namespace saba
 	};
 
 	struct VMDMorph {
-		VMDString<15>	m_blendShapeName;
+		MMDFileString<15>	m_blendShapeName;
 		uint32_t		m_frame{};
 		float			m_weight{};
 	};
@@ -62,7 +59,7 @@ namespace saba
 
 	struct VMDIkInfo
 	{
-		VMDString<20>	m_name;
+		MMDFileString<20>	m_name;
 		uint8_t			m_enable{};
 	};
 

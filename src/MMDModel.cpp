@@ -18,7 +18,7 @@
 
 namespace saba
 {
-	MaterialFactor::MaterialFactor(const PMXMorph::MaterialMorph& pmxMat) {
+	MaterialFactor::MaterialFactor(const MaterialMorph& pmxMat) {
 		m_diffuse.r = pmxMat.m_diffuse.r;
 		m_diffuse.g = pmxMat.m_diffuse.g;
 		m_diffuse.b = pmxMat.m_diffuse.b;
@@ -273,23 +273,27 @@ namespace saba
 		if (m_parallelUpdateCount != m_updateRanges.size())
 			SetupParallelUpdate();
 
-		// const size_t futureCount = m_parallelUpdateFutures.size();
-		// for (size_t i = 0; i < futureCount; i++) {
-		// 	size_t rangeIndex = i + 1;
-		// 	if (m_updateRanges[rangeIndex].m_vertexCount != 0) {
-		// 		m_parallelUpdateFutures[i] = std::async(std::launch::async,
-		// 		[this, rangeIndex] { this->Update(this->m_updateRanges[rangeIndex]); }
-		// 		);
-		// 	}
-		// }
+		//
+		const size_t futureCount = m_parallelUpdateFutures.size();
+		for (size_t i = 0; i < futureCount; i++) {
+			size_t rangeIndex = i + 1;
+			if (m_updateRanges[rangeIndex].m_vertexCount != 0) {
+				m_parallelUpdateFutures[i] = std::async(std::launch::async,
+				[this, rangeIndex] { this->Update(this->m_updateRanges[rangeIndex]); }
+				);
+			}
+		}
+		//
 
 		Update(m_updateRanges[0]);
 
-		// for (size_t i = 0; i < futureCount; i++) {
-		// 	const size_t rangeIndex = i + 1;
-		// 	if (m_updateRanges[rangeIndex].m_vertexCount != 0)
-		// 		m_parallelUpdateFutures[i].wait();
-		// }
+		//
+		for (size_t i = 0; i < futureCount; i++) {
+			const size_t rangeIndex = i + 1;
+			if (m_updateRanges[rangeIndex].m_vertexCount != 0)
+				m_parallelUpdateFutures[i].wait();
+		}
+		//
 	}
 
 	void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
@@ -344,21 +348,14 @@ namespace saba
 				vtxBoneInfo.m_boneWeight[3] = v.m_boneWeights[3];
 			}
 
+			vtxBoneInfo.m_skinningType = v.m_weightType;
 			switch (v.m_weightType) {
-				case PMXVertexWeight::BDEF1:
-					vtxBoneInfo.m_skinningType = SkinningType::Weight1;
-					break;
 				case PMXVertexWeight::BDEF2:
-					vtxBoneInfo.m_skinningType = SkinningType::Weight2;
 					vtxBoneInfo.m_boneWeight[1] = 1.0f - vtxBoneInfo.m_boneWeight[0];
-					break;
-				case PMXVertexWeight::BDEF4:
-					vtxBoneInfo.m_skinningType = SkinningType::Weight4;
 					break;
 				case PMXVertexWeight::SDEF:
 					if (!warnSDEF)
 						warnSDEF = true;
-					vtxBoneInfo.m_skinningType = SkinningType::SDEF;
 					{
 						auto w0 = v.m_boneWeights[0];
 						auto w1 = 1.0f - w0;
@@ -381,12 +378,10 @@ namespace saba
 					}
 					break;
 				case PMXVertexWeight::QDEF:
-					vtxBoneInfo.m_skinningType = SkinningType::DualQuaternion;
 					if (!infoQDEF)
 						infoQDEF = true;
 					break;
 				default:
-					vtxBoneInfo.m_skinningType = SkinningType::Weight1;
 					break;
 			}
 			m_vertexBoneInfos.push_back(vtxBoneInfo);
@@ -607,37 +602,37 @@ namespace saba
 			if (pmxMorph.m_morphType == PMXMorphType::Position) {
 				morph->m_morphType = MorphType::Position;
 				morph->m_dataIndex = m_positionMorphDatas.size();
-				PositionMorphData morphData;
+				std::vector<PositionMorph> morphData;
 				for (const auto &[m_vertexIndex, m_position]: pmxMorph.m_positionMorph) {
 					PositionMorph morphVtx{};
-					morphVtx.m_index = m_vertexIndex;
+					morphVtx.m_vertexIndex = m_vertexIndex;
 					morphVtx.m_position = m_position * glm::vec3(1, 1, -1);
-					morphData.m_morphVertices.push_back(morphVtx);
+					morphData.push_back(morphVtx);
 				}
 				m_positionMorphDatas.emplace_back(std::move(morphData));
 			} else if (pmxMorph.m_morphType == PMXMorphType::UV) {
 				morph->m_morphType = MorphType::UV;
 				morph->m_dataIndex = m_uvMorphDatas.size();
-				UVMorphData morphData;
+				std::vector<UVMorph> morphData;
 				for (const auto &[m_vertexIndex, m_uv]: pmxMorph.m_uvMorph) {
 					UVMorph morphUV{};
-					morphUV.m_index = m_vertexIndex;
+					morphUV.m_vertexIndex = m_vertexIndex;
 					morphUV.m_uv = m_uv;
-					morphData.m_morphUVs.push_back(morphUV);
+					morphData.push_back(morphUV);
 				}
 				m_uvMorphDatas.emplace_back(std::move(morphData));
 			} else if (pmxMorph.m_morphType == PMXMorphType::Material) {
 				morph->m_morphType = MorphType::Material;
 				morph->m_dataIndex = m_materialMorphDatas.size();
 
-				MaterialMorphData materialMorphData;
-				materialMorphData.m_materialMorphs = pmxMorph.m_materialMorph;
+				std::vector<MaterialMorph> materialMorphData;
+				materialMorphData = pmxMorph.m_materialMorph;
 				m_materialMorphDatas.emplace_back(materialMorphData);
 			} else if (pmxMorph.m_morphType == PMXMorphType::Bone) {
 				morph->m_morphType = MorphType::Bone;
 				morph->m_dataIndex = m_boneMorphDatas.size();
 
-				BoneMorphData boneMorphData;
+				std::vector<BoneMorphElement> boneMorphData;
 				for (const auto &[m_boneIndex, m_position, m_quaternion]: pmxMorph.m_boneMorph) {
 					BoneMorphElement boneMorphElem{};
 					boneMorphElem.m_node = m_nodeMan.GetNodeByIndex(m_boneIndex);
@@ -647,15 +642,15 @@ namespace saba
 					auto rot0 = glm::mat3_cast(q);
 					auto rot1 = invZ * rot0 * invZ;
 					boneMorphElem.m_rotate = glm::quat_cast(rot1);
-					boneMorphData.m_boneMorphs.push_back(boneMorphElem);
+					boneMorphData.push_back(boneMorphElem);
 				}
 				m_boneMorphDatas.emplace_back(boneMorphData);
 			} else if (pmxMorph.m_morphType == PMXMorphType::Group) {
 				morph->m_morphType = MorphType::Group;
 				morph->m_dataIndex = m_groupMorphDatas.size();
 
-				GroupMorphData groupMorphData;
-				groupMorphData.m_groupMorphs = pmxMorph.m_groupMorph;
+				std::vector<GroupMorph> groupMorphData;
+				groupMorphData = pmxMorph.m_groupMorph;
 				m_groupMorphDatas.emplace_back(groupMorphData);
 			}
 		}
@@ -669,8 +664,7 @@ namespace saba
 				const auto &morph = morphs[morphIdx];
 
 				if (morph->m_morphType == MorphType::Group) {
-					auto &[m_groupMorphs] = m_groupMorphDatas[morph->m_dataIndex];
-					for (auto [m_morphIndex, m_weight] : m_groupMorphs) {
+					for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 						auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 						if (findIt != groupMorphStack.end())
 							m_morphIndex = -1;
@@ -743,52 +737,52 @@ namespace saba
 	}
 
 	void MMDModel::SetupParallelUpdate() {
-		// if (m_parallelUpdateCount == 0)
-		// 	m_parallelUpdateCount = std::thread::hardware_concurrency();
-		// const size_t maxParallelCount = std::max(static_cast<size_t>(16),
-		// 	static_cast<size_t>(std::thread::hardware_concurrency()));
-		// if (m_parallelUpdateCount > maxParallelCount)
-		// 	m_parallelUpdateCount = 16;
-		//
-		// m_updateRanges.resize(m_parallelUpdateCount);
-		// m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
-		//
-		// const size_t vertexCount = m_positions.size();
-		// constexpr size_t LowerVertexCount = 1000;
-		// if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
-		// 	const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
-		// 	for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-		// 		auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-		// 		if (rangeIdx < numRanges) {
-		// 			m_vertexOffset = rangeIdx * LowerVertexCount;
-		// 			m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
-		// 		} else {
-		// 			m_vertexOffset = 0;
-		// 			m_vertexCount = 0;
-		// 		}
-		// 	}
-		// } else {
-		// 	const size_t numVertexCount = vertexCount / m_updateRanges.size();
-		// 	size_t offset = 0;
-		// 	for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-		// 		auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-		// 		m_vertexOffset = offset;
-		// 		m_vertexCount = numVertexCount;
-		// 		if (rangeIdx == 0)
-		// 			m_vertexCount += vertexCount % m_updateRanges.size();
-		// 		offset = m_vertexOffset + m_vertexCount;
-		// 	}
-		// }
+		if (m_parallelUpdateCount == 0)
+			m_parallelUpdateCount = std::thread::hardware_concurrency();
+		const size_t maxParallelCount = std::max(static_cast<size_t>(16),
+			static_cast<size_t>(std::thread::hardware_concurrency()));
+		if (m_parallelUpdateCount > maxParallelCount)
+			m_parallelUpdateCount = 16;
+
+		m_updateRanges.resize(m_parallelUpdateCount);
+		m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
 
 		const size_t vertexCount = m_positions.size();
+		constexpr size_t LowerVertexCount = 1000;
+		if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
+			const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
+			for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
+				auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+				if (rangeIdx < numRanges) {
+					m_vertexOffset = rangeIdx * LowerVertexCount;
+					m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
+				} else {
+					m_vertexOffset = 0;
+					m_vertexCount = 0;
+				}
+			}
+		} else {
+			const size_t numVertexCount = vertexCount / m_updateRanges.size();
+			size_t offset = 0;
+			for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
+				auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+				m_vertexOffset = offset;
+				m_vertexCount = numVertexCount;
+				if (rangeIdx == 0)
+					m_vertexCount += vertexCount % m_updateRanges.size();
+				offset = m_vertexOffset + m_vertexCount;
+			}
+		}
 
-		// 싱글 스레드 강제
-		m_parallelUpdateCount = 1;
-		m_updateRanges.resize(1);
-		m_updateRanges[0] = { /*m_vertexOffset=*/0, /*m_vertexCount=*/vertexCount };
-
-		// 워커 없음
-		m_parallelUpdateFutures.clear();
+		// const size_t vertexCount = m_positions.size();
+		//
+		// // 싱글 스레드 강제
+		// m_parallelUpdateCount = 1;
+		// m_updateRanges.resize(1);
+		// m_updateRanges[0] = { /*m_vertexOffset=*/0, /*m_vertexCount=*/vertexCount };
+		//
+		// // 워커 없음
+		// m_parallelUpdateFutures.clear();
 	}
 
 	void MMDModel::Update(const UpdateRange& range) {
@@ -806,13 +800,13 @@ namespace saba
 		for (size_t i = 0; i < range.m_vertexCount; i++) {
 			glm::mat4 m;
 			switch (vtxInfo->m_skinningType) {
-				case SkinningType::Weight1: {
+				case PMXVertexWeight::BDEF1: {
 					const auto i0 = vtxInfo->m_boneIndex[0];
 					const auto &m0 = transforms[i0];
 					m = m0;
 					break;
 				}
-				case SkinningType::Weight2: {
+				case PMXVertexWeight::BDEF2: {
 					const auto i0 = vtxInfo->m_boneIndex[0];
 					const auto i1 = vtxInfo->m_boneIndex[1];
 					const auto w0 = vtxInfo->m_boneWeight[0];
@@ -822,7 +816,7 @@ namespace saba
 					m = m0 * w0 + m1 * w1;
 					break;
 				}
-				case SkinningType::Weight4: {
+				case PMXVertexWeight::BDEF4: {
 					const auto i0 = vtxInfo->m_boneIndex[0];
 					const auto i1 = vtxInfo->m_boneIndex[1];
 					const auto i2 = vtxInfo->m_boneIndex[2];
@@ -838,7 +832,7 @@ namespace saba
 					m = m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3;
 					break;
 				}
-				case SkinningType::SDEF: {
+				case PMXVertexWeight::SDEF: {
 					// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
 
 					auto &nodes = m_nodeMan.m_nodes;
@@ -863,7 +857,7 @@ namespace saba
 
 					break;
 				}
-				case SkinningType::DualQuaternion: {
+				case PMXVertexWeight::QDEF: {
 					//
 					// Skinning with Dual Quaternions
 					// https://www.cs.utah.edu/~ladislav/dq/index.html
@@ -894,7 +888,7 @@ namespace saba
 					break;
 			}
 
-			if (SkinningType::SDEF != vtxInfo->m_skinningType) {
+			if (PMXVertexWeight::SDEF != vtxInfo->m_skinningType) {
 				*updatePosition = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 				*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 			}
@@ -927,8 +921,7 @@ namespace saba
 				MorphBone(m_boneMorphDatas[morph->m_dataIndex], weight);
 				break;
 			case MorphType::Group: {
-				auto &[m_groupMorphs] = m_groupMorphDatas[morph->m_dataIndex];
-				for (const auto &[m_morphIndex, m_weight]: m_groupMorphs) {
+				for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 					if (m_morphIndex == -1) continue;
 					auto &elemMorph = m_morphMan.m_morphs[m_morphIndex];
 					Morph(elemMorph.get(), m_weight * weight);
@@ -940,19 +933,19 @@ namespace saba
 		}
 	}
 
-	void MMDModel::MorphPosition(const PositionMorphData& morphData, const float weight) {
+	void MMDModel::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
 		if (weight == 0)
 			return;
 
-		for (const auto &[m_index, m_position]: morphData.m_morphVertices)
+		for (const auto &[m_index, m_position]: morphData)
 			m_morphPositions[m_index] += m_position * weight;
 	}
 
-	void MMDModel::MorphUV(const UVMorphData& morphData, const float weight) {
+	void MMDModel::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
 		if (weight == 0)
 			return;
 
-		for (const auto &[m_index, m_uv]: morphData.m_morphUVs)
+		for (const auto &[m_index, m_uv]: morphData)
 			m_morphUVs[m_index] += m_uv * weight;
 	}
 
@@ -1014,15 +1007,15 @@ namespace saba
 		}
 	}
 
-	void MMDModel::MorphMaterial(const MaterialMorphData& morphData, const float weight) {
-		for (const auto &matMorph: morphData.m_materialMorphs) {
+	void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
+		for (const auto &matMorph: morphData) {
 			if (matMorph.m_materialIndex != -1) {
 				const auto mi = matMorph.m_materialIndex;
 				switch (matMorph.m_opType) {
-					case PMXMorph::MaterialMorph::OpType::Mul:
+					case MaterialMorph::OpType::Mul:
 						m_mulMaterialFactors[mi].Mul(MaterialFactor(matMorph), weight);
 						break;
-					case PMXMorph::MaterialMorph::OpType::Add:
+					case MaterialMorph::OpType::Add:
 						m_addMaterialFactors[mi].Add(MaterialFactor(matMorph), weight);
 						break;
 					default:
@@ -1030,11 +1023,11 @@ namespace saba
 				}
 			} else {
 				switch (matMorph.m_opType) {
-					case PMXMorph::MaterialMorph::OpType::Mul:
+					case MaterialMorph::OpType::Mul:
 						for (size_t i = 0; i < m_materials.size(); i++)
 							m_mulMaterialFactors[i].Mul(MaterialFactor(matMorph),weight);
 						break;
-					case PMXMorph::MaterialMorph::OpType::Add:
+					case MaterialMorph::OpType::Add:
 						for (size_t i = 0; i < m_materials.size(); i++)
 							m_addMaterialFactors[i].Add(MaterialFactor(matMorph), weight);
 						break;
@@ -1045,8 +1038,8 @@ namespace saba
 		}
 	}
 
-	void MMDModel::MorphBone(const BoneMorphData& morphData, const float weight) {
-		for (const auto &[m_node, m_position, m_rotate]: morphData.m_boneMorphs) {
+	void MMDModel::MorphBone(const std::vector<BoneMorphElement>& morphData, const float weight) {
+		for (const auto &[m_node, m_position, m_rotate]: morphData) {
 			const auto node = m_node;
 			glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);
 			node->m_translate = node->m_translate + t;

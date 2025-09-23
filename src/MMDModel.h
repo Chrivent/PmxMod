@@ -36,17 +36,9 @@ namespace saba
 
 	class VMDAnimation;
 
-	enum class SkinningType
-	{
-		Weight1,
-		Weight2,
-		Weight4,
-		SDEF,
-		DualQuaternion,
-	};
 	struct VertexBoneInfo
 	{
-		SkinningType	m_skinningType;
+		PMXVertexWeight	m_skinningType;
 		union
 		{
 			struct
@@ -66,32 +58,10 @@ namespace saba
 		};
 	};
 
-	struct PositionMorph
-	{
-		uint32_t	m_index;
-		glm::vec3	m_position;
-	};
-
-	struct PositionMorphData
-	{
-		std::vector<PositionMorph>	m_morphVertices;
-	};
-
-	struct UVMorph
-	{
-		uint32_t	m_index;
-		glm::vec4	m_uv;
-	};
-
-	struct UVMorphData
-	{
-		std::vector<UVMorph>	m_morphUVs;
-	};
-
 	struct MaterialFactor
 	{
 		MaterialFactor() = default;
-		explicit MaterialFactor(const PMXMorph::MaterialMorph& pmxMat);
+		explicit MaterialFactor(const MaterialMorph& pmxMat);
 
 		void Mul(const MaterialFactor& val, float weight);
 		void Add(const MaterialFactor& val, float weight);
@@ -108,26 +78,11 @@ namespace saba
 		glm::vec4	m_toonTextureFactor{};
 	};
 
-	struct MaterialMorphData
-	{
-		std::vector<PMXMorph::MaterialMorph>	m_materialMorphs;
-	};
-
 	struct BoneMorphElement
 	{
 		MMDNode* m_node;
 		glm::vec3	m_position;
 		glm::quat	m_rotate;
-	};
-
-	struct BoneMorphData
-	{
-		std::vector<BoneMorphElement>	m_boneMorphs;
-	};
-
-	struct GroupMorphData
-	{
-		std::vector<PMXMorph::GroupMorph>		m_groupMorphs;
 	};
 
 	struct UpdateRange
@@ -173,15 +128,15 @@ namespace saba
 
 		void Morph(const MMDMorph* morph, float weight);
 
-		void MorphPosition(const PositionMorphData& morphData, float weight);
+		void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
 
-		void MorphUV(const UVMorphData& morphData, float weight);
+		void MorphUV(const std::vector<UVMorph>& morphData, float weight);
 
 		void BeginMorphMaterial();
 		void EndMorphMaterial();
-		void MorphMaterial(const MaterialMorphData& morphData, float weight);
+		void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
 
-		static void MorphBone(const BoneMorphData& morphData, float weight);
+		static void MorphBone(const std::vector<BoneMorphElement>& morphData, float weight);
 
 	public:
 		std::vector<glm::vec3>	m_positions;
@@ -197,11 +152,11 @@ namespace saba
 		size_t				m_indexCount;
 		size_t				m_indexElementSize;
 
-		std::vector<PositionMorphData>	m_positionMorphDatas;
-		std::vector<UVMorphData>		m_uvMorphDatas;
-		std::vector<MaterialMorphData>	m_materialMorphDatas;
-		std::vector<BoneMorphData>		m_boneMorphDatas;
-		std::vector<GroupMorphData>		m_groupMorphDatas;
+		std::vector<std::vector<PositionMorph>>	m_positionMorphDatas;
+		std::vector<std::vector<UVMorph>>		m_uvMorphDatas;
+		std::vector<std::vector<MaterialMorph>>	m_materialMorphDatas;
+		std::vector<std::vector<BoneMorphElement>>		m_boneMorphDatas;
+		std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
 
 		// PositionMorph用
 		std::vector<glm::vec3>	m_morphPositions;
