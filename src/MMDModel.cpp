@@ -439,7 +439,7 @@ namespace saba
 			mat.m_specularPower = pmxMat.m_specularPower;
 			mat.m_specular = pmxMat.m_specular;
 			mat.m_ambient = pmxMat.m_ambient;
-			mat.m_spTextureMode = SphereTextureMode::None;
+			mat.m_spTextureMode = PMXSphereMode::None;
 			mat.m_bothFace = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::BothFace));
 			mat.m_edgeFlag = (static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
 			mat.m_groundShadow = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::GroundShadow));
@@ -467,14 +467,7 @@ namespace saba
 			// SpTexture
 			if (pmxMat.m_sphereTextureIndex != -1) {
 				mat.m_spTexture = PathUtil::Normalize(texturePaths[pmxMat.m_sphereTextureIndex]);
-				mat.m_spTextureMode = SphereTextureMode::None;
-				if (pmxMat.m_sphereMode == PMXSphereMode::Mul)
-					mat.m_spTextureMode = SphereTextureMode::Mul;
-				else if (pmxMat.m_sphereMode == PMXSphereMode::Add)
-					mat.m_spTextureMode = SphereTextureMode::Add;
-				else if (pmxMat.m_sphereMode == PMXSphereMode::SubTexture) {
-					// SphereTexture が SubTexture の処理
-				}
+				mat.m_spTextureMode = pmxMat.m_sphereMode;
 			}
 
 			m_materials.emplace_back(std::move(mat));
@@ -580,9 +573,8 @@ namespace saba
 			auto morph = m_morphMan.AddMorph();
 			morph->m_name = pmxMorph.m_name;
 			morph->m_weight = 0.0f;
-			morph->m_morphType = MorphType::None;
+			morph->m_morphType = pmxMorph.m_morphType;
 			if (pmxMorph.m_morphType == PMXMorphType::Position) {
-				morph->m_morphType = MorphType::Position;
 				morph->m_dataIndex = m_positionMorphDatas.size();
 				std::vector<PositionMorph> morphData;
 				for (const auto &[m_vertexIndex, m_position]: pmxMorph.m_positionMorph) {
@@ -593,7 +585,6 @@ namespace saba
 				}
 				m_positionMorphDatas.emplace_back(std::move(morphData));
 			} else if (pmxMorph.m_morphType == PMXMorphType::UV) {
-				morph->m_morphType = MorphType::UV;
 				morph->m_dataIndex = m_uvMorphDatas.size();
 				std::vector<UVMorph> morphData;
 				for (const auto &[m_vertexIndex, m_uv]: pmxMorph.m_uvMorph) {
@@ -604,14 +595,12 @@ namespace saba
 				}
 				m_uvMorphDatas.emplace_back(std::move(morphData));
 			} else if (pmxMorph.m_morphType == PMXMorphType::Material) {
-				morph->m_morphType = MorphType::Material;
 				morph->m_dataIndex = m_materialMorphDatas.size();
 
 				std::vector<MaterialMorph> materialMorphData;
 				materialMorphData = pmxMorph.m_materialMorph;
 				m_materialMorphDatas.emplace_back(materialMorphData);
 			} else if (pmxMorph.m_morphType == PMXMorphType::Bone) {
-				morph->m_morphType = MorphType::Bone;
 				morph->m_dataIndex = m_boneMorphDatas.size();
 
 				std::vector<BoneMorph> boneMorphData;
@@ -628,7 +617,6 @@ namespace saba
 				}
 				m_boneMorphDatas.emplace_back(boneMorphData);
 			} else if (pmxMorph.m_morphType == PMXMorphType::Group) {
-				morph->m_morphType = MorphType::Group;
 				morph->m_dataIndex = m_groupMorphDatas.size();
 
 				std::vector<GroupMorph> groupMorphData;
@@ -645,7 +633,7 @@ namespace saba
 				const auto &morphs = m_morphMan.m_morphs;
 				const auto &morph = morphs[morphIdx];
 
-				if (morph->m_morphType == MorphType::Group) {
+				if (morph->m_morphType == PMXMorphType::Group) {
 					for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 						auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 						if (findIt != groupMorphStack.end())
@@ -890,19 +878,19 @@ namespace saba
 
 	void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 		switch (morph->m_morphType) {
-			case MorphType::Position:
+			case PMXMorphType::Position:
 				MorphPosition(m_positionMorphDatas[morph->m_dataIndex], weight);
 				break;
-			case MorphType::UV:
+			case PMXMorphType::UV:
 				MorphUV(m_uvMorphDatas[morph->m_dataIndex], weight);
 				break;
-			case MorphType::Material:
+			case PMXMorphType::Material:
 				MorphMaterial(m_materialMorphDatas[morph->m_dataIndex], weight);
 				break;
-			case MorphType::Bone:
+			case PMXMorphType::Bone:
 				MorphBone(m_boneMorphDatas[morph->m_dataIndex], weight);
 				break;
-			case MorphType::Group: {
+			case PMXMorphType::Group: {
 				for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 					if (m_morphIndex == -1) continue;
 					auto &elemMorph = m_morphMan.m_morphs[m_morphIndex];

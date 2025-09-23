@@ -27,7 +27,7 @@ namespace saba
 			{ return morph->m_name == name; }
 		);
 		if (findIt == m_morphs.end())
-			return NPos;
+			return -1;
 		return findIt - m_morphs.begin();
 	}
 
@@ -39,7 +39,7 @@ namespace saba
 	MMDMorph* MMDMorphManager::GetMorph(const std::string& name)
 	{
 		const auto findIdx = FindMorphIndex(name);
-		if (findIdx == NPos)
+		if (findIdx == -1)
 			return nullptr;
 		return GetMorph(findIdx);
 	}

@@ -6,15 +6,7 @@
 
 namespace saba
 {
-	enum class MorphType
-	{
-		None,
-		Position,
-		UV,
-		Material,
-		Bone,
-		Group,
-	};
+	enum class PMXMorphType : uint8_t;
 
 	class MMDMorph
 	{
@@ -29,15 +21,13 @@ namespace saba
 		float		m_weight;
 		float		m_saveAnimWeight;
 
-		MorphType	m_morphType;
+		PMXMorphType	m_morphType;
 		size_t		m_dataIndex;
 	};
 
 	class MMDMorphManager
 	{
 	public:
-		static constexpr size_t NPos = -1;
-
 		size_t FindMorphIndex(const std::string& name);
 		MMDMorph* GetMorph(size_t idx) const;
 		MMDMorph* GetMorph(const std::string& name);

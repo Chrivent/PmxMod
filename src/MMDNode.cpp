@@ -180,7 +180,7 @@ namespace saba
 			[&name](const std::unique_ptr<MMDNode> &node) { return node->m_name == name; }
 		);
 		if (findIt == m_nodes.end())
-			return NPos;
+			return -1;
 		return findIt - m_nodes.begin();
 	}
 
@@ -190,7 +190,7 @@ namespace saba
 
 	MMDNode* MMDNodeManager::GetNodeByName(const std::string& nodeName) {
 		const auto findIdx = FindNodeIndex(nodeName);
-		if (findIdx == NPos)
+		if (findIdx == -1)
 			return nullptr;
 		return GetNodeByIndex(findIdx);
 	}

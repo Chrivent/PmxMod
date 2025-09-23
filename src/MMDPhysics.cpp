@@ -146,7 +146,7 @@ namespace saba
 	}
 
 	MMDRigidBody::MMDRigidBody()
-		: m_rigidBodyType(RigidBodyType::Kinematic)
+		: m_rigidBodyType(Operation::Static)
 		, m_group(0)
 		, m_groupMask(0)
 		, m_node(nullptr)
@@ -181,7 +181,7 @@ namespace saba
 
 		btScalar mass(0.0f);
 		btVector3 localInertia(0, 0, 0);
-		if (pmxRigidBody.m_op != PMXRigidbody::Operation::Static)
+		if (pmxRigidBody.m_op != Operation::Static)
 			mass = pmxRigidBody.m_mass;
 		if (mass != 0)
 			m_shape->calculateLocalInertia(mass, localInertia);
@@ -205,15 +205,15 @@ namespace saba
 		}
 
 		btMotionState *MMDMotionState = nullptr;
-		if (pmxRigidBody.m_op == PMXRigidbody::Operation::Static) {
+		if (pmxRigidBody.m_op == Operation::Static) {
 			m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 			MMDMotionState = m_kinematicMotionState.get();
 		} else if (node != nullptr) {
-			if (pmxRigidBody.m_op == PMXRigidbody::Operation::Dynamic) {
+			if (pmxRigidBody.m_op == Operation::Dynamic) {
 				m_activeMotionState = std::make_unique<DynamicMotionState>(kinematicNode, m_offsetMat);
 				m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 				MMDMotionState = m_activeMotionState.get();
-			} else if (pmxRigidBody.m_op == PMXRigidbody::Operation::DynamicAndBoneMerge) {
+			} else if (pmxRigidBody.m_op == Operation::DynamicAndBoneMerge) {
 				m_activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(kinematicNode, m_offsetMat);
 				m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 				MMDMotionState = m_activeMotionState.get();
@@ -235,10 +235,10 @@ namespace saba
 		m_rigidBody->setUserPointer(this);
 		m_rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
 		m_rigidBody->setActivationState(DISABLE_DEACTIVATION);
-		if (pmxRigidBody.m_op == PMXRigidbody::Operation::Static)
+		if (pmxRigidBody.m_op == Operation::Static)
 			m_rigidBody->setCollisionFlags(m_rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 
-		m_rigidBodyType = static_cast<RigidBodyType>(pmxRigidBody.m_op);
+		m_rigidBodyType = pmxRigidBody.m_op;
 		m_group = pmxRigidBody.m_group;
 		m_groupMask = pmxRigidBody.m_collisionGroup;
 		m_node = node;
@@ -256,7 +256,7 @@ namespace saba
 	}
 
 	void MMDRigidBody::SetActivation(const bool activation) const {
-		if (m_rigidBodyType != RigidBodyType::Kinematic) {
+		if (m_rigidBodyType != Operation::Static) {
 			if (activation) {
 				m_rigidBody->setCollisionFlags(
 					m_rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);

@@ -7,19 +7,13 @@
 
 namespace saba
 {
-	enum class SphereTextureMode
-	{
-		None,
-		Mul,
-		Add,
-	};
+	enum class PMXSphereMode : uint8_t;
 
 	struct MMDMaterial
 	{
 		MMDMaterial();
 
 		glm::vec4		m_diffuse;
-		//float			m_alpha;
 		glm::vec3		m_specular;
 		float			m_specularPower;
 		glm::vec3		m_ambient;
@@ -28,7 +22,7 @@ namespace saba
 		glm::vec4		m_edgeColor;
 		std::string		m_texture;
 		std::string		m_spTexture;
-		SphereTextureMode	m_spTextureMode;
+		PMXSphereMode	m_spTextureMode;
 		std::string		m_toonTexture;
 		glm::vec4		m_textureMulFactor;
 		glm::vec4		m_spTextureMulFactor;

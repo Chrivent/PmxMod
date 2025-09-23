@@ -349,7 +349,7 @@ namespace saba
 			{ return ikSolver->GetName() == name; }
 		);
 		if (findIt == m_ikSolvers.end())
-			return NPos;
+			return -1;
 		return findIt - m_ikSolvers.begin();
 	}
 
@@ -359,7 +359,7 @@ namespace saba
 
 	MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName) {
 		const auto findIdx = FindIKSolverIndex(ikName);
-		if (findIdx == NPos)
+		if (findIdx == -1)
 			return nullptr;
 		return GetIKSolver(findIdx);
 	}

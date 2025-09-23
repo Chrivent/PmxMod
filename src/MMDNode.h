@@ -85,8 +85,6 @@ namespace saba
 	class MMDNodeManager
 	{
 	public:
-		static constexpr size_t NPos = -1;
-
 		size_t FindNodeIndex(const std::string& name);
 		MMDNode* GetNodeByIndex(size_t idx) const;
 		MMDNode* GetNodeByName(const std::string& nodeName);

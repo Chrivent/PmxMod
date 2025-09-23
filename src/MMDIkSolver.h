@@ -66,8 +66,6 @@ namespace saba
 	class MMDIKManager
 	{
 	public:
-		static constexpr size_t NPos = -1;
-
 		size_t FindIKSolverIndex(const std::string& name);
 		MMDIkSolver* GetIKSolver(size_t idx) const;
 		MMDIkSolver* GetIKSolver(const std::string& ikName);

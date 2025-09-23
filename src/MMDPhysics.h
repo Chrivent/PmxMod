@@ -100,13 +100,6 @@ namespace saba
 		glm::mat4	m_offset;
 	};
 
-	enum class RigidBodyType
-	{
-		Kinematic,
-		Dynamic,
-		Aligned,
-	};
-
 	class MMDRigidBody
 	{
 	public:
@@ -133,7 +126,7 @@ namespace saba
 		std::unique_ptr<btRigidBody>		m_rigidBody;
 
 	public:
-		RigidBodyType	m_rigidBodyType;
+		Operation		m_rigidBodyType;
 		uint16_t		m_group;
 		uint16_t		m_groupMask;
 

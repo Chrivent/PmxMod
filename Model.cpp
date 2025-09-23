@@ -214,9 +214,9 @@ void Model::Draw(const AppContext& appContext) const {
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
 		if (mat.m_spTexture != 0) {
-			if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Mul)
+			if (mmdMat.m_spTextureMode == saba::PMXSphereMode::Mul)
 				glUniform1i(shader->m_uSphereTexMode, 1);
-			else if (mmdMat.m_spTextureMode == saba::SphereTextureMode::Add)
+			else if (mmdMat.m_spTextureMode == saba::PMXSphereMode::Add)
 				glUniform1i(shader->m_uSphereTexMode, 2);
 			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mmdMat.m_spTextureMulFactor[0]);
 			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mmdMat.m_spTextureAddFactor[0]);

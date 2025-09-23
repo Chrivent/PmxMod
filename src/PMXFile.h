@@ -384,6 +384,18 @@ namespace saba
 		std::vector<Target>	m_targets;
 	};
 
+	/*
+	0:ボーン追従(static)
+	1:物理演算(dynamic)
+	2:物理演算 + Bone位置合わせ
+	*/
+	enum class Operation : uint8_t
+	{
+		Static,
+		Dynamic,
+		DynamicAndBoneMerge
+	};
+
 	struct PMXRigidbody
 	{
 		std::string	m_name;
@@ -416,17 +428,6 @@ namespace saba
 		float	m_repulsion;
 		float	m_friction;
 
-		/*
-		0:ボーン追従(static)
-		1:物理演算(dynamic)
-		2:物理演算 + Bone位置合わせ
-		*/
-		enum class Operation : uint8_t
-		{
-			Static,
-			Dynamic,
-			DynamicAndBoneMerge
-		};
 		Operation	m_op;
 	};
 
