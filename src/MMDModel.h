@@ -58,26 +58,6 @@ namespace saba
 		};
 	};
 
-	// struct MaterialFactor
-	// {
-	// 	MaterialFactor() = default;
-	// 	explicit MaterialFactor(const MaterialMorph& pmxMat);
-	//
-	// 	void Mul(const MaterialFactor& val, float weight);
-	// 	void Add(const MaterialFactor& val, float weight);
-	//
-	// 	glm::vec3	m_diffuse{};
-	// 	float		m_alpha{};
-	// 	glm::vec3	m_specular{};
-	// 	float		m_specularPower{};
-	// 	glm::vec3	m_ambient{};
-	// 	glm::vec4	m_edgeColor{};
-	// 	float		m_edgeSize{};
-	// 	glm::vec4	m_textureFactor{};
-	// 	glm::vec4	m_spTextureFactor{};
-	// 	glm::vec4	m_toonTextureFactor{};
-	// };
-
 	void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
 	void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
 

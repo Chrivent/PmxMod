@@ -855,9 +855,9 @@ namespace saba
 						} else
 							w[bi] = 0;
 					}
-					if (glm::dot(dq[0].real, dq[1].real) < 0) { w[1] *= -1.0f; }
-					if (glm::dot(dq[0].real, dq[2].real) < 0) { w[2] *= -1.0f; }
-					if (glm::dot(dq[0].real, dq[3].real) < 0) { w[3] *= -1.0f; }
+					if (glm::dot(dq[0].real, dq[1].real) < 0) w[1] *= -1.0f;
+					if (glm::dot(dq[0].real, dq[2].real) < 0) w[2] *= -1.0f;
+					if (glm::dot(dq[0].real, dq[3].real) < 0) w[3] *= -1.0f;
 					auto blendDQ = w[0] * dq[0]
 					               + w[1] * dq[1]
 					               + w[2] * dq[2]
