@@ -632,16 +632,16 @@ namespace saba
 				morph->m_morphType = MorphType::Bone;
 				morph->m_dataIndex = m_boneMorphDatas.size();
 
-				std::vector<BoneMorphElement> boneMorphData;
+				std::vector<BoneMorph> boneMorphData;
 				for (const auto &[m_boneIndex, m_position, m_quaternion]: pmxMorph.m_boneMorph) {
-					BoneMorphElement boneMorphElem{};
-					boneMorphElem.m_node = m_nodeMan.GetNodeByIndex(m_boneIndex);
+					BoneMorph boneMorphElem{};
+					boneMorphElem.m_boneIndex = m_boneIndex;
 					boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
 					const glm::quat q = m_quaternion;
 					auto invZ = glm::mat3(glm::scale(glm::mat4(1), glm::vec3(1, 1, -1)));
 					auto rot0 = glm::mat3_cast(q);
 					auto rot1 = invZ * rot0 * invZ;
-					boneMorphElem.m_rotate = glm::quat_cast(rot1);
+					boneMorphElem.m_quaternion = glm::quat_cast(rot1);
 					boneMorphData.push_back(boneMorphElem);
 				}
 				m_boneMorphDatas.emplace_back(boneMorphData);
@@ -1038,12 +1038,12 @@ namespace saba
 		}
 	}
 
-	void MMDModel::MorphBone(const std::vector<BoneMorphElement>& morphData, const float weight) {
-		for (const auto &[m_node, m_position, m_rotate]: morphData) {
-			const auto node = m_node;
+	void MMDModel::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
+		for (const auto &[m_boneIndex, m_position, m_quaternion]: morphData) {
+			const auto node = m_nodeMan.GetNodeByIndex(m_boneIndex);
 			glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);
 			node->m_translate = node->m_translate + t;
-			glm::quat q = glm::slerp(node->m_rotate, m_rotate, weight);
+			glm::quat q = glm::slerp(node->m_rotate, m_quaternion, weight);
 			node->m_rotate = q;
 		}
 	}

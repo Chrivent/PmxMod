@@ -78,13 +78,6 @@ namespace saba
 		glm::vec4	m_toonTextureFactor{};
 	};
 
-	struct BoneMorphElement
-	{
-		MMDNode* m_node;
-		glm::vec3	m_position;
-		glm::quat	m_rotate;
-	};
-
 	struct UpdateRange
 	{
 		size_t	m_vertexOffset;
@@ -135,8 +128,7 @@ namespace saba
 		void BeginMorphMaterial();
 		void EndMorphMaterial();
 		void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
-
-		static void MorphBone(const std::vector<BoneMorphElement>& morphData, float weight);
+		void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
 
 	public:
 		std::vector<glm::vec3>	m_positions;
@@ -155,7 +147,7 @@ namespace saba
 		std::vector<std::vector<PositionMorph>>	m_positionMorphDatas;
 		std::vector<std::vector<UVMorph>>		m_uvMorphDatas;
 		std::vector<std::vector<MaterialMorph>>	m_materialMorphDatas;
-		std::vector<std::vector<BoneMorphElement>>		m_boneMorphDatas;
+		std::vector<std::vector<BoneMorph>>		m_boneMorphDatas;
 		std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
 
 		// PositionMorph用
