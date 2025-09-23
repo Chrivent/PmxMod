@@ -4,7 +4,7 @@ namespace saba
 {
 	MMDMaterial::MMDMaterial()
 		: m_diffuse(1)
-		, m_alpha(1)
+		//, m_alpha(1)
 		, m_specular(0)
 		, m_specularPower(1)
 		, m_ambient(0.2f)

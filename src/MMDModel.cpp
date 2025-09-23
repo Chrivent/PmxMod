@@ -18,45 +18,28 @@
 
 namespace saba
 {
-	MaterialFactor::MaterialFactor(const MaterialMorph& pmxMat) {
-		m_diffuse.r = pmxMat.m_diffuse.r;
-		m_diffuse.g = pmxMat.m_diffuse.g;
-		m_diffuse.b = pmxMat.m_diffuse.b;
-		m_alpha = pmxMat.m_diffuse.a;
-		m_specular = pmxMat.m_specular;
-		m_specularPower = pmxMat.m_specularPower;
-		m_ambient = pmxMat.m_ambient;
-		m_edgeColor = pmxMat.m_edgeColor;
-		m_edgeSize = pmxMat.m_edgeSize;
-		m_textureFactor = pmxMat.m_textureFactor;
-		m_spTextureFactor = pmxMat.m_sphereTextureFactor;
-		m_toonTextureFactor = pmxMat.m_toonTextureFactor;
+	void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+		out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);
+		out.m_specular = glm::mix(out.m_specular, out.m_specular * val.m_specular, weight);
+		out.m_specularPower = glm::mix(out.m_specularPower, out.m_specularPower * val.m_specularPower, weight);
+		out.m_ambient = glm::mix(out.m_ambient, out.m_ambient * val.m_ambient, weight);
+		out.m_edgeColor = glm::mix(out.m_edgeColor, out.m_edgeColor * val.m_edgeColor, weight);
+		out.m_edgeSize = glm::mix(out.m_edgeSize, out.m_edgeSize * val.m_edgeSize, weight);
+		out.m_textureFactor = glm::mix(out.m_textureFactor, out.m_textureFactor * val.m_textureFactor, weight);
+		out.m_sphereTextureFactor = glm::mix(out.m_sphereTextureFactor, out.m_sphereTextureFactor * val.m_sphereTextureFactor, weight);
+		out.m_toonTextureFactor = glm::mix(out.m_toonTextureFactor, out.m_toonTextureFactor * val.m_toonTextureFactor, weight);
 	}
 
-	void MaterialFactor::Mul(const MaterialFactor& val, const float weight) {
-		m_diffuse = glm::mix(m_diffuse, m_diffuse * val.m_diffuse, weight);
-		m_alpha = glm::mix(m_alpha, m_alpha * val.m_alpha, weight);
-		m_specular = glm::mix(m_specular, m_specular * val.m_specular, weight);
-		m_specularPower = glm::mix(m_specularPower, m_specularPower * val.m_specularPower, weight);
-		m_ambient = glm::mix(m_ambient, m_ambient * val.m_ambient, weight);
-		m_edgeColor = glm::mix(m_edgeColor, m_edgeColor * val.m_edgeColor, weight);
-		m_edgeSize = glm::mix(m_edgeSize, m_edgeSize * val.m_edgeSize, weight);
-		m_textureFactor = glm::mix(m_textureFactor, m_textureFactor * val.m_textureFactor, weight);
-		m_spTextureFactor = glm::mix(m_spTextureFactor, m_spTextureFactor * val.m_spTextureFactor, weight);
-		m_toonTextureFactor = glm::mix(m_toonTextureFactor, m_toonTextureFactor * val.m_toonTextureFactor, weight);
-	}
-
-	void MaterialFactor::Add(const MaterialFactor& val, const float weight) {
-		m_diffuse += val.m_diffuse * weight;
-		m_alpha += val.m_alpha * weight;
-		m_specular += val.m_specular * weight;
-		m_specularPower += val.m_specularPower * weight;
-		m_ambient += val.m_ambient * weight;
-		m_edgeColor += val.m_edgeColor * weight;
-		m_edgeSize += val.m_edgeSize * weight;
-		m_textureFactor += val.m_textureFactor * weight;
-		m_spTextureFactor += val.m_spTextureFactor * weight;
-		m_toonTextureFactor += val.m_toonTextureFactor * weight;
+	void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+		out.m_diffuse += val.m_diffuse * weight;
+		out.m_specular += val.m_specular * weight;
+		out.m_specularPower += val.m_specularPower * weight;
+		out.m_ambient += val.m_ambient * weight;
+		out.m_edgeColor += val.m_edgeColor * weight;
+		out.m_edgeSize += val.m_edgeSize * weight;
+		out.m_textureFactor += val.m_textureFactor * weight;
+		out.m_sphereTextureFactor += val.m_sphereTextureFactor * weight;
+		out.m_toonTextureFactor += val.m_toonTextureFactor * weight;
 	}
 
 	MMDModel::MMDModel()
@@ -453,7 +436,6 @@ namespace saba
 		for (const auto &pmxMat: pmx.m_materials) {
 			MMDMaterial mat;
 			mat.m_diffuse = pmxMat.m_diffuse;
-			mat.m_alpha = pmxMat.m_diffuse.a;
 			mat.m_specularPower = pmxMat.m_specularPower;
 			mat.m_specular = pmxMat.m_specular;
 			mat.m_ambient = pmxMat.m_ambient;
@@ -950,35 +932,32 @@ namespace saba
 	}
 
 	void MMDModel::BeginMorphMaterial() {
-		MaterialFactor initMul;
-		initMul.m_diffuse = glm::vec3(1);
-		initMul.m_alpha = 1;
+		MaterialMorph initMul{};
+		initMul.m_diffuse = glm::vec4(1);
 		initMul.m_specular = glm::vec3(1);
 		initMul.m_specularPower = 1;
 		initMul.m_ambient = glm::vec3(1);
 		initMul.m_edgeColor = glm::vec4(1);
 		initMul.m_edgeSize = 1;
 		initMul.m_textureFactor = glm::vec4(1);
-		initMul.m_spTextureFactor = glm::vec4(1);
+		initMul.m_sphereTextureFactor = glm::vec4(1);
 		initMul.m_toonTextureFactor = glm::vec4(1);
 
-		MaterialFactor initAdd;
-		initAdd.m_diffuse = glm::vec3(0);
-		initAdd.m_alpha = 0;
+		MaterialMorph initAdd{};
+		initAdd.m_diffuse = glm::vec4(0);
 		initAdd.m_specular = glm::vec3(0);
 		initAdd.m_specularPower = 0;
 		initAdd.m_ambient = glm::vec3(0);
 		initAdd.m_edgeColor = glm::vec4(0);
 		initAdd.m_edgeSize = 0;
 		initAdd.m_textureFactor = glm::vec4(0);
-		initAdd.m_spTextureFactor = glm::vec4(0);
+		initAdd.m_sphereTextureFactor = glm::vec4(0);
 		initAdd.m_toonTextureFactor = glm::vec4(0);
 
 		const size_t matCount = m_materials.size();
 		for (size_t matIdx = 0; matIdx < matCount; matIdx++) {
 			m_mulMaterialFactors[matIdx] = initMul;
 			m_mulMaterialFactors[matIdx].m_diffuse = m_initMaterials[matIdx].m_diffuse;
-			m_mulMaterialFactors[matIdx].m_alpha = m_initMaterials[matIdx].m_alpha;
 			m_mulMaterialFactors[matIdx].m_specular = m_initMaterials[matIdx].m_specular;
 			m_mulMaterialFactors[matIdx].m_specularPower = m_initMaterials[matIdx].m_specularPower;
 			m_mulMaterialFactors[matIdx].m_ambient = m_initMaterials[matIdx].m_ambient;
@@ -990,18 +969,17 @@ namespace saba
 	void MMDModel::EndMorphMaterial() {
 		const size_t matCount = m_materials.size();
 		for (size_t matIdx = 0; matIdx < matCount; matIdx++) {
-			MaterialFactor matFactor = m_mulMaterialFactors[matIdx];
-			matFactor.Add(m_addMaterialFactors[matIdx], 1.0f);
+			MaterialMorph matFactor = m_mulMaterialFactors[matIdx];
+			Add(matFactor, m_addMaterialFactors[matIdx], 1.0f);
 
 			m_materials[matIdx].m_diffuse = matFactor.m_diffuse;
-			m_materials[matIdx].m_alpha = matFactor.m_alpha;
 			m_materials[matIdx].m_specular = matFactor.m_specular;
 			m_materials[matIdx].m_specularPower = matFactor.m_specularPower;
 			m_materials[matIdx].m_ambient = matFactor.m_ambient;
 			m_materials[matIdx].m_textureMulFactor = m_mulMaterialFactors[matIdx].m_textureFactor;
 			m_materials[matIdx].m_textureAddFactor = m_addMaterialFactors[matIdx].m_textureFactor;
-			m_materials[matIdx].m_spTextureMulFactor = m_mulMaterialFactors[matIdx].m_spTextureFactor;
-			m_materials[matIdx].m_spTextureAddFactor = m_addMaterialFactors[matIdx].m_spTextureFactor;
+			m_materials[matIdx].m_spTextureMulFactor = m_mulMaterialFactors[matIdx].m_sphereTextureFactor;
+			m_materials[matIdx].m_spTextureAddFactor = m_addMaterialFactors[matIdx].m_sphereTextureFactor;
 			m_materials[matIdx].m_toonTextureMulFactor = m_mulMaterialFactors[matIdx].m_toonTextureFactor;
 			m_materials[matIdx].m_toonTextureAddFactor = m_addMaterialFactors[matIdx].m_toonTextureFactor;
 		}
@@ -1013,10 +991,10 @@ namespace saba
 				const auto mi = matMorph.m_materialIndex;
 				switch (matMorph.m_opType) {
 					case MaterialMorph::OpType::Mul:
-						m_mulMaterialFactors[mi].Mul(MaterialFactor(matMorph), weight);
+						Mul(m_mulMaterialFactors[mi], matMorph, weight);
 						break;
 					case MaterialMorph::OpType::Add:
-						m_addMaterialFactors[mi].Add(MaterialFactor(matMorph), weight);
+						Add(m_addMaterialFactors[mi], matMorph, weight);
 						break;
 					default:
 						break;
@@ -1025,11 +1003,11 @@ namespace saba
 				switch (matMorph.m_opType) {
 					case MaterialMorph::OpType::Mul:
 						for (size_t i = 0; i < m_materials.size(); i++)
-							m_mulMaterialFactors[i].Mul(MaterialFactor(matMorph),weight);
+							Mul(m_mulMaterialFactors[i], matMorph,weight);
 						break;
 					case MaterialMorph::OpType::Add:
 						for (size_t i = 0; i < m_materials.size(); i++)
-							m_addMaterialFactors[i].Add(MaterialFactor(matMorph), weight);
+							Add(m_addMaterialFactors[i], matMorph, weight);
 						break;
 					default:
 						break;

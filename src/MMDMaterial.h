@@ -18,8 +18,8 @@ namespace saba
 	{
 		MMDMaterial();
 
-		glm::vec3		m_diffuse;
-		float			m_alpha;
+		glm::vec4		m_diffuse;
+		//float			m_alpha;
 		glm::vec3		m_specular;
 		float			m_specularPower;
 		glm::vec3		m_ambient;

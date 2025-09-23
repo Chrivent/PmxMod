@@ -179,7 +179,7 @@ void Model::Draw(const AppContext& appContext) const {
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
 
-		if (mat.m_mmdMat.m_alpha == 0)
+		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 
 		glUseProgram(shader->m_prog);
@@ -192,7 +192,7 @@ void Model::Draw(const AppContext& appContext) const {
 		glUniform3fv(shader->m_uDiffuse, 1, &mmdMat.m_diffuse[0]);
 		glUniform3fv(shader->m_uSpecular, 1, &mmdMat.m_specular[0]);
 		glUniform1f(shader->m_uSpecularPower, mmdMat.m_specularPower);
-		glUniform1f(shader->m_uAlpha, mmdMat.m_alpha);
+		glUniform1f(shader->m_uAlpha, mmdMat.m_diffuse.a);
 
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glUniform1i(shader->m_uTex, 0);
@@ -295,7 +295,7 @@ void Model::Draw(const AppContext& appContext) const {
 
 		if (!mmdMat.m_edgeFlag)
 			continue;
-		if (mmdMat.m_alpha == 0.0f)
+		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
 
 		glUseProgram(shader->m_prog);
@@ -369,7 +369,7 @@ void Model::Draw(const AppContext& appContext) const {
 
 		if (!mmdMat.m_groundShadow)
 			continue;
-		if (mmdMat.m_alpha == 0.0f)
+		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
 
 		glUseProgram(shader->m_prog);
