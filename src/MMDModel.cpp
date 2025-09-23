@@ -273,23 +273,23 @@ namespace saba
 		if (m_parallelUpdateCount != m_updateRanges.size())
 			SetupParallelUpdate();
 
-		const size_t futureCount = m_parallelUpdateFutures.size();
-		for (size_t i = 0; i < futureCount; i++) {
-			size_t rangeIndex = i + 1;
-			if (m_updateRanges[rangeIndex].m_vertexCount != 0) {
-				m_parallelUpdateFutures[i] = std::async(std::launch::async,
-					[this, rangeIndex] { this->Update(this->m_updateRanges[rangeIndex]); }
-				);
-			}
-		}
+		// const size_t futureCount = m_parallelUpdateFutures.size();
+		// for (size_t i = 0; i < futureCount; i++) {
+		// 	size_t rangeIndex = i + 1;
+		// 	if (m_updateRanges[rangeIndex].m_vertexCount != 0) {
+		// 		m_parallelUpdateFutures[i] = std::async(std::launch::async,
+		// 		[this, rangeIndex] { this->Update(this->m_updateRanges[rangeIndex]); }
+		// 		);
+		// 	}
+		// }
 
 		Update(m_updateRanges[0]);
 
-		for (size_t i = 0; i < futureCount; i++) {
-			const size_t rangeIndex = i + 1;
-			if (m_updateRanges[rangeIndex].m_vertexCount != 0)
-				m_parallelUpdateFutures[i].wait();
-		}
+		// for (size_t i = 0; i < futureCount; i++) {
+		// 	const size_t rangeIndex = i + 1;
+		// 	if (m_updateRanges[rangeIndex].m_vertexCount != 0)
+		// 		m_parallelUpdateFutures[i].wait();
+		// }
 	}
 
 	void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
@@ -743,42 +743,52 @@ namespace saba
 	}
 
 	void MMDModel::SetupParallelUpdate() {
-		if (m_parallelUpdateCount == 0)
-			m_parallelUpdateCount = std::thread::hardware_concurrency();
-		const size_t maxParallelCount = std::max(static_cast<size_t>(16),
-			static_cast<size_t>(std::thread::hardware_concurrency()));
-		if (m_parallelUpdateCount > maxParallelCount)
-			m_parallelUpdateCount = 16;
-
-		m_updateRanges.resize(m_parallelUpdateCount);
-		m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
+		// if (m_parallelUpdateCount == 0)
+		// 	m_parallelUpdateCount = std::thread::hardware_concurrency();
+		// const size_t maxParallelCount = std::max(static_cast<size_t>(16),
+		// 	static_cast<size_t>(std::thread::hardware_concurrency()));
+		// if (m_parallelUpdateCount > maxParallelCount)
+		// 	m_parallelUpdateCount = 16;
+		//
+		// m_updateRanges.resize(m_parallelUpdateCount);
+		// m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
+		//
+		// const size_t vertexCount = m_positions.size();
+		// constexpr size_t LowerVertexCount = 1000;
+		// if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
+		// 	const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
+		// 	for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
+		// 		auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+		// 		if (rangeIdx < numRanges) {
+		// 			m_vertexOffset = rangeIdx * LowerVertexCount;
+		// 			m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
+		// 		} else {
+		// 			m_vertexOffset = 0;
+		// 			m_vertexCount = 0;
+		// 		}
+		// 	}
+		// } else {
+		// 	const size_t numVertexCount = vertexCount / m_updateRanges.size();
+		// 	size_t offset = 0;
+		// 	for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
+		// 		auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+		// 		m_vertexOffset = offset;
+		// 		m_vertexCount = numVertexCount;
+		// 		if (rangeIdx == 0)
+		// 			m_vertexCount += vertexCount % m_updateRanges.size();
+		// 		offset = m_vertexOffset + m_vertexCount;
+		// 	}
+		// }
 
 		const size_t vertexCount = m_positions.size();
-		constexpr size_t LowerVertexCount = 1000;
-		if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
-			const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
-			for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-				auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-				if (rangeIdx < numRanges) {
-					m_vertexOffset = rangeIdx * LowerVertexCount;
-					m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
-				} else {
-					m_vertexOffset = 0;
-					m_vertexCount = 0;
-				}
-			}
-		} else {
-			const size_t numVertexCount = vertexCount / m_updateRanges.size();
-			size_t offset = 0;
-			for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-				auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-				m_vertexOffset = offset;
-				m_vertexCount = numVertexCount;
-				if (rangeIdx == 0)
-					m_vertexCount += vertexCount % m_updateRanges.size();
-				offset = m_vertexOffset + m_vertexCount;
-			}
-		}
+
+		// 싱글 스레드 강제
+		m_parallelUpdateCount = 1;
+		m_updateRanges.resize(1);
+		m_updateRanges[0] = { /*m_vertexOffset=*/0, /*m_vertexCount=*/vertexCount };
+
+		// 워커 없음
+		m_parallelUpdateFutures.clear();
 	}
 
 	void MMDModel::Update(const UpdateRange& range) {
