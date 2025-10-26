@@ -309,8 +309,6 @@ namespace saba
 		m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 		m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
 
-		bool warnSDEF = false;
-		bool infoQDEF = false;
 		for (const auto &v: pmx.m_vertices) {
 			glm::vec3 pos = v.m_position * glm::vec3(1, 1, -1);
 			glm::vec3 nor = v.m_normal * glm::vec3(1, 1, -1);
@@ -337,8 +335,6 @@ namespace saba
 					vtxBoneInfo.m_boneWeights[1] = 1.0f - vtxBoneInfo.m_boneWeights[0];
 					break;
 				case PMXVertexWeight::SDEF:
-					if (!warnSDEF)
-						warnSDEF = true;
 					{
 						auto w0 = v.m_boneWeights[0];
 						auto w1 = 1.0f - w0;
@@ -359,10 +355,6 @@ namespace saba
 						vtxBoneInfo.m_sdefR0 = cr0;
 						vtxBoneInfo.m_sdefR1 = cr1;
 					}
-					break;
-				case PMXVertexWeight::QDEF:
-					if (!infoQDEF)
-						infoQDEF = true;
 					break;
 				default:
 					break;

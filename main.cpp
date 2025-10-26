@@ -430,7 +430,7 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 			appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov, static_cast<float>(width),
 			                                             static_cast<float>(height), 1.0f, 10000.0f);
 		} else {
-			appContext.m_viewMat = glm::lookAt(glm::vec3(0, 10, 50), glm::vec3(0, 10, 0), glm::vec3(0, 1, 0));
+			appContext.m_viewMat = glm::lookAt(glm::vec3(0, 10, 40), glm::vec3(0, 10, 0), glm::vec3(0, 1, 0));
 			appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f), static_cast<float>(width),
 			                                             static_cast<float>(height), 1.0f, 10000.0f);
 		}

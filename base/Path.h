@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-namespace saba { 
+namespace saba
+{
 	class PathUtil
 	{
 	public:
