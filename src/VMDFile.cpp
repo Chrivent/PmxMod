@@ -18,8 +18,7 @@ namespace saba
 			Read(&vmd->m_header.m_modelName, file);
 
 			if (vmd->m_header.m_header.ToString() != "Vocaloid Motion Data 0002" &&
-				vmd->m_header.m_header.ToString() != "Vocaloid Motion Data"
-				)
+				vmd->m_header.m_header.ToString() != "Vocaloid Motion Data")
 			{
 				return false;
 			}

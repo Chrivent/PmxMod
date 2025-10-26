@@ -13,7 +13,6 @@
 #include "AppContext.h"
 #include "Model.h"
 
-#define MINIAUDIO_IMPLEMENTATION
 #include "external/miniaudio.h"
 
 namespace fs = std::filesystem;

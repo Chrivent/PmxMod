@@ -36,28 +36,6 @@ namespace saba
 
 	class VMDAnimation;
 
-	struct VertexBoneInfo
-	{
-		PMXVertexWeight	m_skinningType;
-		union
-		{
-			struct
-			{
-				int32_t	m_boneIndex[4];
-				float	m_boneWeight[4];
-			};
-			struct
-			{
-				int32_t	m_boneIndex[2];
-				float	m_boneWeight;
-
-				glm::vec3	m_sdefC;
-				glm::vec3	m_sdefR0;
-				glm::vec3	m_sdefR1;
-			} m_sdef;
-		};
-	};
-
 	void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
 	void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
 
@@ -117,7 +95,7 @@ namespace saba
 		std::vector<glm::vec3>	m_positions;
 		std::vector<glm::vec3>	m_normals;
 		std::vector<glm::vec2>	m_uvs;
-		std::vector<VertexBoneInfo>	m_vertexBoneInfos;
+		std::vector<PMXVertex>	m_vertexBoneInfos;
 		std::vector<glm::vec3>	m_updatePositions;
 		std::vector<glm::vec3>	m_updateNormals;
 		std::vector<glm::vec2>	m_updateUVs;
