@@ -6,71 +6,65 @@
 #include <string>
 #include <glm/vec3.hpp>
 
-namespace saba
+struct IKChain
 {
-	struct IKChain
-	{
-		MMDNode* m_node;
-		bool		m_enableAxisLimit;
-		glm::vec3	m_limitMax;
-		glm::vec3	m_limitMin;
-		glm::vec3	m_prevAngle;
-		glm::quat	m_saveIKRot;
-		float		m_planeModeAngle;
-	};
+	MMDNode* m_node;
+	bool		m_enableAxisLimit;
+	glm::vec3	m_limitMax;
+	glm::vec3	m_limitMin;
+	glm::vec3	m_prevAngle;
+	glm::quat	m_saveIKRot;
+	float		m_planeModeAngle;
+};
 
-	enum class SolveAxis {
-		X,
-		Y,
-		Z,
-	};
+enum class SolveAxis {
+	X,
+	Y,
+	Z,
+};
 
-	class MMDIkSolver
-	{
-	public:
-		MMDIkSolver();
+class MMDIkSolver
+{
+public:
+	MMDIkSolver();
 
-		std::string GetName() const;
+	std::string GetName() const;
+	void AddIKChain(
+		MMDNode* node,
+		bool axisLimit,
+		const glm::vec3& limixMin,
+		const glm::vec3& limitMax
+	);
+	void Solve();
+	void SaveBaseAnimation();
+	void LoadBaseAnimation();
+	void ClearBaseAnimation();
 
-		void AddIKChain(MMDNode* node, bool isKnee = false);
-		void AddIKChain(
-			MMDNode* node,
-			bool axisLimit,
-			const glm::vec3& limixMin,
-			const glm::vec3& limitMax
-		);
+private:
+	static float NormalizeAngle(float angle);
+	static float DiffAngle(float a, float b);
+	static glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before);
+	void SolveCore(int iteration);
+	void SolvePlane(int iteration, int chainIdx, SolveAxis solveAxis);
 
-		void Solve();
+public:
+	std::vector<IKChain>	m_chains;
+	MMDNode*	m_ikNode;
+	MMDNode*	m_ikTarget;
+	int	m_iterateCount;
+	float		m_limitAngle;
+	bool		m_enable;
+	bool		m_baseAnimEnable;
 
-		void SaveBaseAnimation();
-		void LoadBaseAnimation();
-		void ClearBaseAnimation();
+};
 
-	private:
-		void AddIKChain(IKChain chain);
-		void SolveCore(uint32_t iteration);
+class MMDIKManager
+{
+public:
+	int FindIKSolverIndex(const std::string& name);
+	MMDIkSolver* GetIKSolver(int idx) const;
+	MMDIkSolver* GetIKSolver(const std::string& ikName);
+	MMDIkSolver* AddIKSolver();
 
-		void SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis);
-
-	public:
-		std::vector<IKChain>	m_chains;
-		MMDNode*	m_ikNode;
-		MMDNode*	m_ikTarget;
-		uint32_t	m_iterateCount;
-		float		m_limitAngle;
-		bool		m_enable;
-		bool		m_baseAnimEnable;
-
-	};
-
-	class MMDIKManager
-	{
-	public:
-		size_t FindIKSolverIndex(const std::string& name);
-		MMDIkSolver* GetIKSolver(size_t idx) const;
-		MMDIkSolver* GetIKSolver(const std::string& ikName);
-		MMDIkSolver* AddIKSolver();
-
-		std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
-	};
-}
+	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
+};

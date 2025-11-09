@@ -6,9 +6,9 @@
 
 struct Material
 {
-    explicit Material(const saba::MMDMaterial& mat);
+    explicit Material(const MMDMaterial& mat);
 
-    const saba::MMDMaterial& m_mmdMat;
+    const MMDMaterial& m_mmdMat;
     GLuint	m_texture = 0;
     bool	m_textureHasAlpha = false;
     GLuint	m_spTexture = 0;
@@ -19,8 +19,8 @@ struct AppContext;
 
 struct Model
 {
-    std::shared_ptr<saba::MMDModel>	m_mmdModel;
-    std::unique_ptr<saba::VMDAnimation>	m_vmdAnim;
+    std::shared_ptr<MMDModel>	m_mmdModel;
+    std::unique_ptr<VMDAnimation>	m_vmdAnim;
 
     GLuint	m_posVBO = 0;
     GLuint	m_norVBO = 0;

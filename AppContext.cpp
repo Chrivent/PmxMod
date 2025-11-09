@@ -14,11 +14,11 @@ AppContext::~AppContext() {
 
 bool AppContext::Setup() {
 	// Setup resource directory.
-	m_resourceDir = saba::PathUtil::GetExecutablePath();
-	m_resourceDir = saba::PathUtil::GetDirectoryName(m_resourceDir);
-	m_resourceDir = saba::PathUtil::Combine(m_resourceDir, "resource");
-	m_shaderDir = saba::PathUtil::Combine(m_resourceDir, "shader");
-	m_mmdDir = saba::PathUtil::Combine(m_resourceDir, "mmd");
+	m_resourceDir = PathUtil::GetExecutablePath();
+	m_resourceDir = PathUtil::GetDirectoryName(m_resourceDir);
+	m_resourceDir = PathUtil::Combine(m_resourceDir, "resource");
+	m_shaderDir = PathUtil::Combine(m_resourceDir, "shader");
+	m_mmdDir = PathUtil::Combine(m_resourceDir, "mmd");
 
 	m_mmdShader = std::make_unique<MMDShader>();
 	if (!m_mmdShader->Setup(*this))
@@ -68,7 +68,7 @@ Texture AppContext::GetTexture(const std::string& texturePath)
 	if (it == m_textures.end())
 	{
 		stbi_set_flip_vertically_on_load(true);
-		saba::File file;
+		File file;
 		if (!file.OpenFile(texturePath.c_str(), "rb"))
 			return Texture{ 0, false };
 		int x, y, comp;

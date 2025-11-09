@@ -3,24 +3,21 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-namespace saba
+struct MMDCamera
 {
-	struct MMDCamera
-	{
-		MMDCamera();
+	MMDCamera();
 
-		glm::vec3	m_interest{};
-		glm::vec3	m_rotate{};
-		float		m_distance;
-		float		m_fov;
-	};
+	glm::vec3	m_interest{};
+	glm::vec3	m_rotate{};
+	float		m_distance;
+	float		m_fov;
+};
 
-	struct MMDLookAtCamera
-	{
-		explicit MMDLookAtCamera(const MMDCamera& cam);
+struct MMDLookAtCamera
+{
+	explicit MMDLookAtCamera(const MMDCamera& cam);
 
-		glm::vec3	m_center{};
-		glm::vec3	m_eye{};
-		glm::vec3	m_up{};
-	};
-}
+	glm::vec3	m_center{};
+	glm::vec3	m_eye{};
+	glm::vec3	m_up{};
+};

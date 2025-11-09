@@ -41,7 +41,7 @@ struct AppContext
 
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
-    std::unique_ptr<saba::VMDCameraAnimation>	m_vmdCameraAnim;
+    std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
 
     bool Setup();
     void Clear();

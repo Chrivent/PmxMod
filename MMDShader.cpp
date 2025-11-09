@@ -46,7 +46,7 @@ GLuint CreateShader(const GLenum shaderType, const std::string &code) {
 }
 
 GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile) {
-	saba::File vsFileText;
+	File vsFileText;
 	if (!vsFileText.OpenFile(vsFile.c_str(), "r")) {
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
@@ -54,7 +54,7 @@ GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile)
 	const std::string vsCode = vsFileText.ReadAll();
 	vsFileText.Close();
 
-	saba::File fsFileText;
+	File fsFileText;
 	if (!fsFileText.OpenFile(fsFile.c_str(), "r")) {
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
@@ -118,8 +118,8 @@ MMDShader::~MMDShader() {
 
 bool MMDShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd.vert"),
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd.frag")
+		PathUtil::Combine(appContext.m_shaderDir, "mmd.vert"),
+		PathUtil::Combine(appContext.m_shaderDir, "mmd.frag")
 	);
 	if (m_prog == 0)
 		return false;
@@ -183,8 +183,8 @@ MMDEdgeShader::~MMDEdgeShader() {
 
 bool MMDEdgeShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.vert"),
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.frag")
+		PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.vert"),
+		PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.frag")
 	);
 	if (m_prog == 0)
 		return false;
@@ -218,8 +218,8 @@ MMDGroundShadowShader::~MMDGroundShadowShader() {
 
 bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.vert"),
-		saba::PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.frag")
+		PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.vert"),
+		PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.frag")
 	);
 	if (m_prog == 0)
 		return false;

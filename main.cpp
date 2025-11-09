@@ -17,18 +17,18 @@
 
 namespace fs = std::filesystem;
 
-static const std::string MODEL_DIR  = saba::PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/models)");
-static const std::string MOTION_DIR = saba::PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/motions)");
-static const std::string CAMERA_DIR = saba::PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/cameras)");
-static const std::string MUSIC_DIR  = saba::PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/musics)");
+static const std::string MODEL_DIR  = PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/models)");
+static const std::string MOTION_DIR = PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/motions)");
+static const std::string CAMERA_DIR = PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/cameras)");
+static const std::string MUSIC_DIR  = PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/musics)");
 
 static std::string Norm(const fs::path& p) {
-    return saba::PathUtil::Normalize(saba::ToUtf8String(p.wstring()));
+    return PathUtil::Normalize(ToUtf8String(p.wstring()));
 }
 
 static void PrintPath(const std::string& u8) { std::cout << u8; }
 static void PrintFilename(const std::string& u8path) {
-    std::cout << saba::PathUtil::GetFilename(u8path);
+    std::cout << PathUtil::GetFilename(u8path);
 }
 
 static std::vector<std::string> ListSubdirs(const std::string& rootU8){
@@ -57,7 +57,7 @@ static std::vector<std::string> ListFilesWithExt(const std::string& dirU8, std::
         if (ec) break;
         if (!it->is_regular_file(ec)) continue;
         const std::string pathU8 = Norm(it->path());
-        if (saba::PathUtil::GetExt(pathU8) == wantExtLower) out.emplace_back(pathU8);
+        if (PathUtil::GetExt(pathU8) == wantExtLower) out.emplace_back(pathU8);
     }
     std::ranges::sort(out);
     return out;
@@ -120,7 +120,7 @@ static std::vector<std::string> BuildArgsInteractive(){
         const std::string& folder = modelFolders[(size_t)fIdx];
         const auto pmxs = ListFilesWithExt(folder, "pmx");
         if (pmxs.empty()){
-            std::cout << "  [건너뜀] " << saba::PathUtil::GetFilename(folder) << " 폴더에 .pmx 없음.\n";
+            std::cout << "  [건너뜀] " << PathUtil::GetFilename(folder) << " 폴더에 .pmx 없음.\n";
             continue;
         }
 
@@ -147,7 +147,7 @@ static std::vector<std::string> BuildArgsInteractive(){
     args.emplace_back("-scale");
     args.emplace_back("1.0");
     args.emplace_back("-model");
-    args.emplace_back(saba::PathUtil::Normalize(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\torisutsuki\torisutsuki.pmx)"));
+    args.emplace_back(PathUtil::Normalize(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\torisutsuki\torisutsuki.pmx)"));
 
     std::cout << "\n[최종 인자]\n";
     for (auto& s : args) std::cout << s << ' ';
@@ -176,7 +176,7 @@ static std::vector<std::string> ListAudioFiles(const std::string& dirU8) {
         if (!it->is_regular_file(ec)) continue;
 
         const std::string pathU8 = Norm(it->path());
-        if (IsAudioExt(saba::PathUtil::GetExt(pathU8)))  // ← 점 없이 소문자
+        if (IsAudioExt(PathUtil::GetExt(pathU8)))  // ← 점 없이 소문자
             out.emplace_back(pathU8);
     }
 
@@ -213,7 +213,7 @@ struct AudioContext {
 
         // c.path는 이미 UTF-8 문자열
         if (ma_sound_init_from_file(&engine, c.path.c_str(), 0, nullptr, nullptr, &sound) != MA_SUCCESS) {
-            std::cout << "[오디오] 파일 열기 실패: " << saba::PathUtil::GetFilename(c.path) << "\n";
+            std::cout << "[오디오] 파일 열기 실패: " << PathUtil::GetFilename(c.path) << "\n";
             ma_engine_uninit(&engine); return false;
         }
 
@@ -338,9 +338,9 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 	for (const auto &[m_modelPath, m_vmdPaths, m_scale]: inputModels) {
 		// Load MMD model
 		Model model;
-		auto ext = saba::PathUtil::GetExt(m_modelPath);
+		auto ext = PathUtil::GetExt(m_modelPath);
 		if (ext == "pmx") {
-			auto pmxModel = std::make_unique<saba::MMDModel>();
+			auto pmxModel = std::make_unique<MMDModel>();
 			if (!pmxModel->Load(m_modelPath, appContext.m_mmdDir)) {
 				std::cout << "Failed to load pmx file.\n";
 				return false;
@@ -353,11 +353,11 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 		model.m_mmdModel->InitializeAnimation();
 
 		// Load VMD animation
-		auto vmdAnim = std::make_unique<saba::VMDAnimation>();
+		auto vmdAnim = std::make_unique<VMDAnimation>();
 		vmdAnim->m_model = model.m_mmdModel;
 		for (const auto &vmdPath: m_vmdPaths) {
-			saba::VMDFile vmdFile;
-			if (!saba::ReadVMDFile(&vmdFile, vmdPath.c_str())) {
+			VMDFile vmdFile;
+			if (!ReadVMDFile(&vmdFile, vmdPath.c_str())) {
 				std::cout << "Failed to read VMD file.\n";
 				return false;
 			}
@@ -366,7 +366,7 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 				return false;
 			}
 			if (!vmdFile.m_cameras.empty()) {
-				auto vmdCamAnim = std::make_unique<saba::VMDCameraAnimation>();
+				auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
 				if (!vmdCamAnim->Create(vmdFile))
 					std::cout << "Failed to create VMDCameraAnimation.\n";
 				appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
@@ -425,7 +425,7 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 		if (appContext.m_vmdCameraAnim) {
 			appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
 			const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
-			saba::MMDLookAtCamera lookAtCam(mmdCam);
+			MMDLookAtCamera lookAtCam(mmdCam);
 			appContext.m_viewMat = glm::lookAt(lookAtCam.m_eye, lookAtCam.m_center, lookAtCam.m_up);
 			appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov, static_cast<float>(width),
 			                                             static_cast<float>(height), 1.0f, 10000.0f);
