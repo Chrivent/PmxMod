@@ -45,7 +45,7 @@ void MMDIkSolver::Solve() {
 		chain.m_node->UpdateGlobalTransform();
 	}
 	float maxDist = std::numeric_limits<float>::max();
-	for (int i = 0; i < m_iterateCount; i++) {
+	for (uint32_t i = 0; i < m_iterateCount; i++) {
 		SolveCore(i);
 		auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
 		auto ikPos = glm::vec3(m_ikNode->m_global[3]);
@@ -155,9 +155,9 @@ glm::vec3 MMDIkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 	return r;
 }
 
-void MMDIkSolver::SolveCore(int iteration) {
+void MMDIkSolver::SolveCore(uint32_t iteration) {
 	auto ikPos = glm::vec3(m_ikNode->m_global[3]);
-	for (int chainIdx = 0; chainIdx < m_chains.size(); chainIdx++) {
+	for (size_t chainIdx = 0; chainIdx < m_chains.size(); chainIdx++) {
 		auto &chain = m_chains[chainIdx];
 		MMDNode *chainNode = chain.m_node;
 		if (chainNode == m_ikTarget)
@@ -221,7 +221,7 @@ void MMDIkSolver::SolveCore(int iteration) {
 	}
 }
 
-void MMDIkSolver::SolvePlane(int iteration, int chainIdx, SolveAxis solveAxis) {
+void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis) {
 	int RotateAxisIndex = 0;
 	auto RotateAxis = glm::vec3(1, 0, 0);
 	switch (solveAxis) {
@@ -281,17 +281,17 @@ void MMDIkSolver::SolvePlane(int iteration, int chainIdx, SolveAxis solveAxis) {
 	chain.m_node->UpdateGlobalTransform();
 }
 
-int MMDIKManager::FindIKSolverIndex(const std::string& name) {
+size_t MMDIKManager::FindIKSolverIndex(const std::string& name) {
 	const auto findIt = std::ranges::find_if(m_ikSolvers,
 		[&name](const std::unique_ptr<MMDIkSolver> &ikSolver)
 		{ return ikSolver->GetName() == name; }
 	);
 	if (findIt == m_ikSolvers.end())
 		return -1;
-	return static_cast<int>(findIt - m_ikSolvers.begin());
+	return findIt - m_ikSolvers.begin();
 }
 
-MMDIkSolver* MMDIKManager::GetIKSolver(const int idx) const {
+MMDIkSolver* MMDIKManager::GetIKSolver(const size_t idx) const {
 	return m_ikSolvers[idx].get();
 }
 

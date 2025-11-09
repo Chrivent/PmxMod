@@ -44,14 +44,14 @@ private:
 	static float NormalizeAngle(float angle);
 	static float DiffAngle(float a, float b);
 	static glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before);
-	void SolveCore(int iteration);
-	void SolvePlane(int iteration, int chainIdx, SolveAxis solveAxis);
+	void SolveCore(uint32_t iteration);
+	void SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis);
 
 public:
 	std::vector<IKChain>	m_chains;
 	MMDNode*	m_ikNode;
 	MMDNode*	m_ikTarget;
-	int	m_iterateCount;
+	uint32_t	m_iterateCount;
 	float		m_limitAngle;
 	bool		m_enable;
 	bool		m_baseAnimEnable;
@@ -61,8 +61,8 @@ public:
 class MMDIKManager
 {
 public:
-	int FindIKSolverIndex(const std::string& name);
-	MMDIkSolver* GetIKSolver(int idx) const;
+	size_t FindIKSolverIndex(const std::string& name);
+	MMDIkSolver* GetIKSolver(size_t idx) const;
 	MMDIkSolver* GetIKSolver(const std::string& ikName);
 	MMDIkSolver* AddIKSolver();
 
