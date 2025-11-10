@@ -13,27 +13,6 @@ MMDIkSolver::MMDIkSolver()
 	, m_baseAnimEnable(true) {
 }
 
-std::string MMDIkSolver::GetName() const {
-	if (m_ikNode != nullptr)
-		return m_ikNode->m_name;
-	return "";
-}
-
-void MMDIkSolver::AddIKChain(
-	MMDNode* node,
-	const bool axisLimit,
-	const glm::vec3& limixMin,
-	const glm::vec3& limitMax
-) {
-	IKChain chain{};
-	chain.m_node = node;
-	chain.m_enableAxisLimit = axisLimit;
-	chain.m_limitMin = limixMin;
-	chain.m_limitMax = limitMax;
-	chain.m_saveIKRot = glm::quat(1, 0, 0, 0);
-	m_chains.emplace_back(chain);
-}
-
 void MMDIkSolver::Solve() {
 	if (!m_enable)
 		return;
@@ -63,18 +42,6 @@ void MMDIkSolver::Solve() {
 			break;
 		}
 	}
-}
-
-void MMDIkSolver::SaveBaseAnimation() {
-	m_baseAnimEnable = m_enable;
-}
-
-void MMDIkSolver::LoadBaseAnimation() {
-	m_enable = m_baseAnimEnable;
-}
-
-void MMDIkSolver::ClearBaseAnimation() {
-	m_baseAnimEnable = true;
 }
 
 float MMDIkSolver::NormalizeAngle(const float angle) {
@@ -165,22 +132,19 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 		if (chain.m_enableAxisLimit) {
 			if ((chain.m_limitMin.x != 0 || chain.m_limitMax.x != 0) &&
 			    (chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0) &&
-			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)
-			) {
+			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)) {
 				SolvePlane(iteration, chainIdx, SolveAxis::X);
 				continue;
 			}
 			if ((chain.m_limitMin.y != 0 || chain.m_limitMax.y != 0) &&
 			    (chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
-			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)
-			) {
+			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)) {
 				SolvePlane(iteration, chainIdx, SolveAxis::Y);
 				continue;
 			}
 			if ((chain.m_limitMin.z != 0 || chain.m_limitMax.z != 0) &&
 			    (chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
-			    (chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0)
-			) {
+			    (chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0)) {
 				SolvePlane(iteration, chainIdx, SolveAxis::Z);
 				continue;
 			}
@@ -200,7 +164,8 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 		angle = glm::clamp(angle, -m_limitAngle, m_limitAngle);
 		auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
 		auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, cross);
-		auto chainRot = chainNode->m_ikRotate * chainNode->AnimateRotate() * rot;
+		auto animRot = chainNode->m_animRotate * chainNode->m_rotate;
+		auto chainRot = chainNode->m_ikRotate * animRot * rot;
 		if (chain.m_enableAxisLimit) {
 			auto chainRotM = glm::mat3_cast(chainRot);
 			auto rotXYZ = Decompose(chainRotM, chain.m_prevAngle);
@@ -214,7 +179,7 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 			chain.m_prevAngle = clampXYZ;
 			chainRot = glm::quat_cast(chainRotM);
 		}
-		auto ikRot = chainRot * glm::inverse(chainNode->AnimateRotate());
+		auto ikRot = chainRot * glm::inverse(animRot);
 		chainNode->m_ikRotate = ikRot;
 		chainNode->UpdateLocalTransform();
 		chainNode->UpdateGlobalTransform();
@@ -275,34 +240,18 @@ void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solv
 	newAngle = glm::clamp(newAngle, chain.m_limitMin[RotateAxisIndex], chain.m_limitMax[RotateAxisIndex]);
 	chain.m_planeModeAngle = newAngle;
 	auto ikRotM = glm::rotate(glm::quat(1, 0, 0, 0), newAngle, RotateAxis)
-				* glm::inverse(chain.m_node->AnimateRotate());
+				* glm::inverse(chain.m_node->m_animRotate * chain.m_node->m_rotate);
 	chain.m_node->m_ikRotate = ikRotM;
 	chain.m_node->UpdateLocalTransform();
 	chain.m_node->UpdateGlobalTransform();
 }
 
-size_t MMDIKManager::FindIKSolverIndex(const std::string& name) {
+MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName) {
 	const auto findIt = std::ranges::find_if(m_ikSolvers,
-		[&name](const std::unique_ptr<MMDIkSolver> &ikSolver)
-		{ return ikSolver->GetName() == name; }
+		[&ikName](const std::unique_ptr<MMDIkSolver> &ikSolver)
+		{ return ikSolver->m_ikNode->m_name == ikName; }
 	);
 	if (findIt == m_ikSolvers.end())
-		return -1;
-	return findIt - m_ikSolvers.begin();
-}
-
-MMDIkSolver* MMDIKManager::GetIKSolver(const size_t idx) const {
-	return m_ikSolvers[idx].get();
-}
-
-MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName) {
-	const auto findIdx = FindIKSolverIndex(ikName);
-	if (findIdx == -1)
 		return nullptr;
-	return GetIKSolver(findIdx);
-}
-
-MMDIkSolver* MMDIKManager::AddIKSolver() {
-	m_ikSolvers.emplace_back(std::make_unique<MMDIkSolver>());
-	return m_ikSolvers[m_ikSolvers.size() - 1].get();
+	return m_ikSolvers[findIt - m_ikSolvers.begin()].get();
 }

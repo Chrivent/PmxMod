@@ -54,7 +54,6 @@ public:
 
 	// ベースアニメーション(アニメーション読み込み時、Physics反映用)
 	void SaveBaseAnimation() const;
-	void LoadBaseAnimation() const;
 	void ClearBaseAnimation() const;
 
 	// アニメーションの前後で呼ぶ (VMDアニメーションの前後)

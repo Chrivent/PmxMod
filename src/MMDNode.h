@@ -7,7 +7,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 
-class MMDIkSolver;
+struct MMDIkSolver;
 
 class MMDNode
 {
@@ -21,18 +21,6 @@ public:
 	void UpdateLocalTransform();
 	void UpdateGlobalTransform();
 	void UpdateChildTransform() const;
-
-	glm::vec3 AnimateTranslate() const;
-	glm::quat AnimateRotate() const;
-
-	void CalculateInverseInitTransform();
-
-	// ノードの初期化時に呼び出す
-	void SaveInitialTRS();
-	void LoadInitialTRS();
-	void SaveBaseAnimation();
-	void LoadBaseAnimation();
-	void ClearBaseAnimation();
 
 	void UpdateAppendTransform();
 
@@ -83,10 +71,7 @@ public:
 class MMDNodeManager
 {
 public:
-	size_t FindNodeIndex(const std::string& name);
-	MMDNode* GetNodeByIndex(size_t idx) const;
 	MMDNode* GetNodeByName(const std::string& nodeName);
-	MMDNode* AddNode();
 
 	std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 };

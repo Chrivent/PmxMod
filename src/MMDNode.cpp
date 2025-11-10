@@ -35,10 +35,7 @@ MMDNode::MMDNode()
 	, m_ikSolver(nullptr) {
 }
 
-void MMDNode::AddChild(MMDNode * child) {
-	if (child == nullptr)
-		return;
-
+void MMDNode::AddChild(MMDNode* child) {
 	child->m_parent = this;
 	if (m_child == nullptr) {
 		m_child = child;
@@ -48,31 +45,29 @@ void MMDNode::AddChild(MMDNode * child) {
 		const auto lastNode = m_child->m_prev;
 		lastNode->m_next = child;
 		child->m_prev = lastNode;
-
 		m_child->m_prev = child;
 	}
 }
 
 void MMDNode::BeginUpdateTransform() {
-	LoadInitialTRS();
+	m_translate = m_initTranslate;
+	m_rotate = m_initRotate;
+	m_scale = m_initScale;
 	m_ikRotate = glm::quat(1, 0, 0, 0);
 	m_appendTranslate = glm::vec3(0);
 	m_appendRotate = glm::quat(1, 0, 0, 0);
 }
 
 void MMDNode::UpdateLocalTransform() {
-	glm::vec3 t = AnimateTranslate();
+	glm::vec3 t = m_animTranslate + m_translate;
 	if (m_isAppendTranslate)
 		t += m_appendTranslate;
-
-	glm::quat r = AnimateRotate();
+	glm::quat r = m_animRotate * m_rotate;
 	if (m_enableIK)
 		r = m_ikRotate * r;
 	if (m_isAppendRotate)
 		r = r * m_appendRotate;
-
 	const glm::vec3 s = m_scale;
-
 	m_local = glm::translate(glm::mat4(1), t)
 			* glm::mat4_cast(r)
 			* glm::scale(glm::mat4(1), s);
@@ -98,60 +93,15 @@ void MMDNode::UpdateChildTransform() const {
 	}
 }
 
-glm::vec3 MMDNode::AnimateTranslate() const {
-	return m_animTranslate + m_translate;
-}
-
-glm::quat MMDNode::AnimateRotate() const {
-	return m_animRotate * m_rotate;
-}
-
-void MMDNode::CalculateInverseInitTransform() {
-	m_inverseInit = glm::inverse(m_global);
-}
-
-// ノードの初期化時に呼び出す
-void MMDNode::SaveInitialTRS() {
-	m_initTranslate = m_translate;
-	m_initRotate = m_rotate;
-	m_initScale = m_scale;
-}
-
-void MMDNode::LoadInitialTRS() {
-	m_translate = m_initTranslate;
-	m_rotate = m_initRotate;
-	m_scale = m_initScale;
-}
-
-void MMDNode::SaveBaseAnimation() {
-	m_baseAnimTranslate = m_animTranslate;
-	m_baseAnimRotate = m_animRotate;
-}
-
-void MMDNode::LoadBaseAnimation() {
-	m_animTranslate = m_baseAnimTranslate;
-	m_animRotate = m_baseAnimRotate;
-}
-
-void MMDNode::ClearBaseAnimation() {
-	m_baseAnimTranslate = glm::vec3(0);
-	m_baseAnimRotate = glm::quat(1, 0, 0, 0);
-}
-
 void MMDNode::UpdateAppendTransform() {
-	if (m_appendNode == nullptr)
-		return;
-
 	if (m_isAppendRotate) {
 		glm::quat appendRotate;
 		if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
 			appendRotate = m_appendNode->m_appendRotate;
 		else
-			appendRotate = m_appendNode->AnimateRotate();
-
+			appendRotate = m_appendNode->m_animRotate * m_appendNode->m_rotate;
 		if (m_appendNode->m_enableIK)
 			appendRotate = m_appendNode->m_ikRotate * appendRotate;
-
 		const glm::quat appendQ = glm::slerp(
 			glm::quat(1, 0, 0, 0),
 			appendRotate,
@@ -159,43 +109,22 @@ void MMDNode::UpdateAppendTransform() {
 		);
 		m_appendRotate = appendQ;
 	}
-
 	if (m_isAppendTranslate) {
 		glm::vec3 appendTranslate;
 		if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
 			appendTranslate = m_appendNode->m_appendTranslate;
 		else
 			appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
-
 		m_appendTranslate = appendTranslate * m_appendWeight;
 	}
-
 	UpdateLocalTransform();
 }
 
-size_t MMDNodeManager::FindNodeIndex(const std::string& name) {
+MMDNode* MMDNodeManager::GetNodeByName(const std::string& nodeName) {
 	const auto findIt = std::ranges::find_if(m_nodes,
-		[&name](const std::unique_ptr<MMDNode> &node) { return node->m_name == name; }
+		[&nodeName](const std::unique_ptr<MMDNode> &node) { return node->m_name == nodeName; }
 	);
 	if (findIt == m_nodes.end())
-		return -1;
-	return findIt - m_nodes.begin();
-}
-
-MMDNode* MMDNodeManager::GetNodeByIndex(const size_t idx) const {
-	return m_nodes[idx].get();
-}
-
-MMDNode* MMDNodeManager::GetNodeByName(const std::string& nodeName) {
-	const auto findIdx = FindNodeIndex(nodeName);
-	if (findIdx == -1)
 		return nullptr;
-	return GetNodeByIndex(findIdx);
-}
-
-MMDNode* MMDNodeManager::AddNode() {
-	auto node = std::make_unique<MMDNode>();
-	node->m_index = static_cast<uint32_t>(m_nodes.size());
-	m_nodes.emplace_back(std::move(node));
-	return m_nodes[m_nodes.size() - 1].get();
+	return m_nodes[findIt - m_nodes.begin()].get();
 }

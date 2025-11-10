@@ -197,9 +197,9 @@ bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* mode
 		m_offsetMat = glm::inverse(node->m_global) * rbMat;
 		kinematicNode = node;
 	} else {
-		const MMDNode *root = model->m_nodeMan.GetNodeByIndex(0);
+		auto* root = model->m_nodeMan.m_nodes[0].get();
 		m_offsetMat = glm::inverse(root->m_global) * rbMat;
-		kinematicNode = model->m_nodeMan.GetNodeByIndex(0);
+		kinematicNode = root;
 	}
 
 	btMotionState *MMDMotionState = nullptr;

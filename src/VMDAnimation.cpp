@@ -194,7 +194,7 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 	// IK Controller
 	std::map<std::string, std::unique_ptr<VMDIKController> > ikCtrlMap;
 	for (auto &ikCtrl: m_ikControllers) {
-		std::string name = ikCtrl->m_ikSolver->GetName();
+		std::string name = ikCtrl->m_ikSolver->m_ikNode->m_name;
 		ikCtrlMap.emplace(std::make_pair(name, std::move(ikCtrl)));
 	}
 	m_ikControllers.clear();
