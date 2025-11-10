@@ -167,52 +167,35 @@ void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void MMDModel::ResetPhysics() const {
-	const auto* physics = m_physicsMan.m_mmdPhysics.get();
-
-	if (physics == nullptr)
-		return;
-
-	const auto &rigidBodies = m_physicsMan.m_rigidBodies;
+	const auto* physics = m_mmdPhysics.get();
+	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies) {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-
 	physics->Update(1.0f / 60.0f);
-
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
-
 	for (auto &rb: rigidBodies)
 		rb->CalcLocalTransform();
-
 	for (const auto &node: m_nodeMan.m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
-
 	for (auto &rb: rigidBodies)
 		rb->Reset(physics);
 }
 
 void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
-	const auto* physics = m_physicsMan.m_mmdPhysics.get();
-
-	if (physics == nullptr)
-		return;
-
-	const auto &rigidBodies = m_physicsMan.m_rigidBodies;
+	const auto* physics = m_mmdPhysics.get();
+	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
 		rb->SetActivation(true);
-
 	physics->Update(elapsed);
-
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
-
 	for (auto &rb: rigidBodies)
 		rb->CalcLocalTransform();
-
 	for (const auto &node: m_nodeMan.m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
@@ -221,15 +204,10 @@ void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
 
 void MMDModel::Update() {
 	const auto &nodes = m_nodeMan.m_nodes;
-
-	// スキンメッシュに使用する変形マトリクスを事前計算
 	for (size_t i = 0; i < nodes.size(); i++)
 		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
-
 	if (m_parallelUpdateCount != m_updateRanges.size())
 		SetupParallelUpdate();
-
-	//
 	const size_t futureCount = m_parallelUpdateFutures.size();
 	for (size_t i = 0; i < futureCount; i++) {
 		size_t rangeIndex = i + 1;
@@ -239,17 +217,12 @@ void MMDModel::Update() {
 			);
 		}
 	}
-	//
-
 	Update(m_updateRanges[0]);
-
-	//
 	for (size_t i = 0; i < futureCount; i++) {
 		const size_t rangeIndex = i + 1;
 		if (m_updateRanges[rangeIndex].m_vertexCount != 0)
 			m_parallelUpdateFutures[i].wait();
 	}
-	//
 }
 
 void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
@@ -587,38 +560,32 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		}
 		m_morphMan.m_morphs.emplace_back(std::move(morph));
 	}
-
-	// Check whether Group Morph infinite loop.
-	{
-		std::vector<int32_t> groupMorphStack;
-		std::function<void(int32_t)> fixInfiniteGroupMorph;
-		fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
-			const auto &morphs = m_morphMan.m_morphs;
-			const auto &morph = morphs[morphIdx];
-
-			if (morph->m_morphType == PMXMorphType::Group) {
-				for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
-					auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
-					if (findIt != groupMorphStack.end())
-						m_morphIndex = -1;
-					else {
-						groupMorphStack.push_back(morphIdx);
-						fixInfiniteGroupMorph(m_morphIndex);
-						groupMorphStack.pop_back();
-					}
+	std::vector<int32_t> groupMorphStack;
+	std::function<void(int32_t)> fixInfiniteGroupMorph;
+	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
+		const auto &morphs = m_morphMan.m_morphs;
+		const auto &morph = morphs[morphIdx];
+		if (morph->m_morphType == PMXMorphType::Group) {
+			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
+				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
+				if (findIt != groupMorphStack.end())
+					m_morphIndex = -1;
+				else {
+					groupMorphStack.push_back(morphIdx);
+					fixInfiniteGroupMorph(m_morphIndex);
+					groupMorphStack.pop_back();
 				}
 			}
-		};
-
-		for (int32_t morphIdx = 0; morphIdx < static_cast<int32_t>(m_morphMan.m_morphs.size()); morphIdx++) {
-			fixInfiniteGroupMorph(morphIdx);
-			groupMorphStack.clear();
 		}
+	};
+	for (int32_t morphIdx = 0; morphIdx < static_cast<int32_t>(m_morphMan.m_morphs.size()); morphIdx++) {
+		fixInfiniteGroupMorph(morphIdx);
+		groupMorphStack.clear();
 	}
 
 	// Physics
-	m_physicsMan.m_mmdPhysics = std::make_unique<MMDPhysics>();
-	m_physicsMan.m_mmdPhysics->Create();
+	m_mmdPhysics = std::make_unique<MMDPhysics>();
+	m_mmdPhysics->Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
 		auto rb = std::make_unique<MMDRigidBody>();
 		MMDNode* node = nullptr;
@@ -626,8 +593,8 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
 		if (!rb->Create(pmxRB, this, node))
 			return false;
-		m_physicsMan.m_mmdPhysics->AddRigidBody(rb.get());
-		m_physicsMan.m_rigidBodies.emplace_back(std::move(rb));
+		m_mmdPhysics->AddRigidBody(rb.get());
+		m_rigidBodies.emplace_back(std::move(rb));
 
 	}
 	for (const auto &pmxJoint: pmx.m_joints) {
@@ -635,7 +602,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		    pmxJoint.m_rigidbodyBIndex != -1 &&
 		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
 			auto joint = std::make_unique<MMDJoint>();
-			auto &rigidBodies = m_physicsMan.m_rigidBodies;
+			auto &rigidBodies = m_rigidBodies;
 			bool ret = joint->CreateJoint(
 				pmxJoint,
 				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
@@ -643,8 +610,8 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			);
 			if (!ret)
 				return false;
-			m_physicsMan.m_mmdPhysics->AddJoint(joint.get());
-			m_physicsMan.m_joints.emplace_back(std::move(joint));
+			m_mmdPhysics->AddJoint(joint.get());
+			m_joints.emplace_back(std::move(joint));
 		}
 	}
 	ResetPhysics();
@@ -665,13 +632,13 @@ void MMDModel::Destroy() {
 	m_nodeMan.m_nodes.clear();
 	m_updateRanges.clear();
 
-	for (auto &joint: m_physicsMan.m_joints)
-		m_physicsMan.m_mmdPhysics->RemoveJoint(joint.get());
-	m_physicsMan.m_joints.clear();
-	for (auto &rb: m_physicsMan.m_rigidBodies)
-		m_physicsMan.m_mmdPhysics->RemoveRigidBody(rb.get());
-	m_physicsMan.m_rigidBodies.clear();
-	m_physicsMan.m_mmdPhysics.reset();
+	for (auto &joint: m_joints)
+		m_mmdPhysics->RemoveJoint(joint.get());
+	m_joints.clear();
+	for (auto &rb: m_rigidBodies)
+		m_mmdPhysics->RemoveRigidBody(rb.get());
+	m_rigidBodies.clear();
+	m_mmdPhysics.reset();
 }
 
 void MMDModel::SetupParallelUpdate() {

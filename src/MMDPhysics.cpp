@@ -413,30 +413,21 @@ void MMDPhysics::Create() {
 	m_broadPhase = std::make_unique<btDbvtBroadphase>();
 	m_collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 	m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfig.get());
-
 	m_solver = std::make_unique<btSequentialImpulseConstraintSolver>();
-
 	m_world = std::make_unique<btDiscreteDynamicsWorld>(
 		m_dispatcher.get(),
 		m_broadPhase.get(),
 		m_solver.get(),
 		m_collisionConfig.get()
 	);
-
 	m_world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
-
 	m_groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
-
 	btTransform groundTransform;
 	groundTransform.setIdentity();
-
 	m_groundMS = std::make_unique<btDefaultMotionState>(groundTransform);
-
 	btRigidBody::btRigidBodyConstructionInfo groundInfo(0, m_groundMS.get(), m_groundShape.get(), btVector3(0, 0, 0));
 	m_groundRB = std::make_unique<btRigidBody>(groundInfo);
-
 	m_world->addRigidBody(m_groundRB.get());
-
 	auto filterCB = std::make_unique<MMDFilterCallback>();
 	filterCB->m_nonFilterProxy.push_back(m_groundRB->getBroadphaseProxy());
 	m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());

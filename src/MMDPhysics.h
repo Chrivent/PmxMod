@@ -179,11 +179,3 @@ public:
 	double	m_fps;
 	int		m_maxSubStepCount;
 };
-
-class MMDPhysicsManager
-{
-public:
-	std::unique_ptr<MMDPhysics>	m_mmdPhysics;
-	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
-	std::vector<std::unique_ptr<MMDJoint>>		m_joints;
-};

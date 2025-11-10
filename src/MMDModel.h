@@ -23,8 +23,6 @@ class MMDNodeManager;
 class MMDIKManager;
 class MMDMorphManager;
 
-class MMDPhysicsManager;
-
 struct MMDSubMesh
 {
 	int	m_beginIndex;
@@ -127,7 +125,10 @@ public:
 	MMDNodeManager				m_nodeMan;
 	MMDIKManager				m_ikSolverMan;
 	MMDMorphManager				m_morphMan;
-	MMDPhysicsManager			m_physicsMan;
+
+	std::unique_ptr<MMDPhysics>	m_mmdPhysics;
+	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
+	std::vector<std::unique_ptr<MMDJoint>>		m_joints;
 
 	uint32_t							m_parallelUpdateCount;
 	std::vector<UpdateRange>			m_updateRanges;

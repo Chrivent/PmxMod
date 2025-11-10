@@ -76,11 +76,11 @@ if(BUILD_BRIDGE)
     target_link_libraries(pmxBridge PRIVATE pmxCore)
     target_include_directories(pmxBridge PRIVATE ${JNI_INCLUDE_DIRS})
     target_compile_definitions(pmxBridge PRIVATE MINIAUDIO_IMPLEMENTATION)
+
+    set(FORGE_RUN_DIR "C:/Users/Ha Yechan/Desktop/PmxSteveMod/run")
+
+    add_custom_command(TARGET pmxBridge POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:pmxBridge> "${FORGE_RUN_DIR}"
+    )
 endif()
-
-set(FORGE_RUN_DIR "C:/Users/Ha Yechan/Desktop/PmxSteveMod/run")
-
-add_custom_command(TARGET pmxBridge POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:pmxBridge> "${FORGE_RUN_DIR}"
-)
