@@ -167,7 +167,7 @@ void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void MMDModel::ResetPhysics() const {
-	const auto physics = m_physicsMan.GetMMDPhysics();
+	const auto* physics = m_physicsMan.m_mmdPhysics.get();
 
 	if (physics == nullptr)
 		return;
@@ -196,7 +196,7 @@ void MMDModel::ResetPhysics() const {
 }
 
 void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
-	const auto physics = m_physicsMan.GetMMDPhysics();
+	const auto* physics = m_physicsMan.m_mmdPhysics.get();
 
 	if (physics == nullptr)
 		return;
@@ -617,21 +617,24 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 	}
 
 	// Physics
-	m_physicsMan.Create();
+	m_physicsMan.m_mmdPhysics = std::make_unique<MMDPhysics>();
+	m_physicsMan.m_mmdPhysics->Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
-		auto rb = m_physicsMan.AddRigidBody();
+		auto rb = std::make_unique<MMDRigidBody>();
 		MMDNode* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
 			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
 		if (!rb->Create(pmxRB, this, node))
 			return false;
-		m_physicsMan.GetMMDPhysics()->AddRigidBody(rb);
+		m_physicsMan.m_mmdPhysics->AddRigidBody(rb.get());
+		m_physicsMan.m_rigidBodies.emplace_back(std::move(rb));
+
 	}
 	for (const auto &pmxJoint: pmx.m_joints) {
 		if (pmxJoint.m_rigidbodyAIndex != -1 &&
 		    pmxJoint.m_rigidbodyBIndex != -1 &&
 		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
-			auto joint = m_physicsMan.AddJoint();
+			auto joint = std::make_unique<MMDJoint>();
 			auto &rigidBodies = m_physicsMan.m_rigidBodies;
 			bool ret = joint->CreateJoint(
 				pmxJoint,
@@ -640,7 +643,8 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			);
 			if (!ret)
 				return false;
-			m_physicsMan.GetMMDPhysics()->AddJoint(joint);
+			m_physicsMan.m_mmdPhysics->AddJoint(joint.get());
+			m_physicsMan.m_joints.emplace_back(std::move(joint));
 		}
 	}
 	ResetPhysics();
@@ -653,17 +657,21 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 void MMDModel::Destroy() {
 	m_materials.clear();
 	m_subMeshes.clear();
-
 	m_positions.clear();
 	m_normals.clear();
 	m_uvs.clear();
 	m_vertexBoneInfos.clear();
-
 	m_indices.clear();
-
 	m_nodeMan.m_nodes.clear();
-
 	m_updateRanges.clear();
+
+	for (auto &joint: m_physicsMan.m_joints)
+		m_physicsMan.m_mmdPhysics->RemoveJoint(joint.get());
+	m_physicsMan.m_joints.clear();
+	for (auto &rb: m_physicsMan.m_rigidBodies)
+		m_physicsMan.m_mmdPhysics->RemoveRigidBody(rb.get());
+	m_physicsMan.m_rigidBodies.clear();
+	m_physicsMan.m_mmdPhysics.reset();
 }
 
 void MMDModel::SetupParallelUpdate() {

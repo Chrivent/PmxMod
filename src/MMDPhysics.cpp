@@ -483,38 +483,3 @@ void MMDPhysics::RemoveJoint(const MMDJoint* mmdJoint) const {
 	if (mmdJoint->GetConstraint() != nullptr)
 		m_world->removeConstraint(mmdJoint->GetConstraint());
 }
-
-MMDPhysicsManager::~MMDPhysicsManager() {
-	for (auto &joint: m_joints)
-		m_mmdPhysics->RemoveJoint(joint.get());
-	m_joints.clear();
-
-	for (auto &rb: m_rigidBodies)
-		m_mmdPhysics->RemoveRigidBody(rb.get());
-	m_rigidBodies.clear();
-
-	m_mmdPhysics.reset();
-}
-
-void MMDPhysicsManager::Create() {
-	m_mmdPhysics = std::make_unique<MMDPhysics>();
-	m_mmdPhysics->Create();
-}
-
-MMDPhysics* MMDPhysicsManager::GetMMDPhysics() const {
-	return m_mmdPhysics.get();
-}
-
-MMDRigidBody* MMDPhysicsManager::AddRigidBody() {
-	auto rigidBody = std::make_unique<MMDRigidBody>();
-	m_rigidBodies.emplace_back(std::move(rigidBody));
-
-	return m_rigidBodies.back().get();
-}
-
-MMDJoint* MMDPhysicsManager::AddJoint() {
-	auto joint = std::make_unique<MMDJoint>();
-	m_joints.emplace_back(std::move(joint));
-
-	return m_joints.back().get();
-}

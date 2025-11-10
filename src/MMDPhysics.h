@@ -12,7 +12,7 @@
 
 class MMDPhysics;
 class MMDModel;
-class MMDNode;
+struct MMDNode;
 
 class MMDMotionState : public btMotionState
 {
@@ -183,19 +183,7 @@ public:
 class MMDPhysicsManager
 {
 public:
-	~MMDPhysicsManager();
-
-	void Create();
-
-	MMDPhysics* GetMMDPhysics() const;
-
-	MMDRigidBody* AddRigidBody();
-	MMDJoint* AddJoint();
-
-private:
 	std::unique_ptr<MMDPhysics>	m_mmdPhysics;
-
-public:
 	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
 	std::vector<std::unique_ptr<MMDJoint>>		m_joints;
 };
