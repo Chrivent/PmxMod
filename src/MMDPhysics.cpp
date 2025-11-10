@@ -24,10 +24,6 @@ bool MMDFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBro
 	return collides;
 }
 
-btDiscreteDynamicsWorld * MMDPhysics::GetDynamicsWorld() const {
-	return m_world.get();
-}
-
 //*******************
 // MMDRigidBody
 //*******************
@@ -274,9 +270,9 @@ void MMDRigidBody::ResetTransform() const {
 }
 
 void MMDRigidBody::Reset(const MMDPhysics* physics) const {
-	const auto cache = physics->GetDynamicsWorld()->getPairCache();
+	const auto cache = physics->m_world->getPairCache();
 	if (cache != nullptr) {
-		const auto dispatcher = physics->GetDynamicsWorld()->getDispatcher();
+		const auto dispatcher = physics->m_world->getDispatcher();
 		cache->cleanProxyFromPairs(m_rigidBody->getBroadphaseHandle(), dispatcher);
 	}
 	m_rigidBody->setAngularVelocity(btVector3(0, 0, 0));

@@ -395,9 +395,9 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 		// 원래 코드
 		// appContext.m_elapsed = static_cast<float>(elapsed);
 		// appContext.m_animTime += static_cast<float>(elapsed);
+
 		auto dt = static_cast<float>(elapsed);
 		float t  = appContext.m_animTime + dt;
-
 		// 음악이 있고, 싱크 ON이면 오디오 시간으로 덮어씀
 		if (audioCtx && audioCtx->hasMusic && audioCtx->syncToMusic) {
 			auto [adt, at] = audioCtx->PullTimes();
@@ -407,7 +407,6 @@ bool SampleMain(std::vector<std::string>& args, AudioContext* audioCtx) {
 			dt = adt;
 			t  = at;
 		}
-
 		appContext.m_elapsed  = dt;
 		appContext.m_animTime = t;
 

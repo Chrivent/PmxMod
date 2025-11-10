@@ -162,9 +162,6 @@ public:
 	void AddJoint(const MMDJoint* mmdJoint) const;
 	void RemoveJoint(const MMDJoint* mmdJoint) const;
 
-	btDiscreteDynamicsWorld* GetDynamicsWorld() const;
-
-private:
 	std::unique_ptr<btBroadphaseInterface>				m_broadPhase;
 	std::unique_ptr<btDefaultCollisionConfiguration>	m_collisionConfig;
 	std::unique_ptr<btCollisionDispatcher>				m_dispatcher;
@@ -175,7 +172,6 @@ private:
 	std::unique_ptr<btRigidBody>						m_groundRB;
 	std::unique_ptr<btOverlapFilterCallback>			m_filterCB;
 
-public:
 	double	m_fps;
 	int		m_maxSubStepCount;
 };
