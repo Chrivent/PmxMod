@@ -88,30 +88,25 @@ void MMDModel::InitializeAnimation() {
 }
 
 void MMDModel::SaveBaseAnimation() const {
-	for (int i = 0; i < m_nodeMan.m_nodes.size(); i++) {
-		auto* node = m_nodeMan.m_nodes[i].get();
-		node->m_baseAnimTranslate = node->m_animTranslate;
-		node->m_baseAnimRotate = node->m_animRotate;
+	for (const auto& m_node : m_nodeMan.m_nodes) {
+		m_node->m_baseAnimTranslate = m_node->m_animTranslate;
+		m_node->m_baseAnimRotate = m_node->m_animRotate;
 	}
-	for (int i = 0; i < m_morphMan.m_morphs.size(); i++) {
-		auto* morph = m_morphMan.m_morphs[i].get();
-		morph->m_saveAnimWeight = morph->m_weight;
-	}
-	for (int i = 0; i < m_ikSolverMan.m_ikSolvers.size(); i++) {
-		auto* ikSolver = m_ikSolverMan.m_ikSolvers[i].get();
-		ikSolver->m_baseAnimEnable = ikSolver->m_enable;
-	}
+	for (const auto& m_morph : m_morphMan.m_morphs)
+		m_morph->m_saveAnimWeight = m_morph->m_weight;
+	for (const auto& m_ikSolver : m_ikSolverMan.m_ikSolvers)
+		m_ikSolver->m_baseAnimEnable = m_ikSolver->m_enable;
 }
 
 void MMDModel::ClearBaseAnimation() const {
-	for (int i = 0; i < m_nodeMan.m_nodes.size(); i++) {
-		m_nodeMan.m_nodes[i]->m_baseAnimTranslate = glm::vec3(0);
-		m_nodeMan.m_nodes[i]->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
+	for (const auto& m_node : m_nodeMan.m_nodes) {
+		m_node->m_baseAnimTranslate = glm::vec3(0);
+		m_node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
 	}
-	for (int i = 0; i < m_morphMan.m_morphs.size(); i++)
-		m_morphMan.m_morphs[i]->m_saveAnimWeight = 0;
-	for (int i = 0; i < m_ikSolverMan.m_ikSolvers.size(); i++)
-		m_ikSolverMan.m_ikSolvers[i]->m_baseAnimEnable = true;
+	for (const auto& m_morph : m_morphMan.m_morphs)
+		m_morph->m_saveAnimWeight = 0;
+	for (const auto& m_ikSolver : m_ikSolverMan.m_ikSolvers)
+		m_ikSolver->m_baseAnimEnable = true;
 }
 
 void MMDModel::BeginAnimation() {
@@ -167,13 +162,12 @@ void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void MMDModel::ResetPhysics() const {
-	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies) {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-	physics->Update(1.0f / 60.0f);
+	m_physicsMan.Update(1.0f / 60.0f);
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -183,15 +177,14 @@ void MMDModel::ResetPhysics() const {
 			node->UpdateGlobalTransform();
 	}
 	for (auto &rb: rigidBodies)
-		rb->Reset(physics);
+		rb->Reset(&m_physicsMan);
 }
 
 void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
-	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
 		rb->SetActivation(true);
-	physics->Update(elapsed);
+	m_physicsMan.Update(elapsed);
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -584,8 +577,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 	}
 
 	// Physics
-	m_mmdPhysics = std::make_unique<MMDPhysics>();
-	m_mmdPhysics->Create();
+	m_physicsMan.Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
 		auto rb = std::make_unique<MMDRigidBody>();
 		MMDNode* node = nullptr;
@@ -593,7 +585,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
 		if (!rb->Create(pmxRB, this, node))
 			return false;
-		m_mmdPhysics->AddRigidBody(rb.get());
+		m_physicsMan.AddRigidBody(rb.get());
 		m_rigidBodies.emplace_back(std::move(rb));
 
 	}
@@ -610,7 +602,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			);
 			if (!ret)
 				return false;
-			m_mmdPhysics->AddJoint(joint.get());
+			m_physicsMan.AddJoint(joint.get());
 			m_joints.emplace_back(std::move(joint));
 		}
 	}
@@ -633,12 +625,12 @@ void MMDModel::Destroy() {
 	m_updateRanges.clear();
 
 	for (auto &joint: m_joints)
-		m_mmdPhysics->RemoveJoint(joint.get());
+		m_physicsMan.RemoveJoint(joint.get());
 	m_joints.clear();
 	for (auto &rb: m_rigidBodies)
-		m_mmdPhysics->RemoveRigidBody(rb.get());
+		m_physicsMan.RemoveRigidBody(rb.get());
 	m_rigidBodies.clear();
-	m_mmdPhysics.reset();
+	m_physicsMan.Destroy();
 }
 
 void MMDModel::SetupParallelUpdate() {

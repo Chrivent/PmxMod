@@ -10,7 +10,7 @@
 
 #include <btBulletDynamicsCommon.h>
 
-class MMDPhysics;
+class MMDPhysicsManager;
 class MMDModel;
 struct MMDNode;
 
@@ -110,7 +110,7 @@ public:
 
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
-	void Reset(const MMDPhysics* physics) const;
+	void Reset(const MMDPhysicsManager* physics) const;
 
 	void ReflectGlobalTransform() const;
 	void CalcLocalTransform() const;
@@ -146,11 +146,11 @@ private:
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };
 
-class MMDPhysics
+class MMDPhysicsManager
 {
 public:
-	MMDPhysics();
-	~MMDPhysics();
+	MMDPhysicsManager();
+	~MMDPhysicsManager();
 
 	void Create();
 	void Destroy();
