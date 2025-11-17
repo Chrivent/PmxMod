@@ -147,8 +147,8 @@ MMDRigidBody::MMDRigidBody()
 	, m_offsetMat(1) {
 }
 
-bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
-	Destroy();
+void MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
+	m_shape = nullptr;
 
 	switch (pmxRigidBody.m_shape) {
 		case PMXRigidbody::Shape::Sphere:
@@ -167,11 +167,7 @@ bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* mode
 				pmxRigidBody.m_shapeSize.y
 			);
 			break;
-		default:
-			break;
 	}
-	if (m_shape == nullptr)
-		return false;
 
 	btScalar mass(0.0f);
 	btVector3 localInertia(0, 0, 0);
@@ -237,16 +233,6 @@ bool MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* mode
 	m_groupMask = pmxRigidBody.m_collisionGroup;
 	m_node = node;
 	m_name = pmxRigidBody.m_name;
-
-	return true;
-}
-
-void MMDRigidBody::Destroy() {
-	m_shape = nullptr;
-}
-
-btRigidBody * MMDRigidBody::GetRigidBody() const {
-	return m_rigidBody.get();
 }
 
 void MMDRigidBody::SetActivation(const bool activation) const {
@@ -310,8 +296,8 @@ glm::mat4 MMDRigidBody::GetTransform() const {
 // MMDJoint
 //*******************
 
-bool MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
-	Destroy();
+void MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
+	m_constraint = nullptr;
 
 	btMatrix3x3 rotMat;
 	rotMat.setEulerZYX(pmxJoint.m_rotate.x, pmxJoint.m_rotate.y, pmxJoint.m_rotate.z);
@@ -325,14 +311,14 @@ bool MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBo
 	));
 	transform.setBasis(rotMat);
 
-	btTransform invA = rigidBodyA->GetRigidBody()->getWorldTransform().inverse();
-	btTransform invB = rigidBodyB->GetRigidBody()->getWorldTransform().inverse();
+	btTransform invA = rigidBodyA->m_rigidBody->getWorldTransform().inverse();
+	btTransform invB = rigidBodyB->m_rigidBody->getWorldTransform().inverse();
 	invA = invA * transform;
 	invB = invB * transform;
 
 	auto constraint = std::make_unique<btGeneric6DofSpringConstraint>(
-		*rigidBodyA->GetRigidBody(),
-		*rigidBodyB->GetRigidBody(),
+		*rigidBodyA->m_rigidBody,
+		*rigidBodyB->m_rigidBody,
 		invA,
 		invB,
 		true);
@@ -384,16 +370,6 @@ bool MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBo
 	}
 
 	m_constraint = std::move(constraint);
-
-	return true;
-}
-
-void MMDJoint::Destroy() {
-	m_constraint = nullptr;
-}
-
-btTypedConstraint* MMDJoint::GetConstraint() const {
-	return m_constraint.get();
 }
 
 MMDPhysics::MMDPhysics()
@@ -402,7 +378,16 @@ MMDPhysics::MMDPhysics()
 }
 
 MMDPhysics::~MMDPhysics() {
-	Destroy();
+	if (m_world != nullptr && m_groundRB != nullptr)
+		m_world->removeRigidBody(m_groundRB.get());
+	m_broadPhase = nullptr;
+	m_collisionConfig = nullptr;
+	m_dispatcher = nullptr;
+	m_solver = nullptr;
+	m_world = nullptr;
+	m_groundShape = nullptr;
+	m_groundMS = nullptr;
+	m_groundRB = nullptr;
 }
 
 void MMDPhysics::Create() {
@@ -430,35 +415,22 @@ void MMDPhysics::Create() {
 	m_filterCB = std::move(filterCB);
 }
 
-void MMDPhysics::Destroy() {
-	if (m_world != nullptr && m_groundRB != nullptr)
-		m_world->removeRigidBody(m_groundRB.get());
-	m_broadPhase = nullptr;
-	m_collisionConfig = nullptr;
-	m_dispatcher = nullptr;
-	m_solver = nullptr;
-	m_world = nullptr;
-	m_groundShape = nullptr;
-	m_groundMS = nullptr;
-	m_groundRB = nullptr;
-}
-
 void MMDPhysics::Update(const float time) const {
 	m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 }
 
 void MMDPhysics::AddRigidBody(const MMDRigidBody* mmdRB) const {
-	m_world->addRigidBody(mmdRB->GetRigidBody(), 1 << mmdRB->m_group, mmdRB->m_groupMask);
+	m_world->addRigidBody(mmdRB->m_rigidBody.get(), 1 << mmdRB->m_group, mmdRB->m_groupMask);
 }
 
 void MMDPhysics::RemoveRigidBody(const MMDRigidBody* mmdRB) const {
-	m_world->removeRigidBody(mmdRB->GetRigidBody());
+	m_world->removeRigidBody(mmdRB->m_rigidBody.get());
 }
 
 void MMDPhysics::AddJoint(const MMDJoint* mmdJoint) const {
-	m_world->addConstraint(mmdJoint->GetConstraint());
+	m_world->addConstraint(mmdJoint->m_constraint.get());
 }
 
 void MMDPhysics::RemoveJoint(const MMDJoint* mmdJoint) const {
-	m_world->removeConstraint(mmdJoint->GetConstraint());
+	m_world->removeConstraint(mmdJoint->m_constraint.get());
 }

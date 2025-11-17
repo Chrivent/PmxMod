@@ -14,9 +14,9 @@
 #include <future>
 
 struct MMDMaterial;
-class MMDPhysics;
-class MMDRigidBody;
-class MMDJoint;
+struct MMDPhysics;
+struct MMDRigidBody;
+struct MMDJoint;
 struct VPDFile;
 
 class MMDNodeManager;

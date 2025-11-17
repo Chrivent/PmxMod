@@ -10,7 +10,7 @@
 
 #include <btBulletDynamicsCommon.h>
 
-class MMDPhysics;
+struct MMDPhysics;
 class MMDModel;
 struct MMDNode;
 
@@ -98,15 +98,11 @@ private:
 	glm::mat4	m_offset;
 };
 
-class MMDRigidBody
+struct MMDRigidBody
 {
-public:
 	MMDRigidBody();
 
-	bool Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
-	void Destroy();
-
-	btRigidBody* GetRigidBody() const;
+	void Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
 
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
@@ -117,13 +113,11 @@ public:
 
 	glm::mat4 GetTransform() const;
 
-private:
 	std::unique_ptr<btCollisionShape>	m_shape;
 	std::unique_ptr<MMDMotionState>		m_activeMotionState;
 	std::unique_ptr<MMDMotionState>		m_kinematicMotionState;
 	std::unique_ptr<btRigidBody>		m_rigidBody;
 
-public:
 	Operation		m_rigidBodyType;
 	uint16_t		m_group;
 	uint16_t		m_groupMask;
@@ -134,27 +128,19 @@ public:
 	std::string					m_name;
 };
 
-class MMDJoint
+struct MMDJoint
 {
-public:
-	bool CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
-	void Destroy();
+	void CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
 
-	btTypedConstraint* GetConstraint() const;
-
-private:
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };
 
-class MMDPhysics
+struct MMDPhysics
 {
-public:
 	MMDPhysics();
 	~MMDPhysics();
 
 	void Create();
-	void Destroy();
-
 	void Update(float time) const;
 
 	void AddRigidBody(const MMDRigidBody* mmdRB) const;

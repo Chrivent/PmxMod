@@ -586,8 +586,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		MMDNode* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
 			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
-		if (!rb->Create(pmxRB, this, node))
-			return false;
+		rb->Create(pmxRB, this, node);
 		m_mmdPhysics->AddRigidBody(rb.get());
 		m_rigidBodies.emplace_back(std::move(rb));
 
@@ -598,13 +597,11 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
 			auto joint = std::make_unique<MMDJoint>();
 			auto &rigidBodies = m_rigidBodies;
-			bool ret = joint->CreateJoint(
+			joint->CreateJoint(
 				pmxJoint,
 				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
 				rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
 			);
-			if (!ret)
-				return false;
 			m_mmdPhysics->AddJoint(joint.get());
 			m_joints.emplace_back(std::move(joint));
 		}
