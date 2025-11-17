@@ -269,7 +269,7 @@ void MMDRigidBody::ResetTransform() const {
 		m_activeMotionState->Reset();
 }
 
-void MMDRigidBody::Reset(const MMDPhysicsManager* physics) const {
+void MMDRigidBody::Reset(const MMDPhysics* physics) const {
 	const auto cache = physics->m_world->getPairCache();
 	if (cache != nullptr) {
 		const auto dispatcher = physics->m_world->getDispatcher();
@@ -396,16 +396,16 @@ btTypedConstraint* MMDJoint::GetConstraint() const {
 	return m_constraint.get();
 }
 
-MMDPhysicsManager::MMDPhysicsManager()
+MMDPhysics::MMDPhysics()
 	: m_fps(120.0f)
 	, m_maxSubStepCount(10) {
 }
 
-MMDPhysicsManager::~MMDPhysicsManager() {
+MMDPhysics::~MMDPhysics() {
 	Destroy();
 }
 
-void MMDPhysicsManager::Create() {
+void MMDPhysics::Create() {
 	m_broadPhase = std::make_unique<btDbvtBroadphase>();
 	m_collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 	m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfig.get());
@@ -430,7 +430,7 @@ void MMDPhysicsManager::Create() {
 	m_filterCB = std::move(filterCB);
 }
 
-void MMDPhysicsManager::Destroy() {
+void MMDPhysics::Destroy() {
 	if (m_world != nullptr && m_groundRB != nullptr)
 		m_world->removeRigidBody(m_groundRB.get());
 	m_broadPhase = nullptr;
@@ -443,22 +443,22 @@ void MMDPhysicsManager::Destroy() {
 	m_groundRB = nullptr;
 }
 
-void MMDPhysicsManager::Update(const float time) const {
+void MMDPhysics::Update(const float time) const {
 	m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 }
 
-void MMDPhysicsManager::AddRigidBody(const MMDRigidBody* mmdRB) const {
+void MMDPhysics::AddRigidBody(const MMDRigidBody* mmdRB) const {
 	m_world->addRigidBody(mmdRB->GetRigidBody(), 1 << mmdRB->m_group, mmdRB->m_groupMask);
 }
 
-void MMDPhysicsManager::RemoveRigidBody(const MMDRigidBody* mmdRB) const {
+void MMDPhysics::RemoveRigidBody(const MMDRigidBody* mmdRB) const {
 	m_world->removeRigidBody(mmdRB->GetRigidBody());
 }
 
-void MMDPhysicsManager::AddJoint(const MMDJoint* mmdJoint) const {
+void MMDPhysics::AddJoint(const MMDJoint* mmdJoint) const {
 	m_world->addConstraint(mmdJoint->GetConstraint());
 }
 
-void MMDPhysicsManager::RemoveJoint(const MMDJoint* mmdJoint) const {
+void MMDPhysics::RemoveJoint(const MMDJoint* mmdJoint) const {
 	m_world->removeConstraint(mmdJoint->GetConstraint());
 }

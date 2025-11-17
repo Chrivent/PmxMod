@@ -10,7 +10,7 @@
 
 #include <btBulletDynamicsCommon.h>
 
-class MMDPhysicsManager;
+class MMDPhysics;
 class MMDModel;
 struct MMDNode;
 
@@ -110,7 +110,7 @@ public:
 
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
-	void Reset(const MMDPhysicsManager* physics) const;
+	void Reset(const MMDPhysics* physics) const;
 
 	void ReflectGlobalTransform() const;
 	void CalcLocalTransform() const;
@@ -146,11 +146,11 @@ private:
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };
 
-class MMDPhysicsManager
+class MMDPhysics
 {
 public:
-	MMDPhysicsManager();
-	~MMDPhysicsManager();
+	MMDPhysics();
+	~MMDPhysics();
 
 	void Create();
 	void Destroy();
@@ -162,15 +162,15 @@ public:
 	void AddJoint(const MMDJoint* mmdJoint) const;
 	void RemoveJoint(const MMDJoint* mmdJoint) const;
 
-	std::unique_ptr<btBroadphaseInterface>				m_broadPhase;
-	std::unique_ptr<btDefaultCollisionConfiguration>	m_collisionConfig;
-	std::unique_ptr<btCollisionDispatcher>				m_dispatcher;
+	std::unique_ptr<btBroadphaseInterface>					m_broadPhase;
+	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;
+	std::unique_ptr<btCollisionDispatcher>					m_dispatcher;
 	std::unique_ptr<btSequentialImpulseConstraintSolver>	m_solver;
-	std::unique_ptr<btDiscreteDynamicsWorld>			m_world;
-	std::unique_ptr<btCollisionShape>					m_groundShape;
-	std::unique_ptr<btMotionState>						m_groundMS;
-	std::unique_ptr<btRigidBody>						m_groundRB;
-	std::unique_ptr<btOverlapFilterCallback>			m_filterCB;
+	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
+	std::unique_ptr<btCollisionShape>						m_groundShape;
+	std::unique_ptr<btMotionState>							m_groundMS;
+	std::unique_ptr<btRigidBody>							m_groundRB;
+	std::unique_ptr<btOverlapFilterCallback>				m_filterCB;
 
 	double	m_fps;
 	int		m_maxSubStepCount;

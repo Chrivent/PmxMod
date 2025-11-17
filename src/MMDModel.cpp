@@ -162,12 +162,13 @@ void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void MMDModel::ResetPhysics() const {
+	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies) {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-	m_physicsMan.Update(1.0f / 60.0f);
+	physics->Update(1.0f / 60.0f);
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -177,14 +178,15 @@ void MMDModel::ResetPhysics() const {
 			node->UpdateGlobalTransform();
 	}
 	for (auto &rb: rigidBodies)
-		rb->Reset(&m_physicsMan);
+		rb->Reset(physics);
 }
 
 void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
+	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
 		rb->SetActivation(true);
-	m_physicsMan.Update(elapsed);
+	physics->Update(elapsed);
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -577,7 +579,8 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 	}
 
 	// Physics
-	m_physicsMan.Create();
+	m_mmdPhysics = std::make_unique<MMDPhysics>();
+	m_mmdPhysics->Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
 		auto rb = std::make_unique<MMDRigidBody>();
 		MMDNode* node = nullptr;
@@ -585,7 +588,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
 		if (!rb->Create(pmxRB, this, node))
 			return false;
-		m_physicsMan.AddRigidBody(rb.get());
+		m_mmdPhysics->AddRigidBody(rb.get());
 		m_rigidBodies.emplace_back(std::move(rb));
 
 	}
@@ -602,7 +605,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			);
 			if (!ret)
 				return false;
-			m_physicsMan.AddJoint(joint.get());
+			m_mmdPhysics->AddJoint(joint.get());
 			m_joints.emplace_back(std::move(joint));
 		}
 	}
@@ -625,12 +628,12 @@ void MMDModel::Destroy() {
 	m_updateRanges.clear();
 
 	for (auto &joint: m_joints)
-		m_physicsMan.RemoveJoint(joint.get());
+		m_mmdPhysics->RemoveJoint(joint.get());
 	m_joints.clear();
 	for (auto &rb: m_rigidBodies)
-		m_physicsMan.RemoveRigidBody(rb.get());
+		m_mmdPhysics->RemoveRigidBody(rb.get());
 	m_rigidBodies.clear();
-	m_physicsMan.Destroy();
+	m_mmdPhysics.reset();
 }
 
 void MMDModel::SetupParallelUpdate() {
