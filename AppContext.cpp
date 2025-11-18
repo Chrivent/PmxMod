@@ -1,9 +1,8 @@
 #include "AppContext.h"
 
-#define	STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_STATIC
 #include <ranges>
 
+#define	STB_IMAGE_IMPLEMENTATION
 #include "external/stb_image.h"
 
 #include "base/Path.h"
