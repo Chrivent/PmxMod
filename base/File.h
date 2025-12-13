@@ -7,7 +7,6 @@
 enum class SeekDir
 {
 	Begin,
-	Current,
 	End,
 };
 
@@ -18,15 +17,12 @@ public:
 	~File();
 
 	void Close();
-
-	bool Seek(int64_t offset, SeekDir origin);
 	int64_t Tell() const;
 
 	template <typename T>
 	bool Read(T* buffer, size_t count = 1) {
 		if (buffer == nullptr)
 			return false;
-
 		if (m_fp == nullptr)
 			return false;
 		if (fread_s(buffer, sizeof(T) * count, sizeof(T), count, m_fp) != count) {

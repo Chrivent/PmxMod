@@ -122,7 +122,8 @@ void MMDNode::UpdateAppendTransform() {
 
 MMDNode* MMDNodeManager::GetNodeByName(const std::string& nodeName) {
 	const auto findIt = std::ranges::find_if(m_nodes,
-		[&nodeName](const std::unique_ptr<MMDNode> &node) { return node->m_name == nodeName; }
+		[&nodeName](const std::unique_ptr<MMDNode> &node)
+		{ return node->m_name == nodeName; }
 	);
 	if (findIt == m_nodes.end())
 		return nullptr;

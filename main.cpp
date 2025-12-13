@@ -148,7 +148,7 @@ static std::vector<std::string> BuildArgsInteractive(){
     args.emplace_back("-scale");
     args.emplace_back("1.0");
     args.emplace_back("-model");
-    args.emplace_back(PathUtil::Normalize(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\torisutsuki\torisutsuki.pmx)"));
+    args.emplace_back(PathUtil::Normalize(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\PDF 2nd Melancholic Stage\Melancholic Stage.pmx)"));
 
     std::cout << "\n[최종 인자]\n";
     for (auto& s : args) std::cout << s << ' ';

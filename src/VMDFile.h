@@ -9,14 +9,12 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-struct VMDHeader
-{
+struct VMDHeader {
 	MMDFileString<30>	m_header;
 	MMDFileString<20>	m_modelName;
 };
 
-struct VMDMotion
-{
+struct VMDMotion {
 	MMDFileString<15>	m_boneName;
 	uint32_t		m_frame;
 	glm::vec3		m_translate;
@@ -30,8 +28,7 @@ struct VMDMorph {
 	float			m_weight{};
 };
 
-struct VMDCamera
-{
+struct VMDCamera {
 	uint32_t		m_frame;
 	float			m_distance;
 	glm::vec3		m_interest;
@@ -41,35 +38,30 @@ struct VMDCamera
 	uint8_t			m_isPerspective;
 };
 
-struct VMDLight
-{
+struct VMDLight {
 	uint32_t	m_frame;
 	glm::vec3	m_color;
 	glm::vec3	m_position;
 };
 
-struct VMDShadow
-{
+struct VMDShadow {
 	uint32_t	m_frame;
 	uint8_t		m_shadowType;	// 0:Off 1:mode1 2:mode2
 	float		m_distance;
 };
 
-struct VMDIkInfo
-{
+struct VMDIkInfo {
 	MMDFileString<20>	m_name;
 	uint8_t			m_enable{};
 };
 
-struct VMDIk
-{
+struct VMDIk {
 	uint32_t	m_frame;
 	uint8_t		m_show;
 	std::vector<VMDIkInfo>	m_ikInfos;
 };
 
-struct VMDFile
-{
+struct VMDFile {
 	VMDHeader					m_header;
 	std::vector<VMDMotion>		m_motions;
 	std::vector<VMDMorph>		m_morphs;
