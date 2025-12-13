@@ -6,243 +6,85 @@
 #include <windows.h>
 
 struct UnicodeUtil {
-    static std::string ToUtf8String(const std::wstring & wStr) {
-        std::string utf8Str;
-        if (!TryToUtf8String(wStr, utf8Str))
-            throw std::invalid_argument("Failed to convert UTF-8 string.");
-        return utf8Str;
+    static std::string ToUtf8String(const std::wstring& w) {
+        if (w.empty())
+            return {};
+        const int need = ::WideCharToMultiByte(
+            CP_UTF8, 0,
+            w.c_str(), -1,
+            nullptr, 0,
+            nullptr, nullptr);
+        if (need <= 0)
+            return {};
+        std::string out(static_cast<size_t>(need), '\0');
+        const int written = ::WideCharToMultiByte(
+            CP_UTF8, 0,
+            w.c_str(), -1,
+            out.data(), need,
+            nullptr, nullptr);
+        if (written <= 0)
+            return {};
+        if (!out.empty() && out.back() == '\0')
+            out.pop_back();
+        return out;
     }
 
-    static bool TryToWString(const std::string & utf8Str, std::wstring & wStr) {
-        if (sizeof(wchar_t) == sizeof(char16_t)) {
-            std::u16string utf16Str;
-            if (!ConvU8ToU16(utf8Str, utf16Str))
-                return false;
-            wStr = reinterpret_cast<const wchar_t *>(utf16Str.c_str());
-        }
-        return true;
-    }
-
-    static bool TryToUtf8String(const std::wstring & wStr, std::string & utf8Str) {
-        if (sizeof(wchar_t) == sizeof(char16_t)) {
-            const auto utf16Str = reinterpret_cast<const char16_t *>(wStr.c_str());
-            if (!ConvU16ToU8(utf16Str, utf8Str))
-                return false;
-        }
-        return true;
-    }
-
-    static bool ConvChU8ToU16(const std::array<char, 4>& u8Ch, std::array<char16_t, 2>& u16Ch) {
-        char32_t u32Ch;
-        if (!ConvChU8ToU32(u8Ch, u32Ch))
+    static bool TryToWString(const std::string& utf8, std::wstring & out) {
+        out.clear();
+        if (utf8.empty())
+            return true;
+        const int need = MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS,
+            utf8.data(), static_cast<int>(utf8.size()),
+            nullptr, 0);
+        if (need <= 0)
             return false;
-        if (!ConvChU32ToU16(u32Ch, u16Ch))
+        out.resize(static_cast<size_t>(need));
+        return MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS,
+            utf8.data(), static_cast<int>(utf8.size()),
+            out.data(), need) == need;
+    }
+
+    static bool ConvU16ToU8(const std::u16string& u16, std::string& out) {
+        out.clear();
+        if (u16.empty())
+            return true;
+        const auto w = reinterpret_cast<const wchar_t*>(u16.data());
+        const int w_len = static_cast<int>(u16.size());
+        const int need = WideCharToMultiByte(
+            CP_UTF8, 0,
+            w, w_len,
+            nullptr, 0,
+            nullptr, nullptr);
+        if (need <= 0)
             return false;
-        return true;
+        out.resize(static_cast<size_t>(need));
+        return WideCharToMultiByte(
+            CP_UTF8, 0,
+            w, w_len,
+            out.data(), need,
+            nullptr, nullptr) == need;
     }
 
-    static bool ConvChU8ToU32(const std::array<char, 4>& u8Ch, char32_t& u32Ch) {
-        const int numBytes = GetU8ByteCount(u8Ch[0]);
-        if (numBytes == 0)
-            return false;
-        switch (numBytes) {
-            case 1:
-                u32Ch = static_cast<char32_t>(u8Ch[0]);
-                break;
-            case 2:
-                if (!IsU8LaterByte(u8Ch[1]))
-                    return false;
-                if ((static_cast<uint8_t>(u8Ch[0]) & 0x1E) == 0)
-                    return false;
-
-                u32Ch = static_cast<char32_t>(u8Ch[0] & 0x1F) << 6;
-                u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F);
-                break;
-            case 3:
-                if (!IsU8LaterByte(u8Ch[1]) || !IsU8LaterByte(u8Ch[2]))
-                    return false;
-                if ((static_cast<uint8_t>(u8Ch[0]) & 0x0F) == 0 &&
-                    (static_cast<uint8_t>(u8Ch[1]) & 0x20) == 0)
-                    return false;
-
-                u32Ch = static_cast<char32_t>(u8Ch[0] & 0x0F) << 12;
-                u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F) << 6;
-                u32Ch |= static_cast<char32_t>(u8Ch[2] & 0x3F);
-                break;
-            case 4:
-                if (!IsU8LaterByte(u8Ch[1]) || !IsU8LaterByte(u8Ch[2]) ||
-                    !IsU8LaterByte(u8Ch[3]))
-                    return false;
-                if ((static_cast<uint8_t>(u8Ch[0]) & 0x07) == 0 &&
-                    (static_cast<uint8_t>(u8Ch[1]) & 0x30) == 0)
-                    return false;
-
-                u32Ch = static_cast<char32_t>(u8Ch[0] & 0x07) << 18;
-                u32Ch |= static_cast<char32_t>(u8Ch[1] & 0x3F) << 12;
-                u32Ch |= static_cast<char32_t>(u8Ch[2] & 0x3F) << 6;
-                u32Ch |= static_cast<char32_t>(u8Ch[3] & 0x3F);
-                break;
-            default: ;
-        }
-        return true;
+    static std::u16string ConvertSjisToU16String(const char* sjis) {
+        if (!sjis)
+            return {};
+        const int need = MultiByteToWideChar(
+            932, MB_ERR_INVALID_CHARS,
+            sjis, -1,
+            nullptr, 0);
+        if (need <= 0)
+            return {};
+        std::wstring w;
+        w.resize(static_cast<size_t>(need));
+        if (MultiByteToWideChar(
+            932, MB_ERR_INVALID_CHARS,
+            sjis, -1,
+            w.data(), need) <= 0)
+            return {};
+        if (!w.empty() && w.back() == L'\0')
+            w.pop_back();
+        return std::u16string(reinterpret_cast<const char16_t*>(w.data()), w.size());
     }
-
-    static bool ConvChU16ToU8(const std::array<char16_t, 2>& u16Ch, std::array<char, 4>& u8Ch) {
-        char32_t u32Ch;
-        if (!ConvChU16ToU32(u16Ch, u32Ch))
-            return false;
-        if (!ConvChU32ToU8(u32Ch, u8Ch))
-            return false;
-        return true;
-    }
-
-    static bool ConvChU16ToU32(const std::array<char16_t, 2>& u16Ch, char32_t& u32Ch) {
-        if (IsU16HighSurrogate(u16Ch[0])) {
-            if (IsU16LowSurrogate(u16Ch[1]))
-                u32Ch = 0x10000 + (static_cast<char32_t>(u16Ch[0]) - 0xD800) * 0x400 +
-                    (static_cast<char32_t>(u16Ch[1]) - 0xDC00);
-            else if (u16Ch[1] == 0)
-                u32Ch = static_cast<char32_t>(u16Ch[0]);
-            else
-                return false;
-        }
-        else if (IsU16LowSurrogate(u16Ch[0])) {
-            if (u16Ch[1] == 0)
-                u32Ch = static_cast<char32_t>(u16Ch[0]);
-            else
-                return false;
-        }
-        else
-            u32Ch = static_cast<char32_t>(u16Ch[0]);
-        return true;
-    }
-
-    static bool ConvChU32ToU8(const char32_t u32Ch, std::array<char, 4>& u8Ch) {
-        if (u32Ch > 0x10FFFF)
-            return false;
-        if (u32Ch < 128) {
-            u8Ch[0] = static_cast<char>(u32Ch);
-            u8Ch[1] = 0;
-            u8Ch[2] = 0;
-            u8Ch[3] = 0;
-        }
-        else if (u32Ch < 2048) {
-            u8Ch[0] = static_cast<char>(0xC0 | static_cast<char>(u32Ch >> 6));
-            u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
-            u8Ch[2] = 0;
-            u8Ch[3] = 0;
-        }
-        else if (u32Ch < 65536) {
-            u8Ch[0] = static_cast<char>(0xE0 | static_cast<char>(u32Ch >> 12));
-            u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 6) & 0x3F);
-            u8Ch[2] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
-            u8Ch[3] = 0;
-        }
-        else {
-            u8Ch[0] = static_cast<char>(0xF0 | static_cast<char>(u32Ch >> 18));
-            u8Ch[1] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 12) & 0x3F);
-            u8Ch[2] = static_cast<char>(0x80 | static_cast<char>(u32Ch >> 6) & 0x3F);
-            u8Ch[3] = static_cast<char>(0x80 | static_cast<char>(u32Ch) & 0x3F);
-        }
-        return true;
-    }
-
-    static bool ConvChU32ToU16(const char32_t u32Ch, std::array<char16_t, 2>& u16Ch) {
-        if (u32Ch > 0x10FFFF)
-            return false;
-        if (u32Ch < 0x10000) {
-            u16Ch[0] = static_cast<char16_t>(u32Ch);
-            u16Ch[1] = 0;
-        }
-        else {
-            u16Ch[0] = static_cast<char16_t>((u32Ch - 0x10000) / 0x400 + 0xD800);
-            u16Ch[1] = static_cast<char16_t>((u32Ch - 0x10000) % 0x400 + 0xDC00);
-        }
-        return true;
-    }
-
-    static bool ConvU8ToU16(const std::string& u8Str, std::u16string& u16Str) {
-        for (auto u8It = u8Str.begin(); u8It != u8Str.end(); ++u8It) {
-            const auto numBytes = GetU8ByteCount(*u8It);
-            if (numBytes == 0)
-                return false;
-
-            std::array<char, 4> u8Ch{};
-            u8Ch[0] = *u8It;
-            for (int i = 1; i < numBytes; i++) {
-                ++u8It;
-                if (u8It == u8Str.end())
-                    return false;
-                u8Ch[i] = *u8It;
-            }
-
-            std::array<char16_t, 2> u16Ch{};
-            if (!ConvChU8ToU16(u8Ch, u16Ch))
-                return false;
-
-            u16Str.push_back(u16Ch[0]);
-            if (u16Ch[1] != 0)
-                u16Str.push_back(u16Ch[1]);
-        }
-        return true;
-    }
-
-    static bool ConvU16ToU8(const std::u16string& u16Str, std::string& u8Str) {
-        for (auto u16It = u16Str.begin(); u16It != u16Str.end(); ++u16It) {
-            std::array<char16_t, 2> u16Ch{};
-            if (IsU16HighSurrogate(*u16It)) {
-                u16Ch[0] = *u16It;
-                ++u16It;
-                if (u16It == u16Str.end())
-                    return false;
-                u16Ch[1] = *u16It;
-            }
-            else {
-                u16Ch[0] = *u16It;
-                u16Ch[1] = 0;
-            }
-
-            std::array<char, 4> u8Ch{};
-            if (!ConvChU16ToU8(u16Ch, u8Ch))
-                return false;
-            if (u8Ch[0] != 0)
-                u8Str.push_back(u8Ch[0]);
-            if (u8Ch[1] != 0)
-                u8Str.push_back(u8Ch[1]);
-            if (u8Ch[2] != 0)
-                u8Str.push_back(u8Ch[2]);
-            if (u8Ch[3] != 0)
-                u8Str.push_back(u8Ch[3]);
-        }
-        return true;
-    }
-
-    static std::u16string ConvertSjisToU16String(const char* sjisCode) {
-        if (!sjisCode) return {};
-        const int need = MultiByteToWideChar(932, MB_ERR_INVALID_CHARS,
-            sjisCode, -1, nullptr, 0);
-        if (need <= 0) return {};
-        std::wstring w; w.resize(static_cast<size_t>(need - 1));
-        if (need > 1)
-            MultiByteToWideChar(932, MB_ERR_INVALID_CHARS,
-                sjisCode, -1, w.data(), need);
-        std::u16string u16; u16.resize(w.size());
-        for (size_t i = 0; i < w.size(); ++i) u16[i] = static_cast<char16_t>(w[i]);
-        return u16;
-    }
-
-    static int GetU8ByteCount(const char ch) {
-        if (static_cast<uint8_t>(ch) < 0x80)
-            return 1;
-        if (0xC2 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xE0)
-            return 2;
-        if (0xE0 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xF0)
-            return 3;
-        if (0xF0 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xF8)
-            return 4;
-        return 0;
-    }
-    static bool IsU8LaterByte(const char ch) { return 0x80 <= static_cast<uint8_t>(ch) && static_cast<uint8_t>(ch) < 0xC0; }
-    static bool IsU16HighSurrogate(const char16_t ch) { return 0xD800 <= ch && ch < 0xDC00; }
-    static bool IsU16LowSurrogate(const char16_t ch) { return 0xDC00 <= ch && ch < 0xE000; }
 };
