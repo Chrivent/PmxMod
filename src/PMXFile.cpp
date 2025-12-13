@@ -37,7 +37,7 @@ namespace
 				{
 					return false;
 				}
-				if (!ConvU16ToU8(utf16Str, *val))
+				if (!UnicodeUtil::ConvU16ToU8(utf16Str, *val))
 				{
 					return false;
 				}

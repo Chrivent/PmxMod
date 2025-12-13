@@ -24,7 +24,7 @@ static const std::string CAMERA_DIR = PathUtil::Normalize(R"(C:/Users/Ha Yechan/
 static const std::string MUSIC_DIR  = PathUtil::Normalize(R"(C:/Users/Ha Yechan/Desktop/PMXViewer/musics)");
 
 static std::string Norm(const fs::path& p) {
-    return PathUtil::Normalize(ToUtf8String(p.wstring()));
+    return PathUtil::Normalize(UnicodeUtil::ToUtf8String(p.wstring()));
 }
 
 static void PrintPath(const std::string& u8) { std::cout << u8; }

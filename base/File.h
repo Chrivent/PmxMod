@@ -14,9 +14,9 @@ struct File {
 	bool OpenFile(const char* filepath, const char* mode) {
 		Close();
 		std::wstring wFilepath, wMode;
-		if (!TryToWString(filepath, wFilepath))
+		if (!UnicodeUtil::TryToWString(filepath, wFilepath))
 			return false;
-		if (!TryToWString(mode, wMode))
+		if (!UnicodeUtil::TryToWString(mode, wMode))
 			return false;
 		if (_wfopen_s(&m_fp, wFilepath.c_str(), wMode.c_str()) != 0 || !m_fp)
 			return false;

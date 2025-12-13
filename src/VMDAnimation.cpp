@@ -325,19 +325,19 @@ int32_t VMDAnimation::CalculateMaxKeyTime() const {
 	for (const auto &nodeController: m_nodeControllers) {
 		const auto &keys = nodeController->m_keys;
 		if (!keys.empty())
-			maxTime = std::max(maxTime, keys.rbegin()->m_time);
+			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
 	}
 
 	for (const auto &ikController: m_ikControllers) {
 		const auto &keys = ikController->m_keys;
 		if (!keys.empty())
-			maxTime = std::max(maxTime, keys.rbegin()->m_time);
+			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
 	}
 
 	for (const auto &morphController: m_morphControllers) {
 		const auto &keys = morphController->m_keys;
 		if (!keys.empty())
-			maxTime = std::max(maxTime, keys.rbegin()->m_time);
+			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
 	}
 
 	return maxTime;

@@ -25,8 +25,8 @@ bool Read(MMDFileString<Size>* str, File& file) {
 
 template<size_t Size>
 std::string MMDFileString<Size>::ToUtf8String() const {
-	const std::u16string u16Str = ConvertSjisToU16String(m_buffer);
+	const std::u16string u16Str = UnicodeUtil::ConvertSjisToU16String(m_buffer);
 	std::string u8Str;
-	ConvU16ToU8(u16Str, u8Str);
+	UnicodeUtil::ConvU16ToU8(u16Str, u8Str);
 	return u8Str;
 }

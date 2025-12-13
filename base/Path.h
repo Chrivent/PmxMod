@@ -11,7 +11,7 @@ struct PathUtil {
 		std::vector<wchar_t> modulePath(MAX_PATH);
 		if (GetModuleFileNameW(nullptr, modulePath.data(), static_cast<DWORD>(modulePath.size())) == 0)
 			return "";
-		return ToUtf8String(modulePath.data());
+		return UnicodeUtil::ToUtf8String(modulePath.data());
 	}
 
 	static std::string Combine(const std::string & a, const std::string & b) {
