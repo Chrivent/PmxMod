@@ -133,19 +133,19 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 			if ((chain.m_limitMin.x != 0 || chain.m_limitMax.x != 0) &&
 			    (chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0) &&
 			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)) {
-				SolvePlane(iteration, chainIdx, SolveAxis::X);
+				SolvePlane(iteration, chainIdx, 0);
 				continue;
 			}
 			if ((chain.m_limitMin.y != 0 || chain.m_limitMax.y != 0) &&
 			    (chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
 			    (chain.m_limitMin.z == 0 || chain.m_limitMax.z == 0)) {
-				SolvePlane(iteration, chainIdx, SolveAxis::Y);
+				SolvePlane(iteration, chainIdx, 1);
 				continue;
 			}
 			if ((chain.m_limitMin.z != 0 || chain.m_limitMax.z != 0) &&
 			    (chain.m_limitMin.x == 0 || chain.m_limitMax.x == 0) &&
 			    (chain.m_limitMin.y == 0 || chain.m_limitMax.y == 0)) {
-				SolvePlane(iteration, chainIdx, SolveAxis::Z);
+				SolvePlane(iteration, chainIdx, 2);
 				continue;
 			}
 		}
@@ -186,23 +186,12 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 	}
 }
 
-void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, SolveAxis solveAxis) {
-	int RotateAxisIndex = 0;
+void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex) {
 	auto RotateAxis = glm::vec3(1, 0, 0);
-	switch (solveAxis) {
-		case SolveAxis::X:
-			RotateAxisIndex = 0;
-			RotateAxis = glm::vec3(1, 0, 0);
-			break;
-		case SolveAxis::Y:
-			RotateAxisIndex = 1;
-			RotateAxis = glm::vec3(0, 1, 0);
-			break;
-		case SolveAxis::Z:
-			RotateAxisIndex = 2;
-			RotateAxis = glm::vec3(0, 0, 1);
-			break;
-	}
+	if (RotateAxisIndex == 1)
+		RotateAxis = glm::vec3(0, 1, 0);
+	else if (RotateAxisIndex == 2)
+		RotateAxis = glm::vec3(0, 0, 1);
 	auto &chain = m_chains[chainIdx];
 	auto ikPos = glm::vec3(m_ikNode->m_global[3]);
 	auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
