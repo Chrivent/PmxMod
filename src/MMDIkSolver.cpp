@@ -234,13 +234,3 @@ void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxis
 	chain.m_node->UpdateLocalTransform();
 	chain.m_node->UpdateGlobalTransform();
 }
-
-MMDIkSolver* MMDIKManager::GetIKSolver(const std::string& ikName) {
-	const auto findIt = std::ranges::find_if(m_ikSolvers,
-		[&ikName](const std::unique_ptr<MMDIkSolver> &ikSolver)
-		{ return ikSolver->m_ikNode->m_name == ikName; }
-	);
-	if (findIt == m_ikSolvers.end())
-		return nullptr;
-	return m_ikSolvers[findIt - m_ikSolvers.begin()].get();
-}

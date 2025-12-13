@@ -56,7 +56,5 @@ struct MMDNode
 class MMDNodeManager
 {
 public:
-	MMDNode* GetNodeByName(const std::string& nodeName);
-
 	std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 };

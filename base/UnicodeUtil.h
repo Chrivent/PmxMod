@@ -29,7 +29,7 @@ struct UnicodeUtil {
         return out;
     }
 
-    static bool TryToWString(const std::string& utf8, std::wstring & out) {
+    static bool TryToWString(const std::string& utf8, std::wstring& out) {
         out.clear();
         if (utf8.empty())
             return true;

@@ -20,7 +20,5 @@ struct MMDMorph
 class MMDMorphManager
 {
 public:
-	MMDMorph* GetMorph(const std::string& name);
-
 	std::vector<std::unique_ptr<MMDMorph>>	m_morphs;
 };

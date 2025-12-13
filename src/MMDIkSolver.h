@@ -42,7 +42,5 @@ private:
 class MMDIKManager
 {
 public:
-	MMDIkSolver* GetIKSolver(const std::string& ikName);
-
 	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
 };

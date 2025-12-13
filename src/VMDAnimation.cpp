@@ -165,7 +165,12 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 		auto findIt = nodeCtrlMap.find(nodeName);
 		VMDNodeController *nodeCtrl = nullptr;
 		if (findIt == std::end(nodeCtrlMap)) {
-			auto node = m_model->m_nodeMan.GetNodeByName(nodeName);
+			auto it = std::ranges::find(
+					m_model->m_nodeMan.m_nodes, std::string_view{nodeName},
+					[](const std::unique_ptr<MMDNode>& node) -> std::string_view
+					{ return node->m_name; }
+				);
+			auto* node = it == m_model->m_nodeMan.m_nodes.end() ? nullptr : it->get();
 			if (node != nullptr) {
 				auto val = std::make_pair(
 					nodeName,
@@ -204,7 +209,12 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 			auto findIt = ikCtrlMap.find(ikName);
 			VMDIKController *ikCtrl = nullptr;
 			if (findIt == std::end(ikCtrlMap)) {
-				auto *ikSolver = m_model->m_ikSolverMan.GetIKSolver(ikName);
+				auto it = std::ranges::find(
+					m_model->m_ikSolverMan.m_ikSolvers, std::string_view{ikName},
+					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view
+					{ return ikSolver->m_ikNode->m_name; }
+				);
+				auto* ikSolver = it == m_model->m_ikSolverMan.m_ikSolvers.end() ? nullptr : it->get();
 				if (ikSolver != nullptr) {
 					auto val = std::make_pair(
 						ikName,
@@ -244,7 +254,12 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 		auto findIt = morphCtrlMap.find(morphName);
 		VMDMorphController *morphCtrl = nullptr;
 		if (findIt == std::end(morphCtrlMap)) {
-			auto *mmdMorph = m_model->m_morphMan.GetMorph(morphName);
+			auto it = std::ranges::find(
+					m_model->m_morphMan.m_morphs, std::string_view{morphName},
+					[](const std::unique_ptr<MMDMorph>& mmdMorph) -> std::string_view
+					{ return mmdMorph->m_name; }
+				);
+			auto* mmdMorph = it == m_model->m_morphMan.m_morphs.end() ? nullptr : it->get();
 			if (mmdMorph != nullptr) {
 				auto val = std::make_pair(
 					morphName,
