@@ -134,18 +134,15 @@ static bool SampleMain(const SceneConfig& cfg) {
         if (cfg.musicPath.empty())
         	return;
         if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
-            std::cout << "[오디오] engine init 실패\n";
             return;
         }
         if (ma_sound_init_from_file(&engine, cfg.musicPath.c_str(), 0, nullptr, nullptr, &sound) != MA_SUCCESS) {
-            std::cout << "[오디오] 파일 열기 실패: " << PathUtil::GetFilename(cfg.musicPath) << "\n";
             ma_engine_uninit(&engine);
             return;
         }
         ma_sound_start(&sound);
         hasMusic = true;
         prevTimeSec = 0.0;
-        std::cout << "[오디오] 재생 시작: " << PathUtil::GetFilename(cfg.musicPath) << " (싱크 ON)\n";
     };
     auto UninitMusic = [&] {
         if (!hasMusic)
