@@ -19,10 +19,6 @@ struct MMDRigidBody;
 struct MMDJoint;
 struct VPDFile;
 
-class MMDNodeManager;
-class MMDIKManager;
-class MMDMorphManager;
-
 struct MMDSubMesh
 {
 	int	m_beginIndex;
@@ -122,9 +118,9 @@ public:
 	std::vector<MMDSubMesh>		m_subMeshes;
 	std::vector<MMDNode*>		m_sortedNodes;
 
-	MMDNodeManager				m_nodeMan;
-	MMDIKManager				m_ikSolverMan;
-	MMDMorphManager				m_morphMan;
+	std::vector<std::unique_ptr<MMDNode>>		m_nodes;
+	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
+	std::vector<std::unique_ptr<MMDMorph>>		m_morphs;
 
 	std::unique_ptr<MMDPhysics>					m_mmdPhysics;
 	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;

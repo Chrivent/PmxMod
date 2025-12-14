@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <string>
-#include <vector>
 #include <memory>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -51,10 +50,4 @@ struct MMDNode
 	glm::vec3	m_appendTranslate;
 	glm::quat	m_appendRotate;
 	MMDIkSolver* m_ikSolver;
-};
-
-class MMDNodeManager
-{
-public:
-	std::vector<std::unique_ptr<MMDNode>>	m_nodes;
 };

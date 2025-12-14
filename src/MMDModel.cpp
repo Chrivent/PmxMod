@@ -54,18 +54,18 @@ MMDModel::~MMDModel() {
 
 void MMDModel::InitializeAnimation() {
 	ClearBaseAnimation();
-	for (const auto &node: m_nodeMan.m_nodes) {
+	for (const auto &node: m_nodes) {
 		node->m_animTranslate = glm::vec3(0);
 		node->m_animRotate = glm::quat(1, 0, 0, 0);
 	}
 	BeginAnimation();
-	for (const auto &node: m_nodeMan.m_nodes)
+	for (const auto &node: m_nodes)
 		node->UpdateLocalTransform();
-	for (const auto &morph: m_morphMan.m_morphs)
+	for (const auto &morph: m_morphs)
 		morph->m_weight = 0;
-	for (const auto &ikSolver: m_ikSolverMan.m_ikSolvers)
+	for (const auto &ikSolver: m_ikSolvers)
 		ikSolver->m_enable = true;
-	for (const auto &node: m_nodeMan.m_nodes) {
+	for (const auto &node: m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
@@ -80,7 +80,7 @@ void MMDModel::InitializeAnimation() {
 			pmxNode->UpdateGlobalTransform();
 		}
 	}
-	for (const auto &node: m_nodeMan.m_nodes) {
+	for (const auto &node: m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
@@ -88,29 +88,29 @@ void MMDModel::InitializeAnimation() {
 }
 
 void MMDModel::SaveBaseAnimation() const {
-	for (const auto& m_node : m_nodeMan.m_nodes) {
+	for (const auto& m_node : m_nodes) {
 		m_node->m_baseAnimTranslate = m_node->m_animTranslate;
 		m_node->m_baseAnimRotate = m_node->m_animRotate;
 	}
-	for (const auto& m_morph : m_morphMan.m_morphs)
+	for (const auto& m_morph : m_morphs)
 		m_morph->m_saveAnimWeight = m_morph->m_weight;
-	for (const auto& m_ikSolver : m_ikSolverMan.m_ikSolvers)
+	for (const auto& m_ikSolver : m_ikSolvers)
 		m_ikSolver->m_baseAnimEnable = m_ikSolver->m_enable;
 }
 
 void MMDModel::ClearBaseAnimation() const {
-	for (const auto& m_node : m_nodeMan.m_nodes) {
+	for (const auto& m_node : m_nodes) {
 		m_node->m_baseAnimTranslate = glm::vec3(0);
 		m_node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
 	}
-	for (const auto& m_morph : m_morphMan.m_morphs)
+	for (const auto& m_morph : m_morphs)
 		m_morph->m_saveAnimWeight = 0;
-	for (const auto& m_ikSolver : m_ikSolverMan.m_ikSolvers)
+	for (const auto& m_ikSolver : m_ikSolvers)
 		m_ikSolver->m_baseAnimEnable = true;
 }
 
 void MMDModel::BeginAnimation() {
-	for (const auto &node: m_nodeMan.m_nodes)
+	for (const auto &node: m_nodes)
 		node->BeginUpdateTransform();
 	const auto vtxCount = m_morphPositions.size();
 	for (int vtxIdx = 0; vtxIdx < vtxCount; vtxIdx++) {
@@ -121,7 +121,7 @@ void MMDModel::BeginAnimation() {
 
 void MMDModel::UpdateMorphAnimation() {
 	BeginMorphMaterial();
-	const auto &morphs = m_morphMan.m_morphs;
+	const auto &morphs = m_morphs;
 	for (const auto & morph : morphs) {
 		Morph(morph.get(), morph->m_weight);
 	}
@@ -173,7 +173,7 @@ void MMDModel::ResetPhysics() const {
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
 		rb->CalcLocalTransform();
-	for (const auto &node: m_nodeMan.m_nodes) {
+	for (const auto &node: m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
@@ -191,14 +191,14 @@ void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
 		rb->CalcLocalTransform();
-	for (const auto &node: m_nodeMan.m_nodes) {
+	for (const auto &node: m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
 }
 
 void MMDModel::Update() {
-	const auto &nodes = m_nodeMan.m_nodes;
+	const auto &nodes = m_nodes;
 	for (size_t i = 0; i < nodes.size(); i++)
 		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
 	if (m_parallelUpdateCount != m_updateRanges.size())
@@ -414,19 +414,19 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 	m_addMaterialFactors.resize(m_materials.size());
 
 	// Node
-	m_nodeMan.m_nodes.reserve(pmx.m_bones.size());
+	m_nodes.reserve(pmx.m_bones.size());
 	for (const auto &bone: pmx.m_bones) {
 		auto node = std::make_unique<MMDNode>();
-		node->m_index = static_cast<uint32_t>(m_nodeMan.m_nodes.size());
+		node->m_index = static_cast<uint32_t>(m_nodes.size());
 		node->m_name = bone.m_name;
-		m_nodeMan.m_nodes.emplace_back(std::move(node));
+		m_nodes.emplace_back(std::move(node));
 	}
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto &bone = pmx.m_bones[i];
-		auto* node = m_nodeMan.m_nodes[i].get();
+		auto* node = m_nodes[i].get();
 		if (bone.m_parentBoneIndex != -1) {
 			const auto &parentBone = pmx.m_bones[bone.m_parentBoneIndex];
-			auto* parent = m_nodeMan.m_nodes[bone.m_parentBoneIndex].get();
+			auto* parent = m_nodes[bone.m_parentBoneIndex].get();
 			parent->AddChild(node);
 			auto localPos = bone.m_position - parentBone.m_position;
 			localPos.z *= -1;
@@ -451,7 +451,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		node->m_isAppendTranslate = appendTranslate;
 		if ((appendRotate || appendTranslate) && bone.m_appendBoneIndex != -1) {
 			bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendLocal)) != 0;
-			auto* appendNode = m_nodeMan.m_nodes[bone.m_appendBoneIndex].get();
+			auto* appendNode = m_nodes[bone.m_appendBoneIndex].get();
 			float appendWeight = bone.m_appendWeight;
 			node->m_isAppendLocal = appendLocal;
 			node->m_appendNode = appendNode;
@@ -461,10 +461,10 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		node->m_initRotate = node->m_rotate;
 		node->m_initScale = node->m_scale;
 	}
-	m_transforms.resize(m_nodeMan.m_nodes.size());
+	m_transforms.resize(m_nodes.size());
 	m_sortedNodes.clear();
-	m_sortedNodes.reserve(m_nodeMan.m_nodes.size());
-	auto &pmxNodes = m_nodeMan.m_nodes;
+	m_sortedNodes.reserve(m_nodes.size());
+	auto &pmxNodes = m_nodes;
 	for (auto &pmxNode: pmxNodes)
 		m_sortedNodes.push_back(pmxNode.get());
 	std::ranges::stable_sort(m_sortedNodes,
@@ -476,13 +476,13 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		const auto &bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::IK)) {
 			auto solver = std::make_unique<MMDIkSolver>();
-			auto* ikNode = m_nodeMan.m_nodes[i].get();
+			auto* ikNode = m_nodes[i].get();
 			solver->m_ikNode = ikNode;
 			ikNode->m_ikSolver = solver.get();
-			auto* targetNode = m_nodeMan.m_nodes[bone.m_ikTargetBoneIndex].get();
+			auto* targetNode = m_nodes[bone.m_ikTargetBoneIndex].get();
 			solver->m_ikTarget = targetNode;
 			for (const auto &[m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax]: bone.m_ikLinks) {
-				auto* linkNode = m_nodeMan.m_nodes[m_ikBoneIndex].get();
+				auto* linkNode = m_nodes[m_ikBoneIndex].get();
 				IKChain chain{};
 				chain.m_node = linkNode;
 				chain.m_enableAxisLimit = m_enableLimit;
@@ -494,7 +494,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			}
 			solver->m_iterateCount = bone.m_ikIterationCount;
 			solver->m_limitAngle = bone.m_ikLimit;
-			m_ikSolverMan.m_ikSolvers.emplace_back(std::move(solver));
+			m_ikSolvers.emplace_back(std::move(solver));
 		}
 	}
 
@@ -553,12 +553,12 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			groupMorphData = pmxMorph.m_groupMorph;
 			m_groupMorphDatas.emplace_back(groupMorphData);
 		}
-		m_morphMan.m_morphs.emplace_back(std::move(morph));
+		m_morphs.emplace_back(std::move(morph));
 	}
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
 	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
-		const auto &morphs = m_morphMan.m_morphs;
+		const auto &morphs = m_morphs;
 		const auto &morph = morphs[morphIdx];
 		if (morph->m_morphType == PMXMorphType::Group) {
 			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
@@ -573,7 +573,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			}
 		}
 	};
-	for (int32_t morphIdx = 0; morphIdx < static_cast<int32_t>(m_morphMan.m_morphs.size()); morphIdx++) {
+	for (int32_t morphIdx = 0; morphIdx < static_cast<int32_t>(m_morphs.size()); morphIdx++) {
 		fixInfiniteGroupMorph(morphIdx);
 		groupMorphStack.clear();
 	}
@@ -585,7 +585,7 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 		auto rb = std::make_unique<MMDRigidBody>();
 		MMDNode* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
-			node = m_nodeMan.m_nodes[pmxRB.m_boneIndex].get();
+			node = m_nodes[pmxRB.m_boneIndex].get();
 		rb->Create(pmxRB, this, node);
 		m_mmdPhysics->AddRigidBody(rb.get());
 		m_rigidBodies.emplace_back(std::move(rb));
@@ -621,7 +621,7 @@ void MMDModel::Destroy() {
 	m_uvs.clear();
 	m_vertexBoneInfos.clear();
 	m_indices.clear();
-	m_nodeMan.m_nodes.clear();
+	m_nodes.clear();
 	m_updateRanges.clear();
 
 	for (auto &joint: m_joints)
@@ -732,7 +732,6 @@ void MMDModel::Update(const UpdateRange& range) {
 			case PMXVertexWeight::SDEF: {
 				// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
 
-				auto &nodes = m_nodeMan.m_nodes;
 				const auto i0 = vtxInfo->m_boneIndices[0];
 				const auto i1 = vtxInfo->m_boneIndices[1];
 				const auto w0 = vtxInfo->m_boneWeights[0];
@@ -740,8 +739,8 @@ void MMDModel::Update(const UpdateRange& range) {
 				const auto center = vtxInfo->m_sdefC;
 				const auto cr0 = vtxInfo->m_sdefR0;
 				const auto cr1 = vtxInfo->m_sdefR1;
-				const auto q0 = glm::quat_cast(nodes[i0]->m_global);
-				const auto q1 = glm::quat_cast(nodes[i1]->m_global);
+				const auto q0 = glm::quat_cast(m_nodes[i0]->m_global);
+				const auto q1 = glm::quat_cast(m_nodes[i1]->m_global);
 				const auto m0 = transforms[i0];
 				const auto m1 = transforms[i1];
 
@@ -820,7 +819,7 @@ void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 		case PMXMorphType::Group: {
 			for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				if (m_morphIndex == -1) continue;
-				auto &elemMorph = m_morphMan.m_morphs[m_morphIndex];
+				auto &elemMorph = m_morphs[m_morphIndex];
 				Morph(elemMorph.get(), m_weight * weight);
 			}
 			break;
@@ -933,7 +932,7 @@ void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const 
 
 void MMDModel::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 	for (const auto &[m_boneIndex, m_position, m_quaternion]: morphData) {
-		auto* node = m_nodeMan.m_nodes[m_boneIndex].get();
+		auto* node = m_nodes[m_boneIndex].get();
 		glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);
 		node->m_translate = node->m_translate + t;
 		const glm::quat q = glm::slerp(node->m_rotate, m_quaternion, weight);

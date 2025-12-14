@@ -189,7 +189,7 @@ void MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* mode
 		m_offsetMat = glm::inverse(node->m_global) * rbMat;
 		kinematicNode = node;
 	} else {
-		auto* root = model->m_nodeMan.m_nodes[0].get();
+		auto* root = model->m_nodes[0].get();
 		m_offsetMat = glm::inverse(root->m_global) * rbMat;
 		kinematicNode = root;
 	}

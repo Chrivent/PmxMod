@@ -3,7 +3,6 @@
 #include "MMDNode.h"
 
 #include <vector>
-#include <string>
 #include <glm/vec3.hpp>
 
 struct IKChain
@@ -37,10 +36,4 @@ private:
 	static glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before);
 	void SolveCore(uint32_t iteration);
 	void SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex);
-};
-
-class MMDIKManager
-{
-public:
-	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
 };
