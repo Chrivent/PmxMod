@@ -30,8 +30,6 @@ MMDNode::MMDNode()
 	, m_isAppendTranslate(false)
 	, m_isAppendLocal(false)
 	, m_appendWeight(0)
-	, m_appendTranslate()
-	, m_appendRotate()
 	, m_ikSolver(nullptr) {
 }
 

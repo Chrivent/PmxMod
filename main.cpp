@@ -116,12 +116,12 @@ static SceneConfig BuildTestSceneConfig() {
 	in.m_scale = 1.0f;
 	in.m_vmdPaths.emplace_back(N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(2)SukiYukiMajiMagic.vmd)"));
 	cfg.models.emplace_back(std::move(in));
+	cfg.cameraVmd = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(2)SukiYukiMajiMagic_camera.vmd)");
+	cfg.musicPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\02.wav)");
 	Input bg;
 	bg.m_modelPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\PDF 2nd Like, Dislike Stage\Like, Dislike Stage.pmx)");
 	bg.m_scale = 1.0f;
 	cfg.models.emplace_back(std::move(bg));
-	cfg.cameraVmd = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(2)SukiYukiMajiMagic_camera.vmd)");
-	cfg.musicPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\02.wav)");
 	return cfg;
 }
 
@@ -158,7 +158,7 @@ static bool SampleMain(const SceneConfig& cfg) {
         if (ma_sound_get_cursor_in_pcm_frames(&sound, &frames) != MA_SUCCESS)
             return { 0.f, static_cast<float>(prevTimeSec) };
         const double sr = ma_engine_get_sample_rate(&engine);
-        const double t  = sr > 0.0 ? frames / sr : prevTimeSec;
+        const double t  = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
         double dt = t - prevTimeSec;
     	if (dt < 0.0)
     		dt = 0.0;
@@ -315,9 +315,8 @@ int main() {
 	constexpr COMDLG_FILTERSPEC kMusicFilters[]  = { {L"Audio", L"*.wav;*.mp3;*.ogg;*.flac"} };
 	const bool kTestMode = true;
 	SceneConfig cfg;
-	if (kTestMode) {
+	if (kTestMode)
 		cfg = BuildTestSceneConfig();
-	}
 	else {
 		std::vector<std::filesystem::path> modelPaths;
 		std::vector<std::filesystem::path> motionPaths;
