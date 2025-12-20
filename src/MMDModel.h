@@ -4,7 +4,6 @@
 #include "MMDMorph.h"
 #include "MMDIkSolver.h"
 #include "MMDPhysics.h"
-#include "PMXFile.h"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>

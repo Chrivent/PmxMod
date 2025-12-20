@@ -2,7 +2,6 @@
 
 #include "MMDModel.h"
 
-#include "PMXFile.h"
 #include "VMDAnimation.h"
 
 #include "../base/Util.h"
