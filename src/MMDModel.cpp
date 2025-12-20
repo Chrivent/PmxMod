@@ -5,7 +5,7 @@
 #include "PMXFile.h"
 #include "VMDAnimation.h"
 
-#include "../base/Path.h"
+#include "../base/Util.h"
 
 #include <glm/gtx/dual_quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>

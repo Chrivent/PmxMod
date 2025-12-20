@@ -9,7 +9,6 @@
 #include <windows.h>
 #include <shobjidl.h>
 
-#include "base/Path.h"
 #include "AppContext.h"
 #include "Model.h"
 

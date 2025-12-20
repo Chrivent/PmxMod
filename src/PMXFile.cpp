@@ -1,7 +1,6 @@
 ﻿#include "PMXFile.h"
 
-#include "../base/File.h"
-#include "../base/UnicodeUtil.h"
+#include "../base/Util.h"
 
 #include <vector>
 
