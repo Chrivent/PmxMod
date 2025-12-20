@@ -175,7 +175,7 @@ struct PathUtil {
 		return UnicodeUtil::ToUtf8String(modulePath.data());
 	}
 
-	static std::string Combine(const std::string & a, const std::string & b) {
+	static std::string Combine(const std::string& a, const std::string& b) {
 		std::string result;
 		for (const auto& part: { a, b }) {
 			if (!part.empty()) {
@@ -191,14 +191,14 @@ struct PathUtil {
 		return result;
 	}
 
-	static std::string GetDirectoryName(const std::string & path) {
+	static std::string GetDirectoryName(const std::string& path) {
 		const auto pos = path.find_last_of("\\/");
 		if (pos == std::string::npos)
 			return "";
 		return path.substr(0, pos);
 	}
 
-	static std::string GetExt(const std::string & path) {
+	static std::string GetExt(const std::string& path) {
 		const auto pos = path.find_last_of('.');
 		if (pos == std::string::npos)
 			return "";
@@ -208,7 +208,7 @@ struct PathUtil {
 		return ext;
 	}
 
-	static std::string Normalize(const std::string & path) {
+	static std::string Normalize(const std::string& path) {
 		std::string result = path;
 		std::ranges::replace(result, '/', '\\');
 		return result;
