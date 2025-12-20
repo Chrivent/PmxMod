@@ -277,8 +277,9 @@ static bool SampleMain(const SceneConfig& cfg) {
         if (appContext.m_vmdCameraAnim) {
             appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
             const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
-            MMDLookAtCamera lookAtCam(mmdCam);
-            appContext.m_viewMat = glm::lookAt(lookAtCam.m_eye, lookAtCam.m_center, lookAtCam.m_up);
+        	glm::vec3 center, eye, up;
+        	mmdCam.LookAtCamera(center, eye, up);
+            appContext.m_viewMat = glm::lookAt(eye, center, up);
             appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov,
                 static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
         }

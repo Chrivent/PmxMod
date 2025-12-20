@@ -1,9 +1,20 @@
 ﻿#pragma once
 
-#include "MMDCamera.h"
 #include "VMDAnimation.h"
 
 #include <memory>
+
+struct MMDCamera
+{
+	MMDCamera();
+
+	glm::vec3	m_interest{};
+	glm::vec3	m_rotate{};
+	float		m_distance;
+	float		m_fov;
+
+	void LookAtCamera(glm::vec3& center, glm::vec3& eye, glm::vec3& up) const;
+};
 
 struct VMDCameraAnimationKey
 {

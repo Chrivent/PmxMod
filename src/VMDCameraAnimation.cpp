@@ -1,5 +1,25 @@
 ﻿#include "VMDCameraAnimation.h"
 
+MMDCamera::MMDCamera() {
+	m_interest = glm::vec3(0, 10, 0);
+	m_rotate = glm::vec3(0, 0, 0);
+	m_distance = 50;
+	m_fov = glm::radians(30.0f);
+}
+
+void MMDCamera::LookAtCamera(glm::vec3 &center, glm::vec3 &eye, glm::vec3 &up) const {
+	glm::mat4 view(1.0f);
+	view = glm::translate(view, glm::vec3(0, 0, std::abs(m_distance)));
+	glm::mat4 rot(1.0f);
+	rot = glm::rotate(rot, m_rotate.y, glm::vec3(0, 1, 0));
+	rot = glm::rotate(rot, m_rotate.z, glm::vec3(0, 0, -1));
+	rot = glm::rotate(rot, m_rotate.x, glm::vec3(1, 0, 0));
+	view = rot * view;
+	eye = glm::vec3(view[3]) + m_interest;
+	center = glm::mat3(view) * glm::vec3(0, 0, -1) + eye;
+	up = glm::mat3(view) * glm::vec3(0, 1, 0);
+}
+
 namespace
 {
 	void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
