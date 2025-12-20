@@ -7,7 +7,7 @@ MMDCamera::MMDCamera() {
 	m_fov = glm::radians(30.0f);
 }
 
-void MMDCamera::LookAtCamera(glm::vec3 &center, glm::vec3 &eye, glm::vec3 &up) const {
+glm::mat4 MMDCamera::GetViewMatrix() const {
 	glm::mat4 view(1.0f);
 	view = glm::translate(view, glm::vec3(0, 0, std::abs(m_distance)));
 	glm::mat4 rot(1.0f);
@@ -15,9 +15,10 @@ void MMDCamera::LookAtCamera(glm::vec3 &center, glm::vec3 &eye, glm::vec3 &up) c
 	rot = glm::rotate(rot, m_rotate.z, glm::vec3(0, 0, -1));
 	rot = glm::rotate(rot, m_rotate.x, glm::vec3(1, 0, 0));
 	view = rot * view;
-	eye = glm::vec3(view[3]) + m_interest;
-	center = glm::mat3(view) * glm::vec3(0, 0, -1) + eye;
-	up = glm::mat3(view) * glm::vec3(0, 1, 0);
+	const glm::vec3 eye = glm::vec3(view[3]) + m_interest;
+	const glm::vec3 center = glm::mat3(view) * glm::vec3(0, 0, -1) + eye;
+	const glm::vec3 up = glm::mat3(view) * glm::vec3(0, 1, 0);
+	return glm::lookAt(eye, center, up);
 }
 
 namespace

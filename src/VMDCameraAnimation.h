@@ -13,7 +13,7 @@ struct MMDCamera
 	float		m_distance;
 	float		m_fov;
 
-	void LookAtCamera(glm::vec3& center, glm::vec3& eye, glm::vec3& up) const;
+	glm::mat4 GetViewMatrix() const;
 };
 
 struct VMDCameraAnimationKey
