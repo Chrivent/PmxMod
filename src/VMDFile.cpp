@@ -7,7 +7,7 @@ namespace
 	bool ReadHeader(VMDFile* vmd, File& file) {
 		file.Read(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
 		file.Read(vmd->m_header.m_modelName, sizeof(vmd->m_header.m_modelName));
-		const std::string_view header(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
+		const std::string header(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
 		if (!(header.starts_with("Vocaloid Motion Data 0002") ||
 			header.starts_with("Vocaloid Motion Data")))
 			return false;

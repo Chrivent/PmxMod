@@ -169,12 +169,12 @@ struct File {
 
 struct PathUtil {
 private:
-    static std::string U8ToString(const std::filesystem::path& p) {
+    static std::string PathToString(const std::filesystem::path& p) {
         const std::u8string u8 = p.u8string();
         return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
     }
 
-    static std::filesystem::path StringToU8(const std::string& s) {
+    static std::filesystem::path StringToPath(const std::string& s) {
         std::u8string u8;
         u8.resize(s.size());
         for (size_t i = 0; i < s.size(); i++)
@@ -186,7 +186,7 @@ public:
     static std::string GetExecutablePath() {
         auto ExecutablePath = []() -> std::filesystem::path {
             std::vector<wchar_t> buf(260);
-            for (;;) {
+            while (true) {
                 const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
                 if (n == 0) return {};
                 if (n < buf.size() - 1) return std::filesystem::path(std::wstring(buf.data(), n));
@@ -195,40 +195,40 @@ public:
         };
         std::filesystem::path p = ExecutablePath();
         p.make_preferred();
-        return U8ToString(p);
+        return PathToString(p);
     }
 
     static std::string Combine(const std::string& a, const std::string& b) {
-        const std::filesystem::path pa = StringToU8(a);
-        const std::filesystem::path pb = StringToU8(b);
+        const std::filesystem::path pa = StringToPath(a);
+        const std::filesystem::path pb = StringToPath(b);
         std::filesystem::path out = pa / pb;
         out = out.lexically_normal();
         out.make_preferred();
-        return U8ToString(out);
+        return PathToString(out);
     }
 
     static std::string GetDirectoryName(const std::string& path) {
-        std::filesystem::path p = StringToU8(path);
+        std::filesystem::path p = StringToPath(path);
         p.make_preferred();
-        return U8ToString(p.parent_path());
+        return PathToString(p.parent_path());
     }
 
     static std::string GetExt(const std::string& path) {
-        const std::filesystem::path p = StringToU8(path);
+        const std::filesystem::path p = StringToPath(path);
         auto ext = p.extension().wstring();
         if (ext.empty()) return {};
         if (!ext.empty() && ext[0] == L'.')
             ext.erase(ext.begin());
-        std::string out = U8ToString(std::filesystem::path(ext));
+        std::string out = PathToString(std::filesystem::path(ext));
         for (char& ch : out)
             ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
         return out;
     }
 
     static std::string Normalize(const std::string& path) {
-        std::filesystem::path p = StringToU8(path);
+        std::filesystem::path p = StringToPath(path);
         p = p.lexically_normal();
         p.make_preferred();
-        return U8ToString(p);
+        return PathToString(p);
     }
 };
