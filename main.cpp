@@ -312,7 +312,7 @@ int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
 	constexpr COMDLG_FILTERSPEC kMusicFilters[]  = { {L"Audio", L"*.wav;*.mp3;*.ogg;*.flac"} };
-	const bool kTestMode = true;
+	const bool kTestMode = false;
 	SceneConfig cfg;
 	if (kTestMode)
 		cfg = BuildTestSceneConfig();
@@ -334,22 +334,22 @@ int main() {
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
 		for (int i = 0; i < modelPaths.size(); i++) {
 			Input in;
-			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::ToUtf8String(modelPaths[i].wstring()));
+			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(modelPaths[i].wstring()));
 			in.m_scale = 1.0f;
 			for (auto& v : motionPaths[i])
-				in.m_vmdPaths.emplace_back(PathUtil::Normalize(UnicodeUtil::ToUtf8String(v.wstring())));
+				in.m_vmdPaths.emplace_back(PathUtil::Normalize(UnicodeUtil::WStringToUtf8(v.wstring())));
 			cfg.models.emplace_back(std::move(in));
 		}
 		if (!bgPath.empty()) {
 			Input bg;
-			bg.m_modelPath = PathUtil::Normalize(UnicodeUtil::ToUtf8String(bgPath.front().wstring()));
+			bg.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(bgPath.front().wstring()));
 			bg.m_scale = 1.0f;
 			cfg.models.emplace_back(std::move(bg));
 		}
 		if (!cameraPath.empty())
-			cfg.cameraVmd = PathUtil::Normalize(UnicodeUtil::ToUtf8String(cameraPath.front().wstring()));
+			cfg.cameraVmd = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(cameraPath.front().wstring()));
 		if (!musicPath.empty())
-			cfg.musicPath = PathUtil::Normalize(UnicodeUtil::ToUtf8String(musicPath.front().wstring()));
+			cfg.musicPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(musicPath.front().wstring()));
 	}
 	if (!SampleMain(cfg)) {
 		std::cout << "Failed to run.\n";
