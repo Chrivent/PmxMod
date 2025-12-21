@@ -317,7 +317,7 @@ int main() {
 		cfg = BuildTestSceneConfig();
 	else {
 		std::vector<std::filesystem::path> modelPaths;
-		std::vector<std::filesystem::path> motionPaths;
+		std::vector<std::vector<std::filesystem::path>> motionPaths;
 		std::vector<std::filesystem::path> cameraPath;
 		std::vector<std::filesystem::path> musicPath;
 		std::vector<std::filesystem::path> bgPath;
@@ -325,15 +325,17 @@ int main() {
 			std::cout << "모델 선택 취소\n";
 			return 0;
 		}
-		PickFilesWin(motionPaths, L"모션(.vmd) 선택 (여러 개 가능, 취소=없음)", kVMDFilters, 1, true);
+		motionPaths.resize(modelPaths.size());
+		for (int i = 0; i < modelPaths.size(); i++)
+			PickFilesWin(motionPaths[i], L"모션(.vmd) 선택 (여러 개 가능, 취소=없음)", kVMDFilters, 1, true);
 		PickFilesWin(cameraPath, L"카메라(.vmd) 선택 (취소=없음)", kVMDFilters, 1, false);
 		PickFilesWin(musicPath, L"음악 선택 (취소=없음)", kMusicFilters, 1, false);
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
-		for (auto& mp : modelPaths) {
+		for (int i = 0; i < modelPaths.size(); i++) {
 			Input in;
-			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::ToUtf8String(mp.wstring()));
+			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::ToUtf8String(modelPaths[i].wstring()));
 			in.m_scale = 1.0f;
-			for (auto& v : motionPaths)
+			for (auto& v : motionPaths[i])
 				in.m_vmdPaths.emplace_back(PathUtil::Normalize(UnicodeUtil::ToUtf8String(v.wstring())));
 			cfg.models.emplace_back(std::move(in));
 		}

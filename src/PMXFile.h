@@ -77,7 +77,7 @@ struct PMXVertex
 
 	glm::vec4	m_addUV[4];
 
-	PMXVertexWeight	m_weightType; // 0:BDEF1 1:BDEF2 2:BDEF4 3:SDEF 4:QDEF
+	PMXVertexWeight	m_weightType;
 	int32_t		m_boneIndices[4];
 	float		m_boneWeights[4];
 	glm::vec3	m_sdefC;
