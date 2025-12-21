@@ -4,202 +4,161 @@
 
 #include <vector>
 
-namespace
-{
+namespace {
 	template <typename T>
-	bool Read(T* val, File& file)
-	{
+	bool Read(T* val, File& file) {
 		return file.Read(val);
 	}
 
 	template <typename T>
-	bool Read(T* valArray, size_t size, File& file)
-	{
+	bool Read(T* valArray, size_t size, File& file) {
 		return file.Read(valArray, size);
 	}
 
-	bool ReadString(const PMXFile* pmx, std::string* val, File& file)
-	{
+	bool ReadString(const PMXFile* pmx, std::string* val, File& file) {
 		uint32_t bufSize;
-		if (!Read(&bufSize, file))
-		{
+		if (!file.Read(&bufSize))
 			return false;
-		}
-
-		if (bufSize > 0)
-		{
-			if (pmx->m_header.m_encode == 0)
-			{
+		if (bufSize > 0) {
+			if (pmx->m_header.m_encode == 0) {
 				// UTF-16
 				std::u16string utf16Str(bufSize / 2, u'\0');
 				if (!file.Read(&utf16Str[0], utf16Str.size()))
-				{
 					return false;
-				}
 				if (!UnicodeUtil::ConvU16ToU8(utf16Str, *val))
-				{
 					return false;
-				}
-			}
-			else if (pmx->m_header.m_encode == 1)
-			{
+			} else if (pmx->m_header.m_encode == 1) {
 				// UTF-8
 				std::string utf8Str(bufSize, '\0');
 				file.Read(&utf8Str[0], bufSize);
-
 				*val = utf8Str;
 			}
 		}
-
 		return !file.m_badFlag;
 	}
 
-	bool ReadIndex(int32_t* index, uint8_t indexSize, File& file)
-	{
-		switch (indexSize)
-		{
-		case 1:
-		{
-			uint8_t idx;
-			Read(&idx, file);
-			if (idx != 0xFF)
-			{
+	bool ReadIndex(int32_t* index, const uint8_t indexSize, File& file) {
+		switch (indexSize) {
+			case 1: {
+				uint8_t idx;
+				file.Read(&idx);
+				if (idx != 0xFF)
+					*index = static_cast<int32_t>(idx);
+				else
+					*index = -1;
+			}
+			break;
+			case 2: {
+				uint16_t idx;
+				file.Read(&idx);
+				if (idx != 0xFFFF)
+					*index = static_cast<int32_t>(idx);
+				else
+					*index = -1;
+			}
+			break;
+			case 4: {
+				uint32_t idx;
+				file.Read(&idx);
 				*index = static_cast<int32_t>(idx);
 			}
-			else
-			{
-				*index = -1;
-			}
-		}
 			break;
-		case 2:
-		{
-			uint16_t idx;
-			Read(&idx, file);
-			if (idx != 0xFFFF)
-			{
-				*index = static_cast<int32_t>(idx);
-			}
-			else
-			{
-				*index = -1;
-			}
-		}
-			break;
-		case 4:
-		{
-			uint32_t idx;
-			Read(&idx, file);
-			*index = static_cast<int32_t>(idx);
-		}
-			break;
-		default:
-			return false;
+			default:
+				return false;
 		}
 		return !file.m_badFlag;
 	}
 
-	bool ReadHeader(PMXFile* pmxFile, File& file)
-	{
-		auto& header = pmxFile->m_header;
-
-		Read(&header.m_magic, file);
-		Read(&header.m_version, file);
-
-		Read(&header.m_dataSize, file);
-
-		Read(&header.m_encode, file);
-		Read(&header.m_addUVNum, file);
-
-		Read(&header.m_vertexIndexSize, file);
-		Read(&header.m_textureIndexSize, file);
-		Read(&header.m_materialIndexSize, file);
-		Read(&header.m_boneIndexSize, file);
-		Read(&header.m_morphIndexSize, file);
-		Read(&header.m_rigidbodyIndexSize, file);
-
+	bool ReadHeader(PMXFile* pmxFile, File& file) {
+		auto& [m_magic
+			, m_version
+			, m_dataSize
+			, m_encode
+			, m_addUVNum
+			, m_vertexIndexSize
+			, m_textureIndexSize
+			, m_materialIndexSize
+			, m_boneIndexSize
+			, m_morphIndexSize
+			, m_rigidbodyIndexSize] = pmxFile->m_header;
+		Read(&m_magic, file);
+		file.Read(&m_version);
+		file.Read(&m_dataSize);
+		file.Read(&m_encode);
+		file.Read(&m_addUVNum);
+		file.Read(&m_vertexIndexSize);
+		file.Read(&m_textureIndexSize);
+		file.Read(&m_materialIndexSize);
+		file.Read(&m_boneIndexSize);
+		file.Read(&m_morphIndexSize);
+		file.Read(&m_rigidbodyIndexSize);
 		return !file.m_badFlag;
 	}
 
-	bool ReadInfo(PMXFile* pmx, File& file)
-	{
+	bool ReadInfo(PMXFile* pmx, File& file) {
 		auto& [m_modelName, m_englishModelName, m_comment, m_englishComment] = pmx->m_info;
-
 		ReadString(pmx, &m_modelName, file);
 		ReadString(pmx, &m_englishModelName, file);
 		ReadString(pmx, &m_comment, file);
 		ReadString(pmx, &m_englishComment, file);
-
 		return true;
 	}
 
-	bool ReadVertex(PMXFile* pmx, File& file)
-	{
+	bool ReadVertex(PMXFile* pmx, File& file) {
 		int32_t vertexCount;
 		if (!Read(&vertexCount, file))
-		{
 			return false;
-		}
-
-		auto& vertices = pmx->m_vertices;
+		auto &vertices = pmx->m_vertices;
 		vertices.resize(vertexCount);
-		for (auto& vertex : vertices)
-		{
+		for (auto& vertex: vertices) {
 			Read(&vertex.m_position, file);
 			Read(&vertex.m_normal, file);
 			Read(&vertex.m_uv, file);
-
 			for (uint8_t i = 0; i < pmx->m_header.m_addUVNum; i++)
-			{
 				Read(&vertex.m_addUV[i], file);
-			}
-
 			Read(&vertex.m_weightType, file);
-
-			switch (vertex.m_weightType)
-			{
-			case PMXVertexWeight::BDEF1:
-				ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
-				break;
-			case PMXVertexWeight::BDEF2:
-				ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
-				Read(&vertex.m_boneWeights[0], file);
-				break;
-			case PMXVertexWeight::BDEF4:
-				ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[2], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[3], pmx->m_header.m_boneIndexSize, file);
-				Read(&vertex.m_boneWeights[0], file);
-				Read(&vertex.m_boneWeights[1], file);
-				Read(&vertex.m_boneWeights[2], file);
-				Read(&vertex.m_boneWeights[3], file);
-				break;
-			case PMXVertexWeight::SDEF:
-				ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
-				Read(&vertex.m_boneWeights[0], file);
-				Read(&vertex.m_sdefC, file);
-				Read(&vertex.m_sdefR0, file);
-				Read(&vertex.m_sdefR1, file);
-				break;
-			case PMXVertexWeight::QDEF:
-				ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[2], pmx->m_header.m_boneIndexSize, file);
-				ReadIndex(&vertex.m_boneIndices[3], pmx->m_header.m_boneIndexSize, file);
-				Read(&vertex.m_boneWeights[0], file);
-				Read(&vertex.m_boneWeights[1], file);
-				Read(&vertex.m_boneWeights[3], file);
-				Read(&vertex.m_boneWeights[4], file);
-				break;
-			default:
-				return false;
+			switch (vertex.m_weightType) {
+				case PMXVertexWeight::BDEF1:
+					ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
+					break;
+				case PMXVertexWeight::BDEF2:
+					ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
+					Read(&vertex.m_boneWeights[0], file);
+					break;
+				case PMXVertexWeight::BDEF4:
+					ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[2], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[3], pmx->m_header.m_boneIndexSize, file);
+					Read(&vertex.m_boneWeights[0], file);
+					Read(&vertex.m_boneWeights[1], file);
+					Read(&vertex.m_boneWeights[2], file);
+					Read(&vertex.m_boneWeights[3], file);
+					break;
+				case PMXVertexWeight::SDEF:
+					ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
+					Read(&vertex.m_boneWeights[0], file);
+					Read(&vertex.m_sdefC, file);
+					Read(&vertex.m_sdefR0, file);
+					Read(&vertex.m_sdefR1, file);
+					break;
+				case PMXVertexWeight::QDEF:
+					ReadIndex(&vertex.m_boneIndices[0], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[1], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[2], pmx->m_header.m_boneIndexSize, file);
+					ReadIndex(&vertex.m_boneIndices[3], pmx->m_header.m_boneIndexSize, file);
+					Read(&vertex.m_boneWeights[0], file);
+					Read(&vertex.m_boneWeights[1], file);
+					Read(&vertex.m_boneWeights[3], file);
+					Read(&vertex.m_boneWeights[4], file);
+					break;
+				default:
+					return false;
 			}
 			Read(&vertex.m_edgeMag, file);
 		}
-
 		return !file.m_badFlag;
 	}
 
