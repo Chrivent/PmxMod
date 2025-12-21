@@ -583,4 +583,4 @@ struct PMXFile
 	std::vector<PMXSoftBody>	m_softbodies;
 };
 
-bool ReadPMXFile(PMXFile* pmdFile, const char* filename);
+bool ReadPMXFile(PMXFile* pmxFile, const char* filename);
