@@ -157,7 +157,7 @@ namespace
 	}
 }
 
-bool ReadVMDFile(VMDFile * vmd, const char * filename)
+bool ReadVMDFile(VMDFile* vmd, const char* filename)
 {
 	File file;
 	if (!file.OpenFile(filename, "rb"))
