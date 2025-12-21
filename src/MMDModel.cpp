@@ -668,16 +668,6 @@ void MMDModel::SetupParallelUpdate() {
 			offset = m_vertexOffset + m_vertexCount;
 		}
 	}
-
-	// const size_t vertexCount = m_positions.size();
-	//
-	// // 싱글 스레드 강제
-	// m_parallelUpdateCount = 1;
-	// m_updateRanges.resize(1);
-	// m_updateRanges[0] = { /*m_vertexOffset=*/0, /*m_vertexCount=*/vertexCount };
-	//
-	// // 워커 없음
-	// m_parallelUpdateFutures.clear();
 }
 
 void MMDModel::Update(const UpdateRange& range) {

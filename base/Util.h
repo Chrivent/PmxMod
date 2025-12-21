@@ -150,13 +150,12 @@ struct PathUtil {
 private:
 	static std::string PathToUtf8(const std::filesystem::path& p) {
 		const auto u8 = p.u8string();
-		return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
+		return { reinterpret_cast<const char*>(u8.data()), u8.size() };
 	}
 
 	static std::filesystem::path Utf8ToPath(const std::string& s) {
-		return std::filesystem::path(
-			std::u8string(reinterpret_cast<const char8_t*>(s.data()),
-				reinterpret_cast<const char8_t*>(s.data() + s.size())));
+		return { std::u8string(reinterpret_cast<const char8_t*>(s.data()),
+				reinterpret_cast<const char8_t*>(s.data() + s.size())) };
 	}
 
 public:
