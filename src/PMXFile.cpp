@@ -63,7 +63,7 @@ namespace {
 		auto& [m_magic, m_version, m_dataSize, m_encode, m_addUVNum
 			, m_vertexIndexSize, m_textureIndexSize, m_materialIndexSize, m_boneIndexSize
 			, m_morphIndexSize, m_rigidbodyIndexSize] = pmxFile->m_header;
-		Read(&m_magic, file);
+		file.Read(m_magic, sizeof(m_magic));
 		file.Read(&m_version);
 		file.Read(&m_dataSize);
 		file.Read(&m_encode);

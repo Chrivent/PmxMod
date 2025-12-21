@@ -13,14 +13,11 @@
 
 struct PMXHeader
 {
-	MMDFileString<4>	m_magic;
-	float			m_version;
-
+	char	m_magic[4];
+	float	m_version;
 	uint8_t	m_dataSize;
-
 	uint8_t	m_encode;	//0:UTF16 1:UTF8
 	uint8_t	m_addUVNum;
-
 	uint8_t	m_vertexIndexSize;
 	uint8_t	m_textureIndexSize;
 	uint8_t	m_materialIndexSize;
@@ -74,16 +71,13 @@ struct PMXVertex
 	glm::vec3	m_position;
 	glm::vec3	m_normal;
 	glm::vec2	m_uv;
-
 	glm::vec4	m_addUV[4];
-
 	PMXVertexWeight	m_weightType;
 	int32_t		m_boneIndices[4];
 	float		m_boneWeights[4];
 	glm::vec3	m_sdefC;
 	glm::vec3	m_sdefR0;
 	glm::vec3	m_sdefR1;
-
 	float	m_edgeMag;
 };
 
@@ -143,26 +137,19 @@ struct PMXMaterial
 {
 	std::string	m_name;
 	std::string	m_englishName;
-
 	glm::vec4	m_diffuse;
 	glm::vec3	m_specular;
 	float		m_specularPower;
 	glm::vec3	m_ambient;
-
 	PMXDrawModeFlags m_drawMode;
-
 	glm::vec4	m_edgeColor;
 	float		m_edgeSize;
-
 	int32_t	m_textureIndex;
 	int32_t	m_sphereTextureIndex;
 	PMXSphereMode m_sphereMode;
-
 	PMXToonMode	m_toonMode;
 	int32_t		m_toonTextureIndex;
-
 	std::string	m_memo;
-
 	int32_t	m_numFaceVertices;
 };
 
@@ -207,7 +194,6 @@ struct PMXIKLink
 {
 	int32_t			m_ikBoneIndex;
 	unsigned char	m_enableLimit;
-
 	//m_enableLimitが1のときのみ
 	glm::vec3	m_limitMin;	//ラジアンで表現
 	glm::vec3	m_limitMax;	//ラジアンで表現
@@ -217,35 +203,26 @@ struct PMXBone
 {
 	std::string	m_name;
 	std::string	m_englishName;
-
 	glm::vec3	m_position;
 	int32_t		m_parentBoneIndex;
 	int32_t		m_deformDepth;
-
 	PMXBoneFlags	m_boneFlag;
-
 	glm::vec3	m_positionOffset;	//接続先:0の場合
 	int32_t		m_linkBoneIndex;	//接続先:1の場合
-
 									//「回転付与」または「移動付与」が有効のみ
 	int32_t	m_appendBoneIndex;
 	float	m_appendWeight;
-
 	//「軸固定」が有効のみ
 	glm::vec3	m_fixedAxis;
-
 	//「ローカル軸」が有効のみ
 	glm::vec3	m_localXAxis;
 	glm::vec3	m_localZAxis;
-
 	//「外部親変形」が有効のみ
 	int32_t	m_keyValue;
-
 	//「IK」が有効のみ
 	int32_t	m_ikTargetBoneIndex;
 	int32_t	m_ikIterationCount;
 	float	m_ikLimit;	//ラジアンで表現
-
 	std::vector<PMXIKLink>	m_ikLinks;
 };
 
@@ -328,7 +305,6 @@ struct PMXMorph
 {
 	std::string	m_name;
 	std::string	m_englishName;
-
 	uint8_t			m_controlPanel;	//1:眉(左下) 2:目(左上) 3:口(右上) 4:その他(右下)  | 0:システム予約
 	PMXMorphType	m_morphType;
 
@@ -357,7 +333,6 @@ struct PMXMorph
 
 struct PMXDisplayFrame
 {
-
 	std::string	m_name;
 	std::string	m_englishName;
 
@@ -398,7 +373,6 @@ struct PMXRigidbody
 {
 	std::string	m_name;
 	std::string	m_englishName;
-
 	int32_t		m_boneIndex;
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
@@ -416,16 +390,13 @@ struct PMXRigidbody
 	};
 	Shape		m_shape;
 	glm::vec3	m_shapeSize;
-
 	glm::vec3	m_translate;
 	glm::vec3	m_rotate;	//ラジアン
-
 	float	m_mass;
 	float	m_translateDimmer;
 	float	m_rotateDimmer;
 	float	m_repulsion;
 	float	m_friction;
-
 	Operation	m_op;
 };
 
@@ -454,15 +425,12 @@ struct PMXJoint
 	JointType	m_type;
 	int32_t		m_rigidbodyAIndex;
 	int32_t		m_rigidbodyBIndex;
-
 	glm::vec3	m_translate;
 	glm::vec3	m_rotate;
-
 	glm::vec3	m_translateLowerLimit;
 	glm::vec3	m_translateUpperLimit;
 	glm::vec3	m_rotateLowerLimit;
 	glm::vec3	m_rotateUpperLimit;
-
 	glm::vec3	m_springTranslateFactor;
 	glm::vec3	m_springRotateFactor;
 };
@@ -482,9 +450,7 @@ struct PMXSoftBody
 		Rope,
 	};
 	SoftBodyType	m_type;
-
 	int32_t			m_materialIndex;
-
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
 
@@ -500,10 +466,8 @@ struct PMXSoftBody
 		HybridLink = 0x04,
 	};
 	SoftBodyMask	m_flag;
-
 	int32_t	m_BLinkLength;
 	int32_t	m_numClusters;
-
 	float	m_totalMass;
 	float	m_collisionMargin;
 
@@ -521,7 +485,6 @@ struct PMXSoftBody
 		kAeroModelF_OneSided,
 	};
 	int32_t		m_aeroModel;
-
 	//config
 	float	m_VCF;
 	float	m_DP;
@@ -535,7 +498,6 @@ struct PMXSoftBody
 	float	m_KHR;
 	float	m_SHR;
 	float	m_AHR;
-
 	//cluster
 	float	m_SRHR_CL;
 	float	m_SKHR_CL;
@@ -543,13 +505,11 @@ struct PMXSoftBody
 	float	m_SR_SPLT_CL;
 	float	m_SK_SPLT_CL;
 	float	m_SS_SPLT_CL;
-
 	//interation
 	int32_t	m_V_IT;
 	int32_t	m_P_IT;
 	int32_t	m_D_IT;
 	int32_t	m_C_IT;
-
 	//material
 	float	m_LST;
 	float	m_AST;
@@ -562,7 +522,6 @@ struct PMXSoftBody
 		uint8_t	m_nearMode; //0:FF 1:ON
 	};
 	std::vector<AnchorRigidbody>	m_anchorRigidBodies;
-
 	std::vector<int32_t>	m_pinVertexIndices;
 };
 
@@ -570,7 +529,6 @@ struct PMXFile
 {
 	PMXHeader	m_header;
 	PMXInfo		m_info;
-
 	std::vector<PMXVertex>		m_vertices;
 	std::vector<PMXFace>		m_faces;
 	std::vector<PMXTexture>		m_textures;

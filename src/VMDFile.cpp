@@ -4,11 +4,6 @@
 
 namespace
 {
-	template <typename T>
-	bool Read(T* val, File& file) {
-		return file.Read(val);
-	}
-
 	bool ReadHeader(VMDFile* vmd, File& file) {
 		Read(&vmd->m_header.m_header, file);
 		Read(&vmd->m_header.m_modelName, file);
@@ -20,7 +15,7 @@ namespace
 
 	bool ReadMotion(VMDFile* vmd, File& file) {
 		uint32_t motionCount = 0;
-		if (!Read(&motionCount, file))
+		if (!file.Read(&motionCount))
 			return false;
 		vmd->m_motions.resize(motionCount);
 		for (auto& [m_boneName,
@@ -29,32 +24,32 @@ namespace
 					m_quaternion,
 					m_interpolation] : vmd->m_motions) {
 			Read(&m_boneName, file);
-			Read(&m_frame, file);
-			Read(&m_translate, file);
-			Read(&m_quaternion, file);
-			Read(&m_interpolation, file);
+			file.Read(&m_frame);
+			file.Read(&m_translate);
+			file.Read(&m_quaternion);
+			file.Read(&m_interpolation);
 		}
 		return true;
 	}
 
 	bool ReadBlendShape(VMDFile* vmd, File& file) {
 		uint32_t blendShapeCount = 0;
-		if (!Read(&blendShapeCount, file))
+		if (!file.Read(&blendShapeCount))
 			return false;
 		vmd->m_morphs.resize(blendShapeCount);
 		for (auto& [m_blendShapeName,
 					m_frame,
 					m_weight]: vmd->m_morphs) {
 			Read(&m_blendShapeName, file);
-			Read(&m_frame, file);
-			Read(&m_weight, file);
+			file.Read(&m_frame);
+			file.Read(&m_weight);
 		}
 		return !file.m_badFlag;
 	}
 
 	bool ReadCamera(VMDFile* vmd, File& file) {
 		uint32_t cameraCount = 0;
-		if (!Read(&cameraCount, file))
+		if (!file.Read(&cameraCount))
 			return false;
 		vmd->m_cameras.resize(cameraCount);
 		for (auto& [m_frame,
@@ -64,65 +59,65 @@ namespace
 					m_interpolation,
 					m_viewAngle,
 					m_isPerspective]: vmd->m_cameras) {
-			Read(&m_frame, file);
-			Read(&m_distance, file);
-			Read(&m_interest, file);
-			Read(&m_rotate, file);
-			Read(&m_interpolation, file);
-			Read(&m_viewAngle, file);
-			Read(&m_isPerspective, file);
+			file.Read(&m_frame);
+			file.Read(&m_distance);
+			file.Read(&m_interest);
+			file.Read(&m_rotate);
+			file.Read(&m_interpolation);
+			file.Read(&m_viewAngle);
+			file.Read(&m_isPerspective);
 		}
 		return !file.m_badFlag;
 	}
 
 	bool ReadLight(VMDFile* vmd, File& file) {
 		uint32_t lightCount = 0;
-		if (!Read(&lightCount, file))
+		if (!file.Read(&lightCount))
 			return false;
 		vmd->m_lights.resize(lightCount);
 		for (auto& [m_frame,
 					m_color,
 					m_position]: vmd->m_lights) {
-			Read(&m_frame, file);
-			Read(&m_color, file);
-			Read(&m_position, file);
+			file.Read(&m_frame);
+			file.Read(&m_color);
+			file.Read(&m_position);
 		}
 		return !file.m_badFlag;
 	}
 
 	bool ReadShadow(VMDFile* vmd, File& file) {
 		uint32_t shadowCount = 0;
-		if (!Read(&shadowCount, file))
+		if (!file.Read(&shadowCount))
 			return false;
 		vmd->m_shadows.resize(shadowCount);
 		for (auto& [m_frame,
 					m_shadowType,
 					m_distance]: vmd->m_shadows) {
-			Read(&m_frame, file);
-			Read(&m_shadowType, file);
-			Read(&m_distance, file);
+			file.Read(&m_frame);
+			file.Read(&m_shadowType);
+			file.Read(&m_distance);
 		}
 		return !file.m_badFlag;
 	}
 
 	bool ReadIK(VMDFile* vmd, File& file) {
 		uint32_t ikCount = 0;
-		if (!Read(&ikCount, file))
+		if (!file.Read(&ikCount))
 			return false;
 		vmd->m_iks.resize(ikCount);
 		for (auto& [m_frame,
 					m_show,
 					m_ikInfos]: vmd->m_iks) {
-			Read(&m_frame, file);
-			Read(&m_show, file);
+			file.Read(&m_frame);
+			file.Read(&m_show);
 			uint32_t ikInfoCount = 0;
-			if (!Read(&ikInfoCount, file))
+			if (!file.Read(&ikInfoCount))
 				return false;
 			m_ikInfos.resize(ikInfoCount);
 			for (auto& [m_name,
 						m_enable]: m_ikInfos) {
 				Read(&m_name, file);
-				Read(&m_enable, file);
+				file.Read(&m_enable);
 			}
 		}
 		return !file.m_badFlag;
