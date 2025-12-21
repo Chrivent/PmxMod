@@ -11,6 +11,7 @@
 
 #include "AppContext.h"
 #include "Model.h"
+#include "base/Util.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "external/miniaudio.h"

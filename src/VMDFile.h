@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "MMDFileString.h"
-
 #include <cstdint>
 #include <vector>
 #include <array>
@@ -10,12 +8,12 @@
 #include <glm/gtc/quaternion.hpp>
 
 struct VMDHeader {
-	MMDFileString<30>	m_header;
-	MMDFileString<20>	m_modelName;
+	char m_header[30];
+	char m_modelName[20];
 };
 
 struct VMDMotion {
-	MMDFileString<15>	m_boneName;
+	char			m_boneName[15];
 	uint32_t		m_frame;
 	glm::vec3		m_translate;
 	glm::quat		m_quaternion;
@@ -23,7 +21,7 @@ struct VMDMotion {
 };
 
 struct VMDMorph {
-	MMDFileString<15>	m_blendShapeName;
+	char			m_blendShapeName[15];
 	uint32_t		m_frame{};
 	float			m_weight{};
 };
@@ -51,7 +49,7 @@ struct VMDShadow {
 };
 
 struct VMDIkInfo {
-	MMDFileString<20>	m_name;
+	char			m_name[20];
 	uint8_t			m_enable{};
 };
 

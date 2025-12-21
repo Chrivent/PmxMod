@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "MMDFileString.h"
-
 #include <cstdint>
 #include <string>
 #include <vector>

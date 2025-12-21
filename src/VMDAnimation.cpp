@@ -1,5 +1,7 @@
 ﻿#include "VMDAnimation.h"
 
+#include "../base/Util.h"
+
 #include <algorithm>
 #include <iterator>
 #include <map>
@@ -161,7 +163,8 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 	}
 	m_nodeControllers.clear();
 	for (const auto &motion: vmd.m_motions) {
-		std::string nodeName = motion.m_boneName.ToUtf8String();
+		std::string nodeName;
+		UnicodeUtil::ConvU16ToU8(UnicodeUtil::ConvertSjisToU16String(motion.m_boneName), nodeName);
 		auto findIt = nodeCtrlMap.find(nodeName);
 		VMDNodeController *nodeCtrl = nullptr;
 		if (findIt == std::end(nodeCtrlMap)) {
@@ -203,9 +206,10 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 		ikCtrlMap.emplace(std::make_pair(name, std::move(ikCtrl)));
 	}
 	m_ikControllers.clear();
-	for (const auto &ik: vmd.m_iks) {
-		for (const auto &[m_name, m_enable]: ik.m_ikInfos) {
-			std::string ikName = m_name.ToUtf8String();
+	for (const auto& ik: vmd.m_iks) {
+		for (const auto& [m_name, m_enable]: ik.m_ikInfos) {
+			std::string ikName;
+			UnicodeUtil::ConvU16ToU8(UnicodeUtil::ConvertSjisToU16String(m_name), ikName);
 			auto findIt = ikCtrlMap.find(ikName);
 			VMDIKController *ikCtrl = nullptr;
 			if (findIt == std::end(ikCtrlMap)) {
@@ -250,7 +254,8 @@ bool VMDAnimation::Add(const VMDFile & vmd) {
 	}
 	m_morphControllers.clear();
 	for (const auto &[m_blendShapeName, m_frame, m_weight]: vmd.m_morphs) {
-		std::string morphName = m_blendShapeName.ToUtf8String();
+		std::string morphName;
+		UnicodeUtil::ConvU16ToU8(UnicodeUtil::ConvertSjisToU16String(m_blendShapeName), morphName);
 		auto findIt = morphCtrlMap.find(morphName);
 		VMDMorphController *morphCtrl = nullptr;
 		if (findIt == std::end(morphCtrlMap)) {

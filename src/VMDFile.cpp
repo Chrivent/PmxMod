@@ -5,10 +5,11 @@
 namespace
 {
 	bool ReadHeader(VMDFile* vmd, File& file) {
-		Read(&vmd->m_header.m_header, file);
-		Read(&vmd->m_header.m_modelName, file);
-		if (vmd->m_header.m_header.ToString() != "Vocaloid Motion Data 0002" &&
-			vmd->m_header.m_header.ToString() != "Vocaloid Motion Data")
+		file.Read(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
+		file.Read(vmd->m_header.m_modelName, sizeof(vmd->m_header.m_modelName));
+		const std::string_view header(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
+		if (!(header.starts_with("Vocaloid Motion Data 0002") ||
+			header.starts_with("Vocaloid Motion Data")))
 			return false;
 		return !file.m_badFlag;
 	}
@@ -23,7 +24,7 @@ namespace
 					m_translate,
 					m_quaternion,
 					m_interpolation] : vmd->m_motions) {
-			Read(&m_boneName, file);
+			file.Read(m_boneName, sizeof(m_boneName));
 			file.Read(&m_frame);
 			file.Read(&m_translate);
 			file.Read(&m_quaternion);
@@ -40,7 +41,7 @@ namespace
 		for (auto& [m_blendShapeName,
 					m_frame,
 					m_weight]: vmd->m_morphs) {
-			Read(&m_blendShapeName, file);
+			file.Read(m_blendShapeName, sizeof(m_blendShapeName));
 			file.Read(&m_frame);
 			file.Read(&m_weight);
 		}
@@ -116,7 +117,7 @@ namespace
 			m_ikInfos.resize(ikInfoCount);
 			for (auto& [m_name,
 						m_enable]: m_ikInfos) {
-				Read(&m_name, file);
+				file.Read(m_name, sizeof(m_name));
 				file.Read(&m_enable);
 			}
 		}

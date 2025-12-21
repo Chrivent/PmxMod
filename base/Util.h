@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <algorithm>
+#include <filesystem>
 #include <windows.h>
 
 struct UnicodeUtil {
@@ -168,49 +168,67 @@ struct File {
 };
 
 struct PathUtil {
-	static std::string GetExecutablePath() {
-		std::vector<wchar_t> modulePath(MAX_PATH);
-		if (GetModuleFileNameW(nullptr, modulePath.data(), static_cast<DWORD>(modulePath.size())) == 0)
-			return "";
-		return UnicodeUtil::ToUtf8String(modulePath.data());
-	}
+private:
+    static std::string U8ToString(const std::filesystem::path& p) {
+        const std::u8string u8 = p.u8string();
+        return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
+    }
 
-	static std::string Combine(const std::string& a, const std::string& b) {
-		std::string result;
-		for (const auto& part: { a, b }) {
-			if (!part.empty()) {
-				const auto pos = part.find_last_not_of("\\/");
-				if (pos != std::string::npos) {
-					constexpr char PathDelimiter = '\\';
-					if (!result.empty())
-						result.append(&PathDelimiter, 1);
-					result.append(part.c_str(), pos + 1);
-				}
-			}
-		}
-		return result;
-	}
+    static std::filesystem::path StringToU8(const std::string& s) {
+        std::u8string u8;
+        u8.resize(s.size());
+        for (size_t i = 0; i < s.size(); i++)
+            u8[i] = static_cast<char8_t>(static_cast<unsigned char>(s[i]));
+        return std::filesystem::path(u8);
+    }
 
-	static std::string GetDirectoryName(const std::string& path) {
-		const auto pos = path.find_last_of("\\/");
-		if (pos == std::string::npos)
-			return "";
-		return path.substr(0, pos);
-	}
+public:
+    static std::string GetExecutablePath() {
+        auto ExecutablePath = []() -> std::filesystem::path {
+            std::vector<wchar_t> buf(260);
+            for (;;) {
+                const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
+                if (n == 0) return {};
+                if (n < buf.size() - 1) return std::filesystem::path(std::wstring(buf.data(), n));
+                buf.resize(buf.size() * 2);
+            }
+        };
+        std::filesystem::path p = ExecutablePath();
+        p.make_preferred();
+        return U8ToString(p);
+    }
 
-	static std::string GetExt(const std::string& path) {
-		const auto pos = path.find_last_of('.');
-		if (pos == std::string::npos)
-			return "";
-		std::string ext = path.substr(pos + 1, path.size() - pos);
-		for (auto &ch: ext)
-			ch = static_cast<char>(tolower(ch));
-		return ext;
-	}
+    static std::string Combine(const std::string& a, const std::string& b) {
+        const std::filesystem::path pa = StringToU8(a);
+        const std::filesystem::path pb = StringToU8(b);
+        std::filesystem::path out = pa / pb;
+        out = out.lexically_normal();
+        out.make_preferred();
+        return U8ToString(out);
+    }
 
-	static std::string Normalize(const std::string& path) {
-		std::string result = path;
-		std::ranges::replace(result, '/', '\\');
-		return result;
-	}
+    static std::string GetDirectoryName(const std::string& path) {
+        std::filesystem::path p = StringToU8(path);
+        p.make_preferred();
+        return U8ToString(p.parent_path());
+    }
+
+    static std::string GetExt(const std::string& path) {
+        const std::filesystem::path p = StringToU8(path);
+        auto ext = p.extension().wstring();
+        if (ext.empty()) return {};
+        if (!ext.empty() && ext[0] == L'.')
+            ext.erase(ext.begin());
+        std::string out = U8ToString(std::filesystem::path(ext));
+        for (char& ch : out)
+            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return out;
+    }
+
+    static std::string Normalize(const std::string& path) {
+        std::filesystem::path p = StringToU8(path);
+        p = p.lexically_normal();
+        p.make_preferred();
+        return U8ToString(p);
+    }
 };
