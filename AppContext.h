@@ -4,7 +4,7 @@
 
 #include <map>
 
-#include "src/VMDCameraAnimation.h"
+#include "src/VMDAnimation.h"
 #include "MMDShader.h"
 
 struct Texture

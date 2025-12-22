@@ -41,8 +41,7 @@ std::vector<KeyType>::const_iterator FindBoundKey(
 	return bundIt;
 }
 
-struct VMDBezier
-{
+struct VMDBezier {
 	float EvalX(float t) const;
 	float EvalY(float t) const;
 	glm::vec2 Eval(float t) const;
@@ -54,8 +53,7 @@ struct VMDBezier
 
 void SetVMDBezier(VMDBezier& bezier, int x0, int x1, int y0, int y1);
 
-struct VMDNodeAnimationKey
-{
+struct VMDNodeAnimationKey {
 	void Set(const VMDReader::VMDMotion& motion);
 
 	int32_t		m_time;
@@ -68,20 +66,17 @@ struct VMDNodeAnimationKey
 	VMDBezier	m_rotBezier;
 };
 
-struct VMDMorphAnimationKey
-{
+struct VMDMorphAnimationKey {
 	int32_t	m_time;
 	float	m_weight;
 };
 
-struct VMDIKAnimationKey
-{
+struct VMDIKAnimationKey {
 	int32_t	m_time;
 	bool	m_enable;
 };
 
-class VMDNodeController
-{
+class VMDNodeController {
 public:
 	VMDNodeController();
 
@@ -93,8 +88,7 @@ public:
 	size_t					m_startKeyIndex;
 };
 
-class VMDMorphController
-{
+class VMDMorphController {
 public:
 	VMDMorphController();
 
@@ -106,8 +100,7 @@ public:
 	size_t					m_startKeyIndex;
 };
 
-class VMDIKController
-{
+class VMDIKController {
 public:
 	VMDIKController();
 
@@ -119,16 +112,13 @@ public:
 	size_t					m_startKeyIndex;
 };
 
-class VMDAnimation
-{
+class VMDAnimation {
 public:
 	VMDAnimation();
 
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
-
-	// Physics を同期させる
 	void SyncPhysics(float t, int frameCount = 30) const;
 
 private:
@@ -140,4 +130,55 @@ public:
 	std::vector<std::unique_ptr<VMDIKController>>			m_ikControllers;
 	std::vector<std::unique_ptr<VMDMorphController>>		m_morphControllers;
 	uint32_t												m_maxKeyTime;
+};
+
+struct MMDCamera {
+	MMDCamera();
+
+	glm::vec3	m_interest{};
+	glm::vec3	m_rotate{};
+	float		m_distance;
+	float		m_fov;
+
+	glm::mat4 GetViewMatrix() const;
+};
+
+struct VMDCameraAnimationKey {
+	int32_t		m_time;
+	glm::vec3	m_interest;
+	glm::vec3	m_rotate;
+	float		m_distance;
+	float		m_fov;
+
+	VMDBezier	m_ixBezier;
+	VMDBezier	m_iyBezier;
+	VMDBezier	m_izBezier;
+	VMDBezier	m_rotateBezier;
+	VMDBezier	m_distanceBezier;
+	VMDBezier	m_fovBezier;
+};
+
+class VMDCameraController {
+public:
+	VMDCameraController();
+
+	void Evaluate(float t);
+	void AddKey(const VMDCameraAnimationKey& key);
+	void SortKeys();
+
+	std::vector<VMDCameraAnimationKey>	m_keys;
+	MMDCamera							m_camera;
+	size_t								m_startKeyIndex;
+};
+
+class VMDCameraAnimation {
+public:
+	VMDCameraAnimation();
+
+	bool Create(const VMDReader& vmd);
+	void Destroy();
+	void Evaluate(float t);
+
+	std::unique_ptr<VMDCameraController>	m_cameraController;
+	MMDCamera	m_camera;
 };
