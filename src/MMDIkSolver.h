@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include "MMDNode.h"
-
 #include <vector>
 #include <glm/vec3.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+struct MMDNode;
 
 struct IKChain
 {

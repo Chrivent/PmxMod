@@ -1,14 +1,12 @@
 ﻿#pragma once
 
-#include "MMDReader.h"
-
-#include <glm/mat4x4.hpp>
-
 #include <vector>
 #include <memory>
 #include <cinttypes>
-
+#include <glm/mat4x4.hpp>
 #include <btBulletDynamicsCommon.h>
+
+#include "MMDReader.h"
 
 struct MMDPhysics;
 class MMDModel;

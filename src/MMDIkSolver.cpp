@@ -1,5 +1,7 @@
 ﻿#include "MMDIkSolver.h"
 
+#include "MMDNode.h"
+
 #include <algorithm>
 #include <functional>
 #include <glm/gtc/matrix_transform.hpp>

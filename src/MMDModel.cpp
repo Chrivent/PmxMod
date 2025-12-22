@@ -2,6 +2,9 @@
 
 #include "MMDModel.h"
 
+#include "MMDNode.h"
+#include "MMDIkSolver.h"
+#include "MMDPhysics.h"
 #include "VMDAnimation.h"
 
 #include "../base/Util.h"
@@ -13,6 +16,34 @@
 #include <sstream>
 #include <iomanip>
 #include <thread>
+
+MMDMorph::MMDMorph()
+	: m_weight(0)
+	, m_saveAnimWeight(0)
+	, m_morphType()
+	, m_dataIndex(0) {
+}
+
+MMDMaterial::MMDMaterial()
+	: m_diffuse(1)
+	, m_specular(0)
+	, m_specularPower(1)
+	, m_ambient(0.2f)
+	, m_edgeFlag(0)
+	, m_edgeSize(0)
+	, m_edgeColor(0.0f, 0.0f, 0.0f, 1.0f)
+	, m_spTextureMode(SphereMode::None)
+	, m_textureMulFactor(1)
+	, m_spTextureMulFactor(1)
+	, m_toonTextureMulFactor(1)
+	, m_textureAddFactor(0)
+	, m_spTextureAddFactor(0)
+	, m_toonTextureAddFactor(0)
+	, m_bothFace(false)
+	, m_groundShadow(true)
+	, m_shadowCaster(true)
+	, m_shadowReceiver(true) {
+}
 
 void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);

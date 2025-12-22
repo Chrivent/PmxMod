@@ -1,5 +1,9 @@
 ﻿#include "VMDAnimation.h"
 
+#include "MMDNode.h"
+#include "MMDModel.h"
+#include "MMDIkSolver.h"
+
 #include "../base/Util.h"
 
 #include <algorithm>

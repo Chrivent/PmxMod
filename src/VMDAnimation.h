@@ -1,14 +1,17 @@
 ﻿#pragma once
 
-#include "MMDModel.h"
-#include "MMDNode.h"
-#include "MMDReader.h"
-
 #include <vector>
 #include <memory>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include "MMDReader.h"
+
+struct MMDIkSolver;
+struct MMDMorph;
+struct MMDNode;
+class MMDModel;
 
 template <typename KeyType>
 std::vector<KeyType>::const_iterator FindBoundKey(const std::vector<KeyType>& keys, int32_t t, size_t startIdx) {

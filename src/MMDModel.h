@@ -1,21 +1,27 @@
 ﻿#pragma once
 
-#include "MMDMaterial.h"
-#include "MMDMorph.h"
-#include "MMDIkSolver.h"
-#include "MMDPhysics.h"
-
+#include <filesystem>
+#include <vector>
+#include <future>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <vector>
-#include <future>
 
-struct MMDMaterial;
+struct GroupMorph;
+struct BoneMorph;
+struct UVMorph;
+struct PositionMorph;
+struct MaterialMorph;
 struct MMDPhysics;
 struct MMDRigidBody;
 struct MMDJoint;
-struct VPDFile;
+struct MMDNode;
+struct MMDIkSolver;
+class VMDAnimation;
+
+enum class SphereMode : uint8_t;
+enum class MorphType : uint8_t;
+enum class WeightType : uint8_t;
 
 struct MMDSubMesh
 {
@@ -34,7 +40,43 @@ struct MMDVertex
 	glm::vec3		m_sdefR1;
 };
 
-class VMDAnimation;
+struct MMDMorph
+{
+	MMDMorph();
+
+	std::string	m_name;
+	float		m_weight;
+	float		m_saveAnimWeight;
+	MorphType	m_morphType;
+	size_t		m_dataIndex;
+};
+
+struct MMDMaterial
+{
+	MMDMaterial();
+
+	glm::vec4				m_diffuse;
+	glm::vec3				m_specular;
+	float					m_specularPower;
+	glm::vec3				m_ambient;
+	uint8_t					m_edgeFlag;
+	float					m_edgeSize;
+	glm::vec4				m_edgeColor;
+	std::filesystem::path	m_texture;
+	std::filesystem::path	m_spTexture;
+	SphereMode			m_spTextureMode;
+	std::filesystem::path	m_toonTexture;
+	glm::vec4				m_textureMulFactor;
+	glm::vec4				m_spTextureMulFactor;
+	glm::vec4				m_toonTextureMulFactor;
+	glm::vec4				m_textureAddFactor;
+	glm::vec4				m_spTextureAddFactor;
+	glm::vec4				m_toonTextureAddFactor;
+	bool					m_bothFace;
+	bool					m_groundShadow;
+	bool					m_shadowCaster;
+	bool					m_shadowReceiver;
+};
 
 void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
 void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
