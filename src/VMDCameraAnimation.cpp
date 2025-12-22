@@ -104,10 +104,10 @@ VMDCameraAnimation::VMDCameraAnimation() {
 	Destroy();
 }
 
-bool VMDCameraAnimation::Create(const VMDFile & vmd) {
+bool VMDCameraAnimation::Create(const VMDFile& vmd) {
 	if (!vmd.m_cameras.empty()) {
 		m_cameraController = std::make_unique<VMDCameraController>();
-		for (const auto &cam: vmd.m_cameras) {
+		for (const auto& cam: vmd.m_cameras) {
 			VMDCameraAnimationKey key{};
 			key.m_time = static_cast<int32_t>(cam.m_frame);
 			key.m_interest = cam.m_interest * glm::vec3(1, 1, -1);

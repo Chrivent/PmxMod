@@ -396,6 +396,32 @@ struct PMXFile {
 	std::vector<PMXRigidbody>		m_rigidBodies;
 	std::vector<PMXJoint>			m_joints;
 	std::vector<PMXSoftBody>		m_softbodies;
-};
 
-bool ReadPMXFile(PMXFile* pmxFile, const std::filesystem::path& filename);
+	bool ReadPMXFile(const std::filesystem::path& filename);
+
+private:
+	template <class T>
+	static void Read(std::istream& is, T* dst) {
+		Read(is, dst, sizeof(T));
+	}
+
+	static void Read(std::istream& is, void* dst, std::size_t bytes);
+	static std::streampos GetFileEnd(std::istream& is);
+	static bool HasMore(std::istream& is, const std::streampos& end);
+
+	void ReadString(std::istream& is, std::string* val) const;
+	static void ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize);
+	void ReadHeader(std::istream& is);
+	void ReadInfo(std::istream& is);
+	void ReadVertex(std::istream& is);
+	void ReadFace(std::istream& is);
+	void ReadTexture(std::istream& is);
+	void ReadMaterial(std::istream& is);
+	void ReadBone(std::istream& is);
+	void ReadMorph(std::istream& is);
+	void ReadDisplayFrame(std::istream& is);
+	void ReadRigidbody(std::istream& is);
+	void ReadJoint(std::istream& is);
+	void ReadSoftBody(std::istream& is);
+	void ReadPMXFile(std::istream& is);
+};

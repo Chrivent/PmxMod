@@ -228,7 +228,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	Destroy();
 
 	PMXFile pmx;
-	if (!ReadPMXFile(&pmx, filepath))
+	if (!pmx.ReadPMXFile(filepath))
 		return false;
 
 	std::filesystem::path dirPath = filepath.parent_path();

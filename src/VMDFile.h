@@ -73,6 +73,25 @@ struct VMDFile {
 	std::vector<VMDLight>		m_lights;
 	std::vector<VMDShadow>		m_shadows;
 	std::vector<VMDIk>			m_iks;
-};
 
-bool ReadVMDFile(VMDFile* vmd, const std::filesystem::path& filename);
+	bool ReadVMDFile(const std::filesystem::path& filename);
+
+private:
+	template <class T>
+	static void Read(std::istream& is, T* dst) {
+		Read(is, dst, sizeof(T));
+	}
+
+	static void Read(std::istream& is, void* dst, std::size_t bytes);
+	static std::streampos GetFileEnd(std::istream& is);
+	static bool HasMore(std::istream& is, const std::streampos& end);
+
+	void ReadHeader(std::istream& is);
+	void ReadMotion(std::istream& is);
+	void ReadBlendShape(std::istream& is);
+	void ReadCamera(std::istream& is);
+	void ReadLight(std::istream& is);
+	void ReadShadow(std::istream& is);
+	void ReadIK(std::istream& is);
+	void ReadVMDFile(std::istream& is);
+};

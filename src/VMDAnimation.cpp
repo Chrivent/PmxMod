@@ -149,7 +149,7 @@ VMDAnimation::VMDAnimation()
 	: m_maxKeyTime(0) {
 }
 
-bool VMDAnimation::Add(const VMDFile & vmd) {
+bool VMDAnimation::Add(const VMDFile& vmd) {
 	// Node Controller
 	std::map<std::string, std::unique_ptr<VMDNodeController> > nodeCtrlMap;
 	for (auto &nodeCtrl: m_nodeControllers) {
