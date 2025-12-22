@@ -21,14 +21,6 @@ glm::mat4 MMDCamera::GetViewMatrix() const {
 	return glm::lookAt(eye, center, up);
 }
 
-namespace
-{
-	void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
-		bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
-		bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
-	}
-} // namespace
-
 VMDCameraController::VMDCameraController()
 	: m_startKeyIndex(0) {
 }
@@ -122,13 +114,36 @@ bool VMDCameraAnimation::Create(const VMDFile & vmd) {
 			key.m_rotate = cam.m_rotate;
 			key.m_distance = cam.m_distance;
 			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
-			const uint8_t *ip = cam.m_interpolation.data();
-			SetVMDBezier(key.m_ixBezier, ip[0], ip[1], ip[2], ip[3]);
-			SetVMDBezier(key.m_iyBezier, ip[4], ip[5], ip[6], ip[7]);
-			SetVMDBezier(key.m_izBezier, ip[8], ip[9], ip[10], ip[11]);
-			SetVMDBezier(key.m_rotateBezier, ip[12], ip[13], ip[14], ip[15]);
-			SetVMDBezier(key.m_distanceBezier, ip[16], ip[17], ip[18], ip[19]);
-			SetVMDBezier(key.m_fovBezier, ip[20], ip[21], ip[22], ip[23]);
+			SetVMDBezier(key.m_ixBezier,
+				cam.m_interpolation[0],
+				cam.m_interpolation[1],
+				cam.m_interpolation[2],
+				cam.m_interpolation[3]);
+			SetVMDBezier(key.m_iyBezier,
+				cam.m_interpolation[4],
+				cam.m_interpolation[5],
+				cam.m_interpolation[6],
+				cam.m_interpolation[7]);
+			SetVMDBezier(key.m_izBezier,
+				cam.m_interpolation[8],
+				cam.m_interpolation[9],
+				cam.m_interpolation[10],
+				cam.m_interpolation[11]);
+			SetVMDBezier(key.m_rotateBezier,
+				cam.m_interpolation[12],
+				cam.m_interpolation[13],
+				cam.m_interpolation[14],
+				cam.m_interpolation[15]);
+			SetVMDBezier(key.m_distanceBezier,
+				cam.m_interpolation[16],
+				cam.m_interpolation[17],
+				cam.m_interpolation[18],
+				cam.m_interpolation[19]);
+			SetVMDBezier(key.m_fovBezier,
+				cam.m_interpolation[20],
+				cam.m_interpolation[21],
+				cam.m_interpolation[22],
+				cam.m_interpolation[23]);
 			m_cameraController->AddKey(key);
 		}
 		m_cameraController->SortKeys();

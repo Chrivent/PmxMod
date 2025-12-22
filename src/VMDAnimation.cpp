@@ -8,12 +8,7 @@
 #include <ranges>
 #include <glm/gtc/matrix_transform.hpp>
 
-void SetVMDBezier(VMDBezier& bezier, const unsigned char* cp) {
-	const int x0 = cp[0];
-	const int y0 = cp[4];
-	const int x1 = cp[8];
-	const int y1 = cp[12];
-
+void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
 }
@@ -370,10 +365,26 @@ void VMDNodeAnimationKey::Set(const VMDMotion & motion) {
 	const auto rot1 = InvZ(rot0);
 	m_rotate = glm::quat_cast(rot1);
 
-	SetVMDBezier(m_txBezier, &motion.m_interpolation[0]);
-	SetVMDBezier(m_tyBezier, &motion.m_interpolation[1]);
-	SetVMDBezier(m_tzBezier, &motion.m_interpolation[2]);
-	SetVMDBezier(m_rotBezier, &motion.m_interpolation[3]);
+	SetVMDBezier(m_txBezier,
+		motion.m_interpolation[0],
+		motion.m_interpolation[8],
+		motion.m_interpolation[4],
+		motion.m_interpolation[12]);
+	SetVMDBezier(m_tyBezier,
+		motion.m_interpolation[1],
+		motion.m_interpolation[9],
+		motion.m_interpolation[5],
+		motion.m_interpolation[13]);
+	SetVMDBezier(m_tzBezier,
+		motion.m_interpolation[2],
+		motion.m_interpolation[10],
+		motion.m_interpolation[6],
+		motion.m_interpolation[14]);
+	SetVMDBezier(m_rotBezier,
+		motion.m_interpolation[3],
+		motion.m_interpolation[11],
+		motion.m_interpolation[7],
+		motion.m_interpolation[15]);
 }
 
 VMDIKController::VMDIKController()

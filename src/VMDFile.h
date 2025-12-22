@@ -32,7 +32,7 @@ struct VMDCamera {
 	float			m_distance;
 	glm::vec3		m_interest;
 	glm::vec3		m_rotate;
-	std::array<uint8_t, 24>	m_interpolation;
+	uint8_t			m_interpolation[24];
 	uint32_t		m_viewAngle;
 	uint8_t			m_isPerspective;
 };
