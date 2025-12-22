@@ -45,7 +45,14 @@ struct VMDLight {
 
 struct VMDShadow {
 	uint32_t	m_frame;
-	uint8_t		m_shadowType;	// 0:Off 1:mode1 2:mode2
+
+	enum class ShadowType : uint8_t {
+		Off,
+		Mode1,
+		Mode2
+	};
+
+	ShadowType	m_shadowType;
 	float		m_distance;
 };
 

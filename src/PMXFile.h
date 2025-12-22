@@ -39,36 +39,13 @@ struct PMXInfo
 	std::string	m_englishComment;
 };
 
-/*
-BDEF1
-m_boneIndices[0]
-
-BDEF2
-m_boneIndices[0-1]
-m_boneWeights[0]
-
-BDEF4
-m_boneIndices[0-3]
-m_boneWeights[0-3]
-
-SDEF
-m_boneIndices[0-1]
-m_boneWeights[0]
-m_sdefC
-m_sdefR0
-m_sdefR1
-
-QDEF
-m_boneIndices[0-3]
-m_boneWeights[0-3]
-*/
 enum class PMXVertexWeight : uint8_t
 {
 	BDEF1,
 	BDEF2,
 	BDEF4,
 	SDEF,
-	QDEF,
+	QDEF
 };
 
 struct PMXVertex
@@ -96,16 +73,6 @@ struct PMXTexture
 	std::filesystem::path m_textureName;
 };
 
-/*
-0x01:両面描画
-0x02:地面影
-0x04:セルフシャドウマップへの描画
-0x08:セルフシャドウの描画
-0x10:エッジ描画
-0x20:頂点カラー(※2.1拡張)
-0x40:Point描画(※2.1拡張)
-0x80:Line描画(※2.1拡張)
-*/
 enum class PMXDrawModeFlags : uint8_t
 {
 	BothFace = 0x01,
@@ -115,27 +82,21 @@ enum class PMXDrawModeFlags : uint8_t
 	DrawEdge = 0x10,
 	VertexColor = 0x20,
 	DrawPoint = 0x40,
-	DrawLine = 0x80,
+	DrawLine = 0x80
 };
 
-/*
-0:無効
-1:乗算
-2:加算
-3:サブテクスチャ(追加UV1のx,yをUV参照して通常テクスチャ描画を行う)
-*/
 enum class PMXSphereMode : uint8_t
 {
 	None,
 	Mul,
 	Add,
-	SubTexture,
+	SubTexture
 };
 
 enum class PMXToonMode : uint8_t
 {
-	Separate,	//!< 0:個別Toon
-	Common,		//!< 1:共有Toon[0-9] toon01.bmp～toon10.bmp
+	Separate,
+	Common
 };
 
 struct PMXMaterial
@@ -158,26 +119,6 @@ struct PMXMaterial
 	int32_t	m_numFaceVertices;
 };
 
-/*
-0x0001  : 接続先(PMD子ボーン指定)表示方法 -> 0:座標オフセットで指定 1:ボーンで指定
-
-0x0002  : 回転可能
-0x0004  : 移動可能
-0x0008  : 表示
-0x0010  : 操作可
-
-0x0020  : IK
-
-0x0080  : ローカル付与 | 付与対象 0:ユーザー変形値／IKリンク／多重付与 1:親のローカル変形量
-0x0100  : 回転付与
-0x0200  : 移動付与
-
-0x0400  : 軸固定
-0x0800  : ローカル軸
-
-0x1000  : 物理後変形
-0x2000  : 外部親変形
-*/
 enum class PMXBoneFlags : uint16_t
 {
 	TargetShowMode = 0x0001,
@@ -192,16 +133,15 @@ enum class PMXBoneFlags : uint16_t
 	FixedAxis = 0x0400,
 	LocalAxis = 0x800,
 	DeformAfterPhysics = 0x1000,
-	DeformOuterParent = 0x2000,
+	DeformOuterParent = 0x2000
 };
 
 struct PMXIKLink
 {
 	int32_t			m_ikBoneIndex;
 	unsigned char	m_enableLimit;
-	//m_enableLimitが1のときのみ
-	glm::vec3	m_limitMin;	//ラジアンで表現
-	glm::vec3	m_limitMax;	//ラジアンで表現
+	glm::vec3	m_limitMin;
+	glm::vec3	m_limitMax;
 };
 
 struct PMXBone
@@ -212,39 +152,20 @@ struct PMXBone
 	int32_t		m_parentBoneIndex;
 	int32_t		m_deformDepth;
 	PMXBoneFlags	m_boneFlag;
-	glm::vec3	m_positionOffset;	//接続先:0の場合
-	int32_t		m_linkBoneIndex;	//接続先:1の場合
-									//「回転付与」または「移動付与」が有効のみ
+	glm::vec3	m_positionOffset;
+	int32_t		m_linkBoneIndex;
 	int32_t	m_appendBoneIndex;
 	float	m_appendWeight;
-	//「軸固定」が有効のみ
 	glm::vec3	m_fixedAxis;
-	//「ローカル軸」が有効のみ
 	glm::vec3	m_localXAxis;
 	glm::vec3	m_localZAxis;
-	//「外部親変形」が有効のみ
 	int32_t	m_keyValue;
-	//「IK」が有効のみ
 	int32_t	m_ikTargetBoneIndex;
 	int32_t	m_ikIterationCount;
-	float	m_ikLimit;	//ラジアンで表現
+	float	m_ikLimit;
 	std::vector<PMXIKLink>	m_ikLinks;
 };
 
-
-/*
-0:グループ
-1:頂点
-2:ボーン,
-3:UV,
-4:追加UV1
-5:追加UV2
-6:追加UV3
-7:追加UV4
-8:材質
-9:フリップ(※2.1拡張)
-10:インパルス(※2.1拡張)
-*/
 enum class PMXMorphType : uint8_t
 {
 	Group,
@@ -257,7 +178,7 @@ enum class PMXMorphType : uint8_t
 	AddUV4,
 	Material,
 	Flip,
-	Impulse,
+	Impulse
 };
 
 struct PositionMorph
@@ -284,11 +205,11 @@ struct MaterialMorph
 	enum class OpType : uint8_t
 	{
 		Mul,
-		Add,
+		Add
 	};
 
 	int32_t		m_materialIndex;
-	OpType		m_opType;	//0:乗算 1:加算
+	OpType		m_opType;
 	glm::vec4	m_diffuse;
 	glm::vec3	m_specular;
 	float		m_specularPower;
@@ -308,9 +229,18 @@ struct GroupMorph
 
 struct PMXMorph
 {
-	std::string	m_name;
-	std::string	m_englishName;
-	uint8_t			m_controlPanel;	//1:眉(左下) 2:目(左上) 3:口(右上) 4:その他(右下)  | 0:システム予約
+	enum class ControlPanel : std::uint8_t
+	{
+		SystemReserved,
+		Brow,
+		Eye,
+		Mouth,
+		Other
+	};
+
+	std::string		m_name;
+	std::string		m_englishName;
+	ControlPanel	m_controlPanel;
 	PMXMorphType	m_morphType;
 
 	struct FlipMorph
@@ -322,7 +252,7 @@ struct PMXMorph
 	struct ImpulseMorph
 	{
 		int32_t		m_rigidbodyIndex;
-		uint8_t		m_localFlag;	//0:OFF 1:ON
+		uint8_t		m_localFlag;
 		glm::vec3	m_translateVelocity;
 		glm::vec3	m_rotateTorque;
 	};
@@ -344,7 +274,7 @@ struct PMXDisplayFrame
 	enum class TargetType : uint8_t
 	{
 		BoneIndex,
-		MorphIndex,
+		MorphIndex
 	};
 	struct Target
 	{
@@ -354,19 +284,14 @@ struct PMXDisplayFrame
 
 	enum class FrameType : uint8_t
 	{
-		DefaultFrame,	//!< 0:通常枠
-		SpecialFrame,	//!< 1:特殊枠
+		DefaultFrame,
+		SpecialFrame
 	};
 
 	FrameType			m_flag;
 	std::vector<Target>	m_targets;
 };
 
-/*
-0:ボーン追従(static)
-1:物理演算(dynamic)
-2:物理演算 + Bone位置合わせ
-*/
 enum class Operation : uint8_t
 {
 	Static,
@@ -382,11 +307,6 @@ struct PMXRigidbody
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
 
-	/*
-	0:球
-	1:箱
-	2:カプセル
-	*/
 	enum class Shape : uint8_t
 	{
 		Sphere,
@@ -396,7 +316,7 @@ struct PMXRigidbody
 	Shape		m_shape;
 	glm::vec3	m_shapeSize;
 	glm::vec3	m_translate;
-	glm::vec3	m_rotate;	//ラジアン
+	glm::vec3	m_rotate;
 	float	m_mass;
 	float	m_translateDimmer;
 	float	m_rotateDimmer;
@@ -410,14 +330,6 @@ struct PMXJoint
 	std::string	m_name;
 	std::string	m_englishName;
 
-	/*
-	0:バネ付6DOF
-	1:6DOF
-	2:P2P
-	3:ConeTwist
-	4:Slider
-	5:Hinge
-	*/
 	enum class JointType : uint8_t
 	{
 		SpringDOF6,
@@ -445,10 +357,6 @@ struct PMXSoftBody
 	std::string	m_name;
 	std::string	m_englishName;
 
-	/*
-	0:TriMesh
-	1:Rope
-	*/
 	enum class SoftBodyType : uint8_t
 	{
 		TriMesh,
@@ -459,11 +367,6 @@ struct PMXSoftBody
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
 
-	/*
-	0x01:B-Link 作成
-	0x02:クラスタ作成
-	0x04: リンク交雑
-	*/
 	enum class SoftBodyMask : uint8_t
 	{
 		BLink = 0x01,
@@ -476,12 +379,6 @@ struct PMXSoftBody
 	float	m_totalMass;
 	float	m_collisionMargin;
 
-	/*
-	1:V_TwoSided
-	2:V_OneSided
-	3:F_TwoSided
-	4:F_OneSided
-	*/
 	enum class AeroModel : int32_t
 	{
 		kAeroModelV_TwoSided,
@@ -490,7 +387,6 @@ struct PMXSoftBody
 		kAeroModelF_OneSided,
 	};
 	int32_t		m_aeroModel;
-	//config
 	float	m_VCF;
 	float	m_DP;
 	float	m_DG;
@@ -503,19 +399,16 @@ struct PMXSoftBody
 	float	m_KHR;
 	float	m_SHR;
 	float	m_AHR;
-	//cluster
 	float	m_SRHR_CL;
 	float	m_SKHR_CL;
 	float	m_SSHR_CL;
 	float	m_SR_SPLT_CL;
 	float	m_SK_SPLT_CL;
 	float	m_SS_SPLT_CL;
-	//interation
 	int32_t	m_V_IT;
 	int32_t	m_P_IT;
 	int32_t	m_D_IT;
 	int32_t	m_C_IT;
-	//material
 	float	m_LST;
 	float	m_AST;
 	float	m_VST;
@@ -524,7 +417,7 @@ struct PMXSoftBody
 	{
 		int32_t		m_rigidBodyIndex;
 		int32_t		m_vertexIndex;
-		uint8_t		m_nearMode; //0:FF 1:ON
+		uint8_t		m_nearMode;
 	};
 	std::vector<AnchorRigidbody>	m_anchorRigidBodies;
 	std::vector<int32_t>	m_pinVertexIndices;
