@@ -423,7 +423,7 @@ MMDCamera::MMDCamera() {
 
 glm::mat4 MMDCamera::GetViewMatrix() const {
 	glm::mat4 view(1.0f);
-	view = glm::translate(view, glm::vec3(0, 0, std::abs(m_distance)));
+	view = glm::translate(view, glm::vec3(0, 0, -m_distance));
 	glm::mat4 rot(1.0f);
 	rot = glm::rotate(rot, m_rotate.y, glm::vec3(0, 1, 0));
 	rot = glm::rotate(rot, m_rotate.z, glm::vec3(0, 0, -1));
