@@ -109,15 +109,35 @@ struct SceneConfig {
 
 static SceneConfig BuildTestSceneConfig() {
 	SceneConfig cfg;
-	Input in;
-	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Chrivent Elf\Chrivent Elf.pmx)";
-	in.m_scale = 1.0f;
-	in.m_vmdPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(2)SukiYukiMajiMagic.vmd)");
-	cfg.models.emplace_back(std::move(in));
-	cfg.cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(2)SukiYukiMajiMagic_camera.vmd)";
-	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\02.wav)";
+	Input in1;
+	in1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
+	in1.m_scale = 1.0f;
+	in1.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
+	Input in2;
+	in2.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
+	in2.m_scale = 1.0f;
+	in2.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
+	Input in3;
+	in3.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
+	in3.m_scale = 1.0f;
+	in3.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
+	Input in4;
+	in4.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
+	in4.m_scale = 1.0f;
+	in4.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
+	Input in5;
+	in5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
+	in5.m_scale = 1.0f;
+	in5.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
+	cfg.models.emplace_back(std::move(in1));
+	cfg.models.emplace_back(std::move(in2));
+	cfg.models.emplace_back(std::move(in3));
+	cfg.models.emplace_back(std::move(in4));
+	cfg.models.emplace_back(std::move(in5));
+	cfg.cameraVmd = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
+	cfg.musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
 	Input bg;
-	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\PDF 2nd Like, Dislike Stage\Like, Dislike Stage.pmx)";
+	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
 	bg.m_scale = 1.0f;
 	cfg.models.emplace_back(std::move(bg));
 	return cfg;
@@ -310,7 +330,7 @@ int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
 	constexpr COMDLG_FILTERSPEC kMusicFilters[]  = { {L"Audio", L"*.wav;*.mp3;*.ogg;*.flac"} };
-	const bool kTestMode = false;
+	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
 		cfg = BuildTestSceneConfig();
