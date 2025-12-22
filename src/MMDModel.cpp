@@ -118,9 +118,8 @@ void MMDModel::BeginAnimation() {
 void MMDModel::UpdateMorphAnimation() {
 	BeginMorphMaterial();
 	const auto &morphs = m_morphs;
-	for (const auto & morph : morphs) {
+	for (const auto & morph : morphs)
 		Morph(morph.get(), morph->m_weight);
-	}
 	EndMorphMaterial();
 }
 
