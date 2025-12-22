@@ -78,9 +78,6 @@ struct MMDMaterial
 	bool					m_shadowReceiver;
 };
 
-void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
-void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
-
 struct UpdateRange
 {
 	size_t	m_vertexOffset;
@@ -129,6 +126,8 @@ private:
 
 	void BeginMorphMaterial();
 	void EndMorphMaterial();
+	static void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
+	static void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
 	void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
 	void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
 

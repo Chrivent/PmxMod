@@ -45,30 +45,6 @@ MMDMaterial::MMDMaterial()
 	, m_shadowReceiver(true) {
 }
 
-void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);
-	out.m_specular = glm::mix(out.m_specular, out.m_specular * val.m_specular, weight);
-	out.m_specularPower = glm::mix(out.m_specularPower, out.m_specularPower * val.m_specularPower, weight);
-	out.m_ambient = glm::mix(out.m_ambient, out.m_ambient * val.m_ambient, weight);
-	out.m_edgeColor = glm::mix(out.m_edgeColor, out.m_edgeColor * val.m_edgeColor, weight);
-	out.m_edgeSize = glm::mix(out.m_edgeSize, out.m_edgeSize * val.m_edgeSize, weight);
-	out.m_textureFactor = glm::mix(out.m_textureFactor, out.m_textureFactor * val.m_textureFactor, weight);
-	out.m_sphereTextureFactor = glm::mix(out.m_sphereTextureFactor, out.m_sphereTextureFactor * val.m_sphereTextureFactor, weight);
-	out.m_toonTextureFactor = glm::mix(out.m_toonTextureFactor, out.m_toonTextureFactor * val.m_toonTextureFactor, weight);
-}
-
-void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.m_diffuse += val.m_diffuse * weight;
-	out.m_specular += val.m_specular * weight;
-	out.m_specularPower += val.m_specularPower * weight;
-	out.m_ambient += val.m_ambient * weight;
-	out.m_edgeColor += val.m_edgeColor * weight;
-	out.m_edgeSize += val.m_edgeSize * weight;
-	out.m_textureFactor += val.m_textureFactor * weight;
-	out.m_sphereTextureFactor += val.m_sphereTextureFactor * weight;
-	out.m_toonTextureFactor += val.m_toonTextureFactor * weight;
-}
-
 MMDModel::MMDModel()
 	: m_indexCount(0)
 	, m_indexElementSize(0)
@@ -913,6 +889,30 @@ void MMDModel::EndMorphMaterial() {
 		m_materials[matIdx].m_toonTextureMulFactor = m_mulMaterialFactors[matIdx].m_toonTextureFactor;
 		m_materials[matIdx].m_toonTextureAddFactor = m_addMaterialFactors[matIdx].m_toonTextureFactor;
 	}
+}
+
+void MMDModel::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);
+	out.m_specular = glm::mix(out.m_specular, out.m_specular * val.m_specular, weight);
+	out.m_specularPower = glm::mix(out.m_specularPower, out.m_specularPower * val.m_specularPower, weight);
+	out.m_ambient = glm::mix(out.m_ambient, out.m_ambient * val.m_ambient, weight);
+	out.m_edgeColor = glm::mix(out.m_edgeColor, out.m_edgeColor * val.m_edgeColor, weight);
+	out.m_edgeSize = glm::mix(out.m_edgeSize, out.m_edgeSize * val.m_edgeSize, weight);
+	out.m_textureFactor = glm::mix(out.m_textureFactor, out.m_textureFactor * val.m_textureFactor, weight);
+	out.m_sphereTextureFactor = glm::mix(out.m_sphereTextureFactor, out.m_sphereTextureFactor * val.m_sphereTextureFactor, weight);
+	out.m_toonTextureFactor = glm::mix(out.m_toonTextureFactor, out.m_toonTextureFactor * val.m_toonTextureFactor, weight);
+}
+
+void MMDModel::Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.m_diffuse += val.m_diffuse * weight;
+	out.m_specular += val.m_specular * weight;
+	out.m_specularPower += val.m_specularPower * weight;
+	out.m_ambient += val.m_ambient * weight;
+	out.m_edgeColor += val.m_edgeColor * weight;
+	out.m_edgeSize += val.m_edgeSize * weight;
+	out.m_textureFactor += val.m_textureFactor * weight;
+	out.m_sphereTextureFactor += val.m_sphereTextureFactor * weight;
+	out.m_toonTextureFactor += val.m_toonTextureFactor * weight;
 }
 
 void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
