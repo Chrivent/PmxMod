@@ -356,7 +356,6 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 		if (boundIt != std::begin(m_keys)) {
 			const auto& [m_time, m_enable] = *(boundIt - 1);
 			enable = m_enable;
-
 			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
