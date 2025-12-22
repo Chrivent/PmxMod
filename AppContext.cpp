@@ -12,35 +12,28 @@ AppContext::~AppContext() {
 }
 
 bool AppContext::Setup() {
-	// Setup resource directory.
 	m_resourceDir = PathUtil::GetExecutablePath();
 	m_resourceDir = m_resourceDir.parent_path();
 	m_resourceDir /= "resource";
 	m_shaderDir = m_resourceDir / "shader";
 	m_mmdDir = m_resourceDir / "mmd";
-
 	m_mmdShader = std::make_unique<MMDShader>();
 	if (!m_mmdShader->Setup(*this))
 		return false;
-
 	m_mmdEdgeShader = std::make_unique<MMDEdgeShader>();
 	if (!m_mmdEdgeShader->Setup(*this))
 		return false;
-
 	m_mmdGroundShadowShader = std::make_unique<MMDGroundShadowShader>();
 	if (!m_mmdGroundShadowShader->Setup(*this))
 		return false;
-
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
-
 	glGenTextures(1, &m_dummyShadowDepthTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
-
 	return true;
 }
 
@@ -48,16 +41,13 @@ void AppContext::Clear() {
 	m_mmdShader.reset();
 	m_mmdEdgeShader.reset();
 	m_mmdGroundShadowShader.reset();
-
 	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
 		glDeleteTextures(1, &m_texture);
 	m_textures.clear();
-
 	if (m_dummyColorTex != 0) glDeleteTextures(1, &m_dummyColorTex);
 	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
 	m_dummyColorTex = 0;
 	m_dummyShadowDepthTex = 0;
-
 	m_vmdCameraAnim.reset();
 }
 
