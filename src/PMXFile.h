@@ -73,17 +73,17 @@ enum class PMXVertexWeight : uint8_t
 
 struct PMXVertex
 {
-	glm::vec3	m_position;
-	glm::vec3	m_normal;
-	glm::vec2	m_uv;
-	glm::vec4	m_addUV[4];
+	glm::vec3		m_position;
+	glm::vec3		m_normal;
+	glm::vec2		m_uv;
+	glm::vec4		m_addUV[4];
 	PMXVertexWeight	m_weightType;
-	int32_t		m_boneIndices[4];
-	float		m_boneWeights[4];
-	glm::vec3	m_sdefC;
-	glm::vec3	m_sdefR0;
-	glm::vec3	m_sdefR1;
-	float	m_edgeMag;
+	int32_t			m_boneIndices[4];
+	float			m_boneWeights[4];
+	glm::vec3		m_sdefC;
+	glm::vec3		m_sdefR0;
+	glm::vec3		m_sdefR1;
+	float			m_edgeMag;
 };
 
 struct PMXFace
@@ -532,18 +532,18 @@ struct PMXSoftBody
 
 struct PMXFile
 {
-	PMXHeader	m_header;
-	PMXInfo		m_info;
-	std::vector<PMXVertex>		m_vertices;
-	std::vector<PMXFace>		m_faces;
-	std::vector<PMXTexture>		m_textures;
-	std::vector<PMXMaterial>	m_materials;
-	std::vector<PMXBone>		m_bones;
-	std::vector<PMXMorph>		m_morphs;
+	PMXHeader						m_header;
+	PMXInfo							m_info;
+	std::vector<PMXVertex>			m_vertices;
+	std::vector<PMXFace>			m_faces;
+	std::vector<PMXTexture>			m_textures;
+	std::vector<PMXMaterial>		m_materials;
+	std::vector<PMXBone>			m_bones;
+	std::vector<PMXMorph>			m_morphs;
 	std::vector<PMXDisplayFrame>	m_displayFrames;
-	std::vector<PMXRigidbody>	m_rigidBodies;
-	std::vector<PMXJoint>		m_joints;
-	std::vector<PMXSoftBody>	m_softbodies;
+	std::vector<PMXRigidbody>		m_rigidBodies;
+	std::vector<PMXJoint>			m_joints;
+	std::vector<PMXSoftBody>		m_softbodies;
 };
 
 bool ReadPMXFile(PMXFile* pmxFile, const std::filesystem::path& filename);
