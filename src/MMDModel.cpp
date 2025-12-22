@@ -227,14 +227,14 @@ void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFr
 	UpdateNodeAnimation(true);
 }
 
-bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) {
+bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir) {
 	Destroy();
 
 	PMXFile pmx;
-	if (!ReadPMXFile(&pmx, filepath.c_str()))
+	if (!ReadPMXFile(&pmx, filepath))
 		return false;
 
-	std::string dirPath = PathUtil::GetDirectoryName(filepath);
+	std::filesystem::path dirPath = filepath.parent_path();
 
 	size_t vertexCount = pmx.m_vertices.size();
 	m_positions.reserve(vertexCount);
@@ -349,10 +349,10 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 			return false;
 	}
 
-	std::vector<std::string> texturePaths;
+	std::vector<std::filesystem::path> texturePaths;
 	texturePaths.reserve(pmx.m_textures.size());
 	for (const auto &[m_textureName]: pmx.m_textures) {
-		std::string texPath = PathUtil::Combine(dirPath, m_textureName);
+		std::filesystem::path texPath = dirPath / m_textureName;
 		texturePaths.emplace_back(std::move(texPath));
 	}
 
@@ -377,23 +377,23 @@ bool MMDModel::Load(const std::string& filepath, const std::string& mmdDataDir) 
 
 		// Texture
 		if (pmxMat.m_textureIndex != -1)
-			mat.m_texture = PathUtil::Normalize(texturePaths[pmxMat.m_textureIndex]);
+			mat.m_texture = texturePaths[pmxMat.m_textureIndex];
 
 		// ToonTexture
 		if (pmxMat.m_toonMode == PMXToonMode::Common) {
 			if (pmxMat.m_toonTextureIndex != -1) {
 				std::stringstream ss;
 				ss << "toon" << std::setfill('0') << std::setw(2) << (pmxMat.m_toonTextureIndex + 1) << ".bmp";
-				mat.m_toonTexture = PathUtil::Combine(mmdDataDir, ss.str());
+				mat.m_toonTexture = mmdDataDir / ss.str();
 			}
 		} else if (pmxMat.m_toonMode == PMXToonMode::Separate) {
 			if (pmxMat.m_toonTextureIndex != -1)
-				mat.m_toonTexture = PathUtil::Normalize(texturePaths[pmxMat.m_toonTextureIndex]);
+				mat.m_toonTexture = texturePaths[pmxMat.m_toonTextureIndex];
 		}
 
 		// SpTexture
 		if (pmxMat.m_sphereTextureIndex != -1) {
-			mat.m_spTexture = PathUtil::Normalize(texturePaths[pmxMat.m_sphereTextureIndex]);
+			mat.m_spTexture = texturePaths[pmxMat.m_sphereTextureIndex];
 			mat.m_spTextureMode = pmxMat.m_sphereMode;
 		}
 

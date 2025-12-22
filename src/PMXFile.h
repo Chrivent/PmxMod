@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -86,7 +87,7 @@ struct PMXFace
 
 struct PMXTexture
 {
-	std::string m_textureName;
+	std::filesystem::path m_textureName;
 };
 
 /*
@@ -539,4 +540,4 @@ struct PMXFile
 	std::vector<PMXSoftBody>	m_softbodies;
 };
 
-bool ReadPMXFile(PMXFile* pmxFile, const char* filename);
+bool ReadPMXFile(PMXFile* pmxFile, const std::filesystem::path& filename);

@@ -27,26 +27,6 @@ struct UnicodeUtil {
         return utf8;
     }
 
-	static std::wstring Utf8ToWString(const std::string& utf8) {
-    	if (utf8.empty())
-    		return {};
-    	const int need = MultiByteToWideChar(
-			CP_UTF8, MB_ERR_INVALID_CHARS,
-			utf8.data(), static_cast<int>(utf8.size()),
-			nullptr, 0);
-    	if (need <= 0)
-    		return {};
-    	std::wstring w;
-    	w.resize(static_cast<size_t>(need), L'\0');
-    	const int written = MultiByteToWideChar(
-			CP_UTF8, MB_ERR_INVALID_CHARS,
-			utf8.data(), static_cast<int>(utf8.size()),
-			w.data(), need);
-    	if (written != need)
-    		return {};
-    	return w;
-    }
-
     static std::string SjisToUtf8(const char* sjis) {
     	if (!sjis)
     		return {};
@@ -74,15 +54,14 @@ struct File {
 		Close();
 	}
 
-	bool OpenFile(const char* filepath, const char* mode) {
+	bool OpenFile(const std::filesystem::path& filepath, const std::wstring& mode) {
 		Close();
-		const std::wstring wFilepath = UnicodeUtil::Utf8ToWString(filepath);
-		const std::wstring wMode = UnicodeUtil::Utf8ToWString(mode);
+		const std::wstring wFilepath = filepath.wstring();
 		if (wFilepath.empty())
 			return false;
-		if (wMode.empty())
+		if (mode.empty())
 			return false;
-		if (_wfopen_s(&m_fp, wFilepath.c_str(), wMode.c_str()) != 0 || !m_fp)
+		if (_wfopen_s(&m_fp, wFilepath.c_str(), mode.c_str()) != 0 || !m_fp)
 			return false;
 		m_badFlag = false;
 		auto Seek = [&](const int64_t offset, const int origin) {
@@ -147,59 +126,24 @@ struct File {
 };
 
 struct PathUtil {
-private:
-	static std::string PathToUtf8(const std::filesystem::path& p) {
-		const auto u8 = p.u8string();
-		return { reinterpret_cast<const char*>(u8.data()), u8.size() };
-	}
-
-	static std::filesystem::path Utf8ToPath(const std::string& s) {
-		return { std::u8string(reinterpret_cast<const char8_t*>(s.data()),
-				reinterpret_cast<const char8_t*>(s.data() + s.size())) };
-	}
-
-public:
-    static std::string GetExecutablePath() {
-    	std::vector<wchar_t> buf(260);
+    static std::filesystem::path GetExecutablePath() {
+    	std::vector<wchar_t> buf(MAX_PATH);
     	while (true) {
     		const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
     		if (n == 0)
     			return {};
-    		if (n < buf.size() - 1) {
-    			std::filesystem::path p(std::wstring(buf.data(), n));
-    			p.make_preferred();
-    			return PathToUtf8(p);
-    		}
+    		if (n < buf.size() - 1)
+    			return std::filesystem::path(buf.data(), buf.data() + n);
     		buf.resize(buf.size() * 2);
     	}
     }
 
-    static std::string Combine(const std::string& a, const std::string& b) {
-    	auto out = (Utf8ToPath(a) / Utf8ToPath(b)).lexically_normal();
-    	out.make_preferred();
-    	return PathToUtf8(out);
-    }
-
-    static std::string GetDirectoryName(const std::string& path) {
-    	auto p = Utf8ToPath(path);
-    	p.make_preferred();
-    	return PathToUtf8(p.parent_path());
-    }
-
-    static std::string GetExt(const std::string& path) {
-    	const auto ext = Utf8ToPath(path).extension().u8string();
-    	if (ext.empty())
-    		return {};
-    	const size_t start = ext[0] == u8'.' ? 1 : 0;
-    	std::string out(reinterpret_cast<const char*>(ext.data() + start), ext.size() - start);
-    	for (char& ch : out)
+    static std::string GetExt(const std::filesystem::path& path) {
+    	std::string ext = path.extension().string();
+    	if (!ext.empty() && ext[0] == '.')
+    		ext.erase(ext.begin());
+    	for (auto& ch : ext)
     		ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-    	return out;
-    }
-
-    static std::string Normalize(const std::string& path) {
-    	auto out = Utf8ToPath(path).lexically_normal();
-    	out.make_preferred();
-    	return PathToUtf8(out);
+    	return ext;
     }
 };

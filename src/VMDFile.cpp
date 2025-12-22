@@ -153,10 +153,9 @@ namespace
 	}
 }
 
-bool ReadVMDFile(VMDFile* vmd, const char* filename)
-{
+bool ReadVMDFile(VMDFile* vmd, const std::filesystem::path& filename) {
 	File file;
-	if (!file.OpenFile(filename, "rb"))
+	if (!file.OpenFile(filename, L"rb"))
 		return false;
 	return ReadVMDFile(vmd, file);
 }

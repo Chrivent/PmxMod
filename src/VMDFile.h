@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <filesystem>
 
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -69,4 +70,4 @@ struct VMDFile {
 	std::vector<VMDIk>			m_iks;
 };
 
-bool ReadVMDFile(VMDFile* vmd, const char* filename);
+bool ReadVMDFile(VMDFile* vmd, const std::filesystem::path& filename);

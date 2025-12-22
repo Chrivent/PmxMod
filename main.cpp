@@ -14,12 +14,14 @@
 #include "base/Util.h"
 
 #define MINIAUDIO_IMPLEMENTATION
+#include <glm/fwd.hpp>
+
 #include "external/miniaudio.h"
 
 struct Input {
-	std::string					m_modelPath;
-	std::vector<std::string>	m_vmdPaths;
-	float						m_scale = 1.0f;
+	std::filesystem::path				m_modelPath;
+	std::vector<std::filesystem::path>	m_vmdPaths;
+	float								m_scale = 1.0f;
 };
 
 inline bool PickFilesWin(
@@ -100,25 +102,22 @@ inline bool PickFilesWin(
 }
 
 struct SceneConfig {
-	std::vector<Input> models;
-	std::string cameraVmd;
-	std::string musicPath;
+	std::vector<Input>		models;
+	std::filesystem::path	cameraVmd;
+	std::filesystem::path	musicPath;
 };
 
 static SceneConfig BuildTestSceneConfig() {
-	auto N = [](const char* p) {
-		return PathUtil::Normalize(p);
-	};
 	SceneConfig cfg;
 	Input in;
-	in.m_modelPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Chrivent Elf\Chrivent Elf.pmx)");
+	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Chrivent Elf\Chrivent Elf.pmx)";
 	in.m_scale = 1.0f;
-	in.m_vmdPaths.emplace_back(N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(2)SukiYukiMajiMagic.vmd)"));
+	in.m_vmdPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(2)SukiYukiMajiMagic.vmd)");
 	cfg.models.emplace_back(std::move(in));
-	cfg.cameraVmd = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(2)SukiYukiMajiMagic_camera.vmd)");
-	cfg.musicPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\02.wav)");
+	cfg.cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(2)SukiYukiMajiMagic_camera.vmd)";
+	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\02.wav)";
 	Input bg;
-	bg.m_modelPath = N(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\PDF 2nd Like, Dislike Stage\Like, Dislike Stage.pmx)");
+	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\PDF 2nd Like, Dislike Stage\Like, Dislike Stage.pmx)";
 	bg.m_scale = 1.0f;
 	cfg.models.emplace_back(std::move(bg));
 	return cfg;
@@ -132,10 +131,11 @@ static bool SampleMain(const SceneConfig& cfg) {
     auto InitMusic = [&] {
         if (cfg.musicPath.empty())
         	return;
-        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
-            return;
-        }
-        if (ma_sound_init_from_file(&engine, cfg.musicPath.c_str(), 0, nullptr, nullptr, &sound) != MA_SUCCESS) {
+        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS)
+	        return;
+        if (ma_sound_init_from_file(&engine,
+        	reinterpret_cast<const char*>(cfg.musicPath.u8string().c_str()),
+        	0, nullptr, nullptr, &sound) != MA_SUCCESS) {
             ma_engine_uninit(&engine);
             return;
         }
@@ -337,22 +337,22 @@ int main() {
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
 		for (int i = 0; i < n; i++) {
 			Input in;
-			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(modelPaths[i][0].wstring()));
+			in.m_modelPath = modelPaths[i][0].wstring();
 			in.m_scale = 1.0f;
 			for (auto& v : motionPaths[i])
-				in.m_vmdPaths.emplace_back(PathUtil::Normalize(UnicodeUtil::WStringToUtf8(v.wstring())));
+				in.m_vmdPaths.emplace_back(v.wstring());
 			cfg.models.emplace_back(std::move(in));
 		}
 		if (!bgPath.empty()) {
 			Input bg;
-			bg.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(bgPath.front().wstring()));
+			bg.m_modelPath = bgPath.front().wstring();
 			bg.m_scale = 1.0f;
 			cfg.models.emplace_back(std::move(bg));
 		}
 		if (!cameraPath.empty())
-			cfg.cameraVmd = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(cameraPath.front().wstring()));
+			cfg.cameraVmd = cameraPath.front().wstring();
 		if (!musicPath.empty())
-			cfg.musicPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(musicPath.front().wstring()));
+			cfg.musicPath = musicPath.front().wstring();
 	}
 	if (!SampleMain(cfg)) {
 		std::cout << "Failed to run.\n";

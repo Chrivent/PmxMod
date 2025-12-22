@@ -17,9 +17,9 @@ struct AppContext
 {
     ~AppContext();
 
-    std::string m_resourceDir;
-    std::string	m_shaderDir;
-    std::string	m_mmdDir;
+    std::filesystem::path	m_resourceDir;
+    std::filesystem::path	m_shaderDir;
+    std::filesystem::path	m_mmdDir;
 
     std::unique_ptr<MMDShader>				m_mmdShader;
     std::unique_ptr<MMDEdgeShader>			m_mmdEdgeShader;
@@ -33,7 +33,7 @@ struct AppContext
     glm::vec3	m_lightColor = glm::vec3(1, 1, 1);
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
 
-    std::map<std::string, Texture>	m_textures;
+    std::map<std::filesystem::path, Texture>	m_textures;
     GLuint	m_dummyColorTex = 0;
     GLuint	m_dummyShadowDepthTex = 0;
 
@@ -46,5 +46,5 @@ struct AppContext
     bool Setup();
     void Clear();
 
-    Texture GetTexture(const std::string& texturePath);
+    Texture GetTexture(const std::filesystem::path& texturePath);
 };

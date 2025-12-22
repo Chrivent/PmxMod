@@ -7,13 +7,13 @@
 
 #include "base/Util.h"
 
-GLuint CreateShader(const GLenum shaderType, const std::string &code) {
+GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
 	if (shader == 0) {
 		std::cout << "Failed to create shader.\n";
 		return 0;
 	}
-	const char *codes[] = { code.c_str() };
+	const char* codes[] = { code.c_str() };
 	const GLint codesLen[] = { static_cast<GLint>(code.size()) };
 	glShaderSource(shader, 1, codes, codesLen);
 	glCompileShader(shader);
@@ -44,9 +44,9 @@ GLuint CreateShader(const GLenum shaderType, const std::string &code) {
 	return shader;
 }
 
-GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile) {
+GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile) {
 	File vsFileText;
-	if (!vsFileText.OpenFile(vsFile.c_str(), "r")) {
+	if (!vsFileText.OpenFile(vsFile, L"r")) {
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
 	}
@@ -54,7 +54,7 @@ GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile)
 	vsFileText.Close();
 
 	File fsFileText;
-	if (!fsFileText.OpenFile(fsFile.c_str(), "r")) {
+	if (!fsFileText.OpenFile(fsFile, L"r")) {
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
@@ -117,8 +117,8 @@ MMDShader::~MMDShader() {
 
 bool MMDShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		PathUtil::Combine(appContext.m_shaderDir, "mmd.vert"),
-		PathUtil::Combine(appContext.m_shaderDir, "mmd.frag")
+		appContext.m_shaderDir / "mmd.vert",
+		appContext.m_shaderDir / "mmd.frag"
 	);
 	if (m_prog == 0)
 		return false;
@@ -182,8 +182,8 @@ MMDEdgeShader::~MMDEdgeShader() {
 
 bool MMDEdgeShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.vert"),
-		PathUtil::Combine(appContext.m_shaderDir, "mmd_edge.frag")
+		appContext.m_shaderDir / "mmd_edge.vert",
+		appContext.m_shaderDir / "mmd_edge.frag"
 	);
 	if (m_prog == 0)
 		return false;
@@ -217,8 +217,8 @@ MMDGroundShadowShader::~MMDGroundShadowShader() {
 
 bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
 	m_prog = CreateShaderProgram(
-		PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.vert"),
-		PathUtil::Combine(appContext.m_shaderDir, "mmd_ground_shadow.frag")
+		appContext.m_shaderDir / "mmd_ground_shadow.vert",
+		appContext.m_shaderDir / "mmd_ground_shadow.frag"
 	);
 	if (m_prog == 0)
 		return false;

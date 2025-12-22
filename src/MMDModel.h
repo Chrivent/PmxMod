@@ -63,7 +63,7 @@ public:
 
 	void UpdateAllAnimation(const VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
 
-	bool Load(const std::string& filepath, const std::string& mmdDataDir);
+	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir);
 	void Destroy();
 
 private:

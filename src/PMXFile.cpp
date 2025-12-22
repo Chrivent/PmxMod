@@ -192,8 +192,12 @@ namespace {
 		if (!file.Read(&texCount))
 			return false;
 		pmx->m_textures.resize(texCount);
-		for (auto& [m_textureName] : pmx->m_textures)
-			ReadString(pmx, &m_textureName, file);
+		std::string utf8;
+		for (auto& [m_textureName] : pmx->m_textures) {
+			ReadString(pmx, &utf8, file);
+			const auto* p = reinterpret_cast<const char8_t*>(utf8.data());
+			m_textureName = std::filesystem::path(std::u8string(p, p + utf8.size()));
+		}
 		return !file.m_badFlag;
 	}
 
@@ -563,9 +567,9 @@ namespace {
 	}
 }
 
-bool ReadPMXFile(PMXFile* pmxFile, const char* filename) {
+bool ReadPMXFile(PMXFile* pmxFile, const std::filesystem::path& filename) {
 	File file;
-	if (!file.OpenFile(filename, "rb"))
+	if (!file.OpenFile(filename, L"rb"))
 		return false;
 	if (!ReadPMXFile(pmxFile, file))
 		return false;

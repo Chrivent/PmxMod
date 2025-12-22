@@ -3,9 +3,10 @@
 #include <glad/glad.h>
 
 #include <string>
+#include <filesystem>
 
 GLuint CreateShader(GLenum shaderType, const std::string &code);
-GLuint CreateShaderProgram(const std::string &vsFile, const std::string &fsFile);
+GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile);
 
 struct AppContext;
 
