@@ -65,8 +65,7 @@ float MMDIkSolver::DiffAngle(const float a, const float b) {
 glm::vec3 MMDIkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 	glm::vec3 r;
 	const float sy = -m[0][2];
-	constexpr float e = 1.0e-6f;
-	if (1.0f - std::abs(sy) < e) {
+	if (1.0f - std::abs(sy) < 1.0e-6f) {
 		r.y = std::asin(sy);
 		const float sx = std::sin(before.x);
 		const float sz = std::sin(before.z);
