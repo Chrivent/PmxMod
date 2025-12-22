@@ -355,7 +355,7 @@ int32_t VMDAnimation::CalculateMaxKeyTime() const {
 	return maxTime;
 }
 
-void VMDNodeAnimationKey::Set(const VMDMotion & motion) {
+void VMDNodeAnimationKey::Set(const VMDFile::VMDMotion & motion) {
 	m_time = static_cast<int32_t>(motion.m_frame);
 
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);

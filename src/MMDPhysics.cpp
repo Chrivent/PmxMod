@@ -144,7 +144,7 @@ MMDRigidBody::MMDRigidBody()
 	, m_offsetMat(1) {
 }
 
-void MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
+void MMDRigidBody::Create(const PMXFile::PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
 	m_shape = nullptr;
 
 	switch (pmxRigidBody.m_shape) {
@@ -293,7 +293,7 @@ glm::mat4 MMDRigidBody::GetTransform() const {
 // MMDJoint
 //*******************
 
-void MMDJoint::CreateJoint(const PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
+void MMDJoint::CreateJoint(const PMXFile::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
 	m_constraint = nullptr;
 
 	btMatrix3x3 rotMat;

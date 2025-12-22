@@ -2,7 +2,7 @@
 
 #include "MMDModel.h"
 #include "MMDNode.h"
-#include "VMDFile.h"
+#include "PMXFile.h"
 
 #include <vector>
 #include <memory>
@@ -56,7 +56,7 @@ void SetVMDBezier(VMDBezier& bezier, int x0, int x1, int y0, int y1);
 
 struct VMDNodeAnimationKey
 {
-	void Set(const VMDMotion& motion);
+	void Set(const VMDFile::VMDMotion& motion);
 
 	int32_t		m_time;
 	glm::vec3	m_translate;
