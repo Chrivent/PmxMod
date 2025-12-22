@@ -18,7 +18,7 @@ struct VMDMotion {
 	uint32_t		m_frame;
 	glm::vec3		m_translate;
 	glm::quat		m_quaternion;
-	std::array<uint8_t, 64>	m_interpolation;
+	uint8_t			m_interpolation[64];
 };
 
 struct VMDMorph {
