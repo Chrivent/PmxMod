@@ -51,8 +51,6 @@ struct VMDBezier {
 	glm::vec2	m_cp2;
 };
 
-void SetVMDBezier(VMDBezier& bezier, int x0, int x1, int y0, int y1);
-
 struct VMDNodeAnimationKey {
 	void Set(const VMDReader::VMDMotion& motion);
 
