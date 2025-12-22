@@ -1,10 +1,9 @@
 ﻿#include "MMDReader.h"
 
-#include <fstream>
-
 #include "../base/Util.h"
 
 #include <vector>
+#include <fstream>
 
 void MMDReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
 	is.read(static_cast<char*>(dst), bytes);
