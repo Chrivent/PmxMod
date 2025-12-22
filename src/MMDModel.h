@@ -23,15 +23,13 @@ enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;
 enum class WeightType : uint8_t;
 
-struct MMDSubMesh
-{
+struct MMDSubMesh {
 	int	m_beginIndex;
 	int	m_vertexCount;
 	int	m_materialID;
 };
 
-struct MMDVertex
-{
+struct MMDVertex {
 	WeightType		m_weightType;
 	int32_t			m_boneIndices[4];
 	float			m_boneWeights[4];
@@ -40,8 +38,7 @@ struct MMDVertex
 	glm::vec3		m_sdefR1;
 };
 
-struct MMDMorph
-{
+struct MMDMorph {
 	MMDMorph();
 
 	std::string	m_name;
@@ -51,8 +48,7 @@ struct MMDMorph
 	size_t		m_dataIndex;
 };
 
-struct MMDMaterial
-{
+struct MMDMaterial {
 	MMDMaterial();
 
 	glm::vec4				m_diffuse;
@@ -78,14 +74,12 @@ struct MMDMaterial
 	bool					m_shadowReceiver;
 };
 
-struct UpdateRange
-{
+struct UpdateRange {
 	size_t	m_vertexOffset;
 	size_t	m_vertexCount;
 };
 
-class MMDModel
-{
+class MMDModel {
 public:
 	MMDModel();
 	~MMDModel();
