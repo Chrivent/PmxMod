@@ -1,5 +1,6 @@
 #include "MMDShader.h"
 
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -45,21 +46,19 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 }
 
 GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile) {
-	File vsFileText;
-	if (!vsFileText.OpenFile(vsFile, L"r")) {
+	std::ifstream vf(vsFile);
+	if (!vf) {
 		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
 		return 0;
 	}
-	const std::string vsCode = vsFileText.ReadAll();
-	vsFileText.Close();
+	const auto vsCode = std::string(std::istreambuf_iterator(vf), {});
 
-	File fsFileText;
-	if (!fsFileText.OpenFile(fsFile, L"r")) {
+	std::ifstream ff(fsFile);
+	if (!ff) {
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
-	const std::string fsCode = fsFileText.ReadAll();
-	fsFileText.Close();
+	const auto fsCode = std::string(std::istreambuf_iterator(ff), {});
 
 	const GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
 	const GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);

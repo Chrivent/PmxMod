@@ -54,31 +54,26 @@ struct File {
 		Close();
 	}
 
-	bool OpenFile(const std::filesystem::path& filepath, const std::wstring& mode) {
+	bool OpenFile(const std::filesystem::path& filepath, const wchar_t* mode) {
 		Close();
-		const std::wstring wFilepath = filepath.wstring();
-		if (wFilepath.empty())
+		if (!mode)
 			return false;
-		if (mode.empty())
-			return false;
-		if (_wfopen_s(&m_fp, wFilepath.c_str(), mode.c_str()) != 0 || !m_fp)
+		if (_wfopen_s(&m_fp, filepath.c_str(), mode) != 0 || !m_fp)
 			return false;
 		m_badFlag = false;
-		auto Seek = [&](const int64_t offset, const int origin) {
-			if (m_fp == nullptr)
-				return false;
-			if (_fseeki64(m_fp, offset, origin) != 0) {
-				m_badFlag = true;
-				return false;
-			}
-			return true;
-		};
-		if (!Seek(0, 2)) {
+		if (_fseeki64(m_fp, 0, SEEK_END) != 0) {
+			m_badFlag = true;
 			Close();
 			return false;
 		}
-		m_fileSize = Tell();
-		if (!Seek(0, 0)) {
+		m_fileSize = _ftelli64(m_fp);
+		if (m_fileSize < 0) {
+			m_badFlag = true;
+			Close();
+			return false;
+		}
+		if (_fseeki64(m_fp, 0, SEEK_SET) != 0) {
+			m_badFlag = true;
 			Close();
 			return false;
 		}
@@ -86,34 +81,23 @@ struct File {
 	}
 
 	void Close() {
-		if (m_fp != nullptr) {
-			fclose(m_fp);
+		if (m_fp) {
+			std::fclose(m_fp);
 			m_fp = nullptr;
-			m_fileSize = 0;
-			m_badFlag = false;
 		}
+		m_fileSize = 0;
+		m_badFlag = false;
 	}
 
 	int64_t Tell() const {
 		return m_fp ? _ftelli64(m_fp) : -1;
 	}
 
-	std::string ReadAll() const {
-		std::string all;
-		if (!m_fp)
-			return all;
-		for (int ch = fgetc(m_fp); ch != -1; ch = fgetc(m_fp))
-			all.push_back(static_cast<char>(ch));
-		return all;
-	}
-
 	template <typename T>
 	bool Read(T* buffer, size_t count = 1) {
-		if (buffer == nullptr)
+		if (!m_fp || !buffer)
 			return false;
-		if (m_fp == nullptr)
-			return false;
-		if (fread_s(buffer, sizeof(T) * count, sizeof(T), count, m_fp) != count) {
+		if (std::fread(buffer, sizeof(T), count, m_fp) != count) {
 			m_badFlag = true;
 			return false;
 		}
