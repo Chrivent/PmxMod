@@ -6,7 +6,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-enum class PMXSphereMode : uint8_t;
+enum class SphereMode : uint8_t;
 
 struct MMDMaterial
 {
@@ -21,7 +21,7 @@ struct MMDMaterial
 	glm::vec4				m_edgeColor;
 	std::filesystem::path	m_texture;
 	std::filesystem::path	m_spTexture;
-	PMXSphereMode			m_spTextureMode;
+	SphereMode			m_spTextureMode;
 	std::filesystem::path	m_toonTexture;
 	glm::vec4				m_textureMulFactor;
 	glm::vec4				m_spTextureMulFactor;

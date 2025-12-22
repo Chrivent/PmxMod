@@ -214,9 +214,9 @@ void Model::Draw(const AppContext& appContext) const {
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
 		if (mat.m_spTexture != 0) {
-			if (mmdMat.m_spTextureMode == PMXSphereMode::Mul)
+			if (mmdMat.m_spTextureMode == SphereMode::Mul)
 				glUniform1i(shader->m_uSphereTexMode, 1);
-			else if (mmdMat.m_spTextureMode == PMXSphereMode::Add)
+			else if (mmdMat.m_spTextureMode == SphereMode::Add)
 				glUniform1i(shader->m_uSphereTexMode, 2);
 			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mmdMat.m_spTextureMulFactor[0]);
 			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mmdMat.m_spTextureAddFactor[0]);

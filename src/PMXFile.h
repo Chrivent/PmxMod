@@ -10,36 +10,13 @@
 #include <glm/vec4.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-enum class PMXEncode : uint8_t
+enum class EncodeType : uint8_t
 {
 	UTF16,
 	UTF8
 };
 
-struct PMXHeader
-{
-	char		m_magic[4];
-	float		m_version;
-	uint8_t		m_dataSize;
-	PMXEncode	m_encode;
-	uint8_t		m_addUVNum;
-	uint8_t		m_vertexIndexSize;
-	uint8_t		m_textureIndexSize;
-	uint8_t		m_materialIndexSize;
-	uint8_t		m_boneIndexSize;
-	uint8_t		m_morphIndexSize;
-	uint8_t		m_rigidbodyIndexSize;
-};
-
-struct PMXInfo
-{
-	std::string	m_modelName;
-	std::string	m_englishModelName;
-	std::string	m_comment;
-	std::string	m_englishComment;
-};
-
-enum class PMXVertexWeight : uint8_t
+enum class WeightType : uint8_t
 {
 	BDEF1,
 	BDEF2,
@@ -48,32 +25,7 @@ enum class PMXVertexWeight : uint8_t
 	QDEF
 };
 
-struct PMXVertex
-{
-	glm::vec3		m_position;
-	glm::vec3		m_normal;
-	glm::vec2		m_uv;
-	glm::vec4		m_addUV[4];
-	PMXVertexWeight	m_weightType;
-	int32_t			m_boneIndices[4];
-	float			m_boneWeights[4];
-	glm::vec3		m_sdefC;
-	glm::vec3		m_sdefR0;
-	glm::vec3		m_sdefR1;
-	float			m_edgeMag;
-};
-
-struct PMXFace
-{
-	uint32_t	m_vertices[3];
-};
-
-struct PMXTexture
-{
-	std::filesystem::path m_textureName;
-};
-
-enum class PMXDrawModeFlags : uint8_t
+enum class DrawModeFlags : uint8_t
 {
 	BothFace = 0x01,
 	GroundShadow = 0x02,
@@ -85,7 +37,7 @@ enum class PMXDrawModeFlags : uint8_t
 	DrawLine = 0x80
 };
 
-enum class PMXSphereMode : uint8_t
+enum class SphereMode : uint8_t
 {
 	None,
 	Mul,
@@ -93,33 +45,13 @@ enum class PMXSphereMode : uint8_t
 	SubTexture
 };
 
-enum class PMXToonMode : uint8_t
+enum class ToonMode : uint8_t
 {
 	Separate,
 	Common
 };
 
-struct PMXMaterial
-{
-	std::string	m_name;
-	std::string	m_englishName;
-	glm::vec4	m_diffuse;
-	glm::vec3	m_specular;
-	float		m_specularPower;
-	glm::vec3	m_ambient;
-	PMXDrawModeFlags m_drawMode;
-	glm::vec4	m_edgeColor;
-	float		m_edgeSize;
-	int32_t	m_textureIndex;
-	int32_t	m_sphereTextureIndex;
-	PMXSphereMode m_sphereMode;
-	PMXToonMode	m_toonMode;
-	int32_t		m_toonTextureIndex;
-	std::string	m_memo;
-	int32_t	m_numFaceVertices;
-};
-
-enum class PMXBoneFlags : uint16_t
+enum class BoneFlags : uint16_t
 {
 	TargetShowMode = 0x0001,
 	AllowRotate = 0x0002,
@@ -136,37 +68,7 @@ enum class PMXBoneFlags : uint16_t
 	DeformOuterParent = 0x2000
 };
 
-struct PMXIKLink
-{
-	int32_t			m_ikBoneIndex;
-	unsigned char	m_enableLimit;
-	glm::vec3	m_limitMin;
-	glm::vec3	m_limitMax;
-};
-
-struct PMXBone
-{
-	std::string	m_name;
-	std::string	m_englishName;
-	glm::vec3	m_position;
-	int32_t		m_parentBoneIndex;
-	int32_t		m_deformDepth;
-	PMXBoneFlags	m_boneFlag;
-	glm::vec3	m_positionOffset;
-	int32_t		m_linkBoneIndex;
-	int32_t	m_appendBoneIndex;
-	float	m_appendWeight;
-	glm::vec3	m_fixedAxis;
-	glm::vec3	m_localXAxis;
-	glm::vec3	m_localZAxis;
-	int32_t	m_keyValue;
-	int32_t	m_ikTargetBoneIndex;
-	int32_t	m_ikIterationCount;
-	float	m_ikLimit;
-	std::vector<PMXIKLink>	m_ikLinks;
-};
-
-enum class PMXMorphType : uint8_t
+enum class MorphType : uint8_t
 {
 	Group,
 	Position,
@@ -179,6 +81,78 @@ enum class PMXMorphType : uint8_t
 	Material,
 	Flip,
 	Impulse
+};
+
+enum class OpType : uint8_t
+{
+	Mul,
+	Add
+};
+
+enum class ControlPanel : uint8_t
+{
+	SystemReserved,
+	Brow,
+	Eye,
+	Mouth,
+	Other
+};
+
+enum class TargetType : uint8_t
+{
+	BoneIndex,
+	MorphIndex
+};
+
+enum class FrameType : uint8_t
+{
+	DefaultFrame,
+	SpecialFrame
+};
+
+enum class Operation : uint8_t
+{
+	Static,
+	Dynamic,
+	DynamicAndBoneMerge
+};
+
+enum class Shape : uint8_t
+{
+	Sphere,
+	Box,
+	Capsule,
+};
+
+enum class JointType : uint8_t
+{
+	SpringDOF6,
+	DOF6,
+	P2P,
+	ConeTwist,
+	Slider,
+	Hinge,
+};
+
+enum class SoftBodyType : uint8_t
+{
+	TriMesh,
+	Rope,
+};
+
+enum class SoftBodyMask : uint8_t
+{
+	BLink = 0x01,
+	Cluster = 0x02,
+	HybridLink = 0x04,
+};
+
+enum class AeroModel : int32_t
+{
+	kAeroModelV_TwoSided,
+	kAeroModelV_OneSided,
+	kAeroModelF_TwoSided,
+	kAeroModelF_OneSided,
 };
 
 struct PositionMorph
@@ -202,12 +176,6 @@ struct BoneMorph
 
 struct MaterialMorph
 {
-	enum class OpType : uint8_t
-	{
-		Mul,
-		Add
-	};
-
 	int32_t		m_materialIndex;
 	OpType		m_opType;
 	glm::vec4	m_diffuse;
@@ -227,35 +195,137 @@ struct GroupMorph
 	float	m_weight;
 };
 
+struct FlipMorph
+{
+	int32_t	m_morphIndex;
+	float	m_weight;
+};
+
+struct ImpulseMorph
+{
+	int32_t		m_rigidbodyIndex;
+	uint8_t		m_localFlag;
+	glm::vec3	m_translateVelocity;
+	glm::vec3	m_rotateTorque;
+};
+
+struct Target
+{
+	TargetType	m_type;
+	int32_t		m_index;
+};
+
+struct AnchorRigidbody
+{
+	int32_t		m_rigidBodyIndex;
+	int32_t		m_vertexIndex;
+	uint8_t		m_nearMode;
+};
+
+struct PMXHeader
+{
+	char		m_magic[4];
+	float		m_version;
+	uint8_t		m_dataSize;
+	EncodeType	m_encodeType;
+	uint8_t		m_addUVNum;
+	uint8_t		m_vertexIndexSize;
+	uint8_t		m_textureIndexSize;
+	uint8_t		m_materialIndexSize;
+	uint8_t		m_boneIndexSize;
+	uint8_t		m_morphIndexSize;
+	uint8_t		m_rigidbodyIndexSize;
+};
+
+struct PMXInfo
+{
+	std::string	m_modelName;
+	std::string	m_englishModelName;
+	std::string	m_comment;
+	std::string	m_englishComment;
+};
+
+struct PMXVertex
+{
+	glm::vec3		m_position;
+	glm::vec3		m_normal;
+	glm::vec2		m_uv;
+	glm::vec4		m_addUV[4];
+	WeightType		m_weightType;
+	int32_t			m_boneIndices[4];
+	float			m_boneWeights[4];
+	glm::vec3		m_sdefC;
+	glm::vec3		m_sdefR0;
+	glm::vec3		m_sdefR1;
+	float			m_edgeMag;
+};
+
+struct PMXFace
+{
+	uint32_t	m_vertices[3];
+};
+
+struct PMXTexture
+{
+	std::filesystem::path m_textureName;
+};
+
+struct PMXMaterial
+{
+	std::string	m_name;
+	std::string	m_englishName;
+	glm::vec4	m_diffuse;
+	glm::vec3	m_specular;
+	float		m_specularPower;
+	glm::vec3	m_ambient;
+	DrawModeFlags m_drawMode;
+	glm::vec4	m_edgeColor;
+	float		m_edgeSize;
+	int32_t	m_textureIndex;
+	int32_t	m_sphereTextureIndex;
+	SphereMode m_sphereMode;
+	ToonMode	m_toonMode;
+	int32_t		m_toonTextureIndex;
+	std::string	m_memo;
+	int32_t	m_numFaceVertices;
+};
+
+struct PMXIKLink
+{
+	int32_t			m_ikBoneIndex;
+	unsigned char	m_enableLimit;
+	glm::vec3	m_limitMin;
+	glm::vec3	m_limitMax;
+};
+
+struct PMXBone
+{
+	std::string	m_name;
+	std::string	m_englishName;
+	glm::vec3	m_position;
+	int32_t		m_parentBoneIndex;
+	int32_t		m_deformDepth;
+	BoneFlags	m_boneFlag;
+	glm::vec3	m_positionOffset;
+	int32_t		m_linkBoneIndex;
+	int32_t	m_appendBoneIndex;
+	float	m_appendWeight;
+	glm::vec3	m_fixedAxis;
+	glm::vec3	m_localXAxis;
+	glm::vec3	m_localZAxis;
+	int32_t	m_keyValue;
+	int32_t	m_ikTargetBoneIndex;
+	int32_t	m_ikIterationCount;
+	float	m_ikLimit;
+	std::vector<PMXIKLink>	m_ikLinks;
+};
+
 struct PMXMorph
 {
-	enum class ControlPanel : std::uint8_t
-	{
-		SystemReserved,
-		Brow,
-		Eye,
-		Mouth,
-		Other
-	};
-
 	std::string		m_name;
 	std::string		m_englishName;
 	ControlPanel	m_controlPanel;
-	PMXMorphType	m_morphType;
-
-	struct FlipMorph
-	{
-		int32_t	m_morphIndex;
-		float	m_weight;
-	};
-
-	struct ImpulseMorph
-	{
-		int32_t		m_rigidbodyIndex;
-		uint8_t		m_localFlag;
-		glm::vec3	m_translateVelocity;
-		glm::vec3	m_rotateTorque;
-	};
+	MorphType		m_morphType;
 
 	std::vector<PositionMorph>	m_positionMorph;
 	std::vector<UVMorph>		m_uvMorph;
@@ -270,33 +340,9 @@ struct PMXDisplayFrame
 {
 	std::string	m_name;
 	std::string	m_englishName;
-
-	enum class TargetType : uint8_t
-	{
-		BoneIndex,
-		MorphIndex
-	};
-	struct Target
-	{
-		TargetType	m_type;
-		int32_t		m_index;
-	};
-
-	enum class FrameType : uint8_t
-	{
-		DefaultFrame,
-		SpecialFrame
-	};
-
 	FrameType			m_flag;
-	std::vector<Target>	m_targets;
-};
 
-enum class Operation : uint8_t
-{
-	Static,
-	Dynamic,
-	DynamicAndBoneMerge
+	std::vector<Target>	m_targets;
 };
 
 struct PMXRigidbody
@@ -307,12 +353,6 @@ struct PMXRigidbody
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
 
-	enum class Shape : uint8_t
-	{
-		Sphere,
-		Box,
-		Capsule,
-	};
 	Shape		m_shape;
 	glm::vec3	m_shapeSize;
 	glm::vec3	m_translate;
@@ -330,15 +370,6 @@ struct PMXJoint
 	std::string	m_name;
 	std::string	m_englishName;
 
-	enum class JointType : uint8_t
-	{
-		SpringDOF6,
-		DOF6,
-		P2P,
-		ConeTwist,
-		Slider,
-		Hinge,
-	};
 	JointType	m_type;
 	int32_t		m_rigidbodyAIndex;
 	int32_t		m_rigidbodyBIndex;
@@ -357,35 +388,17 @@ struct PMXSoftBody
 	std::string	m_name;
 	std::string	m_englishName;
 
-	enum class SoftBodyType : uint8_t
-	{
-		TriMesh,
-		Rope,
-	};
 	SoftBodyType	m_type;
 	int32_t			m_materialIndex;
 	uint8_t		m_group;
 	uint16_t	m_collisionGroup;
 
-	enum class SoftBodyMask : uint8_t
-	{
-		BLink = 0x01,
-		Cluster = 0x02,
-		HybridLink = 0x04,
-	};
 	SoftBodyMask	m_flag;
 	int32_t	m_BLinkLength;
 	int32_t	m_numClusters;
 	float	m_totalMass;
 	float	m_collisionMargin;
 
-	enum class AeroModel : int32_t
-	{
-		kAeroModelV_TwoSided,
-		kAeroModelV_OneSided,
-		kAeroModelF_TwoSided,
-		kAeroModelF_OneSided,
-	};
 	int32_t		m_aeroModel;
 	float	m_VCF;
 	float	m_DP;
@@ -413,12 +426,6 @@ struct PMXSoftBody
 	float	m_AST;
 	float	m_VST;
 
-	struct AnchorRigidbody
-	{
-		int32_t		m_rigidBodyIndex;
-		int32_t		m_vertexIndex;
-		uint8_t		m_nearMode;
-	};
 	std::vector<AnchorRigidbody>	m_anchorRigidBodies;
 	std::vector<int32_t>	m_pinVertexIndices;
 };

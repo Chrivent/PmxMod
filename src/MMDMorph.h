@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 
-enum class PMXMorphType : uint8_t;
+enum class MorphType : uint8_t;
 
 struct MMDMorph
 {
@@ -12,6 +12,6 @@ struct MMDMorph
 	std::string	m_name;
 	float		m_weight;
 	float		m_saveAnimWeight;
-	PMXMorphType	m_morphType;
+	MorphType	m_morphType;
 	size_t		m_dataIndex;
 };

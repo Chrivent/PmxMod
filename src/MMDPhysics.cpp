@@ -148,17 +148,17 @@ void MMDRigidBody::Create(const PMXRigidbody& pmxRigidBody, const MMDModel* mode
 	m_shape = nullptr;
 
 	switch (pmxRigidBody.m_shape) {
-		case PMXRigidbody::Shape::Sphere:
+		case Shape::Sphere:
 			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.m_shapeSize.x);
 			break;
-		case PMXRigidbody::Shape::Box:
+		case Shape::Box:
 			m_shape = std::make_unique<btBoxShape>(btVector3(
 				pmxRigidBody.m_shapeSize.x,
 				pmxRigidBody.m_shapeSize.y,
 				pmxRigidBody.m_shapeSize.z
 			));
 			break;
-		case PMXRigidbody::Shape::Capsule:
+		case Shape::Capsule:
 			m_shape = std::make_unique<btCapsuleShape>(
 				pmxRigidBody.m_shapeSize.x,
 				pmxRigidBody.m_shapeSize.y

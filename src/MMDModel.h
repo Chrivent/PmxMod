@@ -9,7 +9,6 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
-#include <string>
 #include <future>
 
 struct MMDMaterial;
@@ -23,6 +22,16 @@ struct MMDSubMesh
 	int	m_beginIndex;
 	int	m_vertexCount;
 	int	m_materialID;
+};
+
+struct MMDVertex
+{
+	WeightType		m_weightType;
+	int32_t			m_boneIndices[4];
+	float			m_boneWeights[4];
+	glm::vec3		m_sdefC;
+	glm::vec3		m_sdefR0;
+	glm::vec3		m_sdefR1;
 };
 
 class VMDAnimation;
@@ -85,7 +94,7 @@ public:
 	std::vector<glm::vec3>	m_positions;
 	std::vector<glm::vec3>	m_normals;
 	std::vector<glm::vec2>	m_uvs;
-	std::vector<PMXVertex>	m_vertexBoneInfos;
+	std::vector<MMDVertex>	m_vertexBoneInfos;
 	std::vector<glm::vec3>	m_updatePositions;
 	std::vector<glm::vec3>	m_updateNormals;
 	std::vector<glm::vec2>	m_updateUVs;

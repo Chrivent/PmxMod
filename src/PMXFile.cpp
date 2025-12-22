@@ -33,11 +33,11 @@ namespace {
 		uint32_t bufSize;
 		Read(is, &bufSize);
 		if (bufSize > 0) {
-			if (pmx->m_header.m_encode == PMXEncode::UTF16) {
+			if (pmx->m_header.m_encodeType == EncodeType::UTF16) {
 				std::wstring utf16Str(bufSize / 2, L'\0');
 				Read(is, utf16Str.data(), bufSize);
 				*val = UnicodeUtil::WStringToUtf8(utf16Str);
-			} else if (pmx->m_header.m_encode == PMXEncode::UTF8) {
+			} else if (pmx->m_header.m_encodeType == EncodeType::UTF8) {
 				val->resize(bufSize);
 				Read(is, val->data(), bufSize);
 			}
@@ -78,7 +78,7 @@ namespace {
 		Read(is, pmxFile->m_header.m_magic, sizeof(pmxFile->m_header.m_magic));
 		Read(is, &pmxFile->m_header.m_version);
 		Read(is, &pmxFile->m_header.m_dataSize);
-		Read(is, &pmxFile->m_header.m_encode);
+		Read(is, &pmxFile->m_header.m_encodeType);
 		Read(is, &pmxFile->m_header.m_addUVNum);
 		Read(is, &pmxFile->m_header.m_vertexIndexSize);
 		Read(is, &pmxFile->m_header.m_textureIndexSize);
@@ -110,15 +110,15 @@ namespace {
 				Read(is, &m_addUV[i]);
 			Read(is, &m_weightType);
 			switch (m_weightType) {
-				case PMXVertexWeight::BDEF1:
+				case WeightType::BDEF1:
 					ReadIndex(&m_boneIndices[0], pmx->m_header.m_boneIndexSize, is);
 					break;
-				case PMXVertexWeight::BDEF2:
+				case WeightType::BDEF2:
 					ReadIndex(&m_boneIndices[0], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[1], pmx->m_header.m_boneIndexSize, is);
 					Read(is, &m_boneWeights[0]);
 					break;
-				case PMXVertexWeight::BDEF4:
+				case WeightType::BDEF4:
 					ReadIndex(&m_boneIndices[0], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[1], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[2], pmx->m_header.m_boneIndexSize, is);
@@ -128,7 +128,7 @@ namespace {
 					Read(is, &m_boneWeights[2]);
 					Read(is, &m_boneWeights[3]);
 					break;
-				case PMXVertexWeight::SDEF:
+				case WeightType::SDEF:
 					ReadIndex(&m_boneIndices[0], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[1], pmx->m_header.m_boneIndexSize, is);
 					Read(is, &m_boneWeights[0]);
@@ -136,7 +136,7 @@ namespace {
 					Read(is, &m_sdefR0);
 					Read(is, &m_sdefR1);
 					break;
-				case PMXVertexWeight::QDEF:
+				case WeightType::QDEF:
 					ReadIndex(&m_boneIndices[0], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[1], pmx->m_header.m_boneIndexSize, is);
 					ReadIndex(&m_boneIndices[2], pmx->m_header.m_boneIndexSize, is);
@@ -227,9 +227,9 @@ namespace {
 			ReadIndex(&m_sphereTextureIndex, pmx->m_header.m_textureIndexSize, is);
 			Read(is, &m_sphereMode);
 			Read(is, &m_toonMode);
-			if (m_toonMode == PMXToonMode::Separate)
+			if (m_toonMode == ToonMode::Separate)
 				ReadIndex(&m_toonTextureIndex, pmx->m_header.m_textureIndexSize, is);
-			else if (m_toonMode == PMXToonMode::Common) {
+			else if (m_toonMode == ToonMode::Common) {
 				uint8_t toonIndex;
 				Read(is, &toonIndex);
 				m_toonTextureIndex = static_cast<int32_t>(toonIndex);
@@ -255,24 +255,24 @@ namespace {
 			ReadIndex(&m_parentBoneIndex, pmx->m_header.m_boneIndexSize, is);
 			Read(is, &m_deformDepth);
 			Read(is, &m_boneFlag);
-			if ((static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::TargetShowMode)) == 0)
+			if ((static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::TargetShowMode)) == 0)
 				Read(is, &m_positionOffset);
 			else
 				ReadIndex(&m_linkBoneIndex, pmx->m_header.m_boneIndexSize, is);
-			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendRotate) ||
-			    static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendTranslate)) {
+			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate) ||
+			    static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) {
 				ReadIndex(&m_appendBoneIndex, pmx->m_header.m_boneIndexSize, is);
 				Read(is, &m_appendWeight);
 			}
-			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::FixedAxis))
+			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::FixedAxis))
 				Read(is, &m_fixedAxis);
-			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::LocalAxis)) {
+			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::LocalAxis)) {
 				Read(is, &m_localXAxis);
 				Read(is, &m_localZAxis);
 			}
-			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::DeformOuterParent))
+			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
 				Read(is, &m_keyValue);
-			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::IK)) {
+			if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 				ReadIndex(&m_ikTargetBoneIndex, pmx->m_header.m_boneIndexSize, is);
 				Read(is, &m_ikIterationCount);
 				Read(is, &m_ikLimit);
@@ -308,31 +308,31 @@ namespace {
 			Read(is, &m_morphType);
 			int32_t dataCount;
 			Read(is, &dataCount);
-			if (m_morphType == PMXMorphType::Position) {
+			if (m_morphType == MorphType::Position) {
 				m_positionMorph.resize(dataCount);
 				for (auto& [m_vertexIndex, m_position] : m_positionMorph) {
 					ReadIndex(&m_vertexIndex, pmx->m_header.m_vertexIndexSize, is);
 					Read(is, &m_position);
 				}
-			} else if (m_morphType == PMXMorphType::UV ||
-			           m_morphType == PMXMorphType::AddUV1 ||
-			           m_morphType == PMXMorphType::AddUV2 ||
-			           m_morphType == PMXMorphType::AddUV3 ||
-			           m_morphType == PMXMorphType::AddUV4
+			} else if (m_morphType == MorphType::UV ||
+			           m_morphType == MorphType::AddUV1 ||
+			           m_morphType == MorphType::AddUV2 ||
+			           m_morphType == MorphType::AddUV3 ||
+			           m_morphType == MorphType::AddUV4
 			) {
 				m_uvMorph.resize(dataCount);
 				for (auto& [m_vertexIndex, m_uv] : m_uvMorph) {
 					ReadIndex(&m_vertexIndex, pmx->m_header.m_vertexIndexSize, is);
 					Read(is, &m_uv);
 				}
-			} else if (m_morphType == PMXMorphType::Bone) {
+			} else if (m_morphType == MorphType::Bone) {
 				m_boneMorph.resize(dataCount);
 				for (auto& [m_boneIndex, m_position, m_quaternion] : m_boneMorph) {
 					ReadIndex(&m_boneIndex, pmx->m_header.m_boneIndexSize, is);
 					Read(is, &m_position);
 					Read(is, &m_quaternion);
 				}
-			} else if (m_morphType == PMXMorphType::Material) {
+			} else if (m_morphType == MorphType::Material) {
 				m_materialMorph.resize(dataCount);
 				for (auto& [m_materialIndex, m_opType, m_diffuse
 					     , m_specular, m_specularPower
@@ -350,19 +350,19 @@ namespace {
 					Read(is, &m_sphereTextureFactor);
 					Read(is, &m_toonTextureFactor);
 				}
-			} else if (m_morphType == PMXMorphType::Group) {
+			} else if (m_morphType == MorphType::Group) {
 				m_groupMorph.resize(dataCount);
 				for (auto& [m_morphIndex, m_weight] : m_groupMorph) {
 					ReadIndex(&m_morphIndex, pmx->m_header.m_morphIndexSize, is);
 					Read(is, &m_weight);
 				}
-			} else if (m_morphType == PMXMorphType::Flip) {
+			} else if (m_morphType == MorphType::Flip) {
 				m_flipMorph.resize(dataCount);
 				for (auto& [m_morphIndex, m_weight] : m_flipMorph) {
 					ReadIndex(&m_morphIndex, pmx->m_header.m_morphIndexSize, is);
 					Read(is, &m_weight);
 				}
-			} else if (m_morphType == PMXMorphType::Impulse) {
+			} else if (m_morphType == MorphType::Impulse) {
 				m_impulseMorph.resize(dataCount);
 				for (auto& [m_rigidbodyIndex
 					     , m_localFlag
@@ -391,9 +391,9 @@ namespace {
 			m_targets.resize(targetCount);
 			for (auto& [m_type, m_index] : m_targets) {
 				Read(is, &m_type);
-				if (m_type == PMXDisplayFrame::TargetType::BoneIndex)
+				if (m_type == TargetType::BoneIndex)
 					ReadIndex(&m_index, pmx->m_header.m_boneIndexSize, is);
-				else if (m_type == PMXDisplayFrame::TargetType::MorphIndex)
+				else if (m_type == TargetType::MorphIndex)
 					ReadIndex(&m_index, pmx->m_header.m_morphIndexSize, is);
 			}
 		}

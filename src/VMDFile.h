@@ -2,11 +2,16 @@
 
 #include <cstdint>
 #include <vector>
-#include <array>
 #include <filesystem>
 
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+enum class ShadowType : uint8_t {
+	Off,
+	Mode1,
+	Mode2
+};
 
 struct VMDHeader {
 	char m_header[30];
@@ -45,13 +50,6 @@ struct VMDLight {
 
 struct VMDShadow {
 	uint32_t	m_frame;
-
-	enum class ShadowType : uint8_t {
-		Off,
-		Mode1,
-		Mode2
-	};
-
 	ShadowType	m_shadowType;
 	float		m_distance;
 };

@@ -248,8 +248,8 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		m_positions.push_back(pos);
 		m_normals.push_back(nor);
 		m_uvs.push_back(uv);
-		PMXVertex vtxBoneInfo{};
-		if (PMXVertexWeight::SDEF != v.m_weightType) {
+		MMDVertex vtxBoneInfo{};
+		if (WeightType::SDEF != v.m_weightType) {
 			vtxBoneInfo.m_boneIndices[0] = v.m_boneIndices[0];
 			vtxBoneInfo.m_boneIndices[1] = v.m_boneIndices[1];
 			vtxBoneInfo.m_boneIndices[2] = v.m_boneIndices[2];
@@ -263,10 +263,10 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 
 		vtxBoneInfo.m_weightType = v.m_weightType;
 		switch (v.m_weightType) {
-			case PMXVertexWeight::BDEF2:
+			case WeightType::BDEF2:
 				vtxBoneInfo.m_boneWeights[1] = 1.0f - vtxBoneInfo.m_boneWeights[0];
 				break;
-			case PMXVertexWeight::SDEF:
+			case WeightType::SDEF:
 				{
 					auto w0 = v.m_boneWeights[0];
 					auto w1 = 1.0f - w0;
@@ -363,12 +363,12 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		mat.m_specularPower = pmxMat.m_specularPower;
 		mat.m_specular = pmxMat.m_specular;
 		mat.m_ambient = pmxMat.m_ambient;
-		mat.m_spTextureMode = PMXSphereMode::None;
-		mat.m_bothFace = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::BothFace));
-		mat.m_edgeFlag = (static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
-		mat.m_groundShadow = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::GroundShadow));
-		mat.m_shadowCaster = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::CastSelfShadow));
-		mat.m_shadowReceiver = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(PMXDrawModeFlags::ReceiveSelfShadow));
+		mat.m_spTextureMode = SphereMode::None;
+		mat.m_bothFace = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::BothFace));
+		mat.m_edgeFlag = (static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
+		mat.m_groundShadow = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::GroundShadow));
+		mat.m_shadowCaster = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow));
+		mat.m_shadowReceiver = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow));
 		mat.m_edgeSize = pmxMat.m_edgeSize;
 		mat.m_edgeColor = pmxMat.m_edgeColor;
 
@@ -377,13 +377,13 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 			mat.m_texture = texturePaths[pmxMat.m_textureIndex];
 
 		// ToonTexture
-		if (pmxMat.m_toonMode == PMXToonMode::Common) {
+		if (pmxMat.m_toonMode == ToonMode::Common) {
 			if (pmxMat.m_toonTextureIndex != -1) {
 				std::stringstream ss;
 				ss << "toon" << std::setfill('0') << std::setw(2) << (pmxMat.m_toonTextureIndex + 1) << ".bmp";
 				mat.m_toonTexture = mmdDataDir / ss.str();
 			}
-		} else if (pmxMat.m_toonMode == PMXToonMode::Separate) {
+		} else if (pmxMat.m_toonMode == ToonMode::Separate) {
 			if (pmxMat.m_toonTextureIndex != -1)
 				mat.m_toonTexture = texturePaths[pmxMat.m_toonTextureIndex];
 		}
@@ -438,14 +438,14 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		node->m_global = init;
 		node->m_inverseInit = glm::inverse(node->m_global);
 		node->m_deformDepth = bone.m_deformDepth;
-		bool deformAfterPhysics = !!(static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::DeformAfterPhysics));
+		bool deformAfterPhysics = !!(static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics));
 		node->m_isDeformAfterPhysics = deformAfterPhysics;
-		bool appendRotate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendRotate)) != 0;
-		bool appendTranslate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendTranslate)) != 0;
+		bool appendRotate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
+		bool appendTranslate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
 		node->m_isAppendRotate = appendRotate;
 		node->m_isAppendTranslate = appendTranslate;
 		if ((appendRotate || appendTranslate) && bone.m_appendBoneIndex != -1) {
-			bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::AppendLocal)) != 0;
+			bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
 			auto* appendNode = m_nodes[bone.m_appendBoneIndex].get();
 			float appendWeight = bone.m_appendWeight;
 			node->m_isAppendLocal = appendLocal;
@@ -469,7 +469,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	// IK
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto &bone = pmx.m_bones[i];
-		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(PMXBoneFlags::IK)) {
+		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_unique<MMDIkSolver>();
 			auto* ikNode = m_nodes[i].get();
 			solver->m_ikNode = ikNode;
@@ -499,7 +499,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		morph->m_name = pmxMorph.m_name;
 		morph->m_weight = 0.0f;
 		morph->m_morphType = pmxMorph.m_morphType;
-		if (pmxMorph.m_morphType == PMXMorphType::Position) {
+		if (pmxMorph.m_morphType == MorphType::Position) {
 			morph->m_dataIndex = m_positionMorphDatas.size();
 			std::vector<PositionMorph> morphData;
 			for (const auto &[m_vertexIndex, m_position]: pmxMorph.m_positionMorph) {
@@ -509,7 +509,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 				morphData.push_back(morphVtx);
 			}
 			m_positionMorphDatas.emplace_back(std::move(morphData));
-		} else if (pmxMorph.m_morphType == PMXMorphType::UV) {
+		} else if (pmxMorph.m_morphType == MorphType::UV) {
 			morph->m_dataIndex = m_uvMorphDatas.size();
 			std::vector<UVMorph> morphData;
 			for (const auto &[m_vertexIndex, m_uv]: pmxMorph.m_uvMorph) {
@@ -519,13 +519,13 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 				morphData.push_back(morphUV);
 			}
 			m_uvMorphDatas.emplace_back(std::move(morphData));
-		} else if (pmxMorph.m_morphType == PMXMorphType::Material) {
+		} else if (pmxMorph.m_morphType == MorphType::Material) {
 			morph->m_dataIndex = m_materialMorphDatas.size();
 
 			std::vector<MaterialMorph> materialMorphData;
 			materialMorphData = pmxMorph.m_materialMorph;
 			m_materialMorphDatas.emplace_back(materialMorphData);
-		} else if (pmxMorph.m_morphType == PMXMorphType::Bone) {
+		} else if (pmxMorph.m_morphType == MorphType::Bone) {
 			morph->m_dataIndex = m_boneMorphDatas.size();
 
 			std::vector<BoneMorph> boneMorphData;
@@ -541,7 +541,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 				boneMorphData.push_back(boneMorphElem);
 			}
 			m_boneMorphDatas.emplace_back(boneMorphData);
-		} else if (pmxMorph.m_morphType == PMXMorphType::Group) {
+		} else if (pmxMorph.m_morphType == MorphType::Group) {
 			morph->m_dataIndex = m_groupMorphDatas.size();
 
 			std::vector<GroupMorph> groupMorphData;
@@ -555,7 +555,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
 		const auto &morphs = m_morphs;
 		const auto &morph = morphs[morphIdx];
-		if (morph->m_morphType == PMXMorphType::Group) {
+		if (morph->m_morphType == MorphType::Group) {
 			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 				if (findIt != groupMorphStack.end())
@@ -682,13 +682,13 @@ void MMDModel::Update(const UpdateRange& range) {
 	for (size_t i = 0; i < range.m_vertexCount; i++) {
 		glm::mat4 m;
 		switch (vtxInfo->m_weightType) {
-			case PMXVertexWeight::BDEF1: {
+			case WeightType::BDEF1: {
 				const auto i0 = vtxInfo->m_boneIndices[0];
 				const auto &m0 = transforms[i0];
 				m = m0;
 				break;
 			}
-			case PMXVertexWeight::BDEF2: {
+			case WeightType::BDEF2: {
 				const auto i0 = vtxInfo->m_boneIndices[0];
 				const auto i1 = vtxInfo->m_boneIndices[1];
 				const auto w0 = vtxInfo->m_boneWeights[0];
@@ -698,7 +698,7 @@ void MMDModel::Update(const UpdateRange& range) {
 				m = m0 * w0 + m1 * w1;
 				break;
 			}
-			case PMXVertexWeight::BDEF4: {
+			case WeightType::BDEF4: {
 				const auto i0 = vtxInfo->m_boneIndices[0];
 				const auto i1 = vtxInfo->m_boneIndices[1];
 				const auto i2 = vtxInfo->m_boneIndices[2];
@@ -714,7 +714,7 @@ void MMDModel::Update(const UpdateRange& range) {
 				m = m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3;
 				break;
 			}
-			case PMXVertexWeight::SDEF: {
+			case WeightType::SDEF: {
 				// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
 
 				const auto i0 = vtxInfo->m_boneIndices[0];
@@ -738,7 +738,7 @@ void MMDModel::Update(const UpdateRange& range) {
 
 				break;
 			}
-			case PMXVertexWeight::QDEF: {
+			case WeightType::QDEF: {
 				//
 				// Skinning with Dual Quaternions
 				// https://www.cs.utah.edu/~ladislav/dq/index.html
@@ -769,7 +769,7 @@ void MMDModel::Update(const UpdateRange& range) {
 				break;
 		}
 
-		if (PMXVertexWeight::SDEF != vtxInfo->m_weightType) {
+		if (WeightType::SDEF != vtxInfo->m_weightType) {
 			*updatePosition = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 			*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 		}
@@ -789,19 +789,19 @@ void MMDModel::Update(const UpdateRange& range) {
 
 void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 	switch (morph->m_morphType) {
-		case PMXMorphType::Position:
+		case MorphType::Position:
 			MorphPosition(m_positionMorphDatas[morph->m_dataIndex], weight);
 			break;
-		case PMXMorphType::UV:
+		case MorphType::UV:
 			MorphUV(m_uvMorphDatas[morph->m_dataIndex], weight);
 			break;
-		case PMXMorphType::Material:
+		case MorphType::Material:
 			MorphMaterial(m_materialMorphDatas[morph->m_dataIndex], weight);
 			break;
-		case PMXMorphType::Bone:
+		case MorphType::Bone:
 			MorphBone(m_boneMorphDatas[morph->m_dataIndex], weight);
 			break;
-		case PMXMorphType::Group: {
+		case MorphType::Group: {
 			for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				if (m_morphIndex == -1) continue;
 				auto &elemMorph = m_morphs[m_morphIndex];
@@ -889,10 +889,10 @@ void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const 
 		if (matMorph.m_materialIndex != -1) {
 			const auto mi = matMorph.m_materialIndex;
 			switch (matMorph.m_opType) {
-				case MaterialMorph::OpType::Mul:
+				case OpType::Mul:
 					Mul(m_mulMaterialFactors[mi], matMorph, weight);
 					break;
-				case MaterialMorph::OpType::Add:
+				case OpType::Add:
 					Add(m_addMaterialFactors[mi], matMorph, weight);
 					break;
 				default:
@@ -900,11 +900,11 @@ void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const 
 			}
 		} else {
 			switch (matMorph.m_opType) {
-				case MaterialMorph::OpType::Mul:
+				case OpType::Mul:
 					for (size_t i = 0; i < m_materials.size(); i++)
 						Mul(m_mulMaterialFactors[i], matMorph,weight);
 					break;
-				case MaterialMorph::OpType::Add:
+				case OpType::Add:
 					for (size_t i = 0; i < m_materials.size(); i++)
 						Add(m_addMaterialFactors[i], matMorph, weight);
 					break;
