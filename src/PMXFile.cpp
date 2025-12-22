@@ -10,13 +10,13 @@ namespace {
 		if (!file.Read(&bufSize))
 			return false;
 		if (bufSize > 0) {
-			if (pmx->m_header.m_encode == 0) {
+			if (pmx->m_header.m_encode == PMXEncode::UTF16) {
 				// UTF-16
 				std::wstring utf16Str(bufSize / 2, L'\0');
 				if (!file.Read(&utf16Str[0], utf16Str.size()))
 					return false;
 				*val = UnicodeUtil::WStringToUtf8(utf16Str);
-			} else if (pmx->m_header.m_encode == 1) {
+			} else if (pmx->m_header.m_encode == PMXEncode::UTF8) {
 				// UTF-8
 				val->resize(bufSize);
 				file.Read(val->data(), bufSize);

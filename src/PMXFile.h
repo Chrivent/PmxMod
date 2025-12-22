@@ -10,19 +10,25 @@
 #include <glm/vec4.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+enum class PMXEncode : uint8_t
+{
+	UTF16,
+	UTF8
+};
+
 struct PMXHeader
 {
-	char	m_magic[4];
-	float	m_version;
-	uint8_t	m_dataSize;
-	uint8_t	m_encode;	//0:UTF16 1:UTF8
-	uint8_t	m_addUVNum;
-	uint8_t	m_vertexIndexSize;
-	uint8_t	m_textureIndexSize;
-	uint8_t	m_materialIndexSize;
-	uint8_t	m_boneIndexSize;
-	uint8_t	m_morphIndexSize;
-	uint8_t	m_rigidbodyIndexSize;
+	char		m_magic[4];
+	float		m_version;
+	uint8_t		m_dataSize;
+	PMXEncode	m_encode;
+	uint8_t		m_addUVNum;
+	uint8_t		m_vertexIndexSize;
+	uint8_t		m_textureIndexSize;
+	uint8_t		m_materialIndexSize;
+	uint8_t		m_boneIndexSize;
+	uint8_t		m_morphIndexSize;
+	uint8_t		m_rigidbodyIndexSize;
 };
 
 struct PMXInfo
@@ -518,7 +524,7 @@ struct PMXSoftBody
 	{
 		int32_t		m_rigidBodyIndex;
 		int32_t		m_vertexIndex;
-		uint8_t	m_nearMode; //0:FF 1:ON
+		uint8_t		m_nearMode; //0:FF 1:ON
 	};
 	std::vector<AnchorRigidbody>	m_anchorRigidBodies;
 	std::vector<int32_t>	m_pinVertexIndices;
