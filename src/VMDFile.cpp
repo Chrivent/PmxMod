@@ -2,8 +2,7 @@
 
 #include "../base/Util.h"
 
-namespace
-{
+namespace {
 	bool ReadHeader(VMDFile* vmd, File& file) {
 		file.Read(vmd->m_header.m_header, sizeof(vmd->m_header.m_header));
 		file.Read(vmd->m_header.m_modelName, sizeof(vmd->m_header.m_modelName));
