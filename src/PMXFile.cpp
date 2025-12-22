@@ -88,11 +88,11 @@ namespace {
 		int32_t vertexCount;
 		if (!file.Read(&vertexCount))
 			return false;
-		auto &vertices = pmx->m_vertices;
+		auto& vertices = pmx->m_vertices;
 		vertices.resize(vertexCount);
 		for (auto& [m_position, m_normal, m_uv, m_addUV
-			, m_weightType, m_boneIndices, m_boneWeights
-			, m_sdefC, m_sdefR0, m_sdefR1, m_edgeMag] : vertices) {
+			     , m_weightType, m_boneIndices, m_boneWeights
+			     , m_sdefC, m_sdefR0, m_sdefR1, m_edgeMag] : vertices) {
 			file.Read(&m_position);
 			file.Read(&m_normal);
 			file.Read(&m_uv);
@@ -203,11 +203,11 @@ namespace {
 			return false;
 		pmx->m_materials.resize(matCount);
 		for (auto& [m_name, m_englishName, m_diffuse, m_specular
-			, m_specularPower, m_ambient, m_drawMode
-			, m_edgeColor, m_edgeSize
-			, m_textureIndex, m_sphereTextureIndex
-			, m_sphereMode, m_toonMode, m_toonTextureIndex
-			, m_memo, m_numFaceVertices] : pmx->m_materials) {
+			     , m_specularPower, m_ambient, m_drawMode
+			     , m_edgeColor, m_edgeSize
+			     , m_textureIndex, m_sphereTextureIndex
+			     , m_sphereMode, m_toonMode, m_toonTextureIndex
+			     , m_memo, m_numFaceVertices] : pmx->m_materials) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_diffuse);
@@ -241,11 +241,11 @@ namespace {
 			return false;
 		pmx->m_bones.resize(boneCount);
 		for (auto& [m_name, m_englishName, m_position, m_parentBoneIndex
-			, m_deformDepth, m_boneFlag, m_positionOffset
-			, m_linkBoneIndex, m_appendBoneIndex, m_appendWeight
-			, m_fixedAxis, m_localXAxis, m_localZAxis, m_keyValue
-			, m_ikTargetBoneIndex, m_ikIterationCount
-			, m_ikLimit, m_ikLinks] : pmx->m_bones) {
+			     , m_deformDepth, m_boneFlag, m_positionOffset
+			     , m_linkBoneIndex, m_appendBoneIndex, m_appendWeight
+			     , m_fixedAxis, m_localXAxis, m_localZAxis, m_keyValue
+			     , m_ikTargetBoneIndex, m_ikIterationCount
+			     , m_ikLimit, m_ikLinks] : pmx->m_bones) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_position);
@@ -278,9 +278,9 @@ namespace {
 					return false;
 				m_ikLinks.resize(linkCount);
 				for (auto& [m_ikBoneIndex
-					, m_enableLimit
-					, m_limitMin
-					, m_limitMax] : m_ikLinks) {
+					     , m_enableLimit
+					     , m_limitMin
+					     , m_limitMax] : m_ikLinks) {
 					ReadIndex(&m_ikBoneIndex, pmx->m_header.m_boneIndexSize, file);
 					file.Read(&m_enableLimit);
 					if (m_enableLimit != 0) {
@@ -299,9 +299,9 @@ namespace {
 			return false;
 		pmx->m_morphs.resize(morphCount);
 		for (auto& [m_name, m_englishName, m_controlPanel, m_morphType
-			, m_positionMorph, m_uvMorph, m_boneMorph
-			, m_materialMorph, m_groupMorph
-			, m_flipMorph, m_impulseMorph] : pmx->m_morphs) {
+			     , m_positionMorph, m_uvMorph, m_boneMorph
+			     , m_materialMorph, m_groupMorph
+			     , m_flipMorph, m_impulseMorph] : pmx->m_morphs) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_controlPanel);
@@ -336,9 +336,9 @@ namespace {
 			} else if (m_morphType == PMXMorphType::Material) {
 				m_materialMorph.resize(dataCount);
 				for (auto& [m_materialIndex, m_opType, m_diffuse
-					, m_specular, m_specularPower
-					, m_ambient, m_edgeColor, m_edgeSize
-					, m_textureFactor, m_sphereTextureFactor, m_toonTextureFactor] : m_materialMorph) {
+					     , m_specular, m_specularPower
+					     , m_ambient, m_edgeColor, m_edgeSize
+					     , m_textureFactor, m_sphereTextureFactor, m_toonTextureFactor] : m_materialMorph) {
 					ReadIndex(&m_materialIndex, pmx->m_header.m_materialIndexSize, file);
 					file.Read(&m_opType);
 					file.Read(&m_diffuse);
@@ -366,9 +366,9 @@ namespace {
 			} else if (m_morphType == PMXMorphType::Impulse) {
 				m_impulseMorph.resize(dataCount);
 				for (auto& [m_rigidbodyIndex
-					, m_localFlag
-					, m_translateVelocity
-					, m_rotateTorque] : m_impulseMorph) {
+					     , m_localFlag
+					     , m_translateVelocity
+					     , m_rotateTorque] : m_impulseMorph) {
 					ReadIndex(&m_rigidbodyIndex, pmx->m_header.m_rigidbodyIndexSize, file);
 					file.Read(&m_localFlag);
 					file.Read(&m_translateVelocity);
@@ -385,7 +385,7 @@ namespace {
 			return false;
 		pmx->m_displayFrames.resize(displayFrameCount);
 		for (auto& [m_name, m_englishName
-			, m_flag, m_targets] : pmx->m_displayFrames) {
+			     , m_flag, m_targets] : pmx->m_displayFrames) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_flag);
@@ -412,9 +412,9 @@ namespace {
 			return false;
 		pmx->m_rigidBodies.resize(rbCount);
 		for (auto& [m_name, m_englishName, m_boneIndex, m_group, m_collisionGroup
-			, m_shape, m_shapeSize, m_translate, m_rotate, m_mass
-			, m_translateDimmer, m_rotateDimmer
-			, m_repulsion, m_friction, m_op] : pmx->m_rigidBodies) {
+			     , m_shape, m_shapeSize, m_translate, m_rotate, m_mass
+			     , m_translateDimmer, m_rotateDimmer
+			     , m_repulsion, m_friction, m_op] : pmx->m_rigidBodies) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			ReadIndex(&m_boneIndex, pmx->m_header.m_boneIndexSize, file);
@@ -440,9 +440,9 @@ namespace {
 			return false;
 		pmx->m_joints.resize(jointCount);
 		for (auto& [m_name, m_englishName, m_type, m_rigidbodyAIndex, m_rigidbodyBIndex
-			, m_translate, m_rotate, m_translateLowerLimit, m_translateUpperLimit
-			, m_rotateLowerLimit, m_rotateUpperLimit
-			, m_springTranslateFactor, m_springRotateFactor] : pmx->m_joints) {
+			     , m_translate, m_rotate, m_translateLowerLimit, m_translateUpperLimit
+			     , m_rotateLowerLimit, m_rotateUpperLimit
+			     , m_springTranslateFactor, m_springRotateFactor] : pmx->m_joints) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_type);
@@ -466,15 +466,15 @@ namespace {
 			return false;
 		pmx->m_softbodies.resize(sbCount);
 		for (auto& [m_name, m_englishName, m_type, m_materialIndex
-			, m_group, m_collisionGroup, m_flag, m_BLinkLength
-			, m_numClusters, m_totalMass, m_collisionMargin, m_aeroModel
-			, m_VCF, m_DP, m_DG, m_LF, m_PR, m_VC, m_DF, m_MT
-			, m_CHR, m_KHR, m_SHR, m_AHR
-			, m_SRHR_CL, m_SKHR_CL, m_SSHR_CL
-			, m_SR_SPLT_CL, m_SK_SPLT_CL, m_SS_SPLT_CL
-			, m_V_IT, m_P_IT, m_D_IT, m_C_IT
-			, m_LST, m_AST, m_VST
-			, m_anchorRigidBodies, m_pinVertexIndices] : pmx->m_softbodies) {
+			     , m_group, m_collisionGroup, m_flag, m_BLinkLength
+			     , m_numClusters, m_totalMass, m_collisionMargin, m_aeroModel
+			     , m_VCF, m_DP, m_DG, m_LF, m_PR, m_VC, m_DF, m_MT
+			     , m_CHR, m_KHR, m_SHR, m_AHR
+			     , m_SRHR_CL, m_SKHR_CL, m_SSHR_CL
+			     , m_SR_SPLT_CL, m_SK_SPLT_CL, m_SS_SPLT_CL
+			     , m_V_IT, m_P_IT, m_D_IT, m_C_IT
+			     , m_LST, m_AST, m_VST
+			     , m_anchorRigidBodies, m_pinVertexIndices] : pmx->m_softbodies) {
 			ReadString(pmx, &m_name, file);
 			ReadString(pmx, &m_englishName, file);
 			file.Read(&m_type);
@@ -517,8 +517,8 @@ namespace {
 				return false;
 			m_anchorRigidBodies.resize(arCount);
 			for (auto& [m_rigidBodyIndex
-				, m_vertexIndex
-				, m_nearMode] : m_anchorRigidBodies) {
+				     , m_vertexIndex
+				     , m_nearMode] : m_anchorRigidBodies) {
 				ReadIndex(&m_rigidBodyIndex, pmx->m_header.m_rigidbodyIndexSize, file);
 				ReadIndex(&m_vertexIndex, pmx->m_header.m_vertexIndexSize, file);
 				file.Read(&m_nearMode);
