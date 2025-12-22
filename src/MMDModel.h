@@ -64,7 +64,7 @@ struct MMDMaterial
 	glm::vec4				m_edgeColor;
 	std::filesystem::path	m_texture;
 	std::filesystem::path	m_spTexture;
-	SphereMode			m_spTextureMode;
+	SphereMode				m_spTextureMode;
 	std::filesystem::path	m_toonTexture;
 	glm::vec4				m_textureMulFactor;
 	glm::vec4				m_spTextureMulFactor;
