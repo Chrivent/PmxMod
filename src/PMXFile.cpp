@@ -16,6 +16,19 @@ namespace {
 		Read(is, dst, sizeof(T));
 	}
 
+	std::streampos GetFileEnd(std::istream& is) {
+		const auto origin = is.tellg();
+		is.seekg(0, std::ios::end);
+		const auto end = is.tellg();
+		is.seekg(origin, std::ios::beg);
+		return end;
+	}
+
+	bool HasMore(std::istream& is, const std::streampos& end) {
+		const auto cur = is.tellg();
+		return cur != std::streampos(-1) && cur < end;
+	}
+
 	void ReadString(const PMXFile* pmx, std::string* val, std::istream& is) {
 		uint32_t bufSize;
 		Read(is, &bufSize);
@@ -508,10 +521,7 @@ namespace {
 	}
 
 	void ReadPMXFile(PMXFile* pmxFile, std::istream& is) {
-		const auto origin  = is.tellg();
-		is.seekg(0, std::ios::end);
-		const auto end = is.tellg();
-		is.seekg(origin);
+		const auto end = GetFileEnd(is);
 		ReadHeader(pmxFile, is);
 		ReadInfo(pmxFile, is);
 		ReadVertex(pmxFile, is);
@@ -523,8 +533,7 @@ namespace {
 		ReadDisplayFrame(pmxFile, is);
 		ReadRigidbody(pmxFile, is);
 		ReadJoint(pmxFile, is);
-		const auto cur = is.tellg();
-		if (cur != std::streampos(-1) && cur < end)
+		if (HasMore(is, end))
 			ReadSoftBody(pmxFile, is);
 	}
 }

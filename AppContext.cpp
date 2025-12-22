@@ -63,38 +63,28 @@ void AppContext::Clear() {
 
 Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	const auto it = m_textures.find(texturePath);
-	if (it == m_textures.end()) {
-		stbi_set_flip_vertically_on_load(true);
-		File file;
-		if (!file.OpenFile(texturePath, L"rb"))
-			return Texture{ 0, false };
-		int x, y, comp;
-		const int ret = stbi_info_from_file(file.m_fp, &x, &y, &comp);
-		if (ret == 0)
-			return Texture{ 0, false };
-		GLuint tex;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		bool hasAlpha = false;
-		if (comp != 4) {
-			uint8_t* image = stbi_load_from_file(file.m_fp, &x, &y, &comp, STBI_rgb);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-			stbi_image_free(image);
-			hasAlpha = false;
-		} else {
-			uint8_t* image = stbi_load_from_file(file.m_fp, &x, &y, &comp, STBI_rgb_alpha);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-			stbi_image_free(image);
-			hasAlpha = true;
-		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		m_textures[texturePath] = Texture{ tex, hasAlpha };
-		return m_textures[texturePath];
-	}
-	return it->second;
+	if (it != m_textures.end())
+		return it->second;
+	stbi_set_flip_vertically_on_load(true);
+	FILE* fp = nullptr;
+	if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
+		return Texture{ 0, false };
+	int x = 0, y = 0, comp = 0;
+	stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
+	std::fclose(fp);
+	if (!image)
+		return Texture{ 0, false };
+	const bool hasAlpha = comp == 4;
+	GLuint tex = 0;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	stbi_image_free(image);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	m_textures[texturePath] = Texture{ tex, hasAlpha };
+	return m_textures[texturePath];
 }

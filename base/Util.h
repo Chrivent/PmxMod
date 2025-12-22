@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <cstdio>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -47,66 +46,6 @@ struct UnicodeUtil {
     		w.pop_back();
     	return WStringToUtf8(w);
     }
-};
-
-struct File {
-	~File() {
-		Close();
-	}
-
-	bool OpenFile(const std::filesystem::path& filepath, const wchar_t* mode) {
-		Close();
-		if (!mode)
-			return false;
-		if (_wfopen_s(&m_fp, filepath.c_str(), mode) != 0 || !m_fp)
-			return false;
-		m_badFlag = false;
-		if (_fseeki64(m_fp, 0, SEEK_END) != 0) {
-			m_badFlag = true;
-			Close();
-			return false;
-		}
-		m_fileSize = _ftelli64(m_fp);
-		if (m_fileSize < 0) {
-			m_badFlag = true;
-			Close();
-			return false;
-		}
-		if (_fseeki64(m_fp, 0, SEEK_SET) != 0) {
-			m_badFlag = true;
-			Close();
-			return false;
-		}
-		return true;
-	}
-
-	void Close() {
-		if (m_fp) {
-			std::fclose(m_fp);
-			m_fp = nullptr;
-		}
-		m_fileSize = 0;
-		m_badFlag = false;
-	}
-
-	int64_t Tell() const {
-		return m_fp ? _ftelli64(m_fp) : -1;
-	}
-
-	template <typename T>
-	bool Read(T* buffer, size_t count = 1) {
-		if (!m_fp || !buffer)
-			return false;
-		if (std::fread(buffer, sizeof(T), count, m_fp) != count) {
-			m_badFlag = true;
-			return false;
-		}
-		return true;
-	}
-
-	FILE*	m_fp = nullptr;
-	int64_t	m_fileSize = 0;
-	bool	m_badFlag = false;
 };
 
 struct PathUtil {
