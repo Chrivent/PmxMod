@@ -153,11 +153,10 @@ static bool SampleMain(const SceneConfig& cfg) {
         	return;
         if (ma_engine_init(nullptr, &engine) != MA_SUCCESS)
 	        return;
-        if (ma_sound_init_from_file(&engine,
-        	reinterpret_cast<const char*>(cfg.musicPath.u8string().c_str()),
-        	0, nullptr, nullptr, &sound) != MA_SUCCESS) {
-            ma_engine_uninit(&engine);
-            return;
+    	if (ma_sound_init_from_file_w(&engine, cfg.musicPath.wstring().c_str(),
+    		0, nullptr, nullptr, &sound) != MA_SUCCESS) {
+	        ma_engine_uninit(&engine);
+	        return;
         }
         ma_sound_start(&sound);
         hasMusic = true;
