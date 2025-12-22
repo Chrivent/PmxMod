@@ -16,14 +16,6 @@ namespace {
 		Read(is, dst, sizeof(T));
 	}
 
-	std::streampos GetFileSize(std::istream& is) {
-		const auto cur = is.tellg();
-		is.seekg(0, std::ios::end);
-		const auto end = is.tellg();
-		is.seekg(cur, std::ios::beg);
-		return end;
-	}
-
 	void ReadString(const PMXFile* pmx, std::string* val, std::istream& is) {
 		uint32_t bufSize;
 		Read(is, &bufSize);
