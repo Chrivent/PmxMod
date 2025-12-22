@@ -41,8 +41,6 @@ void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 MMDModel::MMDModel()
 	: m_indexCount(0)
 	, m_indexElementSize(0)
-	, m_bboxMin()
-	, m_bboxMax()
 	, m_parallelUpdateCount(0) {
 }
 
