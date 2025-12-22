@@ -318,25 +318,17 @@ void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	const auto rot1 = invZ * rot0 * invZ;
 	m_rotate = glm::quat_cast(rot1);
 	SetVMDBezier(m_txBezier,
-		motion.m_interpolation[0],
-		motion.m_interpolation[8],
-		motion.m_interpolation[4],
-		motion.m_interpolation[12]);
+		motion.m_interpolation[0], motion.m_interpolation[8],
+		motion.m_interpolation[4], motion.m_interpolation[12]);
 	SetVMDBezier(m_tyBezier,
-		motion.m_interpolation[1],
-		motion.m_interpolation[9],
-		motion.m_interpolation[5],
-		motion.m_interpolation[13]);
+		motion.m_interpolation[1], motion.m_interpolation[9],
+		motion.m_interpolation[5], motion.m_interpolation[13]);
 	SetVMDBezier(m_tzBezier,
-		motion.m_interpolation[2],
-		motion.m_interpolation[10],
-		motion.m_interpolation[6],
-		motion.m_interpolation[14]);
+		motion.m_interpolation[2], motion.m_interpolation[10],
+		motion.m_interpolation[6], motion.m_interpolation[14]);
 	SetVMDBezier(m_rotBezier,
-		motion.m_interpolation[3],
-		motion.m_interpolation[11],
-		motion.m_interpolation[7],
-		motion.m_interpolation[15]);
+		motion.m_interpolation[3], motion.m_interpolation[11],
+		motion.m_interpolation[7], motion.m_interpolation[15]);
 }
 
 VMDIKController::VMDIKController()
@@ -516,35 +508,23 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 			key.m_distance = cam.m_distance;
 			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
 			SetVMDBezier(key.m_ixBezier,
-				cam.m_interpolation[0],
-				cam.m_interpolation[1],
-				cam.m_interpolation[2],
-				cam.m_interpolation[3]);
+				cam.m_interpolation[0], cam.m_interpolation[1],
+				cam.m_interpolation[2], cam.m_interpolation[3]);
 			SetVMDBezier(key.m_iyBezier,
-				cam.m_interpolation[4],
-				cam.m_interpolation[5],
-				cam.m_interpolation[6],
-				cam.m_interpolation[7]);
+				cam.m_interpolation[4], cam.m_interpolation[5],
+				cam.m_interpolation[6], cam.m_interpolation[7]);
 			SetVMDBezier(key.m_izBezier,
-				cam.m_interpolation[8],
-				cam.m_interpolation[9],
-				cam.m_interpolation[10],
-				cam.m_interpolation[11]);
+				cam.m_interpolation[8], cam.m_interpolation[9],
+				cam.m_interpolation[10], cam.m_interpolation[11]);
 			SetVMDBezier(key.m_rotateBezier,
-				cam.m_interpolation[12],
-				cam.m_interpolation[13],
-				cam.m_interpolation[14],
-				cam.m_interpolation[15]);
+				cam.m_interpolation[12], cam.m_interpolation[13],
+				cam.m_interpolation[14], cam.m_interpolation[15]);
 			SetVMDBezier(key.m_distanceBezier,
-				cam.m_interpolation[16],
-				cam.m_interpolation[17],
-				cam.m_interpolation[18],
-				cam.m_interpolation[19]);
+				cam.m_interpolation[16], cam.m_interpolation[17],
+				cam.m_interpolation[18], cam.m_interpolation[19]);
 			SetVMDBezier(key.m_fovBezier,
-				cam.m_interpolation[20],
-				cam.m_interpolation[21],
-				cam.m_interpolation[22],
-				cam.m_interpolation[23]);
+				cam.m_interpolation[20], cam.m_interpolation[21],
+				cam.m_interpolation[22], cam.m_interpolation[23]);
 			m_cameraController->AddKey(key);
 		}
 		m_cameraController->SortKeys();
