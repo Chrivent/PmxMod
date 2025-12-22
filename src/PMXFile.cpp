@@ -12,17 +12,14 @@ namespace {
 		if (bufSize > 0) {
 			if (pmx->m_header.m_encode == 0) {
 				// UTF-16
-				std::wstring utf16Str(bufSize / 2, u'\0');
+				std::wstring utf16Str(bufSize / 2, L'\0');
 				if (!file.Read(&utf16Str[0], utf16Str.size()))
 					return false;
 				*val = UnicodeUtil::WStringToUtf8(utf16Str);
-				if (val->empty())
-					return false;
 			} else if (pmx->m_header.m_encode == 1) {
 				// UTF-8
-				std::string utf8Str(bufSize, '\0');
-				file.Read(&utf8Str[0], bufSize);
-				*val = utf8Str;
+				val->resize(bufSize);
+				file.Read(val->data(), bufSize);
 			}
 		}
 		return !file.m_badFlag;

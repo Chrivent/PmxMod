@@ -79,8 +79,7 @@ inline bool PickFilesWin(
         }
     	if (items)
     		items->Release();
-    }
-	else {
+    } else {
         IShellItem* item = nullptr;
         hr = dlg->GetResult(&item);
         if (SUCCEEDED(hr) && item) {
@@ -257,7 +256,7 @@ static bool SampleMain(const SceneConfig& cfg) {
         if (elapsed > 1.0 / 30.0)
         	elapsed = 1.0 / 30.0;
         saveTime = now;
-        float dt = static_cast<float>(elapsed);
+        auto dt = static_cast<float>(elapsed);
         float t  = appContext.m_animTime + dt;
         if (hasMusic) {
             auto [adt, at] = PullMusicTimes();
@@ -281,8 +280,7 @@ static bool SampleMain(const SceneConfig& cfg) {
             appContext.m_viewMat = mmdCam.GetViewMatrix();
             appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov,
                 static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-        }
-    	else {
+        } else {
             appContext.m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
             appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
                 static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
@@ -317,24 +315,29 @@ int main() {
 	if (kTestMode)
 		cfg = BuildTestSceneConfig();
 	else {
-		std::vector<std::filesystem::path> modelPaths;
+		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
 		std::vector<std::filesystem::path> cameraPath;
 		std::vector<std::filesystem::path> musicPath;
 		std::vector<std::filesystem::path> bgPath;
-		if (!PickFilesWin(modelPaths, L"모델(.pmx) 선택 (여러 개 가능)", kModelFilters, 1, true)) {
-			std::cout << "모델 선택 취소\n";
-			return 0;
+		int n;
+		std::cin >> n;
+		modelPaths.resize(n);
+		for (int i = 0; i < n; i++) {
+			if (!PickFilesWin(modelPaths[i], L"모델(.pmx) 선택", kModelFilters, 1, true)) {
+				std::cout << "모델 선택 취소\n";
+				return 0;
+			}
 		}
-		motionPaths.resize(modelPaths.size());
-		for (int i = 0; i < modelPaths.size(); i++)
-			PickFilesWin(motionPaths[i], L"모션(.vmd) 선택 (여러 개 가능, 취소=없음)", kVMDFilters, 1, true);
+		motionPaths.resize(n);
+		for (int i = 0; i < n; i++)
+			PickFilesWin(motionPaths[i], L"모션(.vmd) 선택 (취소=없음)", kVMDFilters, 1, true);
 		PickFilesWin(cameraPath, L"카메라(.vmd) 선택 (취소=없음)", kVMDFilters, 1, false);
 		PickFilesWin(musicPath, L"음악 선택 (취소=없음)", kMusicFilters, 1, false);
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
-		for (int i = 0; i < modelPaths.size(); i++) {
+		for (int i = 0; i < n; i++) {
 			Input in;
-			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(modelPaths[i].wstring()));
+			in.m_modelPath = PathUtil::Normalize(UnicodeUtil::WStringToUtf8(modelPaths[i][0].wstring()));
 			in.m_scale = 1.0f;
 			for (auto& v : motionPaths[i])
 				in.m_vmdPaths.emplace_back(PathUtil::Normalize(UnicodeUtil::WStringToUtf8(v.wstring())));
