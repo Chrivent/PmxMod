@@ -34,12 +34,10 @@ namespace {
 		Read(is, &bufSize);
 		if (bufSize > 0) {
 			if (pmx->m_header.m_encode == PMXEncode::UTF16) {
-				// UTF-16
 				std::wstring utf16Str(bufSize / 2, L'\0');
 				Read(is, utf16Str.data(), bufSize);
 				*val = UnicodeUtil::WStringToUtf8(utf16Str);
 			} else if (pmx->m_header.m_encode == PMXEncode::UTF8) {
-				// UTF-8
 				val->resize(bufSize);
 				Read(is, val->data(), bufSize);
 			}
