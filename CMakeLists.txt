@@ -18,16 +18,15 @@ add_executable(PmxMod
         Model.cpp      Model.h
         external/miniaudio.h
         base/Util.h
-        src/MMDIkSolver.cpp      src/MMDIkSolver.h
-        src/MMDMaterial.cpp      src/MMDMaterial.h
-        src/MMDModel.cpp         src/MMDModel.h
-        src/MMDMorph.cpp         src/MMDMorph.h
-        src/MMDNode.cpp          src/MMDNode.h
-        src/MMDPhysics.cpp       src/MMDPhysics.h
-        src/PMXFile.cpp          src/PMXFile.h
-        src/VMDAnimation.cpp     src/VMDAnimation.h
+        src/MMDIkSolver.cpp        src/MMDIkSolver.h
+        src/MMDMaterial.cpp        src/MMDMaterial.h
+        src/MMDModel.cpp           src/MMDModel.h
+        src/MMDMorph.cpp           src/MMDMorph.h
+        src/MMDNode.cpp            src/MMDNode.h
+        src/MMDPhysics.cpp         src/MMDPhysics.h
+        src/MMDReader.cpp          src/MMDReader.h
+        src/VMDAnimation.cpp       src/VMDAnimation.h
         src/VMDCameraAnimation.cpp src/VMDCameraAnimation.h
-        src/VMDFile.cpp          src/VMDFile.h
         external/stb_image.h
 )
 

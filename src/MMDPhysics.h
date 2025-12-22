@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "PMXFile.h"
+#include "MMDReader.h"
 
 #include <glm/mat4x4.hpp>
 
@@ -102,7 +102,7 @@ struct MMDRigidBody
 {
 	MMDRigidBody();
 
-	void Create(const PMXFile::PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
+	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
 
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
@@ -130,7 +130,7 @@ struct MMDRigidBody
 
 struct MMDJoint
 {
-	void CreateJoint(const PMXFile::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
+	void CreateJoint(const PMXReader::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
 
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };

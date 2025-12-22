@@ -1,4 +1,4 @@
-﻿#include "PMXFile.h"
+﻿#include "MMDReader.h"
 
 #include <fstream>
 
@@ -6,11 +6,11 @@
 
 #include <vector>
 
-void Reader::Read(std::istream& is, void* dst, const std::size_t bytes) {
+void MMDReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
 	is.read(static_cast<char*>(dst), bytes);
 }
 
-std::streampos Reader::GetFileEnd(std::istream& is) {
+std::streampos MMDReader::GetFileEnd(std::istream& is) {
 	const auto origin = is.tellg();
 	is.seekg(0, std::ios::end);
 	const auto end = is.tellg();
@@ -18,12 +18,12 @@ std::streampos Reader::GetFileEnd(std::istream& is) {
 	return end;
 }
 
-bool Reader::HasMore(std::istream& is, const std::streampos& end) {
+bool MMDReader::HasMore(std::istream& is, const std::streampos& end) {
 	const auto cur = is.tellg();
 	return cur != std::streampos(-1) && cur < end;
 }
 
-void PMXFile::ReadString(std::istream& is, std::string* val) const {
+void PMXReader::ReadString(std::istream& is, std::string* val) const {
 	uint32_t bufSize;
 	Read(is, &bufSize);
 	if (bufSize > 0) {
@@ -38,7 +38,7 @@ void PMXFile::ReadString(std::istream& is, std::string* val) const {
 	}
 }
 
-void PMXFile::ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize) {
+void PMXReader::ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize) {
 	switch (indexSize) {
 		case 1: {
 			uint8_t idx;
@@ -68,7 +68,7 @@ void PMXFile::ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize) {
 	}
 }
 
-void PMXFile::ReadHeader(std::istream& is) {
+void PMXReader::ReadHeader(std::istream& is) {
 	Read(is, m_header.m_magic, sizeof(m_header.m_magic));
 	Read(is, &m_header.m_version);
 	Read(is, &m_header.m_dataSize);
@@ -82,14 +82,14 @@ void PMXFile::ReadHeader(std::istream& is) {
 	Read(is, &m_header.m_rigidbodyIndexSize);
 }
 
-void PMXFile::ReadInfo(std::istream& is) {
+void PMXReader::ReadInfo(std::istream& is) {
 	ReadString(is, &m_info.m_modelName);
 	ReadString(is, &m_info.m_englishModelName);
 	ReadString(is, &m_info.m_comment);
 	ReadString(is, &m_info.m_englishComment);
 }
 
-void PMXFile::ReadVertex(std::istream& is) {
+void PMXReader::ReadVertex(std::istream& is) {
 	int32_t vertexCount;
 	Read(is, &vertexCount);
 	m_vertices.resize(vertexCount);
@@ -145,7 +145,7 @@ void PMXFile::ReadVertex(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadFace(std::istream& is) {
+void PMXReader::ReadFace(std::istream& is) {
 	int32_t faceCount = 0;
 	Read(is, &faceCount);
 	faceCount /= 3;
@@ -185,7 +185,7 @@ void PMXFile::ReadFace(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadTexture(std::istream& is) {
+void PMXReader::ReadTexture(std::istream& is) {
 	int32_t texCount = 0;
 	Read(is, &texCount);
 	m_textures.resize(texCount);
@@ -197,7 +197,7 @@ void PMXFile::ReadTexture(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadMaterial(std::istream& is) {
+void PMXReader::ReadMaterial(std::istream& is) {
 	int32_t matCount = 0;
 	Read(is, &matCount);
 	m_materials.resize(matCount);
@@ -232,7 +232,7 @@ void PMXFile::ReadMaterial(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadBone(std::istream& is) {
+void PMXReader::ReadBone(std::istream& is) {
 	int32_t boneCount;
 	Read(is, &boneCount);
 	m_bones.resize(boneCount);
@@ -287,7 +287,7 @@ void PMXFile::ReadBone(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadMorph(std::istream& is) {
+void PMXReader::ReadMorph(std::istream& is) {
 	int32_t morphCount;
 	Read(is, &morphCount);
 	m_morphs.resize(morphCount);
@@ -370,7 +370,7 @@ void PMXFile::ReadMorph(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadDisplayFrame(std::istream& is) {
+void PMXReader::ReadDisplayFrame(std::istream& is) {
 	int32_t displayFrameCount;
 	Read(is, &displayFrameCount);
 	m_displayFrames.resize(displayFrameCount);
@@ -392,7 +392,7 @@ void PMXFile::ReadDisplayFrame(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadRigidbody(std::istream& is) {
+void PMXReader::ReadRigidbody(std::istream& is) {
 	int32_t rbCount;
 	Read(is, &rbCount);
 	m_rigidBodies.resize(rbCount);
@@ -418,7 +418,7 @@ void PMXFile::ReadRigidbody(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadJoint(std::istream& is) {
+void PMXReader::ReadJoint(std::istream& is) {
 	int32_t jointCount;
 	Read(is, &jointCount);
 	m_joints.resize(jointCount);
@@ -442,7 +442,7 @@ void PMXFile::ReadJoint(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadSoftBody(std::istream& is) {
+void PMXReader::ReadSoftBody(std::istream& is) {
 	int32_t sbCount;
 	Read(is, &sbCount);
 	m_softbodies.resize(sbCount);
@@ -511,7 +511,7 @@ void PMXFile::ReadSoftBody(std::istream& is) {
 	}
 }
 
-void PMXFile::ReadPMXFile(std::istream& is) {
+void PMXReader::ReadPMXFile(std::istream& is) {
 	const auto end = GetFileEnd(is);
 	ReadHeader(is);
 	ReadInfo(is);
@@ -528,7 +528,7 @@ void PMXFile::ReadPMXFile(std::istream& is) {
 		ReadSoftBody(is);
 }
 
-bool PMXFile::ReadPMXFile(const std::filesystem::path& filename) {
+bool PMXReader::ReadPMXFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;
@@ -536,12 +536,12 @@ bool PMXFile::ReadPMXFile(const std::filesystem::path& filename) {
 	return true;
 }
 
-void VMDFile::ReadHeader(std::istream& is) {
+void VMDReader::ReadHeader(std::istream& is) {
 	Read(is, m_header.m_header, sizeof(m_header.m_header));
 	Read(is, m_header.m_modelName, sizeof(m_header.m_modelName));
 }
 
-void VMDFile::ReadMotion(std::istream& is) {
+void VMDReader::ReadMotion(std::istream& is) {
 	uint32_t motionCount = 0;
 	Read(is, &motionCount);
 	m_motions.resize(motionCount);
@@ -556,7 +556,7 @@ void VMDFile::ReadMotion(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadBlendShape(std::istream& is) {
+void VMDReader::ReadBlendShape(std::istream& is) {
 	uint32_t blendShapeCount = 0;
 	Read(is, &blendShapeCount);
 	m_morphs.resize(blendShapeCount);
@@ -567,7 +567,7 @@ void VMDFile::ReadBlendShape(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadCamera(std::istream& is) {
+void VMDReader::ReadCamera(std::istream& is) {
 	uint32_t cameraCount = 0;
 	Read(is, &cameraCount);
 	m_cameras.resize(cameraCount);
@@ -583,7 +583,7 @@ void VMDFile::ReadCamera(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadLight(std::istream& is) {
+void VMDReader::ReadLight(std::istream& is) {
 	uint32_t lightCount = 0;
 	Read(is, &lightCount);
 	m_lights.resize(lightCount);
@@ -594,7 +594,7 @@ void VMDFile::ReadLight(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadShadow(std::istream& is) {
+void VMDReader::ReadShadow(std::istream& is) {
 	uint32_t shadowCount = 0;
 	Read(is, &shadowCount);
 	m_shadows.resize(shadowCount);
@@ -605,7 +605,7 @@ void VMDFile::ReadShadow(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadIK(std::istream& is) {
+void VMDReader::ReadIK(std::istream& is) {
 	uint32_t ikCount = 0;
 	Read(is, &ikCount);
 	m_iks.resize(ikCount);
@@ -622,7 +622,7 @@ void VMDFile::ReadIK(std::istream& is) {
 	}
 }
 
-void VMDFile::ReadVMDFile(std::istream& is) {
+void VMDReader::ReadVMDFile(std::istream& is) {
 	const auto end = GetFileEnd(is);
 	ReadHeader(is);
 	ReadMotion(is);
@@ -638,7 +638,7 @@ void VMDFile::ReadVMDFile(std::istream& is) {
 		ReadIK(is);
 }
 
-bool VMDFile::ReadVMDFile(const std::filesystem::path& filename) {
+bool VMDReader::ReadVMDFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;

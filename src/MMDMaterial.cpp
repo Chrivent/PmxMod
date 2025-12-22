@@ -1,6 +1,6 @@
 ﻿#include "MMDMaterial.h"
 
-#include "PMXFile.h"
+#include "MMDReader.h"
 
 MMDMaterial::MMDMaterial()
 	: m_diffuse(1)

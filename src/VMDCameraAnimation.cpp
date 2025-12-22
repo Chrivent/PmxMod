@@ -104,7 +104,7 @@ VMDCameraAnimation::VMDCameraAnimation() {
 	Destroy();
 }
 
-bool VMDCameraAnimation::Create(const VMDFile& vmd) {
+bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 	if (!vmd.m_cameras.empty()) {
 		m_cameraController = std::make_unique<VMDCameraController>();
 		for (const auto& cam: vmd.m_cameras) {

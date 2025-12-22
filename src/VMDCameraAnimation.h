@@ -51,7 +51,7 @@ class VMDCameraAnimation
 public:
 	VMDCameraAnimation();
 
-	bool Create(const VMDFile& vmd);
+	bool Create(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t);
 

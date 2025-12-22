@@ -196,7 +196,7 @@ static bool SampleMain(const SceneConfig& cfg) {
     	return false;
     }
     if (!cfg.cameraVmd.empty()) {
-        VMDFile camVmd;
+        VMDReader camVmd;
         if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
             auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
             if (!vmdCamAnim->Create(camVmd))
@@ -227,14 +227,14 @@ static bool SampleMain(const SceneConfig& cfg) {
         auto vmdAnim = std::make_unique<VMDAnimation>();
         vmdAnim->m_model = model.m_mmdModel;
         for (const auto& vmdPath : m_vmdPaths) {
-            VMDFile vmdFile;
-            if (!vmdFile.ReadVMDFile(vmdPath.c_str())) {
+            VMDReader vmd;
+            if (!vmd.ReadVMDFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
                 glfwTerminate();
             	UninitMusic();
             	return false;
             }
-            if (!vmdAnim->Add(vmdFile)) {
+            if (!vmdAnim->Add(vmd)) {
                 std::cout << "Failed to add VMDAnimation.\n";
                 glfwTerminate();
             	UninitMusic();

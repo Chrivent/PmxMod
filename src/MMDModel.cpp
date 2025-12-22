@@ -227,7 +227,7 @@ void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFr
 bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir) {
 	Destroy();
 
-	PMXFile pmx;
+	PMXReader pmx;
 	if (!pmx.ReadPMXFile(filepath))
 		return false;
 

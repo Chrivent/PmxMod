@@ -149,7 +149,7 @@ VMDAnimation::VMDAnimation()
 	: m_maxKeyTime(0) {
 }
 
-bool VMDAnimation::Add(const VMDFile& vmd) {
+bool VMDAnimation::Add(const VMDReader& vmd) {
 	// Node Controller
 	std::map<std::string, std::unique_ptr<VMDNodeController> > nodeCtrlMap;
 	for (auto &nodeCtrl: m_nodeControllers) {
@@ -355,7 +355,7 @@ int32_t VMDAnimation::CalculateMaxKeyTime() const {
 	return maxTime;
 }
 
-void VMDNodeAnimationKey::Set(const VMDFile::VMDMotion & motion) {
+void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	m_time = static_cast<int32_t>(motion.m_frame);
 
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
