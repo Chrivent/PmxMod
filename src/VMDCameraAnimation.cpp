@@ -43,17 +43,8 @@ void VMDCameraController::Evaluate(const float t) {
 		m_camera.m_fov = selectKey.m_fov;
 		if (boundIt != std::begin(m_keys)) {
 			const auto &key = *(boundIt - 1);
-			const auto& [m_time
-						, m_interest
-						, m_rotate
-						, m_distance
-						, m_fov
-						, m_ixBezier
-						, m_iyBezier
-						, m_izBezier
-						, m_rotateBezier
-						, m_distanceBezier
-						, m_fovBezier]
+			const auto& [m_time, m_interest, m_rotate, m_distance, m_fov
+						, m_ixBezier, m_iyBezier, m_izBezier, m_rotateBezier, m_distanceBezier, m_fovBezier]
 			= *boundIt;
 			if ((m_time - key.m_time) > 1) {
 				const auto timeRange = static_cast<float>(m_time - key.m_time);
@@ -75,10 +66,6 @@ void VMDCameraController::Evaluate(const float t) {
 				m_camera.m_distance = glm::mix(key.m_distance, m_distance, distance_y);
 				m_camera.m_fov = glm::mix(key.m_fov, m_fov, fov_y);
 			} else {
-				/*
-				カメラアニメーションでキーが1フレーム間隔で打たれている場合、
-				カメラの切り替えと判定し補間を行わないようにする（key0を使用する）
-				*/
 				m_camera.m_interest = key.m_interest;
 				m_camera.m_rotate = key.m_rotate;
 				m_camera.m_distance = key.m_distance;
