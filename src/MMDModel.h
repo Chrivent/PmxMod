@@ -90,40 +90,25 @@ public:
 	MMDModel();
 	~MMDModel();
 
-	// ノードを初期化する
 	void InitializeAnimation();
-
-	// ベースアニメーション(アニメーション読み込み時、Physics反映用)
 	void SaveBaseAnimation() const;
 	void ClearBaseAnimation() const;
-
-	// アニメーションの前後で呼ぶ (VMDアニメーションの前後)
 	void BeginAnimation();
-	// Morph
 	void UpdateMorphAnimation();
-	// ノードを更新する
 	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
-	// Physicsを更新する
 	void ResetPhysics() const;
 	void UpdatePhysicsAnimation(float elapsed) const;
-	// 頂点を更新する
 	void Update();
-
 	void UpdateAllAnimation(const VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
-
 	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir);
 	void Destroy();
 
 private:
 	void SetupParallelUpdate();
 	void Update(const UpdateRange& range);
-
 	void Morph(const MMDMorph* morph, float weight);
-
 	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
-
 	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
-
 	void BeginMorphMaterial();
 	void EndMorphMaterial();
 	static void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
@@ -140,41 +125,30 @@ public:
 	std::vector<glm::vec3>	m_updateNormals;
 	std::vector<glm::vec2>	m_updateUVs;
 	std::vector<glm::mat4>	m_transforms;
-
 	std::vector<char>	m_indices;
 	size_t				m_indexCount;
 	size_t				m_indexElementSize;
-
 	std::vector<std::vector<PositionMorph>>	m_positionMorphDatas;
 	std::vector<std::vector<UVMorph>>		m_uvMorphDatas;
 	std::vector<std::vector<MaterialMorph>>	m_materialMorphDatas;
 	std::vector<std::vector<BoneMorph>>		m_boneMorphDatas;
 	std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
-
-	// PositionMorph用
 	std::vector<glm::vec3>	m_morphPositions;
 	std::vector<glm::vec4>	m_morphUVs;
-
-	// マテリアルMorph用
 	std::vector<MMDMaterial>	m_initMaterials;
 	std::vector<MaterialMorph>	m_mulMaterialFactors;
 	std::vector<MaterialMorph>	m_addMaterialFactors;
-
 	glm::vec3		m_bboxMin;
 	glm::vec3		m_bboxMax;
-
 	std::vector<MMDMaterial>	m_materials;
 	std::vector<MMDSubMesh>		m_subMeshes;
 	std::vector<MMDNode*>		m_sortedNodes;
-
 	std::vector<std::unique_ptr<MMDNode>>		m_nodes;
 	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
 	std::vector<std::unique_ptr<MMDMorph>>		m_morphs;
-
 	std::unique_ptr<MMDPhysics>					m_mmdPhysics;
 	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
 	std::vector<std::unique_ptr<MMDJoint>>		m_joints;
-
 	uint32_t							m_parallelUpdateCount;
 	std::vector<UpdateRange>			m_updateRanges;
 	std::vector<std::future<void>>		m_parallelUpdateFutures;
