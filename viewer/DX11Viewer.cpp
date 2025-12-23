@@ -972,7 +972,7 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
             dsv.Reset();
             depthTex.Reset();
 
-            swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
             if (!CreateRenderTargets(width, height))
             	return false;
         }
@@ -1037,7 +1037,6 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
         	if (SUCCEEDED(hrCL) && cmd)
 		        context->ExecuteCommandList(cmd.Get(), FALSE);
         }
-
         swapChain->Present(0, 0);
 
         fpsFrame++;
