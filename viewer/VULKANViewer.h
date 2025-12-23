@@ -8,8 +8,11 @@
 #include <vulkan/vulkan.hpp>
 
 #include <map>
+#include <filesystem>
 
 struct AppContext;
+class MMDModel;
+class VMDAnimation;
 class VMDCameraAnimation;
 
 bool FindMemoryTypeIndex(const vk::PhysicalDeviceMemoryProperties& memProps,
@@ -73,29 +76,26 @@ struct MMDGroundShadowFragmentShaderUB {
 	glm::vec4	m_shadowColor;
 };
 
-struct SwapChainImageResource
-{
+struct SwapChainImageResource {
 	vk::Image		m_image;
 	vk::ImageView	m_imageView;
 	vk::Framebuffer	m_framebuffer;
 	vk::CommandBuffer	m_cmdBuffer;
 
-	void Clear(AppContext& appContext);
+	void Clear(const AppContext& appContext);
 };
 
-struct Buffer
-{
+struct Buffer {
 	vk::DeviceMemory	m_memory;
 	vk::Buffer			m_buffer;
 	vk::DeviceSize		m_memorySize = 0;
 
 	bool Setup(
-		AppContext&				appContext,
+		const AppContext&				appContext,
 		vk::DeviceSize			memSize,
-		vk::BufferUsageFlags	usage,
-		vk::MemoryPropertyFlags	memProperty
+		vk::BufferUsageFlags	usage
 	);
-	void Clear(AppContext& appContext);
+	void Clear(const AppContext& appContext);
 };
 
 struct Texture {
@@ -107,8 +107,8 @@ struct Texture {
 	uint32_t			m_mipLevel;
 	bool				m_hasAlpha;
 
-	bool Setup(AppContext& appContext, uint32_t width, uint32_t height, vk::Format format, int mipCount = 1);
-	void Clear(AppContext& appContext);
+	bool Setup(const AppContext& appContext, uint32_t width, uint32_t height, vk::Format format, int mipCount = 1);
+	void Clear(const AppContext& appContext);
 };
 
 struct StagingBuffer {
@@ -121,20 +121,19 @@ struct StagingBuffer {
 	vk::Semaphore		m_waitSemaphore;
 
 	bool Setup(AppContext& appContext, vk::DeviceSize size);
-	void Clear(AppContext& appContext);
-	void Wait(AppContext& appContext);
-	bool CopyBuffer(AppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
+	void Clear(const AppContext& appContext);
+	void Wait(const AppContext& appContext) const;
+	bool CopyBuffer(const AppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
 	bool CopyImage(
-		AppContext& appContext,
+		const AppContext& appContext,
 		vk::Image destImage,
 		vk::ImageLayout imageLayout,
 		uint32_t regionCount,
-		vk::BufferImageCopy* regions
+		const vk::BufferImageCopy* regions
 	);
 };
 
-struct AppContext
-{
+struct AppContext {
 	enum class MMDRenderType {
 		AlphaBlend_FrontFace,
 		AlphaBlend_BothFace,
@@ -147,9 +146,9 @@ struct AppContext
 		vk::Semaphore	m_renderCompleteSemaphore;
 	};
 
-	std::string m_resourceDir;
-	std::string	m_shaderDir;
-	std::string	m_mmdDir;
+	std::filesystem::path	m_resourceDir;
+	std::filesystem::path	m_shaderDir;
+	std::filesystem::path	m_mmdDir;
 	glm::mat4	m_viewMat;
 	glm::mat4	m_projMat;
 	int	m_screenWidth = 0;
@@ -206,9 +205,8 @@ struct AppContext
 	vk::CommandPool		m_transferCommandPool;
 	vk::Queue			m_graphicsQueue;
 	std::vector<std::unique_ptr<StagingBuffer>>	m_stagingBuffers;
-	using TextureUPtr = std::unique_ptr<Texture>;
-	std::map<std::string, TextureUPtr>	m_textures;
-	TextureUPtr	m_defaultTexture;
+	std::map<std::filesystem::path, std::unique_ptr<Texture>>	m_textures;
+	std::unique_ptr<Texture>	m_defaultTexture;
 	vk::Sampler	m_defaultSampler;
 
 	bool Setup(vk::Instance inst, vk::SurfaceKHR surface, vk::PhysicalDevice gpu, vk::Device device);
@@ -226,6 +224,62 @@ struct AppContext
 	bool PrepareDefaultTexture();
 	bool Resize();
 	bool GetStagingBuffer(vk::DeviceSize memSize, StagingBuffer** outBuf);
-	void WaitAllStagingBuffer();
-	bool GetTexture(const std::string& texturePath, Texture** outTex);
+	void WaitAllStagingBuffer() const;
+	bool GetTexture(const std::filesystem::path& texturePath, Texture** outTex);
+
+	static bool ReadSpvBinary(const std::filesystem::path& path, std::vector<uint32_t>& out);
+};
+
+struct Model {
+	struct Material {
+		Texture*	m_mmdTex;
+		vk::Sampler	m_mmdTexSampler;
+		Texture*	m_mmdToonTex;
+		vk::Sampler	m_mmdToonTexSampler;
+		Texture*	m_mmdSphereTex;
+		vk::Sampler	m_mmdSphereTexSampler;
+	};
+
+	struct ModelResource {
+		Buffer	m_vertexBuffer;
+		Buffer	m_uniformBuffer;
+		uint32_t	m_mmdVSUBOffset;
+		uint32_t	m_mmdEdgeVSUBOffset;
+		uint32_t	m_mmdGroundShadowVSUBOffset;
+	};
+
+	struct MaterialResource {
+		vk::DescriptorSet	m_mmdDescSet;
+		vk::DescriptorSet	m_mmdEdgeDescSet;
+		vk::DescriptorSet	m_mmdGroundShadowDescSet;
+		uint32_t			m_mmdFSUBOffset;
+		uint32_t			m_mmdEdgeSizeVSUBOffset;
+		uint32_t			m_mmdEdgeFSUBOffset;
+		uint32_t			m_mmdGroundShadowFSUBOffset;
+	};
+
+	struct Resource {
+		ModelResource					m_modelResource;
+		std::vector<MaterialResource>	m_materialResources;
+	};
+
+	std::shared_ptr<MMDModel>		m_mmdModel;
+	std::unique_ptr<VMDAnimation>	m_vmdAnim;
+	Buffer	m_indexBuffer;
+	vk::IndexType	m_indexType;
+	std::vector<Material>	m_materials;
+	Resource				m_resource;
+	vk::DescriptorPool		m_descPool;
+	std::vector<vk::CommandBuffer>	m_cmdBuffers;
+
+	bool Setup(AppContext& appContext);
+	bool SetupVertexBuffer(AppContext& appContext);
+	bool SetupDescriptorPool(const AppContext& appContext);
+	bool SetupDescriptorSet(AppContext& appContext);
+	bool SetupCommandBuffer(const AppContext& appContext);
+	void Destroy(const AppContext& appContext);
+	void UpdateAnimation(const AppContext& appContext) const;
+	void Update(AppContext& appContext);
+	void Draw(const AppContext& appContext);
+	vk::CommandBuffer GetCommandBuffer(uint32_t imageIndex) const;
 };

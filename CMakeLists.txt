@@ -25,8 +25,7 @@ add_executable(PmxMod
         src/VMDAnimation.cpp    src/VMDAnimation.h
         viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
         viewer/DX11Viewer.cpp   viewer/DX11Viewer.h
-        viewer/VULKANViewer.cpp
-        viewer/VULKANViewer.h
+        viewer/VULKANViewer.cpp viewer/VULKANViewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC
@@ -48,8 +47,10 @@ target_compile_definitions(PmxMod PUBLIC)
 
 set(RESOURCE_SRC_DIR  "${CMAKE_SOURCE_DIR}/resource")
 set(RESOURCE_OUT_DIR  "${CMAKE_CURRENT_BINARY_DIR}/resource")
-set(SHADER_SRC_DIR    "${RESOURCE_SRC_DIR}/shader_DX11")
-set(SHADER_OUT_DIR    "${RESOURCE_OUT_DIR}/shader_DX11")
+set(SHADER_DX11_SRC_DIR     "${RESOURCE_SRC_DIR}/shader_DX11")
+set(SHADER_DX11_OUT_DIR     "${RESOURCE_OUT_DIR}/shader_DX11")
+set(SHADER_VULKAN_SRC_DIR   "${RESOURCE_SRC_DIR}/shader_Vulkan")
+set(SHADER_VULKAN_OUT_DIR   "${RESOURCE_OUT_DIR}/shader_Vulkan")
 
 add_custom_target(SyncResources
         COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
@@ -57,37 +58,59 @@ add_custom_target(SyncResources
         VERBATIM
 )
 
-find_program(FXC_EXE NAMES fxc REQUIRED)
+find_program(FXC_EXE   NAMES fxc   REQUIRED)
+find_program(GLSLC_EXE NAMES glslc REQUIRED)
 
 function(add_fxc_shader OUT_VAR SRC PROFILE ENTRY OUT_BASENAME)
-    set(OUT_FILE "${SHADER_OUT_DIR}/${OUT_BASENAME}.cso")
+    set(OUT_FILE "${SHADER_DX11_OUT_DIR}/${OUT_BASENAME}.cso")
     add_custom_command(
             OUTPUT "${OUT_FILE}"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_OUT_DIR}"
-            COMMAND "${FXC_EXE}" /nologo
-            /T "${PROFILE}"
-            /E "${ENTRY}"
-            /Fo "${OUT_FILE}"
-            "${SRC}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_DX11_OUT_DIR}"
+            COMMAND "${FXC_EXE}" /nologo /T "${PROFILE}" /E "${ENTRY}" /Fo "${OUT_FILE}" "${SRC}"
             DEPENDS "${SRC}"
             VERBATIM
     )
     set(${OUT_VAR} "${OUT_FILE}" PARENT_SCOPE)
 endfunction()
 
-add_fxc_shader(MMD_VS_CSO  "${SHADER_SRC_DIR}/mmd.fx"               vs_5_0 VSMain mmd.vs)
-add_fxc_shader(MMD_PS_CSO  "${SHADER_SRC_DIR}/mmd.fx"               ps_5_0 PSMain mmd.ps)
-add_fxc_shader(EDGE_VS_CSO "${SHADER_SRC_DIR}/mmd_edge.fx"          vs_5_0 VSMain mmd_edge.vs)
-add_fxc_shader(EDGE_PS_CSO "${SHADER_SRC_DIR}/mmd_edge.fx"          ps_5_0 PSMain mmd_edge.ps)
-add_fxc_shader(GS_VS_CSO   "${SHADER_SRC_DIR}/mmd_ground_shadow.fx" vs_5_0 VSMain mmd_ground_shadow.vs)
-add_fxc_shader(GS_PS_CSO   "${SHADER_SRC_DIR}/mmd_ground_shadow.fx" ps_5_0 PSMain mmd_ground_shadow.ps)
+function(add_glsl_shader OUT_VAR SRC OUT_BASENAME)
+    set(OUT_FILE "${SHADER_VULKAN_OUT_DIR}/${OUT_BASENAME}.spv")
+    add_custom_command(
+            OUTPUT "${OUT_FILE}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_VULKAN_OUT_DIR}"
+            COMMAND "${GLSLC_EXE}" -o "${OUT_FILE}" "${SRC}"
+            DEPENDS "${SRC}"
+            VERBATIM
+    )
+    set(${OUT_VAR} "${OUT_FILE}" PARENT_SCOPE)
+endfunction()
 
-add_custom_target(CompileDX11Shaders
-        DEPENDS
+add_fxc_shader(MMD_VS_CSO  "${SHADER_DX11_SRC_DIR}/mmd.fx"               vs_5_0 VSMain mmd_vs)
+add_fxc_shader(MMD_PS_CSO  "${SHADER_DX11_SRC_DIR}/mmd.fx"               ps_5_0 PSMain mmd_ps)
+add_fxc_shader(EDGE_VS_CSO "${SHADER_DX11_SRC_DIR}/mmd_edge.fx"          vs_5_0 VSMain mmd_edge_vs)
+add_fxc_shader(EDGE_PS_CSO "${SHADER_DX11_SRC_DIR}/mmd_edge.fx"          ps_5_0 PSMain mmd_edge_ps)
+add_fxc_shader(GS_VS_CSO   "${SHADER_DX11_SRC_DIR}/mmd_ground_shadow.fx" vs_5_0 VSMain mmd_gs_vs)
+add_fxc_shader(GS_PS_CSO   "${SHADER_DX11_SRC_DIR}/mmd_ground_shadow.fx" ps_5_0 PSMain mmd_gs_ps)
+
+add_glsl_shader(MMD_VS_SPV   "${SHADER_VULKAN_SRC_DIR}/mmd.vert"                mmd_vert)
+add_glsl_shader(MMD_FS_SPV   "${SHADER_VULKAN_SRC_DIR}/mmd.frag"                mmd_frag)
+add_glsl_shader(EDGE_VS_SPV  "${SHADER_VULKAN_SRC_DIR}/mmd_edge.vert"           mmd_edge_vert)
+add_glsl_shader(EDGE_FS_SPV  "${SHADER_VULKAN_SRC_DIR}/mmd_edge.frag"           mmd_edge_frag)
+add_glsl_shader(GS_VS_SPV    "${SHADER_VULKAN_SRC_DIR}/mmd_ground_shadow.vert"  mmd_gs_vert)
+add_glsl_shader(GS_FS_SPV    "${SHADER_VULKAN_SRC_DIR}/mmd_ground_shadow.frag"  mmd_gs_frag)
+
+add_custom_target(CompileDX11Shaders DEPENDS
         "${MMD_VS_CSO}" "${MMD_PS_CSO}"
         "${EDGE_VS_CSO}" "${EDGE_PS_CSO}"
         "${GS_VS_CSO}" "${GS_PS_CSO}"
 )
 
-add_dependencies(CompileDX11Shaders SyncResources)
-add_dependencies(PmxMod SyncResources CompileDX11Shaders)
+add_custom_target(CompileVulkanShaders DEPENDS
+        "${MMD_VS_SPV}" "${MMD_FS_SPV}"
+        "${EDGE_VS_SPV}" "${EDGE_FS_SPV}"
+        "${GS_VS_SPV}" "${GS_FS_SPV}"
+)
+
+add_dependencies(CompileDX11Shaders   SyncResources)
+add_dependencies(CompileVulkanShaders SyncResources)
+add_dependencies(PmxMod CompileDX11Shaders CompileVulkanShaders)

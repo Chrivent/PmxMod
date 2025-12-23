@@ -125,6 +125,8 @@ struct DX11AppContext {
     bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     bool CreateShaders();
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
+
+    static bool ReadCsoBinary(const std::filesystem::path& path, std::vector<uint8_t>& out);
 };
 
 struct DX11Material {

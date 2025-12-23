@@ -24,33 +24,21 @@ bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
 }
 
 bool DX11AppContext::CreateShaders() {
-	auto ReadFileBinary = [](const std::filesystem::path& path, std::vector<uint8_t>& out) {
-		std::ifstream f(path, std::ios::binary);
-		if (!f)
-			return false;
-		f.seekg(0, std::ios::end);
-		const auto size = static_cast<size_t>(f.tellg());
-		f.seekg(0, std::ios::beg);
-		out.resize(size);
-		if (size > 0)
-			f.read(reinterpret_cast<char*>(out.data()), size);
-		return true;
-	};
 	HRESULT hr;
 	std::vector<uint8_t> mmdVSBytecode, mmdPSBytecode;
 	std::vector<uint8_t> mmdEdgeVSBytecode, mmdEdgePSBytecode;
 	std::vector<uint8_t> mmdGroundShadowVSBytecode, mmdGroundShadowPSBytecode;
-	if (!ReadFileBinary(m_shaderDir / "mmd.vs.cso", mmdVSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_vs.cso", mmdVSBytecode))
 		return false;
-	if (!ReadFileBinary(m_shaderDir / "mmd.ps.cso", mmdPSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_ps.cso", mmdPSBytecode))
 		return false;
-	if (!ReadFileBinary(m_shaderDir / "mmd_edge.vs.cso", mmdEdgeVSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_edge_vs.cso", mmdEdgeVSBytecode))
 		return false;
-	if (!ReadFileBinary(m_shaderDir / "mmd_edge.ps.cso", mmdEdgePSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_edge_ps.cso", mmdEdgePSBytecode))
 		return false;
-	if (!ReadFileBinary(m_shaderDir / "mmd_ground_shadow.vs.cso", mmdGroundShadowVSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_gs_vs.cso", mmdGroundShadowVSBytecode))
 		return false;
-	if (!ReadFileBinary(m_shaderDir / "mmd_ground_shadow.ps.cso", mmdGroundShadowPSBytecode))
+	if (!ReadCsoBinary(m_shaderDir / "mmd_gs_ps.cso", mmdGroundShadowPSBytecode))
 		return false;
 
 	// mmd shader_GLFW
@@ -78,7 +66,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Texture sampler
-	D3D11_SAMPLER_DESC texSamplerDesc = {};
+	D3D11_SAMPLER_DESC texSamplerDesc;
 	texSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	texSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	texSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -92,7 +80,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// ToonTexture sampler
-	D3D11_SAMPLER_DESC toonSamplerDesc = {};
+	D3D11_SAMPLER_DESC toonSamplerDesc;
 	toonSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	toonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	toonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -106,7 +94,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// SphereTexture sampler
-	D3D11_SAMPLER_DESC spSamplerDesc = {};
+	D3D11_SAMPLER_DESC spSamplerDesc;
 	spSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	spSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	spSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -120,7 +108,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Blend State
-	D3D11_BLEND_DESC blendDesc1 = {};
+	D3D11_BLEND_DESC blendDesc1;
 	blendDesc1.AlphaToCoverageEnable = false;
 	blendDesc1.IndependentBlendEnable = false;
 	blendDesc1.RenderTarget[0].BlendEnable = true;
@@ -136,7 +124,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Rasterizer State (Front face)
-	D3D11_RASTERIZER_DESC frontRsDesc = {};
+	D3D11_RASTERIZER_DESC frontRsDesc;
 	frontRsDesc.FillMode = D3D11_FILL_SOLID;
 	frontRsDesc.CullMode = D3D11_CULL_BACK;
 	frontRsDesc.FrontCounterClockwise = true;
@@ -151,8 +139,8 @@ bool DX11AppContext::CreateShaders() {
 	if (FAILED(hr))
 		return false;
 
-	// Rasterizer State (Both face)
-	D3D11_RASTERIZER_DESC faceRsDesc = {};
+	// Rasterizer State (Both faces)
+	D3D11_RASTERIZER_DESC faceRsDesc;
 	faceRsDesc.FillMode = D3D11_FILL_SOLID;
 	faceRsDesc.CullMode = D3D11_CULL_NONE;
 	faceRsDesc.FrontCounterClockwise = true;
@@ -197,7 +185,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Blend State
-	D3D11_BLEND_DESC blendDesc2 = {};
+	D3D11_BLEND_DESC blendDesc2;
 	blendDesc2.AlphaToCoverageEnable = false;
 	blendDesc2.IndependentBlendEnable = false;
 	blendDesc2.RenderTarget[0].BlendEnable = true;
@@ -213,7 +201,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Rasterizer State
-	D3D11_RASTERIZER_DESC rsDesc1 = {};
+	D3D11_RASTERIZER_DESC rsDesc1;
 	rsDesc1.FillMode = D3D11_FILL_SOLID;
 	rsDesc1.CullMode = D3D11_CULL_FRONT;
 	rsDesc1.FrontCounterClockwise = true;
@@ -252,7 +240,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Blend State
-	D3D11_BLEND_DESC blendDesc3 = {};
+	D3D11_BLEND_DESC blendDesc3;
 	blendDesc3.AlphaToCoverageEnable = false;
 	blendDesc3.IndependentBlendEnable = false;
 	blendDesc3.RenderTarget[0].BlendEnable = true;
@@ -268,7 +256,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Rasterizer State
-	D3D11_RASTERIZER_DESC rsDesc2 = {};
+	D3D11_RASTERIZER_DESC rsDesc2;
 	rsDesc2.FillMode = D3D11_FILL_SOLID;
 	rsDesc2.CullMode = D3D11_CULL_NONE;
 	rsDesc2.FrontCounterClockwise = true;
@@ -284,7 +272,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Depth Stencil State
-	D3D11_DEPTH_STENCIL_DESC stDesc = {};
+	D3D11_DEPTH_STENCIL_DESC stDesc;
 	stDesc.DepthEnable = true;
 	stDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	stDesc.DepthFunc = D3D11_COMPARISON_LESS;
@@ -304,7 +292,7 @@ bool DX11AppContext::CreateShaders() {
 		return false;
 
 	// Default Depth Stencil State
-	D3D11_DEPTH_STENCIL_DESC dstDesc = {};
+	D3D11_DEPTH_STENCIL_DESC dstDesc;
 	dstDesc.DepthEnable = true;
 	dstDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	dstDesc.DepthFunc = D3D11_COMPARISON_LESS;
@@ -344,7 +332,7 @@ bool DX11AppContext::CreateShaders() {
 	if (FAILED(hr))
 		return false;
 
-	D3D11_SAMPLER_DESC samplerDesc = {};
+	D3D11_SAMPLER_DESC samplerDesc;
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -365,12 +353,12 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 		return it->second;
 	FILE* fp = nullptr;
 	if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
-		return DX11Texture();
+		return {};
 	int x = 0, y = 0, comp = 0;
 	stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
 	std::fclose(fp);
 	if (!image)
-		return DX11Texture();
+		return {};
 	D3D11_TEXTURE2D_DESC tex2dDesc = {};
 	tex2dDesc.Width = x;
 	tex2dDesc.Height = y;
@@ -391,17 +379,30 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 	HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
 	stbi_image_free(image);
 	if (FAILED(hr))
-		return DX11Texture();
+		return {};
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
 	hr = m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV);
 	if (FAILED(hr))
-		return DX11Texture();
+		return {};
 	DX11Texture tex;
 	tex.m_texture = tex2d;
 	tex.m_textureView = tex2dRV;
 	tex.m_hasAlpha = hasAlpha;
 	m_textures[texturePath] = tex;
 	return m_textures[texturePath];
+}
+
+bool DX11AppContext::ReadCsoBinary(const std::filesystem::path& path, std::vector<uint8_t>& out) {
+	std::ifstream f(path, std::ios::binary);
+	if (!f)
+		return false;
+	f.seekg(0, std::ios::end);
+	const auto size = static_cast<size_t>(f.tellg());
+	f.seekg(0, std::ios::beg);
+	out.resize(size);
+	if (size > 0)
+		f.read(reinterpret_cast<char*>(out.data()), static_cast<long long>(size));
+	return true;
 }
 
 DX11Material::DX11Material(const MMDMaterial& mat)
@@ -588,7 +589,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Draw model
-	DX11VertexShaderCB vsCB1;
+	DX11VertexShaderCB vsCB1{};
 	vsCB1.m_wv = wv;
 	vsCB1.m_wvp = wvp;
 	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
@@ -602,7 +603,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdPS.Get(), nullptr, 0);
-		DX11PixelShaderCB psCB;
+		DX11PixelShaderCB psCB{};
 		psCB.m_alpha = mmdMat.m_diffuse.a;
 		psCB.m_diffuse = mmdMat.m_diffuse;
 		psCB.m_ambient = mmdMat.m_ambient;
@@ -682,7 +683,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 
 	// Draw edge
 	m_context->IASetInputLayout(appContext.m_mmdEdgeInputLayout.Get());
-	DX11EdgeVertexShaderCB vsCB2;
+	DX11EdgeVertexShaderCB vsCB2{};
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
 	vsCB2.m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth),
@@ -699,14 +700,14 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 			continue;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
-		DX11EdgeSizeVertexShaderCB vsCB;
+		DX11EdgeSizeVertexShaderCB vsCB{};
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
 		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
 		m_context->VSSetConstantBuffers(1, 1, cbs);
 		m_context->PSSetShader(appContext.m_mmdEdgePS.Get(), nullptr, 0);
-		DX11EdgePixelShaderCB psCB;
+		DX11EdgePixelShaderCB psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
@@ -739,7 +740,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
 	auto wsvp = dxMat * proj * view * shadow * world;
-	DX11GroundShadowVertexShaderCB vsCB;
+	DX11GroundShadowVertexShaderCB vsCB{};
 	vsCB.m_wvp = wsvp;
 	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
@@ -757,7 +758,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdGroundShadowPS.Get(), nullptr, 0);
-		DX11GroundShadowPixelShaderCB psCB;
+		DX11GroundShadowPixelShaderCB psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
@@ -775,7 +776,7 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 
-	D3D_FEATURE_LEVEL featureLevel{};
+	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 	UINT createFlags = 0;
 	HRESULT hr = D3D11CreateDevice(
@@ -981,7 +982,7 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
         if (elapsed > 1.0 / 30.0) elapsed = 1.0 / 30.0;
         saveTime = now;
 
-        float dt = static_cast<float>(elapsed);
+        auto dt = static_cast<float>(elapsed);
         float t  = appContext.m_animTime + dt;
 
         if (music.HasMusic()) {
