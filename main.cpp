@@ -164,7 +164,7 @@ int main() {
 		if (!musicPath.empty())
 			cfg.musicPath = musicPath.front().wstring();
 	}
-	if (!SampleMain(cfg)) {
+	if (!GLFWSampleMain(cfg)) {
 		std::cout << "Failed to run.\n";
 		return 1;
 	}

@@ -9,7 +9,7 @@
 
 struct SceneConfig;
 struct MMDMaterial;
-struct AppContext;
+struct GLFWAppContext;
 class MMDModel;
 class VMDAnimation;
 class VMDCameraAnimation;
@@ -17,8 +17,8 @@ class VMDCameraAnimation;
 GLuint CreateShader(GLenum shaderType, const std::string &code);
 GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile);
 
-struct MMDShader {
-    ~MMDShader();
+struct GLFWShader {
+    ~GLFWShader();
 
     GLuint	m_prog = 0;
     GLint	m_inPos = -1;
@@ -53,12 +53,11 @@ struct MMDShader {
     GLint	m_uShadowMap3 = -1;
     GLint	m_uShadowMapEnabled = -1;
 
-    bool Setup(const AppContext& appContext);
-    void Clear();
+    bool Setup(const GLFWAppContext& appContext);
 };
 
-struct MMDEdgeShader {
-    ~MMDEdgeShader();
+struct GLFWEdgeShader {
+    ~GLFWEdgeShader();
 
     GLuint	m_prog = 0;
     GLint	m_inPos = -1;
@@ -69,43 +68,41 @@ struct MMDEdgeShader {
     GLint	m_uEdgeSize = -1;
     GLint	m_uEdgeColor = -1;
 
-    bool Setup(const AppContext& appContext);
-    void Clear();
+    bool Setup(const GLFWAppContext& appContext);
 };
 
-struct MMDGroundShadowShader {
-    ~MMDGroundShadowShader();
+struct GLFWGroundShadowShader {
+    ~GLFWGroundShadowShader();
 
     GLuint	m_prog = 0;
     GLint	m_inPos = -1;
     GLint	m_uWVP = -1;
     GLint	m_uShadowColor = -1;
 
-    bool Setup(const AppContext& appContext);
-    void Clear();
+    bool Setup(const GLFWAppContext& appContext);
 };
 
-struct Texture {
+struct GLFWTexture {
     GLuint	m_texture;
     bool	m_hasAlpha;
 };
 
-struct AppContext {
-    ~AppContext();
+struct GLFWAppContext {
+    ~GLFWAppContext();
 
     std::filesystem::path	m_resourceDir;
     std::filesystem::path	m_shaderDir;
     std::filesystem::path	m_mmdDir;
-    std::unique_ptr<MMDShader>				m_mmdShader;
-    std::unique_ptr<MMDEdgeShader>			m_mmdEdgeShader;
-    std::unique_ptr<MMDGroundShadowShader>	m_mmdGroundShadowShader;
+    std::unique_ptr<GLFWShader>				m_shader;
+    std::unique_ptr<GLFWEdgeShader>			m_edgeShader;
+    std::unique_ptr<GLFWGroundShadowShader>	m_groundShadowShader;
     glm::mat4	m_viewMat;
     glm::mat4	m_projMat;
     int			m_screenWidth = 0;
     int			m_screenHeight = 0;
     glm::vec3	m_lightColor = glm::vec3(1, 1, 1);
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
-    std::map<std::filesystem::path, Texture>	m_textures;
+    std::map<std::filesystem::path, GLFWTexture>	m_textures;
     GLuint	m_dummyColorTex = 0;
     GLuint	m_dummyShadowDepthTex = 0;
     const int	m_msaaSamples = 4;
@@ -114,12 +111,11 @@ struct AppContext {
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
 
     bool Setup();
-    void Clear();
-    Texture GetTexture(const std::filesystem::path& texturePath);
+    GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };
 
-struct Material {
-    explicit Material(const MMDMaterial& mat);
+struct GLFWMaterial {
+    explicit GLFWMaterial(const MMDMaterial& mat);
 
     const MMDMaterial& m_mmdMat;
     GLuint	m_texture = 0;
@@ -128,7 +124,7 @@ struct Material {
     GLuint	m_toonTexture = 0;
 };
 
-struct Model {
+struct GLFWModel {
     std::shared_ptr<MMDModel>	m_mmdModel;
     std::unique_ptr<VMDAnimation>	m_vmdAnim;
     GLuint	m_posVBO = 0;
@@ -139,14 +135,14 @@ struct Model {
     GLuint	m_mmdVAO = 0;
     GLuint	m_mmdEdgeVAO = 0;
     GLuint	m_mmdGroundShadowVAO = 0;
-    std::vector<Material>	m_materials;
+    std::vector<GLFWMaterial>	m_materials;
     float m_scale = 1.0f;
 
-    bool Setup(AppContext& appContext);
+    bool Setup(GLFWAppContext& appContext);
     void Clear();
-    void UpdateAnimation(const AppContext& appContext) const;
+    void UpdateAnimation(const GLFWAppContext& appContext) const;
     void Update() const;
-    void Draw(const AppContext& appContext) const;
+    void Draw(const GLFWAppContext& appContext) const;
 };
 
-bool SampleMain(const SceneConfig& cfg);
+bool GLFWSampleMain(const SceneConfig& cfg);

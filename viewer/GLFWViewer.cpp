@@ -105,11 +105,12 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	return prog;
 }
 
-MMDShader::~MMDShader() {
-	Clear();
+GLFWShader::~GLFWShader() {
+	if (m_prog != 0) glDeleteProgram(m_prog);
+	m_prog = 0;
 }
 
-bool MMDShader::Setup(const AppContext& appContext) {
+bool GLFWShader::Setup(const GLFWAppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		appContext.m_shaderDir / "mmd.vert",
 		appContext.m_shaderDir / "mmd.frag"
@@ -150,16 +151,12 @@ bool MMDShader::Setup(const AppContext& appContext) {
 	return true;
 }
 
-void MMDShader::Clear() {
+GLFWEdgeShader::~GLFWEdgeShader() {
 	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
-MMDEdgeShader::~MMDEdgeShader() {
-	Clear();
-}
-
-bool MMDEdgeShader::Setup(const AppContext& appContext) {
+bool GLFWEdgeShader::Setup(const GLFWAppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		appContext.m_shaderDir / "mmd_edge.vert",
 		appContext.m_shaderDir / "mmd_edge.frag"
@@ -176,16 +173,12 @@ bool MMDEdgeShader::Setup(const AppContext& appContext) {
 	return true;
 }
 
-void MMDEdgeShader::Clear() {
+GLFWGroundShadowShader::~GLFWGroundShadowShader() {
 	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
-MMDGroundShadowShader::~MMDGroundShadowShader() {
-	Clear();
-}
-
-bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
+bool GLFWGroundShadowShader::Setup(const GLFWAppContext& appContext) {
 	m_prog = CreateShaderProgram(
 		appContext.m_shaderDir / "mmd_ground_shadow.vert",
 		appContext.m_shaderDir / "mmd_ground_shadow.frag"
@@ -198,29 +191,34 @@ bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
 	return true;
 }
 
-void MMDGroundShadowShader::Clear() {
-	if (m_prog != 0) glDeleteProgram(m_prog);
-	m_prog = 0;
+GLFWAppContext::~GLFWAppContext() {
+	m_shader.reset();
+	m_edgeShader.reset();
+	m_groundShadowShader.reset();
+	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
+		glDeleteTextures(1, &m_texture);
+	m_textures.clear();
+	if (m_dummyColorTex != 0) glDeleteTextures(1, &m_dummyColorTex);
+	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
+	m_dummyColorTex = 0;
+	m_dummyShadowDepthTex = 0;
+	m_vmdCameraAnim.reset();
 }
 
-AppContext::~AppContext() {
-	Clear();
-}
-
-bool AppContext::Setup() {
+bool GLFWAppContext::Setup() {
 	m_resourceDir = PathUtil::GetExecutablePath();
 	m_resourceDir = m_resourceDir.parent_path();
 	m_resourceDir /= "resource";
 	m_shaderDir = m_resourceDir / "shader";
 	m_mmdDir = m_resourceDir / "mmd";
-	m_mmdShader = std::make_unique<MMDShader>();
-	if (!m_mmdShader->Setup(*this))
+	m_shader = std::make_unique<GLFWShader>();
+	if (!m_shader->Setup(*this))
 		return false;
-	m_mmdEdgeShader = std::make_unique<MMDEdgeShader>();
-	if (!m_mmdEdgeShader->Setup(*this))
+	m_edgeShader = std::make_unique<GLFWEdgeShader>();
+	if (!m_edgeShader->Setup(*this))
 		return false;
-	m_mmdGroundShadowShader = std::make_unique<MMDGroundShadowShader>();
-	if (!m_mmdGroundShadowShader->Setup(*this))
+	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
+	if (!m_groundShadowShader->Setup(*this))
 		return false;
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
@@ -233,33 +231,19 @@ bool AppContext::Setup() {
 	return true;
 }
 
-void AppContext::Clear() {
-	m_mmdShader.reset();
-	m_mmdEdgeShader.reset();
-	m_mmdGroundShadowShader.reset();
-	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
-		glDeleteTextures(1, &m_texture);
-	m_textures.clear();
-	if (m_dummyColorTex != 0) glDeleteTextures(1, &m_dummyColorTex);
-	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
-	m_dummyColorTex = 0;
-	m_dummyShadowDepthTex = 0;
-	m_vmdCameraAnim.reset();
-}
-
-Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
+GLFWTexture GLFWAppContext::GetTexture(const std::filesystem::path& texturePath) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
 	stbi_set_flip_vertically_on_load(true);
 	FILE* fp = nullptr;
 	if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
-		return Texture{ 0, false };
+		return GLFWTexture{ 0, false };
 	int x = 0, y = 0, comp = 0;
 	stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
 	std::fclose(fp);
 	if (!image)
-		return Texture{ 0, false };
+		return GLFWTexture{ 0, false };
 	const bool hasAlpha = comp == 4;
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
@@ -271,15 +255,15 @@ Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	m_textures[texturePath] = Texture{ tex, hasAlpha };
+	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
 	return m_textures[texturePath];
 }
 
-Material::Material(const MMDMaterial &mat)
+GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 	: m_mmdMat(mat) {
 }
 
-bool Model::Setup(AppContext& appContext) {
+bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	if (m_mmdModel == nullptr)
 		return false;
 	// Setup vertices
@@ -313,7 +297,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup MMD VAO
 	glGenVertexArrays(1, &m_mmdVAO);
 	glBindVertexArray(m_mmdVAO);
-	const auto &mmdShader = appContext.m_mmdShader;
+	const auto &mmdShader = appContext.m_shader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inPos);
@@ -328,7 +312,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup MMD Edge VAO
 	glGenVertexArrays(1, &m_mmdEdgeVAO);
 	glBindVertexArray(m_mmdEdgeVAO);
-	const auto &mmdEdgeShader = appContext.m_mmdEdgeShader;
+	const auto &mmdEdgeShader = appContext.m_edgeShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
@@ -340,7 +324,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup MMD Ground Shadow VAO
 	glGenVertexArrays(1, &m_mmdGroundShadowVAO);
 	glBindVertexArray(m_mmdGroundShadowVAO);
-	const auto &mmdGroundShadowShader = appContext.m_mmdGroundShadowShader;
+	const auto &mmdGroundShadowShader = appContext.m_groundShadowShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
@@ -348,7 +332,7 @@ bool Model::Setup(AppContext& appContext) {
 	glBindVertexArray(0);
 	// Setup materials
 	for (const auto & mmdMat : m_mmdModel->m_materials) {
-		Material mat(mmdMat);
+		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
 			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
@@ -367,7 +351,7 @@ bool Model::Setup(AppContext& appContext) {
 	return true;
 }
 
-void Model::Clear() {
+void GLFWModel::Clear() {
 	if (m_posVBO != 0) glDeleteBuffers(1, &m_posVBO);
 	if (m_norVBO != 0) glDeleteBuffers(1, &m_norVBO);
 	if (m_uvVBO != 0) glDeleteBuffers(1, &m_uvVBO);
@@ -384,12 +368,12 @@ void Model::Clear() {
 	m_mmdGroundShadowVAO = 0;
 }
 
-void Model::UpdateAnimation(const AppContext& appContext) const {
+void GLFWModel::UpdateAnimation(const GLFWAppContext& appContext) const {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
-void Model::Update() const {
+void GLFWModel::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
@@ -401,7 +385,7 @@ void Model::Update() const {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Model::Draw(const AppContext& appContext) const {
+void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	const auto &view = appContext.m_viewMat;
 	const auto &proj = appContext.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
@@ -420,7 +404,7 @@ void Model::Draw(const AppContext& appContext) const {
 	size_t subMeshCount = m_mmdModel->m_subMeshes.size();
 	for (size_t i = 0; i < subMeshCount; i++) {
 		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
-		const auto &shader = appContext.m_mmdShader;
+		const auto &shader = appContext.m_shader;
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
@@ -518,7 +502,7 @@ void Model::Draw(const AppContext& appContext) const {
 	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
 	for (size_t i = 0; i < subMeshCount; i++) {
 		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
-		const auto &shader = appContext.m_mmdEdgeShader;
+		const auto &shader = appContext.m_edgeShader;
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
@@ -579,7 +563,7 @@ void Model::Draw(const AppContext& appContext) const {
 		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
-		const auto &shader = appContext.m_mmdGroundShadowShader;
+		const auto &shader = appContext.m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
@@ -598,12 +582,12 @@ void Model::Draw(const AppContext& appContext) const {
 	glDisable(GL_BLEND);
 }
 
-bool SampleMain(const SceneConfig& cfg) {
+bool GLFWSampleMain(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
     if (!glfwInit())
     	return false;
-    AppContext appContext;
+    GLFWAppContext appContext;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -635,10 +619,10 @@ bool SampleMain(const SceneConfig& cfg) {
             appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
         }
     }
-    std::vector<Model> models;
+    std::vector<GLFWModel> models;
     models.reserve(cfg.models.size());
     for (const auto&[m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
-        Model model;
+        GLFWModel model;
         const auto ext = PathUtil::GetExt(m_modelPath);
         if (ext != "pmx") {
             std::cout << "Unknown file type. [" << ext << "]\n";
@@ -727,7 +711,9 @@ bool SampleMain(const SceneConfig& cfg) {
             fpsTime = std::chrono::steady_clock::now();
         }
     }
-    appContext.Clear();
+	for (auto& model : models)
+		model.Clear();
+	models.clear();
     glfwTerminate();
     return true;
 }
