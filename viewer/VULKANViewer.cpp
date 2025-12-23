@@ -479,8 +479,8 @@ bool AppContext::Setup(const vk::Instance inst, const vk::SurfaceKHR surface, co
 		std::cout << "Failed to find depth formant.\n";
 		return false;
 	}
-	std::cout << "Select color format [" << int(m_colorFormat) << "]\n";
-	std::cout << "Select depth format [" << int(m_depthFormat) << "]\n";
+	std::cout << "Select color format [" << static_cast<int>(m_colorFormat) << "]\n";
+	std::cout << "Select depth format [" << static_cast<int>(m_depthFormat) << "]\n";
 	if (!Prepare())
 		return false;
 	return true;
@@ -584,10 +584,10 @@ bool AppContext::Prepare() {
 	if (!PrepareRenderPass()) return false;
 	if (!PrepareFramebuffer()) return false;
 	if (!PreparePipelineCache()) return false;
-	// if (!PrepareMMDPipeline()) return false;
-	// if (!PrepareMMDEdgePipeline()) return false;
-	// if (!PrepareMMDGroundShadowPipeline()) return false;
-	// if (!PrepareDefaultTexture()) return false;
+	if (!PrepareMMDPipeline()) return false;
+	if (!PrepareMMDEdgePipeline()) return false;
+	if (!PrepareMMDGroundShadowPipeline()) return false;
+	if (!PrepareDefaultTexture()) return false;
 	return true;
 }
 
