@@ -17,18 +17,18 @@ class MMDModel;
 class VMDAnimation;
 class VMDCameraAnimation;
 
-struct Vertex {
+struct DX11Vertex {
     glm::vec3	m_position;
     glm::vec3	m_normal;
     glm::vec2	m_uv;
 };
 
-struct MMDVertexShaderCB {
+struct DX11VertexShaderCB {
     glm::mat4	m_wv;
     glm::mat4	m_wvp;
 };
 
-struct MMDPixelShaderCB {
+struct DX11PixelShaderCB {
     float		m_alpha;
     glm::vec3	m_diffuse;
     glm::vec3	m_ambient;
@@ -48,37 +48,37 @@ struct MMDPixelShaderCB {
     glm::ivec4	m_textureModes;
 };
 
-struct MMDEdgeVertexShaderCB {
+struct DX11EdgeVertexShaderCB {
     glm::mat4	m_wv;
     glm::mat4	m_wvp;
     glm::vec2	m_screenSize;
     float		m_dummy[2];
 };
 
-struct MMDEdgeSizeVertexShaderCB {
+struct DX11EdgeSizeVertexShaderCB {
     float		m_edgeSize;
     float		m_dummy[3];
 };
 
-struct MMDEdgePixelShaderCB {
+struct DX11EdgePixelShaderCB {
     glm::vec4	m_edgeColor;
 };
 
-struct MMDGroundShadowVertexShaderCB {
+struct DX11GroundShadowVertexShaderCB {
     glm::mat4	m_wvp;
 };
 
-struct MMDGroundShadowPixelShaderCB {
+struct DX11GroundShadowPixelShaderCB {
     glm::vec4	m_shadowColor;
 };
 
-struct Texture {
+struct DX11Texture {
     Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_texture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_textureView;
     bool								m_hasAlpha;
 };
 
-struct AppContext {
+struct DX11AppContext {
     std::filesystem::path m_resourceDir;
     std::filesystem::path	m_shaderDir;
     std::filesystem::path	m_mmdDir;
@@ -93,7 +93,7 @@ struct AppContext {
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
-    std::map<std::filesystem::path, Texture>	m_textures;
+    std::map<std::filesystem::path, DX11Texture>	m_textures;
     Microsoft::WRL::ComPtr<ID3D11Device>			m_device;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	m_renderTargetView;
     Microsoft::WRL::ComPtr <ID3D11DepthStencilView> m_depthStencilView;
@@ -124,26 +124,26 @@ struct AppContext {
 
     bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     bool CreateShaders();
-    Texture GetTexture(const std::filesystem::path& texturePath);
+    DX11Texture GetTexture(const std::filesystem::path& texturePath);
 };
 
-struct Material {
-    explicit Material(const MMDMaterial& mat);
+struct DX11Material {
+    explicit DX11Material(const MMDMaterial& mat);
 
     const MMDMaterial&	m_mmdMat;
-    Texture	m_texture{};
-    Texture	m_spTexture{};
-    Texture	m_toonTexture{};
+    DX11Texture	m_texture{};
+    DX11Texture	m_spTexture{};
+    DX11Texture	m_toonTexture{};
 };
 
-struct Model {
-    std::shared_ptr<MMDModel>	m_mmdModel;
-    std::unique_ptr<VMDAnimation>	m_vmdAnim;
-    std::vector<Material>	m_materials;
+struct DX11Model {
+    std::shared_ptr<MMDModel>	                m_mmdModel;
+    std::unique_ptr<VMDAnimation>	            m_vmdAnim;
+    std::vector<DX11Material>	                m_materials;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext>	m_context;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
-    DXGI_FORMAT					m_indexBufferFormat;
+    DXGI_FORMAT					                m_indexBufferFormat;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdVSConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdPSConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeVSConstantBuffer;
@@ -153,10 +153,10 @@ struct Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
     float m_scale = 1.0f;
 
-    bool Setup(AppContext& appContext);
-    void UpdateAnimation(const AppContext& appContext) const;
+    bool Setup(DX11AppContext& appContext);
+    void UpdateAnimation(const DX11AppContext& appContext) const;
     void Update() const;
-    void Draw(const AppContext& appContext) const;
+    void Draw(const DX11AppContext& appContext) const;
 };
 
 bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg);

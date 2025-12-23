@@ -7,6 +7,7 @@
 #include <shobjidl.h>
 
 #include "src/MMDUtil.h"
+#include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
 
 inline bool PickFilesWin(
@@ -117,6 +118,38 @@ static SceneConfig BuildTestSceneConfig() {
 	return cfg;
 }
 
+static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	switch (msg) {
+		case WM_DESTROY: PostQuitMessage(0); return 0;
+		default: return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+}
+
+HWND CreateDx11Window(HINSTANCE hInst, int w, int h) {
+	const wchar_t* cls = L"PmxModDx11Window";
+
+	WNDCLASSEXW wc{ sizeof(wc) };
+	wc.lpfnWndProc = WndProc;
+	wc.hInstance   = hInst;
+	wc.lpszClassName = cls;
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	RegisterClassExW(&wc);
+
+	DWORD style = WS_OVERLAPPEDWINDOW;
+	RECT rc{ 0,0,w,h };
+	AdjustWindowRect(&rc, style, FALSE);
+
+	HWND hwnd = CreateWindowExW(
+		0, cls, L"Pmx Mod (DX11)", style,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		rc.right - rc.left, rc.bottom - rc.top,
+		nullptr, nullptr, hInst, nullptr
+	);
+
+	ShowWindow(hwnd, SW_SHOW);
+	return hwnd;
+}
+
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
@@ -164,9 +197,20 @@ int main() {
 		if (!musicPath.empty())
 			cfg.musicPath = musicPath.front().wstring();
 	}
-	if (!GLFWSampleMain(cfg)) {
-		std::cout << "Failed to run.\n";
-		return 1;
+	int engineType;
+	std::cin >> engineType;
+	if (engineType == 0) {
+		if (!GLFWSampleMain(cfg)) {
+			std::cout << "Failed to run.\n";
+			return 1;
+		}
+	}
+	else if (engineType == 1) {
+        HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
+        if (!hwnd || !DX11SampleMain(hwnd, cfg)) {
+        	std::cout << "Failed to run.\n";
+	        return 1;
+        }
 	}
 	return 0;
 }

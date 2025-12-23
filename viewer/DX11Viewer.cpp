@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 
-bool AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
+bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
     m_device = device;
     m_resourceDir = PathUtil::GetExecutablePath();
     m_resourceDir = m_resourceDir.parent_path();
@@ -23,7 +23,7 @@ bool AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
     return true;
 }
 
-bool AppContext::CreateShaders() {
+bool DX11AppContext::CreateShaders() {
 	auto ReadFileBinary = [](const std::filesystem::path& path, std::vector<uint8_t>& out) {
 		std::ifstream f(path, std::ios::binary);
 		if (!f)
@@ -359,18 +359,18 @@ bool AppContext::CreateShaders() {
 	return true;
 }
 
-Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
+DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
 	FILE* fp = nullptr;
 	if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
-		return Texture();
+		return DX11Texture();
 	int x = 0, y = 0, comp = 0;
 	stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
 	std::fclose(fp);
 	if (!image)
-		return Texture();
+		return DX11Texture();
 	D3D11_TEXTURE2D_DESC tex2dDesc = {};
 	tex2dDesc.Width = x;
 	tex2dDesc.Height = y;
@@ -391,12 +391,12 @@ Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
 	stbi_image_free(image);
 	if (FAILED(hr))
-		return Texture();
+		return DX11Texture();
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
 	hr = m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV);
 	if (FAILED(hr))
-		return Texture();
-	Texture tex;
+		return DX11Texture();
+	DX11Texture tex;
 	tex.m_texture = tex2d;
 	tex.m_textureView = tex2dRV;
 	tex.m_hasAlpha = hasAlpha;
@@ -404,11 +404,11 @@ Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	return m_textures[texturePath];
 }
 
-Material::Material(const MMDMaterial& mat)
+DX11Material::DX11Material(const MMDMaterial& mat)
 	: m_mmdMat(mat) {
 }
 
-bool Model::Setup(AppContext& appContext) {
+bool DX11Model::Setup(DX11AppContext& appContext) {
 	HRESULT hr;
 	hr = appContext.m_device->CreateDeferredContext(0, &m_context);
 	if (FAILED(hr))
@@ -417,7 +417,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup vertex buffer
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(Vertex) * m_mmdModel->m_positions.size());
+	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
 	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	hr = appContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer);
@@ -447,7 +447,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC vsBufDesc = {};
 	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	vsBufDesc.ByteWidth = sizeof(MMDVertexShaderCB);
+	vsBufDesc.ByteWidth = sizeof(DX11VertexShaderCB);
 	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	vsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer);
@@ -457,7 +457,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC psBufDesc = {};
 	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	psBufDesc.ByteWidth = sizeof(MMDPixelShaderCB);
+	psBufDesc.ByteWidth = sizeof(DX11PixelShaderCB);
 	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	psBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer);
@@ -467,7 +467,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd edge vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC evsBufDesc1 = {};
 	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc1.ByteWidth = sizeof(MMDEdgeVertexShaderCB);
+	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShaderCB);
 	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc1.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer);
@@ -477,7 +477,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
 	D3D11_BUFFER_DESC evsBufDesc2 = {};
 	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc2.ByteWidth = sizeof(MMDEdgeSizeVertexShaderCB);
+	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShaderCB);
 	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc2.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer);
@@ -487,7 +487,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd edge pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC epsBufDesc = {};
 	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	epsBufDesc.ByteWidth = sizeof(MMDEdgePixelShaderCB);
+	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShaderCB);
 	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	epsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer);
@@ -497,7 +497,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd ground shadow vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC gvsBufDesc = {};
 	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gvsBufDesc.ByteWidth = sizeof(MMDGroundShadowVertexShaderCB);
+	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShaderCB);
 	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gvsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer);
@@ -507,7 +507,7 @@ bool Model::Setup(AppContext& appContext) {
 	// Setup mmd ground shadow pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC gpsBufDesc = {};
 	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gpsBufDesc.ByteWidth = sizeof(MMDGroundShadowPixelShaderCB);
+	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShaderCB);
 	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gpsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer);
@@ -516,7 +516,7 @@ bool Model::Setup(AppContext& appContext) {
 
 	// Setup materials
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
-		Material mat(mmdMat);
+		DX11Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty())
 			mat.m_texture = appContext.GetTexture(mmdMat.m_texture);
 		if (!mmdMat.m_spTexture.empty())
@@ -528,19 +528,19 @@ bool Model::Setup(AppContext& appContext) {
 	return true;
 }
 
-void Model::UpdateAnimation(const AppContext& appContext) const {
+void DX11Model::UpdateAnimation(const DX11AppContext& appContext) const {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
-void Model::Update() const {
+void DX11Model::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
 	const HRESULT hr = m_context->Map(m_vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapRes);
 	if (FAILED(hr))
 		return;
-	const auto vertices = static_cast<Vertex*>(mapRes.pData);
+	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
 	const glm::vec3* positions = m_mmdModel->m_updatePositions.data();
 	const glm::vec3* normals = m_mmdModel->m_updateNormals.data();
 	const glm::vec2* uvs = m_mmdModel->m_updateUVs.data();
@@ -552,7 +552,7 @@ void Model::Update() const {
 	m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
-void Model::Draw(const AppContext& appContext) const {
+void DX11Model::Draw(const DX11AppContext& appContext) const {
 	const auto& view = appContext.m_viewMat;
 	const auto& proj = appContext.m_projMat;
 	const auto& dxMat = glm::mat4(
@@ -579,7 +579,7 @@ void Model::Draw(const AppContext& appContext) const {
 	m_context->OMSetDepthStencilState(appContext.m_defaultDSS.Get(), 0x00);
 
 	// Setup input assembler
-	UINT strides[] = { sizeof(Vertex) };
+	UINT strides[] = { sizeof(DX11Vertex) };
 	UINT offsets[] = { 0 };
 	m_context->IASetInputLayout(appContext.m_mmdInputLayout.Get());
 	ID3D11Buffer* vbs[] = { m_vertexBuffer.Get() };
@@ -588,7 +588,7 @@ void Model::Draw(const AppContext& appContext) const {
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Draw model
-	MMDVertexShaderCB vsCB1;
+	DX11VertexShaderCB vsCB1;
 	vsCB1.m_wv = wv;
 	vsCB1.m_wvp = wvp;
 	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
@@ -602,7 +602,7 @@ void Model::Draw(const AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdPS.Get(), nullptr, 0);
-		MMDPixelShaderCB psCB;
+		DX11PixelShaderCB psCB;
 		psCB.m_alpha = mmdMat.m_diffuse.a;
 		psCB.m_diffuse = mmdMat.m_diffuse;
 		psCB.m_ambient = mmdMat.m_ambient;
@@ -682,7 +682,7 @@ void Model::Draw(const AppContext& appContext) const {
 
 	// Draw edge
 	m_context->IASetInputLayout(appContext.m_mmdEdgeInputLayout.Get());
-	MMDEdgeVertexShaderCB vsCB2;
+	DX11EdgeVertexShaderCB vsCB2;
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
 	vsCB2.m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth),
@@ -699,14 +699,14 @@ void Model::Draw(const AppContext& appContext) const {
 			continue;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
-		MMDEdgeSizeVertexShaderCB vsCB;
+		DX11EdgeSizeVertexShaderCB vsCB;
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
 		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
 		m_context->VSSetConstantBuffers(1, 1, cbs);
 		m_context->PSSetShader(appContext.m_mmdEdgePS.Get(), nullptr, 0);
-		MMDEdgePixelShaderCB psCB;
+		DX11EdgePixelShaderCB psCB;
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
@@ -739,7 +739,7 @@ void Model::Draw(const AppContext& appContext) const {
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
 	auto wsvp = dxMat * proj * view * shadow * world;
-	MMDGroundShadowVertexShaderCB vsCB;
+	DX11GroundShadowVertexShaderCB vsCB;
 	vsCB.m_wvp = wsvp;
 	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
@@ -757,7 +757,7 @@ void Model::Draw(const AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdGroundShadowPS.Get(), nullptr, 0);
-		MMDGroundShadowPixelShaderCB psCB;
+		DX11GroundShadowPixelShaderCB psCB;
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
@@ -879,7 +879,7 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
 	if (!CreateRenderTargets(width, height))
 		return false;
 
-	AppContext appContext;
+	DX11AppContext appContext;
 	appContext.m_multiSampleCount = msaaCount;
 	appContext.m_multiSampleQuality = msaaQuality;
 	if (!appContext.Setup(device.Get()))
@@ -895,11 +895,11 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
 		}
 	}
 
-	std::vector<Model> models;
+	std::vector<DX11Model> models;
 	models.reserve(cfg.models.size());
 
 	for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
-		Model model;
+		DX11Model model;
 
 		const auto ext = PathUtil::GetExt(modelPath);
 		if (ext != "pmx") {
@@ -1024,10 +1024,18 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
                 static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
         }
 
+    	appContext.m_renderTargetView = rtv;
+    	appContext.m_depthStencilView = dsv;
+
         for (auto& model : models) {
             model.UpdateAnimation(appContext);
             model.Update();
             model.Draw(appContext);
+
+        	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
+        	HRESULT hrCL = model.m_context->FinishCommandList(FALSE, &cmd);
+        	if (SUCCEEDED(hrCL) && cmd)
+		        context->ExecuteCommandList(cmd.Get(), FALSE);
         }
 
         swapChain->Present(0, 0);
