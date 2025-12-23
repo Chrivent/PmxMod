@@ -212,7 +212,7 @@ struct AppContext
 	vk::Sampler	m_defaultSampler;
 
 	bool Setup(vk::Instance inst, vk::SurfaceKHR surface, vk::PhysicalDevice gpu, vk::Device device);
-	void Destory();
+	void Destroy();
 	bool Prepare();
 	bool PrepareCommandPool();
 	bool PrepareBuffer();
