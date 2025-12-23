@@ -2744,7 +2744,7 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		for (auto& model : models)
 			model.Draw(appContext);
 		cmdBuffer.begin(vk::CommandBufferBeginInfo());
-		auto clearColor = vk::ClearColorValue(std::array<float, 4>({ 1.0f, 0.8f, 0.75f, 1.0f }));
+		auto clearColor = vk::ClearColorValue(std::array({ 1.0f, 0.8f, 0.75f, 1.0f }));
 		auto clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 		vk::ClearValue clearValues[] = {
 			clearColor,
