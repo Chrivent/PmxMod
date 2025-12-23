@@ -2783,13 +2783,15 @@ bool VKSampleMain(const SceneConfig& cfg) {
 			.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphores.size()))
 			.setPWaitSemaphores(waitSemaphores.data())
 			.setSignalSemaphoreCount(1)
-			.setPSignalSemaphores(&m_presentCompleteSemaphore)
+			.setPSignalSemaphores(&m_renderCompleteSemaphore)
 			.setCommandBufferCount(1)
 			.setPCommandBuffers(&cmdBuffer);
 		if (appContext.m_graphicsQueue.submit(1, &submit, m_fence) != vk::Result::eSuccess) {
 			std::cout << "Failed to submit to graphics queue.\n";
 			break;
 		}
+		waitSemaphores.clear();
+		waitStages.clear();
 		vk::PresentInfoKHR present = vk::PresentInfoKHR()
 			.setWaitSemaphoreCount(1)
 			.setPWaitSemaphores(&m_renderCompleteSemaphore)
