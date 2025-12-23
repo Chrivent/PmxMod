@@ -40,59 +40,48 @@ target_link_libraries(PmxMod PUBLIC
 )
 target_compile_definitions(PmxMod PUBLIC)
 
-set(RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resource)
+set(RESOURCE_SRC_DIR  "${CMAKE_SOURCE_DIR}/resource")
+set(RESOURCE_OUT_DIR  "${CMAKE_CURRENT_BINARY_DIR}/resource")
+set(SHADER_SRC_DIR    "${RESOURCE_SRC_DIR}/shader_DX11")
+set(SHADER_OUT_DIR    "${RESOURCE_OUT_DIR}/shader_DX11")
+
 add_custom_target(SyncResources
-        COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:PmxMod>/resource
-        COMMAND ${CMAKE_COMMAND} -E copy_directory  ${RESOURCE_DIR} $<TARGET_FILE_DIR:PmxMod>/resource
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory  "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
         VERBATIM
 )
-add_dependencies(PmxMod SyncResources)
 
+find_program(FXC_EXE NAMES fxc REQUIRED)
 
-
-set(SHADER_DX11_SRC_DIR ${CMAKE_SOURCE_DIR}/resource/shader_DX11)
-set(SHADER_DX11_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shader_DX11)
-find_program(FXC_EXE fxc)
-function(add_fxc_shader OUT_VAR SRC PROFILE ENTRY)
-    get_filename_component(SRC_NAME ${SRC} NAME_WE)
-    set(OUT_FILE ${SHADER_DX11_OUT_DIR}/${SRC_NAME}.${PROFILE}.${ENTRY}.cso)
+function(add_fxc_shader OUT_VAR SRC PROFILE ENTRY OUT_BASENAME)
+    set(OUT_FILE "${SHADER_OUT_DIR}/${OUT_BASENAME}.cso")
     add_custom_command(
-            OUTPUT ${OUT_FILE}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_DX11_OUT_DIR}
-            COMMAND ${FXC_EXE} /nologo
-            /T ${PROFILE}
-            /E ${ENTRY}
-            /Fo ${OUT_FILE}
-            ${SRC}
-            DEPENDS ${SRC}
+            OUTPUT "${OUT_FILE}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_OUT_DIR}"
+            COMMAND "${FXC_EXE}" /nologo
+            /T "${PROFILE}"
+            /E "${ENTRY}"
+            /Fo "${OUT_FILE}"
+            "${SRC}"
+            DEPENDS "${SRC}"
             VERBATIM
     )
     set(${OUT_VAR} "${OUT_FILE}" PARENT_SCOPE)
 endfunction()
 
-add_fxc_shader(MMD_VS_CSO  ${SHADER_DX11_SRC_DIR}/mmd.fx               vs_5_0 VSMain)
-add_fxc_shader(MMD_PS_CSO  ${SHADER_DX11_SRC_DIR}/mmd.fx               ps_5_0 PSMain)
-add_fxc_shader(EDGE_VS_CSO ${SHADER_DX11_SRC_DIR}/mmd_edge.fx          vs_5_0 VSMain)
-add_fxc_shader(EDGE_PS_CSO ${SHADER_DX11_SRC_DIR}/mmd_edge.fx          ps_5_0 PSMain)
-add_fxc_shader(GS_VS_CSO   ${SHADER_DX11_SRC_DIR}/mmd_ground_shadow.fx vs_5_0 VSMain)
-add_fxc_shader(GS_PS_CSO   ${SHADER_DX11_SRC_DIR}/mmd_ground_shadow.fx ps_5_0 PSMain)
+add_fxc_shader(MMD_VS_CSO  "${SHADER_SRC_DIR}/mmd.fx"               vs_5_0 VSMain mmd.vs)
+add_fxc_shader(MMD_PS_CSO  "${SHADER_SRC_DIR}/mmd.fx"               ps_5_0 PSMain mmd.ps)
+add_fxc_shader(EDGE_VS_CSO "${SHADER_SRC_DIR}/mmd_edge.fx"          vs_5_0 VSMain mmd_edge.vs)
+add_fxc_shader(EDGE_PS_CSO "${SHADER_SRC_DIR}/mmd_edge.fx"          ps_5_0 PSMain mmd_edge.ps)
+add_fxc_shader(GS_VS_CSO   "${SHADER_SRC_DIR}/mmd_ground_shadow.fx" vs_5_0 VSMain mmd_ground_shadow.vs)
+add_fxc_shader(GS_PS_CSO   "${SHADER_SRC_DIR}/mmd_ground_shadow.fx" ps_5_0 PSMain mmd_ground_shadow.ps)
 
 add_custom_target(CompileDX11Shaders
         DEPENDS
-        ${MMD_VS_CSO} ${MMD_PS_CSO}
-        ${EDGE_VS_CSO} ${EDGE_PS_CSO}
-        ${GS_VS_CSO} ${GS_PS_CSO}
+        "${MMD_VS_CSO}" "${MMD_PS_CSO}"
+        "${EDGE_VS_CSO}" "${EDGE_PS_CSO}"
+        "${GS_VS_CSO}" "${GS_PS_CSO}"
 )
 
-add_custom_target(SyncDX11Shaders
-        DEPENDS CompileDX11Shaders
-        COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MMD_VS_CSO}  $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd.vs.cso
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${MMD_PS_CSO}  $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd.ps.cso
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${EDGE_VS_CSO} $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd_edge.vs.cso
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${EDGE_PS_CSO} $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd_edge.ps.cso
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GS_VS_CSO}   $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd_ground_shadow.vs.cso
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GS_PS_CSO}   $<TARGET_FILE_DIR:PmxMod>/resource/shader_DX11/mmd_ground_shadow.ps.cso
-        VERBATIM
-)
-add_dependencies(PmxMod CompileDX11Shaders SyncDX11Shaders)
+add_dependencies(CompileDX11Shaders SyncResources)
+add_dependencies(PmxMod SyncResources CompileDX11Shaders)
