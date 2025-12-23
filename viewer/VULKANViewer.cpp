@@ -398,7 +398,7 @@ bool AppContext::Setup(const vk::Instance inst, const vk::SurfaceKHR surface, co
 	m_resourceDir = PathUtil::GetExecutablePath();
 	m_resourceDir = m_resourceDir.parent_path();
 	m_resourceDir /= "resource";
-	m_shaderDir = m_resourceDir / "shader_GLFW";
+	m_shaderDir = m_resourceDir / "shader_Vulkan";
 	m_mmdDir = m_resourceDir / "mmd";
 	const auto memProperties = m_gpu.getMemoryProperties();
 	m_memProperties = memProperties;
@@ -1780,7 +1780,7 @@ bool AppContext::GetTexture(const std::filesystem::path& texturePath, Texture** 
 }
 
 bool AppContext::ReadSpvBinary(const std::filesystem::path& path, std::vector<uint32_t>& out) {
-	std::ifstream f(path, std::ios::binary);
+	std::ifstream f(path, std::ios::binary | std::ios::ate);
 	if (!f)
 		return false;
 	const std::streamsize size = f.tellg();
@@ -2735,20 +2735,22 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 			return false;
 		}
 		uint32_t imgIndex = appContext.m_imageIndex;
+		auto& res = appContext.m_swapChainImageResources[imgIndex];
+		vk::CommandBuffer cmdBuffer = res.m_cmdBuffer;
 		for (auto& model : models) {
 			model.UpdateAnimation(appContext);
 			model.Update(appContext);
 		}
-		for (auto& model : models) {
+		for (auto& model : models)
 			model.Draw(appContext);
-		}
-		auto& res = appContext.m_swapChainImageResources[imgIndex];
-		vk::CommandBuffer primaryCmd = res.m_cmdBuffer;
-		primaryCmd.reset();
-		primaryCmd.begin(vk::CommandBufferBeginInfo());
-		vk::ClearValue clears[] = {
-			vk::ClearColorValue(std::array<float,4>{1, 0.8f, 0.75f, 1}),
-			vk::ClearDepthStencilValue(1.0f, 0),
+		cmdBuffer.begin(vk::CommandBufferBeginInfo());
+		auto clearColor = vk::ClearColorValue(std::array<float, 4>({ 1.0f, 0.8f, 0.75f, 1.0f }));
+		auto clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
+		vk::ClearValue clearValues[] = {
+			clearColor,
+			clearColor,
+			clearDepth,
+			clearDepth,
 		};
 		vk::RenderPassBeginInfo rpBegin = vk::RenderPassBeginInfo()
 			.setRenderPass(appContext.m_renderPass)
@@ -2756,22 +2758,22 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 			.setRenderArea(vk::Rect2D({ 0,0 },
 				{ static_cast<uint32_t>(appContext.m_screenWidth),
 					static_cast<uint32_t>(appContext.m_screenHeight) }))
-			.setClearValueCount(std::size(clears))
-			.setPClearValues(clears);
-		primaryCmd.beginRenderPass(rpBegin, vk::SubpassContents::eSecondaryCommandBuffers);
+			.setClearValueCount(std::size(clearValues))
+			.setPClearValues(clearValues);
+		cmdBuffer.beginRenderPass(rpBegin, vk::SubpassContents::eSecondaryCommandBuffers);
 		for (auto& model : models) {
 			vk::CommandBuffer sec = model.GetCommandBuffer(imgIndex);
-			primaryCmd.executeCommands(1, &sec);
+			cmdBuffer.executeCommands(1, &sec);
 		}
-		primaryCmd.endRenderPass();
-		primaryCmd.end();
+		cmdBuffer.endRenderPass();
+		cmdBuffer.end();
 		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 		vk::SubmitInfo submit = vk::SubmitInfo()
 			.setWaitSemaphoreCount(1)
 			.setPWaitSemaphores(&m_presentCompleteSemaphore)
 			.setPWaitDstStageMask(&waitStage)
 			.setCommandBufferCount(1)
-			.setPCommandBuffers(&primaryCmd)
+			.setPCommandBuffers(&cmdBuffer)
 			.setSignalSemaphoreCount(1)
 			.setPSignalSemaphores(&m_renderCompleteSemaphore);
 		if (appContext.m_graphicsQueue.submit(1, &submit, m_fence) != vk::Result::eSuccess) {
