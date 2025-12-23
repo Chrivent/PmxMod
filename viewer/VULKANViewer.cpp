@@ -2710,85 +2710,77 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 				static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
 		}
 		const uint32_t frameIndex = appContext.m_frameIndex % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
-		auto& [m_fence, m_presentCompleteSemaphore, m_renderCompleteSemaphore] = appContext.m_frameSyncDatas[frameIndex];
-        if (appContext.m_device.waitForFences(1, &m_fence, VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
-	        std::cout << "Failed to wait for fence.\n";
-	        break;
-        }
-        if (appContext.m_device.resetFences(1, &m_fence) != vk::Result::eSuccess) {
-	        std::cout << "Failed to reset fence.\n";
-	        break;
-        }
-        uint32_t imgIndex = 0;
-        vk::Result ret2 = appContext.m_device.acquireNextImageKHR(
-            appContext.m_swapChain,
-            UINT64_MAX,
-            m_presentCompleteSemaphore,
-            vk::Fence(),
-            &imgIndex
-        );
-        if (ret2 == vk::Result::eErrorOutOfDateKHR) {
-            appContext.Resize();
-            continue;
-        }
-		if (ret2 != vk::Result::eSuccess && ret2 != vk::Result::eSuboptimalKHR) {
-			std::cout << "acquireNextImageKHR failed.\n";
-			break;
+		auto& fs = appContext.m_frameSyncDatas[frameIndex];
+		appContext.m_device.waitForFences(1, &fs.m_fence, VK_TRUE, UINT64_MAX);
+		appContext.m_device.resetFences(1, &fs.m_fence);
+		vk::Result ret = appContext.m_device.acquireNextImageKHR(
+			appContext.m_swapChain,
+			UINT64_MAX,
+			fs.m_presentCompleteSemaphore,
+			vk::Fence(),
+			&appContext.m_imageIndex
+		);
+		if (ret == vk::Result::eErrorOutOfDateKHR) {
+			appContext.Resize();
+			return false;
 		}
+		if (ret != vk::Result::eSuccess && ret != vk::Result::eSuboptimalKHR) {
+			std::cout << "acquireNextImageKHR failed\n";
+			return false;
+		}
+		uint32_t imgIndex = appContext.m_imageIndex;
 		for (auto& model : models) {
-            model.UpdateAnimation(appContext);
-            model.Update(appContext);
-        }
-		auto& res = appContext.m_swapChainImageResources[imgIndex];
-		vk::CommandBuffer cmd = res.m_cmdBuffer;
-        cmd.reset();
-        vk::CommandBufferBeginInfo beginInfo;
-        cmd.begin(beginInfo);
-		vk::ClearValue clearValues[2];
-		clearValues[0].setColor(vk::ClearColorValue(std::array<float,4>{0.839f, 0.902f, 0.961f, 1.0f}));
-		clearValues[1].setDepthStencil(vk::ClearDepthStencilValue(1.0f, 0));
-		vk::RenderPassBeginInfo rpBegin;
-		rpBegin.setRenderPass(appContext.m_renderPass)
-			   .setFramebuffer(res.m_framebuffer)
-			   .setRenderArea(vk::Rect2D(vk::Offset2D(0,0),
-			   	vk::Extent2D(appContext.m_screenWidth, appContext.m_screenHeight)))
-			   .setClearValueCount(2)
-			   .setPClearValues(clearValues);
-		cmd.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
+			model.UpdateAnimation(appContext);
+			model.Update(appContext);
+		}
 		for (auto& model : models) {
 			model.Draw(appContext);
 		}
-		cmd.endRenderPass();
-		cmd.end();
-		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		vk::SubmitInfo submitInfo;
-		submitInfo.setWaitSemaphoreCount(1)
-				  .setPWaitSemaphores(&m_presentCompleteSemaphore)
-				  .setPWaitDstStageMask(&waitStage)
-				  .setCommandBufferCount(1)
-				  .setPCommandBuffers(&cmd)
-				  .setSignalSemaphoreCount(1)
-				  .setPSignalSemaphores(&m_renderCompleteSemaphore);
-		if (appContext.m_graphicsQueue.submit(1, &submitInfo, m_fence) != vk::Result::eSuccess) {
-			std::cout << "Failed to submit draw command buffer.\n";
-			break;
+		auto& res = appContext.m_swapChainImageResources[imgIndex];
+		vk::CommandBuffer primaryCmd = res.m_cmdBuffer;
+		primaryCmd.reset();
+		primaryCmd.begin(vk::CommandBufferBeginInfo());
+		vk::ClearValue clears[] = {
+			vk::ClearColorValue(std::array<float,4>{1, 0.8f, 0.75f, 1}),
+			vk::ClearDepthStencilValue(1.0f, 0),
+		};
+		vk::RenderPassBeginInfo rpBegin = vk::RenderPassBeginInfo()
+			.setRenderPass(appContext.m_renderPass)
+			.setFramebuffer(res.m_framebuffer)
+			.setRenderArea(vk::Rect2D({0,0}, {(uint32_t)appContext.m_screenWidth, (uint32_t)appContext.m_screenHeight}))
+			.setClearValueCount(std::size(clears))
+			.setPClearValues(clears);
+		primaryCmd.beginRenderPass(rpBegin, vk::SubpassContents::eSecondaryCommandBuffers);
+		for (auto& model : models) {
+			vk::CommandBuffer sec = model.GetCommandBuffer(imgIndex);
+			primaryCmd.executeCommands(1, &sec);
 		}
-		vk::PresentInfoKHR presentInfo;
-		presentInfo.setWaitSemaphoreCount(1)
-				   .setPWaitSemaphores(&m_renderCompleteSemaphore)
-				   .setSwapchainCount(1)
-				   .setPSwapchains(&appContext.m_swapChain)
-				   .setPImageIndices(&imgIndex);
-
-		auto presentQueue = appContext.m_graphicsQueue;
-		ret = presentQueue.presentKHR(&presentInfo);
+		primaryCmd.endRenderPass();
+		primaryCmd.end();
+		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		vk::SubmitInfo submit = vk::SubmitInfo()
+			.setWaitSemaphoreCount(1)
+			.setPWaitSemaphores(&fs.m_presentCompleteSemaphore)
+			.setPWaitDstStageMask(&waitStage)
+			.setCommandBufferCount(1)
+			.setPCommandBuffers(&primaryCmd)
+			.setSignalSemaphoreCount(1)
+			.setPSignalSemaphores(&fs.m_renderCompleteSemaphore);
+		appContext.m_graphicsQueue.submit(1, &submit, fs.m_fence);
+		vk::PresentInfoKHR present = vk::PresentInfoKHR()
+			.setWaitSemaphoreCount(1)
+			.setPWaitSemaphores(&fs.m_renderCompleteSemaphore)
+			.setSwapchainCount(1)
+			.setPSwapchains(&appContext.m_swapChain)
+			.setPImageIndices(&imgIndex);
+		ret = appContext.m_graphicsQueue.presentKHR(present);
 		if (ret == vk::Result::eErrorOutOfDateKHR || ret == vk::Result::eSuboptimalKHR) {
 			appContext.Resize();
 		} else if (ret != vk::Result::eSuccess) {
-			std::cout << "presentKHR failed: " << vk::to_string(ret) << "\n";
-			break;
+			std::cout << "presentKHR failed\n";
+			return false;
 		}
-		appContext.m_frameIndex = (appContext.m_frameIndex + 1) % uint32_t(appContext.m_frameSyncDatas.size());
+		appContext.m_frameIndex = (appContext.m_frameIndex + 1) % (uint32_t)appContext.m_frameSyncDatas.size();
 		fpsFrame++;
 		double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
 		if (sec > 1.0) {
