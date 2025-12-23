@@ -118,34 +118,30 @@ static SceneConfig BuildTestSceneConfig() {
 	return cfg;
 }
 
-static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK WndProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 	switch (msg) {
 		case WM_DESTROY: PostQuitMessage(0); return 0;
 		default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 }
 
-HWND CreateDx11Window(HINSTANCE hInst, int w, int h) {
-	const wchar_t* cls = L"PmxModDx11Window";
-
+HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
+	auto cls = L"PmxModDx11Window";
 	WNDCLASSEXW wc{ sizeof(wc) };
 	wc.lpfnWndProc = WndProc;
 	wc.hInstance   = hInst;
 	wc.lpszClassName = cls;
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	RegisterClassExW(&wc);
-
-	DWORD style = WS_OVERLAPPEDWINDOW;
+	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
 	RECT rc{ 0,0,w,h };
 	AdjustWindowRect(&rc, style, FALSE);
-
-	HWND hwnd = CreateWindowExW(
+	const HWND hwnd = CreateWindowExW(
 		0, cls, L"Pmx Mod (DX11)", style,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		rc.right - rc.left, rc.bottom - rc.top,
 		nullptr, nullptr, hInst, nullptr
 	);
-
 	ShowWindow(hwnd, SW_SHOW);
 	return hwnd;
 }

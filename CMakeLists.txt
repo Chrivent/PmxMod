@@ -24,19 +24,22 @@ add_executable(PmxMod
         src/VMDAnimation.cpp    src/VMDAnimation.h
         viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
         viewer/DX11Viewer.cpp   viewer/DX11Viewer.h
+        viewer/VULKANViewer.cpp
+        viewer/VULKANViewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC
         glfw
         glad::glad
         glm::glm
-        BulletDynamics
-        BulletCollision
-        LinearMath
 
         d3d11
         dxgi
         d3dcompiler
+
+        BulletDynamics
+        BulletCollision
+        LinearMath
 )
 target_compile_definitions(PmxMod PUBLIC)
 
