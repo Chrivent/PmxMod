@@ -23,14 +23,12 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	const GLint codesLen[] = { static_cast<GLint>(code.size()) };
 	glShaderSource(shader, 1, codes, codesLen);
 	glCompileShader(shader);
-
 	GLint infoLength;
 	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
 	if (infoLength != 0) {
 		std::vector<char> info;
 		info.reserve(infoLength + 1);
 		info.resize(infoLength);
-
 		GLsizei len;
 		glGetShaderInfoLog(shader, infoLength, &len, &info[0]);
 		if (info[infoLength - 1] != '\0')
@@ -38,7 +36,6 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 
 		std::cout << &info[0] << "\n";
 	}
-
 	GLint compileStatus;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 	if (compileStatus != GL_TRUE) {
@@ -46,7 +43,6 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 		std::cout << "Failed to compile shader.\n";
 		return 0;
 	}
-
 	return shader;
 }
 
@@ -57,14 +53,12 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 		return 0;
 	}
 	const auto vsCode = std::string(std::istreambuf_iterator(vf), {});
-
 	std::ifstream ff(fsFile);
 	if (!ff) {
 		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
 		return 0;
 	}
 	const auto fsCode = std::string(std::istreambuf_iterator(ff), {});
-
 	const GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
 	const GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
 	if (vs == 0 || fs == 0) {
@@ -74,7 +68,6 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 			glDeleteShader(fs);
 		return 0;
 	}
-
 	const GLuint prog = glCreateProgram();
 	if (prog == 0) {
 		glDeleteShader(vs);
@@ -85,7 +78,6 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	glAttachShader(prog, vs);
 	glAttachShader(prog, fs);
 	glLinkProgram(prog);
-
 	GLint infoLength;
 	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLength);
 	if (infoLength != 0) {
@@ -100,7 +92,6 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 
 		std::cout << &info[0] << "\n";
 	}
-
 	GLint linkStatus;
 	glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
 	if (linkStatus != GL_TRUE) {
@@ -109,7 +100,6 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 		std::cout << "Failed to link shader.\n";
 		return 0;
 	}
-
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	return prog;
@@ -126,40 +116,30 @@ bool MMDShader::Setup(const AppContext& appContext) {
 	);
 	if (m_prog == 0)
 		return false;
-
-	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
 	m_inNor = glGetAttribLocation(m_prog, "in_Nor");
 	m_inUV = glGetAttribLocation(m_prog, "in_UV");
-
-	// uniform
 	m_uWV = glGetUniformLocation(m_prog, "u_WV");
 	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
-
 	m_uAmbient = glGetUniformLocation(m_prog, "u_Ambient");
 	m_uDiffuse = glGetUniformLocation(m_prog, "u_Diffuse");
 	m_uSpecular = glGetUniformLocation(m_prog, "u_Specular");
 	m_uSpecularPower = glGetUniformLocation(m_prog, "u_SpecularPower");
 	m_uAlpha = glGetUniformLocation(m_prog, "u_Alpha");
-
 	m_uTexMode = glGetUniformLocation(m_prog, "u_TexMode");
 	m_uTex = glGetUniformLocation(m_prog, "u_Tex");
 	m_uTexMulFactor = glGetUniformLocation(m_prog, "u_TexMulFactor");
 	m_uTexAddFactor = glGetUniformLocation(m_prog, "u_TexAddFactor");
-
 	m_uSphereTexMode = glGetUniformLocation(m_prog, "u_SphereTexMode");
 	m_uSphereTex = glGetUniformLocation(m_prog, "u_SphereTex");
 	m_uSphereTexMulFactor = glGetUniformLocation(m_prog, "u_SphereTexMulFactor");
 	m_uSphereTexAddFactor = glGetUniformLocation(m_prog, "u_SphereTexAddFactor");
-
 	m_uToonTexMode = glGetUniformLocation(m_prog, "u_ToonTexMode");
 	m_uToonTex = glGetUniformLocation(m_prog, "u_ToonTex");
 	m_uToonTexMulFactor = glGetUniformLocation(m_prog, "u_ToonTexMulFactor");
 	m_uToonTexAddFactor = glGetUniformLocation(m_prog, "u_ToonTexAddFactor");
-
 	m_uLightColor = glGetUniformLocation(m_prog, "u_LightColor");
 	m_uLightDir = glGetUniformLocation(m_prog, "u_LightDir");
-
 	m_uLightVP = glGetUniformLocation(m_prog, "u_LightWVP");
 	m_uShadowMapSplitPositions = glGetUniformLocation(m_prog, "u_ShadowMapSplitPositions");
 	m_uShadowMap0 = glGetUniformLocation(m_prog, "u_ShadowMap0");
@@ -167,7 +147,6 @@ bool MMDShader::Setup(const AppContext& appContext) {
 	m_uShadowMap2 = glGetUniformLocation(m_prog, "u_ShadowMap2");
 	m_uShadowMap3 = glGetUniformLocation(m_prog, "u_ShadowMap3");
 	m_uShadowMapEnabled = glGetUniformLocation(m_prog, "u_ShadowMapEnabled");
-
 	return true;
 }
 
@@ -175,10 +154,6 @@ void MMDShader::Clear() {
 	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
-
-/*
-	MMDEdgeShader
-*/
 
 MMDEdgeShader::~MMDEdgeShader() {
 	Clear();
@@ -191,18 +166,13 @@ bool MMDEdgeShader::Setup(const AppContext& appContext) {
 	);
 	if (m_prog == 0)
 		return false;
-
-	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
 	m_inNor = glGetAttribLocation(m_prog, "in_Nor");
-
-	// uniform
 	m_uWV = glGetUniformLocation(m_prog, "u_WV");
 	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
 	m_uScreenSize = glGetUniformLocation(m_prog, "u_ScreenSize");
 	m_uEdgeSize = glGetUniformLocation(m_prog, "u_EdgeSize");
 	m_uEdgeColor = glGetUniformLocation(m_prog, "u_EdgeColor");
-
 	return true;
 }
 
@@ -210,10 +180,6 @@ void MMDEdgeShader::Clear() {
 	if (m_prog != 0) glDeleteProgram(m_prog);
 	m_prog = 0;
 }
-
-/*
-	MMDGroundShadowShader
-*/
 
 MMDGroundShadowShader::~MMDGroundShadowShader() {
 	Clear();
@@ -226,14 +192,9 @@ bool MMDGroundShadowShader::Setup(const AppContext& appContext) {
 	);
 	if (m_prog == 0)
 		return false;
-
-	// attribute
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
-
-	// uniform
 	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
 	m_uShadowColor = glGetUniformLocation(m_prog, "u_ShadowColor");
-
 	return true;
 }
 
@@ -321,24 +282,20 @@ Material::Material(const MMDMaterial &mat)
 bool Model::Setup(AppContext& appContext) {
 	if (m_mmdModel == nullptr)
 		return false;
-
 	// Setup vertices
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glGenBuffers(1, &m_posVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	glGenBuffers(1, &m_norVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	glGenBuffers(1, &m_uvVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	const size_t idxSize = m_mmdModel->m_indexElementSize;
 	const size_t idxCount = m_mmdModel->m_indexCount;
 	glGenBuffers(1, &m_ibo);
@@ -353,58 +310,42 @@ bool Model::Setup(AppContext& appContext) {
 		m_indexType = GL_UNSIGNED_INT;
 	else
 		return false;
-
 	// Setup MMD VAO
 	glGenVertexArrays(1, &m_mmdVAO);
 	glBindVertexArray(m_mmdVAO);
-
 	const auto &mmdShader = appContext.m_mmdShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inPos);
-
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
 	glVertexAttribPointer(mmdShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inNor);
-
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
 	glVertexAttribPointer(mmdShader->m_inUV, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inUV);
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-
 	glBindVertexArray(0);
-
 	// Setup MMD Edge VAO
 	glGenVertexArrays(1, &m_mmdEdgeVAO);
 	glBindVertexArray(m_mmdEdgeVAO);
-
 	const auto &mmdEdgeShader = appContext.m_mmdEdgeShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
-
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
 	glVertexAttribPointer(mmdEdgeShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inNor);
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-
 	glBindVertexArray(0);
-
 	// Setup MMD Ground Shadow VAO
 	glGenVertexArrays(1, &m_mmdGroundShadowVAO);
 	glBindVertexArray(m_mmdGroundShadowVAO);
-
 	const auto &mmdGroundShadowShader = appContext.m_mmdGroundShadowShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-
 	glBindVertexArray(0);
-
 	// Setup materials
 	for (const auto & mmdMat : m_mmdModel->m_materials) {
 		Material mat(mmdMat);
@@ -423,7 +364,6 @@ bool Model::Setup(AppContext& appContext) {
 		}
 		m_materials.emplace_back(mat);
 	}
-
 	return true;
 }
 
@@ -436,7 +376,6 @@ void Model::Clear() {
 	m_norVBO = 0;
 	m_uvVBO = 0;
 	m_ibo = 0;
-
 	if (m_mmdVAO != 0) glDeleteVertexArrays(1, &m_mmdVAO);
 	if (m_mmdEdgeVAO != 0) glDeleteVertexArrays(1, &m_mmdEdgeVAO);
 	if (m_mmdGroundShadowVAO != 0) glDeleteVertexArrays(1, &m_mmdGroundShadowVAO);
@@ -452,7 +391,6 @@ void Model::UpdateAnimation(const AppContext& appContext) const {
 
 void Model::Update() const {
 	m_mmdModel->Update();
-
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), m_mmdModel->m_updatePositions.data());
@@ -466,11 +404,9 @@ void Model::Update() const {
 void Model::Draw(const AppContext& appContext) const {
 	const auto &view = appContext.m_viewMat;
 	const auto &proj = appContext.m_projMat;
-
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
-
 	glActiveTexture(GL_TEXTURE0 + 3);
 	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 4);
@@ -479,9 +415,7 @@ void Model::Draw(const AppContext& appContext) const {
 	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 6);
 	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
-
 	glEnable(GL_DEPTH_TEST);
-
 	// Draw model
 	size_t subMeshCount = m_mmdModel->m_subMeshes.size();
 	for (size_t i = 0; i < subMeshCount; i++) {
@@ -489,22 +423,17 @@ void Model::Draw(const AppContext& appContext) const {
 		const auto &shader = appContext.m_mmdShader;
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
-
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
-
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdVAO);
-
 		glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-
 		glUniform3fv(shader->m_uAmbient, 1, &mmdMat.m_ambient[0]);
 		glUniform3fv(shader->m_uDiffuse, 1, &mmdMat.m_diffuse[0]);
 		glUniform3fv(shader->m_uSpecular, 1, &mmdMat.m_specular[0]);
 		glUniform1f(shader->m_uSpecularPower, mmdMat.m_specularPower);
 		glUniform1f(shader->m_uAlpha, mmdMat.m_diffuse.a);
-
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glUniform1i(shader->m_uTex, 0);
 		if (mat.m_texture != 0) {
@@ -521,7 +450,6 @@ void Model::Draw(const AppContext& appContext) const {
 			glUniform1i(shader->m_uTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
 		}
-
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
 		if (mat.m_spTexture != 0) {
@@ -536,7 +464,6 @@ void Model::Draw(const AppContext& appContext) const {
 			glUniform1i(shader->m_uSphereTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
 		}
-
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glUniform1i(shader->m_uToonTex, 2);
 		if (mat.m_toonTexture != 0) {
@@ -550,43 +477,35 @@ void Model::Draw(const AppContext& appContext) const {
 			glUniform1i(shader->m_uToonTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
 		}
-
 		glm::vec3 lightColor = appContext.m_lightColor;
 		glm::vec3 lightDir = appContext.m_lightDir;
 		auto viewMat = glm::mat3(appContext.m_viewMat);
 		lightDir = viewMat * lightDir;
 		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
-
 		if (mmdMat.m_bothFace)
 			glDisable(GL_CULL_FACE);
 		else {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glUniform1i(shader->m_uShadowMapEnabled, 0);
 		glUniform1i(shader->m_uShadowMap0, 3);
 		glUniform1i(shader->m_uShadowMap1, 4);
 		glUniform1i(shader->m_uShadowMap2, 5);
 		glUniform1i(shader->m_uShadowMap3, 6);
-
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
-
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-
 		glUseProgram(0);
 	}
-
 	glActiveTexture(GL_TEXTURE0 + 3);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0 + 4);
@@ -595,7 +514,6 @@ void Model::Draw(const AppContext& appContext) const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0 + 6);
 	glBindTexture(GL_TEXTURE_2D, 0);
-
 	// Draw edge
 	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
 	for (size_t i = 0; i < subMeshCount; i++) {
@@ -603,63 +521,49 @@ void Model::Draw(const AppContext& appContext) const {
 		const auto &shader = appContext.m_mmdEdgeShader;
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
-
 		if (!mmdMat.m_edgeFlag)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdEdgeVAO);
-
 		glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
 		glUniform2fv(shader->m_uScreenSize, 1, &screenSize[0]);
 		glUniform1f(shader->m_uEdgeSize, mmdMat.m_edgeSize);
 		glUniform4fv(shader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
-
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
-
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
-
 	// Draw ground shadow
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	auto plane = glm::vec4(0, 1, 0, 0);
 	auto light = -appContext.m_lightDir;
 	auto shadow = glm::mat4(1);
-
 	shadow[0][0] = plane.y * light.y + plane.z * light.z;
 	shadow[0][1] = -plane.x * light.y;
 	shadow[0][2] = -plane.x * light.z;
 	shadow[0][3] = 0;
-
 	shadow[1][0] = -plane.y * light.x;
 	shadow[1][1] = plane.x * light.x + plane.z * light.z;
 	shadow[1][2] = -plane.y * light.z;
 	shadow[1][3] = 0;
-
 	shadow[2][0] = -plane.z * light.x;
 	shadow[2][1] = -plane.z * light.y;
 	shadow[2][2] = plane.x * light.x + plane.y * light.y;
 	shadow[2][3] = 0;
-
 	shadow[3][0] = -plane.w * light.x;
 	shadow[3][1] = -plane.w * light.y;
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
-
 	auto wsvp = proj * view * shadow * world;
-
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
@@ -671,31 +575,24 @@ void Model::Draw(const AppContext& appContext) const {
 	} else
 		glDisable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
-
 	for (size_t i = 0; i < subMeshCount; i++) {
 		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
 		const auto &mat = m_materials[m_materialID];
 		const auto &mmdMat = mat.m_mmdMat;
 		const auto &shader = appContext.m_mmdGroundShadowShader;
-
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdGroundShadowVAO);
-
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wsvp[0][0]);
 		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
-
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
-
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
-
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
