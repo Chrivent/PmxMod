@@ -152,7 +152,7 @@ struct Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
 
     bool Setup(AppContext& appContext);
-    void UpdateAnimation(const AppContext& appContext);
-    void Update(const AppContext& appContext);
-    void Draw(const AppContext& appContext);
+    void UpdateAnimation(const AppContext& appContext) const;
+    void Update() const;
+    void Draw(const AppContext& appContext) const;
 };

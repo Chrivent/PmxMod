@@ -331,7 +331,7 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
 	glBindVertexArray(0);
 	// Setup materials
-	for (const auto & mmdMat : m_mmdModel->m_materials) {
+	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
 			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
@@ -397,12 +397,10 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
 	// Draw model
-	size_t subMeshCount = m_mmdModel->m_subMeshes.size();
-	for (size_t i = 0; i < subMeshCount; i++) {
-		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
-		const auto &shader = appContext.m_shader;
-		const auto &mat = m_materials[m_materialID];
-		const auto &mmdMat = mat.m_mmdMat;
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& shader = appContext.m_shader;
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		glUseProgram(shader->m_prog);
@@ -418,11 +416,9 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 		glUniform1i(shader->m_uTex, 0);
 		if (mat.m_texture != 0) {
 			if (!mat.m_textureHasAlpha)
-				// Use Material Alpha
-					glUniform1i(shader->m_uTexMode, 1);
+				glUniform1i(shader->m_uTexMode, 1);
 			else
-				// Use Material Alpha * Texture Alpha
-					glUniform1i(shader->m_uTexMode, 2);
+				glUniform1i(shader->m_uTexMode, 2);
 			glUniform4fv(shader->m_uTexMulFactor, 1, &mmdMat.m_textureMulFactor[0]);
 			glUniform4fv(shader->m_uTexAddFactor, 1, &mmdMat.m_textureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
@@ -496,11 +492,10 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	// Draw edge
 	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
-	for (size_t i = 0; i < subMeshCount; i++) {
-		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
-		const auto &shader = appContext.m_edgeShader;
-		const auto &mat = m_materials[m_materialID];
-		const auto &mmdMat = mat.m_mmdMat;
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& shader = appContext.m_edgeShader;
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
@@ -555,11 +550,10 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	} else
 		glDisable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
-	for (size_t i = 0; i < subMeshCount; i++) {
-		const auto &[m_beginIndex, m_vertexCount, m_materialID] = m_mmdModel->m_subMeshes[i];
-		const auto &mat = m_materials[m_materialID];
-		const auto &mmdMat = mat.m_mmdMat;
-		const auto &shader = appContext.m_groundShadowShader;
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
+		const auto& shader = appContext.m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
