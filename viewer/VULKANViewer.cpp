@@ -2710,21 +2710,27 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 				static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
 		}
 		const uint32_t frameIndex = appContext.m_frameIndex % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
-		auto& fs = appContext.m_frameSyncDatas[frameIndex];
-		appContext.m_device.waitForFences(1, &fs.m_fence, VK_TRUE, UINT64_MAX);
-		appContext.m_device.resetFences(1, &fs.m_fence);
-		vk::Result ret = appContext.m_device.acquireNextImageKHR(
+		auto& [m_fence, m_presentCompleteSemaphore, m_renderCompleteSemaphore] = appContext.m_frameSyncDatas[frameIndex];
+		if (appContext.m_device.waitForFences(1, &m_fence, VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
+			std::cout << "Failed to wait fence.\n";
+			break;
+		}
+		if (appContext.m_device.resetFences(1, &m_fence) != vk::Result::eSuccess) {
+			std::cout << "Failed to reset fence.\n";
+			break;
+		}
+		vk::Result ret2 = appContext.m_device.acquireNextImageKHR(
 			appContext.m_swapChain,
 			UINT64_MAX,
-			fs.m_presentCompleteSemaphore,
+			m_presentCompleteSemaphore,
 			vk::Fence(),
 			&appContext.m_imageIndex
 		);
-		if (ret == vk::Result::eErrorOutOfDateKHR) {
+		if (ret2 == vk::Result::eErrorOutOfDateKHR) {
 			appContext.Resize();
 			return false;
 		}
-		if (ret != vk::Result::eSuccess && ret != vk::Result::eSuboptimalKHR) {
+		if (ret2 != vk::Result::eSuccess && ret2 != vk::Result::eSuboptimalKHR) {
 			std::cout << "acquireNextImageKHR failed\n";
 			return false;
 		}
@@ -2747,7 +2753,9 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		vk::RenderPassBeginInfo rpBegin = vk::RenderPassBeginInfo()
 			.setRenderPass(appContext.m_renderPass)
 			.setFramebuffer(res.m_framebuffer)
-			.setRenderArea(vk::Rect2D({0,0}, {(uint32_t)appContext.m_screenWidth, (uint32_t)appContext.m_screenHeight}))
+			.setRenderArea(vk::Rect2D({ 0,0 },
+				{ static_cast<uint32_t>(appContext.m_screenWidth),
+					static_cast<uint32_t>(appContext.m_screenHeight) }))
 			.setClearValueCount(std::size(clears))
 			.setPClearValues(clears);
 		primaryCmd.beginRenderPass(rpBegin, vk::SubpassContents::eSecondaryCommandBuffers);
@@ -2760,27 +2768,30 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 		vk::SubmitInfo submit = vk::SubmitInfo()
 			.setWaitSemaphoreCount(1)
-			.setPWaitSemaphores(&fs.m_presentCompleteSemaphore)
+			.setPWaitSemaphores(&m_presentCompleteSemaphore)
 			.setPWaitDstStageMask(&waitStage)
 			.setCommandBufferCount(1)
 			.setPCommandBuffers(&primaryCmd)
 			.setSignalSemaphoreCount(1)
-			.setPSignalSemaphores(&fs.m_renderCompleteSemaphore);
-		appContext.m_graphicsQueue.submit(1, &submit, fs.m_fence);
+			.setPSignalSemaphores(&m_renderCompleteSemaphore);
+		if (appContext.m_graphicsQueue.submit(1, &submit, m_fence) != vk::Result::eSuccess) {
+			std::cout << "Failed to submit to graphics queue.\n";
+			break;
+		}
 		vk::PresentInfoKHR present = vk::PresentInfoKHR()
 			.setWaitSemaphoreCount(1)
-			.setPWaitSemaphores(&fs.m_renderCompleteSemaphore)
+			.setPWaitSemaphores(&m_renderCompleteSemaphore)
 			.setSwapchainCount(1)
 			.setPSwapchains(&appContext.m_swapChain)
 			.setPImageIndices(&imgIndex);
-		ret = appContext.m_graphicsQueue.presentKHR(present);
-		if (ret == vk::Result::eErrorOutOfDateKHR || ret == vk::Result::eSuboptimalKHR) {
+		ret2 = appContext.m_graphicsQueue.presentKHR(present);
+		if (ret2 == vk::Result::eErrorOutOfDateKHR || ret2 == vk::Result::eSuboptimalKHR) {
 			appContext.Resize();
-		} else if (ret != vk::Result::eSuccess) {
+		} else if (ret2 != vk::Result::eSuccess) {
 			std::cout << "presentKHR failed\n";
 			return false;
 		}
-		appContext.m_frameIndex = (appContext.m_frameIndex + 1) % (uint32_t)appContext.m_frameSyncDatas.size();
+		appContext.m_frameIndex = (appContext.m_frameIndex + 1) % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
 		fpsFrame++;
 		double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
 		if (sec > 1.0) {
