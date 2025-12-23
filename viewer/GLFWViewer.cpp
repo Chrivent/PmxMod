@@ -543,7 +543,6 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_NOTEQUAL, 1, 1);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glEnable(GL_STENCIL_TEST);
