@@ -7,6 +7,7 @@
 
 #include "../external/stb_image.h"
 
+#include <GLFW/glfw3.h>
 #include <fstream>
 #include <iostream>
 #include <ranges>
@@ -2273,7 +2274,7 @@ void Model::Update(AppContext& appContext) {
 		return;
 	}
 	const auto& modelRes = m_modelResource;
-	constexpr auto world = glm::mat4(1.0f);
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	const auto& view = appContext.m_viewMat;
 	const auto& proj = appContext.m_projMat;
 	constexpr auto vkMat = glm::mat4(
@@ -2464,4 +2465,347 @@ void Model::Draw(const AppContext& appContext) {
 
 vk::CommandBuffer Model::GetCommandBuffer(const uint32_t imageIndex) const {
 	return m_cmdBuffers[imageIndex];
+}
+
+bool VulkanSampleMain(const SceneConfig& cfg) {
+	MusicUtil music;
+	music.Init(cfg.musicPath);
+	if (!glfwInit())
+		return false;
+	if (!glfwVulkanSupported()) {
+		std::cout << "Does not support Vulkan.\n";
+		glfwTerminate();
+		return false;
+	}
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod (Vulkan)", nullptr, nullptr);
+	if (!window) {
+		glfwTerminate();
+		return false;
+	}
+	std::vector<const char*> extensions;
+	uint32_t extCount = 0;
+	const char** glfwExt = glfwGetRequiredInstanceExtensions(&extCount);
+	extensions.reserve(extCount);
+	for (uint32_t i = 0; i < extCount; ++i)
+		extensions.push_back(glfwExt[i]);
+	std::vector<const char*> layers;
+	vk::Instance instance;
+	vk::Result ret;
+	auto instInfo = vk::InstanceCreateInfo()
+			.setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
+			.setPpEnabledExtensionNames(extensions.data())
+			.setEnabledLayerCount(static_cast<uint32_t>(layers.size()))
+			.setPpEnabledLayerNames(layers.data());
+	ret = vk::createInstance(&instInfo, nullptr, &instance);
+	if (ret != vk::Result::eSuccess) {
+		std::cout << "Failed to create Vulkan instance.\n";
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	vk::SurfaceKHR surface;
+	VkSurfaceKHR rawSurface = VK_NULL_HANDLE;
+	VkResult err = glfwCreateWindowSurface(instance, window, nullptr, &rawSurface);
+	if (err != VK_SUCCESS) {
+		std::cout << "Failed to create surface. [" << err << "]\n";
+		instance.destroy();
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	surface = rawSurface;
+	auto gpus = instance.enumeratePhysicalDevices();
+	if (gpus.empty()) {
+		std::cout << "Failed to find Vulkan physical device.\n";
+		instance.destroySurfaceKHR(surface);
+		instance.destroy();
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	vk::PhysicalDevice gpu = gpus[0];\
+	uint32_t graphicsQ = UINT32_MAX;
+	uint32_t presentQ = UINT32_MAX;
+	auto qFamilies = gpu.getQueueFamilyProperties();
+	for (uint32_t i = 0; i < static_cast<uint32_t>(qFamilies.size()); ++i) {
+		const bool hasGraphics = (qFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlags{};
+		const bool hasPresent = gpu.getSurfaceSupportKHR(i, surface);
+		if (hasGraphics && graphicsQ == UINT32_MAX) graphicsQ = i;
+		if (hasPresent && presentQ == UINT32_MAX) presentQ = i;
+		if (hasGraphics && hasPresent) {
+			graphicsQ = i;
+			presentQ = i;
+			break;
+		}
+	}
+	if (graphicsQ == UINT32_MAX || presentQ == UINT32_MAX) {
+		std::cout << "Failed to find required queue families.\n";
+		instance.destroySurfaceKHR(surface);
+		instance.destroy();
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	std::vector deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	float priority = 1.0f;
+	vk::DeviceQueueCreateInfo queueInfo =
+			vk::DeviceQueueCreateInfo().setQueueFamilyIndex(graphicsQ).setQueueCount(1).setPQueuePriorities(&priority);
+	vk::PhysicalDeviceFeatures features;
+	features.setSampleRateShading(true);
+	vk::Device device;
+	vk::DeviceCreateInfo devInfo = vk::DeviceCreateInfo()
+			.setQueueCreateInfoCount(1)
+			.setPQueueCreateInfos(&queueInfo)
+			.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()))
+			.setPpEnabledExtensionNames(deviceExtensions.data())
+			.setPEnabledFeatures(&features);
+	ret = gpu.createDevice(&devInfo, nullptr, &device);
+	if (ret != vk::Result::eSuccess) {
+		std::cout << "Failed to create device.\n";
+		instance.destroySurfaceKHR(surface);
+		instance.destroy();
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	AppContext appContext;
+	int w1, h1;
+	glfwGetFramebufferSize(window, &w1, &h1);
+	appContext.m_screenWidth = w1;
+	appContext.m_screenHeight = h1;
+	if (!appContext.Setup(instance, surface, gpu, device)) {
+		std::cout << "Failed to setup Vulkan AppContext.\n";
+		device.destroy();
+		instance.destroySurfaceKHR(surface);
+		instance.destroy();
+		glfwDestroyWindow(window);
+		glfwTerminate();
+		return false;
+	}
+	if (!cfg.cameraVmd.empty()) {
+		VMDReader camVmd;
+		if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
+			auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
+			if (!vmdCamAnim->Create(camVmd))
+				std::cout << "Failed to create VMDCameraAnimation.\n";
+			appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
+		}
+	}
+	std::vector<Model> models;
+	models.reserve(cfg.models.size());
+	for (const auto& [m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
+		Model model;
+		const auto ext = PathUtil::GetExt(m_modelPath);
+		if (ext != "pmx") {
+			std::cout << "Unknown file type. [" << ext << "]\n";
+			device.waitIdle();
+			for (auto& m : models)
+				m.Destroy(appContext);
+			appContext.Destroy();
+			device.destroy();
+			instance.destroySurfaceKHR(surface);
+			instance.destroy();
+			glfwDestroyWindow(window);
+			glfwTerminate();
+			return false;
+		}
+		auto pmxModel = std::make_unique<MMDModel>();
+		if (!pmxModel->Load(m_modelPath, appContext.m_mmdDir)) {
+			std::cout << "Failed to load pmx file.\n";
+			device.waitIdle();
+			for (auto& m : models)
+				m.Destroy(appContext);
+			appContext.Destroy();
+			device.destroy();
+			instance.destroySurfaceKHR(surface);
+			instance.destroy();
+			glfwDestroyWindow(window);
+			glfwTerminate();
+			return false;
+		}
+		model.m_mmdModel = std::move(pmxModel);
+		model.m_mmdModel->InitializeAnimation();
+		auto vmdAnim = std::make_unique<VMDAnimation>();
+		vmdAnim->m_model = model.m_mmdModel;
+		for (const auto& vmdPath : m_vmdPaths) {
+			VMDReader vmd;
+			if (!vmd.ReadVMDFile(vmdPath.c_str())) {
+				std::cout << "Failed to read VMD file.\n";
+				device.waitIdle();
+				for (auto& m : models)
+					m.Destroy(appContext);
+				appContext.Destroy();
+				device.destroy();
+				instance.destroySurfaceKHR(surface);
+				instance.destroy();
+				glfwDestroyWindow(window);
+				glfwTerminate();
+				return false;
+			}
+			if (!vmdAnim->Add(vmd)) {
+				std::cout << "Failed to add VMDAnimation.\n";
+				device.waitIdle();
+				for (auto& m : models)
+					m.Destroy(appContext);
+				appContext.Destroy();
+				device.destroy();
+				instance.destroySurfaceKHR(surface);
+				instance.destroy();
+				glfwDestroyWindow(window);
+				glfwTerminate();
+				return false;
+			}
+		}
+		vmdAnim->SyncPhysics(0.0f);
+		model.m_vmdAnim = std::move(vmdAnim);
+		model.m_scale = m_scale;
+		model.Setup(appContext);
+		models.emplace_back(std::move(model));
+	}
+	auto fpsTime = std::chrono::steady_clock::now();
+	auto saveTime = std::chrono::steady_clock::now();
+	int fpsFrame = 0;
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		auto now = std::chrono::steady_clock::now();
+		double elapsed = std::chrono::duration<double>(now - saveTime).count();
+		if (elapsed > 1.0 / 30.0) elapsed = 1.0 / 30.0;
+		saveTime = now;
+		auto dt = static_cast<float>(elapsed);
+		float t = appContext.m_animTime + dt;
+		if (music.HasMusic()) {
+			auto [adt, at] = music.PullTimes();
+			if (adt < 0.f) adt = 0.f;
+			dt = adt;
+			t = at;
+		}
+		appContext.m_elapsed = dt;
+		appContext.m_animTime = t;
+		int w2, h2;
+		glfwGetFramebufferSize(window, &w2, &h2);
+		if (w2 != appContext.m_screenWidth || h2 != appContext.m_screenHeight) {
+			appContext.m_screenWidth = w2;
+			appContext.m_screenHeight = h2;
+			if (!appContext.Resize()) {
+				std::cout << "Resize failed.\n";
+				break;
+			}
+		}
+		const int width = appContext.m_screenWidth;
+		const int height = appContext.m_screenHeight;
+		if (appContext.m_vmdCameraAnim) {
+			appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
+			const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
+			appContext.m_viewMat = mmdCam.GetViewMatrix();
+			appContext.m_projMat = glm::perspectiveFovRH(
+				mmdCam.m_fov,
+				static_cast<float>(width),
+				static_cast<float>(height),
+				1.0f, 10000.0f
+			);
+		} else {
+			appContext.m_viewMat = glm::lookAt(glm::vec3(0, 10, 40), glm::vec3(0, 10, 0), glm::vec3(0, 1, 0));
+			appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
+				static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
+		}
+		const uint32_t frameIndex = appContext.m_frameIndex % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
+		auto& [m_fence, m_presentCompleteSemaphore, m_renderCompleteSemaphore] = appContext.m_frameSyncDatas[frameIndex];
+        if (appContext.m_device.waitForFences(1, &m_fence, VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
+	        std::cout << "Failed to wait for fence.\n";
+	        break;
+        }
+        if (appContext.m_device.resetFences(1, &m_fence) != vk::Result::eSuccess) {
+	        std::cout << "Failed to reset fence.\n";
+	        break;
+        }
+        uint32_t imgIndex = 0;
+        vk::Result ret2 = appContext.m_device.acquireNextImageKHR(
+            appContext.m_swapChain,
+            UINT64_MAX,
+            m_presentCompleteSemaphore,
+            vk::Fence(),
+            &imgIndex
+        );
+        if (ret2 == vk::Result::eErrorOutOfDateKHR) {
+            appContext.Resize();
+            continue;
+        }
+		if (ret2 != vk::Result::eSuccess && ret2 != vk::Result::eSuboptimalKHR) {
+			std::cout << "acquireNextImageKHR failed.\n";
+			break;
+		}
+		for (auto& model : models) {
+            model.UpdateAnimation(appContext);
+            model.Update(appContext);
+        }
+		auto& res = appContext.m_swapChainImageResources[imgIndex];
+		vk::CommandBuffer cmd = res.m_cmdBuffer;
+        cmd.reset();
+        vk::CommandBufferBeginInfo beginInfo;
+        cmd.begin(beginInfo);
+		vk::ClearValue clearValues[2];
+		clearValues[0].setColor(vk::ClearColorValue(std::array<float,4>{0.839f, 0.902f, 0.961f, 1.0f}));
+		clearValues[1].setDepthStencil(vk::ClearDepthStencilValue(1.0f, 0));
+		vk::RenderPassBeginInfo rpBegin;
+		rpBegin.setRenderPass(appContext.m_renderPass)
+			   .setFramebuffer(res.m_framebuffer)
+			   .setRenderArea(vk::Rect2D(vk::Offset2D(0,0),
+			   	vk::Extent2D(appContext.m_screenWidth, appContext.m_screenHeight)))
+			   .setClearValueCount(2)
+			   .setPClearValues(clearValues);
+		cmd.beginRenderPass(rpBegin, vk::SubpassContents::eInline);
+		for (auto& model : models) {
+			model.Draw(appContext);
+		}
+		cmd.endRenderPass();
+		cmd.end();
+		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		vk::SubmitInfo submitInfo;
+		submitInfo.setWaitSemaphoreCount(1)
+				  .setPWaitSemaphores(&m_presentCompleteSemaphore)
+				  .setPWaitDstStageMask(&waitStage)
+				  .setCommandBufferCount(1)
+				  .setPCommandBuffers(&cmd)
+				  .setSignalSemaphoreCount(1)
+				  .setPSignalSemaphores(&m_renderCompleteSemaphore);
+		if (appContext.m_graphicsQueue.submit(1, &submitInfo, m_fence) != vk::Result::eSuccess) {
+			std::cout << "Failed to submit draw command buffer.\n";
+			break;
+		}
+		vk::PresentInfoKHR presentInfo;
+		presentInfo.setWaitSemaphoreCount(1)
+				   .setPWaitSemaphores(&m_renderCompleteSemaphore)
+				   .setSwapchainCount(1)
+				   .setPSwapchains(&appContext.m_swapChain)
+				   .setPImageIndices(&imgIndex);
+
+		auto presentQueue = appContext.m_graphicsQueue;
+		ret = presentQueue.presentKHR(&presentInfo);
+		if (ret == vk::Result::eErrorOutOfDateKHR || ret == vk::Result::eSuboptimalKHR) {
+			appContext.Resize();
+		} else if (ret != vk::Result::eSuccess) {
+			std::cout << "presentKHR failed: " << vk::to_string(ret) << "\n";
+			break;
+		}
+		appContext.m_frameIndex = (appContext.m_frameIndex + 1) % uint32_t(appContext.m_frameSyncDatas.size());
+		fpsFrame++;
+		double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
+		if (sec > 1.0) {
+			std::cout << (fpsFrame / sec) << " fps\n";
+			fpsFrame = 0;
+			fpsTime = std::chrono::steady_clock::now();
+		}
+	}
+	device.waitIdle();
+	for (auto& model : models)
+		model.Destroy(appContext);
+	models.clear();
+	appContext.Destroy();
+	device.destroy();
+	instance.destroySurfaceKHR(surface);
+	instance.destroy();
+	glfwDestroyWindow(window);
+	glfwTerminate();
+	return true;
 }

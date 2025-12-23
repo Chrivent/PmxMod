@@ -9,6 +9,7 @@
 #include "src/MMDUtil.h"
 #include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
+#include "viewer/VULKANViewer.h"
 
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
@@ -118,11 +119,12 @@ static SceneConfig BuildTestSceneConfig() {
 	return cfg;
 }
 
-static LRESULT CALLBACK WndProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-	switch (msg) {
-		case WM_DESTROY: PostQuitMessage(0); return 0;
-		default: return DefWindowProc(hWnd, msg, wParam, lParam);
+static LRESULT CALLBACK WndProc(HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+	if (msg == WM_DESTROY) {
+		PostQuitMessage(0);
+		return 0;
 	}
+	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
@@ -136,7 +138,7 @@ HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
 	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
 	RECT rc{ 0,0,w,h };
 	AdjustWindowRect(&rc, style, FALSE);
-	const HWND hwnd = CreateWindowExW(
+	HWND__* hwnd = CreateWindowExW(
 		0, cls, L"Pmx Mod (DX11)", style,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		rc.right - rc.left, rc.bottom - rc.top,
@@ -207,6 +209,12 @@ int main() {
         	std::cout << "Failed to run.\n";
 	        return 1;
         }
+	}
+	else if (engineType == 2) {
+		if (!VulkanSampleMain(cfg)) {
+			std::cout << "Failed to run.\n";
+			return 1;
+		}
 	}
 	return 0;
 }

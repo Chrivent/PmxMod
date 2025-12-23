@@ -10,6 +10,7 @@
 #include <map>
 #include <filesystem>
 
+struct SceneConfig;
 struct AppContext;
 class MMDModel;
 class VMDAnimation;
@@ -271,6 +272,7 @@ struct Model {
 	Resource				m_resource;
 	vk::DescriptorPool		m_descPool;
 	std::vector<vk::CommandBuffer>	m_cmdBuffers;
+	float m_scale = 1.0f;
 
 	bool Setup(AppContext& appContext);
 	bool SetupVertexBuffer(AppContext& appContext);
@@ -283,3 +285,5 @@ struct Model {
 	void Draw(const AppContext& appContext);
 	vk::CommandBuffer GetCommandBuffer(uint32_t imageIndex) const;
 };
+
+bool VulkanSampleMain(const SceneConfig& cfg);
