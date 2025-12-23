@@ -9,7 +9,7 @@
 #include "src/MMDUtil.h"
 #include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
-#include "viewer/VULKANViewer.h"
+#include "viewer/VKViewer.h"
 
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
@@ -211,7 +211,7 @@ int main() {
         }
 	}
 	else if (engineType == 2) {
-		if (!VulkanSampleMain(cfg)) {
+		if (!VKSampleMain(cfg)) {
 			std::cout << "Failed to run.\n";
 			return 1;
 		}

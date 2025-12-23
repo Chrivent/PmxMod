@@ -11,7 +11,7 @@
 #include <filesystem>
 
 struct SceneConfig;
-struct AppContext;
+struct VKAppContext;
 class MMDModel;
 class VMDAnimation;
 class VMDCameraAnimation;
@@ -22,18 +22,18 @@ void SetImageLayout(vk::CommandBuffer cmdBuf, vk::Image image,
 		vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout,
 		const vk::ImageSubresourceRange& subresourceRange);
 
-struct Vertex {
+struct VKVertex {
 	glm::vec3	m_position;
 	glm::vec3	m_normal;
 	glm::vec2	m_uv;
 };
 
-struct MMDVertxShaderUB {
+struct VKVertxShaderUB {
 	glm::mat4	m_wv;
 	glm::mat4	m_wvp;
 };
 
-struct MMDFragmentShaderUB {
+struct VKFragmentShaderUB {
 	glm::vec3	m_diffuse;
 	float		m_alpha;
 	glm::vec3	m_ambient;
@@ -53,53 +53,53 @@ struct MMDFragmentShaderUB {
 	glm::ivec4	m_textureModes;
 };
 
-struct MMDEdgeVertexShaderUB {
+struct VKEdgeVertexShaderUB {
 	glm::mat4	m_wv;
 	glm::mat4	m_wvp;
 	glm::vec2	m_screenSize;
 	float		m_dummy[2];
 };
 
-struct MMDEdgeSizeVertexShaderUB {
+struct VKEdgeSizeVertexShaderUB {
 	float		m_edgeSize;
 	float		m_dummy[3];
 };
 
-struct MMDEdgeFragmentShaderUB {
+struct VKEdgeFragmentShaderUB {
 	glm::vec4	m_edgeColor;
 };
 
-struct MMDGroundShadowVertexShaderUB {
+struct VKGroundShadowVertexShaderUB {
 	glm::mat4	m_wvp;
 };
 
-struct MMDGroundShadowFragmentShaderUB {
+struct VKGroundShadowFragmentShaderUB {
 	glm::vec4	m_shadowColor;
 };
 
-struct SwapChainImageResource {
+struct VKSwapChainImageResource {
 	vk::Image		m_image;
 	vk::ImageView	m_imageView;
 	vk::Framebuffer	m_framebuffer;
 	vk::CommandBuffer	m_cmdBuffer;
 
-	void Clear(const AppContext& appContext);
+	void Clear(const VKAppContext& appContext);
 };
 
-struct Buffer {
+struct VKBuffer {
 	vk::DeviceMemory	m_memory;
 	vk::Buffer			m_buffer;
 	vk::DeviceSize		m_memorySize = 0;
 
 	bool Setup(
-		const AppContext&				appContext,
+		const VKAppContext&				appContext,
 		vk::DeviceSize			memSize,
 		vk::BufferUsageFlags	usage
 	);
-	void Clear(const AppContext& appContext);
+	void Clear(const VKAppContext& appContext);
 };
 
-struct Texture {
+struct VKTexture {
 	vk::Image		m_image;
 	vk::ImageView	m_imageView;
 	vk::ImageLayout	m_imageLayout = vk::ImageLayout::eUndefined;
@@ -108,11 +108,11 @@ struct Texture {
 	uint32_t			m_mipLevel;
 	bool				m_hasAlpha;
 
-	bool Setup(const AppContext& appContext, uint32_t width, uint32_t height, vk::Format format, int mipCount = 1);
-	void Clear(const AppContext& appContext);
+	bool Setup(const VKAppContext& appContext, uint32_t width, uint32_t height, vk::Format format, int mipCount = 1);
+	void Clear(const VKAppContext& appContext);
 };
 
-struct StagingBuffer {
+struct VKStagingBuffer {
 	vk::DeviceMemory	m_memory;
 	vk::Buffer			m_buffer;
 	vk::DeviceSize		m_memorySize = 0;
@@ -121,12 +121,12 @@ struct StagingBuffer {
 	vk::Semaphore		m_transferCompleteSemaphore;
 	vk::Semaphore		m_waitSemaphore;
 
-	bool Setup(AppContext& appContext, vk::DeviceSize size);
-	void Clear(const AppContext& appContext);
-	void Wait(const AppContext& appContext) const;
-	bool CopyBuffer(const AppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
+	bool Setup(VKAppContext& appContext, vk::DeviceSize size);
+	void Clear(const VKAppContext& appContext);
+	void Wait(const VKAppContext& appContext) const;
+	bool CopyBuffer(const VKAppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
 	bool CopyImage(
-		const AppContext& appContext,
+		const VKAppContext& appContext,
 		vk::Image destImage,
 		vk::ImageLayout imageLayout,
 		uint32_t regionCount,
@@ -134,7 +134,7 @@ struct StagingBuffer {
 	);
 };
 
-struct AppContext {
+struct VKAppContext {
 	enum class MMDRenderType {
 		AlphaBlend_FrontFace,
 		AlphaBlend_BothFace,
@@ -172,7 +172,7 @@ struct AppContext {
 	std::vector<FrameSyncData>	m_frameSyncDatas;
 	uint32_t					m_frameIndex = 0;
 	vk::SwapchainKHR					m_swapChain;
-	std::vector<SwapChainImageResource>	m_swapChainImageResources;
+	std::vector<VKSwapChainImageResource>	m_swapChainImageResources;
 	vk::Image							m_depthImage;
 	vk::DeviceMemory					m_depthMem;
 	vk::ImageView						m_depthImageView;
@@ -205,9 +205,9 @@ struct AppContext {
 	vk::CommandPool		m_commandPool;
 	vk::CommandPool		m_transferCommandPool;
 	vk::Queue			m_graphicsQueue;
-	std::vector<std::unique_ptr<StagingBuffer>>	m_stagingBuffers;
-	std::map<std::filesystem::path, std::unique_ptr<Texture>>	m_textures;
-	std::unique_ptr<Texture>	m_defaultTexture;
+	std::vector<std::unique_ptr<VKStagingBuffer>>	m_stagingBuffers;
+	std::map<std::filesystem::path, std::unique_ptr<VKTexture>>	m_textures;
+	std::unique_ptr<VKTexture>	m_defaultTexture;
 	vk::Sampler	m_defaultSampler;
 
 	bool Setup(vk::Instance inst, vk::SurfaceKHR surface, vk::PhysicalDevice gpu, vk::Device device);
@@ -224,26 +224,26 @@ struct AppContext {
 	bool PrepareMMDGroundShadowPipeline();
 	bool PrepareDefaultTexture();
 	bool Resize();
-	bool GetStagingBuffer(vk::DeviceSize memSize, StagingBuffer** outBuf);
+	bool GetStagingBuffer(vk::DeviceSize memSize, VKStagingBuffer** outBuf);
 	void WaitAllStagingBuffer() const;
-	bool GetTexture(const std::filesystem::path& texturePath, Texture** outTex);
+	bool GetTexture(const std::filesystem::path& texturePath, VKTexture** outTex);
 
 	static bool ReadSpvBinary(const std::filesystem::path& path, std::vector<uint32_t>& out);
 };
 
 struct Model {
 	struct Material {
-		Texture*	m_mmdTex;
+		VKTexture*	m_mmdTex;
 		vk::Sampler	m_mmdTexSampler;
-		Texture*	m_mmdToonTex;
+		VKTexture*	m_mmdToonTex;
 		vk::Sampler	m_mmdToonTexSampler;
-		Texture*	m_mmdSphereTex;
+		VKTexture*	m_mmdSphereTex;
 		vk::Sampler	m_mmdSphereTexSampler;
 	};
 
 	struct ModelResource {
-		Buffer	m_vertexBuffer;
-		Buffer	m_uniformBuffer;
+		VKBuffer	m_vertexBuffer;
+		VKBuffer	m_uniformBuffer;
 		uint32_t	m_mmdVSUBOffset;
 		uint32_t	m_mmdEdgeVSUBOffset;
 		uint32_t	m_mmdGroundShadowVSUBOffset;
@@ -266,7 +266,7 @@ struct Model {
 
 	std::shared_ptr<MMDModel>		m_mmdModel;
 	std::unique_ptr<VMDAnimation>	m_vmdAnim;
-	Buffer	m_indexBuffer;
+	VKBuffer	m_indexBuffer;
 	vk::IndexType	m_indexType;
 	std::vector<Material>	m_materials;
 	Resource				m_resource;
@@ -274,16 +274,16 @@ struct Model {
 	std::vector<vk::CommandBuffer>	m_cmdBuffers;
 	float m_scale = 1.0f;
 
-	bool Setup(AppContext& appContext);
-	bool SetupVertexBuffer(AppContext& appContext);
-	bool SetupDescriptorPool(const AppContext& appContext);
-	bool SetupDescriptorSet(AppContext& appContext);
-	bool SetupCommandBuffer(const AppContext& appContext);
-	void Destroy(const AppContext& appContext);
-	void UpdateAnimation(const AppContext& appContext) const;
-	void Update(AppContext& appContext);
-	void Draw(const AppContext& appContext);
+	bool Setup(VKAppContext& appContext);
+	bool SetupVertexBuffer(VKAppContext& appContext);
+	bool SetupDescriptorPool(const VKAppContext& appContext);
+	bool SetupDescriptorSet(VKAppContext& appContext);
+	bool SetupCommandBuffer(const VKAppContext& appContext);
+	void Destroy(const VKAppContext& appContext);
+	void UpdateAnimation(const VKAppContext& appContext) const;
+	void Update(VKAppContext& appContext);
+	void Draw(const VKAppContext& appContext);
 	vk::CommandBuffer GetCommandBuffer(uint32_t imageIndex) const;
 };
 
-bool VulkanSampleMain(const SceneConfig& cfg);
+bool VKSampleMain(const SceneConfig& cfg);
