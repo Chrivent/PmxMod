@@ -338,14 +338,10 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 			mat.m_texture = m_texture;
 			mat.m_textureHasAlpha = m_hasAlpha;
 		}
-		if (!mmdMat.m_spTexture.empty()) {
-			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_spTexture);
-			mat.m_spTexture = m_texture;
-		}
-		if (!mmdMat.m_toonTexture.empty()) {
-			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_toonTexture);
-			mat.m_toonTexture = m_texture;
-		}
+		if (!mmdMat.m_spTexture.empty())
+			mat.m_spTexture = appContext.GetTexture(mmdMat.m_spTexture).m_texture;
+		if (!mmdMat.m_toonTexture.empty())
+			mat.m_toonTexture = appContext.GetTexture(mmdMat.m_toonTexture).m_texture;
 		m_materials.emplace_back(mat);
 	}
 	return true;

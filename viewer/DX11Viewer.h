@@ -11,6 +11,9 @@
 #include <memory>
 #include <filesystem>
 
+struct MMDMaterial;
+class MMDModel;
+class VMDAnimation;
 class VMDCameraAnimation;
 
 struct Vertex {
@@ -121,4 +124,35 @@ struct AppContext {
     bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     bool CreateShaders();
     Texture GetTexture(const std::filesystem::path& texturePath);
+};
+
+struct Material {
+    explicit Material(const MMDMaterial& mat);
+
+    const MMDMaterial&	m_mmdMat;
+    Texture	m_texture{};
+    Texture	m_spTexture{};
+    Texture	m_toonTexture{};
+};
+
+struct Model {
+    std::shared_ptr<MMDModel>	m_mmdModel;
+    std::unique_ptr<VMDAnimation>	m_vmdAnim;
+    std::vector<Material>	m_materials;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext>	m_context;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
+    DXGI_FORMAT					m_indexBufferFormat;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdPSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeSizeVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgePSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
+
+    bool Setup(AppContext& appContext);
+    void UpdateAnimation(const AppContext& appContext);
+    void Update(const AppContext& appContext);
+    void Draw(const AppContext& appContext);
 };

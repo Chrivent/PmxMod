@@ -1,6 +1,7 @@
 #include "DX11Viewer.h"
 
 #include "../src/MMDUtil.h"
+#include "../src/MMDModel.h"
 
 #include "../external/stb_image.h"
 
@@ -398,4 +399,129 @@ Texture AppContext::GetTexture(const std::filesystem::path& texturePath) {
 	tex.m_hasAlpha = hasAlpha;
 	m_textures[texturePath] = tex;
 	return m_textures[texturePath];
+}
+
+Material::Material(const MMDMaterial& mat)
+	: m_mmdMat(mat) {
+}
+
+bool Model::Setup(AppContext& appContext) {
+	HRESULT hr;
+	hr = appContext.m_device->CreateDeferredContext(0, &m_context);
+	if (FAILED(hr))
+		return false;
+
+	// Setup vertex buffer
+	D3D11_BUFFER_DESC vBufDesc = {};
+	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
+	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(Vertex) * m_mmdModel->m_positions.size());
+	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	hr = appContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup index buffer;
+	D3D11_BUFFER_DESC iBufDesc = {};
+	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	iBufDesc.ByteWidth = static_cast<UINT>(m_mmdModel->m_indexElementSize * m_mmdModel->m_indexCount);
+	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	iBufDesc.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = &m_mmdModel->m_indices[0];
+	hr = appContext.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer);
+	if (FAILED(hr))
+		return false;
+	if (1 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
+	else if (2 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R16_UINT;
+	else if (4 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
+	else
+		return false;
+
+	// Setup mmd vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC vsBufDesc = {};
+	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	vsBufDesc.ByteWidth = sizeof(MMDVertexShaderCB);
+	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	vsBufDesc.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC psBufDesc = {};
+	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	psBufDesc.ByteWidth = sizeof(MMDPixelShaderCB);
+	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	psBufDesc.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd edge vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC evsBufDesc1 = {};
+	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
+	evsBufDesc1.ByteWidth = sizeof(MMDEdgeVertexShaderCB);
+	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	evsBufDesc1.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
+	D3D11_BUFFER_DESC evsBufDesc2 = {};
+	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
+	evsBufDesc2.ByteWidth = sizeof(MMDEdgeSizeVertexShaderCB);
+	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	evsBufDesc2.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd edge pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC epsBufDesc = {};
+	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	epsBufDesc.ByteWidth = sizeof(MMDEdgePixelShaderCB);
+	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	epsBufDesc.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd ground shadow vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC gvsBufDesc = {};
+	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	gvsBufDesc.ByteWidth = sizeof(MMDGroundShadowVertexShaderCB);
+	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	gvsBufDesc.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup mmd ground shadow pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC gpsBufDesc = {};
+	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	gpsBufDesc.ByteWidth = sizeof(MMDGroundShadowPixelShaderCB);
+	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	gpsBufDesc.CPUAccessFlags = 0;
+	hr = appContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer);
+	if (FAILED(hr))
+		return false;
+
+	// Setup materials
+	for (const auto& mmdMat : m_mmdModel->m_materials) {
+		Material mat(mmdMat);
+		if (!mmdMat.m_texture.empty())
+			mat.m_texture = appContext.GetTexture(mmdMat.m_texture);
+		if (!mmdMat.m_spTexture.empty())
+			mat.m_spTexture = appContext.GetTexture(mmdMat.m_spTexture);
+		if (!mmdMat.m_toonTexture.empty())
+			mat.m_toonTexture = appContext.GetTexture(mmdMat.m_toonTexture);
+		m_materials.emplace_back(std::move(mat));
+	}
+
+	return true;
 }
