@@ -1641,7 +1641,7 @@ bool AppContext::PrepareDefaultTexture() {
 	pixels[0] = 0;
 	pixels[0] = 255;
 	m_device.unmapMemory(imgStBuf->m_memory);
-	auto bufferImageCopy = vk::BufferImageCopy()
+	constexpr auto bufferImageCopy = vk::BufferImageCopy()
 			.setImageSubresource(vk::ImageSubresourceLayers()
 				.setAspectMask(vk::ImageAspectFlagBits::eColor)
 				.setMipLevel(0)
