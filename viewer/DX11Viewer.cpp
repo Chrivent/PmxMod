@@ -3,11 +3,13 @@
 #include "../src/MMDReader.h"
 #include "../src/MMDUtil.h"
 #include "../src/MMDModel.h"
+#include "../src/VMDAnimation.h"
 
 #include "../external/stb_image.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
+#include <iostream>
 
 bool AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
     m_device = device;
@@ -559,12 +561,9 @@ void Model::Draw(const AppContext& appContext) const {
 		0.0f, 0.0f, 0.5f, 0.0f,
 		0.0f, 0.0f, 0.5f, 1.0f
 	);
-	auto world = glm::mat4(1.0f);
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
-	auto wvit = glm::mat3(view * world);
-	wvit = glm::inverse(wvit);
-	wvit = glm::transpose(wvit);
 
 	// Set viewport
 	D3D11_VIEWPORT vp;
@@ -766,4 +765,281 @@ void Model::Draw(const AppContext& appContext) const {
 		m_context->OMSetBlendState(appContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
 		m_context->DrawIndexed(subMesh.m_vertexCount, subMesh.m_beginIndex, 0);
 	}
+}
+
+bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
+	MusicUtil music;
+	music.Init(cfg.musicPath);
+
+	// Setup DirectX 11
+	Microsoft::WRL::ComPtr<ID3D11Device> device;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
+
+	D3D_FEATURE_LEVEL featureLevel{};
+	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
+	UINT createFlags = 0;
+	HRESULT hr = D3D11CreateDevice(
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+		createFlags,
+		featureLevels, 1,
+		D3D11_SDK_VERSION,
+		&device, &featureLevel, &context
+	);
+	if (FAILED(hr))
+		return false;
+
+	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+	hr = device.As(&dxgiDevice);
+	if (FAILED(hr))
+		return false;
+
+	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
+	hr = dxgiDevice->GetAdapter(&adapter);
+	if (FAILED(hr))
+		return false;
+
+	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
+	hr = adapter->GetParent(__uuidof(IDXGIFactory), &factory);
+	if (FAILED(hr))
+		return false;
+
+	// MSAA
+	UINT msaaCount = 4;
+	UINT quality = 0;
+	hr = device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality);
+	if (FAILED(hr) || quality == 0) {
+		msaaCount = 1;
+		quality = 0;
+	}
+	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
+
+	DXGI_SWAP_CHAIN_DESC sd{};
+	sd.BufferCount = 2;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.OutputWindow = hwnd;
+	sd.SampleDesc.Count = msaaCount;
+	sd.SampleDesc.Quality = msaaQuality;
+	sd.Windowed = TRUE;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+	hr = factory->CreateSwapChain(device.Get(), &sd, &swapChain);
+	if (FAILED(hr))
+		return false;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv;
+
+	auto CreateRenderTargets = [&](const int w, const int h) -> bool {
+		rtv.Reset();
+		depthTex.Reset();
+		dsv.Reset();
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+		HRESULT hr2 = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+			reinterpret_cast<void**>(backBuffer.GetAddressOf()));
+		if (FAILED(hr2))
+			return false;
+
+		hr2 = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv);
+		if (FAILED(hr2))
+			return false;
+
+		D3D11_TEXTURE2D_DESC dsDesc{};
+		dsDesc.Width = static_cast<UINT>(w);
+		dsDesc.Height = static_cast<UINT>(h);
+		dsDesc.MipLevels = 1;
+		dsDesc.ArraySize = 1;
+		dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		dsDesc.SampleDesc.Count = msaaCount;
+		dsDesc.SampleDesc.Quality = msaaQuality;
+		dsDesc.Usage = D3D11_USAGE_DEFAULT;
+		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+		hr2 = device->CreateTexture2D(&dsDesc, nullptr, &depthTex);
+		if (FAILED(hr2))
+			return false;
+
+		hr2 = device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv);
+		if (FAILED(hr2))
+			return false;
+
+		return true;
+	};
+
+	RECT rc{};
+	GetClientRect(hwnd, &rc);
+	int width = rc.right - rc.left;
+	int height = rc.bottom - rc.top;
+	if (width <= 0 || height <= 0)
+		return false;
+	if (!CreateRenderTargets(width, height))
+		return false;
+
+	AppContext appContext;
+	appContext.m_multiSampleCount = msaaCount;
+	appContext.m_multiSampleQuality = msaaQuality;
+	if (!appContext.Setup(device.Get()))
+		return false;
+
+	if (!cfg.cameraVmd.empty()) {
+		VMDReader camVmd;
+		if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
+			auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
+			if (!vmdCamAnim->Create(camVmd))
+				std::cout << "Failed to create VMDCameraAnimation.\n";
+			appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
+		}
+	}
+
+	std::vector<Model> models;
+	models.reserve(cfg.models.size());
+
+	for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
+		Model model;
+
+		const auto ext = PathUtil::GetExt(modelPath);
+		if (ext != "pmx") {
+			std::cout << "Unknown file type. [" << ext << "]\n";
+			return false;
+		}
+
+		auto pmxModel = std::make_unique<MMDModel>();
+		if (!pmxModel->Load(modelPath, appContext.m_mmdDir)) {
+			std::cout << "Failed to load pmx file.\n";
+			return false;
+		}
+		model.m_mmdModel = std::move(pmxModel);
+		model.m_mmdModel->InitializeAnimation();
+
+		auto vmdAnim = std::make_unique<VMDAnimation>();
+		vmdAnim->m_model = model.m_mmdModel;
+
+		for (const auto& vmdPath : vmdPaths) {
+			VMDReader vmd;
+			if (!vmd.ReadVMDFile(vmdPath.c_str())) {
+				std::cout << "Failed to read VMD file.\n";
+				return false;
+			}
+			if (!vmdAnim->Add(vmd)) {
+				std::cout << "Failed to add VMDAnimation.\n";
+				return false;
+			}
+		}
+		vmdAnim->SyncPhysics(0.0f);
+		model.m_vmdAnim = std::move(vmdAnim);
+		model.m_scale = scale;
+		if (!model.Setup(appContext))
+			return false;
+		models.emplace_back(std::move(model));
+	}
+
+	auto fpsTime  = std::chrono::steady_clock::now();
+    auto saveTime = std::chrono::steady_clock::now();
+    int fpsFrame  = 0;
+
+    bool quit = false;
+    while (true) {
+    	auto PumpWin32Once = [](bool& outQuit) {
+    		outQuit = false;
+    		MSG msg{};
+    		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    			if (msg.message == WM_QUIT) {
+    				outQuit = true;
+    				return false;
+    			}
+    			TranslateMessage(&msg);
+    			DispatchMessage(&msg);
+    		}
+    		return true;
+    	};
+        if (!PumpWin32Once(quit) || quit)
+        	break;
+
+    	RECT newRc{};
+    	GetClientRect(hwnd, &newRc);
+    	int newW = newRc.right - newRc.left;
+    	int newH = newRc.bottom - newRc.top;
+        if (newW <= 0 || newH <= 0)
+        	continue;
+
+        if (newW != width || newH != height) {
+            width = newW; height = newH;
+            rtv.Reset();
+            dsv.Reset();
+            depthTex.Reset();
+
+            swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+            if (!CreateRenderTargets(width, height))
+            	return false;
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(now - saveTime).count();
+        if (elapsed > 1.0 / 30.0) elapsed = 1.0 / 30.0;
+        saveTime = now;
+
+        float dt = static_cast<float>(elapsed);
+        float t  = appContext.m_animTime + dt;
+
+        if (music.HasMusic()) {
+            auto [adt, at] = music.PullTimes();
+            if (adt < 0.f) adt = 0.f;
+            dt = adt;
+            t  = at;
+        }
+
+        appContext.m_elapsed  = dt;
+        appContext.m_animTime = t;
+        appContext.m_screenWidth  = width;
+        appContext.m_screenHeight = height;
+
+        D3D11_VIEWPORT vp{};
+        vp.Width = static_cast<float>(width);
+        vp.Height = static_cast<float>(height);
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        context->RSSetViewports(1, &vp);
+
+        ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
+        context->OMSetRenderTargets(1, rtvs, dsv.Get());
+
+        float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
+        context->ClearRenderTargetView(rtv.Get(), clearColor);
+        context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+        if (appContext.m_vmdCameraAnim) {
+            appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
+            const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
+            appContext.m_viewMat = mmdCam.GetViewMatrix();
+            appContext.m_projMat = glm::perspectiveFovRH(
+                mmdCam.m_fov, static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f
+            );
+        } else {
+            appContext.m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
+            appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
+                static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
+        }
+
+        for (auto& model : models) {
+            model.UpdateAnimation(appContext);
+            model.Update();
+            model.Draw(appContext);
+        }
+
+        swapChain->Present(0, 0);
+
+        fpsFrame++;
+        double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
+        if (sec > 1.0) {
+            std::cout << (fpsFrame / sec) << " fps\n";
+            fpsFrame = 0;
+            fpsTime = std::chrono::steady_clock::now();
+        }
+    }
+    models.clear();
+    return true;
 }

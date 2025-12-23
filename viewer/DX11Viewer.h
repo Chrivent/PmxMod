@@ -11,6 +11,7 @@
 #include <memory>
 #include <filesystem>
 
+struct SceneConfig;
 struct MMDMaterial;
 class MMDModel;
 class VMDAnimation;
@@ -150,9 +151,12 @@ struct Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgePSConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowVSConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
+    float m_scale = 1.0f;
 
     bool Setup(AppContext& appContext);
     void UpdateAnimation(const AppContext& appContext) const;
     void Update() const;
     void Draw(const AppContext& appContext) const;
 };
+
+bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg);
