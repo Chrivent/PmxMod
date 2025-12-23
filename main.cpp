@@ -21,7 +21,7 @@
 struct Input {
 	std::filesystem::path				m_modelPath;
 	std::vector<std::filesystem::path>	m_vmdPaths;
-	float								m_scale = 1.0f;
+	float								m_scale = 1.1f;
 };
 
 struct SceneConfig {
