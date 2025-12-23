@@ -151,14 +151,16 @@ bool VKTexture::Setup(const VKAppContext& appContext, const uint32_t width, cons
 	const auto imageInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D)
 			.setFormat(format)
-			.setMipLevels(1)
+			.setMipLevels(mipCount)
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setTiling(vk::ImageTiling::eOptimal)
 			.setSharingMode(vk::SharingMode::eExclusive)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setExtent(vk::Extent3D(width, height, 1))
 			.setArrayLayers(1)
-			.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled);
+			.setUsage(vk::ImageUsageFlagBits::eTransferDst |
+				vk::ImageUsageFlagBits::eTransferSrc |
+				vk::ImageUsageFlagBits::eSampled);
 	vk::Result ret = device.createImage(&imageInfo, nullptr, &m_image);
 	if (vk::Result::eSuccess != ret) {
 		std::cout << "Failed to create Image.\n";
@@ -219,7 +221,7 @@ void VKTexture::Clear(const VKAppContext& appContext) {
 	m_memory = nullptr;
 }
 
-bool VKStagingBuffer::Setup(VKAppContext& appContext, const vk::DeviceSize size) {
+bool VKStagingBuffer::Setup(const VKAppContext& appContext, const vk::DeviceSize size) {
 	const auto device = appContext.m_device;
 	if (size <= m_memorySize)
 		return true;
@@ -318,7 +320,7 @@ bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffe
 			.setPCommandBuffers(&m_copyCommand)
 			.setSignalSemaphoreCount(1)
 			.setPSignalSemaphores(&m_transferCompleteSemaphore);
-	vk::PipelineStageFlags waitDstStage = vk::PipelineStageFlagBits::eTransfer;
+	constexpr vk::PipelineStageFlags waitDstStage = vk::PipelineStageFlagBits::eTransfer;
 	if (m_waitSemaphore) {
 		submitInfo
 				.setWaitSemaphoreCount(1)
@@ -1756,10 +1758,10 @@ bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTextur
 		stbi_image_free(image);
 		const auto bufferImageCopy = vk::BufferImageCopy()
 				.setImageSubresource(vk::ImageSubresourceLayers()
-				.setAspectMask(vk::ImageAspectFlagBits::eColor)
-				.setMipLevel(0)
-				.setBaseArrayLayer(0)
-				.setLayerCount(1))
+					.setAspectMask(vk::ImageAspectFlagBits::eColor)
+					.setMipLevel(0)
+					.setBaseArrayLayer(0)
+					.setLayerCount(1))
 				.setImageExtent(vk::Extent3D(x, y, 1))
 				.setBufferOffset(0);
 		if (!imgStBuf->CopyImage(

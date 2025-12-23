@@ -121,7 +121,7 @@ struct VKStagingBuffer {
 	vk::Semaphore		m_transferCompleteSemaphore;
 	vk::Semaphore		m_waitSemaphore;
 
-	bool Setup(VKAppContext& appContext, vk::DeviceSize size);
+	bool Setup(const VKAppContext& appContext, vk::DeviceSize size);
 	void Clear(const VKAppContext& appContext);
 	void Wait(const VKAppContext& appContext) const;
 	bool CopyBuffer(const VKAppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
