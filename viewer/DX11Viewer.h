@@ -1,0 +1,124 @@
+#pragma once
+
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+#include <d3d11.h>
+#include <wrl/client.h>
+
+#include <map>
+#include <memory>
+#include <filesystem>
+
+class VMDCameraAnimation;
+
+struct Vertex {
+    glm::vec3	m_position;
+    glm::vec3	m_normal;
+    glm::vec2	m_uv;
+};
+
+struct MMDVertexShaderCB {
+    glm::mat4	m_wv;
+    glm::mat4	m_wvp;
+};
+
+struct MMDPixelShaderCB {
+    float		m_alpha;
+    glm::vec3	m_diffuse;
+    glm::vec3	m_ambient;
+    float		m_dummy1;
+    glm::vec3	m_specular;
+    float		m_specularPower;
+    glm::vec3	m_lightColor;
+    float		m_dummy2;
+    glm::vec3	m_lightDir;
+    float		m_dummy3;
+    glm::vec4	m_texMulFactor;
+    glm::vec4	m_texAddFactor;
+    glm::vec4	m_toonTexMulFactor;
+    glm::vec4	m_toonTexAddFactor;
+    glm::vec4	m_sphereTexMulFactor;
+    glm::vec4	m_sphereTexAddFactor;
+    glm::ivec4	m_textureModes;
+};
+
+struct MMDEdgeVertexShaderCB {
+    glm::mat4	m_wv;
+    glm::mat4	m_wvp;
+    glm::vec2	m_screenSize;
+    float		m_dummy[2];
+};
+
+struct MMDEdgeSizeVertexShaderCB {
+    float		m_edgeSize;
+    float		m_dummy[3];
+};
+
+struct MMDEdgePixelShaderCB {
+    glm::vec4	m_edgeColor;
+};
+
+struct MMDGroundShadowVertexShaderCB {
+    glm::mat4	m_wvp;
+};
+
+struct MMDGroundShadowPixelShaderCB {
+    glm::vec4	m_shadowColor;
+};
+
+struct Texture {
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_texture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_textureView;
+    bool								m_hasAlpha;
+};
+
+struct AppContext {
+    std::filesystem::path m_resourceDir;
+    std::filesystem::path	m_shaderDir;
+    std::filesystem::path	m_mmdDir;
+    glm::mat4	m_viewMat;
+    glm::mat4	m_projMat;
+    int			m_screenWidth = 0;
+    int			m_screenHeight = 0;
+    UINT		m_multiSampleCount = 1;
+    UINT		m_multiSampleQuality = 0;
+    glm::vec3	m_lightColor = glm::vec3(1, 1, 1);
+    glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+    float	m_elapsed = 0.0f;
+    float	m_animTime = 0.0f;
+    std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
+    std::map<std::filesystem::path, Texture>	m_textures;
+    Microsoft::WRL::ComPtr<ID3D11Device>			m_device;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	m_renderTargetView;
+    Microsoft::WRL::ComPtr <ID3D11DepthStencilView> m_depthStencilView;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_mmdVS;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_mmdPS;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	m_mmdInputLayout;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	m_textureSampler;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	m_toonTextureSampler;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	m_sphereTextureSampler;
+    Microsoft::WRL::ComPtr<ID3D11BlendState>	m_mmdBlendState;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	m_mmdFrontFaceRS;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	m_mmdBothFaceRS;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_mmdEdgeVS;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_mmdEdgePS;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	m_mmdEdgeInputLayout;
+    Microsoft::WRL::ComPtr<ID3D11BlendState>	m_mmdEdgeBlendState;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	m_mmdEdgeRS;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_mmdGroundShadowVS;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_mmdGroundShadowPS;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	m_mmdGroundShadowInputLayout;
+    Microsoft::WRL::ComPtr<ID3D11BlendState>	m_mmdGroundShadowBlendState;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	m_mmdGroundShadowRS;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	m_mmdGroundShadowDSS;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	m_defaultDSS;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_dummyTexture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_dummyTextureView;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>			m_dummySampler;
+
+    bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
+    bool CreateShaders();
+    Texture GetTexture(const std::filesystem::path& texturePath);
+};

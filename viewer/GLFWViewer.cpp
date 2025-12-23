@@ -16,7 +16,7 @@
 GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
 	if (shader == 0) {
-		std::cout << "Failed to create shader.\n";
+		std::cout << "Failed to create shader_GLFW.\n";
 		return 0;
 	}
 	const char* codes[] = { code.c_str() };
@@ -40,7 +40,7 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 	if (compileStatus != GL_TRUE) {
 		glDeleteShader(shader);
-		std::cout << "Failed to compile shader.\n";
+		std::cout << "Failed to compile shader_GLFW.\n";
 		return 0;
 	}
 	return shader;
@@ -49,13 +49,13 @@ GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile) {
 	std::ifstream vf(vsFile);
 	if (!vf) {
-		std::cout << "Failed to open shader file. [" << vsFile << "].\n";
+		std::cout << "Failed to open shader_GLFW file. [" << vsFile << "].\n";
 		return 0;
 	}
 	const auto vsCode = std::string(std::istreambuf_iterator(vf), {});
 	std::ifstream ff(fsFile);
 	if (!ff) {
-		std::cout << "Failed to open shader file. [" << fsFile << "].\n";
+		std::cout << "Failed to open shader_GLFW file. [" << fsFile << "].\n";
 		return 0;
 	}
 	const auto fsCode = std::string(std::istreambuf_iterator(ff), {});
@@ -97,7 +97,7 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	if (linkStatus != GL_TRUE) {
 		glDeleteShader(vs);
 		glDeleteShader(fs);
-		std::cout << "Failed to link shader.\n";
+		std::cout << "Failed to link shader_GLFW.\n";
 		return 0;
 	}
 	glDeleteShader(vs);
@@ -209,7 +209,7 @@ bool GLFWAppContext::Setup() {
 	m_resourceDir = PathUtil::GetExecutablePath();
 	m_resourceDir = m_resourceDir.parent_path();
 	m_resourceDir /= "resource";
-	m_shaderDir = m_resourceDir / "shader";
+	m_shaderDir = m_resourceDir / "shader_GLFW";
 	m_mmdDir = m_resourceDir / "mmd";
 	m_shader = std::make_unique<GLFWShader>();
 	if (!m_shader->Setup(*this))
