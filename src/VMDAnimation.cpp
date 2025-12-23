@@ -4,7 +4,7 @@
 #include "MMDModel.h"
 #include "MMDIkSolver.h"
 
-#include "../base/Util.h"
+#include "MMDUtil.h"
 
 #include <algorithm>
 #include <iterator>

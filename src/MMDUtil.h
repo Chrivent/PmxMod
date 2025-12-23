@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <cstdint>
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -50,15 +49,15 @@ struct UnicodeUtil {
 
 struct PathUtil {
     static std::filesystem::path GetExecutablePath() {
-    	std::vector<wchar_t> buf(MAX_PATH);
-    	while (true) {
-    		const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
-    		if (n == 0)
-    			return {};
-    		if (n < buf.size() - 1)
-    			return std::filesystem::path(buf.data(), buf.data() + n);
-    		buf.resize(buf.size() * 2);
-    	}
+	    std::vector<wchar_t> buf(MAX_PATH);
+	    while (true) {
+		    const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
+		    if (n == 0)
+			    return {};
+		    if (n < buf.size() - 1)
+			    return { buf.data(), buf.data() + n };
+		    buf.resize(buf.size() * 2);
+	    }
     }
 
     static std::string GetExt(const std::filesystem::path& path) {

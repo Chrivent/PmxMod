@@ -1,6 +1,6 @@
 ﻿#include "MMDReader.h"
 
-#include "../base/Util.h"
+#include "MMDUtil.h"
 
 #include <vector>
 #include <fstream>

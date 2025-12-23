@@ -17,7 +17,7 @@ add_executable(PmxMod
         MMDShader.cpp  MMDShader.h
         Model.cpp      Model.h
         external/miniaudio.h
-        base/Util.h
+        src/MMDUtil.h
         src/MMDIkSolver.cpp     src/MMDIkSolver.h
         src/MMDModel.cpp        src/MMDModel.h
         src/MMDNode.cpp         src/MMDNode.h

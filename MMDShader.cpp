@@ -6,7 +6,7 @@
 
 #include "AppContext.h"
 
-#include "base/Util.h"
+#include "src/MMDUtil.h"
 
 GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);

@@ -7,7 +7,7 @@
 #include "MMDPhysics.h"
 #include "VMDAnimation.h"
 
-#include "../base/Util.h"
+#include "MMDUtil.h"
 
 #include <glm/gtx/dual_quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
