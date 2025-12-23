@@ -1,7 +1,4 @@
-﻿#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <iostream>
+﻿#include <iostream>
 #include <filesystem>
 #include <vector>
 #include <string>
@@ -9,26 +6,8 @@
 #include <windows.h>
 #include <shobjidl.h>
 
-#include "AppContext.h"
-#include "Model.h"
 #include "src/MMDUtil.h"
-
-#define MINIAUDIO_IMPLEMENTATION
-#include <glm/fwd.hpp>
-
-#include "external/miniaudio.h"
-
-struct Input {
-	std::filesystem::path				m_modelPath;
-	std::vector<std::filesystem::path>	m_vmdPaths;
-	float								m_scale = 1.1f;
-};
-
-struct SceneConfig {
-	std::vector<Input>		models;
-	std::filesystem::path	cameraVmd;
-	std::filesystem::path	musicPath;
-};
+#include "viewer/GLFWViewer.h"
 
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
@@ -107,63 +86,6 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-class Music {
-public:
-	~Music() {
-		Uninit();
-	}
-
-	bool Init(const std::filesystem::path& path) {
-		Uninit();
-		if (path.empty())
-			return false;
-		if (ma_engine_init(nullptr, &m_engine) != MA_SUCCESS)
-			return false;
-		if (ma_sound_init_from_file_w(&m_engine, path.wstring().c_str(),
-			0, nullptr, nullptr, &m_sound) != MA_SUCCESS) {
-			ma_engine_uninit(&m_engine);
-			return false;
-		}
-		ma_sound_start(&m_sound);
-		m_hasMusic = true;
-		m_prevTimeSec = 0.0;
-		return true;
-	}
-
-	void Uninit() {
-		if (!m_hasMusic)
-			return;
-		ma_sound_uninit(&m_sound);
-		ma_engine_uninit(&m_engine);
-		m_hasMusic = false;
-		m_prevTimeSec = 0.0;
-	}
-
-	bool HasMusic() const {
-		return m_hasMusic;
-	}
-
-	std::pair<float, float> PullTimes() {
-		if (!m_hasMusic)
-			return { 0.f, 0.f };
-		ma_uint64 frames{};
-		if (ma_sound_get_cursor_in_pcm_frames(&m_sound, &frames) != MA_SUCCESS)
-			return { 0.f, static_cast<float>(m_prevTimeSec) };
-		const double sr = ma_engine_get_sample_rate(&m_engine);
-		const double t = sr > 0.0 ? static_cast<double>(frames) / sr : m_prevTimeSec;
-		double dt = t - m_prevTimeSec;
-		if (dt < 0.0) dt = 0.0;
-		m_prevTimeSec = t;
-		return { static_cast<float>(dt), static_cast<float>(t) };
-	}
-
-private:
-	ma_engine m_engine{};
-	ma_sound  m_sound{};
-	bool   m_hasMusic = false;
-	double m_prevTimeSec = 0.0;
-};
-
 static SceneConfig BuildTestSceneConfig() {
 	SceneConfig cfg;
 	Input in1;
@@ -193,140 +115,6 @@ static SceneConfig BuildTestSceneConfig() {
 	bg.m_scale = 1.0f;
 	cfg.models.emplace_back(std::move(bg));
 	return cfg;
-}
-
-static bool SampleMain(const SceneConfig& cfg) {
-	Music music;
-	music.Init(cfg.musicPath);
-    if (!glfwInit())
-    	return false;
-    AppContext appContext;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, appContext.m_msaaSamples);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
-    if (!window) {
-	    glfwTerminate();
-    	return false;
-    }
-    glfwMakeContextCurrent(window);
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-        glfwTerminate();
-    	return false;
-    }
-    glfwSwapInterval(0);
-    glEnable(GL_MULTISAMPLE);
-    if (!appContext.Setup()) {
-        std::cout << "Failed to setup AppContext.\n";
-        glfwTerminate();
-    	return false;
-    }
-    if (!cfg.cameraVmd.empty()) {
-        VMDReader camVmd;
-        if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
-            auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
-            if (!vmdCamAnim->Create(camVmd))
-                std::cout << "Failed to create VMDCameraAnimation.\n";
-            appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
-        }
-    }
-    std::vector<Model> models;
-    models.reserve(cfg.models.size());
-    for (const auto&[m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
-        Model model;
-        const auto ext = PathUtil::GetExt(m_modelPath);
-        if (ext != "pmx") {
-            std::cout << "Unknown file type. [" << ext << "]\n";
-            glfwTerminate();
-        	return false;
-        }
-        auto pmxModel = std::make_unique<MMDModel>();
-        if (!pmxModel->Load(m_modelPath, appContext.m_mmdDir)) {
-            std::cout << "Failed to load pmx file.\n";
-            glfwTerminate();
-        	return false;
-        }
-        model.m_mmdModel = std::move(pmxModel);
-        model.m_mmdModel->InitializeAnimation();
-        auto vmdAnim = std::make_unique<VMDAnimation>();
-        vmdAnim->m_model = model.m_mmdModel;
-        for (const auto& vmdPath : m_vmdPaths) {
-            VMDReader vmd;
-            if (!vmd.ReadVMDFile(vmdPath.c_str())) {
-                std::cout << "Failed to read VMD file.\n";
-                glfwTerminate();
-            	return false;
-            }
-            if (!vmdAnim->Add(vmd)) {
-                std::cout << "Failed to add VMDAnimation.\n";
-                glfwTerminate();
-            	return false;
-            }
-        }
-        vmdAnim->SyncPhysics(0.0f);
-        model.m_vmdAnim = std::move(vmdAnim);
-        model.m_scale = m_scale;
-        model.Setup(appContext);
-        models.emplace_back(std::move(model));
-    }
-    auto fpsTime  = std::chrono::steady_clock::now();
-    auto saveTime = std::chrono::steady_clock::now();
-    int fpsFrame  = 0;
-    while (!glfwWindowShouldClose(window)) {
-        auto now = std::chrono::steady_clock::now();
-        double elapsed = std::chrono::duration<double>(now - saveTime).count();
-        if (elapsed > 1.0 / 30.0)
-        	elapsed = 1.0 / 30.0;
-        saveTime = now;
-        auto dt = static_cast<float>(elapsed);
-        float t  = appContext.m_animTime + dt;
-    	if (music.HasMusic()) {
-    		auto [adt, at] = music.PullTimes();
-    		if (adt < 0.f)
-    			adt = 0.f;
-    		dt = adt;
-    		t  = at;
-    	}
-        appContext.m_elapsed  = dt;
-        appContext.m_animTime = t;
-        glClearColor(0.839f, 0.902f, 0.961f, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        appContext.m_screenWidth  = width;
-        appContext.m_screenHeight = height;
-        glViewport(0, 0, width, height);
-        if (appContext.m_vmdCameraAnim) {
-            appContext.m_vmdCameraAnim->Evaluate(appContext.m_animTime * 30.0f);
-            const auto mmdCam = appContext.m_vmdCameraAnim->m_camera;
-            appContext.m_viewMat = mmdCam.GetViewMatrix();
-            appContext.m_projMat = glm::perspectiveFovRH(mmdCam.m_fov,
-                static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-        } else {
-            appContext.m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
-            appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
-                static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-        }
-        for (auto& model : models) {
-            model.UpdateAnimation(appContext);
-            model.Update();
-            model.Draw(appContext);
-        }
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-        fpsFrame++;
-        double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-        if (sec > 1.0) {
-            std::cout << (fpsFrame / sec) << " fps\n";
-            fpsFrame = 0;
-            fpsTime = std::chrono::steady_clock::now();
-        }
-    }
-    appContext.Clear();
-    glfwTerminate();
-    return true;
 }
 
 int main() {

@@ -13,18 +13,16 @@ find_package(Bullet CONFIG REQUIRED)
 
 add_executable(PmxMod
         main.cpp
-        AppContext.cpp AppContext.h
-        MMDShader.cpp  MMDShader.h
-        Model.cpp      Model.h
         external/miniaudio.h
-        src/MMDUtil.h
+        external/stb_image.h
+        src/MMDUtil.cpp         src/MMDUtil.h
         src/MMDIkSolver.cpp     src/MMDIkSolver.h
         src/MMDModel.cpp        src/MMDModel.h
         src/MMDNode.cpp         src/MMDNode.h
         src/MMDPhysics.cpp      src/MMDPhysics.h
         src/MMDReader.cpp       src/MMDReader.h
         src/VMDAnimation.cpp    src/VMDAnimation.h
-        external/stb_image.h
+        viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC
