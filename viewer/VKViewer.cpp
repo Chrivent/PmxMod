@@ -151,16 +151,14 @@ bool VKTexture::Setup(const VKAppContext& appContext, const uint32_t width, cons
 	const auto imageInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D)
 			.setFormat(format)
-			.setMipLevels(mipCount)
+			.setMipLevels(1)
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setTiling(vk::ImageTiling::eOptimal)
 			.setSharingMode(vk::SharingMode::eExclusive)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setExtent(vk::Extent3D(width, height, 1))
 			.setArrayLayers(1)
-			.setUsage(vk::ImageUsageFlagBits::eTransferDst |
-				vk::ImageUsageFlagBits::eTransferSrc |
-				vk::ImageUsageFlagBits::eSampled);
+			.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled);
 	vk::Result ret = device.createImage(&imageInfo, nullptr, &m_image);
 	if (vk::Result::eSuccess != ret) {
 		std::cout << "Failed to create Image.\n";
