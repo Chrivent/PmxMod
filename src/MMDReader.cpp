@@ -6,7 +6,7 @@
 #include <fstream>
 
 void MMDReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
-	is.read(static_cast<char*>(dst), bytes);
+	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
 }
 
 std::streampos MMDReader::GetFileEnd(std::istream& is) {
