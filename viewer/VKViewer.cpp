@@ -1756,10 +1756,10 @@ bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTextur
 		stbi_image_free(image);
 		const auto bufferImageCopy = vk::BufferImageCopy()
 				.setImageSubresource(vk::ImageSubresourceLayers()
-					.setAspectMask(vk::ImageAspectFlagBits::eColor)
-					.setMipLevel(0)
-					.setBaseArrayLayer(0)
-					.setLayerCount(1))
+				.setAspectMask(vk::ImageAspectFlagBits::eColor)
+				.setMipLevel(0)
+				.setBaseArrayLayer(0)
+				.setLayerCount(1))
 				.setImageExtent(vk::Extent3D(x, y, 1))
 				.setBufferOffset(0);
 		if (!imgStBuf->CopyImage(
