@@ -24,6 +24,12 @@ struct Input {
 	float								m_scale = 1.0f;
 };
 
+struct SceneConfig {
+	std::vector<Input>		models;
+	std::filesystem::path	cameraVmd;
+	std::filesystem::path	musicPath;
+};
+
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
 	const wchar_t* title,
@@ -101,10 +107,61 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-struct SceneConfig {
-	std::vector<Input>		models;
-	std::filesystem::path	cameraVmd;
-	std::filesystem::path	musicPath;
+class Music {
+public:
+	~Music() {
+		Uninit();
+	}
+
+	bool Init(const std::filesystem::path& path) {
+		Uninit();
+		if (path.empty())
+			return false;
+		if (ma_engine_init(nullptr, &m_engine) != MA_SUCCESS)
+			return false;
+		if (ma_sound_init_from_file_w(&m_engine, path.wstring().c_str(),
+			0, nullptr, nullptr, &m_sound) != MA_SUCCESS) {
+			ma_engine_uninit(&m_engine);
+			return false;
+		}
+		ma_sound_start(&m_sound);
+		m_hasMusic = true;
+		m_prevTimeSec = 0.0;
+		return true;
+	}
+
+	void Uninit() {
+		if (!m_hasMusic)
+			return;
+		ma_sound_uninit(&m_sound);
+		ma_engine_uninit(&m_engine);
+		m_hasMusic = false;
+		m_prevTimeSec = 0.0;
+	}
+
+	bool HasMusic() const {
+		return m_hasMusic;
+	}
+
+	std::pair<float, float> PullTimes() {
+		if (!m_hasMusic)
+			return { 0.f, 0.f };
+		ma_uint64 frames{};
+		if (ma_sound_get_cursor_in_pcm_frames(&m_sound, &frames) != MA_SUCCESS)
+			return { 0.f, static_cast<float>(m_prevTimeSec) };
+		const double sr = ma_engine_get_sample_rate(&m_engine);
+		const double t = sr > 0.0 ? static_cast<double>(frames) / sr : m_prevTimeSec;
+		double dt = t - m_prevTimeSec;
+		if (dt < 0.0) dt = 0.0;
+		m_prevTimeSec = t;
+		return { static_cast<float>(dt), static_cast<float>(t) };
+	}
+
+private:
+	ma_engine m_engine{};
+	ma_sound  m_sound{};
+	bool   m_hasMusic = false;
+	double m_prevTimeSec = 0.0;
 };
 
 static SceneConfig BuildTestSceneConfig() {
@@ -144,50 +201,10 @@ static SceneConfig BuildTestSceneConfig() {
 }
 
 static bool SampleMain(const SceneConfig& cfg) {
-    ma_engine engine{};
-    ma_sound  sound{};
-    bool hasMusic = false;
-    double prevTimeSec = 0.0;
-    auto InitMusic = [&] {
-        if (cfg.musicPath.empty())
-        	return;
-        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS)
-	        return;
-    	if (ma_sound_init_from_file_w(&engine, cfg.musicPath.wstring().c_str(),
-    		0, nullptr, nullptr, &sound) != MA_SUCCESS) {
-	        ma_engine_uninit(&engine);
-	        return;
-        }
-        ma_sound_start(&sound);
-        hasMusic = true;
-        prevTimeSec = 0.0;
-    };
-    auto UninitMusic = [&] {
-        if (!hasMusic)
-        	return;
-        ma_sound_uninit(&sound);
-        ma_engine_uninit(&engine);
-        hasMusic = false;
-    };
-    auto PullMusicTimes = [&]() -> std::pair<float,float> {
-        if (!hasMusic)
-        	return { 0.f, 0.f };
-        ma_uint64 frames{};
-        if (ma_sound_get_cursor_in_pcm_frames(&sound, &frames) != MA_SUCCESS)
-            return { 0.f, static_cast<float>(prevTimeSec) };
-        const double sr = ma_engine_get_sample_rate(&engine);
-        const double t  = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
-        double dt = t - prevTimeSec;
-    	if (dt < 0.0)
-    		dt = 0.0;
-        prevTimeSec = t;
-        return { static_cast<float>(dt), static_cast<float>(t) };
-    };
-    InitMusic();
-    if (!glfwInit()) {
-	    UninitMusic();
+	Music music;
+	music.Init(cfg.musicPath);
+    if (!glfwInit())
     	return false;
-    }
     AppContext appContext;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -197,13 +214,11 @@ static bool SampleMain(const SceneConfig& cfg) {
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
     if (!window) {
 	    glfwTerminate();
-    	UninitMusic();
     	return false;
     }
     glfwMakeContextCurrent(window);
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         glfwTerminate();
-    	UninitMusic();
     	return false;
     }
     glfwSwapInterval(0);
@@ -211,7 +226,6 @@ static bool SampleMain(const SceneConfig& cfg) {
     if (!appContext.Setup()) {
         std::cout << "Failed to setup AppContext.\n";
         glfwTerminate();
-    	UninitMusic();
     	return false;
     }
     if (!cfg.cameraVmd.empty()) {
@@ -231,14 +245,12 @@ static bool SampleMain(const SceneConfig& cfg) {
         if (ext != "pmx") {
             std::cout << "Unknown file type. [" << ext << "]\n";
             glfwTerminate();
-        	UninitMusic();
         	return false;
         }
         auto pmxModel = std::make_unique<MMDModel>();
         if (!pmxModel->Load(m_modelPath, appContext.m_mmdDir)) {
             std::cout << "Failed to load pmx file.\n";
             glfwTerminate();
-        	UninitMusic();
         	return false;
         }
         model.m_mmdModel = std::move(pmxModel);
@@ -250,13 +262,11 @@ static bool SampleMain(const SceneConfig& cfg) {
             if (!vmd.ReadVMDFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
                 glfwTerminate();
-            	UninitMusic();
             	return false;
             }
             if (!vmdAnim->Add(vmd)) {
                 std::cout << "Failed to add VMDAnimation.\n";
                 glfwTerminate();
-            	UninitMusic();
             	return false;
             }
         }
@@ -277,13 +287,13 @@ static bool SampleMain(const SceneConfig& cfg) {
         saveTime = now;
         auto dt = static_cast<float>(elapsed);
         float t  = appContext.m_animTime + dt;
-        if (hasMusic) {
-            auto [adt, at] = PullMusicTimes();
-            if (adt < 0.f)
-            	adt = 0.f;
-            dt = adt;
-            t  = at;
-        }
+    	if (music.HasMusic()) {
+    		auto [adt, at] = music.PullTimes();
+    		if (adt < 0.f)
+    			adt = 0.f;
+    		dt = adt;
+    		t  = at;
+    	}
         appContext.m_elapsed  = dt;
         appContext.m_animTime = t;
         glClearColor(0.839f, 0.902f, 0.961f, 1);
@@ -321,7 +331,6 @@ static bool SampleMain(const SceneConfig& cfg) {
     }
     appContext.Clear();
     glfwTerminate();
-    UninitMusic();
     return true;
 }
 
