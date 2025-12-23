@@ -11,7 +11,7 @@
 
 #include "AppContext.h"
 #include "Model.h"
-#include "base/Util.h"
+#include "src/MMDUtil.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include <glm/fwd.hpp>
@@ -168,23 +168,18 @@ static SceneConfig BuildTestSceneConfig() {
 	SceneConfig cfg;
 	Input in1;
 	in1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
-	in1.m_scale = 1.0f;
 	in1.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
 	Input in2;
 	in2.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
-	in2.m_scale = 1.0f;
 	in2.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
 	Input in3;
 	in3.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
-	in3.m_scale = 1.0f;
 	in3.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
 	Input in4;
 	in4.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
-	in4.m_scale = 1.0f;
 	in4.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
 	Input in5;
 	in5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	in5.m_scale = 1.0f;
 	in5.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
 	cfg.models.emplace_back(std::move(in1));
 	cfg.models.emplace_back(std::move(in2));
