@@ -771,7 +771,6 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
 
-	// Setup DirectX 11
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
