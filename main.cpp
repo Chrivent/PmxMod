@@ -361,7 +361,6 @@ int main() {
 		for (int i = 0; i < n; i++) {
 			Input in;
 			in.m_modelPath = modelPaths[i][0].wstring();
-			in.m_scale = 1.0f;
 			for (auto& v : motionPaths[i])
 				in.m_vmdPaths.emplace_back(v.wstring());
 			cfg.models.emplace_back(std::move(in));
