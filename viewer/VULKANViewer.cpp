@@ -2666,6 +2666,8 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 	auto fpsTime = std::chrono::steady_clock::now();
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame = 0;
+	std::vector<vk::Semaphore> waitSemaphores;
+	std::vector<vk::PipelineStageFlags> waitStages;
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		auto now = std::chrono::steady_clock::now();
@@ -2682,6 +2684,31 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		}
 		appContext.m_elapsed = dt;
 		appContext.m_animTime = t;
+		const uint32_t frameIndex = appContext.m_frameIndex % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
+		auto& [m_fence, m_presentCompleteSemaphore, m_renderCompleteSemaphore] = appContext.m_frameSyncDatas[frameIndex];
+		if (appContext.m_device.waitForFences(1, &m_fence, VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
+			std::cout << "Failed to wait fence.\n";
+			break;
+		}
+		if (appContext.m_device.resetFences(1, &m_fence) != vk::Result::eSuccess) {
+			std::cout << "Failed to reset fence.\n";
+			break;
+		}
+		vk::Result ret2 = appContext.m_device.acquireNextImageKHR(
+			appContext.m_swapChain,
+			UINT64_MAX,
+			m_presentCompleteSemaphore,
+			vk::Fence(),
+			&appContext.m_imageIndex
+		);
+		if (ret2 == vk::Result::eErrorOutOfDateKHR) {
+			appContext.Resize();
+			return false;
+		}
+		if (ret2 != vk::Result::eSuccess && ret2 != vk::Result::eSuboptimalKHR) {
+			std::cout << "acquireNextImageKHR failed\n";
+			return false;
+		}
 		int w2, h2;
 		glfwGetFramebufferSize(window, &w2, &h2);
 		if (w2 != appContext.m_screenWidth || h2 != appContext.m_screenHeight) {
@@ -2709,31 +2736,6 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 			appContext.m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
 				static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
 		}
-		const uint32_t frameIndex = appContext.m_frameIndex % static_cast<uint32_t>(appContext.m_frameSyncDatas.size());
-		auto& [m_fence, m_presentCompleteSemaphore, m_renderCompleteSemaphore] = appContext.m_frameSyncDatas[frameIndex];
-		if (appContext.m_device.waitForFences(1, &m_fence, VK_TRUE, UINT64_MAX) != vk::Result::eSuccess) {
-			std::cout << "Failed to wait fence.\n";
-			break;
-		}
-		if (appContext.m_device.resetFences(1, &m_fence) != vk::Result::eSuccess) {
-			std::cout << "Failed to reset fence.\n";
-			break;
-		}
-		vk::Result ret2 = appContext.m_device.acquireNextImageKHR(
-			appContext.m_swapChain,
-			UINT64_MAX,
-			m_presentCompleteSemaphore,
-			vk::Fence(),
-			&appContext.m_imageIndex
-		);
-		if (ret2 == vk::Result::eErrorOutOfDateKHR) {
-			appContext.Resize();
-			return false;
-		}
-		if (ret2 != vk::Result::eSuccess && ret2 != vk::Result::eSuboptimalKHR) {
-			std::cout << "acquireNextImageKHR failed\n";
-			return false;
-		}
 		uint32_t imgIndex = appContext.m_imageIndex;
 		auto& res = appContext.m_swapChainImageResources[imgIndex];
 		vk::CommandBuffer cmdBuffer = res.m_cmdBuffer;
@@ -2744,7 +2746,7 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		for (auto& model : models)
 			model.Draw(appContext);
 		cmdBuffer.begin(vk::CommandBufferBeginInfo());
-		auto clearColor = vk::ClearColorValue(std::array({ 1.0f, 0.8f, 0.75f, 1.0f }));
+		auto clearColor = vk::ClearColorValue(std::array<float, 4>({ 1.0f, 0.8f, 0.75f, 1.0f }));
 		auto clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 		vk::ClearValue clearValues[] = {
 			clearColor,
@@ -2767,11 +2769,19 @@ bool VulkanSampleMain(const SceneConfig& cfg) {
 		}
 		cmdBuffer.endRenderPass();
 		cmdBuffer.end();
-		vk::PipelineStageFlags waitStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		waitSemaphores.push_back(m_presentCompleteSemaphore);
+		waitStages.emplace_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+		for (const auto& stBuf : appContext.m_stagingBuffers) {
+			if (stBuf->m_waitSemaphore) {
+				waitSemaphores.push_back(stBuf->m_waitSemaphore);
+				waitStages.emplace_back(vk::PipelineStageFlagBits::eTransfer);
+				stBuf->m_waitSemaphore = nullptr;
+			}
+		}
 		vk::SubmitInfo submit = vk::SubmitInfo()
 			.setWaitSemaphoreCount(1)
 			.setPWaitSemaphores(&m_presentCompleteSemaphore)
-			.setPWaitDstStageMask(&waitStage)
+			.setPWaitDstStageMask(waitStages.data())
 			.setCommandBufferCount(1)
 			.setPCommandBuffers(&cmdBuffer)
 			.setSignalSemaphoreCount(1)
