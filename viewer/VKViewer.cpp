@@ -338,16 +338,15 @@ bool VKStagingBuffer::CopyImage(
 	const VKAppContext& appContext,
 	const vk::Image destImage,
 	const vk::ImageLayout imageLayout,
-	const uint32_t regionCount,
 	const vk::BufferImageCopy* regions
 ) {
 	constexpr auto cmdBufInfo = vk::CommandBufferBeginInfo()
 			.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	vk::Result ret = m_copyCommand.begin(&cmdBufInfo);
-	const auto subresourceRange = vk::ImageSubresourceRange()
+	constexpr auto subresourceRange = vk::ImageSubresourceRange()
 			.setAspectMask(vk::ImageAspectFlagBits::eColor)
 			.setBaseMipLevel(0)
-			.setLevelCount(regionCount)
+			.setLevelCount(1)
 			.setLayerCount(1);
 	SetImageLayout(
 		m_copyCommand,
@@ -360,7 +359,7 @@ bool VKStagingBuffer::CopyImage(
 		m_buffer,
 		destImage,
 		vk::ImageLayout::eTransferDstOptimal,
-		regionCount,
+		1,
 		regions
 	);
 	SetImageLayout(
@@ -1652,7 +1651,7 @@ bool VKAppContext::PrepareDefaultTexture() {
 		*this,
 		m_defaultTexture->m_image,
 		vk::ImageLayout::eShaderReadOnlyOptimal,
-		1, &bufferImageCopy)) {
+		&bufferImageCopy)) {
 		std::cout << "Failed to copy image.\n";
 		return false;
 	}
@@ -1765,7 +1764,7 @@ bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTextur
 			*this,
 			tex->m_image,
 			vk::ImageLayout::eShaderReadOnlyOptimal,
-			1, &bufferImageCopy)) {
+			&bufferImageCopy)) {
 			std::cout << "Failed to copy image.\n";
 			return false;
 		}
