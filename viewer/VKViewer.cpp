@@ -931,90 +931,65 @@ bool VKAppContext::PrepareSyncObjects() {
 
 bool VKAppContext::PrepareRenderPass() {
 	const auto msaaColorAttachment = vk::AttachmentDescription()
-			.setFormat(m_colorFormat)
-			.setSamples(m_msaaSampleCount)
-			.setLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStoreOp(vk::AttachmentStoreOp::eStore)
-			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setInitialLayout(vk::ImageLayout::eUndefined)
-			.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal);
-	const auto colorAttachment = vk::AttachmentDescription()
-			.setFormat(m_colorFormat)
-			.setSamples(vk::SampleCountFlagBits::e1)
-			.setLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStoreOp(vk::AttachmentStoreOp::eStore)
-			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setInitialLayout(vk::ImageLayout::eUndefined)
-			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+		.setFormat(m_colorFormat)
+		.setSamples(m_msaaSampleCount)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::eColorAttachmentOptimal);
+	const auto resolveAttachment = vk::AttachmentDescription()
+		.setFormat(m_colorFormat)
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStoreOp(vk::AttachmentStoreOp::eStore)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 	const auto msaaDepthAttachment = vk::AttachmentDescription()
-			.setFormat(m_depthFormat)
-			.setSamples(m_msaaSampleCount)
-			.setLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setStencilLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setInitialLayout(vk::ImageLayout::eUndefined)
-			.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	const auto depthAttachment = vk::AttachmentDescription()
-			.setFormat(m_depthFormat)
-			.setSamples(vk::SampleCountFlagBits::e1)
-			.setLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setStencilLoadOp(vk::AttachmentLoadOp::eClear)
-			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-			.setInitialLayout(vk::ImageLayout::eUndefined)
-			.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	constexpr auto colorRef = vk::AttachmentReference()
-			.setAttachment(0)
-			.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
-	constexpr auto depthRef = vk::AttachmentReference()
-			.setAttachment(2)
-			.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	constexpr auto resolveRef = vk::AttachmentReference()
-			.setAttachment(1)
-			.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
-	const auto subpass = vk::SubpassDescription()
-			.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-			.setInputAttachmentCount(0)
-			.setPInputAttachments(nullptr)
-			.setColorAttachmentCount(1)
-			.setPColorAttachments(&colorRef)
-			.setPResolveAttachments(&resolveRef)
-			.setPDepthStencilAttachment(&depthRef)
-			.setPreserveAttachmentCount(0)
-			.setPPreserveAttachments(nullptr);
-	vk::SubpassDependency dependencies[2];
-	dependencies[0]
-			.setSrcSubpass(VK_SUBPASS_EXTERNAL)
-			.setDstSubpass(0)
-			.setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
-			.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-			.setSrcAccessMask(vk::AccessFlagBits::eMemoryRead)
-			.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
-			.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
-	dependencies[1]
-			.setSrcSubpass(0)
-			.setDstSubpass(VK_SUBPASS_EXTERNAL)
-			.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-			.setDstStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
-			.setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
-			.setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
-			.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
+		.setFormat(m_depthFormat)
+		.setSamples(m_msaaSampleCount)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 	vk::AttachmentDescription attachments[] = {
 		msaaColorAttachment,
-		colorAttachment,
-		msaaDepthAttachment,
-		depthAttachment
+		resolveAttachment,
+		msaaDepthAttachment
 	};
+	constexpr auto colorRef   = vk::AttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal);
+	constexpr auto resolveRef = vk::AttachmentReference(1, vk::ImageLayout::eColorAttachmentOptimal);
+	constexpr auto depthRef   = vk::AttachmentReference(2, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	const auto subpass = vk::SubpassDescription()
+		.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+		.setColorAttachmentCount(1).setPColorAttachments(&colorRef)
+		.setPResolveAttachments(&resolveRef)
+		.setPDepthStencilAttachment(&depthRef);
+	vk::SubpassDependency dependencies[2];
+	dependencies[0]
+		.setSrcSubpass(VK_SUBPASS_EXTERNAL)
+		.setDstSubpass(0)
+		.setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
+		.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+		.setSrcAccessMask(vk::AccessFlagBits::eMemoryRead)
+		.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
+		.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
+	dependencies[1]
+		.setSrcSubpass(0)
+		.setDstSubpass(VK_SUBPASS_EXTERNAL)
+		.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+		.setDstStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
+		.setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
+		.setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
+		.setDependencyFlags(vk::DependencyFlagBits::eByRegion);
 	const auto renderPassInfo = vk::RenderPassCreateInfo()
-			.setAttachmentCount(std::extent_v<decltype(attachments)>)
-			.setPAttachments(attachments)
-			.setSubpassCount(1)
-			.setPSubpasses(&subpass)
-			.setDependencyCount(std::extent_v<decltype(dependencies)>)
-			.setPDependencies(dependencies);
+		.setAttachmentCount(std::extent_v<decltype(attachments)>)
+		.setPAttachments(attachments)
+		.setSubpassCount(1)
+		.setPSubpasses(&subpass)
+		.setDependencyCount(std::extent_v<decltype(dependencies)>)
+		.setPDependencies(dependencies);
 	vk::RenderPass renderPass;
 	const vk::Result ret = m_device.createRenderPass(&renderPassInfo, nullptr, &renderPass);
 	if (vk::Result::eSuccess != ret) {
@@ -1026,26 +1001,22 @@ bool VKAppContext::PrepareRenderPass() {
 }
 
 bool VKAppContext::PrepareFramebuffer() {
-	vk::ImageView attachments[4];
+	vk::ImageView attachments[3];
 	attachments[0] = m_msaaColorImageView;
 	attachments[2] = m_msaaDepthImageView;
-	attachments[3] = m_depthImageView;
 	const auto framebufferInfo = vk::FramebufferCreateInfo()
-			.setRenderPass(m_renderPass)
-			.setAttachmentCount(std::extent_v<decltype(attachments)>)
-			.setPAttachments(attachments)
-			.setWidth(static_cast<uint32_t>(m_screenWidth))
-			.setHeight(static_cast<uint32_t>(m_screenHeight))
-			.setLayers(1);
-	for (auto & m_swapChainImageResource : m_swapChainImageResources) {
-		attachments[1] = m_swapChainImageResource.m_imageView;
-		vk::Framebuffer framebuffer;
-		const vk::Result ret = m_device.createFramebuffer(&framebufferInfo, nullptr, &framebuffer);
-		if (vk::Result::eSuccess != ret) {
-			std::cout << "Failed to create Framebuffer.\n";
+		.setRenderPass(m_renderPass)
+		.setAttachmentCount(3)
+		.setPAttachments(attachments)
+		.setWidth(static_cast<uint32_t>(m_screenWidth))
+		.setHeight(static_cast<uint32_t>(m_screenHeight))
+		.setLayers(1);
+	for (auto& res : m_swapChainImageResources) {
+		attachments[1] = res.m_imageView;
+		vk::Framebuffer fb;
+		if (m_device.createFramebuffer(&framebufferInfo, nullptr, &fb) != vk::Result::eSuccess)
 			return false;
-		}
-		m_swapChainImageResource.m_framebuffer = framebuffer;
+		res.m_framebuffer = fb;
 	}
 	return true;
 }
