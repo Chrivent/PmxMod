@@ -1690,14 +1690,6 @@ bool VKAppContext::GetStagingBuffer(const vk::DeviceSize memSize, VKStagingBuffe
 	return true;
 }
 
-void VKAppContext::WaitAllStagingBuffer() const {
-	for (const auto& stBuf : m_stagingBuffers) {
-		const vk::Result res = m_device.waitForFences(1, &stBuf->m_transferCompleteFence, true, UINT64_MAX);
-		if (res != vk::Result::eSuccess)
-			std::cout << "Failed to wait for Staging Buffer.\n";
-	}
-}
-
 bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTexture** outTex) {
 	const auto it = m_textures.find(texturePath);
 	if (it == m_textures.end()) {

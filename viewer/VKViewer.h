@@ -221,7 +221,6 @@ struct VKAppContext {
 	bool PrepareDefaultTexture();
 	bool Resize();
 	bool GetStagingBuffer(vk::DeviceSize memSize, VKStagingBuffer** outBuf);
-	void WaitAllStagingBuffer() const;
 	bool GetTexture(const std::filesystem::path& texturePath, VKTexture** outTex);
 
 	static bool ReadSpvBinary(const std::filesystem::path& path, std::vector<uint32_t>& out);
