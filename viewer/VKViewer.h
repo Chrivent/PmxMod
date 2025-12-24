@@ -117,19 +117,17 @@ struct VKStagingBuffer {
 	vk::DeviceSize		m_memorySize = 0;
 	vk::CommandBuffer	m_copyCommand;
 	vk::Fence			m_transferCompleteFence;
-	vk::Semaphore		m_transferCompleteSemaphore;
-	vk::Semaphore		m_waitSemaphore;
 
 	bool Setup(const VKAppContext& appContext, vk::DeviceSize size);
 	void Clear(const VKAppContext& appContext);
 	void Wait(const VKAppContext& appContext) const;
-	bool CopyBuffer(const VKAppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size);
+	bool CopyBuffer(const VKAppContext& appContext, vk::Buffer destBuffer, vk::DeviceSize size) const;
 	bool CopyImage(
 		const VKAppContext& appContext,
 		vk::Image destImage,
 		vk::ImageLayout imageLayout,
 		const vk::BufferImageCopy* regions
-	);
+	) const;
 };
 
 struct VKAppContext {

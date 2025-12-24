@@ -271,12 +271,6 @@ bool VKStagingBuffer::Setup(const VKAppContext& appContext, const vk::DeviceSize
 		std::cout << "Failed to  create Staging Buffer Transfer Complete Fence.\n";
 		return false;
 	}
-	constexpr auto semaphoreInfo = vk::SemaphoreCreateInfo();
-	ret = device.createSemaphore(&semaphoreInfo, nullptr, &m_transferCompleteSemaphore);
-	if (vk::Result::eSuccess != ret) {
-		std::cout << "Failed to  create Staging Buffer Transer Complete Semaphore.\n";
-		return false;
-	}
 	return true;
 }
 
@@ -285,9 +279,6 @@ void VKStagingBuffer::Clear(const VKAppContext& appContext) {
 	Wait(appContext);
 	device.destroyFence(m_transferCompleteFence, nullptr);
 	m_transferCompleteFence = nullptr;
-	device.destroySemaphore(m_transferCompleteSemaphore, nullptr);
-	m_transferCompleteSemaphore = nullptr;
-	m_waitSemaphore = nullptr;
 	const auto cmdPool = appContext.m_transferCommandPool;
 	device.freeCommandBuffers(cmdPool, 1, &m_copyCommand);
 	m_copyCommand = nullptr;
@@ -306,7 +297,7 @@ void VKStagingBuffer::Wait(const VKAppContext& appContext) const {
 	}
 }
 
-bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffer destBuffer, const vk::DeviceSize size) {
+bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffer destBuffer, const vk::DeviceSize size) const {
 	if (appContext.m_device.resetFences(1, &m_transferCompleteFence) != vk::Result::eSuccess) {
 		std::cout << "Failed to reset Staging Buffer Transfer Complete Fence.\n";
 		return false;
@@ -321,12 +312,9 @@ bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffe
 	m_copyCommand.end();
 	const auto submitInfo = vk::SubmitInfo()
 			.setCommandBufferCount(1)
-			.setPCommandBuffers(&m_copyCommand)
-			.setSignalSemaphoreCount(1)
-			.setPSignalSemaphores(&m_transferCompleteSemaphore);
+			.setPCommandBuffers(&m_copyCommand);
 	const auto queue = appContext.m_graphicsQueue;
 	ret = queue.submit(1, &submitInfo, m_transferCompleteFence);
-	m_waitSemaphore = m_transferCompleteSemaphore;
 	if (vk::Result::eSuccess != ret) {
 		std::cout << "Failed to submit Copy Command Buffer.\n";
 		return false;
@@ -339,7 +327,7 @@ bool VKStagingBuffer::CopyImage(
 	const vk::Image destImage,
 	const vk::ImageLayout imageLayout,
 	const vk::BufferImageCopy* regions
-) {
+) const {
 	if (appContext.m_device.resetFences(1, &m_transferCompleteFence) != vk::Result::eSuccess) {
 		std::cout << "Failed to reset Staging Buffer Transfer Complete Fence.\n";
 		return false;
@@ -378,12 +366,9 @@ bool VKStagingBuffer::CopyImage(
 	m_copyCommand.end();
 	const auto submitInfo = vk::SubmitInfo()
 			.setCommandBufferCount(1)
-			.setPCommandBuffers(&m_copyCommand)
-			.setSignalSemaphoreCount(1)
-			.setPSignalSemaphores(&m_transferCompleteSemaphore);
+			.setPCommandBuffers(&m_copyCommand);
 	const auto queue = appContext.m_graphicsQueue;
 	ret = queue.submit(1, &submitInfo, m_transferCompleteFence);
-	m_waitSemaphore = m_transferCompleteSemaphore;
 	if (vk::Result::eSuccess != ret) {
 		std::cout << "Failed to submit Copy Command Buffer.\n";
 		return false;
@@ -1724,7 +1709,14 @@ bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTextur
 		std::fclose(fp);
 		if (!image)
 			return false;
-		const bool hasAlpha = comp == 4;
+		bool hasAlpha = false;
+		const size_t pixelCount = static_cast<size_t>(x) * static_cast<size_t>(y);
+		for (size_t i = 0; i < pixelCount; ++i) {
+			if (image[i * 4 + 3] != 255) {
+				hasAlpha = true;
+				break;
+			}
+		}
 		constexpr auto format = vk::Format::eR8G8B8A8Unorm;
 		auto tex = std::make_unique<VKTexture>();
 		if (!tex->Setup(*this, x, y, format)) {
@@ -2362,7 +2354,8 @@ void Model::Update(VKAppContext& appContext) {
 		mmdGroundShadowFSUB->m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	}
 	device.unmapMemory(ubStBuf->m_memory);
-	ubStBuf->CopyBuffer(appContext, modelRes.m_uniformBuffer.m_buffer, ubMemSize);
+	if (!ubStBuf->CopyBuffer(appContext, modelRes.m_uniformBuffer.m_buffer, ubMemSize))
+		std::cout << "Failed to copy buffer.\n";
 }
 
 void Model::Draw(const VKAppContext& appContext) {
@@ -2659,8 +2652,6 @@ bool VKSampleMain(const SceneConfig& cfg) {
 	auto fpsTime = std::chrono::steady_clock::now();
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame = 0;
-	std::vector<vk::Semaphore> waitSemaphores;
-	std::vector<vk::PipelineStageFlags> waitStages;
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		auto now = std::chrono::steady_clock::now();
@@ -2763,19 +2754,7 @@ bool VKSampleMain(const SceneConfig& cfg) {
 		}
 		cmdBuffer.endRenderPass();
 		cmdBuffer.end();
-		waitSemaphores.push_back(m_presentCompleteSemaphore);
-		waitStages.emplace_back(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-		for (const auto& stBuf : appContext.m_stagingBuffers) {
-			if (stBuf->m_waitSemaphore) {
-				waitSemaphores.push_back(stBuf->m_waitSemaphore);
-				waitStages.emplace_back(vk::PipelineStageFlagBits::eTransfer);
-				stBuf->m_waitSemaphore = nullptr;
-			}
-		}
 		vk::SubmitInfo submit = vk::SubmitInfo()
-			.setPWaitDstStageMask(waitStages.data())
-			.setWaitSemaphoreCount(static_cast<uint32_t>(waitSemaphores.size()))
-			.setPWaitSemaphores(waitSemaphores.data())
 			.setSignalSemaphoreCount(1)
 			.setPSignalSemaphores(&m_renderCompleteSemaphore)
 			.setCommandBufferCount(1)
@@ -2784,8 +2763,6 @@ bool VKSampleMain(const SceneConfig& cfg) {
 			std::cout << "Failed to submit to graphics queue.\n";
 			break;
 		}
-		waitSemaphores.clear();
-		waitStages.clear();
 		vk::PresentInfoKHR present = vk::PresentInfoKHR()
 			.setWaitSemaphoreCount(1)
 			.setPWaitSemaphores(&m_renderCompleteSemaphore)
