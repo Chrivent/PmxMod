@@ -164,7 +164,6 @@ struct VKAppContext {
 	uint32_t	m_presentQueueFamilyIndex;
 	vk::Format	m_colorFormat = vk::Format::eUndefined;
 	vk::Format	m_depthFormat = vk::Format::eUndefined;
-	vk::SampleCountFlagBits	m_msaaSampleCount = vk::SampleCountFlagBits::e4;
 	std::vector<FrameSyncData>	m_frameSyncDatas;
 	uint32_t					m_frameIndex = 0;
 	vk::SwapchainKHR					m_swapChain;
