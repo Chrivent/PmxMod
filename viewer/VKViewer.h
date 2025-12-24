@@ -28,12 +28,12 @@ struct VKVertex {
 	glm::vec2	m_uv;
 };
 
-struct VKVertxShaderUB {
+struct VKVertxShader {
 	glm::mat4	m_wv;
 	glm::mat4	m_wvp;
 };
 
-struct VKFragmentShaderUB {
+struct VKFragmentShader {
 	glm::vec3	m_diffuse;
 	float		m_alpha;
 	glm::vec3	m_ambient;
@@ -53,27 +53,27 @@ struct VKFragmentShaderUB {
 	glm::ivec4	m_textureModes;
 };
 
-struct VKEdgeVertexShaderUB {
+struct VKEdgeVertexShader {
 	glm::mat4	m_wv;
 	glm::mat4	m_wvp;
 	glm::vec2	m_screenSize;
 	float		m_dummy[2];
 };
 
-struct VKEdgeSizeVertexShaderUB {
+struct VKEdgeSizeVertexShader {
 	float		m_edgeSize;
 	float		m_dummy[3];
 };
 
-struct VKEdgeFragmentShaderUB {
+struct VKEdgeFragmentShader {
 	glm::vec4	m_edgeColor;
 };
 
-struct VKGroundShadowVertexShaderUB {
+struct VKGroundShadowVertexShader {
 	glm::mat4	m_wvp;
 };
 
-struct VKGroundShadowFragmentShaderUB {
+struct VKGroundShadowFragmentShader {
 	glm::vec4	m_shadowColor;
 };
 
@@ -225,45 +225,45 @@ struct VKAppContext {
 	static bool ReadSpvBinary(const std::filesystem::path& path, std::vector<uint32_t>& out);
 };
 
-struct Model {
-	struct Material {
-		VKTexture*	m_mmdTex;
-		vk::Sampler	m_mmdTexSampler;
-		VKTexture*	m_mmdToonTex;
-		vk::Sampler	m_mmdToonTexSampler;
-		VKTexture*	m_mmdSphereTex;
-		vk::Sampler	m_mmdSphereTexSampler;
-	};
+struct VKMaterial {
+	VKTexture*	m_mmdTex;
+	vk::Sampler	m_mmdTexSampler;
+	VKTexture*	m_mmdToonTex;
+	vk::Sampler	m_mmdToonTexSampler;
+	VKTexture*	m_mmdSphereTex;
+	vk::Sampler	m_mmdSphereTexSampler;
+};
 
-	struct ModelResource {
-		VKBuffer	m_vertexBuffer;
-		VKBuffer	m_uniformBuffer;
-		uint32_t	m_mmdVSUBOffset;
-		uint32_t	m_mmdEdgeVSUBOffset;
-		uint32_t	m_mmdGroundShadowVSUBOffset;
-	};
+struct VKModelResource {
+	VKBuffer	m_vertexBuffer;
+	VKBuffer	m_uniformBuffer;
+	uint32_t	m_mmdVSUBOffset;
+	uint32_t	m_mmdEdgeVSUBOffset;
+	uint32_t	m_mmdGroundShadowVSUBOffset;
+};
 
-	struct MaterialResource {
-		vk::DescriptorSet	m_mmdDescSet;
-		vk::DescriptorSet	m_mmdEdgeDescSet;
-		vk::DescriptorSet	m_mmdGroundShadowDescSet;
-		uint32_t			m_mmdFSUBOffset;
-		uint32_t			m_mmdEdgeSizeVSUBOffset;
-		uint32_t			m_mmdEdgeFSUBOffset;
-		uint32_t			m_mmdGroundShadowFSUBOffset;
-	};
+struct VKMaterialResource {
+	vk::DescriptorSet	m_mmdDescSet;
+	vk::DescriptorSet	m_mmdEdgeDescSet;
+	vk::DescriptorSet	m_mmdGroundShadowDescSet;
+	uint32_t			m_mmdFSUBOffset;
+	uint32_t			m_mmdEdgeSizeVSUBOffset;
+	uint32_t			m_mmdEdgeFSUBOffset;
+	uint32_t			m_mmdGroundShadowFSUBOffset;
+};
 
-	struct Resource {
-		ModelResource					m_modelResource;
-		std::vector<MaterialResource>	m_materialResources;
-	};
+struct VKResource {
+	VKModelResource					m_modelResource;
+	std::vector<VKMaterialResource>	m_materialResources;
+};
 
+struct VKModel {
 	std::shared_ptr<MMDModel>		m_mmdModel;
 	std::unique_ptr<VMDAnimation>	m_vmdAnim;
 	VKBuffer	m_indexBuffer;
 	vk::IndexType	m_indexType;
-	std::vector<Material>	m_materials;
-	Resource				m_resource;
+	std::vector<VKMaterial>	m_materials;
+	VKResource				m_resource;
 	vk::DescriptorPool		m_descPool;
 	std::vector<vk::CommandBuffer>	m_cmdBuffers;
 	float m_scale = 1.0f;

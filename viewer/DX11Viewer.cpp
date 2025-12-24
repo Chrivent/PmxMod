@@ -448,7 +448,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC vsBufDesc = {};
 	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	vsBufDesc.ByteWidth = sizeof(DX11VertexShaderCB);
+	vsBufDesc.ByteWidth = sizeof(DX11VertexShader);
 	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	vsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer);
@@ -458,7 +458,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC psBufDesc = {};
 	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	psBufDesc.ByteWidth = sizeof(DX11PixelShaderCB);
+	psBufDesc.ByteWidth = sizeof(DX11PixelShader);
 	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	psBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer);
@@ -468,7 +468,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd edge vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC evsBufDesc1 = {};
 	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShaderCB);
+	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShader);
 	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc1.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer);
@@ -478,7 +478,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
 	D3D11_BUFFER_DESC evsBufDesc2 = {};
 	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShaderCB);
+	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShader);
 	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc2.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer);
@@ -488,7 +488,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd edge pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC epsBufDesc = {};
 	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShaderCB);
+	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShader);
 	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	epsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer);
@@ -498,7 +498,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd ground shadow vertex shader constant buffer (VSData)
 	D3D11_BUFFER_DESC gvsBufDesc = {};
 	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShaderCB);
+	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShader);
 	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gvsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer);
@@ -508,7 +508,7 @@ bool DX11Model::Setup(DX11AppContext& appContext) {
 	// Setup mmd ground shadow pixel shader constant buffer (PSData)
 	D3D11_BUFFER_DESC gpsBufDesc = {};
 	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShaderCB);
+	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShader);
 	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gpsBufDesc.CPUAccessFlags = 0;
 	hr = appContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer);
@@ -589,7 +589,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Draw model
-	DX11VertexShaderCB vsCB1{};
+	DX11VertexShader vsCB1{};
 	vsCB1.m_wv = wv;
 	vsCB1.m_wvp = wvp;
 	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
@@ -603,7 +603,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdPS.Get(), nullptr, 0);
-		DX11PixelShaderCB psCB{};
+		DX11PixelShader psCB{};
 		psCB.m_alpha = mmdMat.m_diffuse.a;
 		psCB.m_diffuse = mmdMat.m_diffuse;
 		psCB.m_ambient = mmdMat.m_ambient;
@@ -683,7 +683,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 
 	// Draw edge
 	m_context->IASetInputLayout(appContext.m_mmdEdgeInputLayout.Get());
-	DX11EdgeVertexShaderCB vsCB2{};
+	DX11EdgeVertexShader vsCB2{};
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
 	vsCB2.m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth),
@@ -700,14 +700,14 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 			continue;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
-		DX11EdgeSizeVertexShaderCB vsCB{};
+		DX11EdgeSizeVertexShader vsCB{};
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
 		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
 		m_context->VSSetConstantBuffers(1, 1, cbs);
 		m_context->PSSetShader(appContext.m_mmdEdgePS.Get(), nullptr, 0);
-		DX11EdgePixelShaderCB psCB{};
+		DX11EdgePixelShader psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
@@ -740,7 +740,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
 	auto wsvp = dxMat * proj * view * shadow * world;
-	DX11GroundShadowVertexShaderCB vsCB{};
+	DX11GroundShadowVertexShader vsCB{};
 	vsCB.m_wvp = wsvp;
 	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
@@ -758,7 +758,7 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
 		m_context->PSSetShader(appContext.m_mmdGroundShadowPS.Get(), nullptr, 0);
-		DX11GroundShadowPixelShaderCB psCB{};
+		DX11GroundShadowPixelShader psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };

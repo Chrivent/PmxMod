@@ -23,12 +23,12 @@ struct DX11Vertex {
     glm::vec2	m_uv;
 };
 
-struct DX11VertexShaderCB {
+struct DX11VertexShader {
     glm::mat4	m_wv;
     glm::mat4	m_wvp;
 };
 
-struct DX11PixelShaderCB {
+struct DX11PixelShader {
     float		m_alpha;
     glm::vec3	m_diffuse;
     glm::vec3	m_ambient;
@@ -48,27 +48,27 @@ struct DX11PixelShaderCB {
     glm::ivec4	m_textureModes;
 };
 
-struct DX11EdgeVertexShaderCB {
+struct DX11EdgeVertexShader {
     glm::mat4	m_wv;
     glm::mat4	m_wvp;
     glm::vec2	m_screenSize;
     float		m_dummy[2];
 };
 
-struct DX11EdgeSizeVertexShaderCB {
+struct DX11EdgeSizeVertexShader {
     float		m_edgeSize;
     float		m_dummy[3];
 };
 
-struct DX11EdgePixelShaderCB {
+struct DX11EdgePixelShader {
     glm::vec4	m_edgeColor;
 };
 
-struct DX11GroundShadowVertexShaderCB {
+struct DX11GroundShadowVertexShader {
     glm::mat4	m_wvp;
 };
 
-struct DX11GroundShadowPixelShaderCB {
+struct DX11GroundShadowPixelShader {
     glm::vec4	m_shadowColor;
 };
 

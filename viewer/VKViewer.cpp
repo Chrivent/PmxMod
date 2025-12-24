@@ -1762,7 +1762,7 @@ bool VKAppContext::ReadSpvBinary(const std::filesystem::path& path, std::vector<
 	return true;
 }
 
-bool Model::Setup(VKAppContext& appContext) {
+bool VKModel::Setup(VKAppContext& appContext) {
 	const auto device = appContext.m_device;
 	const size_t matCount = m_mmdModel->m_materials.size();
 	m_materials.resize(matCount);
@@ -1853,7 +1853,7 @@ bool Model::Setup(VKAppContext& appContext) {
 	return true;
 }
 
-bool Model::SetupVertexBuffer(VKAppContext& appContext) {
+bool VKModel::SetupVertexBuffer(VKAppContext& appContext) {
 	const auto device = appContext.m_device;
 	auto& [m_modelResource, m_materialResources] = m_resource;
 	auto& modelRes = m_modelResource;
@@ -1904,7 +1904,7 @@ bool Model::SetupVertexBuffer(VKAppContext& appContext) {
 	return true;
 }
 
-bool Model::SetupDescriptorPool(const VKAppContext& appContext) {
+bool VKModel::SetupDescriptorPool(const VKAppContext& appContext) {
 	const auto device = appContext.m_device;
 	const auto matCount = static_cast<uint32_t>(m_mmdModel->m_materials.size());
 	uint32_t ubCount = 7;
@@ -1935,7 +1935,7 @@ bool Model::SetupDescriptorPool(const VKAppContext& appContext) {
 	return true;
 }
 
-bool Model::SetupDescriptorSet(VKAppContext& appContext) {
+bool VKModel::SetupDescriptorSet(VKAppContext& appContext) {
 	vk::Result ret;
 	auto device = appContext.m_device;
 	auto mmdDescSetAllocInfo = vk::DescriptorSetAllocateInfo()
@@ -1957,13 +1957,13 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 	auto& [m_modelResource1, m_materialResources1] = m_resource;
 	auto& modelRes1 = m_modelResource1;
 	modelRes1.m_mmdVSUBOffset = ubOffset;
-	ubOffset += sizeof(VKVertxShaderUB);
+	ubOffset += sizeof(VKVertxShader);
 	ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 	modelRes1.m_mmdEdgeVSUBOffset = ubOffset;
-	ubOffset += sizeof(VKEdgeVertexShaderUB);
+	ubOffset += sizeof(VKEdgeVertexShader);
 	ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 	modelRes1.m_mmdGroundShadowVSUBOffset = ubOffset;
-	ubOffset += sizeof(VKGroundShadowVertexShaderUB);
+	ubOffset += sizeof(VKGroundShadowVertexShader);
 	ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 	size_t matCount = m_mmdModel->m_materials.size();
 	m_materialResources1.resize(matCount);
@@ -1987,16 +1987,16 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 			return false;
 		}
 		m_mmdFSUBOffset = ubOffset;
-		ubOffset += sizeof(VKFragmentShaderUB);
+		ubOffset += sizeof(VKFragmentShader);
 		ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 		m_mmdEdgeSizeVSUBOffset = ubOffset;
-		ubOffset += sizeof(VKEdgeSizeVertexShaderUB);
+		ubOffset += sizeof(VKEdgeSizeVertexShader);
 		ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 		m_mmdEdgeFSUBOffset = ubOffset;
-		ubOffset += sizeof(VKEdgeFragmentShaderUB);
+		ubOffset += sizeof(VKEdgeFragmentShader);
 		ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 		m_mmdGroundShadowFSUBOffset = ubOffset;
-		ubOffset += sizeof(VKGroundShadowFragmentShaderUB);
+		ubOffset += sizeof(VKGroundShadowFragmentShader);
 		ubOffset = ubOffset + ubAlign - (ubOffset + ubAlign) % ubAlign;
 	}
 	auto& ub = modelRes1.m_uniformBuffer;
@@ -2011,7 +2011,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 	}
 	auto mmdVSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKVertxShaderUB));
+			.setRange(sizeof(VKVertxShader));
 	auto mmdVSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(0)
 			.setDescriptorCount(1)
@@ -2019,7 +2019,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 			.setPBufferInfo(&mmdVSBufferInfo);
 	auto mmdFSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKFragmentShaderUB));
+			.setRange(sizeof(VKFragmentShader));
 	auto mmdFSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(1)
 			.setDescriptorCount(1)
@@ -2052,7 +2052,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 	};
 	auto mmdEdgeVSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKEdgeVertexShaderUB));
+			.setRange(sizeof(VKEdgeVertexShader));
 	auto mmdEdgeVSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(0)
 			.setDescriptorCount(1)
@@ -2060,7 +2060,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 			.setPBufferInfo(&mmdEdgeVSBufferInfo);
 	auto mmdEdgeSizeVSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKEdgeSizeVertexShaderUB));
+			.setRange(sizeof(VKEdgeSizeVertexShader));
 	auto mmdEdgeSizeVSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(1)
 			.setDescriptorCount(1)
@@ -2068,7 +2068,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 			.setPBufferInfo(&mmdEdgeSizeVSBufferInfo);
 	auto mmdEdgeFSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKEdgeFragmentShaderUB));
+			.setRange(sizeof(VKEdgeFragmentShader));
 	auto mmdEdgeFSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(2)
 			.setDescriptorCount(1)
@@ -2081,7 +2081,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 	};
 	auto mmdGroundShadowVSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKGroundShadowVertexShaderUB));
+			.setRange(sizeof(VKGroundShadowVertexShader));
 	auto mmdGroundShadowVSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(0)
 			.setDescriptorCount(1)
@@ -2089,7 +2089,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 			.setPBufferInfo(&mmdGroundShadowVSBufferInfo);
 	auto mmdGroundShadowFSBufferInfo = vk::DescriptorBufferInfo()
 			.setOffset(0)
-			.setRange(sizeof(VKGroundShadowFragmentShaderUB));
+			.setRange(sizeof(VKGroundShadowFragmentShader));
 	auto mmdGroundShadowFSWriteDescSet = vk::WriteDescriptorSet()
 			.setDstBinding(1)
 			.setDescriptorCount(1)
@@ -2151,7 +2151,7 @@ bool Model::SetupDescriptorSet(VKAppContext& appContext) {
 	return true;
 }
 
-auto Model::SetupCommandBuffer(const VKAppContext& appContext) -> bool {
+auto VKModel::SetupCommandBuffer(const VKAppContext& appContext) -> bool {
 	const auto device = appContext.m_device;
 	const auto imgCount = appContext.m_imageCount;
 	std::vector<vk::CommandBuffer> cmdBuffers(appContext.m_imageCount);
@@ -2168,7 +2168,7 @@ auto Model::SetupCommandBuffer(const VKAppContext& appContext) -> bool {
 	return true;
 }
 
-void Model::Destroy(const VKAppContext& appContext) {
+void VKModel::Destroy(const VKAppContext& appContext) {
 	const auto device = appContext.m_device;
 	m_indexBuffer.Clear(appContext);
 	for (const auto& mat : m_materials) {
@@ -2188,12 +2188,12 @@ void Model::Destroy(const VKAppContext& appContext) {
 	m_vmdAnim.reset();
 }
 
-void Model::UpdateAnimation(const VKAppContext& appContext) const {
+void VKModel::UpdateAnimation(const VKAppContext& appContext) const {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
-void Model::Update(VKAppContext& appContext) {
+void VKModel::Update(VKAppContext& appContext) {
 	auto& [m_modelResource, m_materialResources] = m_resource;
 	const auto device = appContext.m_device;
 	const size_t vtxCount = m_mmdModel->m_positions.size();
@@ -2252,14 +2252,14 @@ void Model::Update(VKAppContext& appContext) {
 	);
 	const auto wv = view;
 	const auto wvp = vkMat * proj * view;
-	const auto mmdVSUB = reinterpret_cast<VKVertxShaderUB*>(ubPtr + m_modelResource.m_mmdVSUBOffset);
+	const auto mmdVSUB = reinterpret_cast<VKVertxShader*>(ubPtr + m_modelResource.m_mmdVSUBOffset);
 	mmdVSUB->m_wv = wv;
 	mmdVSUB->m_wvp = wvp;
-	const auto mmdEdgeVSUB = reinterpret_cast<VKEdgeVertexShaderUB*>(ubPtr + m_modelResource.m_mmdEdgeVSUBOffset);
+	const auto mmdEdgeVSUB = reinterpret_cast<VKEdgeVertexShader*>(ubPtr + m_modelResource.m_mmdEdgeVSUBOffset);
 	mmdEdgeVSUB->m_wv = wv;
 	mmdEdgeVSUB->m_wvp = wvp;
 	mmdEdgeVSUB->m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth), static_cast<float>(appContext.m_screenHeight));
-	const auto mmdGroundShadowVSUB = reinterpret_cast<VKGroundShadowVertexShaderUB*>(
+	const auto mmdGroundShadowVSUB = reinterpret_cast<VKGroundShadowVertexShader*>(
 		ubPtr + m_modelResource.m_mmdGroundShadowVSUBOffset);
 	constexpr auto plane = glm::vec4(0, 1, 0, 0);
 	const auto light = -appContext.m_lightDir;
@@ -2286,7 +2286,7 @@ void Model::Update(VKAppContext& appContext) {
 	for (size_t i = 0; i < matCount; i++) {
 		const auto& mmdMat = m_mmdModel->m_materials[i];
 		const auto& matRes = m_materialResources[i];
-		const auto mmdFSUB = reinterpret_cast<VKFragmentShaderUB*>(ubPtr + matRes.m_mmdFSUBOffset);
+		const auto mmdFSUB = reinterpret_cast<VKFragmentShader*>(ubPtr + matRes.m_mmdFSUBOffset);
 		const auto& mat = m_materials[i];
 		mmdFSUB->m_alpha = mmdMat.m_diffuse.a;
 		mmdFSUB->m_diffuse = mmdMat.m_diffuse;
@@ -2328,11 +2328,11 @@ void Model::Update(VKAppContext& appContext) {
 		auto viewMat = glm::mat3(appContext.m_viewMat);
 		lightDir = viewMat * lightDir;
 		mmdFSUB->m_lightDir = lightDir;
-		const auto mmdEdgeSizeVSUB = reinterpret_cast<VKEdgeSizeVertexShaderUB*>(ubPtr + matRes.m_mmdEdgeSizeVSUBOffset);
+		const auto mmdEdgeSizeVSUB = reinterpret_cast<VKEdgeSizeVertexShader*>(ubPtr + matRes.m_mmdEdgeSizeVSUBOffset);
 		mmdEdgeSizeVSUB->m_edgeSize = mmdMat.m_edgeSize;
-		const auto mmdEdgeFSUB = reinterpret_cast<VKEdgeFragmentShaderUB*>(ubPtr + matRes.m_mmdEdgeFSUBOffset);
+		const auto mmdEdgeFSUB = reinterpret_cast<VKEdgeFragmentShader*>(ubPtr + matRes.m_mmdEdgeFSUBOffset);
 		mmdEdgeFSUB->m_edgeColor = mmdMat.m_edgeColor;
-		const auto mmdGroundShadowFSUB = reinterpret_cast<VKGroundShadowFragmentShaderUB*>(
+		const auto mmdGroundShadowFSUB = reinterpret_cast<VKGroundShadowFragmentShader*>(
 			ubPtr + matRes.m_mmdGroundShadowFSUBOffset);
 		mmdGroundShadowFSUB->m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	}
@@ -2341,7 +2341,7 @@ void Model::Update(VKAppContext& appContext) {
 		std::cout << "Failed to copy buffer.\n";
 }
 
-void Model::Draw(const VKAppContext& appContext) {
+void VKModel::Draw(const VKAppContext& appContext) {
 	const auto inheritanceInfo = vk::CommandBufferInheritanceInfo()
 			.setRenderPass(appContext.m_renderPass)
 			.setSubpass(0);
@@ -2432,7 +2432,7 @@ void Model::Draw(const VKAppContext& appContext) {
 	cmdBuf.end();
 }
 
-vk::CommandBuffer Model::GetCommandBuffer(const uint32_t imageIndex) const {
+vk::CommandBuffer VKModel::GetCommandBuffer(const uint32_t imageIndex) const {
 	return m_cmdBuffers[imageIndex];
 }
 
@@ -2561,10 +2561,10 @@ bool VKSampleMain(const SceneConfig& cfg) {
 			appContext.m_vmdCameraAnim = std::move(vmdCamAnim);
 		}
 	}
-	std::vector<Model> models;
+	std::vector<VKModel> models;
 	models.reserve(cfg.models.size());
 	for (const auto& [m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
-		Model model;
+		VKModel model;
 		const auto ext = PathUtil::GetExt(m_modelPath);
 		if (ext != "pmx") {
 			std::cout << "Unknown file type. [" << ext << "]\n";
