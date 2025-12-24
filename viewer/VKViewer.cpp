@@ -31,6 +31,8 @@ void SetImageLayout(const vk::CommandBuffer cmdBuf, const vk::Image image,
                     const vk::ImageLayout oldImageLayout, const vk::ImageLayout newImageLayout,
                     const vk::ImageSubresourceRange& subresourceRange) {
 	auto imageMemoryBarrier = vk::ImageMemoryBarrier()
+			.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+			.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
 			.setOldLayout(oldImageLayout)
 			.setNewLayout(newImageLayout)
 			.setImage(image)
@@ -305,6 +307,11 @@ void VKStagingBuffer::Wait(const VKAppContext& appContext) const {
 }
 
 bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffer destBuffer, const vk::DeviceSize size) {
+	if (appContext.m_device.resetFences(1, &m_transferCompleteFence) != vk::Result::eSuccess) {
+		std::cout << "Failed to reset Staging Buffer Transfer Complete Fence.\n";
+		return false;
+	}
+	m_copyCommand.reset(vk::CommandBufferResetFlags{});
 	constexpr auto cmdBufInfo = vk::CommandBufferBeginInfo()
 			.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	vk::Result ret = m_copyCommand.begin(&cmdBufInfo);
@@ -312,18 +319,11 @@ bool VKStagingBuffer::CopyBuffer(const VKAppContext& appContext, const vk::Buffe
 			.setSize(size);
 	m_copyCommand.copyBuffer(m_buffer, destBuffer, 1, &copyRegion);
 	m_copyCommand.end();
-	auto submitInfo = vk::SubmitInfo()
+	const auto submitInfo = vk::SubmitInfo()
 			.setCommandBufferCount(1)
 			.setPCommandBuffers(&m_copyCommand)
 			.setSignalSemaphoreCount(1)
 			.setPSignalSemaphores(&m_transferCompleteSemaphore);
-	constexpr vk::PipelineStageFlags waitDstStage = vk::PipelineStageFlagBits::eTransfer;
-	if (m_waitSemaphore) {
-		submitInfo
-				.setWaitSemaphoreCount(1)
-				.setPWaitSemaphores(&m_waitSemaphore)
-				.setPWaitDstStageMask(&waitDstStage);
-	}
 	const auto queue = appContext.m_graphicsQueue;
 	ret = queue.submit(1, &submitInfo, m_transferCompleteFence);
 	m_waitSemaphore = m_transferCompleteSemaphore;
@@ -340,6 +340,11 @@ bool VKStagingBuffer::CopyImage(
 	const vk::ImageLayout imageLayout,
 	const vk::BufferImageCopy* regions
 ) {
+	if (appContext.m_device.resetFences(1, &m_transferCompleteFence) != vk::Result::eSuccess) {
+		std::cout << "Failed to reset Staging Buffer Transfer Complete Fence.\n";
+		return false;
+	}
+	m_copyCommand.reset(vk::CommandBufferResetFlags{});
 	constexpr auto cmdBufInfo = vk::CommandBufferBeginInfo()
 			.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 	vk::Result ret = m_copyCommand.begin(&cmdBufInfo);
@@ -347,6 +352,7 @@ bool VKStagingBuffer::CopyImage(
 			.setAspectMask(vk::ImageAspectFlagBits::eColor)
 			.setBaseMipLevel(0)
 			.setLevelCount(1)
+			.setBaseArrayLayer(0)
 			.setLayerCount(1);
 	SetImageLayout(
 		m_copyCommand,
@@ -370,14 +376,11 @@ bool VKStagingBuffer::CopyImage(
 		subresourceRange
 	);
 	m_copyCommand.end();
-	auto submitInfo = vk::SubmitInfo()
+	const auto submitInfo = vk::SubmitInfo()
 			.setCommandBufferCount(1)
 			.setPCommandBuffers(&m_copyCommand)
 			.setSignalSemaphoreCount(1)
 			.setPSignalSemaphores(&m_transferCompleteSemaphore);
-	constexpr vk::PipelineStageFlags waitDstStage = vk::PipelineStageFlagBits::eTransfer;
-	if (m_waitSemaphore)
-		submitInfo.setWaitSemaphoreCount(1).setPWaitSemaphores(&m_waitSemaphore).setPWaitDstStageMask(&waitDstStage);
 	const auto queue = appContext.m_graphicsQueue;
 	ret = queue.submit(1, &submitInfo, m_transferCompleteFence);
 	m_waitSemaphore = m_transferCompleteSemaphore;
@@ -1675,10 +1678,7 @@ bool VKAppContext::GetStagingBuffer(const vk::DeviceSize memSize, VKStagingBuffe
 	vk::Result ret;
 	for (const auto& stBuf : m_stagingBuffers) {
 		ret = m_device.getFenceStatus(stBuf->m_transferCompleteFence);
-		if (vk::Result::eSuccess == ret && memSize < stBuf->m_memorySize) {
-			const vk::Result res = m_device.resetFences(1, &stBuf->m_transferCompleteFence);
-			if (res != vk::Result::eSuccess)
-				return false;
+		if (vk::Result::eSuccess == ret && memSize <= stBuf->m_memorySize) {
 			*outBuf = stBuf.get();
 			return true;
 		}
@@ -1690,9 +1690,6 @@ bool VKAppContext::GetStagingBuffer(const vk::DeviceSize memSize, VKStagingBuffe
 				std::cout << "Failed to setup Staging Buffer.\n";
 				return false;
 			}
-			const vk::Result res = m_device.resetFences(1, &stBuf->m_transferCompleteFence);
-			if (res != vk::Result::eSuccess)
-				return false;
 			*outBuf = stBuf.get();
 			return true;
 		}
@@ -1703,9 +1700,6 @@ bool VKAppContext::GetStagingBuffer(const vk::DeviceSize memSize, VKStagingBuffe
 		newStagingBuffer->Clear(*this);
 		return false;
 	}
-	const vk::Result res = m_device.resetFences(1, &newStagingBuffer->m_transferCompleteFence);
-	if (res != vk::Result::eSuccess)
-		return false;
 	*outBuf = newStagingBuffer.get();
 	m_stagingBuffers.emplace_back(std::move(newStagingBuffer));
 	return true;
@@ -2381,9 +2375,10 @@ void Model::Draw(const VKAppContext& appContext) {
 	auto& [m_modelResource, m_materialResources] = m_resource;
 	const auto& modelRes = m_modelResource;
 	const auto& cmdBuf = m_cmdBuffers[appContext.m_imageIndex];
+	cmdBuf.reset(vk::CommandBufferResetFlags{});
+	cmdBuf.begin(beginInfo);
 	const auto width = appContext.m_screenWidth;
 	const auto height = appContext.m_screenHeight;
-	cmdBuf.begin(beginInfo);
 	const auto viewport = vk::Viewport()
 			.setWidth(static_cast<float>(width))
 			.setHeight(static_cast<float>(height))
@@ -2743,6 +2738,7 @@ bool VKSampleMain(const SceneConfig& cfg) {
 		}
 		for (auto& model : models)
 			model.Draw(appContext);
+		cmdBuffer.reset(vk::CommandBufferResetFlags{});
 		cmdBuffer.begin(vk::CommandBufferBeginInfo());
 		auto clearColor = vk::ClearColorValue(std::array<float, 4>({ 1.0f, 0.8f, 0.75f, 1.0f }));
 		auto clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
