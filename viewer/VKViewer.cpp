@@ -31,8 +31,6 @@ void SetImageLayout(const vk::CommandBuffer cmdBuf, const vk::Image image,
                     const vk::ImageLayout oldImageLayout, const vk::ImageLayout newImageLayout,
                     const vk::ImageSubresourceRange& subresourceRange) {
 	auto imageMemoryBarrier = vk::ImageMemoryBarrier()
-			.setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-			.setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
 			.setOldLayout(oldImageLayout)
 			.setNewLayout(newImageLayout)
 			.setImage(image)
