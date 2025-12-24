@@ -1636,9 +1636,9 @@ bool VKAppContext::PrepareDefaultTexture() {
 		return false;
 	const auto pixels = static_cast<uint8_t*>(imgPtr);
 	pixels[0] = 0;
-	pixels[0] = 0;
-	pixels[0] = 0;
-	pixels[0] = 255;
+	pixels[1] = 0;
+	pixels[2] = 0;
+	pixels[3] = 255;
 	m_device.unmapMemory(imgStBuf->m_memory);
 	constexpr auto bufferImageCopy = vk::BufferImageCopy()
 			.setImageSubresource(vk::ImageSubresourceLayers()
