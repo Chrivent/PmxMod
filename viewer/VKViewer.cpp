@@ -800,7 +800,7 @@ bool VKAppContext::PrepareBuffer() {
 			.setExtent({ static_cast<uint32_t>(m_screenWidth), static_cast<uint32_t>(m_screenHeight), 1 })
 			.setMipLevels(1)
 			.setArrayLayers(1)
-			.setSamples(vk::SampleCountFlagBits::e4)
+			.setSamples(m_msaaSampleCount)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(vk::ImageUsageFlagBits::eColorAttachment)
 			.setPQueueFamilyIndices(nullptr)
@@ -854,7 +854,7 @@ bool VKAppContext::PrepareBuffer() {
 			.setExtent({ static_cast<uint32_t>(m_screenWidth), static_cast<uint32_t>(m_screenHeight), 1 })
 			.setMipLevels(1)
 			.setArrayLayers(1)
-			.setSamples(vk::SampleCountFlagBits::e4)
+			.setSamples(m_msaaSampleCount)
 			.setInitialLayout(vk::ImageLayout::eUndefined)
 			.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
 			.setPQueueFamilyIndices(nullptr)
@@ -932,7 +932,7 @@ bool VKAppContext::PrepareSyncObjects() {
 bool VKAppContext::PrepareRenderPass() {
 	const auto msaaColorAttachment = vk::AttachmentDescription()
 			.setFormat(m_colorFormat)
-			.setSamples(vk::SampleCountFlagBits::e4)
+			.setSamples(m_msaaSampleCount)
 			.setLoadOp(vk::AttachmentLoadOp::eClear)
 			.setStoreOp(vk::AttachmentStoreOp::eStore)
 			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
@@ -950,7 +950,7 @@ bool VKAppContext::PrepareRenderPass() {
 			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 	const auto msaaDepthAttachment = vk::AttachmentDescription()
 			.setFormat(m_depthFormat)
-			.setSamples(vk::SampleCountFlagBits::e4)
+			.setSamples(m_msaaSampleCount)
 			.setLoadOp(vk::AttachmentLoadOp::eClear)
 			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
 			.setStencilLoadOp(vk::AttachmentLoadOp::eClear)
@@ -1181,7 +1181,7 @@ bool VKAppContext::PrepareMMDPipeline() {
 	depthAndStencilInfo.front = depthAndStencilInfo.back;
 	pipelineInfo.setPDepthStencilState(&depthAndStencilInfo);
 	auto multisampleInfo = vk::PipelineMultisampleStateCreateInfo()
-			.setRasterizationSamples(vk::SampleCountFlagBits::e4)
+			.setRasterizationSamples(m_msaaSampleCount)
 			.setSampleShadingEnable(true)
 			.setMinSampleShading(0.25f);
 	pipelineInfo.setPMultisampleState(&multisampleInfo);
@@ -1369,7 +1369,7 @@ bool VKAppContext::PrepareMMDEdgePipeline() {
 	depthAndStencilInfo.front = depthAndStencilInfo.back;
 	pipelineInfo.setPDepthStencilState(&depthAndStencilInfo);
 	auto multisampleInfo = vk::PipelineMultisampleStateCreateInfo()
-			.setRasterizationSamples(vk::SampleCountFlagBits::e4)
+			.setRasterizationSamples(m_msaaSampleCount)
 			.setSampleShadingEnable(true)
 			.setMinSampleShading(0.25f);
 	pipelineInfo.setPMultisampleState(&multisampleInfo);
