@@ -25,7 +25,7 @@ add_executable(PmxMod
         src/VMDAnimation.cpp    src/VMDAnimation.h
         viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
         viewer/DX11Viewer.cpp   viewer/DX11Viewer.h
-        viewer/VKViewer.cpp viewer/VKViewer.h
+        viewer/VKViewer.cpp     viewer/VKViewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC

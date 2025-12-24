@@ -442,7 +442,7 @@ class VMDReader : public MMDReader {
 	};
 
 	struct VMDMorph {
-		char			m_blendShapeName[15];
+		char			m_blendShapeName[15]{};
 		uint32_t		m_frame{};
 		float			m_weight{};
 	};
@@ -470,7 +470,7 @@ class VMDReader : public MMDReader {
 	};
 
 	struct VMDIkInfo {
-		char			m_name[20];
+		char			m_name[20]{};
 		uint8_t			m_enable{};
 	};
 
