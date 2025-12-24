@@ -128,7 +128,6 @@ struct VKStagingBuffer {
 		const VKAppContext& appContext,
 		vk::Image destImage,
 		vk::ImageLayout imageLayout,
-		uint32_t regionCount,
 		const vk::BufferImageCopy* regions
 	);
 };
