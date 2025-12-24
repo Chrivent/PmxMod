@@ -146,7 +146,7 @@ void VKBuffer::Clear(const VKAppContext& appContext) {
 }
 
 bool VKTexture::Setup(const VKAppContext& appContext, const uint32_t width, const uint32_t height,
-                    const vk::Format format, const int mipCount) {
+                    const vk::Format format) {
 	const auto device = appContext.m_device;
 	const auto imageInfo = vk::ImageCreateInfo()
 			.setImageType(vk::ImageType::e2D)
@@ -196,7 +196,7 @@ bool VKTexture::Setup(const VKAppContext& appContext, const uint32_t width, cons
 				.setBaseMipLevel(0)
 				.setBaseArrayLayer(0)
 				.setLayerCount(1)
-				.setLevelCount(mipCount))
+				.setLevelCount(1))
 			.setImage(m_image);
 	ret = device.createImageView(&imageViewInfo, nullptr, &m_imageView);
 	if (vk::Result::eSuccess != ret) {
@@ -204,7 +204,6 @@ bool VKTexture::Setup(const VKAppContext& appContext, const uint32_t width, cons
 		return false;
 	}
 	m_format = format;
-	m_mipLevel = mipCount;
 	return true;
 }
 
@@ -1813,14 +1812,14 @@ bool Model::Setup(VKAppContext& appContext) {
 		auto samplerInfo = vk::SamplerCreateInfo()
 				.setMagFilter(vk::Filter::eLinear)
 				.setMinFilter(vk::Filter::eLinear)
-				.setMipmapMode(vk::SamplerMipmapMode::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eNearest)
 				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
 				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
 				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
 				.setMipLodBias(0.0f)
 				.setCompareOp(vk::CompareOp::eNever)
 				.setMinLod(0.0f)
-				.setMaxLod(static_cast<float>(m_mmdTex->m_mipLevel))
+				.setMaxLod(0.0f)
 				.setMaxAnisotropy(1.0f)
 				.setAnisotropyEnable(false);
 		vk::Result ret = device.createSampler(&samplerInfo, nullptr, &m_mmdTexSampler);
@@ -1838,14 +1837,14 @@ bool Model::Setup(VKAppContext& appContext) {
 		auto toonSamplerInfo = vk::SamplerCreateInfo()
 				.setMagFilter(vk::Filter::eLinear)
 				.setMinFilter(vk::Filter::eLinear)
-				.setMipmapMode(vk::SamplerMipmapMode::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eNearest)
 				.setAddressModeU(vk::SamplerAddressMode::eClampToEdge)
 				.setAddressModeV(vk::SamplerAddressMode::eClampToEdge)
 				.setAddressModeW(vk::SamplerAddressMode::eClampToEdge)
 				.setMipLodBias(0.0f)
 				.setCompareOp(vk::CompareOp::eNever)
 				.setMinLod(0.0f)
-				.setMaxLod(static_cast<float>(m_mmdToonTex->m_mipLevel))
+				.setMaxLod(0.0f)
 				.setMaxAnisotropy(1.0f)
 				.setAnisotropyEnable(false);
 		ret = device.createSampler(&toonSamplerInfo, nullptr, &m_mmdToonTexSampler);
@@ -1863,14 +1862,14 @@ bool Model::Setup(VKAppContext& appContext) {
 		auto sphereSamplerInfo = vk::SamplerCreateInfo()
 				.setMagFilter(vk::Filter::eLinear)
 				.setMinFilter(vk::Filter::eLinear)
-				.setMipmapMode(vk::SamplerMipmapMode::eLinear)
+				.setMipmapMode(vk::SamplerMipmapMode::eNearest)
 				.setAddressModeU(vk::SamplerAddressMode::eRepeat)
 				.setAddressModeV(vk::SamplerAddressMode::eRepeat)
 				.setAddressModeW(vk::SamplerAddressMode::eRepeat)
 				.setMipLodBias(0.0f)
 				.setCompareOp(vk::CompareOp::eNever)
 				.setMinLod(0.0f)
-				.setMaxLod(static_cast<float>(m_mmdSphereTex->m_mipLevel))
+				.setMaxLod(0.0f)
 				.setMaxAnisotropy(1.0f)
 				.setAnisotropyEnable(false);
 		ret = device.createSampler(&sphereSamplerInfo, nullptr, &m_mmdSphereTexSampler);

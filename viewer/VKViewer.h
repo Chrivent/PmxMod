@@ -105,10 +105,9 @@ struct VKTexture {
 	vk::ImageLayout	m_imageLayout = vk::ImageLayout::eUndefined;
 	vk::DeviceMemory	m_memory;
 	vk::Format			m_format;
-	uint32_t			m_mipLevel;
 	bool				m_hasAlpha;
 
-	bool Setup(const VKAppContext& appContext, uint32_t width, uint32_t height, vk::Format format, int mipCount = 1);
+	bool Setup(const VKAppContext& appContext, uint32_t width, uint32_t height, vk::Format format);
 	void Clear(const VKAppContext& appContext);
 };
 
