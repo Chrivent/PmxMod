@@ -1709,14 +1709,7 @@ bool VKAppContext::GetTexture(const std::filesystem::path& texturePath, VKTextur
 		std::fclose(fp);
 		if (!image)
 			return false;
-		bool hasAlpha = false;
-		const size_t pixelCount = static_cast<size_t>(x) * static_cast<size_t>(y);
-		for (size_t i = 0; i < pixelCount; ++i) {
-			if (image[i * 4 + 3] != 255) {
-				hasAlpha = true;
-				break;
-			}
-		}
+		const bool hasAlpha = comp == 4;
 		constexpr auto format = vk::Format::eR8G8B8A8Unorm;
 		auto tex = std::make_unique<VKTexture>();
 		if (!tex->Setup(*this, x, y, format)) {
