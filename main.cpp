@@ -9,7 +9,6 @@
 #include "src/MMDUtil.h"
 #include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
-#include "viewer/VKViewer.h"
 
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
@@ -119,35 +118,6 @@ static SceneConfig BuildTestSceneConfig() {
 	return cfg;
 }
 
-static LRESULT CALLBACK WndProc(HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-	if (msg == WM_DESTROY) {
-		PostQuitMessage(0);
-		return 0;
-	}
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
-HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
-	auto cls = L"PmxModDx11Window";
-	WNDCLASSEXW wc{ sizeof(wc) };
-	wc.lpfnWndProc = WndProc;
-	wc.hInstance   = hInst;
-	wc.lpszClassName = cls;
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	RegisterClassExW(&wc);
-	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
-	RECT rc{ 0,0,w,h };
-	AdjustWindowRect(&rc, style, FALSE);
-	HWND__* hwnd = CreateWindowExW(
-		0, cls, L"Pmx Mod (DX11)", style,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		rc.right - rc.left, rc.bottom - rc.top,
-		nullptr, nullptr, hInst, nullptr
-	);
-	ShowWindow(hwnd, SW_SHOW);
-	return hwnd;
-}
-
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
@@ -204,17 +174,10 @@ int main() {
 		}
 	}
 	else if (engineType == 1) {
-        HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
-        if (!hwnd || !DX11SampleMain(hwnd, cfg)) {
+        if (!DX11SampleMain(cfg)) {
         	std::cout << "Failed to run.\n";
 	        return 1;
         }
-	}
-	else if (engineType == 2) {
-		if (!VKSampleMain(cfg)) {
-			std::cout << "Failed to run.\n";
-			return 1;
-		}
 	}
 	return 0;
 }

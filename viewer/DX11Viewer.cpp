@@ -768,7 +768,36 @@ void DX11Model::Draw(const DX11AppContext& appContext) const {
 	}
 }
 
-bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
+static LRESULT CALLBACK WndProc(HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+	if (msg == WM_DESTROY) {
+		PostQuitMessage(0);
+		return 0;
+	}
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
+	auto cls = L"PmxModDx11Window";
+	WNDCLASSEXW wc{ sizeof(wc) };
+	wc.lpfnWndProc = WndProc;
+	wc.hInstance   = hInst;
+	wc.lpszClassName = cls;
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	RegisterClassExW(&wc);
+	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
+	RECT rc{ 0,0,w,h };
+	AdjustWindowRect(&rc, style, FALSE);
+	HWND__* hwnd = CreateWindowExW(
+		0, cls, L"Pmx Mod (DX11)", style,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		rc.right - rc.left, rc.bottom - rc.top,
+		nullptr, nullptr, hInst, nullptr
+	);
+	ShowWindow(hwnd, SW_SHOW);
+	return hwnd;
+}
+
+bool DX11SampleMain(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
 
@@ -814,6 +843,7 @@ bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg) {
 	}
 	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
 
+	HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
 	DXGI_SWAP_CHAIN_DESC sd{};
 	sd.BufferCount = 2;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;

@@ -161,4 +161,4 @@ struct DX11Model {
     void Draw(const DX11AppContext& appContext) const;
 };
 
-bool DX11SampleMain(HWND hwnd, const SceneConfig& cfg);
+bool DX11SampleMain(const SceneConfig& cfg);
