@@ -7,8 +7,7 @@
 #include <shobjidl.h>
 
 #include "src/MMDUtil.h"
-#include "viewer/DX11Viewer.h"
-#include "viewer/GLFWViewer.h"
+#include "viewer/Viewer.h"
 
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
