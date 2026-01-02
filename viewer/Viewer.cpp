@@ -186,8 +186,10 @@ GLFWAppContext::~GLFWAppContext() {
 	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
 		glDeleteTextures(1, &m_texture);
 	m_textures.clear();
-	if (m_dummyColorTex != 0) glDeleteTextures(1, &m_dummyColorTex);
-	if (m_dummyShadowDepthTex != 0) glDeleteTextures(1, &m_dummyShadowDepthTex);
+	if (m_dummyColorTex != 0)
+		glDeleteTextures(1, &m_dummyColorTex);
+	if (m_dummyShadowDepthTex != 0)
+		glDeleteTextures(1, &m_dummyShadowDepthTex);
 	m_dummyColorTex = 0;
 	m_dummyShadowDepthTex = 0;
 	m_vmdCameraAnim.reset();
