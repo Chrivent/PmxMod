@@ -34,3 +34,15 @@ struct Model {
     std::unique_ptr<VMDAnimation>	m_vmdAnim;
     float m_scale = 1.0f;
 };
+
+struct Input {
+    std::filesystem::path				m_modelPath;
+    std::vector<std::filesystem::path>	m_vmdPaths;
+    float								m_scale = 1.1f;
+};
+
+struct SceneConfig {
+    std::vector<Input>		models;
+    std::filesystem::path	cameraVmd;
+    std::filesystem::path	musicPath;
+};

@@ -33,15 +33,3 @@ private:
 	bool   m_hasMusic = false;
 	double m_prevTimeSec = 0.0;
 };
-
-struct Input {
-	std::filesystem::path				m_modelPath;
-	std::vector<std::filesystem::path>	m_vmdPaths;
-	float								m_scale = 1.1f;
-};
-
-struct SceneConfig {
-	std::vector<Input>		models;
-	std::filesystem::path	cameraVmd;
-	std::filesystem::path	musicPath;
-};
