@@ -55,10 +55,10 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	const auto fsCode = std::string(std::istreambuf_iterator(ff), {});
 	const GLuint vs = CreateShader(GL_VERTEX_SHADER, vsCode);
 	const GLuint fs = CreateShader(GL_FRAGMENT_SHADER, fsCode);
-	if (vs == 0 || fs == 0) {
-		if (vs != 0)
+	if (!vs || !fs) {
+		if (vs)
 			glDeleteShader(vs);
-		if (fs != 0)
+		if (fs)
 			glDeleteShader(fs);
 		return 0;
 	}
@@ -72,35 +72,28 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	glAttachShader(prog, vs);
 	glAttachShader(prog, fs);
 	glLinkProgram(prog);
-	GLint infoLength;
-	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength != 0) {
-		std::vector<char> info;
-		info.reserve(infoLength + 1);
-		info.resize(infoLength);
-
-		GLsizei len;
-		glGetProgramInfoLog(prog, infoLength, &len, &info[0]);
-		if (info[infoLength - 1] != '\0')
-			info.push_back('\0');
-
-		std::cout << &info[0] << "\n";
-	}
-	GLint linkStatus;
+	GLint linkStatus = GL_FALSE, infoLength = 0;
 	glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
-	if (linkStatus != GL_TRUE) {
-		glDeleteShader(vs);
-		glDeleteShader(fs);
-		std::cout << "Failed to link shader_GLFW.\n";
-		return 0;
+	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLength);
+	if (infoLength > 1) {
+		std::string info(static_cast<size_t>(infoLength), '\0');
+		GLsizei len = 0;
+		glGetProgramInfoLog(prog, infoLength, &len, info.data());
+		std::cout << info.c_str() << "\n";
 	}
 	glDeleteShader(vs);
 	glDeleteShader(fs);
+	if (linkStatus != GL_TRUE) {
+		glDeleteProgram(prog); // 원본에서 빠져있던 누수 방지
+		std::cout << "Failed to link shader_GLFW.\n";
+		return 0;
+	}
 	return prog;
 }
 
 GLFWShader::~GLFWShader() {
-	if (m_prog != 0) glDeleteProgram(m_prog);
+	if (m_prog != 0)
+		glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
@@ -146,7 +139,8 @@ bool GLFWShader::Setup(const GLFWAppContext& appContext) {
 }
 
 GLFWEdgeShader::~GLFWEdgeShader() {
-	if (m_prog != 0) glDeleteProgram(m_prog);
+	if (m_prog != 0)
+		glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
