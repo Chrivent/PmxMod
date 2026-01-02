@@ -21,6 +21,9 @@ add_executable(PmxMod
         src/MMDReader.cpp       src/MMDReader.h
         src/VMDAnimation.cpp    src/VMDAnimation.h
         viewer/Viewer.cpp       viewer/Viewer.h
+        viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
+        viewer/DX11Viewer.cpp
+        viewer/DX11Viewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC
