@@ -15,29 +15,23 @@
 
 GLuint CreateShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
-	if (shader == 0) {
+	if (!shader) {
 		std::cout << "Failed to create shader_GLFW.\n";
 		return 0;
 	}
-	const char* codes[] = { code.c_str() };
-	const GLint codesLen[] = { static_cast<GLint>(code.size()) };
-	glShaderSource(shader, 1, codes, codesLen);
+	const char* codes = code.c_str();
+	const auto codesLen = static_cast<GLint>(code.size());
+	glShaderSource(shader, 1, &codes, &codesLen);
 	glCompileShader(shader);
-	GLint infoLength;
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength != 0) {
-		std::vector<char> info;
-		info.reserve(infoLength + 1);
-		info.resize(infoLength);
-		GLsizei len;
-		glGetShaderInfoLog(shader, infoLength, &len, &info[0]);
-		if (info[infoLength - 1] != '\0')
-			info.push_back('\0');
-
-		std::cout << &info[0] << "\n";
-	}
-	GLint compileStatus;
+	GLint compileStatus = GL_FALSE, infoLength = 0;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
+	if (infoLength > 1) {
+		std::string log(static_cast<size_t>(infoLength), '\0');
+		GLsizei len = 0;
+		glGetShaderInfoLog(shader, infoLength, &len, log.data());
+		std::cout << log.c_str() << "\n";
+	}
 	if (compileStatus != GL_TRUE) {
 		glDeleteShader(shader);
 		std::cout << "Failed to compile shader_GLFW.\n";
