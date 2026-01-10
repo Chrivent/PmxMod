@@ -6,37 +6,13 @@
 
 #include "../external/stb_image.h"
 
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
 #include <ranges>
 
-HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
-	auto WndProc = [](HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) -> LRESULT {
-		if (msg == WM_DESTROY) {
-			PostQuitMessage(0);
-			return 0;
-		}
-		return DefWindowProc(hWnd, msg, wParam, lParam);
-	};
-	auto cls = L"PmxModDx11Window";
-	WNDCLASSEXW wc{ sizeof(wc) };
-	wc.lpfnWndProc = WndProc;
-	wc.hInstance   = hInst;
-	wc.lpszClassName = cls;
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	RegisterClassExW(&wc);
-	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
-	RECT rc{ 0,0,w,h };
-	AdjustWindowRect(&rc, style, FALSE);
-	HWND__* hwnd = CreateWindowExW(
-		0, cls, L"Pmx Mod (DX11)", style,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		rc.right - rc.left, rc.bottom - rc.top,
-		nullptr, nullptr, hInst, nullptr
-	);
-	ShowWindow(hwnd, SW_SHOW);
-	return hwnd;
-}
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 bool DX11AppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
@@ -76,7 +52,16 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		quality = 0;
 	}
 	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
-	HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
+	if (!glfwInit())
+		return false;
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+	if (!window) {
+		glfwTerminate();
+		return false;
+	}
+	const HWND hwnd = glfwGetWin32Window(window);
 	DXGI_SWAP_CHAIN_DESC sd{};
 	sd.BufferCount = 2;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -123,10 +108,8 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 			return false;
 		return true;
 	};
-	RECT rc{};
-	GetClientRect(hwnd, &rc);
-	int width = rc.right - rc.left;
-	int height = rc.bottom - rc.top;
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
 	if (width <= 0 || height <= 0)
 		return false;
 	if (!CreateRenderTargets(width, height))
@@ -142,35 +125,15 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	auto fpsTime  = std::chrono::steady_clock::now();
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
-    bool quit = false;
-    while (true) {
-    	auto PumpWin32Once = [](bool& outQuit) {
-    		outQuit = false;
-    		MSG msg{};
-    		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-    			if (msg.message == WM_QUIT) {
-    				outQuit = true;
-    				return false;
-    			}
-    			TranslateMessage(&msg);
-    			DispatchMessage(&msg);
-    		}
-    		return true;
-    	};
-        if (!PumpWin32Once(quit) || quit)
-        	break;
-
-    	RECT newRc{};
-    	GetClientRect(hwnd, &newRc);
-    	int newW = newRc.right - newRc.left;
-    	int newH = newRc.bottom - newRc.top;
+    while (!glfwWindowShouldClose(window)) {
+    	glfwPollEvents();
+    	int newW = 0, newH = 0;
+    	glfwGetFramebufferSize(window, &newW, &newH);
         if (newW <= 0 || newH <= 0)
         	continue;
         if (newW != width || newH != height) {
             width = newW; height = newH;
-            rtv.Reset();
-            dsv.Reset();
-            depthTex.Reset();
+            rtv.Reset(); dsv.Reset(); depthTex.Reset();
 			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
             if (!CreateRenderTargets(width, height))
             	return false;
@@ -185,7 +148,7 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
         context->RSSetViewports(1, &vp);
         ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
         context->OMSetRenderTargets(1, rtvs, dsv.Get());
-        float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
+	    constexpr float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
         context->ClearRenderTargetView(rtv.Get(), clearColor);
         context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     	m_renderTargetView = rtv;
@@ -194,9 +157,9 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
             model->UpdateAnimation(*this);
             model->Update();
             model->Draw(*this);
-        	DX11Model& dx11Model = static_cast<DX11Model&>(*model);
+        	const auto& dx11Model = static_cast<DX11Model&>(*model);
         	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
-        	HRESULT hrCL = dx11Model.m_context->FinishCommandList(FALSE, &cmd);
+        	const HRESULT hrCL = dx11Model.m_context->FinishCommandList(FALSE, &cmd);
         	if (SUCCEEDED(hrCL) && cmd)
 		        context->ExecuteCommandList(cmd.Get(), FALSE);
         }
@@ -204,6 +167,8 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
     	TickFps(fpsTime, fpsFrame);
     }
     models.clear();
+	glfwDestroyWindow(window);
+	glfwTerminate();
     return true;
 }
 
