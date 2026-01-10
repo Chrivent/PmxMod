@@ -388,18 +388,17 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 	return m_textures[texturePath];
 }
 
-static LRESULT CALLBACK WndProc(HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-	if (msg == WM_DESTROY) {
-		PostQuitMessage(0);
-		return 0;
-	}
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
 HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
+	auto WndProc = [](HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) -> LRESULT {
+		if (msg == WM_DESTROY) {
+			PostQuitMessage(0);
+			return 0;
+		}
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	};
 	auto cls = L"PmxModDx11Window";
 	WNDCLASSEXW wc{ sizeof(wc) };
-	wc.lpfnWndProc = DefWindowProc;
+	wc.lpfnWndProc = WndProc;
 	wc.hInstance   = hInst;
 	wc.lpszClassName = cls;
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
