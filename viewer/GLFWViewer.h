@@ -93,6 +93,8 @@ struct GLFWAppContext : AppContext {
 
     bool Setup();
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
+
+    bool Run(const SceneConfig& cfg);
 };
 
 struct GLFWMaterial {
@@ -122,5 +124,3 @@ struct GLFWModel : Model {
     void Update() const;
     void Draw(const GLFWAppContext& appContext) const;
 };
-
-bool GLFWSampleMain(const SceneConfig& cfg);

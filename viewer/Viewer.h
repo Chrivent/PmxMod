@@ -6,11 +6,12 @@
 
 #include <filesystem>
 
+#include "../src/VMDAnimation.h"
+
 struct SceneConfig;
 struct MMDMaterial;
 class MMDModel;
 class VMDAnimation;
-class VMDCameraAnimation;
 
 struct AppContext {
     std::filesystem::path	m_resourceDir;

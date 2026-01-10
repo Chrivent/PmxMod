@@ -168,13 +168,15 @@ int main() {
 	int engineType;
 	std::cin >> engineType;
 	if (engineType == 0) {
-		if (!GLFWSampleMain(cfg)) {
+		GLFWAppContext appContext;
+		if (!appContext.Run(cfg)) {
 			std::cout << "Failed to run.\n";
 			return 1;
 		}
 	}
 	else if (engineType == 1) {
-        if (!DX11SampleMain(cfg)) {
+		DX11AppContext appContext;
+        if (!appContext.Run(cfg)) {
         	std::cout << "Failed to run.\n";
 	        return 1;
         }
