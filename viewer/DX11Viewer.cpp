@@ -234,30 +234,34 @@ bool DX11AppContext::CreateShaders() {
 	mmdVSBlob, mmdPSBlob,
 	mmdEdgeVSBlob, mmdEdgePSBlob,
 	mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
+	auto CompileError = [](const Microsoft::WRL::ComPtr<ID3DBlob>& msg) {
+		std::cout << "Compile Error: " << static_cast<char*>(msg->GetBufferPointer()) << std::endl;
+		return false;
+	};
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdVSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdPSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdEdgeVSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdEdgePSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdGroundShadowVSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
 		&mmdGroundShadowPSBlob, &errorBlob)))
-		return false;
+		return CompileError(errorBlob);
 
 	// mmd shader_GLFW
 	hr = m_device->CreateVertexShader(
