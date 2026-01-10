@@ -14,6 +14,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <d3dcompiler.h>
+
 bool DX11AppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
@@ -227,30 +229,44 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 
 bool DX11AppContext::CreateShaders() {
 	HRESULT hr;
-	std::vector<uint8_t> mmdVSBytecode, mmdPSBytecode;
-	std::vector<uint8_t> mmdEdgeVSBytecode, mmdEdgePSBytecode;
-	std::vector<uint8_t> mmdGroundShadowVSBytecode, mmdGroundShadowPSBytecode;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_vs.cso", mmdVSBytecode))
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob>
+	mmdVSBlob, mmdPSBlob,
+	mmdEdgeVSBlob, mmdEdgePSBlob,
+	mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdVSBlob, &errorBlob)))
 		return false;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_ps.cso", mmdPSBytecode))
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdPSBlob, &errorBlob)))
 		return false;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_edge_vs.cso", mmdEdgeVSBytecode))
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdEdgeVSBlob, &errorBlob)))
 		return false;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_edge_ps.cso", mmdEdgePSBytecode))
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdEdgePSBlob, &errorBlob)))
 		return false;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_gs_vs.cso", mmdGroundShadowVSBytecode))
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdGroundShadowVSBlob, &errorBlob)))
 		return false;
-	if (!ReadCsoBinary(m_shaderDir / "mmd_gs_ps.cso", mmdGroundShadowPSBytecode))
+	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&mmdGroundShadowPSBlob, &errorBlob)))
 		return false;
 
 	// mmd shader_GLFW
 	hr = m_device->CreateVertexShader(
-		mmdVSBytecode.data(), mmdVSBytecode.size(),
+		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
 		nullptr, &m_mmdVS);
 	if (FAILED(hr))
 		return false;
 	hr = m_device->CreatePixelShader(
-		mmdPSBytecode.data(), mmdPSBytecode.size(),
+		mmdPSBlob->GetBufferPointer(), mmdPSBlob->GetBufferSize(),
 		nullptr, &m_mmdPS);
 	if (FAILED(hr))
 		return false;
@@ -261,7 +277,7 @@ bool DX11AppContext::CreateShaders() {
 	};
 	hr = m_device->CreateInputLayout(
 		mmdInputElementDesc, 3,
-		mmdVSBytecode.data(), mmdVSBytecode.size(),
+		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
 		&m_mmdInputLayout
 	);
 	if (FAILED(hr))
@@ -359,13 +375,13 @@ bool DX11AppContext::CreateShaders() {
 
 	// mmd edge shader_GLFW
 	hr = m_device->CreateVertexShader(
-		mmdEdgeVSBytecode.data(), mmdEdgeVSBytecode.size(),
+		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgeVS);
 	if (FAILED(hr))
 		return false;
 
 	hr = m_device->CreatePixelShader(
-		mmdEdgePSBytecode.data(), mmdEdgePSBytecode.size(),
+		mmdEdgePSBlob->GetBufferPointer(), mmdEdgePSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgePS);
 	if (FAILED(hr))
 		return false;
@@ -380,7 +396,7 @@ bool DX11AppContext::CreateShaders() {
 	};
 	hr = m_device->CreateInputLayout(
 		mmdEdgeInputElementDesc, 2,
-		mmdEdgeVSBytecode.data(), mmdEdgeVSBytecode.size(),
+		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		&m_mmdEdgeInputLayout
 	);
 	if (FAILED(hr))
@@ -420,12 +436,12 @@ bool DX11AppContext::CreateShaders() {
 
 	// mmd ground shadow shader_GLFW
 	hr = m_device->CreateVertexShader(
-		mmdGroundShadowVSBytecode.data(), mmdGroundShadowVSBytecode.size(),
+		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowVS);
 	if (FAILED(hr))
 		return false;
 	hr = m_device->CreatePixelShader(
-		mmdGroundShadowPSBytecode.data(),mmdGroundShadowPSBytecode.size(),
+		mmdGroundShadowPSBlob->GetBufferPointer(), mmdGroundShadowPSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowPS);
 	if (FAILED(hr))
 		return false;
@@ -435,7 +451,7 @@ bool DX11AppContext::CreateShaders() {
 	};
 	hr = m_device->CreateInputLayout(
 		mmdGroundShadowInputElementDesc, 1,
-		mmdGroundShadowVSBytecode.data(), mmdGroundShadowVSBytecode.size(),
+		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		&m_mmdGroundShadowInputLayout
 	);
 	if (FAILED(hr))
@@ -546,19 +562,6 @@ bool DX11AppContext::CreateShaders() {
 	hr = m_device->CreateSamplerState(&samplerDesc, &m_dummySampler);
 	if (FAILED(hr))
 		return false;
-	return true;
-}
-
-bool DX11AppContext::ReadCsoBinary(const std::filesystem::path& path, std::vector<uint8_t>& out) {
-	std::ifstream f(path, std::ios::binary);
-	if (!f)
-		return false;
-	f.seekg(0, std::ios::end);
-	const auto size = static_cast<size_t>(f.tellg());
-	f.seekg(0, std::ios::beg);
-	out.resize(size);
-	if (size > 0)
-		f.read(reinterpret_cast<char*>(out.data()), static_cast<long long>(size));
 	return true;
 }
 
