@@ -195,9 +195,9 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 	initData.pSysMem = image;
 	initData.SysMemPitch = 4 * x;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
-	HRESULT hr1 = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
+	const HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
 	stbi_image_free(image);
-	if (FAILED(hr1))
+	if (FAILED(hr))
 		return {};
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
 	if (FAILED(m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV)))
