@@ -30,6 +30,7 @@ struct AppContext {
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
+    float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 
     virtual bool Run(const SceneConfig& cfg) = 0;
     virtual std::unique_ptr<Model> CreateModel() const = 0;

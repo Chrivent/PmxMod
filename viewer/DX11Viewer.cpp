@@ -149,7 +149,6 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
         context->RSSetViewports(1, &vp);
         ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
         context->OMSetRenderTargets(1, rtvs, dsv.Get());
-	    constexpr float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
         context->ClearRenderTargetView(rtv.Get(), clearColor);
         context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     	m_renderTargetView = rtv;

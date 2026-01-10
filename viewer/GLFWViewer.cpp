@@ -248,7 +248,7 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		}
 		StepTime(music, saveTime);
 		UpdateCamera(width, height);
-		glClearColor(0.839f, 0.902f, 0.961f, 1);
+		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		for (const auto& model : models) {
 			model->UpdateAnimation(*this);
