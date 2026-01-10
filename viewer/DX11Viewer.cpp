@@ -949,8 +949,8 @@ void DX11Model::Draw(AppContext& appContext) const {
 	m_context->RSSetState(dx11AppContext.m_mmdGroundShadowRS.Get());
 	m_context->OMSetBlendState(dx11AppContext.m_mmdGroundShadowBlendState.Get(), nullptr, 0xffffffff);
 	m_context->OMSetDepthStencilState(dx11AppContext.m_mmdGroundShadowDSS.Get(), 0x01);
-	for (const auto& subMesh : m_mmdModel->m_subMeshes) {
-		const auto& mat = m_materials[subMesh.m_materialID];
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_groundShadow)
 			continue;
@@ -963,6 +963,6 @@ void DX11Model::Draw(AppContext& appContext) const {
 		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
 		m_context->PSSetConstantBuffers(1, 1, pscbs);
 		m_context->OMSetBlendState(dx11AppContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
-		m_context->DrawIndexed(subMesh.m_vertexCount, subMesh.m_beginIndex, 0);
+		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 }
