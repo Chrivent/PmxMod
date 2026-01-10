@@ -19,23 +19,39 @@
 bool DX11AppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
+	if (!glfwInit())
+		return false;
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
+	if (!window) {
+		glfwTerminate();
+		return false;
+	}
+	const HWND hwnd = glfwGetWin32Window(window);
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-		featureLevels, 1, D3D11_SDK_VERSION, &device, &featureLevel, &context)))
+		featureLevels, 1, D3D11_SDK_VERSION, &device, &featureLevel, &context))) {
+		glfwTerminate();
 		return false;
+	}
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	if (FAILED(device.As(&dxgiDevice)))
+	if (FAILED(device.As(&dxgiDevice))) {
+		glfwTerminate();
 		return false;
+	}
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-	if (FAILED(dxgiDevice->GetAdapter(&adapter)))
+	if (FAILED(dxgiDevice->GetAdapter(&adapter))) {
+		glfwTerminate();
 		return false;
+	}
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
-	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
+	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory))) {
+		glfwTerminate();
 		return false;
+	}
 	UINT msaaCount = 4;
 	UINT quality = 0;
 	if (FAILED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality)) || quality == 0) {
@@ -43,16 +59,15 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		quality = 0;
 	}
 	const UINT msaaQuality = quality > 0 ? quality - 1 : 0;
-	if (!glfwInit())
-		return false;
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
-	if (!window) {
+	m_multiSampleCount = msaaCount;
+	m_multiSampleQuality = msaaQuality;
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	if (width <= 0 || height <= 0) {
 		glfwTerminate();
 		return false;
 	}
-	const HWND hwnd = glfwGetWin32Window(window);
+	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 	DXGI_SWAP_CHAIN_DESC sd{};
 	sd.BufferCount = 2;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -93,20 +108,20 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 			return false;
 		return true;
 	};
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	if (width <= 0 || height <= 0)
+	if (!CreateRenderTargets(width, height)) {
+		glfwTerminate();
 		return false;
-	if (!CreateRenderTargets(width, height))
+	}
+	if (!Setup(device.Get())) {
+		glfwTerminate();
 		return false;
-	m_multiSampleCount = msaaCount;
-	m_multiSampleQuality = msaaQuality;
-	if (!Setup(device.Get()))
-		return false;
+	}
 	LoadCameraVmd(cfg);
 	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models))
+	if (!LoadModels(cfg, models)) {
+		glfwTerminate();
 		return false;
+	}
 	auto fpsTime  = std::chrono::steady_clock::now();
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
@@ -114,10 +129,10 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
     	glfwPollEvents();
     	int newW = 0, newH = 0;
     	glfwGetFramebufferSize(window, &newW, &newH);
-        if (newW <= 0 || newH <= 0)
-        	continue;
         if (newW != width || newH != height) {
             width = newW; height = newH;
+        	m_renderTargetView.Reset();
+        	m_depthStencilView.Reset();
             rtv.Reset(); dsv.Reset(); depthTex.Reset();
         	if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
         		return false;

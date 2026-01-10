@@ -217,6 +217,12 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	}
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	if (width <= 0 || height <= 0) {
+		glfwTerminate();
+		return false;
+	}
 	if (!Setup()) {
 		std::cout << "Failed to setup AppContext.\n";
 		glfwTerminate();
@@ -232,19 +238,24 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame  = 0;
 	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		int newW = 0, newH = 0;
+		glfwGetFramebufferSize(window, &newW, &newH);
+		if (newW != width || newH != height) {
+			width = newW;
+			height = newH;
+			glViewport(0, 0, width, height);
+		}
 		StepTime(music, saveTime);
+		UpdateCamera(width, height);
 		glClearColor(0.839f, 0.902f, 0.961f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-		UpdateCamera(width, height);
 		for (const auto& model : models) {
 			model->UpdateAnimation(*this);
 			model->Update();
 			model->Draw(*this);
 		}
 		glfwSwapBuffers(window);
-		glfwPollEvents();
 		TickFps(fpsTime, fpsFrame);
 	}
 	for (const auto& model : models)
