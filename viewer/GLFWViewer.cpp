@@ -146,7 +146,6 @@ bool GLFWEdgeShader::Setup(const GLFWAppContext& appContext) {
 		appContext.m_shaderDir / "mmd_edge.vert",
 		appContext.m_shaderDir / "mmd_edge.frag"
 	);
-
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -276,8 +275,10 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	}
 	LoadCameraVmd(cfg);
 	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models))
+	if (!LoadModels(cfg, models)) {
+		glfwTerminate();
 		return false;
+	}
 	auto fpsTime  = std::chrono::steady_clock::now();
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame  = 0;
@@ -288,7 +289,7 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		UpdateCamera(width, height);
-		for (auto& model : models) {
+		for (const auto& model : models) {
 			model->UpdateAnimation(*this);
 			model->Update();
 			model->Draw(*this);
