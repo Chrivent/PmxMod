@@ -203,7 +203,7 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, m_msaaSamples);
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
 	if (!window) {
 		glfwTerminate();
 		return false;

@@ -24,10 +24,9 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
-	UINT createFlags = 0;
 	HRESULT hr = D3D11CreateDevice(
 		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-		createFlags,
+		0,
 		featureLevels, 1,
 		D3D11_SDK_VERSION,
 		&device, &featureLevel, &context
@@ -53,12 +52,12 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		msaaCount = 1;
 		quality = 0;
 	}
-	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
+	const UINT msaaQuality = quality > 0 ? quality - 1 : 0;
 	if (!glfwInit())
 		return false;
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
 	if (!window) {
 		glfwTerminate();
 		return false;
