@@ -89,9 +89,10 @@ struct GLFWAppContext : AppContext {
     const int	m_msaaSamples = 4;
 
     std::unique_ptr<Model> CreateModel() const override;
+    bool Run(const SceneConfig& cfg) override;
+
     bool Setup();
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
-    bool Run(const SceneConfig& cfg);
 };
 
 struct GLFWMaterial {

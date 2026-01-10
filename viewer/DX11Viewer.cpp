@@ -27,6 +27,47 @@ bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
 	return true;
 }
 
+DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath) {
+	const auto it = m_textures.find(texturePath);
+	if (it != m_textures.end())
+		return it->second;
+	int x = 0, y = 0, comp = 0;
+	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
+	if (!image)
+		return {};
+	D3D11_TEXTURE2D_DESC tex2dDesc = {};
+	tex2dDesc.Width = x;
+	tex2dDesc.Height = y;
+	tex2dDesc.MipLevels = 1;
+	tex2dDesc.ArraySize = 1;
+	tex2dDesc.SampleDesc.Count = 1;
+	tex2dDesc.SampleDesc.Quality = 0;
+	tex2dDesc.Usage = D3D11_USAGE_DEFAULT;
+	tex2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	tex2dDesc.CPUAccessFlags = 0;
+	tex2dDesc.MiscFlags = 0;
+	const bool hasAlpha = comp == 4;
+	tex2dDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = image;
+	initData.SysMemPitch = 4 * x;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
+	HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
+	stbi_image_free(image);
+	if (FAILED(hr))
+		return {};
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
+	hr = m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV);
+	if (FAILED(hr))
+		return {};
+	DX11Texture tex;
+	tex.m_texture = tex2d;
+	tex.m_textureView = tex2dRV;
+	tex.m_hasAlpha = hasAlpha;
+	m_textures[texturePath] = tex;
+	return m_textures[texturePath];
+}
+
 bool DX11AppContext::CreateShaders() {
 	HRESULT hr;
 	std::vector<uint8_t> mmdVSBytecode, mmdPSBytecode;
@@ -349,47 +390,6 @@ bool DX11AppContext::CreateShaders() {
 	if (FAILED(hr))
 		return false;
 	return true;
-}
-
-DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath) {
-	const auto it = m_textures.find(texturePath);
-	if (it != m_textures.end())
-		return it->second;
-	int x = 0, y = 0, comp = 0;
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
-	if (!image)
-		return {};
-	D3D11_TEXTURE2D_DESC tex2dDesc = {};
-	tex2dDesc.Width = x;
-	tex2dDesc.Height = y;
-	tex2dDesc.MipLevels = 1;
-	tex2dDesc.ArraySize = 1;
-	tex2dDesc.SampleDesc.Count = 1;
-	tex2dDesc.SampleDesc.Quality = 0;
-	tex2dDesc.Usage = D3D11_USAGE_DEFAULT;
-	tex2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	tex2dDesc.CPUAccessFlags = 0;
-	tex2dDesc.MiscFlags = 0;
-	const bool hasAlpha = comp == 4;
-	tex2dDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = image;
-	initData.SysMemPitch = 4 * x;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
-	HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
-	stbi_image_free(image);
-	if (FAILED(hr))
-		return {};
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
-	hr = m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV);
-	if (FAILED(hr))
-		return {};
-	DX11Texture tex;
-	tex.m_texture = tex2d;
-	tex.m_textureView = tex2dRV;
-	tex.m_hasAlpha = hasAlpha;
-	m_textures[texturePath] = tex;
-	return m_textures[texturePath];
 }
 
 HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {

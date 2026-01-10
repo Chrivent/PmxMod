@@ -8,6 +8,27 @@
 #include "../src/MMDUtil.h"
 #include "../src/MMDModel.h"
 
+unsigned char* AppContext::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
+    stbi_uc* image = nullptr;
+    x = y = comp = 0;
+    FILE* fp = nullptr;
+    if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
+        return nullptr;
+    image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
+    std::fclose(fp);
+    return image;
+}
+
+void AppContext::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
+    fpsFrame++;
+    const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
+    if (sec > 1.0) {
+        std::cout << (fpsFrame / sec) << " fps\n";
+        fpsFrame = 0;
+        fpsTime = std::chrono::steady_clock::now();
+    }
+}
+
 bool AppContext::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models) {
     models.clear();
     models.reserve(cfg.models.size());
@@ -46,27 +67,6 @@ bool AppContext::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<
         models.emplace_back(std::move(model));
     }
     return true;
-}
-
-unsigned char* AppContext::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
-    stbi_uc* image = nullptr;
-    x = y = comp = 0;
-    FILE* fp = nullptr;
-    if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
-        return nullptr;
-    image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
-    std::fclose(fp);
-    return image;
-}
-
-void AppContext::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
-    fpsFrame++;
-    const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-    if (sec > 1.0) {
-        std::cout << (fpsFrame / sec) << " fps\n";
-        fpsFrame = 0;
-        fpsTime = std::chrono::steady_clock::now();
-    }
 }
 
 void AppContext::LoadCameraVmd(const SceneConfig& cfg) {

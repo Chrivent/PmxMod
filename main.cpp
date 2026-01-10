@@ -167,19 +167,14 @@ int main() {
 	}
 	int engineType;
 	std::cin >> engineType;
-	if (engineType == 0) {
-		GLFWAppContext appContext;
-		if (!appContext.Run(cfg)) {
-			std::cout << "Failed to run.\n";
-			return 1;
-		}
-	}
-	else if (engineType == 1) {
-		DX11AppContext appContext;
-        if (!appContext.Run(cfg)) {
-        	std::cout << "Failed to run.\n";
-	        return 1;
-        }
+	std::unique_ptr<AppContext> appContext;
+	if (engineType == 0)
+		appContext = std::make_unique<GLFWAppContext>();
+	else if (engineType == 1)
+		appContext = std::make_unique<DX11AppContext>();
+	if (!appContext->Run(cfg)) {
+		std::cout << "Failed to run.\n";
+		return 1;
 	}
 	return 0;
 }

@@ -197,56 +197,6 @@ std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
 	return std::make_unique<GLFWModel>();
 }
 
-bool GLFWAppContext::Setup() {
-	m_resourceDir = PathUtil::GetExecutablePath();
-	m_resourceDir = m_resourceDir.parent_path();
-	m_resourceDir /= "resource";
-	m_shaderDir = m_resourceDir / "shader_GLFW";
-	m_mmdDir = m_resourceDir / "mmd";
-	m_shader = std::make_unique<GLFWShader>();
-	if (!m_shader->Setup(*this))
-		return false;
-	m_edgeShader = std::make_unique<GLFWEdgeShader>();
-	if (!m_edgeShader->Setup(*this))
-		return false;
-	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
-	if (!m_groundShadowShader->Setup(*this))
-		return false;
-	glGenTextures(1, &m_dummyColorTex);
-	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glGenTextures(1, &m_dummyShadowDepthTex);
-	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	return true;
-}
-
-GLFWTexture GLFWAppContext::GetTexture(const std::filesystem::path& texturePath) {
-	const auto it = m_textures.find(texturePath);
-	if (it != m_textures.end())
-		return it->second;
-	stbi_set_flip_vertically_on_load(true);
-	int x = 0, y = 0, comp = 0;
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
-	if (!image)
-		return GLFWTexture{ 0, false };
-	const bool hasAlpha = comp == 4;
-	GLuint tex = 0;
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	stbi_image_free(image);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
-	return m_textures[texturePath];
-}
-
 bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
@@ -304,6 +254,56 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	models.clear();
 	glfwTerminate();
 	return true;
+}
+
+bool GLFWAppContext::Setup() {
+	m_resourceDir = PathUtil::GetExecutablePath();
+	m_resourceDir = m_resourceDir.parent_path();
+	m_resourceDir /= "resource";
+	m_shaderDir = m_resourceDir / "shader_GLFW";
+	m_mmdDir = m_resourceDir / "mmd";
+	m_shader = std::make_unique<GLFWShader>();
+	if (!m_shader->Setup(*this))
+		return false;
+	m_edgeShader = std::make_unique<GLFWEdgeShader>();
+	if (!m_edgeShader->Setup(*this))
+		return false;
+	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
+	if (!m_groundShadowShader->Setup(*this))
+		return false;
+	glGenTextures(1, &m_dummyColorTex);
+	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glGenTextures(1, &m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return true;
+}
+
+GLFWTexture GLFWAppContext::GetTexture(const std::filesystem::path& texturePath) {
+	const auto it = m_textures.find(texturePath);
+	if (it != m_textures.end())
+		return it->second;
+	stbi_set_flip_vertically_on_load(true);
+	int x = 0, y = 0, comp = 0;
+	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
+	if (!image)
+		return GLFWTexture{ 0, false };
+	const bool hasAlpha = comp == 4;
+	GLuint tex = 0;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	stbi_image_free(image);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
+	return m_textures[texturePath];
 }
 
 GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)

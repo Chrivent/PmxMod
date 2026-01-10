@@ -18,6 +18,12 @@ class VMDAnimation;
 struct AppContext {
     virtual ~AppContext() = default;
 
+    virtual std::unique_ptr<Model> CreateModel() const = 0;
+    virtual bool Run(const SceneConfig& cfg) = 0;
+
+    static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
+    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
+
     std::filesystem::path	m_resourceDir;
     std::filesystem::path	m_shaderDir;
     std::filesystem::path	m_mmdDir;
@@ -32,9 +38,6 @@ struct AppContext {
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
 
     bool LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models);
-    virtual std::unique_ptr<Model> CreateModel() const = 0;
-    static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
-    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     void LoadCameraVmd(const SceneConfig& cfg);
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera(int width, int height);
