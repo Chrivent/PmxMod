@@ -36,21 +36,32 @@ GLuint CompileShader(const GLenum shaderType, const std::string& code) {
 		return 0;
 	}
 	return shader;
-};
+}
 
-GLuint CreateShader(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile) {
-	std::ifstream vf(vsFile);
-	if (!vf) {
-		std::cout << "Failed to open shader_GLFW file. [" << vsFile << "].\n";
+GLuint CreateShader(const std::filesystem::path& file) {
+	std::ifstream f(file);
+	if (!f) {
+		std::cout << "Failed to open shader file. [" << file << "].\n";
 		return 0;
 	}
-	const auto vsCode = std::string(std::istreambuf_iterator(vf), {});
-	std::ifstream ff(fsFile);
-	if (!ff) {
-		std::cout << "Failed to open shader_GLFW file. [" << fsFile << "].\n";
-		return 0;
-	}
-	const auto fsCode = std::string(std::istreambuf_iterator(ff), {});
+	auto InjectDefine = [](const std::string& src, const char* defineLine) {
+		if (src.rfind("#version", 0) == 0) {
+			const auto nl = src.find('\n');
+			if (nl != std::string::npos) {
+				std::string out;
+				out.reserve(src.size() + 64);
+				out.append(src, 0, nl + 1);
+				out.append(defineLine);
+				out.push_back('\n');
+				out.append(src, nl + 1, std::string::npos);
+				return out;
+			}
+		}
+		return std::string(defineLine) + "\n" + src;
+	};
+	const std::string src((std::istreambuf_iterator(f)), {});
+	const std::string vsCode = InjectDefine(src, "#define VERTEX");
+	const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
 	const GLuint vs = CompileShader(GL_VERTEX_SHADER, vsCode);
 	const GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsCode);
 	if (!vs || !fs) {
@@ -96,10 +107,7 @@ GLFWShader::~GLFWShader() {
 }
 
 bool GLFWShader::Setup(const GLFWAppContext& appContext) {
-	m_prog = CreateShader(
-		appContext.m_shaderDir / "mmd.vert",
-		appContext.m_shaderDir / "mmd.frag"
-	);
+	m_prog = CreateShader(appContext.m_shaderDir / "mmd.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -143,10 +151,7 @@ GLFWEdgeShader::~GLFWEdgeShader() {
 }
 
 bool GLFWEdgeShader::Setup(const GLFWAppContext& appContext) {
-	m_prog = CreateShader(
-		appContext.m_shaderDir / "mmd_edge.vert",
-		appContext.m_shaderDir / "mmd_edge.frag"
-	);
+	m_prog = CreateShader(appContext.m_shaderDir / "mmd_edge.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -165,10 +170,7 @@ GLFWGroundShadowShader::~GLFWGroundShadowShader() {
 }
 
 bool GLFWGroundShadowShader::Setup(const GLFWAppContext& appContext) {
-	m_prog = CreateShader(
-		appContext.m_shaderDir / "mmd_ground_shadow.vert",
-		appContext.m_shaderDir / "mmd_ground_shadow.frag"
-	);
+	m_prog = CreateShader(appContext.m_shaderDir / "mmd_ground_shadow.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
