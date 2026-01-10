@@ -6,6 +6,47 @@
 #include <iostream>
 
 #include "../src/MMDUtil.h"
+#include "../src/MMDModel.h"
+
+bool AppContext::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models) {
+    models.clear();
+    models.reserve(cfg.models.size());
+    for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
+        auto model = CreateModel();
+        const auto ext = PathUtil::GetExt(modelPath);
+        if (ext != "pmx") {
+            std::cout << "Unknown file type. [" << ext << "]\n";
+            return false;
+        }
+        const auto pmxModel = std::make_shared<MMDModel>();
+        if (!pmxModel->Load(modelPath, m_mmdDir)) {
+            std::cout << "Failed to load pmx file.\n";
+            return false;
+        }
+        model->m_mmdModel = pmxModel;
+        model->m_mmdModel->InitializeAnimation();
+        auto vmdAnim = std::make_unique<VMDAnimation>();
+        vmdAnim->m_model = model->m_mmdModel;
+        for (const auto& vmdPath : vmdPaths) {
+            VMDReader vmd;
+            if (!vmd.ReadVMDFile(vmdPath.c_str())) {
+                std::cout << "Failed to read VMD file.\n";
+                return false;
+            }
+            if (!vmdAnim->Add(vmd)) {
+                std::cout << "Failed to add VMDAnimation.\n";
+                return false;
+            }
+        }
+        vmdAnim->SyncPhysics(0.0f);
+        model->m_vmdAnim = std::move(vmdAnim);
+        model->m_scale = scale;
+        if (!model->Setup(*this))
+            return false;
+        models.emplace_back(std::move(model));
+    }
+    return true;
+}
 
 unsigned char* AppContext::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
     stbi_uc* image = nullptr;

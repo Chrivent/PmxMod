@@ -78,7 +78,7 @@ struct GLFWTexture {
 };
 
 struct GLFWAppContext : AppContext {
-    ~GLFWAppContext();
+    ~GLFWAppContext() override;
 
     std::unique_ptr<GLFWShader>				m_shader;
     std::unique_ptr<GLFWEdgeShader>			m_edgeShader;
@@ -88,9 +88,9 @@ struct GLFWAppContext : AppContext {
     GLuint	m_dummyShadowDepthTex = 0;
     const int	m_msaaSamples = 4;
 
+    std::unique_ptr<Model> CreateModel() const override;
     bool Setup();
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
-
     bool Run(const SceneConfig& cfg);
 };
 
@@ -115,9 +115,9 @@ struct GLFWModel : Model {
     GLuint	m_mmdGroundShadowVAO = 0;
     std::vector<GLFWMaterial>	m_materials;
 
-    bool Setup(GLFWAppContext& appContext);
-    void Clear();
-    void UpdateAnimation(const GLFWAppContext& appContext) const;
-    void Update() const;
-    void Draw(const GLFWAppContext& appContext) const;
+    bool Setup(AppContext& appContext) override;
+    void Clear() override;
+    void UpdateAnimation(const AppContext& appContext) const override;
+    void Update() const override;
+    void Draw(AppContext& appContext) const override;
 };

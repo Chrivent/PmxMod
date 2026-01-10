@@ -193,6 +193,10 @@ GLFWAppContext::~GLFWAppContext() {
 	m_vmdCameraAnim.reset();
 }
 
+std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
+	return std::make_unique<GLFWModel>();
+}
+
 bool GLFWAppContext::Setup() {
 	m_resourceDir = PathUtil::GetExecutablePath();
 	m_resourceDir = m_resourceDir.parent_path();
@@ -271,46 +275,9 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		return false;
 	}
 	LoadCameraVmd(cfg);
-	std::vector<GLFWModel> models;
-	models.reserve(cfg.models.size());
-	for (const auto&[m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
-		GLFWModel model;
-		const auto ext = PathUtil::GetExt(m_modelPath);
-		if (ext != "pmx") {
-			std::cout << "Unknown file type. [" << ext << "]\n";
-			glfwTerminate();
-			return false;
-		}
-		auto pmxModel = std::make_unique<MMDModel>();
-		if (!pmxModel->Load(m_modelPath, m_mmdDir)) {
-			std::cout << "Failed to load pmx file.\n";
-			glfwTerminate();
-			return false;
-		}
-		model.m_mmdModel = std::move(pmxModel);
-		model.m_mmdModel->InitializeAnimation();
-		auto vmdAnim = std::make_unique<VMDAnimation>();
-		vmdAnim->m_model = model.m_mmdModel;
-		for (const auto& vmdPath : m_vmdPaths) {
-			VMDReader vmd;
-			if (!vmd.ReadVMDFile(vmdPath.c_str())) {
-				std::cout << "Failed to read VMD file.\n";
-				glfwTerminate();
-				return false;
-			}
-			if (!vmdAnim->Add(vmd)) {
-				std::cout << "Failed to add VMDAnimation.\n";
-				glfwTerminate();
-				return false;
-			}
-		}
-		vmdAnim->SyncPhysics(0.0f);
-		model.m_vmdAnim = std::move(vmdAnim);
-		model.m_scale = m_scale;
-		if (!model.Setup(*this))
-			return false;
-		models.emplace_back(std::move(model));
-	}
+	std::vector<std::unique_ptr<Model>> models;
+	if (!LoadModels(cfg, models))
+		return false;
 	auto fpsTime  = std::chrono::steady_clock::now();
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame  = 0;
@@ -322,16 +289,16 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		glfwGetFramebufferSize(window, &width, &height);
 		UpdateCamera(width, height);
 		for (auto& model : models) {
-			model.UpdateAnimation(*this);
-			model.Update();
-			model.Draw(*this);
+			model->UpdateAnimation(*this);
+			model->Update();
+			model->Draw(*this);
 		}
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		TickFps(fpsTime, fpsFrame);
 	}
-	for (auto& model : models)
-		model.Clear();
+	for (const auto& model : models)
+		model->Clear();
 	models.clear();
 	glfwTerminate();
 	return true;
@@ -341,7 +308,8 @@ GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 	: m_mmdMat(mat) {
 }
 
-bool GLFWModel::Setup(GLFWAppContext& appContext) {
+bool GLFWModel::Setup(AppContext& appContext) {
+	auto& glfwAppContext = static_cast<GLFWAppContext&>(appContext);
 	if (m_mmdModel == nullptr)
 		return false;
 	// Setup vertices
@@ -375,7 +343,7 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	// Setup MMD VAO
 	glGenVertexArrays(1, &m_mmdVAO);
 	glBindVertexArray(m_mmdVAO);
-	const auto &mmdShader = appContext.m_shader;
+	const auto &mmdShader = glfwAppContext.m_shader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inPos);
@@ -390,7 +358,7 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	// Setup MMD Edge VAO
 	glGenVertexArrays(1, &m_mmdEdgeVAO);
 	glBindVertexArray(m_mmdEdgeVAO);
-	const auto &mmdEdgeShader = appContext.m_edgeShader;
+	const auto &mmdEdgeShader = glfwAppContext.m_edgeShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
@@ -402,7 +370,7 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	// Setup MMD Ground Shadow VAO
 	glGenVertexArrays(1, &m_mmdGroundShadowVAO);
 	glBindVertexArray(m_mmdGroundShadowVAO);
-	const auto &mmdGroundShadowShader = appContext.m_groundShadowShader;
+	const auto &mmdGroundShadowShader = glfwAppContext.m_groundShadowShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
@@ -412,14 +380,14 @@ bool GLFWModel::Setup(GLFWAppContext& appContext) {
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
-			auto [m_texture, m_hasAlpha] = appContext.GetTexture(mmdMat.m_texture);
+			auto [m_texture, m_hasAlpha] = glfwAppContext.GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
 			mat.m_textureHasAlpha = m_hasAlpha;
 		}
 		if (!mmdMat.m_spTexture.empty())
-			mat.m_spTexture = appContext.GetTexture(mmdMat.m_spTexture).m_texture;
+			mat.m_spTexture = glfwAppContext.GetTexture(mmdMat.m_spTexture).m_texture;
 		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = appContext.GetTexture(mmdMat.m_toonTexture).m_texture;
+			mat.m_toonTexture = glfwAppContext.GetTexture(mmdMat.m_toonTexture).m_texture;
 		m_materials.emplace_back(mat);
 	}
 	return true;
@@ -442,7 +410,7 @@ void GLFWModel::Clear() {
 	m_mmdGroundShadowVAO = 0;
 }
 
-void GLFWModel::UpdateAnimation(const GLFWAppContext& appContext) const {
+void GLFWModel::UpdateAnimation(const AppContext& appContext) const {
 	m_mmdModel->BeginAnimation();
 	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
@@ -459,24 +427,25 @@ void GLFWModel::Update() const {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GLFWModel::Draw(const GLFWAppContext& appContext) const {
+void GLFWModel::Draw(AppContext& appContext) const {
+	auto& glfwAppContext = static_cast<GLFWAppContext&>(appContext);
 	const auto &view = appContext.m_viewMat;
 	const auto &proj = appContext.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, appContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
 	// Draw model
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = appContext.m_shader;
+		const auto& shader = glfwAppContext.m_shader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
@@ -502,7 +471,7 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
 		} else {
 			glUniform1i(shader->m_uTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
@@ -516,7 +485,7 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_spTexture);
 		} else {
 			glUniform1i(shader->m_uSphereTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glUniform1i(shader->m_uToonTex, 2);
@@ -529,7 +498,7 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, appContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
 		}
 		glm::vec3 lightColor = appContext.m_lightColor;
 		glm::vec3 lightDir = appContext.m_lightDir;
@@ -571,7 +540,7 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	// Draw edge
 	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = appContext.m_edgeShader;
+		const auto& shader = glfwAppContext.m_edgeShader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
@@ -630,7 +599,7 @@ void GLFWModel::Draw(const GLFWAppContext& appContext) const {
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
-		const auto& shader = appContext.m_groundShadowShader;
+		const auto& shader = glfwAppContext.m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
