@@ -340,7 +340,6 @@ class PMXReader : public MMDReader {
 	void ReadRigidbody(std::istream& is);
 	void ReadJoint(std::istream& is);
 	void ReadSoftBody(std::istream& is);
-	void ReadPMXFile(std::istream& is);
 
 public:
 	struct PMXRigidbody {
@@ -487,7 +486,6 @@ class VMDReader : public MMDReader {
 	void ReadLight(std::istream& is);
 	void ReadShadow(std::istream& is);
 	void ReadIK(std::istream& is);
-	void ReadVMDFile(std::istream& is);
 
 public:
 	struct VMDMotion {

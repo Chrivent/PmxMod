@@ -510,7 +510,10 @@ void PMXReader::ReadSoftBody(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadPMXFile(std::istream& is) {
+bool PMXReader::ReadPMXFile(const std::filesystem::path& filename) {
+	std::ifstream is(filename, std::ios::binary);
+	if (!is)
+		return false;
 	const auto end = GetFileEnd(is);
 	ReadHeader(is);
 	ReadInfo(is);
@@ -525,13 +528,6 @@ void PMXReader::ReadPMXFile(std::istream& is) {
 	ReadJoint(is);
 	if (HasMore(is, end))
 		ReadSoftBody(is);
-}
-
-bool PMXReader::ReadPMXFile(const std::filesystem::path& filename) {
-	std::ifstream is(filename, std::ios::binary);
-	if (!is)
-		return false;
-	ReadPMXFile(is);
 	return true;
 }
 
@@ -621,7 +617,10 @@ void VMDReader::ReadIK(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadVMDFile(std::istream& is) {
+bool VMDReader::ReadVMDFile(const std::filesystem::path& filename) {
+	std::ifstream is(filename, std::ios::binary);
+	if (!is)
+		return false;
 	const auto end = GetFileEnd(is);
 	ReadHeader(is);
 	ReadMotion(is);
@@ -635,12 +634,5 @@ void VMDReader::ReadVMDFile(std::istream& is) {
 		ReadShadow(is);
 	if (HasMore(is, end))
 		ReadIK(is);
-}
-
-bool VMDReader::ReadVMDFile(const std::filesystem::path& filename) {
-	std::ifstream is(filename, std::ios::binary);
-	if (!is)
-		return false;
-	ReadVMDFile(is);
 	return true;
 }
