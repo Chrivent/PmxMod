@@ -132,7 +132,6 @@ struct DX11Model : Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
 
     bool Setup(AppContext& appContext) override;
-    void UpdateAnimation(const AppContext& appContext) const override;
     void Update() const override;
     void Draw(AppContext& appContext) const override;
 };

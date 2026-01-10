@@ -39,6 +39,7 @@ struct AppContext {
     void LoadCameraVmd(const SceneConfig& cfg);
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera(int width, int height);
+    void InitDirs(const std::string& shaderSubDir);
 };
 
 struct Model {
@@ -49,10 +50,11 @@ struct Model {
     float m_scale = 1.0f;
 
     virtual bool Setup(AppContext& appContext) = 0;
-    virtual void UpdateAnimation(const AppContext& appContext) const = 0;
     virtual void Update() const = 0;
     virtual void Draw(AppContext& appContext) const = 0;
     virtual void Clear() {}
+
+    void UpdateAnimation(const AppContext& appContext) const;
 };
 
 struct Input {

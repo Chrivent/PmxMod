@@ -117,3 +117,16 @@ void AppContext::UpdateCamera(const int width, const int height) {
         glm::radians(30.0f), static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f
     );
 }
+
+void AppContext::InitDirs(const std::string& shaderSubDir) {
+    m_resourceDir = PathUtil::GetExecutablePath();
+    m_resourceDir = m_resourceDir.parent_path();
+    m_resourceDir /= "resource";
+    m_shaderDir = m_resourceDir / shaderSubDir;
+    m_mmdDir = m_resourceDir / "mmd";
+}
+
+void Model::UpdateAnimation(const AppContext& appContext) const {
+    m_mmdModel->BeginAnimation();
+    m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
+}

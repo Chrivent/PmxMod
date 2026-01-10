@@ -257,11 +257,7 @@ std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
 }
 
 bool GLFWAppContext::Setup() {
-	m_resourceDir = PathUtil::GetExecutablePath();
-	m_resourceDir = m_resourceDir.parent_path();
-	m_resourceDir /= "resource";
-	m_shaderDir = m_resourceDir / "shader_GLFW";
-	m_mmdDir = m_resourceDir / "mmd";
+	InitDirs("shader_GLFW");
 	m_shader = std::make_unique<GLFWShader>();
 	if (!m_shader->Setup(*this))
 		return false;
@@ -286,9 +282,10 @@ GLFWTexture GLFWAppContext::GetTexture(const std::filesystem::path& texturePath)
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
-	stbi_set_flip_vertically_on_load(true);
 	int x = 0, y = 0, comp = 0;
+	stbi_set_flip_vertically_on_load(true);
 	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
+	stbi_set_flip_vertically_on_load(false);
 	if (!image)
 		return GLFWTexture{ 0, false };
 	const bool hasAlpha = comp == 4;
@@ -410,11 +407,6 @@ void GLFWModel::Clear() {
 	m_mmdVAO = 0;
 	m_mmdEdgeVAO = 0;
 	m_mmdGroundShadowVAO = 0;
-}
-
-void GLFWModel::UpdateAnimation(const AppContext& appContext) const {
-	m_mmdModel->BeginAnimation();
-	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
 void GLFWModel::Update() const {

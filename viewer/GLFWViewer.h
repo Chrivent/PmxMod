@@ -117,7 +117,6 @@ struct GLFWModel : Model {
 
     bool Setup(AppContext& appContext) override;
     void Clear() override;
-    void UpdateAnimation(const AppContext& appContext) const override;
     void Update() const override;
     void Draw(AppContext& appContext) const override;
 };

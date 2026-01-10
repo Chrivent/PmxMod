@@ -6,7 +6,6 @@
 
 #include "../external/stb_image.h"
 
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
 #include <ranges>
@@ -214,11 +213,7 @@ std::unique_ptr<Model> DX11AppContext::CreateModel() const {
 
 bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
 	m_device = device;
-	m_resourceDir = PathUtil::GetExecutablePath();
-	m_resourceDir = m_resourceDir.parent_path();
-	m_resourceDir /= "resource";
-	m_shaderDir = m_resourceDir / "shader_DX11";
-	m_mmdDir = m_resourceDir / "mmd";
+	InitDirs("shader_DX11");
 	if (!CreateShaders())
 		return false;
 	return true;
@@ -725,11 +720,6 @@ bool DX11Model::Setup(AppContext& appContext) {
 		m_materials.emplace_back(std::move(mat));
 	}
 	return true;
-}
-
-void DX11Model::UpdateAnimation(const AppContext& appContext) const {
-	m_mmdModel->BeginAnimation();
-	m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }
 
 void DX11Model::Update() const {
