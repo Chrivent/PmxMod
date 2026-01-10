@@ -91,9 +91,9 @@ struct DX11Model : Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowVSConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
 
-    bool Setup(Viewer& appContext) override;
+    bool Setup(Viewer& viewer) override;
     void Update() const override;
-    void Draw(Viewer& appContext) const override;
+    void Draw(Viewer& viewer) const override;
 };
 
 struct DX11Viewer : Viewer {

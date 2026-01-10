@@ -8,6 +8,11 @@
 #include "../src/MMDUtil.h"
 #include "../src/MMDModel.h"
 
+void Model::UpdateAnimation(const Viewer& viewer) const {
+    m_mmdModel->BeginAnimation();
+    m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
+}
+
 unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
     stbi_uc* image = nullptr;
     x = y = comp = 0;
@@ -124,9 +129,4 @@ void Viewer::InitDirs(const std::string& shaderSubDir) {
     m_resourceDir /= "resource";
     m_shaderDir = m_resourceDir / shaderSubDir;
     m_mmdDir = m_resourceDir / "mmd";
-}
-
-void Model::UpdateAnimation(const Viewer& appContext) const {
-    m_mmdModel->BeginAnimation();
-    m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }

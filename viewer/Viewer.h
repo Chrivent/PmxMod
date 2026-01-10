@@ -11,9 +11,36 @@
 struct MusicUtil;
 struct SceneConfig;
 struct MMDMaterial;
-struct Model;
+struct Viewer;
 class MMDModel;
 class VMDAnimation;
+
+struct Input {
+    std::filesystem::path				m_modelPath;
+    std::vector<std::filesystem::path>	m_vmdPaths;
+    float								m_scale = 1.1f;
+};
+
+struct SceneConfig {
+    std::vector<Input>		models;
+    std::filesystem::path	cameraVmd;
+    std::filesystem::path	musicPath;
+};
+
+struct Model {
+    virtual ~Model() = default;
+
+    std::shared_ptr<MMDModel>	m_mmdModel;
+    std::unique_ptr<VMDAnimation>	m_vmdAnim;
+    float m_scale = 1.0f;
+
+    virtual bool Setup(Viewer& viewer) = 0;
+    virtual void Update() const = 0;
+    virtual void Draw(Viewer& viewer) const = 0;
+    virtual void Clear() {}
+
+    void UpdateAnimation(const Viewer& viewer) const;
+};
 
 struct Viewer {
     virtual ~Viewer() = default;
@@ -41,31 +68,4 @@ struct Viewer {
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera(int width, int height);
     void InitDirs(const std::string& shaderSubDir);
-};
-
-struct Model {
-    virtual ~Model() = default;
-
-    std::shared_ptr<MMDModel>	m_mmdModel;
-    std::unique_ptr<VMDAnimation>	m_vmdAnim;
-    float m_scale = 1.0f;
-
-    virtual bool Setup(Viewer& appContext) = 0;
-    virtual void Update() const = 0;
-    virtual void Draw(Viewer& appContext) const = 0;
-    virtual void Clear() {}
-
-    void UpdateAnimation(const Viewer& appContext) const;
-};
-
-struct Input {
-    std::filesystem::path				m_modelPath;
-    std::vector<std::filesystem::path>	m_vmdPaths;
-    float								m_scale = 1.1f;
-};
-
-struct SceneConfig {
-    std::vector<Input>		models;
-    std::filesystem::path	cameraVmd;
-    std::filesystem::path	musicPath;
 };

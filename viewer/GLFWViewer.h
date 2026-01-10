@@ -43,7 +43,7 @@ struct GLFWShader {
     GLint	m_uShadowMap3 = -1;
     GLint	m_uShadowMapEnabled = -1;
 
-    bool Setup(const GLFWViewer& appContext);
+    bool Setup(const GLFWViewer& viewer);
 };
 
 struct GLFWEdgeShader {
@@ -58,7 +58,7 @@ struct GLFWEdgeShader {
     GLint	m_uEdgeSize = -1;
     GLint	m_uEdgeColor = -1;
 
-    bool Setup(const GLFWViewer& appContext);
+    bool Setup(const GLFWViewer& viewer);
 };
 
 struct GLFWGroundShadowShader {
@@ -69,7 +69,7 @@ struct GLFWGroundShadowShader {
     GLint	m_uWVP = -1;
     GLint	m_uShadowColor = -1;
 
-    bool Setup(const GLFWViewer& appContext);
+    bool Setup(const GLFWViewer& viewer);
 };
 
 struct GLFWTexture {
@@ -98,10 +98,10 @@ struct GLFWModel : Model {
     GLuint	m_mmdGroundShadowVAO = 0;
     std::vector<GLFWMaterial>	m_materials;
 
-    bool Setup(Viewer& appContext) override;
+    bool Setup(Viewer& viewer) override;
     void Clear() override;
     void Update() const override;
-    void Draw(Viewer& appContext) const override;
+    void Draw(Viewer& viewer) const override;
 };
 
 struct GLFWViewer : Viewer {

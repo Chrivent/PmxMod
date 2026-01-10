@@ -105,8 +105,8 @@ GLFWShader::~GLFWShader() {
 	m_prog = 0;
 }
 
-bool GLFWShader::Setup(const GLFWViewer& appContext) {
-	m_prog = CreateShader(appContext.m_shaderDir / "mmd.glsl");
+bool GLFWShader::Setup(const GLFWViewer& viewer) {
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -149,8 +149,8 @@ GLFWEdgeShader::~GLFWEdgeShader() {
 	m_prog = 0;
 }
 
-bool GLFWEdgeShader::Setup(const GLFWViewer& appContext) {
-	m_prog = CreateShader(appContext.m_shaderDir / "mmd_edge.glsl");
+bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd_edge.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -168,8 +168,8 @@ GLFWGroundShadowShader::~GLFWGroundShadowShader() {
 	m_prog = 0;
 }
 
-bool GLFWGroundShadowShader::Setup(const GLFWViewer& appContext) {
-	m_prog = CreateShader(appContext.m_shaderDir / "mmd_ground_shadow.glsl");
+bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd_ground_shadow.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -182,8 +182,8 @@ GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 	: m_mmdMat(mat) {
 }
 
-bool GLFWModel::Setup(Viewer& appContext) {
-	auto& glfwAppContext = static_cast<GLFWViewer&>(appContext);
+bool GLFWModel::Setup(Viewer& viewer) {
+	auto& glfwViewer = static_cast<GLFWViewer&>(viewer);
 	if (m_mmdModel == nullptr)
 		return false;
 	// Setup vertices
@@ -217,7 +217,7 @@ bool GLFWModel::Setup(Viewer& appContext) {
 	// Setup MMD VAO
 	glGenVertexArrays(1, &m_mmdVAO);
 	glBindVertexArray(m_mmdVAO);
-	const auto &mmdShader = glfwAppContext.m_shader;
+	const auto &mmdShader = glfwViewer.m_shader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdShader->m_inPos);
@@ -232,7 +232,7 @@ bool GLFWModel::Setup(Viewer& appContext) {
 	// Setup MMD Edge VAO
 	glGenVertexArrays(1, &m_mmdEdgeVAO);
 	glBindVertexArray(m_mmdEdgeVAO);
-	const auto &mmdEdgeShader = glfwAppContext.m_edgeShader;
+	const auto &mmdEdgeShader = glfwViewer.m_edgeShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
@@ -244,7 +244,7 @@ bool GLFWModel::Setup(Viewer& appContext) {
 	// Setup MMD Ground Shadow VAO
 	glGenVertexArrays(1, &m_mmdGroundShadowVAO);
 	glBindVertexArray(m_mmdGroundShadowVAO);
-	const auto &mmdGroundShadowShader = glfwAppContext.m_groundShadowShader;
+	const auto &mmdGroundShadowShader = glfwViewer.m_groundShadowShader;
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
 	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
@@ -254,14 +254,14 @@ bool GLFWModel::Setup(Viewer& appContext) {
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
-			auto [m_texture, m_hasAlpha] = glfwAppContext.GetTexture(mmdMat.m_texture);
+			auto [m_texture, m_hasAlpha] = glfwViewer.GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
 			mat.m_textureHasAlpha = m_hasAlpha;
 		}
 		if (!mmdMat.m_spTexture.empty())
-			mat.m_spTexture = glfwAppContext.GetTexture(mmdMat.m_spTexture).m_texture;
+			mat.m_spTexture = glfwViewer.GetTexture(mmdMat.m_spTexture).m_texture;
 		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = glfwAppContext.GetTexture(mmdMat.m_toonTexture).m_texture;
+			mat.m_toonTexture = glfwViewer.GetTexture(mmdMat.m_toonTexture).m_texture;
 		m_materials.emplace_back(mat);
 	}
 	return true;
@@ -296,25 +296,25 @@ void GLFWModel::Update() const {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GLFWModel::Draw(Viewer& appContext) const {
-	auto& glfwAppContext = static_cast<GLFWViewer&>(appContext);
-	const auto &view = appContext.m_viewMat;
-	const auto &proj = appContext.m_projMat;
+void GLFWModel::Draw(Viewer& viewer) const {
+	auto& glfwViewer = static_cast<GLFWViewer&>(viewer);
+	const auto &view = viewer.m_viewMat;
+	const auto &proj = viewer.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
 	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
 	// Draw model
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = glfwAppContext.m_shader;
+		const auto& shader = glfwViewer.m_shader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
@@ -340,7 +340,7 @@ void GLFWModel::Draw(Viewer& appContext) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
 		} else {
 			glUniform1i(shader->m_uTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
@@ -354,7 +354,7 @@ void GLFWModel::Draw(Viewer& appContext) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_spTexture);
 		} else {
 			glUniform1i(shader->m_uSphereTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glUniform1i(shader->m_uToonTex, 2);
@@ -367,11 +367,11 @@ void GLFWModel::Draw(Viewer& appContext) const {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwAppContext.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
 		}
-		glm::vec3 lightColor = appContext.m_lightColor;
-		glm::vec3 lightDir = appContext.m_lightDir;
-		auto viewMat = glm::mat3(appContext.m_viewMat);
+		glm::vec3 lightColor = viewer.m_lightColor;
+		glm::vec3 lightDir = viewer.m_lightDir;
+		auto viewMat = glm::mat3(viewer.m_viewMat);
 		lightDir = viewMat * lightDir;
 		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
@@ -407,9 +407,9 @@ void GLFWModel::Draw(Viewer& appContext) const {
 	glActiveTexture(GL_TEXTURE0 + 6);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	// Draw edge
-	glm::vec2 screenSize(appContext.m_screenWidth, appContext.m_screenHeight);
+	glm::vec2 screenSize(viewer.m_screenWidth, viewer.m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = glfwAppContext.m_edgeShader;
+		const auto& shader = glfwViewer.m_edgeShader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
@@ -436,7 +436,7 @@ void GLFWModel::Draw(Viewer& appContext) const {
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	auto plane = glm::vec4(0, 1, 0, 0);
-	auto light = -appContext.m_lightDir;
+	auto light = -viewer.m_lightDir;
 	auto shadow = glm::mat4(1);
 	shadow[0][0] = plane.y * light.y + plane.z * light.z;
 	shadow[0][1] = -plane.x * light.y;
@@ -468,7 +468,7 @@ void GLFWModel::Draw(Viewer& appContext) const {
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
-		const auto& shader = glfwAppContext.m_groundShadowShader;
+		const auto& shader = glfwViewer.m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
@@ -532,7 +532,7 @@ bool GLFWViewer::Run(const SceneConfig& cfg) {
 		return false;
 	}
 	if (!Setup()) {
-		std::cout << "Failed to setup AppContext.\n";
+		std::cout << "Failed to setup Viewer.\n";
 		glfwTerminate();
 		return false;
 	}
