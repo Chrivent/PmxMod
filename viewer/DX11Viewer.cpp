@@ -24,31 +24,21 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
-	HRESULT hr = D3D11CreateDevice(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-		0,
-		featureLevels, 1,
-		D3D11_SDK_VERSION,
-		&device, &featureLevel, &context
-	);
-	if (FAILED(hr))
+	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
+		featureLevels, 1, D3D11_SDK_VERSION, &device, &featureLevel, &context)))
 		return false;
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	hr = device.As(&dxgiDevice);
-	if (FAILED(hr))
+	if (FAILED(device.As(&dxgiDevice)))
 		return false;
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-	hr = dxgiDevice->GetAdapter(&adapter);
-	if (FAILED(hr))
+	if (FAILED(dxgiDevice->GetAdapter(&adapter)))
 		return false;
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
-	hr = adapter->GetParent(__uuidof(IDXGIFactory), &factory);
-	if (FAILED(hr))
+	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
 		return false;
 	UINT msaaCount = 4;
 	UINT quality = 0;
-	hr = device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality);
-	if (FAILED(hr) || quality == 0) {
+	if (FAILED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality)) || quality == 0) {
 		msaaCount = 1;
 		quality = 0;
 	}
@@ -73,8 +63,7 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	sd.Windowed = TRUE;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	hr = factory->CreateSwapChain(device.Get(), &sd, &swapChain);
-	if (FAILED(hr))
+	if (FAILED(factory->CreateSwapChain(device.Get(), &sd, &swapChain)))
 		return false;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
@@ -84,12 +73,9 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		depthTex.Reset();
 		dsv.Reset();
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		HRESULT hr2 = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-			reinterpret_cast<void**>(backBuffer.GetAddressOf()));
-		if (FAILED(hr2))
+		if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
 			return false;
-		hr2 = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv);
-		if (FAILED(hr2))
+		if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv)))
 			return false;
 		D3D11_TEXTURE2D_DESC dsDesc{};
 		dsDesc.Width = static_cast<UINT>(w);
@@ -101,11 +87,9 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		dsDesc.SampleDesc.Quality = msaaQuality;
 		dsDesc.Usage = D3D11_USAGE_DEFAULT;
 		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		hr2 = device->CreateTexture2D(&dsDesc, nullptr, &depthTex);
-		if (FAILED(hr2))
+		if (FAILED(device->CreateTexture2D(&dsDesc, nullptr, &depthTex)))
 			return false;
-		hr2 = device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv);
-		if (FAILED(hr2))
+		if (FAILED(device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv)))
 			return false;
 		return true;
 	};
@@ -135,7 +119,8 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
         if (newW != width || newH != height) {
             width = newW; height = newH;
             rtv.Reset(); dsv.Reset(); depthTex.Reset();
-			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+        	if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
+        		return false;
             if (!CreateRenderTargets(width, height))
             	return false;
         }
@@ -160,11 +145,11 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
             model->Draw(*this);
         	const auto& dx11Model = static_cast<DX11Model&>(*model);
         	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
-        	const HRESULT hrCL = dx11Model.m_context->FinishCommandList(FALSE, &cmd);
-        	if (SUCCEEDED(hrCL) && cmd)
+        	if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
 		        context->ExecuteCommandList(cmd.Get(), FALSE);
         }
-        swapChain->Present(0, 0);
+        if (FAILED(swapChain->Present(0, 0)))
+        	return false;
     	TickFps(fpsTime, fpsFrame);
     }
     models.clear();
@@ -210,13 +195,12 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 	initData.pSysMem = image;
 	initData.SysMemPitch = 4 * x;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
-	HRESULT hr = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
+	HRESULT hr1 = m_device->CreateTexture2D(&tex2dDesc, &initData, &tex2d);
 	stbi_image_free(image);
-	if (FAILED(hr))
+	if (FAILED(hr1))
 		return {};
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
-	hr = m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV)))
 		return {};
 	DX11Texture tex;
 	tex.m_texture = tex2d;
@@ -227,7 +211,6 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 }
 
 bool DX11AppContext::CreateShaders() {
-	HRESULT hr;
 	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob>
 	mmdVSBlob, mmdPSBlob,
@@ -263,27 +246,23 @@ bool DX11AppContext::CreateShaders() {
 		return CompileError(errorBlob);
 
 	// mmd shader_GLFW
-	hr = m_device->CreateVertexShader(
+	if (FAILED(m_device->CreateVertexShader(
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
-		nullptr, &m_mmdVS);
-	if (FAILED(hr))
+		nullptr, &m_mmdVS)))
 		return false;
-	hr = m_device->CreatePixelShader(
+	if (FAILED(m_device->CreatePixelShader(
 		mmdPSBlob->GetBufferPointer(), mmdPSBlob->GetBufferSize(),
-		nullptr, &m_mmdPS);
-	if (FAILED(hr))
+		nullptr, &m_mmdPS)))
 		return false;
 	D3D11_INPUT_ELEMENT_DESC mmdInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	hr = m_device->CreateInputLayout(
+	if (FAILED(m_device->CreateInputLayout(
 		mmdInputElementDesc, 3,
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
-		&m_mmdInputLayout
-	);
-	if (FAILED(hr))
+		&m_mmdInputLayout)))
 		return false;
 
 	// Texture sampler
@@ -296,8 +275,7 @@ bool DX11AppContext::CreateShaders() {
 	texSamplerDesc.MaxLOD = -FLT_MAX;
 	texSamplerDesc.MipLODBias = 0;
 	texSamplerDesc.MaxAnisotropy = 0;
-	hr = m_device->CreateSamplerState(&texSamplerDesc, &m_textureSampler);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateSamplerState(&texSamplerDesc, &m_textureSampler)))
 		return false;
 
 	// ToonTexture sampler
@@ -310,8 +288,7 @@ bool DX11AppContext::CreateShaders() {
 	toonSamplerDesc.MaxLOD = -FLT_MAX;
 	toonSamplerDesc.MipLODBias = 0;
 	toonSamplerDesc.MaxAnisotropy = 0;
-	hr = m_device->CreateSamplerState(&toonSamplerDesc, &m_toonTextureSampler);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateSamplerState(&toonSamplerDesc, &m_toonTextureSampler)))
 		return false;
 
 	// SphereTexture sampler
@@ -324,8 +301,7 @@ bool DX11AppContext::CreateShaders() {
 	spSamplerDesc.MaxLOD = -FLT_MAX;
 	spSamplerDesc.MipLODBias = 0;
 	spSamplerDesc.MaxAnisotropy = 0;
-	hr = m_device->CreateSamplerState(&spSamplerDesc, &m_sphereTextureSampler);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateSamplerState(&spSamplerDesc, &m_sphereTextureSampler)))
 		return false;
 
 	// Blend State
@@ -340,8 +316,7 @@ bool DX11AppContext::CreateShaders() {
 	blendDesc1.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 	blendDesc1.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc1.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	hr = m_device->CreateBlendState(&blendDesc1, &m_mmdBlendState);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateBlendState(&blendDesc1, &m_mmdBlendState)))
 		return false;
 
 	// Rasterizer State (Front face)
@@ -356,8 +331,7 @@ bool DX11AppContext::CreateShaders() {
 	frontRsDesc.ScissorEnable = false;
 	frontRsDesc.MultisampleEnable = true;
 	frontRsDesc.AntialiasedLineEnable = false;
-	hr = m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
 		return false;
 
 	// Rasterizer State (Both faces)
@@ -372,23 +346,18 @@ bool DX11AppContext::CreateShaders() {
 	faceRsDesc.ScissorEnable = false;
 	faceRsDesc.MultisampleEnable = true;
 	faceRsDesc.AntialiasedLineEnable = false;
-	hr = m_device->CreateRasterizerState(&faceRsDesc, &m_mmdBothFaceRS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateRasterizerState(&faceRsDesc, &m_mmdBothFaceRS)))
 		return false;
 
 	// mmd edge shader_GLFW
-	hr = m_device->CreateVertexShader(
+	if (FAILED(m_device->CreateVertexShader(
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
-		nullptr, &m_mmdEdgeVS);
-	if (FAILED(hr))
+		nullptr, &m_mmdEdgeVS)))
 		return false;
-
-	hr = m_device->CreatePixelShader(
+	if (FAILED(m_device->CreatePixelShader(
 		mmdEdgePSBlob->GetBufferPointer(), mmdEdgePSBlob->GetBufferSize(),
-		nullptr, &m_mmdEdgePS);
-	if (FAILED(hr))
+		nullptr, &m_mmdEdgePS)))
 		return false;
-
 	D3D11_INPUT_ELEMENT_DESC mmdEdgeInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
 			0, 0,
@@ -397,12 +366,10 @@ bool DX11AppContext::CreateShaders() {
 			0, D3D11_APPEND_ALIGNED_ELEMENT,
 			D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	hr = m_device->CreateInputLayout(
+	if (FAILED(m_device->CreateInputLayout(
 		mmdEdgeInputElementDesc, 2,
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
-		&m_mmdEdgeInputLayout
-	);
-	if (FAILED(hr))
+		&m_mmdEdgeInputLayout)))
 		return false;
 
 	// Blend State
@@ -417,8 +384,7 @@ bool DX11AppContext::CreateShaders() {
 	blendDesc2.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 	blendDesc2.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc2.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	hr = m_device->CreateBlendState(&blendDesc2, &m_mmdEdgeBlendState);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateBlendState(&blendDesc2, &m_mmdEdgeBlendState)))
 		return false;
 
 	// Rasterizer State
@@ -433,31 +399,26 @@ bool DX11AppContext::CreateShaders() {
 	rsDesc1.ScissorEnable = false;
 	rsDesc1.MultisampleEnable = true;
 	rsDesc1.AntialiasedLineEnable = false;
-	hr = m_device->CreateRasterizerState(&rsDesc1, &m_mmdEdgeRS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateRasterizerState(&rsDesc1, &m_mmdEdgeRS)))
 		return false;
 
 	// mmd ground shadow shader_GLFW
-	hr = m_device->CreateVertexShader(
+	if (FAILED(m_device->CreateVertexShader(
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
-		nullptr, &m_mmdGroundShadowVS);
-	if (FAILED(hr))
+		nullptr, &m_mmdGroundShadowVS)))
 		return false;
-	hr = m_device->CreatePixelShader(
+	if (FAILED(m_device->CreatePixelShader(
 		mmdGroundShadowPSBlob->GetBufferPointer(), mmdGroundShadowPSBlob->GetBufferSize(),
-		nullptr, &m_mmdGroundShadowPS);
-	if (FAILED(hr))
+		nullptr, &m_mmdGroundShadowPS)))
 		return false;
 
 	D3D11_INPUT_ELEMENT_DESC mmdGroundShadowInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	hr = m_device->CreateInputLayout(
+	if (FAILED(m_device->CreateInputLayout(
 		mmdGroundShadowInputElementDesc, 1,
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
-		&m_mmdGroundShadowInputLayout
-	);
-	if (FAILED(hr))
+		&m_mmdGroundShadowInputLayout)))
 		return false;
 
 	// Blend State
@@ -472,8 +433,7 @@ bool DX11AppContext::CreateShaders() {
 	blendDesc3.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 	blendDesc3.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc3.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	hr = m_device->CreateBlendState(&blendDesc3, &m_mmdGroundShadowBlendState);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateBlendState(&blendDesc3, &m_mmdGroundShadowBlendState)))
 		return false;
 
 	// Rasterizer State
@@ -488,8 +448,7 @@ bool DX11AppContext::CreateShaders() {
 	rsDesc2.ScissorEnable = false;
 	rsDesc2.MultisampleEnable = true;
 	rsDesc2.AntialiasedLineEnable = false;
-	hr = m_device->CreateRasterizerState(&rsDesc2, &m_mmdGroundShadowRS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateRasterizerState(&rsDesc2, &m_mmdGroundShadowRS)))
 		return false;
 
 	// Depth Stencil State
@@ -508,8 +467,7 @@ bool DX11AppContext::CreateShaders() {
 	stDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	stDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 	stDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-	hr = m_device->CreateDepthStencilState(&stDesc, &m_mmdGroundShadowDSS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateDepthStencilState(&stDesc, &m_mmdGroundShadowDSS)))
 		return false;
 
 	// Default Depth Stencil State
@@ -528,8 +486,7 @@ bool DX11AppContext::CreateShaders() {
 	dstDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 	dstDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
 	dstDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	hr = m_device->CreateDepthStencilState(&dstDesc, &m_defaultDSS);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateDepthStencilState(&dstDesc, &m_defaultDSS)))
 		return false;
 
 	// Dummy texture
@@ -545,12 +502,9 @@ bool DX11AppContext::CreateShaders() {
 	tex2dDesc.CPUAccessFlags = 0;
 	tex2dDesc.MiscFlags = 0;
 	tex2dDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	hr = m_device->CreateTexture2D(&tex2dDesc, nullptr, &m_dummyTexture);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateTexture2D(&tex2dDesc, nullptr, &m_dummyTexture)))
 		return false;
-
-	hr = m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
 		return false;
 
 	D3D11_SAMPLER_DESC samplerDesc;
@@ -562,8 +516,7 @@ bool DX11AppContext::CreateShaders() {
 	samplerDesc.MaxLOD = -FLT_MAX;
 	samplerDesc.MipLODBias = 0;
 	samplerDesc.MaxAnisotropy = 0;
-	hr = m_device->CreateSamplerState(&samplerDesc, &m_dummySampler);
-	if (FAILED(hr))
+	if (FAILED(m_device->CreateSamplerState(&samplerDesc, &m_dummySampler)))
 		return false;
 	return true;
 }
@@ -574,9 +527,7 @@ DX11Material::DX11Material(const MMDMaterial& mat)
 
 bool DX11Model::Setup(AppContext& appContext) {
 	auto& dx11AppContext = static_cast<DX11AppContext&>(appContext);
-	HRESULT hr;
-	hr = dx11AppContext.m_device->CreateDeferredContext(0, &m_context);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateDeferredContext(0, &m_context)))
 		return false;
 
 	// Setup vertex buffer
@@ -585,8 +536,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
 	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	hr = dx11AppContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
 		return false;
 
 	// Setup index buffer;
@@ -597,8 +547,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	iBufDesc.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = &m_mmdModel->m_indices[0];
-	hr = dx11AppContext.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
 		return false;
 	if (1 == m_mmdModel->m_indexElementSize)
 		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
@@ -615,8 +564,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	vsBufDesc.ByteWidth = sizeof(DX11VertexShader);
 	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	vsBufDesc.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer)))
 		return false;
 
 	// Setup mmd pixel shader constant buffer (PSData)
@@ -625,8 +573,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	psBufDesc.ByteWidth = sizeof(DX11PixelShader);
 	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	psBufDesc.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer)))
 		return false;
 
 	// Setup mmd edge vertex shader constant buffer (VSData)
@@ -635,8 +582,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShader);
 	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc1.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer)))
 		return false;
 
 	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
@@ -645,8 +591,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShader);
 	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	evsBufDesc2.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer)))
 		return false;
 
 	// Setup mmd edge pixel shader constant buffer (PSData)
@@ -655,8 +600,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShader);
 	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	epsBufDesc.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer)))
 		return false;
 
 	// Setup mmd ground shadow vertex shader constant buffer (VSData)
@@ -665,8 +609,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShader);
 	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gvsBufDesc.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer)))
 		return false;
 
 	// Setup mmd ground shadow pixel shader constant buffer (PSData)
@@ -675,8 +618,7 @@ bool DX11Model::Setup(AppContext& appContext) {
 	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShader);
 	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	gpsBufDesc.CPUAccessFlags = 0;
-	hr = dx11AppContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer);
-	if (FAILED(hr))
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer)))
 		return false;
 
 	// Setup materials
@@ -697,8 +639,8 @@ void DX11Model::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
-	const HRESULT hr = m_context->Map(m_vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapRes);
-	if (FAILED(hr))
+	if (FAILED(m_context->Map(m_vertexBuffer.Get(), 0,
+		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 		return;
 	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
 	const glm::vec3* positions = m_mmdModel->m_updatePositions.data();
