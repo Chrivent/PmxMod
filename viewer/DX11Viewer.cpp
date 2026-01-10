@@ -16,7 +16,356 @@
 
 #include <d3dcompiler.h>
 
-bool DX11AppContext::Run(const SceneConfig& cfg) {
+DX11Material::DX11Material(const MMDMaterial& mat)
+	: m_mmdMat(mat) {
+}
+
+bool DX11Model::Setup(Viewer& appContext) {
+	auto& dx11AppContext = static_cast<DX11Viewer&>(appContext);
+	if (FAILED(dx11AppContext.m_device->CreateDeferredContext(0, &m_context)))
+		return false;
+
+	// Setup vertex buffer
+	D3D11_BUFFER_DESC vBufDesc = {};
+	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
+	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
+	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
+		return false;
+
+	// Setup index buffer;
+	D3D11_BUFFER_DESC iBufDesc = {};
+	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	iBufDesc.ByteWidth = static_cast<UINT>(m_mmdModel->m_indexElementSize * m_mmdModel->m_indexCount);
+	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	iBufDesc.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = &m_mmdModel->m_indices[0];
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
+		return false;
+	if (1 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
+	else if (2 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R16_UINT;
+	else if (4 == m_mmdModel->m_indexElementSize)
+		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
+	else
+		return false;
+
+	// Setup mmd vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC vsBufDesc = {};
+	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	vsBufDesc.ByteWidth = sizeof(DX11VertexShader);
+	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	vsBufDesc.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer)))
+		return false;
+
+	// Setup mmd pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC psBufDesc = {};
+	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	psBufDesc.ByteWidth = sizeof(DX11PixelShader);
+	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	psBufDesc.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer)))
+		return false;
+
+	// Setup mmd edge vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC evsBufDesc1 = {};
+	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
+	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShader);
+	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	evsBufDesc1.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer)))
+		return false;
+
+	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
+	D3D11_BUFFER_DESC evsBufDesc2 = {};
+	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
+	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShader);
+	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	evsBufDesc2.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer)))
+		return false;
+
+	// Setup mmd edge pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC epsBufDesc = {};
+	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShader);
+	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	epsBufDesc.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer)))
+		return false;
+
+	// Setup mmd ground shadow vertex shader constant buffer (VSData)
+	D3D11_BUFFER_DESC gvsBufDesc = {};
+	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShader);
+	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	gvsBufDesc.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer)))
+		return false;
+
+	// Setup mmd ground shadow pixel shader constant buffer (PSData)
+	D3D11_BUFFER_DESC gpsBufDesc = {};
+	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
+	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShader);
+	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	gpsBufDesc.CPUAccessFlags = 0;
+	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer)))
+		return false;
+
+	// Setup materials
+	for (const auto& mmdMat : m_mmdModel->m_materials) {
+		DX11Material mat(mmdMat);
+		if (!mmdMat.m_texture.empty())
+			mat.m_texture = dx11AppContext.GetTexture(mmdMat.m_texture);
+		if (!mmdMat.m_spTexture.empty())
+			mat.m_spTexture = dx11AppContext.GetTexture(mmdMat.m_spTexture);
+		if (!mmdMat.m_toonTexture.empty())
+			mat.m_toonTexture = dx11AppContext.GetTexture(mmdMat.m_toonTexture);
+		m_materials.emplace_back(std::move(mat));
+	}
+	return true;
+}
+
+void DX11Model::Update() const {
+	m_mmdModel->Update();
+	const size_t vtxCount = m_mmdModel->m_positions.size();
+	D3D11_MAPPED_SUBRESOURCE mapRes;
+	if (FAILED(m_context->Map(m_vertexBuffer.Get(), 0,
+		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
+		return;
+	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
+	const glm::vec3* positions = m_mmdModel->m_updatePositions.data();
+	const glm::vec3* normals = m_mmdModel->m_updateNormals.data();
+	const glm::vec2* uvs = m_mmdModel->m_updateUVs.data();
+	for (size_t i = 0; i < vtxCount; i++) {
+		vertices[i].m_position = positions[i];
+		vertices[i].m_normal = normals[i];
+		vertices[i].m_uv = uvs[i];
+	}
+	m_context->Unmap(m_vertexBuffer.Get(), 0);
+}
+
+void DX11Model::Draw(Viewer& appContext) const {
+	auto& dx11AppContext = static_cast<DX11Viewer&>(appContext);
+	const auto& view = appContext.m_viewMat;
+	const auto& proj = appContext.m_projMat;
+	const auto& dxMat = glm::mat4(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.5f, 0.0f,
+		0.0f, 0.0f, 0.5f, 1.0f
+	);
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
+	auto wv = view * world;
+	auto wvp = dxMat * proj * view * world;
+
+	// Set viewport
+	D3D11_VIEWPORT vp;
+	vp.Width = static_cast<float>(appContext.m_screenWidth);
+	vp.Height = static_cast<float>(appContext.m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
+	ID3D11RenderTargetView* rtvs[] = { dx11AppContext.m_renderTargetView.Get() };
+	m_context->OMSetRenderTargets(1, rtvs, dx11AppContext.m_depthStencilView.Get());
+	m_context->OMSetDepthStencilState(dx11AppContext.m_defaultDSS.Get(), 0x00);
+
+	// Setup input assembler
+	UINT strides[] = { sizeof(DX11Vertex) };
+	UINT offsets[] = { 0 };
+	m_context->IASetInputLayout(dx11AppContext.m_mmdInputLayout.Get());
+	ID3D11Buffer* vbs[] = { m_vertexBuffer.Get() };
+	m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
+	m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
+	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Draw model
+	DX11VertexShader vsCB1{};
+	vsCB1.m_wv = wv;
+	vsCB1.m_wvp = wvp;
+	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
+	                             0, nullptr, &vsCB1, 0, 0);
+	m_context->VSSetShader(dx11AppContext.m_mmdVS.Get(), nullptr, 0);
+	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
+	m_context->VSSetConstantBuffers(0, 1, cbs1);
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
+		if (mat.m_mmdMat.m_diffuse.a == 0)
+			continue;
+		m_context->PSSetShader(dx11AppContext.m_mmdPS.Get(), nullptr, 0);
+		DX11PixelShader psCB{};
+		psCB.m_alpha = mmdMat.m_diffuse.a;
+		psCB.m_diffuse = mmdMat.m_diffuse;
+		psCB.m_ambient = mmdMat.m_ambient;
+		psCB.m_specular = mmdMat.m_specular;
+		psCB.m_specularPower = mmdMat.m_specularPower;
+		if (mat.m_texture.m_texture) {
+			if (!mat.m_texture.m_hasAlpha)
+				psCB.m_textureModes.x = 1;
+			else
+				psCB.m_textureModes.x = 2;
+			psCB.m_texMulFactor = mmdMat.m_textureMulFactor;
+			psCB.m_texAddFactor = mmdMat.m_textureAddFactor;
+			ID3D11ShaderResourceView* views[] = { mat.m_texture.m_textureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_textureSampler.Get() };
+			m_context->PSSetShaderResources(0, 1, views);
+			m_context->PSSetSamplers(0, 1, samplers);
+		} else {
+			psCB.m_textureModes.x = 0;
+			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
+			m_context->PSSetShaderResources(0, 1, views);
+			m_context->PSSetSamplers(0, 1, samplers);
+		}
+		if (mat.m_toonTexture.m_texture) {
+			psCB.m_textureModes.y = 1;
+			psCB.m_toonTexMulFactor = mmdMat.m_toonTextureMulFactor;
+			psCB.m_toonTexAddFactor = mmdMat.m_toonTextureAddFactor;
+			ID3D11ShaderResourceView* views[] = { mat.m_toonTexture.m_textureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_toonTextureSampler.Get() };
+			m_context->PSSetShaderResources(1, 1, views);
+			m_context->PSSetSamplers(1, 1, samplers);
+		} else {
+			psCB.m_textureModes.y = 0;
+			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
+			m_context->PSSetShaderResources(1, 1, views);
+			m_context->PSSetSamplers(1, 1, samplers);
+		}
+		if (mat.m_spTexture.m_texture) {
+			if (mmdMat.m_spTextureMode == SphereMode::Mul)
+				psCB.m_textureModes.z = 1;
+			else if (mmdMat.m_spTextureMode == SphereMode::Add)
+				psCB.m_textureModes.z = 2;
+			psCB.m_sphereTexMulFactor = mmdMat.m_spTextureMulFactor;
+			psCB.m_sphereTexAddFactor = mmdMat.m_spTextureAddFactor;
+			ID3D11ShaderResourceView* views[] = { mat.m_spTexture.m_textureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_sphereTextureSampler.Get() };
+			m_context->PSSetShaderResources(2, 1, views);
+			m_context->PSSetSamplers(2, 1, samplers);
+		} else {
+			psCB.m_textureModes.z = 0;
+			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
+			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
+			m_context->PSSetShaderResources(2, 1, views);
+			m_context->PSSetSamplers(2, 1, samplers);
+		}
+		psCB.m_lightColor = appContext.m_lightColor;
+		glm::vec3 lightDir = appContext.m_lightDir;
+		auto viewMat = glm::mat3(appContext.m_viewMat);
+		lightDir = viewMat * lightDir;
+		psCB.m_lightDir = lightDir;
+		m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(),
+		                             0, nullptr, &psCB, 0, 0);
+		ID3D11Buffer* pscbs[] = { m_mmdPSConstantBuffer.Get() };
+		m_context->PSSetConstantBuffers(1, 1, pscbs);
+		if (mmdMat.m_bothFace)
+			m_context->RSSetState(dx11AppContext.m_mmdBothFaceRS.Get());
+		else
+			m_context->RSSetState(dx11AppContext.m_mmdFrontFaceRS.Get());
+		m_context->OMSetBlendState(dx11AppContext.m_mmdBlendState.Get(), nullptr, 0xffffffff);
+		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+	}
+	ID3D11ShaderResourceView* views[] = { nullptr, nullptr, nullptr };
+	ID3D11SamplerState* samplers[] = { nullptr, nullptr, nullptr };
+	m_context->PSSetShaderResources(0, 3, views);
+	m_context->PSSetSamplers(0, 3, samplers);
+
+	// Draw edge
+	m_context->IASetInputLayout(dx11AppContext.m_mmdEdgeInputLayout.Get());
+	DX11EdgeVertexShader vsCB2{};
+	vsCB2.m_wv = wv;
+	vsCB2.m_wvp = wvp;
+	vsCB2.m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth),
+	                               static_cast<float>(appContext.m_screenHeight));
+	m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
+	                             0, nullptr, &vsCB2, 0, 0);
+	m_context->VSSetShader(dx11AppContext.m_mmdEdgeVS.Get(), nullptr, 0);
+	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
+	m_context->VSSetConstantBuffers(0, 1, cbs2);
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
+		if (!mmdMat.m_edgeFlag)
+			continue;
+		if (mat.m_mmdMat.m_diffuse.a == 0)
+			continue;
+		DX11EdgeSizeVertexShader vsCB{};
+		vsCB.m_edgeSize = mmdMat.m_edgeSize;
+		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
+		                             0, nullptr, &vsCB, 0, 0);
+		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
+		m_context->VSSetConstantBuffers(1, 1, cbs);
+		m_context->PSSetShader(dx11AppContext.m_mmdEdgePS.Get(), nullptr, 0);
+		DX11EdgePixelShader psCB{};
+		psCB.m_edgeColor = mmdMat.m_edgeColor;
+		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
+		                             0, nullptr, &psCB, 0, 0);
+		ID3D11Buffer* pscbs[] = { m_mmdEdgePSConstantBuffer.Get() };
+		m_context->PSSetConstantBuffers(2, 1, pscbs);
+		m_context->RSSetState(dx11AppContext.m_mmdEdgeRS.Get());
+		m_context->OMSetBlendState(dx11AppContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
+		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+	}
+
+	// Draw ground shadow
+	m_context->IASetInputLayout(dx11AppContext.m_mmdGroundShadowInputLayout.Get());
+	auto plane = glm::vec4(0, 1, 0, 0);
+	auto light = -appContext.m_lightDir;
+	auto shadow = glm::mat4(1);
+	shadow[0][0] = plane.y * light.y + plane.z * light.z;
+	shadow[0][1] = -plane.x * light.y;
+	shadow[0][2] = -plane.x * light.z;
+	shadow[0][3] = 0;
+	shadow[1][0] = -plane.y * light.x;
+	shadow[1][1] = plane.x * light.x + plane.z * light.z;
+	shadow[1][2] = -plane.y * light.z;
+	shadow[1][3] = 0;
+	shadow[2][0] = -plane.z * light.x;
+	shadow[2][1] = -plane.z * light.y;
+	shadow[2][2] = plane.x * light.x + plane.y * light.y;
+	shadow[2][3] = 0;
+	shadow[3][0] = -plane.w * light.x;
+	shadow[3][1] = -plane.w * light.y;
+	shadow[3][2] = -plane.w * light.z;
+	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
+	auto wsvp = dxMat * proj * view * shadow * world;
+	DX11GroundShadowVertexShader vsCB{};
+	vsCB.m_wvp = wsvp;
+	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
+	                             0, nullptr, &vsCB, 0, 0);
+	m_context->VSSetShader(dx11AppContext.m_mmdGroundShadowVS.Get(), nullptr, 0);
+	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
+	m_context->VSSetConstantBuffers(0, 1, cbs);
+	m_context->RSSetState(dx11AppContext.m_mmdGroundShadowRS.Get());
+	m_context->OMSetBlendState(dx11AppContext.m_mmdGroundShadowBlendState.Get(), nullptr, 0xffffffff);
+	m_context->OMSetDepthStencilState(dx11AppContext.m_mmdGroundShadowDSS.Get(), 0x01);
+	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
+		const auto& mat = m_materials[m_materialID];
+		const auto& mmdMat = mat.m_mmdMat;
+		if (!mmdMat.m_groundShadow)
+			continue;
+		if (mat.m_mmdMat.m_diffuse.a == 0)
+			continue;
+		m_context->PSSetShader(dx11AppContext.m_mmdGroundShadowPS.Get(), nullptr, 0);
+		DX11GroundShadowPixelShader psCB{};
+		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
+		m_context->PSSetConstantBuffers(1, 1, pscbs);
+		m_context->OMSetBlendState(dx11AppContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
+		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+	}
+}
+
+bool DX11Viewer::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
 	if (!glfwInit())
@@ -123,60 +472,60 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		return false;
 	}
 	auto fpsTime  = std::chrono::steady_clock::now();
-    auto saveTime = std::chrono::steady_clock::now();
-    int fpsFrame  = 0;
-    while (!glfwWindowShouldClose(window)) {
-    	glfwPollEvents();
-    	int newW = 0, newH = 0;
-    	glfwGetFramebufferSize(window, &newW, &newH);
-        if (newW != width || newH != height) {
-            width = newW; height = newH;
-        	m_renderTargetView.Reset();
-        	m_depthStencilView.Reset();
-            rtv.Reset(); dsv.Reset(); depthTex.Reset();
-        	if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
-        		return false;
-            if (!CreateRenderTargets(width, height))
-            	return false;
-        }
-    	StepTime(music, saveTime);
-    	UpdateCamera(width, height);
-        D3D11_VIEWPORT vp{};
-        vp.Width = static_cast<float>(width);
-        vp.Height = static_cast<float>(height);
-        vp.MinDepth = 0.0f;
-        vp.MaxDepth = 1.0f;
-        context->RSSetViewports(1, &vp);
-        ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
-        context->OMSetRenderTargets(1, rtvs, dsv.Get());
-        context->ClearRenderTargetView(rtv.Get(), clearColor);
-        context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    	m_renderTargetView = rtv;
-    	m_depthStencilView = dsv;
-        for (auto& model : models) {
-            model->UpdateAnimation(*this);
-            model->Update();
-            model->Draw(*this);
-        	const auto& dx11Model = static_cast<DX11Model&>(*model);
-        	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
-        	if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
-		        context->ExecuteCommandList(cmd.Get(), FALSE);
-        }
-        if (FAILED(swapChain->Present(0, 0)))
-        	return false;
-    	TickFps(fpsTime, fpsFrame);
-    }
-    models.clear();
+	auto saveTime = std::chrono::steady_clock::now();
+	int fpsFrame  = 0;
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		int newW = 0, newH = 0;
+		glfwGetFramebufferSize(window, &newW, &newH);
+		if (newW != width || newH != height) {
+			width = newW; height = newH;
+			m_renderTargetView.Reset();
+			m_depthStencilView.Reset();
+			rtv.Reset(); dsv.Reset(); depthTex.Reset();
+			if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
+				return false;
+			if (!CreateRenderTargets(width, height))
+				return false;
+		}
+		StepTime(music, saveTime);
+		UpdateCamera(width, height);
+		D3D11_VIEWPORT vp{};
+		vp.Width = static_cast<float>(width);
+		vp.Height = static_cast<float>(height);
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &vp);
+		ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
+		context->OMSetRenderTargets(1, rtvs, dsv.Get());
+		context->ClearRenderTargetView(rtv.Get(), clearColor);
+		context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_renderTargetView = rtv;
+		m_depthStencilView = dsv;
+		for (auto& model : models) {
+			model->UpdateAnimation(*this);
+			model->Update();
+			model->Draw(*this);
+			const auto& dx11Model = static_cast<DX11Model&>(*model);
+			Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
+			if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
+				context->ExecuteCommandList(cmd.Get(), FALSE);
+		}
+		if (FAILED(swapChain->Present(0, 0)))
+			return false;
+		TickFps(fpsTime, fpsFrame);
+	}
+	models.clear();
 	glfwDestroyWindow(window);
 	glfwTerminate();
-    return true;
+	return true;
 }
 
-std::unique_ptr<Model> DX11AppContext::CreateModel() const {
+std::unique_ptr<Model> DX11Viewer::CreateModel() const {
 	return std::make_unique<DX11Model>();
 }
 
-bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
+bool DX11Viewer::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
 	m_device = device;
 	InitDirs("shader_DX11");
 	if (!CreateShaders())
@@ -184,7 +533,7 @@ bool DX11AppContext::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
 	return true;
 }
 
-DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath) {
+DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
@@ -224,12 +573,12 @@ DX11Texture DX11AppContext::GetTexture(const std::filesystem::path& texturePath)
 	return m_textures[texturePath];
 }
 
-bool DX11AppContext::CreateShaders() {
+bool DX11Viewer::CreateShaders() {
 	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob>
-	mmdVSBlob, mmdPSBlob,
-	mmdEdgeVSBlob, mmdEdgePSBlob,
-	mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
+			mmdVSBlob, mmdPSBlob,
+			mmdEdgeVSBlob, mmdEdgePSBlob,
+			mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
 	auto CompileError = [](const Microsoft::WRL::ComPtr<ID3DBlob>& msg) {
 		std::cout << "Compile Error: " << static_cast<char*>(msg->GetBufferPointer()) << std::endl;
 		return false;
@@ -533,353 +882,4 @@ bool DX11AppContext::CreateShaders() {
 	if (FAILED(m_device->CreateSamplerState(&samplerDesc, &m_dummySampler)))
 		return false;
 	return true;
-}
-
-DX11Material::DX11Material(const MMDMaterial& mat)
-	: m_mmdMat(mat) {
-}
-
-bool DX11Model::Setup(AppContext& appContext) {
-	auto& dx11AppContext = static_cast<DX11AppContext&>(appContext);
-	if (FAILED(dx11AppContext.m_device->CreateDeferredContext(0, &m_context)))
-		return false;
-
-	// Setup vertex buffer
-	D3D11_BUFFER_DESC vBufDesc = {};
-	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
-	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
-		return false;
-
-	// Setup index buffer;
-	D3D11_BUFFER_DESC iBufDesc = {};
-	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	iBufDesc.ByteWidth = static_cast<UINT>(m_mmdModel->m_indexElementSize * m_mmdModel->m_indexCount);
-	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	iBufDesc.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = &m_mmdModel->m_indices[0];
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
-		return false;
-	if (1 == m_mmdModel->m_indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
-	else if (2 == m_mmdModel->m_indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R16_UINT;
-	else if (4 == m_mmdModel->m_indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
-	else
-		return false;
-
-	// Setup mmd vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC vsBufDesc = {};
-	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	vsBufDesc.ByteWidth = sizeof(DX11VertexShader);
-	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	vsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer)))
-		return false;
-
-	// Setup mmd pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC psBufDesc = {};
-	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	psBufDesc.ByteWidth = sizeof(DX11PixelShader);
-	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	psBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer)))
-		return false;
-
-	// Setup mmd edge vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC evsBufDesc1 = {};
-	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShader);
-	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	evsBufDesc1.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer)))
-		return false;
-
-	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
-	D3D11_BUFFER_DESC evsBufDesc2 = {};
-	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShader);
-	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	evsBufDesc2.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer)))
-		return false;
-
-	// Setup mmd edge pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC epsBufDesc = {};
-	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShader);
-	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	epsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer)))
-		return false;
-
-	// Setup mmd ground shadow vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC gvsBufDesc = {};
-	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShader);
-	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	gvsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer)))
-		return false;
-
-	// Setup mmd ground shadow pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC gpsBufDesc = {};
-	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShader);
-	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	gpsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11AppContext.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer)))
-		return false;
-
-	// Setup materials
-	for (const auto& mmdMat : m_mmdModel->m_materials) {
-		DX11Material mat(mmdMat);
-		if (!mmdMat.m_texture.empty())
-			mat.m_texture = dx11AppContext.GetTexture(mmdMat.m_texture);
-		if (!mmdMat.m_spTexture.empty())
-			mat.m_spTexture = dx11AppContext.GetTexture(mmdMat.m_spTexture);
-		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = dx11AppContext.GetTexture(mmdMat.m_toonTexture);
-		m_materials.emplace_back(std::move(mat));
-	}
-	return true;
-}
-
-void DX11Model::Update() const {
-	m_mmdModel->Update();
-	const size_t vtxCount = m_mmdModel->m_positions.size();
-	D3D11_MAPPED_SUBRESOURCE mapRes;
-	if (FAILED(m_context->Map(m_vertexBuffer.Get(), 0,
-		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
-		return;
-	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
-	const glm::vec3* positions = m_mmdModel->m_updatePositions.data();
-	const glm::vec3* normals = m_mmdModel->m_updateNormals.data();
-	const glm::vec2* uvs = m_mmdModel->m_updateUVs.data();
-	for (size_t i = 0; i < vtxCount; i++) {
-		vertices[i].m_position = positions[i];
-		vertices[i].m_normal = normals[i];
-		vertices[i].m_uv = uvs[i];
-	}
-	m_context->Unmap(m_vertexBuffer.Get(), 0);
-}
-
-void DX11Model::Draw(AppContext& appContext) const {
-	auto& dx11AppContext = static_cast<DX11AppContext&>(appContext);
-	const auto& view = appContext.m_viewMat;
-	const auto& proj = appContext.m_projMat;
-	const auto& dxMat = glm::mat4(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.5f, 0.0f,
-		0.0f, 0.0f, 0.5f, 1.0f
-	);
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
-	auto wv = view * world;
-	auto wvp = dxMat * proj * view * world;
-
-	// Set viewport
-	D3D11_VIEWPORT vp;
-	vp.Width = static_cast<float>(appContext.m_screenWidth);
-	vp.Height = static_cast<float>(appContext.m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	m_context->RSSetViewports(1, &vp);
-	ID3D11RenderTargetView* rtvs[] = { dx11AppContext.m_renderTargetView.Get() };
-	m_context->OMSetRenderTargets(1, rtvs, dx11AppContext.m_depthStencilView.Get());
-	m_context->OMSetDepthStencilState(dx11AppContext.m_defaultDSS.Get(), 0x00);
-
-	// Setup input assembler
-	UINT strides[] = { sizeof(DX11Vertex) };
-	UINT offsets[] = { 0 };
-	m_context->IASetInputLayout(dx11AppContext.m_mmdInputLayout.Get());
-	ID3D11Buffer* vbs[] = { m_vertexBuffer.Get() };
-	m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
-	m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
-	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Draw model
-	DX11VertexShader vsCB1{};
-	vsCB1.m_wv = wv;
-	vsCB1.m_wvp = wvp;
-	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
-								 0, nullptr, &vsCB1, 0, 0);
-	m_context->VSSetShader(dx11AppContext.m_mmdVS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
-	m_context->VSSetConstantBuffers(0, 1, cbs1);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& mat = m_materials[m_materialID];
-		const auto& mmdMat = mat.m_mmdMat;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
-			continue;
-		m_context->PSSetShader(dx11AppContext.m_mmdPS.Get(), nullptr, 0);
-		DX11PixelShader psCB{};
-		psCB.m_alpha = mmdMat.m_diffuse.a;
-		psCB.m_diffuse = mmdMat.m_diffuse;
-		psCB.m_ambient = mmdMat.m_ambient;
-		psCB.m_specular = mmdMat.m_specular;
-		psCB.m_specularPower = mmdMat.m_specularPower;
-		if (mat.m_texture.m_texture) {
-			if (!mat.m_texture.m_hasAlpha)
-				psCB.m_textureModes.x = 1;
-			else
-				psCB.m_textureModes.x = 2;
-			psCB.m_texMulFactor = mmdMat.m_textureMulFactor;
-			psCB.m_texAddFactor = mmdMat.m_textureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_texture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_textureSampler.Get() };
-			m_context->PSSetShaderResources(0, 1, views);
-			m_context->PSSetSamplers(0, 1, samplers);
-		} else {
-			psCB.m_textureModes.x = 0;
-			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(0, 1, views);
-			m_context->PSSetSamplers(0, 1, samplers);
-		}
-		if (mat.m_toonTexture.m_texture) {
-			psCB.m_textureModes.y = 1;
-			psCB.m_toonTexMulFactor = mmdMat.m_toonTextureMulFactor;
-			psCB.m_toonTexAddFactor = mmdMat.m_toonTextureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_toonTexture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_toonTextureSampler.Get() };
-			m_context->PSSetShaderResources(1, 1, views);
-			m_context->PSSetSamplers(1, 1, samplers);
-		} else {
-			psCB.m_textureModes.y = 0;
-			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(1, 1, views);
-			m_context->PSSetSamplers(1, 1, samplers);
-		}
-		if (mat.m_spTexture.m_texture) {
-			if (mmdMat.m_spTextureMode == SphereMode::Mul)
-				psCB.m_textureModes.z = 1;
-			else if (mmdMat.m_spTextureMode == SphereMode::Add)
-				psCB.m_textureModes.z = 2;
-			psCB.m_sphereTexMulFactor = mmdMat.m_spTextureMulFactor;
-			psCB.m_sphereTexAddFactor = mmdMat.m_spTextureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_spTexture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_sphereTextureSampler.Get() };
-			m_context->PSSetShaderResources(2, 1, views);
-			m_context->PSSetSamplers(2, 1, samplers);
-		} else {
-			psCB.m_textureModes.z = 0;
-			ID3D11ShaderResourceView* views[] = { dx11AppContext.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11AppContext.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(2, 1, views);
-			m_context->PSSetSamplers(2, 1, samplers);
-		}
-		psCB.m_lightColor = appContext.m_lightColor;
-		glm::vec3 lightDir = appContext.m_lightDir;
-		auto viewMat = glm::mat3(appContext.m_viewMat);
-		lightDir = viewMat * lightDir;
-		psCB.m_lightDir = lightDir;
-		m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(),
-									 0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdPSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(1, 1, pscbs);
-		if (mmdMat.m_bothFace)
-			m_context->RSSetState(dx11AppContext.m_mmdBothFaceRS.Get());
-		else
-			m_context->RSSetState(dx11AppContext.m_mmdFrontFaceRS.Get());
-		m_context->OMSetBlendState(dx11AppContext.m_mmdBlendState.Get(), nullptr, 0xffffffff);
-		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
-	}
-	ID3D11ShaderResourceView* views[] = { nullptr, nullptr, nullptr };
-	ID3D11SamplerState* samplers[] = { nullptr, nullptr, nullptr };
-	m_context->PSSetShaderResources(0, 3, views);
-	m_context->PSSetSamplers(0, 3, samplers);
-
-	// Draw edge
-	m_context->IASetInputLayout(dx11AppContext.m_mmdEdgeInputLayout.Get());
-	DX11EdgeVertexShader vsCB2{};
-	vsCB2.m_wv = wv;
-	vsCB2.m_wvp = wvp;
-	vsCB2.m_screenSize = glm::vec2(static_cast<float>(appContext.m_screenWidth),
-								   static_cast<float>(appContext.m_screenHeight));
-	m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
-								 0, nullptr, &vsCB2, 0, 0);
-	m_context->VSSetShader(dx11AppContext.m_mmdEdgeVS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
-	m_context->VSSetConstantBuffers(0, 1, cbs2);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& mat = m_materials[m_materialID];
-		const auto& mmdMat = mat.m_mmdMat;
-		if (!mmdMat.m_edgeFlag)
-			continue;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
-			continue;
-		DX11EdgeSizeVertexShader vsCB{};
-		vsCB.m_edgeSize = mmdMat.m_edgeSize;
-		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
-									 0, nullptr, &vsCB, 0, 0);
-		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
-		m_context->VSSetConstantBuffers(1, 1, cbs);
-		m_context->PSSetShader(dx11AppContext.m_mmdEdgePS.Get(), nullptr, 0);
-		DX11EdgePixelShader psCB{};
-		psCB.m_edgeColor = mmdMat.m_edgeColor;
-		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
-									 0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdEdgePSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(2, 1, pscbs);
-		m_context->RSSetState(dx11AppContext.m_mmdEdgeRS.Get());
-		m_context->OMSetBlendState(dx11AppContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
-		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
-	}
-
-	// Draw ground shadow
-	m_context->IASetInputLayout(dx11AppContext.m_mmdGroundShadowInputLayout.Get());
-	auto plane = glm::vec4(0, 1, 0, 0);
-	auto light = -appContext.m_lightDir;
-	auto shadow = glm::mat4(1);
-	shadow[0][0] = plane.y * light.y + plane.z * light.z;
-	shadow[0][1] = -plane.x * light.y;
-	shadow[0][2] = -plane.x * light.z;
-	shadow[0][3] = 0;
-	shadow[1][0] = -plane.y * light.x;
-	shadow[1][1] = plane.x * light.x + plane.z * light.z;
-	shadow[1][2] = -plane.y * light.z;
-	shadow[1][3] = 0;
-	shadow[2][0] = -plane.z * light.x;
-	shadow[2][1] = -plane.z * light.y;
-	shadow[2][2] = plane.x * light.x + plane.y * light.y;
-	shadow[2][3] = 0;
-	shadow[3][0] = -plane.w * light.x;
-	shadow[3][1] = -plane.w * light.y;
-	shadow[3][2] = -plane.w * light.z;
-	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
-	auto wsvp = dxMat * proj * view * shadow * world;
-	DX11GroundShadowVertexShader vsCB{};
-	vsCB.m_wvp = wsvp;
-	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
-								 0, nullptr, &vsCB, 0, 0);
-	m_context->VSSetShader(dx11AppContext.m_mmdGroundShadowVS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
-	m_context->VSSetConstantBuffers(0, 1, cbs);
-	m_context->RSSetState(dx11AppContext.m_mmdGroundShadowRS.Get());
-	m_context->OMSetBlendState(dx11AppContext.m_mmdGroundShadowBlendState.Get(), nullptr, 0xffffffff);
-	m_context->OMSetDepthStencilState(dx11AppContext.m_mmdGroundShadowDSS.Get(), 0x01);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& mat = m_materials[m_materialID];
-		const auto& mmdMat = mat.m_mmdMat;
-		if (!mmdMat.m_groundShadow)
-			continue;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
-			continue;
-		m_context->PSSetShader(dx11AppContext.m_mmdGroundShadowPS.Get(), nullptr, 0);
-		DX11GroundShadowPixelShader psCB{};
-		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(1, 1, pscbs);
-		m_context->OMSetBlendState(dx11AppContext.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
-		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
-	}
 }

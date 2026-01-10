@@ -167,11 +167,11 @@ int main() {
 	}
 	int engineType;
 	std::cin >> engineType;
-	std::unique_ptr<AppContext> appContext;
+	std::unique_ptr<Viewer> appContext;
 	if (engineType == 0)
-		appContext = std::make_unique<GLFWAppContext>();
+		appContext = std::make_unique<GLFWViewer>();
 	else if (engineType == 1)
-		appContext = std::make_unique<DX11AppContext>();
+		appContext = std::make_unique<DX11Viewer>();
 	if (appContext && !appContext->Run(cfg)) {
 		std::cout << "Failed to run.\n";
 		return 1;

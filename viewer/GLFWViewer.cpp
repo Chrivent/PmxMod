@@ -11,34 +11,33 @@
 #include <fstream>
 #include <ranges>
 
-GLuint CompileShader(const GLenum shaderType, const std::string& code) {
-	const GLuint shader = glCreateShader(shaderType);
-	if (!shader) {
-		std::cout << "Failed to create shader_GLFW.\n";
-		return 0;
-	}
-	const char* codes = code.c_str();
-	const auto codesLen = static_cast<GLint>(code.size());
-	glShaderSource(shader, 1, &codes, &codesLen);
-	glCompileShader(shader);
-	GLint compileStatus = GL_FALSE, infoLength = 0;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength > 1) {
-		std::string log(static_cast<size_t>(infoLength), '\0');
-		GLsizei len = 0;
-		glGetShaderInfoLog(shader, infoLength, &len, log.data());
-		std::cout << log.c_str() << "\n";
-	}
-	if (compileStatus != GL_TRUE) {
-		glDeleteShader(shader);
-		std::cout << "Failed to compile shader_GLFW.\n";
-		return 0;
-	}
-	return shader;
-}
-
 GLuint CreateShader(const std::filesystem::path& file) {
+	auto CompileShader = [](const GLenum shaderType, const std::string& code) -> GLuint {
+		const GLuint shader = glCreateShader(shaderType);
+		if (!shader) {
+			std::cout << "Failed to create shader_GLFW.\n";
+			return 0;
+		}
+		const char* codes = code.c_str();
+		const auto codesLen = static_cast<GLint>(code.size());
+		glShaderSource(shader, 1, &codes, &codesLen);
+		glCompileShader(shader);
+		GLint compileStatus = GL_FALSE, infoLength = 0;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
+		if (infoLength > 1) {
+			std::string log(static_cast<size_t>(infoLength), '\0');
+			GLsizei len = 0;
+			glGetShaderInfoLog(shader, infoLength, &len, log.data());
+			std::cout << log.c_str() << "\n";
+		}
+		if (compileStatus != GL_TRUE) {
+			glDeleteShader(shader);
+			std::cout << "Failed to compile shader_GLFW.\n";
+			return 0;
+		}
+		return shader;
+	};
 	std::ifstream f(file);
 	if (!f) {
 		std::cout << "Failed to open shader file. [" << file << "].\n";
@@ -106,7 +105,7 @@ GLFWShader::~GLFWShader() {
 	m_prog = 0;
 }
 
-bool GLFWShader::Setup(const GLFWAppContext& appContext) {
+bool GLFWShader::Setup(const GLFWViewer& appContext) {
 	m_prog = CreateShader(appContext.m_shaderDir / "mmd.glsl");
 	if (m_prog == 0)
 		return false;
@@ -150,7 +149,7 @@ GLFWEdgeShader::~GLFWEdgeShader() {
 	m_prog = 0;
 }
 
-bool GLFWEdgeShader::Setup(const GLFWAppContext& appContext) {
+bool GLFWEdgeShader::Setup(const GLFWViewer& appContext) {
 	m_prog = CreateShader(appContext.m_shaderDir / "mmd_edge.glsl");
 	if (m_prog == 0)
 		return false;
@@ -169,7 +168,7 @@ GLFWGroundShadowShader::~GLFWGroundShadowShader() {
 	m_prog = 0;
 }
 
-bool GLFWGroundShadowShader::Setup(const GLFWAppContext& appContext) {
+bool GLFWGroundShadowShader::Setup(const GLFWViewer& appContext) {
 	m_prog = CreateShader(appContext.m_shaderDir / "mmd_ground_shadow.glsl");
 	if (m_prog == 0)
 		return false;
@@ -179,149 +178,12 @@ bool GLFWGroundShadowShader::Setup(const GLFWAppContext& appContext) {
 	return true;
 }
 
-GLFWAppContext::~GLFWAppContext() {
-	m_shader.reset();
-	m_edgeShader.reset();
-	m_groundShadowShader.reset();
-	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
-		glDeleteTextures(1, &m_texture);
-	m_textures.clear();
-	if (m_dummyColorTex != 0)
-		glDeleteTextures(1, &m_dummyColorTex);
-	if (m_dummyShadowDepthTex != 0)
-		glDeleteTextures(1, &m_dummyShadowDepthTex);
-	m_dummyColorTex = 0;
-	m_dummyShadowDepthTex = 0;
-	m_vmdCameraAnim.reset();
-}
-
-bool GLFWAppContext::Run(const SceneConfig& cfg) {
-	MusicUtil music;
-	music.Init(cfg.musicPath);
-	if (!glfwInit())
-		return false;
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_SAMPLES, m_msaaSamples);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
-	if (!window) {
-		glfwTerminate();
-		return false;
-	}
-	glfwMakeContextCurrent(window);
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-		glfwTerminate();
-		return false;
-	}
-	glfwSwapInterval(0);
-	glEnable(GL_MULTISAMPLE);
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	if (width <= 0 || height <= 0) {
-		glfwTerminate();
-		return false;
-	}
-	if (!Setup()) {
-		std::cout << "Failed to setup AppContext.\n";
-		glfwTerminate();
-		return false;
-	}
-	LoadCameraVmd(cfg);
-	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models)) {
-		glfwTerminate();
-		return false;
-	}
-	auto fpsTime  = std::chrono::steady_clock::now();
-	auto saveTime = std::chrono::steady_clock::now();
-	int fpsFrame  = 0;
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-		int newW = 0, newH = 0;
-		glfwGetFramebufferSize(window, &newW, &newH);
-		if (newW != width || newH != height) {
-			width = newW;
-			height = newH;
-			glViewport(0, 0, width, height);
-		}
-		StepTime(music, saveTime);
-		UpdateCamera(width, height);
-		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		for (const auto& model : models) {
-			model->UpdateAnimation(*this);
-			model->Update();
-			model->Draw(*this);
-		}
-		glfwSwapBuffers(window);
-		TickFps(fpsTime, fpsFrame);
-	}
-	for (const auto& model : models)
-		model->Clear();
-	models.clear();
-	glfwTerminate();
-	return true;
-}
-
-std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
-	return std::make_unique<GLFWModel>();
-}
-
-bool GLFWAppContext::Setup() {
-	InitDirs("shader_GLFW");
-	m_shader = std::make_unique<GLFWShader>();
-	if (!m_shader->Setup(*this))
-		return false;
-	m_edgeShader = std::make_unique<GLFWEdgeShader>();
-	if (!m_edgeShader->Setup(*this))
-		return false;
-	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
-	if (!m_groundShadowShader->Setup(*this))
-		return false;
-	glGenTextures(1, &m_dummyColorTex);
-	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glGenTextures(1, &m_dummyShadowDepthTex);
-	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	return true;
-}
-
-GLFWTexture GLFWAppContext::GetTexture(const std::filesystem::path& texturePath) {
-	const auto it = m_textures.find(texturePath);
-	if (it != m_textures.end())
-		return it->second;
-	int x = 0, y = 0, comp = 0;
-	stbi_set_flip_vertically_on_load(true);
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
-	stbi_set_flip_vertically_on_load(false);
-	if (!image)
-		return GLFWTexture{ 0, false };
-	const bool hasAlpha = comp == 4;
-	GLuint tex = 0;
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	stbi_image_free(image);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
-	return m_textures[texturePath];
-}
-
 GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 	: m_mmdMat(mat) {
 }
 
-bool GLFWModel::Setup(AppContext& appContext) {
-	auto& glfwAppContext = static_cast<GLFWAppContext&>(appContext);
+bool GLFWModel::Setup(Viewer& appContext) {
+	auto& glfwAppContext = static_cast<GLFWViewer&>(appContext);
 	if (m_mmdModel == nullptr)
 		return false;
 	// Setup vertices
@@ -434,8 +296,8 @@ void GLFWModel::Update() const {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GLFWModel::Draw(AppContext& appContext) const {
-	auto& glfwAppContext = static_cast<GLFWAppContext&>(appContext);
+void GLFWModel::Draw(Viewer& appContext) const {
+	auto& glfwAppContext = static_cast<GLFWViewer&>(appContext);
 	const auto &view = appContext.m_viewMat;
 	const auto &proj = appContext.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
@@ -623,4 +485,141 @@ void GLFWModel::Draw(AppContext& appContext) const {
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_BLEND);
+}
+
+GLFWViewer::~GLFWViewer() {
+	m_shader.reset();
+	m_edgeShader.reset();
+	m_groundShadowShader.reset();
+	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
+		glDeleteTextures(1, &m_texture);
+	m_textures.clear();
+	if (m_dummyColorTex != 0)
+		glDeleteTextures(1, &m_dummyColorTex);
+	if (m_dummyShadowDepthTex != 0)
+		glDeleteTextures(1, &m_dummyShadowDepthTex);
+	m_dummyColorTex = 0;
+	m_dummyShadowDepthTex = 0;
+	m_vmdCameraAnim.reset();
+}
+
+bool GLFWViewer::Run(const SceneConfig& cfg) {
+	MusicUtil music;
+	music.Init(cfg.musicPath);
+	if (!glfwInit())
+		return false;
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, m_msaaSamples);
+	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
+	if (!window) {
+		glfwTerminate();
+		return false;
+	}
+	glfwMakeContextCurrent(window);
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
+		glfwTerminate();
+		return false;
+	}
+	glfwSwapInterval(0);
+	glEnable(GL_MULTISAMPLE);
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	if (width <= 0 || height <= 0) {
+		glfwTerminate();
+		return false;
+	}
+	if (!Setup()) {
+		std::cout << "Failed to setup AppContext.\n";
+		glfwTerminate();
+		return false;
+	}
+	LoadCameraVmd(cfg);
+	std::vector<std::unique_ptr<Model>> models;
+	if (!LoadModels(cfg, models)) {
+		glfwTerminate();
+		return false;
+	}
+	auto fpsTime  = std::chrono::steady_clock::now();
+	auto saveTime = std::chrono::steady_clock::now();
+	int fpsFrame  = 0;
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		int newW = 0, newH = 0;
+		glfwGetFramebufferSize(window, &newW, &newH);
+		if (newW != width || newH != height) {
+			width = newW;
+			height = newH;
+			glViewport(0, 0, width, height);
+		}
+		StepTime(music, saveTime);
+		UpdateCamera(width, height);
+		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		for (const auto& model : models) {
+			model->UpdateAnimation(*this);
+			model->Update();
+			model->Draw(*this);
+		}
+		glfwSwapBuffers(window);
+		TickFps(fpsTime, fpsFrame);
+	}
+	for (const auto& model : models)
+		model->Clear();
+	models.clear();
+	glfwTerminate();
+	return true;
+}
+
+std::unique_ptr<Model> GLFWViewer::CreateModel() const {
+	return std::make_unique<GLFWModel>();
+}
+
+bool GLFWViewer::Setup() {
+	InitDirs("shader_GLFW");
+	m_shader = std::make_unique<GLFWShader>();
+	if (!m_shader->Setup(*this))
+		return false;
+	m_edgeShader = std::make_unique<GLFWEdgeShader>();
+	if (!m_edgeShader->Setup(*this))
+		return false;
+	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
+	if (!m_groundShadowShader->Setup(*this))
+		return false;
+	glGenTextures(1, &m_dummyColorTex);
+	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glGenTextures(1, &m_dummyShadowDepthTex);
+	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return true;
+}
+
+GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
+	const auto it = m_textures.find(texturePath);
+	if (it != m_textures.end())
+		return it->second;
+	int x = 0, y = 0, comp = 0;
+	stbi_set_flip_vertically_on_load(true);
+	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
+	stbi_set_flip_vertically_on_load(false);
+	if (!image)
+		return GLFWTexture{ 0, false };
+	const bool hasAlpha = comp == 4;
+	GLuint tex = 0;
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	stbi_image_free(image);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
+	return m_textures[texturePath];
 }

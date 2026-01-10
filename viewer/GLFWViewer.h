@@ -5,7 +5,7 @@
 
 #include "Viewer.h"
 
-struct GLFWAppContext;
+struct GLFWViewer;
 
 struct GLFWShader {
     ~GLFWShader();
@@ -43,7 +43,7 @@ struct GLFWShader {
     GLint	m_uShadowMap3 = -1;
     GLint	m_uShadowMapEnabled = -1;
 
-    bool Setup(const GLFWAppContext& appContext);
+    bool Setup(const GLFWViewer& appContext);
 };
 
 struct GLFWEdgeShader {
@@ -58,7 +58,7 @@ struct GLFWEdgeShader {
     GLint	m_uEdgeSize = -1;
     GLint	m_uEdgeColor = -1;
 
-    bool Setup(const GLFWAppContext& appContext);
+    bool Setup(const GLFWViewer& appContext);
 };
 
 struct GLFWGroundShadowShader {
@@ -69,29 +69,12 @@ struct GLFWGroundShadowShader {
     GLint	m_uWVP = -1;
     GLint	m_uShadowColor = -1;
 
-    bool Setup(const GLFWAppContext& appContext);
+    bool Setup(const GLFWViewer& appContext);
 };
 
 struct GLFWTexture {
     GLuint	m_texture;
     bool	m_hasAlpha;
-};
-
-struct GLFWAppContext : AppContext {
-    ~GLFWAppContext() override;
-
-    std::unique_ptr<GLFWShader>				m_shader;
-    std::unique_ptr<GLFWEdgeShader>			m_edgeShader;
-    std::unique_ptr<GLFWGroundShadowShader>	m_groundShadowShader;
-    std::map<std::filesystem::path, GLFWTexture>	m_textures;
-    GLuint	m_dummyColorTex = 0;
-    GLuint	m_dummyShadowDepthTex = 0;
-    const int	m_msaaSamples = 4;
-
-    bool Run(const SceneConfig& cfg) override;
-    std::unique_ptr<Model> CreateModel() const override;
-    bool Setup();
-    GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };
 
 struct GLFWMaterial {
@@ -115,8 +98,25 @@ struct GLFWModel : Model {
     GLuint	m_mmdGroundShadowVAO = 0;
     std::vector<GLFWMaterial>	m_materials;
 
-    bool Setup(AppContext& appContext) override;
+    bool Setup(Viewer& appContext) override;
     void Clear() override;
     void Update() const override;
-    void Draw(AppContext& appContext) const override;
+    void Draw(Viewer& appContext) const override;
+};
+
+struct GLFWViewer : Viewer {
+    ~GLFWViewer() override;
+
+    std::unique_ptr<GLFWShader>				m_shader;
+    std::unique_ptr<GLFWEdgeShader>			m_edgeShader;
+    std::unique_ptr<GLFWGroundShadowShader>	m_groundShadowShader;
+    std::map<std::filesystem::path, GLFWTexture>	m_textures;
+    GLuint	m_dummyColorTex = 0;
+    GLuint	m_dummyShadowDepthTex = 0;
+    const int	m_msaaSamples = 4;
+
+    bool Run(const SceneConfig& cfg) override;
+    std::unique_ptr<Model> CreateModel() const override;
+    bool Setup();
+    GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };

@@ -68,7 +68,35 @@ struct DX11Texture {
     bool								m_hasAlpha;
 };
 
-struct DX11AppContext : AppContext {
+struct DX11Material {
+    explicit DX11Material(const MMDMaterial& mat);
+
+    const MMDMaterial&	m_mmdMat;
+    DX11Texture	m_texture{};
+    DX11Texture	m_spTexture{};
+    DX11Texture	m_toonTexture{};
+};
+
+struct DX11Model : Model {
+    std::vector<DX11Material>	                m_materials;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext>	m_context;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
+    DXGI_FORMAT					                m_indexBufferFormat;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdPSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeSizeVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgePSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowVSConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
+
+    bool Setup(Viewer& appContext) override;
+    void Update() const override;
+    void Draw(Viewer& appContext) const override;
+};
+
+struct DX11Viewer : Viewer {
     UINT		m_multiSampleCount = 1;
     UINT		m_multiSampleQuality = 0;
     std::map<std::filesystem::path, DX11Texture>	m_textures;
@@ -105,32 +133,4 @@ struct DX11AppContext : AppContext {
     bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
     bool CreateShaders();
-};
-
-struct DX11Material {
-    explicit DX11Material(const MMDMaterial& mat);
-
-    const MMDMaterial&	m_mmdMat;
-    DX11Texture	m_texture{};
-    DX11Texture	m_spTexture{};
-    DX11Texture	m_toonTexture{};
-};
-
-struct DX11Model : Model {
-    std::vector<DX11Material>	                m_materials;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext>	m_context;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
-    DXGI_FORMAT					                m_indexBufferFormat;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdVSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdPSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeVSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgeSizeVSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdEdgePSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowVSConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
-
-    bool Setup(AppContext& appContext) override;
-    void Update() const override;
-    void Draw(AppContext& appContext) const override;
 };

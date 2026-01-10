@@ -8,7 +8,7 @@
 #include "../src/MMDUtil.h"
 #include "../src/MMDModel.h"
 
-unsigned char* AppContext::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
+unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
     stbi_uc* image = nullptr;
     x = y = comp = 0;
     FILE* fp = nullptr;
@@ -19,7 +19,7 @@ unsigned char* AppContext::LoadImageRGBA(const std::filesystem::path& texturePat
     return image;
 }
 
-void AppContext::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
+void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
     fpsFrame++;
     const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
     if (sec > 1.0) {
@@ -29,7 +29,7 @@ void AppContext::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fp
     }
 }
 
-bool AppContext::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models) {
+bool Viewer::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models) {
     models.clear();
     models.reserve(cfg.models.size());
     for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
@@ -69,7 +69,7 @@ bool AppContext::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<
     return true;
 }
 
-void AppContext::LoadCameraVmd(const SceneConfig& cfg) {
+void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
     m_vmdCameraAnim.reset();
     if (cfg.cameraVmd.empty())
         std::cout << "No camera VMD file.\n";
@@ -82,7 +82,7 @@ void AppContext::LoadCameraVmd(const SceneConfig& cfg) {
     }
 }
 
-void AppContext::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime) {
+void Viewer::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime) {
     const auto now = std::chrono::steady_clock::now();
     double elapsed = std::chrono::duration<double>(now - saveTime).count();
     if (elapsed > 1.0 / 30.0)
@@ -100,7 +100,7 @@ void AppContext::StepTime(MusicUtil& music, std::chrono::steady_clock::time_poin
     m_animTime = t;
 }
 
-void AppContext::UpdateCamera(const int width, const int height) {
+void Viewer::UpdateCamera(const int width, const int height) {
     m_screenWidth  = width;
     m_screenHeight = height;
     if (m_vmdCameraAnim) {
@@ -118,7 +118,7 @@ void AppContext::UpdateCamera(const int width, const int height) {
     );
 }
 
-void AppContext::InitDirs(const std::string& shaderSubDir) {
+void Viewer::InitDirs(const std::string& shaderSubDir) {
     m_resourceDir = PathUtil::GetExecutablePath();
     m_resourceDir = m_resourceDir.parent_path();
     m_resourceDir /= "resource";
@@ -126,7 +126,7 @@ void AppContext::InitDirs(const std::string& shaderSubDir) {
     m_mmdDir = m_resourceDir / "mmd";
 }
 
-void Model::UpdateAnimation(const AppContext& appContext) const {
+void Model::UpdateAnimation(const Viewer& appContext) const {
     m_mmdModel->BeginAnimation();
     m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), appContext.m_animTime * 30.0f, appContext.m_elapsed);
 }

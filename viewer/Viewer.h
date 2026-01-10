@@ -15,8 +15,8 @@ struct Model;
 class MMDModel;
 class VMDAnimation;
 
-struct AppContext {
-    virtual ~AppContext() = default;
+struct Viewer {
+    virtual ~Viewer() = default;
 
     std::filesystem::path	m_resourceDir;
     std::filesystem::path	m_shaderDir;
@@ -50,12 +50,12 @@ struct Model {
     std::unique_ptr<VMDAnimation>	m_vmdAnim;
     float m_scale = 1.0f;
 
-    virtual bool Setup(AppContext& appContext) = 0;
+    virtual bool Setup(Viewer& appContext) = 0;
     virtual void Update() const = 0;
-    virtual void Draw(AppContext& appContext) const = 0;
+    virtual void Draw(Viewer& appContext) const = 0;
     virtual void Clear() {}
 
-    void UpdateAnimation(const AppContext& appContext) const;
+    void UpdateAnimation(const Viewer& appContext) const;
 };
 
 struct Input {
