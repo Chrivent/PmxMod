@@ -81,7 +81,7 @@ GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::files
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	if (linkStatus != GL_TRUE) {
-		glDeleteProgram(prog); // 원본에서 빠져있던 누수 방지
+		glDeleteProgram(prog);
 		std::cout << "Failed to link shader_GLFW.\n";
 		return 0;
 	}
