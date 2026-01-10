@@ -307,7 +307,8 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		vmdAnim->SyncPhysics(0.0f);
 		model.m_vmdAnim = std::move(vmdAnim);
 		model.m_scale = m_scale;
-		model.Setup(*this);
+		if (!model.Setup(*this))
+			return false;
 		models.emplace_back(std::move(model));
 	}
 	auto fpsTime  = std::chrono::steady_clock::now();
