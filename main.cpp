@@ -172,7 +172,7 @@ int main() {
 		appContext = std::make_unique<GLFWAppContext>();
 	else if (engineType == 1)
 		appContext = std::make_unique<DX11AppContext>();
-	if (!appContext->Run(cfg)) {
+	if (appContext && !appContext->Run(cfg)) {
 		std::cout << "Failed to run.\n";
 		return 1;
 	}
