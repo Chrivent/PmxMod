@@ -88,9 +88,8 @@ struct GLFWAppContext : AppContext {
     GLuint	m_dummyShadowDepthTex = 0;
     const int	m_msaaSamples = 4;
 
-    std::unique_ptr<Model> CreateModel() const override;
     bool Run(const SceneConfig& cfg) override;
-
+    std::unique_ptr<Model> CreateModel() const override;
     bool Setup();
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };

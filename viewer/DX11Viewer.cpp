@@ -11,6 +11,203 @@
 #include <fstream>
 #include <ranges>
 
+HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
+	auto WndProc = [](HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) -> LRESULT {
+		if (msg == WM_DESTROY) {
+			PostQuitMessage(0);
+			return 0;
+		}
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	};
+	auto cls = L"PmxModDx11Window";
+	WNDCLASSEXW wc{ sizeof(wc) };
+	wc.lpfnWndProc = WndProc;
+	wc.hInstance   = hInst;
+	wc.lpszClassName = cls;
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	RegisterClassExW(&wc);
+	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
+	RECT rc{ 0,0,w,h };
+	AdjustWindowRect(&rc, style, FALSE);
+	HWND__* hwnd = CreateWindowExW(
+		0, cls, L"Pmx Mod (DX11)", style,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		rc.right - rc.left, rc.bottom - rc.top,
+		nullptr, nullptr, hInst, nullptr
+	);
+	ShowWindow(hwnd, SW_SHOW);
+	return hwnd;
+}
+
+bool DX11AppContext::Run(const SceneConfig& cfg) {
+	MusicUtil music;
+	music.Init(cfg.musicPath);
+	Microsoft::WRL::ComPtr<ID3D11Device> device;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
+	D3D_FEATURE_LEVEL featureLevel;
+	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
+	UINT createFlags = 0;
+	HRESULT hr = D3D11CreateDevice(
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+		createFlags,
+		featureLevels, 1,
+		D3D11_SDK_VERSION,
+		&device, &featureLevel, &context
+	);
+	if (FAILED(hr))
+		return false;
+	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+	hr = device.As(&dxgiDevice);
+	if (FAILED(hr))
+		return false;
+	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
+	hr = dxgiDevice->GetAdapter(&adapter);
+	if (FAILED(hr))
+		return false;
+	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
+	hr = adapter->GetParent(__uuidof(IDXGIFactory), &factory);
+	if (FAILED(hr))
+		return false;
+	UINT msaaCount = 4;
+	UINT quality = 0;
+	hr = device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality);
+	if (FAILED(hr) || quality == 0) {
+		msaaCount = 1;
+		quality = 0;
+	}
+	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
+	HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
+	DXGI_SWAP_CHAIN_DESC sd{};
+	sd.BufferCount = 2;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.OutputWindow = hwnd;
+	sd.SampleDesc.Count = msaaCount;
+	sd.SampleDesc.Quality = msaaQuality;
+	sd.Windowed = TRUE;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	hr = factory->CreateSwapChain(device.Get(), &sd, &swapChain);
+	if (FAILED(hr))
+		return false;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv;
+	auto CreateRenderTargets = [&](const int w, const int h) -> bool {
+		rtv.Reset();
+		depthTex.Reset();
+		dsv.Reset();
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+		HRESULT hr2 = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+			reinterpret_cast<void**>(backBuffer.GetAddressOf()));
+		if (FAILED(hr2))
+			return false;
+		hr2 = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv);
+		if (FAILED(hr2))
+			return false;
+		D3D11_TEXTURE2D_DESC dsDesc{};
+		dsDesc.Width = static_cast<UINT>(w);
+		dsDesc.Height = static_cast<UINT>(h);
+		dsDesc.MipLevels = 1;
+		dsDesc.ArraySize = 1;
+		dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		dsDesc.SampleDesc.Count = msaaCount;
+		dsDesc.SampleDesc.Quality = msaaQuality;
+		dsDesc.Usage = D3D11_USAGE_DEFAULT;
+		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		hr2 = device->CreateTexture2D(&dsDesc, nullptr, &depthTex);
+		if (FAILED(hr2))
+			return false;
+		hr2 = device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv);
+		if (FAILED(hr2))
+			return false;
+		return true;
+	};
+	RECT rc{};
+	GetClientRect(hwnd, &rc);
+	int width = rc.right - rc.left;
+	int height = rc.bottom - rc.top;
+	if (width <= 0 || height <= 0)
+		return false;
+	if (!CreateRenderTargets(width, height))
+		return false;
+	m_multiSampleCount = msaaCount;
+	m_multiSampleQuality = msaaQuality;
+	if (!Setup(device.Get()))
+		return false;
+	LoadCameraVmd(cfg);
+	std::vector<std::unique_ptr<Model>> models;
+	if (!LoadModels(cfg, models))
+		return false;
+	auto fpsTime  = std::chrono::steady_clock::now();
+    auto saveTime = std::chrono::steady_clock::now();
+    int fpsFrame  = 0;
+    bool quit = false;
+    while (true) {
+    	auto PumpWin32Once = [](bool& outQuit) {
+    		outQuit = false;
+    		MSG msg{};
+    		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    			if (msg.message == WM_QUIT) {
+    				outQuit = true;
+    				return false;
+    			}
+    			TranslateMessage(&msg);
+    			DispatchMessage(&msg);
+    		}
+    		return true;
+    	};
+        if (!PumpWin32Once(quit) || quit)
+        	break;
+
+    	RECT newRc{};
+    	GetClientRect(hwnd, &newRc);
+    	int newW = newRc.right - newRc.left;
+    	int newH = newRc.bottom - newRc.top;
+        if (newW <= 0 || newH <= 0)
+        	continue;
+        if (newW != width || newH != height) {
+            width = newW; height = newH;
+            rtv.Reset();
+            dsv.Reset();
+            depthTex.Reset();
+			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+            if (!CreateRenderTargets(width, height))
+            	return false;
+        }
+    	StepTime(music, saveTime);
+    	UpdateCamera(width, height);
+        D3D11_VIEWPORT vp{};
+        vp.Width = static_cast<float>(width);
+        vp.Height = static_cast<float>(height);
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        context->RSSetViewports(1, &vp);
+        ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
+        context->OMSetRenderTargets(1, rtvs, dsv.Get());
+        float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
+        context->ClearRenderTargetView(rtv.Get(), clearColor);
+        context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    	m_renderTargetView = rtv;
+    	m_depthStencilView = dsv;
+        for (auto& model : models) {
+            model->UpdateAnimation(*this);
+            model->Update();
+            model->Draw(*this);
+        	DX11Model& dx11Model = static_cast<DX11Model&>(*model);
+        	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
+        	HRESULT hrCL = dx11Model.m_context->FinishCommandList(FALSE, &cmd);
+        	if (SUCCEEDED(hrCL) && cmd)
+		        context->ExecuteCommandList(cmd.Get(), FALSE);
+        }
+        swapChain->Present(0, 0);
+    	TickFps(fpsTime, fpsFrame);
+    }
+    models.clear();
+    return true;
+}
+
 std::unique_ptr<Model> DX11AppContext::CreateModel() const {
 	return std::make_unique<DX11Model>();
 }
@@ -390,203 +587,6 @@ bool DX11AppContext::CreateShaders() {
 	if (FAILED(hr))
 		return false;
 	return true;
-}
-
-HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
-	auto WndProc = [](HWND__* hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) -> LRESULT {
-		if (msg == WM_DESTROY) {
-			PostQuitMessage(0);
-			return 0;
-		}
-		return DefWindowProc(hWnd, msg, wParam, lParam);
-	};
-	auto cls = L"PmxModDx11Window";
-	WNDCLASSEXW wc{ sizeof(wc) };
-	wc.lpfnWndProc = WndProc;
-	wc.hInstance   = hInst;
-	wc.lpszClassName = cls;
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	RegisterClassExW(&wc);
-	constexpr DWORD style = WS_OVERLAPPEDWINDOW;
-	RECT rc{ 0,0,w,h };
-	AdjustWindowRect(&rc, style, FALSE);
-	HWND__* hwnd = CreateWindowExW(
-		0, cls, L"Pmx Mod (DX11)", style,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		rc.right - rc.left, rc.bottom - rc.top,
-		nullptr, nullptr, hInst, nullptr
-	);
-	ShowWindow(hwnd, SW_SHOW);
-	return hwnd;
-}
-
-bool DX11AppContext::Run(const SceneConfig& cfg) {
-	MusicUtil music;
-	music.Init(cfg.musicPath);
-	Microsoft::WRL::ComPtr<ID3D11Device> device;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
-	D3D_FEATURE_LEVEL featureLevel;
-	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
-	UINT createFlags = 0;
-	HRESULT hr = D3D11CreateDevice(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-		createFlags,
-		featureLevels, 1,
-		D3D11_SDK_VERSION,
-		&device, &featureLevel, &context
-	);
-	if (FAILED(hr))
-		return false;
-	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	hr = device.As(&dxgiDevice);
-	if (FAILED(hr))
-		return false;
-	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-	hr = dxgiDevice->GetAdapter(&adapter);
-	if (FAILED(hr))
-		return false;
-	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
-	hr = adapter->GetParent(__uuidof(IDXGIFactory), &factory);
-	if (FAILED(hr))
-		return false;
-	UINT msaaCount = 4;
-	UINT quality = 0;
-	hr = device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality);
-	if (FAILED(hr) || quality == 0) {
-		msaaCount = 1;
-		quality = 0;
-	}
-	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
-	HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
-	DXGI_SWAP_CHAIN_DESC sd{};
-	sd.BufferCount = 2;
-	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.OutputWindow = hwnd;
-	sd.SampleDesc.Count = msaaCount;
-	sd.SampleDesc.Quality = msaaQuality;
-	sd.Windowed = TRUE;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	hr = factory->CreateSwapChain(device.Get(), &sd, &swapChain);
-	if (FAILED(hr))
-		return false;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv;
-	auto CreateRenderTargets = [&](const int w, const int h) -> bool {
-		rtv.Reset();
-		depthTex.Reset();
-		dsv.Reset();
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		HRESULT hr2 = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-			reinterpret_cast<void**>(backBuffer.GetAddressOf()));
-		if (FAILED(hr2))
-			return false;
-		hr2 = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv);
-		if (FAILED(hr2))
-			return false;
-		D3D11_TEXTURE2D_DESC dsDesc{};
-		dsDesc.Width = static_cast<UINT>(w);
-		dsDesc.Height = static_cast<UINT>(h);
-		dsDesc.MipLevels = 1;
-		dsDesc.ArraySize = 1;
-		dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		dsDesc.SampleDesc.Count = msaaCount;
-		dsDesc.SampleDesc.Quality = msaaQuality;
-		dsDesc.Usage = D3D11_USAGE_DEFAULT;
-		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		hr2 = device->CreateTexture2D(&dsDesc, nullptr, &depthTex);
-		if (FAILED(hr2))
-			return false;
-		hr2 = device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv);
-		if (FAILED(hr2))
-			return false;
-		return true;
-	};
-	RECT rc{};
-	GetClientRect(hwnd, &rc);
-	int width = rc.right - rc.left;
-	int height = rc.bottom - rc.top;
-	if (width <= 0 || height <= 0)
-		return false;
-	if (!CreateRenderTargets(width, height))
-		return false;
-	m_multiSampleCount = msaaCount;
-	m_multiSampleQuality = msaaQuality;
-	if (!Setup(device.Get()))
-		return false;
-	LoadCameraVmd(cfg);
-	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models))
-		return false;
-	auto fpsTime  = std::chrono::steady_clock::now();
-    auto saveTime = std::chrono::steady_clock::now();
-    int fpsFrame  = 0;
-    bool quit = false;
-    while (true) {
-    	auto PumpWin32Once = [](bool& outQuit) {
-    		outQuit = false;
-    		MSG msg{};
-    		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-    			if (msg.message == WM_QUIT) {
-    				outQuit = true;
-    				return false;
-    			}
-    			TranslateMessage(&msg);
-    			DispatchMessage(&msg);
-    		}
-    		return true;
-    	};
-        if (!PumpWin32Once(quit) || quit)
-        	break;
-
-    	RECT newRc{};
-    	GetClientRect(hwnd, &newRc);
-    	int newW = newRc.right - newRc.left;
-    	int newH = newRc.bottom - newRc.top;
-        if (newW <= 0 || newH <= 0)
-        	continue;
-        if (newW != width || newH != height) {
-            width = newW; height = newH;
-            rtv.Reset();
-            dsv.Reset();
-            depthTex.Reset();
-			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-            if (!CreateRenderTargets(width, height))
-            	return false;
-        }
-    	StepTime(music, saveTime);
-    	UpdateCamera(width, height);
-        D3D11_VIEWPORT vp{};
-        vp.Width = static_cast<float>(width);
-        vp.Height = static_cast<float>(height);
-        vp.MinDepth = 0.0f;
-        vp.MaxDepth = 1.0f;
-        context->RSSetViewports(1, &vp);
-        ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
-        context->OMSetRenderTargets(1, rtvs, dsv.Get());
-        float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
-        context->ClearRenderTargetView(rtv.Get(), clearColor);
-        context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    	m_renderTargetView = rtv;
-    	m_depthStencilView = dsv;
-        for (auto& model : models) {
-            model->UpdateAnimation(*this);
-            model->Update();
-            model->Draw(*this);
-        	DX11Model& dx11Model = static_cast<DX11Model&>(*model);
-        	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
-        	HRESULT hrCL = dx11Model.m_context->FinishCommandList(FALSE, &cmd);
-        	if (SUCCEEDED(hrCL) && cmd)
-		        context->ExecuteCommandList(cmd.Get(), FALSE);
-        }
-        swapChain->Present(0, 0);
-    	TickFps(fpsTime, fpsFrame);
-    }
-    models.clear();
-    return true;
 }
 
 bool DX11AppContext::ReadCsoBinary(const std::filesystem::path& path, std::vector<uint8_t>& out) {

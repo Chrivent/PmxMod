@@ -193,10 +193,6 @@ GLFWAppContext::~GLFWAppContext() {
 	m_vmdCameraAnim.reset();
 }
 
-std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
-	return std::make_unique<GLFWModel>();
-}
-
 bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
@@ -254,6 +250,10 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	models.clear();
 	glfwTerminate();
 	return true;
+}
+
+std::unique_ptr<Model> GLFWAppContext::CreateModel() const {
+	return std::make_unique<GLFWModel>();
 }
 
 bool GLFWAppContext::Setup() {

@@ -100,11 +100,9 @@ struct DX11AppContext : AppContext {
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_dummyTextureView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState>			m_dummySampler;
 
-    std::unique_ptr<Model> CreateModel() const override;
     bool Run(const SceneConfig& cfg) override;
-
+    std::unique_ptr<Model> CreateModel() const override;
     static bool ReadCsoBinary(const std::filesystem::path& path, std::vector<uint8_t>& out);
-
     bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
     bool CreateShaders();
