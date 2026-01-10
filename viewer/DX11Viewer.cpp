@@ -420,11 +420,9 @@ HWND CreateDx11Window(HINSTANCE hInst, const int w, const int h) {
 bool DX11AppContext::Run(const SceneConfig& cfg) {
 	MusicUtil music;
 	music.Init(cfg.musicPath);
-
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
-
 	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 	UINT createFlags = 0;
@@ -437,23 +435,18 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	);
 	if (FAILED(hr))
 		return false;
-
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
 	hr = device.As(&dxgiDevice);
 	if (FAILED(hr))
 		return false;
-
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
 	hr = dxgiDevice->GetAdapter(&adapter);
 	if (FAILED(hr))
 		return false;
-
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 	hr = adapter->GetParent(__uuidof(IDXGIFactory), &factory);
 	if (FAILED(hr))
 		return false;
-
-	// MSAA
 	UINT msaaCount = 4;
 	UINT quality = 0;
 	hr = device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality);
@@ -462,7 +455,6 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		quality = 0;
 	}
 	UINT msaaQuality = quality > 0 ? quality - 1 : 0;
-
 	HWND hwnd = CreateDx11Window(GetModuleHandleW(nullptr), 1280, 720);
 	DXGI_SWAP_CHAIN_DESC sd{};
 	sd.BufferCount = 2;
@@ -474,30 +466,24 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 	sd.Windowed = TRUE;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
 	hr = factory->CreateSwapChain(device.Get(), &sd, &swapChain);
 	if (FAILED(hr))
 		return false;
-
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv;
-
 	auto CreateRenderTargets = [&](const int w, const int h) -> bool {
 		rtv.Reset();
 		depthTex.Reset();
 		dsv.Reset();
-
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 		HRESULT hr2 = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
 			reinterpret_cast<void**>(backBuffer.GetAddressOf()));
 		if (FAILED(hr2))
 			return false;
-
 		hr2 = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv);
 		if (FAILED(hr2))
 			return false;
-
 		D3D11_TEXTURE2D_DESC dsDesc{};
 		dsDesc.Width = static_cast<UINT>(w);
 		dsDesc.Height = static_cast<UINT>(h);
@@ -508,18 +494,14 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		dsDesc.SampleDesc.Quality = msaaQuality;
 		dsDesc.Usage = D3D11_USAGE_DEFAULT;
 		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
 		hr2 = device->CreateTexture2D(&dsDesc, nullptr, &depthTex);
 		if (FAILED(hr2))
 			return false;
-
 		hr2 = device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv);
 		if (FAILED(hr2))
 			return false;
-
 		return true;
 	};
-
 	RECT rc{};
 	GetClientRect(hwnd, &rc);
 	int width = rc.right - rc.left;
@@ -528,34 +510,20 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		return false;
 	if (!CreateRenderTargets(width, height))
 		return false;
-
 	m_multiSampleCount = msaaCount;
 	m_multiSampleQuality = msaaQuality;
 	if (!Setup(device.Get()))
 		return false;
-
-	if (!cfg.cameraVmd.empty()) {
-		VMDReader camVmd;
-		if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
-			auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
-			if (!vmdCamAnim->Create(camVmd))
-				std::cout << "Failed to create VMDCameraAnimation.\n";
-			m_vmdCameraAnim = std::move(vmdCamAnim);
-		}
-	}
-
+	LoadCameraVmd(cfg);
 	std::vector<DX11Model> models;
 	models.reserve(cfg.models.size());
-
 	for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
 		DX11Model model;
-
 		const auto ext = PathUtil::GetExt(modelPath);
 		if (ext != "pmx") {
 			std::cout << "Unknown file type. [" << ext << "]\n";
 			return false;
 		}
-
 		auto pmxModel = std::make_unique<MMDModel>();
 		if (!pmxModel->Load(modelPath, m_mmdDir)) {
 			std::cout << "Failed to load pmx file.\n";
@@ -563,10 +531,8 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 		}
 		model.m_mmdModel = std::move(pmxModel);
 		model.m_mmdModel->InitializeAnimation();
-
 		auto vmdAnim = std::make_unique<VMDAnimation>();
 		vmdAnim->m_model = model.m_mmdModel;
-
 		for (const auto& vmdPath : vmdPaths) {
 			VMDReader vmd;
 			if (!vmd.ReadVMDFile(vmdPath.c_str())) {
@@ -585,11 +551,9 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
 			return false;
 		models.emplace_back(std::move(model));
 	}
-
 	auto fpsTime  = std::chrono::steady_clock::now();
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
-
     bool quit = false;
     while (true) {
     	auto PumpWin32Once = [](bool& outQuit) {
@@ -614,87 +578,41 @@ bool DX11AppContext::Run(const SceneConfig& cfg) {
     	int newH = newRc.bottom - newRc.top;
         if (newW <= 0 || newH <= 0)
         	continue;
-
         if (newW != width || newH != height) {
             width = newW; height = newH;
             rtv.Reset();
             dsv.Reset();
             depthTex.Reset();
-
 			swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
             if (!CreateRenderTargets(width, height))
             	return false;
         }
-
-        auto now = std::chrono::steady_clock::now();
-        double elapsed = std::chrono::duration<double>(now - saveTime).count();
-        if (elapsed > 1.0 / 30.0) elapsed = 1.0 / 30.0;
-        saveTime = now;
-
-        auto dt = static_cast<float>(elapsed);
-        float t  = m_animTime + dt;
-
-        if (music.HasMusic()) {
-            auto [adt, at] = music.PullTimes();
-            if (adt < 0.f) adt = 0.f;
-            dt = adt;
-            t  = at;
-        }
-
-        m_elapsed  = dt;
-        m_animTime = t;
-        m_screenWidth  = width;
-        m_screenHeight = height;
-
+    	StepTime(music, saveTime);
+    	UpdateCamera(width, height);
         D3D11_VIEWPORT vp{};
         vp.Width = static_cast<float>(width);
         vp.Height = static_cast<float>(height);
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         context->RSSetViewports(1, &vp);
-
         ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
         context->OMSetRenderTargets(1, rtvs, dsv.Get());
-
         float clearColor[] = { 0.839f, 0.902f, 0.961f, 1.0f };
         context->ClearRenderTargetView(rtv.Get(), clearColor);
         context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-        if (m_vmdCameraAnim) {
-            m_vmdCameraAnim->Evaluate(m_animTime * 30.0f);
-            const auto mmdCam = m_vmdCameraAnim->m_camera;
-            m_viewMat = mmdCam.GetViewMatrix();
-            m_projMat = glm::perspectiveFovRH(
-                mmdCam.m_fov, static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f
-            );
-        } else {
-            m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
-            m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
-                static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-        }
-
     	m_renderTargetView = rtv;
     	m_depthStencilView = dsv;
-
         for (auto& model : models) {
             model.UpdateAnimation(*this);
             model.Update();
             model.Draw(*this);
-
         	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
         	HRESULT hrCL = model.m_context->FinishCommandList(FALSE, &cmd);
         	if (SUCCEEDED(hrCL) && cmd)
 		        context->ExecuteCommandList(cmd.Get(), FALSE);
         }
         swapChain->Present(0, 0);
-
-        fpsFrame++;
-        double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-        if (sec > 1.0) {
-            std::cout << (fpsFrame / sec) << " fps\n";
-            fpsFrame = 0;
-            fpsTime = std::chrono::steady_clock::now();
-        }
+    	TickFps(fpsTime, fpsFrame);
     }
     models.clear();
     return true;

@@ -7,9 +7,6 @@
 
 struct GLFWAppContext;
 
-GLuint CreateShader(GLenum shaderType, const std::string &code);
-GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile);
-
 struct GLFWShader {
     ~GLFWShader();
 

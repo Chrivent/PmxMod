@@ -8,6 +8,7 @@
 
 #include "../src/VMDAnimation.h"
 
+struct MusicUtil;
 struct SceneConfig;
 struct MMDMaterial;
 class MMDModel;
@@ -28,6 +29,11 @@ struct AppContext {
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
 
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
+    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
+
+    void LoadCameraVmd(const SceneConfig& cfg);
+    void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
+    void UpdateCamera(int width, int height);
 };
 
 struct Model {

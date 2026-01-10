@@ -11,34 +11,33 @@
 #include <fstream>
 #include <ranges>
 
-GLuint CreateShader(const GLenum shaderType, const std::string& code) {
-	const GLuint shader = glCreateShader(shaderType);
-	if (!shader) {
-		std::cout << "Failed to create shader_GLFW.\n";
-		return 0;
-	}
-	const char* codes = code.c_str();
-	const auto codesLen = static_cast<GLint>(code.size());
-	glShaderSource(shader, 1, &codes, &codesLen);
-	glCompileShader(shader);
-	GLint compileStatus = GL_FALSE, infoLength = 0;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength > 1) {
-		std::string log(static_cast<size_t>(infoLength), '\0');
-		GLsizei len = 0;
-		glGetShaderInfoLog(shader, infoLength, &len, log.data());
-		std::cout << log.c_str() << "\n";
-	}
-	if (compileStatus != GL_TRUE) {
-		glDeleteShader(shader);
-		std::cout << "Failed to compile shader_GLFW.\n";
-		return 0;
-	}
-	return shader;
-}
-
 GLuint CreateShaderProgram(const std::filesystem::path& vsFile, const std::filesystem::path& fsFile) {
+	auto CreateShader = [](const GLenum shaderType, const std::string& code) -> GLuint {
+		const GLuint shader = glCreateShader(shaderType);
+		if (!shader) {
+			std::cout << "Failed to create shader_GLFW.\n";
+			return 0;
+		}
+		const char* codes = code.c_str();
+		const auto codesLen = static_cast<GLint>(code.size());
+		glShaderSource(shader, 1, &codes, &codesLen);
+		glCompileShader(shader);
+		GLint compileStatus = GL_FALSE, infoLength = 0;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
+		if (infoLength > 1) {
+			std::string log(static_cast<size_t>(infoLength), '\0');
+			GLsizei len = 0;
+			glGetShaderInfoLog(shader, infoLength, &len, log.data());
+			std::cout << log.c_str() << "\n";
+		}
+		if (compileStatus != GL_TRUE) {
+			glDeleteShader(shader);
+			std::cout << "Failed to compile shader_GLFW.\n";
+			return 0;
+		}
+		return shader;
+	};
 	std::ifstream vf(vsFile);
 	if (!vf) {
 		std::cout << "Failed to open shader_GLFW file. [" << vsFile << "].\n";
@@ -147,6 +146,7 @@ bool GLFWEdgeShader::Setup(const GLFWAppContext& appContext) {
 		appContext.m_shaderDir / "mmd_edge.vert",
 		appContext.m_shaderDir / "mmd_edge.frag"
 	);
+
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -270,15 +270,7 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		glfwTerminate();
 		return false;
 	}
-	if (!cfg.cameraVmd.empty()) {
-		VMDReader camVmd;
-		if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
-			auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
-			if (!vmdCamAnim->Create(camVmd))
-				std::cout << "Failed to create VMDCameraAnimation.\n";
-			m_vmdCameraAnim = std::move(vmdCamAnim);
-		}
-	}
+	LoadCameraVmd(cfg);
 	std::vector<GLFWModel> models;
 	models.reserve(cfg.models.size());
 	for (const auto&[m_modelPath, m_vmdPaths, m_scale] : cfg.models) {
@@ -322,40 +314,12 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 	auto saveTime = std::chrono::steady_clock::now();
 	int fpsFrame  = 0;
 	while (!glfwWindowShouldClose(window)) {
-		auto now = std::chrono::steady_clock::now();
-		double elapsed = std::chrono::duration<double>(now - saveTime).count();
-		if (elapsed > 1.0 / 30.0)
-			elapsed = 1.0 / 30.0;
-		saveTime = now;
-		auto dt = static_cast<float>(elapsed);
-		float t  = m_animTime + dt;
-		if (music.HasMusic()) {
-			auto [adt, at] = music.PullTimes();
-			if (adt < 0.f)
-				adt = 0.f;
-			dt = adt;
-			t  = at;
-		}
-		m_elapsed  = dt;
-		m_animTime = t;
+		StepTime(music, saveTime);
 		glClearColor(0.839f, 0.902f, 0.961f, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		m_screenWidth  = width;
-		m_screenHeight = height;
-		glViewport(0, 0, width, height);
-		if (m_vmdCameraAnim) {
-			m_vmdCameraAnim->Evaluate(m_animTime * 30.0f);
-			const auto mmdCam = m_vmdCameraAnim->m_camera;
-			m_viewMat = mmdCam.GetViewMatrix();
-			m_projMat = glm::perspectiveFovRH(mmdCam.m_fov,
-			                                             static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-		} else {
-			m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
-			m_projMat = glm::perspectiveFovRH(glm::radians(30.0f),
-			                                             static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f);
-		}
+		UpdateCamera(width, height);
 		for (auto& model : models) {
 			model.UpdateAnimation(*this);
 			model.Update();
@@ -363,13 +327,7 @@ bool GLFWAppContext::Run(const SceneConfig& cfg) {
 		}
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		fpsFrame++;
-		double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-		if (sec > 1.0) {
-			std::cout << (fpsFrame / sec) << " fps\n";
-			fpsFrame = 0;
-			fpsTime = std::chrono::steady_clock::now();
-		}
+		TickFps(fpsTime, fpsFrame);
 	}
 	for (auto& model : models)
 		model.Clear();
