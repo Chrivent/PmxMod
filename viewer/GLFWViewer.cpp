@@ -10,6 +10,33 @@
 #include <fstream>
 #include <ranges>
 
+GLuint Compile(const GLenum shaderType, const std::string& code) {
+	const GLuint shader = glCreateShader(shaderType);
+	if (!shader) {
+		std::cout << "Failed to create shader_GLFW.\n";
+		return 0;
+	}
+	const char* codes = code.c_str();
+	const auto codesLen = static_cast<GLint>(code.size());
+	glShaderSource(shader, 1, &codes, &codesLen);
+	glCompileShader(shader);
+	GLint compileStatus = GL_FALSE, infoLength = 0;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
+	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
+	if (infoLength > 1) {
+		std::string log(static_cast<size_t>(infoLength), '\0');
+		GLsizei len = 0;
+		glGetShaderInfoLog(shader, infoLength, &len, log.data());
+		std::cout << log.c_str() << "\n";
+	}
+	if (compileStatus != GL_TRUE) {
+		glDeleteShader(shader);
+		std::cout << "Failed to compile shader_GLFW.\n";
+		return 0;
+	}
+	return shader;
+}
+
 GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
 	GLuint b = 0;
 	glGenBuffers(1, &b);
@@ -81,32 +108,6 @@ void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
 }
 
 GLuint CreateShader(const std::filesystem::path& file) {
-	auto Compile = [](const GLenum shaderType, const std::string& code) -> GLuint {
-		const GLuint shader = glCreateShader(shaderType);
-		if (!shader) {
-			std::cout << "Failed to create shader_GLFW.\n";
-			return 0;
-		}
-		const char* codes = code.c_str();
-		const auto codesLen = static_cast<GLint>(code.size());
-		glShaderSource(shader, 1, &codes, &codesLen);
-		glCompileShader(shader);
-		GLint compileStatus = GL_FALSE, infoLength = 0;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-		if (infoLength > 1) {
-			std::string log(static_cast<size_t>(infoLength), '\0');
-			GLsizei len = 0;
-			glGetShaderInfoLog(shader, infoLength, &len, log.data());
-			std::cout << log.c_str() << "\n";
-		}
-		if (compileStatus != GL_TRUE) {
-			glDeleteShader(shader);
-			std::cout << "Failed to compile shader_GLFW.\n";
-			return 0;
-		}
-		return shader;
-	};
 	std::ifstream f(file);
 	if (!f) {
 		std::cout << "Failed to open shader file. [" << file << "].\n";

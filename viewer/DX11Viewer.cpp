@@ -13,7 +13,19 @@
 #include <iostream>
 #include <ranges>
 
-inline D3D11_SAMPLER_DESC MakeSamplerDesc(
+bool CompileShader(const std::filesystem::path& p, const char* entry, const char* target, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) {
+	Microsoft::WRL::ComPtr<ID3DBlob> err;
+	if (FAILED(D3DCompileFromFile(p.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		entry, target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+		&outBlob, &err))) {
+		if (err)
+			std::cout << "Compile Error: " << static_cast<char*>(err->GetBufferPointer()) << "\n";
+		return false;
+	}
+	return true;
+}
+
+D3D11_SAMPLER_DESC MakeSamplerDesc(
     const D3D11_FILTER filter,
     const D3D11_TEXTURE_ADDRESS_MODE addrU,
     const D3D11_TEXTURE_ADDRESS_MODE addrV,
@@ -430,12 +442,20 @@ bool DX11Viewer::Setup() {
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	if (FAILED(factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain)))
 		return false;
-	if (!CreateRenderTargets(m_screenWidth, m_screenHeight)) {
+	if (!CreateRenderTargets()) {
 		glfwTerminate();
 		return false;
 	}
 	InitDirs("shader_DX11");
 	if (!CreateShaders()) {
+		glfwTerminate();
+		return false;
+	}
+	if (!CreatePipelineStates()) {
+		glfwTerminate();
+		return false;
+	}
+	if (!CreateDummyResources()) {
 		glfwTerminate();
 		return false;
 	}
@@ -448,7 +468,7 @@ bool DX11Viewer::Resize() {
 	m_depthTex.Reset();
 	if (FAILED(m_swapChain->ResizeBuffers(0, m_screenWidth, m_screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 		return false;
-	if (!CreateRenderTargets(m_screenWidth, m_screenHeight))
+	if (!CreateRenderTargets())
 		return false;
 	D3D11_VIEWPORT vp{};
 	vp.Width = static_cast<float>(m_screenWidth);
@@ -528,29 +548,17 @@ bool DX11Viewer::CreateShaders() {
 			mmdVSBlob, mmdPSBlob,
 			mmdEdgeVSBlob, mmdEdgePSBlob,
 			mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
-	auto Compile = [&](const std::filesystem::path& p, const char* entry, const char* target,
-				   Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) -> bool {
-		Microsoft::WRL::ComPtr<ID3DBlob> err;
-		if (FAILED(D3DCompileFromFile(p.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entry, target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-			&outBlob, &err))) {
-			if (err)
-				std::cout << "Compile Error: " << static_cast<char*>(err->GetBufferPointer()) << "\n";
-			return false;
-		}
-		return true;
-	};
-	if (!Compile(m_shaderDir / "mmd.hlsl", "VSMain", "vs_5_0", mmdVSBlob))
+	if (!CompileShader(m_shaderDir / "mmd.hlsl", "VSMain", "vs_5_0", mmdVSBlob))
 		return false;
-	if (!Compile(m_shaderDir / "mmd.hlsl", "PSMain", "ps_5_0", mmdPSBlob))
+	if (!CompileShader(m_shaderDir / "mmd.hlsl", "PSMain", "ps_5_0", mmdPSBlob))
 		return false;
-	if (!Compile(m_shaderDir / "mmd_edge.hlsl", "VSMain", "vs_5_0", mmdEdgeVSBlob))
+	if (!CompileShader(m_shaderDir / "mmd_edge.hlsl", "VSMain", "vs_5_0", mmdEdgeVSBlob))
 		return false;
-	if (!Compile(m_shaderDir / "mmd_edge.hlsl", "PSMain", "ps_5_0", mmdEdgePSBlob))
+	if (!CompileShader(m_shaderDir / "mmd_edge.hlsl", "PSMain", "ps_5_0", mmdEdgePSBlob))
 		return false;
-	if (!Compile(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", "vs_5_0", mmdGroundShadowVSBlob))
+	if (!CompileShader(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", "vs_5_0", mmdGroundShadowVSBlob))
 		return false;
-	if (!Compile(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", "ps_5_0", mmdGroundShadowPSBlob))
+	if (!CompileShader(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", "ps_5_0", mmdGroundShadowPSBlob))
 		return false;
 	if (FAILED(m_device->CreateVertexShader(
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
@@ -560,16 +568,6 @@ bool DX11Viewer::CreateShaders() {
 		mmdPSBlob->GetBufferPointer(), mmdPSBlob->GetBufferSize(),
 		nullptr, &m_mmdPS)))
 		return false;
-	D3D11_INPUT_ELEMENT_DESC mmdInputElementDesc[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	if (FAILED(m_device->CreateInputLayout(
-		mmdInputElementDesc, 3,
-		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
-		&m_mmdInputLayout)))
-		return false;
 	if (FAILED(m_device->CreateVertexShader(
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgeVS)))
@@ -577,15 +575,6 @@ bool DX11Viewer::CreateShaders() {
 	if (FAILED(m_device->CreatePixelShader(
 		mmdEdgePSBlob->GetBufferPointer(), mmdEdgePSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgePS)))
-		return false;
-	D3D11_INPUT_ELEMENT_DESC mmdEdgeInputElementDesc[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	if (FAILED(m_device->CreateInputLayout(
-		mmdEdgeInputElementDesc, 2,
-		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
-		&m_mmdEdgeInputLayout)))
 		return false;
 	if (FAILED(m_device->CreateVertexShader(
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
@@ -595,7 +584,26 @@ bool DX11Viewer::CreateShaders() {
 		mmdGroundShadowPSBlob->GetBufferPointer(), mmdGroundShadowPSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowPS)))
 		return false;
-	D3D11_INPUT_ELEMENT_DESC mmdGroundShadowInputElementDesc[] = {
+	constexpr D3D11_INPUT_ELEMENT_DESC mmdInputElementDesc[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	if (FAILED(m_device->CreateInputLayout(
+		mmdInputElementDesc, 3,
+		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
+		&m_mmdInputLayout)))
+		return false;
+	constexpr D3D11_INPUT_ELEMENT_DESC mmdEdgeInputElementDesc[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	if (FAILED(m_device->CreateInputLayout(
+		mmdEdgeInputElementDesc, 2,
+		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
+		&m_mmdEdgeInputLayout)))
+		return false;
+	constexpr D3D11_INPUT_ELEMENT_DESC mmdGroundShadowInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	if (FAILED(m_device->CreateInputLayout(
@@ -603,6 +611,36 @@ bool DX11Viewer::CreateShaders() {
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		&m_mmdGroundShadowInputLayout)))
 		return false;
+	return true;
+}
+
+bool DX11Viewer::CreateRenderTargets() {
+	m_renderTargetView.Reset();
+	m_depthTex.Reset();
+	m_depthStencilView.Reset();
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+		return false;
+	if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
+		return false;
+	D3D11_TEXTURE2D_DESC dsDesc{};
+	dsDesc.Width = static_cast<UINT>(m_screenWidth);
+	dsDesc.Height = static_cast<UINT>(m_screenHeight);
+	dsDesc.MipLevels = 1;
+	dsDesc.ArraySize = 1;
+	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsDesc.SampleDesc.Count = m_multiSampleCount;
+	dsDesc.SampleDesc.Quality = m_multiSampleQuality;
+	dsDesc.Usage = D3D11_USAGE_DEFAULT;
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	if (FAILED(m_device->CreateTexture2D(&dsDesc, nullptr, &m_depthTex)))
+		return false;
+	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
+		return false;
+	return true;
+}
+
+bool DX11Viewer::CreatePipelineStates() {
 	auto wrapLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
 	D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
 	if (FAILED(m_device->CreateSamplerState(&wrapLinear, &m_textureSampler)))
@@ -638,6 +676,10 @@ bool DX11Viewer::CreateShaders() {
 	auto defDSS = MakeDefaultDepthStencilDesc();
 	if (FAILED(m_device->CreateDepthStencilState(&defDSS, &m_defaultDSS)))
 		return false;
+	return true;
+}
+
+bool DX11Viewer::CreateDummyResources() {
 	D3D11_TEXTURE2D_DESC tex2dDesc{};
 	tex2dDesc.Width = 1;
 	tex2dDesc.Height = 1;
@@ -651,32 +693,6 @@ bool DX11Viewer::CreateShaders() {
 	if (FAILED(m_device->CreateTexture2D(&tex2dDesc, nullptr, &m_dummyTexture)))
 		return false;
 	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
-		return false;
-	return true;
-}
-
-bool DX11Viewer::CreateRenderTargets(const int w, const int h) {
-	m_renderTargetView.Reset();
-	m_depthTex.Reset();
-	m_depthStencilView.Reset();
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
-		return false;
-	if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
-		return false;
-	D3D11_TEXTURE2D_DESC dsDesc{};
-	dsDesc.Width = static_cast<UINT>(w);
-	dsDesc.Height = static_cast<UINT>(h);
-	dsDesc.MipLevels = 1;
-	dsDesc.ArraySize = 1;
-	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dsDesc.SampleDesc.Count = m_multiSampleCount;
-	dsDesc.SampleDesc.Quality = m_multiSampleQuality;
-	dsDesc.Usage = D3D11_USAGE_DEFAULT;
-	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	if (FAILED(m_device->CreateTexture2D(&dsDesc, nullptr, &m_depthTex)))
-		return false;
-	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
 		return false;
 	return true;
 }
