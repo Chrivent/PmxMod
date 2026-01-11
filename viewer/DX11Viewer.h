@@ -127,7 +127,6 @@ struct DX11Viewer : Viewer {
     Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_dummyTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_dummyTextureView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState>			m_dummySampler;
-
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_depthTex;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
     Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
