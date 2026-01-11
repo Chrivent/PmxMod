@@ -183,7 +183,7 @@ GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 }
 
 bool GLFWModel::Setup(Viewer& viewer) {
-	auto& glfwViewer = static_cast<GLFWViewer&>(viewer);
+	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
 	if (m_mmdModel == nullptr)
 		return false;
 	// Setup vertices
@@ -297,7 +297,7 @@ void GLFWModel::Update() const {
 }
 
 void GLFWModel::Draw(Viewer& viewer) const {
-	auto& glfwViewer = static_cast<GLFWViewer&>(viewer);
+	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
 	const auto &view = viewer.m_viewMat;
 	const auto &proj = viewer.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));

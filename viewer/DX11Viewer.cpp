@@ -21,7 +21,7 @@ DX11Material::DX11Material(const MMDMaterial& mat)
 }
 
 bool DX11Model::Setup(Viewer& viewer) {
-	auto& dx11Viewer = static_cast<DX11Viewer&>(viewer);
+	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
 	if (FAILED(dx11Viewer.m_device->CreateDeferredContext(0, &m_context)))
 		return false;
 
@@ -150,7 +150,7 @@ void DX11Model::Update() const {
 }
 
 void DX11Model::Draw(Viewer& viewer) const {
-	auto& dx11Viewer = static_cast<DX11Viewer&>(viewer);
+	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
 	const auto& view = viewer.m_viewMat;
 	const auto& proj = viewer.m_projMat;
 	const auto& dxMat = glm::mat4(
@@ -376,7 +376,7 @@ bool DX11Viewer::Run(const SceneConfig& cfg) {
 		glfwTerminate();
 		return false;
 	}
-	const HWND hwnd = glfwGetWin32Window(window);
+	HWND__* hwnd = glfwGetWin32Window(window);
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 	D3D_FEATURE_LEVEL featureLevel;
@@ -506,7 +506,7 @@ bool DX11Viewer::Run(const SceneConfig& cfg) {
 			model->UpdateAnimation(*this);
 			model->Update();
 			model->Draw(*this);
-			const auto& dx11Model = static_cast<DX11Model&>(*model);
+			const auto& dx11Model = dynamic_cast<DX11Model&>(*model);
 			Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
 			if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
 				context->ExecuteCommandList(cmd.Get(), FALSE);
