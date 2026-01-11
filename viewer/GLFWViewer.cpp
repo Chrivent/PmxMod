@@ -15,7 +15,6 @@ GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, co
 	glGenBuffers(1, &b);
 	glBindBuffer(target, b);
 	glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
-	glBindBuffer(target, 0);
 	return b;
 }
 
@@ -37,7 +36,6 @@ GLuint CreateVAO_PosNorUV(const GLuint posVBO, const GLuint norVBO, const GLuint
 	SetupAttrib(inUV, 2, GL_FLOAT, sizeof(glm::vec2), nullptr);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vao;
 }
 
@@ -52,7 +50,6 @@ GLuint CreateVAO_PosNor(const GLuint posVBO, const GLuint norVBO, const GLuint i
 	SetupAttrib(inNor, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vao;
 }
 
@@ -64,7 +61,6 @@ GLuint CreateVAO_Pos(const GLuint posVBO, const GLuint ibo, const GLint inPos) {
 	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vao;
 }
 
@@ -77,26 +73,6 @@ void BindDummyShadow4(const GLuint depthTex) {
 	glBindTexture(GL_TEXTURE_2D, depthTex);
 	glActiveTexture(GL_TEXTURE0 + 6);
 	glBindTexture(GL_TEXTURE_2D, depthTex);
-}
-
-void UnbindDummyShadow4() {
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void UnbindMaterialTex012() {
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
@@ -430,10 +406,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		glUniform1i(shader->m_uShadowMap3, 6);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
-		UnbindMaterialTex012();
-		glUseProgram(0);
 	}
-	UnbindDummyShadow4();
 	// Draw edge
 	glm::vec2 screenSize(viewer.m_screenWidth, viewer.m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
@@ -607,10 +580,8 @@ GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	stbi_image_free(image);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

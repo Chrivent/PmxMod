@@ -73,8 +73,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
 }
 
 unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
-    if (flipY)
-        stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(flipY);
     stbi_uc* image = nullptr;
     x = y = comp = 0;
     FILE* fp = nullptr;
@@ -82,8 +81,6 @@ unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, i
         return nullptr;
     image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
     std::fclose(fp);
-    if (flipY)
-        stbi_set_flip_vertically_on_load(false);
     return image;
 }
 
