@@ -12,72 +12,32 @@
 #include <d3dcompiler.h>
 #include <iostream>
 
-bool CompileShader(const std::filesystem::path& p, const char* entry, const char* target, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) {
-	Microsoft::WRL::ComPtr<ID3DBlob> err;
-	if (FAILED(D3DCompileFromFile(p.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		entry, target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&outBlob, &err))) {
-		if (err)
-			std::cout << "Compile Error: " << static_cast<char*>(err->GetBufferPointer()) << "\n";
-		return false;
-	}
-	return true;
+D3D11_SAMPLER_DESC Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
+	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
+	d.Filter = f;
+	d.AddressU = d.AddressV = d.AddressW = addr;
+	return d;
 }
 
-D3D11_SAMPLER_DESC MakeSamplerDesc(
-    const D3D11_FILTER filter,
-    const D3D11_TEXTURE_ADDRESS_MODE addrU,
-    const D3D11_TEXTURE_ADDRESS_MODE addrV,
-    const D3D11_TEXTURE_ADDRESS_MODE addrW) {
-    D3D11_SAMPLER_DESC d;
-    d.Filter = filter;
-    d.AddressU = addrU;
-    d.AddressV = addrV;
-    d.AddressW = addrW;
-    d.MipLODBias = 0.0f;
-    d.MaxAnisotropy = 0;
-    d.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    d.BorderColor[0] = d.BorderColor[1] = d.BorderColor[2] = d.BorderColor[3] = 0.0f;
-    d.MinLOD = 0.0f;
-    d.MaxLOD = D3D11_FLOAT32_MAX;
-    return d;
+D3D11_RASTERIZER_DESC Raster(const D3D11_CULL_MODE cull, const bool frontCCW) {
+	CD3D11_RASTERIZER_DESC d(D3D11_DEFAULT);
+	d.CullMode = cull;
+	d.FrontCounterClockwise = frontCCW;
+	d.MultisampleEnable = TRUE;
+	return d;
 }
 
-D3D11_BLEND_DESC MakeAlphaBlendDesc() {
-    D3D11_BLEND_DESC d;
-    d.AlphaToCoverageEnable = FALSE;
-    d.IndependentBlendEnable = FALSE;
-    auto& [BlendEnable, SrcBlend, DestBlend, BlendOp,
-    	SrcBlendAlpha, DestBlendAlpha, BlendOpAlpha, RenderTargetWriteMask] = d.RenderTarget[0];
-    BlendEnable = TRUE;
-    SrcBlend = D3D11_BLEND_SRC_ALPHA;
-    DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-    BlendOp = D3D11_BLEND_OP_ADD;
-    SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-    DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-    BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    return d;
-}
-
-D3D11_RASTERIZER_DESC MakeRasterDesc(
-    const D3D11_CULL_MODE cull,
-    const bool frontCCW,
-    const int depthBias = 0,
-    const float slopeScaledDepthBias = 0.0f,
-    const float depthBiasClamp = 0.0f) {
-    D3D11_RASTERIZER_DESC d;
-    d.FillMode = D3D11_FILL_SOLID;
-    d.CullMode = cull;
-    d.FrontCounterClockwise = frontCCW ? TRUE : FALSE;
-    d.DepthBias = depthBias;
-    d.SlopeScaledDepthBias = slopeScaledDepthBias;
-    d.DepthBiasClamp = depthBiasClamp;
-    d.DepthClipEnable = TRUE;
-    d.ScissorEnable = FALSE;
-    d.MultisampleEnable = TRUE;
-    d.AntialiasedLineEnable = FALSE;
-    return d;
+D3D11_BLEND_DESC AlphaBlend() {
+	CD3D11_BLEND_DESC d(D3D11_DEFAULT);
+	d.RenderTarget[0].BlendEnable = TRUE;
+	d.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	d.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	d.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	d.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+	d.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	d.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	d.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	return d;
 }
 
 D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
@@ -538,46 +498,39 @@ DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {
 	return m_textures[texturePath];
 }
 
+bool DX11Viewer::MakeVS(const std::filesystem::path& f, const char* entry,
+	Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVS, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const {
+	if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		entry, "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBlob, nullptr)))
+		return false;
+	if (FAILED(m_device->CreateVertexShader(outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVS)))
+		return false;
+	return true;
+}
+
+bool DX11Viewer::MakePS(const std::filesystem::path& f, const char* entry, Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPS) const {
+	Microsoft::WRL::ComPtr<ID3DBlob> blob;
+	if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		entry, "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &blob, nullptr)))
+		return false;
+	if (FAILED(m_device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPS)))
+		return false;
+	return true;
+}
+
 bool DX11Viewer::CreateShaders() {
-	Microsoft::WRL::ComPtr<ID3DBlob>
-			mmdVSBlob, mmdPSBlob,
-			mmdEdgeVSBlob, mmdEdgePSBlob,
-			mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
-	if (!CompileShader(m_shaderDir / "mmd.hlsl", "VSMain", "vs_5_0", mmdVSBlob))
+	Microsoft::WRL::ComPtr<ID3DBlob> mmdVSBlob, mmdEdgeVSBlob, mmdGroundShadowVSBlob;
+	if (!MakeVS(m_shaderDir / "mmd.hlsl", "VSMain", m_mmdVS, mmdVSBlob))
 		return false;
-	if (!CompileShader(m_shaderDir / "mmd.hlsl", "PSMain", "ps_5_0", mmdPSBlob))
+	if (!MakeVS(m_shaderDir / "mmd_edge.hlsl", "VSMain", m_mmdEdgeVS, mmdEdgeVSBlob))
 		return false;
-	if (!CompileShader(m_shaderDir / "mmd_edge.hlsl", "VSMain", "vs_5_0", mmdEdgeVSBlob))
+	if (!MakeVS(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", m_mmdGroundShadowVS, mmdGroundShadowVSBlob))
 		return false;
-	if (!CompileShader(m_shaderDir / "mmd_edge.hlsl", "PSMain", "ps_5_0", mmdEdgePSBlob))
+	if (!MakePS(m_shaderDir / "mmd.hlsl", "PSMain", m_mmdPS))
 		return false;
-	if (!CompileShader(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", "vs_5_0", mmdGroundShadowVSBlob))
+	if (!MakePS(m_shaderDir / "mmd_edge.hlsl", "PSMain", m_mmdEdgePS))
 		return false;
-	if (!CompileShader(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", "ps_5_0", mmdGroundShadowPSBlob))
-		return false;
-	if (FAILED(m_device->CreateVertexShader(
-		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
-		nullptr, &m_mmdVS)))
-		return false;
-	if (FAILED(m_device->CreatePixelShader(
-		mmdPSBlob->GetBufferPointer(), mmdPSBlob->GetBufferSize(),
-		nullptr, &m_mmdPS)))
-		return false;
-	if (FAILED(m_device->CreateVertexShader(
-		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
-		nullptr, &m_mmdEdgeVS)))
-		return false;
-	if (FAILED(m_device->CreatePixelShader(
-		mmdEdgePSBlob->GetBufferPointer(), mmdEdgePSBlob->GetBufferSize(),
-		nullptr, &m_mmdEdgePS)))
-		return false;
-	if (FAILED(m_device->CreateVertexShader(
-		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
-		nullptr, &m_mmdGroundShadowVS)))
-		return false;
-	if (FAILED(m_device->CreatePixelShader(
-		mmdGroundShadowPSBlob->GetBufferPointer(), mmdGroundShadowPSBlob->GetBufferSize(),
-		nullptr, &m_mmdGroundShadowPS)))
+	if (!MakePS(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", m_mmdGroundShadowPS))
 		return false;
 	constexpr D3D11_INPUT_ELEMENT_DESC mmdInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -636,33 +589,34 @@ bool DX11Viewer::CreateRenderTargets() {
 }
 
 bool DX11Viewer::CreatePipelineStates() {
-	auto wrapLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
-	D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+	auto wrapLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 	if (FAILED(m_device->CreateSamplerState(&wrapLinear, &m_textureSampler)))
 		return false;
 	m_sphereTextureSampler = m_textureSampler;
 	m_dummySampler = m_textureSampler;
-	auto clampLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP,
-		D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
+	auto clampLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 	if (FAILED(m_device->CreateSamplerState(&clampLinear, &m_toonTextureSampler)))
 		return false;
-	auto blend = MakeAlphaBlendDesc();
+	auto blend = AlphaBlend();
 	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdBlendState)))
 		return false;
 	m_mmdEdgeBlendState = m_mmdBlendState;
 	m_mmdGroundShadowBlendState = m_mmdBlendState;
-	auto frontRsDesc = MakeRasterDesc(D3D11_CULL_BACK, true);
+	auto frontRsDesc = Raster(D3D11_CULL_BACK, true);
 	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
 		return false;
-	auto bothRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true);
+	auto bothRsDesc = Raster(D3D11_CULL_NONE, true);
 	if (FAILED(m_device->CreateRasterizerState(&bothRsDesc, &m_mmdBothFaceRS)))
 		return false;
-	auto edgeRsDesc = MakeRasterDesc(D3D11_CULL_FRONT, true);
-	edgeRsDesc.DepthClipEnable = FALSE;
+	auto edgeRsDesc = Raster(D3D11_CULL_FRONT, true);
+	edgeRsDesc.DepthClipEnable = FALSE; // 기존 로직 유지
 	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_mmdEdgeRS)))
 		return false;
-	auto groundShadowRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true, -1, -1.0f, -1.0f);
+	auto groundShadowRsDesc = Raster(D3D11_CULL_NONE, true);
 	groundShadowRsDesc.DepthClipEnable = FALSE;
+	groundShadowRsDesc.DepthBias = -1;
+	groundShadowRsDesc.SlopeScaledDepthBias = -1.0f;
+	groundShadowRsDesc.DepthBiasClamp = -1.0f;
 	if (FAILED(m_device->CreateRasterizerState(&groundShadowRsDesc, &m_mmdGroundShadowRS)))
 		return false;
 	auto gsDSS = MakeGroundShadowDepthStencilDesc();
