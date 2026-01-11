@@ -436,8 +436,6 @@ bool DX11Viewer::Setup() {
 	sd.SampleDesc.Count = m_multiSampleCount;
 	sd.SampleDesc.Quality = m_multiSampleQuality;
 	sd.Windowed = TRUE;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	if (FAILED(factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain)))
 		return false;
 	if (!CreateRenderTargets()) {
