@@ -65,12 +65,9 @@ D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
 
 template<class T>
 HRESULT CreateConstBuffer(ID3D11Device* dev, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
-	D3D11_BUFFER_DESC bd{};
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = static_cast<UINT>(sizeof(T) + 15 & ~15);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
-	return dev->CreateBuffer(&bd, nullptr, &out);
+	const UINT bytes = static_cast<UINT>((sizeof(T) + 15u) & ~15u);
+	const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
+	return dev->CreateBuffer(&desc, nullptr, out.GetAddressOf());
 }
 
 void BindOrDummyPS(
