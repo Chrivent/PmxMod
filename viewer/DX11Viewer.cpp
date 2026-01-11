@@ -550,9 +550,6 @@ bool DX11Viewer::CreateShaders() {
 }
 
 bool DX11Viewer::CreateRenderTargets() {
-	m_renderTargetView.Reset();
-	m_depthTex.Reset();
-	m_depthStencilView.Reset();
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
 		return false;
