@@ -454,7 +454,6 @@ void GLFWModel::Draw(Viewer& viewer) const {
 	shadow[3][1] = -plane.w * light.y;
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
-	auto wsvp = proj * view * shadow * world;
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
@@ -475,7 +474,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			continue;
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdGroundShadowVAO);
-		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wsvp[0][0]);
+		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
