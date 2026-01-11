@@ -10,6 +10,100 @@
 #include <fstream>
 #include <ranges>
 
+GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
+	GLuint b = 0;
+	glGenBuffers(1, &b);
+	glBindBuffer(target, b);
+	glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
+	glBindBuffer(target, 0);
+	return b;
+}
+
+void SetupAttrib(const GLint loc, const GLint size, const GLenum type, const GLsizei stride, const void* offset) {
+	glVertexAttribPointer(loc, size, type, GL_FALSE, stride, offset);
+	glEnableVertexAttribArray(loc);
+}
+
+GLuint CreateVAO_PosNorUV(const GLuint posVBO, const GLuint norVBO, const GLuint uvVBO, const GLuint ibo,
+	const GLint inPos, const GLint inNor, const GLint inUV) {
+	GLuint vao = 0;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
+	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, norVBO);
+	SetupAttrib(inNor, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, uvVBO);
+	SetupAttrib(inUV, 2, GL_FLOAT, sizeof(glm::vec2), nullptr);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return vao;
+}
+
+GLuint CreateVAO_PosNor(const GLuint posVBO, const GLuint norVBO, const GLuint ibo,
+	const GLint inPos, const GLint inNor) {
+	GLuint vao = 0;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
+	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, norVBO);
+	SetupAttrib(inNor, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return vao;
+}
+
+GLuint CreateVAO_Pos(const GLuint posVBO, const GLuint ibo, const GLint inPos) {
+	GLuint vao = 0;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
+	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return vao;
+}
+
+void BindDummyShadow4(const GLuint depthTex) {
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_2D, depthTex);
+	glActiveTexture(GL_TEXTURE0 + 4);
+	glBindTexture(GL_TEXTURE_2D, depthTex);
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_2D, depthTex);
+	glActiveTexture(GL_TEXTURE0 + 6);
+	glBindTexture(GL_TEXTURE_2D, depthTex);
+}
+
+void UnbindDummyShadow4() {
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + 4);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + 5);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + 6);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void UnbindMaterialTex012() {
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(size), src);
+}
+
 GLuint CreateShader(const std::filesystem::path& file) {
 	auto Compile = [](const GLenum shaderType, const std::string& code) -> GLuint {
 		const GLuint shader = glCreateShader(shaderType);
@@ -188,24 +282,12 @@ bool GLFWModel::Setup(Viewer& viewer) {
 		return false;
 	// Setup vertices
 	const size_t vtxCount = m_mmdModel->m_positions.size();
-	glGenBuffers(1, &m_posVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glGenBuffers(1, &m_norVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glGenBuffers(1, &m_uvVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount), nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	m_posVBO = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	m_norVBO = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	m_uvVBO  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	const size_t idxSize = m_mmdModel->m_indexElementSize;
 	const size_t idxCount = m_mmdModel->m_indexCount;
-	glGenBuffers(1, &m_ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(idxSize * idxCount), &m_mmdModel->m_indices[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	m_ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_mmdModel->m_indices.data(), GL_STATIC_DRAW);
 	if (idxSize == 1)
 		m_indexType = GL_UNSIGNED_BYTE;
 	else if (idxSize == 2)
@@ -214,43 +296,11 @@ bool GLFWModel::Setup(Viewer& viewer) {
 		m_indexType = GL_UNSIGNED_INT;
 	else
 		return false;
-	// Setup MMD VAO
-	glGenVertexArrays(1, &m_mmdVAO);
-	glBindVertexArray(m_mmdVAO);
-	const auto &mmdShader = glfwViewer.m_shader;
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-	glEnableVertexAttribArray(mmdShader->m_inPos);
-	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glVertexAttribPointer(mmdShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-	glEnableVertexAttribArray(mmdShader->m_inNor);
-	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glVertexAttribPointer(mmdShader->m_inUV, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
-	glEnableVertexAttribArray(mmdShader->m_inUV);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBindVertexArray(0);
-	// Setup MMD Edge VAO
-	glGenVertexArrays(1, &m_mmdEdgeVAO);
-	glBindVertexArray(m_mmdEdgeVAO);
-	const auto &mmdEdgeShader = glfwViewer.m_edgeShader;
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdEdgeShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-	glEnableVertexAttribArray(mmdEdgeShader->m_inPos);
-	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glVertexAttribPointer(mmdEdgeShader->m_inNor, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-	glEnableVertexAttribArray(mmdEdgeShader->m_inNor);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBindVertexArray(0);
-	// Setup MMD Ground Shadow VAO
-	glGenVertexArrays(1, &m_mmdGroundShadowVAO);
-	glBindVertexArray(m_mmdGroundShadowVAO);
-	const auto &mmdGroundShadowShader = glfwViewer.m_groundShadowShader;
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glVertexAttribPointer(mmdGroundShadowShader->m_inPos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-	glEnableVertexAttribArray(mmdGroundShadowShader->m_inPos);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-	glBindVertexArray(0);
-	// Setup materials
+	m_mmdVAO = CreateVAO_PosNorUV(m_posVBO, m_norVBO, m_uvVBO, m_ibo,
+	glfwViewer.m_shader->m_inPos, glfwViewer.m_shader->m_inNor, glfwViewer.m_shader->m_inUV);
+	m_mmdEdgeVAO = CreateVAO_PosNor(m_posVBO, m_norVBO, m_ibo,
+		glfwViewer.m_edgeShader->m_inPos, glfwViewer.m_edgeShader->m_inNor);
+	m_mmdGroundShadowVAO = CreateVAO_Pos(m_posVBO, m_ibo, glfwViewer.m_groundShadowShader->m_inPos);
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
@@ -268,49 +318,41 @@ bool GLFWModel::Setup(Viewer& viewer) {
 }
 
 void GLFWModel::Clear() {
-	if (m_posVBO != 0) glDeleteBuffers(1, &m_posVBO);
-	if (m_norVBO != 0) glDeleteBuffers(1, &m_norVBO);
-	if (m_uvVBO != 0) glDeleteBuffers(1, &m_uvVBO);
-	if (m_ibo != 0) glDeleteBuffers(1, &m_ibo);
-	m_posVBO = 0;
-	m_norVBO = 0;
-	m_uvVBO = 0;
-	m_ibo = 0;
-	if (m_mmdVAO != 0) glDeleteVertexArrays(1, &m_mmdVAO);
-	if (m_mmdEdgeVAO != 0) glDeleteVertexArrays(1, &m_mmdEdgeVAO);
-	if (m_mmdGroundShadowVAO != 0) glDeleteVertexArrays(1, &m_mmdGroundShadowVAO);
-	m_mmdVAO = 0;
-	m_mmdEdgeVAO = 0;
-	m_mmdGroundShadowVAO = 0;
+	if (m_posVBO != 0)
+		glDeleteBuffers(1, &m_posVBO);
+	if (m_norVBO != 0)
+		glDeleteBuffers(1, &m_norVBO);
+	if (m_uvVBO != 0)
+		glDeleteBuffers(1, &m_uvVBO);
+	if (m_ibo != 0)
+		glDeleteBuffers(1, &m_ibo);
+	m_posVBO = m_norVBO = m_uvVBO = m_ibo = 0;
+	if (m_mmdVAO != 0)
+		glDeleteVertexArrays(1, &m_mmdVAO);
+	if (m_mmdEdgeVAO != 0)
+		glDeleteVertexArrays(1, &m_mmdEdgeVAO);
+	if (m_mmdGroundShadowVAO != 0)
+		glDeleteVertexArrays(1, &m_mmdGroundShadowVAO);
+	m_mmdVAO = m_mmdEdgeVAO = m_mmdGroundShadowVAO = 0;
 }
 
 void GLFWModel::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
-	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), m_mmdModel->m_updatePositions.data());
-	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount), m_mmdModel->m_updateNormals.data());
-	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount), m_mmdModel->m_updateUVs.data());
+	UpdateDynamicBuffer(m_posVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
+	UpdateDynamicBuffer(m_norVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updateNormals.data());
+	UpdateDynamicBuffer(m_uvVBO,  sizeof(glm::vec2) * vtxCount, m_mmdModel->m_updateUVs.data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GLFWModel::Draw(Viewer& viewer) const {
 	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
-	const auto &view = viewer.m_viewMat;
-	const auto &proj = viewer.m_projMat;
+	const auto& view = viewer.m_viewMat;
+	const auto& proj = viewer.m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
-	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
-	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyShadowDepthTex);
+	BindDummyShadow4(glfwViewer.m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
 	// Draw model
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
@@ -363,8 +405,6 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mmdMat.m_toonTextureAddFactor[0]);
 			glUniform1i(shader->m_uToonTexMode, 1);
 			glBindTexture(GL_TEXTURE_2D, mat.m_toonTexture);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
@@ -389,23 +429,11 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		glUniform1i(shader->m_uShadowMap2, 5);
 		glUniform1i(shader->m_uShadowMap3, 6);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glActiveTexture(GL_TEXTURE0 + 1);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glActiveTexture(GL_TEXTURE0 + 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		UnbindMaterialTex012();
 		glUseProgram(0);
 	}
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	UnbindDummyShadow4();
 	// Draw edge
 	glm::vec2 screenSize(viewer.m_screenWidth, viewer.m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
@@ -428,7 +456,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
+		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
@@ -477,7 +505,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid *>(offset));
+		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
@@ -585,6 +613,8 @@ GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
 	return m_textures[texturePath];

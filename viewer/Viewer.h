@@ -67,8 +67,8 @@ struct Viewer {
     virtual void BeginFrame() = 0;
     virtual bool EndFrame() = 0;
     virtual void AfterModelDraw(Model& model) {}
-
     virtual std::unique_ptr<Model> CreateModel() const = 0;
+
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     bool LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models);
