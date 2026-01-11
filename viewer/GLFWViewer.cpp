@@ -6,7 +6,6 @@
 
 #include "../external/stb_image.h"
 
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
 #include <ranges>
@@ -503,91 +502,41 @@ GLFWViewer::~GLFWViewer() {
 	m_vmdCameraAnim.reset();
 }
 
-bool GLFWViewer::Run(const SceneConfig& cfg) {
-	MusicUtil music;
-	music.Init(cfg.musicPath);
-	if (!glfwInit())
-		return false;
+void GLFWViewer::ConfigureGlfwHints() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, m_msaaSamples);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
-	if (!window) {
-		glfwTerminate();
-		return false;
-	}
-	glfwMakeContextCurrent(window);
+}
+
+bool GLFWViewer::Setup() {
+	glfwMakeContextCurrent(m_window);
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
 		glfwTerminate();
 		return false;
 	}
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	if (width <= 0 || height <= 0) {
-		glfwTerminate();
-		return false;
-	}
-	if (!Setup()) {
+	InitDirs("shader_GLFW");
+	m_shader = std::make_unique<GLFWShader>();
+	if (!m_shader->Setup(*this)) {
 		std::cout << "Failed to setup Viewer.\n";
 		glfwTerminate();
 		return false;
 	}
-	LoadCameraVmd(cfg);
-	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models)) {
+	m_edgeShader = std::make_unique<GLFWEdgeShader>();
+	if (!m_edgeShader->Setup(*this)) {
+		std::cout << "Failed to setup Viewer.\n";
 		glfwTerminate();
 		return false;
 	}
-	auto fpsTime  = std::chrono::steady_clock::now();
-	auto saveTime = std::chrono::steady_clock::now();
-	int fpsFrame  = 0;
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-		int newW = 0, newH = 0;
-		glfwGetFramebufferSize(window, &newW, &newH);
-		if (newW != width || newH != height) {
-			width = newW;
-			height = newH;
-			glViewport(0, 0, width, height);
-		}
-		StepTime(music, saveTime);
-		UpdateCamera(width, height);
-		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		for (const auto& model : models) {
-			model->UpdateAnimation(*this);
-			model->Update();
-			model->Draw(*this);
-		}
-		glfwSwapBuffers(window);
-		TickFps(fpsTime, fpsFrame);
-	}
-	for (const auto& model : models)
-		model->Clear();
-	models.clear();
-	glfwTerminate();
-	return true;
-}
-
-std::unique_ptr<Model> GLFWViewer::CreateModel() const {
-	return std::make_unique<GLFWModel>();
-}
-
-bool GLFWViewer::Setup() {
-	InitDirs("shader_GLFW");
-	m_shader = std::make_unique<GLFWShader>();
-	if (!m_shader->Setup(*this))
-		return false;
-	m_edgeShader = std::make_unique<GLFWEdgeShader>();
-	if (!m_edgeShader->Setup(*this))
-		return false;
 	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
-	if (!m_groundShadowShader->Setup(*this))
+	if (!m_groundShadowShader->Setup(*this)) {
+		std::cout << "Failed to setup Viewer.\n";
+		glfwTerminate();
 		return false;
+	}
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -599,14 +548,31 @@ bool GLFWViewer::Setup() {
 	return true;
 }
 
+bool GLFWViewer::Resize() {
+	glViewport(0, 0, m_screenWidth, m_screenHeight);
+	return true;
+}
+
+void GLFWViewer::BeginFrame() {
+	glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+}
+
+bool GLFWViewer::EndFrame() {
+	glfwSwapBuffers(m_window);
+	return true;
+}
+
+std::unique_ptr<Model> GLFWViewer::CreateModel() const {
+	return std::make_unique<GLFWModel>();
+}
+
 GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
 	int x = 0, y = 0, comp = 0;
-	stbi_set_flip_vertically_on_load(true);
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
-	stbi_set_flip_vertically_on_load(false);
+	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp, true);
 	if (!image)
 		return GLFWTexture{ 0, false };
 	const bool hasAlpha = comp == 4;

@@ -1,19 +1,80 @@
 #include "Viewer.h"
 
+#include "../src/MMDUtil.h"
+#include "../src/MMDModel.h"
+
 #define	STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
 
 #include <iostream>
-
-#include "../src/MMDUtil.h"
-#include "../src/MMDModel.h"
 
 void Model::UpdateAnimation(const Viewer& viewer) const {
     m_mmdModel->BeginAnimation();
     m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
-unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
+bool Viewer::Run(const SceneConfig& cfg) {
+    MusicUtil music;
+    music.Init(cfg.musicPath);
+    if (!glfwInit())
+        return false;
+    ConfigureGlfwHints();
+    m_window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
+    if (!m_window) {
+        glfwTerminate();
+        return false;
+    }
+    glfwGetFramebufferSize(m_window, &m_screenWidth, &m_screenHeight);
+    if (m_screenWidth <= 0 || m_screenHeight <= 0) {
+        glfwTerminate();
+        return false;
+    }
+    if (!Setup()) {
+        glfwTerminate();
+        return false;
+    }
+    LoadCameraVmd(cfg);
+    std::vector<std::unique_ptr<Model>> models;
+    if (!LoadModels(cfg, models)) {
+        glfwTerminate();
+        return false;
+    }
+    auto fpsTime  = std::chrono::steady_clock::now();
+    auto saveTime = std::chrono::steady_clock::now();
+    int fpsFrame  = 0;
+    while (!glfwWindowShouldClose(m_window)) {
+        glfwPollEvents();
+        int newW = 0, newH = 0;
+        glfwGetFramebufferSize(m_window, &newW, &newH);
+        if (newW != m_screenWidth || newH != m_screenHeight) {
+            m_screenWidth = newW;
+            m_screenHeight = newH;
+            if (!Resize())
+                break;
+        }
+        StepTime(music, saveTime);
+        UpdateCamera();
+        BeginFrame();
+        for (auto& model : models) {
+            model->UpdateAnimation(*this);
+            model->Update();
+            model->Draw(*this);
+            AfterModelDraw(*model);
+        }
+        if (!EndFrame())
+            break;
+        TickFps(fpsTime, fpsFrame);
+    }
+    for (const auto& model : models)
+        model->Clear();
+    models.clear();
+    glfwTerminate();
+    return true;
+}
+
+unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
+    if (flipY)
+        stbi_set_flip_vertically_on_load(true);
     stbi_uc* image = nullptr;
     x = y = comp = 0;
     FILE* fp = nullptr;
@@ -21,6 +82,8 @@ unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, i
         return nullptr;
     image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
     std::fclose(fp);
+    if (flipY)
+        stbi_set_flip_vertically_on_load(false);
     return image;
 }
 
@@ -105,21 +168,19 @@ void Viewer::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& s
     m_animTime = t;
 }
 
-void Viewer::UpdateCamera(const int width, const int height) {
-    m_screenWidth  = width;
-    m_screenHeight = height;
+void Viewer::UpdateCamera() {
     if (m_vmdCameraAnim) {
         m_vmdCameraAnim->Evaluate(m_animTime * 30.0f);
         const auto mmdCam = m_vmdCameraAnim->m_camera;
         m_viewMat = mmdCam.GetViewMatrix();
         m_projMat = glm::perspectiveFovRH(
-            mmdCam.m_fov, static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f
+            mmdCam.m_fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
         );
         return;
     }
     m_viewMat = glm::lookAt(glm::vec3(0,10,40), glm::vec3(0,10,0), glm::vec3(0,1,0));
     m_projMat = glm::perspectiveFovRH(
-        glm::radians(30.0f), static_cast<float>(width), static_cast<float>(height), 1.0f, 10000.0f
+        glm::radians(30.0f), static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
     );
 }
 

@@ -6,7 +6,6 @@
 #include <windows.h>
 #include <shobjidl.h>
 
-#include "src/MMDUtil.h"
 #include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
 

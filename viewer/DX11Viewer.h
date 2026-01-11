@@ -128,9 +128,19 @@ struct DX11Viewer : Viewer {
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_dummyTextureView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState>			m_dummySampler;
 
-    bool Run(const SceneConfig& cfg) override;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_depthTex;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
+    Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
+
+    void ConfigureGlfwHints() override;
+    bool Setup() override;
+    bool Resize() override;
+    void BeginFrame() override;
+    bool EndFrame() override;
+    void AfterModelDraw(Model& model) override;
+
     std::unique_ptr<Model> CreateModel() const override;
-    bool Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device);
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
     bool CreateShaders();
+    bool CreateRenderTargets(int w, int h);
 };

@@ -1,9 +1,7 @@
 #pragma once
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/gtc/quaternion.hpp>
-
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <filesystem>
 
 #include "../src/VMDAnimation.h"
@@ -57,15 +55,25 @@ struct Viewer {
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
     std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
-    float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 
-    virtual bool Run(const SceneConfig& cfg) = 0;
+    float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
+    GLFWwindow* m_window = nullptr;
+
+    bool Run(const SceneConfig& cfg);
+
+    virtual void ConfigureGlfwHints() = 0;
+    virtual bool Setup() = 0;
+    virtual bool Resize() = 0;
+    virtual void BeginFrame() = 0;
+    virtual bool EndFrame() = 0;
+    virtual void AfterModelDraw(Model& model) {}
+
     virtual std::unique_ptr<Model> CreateModel() const = 0;
-    static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
+    static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     bool LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models);
     void LoadCameraVmd(const SceneConfig& cfg);
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
-    void UpdateCamera(int width, int height);
+    void UpdateCamera();
     void InitDirs(const std::string& shaderSubDir);
 };

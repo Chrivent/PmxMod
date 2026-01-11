@@ -6,14 +6,12 @@
 
 #include "../external/stb_image.h"
 
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <ranges>
-
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
+#include <iostream>
+#include <ranges>
 
 inline D3D11_SAMPLER_DESC MakeSamplerDesc(
     const D3D11_FILTER filter,
@@ -385,29 +383,21 @@ void DX11Model::Draw(Viewer& viewer) const {
 	}
 }
 
-bool DX11Viewer::Run(const SceneConfig& cfg) {
-	MusicUtil music;
-	music.Init(cfg.musicPath);
-	if (!glfwInit())
-		return false;
+void DX11Viewer::ConfigureGlfwHints() {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
-	if (!window) {
-		glfwTerminate();
-		return false;
-	}
-	HWND__* hwnd = glfwGetWin32Window(window);
-	Microsoft::WRL::ComPtr<ID3D11Device> device;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+}
+
+bool DX11Viewer::Setup() {
+	HWND__* hwnd = glfwGetWin32Window(m_window);
 	D3D_FEATURE_LEVEL featureLevel;
 	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-		featureLevels, 1, D3D11_SDK_VERSION, &device, &featureLevel, &context))) {
+		featureLevels, 1, D3D11_SDK_VERSION, &m_device, &featureLevel, &m_context))) {
 		glfwTerminate();
 		return false;
 	}
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	if (FAILED(device.As(&dxgiDevice))) {
+	if (FAILED(m_device.As(&dxgiDevice))) {
 		glfwTerminate();
 		return false;
 	}
@@ -421,135 +411,75 @@ bool DX11Viewer::Run(const SceneConfig& cfg) {
 		glfwTerminate();
 		return false;
 	}
-	UINT msaaCount = 4;
+	m_multiSampleCount = 4;
 	UINT quality = 0;
-	if (FAILED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, msaaCount, &quality)) || quality == 0) {
-		msaaCount = 1;
+	if (FAILED(m_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, m_multiSampleCount, &quality)) || quality == 0) {
+		m_multiSampleCount = 1;
 		quality = 0;
 	}
-	const UINT msaaQuality = quality > 0 ? quality - 1 : 0;
-	m_multiSampleCount = msaaCount;
-	m_multiSampleQuality = msaaQuality;
-	int width = 0, height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	if (width <= 0 || height <= 0) {
-		glfwTerminate();
-		return false;
-	}
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
+	m_multiSampleQuality = quality > 0 ? quality - 1 : 0;
 	DXGI_SWAP_CHAIN_DESC sd{};
 	sd.BufferCount = 2;
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	sd.OutputWindow = hwnd;
-	sd.SampleDesc.Count = msaaCount;
-	sd.SampleDesc.Quality = msaaQuality;
+	sd.SampleDesc.Count = m_multiSampleCount;
+	sd.SampleDesc.Quality = m_multiSampleQuality;
 	sd.Windowed = TRUE;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	if (FAILED(factory->CreateSwapChain(device.Get(), &sd, &swapChain)))
+	if (FAILED(factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain)))
 		return false;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTex;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv;
-	auto CreateRenderTargets = [&](const int w, const int h) -> bool {
-		rtv.Reset();
-		depthTex.Reset();
-		dsv.Reset();
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
-			return false;
-		if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &rtv)))
-			return false;
-		D3D11_TEXTURE2D_DESC dsDesc{};
-		dsDesc.Width = static_cast<UINT>(w);
-		dsDesc.Height = static_cast<UINT>(h);
-		dsDesc.MipLevels = 1;
-		dsDesc.ArraySize = 1;
-		dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		dsDesc.SampleDesc.Count = msaaCount;
-		dsDesc.SampleDesc.Quality = msaaQuality;
-		dsDesc.Usage = D3D11_USAGE_DEFAULT;
-		dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		if (FAILED(device->CreateTexture2D(&dsDesc, nullptr, &depthTex)))
-			return false;
-		if (FAILED(device->CreateDepthStencilView(depthTex.Get(), nullptr, &dsv)))
-			return false;
-		return true;
-	};
-	if (!CreateRenderTargets(width, height)) {
+	if (!CreateRenderTargets(m_screenWidth, m_screenHeight)) {
 		glfwTerminate();
 		return false;
 	}
-	if (!Setup(device.Get())) {
+	InitDirs("shader_DX11");
+	if (!CreateShaders()) {
 		glfwTerminate();
 		return false;
 	}
-	LoadCameraVmd(cfg);
-	std::vector<std::unique_ptr<Model>> models;
-	if (!LoadModels(cfg, models)) {
-		glfwTerminate();
-		return false;
-	}
-	auto fpsTime  = std::chrono::steady_clock::now();
-	auto saveTime = std::chrono::steady_clock::now();
-	int fpsFrame  = 0;
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-		int newW = 0, newH = 0;
-		glfwGetFramebufferSize(window, &newW, &newH);
-		if (newW != width || newH != height) {
-			width = newW; height = newH;
-			m_renderTargetView.Reset();
-			m_depthStencilView.Reset();
-			rtv.Reset(); dsv.Reset(); depthTex.Reset();
-			if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
-				return false;
-			if (!CreateRenderTargets(width, height))
-				return false;
-		}
-		StepTime(music, saveTime);
-		UpdateCamera(width, height);
-		D3D11_VIEWPORT vp{};
-		vp.Width = static_cast<float>(width);
-		vp.Height = static_cast<float>(height);
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		context->RSSetViewports(1, &vp);
-		context->OMSetRenderTargets(1, rtv.GetAddressOf(), dsv.Get());
-		context->ClearRenderTargetView(rtv.Get(), clearColor);
-		context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		m_renderTargetView = rtv;
-		m_depthStencilView = dsv;
-		for (auto& model : models) {
-			model->UpdateAnimation(*this);
-			model->Update();
-			model->Draw(*this);
-			const auto& dx11Model = dynamic_cast<DX11Model&>(*model);
-			Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
-			if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
-				context->ExecuteCommandList(cmd.Get(), FALSE);
-		}
-		if (FAILED(swapChain->Present(0, 0)))
-			return false;
-		TickFps(fpsTime, fpsFrame);
-	}
-	models.clear();
-	glfwDestroyWindow(window);
-	glfwTerminate();
 	return true;
+}
+
+bool DX11Viewer::Resize() {
+	m_renderTargetView.Reset();
+	m_depthStencilView.Reset();
+	m_depthTex.Reset();
+	if (FAILED(m_swapChain->ResizeBuffers(0, m_screenWidth, m_screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
+		return false;
+	if (!CreateRenderTargets(m_screenWidth, m_screenHeight))
+		return false;
+	D3D11_VIEWPORT vp{};
+	vp.Width = static_cast<float>(m_screenWidth);
+	vp.Height = static_cast<float>(m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	m_context->RSSetViewports(1, &vp);
+	return true;
+}
+
+void DX11Viewer::BeginFrame() {
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+	m_context->ClearRenderTargetView(m_renderTargetView.Get(), m_clearColor);
+	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+}
+
+bool DX11Viewer::EndFrame() {
+	if (FAILED(m_swapChain->Present(0, 0)))
+		return false;
+	return true;
+}
+
+void DX11Viewer::AfterModelDraw(Model& model) {
+	const auto& dx11Model = dynamic_cast<DX11Model&>(model);
+	Microsoft::WRL::ComPtr<ID3D11CommandList> cmd;
+	if (SUCCEEDED(dx11Model.m_context->FinishCommandList(FALSE, &cmd)) && cmd)
+		m_context->ExecuteCommandList(cmd.Get(), FALSE);
 }
 
 std::unique_ptr<Model> DX11Viewer::CreateModel() const {
 	return std::make_unique<DX11Model>();
-}
-
-bool DX11Viewer::Setup(const Microsoft::WRL::ComPtr<ID3D11Device>& device) {
-	m_device = device;
-	InitDirs("shader_DX11");
-	if (!CreateShaders())
-		return false;
-	return true;
 }
 
 DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {
@@ -721,6 +651,32 @@ bool DX11Viewer::CreateShaders() {
 	if (FAILED(m_device->CreateTexture2D(&tex2dDesc, nullptr, &m_dummyTexture)))
 		return false;
 	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
+		return false;
+	return true;
+}
+
+bool DX11Viewer::CreateRenderTargets(const int w, const int h) {
+	m_renderTargetView.Reset();
+	m_depthTex.Reset();
+	m_depthStencilView.Reset();
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+		return false;
+	if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
+		return false;
+	D3D11_TEXTURE2D_DESC dsDesc{};
+	dsDesc.Width = static_cast<UINT>(w);
+	dsDesc.Height = static_cast<UINT>(h);
+	dsDesc.MipLevels = 1;
+	dsDesc.ArraySize = 1;
+	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsDesc.SampleDesc.Count = m_multiSampleCount;
+	dsDesc.SampleDesc.Quality = m_multiSampleQuality;
+	dsDesc.Usage = D3D11_USAGE_DEFAULT;
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	if (FAILED(m_device->CreateTexture2D(&dsDesc, nullptr, &m_depthTex)))
+		return false;
+	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
 		return false;
 	return true;
 }

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <map>
-
 #include "Viewer.h"
+
+#include <map>
 
 struct GLFWViewer;
 
@@ -115,8 +114,12 @@ struct GLFWViewer : Viewer {
     GLuint	m_dummyShadowDepthTex = 0;
     const int	m_msaaSamples = 4;
 
-    bool Run(const SceneConfig& cfg) override;
+    void ConfigureGlfwHints() override;
+    bool Setup() override;
+    bool Resize() override;
+    void BeginFrame() override;
+    bool EndFrame() override;
+
     std::unique_ptr<Model> CreateModel() const override;
-    bool Setup();
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };
