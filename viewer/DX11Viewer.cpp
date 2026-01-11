@@ -225,8 +225,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
 	m_context->RSSetViewports(1, &vp);
-	ID3D11RenderTargetView* rtvs[] = { dx11Viewer.m_renderTargetView.Get() };
-	m_context->OMSetRenderTargets(1, rtvs, dx11Viewer.m_depthStencilView.Get());
+	m_context->OMSetRenderTargets(1, dx11Viewer.m_renderTargetView.GetAddressOf(), dx11Viewer.m_depthStencilView.Get());
 	m_context->OMSetDepthStencilState(dx11Viewer.m_defaultDSS.Get(), 0x00);
 	UINT strides[] = { sizeof(DX11Vertex) };
 	UINT offsets[] = { 0 };
@@ -293,8 +292,7 @@ void DX11Model::Draw(Viewer& viewer) const {
         lightDir = viewMat3 * lightDir;
         psCB.m_lightDir = lightDir;
         m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-        ID3D11Buffer* pscbs[] = { m_mmdPSConstantBuffer.Get() };
-        m_context->PSSetConstantBuffers(1, 1, pscbs);
+        m_context->PSSetConstantBuffers(1, 1, m_mmdPSConstantBuffer.GetAddressOf());
         if (mmdMat.m_bothFace)
             m_context->RSSetState(dx11Viewer.m_mmdBothFaceRS.Get());
         else
@@ -335,8 +333,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdEdgePSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(2, 1, pscbs);
+		m_context->PSSetConstantBuffers(2, 1, m_mmdEdgePSConstantBuffer.GetAddressOf());
 		m_context->RSSetState(dx11Viewer.m_mmdEdgeRS.Get());
 		m_context->OMSetBlendState(dx11Viewer.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
 		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
@@ -361,9 +358,8 @@ void DX11Model::Draw(Viewer& viewer) const {
 	shadow[3][1] = -plane.w * light.y;
 	shadow[3][2] = -plane.w * light.z;
 	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
-	auto wsvp = dxMat * proj * view * shadow * world;
 	DX11GroundShadowVertexShader vsCB{};
-	vsCB.m_wvp = wsvp;
+	vsCB.m_wvp = dxMat * proj * view * shadow * world;
 	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
 	m_context->VSSetShader(dx11Viewer.m_mmdGroundShadowVS.Get(), nullptr, 0);
@@ -383,8 +379,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 		DX11GroundShadowPixelShader psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdGroundShadowPSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(1, 1, pscbs);
+		m_context->PSSetConstantBuffers(1, 1, m_mmdGroundShadowPSConstantBuffer.GetAddressOf());
 		m_context->OMSetBlendState(dx11Viewer.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
 		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
@@ -521,8 +516,7 @@ bool DX11Viewer::Run(const SceneConfig& cfg) {
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &vp);
-		ID3D11RenderTargetView* rtvs[] = { rtv.Get() };
-		context->OMSetRenderTargets(1, rtvs, dsv.Get());
+		context->OMSetRenderTargets(1, rtv.GetAddressOf(), dsv.Get());
 		context->ClearRenderTargetView(rtv.Get(), clearColor);
 		context->ClearDepthStencilView(dsv.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		m_renderTargetView = rtv;
