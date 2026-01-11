@@ -164,7 +164,8 @@ bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
 }
 
 GLFWGroundShadowShader::~GLFWGroundShadowShader() {
-	if (m_prog != 0) glDeleteProgram(m_prog);
+	if (m_prog != 0)
+		glDeleteProgram(m_prog);
 	m_prog = 0;
 }
 
