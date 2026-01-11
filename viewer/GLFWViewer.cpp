@@ -381,6 +381,8 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mmdMat.m_toonTextureAddFactor[0]);
 			glUniform1i(shader->m_uToonTexMode, 1);
 			glBindTexture(GL_TEXTURE_2D, mat.m_toonTexture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
@@ -584,8 +586,6 @@ GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
 	stbi_image_free(image);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
 	return m_textures[texturePath];
