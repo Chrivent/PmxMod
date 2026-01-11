@@ -64,7 +64,7 @@ D3D11_RASTERIZER_DESC MakeRasterDesc(
     d.DepthBias = depthBias;
     d.SlopeScaledDepthBias = slopeScaledDepthBias;
     d.DepthBiasClamp = depthBiasClamp;
-    d.DepthClipEnable = TRUE;      // <- 보통 TRUE 권장 (지금 false라면 의도 확인)
+    d.DepthClipEnable = TRUE;
     d.ScissorEnable = FALSE;
     d.MultisampleEnable = TRUE;
     d.AntialiasedLineEnable = FALSE;
@@ -347,7 +347,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 		m_context->OMSetBlendState(dx11Viewer.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
 		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
-
 	m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
 	auto plane = glm::vec4(0, 1, 0, 0);
 	auto light = -viewer.m_lightDir;
@@ -611,35 +610,30 @@ bool DX11Viewer::CreateShaders() {
 			mmdVSBlob, mmdPSBlob,
 			mmdEdgeVSBlob, mmdEdgePSBlob,
 			mmdGroundShadowVSBlob, mmdGroundShadowPSBlob;
-	auto CompileError = [](const Microsoft::WRL::ComPtr<ID3DBlob>& msg) {
-		std::cout << "Compile Error: " << static_cast<char*>(msg->GetBufferPointer()) << std::endl;
-		return false;
+	auto Compile = [&](const std::filesystem::path& p, const char* entry, const char* target,
+				   Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) -> bool {
+		Microsoft::WRL::ComPtr<ID3DBlob> err;
+		if (FAILED(D3DCompileFromFile(p.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entry, target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+			&outBlob, &err))) {
+			if (err)
+				std::cout << "Compile Error: " << static_cast<char*>(err->GetBufferPointer()) << "\n";
+			return false;
+		}
+		return true;
 	};
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdVSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdPSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdEdgeVSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_edge.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdEdgePSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdGroundShadowVSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-	if (FAILED(D3DCompileFromFile((m_shaderDir / "mmd_ground_shadow.hlsl").c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
-		&mmdGroundShadowPSBlob, &errorBlob)))
-		return CompileError(errorBlob);
-
+	if (!Compile(m_shaderDir / "mmd.hlsl", "VSMain", "vs_5_0", mmdVSBlob))
+		return false;
+	if (!Compile(m_shaderDir / "mmd.hlsl", "PSMain", "ps_5_0", mmdPSBlob))
+		return false;
+	if (!Compile(m_shaderDir / "mmd_edge.hlsl", "VSMain", "vs_5_0", mmdEdgeVSBlob))
+		return false;
+	if (!Compile(m_shaderDir / "mmd_edge.hlsl", "PSMain", "ps_5_0", mmdEdgePSBlob))
+		return false;
+	if (!Compile(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", "vs_5_0", mmdGroundShadowVSBlob))
+		return false;
+	if (!Compile(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", "ps_5_0", mmdGroundShadowPSBlob))
+		return false;
 	if (FAILED(m_device->CreateVertexShader(
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
 		nullptr, &m_mmdVS)))
@@ -658,7 +652,6 @@ bool DX11Viewer::CreateShaders() {
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
 		&m_mmdInputLayout)))
 		return false;
-
 	if (FAILED(m_device->CreateVertexShader(
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgeVS)))
@@ -676,7 +669,6 @@ bool DX11Viewer::CreateShaders() {
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		&m_mmdEdgeInputLayout)))
 		return false;
-
 	if (FAILED(m_device->CreateVertexShader(
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowVS)))
@@ -693,56 +685,41 @@ bool DX11Viewer::CreateShaders() {
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		&m_mmdGroundShadowInputLayout)))
 		return false;
-
-	auto d1 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
+	auto wrapLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
 	D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
-	if (FAILED(m_device->CreateSamplerState(&d1, &m_textureSampler)))
+	if (FAILED(m_device->CreateSamplerState(&wrapLinear, &m_textureSampler)))
 		return false;
-
-	auto d2 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP,
+	m_sphereTextureSampler = m_textureSampler;
+	m_dummySampler = m_textureSampler;
+	auto clampLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP,
 		D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
-	if (FAILED(m_device->CreateSamplerState(&d2, &m_toonTextureSampler)))
+	if (FAILED(m_device->CreateSamplerState(&clampLinear, &m_toonTextureSampler)))
 		return false;
-
-	auto d3 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
-		D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
-	if (FAILED(m_device->CreateSamplerState(&d3, &m_sphereTextureSampler)))
-		return false;
-
 	auto blend = MakeAlphaBlendDesc();
 	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdBlendState)))
 		return false;
-	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdEdgeBlendState)))
-		return false;
-	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdGroundShadowBlendState)))
-		return false;
-
+	m_mmdEdgeBlendState = m_mmdBlendState;
+	m_mmdGroundShadowBlendState = m_mmdBlendState;
 	auto frontRsDesc = MakeRasterDesc(D3D11_CULL_BACK, true);
 	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
 		return false;
-
 	auto bothRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true);
 	if (FAILED(m_device->CreateRasterizerState(&bothRsDesc, &m_mmdBothFaceRS)))
 		return false;
-
 	auto edgeRsDesc = MakeRasterDesc(D3D11_CULL_FRONT, true);
 	edgeRsDesc.DepthClipEnable = FALSE;
 	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_mmdEdgeRS)))
 		return false;
-
 	auto groundShadowRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true, -1, -1.0f, -1.0f);
 	groundShadowRsDesc.DepthClipEnable = FALSE;
 	if (FAILED(m_device->CreateRasterizerState(&groundShadowRsDesc, &m_mmdGroundShadowRS)))
 		return false;
-
 	auto gsDSS = MakeGroundShadowDepthStencilDesc();
 	if (FAILED(m_device->CreateDepthStencilState(&gsDSS, &m_mmdGroundShadowDSS)))
 		return false;
-
 	auto defDSS = MakeDefaultDepthStencilDesc();
 	if (FAILED(m_device->CreateDepthStencilState(&defDSS, &m_defaultDSS)))
 		return false;
-
 	D3D11_TEXTURE2D_DESC tex2dDesc{};
 	tex2dDesc.Width = 1;
 	tex2dDesc.Height = 1;
@@ -757,14 +734,5 @@ bool DX11Viewer::CreateShaders() {
 		return false;
 	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
 		return false;
-	auto dummySamp = MakeSamplerDesc(
-		D3D11_FILTER_MIN_MAG_MIP_LINEAR,
-		D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP
-	);
-	dummySamp.MinLOD = 0.0f;
-	dummySamp.MaxLOD = D3D11_FLOAT32_MAX;
-	if (FAILED(m_device->CreateSamplerState(&dummySamp, &m_dummySampler)))
-		return false;
-
 	return true;
 }

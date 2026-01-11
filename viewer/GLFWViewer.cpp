@@ -12,7 +12,7 @@
 #include <ranges>
 
 GLuint CreateShader(const std::filesystem::path& file) {
-	auto CompileShader = [](const GLenum shaderType, const std::string& code) -> GLuint {
+	auto Compile = [](const GLenum shaderType, const std::string& code) -> GLuint {
 		const GLuint shader = glCreateShader(shaderType);
 		if (!shader) {
 			std::cout << "Failed to create shader_GLFW.\n";
@@ -61,8 +61,8 @@ GLuint CreateShader(const std::filesystem::path& file) {
 	const std::string src((std::istreambuf_iterator(f)), {});
 	const std::string vsCode = InjectDefine(src, "#define VERTEX");
 	const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
-	const GLuint vs = CompileShader(GL_VERTEX_SHADER, vsCode);
-	const GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsCode);
+	const GLuint vs = Compile(GL_VERTEX_SHADER, vsCode);
+	const GLuint fs = Compile(GL_FRAGMENT_SHADER, fsCode);
 	if (!vs || !fs) {
 		if (vs)
 			glDeleteShader(vs);
