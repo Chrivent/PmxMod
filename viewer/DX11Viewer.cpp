@@ -8,13 +8,123 @@
 
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include <fstream>
 #include <ranges>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
+
+inline D3D11_SAMPLER_DESC MakeSamplerDesc(
+    const D3D11_FILTER filter,
+    const D3D11_TEXTURE_ADDRESS_MODE addrU,
+    const D3D11_TEXTURE_ADDRESS_MODE addrV,
+    const D3D11_TEXTURE_ADDRESS_MODE addrW) {
+    D3D11_SAMPLER_DESC d;
+    d.Filter = filter;
+    d.AddressU = addrU;
+    d.AddressV = addrV;
+    d.AddressW = addrW;
+    d.MipLODBias = 0.0f;
+    d.MaxAnisotropy = 0;
+    d.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    d.BorderColor[0] = d.BorderColor[1] = d.BorderColor[2] = d.BorderColor[3] = 0.0f;
+    d.MinLOD = 0.0f;
+    d.MaxLOD = D3D11_FLOAT32_MAX;
+    return d;
+}
+
+D3D11_BLEND_DESC MakeAlphaBlendDesc() {
+    D3D11_BLEND_DESC d;
+    d.AlphaToCoverageEnable = FALSE;
+    d.IndependentBlendEnable = FALSE;
+    auto& [BlendEnable, SrcBlend, DestBlend, BlendOp,
+    	SrcBlendAlpha, DestBlendAlpha, BlendOpAlpha, RenderTargetWriteMask] = d.RenderTarget[0];
+    BlendEnable = TRUE;
+    SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    BlendOp = D3D11_BLEND_OP_ADD;
+    SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+    DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+    BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    return d;
+}
+
+D3D11_RASTERIZER_DESC MakeRasterDesc(
+    const D3D11_CULL_MODE cull,
+    const bool frontCCW,
+    const int depthBias = 0,
+    const float slopeScaledDepthBias = 0.0f,
+    const float depthBiasClamp = 0.0f) {
+    D3D11_RASTERIZER_DESC d;
+    d.FillMode = D3D11_FILL_SOLID;
+    d.CullMode = cull;
+    d.FrontCounterClockwise = frontCCW ? TRUE : FALSE;
+    d.DepthBias = depthBias;
+    d.SlopeScaledDepthBias = slopeScaledDepthBias;
+    d.DepthBiasClamp = depthBiasClamp;
+    d.DepthClipEnable = TRUE;      // <- 보통 TRUE 권장 (지금 false라면 의도 확인)
+    d.ScissorEnable = FALSE;
+    d.MultisampleEnable = TRUE;
+    d.AntialiasedLineEnable = FALSE;
+    return d;
+}
+
+D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
+    D3D11_DEPTH_STENCIL_DESC d;
+    d.DepthEnable = TRUE;
+    d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    d.DepthFunc = D3D11_COMPARISON_LESS;
+    d.StencilEnable = FALSE;
+    d.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+    d.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+    d.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    d.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    d.BackFace = d.FrontFace;
+    return d;
+}
+
+D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
+    D3D11_DEPTH_STENCIL_DESC d;
+    d.DepthEnable = TRUE;
+    d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    d.DepthFunc = D3D11_COMPARISON_LESS;
+    d.StencilEnable = TRUE;
+    d.StencilReadMask = 0x01;
+    d.StencilWriteMask = 0xFF;
+    d.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
+    d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    d.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+    d.BackFace = d.FrontFace;
+    return d;
+}
+
+template<class T>
+HRESULT CreateConstBuffer(ID3D11Device* dev, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
+	D3D11_BUFFER_DESC bd{};
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = static_cast<UINT>(sizeof(T) + 15 & ~15);
+	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bd.CPUAccessFlags = 0;
+	return dev->CreateBuffer(&bd, nullptr, &out);
+}
+
+void BindOrDummyPS(
+	ID3D11DeviceContext* ctx,
+	const UINT slot,
+	const DX11Texture& tex,
+	ID3D11SamplerState* sampler,
+	ID3D11ShaderResourceView* dummySRV,
+	ID3D11SamplerState* dummySampler) {
+	ID3D11ShaderResourceView* views[] = { tex.m_texture ? tex.m_textureView.Get() : dummySRV };
+	ID3D11SamplerState* samplers[] = { tex.m_texture ? sampler : dummySampler };
+	ctx->PSSetShaderResources(slot, 1, views);
+	ctx->PSSetSamplers(slot, 1, samplers);
+}
 
 DX11Material::DX11Material(const MMDMaterial& mat)
 	: m_mmdMat(mat) {
@@ -24,8 +134,6 @@ bool DX11Model::Setup(Viewer& viewer) {
 	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
 	if (FAILED(dx11Viewer.m_device->CreateDeferredContext(0, &m_context)))
 		return false;
-
-	// Setup vertex buffer
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
 	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
@@ -33,8 +141,6 @@ bool DX11Model::Setup(Viewer& viewer) {
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(dx11Viewer.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
 		return false;
-
-	// Setup index buffer;
 	D3D11_BUFFER_DESC iBufDesc = {};
 	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	iBufDesc.ByteWidth = static_cast<UINT>(m_mmdModel->m_indexElementSize * m_mmdModel->m_indexCount);
@@ -52,71 +158,20 @@ bool DX11Model::Setup(Viewer& viewer) {
 		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
 	else
 		return false;
-
-	// Setup mmd vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC vsBufDesc = {};
-	vsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	vsBufDesc.ByteWidth = sizeof(DX11VertexShader);
-	vsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	vsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&vsBufDesc, nullptr, &m_mmdVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11VertexShader>(dx11Viewer.m_device.Get(), m_mmdVSConstantBuffer)))
 		return false;
-
-	// Setup mmd pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC psBufDesc = {};
-	psBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	psBufDesc.ByteWidth = sizeof(DX11PixelShader);
-	psBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	psBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&psBufDesc, nullptr, &m_mmdPSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11PixelShader>(dx11Viewer.m_device.Get(), m_mmdPSConstantBuffer)))
 		return false;
-
-	// Setup mmd edge vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC evsBufDesc1 = {};
-	evsBufDesc1.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc1.ByteWidth = sizeof(DX11EdgeVertexShader);
-	evsBufDesc1.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	evsBufDesc1.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&evsBufDesc1, nullptr, &m_mmdEdgeVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgeVertexShader>(dx11Viewer.m_device.Get(), m_mmdEdgeVSConstantBuffer)))
 		return false;
-
-	// Setup mmd edge vertex shader constant buffer (VSEdgeData)
-	D3D11_BUFFER_DESC evsBufDesc2 = {};
-	evsBufDesc2.Usage = D3D11_USAGE_DEFAULT;
-	evsBufDesc2.ByteWidth = sizeof(DX11EdgeSizeVertexShader);
-	evsBufDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	evsBufDesc2.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&evsBufDesc2, nullptr, &m_mmdEdgeSizeVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgeSizeVertexShader>(dx11Viewer.m_device.Get(), m_mmdEdgeSizeVSConstantBuffer)))
 		return false;
-
-	// Setup mmd edge pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC epsBufDesc = {};
-	epsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	epsBufDesc.ByteWidth = sizeof(DX11EdgePixelShader);
-	epsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	epsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&epsBufDesc, nullptr, &m_mmdEdgePSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgePixelShader>(dx11Viewer.m_device.Get(), m_mmdEdgePSConstantBuffer)))
 		return false;
-
-	// Setup mmd ground shadow vertex shader constant buffer (VSData)
-	D3D11_BUFFER_DESC gvsBufDesc = {};
-	gvsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gvsBufDesc.ByteWidth = sizeof(DX11GroundShadowVertexShader);
-	gvsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	gvsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&gvsBufDesc, nullptr, &m_mmdGroundShadowVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11GroundShadowVertexShader>(dx11Viewer.m_device.Get(), m_mmdGroundShadowVSConstantBuffer)))
 		return false;
-
-	// Setup mmd ground shadow pixel shader constant buffer (PSData)
-	D3D11_BUFFER_DESC gpsBufDesc = {};
-	gpsBufDesc.Usage = D3D11_USAGE_DEFAULT;
-	gpsBufDesc.ByteWidth = sizeof(DX11GroundShadowPixelShader);
-	gpsBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	gpsBufDesc.CPUAccessFlags = 0;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&gpsBufDesc, nullptr, &m_mmdGroundShadowPSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11GroundShadowPixelShader>(dx11Viewer.m_device.Get(), m_mmdGroundShadowPSConstantBuffer)))
 		return false;
-
-	// Setup materials
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		DX11Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty())
@@ -163,7 +218,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
 
-	// Set viewport
 	D3D11_VIEWPORT vp;
 	vp.Width = static_cast<float>(viewer.m_screenWidth);
 	vp.Height = static_cast<float>(viewer.m_screenHeight);
@@ -175,8 +229,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 	ID3D11RenderTargetView* rtvs[] = { dx11Viewer.m_renderTargetView.Get() };
 	m_context->OMSetRenderTargets(1, rtvs, dx11Viewer.m_depthStencilView.Get());
 	m_context->OMSetDepthStencilState(dx11Viewer.m_defaultDSS.Get(), 0x00);
-
-	// Setup input assembler
 	UINT strides[] = { sizeof(DX11Vertex) };
 	UINT offsets[] = { 0 };
 	m_context->IASetInputLayout(dx11Viewer.m_mmdInputLayout.Get());
@@ -184,109 +236,90 @@ void DX11Model::Draw(Viewer& viewer) const {
 	m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
 	m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Draw model
 	DX11VertexShader vsCB1{};
 	vsCB1.m_wv = wv;
 	vsCB1.m_wvp = wvp;
 	m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
-	                             0, nullptr, &vsCB1, 0, 0);
+		0, nullptr, &vsCB1, 0, 0);
 	m_context->VSSetShader(dx11Viewer.m_mmdVS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
 	m_context->VSSetConstantBuffers(0, 1, cbs1);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& mat = m_materials[m_materialID];
-		const auto& mmdMat = mat.m_mmdMat;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
-			continue;
-		m_context->PSSetShader(dx11Viewer.m_mmdPS.Get(), nullptr, 0);
-		DX11PixelShader psCB{};
-		psCB.m_alpha = mmdMat.m_diffuse.a;
-		psCB.m_diffuse = mmdMat.m_diffuse;
-		psCB.m_ambient = mmdMat.m_ambient;
-		psCB.m_specular = mmdMat.m_specular;
-		psCB.m_specularPower = mmdMat.m_specularPower;
-		if (mat.m_texture.m_texture) {
-			if (!mat.m_texture.m_hasAlpha)
-				psCB.m_textureModes.x = 1;
-			else
-				psCB.m_textureModes.x = 2;
-			psCB.m_texMulFactor = mmdMat.m_textureMulFactor;
-			psCB.m_texAddFactor = mmdMat.m_textureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_texture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_textureSampler.Get() };
-			m_context->PSSetShaderResources(0, 1, views);
-			m_context->PSSetSamplers(0, 1, samplers);
-		} else {
-			psCB.m_textureModes.x = 0;
-			ID3D11ShaderResourceView* views[] = { dx11Viewer.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(0, 1, views);
-			m_context->PSSetSamplers(0, 1, samplers);
-		}
-		if (mat.m_toonTexture.m_texture) {
-			psCB.m_textureModes.y = 1;
-			psCB.m_toonTexMulFactor = mmdMat.m_toonTextureMulFactor;
-			psCB.m_toonTexAddFactor = mmdMat.m_toonTextureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_toonTexture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_toonTextureSampler.Get() };
-			m_context->PSSetShaderResources(1, 1, views);
-			m_context->PSSetSamplers(1, 1, samplers);
-		} else {
-			psCB.m_textureModes.y = 0;
-			ID3D11ShaderResourceView* views[] = { dx11Viewer.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(1, 1, views);
-			m_context->PSSetSamplers(1, 1, samplers);
-		}
-		if (mat.m_spTexture.m_texture) {
-			if (mmdMat.m_spTextureMode == SphereMode::Mul)
-				psCB.m_textureModes.z = 1;
-			else if (mmdMat.m_spTextureMode == SphereMode::Add)
-				psCB.m_textureModes.z = 2;
-			psCB.m_sphereTexMulFactor = mmdMat.m_spTextureMulFactor;
-			psCB.m_sphereTexAddFactor = mmdMat.m_spTextureAddFactor;
-			ID3D11ShaderResourceView* views[] = { mat.m_spTexture.m_textureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_sphereTextureSampler.Get() };
-			m_context->PSSetShaderResources(2, 1, views);
-			m_context->PSSetSamplers(2, 1, samplers);
-		} else {
-			psCB.m_textureModes.z = 0;
-			ID3D11ShaderResourceView* views[] = { dx11Viewer.m_dummyTextureView.Get() };
-			ID3D11SamplerState* samplers[] = { dx11Viewer.m_dummySampler.Get() };
-			m_context->PSSetShaderResources(2, 1, views);
-			m_context->PSSetSamplers(2, 1, samplers);
-		}
-		psCB.m_lightColor = viewer.m_lightColor;
-		glm::vec3 lightDir = viewer.m_lightDir;
-		auto viewMat = glm::mat3(viewer.m_viewMat);
-		lightDir = viewMat * lightDir;
-		psCB.m_lightDir = lightDir;
-		m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(),
-		                             0, nullptr, &psCB, 0, 0);
-		ID3D11Buffer* pscbs[] = { m_mmdPSConstantBuffer.Get() };
-		m_context->PSSetConstantBuffers(1, 1, pscbs);
-		if (mmdMat.m_bothFace)
-			m_context->RSSetState(dx11Viewer.m_mmdBothFaceRS.Get());
-		else
-			m_context->RSSetState(dx11Viewer.m_mmdFrontFaceRS.Get());
-		m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
-		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
-	}
+        const auto& mat = m_materials[m_materialID];
+        const auto& mmdMat = mat.m_mmdMat;
+        if (mmdMat.m_diffuse.a == 0)
+            continue;
+        m_context->PSSetShader(dx11Viewer.m_mmdPS.Get(), nullptr, 0);
+        DX11PixelShader psCB{};
+        psCB.m_alpha         = mmdMat.m_diffuse.a;
+        psCB.m_diffuse       = mmdMat.m_diffuse;
+        psCB.m_ambient       = mmdMat.m_ambient;
+        psCB.m_specular      = mmdMat.m_specular;
+        psCB.m_specularPower = mmdMat.m_specularPower;
+        if (mat.m_texture.m_texture) {
+            psCB.m_textureModes.x = (!mat.m_texture.m_hasAlpha) ? 1 : 2;
+            psCB.m_texMulFactor   = mmdMat.m_textureMulFactor;
+            psCB.m_texAddFactor   = mmdMat.m_textureAddFactor;
+        } else
+	        psCB.m_textureModes.x = 0;
+        BindOrDummyPS(
+            m_context.Get(),
+            0,
+            mat.m_texture,
+            dx11Viewer.m_textureSampler.Get(),
+            dx11Viewer.m_dummyTextureView.Get(),
+            dx11Viewer.m_dummySampler.Get()
+        );
+        if (mat.m_toonTexture.m_texture) {
+            psCB.m_textureModes.y    = 1;
+            psCB.m_toonTexMulFactor  = mmdMat.m_toonTextureMulFactor;
+            psCB.m_toonTexAddFactor  = mmdMat.m_toonTextureAddFactor;
+        } else
+	        psCB.m_textureModes.y = 0;
+        BindOrDummyPS(m_context.Get(), 1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(),
+        	dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
+        );
+        if (mat.m_spTexture.m_texture) {
+            if (mmdMat.m_spTextureMode == SphereMode::Mul)
+                psCB.m_textureModes.z = 1;
+            else if (mmdMat.m_spTextureMode == SphereMode::Add)
+                psCB.m_textureModes.z = 2;
+            else
+                psCB.m_textureModes.z = 0;
+            psCB.m_sphereTexMulFactor = mmdMat.m_spTextureMulFactor;
+            psCB.m_sphereTexAddFactor = mmdMat.m_spTextureAddFactor;
+        } else
+	        psCB.m_textureModes.z = 0;
+        BindOrDummyPS(m_context.Get(), 2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(),
+            dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
+        );
+        psCB.m_lightColor = viewer.m_lightColor;
+        glm::vec3 lightDir = viewer.m_lightDir;
+        auto viewMat3 = glm::mat3(viewer.m_viewMat);
+        lightDir = viewMat3 * lightDir;
+        psCB.m_lightDir = lightDir;
+        m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+        ID3D11Buffer* pscbs[] = { m_mmdPSConstantBuffer.Get() };
+        m_context->PSSetConstantBuffers(1, 1, pscbs);
+        if (mmdMat.m_bothFace)
+            m_context->RSSetState(dx11Viewer.m_mmdBothFaceRS.Get());
+        else
+            m_context->RSSetState(dx11Viewer.m_mmdFrontFaceRS.Get());
+        m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
+        m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+    }
 	ID3D11ShaderResourceView* views[] = { nullptr, nullptr, nullptr };
 	ID3D11SamplerState* samplers[] = { nullptr, nullptr, nullptr };
 	m_context->PSSetShaderResources(0, 3, views);
 	m_context->PSSetSamplers(0, 3, samplers);
-
-	// Draw edge
 	m_context->IASetInputLayout(dx11Viewer.m_mmdEdgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
 	vsCB2.m_screenSize = glm::vec2(static_cast<float>(viewer.m_screenWidth),
-	                               static_cast<float>(viewer.m_screenHeight));
+		static_cast<float>(viewer.m_screenHeight));
 	m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
-	                             0, nullptr, &vsCB2, 0, 0);
+		0, nullptr, &vsCB2, 0, 0);
 	m_context->VSSetShader(dx11Viewer.m_mmdEdgeVS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
 	m_context->VSSetConstantBuffers(0, 1, cbs2);
@@ -300,14 +333,14 @@ void DX11Model::Draw(Viewer& viewer) const {
 		DX11EdgeSizeVertexShader vsCB{};
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
 		m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
-		                             0, nullptr, &vsCB, 0, 0);
+			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
 		m_context->VSSetConstantBuffers(1, 1, cbs);
 		m_context->PSSetShader(dx11Viewer.m_mmdEdgePS.Get(), nullptr, 0);
 		DX11EdgePixelShader psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
-		                             0, nullptr, &psCB, 0, 0);
+			0, nullptr, &psCB, 0, 0);
 		ID3D11Buffer* pscbs[] = { m_mmdEdgePSConstantBuffer.Get() };
 		m_context->PSSetConstantBuffers(2, 1, pscbs);
 		m_context->RSSetState(dx11Viewer.m_mmdEdgeRS.Get());
@@ -315,7 +348,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 		m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 
-	// Draw ground shadow
 	m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
 	auto plane = glm::vec4(0, 1, 0, 0);
 	auto light = -viewer.m_lightDir;
@@ -340,7 +372,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	DX11GroundShadowVertexShader vsCB{};
 	vsCB.m_wvp = wsvp;
 	m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
-	                             0, nullptr, &vsCB, 0, 0);
+		0, nullptr, &vsCB, 0, 0);
 	m_context->VSSetShader(dx11Viewer.m_mmdGroundShadowVS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
 	m_context->VSSetConstantBuffers(0, 1, cbs);
@@ -608,7 +640,6 @@ bool DX11Viewer::CreateShaders() {
 		&mmdGroundShadowPSBlob, &errorBlob)))
 		return CompileError(errorBlob);
 
-	// mmd shader_GLFW
 	if (FAILED(m_device->CreateVertexShader(
 		mmdVSBlob->GetBufferPointer(), mmdVSBlob->GetBufferSize(),
 		nullptr, &m_mmdVS)))
@@ -628,91 +659,6 @@ bool DX11Viewer::CreateShaders() {
 		&m_mmdInputLayout)))
 		return false;
 
-	// Texture sampler
-	D3D11_SAMPLER_DESC texSamplerDesc;
-	texSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	texSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	texSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	texSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	texSamplerDesc.MinLOD = -FLT_MAX;
-	texSamplerDesc.MaxLOD = -FLT_MAX;
-	texSamplerDesc.MipLODBias = 0;
-	texSamplerDesc.MaxAnisotropy = 0;
-	if (FAILED(m_device->CreateSamplerState(&texSamplerDesc, &m_textureSampler)))
-		return false;
-
-	// ToonTexture sampler
-	D3D11_SAMPLER_DESC toonSamplerDesc;
-	toonSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	toonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	toonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	toonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	toonSamplerDesc.MinLOD = -FLT_MAX;
-	toonSamplerDesc.MaxLOD = -FLT_MAX;
-	toonSamplerDesc.MipLODBias = 0;
-	toonSamplerDesc.MaxAnisotropy = 0;
-	if (FAILED(m_device->CreateSamplerState(&toonSamplerDesc, &m_toonTextureSampler)))
-		return false;
-
-	// SphereTexture sampler
-	D3D11_SAMPLER_DESC spSamplerDesc;
-	spSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	spSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	spSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	spSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	spSamplerDesc.MinLOD = -FLT_MAX;
-	spSamplerDesc.MaxLOD = -FLT_MAX;
-	spSamplerDesc.MipLODBias = 0;
-	spSamplerDesc.MaxAnisotropy = 0;
-	if (FAILED(m_device->CreateSamplerState(&spSamplerDesc, &m_sphereTextureSampler)))
-		return false;
-
-	// Blend State
-	D3D11_BLEND_DESC blendDesc1;
-	blendDesc1.AlphaToCoverageEnable = false;
-	blendDesc1.IndependentBlendEnable = false;
-	blendDesc1.RenderTarget[0].BlendEnable = true;
-	blendDesc1.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc1.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc1.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc1.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	blendDesc1.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc1.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc1.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	if (FAILED(m_device->CreateBlendState(&blendDesc1, &m_mmdBlendState)))
-		return false;
-
-	// Rasterizer State (Front face)
-	D3D11_RASTERIZER_DESC frontRsDesc;
-	frontRsDesc.FillMode = D3D11_FILL_SOLID;
-	frontRsDesc.CullMode = D3D11_CULL_BACK;
-	frontRsDesc.FrontCounterClockwise = true;
-	frontRsDesc.DepthBias = 0;
-	frontRsDesc.SlopeScaledDepthBias = 0;
-	frontRsDesc.DepthBiasClamp = 0;
-	frontRsDesc.DepthClipEnable = false;
-	frontRsDesc.ScissorEnable = false;
-	frontRsDesc.MultisampleEnable = true;
-	frontRsDesc.AntialiasedLineEnable = false;
-	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
-		return false;
-
-	// Rasterizer State (Both faces)
-	D3D11_RASTERIZER_DESC faceRsDesc;
-	faceRsDesc.FillMode = D3D11_FILL_SOLID;
-	faceRsDesc.CullMode = D3D11_CULL_NONE;
-	faceRsDesc.FrontCounterClockwise = true;
-	faceRsDesc.DepthBias = 0;
-	faceRsDesc.SlopeScaledDepthBias = 0;
-	faceRsDesc.DepthBiasClamp = 0;
-	faceRsDesc.DepthClipEnable = false;
-	faceRsDesc.ScissorEnable = false;
-	faceRsDesc.MultisampleEnable = true;
-	faceRsDesc.AntialiasedLineEnable = false;
-	if (FAILED(m_device->CreateRasterizerState(&faceRsDesc, &m_mmdBothFaceRS)))
-		return false;
-
-	// mmd edge shader_GLFW
 	if (FAILED(m_device->CreateVertexShader(
 		mmdEdgeVSBlob->GetBufferPointer(), mmdEdgeVSBlob->GetBufferSize(),
 		nullptr, &m_mmdEdgeVS)))
@@ -722,12 +668,8 @@ bool DX11Viewer::CreateShaders() {
 		nullptr, &m_mmdEdgePS)))
 		return false;
 	D3D11_INPUT_ELEMENT_DESC mmdEdgeInputElementDesc[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-			0, 0,
-			D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-			0, D3D11_APPEND_ALIGNED_ELEMENT,
-			D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	if (FAILED(m_device->CreateInputLayout(
 		mmdEdgeInputElementDesc, 2,
@@ -735,37 +677,6 @@ bool DX11Viewer::CreateShaders() {
 		&m_mmdEdgeInputLayout)))
 		return false;
 
-	// Blend State
-	D3D11_BLEND_DESC blendDesc2;
-	blendDesc2.AlphaToCoverageEnable = false;
-	blendDesc2.IndependentBlendEnable = false;
-	blendDesc2.RenderTarget[0].BlendEnable = true;
-	blendDesc2.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc2.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc2.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc2.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	blendDesc2.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc2.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc2.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	if (FAILED(m_device->CreateBlendState(&blendDesc2, &m_mmdEdgeBlendState)))
-		return false;
-
-	// Rasterizer State
-	D3D11_RASTERIZER_DESC rsDesc1;
-	rsDesc1.FillMode = D3D11_FILL_SOLID;
-	rsDesc1.CullMode = D3D11_CULL_FRONT;
-	rsDesc1.FrontCounterClockwise = true;
-	rsDesc1.DepthBias = 0;
-	rsDesc1.SlopeScaledDepthBias = 0;
-	rsDesc1.DepthBiasClamp = 0;
-	rsDesc1.DepthClipEnable = false;
-	rsDesc1.ScissorEnable = false;
-	rsDesc1.MultisampleEnable = true;
-	rsDesc1.AntialiasedLineEnable = false;
-	if (FAILED(m_device->CreateRasterizerState(&rsDesc1, &m_mmdEdgeRS)))
-		return false;
-
-	// mmd ground shadow shader_GLFW
 	if (FAILED(m_device->CreateVertexShader(
 		mmdGroundShadowVSBlob->GetBufferPointer(), mmdGroundShadowVSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowVS)))
@@ -774,7 +685,6 @@ bool DX11Viewer::CreateShaders() {
 		mmdGroundShadowPSBlob->GetBufferPointer(), mmdGroundShadowPSBlob->GetBufferSize(),
 		nullptr, &m_mmdGroundShadowPS)))
 		return false;
-
 	D3D11_INPUT_ELEMENT_DESC mmdGroundShadowInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -784,76 +694,56 @@ bool DX11Viewer::CreateShaders() {
 		&m_mmdGroundShadowInputLayout)))
 		return false;
 
-	// Blend State
-	D3D11_BLEND_DESC blendDesc3;
-	blendDesc3.AlphaToCoverageEnable = false;
-	blendDesc3.IndependentBlendEnable = false;
-	blendDesc3.RenderTarget[0].BlendEnable = true;
-	blendDesc3.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc3.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc3.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc3.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	blendDesc3.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc3.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc3.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	if (FAILED(m_device->CreateBlendState(&blendDesc3, &m_mmdGroundShadowBlendState)))
+	auto d1 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
+	D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+	if (FAILED(m_device->CreateSamplerState(&d1, &m_textureSampler)))
 		return false;
 
-	// Rasterizer State
-	D3D11_RASTERIZER_DESC rsDesc2;
-	rsDesc2.FillMode = D3D11_FILL_SOLID;
-	rsDesc2.CullMode = D3D11_CULL_NONE;
-	rsDesc2.FrontCounterClockwise = true;
-	rsDesc2.DepthBias = -1;
-	rsDesc2.SlopeScaledDepthBias = -1.0f;
-	rsDesc2.DepthBiasClamp = -1.0f;
-	rsDesc2.DepthClipEnable = false;
-	rsDesc2.ScissorEnable = false;
-	rsDesc2.MultisampleEnable = true;
-	rsDesc2.AntialiasedLineEnable = false;
-	if (FAILED(m_device->CreateRasterizerState(&rsDesc2, &m_mmdGroundShadowRS)))
+	auto d2 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP,
+		D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_CLAMP);
+	if (FAILED(m_device->CreateSamplerState(&d2, &m_toonTextureSampler)))
 		return false;
 
-	// Depth Stencil State
-	D3D11_DEPTH_STENCIL_DESC stDesc;
-	stDesc.DepthEnable = true;
-	stDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	stDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	stDesc.StencilEnable = true;
-	stDesc.StencilReadMask = 0x01;
-	stDesc.StencilWriteMask = 0xFF;
-	stDesc.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
-	stDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	stDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	stDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-	stDesc.BackFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
-	stDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	stDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	stDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-	if (FAILED(m_device->CreateDepthStencilState(&stDesc, &m_mmdGroundShadowDSS)))
+	auto d3 = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP,
+		D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP);
+	if (FAILED(m_device->CreateSamplerState(&d3, &m_sphereTextureSampler)))
 		return false;
 
-	// Default Depth Stencil State
-	D3D11_DEPTH_STENCIL_DESC dstDesc;
-	dstDesc.DepthEnable = true;
-	dstDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	dstDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	dstDesc.StencilEnable = false;
-	dstDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-	dstDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-	dstDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	dstDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	dstDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	dstDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	dstDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	dstDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	dstDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	dstDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	if (FAILED(m_device->CreateDepthStencilState(&dstDesc, &m_defaultDSS)))
+	auto blend = MakeAlphaBlendDesc();
+	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdBlendState)))
+		return false;
+	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdEdgeBlendState)))
+		return false;
+	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdGroundShadowBlendState)))
 		return false;
 
-	// Dummy texture
-	D3D11_TEXTURE2D_DESC tex2dDesc = {};
+	auto frontRsDesc = MakeRasterDesc(D3D11_CULL_BACK, true);
+	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
+		return false;
+
+	auto bothRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true);
+	if (FAILED(m_device->CreateRasterizerState(&bothRsDesc, &m_mmdBothFaceRS)))
+		return false;
+
+	auto edgeRsDesc = MakeRasterDesc(D3D11_CULL_FRONT, true);
+	edgeRsDesc.DepthClipEnable = FALSE;
+	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_mmdEdgeRS)))
+		return false;
+
+	auto groundShadowRsDesc = MakeRasterDesc(D3D11_CULL_NONE, true, -1, -1.0f, -1.0f);
+	groundShadowRsDesc.DepthClipEnable = FALSE;
+	if (FAILED(m_device->CreateRasterizerState(&groundShadowRsDesc, &m_mmdGroundShadowRS)))
+		return false;
+
+	auto gsDSS = MakeGroundShadowDepthStencilDesc();
+	if (FAILED(m_device->CreateDepthStencilState(&gsDSS, &m_mmdGroundShadowDSS)))
+		return false;
+
+	auto defDSS = MakeDefaultDepthStencilDesc();
+	if (FAILED(m_device->CreateDepthStencilState(&defDSS, &m_defaultDSS)))
+		return false;
+
+	D3D11_TEXTURE2D_DESC tex2dDesc{};
 	tex2dDesc.Width = 1;
 	tex2dDesc.Height = 1;
 	tex2dDesc.MipLevels = 1;
@@ -862,24 +752,19 @@ bool DX11Viewer::CreateShaders() {
 	tex2dDesc.SampleDesc.Quality = 0;
 	tex2dDesc.Usage = D3D11_USAGE_DEFAULT;
 	tex2dDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	tex2dDesc.CPUAccessFlags = 0;
-	tex2dDesc.MiscFlags = 0;
 	tex2dDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	if (FAILED(m_device->CreateTexture2D(&tex2dDesc, nullptr, &m_dummyTexture)))
 		return false;
 	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
 		return false;
-
-	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = -FLT_MAX;
-	samplerDesc.MipLODBias = 0;
-	samplerDesc.MaxAnisotropy = 0;
-	if (FAILED(m_device->CreateSamplerState(&samplerDesc, &m_dummySampler)))
+	auto dummySamp = MakeSamplerDesc(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR,
+		D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_WRAP
+	);
+	dummySamp.MinLOD = 0.0f;
+	dummySamp.MaxLOD = D3D11_FLOAT32_MAX;
+	if (FAILED(m_device->CreateSamplerState(&dummySamp, &m_dummySampler)))
 		return false;
+
 	return true;
 }
