@@ -107,27 +107,28 @@ void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(size), src);
 }
 
+std::string InjectDefine(const std::string& src, const char* defineLine) {
+	if (src.rfind("#version", 0) == 0) {
+		const auto nl = src.find('\n');
+		if (nl != std::string::npos) {
+			std::string out;
+			out.reserve(src.size() + 64);
+			out.append(src, 0, nl + 1);
+			out.append(defineLine);
+			out.push_back('\n');
+			out.append(src, nl + 1, std::string::npos);
+			return out;
+		}
+	}
+	return std::string(defineLine) + "\n" + src;
+}
+
 GLuint CreateShader(const std::filesystem::path& file) {
 	std::ifstream f(file);
 	if (!f) {
 		std::cout << "Failed to open shader file. [" << file << "].\n";
 		return 0;
 	}
-	auto InjectDefine = [](const std::string& src, const char* defineLine) {
-		if (src.rfind("#version", 0) == 0) {
-			const auto nl = src.find('\n');
-			if (nl != std::string::npos) {
-				std::string out;
-				out.reserve(src.size() + 64);
-				out.append(src, 0, nl + 1);
-				out.append(defineLine);
-				out.push_back('\n');
-				out.append(src, nl + 1, std::string::npos);
-				return out;
-			}
-		}
-		return std::string(defineLine) + "\n" + src;
-	};
 	const std::string src((std::istreambuf_iterator(f)), {});
 	const std::string vsCode = InjectDefine(src, "#define VERTEX");
 	const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
@@ -257,7 +258,6 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
 	if (m_mmdModel == nullptr)
 		return false;
-	// Setup vertices
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	m_posVBO = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	m_norVBO = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
@@ -331,7 +331,6 @@ void GLFWModel::Draw(Viewer& viewer) const {
 	auto wvp = proj * view * world;
 	BindDummyShadow4(glfwViewer.m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
-	// Draw model
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& shader = glfwViewer.m_shader;
 		const auto& mat = m_materials[m_materialID];
@@ -410,7 +409,6 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
-	// Draw edge
 	glm::vec2 screenSize(viewer.m_screenWidth, viewer.m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& shader = glfwViewer.m_edgeShader;
@@ -436,7 +434,6 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
-	// Draw ground shadow
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	auto plane = glm::vec4(0, 1, 0, 0);

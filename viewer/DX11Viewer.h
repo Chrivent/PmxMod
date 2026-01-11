@@ -138,8 +138,8 @@ struct DX11Viewer : Viewer {
     void BeginFrame() override;
     bool EndFrame() override;
     void AfterModelDraw(Model& model) override;
-
     std::unique_ptr<Model> CreateModel() const override;
+
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
     bool CreateShaders();
     bool CreateRenderTargets();

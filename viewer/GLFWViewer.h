@@ -119,7 +119,7 @@ struct GLFWViewer : Viewer {
     bool Resize() override;
     void BeginFrame() override;
     bool EndFrame() override;
-
     std::unique_ptr<Model> CreateModel() const override;
+
     GLFWTexture GetTexture(const std::filesystem::path& texturePath);
 };

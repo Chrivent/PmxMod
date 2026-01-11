@@ -19,7 +19,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();
-    m_window = glfwCreateWindow(1920, 1080, "Pmx Mod", nullptr, nullptr);
+    m_window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
     if (!m_window) {
         glfwTerminate();
         return false;
