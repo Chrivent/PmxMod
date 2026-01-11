@@ -1,6 +1,5 @@
 #include "DX11Viewer.h"
 
-#include "../src/MMDReader.h"
 #include "../src/MMDUtil.h"
 #include "../src/MMDModel.h"
 
@@ -10,7 +9,6 @@
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
-#include <iostream>
 
 D3D11_SAMPLER_DESC Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
@@ -41,35 +39,28 @@ D3D11_BLEND_DESC AlphaBlend() {
 }
 
 D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
-    D3D11_DEPTH_STENCIL_DESC d;
-    d.DepthEnable = TRUE;
-    d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    d.DepthFunc = D3D11_COMPARISON_LESS;
-    d.StencilEnable = FALSE;
-    d.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-    d.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
-    d.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-    d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-    d.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-    d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-    d.BackFace = d.FrontFace;
-    return d;
+	CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
+	d.DepthEnable = TRUE;
+	d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	d.DepthFunc = D3D11_COMPARISON_LESS;
+	d.StencilEnable = FALSE;
+	return d;
 }
 
 D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
-    D3D11_DEPTH_STENCIL_DESC d;
-    d.DepthEnable = TRUE;
-    d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    d.DepthFunc = D3D11_COMPARISON_LESS;
-    d.StencilEnable = TRUE;
-    d.StencilReadMask = 0x01;
-    d.StencilWriteMask = 0xFF;
-    d.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
-    d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-    d.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-    d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-    d.BackFace = d.FrontFace;
-    return d;
+	CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
+	d.DepthEnable = TRUE;
+	d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	d.DepthFunc = D3D11_COMPARISON_LESS;
+	d.StencilEnable = TRUE;
+	d.StencilReadMask  = 0x01;
+	d.StencilWriteMask = 0xFF;
+	d.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
+	d.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	d.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	d.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	d.BackFace = d.FrontFace;
+	return d;
 }
 
 template<class T>
@@ -269,10 +260,6 @@ void DX11Model::Draw(Viewer& viewer) const {
         m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
         m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
     }
-	ID3D11ShaderResourceView* views[] = { nullptr, nullptr, nullptr };
-	ID3D11SamplerState* samplers[] = { nullptr, nullptr, nullptr };
-	m_context->PSSetShaderResources(0, 3, views);
-	m_context->PSSetSamplers(0, 3, samplers);
 	m_context->IASetInputLayout(dx11Viewer.m_mmdEdgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
 	vsCB2.m_wv = wv;
