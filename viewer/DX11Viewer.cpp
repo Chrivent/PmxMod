@@ -217,7 +217,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
-
 	D3D11_VIEWPORT vp;
 	vp.Width = static_cast<float>(viewer.m_screenWidth);
 	vp.Height = static_cast<float>(viewer.m_screenHeight);
@@ -262,13 +261,8 @@ void DX11Model::Draw(Viewer& viewer) const {
             psCB.m_texAddFactor   = mmdMat.m_textureAddFactor;
         } else
 	        psCB.m_textureModes.x = 0;
-        BindOrDummyPS(
-            m_context.Get(),
-            0,
-            mat.m_texture,
-            dx11Viewer.m_textureSampler.Get(),
-            dx11Viewer.m_dummyTextureView.Get(),
-            dx11Viewer.m_dummySampler.Get()
+        BindOrDummyPS(m_context.Get(), 0, mat.m_texture, dx11Viewer.m_textureSampler.Get(),
+            dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
         );
         if (mat.m_toonTexture.m_texture) {
             psCB.m_textureModes.y    = 1;
