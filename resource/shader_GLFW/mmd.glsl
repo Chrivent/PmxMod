@@ -62,7 +62,6 @@ uniform sampler2D u_SphereTex;
 uniform vec4 u_SphereTexMulFactor;
 uniform vec4 u_SphereTexAddFactor;
 
-// ShadowMap
 uniform float u_ShadowMapSplitPositions[NUM_SHADOWMAP + 1];
 uniform sampler2DShadow u_ShadowMap0;
 uniform sampler2DShadow u_ShadowMap1;
@@ -106,7 +105,6 @@ void main() {
             visibility = textureProj(u_ShadowMap3, vs_shadowMapCoord[3]);
         ln *= (1.0 - visibility);
     }
-
     if (u_TexMode != 0) {
         vec4 texColor = texture(u_Tex, vs_UV);
         texColor.rgb = ComputeTexMulFactor(texColor.rgb, u_TexMulFactor);
@@ -115,10 +113,8 @@ void main() {
         if (u_TexMode == 2)
             alpha *= texColor.a;
     }
-
     if (alpha == 0.0)
         discard;
-
     if (u_SphereTexMode != 0) {
         vec2 spUV = vec2(0.0);
         spUV.x = nor.x * 0.5 + 0.5;
@@ -131,21 +127,18 @@ void main() {
         else if (u_SphereTexMode == 2)
             color += spColor;
     }
-
     if (u_ToonTexMode != 0) {
         vec3 toonColor = texture(u_ToonTex, vec2(0.0, ln)).rgb;
         toonColor = ComputeTexMulFactor(toonColor, u_ToonTexMulFactor);
         toonColor = ComputeTexAddFactor(toonColor, u_ToonTexAddFactor);
         color *= toonColor;
     }
-
     vec3 specular = vec3(0.0);
     if (u_SpecularPower > 0) {
         vec3 halfVec = normalize(eyeDir + lightDir);
         vec3 specularColor = u_Specular * u_LightColor;
         specular += pow(max(0.0, dot(halfVec, nor)), u_SpecularPower) * specularColor;
     }
-
     color += specular;
     out_Color = vec4(color, alpha);
 }

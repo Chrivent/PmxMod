@@ -1,33 +1,27 @@
-cbuffer VSData : register(b0)
-{
+cbuffer VSData : register(b0) {
     float4x4 WV;
     float4x4 WVP;
     float2 ScreenSize;
 };
 
-cbuffer VSEdgeData : register(b1)
-{
+cbuffer VSEdgeData : register(b1) {
     float EdgeSize;
 };
 
-cbuffer PSData : register(b2)
-{
+cbuffer PSData : register(b2) {
     float4 EdgeColor;
 };
 
-struct VSInput
-{
+struct VSInput {
     float3 Pos : POSITION;
     float3 Nor : NORMAL;
 };
 
-struct VSOutput
-{
+struct VSOutput {
     float4 Position : SV_POSITION;
 };
 
-VSOutput VSMain(VSInput input)
-{
+VSOutput VSMain(VSInput input) {
     VSOutput vsOut;
     float3 nor = mul((float3x3)WV, input.Nor);
     float4 pos = mul(WVP, float4(input.Pos, 1.0));
@@ -37,7 +31,6 @@ VSOutput VSMain(VSInput input)
     return vsOut;
 }
 
-float4 PSMain(VSOutput vsOut) : SV_TARGET0
-{
+float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
     return EdgeColor;
 }
