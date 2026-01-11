@@ -11,7 +11,6 @@
 
 #include <d3dcompiler.h>
 #include <iostream>
-#include <ranges>
 
 bool CompileShader(const std::filesystem::path& p, const char* entry, const char* target, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) {
 	Microsoft::WRL::ComPtr<ID3DBlob> err;
@@ -401,10 +400,9 @@ void DX11Viewer::ConfigureGlfwHints() {
 
 bool DX11Viewer::Setup() {
 	HWND__* hwnd = glfwGetWin32Window(m_window);
-	D3D_FEATURE_LEVEL featureLevel;
-	constexpr D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
+	constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
 	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-		featureLevels, 1, D3D11_SDK_VERSION, &m_device, &featureLevel, &m_context))) {
+		&featureLevels, 1, D3D11_SDK_VERSION, &m_device, nullptr, &m_context))) {
 		glfwTerminate();
 		return false;
 	}
@@ -543,7 +541,6 @@ DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {
 }
 
 bool DX11Viewer::CreateShaders() {
-	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob>
 			mmdVSBlob, mmdPSBlob,
 			mmdEdgeVSBlob, mmdEdgePSBlob,
