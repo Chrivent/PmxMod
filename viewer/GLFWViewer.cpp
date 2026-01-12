@@ -45,49 +45,21 @@ GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, co
 	return b;
 }
 
-void SetupAttrib(const GLint loc, const GLint size, const GLenum type, const GLsizei stride, const void* offset) {
-	glVertexAttribPointer(loc, size, type, GL_FALSE, stride, offset);
-	glEnableVertexAttribArray(loc);
-}
-
-GLuint CreateVAO_PosNorUV(const GLuint posVBO, const GLuint norVBO, const GLuint uvVBO, const GLuint ibo,
-	const GLint inPos, const GLint inNor, const GLint inUV) {
+GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
+	const GLsizei* strides, const int attribCount, const GLuint ibo) {
 	GLuint vao = 0;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
-	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
-	glBindBuffer(GL_ARRAY_BUFFER, norVBO);
-	SetupAttrib(inNor, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
-	glBindBuffer(GL_ARRAY_BUFFER, uvVBO);
-	SetupAttrib(inUV, 2, GL_FLOAT, sizeof(glm::vec2), nullptr);
+	for (int i = 0; i < attribCount; i++) {
+		if (locs[i] < 0)
+			continue;
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
+		glVertexAttribPointer(locs[i], sizes[i], types[i], GL_FALSE, strides[i], nullptr);
+		glEnableVertexAttribArray(locs[i]);
+	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
-	return vao;
-}
-
-GLuint CreateVAO_PosNor(const GLuint posVBO, const GLuint norVBO, const GLuint ibo,
-	const GLint inPos, const GLint inNor) {
-	GLuint vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
-	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
-	glBindBuffer(GL_ARRAY_BUFFER, norVBO);
-	SetupAttrib(inNor, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBindVertexArray(0);
-	return vao;
-}
-
-GLuint CreateVAO_Pos(const GLuint posVBO, const GLuint ibo, const GLint inPos) {
-	GLuint vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, posVBO);
-	SetupAttrib(inPos, 3, GL_FLOAT, sizeof(glm::vec3), nullptr);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vao;
 }
 
@@ -101,6 +73,11 @@ void BindDummyShadow4(const GLuint depthTex) {
 void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(size), src);
+}
+
+void GetUniforms(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
+	for (int i = 0; i < count; i++)
+		*outs[i] = glGetUniformLocation(prog, names[i]);
 }
 
 std::string InjectDefine(const std::string& src, const char* defineLine) {
@@ -178,35 +155,30 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
 	m_inNor = glGetAttribLocation(m_prog, "in_Nor");
-	m_inUV = glGetAttribLocation(m_prog, "in_UV");
-	m_uWV = glGetUniformLocation(m_prog, "u_WV");
-	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
-	m_uAmbient = glGetUniformLocation(m_prog, "u_Ambient");
-	m_uDiffuse = glGetUniformLocation(m_prog, "u_Diffuse");
-	m_uSpecular = glGetUniformLocation(m_prog, "u_Specular");
-	m_uSpecularPower = glGetUniformLocation(m_prog, "u_SpecularPower");
-	m_uAlpha = glGetUniformLocation(m_prog, "u_Alpha");
-	m_uTexMode = glGetUniformLocation(m_prog, "u_TexMode");
-	m_uTex = glGetUniformLocation(m_prog, "u_Tex");
-	m_uTexMulFactor = glGetUniformLocation(m_prog, "u_TexMulFactor");
-	m_uTexAddFactor = glGetUniformLocation(m_prog, "u_TexAddFactor");
-	m_uSphereTexMode = glGetUniformLocation(m_prog, "u_SphereTexMode");
-	m_uSphereTex = glGetUniformLocation(m_prog, "u_SphereTex");
-	m_uSphereTexMulFactor = glGetUniformLocation(m_prog, "u_SphereTexMulFactor");
-	m_uSphereTexAddFactor = glGetUniformLocation(m_prog, "u_SphereTexAddFactor");
-	m_uToonTexMode = glGetUniformLocation(m_prog, "u_ToonTexMode");
-	m_uToonTex = glGetUniformLocation(m_prog, "u_ToonTex");
-	m_uToonTexMulFactor = glGetUniformLocation(m_prog, "u_ToonTexMulFactor");
-	m_uToonTexAddFactor = glGetUniformLocation(m_prog, "u_ToonTexAddFactor");
-	m_uLightColor = glGetUniformLocation(m_prog, "u_LightColor");
-	m_uLightDir = glGetUniformLocation(m_prog, "u_LightDir");
-	m_uLightVP = glGetUniformLocation(m_prog, "u_LightWVP");
-	m_uShadowMapSplitPositions = glGetUniformLocation(m_prog, "u_ShadowMapSplitPositions");
-	m_uShadowMap0 = glGetUniformLocation(m_prog, "u_ShadowMap0");
-	m_uShadowMap1 = glGetUniformLocation(m_prog, "u_ShadowMap1");
-	m_uShadowMap2 = glGetUniformLocation(m_prog, "u_ShadowMap2");
-	m_uShadowMap3 = glGetUniformLocation(m_prog, "u_ShadowMap3");
-	m_uShadowMapEnabled = glGetUniformLocation(m_prog, "u_ShadowMapEnabled");
+	m_inUV  = glGetAttribLocation(m_prog, "in_UV");
+	const char* names[] = {
+		"u_WV", "u_WVP",
+		"u_Ambient", "u_Diffuse", "u_Specular", "u_SpecularPower", "u_Alpha",
+		"u_TexMode", "u_Tex", "u_TexMulFactor", "u_TexAddFactor",
+		"u_SphereTexMode", "u_SphereTex", "u_SphereTexMulFactor", "u_SphereTexAddFactor",
+		"u_ToonTexMode", "u_ToonTex", "u_ToonTexMulFactor", "u_ToonTexAddFactor",
+		"u_LightColor", "u_LightDir", "u_LightWVP",
+		"u_ShadowMapSplitPositions",
+		"u_ShadowMap0", "u_ShadowMap1", "u_ShadowMap2", "u_ShadowMap3",
+		"u_ShadowMapEnabled"
+	};
+	GLint* outs[] = {
+		&m_uWV, &m_uWVP,
+		&m_uAmbient, &m_uDiffuse, &m_uSpecular, &m_uSpecularPower, &m_uAlpha,
+		&m_uTexMode, &m_uTex, &m_uTexMulFactor, &m_uTexAddFactor,
+		&m_uSphereTexMode, &m_uSphereTex, &m_uSphereTexMulFactor, &m_uSphereTexAddFactor,
+		&m_uToonTexMode, &m_uToonTex, &m_uToonTexMulFactor, &m_uToonTexAddFactor,
+		&m_uLightColor, &m_uLightDir, &m_uLightVP,
+		&m_uShadowMapSplitPositions,
+		&m_uShadowMap0, &m_uShadowMap1, &m_uShadowMap2, &m_uShadowMap3,
+		&m_uShadowMapEnabled
+	};
+	GetUniforms(m_prog, names, outs, std::size(names));
 	return true;
 }
 
@@ -269,11 +241,35 @@ bool GLFWModel::Setup(Viewer& viewer) {
 		m_indexType = GL_UNSIGNED_INT;
 	else
 		return false;
-	m_mmdVAO = CreateVAO_PosNorUV(m_posVBO, m_norVBO, m_uvVBO, m_ibo,
-	m_viewer->m_shader->m_inPos, m_viewer->m_shader->m_inNor, m_viewer->m_shader->m_inUV);
-	m_mmdEdgeVAO = CreateVAO_PosNor(m_posVBO, m_norVBO, m_ibo,
-		m_viewer->m_edgeShader->m_inPos, m_viewer->m_edgeShader->m_inNor);
-	m_mmdGroundShadowVAO = CreateVAO_Pos(m_posVBO, m_ibo, m_viewer->m_groundShadowShader->m_inPos);
+	const GLuint buffers[][3]   = {
+		{ m_posVBO, m_norVBO, m_uvVBO },
+		{ m_posVBO, m_norVBO },
+		{ m_posVBO }
+	};
+	const GLint locs[][3] = {
+		{ m_viewer->m_shader->m_inPos, m_viewer->m_shader->m_inNor, m_viewer->m_shader->m_inUV },
+		{ m_viewer->m_edgeShader->m_inPos, m_viewer->m_edgeShader->m_inNor },
+		{ m_viewer->m_groundShadowShader->m_inPos }
+	};
+	constexpr GLint sizes[][3] = {
+		{ 3, 3, 2 },
+		{ 3, 3 },
+		{ 3 }
+	};
+	constexpr GLenum types[][3]  = {
+		{ GL_FLOAT, GL_FLOAT, GL_FLOAT },
+		{ GL_FLOAT, GL_FLOAT },
+		{ GL_FLOAT }
+	};
+	constexpr GLsizei strides[][3] = {
+		{ static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec2)) },
+		{ static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec3)) },
+		{ static_cast<GLsizei>(sizeof(glm::vec3)) }
+	};
+	m_mmdVAO = CreateVAO(buffers[0], locs[0], sizes[0], types[0], strides[0], 3, m_ibo);
+	m_mmdEdgeVAO = CreateVAO(buffers[1], locs[1], sizes[1], types[1], strides[1], 2, m_ibo);
+	m_mmdGroundShadowVAO = CreateVAO(buffers[2], locs[2], sizes[2], types[2], strides[2], 1, m_ibo);
+
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
@@ -291,10 +287,14 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	glUniform1i(m_viewer->m_shader->m_uTex, 0);
 	glUniform1i(m_viewer->m_shader->m_uSphereTex, 1);
 	glUniform1i(m_viewer->m_shader->m_uToonTex, 2);
-	glUniform1i(m_viewer->m_shader->m_uShadowMap0, 3);
-	glUniform1i(m_viewer->m_shader->m_uShadowMap1, 4);
-	glUniform1i(m_viewer->m_shader->m_uShadowMap2, 5);
-	glUniform1i(m_viewer->m_shader->m_uShadowMap3, 6);
+	const GLint shadowLocs[] = {
+		m_viewer->m_shader->m_uShadowMap0,
+		m_viewer->m_shader->m_uShadowMap1,
+		m_viewer->m_shader->m_uShadowMap2,
+		m_viewer->m_shader->m_uShadowMap3
+	};
+	for (int i = 0; i < 4; i++)
+		glUniform1i(shadowLocs[i], 3 + i);
 	glUseProgram(0);
 	return true;
 }
