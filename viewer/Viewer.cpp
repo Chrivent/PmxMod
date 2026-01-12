@@ -57,8 +57,8 @@ bool Viewer::Run(const SceneConfig& cfg) {
         BeginFrame();
         for (const auto& model : models) {
             model->UpdateAnimation(*this);
-            model->Update(*this);
-            model->Draw(*this);
+            model->Update();
+            model->Draw();
         }
         if (!EndFrame())
             break;

@@ -87,6 +87,7 @@ struct GLFWMaterial {
 };
 
 struct GLFWModel : Model {
+    GLFWViewer* m_viewer;
     GLuint	m_posVBO = 0;
     GLuint	m_norVBO = 0;
     GLuint	m_uvVBO = 0;
@@ -99,8 +100,8 @@ struct GLFWModel : Model {
 
     bool Setup(Viewer& viewer) override;
     void Clear() override;
-    void Update(Viewer& viewer) const override;
-    void Draw(Viewer& viewer) const override;
+    void Update() const override;
+    void Draw() const override;
 };
 
 struct GLFWViewer : Viewer {

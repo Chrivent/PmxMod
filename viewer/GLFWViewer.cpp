@@ -255,7 +255,7 @@ GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
 }
 
 bool GLFWModel::Setup(Viewer& viewer) {
-	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
+	m_viewer = &dynamic_cast<GLFWViewer&>(viewer);
 	if (m_mmdModel == nullptr)
 		return false;
 	const size_t vtxCount = m_mmdModel->m_positions.size();
@@ -274,21 +274,21 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	else
 		return false;
 	m_mmdVAO = CreateVAO_PosNorUV(m_posVBO, m_norVBO, m_uvVBO, m_ibo,
-	glfwViewer.m_shader->m_inPos, glfwViewer.m_shader->m_inNor, glfwViewer.m_shader->m_inUV);
+	m_viewer->m_shader->m_inPos, m_viewer->m_shader->m_inNor, m_viewer->m_shader->m_inUV);
 	m_mmdEdgeVAO = CreateVAO_PosNor(m_posVBO, m_norVBO, m_ibo,
-		glfwViewer.m_edgeShader->m_inPos, glfwViewer.m_edgeShader->m_inNor);
-	m_mmdGroundShadowVAO = CreateVAO_Pos(m_posVBO, m_ibo, glfwViewer.m_groundShadowShader->m_inPos);
+		m_viewer->m_edgeShader->m_inPos, m_viewer->m_edgeShader->m_inNor);
+	m_mmdGroundShadowVAO = CreateVAO_Pos(m_posVBO, m_ibo, m_viewer->m_groundShadowShader->m_inPos);
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
-			auto [m_texture, m_hasAlpha] = glfwViewer.GetTexture(mmdMat.m_texture);
+			auto [m_texture, m_hasAlpha] = m_viewer->GetTexture(mmdMat.m_texture);
 			mat.m_texture = m_texture;
 			mat.m_textureHasAlpha = m_hasAlpha;
 		}
 		if (!mmdMat.m_spTexture.empty())
-			mat.m_spTexture = glfwViewer.GetTexture(mmdMat.m_spTexture).m_texture;
+			mat.m_spTexture = m_viewer->GetTexture(mmdMat.m_spTexture).m_texture;
 		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = glfwViewer.GetTexture(mmdMat.m_toonTexture).m_texture;
+			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture).m_texture;
 		m_materials.emplace_back(mat);
 	}
 	return true;
@@ -313,7 +313,7 @@ void GLFWModel::Clear() {
 	m_mmdVAO = m_mmdEdgeVAO = m_mmdGroundShadowVAO = 0;
 }
 
-void GLFWModel::Update(Viewer& viewer) const {
+void GLFWModel::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	UpdateDynamicBuffer(m_posVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
@@ -322,17 +322,16 @@ void GLFWModel::Update(Viewer& viewer) const {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GLFWModel::Draw(Viewer& viewer) const {
-	auto& glfwViewer = dynamic_cast<GLFWViewer&>(viewer);
-	const auto& view = viewer.m_viewMat;
-	const auto& proj = viewer.m_projMat;
+void GLFWModel::Draw() const {
+	const auto& view = m_viewer->m_viewMat;
+	const auto& proj = m_viewer->m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
-	BindDummyShadow4(glfwViewer.m_dummyShadowDepthTex);
+	BindDummyShadow4(m_viewer->m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = glfwViewer.m_shader;
+		const auto& shader = m_viewer->m_shader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
@@ -358,7 +357,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_texture);
 		} else {
 			glUniform1i(shader->m_uTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
 		glUniform1i(shader->m_uSphereTex, 1);
@@ -372,7 +371,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			glBindTexture(GL_TEXTURE_2D, mat.m_spTexture);
 		} else {
 			glUniform1i(shader->m_uSphereTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
 		glUniform1i(shader->m_uToonTex, 2);
@@ -385,11 +384,11 @@ void GLFWModel::Draw(Viewer& viewer) const {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
-			glBindTexture(GL_TEXTURE_2D, glfwViewer.m_dummyColorTex);
+			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
-		glm::vec3 lightColor = viewer.m_lightColor;
-		glm::vec3 lightDir = viewer.m_lightDir;
-		auto viewMat = glm::mat3(viewer.m_viewMat);
+		glm::vec3 lightColor = m_viewer->m_lightColor;
+		glm::vec3 lightDir = m_viewer->m_lightDir;
+		auto viewMat = glm::mat3(m_viewer->m_viewMat);
 		lightDir = viewMat * lightDir;
 		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
@@ -409,9 +408,9 @@ void GLFWModel::Draw(Viewer& viewer) const {
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
-	glm::vec2 screenSize(viewer.m_screenWidth, viewer.m_screenHeight);
+	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = glfwViewer.m_edgeShader;
+		const auto& shader = m_viewer->m_edgeShader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
@@ -437,7 +436,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-viewer.m_lightDir, 0.f);
+	glm::vec4 light(-m_viewer->m_lightDir, 0.f);
 	float d = glm::dot(plane, light);
 	glm::mat4 shadow = d * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
@@ -453,7 +452,7 @@ void GLFWModel::Draw(Viewer& viewer) const {
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
-		const auto& shader = glfwViewer.m_groundShadowShader;
+		const auto& shader = m_viewer->m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)

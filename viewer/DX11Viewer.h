@@ -7,6 +7,8 @@
 
 #include "Viewer.h"
 
+struct DX11Viewer;
+
 struct DX11Vertex {
     glm::vec3	m_position;
     glm::vec3	m_normal;
@@ -78,6 +80,7 @@ struct DX11Material {
 };
 
 struct DX11Model : Model {
+    DX11Viewer* m_viewer;
     std::vector<DX11Material>	                m_materials;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
@@ -91,8 +94,8 @@ struct DX11Model : Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
 
     bool Setup(Viewer& viewer) override;
-    void Update(Viewer& viewer) const override;
-    void Draw(Viewer& viewer) const override;
+    void Update() const override;
+    void Draw() const override;
 };
 
 struct DX11Viewer : Viewer {

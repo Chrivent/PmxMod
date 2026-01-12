@@ -90,13 +90,13 @@ DX11Material::DX11Material(const MMDMaterial& mat)
 }
 
 bool DX11Model::Setup(Viewer& viewer) {
-	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
+	m_viewer = &dynamic_cast<DX11Viewer&>(viewer);
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
 	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_mmdModel->m_positions.size());
 	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
+	if (FAILED(m_viewer->m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
 		return false;
 	D3D11_BUFFER_DESC iBufDesc = {};
 	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -105,7 +105,7 @@ bool DX11Model::Setup(Viewer& viewer) {
 	iBufDesc.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = &m_mmdModel->m_indices[0];
-	if (FAILED(dx11Viewer.m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
+	if (FAILED(m_viewer->m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
 		return false;
 	if (1 == m_mmdModel->m_indexElementSize)
 		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
@@ -115,39 +115,38 @@ bool DX11Model::Setup(Viewer& viewer) {
 		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
 	else
 		return false;
-	if (FAILED(CreateConstBuffer<DX11VertexShader>(dx11Viewer.m_device.Get(), m_mmdVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11VertexShader>(m_viewer->m_device.Get(), m_mmdVSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11PixelShader>(dx11Viewer.m_device.Get(), m_mmdPSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11PixelShader>(m_viewer->m_device.Get(), m_mmdPSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11EdgeVertexShader>(dx11Viewer.m_device.Get(), m_mmdEdgeVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgeVertexShader>(m_viewer->m_device.Get(), m_mmdEdgeVSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11EdgeSizeVertexShader>(dx11Viewer.m_device.Get(), m_mmdEdgeSizeVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgeSizeVertexShader>(m_viewer->m_device.Get(), m_mmdEdgeSizeVSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11EdgePixelShader>(dx11Viewer.m_device.Get(), m_mmdEdgePSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11EdgePixelShader>(m_viewer->m_device.Get(), m_mmdEdgePSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11GroundShadowVertexShader>(dx11Viewer.m_device.Get(), m_mmdGroundShadowVSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11GroundShadowVertexShader>(m_viewer->m_device.Get(), m_mmdGroundShadowVSConstantBuffer)))
 		return false;
-	if (FAILED(CreateConstBuffer<DX11GroundShadowPixelShader>(dx11Viewer.m_device.Get(), m_mmdGroundShadowPSConstantBuffer)))
+	if (FAILED(CreateConstBuffer<DX11GroundShadowPixelShader>(m_viewer->m_device.Get(), m_mmdGroundShadowPSConstantBuffer)))
 		return false;
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		DX11Material mat(mmdMat);
 		if (!mmdMat.m_texture.empty())
-			mat.m_texture = dx11Viewer.GetTexture(mmdMat.m_texture);
+			mat.m_texture = m_viewer->GetTexture(mmdMat.m_texture);
 		if (!mmdMat.m_spTexture.empty())
-			mat.m_spTexture = dx11Viewer.GetTexture(mmdMat.m_spTexture);
+			mat.m_spTexture = m_viewer->GetTexture(mmdMat.m_spTexture);
 		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = dx11Viewer.GetTexture(mmdMat.m_toonTexture);
+			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture);
 		m_materials.emplace_back(std::move(mat));
 	}
 	return true;
 }
 
-void DX11Model::Update(Viewer& viewer) const {
-	const auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
+void DX11Model::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
-	if (FAILED(dx11Viewer.m_context->Map(m_vertexBuffer.Get(), 0,
+	if (FAILED(m_viewer->m_context->Map(m_vertexBuffer.Get(), 0,
 		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 		return;
 	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
@@ -159,13 +158,12 @@ void DX11Model::Update(Viewer& viewer) const {
 		vertices[i].m_normal = normals[i];
 		vertices[i].m_uv = uvs[i];
 	}
-	dx11Viewer.m_context->Unmap(m_vertexBuffer.Get(), 0);
+	m_viewer->m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
-void DX11Model::Draw(Viewer& viewer) const {
-	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
-	const auto& view = viewer.m_viewMat;
-	const auto& proj = viewer.m_projMat;
+void DX11Model::Draw() const {
+	const auto& view = m_viewer->m_viewMat;
+	const auto& proj = m_viewer->m_projMat;
 	const auto& dxMat = glm::mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -175,23 +173,23 @@ void DX11Model::Draw(Viewer& viewer) const {
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
-	dx11Viewer.m_context->OMSetDepthStencilState(dx11Viewer.m_defaultDSS.Get(), 0x00);
+	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_defaultDSS.Get(), 0x00);
 	UINT strides[] = { sizeof(DX11Vertex) };
 	UINT offsets[] = { 0 };
-	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdInputLayout.Get());
+	m_viewer->m_context->IASetInputLayout(m_viewer->m_mmdInputLayout.Get());
 	ID3D11Buffer* vbs[] = { m_vertexBuffer.Get() };
-	dx11Viewer.m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
-	dx11Viewer.m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
-	dx11Viewer.m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_viewer->m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
+	m_viewer->m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
+	m_viewer->m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DX11VertexShader vsCB1{};
 	vsCB1.m_wv = wv;
 	vsCB1.m_wvp = wvp;
-	dx11Viewer.m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
+	m_viewer->m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
 		0, nullptr, &vsCB1, 0, 0);
-	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdVS.Get(), nullptr, 0);
-	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdPS.Get(), nullptr, 0);
+	m_viewer->m_context->VSSetShader(m_viewer->m_mmdVS.Get(), nullptr, 0);
+	m_viewer->m_context->PSSetShader(m_viewer->m_mmdPS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
-	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs1);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs1);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
         const auto& mat = m_materials[m_materialID];
         const auto& mmdMat = mat.m_mmdMat;
@@ -206,11 +204,11 @@ void DX11Model::Draw(Viewer& viewer) const {
 		int baseMode = 0;
 		if (mat.m_texture.m_texture)
 			baseMode = !mat.m_texture.m_hasAlpha ? 1 : 2;
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
-			0, mat.m_texture, dx11Viewer.m_textureSampler.Get(), baseMode, psCB.m_textureModes.x,
+		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
+			0, mat.m_texture, m_viewer->m_textureSampler.Get(), baseMode, psCB.m_textureModes.x,
 			psCB.m_texMulFactor, psCB.m_texAddFactor, mmdMat.m_textureMulFactor, mmdMat.m_textureAddFactor);
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
-			1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(), 1, psCB.m_textureModes.y,
+		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
+			1, mat.m_toonTexture, m_viewer->m_toonTextureSampler.Get(), 1, psCB.m_textureModes.y,
 			psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor, mmdMat.m_toonTextureMulFactor, mmdMat.m_toonTextureAddFactor);
 		int spMode = 0;
 		if (mat.m_spTexture.m_texture) {
@@ -219,34 +217,34 @@ void DX11Model::Draw(Viewer& viewer) const {
 			else if (mmdMat.m_spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
-			2, mat.m_spTexture, dx11Viewer.m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
+		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
+			2, mat.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
 			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mmdMat.m_spTextureMulFactor, mmdMat.m_spTextureAddFactor);
-        psCB.m_lightColor = viewer.m_lightColor;
-        glm::vec3 lightDir = viewer.m_lightDir;
-        auto viewMat3 = glm::mat3(viewer.m_viewMat);
+        psCB.m_lightColor = m_viewer->m_lightColor;
+        glm::vec3 lightDir = m_viewer->m_lightDir;
+        auto viewMat3 = glm::mat3(m_viewer->m_viewMat);
         lightDir = viewMat3 * lightDir;
         psCB.m_lightDir = lightDir;
-        dx11Viewer.m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-        dx11Viewer.m_context->PSSetConstantBuffers(1, 1, m_mmdPSConstantBuffer.GetAddressOf());
+        m_viewer->m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+        m_viewer->m_context->PSSetConstantBuffers(1, 1, m_mmdPSConstantBuffer.GetAddressOf());
         if (mmdMat.m_bothFace)
-            dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdBothFaceRS.Get());
+            m_viewer->m_context->RSSetState(m_viewer->m_mmdBothFaceRS.Get());
         else
-            dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdFrontFaceRS.Get());
-        dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+            m_viewer->m_context->RSSetState(m_viewer->m_mmdFrontFaceRS.Get());
+        m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
     }
-	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdEdgeInputLayout.Get());
+	m_viewer->m_context->IASetInputLayout(m_viewer->m_mmdEdgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
-	vsCB2.m_screenSize = glm::vec2(static_cast<float>(viewer.m_screenWidth),
-		static_cast<float>(viewer.m_screenHeight));
-	dx11Viewer.m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
+	vsCB2.m_screenSize = glm::vec2(static_cast<float>(m_viewer->m_screenWidth),
+		static_cast<float>(m_viewer->m_screenHeight));
+	m_viewer->m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
 		0, nullptr, &vsCB2, 0, 0);
-	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdEdgeVS.Get(), nullptr, 0);
-	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdEdgePS.Get(), nullptr, 0);
+	m_viewer->m_context->VSSetShader(m_viewer->m_mmdEdgeVS.Get(), nullptr, 0);
+	m_viewer->m_context->PSSetShader(m_viewer->m_mmdEdgePS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
-	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs2);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs2);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -256,33 +254,33 @@ void DX11Model::Draw(Viewer& viewer) const {
 			continue;
 		DX11EdgeSizeVertexShader vsCB{};
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
-		dx11Viewer.m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
+		m_viewer->m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
-		dx11Viewer.m_context->VSSetConstantBuffers(1, 1, cbs);
+		m_viewer->m_context->VSSetConstantBuffers(1, 1, cbs);
 		DX11EdgePixelShader psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
-		dx11Viewer.m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
+		m_viewer->m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
-		dx11Viewer.m_context->PSSetConstantBuffers(2, 1, m_mmdEdgePSConstantBuffer.GetAddressOf());
-		dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdEdgeRS.Get());
-		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+		m_viewer->m_context->PSSetConstantBuffers(2, 1, m_mmdEdgePSConstantBuffer.GetAddressOf());
+		m_viewer->m_context->RSSetState(m_viewer->m_mmdEdgeRS.Get());
+		m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
-	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
+	m_viewer->m_context->IASetInputLayout(m_viewer->m_mmdGroundShadowInputLayout.Get());
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-glm::normalize(viewer.m_lightDir), 0.f);
+	glm::vec4 light(-glm::normalize(m_viewer->m_lightDir), 0.f);
 	float d = glm::dot(plane, light);
 	glm::mat4 shadow = d * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB{};
 	vsCB.m_wvp = dxMat * proj * view * shadow * world;
-	dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
+	m_viewer->m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
-	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdGroundShadowVS.Get(), nullptr, 0);
-	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdGroundShadowPS.Get(), nullptr, 0);
+	m_viewer->m_context->VSSetShader(m_viewer->m_mmdGroundShadowVS.Get(), nullptr, 0);
+	m_viewer->m_context->PSSetShader(m_viewer->m_mmdGroundShadowPS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
-	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs);
-	dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdGroundShadowRS.Get());
-	dx11Viewer.m_context->OMSetDepthStencilState(dx11Viewer.m_mmdGroundShadowDSS.Get(), 0x01);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs);
+	m_viewer->m_context->RSSetState(m_viewer->m_mmdGroundShadowRS.Get());
+	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_mmdGroundShadowDSS.Get(), 0x01);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -292,9 +290,9 @@ void DX11Model::Draw(Viewer& viewer) const {
 			continue;
 		DX11GroundShadowPixelShader psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-		dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-		dx11Viewer.m_context->PSSetConstantBuffers(1, 1, m_mmdGroundShadowPSConstantBuffer.GetAddressOf());
-		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+		m_viewer->m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+		m_viewer->m_context->PSSetConstantBuffers(1, 1, m_mmdGroundShadowPSConstantBuffer.GetAddressOf());
+		m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 }
 

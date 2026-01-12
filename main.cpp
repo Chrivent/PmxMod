@@ -139,7 +139,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig2();
+		cfg = BuildTestSceneConfig1();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;

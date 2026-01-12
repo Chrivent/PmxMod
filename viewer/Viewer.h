@@ -33,8 +33,8 @@ struct Model {
     float m_scale = 1.0f;
 
     virtual bool Setup(Viewer& viewer) = 0;
-    virtual void Update(Viewer& viewer) const = 0;
-    virtual void Draw(Viewer& viewer) const = 0;
+    virtual void Update() const = 0;
+    virtual void Draw() const = 0;
     virtual void Clear() {}
 
     void UpdateAnimation(const Viewer& viewer) const;
