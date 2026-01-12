@@ -12,10 +12,8 @@
 
 GLuint Compile(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
-	if (!shader) {
-		std::cout << "Failed to create shader_GLFW.\n";
+	if (!shader)
 		return 0;
-	}
 	const char* codes = code.c_str();
 	const auto codesLen = static_cast<GLint>(code.size());
 	glShaderSource(shader, 1, &codes, &codesLen);
@@ -27,11 +25,9 @@ GLuint Compile(const GLenum shaderType, const std::string& code) {
 		std::string log(static_cast<size_t>(infoLength), '\0');
 		GLsizei len = 0;
 		glGetShaderInfoLog(shader, infoLength, &len, log.data());
-		std::cout << log.c_str() << "\n";
 	}
 	if (compileStatus != GL_TRUE) {
 		glDeleteShader(shader);
-		std::cout << "Failed to compile shader_GLFW.\n";
 		return 0;
 	}
 	return shader;
@@ -59,7 +55,6 @@ GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vao;
 }
 
@@ -98,10 +93,8 @@ std::string InjectDefine(const std::string& src, const char* defineLine) {
 
 GLuint CreateShader(const std::filesystem::path& file) {
 	std::ifstream f(file);
-	if (!f) {
-		std::cout << "Failed to open shader file. [" << file << "].\n";
+	if (!f)
 		return 0;
-	}
 	const std::string src((std::istreambuf_iterator(f)), {});
 	const std::string vsCode = InjectDefine(src, "#define VERTEX");
 	const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
@@ -118,7 +111,6 @@ GLuint CreateShader(const std::filesystem::path& file) {
 	if (prog == 0) {
 		glDeleteShader(vs);
 		glDeleteShader(fs);
-		std::cout << "Failed to create program.\n";
 		return 0;
 	}
 	glAttachShader(prog, vs);
@@ -131,13 +123,11 @@ GLuint CreateShader(const std::filesystem::path& file) {
 		std::string info(static_cast<size_t>(infoLength), '\0');
 		GLsizei len = 0;
 		glGetProgramInfoLog(prog, infoLength, &len, info.data());
-		std::cout << info.c_str() << "\n";
 	}
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	if (linkStatus != GL_TRUE) {
 		glDeleteProgram(prog);
-		std::cout << "Failed to link shader_GLFW.\n";
 		return 0;
 	}
 	return prog;
