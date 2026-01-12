@@ -436,25 +436,10 @@ void GLFWModel::Draw(Viewer& viewer) const {
 	}
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
-	auto plane = glm::vec4(0, 1, 0, 0);
-	auto light = -viewer.m_lightDir;
-	auto shadow = glm::mat4(1);
-	shadow[0][0] = plane.y * light.y + plane.z * light.z;
-	shadow[0][1] = -plane.x * light.y;
-	shadow[0][2] = -plane.x * light.z;
-	shadow[0][3] = 0;
-	shadow[1][0] = -plane.y * light.x;
-	shadow[1][1] = plane.x * light.x + plane.z * light.z;
-	shadow[1][2] = -plane.y * light.z;
-	shadow[1][3] = 0;
-	shadow[2][0] = -plane.z * light.x;
-	shadow[2][1] = -plane.z * light.y;
-	shadow[2][2] = plane.x * light.x + plane.y * light.y;
-	shadow[2][3] = 0;
-	shadow[3][0] = -plane.w * light.x;
-	shadow[3][1] = -plane.w * light.y;
-	shadow[3][2] = -plane.w * light.z;
-	shadow[3][3] = plane.x * light.x + plane.y * light.y + plane.z * light.z;
+	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
+	glm::vec4 light(-viewer.m_lightDir, 0.f);
+	float d = glm::dot(plane, light);
+	glm::mat4 shadow = d * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
