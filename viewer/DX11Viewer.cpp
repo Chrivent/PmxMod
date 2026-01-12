@@ -64,13 +64,13 @@ D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
 }
 
 template<class T>
-HRESULT CreateConstBuffer(ID3D11Device* dev, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
+HRESULT CreateConstBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
 	const UINT bytes = static_cast<UINT>((sizeof(T) + 15u) & ~15u);
 	const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
-	return dev->CreateBuffer(&desc, nullptr, out.GetAddressOf());
+	return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
 }
 
-void BindTexture(ID3D11DeviceContext* ctx, ID3D11ShaderResourceView* dummySRV, ID3D11SamplerState* dummySampler,
+void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySRV, ID3D11SamplerState* dummySampler,
 	const UINT slot, const DX11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent, int& outMode,
 	glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
 	if (tex.m_texture) {
@@ -81,8 +81,8 @@ void BindTexture(ID3D11DeviceContext* ctx, ID3D11ShaderResourceView* dummySRV, I
 		outMode = 0;
 	ID3D11ShaderResourceView* views = tex.m_texture ? tex.m_textureView.Get() : dummySRV;
 	ID3D11SamplerState* samplers = tex.m_texture ? sampler : dummySampler;
-	ctx->PSSetShaderResources(slot, 1, &views);
-	ctx->PSSetSamplers(slot, 1, &samplers);
+	context->PSSetShaderResources(slot, 1, &views);
+	context->PSSetSamplers(slot, 1, &samplers);
 }
 
 DX11Material::DX11Material(const MMDMaterial& mat)
@@ -265,8 +265,7 @@ void DX11Model::Draw() const {
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_mmdGroundShadowInputLayout.Get());
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 	glm::vec4 light(-glm::normalize(m_viewer->m_lightDir), 0.f);
-	float d = glm::dot(plane, light);
-	glm::mat4 shadow = d * glm::mat4(1.f) - glm::outerProduct(light, plane);
+	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB{};
 	vsCB.m_wvp = dxMat * proj * view * shadow * world;
 	m_viewer->m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),

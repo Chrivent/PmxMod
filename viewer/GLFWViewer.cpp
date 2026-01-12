@@ -437,8 +437,7 @@ void GLFWModel::Draw() const {
 	glPolygonOffset(-1, -1);
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 	glm::vec4 light(-m_viewer->m_lightDir, 0.f);
-	float d = glm::dot(plane, light);
-	glm::mat4 shadow = d * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
