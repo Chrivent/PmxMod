@@ -18,18 +18,6 @@ GLuint Compile(const GLenum shaderType, const std::string& code) {
 	const auto codesLen = static_cast<GLint>(code.size());
 	glShaderSource(shader, 1, &codes, &codesLen);
 	glCompileShader(shader);
-	GLint compileStatus = GL_FALSE, infoLength = 0;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength > 1) {
-		std::string log(static_cast<size_t>(infoLength), '\0');
-		GLsizei len = 0;
-		glGetShaderInfoLog(shader, infoLength, &len, log.data());
-	}
-	if (compileStatus != GL_TRUE) {
-		glDeleteShader(shader);
-		return 0;
-	}
 	return shader;
 }
 
@@ -42,7 +30,7 @@ GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, co
 }
 
 GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
-	const GLsizei* strides, const int attribCount, const GLuint ibo) {
+	const int attribCount, const GLuint ibo) {
 	GLuint vao = 0;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -50,7 +38,7 @@ GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 		if (locs[i] < 0)
 			continue;
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-		glVertexAttribPointer(locs[i], sizes[i], types[i], GL_FALSE, strides[i], nullptr);
+		glVertexAttribPointer(locs[i], sizes[i], types[i], GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(locs[i]);
 	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -116,20 +104,8 @@ GLuint CreateShader(const std::filesystem::path& file) {
 	glAttachShader(prog, vs);
 	glAttachShader(prog, fs);
 	glLinkProgram(prog);
-	GLint linkStatus = GL_FALSE, infoLength = 0;
-	glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
-	glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &infoLength);
-	if (infoLength > 1) {
-		std::string info(static_cast<size_t>(infoLength), '\0');
-		GLsizei len = 0;
-		glGetProgramInfoLog(prog, infoLength, &len, info.data());
-	}
 	glDeleteShader(vs);
 	glDeleteShader(fs);
-	if (linkStatus != GL_TRUE) {
-		glDeleteProgram(prog);
-		return 0;
-	}
 	return prog;
 }
 
@@ -251,14 +227,9 @@ bool GLFWModel::Setup(Viewer& viewer) {
 		{ GL_FLOAT, GL_FLOAT },
 		{ GL_FLOAT }
 	};
-	constexpr GLsizei strides[][3] = {
-		{ static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec2)) },
-		{ static_cast<GLsizei>(sizeof(glm::vec3)), static_cast<GLsizei>(sizeof(glm::vec3)) },
-		{ static_cast<GLsizei>(sizeof(glm::vec3)) }
-	};
-	m_mmdVAO = CreateVAO(buffers[0], locs[0], sizes[0], types[0], strides[0], 3, m_ibo);
-	m_mmdEdgeVAO = CreateVAO(buffers[1], locs[1], sizes[1], types[1], strides[1], 2, m_ibo);
-	m_mmdGroundShadowVAO = CreateVAO(buffers[2], locs[2], sizes[2], types[2], strides[2], 1, m_ibo);
+	m_mmdVAO = CreateVAO(buffers[0], locs[0], sizes[0], types[0], 3, m_ibo);
+	m_mmdEdgeVAO = CreateVAO(buffers[1], locs[1], sizes[1], types[1], 2, m_ibo);
+	m_mmdGroundShadowVAO = CreateVAO(buffers[2], locs[2], sizes[2], types[2], 1, m_ibo);
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
@@ -284,7 +255,6 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	};
 	for (int i = 0; i < 4; i++)
 		glUniform1i(shadowLocs[i], 3 + i);
-	glUseProgram(0);
 	return true;
 }
 
@@ -414,8 +384,6 @@ void GLFWModel::Draw() const {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
-		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
@@ -446,8 +414,6 @@ void GLFWModel::Draw() const {
 		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
-		glBindVertexArray(0);
-		glUseProgram(0);
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);
