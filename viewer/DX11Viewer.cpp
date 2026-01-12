@@ -219,10 +219,7 @@ void DX11Model::Draw() const {
 			2, mat.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
 			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mmdMat.m_spTextureMulFactor, mmdMat.m_spTextureAddFactor);
         psCB.m_lightColor = m_viewer->m_lightColor;
-        glm::vec3 lightDir = m_viewer->m_lightDir;
-        auto viewMat3 = glm::mat3(m_viewer->m_viewMat);
-        lightDir = viewMat3 * lightDir;
-        psCB.m_lightDir = lightDir;
+        psCB.m_lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
         m_viewer->m_context->UpdateSubresource(m_mmdPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
         m_viewer->m_context->PSSetConstantBuffers(1, 1, m_mmdPSConstantBuffer.GetAddressOf());
         if (mmdMat.m_bothFace)
@@ -247,7 +244,7 @@ void DX11Model::Draw() const {
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
 			continue;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
+		if (mmdMat.m_diffuse.a == 0)
 			continue;
 		DX11EdgeSizeVertexShader vsCB{};
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
@@ -280,7 +277,7 @@ void DX11Model::Draw() const {
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_groundShadow)
 			continue;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
+		if (mmdMat.m_diffuse.a == 0)
 			continue;
 		DX11GroundShadowPixelShader psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);

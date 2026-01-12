@@ -92,14 +92,10 @@ GLuint CreateVAO_Pos(const GLuint posVBO, const GLuint ibo, const GLint inPos) {
 }
 
 void BindDummyShadow4(const GLuint depthTex) {
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_2D, depthTex);
-	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_2D, depthTex);
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_2D, depthTex);
-	glActiveTexture(GL_TEXTURE0 + 6);
-	glBindTexture(GL_TEXTURE_2D, depthTex);
+	for (int i = 0; i < 4; i++) {
+		glActiveTexture(GL_TEXTURE0 + 3 + i);
+		glBindTexture(GL_TEXTURE_2D, depthTex);
+	}
 }
 
 void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
@@ -291,6 +287,15 @@ bool GLFWModel::Setup(Viewer& viewer) {
 			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture).m_texture;
 		m_materials.emplace_back(mat);
 	}
+	glUseProgram(m_viewer->m_shader->m_prog);
+	glUniform1i(m_viewer->m_shader->m_uTex, 0);
+	glUniform1i(m_viewer->m_shader->m_uSphereTex, 1);
+	glUniform1i(m_viewer->m_shader->m_uToonTex, 2);
+	glUniform1i(m_viewer->m_shader->m_uShadowMap0, 3);
+	glUniform1i(m_viewer->m_shader->m_uShadowMap1, 4);
+	glUniform1i(m_viewer->m_shader->m_uShadowMap2, 5);
+	glUniform1i(m_viewer->m_shader->m_uShadowMap3, 6);
+	glUseProgram(0);
 	return true;
 }
 
@@ -334,7 +339,7 @@ void GLFWModel::Draw() const {
 		const auto& shader = m_viewer->m_shader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
-		if (mat.m_mmdMat.m_diffuse.a == 0)
+		if (mmdMat.m_diffuse.a == 0)
 			continue;
 		glUseProgram(shader->m_prog);
 		glBindVertexArray(m_mmdVAO);
@@ -346,7 +351,6 @@ void GLFWModel::Draw() const {
 		glUniform1f(shader->m_uSpecularPower, mmdMat.m_specularPower);
 		glUniform1f(shader->m_uAlpha, mmdMat.m_diffuse.a);
 		glActiveTexture(GL_TEXTURE0 + 0);
-		glUniform1i(shader->m_uTex, 0);
 		if (mat.m_texture != 0) {
 			if (!mat.m_textureHasAlpha)
 				glUniform1i(shader->m_uTexMode, 1);
@@ -360,7 +364,6 @@ void GLFWModel::Draw() const {
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
-		glUniform1i(shader->m_uSphereTex, 1);
 		if (mat.m_spTexture != 0) {
 			if (mmdMat.m_spTextureMode == SphereMode::Mul)
 				glUniform1i(shader->m_uSphereTexMode, 1);
@@ -374,7 +377,6 @@ void GLFWModel::Draw() const {
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
-		glUniform1i(shader->m_uToonTex, 2);
 		if (mat.m_toonTexture != 0) {
 			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mmdMat.m_toonTextureMulFactor[0]);
 			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mmdMat.m_toonTextureAddFactor[0]);
@@ -387,9 +389,7 @@ void GLFWModel::Draw() const {
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glm::vec3 lightColor = m_viewer->m_lightColor;
-		glm::vec3 lightDir = m_viewer->m_lightDir;
-		auto viewMat = glm::mat3(m_viewer->m_viewMat);
-		lightDir = viewMat * lightDir;
+		glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
 		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
 		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
 		if (mmdMat.m_bothFace)
@@ -401,10 +401,6 @@ void GLFWModel::Draw() const {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUniform1i(shader->m_uShadowMapEnabled, 0);
-		glUniform1i(shader->m_uShadowMap0, 3);
-		glUniform1i(shader->m_uShadowMap1, 4);
-		glUniform1i(shader->m_uShadowMap2, 5);
-		glUniform1i(shader->m_uShadowMap3, 6);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
