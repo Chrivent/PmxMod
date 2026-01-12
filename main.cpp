@@ -86,7 +86,7 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-static SceneConfig BuildTestSceneConfig() {
+static SceneConfig BuildTestSceneConfig1() {
 	SceneConfig cfg;
 	Input in1;
 	in1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
@@ -117,6 +117,21 @@ static SceneConfig BuildTestSceneConfig() {
 	return cfg;
 }
 
+static SceneConfig BuildTestSceneConfig2() {
+	SceneConfig cfg;
+	Input in;
+	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
+	in.m_vmdPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
+	cfg.models.emplace_back(std::move(in));
+	cfg.cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
+	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
+	Input bg;
+	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
+	bg.m_scale = 1.0f;
+	cfg.models.emplace_back(std::move(bg));
+	return cfg;
+}
+
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
@@ -124,7 +139,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig();
+		cfg = BuildTestSceneConfig2();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
