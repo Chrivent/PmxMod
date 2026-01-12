@@ -162,6 +162,28 @@ void DX11Model::Update(Viewer& viewer) const {
 
 void DX11Model::Draw(Viewer& viewer) const {
 	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
+	auto BindTex = [&](UINT slot,
+				   const DX11Texture& tex,
+				   ID3D11SamplerState* sampler,
+				   int modeIfPresent,
+				   int& outMode,
+				   glm::vec4& outMul,
+				   glm::vec4& outAdd,
+				   const glm::vec4& mulIn,
+				   const glm::vec4& addIn)
+	{
+		if (tex.m_texture) {
+			outMode = modeIfPresent;
+			outMul  = mulIn;
+			outAdd  = addIn;
+		} else {
+			outMode = 0;
+		}
+
+		BindOrDummyPS(dx11Viewer.m_context.Get(), slot, tex, sampler,
+					  dx11Viewer.m_dummyTextureView.Get(),
+					  dx11Viewer.m_dummySampler.Get());
+	};
 	const auto& view = viewer.m_viewMat;
 	const auto& proj = viewer.m_projMat;
 	const auto& dxMat = glm::mat4(
@@ -210,38 +232,25 @@ void DX11Model::Draw(Viewer& viewer) const {
         psCB.m_ambient       = mmdMat.m_ambient;
         psCB.m_specular      = mmdMat.m_specular;
         psCB.m_specularPower = mmdMat.m_specularPower;
-        if (mat.m_texture.m_texture) {
-            psCB.m_textureModes.x = (!mat.m_texture.m_hasAlpha) ? 1 : 2;
-            psCB.m_texMulFactor   = mmdMat.m_textureMulFactor;
-            psCB.m_texAddFactor   = mmdMat.m_textureAddFactor;
-        } else
-	        psCB.m_textureModes.x = 0;
-        BindOrDummyPS(dx11Viewer.m_context.Get(), 0, mat.m_texture, dx11Viewer.m_textureSampler.Get(),
-            dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
-        );
-        if (mat.m_toonTexture.m_texture) {
-            psCB.m_textureModes.y    = 1;
-            psCB.m_toonTexMulFactor  = mmdMat.m_toonTextureMulFactor;
-            psCB.m_toonTexAddFactor  = mmdMat.m_toonTextureAddFactor;
-        } else
-	        psCB.m_textureModes.y = 0;
-        BindOrDummyPS(dx11Viewer.m_context.Get(), 1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(),
-        	dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
-        );
-        if (mat.m_spTexture.m_texture) {
-            if (mmdMat.m_spTextureMode == SphereMode::Mul)
-                psCB.m_textureModes.z = 1;
-            else if (mmdMat.m_spTextureMode == SphereMode::Add)
-                psCB.m_textureModes.z = 2;
-            else
-                psCB.m_textureModes.z = 0;
-            psCB.m_sphereTexMulFactor = mmdMat.m_spTextureMulFactor;
-            psCB.m_sphereTexAddFactor = mmdMat.m_spTextureAddFactor;
-        } else
-	        psCB.m_textureModes.z = 0;
-        BindOrDummyPS(dx11Viewer.m_context.Get(), 2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(),
-            dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get()
-        );
+		int baseMode = 0;
+		if (mat.m_texture.m_texture)
+			baseMode = !mat.m_texture.m_hasAlpha ? 1 : 2;
+		BindTex(0, mat.m_texture, dx11Viewer.m_textureSampler.Get(), baseMode,
+			psCB.m_textureModes.x, psCB.m_texMulFactor, psCB.m_texAddFactor,
+			mmdMat.m_textureMulFactor, mmdMat.m_textureAddFactor);
+		BindTex(1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(), 1,
+			psCB.m_textureModes.y, psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor,
+			mmdMat.m_toonTextureMulFactor, mmdMat.m_toonTextureAddFactor);
+		int spMode = 0;
+		if (mat.m_spTexture.m_texture) {
+			if (mmdMat.m_spTextureMode == SphereMode::Mul)
+				spMode = 1;
+			else if (mmdMat.m_spTextureMode == SphereMode::Add)
+				spMode = 2;
+		}
+		BindTex(2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(), spMode,
+			psCB.m_textureModes.z, psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor,
+			mmdMat.m_spTextureMulFactor, mmdMat.m_spTextureAddFactor);
         psCB.m_lightColor = viewer.m_lightColor;
         glm::vec3 lightDir = viewer.m_lightDir;
         auto viewMat3 = glm::mat3(viewer.m_viewMat);
