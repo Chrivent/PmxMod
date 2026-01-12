@@ -336,6 +336,7 @@ bool DX11Viewer::Setup() {
 		return false;
 	if (!CreateDummyResources())
 		return false;
+	UpdateViewport();
 	return true;
 }
 
@@ -347,6 +348,7 @@ bool DX11Viewer::Resize() {
 		return false;
 	if (!CreateRenderTargets())
 		return false;
+	UpdateViewport();
 	return true;
 }
 
@@ -405,6 +407,17 @@ DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {
 	tex.m_hasAlpha = hasAlpha;
 	m_textures[texturePath] = tex;
 	return m_textures[texturePath];
+}
+
+void DX11Viewer::UpdateViewport() const {
+	D3D11_VIEWPORT vp;
+	vp.Width = static_cast<float>(m_screenWidth);
+	vp.Height = static_cast<float>(m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
 }
 
 bool DX11Viewer::MakeVS(const std::filesystem::path& f, const char* entry,
@@ -491,14 +504,6 @@ bool DX11Viewer::CreateRenderTargets() {
 		return false;
 	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
 		return false;
-	D3D11_VIEWPORT vp;
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	m_context->RSSetViewports(1, &vp);
 	return true;
 }
 

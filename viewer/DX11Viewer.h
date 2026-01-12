@@ -137,6 +137,7 @@ struct DX11Viewer : Viewer {
     std::unique_ptr<Model> CreateModel() const override;
 
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
+    void UpdateViewport() const;
     bool MakeVS(const std::filesystem::path& f, const char* entry,
     Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVS, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
     bool MakePS(const std::filesystem::path& f, const char* entry,
