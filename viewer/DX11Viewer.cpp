@@ -141,7 +141,7 @@ bool DX11Model::Setup(Viewer& viewer) {
 }
 
 void DX11Model::Update(Viewer& viewer) const {
-	auto& dx11Viewer = static_cast<DX11Viewer&>(viewer);
+	const auto& dx11Viewer = static_cast<DX11Viewer&>(viewer);
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
