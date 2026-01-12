@@ -121,7 +121,7 @@ int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
 	constexpr COMDLG_FILTERSPEC kMusicFilters[]  = { {L"Audio", L"*.wav;*.mp3;*.ogg;*.flac"} };
-	const bool kTestMode = false;
+	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
 		cfg = BuildTestSceneConfig();
