@@ -293,6 +293,8 @@ void GLFWModel::Draw() const {
 	auto wvp = proj * view * world;
 	BindDummyShadow4(m_viewer->m_dummyShadowDepthTex);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& shader = m_viewer->m_shader;
 		const auto& mat = m_materials[m_materialID];
@@ -356,8 +358,6 @@ void GLFWModel::Draw() const {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUniform1i(shader->m_uShadowMapEnabled, 0);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
@@ -380,8 +380,6 @@ void GLFWModel::Draw() const {
 		glUniform4fv(shader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
@@ -393,12 +391,14 @@ void GLFWModel::Draw() const {
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
+		glEnable(GL_STENCIL_TEST);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_NOTEQUAL, 1, 1);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-		glEnable(GL_STENCIL_TEST);
-	} else
+	} else {
 		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+	}
 	glDisable(GL_CULL_FACE);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
