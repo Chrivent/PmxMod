@@ -215,10 +215,10 @@ void DX11Model::Draw(Viewer& viewer) const {
 		int baseMode = 0;
 		if (mat.m_texture.m_texture)
 			baseMode = !mat.m_texture.m_hasAlpha ? 1 : 2;
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get(),
+		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
 			0, mat.m_texture, dx11Viewer.m_textureSampler.Get(), baseMode, psCB.m_textureModes.x,
 			psCB.m_texMulFactor, psCB.m_texAddFactor, mmdMat.m_textureMulFactor, mmdMat.m_textureAddFactor);
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get(),
+		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
 			1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(), 1, psCB.m_textureModes.y,
 			psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor, mmdMat.m_toonTextureMulFactor, mmdMat.m_toonTextureAddFactor);
 		int spMode = 0;
@@ -228,8 +228,8 @@ void DX11Model::Draw(Viewer& viewer) const {
 			else if (mmdMat.m_spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
-		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_dummySampler.Get(),
-			2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(), spMode, psCB.m_textureModes.z,
+		BindTexture(dx11Viewer.m_context.Get(), dx11Viewer.m_dummyTextureView.Get(), dx11Viewer.m_textureSampler.Get(),
+			2, mat.m_spTexture, dx11Viewer.m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
 			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mmdMat.m_spTextureMulFactor, mmdMat.m_spTextureAddFactor);
         psCB.m_lightColor = viewer.m_lightColor;
         glm::vec3 lightDir = viewer.m_lightDir;
@@ -276,7 +276,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 			0, nullptr, &psCB, 0, 0);
 		dx11Viewer.m_context->PSSetConstantBuffers(2, 1, m_mmdEdgePSConstantBuffer.GetAddressOf());
 		dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdEdgeRS.Get());
-		dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
+		dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
 		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
@@ -308,7 +308,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
 	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs);
 	dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdGroundShadowRS.Get());
-	dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdGroundShadowBlendState.Get(), nullptr, 0xffffffff);
+	dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
 	dx11Viewer.m_context->OMSetDepthStencilState(dx11Viewer.m_mmdGroundShadowDSS.Get(), 0x01);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
@@ -553,16 +553,12 @@ bool DX11Viewer::CreatePipelineStates() {
 	auto wrapLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 	if (FAILED(m_device->CreateSamplerState(&wrapLinear, &m_textureSampler)))
 		return false;
-	m_sphereTextureSampler = m_textureSampler;
-	m_dummySampler = m_textureSampler;
 	auto clampLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 	if (FAILED(m_device->CreateSamplerState(&clampLinear, &m_toonTextureSampler)))
 		return false;
 	auto blend = AlphaBlend();
 	if (FAILED(m_device->CreateBlendState(&blend, &m_mmdBlendState)))
 		return false;
-	m_mmdEdgeBlendState = m_mmdBlendState;
-	m_mmdGroundShadowBlendState = m_mmdBlendState;
 	auto frontRsDesc = Raster(D3D11_CULL_BACK, true);
 	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_mmdFrontFaceRS)))
 		return false;
