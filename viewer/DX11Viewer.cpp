@@ -175,15 +175,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
-	D3D11_VIEWPORT vp;
-	vp.Width = static_cast<float>(viewer.m_screenWidth);
-	vp.Height = static_cast<float>(viewer.m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	dx11Viewer.m_context->RSSetViewports(1, &vp);
-	dx11Viewer.m_context->OMSetRenderTargets(1, dx11Viewer.m_renderTargetView.GetAddressOf(), dx11Viewer.m_depthStencilView.Get());
 	dx11Viewer.m_context->OMSetDepthStencilState(dx11Viewer.m_defaultDSS.Get(), 0x00);
 	UINT strides[] = { sizeof(DX11Vertex) };
 	UINT offsets[] = { 0 };
@@ -378,19 +369,13 @@ bool DX11Viewer::Resize() {
 		return false;
 	if (!CreateRenderTargets())
 		return false;
-	D3D11_VIEWPORT vp{};
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	m_context->RSSetViewports(1, &vp);
 	return true;
 }
 
 void DX11Viewer::BeginFrame() {
-	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), m_clearColor);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 	m_context->OMSetBlendState(m_mmdBlendState.Get(), nullptr, 0xffffffff);
 }
 
@@ -528,6 +513,14 @@ bool DX11Viewer::CreateRenderTargets() {
 		return false;
 	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
 		return false;
+	D3D11_VIEWPORT vp;
+	vp.Width = static_cast<float>(m_screenWidth);
+	vp.Height = static_cast<float>(m_screenHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
 	return true;
 }
 

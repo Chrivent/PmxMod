@@ -135,8 +135,10 @@ bool Viewer::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Mode
 
 void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
     m_vmdCameraAnim.reset();
-    if (cfg.cameraVmd.empty())
+    if (cfg.cameraVmd.empty()) {
         std::cout << "No camera VMD file.\n";
+        return;
+    }
     VMDReader camVmd;
     if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
         auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
