@@ -9,7 +9,6 @@
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
 
 D3D11_SAMPLER_DESC Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
@@ -270,14 +269,10 @@ void DX11Model::Draw(Viewer& viewer) const {
 		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
-	const DirectX::XMVECTOR plane = DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	const glm::vec3 ld = -viewer.m_lightDir;
-	const DirectX::XMVECTOR lightDir = DirectX::XMVectorSet(ld.x, ld.y, ld.z, 0.f);
-	const DirectX::XMMATRIX sh = DirectX::XMMatrixShadow(plane, lightDir);
-	DirectX::XMFLOAT4X4 sh4{};
-	XMStoreFloat4x4(&sh4, sh);
-	glm::mat4 shadow;
-	memcpy(&shadow, &sh4, sizeof(glm::mat4));
+	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
+	glm::vec4 light(-glm::normalize(viewer.m_lightDir), 0.f);
+	float d = glm::dot(plane, light);
+	glm::mat4 shadow = d * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB{};
 	vsCB.m_wvp = dxMat * proj * view * shadow * world;
 	dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
