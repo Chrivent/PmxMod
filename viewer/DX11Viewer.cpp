@@ -198,6 +198,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	dx11Viewer.m_context->UpdateSubresource(m_mmdVSConstantBuffer.Get(),
 		0, nullptr, &vsCB1, 0, 0);
 	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdVS.Get(), nullptr, 0);
+	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdPS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
 	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs1);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
@@ -205,7 +206,6 @@ void DX11Model::Draw(Viewer& viewer) const {
         const auto& mmdMat = mat.m_mmdMat;
         if (mmdMat.m_diffuse.a == 0)
             continue;
-        dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdPS.Get(), nullptr, 0);
         DX11PixelShader psCB{};
         psCB.m_alpha         = mmdMat.m_diffuse.a;
         psCB.m_diffuse       = mmdMat.m_diffuse;
@@ -254,6 +254,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	dx11Viewer.m_context->UpdateSubresource(m_mmdEdgeVSConstantBuffer.Get(),
 		0, nullptr, &vsCB2, 0, 0);
 	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdEdgeVS.Get(), nullptr, 0);
+	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdEdgePS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
 	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs2);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
@@ -269,7 +270,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 			0, nullptr, &vsCB, 0, 0);
 		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
 		dx11Viewer.m_context->VSSetConstantBuffers(1, 1, cbs);
-		dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdEdgePS.Get(), nullptr, 0);
 		DX11EdgePixelShader psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		dx11Viewer.m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
@@ -304,6 +304,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 	dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowVSConstantBuffer.Get(),
 		0, nullptr, &vsCB, 0, 0);
 	dx11Viewer.m_context->VSSetShader(dx11Viewer.m_mmdGroundShadowVS.Get(), nullptr, 0);
+	dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdGroundShadowPS.Get(), nullptr, 0);
 	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
 	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs);
 	dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdGroundShadowRS.Get());
@@ -316,7 +317,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 			continue;
 		if (mat.m_mmdMat.m_diffuse.a == 0)
 			continue;
-		dx11Viewer.m_context->PSSetShader(dx11Viewer.m_mmdGroundShadowPS.Get(), nullptr, 0);
 		DX11GroundShadowPixelShader psCB{};
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
