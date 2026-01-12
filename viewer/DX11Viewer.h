@@ -79,7 +79,6 @@ struct DX11Material {
 
 struct DX11Model : Model {
     std::vector<DX11Material>	                m_materials;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext>	m_context;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
     DXGI_FORMAT					                m_indexBufferFormat;
@@ -92,7 +91,7 @@ struct DX11Model : Model {
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_mmdGroundShadowPSConstantBuffer;
 
     bool Setup(Viewer& viewer) override;
-    void Update() const override;
+    void Update(Viewer& viewer) const override;
     void Draw(Viewer& viewer) const override;
 };
 
@@ -136,7 +135,6 @@ struct DX11Viewer : Viewer {
     bool Resize() override;
     void BeginFrame() override;
     bool EndFrame() override;
-    void AfterModelDraw(Model& model) override;
     std::unique_ptr<Model> CreateModel() const override;
 
     DX11Texture GetTexture(const std::filesystem::path& texturePath);

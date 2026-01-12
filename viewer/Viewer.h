@@ -33,7 +33,7 @@ struct Model {
     float m_scale = 1.0f;
 
     virtual bool Setup(Viewer& viewer) = 0;
-    virtual void Update() const = 0;
+    virtual void Update(Viewer& viewer) const = 0;
     virtual void Draw(Viewer& viewer) const = 0;
     virtual void Clear() {}
 
@@ -66,7 +66,6 @@ struct Viewer {
     virtual bool Resize() = 0;
     virtual void BeginFrame() = 0;
     virtual bool EndFrame() = 0;
-    virtual void AfterModelDraw(Model& model) {}
     virtual std::unique_ptr<Model> CreateModel() const = 0;
 
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);

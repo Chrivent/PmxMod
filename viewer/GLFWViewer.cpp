@@ -313,7 +313,7 @@ void GLFWModel::Clear() {
 	m_mmdVAO = m_mmdEdgeVAO = m_mmdGroundShadowVAO = 0;
 }
 
-void GLFWModel::Update() const {
+void GLFWModel::Update(Viewer& viewer) const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	UpdateDynamicBuffer(m_posVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());

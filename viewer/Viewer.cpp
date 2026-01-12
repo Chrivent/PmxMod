@@ -55,11 +55,10 @@ bool Viewer::Run(const SceneConfig& cfg) {
         StepTime(music, saveTime);
         UpdateCamera();
         BeginFrame();
-        for (auto& model : models) {
+        for (const auto& model : models) {
             model->UpdateAnimation(*this);
-            model->Update();
+            model->Update(*this);
             model->Draw(*this);
-            AfterModelDraw(*model);
         }
         if (!EndFrame())
             break;

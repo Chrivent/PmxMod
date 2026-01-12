@@ -99,7 +99,7 @@ struct GLFWModel : Model {
 
     bool Setup(Viewer& viewer) override;
     void Clear() override;
-    void Update() const override;
+    void Update(Viewer& viewer) const override;
     void Draw(Viewer& viewer) const override;
 };
 
