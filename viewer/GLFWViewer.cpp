@@ -324,7 +324,6 @@ void GLFWModel::Update() const {
 	UpdateDynamicBuffer(m_posVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
 	UpdateDynamicBuffer(m_norVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updateNormals.data());
 	UpdateDynamicBuffer(m_uvVBO,  sizeof(glm::vec2) * vtxCount, m_mmdModel->m_updateUVs.data());
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GLFWModel::Draw() const {
@@ -470,7 +469,7 @@ GLFWViewer::~GLFWViewer() {
 	m_shader.reset();
 	m_edgeShader.reset();
 	m_groundShadowShader.reset();
-	for (auto &[m_texture, m_hasAlpha]: m_textures | std::views::values)
+	for (auto& [m_texture, m_hasAlpha] : m_textures | std::views::values)
 		glDeleteTextures(1, &m_texture);
 	m_textures.clear();
 	if (m_dummyColorTex != 0)
