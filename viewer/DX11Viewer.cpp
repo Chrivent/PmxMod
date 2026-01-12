@@ -321,7 +321,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		dx11Viewer.m_context->UpdateSubresource(m_mmdGroundShadowPSConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		dx11Viewer.m_context->PSSetConstantBuffers(1, 1, m_mmdGroundShadowPSConstantBuffer.GetAddressOf());
-		dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdEdgeBlendState.Get(), nullptr, 0xffffffff);
 		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 }
