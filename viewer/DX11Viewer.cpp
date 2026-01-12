@@ -70,17 +70,18 @@ HRESULT CreateConstBuffer(ID3D11Device* dev, Microsoft::WRL::ComPtr<ID3D11Buffer
 	return dev->CreateBuffer(&desc, nullptr, out.GetAddressOf());
 }
 
-void BindOrDummyPS(
-	ID3D11DeviceContext* ctx,
-	const UINT slot,
-	const DX11Texture& tex,
-	ID3D11SamplerState* sampler,
-	ID3D11ShaderResourceView* dummySRV,
-	ID3D11SamplerState* dummySampler) {
-	ID3D11ShaderResourceView* views[] = { tex.m_texture ? tex.m_textureView.Get() : dummySRV };
-	ID3D11SamplerState* samplers[] = { tex.m_texture ? sampler : dummySampler };
-	ctx->PSSetShaderResources(slot, 1, views);
-	ctx->PSSetSamplers(slot, 1, samplers);
+void BindTexture(const DX11Viewer& viewer, const UINT slot, const DX11Texture& tex, ID3D11SamplerState* sampler,
+	const int modeIfPresent, int& outMode, glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
+	if (tex.m_texture) {
+		outMode = modeIfPresent;
+		outMul  = mulIn;
+		outAdd  = addIn;
+	} else
+		outMode = 0;
+	ID3D11ShaderResourceView* views[] = { tex.m_texture ? tex.m_textureView.Get() : viewer.m_dummyTextureView.Get() };
+	ID3D11SamplerState* samplers[] = { tex.m_texture ? sampler : viewer.m_dummySampler.Get() };
+	viewer.m_context->PSSetShaderResources(slot, 1, views);
+	viewer.m_context->PSSetSamplers(slot, 1, samplers);
 }
 
 DX11Material::DX11Material(const MMDMaterial& mat)
@@ -162,28 +163,6 @@ void DX11Model::Update(Viewer& viewer) const {
 
 void DX11Model::Draw(Viewer& viewer) const {
 	auto& dx11Viewer = dynamic_cast<DX11Viewer&>(viewer);
-	auto BindTex = [&](UINT slot,
-				   const DX11Texture& tex,
-				   ID3D11SamplerState* sampler,
-				   int modeIfPresent,
-				   int& outMode,
-				   glm::vec4& outMul,
-				   glm::vec4& outAdd,
-				   const glm::vec4& mulIn,
-				   const glm::vec4& addIn)
-	{
-		if (tex.m_texture) {
-			outMode = modeIfPresent;
-			outMul  = mulIn;
-			outAdd  = addIn;
-		} else {
-			outMode = 0;
-		}
-
-		BindOrDummyPS(dx11Viewer.m_context.Get(), slot, tex, sampler,
-					  dx11Viewer.m_dummyTextureView.Get(),
-					  dx11Viewer.m_dummySampler.Get());
-	};
 	const auto& view = viewer.m_viewMat;
 	const auto& proj = viewer.m_projMat;
 	const auto& dxMat = glm::mat4(
@@ -235,10 +214,10 @@ void DX11Model::Draw(Viewer& viewer) const {
 		int baseMode = 0;
 		if (mat.m_texture.m_texture)
 			baseMode = !mat.m_texture.m_hasAlpha ? 1 : 2;
-		BindTex(0, mat.m_texture, dx11Viewer.m_textureSampler.Get(), baseMode,
+		BindTexture(dx11Viewer, 0, mat.m_texture, dx11Viewer.m_textureSampler.Get(), baseMode,
 			psCB.m_textureModes.x, psCB.m_texMulFactor, psCB.m_texAddFactor,
 			mmdMat.m_textureMulFactor, mmdMat.m_textureAddFactor);
-		BindTex(1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(), 1,
+		BindTexture(dx11Viewer, 1, mat.m_toonTexture, dx11Viewer.m_toonTextureSampler.Get(), 1,
 			psCB.m_textureModes.y, psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor,
 			mmdMat.m_toonTextureMulFactor, mmdMat.m_toonTextureAddFactor);
 		int spMode = 0;
@@ -248,7 +227,7 @@ void DX11Model::Draw(Viewer& viewer) const {
 			else if (mmdMat.m_spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
-		BindTex(2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(), spMode,
+		BindTexture(dx11Viewer, 2, mat.m_spTexture, dx11Viewer.m_sphereTextureSampler.Get(), spMode,
 			psCB.m_textureModes.z, psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor,
 			mmdMat.m_spTextureMulFactor, mmdMat.m_spTextureAddFactor);
         psCB.m_lightColor = viewer.m_lightColor;
