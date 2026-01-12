@@ -79,10 +79,10 @@ void BindTexture(ID3D11DeviceContext* ctx, ID3D11ShaderResourceView* dummySRV, I
 		outAdd  = addIn;
 	} else
 		outMode = 0;
-	ID3D11ShaderResourceView* views[] = { tex.m_texture ? tex.m_textureView.Get() : dummySRV };
-	ID3D11SamplerState* samplers[] = { tex.m_texture ? sampler : dummySampler };
-	ctx->PSSetShaderResources(slot, 1, views);
-	ctx->PSSetSamplers(slot, 1, samplers);
+	ID3D11ShaderResourceView* views = tex.m_texture ? tex.m_textureView.Get() : dummySRV;
+	ID3D11SamplerState* samplers = tex.m_texture ? sampler : dummySampler;
+	ctx->PSSetShaderResources(slot, 1, &views);
+	ctx->PSSetSamplers(slot, 1, &samplers);
 }
 
 DX11Material::DX11Material(const MMDMaterial& mat)
@@ -174,11 +174,10 @@ void DX11Model::Draw() const {
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
 	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_defaultDSS.Get(), 0x00);
-	UINT strides[] = { sizeof(DX11Vertex) };
-	UINT offsets[] = { 0 };
+	UINT stride = sizeof(DX11Vertex);
+	UINT offset = 0;
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_mmdInputLayout.Get());
-	ID3D11Buffer* vbs[] = { m_vertexBuffer.Get() };
-	m_viewer->m_context->IASetVertexBuffers(0, 1, vbs, strides, offsets);
+	m_viewer->m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 	m_viewer->m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
 	m_viewer->m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DX11VertexShader vsCB1{};
@@ -188,8 +187,7 @@ void DX11Model::Draw() const {
 		0, nullptr, &vsCB1, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_mmdVS.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_mmdPS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs1[] = { m_mmdVSConstantBuffer.Get() };
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs1);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_mmdVSConstantBuffer.GetAddressOf());
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
         const auto& mat = m_materials[m_materialID];
         const auto& mmdMat = mat.m_mmdMat;
@@ -243,8 +241,7 @@ void DX11Model::Draw() const {
 		0, nullptr, &vsCB2, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_mmdEdgeVS.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_mmdEdgePS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs2[] = { m_mmdEdgeVSConstantBuffer.Get() };
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs2);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_mmdEdgeVSConstantBuffer.GetAddressOf());
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -256,8 +253,7 @@ void DX11Model::Draw() const {
 		vsCB.m_edgeSize = mmdMat.m_edgeSize;
 		m_viewer->m_context->UpdateSubresource(m_mmdEdgeSizeVSConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
-		ID3D11Buffer* cbs[] = { m_mmdEdgeSizeVSConstantBuffer.Get() };
-		m_viewer->m_context->VSSetConstantBuffers(1, 1, cbs);
+		m_viewer->m_context->VSSetConstantBuffers(1, 1, m_mmdEdgeSizeVSConstantBuffer.GetAddressOf());
 		DX11EdgePixelShader psCB{};
 		psCB.m_edgeColor = mmdMat.m_edgeColor;
 		m_viewer->m_context->UpdateSubresource(m_mmdEdgePSConstantBuffer.Get(),
@@ -277,8 +273,7 @@ void DX11Model::Draw() const {
 		0, nullptr, &vsCB, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_mmdGroundShadowVS.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_mmdGroundShadowPS.Get(), nullptr, 0);
-	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, cbs);
+	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_mmdGroundShadowVSConstantBuffer.GetAddressOf());
 	m_viewer->m_context->RSSetState(m_viewer->m_mmdGroundShadowRS.Get());
 	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_mmdGroundShadowDSS.Get(), 0x01);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
