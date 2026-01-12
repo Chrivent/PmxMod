@@ -242,7 +242,6 @@ void DX11Model::Draw(Viewer& viewer) const {
             dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdBothFaceRS.Get());
         else
             dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdFrontFaceRS.Get());
-        dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
         dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
     }
 	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdEdgeInputLayout.Get());
@@ -276,7 +275,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 			0, nullptr, &psCB, 0, 0);
 		dx11Viewer.m_context->PSSetConstantBuffers(2, 1, m_mmdEdgePSConstantBuffer.GetAddressOf());
 		dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdEdgeRS.Get());
-		dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
 		dx11Viewer.m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
 	}
 	dx11Viewer.m_context->IASetInputLayout(dx11Viewer.m_mmdGroundShadowInputLayout.Get());
@@ -308,7 +306,6 @@ void DX11Model::Draw(Viewer& viewer) const {
 	ID3D11Buffer* cbs[] = { m_mmdGroundShadowVSConstantBuffer.Get() };
 	dx11Viewer.m_context->VSSetConstantBuffers(0, 1, cbs);
 	dx11Viewer.m_context->RSSetState(dx11Viewer.m_mmdGroundShadowRS.Get());
-	dx11Viewer.m_context->OMSetBlendState(dx11Viewer.m_mmdBlendState.Get(), nullptr, 0xffffffff);
 	dx11Viewer.m_context->OMSetDepthStencilState(dx11Viewer.m_mmdGroundShadowDSS.Get(), 0x01);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
@@ -394,6 +391,7 @@ void DX11Viewer::BeginFrame() {
 	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), m_clearColor);
 	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	m_context->OMSetBlendState(m_mmdBlendState.Get(), nullptr, 0xffffffff);
 }
 
 bool DX11Viewer::EndFrame() {
