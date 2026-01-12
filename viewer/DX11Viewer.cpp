@@ -333,25 +333,17 @@ bool DX11Viewer::Setup() {
 	HWND__* hwnd = glfwGetWin32Window(m_window);
 	constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
 	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-		&featureLevels, 1, D3D11_SDK_VERSION, &m_device, nullptr, &m_context))) {
-		glfwTerminate();
+		&featureLevels, 1, D3D11_SDK_VERSION, &m_device, nullptr, &m_context)))
 		return false;
-	}
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	if (FAILED(m_device.As(&dxgiDevice))) {
-		glfwTerminate();
+	if (FAILED(m_device.As(&dxgiDevice)))
 		return false;
-	}
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-	if (FAILED(dxgiDevice->GetAdapter(&adapter))) {
-		glfwTerminate();
+	if (FAILED(dxgiDevice->GetAdapter(&adapter)))
 		return false;
-	}
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
-	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory))) {
-		glfwTerminate();
+	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
 		return false;
-	}
 	m_multiSampleCount = 4;
 	UINT quality = 0;
 	if (FAILED(m_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, m_multiSampleCount, &quality)) || quality == 0) {
@@ -369,23 +361,15 @@ bool DX11Viewer::Setup() {
 	sd.Windowed = TRUE;
 	if (FAILED(factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain)))
 		return false;
-	if (!CreateRenderTargets()) {
-		glfwTerminate();
+	if (!CreateRenderTargets())
 		return false;
-	}
 	InitDirs("shader_DX11");
-	if (!CreateShaders()) {
-		glfwTerminate();
+	if (!CreateShaders())
 		return false;
-	}
-	if (!CreatePipelineStates()) {
-		glfwTerminate();
+	if (!CreatePipelineStates())
 		return false;
-	}
-	if (!CreateDummyResources()) {
-		glfwTerminate();
+	if (!CreateDummyResources())
 		return false;
-	}
 	return true;
 }
 

@@ -513,31 +513,20 @@ void GLFWViewer::ConfigureGlfwHints() {
 
 bool GLFWViewer::Setup() {
 	glfwMakeContextCurrent(m_window);
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-		glfwTerminate();
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 		return false;
-	}
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
 	InitDirs("shader_GLFW");
 	m_shader = std::make_unique<GLFWShader>();
-	if (!m_shader->Setup(*this)) {
-		std::cout << "Failed to setup Viewer.\n";
-		glfwTerminate();
+	if (!m_shader->Setup(*this))
 		return false;
-	}
 	m_edgeShader = std::make_unique<GLFWEdgeShader>();
-	if (!m_edgeShader->Setup(*this)) {
-		std::cout << "Failed to setup Viewer.\n";
-		glfwTerminate();
+	if (!m_edgeShader->Setup(*this))
 		return false;
-	}
 	m_groundShadowShader = std::make_unique<GLFWGroundShadowShader>();
-	if (!m_groundShadowShader->Setup(*this)) {
-		std::cout << "Failed to setup Viewer.\n";
-		glfwTerminate();
+	if (!m_groundShadowShader->Setup(*this))
 		return false;
-	}
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
