@@ -259,7 +259,6 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	m_mmdVAO = CreateVAO(buffers[0], locs[0], sizes[0], types[0], strides[0], 3, m_ibo);
 	m_mmdEdgeVAO = CreateVAO(buffers[1], locs[1], sizes[1], types[1], strides[1], 2, m_ibo);
 	m_mmdGroundShadowVAO = CreateVAO(buffers[2], locs[2], sizes[2], types[2], strides[2], 1, m_ibo);
-
 	for (const auto& mmdMat : m_mmdModel->m_materials) {
 		GLFWMaterial mat(mmdMat);
 		if (!mmdMat.m_texture.empty()) {
