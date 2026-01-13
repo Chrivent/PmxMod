@@ -46,13 +46,6 @@ GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 	return vao;
 }
 
-void BindDummyShadow4(const GLuint depthTex) {
-	for (int i = 0; i < 4; i++) {
-		glActiveTexture(GL_TEXTURE0 + 3 + i);
-		glBindTexture(GL_TEXTURE_2D, depthTex);
-	}
-}
-
 void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(size), src);
@@ -128,10 +121,7 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		"u_TexMode", "u_Tex", "u_TexMulFactor", "u_TexAddFactor",
 		"u_SphereTexMode", "u_SphereTex", "u_SphereTexMulFactor", "u_SphereTexAddFactor",
 		"u_ToonTexMode", "u_ToonTex", "u_ToonTexMulFactor", "u_ToonTexAddFactor",
-		"u_LightColor", "u_LightDir", "u_LightWVP",
-		"u_ShadowMapSplitPositions",
-		"u_ShadowMap0", "u_ShadowMap1", "u_ShadowMap2", "u_ShadowMap3",
-		"u_ShadowMapEnabled"
+		"u_LightColor", "u_LightDir"
 	};
 	GLint* outs[] = {
 		&m_uWV, &m_uWVP,
@@ -139,10 +129,7 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		&m_uTexMode, &m_uTex, &m_uTexMulFactor, &m_uTexAddFactor,
 		&m_uSphereTexMode, &m_uSphereTex, &m_uSphereTexMulFactor, &m_uSphereTexAddFactor,
 		&m_uToonTexMode, &m_uToonTex, &m_uToonTexMulFactor, &m_uToonTexAddFactor,
-		&m_uLightColor, &m_uLightDir, &m_uLightVP,
-		&m_uShadowMapSplitPositions,
-		&m_uShadowMap0, &m_uShadowMap1, &m_uShadowMap2, &m_uShadowMap3,
-		&m_uShadowMapEnabled
+		&m_uLightColor, &m_uLightDir
 	};
 	GetUniforms(m_prog, names, outs, std::size(names));
 	return true;
@@ -247,14 +234,6 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	glUniform1i(m_viewer->m_shader->m_uTex, 0);
 	glUniform1i(m_viewer->m_shader->m_uSphereTex, 1);
 	glUniform1i(m_viewer->m_shader->m_uToonTex, 2);
-	const GLint shadowLocs[] = {
-		m_viewer->m_shader->m_uShadowMap0,
-		m_viewer->m_shader->m_uShadowMap1,
-		m_viewer->m_shader->m_uShadowMap2,
-		m_viewer->m_shader->m_uShadowMap3
-	};
-	for (int i = 0; i < 4; i++)
-		glUniform1i(shadowLocs[i], 3 + i);
 	return true;
 }
 
@@ -291,7 +270,6 @@ void GLFWModel::Draw() const {
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
-	BindDummyShadow4(m_viewer->m_dummyShadowDepthTex);
 	const auto& shader = m_viewer->m_shader;
 	glm::vec3 lightColor = m_viewer->m_lightColor;
 	glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
@@ -356,7 +334,6 @@ void GLFWModel::Draw() const {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		glUniform1i(shader->m_uShadowMapEnabled, 0);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
@@ -427,10 +404,7 @@ GLFWViewer::~GLFWViewer() {
 	m_textures.clear();
 	if (m_dummyColorTex != 0)
 		glDeleteTextures(1, &m_dummyColorTex);
-	if (m_dummyShadowDepthTex != 0)
-		glDeleteTextures(1, &m_dummyShadowDepthTex);
 	m_dummyColorTex = 0;
-	m_dummyShadowDepthTex = 0;
 	m_vmdCameraAnim.reset();
 }
 
@@ -461,10 +435,6 @@ bool GLFWViewer::Setup() {
 	glGenTextures(1, &m_dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, m_dummyColorTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glGenTextures(1, &m_dummyShadowDepthTex);
-	glBindTexture(GL_TEXTURE_2D, m_dummyShadowDepthTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;
 }

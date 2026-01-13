@@ -34,13 +34,6 @@ struct GLFWShader {
     GLint	m_uToonTexAddFactor = -1;
     GLint	m_uLightColor = -1;
     GLint	m_uLightDir = -1;
-    GLint	m_uLightVP = -1;
-    GLint	m_uShadowMapSplitPositions = -1;
-    GLint	m_uShadowMap0 = -1;
-    GLint	m_uShadowMap1 = -1;
-    GLint	m_uShadowMap2 = -1;
-    GLint	m_uShadowMap3 = -1;
-    GLint	m_uShadowMapEnabled = -1;
 
     bool Setup(const GLFWViewer& viewer);
 };
@@ -112,7 +105,6 @@ struct GLFWViewer : Viewer {
     std::unique_ptr<GLFWGroundShadowShader>	m_groundShadowShader;
     std::map<std::filesystem::path, GLFWTexture>	m_textures;
     GLuint	m_dummyColorTex = 0;
-    GLuint	m_dummyShadowDepthTex = 0;
     const int	m_msaaSamples = 4;
 
     void ConfigureGlfwHints() override;

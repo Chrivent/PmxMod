@@ -1,7 +1,5 @@
 #version 140
 
-#define NUM_SHADOWMAP 4
-
 #ifdef VERTEX
 
 in vec3 in_Pos;
@@ -12,19 +10,14 @@ out vec3 vs_Pos;
 out vec3 vs_Nor;
 out vec2 vs_UV;
 
-out vec4 vs_shadowMapCoord[NUM_SHADOWMAP];
-
 uniform mat4 u_WV;
 uniform mat4 u_WVP;
-uniform mat4 u_LightWVP[NUM_SHADOWMAP];
 
 void main() {
     gl_Position = u_WVP * vec4(in_Pos, 1.0);
     vs_Pos = (u_WV * vec4(in_Pos, 1.0)).xyz;
     vs_Nor = mat3(u_WV) * in_Nor;
     vs_UV = in_UV;
-    for (int i = 0; i < NUM_SHADOWMAP; i++)
-        vs_shadowMapCoord[i] = u_LightWVP[i] * vec4(in_Pos, 1.0);
 }
 
 #endif
@@ -34,8 +27,6 @@ void main() {
 in vec3 vs_Pos;
 in vec3 vs_Nor;
 in vec2 vs_UV;
-
-in vec4 vs_shadowMapCoord[NUM_SHADOWMAP];
 
 out vec4 out_Color;
 
@@ -62,13 +53,6 @@ uniform sampler2D u_SphereTex;
 uniform vec4 u_SphereTexMulFactor;
 uniform vec4 u_SphereTexAddFactor;
 
-uniform float u_ShadowMapSplitPositions[NUM_SHADOWMAP + 1];
-uniform sampler2DShadow u_ShadowMap0;
-uniform sampler2DShadow u_ShadowMap1;
-uniform sampler2DShadow u_ShadowMap2;
-uniform sampler2DShadow u_ShadowMap3;
-uniform int u_ShadowMapEnabled;
-
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;
     return mix(vec3(1.0, 1.0, 1.0), ret, factor.a);
@@ -92,19 +76,6 @@ void main() {
     color = diffuseColor;
     color += u_Ambient;
     color = clamp(color, 0.0, 1.0);
-    if (u_ShadowMapEnabled != 0) {
-        float z = -vs_Pos.z;
-        float visibility = 1.0;
-        if (u_ShadowMapSplitPositions[0] <= z && z < u_ShadowMapSplitPositions[0 + 1])
-            visibility = textureProj(u_ShadowMap0, vs_shadowMapCoord[0]);
-        else if (u_ShadowMapSplitPositions[1] <= z && z < u_ShadowMapSplitPositions[1 + 1])
-            visibility = textureProj(u_ShadowMap1, vs_shadowMapCoord[1]);
-        else if (u_ShadowMapSplitPositions[2] <= z && z < u_ShadowMapSplitPositions[2 + 1])
-            visibility = textureProj(u_ShadowMap2, vs_shadowMapCoord[2]);
-        else if (u_ShadowMapSplitPositions[3] <= z && z < u_ShadowMapSplitPositions[3 + 1])
-            visibility = textureProj(u_ShadowMap3, vs_shadowMapCoord[3]);
-        ln *= (1.0 - visibility);
-    }
     if (u_TexMode != 0) {
         vec4 texColor = texture(u_Tex, vs_UV);
         texColor.rgb = ComputeTexMulFactor(texColor.rgb, u_TexMulFactor);
