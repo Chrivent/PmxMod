@@ -240,7 +240,7 @@ bool GLFWModel::Setup(Viewer& viewer) {
 		if (!mmdMat.m_spTexture.empty())
 			mat.m_spTexture = m_viewer->GetTexture(mmdMat.m_spTexture).m_texture;
 		if (!mmdMat.m_toonTexture.empty())
-			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture).m_texture;
+			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture, true).m_texture;
 		m_materials.emplace_back(mat);
 	}
 	glUseProgram(m_viewer->m_shader->m_prog);
@@ -292,19 +292,23 @@ void GLFWModel::Draw() const {
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	BindDummyShadow4(m_viewer->m_dummyShadowDepthTex);
+	const auto& shader = m_viewer->m_shader;
+	glm::vec3 lightColor = m_viewer->m_lightColor;
+	glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
+	glUseProgram(shader->m_prog);
+	glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
+	glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
+	glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
+	glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
+	glBindVertexArray(m_mmdVAO);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = m_viewer->m_shader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (mmdMat.m_diffuse.a == 0)
 			continue;
-		glUseProgram(shader->m_prog);
-		glBindVertexArray(m_mmdVAO);
-		glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
-		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
 		glUniform3fv(shader->m_uAmbient, 1, &mmdMat.m_ambient[0]);
 		glUniform3fv(shader->m_uDiffuse, 1, &mmdMat.m_diffuse[0]);
 		glUniform3fv(shader->m_uSpecular, 1, &mmdMat.m_specular[0]);
@@ -342,16 +346,10 @@ void GLFWModel::Draw() const {
 			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mmdMat.m_toonTextureAddFactor[0]);
 			glUniform1i(shader->m_uToonTexMode, 1);
 			glBindTexture(GL_TEXTURE_2D, mat.m_toonTexture);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
-		glm::vec3 lightColor = m_viewer->m_lightColor;
-		glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
-		glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
-		glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
 		if (mmdMat.m_bothFace)
 			glDisable(GL_CULL_FACE);
 		else {
@@ -362,32 +360,36 @@ void GLFWModel::Draw() const {
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
+	const auto& edgeShader = m_viewer->m_edgeShader;
+	glUseProgram(edgeShader->m_prog);
+	glUniformMatrix4fv(edgeShader->m_uWV, 1, GL_FALSE, &wv[0][0]);
+	glUniformMatrix4fv(edgeShader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
+	glBindVertexArray(m_mmdEdgeVAO);
 	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
-		const auto& shader = m_viewer->m_edgeShader;
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
 		if (!mmdMat.m_edgeFlag)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-		glUseProgram(shader->m_prog);
-		glBindVertexArray(m_mmdEdgeVAO);
-		glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
-		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-		glUniform2fv(shader->m_uScreenSize, 1, &screenSize[0]);
-		glUniform1f(shader->m_uEdgeSize, mmdMat.m_edgeSize);
-		glUniform4fv(shader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
+		glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
+		glUniform1f(edgeShader->m_uEdgeSize, mmdMat.m_edgeSize);
+		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
+	const auto& gsShader = m_viewer->m_groundShadowShader;
+	glUseProgram(gsShader->m_prog);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 	glm::vec4 light(-m_viewer->m_lightDir, 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+	glUniformMatrix4fv(gsShader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
+	glBindVertexArray(m_mmdGroundShadowVAO);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
@@ -403,15 +405,11 @@ void GLFWModel::Draw() const {
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
-		const auto& shader = m_viewer->m_groundShadowShader;
 		if (!mmdMat.m_groundShadow)
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-		glUseProgram(shader->m_prog);
-		glBindVertexArray(m_mmdGroundShadowVAO);
-		glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
-		glUniform4fv(shader->m_uShadowColor, 1, &shadowColor[0]);
+		glUniform4fv(gsShader->m_uShadowColor, 1, &shadowColor[0]);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
@@ -490,7 +488,7 @@ std::unique_ptr<Model> GLFWViewer::CreateModel() const {
 	return std::make_unique<GLFWModel>();
 }
 
-GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
+GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath, const bool clamp) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
@@ -506,6 +504,10 @@ GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath) {
 	stbi_image_free(image);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	if (clamp) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
 	return m_textures[texturePath];

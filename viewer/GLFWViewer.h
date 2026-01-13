@@ -122,5 +122,5 @@ struct GLFWViewer : Viewer {
     bool EndFrame() override;
     std::unique_ptr<Model> CreateModel() const override;
 
-    GLFWTexture GetTexture(const std::filesystem::path& texturePath);
+    GLFWTexture GetTexture(const std::filesystem::path& texturePath, bool clamp = false);
 };
