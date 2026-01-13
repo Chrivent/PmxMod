@@ -345,6 +345,8 @@ void GLFWModel::Draw() const {
 	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
 	glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
 	glBindVertexArray(m_mmdEdgeVAO);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -354,8 +356,6 @@ void GLFWModel::Draw() const {
 			continue;
 		glUniform1f(edgeShader->m_uEdgeSize, mmdMat.m_edgeSize);
 		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_FRONT);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
