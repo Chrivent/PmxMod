@@ -7,10 +7,8 @@
 #include "MMDUtil.h"
 
 #include <algorithm>
-#include <iterator>
 #include <map>
 #include <ranges>
-#include <glm/gtc/matrix_transform.hpp>
 
 void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
