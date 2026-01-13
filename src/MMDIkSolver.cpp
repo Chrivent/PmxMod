@@ -2,8 +2,6 @@
 
 #include "MMDNode.h"
 
-#include <algorithm>
-#include <functional>
 #include <glm/gtc/matrix_transform.hpp>
 
 MMDIkSolver::MMDIkSolver()
@@ -46,13 +44,12 @@ void MMDIkSolver::Solve() {
 	}
 }
 
-float MMDIkSolver::NormalizeAngle(const float angle) {
-	float ret = angle;
-	while (ret >= glm::two_pi<float>())
-		ret -= glm::two_pi<float>();
-	while (ret < 0)
-		ret += glm::two_pi<float>();
-	return ret;
+float MMDIkSolver::NormalizeAngle(float angle) {
+	constexpr float t = glm::two_pi<float>();
+	angle = std::fmod(angle, t);
+	if (angle < 0)
+		angle += t;
+	return angle;
 }
 
 float MMDIkSolver::DiffAngle(const float a, const float b) {
@@ -159,8 +156,7 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 		auto dot = glm::dot(chainTargetVec, chainIkVec);
 		dot = glm::clamp(dot, -1.0f, 1.0f);
 		float angle = std::acos(dot);
-		float angleDeg = glm::degrees(angle);
-		if (angleDeg < 1.0e-3f)
+		if (angle < 1.0e-6f)
 			continue;
 		angle = glm::clamp(angle, -m_limitAngle, m_limitAngle);
 		auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
@@ -188,11 +184,12 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 }
 
 void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex) {
-	auto RotateAxis = glm::vec3(1, 0, 0);
-	if (RotateAxisIndex == 1)
-		RotateAxis = glm::vec3(0, 1, 0);
-	else if (RotateAxisIndex == 2)
-		RotateAxis = glm::vec3(0, 0, 1);
+	constexpr glm::vec3 axis[3] = {
+		{ 1, 0, 0 },
+		{ 0, 1, 0 },
+		{ 0, 0, 1 }
+	};
+	const glm::vec3& RotateAxis = axis[RotateAxisIndex];
 	auto &chain = m_chains[chainIdx];
 	auto ikPos = glm::vec3(m_ikNode->m_global[3]);
 	auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
