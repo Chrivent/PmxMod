@@ -80,7 +80,6 @@ public:
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
-	void SyncPhysics(float t, int frameCount = 30) const;
 
 private:
 	int32_t CalculateMaxKeyTime() const;

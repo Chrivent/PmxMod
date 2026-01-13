@@ -123,7 +123,6 @@ bool Viewer::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Mode
                 return false;
             }
         }
-        vmdAnim->SyncPhysics(0.0f);
         model->m_vmdAnim = std::move(vmdAnim);
         model->m_scale = scale;
         if (!model->Setup(*this))
