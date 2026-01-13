@@ -13,35 +13,7 @@ struct MMDMorph;
 struct MMDNode;
 class MMDModel;
 
-template <typename KeyType>
-std::vector<KeyType>::const_iterator FindBoundKey(const std::vector<KeyType>& keys, int32_t t, size_t startIdx) {
-	if (keys.empty() || keys.size() <= startIdx)
-		return keys.end();
-	const auto &key0 = keys[startIdx];
-	if (key0.m_time <= t) {
-		if (startIdx + 1 < keys.size()) {
-			const auto &key1 = keys[startIdx + 1];
-			if (key1.m_time > t)
-				return keys.begin() + startIdx + 1;
-		} else
-			return keys.end();
-	} else if (startIdx != 0) {
-		const auto &key1 = keys[startIdx - 1];
-		if (key1.m_time <= t)
-			return keys.begin() + startIdx;
-	} else
-		return keys.begin();
-	auto bundIt = std::upper_bound(keys.begin(), keys.end(), t,
-		[](int32_t lhs, const KeyType &rhs)
-		{ return lhs < rhs.m_time; }
-	);
-	return bundIt;
-}
-
 struct VMDBezier {
-	float EvalX(float t) const;
-	float EvalY(float t) const;
-	glm::vec2 Eval(float t) const;
 	float FindBezierX(float time) const;
 
 	glm::vec2	m_cp1;
@@ -76,7 +48,6 @@ public:
 	VMDNodeController();
 
 	void Evaluate(float t, float animWeight = 1.0f);
-	void SortKeys();
 
 	MMDNode*				m_node;
 	std::vector<VMDNodeAnimationKey>	m_keys;
@@ -88,7 +59,6 @@ public:
 	VMDMorphController();
 
 	void Evaluate(float t, float animWeight = 1.0f);
-	void SortKeys();
 
 	MMDMorph*				m_morph;
 	std::vector<VMDMorphAnimationKey>	m_keys;
@@ -100,7 +70,6 @@ public:
 	VMDIKController();
 
 	void Evaluate(float t, float animWeight = 1.0f);
-	void SortKeys();
 
 	MMDIkSolver*			m_ikSolver;
 	std::vector<VMDIKAnimationKey>	m_keys;

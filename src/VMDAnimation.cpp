@@ -12,43 +12,39 @@
 #include <ranges>
 #include <glm/gtc/matrix_transform.hpp>
 
+template <typename KeyType>
+std::vector<KeyType>::const_iterator FindBoundKey(const std::vector<KeyType>& keys, int32_t t, size_t startIdx) {
+	if (keys.empty() || keys.size() <= startIdx)
+		return keys.end();
+	const auto &key0 = keys[startIdx];
+	if (key0.m_time <= t) {
+		if (startIdx + 1 < keys.size()) {
+			const auto &key1 = keys[startIdx + 1];
+			if (key1.m_time > t)
+				return keys.begin() + startIdx + 1;
+		} else
+			return keys.end();
+	} else if (startIdx != 0) {
+		const auto &key1 = keys[startIdx - 1];
+		if (key1.m_time <= t)
+			return keys.begin() + startIdx;
+	} else
+		return keys.begin();
+	auto bundIt = std::upper_bound(keys.begin(), keys.end(), t,
+		[](int32_t lhs, const KeyType &rhs)
+		{ return lhs < rhs.m_time; }
+	);
+	return bundIt;
+}
+
 void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
 }
 
-float VMDBezier::EvalX(const float t) const {
-	const float t2 = t * t;
-	const float t3 = t2 * t;
+float Eval(const float t, const float p1, const float p2) {
 	const float it = 1.0f - t;
-	const float it2 = it * it;
-	const float it3 = it2 * it;
-	const float x[4] = {
-		0,
-		m_cp1.x,
-		m_cp2.x,
-		1,
-	};
-	return t3 * x[3] + 3 * t2 * it * x[2] + 3 * t * it2 * x[1] + it3 * x[0];
-}
-
-float VMDBezier::EvalY(const float t) const {
-	const float t2 = t * t;
-	const float t3 = t2 * t;
-	const float it = 1.0f - t;
-	const float it2 = it * it;
-	const float it3 = it2 * it;
-	const float y[4] = {
-		0,
-		m_cp1.y,
-		m_cp2.y,
-		1,
-	};
-	return t3 * y[3] + 3 * t2 * it * y[2] + 3 * t * it2 * y[1] + it3 * y[0];
-}
-
-glm::vec2 VMDBezier::Eval(const float t) const {
-	return { EvalX(t), EvalY(t) };
+	return 3.0f * it * it * t * p1 + 3.0f * it * t * t * p2 + t * t * t;
 }
 
 float VMDBezier::FindBezierX(const float time) const {
@@ -56,14 +52,14 @@ float VMDBezier::FindBezierX(const float time) const {
 	float start = 0.0f;
 	float stop = 1.0f;
 	float t = 0.5f;
-	float x = EvalX(t);
+	float x = Eval(t, m_cp1.x, m_cp2.x);
 	while (std::abs(time - x) > e) {
 		if (time < x)
 			stop = t;
 		else
 			start = t;
 		t = (stop + start) * 0.5f;
-		x = EvalX(t);
+		x = Eval(t, m_cp1.x, m_cp2.x);
 	}
 	return t;
 }
@@ -101,10 +97,10 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 			const float ty_x = m_tyBezier.FindBezierX(time);
 			const float tz_x = m_tzBezier.FindBezierX(time);
 			const float rot_x = m_rotBezier.FindBezierX(time);
-			const float tx_y = m_txBezier.EvalY(tx_x);
-			const float ty_y = m_tyBezier.EvalY(ty_x);
-			const float tz_y = m_tzBezier.EvalY(tz_x);
-			const float rot_y = m_rotBezier.EvalY(rot_x);
+			const float tx_y = Eval(tx_x, m_txBezier.m_cp1.y, m_txBezier.m_cp2.y);
+			const float ty_y = Eval(ty_x, m_tyBezier.m_cp1.y, m_tyBezier.m_cp2.y);
+			const float tz_y = Eval(tz_x, m_tzBezier.m_cp1.y, m_tzBezier.m_cp2.y);
+			const float rot_y = Eval(rot_x, m_rotBezier.m_cp1.y, m_rotBezier.m_cp2.y);
 			vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
 			q = glm::slerp(key.m_rotate, m_rotate, rot_y);
 			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
@@ -119,13 +115,6 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 		m_node->m_animRotate = glm::slerp(baseQ, q, animWeight);
 		m_node->m_animTranslate = glm::mix(baseT, vt, animWeight);
 	}
-}
-
-void VMDNodeController::SortKeys() {
-	std::ranges::sort(m_keys,
-		[](const VMDNodeAnimationKey& a, const VMDNodeAnimationKey& b)
-		{ return a.m_time < b.m_time; }
-	);
 }
 
 VMDAnimation::VMDAnimation()
@@ -168,7 +157,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	}
 	m_nodeControllers.reserve(nodeCtrlMap.size());
 	for (auto& val : nodeCtrlMap | std::views::values) {
-		val->SortKeys();
+		std::ranges::sort(val->m_keys, {}, &VMDNodeAnimationKey::m_time);
 		m_nodeControllers.emplace_back(std::move(val));
 	}
 	nodeCtrlMap.clear();
@@ -212,7 +201,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	}
 	m_ikControllers.reserve(ikCtrlMap.size());
 	for (auto& val : ikCtrlMap | std::views::values) {
-		val->SortKeys();
+		std::ranges::sort(val->m_keys, {}, &VMDIKAnimationKey::m_time);
 		m_ikControllers.emplace_back(std::move(val));
 	}
 	ikCtrlMap.clear();
@@ -252,7 +241,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	}
 	m_morphControllers.reserve(morphCtrlMap.size());
 	for (auto& val : morphCtrlMap | std::views::values) {
-		val->SortKeys();
+		std::ranges::sort(val->m_keys, {}, &VMDMorphAnimationKey::m_time);
 		m_morphControllers.emplace_back(std::move(val));
 	}
 	morphCtrlMap.clear();
@@ -361,13 +350,6 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 		m_ikSolver->m_enable = enable;
 }
 
-void VMDIKController::SortKeys() {
-	std::ranges::sort(m_keys,
-		[](const VMDIKAnimationKey& a, const VMDIKAnimationKey& b)
-		{ return a.m_time < b.m_time; }
-	);
-}
-
 VMDMorphController::VMDMorphController()
 	: m_morph(nullptr)
 	, m_startKeyIndex(0) {
@@ -397,13 +379,6 @@ void VMDMorphController::Evaluate(const float t, const float animWeight) {
 		m_morph->m_weight = weight;
 	else
 		m_morph->m_weight = glm::mix(m_morph->m_saveAnimWeight, weight, animWeight);
-}
-
-void VMDMorphController::SortKeys() {
-	std::ranges::sort(m_keys,
-		[](const VMDMorphAnimationKey& a, const VMDMorphAnimationKey& b)
-		{ return a.m_time < b.m_time; }
-	);
 }
 
 MMDCamera::MMDCamera() {
@@ -461,12 +436,12 @@ void VMDCameraController::Evaluate(const float t) {
 				const float rotate_x = m_rotateBezier.FindBezierX(time);
 				const float distance_x = m_distanceBezier.FindBezierX(time);
 				const float fov_x = m_fovBezier.FindBezierX(time);
-				const float ix_y = m_ixBezier.EvalY(ix_x);
-				const float iy_y = m_iyBezier.EvalY(iy_x);
-				const float iz_y = m_izBezier.EvalY(iz_x);
-				const float rotate_y = m_rotateBezier.EvalY(rotate_x);
-				const float distance_y = m_distanceBezier.EvalY(distance_x);
-				const float fov_y = m_fovBezier.EvalY(fov_x);
+				const float ix_y = Eval(ix_x, m_ixBezier.m_cp1.y, m_ixBezier.m_cp2.y);
+				const float iy_y = Eval(iy_x, m_iyBezier.m_cp1.y, m_iyBezier.m_cp2.y);
+				const float iz_y = Eval(iz_x, m_izBezier.m_cp1.y, m_izBezier.m_cp2.y);
+				const float rotate_y = Eval(rotate_x, m_rotateBezier.m_cp1.y, m_rotateBezier.m_cp2.y);
+				const float distance_y = Eval(distance_x, m_distanceBezier.m_cp1.y, m_distanceBezier.m_cp2.y);
+				const float fov_y = Eval(fov_x, m_fovBezier.m_cp1.y, m_fovBezier.m_cp2.y);
 				m_camera.m_interest = glm::mix(key.m_interest, m_interest, glm::vec3(ix_y, iy_y, iz_y));
 				m_camera.m_rotate = glm::mix(key.m_rotate, m_rotate, rotate_y);
 				m_camera.m_distance = glm::mix(key.m_distance, m_distance, distance_y);
@@ -487,10 +462,7 @@ void VMDCameraController::AddKey(const VMDCameraAnimationKey& key) {
 }
 
 void VMDCameraController::SortKeys() {
-	std::ranges::sort(m_keys,
-		[](const VMDCameraAnimationKey& a, const VMDCameraAnimationKey& b)
-		{ return a.m_time < b.m_time; }
-	);
+	std::ranges::sort(m_keys, {}, &VMDCameraAnimationKey::m_time);
 }
 
 VMDCameraAnimation::VMDCameraAnimation() {

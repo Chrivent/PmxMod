@@ -99,7 +99,7 @@ struct DX11Model : Model {
 };
 
 struct DX11Viewer : Viewer {
-    UINT		m_multiSampleCount = 1;
+    UINT		m_multiSampleCount = 4;
     UINT		m_multiSampleQuality = 0;
     std::map<std::filesystem::path, DX11Texture>	m_textures;
     Microsoft::WRL::ComPtr<ID3D11Device>			m_device;
