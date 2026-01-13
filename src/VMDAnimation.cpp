@@ -49,8 +49,8 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 		m_node->m_animRotate = glm::quat(1, 0, 0, 0);
 		return;
 	}
-	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
-		[](const int32_t lhs, const VMDNodeAnimationKey& rhs) { return lhs < rhs.m_time; });
+	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
+		[](const VMDNodeAnimationKey& k) { return static_cast<float>(k.m_time); });
 	glm::vec3 vt;
 	glm::quat q;
 	if (boundIt == std::end(m_keys)) {
@@ -303,8 +303,8 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 		m_ikSolver->m_enable = true;
 		return;
 	}
-	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
-		[](const int32_t lhs, const VMDIKAnimationKey& rhs) { return lhs < rhs.m_time; });
+	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
+		[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
 	bool enable;
 	if (boundIt == std::end(m_keys))
 		enable = m_keys.rbegin()->m_enable;
@@ -331,8 +331,8 @@ void VMDMorphController::Evaluate(const float t, const float animWeight) {
 	if (m_keys.empty())
 		return;
 	float weight;
-	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
-		[](const int32_t lhs, const VMDMorphAnimationKey& rhs) { return lhs < rhs.m_time; });
+	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
+		[](const VMDMorphAnimationKey& k) { return static_cast<float>(k.m_time); });
 	if (boundIt == std::end(m_keys))
 		weight = m_keys.rbegin()->m_weight;
 	else {
@@ -381,8 +381,8 @@ void VMDCameraController::Evaluate(const float t) {
 	};
 	if (m_keys.empty())
 		return;
-	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
-		[](const int32_t lhs, const VMDCameraAnimationKey& rhs) { return lhs < rhs.m_time; });
+	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
+		[](const VMDCameraAnimationKey& k) { return static_cast<float>(k.m_time); });
 	if (boundIt == std::end(m_keys))
 		Apply(m_keys.back());
 	else {
