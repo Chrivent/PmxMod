@@ -20,19 +20,17 @@ float Eval(const float t, const float p1, const float p2) {
 	return 3.0f * it * it * t * p1 + 3.0f * it * t * t * p2 + t * t * t;
 }
 
-float VMDBezier::FindBezierX(const float time) const {
-	constexpr float e = 0.00001f;
-	float start = 0.0f;
-	float stop = 1.0f;
+float VMDBezier::FindBezierX(float time) const {
+	time = std::clamp(time, 0.0f, 1.0f);
+	float start = 0.0f, stop = 1.0f;
 	float t = 0.5f;
-	float x = Eval(t, m_cp1.x, m_cp2.x);
-	while (std::abs(time - x) > e) {
-		if (time < x)
-			stop = t;
-		else
-			start = t;
-		t = (stop + start) * 0.5f;
-		x = Eval(t, m_cp1.x, m_cp2.x);
+	for (int i = 0; i < 32; i++) {
+		const float x = Eval(t, m_cp1.x, m_cp2.x);
+		const float diff = time - x;
+		if (std::abs(diff) < 1e-5f)
+			break;
+		(diff < 0.0f ? stop : start) = t;
+		t = (start + stop) * 0.5f;
 	}
 	return t;
 }
