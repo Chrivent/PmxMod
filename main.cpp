@@ -132,6 +132,21 @@ static SceneConfig BuildTestSceneConfig2() {
 	return cfg;
 }
 
+static SceneConfig BuildTestSceneConfig3() {
+	SceneConfig cfg;
+	Input in;
+	in.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
+	in.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
+	cfg.models.emplace_back(std::move(in));
+	cfg.cameraVmd = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
+	cfg.musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
+	Input bg;
+	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
+	bg.m_scale = 1.0f;
+	cfg.models.emplace_back(std::move(bg));
+	return cfg;
+}
+
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };
@@ -139,7 +154,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig2();
+		cfg = BuildTestSceneConfig3();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
