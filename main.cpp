@@ -117,7 +117,7 @@ static SceneConfig BuildTestSceneConfig1() {
 	return cfg;
 }
 
-static SceneConfig BuildTestSceneConfig1() {
+static SceneConfig BuildTestSceneConfig2() {
 	SceneConfig cfg;
 	Input in;
 	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
@@ -139,7 +139,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig2();
+		cfg = BuildTestSceneConfig1();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
