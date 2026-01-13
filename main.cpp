@@ -117,7 +117,7 @@ static SceneConfig BuildTestSceneConfig1() {
 	return cfg;
 }
 
-static SceneConfig BuildTestSceneConfig2() {
+static SceneConfig BuildTestSceneConfig1() {
 	SceneConfig cfg;
 	Input in;
 	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";

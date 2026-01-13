@@ -46,11 +46,6 @@ GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 	return vao;
 }
 
-void UpdateDynamicBuffer(const GLuint vbo, const size_t size, const void* src) {
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(size), src);
-}
-
 void GetUniforms(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
 	for (int i = 0; i < count; i++)
 		*outs[i] = glGetUniformLocation(prog, names[i]);
@@ -259,9 +254,15 @@ void GLFWModel::Clear() {
 void GLFWModel::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
-	UpdateDynamicBuffer(m_posVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updatePositions.data());
-	UpdateDynamicBuffer(m_norVBO, sizeof(glm::vec3) * vtxCount, m_mmdModel->m_updateNormals.data());
-	UpdateDynamicBuffer(m_uvVBO,  sizeof(glm::vec2) * vtxCount, m_mmdModel->m_updateUVs.data());
+	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		m_mmdModel->m_updatePositions.data());
+	glBindBuffer(GL_ARRAY_BUFFER, m_norVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		m_mmdModel->m_updateNormals.data());
+	glBindBuffer(GL_ARRAY_BUFFER, m_uvVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
+		m_mmdModel->m_updateUVs.data());
 }
 
 void GLFWModel::Draw() const {
