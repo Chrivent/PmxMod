@@ -12,31 +12,6 @@
 #include <ranges>
 #include <glm/gtc/matrix_transform.hpp>
 
-template <class T>
-std::vector<T>::const_iterator FindBoundKey(const std::vector<T>& keys, int32_t t, size_t startIdx) {
-	if (keys.empty() || keys.size() <= startIdx)
-		return keys.end();
-	const auto &key0 = keys[startIdx];
-	if (key0.m_time <= t) {
-		if (startIdx + 1 < keys.size()) {
-			const auto &key1 = keys[startIdx + 1];
-			if (key1.m_time > t)
-				return keys.begin() + startIdx + 1;
-		} else
-			return keys.end();
-	} else if (startIdx != 0) {
-		const auto &key1 = keys[startIdx - 1];
-		if (key1.m_time <= t)
-			return keys.begin() + startIdx;
-	} else
-		return keys.begin();
-	auto bundIt = std::upper_bound(keys.begin(), keys.end(), t,
-		[](int32_t lhs, const T &rhs)
-		{ return lhs < rhs.m_time; }
-	);
-	return bundIt;
-}
-
 void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
@@ -65,8 +40,7 @@ float VMDBezier::FindBezierX(const float time) const {
 }
 
 VMDNodeController::VMDNodeController()
-	: m_node(nullptr)
-	, m_startKeyIndex(0) {
+	: m_node(nullptr) {
 }
 
 void VMDNodeController::Evaluate(const float t, const float animWeight) {
@@ -77,7 +51,8 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 		m_node->m_animRotate = glm::quat(1, 0, 0, 0);
 		return;
 	}
-	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
+	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
+		[](const int32_t lhs, const VMDNodeAnimationKey& rhs) { return lhs < rhs.m_time; });
 	glm::vec3 vt;
 	glm::quat q;
 	if (boundIt == std::end(m_keys)) {
@@ -103,7 +78,6 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 			const float rot_y = Eval(rot_x, m_rotBezier.m_cp1.y, m_rotBezier.m_cp2.y);
 			vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
 			q = glm::slerp(key.m_rotate, m_rotate, rot_y);
-			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
 	if (animWeight == 1.0f) {
@@ -321,8 +295,7 @@ void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 }
 
 VMDIKController::VMDIKController()
-	: m_ikSolver(nullptr)
-	, m_startKeyIndex(0) {
+	: m_ikSolver(nullptr) {
 }
 
 void VMDIKController::Evaluate(const float t, const float animWeight) {
@@ -332,7 +305,8 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 		m_ikSolver->m_enable = true;
 		return;
 	}
-	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
+	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
+		[](const int32_t lhs, const VMDIKAnimationKey& rhs) { return lhs < rhs.m_time; });
 	bool enable;
 	if (boundIt == std::end(m_keys))
 		enable = m_keys.rbegin()->m_enable;
@@ -341,7 +315,6 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 		if (boundIt != std::begin(m_keys)) {
 			const auto& [m_time, m_enable] = *(boundIt - 1);
 			enable = m_enable;
-			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
 	if (animWeight != 1.0f && animWeight < 1.0f)
@@ -351,8 +324,7 @@ void VMDIKController::Evaluate(const float t, const float animWeight) {
 }
 
 VMDMorphController::VMDMorphController()
-	: m_morph(nullptr)
-	, m_startKeyIndex(0) {
+	: m_morph(nullptr) {
 }
 
 void VMDMorphController::Evaluate(const float t, const float animWeight) {
@@ -361,7 +333,8 @@ void VMDMorphController::Evaluate(const float t, const float animWeight) {
 	if (m_keys.empty())
 		return;
 	float weight;
-	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
+	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
+		[](const int32_t lhs, const VMDMorphAnimationKey& rhs) { return lhs < rhs.m_time; });
 	if (boundIt == std::end(m_keys))
 		weight = m_keys.rbegin()->m_weight;
 	else {
@@ -372,7 +345,6 @@ void VMDMorphController::Evaluate(const float t, const float animWeight) {
 			const auto timeRange = static_cast<float>(m_time1 - m_time0);
 			const float time = (t - static_cast<float>(m_time0)) / timeRange;
 			weight = (m_weight1 - m_weight0) * time + m_weight0;
-			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
 	if (animWeight == 1.0f)
@@ -402,10 +374,6 @@ glm::mat4 MMDCamera::GetViewMatrix() const {
 	return glm::lookAt(eye, center, up);
 }
 
-VMDCameraController::VMDCameraController()
-	: m_startKeyIndex(0) {
-}
-
 void VMDCameraController::Evaluate(const float t) {
 	auto Apply = [&](const VMDCameraAnimationKey& k){
 		m_camera.m_interest = k.m_interest;
@@ -415,7 +383,8 @@ void VMDCameraController::Evaluate(const float t) {
 	};
 	if (m_keys.empty())
 		return;
-	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
+	const auto boundIt = std::upper_bound(m_keys.begin(), m_keys.end(), t,
+		[](const int32_t lhs, const VMDCameraAnimationKey& rhs) { return lhs < rhs.m_time; });
 	if (boundIt == std::end(m_keys))
 		Apply(m_keys.back());
 	else {
@@ -446,7 +415,6 @@ void VMDCameraController::Evaluate(const float t) {
 				m_camera.m_fov = glm::mix(key.m_fov, m_fov, fov_y);
 			} else
 				Apply(key);
-			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
 }

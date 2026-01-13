@@ -51,7 +51,6 @@ public:
 
 	MMDNode*				m_node;
 	std::vector<VMDNodeAnimationKey>	m_keys;
-	size_t					m_startKeyIndex;
 };
 
 class VMDMorphController {
@@ -62,7 +61,6 @@ public:
 
 	MMDMorph*				m_morph;
 	std::vector<VMDMorphAnimationKey>	m_keys;
-	size_t					m_startKeyIndex;
 };
 
 class VMDIKController {
@@ -73,7 +71,6 @@ public:
 
 	MMDIkSolver*			m_ikSolver;
 	std::vector<VMDIKAnimationKey>	m_keys;
-	size_t					m_startKeyIndex;
 };
 
 class VMDAnimation {
@@ -124,14 +121,11 @@ struct VMDCameraAnimationKey {
 
 class VMDCameraController {
 public:
-	VMDCameraController();
-
 	void Evaluate(float t);
 	void AddKey(const VMDCameraAnimationKey& key);
 
 	std::vector<VMDCameraAnimationKey>	m_keys;
 	MMDCamera							m_camera;
-	size_t								m_startKeyIndex;
 };
 
 class VMDCameraAnimation {
