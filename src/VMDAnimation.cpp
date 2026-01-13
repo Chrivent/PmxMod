@@ -132,7 +132,6 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val->m_keys, {}, &VMDNodeAnimationKey::m_time);
 		m_nodeControllers.emplace_back(std::move(val));
 	}
-	nodeCtrlMap.clear();
 	std::map<std::string, std::unique_ptr<VMDIKController> > ikCtrlMap;
 	for (auto& ikCtrl : m_ikControllers) {
 		std::string name = ikCtrl->m_ikSolver->m_ikNode->m_name;
@@ -176,7 +175,6 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val->m_keys, {}, &VMDIKAnimationKey::m_time);
 		m_ikControllers.emplace_back(std::move(val));
 	}
-	ikCtrlMap.clear();
 	std::map<std::string, std::unique_ptr<VMDMorphController> > morphCtrlMap;
 	for (auto& morphCtrl : m_morphControllers) {
 		std::string name = morphCtrl->m_morph->m_name;
@@ -216,7 +214,6 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val->m_keys, {}, &VMDMorphAnimationKey::m_time);
 		m_morphControllers.emplace_back(std::move(val));
 	}
-	morphCtrlMap.clear();
 	m_maxKeyTime = CalculateMaxKeyTime();
 	return true;
 }
