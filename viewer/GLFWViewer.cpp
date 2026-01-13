@@ -132,6 +132,10 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		&m_uLightColor, &m_uLightDir
 	};
 	GetUniforms(m_prog, names, outs, std::size(names));
+	glUseProgram(m_prog);
+	glUniform1i(m_uTex, 0);
+	glUniform1i(m_uSphereTex, 1);
+	glUniform1i(m_uToonTex, 2);
 	return true;
 }
 
@@ -230,10 +234,6 @@ bool GLFWModel::Setup(Viewer& viewer) {
 			mat.m_toonTexture = m_viewer->GetTexture(mmdMat.m_toonTexture, true).m_texture;
 		m_materials.emplace_back(mat);
 	}
-	glUseProgram(m_viewer->m_shader->m_prog);
-	glUniform1i(m_viewer->m_shader->m_uTex, 0);
-	glUniform1i(m_viewer->m_shader->m_uSphereTex, 1);
-	glUniform1i(m_viewer->m_shader->m_uToonTex, 2);
 	return true;
 }
 
