@@ -122,7 +122,7 @@ VMDAnimation::VMDAnimation()
 }
 
 bool VMDAnimation::Add(const VMDReader& vmd) {
-	std::map<std::string, std::unique_ptr<VMDNodeController> > nodeCtrlMap;
+	std::map<std::string, std::unique_ptr<VMDNodeController>> nodeCtrlMap;
 	for (auto& nodeCtrl : m_nodeControllers) {
 		std::string name = nodeCtrl->m_node->m_name;
 		nodeCtrlMap.emplace(name, std::move(nodeCtrl));
