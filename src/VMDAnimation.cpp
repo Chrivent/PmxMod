@@ -12,8 +12,8 @@
 #include <ranges>
 #include <glm/gtc/matrix_transform.hpp>
 
-template <typename KeyType>
-std::vector<KeyType>::const_iterator FindBoundKey(const std::vector<KeyType>& keys, int32_t t, size_t startIdx) {
+template <class T>
+std::vector<T>::const_iterator FindBoundKey(const std::vector<T>& keys, int32_t t, size_t startIdx) {
 	if (keys.empty() || keys.size() <= startIdx)
 		return keys.end();
 	const auto &key0 = keys[startIdx];
@@ -31,7 +31,7 @@ std::vector<KeyType>::const_iterator FindBoundKey(const std::vector<KeyType>& ke
 	} else
 		return keys.begin();
 	auto bundIt = std::upper_bound(keys.begin(), keys.end(), t,
-		[](int32_t lhs, const KeyType &rhs)
+		[](int32_t lhs, const T &rhs)
 		{ return lhs < rhs.m_time; }
 	);
 	return bundIt;

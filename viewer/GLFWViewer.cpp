@@ -10,7 +10,7 @@
 #include <fstream>
 #include <ranges>
 
-GLuint Compile(const GLenum shaderType, const std::string& code) {
+GLuint CompileShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
 	if (!shader)
 		return 0;
@@ -74,8 +74,8 @@ GLuint CreateShader(const std::filesystem::path& file) {
 	const std::string src((std::istreambuf_iterator(f)), {});
 	const std::string vsCode = InjectDefine(src, "#define VERTEX");
 	const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
-	const GLuint vs = Compile(GL_VERTEX_SHADER, vsCode);
-	const GLuint fs = Compile(GL_FRAGMENT_SHADER, fsCode);
+	const GLuint vs = CompileShader(GL_VERTEX_SHADER, vsCode);
+	const GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsCode);
 	if (!vs || !fs) {
 		if (vs)
 			glDeleteShader(vs);
