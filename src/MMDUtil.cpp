@@ -103,7 +103,8 @@ std::pair<float, float> MusicUtil::PullTimes() {
     const double sr = ma_engine_get_sample_rate(m_engine.get());
     const double t = sr > 0.0 ? static_cast<double>(frames) / sr : m_prevTimeSec;
     double dt = t - m_prevTimeSec;
-    if (dt < 0.0) dt = 0.0;
+    if (dt < 0.0)
+        dt = 0.0;
     m_prevTimeSec = t;
     return { static_cast<float>(dt), static_cast<float>(t) };
 }
