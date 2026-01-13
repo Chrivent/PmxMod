@@ -21,10 +21,6 @@ bool MMDFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBro
 	return collides;
 }
 
-//*******************
-// MMDRigidBody
-//*******************
-
 DefaultMotionState::DefaultMotionState(const glm::mat4& transform) {
 	glm::mat4 trans = InvZ(transform);
 	m_transform.setFromOpenGLMatrix(&trans[0][0]);
@@ -287,11 +283,6 @@ glm::mat4 MMDRigidBody::GetTransform() const {
 	transform.getOpenGLMatrix(&mat[0][0]);
 	return InvZ(mat);
 }
-
-
-//*******************
-// MMDJoint
-//*******************
 
 void MMDJoint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
 	m_constraint = nullptr;

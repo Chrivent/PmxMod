@@ -407,27 +407,25 @@ VMDCameraController::VMDCameraController()
 }
 
 void VMDCameraController::Evaluate(const float t) {
+	auto Apply = [&](const VMDCameraAnimationKey& k){
+		m_camera.m_interest = k.m_interest;
+		m_camera.m_rotate   = k.m_rotate;
+		m_camera.m_distance = k.m_distance;
+		m_camera.m_fov      = k.m_fov;
+	};
 	if (m_keys.empty())
 		return;
 	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
-	if (boundIt == std::end(m_keys)) {
-		const auto& selectKey = m_keys[m_keys.size() - 1];
-		m_camera.m_interest = selectKey.m_interest;
-		m_camera.m_rotate = selectKey.m_rotate;
-		m_camera.m_distance = selectKey.m_distance;
-		m_camera.m_fov = selectKey.m_fov;
-	} else {
-		const auto& selectKey = *boundIt;
-		m_camera.m_interest = selectKey.m_interest;
-		m_camera.m_rotate = selectKey.m_rotate;
-		m_camera.m_distance = selectKey.m_distance;
-		m_camera.m_fov = selectKey.m_fov;
+	if (boundIt == std::end(m_keys))
+		Apply(m_keys[m_keys.size() - 1]);
+	else {
+		Apply(*boundIt);
 		if (boundIt != std::begin(m_keys)) {
 			const auto& key = *(boundIt - 1);
 			const auto& [m_time, m_interest, m_rotate, m_distance, m_fov
 						, m_ixBezier, m_iyBezier, m_izBezier, m_rotateBezier, m_distanceBezier, m_fovBezier]
 					= *boundIt;
-			if ((m_time - key.m_time) > 1) {
+			if (m_time - key.m_time > 1) {
 				const auto timeRange = static_cast<float>(m_time - key.m_time);
 				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
 				const float ix_x = m_ixBezier.FindBezierX(time);
@@ -446,12 +444,8 @@ void VMDCameraController::Evaluate(const float t) {
 				m_camera.m_rotate = glm::mix(key.m_rotate, m_rotate, rotate_y);
 				m_camera.m_distance = glm::mix(key.m_distance, m_distance, distance_y);
 				m_camera.m_fov = glm::mix(key.m_fov, m_fov, fov_y);
-			} else {
-				m_camera.m_interest = key.m_interest;
-				m_camera.m_rotate = key.m_rotate;
-				m_camera.m_distance = key.m_distance;
-				m_camera.m_fov = key.m_fov;
-			}
+			} else
+				Apply(key);
 			m_startKeyIndex = std::distance(m_keys.cbegin(), boundIt);
 		}
 	}
