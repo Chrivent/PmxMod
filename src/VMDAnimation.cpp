@@ -461,10 +461,6 @@ void VMDCameraController::AddKey(const VMDCameraAnimationKey& key) {
 	m_keys.push_back(key);
 }
 
-void VMDCameraController::SortKeys() {
-	std::ranges::sort(m_keys, {}, &VMDCameraAnimationKey::m_time);
-}
-
 VMDCameraAnimation::VMDCameraAnimation() {
 	Destroy();
 }
@@ -499,7 +495,7 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 				cam.m_interpolation[22], cam.m_interpolation[23]);
 			m_cameraController->AddKey(key);
 		}
-		m_cameraController->SortKeys();
+		std::ranges::sort(m_cameraController->m_keys, {}, &VMDCameraAnimationKey::m_time);
 	} else
 		return false;
 	return true;

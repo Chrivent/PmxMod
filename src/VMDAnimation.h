@@ -128,7 +128,6 @@ public:
 
 	void Evaluate(float t);
 	void AddKey(const VMDCameraAnimationKey& key);
-	void SortKeys();
 
 	std::vector<VMDCameraAnimationKey>	m_keys;
 	MMDCamera							m_camera;
