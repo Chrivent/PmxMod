@@ -364,8 +364,9 @@ void GLFWModel::Draw() const {
 	glUseProgram(edgeShader->m_prog);
 	glUniformMatrix4fv(edgeShader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 	glUniformMatrix4fv(edgeShader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-	glBindVertexArray(m_mmdEdgeVAO);
 	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
+	glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
+	glBindVertexArray(m_mmdEdgeVAO);
 	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_mmdModel->m_subMeshes) {
 		const auto& mat = m_materials[m_materialID];
 		const auto& mmdMat = mat.m_mmdMat;
@@ -373,7 +374,6 @@ void GLFWModel::Draw() const {
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-		glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
 		glUniform1f(edgeShader->m_uEdgeSize, mmdMat.m_edgeSize);
 		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mmdMat.m_edgeColor[0]);
 		glEnable(GL_CULL_FACE);
@@ -391,6 +391,7 @@ void GLFWModel::Draw() const {
 	glUniformMatrix4fv(gsShader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 	glBindVertexArray(m_mmdGroundShadowVAO);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+	glUniform4fv(gsShader->m_uShadowColor, 1, &shadowColor[0]);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
 		glEnable(GL_STENCIL_TEST);
@@ -409,7 +410,6 @@ void GLFWModel::Draw() const {
 			continue;
 		if (mmdMat.m_diffuse.a == 0.0f)
 			continue;
-		glUniform4fv(gsShader->m_uShadowColor, 1, &shadowColor[0]);
 		size_t offset = m_beginIndex * m_mmdModel->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
