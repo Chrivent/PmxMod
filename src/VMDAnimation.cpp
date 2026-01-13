@@ -81,8 +81,8 @@ void VMDNodeController::Evaluate(const float t, const float animWeight) {
 	glm::vec3 vt;
 	glm::quat q;
 	if (boundIt == std::end(m_keys)) {
-		vt = m_keys[m_keys.size() - 1].m_translate;
-		q = m_keys[m_keys.size() - 1].m_rotate;
+		vt = m_keys.back().m_translate;
+		q = m_keys.back().m_rotate;
 	} else {
 		vt = boundIt->m_translate;
 		q = boundIt->m_rotate;
@@ -417,7 +417,7 @@ void VMDCameraController::Evaluate(const float t) {
 		return;
 	const auto boundIt = FindBoundKey(m_keys, static_cast<int32_t>(t), m_startKeyIndex);
 	if (boundIt == std::end(m_keys))
-		Apply(m_keys[m_keys.size() - 1]);
+		Apply(m_keys.back());
 	else {
 		Apply(*boundIt);
 		if (boundIt != std::begin(m_keys)) {
