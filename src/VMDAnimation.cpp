@@ -125,7 +125,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::unique_ptr<VMDNodeController> > nodeCtrlMap;
 	for (auto& nodeCtrl : m_nodeControllers) {
 		std::string name = nodeCtrl->m_node->m_name;
-		nodeCtrlMap.emplace(std::make_pair(name, std::move(nodeCtrl)));
+		nodeCtrlMap.emplace(name, std::move(nodeCtrl));
 	}
 	m_nodeControllers.clear();
 	for (const auto& motion : vmd.m_motions) {
@@ -164,7 +164,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::unique_ptr<VMDIKController> > ikCtrlMap;
 	for (auto& ikCtrl : m_ikControllers) {
 		std::string name = ikCtrl->m_ikSolver->m_ikNode->m_name;
-		ikCtrlMap.emplace(std::make_pair(name, std::move(ikCtrl)));
+		ikCtrlMap.emplace(name, std::move(ikCtrl));
 	}
 	m_ikControllers.clear();
 	for (const auto& ik : vmd.m_iks) {
@@ -208,7 +208,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::unique_ptr<VMDMorphController> > morphCtrlMap;
 	for (auto& morphCtrl : m_morphControllers) {
 		std::string name = morphCtrl->m_morph->m_name;
-		morphCtrlMap.emplace(std::make_pair(name, std::move(morphCtrl)));
+		morphCtrlMap.emplace(name, std::move(morphCtrl));
 	}
 	m_morphControllers.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
