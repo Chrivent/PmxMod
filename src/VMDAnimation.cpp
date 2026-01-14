@@ -10,22 +10,22 @@
 #include <map>
 #include <ranges>
 
-void SetVMDBezier(VMDBezier& bezier, const int x0, const int x1, const int y0, const int y1) {
-	bezier.m_cp1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
-	bezier.m_cp2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
+void SetBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
+	bezier.first = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
+	bezier.second = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
 }
 
-float Eval(const float t, const float p1, const float p2) {
+float Bezier(const float t, const float p1, const float p2) {
 	const float it = 1.0f - t;
 	return 3.0f * it * it * t * p1 + 3.0f * it * t * t * p2 + t * t * t;
 }
 
-float VMDBezier::FindBezierX(float time) const {
+float FindBezierX(float time, const float x1, const float x2) {
 	time = std::clamp(time, 0.0f, 1.0f);
 	float start = 0.0f, stop = 1.0f;
 	float t = 0.5f;
 	for (int i = 0; i < 32; i++) {
-		const float x = Eval(t, m_cp1.x, m_cp2.x);
+		const float x = Bezier(t, x1, x2);
 		const float diff = time - x;
 		if (std::abs(diff) < 1e-5f)
 			break;
@@ -163,14 +163,14 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 						= *boundIt;
 				const auto timeRange = static_cast<float>(m_time - key.m_time);
 				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
-				const float tx_x = m_txBezier.FindBezierX(time);
-				const float ty_x = m_tyBezier.FindBezierX(time);
-				const float tz_x = m_tzBezier.FindBezierX(time);
-				const float rot_x = m_rotBezier.FindBezierX(time);
-				const float tx_y = Eval(tx_x, m_txBezier.m_cp1.y, m_txBezier.m_cp2.y);
-				const float ty_y = Eval(ty_x, m_tyBezier.m_cp1.y, m_tyBezier.m_cp2.y);
-				const float tz_y = Eval(tz_x, m_tzBezier.m_cp1.y, m_tzBezier.m_cp2.y);
-				const float rot_y = Eval(rot_x, m_rotBezier.m_cp1.y, m_rotBezier.m_cp2.y);
+				const float tx_x = FindBezierX(time, m_txBezier.first.x, m_txBezier.second.x);
+				const float ty_x = FindBezierX(time, m_tyBezier.first.x, m_tyBezier.second.x);
+				const float tz_x = FindBezierX(time, m_tzBezier.first.x, m_tzBezier.second.x);
+				const float rot_x = FindBezierX(time, m_rotBezier.first.x, m_rotBezier.second.x);
+				const float tx_y = Bezier(tx_x, m_txBezier.first.y, m_txBezier.second.y);
+				const float ty_y = Bezier(ty_x, m_tyBezier.first.y, m_tyBezier.second.y);
+				const float tz_y = Bezier(tz_x, m_tzBezier.first.y, m_tzBezier.second.y);
+				const float rot_y = Bezier(rot_x, m_rotBezier.first.y, m_rotBezier.second.y);
 				vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
 				q = glm::slerp(key.m_rotate, m_rotate, rot_y);
 			}
@@ -244,16 +244,16 @@ void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	const auto rot0 = glm::mat3_cast(q);
 	const auto rot1 = invZ * rot0 * invZ;
 	m_rotate = glm::quat_cast(rot1);
-	SetVMDBezier(m_txBezier,
+	SetBezier(m_txBezier,
 		motion.m_interpolation[0], motion.m_interpolation[8],
 		motion.m_interpolation[4], motion.m_interpolation[12]);
-	SetVMDBezier(m_tyBezier,
+	SetBezier(m_tyBezier,
 		motion.m_interpolation[1], motion.m_interpolation[9],
 		motion.m_interpolation[5], motion.m_interpolation[13]);
-	SetVMDBezier(m_tzBezier,
+	SetBezier(m_tzBezier,
 		motion.m_interpolation[2], motion.m_interpolation[10],
 		motion.m_interpolation[6], motion.m_interpolation[14]);
-	SetVMDBezier(m_rotBezier,
+	SetBezier(m_rotBezier,
 		motion.m_interpolation[3], motion.m_interpolation[11],
 		motion.m_interpolation[7], motion.m_interpolation[15]);
 }
@@ -289,22 +289,22 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 			key.m_rotate = cam.m_rotate;
 			key.m_distance = cam.m_distance;
 			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
-			SetVMDBezier(key.m_ixBezier,
+			SetBezier(key.m_ixBezier,
 				cam.m_interpolation[0], cam.m_interpolation[1],
 				cam.m_interpolation[2], cam.m_interpolation[3]);
-			SetVMDBezier(key.m_iyBezier,
+			SetBezier(key.m_iyBezier,
 				cam.m_interpolation[4], cam.m_interpolation[5],
 				cam.m_interpolation[6], cam.m_interpolation[7]);
-			SetVMDBezier(key.m_izBezier,
+			SetBezier(key.m_izBezier,
 				cam.m_interpolation[8], cam.m_interpolation[9],
 				cam.m_interpolation[10], cam.m_interpolation[11]);
-			SetVMDBezier(key.m_rotateBezier,
+			SetBezier(key.m_rotateBezier,
 				cam.m_interpolation[12], cam.m_interpolation[13],
 				cam.m_interpolation[14], cam.m_interpolation[15]);
-			SetVMDBezier(key.m_distanceBezier,
+			SetBezier(key.m_distanceBezier,
 				cam.m_interpolation[16], cam.m_interpolation[17],
 				cam.m_interpolation[18], cam.m_interpolation[19]);
-			SetVMDBezier(key.m_fovBezier,
+			SetBezier(key.m_fovBezier,
 				cam.m_interpolation[20], cam.m_interpolation[21],
 				cam.m_interpolation[22], cam.m_interpolation[23]);
 			m_keys.push_back(key);
@@ -338,18 +338,18 @@ void VMDCameraAnimation::Evaluate(const float t) {
 			if (m_time - key.m_time > 1) {
 				const auto timeRange = static_cast<float>(m_time - key.m_time);
 				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
-				const float ix_x = m_ixBezier.FindBezierX(time);
-				const float iy_x = m_iyBezier.FindBezierX(time);
-				const float iz_x = m_izBezier.FindBezierX(time);
-				const float rotate_x = m_rotateBezier.FindBezierX(time);
-				const float distance_x = m_distanceBezier.FindBezierX(time);
-				const float fov_x = m_fovBezier.FindBezierX(time);
-				const float ix_y = Eval(ix_x, m_ixBezier.m_cp1.y, m_ixBezier.m_cp2.y);
-				const float iy_y = Eval(iy_x, m_iyBezier.m_cp1.y, m_iyBezier.m_cp2.y);
-				const float iz_y = Eval(iz_x, m_izBezier.m_cp1.y, m_izBezier.m_cp2.y);
-				const float rotate_y = Eval(rotate_x, m_rotateBezier.m_cp1.y, m_rotateBezier.m_cp2.y);
-				const float distance_y = Eval(distance_x, m_distanceBezier.m_cp1.y, m_distanceBezier.m_cp2.y);
-				const float fov_y = Eval(fov_x, m_fovBezier.m_cp1.y, m_fovBezier.m_cp2.y);
+				const float ix_x = FindBezierX(time, m_ixBezier.first.x, m_ixBezier.second.x);
+				const float iy_x = FindBezierX(time, m_iyBezier.first.x, m_iyBezier.second.x);
+				const float iz_x = FindBezierX(time, m_izBezier.first.x, m_izBezier.second.x);
+				const float rotate_x = FindBezierX(time, m_rotateBezier.first.x, m_rotateBezier.second.x);
+				const float distance_x = FindBezierX(time, m_distanceBezier.first.x, m_distanceBezier.second.x);
+				const float fov_x = FindBezierX(time, m_fovBezier.first.x, m_fovBezier.second.x);
+				const float ix_y = Bezier(ix_x, m_ixBezier.first.y, m_ixBezier.second.y);
+				const float iy_y = Bezier(iy_x, m_iyBezier.first.y, m_iyBezier.second.y);
+				const float iz_y = Bezier(iz_x, m_izBezier.first.y, m_izBezier.second.y);
+				const float rotate_y = Bezier(rotate_x, m_rotateBezier.first.y, m_rotateBezier.second.y);
+				const float distance_y = Bezier(distance_x, m_distanceBezier.first.y, m_distanceBezier.second.y);
+				const float fov_y = Bezier(fov_x, m_fovBezier.first.y, m_fovBezier.second.y);
 				m_camera.m_interest = glm::mix(key.m_interest, m_interest, glm::vec3(ix_y, iy_y, iz_y));
 				m_camera.m_rotate = glm::mix(key.m_rotate, m_rotate, rotate_y);
 				m_camera.m_distance = glm::mix(key.m_distance, m_distance, distance_y);

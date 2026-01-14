@@ -14,13 +14,6 @@ struct MMDMorph;
 struct MMDNode;
 class MMDModel;
 
-struct VMDBezier {
-	float FindBezierX(float time) const;
-
-	glm::vec2	m_cp1;
-	glm::vec2	m_cp2;
-};
-
 struct VMDNodeAnimationKey {
 	void Set(const VMDReader::VMDMotion& motion);
 
@@ -28,10 +21,10 @@ struct VMDNodeAnimationKey {
 	glm::vec3	m_translate;
 	glm::quat	m_rotate;
 
-	VMDBezier	m_txBezier;
-	VMDBezier	m_tyBezier;
-	VMDBezier	m_tzBezier;
-	VMDBezier	m_rotBezier;
+	std::pair<glm::vec2, glm::vec2>	m_txBezier;
+	std::pair<glm::vec2, glm::vec2>	m_tyBezier;
+	std::pair<glm::vec2, glm::vec2>	m_tzBezier;
+	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
 };
 
 struct VMDMorphAnimationKey {
@@ -74,12 +67,12 @@ struct VMDCameraAnimationKey {
 	float		m_distance;
 	float		m_fov;
 
-	VMDBezier	m_ixBezier;
-	VMDBezier	m_iyBezier;
-	VMDBezier	m_izBezier;
-	VMDBezier	m_rotateBezier;
-	VMDBezier	m_distanceBezier;
-	VMDBezier	m_fovBezier;
+	std::pair<glm::vec2, glm::vec2>	m_ixBezier;
+	std::pair<glm::vec2, glm::vec2>	m_iyBezier;
+	std::pair<glm::vec2, glm::vec2>	m_izBezier;
+	std::pair<glm::vec2, glm::vec2>	m_rotateBezier;
+	std::pair<glm::vec2, glm::vec2>	m_distanceBezier;
+	std::pair<glm::vec2, glm::vec2>	m_fovBezier;
 };
 
 class VMDCameraAnimation {
