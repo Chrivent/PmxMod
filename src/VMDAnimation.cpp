@@ -35,10 +35,6 @@ float VMDBezier::FindBezierX(float time) const {
 	return t;
 }
 
-VMDAnimation::VMDAnimation()
-	: m_maxKeyTime(0) {
-}
-
 bool VMDAnimation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
@@ -69,107 +65,79 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val.second, {}, &VMDNodeAnimationKey::m_time);
 		m_nodes.insert(std::move(val));
 	}
-	std::map<std::string, std::unique_ptr<VMDIKController> > ikCtrlMap;
-	for (auto& ikCtrl : m_ikControllers) {
-		std::string name = ikCtrl->m_ikSolver->m_ikNode->m_name;
-		ikCtrlMap.emplace(name, std::move(ikCtrl));
-	}
-	m_ikControllers.clear();
+	std::map<std::string, std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>> ikMap;
+	for (auto& ik : m_iks)
+		ikMap.emplace(ik.first->m_ikNode->m_name, std::move(ik));
+	m_iks.clear();
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
 			std::string ikName = UnicodeUtil::SjisToUtf8(m_name);
-			auto findIt = ikCtrlMap.find(ikName);
-			VMDIKController* ikCtrl = nullptr;
-			if (findIt == std::end(ikCtrlMap)) {
+			auto findIt = ikMap.find(ikName);
+			std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>* ikPair = nullptr;
+			if (findIt == std::end(ikMap)) {
 				auto it = std::ranges::find(
 					m_model->m_ikSolvers, std::string_view{ ikName },
 					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view { return ikSolver->m_ikNode->m_name; }
 				);
 				auto* ikSolver = it == m_model->m_ikSolvers.end() ? nullptr : it->get();
-				if (ikSolver != nullptr) {
-					auto val = std::make_pair(
-						ikName,
-						std::make_unique<VMDIKController>()
-					);
-					ikCtrl = val.second.get();
-					ikCtrl->m_ikSolver = ikSolver;
-					ikCtrlMap.emplace(std::move(val));
-				}
+				if (ikSolver != nullptr)
+					ikPair = &ikMap.emplace(ikName,
+						std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>{ ikSolver, {} }).first->second;
 			} else
-				ikCtrl = findIt->second.get();
-			if (ikCtrl != nullptr) {
+				ikPair = &findIt->second;
+			if (ikPair != nullptr) {
 				VMDIKAnimationKey key{};
 				key.m_time = static_cast<int32_t>(ik.m_frame);
 				key.m_enable = m_enable != 0;
-				ikCtrl->m_keys.push_back(key);
+				ikPair->second.push_back(key);
 			}
 		}
 	}
-	m_ikControllers.reserve(ikCtrlMap.size());
-	for (auto& val : ikCtrlMap | std::views::values) {
-		std::ranges::sort(val->m_keys, {}, &VMDIKAnimationKey::m_time);
-		m_ikControllers.emplace_back(std::move(val));
+	for (auto& val : ikMap | std::views::values) {
+		std::ranges::sort(val.second, {}, &VMDIKAnimationKey::m_time);
+		m_iks.insert(std::move(val));
 	}
-	std::map<std::string, std::unique_ptr<VMDMorphController> > morphCtrlMap;
-	for (auto& morphCtrl : m_morphControllers) {
-		std::string name = morphCtrl->m_morph->m_name;
-		morphCtrlMap.emplace(name, std::move(morphCtrl));
-	}
-	m_morphControllers.clear();
+	std::map<std::string, std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>> morphMap;
+	for (auto& morph : m_morphs)
+		morphMap.emplace(morph.first->m_name, std::move(morph));
+	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
 		std::string morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
-		auto findIt = morphCtrlMap.find(morphName);
-		VMDMorphController* morphCtrl = nullptr;
-		if (findIt == std::end(morphCtrlMap)) {
+		auto findIt = morphMap.find(morphName);
+		std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>* morphPair = nullptr;
+		if (findIt == std::end(morphMap)) {
 			auto it = std::ranges::find(
 				m_model->m_morphs, std::string_view{ morphName },
 				[](const std::unique_ptr<MMDMorph>& mmdMorph) -> std::string_view { return mmdMorph->m_name; }
 			);
 			auto* mmdMorph = it == m_model->m_morphs.end() ? nullptr : it->get();
-			if (mmdMorph != nullptr) {
-				auto val = std::make_pair(
-					morphName,
-					std::make_unique<VMDMorphController>()
-				);
-				morphCtrl = val.second.get();
-				morphCtrl->m_morph = mmdMorph;
-				morphCtrlMap.emplace(std::move(val));
-			}
+			if (mmdMorph != nullptr)
+				morphPair = &morphMap.emplace(morphName,
+						std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>{ mmdMorph, {} }).first->second;
 		} else
-			morphCtrl = findIt->second.get();
-		if (morphCtrl != nullptr) {
+			morphPair = &findIt->second;
+		if (morphPair != nullptr) {
 			VMDMorphAnimationKey key{};
 			key.m_time = static_cast<int32_t>(m_frame);
 			key.m_weight = m_weight;
-			morphCtrl->m_keys.push_back(key);
+			morphPair->second.push_back(key);
 		}
 	}
-	m_morphControllers.reserve(morphCtrlMap.size());
-	for (auto& val : morphCtrlMap | std::views::values) {
-		std::ranges::sort(val->m_keys, {}, &VMDMorphAnimationKey::m_time);
-		m_morphControllers.emplace_back(std::move(val));
+	for (auto& val : morphMap | std::views::values) {
+		std::ranges::sort(val.second, {}, &VMDMorphAnimationKey::m_time);
+		m_morphs.insert(std::move(val));
 	}
-	m_maxKeyTime = CalculateMaxKeyTime();
 	return true;
 }
 
 void VMDAnimation::Destroy() {
 	m_model.reset();
 	m_nodes.clear();
-	m_ikControllers.clear();
-	m_morphControllers.clear();
-	m_maxKeyTime = 0;
+	m_iks.clear();
+	m_morphs.clear();
 }
 
 void VMDAnimation::Evaluate(const float t, const float animWeight) const {
-	NodeEvaluate(t, animWeight);
-	for (auto& ikCtrl: m_ikControllers)
-		ikCtrl->Evaluate(t, animWeight);
-	for (auto& morphCtrl: m_morphControllers)
-		morphCtrl->Evaluate(t, animWeight);
-}
-
-void VMDAnimation::NodeEvaluate(const float t, const float animWeight) const {
 	for (const auto& [node, keys]: m_nodes) {
 		if (node == nullptr)
 			return;
@@ -217,26 +185,55 @@ void VMDAnimation::NodeEvaluate(const float t, const float animWeight) const {
 			node->m_animTranslate = glm::mix(baseT, vt, animWeight);
 		}
 	}
-}
-
-int32_t VMDAnimation::CalculateMaxKeyTime() const {
-	int32_t maxTime = 0;
-	for (const auto& val : m_nodes | std::views::values) {
-		const auto& keys = val;
-		if (!keys.empty())
-			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
+	for (const auto& [ikSolver, keys] : m_iks) {
+		if (ikSolver == nullptr)
+			return;
+		if (keys.empty()) {
+			ikSolver->m_enable = true;
+			return;
+		}
+		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+			[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
+		bool enable;
+		if (boundIt == std::end(keys))
+			enable = keys.rbegin()->m_enable;
+		else {
+			enable = keys.begin()->m_enable;
+			if (boundIt != std::begin(keys)) {
+				const auto& [m_time, m_enable] = *(boundIt - 1);
+				enable = m_enable;
+			}
+		}
+		if (animWeight != 1.0f && animWeight < 1.0f)
+			ikSolver->m_enable = ikSolver->m_baseAnimEnable;
+		else
+			ikSolver->m_enable = enable;
 	}
-	for (const auto& ikController : m_ikControllers) {
-		const auto& keys = ikController->m_keys;
-		if (!keys.empty())
-			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
+	for (const auto& [morph, keys] : m_morphs) {
+		if (morph == nullptr)
+			return;
+		if (keys.empty())
+			return;
+		float weight;
+		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+			[](const VMDMorphAnimationKey& k) { return static_cast<float>(k.m_time); });
+		if (boundIt == std::end(keys))
+			weight = keys.rbegin()->m_weight;
+		else {
+			weight = boundIt->m_weight;
+			if (boundIt != std::begin(keys)) {
+				auto [m_time0, m_weight0] = *(boundIt - 1);
+				auto [m_time1, m_weight1] = *boundIt;
+				const auto timeRange = static_cast<float>(m_time1 - m_time0);
+				const float time = (t - static_cast<float>(m_time0)) / timeRange;
+				weight = (m_weight1 - m_weight0) * time + m_weight0;
+			}
+		}
+		if (animWeight == 1.0f)
+			morph->m_weight = weight;
+		else
+			morph->m_weight = glm::mix(morph->m_saveAnimWeight, weight, animWeight);
 	}
-	for (const auto& morphController : m_morphControllers) {
-		const auto& keys = morphController->m_keys;
-		if (!keys.empty())
-			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
-	}
-	return maxTime;
 }
 
 void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
@@ -259,65 +256,6 @@ void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	SetVMDBezier(m_rotBezier,
 		motion.m_interpolation[3], motion.m_interpolation[11],
 		motion.m_interpolation[7], motion.m_interpolation[15]);
-}
-
-VMDIKController::VMDIKController()
-	: m_ikSolver(nullptr) {
-}
-
-void VMDIKController::Evaluate(const float t, const float animWeight) {
-	if (m_ikSolver == nullptr)
-		return;
-	if (m_keys.empty()) {
-		m_ikSolver->m_enable = true;
-		return;
-	}
-	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
-		[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
-	bool enable;
-	if (boundIt == std::end(m_keys))
-		enable = m_keys.rbegin()->m_enable;
-	else {
-		enable = m_keys.begin()->m_enable;
-		if (boundIt != std::begin(m_keys)) {
-			const auto& [m_time, m_enable] = *(boundIt - 1);
-			enable = m_enable;
-		}
-	}
-	if (animWeight != 1.0f && animWeight < 1.0f)
-		m_ikSolver->m_enable = m_ikSolver->m_baseAnimEnable;
-	else
-		m_ikSolver->m_enable = enable;
-}
-
-VMDMorphController::VMDMorphController()
-	: m_morph(nullptr) {
-}
-
-void VMDMorphController::Evaluate(const float t, const float animWeight) {
-	if (m_morph == nullptr)
-		return;
-	if (m_keys.empty())
-		return;
-	float weight;
-	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
-		[](const VMDMorphAnimationKey& k) { return static_cast<float>(k.m_time); });
-	if (boundIt == std::end(m_keys))
-		weight = m_keys.rbegin()->m_weight;
-	else {
-		weight = boundIt->m_weight;
-		if (boundIt != std::begin(m_keys)) {
-			auto [m_time0, m_weight0] = *(boundIt - 1);
-			auto [m_time1, m_weight1] = *boundIt;
-			const auto timeRange = static_cast<float>(m_time1 - m_time0);
-			const float time = (t - static_cast<float>(m_time0)) / timeRange;
-			weight = (m_weight1 - m_weight0) * time + m_weight0;
-		}
-	}
-	if (animWeight == 1.0f)
-		m_morph->m_weight = weight;
-	else
-		m_morph->m_weight = glm::mix(m_morph->m_saveAnimWeight, weight, animWeight);
 }
 
 MMDCamera::MMDCamera() {

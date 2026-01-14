@@ -44,44 +44,16 @@ struct VMDIKAnimationKey {
 	bool	m_enable;
 };
 
-class VMDMorphController {
-public:
-	VMDMorphController();
-
-	void Evaluate(float t, float animWeight = 1.0f);
-
-	MMDMorph*				m_morph;
-	std::vector<VMDMorphAnimationKey>	m_keys;
-};
-
-class VMDIKController {
-public:
-	VMDIKController();
-
-	void Evaluate(float t, float animWeight = 1.0f);
-
-	MMDIkSolver*			m_ikSolver;
-	std::vector<VMDIKAnimationKey>	m_keys;
-};
-
 class VMDAnimation {
 public:
-	VMDAnimation();
-
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
-	void NodeEvaluate(float t, float animWeight) const;
 
-private:
-	int32_t CalculateMaxKeyTime() const;
-
-public:
 	std::shared_ptr<MMDModel>								m_model;
 	std::map<MMDNode*, std::vector<VMDNodeAnimationKey>>	m_nodes;
-	std::vector<std::unique_ptr<VMDIKController>>			m_ikControllers;
-	std::vector<std::unique_ptr<VMDMorphController>>		m_morphControllers;
-	uint32_t												m_maxKeyTime;
+	std::map<MMDIkSolver*, std::vector<VMDIKAnimationKey>>	m_iks;
+	std::map<MMDMorph*, std::vector<VMDMorphAnimationKey>>	m_morphs;
 };
 
 struct MMDCamera {
