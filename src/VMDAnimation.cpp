@@ -355,7 +355,43 @@ glm::mat4 MMDCamera::GetViewMatrix() const {
 	return glm::lookAt(eye, center, up);
 }
 
-void VMDCameraController::Evaluate(const float t) {
+bool VMDCameraAnimation::Create(const VMDReader& vmd) {
+	if (!vmd.m_cameras.empty()) {
+		m_keys.clear();
+		for (const auto& cam: vmd.m_cameras) {
+			VMDCameraAnimationKey key{};
+			key.m_time = static_cast<int32_t>(cam.m_frame);
+			key.m_interest = cam.m_interest * glm::vec3(1, 1, -1);
+			key.m_rotate = cam.m_rotate;
+			key.m_distance = cam.m_distance;
+			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
+			SetVMDBezier(key.m_ixBezier,
+				cam.m_interpolation[0], cam.m_interpolation[1],
+				cam.m_interpolation[2], cam.m_interpolation[3]);
+			SetVMDBezier(key.m_iyBezier,
+				cam.m_interpolation[4], cam.m_interpolation[5],
+				cam.m_interpolation[6], cam.m_interpolation[7]);
+			SetVMDBezier(key.m_izBezier,
+				cam.m_interpolation[8], cam.m_interpolation[9],
+				cam.m_interpolation[10], cam.m_interpolation[11]);
+			SetVMDBezier(key.m_rotateBezier,
+				cam.m_interpolation[12], cam.m_interpolation[13],
+				cam.m_interpolation[14], cam.m_interpolation[15]);
+			SetVMDBezier(key.m_distanceBezier,
+				cam.m_interpolation[16], cam.m_interpolation[17],
+				cam.m_interpolation[18], cam.m_interpolation[19]);
+			SetVMDBezier(key.m_fovBezier,
+				cam.m_interpolation[20], cam.m_interpolation[21],
+				cam.m_interpolation[22], cam.m_interpolation[23]);
+			m_keys.push_back(key);
+		}
+		std::ranges::sort(m_keys, {}, &VMDCameraAnimationKey::m_time);
+	} else
+		return false;
+	return true;
+}
+
+void VMDCameraAnimation::Evaluate(const float t) {
 	auto Apply = [&](const VMDCameraAnimationKey& k){
 		m_camera.m_interest = k.m_interest;
 		m_camera.m_rotate   = k.m_rotate;
@@ -398,57 +434,4 @@ void VMDCameraController::Evaluate(const float t) {
 				Apply(key);
 		}
 	}
-}
-
-void VMDCameraController::AddKey(const VMDCameraAnimationKey& key) {
-	m_keys.push_back(key);
-}
-
-VMDCameraAnimation::VMDCameraAnimation() {
-	Destroy();
-}
-
-bool VMDCameraAnimation::Create(const VMDReader& vmd) {
-	if (!vmd.m_cameras.empty()) {
-		m_cameraController = std::make_unique<VMDCameraController>();
-		for (const auto& cam: vmd.m_cameras) {
-			VMDCameraAnimationKey key{};
-			key.m_time = static_cast<int32_t>(cam.m_frame);
-			key.m_interest = cam.m_interest * glm::vec3(1, 1, -1);
-			key.m_rotate = cam.m_rotate;
-			key.m_distance = cam.m_distance;
-			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
-			SetVMDBezier(key.m_ixBezier,
-				cam.m_interpolation[0], cam.m_interpolation[1],
-				cam.m_interpolation[2], cam.m_interpolation[3]);
-			SetVMDBezier(key.m_iyBezier,
-				cam.m_interpolation[4], cam.m_interpolation[5],
-				cam.m_interpolation[6], cam.m_interpolation[7]);
-			SetVMDBezier(key.m_izBezier,
-				cam.m_interpolation[8], cam.m_interpolation[9],
-				cam.m_interpolation[10], cam.m_interpolation[11]);
-			SetVMDBezier(key.m_rotateBezier,
-				cam.m_interpolation[12], cam.m_interpolation[13],
-				cam.m_interpolation[14], cam.m_interpolation[15]);
-			SetVMDBezier(key.m_distanceBezier,
-				cam.m_interpolation[16], cam.m_interpolation[17],
-				cam.m_interpolation[18], cam.m_interpolation[19]);
-			SetVMDBezier(key.m_fovBezier,
-				cam.m_interpolation[20], cam.m_interpolation[21],
-				cam.m_interpolation[22], cam.m_interpolation[23]);
-			m_cameraController->AddKey(key);
-		}
-		std::ranges::sort(m_cameraController->m_keys, {}, &VMDCameraAnimationKey::m_time);
-	} else
-		return false;
-	return true;
-}
-
-void VMDCameraAnimation::Destroy() {
-	m_cameraController.reset();
-}
-
-void VMDCameraAnimation::Evaluate(const float t) {
-	m_cameraController->Evaluate(t);
-	m_camera = m_cameraController->m_camera;
 }

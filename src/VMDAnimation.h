@@ -118,23 +118,11 @@ struct VMDCameraAnimationKey {
 	VMDBezier	m_fovBezier;
 };
 
-class VMDCameraController {
-public:
-	void Evaluate(float t);
-	void AddKey(const VMDCameraAnimationKey& key);
-
-	std::vector<VMDCameraAnimationKey>	m_keys;
-	MMDCamera							m_camera;
-};
-
 class VMDCameraAnimation {
 public:
-	VMDCameraAnimation();
-
 	bool Create(const VMDReader& vmd);
-	void Destroy();
 	void Evaluate(float t);
 
-	std::unique_ptr<VMDCameraController>	m_cameraController;
+	std::vector<VMDCameraAnimationKey>	m_keys;
 	MMDCamera	m_camera;
 };
