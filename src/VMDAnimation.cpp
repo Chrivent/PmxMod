@@ -35,100 +35,39 @@ float VMDBezier::FindBezierX(float time) const {
 	return t;
 }
 
-VMDNodeController::VMDNodeController()
-	: m_node(nullptr) {
-}
-
-void VMDNodeController::Evaluate(const float t, const float animWeight) {
-	if (m_node == nullptr)
-		return;
-	if (m_keys.empty()) {
-		m_node->m_animTranslate = glm::vec3(0);
-		m_node->m_animRotate = glm::quat(1, 0, 0, 0);
-		return;
-	}
-	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
-		[](const VMDNodeAnimationKey& k) { return static_cast<float>(k.m_time); });
-	glm::vec3 vt;
-	glm::quat q;
-	if (boundIt == std::end(m_keys)) {
-		vt = m_keys.back().m_translate;
-		q = m_keys.back().m_rotate;
-	} else {
-		vt = boundIt->m_translate;
-		q = boundIt->m_rotate;
-		if (boundIt != std::begin(m_keys)) {
-			const auto& key = *(boundIt - 1);
-			const auto& [m_time, m_translate, m_rotate
-						, m_txBezier, m_tyBezier, m_tzBezier, m_rotBezier]
-					= *boundIt;
-			const auto timeRange = static_cast<float>(m_time - key.m_time);
-			const float time = (t - static_cast<float>(key.m_time)) / timeRange;
-			const float tx_x = m_txBezier.FindBezierX(time);
-			const float ty_x = m_tyBezier.FindBezierX(time);
-			const float tz_x = m_tzBezier.FindBezierX(time);
-			const float rot_x = m_rotBezier.FindBezierX(time);
-			const float tx_y = Eval(tx_x, m_txBezier.m_cp1.y, m_txBezier.m_cp2.y);
-			const float ty_y = Eval(ty_x, m_tyBezier.m_cp1.y, m_tyBezier.m_cp2.y);
-			const float tz_y = Eval(tz_x, m_tzBezier.m_cp1.y, m_tzBezier.m_cp2.y);
-			const float rot_y = Eval(rot_x, m_rotBezier.m_cp1.y, m_rotBezier.m_cp2.y);
-			vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
-			q = glm::slerp(key.m_rotate, m_rotate, rot_y);
-		}
-	}
-	if (animWeight == 1.0f) {
-		m_node->m_animRotate = q;
-		m_node->m_animTranslate = vt;
-	} else {
-		const auto baseQ = m_node->m_baseAnimRotate;
-		const auto baseT = m_node->m_baseAnimTranslate;
-		m_node->m_animRotate = glm::slerp(baseQ, q, animWeight);
-		m_node->m_animTranslate = glm::mix(baseT, vt, animWeight);
-	}
-}
-
 VMDAnimation::VMDAnimation()
 	: m_maxKeyTime(0) {
 }
 
 bool VMDAnimation::Add(const VMDReader& vmd) {
-	std::map<std::string, std::unique_ptr<VMDNodeController>> nodeCtrlMap;
-	for (auto& nodeCtrl : m_nodeControllers) {
-		std::string name = nodeCtrl->m_node->m_name;
-		nodeCtrlMap.emplace(name, std::move(nodeCtrl));
-	}
-	m_nodeControllers.clear();
+	std::map<std::string, std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>> nodeMap;
+	for (auto& node : m_nodes)
+		nodeMap.emplace(node.first->m_name, std::move(node));
+	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
 		std::string nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
-		auto findIt = nodeCtrlMap.find(nodeName);
-		VMDNodeController* nodeCtrl = nullptr;
-		if (findIt == std::end(nodeCtrlMap)) {
+		auto findIt = nodeMap.find(nodeName);
+		std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>* nodePair = nullptr;
+		if (findIt == std::end(nodeMap)) {
 			auto it = std::ranges::find(
 				m_model->m_nodes, std::string_view{ nodeName },
 				[](const std::unique_ptr<MMDNode>& node) -> std::string_view { return node->m_name; }
 			);
 			auto* node = it == m_model->m_nodes.end() ? nullptr : it->get();
-			if (node != nullptr) {
-				auto val = std::make_pair(
-					nodeName,
-					std::make_unique<VMDNodeController>()
-				);
-				nodeCtrl = val.second.get();
-				nodeCtrl->m_node = node;
-				nodeCtrlMap.emplace(std::move(val));
-			}
+			if (node != nullptr)
+				nodePair = &nodeMap.emplace(nodeName,
+					std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>{ node, {} }).first->second;
 		} else
-			nodeCtrl = findIt->second.get();
-		if (nodeCtrl != nullptr) {
+			nodePair = &findIt->second;
+		if (nodePair != nullptr) {
 			VMDNodeAnimationKey key{};
 			key.Set(motion);
-			nodeCtrl->m_keys.push_back(key);
+			nodePair->second.push_back(key);
 		}
 	}
-	m_nodeControllers.reserve(nodeCtrlMap.size());
-	for (auto& val : nodeCtrlMap | std::views::values) {
-		std::ranges::sort(val->m_keys, {}, &VMDNodeAnimationKey::m_time);
-		m_nodeControllers.emplace_back(std::move(val));
+	for (auto& val : nodeMap | std::views::values) {
+		std::ranges::sort(val.second, {}, &VMDNodeAnimationKey::m_time);
+		m_nodes.insert(std::move(val));
 	}
 	std::map<std::string, std::unique_ptr<VMDIKController> > ikCtrlMap;
 	for (auto& ikCtrl : m_ikControllers) {
@@ -144,9 +83,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 			if (findIt == std::end(ikCtrlMap)) {
 				auto it = std::ranges::find(
 					m_model->m_ikSolvers, std::string_view{ ikName },
-					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view {
-						return ikSolver->m_ikNode->m_name;
-					}
+					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view { return ikSolver->m_ikNode->m_name; }
 				);
 				auto* ikSolver = it == m_model->m_ikSolvers.end() ? nullptr : it->get();
 				if (ikSolver != nullptr) {
@@ -218,25 +155,74 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 
 void VMDAnimation::Destroy() {
 	m_model.reset();
-	m_nodeControllers.clear();
+	m_nodes.clear();
 	m_ikControllers.clear();
 	m_morphControllers.clear();
 	m_maxKeyTime = 0;
 }
 
 void VMDAnimation::Evaluate(const float t, const float animWeight) const {
-	for (auto& nodeCtrl: m_nodeControllers)
-		nodeCtrl->Evaluate(t, animWeight);
+	NodeEvaluate(t, animWeight);
 	for (auto& ikCtrl: m_ikControllers)
 		ikCtrl->Evaluate(t, animWeight);
 	for (auto& morphCtrl: m_morphControllers)
 		morphCtrl->Evaluate(t, animWeight);
 }
 
+void VMDAnimation::NodeEvaluate(const float t, const float animWeight) const {
+	for (const auto& [node, keys]: m_nodes) {
+		if (node == nullptr)
+			return;
+		if (keys.empty()) {
+			node->m_animTranslate = glm::vec3(0);
+			node->m_animRotate = glm::quat(1, 0, 0, 0);
+			return;
+		}
+		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+			[](const VMDNodeAnimationKey& k) { return static_cast<float>(k.m_time); });
+		glm::vec3 vt;
+		glm::quat q;
+		if (boundIt == std::end(keys)) {
+			vt = keys.back().m_translate;
+			q = keys.back().m_rotate;
+		} else {
+			vt = boundIt->m_translate;
+			q = boundIt->m_rotate;
+			if (boundIt != std::begin(keys)) {
+				const auto& key = *(boundIt - 1);
+				const auto& [m_time, m_translate, m_rotate
+							, m_txBezier, m_tyBezier, m_tzBezier, m_rotBezier]
+						= *boundIt;
+				const auto timeRange = static_cast<float>(m_time - key.m_time);
+				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
+				const float tx_x = m_txBezier.FindBezierX(time);
+				const float ty_x = m_tyBezier.FindBezierX(time);
+				const float tz_x = m_tzBezier.FindBezierX(time);
+				const float rot_x = m_rotBezier.FindBezierX(time);
+				const float tx_y = Eval(tx_x, m_txBezier.m_cp1.y, m_txBezier.m_cp2.y);
+				const float ty_y = Eval(ty_x, m_tyBezier.m_cp1.y, m_tyBezier.m_cp2.y);
+				const float tz_y = Eval(tz_x, m_tzBezier.m_cp1.y, m_tzBezier.m_cp2.y);
+				const float rot_y = Eval(rot_x, m_rotBezier.m_cp1.y, m_rotBezier.m_cp2.y);
+				vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
+				q = glm::slerp(key.m_rotate, m_rotate, rot_y);
+			}
+		}
+		if (animWeight == 1.0f) {
+			node->m_animRotate = q;
+			node->m_animTranslate = vt;
+		} else {
+			const auto baseQ = node->m_baseAnimRotate;
+			const auto baseT = node->m_baseAnimTranslate;
+			node->m_animRotate = glm::slerp(baseQ, q, animWeight);
+			node->m_animTranslate = glm::mix(baseT, vt, animWeight);
+		}
+	}
+}
+
 int32_t VMDAnimation::CalculateMaxKeyTime() const {
 	int32_t maxTime = 0;
-	for (const auto& nodeController : m_nodeControllers) {
-		const auto& keys = nodeController->m_keys;
+	for (const auto& val : m_nodes | std::views::values) {
+		const auto& keys = val;
 		if (!keys.empty())
 			maxTime = (std::max)(maxTime, keys.rbegin()->m_time);
 	}

@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <map>
 #include <vector>
 #include <memory>
 #include <glm/vec2.hpp>
@@ -43,16 +44,6 @@ struct VMDIKAnimationKey {
 	bool	m_enable;
 };
 
-class VMDNodeController {
-public:
-	VMDNodeController();
-
-	void Evaluate(float t, float animWeight = 1.0f);
-
-	MMDNode*				m_node;
-	std::vector<VMDNodeAnimationKey>	m_keys;
-};
-
 class VMDMorphController {
 public:
 	VMDMorphController();
@@ -80,13 +71,14 @@ public:
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
+	void NodeEvaluate(float t, float animWeight) const;
 
 private:
 	int32_t CalculateMaxKeyTime() const;
 
 public:
 	std::shared_ptr<MMDModel>								m_model;
-	std::vector<std::unique_ptr<VMDNodeController>>			m_nodeControllers;
+	std::map<MMDNode*, std::vector<VMDNodeAnimationKey>>	m_nodes;
 	std::vector<std::unique_ptr<VMDIKController>>			m_ikControllers;
 	std::vector<std::unique_ptr<VMDMorphController>>		m_morphControllers;
 	uint32_t												m_maxKeyTime;
