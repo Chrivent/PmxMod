@@ -35,7 +35,7 @@ Node::Node()
 
 void Node::AddChild(Node* child) {
 	child->m_parent = this;
-	if (m_child == nullptr) {
+	if (!m_child) {
 		m_child = child;
 		m_child->m_next = nullptr;
 		m_child->m_prev = m_child;
@@ -72,12 +72,12 @@ void Node::UpdateLocalTransform() {
 }
 
 void Node::UpdateGlobalTransform() {
-	if (m_parent == nullptr)
+	if (!m_parent)
 		m_global = m_local;
 	else
 		m_global = m_parent->m_global * m_local;
 	Node *child = m_child;
-	while (child != nullptr) {
+	while (child) {
 		child->UpdateGlobalTransform();
 		child = child->m_next;
 	}
@@ -85,7 +85,7 @@ void Node::UpdateGlobalTransform() {
 
 void Node::UpdateChildTransform() const {
 	Node *child = m_child;
-	while (child != nullptr) {
+	while (child) {
 		child->UpdateGlobalTransform();
 		child = child->m_next;
 	}
@@ -94,7 +94,7 @@ void Node::UpdateChildTransform() const {
 void Node::UpdateAppendTransform() {
 	if (m_isAppendRotate) {
 		glm::quat appendRotate;
-		if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
+		if (!m_isAppendLocal && m_appendNode->m_appendNode)
 			appendRotate = m_appendNode->m_appendRotate;
 		else
 			appendRotate = m_appendNode->m_animRotate * m_appendNode->m_rotate;
@@ -109,7 +109,7 @@ void Node::UpdateAppendTransform() {
 	}
 	if (m_isAppendTranslate) {
 		glm::vec3 appendTranslate;
-		if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)
+		if (!m_isAppendLocal && m_appendNode->m_appendNode)
 			appendTranslate = m_appendNode->m_appendTranslate;
 		else
 			appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
