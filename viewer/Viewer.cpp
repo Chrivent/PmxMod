@@ -1,21 +1,21 @@
 #include "Viewer.h"
 
-#include "../src/MMDUtil.h"
-#include "../src/MMDModel.h"
+#include "../src/Util.h"
+#include "../src/Model.h"
 
 #define	STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
 
 #include <iostream>
 
-void Model::UpdateAnimation(const Viewer& viewer) const {
+void Instance::UpdateAnimation(const Viewer& viewer) const {
     m_mmdModel->BeginAnimation();
     m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
 bool Viewer::Run(const SceneConfig& cfg) {
     MusicUtil music;
-    music.Init(cfg.musicPath);
+    music.Init(cfg.m_musicPath);
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();
@@ -34,8 +34,8 @@ bool Viewer::Run(const SceneConfig& cfg) {
         return false;
     }
     LoadCameraVmd(cfg);
-    std::vector<std::unique_ptr<Model>> models;
-    if (!LoadModels(cfg, models)) {
+    std::vector<std::unique_ptr<Instance>> instances;
+    if (!LoadInstances(cfg, instances)) {
         glfwTerminate();
         return false;
     }
@@ -55,18 +55,18 @@ bool Viewer::Run(const SceneConfig& cfg) {
         StepTime(music, saveTime);
         UpdateCamera();
         BeginFrame();
-        for (const auto& model : models) {
-            model->UpdateAnimation(*this);
-            model->Update();
-            model->Draw();
+        for (const auto& instance : instances) {
+            instance->UpdateAnimation(*this);
+            instance->Update();
+            instance->Draw();
         }
         if (!EndFrame())
             break;
         TickFps(fpsTime, fpsFrame);
     }
-    for (const auto& model : models)
-        model->Clear();
-    models.clear();
+    for (const auto& instance : instances)
+        instance->Clear();
+    instances.clear();
     glfwTerminate();
     return true;
 }
@@ -93,28 +93,28 @@ void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFra
     }
 }
 
-bool Viewer::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models) {
-    models.clear();
-    models.reserve(cfg.models.size());
-    for (const auto& [modelPath, vmdPaths, scale] : cfg.models) {
-        auto model = CreateModel();
+bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances) {
+    instances.clear();
+    instances.reserve(cfg.m_inputs.size());
+    for (const auto& [modelPath, vmdPaths, scale] : cfg.m_inputs) {
+        auto instance = CreateInstance();
         const auto ext = PathUtil::GetExt(modelPath);
         if (ext != "pmx") {
             std::cout << "Unknown file type. [" << ext << "]\n";
             return false;
         }
-        const auto pmxModel = std::make_shared<MMDModel>();
+        const auto pmxModel = std::make_shared<Model>();
         if (!pmxModel->Load(modelPath, m_mmdDir)) {
             std::cout << "Failed to load pmx file.\n";
             return false;
         }
-        model->m_mmdModel = pmxModel;
-        model->m_mmdModel->InitializeAnimation();
+        instance->m_mmdModel = pmxModel;
+        instance->m_mmdModel->InitializeAnimation();
         auto vmdAnim = std::make_unique<VMDAnimation>();
-        vmdAnim->m_model = model->m_mmdModel;
+        vmdAnim->m_model = instance->m_mmdModel;
         for (const auto& vmdPath : vmdPaths) {
             VMDReader vmd;
-            if (!vmd.ReadVMDFile(vmdPath.c_str())) {
+            if (!vmd.ReadFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
                 return false;
             }
@@ -123,23 +123,23 @@ bool Viewer::LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Mode
                 return false;
             }
         }
-        model->m_vmdAnim = std::move(vmdAnim);
-        model->m_scale = scale;
-        if (!model->Setup(*this))
+        instance->m_vmdAnim = std::move(vmdAnim);
+        instance->m_scale = scale;
+        if (!instance->Setup(*this))
             return false;
-        models.emplace_back(std::move(model));
+        instances.emplace_back(std::move(instance));
     }
     return true;
 }
 
 void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
     m_vmdCameraAnim.reset();
-    if (cfg.cameraVmd.empty()) {
+    if (cfg.m_cameraVmd.empty()) {
         std::cout << "No camera VMD file.\n";
         return;
     }
     VMDReader camVmd;
-    if (camVmd.ReadVMDFile(cfg.cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
+    if (camVmd.ReadFile(cfg.m_cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
         auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))
             std::cout << "Failed to create VMDCameraAnimation.\n";

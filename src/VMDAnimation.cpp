@@ -1,10 +1,10 @@
 ﻿#include "VMDAnimation.h"
 
-#include "MMDNode.h"
-#include "MMDModel.h"
-#include "MMDIkSolver.h"
+#include "Node.h"
+#include "Model.h"
+#include "IkSolver.h"
 
-#include "MMDUtil.h"
+#include "Util.h"
 
 #include <algorithm>
 #include <map>
@@ -36,7 +36,7 @@ float FindBezierX(float time, const float x1, const float x2) {
 }
 
 bool VMDAnimation::Add(const VMDReader& vmd) {
-	std::map<std::string, std::pair<MMDNode*, std::vector<NodeAnimationKey>>> nodeMap;
+	std::map<std::string, std::pair<Node*, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
 		nodeMap.emplace(node.first->m_name, std::move(node));
 	m_nodes.clear();
@@ -45,7 +45,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->m_nodes, nodeName, &MMDNode::m_name);
+			auto it = std::ranges::find(m_model->m_nodes, nodeName, &Node::m_name);
 			first = it != m_model->m_nodes.end() ? it->get() : nullptr;
 		}
 		if (!first)
@@ -56,7 +56,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::m_time);
 		m_nodes.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<MMDIkSolver*, std::vector<IKAnimationKey>>> ikMap;
+	std::map<std::string, std::pair<IkSolver*, std::vector<IKAnimationKey>>> ikMap;
 	for (auto& ik : m_iks)
 		ikMap.emplace(ik.first->m_ikNode->m_name, std::move(ik));
 	m_iks.clear();
@@ -68,7 +68,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 			if (inserted) {
 				auto it = std::ranges::find(
 					m_model->m_ikSolvers, ikName,
-					[](const std::unique_ptr<MMDIkSolver>& ikSolver){ return ikSolver->m_ikNode->m_name; }
+					[](const std::unique_ptr<IkSolver>& ikSolver){ return ikSolver->m_ikNode->m_name; }
 				);
 				first = it != m_model->m_ikSolvers.end() ? it->get() : nullptr;
 			}
@@ -83,7 +83,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val.second, {}, &IKAnimationKey::m_time);
 		m_iks.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<MMDMorph*, std::vector<MorphAnimationKey>>> morphMap;
+	std::map<std::string, std::pair<Morph*, std::vector<MorphAnimationKey>>> morphMap;
 	for (auto& morph : m_morphs)
 		morphMap.emplace(morph.first->m_name, std::move(morph));
 	m_morphs.clear();
@@ -92,7 +92,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->m_morphs, morphName, &MMDMorph::m_name);
+			auto it = std::ranges::find(m_model->m_morphs, morphName, &Morph::m_name);
 			first = it != m_model->m_morphs.end() ? it->get() : nullptr;
 		}
 		if (!first)

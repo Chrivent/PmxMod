@@ -12,24 +12,24 @@ struct BoneMorph;
 struct UVMorph;
 struct PositionMorph;
 struct MaterialMorph;
-struct MMDPhysics;
-struct MMDRigidBody;
-struct MMDJoint;
-struct MMDNode;
-struct MMDIkSolver;
+struct Physics;
+struct RigidBody;
+struct Joint;
+struct Node;
+struct IkSolver;
 class VMDAnimation;
 
 enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;
 enum class WeightType : uint8_t;
 
-struct MMDSubMesh {
+struct SubMesh {
 	int	m_beginIndex;
 	int	m_vertexCount;
 	int	m_materialID;
 };
 
-struct MMDVertex {
+struct Vertex {
 	WeightType		m_weightType;
 	int32_t			m_boneIndices[4];
 	float			m_boneWeights[4];
@@ -38,8 +38,8 @@ struct MMDVertex {
 	glm::vec3		m_sdefR1;
 };
 
-struct MMDMorph {
-	MMDMorph();
+struct Morph {
+	Morph();
 
 	std::string	m_name;
 	float		m_weight;
@@ -48,8 +48,8 @@ struct MMDMorph {
 	size_t		m_dataIndex;
 };
 
-struct MMDMaterial {
-	MMDMaterial();
+struct Material {
+	Material();
 
 	glm::vec4				m_diffuse;
 	glm::vec3				m_specular;
@@ -79,10 +79,10 @@ struct UpdateRange {
 	size_t	m_vertexCount;
 };
 
-class MMDModel {
+class Model {
 public:
-	MMDModel();
-	~MMDModel();
+	Model();
+	~Model();
 
 	void InitializeAnimation();
 	void SaveBaseAnimation() const;
@@ -100,7 +100,7 @@ public:
 private:
 	void SetupParallelUpdate();
 	void Update(const UpdateRange& range);
-	void Morph(const MMDMorph* morph, float weight);
+	void EvalMorph(const Morph* morph, float weight);
 	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
 	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
 	void BeginMorphMaterial();
@@ -114,7 +114,7 @@ public:
 	std::vector<glm::vec3>	m_positions;
 	std::vector<glm::vec3>	m_normals;
 	std::vector<glm::vec2>	m_uvs;
-	std::vector<MMDVertex>	m_vertexBoneInfos;
+	std::vector<Vertex>	m_vertexBoneInfos;
 	std::vector<glm::vec3>	m_updatePositions;
 	std::vector<glm::vec3>	m_updateNormals;
 	std::vector<glm::vec2>	m_updateUVs;
@@ -129,20 +129,20 @@ public:
 	std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
 	std::vector<glm::vec3>	m_morphPositions;
 	std::vector<glm::vec4>	m_morphUVs;
-	std::vector<MMDMaterial>	m_initMaterials;
+	std::vector<Material>	m_initMaterials;
 	std::vector<MaterialMorph>	m_mulMaterialFactors;
 	std::vector<MaterialMorph>	m_addMaterialFactors;
 	glm::vec3		m_bboxMin;
 	glm::vec3		m_bboxMax;
-	std::vector<MMDMaterial>	m_materials;
-	std::vector<MMDSubMesh>		m_subMeshes;
-	std::vector<MMDNode*>		m_sortedNodes;
-	std::vector<std::unique_ptr<MMDNode>>		m_nodes;
-	std::vector<std::unique_ptr<MMDIkSolver>>	m_ikSolvers;
-	std::vector<std::unique_ptr<MMDMorph>>		m_morphs;
-	std::unique_ptr<MMDPhysics>					m_mmdPhysics;
-	std::vector<std::unique_ptr<MMDRigidBody>>	m_rigidBodies;
-	std::vector<std::unique_ptr<MMDJoint>>		m_joints;
+	std::vector<Material>	m_materials;
+	std::vector<SubMesh>		m_subMeshes;
+	std::vector<Node*>		m_sortedNodes;
+	std::vector<std::unique_ptr<Node>>		m_nodes;
+	std::vector<std::unique_ptr<IkSolver>>	m_ikSolvers;
+	std::vector<std::unique_ptr<Morph>>		m_morphs;
+	std::unique_ptr<Physics>					m_mmdPhysics;
+	std::vector<std::unique_ptr<RigidBody>>	m_rigidBodies;
+	std::vector<std::unique_ptr<Joint>>		m_joints;
 	uint32_t							m_parallelUpdateCount;
 	std::vector<UpdateRange>			m_updateRanges;
 	std::vector<std::future<void>>		m_parallelUpdateFutures;

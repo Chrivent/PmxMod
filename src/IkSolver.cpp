@@ -1,10 +1,10 @@
-﻿#include "MMDIkSolver.h"
+﻿#include "IkSolver.h"
 
-#include "MMDNode.h"
+#include "Node.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
-MMDIkSolver::MMDIkSolver()
+IkSolver::IkSolver()
 	: m_ikNode(nullptr)
 	, m_ikTarget(nullptr)
 	, m_iterateCount(1)
@@ -13,7 +13,7 @@ MMDIkSolver::MMDIkSolver()
 	, m_baseAnimEnable(true) {
 }
 
-void MMDIkSolver::Solve() {
+void IkSolver::Solve() {
 	if (!m_enable)
 		return;
 	for (auto &chain: m_chains) {
@@ -44,7 +44,7 @@ void MMDIkSolver::Solve() {
 	}
 }
 
-float MMDIkSolver::NormalizeAngle(float angle) {
+float IkSolver::NormalizeAngle(float angle) {
 	constexpr float t = glm::two_pi<float>();
 	angle = std::fmod(angle, t);
 	if (angle < 0)
@@ -52,7 +52,7 @@ float MMDIkSolver::NormalizeAngle(float angle) {
 	return angle;
 }
 
-float MMDIkSolver::DiffAngle(const float a, const float b) {
+float IkSolver::DiffAngle(const float a, const float b) {
 	const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 	if (diff > glm::pi<float>())
 		return diff - glm::two_pi<float>();
@@ -61,7 +61,7 @@ float MMDIkSolver::DiffAngle(const float a, const float b) {
 	return diff;
 }
 
-glm::vec3 MMDIkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
+glm::vec3 IkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 	glm::vec3 r;
 	const float sy = -m[0][2];
 	if (1.0f - std::abs(sy) < 1.0e-6f) {
@@ -120,11 +120,11 @@ glm::vec3 MMDIkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 	return r;
 }
 
-void MMDIkSolver::SolveCore(uint32_t iteration) {
+void IkSolver::SolveCore(uint32_t iteration) {
 	auto ikPos = glm::vec3(m_ikNode->m_global[3]);
 	for (size_t chainIdx = 0; chainIdx < m_chains.size(); chainIdx++) {
 		auto &chain = m_chains[chainIdx];
-		MMDNode *chainNode = chain.m_node;
+		Node *chainNode = chain.m_node;
 		if (chainNode == m_ikTarget)
 			continue;
 		if (chain.m_enableAxisLimit) {
@@ -183,7 +183,7 @@ void MMDIkSolver::SolveCore(uint32_t iteration) {
 	}
 }
 
-void MMDIkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex) {
+void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex) {
 	constexpr glm::vec3 axis[3] = {
 		{ 1, 0, 0 },
 		{ 0, 1, 0 },

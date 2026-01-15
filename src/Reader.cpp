@@ -1,15 +1,15 @@
-﻿#include "MMDReader.h"
+﻿#include "Reader.h"
 
-#include "MMDUtil.h"
+#include "Util.h"
 
 #include <vector>
 #include <fstream>
 
-void MMDReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
+void Reader::Read(std::istream& is, void* dst, const std::size_t bytes) {
 	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
 }
 
-std::streampos MMDReader::GetFileEnd(std::istream& is) {
+std::streampos Reader::GetFileEnd(std::istream& is) {
 	const auto origin = is.tellg();
 	is.seekg(0, std::ios::end);
 	const auto end = is.tellg();
@@ -17,7 +17,7 @@ std::streampos MMDReader::GetFileEnd(std::istream& is) {
 	return end;
 }
 
-bool MMDReader::HasMore(std::istream& is, const std::streampos& end) {
+bool Reader::HasMore(std::istream& is, const std::streampos& end) {
 	const auto cur = is.tellg();
 	return cur != std::streampos(-1) && cur < end;
 }
@@ -510,7 +510,7 @@ void PMXReader::ReadSoftBody(std::istream& is) {
 	}
 }
 
-bool PMXReader::ReadPMXFile(const std::filesystem::path& filename) {
+bool PMXReader::ReadFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;
@@ -617,7 +617,7 @@ void VMDReader::ReadIK(std::istream& is) {
 	}
 }
 
-bool VMDReader::ReadVMDFile(const std::filesystem::path& filename) {
+bool VMDReader::ReadFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;

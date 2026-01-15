@@ -7,12 +7,12 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "MMDReader.h"
+#include "Reader.h"
 
-struct MMDIkSolver;
-struct MMDMorph;
-struct MMDNode;
-class MMDModel;
+struct IkSolver;
+struct Morph;
+struct Node;
+class Model;
 
 struct NodeAnimationKey {
 	void Set(const VMDReader::VMDMotion& motion);
@@ -43,10 +43,10 @@ public:
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
 
-	std::shared_ptr<MMDModel>								m_model;
-	std::map<MMDNode*, std::vector<NodeAnimationKey>>	m_nodes;
-	std::map<MMDIkSolver*, std::vector<IKAnimationKey>>	m_iks;
-	std::map<MMDMorph*, std::vector<MorphAnimationKey>>	m_morphs;
+	std::shared_ptr<Model>								m_model;
+	std::map<Node*, std::vector<NodeAnimationKey>>	m_nodes;
+	std::map<IkSolver*, std::vector<IKAnimationKey>>	m_iks;
+	std::map<Morph*, std::vector<MorphAnimationKey>>	m_morphs;
 };
 
 struct Camera {

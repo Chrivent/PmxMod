@@ -1,8 +1,8 @@
-﻿#include "MMDNode.h"
+﻿#include "Node.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
-MMDNode::MMDNode()
+Node::Node()
 	: m_index(0)
 	, m_enableIK(false)
 	, m_parent(nullptr)
@@ -33,7 +33,7 @@ MMDNode::MMDNode()
 	, m_ikSolver(nullptr) {
 }
 
-void MMDNode::AddChild(MMDNode* child) {
+void Node::AddChild(Node* child) {
 	child->m_parent = this;
 	if (m_child == nullptr) {
 		m_child = child;
@@ -47,7 +47,7 @@ void MMDNode::AddChild(MMDNode* child) {
 	}
 }
 
-void MMDNode::BeginUpdateTransform() {
+void Node::BeginUpdateTransform() {
 	m_translate = m_initTranslate;
 	m_rotate = m_initRotate;
 	m_scale = m_initScale;
@@ -56,7 +56,7 @@ void MMDNode::BeginUpdateTransform() {
 	m_appendRotate = glm::quat(1, 0, 0, 0);
 }
 
-void MMDNode::UpdateLocalTransform() {
+void Node::UpdateLocalTransform() {
 	glm::vec3 t = m_animTranslate + m_translate;
 	if (m_isAppendTranslate)
 		t += m_appendTranslate;
@@ -71,27 +71,27 @@ void MMDNode::UpdateLocalTransform() {
 			* glm::scale(glm::mat4(1), s);
 }
 
-void MMDNode::UpdateGlobalTransform() {
+void Node::UpdateGlobalTransform() {
 	if (m_parent == nullptr)
 		m_global = m_local;
 	else
 		m_global = m_parent->m_global * m_local;
-	MMDNode *child = m_child;
+	Node *child = m_child;
 	while (child != nullptr) {
 		child->UpdateGlobalTransform();
 		child = child->m_next;
 	}
 }
 
-void MMDNode::UpdateChildTransform() const {
-	MMDNode *child = m_child;
+void Node::UpdateChildTransform() const {
+	Node *child = m_child;
 	while (child != nullptr) {
 		child->UpdateGlobalTransform();
 		child = child->m_next;
 	}
 }
 
-void MMDNode::UpdateAppendTransform() {
+void Node::UpdateAppendTransform() {
 	if (m_isAppendRotate) {
 		glm::quat appendRotate;
 		if (!m_isAppendLocal && m_appendNode->m_appendNode != nullptr)

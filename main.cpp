@@ -103,17 +103,17 @@ static SceneConfig BuildTestSceneConfig1() {
 	Input in5;
 	in5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
 	in5.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
-	cfg.models.emplace_back(std::move(in1));
-	cfg.models.emplace_back(std::move(in2));
-	cfg.models.emplace_back(std::move(in3));
-	cfg.models.emplace_back(std::move(in4));
-	cfg.models.emplace_back(std::move(in5));
-	cfg.cameraVmd = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
-	cfg.musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
+	cfg.m_inputs.emplace_back(std::move(in1));
+	cfg.m_inputs.emplace_back(std::move(in2));
+	cfg.m_inputs.emplace_back(std::move(in3));
+	cfg.m_inputs.emplace_back(std::move(in4));
+	cfg.m_inputs.emplace_back(std::move(in5));
+	cfg.m_cameraVmd = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
+	cfg.m_musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
 	bg.m_scale = 1.0f;
-	cfg.models.emplace_back(std::move(bg));
+	cfg.m_inputs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -122,13 +122,13 @@ static SceneConfig BuildTestSceneConfig2() {
 	Input in;
 	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
 	in.m_vmdPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
-	cfg.models.emplace_back(std::move(in));
-	cfg.cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
-	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
+	cfg.m_inputs.emplace_back(std::move(in));
+	cfg.m_cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
+	cfg.m_musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
 	bg.m_scale = 1.0f;
-	cfg.models.emplace_back(std::move(bg));
+	cfg.m_inputs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -137,13 +137,13 @@ static SceneConfig BuildTestSceneConfig3() {
 	Input in;
 	in.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
 	in.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
-	cfg.models.emplace_back(std::move(in));
-	cfg.cameraVmd = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
-	cfg.musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
+	cfg.m_inputs.emplace_back(std::move(in));
+	cfg.m_cameraVmd = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
+	cfg.m_musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
 	bg.m_scale = 1.0f;
-	cfg.models.emplace_back(std::move(bg));
+	cfg.m_inputs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -181,18 +181,18 @@ int main() {
 			in.m_modelPath = modelPaths[i][0].wstring();
 			for (auto& v : motionPaths[i])
 				in.m_vmdPaths.emplace_back(v.wstring());
-			cfg.models.emplace_back(std::move(in));
+			cfg.m_inputs.emplace_back(std::move(in));
 		}
 		if (!bgPath.empty()) {
 			Input bg;
 			bg.m_modelPath = bgPath.front().wstring();
 			bg.m_scale = 1.0f;
-			cfg.models.emplace_back(std::move(bg));
+			cfg.m_inputs.emplace_back(std::move(bg));
 		}
 		if (!cameraPath.empty())
-			cfg.cameraVmd = cameraPath.front().wstring();
+			cfg.m_cameraVmd = cameraPath.front().wstring();
 		if (!musicPath.empty())
-			cfg.musicPath = musicPath.front().wstring();
+			cfg.m_musicPath = musicPath.front().wstring();
 	}
 	int engineType;
 	std::cin >> engineType;

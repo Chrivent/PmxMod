@@ -6,13 +6,13 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 
-struct MMDIkSolver;
+struct IkSolver;
 
-struct MMDNode
+struct Node
 {
-	MMDNode();
+	Node();
 
-	void AddChild(MMDNode* child);
+	void AddChild(Node* child);
 	void BeginUpdateTransform();
 	void UpdateLocalTransform();
 	void UpdateGlobalTransform();
@@ -22,10 +22,10 @@ struct MMDNode
 	uint32_t		m_index;
 	std::string		m_name;
 	bool			m_enableIK;
-	MMDNode*		m_parent;
-	MMDNode*		m_child;
-	MMDNode*		m_next;
-	MMDNode*		m_prev;
+	Node*		m_parent;
+	Node*		m_child;
+	Node*		m_next;
+	Node*		m_prev;
 	glm::vec3	m_translate;
 	glm::quat	m_rotate;
 	glm::vec3	m_scale;
@@ -42,12 +42,12 @@ struct MMDNode
 	glm::vec3	m_initScale;
 	int32_t		m_deformDepth;
 	bool		m_isDeformAfterPhysics;
-	MMDNode*	m_appendNode;
+	Node*	m_appendNode;
 	bool		m_isAppendRotate;
 	bool		m_isAppendTranslate;
 	bool		m_isAppendLocal;
 	float		m_appendWeight;
 	glm::vec3	m_appendTranslate;
 	glm::quat	m_appendRotate;
-	MMDIkSolver* m_ikSolver;
+	IkSolver* m_ikSolver;
 };

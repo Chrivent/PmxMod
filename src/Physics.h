@@ -6,27 +6,27 @@
 #include <glm/mat4x4.hpp>
 #include <btBulletDynamicsCommon.h>
 
-#include "MMDReader.h"
+#include "Reader.h"
 
-struct MMDPhysics;
-class MMDModel;
-struct MMDNode;
+struct Physics;
+class Model;
+struct Node;
 
-class MMDMotionState : public btMotionState
+class MotionState : public btMotionState
 {
 public:
 	virtual void Reset() = 0;
 	virtual void ReflectGlobalTransform() = 0;
 };
 
-struct MMDFilterCallback final : btOverlapFilterCallback
+struct OverlapFilterCallback final : btOverlapFilterCallback
 {
 	bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
 
 	std::vector<btBroadphaseProxy*> m_nonFilterProxy;
 };
 
-class DefaultMotionState final : public MMDMotionState
+class DefaultMotionState final : public MotionState
 {
 public:
 	explicit DefaultMotionState(const glm::mat4& transform);
@@ -42,10 +42,10 @@ private:
 	btTransform	m_transform;
 };
 
-class DynamicMotionState final : public MMDMotionState
+class DynamicMotionState final : public MotionState
 {
 public:
-	DynamicMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
+	DynamicMotionState(Node* node, const glm::mat4& offset, bool override = true);
 
 	void getWorldTransform(btTransform& worldTransform) const override;
 	void setWorldTransform(const btTransform& worldTransform) override;
@@ -54,17 +54,17 @@ public:
 	void ReflectGlobalTransform() override;
 
 private:
-	MMDNode* m_node;
+	Node* m_node;
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
 	btTransform	m_transform;
 	bool		m_override;
 };
 
-class DynamicAndBoneMergeMotionState final : public MMDMotionState
+class DynamicAndBoneMergeMotionState final : public MotionState
 {
 public:
-	DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, bool override = true);
+	DynamicAndBoneMergeMotionState(Node* node, const glm::mat4& offset, bool override = true);
 
 	void getWorldTransform(btTransform& worldTransform) const override;
 	void setWorldTransform(const btTransform& worldTransform) override;
@@ -73,17 +73,17 @@ public:
 	void ReflectGlobalTransform() override;
 
 private:
-	MMDNode* m_node;
+	Node* m_node;
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
 	btTransform	m_transform;
 	bool		m_override;
 };
 
-class KinematicMotionState final : public MMDMotionState
+class KinematicMotionState final : public MotionState
 {
 public:
-	KinematicMotionState(MMDNode* node, const glm::mat4& offset);
+	KinematicMotionState(Node* node, const glm::mat4& offset);
 
 	void getWorldTransform(btTransform& worldTransform) const override;
 	void setWorldTransform(const btTransform& worldTransform) override;
@@ -92,19 +92,19 @@ public:
 	void ReflectGlobalTransform() override;
 
 private:
-	MMDNode* m_node;
+	Node* m_node;
 	glm::mat4	m_offset;
 };
 
-struct MMDRigidBody
+struct RigidBody
 {
-	MMDRigidBody();
+	RigidBody();
 
-	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode* node);
+	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node* node);
 
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
-	void Reset(const MMDPhysics* physics) const;
+	void Reset(const Physics* physics) const;
 
 	void ReflectGlobalTransform() const;
 	void CalcLocalTransform() const;
@@ -112,39 +112,39 @@ struct MMDRigidBody
 	glm::mat4 GetTransform() const;
 
 	std::unique_ptr<btCollisionShape>	m_shape;
-	std::unique_ptr<MMDMotionState>		m_activeMotionState;
-	std::unique_ptr<MMDMotionState>		m_kinematicMotionState;
+	std::unique_ptr<MotionState>		m_activeMotionState;
+	std::unique_ptr<MotionState>		m_kinematicMotionState;
 	std::unique_ptr<btRigidBody>		m_rigidBody;
 
 	Operation		m_rigidBodyType;
 	uint16_t		m_group;
 	uint16_t		m_groupMask;
 
-	MMDNode*	m_node;
+	Node*	m_node;
 	glm::mat4	m_offsetMat;
 
 	std::string					m_name;
 };
 
-struct MMDJoint
+struct Joint
 {
-	void CreateJoint(const PMXReader::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB);
+	void CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB);
 
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };
 
-struct MMDPhysics
+struct Physics
 {
-	MMDPhysics();
-	~MMDPhysics();
+	Physics();
+	~Physics();
 
 	void Create();
 	void Update(float time) const;
 
-	void AddRigidBody(const MMDRigidBody* mmdRB) const;
-	void RemoveRigidBody(const MMDRigidBody* mmdRB) const;
-	void AddJoint(const MMDJoint* mmdJoint) const;
-	void RemoveJoint(const MMDJoint* mmdJoint) const;
+	void AddRigidBody(const RigidBody* mmdRB) const;
+	void RemoveRigidBody(const RigidBody* mmdRB) const;
+	void AddJoint(const Joint* mmdJoint) const;
+	void RemoveJoint(const Joint* mmdJoint) const;
 
 	std::unique_ptr<btBroadphaseInterface>					m_broadPhase;
 	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;

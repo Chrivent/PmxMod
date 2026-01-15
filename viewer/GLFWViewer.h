@@ -70,16 +70,16 @@ struct GLFWTexture {
 };
 
 struct GLFWMaterial {
-    explicit GLFWMaterial(const MMDMaterial& mat);
+    explicit GLFWMaterial(const Material& mat);
 
-    const MMDMaterial& m_mmdMat;
+    const Material& m_mmdMat;
     GLuint	m_texture = 0;
     bool	m_textureHasAlpha = false;
     GLuint	m_spTexture = 0;
     GLuint	m_toonTexture = 0;
 };
 
-struct GLFWModel : Model {
+struct GLFWInstance : Instance {
     GLFWViewer* m_viewer;
     GLuint	m_posVBO = 0;
     GLuint	m_norVBO = 0;
@@ -112,7 +112,7 @@ struct GLFWViewer : Viewer {
     bool Resize() override;
     void BeginFrame() override;
     bool EndFrame() override;
-    std::unique_ptr<Model> CreateModel() const override;
+    std::unique_ptr<Instance> CreateInstance() const override;
 
     GLFWTexture GetTexture(const std::filesystem::path& texturePath, bool clamp = false);
 };

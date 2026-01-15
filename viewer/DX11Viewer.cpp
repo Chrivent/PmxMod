@@ -1,7 +1,7 @@
 #include "DX11Viewer.h"
 
-#include "../src/MMDUtil.h"
-#include "../src/MMDModel.h"
+#include "../src/Util.h"
+#include "../src/Model.h"
 
 #include "../external/stb_image.h"
 
@@ -85,11 +85,11 @@ void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySR
 	context->PSSetSamplers(slot, 1, &samplers);
 }
 
-DX11Material::DX11Material(const MMDMaterial& mat)
+DX11Material::DX11Material(const Material& mat)
 	: m_mmdMat(mat) {
 }
 
-bool DX11Model::Setup(Viewer& viewer) {
+bool DX11Instance::Setup(Viewer& viewer) {
 	m_viewer = &dynamic_cast<DX11Viewer&>(viewer);
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -142,7 +142,7 @@ bool DX11Model::Setup(Viewer& viewer) {
 	return true;
 }
 
-void DX11Model::Update() const {
+void DX11Instance::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
@@ -161,7 +161,7 @@ void DX11Model::Update() const {
 	m_viewer->m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
 
-void DX11Model::Draw() const {
+void DX11Instance::Draw() const {
 	const auto& view = m_viewer->m_viewMat;
 	const auto& proj = m_viewer->m_projMat;
 	const auto& dxMat = glm::mat4(
@@ -361,8 +361,8 @@ bool DX11Viewer::EndFrame() {
 	return true;
 }
 
-std::unique_ptr<Model> DX11Viewer::CreateModel() const {
-	return std::make_unique<DX11Model>();
+std::unique_ptr<Instance> DX11Viewer::CreateInstance() const {
+	return std::make_unique<DX11Instance>();
 }
 
 DX11Texture DX11Viewer::GetTexture(const std::filesystem::path& texturePath) {

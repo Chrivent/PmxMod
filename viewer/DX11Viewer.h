@@ -71,15 +71,15 @@ struct DX11Texture {
 };
 
 struct DX11Material {
-    explicit DX11Material(const MMDMaterial& mat);
+    explicit DX11Material(const Material& mat);
 
-    const MMDMaterial&	m_mmdMat;
+    const Material&	m_mmdMat;
     DX11Texture	m_texture{};
     DX11Texture	m_spTexture{};
     DX11Texture	m_toonTexture{};
 };
 
-struct DX11Model : Model {
+struct DX11Instance : Instance {
     DX11Viewer* m_viewer;
     std::vector<DX11Material>	                m_materials;
     Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
@@ -134,7 +134,7 @@ struct DX11Viewer : Viewer {
     bool Resize() override;
     void BeginFrame() override;
     bool EndFrame() override;
-    std::unique_ptr<Model> CreateModel() const override;
+    std::unique_ptr<Instance> CreateInstance() const override;
 
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
     void UpdateViewport() const;

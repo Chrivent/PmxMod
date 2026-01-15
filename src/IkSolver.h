@@ -4,11 +4,11 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-struct MMDNode;
+struct Node;
 
 struct IKChain
 {
-	MMDNode* m_node;
+	Node* m_node;
 	bool		m_enableAxisLimit;
 	glm::vec3	m_limitMax;
 	glm::vec3	m_limitMin;
@@ -17,15 +17,15 @@ struct IKChain
 	float		m_planeModeAngle;
 };
 
-struct MMDIkSolver
+struct IkSolver
 {
-	MMDIkSolver();
+	IkSolver();
 
 	void Solve();
 
 	std::vector<IKChain>	m_chains;
-	MMDNode*				m_ikNode;
-	MMDNode*				m_ikTarget;
+	Node*				m_ikNode;
+	Node*				m_ikTarget;
 	uint32_t				m_iterateCount;
 	float					m_limitAngle;
 	bool					m_enable;

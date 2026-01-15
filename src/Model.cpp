@@ -1,13 +1,13 @@
 ﻿#define GLM_ENABLE_EXPERIMENTAL
 
-#include "MMDModel.h"
+#include "Model.h"
 
-#include "MMDNode.h"
-#include "MMDIkSolver.h"
-#include "MMDPhysics.h"
+#include "Node.h"
+#include "IkSolver.h"
+#include "Physics.h"
 #include "VMDAnimation.h"
 
-#include "MMDUtil.h"
+#include "Util.h"
 
 #include <glm/gtx/dual_quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -17,14 +17,14 @@
 #include <iomanip>
 #include <thread>
 
-MMDMorph::MMDMorph()
+Morph::Morph()
 	: m_weight(0)
 	, m_saveAnimWeight(0)
 	, m_morphType()
 	, m_dataIndex(0) {
 }
 
-MMDMaterial::MMDMaterial()
+Material::Material()
 	: m_diffuse(1)
 	, m_specular(0)
 	, m_specularPower(1)
@@ -45,17 +45,17 @@ MMDMaterial::MMDMaterial()
 	, m_shadowReceiver(true) {
 }
 
-MMDModel::MMDModel()
+Model::Model()
 	: m_indexCount(0)
 	, m_indexElementSize(0)
 	, m_parallelUpdateCount(0) {
 }
 
-MMDModel::~MMDModel() {
+Model::~Model() {
 	Destroy();
 }
 
-void MMDModel::InitializeAnimation() {
+void Model::InitializeAnimation() {
 	ClearBaseAnimation();
 	for (const auto &node: m_nodes) {
 		node->m_animTranslate = glm::vec3(0);
@@ -90,7 +90,7 @@ void MMDModel::InitializeAnimation() {
 	ResetPhysics();
 }
 
-void MMDModel::SaveBaseAnimation() const {
+void Model::SaveBaseAnimation() const {
 	for (const auto& m_node : m_nodes) {
 		m_node->m_baseAnimTranslate = m_node->m_animTranslate;
 		m_node->m_baseAnimRotate = m_node->m_animRotate;
@@ -101,7 +101,7 @@ void MMDModel::SaveBaseAnimation() const {
 		m_ikSolver->m_baseAnimEnable = m_ikSolver->m_enable;
 }
 
-void MMDModel::ClearBaseAnimation() const {
+void Model::ClearBaseAnimation() const {
 	for (const auto& m_node : m_nodes) {
 		m_node->m_baseAnimTranslate = glm::vec3(0);
 		m_node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
@@ -112,7 +112,7 @@ void MMDModel::ClearBaseAnimation() const {
 		m_ikSolver->m_baseAnimEnable = true;
 }
 
-void MMDModel::BeginAnimation() {
+void Model::BeginAnimation() {
 	for (const auto &node: m_nodes)
 		node->BeginUpdateTransform();
 	const auto vtxCount = m_morphPositions.size();
@@ -122,15 +122,15 @@ void MMDModel::BeginAnimation() {
 	}
 }
 
-void MMDModel::UpdateMorphAnimation() {
+void Model::UpdateMorphAnimation() {
 	BeginMorphMaterial();
 	const auto &morphs = m_morphs;
 	for (const auto & morph : morphs)
-		Morph(morph.get(), morph->m_weight);
+		EvalMorph(morph.get(), morph->m_weight);
 	EndMorphMaterial();
 }
 
-void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
+void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 	for (const auto pmxNode: m_sortedNodes) {
 		if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
 			continue;
@@ -163,7 +163,7 @@ void MMDModel::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 	}
 }
 
-void MMDModel::ResetPhysics() const {
+void Model::ResetPhysics() const {
 	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies) {
@@ -183,7 +183,7 @@ void MMDModel::ResetPhysics() const {
 		rb->Reset(physics);
 }
 
-void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
+void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	const auto* physics = m_mmdPhysics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
@@ -199,7 +199,7 @@ void MMDModel::UpdatePhysicsAnimation(const float elapsed) const {
 	}
 }
 
-void MMDModel::Update() {
+void Model::Update() {
 	const auto &nodes = m_nodes;
 	for (size_t i = 0; i < nodes.size(); i++)
 		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
@@ -222,7 +222,7 @@ void MMDModel::Update() {
 	}
 }
 
-void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
+void Model::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
 	if (vmdAnim != nullptr)
 		vmdAnim->Evaluate(vmdFrame);
 	UpdateMorphAnimation();
@@ -231,11 +231,11 @@ void MMDModel::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFr
 	UpdateNodeAnimation(true);
 }
 
-bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir) {
+bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir) {
 	Destroy();
 
 	PMXReader pmx;
-	if (!pmx.ReadPMXFile(filepath))
+	if (!pmx.ReadFile(filepath))
 		return false;
 
 	std::filesystem::path dirPath = filepath.parent_path();
@@ -255,7 +255,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		m_positions.push_back(pos);
 		m_normals.push_back(nor);
 		m_uvs.push_back(uv);
-		MMDVertex vtxBoneInfo{};
+		Vertex vtxBoneInfo{};
 		if (WeightType::SDEF != v.m_weightType) {
 			vtxBoneInfo.m_boneIndices[0] = v.m_boneIndices[0];
 			vtxBoneInfo.m_boneIndices[1] = v.m_boneIndices[1];
@@ -365,7 +365,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	m_subMeshes.reserve(pmx.m_materials.size());
 	uint32_t beginIndex = 0;
 	for (const auto &pmxMat: pmx.m_materials) {
-		MMDMaterial mat;
+		Material mat;
 		mat.m_diffuse = pmxMat.m_diffuse;
 		mat.m_specularPower = pmxMat.m_specularPower;
 		mat.m_specular = pmxMat.m_specular;
@@ -403,7 +403,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 
 		m_materials.emplace_back(std::move(mat));
 
-		MMDSubMesh subMesh{};
+		SubMesh subMesh{};
 		subMesh.m_beginIndex = static_cast<int>(beginIndex);
 		subMesh.m_vertexCount = pmxMat.m_numFaceVertices;
 		subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
@@ -418,7 +418,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	// Node
 	m_nodes.reserve(pmx.m_bones.size());
 	for (const auto &bone: pmx.m_bones) {
-		auto node = std::make_unique<MMDNode>();
+		auto node = std::make_unique<Node>();
 		node->m_index = static_cast<uint32_t>(m_nodes.size());
 		node->m_name = bone.m_name;
 		m_nodes.emplace_back(std::move(node));
@@ -470,14 +470,14 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	for (auto &pmxNode: pmxNodes)
 		m_sortedNodes.push_back(pmxNode.get());
 	std::ranges::stable_sort(m_sortedNodes,
-		[](const MMDNode *x, const MMDNode *y) { return x->m_deformDepth < y->m_deformDepth; }
+		[](const Node *x, const Node *y) { return x->m_deformDepth < y->m_deformDepth; }
 	);
 
 	// IK
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto &bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
-			auto solver = std::make_unique<MMDIkSolver>();
+			auto solver = std::make_unique<IkSolver>();
 			auto* ikNode = m_nodes[i].get();
 			solver->m_ikNode = ikNode;
 			ikNode->m_ikSolver = solver.get();
@@ -502,7 +502,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 
 	// Morph
 	for (const auto &pmxMorph: pmx.m_morphs) {
-		auto morph = std::make_unique<MMDMorph>();
+		auto morph = std::make_unique<Morph>();
 		morph->m_name = pmxMorph.m_name;
 		morph->m_weight = 0.0f;
 		morph->m_morphType = pmxMorph.m_morphType;
@@ -581,11 +581,11 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	}
 
 	// Physics
-	m_mmdPhysics = std::make_unique<MMDPhysics>();
+	m_mmdPhysics = std::make_unique<Physics>();
 	m_mmdPhysics->Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
-		auto rb = std::make_unique<MMDRigidBody>();
-		MMDNode* node = nullptr;
+		auto rb = std::make_unique<RigidBody>();
+		Node* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
 			node = m_nodes[pmxRB.m_boneIndex].get();
 		rb->Create(pmxRB, this, node);
@@ -597,7 +597,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 		if (pmxJoint.m_rigidbodyAIndex != -1 &&
 		    pmxJoint.m_rigidbodyBIndex != -1 &&
 		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
-			auto joint = std::make_unique<MMDJoint>();
+			auto joint = std::make_unique<Joint>();
 			auto &rigidBodies = m_rigidBodies;
 			joint->CreateJoint(
 				pmxJoint,
@@ -615,7 +615,7 @@ bool MMDModel::Load(const std::filesystem::path& filepath, const std::filesystem
 	return true;
 }
 
-void MMDModel::Destroy() {
+void Model::Destroy() {
 	m_materials.clear();
 	m_subMeshes.clear();
 	m_positions.clear();
@@ -635,7 +635,7 @@ void MMDModel::Destroy() {
 	m_mmdPhysics.reset();
 }
 
-void MMDModel::SetupParallelUpdate() {
+void Model::SetupParallelUpdate() {
 	if (m_parallelUpdateCount == 0)
 		m_parallelUpdateCount = std::thread::hardware_concurrency();
 	const size_t maxParallelCount = std::max(static_cast<size_t>(16),
@@ -674,7 +674,7 @@ void MMDModel::SetupParallelUpdate() {
 	}
 }
 
-void MMDModel::Update(const UpdateRange& range) {
+void Model::Update(const UpdateRange& range) {
 	const auto *position = m_positions.data() + range.m_vertexOffset;
 	const auto *normal = m_normals.data() + range.m_vertexOffset;
 	const auto *uv = m_uvs.data() + range.m_vertexOffset;
@@ -794,7 +794,7 @@ void MMDModel::Update(const UpdateRange& range) {
 	}
 }
 
-void MMDModel::Morph(const MMDMorph* morph, const float weight) {
+void Model::EvalMorph(const Morph* morph, const float weight) {
 	switch (morph->m_morphType) {
 		case MorphType::Position:
 			MorphPosition(m_positionMorphDatas[morph->m_dataIndex], weight);
@@ -812,7 +812,7 @@ void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 			for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				if (m_morphIndex == -1) continue;
 				auto &elemMorph = m_morphs[m_morphIndex];
-				Morph(elemMorph.get(), m_weight * weight);
+				EvalMorph(elemMorph.get(), m_weight * weight);
 			}
 			break;
 		}
@@ -821,7 +821,7 @@ void MMDModel::Morph(const MMDMorph* morph, const float weight) {
 	}
 }
 
-void MMDModel::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
+void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
 	if (weight == 0)
 		return;
 
@@ -829,7 +829,7 @@ void MMDModel::MorphPosition(const std::vector<PositionMorph>& morphData, const 
 		m_morphPositions[m_index] += m_position * weight;
 }
 
-void MMDModel::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
+void Model::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
 	if (weight == 0)
 		return;
 
@@ -837,7 +837,7 @@ void MMDModel::MorphUV(const std::vector<UVMorph>& morphData, const float weight
 		m_morphUVs[m_index] += m_uv * weight;
 }
 
-void MMDModel::BeginMorphMaterial() {
+void Model::BeginMorphMaterial() {
 	MaterialMorph initMul{};
 	initMul.m_diffuse = glm::vec4(1);
 	initMul.m_specular = glm::vec3(1);
@@ -872,7 +872,7 @@ void MMDModel::BeginMorphMaterial() {
 	}
 }
 
-void MMDModel::EndMorphMaterial() {
+void Model::EndMorphMaterial() {
 	const size_t matCount = m_materials.size();
 	for (size_t matIdx = 0; matIdx < matCount; matIdx++) {
 		MaterialMorph matFactor = m_mulMaterialFactors[matIdx];
@@ -891,7 +891,7 @@ void MMDModel::EndMorphMaterial() {
 	}
 }
 
-void MMDModel::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+void Model::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);
 	out.m_specular = glm::mix(out.m_specular, out.m_specular * val.m_specular, weight);
 	out.m_specularPower = glm::mix(out.m_specularPower, out.m_specularPower * val.m_specularPower, weight);
@@ -903,7 +903,7 @@ void MMDModel::Mul(MaterialMorph& out, const MaterialMorph& val, const float wei
 	out.m_toonTextureFactor = glm::mix(out.m_toonTextureFactor, out.m_toonTextureFactor * val.m_toonTextureFactor, weight);
 }
 
-void MMDModel::Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+void Model::Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.m_diffuse += val.m_diffuse * weight;
 	out.m_specular += val.m_specular * weight;
 	out.m_specularPower += val.m_specularPower * weight;
@@ -915,7 +915,7 @@ void MMDModel::Add(MaterialMorph& out, const MaterialMorph& val, const float wei
 	out.m_toonTextureFactor += val.m_toonTextureFactor * weight;
 }
 
-void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
+void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
 	for (const auto &matMorph: morphData) {
 		if (matMorph.m_materialIndex != -1) {
 			const auto mi = matMorph.m_materialIndex;
@@ -946,7 +946,7 @@ void MMDModel::MorphMaterial(const std::vector<MaterialMorph>& morphData, const 
 	}
 }
 
-void MMDModel::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
+void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 	for (const auto &[m_boneIndex, m_position, m_quaternion]: morphData) {
 		auto* node = m_nodes[m_boneIndex].get();
 		glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);

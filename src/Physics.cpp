@@ -1,7 +1,7 @@
-﻿#include "MMDPhysics.h"
+﻿#include "Physics.h"
 
-#include "MMDNode.h"
-#include "MMDModel.h"
+#include "Node.h"
+#include "Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,7 +10,7 @@ glm::mat4 InvZ(const glm::mat4& m) {
 	return invZ * m * invZ;
 }
 
-bool MMDFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
+bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 	const auto findIt = std::ranges::find_if(m_nonFilterProxy,
 		[proxy0, proxy1](const auto &x) { return x == proxy0 || x == proxy1; }
 	);
@@ -42,7 +42,7 @@ void DefaultMotionState::Reset() {
 void DefaultMotionState::ReflectGlobalTransform() {
 }
 
-DynamicMotionState::DynamicMotionState(MMDNode* node, const glm::mat4& offset, const bool override)
+DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset, const bool override)
 	: m_node(node)
 	, m_offset(offset)
 	, m_override(override) {
@@ -74,7 +74,7 @@ void DynamicMotionState::ReflectGlobalTransform() {
 	}
 }
 
-DynamicAndBoneMergeMotionState::DynamicAndBoneMergeMotionState(MMDNode* node, const glm::mat4& offset, const bool override)
+DynamicAndBoneMergeMotionState::DynamicAndBoneMergeMotionState(Node* node, const glm::mat4& offset, const bool override)
 	: m_node(node)
 	, m_offset(offset)
 	, m_override(override) {
@@ -108,7 +108,7 @@ void DynamicAndBoneMergeMotionState::ReflectGlobalTransform() {
 	}
 }
 
-KinematicMotionState::KinematicMotionState(MMDNode* node, const glm::mat4& offset)
+KinematicMotionState::KinematicMotionState(Node* node, const glm::mat4& offset)
 	: m_node(node)
 	, m_offset(offset) {
 }
@@ -132,7 +132,7 @@ void KinematicMotionState::Reset() {
 void KinematicMotionState::ReflectGlobalTransform() {
 }
 
-MMDRigidBody::MMDRigidBody()
+RigidBody::RigidBody()
 	: m_rigidBodyType(Operation::Static)
 	, m_group(0)
 	, m_groupMask(0)
@@ -140,7 +140,7 @@ MMDRigidBody::MMDRigidBody()
 	, m_offsetMat(1) {
 }
 
-void MMDRigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const MMDModel* model, MMDNode * node) {
+void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
 	m_shape = nullptr;
 
 	switch (pmxRigidBody.m_shape) {
@@ -177,7 +177,7 @@ void MMDRigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const MMD
 
 	const glm::mat4 rbMat = InvZ(translateMat * rotMat);
 
-	MMDNode *kinematicNode = nullptr;
+	Node *kinematicNode = nullptr;
 	if (node != nullptr) {
 		m_offsetMat = glm::inverse(node->m_global) * rbMat;
 		kinematicNode = node;
@@ -228,7 +228,7 @@ void MMDRigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const MMD
 	m_name = pmxRigidBody.m_name;
 }
 
-void MMDRigidBody::SetActivation(const bool activation) const {
+void RigidBody::SetActivation(const bool activation) const {
 	if (m_rigidBodyType != Operation::Static) {
 		if (activation) {
 			m_rigidBody->setCollisionFlags(
@@ -243,12 +243,12 @@ void MMDRigidBody::SetActivation(const bool activation) const {
 		m_rigidBody->setMotionState(m_kinematicMotionState.get());
 }
 
-void MMDRigidBody::ResetTransform() const {
+void RigidBody::ResetTransform() const {
 	if (m_activeMotionState != nullptr)
 		m_activeMotionState->Reset();
 }
 
-void MMDRigidBody::Reset(const MMDPhysics* physics) const {
+void RigidBody::Reset(const Physics* physics) const {
 	const auto cache = physics->m_world->getPairCache();
 	if (cache != nullptr) {
 		const auto dispatcher = physics->m_world->getDispatcher();
@@ -259,14 +259,14 @@ void MMDRigidBody::Reset(const MMDPhysics* physics) const {
 	m_rigidBody->clearForces();
 }
 
-void MMDRigidBody::ReflectGlobalTransform() const {
+void RigidBody::ReflectGlobalTransform() const {
 	if (m_activeMotionState != nullptr)
 		m_activeMotionState->ReflectGlobalTransform();
 	if (m_kinematicMotionState != nullptr)
 		m_kinematicMotionState->ReflectGlobalTransform();
 }
 
-void MMDRigidBody::CalcLocalTransform() const {
+void RigidBody::CalcLocalTransform() const {
 	if (m_node != nullptr) {
 		const auto parent = m_node->m_parent;
 		if (parent != nullptr) {
@@ -277,14 +277,14 @@ void MMDRigidBody::CalcLocalTransform() const {
 	}
 }
 
-glm::mat4 MMDRigidBody::GetTransform() const {
+glm::mat4 RigidBody::GetTransform() const {
 	const btTransform transform = m_rigidBody->getCenterOfMassTransform();
 	alignas(16) glm::mat4 mat;
 	transform.getOpenGLMatrix(&mat[0][0]);
 	return InvZ(mat);
 }
 
-void MMDJoint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const MMDRigidBody* rigidBodyA, const MMDRigidBody* rigidBodyB) {
+void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 	m_constraint = nullptr;
 
 	btMatrix3x3 rotMat;
@@ -360,12 +360,12 @@ void MMDJoint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const MMDRigidBo
 	m_constraint = std::move(constraint);
 }
 
-MMDPhysics::MMDPhysics()
+Physics::Physics()
 	: m_fps(120.0f)
 	, m_maxSubStepCount(10) {
 }
 
-MMDPhysics::~MMDPhysics() {
+Physics::~Physics() {
 	if (m_world != nullptr && m_groundRB != nullptr)
 		m_world->removeRigidBody(m_groundRB.get());
 	m_broadPhase = nullptr;
@@ -378,7 +378,7 @@ MMDPhysics::~MMDPhysics() {
 	m_groundRB = nullptr;
 }
 
-void MMDPhysics::Create() {
+void Physics::Create() {
 	m_broadPhase = std::make_unique<btDbvtBroadphase>();
 	m_collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 	m_dispatcher = std::make_unique<btCollisionDispatcher>(m_collisionConfig.get());
@@ -397,28 +397,28 @@ void MMDPhysics::Create() {
 	btRigidBody::btRigidBodyConstructionInfo groundInfo(0, m_groundMS.get(), m_groundShape.get(), btVector3(0, 0, 0));
 	m_groundRB = std::make_unique<btRigidBody>(groundInfo);
 	m_world->addRigidBody(m_groundRB.get());
-	auto filterCB = std::make_unique<MMDFilterCallback>();
+	auto filterCB = std::make_unique<OverlapFilterCallback>();
 	filterCB->m_nonFilterProxy.push_back(m_groundRB->getBroadphaseProxy());
 	m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());
 	m_filterCB = std::move(filterCB);
 }
 
-void MMDPhysics::Update(const float time) const {
+void Physics::Update(const float time) const {
 	m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 }
 
-void MMDPhysics::AddRigidBody(const MMDRigidBody* mmdRB) const {
+void Physics::AddRigidBody(const RigidBody* mmdRB) const {
 	m_world->addRigidBody(mmdRB->m_rigidBody.get(), 1 << mmdRB->m_group, mmdRB->m_groupMask);
 }
 
-void MMDPhysics::RemoveRigidBody(const MMDRigidBody* mmdRB) const {
+void Physics::RemoveRigidBody(const RigidBody* mmdRB) const {
 	m_world->removeRigidBody(mmdRB->m_rigidBody.get());
 }
 
-void MMDPhysics::AddJoint(const MMDJoint* mmdJoint) const {
+void Physics::AddJoint(const Joint* mmdJoint) const {
 	m_world->addConstraint(mmdJoint->m_constraint.get());
 }
 
-void MMDPhysics::RemoveJoint(const MMDJoint* mmdJoint) const {
+void Physics::RemoveJoint(const Joint* mmdJoint) const {
 	m_world->removeConstraint(mmdJoint->m_constraint.get());
 }

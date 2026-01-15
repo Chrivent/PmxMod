@@ -13,16 +13,16 @@ add_executable(PmxMod
         main.cpp
         external/miniaudio.h
         external/stb_image.h
-        src/MMDUtil.cpp         src/MMDUtil.h
-        src/MMDIkSolver.cpp     src/MMDIkSolver.h
-        src/MMDModel.cpp        src/MMDModel.h
-        src/MMDNode.cpp         src/MMDNode.h
-        src/MMDPhysics.cpp      src/MMDPhysics.h
-        src/MMDReader.cpp       src/MMDReader.h
-        src/VMDAnimation.cpp    src/VMDAnimation.h
-        viewer/Viewer.cpp       viewer/Viewer.h
-        viewer/GLFWViewer.cpp   viewer/GLFWViewer.h
-        viewer/DX11Viewer.cpp   viewer/DX11Viewer.h
+        src/Util.cpp src/Util.h
+        src/IkSolver.cpp src/IkSolver.h
+        src/Model.cpp src/Model.h
+        src/Node.cpp src/Node.h
+        src/Physics.cpp src/Physics.h
+        src/Reader.cpp src/Reader.h
+        src/VMDAnimation.cpp src/VMDAnimation.h
+        viewer/Viewer.cpp viewer/Viewer.h
+        viewer/GLFWViewer.cpp viewer/GLFWViewer.h
+        viewer/DX11Viewer.cpp viewer/DX11Viewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC

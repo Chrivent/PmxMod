@@ -8,9 +8,9 @@
 
 struct MusicUtil;
 struct SceneConfig;
-struct MMDMaterial;
+struct Material;
 struct Viewer;
-class MMDModel;
+class Model;
 class VMDAnimation;
 
 struct Input {
@@ -20,15 +20,15 @@ struct Input {
 };
 
 struct SceneConfig {
-    std::vector<Input>		models;
-    std::filesystem::path	cameraVmd;
-    std::filesystem::path	musicPath;
+    std::vector<Input>		m_inputs;
+    std::filesystem::path	m_cameraVmd;
+    std::filesystem::path	m_musicPath;
 };
 
-struct Model {
-    virtual ~Model() = default;
+struct Instance {
+    virtual ~Instance() = default;
 
-    std::shared_ptr<MMDModel>	m_mmdModel;
+    std::shared_ptr<Model>	m_mmdModel;
     std::unique_ptr<VMDAnimation>	m_vmdAnim;
     float m_scale = 1.0f;
 
@@ -66,11 +66,11 @@ struct Viewer {
     virtual bool Resize() = 0;
     virtual void BeginFrame() = 0;
     virtual bool EndFrame() = 0;
-    virtual std::unique_ptr<Model> CreateModel() const = 0;
+    virtual std::unique_ptr<Instance> CreateInstance() const = 0;
 
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
-    bool LoadModels(const SceneConfig& cfg, std::vector<std::unique_ptr<Model>>& models);
+    bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
     void LoadCameraVmd(const SceneConfig& cfg);
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera();

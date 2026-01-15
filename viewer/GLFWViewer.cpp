@@ -1,8 +1,8 @@
 #include "GLFWViewer.h"
 
-#include "../src/MMDReader.h"
-#include "../src/MMDUtil.h"
-#include "../src/MMDModel.h"
+#include "../src/Reader.h"
+#include "../src/Util.h"
+#include "../src/Model.h"
 
 #include "../external/stb_image.h"
 
@@ -170,11 +170,11 @@ bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
 	return true;
 }
 
-GLFWMaterial::GLFWMaterial(const MMDMaterial &mat)
+GLFWMaterial::GLFWMaterial(const Material &mat)
 	: m_mmdMat(mat) {
 }
 
-bool GLFWModel::Setup(Viewer& viewer) {
+bool GLFWInstance::Setup(Viewer& viewer) {
 	m_viewer = &dynamic_cast<GLFWViewer&>(viewer);
 	if (m_mmdModel == nullptr)
 		return false;
@@ -232,7 +232,7 @@ bool GLFWModel::Setup(Viewer& viewer) {
 	return true;
 }
 
-void GLFWModel::Clear() {
+void GLFWInstance::Clear() {
 	if (m_posVBO != 0)
 		glDeleteBuffers(1, &m_posVBO);
 	if (m_norVBO != 0)
@@ -251,7 +251,7 @@ void GLFWModel::Clear() {
 	m_mmdVAO = m_mmdEdgeVAO = m_mmdGroundShadowVAO = 0;
 }
 
-void GLFWModel::Update() const {
+void GLFWInstance::Update() const {
 	m_mmdModel->Update();
 	const size_t vtxCount = m_mmdModel->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
@@ -265,7 +265,7 @@ void GLFWModel::Update() const {
 		m_mmdModel->m_updateUVs.data());
 }
 
-void GLFWModel::Draw() const {
+void GLFWInstance::Draw() const {
 	const auto& view = m_viewer->m_viewMat;
 	const auto& proj = m_viewer->m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
@@ -455,8 +455,8 @@ bool GLFWViewer::EndFrame() {
 	return true;
 }
 
-std::unique_ptr<Model> GLFWViewer::CreateModel() const {
-	return std::make_unique<GLFWModel>();
+std::unique_ptr<Instance> GLFWViewer::CreateInstance() const {
+	return std::make_unique<GLFWInstance>();
 }
 
 GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath, const bool clamp) {
