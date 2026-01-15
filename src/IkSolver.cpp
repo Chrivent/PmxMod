@@ -209,10 +209,8 @@ void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisInd
 	auto targetVec2 = rot2 * chainTargetVec;
 	auto dot2 = glm::dot(targetVec2, chainIkVec);
 	auto newAngle = chain.m_planeModeAngle;
-	if (dot1 > dot2)
-		newAngle += angle;
-	else
-		newAngle -= angle;
+	auto sign = dot1 > dot2 ? 1.0f : -1.0f;
+	newAngle += sign * angle;
 	if (iteration == 0) {
 		if (newAngle < chain.m_limitMin[RotateAxisIndex] || newAngle > chain.m_limitMax[RotateAxisIndex]) {
 			if (-newAngle > chain.m_limitMin[RotateAxisIndex] && -newAngle < chain.m_limitMax[RotateAxisIndex])
