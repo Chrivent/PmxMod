@@ -77,7 +77,7 @@ void Node::UpdateGlobalTransform() {
 }
 
 void Node::UpdateChildTransform() const {
-	Node *child = m_child;
+	Node* child = m_child;
 	while (child) {
 		child->UpdateGlobalTransform();
 		child = child->m_next;
