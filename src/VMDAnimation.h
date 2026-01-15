@@ -14,7 +14,7 @@ struct MMDMorph;
 struct MMDNode;
 class MMDModel;
 
-struct VMDNodeAnimationKey {
+struct NodeAnimationKey {
 	void Set(const VMDReader::VMDMotion& motion);
 
 	int32_t		m_time;
@@ -27,12 +27,12 @@ struct VMDNodeAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
 };
 
-struct VMDMorphAnimationKey {
+struct MorphAnimationKey {
 	int32_t	m_time;
-	float	m_weight;
+	float	m_morphWeight;
 };
 
-struct VMDIKAnimationKey {
+struct IKAnimationKey {
 	int32_t	m_time;
 	bool	m_ikEnable;
 };
@@ -44,13 +44,13 @@ public:
 	void Evaluate(float t, float animWeight = 1.0f) const;
 
 	std::shared_ptr<MMDModel>								m_model;
-	std::map<MMDNode*, std::vector<VMDNodeAnimationKey>>	m_nodes;
-	std::map<MMDIkSolver*, std::vector<VMDIKAnimationKey>>	m_iks;
-	std::map<MMDMorph*, std::vector<VMDMorphAnimationKey>>	m_morphs;
+	std::map<MMDNode*, std::vector<NodeAnimationKey>>	m_nodes;
+	std::map<MMDIkSolver*, std::vector<IKAnimationKey>>	m_iks;
+	std::map<MMDMorph*, std::vector<MorphAnimationKey>>	m_morphs;
 };
 
-struct MMDCamera {
-	MMDCamera();
+struct Camera {
+	Camera();
 
 	glm::vec3	m_interest{};
 	glm::vec3	m_rotate{};
@@ -60,7 +60,7 @@ struct MMDCamera {
 	glm::mat4 GetViewMatrix() const;
 };
 
-struct VMDCameraAnimationKey {
+struct CameraAnimationKey {
 	int32_t		m_time;
 	glm::vec3	m_interest;
 	glm::vec3	m_rotate;
@@ -80,6 +80,6 @@ public:
 	bool Create(const VMDReader& vmd);
 	void Evaluate(float t);
 
-	std::vector<VMDCameraAnimationKey>	m_keys;
-	MMDCamera	m_camera;
+	std::vector<CameraAnimationKey>	m_keys;
+	Camera	m_camera;
 };

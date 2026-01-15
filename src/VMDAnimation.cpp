@@ -36,14 +36,14 @@ float FindBezierX(float time, const float x1, const float x2) {
 }
 
 bool VMDAnimation::Add(const VMDReader& vmd) {
-	std::map<std::string, std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>> nodeMap;
+	std::map<std::string, std::pair<MMDNode*, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
 		nodeMap.emplace(node.first->m_name, std::move(node));
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
 		std::string nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
 		auto [findIt, inserted] =
-			nodeMap.try_emplace(nodeName, nullptr, std::vector<VMDNodeAnimationKey>{});
+			nodeMap.try_emplace(nodeName, nullptr, std::vector<NodeAnimationKey>{});
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(
@@ -58,10 +58,10 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		}
 	}
 	for (auto& val : nodeMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &VMDNodeAnimationKey::m_time);
+		std::ranges::sort(val.second, {}, &NodeAnimationKey::m_time);
 		m_nodes.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>> ikMap;
+	std::map<std::string, std::pair<MMDIkSolver*, std::vector<IKAnimationKey>>> ikMap;
 	for (auto& ik : m_iks)
 		ikMap.emplace(ik.first->m_ikNode->m_name, std::move(ik));
 	m_iks.clear();
@@ -69,7 +69,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
 			std::string ikName = UnicodeUtil::SjisToUtf8(m_name);
 			auto [findIt, inserted] =
-				ikMap.try_emplace(ikName, nullptr, std::vector<VMDIKAnimationKey>{});
+				ikMap.try_emplace(ikName, nullptr, std::vector<IKAnimationKey>{});
 			auto& [first, second] = findIt->second;
 			if (inserted) {
 				auto it = std::ranges::find(
@@ -86,17 +86,17 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		}
 	}
 	for (auto& val : ikMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &VMDIKAnimationKey::m_time);
+		std::ranges::sort(val.second, {}, &IKAnimationKey::m_time);
 		m_iks.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>> morphMap;
+	std::map<std::string, std::pair<MMDMorph*, std::vector<MorphAnimationKey>>> morphMap;
 	for (auto& morph : m_morphs)
 		morphMap.emplace(morph.first->m_name, std::move(morph));
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
 		std::string morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
 		auto [findIt, inserted] =
-			morphMap.try_emplace(morphName, nullptr, std::vector<VMDMorphAnimationKey>{});
+			morphMap.try_emplace(morphName, nullptr, std::vector<MorphAnimationKey>{});
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(
@@ -106,13 +106,13 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 			first = (it == m_model->m_morphs.end()) ? nullptr : it->get();
 		}
 		if (first != nullptr) {
-			auto& key = second.emplace_back();
-			key.m_time = static_cast<int32_t>(m_frame);
-			key.m_weight = m_weight;
+			auto& [m_time, m_morphWeight] = second.emplace_back();
+			m_time = static_cast<int32_t>(m_frame);
+			m_morphWeight = m_weight;
 		}
 	}
 	for (auto& val : morphMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &VMDMorphAnimationKey::m_time);
+		std::ranges::sort(val.second, {}, &MorphAnimationKey::m_time);
 		m_morphs.insert(std::move(val));
 	}
 	return true;
@@ -135,7 +135,7 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 			continue;
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
-			[](const VMDNodeAnimationKey& k) { return static_cast<float>(k.m_time); });
+			[](const NodeAnimationKey& k) { return static_cast<float>(k.m_time); });
 		glm::vec3 vt;
 		glm::quat q;
 		if (boundIt == std::end(keys)) {
@@ -181,7 +181,7 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 			continue;
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
-			[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
+			[](const IKAnimationKey& k) { return static_cast<float>(k.m_time); });
 		bool enable;
 		if (boundIt == std::end(keys))
 			enable = keys.rbegin()->m_ikEnable;
@@ -204,11 +204,11 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 			continue;
 		float weight;
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
-			[](const VMDMorphAnimationKey& k) { return static_cast<float>(k.m_time); });
+			[](const MorphAnimationKey& k) { return static_cast<float>(k.m_time); });
 		if (boundIt == std::end(keys))
-			weight = keys.rbegin()->m_weight;
+			weight = keys.rbegin()->m_morphWeight;
 		else {
-			weight = boundIt->m_weight;
+			weight = boundIt->m_morphWeight;
 			if (boundIt != std::begin(keys)) {
 				auto [m_time0, m_weight0] = *(boundIt - 1);
 				auto [m_time1, m_weight1] = *boundIt;
@@ -224,7 +224,7 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 	}
 }
 
-void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
+void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	m_time = static_cast<int32_t>(motion.m_frame);
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
 	const glm::quat q = motion.m_quaternion;
@@ -246,14 +246,14 @@ void VMDNodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 		motion.m_interpolation[7], motion.m_interpolation[15]);
 }
 
-MMDCamera::MMDCamera() {
+Camera::Camera() {
 	m_interest = glm::vec3(0, 10, 0);
 	m_rotate = glm::vec3(0, 0, 0);
 	m_distance = 50;
 	m_fov = glm::radians(30.0f);
 }
 
-glm::mat4 MMDCamera::GetViewMatrix() const {
+glm::mat4 Camera::GetViewMatrix() const {
 	glm::mat4 view(1.0f);
 	view = glm::translate(view, glm::vec3(0, 0, -m_distance));
 	glm::mat4 rot(1.0f);
@@ -271,7 +271,7 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 	if (!vmd.m_cameras.empty()) {
 		m_keys.clear();
 		for (const auto& cam: vmd.m_cameras) {
-			VMDCameraAnimationKey key{};
+			CameraAnimationKey key{};
 			key.m_time = static_cast<int32_t>(cam.m_frame);
 			key.m_interest = cam.m_interest * glm::vec3(1, 1, -1);
 			key.m_rotate = cam.m_rotate;
@@ -297,14 +297,14 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 				cam.m_interpolation[22], cam.m_interpolation[23]);
 			m_keys.push_back(key);
 		}
-		std::ranges::sort(m_keys, {}, &VMDCameraAnimationKey::m_time);
+		std::ranges::sort(m_keys, {}, &CameraAnimationKey::m_time);
 	} else
 		return false;
 	return true;
 }
 
 void VMDCameraAnimation::Evaluate(const float t) {
-	auto Apply = [&](const VMDCameraAnimationKey& k){
+	auto Apply = [&](const CameraAnimationKey& k){
 		m_camera.m_interest = k.m_interest;
 		m_camera.m_rotate   = k.m_rotate;
 		m_camera.m_distance = k.m_distance;
@@ -313,7 +313,7 @@ void VMDCameraAnimation::Evaluate(const float t) {
 	if (m_keys.empty())
 		return;
 	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
-		[](const VMDCameraAnimationKey& k) { return static_cast<float>(k.m_time); });
+		[](const CameraAnimationKey& k) { return static_cast<float>(k.m_time); });
 	if (boundIt == std::end(m_keys))
 		Apply(m_keys.back());
 	else {
