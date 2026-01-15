@@ -93,7 +93,7 @@ void Node::UpdateAppendTransform() {
 		m_appendRotate = glm::slerp(glm::quat(1, 0, 0, 0), appendRotate, m_appendWeight);
 	}
 	if (m_isAppendTranslate) {
-		const glm::vec3 appendTranslate= !m_isAppendLocal && m_appendNode->m_appendNode
+		const glm::vec3 appendTranslate = !m_isAppendLocal && m_appendNode->m_appendNode
 		? m_appendNode->m_appendTranslate : (m_appendNode->m_translate - m_appendNode->m_initTranslate);
 		m_appendTranslate = appendTranslate * m_appendWeight;
 	}
