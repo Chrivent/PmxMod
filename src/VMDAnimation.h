@@ -44,7 +44,7 @@ public:
 	void Evaluate(float t, float animWeight = 1.0f) const;
 
 	std::shared_ptr<Model>								m_model;
-	std::map<Node*, std::vector<NodeAnimationKey>>	m_nodes;
+	std::map<Node*, std::vector<NodeAnimationKey>>		m_nodes;
 	std::map<IkSolver*, std::vector<IKAnimationKey>>	m_iks;
 	std::map<Morph*, std::vector<MorphAnimationKey>>	m_morphs;
 };
