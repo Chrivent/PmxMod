@@ -38,11 +38,11 @@ void Node::AddChild(Node* child) {
 	if (!m_child) {
 		m_child = child;
 		m_child->m_next = nullptr;
-		m_child->m_prev = m_child;
+		m_child->m_prev = child;
 	} else {
-		const auto lastNode = m_child->m_prev;
-		lastNode->m_next = child;
-		child->m_prev = lastNode;
+		const auto last = m_child->m_prev;
+		last->m_next = child;
+		child->m_prev = last;
 		m_child->m_prev = child;
 	}
 }
@@ -72,15 +72,8 @@ void Node::UpdateLocalTransform() {
 }
 
 void Node::UpdateGlobalTransform() {
-	if (!m_parent)
-		m_global = m_local;
-	else
-		m_global = m_parent->m_global * m_local;
-	Node *child = m_child;
-	while (child) {
-		child->UpdateGlobalTransform();
-		child = child->m_next;
-	}
+	m_global = m_parent ? m_parent->m_global * m_local : m_local;
+	UpdateChildTransform();
 }
 
 void Node::UpdateChildTransform() const {
@@ -93,26 +86,15 @@ void Node::UpdateChildTransform() const {
 
 void Node::UpdateAppendTransform() {
 	if (m_isAppendRotate) {
-		glm::quat appendRotate;
-		if (!m_isAppendLocal && m_appendNode->m_appendNode)
-			appendRotate = m_appendNode->m_appendRotate;
-		else
-			appendRotate = m_appendNode->m_animRotate * m_appendNode->m_rotate;
+		glm::quat appendRotate = !m_isAppendLocal && m_appendNode->m_appendNode
+		? m_appendNode->m_appendRotate : (m_appendNode->m_animRotate * m_appendNode->m_rotate);
 		if (m_appendNode->m_enableIK)
 			appendRotate = m_appendNode->m_ikRotate * appendRotate;
-		const glm::quat appendQ = glm::slerp(
-			glm::quat(1, 0, 0, 0),
-			appendRotate,
-			m_appendWeight
-		);
-		m_appendRotate = appendQ;
+		m_appendRotate = glm::slerp(glm::quat(1, 0, 0, 0), appendRotate, m_appendWeight);
 	}
 	if (m_isAppendTranslate) {
-		glm::vec3 appendTranslate;
-		if (!m_isAppendLocal && m_appendNode->m_appendNode)
-			appendTranslate = m_appendNode->m_appendTranslate;
-		else
-			appendTranslate = m_appendNode->m_translate - m_appendNode->m_initTranslate;
+		const glm::vec3 appendTranslate= !m_isAppendLocal && m_appendNode->m_appendNode
+		? m_appendNode->m_appendTranslate : (m_appendNode->m_translate - m_appendNode->m_initTranslate);
 		m_appendTranslate = appendTranslate * m_appendWeight;
 	}
 	UpdateLocalTransform();
