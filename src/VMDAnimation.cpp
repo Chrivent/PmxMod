@@ -140,11 +140,11 @@ void VMDAnimation::Destroy() {
 void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 	for (const auto& [node, keys]: m_nodes) {
 		if (node == nullptr)
-			return;
+			continue;
 		if (keys.empty()) {
 			node->m_animTranslate = glm::vec3(0);
 			node->m_animRotate = glm::quat(1, 0, 0, 0);
-			return;
+			continue;
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const VMDNodeAnimationKey& k) { return static_cast<float>(k.m_time); });
@@ -187,10 +187,10 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 	}
 	for (const auto& [ikSolver, keys] : m_iks) {
 		if (ikSolver == nullptr)
-			return;
+			continue;
 		if (keys.empty()) {
 			ikSolver->m_enable = true;
-			return;
+			continue;
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
@@ -204,16 +204,16 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 				enable = m_enable;
 			}
 		}
-		if (animWeight != 1.0f && animWeight < 1.0f)
+		if (animWeight < 1.0f)
 			ikSolver->m_enable = ikSolver->m_baseAnimEnable;
 		else
 			ikSolver->m_enable = enable;
 	}
 	for (const auto& [morph, keys] : m_morphs) {
 		if (morph == nullptr)
-			return;
+			continue;
 		if (keys.empty())
-			return;
+			continue;
 		float weight;
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const VMDMorphAnimationKey& k) { return static_cast<float>(k.m_time); });
