@@ -266,9 +266,9 @@ void VMDCameraAnimation::Evaluate(const float t) {
 		[](const CameraAnimationKey& k) { return static_cast<float>(k.m_time); });
 	const auto& cur = it != m_keys.end() ? *it : m_keys.back();
 	m_camera.m_interest = cur.m_interest;
-	m_camera.m_rotate   = cur.m_rotate;
+	m_camera.m_rotate = cur.m_rotate;
 	m_camera.m_distance = cur.m_distance;
-	m_camera.m_fov      = cur.m_fov;
+	m_camera.m_fov = cur.m_fov;
 	if (it == m_keys.begin() || it == m_keys.end())
 		return;
 	const auto& [m_time, m_interest, m_rotate, m_distance, m_fov,
@@ -277,9 +277,9 @@ void VMDCameraAnimation::Evaluate(const float t) {
 	const auto& prev = *(it - 1);
 	if (m_time - prev.m_time <= 1) {
 		m_camera.m_interest = prev.m_interest;
-		m_camera.m_rotate   = prev.m_rotate;
+		m_camera.m_rotate = prev.m_rotate;
 		m_camera.m_distance = prev.m_distance;
-		m_camera.m_fov      = prev.m_fov;
+		m_camera.m_fov = prev.m_fov;
 		return;
 	}
 	const float time = (t - static_cast<float>(prev.m_time)) / static_cast<float>(m_time - prev.m_time);
