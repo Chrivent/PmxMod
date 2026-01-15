@@ -117,23 +117,23 @@ void VMDAnimation::Destroy() {
 
 void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 	for (const auto& [node, keys]: m_nodes) {
-		if (node == nullptr)
+		if (!node)
 			continue;
 		if (keys.empty()) {
 			node->m_animTranslate = glm::vec3(0);
 			node->m_animRotate = glm::quat(1, 0, 0, 0);
 			continue;
 		}
-		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+		const auto it = std::ranges::upper_bound(keys, t, std::less{},
 			[](const NodeAnimationKey& k) { return static_cast<float>(k.m_time); });
-		const NodeAnimationKey* cur = boundIt != keys.end() ? &*boundIt : &keys.back();
-		glm::vec3 vt = cur->m_translate;
-		glm::quat q  = cur->m_rotate;
-		if (boundIt != keys.begin() && boundIt != keys.end()) {
-			const auto& prev = *(boundIt - 1);
+		const auto& cur = it != keys.end() ? *it : keys.back();
+		glm::vec3 vt = cur.m_translate;
+		glm::quat q  = cur.m_rotate;
+		if (it != keys.begin() && it != keys.end()) {
+			const auto& prev = *(it - 1);
 			const auto& [m_time, m_translate, m_rotate,
 						 m_txBezier, m_tyBezier, m_tzBezier,
-						 m_rotBezier] = *boundIt;
+						 m_rotBezier] = *it;
 			const auto timeRange = static_cast<float>(m_time - prev.m_time);
 			const float time = (t - static_cast<float>(prev.m_time)) / timeRange;
 			const float tx_x  = FindBezierX(time, m_txBezier.first.x,  m_txBezier.second.x);
@@ -151,28 +151,28 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 		node->m_animRotate = animWeight != 1.0f ? glm::slerp(node->m_baseAnimRotate, q, animWeight) : q;
 	}
 	for (const auto& [ikSolver, keys] : m_iks) {
-		if (ikSolver == nullptr)
+		if (!ikSolver)
 			continue;
 		if (keys.empty()) {
 			ikSolver->m_enable = true;
 			continue;
 		}
-		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+		const auto it = std::ranges::upper_bound(keys, t, std::less{},
 			[](const IKAnimationKey& k) { return static_cast<float>(k.m_time); });
-		const bool enable = boundIt != std::begin(keys) ? (boundIt - 1)->m_ikEnable : keys.begin()->m_ikEnable;
+		const bool enable = it != keys.begin() ? (it - 1)->m_ikEnable : keys.begin()->m_ikEnable;
 		ikSolver->m_enable = animWeight < 1.0f ? ikSolver->m_baseAnimEnable : enable;
 	}
 	for (const auto& [morph, keys] : m_morphs) {
-		if (morph == nullptr)
+		if (!morph)
 			continue;
 		if (keys.empty())
 			continue;
-		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
+		const auto it = std::ranges::upper_bound(keys, t, std::less{},
 			[](const MorphAnimationKey& k) { return static_cast<float>(k.m_time); });
-		float weight = boundIt != std::end(keys) ? boundIt->m_morphWeight : keys.back().m_morphWeight;
-		if (boundIt != std::begin(keys) && boundIt != std::end(keys)) {
-			auto [m_time0, m_weight0] = *(boundIt - 1);
-			auto [m_time1, m_weight1] = *boundIt;
+		float weight = it != keys.end() ? it->m_morphWeight : keys.back().m_morphWeight;
+		if (it != keys.begin() && it != keys.end()) {
+			auto [m_time0, m_weight0] = *(it - 1);
+			auto [m_time1, m_weight1] = *it;
 			const float time = (t - static_cast<float>(m_time0)) / static_cast<float>(m_time1 - m_time0);
 			weight = (m_weight1 - m_weight0) * time + m_weight0;
 		}
