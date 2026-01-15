@@ -260,46 +260,37 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 }
 
 void VMDCameraAnimation::Evaluate(const float t) {
-	auto Apply = [&](const CameraAnimationKey& k){
-		m_camera.m_interest = k.m_interest;
-		m_camera.m_rotate   = k.m_rotate;
-		m_camera.m_distance = k.m_distance;
-		m_camera.m_fov      = k.m_fov;
-	};
 	if (m_keys.empty())
 		return;
-	const auto boundIt = std::ranges::upper_bound(m_keys, t, std::less{},
+	const auto it = std::ranges::upper_bound(m_keys, t, std::less{},
 		[](const CameraAnimationKey& k) { return static_cast<float>(k.m_time); });
-	if (boundIt == std::end(m_keys))
-		Apply(m_keys.back());
-	else {
-		Apply(*boundIt);
-		if (boundIt != std::begin(m_keys)) {
-			const auto& key = *(boundIt - 1);
-			const auto& [m_time, m_interest, m_rotate, m_distance, m_fov
-						, m_ixBezier, m_iyBezier, m_izBezier, m_rotateBezier, m_distanceBezier, m_fovBezier]
-					= *boundIt;
-			if (m_time - key.m_time > 1) {
-				const auto timeRange = static_cast<float>(m_time - key.m_time);
-				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
-				const float ix_x = FindBezierX(time, m_ixBezier.first.x, m_ixBezier.second.x);
-				const float iy_x = FindBezierX(time, m_iyBezier.first.x, m_iyBezier.second.x);
-				const float iz_x = FindBezierX(time, m_izBezier.first.x, m_izBezier.second.x);
-				const float rotate_x = FindBezierX(time, m_rotateBezier.first.x, m_rotateBezier.second.x);
-				const float distance_x = FindBezierX(time, m_distanceBezier.first.x, m_distanceBezier.second.x);
-				const float fov_x = FindBezierX(time, m_fovBezier.first.x, m_fovBezier.second.x);
-				const float ix_y = Bezier(ix_x, m_ixBezier.first.y, m_ixBezier.second.y);
-				const float iy_y = Bezier(iy_x, m_iyBezier.first.y, m_iyBezier.second.y);
-				const float iz_y = Bezier(iz_x, m_izBezier.first.y, m_izBezier.second.y);
-				const float rotate_y = Bezier(rotate_x, m_rotateBezier.first.y, m_rotateBezier.second.y);
-				const float distance_y = Bezier(distance_x, m_distanceBezier.first.y, m_distanceBezier.second.y);
-				const float fov_y = Bezier(fov_x, m_fovBezier.first.y, m_fovBezier.second.y);
-				m_camera.m_interest = glm::mix(key.m_interest, m_interest, glm::vec3(ix_y, iy_y, iz_y));
-				m_camera.m_rotate = glm::mix(key.m_rotate, m_rotate, rotate_y);
-				m_camera.m_distance = glm::mix(key.m_distance, m_distance, distance_y);
-				m_camera.m_fov = glm::mix(key.m_fov, m_fov, fov_y);
-			} else
-				Apply(key);
-		}
+	const auto& cur = it != m_keys.end() ? *it : m_keys.back();
+	m_camera.m_interest = cur.m_interest;
+	m_camera.m_rotate   = cur.m_rotate;
+	m_camera.m_distance = cur.m_distance;
+	m_camera.m_fov      = cur.m_fov;
+	if (it == m_keys.begin() || it == m_keys.end())
+		return;
+	const auto& [m_time, m_interest, m_rotate, m_distance, m_fov,
+		m_ixBezier, m_iyBezier, m_izBezier,
+		m_rotateBezier, m_distanceBezier, m_fovBezier] = *it;
+	const auto& prev = *(it - 1);
+	if (m_time - prev.m_time <= 1) {
+		m_camera.m_interest = prev.m_interest;
+		m_camera.m_rotate   = prev.m_rotate;
+		m_camera.m_distance = prev.m_distance;
+		m_camera.m_fov      = prev.m_fov;
+		return;
 	}
+	const float time = (t - static_cast<float>(prev.m_time)) / static_cast<float>(m_time - prev.m_time);
+	const float ix_y = Bezier(FindBezierX(time, m_ixBezier.first.x, m_ixBezier.second.x), m_ixBezier.first.y, m_ixBezier.second.y);
+	const float iy_y = Bezier(FindBezierX(time, m_iyBezier.first.x, m_iyBezier.second.x), m_iyBezier.first.y, m_iyBezier.second.y);
+	const float iz_y = Bezier(FindBezierX(time, m_izBezier.first.x, m_izBezier.second.x), m_izBezier.first.y, m_izBezier.second.y);
+	const float r_y = Bezier(FindBezierX(time, m_rotateBezier.first.x, m_rotateBezier.second.x), m_rotateBezier.first.y, m_rotateBezier.second.y);
+	const float d_y = Bezier(FindBezierX(time, m_distanceBezier.first.x, m_distanceBezier.second.x), m_distanceBezier.first.y, m_distanceBezier.second.y);
+	const float f_y = Bezier(FindBezierX(time, m_fovBezier.first.x, m_fovBezier.second.x), m_fovBezier.first.y, m_fovBezier.second.y);
+	m_camera.m_interest = glm::mix(prev.m_interest, m_interest, glm::vec3(ix_y, iy_y, iz_y));
+	m_camera.m_rotate = glm::mix(prev.m_rotate, m_rotate, r_y);
+	m_camera.m_distance = glm::mix(prev.m_distance, m_distance, d_y);
+	m_camera.m_fov = glm::mix(prev.m_fov, m_fov, f_y);
 }
