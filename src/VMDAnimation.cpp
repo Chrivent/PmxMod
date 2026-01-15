@@ -42,14 +42,10 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
 		auto nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
-		auto [findIt, inserted] =
-			nodeMap.try_emplace(nodeName);
+		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(
-				m_model->m_nodes, nodeName,
-				[](const std::unique_ptr<MMDNode>& node) { return node->m_name; }
-			);
+			auto it = std::ranges::find(m_model->m_nodes, nodeName, &MMDNode::m_name);
 			first = it != m_model->m_nodes.end() ? it->get() : nullptr;
 		}
 		if (!first)
@@ -67,8 +63,7 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
 			auto ikName = UnicodeUtil::SjisToUtf8(m_name);
-			auto [findIt, inserted] =
-				ikMap.try_emplace(ikName);
+			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
 				auto it = std::ranges::find(
@@ -94,14 +89,10 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
 		auto morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
-		auto [findIt, inserted] =
-			morphMap.try_emplace(morphName);
+		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(
-				m_model->m_morphs, morphName,
-				[](const std::unique_ptr<MMDMorph>& mmdMorph) { return mmdMorph->m_name; }
-			);
+			auto it = std::ranges::find(m_model->m_morphs, morphName, &MMDMorph::m_name);
 			first = it != m_model->m_morphs.end() ? it->get() : nullptr;
 		}
 		if (!first)
@@ -135,42 +126,29 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const NodeAnimationKey& k) { return static_cast<float>(k.m_time); });
-		glm::vec3 vt;
-		glm::quat q;
-		if (boundIt == std::end(keys)) {
-			vt = keys.back().m_translate;
-			q = keys.back().m_rotate;
-		} else {
-			vt = boundIt->m_translate;
-			q = boundIt->m_rotate;
-			if (boundIt != std::begin(keys)) {
-				const auto& key = *(boundIt - 1);
-				const auto& [m_time, m_translate, m_rotate
-							, m_txBezier, m_tyBezier, m_tzBezier, m_rotBezier]
-						= *boundIt;
-				const auto timeRange = static_cast<float>(m_time - key.m_time);
-				const float time = (t - static_cast<float>(key.m_time)) / timeRange;
-				const float tx_x = FindBezierX(time, m_txBezier.first.x, m_txBezier.second.x);
-				const float ty_x = FindBezierX(time, m_tyBezier.first.x, m_tyBezier.second.x);
-				const float tz_x = FindBezierX(time, m_tzBezier.first.x, m_tzBezier.second.x);
-				const float rot_x = FindBezierX(time, m_rotBezier.first.x, m_rotBezier.second.x);
-				const float tx_y = Bezier(tx_x, m_txBezier.first.y, m_txBezier.second.y);
-				const float ty_y = Bezier(ty_x, m_tyBezier.first.y, m_tyBezier.second.y);
-				const float tz_y = Bezier(tz_x, m_tzBezier.first.y, m_tzBezier.second.y);
-				const float rot_y = Bezier(rot_x, m_rotBezier.first.y, m_rotBezier.second.y);
-				vt = glm::mix(key.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
-				q = glm::slerp(key.m_rotate, m_rotate, rot_y);
-			}
+		const NodeAnimationKey* cur = boundIt != keys.end() ? &*boundIt : &keys.back();
+		glm::vec3 vt = cur->m_translate;
+		glm::quat q  = cur->m_rotate;
+		if (boundIt != keys.begin() && boundIt != keys.end()) {
+			const auto& prev = *(boundIt - 1);
+			const auto& [m_time, m_translate, m_rotate,
+						 m_txBezier, m_tyBezier, m_tzBezier,
+						 m_rotBezier] = *boundIt;
+			const auto timeRange = static_cast<float>(m_time - prev.m_time);
+			const float time = (t - static_cast<float>(prev.m_time)) / timeRange;
+			const float tx_x  = FindBezierX(time, m_txBezier.first.x,  m_txBezier.second.x);
+			const float ty_x  = FindBezierX(time, m_tyBezier.first.x,  m_tyBezier.second.x);
+			const float tz_x  = FindBezierX(time, m_tzBezier.first.x,  m_tzBezier.second.x);
+			const float rot_x = FindBezierX(time, m_rotBezier.first.x, m_rotBezier.second.x);
+			const float tx_y  = Bezier(tx_x,  m_txBezier.first.y,  m_txBezier.second.y);
+			const float ty_y  = Bezier(ty_x,  m_tyBezier.first.y,  m_tyBezier.second.y);
+			const float tz_y  = Bezier(tz_x,  m_tzBezier.first.y,  m_tzBezier.second.y);
+			const float rot_y = Bezier(rot_x, m_rotBezier.first.y, m_rotBezier.second.y);
+			vt = glm::mix(prev.m_translate, m_translate, glm::vec3(tx_y, ty_y, tz_y));
+			q  = glm::slerp(prev.m_rotate,   m_rotate,   rot_y);
 		}
-		if (animWeight == 1.0f) {
-			node->m_animRotate = q;
-			node->m_animTranslate = vt;
-		} else {
-			const auto baseQ = node->m_baseAnimRotate;
-			const auto baseT = node->m_baseAnimTranslate;
-			node->m_animRotate = glm::slerp(baseQ, q, animWeight);
-			node->m_animTranslate = glm::mix(baseT, vt, animWeight);
-		}
+		node->m_animTranslate = animWeight != 1.0f ? glm::mix(node->m_baseAnimTranslate, vt, animWeight) : vt;
+		node->m_animRotate = animWeight != 1.0f ? glm::slerp(node->m_baseAnimRotate, q, animWeight) : q;
 	}
 	for (const auto& [ikSolver, keys] : m_iks) {
 		if (ikSolver == nullptr)
@@ -181,45 +159,24 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 		}
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const IKAnimationKey& k) { return static_cast<float>(k.m_time); });
-		bool enable;
-		if (boundIt == std::end(keys))
-			enable = keys.rbegin()->m_ikEnable;
-		else {
-			enable = keys.begin()->m_ikEnable;
-			if (boundIt != std::begin(keys)) {
-				const auto& [m_time, m_enable] = *(boundIt - 1);
-				enable = m_enable;
-			}
-		}
-		if (animWeight < 1.0f)
-			ikSolver->m_enable = ikSolver->m_baseAnimEnable;
-		else
-			ikSolver->m_enable = enable;
+		const bool enable = boundIt != std::begin(keys) ? (boundIt - 1)->m_ikEnable : keys.begin()->m_ikEnable;
+		ikSolver->m_enable = animWeight < 1.0f ? ikSolver->m_baseAnimEnable : enable;
 	}
 	for (const auto& [morph, keys] : m_morphs) {
 		if (morph == nullptr)
 			continue;
 		if (keys.empty())
 			continue;
-		float weight;
 		const auto boundIt = std::ranges::upper_bound(keys, t, std::less{},
 			[](const MorphAnimationKey& k) { return static_cast<float>(k.m_time); });
-		if (boundIt == std::end(keys))
-			weight = keys.rbegin()->m_morphWeight;
-		else {
-			weight = boundIt->m_morphWeight;
-			if (boundIt != std::begin(keys)) {
-				auto [m_time0, m_weight0] = *(boundIt - 1);
-				auto [m_time1, m_weight1] = *boundIt;
-				const auto timeRange = static_cast<float>(m_time1 - m_time0);
-				const float time = (t - static_cast<float>(m_time0)) / timeRange;
-				weight = (m_weight1 - m_weight0) * time + m_weight0;
-			}
+		float weight = boundIt != std::end(keys) ? boundIt->m_morphWeight : keys.back().m_morphWeight;
+		if (boundIt != std::begin(keys) && boundIt != std::end(keys)) {
+			auto [m_time0, m_weight0] = *(boundIt - 1);
+			auto [m_time1, m_weight1] = *boundIt;
+			const float time = (t - static_cast<float>(m_time0)) / static_cast<float>(m_time1 - m_time0);
+			weight = (m_weight1 - m_weight0) * time + m_weight0;
 		}
-		if (animWeight == 1.0f)
-			morph->m_weight = weight;
-		else
-			morph->m_weight = glm::mix(morph->m_saveAnimWeight, weight, animWeight);
+		morph->m_weight = animWeight != 1.0f ? glm::mix(morph->m_saveAnimWeight, weight, animWeight) : weight;
 	}
 }
 
