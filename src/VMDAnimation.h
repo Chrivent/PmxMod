@@ -34,7 +34,7 @@ struct VMDMorphAnimationKey {
 
 struct VMDIKAnimationKey {
 	int32_t	m_time;
-	bool	m_enable;
+	bool	m_ikEnable;
 };
 
 class VMDAnimation {

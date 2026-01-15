@@ -42,23 +42,19 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
 		std::string nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
-		auto findIt = nodeMap.find(nodeName);
-		std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>* nodePair = nullptr;
-		if (findIt == std::end(nodeMap)) {
+		auto [findIt, inserted] =
+			nodeMap.try_emplace(nodeName, nullptr, std::vector<VMDNodeAnimationKey>{});
+		auto& [first, second] = findIt->second;
+		if (inserted) {
 			auto it = std::ranges::find(
 				m_model->m_nodes, std::string_view{ nodeName },
 				[](const std::unique_ptr<MMDNode>& node) -> std::string_view { return node->m_name; }
 			);
-			auto* node = it == m_model->m_nodes.end() ? nullptr : it->get();
-			if (node != nullptr)
-				nodePair = &nodeMap.emplace(nodeName,
-					std::pair<MMDNode*, std::vector<VMDNodeAnimationKey>>{ node, {} }).first->second;
-		} else
-			nodePair = &findIt->second;
-		if (nodePair != nullptr) {
-			VMDNodeAnimationKey key{};
+			first = it == m_model->m_nodes.end() ? nullptr : it->get();
+		}
+		if (first != nullptr) {
+			auto& key = second.emplace_back();
 			key.Set(motion);
-			nodePair->second.push_back(key);
 		}
 	}
 	for (auto& val : nodeMap | std::views::values) {
@@ -72,24 +68,20 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
 			std::string ikName = UnicodeUtil::SjisToUtf8(m_name);
-			auto findIt = ikMap.find(ikName);
-			std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>* ikPair = nullptr;
-			if (findIt == std::end(ikMap)) {
+			auto [findIt, inserted] =
+				ikMap.try_emplace(ikName, nullptr, std::vector<VMDIKAnimationKey>{});
+			auto& [first, second] = findIt->second;
+			if (inserted) {
 				auto it = std::ranges::find(
 					m_model->m_ikSolvers, std::string_view{ ikName },
 					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view { return ikSolver->m_ikNode->m_name; }
 				);
-				auto* ikSolver = it == m_model->m_ikSolvers.end() ? nullptr : it->get();
-				if (ikSolver != nullptr)
-					ikPair = &ikMap.emplace(ikName,
-						std::pair<MMDIkSolver*, std::vector<VMDIKAnimationKey>>{ ikSolver, {} }).first->second;
-			} else
-				ikPair = &findIt->second;
-			if (ikPair != nullptr) {
-				VMDIKAnimationKey key{};
-				key.m_time = static_cast<int32_t>(ik.m_frame);
-				key.m_enable = m_enable != 0;
-				ikPair->second.push_back(key);
+				first = it == m_model->m_ikSolvers.end() ? nullptr : it->get();
+			}
+			if (first != nullptr) {
+				auto& [m_time, m_ikEnable] = second.emplace_back();
+				m_time = static_cast<int32_t>(ik.m_frame);
+				m_ikEnable = m_enable != 0;
 			}
 		}
 	}
@@ -103,24 +95,20 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
 		std::string morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
-		auto findIt = morphMap.find(morphName);
-		std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>* morphPair = nullptr;
-		if (findIt == std::end(morphMap)) {
+		auto [findIt, inserted] =
+			morphMap.try_emplace(morphName, nullptr, std::vector<VMDMorphAnimationKey>{});
+		auto& [first, second] = findIt->second;
+		if (inserted) {
 			auto it = std::ranges::find(
 				m_model->m_morphs, std::string_view{ morphName },
 				[](const std::unique_ptr<MMDMorph>& mmdMorph) -> std::string_view { return mmdMorph->m_name; }
 			);
-			auto* mmdMorph = it == m_model->m_morphs.end() ? nullptr : it->get();
-			if (mmdMorph != nullptr)
-				morphPair = &morphMap.emplace(morphName,
-						std::pair<MMDMorph*, std::vector<VMDMorphAnimationKey>>{ mmdMorph, {} }).first->second;
-		} else
-			morphPair = &findIt->second;
-		if (morphPair != nullptr) {
-			VMDMorphAnimationKey key{};
+			first = (it == m_model->m_morphs.end()) ? nullptr : it->get();
+		}
+		if (first != nullptr) {
+			auto& key = second.emplace_back();
 			key.m_time = static_cast<int32_t>(m_frame);
 			key.m_weight = m_weight;
-			morphPair->second.push_back(key);
 		}
 	}
 	for (auto& val : morphMap | std::views::values) {
@@ -196,9 +184,9 @@ void VMDAnimation::Evaluate(const float t, const float animWeight) const {
 			[](const VMDIKAnimationKey& k) { return static_cast<float>(k.m_time); });
 		bool enable;
 		if (boundIt == std::end(keys))
-			enable = keys.rbegin()->m_enable;
+			enable = keys.rbegin()->m_ikEnable;
 		else {
-			enable = keys.begin()->m_enable;
+			enable = keys.begin()->m_ikEnable;
 			if (boundIt != std::begin(keys)) {
 				const auto& [m_time, m_enable] = *(boundIt - 1);
 				enable = m_enable;
