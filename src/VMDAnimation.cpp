@@ -50,12 +50,11 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 				m_model->m_nodes, std::string_view{ nodeName },
 				[](const std::unique_ptr<MMDNode>& node) -> std::string_view { return node->m_name; }
 			);
-			first = it == m_model->m_nodes.end() ? nullptr : it->get();
+			first = it != m_model->m_nodes.end() ? it->get() : nullptr;
 		}
-		if (first != nullptr) {
-			auto& key = second.emplace_back();
-			key.Set(motion);
-		}
+		if (!first)
+			continue;
+		second.emplace_back().Set(motion);
 	}
 	for (auto& val : nodeMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::m_time);
@@ -76,13 +75,13 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 					m_model->m_ikSolvers, std::string_view{ ikName },
 					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view { return ikSolver->m_ikNode->m_name; }
 				);
-				first = it == m_model->m_ikSolvers.end() ? nullptr : it->get();
+				first = it != m_model->m_ikSolvers.end() ? it->get() : nullptr;
 			}
-			if (first != nullptr) {
-				auto& [m_time, m_ikEnable] = second.emplace_back();
-				m_time = static_cast<int32_t>(ik.m_frame);
-				m_ikEnable = m_enable != 0;
-			}
+			if (!first)
+				continue;
+			auto& [m_time, m_ikEnable] = second.emplace_back();
+			m_time = static_cast<int32_t>(ik.m_frame);
+			m_ikEnable = m_enable != 0;
 		}
 	}
 	for (auto& val : ikMap | std::views::values) {
@@ -103,13 +102,13 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 				m_model->m_morphs, std::string_view{ morphName },
 				[](const std::unique_ptr<MMDMorph>& mmdMorph) -> std::string_view { return mmdMorph->m_name; }
 			);
-			first = (it == m_model->m_morphs.end()) ? nullptr : it->get();
+			first = it != m_model->m_morphs.end() ? it->get() : nullptr;
 		}
-		if (first != nullptr) {
-			auto& [m_time, m_morphWeight] = second.emplace_back();
-			m_time = static_cast<int32_t>(m_frame);
-			m_morphWeight = m_weight;
-		}
+		if (!first)
+			continue;
+		auto& [m_time, m_morphWeight] = second.emplace_back();
+		m_time = static_cast<int32_t>(m_frame);
+		m_morphWeight = m_weight;
 	}
 	for (auto& val : morphMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::m_time);
