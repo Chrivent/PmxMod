@@ -41,14 +41,14 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		nodeMap.emplace(node.first->m_name, std::move(node));
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
-		std::string nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
+		auto nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
 		auto [findIt, inserted] =
-			nodeMap.try_emplace(nodeName, nullptr, std::vector<NodeAnimationKey>{});
+			nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(
-				m_model->m_nodes, std::string_view{ nodeName },
-				[](const std::unique_ptr<MMDNode>& node) -> std::string_view { return node->m_name; }
+				m_model->m_nodes, nodeName,
+				[](const std::unique_ptr<MMDNode>& node) { return node->m_name; }
 			);
 			first = it != m_model->m_nodes.end() ? it->get() : nullptr;
 		}
@@ -66,14 +66,14 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	m_iks.clear();
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
-			std::string ikName = UnicodeUtil::SjisToUtf8(m_name);
+			auto ikName = UnicodeUtil::SjisToUtf8(m_name);
 			auto [findIt, inserted] =
-				ikMap.try_emplace(ikName, nullptr, std::vector<IKAnimationKey>{});
+				ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
 				auto it = std::ranges::find(
-					m_model->m_ikSolvers, std::string_view{ ikName },
-					[](const std::unique_ptr<MMDIkSolver>& ikSolver) -> std::string_view { return ikSolver->m_ikNode->m_name; }
+					m_model->m_ikSolvers, ikName,
+					[](const std::unique_ptr<MMDIkSolver>& ikSolver){ return ikSolver->m_ikNode->m_name; }
 				);
 				first = it != m_model->m_ikSolvers.end() ? it->get() : nullptr;
 			}
@@ -93,14 +93,14 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 		morphMap.emplace(morph.first->m_name, std::move(morph));
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
-		std::string morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
+		auto morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
 		auto [findIt, inserted] =
-			morphMap.try_emplace(morphName, nullptr, std::vector<MorphAnimationKey>{});
+			morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(
-				m_model->m_morphs, std::string_view{ morphName },
-				[](const std::unique_ptr<MMDMorph>& mmdMorph) -> std::string_view { return mmdMorph->m_name; }
+				m_model->m_morphs, morphName,
+				[](const std::unique_ptr<MMDMorph>& mmdMorph) { return mmdMorph->m_name; }
 			);
 			first = it != m_model->m_morphs.end() ? it->get() : nullptr;
 		}
