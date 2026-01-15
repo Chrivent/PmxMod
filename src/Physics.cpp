@@ -17,7 +17,7 @@ bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, b
 	if (findIt != m_nonFilterProxy.end())
 		return true;
 	bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
-	collides = collides && (proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask);
+	collides = collides && proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask;
 	return collides;
 }
 
@@ -101,7 +101,6 @@ void DynamicAndBoneMergeMotionState::ReflectGlobalTransform() {
 	glm::mat4 btGlobal = InvZ(world) * m_invOffset;
 	glm::mat4 global = m_node->m_global;
 	btGlobal[3] = global[3];
-
 	if (m_override) {
 		m_node->m_global = btGlobal;
 		m_node->UpdateChildTransform();
@@ -142,7 +141,6 @@ RigidBody::RigidBody()
 
 void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
 	m_shape = nullptr;
-
 	switch (pmxRigidBody.m_shape) {
 		case Shape::Sphere:
 			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.m_shapeSize.x);
@@ -161,22 +159,18 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 			);
 			break;
 	}
-
 	btScalar mass(0.0f);
 	btVector3 localInertia(0, 0, 0);
 	if (pmxRigidBody.m_op != Operation::Static)
 		mass = pmxRigidBody.m_mass;
 	if (mass != 0)
 		m_shape->calculateLocalInertia(mass, localInertia);
-
 	const auto rx = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.x, glm::vec3(1, 0, 0));
 	const auto ry = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.y, glm::vec3(0, 1, 0));
 	const auto rz = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.z, glm::vec3(0, 0, 1));
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
-
 	const glm::mat4 rbMat = InvZ(translateMat * rotMat);
-
 	Node *kinematicNode = nullptr;
 	if (node != nullptr) {
 		m_offsetMat = glm::inverse(node->m_global) * rbMat;
@@ -186,7 +180,6 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 		m_offsetMat = glm::inverse(root->m_global) * rbMat;
 		kinematicNode = root;
 	}
-
 	btMotionState *MMDMotionState = nullptr;
 	if (pmxRigidBody.m_op == Operation::Static) {
 		m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
@@ -206,21 +199,18 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 		m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 		MMDMotionState = m_activeMotionState.get();
 	}
-
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, MMDMotionState, m_shape.get(), localInertia);
 	rbInfo.m_linearDamping = pmxRigidBody.m_translateDimmer;
 	rbInfo.m_angularDamping = pmxRigidBody.m_rotateDimmer;
 	rbInfo.m_restitution = pmxRigidBody.m_repulsion;
 	rbInfo.m_friction = pmxRigidBody.m_friction;
 	rbInfo.m_additionalDamping = true;
-
 	m_rigidBody = std::make_unique<btRigidBody>(rbInfo);
 	m_rigidBody->setUserPointer(this);
 	m_rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
 	m_rigidBody->setActivationState(DISABLE_DEACTIVATION);
 	if (pmxRigidBody.m_op == Operation::Static)
 		m_rigidBody->setCollisionFlags(m_rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-
 	m_rigidBodyType = pmxRigidBody.m_op;
 	m_group = pmxRigidBody.m_group;
 	m_groupMask = pmxRigidBody.m_collisionGroup;
@@ -286,10 +276,8 @@ glm::mat4 RigidBody::GetTransform() const {
 
 void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 	m_constraint = nullptr;
-
 	btMatrix3x3 rotMat;
 	rotMat.setEulerZYX(pmxJoint.m_rotate.x, pmxJoint.m_rotate.y, pmxJoint.m_rotate.z);
-
 	btTransform transform;
 	transform.setIdentity();
 	transform.setOrigin(btVector3(
@@ -298,12 +286,10 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 		pmxJoint.m_translate.z
 	));
 	transform.setBasis(rotMat);
-
 	btTransform invA = rigidBodyA->m_rigidBody->getWorldTransform().inverse();
 	btTransform invB = rigidBodyB->m_rigidBody->getWorldTransform().inverse();
 	invA = invA * transform;
 	invB = invB * transform;
-
 	auto constraint = std::make_unique<btGeneric6DofSpringConstraint>(
 		*rigidBodyA->m_rigidBody,
 		*rigidBodyB->m_rigidBody,
@@ -320,7 +306,6 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 		pmxJoint.m_translateUpperLimit.y,
 		pmxJoint.m_translateUpperLimit.z
 	));
-
 	constraint->setAngularLowerLimit(btVector3(
 		pmxJoint.m_rotateLowerLimit.x,
 		pmxJoint.m_rotateLowerLimit.y,
@@ -331,7 +316,6 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 		pmxJoint.m_rotateUpperLimit.y,
 		pmxJoint.m_rotateUpperLimit.z
 	));
-
 	if (pmxJoint.m_springTranslateFactor.x != 0) {
 		constraint->enableSpring(0, true);
 		constraint->setStiffness(0, pmxJoint.m_springTranslateFactor.x);
@@ -356,7 +340,6 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 		constraint->enableSpring(5, true);
 		constraint->setStiffness(5, pmxJoint.m_springRotateFactor.z);
 	}
-
 	m_constraint = std::move(constraint);
 }
 
@@ -368,14 +351,6 @@ Physics::Physics()
 Physics::~Physics() {
 	if (m_world != nullptr && m_groundRB != nullptr)
 		m_world->removeRigidBody(m_groundRB.get());
-	m_broadPhase = nullptr;
-	m_collisionConfig = nullptr;
-	m_dispatcher = nullptr;
-	m_solver = nullptr;
-	m_world = nullptr;
-	m_groundShape = nullptr;
-	m_groundMS = nullptr;
-	m_groundRB = nullptr;
 }
 
 void Physics::Create() {
