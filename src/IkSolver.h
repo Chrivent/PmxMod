@@ -7,7 +7,7 @@
 struct Node;
 
 struct IKChain {
-	Node* m_node;
+	Node*		m_node;
 	bool		m_enableAxisLimit;
 	glm::vec3	m_limitMax;
 	glm::vec3	m_limitMin;
