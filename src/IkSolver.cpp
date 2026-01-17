@@ -4,15 +4,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-IkSolver::IkSolver()
-	: m_ikNode(nullptr)
-	, m_ikTarget(nullptr)
-	, m_iterateCount(1)
-	, m_limitAngle(glm::pi<float>() * 2.0f)
-	, m_enable(true)
-	, m_baseAnimEnable(true) {
-}
-
 void IkSolver::Solve() {
 	if (!m_enable)
 		return;

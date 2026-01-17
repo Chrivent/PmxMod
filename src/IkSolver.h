@@ -6,8 +6,7 @@
 
 struct Node;
 
-struct IKChain
-{
+struct IKChain {
 	Node* m_node;
 	bool		m_enableAxisLimit;
 	glm::vec3	m_limitMax;
@@ -17,19 +16,16 @@ struct IKChain
 	float		m_planeModeAngle;
 };
 
-struct IkSolver
-{
-	IkSolver();
-
+struct IkSolver {
 	void Solve();
 
 	std::vector<IKChain>	m_chains;
-	Node*				m_ikNode;
-	Node*				m_ikTarget;
-	uint32_t				m_iterateCount;
-	float					m_limitAngle;
-	bool					m_enable;
-	bool					m_baseAnimEnable;
+	Node*					m_ikNode = nullptr;
+	Node*					m_ikTarget = nullptr;
+	uint32_t				m_iterateCount = 1;
+	float					m_limitAngle = glm::pi<float>() * 2.0f;
+	bool					m_enable = true;
+	bool					m_baseAnimEnable = true;
 
 private:
 	static float NormalizeAngle(float angle);
