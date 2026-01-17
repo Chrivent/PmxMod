@@ -185,9 +185,8 @@ void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
 	const glm::quat q = motion.m_quaternion;
 	const auto invZ = glm::mat3(glm::scale(glm::mat4(1), glm::vec3(1, 1, -1)));
-	const auto rot0 = glm::mat3_cast(q);
-	const auto rot1 = invZ * rot0 * invZ;
-	m_rotate = glm::quat_cast(rot1);
+	const auto rot = invZ * glm::mat3_cast(q) * invZ;
+	m_rotate = glm::quat_cast(rot);
 	SetBezier(m_txBezier,
 		motion.m_interpolation[0], motion.m_interpolation[8],
 		motion.m_interpolation[4], motion.m_interpolation[12]);
