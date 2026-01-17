@@ -140,7 +140,7 @@ public:
 	std::vector<std::unique_ptr<Node>>		m_nodes;
 	std::vector<std::unique_ptr<IkSolver>>	m_ikSolvers;
 	std::vector<std::unique_ptr<Morph>>		m_morphs;
-	std::unique_ptr<Physics>					m_mmdPhysics;
+	std::unique_ptr<Physics>					m_physics;
 	std::vector<std::unique_ptr<RigidBody>>	m_rigidBodies;
 	std::vector<std::unique_ptr<Joint>>		m_joints;
 	uint32_t							m_parallelUpdateCount;

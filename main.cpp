@@ -90,19 +90,19 @@ static SceneConfig BuildTestSceneConfig1() {
 	SceneConfig cfg;
 	Input in1;
 	in1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
-	in1.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
+	in1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
 	Input in2;
 	in2.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
-	in2.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
+	in2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
 	Input in3;
 	in3.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
-	in3.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
+	in3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
 	Input in4;
 	in4.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
-	in4.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
+	in4.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
 	Input in5;
 	in5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	in5.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
+	in5.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
 	cfg.m_inputs.emplace_back(std::move(in1));
 	cfg.m_inputs.emplace_back(std::move(in2));
 	cfg.m_inputs.emplace_back(std::move(in3));
@@ -121,7 +121,7 @@ static SceneConfig BuildTestSceneConfig2() {
 	SceneConfig cfg;
 	Input in;
 	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
-	in.m_vmdPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
+	in.m_animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
 	cfg.m_inputs.emplace_back(std::move(in));
 	cfg.m_cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
 	cfg.m_musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
@@ -136,7 +136,7 @@ static SceneConfig BuildTestSceneConfig3() {
 	SceneConfig cfg;
 	Input in;
 	in.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	in.m_vmdPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
+	in.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
 	cfg.m_inputs.emplace_back(std::move(in));
 	cfg.m_cameraVmd = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
 	cfg.m_musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
@@ -180,7 +180,7 @@ int main() {
 			Input in;
 			in.m_modelPath = modelPaths[i][0].wstring();
 			for (auto& v : motionPaths[i])
-				in.m_vmdPaths.emplace_back(v.wstring());
+				in.m_animPaths.emplace_back(v.wstring());
 			cfg.m_inputs.emplace_back(std::move(in));
 		}
 		if (!bgPath.empty()) {

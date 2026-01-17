@@ -164,7 +164,7 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void Model::ResetPhysics() const {
-	const auto* physics = m_mmdPhysics.get();
+	const auto* physics = m_physics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies) {
 		rb->SetActivation(false);
@@ -184,7 +184,7 @@ void Model::ResetPhysics() const {
 }
 
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
-	const auto* physics = m_mmdPhysics.get();
+	const auto* physics = m_physics.get();
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
 		rb->SetActivation(true);
@@ -581,15 +581,15 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	}
 
 	// Physics
-	m_mmdPhysics = std::make_unique<Physics>();
-	m_mmdPhysics->Create();
+	m_physics = std::make_unique<Physics>();
+	m_physics->Create();
 	for (const auto &pmxRB: pmx.m_rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		Node* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
 			node = m_nodes[pmxRB.m_boneIndex].get();
 		rb->Create(pmxRB, this, node);
-		m_mmdPhysics->AddRigidBody(rb.get());
+		m_physics->AddRigidBody(rb.get());
 		m_rigidBodies.emplace_back(std::move(rb));
 
 	}
@@ -604,7 +604,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
 				rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
 			);
-			m_mmdPhysics->AddJoint(joint.get());
+			m_physics->AddJoint(joint.get());
 			m_joints.emplace_back(std::move(joint));
 		}
 	}
@@ -627,12 +627,12 @@ void Model::Destroy() {
 	m_updateRanges.clear();
 
 	for (auto &joint: m_joints)
-		m_mmdPhysics->RemoveJoint(joint.get());
+		m_physics->RemoveJoint(joint.get());
 	m_joints.clear();
 	for (auto &rb: m_rigidBodies)
-		m_mmdPhysics->RemoveRigidBody(rb.get());
+		m_physics->RemoveRigidBody(rb.get());
 	m_rigidBodies.clear();
-	m_mmdPhysics.reset();
+	m_physics.reset();
 }
 
 void Model::SetupParallelUpdate() {

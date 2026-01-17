@@ -15,7 +15,7 @@ class VMDAnimation;
 
 struct Input {
     std::filesystem::path				m_modelPath;
-    std::vector<std::filesystem::path>	m_vmdPaths;
+    std::vector<std::filesystem::path>	m_animPaths;
     float								m_scale = 1.1f;
 };
 
@@ -28,7 +28,7 @@ struct SceneConfig {
 struct Instance {
     virtual ~Instance() = default;
 
-    std::shared_ptr<Model>	m_mmdModel;
+    std::shared_ptr<Model>	m_model;
     std::unique_ptr<VMDAnimation>	m_vmdAnim;
     float m_scale = 1.0f;
 
@@ -45,7 +45,7 @@ struct Viewer {
 
     std::filesystem::path	m_resourceDir;
     std::filesystem::path	m_shaderDir;
-    std::filesystem::path	m_mmdDir;
+    std::filesystem::path	m_pmxDir;
     glm::mat4	m_viewMat;
     glm::mat4	m_projMat;
     int			m_screenWidth = 0;
@@ -54,7 +54,7 @@ struct Viewer {
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
-    std::unique_ptr<VMDCameraAnimation>	m_vmdCameraAnim;
+    std::unique_ptr<VMDCameraAnimation>	m_cameraAnim;
 
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     GLFWwindow* m_window = nullptr;

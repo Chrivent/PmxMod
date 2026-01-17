@@ -180,26 +180,26 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 		m_offsetMat = glm::inverse(root->m_global) * rbMat;
 		kinematicNode = root;
 	}
-	btMotionState *MMDMotionState = nullptr;
+	btMotionState *motionState = nullptr;
 	if (pmxRigidBody.m_op == Operation::Static) {
 		m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
-		MMDMotionState = m_kinematicMotionState.get();
+		motionState = m_kinematicMotionState.get();
 	} else if (node != nullptr) {
 		if (pmxRigidBody.m_op == Operation::Dynamic) {
 			m_activeMotionState = std::make_unique<DynamicMotionState>(kinematicNode, m_offsetMat);
 			m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
-			MMDMotionState = m_activeMotionState.get();
+			motionState = m_activeMotionState.get();
 		} else if (pmxRigidBody.m_op == Operation::DynamicAndBoneMerge) {
 			m_activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(kinematicNode, m_offsetMat);
 			m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
-			MMDMotionState = m_activeMotionState.get();
+			motionState = m_activeMotionState.get();
 		}
 	} else {
 		m_activeMotionState = std::make_unique<DefaultMotionState>(m_offsetMat);
 		m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
-		MMDMotionState = m_activeMotionState.get();
+		motionState = m_activeMotionState.get();
 	}
-	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, MMDMotionState, m_shape.get(), localInertia);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, m_shape.get(), localInertia);
 	rbInfo.m_linearDamping = pmxRigidBody.m_translateDimmer;
 	rbInfo.m_angularDamping = pmxRigidBody.m_rotateDimmer;
 	rbInfo.m_restitution = pmxRigidBody.m_repulsion;
@@ -382,18 +382,18 @@ void Physics::Update(const float time) const {
 	m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
 }
 
-void Physics::AddRigidBody(const RigidBody* mmdRB) const {
-	m_world->addRigidBody(mmdRB->m_rigidBody.get(), 1 << mmdRB->m_group, mmdRB->m_groupMask);
+void Physics::AddRigidBody(const RigidBody* rb) const {
+	m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
 }
 
-void Physics::RemoveRigidBody(const RigidBody* mmdRB) const {
-	m_world->removeRigidBody(mmdRB->m_rigidBody.get());
+void Physics::RemoveRigidBody(const RigidBody* rb) const {
+	m_world->removeRigidBody(rb->m_rigidBody.get());
 }
 
-void Physics::AddJoint(const Joint* mmdJoint) const {
-	m_world->addConstraint(mmdJoint->m_constraint.get());
+void Physics::AddJoint(const Joint* joint) const {
+	m_world->addConstraint(joint->m_constraint.get());
 }
 
-void Physics::RemoveJoint(const Joint* mmdJoint) const {
-	m_world->removeConstraint(mmdJoint->m_constraint.get());
+void Physics::RemoveJoint(const Joint* joint) const {
+	m_world->removeConstraint(joint->m_constraint.get());
 }

@@ -9,8 +9,8 @@
 #include <iostream>
 
 void Instance::UpdateAnimation(const Viewer& viewer) const {
-    m_mmdModel->BeginAnimation();
-    m_mmdModel->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
+    m_model->BeginAnimation();
+    m_model->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
 bool Viewer::Run(const SceneConfig& cfg) {
@@ -104,14 +104,14 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
             return false;
         }
         const auto pmxModel = std::make_shared<Model>();
-        if (!pmxModel->Load(modelPath, m_mmdDir)) {
+        if (!pmxModel->Load(modelPath, m_pmxDir)) {
             std::cout << "Failed to load pmx file.\n";
             return false;
         }
-        instance->m_mmdModel = pmxModel;
-        instance->m_mmdModel->InitializeAnimation();
+        instance->m_model = pmxModel;
+        instance->m_model->InitializeAnimation();
         auto vmdAnim = std::make_unique<VMDAnimation>();
-        vmdAnim->m_model = instance->m_mmdModel;
+        vmdAnim->m_model = instance->m_model;
         for (const auto& vmdPath : vmdPaths) {
             VMDReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
@@ -133,7 +133,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
 }
 
 void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
-    m_vmdCameraAnim.reset();
+    m_cameraAnim.reset();
     if (cfg.m_cameraVmd.empty()) {
         std::cout << "No camera VMD file.\n";
         return;
@@ -143,7 +143,7 @@ void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
         auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))
             std::cout << "Failed to create VMDCameraAnimation.\n";
-        m_vmdCameraAnim = std::move(vmdCamAnim);
+        m_cameraAnim = std::move(vmdCamAnim);
     }
 }
 
@@ -166,12 +166,12 @@ void Viewer::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& s
 }
 
 void Viewer::UpdateCamera() {
-    if (m_vmdCameraAnim) {
-        m_vmdCameraAnim->Evaluate(m_animTime * 30.0f);
-        const auto mmdCam = m_vmdCameraAnim->m_camera;
-        m_viewMat = mmdCam.GetViewMatrix();
+    if (m_cameraAnim) {
+        m_cameraAnim->Evaluate(m_animTime * 30.0f);
+        const auto cam = m_cameraAnim->m_camera;
+        m_viewMat = cam.GetViewMatrix();
         m_projMat = glm::perspectiveFovRH(
-            mmdCam.m_fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
+            cam.m_fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
         );
         return;
     }
@@ -186,5 +186,5 @@ void Viewer::InitDirs(const std::string& shaderSubDir) {
     m_resourceDir = m_resourceDir.parent_path();
     m_resourceDir /= "resource";
     m_shaderDir = m_resourceDir / shaderSubDir;
-    m_mmdDir = m_resourceDir / "mmd";
+    m_pmxDir = m_resourceDir / "mmd";
 }
