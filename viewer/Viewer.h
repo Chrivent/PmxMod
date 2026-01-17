@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <filesystem>
 
-#include "../src/VMDAnimation.h"
+#include "../src/Animation.h"
 
 struct MusicUtil;
 struct SceneConfig;

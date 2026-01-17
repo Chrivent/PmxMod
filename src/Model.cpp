@@ -5,7 +5,7 @@
 #include "Node.h"
 #include "IkSolver.h"
 #include "Physics.h"
-#include "VMDAnimation.h"
+#include "Animation.h"
 
 #include "Util.h"
 

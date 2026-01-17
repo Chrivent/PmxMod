@@ -19,7 +19,7 @@ add_executable(PmxMod
         src/Node.cpp src/Node.h
         src/Physics.cpp src/Physics.h
         src/Reader.cpp src/Reader.h
-        src/VMDAnimation.cpp src/VMDAnimation.h
+        src/Animation.cpp src/Animation.h
         viewer/Viewer.cpp viewer/Viewer.h
         viewer/GLFWViewer.cpp viewer/GLFWViewer.h
         viewer/DX11Viewer.cpp viewer/DX11Viewer.h
