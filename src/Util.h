@@ -31,4 +31,5 @@ private:
 	std::unique_ptr<ma_sound>  m_sound;
 	bool   m_hasMusic = false;
 	double m_prevTimeSec = 0.0;
+	float m_volume = 0.1f;
 };

@@ -84,6 +84,7 @@ bool MusicUtil::Init(const std::filesystem::path& path) {
         ma_engine_uninit(m_engine.get());
         return false;
     }
+    ma_sound_set_volume(m_sound.get(), m_volume);
     ma_sound_start(m_sound.get());
     m_hasMusic = true;
     m_prevTimeSec = 0.0;
