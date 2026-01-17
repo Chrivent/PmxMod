@@ -108,7 +108,7 @@ static SceneConfig BuildTestSceneConfig1() {
 	cfg.m_inputs.emplace_back(std::move(in3));
 	cfg.m_inputs.emplace_back(std::move(in4));
 	cfg.m_inputs.emplace_back(std::move(in5));
-	cfg.m_cameraVmd = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
+	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
 	cfg.m_musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
@@ -123,7 +123,7 @@ static SceneConfig BuildTestSceneConfig2() {
 	in.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
 	in.m_animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
 	cfg.m_inputs.emplace_back(std::move(in));
-	cfg.m_cameraVmd = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
+	cfg.m_cameraAnim = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
 	cfg.m_musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
@@ -138,7 +138,7 @@ static SceneConfig BuildTestSceneConfig3() {
 	in.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
 	in.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
 	cfg.m_inputs.emplace_back(std::move(in));
-	cfg.m_cameraVmd = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
+	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
 	cfg.m_musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
 	Input bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
@@ -190,7 +190,7 @@ int main() {
 			cfg.m_inputs.emplace_back(std::move(bg));
 		}
 		if (!cameraPath.empty())
-			cfg.m_cameraVmd = cameraPath.front().wstring();
+			cfg.m_cameraAnim = cameraPath.front().wstring();
 		if (!musicPath.empty())
 			cfg.m_musicPath = musicPath.front().wstring();
 	}

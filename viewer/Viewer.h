@@ -11,7 +11,7 @@ struct SceneConfig;
 struct Material;
 struct Viewer;
 class Model;
-class VMDAnimation;
+class Animation;
 
 struct Input {
     std::filesystem::path				m_modelPath;
@@ -21,7 +21,7 @@ struct Input {
 
 struct SceneConfig {
     std::vector<Input>		m_inputs;
-    std::filesystem::path	m_cameraVmd;
+    std::filesystem::path	m_cameraAnim;
     std::filesystem::path	m_musicPath;
 };
 
@@ -29,7 +29,7 @@ struct Instance {
     virtual ~Instance() = default;
 
     std::shared_ptr<Model>	m_model;
-    std::unique_ptr<VMDAnimation>	m_vmdAnim;
+    std::unique_ptr<Animation>	m_anim;
     float m_scale = 1.0f;
 
     virtual bool Setup(Viewer& viewer) = 0;
@@ -54,7 +54,7 @@ struct Viewer {
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
-    std::unique_ptr<VMDCameraAnimation>	m_cameraAnim;
+    std::unique_ptr<CameraAnimation>	m_cameraAnim;
 
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     GLFWwindow* m_window = nullptr;
@@ -71,7 +71,7 @@ struct Viewer {
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
-    void LoadCameraVmd(const SceneConfig& cfg);
+    void LoadCameraAnim(const SceneConfig& cfg);
     void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera();
     void InitDirs(const std::string& shaderSubDir);

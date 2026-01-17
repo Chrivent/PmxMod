@@ -35,7 +35,7 @@ float FindBezierX(float time, const float x1, const float x2) {
 	return t;
 }
 
-bool VMDAnimation::Add(const VMDReader& vmd) {
+bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<Node*, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
 		nodeMap.emplace(node.first->m_name, std::move(node));
@@ -108,14 +108,14 @@ bool VMDAnimation::Add(const VMDReader& vmd) {
 	return true;
 }
 
-void VMDAnimation::Destroy() {
+void Animation::Destroy() {
 	m_model.reset();
 	m_nodes.clear();
 	m_iks.clear();
 	m_morphs.clear();
 }
 
-void VMDAnimation::Evaluate(const float t, const float animWeight) const {
+void Animation::Evaluate(const float t, const float animWeight) const {
 	for (const auto& [node, keys]: m_nodes) {
 		if (!node)
 			continue;
@@ -223,7 +223,7 @@ glm::mat4 Camera::GetViewMatrix() const {
 	return glm::lookAt(eye, center, up);
 }
 
-bool VMDCameraAnimation::Create(const VMDReader& vmd) {
+bool CameraAnimation::Create(const VMDReader& vmd) {
 	if (!vmd.m_cameras.empty()) {
 		m_keys.clear();
 		for (const auto& cam: vmd.m_cameras) {
@@ -259,7 +259,7 @@ bool VMDCameraAnimation::Create(const VMDReader& vmd) {
 	return true;
 }
 
-void VMDCameraAnimation::Evaluate(const float t) {
+void CameraAnimation::Evaluate(const float t) {
 	if (m_keys.empty())
 		return;
 	const auto it = std::ranges::upper_bound(m_keys, t, std::less{},

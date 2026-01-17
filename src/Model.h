@@ -17,7 +17,7 @@ struct RigidBody;
 struct Joint;
 struct Node;
 struct IkSolver;
-class VMDAnimation;
+class Animation;
 
 enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;
@@ -93,7 +93,7 @@ public:
 	void ResetPhysics() const;
 	void UpdatePhysicsAnimation(float elapsed) const;
 	void Update();
-	void UpdateAllAnimation(const VMDAnimation* vmdAnim, float vmdFrame, float physicsElapsed);
+	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
 	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir);
 	void Destroy();
 

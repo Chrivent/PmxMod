@@ -37,7 +37,7 @@ struct IKAnimationKey {
 	bool	m_ikEnable;
 };
 
-class VMDAnimation {
+class Animation {
 public:
 	bool Add(const VMDReader& vmd);
 	void Destroy();
@@ -75,7 +75,7 @@ struct CameraAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_fovBezier;
 };
 
-class VMDCameraAnimation {
+class CameraAnimation {
 public:
 	bool Create(const VMDReader& vmd);
 	void Evaluate(float t);

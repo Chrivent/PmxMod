@@ -10,7 +10,7 @@
 
 void Instance::UpdateAnimation(const Viewer& viewer) const {
     m_model->BeginAnimation();
-    m_model->UpdateAllAnimation(m_vmdAnim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
+    m_model->UpdateAllAnimation(m_anim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
 bool Viewer::Run(const SceneConfig& cfg) {
@@ -33,7 +33,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
         glfwTerminate();
         return false;
     }
-    LoadCameraVmd(cfg);
+    LoadCameraAnim(cfg);
     std::vector<std::unique_ptr<Instance>> instances;
     if (!LoadInstances(cfg, instances)) {
         glfwTerminate();
@@ -110,7 +110,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         }
         instance->m_model = pmxModel;
         instance->m_model->InitializeAnimation();
-        auto vmdAnim = std::make_unique<VMDAnimation>();
+        auto vmdAnim = std::make_unique<Animation>();
         vmdAnim->m_model = instance->m_model;
         for (const auto& vmdPath : vmdPaths) {
             VMDReader vmd;
@@ -123,7 +123,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
                 return false;
             }
         }
-        instance->m_vmdAnim = std::move(vmdAnim);
+        instance->m_anim = std::move(vmdAnim);
         instance->m_scale = scale;
         if (!instance->Setup(*this))
             return false;
@@ -132,15 +132,15 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
     return true;
 }
 
-void Viewer::LoadCameraVmd(const SceneConfig& cfg) {
+void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
     m_cameraAnim.reset();
-    if (cfg.m_cameraVmd.empty()) {
+    if (cfg.m_cameraAnim.empty()) {
         std::cout << "No camera VMD file.\n";
         return;
     }
     VMDReader camVmd;
-    if (camVmd.ReadFile(cfg.m_cameraVmd.c_str()) && !camVmd.m_cameras.empty()) {
-        auto vmdCamAnim = std::make_unique<VMDCameraAnimation>();
+    if (camVmd.ReadFile(cfg.m_cameraAnim.c_str()) && !camVmd.m_cameras.empty()) {
+        auto vmdCamAnim = std::make_unique<CameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))
             std::cout << "Failed to create VMDCameraAnimation.\n";
         m_cameraAnim = std::move(vmdCamAnim);

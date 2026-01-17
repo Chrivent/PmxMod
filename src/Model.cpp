@@ -222,9 +222,9 @@ void Model::Update() {
 	}
 }
 
-void Model::UpdateAllAnimation(const VMDAnimation* vmdAnim, const float vmdFrame, const float physicsElapsed) {
-	if (vmdAnim != nullptr)
-		vmdAnim->Evaluate(vmdFrame);
+void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
+	if (anim != nullptr)
+		anim->Evaluate(frame);
 	UpdateMorphAnimation();
 	UpdateNodeAnimation(false);
 	UpdatePhysicsAnimation(physicsElapsed);
