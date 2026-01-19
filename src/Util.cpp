@@ -3,6 +3,11 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "../external/miniaudio.h"
 
+glm::mat4 InvZ(const glm::mat4& m) {
+    const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
+    return invZ * m * invZ;
+}
+
 std::string UnicodeUtil::WStringToUtf8(const std::wstring& w) {
     if (w.empty())
         return {};

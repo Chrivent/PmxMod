@@ -2,9 +2,12 @@
 
 #include <string>
 #include <filesystem>
+#include <glm/gtc/quaternion.hpp>
 
 struct ma_engine;
 struct ma_sound;
+
+glm::mat4 InvZ(const glm::mat4& m);
 
 struct UnicodeUtil {
     static std::string WStringToUtf8(const std::wstring& w);
