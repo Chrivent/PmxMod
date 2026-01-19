@@ -94,7 +94,7 @@ public:
 	void UpdatePhysicsAnimation(float elapsed) const;
 	void Update();
 	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
-	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir);
+	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
 	void Destroy();
 
 private:

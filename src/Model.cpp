@@ -231,7 +231,7 @@ void Model::UpdateAllAnimation(const Animation* anim, const float frame, const f
 	UpdateNodeAnimation(true);
 }
 
-bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& mmdDataDir) {
+bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
 	Destroy();
 
 	PMXReader pmx;
@@ -388,7 +388,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			if (pmxMat.m_toonTextureIndex != -1) {
 				std::stringstream ss;
 				ss << "toon" << std::setfill('0') << std::setw(2) << (pmxMat.m_toonTextureIndex + 1) << ".bmp";
-				mat.m_toonTexture = mmdDataDir / ss.str();
+				mat.m_toonTexture = dataDir / ss.str();
 			}
 		} else if (pmxMat.m_toonMode == ToonMode::Separate) {
 			if (pmxMat.m_toonTextureIndex != -1)
@@ -722,8 +722,6 @@ void Model::Update(const UpdateRange& range) {
 				break;
 			}
 			case WeightType::SDEF: {
-				// https://github.com/powroupi/blender_mmd_tools/blob/dev_test/mmd_tools/core/sdef.py
-
 				const auto i0 = vtxInfo->m_boneIndices[0];
 				const auto i1 = vtxInfo->m_boneIndices[1];
 				const auto w0 = vtxInfo->m_boneWeights[0];
@@ -746,10 +744,6 @@ void Model::Update(const UpdateRange& range) {
 				break;
 			}
 			case WeightType::QDEF: {
-				//
-				// Skinning with Dual Quaternions
-				// https://www.cs.utah.edu/~ladislav/dq/index.html
-				//
 				glm::dualquat dq[4];
 				float w[4] = {};
 				for (int bi = 0; bi < 4; bi++) {
