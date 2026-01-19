@@ -2,7 +2,6 @@
 
 #include "Util.h"
 
-#include <vector>
 #include <fstream>
 
 void Reader::Read(std::istream& is, void* dst, const std::size_t bytes) {

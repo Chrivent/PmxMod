@@ -4,8 +4,6 @@
 #include "Model.h"
 #include "Util.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 	const auto findIt = std::ranges::find_if(m_nonFilterProxy,
 		[proxy0, proxy1](const auto &x) { return x == proxy0 || x == proxy1; }
