@@ -1,8 +1,6 @@
 ﻿#pragma once
 
-#include <string>
 #include <windows.h>
-#include <glm/gtc/quaternion.hpp>
 
 struct Util {
     static glm::mat4 InvZ(const glm::mat4& m) {

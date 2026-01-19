@@ -1,13 +1,6 @@
 ﻿#pragma once
 
-#include <cstdint>
-#include <string>
-#include <vector>
 #include <filesystem>
-
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 enum class EncodeType : uint8_t {

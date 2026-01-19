@@ -1,7 +1,5 @@
 ﻿#include "Node.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 void Node::AddChild(Node* child) {
 	child->m_parent = this;
 	if (!m_child) {

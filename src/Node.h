@@ -1,10 +1,7 @@
 ﻿#pragma once
 
 #include <string>
-#include <memory>
-#include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/mat4x4.hpp>
 
 struct IkSolver;
 

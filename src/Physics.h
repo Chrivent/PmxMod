@@ -1,9 +1,6 @@
 ﻿#pragma once
 
 #include <vector>
-#include <memory>
-#include <cinttypes>
-#include <glm/mat4x4.hpp>
 #include <btBulletDynamicsCommon.h>
 
 #include "Reader.h"
