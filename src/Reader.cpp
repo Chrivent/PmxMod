@@ -309,8 +309,7 @@ void PMXReader::ReadMorph(std::istream& is) {
 		           m_morphType == MorphType::AddUV1 ||
 		           m_morphType == MorphType::AddUV2 ||
 		           m_morphType == MorphType::AddUV3 ||
-		           m_morphType == MorphType::AddUV4
-		) {
+		           m_morphType == MorphType::AddUV4) {
 			m_uvMorph.resize(dataCount);
 			for (auto& [m_vertexIndex, m_uv] : m_uvMorph) {
 				ReadIndex(is, &m_vertexIndex, m_header.m_vertexIndexSize);
