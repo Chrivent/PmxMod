@@ -63,7 +63,8 @@ void Node::UpdateAppendTransform() {
 	}
 	if (m_isAppendTranslate) {
 		const glm::vec3 appendTranslate = !m_isAppendLocal && m_appendNode->m_appendNode
-		? m_appendNode->m_appendTranslate : m_appendNode->m_translate - m_appendNode->m_initTranslate;
+		? m_appendNode->m_appendTranslate : m_appendNode->m_animTranslate +
+			m_appendNode->m_translate - m_appendNode->m_initTranslate;
 		m_appendTranslate = appendTranslate * m_appendWeight;
 	}
 	UpdateLocalTransform();

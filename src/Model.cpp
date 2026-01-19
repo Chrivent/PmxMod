@@ -541,10 +541,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
 				const glm::quat q = m_quaternion;
-				auto invZ = glm::mat3(glm::scale(glm::mat4(1), glm::vec3(1, 1, -1)));
-				auto rot0 = glm::mat3_cast(q);
-				auto rot1 = invZ * rot0 * invZ;
-				boneMorphElem.m_quaternion = glm::quat_cast(rot1);
+				auto rot = InvZ(glm::mat3_cast(q));
+				boneMorphElem.m_quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
 			m_boneMorphDatas.emplace_back(boneMorphData);
