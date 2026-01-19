@@ -1,8 +1,5 @@
 ﻿#include "Model.h"
 
-#include "Node.h"
-#include "IkSolver.h"
-#include "Physics.h"
 #include "Animation.h"
 
 #include "Util.h"
@@ -10,40 +7,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
-
-Morph::Morph()
-	: m_weight(0)
-	, m_saveAnimWeight(0)
-	, m_morphType()
-	, m_dataIndex(0) {
-}
-
-Material::Material()
-	: m_diffuse(1)
-	, m_specular(0)
-	, m_specularPower(1)
-	, m_ambient(0.2f)
-	, m_edgeFlag(0)
-	, m_edgeSize(0)
-	, m_edgeColor(0.0f, 0.0f, 0.0f, 1.0f)
-	, m_spTextureMode(SphereMode::None)
-	, m_textureMulFactor(1)
-	, m_spTextureMulFactor(1)
-	, m_toonTextureMulFactor(1)
-	, m_textureAddFactor(0)
-	, m_spTextureAddFactor(0)
-	, m_toonTextureAddFactor(0)
-	, m_bothFace(false)
-	, m_groundShadow(true)
-	, m_shadowCaster(true)
-	, m_shadowReceiver(true) {
-}
-
-Model::Model()
-	: m_indexCount(0)
-	, m_indexElementSize(0)
-	, m_parallelUpdateCount(0) {
-}
 
 Model::~Model() {
 	Destroy();

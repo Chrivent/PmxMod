@@ -519,7 +519,7 @@ bool DX11Viewer::CreatePipelineStates() {
 	if (FAILED(m_device->CreateRasterizerState(&bothRsDesc, &m_bothFaceRs)))
 		return false;
 	auto edgeRsDesc = Raster(D3D11_CULL_FRONT, true);
-	edgeRsDesc.DepthClipEnable = FALSE; // 기존 로직 유지
+	edgeRsDesc.DepthClipEnable = FALSE;
 	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_edgeRs)))
 		return false;
 	auto groundShadowRsDesc = Raster(D3D11_CULL_NONE, true);

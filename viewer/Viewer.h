@@ -15,16 +15,16 @@ struct Viewer;
 class Model;
 class Animation;
 
-struct Input {
+struct ModelConfig {
     std::filesystem::path				m_modelPath;
     std::vector<std::filesystem::path>	m_animPaths;
     float								m_scale = 1.1f;
 };
 
 struct SceneConfig {
-    std::vector<Input>		m_inputs;
-    std::filesystem::path	m_cameraAnim;
-    std::filesystem::path	m_musicPath;
+    std::vector<ModelConfig>    m_modelConfigs;
+    std::filesystem::path	    m_cameraAnim;
+    std::filesystem::path	    m_musicPath;
 };
 
 struct Instance {

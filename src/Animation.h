@@ -47,12 +47,10 @@ public:
 };
 
 struct Camera {
-	Camera();
-
-	glm::vec3	m_interest{};
-	glm::vec3	m_rotate{};
-	float		m_distance;
-	float		m_fov;
+	glm::vec3	m_interest = glm::vec3(0, 10, 0);
+	glm::vec3	m_rotate = glm::vec3(0, 0, 0);
+	float		m_distance = 50;
+	float		m_fov = glm::radians(30.0f);
 
 	glm::mat4 GetViewMatrix() const;
 };
@@ -78,5 +76,5 @@ public:
 	void Evaluate(float t);
 
 	std::vector<CameraAnimationKey>	m_keys;
-	Camera	m_camera;
+	Camera m_camera;
 };

@@ -150,8 +150,8 @@ void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFra
 
 bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances) {
     instances.clear();
-    instances.reserve(cfg.m_inputs.size());
-    for (const auto& [modelPath, vmdPaths, scale] : cfg.m_inputs) {
+    instances.reserve(cfg.m_modelConfigs.size());
+    for (const auto& [modelPath, vmdPaths, scale] : cfg.m_modelConfigs) {
         auto instance = CreateInstance();
         const auto pmxModel = std::make_shared<Model>();
         if (!pmxModel->Load(modelPath, m_pmxDir)) {

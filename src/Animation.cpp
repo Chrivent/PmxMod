@@ -1,8 +1,6 @@
 ﻿#include "Animation.h"
 
-#include "Node.h"
 #include "Model.h"
-#include "IkSolver.h"
 
 #include "Util.h"
 
@@ -217,13 +215,6 @@ void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	SetBezier(m_rotBezier,
 		motion.m_interpolation[3], motion.m_interpolation[11],
 		motion.m_interpolation[7], motion.m_interpolation[15]);
-}
-
-Camera::Camera() {
-	m_interest = glm::vec3(0, 10, 0);
-	m_rotate = glm::vec3(0, 0, 0);
-	m_distance = 50;
-	m_fov = glm::radians(30.0f);
 }
 
 glm::mat4 Camera::GetViewMatrix() const {
