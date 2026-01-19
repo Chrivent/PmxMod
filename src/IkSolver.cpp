@@ -36,10 +36,9 @@ void IkSolver::Solve() {
 }
 
 float IkSolver::NormalizeAngle(float angle) {
-	constexpr float t = glm::two_pi<float>();
-	angle = std::fmod(angle, t);
+	angle = std::fmod(angle, glm::two_pi<float>());
 	if (angle < 0)
-		angle += t;
+		angle += glm::two_pi<float>();
 	return angle;
 }
 

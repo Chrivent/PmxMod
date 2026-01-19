@@ -23,7 +23,7 @@ struct IkSolver {
 	Node*					m_ikNode = nullptr;
 	Node*					m_ikTarget = nullptr;
 	uint32_t				m_iterateCount = 1;
-	float					m_limitAngle = glm::pi<float>() * 2.0f;
+	float					m_limitAngle = glm::two_pi<float>();
 	bool					m_enable = true;
 	bool					m_baseAnimEnable = true;
 
