@@ -233,7 +233,7 @@ void Viewer::UpdateCamera() {
 }
 
 void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
-    std::vector<wchar_t> buf(260);
+    std::vector<wchar_t> buf(MAX_PATH);
     while (true) {
         const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
         if (n < buf.size() - 1) {
