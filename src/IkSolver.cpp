@@ -83,8 +83,7 @@ glm::vec3 IkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 		r.z = std::atan2(m[0][1], m[0][0]);
 	}
 	constexpr auto pi = glm::pi<float>();
-	glm::vec3 tests[] =
-	{
+	glm::vec3 tests[] = {
 		{r.x + pi, pi - r.y, r.z + pi},
 		{r.x + pi, pi - r.y, r.z - pi},
 		{r.x + pi, -pi - r.y, r.z + pi},
@@ -214,8 +213,8 @@ void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisInd
 	}
 	newAngle = glm::clamp(newAngle, chain.m_limitMin[RotateAxisIndex], chain.m_limitMax[RotateAxisIndex]);
 	chain.m_planeModeAngle = newAngle;
-	auto ikRotM = glm::rotate(glm::quat(1, 0, 0, 0), newAngle, RotateAxis)
-				* glm::inverse(chain.m_node->m_animRotate * chain.m_node->m_rotate);
+	auto ikRotM = glm::rotate(glm::quat(1, 0, 0, 0), newAngle, RotateAxis) *
+		glm::inverse(chain.m_node->m_animRotate * chain.m_node->m_rotate);
 	chain.m_node->m_ikRotate = ikRotM;
 	chain.m_node->UpdateLocalTransform();
 	chain.m_node->UpdateGlobalTransform();
