@@ -1,10 +1,7 @@
 ﻿#pragma once
 
-#include <filesystem>
-#include <vector>
 #include <future>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
+#include <filesystem>
 #include <glm/gtc/quaternion.hpp>
 
 struct GroupMorph;

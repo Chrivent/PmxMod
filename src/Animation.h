@@ -1,11 +1,6 @@
 ﻿#pragma once
 
 #include <map>
-#include <vector>
-#include <memory>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 #include "Reader.h"
 

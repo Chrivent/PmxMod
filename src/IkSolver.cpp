@@ -2,8 +2,6 @@
 
 #include "Node.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 void IkSolver::Solve() {
 	if (!m_enable)
 		return;

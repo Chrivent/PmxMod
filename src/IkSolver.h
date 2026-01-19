@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <vector>
-#include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 struct Node;

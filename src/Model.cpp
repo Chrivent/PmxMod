@@ -1,6 +1,4 @@
-﻿#define GLM_ENABLE_EXPERIMENTAL
-
-#include "Model.h"
+﻿#include "Model.h"
 
 #include "Node.h"
 #include "IkSolver.h"
@@ -9,6 +7,7 @@
 
 #include "Util.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
 
