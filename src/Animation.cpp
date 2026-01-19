@@ -6,8 +6,6 @@
 
 #include "Util.h"
 
-#include <algorithm>
-#include <map>
 #include <ranges>
 
 void SetBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
@@ -35,13 +33,34 @@ float FindBezierX(float time, const float x1, const float x2) {
 	return t;
 }
 
+std::string Animation::SjisToUtf8(const char* sjis) {
+	if (!sjis)
+		return {};
+	const int need = MultiByteToWideChar(
+		932, MB_ERR_INVALID_CHARS,
+		sjis, -1,
+		nullptr, 0);
+	if (need <= 0)
+		return {};
+	std::wstring w(static_cast<size_t>(need), L'\0');
+	const int written = MultiByteToWideChar(
+		932, MB_ERR_INVALID_CHARS,
+		sjis, -1,
+		w.data(), need);
+	if (written <= 0)
+		return {};
+	if (!w.empty() && w.back() == L'\0')
+		w.pop_back();
+	return Util::WStringToUtf8(w);
+}
+
 bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<Node*, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
 		nodeMap.emplace(node.first->m_name, std::move(node));
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
-		auto nodeName = UnicodeUtil::SjisToUtf8(motion.m_boneName);
+		auto nodeName = SjisToUtf8(motion.m_boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
@@ -62,7 +81,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	m_iks.clear();
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
-			auto ikName = UnicodeUtil::SjisToUtf8(m_name);
+			auto ikName = SjisToUtf8(m_name);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
@@ -88,7 +107,7 @@ bool Animation::Add(const VMDReader& vmd) {
 		morphMap.emplace(morph.first->m_name, std::move(morph));
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
-		auto morphName = UnicodeUtil::SjisToUtf8(m_blendShapeName);
+		auto morphName = SjisToUtf8(m_blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
@@ -184,7 +203,7 @@ void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 	m_time = static_cast<int32_t>(motion.m_frame);
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
 	const glm::quat q = motion.m_quaternion;
-	const auto rot = InvZ(glm::mat3_cast(q));
+	const auto rot = Util::InvZ(glm::mat3_cast(q));
 	m_rotate = glm::quat_cast(rot);
 	SetBezier(m_txBezier,
 		motion.m_interpolation[0], motion.m_interpolation[8],

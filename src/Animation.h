@@ -39,6 +39,8 @@ struct IKAnimationKey {
 
 class Animation {
 public:
+	static std::string SjisToUtf8(const char* sjis);
+
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;

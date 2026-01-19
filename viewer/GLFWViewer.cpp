@@ -1,12 +1,9 @@
 #include "GLFWViewer.h"
 
-#include "../src/Reader.h"
-#include "../src/Util.h"
 #include "../src/Model.h"
 
 #include "../external/stb_image.h"
 
-#include <iostream>
 #include <fstream>
 #include <ranges>
 

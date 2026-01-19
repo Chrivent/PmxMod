@@ -13,7 +13,7 @@ add_executable(PmxMod
         main.cpp
         external/miniaudio.h
         external/stb_image.h
-        src/Util.cpp src/Util.h
+        src/Util.h
         src/IkSolver.cpp src/IkSolver.h
         src/Model.cpp src/Model.h
         src/Node.cpp src/Node.h

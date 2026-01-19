@@ -1,6 +1,5 @@
 #include "DX11Viewer.h"
 
-#include "../src/Util.h"
 #include "../src/Model.h"
 
 #include "../external/stb_image.h"

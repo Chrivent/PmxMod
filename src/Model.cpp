@@ -9,13 +9,8 @@
 
 #include "Util.h"
 
-#include <glm/gtx/dual_quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <limits>
-#include <algorithm>
-#include <sstream>
-#include <iomanip>
-#include <thread>
+#include <glm/gtx/dual_quaternion.hpp>
 
 Morph::Morph()
 	: m_weight(0)
@@ -541,7 +536,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
 				const glm::quat q = m_quaternion;
-				auto rot = InvZ(glm::mat3_cast(q));
+				auto rot = Util::InvZ(glm::mat3_cast(q));
 				boneMorphElem.m_quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}

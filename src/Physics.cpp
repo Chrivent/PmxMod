@@ -18,7 +18,7 @@ bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, b
 }
 
 DefaultMotionState::DefaultMotionState(const glm::mat4& transform) {
-	glm::mat4 trans = InvZ(transform);
+	glm::mat4 trans = Util::InvZ(transform);
 	m_transform.setFromOpenGLMatrix(&trans[0][0]);
 	m_initialTransform = m_transform;
 }
@@ -55,14 +55,14 @@ void DynamicMotionState::setWorldTransform(const btTransform& worldTransform) {
 }
 
 void DynamicMotionState::Reset() {
-	glm::mat4 global = InvZ(m_node->m_global * m_offset);
+	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
 	m_transform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void DynamicMotionState::ReflectGlobalTransform() {
 	alignas(16) glm::mat4 world;
 	m_transform.getOpenGLMatrix(&world[0][0]);
-	const glm::mat4 btGlobal = InvZ(world) * m_invOffset;
+	const glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
 
 	if (m_override) {
 		m_node->m_global = btGlobal;
@@ -87,14 +87,14 @@ void DynamicAndBoneMergeMotionState::setWorldTransform(const btTransform& worldT
 }
 
 void DynamicAndBoneMergeMotionState::Reset() {
-	glm::mat4 global = InvZ(m_node->m_global * m_offset);
+	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
 	m_transform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void DynamicAndBoneMergeMotionState::ReflectGlobalTransform() {
 	alignas(16) glm::mat4 world;
 	m_transform.getOpenGLMatrix(&world[0][0]);
-	glm::mat4 btGlobal = InvZ(world) * m_invOffset;
+	glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
 	glm::mat4 global = m_node->m_global;
 	btGlobal[3] = global[3];
 	if (m_override) {
@@ -114,7 +114,7 @@ void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const 
 		m = m_node->m_global * m_offset;
 	else
 		m = m_offset;
-	m = InvZ(m);
+	m = Util::InvZ(m);
 	worldTransform.setFromOpenGLMatrix(&m[0][0]);
 }
 
@@ -166,7 +166,7 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	const auto rz = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.z, glm::vec3(0, 0, 1));
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
-	const glm::mat4 rbMat = InvZ(translateMat * rotMat);
+	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
 	Node *kinematicNode = nullptr;
 	if (node != nullptr) {
 		m_offsetMat = glm::inverse(node->m_global) * rbMat;
@@ -267,7 +267,7 @@ glm::mat4 RigidBody::GetTransform() const {
 	const btTransform transform = m_rigidBody->getCenterOfMassTransform();
 	alignas(16) glm::mat4 mat;
 	transform.getOpenGLMatrix(&mat[0][0]);
-	return InvZ(mat);
+	return Util::InvZ(mat);
 }
 
 void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {

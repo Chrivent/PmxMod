@@ -1,10 +1,12 @@
 #include "Viewer.h"
 
-#include "../src/Util.h"
 #include "../src/Model.h"
 
 #define	STB_IMAGE_IMPLEMENTATION
 #include "../external/stb_image.h"
+
+#define MINIAUDIO_IMPLEMENTATION
+#include "../external/miniaudio.h"
 
 #include <iostream>
 
@@ -13,8 +15,61 @@ void Instance::UpdateAnimation(const Viewer& viewer) const {
     m_model->UpdateAllAnimation(m_anim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
+Sound::Sound() {
+    m_engine = std::make_unique<ma_engine>();
+    m_sound = std::make_unique<ma_sound>();
+}
+
+Sound::~Sound() {
+    Uninit();
+}
+
+bool Sound::Init(const std::filesystem::path& path) {
+    Uninit();
+    if (path.empty())
+        return false;
+    if (ma_engine_init(nullptr, m_engine.get()) != MA_SUCCESS)
+        return false;
+    if (ma_sound_init_from_file_w(m_engine.get(), path.wstring().c_str(),
+        0, nullptr, nullptr, m_sound.get()) != MA_SUCCESS) {
+        ma_engine_uninit(m_engine.get());
+        return false;
+        }
+    ma_sound_set_volume(m_sound.get(), m_volume);
+    ma_sound_start(m_sound.get());
+    m_hasSound = true;
+    m_prevTimeSec = 0.0;
+    return true;
+}
+
+std::pair<float, float> Sound::PullTimes() {
+    if (!m_hasSound)
+        return { 0.f, 0.f };
+    ma_uint64 frames{};
+    if (ma_sound_get_cursor_in_pcm_frames(m_sound.get(), &frames) != MA_SUCCESS)
+        return { 0.f, static_cast<float>(m_prevTimeSec) };
+    const double sr = ma_engine_get_sample_rate(m_engine.get());
+    const double t = sr > 0.0 ? static_cast<double>(frames) / sr : m_prevTimeSec;
+    double dt = t - m_prevTimeSec;
+    if (dt < 0.0)
+        dt = 0.0;
+    m_prevTimeSec = t;
+    return { static_cast<float>(dt), static_cast<float>(t) };
+}
+
+void Sound::Uninit() {
+    if (!m_hasSound)
+        return;
+    ma_sound_uninit(m_sound.get());
+    ma_engine_uninit(m_engine.get());
+    m_hasSound = false;
+    m_prevTimeSec = 0.0;
+    m_engine.reset();
+    m_sound.reset();
+}
+
 bool Viewer::Run(const SceneConfig& cfg) {
-    MusicUtil music;
+    Sound music;
     music.Init(cfg.m_musicPath);
     if (!glfwInit())
         return false;
@@ -98,11 +153,6 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
     instances.reserve(cfg.m_inputs.size());
     for (const auto& [modelPath, vmdPaths, scale] : cfg.m_inputs) {
         auto instance = CreateInstance();
-        const auto ext = PathUtil::GetExt(modelPath);
-        if (ext != "pmx") {
-            std::cout << "Unknown file type. [" << ext << "]\n";
-            return false;
-        }
         const auto pmxModel = std::make_shared<Model>();
         if (!pmxModel->Load(modelPath, m_pmxDir)) {
             std::cout << "Failed to load pmx file.\n";
@@ -147,7 +197,7 @@ void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
     }
 }
 
-void Viewer::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime) {
+void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime) {
     const auto now = std::chrono::steady_clock::now();
     double elapsed = std::chrono::duration<double>(now - saveTime).count();
     if (elapsed > 1.0 / 30.0)
@@ -155,9 +205,10 @@ void Viewer::StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& s
     saveTime = now;
     auto dt = static_cast<float>(elapsed);
     float t = m_animTime + dt;
-    if (music.HasMusic()) {
+    if (music.m_hasSound) {
         auto [adt, at] = music.PullTimes();
-        if (adt < 0.f) adt = 0.f;
+        if (adt < 0.f)
+            adt = 0.f;
         dt = adt;
         t  = at;
     }
@@ -181,10 +232,17 @@ void Viewer::UpdateCamera() {
     );
 }
 
-void Viewer::InitDirs(const std::string& shaderSubDir) {
-    m_resourceDir = PathUtil::GetExecutablePath();
-    m_resourceDir = m_resourceDir.parent_path();
-    m_resourceDir /= "resource";
+void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
+    std::vector<wchar_t> buf(260);
+    while (true) {
+        const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
+        if (n < buf.size() - 1) {
+            m_resourceDir = std::filesystem::path(std::wstring(buf.data(), n));
+            break;
+        }
+        buf.resize(buf.size() * 2);
+    }
+    m_resourceDir = m_resourceDir.parent_path() / "resource";
     m_shaderDir = m_resourceDir / shaderSubDir;
     m_pmxDir = m_resourceDir / "mmd";
 }

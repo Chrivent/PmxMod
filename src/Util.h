@@ -1,38 +1,31 @@
 ﻿#pragma once
 
 #include <string>
-#include <filesystem>
+#include <windows.h>
 #include <glm/gtc/quaternion.hpp>
 
-struct ma_engine;
-struct ma_sound;
+struct Util {
+    static glm::mat4 InvZ(const glm::mat4& m) {
+        const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
+        return invZ * m * invZ;
+    }
 
-glm::mat4 InvZ(const glm::mat4& m);
-
-struct UnicodeUtil {
-    static std::string WStringToUtf8(const std::wstring& w);
-    static std::string SjisToUtf8(const char* sjis);
-};
-
-struct PathUtil {
-    static std::filesystem::path GetExecutablePath();
-    static std::string GetExt(const std::filesystem::path& path);
-};
-
-struct MusicUtil {
-	MusicUtil();
-	~MusicUtil();
-
-	bool Init(const std::filesystem::path& path);
-	bool HasMusic() const;
-	std::pair<float, float> PullTimes();
-
-private:
-	void Uninit();
-
-	std::unique_ptr<ma_engine> m_engine;
-	std::unique_ptr<ma_sound>  m_sound;
-	bool   m_hasMusic = false;
-	double m_prevTimeSec = 0.0;
-	float m_volume = 0.1f;
+    static std::string WStringToUtf8(const std::wstring& w) {
+        if (w.empty())
+            return {};
+        const int need = WideCharToMultiByte(
+            CP_UTF8, 0,
+            w.data(), static_cast<int>(w.size()),
+            nullptr, 0, nullptr, nullptr);
+        if (need <= 0)
+            return {};
+        std::string utf8(static_cast<size_t>(need), '\0');
+        const int written = WideCharToMultiByte(
+            CP_UTF8, 0,
+            w.data(), static_cast<int>(w.size()),
+            utf8.data(), need, nullptr, nullptr);
+        if (written != need)
+            return {};
+        return utf8;
+    }
 };

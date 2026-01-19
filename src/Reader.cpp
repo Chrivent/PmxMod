@@ -29,7 +29,7 @@ void PMXReader::ReadString(std::istream& is, std::string* val) const {
 		if (m_header.m_encodeType == EncodeType::UTF16) {
 			std::wstring utf16Str(bufSize / 2, L'\0');
 			Read(is, utf16Str.data(), bufSize);
-			*val = UnicodeUtil::WStringToUtf8(utf16Str);
+			*val = Util::WStringToUtf8(utf16Str);
 		} else if (m_header.m_encodeType == EncodeType::UTF8) {
 			val->resize(bufSize);
 			Read(is, val->data(), bufSize);

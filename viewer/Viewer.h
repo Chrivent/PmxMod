@@ -6,9 +6,11 @@
 
 #include "../src/Animation.h"
 
-struct MusicUtil;
+struct Sound;
 struct SceneConfig;
 struct Material;
+struct ma_engine;
+struct ma_sound;
 struct Viewer;
 class Model;
 class Animation;
@@ -38,6 +40,24 @@ struct Instance {
     virtual void Clear() {}
 
     void UpdateAnimation(const Viewer& viewer) const;
+};
+
+struct Sound {
+    Sound();
+    ~Sound();
+
+    bool Init(const std::filesystem::path& path);
+    std::pair<float, float> PullTimes();
+
+    bool   m_hasSound = false;
+    float m_volume = 0.1f;
+
+private:
+    void Uninit();
+
+    std::unique_ptr<ma_engine> m_engine;
+    std::unique_ptr<ma_sound>  m_sound;
+    double m_prevTimeSec = 0.0;
 };
 
 struct Viewer {
@@ -72,7 +92,7 @@ struct Viewer {
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
     void LoadCameraAnim(const SceneConfig& cfg);
-    void StepTime(MusicUtil& music, std::chrono::steady_clock::time_point& saveTime);
+    void StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime);
     void UpdateCamera();
-    void InitDirs(const std::string& shaderSubDir);
+    void InitDirs(const std::filesystem::path& shaderSubDir);
 };
