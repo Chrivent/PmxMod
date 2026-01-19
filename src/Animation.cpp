@@ -24,7 +24,7 @@ float FindBezierX(float time, const float x1, const float x2) {
 	time = std::clamp(time, 0.0f, 1.0f);
 	float start = 0.0f, stop = 1.0f;
 	float t = 0.5f;
-	for (int i = 0; i < 32; i++) {
+	while (true) {
 		const float x = Bezier(t, x1, x2);
 		const float diff = time - x;
 		if (std::abs(diff) < 1e-5f)
