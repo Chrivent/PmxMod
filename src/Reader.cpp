@@ -36,7 +36,7 @@ void PMXReader::ReadString(std::istream& is, std::string* val) const {
 	}
 }
 
-void PMXReader::ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize) {
+void PMXReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 	switch (indexSize) {
 		case 1: {
 			uint8_t idx;
