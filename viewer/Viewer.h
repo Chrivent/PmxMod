@@ -49,7 +49,7 @@ struct Sound {
     bool Init(const std::filesystem::path& path);
     std::pair<float, float> PullTimes();
 
-    bool   m_hasSound = false;
+    bool m_hasSound = false;
     float m_volume = 0.1f;
 
 private:
