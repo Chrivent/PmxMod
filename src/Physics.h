@@ -120,11 +120,11 @@ struct Physics {
 	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;
 	std::unique_ptr<btCollisionDispatcher>					m_dispatcher;
 	std::unique_ptr<btSequentialImpulseConstraintSolver>	m_solver;
+	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
 	std::unique_ptr<btCollisionShape>						m_groundShape;
 	std::unique_ptr<btMotionState>							m_groundMS;
 	std::unique_ptr<btRigidBody>							m_groundRB;
 	std::unique_ptr<btOverlapFilterCallback>				m_filterCB;
-	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
 
 	double	m_fps = 120.0f;
 	int		m_maxSubStepCount = 10;
