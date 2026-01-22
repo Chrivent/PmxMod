@@ -458,7 +458,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
 	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t i) {
 		if (m_morphs[i]->m_morphType == MorphType::Group) {
-			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[m_morphs[i]->m_dataIndex]) {
+			for (auto& [m_morphIndex, m_weight] : m_groupMorphDatas[m_morphs[i]->m_dataIndex]) {
 				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 				if (findIt != groupMorphStack.end())
 					m_morphIndex = -1;
