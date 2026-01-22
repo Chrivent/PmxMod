@@ -11,8 +11,8 @@ struct Node;
 
 class MotionState : public btMotionState {
 public:
-	virtual void Reset() = 0;
-	virtual void ReflectGlobalTransform() = 0;
+	virtual void Reset() {}
+	virtual void ReflectGlobalTransform() {}
 };
 
 struct OverlapFilterCallback final : btOverlapFilterCallback {
@@ -29,7 +29,6 @@ public:
 	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
 
 	void Reset() override { m_transform = m_initialTransform; }
-	void ReflectGlobalTransform() override {}
 
 private:
 	btTransform	m_initialTransform;
@@ -69,9 +68,6 @@ public:
 
 	void getWorldTransform(btTransform& worldTransform) const override;
 	void setWorldTransform(const btTransform& worldTransform) override {}
-
-	void Reset() override {}
-	void ReflectGlobalTransform() override {}
 
 private:
 	Node*		m_node;
