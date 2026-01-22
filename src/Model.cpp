@@ -108,10 +108,6 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 			node->UpdateGlobalTransform();
 		}
 	}
-	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
-		if (!node->m_parent)
-			node->UpdateGlobalTransform();
-	}
 }
 
 void Model::ResetPhysics() const {
