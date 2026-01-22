@@ -7,8 +7,8 @@ bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, b
 	const auto endIt = m_nonFilterProxy.end();
 	if (std::ranges::find(m_nonFilterProxy, proxy0) != endIt || std::ranges::find(m_nonFilterProxy, proxy1) != endIt)
 		return true;
-	bool collides = ((proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0);
-	collides = collides && ((proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask) != 0);
+	bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
+	collides = collides && (proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask) != 0;
 	return collides;
 }
 
@@ -132,7 +132,7 @@ void RigidBody::SetActivation(const bool activation) const {
 }
 
 void RigidBody::ResetTransform() const {
-	if (m_activeMotionState != nullptr)
+	if (m_activeMotionState)
 		m_activeMotionState->Reset();
 }
 
