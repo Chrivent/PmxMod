@@ -9,8 +9,8 @@ bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, b
 	);
 	if (findIt != m_nonFilterProxy.end())
 		return true;
-	bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
-	collides = collides && proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask;
+	bool collides = ((proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0);
+	collides = collides && ((proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask) != 0);
 	return collides;
 }
 
@@ -54,13 +54,8 @@ KinematicMotionState::KinematicMotionState(Node* node, const glm::mat4& offset)
 }
 
 void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
-	glm::mat4 m;
-	if (m_node != nullptr)
-		m = m_node->m_global * m_offset;
-	else
-		m = m_offset;
-	m = Util::InvZ(m);
-	worldTransform.setFromOpenGLMatrix(&m[0][0]);
+	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
+	worldTransform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
@@ -163,8 +158,7 @@ void RigidBody::ResetTransform() const {
 }
 
 void RigidBody::Reset(const Physics* physics) const {
-	const auto cache = physics->m_world->getPairCache();
-	if (cache != nullptr) {
+	if (const auto cache = physics->m_world->getPairCache()) {
 		const auto dispatcher = physics->m_world->getDispatcher();
 		cache->cleanProxyFromPairs(m_rigidBody->getBroadphaseHandle(), dispatcher);
 	}
@@ -174,16 +168,15 @@ void RigidBody::Reset(const Physics* physics) const {
 }
 
 void RigidBody::ReflectGlobalTransform() const {
-	if (m_activeMotionState != nullptr)
+	if (m_activeMotionState)
 		m_activeMotionState->ReflectGlobalTransform();
-	if (m_kinematicMotionState != nullptr)
+	if (m_kinematicMotionState)
 		m_kinematicMotionState->ReflectGlobalTransform();
 }
 
 void RigidBody::CalcLocalTransform() const {
-	if (m_node != nullptr) {
-		const auto parent = m_node->m_parent;
-		if (parent != nullptr) {
+	if (m_node) {
+		if (const auto parent = m_node->m_parent) {
 			const auto local = glm::inverse(parent->m_global) * m_node->m_global;
 			m_node->m_local = local;
 		} else
@@ -268,7 +261,7 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 }
 
 Physics::~Physics() {
-	if (m_world != nullptr && m_groundRB != nullptr)
+	if (m_world && m_groundRB)
 		m_world->removeRigidBody(m_groundRB.get());
 }
 
@@ -295,24 +288,4 @@ void Physics::Create() {
 	filterCB->m_nonFilterProxy.push_back(m_groundRB->getBroadphaseProxy());
 	m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());
 	m_filterCB = std::move(filterCB);
-}
-
-void Physics::Update(const float time) const {
-	m_world->stepSimulation(time, m_maxSubStepCount, static_cast<btScalar>(1.0 / m_fps));
-}
-
-void Physics::AddRigidBody(const RigidBody* rb) const {
-	m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
-}
-
-void Physics::RemoveRigidBody(const RigidBody* rb) const {
-	m_world->removeRigidBody(rb->m_rigidBody.get());
-}
-
-void Physics::AddJoint(const Joint* joint) const {
-	m_world->addConstraint(joint->m_constraint.get());
-}
-
-void Physics::RemoveJoint(const Joint* joint) const {
-	m_world->removeConstraint(joint->m_constraint.get());
 }

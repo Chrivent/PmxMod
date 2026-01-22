@@ -116,12 +116,6 @@ struct Physics {
 	~Physics();
 
 	void Create();
-	void Update(float time) const;
-
-	void AddRigidBody(const RigidBody* rb) const;
-	void RemoveRigidBody(const RigidBody* rb) const;
-	void AddJoint(const Joint* joint) const;
-	void RemoveJoint(const Joint* joint) const;
 
 	std::unique_ptr<btBroadphaseInterface>					m_broadPhase;
 	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;

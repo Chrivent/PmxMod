@@ -151,7 +151,10 @@ void Model::ResetPhysics() const {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-	physics->Update(1.0f / 60.0f);
+	physics->m_world->stepSimulation(
+		1.0f / 60.0f,
+		physics->m_maxSubStepCount,
+		static_cast<btScalar>(1.0 / physics->m_fps));
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -169,7 +172,10 @@ void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	const auto &rigidBodies = m_rigidBodies;
 	for (auto &rb: rigidBodies)
 		rb->SetActivation(true);
-	physics->Update(elapsed);
+	physics->m_world->stepSimulation(
+		elapsed,
+		physics->m_maxSubStepCount,
+		static_cast<btScalar>(1.0 / physics->m_fps));
 	for (auto &rb: rigidBodies)
 		rb->ReflectGlobalTransform();
 	for (auto &rb: rigidBodies)
@@ -568,7 +574,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (pmxRB.m_boneIndex != -1)
 			node = m_nodes[pmxRB.m_boneIndex].get();
 		rb->Create(pmxRB, this, node);
-		m_physics->AddRigidBody(rb.get());
+		m_physics->m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
 
 	}
@@ -583,7 +589,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
 				rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
 			);
-			m_physics->AddJoint(joint.get());
+			m_physics->m_world->addConstraint(joint->m_constraint.get());
 			m_joints.emplace_back(std::move(joint));
 		}
 	}
@@ -605,11 +611,11 @@ void Model::Destroy() {
 	m_nodes.clear();
 	m_updateRanges.clear();
 
-	for (auto &joint: m_joints)
-		m_physics->RemoveJoint(joint.get());
+	for (const auto& joint: m_joints)
+		m_physics->m_world->removeConstraint(joint->m_constraint.get());
 	m_joints.clear();
-	for (auto &rb: m_rigidBodies)
-		m_physics->RemoveRigidBody(rb.get());
+	for (const auto& rb: m_rigidBodies)
+		m_physics->m_world->removeRigidBody(rb->m_rigidBody.get());
 	m_rigidBodies.clear();
 	m_physics.reset();
 }
