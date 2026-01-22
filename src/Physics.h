@@ -25,28 +25,30 @@ class DefaultMotionState final : public MotionState {
 public:
 	explicit DefaultMotionState(const glm::mat4& transform);
 
-	void getWorldTransform(btTransform& worldTransform) const override;
-	void setWorldTransform(const btTransform& worldTransform) override;
+	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
+	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
 
-	void Reset() override;
-	void ReflectGlobalTransform() override;
+	void Reset() override { m_transform = m_initialTransform; }
+	void ReflectGlobalTransform() override {}
 
 private:
 	btTransform	m_initialTransform;
 	btTransform	m_transform;
 };
 
-class DynamicMotionState final : public MotionState {
+class DynamicMotionState : public MotionState {
 public:
 	DynamicMotionState(Node* node, const glm::mat4& offset, bool override = true);
 
-	void getWorldTransform(btTransform& worldTransform) const override;
-	void setWorldTransform(const btTransform& worldTransform) override;
+	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
+	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
 
 	void Reset() override;
 	void ReflectGlobalTransform() override;
 
-private:
+protected:
+	virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
+
 	Node* m_node;
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
@@ -54,22 +56,12 @@ private:
 	bool		m_override;
 };
 
-class DynamicAndBoneMergeMotionState final : public MotionState {
+class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
 public:
-	DynamicAndBoneMergeMotionState(Node* node, const glm::mat4& offset, bool override = true);
+	using DynamicMotionState::DynamicMotionState;
 
-	void getWorldTransform(btTransform& worldTransform) const override;
-	void setWorldTransform(const btTransform& worldTransform) override;
-
-	void Reset() override;
-	void ReflectGlobalTransform() override;
-
-private:
-	Node* m_node;
-	glm::mat4	m_offset;
-	glm::mat4	m_invOffset{};
-	btTransform	m_transform;
-	bool		m_override;
+protected:
+	void PostProcessBtGlobal(glm::mat4& btGlobal) const override;
 };
 
 class KinematicMotionState final : public MotionState {
@@ -77,10 +69,10 @@ public:
 	KinematicMotionState(Node* node, const glm::mat4& offset);
 
 	void getWorldTransform(btTransform& worldTransform) const override;
-	void setWorldTransform(const btTransform& worldTransform) override;
+	void setWorldTransform(const btTransform& worldTransform) override {}
 
-	void Reset() override;
-	void ReflectGlobalTransform() override;
+	void Reset() override {}
+	void ReflectGlobalTransform() override {}
 
 private:
 	Node* m_node;
@@ -88,8 +80,6 @@ private:
 };
 
 struct RigidBody {
-	RigidBody();
-
 	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node* node);
 
 	void SetActivation(bool activation) const;
@@ -106,12 +96,12 @@ struct RigidBody {
 	std::unique_ptr<MotionState>		m_kinematicMotionState;
 	std::unique_ptr<btRigidBody>		m_rigidBody;
 
-	Operation		m_rigidBodyType;
-	uint16_t		m_group;
-	uint16_t		m_groupMask;
+	Operation		m_rigidBodyType = Operation::Static;
+	uint16_t		m_group = 0;
+	uint16_t		m_groupMask = 0;
 
-	Node*	m_node;
-	glm::mat4	m_offsetMat;
+	Node*	m_node = nullptr;
+	glm::mat4	m_offsetMat = glm::mat4(1);
 
 	std::string					m_name;
 };
@@ -123,7 +113,6 @@ struct Joint {
 };
 
 struct Physics {
-	Physics();
 	~Physics();
 
 	void Create();
@@ -144,6 +133,6 @@ struct Physics {
 	std::unique_ptr<btRigidBody>							m_groundRB;
 	std::unique_ptr<btOverlapFilterCallback>				m_filterCB;
 
-	double	m_fps;
-	int		m_maxSubStepCount;
+	double	m_fps = 120.0f;
+	int		m_maxSubStepCount = 10;
 };

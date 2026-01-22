@@ -20,35 +20,12 @@ DefaultMotionState::DefaultMotionState(const glm::mat4& transform) {
 	m_initialTransform = m_transform;
 }
 
-void DefaultMotionState::getWorldTransform(btTransform& worldTransform) const {
-	worldTransform = m_transform;
-}
-
-void DefaultMotionState::setWorldTransform(const btTransform& worldTransform) {
-	m_transform = worldTransform;
-}
-
-void DefaultMotionState::Reset() {
-	m_transform = m_initialTransform;
-}
-
-void DefaultMotionState::ReflectGlobalTransform() {
-}
-
 DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset, const bool override)
 	: m_node(node)
 	, m_offset(offset)
 	, m_override(override) {
 	m_invOffset = glm::inverse(offset);
-	Reset();
-}
-
-void DynamicMotionState::getWorldTransform(btTransform& worldTransform) const {
-	worldTransform = m_transform;
-}
-
-void DynamicMotionState::setWorldTransform(const btTransform& worldTransform) {
-	m_transform = worldTransform;
+	DynamicMotionState::Reset();
 }
 
 void DynamicMotionState::Reset() {
@@ -59,45 +36,16 @@ void DynamicMotionState::Reset() {
 void DynamicMotionState::ReflectGlobalTransform() {
 	alignas(16) glm::mat4 world;
 	m_transform.getOpenGLMatrix(&world[0][0]);
-	const glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
-
-	if (m_override) {
-		m_node->m_global = btGlobal;
-		m_node->UpdateChildTransform();
-	}
-}
-
-DynamicAndBoneMergeMotionState::DynamicAndBoneMergeMotionState(Node* node, const glm::mat4& offset, const bool override)
-	: m_node(node)
-	, m_offset(offset)
-	, m_override(override) {
-	m_invOffset = glm::inverse(offset);
-	Reset();
-}
-
-void DynamicAndBoneMergeMotionState::getWorldTransform(btTransform& worldTransform) const {
-	worldTransform = m_transform;
-}
-
-void DynamicAndBoneMergeMotionState::setWorldTransform(const btTransform& worldTransform) {
-	m_transform = worldTransform;
-}
-
-void DynamicAndBoneMergeMotionState::Reset() {
-	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
-	m_transform.setFromOpenGLMatrix(&global[0][0]);
-}
-
-void DynamicAndBoneMergeMotionState::ReflectGlobalTransform() {
-	alignas(16) glm::mat4 world;
-	m_transform.getOpenGLMatrix(&world[0][0]);
 	glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
-	glm::mat4 global = m_node->m_global;
-	btGlobal[3] = global[3];
+	PostProcessBtGlobal(btGlobal);
 	if (m_override) {
 		m_node->m_global = btGlobal;
 		m_node->UpdateChildTransform();
 	}
+}
+
+void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
+	btGlobal[3] = m_node->m_global[3];
 }
 
 KinematicMotionState::KinematicMotionState(Node* node, const glm::mat4& offset)
@@ -113,23 +61,6 @@ void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const 
 		m = m_offset;
 	m = Util::InvZ(m);
 	worldTransform.setFromOpenGLMatrix(&m[0][0]);
-}
-
-void KinematicMotionState::setWorldTransform(const btTransform& worldTransform) {
-}
-
-void KinematicMotionState::Reset() {
-}
-
-void KinematicMotionState::ReflectGlobalTransform() {
-}
-
-RigidBody::RigidBody()
-	: m_rigidBodyType(Operation::Static)
-	, m_group(0)
-	, m_groupMask(0)
-	, m_node(nullptr)
-	, m_offsetMat(1) {
 }
 
 void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
@@ -334,11 +265,6 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 		constraint->setStiffness(5, pmxJoint.m_springRotateFactor.z);
 	}
 	m_constraint = std::move(constraint);
-}
-
-Physics::Physics()
-	: m_fps(120.0f)
-	, m_maxSubStepCount(10) {
 }
 
 Physics::~Physics() {
