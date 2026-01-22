@@ -238,45 +238,19 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_indexElementSize = pmx.m_header.m_vertexIndexSize;
 	m_indices.resize(pmx.m_faces.size() * 3 * m_indexElementSize);
 	m_indexCount = pmx.m_faces.size() * 3;
+	auto fillIndices = [&](auto* out) {
+		int idx = 0;
+		for (const auto& [tri] : pmx.m_faces) {
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[2]);
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[1]);
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
+		}
+	};
 	switch (m_indexElementSize) {
-		case 1: {
-				int idx = 0;
-				auto indices = reinterpret_cast<uint8_t*>(m_indices.data());
-				for (const auto& [m_vertices] : pmx.m_faces) {
-					for (int i = 0; i < 3; i++) {
-						auto vi = m_vertices[3 - i - 1];
-						indices[idx] = static_cast<uint8_t>(vi);
-						idx++;
-					}
-				}
-			}
-			break;
-		case 2: {
-				int idx = 0;
-				auto indices = reinterpret_cast<uint16_t*>(m_indices.data());
-				for (const auto& [m_vertices] : pmx.m_faces) {
-					for (int i = 0; i < 3; i++) {
-						auto vi = m_vertices[3 - i - 1];
-						indices[idx] = static_cast<uint16_t>(vi);
-						idx++;
-					}
-				}
-			}
-			break;
-		case 4: {
-				int idx = 0;
-				auto indices = reinterpret_cast<uint32_t*>(m_indices.data());
-				for (const auto& [m_vertices] : pmx.m_faces) {
-					for (int i = 0; i < 3; i++) {
-						auto vi = m_vertices[3 - i - 1];
-						indices[idx] = vi;
-						idx++;
-					}
-				}
-			}
-			break;
-		default:
-			return false;
+		case 1: fillIndices(reinterpret_cast<uint8_t*>(m_indices.data())); break;
+		case 2: fillIndices(reinterpret_cast<uint16_t*>(m_indices.data())); break;
+		case 4: fillIndices(reinterpret_cast<uint32_t*>(m_indices.data())); break;
+		default: return false;
 	}
 	std::vector<std::filesystem::path> texturePaths;
 	texturePaths.reserve(pmx.m_textures.size());
@@ -288,17 +262,18 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_subMeshes.reserve(pmx.m_materials.size());
 	uint32_t beginIndex = 0;
 	for (const auto& mat : pmx.m_materials) {
+		const auto dm = static_cast<uint8_t>(mat.m_drawMode);
 		Material m;
 		m.m_diffuse = mat.m_diffuse;
 		m.m_specularPower = mat.m_specularPower;
 		m.m_specular = mat.m_specular;
 		m.m_ambient = mat.m_ambient;
 		m.m_spTextureMode = SphereMode::None;
-		m.m_bothFace = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::BothFace));
-		m.m_edgeFlag = (static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
-		m.m_groundShadow = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::GroundShadow));
-		m.m_shadowCaster = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow));
-		m.m_shadowReceiver = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow));
+		m.m_bothFace      = (dm & static_cast<uint8_t>(DrawModeFlags::BothFace)) != 0;
+		m.m_edgeFlag      = (dm & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) != 0 ? 1 : 0;
+		m.m_groundShadow  = (dm & static_cast<uint8_t>(DrawModeFlags::GroundShadow)) != 0;
+		m.m_shadowCaster  = (dm & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow)) != 0;
+		m.m_shadowReceiver= (dm & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow)) != 0;
 		m.m_edgeSize = mat.m_edgeSize;
 		m.m_edgeColor = mat.m_edgeColor;
 		if (mat.m_textureIndex != -1)
@@ -323,7 +298,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		subMesh.m_vertexCount = mat.m_numFaceVertices;
 		subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
 		m_subMeshes.push_back(subMesh);
-		beginIndex = beginIndex + mat.m_numFaceVertices;
+		beginIndex += mat.m_numFaceVertices;
 	}
 	m_initMaterials = m_materials;
 	m_mulMaterialFactors.resize(m_materials.size());
@@ -338,23 +313,15 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto& bone = pmx.m_bones[i];
 		auto* node = m_nodes[i].get();
+		glm::vec3 localPos = bone.m_position;
 		if (bone.m_parentBoneIndex != -1) {
-			const auto& parentBone = pmx.m_bones[bone.m_parentBoneIndex];
 			auto* parent = m_nodes[bone.m_parentBoneIndex].get();
 			parent->AddChild(node);
-			auto localPos = bone.m_position - parentBone.m_position;
-			localPos.z *= -1;
-			node->m_translate = localPos;
-		} else {
-			auto localPos = bone.m_position;
-			localPos.z *= -1;
-			node->m_translate = localPos;
+			localPos -= pmx.m_bones[bone.m_parentBoneIndex].m_position;
 		}
-		glm::mat4 init = glm::translate(
-			glm::mat4(1),
-			bone.m_position * glm::vec3(1, 1, -1)
-		);
-		node->m_global = init;
+		localPos.z *= -1;
+		node->m_translate = localPos;
+		node->m_global = glm::translate(glm::mat4(1), bone.m_position * glm::vec3(1, 1, -1));
 		node->m_inverseInit = glm::inverse(node->m_global);
 		node->m_deformDepth = bone.m_deformDepth;
 		bool deformAfterPhysics = !!(static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics));
@@ -433,9 +400,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			m_uvMorphDatas.emplace_back(std::move(morphData));
 		} else if (morph.m_morphType == MorphType::Material) {
 			m->m_dataIndex = m_materialMorphDatas.size();
-			std::vector<MaterialMorph> materialMorphData;
-			materialMorphData = morph.m_materialMorph;
-			m_materialMorphDatas.emplace_back(materialMorphData);
+			m_materialMorphDatas.emplace_back(morph.m_materialMorph);
 		} else if (morph.m_morphType == MorphType::Bone) {
 			m->m_dataIndex = m_boneMorphDatas.size();
 			std::vector<BoneMorph> boneMorphData;
@@ -456,18 +421,20 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	}
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
-	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t i) {
-		if (m_morphs[i]->m_morphType == MorphType::Group) {
-			for (auto& [m_morphIndex, m_weight] : m_groupMorphDatas[m_morphs[i]->m_dataIndex]) {
-				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
-				if (findIt != groupMorphStack.end())
-					m_morphIndex = -1;
-				else {
-					groupMorphStack.push_back(i);
-					fixInfiniteGroupMorph(m_morphIndex);
-					groupMorphStack.pop_back();
-				}
+	fixInfiniteGroupMorph = [&](const int32_t idx) {
+		const auto* morph = m_morphs[idx].get();
+		if (morph->m_morphType != MorphType::Group)
+			return;
+		for (auto& [childIdx, w] : m_groupMorphDatas[morph->m_dataIndex]) {
+			if (childIdx < 0)
+				continue;
+			if (std::ranges::find(groupMorphStack, childIdx) != groupMorphStack.end()) {
+				childIdx = -1;
+				continue;
 			}
+			groupMorphStack.push_back(idx);
+			fixInfiniteGroupMorph(childIdx);
+			groupMorphStack.pop_back();
 		}
 	};
 	for (int32_t i = 0; i < static_cast<int32_t>(m_morphs.size()); i++) {
