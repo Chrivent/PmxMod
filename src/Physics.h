@@ -38,7 +38,7 @@ private:
 
 class DynamicMotionState : public MotionState {
 public:
-	DynamicMotionState(Node* node, const glm::mat4& offset, bool override = true);
+	DynamicMotionState(Node* node, const glm::mat4& offset, bool overrideNode = true);
 
 	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
 	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
@@ -53,7 +53,7 @@ protected:
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
 	btTransform	m_transform;
-	bool		m_override;
+	bool		m_overrideNode;
 };
 
 class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
