@@ -9,22 +9,19 @@ struct Physics;
 class Model;
 struct Node;
 
-class MotionState : public btMotionState
-{
+class MotionState : public btMotionState {
 public:
 	virtual void Reset() = 0;
 	virtual void ReflectGlobalTransform() = 0;
 };
 
-struct OverlapFilterCallback final : btOverlapFilterCallback
-{
+struct OverlapFilterCallback final : btOverlapFilterCallback {
 	bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
 
 	std::vector<btBroadphaseProxy*> m_nonFilterProxy;
 };
 
-class DefaultMotionState final : public MotionState
-{
+class DefaultMotionState final : public MotionState {
 public:
 	explicit DefaultMotionState(const glm::mat4& transform);
 
@@ -39,8 +36,7 @@ private:
 	btTransform	m_transform;
 };
 
-class DynamicMotionState final : public MotionState
-{
+class DynamicMotionState final : public MotionState {
 public:
 	DynamicMotionState(Node* node, const glm::mat4& offset, bool override = true);
 
@@ -58,8 +54,7 @@ private:
 	bool		m_override;
 };
 
-class DynamicAndBoneMergeMotionState final : public MotionState
-{
+class DynamicAndBoneMergeMotionState final : public MotionState {
 public:
 	DynamicAndBoneMergeMotionState(Node* node, const glm::mat4& offset, bool override = true);
 
@@ -77,8 +72,7 @@ private:
 	bool		m_override;
 };
 
-class KinematicMotionState final : public MotionState
-{
+class KinematicMotionState final : public MotionState {
 public:
 	KinematicMotionState(Node* node, const glm::mat4& offset);
 
@@ -93,8 +87,7 @@ private:
 	glm::mat4	m_offset;
 };
 
-struct RigidBody
-{
+struct RigidBody {
 	RigidBody();
 
 	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node* node);
@@ -123,15 +116,13 @@ struct RigidBody
 	std::string					m_name;
 };
 
-struct Joint
-{
+struct Joint {
 	void CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB);
 
 	std::unique_ptr<btTypedConstraint>	m_constraint;
 };
 
-struct Physics
-{
+struct Physics {
 	Physics();
 	~Physics();
 
