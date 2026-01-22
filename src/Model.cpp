@@ -183,7 +183,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_vertexBoneInfos.reserve(vertexCount);
 	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
-	const glm::vec3 invZ(1, 1, -1);
+	constexpr glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.m_vertices) {
 		glm::vec3 pos = v.m_position * invZ;
 		m_positions.push_back(pos);
@@ -240,11 +240,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_indices.resize(pmx.m_faces.size() * 3 * m_indexElementSize);
 	m_indexCount = pmx.m_faces.size() * 3;
 	auto fillIndices = [&](auto* out) {
+		using T = std::remove_pointer_t<decltype(out)>;
 		int idx = 0;
 		for (const auto& [tri] : pmx.m_faces) {
-			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[2]);
-			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[1]);
-			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
+			out[idx++] = static_cast<T>(tri[2]);
+			out[idx++] = static_cast<T>(tri[1]);
+			out[idx++] = static_cast<T>(tri[0]);
 		}
 	};
 	switch (m_indexElementSize) {
@@ -421,8 +422,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m_morphs.emplace_back(std::move(m));
 	}
 	std::vector<int32_t> groupMorphStack;
-	std::function<void(int32_t)> fixInfiniteGroupMorph;
-	fixInfiniteGroupMorph = [&](const int32_t idx) {
+	std::function<void(int32_t)> fixInfiniteGroupMorph = [&](const int32_t idx) {
 		if (idx < 0)
 			return;
 		const auto* morph = m_morphs[idx].get();
@@ -441,8 +441,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		groupMorphStack.pop_back();
 	};
 	for (int32_t i = 0; i < static_cast<int32_t>(m_morphs.size()); i++) {
-		fixInfiniteGroupMorph(i);
 		groupMorphStack.clear();
+		fixInfiniteGroupMorph(i);
 	}
 	m_physics = std::make_unique<Physics>();
 	m_physics->Create();
