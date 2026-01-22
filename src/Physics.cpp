@@ -4,10 +4,8 @@
 #include "Util.h"
 
 bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
-	const auto findIt = std::ranges::find_if(m_nonFilterProxy,
-		[proxy0, proxy1](const auto &x) { return x == proxy0 || x == proxy1; }
-	);
-	if (findIt != m_nonFilterProxy.end())
+	const auto endIt = m_nonFilterProxy.end();
+	if (std::ranges::find(m_nonFilterProxy, proxy0) != endIt || std::ranges::find(m_nonFilterProxy, proxy1) != endIt)
 		return true;
 	bool collides = ((proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0);
 	collides = collides && ((proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask) != 0);
@@ -15,20 +13,21 @@ bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, b
 }
 
 DefaultMotionState::DefaultMotionState(const glm::mat4& transform) {
-	m_transform.setFromOpenGLMatrix(&Util::InvZ(transform)[0][0]);
+	glm::mat4 trans = Util::InvZ(transform);
+	m_transform.setFromOpenGLMatrix(&trans[0][0]);
 	m_initialTransform = m_transform;
 }
 
-DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset, const bool overrideNode)
+DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset)
 	: m_node(node)
-	, m_offset(offset)
-	, m_overrideNode(overrideNode) {
+	, m_offset(offset) {
 	m_invOffset = glm::inverse(offset);
 	DynamicMotionState::Reset();
 }
 
 void DynamicMotionState::Reset() {
-	m_transform.setFromOpenGLMatrix(&Util::InvZ(m_node->m_global * m_offset)[0][0]);
+	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
+	m_transform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void DynamicMotionState::ReflectGlobalTransform() {
@@ -36,10 +35,8 @@ void DynamicMotionState::ReflectGlobalTransform() {
 	m_transform.getOpenGLMatrix(&world[0][0]);
 	glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
 	PostProcessBtGlobal(btGlobal);
-	if (m_overrideNode) {
-		m_node->m_global = btGlobal;
-		m_node->UpdateChildTransform();
-	}
+	m_node->m_global = btGlobal;
+	m_node->UpdateChildTransform();
 }
 
 void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
@@ -52,11 +49,11 @@ KinematicMotionState::KinematicMotionState(Node* node, const glm::mat4& offset)
 }
 
 void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
-	worldTransform.setFromOpenGLMatrix(&Util::InvZ(m_node->m_global * m_offset)[0][0]);
+	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
+	worldTransform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
-	m_shape = nullptr;
 	switch (pmxRigidBody.m_shape) {
 		case Shape::Sphere:
 			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.m_shapeSize.x);
@@ -168,7 +165,7 @@ void RigidBody::CalcLocalTransform() const {
 
 glm::mat4 RigidBody::GetTransform() const {
 	const btTransform transform = m_rigidBody->getCenterOfMassTransform();
-	alignas(16) glm::mat4 mat;
+	glm::mat4 mat;
 	transform.getOpenGLMatrix(&mat[0][0]);
 	return Util::InvZ(mat);
 }
@@ -179,22 +176,15 @@ void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* ri
 	rotMat.setEulerZYX(pmxJoint.m_rotate.x, pmxJoint.m_rotate.y, pmxJoint.m_rotate.z);
 	btTransform transform;
 	transform.setIdentity();
-	transform.setOrigin(btVector3(
-		pmxJoint.m_translate.x,
-		pmxJoint.m_translate.y,
-		pmxJoint.m_translate.z
-	));
+	transform.setOrigin(btVector3(pmxJoint.m_translate.x, pmxJoint.m_translate.y, pmxJoint.m_translate.z));
 	transform.setBasis(rotMat);
 	btTransform invA = rigidBodyA->m_rigidBody->getWorldTransform().inverse();
 	btTransform invB = rigidBodyB->m_rigidBody->getWorldTransform().inverse();
 	invA = invA * transform;
 	invB = invB * transform;
 	auto constraint = std::make_unique<btGeneric6DofSpringConstraint>(
-		*rigidBodyA->m_rigidBody,
-		*rigidBodyB->m_rigidBody,
-		invA,
-		invB,
-		true);
+		*rigidBodyA->m_rigidBody, *rigidBodyB->m_rigidBody,
+		invA, invB, true);
 	constraint->setLinearLowerLimit(btVector3(pmxJoint.m_translateLowerLimit.x, pmxJoint.m_translateLowerLimit.y, pmxJoint.m_translateLowerLimit.z));
 	constraint->setLinearUpperLimit(btVector3(pmxJoint.m_translateUpperLimit.x, pmxJoint.m_translateUpperLimit.y, pmxJoint.m_translateUpperLimit.z));
 	constraint->setAngularLowerLimit(btVector3(pmxJoint.m_rotateLowerLimit.x, pmxJoint.m_rotateLowerLimit.y, pmxJoint.m_rotateLowerLimit.z));

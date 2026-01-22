@@ -38,7 +38,7 @@ private:
 
 class DynamicMotionState : public MotionState {
 public:
-	DynamicMotionState(Node* node, const glm::mat4& offset, bool overrideNode = true);
+	DynamicMotionState(Node* node, const glm::mat4& offset);
 
 	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
 	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
@@ -53,7 +53,6 @@ protected:
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
 	btTransform	m_transform;
-	bool		m_overrideNode;
 };
 
 class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
@@ -121,11 +120,11 @@ struct Physics {
 	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;
 	std::unique_ptr<btCollisionDispatcher>					m_dispatcher;
 	std::unique_ptr<btSequentialImpulseConstraintSolver>	m_solver;
-	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
 	std::unique_ptr<btCollisionShape>						m_groundShape;
 	std::unique_ptr<btMotionState>							m_groundMS;
 	std::unique_ptr<btRigidBody>							m_groundRB;
 	std::unique_ptr<btOverlapFilterCallback>				m_filterCB;
+	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
 
 	double	m_fps = 120.0f;
 	int		m_maxSubStepCount = 10;
