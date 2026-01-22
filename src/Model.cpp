@@ -54,25 +54,25 @@ void Model::InitializeAnimation() {
 }
 
 void Model::SaveBaseAnimation() const {
-	for (const auto& m_node : m_nodes) {
-		m_node->m_baseAnimTranslate = m_node->m_animTranslate;
-		m_node->m_baseAnimRotate = m_node->m_animRotate;
+	for (const auto& node : m_nodes) {
+		node->m_baseAnimTranslate = node->m_animTranslate;
+		node->m_baseAnimRotate = node->m_animRotate;
 	}
-	for (const auto& m_morph : m_morphs)
-		m_morph->m_saveAnimWeight = m_morph->m_weight;
-	for (const auto& m_ikSolver : m_ikSolvers)
-		m_ikSolver->m_baseAnimEnable = m_ikSolver->m_enable;
+	for (const auto& morph : m_morphs)
+		morph->m_saveAnimWeight = morph->m_weight;
+	for (const auto& ikSolver : m_ikSolvers)
+		ikSolver->m_baseAnimEnable = ikSolver->m_enable;
 }
 
 void Model::ClearBaseAnimation() const {
-	for (const auto& m_node : m_nodes) {
-		m_node->m_baseAnimTranslate = glm::vec3(0);
-		m_node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
+	for (const auto& node : m_nodes) {
+		node->m_baseAnimTranslate = glm::vec3(0);
+		node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
 	}
-	for (const auto& m_morph : m_morphs)
-		m_morph->m_saveAnimWeight = 0;
-	for (const auto& m_ikSolver : m_ikSolvers)
-		m_ikSolver->m_baseAnimEnable = true;
+	for (const auto& morph : m_morphs)
+		morph->m_saveAnimWeight = 0;
+	for (const auto& ikSolver : m_ikSolvers)
+		ikSolver->m_baseAnimEnable = true;
 }
 
 void Model::BeginAnimation() {
@@ -84,8 +84,7 @@ void Model::BeginAnimation() {
 
 void Model::UpdateMorphAnimation() {
 	BeginMorphMaterial();
-	const auto& morphs = m_morphs;
-	for (const auto& morph : morphs)
+	for (const auto& morph : m_morphs)
 		EvalMorph(morph.get(), morph->m_weight);
 	EndMorphMaterial();
 }
@@ -111,72 +110,59 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void Model::ResetPhysics() const {
-	const auto* physics = m_physics.get();
-	const auto& rigidBodies = m_rigidBodies;
-	for (auto& rb : rigidBodies) {
+	for (auto& rb : m_rigidBodies) {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-	physics->m_world->stepSimulation(
-		1.0f / 60.0f,
-		physics->m_maxSubStepCount,
-		static_cast<btScalar>(1.0 / physics->m_fps));
-	for (auto& rb : rigidBodies)
+	m_physics->m_world->stepSimulation(1.0f / 60.0f, m_physics->m_maxSubStepCount, 1.0 / m_physics->m_fps);
+	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
-	for (auto& rb : rigidBodies)
 		rb->CalcLocalTransform();
+	}
 	for (const auto& node : m_nodes) {
-		if (node->m_parent == nullptr)
+		if (!node->m_parent)
 			node->UpdateGlobalTransform();
 	}
-	for (auto& rb : rigidBodies)
-		rb->Reset(physics);
+	for (auto& rb : m_rigidBodies)
+		rb->Reset(m_physics.get());
 }
 
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
-	const auto* physics = m_physics.get();
-	const auto& rigidBodies = m_rigidBodies;
-	for (auto& rb : rigidBodies)
+	for (auto& rb : m_rigidBodies)
 		rb->SetActivation(true);
-	physics->m_world->stepSimulation(
-		elapsed,
-		physics->m_maxSubStepCount,
-		static_cast<btScalar>(1.0 / physics->m_fps));
-	for (auto& rb : rigidBodies)
+	m_physics->m_world->stepSimulation(elapsed, m_physics->m_maxSubStepCount, 1.0 / m_physics->m_fps);
+	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
-	for (auto& rb : rigidBodies)
 		rb->CalcLocalTransform();
+	}
 	for (const auto& node : m_nodes) {
-		if (node->m_parent == nullptr)
+		if (!node->m_parent)
 			node->UpdateGlobalTransform();
 	}
 }
 
 void Model::Update() {
-	const auto& nodes = m_nodes;
-	for (size_t i = 0; i < nodes.size(); i++)
-		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
+	for (size_t i = 0; i < m_nodes.size(); i++)
+		m_transforms[i] = m_nodes[i]->m_global * m_nodes[i]->m_inverseInit;
 	if (m_parallelUpdateCount != m_updateRanges.size())
 		SetupParallelUpdate();
 	const size_t futureCount = m_parallelUpdateFutures.size();
 	for (size_t i = 0; i < futureCount; i++) {
-		size_t rangeIndex = i + 1;
-		if (m_updateRanges[rangeIndex].m_vertexCount != 0) {
+		if (m_updateRanges[i + 1].m_vertexCount != 0) {
 			m_parallelUpdateFutures[i] = std::async(std::launch::async,
-			[this, rangeIndex] { this->Update(this->m_updateRanges[rangeIndex]); }
+			[this, range = m_updateRanges[i + 1]] { this->Update(range); }
 			);
 		}
 	}
 	Update(m_updateRanges[0]);
 	for (size_t i = 0; i < futureCount; i++) {
-		const size_t rangeIndex = i + 1;
-		if (m_updateRanges[rangeIndex].m_vertexCount != 0)
+		if (m_updateRanges[i + 1].m_vertexCount != 0)
 			m_parallelUpdateFutures[i].wait();
 	}
 }
 
 void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
-	if (anim != nullptr)
+	if (anim)
 		anim->Evaluate(frame);
 	UpdateMorphAnimation();
 	UpdateNodeAnimation(false);
