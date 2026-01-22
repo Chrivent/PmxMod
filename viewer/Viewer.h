@@ -46,18 +46,18 @@ struct Sound {
     Sound();
     ~Sound();
 
-    bool Init(const std::filesystem::path& path);
-    std::pair<float, float> PullTimes();
-
     bool m_hasSound = false;
     float m_volume = 0.1f;
 
-private:
-    void Uninit();
+    bool Init(const std::filesystem::path& path);
+    std::pair<float, float> PullTimes();
 
+private:
     std::unique_ptr<ma_engine> m_engine;
     std::unique_ptr<ma_sound>  m_sound;
     double m_prevTimeSec = 0.0;
+
+    void Uninit();
 };
 
 struct Viewer {
@@ -75,7 +75,6 @@ struct Viewer {
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
     std::unique_ptr<CameraAnimation>	m_cameraAnim;
-
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     GLFWwindow* m_window = nullptr;
 
@@ -89,7 +88,6 @@ struct Viewer {
     virtual std::unique_ptr<Instance> CreateInstance() const = 0;
 
     static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
-    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
     void LoadCameraAnim(const SceneConfig& cfg);
     void StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime);

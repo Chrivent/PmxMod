@@ -2,45 +2,14 @@
 
 #include "Node.h"
 
-void IkSolver::Solve() {
-	if (!m_enable)
-		return;
-	for (auto &chain: m_chains) {
-		chain.m_prevAngle = glm::vec3(0);
-		chain.m_node->m_ikRotate = glm::quat(1, 0, 0, 0);
-		chain.m_planeModeAngle = 0;
-		chain.m_node->UpdateLocalTransform();
-		chain.m_node->UpdateGlobalTransform();
-	}
-	float maxDist = std::numeric_limits<float>::max();
-	for (uint32_t i = 0; i < m_iterateCount; i++) {
-		SolveCore(i);
-		auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
-		auto ikPos = glm::vec3(m_ikNode->m_global[3]);
-		const float dist = glm::length(targetPos - ikPos);
-		if (dist < maxDist) {
-			maxDist = dist;
-			for (auto &chain: m_chains)
-				chain.m_saveIKRot = chain.m_node->m_ikRotate;
-		} else {
-			for (const auto &chain: m_chains) {
-				chain.m_node->m_ikRotate = chain.m_saveIKRot;
-				chain.m_node->UpdateLocalTransform();
-				chain.m_node->UpdateGlobalTransform();
-			}
-			break;
-		}
-	}
-}
-
-float IkSolver::NormalizeAngle(float angle) {
+float NormalizeAngle(float angle) {
 	angle = std::fmod(angle, glm::two_pi<float>());
 	if (angle < 0)
 		angle += glm::two_pi<float>();
 	return angle;
 }
 
-float IkSolver::DiffAngle(const float a, const float b) {
+float DiffAngle(float a, float b) {
 	const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 	if (diff > glm::pi<float>())
 		return diff - glm::two_pi<float>();
@@ -49,7 +18,7 @@ float IkSolver::DiffAngle(const float a, const float b) {
 	return diff;
 }
 
-glm::vec3 IkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
+glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before) {
 	glm::vec3 r;
 	const float sy = -m[0][2];
 	if (1.0f - std::abs(sy) < 1.0e-6f) {
@@ -105,6 +74,37 @@ glm::vec3 IkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
 		}
 	}
 	return r;
+}
+
+void IkSolver::Solve() {
+	if (!m_enable)
+		return;
+	for (auto &chain: m_chains) {
+		chain.m_prevAngle = glm::vec3(0);
+		chain.m_node->m_ikRotate = glm::quat(1, 0, 0, 0);
+		chain.m_planeModeAngle = 0;
+		chain.m_node->UpdateLocalTransform();
+		chain.m_node->UpdateGlobalTransform();
+	}
+	float maxDist = std::numeric_limits<float>::max();
+	for (uint32_t i = 0; i < m_iterateCount; i++) {
+		SolveCore(i);
+		auto targetPos = glm::vec3(m_ikTarget->m_global[3]);
+		auto ikPos = glm::vec3(m_ikNode->m_global[3]);
+		const float dist = glm::length(targetPos - ikPos);
+		if (dist < maxDist) {
+			maxDist = dist;
+			for (auto &chain: m_chains)
+				chain.m_saveIKRot = chain.m_node->m_ikRotate;
+		} else {
+			for (const auto &chain: m_chains) {
+				chain.m_node->m_ikRotate = chain.m_saveIKRot;
+				chain.m_node->UpdateLocalTransform();
+				chain.m_node->UpdateGlobalTransform();
+			}
+			break;
+		}
+	}
 }
 
 void IkSolver::SolveCore(uint32_t iteration) {

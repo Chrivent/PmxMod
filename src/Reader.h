@@ -195,19 +195,7 @@ struct AnchorRigidbody {
 	uint8_t		m_nearMode;
 };
 
-class Reader {
-protected:
-	template <class T>
-	static void Read(std::istream& is, T* dst) {
-		Read(is, dst, sizeof(T));
-	}
-
-	static void Read(std::istream& is, void* dst, std::size_t bytes);
-	static std::streampos GetFileEnd(std::istream& is);
-	static bool HasMore(std::istream& is, const std::streampos& end);
-};
-
-class PMXReader : public Reader {
+class PMXReader {
 	struct PMXHeader {
 		char		m_magic[4];
 		float		m_version;
@@ -320,7 +308,6 @@ class PMXReader : public Reader {
 	};
 
 	void ReadString(std::istream& is, std::string* val) const;
-	static void ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize);
 	void ReadHeader(std::istream& is);
 	void ReadInfo(std::istream& is);
 	void ReadVertex(std::istream& is);
@@ -427,7 +414,7 @@ public:
 	bool ReadFile(const std::filesystem::path& filename);
 };
 
-class VMDReader : public Reader {
+class VMDReader {
 	struct VMDHeader {
 		char m_header[30];
 		char m_modelName[20];

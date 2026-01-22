@@ -27,9 +27,6 @@ struct IkSolver {
 	bool					m_baseAnimEnable = true;
 
 private:
-	static float NormalizeAngle(float angle);
-	static float DiffAngle(float a, float b);
-	static glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before);
 	void SolveCore(uint32_t iteration);
 	void SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex);
 };

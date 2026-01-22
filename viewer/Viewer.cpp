@@ -10,6 +10,16 @@
 
 #include <iostream>
 
+void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
+    fpsFrame++;
+    const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
+    if (sec > 1.0) {
+        std::cout << (fpsFrame / sec) << " fps\n";
+        fpsFrame = 0;
+        fpsTime = std::chrono::steady_clock::now();
+    }
+}
+
 void Instance::UpdateAnimation(const Viewer& viewer) const {
     m_model->BeginAnimation();
     m_model->UpdateAllAnimation(m_anim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
@@ -136,16 +146,6 @@ unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, i
     image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
     std::fclose(fp);
     return image;
-}
-
-void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
-    fpsFrame++;
-    const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-    if (sec > 1.0) {
-        std::cout << (fpsFrame / sec) << " fps\n";
-        fpsFrame = 0;
-        fpsTime = std::chrono::steady_clock::now();
-    }
 }
 
 bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances) {

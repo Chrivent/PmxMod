@@ -5,6 +5,27 @@
 
 #include <ranges>
 
+std::string SjisToUtf8(const char* sjis) {
+	if (!sjis)
+		return {};
+	const int need = MultiByteToWideChar(
+		932, MB_ERR_INVALID_CHARS,
+		sjis, -1,
+		nullptr, 0);
+	if (need <= 0)
+		return {};
+	std::wstring w(static_cast<size_t>(need), L'\0');
+	const int written = MultiByteToWideChar(
+		932, MB_ERR_INVALID_CHARS,
+		sjis, -1,
+		w.data(), need);
+	if (written <= 0)
+		return {};
+	if (!w.empty() && w.back() == L'\0')
+		w.pop_back();
+	return Util::WStringToUtf8(w);
+}
+
 void SetBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.first = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.second = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
@@ -28,27 +49,6 @@ float FindBezierX(float time, const float x1, const float x2) {
 		t = (start + stop) * 0.5f;
 	}
 	return t;
-}
-
-std::string Animation::SjisToUtf8(const char* sjis) {
-	if (!sjis)
-		return {};
-	const int need = MultiByteToWideChar(
-		932, MB_ERR_INVALID_CHARS,
-		sjis, -1,
-		nullptr, 0);
-	if (need <= 0)
-		return {};
-	std::wstring w(static_cast<size_t>(need), L'\0');
-	const int written = MultiByteToWideChar(
-		932, MB_ERR_INVALID_CHARS,
-		sjis, -1,
-		w.data(), need);
-	if (written <= 0)
-		return {};
-	if (!w.empty() && w.back() == L'\0')
-		w.pop_back();
-	return Util::WStringToUtf8(w);
 }
 
 bool Animation::Add(const VMDReader& vmd) {
