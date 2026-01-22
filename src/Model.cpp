@@ -185,11 +185,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
 	for (const auto& v : pmx.m_vertices) {
 		glm::vec3 pos = v.m_position * glm::vec3(1, 1, -1);
-		glm::vec3 nor = v.m_normal * glm::vec3(1, 1, -1);
-		auto uv = glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y);
 		m_positions.push_back(pos);
-		m_normals.push_back(nor);
-		m_uvs.push_back(uv);
+		m_normals.push_back(v.m_normal * glm::vec3(1, 1, -1));
+		m_uvs.push_back(glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y));
 		Vertex vtxBoneInfo{};
 		if (WeightType::SDEF != v.m_weightType) {
 			vtxBoneInfo.m_boneIndices[0] = v.m_boneIndices[0];
@@ -229,7 +227,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				break;
 		}
 		m_vertexBoneInfos.push_back(vtxBoneInfo);
-
 		m_bboxMax = glm::max(m_bboxMax, pos);
 		m_bboxMin = glm::min(m_bboxMin, pos);
 	}
@@ -390,11 +387,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		const auto& bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_unique<IkSolver>();
-			auto* ikNode = m_nodes[i].get();
-			solver->m_ikNode = ikNode;
-			ikNode->m_ikSolver = solver.get();
-			auto* targetNode = m_nodes[bone.m_ikTargetBoneIndex].get();
-			solver->m_ikTarget = targetNode;
+			solver->m_ikNode = m_nodes[i].get();
+			m_nodes[i]->m_ikSolver = solver.get();
+			solver->m_ikTarget = m_nodes[bone.m_ikTargetBoneIndex].get();
 			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
 				auto* linkNode = m_nodes[m_ikBoneIndex].get();
 				IKChain chain{};
@@ -448,41 +443,35 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				BoneMorph boneMorphElem{};
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
-				const glm::quat q = m_quaternion;
-				auto rot = Util::InvZ(glm::mat3_cast(q));
+				auto rot = Util::InvZ(glm::mat3_cast(m_quaternion));
 				boneMorphElem.m_quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
 			m_boneMorphDatas.emplace_back(boneMorphData);
 		} else if (morph.m_morphType == MorphType::Group) {
 			m->m_dataIndex = m_groupMorphDatas.size();
-
-			std::vector<GroupMorph> groupMorphData;
-			groupMorphData = morph.m_groupMorph;
-			m_groupMorphDatas.emplace_back(groupMorphData);
+			m_groupMorphDatas.emplace_back(morph.m_groupMorph);
 		}
 		m_morphs.emplace_back(std::move(m));
 	}
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
-	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
-		const auto& morphs = m_morphs;
-		const auto& morph = morphs[morphIdx];
-		if (morph->m_morphType == MorphType::Group) {
-			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
+	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t i) {
+		if (m_morphs[i]->m_morphType == MorphType::Group) {
+			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[m_morphs[i]->m_dataIndex]) {
 				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
 				if (findIt != groupMorphStack.end())
 					m_morphIndex = -1;
 				else {
-					groupMorphStack.push_back(morphIdx);
+					groupMorphStack.push_back(i);
 					fixInfiniteGroupMorph(m_morphIndex);
 					groupMorphStack.pop_back();
 				}
 			}
 		}
 	};
-	for (int32_t morphIdx = 0; morphIdx < static_cast<int32_t>(m_morphs.size()); morphIdx++) {
-		fixInfiniteGroupMorph(morphIdx);
+	for (int32_t i = 0; i < static_cast<int32_t>(m_morphs.size()); i++) {
+		fixInfiniteGroupMorph(i);
 		groupMorphStack.clear();
 	}
 	m_physics = std::make_unique<Physics>();
@@ -501,10 +490,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		    joint.m_rigidbodyBIndex != -1 &&
 		    joint.m_rigidbodyAIndex != joint.m_rigidbodyBIndex) {
 			auto j = std::make_unique<Joint>();
-			auto& rigidBodies = m_rigidBodies;
 			j->CreateJoint(joint,
-				rigidBodies[joint.m_rigidbodyAIndex].get(),
-				rigidBodies[joint.m_rigidbodyBIndex].get()
+				m_rigidBodies[joint.m_rigidbodyAIndex].get(),
+				m_rigidBodies[joint.m_rigidbodyBIndex].get()
 			);
 			m_physics->m_world->addConstraint(j->m_constraint.get());
 			m_joints.emplace_back(std::move(j));
