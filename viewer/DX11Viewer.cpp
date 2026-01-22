@@ -522,12 +522,12 @@ bool DX11Viewer::CreatePipelineStates() {
 	edgeRsDesc.DepthClipEnable = FALSE;
 	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_edgeRs)))
 		return false;
-	auto groundShadowRsDesc = Raster(D3D11_CULL_NONE, true);
-	groundShadowRsDesc.DepthClipEnable = FALSE;
-	groundShadowRsDesc.DepthBias = -1;
-	groundShadowRsDesc.SlopeScaledDepthBias = -1.0f;
-	groundShadowRsDesc.DepthBiasClamp = -1.0f;
-	if (FAILED(m_device->CreateRasterizerState(&groundShadowRsDesc, &m_gsRs)))
+	auto gsRsDesc = Raster(D3D11_CULL_NONE, true);
+	gsRsDesc.DepthClipEnable = FALSE;
+	gsRsDesc.DepthBias = -1;
+	gsRsDesc.SlopeScaledDepthBias = -1.0f;
+	gsRsDesc.DepthBiasClamp = -1.0f;
+	if (FAILED(m_device->CreateRasterizerState(&gsRsDesc, &m_gsRs)))
 		return false;
 	auto gsDSS = MakeGroundShadowDepthStencilDesc();
 	if (FAILED(m_device->CreateDepthStencilState(&gsDSS, &m_gsDss)))
