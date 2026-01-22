@@ -1,8 +1,9 @@
 ﻿#include "Model.h"
 
 #include "Animation.h"
-
 #include "Util.h"
+
+#include <ranges>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -38,36 +39,17 @@ Model::~Model() {
 
 void Model::InitializeAnimation() {
 	ClearBaseAnimation();
-	for (const auto &node: m_nodes) {
+	for (const auto& node : m_nodes) {
 		node->m_animTranslate = glm::vec3(0);
 		node->m_animRotate = glm::quat(1, 0, 0, 0);
 	}
 	BeginAnimation();
-	for (const auto &node: m_nodes)
-		node->UpdateLocalTransform();
-	for (const auto &morph: m_morphs)
+	for (const auto& morph : m_morphs)
 		morph->m_weight = 0;
-	for (const auto &ikSolver: m_ikSolvers)
+	for (const auto& ikSolver : m_ikSolvers)
 		ikSolver->m_enable = true;
-	for (const auto &node: m_nodes) {
-		if (node->m_parent == nullptr)
-			node->UpdateGlobalTransform();
-	}
-	for (const auto pmxNode: m_sortedNodes) {
-		if (pmxNode->m_appendNode != nullptr) {
-			pmxNode->UpdateAppendTransform();
-			pmxNode->UpdateGlobalTransform();
-		}
-		if (pmxNode->m_ikSolver != nullptr) {
-			const auto ikSolver = pmxNode->m_ikSolver;
-			ikSolver->Solve();
-			pmxNode->UpdateGlobalTransform();
-		}
-	}
-	for (const auto &node: m_nodes) {
-		if (node->m_parent == nullptr)
-			node->UpdateGlobalTransform();
-	}
+	UpdateNodeAnimation(false);
+	UpdateNodeAnimation(true);
 	ResetPhysics();
 }
 
@@ -94,60 +76,48 @@ void Model::ClearBaseAnimation() const {
 }
 
 void Model::BeginAnimation() {
-	for (const auto &node: m_nodes)
+	for (const auto& node : m_nodes)
 		node->BeginUpdateTransform();
-	const auto vtxCount = m_morphPositions.size();
-	for (int vtxIdx = 0; vtxIdx < vtxCount; vtxIdx++) {
-		m_morphPositions[vtxIdx] = glm::vec3(0);
-		m_morphUVs[vtxIdx] = glm::vec4(0);
-	}
+	std::ranges::fill(m_morphPositions, glm::vec3(0));
+	std::ranges::fill(m_morphUVs, glm::vec4(0));
 }
 
 void Model::UpdateMorphAnimation() {
 	BeginMorphMaterial();
-	const auto &morphs = m_morphs;
-	for (const auto & morph : morphs)
+	const auto& morphs = m_morphs;
+	for (const auto& morph : morphs)
 		EvalMorph(morph.get(), morph->m_weight);
 	EndMorphMaterial();
 }
 
 void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-	for (const auto pmxNode: m_sortedNodes) {
-		if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			continue;
-		pmxNode->UpdateLocalTransform();
+	const auto pred = [&](const Node* n) { return n->m_isDeformAfterPhysics == afterPhysicsAnim; };
+	for (auto* node : m_sortedNodes | std::views::filter(pred))
+		node->UpdateLocalTransform();
+	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
+		if (!node->m_parent)
+			node->UpdateGlobalTransform();
 	}
-	for (const auto pmxNode: m_sortedNodes) {
-		if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			continue;
-		if (pmxNode->m_parent == nullptr)
-			pmxNode->UpdateGlobalTransform();
-	}
-	for (const auto pmxNode: m_sortedNodes) {
-		if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			continue;
-		if (pmxNode->m_appendNode != nullptr) {
-			pmxNode->UpdateAppendTransform();
-			pmxNode->UpdateGlobalTransform();
+	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
+		if (node->m_appendNode) {
+			node->UpdateAppendTransform();
+			node->UpdateGlobalTransform();
 		}
-		if (pmxNode->m_ikSolver != nullptr) {
-			const auto ikSolver = pmxNode->m_ikSolver;
-			ikSolver->Solve();
-			pmxNode->UpdateGlobalTransform();
+		if (node->m_ikSolver) {
+			node->m_ikSolver->Solve();
+			node->UpdateGlobalTransform();
 		}
 	}
-	for (const auto pmxNode: m_sortedNodes) {
-		if (pmxNode->m_isDeformAfterPhysics != afterPhysicsAnim)
-			continue;
-		if (pmxNode->m_parent == nullptr)
-			pmxNode->UpdateGlobalTransform();
+	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
+		if (!node->m_parent)
+			node->UpdateGlobalTransform();
 	}
 }
 
 void Model::ResetPhysics() const {
 	const auto* physics = m_physics.get();
-	const auto &rigidBodies = m_rigidBodies;
-	for (auto &rb: rigidBodies) {
+	const auto& rigidBodies = m_rigidBodies;
+	for (auto& rb : rigidBodies) {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
@@ -155,39 +125,39 @@ void Model::ResetPhysics() const {
 		1.0f / 60.0f,
 		physics->m_maxSubStepCount,
 		static_cast<btScalar>(1.0 / physics->m_fps));
-	for (auto &rb: rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->ReflectGlobalTransform();
-	for (auto &rb: rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->CalcLocalTransform();
-	for (const auto &node: m_nodes) {
+	for (const auto& node : m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
-	for (auto &rb: rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->Reset(physics);
 }
 
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	const auto* physics = m_physics.get();
-	const auto &rigidBodies = m_rigidBodies;
-	for (auto &rb: rigidBodies)
+	const auto& rigidBodies = m_rigidBodies;
+	for (auto& rb : rigidBodies)
 		rb->SetActivation(true);
 	physics->m_world->stepSimulation(
 		elapsed,
 		physics->m_maxSubStepCount,
 		static_cast<btScalar>(1.0 / physics->m_fps));
-	for (auto &rb: rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->ReflectGlobalTransform();
-	for (auto &rb: rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->CalcLocalTransform();
-	for (const auto &node: m_nodes) {
+	for (const auto& node : m_nodes) {
 		if (node->m_parent == nullptr)
 			node->UpdateGlobalTransform();
 	}
 }
 
 void Model::Update() {
-	const auto &nodes = m_nodes;
+	const auto& nodes = m_nodes;
 	for (size_t i = 0; i < nodes.size(); i++)
 		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
 	if (m_parallelUpdateCount != m_updateRanges.size())
@@ -235,10 +205,10 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
 
-	for (const auto &v: pmx.m_vertices) {
+	for (const auto& v : pmx.m_vertices) {
 		glm::vec3 pos = v.m_position * glm::vec3(1, 1, -1);
 		glm::vec3 nor = v.m_normal * glm::vec3(1, 1, -1);
-		glm::vec2 uv = glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y);
+		auto uv = glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y);
 		m_positions.push_back(pos);
 		m_normals.push_back(nor);
 		m_uvs.push_back(uv);
@@ -260,8 +230,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			case WeightType::BDEF2:
 				vtxBoneInfo.m_boneWeights[1] = 1.0f - vtxBoneInfo.m_boneWeights[0];
 				break;
-			case WeightType::SDEF:
-				{
+			case WeightType::SDEF: {
 					auto w0 = v.m_boneWeights[0];
 					auto w1 = 1.0f - w0;
 
@@ -301,48 +270,48 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_indexCount = pmx.m_faces.size() * 3;
 	switch (m_indexElementSize) {
 		case 1: {
-			int idx = 0;
-			auto indices = reinterpret_cast<uint8_t*>(m_indices.data());
-			for (const auto &[m_vertices]: pmx.m_faces) {
-				for (int i = 0; i < 3; i++) {
-					auto vi = m_vertices[3 - i - 1];
-					indices[idx] = static_cast<uint8_t>(vi);
-					idx++;
+				int idx = 0;
+				auto indices = reinterpret_cast<uint8_t*>(m_indices.data());
+				for (const auto& [m_vertices] : pmx.m_faces) {
+					for (int i = 0; i < 3; i++) {
+						auto vi = m_vertices[3 - i - 1];
+						indices[idx] = static_cast<uint8_t>(vi);
+						idx++;
+					}
 				}
 			}
 			break;
-		}
 		case 2: {
-			int idx = 0;
-			auto indices = reinterpret_cast<uint16_t*>(m_indices.data());
-			for (const auto &[m_vertices]: pmx.m_faces) {
-				for (int i = 0; i < 3; i++) {
-					auto vi = m_vertices[3 - i - 1];
-					indices[idx] = static_cast<uint16_t>(vi);
-					idx++;
+				int idx = 0;
+				auto indices = reinterpret_cast<uint16_t*>(m_indices.data());
+				for (const auto& [m_vertices] : pmx.m_faces) {
+					for (int i = 0; i < 3; i++) {
+						auto vi = m_vertices[3 - i - 1];
+						indices[idx] = static_cast<uint16_t>(vi);
+						idx++;
+					}
 				}
 			}
 			break;
-		}
 		case 4: {
-			int idx = 0;
-			auto indices = reinterpret_cast<uint32_t*>(m_indices.data());
-			for (const auto &[m_vertices]: pmx.m_faces) {
-				for (int i = 0; i < 3; i++) {
-					auto vi = m_vertices[3 - i - 1];
-					indices[idx] = vi;
-					idx++;
+				int idx = 0;
+				auto indices = reinterpret_cast<uint32_t*>(m_indices.data());
+				for (const auto& [m_vertices] : pmx.m_faces) {
+					for (int i = 0; i < 3; i++) {
+						auto vi = m_vertices[3 - i - 1];
+						indices[idx] = vi;
+						idx++;
+					}
 				}
 			}
 			break;
-		}
 		default:
 			return false;
 	}
 
 	std::vector<std::filesystem::path> texturePaths;
 	texturePaths.reserve(pmx.m_textures.size());
-	for (const auto &[m_textureName]: pmx.m_textures) {
+	for (const auto& [m_textureName] : pmx.m_textures) {
 		std::filesystem::path texPath = dirPath / m_textureName;
 		texturePaths.emplace_back(std::move(texPath));
 	}
@@ -351,52 +320,52 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_materials.reserve(pmx.m_materials.size());
 	m_subMeshes.reserve(pmx.m_materials.size());
 	uint32_t beginIndex = 0;
-	for (const auto &pmxMat: pmx.m_materials) {
-		Material mat;
-		mat.m_diffuse = pmxMat.m_diffuse;
-		mat.m_specularPower = pmxMat.m_specularPower;
-		mat.m_specular = pmxMat.m_specular;
-		mat.m_ambient = pmxMat.m_ambient;
-		mat.m_spTextureMode = SphereMode::None;
-		mat.m_bothFace = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::BothFace));
-		mat.m_edgeFlag = (static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
-		mat.m_groundShadow = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::GroundShadow));
-		mat.m_shadowCaster = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow));
-		mat.m_shadowReceiver = !!(static_cast<uint8_t>(pmxMat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow));
-		mat.m_edgeSize = pmxMat.m_edgeSize;
-		mat.m_edgeColor = pmxMat.m_edgeColor;
+	for (const auto& mat : pmx.m_materials) {
+		Material m;
+		m.m_diffuse = mat.m_diffuse;
+		m.m_specularPower = mat.m_specularPower;
+		m.m_specular = mat.m_specular;
+		m.m_ambient = mat.m_ambient;
+		m.m_spTextureMode = SphereMode::None;
+		m.m_bothFace = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::BothFace));
+		m.m_edgeFlag = (static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) == 0 ? 0 : 1;
+		m.m_groundShadow = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::GroundShadow));
+		m.m_shadowCaster = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow));
+		m.m_shadowReceiver = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow));
+		m.m_edgeSize = mat.m_edgeSize;
+		m.m_edgeColor = mat.m_edgeColor;
 
 		// Texture
-		if (pmxMat.m_textureIndex != -1)
-			mat.m_texture = texturePaths[pmxMat.m_textureIndex];
+		if (mat.m_textureIndex != -1)
+			m.m_texture = texturePaths[mat.m_textureIndex];
 
 		// ToonTexture
-		if (pmxMat.m_toonMode == ToonMode::Common) {
-			if (pmxMat.m_toonTextureIndex != -1) {
+		if (mat.m_toonMode == ToonMode::Common) {
+			if (mat.m_toonTextureIndex != -1) {
 				std::stringstream ss;
-				ss << "toon" << std::setfill('0') << std::setw(2) << (pmxMat.m_toonTextureIndex + 1) << ".bmp";
-				mat.m_toonTexture = dataDir / ss.str();
+				ss << "toon" << std::setfill('0') << std::setw(2) << (mat.m_toonTextureIndex + 1) << ".bmp";
+				m.m_toonTexture = dataDir / ss.str();
 			}
-		} else if (pmxMat.m_toonMode == ToonMode::Separate) {
-			if (pmxMat.m_toonTextureIndex != -1)
-				mat.m_toonTexture = texturePaths[pmxMat.m_toonTextureIndex];
+		} else if (mat.m_toonMode == ToonMode::Separate) {
+			if (mat.m_toonTextureIndex != -1)
+				m.m_toonTexture = texturePaths[mat.m_toonTextureIndex];
 		}
 
 		// SpTexture
-		if (pmxMat.m_sphereTextureIndex != -1) {
-			mat.m_spTexture = texturePaths[pmxMat.m_sphereTextureIndex];
-			mat.m_spTextureMode = pmxMat.m_sphereMode;
+		if (mat.m_sphereTextureIndex != -1) {
+			m.m_spTexture = texturePaths[mat.m_sphereTextureIndex];
+			m.m_spTextureMode = mat.m_sphereMode;
 		}
 
-		m_materials.emplace_back(std::move(mat));
+		m_materials.emplace_back(std::move(m));
 
 		SubMesh subMesh{};
 		subMesh.m_beginIndex = static_cast<int>(beginIndex);
-		subMesh.m_vertexCount = pmxMat.m_numFaceVertices;
+		subMesh.m_vertexCount = mat.m_numFaceVertices;
 		subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
 		m_subMeshes.push_back(subMesh);
 
-		beginIndex = beginIndex + pmxMat.m_numFaceVertices;
+		beginIndex = beginIndex + mat.m_numFaceVertices;
 	}
 	m_initMaterials = m_materials;
 	m_mulMaterialFactors.resize(m_materials.size());
@@ -404,17 +373,17 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 
 	// Node
 	m_nodes.reserve(pmx.m_bones.size());
-	for (const auto &bone: pmx.m_bones) {
+	for (const auto& bone : pmx.m_bones) {
 		auto node = std::make_unique<Node>();
 		node->m_index = static_cast<uint32_t>(m_nodes.size());
 		node->m_name = bone.m_name;
 		m_nodes.emplace_back(std::move(node));
 	}
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
-		const auto &bone = pmx.m_bones[i];
+		const auto& bone = pmx.m_bones[i];
 		auto* node = m_nodes[i].get();
 		if (bone.m_parentBoneIndex != -1) {
-			const auto &parentBone = pmx.m_bones[bone.m_parentBoneIndex];
+			const auto& parentBone = pmx.m_bones[bone.m_parentBoneIndex];
 			auto* parent = m_nodes[bone.m_parentBoneIndex].get();
 			parent->AddChild(node);
 			auto localPos = bone.m_position - parentBone.m_position;
@@ -453,16 +422,16 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_transforms.resize(m_nodes.size());
 	m_sortedNodes.clear();
 	m_sortedNodes.reserve(m_nodes.size());
-	auto &pmxNodes = m_nodes;
-	for (auto &pmxNode: pmxNodes)
+	auto& pmxNodes = m_nodes;
+	for (auto& pmxNode : pmxNodes)
 		m_sortedNodes.push_back(pmxNode.get());
 	std::ranges::stable_sort(m_sortedNodes,
-		[](const Node *x, const Node *y) { return x->m_deformDepth < y->m_deformDepth; }
+		[](const Node* x, const Node* y) { return x->m_deformDepth < y->m_deformDepth; }
 	);
 
 	// IK
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
-		const auto &bone = pmx.m_bones[i];
+		const auto& bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_unique<IkSolver>();
 			auto* ikNode = m_nodes[i].get();
@@ -470,7 +439,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			ikNode->m_ikSolver = solver.get();
 			auto* targetNode = m_nodes[bone.m_ikTargetBoneIndex].get();
 			solver->m_ikTarget = targetNode;
-			for (const auto &[m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax]: bone.m_ikLinks) {
+			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
 				auto* linkNode = m_nodes[m_ikBoneIndex].get();
 				IKChain chain{};
 				chain.m_node = linkNode;
@@ -488,7 +457,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	}
 
 	// Morph
-	for (const auto &pmxMorph: pmx.m_morphs) {
+	for (const auto& pmxMorph : pmx.m_morphs) {
 		auto morph = std::make_unique<Morph>();
 		morph->m_name = pmxMorph.m_name;
 		morph->m_weight = 0.0f;
@@ -496,7 +465,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (pmxMorph.m_morphType == MorphType::Position) {
 			morph->m_dataIndex = m_positionMorphDatas.size();
 			std::vector<PositionMorph> morphData;
-			for (const auto &[m_vertexIndex, m_position]: pmxMorph.m_positionMorph) {
+			for (const auto& [m_vertexIndex, m_position] : pmxMorph.m_positionMorph) {
 				PositionMorph morphVtx{};
 				morphVtx.m_vertexIndex = m_vertexIndex;
 				morphVtx.m_position = m_position * glm::vec3(1, 1, -1);
@@ -506,7 +475,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		} else if (pmxMorph.m_morphType == MorphType::UV) {
 			morph->m_dataIndex = m_uvMorphDatas.size();
 			std::vector<UVMorph> morphData;
-			for (const auto &[m_vertexIndex, m_uv]: pmxMorph.m_uvMorph) {
+			for (const auto& [m_vertexIndex, m_uv] : pmxMorph.m_uvMorph) {
 				UVMorph morphUV{};
 				morphUV.m_vertexIndex = m_vertexIndex;
 				morphUV.m_uv = m_uv;
@@ -523,7 +492,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			morph->m_dataIndex = m_boneMorphDatas.size();
 
 			std::vector<BoneMorph> boneMorphData;
-			for (const auto &[m_boneIndex, m_position, m_quaternion]: pmxMorph.m_boneMorph) {
+			for (const auto& [m_boneIndex, m_position, m_quaternion] : pmxMorph.m_boneMorph) {
 				BoneMorph boneMorphElem{};
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
@@ -545,8 +514,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
 	fixInfiniteGroupMorph = [this, &fixInfiniteGroupMorph, &groupMorphStack](const int32_t morphIdx) {
-		const auto &morphs = m_morphs;
-		const auto &morph = morphs[morphIdx];
+		const auto& morphs = m_morphs;
+		const auto& morph = morphs[morphIdx];
 		if (morph->m_morphType == MorphType::Group) {
 			for (auto [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				auto findIt = std::ranges::find(groupMorphStack, m_morphIndex);
@@ -568,7 +537,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	// Physics
 	m_physics = std::make_unique<Physics>();
 	m_physics->Create();
-	for (const auto &pmxRB: pmx.m_rigidBodies) {
+	for (const auto& pmxRB : pmx.m_rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		Node* node = nullptr;
 		if (pmxRB.m_boneIndex != -1)
@@ -576,16 +545,14 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		rb->Create(pmxRB, this, node);
 		m_physics->m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
-
 	}
-	for (const auto &pmxJoint: pmx.m_joints) {
+	for (const auto& pmxJoint : pmx.m_joints) {
 		if (pmxJoint.m_rigidbodyAIndex != -1 &&
 		    pmxJoint.m_rigidbodyBIndex != -1 &&
 		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
 			auto joint = std::make_unique<Joint>();
-			auto &rigidBodies = m_rigidBodies;
-			joint->CreateJoint(
-				pmxJoint,
+			auto& rigidBodies = m_rigidBodies;
+			joint->CreateJoint(pmxJoint,
 				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
 				rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
 			);
@@ -611,10 +578,10 @@ void Model::Destroy() {
 	m_nodes.clear();
 	m_updateRanges.clear();
 
-	for (const auto& joint: m_joints)
+	for (const auto& joint : m_joints)
 		m_physics->m_world->removeConstraint(joint->m_constraint.get());
 	m_joints.clear();
-	for (const auto& rb: m_rigidBodies)
+	for (const auto& rb : m_rigidBodies)
 		m_physics->m_world->removeRigidBody(rb->m_rigidBody.get());
 	m_rigidBodies.clear();
 	m_physics.reset();
@@ -636,7 +603,7 @@ void Model::SetupParallelUpdate() {
 	if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
 		const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
 		for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-			auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+			auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
 			if (rangeIdx < numRanges) {
 				m_vertexOffset = rangeIdx * LowerVertexCount;
 				m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
@@ -649,7 +616,7 @@ void Model::SetupParallelUpdate() {
 		const size_t numVertexCount = vertexCount / m_updateRanges.size();
 		size_t offset = 0;
 		for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-			auto &[m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
+			auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
 			m_vertexOffset = offset;
 			m_vertexCount = numVertexCount;
 			if (rangeIdx == 0)
@@ -660,23 +627,23 @@ void Model::SetupParallelUpdate() {
 }
 
 void Model::Update(const UpdateRange& range) {
-	const auto *position = m_positions.data() + range.m_vertexOffset;
-	const auto *normal = m_normals.data() + range.m_vertexOffset;
-	const auto *uv = m_uvs.data() + range.m_vertexOffset;
-	const auto *morphPos = m_morphPositions.data() + range.m_vertexOffset;
-	const auto *morphUV = m_morphUVs.data() + range.m_vertexOffset;
-	const auto *vtxInfo = m_vertexBoneInfos.data() + range.m_vertexOffset;
-	const auto *transforms = m_transforms.data();
-	auto *updatePosition = m_updatePositions.data() + range.m_vertexOffset;
-	auto *updateNormal = m_updateNormals.data() + range.m_vertexOffset;
-	auto *updateUV = m_updateUVs.data() + range.m_vertexOffset;
+	const auto* position = m_positions.data() + range.m_vertexOffset;
+	const auto* normal = m_normals.data() + range.m_vertexOffset;
+	const auto* uv = m_uvs.data() + range.m_vertexOffset;
+	const auto* morphPos = m_morphPositions.data() + range.m_vertexOffset;
+	const auto* morphUV = m_morphUVs.data() + range.m_vertexOffset;
+	const auto* vtxInfo = m_vertexBoneInfos.data() + range.m_vertexOffset;
+	const auto* transforms = m_transforms.data();
+	auto* updatePosition = m_updatePositions.data() + range.m_vertexOffset;
+	auto* updateNormal = m_updateNormals.data() + range.m_vertexOffset;
+	auto* updateUV = m_updateUVs.data() + range.m_vertexOffset;
 
 	for (size_t i = 0; i < range.m_vertexCount; i++) {
 		glm::mat4 m;
 		switch (vtxInfo->m_weightType) {
 			case WeightType::BDEF1: {
 				const auto i0 = vtxInfo->m_boneIndices[0];
-				const auto &m0 = transforms[i0];
+				const auto& m0 = transforms[i0];
 				m = m0;
 				break;
 			}
@@ -685,8 +652,8 @@ void Model::Update(const UpdateRange& range) {
 				const auto i1 = vtxInfo->m_boneIndices[1];
 				const auto w0 = vtxInfo->m_boneWeights[0];
 				const auto w1 = vtxInfo->m_boneWeights[1];
-				const auto &m0 = transforms[i0];
-				const auto &m1 = transforms[i1];
+				const auto& m0 = transforms[i0];
+				const auto& m1 = transforms[i1];
 				m = m0 * w0 + m1 * w1;
 				break;
 			}
@@ -699,10 +666,10 @@ void Model::Update(const UpdateRange& range) {
 				const auto w1 = vtxInfo->m_boneWeights[1];
 				const auto w2 = vtxInfo->m_boneWeights[2];
 				const auto w3 = vtxInfo->m_boneWeights[3];
-				const auto &m0 = transforms[i0];
-				const auto &m1 = transforms[i1];
-				const auto &m2 = transforms[i2];
-				const auto &m3 = transforms[i3];
+				const auto& m0 = transforms[i0];
+				const auto& m1 = transforms[i1];
+				const auto& m2 = transforms[i2];
+				const auto& m3 = transforms[i3];
 				m = m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3;
 				break;
 			}
@@ -723,7 +690,7 @@ void Model::Update(const UpdateRange& range) {
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 
 				*updatePosition = rot_mat * (pos - center) + glm::vec3(m0 * glm::vec4(cr0, 1)) * w0 +
-				                  glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
+					glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rot_mat * *normal;
 
 				break;
@@ -743,10 +710,7 @@ void Model::Update(const UpdateRange& range) {
 				if (glm::dot(dq[0].real, dq[1].real) < 0) w[1] *= -1.0f;
 				if (glm::dot(dq[0].real, dq[2].real) < 0) w[2] *= -1.0f;
 				if (glm::dot(dq[0].real, dq[3].real) < 0) w[3] *= -1.0f;
-				auto blendDQ = w[0] * dq[0]
-				               + w[1] * dq[1]
-				               + w[2] * dq[2]
-				               + w[3] * dq[3];
+				auto blendDQ = w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3];
 				blendDQ = glm::normalize(blendDQ);
 				m = glm::transpose(glm::mat3x4_cast(blendDQ));
 				break;
@@ -788,9 +752,10 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 			MorphBone(m_boneMorphDatas[morph->m_dataIndex], weight);
 			break;
 		case MorphType::Group: {
-			for (const auto &[m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
-				if (m_morphIndex == -1) continue;
-				auto &elemMorph = m_morphs[m_morphIndex];
+			for (const auto& [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
+				if (m_morphIndex == -1)
+					continue;
+				auto& elemMorph = m_morphs[m_morphIndex];
 				EvalMorph(elemMorph.get(), m_weight * weight);
 			}
 			break;
@@ -804,7 +769,7 @@ void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const flo
 	if (weight == 0)
 		return;
 
-	for (const auto &[m_index, m_position]: morphData)
+	for (const auto& [m_index, m_position] : morphData)
 		m_morphPositions[m_index] += m_position * weight;
 }
 
@@ -812,7 +777,7 @@ void Model::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
 	if (weight == 0)
 		return;
 
-	for (const auto &[m_index, m_uv]: morphData)
+	for (const auto& [m_index, m_uv] : morphData)
 		m_morphUVs[m_index] += m_uv * weight;
 }
 
@@ -871,7 +836,7 @@ void Model::EndMorphMaterial() {
 }
 
 void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
-	for (const auto &matMorph: morphData) {
+	for (const auto& matMorph : morphData) {
 		if (matMorph.m_materialIndex != -1) {
 			const auto mi = matMorph.m_materialIndex;
 			switch (matMorph.m_opType) {
@@ -888,7 +853,7 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 			switch (matMorph.m_opType) {
 				case OpType::Mul:
 					for (size_t i = 0; i < m_materials.size(); i++)
-						Mul(m_mulMaterialFactors[i], matMorph,weight);
+						Mul(m_mulMaterialFactors[i], matMorph, weight);
 					break;
 				case OpType::Add:
 					for (size_t i = 0; i < m_materials.size(); i++)
@@ -902,7 +867,7 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 }
 
 void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
-	for (const auto &[m_boneIndex, m_position, m_quaternion]: morphData) {
+	for (const auto& [m_boneIndex, m_position, m_quaternion] : morphData) {
 		auto* node = m_nodes[m_boneIndex].get();
 		glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);
 		node->m_translate = node->m_translate + t;
