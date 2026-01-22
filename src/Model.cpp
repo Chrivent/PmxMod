@@ -722,7 +722,7 @@ void Model::Update(const UpdateRange& range) {
 				const auto pos = *position + *morphPos;
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 
-				*updatePosition = glm::mat3(rot_mat) * (pos - center) + glm::vec3(m0 * glm::vec4(cr0, 1)) * w0 +
+				*updatePosition = rot_mat * (pos - center) + glm::vec3(m0 * glm::vec4(cr0, 1)) * w0 +
 				                  glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rot_mat * *normal;
 
