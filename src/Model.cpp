@@ -483,7 +483,6 @@ void Model::Destroy() {
 	m_indices.clear();
 	m_nodes.clear();
 	m_updateRanges.clear();
-
 	for (const auto& joint : m_joints)
 		m_physics->m_world->removeConstraint(joint->m_constraint.get());
 	m_joints.clear();
@@ -500,10 +499,8 @@ void Model::SetupParallelUpdate() {
 		static_cast<size_t>(std::thread::hardware_concurrency()));
 	if (m_parallelUpdateCount > maxParallelCount)
 		m_parallelUpdateCount = 16;
-
 	m_updateRanges.resize(m_parallelUpdateCount);
 	m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
-
 	const size_t vertexCount = m_positions.size();
 	constexpr size_t LowerVertexCount = 1000;
 	if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
@@ -543,7 +540,6 @@ void Model::Update(const UpdateRange& range) {
 	auto* updatePosition = m_updatePositions.data() + range.m_vertexOffset;
 	auto* updateNormal = m_updateNormals.data() + range.m_vertexOffset;
 	auto* updateUV = m_updateUVs.data() + range.m_vertexOffset;
-
 	for (size_t i = 0; i < range.m_vertexCount; i++) {
 		glm::mat4 m;
 		switch (vtxInfo->m_weightType) {
@@ -591,10 +587,8 @@ void Model::Update(const UpdateRange& range) {
 				const auto q1 = glm::quat_cast(m_nodes[i1]->m_global);
 				const auto m0 = transforms[i0];
 				const auto m1 = transforms[i1];
-
 				const auto pos = *position + *morphPos;
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
-
 				*updatePosition = rot_mat * (pos - center) + glm::vec3(m0 * glm::vec4(cr0, 1)) * w0 +
 					glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rot_mat * *normal;
@@ -624,13 +618,11 @@ void Model::Update(const UpdateRange& range) {
 			default:
 				break;
 		}
-
 		if (WeightType::SDEF != vtxInfo->m_weightType) {
 			*updatePosition = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 			*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 		}
 		*updateUV = *uv + glm::vec2(morphUV->x, morphUV->y);
-
 		vtxInfo++;
 		position++;
 		normal++;
