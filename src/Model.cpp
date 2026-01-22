@@ -91,7 +91,7 @@ void Model::UpdateMorphAnimation() {
 }
 
 void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-	const auto pred = [&](const Node* n) { return n->m_isDeformAfterPhysics == afterPhysicsAnim; };
+	const auto pred = [&](const Node* node) { return node->m_isDeformAfterPhysics == afterPhysicsAnim; };
 	for (auto* node : m_sortedNodes | std::views::filter(pred))
 		node->UpdateLocalTransform();
 	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
