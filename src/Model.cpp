@@ -183,10 +183,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_vertexBoneInfos.reserve(vertexCount);
 	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
+	const glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.m_vertices) {
-		glm::vec3 pos = v.m_position * glm::vec3(1, 1, -1);
+		glm::vec3 pos = v.m_position * invZ;
 		m_positions.push_back(pos);
-		m_normals.push_back(v.m_normal * glm::vec3(1, 1, -1));
+		m_normals.push_back(v.m_normal * invZ);
 		m_uvs.push_back(glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y));
 		Vertex vtxBoneInfo{};
 		if (WeightType::SDEF != v.m_weightType) {
@@ -207,9 +208,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			case WeightType::SDEF: {
 					auto w0 = v.m_boneWeights[0];
 					auto w1 = 1.0f - w0;
-					auto center = v.m_sdefC * glm::vec3(1, 1, -1);
-					auto r0 = v.m_sdefR0 * glm::vec3(1, 1, -1);
-					auto r1 = v.m_sdefR1 * glm::vec3(1, 1, -1);
+					auto center = v.m_sdefC * invZ;
+					auto r0 = v.m_sdefR0 * invZ;
+					auto r1 = v.m_sdefR1 * invZ;
 					auto rw = r0 * w0 + r1 * w1;
 					r0 = center + r0 - rw;
 					r1 = center + r1 - rw;
@@ -321,7 +322,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		}
 		localPos.z *= -1;
 		node->m_translate = localPos;
-		node->m_global = glm::translate(glm::mat4(1), bone.m_position * glm::vec3(1, 1, -1));
+		node->m_global = glm::translate(glm::mat4(1), bone.m_position * invZ);
 		node->m_inverseInit = glm::inverse(node->m_global);
 		node->m_deformDepth = bone.m_deformDepth;
 		bool deformAfterPhysics = !!(static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics));
@@ -384,7 +385,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			for (const auto& [m_vertexIndex, m_position] : morph.m_positionMorph) {
 				PositionMorph morphVtx{};
 				morphVtx.m_vertexIndex = m_vertexIndex;
-				morphVtx.m_position = m_position * glm::vec3(1, 1, -1);
+				morphVtx.m_position = m_position * invZ;
 				morphData.push_back(morphVtx);
 			}
 			m_positionMorphDatas.emplace_back(std::move(morphData));
@@ -407,7 +408,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			for (const auto& [m_boneIndex, m_position, m_quaternion] : morph.m_boneMorph) {
 				BoneMorph boneMorphElem{};
 				boneMorphElem.m_boneIndex = m_boneIndex;
-				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
+				boneMorphElem.m_position = m_position * invZ;
 				auto rot = Util::InvZ(glm::mat3_cast(m_quaternion));
 				boneMorphElem.m_quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
@@ -422,9 +423,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
 	fixInfiniteGroupMorph = [&](const int32_t idx) {
+		if (idx < 0)
+			return;
 		const auto* morph = m_morphs[idx].get();
 		if (morph->m_morphType != MorphType::Group)
 			return;
+		groupMorphStack.push_back(idx);
 		for (auto& [childIdx, w] : m_groupMorphDatas[morph->m_dataIndex]) {
 			if (childIdx < 0)
 				continue;
@@ -432,10 +436,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				childIdx = -1;
 				continue;
 			}
-			groupMorphStack.push_back(idx);
 			fixInfiniteGroupMorph(childIdx);
-			groupMorphStack.pop_back();
 		}
+		groupMorphStack.pop_back();
 	};
 	for (int32_t i = 0; i < static_cast<int32_t>(m_morphs.size()); i++) {
 		fixInfiniteGroupMorph(i);
