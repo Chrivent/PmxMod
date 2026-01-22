@@ -172,13 +172,10 @@ void Model::UpdateAllAnimation(const Animation* anim, const float frame, const f
 
 bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
 	Destroy();
-
 	PMXReader pmx;
 	if (!pmx.ReadFile(filepath))
 		return false;
-
 	std::filesystem::path dirPath = filepath.parent_path();
-
 	size_t vertexCount = pmx.m_vertices.size();
 	m_positions.reserve(vertexCount);
 	m_normals.reserve(vertexCount);
@@ -186,7 +183,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_vertexBoneInfos.reserve(vertexCount);
 	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
-
 	for (const auto& v : pmx.m_vertices) {
 		glm::vec3 pos = v.m_position * glm::vec3(1, 1, -1);
 		glm::vec3 nor = v.m_normal * glm::vec3(1, 1, -1);
@@ -200,13 +196,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			vtxBoneInfo.m_boneIndices[1] = v.m_boneIndices[1];
 			vtxBoneInfo.m_boneIndices[2] = v.m_boneIndices[2];
 			vtxBoneInfo.m_boneIndices[3] = v.m_boneIndices[3];
-
 			vtxBoneInfo.m_boneWeights[0] = v.m_boneWeights[0];
 			vtxBoneInfo.m_boneWeights[1] = v.m_boneWeights[1];
 			vtxBoneInfo.m_boneWeights[2] = v.m_boneWeights[2];
 			vtxBoneInfo.m_boneWeights[3] = v.m_boneWeights[3];
 		}
-
 		vtxBoneInfo.m_weightType = v.m_weightType;
 		switch (v.m_weightType) {
 			case WeightType::BDEF2:
@@ -215,7 +209,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			case WeightType::SDEF: {
 					auto w0 = v.m_boneWeights[0];
 					auto w1 = 1.0f - w0;
-
 					auto center = v.m_sdefC * glm::vec3(1, 1, -1);
 					auto r0 = v.m_sdefR0 * glm::vec3(1, 1, -1);
 					auto r1 = v.m_sdefR1 * glm::vec3(1, 1, -1);
@@ -224,7 +217,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 					r1 = center + r1 - rw;
 					auto cr0 = (center + r0) * 0.5f;
 					auto cr1 = (center + r1) * 0.5f;
-
 					vtxBoneInfo.m_boneIndices[0] = v.m_boneIndices[0];
 					vtxBoneInfo.m_boneIndices[1] = v.m_boneIndices[1];
 					vtxBoneInfo.m_boneWeights[0] = v.m_boneWeights[0];
@@ -246,7 +238,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_updatePositions.resize(m_positions.size());
 	m_updateNormals.resize(m_normals.size());
 	m_updateUVs.resize(m_uvs.size());
-
 	m_indexElementSize = pmx.m_header.m_vertexIndexSize;
 	m_indices.resize(pmx.m_faces.size() * 3 * m_indexElementSize);
 	m_indexCount = pmx.m_faces.size() * 3;
@@ -290,15 +281,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		default:
 			return false;
 	}
-
 	std::vector<std::filesystem::path> texturePaths;
 	texturePaths.reserve(pmx.m_textures.size());
 	for (const auto& [m_textureName] : pmx.m_textures) {
 		std::filesystem::path texPath = dirPath / m_textureName;
 		texturePaths.emplace_back(std::move(texPath));
 	}
-
-	// Materialをコピー
 	m_materials.reserve(pmx.m_materials.size());
 	m_subMeshes.reserve(pmx.m_materials.size());
 	uint32_t beginIndex = 0;
@@ -316,12 +304,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m.m_shadowReceiver = !!(static_cast<uint8_t>(mat.m_drawMode) & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow));
 		m.m_edgeSize = mat.m_edgeSize;
 		m.m_edgeColor = mat.m_edgeColor;
-
-		// Texture
 		if (mat.m_textureIndex != -1)
 			m.m_texture = texturePaths[mat.m_textureIndex];
-
-		// ToonTexture
 		if (mat.m_toonMode == ToonMode::Common) {
 			if (mat.m_toonTextureIndex != -1) {
 				std::stringstream ss;
@@ -332,28 +316,21 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			if (mat.m_toonTextureIndex != -1)
 				m.m_toonTexture = texturePaths[mat.m_toonTextureIndex];
 		}
-
-		// SpTexture
 		if (mat.m_sphereTextureIndex != -1) {
 			m.m_spTexture = texturePaths[mat.m_sphereTextureIndex];
 			m.m_spTextureMode = mat.m_sphereMode;
 		}
-
 		m_materials.emplace_back(std::move(m));
-
 		SubMesh subMesh{};
 		subMesh.m_beginIndex = static_cast<int>(beginIndex);
 		subMesh.m_vertexCount = mat.m_numFaceVertices;
 		subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
 		m_subMeshes.push_back(subMesh);
-
 		beginIndex = beginIndex + mat.m_numFaceVertices;
 	}
 	m_initMaterials = m_materials;
 	m_mulMaterialFactors.resize(m_materials.size());
 	m_addMaterialFactors.resize(m_materials.size());
-
-	// Node
 	m_nodes.reserve(pmx.m_bones.size());
 	for (const auto& bone : pmx.m_bones) {
 		auto node = std::make_unique<Node>();
@@ -404,14 +381,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_transforms.resize(m_nodes.size());
 	m_sortedNodes.clear();
 	m_sortedNodes.reserve(m_nodes.size());
-	auto& pmxNodes = m_nodes;
-	for (auto& pmxNode : pmxNodes)
-		m_sortedNodes.push_back(pmxNode.get());
+	for (auto& node : m_nodes)
+		m_sortedNodes.push_back(node.get());
 	std::ranges::stable_sort(m_sortedNodes,
 		[](const Node* x, const Node* y) { return x->m_deformDepth < y->m_deformDepth; }
 	);
-
-	// IK
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto& bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
@@ -437,44 +411,40 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			m_ikSolvers.emplace_back(std::move(solver));
 		}
 	}
-
-	// Morph
-	for (const auto& pmxMorph : pmx.m_morphs) {
-		auto morph = std::make_unique<Morph>();
-		morph->m_name = pmxMorph.m_name;
-		morph->m_weight = 0.0f;
-		morph->m_morphType = pmxMorph.m_morphType;
-		if (pmxMorph.m_morphType == MorphType::Position) {
-			morph->m_dataIndex = m_positionMorphDatas.size();
+	for (const auto& morph : pmx.m_morphs) {
+		auto m = std::make_unique<Morph>();
+		m->m_name = morph.m_name;
+		m->m_weight = 0.0f;
+		m->m_morphType = morph.m_morphType;
+		if (morph.m_morphType == MorphType::Position) {
+			m->m_dataIndex = m_positionMorphDatas.size();
 			std::vector<PositionMorph> morphData;
-			for (const auto& [m_vertexIndex, m_position] : pmxMorph.m_positionMorph) {
+			for (const auto& [m_vertexIndex, m_position] : morph.m_positionMorph) {
 				PositionMorph morphVtx{};
 				morphVtx.m_vertexIndex = m_vertexIndex;
 				morphVtx.m_position = m_position * glm::vec3(1, 1, -1);
 				morphData.push_back(morphVtx);
 			}
 			m_positionMorphDatas.emplace_back(std::move(morphData));
-		} else if (pmxMorph.m_morphType == MorphType::UV) {
-			morph->m_dataIndex = m_uvMorphDatas.size();
+		} else if (morph.m_morphType == MorphType::UV) {
+			m->m_dataIndex = m_uvMorphDatas.size();
 			std::vector<UVMorph> morphData;
-			for (const auto& [m_vertexIndex, m_uv] : pmxMorph.m_uvMorph) {
+			for (const auto& [m_vertexIndex, m_uv] : morph.m_uvMorph) {
 				UVMorph morphUV{};
 				morphUV.m_vertexIndex = m_vertexIndex;
 				morphUV.m_uv = m_uv;
 				morphData.push_back(morphUV);
 			}
 			m_uvMorphDatas.emplace_back(std::move(morphData));
-		} else if (pmxMorph.m_morphType == MorphType::Material) {
-			morph->m_dataIndex = m_materialMorphDatas.size();
-
+		} else if (morph.m_morphType == MorphType::Material) {
+			m->m_dataIndex = m_materialMorphDatas.size();
 			std::vector<MaterialMorph> materialMorphData;
-			materialMorphData = pmxMorph.m_materialMorph;
+			materialMorphData = morph.m_materialMorph;
 			m_materialMorphDatas.emplace_back(materialMorphData);
-		} else if (pmxMorph.m_morphType == MorphType::Bone) {
-			morph->m_dataIndex = m_boneMorphDatas.size();
-
+		} else if (morph.m_morphType == MorphType::Bone) {
+			m->m_dataIndex = m_boneMorphDatas.size();
 			std::vector<BoneMorph> boneMorphData;
-			for (const auto& [m_boneIndex, m_position, m_quaternion] : pmxMorph.m_boneMorph) {
+			for (const auto& [m_boneIndex, m_position, m_quaternion] : morph.m_boneMorph) {
 				BoneMorph boneMorphElem{};
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * glm::vec3(1, 1, -1);
@@ -484,14 +454,14 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				boneMorphData.push_back(boneMorphElem);
 			}
 			m_boneMorphDatas.emplace_back(boneMorphData);
-		} else if (pmxMorph.m_morphType == MorphType::Group) {
-			morph->m_dataIndex = m_groupMorphDatas.size();
+		} else if (morph.m_morphType == MorphType::Group) {
+			m->m_dataIndex = m_groupMorphDatas.size();
 
 			std::vector<GroupMorph> groupMorphData;
-			groupMorphData = pmxMorph.m_groupMorph;
+			groupMorphData = morph.m_groupMorph;
 			m_groupMorphDatas.emplace_back(groupMorphData);
 		}
-		m_morphs.emplace_back(std::move(morph));
+		m_morphs.emplace_back(std::move(m));
 	}
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph;
@@ -515,37 +485,33 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		fixInfiniteGroupMorph(morphIdx);
 		groupMorphStack.clear();
 	}
-
-	// Physics
 	m_physics = std::make_unique<Physics>();
 	m_physics->Create();
-	for (const auto& pmxRB : pmx.m_rigidBodies) {
+	for (const auto& rigidBody : pmx.m_rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		Node* node = nullptr;
-		if (pmxRB.m_boneIndex != -1)
-			node = m_nodes[pmxRB.m_boneIndex].get();
-		rb->Create(pmxRB, this, node);
+		if (rigidBody.m_boneIndex != -1)
+			node = m_nodes[rigidBody.m_boneIndex].get();
+		rb->Create(rigidBody, this, node);
 		m_physics->m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
 	}
-	for (const auto& pmxJoint : pmx.m_joints) {
-		if (pmxJoint.m_rigidbodyAIndex != -1 &&
-		    pmxJoint.m_rigidbodyBIndex != -1 &&
-		    pmxJoint.m_rigidbodyAIndex != pmxJoint.m_rigidbodyBIndex) {
-			auto joint = std::make_unique<Joint>();
+	for (const auto& joint : pmx.m_joints) {
+		if (joint.m_rigidbodyAIndex != -1 &&
+		    joint.m_rigidbodyBIndex != -1 &&
+		    joint.m_rigidbodyAIndex != joint.m_rigidbodyBIndex) {
+			auto j = std::make_unique<Joint>();
 			auto& rigidBodies = m_rigidBodies;
-			joint->CreateJoint(pmxJoint,
-				rigidBodies[pmxJoint.m_rigidbodyAIndex].get(),
-				rigidBodies[pmxJoint.m_rigidbodyBIndex].get()
+			j->CreateJoint(joint,
+				rigidBodies[joint.m_rigidbodyAIndex].get(),
+				rigidBodies[joint.m_rigidbodyBIndex].get()
 			);
-			m_physics->m_world->addConstraint(joint->m_constraint.get());
-			m_joints.emplace_back(std::move(joint));
+			m_physics->m_world->addConstraint(j->m_constraint.get());
+			m_joints.emplace_back(std::move(j));
 		}
 	}
 	ResetPhysics();
-
 	SetupParallelUpdate();
-
 	return true;
 }
 
