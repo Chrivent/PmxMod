@@ -49,7 +49,7 @@ public:
 protected:
 	virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
 
-	Node* m_node;
+	Node*		m_node;
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset{};
 	btTransform	m_transform;
@@ -74,7 +74,7 @@ public:
 	void ReflectGlobalTransform() override {}
 
 private:
-	Node* m_node;
+	Node*		m_node;
 	glm::mat4	m_offset;
 };
 
@@ -95,14 +95,14 @@ struct RigidBody {
 	std::unique_ptr<MotionState>		m_kinematicMotionState;
 	std::unique_ptr<btRigidBody>		m_rigidBody;
 
-	Operation		m_rigidBodyType = Operation::Static;
-	uint16_t		m_group = 0;
-	uint16_t		m_groupMask = 0;
+	Operation	m_rigidBodyType = Operation::Static;
+	uint16_t	m_group = 0;
+	uint16_t	m_groupMask = 0;
 
-	Node*	m_node = nullptr;
+	Node*		m_node = nullptr;
 	glm::mat4	m_offsetMat = glm::mat4(1);
 
-	std::string					m_name;
+	std::string	m_name;
 };
 
 struct Joint {
