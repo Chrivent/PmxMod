@@ -129,12 +129,20 @@ static SceneConfig BuildTestSceneConfig2() {
 
 static SceneConfig BuildTestSceneConfig3() {
 	SceneConfig cfg;
-	ModelConfig md;
-	md.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	md.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\Teddy Bear.vmd)");
-	cfg.m_modelConfigs.emplace_back(std::move(md));
-	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\SMOOTH Camera.vmd)";
-	cfg.m_musicPath = R"(D:\예찬\MMD\motion\STAYC - Teddy Bear\STAYC - Teddy Bear\STAYC - Teddy Bear.wav)";
+	ModelConfig md1;
+	md1.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
+	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
+	ModelConfig md2;
+	md2.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
+	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
+	ModelConfig md3;
+	md3.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
+	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
+	cfg.m_modelConfigs.emplace_back(std::move(md1));
+	cfg.m_modelConfigs.emplace_back(std::move(md2));
+	cfg.m_modelConfigs.emplace_back(std::move(md3));
+	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\Dance Robot Dance\DanceRobotDance_Milo_Camera.vmd)";
+	cfg.m_musicPath = R"(D:\예찬\MMD\motion\Dance Robot Dance\0068_01.wav)";
 	ModelConfig bg;
 	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
 	bg.m_scale = 1.0f;
@@ -149,7 +157,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig1();
+		cfg = BuildTestSceneConfig3();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
