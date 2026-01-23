@@ -627,8 +627,7 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 			for (const auto& [m_morphIndex, m_weight] : m_groupMorphDatas[morph->m_dataIndex]) {
 				if (m_morphIndex == -1)
 					continue;
-				auto& elemMorph = m_morphs[m_morphIndex];
-				EvalMorph(elemMorph.get(), m_weight * weight);
+				EvalMorph(m_morphs[m_morphIndex].get(), m_weight * weight);
 			}
 			break;
 		}
