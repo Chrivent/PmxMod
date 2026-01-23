@@ -9,7 +9,7 @@ float NormalizeAngle(float angle) {
 	return angle;
 }
 
-float DiffAngle(float a, float b) {
+float DiffAngle(const float a, const float b) {
 	const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 	if (diff > glm::pi<float>())
 		return diff - glm::two_pi<float>();
