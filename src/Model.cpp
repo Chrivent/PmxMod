@@ -577,7 +577,7 @@ void Model::Update(const UpdateRange& range) {
 				break;
 			}
 			case WeightType::QDEF: {
-				glm::dualquat dq[4];
+				glm::dualquat dq[4]{};
 				float w[4] = {};
 				for (int bi = 0; bi < 4; bi++) {
 					auto boneID = vtxInfo->m_boneIndices[bi];
