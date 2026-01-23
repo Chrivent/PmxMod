@@ -114,7 +114,9 @@ void Model::ResetPhysics() const {
 		rb->SetActivation(false);
 		rb->ResetTransform();
 	}
-	m_physics->m_world->stepSimulation(1.0f / 60.0f, m_physics->m_maxSubStepCount, 1.0 / m_physics->m_fps);
+	m_physics->m_world->stepSimulation(
+		1.0f / 60.0f, m_physics->m_maxSubStepCount,
+		static_cast<btScalar>(1.0f / m_physics->m_fps));
 	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
@@ -130,7 +132,9 @@ void Model::ResetPhysics() const {
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	for (auto& rb : m_rigidBodies)
 		rb->SetActivation(true);
-	m_physics->m_world->stepSimulation(elapsed, m_physics->m_maxSubStepCount, 1.0 / m_physics->m_fps);
+	m_physics->m_world->stepSimulation(
+		elapsed, m_physics->m_maxSubStepCount,
+		static_cast<btScalar>(1.0f / m_physics->m_fps));
 	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
@@ -188,7 +192,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		glm::vec3 pos = v.m_position * invZ;
 		m_positions.push_back(pos);
 		m_normals.push_back(v.m_normal * invZ);
-		m_uvs.push_back(glm::vec2(v.m_uv.x, 1.0f - v.m_uv.y));
+		m_uvs.emplace_back(v.m_uv.x, 1.0f - v.m_uv.y);
 		Vertex vtxBoneInfo{};
 		if (WeightType::SDEF != v.m_weightType) {
 			vtxBoneInfo.m_boneIndices[0] = v.m_boneIndices[0];
@@ -326,7 +330,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		node->m_global = glm::translate(glm::mat4(1), bone.m_position * invZ);
 		node->m_inverseInit = glm::inverse(node->m_global);
 		node->m_deformDepth = bone.m_deformDepth;
-		bool deformAfterPhysics = !!(static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics));
+		bool deformAfterPhysics = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
 		node->m_isDeformAfterPhysics = deformAfterPhysics;
 		bool appendRotate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
 		bool appendTranslate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
@@ -407,10 +411,10 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			m->m_dataIndex = m_boneMorphDatas.size();
 			std::vector<BoneMorph> boneMorphData;
 			for (const auto& [m_boneIndex, m_position, m_quaternion] : morph.m_boneMorph) {
+				auto rot = Util::InvZ(glm::mat3_cast(m_quaternion));
 				BoneMorph boneMorphElem{};
 				boneMorphElem.m_boneIndex = m_boneIndex;
 				boneMorphElem.m_position = m_position * invZ;
-				auto rot = Util::InvZ(glm::mat3_cast(m_quaternion));
 				boneMorphElem.m_quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
@@ -493,39 +497,34 @@ void Model::Destroy() {
 }
 
 void Model::SetupParallelUpdate() {
-	if (m_parallelUpdateCount == 0)
-		m_parallelUpdateCount = std::thread::hardware_concurrency();
-	const size_t maxParallelCount = std::max(static_cast<size_t>(16),
-		static_cast<size_t>(std::thread::hardware_concurrency()));
-	if (m_parallelUpdateCount > maxParallelCount)
-		m_parallelUpdateCount = 16;
+	if (!m_parallelUpdateCount)
+		m_parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
+	m_parallelUpdateCount = std::min<size_t>(m_parallelUpdateCount, 16);
 	m_updateRanges.resize(m_parallelUpdateCount);
 	m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
 	const size_t vertexCount = m_positions.size();
 	constexpr size_t LowerVertexCount = 1000;
 	if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
 		const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
-		for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-			auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-			if (rangeIdx < numRanges) {
-				m_vertexOffset = rangeIdx * LowerVertexCount;
-				m_vertexCount = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
+		for (size_t i = 0; i < m_updateRanges.size(); i++) {
+			auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[i];
+			if (i < numRanges) {
+				m_vertexOffset = i * LowerVertexCount;
+				m_vertexCount  = std::min(LowerVertexCount, vertexCount - m_vertexOffset);
 			} else {
 				m_vertexOffset = 0;
 				m_vertexCount = 0;
 			}
 		}
-	} else {
-		const size_t numVertexCount = vertexCount / m_updateRanges.size();
-		size_t offset = 0;
-		for (size_t rangeIdx = 0; rangeIdx < m_updateRanges.size(); rangeIdx++) {
-			auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[rangeIdx];
-			m_vertexOffset = offset;
-			m_vertexCount = numVertexCount;
-			if (rangeIdx == 0)
-				m_vertexCount += vertexCount % m_updateRanges.size();
-			offset = m_vertexOffset + m_vertexCount;
-		}
+		return;
+	}
+	const size_t numVertexCount = vertexCount / m_updateRanges.size();
+	size_t offset = 0;
+	for (size_t i = 0; i < m_updateRanges.size(); i++) {
+		auto& [m_vertexOffset, m_vertexCount] = m_updateRanges[i];
+		m_vertexOffset = offset;
+		m_vertexCount  = numVertexCount + (i == 0 ? vertexCount % m_updateRanges.size() : 0);
+		offset += m_vertexCount;
 	}
 }
 
@@ -544,55 +543,36 @@ void Model::Update(const UpdateRange& range) {
 		glm::mat4 m;
 		switch (vtxInfo->m_weightType) {
 			case WeightType::BDEF1: {
-				const auto i0 = vtxInfo->m_boneIndices[0];
-				const auto& m0 = transforms[i0];
-				m = m0;
+				m = transforms[vtxInfo->m_boneIndices[0]];
 				break;
 			}
 			case WeightType::BDEF2: {
-				const auto i0 = vtxInfo->m_boneIndices[0];
-				const auto i1 = vtxInfo->m_boneIndices[1];
-				const auto w0 = vtxInfo->m_boneWeights[0];
-				const auto w1 = vtxInfo->m_boneWeights[1];
-				const auto& m0 = transforms[i0];
-				const auto& m1 = transforms[i1];
-				m = m0 * w0 + m1 * w1;
+				const auto i0 = vtxInfo->m_boneIndices[0], i1 = vtxInfo->m_boneIndices[1];
+				const auto w0 = vtxInfo->m_boneWeights[0], w1 = vtxInfo->m_boneWeights[1];
+				m = transforms[i0] * w0 + transforms[i1] * w1;
 				break;
 			}
 			case WeightType::BDEF4: {
-				const auto i0 = vtxInfo->m_boneIndices[0];
-				const auto i1 = vtxInfo->m_boneIndices[1];
-				const auto i2 = vtxInfo->m_boneIndices[2];
-				const auto i3 = vtxInfo->m_boneIndices[3];
-				const auto w0 = vtxInfo->m_boneWeights[0];
-				const auto w1 = vtxInfo->m_boneWeights[1];
-				const auto w2 = vtxInfo->m_boneWeights[2];
-				const auto w3 = vtxInfo->m_boneWeights[3];
-				const auto& m0 = transforms[i0];
-				const auto& m1 = transforms[i1];
-				const auto& m2 = transforms[i2];
-				const auto& m3 = transforms[i3];
-				m = m0 * w0 + m1 * w1 + m2 * w2 + m3 * w3;
+				const auto i0 = vtxInfo->m_boneIndices[0], i1 = vtxInfo->m_boneIndices[1];
+				const auto i2 = vtxInfo->m_boneIndices[2], i3 = vtxInfo->m_boneIndices[3];
+				const auto w0 = vtxInfo->m_boneWeights[0], w1 = vtxInfo->m_boneWeights[1];
+				const auto w2 = vtxInfo->m_boneWeights[2], w3 = vtxInfo->m_boneWeights[3];
+				m = transforms[i0] * w0 + transforms[i1] * w1 + transforms[i2] * w2 + transforms[i3] * w3;
 				break;
 			}
 			case WeightType::SDEF: {
-				const auto i0 = vtxInfo->m_boneIndices[0];
-				const auto i1 = vtxInfo->m_boneIndices[1];
-				const auto w0 = vtxInfo->m_boneWeights[0];
-				const auto w1 = 1.0f - w0;
-				const auto center = vtxInfo->m_sdefC;
-				const auto cr0 = vtxInfo->m_sdefR0;
-				const auto cr1 = vtxInfo->m_sdefR1;
+				const auto i0 = vtxInfo->m_boneIndices[0], i1 = vtxInfo->m_boneIndices[1];
+				const auto w0 = vtxInfo->m_boneWeights[0], w1 = 1.0f - w0;
+				const auto center = vtxInfo->m_sdefC, cr0 = vtxInfo->m_sdefR0, cr1 = vtxInfo->m_sdefR1;
 				const auto q0 = glm::quat_cast(m_nodes[i0]->m_global);
 				const auto q1 = glm::quat_cast(m_nodes[i1]->m_global);
-				const auto m0 = transforms[i0];
-				const auto m1 = transforms[i1];
-				const auto pos = *position + *morphPos;
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
-				*updatePosition = rot_mat * (pos - center) + glm::vec3(m0 * glm::vec4(cr0, 1)) * w0 +
-					glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
+				const auto m0 = transforms[i0], m1 = transforms[i1];
+				const auto pos = *position + *morphPos;
+				*updatePosition = rot_mat * (pos - center)
+				+ glm::vec3(m0 * glm::vec4(cr0, 1)) * w0
+				+ glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rot_mat * *normal;
-
 				break;
 			}
 			case WeightType::QDEF: {
@@ -601,17 +581,14 @@ void Model::Update(const UpdateRange& range) {
 				for (int bi = 0; bi < 4; bi++) {
 					auto boneID = vtxInfo->m_boneIndices[bi];
 					if (boneID != -1) {
-						dq[bi] = glm::dualquat_cast(glm::mat3x4(glm::transpose(transforms[boneID])));
-						dq[bi] = glm::normalize(dq[bi]);
+						dq[bi] = glm::normalize(glm::dualquat_cast(glm::mat3x4(glm::transpose(transforms[boneID]))));
 						w[bi] = vtxInfo->m_boneWeights[bi];
-					} else
-						w[bi] = 0;
+					}
 				}
 				if (glm::dot(dq[0].real, dq[1].real) < 0) w[1] *= -1.0f;
 				if (glm::dot(dq[0].real, dq[2].real) < 0) w[2] *= -1.0f;
 				if (glm::dot(dq[0].real, dq[3].real) < 0) w[3] *= -1.0f;
-				auto blendDQ = w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3];
-				blendDQ = glm::normalize(blendDQ);
+				auto blendDQ = glm::normalize(w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3]);
 				m = glm::transpose(glm::mat3x4_cast(blendDQ));
 				break;
 			}
