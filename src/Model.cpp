@@ -536,10 +536,11 @@ void Model::Update(const UpdateRange& range) {
 	const auto* morphUV = m_morphUVs.data() + range.m_vertexOffset;
 	const auto* vtxInfo = m_vertexBoneInfos.data() + range.m_vertexOffset;
 	const auto* transforms = m_transforms.data();
-	auto* updatePosition = m_updatePositions.data() + range.m_vertexOffset;
+	auto* updatePos = m_updatePositions.data() + range.m_vertexOffset;
 	auto* updateNormal = m_updateNormals.data() + range.m_vertexOffset;
 	auto* updateUV = m_updateUVs.data() + range.m_vertexOffset;
-	for (size_t i = 0; i < range.m_vertexCount; i++) {
+	for (size_t i = 0; i < range.m_vertexCount;
+		i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUV++, updatePos++, updateNormal++, updateUV++) {
 		glm::mat4 m;
 		switch (vtxInfo->m_weightType) {
 			case WeightType::BDEF1: {
@@ -569,7 +570,7 @@ void Model::Update(const UpdateRange& range) {
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 				const auto m0 = transforms[i0], m1 = transforms[i1];
 				const auto pos = *position + *morphPos;
-				*updatePosition = rot_mat * (pos - center)
+				*updatePos = rot_mat * (pos - center)
 				+ glm::vec3(m0 * glm::vec4(cr0, 1)) * w0
 				+ glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rot_mat * *normal;
@@ -585,9 +586,12 @@ void Model::Update(const UpdateRange& range) {
 						w[bi] = vtxInfo->m_boneWeights[bi];
 					}
 				}
-				if (glm::dot(dq[0].real, dq[1].real) < 0) w[1] *= -1.0f;
-				if (glm::dot(dq[0].real, dq[2].real) < 0) w[2] *= -1.0f;
-				if (glm::dot(dq[0].real, dq[3].real) < 0) w[3] *= -1.0f;
+				if (glm::dot(dq[0].real, dq[1].real) < 0)
+					w[1] *= -1.0f;
+				if (glm::dot(dq[0].real, dq[2].real) < 0)
+					w[2] *= -1.0f;
+				if (glm::dot(dq[0].real, dq[3].real) < 0)
+					w[3] *= -1.0f;
 				auto blendDQ = glm::normalize(w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3]);
 				m = glm::transpose(glm::mat3x4_cast(blendDQ));
 				break;
@@ -596,19 +600,10 @@ void Model::Update(const UpdateRange& range) {
 				break;
 		}
 		if (WeightType::SDEF != vtxInfo->m_weightType) {
-			*updatePosition = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
+			*updatePos = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 			*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 		}
 		*updateUV = *uv + glm::vec2(morphUV->x, morphUV->y);
-		vtxInfo++;
-		position++;
-		normal++;
-		uv++;
-		updatePosition++;
-		updateNormal++;
-		updateUV++;
-		morphPos++;
-		morphUV++;
 	}
 }
 
