@@ -608,6 +608,8 @@ void Model::Update(const UpdateRange& range) {
 }
 
 void Model::EvalMorph(const Morph* morph, const float weight) {
+	if (weight == 0)
+		return;
 	switch (morph->m_morphType) {
 		case MorphType::Position:
 			MorphPosition(m_positionMorphDatas[morph->m_dataIndex], weight);
@@ -636,102 +638,69 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 }
 
 void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
-	if (weight == 0)
-		return;
-
 	for (const auto& [m_index, m_position] : morphData)
 		m_morphPositions[m_index] += m_position * weight;
 }
 
 void Model::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
-	if (weight == 0)
-		return;
-
 	for (const auto& [m_index, m_uv] : morphData)
 		m_morphUVs[m_index] += m_uv * weight;
 }
 
 void Model::BeginMorphMaterial() {
-	MaterialMorph initMul{};
-	initMul.m_diffuse = glm::vec4(1);
-	initMul.m_specular = glm::vec3(1);
-	initMul.m_specularPower = 1;
-	initMul.m_ambient = glm::vec3(1);
-	initMul.m_edgeColor = glm::vec4(1);
-	initMul.m_edgeSize = 1;
-	initMul.m_textureFactor = glm::vec4(1);
-	initMul.m_sphereTextureFactor = glm::vec4(1);
-	initMul.m_toonTextureFactor = glm::vec4(1);
-
-	MaterialMorph initAdd{};
-	initAdd.m_diffuse = glm::vec4(0);
-	initAdd.m_specular = glm::vec3(0);
-	initAdd.m_specularPower = 0;
-	initAdd.m_ambient = glm::vec3(0);
-	initAdd.m_edgeColor = glm::vec4(0);
-	initAdd.m_edgeSize = 0;
-	initAdd.m_textureFactor = glm::vec4(0);
-	initAdd.m_sphereTextureFactor = glm::vec4(0);
-	initAdd.m_toonTextureFactor = glm::vec4(0);
-
-	const size_t matCount = m_materials.size();
-	for (size_t matIdx = 0; matIdx < matCount; matIdx++) {
-		m_mulMaterialFactors[matIdx] = initMul;
-		m_mulMaterialFactors[matIdx].m_diffuse = m_initMaterials[matIdx].m_diffuse;
-		m_mulMaterialFactors[matIdx].m_specular = m_initMaterials[matIdx].m_specular;
-		m_mulMaterialFactors[matIdx].m_specularPower = m_initMaterials[matIdx].m_specularPower;
-		m_mulMaterialFactors[matIdx].m_ambient = m_initMaterials[matIdx].m_ambient;
-
-		m_addMaterialFactors[matIdx] = initAdd;
+	constexpr MaterialMorph initMul{
+		0, OpType::Mul, glm::vec4(1), glm::vec3(1), 1.0f, glm::vec3(1),
+		glm::vec4(1), 1.0f, glm::vec4(1), glm::vec4(1), glm::vec4(1)
+	};
+	constexpr MaterialMorph initAdd{
+		0, OpType::Add, glm::vec4(0), glm::vec3(0), 0.0f, glm::vec3(0),
+		glm::vec4(0), 0.0f, glm::vec4(0), glm::vec4(0), glm::vec4(0)
+	};
+	for (size_t i = 0; i < m_materials.size(); i++) {
+		auto& mul = m_mulMaterialFactors[i];
+		mul = initMul;
+		mul.m_diffuse       = m_initMaterials[i].m_diffuse;
+		mul.m_specular      = m_initMaterials[i].m_specular;
+		mul.m_specularPower = m_initMaterials[i].m_specularPower;
+		mul.m_ambient       = m_initMaterials[i].m_ambient;
+		m_addMaterialFactors[i] = initAdd;
 	}
 }
 
 void Model::EndMorphMaterial() {
-	const size_t matCount = m_materials.size();
-	for (size_t matIdx = 0; matIdx < matCount; matIdx++) {
-		MaterialMorph matFactor = m_mulMaterialFactors[matIdx];
-		Add(matFactor, m_addMaterialFactors[matIdx], 1.0f);
-
-		m_materials[matIdx].m_diffuse = matFactor.m_diffuse;
-		m_materials[matIdx].m_specular = matFactor.m_specular;
-		m_materials[matIdx].m_specularPower = matFactor.m_specularPower;
-		m_materials[matIdx].m_ambient = matFactor.m_ambient;
-		m_materials[matIdx].m_textureMulFactor = m_mulMaterialFactors[matIdx].m_textureFactor;
-		m_materials[matIdx].m_textureAddFactor = m_addMaterialFactors[matIdx].m_textureFactor;
-		m_materials[matIdx].m_spTextureMulFactor = m_mulMaterialFactors[matIdx].m_sphereTextureFactor;
-		m_materials[matIdx].m_spTextureAddFactor = m_addMaterialFactors[matIdx].m_sphereTextureFactor;
-		m_materials[matIdx].m_toonTextureMulFactor = m_mulMaterialFactors[matIdx].m_toonTextureFactor;
-		m_materials[matIdx].m_toonTextureAddFactor = m_addMaterialFactors[matIdx].m_toonTextureFactor;
+	for (size_t i = 0; i < m_materials.size(); i++) {
+		auto& mat = m_materials[i];
+		const auto& mul = m_mulMaterialFactors[i];
+		const auto& add = m_addMaterialFactors[i];
+		auto matFactor = mul;
+		Add(matFactor, add, 1.0f);
+		mat.m_diffuse        = matFactor.m_diffuse;
+		mat.m_specular       = matFactor.m_specular;
+		mat.m_specularPower  = matFactor.m_specularPower;
+		mat.m_ambient        = matFactor.m_ambient;
+		mat.m_textureMulFactor   = mul.m_textureFactor;
+		mat.m_textureAddFactor   = add.m_textureFactor;
+		mat.m_spTextureMulFactor = mul.m_sphereTextureFactor;
+		mat.m_spTextureAddFactor = add.m_sphereTextureFactor;
+		mat.m_toonTextureMulFactor = mul.m_toonTextureFactor;
+		mat.m_toonTextureAddFactor = add.m_toonTextureFactor;
 	}
 }
 
 void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
 	for (const auto& matMorph : morphData) {
+		auto apply = [&](const size_t mi) {
+			switch (matMorph.m_opType) {
+				case OpType::Mul: Mul(m_mulMaterialFactors[mi], matMorph, weight); break;
+				case OpType::Add: Add(m_addMaterialFactors[mi], matMorph, weight); break;
+				default: break;
+			}
+		};
 		if (matMorph.m_materialIndex != -1) {
-			const auto mi = matMorph.m_materialIndex;
-			switch (matMorph.m_opType) {
-				case OpType::Mul:
-					Mul(m_mulMaterialFactors[mi], matMorph, weight);
-					break;
-				case OpType::Add:
-					Add(m_addMaterialFactors[mi], matMorph, weight);
-					break;
-				default:
-					break;
-			}
+			apply(static_cast<size_t>(matMorph.m_materialIndex));
 		} else {
-			switch (matMorph.m_opType) {
-				case OpType::Mul:
-					for (size_t i = 0; i < m_materials.size(); i++)
-						Mul(m_mulMaterialFactors[i], matMorph, weight);
-					break;
-				case OpType::Add:
-					for (size_t i = 0; i < m_materials.size(); i++)
-						Add(m_addMaterialFactors[i], matMorph, weight);
-					break;
-				default:
-					break;
-			}
+			for (size_t i = 0; i < m_materials.size(); i++)
+				apply(i);
 		}
 	}
 }
