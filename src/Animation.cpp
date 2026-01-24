@@ -196,11 +196,11 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 	}
 }
 
-void Animation::SyncPhysics(const float t, const int frameCount) const {
+void Animation::SyncPhysics(const float t) const {
 	m_model->SaveBaseAnimation();
-	for (int i = 0; i < frameCount; i++) {
+	for (int i = 0; i < 30; i++) {
 		m_model->BeginAnimation();
-		Evaluate(t, static_cast<float>(1 + i) / static_cast<float>(frameCount));
+		Evaluate(t, static_cast<float>(1 + i) / 30.0f);
 		m_model->UpdateMorphAnimation();
 		m_model->UpdateNodeAnimation(false);
 		m_model->UpdatePhysicsAnimation(1.0f / 30.0f);

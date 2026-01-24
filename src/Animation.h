@@ -37,7 +37,7 @@ public:
 	bool Add(const VMDReader& vmd);
 	void Destroy();
 	void Evaluate(float t, float animWeight = 1.0f) const;
-	void SyncPhysics(float t, int frameCount = 30) const;
+	void SyncPhysics(float t) const;
 
 	std::shared_ptr<Model>								m_model;
 	std::map<Node*, std::vector<NodeAnimationKey>>		m_nodes;
