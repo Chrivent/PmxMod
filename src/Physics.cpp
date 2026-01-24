@@ -170,7 +170,7 @@ glm::mat4 RigidBody::GetTransform() const {
 	return Util::InvZ(mat);
 }
 
-void Joint::CreateJoint(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
+void Joint::Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 	m_constraint = nullptr;
 	btMatrix3x3 rotMat;
 	rotMat.setEulerZYX(pmxJoint.m_rotate.x, pmxJoint.m_rotate.y, pmxJoint.m_rotate.z);

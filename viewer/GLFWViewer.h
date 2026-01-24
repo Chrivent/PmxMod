@@ -70,18 +70,18 @@ struct GLFWTexture {
 };
 
 struct GLFWMaterial {
-    explicit GLFWMaterial(const Material& mat);
-
     const Material& m_mat;
-    GLuint	m_texture = 0;
+    GLuint  m_texture = 0;
     bool	m_textureHasAlpha = false;
     GLuint	m_spTexture = 0;
     GLuint	m_toonTexture = 0;
+
+    explicit GLFWMaterial(const Material& mat);
 };
 
 struct GLFWInstance : Instance {
     GLFWViewer* m_viewer;
-    GLuint	m_posVbo = 0;
+    GLuint  m_posVbo = 0;
     GLuint	m_norVbo = 0;
     GLuint	m_uvVbo = 0;
     GLuint	m_ibo = 0;
@@ -89,7 +89,7 @@ struct GLFWInstance : Instance {
     GLuint	m_vao = 0;
     GLuint	m_edgeVao = 0;
     GLuint	m_gsVao = 0;
-    std::vector<GLFWMaterial>	m_materials;
+    std::vector<GLFWMaterial>   m_materials;
 
     bool Setup(Viewer& viewer) override;
     void Clear() override;
@@ -100,12 +100,12 @@ struct GLFWInstance : Instance {
 struct GLFWViewer : Viewer {
     ~GLFWViewer() override;
 
-    std::unique_ptr<GLFWShader>				m_shader;
-    std::unique_ptr<GLFWEdgeShader>			m_edgeShader;
-    std::unique_ptr<GLFWGroundShadowShader>	m_gsShader;
-    std::map<std::filesystem::path, GLFWTexture>	m_textures;
-    GLuint	m_dummyColorTex = 0;
-    const int	m_msaaSamples = 4;
+    GLuint	    m_dummyColorTex = 0;
+    const int   m_msaaSamples = 4;
+    std::unique_ptr<GLFWShader>				        m_shader;
+    std::unique_ptr<GLFWEdgeShader>			        m_edgeShader;
+    std::unique_ptr<GLFWGroundShadowShader>         m_gsShader;
+    std::map<std::filesystem::path, GLFWTexture>    m_textures;
 
     void ConfigureGlfwHints() override;
     bool Setup() override;

@@ -16,8 +16,6 @@ struct IKChain {
 };
 
 struct IkSolver {
-	void Solve();
-
 	std::vector<IKChain>	m_chains;
 	Node*					m_ikNode = nullptr;
 	Node*					m_ikTarget = nullptr;
@@ -25,6 +23,8 @@ struct IkSolver {
 	float					m_limitAngle = glm::two_pi<float>();
 	bool					m_enable = true;
 	bool					m_baseAnimEnable = true;
+
+	void Solve();
 
 private:
 	void SolveCore(uint32_t iteration);

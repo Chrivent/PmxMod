@@ -464,7 +464,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		    joint.m_rigidbodyBIndex != -1 &&
 		    joint.m_rigidbodyAIndex != joint.m_rigidbodyBIndex) {
 			auto j = std::make_unique<Joint>();
-			j->CreateJoint(joint,
+			j->Create(joint,
 				m_rigidBodies[joint.m_rigidbodyAIndex].get(),
 				m_rigidBodies[joint.m_rigidbodyBIndex].get()
 			);

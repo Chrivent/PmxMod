@@ -10,16 +10,15 @@ struct Node;
 class Model;
 
 struct NodeAnimationKey {
-	void Set(const VMDReader::VMDMotion& motion);
-
 	int32_t		m_time;
 	glm::vec3	m_translate;
 	glm::quat	m_rotate;
-
 	std::pair<glm::vec2, glm::vec2>	m_txBezier;
 	std::pair<glm::vec2, glm::vec2>	m_tyBezier;
 	std::pair<glm::vec2, glm::vec2>	m_tzBezier;
 	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
+
+	void Set(const VMDReader::VMDMotion& motion);
 };
 
 struct MorphAnimationKey {
@@ -34,15 +33,15 @@ struct IKAnimationKey {
 
 class Animation {
 public:
-	bool Add(const VMDReader& vmd);
-	void Destroy();
-	void Evaluate(float t, float animWeight = 1.0f) const;
-	void SyncPhysics(float t) const;
-
 	std::shared_ptr<Model>								m_model;
 	std::map<Node*, std::vector<NodeAnimationKey>>		m_nodes;
 	std::map<IkSolver*, std::vector<IKAnimationKey>>	m_iks;
 	std::map<Morph*, std::vector<MorphAnimationKey>>	m_morphs;
+
+	bool Add(const VMDReader& vmd);
+	void Destroy();
+	void Evaluate(float t, float animWeight = 1.0f) const;
+	void SyncPhysics(float t) const;
 };
 
 struct Camera {
@@ -60,7 +59,6 @@ struct CameraAnimationKey {
 	glm::vec3	m_rotate;
 	float		m_distance;
 	float		m_fov;
-
 	std::pair<glm::vec2, glm::vec2>	m_ixBezier;
 	std::pair<glm::vec2, glm::vec2>	m_iyBezier;
 	std::pair<glm::vec2, glm::vec2>	m_izBezier;
@@ -71,9 +69,9 @@ struct CameraAnimationKey {
 
 class CameraAnimation {
 public:
-	bool Create(const VMDReader& vmd);
-	void Evaluate(float t);
-
 	std::vector<CameraAnimationKey>	m_keys;
 	Camera m_camera;
+
+	bool Create(const VMDReader& vmd);
+	void Evaluate(float t);
 };

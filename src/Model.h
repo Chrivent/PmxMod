@@ -75,31 +75,6 @@ class Model {
 public:
 	~Model();
 
-	void InitializeAnimation();
-	void SaveBaseAnimation() const;
-	void ClearBaseAnimation() const;
-	void BeginAnimation();
-	void UpdateMorphAnimation();
-	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
-	void ResetPhysics() const;
-	void UpdatePhysicsAnimation(float elapsed) const;
-	void Update();
-	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
-	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
-	void Destroy();
-
-private:
-	void SetupParallelUpdate();
-	void Update(const UpdateRange& range);
-	void EvalMorph(const Morph* morph, float weight);
-	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
-	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
-	void BeginMorphMaterial();
-	void EndMorphMaterial();
-	void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
-	void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
-
-public:
 	std::vector<glm::vec3>					m_positions;
 	std::vector<glm::vec3>					m_normals;
 	std::vector<glm::vec2>					m_uvs;
@@ -135,4 +110,28 @@ public:
 	uint32_t								m_parallelUpdateCount = 0;
 	std::vector<UpdateRange>				m_updateRanges;
 	std::vector<std::future<void>>			m_parallelUpdateFutures;
+
+	void InitializeAnimation();
+	void SaveBaseAnimation() const;
+	void ClearBaseAnimation() const;
+	void BeginAnimation();
+	void UpdateMorphAnimation();
+	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
+	void ResetPhysics() const;
+	void UpdatePhysicsAnimation(float elapsed) const;
+	void Update();
+	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
+	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
+	void Destroy();
+
+private:
+	void SetupParallelUpdate();
+	void Update(const UpdateRange& range);
+	void EvalMorph(const Morph* morph, float weight);
+	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
+	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
+	void BeginMorphMaterial();
+	void EndMorphMaterial();
+	void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
+	void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
 };

@@ -51,6 +51,26 @@ float FindBezierX(float time, const float x1, const float x2) {
 	return t;
 }
 
+void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
+	m_time = static_cast<int32_t>(motion.m_frame);
+	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
+	const glm::quat q = motion.m_quaternion;
+	const auto rot = Util::InvZ(glm::mat3_cast(q));
+	m_rotate = glm::quat_cast(rot);
+	SetBezier(m_txBezier,
+		motion.m_interpolation[0], motion.m_interpolation[8],
+		motion.m_interpolation[4], motion.m_interpolation[12]);
+	SetBezier(m_tyBezier,
+		motion.m_interpolation[1], motion.m_interpolation[9],
+		motion.m_interpolation[5], motion.m_interpolation[13]);
+	SetBezier(m_tzBezier,
+		motion.m_interpolation[2], motion.m_interpolation[10],
+		motion.m_interpolation[6], motion.m_interpolation[14]);
+	SetBezier(m_rotBezier,
+		motion.m_interpolation[3], motion.m_interpolation[11],
+		motion.m_interpolation[7], motion.m_interpolation[15]);
+}
+
 bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<Node*, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes)
@@ -82,8 +102,7 @@ bool Animation::Add(const VMDReader& vmd) {
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
-				auto it = std::ranges::find(
-					m_model->m_ikSolvers, ikName,
+				auto it = std::ranges::find(m_model->m_ikSolvers, ikName,
 					[](const std::unique_ptr<IkSolver>& ikSolver){ return ikSolver->m_ikNode->m_name; }
 				);
 				first = it != m_model->m_ikSolvers.end() ? it->get() : nullptr;
@@ -148,8 +167,8 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		if (it != keys.begin() && it != keys.end()) {
 			const auto& prev = *(it - 1);
 			const auto& [m_time, m_translate, m_rotate,
-						 m_txBezier, m_tyBezier, m_tzBezier,
-						 m_rotBezier] = *it;
+				m_txBezier, m_tyBezier, m_tzBezier,
+				m_rotBezier] = *it;
 			const auto timeRange = static_cast<float>(m_time - prev.m_time);
 			const float time = (t - static_cast<float>(prev.m_time)) / timeRange;
 			const float tx_x  = FindBezierX(time, m_txBezier.first.x,  m_txBezier.second.x);
@@ -206,26 +225,6 @@ void Animation::SyncPhysics(const float t) const {
 		m_model->UpdatePhysicsAnimation(1.0f / 30.0f);
 		m_model->UpdateNodeAnimation(true);
 	}
-}
-
-void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
-	m_time = static_cast<int32_t>(motion.m_frame);
-	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
-	const glm::quat q = motion.m_quaternion;
-	const auto rot = Util::InvZ(glm::mat3_cast(q));
-	m_rotate = glm::quat_cast(rot);
-	SetBezier(m_txBezier,
-		motion.m_interpolation[0], motion.m_interpolation[8],
-		motion.m_interpolation[4], motion.m_interpolation[12]);
-	SetBezier(m_tyBezier,
-		motion.m_interpolation[1], motion.m_interpolation[9],
-		motion.m_interpolation[5], motion.m_interpolation[13]);
-	SetBezier(m_tzBezier,
-		motion.m_interpolation[2], motion.m_interpolation[10],
-		motion.m_interpolation[6], motion.m_interpolation[14]);
-	SetBezier(m_rotBezier,
-		motion.m_interpolation[3], motion.m_interpolation[11],
-		motion.m_interpolation[7], motion.m_interpolation[15]);
 }
 
 glm::mat4 Camera::GetViewMatrix() const {
