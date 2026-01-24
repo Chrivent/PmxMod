@@ -707,9 +707,8 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 	for (const auto& [m_boneIndex, m_position, m_quaternion] : morphData) {
 		auto* node = m_nodes[m_boneIndex].get();
-		glm::vec3 t = glm::mix(glm::vec3(0), m_position, weight);
-		node->m_translate = node->m_translate + t;
-		const glm::quat q = glm::slerp(node->m_rotate, m_quaternion, weight);
-		node->m_rotate = q;
+		node->m_translate += m_position * weight;
+		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), m_quaternion, weight);
+		node->m_rotate = glm::normalize(q * node->m_rotate);
 	}
 }
