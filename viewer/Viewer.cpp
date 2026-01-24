@@ -173,6 +173,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
                 return false;
             }
         }
+        vmdAnim->SyncPhysics(0.0f);
         instance->m_anim = std::move(vmdAnim);
         instance->m_scale = scale;
         if (!instance->Setup(*this))
