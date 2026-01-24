@@ -36,7 +36,7 @@ void ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 			else
 				*index = -1;
 		}
-			break;
+		break;
 		case 2: {
 			uint16_t idx;
 			Read(is, &idx);
@@ -45,13 +45,13 @@ void ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 			else
 				*index = -1;
 		}
-			break;
+		break;
 		case 4: {
 			uint32_t idx;
 			Read(is, &idx);
 			*index = static_cast<int32_t>(idx);
 		}
-			break;
+		break;
 		default: ;
 	}
 }
