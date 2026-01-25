@@ -39,6 +39,17 @@ target_link_libraries(PmxMod PUBLIC
         LinearMath
 )
 
+set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
+set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
+
+add_custom_target(SyncResources
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory  "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
+        VERBATIM
+)
+
+add_dependencies(PmxMod SyncResources)
+
 find_package(JNI REQUIRED)
 
 add_library(PmxModJNI SHARED
@@ -65,13 +76,9 @@ target_link_libraries(PmxModJNI PRIVATE
         ${JNI_LIBRARIES}
 )
 
-set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
-set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
-
-add_custom_target(SyncResources
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory  "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
-        VERBATIM
+set(FORGE_RUN_DIR "${CMAKE_SOURCE_DIR}/forge-1.20.1-47.4.10-mdk/run")
+set_target_properties(PmxModJNI PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${FORGE_RUN_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${FORGE_RUN_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${FORGE_RUN_DIR}"
 )
-
-add_dependencies(PmxMod SyncResources)
