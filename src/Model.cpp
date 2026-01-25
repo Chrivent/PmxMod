@@ -179,6 +179,10 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	PMXReader pmx;
 	if (!pmx.ReadFile(filepath))
 		return false;
+	m_modelName        = pmx.m_info.m_modelName;
+	m_englishModelName = pmx.m_info.m_englishModelName;
+	m_comment          = pmx.m_info.m_comment;
+	m_englishComment   = pmx.m_info.m_englishComment;
 	std::filesystem::path dirPath = filepath.parent_path();
 	size_t vertexCount = pmx.m_vertices.size();
 	m_positions.reserve(vertexCount);

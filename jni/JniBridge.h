@@ -21,6 +21,18 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate
       (JNIEnv*, jclass, jlong, jfloat, jfloat);
 
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetModelName
+      (JNIEnv* env, jclass, jlong handle);
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetEnglishModelName
+      (JNIEnv* env, jclass, jlong handle);
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetComment
+      (JNIEnv* env, jclass, jlong handle);
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetEnglishComment
+      (JNIEnv* env, jclass, jlong handle);
+
     JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetVertexCount
       (JNIEnv*, jclass, jlong);
 

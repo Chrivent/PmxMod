@@ -13,6 +13,11 @@ public final class PmxNative {
 
     public static native void nativeUpdate(long h, float frame, float physicsElapsed);
 
+    public static native String nativeGetModelName(long h);
+    public static native String nativeGetEnglishModelName(long h);
+    public static native String nativeGetComment(long h);
+    public static native String nativeGetEnglishComment(long h);
+
     public static native int nativeGetVertexCount(long h);
     public static native int nativeGetIndexCount(long h);
     public static native int nativeGetIndexElementSize(long h);

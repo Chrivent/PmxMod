@@ -56,7 +56,7 @@ extern "C" {
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadPmx(
-        JNIEnv* env, jclass, jlong handle, jstring pmxPath, jstring dataDir) {
+        JNIEnv* env, jclass, const jlong handle, const jstring pmxPath, const jstring dataDir) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model)
             return JNI_FALSE;
@@ -91,6 +91,38 @@ extern "C" {
         rt->model->UpdateAllAnimation(rt->anim.get(), frame, physicsElapsed);
         rt->model->m_parallelUpdateCount = 1;
         rt->model->Update();
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetModelName(
+        JNIEnv* env, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return nullptr;
+        return env->NewStringUTF(rt->model->m_modelName.c_str());
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetEnglishModelName(
+        JNIEnv* env, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return nullptr;
+        return env->NewStringUTF(rt->model->m_englishModelName.c_str());
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetComment(
+        JNIEnv* env, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return nullptr;
+        return env->NewStringUTF(rt->model->m_comment.c_str());
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetEnglishComment(
+        JNIEnv* env, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return nullptr;
+        return env->NewStringUTF(rt->model->m_englishComment.c_str());
     }
 
     JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetVertexCount(

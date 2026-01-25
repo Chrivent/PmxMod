@@ -48,10 +48,19 @@ public class PmxViewer {
 
             LOGGER.info("[PMX] vertexCount={} indexCount={} indexElementSize={}", vtx, idx, elem);
 
+            String name = PmxNative.nativeGetModelName(handle);
+            String enName = PmxNative.nativeGetEnglishModelName(handle);
+            String comment = PmxNative.nativeGetComment(handle);
+            String enComment = PmxNative.nativeGetEnglishComment(handle);
+
+            LOGGER.info("[PMX] name='{}' en='{}'", name, enName);
+            LOGGER.info("[PMX] comment='{}'", comment != null ? comment.substring(0, Math.min(200, comment.length())) : null);
+            LOGGER.info("[PMX] enComment='{}'", enComment != null ? enComment.substring(0, Math.min(200, enComment.length())) : null);
+
             ready = true;
 
         } catch (UnsatisfiedLinkError e) {
-            LOGGER.error("[PMX] Failed to load native library: {}", e.getMessage());
+            LOGGER.error("[PMX] Native link error (missing symbol or load fail): {}", e.getMessage());
             ready = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);

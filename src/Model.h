@@ -75,6 +75,10 @@ class Model {
 public:
 	~Model();
 
+	std::string								m_modelName;
+	std::string								m_englishModelName;
+	std::string								m_comment;
+	std::string								m_englishComment;
 	std::vector<glm::vec3>					m_positions;
 	std::vector<glm::vec3>					m_normals;
 	std::vector<glm::vec2>					m_uvs;
