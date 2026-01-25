@@ -18,7 +18,7 @@ class Model;
 struct ModelConfig {
     std::filesystem::path				m_modelPath;
     std::vector<std::filesystem::path>	m_animPaths;
-    float								m_scale = 1.0f;
+    float								m_scale = 1.1f;
 };
 
 struct SceneConfig {
