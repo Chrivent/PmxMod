@@ -4,11 +4,16 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import com.mojang.logging.LogUtils;
+import net.Chivent.pmxSteveMod.jni.PmxNative;
+import org.slf4j.Logger;
 
 public class PmxViewer {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final PmxViewer INSTANCE = new PmxViewer();
     public static PmxViewer get() { return INSTANCE; }
 
+    private long handle = 0L;
     private boolean ready = false;
 
     private PmxViewer() {}
@@ -18,7 +23,40 @@ public class PmxViewer {
     }
 
     public void init() {
-        // TODO: implement later
+        try {
+            LOGGER.info("[PMX] before nativeCreate");
+            handle = PmxNative.nativeCreate();
+            LOGGER.info("[PMX] after nativeCreate handle={}", handle);
+
+            String dataDir = "C:/Users/Ha Yechan/Desktop/PmxMod/resource/mmd";
+            String pmxPath = "D:/예찬/MMD/model/Booth/Chrivent Elf/Chrivent Elf.pmx";
+
+            LOGGER.info("[PMX] before nativeLoadPmx");
+            boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
+            LOGGER.info("[PMX] after nativeLoadPmx ok={}", ok);
+            if (!ok) {
+                ready = false;
+                return;
+            }
+
+            PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
+
+            // 5) 정보 로그
+            int vtx = PmxNative.nativeGetVertexCount(handle);
+            int idx = PmxNative.nativeGetIndexCount(handle);
+            int elem = PmxNative.nativeGetIndexElementSize(handle);
+
+            LOGGER.info("[PMX] vertexCount={} indexCount={} indexElementSize={}", vtx, idx, elem);
+
+            ready = true;
+
+        } catch (UnsatisfiedLinkError e) {
+            LOGGER.error("[PMX] Failed to load native library: {}", e.getMessage());
+            ready = false;
+        } catch (Throwable t) {
+            LOGGER.error("[PMX] init error", t);
+            ready = false;
+        }
     }
 
     public void tick() {
@@ -39,7 +77,12 @@ public class PmxViewer {
     }
 
     public void shutdown() {
-        // TODO: implement later
+        if (handle != 0L) {
+            try {
+                PmxNative.nativeDestroy(handle);
+            } catch (Throwable ignored) {}
+            handle = 0L;
+        }
         ready = false;
     }
 }

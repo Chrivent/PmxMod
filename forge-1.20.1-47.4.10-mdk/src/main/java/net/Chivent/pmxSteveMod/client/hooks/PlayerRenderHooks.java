@@ -16,7 +16,7 @@ public final class PlayerRenderHooks {
         // 여기에 조건(예: 내 모드가 활성일 때만, 특정 플레이어만 등) 붙이면 됨
 
         // 바닐라 렌더 취소
-        event.setCanceled(true);
+        // event.setCanceled(true);
 
         // 우리 렌더로 대체 (아직 구현은 비워둠)
         PmxViewer.get().renderPlayer(
