@@ -31,8 +31,7 @@ struct IKAnimationKey {
 	bool	m_ikEnable;
 };
 
-class Animation {
-public:
+struct Animation {
 	std::shared_ptr<Model>								m_model;
 	std::map<Node*, std::vector<NodeAnimationKey>>		m_nodes;
 	std::map<IkSolver*, std::vector<IKAnimationKey>>	m_iks;
@@ -67,8 +66,7 @@ struct CameraAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_fovBezier;
 };
 
-class CameraAnimation {
-public:
+struct CameraAnimation {
 	std::vector<CameraAnimationKey>	m_keys;
 	Camera m_camera;
 

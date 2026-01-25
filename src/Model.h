@@ -13,7 +13,7 @@ struct PositionMorph;
 struct MaterialMorph;
 struct RigidBody;
 struct Joint;
-class Animation;
+struct Animation;
 
 enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;

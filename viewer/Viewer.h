@@ -12,8 +12,8 @@ struct Material;
 struct ma_engine;
 struct ma_sound;
 struct Viewer;
+struct Animation;
 class Model;
-class Animation;
 
 struct ModelConfig {
     std::filesystem::path				m_modelPath;

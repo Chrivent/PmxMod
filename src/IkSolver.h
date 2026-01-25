@@ -25,8 +25,6 @@ struct IkSolver {
 	bool					m_baseAnimEnable = true;
 
 	void Solve();
-
-private:
 	void SolveCore(uint32_t iteration);
 	void SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisIndex);
 };
