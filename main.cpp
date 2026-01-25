@@ -138,15 +138,15 @@ static SceneConfig BuildTestSceneConfig3() {
 	ModelConfig md1;
 	md1.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
 	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
-	md1.m_scale = 1.1f;
+	md1.m_scale = 1.2f;
 	ModelConfig md2;
 	md2.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
 	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
-	md2.m_scale = 1.1f;
+	md2.m_scale = 1.2f;
 	ModelConfig md3;
 	md3.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
 	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
-	md3.m_scale = 1.1f;
+	md3.m_scale = 1.2f;
 	cfg.m_modelConfigs.emplace_back(std::move(md1));
 	cfg.m_modelConfigs.emplace_back(std::move(md2));
 	cfg.m_modelConfigs.emplace_back(std::move(md3));
