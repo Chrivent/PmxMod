@@ -33,6 +33,5 @@ public final class PmxNative {
     public static native String nativeGetSubmeshTexturePath(long h, int m);
     public static native float nativeGetSubmeshAlpha(long h, int m);
     public static native int nativeGetSubmeshDiffuseRGBA(long h, int m);
-
     public static native boolean nativeGetSubmeshBothFace(long h, int s);
 }

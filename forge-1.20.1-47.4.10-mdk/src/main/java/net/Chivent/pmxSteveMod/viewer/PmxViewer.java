@@ -27,12 +27,9 @@ public class PmxViewer {
     private long lastNanos = -1;
 
     private ByteBuffer idxBuf;
-    private FloatBuffer posBuf;
-    private FloatBuffer nrmBuf;
-    private FloatBuffer uvBuf;
-    private ByteBuffer posBB;
-    private ByteBuffer nrmBB;
-    private ByteBuffer uvBB;
+    private ByteBuffer posBuf;
+    private ByteBuffer nrmBuf;
+    private ByteBuffer uvBuf;
 
     private PmxViewer() {}
 
@@ -44,28 +41,21 @@ public class PmxViewer {
         int vertexCount = PmxNative.nativeGetVertexCount(handle);
         int indexCount = PmxNative.nativeGetIndexCount(handle);
         int indexElemSize = PmxNative.nativeGetIndexElementSize(handle);
-
         idxBuf = ByteBuffer.allocateDirect(indexCount * indexElemSize).order(ByteOrder.nativeOrder());
-
-        posBB = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
-        nrmBB = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
-        uvBB  = ByteBuffer.allocateDirect(vertexCount * 2 * 4).order(ByteOrder.nativeOrder());
-
-        posBuf = posBB.asFloatBuffer();
-        nrmBuf = nrmBB.asFloatBuffer();
-        uvBuf  = uvBB.asFloatBuffer();
+        posBuf = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
+        nrmBuf = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
+        uvBuf  = ByteBuffer.allocateDirect(vertexCount * 2 * 4).order(ByteOrder.nativeOrder());
     }
 
     private void copyOnce() {
         idxBuf.clear();
-        posBB.clear();
-        nrmBB.clear();
-        uvBB.clear();
-
+        posBuf.clear();
+        nrmBuf.clear();
+        uvBuf.clear();
         PmxNative.nativeCopyIndices(handle, idxBuf);
-        PmxNative.nativeCopyPositions(handle, posBB);
-        PmxNative.nativeCopyNormals(handle, nrmBB);
-        PmxNative.nativeCopyUVs(handle, uvBB);
+        PmxNative.nativeCopyPositions(handle, posBuf);
+        PmxNative.nativeCopyNormals(handle, nrmBuf);
+        PmxNative.nativeCopyUVs(handle, uvBuf);
     }
 
     public void init() {
@@ -93,7 +83,6 @@ public class PmxViewer {
             allocateCpuBuffers();
             copyOnce();
 
-            // 5) 정보 로그
             int vtx = PmxNative.nativeGetVertexCount(handle);
             int idx = PmxNative.nativeGetIndexCount(handle);
             int elem = PmxNative.nativeGetIndexElementSize(handle);
@@ -123,12 +112,11 @@ public class PmxViewer {
     public void tick() {
         if (!ready || handle == 0L)
             return;
-
         long now = System.nanoTime();
-        if (lastNanos < 0) lastNanos = now;
+        if (lastNanos < 0)
+            lastNanos = now;
         float dt = (now - lastNanos) / 1_000_000_000.0f;
         lastNanos = now;
-
         frame += dt * 30.0f;
         PmxNative.nativeUpdate(handle, frame, dt);
     }
@@ -139,8 +127,10 @@ public class PmxViewer {
                              PoseStack poseStack,
                              MultiBufferSource buffers,
                              int packedLight) {
-        if (!ready || handle == 0L) return;
-        if (idxBuf == null || posBuf == null) return;
+        if (!ready || handle == 0L)
+            return;
+        if (idxBuf == null || posBuf == null)
+            return;
 
         copyOnce();
 
@@ -165,18 +155,21 @@ public class PmxViewer {
         nrmBuf.rewind();
 
         int triCount = indexCount / 3;
+        int vtxCount = posBuf.capacity() / 12;
+
         for (int t = 0; t < triCount; t++) {
             int i0 = readIndex(idxBuf, elemSize, t * 3);
             int i1 = readIndex(idxBuf, elemSize, t * 3 + 1);
             int i2 = readIndex(idxBuf, elemSize, t * 3 + 2);
 
-            int vtxCount = posBuf.capacity() / 3;
             if (i0 < 0 || i1 < 0 || i2 < 0 || i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount)
                 continue;
 
-            float x0 = posBuf.get(i0 * 3), y0 = posBuf.get(i0 * 3 + 1), z0 = posBuf.get(i0 * 3 + 2);
-            float x1 = posBuf.get(i1 * 3), y1 = posBuf.get(i1 * 3 + 1), z1 = posBuf.get(i1 * 3 + 2);
-            float x2 = posBuf.get(i2 * 3), y2 = posBuf.get(i2 * 3 + 1), z2 = posBuf.get(i2 * 3 + 2);
+            int b0 = i0 * 12, b1 = i1 * 12, b2 = i2 * 12;
+
+            float x0 = posBuf.getFloat(b0), y0 = posBuf.getFloat(b0 + 4), z0 = posBuf.getFloat(b0 + 8);
+            float x1 = posBuf.getFloat(b1), y1 = posBuf.getFloat(b1 + 4), z1 = posBuf.getFloat(b1 + 8);
+            float x2 = posBuf.getFloat(b2), y2 = posBuf.getFloat(b2 + 4), z2 = posBuf.getFloat(b2 + 8);
 
             addLine(vc, pose, normalMat, x0, y0, z0, x1, y1, z1);
             addLine(vc, pose, normalMat, x1, y1, z1, x2, y2, z2);
