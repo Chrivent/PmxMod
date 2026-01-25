@@ -30,9 +30,9 @@ struct SceneConfig {
 struct Instance {
     virtual ~Instance() = default;
 
-    std::shared_ptr<Model>	m_model;
+    std::shared_ptr<Model>	    m_model;
     std::unique_ptr<Animation>	m_anim;
-    float m_scale = 1.0f;
+    float m_scale;
 
     virtual bool Setup(Viewer& viewer) = 0;
     virtual void Update() const = 0;

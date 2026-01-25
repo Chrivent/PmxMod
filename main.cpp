@@ -86,18 +86,23 @@ static SceneConfig BuildTestSceneConfig1() {
 	ModelConfig md1;
 	md1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
 	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
+	md1.m_scale = 1.1f;
 	ModelConfig md2;
 	md2.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
 	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
+	md2.m_scale = 1.1f;
 	ModelConfig md3;
 	md3.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
 	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
+	md3.m_scale = 1.1f;
 	ModelConfig md4;
 	md4.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
 	md4.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
+	md4.m_scale = 1.1f;
 	ModelConfig md5;
 	md5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
 	md5.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
+	md5.m_scale = 1.1f;
 	cfg.m_modelConfigs.emplace_back(std::move(md1));
 	cfg.m_modelConfigs.emplace_back(std::move(md2));
 	cfg.m_modelConfigs.emplace_back(std::move(md3));
@@ -117,6 +122,7 @@ static SceneConfig BuildTestSceneConfig2() {
 	ModelConfig md;
 	md.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
 	md.m_animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
+	md.m_scale = 1.1f;
 	cfg.m_modelConfigs.emplace_back(std::move(md));
 	cfg.m_cameraAnim = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
 	cfg.m_musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
@@ -132,12 +138,15 @@ static SceneConfig BuildTestSceneConfig3() {
 	ModelConfig md1;
 	md1.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
 	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
+	md1.m_scale = 1.1f;
 	ModelConfig md2;
 	md2.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
 	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
+	md2.m_scale = 1.1f;
 	ModelConfig md3;
 	md3.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
 	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
+	md3.m_scale = 1.1f;
 	cfg.m_modelConfigs.emplace_back(std::move(md1));
 	cfg.m_modelConfigs.emplace_back(std::move(md2));
 	cfg.m_modelConfigs.emplace_back(std::move(md3));
@@ -157,7 +166,7 @@ int main() {
 	const bool kTestMode = true;
 	SceneConfig cfg;
 	if (kTestMode)
-		cfg = BuildTestSceneConfig1();
+		cfg = BuildTestSceneConfig3();
 	else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
