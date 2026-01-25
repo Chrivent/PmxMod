@@ -184,12 +184,12 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyPositions(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
+        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model || !dstFloatBuffer)
+        if (!rt || !rt->model || !dstByteBuffer)
             return;
-        float* out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
-        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstByteBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstByteBuffer);
         if (!out || capBytes <= 0)
             return;
         const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
@@ -204,12 +204,12 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyNormals(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
+        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model || !dstFloatBuffer)
+        if (!rt || !rt->model || !dstByteBuffer)
             return;
-        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
-        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstByteBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstByteBuffer);
         if (!out || capBytes <= 0)
             return;
         const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
@@ -224,12 +224,12 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyUVs(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
+        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model || !dstFloatBuffer)
+        if (!rt || !rt->model || !dstByteBuffer)
             return;
-        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
-        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstByteBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstByteBuffer);
         if (!out || capBytes <= 0)
             return;
         const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
@@ -250,7 +250,7 @@ extern "C" {
         return static_cast<jint>(rt->model->m_subMeshes.size());
     }
 
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexStart(
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBeginIndex(
         JNIEnv*, jclass, const jlong handle, const jint m) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model)

@@ -23,12 +23,12 @@ public final class PmxNative {
     public static native int nativeGetIndexElementSize(long h);
 
     public static native void nativeCopyIndices(long h, java.nio.ByteBuffer dst);
-    public static native void nativeCopyPositions(long h, java.nio.FloatBuffer dst);
-    public static native void nativeCopyNormals(long h, java.nio.FloatBuffer dst);
-    public static native void nativeCopyUVs(long h, java.nio.FloatBuffer dst);
+    public static native void nativeCopyPositions(long h, java.nio.ByteBuffer dst);
+    public static native void nativeCopyNormals(long h, java.nio.ByteBuffer dst);
+    public static native void nativeCopyUVs(long h, java.nio.ByteBuffer dst);
 
     public static native int nativeGetSubmeshCount(long h);
-    public static native int nativeGetSubmeshIndexStart(long h, int m);
+    public static native int nativeGetSubmeshBeginIndex(long h, int m);
     public static native int nativeGetSubmeshVertexCount(long h, int m);
     public static native String nativeGetSubmeshTexturePath(long h, int m);
     public static native float nativeGetSubmeshAlpha(long h, int m);
