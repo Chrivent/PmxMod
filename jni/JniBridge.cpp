@@ -3,6 +3,7 @@
 #include "../src/Model.h"
 #include "../src/Animation.h"
 #include "../src/Reader.h"
+#include "../src/Util.h"
 
 struct PmxRuntime {
     std::shared_ptr<Model> model;
@@ -33,6 +34,29 @@ void CopyToDirectBuffer(JNIEnv* env, const jobject dstBuffer, const void* src, c
     const size_t dstBytes = static_cast<size_t>(cap);
     const size_t n = srcBytes < dstBytes ? srcBytes : dstBytes;
     std::memcpy(dst, src, n);
+}
+
+static jint PackRGBA8(const float r, const float g, const float b, const float a) {
+    auto to8 = [](float x) -> jint {
+        x = std::clamp(x, 0.0f, 1.0f);
+        return std::lround(x * 255.0f);
+    };
+    const jint R = to8(r);
+    const jint G = to8(g);
+    const jint B = to8(b);
+    const jint A = to8(a);
+    return R << 24 | G << 16 | B << 8 | A;
+}
+
+static const Material* GetMaterialForSubMesh(const Model* model, const int subMeshIndex) {
+    const auto& sub = model->m_subMeshes;
+    if (subMeshIndex < 0 || subMeshIndex >= static_cast<int>(sub.size()))
+        return nullptr;
+    const int matId = sub[subMeshIndex].m_materialID;
+    const auto& mats = model->m_materials;
+    if (matId < 0 || matId >= static_cast<int>(mats.size()))
+        return nullptr;
+    return &mats[matId];
 }
 
 extern "C" {
@@ -162,30 +186,140 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyPositions(
         JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model)
+        if (!rt || !rt->model || !dstFloatBuffer)
             return;
-        const void* src = rt->model->m_updatePositions.data();
-        const size_t bytes = rt->model->m_updatePositions.size() * sizeof(glm::vec3);
-        CopyToDirectBuffer(env, dstFloatBuffer, src, bytes);
+        float* out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        if (!out || capBytes <= 0)
+            return;
+        const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
+        const auto& src = rt->model->m_updatePositions;
+        const size_t n = min(src.size(), maxFloats / 3);
+        for (size_t i = 0; i < n; i++) {
+            const auto& v = src[i];
+            out[i * 3 + 0] = v.x;
+            out[i * 3 + 1] = v.y;
+            out[i * 3 + 2] = v.z;
+        }
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyNormals(
         JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model)
+        if (!rt || !rt->model || !dstFloatBuffer)
             return;
-        const void* src = rt->model->m_updateNormals.data();
-        const size_t bytes = rt->model->m_updateNormals.size() * sizeof(glm::vec3);
-        CopyToDirectBuffer(env, dstFloatBuffer, src, bytes);
+        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        if (!out || capBytes <= 0)
+            return;
+        const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
+        const auto& src = rt->model->m_updateNormals;
+        const size_t n = min(src.size(), maxFloats / 3);
+        for (size_t i = 0; i < n; i++) {
+            const auto& v = src[i];
+            out[i * 3 + 0] = v.x;
+            out[i * 3 + 1] = v.y;
+            out[i * 3 + 2] = v.z;
+        }
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyUVs(
         JNIEnv* env, jclass, const jlong handle, const jobject dstFloatBuffer) {
         const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model)
+        if (!rt || !rt->model || !dstFloatBuffer)
             return;
-        const void* src = rt->model->m_updateUVs.data();
-        const size_t bytes = rt->model->m_updateUVs.size() * sizeof(glm::vec2);
-        CopyToDirectBuffer(env, dstFloatBuffer, src, bytes);
+        const auto out = static_cast<float*>(env->GetDirectBufferAddress(dstFloatBuffer));
+        const jlong capBytes = env->GetDirectBufferCapacity(dstFloatBuffer);
+        if (!out || capBytes <= 0)
+            return;
+        const size_t maxFloats = static_cast<size_t>(capBytes) / sizeof(float);
+        const auto& src = rt->model->m_updateUVs;
+        const size_t n = min(src.size(), maxFloats / 2);
+        for (size_t i = 0; i < n; i++) {
+            const auto& v = src[i];
+            out[i * 2 + 0] = v.x;
+            out[i * 2 + 1] = v.y;
+        }
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshCount(
+        JNIEnv*, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return 0;
+        return static_cast<jint>(rt->model->m_subMeshes.size());
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexStart(
+        JNIEnv*, jclass, const jlong handle, const jint m) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return 0;
+        const int si = static_cast<int>(m);
+        const auto& sub = rt->model->m_subMeshes;
+        if (si < 0 || si >= static_cast<int>(sub.size()))
+            return 0;
+        return sub[si].m_beginIndex;
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshVertexCount(
+        JNIEnv*, jclass, const jlong handle, const jint m) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return 0;
+        const int si = static_cast<int>(m);
+        const auto& sub = rt->model->m_subMeshes;
+        if (si < 0 || si >= static_cast<int>(sub.size()))
+            return 0;
+        return sub[si].m_vertexCount;
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshTexturePath(
+        JNIEnv* env, jclass, const jlong handle, const jint m) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return nullptr;
+        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
+        if (!mat)
+            return nullptr;
+        const std::wstring w = mat->m_texture.wstring();
+        const std::string utf8 = Util::WStringToUtf8(w);
+        if (utf8.empty())
+            return nullptr;
+        return env->NewStringUTF(utf8.c_str());
+    }
+
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshAlpha(
+        JNIEnv*, jclass, const jlong handle, const jint m) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return 1.0f;
+        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
+        if (!mat)
+            return 1.0f;
+        return mat->m_diffuse.a;
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshDiffuseRGBA(
+        JNIEnv*, jclass, const jlong handle, const jint m) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return 0xFFFFFFFF;
+        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
+        if (!mat)
+            return 0xFFFFFFFF;
+        const auto& d = mat->m_diffuse;
+        return PackRGBA8(d.x, d.y, d.z, d.w);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBothFace(
+        JNIEnv*, jclass, const jlong handle, const jint s) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model)
+            return JNI_FALSE;
+        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(s));
+        if (!mat)
+            return JNI_FALSE;
+        return mat->m_bothFace ? JNI_TRUE : JNI_FALSE;
     }
 }

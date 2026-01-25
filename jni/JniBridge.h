@@ -43,16 +43,37 @@ extern "C" {
       (JNIEnv*, jclass, jlong);
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyIndices
-      (JNIEnv*, jclass, jlong, jobject /*ByteBuffer*/);
+      (JNIEnv*, jclass, jlong, jobject);
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyPositions
-      (JNIEnv*, jclass, jlong, jobject /*FloatBuffer*/);
+      (JNIEnv*, jclass, jlong, jobject);
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyNormals
-      (JNIEnv*, jclass, jlong, jobject /*FloatBuffer*/);
+      (JNIEnv*, jclass, jlong, jobject);
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyUVs
-      (JNIEnv*, jclass, jlong, jobject /*FloatBuffer*/);
+      (JNIEnv*, jclass, jlong, jobject);
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshCount
+      (JNIEnv*, jclass, jlong);
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexStart
+      (JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshVertexCount
+      (JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshTexturePath
+      (JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshAlpha
+      (JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshDiffuseRGBA
+      (JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBothFace
+      (JNIEnv*, jclass, jlong, jint);
 
 #ifdef __cplusplus
 }
