@@ -38,7 +38,32 @@ target_link_libraries(PmxMod PUBLIC
         BulletCollision
         LinearMath
 )
-target_compile_definitions(PmxMod PUBLIC)
+
+find_package(JNI REQUIRED)
+
+add_library(PmxModJNI SHARED
+        src/Util.h
+        src/IkSolver.cpp src/IkSolver.h
+        src/Model.cpp src/Model.h
+        src/Node.cpp src/Node.h
+        src/Physics.cpp src/Physics.h
+        src/Reader.cpp src/Reader.h
+        src/Animation.cpp src/Animation.h
+        jni/JniBridge.cpp
+        jni/JniBridge.h
+)
+
+target_include_directories(PmxModJNI PRIVATE
+        ${JNI_INCLUDE_DIRS}
+)
+
+target_link_libraries(PmxModJNI PRIVATE
+        glm::glm
+        BulletDynamics
+        BulletCollision
+        LinearMath
+        ${JNI_LIBRARIES}
+)
 
 set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
 set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
