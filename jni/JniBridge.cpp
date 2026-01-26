@@ -10,28 +10,28 @@ struct PmxRuntime {
     std::unique_ptr<Animation> anim;
 };
 
-std::filesystem::path JStringToPath(JNIEnv* env, const jstring s) {
+std::filesystem::path JStringToPath(JNIEnv* env, _jstring* s) {
     if (!s)
         return {};
     const jchar* chars = env->GetStringChars(s, nullptr);
     const jsize len = env->GetStringLength(s);
     const std::wstring w(chars, chars + len);
     env->ReleaseStringChars(s, chars);
-    return std::filesystem::path(w);
+    return std::filesystem::path{w};
 }
 
 PmxRuntime* FromHandle(const jlong h) {
     return reinterpret_cast<PmxRuntime*>(h);
 }
 
-void CopyToDirectBuffer(JNIEnv* env, const jobject dstBuffer, const void* src, const size_t srcBytes) {
+void CopyToDirectBuffer(JNIEnv* env, _jobject* dstBuffer, const void* src, const size_t srcBytes) {
     if (!dstBuffer || !src)
         return;
     void* dst = env->GetDirectBufferAddress(dstBuffer);
     const jlong cap = env->GetDirectBufferCapacity(dstBuffer);
     if (!dst || cap <= 0)
         return;
-    const size_t dstBytes = static_cast<size_t>(cap);
+    const auto dstBytes = static_cast<size_t>(cap);
     const size_t n = srcBytes < dstBytes ? srcBytes : dstBytes;
     std::memcpy(dst, src, n);
 }
@@ -68,8 +68,8 @@ extern "C" {
         return reinterpret_cast<jlong>(rt);
     }
 
-    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeDestroy(JNIEnv*, jclass, jlong handle) {
-        auto* rt = FromHandle(handle);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeDestroy(JNIEnv*, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
         if (!rt)
             return;
         if (rt->anim)
@@ -80,7 +80,7 @@ extern "C" {
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadPmx(
-        JNIEnv* env, jclass, const jlong handle, const jstring pmxPath, const jstring dataDir) {
+        JNIEnv* env, jclass, const jlong handle, _jstring* pmxPath, _jstring* dataDir) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model)
             return JNI_FALSE;
@@ -94,7 +94,7 @@ extern "C" {
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeAddVmd(
-        JNIEnv* env, jclass, const jlong handle, const jstring vmdPath) {
+        JNIEnv* env, jclass, const jlong handle, _jstring* vmdPath) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->anim)
             return JNI_FALSE;
@@ -174,7 +174,7 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyIndices(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
+        JNIEnv* env, jclass, const jlong handle, _jobject* dstByteBuffer) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model)
             return;
@@ -184,7 +184,7 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyPositions(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
+        JNIEnv* env, jclass, const jlong handle, _jobject* dstByteBuffer) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model || !dstByteBuffer)
             return;
@@ -204,7 +204,7 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyNormals(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
+        JNIEnv* env, jclass, const jlong handle, _jobject* dstByteBuffer) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model || !dstByteBuffer)
             return;
@@ -224,7 +224,7 @@ extern "C" {
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyUVs(
-        JNIEnv* env, jclass, const jlong handle, const jobject dstByteBuffer) {
+        JNIEnv* env, jclass, const jlong handle, _jobject* dstByteBuffer) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model || !dstByteBuffer)
             return;
@@ -304,10 +304,10 @@ extern "C" {
         JNIEnv*, jclass, const jlong handle, const jint m) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model)
-            return 0xFFFFFFFF;
+            return static_cast<jint>(0xFFFFFFFF);
         const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
         if (!mat)
-            return 0xFFFFFFFF;
+            return static_cast<jint>(0xFFFFFFFF);
         const auto& d = mat->m_diffuse;
         return PackRGBA8(d.x, d.y, d.z, d.w);
     }

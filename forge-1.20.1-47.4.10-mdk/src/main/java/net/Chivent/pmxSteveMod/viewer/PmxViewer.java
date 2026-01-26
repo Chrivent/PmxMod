@@ -15,7 +15,6 @@ import net.Chivent.pmxSteveMod.jni.PmxNative;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -24,7 +23,6 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.slf4j.Logger;
 
@@ -35,6 +33,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import net.Chivent.pmxSteveMod.client.PmxShaders;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import com.mojang.blaze3d.shaders.Uniform;
 
 public class PmxViewer {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -53,7 +56,8 @@ public class PmxViewer {
 
     private Path pmxBaseDir = null;
     private final Map<String, ResourceLocation> textureCache = new HashMap<>();
-    private ResourceLocation whiteTex = null;
+    private ResourceLocation magentaTex = null;
+    private ResourceLocation[] submeshTex;
 
     private static final boolean FLIP_V = true;
 
@@ -93,15 +97,20 @@ public class PmxViewer {
             boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
             if (!ok) { ready = false; return; }
 
-            PmxNative.nativeAddVmd(handle,
-                    "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
-
+            PmxNative.nativeAddVmd(handle, "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
 
             allocateCpuBuffers();
             copyOnce();
 
-            ensureWhiteTexture();
+            int subCount = PmxNative.nativeGetSubmeshCount(handle);
+            submeshTex = new ResourceLocation[subCount];
+            for (int s = 0; s<subCount; s++){
+                String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
+                submeshTex[s] = getOrLoadTexture(texPath);
+            }
+
+            ensureMagentaTexture();
             ready = true;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
@@ -139,7 +148,6 @@ public class PmxViewer {
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
-        Matrix3f normalMat = poseStack.last().normal();
 
         int elemSize   = PmxNative.nativeGetIndexElementSize(handle);
         int indexCount = PmxNative.nativeGetIndexCount(handle);
@@ -165,14 +173,12 @@ public class PmxViewer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-        // 1) 불투명/컷아웃 패스
         for (int s : opaquePass) {
-            drawSubmesh(s, false, pose, normalMat, packedLight, elemSize, indexCount, vtxCount);
+            drawSubmesh(s, false, pose, packedLight, elemSize, indexCount, vtxCount);
         }
 
-        // 2) 투명 패스
         for (int s : translucentPass) {
-            drawSubmesh(s, true, pose, normalMat, packedLight, elemSize, indexCount, vtxCount);
+            drawSubmesh(s, true, pose, packedLight, elemSize, indexCount, vtxCount);
         }
 
         RenderSystem.depthMask(true);
@@ -183,10 +189,35 @@ public class PmxViewer {
         poseStack.popPose();
     }
 
+    private int texId(ResourceLocation rl) {
+        AbstractTexture t = Minecraft.getInstance().getTextureManager().getTexture(rl);
+        return t.getId();
+    }
+
+    private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(m);
+    }
+    private void set3f(ShaderInstance sh, String name, float x, float y, float z) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(x, y, z);
+    }
+    private void set4f(ShaderInstance sh, String name, float x, float y, float z, float w) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(x, y, z, w);
+    }
+    private void set1f(ShaderInstance sh, String name, float v) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(v);
+    }
+    private void set1i(ShaderInstance sh, String name, int v) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(v);
+    }
+
     private void drawSubmesh(int s,
                              boolean forceTranslucentPass,
                              Matrix4f pose,
-                             Matrix3f normalMat,
                              int packedLight,
                              int elemSize,
                              int indexCount,
@@ -201,13 +232,9 @@ public class PmxViewer {
         count -= (count % 3);
         if (count <= 0) return;
 
-        String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
         float alphaMat = PmxNative.nativeGetSubmeshAlpha(handle, s);
         int rgba = PmxNative.nativeGetSubmeshDiffuseRGBA(handle, s);
         boolean bothFace = PmxNative.nativeGetSubmeshBothFace(handle, s);
-
-        ResourceLocation tex = getOrLoadTexture(texPath);
-        if (tex == null) tex = ensureWhiteTexture();
 
         float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
         float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
@@ -217,10 +244,41 @@ public class PmxViewer {
 
         boolean translucent = forceTranslucentPass || (ma < 0.999f);
 
-        RenderType rt = pickRenderType(tex, translucent, bothFace);
+        ShaderInstance sh = PmxShaders.PMX_MMD;
+        if (sh == null) return;
+
+        Matrix4f proj = RenderSystem.getProjectionMatrix();
+        Matrix4f wv = new Matrix4f(pose);
+        Matrix4f wvp = new Matrix4f(proj).mul(pose);
+
+        RenderSystem.setShader(() -> sh);
+
+        setMat4(sh, "u_WV", wv);
+        setMat4(sh, "u_WVP", wvp);
+
+        set3f(sh, "u_LightColor", 1f, 1f, 1f);
+        set3f(sh, "u_LightDir", 0.2f, 1.0f, 0.2f);
+
+        set3f(sh, "u_Ambient", 0f, 0f, 0f);
+        set3f(sh, "u_Diffuse", mr, mg, mb);
+        set3f(sh, "u_Specular", 0f, 0f, 0f);
+        set1f(sh, "u_SpecularPower", 0f);
+        set1f(sh, "u_Alpha", ma);
+
+        set1i(sh, "u_TexMode", 2);
+        set4f(sh, "u_TexMulFactor", 1f, 1f, 1f, 0f);
+        set4f(sh, "u_TexAddFactor", 0f, 0f, 0f, 0f);
+
+        set1i(sh, "u_SphereTexMode", 0);
+        set1i(sh, "u_ToonTexMode", 0);
+
+        final ResourceLocation mainTex = submeshTex[s] != null ? submeshTex[s] : magentaTex;
+        LOGGER.info("texId(mainTex) = {}", texId(mainTex));
+        RenderSystem.setShaderTexture(0, mainTex);
+        RenderSystem.setShaderTexture(1, magentaTex);
+        RenderSystem.setShaderTexture(2, magentaTex);
 
         RenderSystem.enableDepthTest();
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         if (translucent) {
             RenderSystem.enableBlend();
@@ -233,8 +291,6 @@ public class PmxViewer {
 
         if (bothFace) RenderSystem.disableCull();
         else RenderSystem.enableCull();
-
-        rt.setupRenderState();
 
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder bb = tess.getBuilder();
@@ -253,32 +309,19 @@ public class PmxViewer {
             if (i0 < 0 || i1 < 0 || i2 < 0) continue;
             if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
 
-            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i0);
-            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i1);
-            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i2);
+            putVertex(bb, packedLight, mr, mg, mb, ma, i0);
+            putVertex(bb, packedLight, mr, mg, mb, ma, i1);
+            putVertex(bb, packedLight, mr, mg, mb, ma, i2);
         }
 
         BufferUploader.drawWithShader(bb.end());
 
-        rt.clearRenderState();
-
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-    }
-
-    private static RenderType pickRenderType(ResourceLocation tex, boolean translucent, boolean bothFace) {
-        if (translucent) {
-            return RenderType.entityTranslucent(tex);
-        } else {
-            return bothFace ? RenderType.entityCutoutNoCull(tex) : RenderType.entityCutout(tex);
-        }
     }
 
     private void putVertex(BufferBuilder bb,
-                           Matrix4f pose,
-                           Matrix3f normalMat,
                            int packedLight,
                            float r, float g, float b, float a,
                            int vi) {
@@ -297,12 +340,12 @@ public class PmxViewer {
         float v = uvBuf.getFloat(ub + 4);
         if (FLIP_V) v = 1.0f - v;
 
-        bb.vertex(pose, x, y, z)
+        bb.vertex(x, y, z)
                 .color(r, g, b, a)
                 .uv(u, v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(packedLight)
-                .normal(normalMat, nx, ny, nz)
+                .normal(nx, ny, nz)
                 .endVertex();
     }
 
@@ -317,25 +360,25 @@ public class PmxViewer {
         };
     }
 
-    private ResourceLocation ensureWhiteTexture() {
-        if (whiteTex != null) return whiteTex;
+    private ResourceLocation ensureMagentaTexture() {
+        if (magentaTex != null) return magentaTex;
         try {
             NativeImage img = new NativeImage(1, 1, false);
-            img.setPixelRGBA(0, 0, 0xFFFFFFFF);
+            img.setPixelRGBA(0, 0, 0xFFFF00FF);
             DynamicTexture dt = new DynamicTexture(img);
             TextureManager tm = Minecraft.getInstance().getTextureManager();
-            whiteTex = tm.register("pmx/white", dt);
-            return whiteTex;
+            magentaTex = tm.register("pmx/magenta", dt);
+            return magentaTex;
         } catch (Throwable t) {
-            LOGGER.error("[PMX] failed to create white texture", t);
+            LOGGER.error("[PMX] failed to create magenta texture", t);
             return null;
         }
     }
 
     private ResourceLocation getOrLoadTexture(String texPath) {
-        if (texPath == null || texPath.isEmpty()) return ensureWhiteTexture();
+        if (texPath == null || texPath.isEmpty()) return ensureMagentaTexture();
         Path resolved = resolveTexturePath(texPath);
-        if (resolved == null) return ensureWhiteTexture();
+        if (resolved == null) return ensureMagentaTexture();
 
         String key = resolved.toString();
         ResourceLocation cached = textureCache.get(key);
@@ -350,8 +393,8 @@ public class PmxViewer {
             textureCache.put(key, rl);
             return rl;
         } catch (Throwable t) {
-            LOGGER.warn("[PMX] texture load failed: {}", key);
-            return ensureWhiteTexture();
+            LOGGER.warn("[PMX] texture load failed: {}", key, t);
+            return ensureMagentaTexture();
         }
     }
 
