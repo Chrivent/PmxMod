@@ -104,7 +104,7 @@ public class PmxViewer {
 
             int subCount = PmxNative.nativeGetSubmeshCount(handle);
             submeshTex = new ResourceLocation[subCount];
-            for (int s = 0; s<subCount; s++){
+            for (int s = 0; s < subCount; s++) {
                 String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
                 submeshTex[s] = getOrLoadTexture(texPath);
             }
@@ -175,7 +175,6 @@ public class PmxViewer {
         for (int s : opaquePass) {
             drawSubmesh(s, false, pose, packedLight, elemSize, indexCount, vtxCount);
         }
-
         for (int s : translucentPass) {
             drawSubmesh(s, true, pose, packedLight, elemSize, indexCount, vtxCount);
         }
@@ -242,7 +241,7 @@ public class PmxViewer {
         if (sh == null) return;
 
         Matrix4f proj = RenderSystem.getProjectionMatrix();
-        Matrix4f wv = new Matrix4f(pose);
+        Matrix4f wv  = new Matrix4f(pose);
         Matrix4f wvp = new Matrix4f(proj).mul(pose);
 
         RenderSystem.setShader(() -> sh);
@@ -259,17 +258,19 @@ public class PmxViewer {
         set1f(sh, "u_SpecularPower", 0f);
         set1f(sh, "u_Alpha", ma);
 
-        set1i(sh, "u_TexMode", 2);
-        set4f(sh, "u_TexMulFactor", 1f, 1f, 1f, 0f);
+        final ResourceLocation mainTex = (submeshTex[s] != null) ? submeshTex[s] : magentaTex;
+        RenderSystem.setShaderTexture(0, mainTex);
+        RenderSystem.setShaderTexture(1, magentaTex);
+        RenderSystem.setShaderTexture(2, magentaTex);
+
+        boolean hasMainTex = (submeshTex[s] != null);
+        set1i(sh, "u_TexMode", hasMainTex ? 2 : 0);
+
+        set4f(sh, "u_TexMulFactor", 1f, 1f, 1f, 1f);
         set4f(sh, "u_TexAddFactor", 0f, 0f, 0f, 0f);
 
         set1i(sh, "u_SphereTexMode", 0);
         set1i(sh, "u_ToonTexMode", 0);
-
-        final ResourceLocation mainTex = submeshTex[s] != null ? submeshTex[s] : magentaTex;
-        RenderSystem.setShaderTexture(0, mainTex);
-        RenderSystem.setShaderTexture(1, magentaTex);
-        RenderSystem.setShaderTexture(2, magentaTex);
 
         RenderSystem.enableDepthTest();
 
@@ -302,9 +303,9 @@ public class PmxViewer {
             if (i0 < 0 || i1 < 0 || i2 < 0) continue;
             if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
 
-            putVertex(bb, packedLight, mr, mg, mb, ma, i0);
-            putVertex(bb, packedLight, mr, mg, mb, ma, i1);
-            putVertex(bb, packedLight, mr, mg, mb, ma, i2);
+            putVertex(bb, packedLight, i0);
+            putVertex(bb, packedLight, i1);
+            putVertex(bb, packedLight, i2);
         }
 
         BufferUploader.drawWithShader(bb.end());
@@ -314,10 +315,7 @@ public class PmxViewer {
         RenderSystem.enableCull();
     }
 
-    private void putVertex(BufferBuilder bb,
-                           int packedLight,
-                           float r, float g, float b, float a,
-                           int vi) {
+    private void putVertex(BufferBuilder bb, int packedLight, int vi) {
         int pb = vi * 12;
         float x = posBuf.getFloat(pb);
         float y = posBuf.getFloat(pb + 4);
@@ -334,7 +332,7 @@ public class PmxViewer {
         if (FLIP_V) v = 1.0f - v;
 
         bb.vertex(x, y, z)
-                .color(r, g, b, a)
+                .color(1f, 1f, 1f, 1f)
                 .uv(u, v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(packedLight)
