@@ -189,11 +189,6 @@ public class PmxViewer {
         poseStack.popPose();
     }
 
-    private int texId(ResourceLocation rl) {
-        AbstractTexture t = Minecraft.getInstance().getTextureManager().getTexture(rl);
-        return t.getId();
-    }
-
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
