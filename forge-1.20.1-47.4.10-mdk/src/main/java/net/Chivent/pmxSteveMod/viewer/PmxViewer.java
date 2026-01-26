@@ -147,7 +147,6 @@ public class PmxViewer {
 
         int subCount = PmxNative.nativeGetSubmeshCount(handle);
 
-        // ✅ 패스 분리: OPAQUE 먼저, 그 다음 TRANSLUCENT
         List<Integer> opaquePass = new ArrayList<>();
         List<Integer> translucentPass = new ArrayList<>();
 
@@ -156,17 +155,10 @@ public class PmxViewer {
             int rgba = PmxNative.nativeGetSubmeshDiffuseRGBA(handle, s);
             float a = (rgba & 0xFF) / 255.0f;
             a *= alphaMat;
-
-            // a<1이면 translucent 취급
             if (a < 0.999f) translucentPass.add(s);
             else opaquePass.add(s);
         }
 
-        // (선택) 투명은 뒤에서 앞으로 그리는 게 이상적이지만,
-        // PMX 서브메시 순서가 이미 그 순서일 때도 많아서 일단 유지.
-        // translucentPass.sort(...); // 필요하면 나중에 거리 정렬 추가
-
-        // 상태 기본값 확보
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
@@ -183,7 +175,6 @@ public class PmxViewer {
             drawSubmesh(s, true, pose, normalMat, packedLight, elemSize, indexCount, vtxCount);
         }
 
-        // 최종 원복
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
@@ -228,8 +219,6 @@ public class PmxViewer {
 
         RenderType rt = pickRenderType(tex, translucent, bothFace);
 
-        // ✅ 여기서부터가 “상태 새는 거” 방지 핵심
-        // 투명은 depth test는 하되 depth write는 끈다 (depthMask(false))
         RenderSystem.enableDepthTest();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
@@ -245,7 +234,6 @@ public class PmxViewer {
         if (bothFace) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
-        // RenderType 상태 세팅
         rt.setupRenderState();
 
         Tesselator tess = Tesselator.getInstance();
@@ -272,7 +260,6 @@ public class PmxViewer {
 
         BufferUploader.drawWithShader(bb.end());
 
-        // RenderType 상태 해제 + “무조건” 원복
         rt.clearRenderState();
 
         RenderSystem.depthMask(true);
