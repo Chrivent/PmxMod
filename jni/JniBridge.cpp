@@ -54,28 +54,6 @@ static const Material* GetMaterialForSubMesh(const Model* model, const int subMe
     return &mats[matId];
 }
 
-static void WriteVec3(JNIEnv* env, jobject buf, const glm::vec3& v) {
-    if (!buf) return;
-    auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
-    const jlong cap = env->GetDirectBufferCapacity(buf);
-    if (!out || cap < static_cast<jlong>(3 * sizeof(float))) return;
-    out[0] = v.x; out[1] = v.y; out[2] = v.z;
-}
-
-static void WriteVec4(JNIEnv* env, jobject buf, const glm::vec4& v) {
-    if (!buf) return;
-    auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
-    const jlong cap = env->GetDirectBufferCapacity(buf);
-    if (!out || cap < static_cast<jlong>(4 * sizeof(float))) return;
-    out[0] = v.x; out[1] = v.y; out[2] = v.z; out[3] = v.w;
-}
-
-static jint SphereModeToInt(const SphereMode m) {
-    if (m == SphereMode::Mul) return 1;
-    if (m == SphereMode::Add) return 2;
-    return 0;
-}
-
 extern "C" {
     JNIEXPORT jlong JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCreate(JNIEnv*, jclass) {
         auto* rt = new PmxRuntime{};
