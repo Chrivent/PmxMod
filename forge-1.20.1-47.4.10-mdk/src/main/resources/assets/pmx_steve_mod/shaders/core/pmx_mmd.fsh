@@ -88,6 +88,5 @@ void main() {
     }
 
     color += specular;
-    //fragColor = vec4(color, alpha);
-    fragColor = texture(Sampler0, vs_UV);
+    fragColor = vec4(color, alpha);
 }
