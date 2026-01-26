@@ -36,7 +36,6 @@ import java.util.*;
 
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.texture.AbstractTexture;
 import com.mojang.blaze3d.shaders.Uniform;
 
 public class PmxViewer {
