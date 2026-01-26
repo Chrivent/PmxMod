@@ -20,15 +20,15 @@
     { "name": "u_Alpha", "type": "float", "count": 1, "values": [1] },
 
     { "name": "u_TexMode", "type": "int", "count": 1, "values": [1] },
-    { "name": "u_TexMulFactor", "type": "float", "count": 4, "values": [1,1,1,0] },
+    { "name": "u_TexMulFactor", "type": "float", "count": 4, "values": [1,1,1,1] },
     { "name": "u_TexAddFactor", "type": "float", "count": 4, "values": [0,0,0,0] },
 
     { "name": "u_SphereTexMode", "type": "int", "count": 1, "values": [0] },
-    { "name": "u_SphereTexMulFactor", "type": "float", "count": 4, "values": [1,1,1,0] },
+    { "name": "u_SphereTexMulFactor", "type": "float", "count": 4, "values": [1,1,1,1] },
     { "name": "u_SphereTexAddFactor", "type": "float", "count": 4, "values": [0,0,0,0] },
 
     { "name": "u_ToonTexMode", "type": "int", "count": 1, "values": [0] },
-    { "name": "u_ToonTexMulFactor", "type": "float", "count": 4, "values": [1,1,1,0] },
+    { "name": "u_ToonTexMulFactor", "type": "float", "count": 4, "values": [1,1,1,1] },
     { "name": "u_ToonTexAddFactor", "type": "float", "count": 4, "values": [0,0,0,0] },
 
     { "name": "u_LightColor", "type": "float", "count": 3, "values": [1,1,1] },
