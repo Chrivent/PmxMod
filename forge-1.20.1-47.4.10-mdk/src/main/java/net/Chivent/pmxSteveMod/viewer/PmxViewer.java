@@ -1,29 +1,26 @@
 package net.Chivent.pmxSteveMod.viewer;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
 
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.LightTexture;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
@@ -59,6 +56,7 @@ public class PmxViewer {
     private final Map<String, ResourceLocation> textureCache = new HashMap<>();
     private ResourceLocation whiteTex = null;
 
+    // PMX UV는 V가 뒤집혀야 맞는 경우가 많음
     private static final boolean FLIP_V = true;
 
     private PmxViewer() {}
@@ -90,21 +88,17 @@ public class PmxViewer {
 
     public void init() {
         try {
-            LOGGER.info("[PMX] before nativeCreate");
             handle = PmxNative.nativeCreate();
-            LOGGER.info("[PMX] after nativeCreate handle={}", handle);
 
             String dataDir = "C:/Users/Ha Yechan/Desktop/PmxMod/resource/mmd";
             String pmxPath = "D:/예찬/MMD/model/Booth/Chrivent Elf/Chrivent Elf.pmx";
             pmxBaseDir = Paths.get(pmxPath).getParent();
 
             boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
-            LOGGER.info("[PMX] nativeLoadPmx ok={}", ok);
             if (!ok) { ready = false; return; }
 
-            boolean vmdOk = PmxNative.nativeAddVmd(handle,
+            PmxNative.nativeAddVmd(handle,
                     "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
-            LOGGER.info("[PMX] nativeAddVmd ok={}", vmdOk);
 
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
 
@@ -114,9 +108,6 @@ public class PmxViewer {
             ensureWhiteTexture();
             ready = true;
 
-        } catch (UnsatisfiedLinkError e) {
-            LOGGER.error("[PMX] Native link error: {}", e.getMessage());
-            ready = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -135,6 +126,10 @@ public class PmxViewer {
         PmxNative.nativeUpdate(handle, frame, dt);
     }
 
+    /**
+     * 핵심: TRIANGLES로 그리되, RenderType.setupRenderState()/clearRenderState()로
+     * 바닐라가 해주던 조명/라이트맵/블렌드/뎁스/샘플러 세팅을 그대로 가져온다.
+     */
     public void renderPlayer(AbstractClientPlayer player,
                              PlayerRenderer vanillaRenderer,
                              float partialTick,
@@ -145,15 +140,6 @@ public class PmxViewer {
         if (idxBuf == null || posBuf == null || nrmBuf == null || uvBuf == null) return;
 
         copyOnce();
-
-        // ✅ (핵심) 직접 BufferUploader 쓰면 바닐라가 잡아주던 조명 상태가 빠질 수 있음
-        Lighting.setupForEntityInInventory();
-        Minecraft.getInstance().gameRenderer.lightTexture().turnOnLightLayer();
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
-        // packedLight가 0으로 들어오면 결과가 새까맣게 나올 수 있음 → fallback
-        int light = packedLight;
-        if (light == 0) light = LightTexture.pack(15, 15);
 
         poseStack.pushPose();
 
@@ -172,9 +158,13 @@ public class PmxViewer {
 
         int subCount = PmxNative.nativeGetSubmeshCount(handle);
 
+        // 안전: 색 상태 리셋 (다른 렌더러가 남긴 틴트 방지)
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
         for (int s = 0; s < subCount; s++) {
             int begin = PmxNative.nativeGetSubmeshBeginIndex(handle, s);
             int count = PmxNative.nativeGetSubmeshVertexCount(handle, s);
+
             if (begin < 0 || count <= 0) continue;
 
             // 범위 clamp + TRIANGLES 정렬
@@ -184,36 +174,28 @@ public class PmxViewer {
             if (count <= 0) continue;
 
             String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
-            float alpha = PmxNative.nativeGetSubmeshAlpha(handle, s);
+            float alphaMat = PmxNative.nativeGetSubmeshAlpha(handle, s);
             int rgba = PmxNative.nativeGetSubmeshDiffuseRGBA(handle, s);
             boolean bothFace = PmxNative.nativeGetSubmeshBothFace(handle, s);
 
             ResourceLocation tex = getOrLoadTexture(texPath);
             if (tex == null) tex = ensureWhiteTexture();
 
-            float r = ((rgba >>> 24) & 0xFF) / 255.0f;
-            float g = ((rgba >>> 16) & 0xFF) / 255.0f;
-            float b = ((rgba >>>  8) & 0xFF) / 255.0f;
-            float a = ( rgba         & 0xFF) / 255.0f;
-            a *= alpha;
+            // 색 unpack (R<<24|G<<16|B<<8|A)
+            float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
+            float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
+            float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
+            float ma = ( rgba         & 0xFF) / 255.0f;
+            ma *= alphaMat;
 
-            boolean translucent = a < 0.999f;
+            boolean translucent = ma < 0.999f;
 
-            // 셰이더 선택 (가능하면 타입에 맞는 걸 씀)
-            if (translucent) {
-                RenderSystem.setShader(GameRenderer::getRendertypeEntityTranslucentShader);
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
-            } else {
-                RenderSystem.setShader(GameRenderer::getRendertypeEntityCutoutShader);
-                RenderSystem.disableBlend();
-            }
+            // ✅ “상태”는 RenderType이 담당 (여기가 검은색 해결 포인트)
+            RenderType rt = pickRenderType(tex, translucent, bothFace);
+            rt.setupRenderState();
 
-            RenderSystem.setShaderTexture(0, tex);
+            // (선택) 혹시 남아있는 셰이더 컬러 틴트 방지
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-
-            if (bothFace) RenderSystem.disableCull();
-            else RenderSystem.enableCull();
 
             // TRIANGLES로 직접 빌드
             Tesselator tess = Tesselator.getInstance();
@@ -233,19 +215,29 @@ public class PmxViewer {
                 if (i0 < 0 || i1 < 0 || i2 < 0) continue;
                 if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
 
-                putVertex(bb, pose, normalMat, light, r, g, b, a, i0);
-                putVertex(bb, pose, normalMat, light, r, g, b, a, i1);
-                putVertex(bb, pose, normalMat, light, r, g, b, a, i2);
+                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i0);
+                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i1);
+                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i2);
             }
 
             BufferUploader.drawWithShader(bb.end());
 
-            // 상태 복구
-            RenderSystem.enableCull();
-            RenderSystem.disableBlend();
+            rt.clearRenderState();
         }
 
+        // 색 상태 복구
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
         poseStack.popPose();
+    }
+
+    private static RenderType pickRenderType(ResourceLocation tex, boolean translucent, boolean bothFace) {
+        if (translucent) {
+            // translucent는 기본적으로 cull 버전이 없어서(버전에 따라 다름) 그냥 entityTranslucent 사용
+            return RenderType.entityTranslucent(tex);
+        } else {
+            return bothFace ? RenderType.entityCutoutNoCull(tex) : RenderType.entityCutout(tex);
+        }
     }
 
     private void putVertex(BufferBuilder bb,
@@ -273,7 +265,7 @@ public class PmxViewer {
                 .color(r, g, b, a)
                 .uv(u, v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(packedLight)
+                .uv2(packedLight) // 바닐라 라이트맵 좌표
                 .normal(normalMat, nx, ny, nz)
                 .endVertex();
     }
