@@ -34,8 +34,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class PmxViewer {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -46,22 +45,26 @@ public class PmxViewer {
     private boolean ready = false;
     private float frame = 0f;
     private long lastNanos = -1;
+
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
     private ByteBuffer nrmBuf;
     private ByteBuffer uvBuf;
+
     private Path pmxBaseDir = null;
     private final Map<String, ResourceLocation> textureCache = new HashMap<>();
     private ResourceLocation whiteTex = null;
 
-    private PmxViewer() {}
+    private static final boolean FLIP_V = true;
 
+    private PmxViewer() {}
     public boolean isReady() { return ready; }
 
     private void allocateCpuBuffers() {
         int vertexCount = PmxNative.nativeGetVertexCount(handle);
         int indexCount  = PmxNative.nativeGetIndexCount(handle);
         int elemSize    = PmxNative.nativeGetIndexElementSize(handle);
+
         idxBuf = ByteBuffer.allocateDirect(indexCount * elemSize).order(ByteOrder.nativeOrder());
         posBuf = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
         nrmBuf = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());
@@ -82,16 +85,22 @@ public class PmxViewer {
     public void init() {
         try {
             handle = PmxNative.nativeCreate();
+
             String dataDir = "C:/Users/Ha Yechan/Desktop/PmxMod/resource/mmd";
             String pmxPath = "D:/예찬/MMD/model/Booth/Chrivent Elf/Chrivent Elf.pmx";
             pmxBaseDir = Paths.get(pmxPath).getParent();
+
             boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
             if (!ok) { ready = false; return; }
+
             PmxNative.nativeAddVmd(handle,
                     "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
+
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
+
             allocateCpuBuffers();
             copyOnce();
+
             ensureWhiteTexture();
             ready = true;
         } catch (Throwable t) {
@@ -102,10 +111,12 @@ public class PmxViewer {
 
     public void tick() {
         if (!ready || handle == 0L) return;
+
         long now = System.nanoTime();
         if (lastNanos < 0) lastNanos = now;
         float dt = (now - lastNanos) / 1_000_000_000.0f;
         lastNanos = now;
+
         frame += dt * 30.0f;
         PmxNative.nativeUpdate(handle, frame, dt);
     }
@@ -118,69 +129,160 @@ public class PmxViewer {
                              int packedLight) {
         if (!ready || handle == 0L) return;
         if (idxBuf == null || posBuf == null || nrmBuf == null || uvBuf == null) return;
+
         copyOnce();
+
         poseStack.pushPose();
+
         float yRot = Mth.lerp(partialTick, player.yRotO, player.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0f - yRot));
-        float scale = 0.15f;
-        poseStack.scale(scale, scale, scale);
+        poseStack.scale(0.15f, 0.15f, 0.15f);
+
         Matrix4f pose = poseStack.last().pose();
         Matrix3f normalMat = poseStack.last().normal();
+
         int elemSize   = PmxNative.nativeGetIndexElementSize(handle);
         int indexCount = PmxNative.nativeGetIndexCount(handle);
         int vtxCount   = posBuf.capacity() / 12;
+
         int subCount = PmxNative.nativeGetSubmeshCount(handle);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        // ✅ 패스 분리: OPAQUE 먼저, 그 다음 TRANSLUCENT
+        List<Integer> opaquePass = new ArrayList<>();
+        List<Integer> translucentPass = new ArrayList<>();
+
         for (int s = 0; s < subCount; s++) {
-            int begin = PmxNative.nativeGetSubmeshBeginIndex(handle, s);
-            int count = PmxNative.nativeGetSubmeshVertexCount(handle, s);
-            if (begin < 0 || count <= 0) continue;
-            int maxCount = Math.max(0, indexCount - begin);
-            if (count > maxCount) count = maxCount;
-            count -= (count % 3);
-            if (count <= 0) continue;
-            String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
             float alphaMat = PmxNative.nativeGetSubmeshAlpha(handle, s);
             int rgba = PmxNative.nativeGetSubmeshDiffuseRGBA(handle, s);
-            boolean bothFace = PmxNative.nativeGetSubmeshBothFace(handle, s);
-            ResourceLocation tex = getOrLoadTexture(texPath);
-            if (tex == null) tex = ensureWhiteTexture();
-            float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
-            float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
-            float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
-            float ma = ( rgba         & 0xFF) / 255.0f;
-            ma *= alphaMat;
-            boolean translucent = ma < 0.999f;
-            RenderType rt = pickRenderType(tex, translucent, bothFace);
-            rt.setupRenderState();
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-            Tesselator tess = Tesselator.getInstance();
-            BufferBuilder bb = tess.getBuilder();
-            bb.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.NEW_ENTITY);
-            int triCount = count / 3;
-            for (int t = 0; t < triCount; t++) {
-                int ii0 = begin + t * 3;
-                int ii1 = begin + t * 3 + 1;
-                int ii2 = begin + t * 3 + 2;
-                int i0 = readIndex(idxBuf, elemSize, ii0);
-                int i1 = readIndex(idxBuf, elemSize, ii1);
-                int i2 = readIndex(idxBuf, elemSize, ii2);
-                if (i0 < 0 || i1 < 0 || i2 < 0) continue;
-                if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
-                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i0);
-                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i1);
-                putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i2);
-            }
-            BufferUploader.drawWithShader(bb.end());
-            rt.clearRenderState();
+            float a = (rgba & 0xFF) / 255.0f;
+            a *= alphaMat;
+
+            // a<1이면 translucent 취급
+            if (a < 0.999f) translucentPass.add(s);
+            else opaquePass.add(s);
         }
+
+        // (선택) 투명은 뒤에서 앞으로 그리는 게 이상적이지만,
+        // PMX 서브메시 순서가 이미 그 순서일 때도 많아서 일단 유지.
+        // translucentPass.sort(...); // 필요하면 나중에 거리 정렬 추가
+
+        // 상태 기본값 확보
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
+        RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        // 1) 불투명/컷아웃 패스
+        for (int s : opaquePass) {
+            drawSubmesh(s, false, pose, normalMat, packedLight, elemSize, indexCount, vtxCount);
+        }
+
+        // 2) 투명 패스
+        for (int s : translucentPass) {
+            drawSubmesh(s, true, pose, normalMat, packedLight, elemSize, indexCount, vtxCount);
+        }
+
+        // 최종 원복
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
         poseStack.popPose();
+    }
+
+    private void drawSubmesh(int s,
+                             boolean forceTranslucentPass,
+                             Matrix4f pose,
+                             Matrix3f normalMat,
+                             int packedLight,
+                             int elemSize,
+                             int indexCount,
+                             int vtxCount) {
+
+        int begin = PmxNative.nativeGetSubmeshBeginIndex(handle, s);
+        int count = PmxNative.nativeGetSubmeshVertexCount(handle, s);
+        if (begin < 0 || count <= 0) return;
+
+        int maxCount = Math.max(0, indexCount - begin);
+        if (count > maxCount) count = maxCount;
+        count -= (count % 3);
+        if (count <= 0) return;
+
+        String texPath = PmxNative.nativeGetSubmeshTexturePath(handle, s);
+        float alphaMat = PmxNative.nativeGetSubmeshAlpha(handle, s);
+        int rgba = PmxNative.nativeGetSubmeshDiffuseRGBA(handle, s);
+        boolean bothFace = PmxNative.nativeGetSubmeshBothFace(handle, s);
+
+        ResourceLocation tex = getOrLoadTexture(texPath);
+        if (tex == null) tex = ensureWhiteTexture();
+
+        float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
+        float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
+        float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
+        float ma = ( rgba         & 0xFF) / 255.0f;
+        ma *= alphaMat;
+
+        boolean translucent = forceTranslucentPass || (ma < 0.999f);
+
+        RenderType rt = pickRenderType(tex, translucent, bothFace);
+
+        // ✅ 여기서부터가 “상태 새는 거” 방지 핵심
+        // 투명은 depth test는 하되 depth write는 끈다 (depthMask(false))
+        RenderSystem.enableDepthTest();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        if (translucent) {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.depthMask(false);
+        } else {
+            RenderSystem.disableBlend();
+            RenderSystem.depthMask(true);
+        }
+
+        if (bothFace) RenderSystem.disableCull();
+        else RenderSystem.enableCull();
+
+        // RenderType 상태 세팅
+        rt.setupRenderState();
+
+        Tesselator tess = Tesselator.getInstance();
+        BufferBuilder bb = tess.getBuilder();
+        bb.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.NEW_ENTITY);
+
+        int triCount = count / 3;
+        for (int t = 0; t < triCount; t++) {
+            int ii0 = begin + t * 3;
+            int ii1 = begin + t * 3 + 1;
+            int ii2 = begin + t * 3 + 2;
+
+            int i0 = readIndex(idxBuf, elemSize, ii0);
+            int i1 = readIndex(idxBuf, elemSize, ii1);
+            int i2 = readIndex(idxBuf, elemSize, ii2);
+
+            if (i0 < 0 || i1 < 0 || i2 < 0) continue;
+            if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
+
+            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i0);
+            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i1);
+            putVertex(bb, pose, normalMat, packedLight, mr, mg, mb, ma, i2);
+        }
+
+        BufferUploader.drawWithShader(bb.end());
+
+        // RenderType 상태 해제 + “무조건” 원복
+        rt.clearRenderState();
+
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     }
 
     private static RenderType pickRenderType(ResourceLocation tex, boolean translucent, boolean bothFace) {
         if (translucent) {
-            // translucent는 기본적으로 cull 버전이 없어서(버전에 따라 다름) 그냥 entityTranslucent 사용
             return RenderType.entityTranslucent(tex);
         } else {
             return bothFace ? RenderType.entityCutoutNoCull(tex) : RenderType.entityCutout(tex);
@@ -197,19 +299,22 @@ public class PmxViewer {
         float x = posBuf.getFloat(pb);
         float y = posBuf.getFloat(pb + 4);
         float z = posBuf.getFloat(pb + 8);
+
         int nb = vi * 12;
         float nx = nrmBuf.getFloat(nb);
         float ny = nrmBuf.getFloat(nb + 4);
         float nz = nrmBuf.getFloat(nb + 8);
+
         int ub = vi * 8;
         float u = uvBuf.getFloat(ub);
         float v = uvBuf.getFloat(ub + 4);
-        v = 1.0f - v;
+        if (FLIP_V) v = 1.0f - v;
+
         bb.vertex(pose, x, y, z)
                 .color(r, g, b, a)
                 .uv(u, v)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(packedLight) // 바닐라 라이트맵 좌표
+                .uv2(packedLight)
                 .normal(normalMat, nx, ny, nz)
                 .endVertex();
     }
@@ -244,9 +349,11 @@ public class PmxViewer {
         if (texPath == null || texPath.isEmpty()) return ensureWhiteTexture();
         Path resolved = resolveTexturePath(texPath);
         if (resolved == null) return ensureWhiteTexture();
+
         String key = resolved.toString();
         ResourceLocation cached = textureCache.get(key);
         if (cached != null) return cached;
+
         try (InputStream in = Files.newInputStream(resolved)) {
             NativeImage img = NativeImage.read(in);
             DynamicTexture dt = new DynamicTexture(img);
