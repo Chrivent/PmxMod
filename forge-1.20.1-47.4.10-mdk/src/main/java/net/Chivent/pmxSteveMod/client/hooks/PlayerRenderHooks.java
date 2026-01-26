@@ -13,13 +13,13 @@ public final class PlayerRenderHooks {
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        // 여기에 조건(예: 내 모드가 활성일 때만, 특정 플레이어만 등) 붙이면 됨
-
-        // 바닐라 렌더 취소
         event.setCanceled(true);
 
-        // 우리 렌더로 대체 (아직 구현은 비워둠)
-        PmxViewer.get().renderPlayer(
+        PmxViewer viewer = PmxViewer.get();
+        if (!viewer.isReady()) return;
+
+        viewer.renderer().renderPlayer(
+                viewer,
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity(),
                 event.getRenderer(),
                 event.getPartialTick(),
