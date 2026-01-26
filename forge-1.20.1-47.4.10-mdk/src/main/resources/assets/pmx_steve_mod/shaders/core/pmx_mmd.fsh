@@ -16,17 +16,17 @@ uniform vec3 u_LightColor;
 uniform vec3 u_LightDir;
 
 uniform int u_TexMode;
-uniform sampler2D u_Tex;
+uniform sampler2D Sampler0;
 uniform vec4 u_TexMulFactor;
 uniform vec4 u_TexAddFactor;
 
 uniform int u_ToonTexMode;
-uniform sampler2D u_ToonTex;
+uniform sampler2D Sampler1;
 uniform vec4 u_ToonTexMulFactor;
 uniform vec4 u_ToonTexAddFactor;
 
 uniform int u_SphereTexMode;
-uniform sampler2D u_SphereTex;
+uniform sampler2D Sampler2;
 uniform vec4 u_SphereTexMulFactor;
 uniform vec4 u_SphereTexAddFactor;
 
@@ -53,7 +53,7 @@ void main() {
     color *= vs_Color.rgb;
 
     if (u_TexMode != 0) {
-        vec4 texColor = texture(u_Tex, vs_UV);
+        vec4 texColor = texture(Sampler0, vs_UV);
         texColor.rgb = ComputeTexMulFactor(texColor.rgb, u_TexMulFactor);
         texColor.rgb = ComputeTexAddFactor(texColor.rgb, u_TexAddFactor);
         color *= texColor.rgb;
@@ -66,7 +66,7 @@ void main() {
         vec2 spUV;
         spUV.x = nor.x * 0.5 + 0.5;
         spUV.y = 1.0 - (nor.y * 0.5 + 0.5);
-        vec3 spColor = texture(u_SphereTex, spUV).rgb;
+        vec3 spColor = texture(Sampler2, spUV).rgb;
         spColor = ComputeTexMulFactor(spColor, u_SphereTexMulFactor);
         spColor = ComputeTexAddFactor(spColor, u_SphereTexAddFactor);
         if (u_SphereTexMode == 1) color *= spColor;
@@ -74,7 +74,7 @@ void main() {
     }
 
     if (u_ToonTexMode != 0) {
-        vec3 toonColor = texture(u_ToonTex, vec2(0.0, ln)).rgb;
+        vec3 toonColor = texture(Sampler1, vec2(0.0, ln)).rgb;
         toonColor = ComputeTexMulFactor(toonColor, u_ToonTexMulFactor);
         toonColor = ComputeTexAddFactor(toonColor, u_ToonTexAddFactor);
         color *= toonColor;
@@ -88,5 +88,6 @@ void main() {
     }
 
     color += specular;
-    fragColor = vec4(color, alpha);
+    //fragColor = vec4(color, alpha);
+    fragColor = texture(Sampler0, vs_UV);
 }

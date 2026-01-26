@@ -2,9 +2,9 @@
   "vertex": "pmx_steve_mod:pmx_mmd",
   "fragment": "pmx_steve_mod:pmx_mmd",
   "samplers": [
-    { "name": "u_Tex" },
-    { "name": "u_SphereTex" },
-    { "name": "u_ToonTex" }
+    { "name": "Sampler0" },
+    { "name": "Sampler1" },
+    { "name": "Sampler2" }
   ],
   "attributes": [ "Position", "Color", "UV0", "UV1", "UV2", "Normal" ],
   "uniforms": [

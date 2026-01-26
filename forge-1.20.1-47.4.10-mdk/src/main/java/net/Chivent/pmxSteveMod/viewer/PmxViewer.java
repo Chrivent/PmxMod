@@ -273,7 +273,6 @@ public class PmxViewer {
         set1i(sh, "u_ToonTexMode", 0);
 
         final ResourceLocation mainTex = submeshTex[s] != null ? submeshTex[s] : magentaTex;
-        LOGGER.info("texId(mainTex) = {}", texId(mainTex));
         RenderSystem.setShaderTexture(0, mainTex);
         RenderSystem.setShaderTexture(1, magentaTex);
         RenderSystem.setShaderTexture(2, magentaTex);
