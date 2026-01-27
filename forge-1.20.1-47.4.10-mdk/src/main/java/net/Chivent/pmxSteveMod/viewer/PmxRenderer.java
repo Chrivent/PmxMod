@@ -166,10 +166,7 @@ public class PmxRenderer {
         GL30C.glBindVertexArray(mesh.vao);
 
         final int LOC_POS = 0;
-        final int LOC_CLR = 1;
         final int LOC_UV0 = 2;
-        final int LOC_UV1 = 3;
-        final int LOC_UV2 = 4;
         final int LOC_NRM = 5;
 
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboPos);
@@ -177,19 +174,10 @@ public class PmxRenderer {
         GL20C.glEnableVertexAttribArray(LOC_POS);
         GL20C.glVertexAttribPointer(LOC_POS, 3, GL11C.GL_FLOAT, false, 0, 0L);
 
-        GL20C.glDisableVertexAttribArray(LOC_CLR);
-        GL20C.glVertexAttrib4f(LOC_CLR, 1f, 1f, 1f, 1f);
-
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboUv);
         GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 2L * 4L, GL15C.GL_DYNAMIC_DRAW);
         GL20C.glEnableVertexAttribArray(LOC_UV0);
         GL20C.glVertexAttribPointer(LOC_UV0, 2, GL11C.GL_FLOAT, false, 0, 0L);
-
-        GL20C.glDisableVertexAttribArray(LOC_UV1);
-        GL20C.glVertexAttrib2f(LOC_UV1, 0f, 0f);
-
-        GL20C.glDisableVertexAttribArray(LOC_UV2);
-        GL20C.glVertexAttrib2f(LOC_UV2, 0f, 0f);
 
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboNrm);
         GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
