@@ -16,7 +16,10 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -256,6 +259,7 @@ public class PmxRenderer {
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
+        float[] lightDir = getSunLightDir(player.level(), partialTick);
 
         SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
@@ -272,7 +276,7 @@ public class PmxRenderer {
         GL30C.glBindVertexArray(mesh.vao);
 
         for (SubmeshInfo sub : subs) {
-            drawSubmeshIndexed(instance, sub, pose);
+            drawSubmeshIndexed(instance, sub, pose, lightDir);
         }
 
         GL30C.glBindVertexArray(0);
@@ -287,7 +291,8 @@ public class PmxRenderer {
 
     private void drawSubmeshIndexed(PmxInstance instance,
                                     SubmeshInfo sm,
-                                    Matrix4f pose) {
+                                    Matrix4f pose,
+                                    float[] lightDir) {
         if (sm == null) return;
 
         MaterialInfo mat = instance.material(sm.materialId());
@@ -321,7 +326,7 @@ public class PmxRenderer {
         setMat4(sh, "u_WVP", wvp);
 
         set3f(sh, "u_LightColor", 1f, 1f, 1f);
-        set3f(sh, "u_LightDir", 0.2f, 1.0f, 0.2f);
+        set3f(sh, "u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
 
         set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
 
@@ -373,6 +378,25 @@ public class PmxRenderer {
         GL11C.glDrawElements(GL11C.GL_TRIANGLES, count, mesh.glIndexType, offsetBytes);
 
         RenderSystem.enableCull();
+    }
+
+    private static float[] getSunLightDir(Level level, float partialTick) {
+        if (level == null) return new float[] {0.2f, 1.0f, 0.2f};
+        float time = level.getTimeOfDay(partialTick);
+        float angleDeg = time * 360.0f;
+        Quaternionf rot = new Quaternionf()
+                .rotateY((float) Math.toRadians(-90.0f))
+                .rotateX((float) Math.toRadians(angleDeg));
+        Vector3f dir = new Vector3f(0.0f, 1.0f, 0.0f);
+        rot.transform(dir);
+        if (dir.lengthSquared() < 1.0e-4f) return new float[] {0.2f, 1.0f, 0.2f};
+        dir.normalize();
+        var cam = Minecraft.getInstance().gameRenderer.getMainCamera();
+        if (cam != null) {
+            float yaw = cam.getYRot();
+            dir.rotateY((float) Math.toRadians(yaw));
+        }
+        return new float[] {dir.x, dir.y, dir.z};
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
