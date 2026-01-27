@@ -259,7 +259,7 @@ public class PmxRenderer {
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
-        float[] lightDir = getSunLightDir(player.level(), partialTick);
+        float[] lightDir = getSunLightDir(player.level(), partialTick, viewYRot);
 
         SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
@@ -380,7 +380,7 @@ public class PmxRenderer {
         RenderSystem.enableCull();
     }
 
-    private static float[] getSunLightDir(Level level, float partialTick) {
+    private static float[] getSunLightDir(Level level, float partialTick, float viewYRot) {
         if (level == null) return new float[] {0.2f, 1.0f, 0.2f};
         float time = level.getTimeOfDay(partialTick);
         float angleDeg = time * 360.0f;
@@ -391,11 +391,7 @@ public class PmxRenderer {
         rot.transform(dir);
         if (dir.lengthSquared() < 1.0e-4f) return new float[] {0.2f, 1.0f, 0.2f};
         dir.normalize();
-        var cam = Minecraft.getInstance().gameRenderer.getMainCamera();
-        if (cam != null) {
-            float yaw = cam.getYRot();
-            dir.rotateY((float) Math.toRadians(yaw));
-        }
+        dir.rotateY((float) Math.toRadians(viewYRot));
         return new float[] {dir.x, dir.y, dir.z};
     }
 
