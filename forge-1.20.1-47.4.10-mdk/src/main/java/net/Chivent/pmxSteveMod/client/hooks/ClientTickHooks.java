@@ -12,8 +12,6 @@ public final class ClientTickHooks {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END)
-            return;
-        // Animation is advanced per render frame for smoothness.
+
     }
 }

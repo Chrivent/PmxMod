@@ -86,7 +86,6 @@ public class PmxViewer {
     }
 
     public void shutdown() {
-        // GPU 리소스 정리(렌더 스레드에서)
         try { renderer.onViewerShutdown(); } catch (Throwable ignored) {}
 
         if (handle != 0L) {
@@ -98,10 +97,6 @@ public class PmxViewer {
         indicesCopiedOnce = false;
         frame = 0f;
         lastNanos = -1;
-    }
-
-    public void tick() {
-        tickRender();
     }
 
     public void tickRender() {

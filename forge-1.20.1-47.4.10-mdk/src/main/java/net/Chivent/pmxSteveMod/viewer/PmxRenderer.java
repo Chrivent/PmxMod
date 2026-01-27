@@ -430,6 +430,7 @@ public class PmxRenderer {
 
         try (InputStream in = Files.newInputStream(resolved)) {
             NativeImage img = NativeImage.read(in);
+            img.flipY();
             boolean hasAlpha = imageHasAnyAlpha(img);
 
             DynamicTexture dt = new DynamicTexture(img);
