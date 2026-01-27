@@ -238,7 +238,7 @@ extern "C" {
         for (size_t i = 0; i < n; i++) {
             const auto& v = src[i];
             out[i * 2 + 0] = v.x;
-            out[i * 2 + 1] = v.y;
+            out[i * 2 + 1] = 1.0f - v.y;
         }
     }
 

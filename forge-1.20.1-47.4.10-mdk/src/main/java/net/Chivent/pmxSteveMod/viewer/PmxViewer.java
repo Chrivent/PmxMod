@@ -35,8 +35,6 @@ public class PmxViewer {
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
 
-    private static final boolean FLIP_V = true;
-
     private boolean indicesCopiedOnce = false;
 
     private PmxViewer() {}
@@ -48,8 +46,6 @@ public class PmxViewer {
     public ByteBuffer posBuf() { return posBuf; }
     public ByteBuffer nrmBuf() { return nrmBuf; }
     public ByteBuffer uvBuf()  { return uvBuf;  }
-
-    public boolean flipV() { return FLIP_V; }
 
     public SubmeshInfo[] submeshes() { return submeshes; }
 

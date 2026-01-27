@@ -236,8 +236,6 @@ public class PmxRenderer {
         float u = uvBuf.getFloat(ub);
         float v = uvBuf.getFloat(ub + 4);
 
-        if (viewer.flipV()) v = 1.0f - v;
-
         bb.vertex(x, y, z)
                 .color(1f, 1f, 1f, 1f)
                 .uv(u, v)
