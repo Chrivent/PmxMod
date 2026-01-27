@@ -17,6 +17,7 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -259,7 +260,7 @@ public class PmxRenderer {
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
-        float[] lightDir = getSunLightDir(player.level(), partialTick, viewYRot);
+        float[] lightDir = getSunLightDir(player.level(), partialTick);
 
         SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
@@ -380,7 +381,7 @@ public class PmxRenderer {
         RenderSystem.enableCull();
     }
 
-    private static float[] getSunLightDir(Level level, float partialTick, float viewYRot) {
+    private static float[] getSunLightDir(Level level, float partialTick) {
         if (level == null) return new float[] {0.2f, 1.0f, 0.2f};
         float time = level.getTimeOfDay(partialTick);
         float angleDeg = time * 360.0f;
@@ -391,8 +392,10 @@ public class PmxRenderer {
         rot.transform(dir);
         if (dir.lengthSquared() < 1.0e-4f) return new float[] {0.2f, 1.0f, 0.2f};
         dir.normalize();
-        dir.rotateY((float) Math.toRadians(viewYRot));
-        return new float[] {dir.x, dir.y, dir.z};
+        Matrix3f invView = RenderSystem.getInverseViewRotationMatrix();
+        Matrix3f viewRot = new Matrix3f(invView).invert();
+        viewRot.transform(dir);
+        return new float[] {-dir.x, -dir.y, -dir.z};
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
