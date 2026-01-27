@@ -8,8 +8,8 @@ import com.mojang.math.Axis;
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
-import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
-import net.Chivent.pmxSteveMod.viewer.PmxViewer.SubmeshInfo;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -127,8 +127,8 @@ public class PmxRenderer {
         };
     }
 
-    private void ensureMeshGpu(PmxViewer viewer) {
-        long h = viewer.handle();
+    private void ensureMeshGpu(PmxInstance instance) {
+        long h = instance.handle();
         if (h == 0L) return;
 
         int vtxCount = PmxNative.nativeGetVertexCount(h);
@@ -148,7 +148,7 @@ public class PmxRenderer {
 
         destroyMeshGpu();
 
-        ByteBuffer idx = viewer.idxBuf();
+        ByteBuffer idx = instance.idxBuf();
         if (idx == null || vtxCount <= 0 || idxCount <= 0 || elemSize <= 0) return;
 
         mesh.ownerHandle = h;
@@ -207,31 +207,31 @@ public class PmxRenderer {
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
     }
 
-    private void updateDynamicBuffers(PmxViewer viewer) {
+    private void updateDynamicBuffers(PmxInstance instance) {
         if (!mesh.ready) return;
         int vtxCount = mesh.vertexCount;
 
-        uploadDynamic(mesh.vboPos, viewer.posBuf(), (long) vtxCount * 3L * 4L);
-        uploadDynamic(mesh.vboNrm, viewer.nrmBuf(), (long) vtxCount * 3L * 4L);
-        uploadDynamic(mesh.vboUv,  viewer.uvBuf(),  (long) vtxCount * 2L * 4L);
+        uploadDynamic(mesh.vboPos, instance.posBuf(), (long) vtxCount * 3L * 4L);
+        uploadDynamic(mesh.vboNrm, instance.nrmBuf(), (long) vtxCount * 3L * 4L);
+        uploadDynamic(mesh.vboUv,  instance.uvBuf(),  (long) vtxCount * 2L * 4L);
     }
 
-    public void renderPlayer(PmxViewer viewer,
+    public void renderPlayer(PmxInstance instance,
                              AbstractClientPlayer player,
                              float partialTick,
                              PoseStack poseStack) {
-        if (!viewer.isReady() || viewer.handle() == 0L) return;
-        if (viewer.idxBuf() == null || viewer.posBuf() == null || viewer.nrmBuf() == null || viewer.uvBuf() == null) return;
+        if (!instance.isReady() || instance.handle() == 0L) return;
+        if (instance.idxBuf() == null || instance.posBuf() == null || instance.nrmBuf() == null || instance.uvBuf() == null) return;
 
-        viewer.syncCpuBuffersForRender();
+        instance.syncCpuBuffersForRender();
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
 
-        ensureMeshGpu(viewer);
+        ensureMeshGpu(instance);
         if (!mesh.ready) return;
 
-        updateDynamicBuffers(viewer);
+        updateDynamicBuffers(instance);
 
         poseStack.pushPose();
 
@@ -241,7 +241,7 @@ public class PmxRenderer {
 
         Matrix4f pose = poseStack.last().pose();
 
-        SubmeshInfo[] subs = viewer.submeshes();
+        SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
             poseStack.popPose();
             return;
@@ -256,7 +256,7 @@ public class PmxRenderer {
         GL30C.glBindVertexArray(mesh.vao);
 
         for (SubmeshInfo sub : subs) {
-            drawSubmeshIndexed(viewer, sub, pose);
+            drawSubmeshIndexed(instance, sub, pose);
         }
 
         GL30C.glBindVertexArray(0);
@@ -269,12 +269,12 @@ public class PmxRenderer {
         poseStack.popPose();
     }
 
-    private void drawSubmeshIndexed(PmxViewer viewer,
+    private void drawSubmeshIndexed(PmxInstance instance,
                                     SubmeshInfo sm,
                                     Matrix4f pose) {
         if (sm == null) return;
 
-        MaterialInfo mat = viewer.material(sm.materialId());
+        MaterialInfo mat = instance.material(sm.materialId());
         if (mat == null) return;
 
         int begin = sm.beginIndex();
@@ -291,7 +291,7 @@ public class PmxRenderer {
         float alpha = mat.alpha();
         if (alpha <= 0.0f) return;
 
-        MaterialGpu gpu = getOrBuildMaterialGpu(viewer, sm.materialId(), mat);
+        MaterialGpu gpu = getOrBuildMaterialGpu(instance, sm.materialId(), mat);
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
@@ -360,13 +360,13 @@ public class PmxRenderer {
         RenderSystem.enableCull();
     }
 
-    private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
+    private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
         MaterialGpu cached = materialGpuCache.get(materialId);
         if (cached != null) return cached;
 
         MaterialGpu gpu = new MaterialGpu();
 
-        TextureEntry main = getOrLoadTextureEntry(viewer, mat.mainTexPath());
+        TextureEntry main = getOrLoadTextureEntry(instance, mat.mainTexPath());
         if (main != null && main.rl != null) {
             gpu.mainTex = main.rl;
             gpu.texMode = main.hasAlpha ? 2 : 1;
@@ -376,7 +376,7 @@ public class PmxRenderer {
             LOGGER.warn("[PMX] material {} main texture missing; using fallback. path={}", materialId, mat.mainTexPath());
         }
 
-        TextureEntry sphere = getOrLoadTextureEntry(viewer, mat.sphereTexPath());
+        TextureEntry sphere = getOrLoadTextureEntry(instance, mat.sphereTexPath());
         if (sphere != null && sphere.rl != null) {
             gpu.sphereTex = sphere.rl;
             gpu.sphereMode = mat.sphereMode(); // 0/1/2
@@ -388,7 +388,7 @@ public class PmxRenderer {
             }
         }
 
-        TextureEntry toon = getOrLoadTextureEntry(viewer, mat.toonTexPath());
+        TextureEntry toon = getOrLoadTextureEntry(instance, mat.toonTexPath());
         if (toon != null && toon.rl != null) {
             gpu.toonTex = toon.rl;
             gpu.toonMode = 1;
@@ -418,10 +418,10 @@ public class PmxRenderer {
         }
     }
 
-    private TextureEntry getOrLoadTextureEntry(PmxViewer viewer, String texPath) {
+    private TextureEntry getOrLoadTextureEntry(PmxInstance instance, String texPath) {
         if (texPath == null || texPath.isEmpty()) return null;
 
-        Path resolved = resolveTexturePath(viewer, texPath);
+        Path resolved = resolveTexturePath(instance, texPath);
         if (resolved == null) return null;
 
         String key = resolved.toString();
@@ -449,11 +449,11 @@ public class PmxRenderer {
         }
     }
 
-    private static Path resolveTexturePath(PmxViewer viewer, String texPath) {
+    private static Path resolveTexturePath(PmxInstance instance, String texPath) {
         try {
             Path p = Paths.get(texPath);
             if (p.isAbsolute()) return p.normalize();
-            Path base = viewer.pmxBaseDir();
+            Path base = instance.pmxBaseDir();
             if (base != null) return base.resolve(p).normalize();
             return p.normalize();
         } catch (Throwable ignored) {

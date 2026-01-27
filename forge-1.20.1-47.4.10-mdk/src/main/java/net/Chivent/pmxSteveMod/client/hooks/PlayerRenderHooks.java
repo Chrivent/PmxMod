@@ -1,6 +1,8 @@
 package net.Chivent.pmxSteveMod.client.hooks;
 
 import net.Chivent.pmxSteveMod.PmxSteveMod;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance;
+import net.Chivent.pmxSteveMod.viewer.PmxRenderer;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -9,21 +11,26 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = PmxSteveMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class PlayerRenderHooks {
+    private static final PmxRenderer RENDERER = new PmxRenderer();
     private PlayerRenderHooks() {}
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        PmxViewer viewer = PmxViewer.get();
-        if (!viewer.isReady()) return;
+        PmxInstance instance = PmxViewer.get().instance();
+        if (!instance.isReady()) return;
 
         event.setCanceled(true);
 
-        viewer.tickRender();
-        viewer.renderer().renderPlayer(
-                viewer,
+        instance.tickRender();
+        RENDERER.renderPlayer(
+                instance,
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity(),
                 event.getPartialTick(),
                 event.getPoseStack()
         );
+    }
+
+    public static void shutdownRenderer() {
+        RENDERER.onViewerShutdown();
     }
 }
