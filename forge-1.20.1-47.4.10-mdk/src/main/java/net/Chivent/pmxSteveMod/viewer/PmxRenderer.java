@@ -29,10 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PmxRenderer {
-
-    // -------------------------
-    // texture cache (renderer-owned)
-    // -------------------------
     private static final class TextureEntry {
         final ResourceLocation rl;
         final boolean hasAlpha;
@@ -45,11 +41,6 @@ public class PmxRenderer {
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private ResourceLocation magentaTex = null;
 
-    // material gpu cache: materialId -> resolved/baked bindings
-    // NOTE: 원본(OpenGL) 매핑을 따름
-    //   tex unit 0 = main
-    //   tex unit 1 = sphere
-    //   tex unit 2 = toon
     private static final class MaterialGpu {
         int texMode;        // 0 none, 1 rgb, 2 rgba
         int toonMode;       // 0 none, 1 on
@@ -64,9 +55,6 @@ public class PmxRenderer {
 
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
 
-    // -------------------------
-    // uniform helpers
-    // -------------------------
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
@@ -88,9 +76,6 @@ public class PmxRenderer {
         if (u != null) u.set(v);
     }
 
-    // -------------------------
-    // public entry
-    // -------------------------
     public void renderPlayer(PmxViewer viewer,
                              AbstractClientPlayer player,
                              PlayerRenderer vanillaRenderer,
@@ -101,7 +86,6 @@ public class PmxRenderer {
         if (!viewer.isReady() || viewer.handle() == 0L) return;
         if (viewer.idxBuf() == null || viewer.posBuf() == null || viewer.nrmBuf() == null || viewer.uvBuf() == null) return;
 
-        // 렌더 직전 CPU buffer 동기화 (원본은 GPU 업데이트지만, 현재 구조 유지)
         viewer.syncCpuBuffersForRender();
 
         poseStack.pushPose();
@@ -119,7 +103,6 @@ public class PmxRenderer {
         SubmeshInfo[] subs = viewer.submeshes();
         if (subs == null) { poseStack.popPose(); return; }
 
-        // ---- 원본(OpenGL) 느낌: 단일 패스 + 항상 blend ON + depthMask true ----
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -139,9 +122,6 @@ public class PmxRenderer {
         poseStack.popPose();
     }
 
-    // -------------------------
-    // draw (single-pass, like original)
-    // -------------------------
     private void drawSubmesh(PmxViewer viewer,
                              int s,
                              Matrix4f pose,
@@ -179,11 +159,9 @@ public class PmxRenderer {
         setMat4(sh, "u_WV", wv);
         setMat4(sh, "u_WVP", wvp);
 
-        // light defaults (원본에서도 기본값)
         set3f(sh, "u_LightColor", 1f, 1f, 1f);
         set3f(sh, "u_LightDir", 0.2f, 1.0f, 0.2f);
 
-        // material uniforms
         set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
 
         int rgba = mat.diffuseRGBA();
@@ -196,26 +174,22 @@ public class PmxRenderer {
         set1f(sh, "u_SpecularPower", mat.specularPower());
         set1f(sh, "u_Alpha", alpha);
 
-        // ---- texture binding (원본과 동일): 0=main, 1=sphere, 2=toon ----
         RenderSystem.setShaderTexture(0, gpu.mainTex);
         RenderSystem.setShaderTexture(1, gpu.sphereTex);
         RenderSystem.setShaderTexture(2, gpu.toonTex);
 
-        // main tex factors
         set1i(sh, "u_TexMode", gpu.texMode);
         float[] tm = mat.texMul();
         float[] ta = mat.texAdd();
         set4f(sh, "u_TexMulFactor", tm[0], tm[1], tm[2], tm[3]);
         set4f(sh, "u_TexAddFactor", ta[0], ta[1], ta[2], ta[3]);
 
-        // sphere factors
         set1i(sh, "u_SphereTexMode", gpu.sphereMode);
         float[] spMul = mat.sphereMul();
         float[] spAdd = mat.sphereAdd();
         set4f(sh, "u_SphereTexMulFactor", spMul[0], spMul[1], spMul[2], spMul[3]);
         set4f(sh, "u_SphereTexAddFactor", spAdd[0], spAdd[1], spAdd[2], spAdd[3]);
 
-        // toon factors
         set1i(sh, "u_ToonTexMode", gpu.toonMode);
         float[] toonMul = mat.toonMul();
         float[] toonAdd = mat.toonAdd();
@@ -253,9 +227,6 @@ public class PmxRenderer {
         }
 
         BufferUploader.drawWithShader(bb.end());
-
-        // 원본은 상태를 유지한 채 다음 submesh로 넘어가지만,
-        // MC 파이프라인 안전을 위해 최소한의 복구
         RenderSystem.enableCull();
     }
 
@@ -278,8 +249,6 @@ public class PmxRenderer {
         float u = uvBuf.getFloat(ub);
         float v = uvBuf.getFloat(ub + 4);
 
-        // 원본 Model.cpp에서 이미 v = 1 - v를 적용했을 가능성이 높음.
-        // viewer.flipV()를 false로 두면 여기서 추가 뒤집기 없음.
         if (viewer.flipV()) v = 1.0f - v;
 
         bb.vertex(x, y, z)
@@ -302,16 +271,12 @@ public class PmxRenderer {
         };
     }
 
-    // -------------------------
-    // material gpu build/cache (original mapping)
-    // -------------------------
     private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
         MaterialGpu cached = materialGpuCache.get(materialId);
         if (cached != null) return cached;
 
         MaterialGpu gpu = new MaterialGpu();
 
-        // main (unit0)
         TextureEntry main = getOrLoadTextureEntry(viewer, mat.mainTexPath());
         if (main != null && main.rl != null) {
             gpu.mainTex = main.rl;
@@ -323,7 +288,6 @@ public class PmxRenderer {
             gpu.texMode = 0;
         }
 
-        // sphere (unit1)
         TextureEntry sphere = getOrLoadTextureEntry(viewer, mat.sphereTexPath());
         if (sphere != null && sphere.rl != null) {
             gpu.sphereTex = sphere.rl;
@@ -333,7 +297,6 @@ public class PmxRenderer {
             gpu.sphereMode = 0;
         }
 
-        // toon (unit2)
         TextureEntry toon = getOrLoadTextureEntry(viewer, mat.toonTexPath());
         if (toon != null && toon.rl != null) {
             gpu.toonTex = toon.rl;
@@ -347,9 +310,6 @@ public class PmxRenderer {
         return gpu;
     }
 
-    // -------------------------
-    // texture load / resolve
-    // -------------------------
     private ResourceLocation ensureMagentaTexture() {
         if (magentaTex != null) return magentaTex;
         try {

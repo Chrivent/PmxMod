@@ -32,7 +32,6 @@ public class PmxViewer {
     private SubmeshInfo[] submeshes;
     private MaterialInfo[] materials;
 
-    // native vec3/vec4 읽기용 임시 버퍼 (direct + native order)
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
 
@@ -154,7 +153,6 @@ public class PmxViewer {
             int diffuseRGBA = PmxNative.nativeGetMaterialDiffuseRGBA(handle, m);
             float alpha     = PmxNative.nativeGetMaterialAlpha(handle, m);
 
-            // vec3
             final int mm1 = m;
             float[] ambient  = readVec3(dst -> PmxNative.nativeGetMaterialAmbient(handle, mm1, dst));
             float[] specular = readVec3(dst -> PmxNative.nativeGetMaterialSpecular(handle, mm1, dst));
@@ -162,12 +160,10 @@ public class PmxViewer {
             float specPow = PmxNative.nativeGetMaterialSpecularPower(handle, m);
             boolean bothFace = PmxNative.nativeGetMaterialBothFaceByMaterial(handle, m);
 
-            // texture paths (resolve to absolute if possible)
             String mainPath   = resolveTexturePathString(PmxNative.nativeGetMaterialTexturePath(handle, m));
             String toonPath   = resolveTexturePathString(PmxNative.nativeGetMaterialToonTexturePath(handle, m));
             String spherePath = resolveTexturePathString(PmxNative.nativeGetMaterialSphereTexturePath(handle, m));
 
-            // factors vec4
             final int mm2 = m;
             float[] texMul    = readVec4(dst -> PmxNative.nativeGetMaterialTexMulFactor(handle, mm2, dst));
             float[] texAdd    = readVec4(dst -> PmxNative.nativeGetMaterialTexAddFactor(handle, mm2, dst));
@@ -176,9 +172,8 @@ public class PmxViewer {
             float[] sphereMul = readVec4(dst -> PmxNative.nativeGetMaterialSphereMulFactor(handle, mm2, dst));
             float[] sphereAdd = readVec4(dst -> PmxNative.nativeGetMaterialSphereAddFactor(handle, mm2, dst));
 
-            int sphereMode = PmxNative.nativeGetMaterialSphereMode(handle, m); // 0 none, 1 mul, 2 add
+            int sphereMode = PmxNative.nativeGetMaterialSphereMode(handle, m);
 
-            // edge/shadow (추가한 6개)
             int edgeFlag = PmxNative.nativeGetMaterialEdgeFlag(handle, m);
             float edgeSize = PmxNative.nativeGetMaterialEdgeSize(handle, m);
             final int mm3 = m;
@@ -234,10 +229,6 @@ public class PmxViewer {
         return new float[]{ tmp4f.getFloat(), tmp4f.getFloat(), tmp4f.getFloat(), tmp4f.getFloat() };
     }
 
-    /**
-     * PMX 내부 텍스처 경로(상대/절대)를 가능한 한 절대경로로 정규화해서 문자열로 반환.
-     * 실패하거나 입력이 비었으면 null 반환.
-     */
     private String resolveTexturePathString(String texPath) {
         if (texPath == null || texPath.isEmpty()) return null;
         try {
