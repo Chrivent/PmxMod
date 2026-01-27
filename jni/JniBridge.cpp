@@ -52,15 +52,6 @@ static jint PackRGBA8(const float r, const float g, const float b, const float a
     return R << 24 | G << 16 | B << 8 | A;
 }
 
-static const Material* GetMaterialForSubMesh(const Model* model, const int subMeshIndex) {
-    const auto& sub = model->m_subMeshes;
-    if (subMeshIndex < 0 || subMeshIndex >= static_cast<int>(sub.size())) return nullptr;
-    const int matId = sub[subMeshIndex].m_materialID;
-    const auto& mats = model->m_materials;
-    if (matId < 0 || matId >= static_cast<int>(mats.size())) return nullptr;
-    return &mats[matId];
-}
-
 static void WriteVec3(JNIEnv* env, _jobject* buf, const glm::vec3& v) {
     if (!buf) return;
     auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
