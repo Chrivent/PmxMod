@@ -11,6 +11,8 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
@@ -29,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class PmxModelSelectScreen extends Screen {
     private static final int INFO_PANEL_WIDTH = 190;
     private static final int INFO_PANEL_PADDING = 12;
+    private static final int INFO_PANEL_INSET = 4;
     private final Screen parent;
     private PmxModelList list;
     private Path modelDir;
@@ -36,6 +39,8 @@ public class PmxModelSelectScreen extends Screen {
     private Thread watchThread;
     private volatile boolean rescanRequested = false;
     private final Set<Path> watchedDirs = new HashSet<>();
+    private double infoScroll = 0.0;
+    private int infoScrollMax = 0;
 
     public PmxModelSelectScreen(Screen parent) {
         super(Component.translatable("pmx.screen.select_model.title"));
@@ -82,6 +87,16 @@ public class PmxModelSelectScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (isMouseInInfoPanel(mouseX, mouseY) && infoScrollMax > 0) {
+            double step = this.font.lineHeight * 3.0;
+            infoScroll = Mth.clamp(infoScroll - delta * step, 0.0, infoScrollMax);
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
+    }
+
+    @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
         if (this.minecraft != null && this.minecraft.level != null) {
             graphics.fillGradient(0, 0, this.width, this.height, 0x55000000, 0x77000000);
@@ -91,48 +106,31 @@ public class PmxModelSelectScreen extends Screen {
     }
 
     private void renderInfoPanel(@NotNull GuiGraphics graphics) {
-        int left = 10;
-        int top = 50;
-        int right = INFO_PANEL_WIDTH;
-        int bottom = this.height - 40;
-        graphics.fill(left - 6, top - 6, right, bottom, 0x33000000);
+        int left = infoPanelLeft();
+        int top = infoPanelTop();
+        int right = infoPanelRight();
+        int bottom = infoPanelBottom();
+        graphics.fill(left, top, right, bottom, 0x33000000);
 
-        int y = top;
-        int valueWidth = right - left - 4;
-        graphics.drawString(this.font, Component.translatable("pmx.info.header"), left, y, 0xFFFFFF, false);
-        y += this.font.lineHeight + 4;
+        int contentLeft = left + INFO_PANEL_INSET;
+        int contentTop = top + INFO_PANEL_INSET;
+        int contentRight = right - INFO_PANEL_INSET;
+        int contentBottom = bottom - INFO_PANEL_INSET;
+        int contentWidth = contentRight - contentLeft;
+        int contentHeight = contentBottom - contentTop;
 
-        Path selected = PmxViewer.get().getSelectedModelPath();
-        if (selected != null) {
-            y = drawLabelValue(graphics, left, y, valueWidth,
-                    Component.translatable("pmx.info.file"),
-                    valueComponent(selected.getFileName().toString()));
+        List<InfoLine> lines = buildInfoLines(contentWidth);
+        int totalHeight = lines.isEmpty() ? 0 : lines.get(lines.size() - 1).y + this.font.lineHeight;
+        infoScrollMax = Math.max(0, totalHeight - contentHeight);
+        infoScroll = Mth.clamp(infoScroll, 0.0, infoScrollMax);
+
+        graphics.enableScissor(contentLeft, contentTop, contentRight, contentBottom);
+        int yOffset = contentTop - (int) infoScroll;
+        for (InfoLine line : lines) {
+            int y = yOffset + line.y;
+            graphics.drawString(this.font, line.text, contentLeft, y, line.color, false);
         }
-
-        PmxViewer viewer = PmxViewer.get();
-        if (!viewer.isPmxVisible()) {
-            drawInfoMessage(graphics, left, y, valueWidth, Component.translatable("pmx.info.disabled"));
-            return;
-        }
-
-        PmxInstance.ModelInfo info = viewer.instance().getModelInfo();
-        if (info == null) {
-            drawInfoMessage(graphics, left, y, valueWidth, Component.translatable("pmx.info.none"));
-            return;
-        }
-
-        y = drawLabelValue(graphics, left, y, valueWidth,
-                Component.translatable("pmx.info.name"),
-                valueComponent(info.name()));
-        y = drawLabelValue(graphics, left, y, valueWidth,
-                Component.translatable("pmx.info.name_en"),
-                valueComponent(info.nameEn()));
-        y = drawLabelValue(graphics, left, y, valueWidth,
-                Component.translatable("pmx.info.comment"),
-                valueComponent(info.comment()));
-        drawLabelValue(graphics, left, y, valueWidth,
-                Component.translatable("pmx.info.comment_en"),
-                valueComponent(info.commentEn()));
+        graphics.disableScissor();
     }
 
     private Component valueComponent(String value) {
@@ -142,22 +140,102 @@ public class PmxModelSelectScreen extends Screen {
         return Component.literal(value);
     }
 
-    private int drawLabelValue(GuiGraphics graphics, int x, int y, int width, Component label, Component value) {
-        graphics.drawString(this.font, label, x, y, 0xB0B0B0, false);
-        y += this.font.lineHeight + 2;
+    private List<InfoLine> buildInfoLines(int width) {
+        List<InfoLine> lines = new ArrayList<>();
+        int y = 0;
+        y = addLine(lines, y, Component.translatable("pmx.info.header"), 0xFFFFFF);
+        y += 4;
+
+        Path selected = PmxViewer.get().getSelectedModelPath();
+        if (selected != null) {
+            y = addLabelValueLines(lines, y,
+                    Component.translatable("pmx.info.file"),
+                    valueComponent(selected.getFileName().toString()),
+                    width);
+        }
+
+        PmxViewer viewer = PmxViewer.get();
+        if (!viewer.isPmxVisible()) {
+            addMessageLines(lines, y, Component.translatable("pmx.info.disabled"), width);
+            return lines;
+        }
+
+        PmxInstance.ModelInfo info = viewer.instance().getModelInfo();
+        if (info == null) {
+            addMessageLines(lines, y, Component.translatable("pmx.info.none"), width);
+            return lines;
+        }
+
+        y = addLabelValueLines(lines, y,
+                Component.translatable("pmx.info.name"),
+                valueComponent(info.name()),
+                width);
+        y = addLabelValueLines(lines, y,
+                Component.translatable("pmx.info.name_en"),
+                valueComponent(info.nameEn()),
+                width);
+        y = addLabelValueLines(lines, y,
+                Component.translatable("pmx.info.comment"),
+                valueComponent(info.comment()),
+                width);
+        addLabelValueLines(lines, y,
+                Component.translatable("pmx.info.comment_en"),
+                valueComponent(info.commentEn()),
+                width);
+        return lines;
+    }
+
+    private int addLine(List<InfoLine> out, int y, Component text, int color) {
+        out.add(new InfoLine(text.getVisualOrderText(), color, y));
+        return y + this.font.lineHeight;
+    }
+
+    private int addLine(List<InfoLine> out, int y, FormattedCharSequence text, int color) {
+        out.add(new InfoLine(text, color, y));
+        return y + this.font.lineHeight;
+    }
+
+    private int addLabelValueLines(List<InfoLine> out, int y, Component label, Component value, int width) {
+        y = addLine(out, y, label, 0xB0B0B0);
+        y += 2;
         for (var line : this.font.split(value, width)) {
-            graphics.drawString(this.font, line, x, y, 0xE0E0E0, false);
-            y += this.font.lineHeight;
+            y = addLine(out, y, line, 0xE0E0E0);
         }
         return y + 4;
     }
 
-    private void drawInfoMessage(GuiGraphics graphics, int x, int y, int width, Component message) {
+    private void addMessageLines(List<InfoLine> out, int y, Component message, int width) {
         for (var line : this.font.split(message, width)) {
-            graphics.drawString(this.font, line, x, y, 0xC0C0C0, false);
-            y += this.font.lineHeight;
+            y = addLine(out, y, line, 0xC0C0C0);
         }
     }
+
+    public void resetInfoScroll() {
+        infoScroll = 0.0;
+    }
+
+    private int infoPanelLeft() {
+        return 10;
+    }
+
+    private int infoPanelRight() {
+        return INFO_PANEL_WIDTH;
+    }
+
+    private int infoPanelTop() {
+        return 50;
+    }
+
+    private int infoPanelBottom() {
+        return this.height - 40;
+    }
+
+    private boolean isMouseInInfoPanel(double mouseX, double mouseY) {
+        return mouseX >= infoPanelLeft() && mouseX <= infoPanelRight()
+                && mouseY >= infoPanelTop() && mouseY <= infoPanelBottom();
+    }
+
+    private record InfoLine(FormattedCharSequence text, int color, int y) {}
 
     @Override
     public void tick() {
@@ -352,6 +430,7 @@ public class PmxModelSelectScreen extends Screen {
                 if (screen.list != null) {
                     screen.list.setSelected(this);
                 }
+                screen.resetInfoScroll();
                 return true;
             }
         }
@@ -378,6 +457,7 @@ public class PmxModelSelectScreen extends Screen {
                 if (screen.list != null) {
                     screen.list.setSelected(this);
                 }
+                screen.resetInfoScroll();
                 return true;
             }
         }
