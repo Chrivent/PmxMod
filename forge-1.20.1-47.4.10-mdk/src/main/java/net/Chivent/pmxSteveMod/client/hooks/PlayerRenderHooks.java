@@ -16,7 +16,9 @@ public final class PlayerRenderHooks {
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        PmxInstance instance = PmxViewer.get().instance();
+        PmxViewer viewer = PmxViewer.get();
+        if (!viewer.isPmxVisible()) return;
+        PmxInstance instance = viewer.instance();
         boolean ready = instance.isReady();
         if (!ready) return;
 
