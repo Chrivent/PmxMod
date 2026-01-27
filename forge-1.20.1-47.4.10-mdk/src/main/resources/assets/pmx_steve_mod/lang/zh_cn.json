@@ -1,16 +1,15 @@
-{
+﻿{
   "pmx.button.open_folder": "打开PMX文件夹",
-  "pmx.button.rescan": "重新扫描",
-  "pmx.button.select_model": "选择模型",
-  "pmx.button.toggle": "显示PMX：%s",
-  "pmx.screen.control.folder": "PMX文件夹：%s",
-  "pmx.screen.control.hint_close": "按快捷键或Esc关闭",
-  "pmx.screen.control.selected": "已选择：%s",
-  "pmx.screen.control.title": "PMX控制",
-  "pmx.screen.select_model.disable": "<不使用PMX>",
-  "pmx.screen.select_model.folder": "PMX文件夹：%s",
+  "pmx.screen.select_model.disable": "<禁用PMX>",
+  "pmx.screen.select_model.folder": "PMX文件夹: %s",
   "pmx.screen.select_model.title": "选择PMX模型",
-  "pmx.state.none": "<无>",
-  "pmx.state.off": "OFF",
-  "pmx.state.on": "ON"
+  "pmx.info.header": "模型信息",
+  "pmx.info.file": "文件",
+  "pmx.info.name": "名称",
+  "pmx.info.name_en": "名称(英文)",
+  "pmx.info.comment": "注释",
+  "pmx.info.comment_en": "注释(英文)",
+  "pmx.info.disabled": "PMX已禁用。",
+  "pmx.info.none": "没有可用的模型信息。",
+  "pmx.info.empty": "<空>"
 }

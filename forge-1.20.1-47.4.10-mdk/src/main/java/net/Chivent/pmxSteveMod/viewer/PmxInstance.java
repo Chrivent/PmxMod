@@ -58,6 +58,20 @@ public class PmxInstance {
 
     public Path pmxBaseDir() { return pmxBaseDir; }
 
+    public ModelInfo getModelInfo() {
+        if (!ready || handle == 0L) return null;
+        try {
+            return new ModelInfo(
+                    cleanText(PmxNative.nativeGetModelName(handle)),
+                    cleanText(PmxNative.nativeGetEnglishModelName(handle)),
+                    cleanText(PmxNative.nativeGetComment(handle)),
+                    cleanText(PmxNative.nativeGetEnglishComment(handle))
+            );
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     public void init(Path pmxPath) {
         try {
             handle = PmxNative.nativeCreate();
@@ -265,6 +279,12 @@ public class PmxInstance {
         }
     }
 
+    private static String cleanText(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     private static Path ensureToonDir() {
         if (cachedToonDir != null) return cachedToonDir;
         Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "toon");
@@ -325,5 +345,12 @@ public class PmxInstance {
             boolean groundShadow,
             boolean shadowCaster,
             boolean shadowReceiver
+    ) {}
+
+    public record ModelInfo(
+            String name,
+            String nameEn,
+            String comment,
+            String commentEn
     ) {}
 }

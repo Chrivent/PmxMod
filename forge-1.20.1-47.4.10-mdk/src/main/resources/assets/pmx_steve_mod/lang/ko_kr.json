@@ -1,16 +1,15 @@
-{
+﻿{
   "pmx.button.open_folder": "PMX 폴더 열기",
-  "pmx.button.rescan": "다시 스캔",
-  "pmx.button.select_model": "모델 선택",
-  "pmx.button.toggle": "PMX 표시: %s",
-  "pmx.screen.control.folder": "PMX 폴더: %s",
-  "pmx.screen.control.hint_close": "키 또는 Esc로 닫기",
-  "pmx.screen.control.selected": "선택됨: %s",
-  "pmx.screen.control.title": "PMX 제어",
   "pmx.screen.select_model.disable": "<PMX 사용 안 함>",
   "pmx.screen.select_model.folder": "PMX 폴더: %s",
   "pmx.screen.select_model.title": "PMX 모델 선택",
-  "pmx.state.none": "<없음>",
-  "pmx.state.off": "OFF",
-  "pmx.state.on": "ON"
+  "pmx.info.header": "모델 정보",
+  "pmx.info.file": "파일",
+  "pmx.info.name": "이름",
+  "pmx.info.name_en": "이름(영문)",
+  "pmx.info.comment": "코멘트",
+  "pmx.info.comment_en": "코멘트(영문)",
+  "pmx.info.disabled": "PMX가 비활성화되어 있습니다.",
+  "pmx.info.none": "모델 정보를 불러올 수 없습니다.",
+  "pmx.info.empty": "<비어있음>"
 }

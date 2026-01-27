@@ -2,6 +2,7 @@ package net.Chivent.pmxSteveMod.client.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,6 +27,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class PmxModelSelectScreen extends Screen {
+    private static final int INFO_PANEL_WIDTH = 190;
+    private static final int INFO_PANEL_PADDING = 12;
     private final Screen parent;
     private PmxModelList list;
     private Path modelDir;
@@ -42,7 +45,10 @@ public class PmxModelSelectScreen extends Screen {
     @Override
     protected void init() {
         modelDir = PmxViewer.get().getUserModelDir();
-        list = new PmxModelList(this, this.minecraft, this.width, this.height, 50, this.height - 40, 20);
+        int listLeft = INFO_PANEL_WIDTH + INFO_PANEL_PADDING;
+        int listWidth = Math.max(100, this.width - listLeft - 10);
+        list = new PmxModelList(this, this.minecraft, listWidth, this.height, 50, this.height - 40, 20);
+        list.setLeftPos(listLeft);
         list.setRenderBackground(false);
         addWidget(list);
         reloadList();
@@ -64,6 +70,7 @@ public class PmxModelSelectScreen extends Screen {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
+        renderInfoPanel(graphics);
         list.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
         if (modelDir != null) {
@@ -80,6 +87,75 @@ public class PmxModelSelectScreen extends Screen {
             graphics.fillGradient(0, 0, this.width, this.height, 0x55000000, 0x77000000);
         } else {
             this.renderDirtBackground(graphics);
+        }
+    }
+
+    private void renderInfoPanel(@NotNull GuiGraphics graphics) {
+        int left = 10;
+        int top = 50;
+        int right = INFO_PANEL_WIDTH;
+        int bottom = this.height - 40;
+        graphics.fill(left - 6, top - 6, right, bottom, 0x33000000);
+
+        int y = top;
+        int valueWidth = right - left - 4;
+        graphics.drawString(this.font, Component.translatable("pmx.info.header"), left, y, 0xFFFFFF, false);
+        y += this.font.lineHeight + 4;
+
+        Path selected = PmxViewer.get().getSelectedModelPath();
+        if (selected != null) {
+            y = drawLabelValue(graphics, left, y, valueWidth,
+                    Component.translatable("pmx.info.file"),
+                    valueComponent(selected.getFileName().toString()));
+        }
+
+        PmxViewer viewer = PmxViewer.get();
+        if (!viewer.isPmxVisible()) {
+            drawInfoMessage(graphics, left, y, valueWidth, Component.translatable("pmx.info.disabled"));
+            return;
+        }
+
+        PmxInstance.ModelInfo info = viewer.instance().getModelInfo();
+        if (info == null) {
+            drawInfoMessage(graphics, left, y, valueWidth, Component.translatable("pmx.info.none"));
+            return;
+        }
+
+        y = drawLabelValue(graphics, left, y, valueWidth,
+                Component.translatable("pmx.info.name"),
+                valueComponent(info.name()));
+        y = drawLabelValue(graphics, left, y, valueWidth,
+                Component.translatable("pmx.info.name_en"),
+                valueComponent(info.nameEn()));
+        y = drawLabelValue(graphics, left, y, valueWidth,
+                Component.translatable("pmx.info.comment"),
+                valueComponent(info.comment()));
+        drawLabelValue(graphics, left, y, valueWidth,
+                Component.translatable("pmx.info.comment_en"),
+                valueComponent(info.commentEn()));
+    }
+
+    private Component valueComponent(String value) {
+        if (value == null || value.isBlank()) {
+            return Component.translatable("pmx.info.empty");
+        }
+        return Component.literal(value);
+    }
+
+    private int drawLabelValue(GuiGraphics graphics, int x, int y, int width, Component label, Component value) {
+        graphics.drawString(this.font, label, x, y, 0xB0B0B0, false);
+        y += this.font.lineHeight + 2;
+        for (var line : this.font.split(value, width)) {
+            graphics.drawString(this.font, line, x, y, 0xE0E0E0, false);
+            y += this.font.lineHeight;
+        }
+        return y + 4;
+    }
+
+    private void drawInfoMessage(GuiGraphics graphics, int x, int y, int width, Component message) {
+        for (var line : this.font.split(message, width)) {
+            graphics.drawString(this.font, line, x, y, 0xC0C0C0, false);
+            y += this.font.lineHeight;
         }
     }
 
@@ -236,7 +312,12 @@ public class PmxModelSelectScreen extends Screen {
 
         @Override
         protected int getScrollbarPosition() {
-            return this.width - 6;
+            return this.getRight() - 6;
+        }
+
+        @Override
+        public int getRowWidth() {
+            return Math.max(100, this.width - 12);
         }
 
         @Override

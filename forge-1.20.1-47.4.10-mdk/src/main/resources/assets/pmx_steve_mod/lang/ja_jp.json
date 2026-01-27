@@ -1,16 +1,15 @@
-{
+﻿{
   "pmx.button.open_folder": "PMXフォルダを開く",
-  "pmx.button.rescan": "再スキャン",
-  "pmx.button.select_model": "モデル選択",
-  "pmx.button.toggle": "PMX表示: %s",
-  "pmx.screen.control.folder": "PMXフォルダ: %s",
-  "pmx.screen.control.hint_close": "キーまたはEscで閉じる",
-  "pmx.screen.control.selected": "選択中: %s",
-  "pmx.screen.control.title": "PMXコントロール",
-  "pmx.screen.select_model.disable": "<PMXを使用しない>",
+  "pmx.screen.select_model.disable": "<PMX使用しない>",
   "pmx.screen.select_model.folder": "PMXフォルダ: %s",
   "pmx.screen.select_model.title": "PMXモデル選択",
-  "pmx.state.none": "<なし>",
-  "pmx.state.off": "OFF",
-  "pmx.state.on": "ON"
+  "pmx.info.header": "モデル情報",
+  "pmx.info.file": "ファイル",
+  "pmx.info.name": "名前",
+  "pmx.info.name_en": "名前(英語)",
+  "pmx.info.comment": "コメント",
+  "pmx.info.comment_en": "コメント(英語)",
+  "pmx.info.disabled": "PMXが無効です。",
+  "pmx.info.none": "モデル情報がありません。",
+  "pmx.info.empty": "<空>"
 }
