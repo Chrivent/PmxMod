@@ -1,28 +1,72 @@
 package net.Chivent.pmxSteveMod.viewer;
 
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.SubmeshInfo;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.mojang.blaze3d.shaders.Uniform;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PmxRenderer {
 
+    // -------------------------
+    // texture cache (renderer-owned)
+    // -------------------------
+    private static final class TextureEntry {
+        final ResourceLocation rl;
+        final boolean hasAlpha;
+        TextureEntry(ResourceLocation rl, boolean hasAlpha) {
+            this.rl = rl;
+            this.hasAlpha = hasAlpha;
+        }
+    }
+
+    private final Map<String, TextureEntry> textureCache = new HashMap<>();
+    private ResourceLocation magentaTex = null;
+
+    // material gpu cache: materialId -> resolved/baked bindings
+    // NOTE: 원본(OpenGL) 매핑을 따름
+    //   tex unit 0 = main
+    //   tex unit 1 = sphere
+    //   tex unit 2 = toon
+    private static final class MaterialGpu {
+        int texMode;        // 0 none, 1 rgb, 2 rgba
+        int toonMode;       // 0 none, 1 on
+        int sphereMode;     // 0 none, 1 mul, 2 add
+
+        boolean mainHasAlpha;
+
+        ResourceLocation mainTex;
+        ResourceLocation sphereTex;
+        ResourceLocation toonTex;
+    }
+
+    private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
+
+    // -------------------------
+    // uniform helpers
+    // -------------------------
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
@@ -44,6 +88,9 @@ public class PmxRenderer {
         if (u != null) u.set(v);
     }
 
+    // -------------------------
+    // public entry
+    // -------------------------
     public void renderPlayer(PmxViewer viewer,
                              AbstractClientPlayer player,
                              PlayerRenderer vanillaRenderer,
@@ -54,6 +101,7 @@ public class PmxRenderer {
         if (!viewer.isReady() || viewer.handle() == 0L) return;
         if (viewer.idxBuf() == null || viewer.posBuf() == null || viewer.nrmBuf() == null || viewer.uvBuf() == null) return;
 
+        // 렌더 직전 CPU buffer 동기화 (원본은 GPU 업데이트지만, 현재 구조 유지)
         viewer.syncCpuBuffersForRender();
 
         poseStack.pushPose();
@@ -71,30 +119,16 @@ public class PmxRenderer {
         SubmeshInfo[] subs = viewer.submeshes();
         if (subs == null) { poseStack.popPose(); return; }
 
-        // 원본처럼: 알파 기준으로 pass 분리(단, 여기서는 정렬은 안 함)
-        List<Integer> opaquePass = new ArrayList<>();
-        List<Integer> translucentPass = new ArrayList<>();
-
-        for (int s = 0; s < subs.length; s++) {
-            MaterialInfo mat = viewer.material(subs[s].materialId());
-            if (mat == null) continue;
-
-            float a = mat.alpha();
-            if (a < 0.999f) translucentPass.add(s);
-            else opaquePass.add(s);
-        }
-
+        // ---- 원본(OpenGL) 느낌: 단일 패스 + 항상 blend ON + depthMask true ----
         RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(true);
-        RenderSystem.disableBlend();
+        RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-        for (int s : opaquePass) {
-            drawSubmesh(viewer, s, false, pose, packedLight, elemSize, indexCount, vtxCount);
-        }
-        for (int s : translucentPass) {
-            drawSubmesh(viewer, s, true, pose, packedLight, elemSize, indexCount, vtxCount);
+        for (int s = 0; s < subs.length; s++) {
+            drawSubmesh(viewer, s, pose, packedLight, elemSize, indexCount, vtxCount);
         }
 
         RenderSystem.depthMask(true);
@@ -103,13 +137,13 @@ public class PmxRenderer {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         poseStack.popPose();
-
-        // Edge / GroundShadow 패스는 shader/파이프라인 준비되면 여기서 원본처럼 추가하면 됨
     }
 
+    // -------------------------
+    // draw (single-pass, like original)
+    // -------------------------
     private void drawSubmesh(PmxViewer viewer,
                              int s,
-                             boolean forceTranslucentPass,
                              Matrix4f pose,
                              int packedLight,
                              int elemSize,
@@ -128,11 +162,10 @@ public class PmxRenderer {
         count -= (count % 3);
         if (count <= 0) return;
 
-        // alpha 0이면 스킵(원본: mat.m_diffuse.a == 0)
         float alpha = mat.alpha();
         if (alpha <= 0.0f) return;
 
-        boolean translucent = forceTranslucentPass || (alpha < 0.999f);
+        MaterialGpu gpu = getOrBuildMaterialGpu(viewer, sm.materialId(), mat);
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
@@ -146,11 +179,11 @@ public class PmxRenderer {
         setMat4(sh, "u_WV", wv);
         setMat4(sh, "u_WVP", wvp);
 
-        // 원본과 동일한 라이트 기본값
+        // light defaults (원본에서도 기본값)
         set3f(sh, "u_LightColor", 1f, 1f, 1f);
         set3f(sh, "u_LightDir", 0.2f, 1.0f, 0.2f);
 
-        // material uniforms (원본 그대로)
+        // material uniforms
         set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
 
         int rgba = mat.diffuseRGBA();
@@ -163,44 +196,36 @@ public class PmxRenderer {
         set1f(sh, "u_SpecularPower", mat.specularPower());
         set1f(sh, "u_Alpha", alpha);
 
-        // --- texture binding (원본: unit0 main, unit1 sphere, unit2 toon)
-        // 너 shader json/frag 기준은 Sampler0=main, Sampler1=toon, Sampler2=sphere
-        ResourceLocation mainTex   = (mat.mainTex()   != null) ? mat.mainTex()   : viewer.magentaTex();
-        ResourceLocation toonTex   = (mat.toonTex()   != null) ? mat.toonTex()   : viewer.magentaTex();
-        ResourceLocation sphereTex = (mat.sphereTex() != null) ? mat.sphereTex() : viewer.magentaTex();
+        // ---- texture binding (원본과 동일): 0=main, 1=sphere, 2=toon ----
+        RenderSystem.setShaderTexture(0, gpu.mainTex);
+        RenderSystem.setShaderTexture(1, gpu.sphereTex);
+        RenderSystem.setShaderTexture(2, gpu.toonTex);
 
-        RenderSystem.setShaderTexture(0, mainTex);   // Sampler0
-        RenderSystem.setShaderTexture(1, toonTex);   // Sampler1
-        RenderSystem.setShaderTexture(2, sphereTex); // Sampler2
-
-        set1i(sh, "u_TexMode", mat.texMode());
+        // main tex factors
+        set1i(sh, "u_TexMode", gpu.texMode);
         float[] tm = mat.texMul();
         float[] ta = mat.texAdd();
         set4f(sh, "u_TexMulFactor", tm[0], tm[1], tm[2], tm[3]);
         set4f(sh, "u_TexAddFactor", ta[0], ta[1], ta[2], ta[3]);
 
-        set1i(sh, "u_ToonTexMode", mat.toonTexMode());
-        float[] toonMul = mat.toonMul();
-        float[] toonAdd = mat.toonAdd();
-        set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
-        set4f(sh, "u_ToonTexAddFactor", toonAdd[0], toonAdd[1], toonAdd[2], toonAdd[3]);
-
-        set1i(sh, "u_SphereTexMode", mat.sphereTexMode());
+        // sphere factors
+        set1i(sh, "u_SphereTexMode", gpu.sphereMode);
         float[] spMul = mat.sphereMul();
         float[] spAdd = mat.sphereAdd();
         set4f(sh, "u_SphereTexMulFactor", spMul[0], spMul[1], spMul[2], spMul[3]);
         set4f(sh, "u_SphereTexAddFactor", spAdd[0], spAdd[1], spAdd[2], spAdd[3]);
 
-        RenderSystem.enableDepthTest();
+        // toon factors
+        set1i(sh, "u_ToonTexMode", gpu.toonMode);
+        float[] toonMul = mat.toonMul();
+        float[] toonAdd = mat.toonAdd();
+        set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
+        set4f(sh, "u_ToonTexAddFactor", toonAdd[0], toonAdd[1], toonAdd[2], toonAdd[3]);
 
-        if (translucent) {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.depthMask(false);
-        } else {
-            RenderSystem.disableBlend();
-            RenderSystem.depthMask(true);
-        }
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
 
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
@@ -229,8 +254,8 @@ public class PmxRenderer {
 
         BufferUploader.drawWithShader(bb.end());
 
-        RenderSystem.depthMask(true);
-        RenderSystem.disableBlend();
+        // 원본은 상태를 유지한 채 다음 submesh로 넘어가지만,
+        // MC 파이프라인 안전을 위해 최소한의 복구
         RenderSystem.enableCull();
     }
 
@@ -252,6 +277,9 @@ public class PmxRenderer {
         int ub = vi * 8;
         float u = uvBuf.getFloat(ub);
         float v = uvBuf.getFloat(ub + 4);
+
+        // 원본 Model.cpp에서 이미 v = 1 - v를 적용했을 가능성이 높음.
+        // viewer.flipV()를 false로 두면 여기서 추가 뒤집기 없음.
         if (viewer.flipV()) v = 1.0f - v;
 
         bb.vertex(x, y, z)
@@ -272,5 +300,121 @@ public class PmxRenderer {
             case 4 -> buf.getInt(bytePos);
             default -> -1;
         };
+    }
+
+    // -------------------------
+    // material gpu build/cache (original mapping)
+    // -------------------------
+    private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
+        MaterialGpu cached = materialGpuCache.get(materialId);
+        if (cached != null) return cached;
+
+        MaterialGpu gpu = new MaterialGpu();
+
+        // main (unit0)
+        TextureEntry main = getOrLoadTextureEntry(viewer, mat.mainTexPath());
+        if (main != null && main.rl != null) {
+            gpu.mainTex = main.rl;
+            gpu.mainHasAlpha = main.hasAlpha;
+            gpu.texMode = main.hasAlpha ? 2 : 1;
+        } else {
+            gpu.mainTex = ensureMagentaTexture();
+            gpu.mainHasAlpha = false;
+            gpu.texMode = 0;
+        }
+
+        // sphere (unit1)
+        TextureEntry sphere = getOrLoadTextureEntry(viewer, mat.sphereTexPath());
+        if (sphere != null && sphere.rl != null) {
+            gpu.sphereTex = sphere.rl;
+            gpu.sphereMode = mat.sphereMode(); // 0/1/2
+        } else {
+            gpu.sphereTex = ensureMagentaTexture();
+            gpu.sphereMode = 0;
+        }
+
+        // toon (unit2)
+        TextureEntry toon = getOrLoadTextureEntry(viewer, mat.toonTexPath());
+        if (toon != null && toon.rl != null) {
+            gpu.toonTex = toon.rl;
+            gpu.toonMode = 1;
+        } else {
+            gpu.toonTex = ensureMagentaTexture();
+            gpu.toonMode = 0;
+        }
+
+        materialGpuCache.put(materialId, gpu);
+        return gpu;
+    }
+
+    // -------------------------
+    // texture load / resolve
+    // -------------------------
+    private ResourceLocation ensureMagentaTexture() {
+        if (magentaTex != null) return magentaTex;
+        try {
+            NativeImage img = new NativeImage(1, 1, false);
+            img.setPixelRGBA(0, 0, 0xFFFF00FF);
+            DynamicTexture dt = new DynamicTexture(img);
+            TextureManager tm = Minecraft.getInstance().getTextureManager();
+            magentaTex = tm.register("pmx/magenta", dt);
+            return magentaTex;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private TextureEntry getOrLoadTextureEntry(PmxViewer viewer, String texPath) {
+        if (texPath == null || texPath.isEmpty()) return null;
+
+        Path resolved = resolveTexturePath(viewer, texPath);
+        if (resolved == null) return null;
+
+        String key = resolved.toString();
+        TextureEntry cached = textureCache.get(key);
+        if (cached != null) return cached;
+
+        try (InputStream in = Files.newInputStream(resolved)) {
+            NativeImage img = NativeImage.read(in);
+            boolean hasAlpha = imageHasAnyAlpha(img);
+
+            DynamicTexture dt = new DynamicTexture(img);
+            TextureManager tm = Minecraft.getInstance().getTextureManager();
+            String id = "pmx/" + Integer.toHexString(key.hashCode());
+            ResourceLocation rl = tm.register(id, dt);
+
+            TextureEntry e = new TextureEntry(rl, hasAlpha);
+            textureCache.put(key, e);
+            return e;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static Path resolveTexturePath(PmxViewer viewer, String texPath) {
+        try {
+            Path p = Paths.get(texPath);
+            if (p.isAbsolute()) return p.normalize();
+            Path base = viewer.pmxBaseDir();
+            if (base != null) return base.resolve(p).normalize();
+            return p.normalize();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static boolean imageHasAnyAlpha(NativeImage img) {
+        try {
+            int w = img.getWidth();
+            int h = img.getHeight();
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    int rgba = img.getPixelRGBA(x, y);
+                    int a = (rgba >>> 24) & 0xFF;
+                    if (a != 0xFF) return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
     }
 }

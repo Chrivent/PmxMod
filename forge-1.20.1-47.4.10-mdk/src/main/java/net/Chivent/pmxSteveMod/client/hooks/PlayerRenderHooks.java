@@ -13,10 +13,10 @@ public final class PlayerRenderHooks {
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        event.setCanceled(true);
-
         PmxViewer viewer = PmxViewer.get();
         if (!viewer.isReady()) return;
+
+        event.setCanceled(true);
 
         viewer.renderer().renderPlayer(
                 viewer,

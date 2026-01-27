@@ -1,27 +1,20 @@
 package net.Chivent.pmxSteveMod.viewer;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 public class PmxViewer {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final PmxViewer INSTANCE = new PmxViewer();
+    private final PmxRenderer renderer = new PmxRenderer();
     public static PmxViewer get() { return INSTANCE; }
+    public PmxRenderer renderer() { return renderer; }
 
     private long handle = 0L;
     private boolean ready = false;
@@ -36,18 +29,6 @@ public class PmxViewer {
 
     private Path pmxBaseDir = null;
 
-    private static final class TextureEntry {
-        final ResourceLocation rl;
-        final boolean hasAlpha;
-        TextureEntry(ResourceLocation rl, boolean hasAlpha) {
-            this.rl = rl;
-            this.hasAlpha = hasAlpha;
-        }
-    }
-
-    private final Map<String, TextureEntry> textureCache = new HashMap<>();
-    private ResourceLocation magentaTex = null;
-
     private SubmeshInfo[] submeshes;
     private MaterialInfo[] materials;
 
@@ -55,7 +36,6 @@ public class PmxViewer {
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
 
-    private final PmxRenderer renderer = new PmxRenderer();
     private static final boolean FLIP_V = true;
 
     private PmxViewer() {}
@@ -71,11 +51,13 @@ public class PmxViewer {
     public boolean flipV() { return FLIP_V; }
 
     public SubmeshInfo[] submeshes() { return submeshes; }
+
     public MaterialInfo material(int id) {
         if (materials == null || id < 0 || id >= materials.length) return null;
         return materials[id];
     }
-    public ResourceLocation magentaTex() { return magentaTex; }
+
+    public Path pmxBaseDir() { return pmxBaseDir; }
 
     public void init() {
         try {
@@ -94,10 +76,8 @@ public class PmxViewer {
             allocateCpuBuffers();
             copyOnce();
 
-            ensureMagentaTexture();
-
-            buildMaterials();      // ★ 추가
-            buildSubmeshInfos();   // materialId만 들고 있도록
+            buildMaterials();
+            buildSubmeshInfos();
 
             ready = true;
         } catch (Throwable t) {
@@ -175,80 +155,64 @@ public class PmxViewer {
             float alpha     = PmxNative.nativeGetMaterialAlpha(handle, m);
 
             // vec3
-            final int m1 = m;
-            float[] ambient  = readVec3((dst) -> PmxNative.nativeGetMaterialAmbient(handle, m1, dst));
-            float[] specular = readVec3((dst) -> PmxNative.nativeGetMaterialSpecular(handle, m1, dst));
+            final int mm1 = m;
+            float[] ambient  = readVec3(dst -> PmxNative.nativeGetMaterialAmbient(handle, mm1, dst));
+            float[] specular = readVec3(dst -> PmxNative.nativeGetMaterialSpecular(handle, mm1, dst));
 
             float specPow = PmxNative.nativeGetMaterialSpecularPower(handle, m);
             boolean bothFace = PmxNative.nativeGetMaterialBothFaceByMaterial(handle, m);
 
-            // textures
-            String mainPath  = PmxNative.nativeGetMaterialTexturePath(handle, m);
-            String toonPath  = PmxNative.nativeGetMaterialToonTexturePath(handle, m);
-            String spherePath= PmxNative.nativeGetMaterialSphereTexturePath(handle, m);
-
-            TextureEntry main   = getOrLoadTextureEntry(mainPath);
-            TextureEntry toon   = getOrLoadTextureEntry(toonPath);
-            TextureEntry sphere = getOrLoadTextureEntry(spherePath);
+            // texture paths (resolve to absolute if possible)
+            String mainPath   = resolveTexturePathString(PmxNative.nativeGetMaterialTexturePath(handle, m));
+            String toonPath   = resolveTexturePathString(PmxNative.nativeGetMaterialToonTexturePath(handle, m));
+            String spherePath = resolveTexturePathString(PmxNative.nativeGetMaterialSphereTexturePath(handle, m));
 
             // factors vec4
-            final int m2 = m;
-            float[] texMul    = readVec4(dst -> PmxNative.nativeGetMaterialTexMulFactor(handle, m2, dst));
-            float[] texAdd    = readVec4(dst -> PmxNative.nativeGetMaterialTexAddFactor(handle, m2, dst));
-            float[] toonMul   = readVec4(dst -> PmxNative.nativeGetMaterialToonMulFactor(handle, m2, dst));
-            float[] toonAdd   = readVec4(dst -> PmxNative.nativeGetMaterialToonAddFactor(handle, m2, dst));
-            float[] sphereMul = readVec4(dst -> PmxNative.nativeGetMaterialSphereMulFactor(handle, m2, dst));
-            float[] sphereAdd = readVec4(dst -> PmxNative.nativeGetMaterialSphereAddFactor(handle, m2, dst));
+            final int mm2 = m;
+            float[] texMul    = readVec4(dst -> PmxNative.nativeGetMaterialTexMulFactor(handle, mm2, dst));
+            float[] texAdd    = readVec4(dst -> PmxNative.nativeGetMaterialTexAddFactor(handle, mm2, dst));
+            float[] toonMul   = readVec4(dst -> PmxNative.nativeGetMaterialToonMulFactor(handle, mm2, dst));
+            float[] toonAdd   = readVec4(dst -> PmxNative.nativeGetMaterialToonAddFactor(handle, mm2, dst));
+            float[] sphereMul = readVec4(dst -> PmxNative.nativeGetMaterialSphereMulFactor(handle, mm2, dst));
+            float[] sphereAdd = readVec4(dst -> PmxNative.nativeGetMaterialSphereAddFactor(handle, mm2, dst));
 
-            int sphereMode = PmxNative.nativeGetMaterialSphereMode(handle, m); // 0/1/2
+            int sphereMode = PmxNative.nativeGetMaterialSphereMode(handle, m); // 0 none, 1 mul, 2 add
 
-            // edge/shadow (너가 추가한 6개)
+            // edge/shadow (추가한 6개)
             int edgeFlag = PmxNative.nativeGetMaterialEdgeFlag(handle, m);
             float edgeSize = PmxNative.nativeGetMaterialEdgeSize(handle, m);
-            final int m3 = m;
-            float[] edgeColor = readVec4((dst) -> PmxNative.nativeGetMaterialEdgeColor(handle, m3, dst));
+            final int mm3 = m;
+            float[] edgeColor = readVec4(dst -> PmxNative.nativeGetMaterialEdgeColor(handle, mm3, dst));
 
-            boolean groundShadow = PmxNative.nativeGetMaterialGroundShadow(handle, m);
-            boolean shadowCaster = PmxNative.nativeGetMaterialShadowCaster(handle, m);
+            boolean groundShadow   = PmxNative.nativeGetMaterialGroundShadow(handle, m);
+            boolean shadowCaster   = PmxNative.nativeGetMaterialShadowCaster(handle, m);
             boolean shadowReceiver = PmxNative.nativeGetMaterialShadowReceiver(handle, m);
-
-            // 원본 로직: mainTex 있으면 texMode=1(no alpha) or 2(has alpha), 없으면 0
-            int texMode;
-            ResourceLocation mainRL = ensureMagentaTexture();
-            boolean mainHasAlpha = false;
-            boolean hasMainTex = (mainPath != null && !mainPath.isEmpty() && main != null && main.rl != null);
-            if (hasMainTex) {
-                mainRL = main.rl;
-                mainHasAlpha = main.hasAlpha;
-                texMode = mainHasAlpha ? 2 : 1;
-            } else {
-                texMode = 0;
-            }
-
-            int toonMode = (toonPath != null && !toonPath.isEmpty() && toon != null && toon.rl != null) ? 1 : 0;
-            ResourceLocation toonRL = (toonMode != 0) ? toon.rl : ensureMagentaTexture();
-
-            int spMode = (spherePath != null && !spherePath.isEmpty() && sphere != null && sphere.rl != null) ? sphereMode : 0;
-            ResourceLocation sphereRL = (spMode != 0) ? sphere.rl : ensureMagentaTexture();
 
             materials[m] = new MaterialInfo(
                     diffuseRGBA, alpha,
+
                     ambient[0], ambient[1], ambient[2],
                     specular[0], specular[1], specular[2],
                     specPow,
                     bothFace,
 
-                    texMode, mainRL,
+                    mainPath,
                     texMul, texAdd,
 
-                    toonMode, toonRL,
+                    toonPath,
                     toonMul, toonAdd,
 
-                    spMode, sphereRL,
+                    spherePath,
+                    sphereMode,
                     sphereMul, sphereAdd,
 
-                    edgeFlag != 0, edgeSize, edgeColor,
-                    groundShadow, shadowCaster, shadowReceiver
+                    edgeFlag != 0,
+                    edgeSize,
+                    edgeColor,
+
+                    groundShadow,
+                    shadowCaster,
+                    shadowReceiver
             );
         }
     }
@@ -262,6 +226,7 @@ public class PmxViewer {
         tmp3f.rewind();
         return new float[]{ tmp3f.getFloat(), tmp3f.getFloat(), tmp3f.getFloat() };
     }
+
     private float[] readVec4(VecWriter4 w) {
         tmp4f.clear();
         w.write(tmp4f);
@@ -269,77 +234,21 @@ public class PmxViewer {
         return new float[]{ tmp4f.getFloat(), tmp4f.getFloat(), tmp4f.getFloat(), tmp4f.getFloat() };
     }
 
-    private ResourceLocation ensureMagentaTexture() {
-        if (magentaTex != null) return magentaTex;
-        try {
-            NativeImage img = new NativeImage(1, 1, false);
-            img.setPixelRGBA(0, 0, 0xFFFF00FF);
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            magentaTex = tm.register("pmx/magenta", dt);
-            return magentaTex;
-        } catch (Throwable t) {
-            LOGGER.error("[PMX] failed to create magenta texture", t);
-            return null;
-        }
-    }
-
-    private TextureEntry getOrLoadTextureEntry(String texPath) {
+    /**
+     * PMX 내부 텍스처 경로(상대/절대)를 가능한 한 절대경로로 정규화해서 문자열로 반환.
+     * 실패하거나 입력이 비었으면 null 반환.
+     */
+    private String resolveTexturePathString(String texPath) {
         if (texPath == null || texPath.isEmpty()) return null;
-        Path resolved = resolveTexturePath(texPath);
-        if (resolved == null) return null;
-
-        String key = resolved.toString();
-        TextureEntry cached = textureCache.get(key);
-        if (cached != null) return cached;
-
-        try (InputStream in = Files.newInputStream(resolved)) {
-            NativeImage img = NativeImage.read(in);
-            boolean hasAlpha = imageHasAnyAlpha(img);
-
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            String id = "pmx/" + Integer.toHexString(key.hashCode());
-            ResourceLocation rl = tm.register(id, dt);
-
-            TextureEntry e = new TextureEntry(rl, hasAlpha);
-            textureCache.put(key, e);
-            return e;
-        } catch (Throwable t) {
-            LOGGER.warn("[PMX] texture load failed: {}", key, t);
-            return null;
-        }
-    }
-
-    private static boolean imageHasAnyAlpha(NativeImage img) {
-        // 빠른 early-out 스캔: 알파가 255가 아닌 픽셀이 하나라도 있으면 true
-        try {
-            int w = img.getWidth();
-            int h = img.getHeight();
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    int rgba = img.getPixelRGBA(x, y);
-                    int a = (rgba >>> 24) & 0xFF; // NativeImage는 보통 ABGR이지만,
-                    // 여기서는 "알파 채널 존재/사용 여부"만 보고 싶어서 상위 바이트만 검사 (대부분 맞음)
-                    if (a != 0xFF) return true;
-                }
-            }
-        } catch (Throwable ignored) {}
-        return false;
-    }
-
-    private Path resolveTexturePath(String texPath) {
         try {
             Path p = Paths.get(texPath);
-            if (p.isAbsolute()) return p.normalize();
-            if (pmxBaseDir != null) return pmxBaseDir.resolve(p).normalize();
-            return p.normalize();
+            if (p.isAbsolute()) return p.normalize().toString();
+            if (pmxBaseDir != null) return pmxBaseDir.resolve(p).normalize().toString();
+            return p.normalize().toString();
         } catch (Throwable ignored) {
             return null;
         }
     }
-
-    public PmxRenderer renderer() { return renderer; }
 
     public record SubmeshInfo(
             int beginIndex,
@@ -356,20 +265,15 @@ public class PmxViewer {
             float specularPower,
             boolean bothFace,
 
-            int texMode,
-            ResourceLocation mainTex,
-            float[] texMul,
-            float[] texAdd,
+            String mainTexPath,
+            float[] texMul, float[] texAdd,
 
-            int toonTexMode,
-            ResourceLocation toonTex,
-            float[] toonMul,
-            float[] toonAdd,
+            String toonTexPath,
+            float[] toonMul, float[] toonAdd,
 
-            int sphereTexMode,
-            ResourceLocation sphereTex,
-            float[] sphereMul,
-            float[] sphereAdd,
+            String sphereTexPath,
+            int sphereMode,               // 0 none, 1 mul, 2 add
+            float[] sphereMul, float[] sphereAdd,
 
             boolean edgeFlag,
             float edgeSize,
