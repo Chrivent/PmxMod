@@ -1,6 +1,9 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
@@ -33,14 +36,24 @@ public class PmxModelSelectScreen extends Screen {
         addWidget(list);
         reloadList();
 
+        addRenderableWidget(Button.builder(Component.literal("Open PMX Folder"), b -> {
+            if (modelDir != null) {
+                Util.getPlatform().openFile(modelDir.toFile());
+            }
+        }).bounds(this.width / 2 - 155, this.height - 32, 150, 20).build());
+        addRenderableWidget(Button.builder(toggleLabel(), b -> {
+            PmxViewer viewer = PmxViewer.get();
+            viewer.setPmxVisible(!viewer.isPmxVisible());
+            b.setMessage(toggleLabel());
+        }).bounds(this.width / 2 + 5, this.height - 32, 150, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Rescan"), b -> reloadList())
-                .bounds(this.width / 2 - 155, this.height - 32, 150, 20)
+                .bounds(this.width / 2 - 155, this.height - 56, 150, 20)
                 .build());
         addRenderableWidget(Button.builder(Component.literal("Back"), b -> {
             if (this.minecraft != null) {
                 this.minecraft.setScreen(parent);
             }
-        }).bounds(this.width / 2 + 5, this.height - 32, 150, 20).build());
+        }).bounds(this.width / 2 + 5, this.height - 56, 150, 20).build());
     }
 
     private void reloadList() {
@@ -56,9 +69,20 @@ public class PmxModelSelectScreen extends Screen {
         if (modelDir != null) {
             graphics.drawString(this.font,
                     Component.literal("PMX folder: " + modelDir),
-                    10, this.height - 56, 0xA0A0A0, false);
+                    10, this.height - 80, 0xA0A0A0, false);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (PmxKeyMappings.OPEN_MENU.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(parent);
+            }
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     private static List<Path> listPmxFiles(Path dir) {
@@ -72,6 +96,11 @@ public class PmxModelSelectScreen extends Screen {
             return results;
         }
         return results;
+    }
+
+    private Component toggleLabel() {
+        String state = PmxViewer.get().isPmxVisible() ? "Show PMX: ON" : "Show PMX: OFF";
+        return Component.literal(state);
     }
 
     private static final class PmxModelList extends AbstractSelectionList<PmxModelList.PmxModelEntry> {

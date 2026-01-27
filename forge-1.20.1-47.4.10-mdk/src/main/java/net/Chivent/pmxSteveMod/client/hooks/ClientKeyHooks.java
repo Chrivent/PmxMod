@@ -1,7 +1,7 @@
 package net.Chivent.pmxSteveMod.client.hooks;
 
 import net.Chivent.pmxSteveMod.PmxSteveMod;
-import net.Chivent.pmxSteveMod.client.gui.PmxControlScreen;
+import net.Chivent.pmxSteveMod.client.gui.PmxModelSelectScreen;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,7 +23,7 @@ public final class ClientKeyHooks {
             return;
         while (PmxKeyMappings.OPEN_MENU.consumeClick()) {
             Screen parent = mc.screen;
-            mc.setScreen(new PmxControlScreen(parent));
+            mc.setScreen(new PmxModelSelectScreen(parent));
         }
     }
 }
