@@ -53,7 +53,7 @@ public class PmxModelSelectScreen extends Screen {
             if (modelDir != null) {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
-        }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
+        }).bounds(this.width / 2 - 100, rowY, 200, 20).build());
     }
 
     private void reloadList() {
@@ -72,6 +72,15 @@ public class PmxModelSelectScreen extends Screen {
                     10, this.height - 56, 0xA0A0A0, false);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(@NotNull GuiGraphics graphics) {
+        if (this.minecraft != null && this.minecraft.level != null) {
+            graphics.fillGradient(0, 0, this.width, this.height, 0x55000000, 0x77000000);
+        } else {
+            this.renderDirtBackground(graphics);
+        }
     }
 
     @Override
