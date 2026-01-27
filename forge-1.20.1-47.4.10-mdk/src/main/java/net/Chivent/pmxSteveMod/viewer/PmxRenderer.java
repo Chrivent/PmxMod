@@ -286,7 +286,6 @@ public class PmxRenderer {
         int maxCount = Math.max(0, mesh.indexCount - begin);
         if (count > maxCount) count = maxCount;
 
-        // triangles only
         count -= (count % 3);
         if (count <= 0) return;
 
