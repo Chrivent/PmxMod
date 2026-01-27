@@ -78,11 +78,6 @@ public class PmxModelSelectScreen extends Screen {
         renderInfoPanel(graphics);
         list.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
-        if (modelDir != null) {
-            graphics.drawString(this.font,
-                    Component.translatable("pmx.screen.select_model.folder", modelDir),
-                    10, this.height - 56, 0xA0A0A0, false);
-        }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
