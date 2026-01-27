@@ -1,16 +1,24 @@
 package net.Chivent.pmxSteveMod.viewer;
 
 import com.mojang.logging.LogUtils;
+import net.Chivent.pmxSteveMod.PmxSteveMod;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
+import java.io.InputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public class PmxInstance {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static Path cachedToonDir;
 
     private long handle = 0L;
     private boolean ready = false;
@@ -54,9 +62,10 @@ public class PmxInstance {
         try {
             handle = PmxNative.nativeCreate();
 
-            String dataDir = "C:/Users/Ha Yechan/Desktop/PmxMod/resource/mmd";
             String pmxPath = "D:/예찬/MMD/model/Booth/Chrivent Elf/Chrivent Elf.pmx";
             pmxBaseDir = Paths.get(pmxPath).getParent();
+            Path dataDirPath = ensureToonDir();
+            String dataDir = dataDirPath != null ? dataDirPath.toString() : "";
 
             boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
             if (!ok) { ready = false; return; }
@@ -247,6 +256,34 @@ public class PmxInstance {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static Path ensureToonDir() {
+        if (cachedToonDir != null) return cachedToonDir;
+        Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "toon");
+        try {
+            Files.createDirectories(outDir);
+        } catch (IOException e) {
+            LOGGER.warn("[PMX] failed to create toon cache dir", e);
+            return null;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        for (int i = 1; i <= 10; i++) {
+            String name = String.format("toon%02d.bmp", i);
+            Path outFile = outDir.resolve(name);
+            if (Files.exists(outFile)) continue;
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+                    PmxSteveMod.MOD_ID,
+                    "textures/pmx/" + name
+            );
+            try (InputStream in = mc.getResourceManager().getResource(id).orElseThrow().open()) {
+                Files.copy(in, outFile, StandardCopyOption.REPLACE_EXISTING);
+            } catch (Throwable t) {
+                LOGGER.warn("[PMX] missing builtin toon {}", name, t);
+            }
+        }
+        cachedToonDir = outDir;
+        return cachedToonDir;
     }
 
     public record SubmeshInfo(
