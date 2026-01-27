@@ -436,7 +436,7 @@ extern "C" {
         if (!rt || !rt->model) return 0;
         const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
         if (!mat) return 0;
-        return (jint)mat->m_edgeFlag;
+        return mat->m_edgeFlag;
     }
 
     JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeSize(
