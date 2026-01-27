@@ -109,6 +109,30 @@ public class PmxModelSelectScreen extends Screen {
             for (Path p : models) {
                 addEntry(new PmxModelEntry(screen, p));
             }
+            updateSelectedFromViewer();
+        }
+
+        private void updateSelectedFromViewer() {
+            PmxViewer viewer = PmxViewer.get();
+            if (!viewer.isPmxVisible()) {
+                for (int i = 0; i < this.children().size(); i++) {
+                    if (this.children().get(i) instanceof PmxNoneEntry) {
+                        setSelected(this.children().get(i));
+                        break;
+                    }
+                }
+                return;
+            }
+            Path selected = viewer.getSelectedModelPath();
+            if (selected == null) return;
+            for (int i = 0; i < this.children().size(); i++) {
+                if (this.children().get(i) instanceof PmxModelEntry entry) {
+                    if (selected.equals(entry.modelPath)) {
+                        setSelected(entry);
+                        break;
+                    }
+                }
+            }
         }
 
         @Override
@@ -145,8 +169,8 @@ public class PmxModelSelectScreen extends Screen {
                 viewer.setSelectedModelPath(modelPath);
                 viewer.setPmxVisible(true);
                 viewer.reloadSelectedModel();
-                if (screen.minecraft != null) {
-                    screen.minecraft.setScreen(screen.parent);
+                if (screen.list != null) {
+                    screen.list.setSelected(this);
                 }
                 return true;
             }
@@ -169,8 +193,8 @@ public class PmxModelSelectScreen extends Screen {
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 PmxViewer viewer = PmxViewer.get();
                 viewer.setPmxVisible(false);
-                if (screen.minecraft != null) {
-                    screen.minecraft.setScreen(screen.parent);
+                if (screen.list != null) {
+                    screen.list.setSelected(this);
                 }
                 return true;
             }
