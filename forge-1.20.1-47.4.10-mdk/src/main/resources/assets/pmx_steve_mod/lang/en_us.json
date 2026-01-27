@@ -1,0 +1,16 @@
+{
+  "pmx.button.open_folder": "Open PMX Folder",
+  "pmx.button.rescan": "Rescan",
+  "pmx.button.select_model": "Select Model",
+  "pmx.button.toggle": "Show PMX: %s",
+  "pmx.screen.control.folder": "PMX folder: %s",
+  "pmx.screen.control.hint_close": "Press key or Esc to close",
+  "pmx.screen.control.selected": "Selected: %s",
+  "pmx.screen.control.title": "PMX Control",
+  "pmx.screen.select_model.disable": "<Disable PMX>",
+  "pmx.screen.select_model.folder": "PMX folder: %s",
+  "pmx.screen.select_model.title": "Select PMX Model",
+  "pmx.state.none": "<none>",
+  "pmx.state.off": "OFF",
+  "pmx.state.on": "ON"
+}

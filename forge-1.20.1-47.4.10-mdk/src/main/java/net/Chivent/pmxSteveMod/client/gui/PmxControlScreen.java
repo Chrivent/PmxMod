@@ -17,7 +17,7 @@ public class PmxControlScreen extends Screen {
     private Path modelDir;
 
     public PmxControlScreen(Screen parent) {
-        super(Component.literal("PMX Control"));
+        super(Component.translatable("pmx.screen.control.title"));
         this.parent = parent;
     }
 
@@ -28,7 +28,7 @@ public class PmxControlScreen extends Screen {
 
         PmxViewer viewer = PmxViewer.get();
         modelDir = viewer.getUserModelDir();
-        addRenderableWidget(Button.builder(Component.literal("Select Model"), b -> {
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.select_model"), b -> {
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new PmxModelSelectScreen(this));
             }
@@ -40,7 +40,7 @@ public class PmxControlScreen extends Screen {
         }).bounds(centerX - 100, y + 30, 200, 20).build();
         addRenderableWidget(toggleButton);
 
-        addRenderableWidget(Button.builder(Component.literal("Open PMX Folder"), b -> {
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.open_folder"), b -> {
             if (modelDir != null) {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
@@ -48,8 +48,10 @@ public class PmxControlScreen extends Screen {
     }
 
     private Component toggleLabel() {
-        String state = PmxViewer.get().isPmxVisible() ? "ON" : "OFF";
-        return Component.literal("Show PMX: " + state);
+        String state = PmxViewer.get().isPmxVisible()
+                ? Component.translatable("pmx.state.on").getString()
+                : Component.translatable("pmx.state.off").getString();
+        return Component.translatable("pmx.button.toggle", state);
     }
 
     @Override
@@ -73,17 +75,18 @@ public class PmxControlScreen extends Screen {
         super.render(graphics, mouseX, mouseY, partialTick);
         PmxViewer viewer = PmxViewer.get();
         Path sel = viewer.getSelectedModelPath();
-        String label = sel != null ? sel.getFileName().toString() : "<none>";
+        String label = sel != null ? sel.getFileName().toString()
+                : Component.translatable("pmx.state.none").getString();
         graphics.drawString(this.font,
-                Component.literal("Selected: " + label),
+                Component.translatable("pmx.screen.control.selected", label),
                 10, 10, 0xFFFFFF, false);
         if (modelDir != null) {
             graphics.drawString(this.font,
-                    Component.literal("PMX folder: " + modelDir),
+                    Component.translatable("pmx.screen.control.folder", modelDir),
                     10, 24, 0xA0A0A0, false);
         }
         graphics.drawString(this.font,
-                Component.literal("Press key or Esc to close"),
+                Component.translatable("pmx.screen.control.hint_close"),
                 10, 38, 0xA0A0A0, false);
     }
 }

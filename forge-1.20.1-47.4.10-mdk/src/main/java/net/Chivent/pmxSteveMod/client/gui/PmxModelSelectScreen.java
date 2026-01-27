@@ -24,7 +24,7 @@ public class PmxModelSelectScreen extends Screen {
     private Path modelDir;
 
     public PmxModelSelectScreen(Screen parent) {
-        super(Component.literal("Select PMX Model"));
+        super(Component.translatable("pmx.screen.select_model.title"));
         this.parent = parent;
     }
 
@@ -36,19 +36,15 @@ public class PmxModelSelectScreen extends Screen {
         addWidget(list);
         reloadList();
 
-        addRenderableWidget(Button.builder(Component.literal("Open PMX Folder"), b -> {
+        int rowY = this.height - 32;
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.open_folder"), b -> {
             if (modelDir != null) {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
-        }).bounds(this.width / 2 - 155, this.height - 32, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Rescan"), b -> reloadList())
-                .bounds(this.width / 2 - 155, this.height - 56, 150, 20)
+        }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.rescan"), b -> reloadList())
+                .bounds(this.width / 2 + 5, rowY, 150, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.literal("Back"), b -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(parent);
-            }
-        }).bounds(this.width / 2 + 5, this.height - 56, 150, 20).build());
     }
 
     private void reloadList() {
@@ -63,8 +59,8 @@ public class PmxModelSelectScreen extends Screen {
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
         if (modelDir != null) {
             graphics.drawString(this.font,
-                    Component.literal("PMX folder: " + modelDir),
-                    10, this.height - 80, 0xA0A0A0, false);
+                    Component.translatable("pmx.screen.select_model.folder", modelDir),
+                    10, this.height - 56, 0xA0A0A0, false);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
@@ -186,7 +182,9 @@ public class PmxModelSelectScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
-                graphics.drawString(screen.font, "<Disable PMX>", x + 6, y + 2, 0xAAAAAA, false);
+                graphics.drawString(screen.font,
+                        Component.translatable("pmx.screen.select_model.disable"),
+                        x + 6, y + 2, 0xAAAAAA, false);
             }
 
             @Override
