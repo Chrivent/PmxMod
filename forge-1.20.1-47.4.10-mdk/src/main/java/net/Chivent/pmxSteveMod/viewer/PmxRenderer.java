@@ -20,6 +20,7 @@ import org.joml.Matrix4f;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,14 +28,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PmxRenderer {
+
     private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private ResourceLocation magentaTex = null;
 
     private static final class MaterialGpu {
-        int texMode;        // 0 none, 1 rgb, 2 rgba
-        int toonMode;       // 0 none, 1 on
-        int sphereMode;     // 0 none, 1 mul, 2 add
+        int texMode;
+        int toonMode;
+        int sphereMode;
 
         boolean mainHasAlpha;
 
@@ -44,6 +46,49 @@ public class PmxRenderer {
     }
 
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
+
+    private int[] decodedIndices = null;
+    private int decodedIndexCount = 0;
+    private int decodedElemSize = 0;
+    private int decodedBufCapacity = 0;
+
+    private void ensureIndexCache(PmxViewer viewer, int elemSize, int indexCount) {
+        ByteBuffer idx = viewer.idxBuf();
+        if (idx == null) {
+            decodedIndices = null;
+            decodedIndexCount = 0;
+            decodedElemSize = 0;
+            decodedBufCapacity = 0;
+            return;
+        }
+
+        if (decodedIndices != null
+                && decodedElemSize == elemSize
+                && decodedIndexCount == indexCount
+                && decodedBufCapacity == idx.capacity()) {
+            return;
+        }
+
+        decodedElemSize = elemSize;
+        decodedIndexCount = indexCount;
+        decodedBufCapacity = idx.capacity();
+
+        decodedIndices = new int[indexCount];
+
+        for (int i = 0; i < indexCount; i++) {
+            int bytePos = i * elemSize;
+            if (bytePos < 0 || bytePos + elemSize > idx.capacity()) {
+                decodedIndices[i] = -1;
+                continue;
+            }
+            decodedIndices[i] = switch (elemSize) {
+                case 1 -> (idx.get(bytePos) & 0xFF);
+                case 2 -> (idx.getShort(bytePos) & 0xFFFF);
+                case 4 -> idx.getInt(bytePos);
+                default -> -1;
+            };
+        }
+    }
 
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
@@ -86,20 +131,33 @@ public class PmxRenderer {
 
         int elemSize   = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(viewer.handle());
         int indexCount = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexCount(viewer.handle());
-        int vtxCount   = viewer.posBuf().capacity() / 12;
+
+        ensureIndexCache(viewer, elemSize, indexCount);
+        if (decodedIndices == null || decodedIndexCount <= 0) {
+            poseStack.popPose();
+            return;
+        }
+
+        FloatBuffer posF = viewer.posBuf().asFloatBuffer();
+        FloatBuffer nrmF = viewer.nrmBuf().asFloatBuffer();
+        FloatBuffer uvF  = viewer.uvBuf().asFloatBuffer();
+        int vtxCount = posF.capacity() / 3;
 
         SubmeshInfo[] subs = viewer.submeshes();
-        if (subs == null) { poseStack.popPose(); return; }
+        if (subs == null) {
+            poseStack.popPose();
+            return;
+        }
 
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.depthMask(true);
-
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-        for (int s = 0; s < subs.length; s++)
-            drawSubmesh(viewer, s, pose, packedLight, elemSize, indexCount, vtxCount);
+        for (int s = 0; s < subs.length; s++) {
+            drawSubmesh(viewer, subs[s], pose, packedLight, indexCount, vtxCount, posF, nrmF, uvF);
+        }
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
@@ -110,13 +168,16 @@ public class PmxRenderer {
     }
 
     private void drawSubmesh(PmxViewer viewer,
-                             int s,
+                             SubmeshInfo sm,
                              Matrix4f pose,
                              int packedLight,
-                             int elemSize,
                              int indexCount,
-                             int vtxCount) {
-        SubmeshInfo sm = viewer.submeshes()[s];
+                             int vtxCount,
+                             FloatBuffer posF,
+                             FloatBuffer nrmF,
+                             FloatBuffer uvF) {
+        if (sm == null) return;
+
         MaterialInfo mat = viewer.material(sm.materialId());
         if (mat == null) return;
 
@@ -195,65 +256,58 @@ public class PmxRenderer {
         BufferBuilder bb = tess.getBuilder();
         bb.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.NEW_ENTITY);
 
-        int triCount = count / 3;
-        for (int t = 0; t < triCount; t++) {
-            int ii0 = begin + t * 3;
-            int ii1 = begin + t * 3 + 1;
-            int ii2 = begin + t * 3 + 2;
+        int end = begin + count;
+        if (begin < 0) begin = 0;
+        if (end > decodedIndexCount) end = decodedIndexCount;
 
-            int i0 = readIndex(viewer.idxBuf(), elemSize, ii0);
-            int i1 = readIndex(viewer.idxBuf(), elemSize, ii1);
-            int i2 = readIndex(viewer.idxBuf(), elemSize, ii2);
+        int usable = end - begin;
+        usable -= (usable % 3);
+        end = begin + usable;
+
+        for (int ii = begin; ii < end; ii += 3) {
+            int i0 = decodedIndices[ii];
+            int i1 = decodedIndices[ii + 1];
+            int i2 = decodedIndices[ii + 2];
 
             if (i0 < 0 || i1 < 0 || i2 < 0) continue;
             if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
 
-            putVertex(viewer, bb, packedLight, i0);
-            putVertex(viewer, bb, packedLight, i1);
-            putVertex(viewer, bb, packedLight, i2);
+            putVertex(bb, packedLight, i0, posF, nrmF, uvF);
+            putVertex(bb, packedLight, i1, posF, nrmF, uvF);
+            putVertex(bb, packedLight, i2, posF, nrmF, uvF);
         }
 
         BufferUploader.drawWithShader(bb.end());
         RenderSystem.enableCull();
     }
 
-    private void putVertex(PmxViewer viewer, BufferBuilder bb, int packedLight, int vi) {
-        ByteBuffer posBuf = viewer.posBuf();
-        ByteBuffer nrmBuf = viewer.nrmBuf();
-        ByteBuffer uvBuf  = viewer.uvBuf();
+    private static void putVertex(BufferBuilder bb,
+                                  int packedLight,
+                                  int vi,
+                                  FloatBuffer posF,
+                                  FloatBuffer nrmF,
+                                  FloatBuffer uvF) {
+        int p = vi * 3;
+        float x = posF.get(p);
+        float y = posF.get(p + 1);
+        float z = posF.get(p + 2);
 
-        int pb = vi * 12;
-        float x = posBuf.getFloat(pb);
-        float y = posBuf.getFloat(pb + 4);
-        float z = posBuf.getFloat(pb + 8);
+        int n = vi * 3;
+        float nx = nrmF.get(n);
+        float ny = nrmF.get(n + 1);
+        float nz = nrmF.get(n + 2);
 
-        int nb = vi * 12;
-        float nx = nrmBuf.getFloat(nb);
-        float ny = nrmBuf.getFloat(nb + 4);
-        float nz = nrmBuf.getFloat(nb + 8);
-
-        int ub = vi * 8;
-        float u = uvBuf.getFloat(ub);
-        float v = uvBuf.getFloat(ub + 4);
+        int u = vi * 2;
+        float uu = uvF.get(u);
+        float vv = uvF.get(u + 1);
 
         bb.vertex(x, y, z)
                 .color(1f, 1f, 1f, 1f)
-                .uv(u, v)
+                .uv(uu, vv)
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(packedLight)
                 .normal(nx, ny, nz)
                 .endVertex();
-    }
-
-    private static int readIndex(ByteBuffer buf, int elemSize, int idx) {
-        int bytePos = idx * elemSize;
-        if (bytePos < 0 || bytePos + elemSize > buf.capacity()) return -1;
-        return switch (elemSize) {
-            case 1 -> (buf.get(bytePos) & 0xFF);
-            case 2 -> (buf.getShort(bytePos) & 0xFFFF);
-            case 4 -> buf.getInt(bytePos);
-            default -> -1;
-        };
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
