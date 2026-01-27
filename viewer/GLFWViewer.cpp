@@ -280,7 +280,7 @@ void GLFWInstance::Draw() const {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (mat.m_diffuse.a == 0)
@@ -333,7 +333,7 @@ void GLFWInstance::Draw() const {
 			glCullFace(GL_BACK);
 		}
 		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& edgeShader = m_viewer->m_edgeShader;
 	glUseProgram(edgeShader->m_prog);
@@ -344,7 +344,7 @@ void GLFWInstance::Draw() const {
 	glBindVertexArray(m_edgeVao);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_edgeFlag)
@@ -354,7 +354,7 @@ void GLFWInstance::Draw() const {
 		glUniform1f(edgeShader->m_uEdgeSize, mat.m_edgeSize);
 		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.m_edgeColor[0]);
 		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& gsShader = m_viewer->m_gsShader;
 	glUseProgram(gsShader->m_prog);
@@ -378,7 +378,7 @@ void GLFWInstance::Draw() const {
 		glDisable(GL_STENCIL_TEST);
 	}
 	glDisable(GL_CULL_FACE);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_groundShadow)
@@ -386,7 +386,7 @@ void GLFWInstance::Draw() const {
 		if (mat.m_diffuse.a == 0.0f)
 			continue;
 		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_vertexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);

@@ -305,7 +305,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m_materials.emplace_back(std::move(m));
 		SubMesh subMesh{};
 		subMesh.m_beginIndex = static_cast<int>(beginIndex);
-		subMesh.m_vertexCount = mat.m_numFaceVertices;
+		subMesh.m_indexCount = mat.m_numFaceVertices;
 		subMesh.m_materialID = static_cast<int>(m_materials.size() - 1);
 		m_subMeshes.push_back(subMesh);
 		beginIndex += mat.m_numFaceVertices;

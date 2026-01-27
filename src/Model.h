@@ -21,7 +21,7 @@ enum class WeightType : uint8_t;
 
 struct SubMesh {
 	int	m_beginIndex;
-	int	m_vertexCount;
+	int	m_indexCount;
 	int	m_materialID;
 };
 

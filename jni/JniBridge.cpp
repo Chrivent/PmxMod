@@ -266,7 +266,7 @@ extern "C" {
         const int si = static_cast<int>(m);
         const auto& sub = rt->model->m_subMeshes;
         if (si < 0 || si >= static_cast<int>(sub.size())) return 0;
-        return sub[si].m_vertexCount;
+        return sub[si].m_indexCount;
     }
 
     JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshMaterialId(
