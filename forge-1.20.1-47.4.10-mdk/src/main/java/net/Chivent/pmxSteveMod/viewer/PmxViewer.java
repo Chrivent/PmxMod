@@ -37,6 +37,8 @@ public class PmxViewer {
 
     private static final boolean FLIP_V = true;
 
+    private boolean indicesCopiedOnce = false;
+
     private PmxViewer() {}
 
     public boolean isReady() { return ready; }
@@ -73,7 +75,9 @@ public class PmxViewer {
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
 
             allocateCpuBuffers();
-            copyOnce();
+
+            copyIndicesOnce();
+            copyDynamicVertices();
 
             buildMaterials();
             buildSubmeshInfos();
@@ -91,6 +95,10 @@ public class PmxViewer {
             handle = 0L;
         }
         ready = false;
+
+        indicesCopiedOnce = false;
+        frame = 0f;
+        lastNanos = -1;
     }
 
     public void tick() {
@@ -107,8 +115,9 @@ public class PmxViewer {
 
     public void syncCpuBuffersForRender() {
         if (!ready || handle == 0L) return;
-        if (idxBuf == null) return;
-        copyOnce();
+        copyIndicesOnce();
+        if (posBuf == null || nrmBuf == null || uvBuf == null) return;
+        copyDynamicVertices();
     }
 
     private void allocateCpuBuffers() {
@@ -122,12 +131,21 @@ public class PmxViewer {
         uvBuf  = ByteBuffer.allocateDirect(vertexCount * 2 * 4).order(ByteOrder.nativeOrder());
     }
 
-    private void copyOnce() {
+    private void copyIndicesOnce() {
+        if (indicesCopiedOnce) return;
+        if (idxBuf == null) return;
+
         idxBuf.clear();
+        PmxNative.nativeCopyIndices(handle, idxBuf);
+
+        indicesCopiedOnce = true;
+    }
+
+    private void copyDynamicVertices() {
         posBuf.clear();
         nrmBuf.clear();
         uvBuf.clear();
-        PmxNative.nativeCopyIndices(handle, idxBuf);
+
         PmxNative.nativeCopyPositions(handle, posBuf);
         PmxNative.nativeCopyNormals(handle, nrmBuf);
         PmxNative.nativeCopyUVs(handle, uvBuf);

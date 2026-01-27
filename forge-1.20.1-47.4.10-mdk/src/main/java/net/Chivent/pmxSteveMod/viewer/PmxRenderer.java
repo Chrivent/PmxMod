@@ -9,9 +9,7 @@ import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.SubmeshInfo;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -29,15 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PmxRenderer {
-    private static final class TextureEntry {
-        final ResourceLocation rl;
-        final boolean hasAlpha;
-        TextureEntry(ResourceLocation rl, boolean hasAlpha) {
-            this.rl = rl;
-            this.hasAlpha = hasAlpha;
-        }
-    }
-
+    private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private ResourceLocation magentaTex = null;
 
@@ -78,10 +68,8 @@ public class PmxRenderer {
 
     public void renderPlayer(PmxViewer viewer,
                              AbstractClientPlayer player,
-                             PlayerRenderer vanillaRenderer,
                              float partialTick,
                              PoseStack poseStack,
-                             MultiBufferSource buffers,
                              int packedLight) {
         if (!viewer.isReady() || viewer.handle() == 0L) return;
         if (viewer.idxBuf() == null || viewer.posBuf() == null || viewer.nrmBuf() == null || viewer.uvBuf() == null) return;
