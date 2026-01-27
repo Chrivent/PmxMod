@@ -39,7 +39,7 @@ public:
 
 	Node*		m_node;
 	glm::mat4	m_offset;
-	glm::mat4	m_invOffset;
+	glm::mat4	m_invOffset = glm::mat4(1);
 	btTransform	m_transform;
 
 	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
