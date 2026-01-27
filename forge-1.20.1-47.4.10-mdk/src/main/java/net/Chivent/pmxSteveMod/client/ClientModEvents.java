@@ -1,7 +1,6 @@
 package net.Chivent.pmxSteveMod.client;
 
 import net.Chivent.pmxSteveMod.PmxSteveMod;
-import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;

@@ -9,8 +9,6 @@ public class PmxViewer {
 
     private PmxViewer() {}
 
-    public boolean isReady() { return instance.isReady(); }
-
     public void init() {
         instance.init();
     }

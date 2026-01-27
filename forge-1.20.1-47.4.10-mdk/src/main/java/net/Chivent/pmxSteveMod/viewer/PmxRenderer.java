@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
@@ -122,7 +121,6 @@ public class PmxRenderer {
         return switch (elemSize) {
             case 1 -> GL11C.GL_UNSIGNED_BYTE;
             case 2 -> GL11C.GL_UNSIGNED_SHORT;
-            case 4 -> GL11C.GL_UNSIGNED_INT;
             default -> GL11C.GL_UNSIGNED_INT;
         };
     }
@@ -220,8 +218,12 @@ public class PmxRenderer {
                              AbstractClientPlayer player,
                              float partialTick,
                              PoseStack poseStack) {
-        if (!instance.isReady() || instance.handle() == 0L) return;
-        if (instance.idxBuf() == null || instance.posBuf() == null || instance.nrmBuf() == null || instance.uvBuf() == null) return;
+        boolean ready = instance.isReady();
+        if (!ready || instance.handle() == 0L
+                || instance.idxBuf() == null || instance.posBuf() == null
+                || instance.nrmBuf() == null || instance.uvBuf() == null) {
+            return;
+        }
 
         instance.syncCpuBuffersForRender();
 
@@ -235,8 +237,8 @@ public class PmxRenderer {
 
         poseStack.pushPose();
 
-        float yRot = Mth.lerp(partialTick, player.yRotO, player.getYRot());
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0f - yRot));
+        float viewYRot = player.getViewYRot(partialTick);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
@@ -441,9 +443,9 @@ public class PmxRenderer {
             TextureEntry e = new TextureEntry(rl, hasAlpha);
             textureCache.put(key, e);
             return e;
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
             if (textureLoadFailures.add(key)) {
-                LOGGER.warn("[PMX] texture load failed: {}", key, ignored);
+                LOGGER.warn("[PMX] texture load failed: {}", key, t);
             }
             return null;
         }
