@@ -18,6 +18,7 @@ public final class PlayerRenderHooks {
 
         event.setCanceled(true);
 
+        viewer.tickRender();
         viewer.renderer().renderPlayer(
                 viewer,
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity(),

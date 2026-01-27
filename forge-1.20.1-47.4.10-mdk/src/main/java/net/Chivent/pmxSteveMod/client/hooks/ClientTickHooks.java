@@ -1,7 +1,6 @@
 package net.Chivent.pmxSteveMod.client.hooks;
 
 import net.Chivent.pmxSteveMod.PmxSteveMod;
-import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -15,6 +14,6 @@ public final class ClientTickHooks {
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END)
             return;
-        PmxViewer.get().tick();
+        // Animation is advanced per render frame for smoothness.
     }
 }

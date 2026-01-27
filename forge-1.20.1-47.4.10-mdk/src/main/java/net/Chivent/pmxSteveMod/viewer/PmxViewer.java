@@ -101,6 +101,10 @@ public class PmxViewer {
     }
 
     public void tick() {
+        tickRender();
+    }
+
+    public void tickRender() {
         if (!ready || handle == 0L) return;
 
         long now = System.nanoTime();
