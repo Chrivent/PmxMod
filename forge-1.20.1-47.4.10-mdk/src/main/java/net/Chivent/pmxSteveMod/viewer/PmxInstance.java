@@ -281,7 +281,7 @@ public class PmxInstance {
 
     private static String cleanText(String value) {
         if (value == null) return null;
-        String trimmed = value.trim();
+        String trimmed = value.replace("\r", "").trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
 
