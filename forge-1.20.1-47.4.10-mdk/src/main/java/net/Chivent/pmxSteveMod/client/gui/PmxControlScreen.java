@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
@@ -61,6 +62,18 @@ public class PmxControlScreen extends Screen {
             b.setMessage(toggleLabel());
         }).bounds(centerX - 100, y + 30, 200, 20).build();
         addRenderableWidget(toggleButton);
+
+        addRenderableWidget(Button.builder(Component.literal("Open PMX Folder"), b -> {
+            if (modelDir != null) {
+                Util.getPlatform().openFile(modelDir.toFile());
+            }
+        }).bounds(centerX - 100, y + 60, 200, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Refresh List"), b -> {
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(new PmxControlScreen(parent));
+            }
+        }).bounds(centerX - 100, y + 90, 200, 20).build());
     }
 
     private Component toggleLabel() {
@@ -100,7 +113,7 @@ public class PmxControlScreen extends Screen {
     private static List<Path> listPmxFiles(Path dir) {
         List<Path> results = new ArrayList<>();
         if (dir == null) return results;
-        try (var stream = Files.list(dir)) {
+        try (var stream = Files.walk(dir, 2)) {
             stream.filter(p -> p.toString().toLowerCase().endsWith(".pmx"))
                     .sorted(Comparator.comparing(p -> p.getFileName().toString().toLowerCase()))
                     .forEach(results::add);
