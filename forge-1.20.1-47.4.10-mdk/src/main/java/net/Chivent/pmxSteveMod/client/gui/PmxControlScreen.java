@@ -3,19 +3,14 @@ package net.Chivent.pmxSteveMod.client.gui;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 public class PmxControlScreen extends Screen {
     private final Screen parent;
@@ -33,29 +28,11 @@ public class PmxControlScreen extends Screen {
 
         PmxViewer viewer = PmxViewer.get();
         modelDir = viewer.getUserModelDir();
-        List<Path> models = listPmxFiles(modelDir);
-
-        if (!models.isEmpty()) {
-            Path initial = models.contains(viewer.getSelectedModelPath())
-                    ? viewer.getSelectedModelPath()
-                    : models.get(0);
-            viewer.setSelectedModelPath(initial);
-            addRenderableWidget(CycleButton.<Path>builder(
-                    p -> Component.literal(p.getFileName().toString()))
-                    .withValues(models)
-                    .withInitialValue(initial)
-                    .create(centerX - 100, y, 200, 20, Component.literal("Model"),
-                            (btn, value) -> {
-                                viewer.setSelectedModelPath(value);
-                                viewer.reloadSelectedModel();
-                            }));
-        } else {
-            Button empty = Button.builder(Component.literal("No PMX files found"), b -> {})
-                    .bounds(centerX - 100, y, 200, 20)
-                    .build();
-            empty.active = false;
-            addRenderableWidget(empty);
-        }
+        addRenderableWidget(Button.builder(Component.literal("Select Model"), b -> {
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(new PmxModelSelectScreen(this));
+            }
+        }).bounds(centerX - 100, y, 200, 20).build());
 
         Button toggleButton = Button.builder(toggleLabel(), b -> {
             viewer.setPmxVisible(!viewer.isPmxVisible());
@@ -68,12 +45,6 @@ public class PmxControlScreen extends Screen {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
         }).bounds(centerX - 100, y + 60, 200, 20).build());
-
-        addRenderableWidget(Button.builder(Component.literal("Refresh List"), b -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(new PmxControlScreen(parent));
-            }
-        }).bounds(centerX - 100, y + 90, 200, 20).build());
     }
 
     private Component toggleLabel() {
@@ -100,26 +71,19 @@ public class PmxControlScreen extends Screen {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
+        PmxViewer viewer = PmxViewer.get();
+        Path sel = viewer.getSelectedModelPath();
+        String label = sel != null ? sel.getFileName().toString() : "<none>";
+        graphics.drawString(this.font,
+                Component.literal("Selected: " + label),
+                10, 10, 0xFFFFFF, false);
         if (modelDir != null) {
             graphics.drawString(this.font,
                     Component.literal("PMX folder: " + modelDir),
-                    10, 10, 0xFFFFFF, false);
+                    10, 24, 0xA0A0A0, false);
         }
         graphics.drawString(this.font,
                 Component.literal("Press key or Esc to close"),
-                10, 24, 0xA0A0A0, false);
-    }
-
-    private static List<Path> listPmxFiles(Path dir) {
-        List<Path> results = new ArrayList<>();
-        if (dir == null) return results;
-        try (var stream = Files.walk(dir, 2)) {
-            stream.filter(p -> p.toString().toLowerCase().endsWith(".pmx"))
-                    .sorted(Comparator.comparing(p -> p.getFileName().toString().toLowerCase()))
-                    .forEach(results::add);
-        } catch (Exception ignored) {
-            return results;
-        }
-        return results;
+                10, 38, 0xA0A0A0, false);
     }
 }
