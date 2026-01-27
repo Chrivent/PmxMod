@@ -40,6 +40,7 @@ public class PmxRenderer {
     private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private final Set<String> textureLoadFailures = new HashSet<>();
+    private int textureIdCounter = 0;
     private ResourceLocation magentaTex = null;
 
     private static final class MaterialGpu {
@@ -53,6 +54,7 @@ public class PmxRenderer {
     }
 
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
+    private long cachedModelVersion = -1L;
 
     private static final class MeshGpu {
         long ownerHandle = 0L;
@@ -99,6 +101,9 @@ public class PmxRenderer {
             destroyMeshGpu();
             textureCache.clear();
             materialGpuCache.clear();
+            textureLoadFailures.clear();
+            textureIdCounter = 0;
+            cachedModelVersion = -1L;
             magentaTex = null;
         });
     }
@@ -229,6 +234,15 @@ public class PmxRenderer {
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
+
+        long version = instance.modelVersion();
+        if (cachedModelVersion != version) {
+            materialGpuCache.clear();
+            textureCache.clear();
+            textureLoadFailures.clear();
+            textureIdCounter = 0;
+            cachedModelVersion = version;
+        }
 
         ensureMeshGpu(instance);
         if (!mesh.ready) return;
@@ -436,7 +450,7 @@ public class PmxRenderer {
 
             DynamicTexture dt = new DynamicTexture(img);
             TextureManager tm = Minecraft.getInstance().getTextureManager();
-            String id = "pmx/" + Integer.toHexString(key.hashCode());
+            String id = "pmx/tex_" + Integer.toUnsignedString(++textureIdCounter);
             ResourceLocation rl = tm.register(id, dt);
 
             TextureEntry e = new TextureEntry(rl, hasAlpha);

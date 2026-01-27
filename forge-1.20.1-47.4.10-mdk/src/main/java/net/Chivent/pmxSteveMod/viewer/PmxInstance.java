@@ -22,6 +22,7 @@ public class PmxInstance {
 
     private long handle = 0L;
     private boolean ready = false;
+    private long modelVersion = 0L;
 
     private float frame = 0f;
     private long lastNanos = -1;
@@ -43,6 +44,7 @@ public class PmxInstance {
 
     public boolean isReady() { return ready; }
     public long handle() { return handle; }
+    public long modelVersion() { return modelVersion; }
 
     public ByteBuffer idxBuf() { return idxBuf; }
     public ByteBuffer posBuf() { return posBuf; }
@@ -102,6 +104,7 @@ public class PmxInstance {
             buildMaterials();
             buildSubmeshInfos();
 
+            modelVersion++;
             ready = true;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
