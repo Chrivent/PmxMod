@@ -58,16 +58,23 @@ public class PmxInstance {
 
     public Path pmxBaseDir() { return pmxBaseDir; }
 
-    public void init() {
+    public void init(Path pmxPath) {
         try {
             handle = PmxNative.nativeCreate();
 
-            String pmxPath = "D:/예찬/MMD/model/Booth/Chrivent Elf/Chrivent Elf.pmx";
-            pmxBaseDir = Paths.get(pmxPath).getParent();
+            if (pmxPath == null || !Files.exists(pmxPath)) {
+                ready = false;
+                if (handle != 0L) {
+                    try { PmxNative.nativeDestroy(handle); } catch (Throwable ignored) {}
+                    handle = 0L;
+                }
+                return;
+            }
+            pmxBaseDir = pmxPath.getParent();
             Path dataDirPath = ensureToonDir();
             String dataDir = dataDirPath != null ? dataDirPath.toString() : "";
 
-            boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath, dataDir);
+            boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath.toString(), dataDir);
             if (!ok) { ready = false; return; }
 
             PmxNative.nativeAddVmd(handle, "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
