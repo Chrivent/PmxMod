@@ -55,6 +55,7 @@ public class PmxModelSelectScreen extends Screen {
         list = new PmxModelList(this, this.minecraft, listWidth, this.height, 50, this.height - 40, 20);
         list.setLeftPos(listLeft);
         list.setRenderBackground(false);
+        list.setRenderTopAndBottom(false);
         addWidget(list);
         reloadList();
         startWatcher();
@@ -93,10 +94,14 @@ public class PmxModelSelectScreen extends Screen {
 
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
-        if (this.minecraft != null && this.minecraft.level != null) {
-            graphics.fillGradient(0, 0, this.width, this.height, 0x55000000, 0x77000000);
-        } else {
-            this.renderDirtBackground(graphics);
+        int top = 32;
+        int bottom = this.height - 32;
+        graphics.blit(Screen.BACKGROUND_LOCATION, 0, 0, 0.0F, 0.0F, this.width, top, 32, 32);
+        if (bottom < this.height) {
+            graphics.blit(Screen.BACKGROUND_LOCATION, 0, bottom, 0.0F, (float) bottom, this.width, this.height - bottom, 32, 32);
+        }
+        if (bottom > top) {
+            graphics.fillGradient(0, top, this.width, bottom, 0x55000000, 0x77000000);
         }
     }
 
