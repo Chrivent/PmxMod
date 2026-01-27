@@ -3,24 +3,27 @@ package net.Chivent.pmxSteveMod.viewer;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
+import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.SubmeshInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11C;
+import org.lwjgl.opengl.GL15C;
+import org.lwjgl.opengl.GL20C;
+import org.lwjgl.opengl.GL30C;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,49 +50,29 @@ public class PmxRenderer {
 
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
 
-    private int[] decodedIndices = null;
-    private int decodedIndexCount = 0;
-    private int decodedElemSize = 0;
-    private int decodedBufCapacity = 0;
+    // -----------------------------
+    // GPU Mesh (VAO + 3xVBO + IBO)
+    // -----------------------------
+    private static final class MeshGpu {
+        long ownerHandle = 0L;
 
-    private void ensureIndexCache(PmxViewer viewer, int elemSize, int indexCount) {
-        ByteBuffer idx = viewer.idxBuf();
-        if (idx == null) {
-            decodedIndices = null;
-            decodedIndexCount = 0;
-            decodedElemSize = 0;
-            decodedBufCapacity = 0;
-            return;
-        }
+        int vao = 0;
+        int vboPos = 0;
+        int vboNrm = 0;
+        int vboUv  = 0;
+        int ibo    = 0;
 
-        if (decodedIndices != null
-                && decodedElemSize == elemSize
-                && decodedIndexCount == indexCount
-                && decodedBufCapacity == idx.capacity()) {
-            return;
-        }
+        int vertexCount = 0;
+        int indexCount  = 0;
+        int elemSize    = 0;
+        int glIndexType = GL11C.GL_UNSIGNED_INT;
 
-        decodedElemSize = elemSize;
-        decodedIndexCount = indexCount;
-        decodedBufCapacity = idx.capacity();
-
-        decodedIndices = new int[indexCount];
-
-        for (int i = 0; i < indexCount; i++) {
-            int bytePos = i * elemSize;
-            if (bytePos < 0 || bytePos + elemSize > idx.capacity()) {
-                decodedIndices[i] = -1;
-                continue;
-            }
-            decodedIndices[i] = switch (elemSize) {
-                case 1 -> (idx.get(bytePos) & 0xFF);
-                case 2 -> (idx.getShort(bytePos) & 0xFFFF);
-                case 4 -> idx.getInt(bytePos);
-                default -> -1;
-            };
-        }
+        boolean ready = false;
     }
 
+    private final MeshGpu mesh = new MeshGpu();
+
+    // ---- uniforms helpers ----
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
@@ -111,15 +94,167 @@ public class PmxRenderer {
         if (u != null) u.set(v);
     }
 
+    // 외부에서 viewer.shutdown() 때 호출됨 (렌더스레드에서 GL 자원 삭제)
+    public void onViewerShutdown() {
+        // 안전하게 렌더 스레드에서 처리
+        RenderSystem.recordRenderCall(() -> {
+            destroyMeshGpu();
+            textureCache.clear();
+            materialGpuCache.clear();
+            magentaTex = null;
+        });
+    }
+
+    private void destroyMeshGpu() {
+        if (mesh.vao != 0) { GL30C.glDeleteVertexArrays(mesh.vao); mesh.vao = 0; }
+        if (mesh.vboPos != 0) { GL15C.glDeleteBuffers(mesh.vboPos); mesh.vboPos = 0; }
+        if (mesh.vboNrm != 0) { GL15C.glDeleteBuffers(mesh.vboNrm); mesh.vboNrm = 0; }
+        if (mesh.vboUv != 0)  { GL15C.glDeleteBuffers(mesh.vboUv);  mesh.vboUv = 0; }
+        if (mesh.ibo != 0)    { GL15C.glDeleteBuffers(mesh.ibo);    mesh.ibo = 0; }
+        mesh.ready = false;
+        mesh.ownerHandle = 0L;
+        mesh.vertexCount = 0;
+        mesh.indexCount = 0;
+        mesh.elemSize = 0;
+        mesh.glIndexType = GL11C.GL_UNSIGNED_INT;
+    }
+
+    private static int toGlIndexType(int elemSize) {
+        return switch (elemSize) {
+            case 1 -> GL11C.GL_UNSIGNED_BYTE;
+            case 2 -> GL11C.GL_UNSIGNED_SHORT;
+            case 4 -> GL11C.GL_UNSIGNED_INT;
+            default -> GL11C.GL_UNSIGNED_INT;
+        };
+    }
+
+    /**
+     * VAO 구성:
+     *  loc0 Position : vec3 (float)  -> vboPos
+     *  loc2 UV0      : vec2 (float)  -> vboUv
+     *  loc5 Normal   : vec3 (float)  -> vboNrm
+     *
+     *  loc1 Color    : 상수 (1,1,1,1)
+     *  loc3 UV1      : 상수 (0,0) overlay
+     *  loc4 UV2      : 상수 (packedLight 분해해서 매 프레임 설정)
+     *
+     * 주의: attribute location은 pmx_mmd.json의 attributes 순서( Position, Color, UV0, UV1, UV2, Normal )를 전제로 함.
+     */
+    private void ensureMeshGpu(PmxViewer viewer) {
+        long h = viewer.handle();
+        if (h == 0L) return;
+
+        int vtxCount = PmxNative.nativeGetVertexCount(h);
+        int idxCount = PmxNative.nativeGetIndexCount(h);
+        int elemSize = PmxNative.nativeGetIndexElementSize(h);
+
+        int glType = toGlIndexType(elemSize);
+
+        if (mesh.ready
+                && mesh.ownerHandle == h
+                && mesh.vertexCount == vtxCount
+                && mesh.indexCount == idxCount
+                && mesh.elemSize == elemSize
+                && mesh.glIndexType == glType) {
+            return;
+        }
+
+        // 재생성
+        destroyMeshGpu();
+
+        ByteBuffer idx = viewer.idxBuf();
+        if (idx == null || vtxCount <= 0 || idxCount <= 0 || elemSize <= 0) return;
+
+        mesh.ownerHandle = h;
+        mesh.vertexCount = vtxCount;
+        mesh.indexCount  = idxCount;
+        mesh.elemSize    = elemSize;
+        mesh.glIndexType = glType;
+
+        // GL objects
+        mesh.vao = GL30C.glGenVertexArrays();
+        mesh.vboPos = GL15C.glGenBuffers();
+        mesh.vboNrm = GL15C.glGenBuffers();
+        mesh.vboUv  = GL15C.glGenBuffers();
+        mesh.ibo    = GL15C.glGenBuffers();
+
+        GL30C.glBindVertexArray(mesh.vao);
+
+        final int LOC_POS = 0;
+        final int LOC_UV0 = 1;
+        final int LOC_NRM = 2;
+
+        // ---- Position (loc 0) ----
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboPos);
+        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
+        GL20C.glEnableVertexAttribArray(LOC_POS);
+        GL20C.glVertexAttribPointer(LOC_POS, 3, GL11C.GL_FLOAT, false, 0, 0L);
+
+        // ---- UV0 (loc 2) ----
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboUv);
+        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 2L * 4L, GL15C.GL_DYNAMIC_DRAW);
+        GL20C.glEnableVertexAttribArray(LOC_UV0);
+        GL20C.glVertexAttribPointer(LOC_UV0, 2, GL11C.GL_FLOAT, false, 0, 0L);
+
+        // ---- Normal (loc 5) ----
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboNrm);
+        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
+        GL20C.glEnableVertexAttribArray(LOC_NRM);
+        GL20C.glVertexAttribPointer(LOC_NRM, 3, GL11C.GL_FLOAT, false, 0, 0L);
+
+        // ---- Index buffer (EBO/IBO) ----
+        GL15C.glBindBuffer(GL15C.GL_ELEMENT_ARRAY_BUFFER, mesh.ibo);
+        ByteBuffer idxDup = idx.duplicate();
+        idxDup.rewind();
+        GL15C.glBufferData(GL15C.GL_ELEMENT_ARRAY_BUFFER, idxDup, GL15C.GL_STATIC_DRAW);
+
+        // cleanup binds
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
+        GL30C.glBindVertexArray(0);
+
+        mesh.ready = true;
+    }
+
+    private static void uploadDynamic(int vbo, ByteBuffer src, long expectedBytes) {
+        if (vbo == 0 || src == null) return;
+        if (src.capacity() < expectedBytes) return;
+
+        ByteBuffer dup = src.duplicate();
+        dup.rewind();
+
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
+        GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
+        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
+    }
+
+    private void updateDynamicBuffers(PmxViewer viewer) {
+        if (!mesh.ready) return;
+        int vtxCount = mesh.vertexCount;
+
+        uploadDynamic(mesh.vboPos, viewer.posBuf(), (long) vtxCount * 3L * 4L);
+        uploadDynamic(mesh.vboNrm, viewer.nrmBuf(), (long) vtxCount * 3L * 4L);
+        uploadDynamic(mesh.vboUv,  viewer.uvBuf(),  (long) vtxCount * 2L * 4L);
+    }
+
+    // -----------------------------
+    // Public render entry
+    // -----------------------------
     public void renderPlayer(PmxViewer viewer,
                              AbstractClientPlayer player,
                              float partialTick,
-                             PoseStack poseStack,
-                             int packedLight) {
+                             PoseStack poseStack) {
         if (!viewer.isReady() || viewer.handle() == 0L) return;
         if (viewer.idxBuf() == null || viewer.posBuf() == null || viewer.nrmBuf() == null || viewer.uvBuf() == null) return;
 
         viewer.syncCpuBuffersForRender();
+
+        ShaderInstance sh = PmxShaders.PMX_MMD;
+        if (sh == null) return;
+
+        ensureMeshGpu(viewer);
+        if (!mesh.ready) return;
+
+        updateDynamicBuffers(viewer);
 
         poseStack.pushPose();
 
@@ -128,20 +263,6 @@ public class PmxRenderer {
         poseStack.scale(0.15f, 0.15f, 0.15f);
 
         Matrix4f pose = poseStack.last().pose();
-
-        int elemSize   = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(viewer.handle());
-        int indexCount = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexCount(viewer.handle());
-
-        ensureIndexCache(viewer, elemSize, indexCount);
-        if (decodedIndices == null || decodedIndexCount <= 0) {
-            poseStack.popPose();
-            return;
-        }
-
-        FloatBuffer posF = viewer.posBuf().asFloatBuffer();
-        FloatBuffer nrmF = viewer.nrmBuf().asFloatBuffer();
-        FloatBuffer uvF  = viewer.uvBuf().asFloatBuffer();
-        int vtxCount = posF.capacity() / 3;
 
         SubmeshInfo[] subs = viewer.submeshes();
         if (subs == null) {
@@ -155,9 +276,14 @@ public class PmxRenderer {
         RenderSystem.depthMask(true);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
+        // VAO bind (indexed draw)
+        GL30C.glBindVertexArray(mesh.vao);
+
         for (int s = 0; s < subs.length; s++) {
-            drawSubmesh(viewer, subs[s], pose, packedLight, indexCount, vtxCount, posF, nrmF, uvF);
+            drawSubmeshIndexed(viewer, subs[s], pose);
         }
+
+        GL30C.glBindVertexArray(0);
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
@@ -167,15 +293,9 @@ public class PmxRenderer {
         poseStack.popPose();
     }
 
-    private void drawSubmesh(PmxViewer viewer,
-                             SubmeshInfo sm,
-                             Matrix4f pose,
-                             int packedLight,
-                             int indexCount,
-                             int vtxCount,
-                             FloatBuffer posF,
-                             FloatBuffer nrmF,
-                             FloatBuffer uvF) {
+    private void drawSubmeshIndexed(PmxViewer viewer,
+                                    SubmeshInfo sm,
+                                    Matrix4f pose) {
         if (sm == null) return;
 
         MaterialInfo mat = viewer.material(sm.materialId());
@@ -185,8 +305,10 @@ public class PmxRenderer {
         int count = sm.indexCount();
         if (begin < 0 || count <= 0) return;
 
-        int maxCount = Math.max(0, indexCount - begin);
+        int maxCount = Math.max(0, mesh.indexCount - begin);
         if (count > maxCount) count = maxCount;
+
+        // triangles only
         count -= (count % 3);
         if (count <= 0) return;
 
@@ -244,6 +366,8 @@ public class PmxRenderer {
         set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
         set4f(sh, "u_ToonTexAddFactor", toonAdd[0], toonAdd[1], toonAdd[2], toonAdd[3]);
 
+        sh.apply();
+
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -252,64 +376,17 @@ public class PmxRenderer {
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
-        Tesselator tess = Tesselator.getInstance();
-        BufferBuilder bb = tess.getBuilder();
-        bb.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.NEW_ENTITY);
+        // Indexed draw: offset = beginIndex * elemSize
+        long offsetBytes = (long) begin * (long) mesh.elemSize;
 
-        int end = begin + count;
-        if (begin < 0) begin = 0;
-        if (end > decodedIndexCount) end = decodedIndexCount;
+        GL11C.glDrawElements(GL11C.GL_TRIANGLES, count, mesh.glIndexType, offsetBytes);
 
-        int usable = end - begin;
-        usable -= (usable % 3);
-        end = begin + usable;
-
-        for (int ii = begin; ii < end; ii += 3) {
-            int i0 = decodedIndices[ii];
-            int i1 = decodedIndices[ii + 1];
-            int i2 = decodedIndices[ii + 2];
-
-            if (i0 < 0 || i1 < 0 || i2 < 0) continue;
-            if (i0 >= vtxCount || i1 >= vtxCount || i2 >= vtxCount) continue;
-
-            putVertex(bb, packedLight, i0, posF, nrmF, uvF);
-            putVertex(bb, packedLight, i1, posF, nrmF, uvF);
-            putVertex(bb, packedLight, i2, posF, nrmF, uvF);
-        }
-
-        BufferUploader.drawWithShader(bb.end());
         RenderSystem.enableCull();
     }
 
-    private static void putVertex(BufferBuilder bb,
-                                  int packedLight,
-                                  int vi,
-                                  FloatBuffer posF,
-                                  FloatBuffer nrmF,
-                                  FloatBuffer uvF) {
-        int p = vi * 3;
-        float x = posF.get(p);
-        float y = posF.get(p + 1);
-        float z = posF.get(p + 2);
-
-        int n = vi * 3;
-        float nx = nrmF.get(n);
-        float ny = nrmF.get(n + 1);
-        float nz = nrmF.get(n + 2);
-
-        int u = vi * 2;
-        float uu = uvF.get(u);
-        float vv = uvF.get(u + 1);
-
-        bb.vertex(x, y, z)
-                .color(1f, 1f, 1f, 1f)
-                .uv(uu, vv)
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(packedLight)
-                .normal(nx, ny, nz)
-                .endVertex();
-    }
-
+    // -----------------------------
+    // Texture/material cache (기존 그대로)
+    // -----------------------------
     private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
         MaterialGpu cached = materialGpuCache.get(materialId);
         if (cached != null) return cached;

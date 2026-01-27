@@ -22,8 +22,7 @@ public final class PlayerRenderHooks {
                 viewer,
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity(),
                 event.getPartialTick(),
-                event.getPoseStack(),
-                event.getPackedLight()
+                event.getPoseStack()
         );
     }
 }

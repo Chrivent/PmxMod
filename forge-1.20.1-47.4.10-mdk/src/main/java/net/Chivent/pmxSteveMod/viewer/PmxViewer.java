@@ -86,6 +86,9 @@ public class PmxViewer {
     }
 
     public void shutdown() {
+        // GPU 리소스 정리(렌더 스레드에서)
+        try { renderer.onViewerShutdown(); } catch (Throwable ignored) {}
+
         if (handle != 0L) {
             try { PmxNative.nativeDestroy(handle); } catch (Throwable ignored) {}
             handle = 0L;
