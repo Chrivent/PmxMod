@@ -5,6 +5,7 @@ import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
@@ -21,6 +22,7 @@ import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
+import org.slf4j.Logger;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -28,20 +30,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class PmxRenderer {
 
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
+    private final Set<String> textureLoadFailures = new HashSet<>();
     private ResourceLocation magentaTex = null;
 
     private static final class MaterialGpu {
         int texMode;
         int toonMode;
         int sphereMode;
-
-        boolean mainHasAlpha;
 
         ResourceLocation mainTex;
         ResourceLocation sphereTex;
@@ -50,9 +55,6 @@ public class PmxRenderer {
 
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
 
-    // -----------------------------
-    // GPU Mesh (VAO + 3xVBO + IBO)
-    // -----------------------------
     private static final class MeshGpu {
         long ownerHandle = 0L;
 
@@ -72,7 +74,6 @@ public class PmxRenderer {
 
     private final MeshGpu mesh = new MeshGpu();
 
-    // ---- uniforms helpers ----
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
@@ -94,9 +95,7 @@ public class PmxRenderer {
         if (u != null) u.set(v);
     }
 
-    // 외부에서 viewer.shutdown() 때 호출됨 (렌더스레드에서 GL 자원 삭제)
     public void onViewerShutdown() {
-        // 안전하게 렌더 스레드에서 처리
         RenderSystem.recordRenderCall(() -> {
             destroyMeshGpu();
             textureCache.clear();
@@ -128,18 +127,6 @@ public class PmxRenderer {
         };
     }
 
-    /**
-     * VAO 구성:
-     *  loc0 Position : vec3 (float)  -> vboPos
-     *  loc2 UV0      : vec2 (float)  -> vboUv
-     *  loc5 Normal   : vec3 (float)  -> vboNrm
-     *
-     *  loc1 Color    : 상수 (1,1,1,1)
-     *  loc3 UV1      : 상수 (0,0) overlay
-     *  loc4 UV2      : 상수 (packedLight 분해해서 매 프레임 설정)
-     *
-     * 주의: attribute location은 pmx_mmd.json의 attributes 순서( Position, Color, UV0, UV1, UV2, Normal )를 전제로 함.
-     */
     private void ensureMeshGpu(PmxViewer viewer) {
         long h = viewer.handle();
         if (h == 0L) return;
@@ -159,7 +146,6 @@ public class PmxRenderer {
             return;
         }
 
-        // 재생성
         destroyMeshGpu();
 
         ByteBuffer idx = viewer.idxBuf();
@@ -171,7 +157,6 @@ public class PmxRenderer {
         mesh.elemSize    = elemSize;
         mesh.glIndexType = glType;
 
-        // GL objects
         mesh.vao = GL30C.glGenVertexArrays();
         mesh.vboPos = GL15C.glGenBuffers();
         mesh.vboNrm = GL15C.glGenBuffers();
@@ -181,34 +166,41 @@ public class PmxRenderer {
         GL30C.glBindVertexArray(mesh.vao);
 
         final int LOC_POS = 0;
-        final int LOC_UV0 = 1;
-        final int LOC_NRM = 2;
+        final int LOC_CLR = 1;
+        final int LOC_UV0 = 2;
+        final int LOC_UV1 = 3;
+        final int LOC_UV2 = 4;
+        final int LOC_NRM = 5;
 
-        // ---- Position (loc 0) ----
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboPos);
         GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
         GL20C.glEnableVertexAttribArray(LOC_POS);
         GL20C.glVertexAttribPointer(LOC_POS, 3, GL11C.GL_FLOAT, false, 0, 0L);
 
-        // ---- UV0 (loc 2) ----
+        GL20C.glDisableVertexAttribArray(LOC_CLR);
+        GL20C.glVertexAttrib4f(LOC_CLR, 1f, 1f, 1f, 1f);
+
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboUv);
         GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 2L * 4L, GL15C.GL_DYNAMIC_DRAW);
         GL20C.glEnableVertexAttribArray(LOC_UV0);
         GL20C.glVertexAttribPointer(LOC_UV0, 2, GL11C.GL_FLOAT, false, 0, 0L);
 
-        // ---- Normal (loc 5) ----
+        GL20C.glDisableVertexAttribArray(LOC_UV1);
+        GL20C.glVertexAttrib2f(LOC_UV1, 0f, 0f);
+
+        GL20C.glDisableVertexAttribArray(LOC_UV2);
+        GL20C.glVertexAttrib2f(LOC_UV2, 0f, 0f);
+
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboNrm);
         GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
         GL20C.glEnableVertexAttribArray(LOC_NRM);
         GL20C.glVertexAttribPointer(LOC_NRM, 3, GL11C.GL_FLOAT, false, 0, 0L);
 
-        // ---- Index buffer (EBO/IBO) ----
         GL15C.glBindBuffer(GL15C.GL_ELEMENT_ARRAY_BUFFER, mesh.ibo);
         ByteBuffer idxDup = idx.duplicate();
         idxDup.rewind();
         GL15C.glBufferData(GL15C.GL_ELEMENT_ARRAY_BUFFER, idxDup, GL15C.GL_STATIC_DRAW);
 
-        // cleanup binds
         GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
         GL30C.glBindVertexArray(0);
 
@@ -236,9 +228,6 @@ public class PmxRenderer {
         uploadDynamic(mesh.vboUv,  viewer.uvBuf(),  (long) vtxCount * 2L * 4L);
     }
 
-    // -----------------------------
-    // Public render entry
-    // -----------------------------
     public void renderPlayer(PmxViewer viewer,
                              AbstractClientPlayer player,
                              float partialTick,
@@ -276,11 +265,10 @@ public class PmxRenderer {
         RenderSystem.depthMask(true);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-        // VAO bind (indexed draw)
         GL30C.glBindVertexArray(mesh.vao);
 
-        for (int s = 0; s < subs.length; s++) {
-            drawSubmeshIndexed(viewer, subs[s], pose);
+        for (SubmeshInfo sub : subs) {
+            drawSubmeshIndexed(viewer, sub, pose);
         }
 
         GL30C.glBindVertexArray(0);
@@ -344,9 +332,10 @@ public class PmxRenderer {
         set1f(sh, "u_SpecularPower", mat.specularPower());
         set1f(sh, "u_Alpha", alpha);
 
-        RenderSystem.setShaderTexture(0, gpu.mainTex);
-        RenderSystem.setShaderTexture(1, gpu.sphereTex);
-        RenderSystem.setShaderTexture(2, gpu.toonTex);
+        TextureManager texMgr = Minecraft.getInstance().getTextureManager();
+        sh.setSampler("Sampler0", texMgr.getTexture(gpu.mainTex));
+        sh.setSampler("Sampler1", texMgr.getTexture(gpu.toonTex));
+        sh.setSampler("Sampler2", texMgr.getTexture(gpu.sphereTex));
 
         set1i(sh, "u_TexMode", gpu.texMode);
         float[] tm = mat.texMul();
@@ -376,7 +365,6 @@ public class PmxRenderer {
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
-        // Indexed draw: offset = beginIndex * elemSize
         long offsetBytes = (long) begin * (long) mesh.elemSize;
 
         GL11C.glDrawElements(GL11C.GL_TRIANGLES, count, mesh.glIndexType, offsetBytes);
@@ -384,9 +372,6 @@ public class PmxRenderer {
         RenderSystem.enableCull();
     }
 
-    // -----------------------------
-    // Texture/material cache (기존 그대로)
-    // -----------------------------
     private MaterialGpu getOrBuildMaterialGpu(PmxViewer viewer, int materialId, MaterialInfo mat) {
         MaterialGpu cached = materialGpuCache.get(materialId);
         if (cached != null) return cached;
@@ -396,12 +381,11 @@ public class PmxRenderer {
         TextureEntry main = getOrLoadTextureEntry(viewer, mat.mainTexPath());
         if (main != null && main.rl != null) {
             gpu.mainTex = main.rl;
-            gpu.mainHasAlpha = main.hasAlpha;
             gpu.texMode = main.hasAlpha ? 2 : 1;
         } else {
             gpu.mainTex = ensureMagentaTexture();
-            gpu.mainHasAlpha = false;
             gpu.texMode = 0;
+            LOGGER.warn("[PMX] material {} main texture missing; using fallback. path={}", materialId, mat.mainTexPath());
         }
 
         TextureEntry sphere = getOrLoadTextureEntry(viewer, mat.sphereTexPath());
@@ -411,6 +395,9 @@ public class PmxRenderer {
         } else {
             gpu.sphereTex = ensureMagentaTexture();
             gpu.sphereMode = 0;
+            if (mat.sphereTexPath() != null) {
+                LOGGER.warn("[PMX] material {} sphere texture missing; using fallback. path={}", materialId, mat.sphereTexPath());
+            }
         }
 
         TextureEntry toon = getOrLoadTextureEntry(viewer, mat.toonTexPath());
@@ -420,6 +407,9 @@ public class PmxRenderer {
         } else {
             gpu.toonTex = ensureMagentaTexture();
             gpu.toonMode = 0;
+            if (mat.toonTexPath() != null) {
+                LOGGER.warn("[PMX] material {} toon texture missing; using fallback. path={}", materialId, mat.toonTexPath());
+            }
         }
 
         materialGpuCache.put(materialId, gpu);
@@ -463,6 +453,9 @@ public class PmxRenderer {
             textureCache.put(key, e);
             return e;
         } catch (Throwable ignored) {
+            if (textureLoadFailures.add(key)) {
+                LOGGER.warn("[PMX] texture load failed: {}", key, ignored);
+            }
             return null;
         }
     }
