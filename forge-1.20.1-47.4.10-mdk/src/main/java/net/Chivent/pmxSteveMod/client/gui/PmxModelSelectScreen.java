@@ -14,14 +14,25 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.nio.file.StandardWatchEventKinds;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class PmxModelSelectScreen extends Screen {
     private final Screen parent;
     private PmxModelList list;
     private Path modelDir;
+    private WatchService watchService;
+    private Thread watchThread;
+    private volatile boolean rescanRequested = false;
+    private final Set<Path> watchedDirs = new HashSet<>();
 
     public PmxModelSelectScreen(Screen parent) {
         super(Component.translatable("pmx.screen.select_model.title"));
@@ -35,6 +46,7 @@ public class PmxModelSelectScreen extends Screen {
         list.setRenderBackground(false);
         addWidget(list);
         reloadList();
+        startWatcher();
 
         int rowY = this.height - 32;
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.open_folder"), b -> {
@@ -42,9 +54,6 @@ public class PmxModelSelectScreen extends Screen {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
         }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("pmx.button.rescan"), b -> reloadList())
-                .bounds(this.width / 2 + 5, rowY, 150, 20)
-                .build());
     }
 
     private void reloadList() {
@@ -66,6 +75,15 @@ public class PmxModelSelectScreen extends Screen {
     }
 
     @Override
+    public void tick() {
+        if (rescanRequested) {
+            rescanRequested = false;
+            reloadList();
+        }
+        super.tick();
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (PmxKeyMappings.OPEN_MENU.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
             if (this.minecraft != null) {
@@ -74,6 +92,12 @@ public class PmxModelSelectScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void removed() {
+        stopWatcher();
+        super.removed();
     }
 
     private static List<Path> listPmxFiles(Path dir) {
@@ -87,6 +111,76 @@ public class PmxModelSelectScreen extends Screen {
             return results;
         }
         return results;
+    }
+
+    private void startWatcher() {
+        stopWatcher();
+        if (modelDir == null) return;
+        try {
+            watchService = modelDir.getFileSystem().newWatchService();
+            registerDir(modelDir);
+            try (var stream = Files.list(modelDir)) {
+                stream.filter(Files::isDirectory).forEach(this::registerDir);
+            } catch (Exception ignored) {
+            }
+        } catch (Exception ignored) {
+            return;
+        }
+        watchThread = new Thread(this::watchLoop, "pmx-model-watch");
+        watchThread.setDaemon(true);
+        watchThread.start();
+    }
+
+    private void watchLoop() {
+        while (watchService != null) {
+            try {
+                WatchKey key = watchService.poll(250, TimeUnit.MILLISECONDS);
+                if (key == null) continue;
+                Path dir = (Path) key.watchable();
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    WatchEvent.Kind<?> kind = event.kind();
+                    if (kind == StandardWatchEventKinds.OVERFLOW) continue;
+                    @SuppressWarnings("unchecked")
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    Path child = dir.resolve(ev.context());
+                    if (Files.isDirectory(child) && kind == StandardWatchEventKinds.ENTRY_CREATE) {
+                        registerDir(child);
+                    }
+                    if (child.toString().toLowerCase().endsWith(".pmx")) {
+                        rescanRequested = true;
+                    }
+                }
+                key.reset();
+            } catch (InterruptedException ignored) {
+                return;
+            } catch (Exception ignored) {
+                rescanRequested = true;
+            }
+        }
+    }
+
+    private void registerDir(Path dir) {
+        if (dir == null || watchedDirs.contains(dir)) return;
+        try {
+            dir.register(watchService,
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY);
+            watchedDirs.add(dir);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void stopWatcher() {
+        if (watchThread != null) {
+            watchThread.interrupt();
+            watchThread = null;
+        }
+        if (watchService != null) {
+            try { watchService.close(); } catch (Exception ignored) {}
+            watchService = null;
+        }
+        watchedDirs.clear();
     }
 
 
@@ -110,21 +204,21 @@ public class PmxModelSelectScreen extends Screen {
 
         private void updateSelectedFromViewer() {
             PmxViewer viewer = PmxViewer.get();
-            if (!viewer.isPmxVisible()) {
+            if (viewer.isPmxVisible()) {
+                Path selected = viewer.getSelectedModelPath();
+                if (selected == null) return;
+                for (int i = 0; i < this.children().size(); i++) {
+                    if (this.children().get(i) instanceof PmxModelEntry entry) {
+                        if (selected.equals(entry.modelPath)) {
+                            setSelected(entry);
+                            break;
+                        }
+                    }
+                }
+            } else {
                 for (int i = 0; i < this.children().size(); i++) {
                     if (this.children().get(i) instanceof PmxNoneEntry) {
                         setSelected(this.children().get(i));
-                        break;
-                    }
-                }
-                return;
-            }
-            Path selected = viewer.getSelectedModelPath();
-            if (selected == null) return;
-            for (int i = 0; i < this.children().size(); i++) {
-                if (this.children().get(i) instanceof PmxModelEntry entry) {
-                    if (selected.equals(entry.modelPath)) {
-                        setSelected(entry);
                         break;
                     }
                 }
