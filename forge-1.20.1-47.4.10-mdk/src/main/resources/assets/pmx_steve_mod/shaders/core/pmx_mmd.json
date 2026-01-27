@@ -6,7 +6,7 @@
     { "name": "Sampler1" },
     { "name": "Sampler2" }
   ],
-  "attributes": [ "Position", "Color", "UV0", "Normal" ],
+  "attributes": [ "Position", "UV0", "Normal" ],
   "uniforms": [
     { "name": "u_WV", "type": "matrix4x4", "count": 16,
       "values": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
