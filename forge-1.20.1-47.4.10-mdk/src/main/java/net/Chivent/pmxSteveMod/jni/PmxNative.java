@@ -1,11 +1,40 @@
 package net.Chivent.pmxSteveMod.jni;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
 public final class PmxNative {
+    private static final String LIB_NAME = "PmxModJNI";
+
     static {
-        System.loadLibrary("PmxModJNI");
+        loadNative();
     }
 
     private PmxNative() {}
+
+    private static void loadNative() {
+        String libFile = System.mapLibraryName(LIB_NAME);
+        String resourcePath = "/assets/pmx_steve_mod/native/" + libFile;
+        try (InputStream in = PmxNative.class.getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                System.loadLibrary(LIB_NAME);
+                return;
+            }
+            Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "native");
+            Files.createDirectories(outDir);
+            Path outFile = outDir.resolve(libFile);
+            if (!Files.exists(outFile)) {
+                Files.copy(in, outFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            System.load(outFile.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load native library: " + libFile, e);
+        }
+    }
 
     public static native long nativeCreate();
     public static native void nativeDestroy(long h);
