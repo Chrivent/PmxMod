@@ -98,9 +98,8 @@ public class PmxRenderer {
 
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
-        for (int s = 0; s < subs.length; s++) {
+        for (int s = 0; s < subs.length; s++)
             drawSubmesh(viewer, s, pose, packedLight, elemSize, indexCount, vtxCount);
-        }
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
