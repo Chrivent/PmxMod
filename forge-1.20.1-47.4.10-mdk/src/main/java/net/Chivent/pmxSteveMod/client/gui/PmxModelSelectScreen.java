@@ -41,11 +41,6 @@ public class PmxModelSelectScreen extends Screen {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
         }).bounds(this.width / 2 - 155, this.height - 32, 150, 20).build());
-        addRenderableWidget(Button.builder(toggleLabel(), b -> {
-            PmxViewer viewer = PmxViewer.get();
-            viewer.setPmxVisible(!viewer.isPmxVisible());
-            b.setMessage(toggleLabel());
-        }).bounds(this.width / 2 + 5, this.height - 32, 150, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Rescan"), b -> reloadList())
                 .bounds(this.width / 2 - 155, this.height - 56, 150, 20)
                 .build());
@@ -98,12 +93,8 @@ public class PmxModelSelectScreen extends Screen {
         return results;
     }
 
-    private Component toggleLabel() {
-        String state = PmxViewer.get().isPmxVisible() ? "Show PMX: ON" : "Show PMX: OFF";
-        return Component.literal(state);
-    }
 
-    private static final class PmxModelList extends AbstractSelectionList<PmxModelList.PmxModelEntry> {
+    private static final class PmxModelList extends AbstractSelectionList<PmxModelList.PmxEntry> {
         private final PmxModelSelectScreen screen;
 
         public PmxModelList(PmxModelSelectScreen screen, net.minecraft.client.Minecraft minecraft,
@@ -114,6 +105,7 @@ public class PmxModelSelectScreen extends Screen {
 
         public void replaceEntries(List<Path> models) {
             clearEntries();
+            addEntry(new PmxNoneEntry(screen));
             for (Path p : models) {
                 addEntry(new PmxModelEntry(screen, p));
             }
@@ -128,7 +120,10 @@ public class PmxModelSelectScreen extends Screen {
         public void updateNarration(@NotNull NarrationElementOutput output) {
         }
 
-        private static final class PmxModelEntry extends AbstractSelectionList.Entry<PmxModelEntry> {
+        private abstract static class PmxEntry extends AbstractSelectionList.Entry<PmxEntry> {
+        }
+
+        private static final class PmxModelEntry extends PmxEntry {
             private final PmxModelSelectScreen screen;
             private final Path modelPath;
 
@@ -148,7 +143,32 @@ public class PmxModelSelectScreen extends Screen {
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 PmxViewer viewer = PmxViewer.get();
                 viewer.setSelectedModelPath(modelPath);
+                viewer.setPmxVisible(true);
                 viewer.reloadSelectedModel();
+                if (screen.minecraft != null) {
+                    screen.minecraft.setScreen(screen.parent);
+                }
+                return true;
+            }
+        }
+
+        private static final class PmxNoneEntry extends PmxEntry {
+            private final PmxModelSelectScreen screen;
+
+            private PmxNoneEntry(PmxModelSelectScreen screen) {
+                this.screen = screen;
+            }
+
+            @Override
+            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
+                               int mouseX, int mouseY, boolean hovered, float partialTick) {
+                graphics.drawString(screen.font, "<Disable PMX>", x + 6, y + 2, 0xAAAAAA, false);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                PmxViewer viewer = PmxViewer.get();
+                viewer.setPmxVisible(false);
                 if (screen.minecraft != null) {
                     screen.minecraft.setScreen(screen.parent);
                 }
