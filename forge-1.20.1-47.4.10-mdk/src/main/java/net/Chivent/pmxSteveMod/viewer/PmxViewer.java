@@ -263,7 +263,7 @@ public class PmxViewer {
             float[] toonMul, float[] toonAdd,
 
             String sphereTexPath,
-            int sphereMode,               // 0 none, 1 mul, 2 add
+            int sphereMode,
             float[] sphereMul, float[] sphereAdd,
 
             boolean edgeFlag,
