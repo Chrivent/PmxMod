@@ -27,9 +27,7 @@ public final class PmxNative {
             Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "native");
             Files.createDirectories(outDir);
             Path outFile = outDir.resolve(libFile);
-            if (!Files.exists(outFile)) {
-                Files.copy(in, outFile, StandardCopyOption.REPLACE_EXISTING);
-            }
+            Files.copy(in, outFile, StandardCopyOption.REPLACE_EXISTING);
             System.load(outFile.toString());
         } catch (IOException e) {
             throw new RuntimeException("Failed to load native library: " + libFile, e);
@@ -41,6 +39,7 @@ public final class PmxNative {
 
     public static native boolean nativeLoadPmx(long h, String pmxPath, String dataDir);
     public static native boolean nativeAddVmd(long h, String vmdPath);
+    public static native void nativeSyncPhysics(long h, float t);
     public static native void nativeUpdate(long h, float frame, float physicsElapsed);
 
     public static native String nativeGetModelName(long h);

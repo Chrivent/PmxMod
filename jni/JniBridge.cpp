@@ -121,6 +121,13 @@ extern "C" {
         return ok ? JNI_TRUE : JNI_FALSE;
     }
 
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSyncPhysics(
+        JNIEnv*, jclass, const jlong handle, const jfloat t) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->anim) return;
+        rt->anim->SyncPhysics(t);
+    }
+
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate(
         JNIEnv*, jclass, const jlong handle, const jfloat frame, const jfloat physicsElapsed) {
         const auto* rt = FromHandle(handle);

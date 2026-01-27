@@ -94,6 +94,7 @@ public class PmxInstance {
             if (!ok) { ready = false; return; }
 
             PmxNative.nativeAddVmd(handle, "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
+            PmxNative.nativeSyncPhysics(handle, 0.0f);
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
 
             allocateCpuBuffers();
