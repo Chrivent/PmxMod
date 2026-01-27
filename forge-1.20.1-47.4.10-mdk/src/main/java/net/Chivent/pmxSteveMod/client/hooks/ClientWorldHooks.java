@@ -13,6 +13,12 @@ public final class ClientWorldHooks {
     private ClientWorldHooks() {}
 
     @SubscribeEvent
+    public static void onLevelLoad(LevelEvent.Load event) {
+        if (!event.getLevel().isClientSide()) return;
+        PmxViewer.get().init();
+    }
+
+    @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (!event.getLevel().isClientSide()) return;
         PlayerRenderHooks.shutdownRenderer();
