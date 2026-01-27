@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
+import net.Chivent.pmxSteveMod.viewer.PmxViewer.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer.SubmeshInfo;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
@@ -21,6 +22,7 @@ import java.util.List;
 import com.mojang.blaze3d.shaders.Uniform;
 
 public class PmxRenderer {
+
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(m);
@@ -69,11 +71,15 @@ public class PmxRenderer {
         SubmeshInfo[] subs = viewer.submeshes();
         if (subs == null) { poseStack.popPose(); return; }
 
+        // 원본처럼: 알파 기준으로 pass 분리(단, 여기서는 정렬은 안 함)
         List<Integer> opaquePass = new ArrayList<>();
         List<Integer> translucentPass = new ArrayList<>();
 
         for (int s = 0; s < subs.length; s++) {
-            float a = calcFinalAlpha(subs[s]);
+            MaterialInfo mat = viewer.material(subs[s].materialId());
+            if (mat == null) continue;
+
+            float a = mat.alpha();
             if (a < 0.999f) translucentPass.add(s);
             else opaquePass.add(s);
         }
@@ -97,13 +103,8 @@ public class PmxRenderer {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         poseStack.popPose();
-    }
 
-    private float calcFinalAlpha(SubmeshInfo sm) {
-        int rgba = sm.diffuseRGBA();
-        float ma = (rgba & 0xFF) / 255.0f;
-        ma *= sm.alphaMat();
-        return ma;
+        // Edge / GroundShadow 패스는 shader/파이프라인 준비되면 여기서 원본처럼 추가하면 됨
     }
 
     private void drawSubmesh(PmxViewer viewer,
@@ -115,6 +116,8 @@ public class PmxRenderer {
                              int indexCount,
                              int vtxCount) {
         SubmeshInfo sm = viewer.submeshes()[s];
+        MaterialInfo mat = viewer.material(sm.materialId());
+        if (mat == null) return;
 
         int begin = sm.beginIndex();
         int count = sm.indexCount();
@@ -125,15 +128,11 @@ public class PmxRenderer {
         count -= (count % 3);
         if (count <= 0) return;
 
-        int rgba = sm.diffuseRGBA();
+        // alpha 0이면 스킵(원본: mat.m_diffuse.a == 0)
+        float alpha = mat.alpha();
+        if (alpha <= 0.0f) return;
 
-        float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
-        float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
-        float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
-        float ma = ( rgba         & 0xFF) / 255.0f;
-        ma *= sm.alphaMat();
-
-        boolean translucent = forceTranslucentPass || (ma < 0.999f);
+        boolean translucent = forceTranslucentPass || (alpha < 0.999f);
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
@@ -147,26 +146,50 @@ public class PmxRenderer {
         setMat4(sh, "u_WV", wv);
         setMat4(sh, "u_WVP", wvp);
 
+        // 원본과 동일한 라이트 기본값
         set3f(sh, "u_LightColor", 1f, 1f, 1f);
         set3f(sh, "u_LightDir", 0.2f, 1.0f, 0.2f);
 
-        set3f(sh, "u_Ambient", 0f, 0f, 0f);
+        // material uniforms (원본 그대로)
+        set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
+
+        int rgba = mat.diffuseRGBA();
+        float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
+        float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
+        float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
         set3f(sh, "u_Diffuse", mr, mg, mb);
-        set3f(sh, "u_Specular", 0f, 0f, 0f);
-        set1f(sh, "u_SpecularPower", 0f);
-        set1f(sh, "u_Alpha", ma);
 
-        ResourceLocation mainTex = (sm.mainTex() != null) ? sm.mainTex() : viewer.magentaTex();
-        RenderSystem.setShaderTexture(0, mainTex);
-        RenderSystem.setShaderTexture(1, viewer.magentaTex());
-        RenderSystem.setShaderTexture(2, viewer.magentaTex());
+        set3f(sh, "u_Specular", mat.specularR(), mat.specularG(), mat.specularB());
+        set1f(sh, "u_SpecularPower", mat.specularPower());
+        set1f(sh, "u_Alpha", alpha);
 
-        set1i(sh, "u_TexMode", sm.hasMainTex() ? 2 : 0);
-        set4f(sh, "u_TexMulFactor", 1f, 1f, 1f, 1f);
-        set4f(sh, "u_TexAddFactor", 0f, 0f, 0f, 0f);
+        // --- texture binding (원본: unit0 main, unit1 sphere, unit2 toon)
+        // 너 shader json/frag 기준은 Sampler0=main, Sampler1=toon, Sampler2=sphere
+        ResourceLocation mainTex   = (mat.mainTex()   != null) ? mat.mainTex()   : viewer.magentaTex();
+        ResourceLocation toonTex   = (mat.toonTex()   != null) ? mat.toonTex()   : viewer.magentaTex();
+        ResourceLocation sphereTex = (mat.sphereTex() != null) ? mat.sphereTex() : viewer.magentaTex();
 
-        set1i(sh, "u_SphereTexMode", 0);
-        set1i(sh, "u_ToonTexMode", 0);
+        RenderSystem.setShaderTexture(0, mainTex);   // Sampler0
+        RenderSystem.setShaderTexture(1, toonTex);   // Sampler1
+        RenderSystem.setShaderTexture(2, sphereTex); // Sampler2
+
+        set1i(sh, "u_TexMode", mat.texMode());
+        float[] tm = mat.texMul();
+        float[] ta = mat.texAdd();
+        set4f(sh, "u_TexMulFactor", tm[0], tm[1], tm[2], tm[3]);
+        set4f(sh, "u_TexAddFactor", ta[0], ta[1], ta[2], ta[3]);
+
+        set1i(sh, "u_ToonTexMode", mat.toonTexMode());
+        float[] toonMul = mat.toonMul();
+        float[] toonAdd = mat.toonAdd();
+        set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
+        set4f(sh, "u_ToonTexAddFactor", toonAdd[0], toonAdd[1], toonAdd[2], toonAdd[3]);
+
+        set1i(sh, "u_SphereTexMode", mat.sphereTexMode());
+        float[] spMul = mat.sphereMul();
+        float[] spAdd = mat.sphereAdd();
+        set4f(sh, "u_SphereTexMulFactor", spMul[0], spMul[1], spMul[2], spMul[3]);
+        set4f(sh, "u_SphereTexAddFactor", spAdd[0], spAdd[1], spAdd[2], spAdd[3]);
 
         RenderSystem.enableDepthTest();
 
@@ -179,7 +202,7 @@ public class PmxRenderer {
             RenderSystem.depthMask(true);
         }
 
-        if (sm.bothFace()) RenderSystem.disableCull();
+        if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
         Tesselator tess = Tesselator.getInstance();

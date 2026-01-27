@@ -19,6 +19,13 @@ std::filesystem::path JStringToPath(JNIEnv* env, _jstring* s) {
     return std::filesystem::path{w};
 }
 
+static jstring PathToJStringUtf8(JNIEnv* env, const std::filesystem::path& p) {
+    const std::wstring w = p.wstring();
+    const std::string utf8 = Util::WStringToUtf8(w);
+    if (utf8.empty()) return nullptr;
+    return env->NewStringUTF(utf8.c_str());
+}
+
 PmxRuntime* FromHandle(const jlong h) {
     return reinterpret_cast<PmxRuntime*>(h);
 }
@@ -52,6 +59,35 @@ static const Material* GetMaterialForSubMesh(const Model* model, const int subMe
     const auto& mats = model->m_materials;
     if (matId < 0 || matId >= static_cast<int>(mats.size())) return nullptr;
     return &mats[matId];
+}
+
+static void WriteVec3(JNIEnv* env, _jobject* buf, const glm::vec3& v) {
+    if (!buf) return;
+    auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
+    const jlong cap = env->GetDirectBufferCapacity(buf);
+    if (!out || cap < static_cast<jlong>(3 * sizeof(float))) return;
+    out[0] = v.x; out[1] = v.y; out[2] = v.z;
+}
+
+static void WriteVec4(JNIEnv* env, _jobject* buf, const glm::vec4& v) {
+    if (!buf) return;
+    auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
+    const jlong cap = env->GetDirectBufferCapacity(buf);
+    if (!out || cap < static_cast<jlong>(4 * sizeof(float))) return;
+    out[0] = v.x; out[1] = v.y; out[2] = v.z; out[3] = v.w;
+}
+
+static jint SphereModeToInt(const SphereMode m) {
+    if (m == SphereMode::Mul) return 1;
+    if (m == SphereMode::Add) return 2;
+    return 0;
+}
+
+static const Material* GetMaterialByIndex(const Model* model, const int mi) {
+    if (!model) return nullptr;
+    const auto& mats = model->m_materials;
+    if (mi < 0 || mi >= static_cast<int>(mats.size())) return nullptr;
+    return &mats[mi];
 }
 
 extern "C" {
@@ -232,7 +268,7 @@ extern "C" {
         return sub[si].m_beginIndex;
     }
 
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshVertexCount(
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexCount(
         JNIEnv*, jclass, const jlong handle, const jint m) {
         const auto* rt = FromHandle(handle);
         if (!rt || !rt->model) return 0;
@@ -242,43 +278,218 @@ extern "C" {
         return sub[si].m_vertexCount;
     }
 
-    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshTexturePath(
-        JNIEnv* env, jclass, const jlong handle, const jint m) {
-        const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model) return nullptr;
-        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
-        if (!mat) return nullptr;
-        const std::wstring w = mat->m_texture.wstring();
-        const std::string utf8 = Util::WStringToUtf8(w);
-        if (utf8.empty()) return nullptr;
-        return env->NewStringUTF(utf8.c_str());
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshMaterialId(
+        JNIEnv*, jclass, const jlong h, const jint s) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return -1;
+        const auto& subs = rt->model->m_subMeshes;
+        if (s < 0 || s >= static_cast<jint>(subs.size())) return -1;
+        return subs[s].m_materialID;
     }
 
-    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshAlpha(
-        JNIEnv*, jclass, const jlong handle, const jint m) {
-        const auto* rt = FromHandle(handle);
-        if (!rt || !rt->model) return 1.0f;
-        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
-        if (!mat) return 1.0f;
-        return mat->m_diffuse.a;
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialCount(
+        JNIEnv*, jclass, const jlong h) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 0;
+        return static_cast<jint>(rt->model->m_materials.size());
     }
 
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshDiffuseRGBA(
-        JNIEnv*, jclass, const jlong handle, const jint m) {
-        const auto* rt = FromHandle(handle);
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialDiffuseRGBA(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
         if (!rt || !rt->model) return static_cast<jint>(0xFFFFFFFF);
-        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(m));
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
         if (!mat) return static_cast<jint>(0xFFFFFFFF);
         const auto& d = mat->m_diffuse;
         return PackRGBA8(d.x, d.y, d.z, d.w);
     }
 
-    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBothFace(
-        JNIEnv*, jclass, const jlong handle, const jint s) {
-        const auto* rt = FromHandle(handle);
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialAlpha(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 1.0f;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return 1.0f;
+        return mat->m_diffuse.a;
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialAmbient(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst3f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const auto& mats = rt->model->m_materials;
+        if (m < 0 || m >= static_cast<jint>(mats.size())) return;
+        WriteVec3(env, dst3f, mats[m].m_ambient);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSpecular(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst3f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec3(env, dst3f, mat->m_specular);
+    }
+
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSpecularPower(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 0.0f;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return 0.0f;
+        return mat->m_specularPower;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialBothFaceByMaterial(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
         if (!rt || !rt->model) return JNI_FALSE;
-        const Material* mat = GetMaterialForSubMesh(rt->model.get(), static_cast<int>(s));
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
         if (!mat) return JNI_FALSE;
         return mat->m_bothFace ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexturePath(
+        JNIEnv* env, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return nullptr;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return nullptr;
+        return PathToJStringUtf8(env, mat->m_texture);
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereTexturePath(
+        JNIEnv* env, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return nullptr;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return nullptr;
+        return PathToJStringUtf8(env, mat->m_spTexture);
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereMode(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 0;
+        const auto& mats = rt->model->m_materials;
+        if (m < 0 || m >= static_cast<jint>(mats.size())) return 0;
+        return SphereModeToInt(mats[m].m_spTextureMode);
+    }
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonTexturePath(
+        JNIEnv* env, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return nullptr;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return nullptr;
+        return PathToJStringUtf8(env, mat->m_toonTexture);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexMulFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_textureMulFactor);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexAddFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_textureAddFactor);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereMulFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_spTextureMulFactor);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereAddFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_spTextureAddFactor);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonMulFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_toonTextureMulFactor);
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonAddFactor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_toonTextureAddFactor);
+    }
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeFlag(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 0;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return 0;
+        return (jint)mat->m_edgeFlag;
+    }
+
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeSize(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return 0.0f;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return 0.0f;
+        return mat->m_edgeSize;
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeColor(
+        JNIEnv* env, jclass, const jlong h, const jint m, _jobject* dst4f) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return;
+        WriteVec4(env, dst4f, mat->m_edgeColor);
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialGroundShadow(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return JNI_FALSE;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return JNI_FALSE;
+        return mat->m_groundShadow ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialShadowCaster(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return JNI_FALSE;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return JNI_FALSE;
+        return mat->m_shadowCaster ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialShadowReceiver(
+        JNIEnv*, jclass, const jlong h, const jint m) {
+        const auto* rt = FromHandle(h);
+        if (!rt || !rt->model) return JNI_FALSE;
+        const Material* mat = GetMaterialByIndex(rt->model.get(), static_cast<int>(m));
+        if (!mat) return JNI_FALSE;
+        return mat->m_shadowReceiver ? JNI_TRUE : JNI_FALSE;
     }
 }

@@ -2,16 +2,12 @@
 
 #include <jni.h>
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
     JNIEXPORT jlong JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCreate(JNIEnv*, jclass);
-    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeDestroy(JNIEnv*, jclass, jlong);
+    JNIEXPORT void  JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeDestroy(JNIEnv*, jclass, jlong);
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadPmx(JNIEnv*, jclass, jlong, jstring, jstring);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeAddVmd(JNIEnv*, jclass, jlong, jstring);
-
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate(JNIEnv*, jclass, jlong, jfloat, jfloat);
 
     JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetModelName(JNIEnv* env, jclass, jlong handle);
@@ -29,13 +25,36 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCopyUVs(JNIEnv*, jclass, jlong, jobject);
 
     JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshCount(JNIEnv*, jclass, jlong);
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexStart(JNIEnv*, jclass, jlong, jint);
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshVertexCount(JNIEnv*, jclass, jlong, jint);
-    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshTexturePath(JNIEnv*, jclass, jlong, jint);
-    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshAlpha(JNIEnv*, jclass, jlong, jint);
-    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshDiffuseRGBA(JNIEnv*, jclass, jlong, jint);
-    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBothFace(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshBeginIndex(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshIndexCount(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetSubmeshMaterialId(JNIEnv*, jclass, jlong, jint);
 
-#ifdef __cplusplus
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialCount(JNIEnv*, jclass, jlong);
+
+    JNIEXPORT jint   JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialDiffuseRGBA(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialAlpha(JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT void   JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialAmbient(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void   JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSpecular(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSpecularPower(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialBothFaceByMaterial(JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexturePath(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereTexturePath(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jint    JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereMode(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonTexturePath(JNIEnv*, jclass, jlong, jint);
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexMulFactor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialTexAddFactor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereMulFactor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialSphereAddFactor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonMulFactor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialToonAddFactor(JNIEnv*, jclass, jlong, jint, jobject);
+
+    JNIEXPORT jint JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeFlag(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeSize(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialEdgeColor(JNIEnv*, jclass, jlong, jint, jobject);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialGroundShadow(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialShadowCaster(JNIEnv*, jclass, jlong, jint);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMaterialShadowReceiver(JNIEnv*, jclass, jlong, jint);
 }
-#endif
