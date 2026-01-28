@@ -14,6 +14,7 @@ struct PmxRuntime {
     float blendElapsed = 0.0f;
     float blendDuration = 0.0f;
     bool blending = false;
+    bool blendToDefault = false;
     Sound music;
 };
 
@@ -126,6 +127,7 @@ extern "C" {
         rt->blendElapsed = 0.0f;
         rt->blendDuration = 0.0f;
         rt->blending = false;
+        rt->blendToDefault = false;
         return JNI_TRUE;
     }
 
@@ -138,6 +140,7 @@ extern "C" {
         rt->blendElapsed = 0.0f;
         rt->blendDuration = 0.0f;
         rt->blending = false;
+        rt->blendToDefault = false;
         VMDReader vmd;
         const auto path = JStringToPath(env, vmdPath);
         if (!vmd.ReadFile(path)) return JNI_FALSE;
@@ -161,6 +164,7 @@ extern "C" {
             rt->blendElapsed = 0.0f;
             rt->blendDuration = 0.0f;
             rt->blending = false;
+            rt->blendToDefault = false;
             return JNI_TRUE;
         }
 
@@ -169,6 +173,38 @@ extern "C" {
         rt->blendElapsed = 0.0f;
         rt->blendDuration = blendSeconds;
         rt->blending = true;
+        rt->blendToDefault = false;
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStartDefaultPoseBlend(
+        JNIEnv*, jclass, const jlong handle, const jfloat blendSeconds) {
+        auto* rt = FromHandle(handle);
+        if (!rt || !rt->model) return JNI_FALSE;
+        if (blendSeconds <= 0.0f) {
+            rt->blendAnim.reset();
+            rt->blendElapsed = 0.0f;
+            rt->blendDuration = 0.0f;
+            rt->blending = false;
+            rt->blendToDefault = false;
+            for (const auto& node : rt->model->m_nodes) {
+                node->m_animTranslate = glm::vec3(0);
+                node->m_animRotate = glm::quat(1, 0, 0, 0);
+            }
+            for (const auto& morph : rt->model->m_morphs) {
+                morph->m_weight = 0.0f;
+            }
+            for (const auto& ikSolver : rt->model->m_ikSolvers) {
+                ikSolver->m_enable = true;
+            }
+            return JNI_TRUE;
+        }
+        rt->model->SaveBaseAnimation();
+        rt->blendAnim.reset();
+        rt->blendElapsed = 0.0f;
+        rt->blendDuration = blendSeconds;
+        rt->blending = true;
+        rt->blendToDefault = true;
         return JNI_TRUE;
     }
 
@@ -260,7 +296,47 @@ extern "C" {
         auto* rt = FromHandle(handle);
         if (!rt || !rt->model) return;
         rt->model->BeginAnimation();
-        if (rt->blending && rt->blendAnim) {
+        if (rt->blending && rt->blendToDefault) {
+            const float duration = rt->blendDuration;
+            const float weight = duration > 0.0f
+                ? std::clamp(rt->blendElapsed / duration, 0.0f, 1.0f)
+                : 1.0f;
+            rt->model->BeginAnimation();
+            for (const auto& node : rt->model->m_nodes) {
+                node->m_animTranslate = glm::mix(node->m_baseAnimTranslate, glm::vec3(0), weight);
+                node->m_animRotate = glm::slerp(node->m_baseAnimRotate, glm::quat(1, 0, 0, 0), weight);
+            }
+            for (const auto& morph : rt->model->m_morphs) {
+                morph->m_weight = glm::mix(morph->m_saveAnimWeight, 0.0f, weight);
+            }
+            for (const auto& ikSolver : rt->model->m_ikSolvers) {
+                ikSolver->m_enable = weight < 1.0f ? ikSolver->m_baseAnimEnable : true;
+            }
+            rt->model->UpdateMorphAnimation();
+            rt->model->UpdateNodeAnimation(false);
+            rt->model->UpdatePhysicsAnimation(physicsElapsed);
+            rt->model->UpdateNodeAnimation(true);
+
+            rt->blendElapsed += physicsElapsed;
+            if (duration <= 0.0f || rt->blendElapsed >= duration) {
+                for (const auto& node : rt->model->m_nodes) {
+                    node->m_animTranslate = glm::vec3(0);
+                    node->m_animRotate = glm::quat(1, 0, 0, 0);
+                }
+                for (const auto& morph : rt->model->m_morphs) {
+                    morph->m_weight = 0.0f;
+                }
+                for (const auto& ikSolver : rt->model->m_ikSolvers) {
+                    ikSolver->m_enable = true;
+                }
+                rt->anim = CreateAnimation(rt->model);
+                rt->blendAnim.reset();
+                rt->blending = false;
+                rt->blendToDefault = false;
+                rt->blendElapsed = 0.0f;
+                rt->blendDuration = 0.0f;
+            }
+        } else if (rt->blending && rt->blendAnim) {
             const float duration = rt->blendDuration;
             const float weight = duration > 0.0f
                 ? std::clamp(rt->blendElapsed / duration, 0.0f, 1.0f)

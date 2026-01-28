@@ -291,9 +291,37 @@ public class PmxInstance {
     public void resetToDefaultPose() {
         Path pmxPath = currentPmxPath;
         if (pmxPath == null) return;
-        shutdown();
-        init(pmxPath);
+        if (!ready || handle == 0L) {
+            init(pmxPath);
+            return;
+        }
+        try {
+            PmxNative.nativeStopMusic(handle);
+        } catch (Throwable ignored) {
+        }
+        try {
+            PmxNative.nativeClearCamera(handle);
+        } catch (Throwable ignored) {
+        }
+        musicActive = false;
+        cameraActive = false;
+        boolean started = false;
+        try {
+            started = PmxNative.nativeStartDefaultPoseBlend(handle, 0.3f);
+        } catch (UnsatisfiedLinkError e) {
+            LOGGER.warn("[PMX] nativeStartDefaultPoseBlend missing (rebuild native DLL). Falling back to reset.");
+        }
+        if (!started) {
+            shutdown();
+            init(pmxPath);
+            forceBlendNext = true;
+            return;
+        }
+        hasMotion = false;
+        currentMotionPath = null;
         forceBlendNext = true;
+        frame = 0f;
+        lastNanos = -1;
     }
 
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
