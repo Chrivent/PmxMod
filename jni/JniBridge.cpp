@@ -276,13 +276,13 @@ extern "C" {
         return JNI_TRUE;
     }
 
-    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativePlayMusic(
-        JNIEnv* env, jclass, const jlong handle, _jstring* musicPath) {
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativePlayMusicLoop(
+        JNIEnv* env, jclass, const jlong handle, _jstring* musicPath, const jboolean loop) {
         auto* rt = FromHandle(handle);
         if (!rt) return JNI_FALSE;
         const auto path = JStringToPath(env, musicPath);
         rt->music.m_volume = 1.0f;
-        const bool ok = rt->music.Init(path);
+        const bool ok = rt->music.Init(path, loop == JNI_TRUE);
         return ok ? JNI_TRUE : JNI_FALSE;
     }
 

@@ -12,7 +12,7 @@ Sound::~Sound() {
     Uninit();
 }
 
-bool Sound::Init(const std::filesystem::path& path) {
+bool Sound::Init(const std::filesystem::path& path, const bool loop) {
     Uninit();
     if (path.empty())
         return false;
@@ -23,6 +23,7 @@ bool Sound::Init(const std::filesystem::path& path) {
         ma_engine_uninit(m_engine.get());
         return false;
     }
+    ma_sound_set_looping(m_sound.get(), loop ? MA_TRUE : MA_FALSE);
     ma_sound_set_volume(m_sound.get(), m_volume);
     ma_sound_start(m_sound.get());
     m_hasSound = true;

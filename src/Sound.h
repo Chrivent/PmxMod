@@ -14,7 +14,7 @@ struct Sound {
     bool m_hasSound = false;
     float m_volume = 0.1f;
 
-    bool Init(const std::filesystem::path& path);
+    bool Init(const std::filesystem::path& path, bool loop);
     std::pair<float, float> PullTimes();
     void Stop();
 

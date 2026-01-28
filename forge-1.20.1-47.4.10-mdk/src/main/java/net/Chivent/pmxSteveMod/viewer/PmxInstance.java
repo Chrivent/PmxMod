@@ -43,6 +43,7 @@ public class PmxInstance {
 
     private float frame = 0f;
     private long lastNanos = -1;
+    private float lastMusicTime = -1f;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -163,7 +164,12 @@ public class PmxInstance {
     public void tickRender() {
         if (!ready || handle == 0L) return;
 
-        float dt;
+        long now = System.nanoTime();
+        if (lastNanos < 0) lastNanos = now;
+        float dt = (now - lastNanos) / 1_000_000_000.0f;
+        lastNanos = now;
+        frame += dt * 30.0f;
+
         if (musicActive) {
             musicTimes.clear();
             boolean ok = false;
@@ -174,31 +180,25 @@ public class PmxInstance {
             }
             musicTimes.rewind();
             if (ok) {
-                dt = musicTimes.getFloat();
+                float musicDt = musicTimes.getFloat();
                 float t = musicTimes.getFloat();
-                frame = t * 30.0f;
+                boolean advanced = lastMusicTime < 0f || t > lastMusicTime + 1.0e-4f;
+                if (advanced) {
+                    lastMusicTime = t;
+                }
+                if (musicActive) {
+                    frame = t * 30.0f;
+                    dt = musicDt;
+                }
             } else {
                 musicActive = false;
-                long now = System.nanoTime();
-                if (lastNanos < 0) lastNanos = now;
-                dt = (now - lastNanos) / 1_000_000_000.0f;
-                lastNanos = now;
-                frame += dt * 30.0f;
+                lastMusicTime = -1f;
             }
-        } else {
-            long now = System.nanoTime();
-            if (lastNanos < 0) lastNanos = now;
-            dt = (now - lastNanos) / 1_000_000_000.0f;
-            lastNanos = now;
-            frame += dt * 30.0f;
         }
-        updateCameraState(frame);
-        PmxNative.nativeUpdate(handle, frame, dt);
         if (hasMotion && currentMotionEndFrame > 0.0f && frame >= currentMotionEndFrame) {
             if (currentMotionLoop) {
                 frame = frame % currentMotionEndFrame;
                 lastNanos = -1;
-                PmxNative.nativeUpdate(handle, frame, 0.0f);
             } else if (!motionEnded) {
                 motionEnded = true;
                 forceBlendNext = true;
@@ -206,6 +206,9 @@ public class PmxInstance {
                 currentMotionEndFrame = 0f;
             }
         }
+
+        updateCameraState(frame);
+        PmxNative.nativeUpdate(handle, frame, dt);
     }
 
     public void syncCpuBuffersForRender() {
@@ -227,13 +230,15 @@ public class PmxInstance {
             if (musicPath != null && Files.exists(musicPath)) {
                 Path safeMusic = toSafePath(musicPath, "music_cache");
                 try {
-                    musicActive = PmxNative.nativePlayMusic(handle, safeMusic.toString());
+                    musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), loop);
                 } catch (UnsatisfiedLinkError e) {
                     musicActive = false;
                 }
+                lastMusicTime = -1f;
             } else {
                 try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
                 musicActive = false;
+                lastMusicTime = -1f;
             }
 
             if (cameraPath != null && Files.exists(cameraPath)) {
@@ -389,6 +394,7 @@ public class PmxInstance {
         camDistance = cameraState.getFloat();
         camFov = cameraState.getFloat();
     }
+
 
 
     private void allocateCpuBuffers() {

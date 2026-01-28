@@ -45,7 +45,7 @@ public final class PmxNative {
     public static native boolean nativeLoadCameraVmd(long h, String vmdPath);
     public static native void nativeClearCamera(long h);
     public static native boolean nativeGetCameraState(long h, float frame, java.nio.ByteBuffer dst8f);
-    public static native boolean nativePlayMusic(long h, String musicPath);
+    public static native boolean nativePlayMusicLoop(long h, String musicPath, boolean loop);
     public static native void nativeStopMusic(long h);
     public static native boolean nativeGetMusicTimes(long h, java.nio.ByteBuffer dst2f);
     public static native void nativeSyncPhysics(long h, float t);
