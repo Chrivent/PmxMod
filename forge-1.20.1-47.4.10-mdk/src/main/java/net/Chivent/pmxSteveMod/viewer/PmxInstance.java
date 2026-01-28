@@ -281,6 +281,13 @@ public class PmxInstance {
         musicActive = false;
     }
 
+    public void resetToDefaultPose() {
+        Path pmxPath = currentPmxPath;
+        if (pmxPath == null) return;
+        shutdown();
+        init(pmxPath);
+    }
+
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
         String name = src.getFileName().toString();
         String safeName = name.replaceAll("[^A-Za-z0-9._-]", "_");

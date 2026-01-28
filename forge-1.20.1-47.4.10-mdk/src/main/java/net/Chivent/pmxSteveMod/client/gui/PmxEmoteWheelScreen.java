@@ -158,7 +158,7 @@ public class PmxEmoteWheelScreen extends Screen {
         java.nio.file.Path modelPath = viewer.getSelectedModelPath();
         String idle = net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.get().getIdleMotion(modelPath);
         if (idle == null || idle.isBlank()) {
-            viewer.instance().stopMusic();
+            viewer.instance().resetToDefaultPose();
             return;
         }
         java.nio.file.Path motionDir = viewer.getUserMotionDir();
