@@ -3,6 +3,7 @@
 #include "../src/Model.h"
 #include "../src/Animation.h"
 #include "../src/Reader.h"
+#include "../src/Sound.h"
 #include "../src/Util.h"
 
 struct PmxRuntime {
@@ -12,6 +13,7 @@ struct PmxRuntime {
     float blendElapsed = 0.0f;
     float blendDuration = 0.0f;
     bool blending = false;
+    Sound music;
 };
 
 std::filesystem::path JStringToPath(JNIEnv* env, _jstring* s) {
@@ -167,6 +169,41 @@ extern "C" {
         rt->blendElapsed = 0.0f;
         rt->blendDuration = blendSeconds;
         rt->blending = true;
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativePlayMusic(
+        JNIEnv* env, jclass, const jlong handle, _jstring* musicPath) {
+        auto* rt = FromHandle(handle);
+        if (!rt) return JNI_FALSE;
+        const auto path = JStringToPath(env, musicPath);
+        rt->music.m_volume = 1.0f;
+        const bool ok = rt->music.Init(path);
+        return ok ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStopMusic(
+        JNIEnv*, jclass, const jlong handle) {
+        auto* rt = FromHandle(handle);
+        if (!rt) return;
+        rt->music.Stop();
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMusicTimes(
+        JNIEnv* env, jclass, const jlong handle, _jobject* dst2f) {
+        auto* rt = FromHandle(handle);
+        if (!rt || !dst2f) return JNI_FALSE;
+        auto* out = static_cast<float*>(env->GetDirectBufferAddress(dst2f));
+        const jlong cap = env->GetDirectBufferCapacity(dst2f);
+        if (!out || cap < static_cast<jlong>(2 * sizeof(float))) return JNI_FALSE;
+        if (!rt->music.m_hasSound) {
+            out[0] = 0.0f;
+            out[1] = 0.0f;
+            return JNI_FALSE;
+        }
+        auto [dt, t] = rt->music.PullTimes();
+        out[0] = dt;
+        out[1] = t;
         return JNI_TRUE;
     }
 

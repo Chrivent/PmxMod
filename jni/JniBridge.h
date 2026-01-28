@@ -9,6 +9,9 @@ extern "C" {
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadPmx(JNIEnv*, jclass, jlong, jstring, jstring);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeAddVmd(JNIEnv*, jclass, jlong, jstring);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStartVmdBlend(JNIEnv*, jclass, jlong, jstring, jfloat);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativePlayMusic(JNIEnv*, jclass, jlong, jstring);
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStopMusic(JNIEnv*, jclass, jlong);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMusicTimes(JNIEnv*, jclass, jlong, jobject);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSyncPhysics(JNIEnv*, jclass, jlong, jfloat);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate(JNIEnv*, jclass, jlong, jfloat, jfloat);
 

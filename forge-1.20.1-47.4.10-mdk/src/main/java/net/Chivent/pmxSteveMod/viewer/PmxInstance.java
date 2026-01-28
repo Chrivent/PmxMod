@@ -25,6 +25,7 @@ public class PmxInstance {
     private long modelVersion = 0L;
     private Path currentPmxPath;
     private boolean hasMotion = false;
+    private boolean musicActive = false;
 
     private float frame = 0f;
     private long lastNanos = -1;
@@ -41,6 +42,7 @@ public class PmxInstance {
 
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
+    private final ByteBuffer musicTimes = ByteBuffer.allocateDirect(2 * 4).order(ByteOrder.nativeOrder());
 
     private boolean indicesCopiedOnce = false;
 
@@ -110,6 +112,7 @@ public class PmxInstance {
             modelVersion++;
             ready = true;
             hasMotion = false;
+            musicActive = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -118,12 +121,14 @@ public class PmxInstance {
 
     public void shutdown() {
         if (handle != 0L) {
+            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
             try { PmxNative.nativeDestroy(handle); } catch (Throwable ignored) {}
             handle = 0L;
         }
         ready = false;
         currentPmxPath = null;
         hasMotion = false;
+        musicActive = false;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -133,12 +138,35 @@ public class PmxInstance {
     public void tickRender() {
         if (!ready || handle == 0L) return;
 
-        long now = System.nanoTime();
-        if (lastNanos < 0) lastNanos = now;
-        float dt = (now - lastNanos) / 1_000_000_000.0f;
-        lastNanos = now;
-
-        frame += dt * 30.0f;
+        float dt;
+        if (musicActive) {
+            musicTimes.clear();
+            boolean ok = false;
+            try {
+                ok = PmxNative.nativeGetMusicTimes(handle, musicTimes);
+            } catch (UnsatisfiedLinkError e) {
+                musicActive = false;
+            }
+            musicTimes.rewind();
+            if (ok) {
+                dt = musicTimes.getFloat();
+                float t = musicTimes.getFloat();
+                frame = t * 30.0f;
+            } else {
+                musicActive = false;
+                long now = System.nanoTime();
+                if (lastNanos < 0) lastNanos = now;
+                dt = (now - lastNanos) / 1_000_000_000.0f;
+                lastNanos = now;
+                frame += dt * 30.0f;
+            }
+        } else {
+            long now = System.nanoTime();
+            if (lastNanos < 0) lastNanos = now;
+            dt = (now - lastNanos) / 1_000_000_000.0f;
+            lastNanos = now;
+            frame += dt * 30.0f;
+        }
         PmxNative.nativeUpdate(handle, frame, dt);
     }
 
@@ -150,6 +178,10 @@ public class PmxInstance {
     }
 
     public void playMotion(Path vmdPath) {
+        playMotion(vmdPath, null);
+    }
+
+    public void playMotion(Path vmdPath, Path musicPath) {
         if (vmdPath == null || !Files.exists(vmdPath)) return;
         Path pmxPath = currentPmxPath;
         if (pmxPath == null) return;
@@ -158,10 +190,30 @@ public class PmxInstance {
         }
         if (!ready || handle == 0L) return;
         try {
-            Path safePath = toSafePath(vmdPath);
+            if (musicPath != null && Files.exists(musicPath)) {
+                Path safeMusic = toSafePath(musicPath, "music_cache");
+                try {
+                    musicActive = PmxNative.nativePlayMusic(handle, safeMusic.toString());
+                } catch (UnsatisfiedLinkError e) {
+                    musicActive = false;
+                }
+            } else {
+                try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
+                musicActive = false;
+            }
+
+            Path safePath = toSafePath(vmdPath, "motion_cache");
             float blendSeconds = hasMotion ? 0.2f : 0.0f;
-            if (!PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds)) {
-                return;
+            boolean started = false;
+            try {
+                started = PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds);
+            } catch (UnsatisfiedLinkError e) {
+                LOGGER.warn("[PMX] nativeStartVmdBlend missing (rebuild native DLL). Falling back to nativeAddVmd.");
+            }
+            if (!started) {
+                if (!PmxNative.nativeAddVmd(handle, safePath.toString())) {
+                    return;
+                }
             }
             frame = 0f;
             lastNanos = -1;
@@ -175,13 +227,18 @@ public class PmxInstance {
         }
     }
 
-    private Path toSafePath(Path src) throws IOException {
+    private Path toSafePath(Path src, String cacheDirName) throws IOException {
         String name = src.getFileName().toString();
         String safeName = name.replaceAll("[^A-Za-z0-9._-]", "_");
         if (safeName.isBlank()) {
-            safeName = "motion.vmd";
+            String ext = "";
+            int dot = name.lastIndexOf('.');
+            if (dot >= 0 && dot < name.length() - 1) {
+                ext = name.substring(dot);
+            }
+            safeName = ext.isBlank() ? "file.dat" : "file" + ext;
         }
-        Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "motion_cache");
+        Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", cacheDirName);
         Files.createDirectories(outDir);
         Path outFile = outDir.resolve(safeName);
         Files.copy(src, outFile, StandardCopyOption.REPLACE_EXISTING);

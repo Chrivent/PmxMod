@@ -26,6 +26,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private final String[] slotLabels = new String[SLOT_COUNT];
     private final boolean[] slotActive = new boolean[SLOT_COUNT];
     private final String[] slotMotionFiles = new String[SLOT_COUNT];
+    private final String[] slotMusicFiles = new String[SLOT_COUNT];
 
     public PmxEmoteWheelScreen(Screen parent) {
         super(Component.translatable("pmx.screen.emote_wheel.title"));
@@ -128,11 +129,17 @@ public class PmxEmoteWheelScreen extends Screen {
         if (slot < 0 || slot >= SLOT_COUNT) return;
         String motionFile = slotMotionFiles[slot];
         if (motionFile == null || motionFile.isBlank()) return;
-        java.nio.file.Path dir = net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir();
-        java.nio.file.Path motionPath = dir.resolve(motionFile);
         net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
+        java.nio.file.Path dir = viewer.getUserMotionDir();
+        java.nio.file.Path motionPath = dir.resolve(motionFile);
+        String musicFile = slotMusicFiles[slot];
+        java.nio.file.Path musicPath = null;
+        if (musicFile != null && !musicFile.isBlank()) {
+            java.nio.file.Path musicDir = viewer.getUserMusicDir();
+            musicPath = musicDir.resolve(musicFile);
+        }
         viewer.setPmxVisible(true);
-        viewer.instance().playMotion(motionPath);
+        viewer.instance().playMotion(motionPath, musicPath);
     }
 
     private void loadSlotLabels() {
@@ -143,6 +150,7 @@ public class PmxEmoteWheelScreen extends Screen {
             slotLabels[i] = Component.translatable("pmx.emote.empty").getString();
             slotActive[i] = false;
             slotMotionFiles[i] = "";
+            slotMusicFiles[i] = "";
         }
         for (var row : rows) {
             if (row.slotIndex < 0 || row.slotIndex >= SLOT_COUNT) continue;
@@ -150,6 +158,7 @@ public class PmxEmoteWheelScreen extends Screen {
                 slotLabels[row.slotIndex] = row.motion;
                 slotActive[row.slotIndex] = true;
                 slotMotionFiles[row.slotIndex] = row.motion;
+                slotMusicFiles[row.slotIndex] = row.music == null ? "" : row.music;
             }
         }
     }
