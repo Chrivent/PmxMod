@@ -10,8 +10,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
     private static final int SLOT_COUNT = 6;
-    private static final int DEADZONE_RADIUS = 38;
-    private static final int WHEEL_RADIUS = 110;
+    private static final int MIN_WHEEL_RADIUS = 90;
 
     private final Screen parent;
     private int selectedSlot = -1;
@@ -49,12 +48,14 @@ public class PmxEmoteWheelScreen extends Screen {
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
-        drawCircle(graphics, centerX, centerY, WHEEL_RADIUS, 0x99000000);
+        int wheelRadius = getWheelRadius();
+        int labelRadius = getLabelRadius(wheelRadius);
+        drawCircle(graphics, centerX, centerY, wheelRadius, 0x99000000);
         drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
-            int slotX = centerX + (int) Math.round(Math.cos(angle) * (WHEEL_RADIUS * 0.72));
-            int slotY = centerY + (int) Math.round(Math.sin(angle) * (WHEEL_RADIUS * 0.72));
+            int slotX = centerX + (int) Math.round(Math.cos(angle) * labelRadius);
+            int slotY = centerY + (int) Math.round(Math.sin(angle) * labelRadius);
             int color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAAFFFFFF;
             graphics.drawCenteredString(this.font, Integer.toString(i + 1), slotX, slotY - 4, color);
         }
@@ -70,8 +71,10 @@ public class PmxEmoteWheelScreen extends Screen {
     private void updateSelection(double mouseX, double mouseY) {
         double dx = mouseX - this.width / 2.0;
         double dy = mouseY - this.height / 2.0;
+        int wheelRadius = getWheelRadius();
+        int deadzone = getDeadzoneRadius(wheelRadius);
         double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < DEADZONE_RADIUS || dist > WHEEL_RADIUS) {
+        if (dist < deadzone || dist > wheelRadius) {
             selectedSlot = -1;
             return;
         }
@@ -105,15 +108,17 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private void drawWheelBoundaries(GuiGraphics graphics, int cx, int cy, int color) {
+        int wheelRadius = getWheelRadius();
+        int deadzone = getDeadzoneRadius(wheelRadius);
         double step = 360.0 / SLOT_COUNT;
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (step * i) - (step / 2.0));
             double cos = Math.cos(angle);
             double sin = Math.sin(angle);
-            int x1 = cx + (int) Math.round(cos * DEADZONE_RADIUS);
-            int y1 = cy + (int) Math.round(sin * DEADZONE_RADIUS);
-            int x2 = cx + (int) Math.round(cos * WHEEL_RADIUS);
-            int y2 = cy + (int) Math.round(sin * WHEEL_RADIUS);
+            int x1 = cx + (int) Math.round(cos * deadzone);
+            int y1 = cy + (int) Math.round(sin * deadzone);
+            int x2 = cx + (int) Math.round(cos * wheelRadius);
+            int y2 = cy + (int) Math.round(sin * wheelRadius);
             drawLine(graphics, x1, y1, x2, y2, color);
         }
     }
@@ -144,5 +149,19 @@ public class PmxEmoteWheelScreen extends Screen {
             x += xStep;
             y += yStep;
         }
+    }
+
+    private int getWheelRadius() {
+        int base = Math.min(this.width, this.height);
+        int scaled = (int) Math.round(base * 0.36);
+        return Math.max(MIN_WHEEL_RADIUS, scaled);
+    }
+
+    private int getDeadzoneRadius(int wheelRadius) {
+        return (int) Math.round(wheelRadius * 0.42);
+    }
+
+    private int getLabelRadius(int wheelRadius) {
+        return (int) Math.round(wheelRadius * 0.72);
     }
 }
