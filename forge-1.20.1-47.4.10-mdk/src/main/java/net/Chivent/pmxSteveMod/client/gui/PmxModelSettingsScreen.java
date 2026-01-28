@@ -83,7 +83,7 @@ public class PmxModelSettingsScreen extends Screen {
 
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
-        GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
+        super.renderBackground(graphics);
     }
 
     @Override
@@ -227,7 +227,7 @@ public class PmxModelSettingsScreen extends Screen {
             Component label = Component.translatable(HEADER_KEYS[i]);
             int textWidth = this.font.width(label);
             int drawX = curX + Math.max(2, (colWidths[i] - textWidth) / 2);
-            graphics.drawString(this.font, label, drawX, y, 0xB0B0B0, false);
+            graphics.drawString(this.font, label, drawX, y, 0xF0F0F0, false);
             curX += colWidths[i];
         }
     }
@@ -382,7 +382,7 @@ public class PmxModelSettingsScreen extends Screen {
                     colW[i] = widths[i];
                     curX += widths[i];
                 }
-                int nameColor = row.custom ? 0xE8E8E8 : 0xD0D0D0;
+                int nameColor = row.custom ? 0xFFFFFF : 0xF0F0F0;
                 if (row.slotIndex >= 0) {
                     drawSlotIcon(graphics, row.slotIndex);
                 } else {
@@ -390,16 +390,16 @@ public class PmxModelSettingsScreen extends Screen {
                 }
                 drawCell(graphics, 1, row.motion.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
-                        : row.motion, 0xB0B0B0);
+                        : row.motion, 0xF0F0F0);
                 drawCheckbox(graphics, 2, row.motionLoop);
                 drawCheckbox(graphics, 3, row.stopOnMove);
                 drawCell(graphics, 4, row.camera.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
-                        : row.camera, 0xB0B0B0);
+                        : row.camera, 0xF0F0F0);
                 drawCheckbox(graphics, 5, row.cameraLock);
                 drawCell(graphics, 6, row.music.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
-                        : row.music, 0xB0B0B0);
+                        : row.music, 0xF0F0F0);
                 drawColumnLines(graphics);
             }
 

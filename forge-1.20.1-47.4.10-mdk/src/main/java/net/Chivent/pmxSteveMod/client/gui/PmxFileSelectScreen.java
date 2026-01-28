@@ -81,7 +81,7 @@ public class PmxFileSelectScreen extends Screen {
 
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
-        GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
+        super.renderBackground(graphics);
     }
 
     @Override
