@@ -12,11 +12,18 @@ import net.minecraftforge.fml.common.Mod;
 public final class PmxKeyMappings {
     public static final String CATEGORY = "key.categories.pmxstevemod";
     public static final String KEY_OPEN_MENU = "key.pmxstevemod.open_menu";
+    public static final String KEY_EMOTE_WHEEL = "key.pmxstevemod.emote_wheel";
 
     public static final KeyMapping OPEN_MENU = new KeyMapping(
             KEY_OPEN_MENU,
             InputConstants.Type.KEYSYM,
             InputConstants.KEY_K,
+            CATEGORY
+    );
+    public static final KeyMapping EMOTE_WHEEL = new KeyMapping(
+            KEY_EMOTE_WHEEL,
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_V,
             CATEGORY
     );
 
@@ -25,5 +32,6 @@ public final class PmxKeyMappings {
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(OPEN_MENU);
+        event.register(EMOTE_WHEEL);
     }
 }

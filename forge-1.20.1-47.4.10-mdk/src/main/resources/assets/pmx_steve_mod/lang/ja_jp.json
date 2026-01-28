@@ -5,6 +5,7 @@
   "pmx.screen.select_model.folder": "PMXフォルダ: %s",
   "pmx.screen.select_model.title": "PMXモデル選択",
   "pmx.screen.model_settings.title": "モデル設定",
+  "pmx.screen.emote_wheel.title": "エモート選択",
   "pmx.info.header": "モデル情報",
   "pmx.info.file": "ファイル",
   "pmx.info.name": "名前",
@@ -13,5 +14,8 @@
   "pmx.info.comment_en": "コメント(英語)",
   "pmx.info.disabled": "PMXが無効です。",
   "pmx.info.none": "モデル情報がありません。",
-  "pmx.info.empty": "<空>"
+  "pmx.info.empty": "<空>",
+  "key.categories.pmxstevemod": "PMXスティーブMOD",
+  "key.pmxstevemod.open_menu": "PMXメニューを開く",
+  "key.pmxstevemod.emote_wheel": "エモートホイール"
 }

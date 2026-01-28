@@ -5,6 +5,7 @@
   "pmx.screen.select_model.folder": "PMX文件夹: %s",
   "pmx.screen.select_model.title": "选择PMX模型",
   "pmx.screen.model_settings.title": "模型设置",
+  "pmx.screen.emote_wheel.title": "表情选择",
   "pmx.info.header": "模型信息",
   "pmx.info.file": "文件",
   "pmx.info.name": "名称",
@@ -13,5 +14,8 @@
   "pmx.info.comment_en": "注释(英文)",
   "pmx.info.disabled": "PMX已禁用。",
   "pmx.info.none": "没有可用的模型信息。",
-  "pmx.info.empty": "<空>"
+  "pmx.info.empty": "<空>",
+  "key.categories.pmxstevemod": "PMX史蒂夫模组",
+  "key.pmxstevemod.open_menu": "打开PMX菜单",
+  "key.pmxstevemod.emote_wheel": "表情轮盘"
 }

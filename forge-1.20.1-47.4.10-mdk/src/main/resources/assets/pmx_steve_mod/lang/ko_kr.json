@@ -5,6 +5,7 @@
   "pmx.screen.select_model.folder": "PMX 폴더: %s",
   "pmx.screen.select_model.title": "PMX 모델 선택",
   "pmx.screen.model_settings.title": "모델 설정",
+  "pmx.screen.emote_wheel.title": "감정표현 선택",
   "pmx.info.header": "모델 정보",
   "pmx.info.file": "파일",
   "pmx.info.name": "이름",
@@ -13,5 +14,8 @@
   "pmx.info.comment_en": "코멘트(영문)",
   "pmx.info.disabled": "PMX가 비활성화되어 있습니다.",
   "pmx.info.none": "모델 정보를 불러올 수 없습니다.",
-  "pmx.info.empty": "<비어있음>"
+  "pmx.info.empty": "<비어있음>",
+  "key.categories.pmxstevemod": "PMX 스티브 모드",
+  "key.pmxstevemod.open_menu": "PMX 메뉴 열기",
+  "key.pmxstevemod.emote_wheel": "감정표현 휠"
 }

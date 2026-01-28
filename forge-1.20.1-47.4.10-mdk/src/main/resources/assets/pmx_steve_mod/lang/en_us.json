@@ -5,6 +5,7 @@
   "pmx.screen.select_model.folder": "PMX folder: %s",
   "pmx.screen.select_model.title": "Select PMX Model",
   "pmx.screen.model_settings.title": "Model Settings",
+  "pmx.screen.emote_wheel.title": "Emote Wheel",
   "pmx.info.header": "Model Info",
   "pmx.info.file": "File",
   "pmx.info.name": "Name",
@@ -13,5 +14,8 @@
   "pmx.info.comment_en": "Comment (EN)",
   "pmx.info.disabled": "PMX is disabled.",
   "pmx.info.none": "No model info available.",
-  "pmx.info.empty": "<empty>"
+  "pmx.info.empty": "<empty>",
+  "key.categories.pmxstevemod": "PMX Steve Mod",
+  "key.pmxstevemod.open_menu": "Open PMX Menu",
+  "key.pmxstevemod.emote_wheel": "Emote Wheel"
 }
