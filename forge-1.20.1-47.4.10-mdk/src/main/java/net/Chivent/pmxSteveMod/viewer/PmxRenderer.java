@@ -392,10 +392,15 @@ public class PmxRenderer {
         rot.transform(dir);
         if (dir.lengthSquared() < 1.0e-4f) return new float[] {0.2f, 1.0f, 0.2f};
         dir.normalize();
+        float timeOfDay = level.getTimeOfDay(partialTick);
+        boolean isDay = timeOfDay >= 0.25f && timeOfDay <= 0.75f;
+        if (!isDay) {
+            dir.negate();
+        }
         Matrix3f invView = RenderSystem.getInverseViewRotationMatrix();
         Matrix3f viewRot = new Matrix3f(invView).invert();
         viewRot.transform(dir);
-        return new float[] {-dir.x, -dir.y, -dir.z};
+        return new float[] {dir.x, dir.y, dir.z};
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
