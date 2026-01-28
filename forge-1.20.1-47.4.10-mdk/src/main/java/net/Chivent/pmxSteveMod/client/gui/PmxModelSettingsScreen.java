@@ -19,6 +19,7 @@ public class PmxModelSettingsScreen extends Screen {
     private static final int LIST_ITEM_HEIGHT = 22;
     private static final int COLUMN_COUNT = 7;
     private static final int SLOT_COUNT = 6;
+    private static final int IDLE_SLOT_INDEX = -2;
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.state",
             "pmx.settings.header.motion",
@@ -123,8 +124,12 @@ public class PmxModelSettingsScreen extends Screen {
         }
         for (PmxModelSettingsStore.RowData data : saved) {
             String name = data.name;
-            if (!data.custom && data.slotIndex >= 0) {
-                name = Component.translatable("pmx.settings.row.slot", data.slotIndex + 1).getString();
+            if (!data.custom) {
+                if (data.slotIndex == IDLE_SLOT_INDEX) {
+                    name = Component.translatable("pmx.settings.row.idle").getString();
+                } else if (data.slotIndex >= 0) {
+                    name = Component.translatable("pmx.settings.row.slot", data.slotIndex + 1).getString();
+                }
             }
             SettingsRow row = new SettingsRow(name, data.custom, data.slotIndex);
             row.motionLoop = data.motionLoop;
@@ -134,6 +139,10 @@ public class PmxModelSettingsScreen extends Screen {
             row.camera = data.camera == null ? "" : data.camera;
             row.music = data.music == null ? "" : data.music;
             rows.add(row);
+        }
+        boolean hasIdle = rows.stream().anyMatch(r -> r.slotIndex == IDLE_SLOT_INDEX);
+        if (!hasIdle) {
+            rows.add(0, new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX));
         }
         markWidthsDirty();
     }
@@ -211,6 +220,7 @@ public class PmxModelSettingsScreen extends Screen {
     }
 
     private void initDefaultRows() {
+        rows.add(new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX));
         for (int i = 1; i <= 6; i++) {
             rows.add(new SettingsRow(Component.translatable("pmx.settings.row.slot", i).getString(), false, i - 1));
         }

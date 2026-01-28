@@ -28,6 +28,7 @@
   "pmx.settings.value.off": "オフ",
   "pmx.settings.value.unset": "未設定",
   "pmx.settings.row.slot": "スロット %s",
+  "pmx.settings.row.idle": "基本",
   "pmx.settings.label.state_name": "状態名",
   "pmx.emote.empty": "空",
   "pmx.info.header": "モデル情報",

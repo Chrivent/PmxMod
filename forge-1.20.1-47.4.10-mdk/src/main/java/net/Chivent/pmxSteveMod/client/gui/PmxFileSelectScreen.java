@@ -25,6 +25,7 @@ public class PmxFileSelectScreen extends Screen {
     private PmxFileList list;
     private PmxFileWatcher watcher;
     private volatile boolean rescanRequested;
+    private Path pendingSelection;
 
     public PmxFileSelectScreen(Screen parent, Path folder, String[] extensions,
                                Component titleText, Component openFolderLabel, Consumer<Path> onSelect) {
@@ -47,6 +48,7 @@ public class PmxFileSelectScreen extends Screen {
         list.setRenderBackground(false);
         list.setRenderTopAndBottom(false);
         addWidget(list);
+        pendingSelection = null;
         reloadList();
         startWatcher();
         int rowY = this.height - 28;
@@ -57,7 +59,7 @@ public class PmxFileSelectScreen extends Screen {
                     }
                 }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
-                Component.translatable("pmx.button.done"), b -> onClose())
+                Component.translatable("pmx.button.done"), b -> confirmSelection())
                 .bounds(this.width / 2 + 5, rowY, 150, 20).build());
     }
 
@@ -108,6 +110,9 @@ public class PmxFileSelectScreen extends Screen {
     private void reloadList() {
         if (list == null) return;
         list.replaceEntries(listFiles());
+        if (pendingSelection != null) {
+            list.setSelected(pendingSelection);
+        }
     }
 
     private void startWatcher() {
@@ -153,16 +158,28 @@ public class PmxFileSelectScreen extends Screen {
     }
 
     private void select(Path path) {
-        onSelect.accept(path);
-        onClose();
+        pendingSelection = path;
+        if (list != null) {
+            list.setSelected(path);
+        }
     }
 
     private void selectNone() {
-        onSelect.accept(null);
+        pendingSelection = null;
+        if (list != null) {
+            list.setSelectedNone();
+        }
+    }
+
+    private void confirmSelection() {
+        onSelect.accept(pendingSelection);
         onClose();
     }
 
     private final class PmxFileList extends AbstractSelectionList<PmxFileList.Entry> {
+        private Path selectedPath;
+        private boolean selectedNone;
+
         public PmxFileList(Minecraft minecraft, int width, int height,
                            int y0, int y1, int itemHeight) {
             super(minecraft, width, height, y0, y1, itemHeight);
@@ -181,6 +198,33 @@ public class PmxFileSelectScreen extends Screen {
             addNoneEntry();
             for (Path p : files) {
                 addFileEntry(p);
+            }
+            if (selectedPath != null) {
+                setSelected(selectedPath);
+            } else if (selectedNone) {
+                setSelectedNone();
+            }
+        }
+
+        public void setSelected(Path path) {
+            selectedPath = path;
+            selectedNone = false;
+            for (Entry e : children()) {
+                if (e instanceof PmxFileEntry fe && path != null && path.equals(fe.path)) {
+                    setSelected(e);
+                    return;
+                }
+            }
+        }
+
+        public void setSelectedNone() {
+            selectedPath = null;
+            selectedNone = true;
+            for (Entry e : children()) {
+                if (e instanceof PmxNoneEntry) {
+                    setSelected(e);
+                    return;
+                }
             }
         }
 
@@ -201,6 +245,9 @@ public class PmxFileSelectScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
+                if (this == PmxFileList.this.getSelected()) {
+                    graphics.fill(x, y, x + width, y + height, 0x33000000);
+                }
                 String name = path.getFileName().toString();
                 graphics.drawString(font, name, x + 6, y + 6, 0xE0E0E0, false);
             }
@@ -216,6 +263,9 @@ public class PmxFileSelectScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
+                if (this == PmxFileList.this.getSelected()) {
+                    graphics.fill(x, y, x + width, y + height, 0x33000000);
+                }
                 graphics.drawString(font, Component.translatable("pmx.settings.value.unset"), x + 6, y + 6, 0xAAAAAA, false);
             }
 

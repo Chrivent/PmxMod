@@ -280,6 +280,14 @@ public class PmxModelSelectScreen extends Screen {
         watcher.start();
     }
 
+    private void applyIdleMotion(Path modelPath) {
+        String idle = net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.get().getIdleMotion(modelPath);
+        if (idle == null || idle.isBlank()) return;
+        Path motionDir = PmxViewer.get().getUserMotionDir();
+        Path vmdPath = motionDir.resolve(idle);
+        PmxViewer.get().instance().playMotion(vmdPath);
+    }
+
     private void stopWatcher() {
         if (watcher != null) {
             watcher.stop();
@@ -399,6 +407,7 @@ public class PmxModelSelectScreen extends Screen {
                 viewer.setSelectedModelPath(modelPath);
                 viewer.setPmxVisible(true);
                 viewer.reloadSelectedModel();
+                screen.applyIdleMotion(modelPath);
                 if (screen.list != null) {
                     screen.list.setSelected(this);
                 }
