@@ -26,6 +26,7 @@ public class PmxFileSelectScreen extends Screen {
     private PmxFileWatcher watcher;
     private volatile boolean rescanRequested;
     private Path pendingSelection;
+    private boolean explicitNoneSelected;
 
     public PmxFileSelectScreen(Screen parent, Path folder, String[] extensions,
                                Component titleText, Component openFolderLabel, Consumer<Path> onSelect) {
@@ -49,6 +50,7 @@ public class PmxFileSelectScreen extends Screen {
         list.setRenderTopAndBottom(false);
         addWidget(list);
         pendingSelection = null;
+        explicitNoneSelected = false;
         reloadList();
         startWatcher();
         int rowY = this.height - 28;
@@ -159,6 +161,7 @@ public class PmxFileSelectScreen extends Screen {
 
     private void select(Path path) {
         pendingSelection = path;
+        explicitNoneSelected = false;
         if (list != null) {
             list.setSelected(path);
         }
@@ -166,6 +169,7 @@ public class PmxFileSelectScreen extends Screen {
 
     private void selectNone() {
         pendingSelection = null;
+        explicitNoneSelected = true;
         if (list != null) {
             list.setSelectedNone();
         }
@@ -174,6 +178,10 @@ public class PmxFileSelectScreen extends Screen {
     private void confirmSelection() {
         onSelect.accept(pendingSelection);
         onClose();
+    }
+
+    public boolean isExplicitNoneSelected() {
+        return explicitNoneSelected;
     }
 
     private final class PmxFileList extends AbstractSelectionList<PmxFileList.Entry> {

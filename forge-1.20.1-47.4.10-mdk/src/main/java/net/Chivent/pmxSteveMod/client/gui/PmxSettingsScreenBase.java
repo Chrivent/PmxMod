@@ -45,6 +45,10 @@ public abstract class PmxSettingsScreenBase extends Screen {
         entry.drawCell(graphics, 0, row.name, nameColor);
     }
 
+    protected boolean allowMotionLoopToggle(SettingsRow row) {
+        return true;
+    }
+
     @Override
     protected void init() {
         int listBottom = this.height - LIST_BOTTOM_PAD;
@@ -111,6 +115,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void openMotionPicker(SettingsRow row) {
+        final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir(),
@@ -118,17 +123,28 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 Component.translatable("pmx.screen.select_motion.title"),
                 Component.translatable("pmx.button.open_motion_folder"),
                 path -> {
-                    row.motion = path == null ? "" : path.getFileName().toString();
+                    if (path == null) {
+                        if (screenRef[0] == null) return;
+                        if (screenRef[0].isExplicitNoneSelected()) {
+                            row.motion = "";
+                        } else {
+                            return;
+                        }
+                    } else {
+                        row.motion = path.getFileName().toString();
+                    }
                     markWidthsDirty();
                     saveSettings();
                 }
         );
+        screenRef[0] = screen;
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
         }
     }
 
     protected void openCameraPicker(SettingsRow row) {
+        final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserCameraDir(),
@@ -136,17 +152,28 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 Component.translatable("pmx.screen.select_camera.title"),
                 Component.translatable("pmx.button.open_camera_folder"),
                 path -> {
-                    row.camera = path == null ? "" : path.getFileName().toString();
+                    if (path == null) {
+                        if (screenRef[0] == null) return;
+                        if (screenRef[0].isExplicitNoneSelected()) {
+                            row.camera = "";
+                        } else {
+                            return;
+                        }
+                    } else {
+                        row.camera = path.getFileName().toString();
+                    }
                     markWidthsDirty();
                     saveSettings();
                 }
         );
+        screenRef[0] = screen;
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
         }
     }
 
     protected void openMusicPicker(SettingsRow row) {
+        final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMusicDir(),
@@ -154,11 +181,21 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 Component.translatable("pmx.screen.select_music.title"),
                 Component.translatable("pmx.button.open_music_folder"),
                 path -> {
-                    row.music = path == null ? "" : path.getFileName().toString();
+                    if (path == null) {
+                        if (screenRef[0] == null) return;
+                        if (screenRef[0].isExplicitNoneSelected()) {
+                            row.music = "";
+                        } else {
+                            return;
+                        }
+                    } else {
+                        row.music = path.getFileName().toString();
+                    }
                     markWidthsDirty();
                     saveSettings();
                 }
         );
+        screenRef[0] = screen;
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
         }
@@ -387,7 +424,11 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         screen.list.setSelected(this);
                     }
                     switch (i) {
-                        case 2 -> row.motionLoop = !row.motionLoop;
+                        case 2 -> {
+                            if (screen.allowMotionLoopToggle(row)) {
+                                row.motionLoop = !row.motionLoop;
+                            }
+                        }
                         case 4 -> row.cameraLock = !row.cameraLock;
                         case 1 -> screen.openMotionPicker(row);
                         case 3 -> screen.openCameraPicker(row);

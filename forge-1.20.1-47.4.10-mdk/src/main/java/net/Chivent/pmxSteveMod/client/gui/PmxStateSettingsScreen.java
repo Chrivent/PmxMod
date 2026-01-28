@@ -67,10 +67,32 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
                 },
                 () -> {}
         );
+        for (SettingsRow row : rows) {
+            if (!row.custom && row.slotIndex == IDLE_SLOT_INDEX) {
+                row.motionLoop = true;
+            }
+        }
         boolean hasIdle = rows.stream().anyMatch(r -> r.slotIndex == IDLE_SLOT_INDEX);
         if (!hasIdle) {
-            rows.add(0, new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX));
+            SettingsRow row = new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX);
+            row.motionLoop = true;
+            rows.add(0, row);
         }
         markWidthsDirty();
+    }
+
+    @Override
+    protected boolean allowMotionLoopToggle(SettingsRow row) {
+        return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
+    }
+
+    @Override
+    protected void saveSettings() {
+        for (SettingsRow row : rows) {
+            if (!row.custom && row.slotIndex == IDLE_SLOT_INDEX) {
+                row.motionLoop = true;
+            }
+        }
+        super.saveSettings();
     }
 }
