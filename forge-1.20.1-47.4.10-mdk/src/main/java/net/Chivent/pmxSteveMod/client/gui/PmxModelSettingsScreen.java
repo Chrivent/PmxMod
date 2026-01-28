@@ -27,17 +27,9 @@ public class PmxModelSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void addFooterButtons(int listBottom) {
-        int btnWidth = 120;
-        addRenderableWidget(Button.builder(
-                Component.translatable("pmx.button.state_settings"),
-                b -> {
-                    if (this.minecraft != null) {
-                        this.minecraft.setScreen(new PmxStateSettingsScreen(this, modelPath));
-                    }
-                }
-        ).bounds(12, listBottom + 6, btnWidth, 20).build());
+        int btnWidth = 110;
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(this.width - 90, this.height - 28, 74, 20).build());
+                .bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
     }
 
     @Override

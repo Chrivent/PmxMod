@@ -30,7 +30,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void addFooterButtons(int listBottom) {
-        int btnWidth = 120;
+        int btnWidth = 110;
         addRenderableWidget(Button.builder(
                 Component.translatable("pmx.button.add_state"),
                 b -> {
@@ -39,16 +39,8 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
                     }
                 }
         ).bounds(12, listBottom + 6, btnWidth, 20).build());
-        addRenderableWidget(Button.builder(
-                Component.translatable("pmx.button.slot_settings"),
-                b -> {
-                    if (this.minecraft != null) {
-                        this.minecraft.setScreen(new PmxModelSettingsScreen(this, modelPath));
-                    }
-                }
-        ).bounds(12 + btnWidth + 8, listBottom + 6, btnWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(this.width - 90, this.height - 28, 74, 20).build());
+                .bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
     }
 
     void addCustomState(String name) {
