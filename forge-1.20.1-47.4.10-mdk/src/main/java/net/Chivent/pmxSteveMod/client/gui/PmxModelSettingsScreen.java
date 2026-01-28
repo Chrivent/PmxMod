@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
+import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
@@ -32,13 +33,14 @@ public class PmxModelSettingsScreen extends Screen {
     private final Screen parent;
     private final Path modelPath;
     private final List<SettingsRow> rows = new ArrayList<>();
+    private final PmxModelSettingsStore store = PmxModelSettingsStore.get();
     private PmxSettingsList list;
 
     public PmxModelSettingsScreen(Screen parent, Path modelPath) {
         super(Component.translatable("pmx.screen.model_settings.title"));
         this.parent = parent;
         this.modelPath = modelPath;
-        initDefaultRows();
+        loadRows();
     }
 
     @Override
@@ -106,6 +108,48 @@ public class PmxModelSettingsScreen extends Screen {
         if (list != null) {
             list.addRow(row);
         }
+        saveSettings();
+    }
+
+    private void loadRows() {
+        rows.clear();
+        List<PmxModelSettingsStore.RowData> saved = store.load(modelPath);
+        if (saved.isEmpty()) {
+            initDefaultRows();
+            return;
+        }
+        for (PmxModelSettingsStore.RowData data : saved) {
+            String name = data.name;
+            if (!data.custom && data.slotIndex >= 0) {
+                name = Component.translatable("pmx.settings.row.slot", data.slotIndex + 1).getString();
+            }
+            SettingsRow row = new SettingsRow(name, data.custom, data.slotIndex);
+            row.motionLoop = data.motionLoop;
+            row.stopOnMove = data.stopOnMove;
+            row.cameraLock = data.cameraLock;
+            row.motion = data.motion == null ? "" : data.motion;
+            row.camera = data.camera == null ? "" : data.camera;
+            row.music = data.music == null ? "" : data.music;
+            rows.add(row);
+        }
+    }
+
+    private void saveSettings() {
+        List<PmxModelSettingsStore.RowData> out = new ArrayList<>();
+        for (SettingsRow row : rows) {
+            PmxModelSettingsStore.RowData data = new PmxModelSettingsStore.RowData();
+            data.name = row.name;
+            data.custom = row.custom;
+            data.slotIndex = row.slotIndex;
+            data.motionLoop = row.motionLoop;
+            data.stopOnMove = row.stopOnMove;
+            data.cameraLock = row.cameraLock;
+            data.motion = row.motion;
+            data.camera = row.camera;
+            data.music = row.music;
+            out.add(data);
+        }
+        store.save(modelPath, out);
     }
 
     private void openMotionPicker(SettingsRow row) {
@@ -115,7 +159,10 @@ public class PmxModelSettingsScreen extends Screen {
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_motion.title"),
                 Component.translatable("pmx.button.open_motion_folder"),
-                path -> row.motion = path == null ? "" : path.getFileName().toString()
+                path -> {
+                    row.motion = path == null ? "" : path.getFileName().toString();
+                    saveSettings();
+                }
         );
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
@@ -129,7 +176,10 @@ public class PmxModelSettingsScreen extends Screen {
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_camera.title"),
                 Component.translatable("pmx.button.open_camera_folder"),
-                path -> row.camera = path == null ? "" : path.getFileName().toString()
+                path -> {
+                    row.camera = path == null ? "" : path.getFileName().toString();
+                    saveSettings();
+                }
         );
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
@@ -143,7 +193,10 @@ public class PmxModelSettingsScreen extends Screen {
                 new String[] {".ogg", ".mp3", ".wav"},
                 Component.translatable("pmx.screen.select_music.title"),
                 Component.translatable("pmx.button.open_music_folder"),
-                path -> row.music = path == null ? "" : path.getFileName().toString()
+                path -> {
+                    row.music = path == null ? "" : path.getFileName().toString();
+                    saveSettings();
+                }
         );
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
@@ -321,6 +374,9 @@ public class PmxModelSettingsScreen extends Screen {
                     case 6 -> screen.openMusicPicker(row);
                     default -> {
                     }
+                }
+                if (i == 2 || i == 3 || i == 5) {
+                    screen.saveSettings();
                 }
                 return true;
             }
