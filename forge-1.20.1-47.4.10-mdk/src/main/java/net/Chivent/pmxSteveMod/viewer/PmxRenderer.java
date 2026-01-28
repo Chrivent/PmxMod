@@ -1,6 +1,7 @@
 package net.Chivent.pmxSteveMod.viewer;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -409,7 +410,7 @@ public class PmxRenderer {
 
         MaterialGpu gpu = new MaterialGpu();
 
-        TextureEntry main = getOrLoadTextureEntry(instance, mat.mainTexPath());
+        TextureEntry main = getOrLoadTextureEntry(instance, mat.mainTexPath(), false);
         if (main != null && main.rl != null) {
             gpu.mainTex = main.rl;
             gpu.texMode = main.hasAlpha ? 2 : 1;
@@ -419,7 +420,7 @@ public class PmxRenderer {
             LOGGER.warn("[PMX] material {} main texture missing; using fallback. path={}", materialId, mat.mainTexPath());
         }
 
-        TextureEntry sphere = getOrLoadTextureEntry(instance, mat.sphereTexPath());
+        TextureEntry sphere = getOrLoadTextureEntry(instance, mat.sphereTexPath(), false);
         if (sphere != null && sphere.rl != null) {
             gpu.sphereTex = sphere.rl;
             gpu.sphereMode = mat.sphereMode(); // 0/1/2
@@ -431,7 +432,7 @@ public class PmxRenderer {
             }
         }
 
-        TextureEntry toon = getOrLoadTextureEntry(instance, mat.toonTexPath());
+        TextureEntry toon = getOrLoadTextureEntry(instance, mat.toonTexPath(), true);
         if (toon != null && toon.rl != null) {
             gpu.toonTex = toon.rl;
             gpu.toonMode = 1;
@@ -461,7 +462,7 @@ public class PmxRenderer {
         }
     }
 
-    private TextureEntry getOrLoadTextureEntry(PmxInstance instance, String texPath) {
+    private TextureEntry getOrLoadTextureEntry(PmxInstance instance, String texPath, boolean clamp) {
         if (texPath == null || texPath.isEmpty()) return null;
 
         Path resolved = resolveTexturePath(instance, texPath);
@@ -480,6 +481,14 @@ public class PmxRenderer {
             TextureManager tm = Minecraft.getInstance().getTextureManager();
             String id = "pmx/tex_" + Integer.toUnsignedString(++textureIdCounter);
             ResourceLocation rl = tm.register(id, dt);
+            RenderSystem.recordRenderCall(() -> {
+                dt.setFilter(true, false); // GL_LINEAR min/mag
+                if (clamp) {
+                    dt.bind();
+                    GlStateManager._texParameter(3553, 10242, 33071); // GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
+                    GlStateManager._texParameter(3553, 10243, 33071); // GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
+                }
+            });
 
             TextureEntry e = new TextureEntry(rl, hasAlpha);
             textureCache.put(key, e);
