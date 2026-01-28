@@ -1,6 +1,5 @@
 package net.Chivent.pmxSteveMod.client.hooks;
 
-import java.lang.reflect.Method;
 import net.Chivent.pmxSteveMod.PmxSteveMod;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
@@ -16,6 +15,7 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import java.lang.reflect.Method;
 
 @Mod.EventBusSubscriber(modid = PmxSteveMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class CameraHooks {
@@ -29,10 +29,10 @@ public final class CameraHooks {
         PmxViewer viewer = PmxViewer.get();
         if (!viewer.isPmxVisible()) return;
         PmxInstance instance = viewer.instance();
-        if (instance.hasCamera()) {
-            Minecraft mc = Minecraft.getInstance();
-            AbstractClientPlayer player = mc.player;
-            if (player == null) return;
+        if (!instance.hasCamera()) return;
+        Minecraft mc = Minecraft.getInstance();
+        AbstractClientPlayer player = mc.player;
+        if (player == null) return;
 
             float partial = (float) event.getPartialTick();
             float scale = 0.15f;
@@ -81,7 +81,6 @@ public final class CameraHooks {
             event.setRoll(roll);
 
             setCameraPosition(event.getCamera(), worldEye.x, worldEye.y, worldEye.z);
-        }
     }
 
     @SubscribeEvent
@@ -89,11 +88,10 @@ public final class CameraHooks {
         PmxViewer viewer = PmxViewer.get();
         if (!viewer.isPmxVisible()) return;
         PmxInstance instance = viewer.instance();
-        if (instance.hasCamera()) {
-            float fovRad = instance.camFov();
-            if (fovRad <= 0.0f) return;
-            event.setFOV(Math.toDegrees(fovRad));
-        }
+        if (!instance.hasCamera()) return;
+        float fovRad = instance.camFov();
+        if (fovRad <= 0.0f) return;
+        event.setFOV(Math.toDegrees(fovRad));
     }
 
     private static void setCameraPosition(Camera camera, double x, double y, double z) {
