@@ -2,11 +2,18 @@ package net.Chivent.pmxSteveMod.client.gui;
 
 import net.Chivent.pmxSteveMod.client.emote.PmxEmoteWheelState;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
@@ -53,7 +60,7 @@ public class PmxEmoteWheelScreen extends Screen {
         int labelRadius = getLabelRadius(wheelRadius);
         drawWheelRing(graphics, centerX, centerY, wheelRadius, 0x99000000);
         if (selectedSlot >= 0) {
-            drawSelectedSector(graphics, centerX, centerY, wheelRadius, selectedSlot, 0x2AFFFFFF);
+            drawSelectedSector(graphics, centerX, centerY, wheelRadius, selectedSlot, 0x22FFFFFF);
         }
         drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
@@ -128,42 +135,68 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private void drawSelectedSector(GuiGraphics graphics, int cx, int cy, int wheelRadius, int slot, int color) {
-        int deadZone = getDeadzoneRadius(wheelRadius);
+        int deadzone = getDeadzoneRadius(wheelRadius);
         double step = 360.0 / SLOT_COUNT;
         double centerDeg = -90.0 + (step * slot);
         double startDeg = centerDeg - (step / 2.0);
         double endDeg = centerDeg + (step / 2.0);
-        int rOuter2 = wheelRadius * wheelRadius;
-        int rInner2 = deadZone * deadZone;
-        for (int y = -wheelRadius; y <= wheelRadius; y++) {
-            for (int x = -wheelRadius; x <= wheelRadius; x++) {
-                int r2 = x * x + y * y;
-                if (r2 < rInner2 || r2 > rOuter2) continue;
-                double ang = Math.toDegrees(Math.atan2(y, x));
-                double normalized = (ang + 360.0) % 360.0;
-                double start = (startDeg + 360.0) % 360.0;
-                double end = (endDeg + 360.0) % 360.0;
-                boolean inRange = start <= end
-                        ? (normalized >= start && normalized <= end)
-                        : (normalized >= start || normalized <= end);
-                if (inRange) {
-                    graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
-                }
-            }
+        int segments = Math.max(12, (int) Math.round(step * 0.6));
+
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+
+        Matrix4f pose = graphics.pose().last().pose();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.enableBlend();
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        for (int i = 0; i <= segments; i++) {
+            double t = i / (double) segments;
+            double deg = startDeg + (endDeg - startDeg) * t;
+            double rad = Math.toRadians(deg);
+            float cos = (float) Math.cos(rad);
+            float sin = (float) Math.sin(rad);
+            float xOuter = cx + cos * wheelRadius;
+            float yOuter = cy + sin * wheelRadius;
+            float xInner = cx + cos * deadzone;
+            float yInner = cy + sin * deadzone;
+            builder.vertex(pose, xOuter, yOuter, 0).color(r, g, b, a).endVertex();
+            builder.vertex(pose, xInner, yInner, 0).color(r, g, b, a).endVertex();
         }
+        Tesselator.getInstance().end();
+        RenderSystem.disableBlend();
     }
 
     private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
         int inner = getDeadzoneRadius(radius);
-        int rOuter2 = radius * radius;
-        int rInner2 = inner * inner;
-        for (int y = -radius; y <= radius; y++) {
-            for (int x = -radius; x <= radius; x++) {
-                int r2 = x * x + y * y;
-                if (r2 < rInner2 || r2 > rOuter2) continue;
-                graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
-            }
+        int segments = Math.max(48, (int) Math.round(radius * 1.2));
+
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+
+        Matrix4f pose = graphics.pose().last().pose();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.enableBlend();
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        for (int i = 0; i <= segments; i++) {
+            double t = i / (double) segments;
+            double rad = Math.toRadians(-90.0 + 360.0 * t);
+            float cos = (float) Math.cos(rad);
+            float sin = (float) Math.sin(rad);
+            float xOuter = cx + cos * radius;
+            float yOuter = cy + sin * radius;
+            float xInner = cx + cos * inner;
+            float yInner = cy + sin * inner;
+            builder.vertex(pose, xOuter, yOuter, 0).color(r, g, b, a).endVertex();
+            builder.vertex(pose, xInner, yInner, 0).color(r, g, b, a).endVertex();
         }
+        Tesselator.getInstance().end();
+        RenderSystem.disableBlend();
     }
 
     private void drawLine(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
