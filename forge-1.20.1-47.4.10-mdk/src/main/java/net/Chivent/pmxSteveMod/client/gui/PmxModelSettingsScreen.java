@@ -54,7 +54,7 @@ public class PmxModelSettingsScreen extends Screen {
                 }
         ).bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(this.width - 90, 12, 74, 20).build());
+                .bounds(this.width - 90, this.height - 28, 74, 20).build());
     }
 
     @Override
@@ -228,6 +228,12 @@ public class PmxModelSettingsScreen extends Screen {
             return this.getRowRight() + 6;
         }
 
+        @Override
+        protected void renderSelection(@NotNull GuiGraphics graphics, int y, int entryWidth, int entryHeight,
+                                       int borderColor, int fillColor) {
+            // Disable selection highlight.
+        }
+
         private final class PmxSettingsEntry extends AbstractSelectionList.Entry<PmxSettingsEntry> {
             private final SettingsRow row;
             private final int[] colX = new int[COLUMN_COUNT];
@@ -250,9 +256,6 @@ public class PmxModelSettingsScreen extends Screen {
                     colX[i] = curX;
                     colW[i] = widths[i];
                     curX += widths[i];
-                }
-                if (screen.list != null && screen.list.getSelected() == this) {
-                    graphics.fill(x, y, x + width, y + height, 0x33000000);
                 }
                 int nameColor = row.custom ? 0xE8E8E8 : 0xD0D0D0;
                 drawCell(graphics, 0, row.name, nameColor);
