@@ -23,6 +23,7 @@ public class PmxInstance {
     private long handle = 0L;
     private boolean ready = false;
     private long modelVersion = 0L;
+    private Path currentPmxPath;
 
     private float frame = 0f;
     private long lastNanos = -1;
@@ -75,6 +76,7 @@ public class PmxInstance {
     }
 
     public void init(Path pmxPath) {
+        currentPmxPath = pmxPath;
         try {
             handle = PmxNative.nativeCreate();
 
@@ -118,6 +120,7 @@ public class PmxInstance {
             handle = 0L;
         }
         ready = false;
+        currentPmxPath = null;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -144,8 +147,16 @@ public class PmxInstance {
     }
 
     public void playMotion(Path vmdPath) {
-        if (!ready || handle == 0L) return;
         if (vmdPath == null || !Files.exists(vmdPath)) return;
+        Path pmxPath = currentPmxPath;
+        if (pmxPath == null) return;
+        if (!ready || handle == 0L) {
+            init(pmxPath);
+        } else {
+            shutdown();
+            init(pmxPath);
+        }
+        if (!ready || handle == 0L) return;
         try {
             frame = 0f;
             lastNanos = -1;
