@@ -33,6 +33,7 @@ public class PmxViewer {
         showPmx = false;
         selectDefaultModelIfMissing();
         instance.init(selectedModelPath);
+        instance.markBlendNext();
     }
 
     public void shutdown() {
@@ -47,6 +48,7 @@ public class PmxViewer {
     public void reloadSelectedModel() {
         instance.shutdown();
         instance.init(selectedModelPath);
+        instance.markBlendNext();
     }
 
     public Path getUserModelDir() {

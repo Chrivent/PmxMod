@@ -25,6 +25,7 @@ public class PmxInstance {
     private long modelVersion = 0L;
     private Path currentPmxPath;
     private boolean hasMotion = false;
+    private boolean forceBlendNext = false;
     private boolean musicActive = false;
     private boolean cameraActive = false;
     private Path currentMotionPath;
@@ -140,6 +141,7 @@ public class PmxInstance {
         ready = false;
         currentPmxPath = null;
         hasMotion = false;
+        forceBlendNext = false;
         musicActive = false;
         cameraActive = false;
         currentMotionPath = null;
@@ -234,7 +236,8 @@ public class PmxInstance {
             }
 
             Path safePath = toSafePath(vmdPath, "motion_cache");
-            float blendSeconds = hasMotion ? 0.2f : 0.0f;
+            float blendSeconds = (hasMotion || forceBlendNext) ? 0.2f : 0.0f;
+            forceBlendNext = false;
             boolean started = false;
             try {
                 started = PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds);
@@ -265,6 +268,10 @@ public class PmxInstance {
 
     public boolean hasCamera() { return cameraActive; }
     public Path getCurrentMotionPath() { return currentMotionPath; }
+
+    public void markBlendNext() {
+        forceBlendNext = true;
+    }
     public float camInterestX() { return camInterestX; }
     public float camInterestY() { return camInterestY; }
     public float camInterestZ() { return camInterestZ; }
@@ -286,6 +293,7 @@ public class PmxInstance {
         if (pmxPath == null) return;
         shutdown();
         init(pmxPath);
+        forceBlendNext = true;
     }
 
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
