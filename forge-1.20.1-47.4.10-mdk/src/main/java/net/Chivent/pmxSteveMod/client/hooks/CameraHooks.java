@@ -56,7 +56,7 @@ public final class CameraHooks {
         new Matrix3f(view).transform(up);
 
         float playerYaw = player.getViewYRot(partial);
-        Matrix3f yawRot = new Matrix3f().rotateY((float) Math.toRadians(playerYaw));
+        Matrix3f yawRot = new Matrix3f().rotateY((float) Math.toRadians(-playerYaw));
         yawRot.transform(eye);
         yawRot.transform(center);
         yawRot.transform(up);
