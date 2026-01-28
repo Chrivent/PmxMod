@@ -14,10 +14,9 @@ import org.jetbrains.annotations.NotNull;
 
 public class PmxModelSettingsScreen extends Screen {
     private static final int HEADER_HEIGHT = 16;
-    private static final int LIST_TOP = 46;
+    private static final int LIST_TOP = 56;
     private static final int LIST_BOTTOM_PAD = 34;
     private static final int LIST_ITEM_HEIGHT = 22;
-    private static final int LIST_SIDE_PAD = 20;
     private static final int COLUMN_COUNT = 7;
     private static final int SLOT_COUNT = 6;
     private static final String[] HEADER_KEYS = new String[] {
@@ -49,9 +48,9 @@ public class PmxModelSettingsScreen extends Screen {
     protected void init() {
         int listBottom = this.height - LIST_BOTTOM_PAD;
         int listHeight = listBottom - LIST_TOP;
-        this.list = new PmxSettingsList(this, minecraft, this.width - (LIST_SIDE_PAD * 2),
+        this.list = new PmxSettingsList(this, minecraft, this.width,
                 listHeight, LIST_TOP, listBottom, LIST_ITEM_HEIGHT);
-        this.list.setLeftPos(LIST_SIDE_PAD);
+        this.list.setLeftPos(0);
         this.list.setRenderBackground(false);
         this.list.setRenderTopAndBottom(false);
         addWidget(this.list);
@@ -334,7 +333,12 @@ public class PmxModelSettingsScreen extends Screen {
         }
 
         public int getListWidth() {
-            return this.getRowWidth();
+            return this.width;
+        }
+
+        @Override
+        public int getRowWidth() {
+            return this.width;
         }
 
         @Override
