@@ -16,6 +16,7 @@ public final class PmxShaders {
     private PmxShaders() {}
 
     public static ShaderInstance PMX_MMD;
+    public static ShaderInstance PMX_EDGE;
 
     @SubscribeEvent
     public static void onRegisterShaders(RegisterShadersEvent event) throws IOException {
@@ -26,6 +27,14 @@ public final class PmxShaders {
                         DefaultVertexFormat.NEW_ENTITY
                 ),
                 s -> PMX_MMD = s
+        );
+        event.registerShader(
+                new ShaderInstance(
+                        event.getResourceProvider(),
+                        ResourceLocation.fromNamespaceAndPath(PmxSteveMod.MOD_ID, "pmx_edge"),
+                        DefaultVertexFormat.NEW_ENTITY
+                ),
+                s -> PMX_EDGE = s
         );
     }
 }

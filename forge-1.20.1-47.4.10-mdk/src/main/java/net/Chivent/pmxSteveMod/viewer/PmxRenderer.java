@@ -96,6 +96,10 @@ public class PmxRenderer {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(v);
     }
+    private void set2f(ShaderInstance sh, float x, float y) {
+        Uniform u = sh.getUniform("u_ScreenSize");
+        if (u != null) u.set(x, y);
+    }
     private void set1i(ShaderInstance sh, String name, int v) {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(v);
@@ -281,6 +285,7 @@ public class PmxRenderer {
             drawSubmeshIndexed(instance, sub, pose, lightDir);
         }
 
+        drawEdgePass(instance, subs, pose);
         GL30C.glBindVertexArray(0);
 
         RenderSystem.depthMask(true);
@@ -300,15 +305,8 @@ public class PmxRenderer {
         MaterialInfo mat = instance.material(sm.materialId());
         if (mat == null) return;
 
-        int begin = sm.beginIndex();
-        int count = sm.indexCount();
-        if (begin < 0 || count <= 0) return;
-
-        int maxCount = Math.max(0, mesh.indexCount - begin);
-        if (count > maxCount) count = maxCount;
-
-        count -= (count % 3);
-        if (count <= 0) return;
+        DrawRange range = getDrawRange(sm);
+        if (range == null) return;
 
         float alpha = mat.alpha();
         if (alpha <= 0.0f) return;
@@ -318,9 +316,8 @@ public class PmxRenderer {
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
 
-        Matrix4f proj = RenderSystem.getProjectionMatrix();
         Matrix4f wv = new Matrix4f(pose);
-        Matrix4f wvp = new Matrix4f(proj).mul(pose);
+        Matrix4f wvp = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(pose);
 
         RenderSystem.setShader(() -> sh);
 
@@ -375,12 +372,68 @@ public class PmxRenderer {
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
-        long offsetBytes = (long) begin * (long) mesh.elemSize;
-
-        GL11C.glDrawElements(GL11C.GL_TRIANGLES, count, mesh.glIndexType, offsetBytes);
+        GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
 
         RenderSystem.enableCull();
     }
+
+    private record DrawRange(int count, long offsetBytes) {}
+
+    private DrawRange getDrawRange(SubmeshInfo sub) {
+        if (sub == null) return null;
+        int begin = sub.beginIndex();
+        int count = sub.indexCount();
+        if (begin < 0 || count <= 0) return null;
+        int maxCount = Math.max(0, mesh.indexCount - begin);
+        if (count > maxCount) count = maxCount;
+        count -= (count % 3);
+        if (count <= 0) return null;
+        long offsetBytes = (long) begin * (long) mesh.elemSize;
+        return new DrawRange(count, offsetBytes);
+    }
+
+    private void drawEdgePass(PmxInstance instance, SubmeshInfo[] subs, Matrix4f pose) {
+        ShaderInstance edgeShader = PmxShaders.PMX_EDGE;
+        if (edgeShader == null || subs == null) return;
+
+        Matrix4f wv = new Matrix4f(pose);
+        Matrix4f wvp = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(pose);
+
+        RenderSystem.setShader(() -> edgeShader);
+        setMat4(edgeShader, "u_WV", wv);
+        setMat4(edgeShader, "u_WVP", wvp);
+
+        var window = Minecraft.getInstance().getWindow();
+        set2f(edgeShader, window.getScreenWidth(), window.getScreenHeight());
+
+        edgeShader.apply();
+
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        GL11C.glCullFace(GL11C.GL_FRONT);
+
+        for (SubmeshInfo sub : subs) {
+            MaterialInfo mat = instance.material(sub.materialId());
+            if (mat == null || !mat.edgeFlag()) continue;
+            if (mat.alpha() <= 0.0f) continue;
+
+            float edgeSize = mat.edgeSize();
+            float[] edgeColor = mat.edgeColor();
+            set1f(edgeShader, "u_EdgeSize", edgeSize);
+            set4f(edgeShader, "u_EdgeColor", edgeColor[0], edgeColor[1], edgeColor[2], edgeColor[3]);
+
+            DrawRange range = getDrawRange(sub);
+            if (range == null) continue;
+
+            GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
+        }
+
+        GL11C.glCullFace(GL11C.GL_BACK);
+    }
+
 
     private static float[] getSunLightDir(Level level, float partialTick) {
         if (level == null) return new float[] {0.2f, 1.0f, 0.2f};

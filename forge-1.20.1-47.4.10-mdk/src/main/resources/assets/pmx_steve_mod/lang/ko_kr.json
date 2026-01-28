@@ -22,7 +22,7 @@
   "pmx.settings.header.loop": "반복",
   "pmx.settings.header.stop_on_move": "이동 시 정지",
   "pmx.settings.header.camera_anim": "카메라",
-  "pmx.settings.header.camera_lock": "카메라 고정",
+  "pmx.settings.header.camera_lock": "카메라 혼합",
   "pmx.settings.header.music": "음악",
   "pmx.settings.value.on": "켜짐",
   "pmx.settings.value.off": "꺼짐",

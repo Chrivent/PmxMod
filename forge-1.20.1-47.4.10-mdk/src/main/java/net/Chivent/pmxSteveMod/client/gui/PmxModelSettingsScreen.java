@@ -17,14 +17,13 @@ public class PmxModelSettingsScreen extends Screen {
     private static final int LIST_TOP = 56;
     private static final int LIST_BOTTOM_PAD = 34;
     private static final int LIST_ITEM_HEIGHT = 22;
-    private static final int COLUMN_COUNT = 7;
+    private static final int COLUMN_COUNT = 6;
     private static final int SLOT_COUNT = 6;
     private static final int IDLE_SLOT_INDEX = -2;
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.state",
             "pmx.settings.header.motion",
             "pmx.settings.header.loop",
-            "pmx.settings.header.stop_on_move",
             "pmx.settings.header.camera_anim",
             "pmx.settings.header.camera_lock",
             "pmx.settings.header.music"
@@ -256,8 +255,8 @@ public class PmxModelSettingsScreen extends Screen {
         }
         widths[0] = Math.max(widths[0], maxRowWidth(0) + padding);
         widths[1] = Math.max(widths[1], maxRowWidth(1) + padding);
-        widths[4] = Math.max(widths[4], maxRowWidth(4) + padding);
-        widths[6] = Math.max(widths[6], maxRowWidth(6) + padding);
+        widths[3] = Math.max(widths[3], maxRowWidth(3) + padding);
+        widths[5] = Math.max(widths[5], maxRowWidth(5) + padding);
         sum = 0;
         for (int w : widths) sum += w;
         if (sum > totalWidth) {
@@ -290,8 +289,8 @@ public class PmxModelSettingsScreen extends Screen {
             String value = switch (col) {
                 case 0 -> row.custom ? row.name : "";
                 case 1 -> row.motion.isBlank() ? unset : row.motion;
-                case 4 -> row.camera.isBlank() ? unset : row.camera;
-                case 6 -> row.music.isBlank() ? unset : row.music;
+                case 3 -> row.camera.isBlank() ? unset : row.camera;
+                case 5 -> row.music.isBlank() ? unset : row.music;
                 default -> "";
             };
             if (!value.isBlank()) {
@@ -402,12 +401,11 @@ public class PmxModelSettingsScreen extends Screen {
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.motion, 0xF0F0F0);
                 drawCheckbox(graphics, 2, row.motionLoop);
-                drawCheckbox(graphics, 3, row.stopOnMove);
-                drawCell(graphics, 4, row.camera.isBlank()
+                drawCell(graphics, 3, row.camera.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.camera, 0xF0F0F0);
-                drawCheckbox(graphics, 5, row.cameraLock);
-                drawCell(graphics, 6, row.music.isBlank()
+                drawCheckbox(graphics, 4, row.cameraLock);
+                drawCell(graphics, 5, row.music.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.music, 0xF0F0F0);
                 drawColumnLines(graphics);
@@ -425,15 +423,14 @@ public class PmxModelSettingsScreen extends Screen {
                 }
                 switch (i) {
                     case 2 -> row.motionLoop = !row.motionLoop;
-                    case 3 -> row.stopOnMove = !row.stopOnMove;
-                    case 5 -> row.cameraLock = !row.cameraLock;
+                    case 4 -> row.cameraLock = !row.cameraLock;
                     case 1 -> screen.openMotionPicker(row);
-                    case 4 -> screen.openCameraPicker(row);
-                    case 6 -> screen.openMusicPicker(row);
+                    case 3 -> screen.openCameraPicker(row);
+                    case 5 -> screen.openMusicPicker(row);
                     default -> {
                     }
                 }
-                if (i == 2 || i == 3 || i == 5) {
+                if (i == 2 || i == 4) {
                     screen.saveSettings();
                 }
                 return true;

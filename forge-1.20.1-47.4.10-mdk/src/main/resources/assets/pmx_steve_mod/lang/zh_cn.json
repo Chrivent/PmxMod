@@ -22,7 +22,7 @@
   "pmx.settings.header.loop": "循环",
   "pmx.settings.header.stop_on_move": "移动时停止",
   "pmx.settings.header.camera_anim": "相机",
-  "pmx.settings.header.camera_lock": "相机锁定",
+  "pmx.settings.header.camera_lock": "相机混合",
   "pmx.settings.header.music": "音乐",
   "pmx.settings.value.on": "开",
   "pmx.settings.value.off": "关",

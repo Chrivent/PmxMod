@@ -22,7 +22,7 @@
   "pmx.settings.header.loop": "Loop",
   "pmx.settings.header.stop_on_move": "Stop On Move",
   "pmx.settings.header.camera_anim": "Camera",
-  "pmx.settings.header.camera_lock": "Camera Lock",
+  "pmx.settings.header.camera_lock": "Camera Blend",
   "pmx.settings.header.music": "Music",
   "pmx.settings.value.on": "On",
   "pmx.settings.value.off": "Off",

@@ -19,7 +19,12 @@ public class PmxViewer {
     public static PmxViewer get() { return INSTANCE; }
     public PmxInstance instance() { return instance; }
     public boolean isPmxVisible() { return showPmx; }
-    public void setPmxVisible(boolean visible) { showPmx = visible; }
+    public void setPmxVisible(boolean visible) {
+        showPmx = visible;
+        if (!visible) {
+            instance.stopMusic();
+        }
+    }
     public Path getSelectedModelPath() { return selectedModelPath; }
 
     private PmxViewer() {}

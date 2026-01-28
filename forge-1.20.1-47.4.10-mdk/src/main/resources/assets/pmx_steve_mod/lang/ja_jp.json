@@ -22,7 +22,7 @@
   "pmx.settings.header.loop": "ループ",
   "pmx.settings.header.stop_on_move": "移動で停止",
   "pmx.settings.header.camera_anim": "カメラ",
-  "pmx.settings.header.camera_lock": "カメラ固定",
+  "pmx.settings.header.camera_lock": "カメラ混合",
   "pmx.settings.header.music": "音楽",
   "pmx.settings.value.on": "オン",
   "pmx.settings.value.off": "オフ",

@@ -266,6 +266,13 @@ public class PmxInstance {
     public float camDistance() { return camDistance; }
     public float camFov() { return camFov; }
 
+    public void stopMusic() {
+        if (handle != 0L) {
+            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
+        }
+        musicActive = false;
+    }
+
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
         String name = src.getFileName().toString();
         String safeName = name.replaceAll("[^A-Za-z0-9._-]", "_");
