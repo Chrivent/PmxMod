@@ -475,8 +475,6 @@ public class PmxInstance {
         camFov = cameraState.getFloat();
     }
 
-
-
     private void allocateCpuBuffers() {
         int vertexCount = PmxNative.nativeGetVertexCount(handle);
         int indexCount  = PmxNative.nativeGetIndexCount(handle);
