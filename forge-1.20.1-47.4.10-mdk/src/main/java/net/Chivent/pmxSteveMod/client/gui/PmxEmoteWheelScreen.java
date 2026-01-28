@@ -209,7 +209,7 @@ public class PmxEmoteWheelScreen extends Screen {
 
         int ringRadius = deadZone + Math.round((wheelRadius - deadZone) * 0.48f);
         int orbitRadius = Math.max(12, Math.round((wheelRadius - deadZone) * 0.22f));
-        float size = Math.max(2.0f, wheelRadius * 0.014f);
+        float size = Math.max(2.4f, wheelRadius * 0.014f);
         float periodMs = 900.0f;
         float t = (nowMillis % (long) periodMs) / periodMs;
         double spin = t * Math.PI * 2.0;
@@ -226,27 +226,17 @@ public class PmxEmoteWheelScreen extends Screen {
         double headDeg = Math.toDegrees(spin);
         double tailLen = 180.0;
         int tailSegments = 15;
-        float tailEndAlpha = 0.0f;
         for (int i = 0; i < tailSegments; i++) {
             double segT0 = i / (double) tailSegments;
             double segT1 = (i + 1) / (double) tailSegments;
             double segStart = headDeg - tailLen * segT1;
             double segEnd = headDeg - tailLen * segT0;
             float alpha = 1.0f - (float) segT0;
-            if (i == tailSegments - 1) {
-                tailEndAlpha = alpha;
-            }
             int a = Math.max(0, Math.min(255, Math.round(alpha * 255.0f)));
             int color = (a << 24) | 0xFFFFFF;
             GuiUtil.drawRingSector(graphics, baseX, baseY, tailOuter, tailInner,
                     segStart, segEnd, Math.max(8, (int) Math.round((segEnd - segStart) * 0.6)), color);
         }
-
-        double tailEndRad = Math.toRadians(headDeg - tailLen);
-        int tailX = baseX + (int) Math.round(Math.cos(tailEndRad) * orbitRadius);
-        int tailY = baseY + (int) Math.round(Math.sin(tailEndRad) * orbitRadius);
-        int tailEndA = Math.max(0, Math.min(255, Math.round(tailEndAlpha * 255.0f)));
-        GuiUtil.drawSmoothCircle(graphics, tailX, tailY, size, (tailEndA << 24) | 0xFFFFFF);
         GuiUtil.drawSmoothCircle(graphics, x, y, size, 0xFFFFFFFF);
     }
 
