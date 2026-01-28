@@ -29,6 +29,7 @@
   "pmx.settings.value.unset": "Unset",
   "pmx.settings.row.slot": "Slot %s",
   "pmx.settings.label.state_name": "State Name",
+  "pmx.emote.empty": "Empty",
   "pmx.info.header": "Model Info",
   "pmx.info.file": "File",
   "pmx.info.name": "Name",

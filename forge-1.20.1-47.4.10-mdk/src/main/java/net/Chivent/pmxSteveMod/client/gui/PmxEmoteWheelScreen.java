@@ -23,10 +23,13 @@ public class PmxEmoteWheelScreen extends Screen {
     private final Screen parent;
     private int selectedSlot = -1;
     private boolean cancelled;
+    private final String[] slotLabels = new String[SLOT_COUNT];
+    private final boolean[] slotActive = new boolean[SLOT_COUNT];
 
     public PmxEmoteWheelScreen(Screen parent) {
         super(Component.translatable("pmx.screen.emote_wheel.title"));
         this.parent = parent;
+        loadSlotLabels();
     }
 
     @Override
@@ -59,7 +62,7 @@ public class PmxEmoteWheelScreen extends Screen {
         int wheelRadius = getWheelRadius();
         int labelRadius = getLabelRadius(wheelRadius);
         drawWheelRing(graphics, centerX, centerY, wheelRadius, 0x99000000);
-        if (selectedSlot >= 0) {
+        if (selectedSlot >= 0 && slotActive[selectedSlot]) {
             drawSelectedSector(graphics, centerX, centerY, wheelRadius, selectedSlot, 0x22FFFFFF);
         }
         drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
@@ -67,8 +70,15 @@ public class PmxEmoteWheelScreen extends Screen {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
             int slotX = centerX + (int) Math.round(Math.cos(angle) * labelRadius);
             int slotY = centerY + (int) Math.round(Math.sin(angle) * labelRadius);
-            int color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAAFFFFFF;
-            graphics.drawCenteredString(this.font, Integer.toString(i + 1), slotX, slotY - 4, color);
+            String label = slotLabels[i] != null ? slotLabels[i]
+                    : Component.translatable("pmx.emote.empty").getString();
+            int color;
+            if (!slotActive[i]) {
+                color = 0x66FFFFFF;
+            } else {
+                color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAAFFFFFF;
+            }
+            graphics.drawCenteredString(this.font, label, slotX, slotY - 4, color);
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -93,7 +103,7 @@ public class PmxEmoteWheelScreen extends Screen {
         double step = 360.0 / SLOT_COUNT;
         double normalized = (angle + 90.0 + step / 2.0 + 360.0) % 360.0;
         int slot = (int) (normalized / step);
-        if (slot < 0 || slot >= SLOT_COUNT) {
+        if (slot < 0 || slot >= SLOT_COUNT || !slotActive[slot]) {
             selectedSlot = -1;
         } else {
             selectedSlot = slot;
@@ -101,7 +111,7 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private void closeWithSelection() {
-        if (!cancelled && selectedSlot >= 0) {
+        if (!cancelled && selectedSlot >= 0 && slotActive[selectedSlot]) {
             PmxEmoteWheelState.setLastSelectedSlot(selectedSlot);
             executeSlot(selectedSlot);
         }
@@ -115,6 +125,23 @@ public class PmxEmoteWheelScreen extends Screen {
 
     private void executeSlot(int slot) {
         // TODO: hook to play motion/camera/music for the selected slot.
+    }
+
+    private void loadSlotLabels() {
+        java.nio.file.Path modelPath = net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getSelectedModelPath();
+        java.util.List<net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.RowData> rows =
+                net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.get().load(modelPath);
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            slotLabels[i] = Component.translatable("pmx.emote.empty").getString();
+            slotActive[i] = false;
+        }
+        for (var row : rows) {
+            if (row.slotIndex < 0 || row.slotIndex >= SLOT_COUNT) continue;
+            if (row.motion != null && !row.motion.isBlank()) {
+                slotLabels[row.slotIndex] = row.motion;
+                slotActive[row.slotIndex] = true;
+            }
+        }
     }
 
     private boolean isWheelKeyDown() {

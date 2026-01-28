@@ -35,6 +35,8 @@ public class PmxModelSettingsScreen extends Screen {
     private final List<SettingsRow> rows = new ArrayList<>();
     private final PmxModelSettingsStore store = PmxModelSettingsStore.get();
     private PmxSettingsList list;
+    private int[] cachedColumnWidths;
+    private int cachedColumnTotalWidth = -1;
 
     public PmxModelSettingsScreen(Screen parent, Path modelPath) {
         super(Component.translatable("pmx.screen.model_settings.title"));
@@ -108,6 +110,7 @@ public class PmxModelSettingsScreen extends Screen {
         if (list != null) {
             list.addRow(row);
         }
+        markWidthsDirty();
         saveSettings();
     }
 
@@ -116,6 +119,7 @@ public class PmxModelSettingsScreen extends Screen {
         List<PmxModelSettingsStore.RowData> saved = store.load(modelPath);
         if (saved.isEmpty()) {
             initDefaultRows();
+            markWidthsDirty();
             return;
         }
         for (PmxModelSettingsStore.RowData data : saved) {
@@ -132,6 +136,7 @@ public class PmxModelSettingsScreen extends Screen {
             row.music = data.music == null ? "" : data.music;
             rows.add(row);
         }
+        markWidthsDirty();
     }
 
     private void saveSettings() {
@@ -161,6 +166,7 @@ public class PmxModelSettingsScreen extends Screen {
                 Component.translatable("pmx.button.open_motion_folder"),
                 path -> {
                     row.motion = path == null ? "" : path.getFileName().toString();
+                    markWidthsDirty();
                     saveSettings();
                 }
         );
@@ -178,6 +184,7 @@ public class PmxModelSettingsScreen extends Screen {
                 Component.translatable("pmx.button.open_camera_folder"),
                 path -> {
                     row.camera = path == null ? "" : path.getFileName().toString();
+                    markWidthsDirty();
                     saveSettings();
                 }
         );
@@ -195,6 +202,7 @@ public class PmxModelSettingsScreen extends Screen {
                 Component.translatable("pmx.button.open_music_folder"),
                 path -> {
                     row.music = path == null ? "" : path.getFileName().toString();
+                    markWidthsDirty();
                     saveSettings();
                 }
         );
@@ -226,6 +234,9 @@ public class PmxModelSettingsScreen extends Screen {
     }
 
     private int[] getColumnWidths(int totalWidth) {
+        if (cachedColumnWidths != null && cachedColumnTotalWidth == totalWidth) {
+            return cachedColumnWidths;
+        }
         int[] widths = new int[COLUMN_COUNT];
         int padding = 10;
         int sum = 0;
@@ -234,6 +245,12 @@ public class PmxModelSettingsScreen extends Screen {
             widths[i] = Math.max(24, min);
             sum += widths[i];
         }
+        widths[0] = Math.max(widths[0], maxRowWidth(0) + padding);
+        widths[1] = Math.max(widths[1], maxRowWidth(1) + padding);
+        widths[4] = Math.max(widths[4], maxRowWidth(4) + padding);
+        widths[6] = Math.max(widths[6], maxRowWidth(6) + padding);
+        sum = 0;
+        for (int w : widths) sum += w;
         if (sum > totalWidth) {
             float scale = totalWidth / (float) sum;
             int scaledSum = 0;
@@ -242,7 +259,9 @@ public class PmxModelSettingsScreen extends Screen {
                 scaledSum += widths[i];
             }
             widths[COLUMN_COUNT - 1] += totalWidth - scaledSum;
-            return widths;
+            cachedColumnWidths = widths;
+            cachedColumnTotalWidth = totalWidth;
+            return cachedColumnWidths;
         }
         int extra = totalWidth - sum;
         int per = extra / COLUMN_COUNT;
@@ -250,7 +269,32 @@ public class PmxModelSettingsScreen extends Screen {
         for (int i = 0; i < COLUMN_COUNT; i++) {
             widths[i] += per + (i < rem ? 1 : 0);
         }
-        return widths;
+        cachedColumnWidths = widths;
+        cachedColumnTotalWidth = totalWidth;
+        return cachedColumnWidths;
+    }
+
+    private int maxRowWidth(int col) {
+        int max = 0;
+        String unset = Component.translatable("pmx.settings.value.unset").getString();
+        for (SettingsRow row : rows) {
+            String value = switch (col) {
+                case 0 -> row.custom ? row.name : "";
+                case 1 -> row.motion.isBlank() ? unset : row.motion;
+                case 4 -> row.camera.isBlank() ? unset : row.camera;
+                case 6 -> row.music.isBlank() ? unset : row.music;
+                default -> "";
+            };
+            if (!value.isBlank()) {
+                max = Math.max(max, this.font.width(value));
+            }
+        }
+        return max;
+    }
+
+    private void markWidthsDirty() {
+        cachedColumnWidths = null;
+        cachedColumnTotalWidth = -1;
     }
 
     private static final class SettingsRow {

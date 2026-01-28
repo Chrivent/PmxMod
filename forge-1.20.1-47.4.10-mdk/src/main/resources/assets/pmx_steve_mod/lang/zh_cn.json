@@ -29,6 +29,7 @@
   "pmx.settings.value.unset": "未设置",
   "pmx.settings.row.slot": "槽位 %s",
   "pmx.settings.label.state_name": "状态名称",
+  "pmx.emote.empty": "空",
   "pmx.info.header": "模型信息",
   "pmx.info.file": "文件",
   "pmx.info.name": "名称",

@@ -29,6 +29,7 @@
   "pmx.settings.value.unset": "未設定",
   "pmx.settings.row.slot": "スロット %s",
   "pmx.settings.label.state_name": "状態名",
+  "pmx.emote.empty": "空",
   "pmx.info.header": "モデル情報",
   "pmx.info.file": "ファイル",
   "pmx.info.name": "名前",
