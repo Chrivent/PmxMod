@@ -83,7 +83,7 @@ public class PmxEmoteWheelScreen extends Screen {
         double dx = mouseX - this.width / 2.0;
         double dy = mouseY - this.height / 2.0;
         int wheelRadius = getWheelRadius();
-        int deadzone = getDeadzoneRadius(wheelRadius);
+        int deadzone = getDeadZoneRadius(wheelRadius);
         double dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < deadzone || dist > wheelRadius) {
             selectedSlot = -1;
@@ -120,104 +120,103 @@ public class PmxEmoteWheelScreen extends Screen {
 
     private void drawWheelBoundaries(GuiGraphics graphics, int cx, int cy, int color) {
         int wheelRadius = getWheelRadius();
-        int deadzone = getDeadzoneRadius(wheelRadius);
+        int deadZone = getDeadZoneRadius(wheelRadius);
         double step = 360.0 / SLOT_COUNT;
+        float thickness = Math.max(1.0f, wheelRadius * 0.01f);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (step * i) - (step / 2.0));
             double cos = Math.cos(angle);
             double sin = Math.sin(angle);
-            int x1 = cx + (int) Math.round(cos * deadzone);
-            int y1 = cy + (int) Math.round(sin * deadzone);
+            int x1 = cx + (int) Math.round(cos * deadZone);
+            int y1 = cy + (int) Math.round(sin * deadZone);
             int x2 = cx + (int) Math.round(cos * wheelRadius);
             int y2 = cy + (int) Math.round(sin * wheelRadius);
-            drawLine(graphics, x1, y1, x2, y2, color);
+            drawThickLine(graphics, x1, y1, x2, y2, thickness, color);
         }
     }
 
     private void drawSelectedSector(GuiGraphics graphics, int cx, int cy, int wheelRadius, int slot, int color) {
-        int deadzone = getDeadzoneRadius(wheelRadius);
+        int deadZone = getDeadZoneRadius(wheelRadius);
         double step = 360.0 / SLOT_COUNT;
         double centerDeg = -90.0 + (step * slot);
         double startDeg = centerDeg - (step / 2.0);
         double endDeg = centerDeg + (step / 2.0);
         int segments = Math.max(12, (int) Math.round(step * 0.6));
 
-        float a = ((color >> 24) & 0xFF) / 255.0f;
-        float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8) & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
+        drawRingSector(graphics, cx, cy, wheelRadius, deadZone, startDeg, endDeg, segments, color);
+    }
 
+    private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
+        int inner = getDeadZoneRadius(radius);
+        int segments = Math.max(48, (int) Math.round(radius * 1.2));
+
+        drawRingSector(graphics, cx, cy, radius, inner, -90.0, 270.0, segments, color);
+    }
+
+    private void drawRingSector(GuiGraphics graphics, int cx, int cy, int outerRadius, int innerRadius,
+                                double startDeg, double endDeg, int segments, int color) {
+        ColorFloats c = toColorFloats(color);
         Matrix4f pose = graphics.pose().last().pose();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.enableBlend();
-        BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder builder = beginColorBuilder(VertexFormat.Mode.TRIANGLE_STRIP);
         for (int i = 0; i <= segments; i++) {
             double t = i / (double) segments;
             double deg = startDeg + (endDeg - startDeg) * t;
             double rad = Math.toRadians(deg);
             float cos = (float) Math.cos(rad);
             float sin = (float) Math.sin(rad);
-            float xOuter = cx + cos * wheelRadius;
-            float yOuter = cy + sin * wheelRadius;
-            float xInner = cx + cos * deadzone;
-            float yInner = cy + sin * deadzone;
-            builder.vertex(pose, xOuter, yOuter, 0).color(r, g, b, a).endVertex();
-            builder.vertex(pose, xInner, yInner, 0).color(r, g, b, a).endVertex();
+            float xOuter = cx + cos * outerRadius;
+            float yOuter = cy + sin * outerRadius;
+            float xInner = cx + cos * innerRadius;
+            float yInner = cy + sin * innerRadius;
+            builder.vertex(pose, xOuter, yOuter, 0).color(c.r, c.g, c.b, c.a).endVertex();
+            builder.vertex(pose, xInner, yInner, 0).color(c.r, c.g, c.b, c.a).endVertex();
         }
+        endColorBuilder();
+    }
+
+    private void drawThickLine(GuiGraphics graphics, float x1, float y1, float x2, float y2, float thickness, int color) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        if (len <= 0.0001f) return;
+        float nx = -dy / len;
+        float ny = dx / len;
+        float half = thickness * 0.5f;
+        float ox = nx * half;
+        float oy = ny * half;
+
+        ColorFloats c = toColorFloats(color);
+        Matrix4f pose = graphics.pose().last().pose();
+        BufferBuilder builder = beginColorBuilder(VertexFormat.Mode.QUADS);
+        builder.vertex(pose, x1 - ox, y1 - oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
+        builder.vertex(pose, x1 + ox, y1 + oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
+        builder.vertex(pose, x2 + ox, y2 + oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
+        builder.vertex(pose, x2 - ox, y2 - oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
+        endColorBuilder();
+    }
+
+    private BufferBuilder beginColorBuilder(VertexFormat.Mode mode) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.enableBlend();
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(mode, DefaultVertexFormat.POSITION_COLOR);
+        return builder;
+    }
+
+    private void endColorBuilder() {
         Tesselator.getInstance().end();
         RenderSystem.disableBlend();
     }
 
-    private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
-        int inner = getDeadzoneRadius(radius);
-        int segments = Math.max(48, (int) Math.round(radius * 1.2));
-
+    private ColorFloats toColorFloats(int color) {
         float a = ((color >> 24) & 0xFF) / 255.0f;
         float r = ((color >> 16) & 0xFF) / 255.0f;
         float g = ((color >> 8) & 0xFF) / 255.0f;
         float b = (color & 0xFF) / 255.0f;
-
-        Matrix4f pose = graphics.pose().last().pose();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.enableBlend();
-        BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        for (int i = 0; i <= segments; i++) {
-            double t = i / (double) segments;
-            double rad = Math.toRadians(-90.0 + 360.0 * t);
-            float cos = (float) Math.cos(rad);
-            float sin = (float) Math.sin(rad);
-            float xOuter = cx + cos * radius;
-            float yOuter = cy + sin * radius;
-            float xInner = cx + cos * inner;
-            float yInner = cy + sin * inner;
-            builder.vertex(pose, xOuter, yOuter, 0).color(r, g, b, a).endVertex();
-            builder.vertex(pose, xInner, yInner, 0).color(r, g, b, a).endVertex();
-        }
-        Tesselator.getInstance().end();
-        RenderSystem.disableBlend();
+        return new ColorFloats(r, g, b, a);
     }
 
-    private void drawLine(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int steps = Math.max(dx, dy);
-        if (steps == 0) {
-            graphics.fill(x1, y1, x1 + 1, y1 + 1, color);
-            return;
-        }
-        double xStep = (x2 - x1) / (double) steps;
-        double yStep = (y2 - y1) / (double) steps;
-        double x = x1;
-        double y = y1;
-        for (int i = 0; i <= steps; i++) {
-            graphics.fill((int) Math.round(x), (int) Math.round(y),
-                    (int) Math.round(x) + 1, (int) Math.round(y) + 1, color);
-            x += xStep;
-            y += yStep;
-        }
-    }
+    private record ColorFloats(float r, float g, float b, float a) {}
 
     private int getWheelRadius() {
         int base = Math.min(this.width, this.height);
@@ -225,7 +224,7 @@ public class PmxEmoteWheelScreen extends Screen {
         return Math.max(MIN_WHEEL_RADIUS, scaled);
     }
 
-    private int getDeadzoneRadius(int wheelRadius) {
+    private int getDeadZoneRadius(int wheelRadius) {
         return (int) Math.round(wheelRadius * 0.42);
     }
 

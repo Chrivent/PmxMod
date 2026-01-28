@@ -263,7 +263,9 @@ public class PmxModelSelectScreen extends Screen {
     private record InfoLine(FormattedCharSequence text, int color, int y) {}
 
     private void openModelSettings(Path modelPath) {
-        this.minecraft.setScreen(new PmxModelSettingsScreen(this, modelPath));
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(new PmxModelSettingsScreen(this, modelPath));
+        }
     }
 
     @Override
