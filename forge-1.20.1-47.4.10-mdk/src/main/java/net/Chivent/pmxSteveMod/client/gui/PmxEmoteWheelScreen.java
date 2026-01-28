@@ -128,13 +128,13 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private void drawSelectedSector(GuiGraphics graphics, int cx, int cy, int wheelRadius, int slot, int color) {
-        int deadzone = getDeadzoneRadius(wheelRadius);
+        int deadZone = getDeadzoneRadius(wheelRadius);
         double step = 360.0 / SLOT_COUNT;
         double centerDeg = -90.0 + (step * slot);
         double startDeg = centerDeg - (step / 2.0);
         double endDeg = centerDeg + (step / 2.0);
         int rOuter2 = wheelRadius * wheelRadius;
-        int rInner2 = deadzone * deadzone;
+        int rInner2 = deadZone * deadZone;
         for (int y = -wheelRadius; y <= wheelRadius; y++) {
             for (int x = -wheelRadius; x <= wheelRadius; x++) {
                 int r2 = x * x + y * y;
