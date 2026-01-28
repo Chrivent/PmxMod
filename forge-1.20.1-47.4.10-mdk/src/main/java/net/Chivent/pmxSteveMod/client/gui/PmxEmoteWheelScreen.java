@@ -10,9 +10,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
     private static final int SLOT_COUNT = 6;
-    private static final int DEADZONE_RADIUS = 24;
-    private static final int SLOT_RADIUS = 78;
-    private static final int SLOT_HALF_SIZE = 18;
+    private static final int DEADZONE_RADIUS = 38;
     private static final int WHEEL_RADIUS = 110;
 
     private final Screen parent;
@@ -55,13 +53,10 @@ public class PmxEmoteWheelScreen extends Screen {
         drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
-            int slotX = centerX + (int) Math.round(Math.cos(angle) * SLOT_RADIUS);
-            int slotY = centerY + (int) Math.round(Math.sin(angle) * SLOT_RADIUS);
-
-            int color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAA202020;
-            graphics.fill(slotX - SLOT_HALF_SIZE, slotY - SLOT_HALF_SIZE,
-                    slotX + SLOT_HALF_SIZE, slotY + SLOT_HALF_SIZE, color);
-            graphics.drawCenteredString(this.font, Integer.toString(i + 1), slotX, slotY - 4, 0xFFFFFFFF);
+            int slotX = centerX + (int) Math.round(Math.cos(angle) * (WHEEL_RADIUS * 0.72));
+            int slotY = centerY + (int) Math.round(Math.sin(angle) * (WHEEL_RADIUS * 0.72));
+            int color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAAFFFFFF;
+            graphics.drawCenteredString(this.font, Integer.toString(i + 1), slotX, slotY - 4, color);
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);
