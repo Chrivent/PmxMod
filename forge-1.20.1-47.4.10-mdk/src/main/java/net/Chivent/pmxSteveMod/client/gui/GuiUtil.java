@@ -17,8 +17,6 @@ public final class GuiUtil {
     public static final ResourceLocation DEFAULT_SPRITE_ID =
             ResourceLocation.fromNamespaceAndPath("minecraft", "block/obsidian");
 
-    private GuiUtil() {}
-
     public static void renderDefaultBackground(GuiGraphics graphics, int width, int height) {
         renderTiledBackground(graphics, width, height, DEFAULT_SPRITE_ID, 32, 32, 0x55000000, 0x77000000);
     }
