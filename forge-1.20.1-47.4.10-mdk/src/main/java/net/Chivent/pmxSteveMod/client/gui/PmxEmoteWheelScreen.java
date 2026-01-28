@@ -25,6 +25,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private boolean cancelled;
     private final String[] slotLabels = new String[SLOT_COUNT];
     private final boolean[] slotActive = new boolean[SLOT_COUNT];
+    private final String[] slotMotionFiles = new String[SLOT_COUNT];
 
     public PmxEmoteWheelScreen(Screen parent) {
         super(Component.translatable("pmx.screen.emote_wheel.title"));
@@ -124,7 +125,14 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private void executeSlot(int slot) {
-        // TODO: hook to play motion/camera/music for the selected slot.
+        if (slot < 0 || slot >= SLOT_COUNT) return;
+        String motionFile = slotMotionFiles[slot];
+        if (motionFile == null || motionFile.isBlank()) return;
+        java.nio.file.Path dir = net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir();
+        java.nio.file.Path motionPath = dir.resolve(motionFile);
+        net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
+        viewer.setPmxVisible(true);
+        viewer.instance().playMotion(motionPath);
     }
 
     private void loadSlotLabels() {
@@ -134,12 +142,14 @@ public class PmxEmoteWheelScreen extends Screen {
         for (int i = 0; i < SLOT_COUNT; i++) {
             slotLabels[i] = Component.translatable("pmx.emote.empty").getString();
             slotActive[i] = false;
+            slotMotionFiles[i] = "";
         }
         for (var row : rows) {
             if (row.slotIndex < 0 || row.slotIndex >= SLOT_COUNT) continue;
             if (row.motion != null && !row.motion.isBlank()) {
                 slotLabels[row.slotIndex] = row.motion;
                 slotActive[row.slotIndex] = true;
+                slotMotionFiles[row.slotIndex] = row.motion;
             }
         }
     }

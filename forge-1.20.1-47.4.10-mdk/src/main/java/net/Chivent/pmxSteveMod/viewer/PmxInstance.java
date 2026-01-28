@@ -93,7 +93,6 @@ public class PmxInstance {
             boolean ok = PmxNative.nativeLoadPmx(handle, pmxPath.toString(), dataDir);
             if (!ok) { ready = false; return; }
 
-            PmxNative.nativeAddVmd(handle, "D:/예찬/MMD/motion/STAYC - Teddy Bear/STAYC - Teddy Bear/Teddy Bear.vmd");
             PmxNative.nativeSyncPhysics(handle, 0.0f);
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
 
@@ -143,6 +142,35 @@ public class PmxInstance {
         if (posBuf == null || nrmBuf == null || uvBuf == null) return;
         copyDynamicVertices();
     }
+
+    public void playMotion(Path vmdPath) {
+        if (!ready || handle == 0L) return;
+        if (vmdPath == null || !Files.exists(vmdPath)) return;
+        try {
+            frame = 0f;
+            lastNanos = -1;
+            Path safePath = toSafePath(vmdPath);
+            PmxNative.nativeAddVmd(handle, safePath.toString());
+            PmxNative.nativeSyncPhysics(handle, 0.0f);
+            PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
+        } catch (Throwable t) {
+            LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
+        }
+    }
+
+    private Path toSafePath(Path src) throws IOException {
+        String name = src.getFileName().toString();
+        String safeName = name.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (safeName.isBlank()) {
+            safeName = "motion.vmd";
+        }
+        Path outDir = Paths.get(System.getProperty("java.io.tmpdir"), "pmx_steve_mod", "motion_cache");
+        Files.createDirectories(outDir);
+        Path outFile = outDir.resolve(safeName);
+        Files.copy(src, outFile, StandardCopyOption.REPLACE_EXISTING);
+        return outFile;
+    }
+
 
     private void allocateCpuBuffers() {
         int vertexCount = PmxNative.nativeGetVertexCount(handle);
