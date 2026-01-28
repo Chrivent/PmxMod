@@ -11,6 +11,8 @@ public class PmxViewer {
     private final PmxInstance instance = new PmxInstance();
     private boolean showPmx = false;
     private Path userModelDir;
+    private Path userMotionDir;
+    private Path userCameraDir;
     private Path selectedModelPath;
 
     public static PmxViewer get() { return INSTANCE; }
@@ -43,19 +45,20 @@ public class PmxViewer {
 
     public Path getUserModelDir() {
         if (userModelDir != null) return userModelDir;
-        Path base;
-        try {
-            base = FMLPaths.GAMEDIR.get();
-        } catch (Exception ignored) {
-            base = Minecraft.getInstance().gameDirectory.toPath();
-        }
-        userModelDir = base.resolve("pmx_models");
-        try {
-            Files.createDirectories(userModelDir);
-        } catch (Exception ignored) {
-            // No local folder available; leave directory unset.
-        }
+        userModelDir = ensureUserDir("pmx_models");
         return userModelDir;
+    }
+
+    public Path getUserMotionDir() {
+        if (userMotionDir != null) return userMotionDir;
+        userMotionDir = ensureUserDir("pmx_motions");
+        return userMotionDir;
+    }
+
+    public Path getUserCameraDir() {
+        if (userCameraDir != null) return userCameraDir;
+        userCameraDir = ensureUserDir("pmx_cameras");
+        return userCameraDir;
     }
 
     private void selectDefaultModelIfMissing() {
@@ -69,5 +72,21 @@ public class PmxViewer {
         } catch (Exception ignored) {
             selectedModelPath = null;
         }
+    }
+
+    private Path ensureUserDir(String name) {
+        Path base;
+        try {
+            base = FMLPaths.GAMEDIR.get();
+        } catch (Exception ignored) {
+            base = Minecraft.getInstance().gameDirectory.toPath();
+        }
+        Path dir = base.resolve(name);
+        try {
+            Files.createDirectories(dir);
+        } catch (Exception ignored) {
+            return dir;
+        }
+        return dir;
     }
 }

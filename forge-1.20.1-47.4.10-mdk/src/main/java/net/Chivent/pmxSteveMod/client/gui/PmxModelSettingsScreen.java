@@ -38,6 +38,8 @@ public class PmxModelSettingsScreen extends Screen {
         this.list = new PmxSettingsList(this, minecraft, this.width - (LIST_SIDE_PAD * 2),
                 listHeight, LIST_TOP, listBottom, LIST_ITEM_HEIGHT);
         this.list.setLeftPos(LIST_SIDE_PAD);
+        this.list.setRenderBackground(false);
+        this.list.setRenderTopAndBottom(false);
         for (SettingsRow row : rows) {
             this.list.addRow(row);
         }
@@ -61,6 +63,11 @@ public class PmxModelSettingsScreen extends Screen {
             list.render(graphics, mouseX, mouseY, partialTick);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(@NotNull GuiGraphics graphics) {
+        GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
     }
 
     @Override

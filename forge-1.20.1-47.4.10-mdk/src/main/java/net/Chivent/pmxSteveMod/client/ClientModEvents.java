@@ -14,6 +14,11 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(() -> PmxViewer.get().getUserModelDir());
+        event.enqueueWork(() -> {
+            PmxViewer viewer = PmxViewer.get();
+            viewer.getUserModelDir();
+            viewer.getUserMotionDir();
+            viewer.getUserCameraDir();
+        });
     }
 }

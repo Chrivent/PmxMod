@@ -5,18 +5,14 @@ import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.world.inventory.InventoryMenu;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
@@ -33,8 +29,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class PmxModelSelectScreen extends Screen {
-    private static final ResourceLocation BACKGROUND_SPRITE_ID =
-            ResourceLocation.fromNamespaceAndPath("minecraft", "block/obsidian");
     private static final int INFO_PANEL_WIDTH = 190;
     private static final int INFO_PANEL_PADDING = 12;
     private static final int INFO_PANEL_INSET = 4;
@@ -100,34 +94,7 @@ public class PmxModelSelectScreen extends Screen {
 
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
-        renderTiledBackground(graphics);
-        int top = 32;
-        int bottom = this.height - 32;
-        if (bottom > top) {
-            graphics.fillGradient(0, top, this.width, bottom, 0x55000000, 0x77000000);
-        }
-    }
-
-    private void renderTiledBackground(@NotNull GuiGraphics graphics) {
-        Minecraft mc = Minecraft.getInstance();
-        TextureAtlasSprite sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(BACKGROUND_SPRITE_ID);
-        int tile = 16;
-        int top = 32;
-        int bottom = this.height - 32;
-        for (int y = 0; y < top; y += tile) {
-            int h = Math.min(tile, top - y);
-            for (int x = 0; x < this.width; x += tile) {
-                int w = Math.min(tile, this.width - x);
-                graphics.blit(x, y, 0, w, h, sprite);
-            }
-        }
-        for (int y = bottom; y < this.height; y += tile) {
-            int h = Math.min(tile, this.height - y);
-            for (int x = 0; x < this.width; x += tile) {
-                int w = Math.min(tile, this.width - x);
-                graphics.blit(x, y, 0, w, h, sprite);
-            }
-        }
+        GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
     }
 
     private void renderInfoPanel(@NotNull GuiGraphics graphics) {
