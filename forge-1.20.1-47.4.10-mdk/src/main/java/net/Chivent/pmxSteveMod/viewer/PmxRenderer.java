@@ -319,8 +319,17 @@ public class PmxRenderer {
         if (sh == null) return;
 
         Matrix4f proj = RenderSystem.getProjectionMatrix();
-        Matrix4f wv  = new Matrix4f(pose);
-        Matrix4f wvp = new Matrix4f(proj).mul(pose);
+        Matrix4f wv;
+        Matrix4f wvp;
+        if (instance.hasCamera()) {
+            Matrix4f view = buildCameraView(instance);
+            Matrix4f camProj = buildCameraProj();
+            wv = new Matrix4f(view).mul(pose);
+            wvp = new Matrix4f(camProj).mul(wv);
+        } else {
+            wv = new Matrix4f(pose);
+            wvp = new Matrix4f(proj).mul(pose);
+        }
 
         RenderSystem.setShader(() -> sh);
 
@@ -402,6 +411,40 @@ public class PmxRenderer {
         Matrix3f viewRot = new Matrix3f(invView).invert();
         viewRot.transform(dir);
         return new float[] {dir.x, dir.y, dir.z};
+    }
+
+    private static Matrix4f buildCameraView(PmxInstance instance) {
+        float ix = instance.camInterestX();
+        float iy = instance.camInterestY();
+        float iz = instance.camInterestZ();
+        float rx = instance.camRotX();
+        float ry = instance.camRotY();
+        float rz = instance.camRotZ();
+        float dist = instance.camDistance();
+
+        Matrix4f view = new Matrix4f().translation(0.0f, 0.0f, -dist);
+        Matrix4f rot = new Matrix4f().rotateY(ry).rotateZ(rz).rotateX(rx);
+        rot.mul(view, view);
+
+        Vector3f eye = new Vector3f(view.m30(), view.m31(), view.m32());
+        eye.add(ix, iy, iz);
+        Vector3f center = new Vector3f(0.0f, 0.0f, -1.0f);
+        new Matrix3f(view).transform(center).add(eye);
+        Vector3f up = new Vector3f(0.0f, 1.0f, 0.0f);
+        new Matrix3f(view).transform(up);
+        return new Matrix4f().lookAt(eye, center, up);
+    }
+
+    private static Matrix4f buildCameraProj() {
+        Minecraft mc = Minecraft.getInstance();
+        int w = mc.getWindow().getWidth();
+        int h = mc.getWindow().getHeight();
+        float fov = PmxViewer.get().instance().camFov();
+        if (fov <= 0.0f) {
+            fov = (float) Math.toRadians(30.0f);
+        }
+        float aspect = h == 0 ? 1.0f : (float) w / (float) h;
+        return new Matrix4f().perspective(fov, aspect, 1.0f, 10000.0f);
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {

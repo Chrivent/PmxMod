@@ -26,6 +26,15 @@ public class PmxInstance {
     private Path currentPmxPath;
     private boolean hasMotion = false;
     private boolean musicActive = false;
+    private boolean cameraActive = false;
+    private float camInterestX;
+    private float camInterestY;
+    private float camInterestZ;
+    private float camRotX;
+    private float camRotY;
+    private float camRotZ;
+    private float camDistance;
+    private float camFov;
 
     private float frame = 0f;
     private long lastNanos = -1;
@@ -43,6 +52,7 @@ public class PmxInstance {
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer musicTimes = ByteBuffer.allocateDirect(2 * 4).order(ByteOrder.nativeOrder());
+    private final ByteBuffer cameraState = ByteBuffer.allocateDirect(8 * 4).order(ByteOrder.nativeOrder());
 
     private boolean indicesCopiedOnce = false;
 
@@ -113,6 +123,7 @@ public class PmxInstance {
             ready = true;
             hasMotion = false;
             musicActive = false;
+            cameraActive = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -129,6 +140,7 @@ public class PmxInstance {
         currentPmxPath = null;
         hasMotion = false;
         musicActive = false;
+        cameraActive = false;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -167,6 +179,7 @@ public class PmxInstance {
             lastNanos = now;
             frame += dt * 30.0f;
         }
+        updateCameraState(frame);
         PmxNative.nativeUpdate(handle, frame, dt);
     }
 
@@ -182,6 +195,10 @@ public class PmxInstance {
     }
 
     public void playMotion(Path vmdPath, Path musicPath) {
+        playMotion(vmdPath, musicPath, null);
+    }
+
+    public void playMotion(Path vmdPath, Path musicPath, Path cameraPath) {
         if (vmdPath == null || !Files.exists(vmdPath)) return;
         Path pmxPath = currentPmxPath;
         if (pmxPath == null) return;
@@ -200,6 +217,18 @@ public class PmxInstance {
             } else {
                 try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
                 musicActive = false;
+            }
+
+            if (cameraPath != null && Files.exists(cameraPath)) {
+                Path safeCamera = toSafePath(cameraPath, "camera_cache");
+                try {
+                    cameraActive = PmxNative.nativeLoadCameraVmd(handle, safeCamera.toString());
+                } catch (UnsatisfiedLinkError e) {
+                    cameraActive = false;
+                }
+            } else {
+                try { PmxNative.nativeClearCamera(handle); } catch (Throwable ignored) {}
+                cameraActive = false;
             }
 
             Path safePath = toSafePath(vmdPath, "motion_cache");
@@ -227,6 +256,16 @@ public class PmxInstance {
         }
     }
 
+    public boolean hasCamera() { return cameraActive; }
+    public float camInterestX() { return camInterestX; }
+    public float camInterestY() { return camInterestY; }
+    public float camInterestZ() { return camInterestZ; }
+    public float camRotX() { return camRotX; }
+    public float camRotY() { return camRotY; }
+    public float camRotZ() { return camRotZ; }
+    public float camDistance() { return camDistance; }
+    public float camFov() { return camFov; }
+
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
         String name = src.getFileName().toString();
         String safeName = name.replaceAll("[^A-Za-z0-9._-]", "_");
@@ -243,6 +282,30 @@ public class PmxInstance {
         Path outFile = outDir.resolve(safeName);
         Files.copy(src, outFile, StandardCopyOption.REPLACE_EXISTING);
         return outFile;
+    }
+
+    private void updateCameraState(float frame) {
+        if (!cameraActive) return;
+        cameraState.clear();
+        boolean ok;
+        try {
+            ok = PmxNative.nativeGetCameraState(handle, frame, cameraState);
+        } catch (UnsatisfiedLinkError e) {
+            ok = false;
+        }
+        if (!ok) {
+            cameraActive = false;
+            return;
+        }
+        cameraState.rewind();
+        camInterestX = cameraState.getFloat();
+        camInterestY = cameraState.getFloat();
+        camInterestZ = cameraState.getFloat();
+        camRotX = cameraState.getFloat();
+        camRotY = cameraState.getFloat();
+        camRotZ = cameraState.getFloat();
+        camDistance = cameraState.getFloat();
+        camFov = cameraState.getFloat();
     }
 
 

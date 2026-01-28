@@ -10,6 +10,7 @@ struct PmxRuntime {
     std::shared_ptr<Model> model;
     std::unique_ptr<Animation> anim;
     std::unique_ptr<Animation> blendAnim;
+    std::unique_ptr<CameraAnimation> cameraAnim;
     float blendElapsed = 0.0f;
     float blendDuration = 0.0f;
     bool blending = false;
@@ -121,6 +122,7 @@ extern "C" {
         rt->model->InitializeAnimation();
         rt->anim = CreateAnimation(rt->model);
         rt->blendAnim.reset();
+        rt->cameraAnim.reset();
         rt->blendElapsed = 0.0f;
         rt->blendDuration = 0.0f;
         rt->blending = false;
@@ -169,6 +171,47 @@ extern "C" {
         rt->blendElapsed = 0.0f;
         rt->blendDuration = blendSeconds;
         rt->blending = true;
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadCameraVmd(
+        JNIEnv* env, jclass, const jlong handle, _jstring* vmdPath) {
+        auto* rt = FromHandle(handle);
+        if (!rt) return JNI_FALSE;
+        VMDReader vmd;
+        const auto path = JStringToPath(env, vmdPath);
+        if (!vmd.ReadFile(path)) return JNI_FALSE;
+        auto cam = std::make_unique<CameraAnimation>();
+        if (!cam->Create(vmd)) return JNI_FALSE;
+        rt->cameraAnim = std::move(cam);
+        return JNI_TRUE;
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeClearCamera(
+        JNIEnv*, jclass, const jlong handle) {
+        auto* rt = FromHandle(handle);
+        if (!rt) return;
+        rt->cameraAnim.reset();
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetCameraState(
+        JNIEnv* env, jclass, const jlong handle, const jfloat frame, _jobject* dst8f) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->cameraAnim || !dst8f) return JNI_FALSE;
+        auto* out = static_cast<float*>(env->GetDirectBufferAddress(dst8f));
+        const jlong cap = env->GetDirectBufferCapacity(dst8f);
+        if (!out || cap < static_cast<jlong>(8 * sizeof(float))) return JNI_FALSE;
+        rt->cameraAnim->Evaluate(frame);
+        const auto& [m_interest, m_rotate,
+            m_distance, m_fov] = rt->cameraAnim->m_camera;
+        out[0] = m_interest.x;
+        out[1] = m_interest.y;
+        out[2] = m_interest.z;
+        out[3] = m_rotate.x;
+        out[4] = m_rotate.y;
+        out[5] = m_rotate.z;
+        out[6] = m_distance;
+        out[7] = m_fov;
         return JNI_TRUE;
     }
 

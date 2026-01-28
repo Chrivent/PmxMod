@@ -27,6 +27,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private final boolean[] slotActive = new boolean[SLOT_COUNT];
     private final String[] slotMotionFiles = new String[SLOT_COUNT];
     private final String[] slotMusicFiles = new String[SLOT_COUNT];
+    private final String[] slotCameraFiles = new String[SLOT_COUNT];
 
     public PmxEmoteWheelScreen(Screen parent) {
         super(Component.translatable("pmx.screen.emote_wheel.title"));
@@ -138,8 +139,14 @@ public class PmxEmoteWheelScreen extends Screen {
             java.nio.file.Path musicDir = viewer.getUserMusicDir();
             musicPath = musicDir.resolve(musicFile);
         }
+        String cameraFile = slotCameraFiles[slot];
+        java.nio.file.Path cameraPath = null;
+        if (cameraFile != null && !cameraFile.isBlank()) {
+            java.nio.file.Path cameraDir = viewer.getUserCameraDir();
+            cameraPath = cameraDir.resolve(cameraFile);
+        }
         viewer.setPmxVisible(true);
-        viewer.instance().playMotion(motionPath, musicPath);
+        viewer.instance().playMotion(motionPath, musicPath, cameraPath);
     }
 
     private void loadSlotLabels() {
@@ -151,6 +158,7 @@ public class PmxEmoteWheelScreen extends Screen {
             slotActive[i] = false;
             slotMotionFiles[i] = "";
             slotMusicFiles[i] = "";
+            slotCameraFiles[i] = "";
         }
         for (var row : rows) {
             if (row.slotIndex < 0 || row.slotIndex >= SLOT_COUNT) continue;
@@ -159,6 +167,7 @@ public class PmxEmoteWheelScreen extends Screen {
                 slotActive[row.slotIndex] = true;
                 slotMotionFiles[row.slotIndex] = row.motion;
                 slotMusicFiles[row.slotIndex] = row.music == null ? "" : row.music;
+                slotCameraFiles[row.slotIndex] = row.camera == null ? "" : row.camera;
             }
         }
     }
