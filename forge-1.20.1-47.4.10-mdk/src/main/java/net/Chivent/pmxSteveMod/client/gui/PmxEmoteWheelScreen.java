@@ -225,7 +225,7 @@ public class PmxEmoteWheelScreen extends Screen {
         int tailInner = Math.max(0, Math.round(orbitRadius - tailThickness));
         double headDeg = Math.toDegrees(spin);
         double tailLen = 180.0;
-        int tailSegments = 6;
+        int tailSegments = 15;
         float tailEndAlpha = 0.0f;
         for (int i = 0; i < tailSegments; i++) {
             double segT0 = i / (double) tailSegments;
