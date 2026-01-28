@@ -13,6 +13,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private static final int DEADZONE_RADIUS = 24;
     private static final int SLOT_RADIUS = 78;
     private static final int SLOT_HALF_SIZE = 18;
+    private static final int WHEEL_RADIUS = 110;
 
     private final Screen parent;
     private int selectedSlot = -1;
@@ -47,10 +48,11 @@ public class PmxEmoteWheelScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         updateSelection(mouseX, mouseY);
-        graphics.fill(0, 0, this.width, this.height, 0x66000000);
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
+        drawCircle(graphics, centerX, centerY, WHEEL_RADIUS, 0x99000000);
+        drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
             int slotX = centerX + (int) Math.round(Math.cos(angle) * SLOT_RADIUS);
@@ -74,7 +76,7 @@ public class PmxEmoteWheelScreen extends Screen {
         double dx = mouseX - this.width / 2.0;
         double dy = mouseY - this.height / 2.0;
         double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < DEADZONE_RADIUS) {
+        if (dist < DEADZONE_RADIUS || dist > WHEEL_RADIUS) {
             selectedSlot = -1;
             return;
         }
@@ -104,5 +106,47 @@ public class PmxEmoteWheelScreen extends Screen {
         long window = Minecraft.getInstance().getWindow().getWindow();
         int key = PmxKeyMappings.EMOTE_WHEEL.getKey().getValue();
         return org.lwjgl.glfw.GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
+    }
+
+    private void drawWheelBoundaries(GuiGraphics graphics, int cx, int cy, int color) {
+        double step = 360.0 / SLOT_COUNT;
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            double angle = Math.toRadians(-90.0 + (step * i) - (step / 2.0));
+            double cos = Math.cos(angle);
+            double sin = Math.sin(angle);
+            int x1 = cx + (int) Math.round(cos * DEADZONE_RADIUS);
+            int y1 = cy + (int) Math.round(sin * DEADZONE_RADIUS);
+            int x2 = cx + (int) Math.round(cos * WHEEL_RADIUS);
+            int y2 = cy + (int) Math.round(sin * WHEEL_RADIUS);
+            drawLine(graphics, x1, y1, x2, y2, color);
+        }
+    }
+
+    private void drawCircle(GuiGraphics graphics, int cx, int cy, int radius, int color) {
+        int r2 = radius * radius;
+        for (int dy = -radius; dy <= radius; dy++) {
+            int dx = (int) Math.floor(Math.sqrt(r2 - (dy * dy)));
+            graphics.fill(cx - dx, cy + dy, cx + dx + 1, cy + dy + 1, color);
+        }
+    }
+
+    private void drawLine(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
+        int dx = Math.abs(x2 - x1);
+        int dy = Math.abs(y2 - y1);
+        int steps = Math.max(dx, dy);
+        if (steps == 0) {
+            graphics.fill(x1, y1, x1 + 1, y1 + 1, color);
+            return;
+        }
+        double xStep = (x2 - x1) / (double) steps;
+        double yStep = (y2 - y1) / (double) steps;
+        double x = x1;
+        double y = y1;
+        for (int i = 0; i <= steps; i++) {
+            graphics.fill((int) Math.round(x), (int) Math.round(y),
+                    (int) Math.round(x) + 1, (int) Math.round(y) + 1, color);
+            x += xStep;
+            y += yStep;
+        }
     }
 }
