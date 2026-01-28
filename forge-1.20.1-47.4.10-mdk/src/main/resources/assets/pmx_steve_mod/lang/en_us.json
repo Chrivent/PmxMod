@@ -5,6 +5,7 @@
   "pmx.button.open_camera_folder": "Open Camera Folder",
   "pmx.button.open_music_folder": "Open Music Folder",
   "pmx.screen.select_model.disable": "<Disable PMX>",
+  "pmx.screen.emote_wheel.disabled": "Emote wheel is available only for PMX models.",
   "pmx.screen.select_model.title": "Select PMX Model",
   "pmx.screen.slot_settings.title": "Slot Settings",
   "pmx.screen.state_settings.title": "State Settings",

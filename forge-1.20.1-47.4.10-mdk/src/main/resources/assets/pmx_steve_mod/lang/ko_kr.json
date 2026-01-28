@@ -5,6 +5,7 @@
   "pmx.button.open_camera_folder": "카메라 폴더 열기",
   "pmx.button.open_music_folder": "음악 폴더 열기",
   "pmx.screen.select_model.disable": "<PMX 사용 안 함>",
+  "pmx.screen.emote_wheel.disabled": "이모트 휠은 PMX 모델에서만 사용 가능합니다.",
   "pmx.screen.select_model.title": "PMX 모델 선택",
   "pmx.screen.slot_settings.title": "슬롯 설정",
   "pmx.screen.state_settings.title": "상태 설정",

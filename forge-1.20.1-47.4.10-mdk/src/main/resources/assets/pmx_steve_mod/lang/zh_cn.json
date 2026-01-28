@@ -5,6 +5,7 @@
   "pmx.button.open_camera_folder": "打开相机文件夹",
   "pmx.button.open_music_folder": "打开音乐文件夹",
   "pmx.screen.select_model.disable": "<禁用PMX>",
+  "pmx.screen.emote_wheel.disabled": "表情轮盘仅适用于PMX模型。",
   "pmx.screen.select_model.title": "选择PMX模型",
   "pmx.screen.slot_settings.title": "槽位设置",
   "pmx.screen.state_settings.title": "状态设置",

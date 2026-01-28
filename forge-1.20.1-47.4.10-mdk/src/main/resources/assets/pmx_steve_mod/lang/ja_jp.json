@@ -5,6 +5,7 @@
   "pmx.button.open_camera_folder": "カメラフォルダを開く",
   "pmx.button.open_music_folder": "音楽フォルダを開く",
   "pmx.screen.select_model.disable": "<PMX使用しない>",
+  "pmx.screen.emote_wheel.disabled": "エモートホイールはPMXモデルでのみ使用できます。",
   "pmx.screen.select_model.title": "PMXモデル選択",
   "pmx.screen.slot_settings.title": "スロット設定",
   "pmx.screen.state_settings.title": "状態設定",
