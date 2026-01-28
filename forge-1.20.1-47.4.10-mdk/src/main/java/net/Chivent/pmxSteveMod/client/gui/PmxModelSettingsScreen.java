@@ -18,6 +18,15 @@ public class PmxModelSettingsScreen extends Screen {
     private static final int LIST_ITEM_HEIGHT = 22;
     private static final int LIST_SIDE_PAD = 20;
     private static final int COLUMN_COUNT = 7;
+    private static final String[] HEADER_KEYS = new String[] {
+            "pmx.settings.header.state",
+            "pmx.settings.header.motion",
+            "pmx.settings.header.loop",
+            "pmx.settings.header.stop_on_move",
+            "pmx.settings.header.camera_anim",
+            "pmx.settings.header.camera_lock",
+            "pmx.settings.header.music"
+    };
 
     private final Screen parent;
     private final Path modelPath;
@@ -149,18 +158,9 @@ public class PmxModelSettingsScreen extends Screen {
         int width = list.getListWidth();
         int y = LIST_TOP - HEADER_HEIGHT;
         int[] colWidths = getColumnWidths(width);
-        String[] headers = new String[] {
-                "pmx.settings.header.state",
-                "pmx.settings.header.motion",
-                "pmx.settings.header.loop",
-                "pmx.settings.header.stop_on_move",
-                "pmx.settings.header.camera_anim",
-                "pmx.settings.header.camera_lock",
-                "pmx.settings.header.music"
-        };
         int curX = x;
         for (int i = 0; i < COLUMN_COUNT; i++) {
-            Component label = Component.translatable(headers[i]);
+            Component label = Component.translatable(HEADER_KEYS[i]);
             int textWidth = this.font.width(label);
             int drawX = curX + Math.max(2, (colWidths[i] - textWidth) / 2);
             graphics.drawString(this.font, label, drawX, y, 0xB0B0B0, false);
@@ -170,13 +170,29 @@ public class PmxModelSettingsScreen extends Screen {
 
     private int[] getColumnWidths(int totalWidth) {
         int[] widths = new int[COLUMN_COUNT];
-        widths[0] = (int) Math.round(totalWidth * 0.16);
-        widths[1] = (int) Math.round(totalWidth * 0.14);
-        widths[2] = (int) Math.round(totalWidth * 0.10);
-        widths[3] = (int) Math.round(totalWidth * 0.14);
-        widths[4] = (int) Math.round(totalWidth * 0.16);
-        widths[5] = (int) Math.round(totalWidth * 0.16);
-        widths[6] = totalWidth - widths[0] - widths[1] - widths[2] - widths[3] - widths[4] - widths[5];
+        int padding = 10;
+        int sum = 0;
+        for (int i = 0; i < COLUMN_COUNT; i++) {
+            int min = this.font.width(Component.translatable(HEADER_KEYS[i])) + padding;
+            widths[i] = Math.max(24, min);
+            sum += widths[i];
+        }
+        if (sum > totalWidth) {
+            float scale = totalWidth / (float) sum;
+            int scaledSum = 0;
+            for (int i = 0; i < COLUMN_COUNT; i++) {
+                widths[i] = Math.max(24, Math.round(widths[i] * scale));
+                scaledSum += widths[i];
+            }
+            widths[COLUMN_COUNT - 1] += totalWidth - scaledSum;
+            return widths;
+        }
+        int extra = totalWidth - sum;
+        int per = extra / COLUMN_COUNT;
+        int rem = extra % COLUMN_COUNT;
+        for (int i = 0; i < COLUMN_COUNT; i++) {
+            widths[i] += per + (i < rem ? 1 : 0);
+        }
         return widths;
     }
 
