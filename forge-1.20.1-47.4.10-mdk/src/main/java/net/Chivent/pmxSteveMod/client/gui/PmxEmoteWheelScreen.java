@@ -1,6 +1,5 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
-import net.Chivent.pmxSteveMod.client.emote.PmxEmoteWheelState;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -115,7 +114,6 @@ public class PmxEmoteWheelScreen extends Screen {
 
     private void closeWithSelection() {
         if (!cancelled && selectedSlot >= 0 && slotActive[selectedSlot]) {
-            PmxEmoteWheelState.setLastSelectedSlot();
             executeSlot(selectedSlot);
         }
         onClose();
