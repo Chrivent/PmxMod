@@ -81,8 +81,9 @@ public class PmxEmoteWheelScreen extends Screen {
             return;
         }
         double angle = Math.toDegrees(Math.atan2(dy, dx));
-        double normalized = (angle + 450.0) % 360.0;
-        int slot = (int) (normalized / (360.0 / SLOT_COUNT));
+        double step = 360.0 / SLOT_COUNT;
+        double normalized = (angle + 90.0 + step / 2.0 + 360.0) % 360.0;
+        int slot = (int) (normalized / step);
         if (slot < 0 || slot >= SLOT_COUNT) {
             selectedSlot = -1;
         } else {
