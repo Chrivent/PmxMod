@@ -1,18 +1,11 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
@@ -63,11 +56,13 @@ public class PmxEmoteWheelScreen extends Screen {
         int centerY = this.height / 2;
         int wheelRadius = getWheelRadius();
         int labelRadius = getLabelRadius(wheelRadius);
-        drawWheelRing(graphics, centerX, centerY, wheelRadius, 0x99000000);
+        int deadZone = getDeadZoneRadius(wheelRadius);
+        GuiUtil.drawWheelRing(graphics, centerX, centerY, wheelRadius, deadZone, 0x99000000);
         if (selectedSlot >= 0 && slotActive[selectedSlot]) {
-            drawSelectedSector(graphics, centerX, centerY, wheelRadius, selectedSlot, 0x22FFFFFF);
+            GuiUtil.drawWheelSelection(graphics, centerX, centerY, wheelRadius, deadZone, selectedSlot, SLOT_COUNT, 0x22FFFFFF);
         }
-        drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
+        float thickness = Math.max(1.0f, wheelRadius * 0.01f);
+        GuiUtil.drawWheelBoundaries(graphics, centerX, centerY, wheelRadius, deadZone, SLOT_COUNT, thickness, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
             int slotX = centerX + (int) Math.round(Math.cos(angle) * labelRadius);
@@ -176,74 +171,6 @@ public class PmxEmoteWheelScreen extends Screen {
         return org.lwjgl.glfw.GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
     }
 
-    private void drawWheelBoundaries(GuiGraphics graphics, int cx, int cy, int color) {
-        int wheelRadius = getWheelRadius();
-        int deadZone = getDeadZoneRadius(wheelRadius);
-        double step = 360.0 / SLOT_COUNT;
-        float thickness = Math.max(1.0f, wheelRadius * 0.01f);
-        for (int i = 0; i < SLOT_COUNT; i++) {
-            double angle = Math.toRadians(-90.0 + (step * i) - (step / 2.0));
-            double cos = Math.cos(angle);
-            double sin = Math.sin(angle);
-            int x1 = cx + (int) Math.round(cos * deadZone);
-            int y1 = cy + (int) Math.round(sin * deadZone);
-            int x2 = cx + (int) Math.round(cos * wheelRadius);
-            int y2 = cy + (int) Math.round(sin * wheelRadius);
-            drawThickLine(graphics, x1, y1, x2, y2, thickness, color);
-        }
-    }
-
-    private void drawSelectedSector(GuiGraphics graphics, int cx, int cy, int wheelRadius, int slot, int color) {
-        int deadZone = getDeadZoneRadius(wheelRadius);
-        double step = 360.0 / SLOT_COUNT;
-        double centerDeg = -90.0 + (step * slot);
-        double startDeg = centerDeg - (step / 2.0);
-        double endDeg = centerDeg + (step / 2.0);
-        int segments = Math.max(12, (int) Math.round(step * 0.6));
-
-        GuiUtil.drawRingSector(graphics, cx, cy, wheelRadius, deadZone, startDeg, endDeg, segments, color);
-    }
-
-    private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
-        int inner = getDeadZoneRadius(radius);
-        int segments = Math.max(48, (int) Math.round(radius * 1.2));
-
-        GuiUtil.drawRingSector(graphics, cx, cy, radius, inner, -90.0, 270.0, segments, color);
-    }
-
-    private void drawThickLine(GuiGraphics graphics, float x1, float y1, float x2, float y2, float thickness, int color) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float len = (float) Math.sqrt(dx * dx + dy * dy);
-        if (len <= 0.0001f) return;
-        float nx = -dy / len;
-        float ny = dx / len;
-        float half = thickness * 0.5f;
-        float ox = nx * half;
-        float oy = ny * half;
-
-        GuiUtil.ColorFloats c = GuiUtil.toColorFloats(color);
-        Matrix4f pose = graphics.pose().last().pose();
-        BufferBuilder builder = beginColorBuilder();
-        builder.vertex(pose, x1 - ox, y1 - oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
-        builder.vertex(pose, x1 + ox, y1 + oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
-        builder.vertex(pose, x2 + ox, y2 + oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
-        builder.vertex(pose, x2 - ox, y2 - oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
-        endColorBuilder();
-    }
-
-    private BufferBuilder beginColorBuilder() {
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.enableBlend();
-        BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        return builder;
-    }
-
-    private void endColorBuilder() {
-        Tesselator.getInstance().end();
-        RenderSystem.disableBlend();
-    }
 
     private int getWheelRadius() {
         int base = Math.min(this.width, this.height);
@@ -252,7 +179,7 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     private int getDeadZoneRadius(int wheelRadius) {
-        return (int) Math.round(wheelRadius * 0.42);
+        return GuiUtil.getWheelDeadZoneRadius(wheelRadius);
     }
 
     private int getLabelRadius(int wheelRadius) {
