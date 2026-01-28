@@ -18,6 +18,7 @@ public class PmxModelSettingsScreen extends Screen {
     private static final int LIST_ITEM_HEIGHT = 22;
     private static final int LIST_SIDE_PAD = 20;
     private static final int COLUMN_COUNT = 7;
+    private static final int SLOT_COUNT = 6;
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.state",
             "pmx.settings.header.motion",
@@ -100,7 +101,7 @@ public class PmxModelSettingsScreen extends Screen {
         if (name == null || name.isBlank()) {
             return;
         }
-        SettingsRow row = new SettingsRow(name.trim(), true);
+        SettingsRow row = new SettingsRow(name.trim(), true, -1);
         rows.add(row);
         if (list != null) {
             list.addRow(row);
@@ -148,7 +149,7 @@ public class PmxModelSettingsScreen extends Screen {
 
     private void initDefaultRows() {
         for (int i = 1; i <= 6; i++) {
-            rows.add(new SettingsRow(Component.translatable("pmx.settings.row.slot", i).getString(), false));
+            rows.add(new SettingsRow(Component.translatable("pmx.settings.row.slot", i).getString(), false, i - 1));
         }
     }
 
@@ -199,6 +200,7 @@ public class PmxModelSettingsScreen extends Screen {
     private static final class SettingsRow {
         private final String name;
         private final boolean custom;
+        private final int slotIndex;
         private boolean motionLoop;
         private boolean stopOnMove;
         private boolean cameraLock;
@@ -206,9 +208,10 @@ public class PmxModelSettingsScreen extends Screen {
         private String camera = "";
         private String music = "";
 
-        private SettingsRow(String name, boolean custom) {
+        private SettingsRow(String name, boolean custom, int slotIndex) {
             this.name = name;
             this.custom = custom;
+            this.slotIndex = slotIndex;
         }
     }
 
@@ -254,6 +257,7 @@ public class PmxModelSettingsScreen extends Screen {
             private final SettingsRow row;
             private final int[] colX = new int[COLUMN_COUNT];
             private final int[] colW = new int[COLUMN_COUNT];
+            private int lastX;
             private int lastY;
             private int lastHeight;
 
@@ -264,6 +268,7 @@ public class PmxModelSettingsScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
+                lastX = x;
                 lastY = y;
                 lastHeight = height;
                 int[] widths = screen.getColumnWidths(width);
@@ -274,7 +279,11 @@ public class PmxModelSettingsScreen extends Screen {
                     curX += widths[i];
                 }
                 int nameColor = row.custom ? 0xE8E8E8 : 0xD0D0D0;
-                drawCell(graphics, 0, row.name, nameColor);
+                if (row.slotIndex >= 0) {
+                    drawSlotIcon(graphics, 0, row.slotIndex);
+                } else {
+                    drawCell(graphics, 0, row.name, nameColor);
+                }
                 drawCell(graphics, 1, row.motion.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.motion, 0xB0B0B0);
@@ -287,6 +296,7 @@ public class PmxModelSettingsScreen extends Screen {
                 drawCell(graphics, 6, row.music.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.music, 0xB0B0B0);
+                drawColumnLines(graphics);
             }
 
             @Override
@@ -332,6 +342,64 @@ public class PmxModelSettingsScreen extends Screen {
                 graphics.fill(cx + 1, cy + 1, cx + size - 1, cy + size - 1, 0xFF0E0E0E);
                 if (checked) {
                     graphics.fill(cx + 2, cy + 2, cx + size - 2, cy + size - 2, 0xFFB0B0B0);
+                }
+            }
+
+            private void drawColumnLines(GuiGraphics graphics) {
+                int x = lastX;
+                for (int i = 0; i < COLUMN_COUNT - 1; i++) {
+                    x += colW[i];
+                    graphics.fill(x, lastY, x + 1, lastY + lastHeight, 0x66FFFFFF);
+                }
+            }
+
+            private void drawSlotIcon(GuiGraphics graphics, int col, int slotIndex) {
+                int left = colX[col];
+                int width = colW[col];
+                int size = Math.min(width, lastHeight) - 6;
+                if (size < 8) return;
+                int outer = size / 2;
+                int inner = Math.max(4, (int) Math.round(outer * 0.5));
+                int cx = left + width / 2;
+                int cy = lastY + lastHeight / 2;
+                drawRing(graphics, cx, cy, outer, inner, 0x66000000);
+                drawSector(graphics, cx, cy, outer, inner, slotIndex, 0x66FFFFFF);
+            }
+
+            private void drawRing(GuiGraphics graphics, int cx, int cy, int outer, int inner, int color) {
+                int rOuter2 = outer * outer;
+                int rInner2 = inner * inner;
+                for (int y = -outer; y <= outer; y++) {
+                    for (int x = -outer; x <= outer; x++) {
+                        int r2 = x * x + y * y;
+                        if (r2 < rInner2 || r2 > rOuter2) continue;
+                        graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+                    }
+                }
+            }
+
+            private void drawSector(GuiGraphics graphics, int cx, int cy, int outer, int inner, int slotIndex, int color) {
+                double step = 360.0 / SLOT_COUNT;
+                double centerDeg = -90.0 + (step * slotIndex);
+                double startDeg = centerDeg - (step / 2.0);
+                double endDeg = centerDeg + (step / 2.0);
+                int rOuter2 = outer * outer;
+                int rInner2 = inner * inner;
+                for (int y = -outer; y <= outer; y++) {
+                    for (int x = -outer; x <= outer; x++) {
+                        int r2 = x * x + y * y;
+                        if (r2 < rInner2 || r2 > rOuter2) continue;
+                        double ang = Math.toDegrees(Math.atan2(y, x));
+                        double normalized = (ang + 360.0) % 360.0;
+                        double start = (startDeg + 360.0) % 360.0;
+                        double end = (endDeg + 360.0) % 360.0;
+                        boolean inRange = start <= end
+                                ? (normalized >= start && normalized <= end)
+                                : (normalized >= start || normalized <= end);
+                        if (inRange) {
+                            graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+                        }
+                    }
                 }
             }
         }
