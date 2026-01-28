@@ -11,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 public class PmxAddStateScreen extends Screen {
     private final PmxModelSettingsScreen parent;
     private EditBox nameBox;
-    private Button addButton;
 
     public PmxAddStateScreen(PmxModelSettingsScreen parent) {
         super(Component.translatable("pmx.screen.add_state.title"));
@@ -25,7 +24,7 @@ public class PmxAddStateScreen extends Screen {
                 Component.translatable("pmx.settings.label.state_name"));
         this.nameBox.setMaxLength(32);
         this.addRenderableWidget(this.nameBox);
-        this.addButton = addRenderableWidget(Button.builder(Component.translatable("pmx.button.add"), b -> {
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.add"), b -> {
             parent.addCustomState(nameBox.getValue());
             Minecraft.getInstance().setScreen(parent);
         }).bounds(centerX - 100, this.height / 2 + 18, 96, 20).build());

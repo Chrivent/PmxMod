@@ -40,6 +40,7 @@ public class PmxModelSettingsScreen extends Screen {
         this.list.setLeftPos(LIST_SIDE_PAD);
         this.list.setRenderBackground(false);
         this.list.setRenderTopAndBottom(false);
+        addWidget(this.list);
         for (SettingsRow row : rows) {
             this.list.addRow(row);
         }
@@ -52,6 +53,8 @@ public class PmxModelSettingsScreen extends Screen {
                     }
                 }
         ).bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
+                .bounds(this.width - 90, 12, 74, 20).build());
     }
 
     @Override
@@ -75,6 +78,15 @@ public class PmxModelSettingsScreen extends Screen {
         Minecraft.getInstance().setScreen(parent);
     }
 
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     void addCustomState(String name) {
         if (name == null || name.isBlank()) {
             return;
@@ -83,6 +95,45 @@ public class PmxModelSettingsScreen extends Screen {
         rows.add(row);
         if (list != null) {
             list.addRow(row);
+        }
+    }
+
+    private void openMotionPicker(SettingsRow row) {
+        PmxFileSelectScreen screen = new PmxFileSelectScreen(
+                this,
+                net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir(),
+                new String[] {".vmd"},
+                Component.translatable("pmx.screen.select_motion.title"),
+                path -> row.motion = path == null ? "" : path.getFileName().toString()
+        );
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(screen);
+        }
+    }
+
+    private void openCameraPicker(SettingsRow row) {
+        PmxFileSelectScreen screen = new PmxFileSelectScreen(
+                this,
+                net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserCameraDir(),
+                new String[] {".vmd"},
+                Component.translatable("pmx.screen.select_camera.title"),
+                path -> row.camera = path == null ? "" : path.getFileName().toString()
+        );
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(screen);
+        }
+    }
+
+    private void openMusicPicker(SettingsRow row) {
+        PmxFileSelectScreen screen = new PmxFileSelectScreen(
+                this,
+                net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMusicDir(),
+                new String[] {".ogg", ".wav", ".mp3"},
+                Component.translatable("pmx.screen.select_music.title"),
+                path -> row.music = path == null ? "" : path.getFileName().toString()
+        );
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(screen);
         }
     }
 
@@ -181,9 +232,7 @@ public class PmxModelSettingsScreen extends Screen {
             private final SettingsRow row;
             private final int[] colX = new int[COLUMN_COUNT];
             private final int[] colW = new int[COLUMN_COUNT];
-            private int lastX;
             private int lastY;
-            private int lastWidth;
             private int lastHeight;
 
             private PmxSettingsEntry(SettingsRow row) {
@@ -193,9 +242,7 @@ public class PmxModelSettingsScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
-                lastX = x;
                 lastY = y;
-                lastWidth = width;
                 lastHeight = height;
                 int[] widths = screen.getColumnWidths(width);
                 int curX = x;
@@ -212,18 +259,12 @@ public class PmxModelSettingsScreen extends Screen {
                 drawCell(graphics, 1, row.motion.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.motion, 0xB0B0B0);
-                drawCell(graphics, 2, row.motionLoop
-                        ? Component.translatable("pmx.settings.value.on").getString()
-                        : Component.translatable("pmx.settings.value.off").getString(), 0xC0C0C0);
-                drawCell(graphics, 3, row.stopOnMove
-                        ? Component.translatable("pmx.settings.value.on").getString()
-                        : Component.translatable("pmx.settings.value.off").getString(), 0xC0C0C0);
+                drawCheckbox(graphics, 2, row.motionLoop);
+                drawCheckbox(graphics, 3, row.stopOnMove);
                 drawCell(graphics, 4, row.camera.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.camera, 0xB0B0B0);
-                drawCell(graphics, 5, row.cameraLock
-                        ? Component.translatable("pmx.settings.value.on").getString()
-                        : Component.translatable("pmx.settings.value.off").getString(), 0xC0C0C0);
+                drawCheckbox(graphics, 5, row.cameraLock);
                 drawCell(graphics, 6, row.music.isBlank()
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.music, 0xB0B0B0);
@@ -236,18 +277,21 @@ public class PmxModelSettingsScreen extends Screen {
                     int left = colX[i];
                     int right = left + colW[i];
                     if (mouseX < left || mouseX > right) continue;
-                    if (screen.list != null) {
-                        screen.list.setSelected(this);
-                    }
-                    switch (i) {
-                        case 2 -> row.motionLoop = !row.motionLoop;
-                        case 3 -> row.stopOnMove = !row.stopOnMove;
-                        case 5 -> row.cameraLock = !row.cameraLock;
-                        default -> {
-                        }
-                    }
-                    return true;
+                if (screen.list != null) {
+                    screen.list.setSelected(this);
                 }
+                switch (i) {
+                    case 2 -> row.motionLoop = !row.motionLoop;
+                    case 3 -> row.stopOnMove = !row.stopOnMove;
+                    case 5 -> row.cameraLock = !row.cameraLock;
+                    case 1 -> screen.openMotionPicker(row);
+                    case 4 -> screen.openCameraPicker(row);
+                    case 6 -> screen.openMusicPicker(row);
+                    default -> {
+                    }
+                }
+                return true;
+            }
                 return false;
             }
 
@@ -257,6 +301,19 @@ public class PmxModelSettingsScreen extends Screen {
                 int textWidth = screen.font.width(text);
                 int drawX = left + Math.max(2, (width - textWidth) / 2);
                 graphics.drawString(screen.font, text, drawX, lastY + 6, color, false);
+            }
+
+            private void drawCheckbox(GuiGraphics graphics, int col, boolean checked) {
+                int left = colX[col];
+                int width = colW[col];
+                int size = 10;
+                int cx = left + (width - size) / 2;
+                int cy = lastY + (lastHeight - size) / 2;
+                graphics.fill(cx, cy, cx + size, cy + size, 0xFF2A2A2A);
+                graphics.fill(cx + 1, cy + 1, cx + size - 1, cy + size - 1, 0xFF0E0E0E);
+                if (checked) {
+                    graphics.fill(cx + 2, cy + 2, cx + size - 2, cy + size - 2, 0xFFB0B0B0);
+                }
             }
         }
     }

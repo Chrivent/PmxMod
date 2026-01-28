@@ -19,6 +19,7 @@ public final class ClientModEvents {
             viewer.getUserModelDir();
             viewer.getUserMotionDir();
             viewer.getUserCameraDir();
+            viewer.getUserMusicDir();
         });
     }
 }

@@ -13,6 +13,7 @@ public class PmxViewer {
     private Path userModelDir;
     private Path userMotionDir;
     private Path userCameraDir;
+    private Path userMusicDir;
     private Path selectedModelPath;
 
     public static PmxViewer get() { return INSTANCE; }
@@ -59,6 +60,12 @@ public class PmxViewer {
         if (userCameraDir != null) return userCameraDir;
         userCameraDir = ensureUserDir("pmx_cameras");
         return userCameraDir;
+    }
+
+    public Path getUserMusicDir() {
+        if (userMusicDir != null) return userMusicDir;
+        userMusicDir = ensureUserDir("pmx_music");
+        return userMusicDir;
     }
 
     private void selectDefaultModelIfMissing() {
