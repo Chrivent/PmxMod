@@ -236,7 +236,7 @@ public class PmxInstance {
             }
 
             Path safePath = toSafePath(vmdPath, "motion_cache");
-            float blendSeconds = (hasMotion || forceBlendNext) ? 0.2f : 0.0f;
+            float blendSeconds = (hasMotion || forceBlendNext) ? 0.3f : 0.0f;
             forceBlendNext = false;
             boolean started = false;
             try {
