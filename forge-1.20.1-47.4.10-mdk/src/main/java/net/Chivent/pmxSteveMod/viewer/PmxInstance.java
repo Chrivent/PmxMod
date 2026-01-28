@@ -159,7 +159,7 @@ public class PmxInstance {
         if (!ready || handle == 0L) return;
         try {
             Path safePath = toSafePath(vmdPath);
-            float blendSeconds = hasMotion ? 1.0f : 0.0f;
+            float blendSeconds = hasMotion ? 0.2f : 0.0f;
             if (!PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds)) {
                 return;
             }
