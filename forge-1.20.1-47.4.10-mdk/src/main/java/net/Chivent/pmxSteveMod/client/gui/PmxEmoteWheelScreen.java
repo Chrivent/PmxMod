@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
@@ -43,14 +44,17 @@ public class PmxEmoteWheelScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         updateSelection(mouseX, mouseY);
 
         int centerX = this.width / 2;
         int centerY = this.height / 2;
         int wheelRadius = getWheelRadius();
         int labelRadius = getLabelRadius(wheelRadius);
-        drawCircle(graphics, centerX, centerY, wheelRadius, 0x99000000);
+        drawWheelRing(graphics, centerX, centerY, wheelRadius, 0x99000000);
+        if (selectedSlot >= 0) {
+            drawSelectedSector(graphics, centerX, centerY, wheelRadius, selectedSlot, 0x2AFFFFFF);
+        }
         drawWheelBoundaries(graphics, centerX, centerY, 0x80FFFFFF);
         for (int i = 0; i < SLOT_COUNT; i++) {
             double angle = Math.toRadians(-90.0 + (360.0 / SLOT_COUNT) * i);
@@ -123,11 +127,42 @@ public class PmxEmoteWheelScreen extends Screen {
         }
     }
 
-    private void drawCircle(GuiGraphics graphics, int cx, int cy, int radius, int color) {
-        int r2 = radius * radius;
-        for (int dy = -radius; dy <= radius; dy++) {
-            int dx = (int) Math.floor(Math.sqrt(r2 - (dy * dy)));
-            graphics.fill(cx - dx, cy + dy, cx + dx + 1, cy + dy + 1, color);
+    private void drawSelectedSector(GuiGraphics graphics, int cx, int cy, int wheelRadius, int slot, int color) {
+        int deadzone = getDeadzoneRadius(wheelRadius);
+        double step = 360.0 / SLOT_COUNT;
+        double centerDeg = -90.0 + (step * slot);
+        double startDeg = centerDeg - (step / 2.0);
+        double endDeg = centerDeg + (step / 2.0);
+        int rOuter2 = wheelRadius * wheelRadius;
+        int rInner2 = deadzone * deadzone;
+        for (int y = -wheelRadius; y <= wheelRadius; y++) {
+            for (int x = -wheelRadius; x <= wheelRadius; x++) {
+                int r2 = x * x + y * y;
+                if (r2 < rInner2 || r2 > rOuter2) continue;
+                double ang = Math.toDegrees(Math.atan2(y, x));
+                double normalized = (ang + 360.0) % 360.0;
+                double start = (startDeg + 360.0) % 360.0;
+                double end = (endDeg + 360.0) % 360.0;
+                boolean inRange = start <= end
+                        ? (normalized >= start && normalized <= end)
+                        : (normalized >= start || normalized <= end);
+                if (inRange) {
+                    graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+                }
+            }
+        }
+    }
+
+    private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
+        int inner = getDeadzoneRadius(radius);
+        int rOuter2 = radius * radius;
+        int rInner2 = inner * inner;
+        for (int y = -radius; y <= radius; y++) {
+            for (int x = -radius; x <= radius; x++) {
+                int r2 = x * x + y * y;
+                if (r2 < rInner2 || r2 > rOuter2) continue;
+                graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
+            }
         }
     }
 
