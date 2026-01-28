@@ -4,6 +4,7 @@
   "pmx.screen.select_model.disable": "<PMX使用しない>",
   "pmx.screen.select_model.folder": "PMXフォルダ: %s",
   "pmx.screen.select_model.title": "PMXモデル選択",
+  "pmx.screen.model_settings.title": "モデル設定",
   "pmx.info.header": "モデル情報",
   "pmx.info.file": "ファイル",
   "pmx.info.name": "名前",

@@ -4,6 +4,7 @@
   "pmx.screen.select_model.disable": "<Disable PMX>",
   "pmx.screen.select_model.folder": "PMX folder: %s",
   "pmx.screen.select_model.title": "Select PMX Model",
+  "pmx.screen.model_settings.title": "Model Settings",
   "pmx.info.header": "Model Info",
   "pmx.info.file": "File",
   "pmx.info.name": "Name",
