@@ -362,45 +362,13 @@ public class PmxModelSettingsScreen extends Screen {
                 int inner = Math.max(4, (int) Math.round(outer * 0.5));
                 int cx = left + width / 2;
                 int cy = lastY + lastHeight / 2;
-                drawRing(graphics, cx, cy, outer, inner, 0x66000000);
-                drawSector(graphics, cx, cy, outer, inner, slotIndex, 0x66FFFFFF);
-            }
-
-            private void drawRing(GuiGraphics graphics, int cx, int cy, int outer, int inner, int color) {
-                int rOuter2 = outer * outer;
-                int rInner2 = inner * inner;
-                for (int y = -outer; y <= outer; y++) {
-                    for (int x = -outer; x <= outer; x++) {
-                        int r2 = x * x + y * y;
-                        if (r2 < rInner2 || r2 > rOuter2) continue;
-                        graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
-                    }
-                }
-            }
-
-            private void drawSector(GuiGraphics graphics, int cx, int cy, int outer, int inner, int slotIndex, int color) {
+                int segments = Math.max(24, outer * 2);
+                GuiUtil.drawRingSector(graphics, cx, cy, outer, inner, -90.0, 270.0, segments, 0x66000000);
                 double step = 360.0 / SLOT_COUNT;
                 double centerDeg = -90.0 + (step * slotIndex);
                 double startDeg = centerDeg - (step / 2.0);
                 double endDeg = centerDeg + (step / 2.0);
-                int rOuter2 = outer * outer;
-                int rInner2 = inner * inner;
-                for (int y = -outer; y <= outer; y++) {
-                    for (int x = -outer; x <= outer; x++) {
-                        int r2 = x * x + y * y;
-                        if (r2 < rInner2 || r2 > rOuter2) continue;
-                        double ang = Math.toDegrees(Math.atan2(y, x));
-                        double normalized = (ang + 360.0) % 360.0;
-                        double start = (startDeg + 360.0) % 360.0;
-                        double end = (endDeg + 360.0) % 360.0;
-                        boolean inRange = start <= end
-                                ? (normalized >= start && normalized <= end)
-                                : (normalized >= start || normalized <= end);
-                        if (inRange) {
-                            graphics.fill(cx + x, cy + y, cx + x + 1, cy + y + 1, color);
-                        }
-                    }
-                }
+                GuiUtil.drawRingSector(graphics, cx, cy, outer, inner, startDeg, endDeg, segments, 0x66FFFFFF);
             }
         }
     }

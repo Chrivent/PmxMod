@@ -143,35 +143,14 @@ public class PmxEmoteWheelScreen extends Screen {
         double endDeg = centerDeg + (step / 2.0);
         int segments = Math.max(12, (int) Math.round(step * 0.6));
 
-        drawRingSector(graphics, cx, cy, wheelRadius, deadZone, startDeg, endDeg, segments, color);
+        GuiUtil.drawRingSector(graphics, cx, cy, wheelRadius, deadZone, startDeg, endDeg, segments, color);
     }
 
     private void drawWheelRing(GuiGraphics graphics, int cx, int cy, int radius, int color) {
         int inner = getDeadZoneRadius(radius);
         int segments = Math.max(48, (int) Math.round(radius * 1.2));
 
-        drawRingSector(graphics, cx, cy, radius, inner, -90.0, 270.0, segments, color);
-    }
-
-    private void drawRingSector(GuiGraphics graphics, int cx, int cy, int outerRadius, int innerRadius,
-                                double startDeg, double endDeg, int segments, int color) {
-        ColorFloats c = toColorFloats(color);
-        Matrix4f pose = graphics.pose().last().pose();
-        BufferBuilder builder = beginColorBuilder(VertexFormat.Mode.TRIANGLE_STRIP);
-        for (int i = 0; i <= segments; i++) {
-            double t = i / (double) segments;
-            double deg = startDeg + (endDeg - startDeg) * t;
-            double rad = Math.toRadians(deg);
-            float cos = (float) Math.cos(rad);
-            float sin = (float) Math.sin(rad);
-            float xOuter = cx + cos * outerRadius;
-            float yOuter = cy + sin * outerRadius;
-            float xInner = cx + cos * innerRadius;
-            float yInner = cy + sin * innerRadius;
-            builder.vertex(pose, xOuter, yOuter, 0).color(c.r, c.g, c.b, c.a).endVertex();
-            builder.vertex(pose, xInner, yInner, 0).color(c.r, c.g, c.b, c.a).endVertex();
-        }
-        endColorBuilder();
+        GuiUtil.drawRingSector(graphics, cx, cy, radius, inner, -90.0, 270.0, segments, color);
     }
 
     private void drawThickLine(GuiGraphics graphics, float x1, float y1, float x2, float y2, float thickness, int color) {
