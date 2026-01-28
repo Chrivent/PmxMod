@@ -108,6 +108,12 @@ public final class GuiUtil {
         drawRingSector(graphics, cx, cy, outerRadius, innerRadius, startDeg, endDeg, segments, color);
     }
 
+    public static void drawSmoothCircle(GuiGraphics graphics, int cx, int cy, float radius, int color) {
+        int outer = Math.max(1, Math.round(radius));
+        int segments = Math.max(24, Math.round(outer * 6.0f));
+        drawRingSector(graphics, cx, cy, outer, 0, -90.0, 270.0, segments, color);
+    }
+
     public static int getWheelDeadZoneRadius(int wheelRadius) {
         return (int) Math.round(wheelRadius * 0.42);
     }

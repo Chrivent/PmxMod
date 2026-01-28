@@ -16,6 +16,8 @@ public class PmxViewer {
     private Path userCameraDir;
     private Path userMusicDir;
     private Path selectedModelPath;
+    private int currentSlotIndex = -1;
+    private boolean currentMotionSlot = false;
 
     public static PmxViewer get() { return INSTANCE; }
     public PmxInstance instance() { return instance; }
@@ -24,6 +26,8 @@ public class PmxViewer {
         showPmx = visible;
         if (!visible) {
             instance.stopMusic();
+            currentSlotIndex = -1;
+            currentMotionSlot = false;
         }
     }
     public Path getSelectedModelPath() { return selectedModelPath; }
@@ -60,6 +64,8 @@ public class PmxViewer {
     }
 
     public void playIdleOrDefault() {
+        currentSlotIndex = -1;
+        currentMotionSlot = false;
         Path modelPath = selectedModelPath;
         PmxModelSettingsStore.RowData idle = PmxModelSettingsStore.get().getIdleRow(modelPath);
         if (idle == null || idle.motion == null || idle.motion.isBlank()) {
@@ -79,6 +85,15 @@ public class PmxViewer {
             cameraPath = cameraDir.resolve(idle.camera);
         }
         instance.playMotion(vmdPath, musicPath, cameraPath, idle.motionLoop, false);
+    }
+
+    public void setCurrentSlotMotion(int slotIndex) {
+        currentSlotIndex = slotIndex;
+        currentMotionSlot = slotIndex >= 0;
+    }
+
+    public int getCurrentSlotIndex() {
+        return currentMotionSlot ? currentSlotIndex : -1;
     }
 
     public Path getUserModelDir() {

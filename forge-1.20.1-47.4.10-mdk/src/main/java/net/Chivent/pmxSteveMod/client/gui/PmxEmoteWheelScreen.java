@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
@@ -77,6 +78,13 @@ public class PmxEmoteWheelScreen extends Screen {
                 color = (i == selectedSlot) ? 0xCCFFFFFF : 0xAAFFFFFF;
             }
             graphics.drawCenteredString(this.font, label, slotX, slotY - 4, color);
+        }
+
+        long now = Util.getMillis();
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            if (isSlotPlaying(i)) {
+                drawCometSpinner(graphics, centerX, centerY, wheelRadius, deadZone, i, now);
+            }
         }
 
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -153,6 +161,7 @@ public class PmxEmoteWheelScreen extends Screen {
         }
         viewer.setPmxVisible(true);
         viewer.instance().playMotion(motionPath, musicPath, cameraPath, slotLoop[slot], true);
+        viewer.setCurrentSlotMotion(slot);
     }
 
     private void loadSlotLabels() {
@@ -186,6 +195,60 @@ public class PmxEmoteWheelScreen extends Screen {
         return org.lwjgl.glfw.GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
     }
 
+    private boolean isSlotPlaying(int slot) {
+        net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
+        if (!viewer.isPmxVisible()) return false;
+        return viewer.getCurrentSlotIndex() == slot;
+    }
+
+    private void drawCometSpinner(GuiGraphics graphics, int centerX, int centerY,
+                                  int wheelRadius, int deadZone, int slot, long nowMillis) {
+        double sliceAngle = 360.0 / SLOT_COUNT;
+        double midDeg = -90.0 + sliceAngle * slot;
+        double midRad = Math.toRadians(midDeg);
+
+        int ringRadius = deadZone + Math.round((wheelRadius - deadZone) * 0.48f);
+        int orbitRadius = Math.max(12, Math.round((wheelRadius - deadZone) * 0.22f));
+        float size = Math.max(2.0f, wheelRadius * 0.014f);
+        float periodMs = 900.0f;
+        float t = (nowMillis % (long) periodMs) / periodMs;
+        double spin = t * Math.PI * 2.0;
+
+        int baseX = centerX + (int) Math.round(Math.cos(midRad) * ringRadius);
+        int baseY = centerY + (int) Math.round(Math.sin(midRad) * ringRadius);
+
+        int x = baseX + (int) Math.round(Math.cos(spin) * orbitRadius);
+        int y = baseY + (int) Math.round(Math.sin(spin) * orbitRadius);
+
+        float tailThickness = Math.max(1.0f, size);
+        int tailOuter = Math.round(orbitRadius + tailThickness);
+        int tailInner = Math.max(0, Math.round(orbitRadius - tailThickness));
+        double headDeg = Math.toDegrees(spin);
+        double tailLen = 180.0;
+        int tailSegments = 6;
+        float tailEndAlpha = 0.0f;
+        for (int i = 0; i < tailSegments; i++) {
+            double segT0 = i / (double) tailSegments;
+            double segT1 = (i + 1) / (double) tailSegments;
+            double segStart = headDeg - tailLen * segT1;
+            double segEnd = headDeg - tailLen * segT0;
+            float alpha = 1.0f - (float) segT0;
+            if (i == tailSegments - 1) {
+                tailEndAlpha = alpha;
+            }
+            int a = Math.max(0, Math.min(255, Math.round(alpha * 255.0f)));
+            int color = (a << 24) | 0xFFFFFF;
+            GuiUtil.drawRingSector(graphics, baseX, baseY, tailOuter, tailInner,
+                    segStart, segEnd, Math.max(8, (int) Math.round((segEnd - segStart) * 0.6)), color);
+        }
+
+        double tailEndRad = Math.toRadians(headDeg - tailLen);
+        int tailX = baseX + (int) Math.round(Math.cos(tailEndRad) * orbitRadius);
+        int tailY = baseY + (int) Math.round(Math.sin(tailEndRad) * orbitRadius);
+        int tailEndA = Math.max(0, Math.min(255, Math.round(tailEndAlpha * 255.0f)));
+        GuiUtil.drawSmoothCircle(graphics, tailX, tailY, size, (tailEndA << 24) | 0xFFFFFF);
+        GuiUtil.drawSmoothCircle(graphics, x, y, size, 0xFFFFFFFF);
+    }
 
     private int getWheelRadius() {
         int base = Math.min(this.width, this.height);
