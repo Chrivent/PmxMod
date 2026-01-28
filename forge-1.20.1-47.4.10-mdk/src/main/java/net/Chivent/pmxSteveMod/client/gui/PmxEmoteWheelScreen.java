@@ -20,6 +20,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private final String[] slotMotionFiles = new String[SLOT_COUNT];
     private final String[] slotMusicFiles = new String[SLOT_COUNT];
     private final String[] slotCameraFiles = new String[SLOT_COUNT];
+    private final boolean[] slotLoop = new boolean[SLOT_COUNT];
 
     public PmxEmoteWheelScreen(Screen parent) {
         super(Component.translatable("pmx.screen.emote_wheel.title"));
@@ -134,7 +135,7 @@ public class PmxEmoteWheelScreen extends Screen {
             } catch (Exception ignored) {
             }
             if (normalized.equals(current)) {
-                playIdleMotion(viewer);
+                viewer.playIdleOrDefault();
                 return;
             }
         }
@@ -151,19 +152,7 @@ public class PmxEmoteWheelScreen extends Screen {
             cameraPath = cameraDir.resolve(cameraFile);
         }
         viewer.setPmxVisible(true);
-        viewer.instance().playMotion(motionPath, musicPath, cameraPath);
-    }
-
-    private void playIdleMotion(net.Chivent.pmxSteveMod.viewer.PmxViewer viewer) {
-        java.nio.file.Path modelPath = viewer.getSelectedModelPath();
-        String idle = net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.get().getIdleMotion(modelPath);
-        if (idle == null || idle.isBlank()) {
-            viewer.instance().resetToDefaultPose();
-            return;
-        }
-        java.nio.file.Path motionDir = viewer.getUserMotionDir();
-        java.nio.file.Path vmdPath = motionDir.resolve(idle);
-        viewer.instance().playMotion(vmdPath);
+        viewer.instance().playMotion(motionPath, musicPath, cameraPath, slotLoop[slot]);
     }
 
     private void loadSlotLabels() {
@@ -176,6 +165,7 @@ public class PmxEmoteWheelScreen extends Screen {
             slotMotionFiles[i] = "";
             slotMusicFiles[i] = "";
             slotCameraFiles[i] = "";
+            slotLoop[i] = false;
         }
         for (var row : rows) {
             if (row.slotIndex < 0 || row.slotIndex >= SLOT_COUNT) continue;
@@ -185,6 +175,7 @@ public class PmxEmoteWheelScreen extends Screen {
                 slotMotionFiles[row.slotIndex] = row.motion;
                 slotMusicFiles[row.slotIndex] = row.music == null ? "" : row.music;
                 slotCameraFiles[row.slotIndex] = row.camera == null ? "" : row.camera;
+                slotLoop[row.slotIndex] = row.motionLoop;
             }
         }
     }

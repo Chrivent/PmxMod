@@ -29,6 +29,9 @@ public class PmxInstance {
     private boolean musicActive = false;
     private boolean cameraActive = false;
     private Path currentMotionPath;
+    private float currentMotionEndFrame = 0f;
+    private boolean currentMotionLoop = false;
+    private boolean motionEnded = false;
     private float camInterestX;
     private float camInterestY;
     private float camInterestZ;
@@ -126,6 +129,9 @@ public class PmxInstance {
             hasMotion = false;
             musicActive = false;
             cameraActive = false;
+            currentMotionEndFrame = 0f;
+            currentMotionLoop = false;
+            motionEnded = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -145,6 +151,9 @@ public class PmxInstance {
         musicActive = false;
         cameraActive = false;
         currentMotionPath = null;
+        currentMotionEndFrame = 0f;
+        currentMotionLoop = false;
+        motionEnded = false;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -185,6 +194,18 @@ public class PmxInstance {
         }
         updateCameraState(frame);
         PmxNative.nativeUpdate(handle, frame, dt);
+        if (hasMotion && currentMotionEndFrame > 0.0f && frame >= currentMotionEndFrame) {
+            if (currentMotionLoop) {
+                frame = frame % currentMotionEndFrame;
+                lastNanos = -1;
+                PmxNative.nativeUpdate(handle, frame, 0.0f);
+            } else if (!motionEnded) {
+                motionEnded = true;
+                forceBlendNext = true;
+                currentMotionPath = null;
+                currentMotionEndFrame = 0f;
+            }
+        }
     }
 
     public void syncCpuBuffersForRender() {
@@ -194,15 +215,7 @@ public class PmxInstance {
         copyDynamicVertices();
     }
 
-    public void playMotion(Path vmdPath) {
-        playMotion(vmdPath, null);
-    }
-
-    public void playMotion(Path vmdPath, Path musicPath) {
-        playMotion(vmdPath, musicPath, null);
-    }
-
-    public void playMotion(Path vmdPath, Path musicPath, Path cameraPath) {
+    public void playMotion(Path vmdPath, Path musicPath, Path cameraPath, boolean loop) {
         if (vmdPath == null || !Files.exists(vmdPath)) return;
         Path pmxPath = currentPmxPath;
         if (pmxPath == null) return;
@@ -261,6 +274,9 @@ public class PmxInstance {
             } catch (Exception ignored) {
                 currentMotionPath = vmdPath;
             }
+            currentMotionEndFrame = PmxNative.nativeGetMotionMaxFrame(handle);
+            currentMotionLoop = loop;
+            motionEnded = false;
         } catch (Throwable t) {
             LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
         }
@@ -268,6 +284,11 @@ public class PmxInstance {
 
     public boolean hasCamera() { return cameraActive; }
     public Path getCurrentMotionPath() { return currentMotionPath; }
+    public boolean consumeMotionEnded() {
+        if (!motionEnded) return false;
+        motionEnded = false;
+        return true;
+    }
 
     public void markBlendNext() {
         forceBlendNext = true;
@@ -319,6 +340,9 @@ public class PmxInstance {
         }
         hasMotion = false;
         currentMotionPath = null;
+        currentMotionEndFrame = 0f;
+        currentMotionLoop = false;
+        motionEnded = false;
         forceBlendNext = true;
         frame = 0f;
         lastNanos = -1;

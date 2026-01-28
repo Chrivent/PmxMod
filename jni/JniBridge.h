@@ -10,6 +10,7 @@ extern "C" {
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeAddVmd(JNIEnv*, jclass, jlong, jstring);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStartVmdBlend(JNIEnv*, jclass, jlong, jstring, jfloat);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStartDefaultPoseBlend(JNIEnv*, jclass, jlong, jfloat);
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMotionMaxFrame(JNIEnv*, jclass, jlong);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadCameraVmd(JNIEnv*, jclass, jlong, jstring);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeClearCamera(JNIEnv*, jclass, jlong);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetCameraState(JNIEnv*, jclass, jlong, jfloat, jobject);

@@ -15,6 +15,7 @@ struct PmxRuntime {
     float blendDuration = 0.0f;
     bool blending = false;
     bool blendToDefault = false;
+    float motionMaxFrame = 0.0f;
     Sound music;
 };
 
@@ -42,6 +43,17 @@ static std::unique_ptr<Animation> CreateAnimation(const std::shared_ptr<Model>& 
     auto anim = std::make_unique<Animation>();
     anim->m_model = model;
     return anim;
+}
+
+static float GetVmdMaxFrame(const VMDReader& vmd) {
+    uint32_t maxFrame = 0;
+    for (const auto& motion : vmd.m_motions)
+        maxFrame = max(maxFrame, motion.m_frame);
+    for (const auto& morph : vmd.m_morphs)
+        maxFrame = max(maxFrame, morph.m_frame);
+    for (const auto& ik : vmd.m_iks)
+        maxFrame = max(maxFrame, ik.m_frame);
+    return static_cast<float>(maxFrame);
 }
 
 void CopyToDirectBuffer(JNIEnv* env, _jobject* dstBuffer, const void* src, const size_t srcBytes) {
@@ -128,6 +140,7 @@ extern "C" {
         rt->blendDuration = 0.0f;
         rt->blending = false;
         rt->blendToDefault = false;
+        rt->motionMaxFrame = 0.0f;
         return JNI_TRUE;
     }
 
@@ -141,9 +154,11 @@ extern "C" {
         rt->blendDuration = 0.0f;
         rt->blending = false;
         rt->blendToDefault = false;
+        rt->motionMaxFrame = 0.0f;
         VMDReader vmd;
         const auto path = JStringToPath(env, vmdPath);
         if (!vmd.ReadFile(path)) return JNI_FALSE;
+        rt->motionMaxFrame = GetVmdMaxFrame(vmd);
         const bool ok = rt->anim->Add(vmd);
         return ok ? JNI_TRUE : JNI_FALSE;
     }
@@ -155,6 +170,7 @@ extern "C" {
         VMDReader vmd;
         const auto path = JStringToPath(env, vmdPath);
         if (!vmd.ReadFile(path)) return JNI_FALSE;
+        rt->motionMaxFrame = GetVmdMaxFrame(vmd);
         auto nextAnim = CreateAnimation(rt->model);
         if (!nextAnim->Add(vmd)) return JNI_FALSE;
 
@@ -165,6 +181,7 @@ extern "C" {
             rt->blendDuration = 0.0f;
             rt->blending = false;
             rt->blendToDefault = false;
+            rt->motionMaxFrame = GetVmdMaxFrame(vmd);
             return JNI_TRUE;
         }
 
@@ -174,6 +191,7 @@ extern "C" {
         rt->blendDuration = blendSeconds;
         rt->blending = true;
         rt->blendToDefault = false;
+        rt->motionMaxFrame = GetVmdMaxFrame(vmd);
         return JNI_TRUE;
     }
 
@@ -187,6 +205,7 @@ extern "C" {
             rt->blendDuration = 0.0f;
             rt->blending = false;
             rt->blendToDefault = false;
+            rt->motionMaxFrame = 0.0f;
             for (const auto& node : rt->model->m_nodes) {
                 node->m_animTranslate = glm::vec3(0);
                 node->m_animRotate = glm::quat(1, 0, 0, 0);
@@ -205,7 +224,15 @@ extern "C" {
         rt->blendDuration = blendSeconds;
         rt->blending = true;
         rt->blendToDefault = true;
+        rt->motionMaxFrame = 0.0f;
         return JNI_TRUE;
+    }
+
+    JNIEXPORT jfloat JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMotionMaxFrame(
+        JNIEnv*, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt) return 0.0f;
+        return rt->motionMaxFrame;
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadCameraVmd(

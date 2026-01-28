@@ -51,6 +51,19 @@ public final class PmxModelSettingsStore {
         return "";
     }
 
+    public synchronized RowData getIdleRow(Path modelPath) {
+        if (modelPath == null) return null;
+        ensureLoaded();
+        List<RowData> rows = data.models.get(modelPath.toString());
+        if (rows == null) return null;
+        for (RowData row : rows) {
+            if (row.slotIndex == -2) {
+                return row;
+            }
+        }
+        return null;
+    }
+
     public synchronized void save(Path modelPath, List<RowData> rows) {
         if (modelPath == null) return;
         ensureLoaded();

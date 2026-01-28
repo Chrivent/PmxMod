@@ -2,6 +2,7 @@ package net.Chivent.pmxSteveMod.viewer;
 
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,6 +50,35 @@ public class PmxViewer {
         instance.shutdown();
         instance.init(selectedModelPath);
         instance.markBlendNext();
+    }
+
+    public void handleMotionEnd() {
+        if (!showPmx) return;
+        if (instance.consumeMotionEnded()) {
+            playIdleOrDefault();
+        }
+    }
+
+    public void playIdleOrDefault() {
+        Path modelPath = selectedModelPath;
+        PmxModelSettingsStore.RowData idle = PmxModelSettingsStore.get().getIdleRow(modelPath);
+        if (idle == null || idle.motion == null || idle.motion.isBlank()) {
+            instance.resetToDefaultPose();
+            return;
+        }
+        Path motionDir = getUserMotionDir();
+        Path vmdPath = motionDir.resolve(idle.motion);
+        Path musicPath = null;
+        if (idle.music != null && !idle.music.isBlank()) {
+            Path musicDir = getUserMusicDir();
+            musicPath = musicDir.resolve(idle.music);
+        }
+        Path cameraPath = null;
+        if (idle.camera != null && !idle.camera.isBlank()) {
+            Path cameraDir = getUserCameraDir();
+            cameraPath = cameraDir.resolve(idle.camera);
+        }
+        instance.playMotion(vmdPath, musicPath, cameraPath, idle.motionLoop);
     }
 
     public Path getUserModelDir() {
