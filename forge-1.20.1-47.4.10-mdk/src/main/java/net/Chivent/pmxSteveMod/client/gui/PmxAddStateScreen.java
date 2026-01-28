@@ -9,10 +9,10 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 public class PmxAddStateScreen extends Screen {
-    private final PmxModelSettingsScreen parent;
+    private final PmxStateSettingsScreen parent;
     private EditBox nameBox;
 
-    public PmxAddStateScreen(PmxModelSettingsScreen parent) {
+    public PmxAddStateScreen(PmxStateSettingsScreen parent) {
         super(Component.translatable("pmx.screen.add_state.title"));
         this.parent = parent;
     }

@@ -228,6 +228,12 @@ public class PmxModelSelectScreen extends Screen {
         }
     }
 
+    private void openStateSettings(Path modelPath) {
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(new PmxStateSettingsScreen(this, modelPath));
+        }
+    }
+
     @Override
     public void tick() {
         if (rescanRequested) {
@@ -357,7 +363,8 @@ public class PmxModelSelectScreen extends Screen {
         private static final class PmxModelEntry extends PmxEntry {
             private final PmxModelSelectScreen screen;
             private final Path modelPath;
-            private static final int BUTTON_WIDTH = 54;
+            private static final int BUTTON_WIDTH = 58;
+            private static final int BUTTON_GAP = 4;
             private static final int BUTTON_PADDING = 6;
             private int lastX;
             private int lastY;
@@ -379,28 +386,34 @@ public class PmxModelSelectScreen extends Screen {
                 String name = modelPath.getFileName().toString();
                 graphics.drawString(screen.font, name, x + 6, y + 2, 0xFFFFFF, false);
                 int btnRight = x + width - BUTTON_PADDING;
-                int btnLeft = btnRight - BUTTON_WIDTH;
+                int totalWidth = BUTTON_WIDTH * 2 + BUTTON_GAP;
+                int leftA = btnRight - totalWidth;
+                int leftB = leftA + BUTTON_WIDTH + BUTTON_GAP;
                 int btnTop = y + 1;
                 int btnBottom = y + height - 1;
-                boolean btnHover = mouseX >= btnLeft && mouseX <= btnRight && mouseY >= btnTop && mouseY <= btnBottom;
-                int border = btnHover ? 0xFFCCCCCC : 0xFF777777;
-                int fill = btnHover ? 0x40222222 : 0x20222222;
-                graphics.fill(btnLeft, btnTop, btnRight, btnBottom, fill);
-                graphics.renderOutline(btnLeft, btnTop, btnRight - btnLeft, btnBottom - btnTop, border);
-                Component label = Component.translatable("pmx.button.settings");
-                int labelX = btnLeft + (BUTTON_WIDTH - screen.font.width(label)) / 2;
-                int labelY = y + 2;
-                graphics.drawString(screen.font, label, labelX, labelY, 0xFFFFFF, false);
+
+                Component labelA = Component.translatable("pmx.button.slot_settings");
+                Component labelB = Component.translatable("pmx.button.state_settings");
+                drawSmallButton(graphics, leftA, btnTop, btnBottom - btnTop,
+                        mouseX, mouseY, labelA);
+                drawSmallButton(graphics, leftB, btnTop, btnBottom - btnTop,
+                        mouseX, mouseY, labelB);
             }
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 int btnRight = lastX + lastWidth - BUTTON_PADDING;
-                int btnLeft = btnRight - BUTTON_WIDTH;
+                int totalWidth = BUTTON_WIDTH * 2 + BUTTON_GAP;
+                int leftA = btnRight - totalWidth;
+                int leftB = leftA + BUTTON_WIDTH + BUTTON_GAP;
                 int rowTop = lastY;
                 int rowBottom = lastY + lastHeight;
-                if (mouseX >= btnLeft && mouseX <= btnRight && mouseY >= rowTop && mouseY <= rowBottom) {
+                if (mouseX >= leftA && mouseX <= leftA + BUTTON_WIDTH && mouseY >= rowTop && mouseY <= rowBottom) {
                     screen.openModelSettings(modelPath);
+                    return true;
+                }
+                if (mouseX >= leftB && mouseX <= leftB + BUTTON_WIDTH && mouseY >= rowTop && mouseY <= rowBottom) {
+                    screen.openStateSettings(modelPath);
                     return true;
                 }
                 PmxViewer viewer = PmxViewer.get();
@@ -413,6 +426,20 @@ public class PmxModelSelectScreen extends Screen {
                 }
                 screen.resetInfoScroll();
                 return true;
+            }
+
+            private void drawSmallButton(GuiGraphics graphics, int left, int top, int height,
+                                         int mouseX, int mouseY, Component label) {
+                int right = left + PmxModelEntry.BUTTON_WIDTH;
+                int bottom = top + height;
+                boolean hover = mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom;
+                int border = hover ? 0xFFCCCCCC : 0xFF777777;
+                int fill = hover ? 0x40222222 : 0x20222222;
+                graphics.fill(left, top, right, bottom, fill);
+                graphics.renderOutline(left, top, PmxModelEntry.BUTTON_WIDTH, height, border);
+                int labelX = left + (PmxModelEntry.BUTTON_WIDTH - screen.font.width(label)) / 2;
+                int labelY = top + 2;
+                graphics.drawString(screen.font, label, labelX, labelY, 0xFFFFFF, false);
             }
         }
 
