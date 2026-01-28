@@ -1,5 +1,6 @@
 ﻿{
   "pmx.button.open_folder": "PMXフォルダを開く",
+  "pmx.button.settings": "設定",
   "pmx.screen.select_model.disable": "<PMX使用しない>",
   "pmx.screen.select_model.folder": "PMXフォルダ: %s",
   "pmx.screen.select_model.title": "PMXモデル選択",

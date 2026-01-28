@@ -1,5 +1,6 @@
 ﻿{
   "pmx.button.open_folder": "打开PMX文件夹",
+  "pmx.button.settings": "设置",
   "pmx.screen.select_model.disable": "<禁用PMX>",
   "pmx.screen.select_model.folder": "PMX文件夹: %s",
   "pmx.screen.select_model.title": "选择PMX模型",

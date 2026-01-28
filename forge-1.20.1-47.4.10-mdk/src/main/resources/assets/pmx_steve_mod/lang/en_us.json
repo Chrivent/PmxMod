@@ -1,5 +1,6 @@
 ﻿{
   "pmx.button.open_folder": "Open PMX Folder",
+  "pmx.button.settings": "Settings",
   "pmx.screen.select_model.disable": "<Disable PMX>",
   "pmx.screen.select_model.folder": "PMX folder: %s",
   "pmx.screen.select_model.title": "Select PMX Model",
