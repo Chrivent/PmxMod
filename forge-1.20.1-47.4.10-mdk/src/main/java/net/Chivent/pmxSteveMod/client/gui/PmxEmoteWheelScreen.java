@@ -103,6 +103,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private void closeWithSelection() {
         if (!cancelled && selectedSlot >= 0) {
             PmxEmoteWheelState.setLastSelectedSlot(selectedSlot);
+            executeSlot(selectedSlot);
         }
         onClose();
     }
@@ -110,6 +111,10 @@ public class PmxEmoteWheelScreen extends Screen {
     private void cancel() {
         cancelled = true;
         onClose();
+    }
+
+    private void executeSlot(int slot) {
+        // TODO: hook to play motion/camera/music for the selected slot.
     }
 
     private boolean isWheelKeyDown() {
