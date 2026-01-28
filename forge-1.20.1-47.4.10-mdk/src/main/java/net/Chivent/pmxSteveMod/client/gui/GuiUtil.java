@@ -51,10 +51,7 @@ public final class GuiUtil {
 
     public static void drawRingSector(GuiGraphics graphics, int cx, int cy, int outerRadius, int innerRadius,
                                       double startDeg, double endDeg, int segments, int color) {
-        float a = ((color >> 24) & 0xFF) / 255.0f;
-        float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8) & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
+        ColorFloats c = toColorFloats(color);
 
         Matrix4f pose = graphics.pose().last().pose();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -71,10 +68,20 @@ public final class GuiUtil {
             float yOuter = cy + sin * outerRadius;
             float xInner = cx + cos * innerRadius;
             float yInner = cy + sin * innerRadius;
-            builder.vertex(pose, xOuter, yOuter, 0).color(r, g, b, a).endVertex();
-            builder.vertex(pose, xInner, yInner, 0).color(r, g, b, a).endVertex();
+            builder.vertex(pose, xOuter, yOuter, 0).color(c.r, c.g, c.b, c.a).endVertex();
+            builder.vertex(pose, xInner, yInner, 0).color(c.r, c.g, c.b, c.a).endVertex();
         }
         Tesselator.getInstance().end();
         RenderSystem.disableBlend();
     }
+
+    public static ColorFloats toColorFloats(int color) {
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        return new ColorFloats(r, g, b, a);
+    }
+
+    public record ColorFloats(float r, float g, float b, float a) {}
 }

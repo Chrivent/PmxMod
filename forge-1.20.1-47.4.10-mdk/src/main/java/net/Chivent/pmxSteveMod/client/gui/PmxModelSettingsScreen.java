@@ -280,7 +280,7 @@ public class PmxModelSettingsScreen extends Screen {
                 }
                 int nameColor = row.custom ? 0xE8E8E8 : 0xD0D0D0;
                 if (row.slotIndex >= 0) {
-                    drawSlotIcon(graphics, 0, row.slotIndex);
+                    drawSlotIcon(graphics, row.slotIndex);
                 } else {
                     drawCell(graphics, 0, row.name, nameColor);
                 }
@@ -353,9 +353,9 @@ public class PmxModelSettingsScreen extends Screen {
                 }
             }
 
-            private void drawSlotIcon(GuiGraphics graphics, int col, int slotIndex) {
-                int left = colX[col];
-                int width = colW[col];
+            private void drawSlotIcon(GuiGraphics graphics, int slotIndex) {
+                int left = colX[0];
+                int width = colW[0];
                 int size = Math.min(width, lastHeight) - 6;
                 if (size < 8) return;
                 int outer = size / 2;

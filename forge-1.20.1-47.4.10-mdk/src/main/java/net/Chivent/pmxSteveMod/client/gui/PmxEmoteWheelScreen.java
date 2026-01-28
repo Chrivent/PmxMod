@@ -164,21 +164,21 @@ public class PmxEmoteWheelScreen extends Screen {
         float ox = nx * half;
         float oy = ny * half;
 
-        ColorFloats c = toColorFloats(color);
+        GuiUtil.ColorFloats c = GuiUtil.toColorFloats(color);
         Matrix4f pose = graphics.pose().last().pose();
-        BufferBuilder builder = beginColorBuilder(VertexFormat.Mode.QUADS);
-        builder.vertex(pose, x1 - ox, y1 - oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
-        builder.vertex(pose, x1 + ox, y1 + oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
-        builder.vertex(pose, x2 + ox, y2 + oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
-        builder.vertex(pose, x2 - ox, y2 - oy, 0).color(c.r, c.g, c.b, c.a).endVertex();
+        BufferBuilder builder = beginColorBuilder();
+        builder.vertex(pose, x1 - ox, y1 - oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
+        builder.vertex(pose, x1 + ox, y1 + oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
+        builder.vertex(pose, x2 + ox, y2 + oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
+        builder.vertex(pose, x2 - ox, y2 - oy, 0).color(c.r(), c.g(), c.b(), c.a()).endVertex();
         endColorBuilder();
     }
 
-    private BufferBuilder beginColorBuilder(VertexFormat.Mode mode) {
+    private BufferBuilder beginColorBuilder() {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         RenderSystem.enableBlend();
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
-        builder.begin(mode, DefaultVertexFormat.POSITION_COLOR);
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         return builder;
     }
 
@@ -186,16 +186,6 @@ public class PmxEmoteWheelScreen extends Screen {
         Tesselator.getInstance().end();
         RenderSystem.disableBlend();
     }
-
-    private ColorFloats toColorFloats(int color) {
-        float a = ((color >> 24) & 0xFF) / 255.0f;
-        float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8) & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
-        return new ColorFloats(r, g, b, a);
-    }
-
-    private record ColorFloats(float r, float g, float b, float a) {}
 
     private int getWheelRadius() {
         int base = Math.min(this.width, this.height);
