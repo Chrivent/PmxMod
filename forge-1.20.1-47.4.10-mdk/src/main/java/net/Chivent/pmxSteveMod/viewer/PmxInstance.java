@@ -32,6 +32,11 @@ public class PmxInstance {
     private float currentMotionEndFrame = 0f;
     private boolean currentMotionLoop = false;
     private boolean motionEnded = false;
+    private boolean useMusicSync = false;
+    private float currentMusicEndFrame = 0f;
+    private boolean currentMusicLonger = false;
+    private boolean currentMusicSync = false;
+    private Path currentMusicPath;
     private float camInterestX;
     private float camInterestY;
     private float camInterestZ;
@@ -44,7 +49,6 @@ public class PmxInstance {
     private float frame = 0f;
     private long lastNanos = -1;
     private float lastMusicTime = -1f;
-    private boolean useMusicSync = false;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -134,6 +138,11 @@ public class PmxInstance {
             currentMotionEndFrame = 0f;
             currentMotionLoop = false;
             motionEnded = false;
+            useMusicSync = false;
+            currentMusicEndFrame = 0f;
+            currentMusicLonger = false;
+            currentMusicSync = false;
+            currentMusicPath = null;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -156,6 +165,11 @@ public class PmxInstance {
         currentMotionEndFrame = 0f;
         currentMotionLoop = false;
         motionEnded = false;
+        useMusicSync = false;
+        currentMusicEndFrame = 0f;
+        currentMusicLonger = false;
+        currentMusicSync = false;
+        currentMusicPath = null;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -196,10 +210,29 @@ public class PmxInstance {
                 lastMusicTime = -1f;
             }
         }
-        if (hasMotion && currentMotionEndFrame > 0.0f && frame >= currentMotionEndFrame) {
+
+        float evalFrame = frame;
+        if (useMusicSync && currentMusicLonger && currentMotionEndFrame > 0.0f && frame >= currentMotionEndFrame) {
+            evalFrame = currentMotionEndFrame;
+            dt = 0.0f;
+        }
+
+        float endFrame = currentMotionEndFrame;
+        if (currentMusicLonger && currentMusicEndFrame > 0.0f) {
+            endFrame = currentMusicEndFrame;
+        }
+        if (hasMotion && endFrame > 0.0f && frame >= endFrame) {
             if (currentMotionLoop) {
-                frame = frame % currentMotionEndFrame;
+                frame = frame % endFrame;
                 lastNanos = -1;
+                if (currentMusicSync && !currentMusicLonger && currentMusicPath != null) {
+                    try {
+                        musicActive = PmxNative.nativePlayMusicLoop(handle, currentMusicPath.toString(), false);
+                    } catch (UnsatisfiedLinkError e) {
+                        musicActive = false;
+                    }
+                    lastMusicTime = -1f;
+                }
             } else if (!motionEnded) {
                 motionEnded = true;
                 forceBlendNext = true;
@@ -208,8 +241,18 @@ public class PmxInstance {
             }
         }
 
-        updateCameraState(frame);
-        PmxNative.nativeUpdate(handle, frame, dt);
+        if (musicActive
+                && currentMusicSync
+                && !currentMusicLonger
+                && currentMusicEndFrame > 0.0f
+                && frame >= currentMusicEndFrame) {
+            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
+            musicActive = false;
+            lastMusicTime = -1f;
+        }
+
+        updateCameraState(evalFrame);
+        PmxNative.nativeUpdate(handle, evalFrame, dt);
     }
 
     public void syncCpuBuffersForRender() {
@@ -228,20 +271,11 @@ public class PmxInstance {
         }
         if (!ready || handle == 0L) return;
         try {
-            useMusicSync = musicSync;
-            if (musicPath != null && Files.exists(musicPath)) {
-                Path safeMusic = toSafePath(musicPath, "music_cache");
-                try {
-                    musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), loop);
-                } catch (UnsatisfiedLinkError e) {
-                    musicActive = false;
-                }
-                lastMusicTime = -1f;
-            } else {
-                try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
-                musicActive = false;
-                lastMusicTime = -1f;
-            }
+            currentMusicPath = null;
+            currentMusicEndFrame = 0f;
+            currentMusicLonger = false;
+            currentMusicSync = musicSync;
+            useMusicSync = false;
 
             if (cameraPath != null && Files.exists(cameraPath)) {
                 Path safeCamera = toSafePath(cameraPath, "camera_cache");
@@ -284,6 +318,45 @@ public class PmxInstance {
             currentMotionEndFrame = PmxNative.nativeGetMotionMaxFrame(handle);
             currentMotionLoop = loop;
             motionEnded = false;
+
+            if (musicPath != null && Files.exists(musicPath)) {
+                Path safeMusic = toSafePath(musicPath, "music_cache");
+                currentMusicPath = safeMusic;
+                if (musicSync) {
+                    try {
+                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), false);
+                    } catch (UnsatisfiedLinkError e) {
+                        musicActive = false;
+                    }
+                } else {
+                    try {
+                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), loop);
+                    } catch (UnsatisfiedLinkError e) {
+                        musicActive = false;
+                    }
+                }
+                double lengthSec = 0.0;
+                if (musicActive) {
+                    lengthSec = PmxNative.nativeGetMusicLengthSec(handle);
+                }
+                currentMusicEndFrame = lengthSec > 0.0 ? (float) (lengthSec * 30.0) : 0f;
+                boolean musicLonger = musicSync
+                        && currentMusicEndFrame > 0f
+                        && (currentMotionEndFrame <= 0f || currentMusicEndFrame > currentMotionEndFrame);
+                currentMusicLonger = musicLonger;
+                useMusicSync = musicLonger;
+                if (musicActive && musicSync && loop && musicLonger) {
+                    try {
+                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), true);
+                    } catch (UnsatisfiedLinkError e) {
+                        musicActive = false;
+                    }
+                }
+            } else {
+                try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
+                musicActive = false;
+            }
+            lastMusicTime = -1f;
         } catch (Throwable t) {
             LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
         }
@@ -350,6 +423,11 @@ public class PmxInstance {
         currentMotionEndFrame = 0f;
         currentMotionLoop = false;
         motionEnded = false;
+        useMusicSync = false;
+        currentMusicEndFrame = 0f;
+        currentMusicLonger = false;
+        currentMusicSync = false;
+        currentMusicPath = null;
         forceBlendNext = true;
         frame = 0f;
         lastNanos = -1;

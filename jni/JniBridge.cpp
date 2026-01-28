@@ -286,6 +286,13 @@ extern "C" {
         return ok ? JNI_TRUE : JNI_FALSE;
     }
 
+    JNIEXPORT jdouble JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMusicLengthSec(
+        JNIEnv*, jclass, const jlong handle) {
+        const auto* rt = FromHandle(handle);
+        if (!rt) return 0.0;
+        return rt->music.GetLengthSec();
+    }
+
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStopMusic(
         JNIEnv*, jclass, const jlong handle) {
         auto* rt = FromHandle(handle);

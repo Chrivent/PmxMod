@@ -23,6 +23,13 @@ bool Sound::Init(const std::filesystem::path& path, const bool loop) {
         ma_engine_uninit(m_engine.get());
         return false;
     }
+    ma_uint64 lengthFrames = 0;
+    if (ma_sound_get_length_in_pcm_frames(m_sound.get(), &lengthFrames) == MA_SUCCESS) {
+        const double sr = ma_engine_get_sample_rate(m_engine.get());
+        m_lengthSec = sr > 0.0 ? static_cast<double>(lengthFrames) / sr : 0.0;
+    } else {
+        m_lengthSec = 0.0;
+    }
     ma_sound_set_looping(m_sound.get(), loop ? MA_TRUE : MA_FALSE);
     ma_sound_set_volume(m_sound.get(), m_volume);
     ma_sound_start(m_sound.get());
@@ -57,6 +64,7 @@ void Sound::Uninit() {
     ma_engine_uninit(m_engine.get());
     m_hasSound = false;
     m_prevTimeSec = 0.0;
+    m_lengthSec = 0.0;
     m_engine.reset();
     m_sound.reset();
     m_engine = std::make_unique<ma_engine>();

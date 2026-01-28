@@ -15,6 +15,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeClearCamera(JNIEnv*, jclass, jlong);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetCameraState(JNIEnv*, jclass, jlong, jfloat, jobject);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativePlayMusicLoop(JNIEnv*, jclass, jlong, jstring, jboolean);
+    JNIEXPORT jdouble JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMusicLengthSec(JNIEnv*, jclass, jlong);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStopMusic(JNIEnv*, jclass, jlong);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetMusicTimes(JNIEnv*, jclass, jlong, jobject);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSyncPhysics(JNIEnv*, jclass, jlong, jfloat);
