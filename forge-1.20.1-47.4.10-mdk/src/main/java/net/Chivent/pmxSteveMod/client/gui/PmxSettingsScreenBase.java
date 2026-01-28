@@ -96,6 +96,10 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void saveSettings() {
+        saveSettings(null);
+    }
+
+    protected void saveSettings(SettingsRow changedRow) {
         List<PmxModelSettingsStore.RowData> out = new ArrayList<>();
         for (SettingsRow row : rows) {
             PmxModelSettingsStore.RowData data = new PmxModelSettingsStore.RowData();
@@ -112,6 +116,39 @@ public abstract class PmxSettingsScreenBase extends Screen {
         }
         out.addAll(preservedRows);
         store.save(modelPath, out);
+        if (changedRow != null) {
+            resetActiveMotionIfRelated(changedRow);
+        }
+    }
+
+    private void resetActiveMotionIfRelated(SettingsRow row) {
+        net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
+        if (!viewer.isPmxVisible()) return;
+        net.Chivent.pmxSteveMod.viewer.PmxInstance instance = viewer.instance();
+        java.nio.file.Path currentMotion = instance.getCurrentMotionPath();
+        java.nio.file.Path currentMusic = instance.getCurrentMusicPath();
+        java.nio.file.Path currentCamera = instance.getCurrentCameraPath();
+        if (currentMotion == null && currentMusic == null && currentCamera == null) return;
+
+        java.nio.file.Path motionDir = viewer.getUserMotionDir();
+        java.nio.file.Path musicDir = viewer.getUserMusicDir();
+        java.nio.file.Path cameraDir = viewer.getUserCameraDir();
+
+        if (matchesPath(currentMotion, motionDir, row.motion)
+                || matchesPath(currentMusic, musicDir, row.music)
+                || matchesPath(currentCamera, cameraDir, row.camera)) {
+            viewer.playIdleOrDefault();
+        }
+    }
+
+    private boolean matchesPath(java.nio.file.Path current, java.nio.file.Path baseDir, String fileName) {
+        if (current == null || fileName == null || fileName.isBlank()) return false;
+        java.nio.file.Path resolved = baseDir.resolve(fileName);
+        try {
+            resolved = resolved.toAbsolutePath().normalize();
+        } catch (Exception ignored) {
+        }
+        return resolved.equals(current);
     }
 
     protected void openMotionPicker(SettingsRow row) {
@@ -134,7 +171,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         row.motion = path.getFileName().toString();
                     }
                     markWidthsDirty();
-                    saveSettings();
+                    saveSettings(row);
                 }
         );
         screenRef[0] = screen;
@@ -163,7 +200,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         row.camera = path.getFileName().toString();
                     }
                     markWidthsDirty();
-                    saveSettings();
+                    saveSettings(row);
                 }
         );
         screenRef[0] = screen;
@@ -192,7 +229,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         row.music = path.getFileName().toString();
                     }
                     markWidthsDirty();
-                    saveSettings();
+                    saveSettings(row);
                 }
         );
         screenRef[0] = screen;
@@ -437,7 +474,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         }
                     }
                     if (i == 2 || i == 4) {
-                        screen.saveSettings();
+                        screen.saveSettings(row);
                     }
                     return true;
                 }

@@ -37,6 +37,8 @@ public class PmxInstance {
     private boolean currentMusicLonger = false;
     private boolean currentMusicSync = false;
     private Path currentMusicPath;
+    private Path currentMusicSourcePath;
+    private Path currentCameraPath;
     private float camInterestX;
     private float camInterestY;
     private float camInterestZ;
@@ -143,6 +145,8 @@ public class PmxInstance {
             currentMusicLonger = false;
             currentMusicSync = false;
             currentMusicPath = null;
+            currentMusicSourcePath = null;
+            currentCameraPath = null;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -170,6 +174,8 @@ public class PmxInstance {
         currentMusicLonger = false;
         currentMusicSync = false;
         currentMusicPath = null;
+        currentMusicSourcePath = null;
+        currentCameraPath = null;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -276,6 +282,8 @@ public class PmxInstance {
             currentMusicLonger = false;
             currentMusicSync = musicSync;
             useMusicSync = false;
+            currentMusicSourcePath = null;
+            currentCameraPath = null;
 
             if (cameraPath != null && Files.exists(cameraPath)) {
                 Path safeCamera = toSafePath(cameraPath, "camera_cache");
@@ -283,6 +291,11 @@ public class PmxInstance {
                     cameraActive = PmxNative.nativeLoadCameraVmd(handle, safeCamera.toString());
                 } catch (UnsatisfiedLinkError e) {
                     cameraActive = false;
+                }
+                try {
+                    currentCameraPath = cameraPath.toAbsolutePath().normalize();
+                } catch (Exception ignored) {
+                    currentCameraPath = cameraPath;
                 }
             } else {
                 try { PmxNative.nativeClearCamera(handle); } catch (Throwable ignored) {}
@@ -322,6 +335,11 @@ public class PmxInstance {
             if (musicPath != null && Files.exists(musicPath)) {
                 Path safeMusic = toSafePath(musicPath, "music_cache");
                 currentMusicPath = safeMusic;
+                try {
+                    currentMusicSourcePath = musicPath.toAbsolutePath().normalize();
+                } catch (Exception ignored) {
+                    currentMusicSourcePath = musicPath;
+                }
                 if (musicSync) {
                     try {
                         musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), false);
@@ -355,6 +373,7 @@ public class PmxInstance {
             } else {
                 try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
                 musicActive = false;
+                currentMusicSourcePath = null;
             }
             lastMusicTime = -1f;
         } catch (Throwable t) {
@@ -364,6 +383,8 @@ public class PmxInstance {
 
     public boolean hasCamera() { return cameraActive; }
     public Path getCurrentMotionPath() { return currentMotionPath; }
+    public Path getCurrentMusicPath() { return currentMusicSourcePath; }
+    public Path getCurrentCameraPath() { return currentCameraPath; }
     public boolean consumeMotionEnded() {
         if (!motionEnded) return false;
         motionEnded = false;
@@ -428,6 +449,8 @@ public class PmxInstance {
         currentMusicLonger = false;
         currentMusicSync = false;
         currentMusicPath = null;
+        currentMusicSourcePath = null;
+        currentCameraPath = null;
         forceBlendNext = true;
         frame = 0f;
         lastNanos = -1;

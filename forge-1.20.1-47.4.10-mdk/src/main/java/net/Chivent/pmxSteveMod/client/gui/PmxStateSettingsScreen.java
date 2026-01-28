@@ -51,7 +51,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
             list.addRow(row);
         }
         markWidthsDirty();
-        saveSettings();
+        saveSettings(row);
     }
 
     @Override
@@ -87,12 +87,41 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     }
 
     @Override
-    protected void saveSettings() {
+    protected void saveSettings(SettingsRow changedRow) {
+        net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.RowData prevIdle = null;
+        if (changedRow != null && changedRow.slotIndex == IDLE_SLOT_INDEX) {
+            prevIdle = store.getIdleRow(modelPath);
+        }
         for (SettingsRow row : rows) {
             if (!row.custom && row.slotIndex == IDLE_SLOT_INDEX) {
                 row.motionLoop = true;
             }
         }
-        super.saveSettings();
+        super.saveSettings(changedRow);
+        if (changedRow != null && changedRow.slotIndex == IDLE_SLOT_INDEX) {
+            net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
+            if (!viewer.isPmxVisible()) return;
+            net.Chivent.pmxSteveMod.viewer.PmxInstance instance = viewer.instance();
+            java.nio.file.Path currentMotion = instance.getCurrentMotionPath();
+            if (currentMotion == null || matchesMotionPath(viewer, currentMotion, prevIdle)) {
+                if (changedRow.motion == null || changedRow.motion.isBlank()) {
+                    instance.resetToDefaultPose();
+                } else {
+                    viewer.playIdleOrDefault();
+                }
+            }
+        }
+    }
+
+    private boolean matchesMotionPath(net.Chivent.pmxSteveMod.viewer.PmxViewer viewer,
+                                      java.nio.file.Path currentMotion,
+                                      net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.RowData row) {
+        if (row == null || row.motion == null || row.motion.isBlank()) return false;
+        java.nio.file.Path resolved = viewer.getUserMotionDir().resolve(row.motion);
+        try {
+            resolved = resolved.toAbsolutePath().normalize();
+        } catch (Exception ignored) {
+        }
+        return resolved.equals(currentMotion);
     }
 }
