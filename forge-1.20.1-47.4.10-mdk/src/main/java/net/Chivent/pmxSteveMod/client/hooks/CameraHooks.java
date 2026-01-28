@@ -29,10 +29,10 @@ public final class CameraHooks {
         PmxViewer viewer = PmxViewer.get();
         if (!viewer.isPmxVisible()) return;
         PmxInstance instance = viewer.instance();
-        if (!instance.hasCamera()) return;
-        Minecraft mc = Minecraft.getInstance();
-        AbstractClientPlayer player = mc.player;
-        if (player == null) return;
+        if (instance.hasCamera()) {
+            Minecraft mc = Minecraft.getInstance();
+            AbstractClientPlayer player = mc.player;
+            if (player == null) return;
 
             float partial = (float) event.getPartialTick();
             float scale = 0.15f;
@@ -81,6 +81,7 @@ public final class CameraHooks {
             event.setRoll(roll);
 
             setCameraPosition(event.getCamera(), worldEye.x, worldEye.y, worldEye.z);
+        }
     }
 
     @SubscribeEvent
@@ -88,10 +89,11 @@ public final class CameraHooks {
         PmxViewer viewer = PmxViewer.get();
         if (!viewer.isPmxVisible()) return;
         PmxInstance instance = viewer.instance();
-        if (!instance.hasCamera()) return;
-        float fovRad = instance.camFov();
-        if (fovRad <= 0.0f) return;
-        event.setFOV(Math.toDegrees(fovRad));
+        if (instance.hasCamera()) {
+            float fovRad = instance.camFov();
+            if (fovRad <= 0.0f) return;
+            event.setFOV(Math.toDegrees(fovRad));
+        }
     }
 
     private static void setCameraPosition(Camera camera, double x, double y, double z) {

@@ -152,7 +152,7 @@ public class PmxEmoteWheelScreen extends Screen {
             cameraPath = cameraDir.resolve(cameraFile);
         }
         viewer.setPmxVisible(true);
-        viewer.instance().playMotion(motionPath, musicPath, cameraPath, slotLoop[slot]);
+        viewer.instance().playMotion(motionPath, musicPath, cameraPath, slotLoop[slot], true);
     }
 
     private void loadSlotLabels() {

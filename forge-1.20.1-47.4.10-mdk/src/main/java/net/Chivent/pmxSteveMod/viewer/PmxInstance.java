@@ -44,6 +44,7 @@ public class PmxInstance {
     private float frame = 0f;
     private long lastNanos = -1;
     private float lastMusicTime = -1f;
+    private boolean useMusicSync = false;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -186,7 +187,7 @@ public class PmxInstance {
                 if (advanced) {
                     lastMusicTime = t;
                 }
-                if (musicActive) {
+                if (musicActive && useMusicSync) {
                     frame = t * 30.0f;
                     dt = musicDt;
                 }
@@ -218,7 +219,7 @@ public class PmxInstance {
         copyDynamicVertices();
     }
 
-    public void playMotion(Path vmdPath, Path musicPath, Path cameraPath, boolean loop) {
+    public void playMotion(Path vmdPath, Path musicPath, Path cameraPath, boolean loop, boolean musicSync) {
         if (vmdPath == null || !Files.exists(vmdPath)) return;
         Path pmxPath = currentPmxPath;
         if (pmxPath == null) return;
@@ -227,6 +228,7 @@ public class PmxInstance {
         }
         if (!ready || handle == 0L) return;
         try {
+            useMusicSync = musicSync;
             if (musicPath != null && Files.exists(musicPath)) {
                 Path safeMusic = toSafePath(musicPath, "music_cache");
                 try {

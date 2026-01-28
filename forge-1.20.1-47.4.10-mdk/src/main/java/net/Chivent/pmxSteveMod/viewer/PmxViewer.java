@@ -78,7 +78,7 @@ public class PmxViewer {
             Path cameraDir = getUserCameraDir();
             cameraPath = cameraDir.resolve(idle.camera);
         }
-        instance.playMotion(vmdPath, musicPath, cameraPath, idle.motionLoop);
+        instance.playMotion(vmdPath, musicPath, cameraPath, idle.motionLoop, false);
     }
 
     public Path getUserModelDir() {
