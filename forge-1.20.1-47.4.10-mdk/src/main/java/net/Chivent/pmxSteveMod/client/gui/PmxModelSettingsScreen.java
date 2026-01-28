@@ -114,6 +114,7 @@ public class PmxModelSettingsScreen extends Screen {
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir(),
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_motion.title"),
+                Component.translatable("pmx.button.open_motion_folder"),
                 path -> row.motion = path == null ? "" : path.getFileName().toString()
         );
         if (this.minecraft != null) {
@@ -127,6 +128,7 @@ public class PmxModelSettingsScreen extends Screen {
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserCameraDir(),
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_camera.title"),
+                Component.translatable("pmx.button.open_camera_folder"),
                 path -> row.camera = path == null ? "" : path.getFileName().toString()
         );
         if (this.minecraft != null) {
@@ -138,8 +140,9 @@ public class PmxModelSettingsScreen extends Screen {
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMusicDir(),
-                new String[] {".ogg", ".wav", ".mp3"},
+                new String[] {".ogg", ".mp3", ".wav"},
                 Component.translatable("pmx.screen.select_music.title"),
+                Component.translatable("pmx.button.open_music_folder"),
                 path -> row.music = path == null ? "" : path.getFileName().toString()
         );
         if (this.minecraft != null) {

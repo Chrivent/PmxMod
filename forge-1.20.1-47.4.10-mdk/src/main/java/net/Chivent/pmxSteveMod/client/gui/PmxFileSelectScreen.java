@@ -21,18 +21,20 @@ public class PmxFileSelectScreen extends Screen {
     private final String[] extensions;
     private final Consumer<Path> onSelect;
     private final Component titleText;
+    private final Component openFolderLabel;
     private PmxFileList list;
     private PmxFileWatcher watcher;
     private volatile boolean rescanRequested;
 
     public PmxFileSelectScreen(Screen parent, Path folder, String[] extensions,
-                               Component titleText, Consumer<Path> onSelect) {
+                               Component titleText, Component openFolderLabel, Consumer<Path> onSelect) {
         super(titleText);
         this.parent = parent;
         this.folder = folder;
         this.extensions = extensions;
         this.onSelect = onSelect;
         this.titleText = titleText;
+        this.openFolderLabel = openFolderLabel;
     }
 
     @Override
@@ -49,7 +51,7 @@ public class PmxFileSelectScreen extends Screen {
         startWatcher();
         int rowY = this.height - 28;
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
-                Component.translatable("pmx.button.open_folder"), b -> {
+                openFolderLabel, b -> {
                     if (folder != null) {
                         net.minecraft.Util.getPlatform().openFile(folder.toFile());
                     }
