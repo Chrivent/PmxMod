@@ -434,7 +434,6 @@ public class PmxRenderer {
         GL11C.glCullFace(GL11C.GL_BACK);
     }
 
-
     private static float[] getSunLightDir(Level level, float partialTick) {
         if (level == null) return new float[] {0.2f, 1.0f, 0.2f};
         float time = level.getTimeOfDay(partialTick);
@@ -456,7 +455,6 @@ public class PmxRenderer {
         viewRot.transform(dir);
         return new float[] {dir.x, dir.y, dir.z};
     }
-
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
         MaterialGpu cached = materialGpuCache.get(materialId);
