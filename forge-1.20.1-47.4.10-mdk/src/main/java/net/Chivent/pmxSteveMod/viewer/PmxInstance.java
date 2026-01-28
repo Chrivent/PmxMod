@@ -238,6 +238,13 @@ public class PmxInstance {
                         musicActive = false;
                     }
                     lastMusicTime = -1f;
+                } else if (!currentMusicSync && currentMusicPath != null) {
+                    try {
+                        musicActive = PmxNative.nativePlayMusicLoop(handle, currentMusicPath.toString(), true);
+                    } catch (UnsatisfiedLinkError e) {
+                        musicActive = false;
+                    }
+                    lastMusicTime = -1f;
                 }
             } else if (!motionEnded) {
                 motionEnded = true;
