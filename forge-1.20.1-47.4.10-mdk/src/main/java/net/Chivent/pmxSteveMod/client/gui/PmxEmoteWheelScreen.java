@@ -59,7 +59,7 @@ public class PmxEmoteWheelScreen extends Screen {
         int deadZone = getDeadZoneRadius(wheelRadius);
         GuiUtil.drawWheelRing(graphics, centerX, centerY, wheelRadius, deadZone, 0x99000000);
         if (selectedSlot >= 0 && slotActive[selectedSlot]) {
-            GuiUtil.drawWheelSelection(graphics, centerX, centerY, wheelRadius, deadZone, selectedSlot, SLOT_COUNT, 0x22FFFFFF);
+            GuiUtil.drawWheelSelection(graphics, centerX, centerY, wheelRadius, deadZone, selectedSlot, SLOT_COUNT, 0x33FFFFFF);
         }
         float thickness = Math.max(1.0f, wheelRadius * 0.01f);
         GuiUtil.drawWheelBoundaries(graphics, centerX, centerY, wheelRadius, deadZone, SLOT_COUNT, thickness, 0x80FFFFFF);
@@ -126,6 +126,18 @@ public class PmxEmoteWheelScreen extends Screen {
         net.Chivent.pmxSteveMod.viewer.PmxViewer viewer = net.Chivent.pmxSteveMod.viewer.PmxViewer.get();
         java.nio.file.Path dir = viewer.getUserMotionDir();
         java.nio.file.Path motionPath = dir.resolve(motionFile);
+        java.nio.file.Path current = viewer.instance().getCurrentMotionPath();
+        if (current != null) {
+            java.nio.file.Path normalized = motionPath;
+            try {
+                normalized = motionPath.toAbsolutePath().normalize();
+            } catch (Exception ignored) {
+            }
+            if (normalized.equals(current)) {
+                playIdleMotion(viewer);
+                return;
+            }
+        }
         String musicFile = slotMusicFiles[slot];
         java.nio.file.Path musicPath = null;
         if (musicFile != null && !musicFile.isBlank()) {
@@ -140,6 +152,18 @@ public class PmxEmoteWheelScreen extends Screen {
         }
         viewer.setPmxVisible(true);
         viewer.instance().playMotion(motionPath, musicPath, cameraPath);
+    }
+
+    private void playIdleMotion(net.Chivent.pmxSteveMod.viewer.PmxViewer viewer) {
+        java.nio.file.Path modelPath = viewer.getSelectedModelPath();
+        String idle = net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.get().getIdleMotion(modelPath);
+        if (idle == null || idle.isBlank()) {
+            viewer.instance().stopMusic();
+            return;
+        }
+        java.nio.file.Path motionDir = viewer.getUserMotionDir();
+        java.nio.file.Path vmdPath = motionDir.resolve(idle);
+        viewer.instance().playMotion(vmdPath);
     }
 
     private void loadSlotLabels() {

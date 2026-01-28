@@ -27,6 +27,7 @@ public class PmxInstance {
     private boolean hasMotion = false;
     private boolean musicActive = false;
     private boolean cameraActive = false;
+    private Path currentMotionPath;
     private float camInterestX;
     private float camInterestY;
     private float camInterestZ;
@@ -141,6 +142,7 @@ public class PmxInstance {
         hasMotion = false;
         musicActive = false;
         cameraActive = false;
+        currentMotionPath = null;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -251,12 +253,18 @@ public class PmxInstance {
             }
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
             hasMotion = true;
+            try {
+                currentMotionPath = vmdPath.toAbsolutePath().normalize();
+            } catch (Exception ignored) {
+                currentMotionPath = vmdPath;
+            }
         } catch (Throwable t) {
             LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
         }
     }
 
     public boolean hasCamera() { return cameraActive; }
+    public Path getCurrentMotionPath() { return currentMotionPath; }
     public float camInterestX() { return camInterestX; }
     public float camInterestY() { return camInterestY; }
     public float camInterestZ() { return camInterestZ; }
