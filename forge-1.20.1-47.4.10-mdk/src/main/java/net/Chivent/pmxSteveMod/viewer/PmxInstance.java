@@ -51,6 +51,8 @@ public class PmxInstance {
     private float frame = 0f;
     private long lastNanos = -1;
     private float lastMusicTime = -1f;
+    private float physicsBlendHold = 0f;
+    private float physicsBlendDuration = 0f;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -140,13 +142,7 @@ public class PmxInstance {
             currentMotionEndFrame = 0f;
             currentMotionLoop = false;
             motionEnded = false;
-            useMusicSync = false;
-            currentMusicEndFrame = 0f;
-            currentMusicLonger = false;
-            currentMusicSync = false;
-            currentMusicPath = null;
-            currentMusicSourcePath = null;
-            currentCameraPath = null;
+            resetSyncState(0f, 0f);
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -169,13 +165,7 @@ public class PmxInstance {
         currentMotionEndFrame = 0f;
         currentMotionLoop = false;
         motionEnded = false;
-        useMusicSync = false;
-        currentMusicEndFrame = 0f;
-        currentMusicLonger = false;
-        currentMusicSync = false;
-        currentMusicPath = null;
-        currentMusicSourcePath = null;
-        currentCameraPath = null;
+        resetSyncState(0f, 0f);
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -223,6 +213,14 @@ public class PmxInstance {
             dt = 0.0f;
         }
 
+        float physicsDt = dt;
+        if (physicsBlendHold > 0.0f && physicsBlendDuration > 0.0f) {
+            float factor = 1.0f - (physicsBlendHold / physicsBlendDuration);
+            factor = Math.max(0.0f, Math.min(1.0f, factor));
+            physicsDt = dt * factor;
+            physicsBlendHold = Math.max(0.0f, physicsBlendHold - dt);
+        }
+
         float endFrame = currentMotionEndFrame;
         if (currentMusicLonger && currentMusicEndFrame > 0.0f) {
             endFrame = currentMusicEndFrame;
@@ -265,7 +263,7 @@ public class PmxInstance {
         }
 
         updateCameraState(evalFrame);
-        PmxNative.nativeUpdate(handle, evalFrame, dt);
+        PmxNative.nativeUpdate(handle, evalFrame, physicsDt);
     }
 
     public void syncCpuBuffersForRender() {
@@ -330,6 +328,8 @@ public class PmxInstance {
             }
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
             hasMotion = true;
+            physicsBlendHold = blendSeconds;
+            physicsBlendDuration = blendSeconds;
             try {
                 currentMotionPath = vmdPath.toAbsolutePath().normalize();
             } catch (Exception ignored) {
@@ -451,6 +451,13 @@ public class PmxInstance {
         currentMotionEndFrame = 0f;
         currentMotionLoop = false;
         motionEnded = false;
+        forceBlendNext = true;
+        frame = 0f;
+        lastNanos = -1;
+        resetSyncState(0.3f, 0.3f);
+    }
+
+    private void resetSyncState(float physicsHold, float physicsDuration) {
         useMusicSync = false;
         currentMusicEndFrame = 0f;
         currentMusicLonger = false;
@@ -458,9 +465,8 @@ public class PmxInstance {
         currentMusicPath = null;
         currentMusicSourcePath = null;
         currentCameraPath = null;
-        forceBlendNext = true;
-        frame = 0f;
-        lastNanos = -1;
+        physicsBlendHold = physicsHold;
+        physicsBlendDuration = physicsDuration;
     }
 
     private Path toSafePath(Path src, String cacheDirName) throws IOException {

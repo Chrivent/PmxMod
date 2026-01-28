@@ -26,7 +26,7 @@ void Instance::UpdateAnimation(const Viewer& viewer) const {
 
 bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
-    music.Init(cfg.m_musicPath);
+    music.Init(cfg.m_musicPath, false);
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();

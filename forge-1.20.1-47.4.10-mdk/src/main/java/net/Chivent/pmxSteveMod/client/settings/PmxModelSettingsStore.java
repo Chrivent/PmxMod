@@ -38,19 +38,6 @@ public final class PmxModelSettingsStore {
         return new ArrayList<>(rows);
     }
 
-    public synchronized String getIdleMotion(Path modelPath) {
-        if (modelPath == null) return "";
-        ensureLoaded();
-        List<RowData> rows = data.models.get(modelPath.toString());
-        if (rows == null) return "";
-        for (RowData row : rows) {
-            if (row.slotIndex == -2 && row.motion != null && !row.motion.isBlank()) {
-                return row.motion;
-            }
-        }
-        return "";
-    }
-
     public synchronized RowData getIdleRow(Path modelPath) {
         if (modelPath == null) return null;
         ensureLoaded();

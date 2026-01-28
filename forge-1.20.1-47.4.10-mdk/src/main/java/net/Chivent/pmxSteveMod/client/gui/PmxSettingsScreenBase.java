@@ -95,10 +95,6 @@ public abstract class PmxSettingsScreenBase extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    protected void saveSettings() {
-        saveSettings(null);
-    }
-
     protected void saveSettings(SettingsRow changedRow) {
         List<PmxModelSettingsStore.RowData> out = new ArrayList<>();
         for (SettingsRow row : rows) {
