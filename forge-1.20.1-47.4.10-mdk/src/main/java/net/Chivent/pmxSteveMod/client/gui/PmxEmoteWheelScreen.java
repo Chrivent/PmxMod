@@ -94,9 +94,9 @@ public class PmxEmoteWheelScreen extends Screen {
         double dx = mouseX - this.width / 2.0;
         double dy = mouseY - this.height / 2.0;
         int wheelRadius = getWheelRadius();
-        int deadzone = getDeadZoneRadius(wheelRadius);
+        int deadZone = getDeadZoneRadius(wheelRadius);
         double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < deadzone || dist > wheelRadius) {
+        if (dist < deadZone || dist > wheelRadius) {
             selectedSlot = -1;
             return;
         }
