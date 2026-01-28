@@ -62,12 +62,10 @@ public class PmxSlotSettingsScreen extends PmxSettingsScreenBase {
         int size = Math.min(width, entry.lastHeight) - 6;
         if (size < 8) return;
         int outer = size / 2;
-        int inner = Math.max(4, GuiUtil.getWheelDeadZoneRadius(outer));
+        int inner = GuiUtil.getWheelDeadZoneRadius(outer);
         int cx = left + width / 2;
         int cy = entry.lastY + entry.lastHeight / 2;
         GuiUtil.drawWheelRing(graphics, cx, cy, outer, inner, 0x99000000);
         GuiUtil.drawWheelSelection(graphics, cx, cy, outer, inner, slotIndex, SLOT_COUNT, 0x55FFFFFF);
-        float thickness = Math.max(0.5f, outer * 0.008f);
-        GuiUtil.drawWheelBoundaries(graphics, cx, cy, outer, inner, SLOT_COUNT, thickness, 0x70FFFFFF);
     }
 }
