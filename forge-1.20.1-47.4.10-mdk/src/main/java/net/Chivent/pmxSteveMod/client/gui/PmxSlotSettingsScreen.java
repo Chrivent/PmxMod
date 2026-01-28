@@ -1,15 +1,12 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
 import java.nio.file.Path;
-import java.util.List;
-
-import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.GuiGraphics;
 
-public class PmxModelSettingsScreen extends PmxSettingsScreenBase {
+public class PmxSlotSettingsScreen extends PmxSettingsScreenBase {
     private static final int SLOT_COUNT = 6;
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.slot",
@@ -20,7 +17,7 @@ public class PmxModelSettingsScreen extends PmxSettingsScreenBase {
             "pmx.settings.header.music"
     };
 
-    public PmxModelSettingsScreen(Screen parent, Path modelPath) {
+    public PmxSlotSettingsScreen(Screen parent, Path modelPath) {
         super(parent, modelPath, Component.translatable("pmx.screen.slot_settings.title"));
         loadRows();
     }
@@ -39,30 +36,15 @@ public class PmxModelSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void loadRows() {
-        rows.clear();
-        preservedRows.clear();
-        List<PmxModelSettingsStore.RowData> saved = store.load(modelPath);
-        for (PmxModelSettingsStore.RowData data : saved) {
-            if (data.slotIndex >= 0 && data.slotIndex < SLOT_COUNT) {
-                String name = Component.translatable("pmx.settings.row.slot", data.slotIndex + 1).getString();
-                SettingsRow row = new SettingsRow(name, data.custom, data.slotIndex);
-                row.motionLoop = data.motionLoop;
-                row.stopOnMove = data.stopOnMove;
-                row.cameraLock = data.cameraLock;
-                row.motion = data.motion == null ? "" : data.motion;
-                row.camera = data.camera == null ? "" : data.camera;
-                row.music = data.music == null ? "" : data.music;
-                rows.add(row);
-            } else {
-                preservedRows.add(data);
-            }
-        }
-        if (rows.isEmpty()) {
+        loadRowsCommon(
+                data -> data.slotIndex >= 0 && data.slotIndex < SLOT_COUNT,
+                data -> Component.translatable("pmx.settings.row.slot", data.slotIndex + 1).getString(),
+                () -> {
             for (int i = 1; i <= SLOT_COUNT; i++) {
                 rows.add(new SettingsRow(Component.translatable("pmx.settings.row.slot", i).getString(), false, i - 1));
             }
-        }
-        markWidthsDirty();
+                }
+        );
     }
 
     @Override

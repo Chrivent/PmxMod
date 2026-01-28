@@ -3,6 +3,8 @@ package net.Chivent.pmxSteveMod.client.gui;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -160,6 +162,34 @@ public abstract class PmxSettingsScreenBase extends Screen {
         if (this.minecraft != null) {
             this.minecraft.setScreen(screen);
         }
+    }
+
+    protected void loadRowsCommon(
+            Predicate<PmxModelSettingsStore.RowData> includeRow,
+            Function<PmxModelSettingsStore.RowData, String> nameResolver,
+            Runnable addDefaults) {
+        rows.clear();
+        preservedRows.clear();
+        List<PmxModelSettingsStore.RowData> saved = store.load(modelPath);
+        for (PmxModelSettingsStore.RowData data : saved) {
+            if (includeRow.test(data)) {
+                String name = nameResolver.apply(data);
+                SettingsRow row = new SettingsRow(name, data.custom, data.slotIndex);
+                row.motionLoop = data.motionLoop;
+                row.stopOnMove = data.stopOnMove;
+                row.cameraLock = data.cameraLock;
+                row.motion = data.motion == null ? "" : data.motion;
+                row.camera = data.camera == null ? "" : data.camera;
+                row.music = data.music == null ? "" : data.music;
+                rows.add(row);
+            } else {
+                preservedRows.add(data);
+            }
+        }
+        if (rows.isEmpty()) {
+            addDefaults.run();
+        }
+        markWidthsDirty();
     }
 
     private void renderHeader(GuiGraphics graphics) {

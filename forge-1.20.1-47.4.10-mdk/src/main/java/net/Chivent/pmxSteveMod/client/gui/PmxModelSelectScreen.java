@@ -224,7 +224,7 @@ public class PmxModelSelectScreen extends Screen {
 
     private void openModelSettings(Path modelPath) {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(new PmxModelSettingsScreen(this, modelPath));
+            this.minecraft.setScreen(new PmxSlotSettingsScreen(this, modelPath));
         }
     }
 

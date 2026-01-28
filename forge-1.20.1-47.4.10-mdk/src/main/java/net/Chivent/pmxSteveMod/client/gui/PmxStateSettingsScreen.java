@@ -1,8 +1,6 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
 import java.nio.file.Path;
-import java.util.List;
-import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -58,27 +56,17 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void loadRows() {
-        rows.clear();
-        preservedRows.clear();
-        List<PmxModelSettingsStore.RowData> saved = store.load(modelPath);
-        for (PmxModelSettingsStore.RowData data : saved) {
-            if (data.slotIndex >= 0) {
-                preservedRows.add(data);
-                continue;
-            }
-            String name = data.name;
-            if (!data.custom && data.slotIndex == IDLE_SLOT_INDEX) {
-                name = Component.translatable("pmx.settings.row.idle").getString();
-            }
-            SettingsRow row = new SettingsRow(name, data.custom, data.slotIndex);
-            row.motionLoop = data.motionLoop;
-            row.stopOnMove = data.stopOnMove;
-            row.cameraLock = data.cameraLock;
-            row.motion = data.motion == null ? "" : data.motion;
-            row.camera = data.camera == null ? "" : data.camera;
-            row.music = data.music == null ? "" : data.music;
-            rows.add(row);
-        }
+        loadRowsCommon(
+                data -> data.slotIndex < 0,
+                data -> {
+                    String name = data.name;
+                    if (!data.custom && data.slotIndex == IDLE_SLOT_INDEX) {
+                        name = Component.translatable("pmx.settings.row.idle").getString();
+                    }
+                    return name;
+                },
+                () -> {}
+        );
         boolean hasIdle = rows.stream().anyMatch(r -> r.slotIndex == IDLE_SLOT_INDEX);
         if (!hasIdle) {
             rows.add(0, new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX));
