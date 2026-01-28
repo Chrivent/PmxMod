@@ -155,9 +155,7 @@ extern "C" {
         auto nextAnim = CreateAnimation(rt->model);
         if (!nextAnim->Add(vmd)) return JNI_FALSE;
 
-        const bool hasAnim = rt->anim &&
-            (!rt->anim->m_nodes.empty() || !rt->anim->m_morphs.empty() || !rt->anim->m_iks.empty());
-        if (!hasAnim || blendSeconds <= 0.0f) {
+        if (blendSeconds <= 0.0f) {
             rt->anim = std::move(nextAnim);
             rt->blendAnim.reset();
             rt->blendElapsed = 0.0f;
