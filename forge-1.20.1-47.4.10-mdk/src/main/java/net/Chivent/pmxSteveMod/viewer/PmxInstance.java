@@ -24,6 +24,7 @@ public class PmxInstance {
     private boolean ready = false;
     private long modelVersion = 0L;
     private Path currentPmxPath;
+    private boolean hasMotion = false;
 
     private float frame = 0f;
     private long lastNanos = -1;
@@ -108,6 +109,7 @@ public class PmxInstance {
 
             modelVersion++;
             ready = true;
+            hasMotion = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -121,6 +123,7 @@ public class PmxInstance {
         }
         ready = false;
         currentPmxPath = null;
+        hasMotion = false;
 
         indicesCopiedOnce = false;
         frame = 0f;
@@ -152,18 +155,21 @@ public class PmxInstance {
         if (pmxPath == null) return;
         if (!ready || handle == 0L) {
             init(pmxPath);
-        } else {
-            shutdown();
-            init(pmxPath);
         }
         if (!ready || handle == 0L) return;
         try {
+            Path safePath = toSafePath(vmdPath);
+            float blendSeconds = hasMotion ? 1.0f : 0.0f;
+            if (!PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds)) {
+                return;
+            }
             frame = 0f;
             lastNanos = -1;
-            Path safePath = toSafePath(vmdPath);
-            PmxNative.nativeAddVmd(handle, safePath.toString());
-            PmxNative.nativeSyncPhysics(handle, 0.0f);
+            if (!hasMotion) {
+                PmxNative.nativeSyncPhysics(handle, 0.0f);
+            }
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
+            hasMotion = true;
         } catch (Throwable t) {
             LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
         }

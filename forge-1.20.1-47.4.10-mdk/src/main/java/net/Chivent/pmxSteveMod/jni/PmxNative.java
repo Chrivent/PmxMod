@@ -39,6 +39,7 @@ public final class PmxNative {
 
     public static native boolean nativeLoadPmx(long h, String pmxPath, String dataDir);
     public static native boolean nativeAddVmd(long h, String vmdPath);
+    public static native boolean nativeStartVmdBlend(long h, String vmdPath, float blendSeconds);
     public static native void nativeSyncPhysics(long h, float t);
     public static native void nativeUpdate(long h, float frame, float physicsElapsed);
 

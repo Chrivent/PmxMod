@@ -8,6 +8,10 @@
 struct PmxRuntime {
     std::shared_ptr<Model> model;
     std::unique_ptr<Animation> anim;
+    std::unique_ptr<Animation> blendAnim;
+    float blendElapsed = 0.0f;
+    float blendDuration = 0.0f;
+    bool blending = false;
 };
 
 std::filesystem::path JStringToPath(JNIEnv* env, _jstring* s) {
@@ -28,6 +32,12 @@ static jstring PathToJStringUtf8(JNIEnv* env, const std::filesystem::path& p) {
 
 PmxRuntime* FromHandle(const jlong h) {
     return reinterpret_cast<PmxRuntime*>(h);
+}
+
+static std::unique_ptr<Animation> CreateAnimation(const std::shared_ptr<Model>& model) {
+    auto anim = std::make_unique<Animation>();
+    anim->m_model = model;
+    return anim;
 }
 
 void CopyToDirectBuffer(JNIEnv* env, _jobject* dstBuffer, const void* src, const size_t srcBytes) {
@@ -85,8 +95,7 @@ extern "C" {
     JNIEXPORT jlong JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeCreate(JNIEnv*, jclass) {
         auto* rt = new PmxRuntime{};
         rt->model = std::make_shared<Model>();
-        rt->anim = std::make_unique<Animation>();
-        rt->anim->m_model = rt->model;
+        rt->anim = CreateAnimation(rt->model);
         return reinterpret_cast<jlong>(rt);
     }
 
@@ -94,31 +103,71 @@ extern "C" {
         const auto* rt = FromHandle(handle);
         if (!rt) return;
         if (rt->anim) rt->anim->Destroy();
+        if (rt->blendAnim) rt->blendAnim->Destroy();
         if (rt->model) rt->model->Destroy();
         delete rt;
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeLoadPmx(
         JNIEnv* env, jclass, const jlong handle, _jstring* pmxPath, _jstring* dataDir) {
-        const auto* rt = FromHandle(handle);
+        auto* rt = FromHandle(handle);
         if (!rt || !rt->model) return JNI_FALSE;
         const auto pmx = JStringToPath(env, pmxPath);
         const auto dir = JStringToPath(env, dataDir);
         const bool ok = rt->model->Load(pmx, dir);
         if (!ok) return JNI_FALSE;
         rt->model->InitializeAnimation();
+        rt->anim = CreateAnimation(rt->model);
+        rt->blendAnim.reset();
+        rt->blendElapsed = 0.0f;
+        rt->blendDuration = 0.0f;
+        rt->blending = false;
         return JNI_TRUE;
     }
 
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeAddVmd(
         JNIEnv* env, jclass, const jlong handle, _jstring* vmdPath) {
-        const auto* rt = FromHandle(handle);
+        auto* rt = FromHandle(handle);
         if (!rt || !rt->anim) return JNI_FALSE;
+        rt->anim = CreateAnimation(rt->model);
+        rt->blendAnim.reset();
+        rt->blendElapsed = 0.0f;
+        rt->blendDuration = 0.0f;
+        rt->blending = false;
         VMDReader vmd;
         const auto path = JStringToPath(env, vmdPath);
         if (!vmd.ReadFile(path)) return JNI_FALSE;
         const bool ok = rt->anim->Add(vmd);
         return ok ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStartVmdBlend(
+        JNIEnv* env, jclass, const jlong handle, _jstring* vmdPath, const jfloat blendSeconds) {
+        auto* rt = FromHandle(handle);
+        if (!rt || !rt->model) return JNI_FALSE;
+        VMDReader vmd;
+        const auto path = JStringToPath(env, vmdPath);
+        if (!vmd.ReadFile(path)) return JNI_FALSE;
+        auto nextAnim = CreateAnimation(rt->model);
+        if (!nextAnim->Add(vmd)) return JNI_FALSE;
+
+        const bool hasAnim = rt->anim &&
+            (!rt->anim->m_nodes.empty() || !rt->anim->m_morphs.empty() || !rt->anim->m_iks.empty());
+        if (!hasAnim || blendSeconds <= 0.0f) {
+            rt->anim = std::move(nextAnim);
+            rt->blendAnim.reset();
+            rt->blendElapsed = 0.0f;
+            rt->blendDuration = 0.0f;
+            rt->blending = false;
+            return JNI_TRUE;
+        }
+
+        rt->model->SaveBaseAnimation();
+        rt->blendAnim = std::move(nextAnim);
+        rt->blendElapsed = 0.0f;
+        rt->blendDuration = blendSeconds;
+        rt->blending = true;
+        return JNI_TRUE;
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSyncPhysics(
@@ -130,10 +179,30 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate(
         JNIEnv*, jclass, const jlong handle, const jfloat frame, const jfloat physicsElapsed) {
-        const auto* rt = FromHandle(handle);
+        auto* rt = FromHandle(handle);
         if (!rt || !rt->model) return;
         rt->model->BeginAnimation();
-        rt->model->UpdateAllAnimation(rt->anim.get(), frame, physicsElapsed);
+        if (rt->blending && rt->blendAnim) {
+            const float duration = rt->blendDuration;
+            const float weight = duration > 0.0f
+                ? std::clamp(rt->blendElapsed / duration, 0.0f, 1.0f)
+                : 1.0f;
+            rt->blendAnim->Evaluate(frame, weight);
+            rt->model->UpdateMorphAnimation();
+            rt->model->UpdateNodeAnimation(false);
+            rt->model->UpdatePhysicsAnimation(physicsElapsed);
+            rt->model->UpdateNodeAnimation(true);
+
+            rt->blendElapsed += physicsElapsed;
+            if (duration <= 0.0f || rt->blendElapsed >= duration) {
+                rt->anim = std::move(rt->blendAnim);
+                rt->blending = false;
+                rt->blendElapsed = 0.0f;
+                rt->blendDuration = 0.0f;
+            }
+        } else {
+            rt->model->UpdateAllAnimation(rt->anim.get(), frame, physicsElapsed);
+        }
         rt->model->m_parallelUpdateCount = 1;
         rt->model->Update();
     }
