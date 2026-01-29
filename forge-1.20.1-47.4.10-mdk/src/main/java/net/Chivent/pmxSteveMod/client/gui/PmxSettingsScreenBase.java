@@ -69,6 +69,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
         }
         if (selectedRow != null) {
             this.list.selectRow(selectedRow);
+            onSelectionChanged();
         }
         addFooterButtons(listBottom);
     }
@@ -156,6 +157,13 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void openMotionPicker(SettingsRow row) {
+        if (!isSelectableRow(row)) {
+            selectedRow = null;
+            if (list != null) {
+                list.setSelected(null);
+            }
+            onSelectionChanged();
+        }
         final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
@@ -185,6 +193,13 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void openCameraPicker(SettingsRow row) {
+        if (!isSelectableRow(row)) {
+            selectedRow = null;
+            if (list != null) {
+                list.setSelected(null);
+            }
+            onSelectionChanged();
+        }
         final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
@@ -214,6 +229,13 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void openMusicPicker(SettingsRow row) {
+        if (!isSelectableRow(row)) {
+            selectedRow = null;
+            if (list != null) {
+                list.setSelected(null);
+            }
+            onSelectionChanged();
+        }
         final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
@@ -427,9 +449,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
         @Override
         protected void renderSelection(@NotNull GuiGraphics graphics, int y, int entryWidth, int entryHeight,
                                        int borderColor, int fillColor) {
-            if (!screen.useSelectionBorder()) return;
-            int left = getRowLeft();
-            graphics.renderOutline(left, y, entryWidth, entryHeight, borderColor);
+            // Entries handle the selection border.
         }
 
         protected class PmxSettingsEntry extends AbstractSelectionList.Entry<PmxSettingsEntry> {
@@ -471,6 +491,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                         ? Component.translatable("pmx.settings.value.unset").getString()
                         : row.music, 0xF0F0F0);
                 drawColumnLines(graphics);
+                drawSelectionBorder(graphics, x, y, width, height);
             }
 
             @Override
@@ -483,6 +504,10 @@ public abstract class PmxSettingsScreenBase extends Screen {
                     if (screen.list != null && screen.isSelectableRow(row)) {
                         screen.list.setSelected(this);
                         screen.selectedRow = row;
+                        screen.onSelectionChanged();
+                    } else if (!screen.isSelectableRow(row)) {
+                        screen.selectedRow = null;
+                        screen.list.setSelected(null);
                         screen.onSelectionChanged();
                     }
                     switch (i) {
@@ -532,6 +557,13 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 for (int i = 0; i < COLUMN_COUNT - 1; i++) {
                     x += colW[i];
                     graphics.fill(x, lastY, x + 1, lastY + lastHeight, 0x66FFFFFF);
+                }
+            }
+
+            private void drawSelectionBorder(GuiGraphics graphics, int x, int y, int width, int height) {
+                if (!screen.useSelectionBorder() || !screen.isSelectableRow(row)) return;
+                if (PmxSettingsList.this.getSelected() == this) {
+                    graphics.renderOutline(x, y, width, height, 0xFFCCCCCC);
                 }
             }
 

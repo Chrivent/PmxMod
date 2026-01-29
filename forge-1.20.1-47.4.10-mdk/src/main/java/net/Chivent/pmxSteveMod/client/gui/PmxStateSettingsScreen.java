@@ -15,6 +15,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
             "pmx.settings.header.camera_lock",
             "pmx.settings.header.music"
     };
+    private Button removeButton;
 
     public PmxStateSettingsScreen(Screen parent, Path modelPath) {
         super(parent, modelPath, Component.translatable("pmx.screen.state_settings.title"));
@@ -37,10 +38,11 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
                     }
                 }
         ).bounds(12, listBottom + 6, btnWidth, 20).build());
-        addRenderableWidget(Button.builder(
+        removeButton = addRenderableWidget(Button.builder(
                 Component.translatable("pmx.button.remove_state"),
                 b -> removeSelectedState()
         ).bounds(12 + btnWidth + 6, listBottom + 6, btnWidth, 20).build());
+        updateRemoveButtonState();
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
                 .bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
     }
@@ -90,6 +92,16 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
         return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
     }
 
+    @Override
+    protected boolean isSelectableRow(SettingsRow row) {
+        return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
+    }
+
+    @Override
+    protected void onSelectionChanged() {
+        updateRemoveButtonState();
+    }
+
     private void removeSelectedState() {
         if (selectedRow == null) return;
         if (!selectedRow.custom || selectedRow.slotIndex == IDLE_SLOT_INDEX) return;
@@ -98,8 +110,16 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
             list.removeRow(selectedRow);
         }
         selectedRow = null;
+        updateRemoveButtonState();
         markWidthsDirty();
         saveSettings(null);
+    }
+
+    private void updateRemoveButtonState() {
+        if (removeButton == null) return;
+        removeButton.active = selectedRow != null
+                && selectedRow.custom
+                && selectedRow.slotIndex != IDLE_SLOT_INDEX;
     }
 
     @Override
