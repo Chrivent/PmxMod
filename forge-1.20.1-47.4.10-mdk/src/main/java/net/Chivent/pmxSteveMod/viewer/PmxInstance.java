@@ -24,35 +24,9 @@ public class PmxInstance {
     private boolean ready = false;
     private long modelVersion = 0L;
     private Path currentPmxPath;
-    private boolean hasMotion = false;
-    private boolean forceBlendNext = false;
-    private boolean musicActive = false;
-    private boolean cameraActive = false;
-    private Path currentMotionPath;
-    private float currentMotionEndFrame = 0f;
-    private boolean currentMotionLoop = false;
-    private boolean motionEnded = false;
-    private boolean useMusicSync = false;
-    private float currentMusicEndFrame = 0f;
-    private boolean currentMusicLonger = false;
-    private boolean currentMusicSync = false;
-    private Path currentMusicPath;
-    private Path currentMusicSourcePath;
-    private Path currentCameraPath;
-    private float camInterestX;
-    private float camInterestY;
-    private float camInterestZ;
-    private float camRotX;
-    private float camRotY;
-    private float camRotZ;
-    private float camDistance;
-    private float camFov;
-
-    private float frame = 0f;
-    private long lastNanos = -1;
-    private float lastMusicTime = -1f;
-    private float physicsBlendHold = 0f;
-    private float physicsBlendDuration = 0f;
+    private final PmxPlaybackController playbackController = new PmxPlaybackController();
+    private final PmxMusicController musicController = new PmxMusicController();
+    private final PmxCameraController cameraController = new PmxCameraController();
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -66,8 +40,6 @@ public class PmxInstance {
 
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
-    private final ByteBuffer musicTimes = ByteBuffer.allocateDirect(2 * 4).order(ByteOrder.nativeOrder());
-    private final ByteBuffer cameraState = ByteBuffer.allocateDirect(8 * 4).order(ByteOrder.nativeOrder());
 
     private boolean indicesCopiedOnce = false;
 
@@ -136,12 +108,7 @@ public class PmxInstance {
 
             modelVersion++;
             ready = true;
-            hasMotion = false;
-            musicActive = false;
-            cameraActive = false;
-            currentMotionEndFrame = 0f;
-            currentMotionLoop = false;
-            motionEnded = false;
+            playbackController.resetAll();
             resetSyncState(0f, 0f);
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
@@ -151,118 +118,56 @@ public class PmxInstance {
 
     public void shutdown() {
         if (handle != 0L) {
-            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
+            musicController.stopPlayback(handle);
             try { PmxNative.nativeDestroy(handle); } catch (Throwable ignored) {}
             handle = 0L;
         }
         ready = false;
         currentPmxPath = null;
-        hasMotion = false;
-        forceBlendNext = false;
-        musicActive = false;
-        cameraActive = false;
-        currentMotionPath = null;
-        currentMotionEndFrame = 0f;
-        currentMotionLoop = false;
-        motionEnded = false;
+        playbackController.resetAll();
         resetSyncState(0f, 0f);
 
         indicesCopiedOnce = false;
-        frame = 0f;
-        lastNanos = -1;
     }
 
     public void tickRender() {
         if (!ready || handle == 0L) return;
 
-        long now = System.nanoTime();
-        if (lastNanos < 0) lastNanos = now;
-        float dt = (now - lastNanos) / 1_000_000_000.0f;
-        lastNanos = now;
-        frame += dt * 30.0f;
+        PmxPlaybackController.Tick baseTick = playbackController.tickBase();
+        float dt = baseTick.dt();
+        float frame = baseTick.frame();
 
-        if (musicActive) {
-            musicTimes.clear();
-            boolean ok = false;
-            try {
-                ok = PmxNative.nativeGetMusicTimes(handle, musicTimes);
-            } catch (UnsatisfiedLinkError e) {
-                musicActive = false;
-            }
-            musicTimes.rewind();
-            if (ok) {
-                float musicDt = musicTimes.getFloat();
-                float t = musicTimes.getFloat();
-                boolean advanced = lastMusicTime < 0f || t > lastMusicTime + 1.0e-4f;
-                if (advanced) {
-                    lastMusicTime = t;
-                }
-                if (musicActive && useMusicSync) {
-                    frame = t * 30.0f;
-                    dt = musicDt;
-                }
-            } else {
-                musicActive = false;
-                lastMusicTime = -1f;
-            }
-        }
+        PmxMusicController.MusicTickResult musicTick = musicController.updateFrame(handle, frame, dt);
+        frame = musicTick.frame();
+        dt = musicTick.dt();
+        playbackController.setFrame(frame);
 
-        float evalFrame = frame;
-        if (useMusicSync && currentMusicLonger && currentMotionEndFrame > 0.0f && frame >= currentMotionEndFrame) {
-            evalFrame = currentMotionEndFrame;
+        float evalFrame = playbackController.frame();
+        if (musicController.useMusicSync()
+                && musicController.isMusicLonger()
+                && playbackController.currentMotionEndFrame() > 0.0f
+                && frame >= playbackController.currentMotionEndFrame()) {
+            evalFrame = playbackController.currentMotionEndFrame();
             dt = 0.0f;
         }
 
-        float physicsDt = dt;
-        if (physicsBlendHold > 0.0f && physicsBlendDuration > 0.0f) {
-            float factor = 1.0f - (physicsBlendHold / physicsBlendDuration);
-            factor = Math.max(0.0f, Math.min(1.0f, factor));
-            physicsDt = dt * factor;
-            physicsBlendHold = Math.max(0.0f, physicsBlendHold - dt);
+        float physicsDt = playbackController.computePhysicsDt(dt);
+
+        float endFrame = playbackController.currentMotionEndFrame();
+        if (musicController.isMusicLonger() && musicController.currentMusicEndFrame() > 0.0f) {
+            endFrame = musicController.currentMusicEndFrame();
+        }
+        playbackController.handleEndFrame(endFrame, () -> musicController.onMotionLoop(handle));
+
+        if (musicController.isActive()
+                && musicController.isMusicSync()
+                && !musicController.isMusicLonger()
+                && musicController.currentMusicEndFrame() > 0.0f
+                && frame >= musicController.currentMusicEndFrame()) {
+            musicController.stopPlayback(handle);
         }
 
-        float endFrame = currentMotionEndFrame;
-        if (currentMusicLonger && currentMusicEndFrame > 0.0f) {
-            endFrame = currentMusicEndFrame;
-        }
-        if (hasMotion && endFrame > 0.0f && frame >= endFrame) {
-            if (currentMotionLoop) {
-                frame = frame % endFrame;
-                lastNanos = -1;
-                if (currentMusicSync && !currentMusicLonger && currentMusicPath != null) {
-                    try {
-                        musicActive = PmxNative.nativePlayMusicLoop(handle, currentMusicPath.toString(), false);
-                    } catch (UnsatisfiedLinkError e) {
-                        musicActive = false;
-                    }
-                    lastMusicTime = -1f;
-                } else if (!currentMusicSync && currentMusicPath != null) {
-                    try {
-                        musicActive = PmxNative.nativePlayMusicLoop(handle, currentMusicPath.toString(), true);
-                    } catch (UnsatisfiedLinkError e) {
-                        musicActive = false;
-                    }
-                    lastMusicTime = -1f;
-                }
-            } else if (!motionEnded) {
-                motionEnded = true;
-                forceBlendNext = true;
-                currentMotionPath = null;
-                currentMotionEndFrame = 0f;
-            }
-        }
-
-        if (musicActive
-                && currentMusicSync
-                && !currentMusicLonger
-                && currentMusicEndFrame > 0.0f
-                && frame >= currentMusicEndFrame) {
-            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
-            musicActive = false;
-            lastMusicTime = -1f;
-        }
-
-        updateCameraState(evalFrame);
+        cameraController.update(handle, evalFrame);
         PmxNative.nativeUpdate(handle, evalFrame, physicsDt);
     }
 
@@ -282,34 +187,24 @@ public class PmxInstance {
         }
         if (!ready || handle == 0L) return;
         try {
-            currentMusicPath = null;
-            currentMusicEndFrame = 0f;
-            currentMusicLonger = false;
-            currentMusicSync = musicSync;
-            useMusicSync = false;
-            currentMusicSourcePath = null;
-            currentCameraPath = null;
+            musicController.resetForNewMotion(musicSync);
+            cameraController.reset();
 
             if (cameraPath != null && Files.exists(cameraPath)) {
                 Path safeCamera = toSafePath(cameraPath, "camera_cache");
                 try {
-                    cameraActive = PmxNative.nativeLoadCameraVmd(handle, safeCamera.toString());
-                } catch (UnsatisfiedLinkError e) {
-                    cameraActive = false;
-                }
-                try {
-                    currentCameraPath = cameraPath.toAbsolutePath().normalize();
+                    Path sourceCamera = cameraPath.toAbsolutePath().normalize();
+                    cameraController.load(handle, sourceCamera, safeCamera);
                 } catch (Exception ignored) {
-                    currentCameraPath = cameraPath;
+                    cameraController.load(handle, cameraPath, safeCamera);
                 }
             } else {
-                try { PmxNative.nativeClearCamera(handle); } catch (Throwable ignored) {}
-                cameraActive = false;
+                cameraController.clear(handle);
             }
 
             Path safePath = toSafePath(vmdPath, "motion_cache");
-            float blendSeconds = (hasMotion || forceBlendNext) ? 0.3f : 0.0f;
-            forceBlendNext = false;
+            float blendSeconds = playbackController.shouldBlendNext() ? 0.3f : 0.0f;
+            playbackController.clearForceBlend();
             boolean started = false;
             try {
                 started = PmxNative.nativeStartVmdBlend(handle, safePath.toString(), blendSeconds);
@@ -321,114 +216,60 @@ public class PmxInstance {
                     return;
                 }
             }
-            frame = 0f;
-            lastNanos = -1;
-            if (!hasMotion) {
+            playbackController.resetFrameClock();
+            if (!playbackController.hasMotion()) {
                 PmxNative.nativeSyncPhysics(handle, 0.0f);
             }
             PmxNative.nativeUpdate(handle, 0.0f, 0.0f);
-            hasMotion = true;
-            physicsBlendHold = blendSeconds;
-            physicsBlendDuration = blendSeconds;
             try {
-                currentMotionPath = vmdPath.toAbsolutePath().normalize();
+                playbackController.onMotionStarted(vmdPath.toAbsolutePath().normalize(), loop, blendSeconds);
             } catch (Exception ignored) {
-                currentMotionPath = vmdPath;
+                playbackController.onMotionStarted(vmdPath, loop, blendSeconds);
             }
-            currentMotionEndFrame = PmxNative.nativeGetMotionMaxFrame(handle);
-            currentMotionLoop = loop;
-            motionEnded = false;
+            playbackController.setMotionEndFrame(PmxNative.nativeGetMotionMaxFrame(handle));
 
             if (musicPath != null && Files.exists(musicPath)) {
                 Path safeMusic = toSafePath(musicPath, "music_cache");
-                currentMusicPath = safeMusic;
                 try {
-                    currentMusicSourcePath = musicPath.toAbsolutePath().normalize();
+                    Path sourceMusic = musicPath.toAbsolutePath().normalize();
+                    musicController.start(handle, safeMusic, sourceMusic, loop, musicSync, playbackController.currentMotionEndFrame());
                 } catch (Exception ignored) {
-                    currentMusicSourcePath = musicPath;
-                }
-                if (musicSync) {
-                    try {
-                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), false);
-                    } catch (UnsatisfiedLinkError e) {
-                        musicActive = false;
-                    }
-                } else {
-                    try {
-                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), loop);
-                    } catch (UnsatisfiedLinkError e) {
-                        musicActive = false;
-                    }
-                }
-                double lengthSec = 0.0;
-                if (musicActive) {
-                    lengthSec = PmxNative.nativeGetMusicLengthSec(handle);
-                    try {
-                        float volume = net.Chivent.pmxSteveMod.client.settings.PmxSoundSettingsStore.get().getMusicVolume();
-                        PmxNative.nativeSetMusicVolume(handle, volume);
-                    } catch (UnsatisfiedLinkError ignored) {
-                    }
-                }
-                currentMusicEndFrame = lengthSec > 0.0 ? (float) (lengthSec * 30.0) : 0f;
-                boolean musicLonger = musicSync
-                        && currentMusicEndFrame > 0f
-                        && (currentMotionEndFrame <= 0f || currentMusicEndFrame > currentMotionEndFrame);
-                currentMusicLonger = musicLonger;
-                useMusicSync = musicLonger;
-                if (musicActive && musicSync && loop && musicLonger) {
-                    try {
-                        musicActive = PmxNative.nativePlayMusicLoop(handle, safeMusic.toString(), true);
-                    } catch (UnsatisfiedLinkError e) {
-                        musicActive = false;
-                    }
+                    musicController.start(handle, safeMusic, musicPath, loop, musicSync, playbackController.currentMotionEndFrame());
                 }
             } else {
-                try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
-                musicActive = false;
-                currentMusicSourcePath = null;
+                musicController.stopPlayback(handle);
             }
-            lastMusicTime = -1f;
         } catch (Throwable t) {
             LOGGER.warn("[PMX] failed to play motion {}", vmdPath, t);
         }
     }
 
-    public boolean hasCamera() { return cameraActive; }
-    public Path getCurrentMotionPath() { return currentMotionPath; }
-    public Path getCurrentMusicPath() { return currentMusicSourcePath; }
-    public Path getCurrentCameraPath() { return currentCameraPath; }
+    public boolean hasCamera() { return cameraController.isActive(); }
+    public Path getCurrentMotionPath() { return playbackController.currentMotionPath(); }
+    public Path getCurrentMusicPath() { return musicController.getCurrentMusicSourcePath(); }
+    public Path getCurrentCameraPath() { return cameraController.getCurrentCameraPath(); }
     public boolean consumeMotionEnded() {
-        if (!motionEnded) return false;
-        motionEnded = false;
-        return true;
+        return playbackController.consumeMotionEnded();
     }
 
     public void markBlendNext() {
-        forceBlendNext = true;
+        playbackController.markBlendNext();
     }
-    public float camInterestX() { return camInterestX; }
-    public float camInterestY() { return camInterestY; }
-    public float camInterestZ() { return camInterestZ; }
-    public float camRotX() { return camRotX; }
-    public float camRotY() { return camRotY; }
-    public float camRotZ() { return camRotZ; }
-    public float camDistance() { return camDistance; }
-    public float camFov() { return camFov; }
+    public float camInterestX() { return cameraController.camInterestX(); }
+    public float camInterestY() { return cameraController.camInterestY(); }
+    public float camInterestZ() { return cameraController.camInterestZ(); }
+    public float camRotX() { return cameraController.camRotX(); }
+    public float camRotY() { return cameraController.camRotY(); }
+    public float camRotZ() { return cameraController.camRotZ(); }
+    public float camDistance() { return cameraController.camDistance(); }
+    public float camFov() { return cameraController.camFov(); }
 
     public void stopMusic() {
-        if (handle != 0L) {
-            try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
-        }
-        musicActive = false;
+        musicController.stopPlayback(handle);
     }
 
     public void setMusicVolume(float volume) {
-        if (handle == 0L) return;
-        float v = Math.max(0.0f, Math.min(1.0f, volume));
-        try {
-            PmxNative.nativeSetMusicVolume(handle, v);
-        } catch (UnsatisfiedLinkError ignored) {
-        }
+        musicController.setVolume(handle, volume);
     }
 
     public void resetToDefaultPose() {
@@ -438,16 +279,8 @@ public class PmxInstance {
             init(pmxPath);
             return;
         }
-        try {
-            PmxNative.nativeStopMusic(handle);
-        } catch (Throwable ignored) {
-        }
-        try {
-            PmxNative.nativeClearCamera(handle);
-        } catch (Throwable ignored) {
-        }
-        musicActive = false;
-        cameraActive = false;
+        musicController.stopPlayback(handle);
+        cameraController.clear(handle);
         boolean started = false;
         try {
             started = PmxNative.nativeStartDefaultPoseBlend(handle, 0.3f);
@@ -457,30 +290,18 @@ public class PmxInstance {
         if (!started) {
             shutdown();
             init(pmxPath);
-            forceBlendNext = true;
+            playbackController.markBlendNext();
             return;
         }
-        hasMotion = false;
-        currentMotionPath = null;
-        currentMotionEndFrame = 0f;
-        currentMotionLoop = false;
-        motionEnded = false;
-        forceBlendNext = true;
-        frame = 0f;
-        lastNanos = -1;
+        playbackController.resetAll();
+        playbackController.markBlendNext();
         resetSyncState(0.3f, 0.3f);
     }
 
     private void resetSyncState(float physicsHold, float physicsDuration) {
-        useMusicSync = false;
-        currentMusicEndFrame = 0f;
-        currentMusicLonger = false;
-        currentMusicSync = false;
-        currentMusicPath = null;
-        currentMusicSourcePath = null;
-        currentCameraPath = null;
-        physicsBlendHold = physicsHold;
-        physicsBlendDuration = physicsDuration;
+        musicController.reset();
+        cameraController.reset();
+        playbackController.resetPhysicsBlend(physicsHold, physicsDuration);
     }
 
     private Path toSafePath(Path src, String cacheDirName) throws IOException {
@@ -499,30 +320,6 @@ public class PmxInstance {
         Path outFile = outDir.resolve(safeName);
         Files.copy(src, outFile, StandardCopyOption.REPLACE_EXISTING);
         return outFile;
-    }
-
-    private void updateCameraState(float frame) {
-        if (!cameraActive) return;
-        cameraState.clear();
-        boolean ok;
-        try {
-            ok = PmxNative.nativeGetCameraState(handle, frame, cameraState);
-        } catch (UnsatisfiedLinkError e) {
-            ok = false;
-        }
-        if (!ok) {
-            cameraActive = false;
-            return;
-        }
-        cameraState.rewind();
-        camInterestX = cameraState.getFloat();
-        camInterestY = cameraState.getFloat();
-        camInterestZ = cameraState.getFloat();
-        camRotX = cameraState.getFloat();
-        camRotY = cameraState.getFloat();
-        camRotZ = cameraState.getFloat();
-        camDistance = cameraState.getFloat();
-        camFov = cameraState.getFloat();
     }
 
     private void allocateCpuBuffers() {
