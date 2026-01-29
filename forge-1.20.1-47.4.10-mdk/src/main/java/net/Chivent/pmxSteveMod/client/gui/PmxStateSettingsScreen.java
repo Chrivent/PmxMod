@@ -32,23 +32,11 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
         int gap = 6;
         int rowY = listBottom + 6;
         int avail = this.width - 24;
-        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(80, (avail - gap) / 2));
-        int totalRowWidth = btnWidth * 2 + gap;
+        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(60, (avail - gap * 2) / 3));
+        int totalRowWidth = btnWidth * 3 + gap * 2;
         int rowX = (this.width - totalRowWidth) / 2;
-        int addX = rowX;
         int removeX = rowX + btnWidth + gap;
-        int doneX;
-        int doneY = rowY;
-        if (totalRowWidth + btnWidth + gap <= avail) {
-            int totalThree = btnWidth * 3 + gap * 2;
-            rowX = (this.width - totalThree) / 2;
-            addX = rowX;
-            removeX = rowX + btnWidth + gap;
-            doneX = rowX + btnWidth * 2 + gap * 2;
-        } else {
-            doneX = (this.width - btnWidth) / 2;
-            doneY = rowY + 22;
-        }
+        int doneX = rowX + btnWidth * 2 + gap * 2;
         addRenderableWidget(Button.builder(
                 Component.translatable("pmx.button.add_state"),
                 b -> {
@@ -56,14 +44,14 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
                         this.minecraft.setScreen(new PmxAddStateScreen(this));
                     }
                 }
-        ).bounds(addX, rowY, btnWidth, 20).build());
+        ).bounds(rowX, rowY, btnWidth, 20).build());
         removeButton = addRenderableWidget(Button.builder(
                 Component.translatable("pmx.button.remove_state"),
                 b -> removeSelectedState()
         ).bounds(removeX, rowY, btnWidth, 20).build());
         updateRemoveButtonState();
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(doneX, doneY, btnWidth, 20).build());
+                .bounds(doneX, rowY, btnWidth, 20).build());
     }
 
     void addCustomState(String name) {
