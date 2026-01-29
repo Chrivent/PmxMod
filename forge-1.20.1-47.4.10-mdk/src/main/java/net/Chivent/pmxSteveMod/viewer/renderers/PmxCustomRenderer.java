@@ -95,8 +95,6 @@ public class PmxCustomRenderer extends PmxRenderBase {
             return;
         }
 
-        instance.syncCpuBuffersForRender();
-
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
 
@@ -108,10 +106,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
             cachedModelVersion = version;
         }
 
-        mesh.ensure(instance);
-        if (!mesh.ready) return;
-
-        mesh.updateDynamic(instance);
+        if (shouldSkipMeshUpdate(instance, mesh)) return;
 
         poseStack.pushPose();
 

@@ -100,11 +100,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
             return;
         }
 
-        instance.syncCpuBuffersForRender();
-
-        mesh.ensure(instance);
-        if (!mesh.ready) return;
-        mesh.updateDynamic(instance);
+        if (shouldSkipMeshUpdate(instance, mesh)) return;
 
         poseStack.pushPose();
         float viewYRot = player.getViewYRot(partialTick);

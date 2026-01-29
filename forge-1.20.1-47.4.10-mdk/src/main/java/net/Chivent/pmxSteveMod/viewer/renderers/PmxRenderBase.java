@@ -127,17 +127,13 @@ public abstract class PmxRenderBase {
         return new DrawRange(count, offsetBytes);
     }
 
-    protected static DrawRange getDrawRange(PmxInstance.SubmeshInfo sub, int indexCount, int elemSize) {
-        if (sub == null) return null;
-        int begin = sub.beginIndex();
-        int count = sub.indexCount();
-        if (begin < 0 || count <= 0) return null;
-        int maxCount = Math.max(0, indexCount - begin);
-        if (count > maxCount) count = maxCount;
-        count -= (count % 3);
-        if (count <= 0 || elemSize <= 0) return null;
-        long offsetBytes = (long) begin * (long) elemSize;
-        return new DrawRange(count, offsetBytes);
+    protected boolean shouldSkipMeshUpdate(PmxInstance instance, PmxGlMesh mesh) {
+        if (instance == null || mesh == null) return false;
+        instance.syncCpuBuffersForRender();
+        mesh.ensure(instance);
+        if (!mesh.ready) return true;
+        mesh.updateDynamic(instance);
+        return false;
     }
 
     protected static boolean imageHasAnyAlpha(NativeImage img) {
