@@ -67,7 +67,7 @@ public class PmxVanillaRenderer {
         ByteBuffer idxBuf = instance.idxBuf().duplicate().order(ByteOrder.nativeOrder());
 
         int elemSize = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(instance.handle());
-        int light = LightTexture.pack(15, 15);
+        int light = LightTexture.FULL_BRIGHT;
         MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
         SubmeshInfo[] subs = instance.submeshes();
         if (subs != null) {
@@ -259,13 +259,14 @@ public class PmxVanillaRenderer {
     }
 
     private RenderType getRenderType(ResourceLocation rl, boolean translucent) {
-        RenderType emissive = tryGetEmissiveRenderType(rl, translucent);
+        if (!translucent) {
+            return RenderType.dragonExplosionAlpha(rl);
+        }
+        RenderType emissive = tryGetEmissiveRenderType(rl, true);
         if (emissive != null) return emissive;
-        RenderType noShade = tryGetNoShadeRenderType(rl, translucent);
+        RenderType noShade = tryGetNoShadeRenderType(rl, true);
         if (noShade != null) return noShade;
-        return translucent
-                ? RenderType.entityTranslucent(rl)
-                : RenderType.entityCutoutNoCull(rl);
+        return RenderType.entityTranslucent(rl);
     }
 
     private RenderType tryGetEmissiveRenderType(ResourceLocation rl, boolean translucent) {
