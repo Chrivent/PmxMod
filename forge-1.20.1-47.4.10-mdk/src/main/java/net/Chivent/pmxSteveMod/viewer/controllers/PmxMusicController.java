@@ -1,4 +1,4 @@
-package net.Chivent.pmxSteveMod.viewer;
+package net.Chivent.pmxSteveMod.viewer.controllers;
 
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 
@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 
-final class PmxMusicController {
+public final class PmxMusicController {
     private boolean active;
     private boolean useMusicSync;
     private float currentMusicEndFrame;
@@ -17,14 +17,14 @@ final class PmxMusicController {
     private float lastMusicTime = -1f;
     private final ByteBuffer musicTimes = ByteBuffer.allocateDirect(2 * 4).order(ByteOrder.nativeOrder());
 
-    boolean isActive() { return active; }
-    boolean useMusicSync() { return useMusicSync; }
-    boolean isMusicLonger() { return currentMusicLonger; }
-    boolean isMusicSync() { return currentMusicSync; }
-    float currentMusicEndFrame() { return currentMusicEndFrame; }
-    Path getCurrentMusicSourcePath() { return currentMusicSourcePath; }
+    public boolean isActive() { return active; }
+    public boolean useMusicSync() { return useMusicSync; }
+    public boolean isMusicLonger() { return currentMusicLonger; }
+    public boolean isMusicSync() { return currentMusicSync; }
+    public float currentMusicEndFrame() { return currentMusicEndFrame; }
+    public Path getCurrentMusicSourcePath() { return currentMusicSourcePath; }
 
-    void reset() {
+    public void reset() {
         active = false;
         useMusicSync = false;
         currentMusicEndFrame = 0f;
@@ -35,7 +35,7 @@ final class PmxMusicController {
         lastMusicTime = -1f;
     }
 
-    void resetForNewMotion(boolean musicSync) {
+    public void resetForNewMotion(boolean musicSync) {
         active = false;
         useMusicSync = false;
         currentMusicEndFrame = 0f;
@@ -46,7 +46,7 @@ final class PmxMusicController {
         lastMusicTime = -1f;
     }
 
-    void stopPlayback(long handle) {
+    public void stopPlayback(long handle) {
         if (handle != 0L) {
             try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
         }
@@ -54,7 +54,7 @@ final class PmxMusicController {
         lastMusicTime = -1f;
     }
 
-    void setVolume(long handle, float volume) {
+    public void setVolume(long handle, float volume) {
         if (handle == 0L) return;
         float v = Math.max(0.0f, Math.min(1.0f, volume));
         try {
@@ -63,7 +63,7 @@ final class PmxMusicController {
         }
     }
 
-    void start(long handle, Path safeMusic, Path sourcePath, boolean loop, boolean musicSync, float motionEndFrame) {
+    public void start(long handle, Path safeMusic, Path sourcePath, boolean loop, boolean musicSync, float motionEndFrame) {
         currentMusicPath = safeMusic;
         currentMusicSourcePath = sourcePath;
         currentMusicSync = musicSync;
@@ -106,7 +106,7 @@ final class PmxMusicController {
         lastMusicTime = -1f;
     }
 
-    void onMotionLoop(long handle) {
+    public void onMotionLoop(long handle) {
         if (currentMusicPath == null) return;
         if (currentMusicSync && !currentMusicLonger) {
             try {
@@ -125,7 +125,7 @@ final class PmxMusicController {
         }
     }
 
-    MusicTickResult updateFrame(long handle, float frame, float dt) {
+    public MusicTickResult updateFrame(long handle, float frame, float dt) {
         if (!active) return new MusicTickResult(frame, dt);
         musicTimes.clear();
         boolean ok;
@@ -153,5 +153,5 @@ final class PmxMusicController {
         return new MusicTickResult(frame, dt);
     }
 
-    record MusicTickResult(float frame, float dt) {}
+    public record MusicTickResult(float frame, float dt) {}
 }

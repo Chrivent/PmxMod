@@ -1,4 +1,4 @@
-package net.Chivent.pmxSteveMod.viewer;
+package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -7,6 +7,7 @@ import com.mojang.math.Axis;
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
@@ -34,7 +35,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class PmxRenderer extends PmxRenderBase {
+public class PmxCustomRenderer extends PmxRenderBase {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final boolean FLAT_ENV_LIGHTING = true;

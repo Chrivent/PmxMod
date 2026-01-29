@@ -2,6 +2,9 @@ package net.Chivent.pmxSteveMod.viewer;
 
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.PmxSteveMod;
+import net.Chivent.pmxSteveMod.viewer.controllers.PmxCameraController;
+import net.Chivent.pmxSteveMod.viewer.controllers.PmxMusicController;
+import net.Chivent.pmxSteveMod.viewer.controllers.PmxPlaybackController;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;

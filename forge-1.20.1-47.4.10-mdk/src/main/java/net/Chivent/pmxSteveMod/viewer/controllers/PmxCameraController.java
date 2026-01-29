@@ -1,4 +1,4 @@
-package net.Chivent.pmxSteveMod.viewer;
+package net.Chivent.pmxSteveMod.viewer.controllers;
 
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 
@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 
-final class PmxCameraController {
+public final class PmxCameraController {
     private boolean active;
     private Path currentCameraPath;
     private float camInterestX;
@@ -19,29 +19,29 @@ final class PmxCameraController {
     private float camFov;
     private final ByteBuffer cameraState = ByteBuffer.allocateDirect(8 * 4).order(ByteOrder.nativeOrder());
 
-    boolean isActive() { return active; }
-    Path getCurrentCameraPath() { return currentCameraPath; }
-    float camInterestX() { return camInterestX; }
-    float camInterestY() { return camInterestY; }
-    float camInterestZ() { return camInterestZ; }
-    float camRotX() { return camRotX; }
-    float camRotY() { return camRotY; }
-    float camRotZ() { return camRotZ; }
-    float camDistance() { return camDistance; }
-    float camFov() { return camFov; }
+    public boolean isActive() { return active; }
+    public Path getCurrentCameraPath() { return currentCameraPath; }
+    public float camInterestX() { return camInterestX; }
+    public float camInterestY() { return camInterestY; }
+    public float camInterestZ() { return camInterestZ; }
+    public float camRotX() { return camRotX; }
+    public float camRotY() { return camRotY; }
+    public float camRotZ() { return camRotZ; }
+    public float camDistance() { return camDistance; }
+    public float camFov() { return camFov; }
 
-    void reset() {
+    public void reset() {
         active = false;
         currentCameraPath = null;
     }
 
-    void clear(long handle) {
+    public void clear(long handle) {
         try { PmxNative.nativeClearCamera(handle); } catch (Throwable ignored) {}
         active = false;
         currentCameraPath = null;
     }
 
-    void load(long handle, Path sourcePath, Path safePath) {
+    public void load(long handle, Path sourcePath, Path safePath) {
         if (safePath == null) {
             clear(handle);
             return;
@@ -54,7 +54,7 @@ final class PmxCameraController {
         currentCameraPath = sourcePath;
     }
 
-    void update(long handle, float frame) {
+    public void update(long handle, float frame) {
         if (!active) return;
         cameraState.clear();
         boolean ok;

@@ -1,8 +1,9 @@
-package net.Chivent.pmxSteveMod.viewer;
+package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;

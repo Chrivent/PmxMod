@@ -1,8 +1,8 @@
-package net.Chivent.pmxSteveMod.viewer;
+package net.Chivent.pmxSteveMod.viewer.controllers;
 
 import java.nio.file.Path;
 
-final class PmxPlaybackController {
+public final class PmxPlaybackController {
     private boolean hasMotion;
     private boolean forceBlendNext;
     private Path currentMotionPath;
@@ -14,9 +14,9 @@ final class PmxPlaybackController {
     private float physicsBlendHold;
     private float physicsBlendDuration;
 
-    record Tick(float frame, float dt) {}
+    public record Tick(float frame, float dt) {}
 
-    Tick tickBase() {
+    public Tick tickBase() {
         long now = System.nanoTime();
         if (lastNanos < 0) lastNanos = now;
         float dt = (now - lastNanos) / 1_000_000_000.0f;
@@ -25,17 +25,17 @@ final class PmxPlaybackController {
         return new Tick(frame, dt);
     }
 
-    void setFrame(float frame) {
+    public void setFrame(float frame) {
         this.frame = frame;
     }
 
-    float frame() { return frame; }
-    void resetFrameClock() {
+    public float frame() { return frame; }
+    public void resetFrameClock() {
         frame = 0f;
         lastNanos = -1;
     }
 
-    float computePhysicsDt(float dt) {
+    public float computePhysicsDt(float dt) {
         float physicsDt = dt;
         if (physicsBlendHold > 0.0f && physicsBlendDuration > 0.0f) {
             float factor = 1.0f - (physicsBlendHold / physicsBlendDuration);
@@ -46,7 +46,7 @@ final class PmxPlaybackController {
         return physicsDt;
     }
 
-    void resetAll() {
+    public void resetAll() {
         hasMotion = false;
         forceBlendNext = false;
         currentMotionPath = null;
@@ -59,32 +59,32 @@ final class PmxPlaybackController {
         physicsBlendDuration = 0f;
     }
 
-    void resetPhysicsBlend(float hold, float duration) {
+    public void resetPhysicsBlend(float hold, float duration) {
         physicsBlendHold = hold;
         physicsBlendDuration = duration;
     }
 
-    boolean hasMotion() { return hasMotion; }
-    Path currentMotionPath() { return currentMotionPath; }
-    float currentMotionEndFrame() { return currentMotionEndFrame; }
+    public boolean hasMotion() { return hasMotion; }
+    public Path currentMotionPath() { return currentMotionPath; }
+    public float currentMotionEndFrame() { return currentMotionEndFrame; }
 
-    void setMotionEndFrame(float endFrame) {
+    public void setMotionEndFrame(float endFrame) {
         currentMotionEndFrame = endFrame;
     }
 
-    boolean shouldBlendNext() {
+    public boolean shouldBlendNext() {
         return hasMotion || forceBlendNext;
     }
 
-    void clearForceBlend() {
+    public void clearForceBlend() {
         forceBlendNext = false;
     }
 
-    void markBlendNext() {
+    public void markBlendNext() {
         forceBlendNext = true;
     }
 
-    void onMotionStarted(Path motionPath, boolean loop, float blendSeconds) {
+    public void onMotionStarted(Path motionPath, boolean loop, float blendSeconds) {
         hasMotion = true;
         currentMotionPath = motionPath;
         currentMotionEndFrame = (float) 0.0;
@@ -94,20 +94,20 @@ final class PmxPlaybackController {
         physicsBlendDuration = blendSeconds;
     }
 
-    void onMotionEnded() {
+    public void onMotionEnded() {
         motionEnded = true;
         forceBlendNext = true;
         currentMotionPath = null;
         currentMotionEndFrame = 0f;
     }
 
-    boolean consumeMotionEnded() {
+    public boolean consumeMotionEnded() {
         if (!motionEnded) return false;
         motionEnded = false;
         return true;
     }
 
-    void handleEndFrame(float endFrame, Runnable onLoop) {
+    public void handleEndFrame(float endFrame, Runnable onLoop) {
         if (!hasMotion || endFrame <= 0.0f || frame < endFrame) return;
         if (currentMotionLoop) {
             frame = frame % endFrame;
