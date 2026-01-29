@@ -1,31 +1,29 @@
 package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.Util;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.GameRenderer;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.Util;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.logging.LogUtils;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11C;
+import org.lwjgl.opengl.GL20C;
+import org.lwjgl.opengl.GL30C;
 import org.slf4j.Logger;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.util.function.Function;
 
 public class PmxVanillaRenderer extends PmxRenderBase {
@@ -84,18 +82,19 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                 VertexFormat.Mode.TRIANGLES, 256, true, true, state);
     });
 
+    private final PmxGlMesh mesh = new PmxGlMesh();
+
     public void onViewerShutdown() {
         resetTextureCache();
+        mesh.destroy();
     }
 
     public void renderPlayer(PmxInstance instance,
                              AbstractClientPlayer player,
                              float partialTick,
                              PoseStack poseStack,
-                             MultiBufferSource buffers,
                              int packedLight) {
         if (!instance.isReady() || instance.handle() == 0L) return;
-        if (buffers == null) return;
         if (instance.idxBuf() == null || instance.posBuf() == null
                 || instance.uvBuf() == null) {
             return;
@@ -103,20 +102,9 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         instance.syncCpuBuffersForRender();
 
-        int elemSize = instance.indexElementSize();
-        int indexCount = instance.indexCount();
-        if (elemSize <= 0 || indexCount <= 0) return;
-
-        ByteBuffer idxBuf = instance.idxBuf().duplicate().order(ByteOrder.nativeOrder());
-        FloatBuffer posBuf = toFloatBuffer(instance.posBuf());
-        FloatBuffer uvBuf = toFloatBuffer(instance.uvBuf());
-        FloatBuffer nrmBuf = instance.nrmBuf() != null ? toFloatBuffer(instance.nrmBuf()) : null;
-
-        int vertexCount = instance.vertexCount();
-        if (vertexCount <= 0) {
-            vertexCount = posBuf.capacity() / 3;
-        }
-        if (vertexCount <= 0) return;
+        mesh.ensure(instance);
+        if (!mesh.ready) return;
+        mesh.updateDynamic(instance);
 
         poseStack.pushPose();
         float viewYRot = player.getViewYRot(partialTick);
@@ -125,9 +113,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
-        Matrix3f normalMat = last.normal();
-
-        boolean useNormals = isShaderPackActive() && nrmBuf != null;
+        boolean useNormals = isShaderPackActive() && instance.nrmBuf() != null;
         int overlay = OverlayTexture.NO_OVERLAY;
 
         SubmeshInfo[] subs = instance.submeshes();
@@ -146,10 +132,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                 RenderType type = translucent
                         ? PMX_ENTITY_TRANSLUCENT.apply(rl)
                         : PMX_ENTITY_CUTOUT.apply(rl);
-                VertexConsumer vc = buffers.getBuffer(type);
-                emitSubmesh(vc, sub, idxBuf, elemSize, indexCount,
-                        posBuf, uvBuf, nrmBuf, vertexCount,
-                        pose, normalMat, alpha, packedLight, overlay, useNormals);
+                drawSubmeshIndexed(sub, type, alpha, packedLight, overlay, useNormals, pose);
             }
         }
         poseStack.popPose();
@@ -183,69 +166,95 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         return loadTextureEntryCached(instance, texPath, "pmx/vanilla_tex_", false, false, null);
     }
 
-    private static void emitSubmesh(VertexConsumer vc,
-                                    SubmeshInfo sub,
-                                    ByteBuffer idxBuf,
-                                    int elemSize,
-                                    int indexCount,
-                                    FloatBuffer posBuf,
-                                    FloatBuffer uvBuf,
-                                    FloatBuffer nrmBuf,
-                                    int vertexCount,
-                                    Matrix4f pose,
-                                    Matrix3f normalMat,
+    private void drawSubmeshIndexed(SubmeshInfo sub,
+                                    RenderType renderType,
                                     float alpha,
                                     int packedLight,
                                     int overlay,
-                                    boolean useNormals) {
-        DrawRange range = getDrawRange(sub, indexCount, elemSize);
+                                    boolean useNormals,
+                                    Matrix4f pose) {
+        DrawRange range = getDrawRange(sub, mesh);
         if (range == null) return;
-        int begin = sub.beginIndex();
-        int count = range.count();
-        float nxConst = 0.0f;
-        float nyConst = 1.0f;
-        float nzConst = 0.0f;
-        for (int i = 0; i < count; i++) {
-            int idx = readIndex(idxBuf, elemSize, begin + i);
-            if (idx < 0 || idx >= vertexCount) continue;
-            int posBase = idx * 3;
-            int uvBase = idx * 2;
-            float x = posBuf.get(posBase);
-            float y = posBuf.get(posBase + 1);
-            float z = posBuf.get(posBase + 2);
-            float u = uvBuf.get(uvBase);
-            float v = uvBuf.get(uvBase + 1);
-            float nx = nxConst;
-            float ny = nyConst;
-            float nz = nzConst;
-            if (useNormals && nrmBuf != null) {
-                int nrmBase = idx * 3;
-                nx = nrmBuf.get(nrmBase);
-                ny = nrmBuf.get(nrmBase + 1);
-                nz = nrmBuf.get(nrmBase + 2);
-            }
-            vc.vertex(pose, x, y, z)
-                    .color(1.0f, 1.0f, 1.0f, alpha)
-                    .uv(u, v)
-                    .overlayCoords(overlay)
-                    .uv2(packedLight)
-                    .normal(normalMat, nx, ny, nz)
-                    .endVertex();
+        renderType.setupRenderState();
+        ShaderInstance shader = RenderSystem.getShader();
+        if (shader != null) {
+            applyShaderUniforms(shader, pose, alpha);
         }
+
+        GL30C.glBindVertexArray(mesh.vao);
+        setConstantAttributes(alpha, packedLight, overlay, useNormals);
+        GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
+        GL30C.glBindVertexArray(0);
+
+        renderType.clearRenderState();
     }
 
-    private static int readIndex(ByteBuffer idxBuf, int elemSize, int ordinal) {
-        int offset = ordinal * elemSize;
-        return switch (elemSize) {
-            case 1 -> idxBuf.get(offset) & 0xFF;
-            case 2 -> idxBuf.getShort(offset) & 0xFFFF;
-            default -> idxBuf.getInt(offset);
-        };
+    private static void applyShaderUniforms(ShaderInstance shader,
+                                            Matrix4f modelView,
+                                            float alpha) {
+        for (int i = 0; i < 12; i++) {
+            int texId = RenderSystem.getShaderTexture(i);
+            shader.setSampler("Sampler" + i, texId);
+        }
+        if (shader.MODEL_VIEW_MATRIX != null) {
+            shader.MODEL_VIEW_MATRIX.set(modelView);
+        }
+        if (shader.PROJECTION_MATRIX != null) {
+            shader.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
+        }
+        if (shader.INVERSE_VIEW_ROTATION_MATRIX != null) {
+            shader.INVERSE_VIEW_ROTATION_MATRIX.set(RenderSystem.getInverseViewRotationMatrix());
+        }
+        if (shader.COLOR_MODULATOR != null) {
+            shader.COLOR_MODULATOR.set(1.0f, 1.0f, 1.0f, alpha);
+        }
+        if (shader.GLINT_ALPHA != null) {
+            shader.GLINT_ALPHA.set(RenderSystem.getShaderGlintAlpha());
+        }
+        if (shader.FOG_START != null) {
+            shader.FOG_START.set(RenderSystem.getShaderFogStart());
+        }
+        if (shader.FOG_END != null) {
+            shader.FOG_END.set(RenderSystem.getShaderFogEnd());
+        }
+        if (shader.FOG_COLOR != null) {
+            shader.FOG_COLOR.set(RenderSystem.getShaderFogColor());
+        }
+        if (shader.FOG_SHAPE != null) {
+            shader.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
+        }
+        if (shader.TEXTURE_MATRIX != null) {
+            shader.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
+        }
+        if (shader.GAME_TIME != null) {
+            shader.GAME_TIME.set(RenderSystem.getShaderGameTime());
+        }
+        if (shader.SCREEN_SIZE != null) {
+            var window = net.minecraft.client.Minecraft.getInstance().getWindow();
+            shader.SCREEN_SIZE.set((float) window.getWidth(), (float) window.getHeight());
+        }
+        RenderSystem.setupShaderLights(shader);
+        shader.apply();
     }
 
-    private static FloatBuffer toFloatBuffer(ByteBuffer buffer) {
-        ByteBuffer dup = buffer.duplicate().order(ByteOrder.nativeOrder());
-        dup.rewind();
-        return dup.asFloatBuffer();
+    private static void setConstantAttributes(float alpha, int packedLight, int overlay, boolean useNormals) {
+        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_COLOR);
+        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_UV1);
+        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_UV2);
+
+        GL20C.glVertexAttrib4f(PmxGlMesh.LOC_COLOR, 1.0f, 1.0f, 1.0f, alpha);
+        int overlayU = (overlay & 0xFFFF);
+        int overlayV = (overlay >>> 16);
+        GL30C.glVertexAttribI2i(PmxGlMesh.LOC_UV1, overlayU, overlayV);
+        int lightU = (packedLight & 0xFFFF);
+        int lightV = (packedLight >>> 16);
+        GL30C.glVertexAttribI2i(PmxGlMesh.LOC_UV2, lightU, lightV);
+
+        if (!useNormals) {
+            GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_NRM);
+            GL20C.glVertexAttrib3f(PmxGlMesh.LOC_NRM, 0.0f, 1.0f, 0.0f);
+        } else {
+            GL20C.glEnableVertexAttribArray(PmxGlMesh.LOC_NRM);
+        }
     }
 }
