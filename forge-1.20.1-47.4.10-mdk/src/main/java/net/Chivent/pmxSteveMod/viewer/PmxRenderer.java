@@ -1,7 +1,5 @@
 package net.Chivent.pmxSteveMod.viewer;
 
-import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -13,9 +11,8 @@ import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -31,26 +28,18 @@ import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
 import org.slf4j.Logger;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class PmxRenderer {
+public class PmxRenderer extends PmxRenderBase {
 
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final boolean FLAT_ENV_LIGHTING = true;
 
-    private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
-    private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private final Set<String> textureLoadFailures = new HashSet<>();
-    private int textureIdCounter = 0;
-    private ResourceLocation magentaTex = null;
 
     private static final class MaterialGpu {
         int texMode;
@@ -112,12 +101,10 @@ public class PmxRenderer {
     public void onViewerShutdown() {
         RenderSystem.recordRenderCall(() -> {
             destroyMeshGpu();
-            textureCache.clear();
+            resetTextureCache();
             materialGpuCache.clear();
             textureLoadFailures.clear();
-            textureIdCounter = 0;
             cachedModelVersion = -1L;
-            magentaTex = null;
         });
     }
 
@@ -251,9 +238,8 @@ public class PmxRenderer {
         long version = instance.modelVersion();
         if (cachedModelVersion != version) {
             materialGpuCache.clear();
-            textureCache.clear();
+            resetTextureCache();
             textureLoadFailures.clear();
-            textureIdCounter = 0;
             cachedModelVersion = version;
         }
 
@@ -495,19 +481,19 @@ public class PmxRenderer {
 
         MaterialGpu gpu = new MaterialGpu();
 
-        TextureEntry main = getOrLoadTextureEntry(instance, mat.mainTexPath(), false);
-        if (main != null && main.rl != null) {
-            gpu.mainTex = main.rl;
-            gpu.texMode = main.hasAlpha ? 2 : 1;
+        TextureEntry main = getOrLoadTextureEntryLogged(instance, mat.mainTexPath(), false);
+        if (main != null && main.rl() != null) {
+            gpu.mainTex = main.rl();
+            gpu.texMode = main.hasAlpha() ? 2 : 1;
         } else {
             gpu.mainTex = ensureMagentaTexture();
             gpu.texMode = 0;
             LOGGER.warn("[PMX] material {} main texture missing; using fallback. path={}", materialId, mat.mainTexPath());
         }
 
-        TextureEntry sphere = getOrLoadTextureEntry(instance, mat.sphereTexPath(), false);
-        if (sphere != null && sphere.rl != null) {
-            gpu.sphereTex = sphere.rl;
+        TextureEntry sphere = getOrLoadTextureEntryLogged(instance, mat.sphereTexPath(), false);
+        if (sphere != null && sphere.rl() != null) {
+            gpu.sphereTex = sphere.rl();
             gpu.sphereMode = mat.sphereMode(); // 0/1/2
         } else {
             gpu.sphereTex = ensureMagentaTexture();
@@ -517,9 +503,9 @@ public class PmxRenderer {
             }
         }
 
-        TextureEntry toon = getOrLoadTextureEntry(instance, mat.toonTexPath(), true);
-        if (toon != null && toon.rl != null) {
-            gpu.toonTex = toon.rl;
+        TextureEntry toon = getOrLoadTextureEntryLogged(instance, mat.toonTexPath(), true);
+        if (toon != null && toon.rl() != null) {
+            gpu.toonTex = toon.rl();
             gpu.toonMode = 1;
         } else {
             gpu.toonTex = ensureMagentaTexture();
@@ -533,83 +519,12 @@ public class PmxRenderer {
         return gpu;
     }
 
-    private ResourceLocation ensureMagentaTexture() {
-        if (magentaTex != null) return magentaTex;
-        try {
-            NativeImage img = new NativeImage(1, 1, false);
-            img.setPixelRGBA(0, 0, 0xFFFF00FF);
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            magentaTex = tm.register("pmx/magenta", dt);
-            return magentaTex;
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    private TextureEntry getOrLoadTextureEntry(PmxInstance instance, String texPath, boolean clamp) {
-        if (texPath == null || texPath.isEmpty()) return null;
-
-        Path resolved = resolveTexturePath(instance, texPath);
-        if (resolved == null) return null;
-
-        String key = resolved.toString();
-        TextureEntry cached = textureCache.get(key);
-        if (cached != null) return cached;
-
-        try (InputStream in = Files.newInputStream(resolved)) {
-            NativeImage img = NativeImage.read(in);
-            img.flipY();
-            boolean hasAlpha = imageHasAnyAlpha(img);
-
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            String id = "pmx/tex_" + Integer.toUnsignedString(++textureIdCounter);
-            ResourceLocation rl = tm.register(id, dt);
-            RenderSystem.recordRenderCall(() -> {
-                dt.setFilter(true, false); // GL_LINEAR min/mag
-                if (clamp) {
-                    dt.bind();
-                    GlStateManager._texParameter(3553, 10242, 33071); // GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
-                    GlStateManager._texParameter(3553, 10243, 33071); // GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
-                }
-            });
-
-            TextureEntry e = new TextureEntry(rl, hasAlpha);
-            textureCache.put(key, e);
-            return e;
-        } catch (Throwable t) {
+    private TextureEntry getOrLoadTextureEntryLogged(PmxInstance instance, String texPath, boolean clamp) {
+        return loadTextureEntryCached(instance, texPath, "pmx/tex_", clamp, true, key -> {
             if (textureLoadFailures.add(key)) {
-                LOGGER.warn("[PMX] texture load failed: {}", key, t);
+                LOGGER.warn("[PMX] texture load failed: {}", key);
             }
-            return null;
-        }
+        });
     }
 
-    private static Path resolveTexturePath(PmxInstance instance, String texPath) {
-        try {
-            Path p = Paths.get(texPath);
-            if (p.isAbsolute()) return p.normalize();
-            Path base = instance.pmxBaseDir();
-            if (base != null) return base.resolve(p).normalize();
-            return p.normalize();
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static boolean imageHasAnyAlpha(NativeImage img) {
-        try {
-            int w = img.getWidth();
-            int h = img.getHeight();
-            for (int y = 0; y < h; y++) {
-                for (int x = 0; x < w; x++) {
-                    int rgba = img.getPixelRGBA(x, y);
-                    int a = (rgba >>> 24) & 0xFF;
-                    if (a != 0xFF) return true;
-                }
-            }
-        } catch (Throwable ignored) {}
-        return false;
-    }
 }

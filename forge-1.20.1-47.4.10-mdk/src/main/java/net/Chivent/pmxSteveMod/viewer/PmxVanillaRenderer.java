@@ -1,6 +1,5 @@
 package net.Chivent.pmxSteveMod.viewer;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -9,33 +8,20 @@ import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
-public class PmxVanillaRenderer {
-    private record TextureEntry(ResourceLocation rl) {}
-    private final Map<String, TextureEntry> textureCache = new HashMap<>();
-    private int textureIdCounter = 0;
-    private ResourceLocation magentaTex = null;
+public class PmxVanillaRenderer extends PmxRenderBase {
+    private static final float TRANSLUCENT_ALPHA_THRESHOLD = 0.999f;
 
     public void onViewerShutdown() {
-        textureCache.clear();
-        textureIdCounter = 0;
-        magentaTex = null;
+        resetTextureCache();
     }
 
     public void renderPlayer(PmxInstance instance,
@@ -74,8 +60,8 @@ public class PmxVanillaRenderer {
                 if (alpha <= 0.0f) continue;
 
                 TextureEntry tex = getOrLoadMainTexture(instance, mat.mainTexPath());
-                ResourceLocation rl = tex != null ? tex.rl : ensureMagentaTexture();
-                boolean translucent = alpha < 0.999f;
+                ResourceLocation rl = tex != null ? tex.rl() : ensureMagentaTexture();
+                boolean translucent = alpha < TRANSLUCENT_ALPHA_THRESHOLD;
                 RenderType type = rl != null ? getRenderType(rl, translucent) : null;
                 VertexConsumer vc = type != null ? buffer.getBuffer(type) : null;
 
@@ -160,52 +146,7 @@ public class PmxVanillaRenderer {
 
 
     private TextureEntry getOrLoadMainTexture(PmxInstance instance, String texPath) {
-        if (texPath == null || texPath.isEmpty()) return null;
-        Path resolved = resolveTexturePath(instance, texPath);
-        if (resolved == null) return null;
-        String key = resolved.toString();
-        TextureEntry cached = textureCache.get(key);
-        if (cached != null) return cached;
-
-        try (InputStream in = Files.newInputStream(resolved)) {
-            NativeImage img = NativeImage.read(in);
-            img.flipY();
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            String id = "pmx/vanilla_tex_" + Integer.toUnsignedString(++textureIdCounter);
-            ResourceLocation rl = tm.register(id, dt);
-            TextureEntry entry = new TextureEntry(rl);
-            textureCache.put(key, entry);
-            return entry;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private ResourceLocation ensureMagentaTexture() {
-        if (magentaTex != null) return magentaTex;
-        try {
-            NativeImage img = new NativeImage(1, 1, false);
-            img.setPixelRGBA(0, 0, 0xFFFF00FF);
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            magentaTex = tm.register("pmx/vanilla_magenta", dt);
-            return magentaTex;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static Path resolveTexturePath(PmxInstance instance, String texPath) {
-        try {
-            Path p = Paths.get(texPath);
-            if (p.isAbsolute()) return p.normalize();
-            Path base = instance.pmxBaseDir();
-            if (base != null) return base.resolve(p).normalize();
-            return p.normalize();
-        } catch (Throwable ignored) {
-            return null;
-        }
+        return loadTextureEntryCached(instance, texPath, "pmx/vanilla_tex_", false, false, null);
     }
 
 }
