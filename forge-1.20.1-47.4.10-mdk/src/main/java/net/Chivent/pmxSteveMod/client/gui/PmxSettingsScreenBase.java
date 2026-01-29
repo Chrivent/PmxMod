@@ -26,6 +26,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
     protected final List<PmxModelSettingsStore.RowData> preservedRows = new ArrayList<>();
     protected final PmxModelSettingsStore store = PmxModelSettingsStore.get();
     protected PmxSettingsList list;
+    protected SettingsRow selectedRow;
     protected int[] cachedColumnWidths;
     protected int cachedColumnTotalWidth = -1;
 
@@ -65,6 +66,9 @@ public abstract class PmxSettingsScreenBase extends Screen {
         addWidget(this.list);
         for (SettingsRow row : rows) {
             this.list.addRow(row);
+        }
+        if (selectedRow != null) {
+            this.list.selectRow(selectedRow);
         }
         addFooterButtons(listBottom);
     }
@@ -462,6 +466,7 @@ public abstract class PmxSettingsScreenBase extends Screen {
                     if (screen.list != null) {
                         screen.list.setSelected(this);
                     }
+                    screen.selectedRow = row;
                     switch (i) {
                         case 2 -> {
                             if (screen.allowMotionLoopToggle(row)) {
@@ -509,6 +514,19 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 for (int i = 0; i < COLUMN_COUNT - 1; i++) {
                     x += colW[i];
                     graphics.fill(x, lastY, x + 1, lastY + lastHeight, 0x66FFFFFF);
+                }
+            }
+
+            private SettingsRow rowRef() {
+                return row;
+            }
+        }
+
+        private void selectRow(SettingsRow row) {
+            for (PmxSettingsEntry entry : this.children()) {
+                if (entry.rowRef() == row) {
+                    setSelected(entry);
+                    return;
                 }
             }
         }
