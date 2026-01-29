@@ -3,6 +3,7 @@ package net.Chivent.pmxSteveMod.client.gui;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore;
@@ -157,78 +158,44 @@ public abstract class PmxSettingsScreenBase extends Screen {
     }
 
     protected void openMotionPicker(SettingsRow row) {
-        if (!isSelectableRow(row)) {
-            selectedRow = null;
-            if (list != null) {
-                list.setSelected(null);
-            }
-            onSelectionChanged();
-        }
-        final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
-        PmxFileSelectScreen screen = new PmxFileSelectScreen(
-                this,
+        openFilePicker(
+                row,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMotionDir(),
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_motion.title"),
                 Component.translatable("pmx.button.open_motion_folder"),
-                path -> {
-                    if (path == null) {
-                        if (screenRef[0] == null) return;
-                        if (screenRef[0].isExplicitNoneSelected()) {
-                            row.motion = "";
-                        } else {
-                            return;
-                        }
-                    } else {
-                        row.motion = path.getFileName().toString();
-                    }
-                    markWidthsDirty();
-                    saveSettings(row);
-                }
+                value -> row.motion = value
         );
-        screenRef[0] = screen;
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(screen);
-        }
     }
 
     protected void openCameraPicker(SettingsRow row) {
-        if (!isSelectableRow(row)) {
-            selectedRow = null;
-            if (list != null) {
-                list.setSelected(null);
-            }
-            onSelectionChanged();
-        }
-        final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
-        PmxFileSelectScreen screen = new PmxFileSelectScreen(
-                this,
+        openFilePicker(
+                row,
                 net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserCameraDir(),
                 new String[] {".vmd"},
                 Component.translatable("pmx.screen.select_camera.title"),
                 Component.translatable("pmx.button.open_camera_folder"),
-                path -> {
-                    if (path == null) {
-                        if (screenRef[0] == null) return;
-                        if (screenRef[0].isExplicitNoneSelected()) {
-                            row.camera = "";
-                        } else {
-                            return;
-                        }
-                    } else {
-                        row.camera = path.getFileName().toString();
-                    }
-                    markWidthsDirty();
-                    saveSettings(row);
-                }
+                value -> row.camera = value
         );
-        screenRef[0] = screen;
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(screen);
-        }
     }
 
     protected void openMusicPicker(SettingsRow row) {
+        openFilePicker(
+                row,
+                net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMusicDir(),
+                new String[] {".ogg", ".mp3", ".wav"},
+                Component.translatable("pmx.screen.select_music.title"),
+                Component.translatable("pmx.button.open_music_folder"),
+                value -> row.music = value
+        );
+    }
+
+    private void openFilePicker(SettingsRow row,
+                                java.nio.file.Path folder,
+                                String[] extensions,
+                                Component title,
+                                Component openFolderLabel,
+                                Consumer<String> valueSetter) {
         if (!isSelectableRow(row)) {
             selectedRow = null;
             if (list != null) {
@@ -239,20 +206,20 @@ public abstract class PmxSettingsScreenBase extends Screen {
         final PmxFileSelectScreen[] screenRef = new PmxFileSelectScreen[1];
         PmxFileSelectScreen screen = new PmxFileSelectScreen(
                 this,
-                net.Chivent.pmxSteveMod.viewer.PmxViewer.get().getUserMusicDir(),
-                new String[] {".ogg", ".mp3", ".wav"},
-                Component.translatable("pmx.screen.select_music.title"),
-                Component.translatable("pmx.button.open_music_folder"),
+                folder,
+                extensions,
+                title,
+                openFolderLabel,
                 path -> {
                     if (path == null) {
                         if (screenRef[0] == null) return;
                         if (screenRef[0].isExplicitNoneSelected()) {
-                            row.music = "";
+                            valueSetter.accept("");
                         } else {
                             return;
                         }
                     } else {
-                        row.music = path.getFileName().toString();
+                        valueSetter.accept(path.getFileName().toString());
                     }
                     markWidthsDirty();
                     saveSettings(row);

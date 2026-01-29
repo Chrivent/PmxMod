@@ -254,7 +254,34 @@ public class PmxFileSelectScreen extends Screen {
 
         private abstract static class Entry extends AbstractSelectionList.Entry<Entry> {}
 
-        private final class PmxFileEntry extends Entry {
+        private abstract class PmxBaseEntry extends Entry {
+            protected abstract String label();
+            protected abstract int color();
+            protected abstract void onSelected();
+
+            @Override
+            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
+                               int mouseX, int mouseY, boolean hovered, float partialTick) {
+                boolean selected = this == PmxFileList.this.getSelected();
+                renderRow(graphics, x, y, width, height, label(), color(), selected);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                onSelected();
+                return true;
+            }
+        }
+
+        private void renderRow(GuiGraphics graphics, int x, int y, int width, int height,
+                               String text, int color, boolean selected) {
+            if (selected) {
+                graphics.fill(x, y, x + width, y + height, 0x33000000);
+            }
+            graphics.drawString(font, text, x + 6, y + 6, color, false);
+        }
+
+        private final class PmxFileEntry extends PmxBaseEntry {
             private final Path path;
 
             private PmxFileEntry(Path path) {
@@ -262,36 +289,35 @@ public class PmxFileSelectScreen extends Screen {
             }
 
             @Override
-            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
-                               int mouseX, int mouseY, boolean hovered, float partialTick) {
-                if (this == PmxFileList.this.getSelected()) {
-                    graphics.fill(x, y, x + width, y + height, 0x33000000);
-                }
-                String name = path.getFileName().toString();
-                graphics.drawString(font, name, x + 6, y + 6, 0xE0E0E0, false);
+            protected String label() {
+                return path.getFileName().toString();
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            protected int color() {
+                return 0xE0E0E0;
+            }
+
+            @Override
+            protected void onSelected() {
                 select(path);
-                return true;
             }
         }
 
-        private final class PmxNoneEntry extends Entry {
+        private final class PmxNoneEntry extends PmxBaseEntry {
             @Override
-            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
-                               int mouseX, int mouseY, boolean hovered, float partialTick) {
-                if (this == PmxFileList.this.getSelected()) {
-                    graphics.fill(x, y, x + width, y + height, 0x33000000);
-                }
-                graphics.drawString(font, Component.translatable("pmx.settings.value.unset"), x + 6, y + 6, 0xAAAAAA, false);
+            protected String label() {
+                return Component.translatable("pmx.settings.value.unset").getString();
             }
 
             @Override
-            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            protected int color() {
+                return 0xAAAAAA;
+            }
+
+            @Override
+            protected void onSelected() {
                 selectNone();
-                return true;
             }
         }
     }

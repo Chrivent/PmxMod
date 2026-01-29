@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
-import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
@@ -21,12 +20,9 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
-import org.lwjgl.opengl.GL15C;
-import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
 import org.slf4j.Logger;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -51,24 +47,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
     private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
     private long cachedModelVersion = -1L;
 
-    private static final class MeshGpu {
-        long ownerHandle = 0L;
-
-        int vao = 0;
-        int vboPos = 0;
-        int vboNrm = 0;
-        int vboUv  = 0;
-        int ibo    = 0;
-
-        int vertexCount = 0;
-        int indexCount  = 0;
-        int elemSize    = 0;
-        int glIndexType = GL11C.GL_UNSIGNED_INT;
-
-        boolean ready = false;
-    }
-
-    private final MeshGpu mesh = new MeshGpu();
+    private final PmxGlMesh mesh = new PmxGlMesh();
 
     private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
         Uniform u = sh.getUniform(name);
@@ -97,123 +76,12 @@ public class PmxCustomRenderer extends PmxRenderBase {
 
     public void onViewerShutdown() {
         RenderSystem.recordRenderCall(() -> {
-            destroyMeshGpu();
+            mesh.destroy();
             resetTextureCache();
             materialGpuCache.clear();
             textureLoadFailures.clear();
             cachedModelVersion = -1L;
         });
-    }
-
-    private void destroyMeshGpu() {
-        if (mesh.vao != 0) { GL30C.glDeleteVertexArrays(mesh.vao); mesh.vao = 0; }
-        if (mesh.vboPos != 0) { GL15C.glDeleteBuffers(mesh.vboPos); mesh.vboPos = 0; }
-        if (mesh.vboNrm != 0) { GL15C.glDeleteBuffers(mesh.vboNrm); mesh.vboNrm = 0; }
-        if (mesh.vboUv != 0)  { GL15C.glDeleteBuffers(mesh.vboUv);  mesh.vboUv = 0; }
-        if (mesh.ibo != 0)    { GL15C.glDeleteBuffers(mesh.ibo);    mesh.ibo = 0; }
-        mesh.ready = false;
-        mesh.ownerHandle = 0L;
-        mesh.vertexCount = 0;
-        mesh.indexCount = 0;
-        mesh.elemSize = 0;
-        mesh.glIndexType = GL11C.GL_UNSIGNED_INT;
-    }
-
-    private static int toGlIndexType(int elemSize) {
-        return switch (elemSize) {
-            case 1 -> GL11C.GL_UNSIGNED_BYTE;
-            case 2 -> GL11C.GL_UNSIGNED_SHORT;
-            default -> GL11C.GL_UNSIGNED_INT;
-        };
-    }
-
-    private void ensureMeshGpu(PmxInstance instance) {
-        long h = instance.handle();
-        if (h == 0L) return;
-
-        int vtxCount = PmxNative.nativeGetVertexCount(h);
-        int idxCount = PmxNative.nativeGetIndexCount(h);
-        int elemSize = PmxNative.nativeGetIndexElementSize(h);
-
-        int glType = toGlIndexType(elemSize);
-
-        if (mesh.ready
-                && mesh.ownerHandle == h
-                && mesh.vertexCount == vtxCount
-                && mesh.indexCount == idxCount
-                && mesh.elemSize == elemSize
-                && mesh.glIndexType == glType) {
-            return;
-        }
-
-        destroyMeshGpu();
-
-        ByteBuffer idx = instance.idxBuf();
-        if (idx == null || vtxCount <= 0 || idxCount <= 0 || elemSize <= 0) return;
-
-        mesh.ownerHandle = h;
-        mesh.vertexCount = vtxCount;
-        mesh.indexCount  = idxCount;
-        mesh.elemSize    = elemSize;
-        mesh.glIndexType = glType;
-
-        mesh.vao = GL30C.glGenVertexArrays();
-        mesh.vboPos = GL15C.glGenBuffers();
-        mesh.vboNrm = GL15C.glGenBuffers();
-        mesh.vboUv  = GL15C.glGenBuffers();
-        mesh.ibo    = GL15C.glGenBuffers();
-
-        GL30C.glBindVertexArray(mesh.vao);
-
-        final int LOC_POS = 0;
-        final int LOC_UV0 = 2;
-        final int LOC_NRM = 5;
-
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboPos);
-        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
-        GL20C.glEnableVertexAttribArray(LOC_POS);
-        GL20C.glVertexAttribPointer(LOC_POS, 3, GL11C.GL_FLOAT, false, 0, 0L);
-
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboUv);
-        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 2L * 4L, GL15C.GL_DYNAMIC_DRAW);
-        GL20C.glEnableVertexAttribArray(LOC_UV0);
-        GL20C.glVertexAttribPointer(LOC_UV0, 2, GL11C.GL_FLOAT, false, 0, 0L);
-
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, mesh.vboNrm);
-        GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * 3L * 4L, GL15C.GL_DYNAMIC_DRAW);
-        GL20C.glEnableVertexAttribArray(LOC_NRM);
-        GL20C.glVertexAttribPointer(LOC_NRM, 3, GL11C.GL_FLOAT, false, 0, 0L);
-
-        GL15C.glBindBuffer(GL15C.GL_ELEMENT_ARRAY_BUFFER, mesh.ibo);
-        ByteBuffer idxDup = idx.duplicate();
-        idxDup.rewind();
-        GL15C.glBufferData(GL15C.GL_ELEMENT_ARRAY_BUFFER, idxDup, GL15C.GL_STATIC_DRAW);
-
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
-        GL30C.glBindVertexArray(0);
-
-        mesh.ready = true;
-    }
-
-    private static void uploadDynamic(int vbo, ByteBuffer src, long expectedBytes) {
-        if (vbo == 0 || src == null) return;
-        if (src.capacity() < expectedBytes) return;
-
-        ByteBuffer dup = src.duplicate();
-        dup.rewind();
-
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
-        GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
-        GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
-    }
-
-    private void updateDynamicBuffers(PmxInstance instance) {
-        if (!mesh.ready) return;
-        int vtxCount = mesh.vertexCount;
-
-        uploadDynamic(mesh.vboPos, instance.posBuf(), (long) vtxCount * 3L * 4L);
-        uploadDynamic(mesh.vboNrm, instance.nrmBuf(), (long) vtxCount * 3L * 4L);
-        uploadDynamic(mesh.vboUv,  instance.uvBuf(),  (long) vtxCount * 2L * 4L);
     }
 
     public void renderPlayer(PmxInstance instance,
@@ -240,10 +108,10 @@ public class PmxCustomRenderer extends PmxRenderBase {
             cachedModelVersion = version;
         }
 
-        ensureMeshGpu(instance);
+        mesh.ensure(instance);
         if (!mesh.ready) return;
 
-        updateDynamicBuffers(instance);
+        mesh.updateDynamic(instance);
 
         poseStack.pushPose();
 
