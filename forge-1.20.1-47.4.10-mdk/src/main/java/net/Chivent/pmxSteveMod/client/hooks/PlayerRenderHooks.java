@@ -3,6 +3,7 @@ package net.Chivent.pmxSteveMod.client.hooks;
 import net.Chivent.pmxSteveMod.PmxSteveMod;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxRenderer;
+import net.Chivent.pmxSteveMod.viewer.PmxVanillaRenderer;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -11,7 +12,9 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = PmxSteveMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class PlayerRenderHooks {
+    private static final boolean USE_VANILLA_RENDERER = true;
     private static final PmxRenderer RENDERER = new PmxRenderer();
+    private static final PmxVanillaRenderer VANILLA_RENDERER = new PmxVanillaRenderer();
     private PlayerRenderHooks() {}
 
     @SubscribeEvent
@@ -24,15 +27,17 @@ public final class PlayerRenderHooks {
 
         event.setCanceled(true);
 
-        RENDERER.renderPlayer(
-                instance,
-                (net.minecraft.client.player.AbstractClientPlayer) event.getEntity(),
-                event.getPartialTick(),
-                event.getPoseStack()
-        );
+        net.minecraft.client.player.AbstractClientPlayer player =
+                (net.minecraft.client.player.AbstractClientPlayer) event.getEntity();
+        if (USE_VANILLA_RENDERER) {
+            VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(), event.getPoseStack());
+        } else {
+            RENDERER.renderPlayer(instance, player, event.getPartialTick(), event.getPoseStack());
+        }
     }
 
     public static void shutdownRenderer() {
         RENDERER.onViewerShutdown();
+        VANILLA_RENDERER.onViewerShutdown();
     }
 }
