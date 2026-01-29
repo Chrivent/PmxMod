@@ -54,9 +54,10 @@ public class PmxModelSelectScreen extends Screen {
         int rowY = this.height - 32;
         int padding = 6;
         int margin = 10;
+        int maxItemWidth = 150;
         int totalWidth = this.width - margin * 2;
-        int itemWidth = (totalWidth - padding * 2) / 3;
-        int startX = margin;
+        int itemWidth = Math.min(maxItemWidth, (totalWidth - padding * 2) / 3);
+        int startX = (this.width - (itemWidth * 3 + padding * 2)) / 2;
         float volume = net.Chivent.pmxSteveMod.client.settings.PmxSoundSettingsStore.get().getMusicVolume();
         addRenderableWidget(new PmxVolumeSlider(startX, rowY, itemWidth, 20, volume));
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.open_folder"), b -> {
