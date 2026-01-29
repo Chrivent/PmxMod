@@ -22,7 +22,20 @@ public class PmxAddStateScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        Pose[] poses = Pose.values();
+        Pose[] allPoses = Pose.values();
+        int poseCount = 0;
+        for (Pose pose : allPoses) {
+            if (pose != Pose.STANDING) {
+                poseCount++;
+            }
+        }
+        Pose[] poses = new Pose[poseCount];
+        int poseIndex = 0;
+        for (Pose pose : allPoses) {
+            if (pose != Pose.STANDING) {
+                poses[poseIndex++] = pose;
+            }
+        }
         int columns = 2;
         int rows = (poses.length + columns - 1) / columns;
         int rowHeight = 22;
