@@ -54,15 +54,19 @@ public class PmxFileSelectScreen extends Screen {
         reloadList();
         startWatcher();
         int rowY = this.height - 28;
+        int btnWidth = GuiUtil.FOOTER_BUTTON_WIDTH;
+        int btnGap = 10;
+        int totalWidth = btnWidth * 2 + btnGap;
+        int leftX = (this.width - totalWidth) / 2;
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
                 openFolderLabel, b -> {
                     if (folder != null) {
                         net.minecraft.Util.getPlatform().openFile(folder.toFile());
                     }
-                }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
+                }).bounds(leftX, rowY, btnWidth, 20).build());
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
                 Component.translatable("pmx.button.done"), b -> confirmSelection())
-                .bounds(this.width / 2 + 5, rowY, 150, 20).build());
+                .bounds(leftX + btnWidth + btnGap, rowY, btnWidth, 20).build());
     }
 
     @Override
