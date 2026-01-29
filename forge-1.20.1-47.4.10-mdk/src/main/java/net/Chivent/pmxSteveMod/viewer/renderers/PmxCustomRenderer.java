@@ -160,7 +160,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
         MaterialInfo mat = instance.material(sm.materialId());
         if (mat == null) return;
 
-        DrawRange range = getDrawRange(sm);
+        DrawRange range = getDrawRange(sm, mesh);
         if (range == null) return;
 
         float alpha = mat.alpha();
@@ -233,21 +233,6 @@ public class PmxCustomRenderer extends PmxRenderBase {
         RenderSystem.enableCull();
     }
 
-    private record DrawRange(int count, long offsetBytes) {}
-
-    private DrawRange getDrawRange(SubmeshInfo sub) {
-        if (sub == null) return null;
-        int begin = sub.beginIndex();
-        int count = sub.indexCount();
-        if (begin < 0 || count <= 0) return null;
-        int maxCount = Math.max(0, mesh.indexCount - begin);
-        if (count > maxCount) count = maxCount;
-        count -= (count % 3);
-        if (count <= 0) return null;
-        long offsetBytes = (long) begin * (long) mesh.elemSize;
-        return new DrawRange(count, offsetBytes);
-    }
-
     private void drawEdgePass(PmxInstance instance, SubmeshInfo[] subs, Matrix4f pose) {
         ShaderInstance edgeShader = PmxShaders.PMX_EDGE;
         if (edgeShader == null || subs == null) return;
@@ -281,7 +266,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
             set1f(edgeShader, "u_EdgeSize", edgeSize);
             set4f(edgeShader, "u_EdgeColor", edgeColor[0], edgeColor[1], edgeColor[2], edgeColor[3]);
 
-            DrawRange range = getDrawRange(sub);
+            DrawRange range = getDrawRange(sub, mesh);
             if (range == null) continue;
 
             GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());

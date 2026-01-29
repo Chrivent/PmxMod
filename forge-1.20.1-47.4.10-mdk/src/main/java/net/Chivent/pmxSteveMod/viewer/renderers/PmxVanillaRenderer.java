@@ -112,11 +112,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                                     int light,
                                     boolean useNormals,
                                     Matrix4f pose) {
-        int begin = sub.beginIndex();
-        int count = sub.indexCount();
-        if (begin < 0 || count <= 0) return;
-        count -= (count % 3);
-        if (count <= 0) return;
+        DrawRange range = getDrawRange(sub, mesh);
+        if (range == null) return;
         setupRenderState(translucent);
         ShaderInstance shader = bindShader(rl, translucent);
         if (shader != null) {
@@ -127,8 +124,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         setConstantAttributes(alpha, light, useNormals);
 
-        long offsetBytes = (long) begin * (long) mesh.elemSize;
-        GL11C.glDrawElements(GL11C.GL_TRIANGLES, count, mesh.glIndexType, offsetBytes);
+        GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
 
         GL30C.glBindVertexArray(0);
 
@@ -191,8 +187,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                 : GameRenderer::getRendertypeEntityCutoutNoCullShader);
         RenderSystem.setShaderTexture(0, rl);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        ShaderInstance shader = RenderSystem.getShader();
-        return shader;
+        return RenderSystem.getShader();
     }
 
     private static void applyShaderUniforms(ShaderInstance shader, Matrix4f modelView, ResourceLocation rl) {
