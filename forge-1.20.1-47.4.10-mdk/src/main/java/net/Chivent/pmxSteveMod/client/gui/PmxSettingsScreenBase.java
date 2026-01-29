@@ -49,6 +49,10 @@ public abstract class PmxSettingsScreenBase extends Screen {
         return true;
     }
 
+    protected boolean useSelectionBorder() {
+        return false;
+    }
+
     @Override
     protected void init() {
         int listBottom = this.height - LIST_BOTTOM_PAD;
@@ -402,7 +406,9 @@ public abstract class PmxSettingsScreenBase extends Screen {
         @Override
         protected void renderSelection(@NotNull GuiGraphics graphics, int y, int entryWidth, int entryHeight,
                                        int borderColor, int fillColor) {
-            // Disable selection highlight.
+            if (!screen.useSelectionBorder()) return;
+            int left = getRowLeft();
+            graphics.renderOutline(left, y, entryWidth, entryHeight, borderColor);
         }
 
         protected class PmxSettingsEntry extends AbstractSelectionList.Entry<PmxSettingsEntry> {

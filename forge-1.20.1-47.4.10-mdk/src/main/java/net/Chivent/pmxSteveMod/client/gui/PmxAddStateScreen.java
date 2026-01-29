@@ -3,14 +3,16 @@ package net.Chivent.pmxSteveMod.client.gui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Pose;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
 
 public class PmxAddStateScreen extends Screen {
     private final PmxStateSettingsScreen parent;
-    private EditBox nameBox;
+    private int presetLabelY;
 
     public PmxAddStateScreen(PmxStateSettingsScreen parent) {
         super(Component.translatable("pmx.screen.add_state.title"));
@@ -20,30 +22,67 @@ public class PmxAddStateScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        this.nameBox = new EditBox(this.font, centerX - 100, this.height / 2 - 10, 200, 20,
-                Component.translatable("pmx.settings.label.state_name"));
-        this.nameBox.setMaxLength(32);
-        this.addRenderableWidget(this.nameBox);
-        addRenderableWidget(Button.builder(Component.translatable("pmx.button.add"), b -> {
-            parent.addCustomState(nameBox.getValue());
-            Minecraft.getInstance().setScreen(parent);
-        }).bounds(centerX - 100, this.height / 2 + 18, 96, 20).build());
+        Pose[] poses = Pose.values();
+        int columns = 2;
+        int rows = (poses.length + columns - 1) / columns;
+        int rowHeight = 22;
+        int presetSpacing = 6;
+        int presetLabelHeight = 12;
+        int footerHeight = 20;
+        int footerGap = 10;
+        int presetHeight = rows * rowHeight;
+        int totalHeight = presetLabelHeight + presetSpacing + presetHeight + footerGap + footerHeight;
+
+        presetLabelY = (this.height - totalHeight) / 2;
+        int presetStartY = presetLabelY + presetLabelHeight + presetSpacing;
+        int footerY = presetStartY + presetHeight + footerGap;
+
+        int buttonWidth = 96;
+        int buttonHeight = 20;
+        int buttonGap = 8;
+        int gridWidth = columns * buttonWidth + (columns - 1) * buttonGap;
+        int startX = centerX - (gridWidth / 2);
+        for (int i = 0; i < poses.length; i++) {
+            int col = i % columns;
+            int row = i / columns;
+            int x = startX + col * (buttonWidth + buttonGap);
+            int y = presetStartY + row * rowHeight;
+            String label = formatPoseName(poses[i]);
+            addRenderableWidget(Button.builder(Component.literal(label), b -> {
+                parent.addCustomState(label);
+                Minecraft.getInstance().setScreen(parent);
+            })
+                    .bounds(x, y, buttonWidth, buttonHeight).build());
+        }
+
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.cancel"), b -> onClose())
-                .bounds(centerX + 4, this.height / 2 + 18, 96, 20).build());
-        this.setInitialFocus(this.nameBox);
+                .bounds(centerX - 48, footerY, 96, 20).build());
     }
 
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 40, 0xFFFFFF);
-        graphics.drawCenteredString(this.font, Component.translatable("pmx.settings.label.state_name"),
-                this.width / 2, this.height / 2 - 26, 0xC0C0C0);
+        graphics.drawCenteredString(this.font, Component.translatable("pmx.settings.label.state_presets"),
+                this.width / 2, presetLabelY, 0xC0C0C0);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
     public void onClose() {
         Minecraft.getInstance().setScreen(parent);
+    }
+
+    private static String formatPoseName(Pose pose) {
+        String raw = pose.name().toLowerCase(Locale.ROOT);
+        String[] parts = raw.split("_");
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (!out.isEmpty()) out.append(' ');
+            out.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) out.append(part.substring(1));
+        }
+        return out.toString();
     }
 }

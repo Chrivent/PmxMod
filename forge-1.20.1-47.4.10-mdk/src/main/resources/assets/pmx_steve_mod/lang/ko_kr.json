@@ -33,6 +33,7 @@
   "pmx.settings.row.slot": "슬롯 %s",
   "pmx.settings.row.idle": "기본",
   "pmx.settings.label.state_name": "상태 이름",
+  "pmx.settings.label.state_presets": "상태 목록",
   "pmx.emote.empty": "비어 있음",
   "pmx.info.header": "모델 정보",
   "pmx.info.file": "파일",

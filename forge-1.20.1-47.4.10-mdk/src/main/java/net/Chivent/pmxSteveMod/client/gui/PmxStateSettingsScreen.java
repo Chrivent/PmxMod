@@ -87,6 +87,11 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     }
 
     @Override
+    protected boolean useSelectionBorder() {
+        return true;
+    }
+
+    @Override
     protected void saveSettings(SettingsRow changedRow) {
         net.Chivent.pmxSteveMod.client.settings.PmxModelSettingsStore.RowData prevIdle = null;
         if (changedRow != null && changedRow.slotIndex == IDLE_SLOT_INDEX) {

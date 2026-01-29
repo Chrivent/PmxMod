@@ -33,6 +33,7 @@
   "pmx.settings.row.slot": "槽位 %s",
   "pmx.settings.row.idle": "默认",
   "pmx.settings.label.state_name": "状态名称",
+  "pmx.settings.label.state_presets": "状态列表",
   "pmx.emote.empty": "空",
   "pmx.info.header": "模型信息",
   "pmx.info.file": "文件",

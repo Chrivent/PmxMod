@@ -33,6 +33,7 @@
   "pmx.settings.row.slot": "Slot %s",
   "pmx.settings.row.idle": "Idle",
   "pmx.settings.label.state_name": "State Name",
+  "pmx.settings.label.state_presets": "State Presets",
   "pmx.emote.empty": "Empty",
   "pmx.info.header": "Model Info",
   "pmx.info.file": "File",
