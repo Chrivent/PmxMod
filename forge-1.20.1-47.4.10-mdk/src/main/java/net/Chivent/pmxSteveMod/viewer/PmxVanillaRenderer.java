@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.Chivent.pmxSteveMod.PmxSteveMod;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
@@ -82,10 +81,16 @@ public class PmxVanillaRenderer {
                 TextureEntry tex = getOrLoadMainTexture(instance, mat.mainTexPath());
                 ResourceLocation rl = tex != null ? tex.rl : ensureMagentaTexture();
                 boolean translucent = alpha < 0.999f || (tex != null && tex.hasAlpha);
-                RenderType type = translucent
-                        ? RenderType.entityTranslucent(rl)
-                        : RenderType.entityCutoutNoCull(rl);
-                VertexConsumer vc = buffer.getBuffer(type);
+                RenderType type = null;
+                if (rl != null) {
+                    type = translucent
+                            ? RenderType.entityTranslucent(rl)
+                            : RenderType.entityCutoutNoCull(rl);
+                }
+                VertexConsumer vc = null;
+                if (type != null) {
+                    vc = buffer.getBuffer(type);
+                }
 
                 drawSubmesh(vc, sub, posBuf, nrmBuf, uvBuf, idxBuf, elemSize,
                         pose, normalMat,
