@@ -15,10 +15,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -38,7 +35,6 @@ import java.util.Set;
 public class PmxCustomRenderer extends PmxRenderBase {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final boolean FLAT_ENV_LIGHTING = true;
 
     private final Set<String> textureLoadFailures = new HashSet<>();
 
@@ -257,7 +253,6 @@ public class PmxCustomRenderer extends PmxRenderBase {
 
         Matrix4f pose = poseStack.last().pose();
         float[] lightDir = getSunLightDir(player.level(), partialTick);
-        float envLight = getEnvLight(player);
 
         SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
@@ -274,7 +269,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
         GL30C.glBindVertexArray(mesh.vao);
 
         for (SubmeshInfo sub : subs) {
-            drawSubmeshIndexed(instance, sub, pose, lightDir, envLight);
+            drawSubmeshIndexed(instance, sub, pose, lightDir);
         }
 
         drawEdgePass(instance, subs, pose);
@@ -291,8 +286,7 @@ public class PmxCustomRenderer extends PmxRenderBase {
     private void drawSubmeshIndexed(PmxInstance instance,
                                     SubmeshInfo sm,
                                     Matrix4f pose,
-                                    float[] lightDir,
-                                    float envLight) {
+                                    float[] lightDir) {
         if (sm == null) return;
 
         MaterialInfo mat = instance.material(sm.materialId());
@@ -317,22 +311,10 @@ public class PmxCustomRenderer extends PmxRenderBase {
         setMat4(sh, "u_WV", wv);
         setMat4(sh, "u_WVP", wvp);
 
-        if (FLAT_ENV_LIGHTING) {
-            set3f(sh, "u_LightColor", envLight, envLight, envLight);
-            set3f(sh, "u_LightDir", 0.0f, 1.0f, 0.0f);
-        } else {
-            set3f(sh, "u_LightColor", 1f, 1f, 1f);
-            set3f(sh, "u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
-        }
+        set3f(sh, "u_LightColor", 1f, 1f, 1f);
+        set3f(sh, "u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
 
-        if (FLAT_ENV_LIGHTING) {
-            set3f(sh, "u_Ambient",
-                    mat.ambientR() * envLight,
-                    mat.ambientG() * envLight,
-                    mat.ambientB() * envLight);
-        } else {
-            set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
-        }
+        set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
 
         int rgba = mat.diffuseRGBA();
         float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
@@ -340,13 +322,9 @@ public class PmxCustomRenderer extends PmxRenderBase {
         float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
         set3f(sh, "u_Diffuse", mr, mg, mb);
 
-        if (FLAT_ENV_LIGHTING) {
-            set3f(sh, "u_Specular", 0.0f, 0.0f, 0.0f);
-            set1f(sh, "u_SpecularPower", 0.0f);
-        } else {
-            set3f(sh, "u_Specular", mat.specularR(), mat.specularG(), mat.specularB());
-            set1f(sh, "u_SpecularPower", mat.specularPower());
-        }
+        set3f(sh, "u_Specular", mat.specularR(), mat.specularG(), mat.specularB());
+        set1f(sh, "u_SpecularPower", mat.specularPower());
+
         set1f(sh, "u_Alpha", alpha);
 
         TextureManager texMgr = Minecraft.getInstance().getTextureManager();
@@ -360,13 +338,13 @@ public class PmxCustomRenderer extends PmxRenderBase {
         set4f(sh, "u_TexMulFactor", tm[0], tm[1], tm[2], tm[3]);
         set4f(sh, "u_TexAddFactor", ta[0], ta[1], ta[2], ta[3]);
 
-        set1i(sh, "u_SphereTexMode", FLAT_ENV_LIGHTING ? 0 : gpu.sphereMode);
+        set1i(sh, "u_SphereTexMode", gpu.sphereMode);
         float[] spMul = mat.sphereMul();
         float[] spAdd = mat.sphereAdd();
         set4f(sh, "u_SphereTexMulFactor", spMul[0], spMul[1], spMul[2], spMul[3]);
         set4f(sh, "u_SphereTexAddFactor", spAdd[0], spAdd[1], spAdd[2], spAdd[3]);
 
-        set1i(sh, "u_ToonTexMode", FLAT_ENV_LIGHTING ? 0 : gpu.toonMode);
+        set1i(sh, "u_ToonTexMode", gpu.toonMode);
         float[] toonMul = mat.toonMul();
         float[] toonAdd = mat.toonAdd();
         set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
@@ -464,16 +442,6 @@ public class PmxCustomRenderer extends PmxRenderBase {
         Matrix3f viewRot = new Matrix3f(invView).invert();
         viewRot.transform(dir);
         return new float[] {dir.x, dir.y, dir.z};
-    }
-
-    private static float getEnvLight(AbstractClientPlayer player) {
-        Level level = player.level();
-        int packed = LevelRenderer.getLightColor(level, player.blockPosition());
-        int sky = LightTexture.sky(packed);
-        int block = LightTexture.block(packed);
-        float skyBr = LightTexture.getBrightness(level.dimensionType(), sky);
-        float blockBr = LightTexture.getBrightness(level.dimensionType(), block);
-        return Mth.clamp(Math.max(skyBr, blockBr), 0.0f, 1.0f);
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
