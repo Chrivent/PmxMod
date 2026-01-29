@@ -54,9 +54,8 @@ public class PmxModelSelectScreen extends Screen {
         int rowY = this.height - 32;
         int padding = 6;
         int margin = 10;
-        int maxItemWidth = 150;
         int totalWidth = this.width - margin * 2;
-        int itemWidth = Math.min(maxItemWidth, (totalWidth - padding * 2) / 3);
+        int itemWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, (totalWidth - padding * 2) / 3);
         int leftX = margin;
         int rightX = this.width - margin - itemWidth;
         int midX = (this.width - itemWidth) / 2;

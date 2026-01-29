@@ -29,7 +29,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void addFooterButtons(int listBottom) {
-        int btnWidth = 110;
+        int btnWidth = GuiUtil.FOOTER_BUTTON_WIDTH;
         addRenderableWidget(Button.builder(
                 Component.translatable("pmx.button.add_state"),
                 b -> {
@@ -44,7 +44,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
         ).bounds(12 + btnWidth + 6, listBottom + 6, btnWidth, 20).build());
         updateRemoveButtonState();
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
+                .bounds(this.width - 12 - btnWidth, listBottom + 6, btnWidth, 20).build());
     }
 
     void addCustomState(String name) {
