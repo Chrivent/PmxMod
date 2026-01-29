@@ -7,7 +7,7 @@ import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -63,7 +63,9 @@ public class PmxVanillaRenderer {
         ByteBuffer idxBuf = instance.idxBuf().duplicate().order(ByteOrder.nativeOrder());
 
         int elemSize = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(instance.handle());
-        int light = LightTexture.FULL_BRIGHT;
+        int light = player.level() != null
+                ? LevelRenderer.getLightColor(player.level(), player.blockPosition())
+                : net.minecraft.client.renderer.LightTexture.FULL_BRIGHT;
         MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
         SubmeshInfo[] subs = instance.submeshes();
         if (subs != null) {
@@ -153,44 +155,9 @@ public class PmxVanillaRenderer {
     }
 
     private RenderType getRenderType(ResourceLocation rl, boolean translucent) {
-        if (!translucent) {
-            return RenderType.dragonExplosionAlpha(rl);
-        }
-        RenderType emissive = tryGetEmissiveRenderType(rl);
-        if (emissive != null) return emissive;
-        RenderType noShade = tryGetNoShadeRenderType(rl);
-        if (noShade != null) return noShade;
-        return RenderType.entityTranslucent(rl);
-    }
-
-    private RenderType tryGetEmissiveRenderType(ResourceLocation rl) {
-        String[] methodNames = new String[] {"entityTranslucentEmissive", "entityTranslucentCullEmissive"};
-        for (String name : methodNames) {
-            try {
-                java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
-                Object out = method.invoke(null, rl);
-                if (out instanceof RenderType rt) {
-                    return rt;
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        return null;
-    }
-
-    private RenderType tryGetNoShadeRenderType(ResourceLocation rl) {
-        String[] methodNames = new String[] {"entityTranslucentNoOutline", "entityTranslucent", "entityTranslucentCull"};
-        for (String name : methodNames) {
-            try {
-                java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
-                Object out = method.invoke(null, rl);
-                if (out instanceof RenderType rt) {
-                    return rt;
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        return null;
+        return translucent
+                ? RenderType.entityTranslucent(rl)
+                : RenderType.entityCutoutNoCull(rl);
     }
 
 
