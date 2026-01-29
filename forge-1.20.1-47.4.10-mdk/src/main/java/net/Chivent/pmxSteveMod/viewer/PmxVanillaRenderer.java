@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PmxVanillaRenderer {
-    private record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
+    private record TextureEntry(ResourceLocation rl) {}
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private int textureIdCounter = 0;
     private ResourceLocation magentaTex = null;
@@ -44,7 +44,7 @@ public class PmxVanillaRenderer {
                              PoseStack poseStack) {
         if (!instance.isReady() || instance.handle() == 0L) return;
         if (instance.idxBuf() == null || instance.posBuf() == null
-                || instance.nrmBuf() == null || instance.uvBuf() == null) {
+                || instance.uvBuf() == null) {
             return;
         }
 
@@ -77,10 +77,7 @@ public class PmxVanillaRenderer {
                 ResourceLocation rl = tex != null ? tex.rl : ensureMagentaTexture();
                 boolean translucent = alpha < 0.999f;
                 RenderType type = rl != null ? getRenderType(rl, translucent) : null;
-                VertexConsumer vc = null;
-                if (type != null) {
-                    vc = buffer.getBuffer(type);
-                }
+                VertexConsumer vc = type != null ? buffer.getBuffer(type) : null;
 
                 if (vc == null) continue;
                 drawSubmesh(vc, sub, posBuf, uvBuf, idxBuf, elemSize,
@@ -208,12 +205,11 @@ public class PmxVanillaRenderer {
         try (InputStream in = Files.newInputStream(resolved)) {
             NativeImage img = NativeImage.read(in);
             img.flipY();
-            boolean hasAlpha = imageHasAnyAlpha(img);
             DynamicTexture dt = new DynamicTexture(img);
             TextureManager tm = Minecraft.getInstance().getTextureManager();
             String id = "pmx/vanilla_tex_" + Integer.toUnsignedString(++textureIdCounter);
             ResourceLocation rl = tm.register(id, dt);
-            TextureEntry entry = new TextureEntry(rl, hasAlpha);
+            TextureEntry entry = new TextureEntry(rl);
             textureCache.put(key, entry);
             return entry;
         } catch (Throwable ignored) {
@@ -247,16 +243,4 @@ public class PmxVanillaRenderer {
         }
     }
 
-    private static boolean imageHasAnyAlpha(NativeImage img) {
-        int w = img.getWidth();
-        int h = img.getHeight();
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int rgba = img.getPixelRGBA(x, y);
-                int a = (rgba >>> 24) & 0xFF;
-                if (a != 0xFF) return true;
-            }
-        }
-        return false;
-    }
 }
