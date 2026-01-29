@@ -79,7 +79,7 @@ public class PmxVanillaRenderer {
 
                 TextureEntry tex = getOrLoadMainTexture(instance, mat.mainTexPath());
                 ResourceLocation rl = tex != null ? tex.rl : ensureMagentaTexture();
-                boolean translucent = alpha < 0.999f || (tex != null && tex.hasAlpha);
+                boolean translucent = alpha < 0.999f;
                 RenderType type = rl != null ? getRenderType(rl, translucent) : null;
                 VertexConsumer vc = null;
                 if (type != null) {
