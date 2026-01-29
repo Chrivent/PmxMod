@@ -16,7 +16,6 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -32,13 +31,11 @@ public class PmxVanillaRenderer {
     private final Map<String, TextureEntry> textureCache = new HashMap<>();
     private int textureIdCounter = 0;
     private ResourceLocation magentaTex = null;
-    private ResourceLocation whiteTex = null;
 
     public void onViewerShutdown() {
         textureCache.clear();
         textureIdCounter = 0;
         magentaTex = null;
-        whiteTex = null;
     }
 
     public void renderPlayer(PmxInstance instance,
@@ -62,7 +59,6 @@ public class PmxVanillaRenderer {
         Matrix3f normalMat = poseStack.last().normal();
 
         ByteBuffer posBuf = instance.posBuf().duplicate().order(ByteOrder.nativeOrder());
-        ByteBuffer nrmBuf = instance.nrmBuf().duplicate().order(ByteOrder.nativeOrder());
         ByteBuffer uvBuf = instance.uvBuf().duplicate().order(ByteOrder.nativeOrder());
         ByteBuffer idxBuf = instance.idxBuf().duplicate().order(ByteOrder.nativeOrder());
 
@@ -92,9 +88,6 @@ public class PmxVanillaRenderer {
                         alpha, light);
             }
         }
-
-        drawEdgePass(instance, subs, posBuf, nrmBuf, uvBuf, idxBuf, elemSize,
-                pose, normalMat, buffer, light);
 
         buffer.endBatch();
         poseStack.popPose();
@@ -127,58 +120,6 @@ public class PmxVanillaRenderer {
         }
     }
 
-    private void drawEdgePass(PmxInstance instance,
-                              SubmeshInfo[] subs,
-                              ByteBuffer posBuf,
-                              ByteBuffer nrmBuf,
-                              ByteBuffer uvBuf,
-                              ByteBuffer idxBuf,
-                              int elemSize,
-                              Matrix4f pose,
-                              Matrix3f normalMat,
-                              MultiBufferSource.BufferSource buffer,
-                              int light) {
-        if (subs == null) return;
-        ResourceLocation white = ensureWhiteTexture();
-        if (white == null) return;
-        RenderType edgeType = RenderType.entityTranslucent(white);
-        VertexConsumer vc = buffer.getBuffer(edgeType);
-        float expandScale = 0.02f;
-
-        for (SubmeshInfo sub : subs) {
-            MaterialInfo mat = instance.material(sub.materialId());
-            if (mat == null || !mat.edgeFlag()) continue;
-            if (mat.alpha() <= 0.0f) continue;
-
-            int begin = sub.beginIndex();
-            int count = sub.indexCount();
-            if (begin < 0 || count <= 0) continue;
-            count -= (count % 3);
-            if (count <= 0) continue;
-
-            float[] edgeColor = mat.edgeColor();
-            float r = edgeColor[0];
-            float g = edgeColor[1];
-            float b = edgeColor[2];
-            float a = edgeColor[3];
-            float expand = mat.edgeSize() * expandScale;
-
-            for (int i = 0; i + 2 < count; i += 3) {
-                int idx0 = readIndex(idxBuf, elemSize, begin + i);
-                int idx1 = readIndex(idxBuf, elemSize, begin + i + 1);
-                int idx2 = readIndex(idxBuf, elemSize, begin + i + 2);
-                addVertexExpanded(vc, pose, normalMat, posBuf, nrmBuf, uvBuf,
-                        idx0, expand, r, g, b, a, light);
-                addVertexExpanded(vc, pose, normalMat, posBuf, nrmBuf, uvBuf,
-                        idx1, expand, r, g, b, a, light);
-                addVertexExpanded(vc, pose, normalMat, posBuf, nrmBuf, uvBuf,
-                        idx2, expand, r, g, b, a, light);
-                addVertexExpanded(vc, pose, normalMat, posBuf, nrmBuf, uvBuf,
-                        idx2, expand, r, g, b, a, light);
-            }
-        }
-    }
-
     private void addVertex(VertexConsumer vc,
                            Matrix4f pose,
                            Matrix3f normalMat,
@@ -205,50 +146,6 @@ public class PmxVanillaRenderer {
                 .endVertex();
     }
 
-    private void addVertexExpanded(VertexConsumer vc,
-                                   Matrix4f pose,
-                                   Matrix3f normalMat,
-                                   ByteBuffer posBuf,
-                                   ByteBuffer nrmBuf,
-                                   ByteBuffer uvBuf,
-                                   int index,
-                                   float expand,
-                                   float r,
-                                   float g,
-                                   float b,
-                                   float a,
-                                   int light) {
-        int posBase = index * 12;
-        float x = posBuf.getFloat(posBase);
-        float y = posBuf.getFloat(posBase + 4);
-        float z = posBuf.getFloat(posBase + 8);
-
-        int uvBase = index * 8;
-        float u = uvBuf.getFloat(uvBase);
-        float v = uvBuf.getFloat(uvBase + 4);
-
-        int nrmBase = index * 12;
-        float nx = nrmBuf.getFloat(nrmBase);
-        float ny = nrmBuf.getFloat(nrmBase + 4);
-        float nz = nrmBuf.getFloat(nrmBase + 8);
-
-        Vector3f n = new Vector3f(nx, ny, nz);
-        if (n.lengthSquared() > 1.0e-6f) {
-            n.normalize();
-        }
-        x += n.x * expand;
-        y += n.y * expand;
-        z += n.z * expand;
-
-        vc.vertex(pose, x, y, z)
-                .color(r, g, b, a)
-                .uv(u, v)
-                .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
-                .uv2(light)
-                .normal(normalMat, 0.0f, 1.0f, 0.0f)
-                .endVertex();
-    }
-
     private static int readIndex(ByteBuffer idxBuf, int elemSize, int index) {
         int offset = index * elemSize;
         return switch (elemSize) {
@@ -262,17 +159,15 @@ public class PmxVanillaRenderer {
         if (!translucent) {
             return RenderType.dragonExplosionAlpha(rl);
         }
-        RenderType emissive = tryGetEmissiveRenderType(rl, true);
+        RenderType emissive = tryGetEmissiveRenderType(rl);
         if (emissive != null) return emissive;
-        RenderType noShade = tryGetNoShadeRenderType(rl, true);
+        RenderType noShade = tryGetNoShadeRenderType(rl);
         if (noShade != null) return noShade;
         return RenderType.entityTranslucent(rl);
     }
 
-    private RenderType tryGetEmissiveRenderType(ResourceLocation rl, boolean translucent) {
-        String[] methodNames = translucent
-                ? new String[] {"entityTranslucentEmissive", "entityTranslucentCullEmissive"}
-                : new String[] {"entityCutoutNoCullEmissive", "entityCutoutEmissive"};
+    private RenderType tryGetEmissiveRenderType(ResourceLocation rl) {
+        String[] methodNames = new String[] {"entityTranslucentEmissive", "entityTranslucentCullEmissive"};
         for (String name : methodNames) {
             try {
                 java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
@@ -286,10 +181,8 @@ public class PmxVanillaRenderer {
         return null;
     }
 
-    private RenderType tryGetNoShadeRenderType(ResourceLocation rl, boolean translucent) {
-        String[] methodNames = translucent
-                ? new String[] {"entityTranslucentNoOutline", "entityTranslucent", "entityTranslucentCull"}
-                : new String[] {"entityCutoutNoCull", "entityCutout"};
+    private RenderType tryGetNoShadeRenderType(ResourceLocation rl) {
+        String[] methodNames = new String[] {"entityTranslucentNoOutline", "entityTranslucent", "entityTranslucentCull"};
         for (String name : methodNames) {
             try {
                 java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
@@ -337,20 +230,6 @@ public class PmxVanillaRenderer {
             TextureManager tm = Minecraft.getInstance().getTextureManager();
             magentaTex = tm.register("pmx/vanilla_magenta", dt);
             return magentaTex;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private ResourceLocation ensureWhiteTexture() {
-        if (whiteTex != null) return whiteTex;
-        try {
-            NativeImage img = new NativeImage(1, 1, false);
-            img.setPixelRGBA(0, 0, 0xFFFFFFFF);
-            DynamicTexture dt = new DynamicTexture(img);
-            TextureManager tm = Minecraft.getInstance().getTextureManager();
-            whiteTex = tm.register("pmx/vanilla_white", dt);
-            return whiteTex;
         } catch (Throwable ignored) {
             return null;
         }
