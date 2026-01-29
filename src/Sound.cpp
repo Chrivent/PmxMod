@@ -1,5 +1,7 @@
 #include "Sound.h"
 
+#include <algorithm>
+
 #define MINIAUDIO_IMPLEMENTATION
 #include "../external/miniaudio.h"
 
@@ -36,6 +38,13 @@ bool Sound::Init(const std::filesystem::path& path, const bool loop) {
     m_hasSound = true;
     m_prevTimeSec = 0.0;
     return true;
+}
+
+void Sound::SetVolume(const float volume) {
+    m_volume = std::clamp(volume, 0.0f, 1.0f);
+    if (m_hasSound) {
+        ma_sound_set_volume(m_sound.get(), m_volume);
+    }
 }
 
 std::pair<float, float> Sound::PullTimes() {

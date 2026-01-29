@@ -363,6 +363,11 @@ public class PmxInstance {
                 double lengthSec = 0.0;
                 if (musicActive) {
                     lengthSec = PmxNative.nativeGetMusicLengthSec(handle);
+                    try {
+                        float volume = net.Chivent.pmxSteveMod.client.settings.PmxSoundSettingsStore.get().getMusicVolume();
+                        PmxNative.nativeSetMusicVolume(handle, volume);
+                    } catch (UnsatisfiedLinkError ignored) {
+                    }
                 }
                 currentMusicEndFrame = lengthSec > 0.0 ? (float) (lengthSec * 30.0) : 0f;
                 boolean musicLonger = musicSync
@@ -415,6 +420,15 @@ public class PmxInstance {
             try { PmxNative.nativeStopMusic(handle); } catch (Throwable ignored) {}
         }
         musicActive = false;
+    }
+
+    public void setMusicVolume(float volume) {
+        if (handle == 0L) return;
+        float v = Math.max(0.0f, Math.min(1.0f, volume));
+        try {
+            PmxNative.nativeSetMusicVolume(handle, v);
+        } catch (UnsatisfiedLinkError ignored) {
+        }
     }
 
     public void resetToDefaultPose() {

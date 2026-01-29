@@ -16,6 +16,7 @@ struct Sound {
 
     bool Init(const std::filesystem::path& path, bool loop);
     double GetLengthSec() const { return m_lengthSec; }
+    void SetVolume(float volume);
     std::pair<float, float> PullTimes();
     void Stop();
 

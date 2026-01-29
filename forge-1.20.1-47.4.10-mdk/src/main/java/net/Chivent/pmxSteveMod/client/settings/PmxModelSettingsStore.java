@@ -2,7 +2,6 @@ package net.Chivent.pmxSteveMod.client.settings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,14 +60,7 @@ public final class PmxModelSettingsStore {
     private void ensureLoaded() {
         if (loaded) return;
         loaded = true;
-        if (!Files.exists(filePath)) return;
-        try (BufferedReader reader = Files.newBufferedReader(filePath)) {
-            StoreData loadedData = GSON.fromJson(reader, StoreData.class);
-            if (loadedData != null) {
-                data = loadedData;
-            }
-        } catch (Exception ignored) {
-        }
+        data = PmxJsonStoreUtil.loadJson(GSON, filePath, StoreData.class, data);
     }
 
     private void writeFile() {

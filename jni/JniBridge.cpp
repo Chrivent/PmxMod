@@ -281,7 +281,6 @@ extern "C" {
         auto* rt = FromHandle(handle);
         if (!rt) return JNI_FALSE;
         const auto path = JStringToPath(env, musicPath);
-        rt->music.m_volume = 1.0f;
         const bool ok = rt->music.Init(path, loop == JNI_TRUE);
         return ok ? JNI_TRUE : JNI_FALSE;
     }
@@ -291,6 +290,13 @@ extern "C" {
         const auto* rt = FromHandle(handle);
         if (!rt) return 0.0;
         return rt->music.GetLengthSec();
+    }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSetMusicVolume(
+        JNIEnv*, jclass, const jlong handle, const jfloat volume) {
+        auto* rt = FromHandle(handle);
+        if (!rt) return;
+        rt->music.SetVolume(volume);
     }
 
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeStopMusic(
