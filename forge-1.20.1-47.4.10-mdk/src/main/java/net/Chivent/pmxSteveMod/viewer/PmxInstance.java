@@ -35,6 +35,9 @@ public class PmxInstance {
     private ByteBuffer posBuf;
     private ByteBuffer nrmBuf;
     private ByteBuffer uvBuf;
+    private int vertexCount;
+    private int indexCount;
+    private int indexElementSize;
 
     private Path pmxBaseDir = null;
 
@@ -54,6 +57,9 @@ public class PmxInstance {
     public ByteBuffer posBuf() { return posBuf; }
     public ByteBuffer nrmBuf() { return nrmBuf; }
     public ByteBuffer uvBuf()  { return uvBuf;  }
+    public int vertexCount() { return vertexCount; }
+    public int indexCount() { return indexCount; }
+    public int indexElementSize() { return indexElementSize; }
 
     public SubmeshInfo[] submeshes() { return submeshes; }
 
@@ -329,6 +335,10 @@ public class PmxInstance {
         int vertexCount = PmxNative.nativeGetVertexCount(handle);
         int indexCount  = PmxNative.nativeGetIndexCount(handle);
         int elemSize    = PmxNative.nativeGetIndexElementSize(handle);
+
+        this.vertexCount = Math.max(0, vertexCount);
+        this.indexCount = Math.max(0, indexCount);
+        this.indexElementSize = Math.max(0, elemSize);
 
         idxBuf = ByteBuffer.allocateDirect(indexCount * elemSize).order(ByteOrder.nativeOrder());
         posBuf = ByteBuffer.allocateDirect(vertexCount * 3 * 4).order(ByteOrder.nativeOrder());

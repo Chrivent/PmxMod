@@ -30,7 +30,8 @@ public final class PlayerRenderHooks {
         net.minecraft.client.player.AbstractClientPlayer player =
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity();
         if (USE_VANILLA_RENDERER) {
-            VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(), event.getPoseStack());
+            VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(),
+                    event.getPoseStack(), event.getMultiBufferSource(), event.getPackedLight());
         } else {
             RENDERER.renderPlayer(instance, player, event.getPartialTick(), event.getPoseStack());
         }
