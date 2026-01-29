@@ -17,6 +17,7 @@
   "pmx.screen.sound_settings.title": "PMXサウンド",
   "pmx.screen.emote_wheel.title": "エモート選択",
   "pmx.button.add_state": "状態追加",
+  "pmx.button.remove_state": "状態削除",
   "pmx.button.state_settings": "状態設定",
   "pmx.button.slot_settings": "スロット設定",
   "pmx.button.add": "追加",

@@ -17,6 +17,7 @@
   "pmx.screen.sound_settings.title": "PMX Sound",
   "pmx.screen.emote_wheel.title": "Emote Wheel",
   "pmx.button.add_state": "Add State",
+  "pmx.button.remove_state": "Remove State",
   "pmx.button.state_settings": "State Settings",
   "pmx.button.slot_settings": "Slot Settings",
   "pmx.button.add": "Add",

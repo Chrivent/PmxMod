@@ -75,7 +75,6 @@ public class PmxAddStateScreen extends Screen {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, 40, 0xFFFFFF);
         graphics.drawCenteredString(this.font, Component.translatable("pmx.settings.label.state_presets"),
                 this.width / 2, presetLabelY, 0xC0C0C0);
         super.render(graphics, mouseX, mouseY, partialTick);

@@ -37,6 +37,10 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
                     }
                 }
         ).bounds(12, listBottom + 6, btnWidth, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("pmx.button.remove_state"),
+                b -> removeSelectedState()
+        ).bounds(12 + btnWidth + 6, listBottom + 6, btnWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
                 .bounds((this.width - btnWidth) / 2, listBottom + 6, btnWidth, 20).build());
     }
@@ -84,6 +88,18 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     @Override
     protected boolean allowMotionLoopToggle(SettingsRow row) {
         return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
+    }
+
+    private void removeSelectedState() {
+        if (selectedRow == null) return;
+        if (!selectedRow.custom || selectedRow.slotIndex == IDLE_SLOT_INDEX) return;
+        rows.remove(selectedRow);
+        if (list != null) {
+            list.removeRow(selectedRow);
+        }
+        selectedRow = null;
+        markWidthsDirty();
+        saveSettings(null);
     }
 
     @Override

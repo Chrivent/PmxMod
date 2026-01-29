@@ -384,6 +384,23 @@ public abstract class PmxSettingsScreenBase extends Screen {
             addEntry(new PmxSettingsEntry(row));
         }
 
+        public void removeRow(SettingsRow row) {
+            if (row == null) return;
+            PmxSettingsEntry toRemove = null;
+            for (PmxSettingsEntry entry : this.children()) {
+                if (entry.rowRef() == row) {
+                    toRemove = entry;
+                    break;
+                }
+            }
+            if (toRemove != null) {
+                this.children().remove(toRemove);
+                if (getSelected() == toRemove) {
+                    setSelected(null);
+                }
+            }
+        }
+
         public int getListLeft() {
             return this.getRowLeft();
         }
@@ -463,10 +480,11 @@ public abstract class PmxSettingsScreenBase extends Screen {
                     int left = colX[i];
                     int right = left + colW[i];
                     if (mouseX < left || mouseX > right) continue;
-                    if (screen.list != null) {
+                    if (screen.list != null && screen.isSelectableRow(row)) {
                         screen.list.setSelected(this);
+                        screen.selectedRow = row;
+                        screen.onSelectionChanged();
                     }
-                    screen.selectedRow = row;
                     switch (i) {
                         case 2 -> {
                             if (screen.allowMotionLoopToggle(row)) {
@@ -530,5 +548,12 @@ public abstract class PmxSettingsScreenBase extends Screen {
                 }
             }
         }
+    }
+
+    protected boolean isSelectableRow(SettingsRow row) {
+        return true;
+    }
+
+    protected void onSelectionChanged() {
     }
 }

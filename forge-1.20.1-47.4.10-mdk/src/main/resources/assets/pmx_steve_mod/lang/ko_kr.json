@@ -17,6 +17,7 @@
   "pmx.screen.sound_settings.title": "PMX 사운드",
   "pmx.screen.emote_wheel.title": "감정표현 선택",
   "pmx.button.add_state": "상태 추가",
+  "pmx.button.remove_state": "상태 제거",
   "pmx.button.state_settings": "상태 설정",
   "pmx.button.slot_settings": "슬롯 설정",
   "pmx.button.add": "추가",
