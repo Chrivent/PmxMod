@@ -52,13 +52,30 @@ public class PmxModelSelectScreen extends Screen {
         startWatcher();
 
         int rowY = this.height - 32;
+        int padding = 6;
+        int minSliderWidth = 120;
+        int sliderWidth = 200;
+        int buttonWidth = 110;
+        int total = sliderWidth + buttonWidth * 2 + padding * 2;
+        if (total > this.width - 20) {
+            sliderWidth = Math.max(minSliderWidth, this.width - 20 - buttonWidth * 2 - padding * 2);
+            total = sliderWidth + buttonWidth * 2 + padding * 2;
+        }
+        if (total > this.width - 20) {
+            buttonWidth = 90;
+            sliderWidth = Math.max(minSliderWidth, this.width - 20 - buttonWidth * 2 - padding * 2);
+            total = sliderWidth + buttonWidth * 2 + padding * 2;
+        }
+        int startX = (this.width - total) / 2;
+        float volume = net.Chivent.pmxSteveMod.client.settings.PmxSoundSettingsStore.get().getMusicVolume();
+        addRenderableWidget(new PmxVolumeSlider(startX, rowY, sliderWidth, 20, volume));
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.open_folder"), b -> {
             if (modelDir != null) {
                 Util.getPlatform().openFile(modelDir.toFile());
             }
-        }).bounds(this.width / 2 - 155, rowY, 150, 20).build());
+        }).bounds(startX + sliderWidth + padding, rowY, buttonWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(this.width / 2 + 5, rowY, 150, 20).build());
+                .bounds(startX + sliderWidth + padding + buttonWidth + padding, rowY, buttonWidth, 20).build());
     }
 
     private void reloadList() {
@@ -88,6 +105,27 @@ public class PmxModelSelectScreen extends Screen {
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
         GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
+    }
+
+    private static final class PmxVolumeSlider extends net.minecraft.client.gui.components.AbstractSliderButton {
+        private PmxVolumeSlider(int x, int y, int width, int height, float value) {
+            super(x, y, width, height, Component.empty(), value);
+            updateMessage();
+        }
+
+        @Override
+        protected void updateMessage() {
+            int percent = Math.round((float) value * 100.0f);
+            Component label = Component.translatable("pmx.settings.sound_volume");
+            setMessage(Component.literal(label.getString() + ": " + percent + "%"));
+        }
+
+        @Override
+        protected void applyValue() {
+            float volume = (float) value;
+            net.Chivent.pmxSteveMod.client.settings.PmxSoundSettingsStore.get().setMusicVolume(volume);
+            net.Chivent.pmxSteveMod.viewer.PmxViewer.get().instance().setMusicVolume(volume);
+        }
     }
 
     private void renderInfoPanel(@NotNull GuiGraphics graphics) {
