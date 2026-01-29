@@ -63,9 +63,7 @@ public class PmxVanillaRenderer {
         ByteBuffer idxBuf = instance.idxBuf().duplicate().order(ByteOrder.nativeOrder());
 
         int elemSize = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(instance.handle());
-        int light = player.level() != null
-                ? LevelRenderer.getLightColor(player.level(), player.blockPosition())
-                : net.minecraft.client.renderer.LightTexture.FULL_BRIGHT;
+        int light = LevelRenderer.getLightColor(player.level(), player.blockPosition());
         MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
         SubmeshInfo[] subs = instance.submeshes();
         if (subs != null) {

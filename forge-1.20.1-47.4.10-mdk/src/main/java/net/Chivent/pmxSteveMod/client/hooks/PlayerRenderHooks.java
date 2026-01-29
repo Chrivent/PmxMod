@@ -12,7 +12,7 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = PmxSteveMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class PlayerRenderHooks {
-    private static final boolean USE_VANILLA_RENDERER = true;
+    private static final boolean USE_VANILLA_RENDERER = false;
     private static final PmxRenderer RENDERER = new PmxRenderer();
     private static final PmxVanillaRenderer VANILLA_RENDERER = new PmxVanillaRenderer();
     private PlayerRenderHooks() {}
