@@ -69,7 +69,6 @@ public class PmxVanillaRenderer {
         int elemSize = net.Chivent.pmxSteveMod.jni.PmxNative.nativeGetIndexElementSize(instance.handle());
         int light = LightTexture.pack(15, 15);
         MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
-
         SubmeshInfo[] subs = instance.submeshes();
         if (subs != null) {
             for (SubmeshInfo sub : subs) {
@@ -81,20 +80,16 @@ public class PmxVanillaRenderer {
                 TextureEntry tex = getOrLoadMainTexture(instance, mat.mainTexPath());
                 ResourceLocation rl = tex != null ? tex.rl : ensureMagentaTexture();
                 boolean translucent = alpha < 0.999f || (tex != null && tex.hasAlpha);
-                RenderType type = null;
-                if (rl != null) {
-                    type = translucent
-                            ? RenderType.entityTranslucent(rl)
-                            : RenderType.entityCutoutNoCull(rl);
-                }
+                RenderType type = rl != null ? getRenderType(rl, translucent) : null;
                 VertexConsumer vc = null;
                 if (type != null) {
                     vc = buffer.getBuffer(type);
                 }
 
-                drawSubmesh(vc, sub, posBuf, nrmBuf, uvBuf, idxBuf, elemSize,
+                if (vc == null) continue;
+                drawSubmesh(vc, sub, posBuf, uvBuf, idxBuf, elemSize,
                         pose, normalMat,
-                        mat.diffuseRGBA(), alpha, light);
+                        alpha, light);
             }
         }
 
@@ -108,13 +103,11 @@ public class PmxVanillaRenderer {
     private void drawSubmesh(VertexConsumer vc,
                              SubmeshInfo sub,
                              ByteBuffer posBuf,
-                             ByteBuffer nrmBuf,
                              ByteBuffer uvBuf,
                              ByteBuffer idxBuf,
                              int elemSize,
                              Matrix4f pose,
                              Matrix3f normalMat,
-                             int diffuseRGBA,
                              float alpha,
                              int light) {
         int begin = sub.beginIndex();
@@ -123,18 +116,14 @@ public class PmxVanillaRenderer {
         count -= (count % 3);
         if (count <= 0) return;
 
-        float dr = ((diffuseRGBA >>> 24) & 0xFF) / 255.0f;
-        float dg = ((diffuseRGBA >>> 16) & 0xFF) / 255.0f;
-        float db = ((diffuseRGBA >>> 8) & 0xFF) / 255.0f;
-
         for (int i = 0; i + 2 < count; i += 3) {
             int idx0 = readIndex(idxBuf, elemSize, begin + i);
             int idx1 = readIndex(idxBuf, elemSize, begin + i + 1);
             int idx2 = readIndex(idxBuf, elemSize, begin + i + 2);
-            addVertex(vc, pose, normalMat, posBuf, nrmBuf, uvBuf, idx0, dr, dg, db, alpha, light);
-            addVertex(vc, pose, normalMat, posBuf, nrmBuf, uvBuf, idx1, dr, dg, db, alpha, light);
-            addVertex(vc, pose, normalMat, posBuf, nrmBuf, uvBuf, idx2, dr, dg, db, alpha, light);
-            addVertex(vc, pose, normalMat, posBuf, nrmBuf, uvBuf, idx2, dr, dg, db, alpha, light);
+            addVertex(vc, pose, normalMat, posBuf, uvBuf, idx0, alpha, light);
+            addVertex(vc, pose, normalMat, posBuf, uvBuf, idx1, alpha, light);
+            addVertex(vc, pose, normalMat, posBuf, uvBuf, idx2, alpha, light);
+            addVertex(vc, pose, normalMat, posBuf, uvBuf, idx2, alpha, light);
         }
     }
 
@@ -194,12 +183,8 @@ public class PmxVanillaRenderer {
                            Matrix4f pose,
                            Matrix3f normalMat,
                            ByteBuffer posBuf,
-                           ByteBuffer nrmBuf,
                            ByteBuffer uvBuf,
                            int index,
-                           float r,
-                           float g,
-                           float b,
                            float a,
                            int light) {
         int posBase = index * 12;
@@ -211,17 +196,12 @@ public class PmxVanillaRenderer {
         float u = uvBuf.getFloat(uvBase);
         float v = uvBuf.getFloat(uvBase + 4);
 
-        int nrmBase = index * 12;
-        float nx = nrmBuf.getFloat(nrmBase);
-        float ny = nrmBuf.getFloat(nrmBase + 4);
-        float nz = nrmBuf.getFloat(nrmBase + 8);
-
         vc.vertex(pose, x, y, z)
-                .color(r, g, b, a)
+                .color(1.0f, 1.0f, 1.0f, a)
                 .uv(u, v)
                 .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
                 .uv2(light)
-                .normal(normalMat, nx, ny, nz)
+                .normal(normalMat, 0.0f, 1.0f, 0.0f)
                 .endVertex();
     }
 
@@ -265,7 +245,7 @@ public class PmxVanillaRenderer {
                 .uv(u, v)
                 .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
                 .uv2(light)
-                .normal(normalMat, nx, ny, nz)
+                .normal(normalMat, 0.0f, 1.0f, 0.0f)
                 .endVertex();
     }
 
@@ -277,6 +257,51 @@ public class PmxVanillaRenderer {
             default -> idxBuf.getInt(offset);
         };
     }
+
+    private RenderType getRenderType(ResourceLocation rl, boolean translucent) {
+        RenderType emissive = tryGetEmissiveRenderType(rl, translucent);
+        if (emissive != null) return emissive;
+        RenderType noShade = tryGetNoShadeRenderType(rl, translucent);
+        if (noShade != null) return noShade;
+        return translucent
+                ? RenderType.entityTranslucent(rl)
+                : RenderType.entityCutoutNoCull(rl);
+    }
+
+    private RenderType tryGetEmissiveRenderType(ResourceLocation rl, boolean translucent) {
+        String[] methodNames = translucent
+                ? new String[] {"entityTranslucentEmissive", "entityTranslucentCullEmissive"}
+                : new String[] {"entityCutoutNoCullEmissive", "entityCutoutEmissive"};
+        for (String name : methodNames) {
+            try {
+                java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
+                Object out = method.invoke(null, rl);
+                if (out instanceof RenderType rt) {
+                    return rt;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return null;
+    }
+
+    private RenderType tryGetNoShadeRenderType(ResourceLocation rl, boolean translucent) {
+        String[] methodNames = translucent
+                ? new String[] {"entityTranslucentNoOutline", "entityTranslucent", "entityTranslucentCull"}
+                : new String[] {"entityCutoutNoCull", "entityCutout"};
+        for (String name : methodNames) {
+            try {
+                java.lang.reflect.Method method = RenderType.class.getMethod(name, ResourceLocation.class);
+                Object out = method.invoke(null, rl);
+                if (out instanceof RenderType rt) {
+                    return rt;
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        return null;
+    }
+
 
     private TextureEntry getOrLoadMainTexture(PmxInstance instance, String texPath) {
         if (texPath == null || texPath.isEmpty()) return null;
