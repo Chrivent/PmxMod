@@ -24,9 +24,11 @@ public class PmxSlotSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected void addFooterButtons(int listBottom) {
-        int btnWidth = GuiUtil.FOOTER_BUTTON_WIDTH;
+        int maxWidth = this.width - 24;
+        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(80, maxWidth));
+        int leftX = (this.width - btnWidth) / 2;
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
-                .bounds(this.width - 12 - btnWidth, listBottom + 6, btnWidth, 20).build());
+                .bounds(leftX, listBottom + 6, btnWidth, 20).build());
     }
 
     @Override
