@@ -53,27 +53,25 @@ public class PmxFileSelectScreen extends Screen {
         explicitNoneSelected = false;
         reloadList();
         startWatcher();
-        int btnGap = 10;
-        int avail = this.width - 20;
-        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(80, (avail - btnGap) / 2));
-        int totalWidth = btnWidth * 2 + btnGap;
+        GuiUtil.FooterButtons footer = GuiUtil.footerButtons(this.width, 80, 10);
         int rowY = this.height - 28;
         int rowY2 = rowY;
-        int leftX = (this.width - totalWidth) / 2;
-        if (totalWidth > avail) {
+        int leftX = footer.leftX();
+        if (footer.totalWidth() > footer.availWidth()) {
             rowY = this.height - 50;
             rowY2 = rowY + 22;
-            leftX = (this.width - btnWidth) / 2;
+            leftX = (this.width - footer.btnWidth()) / 2;
         }
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
                 openFolderLabel, b -> {
                     if (folder != null) {
                         net.minecraft.Util.getPlatform().openFile(folder.toFile());
                     }
-                }).bounds(leftX, rowY, btnWidth, 20).build());
+                }).bounds(leftX, rowY, footer.btnWidth(), 20).build());
         addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
                 Component.translatable("pmx.button.done"), b -> confirmSelection())
-                .bounds(totalWidth > avail ? leftX : leftX + btnWidth + btnGap, rowY2, btnWidth, 20).build());
+                .bounds(footer.totalWidth() > footer.availWidth() ? leftX : leftX + footer.btnWidth() + footer.gap(),
+                        rowY2, footer.btnWidth(), 20).build());
     }
 
     @Override

@@ -17,6 +17,17 @@ public final class GuiUtil {
     public static final ResourceLocation DEFAULT_SPRITE_ID =
             ResourceLocation.fromNamespaceAndPath("minecraft", "block/obsidian");
     public static final int FOOTER_BUTTON_WIDTH = 110;
+    private static final int FOOTER_SIDE_PADDING = 20;
+
+    public record FooterButtons(int btnWidth, int totalWidth, int leftX, int availWidth, int gap) {}
+
+    public static FooterButtons footerButtons(int screenWidth, int minWidth, int gap) {
+        int avail = screenWidth - FOOTER_SIDE_PADDING;
+        int btnWidth = Math.min(FOOTER_BUTTON_WIDTH, Math.max(minWidth, (avail - gap) / 2));
+        int totalWidth = btnWidth * 2 + gap;
+        int leftX = (screenWidth - totalWidth) / 2;
+        return new FooterButtons(btnWidth, totalWidth, leftX, avail, gap);
+    }
 
     public static void renderDefaultBackground(GuiGraphics graphics, int width, int height) {
         renderTiledBackground(graphics, width, height, DEFAULT_SPRITE_ID, 32, 32, 0x55000000, 0x77000000);

@@ -15,6 +15,11 @@ import java.util.List;
 public class PmxAddStateScreen extends Screen {
     private final PmxStateSettingsScreen parent;
     private PmxStateList list;
+    private Component selectedPose;
+    private Component selectedAnim;
+    private Button doneButton;
+    private int listTop;
+    private int listBottom;
 
     public PmxAddStateScreen(PmxStateSettingsScreen parent) {
         super(Component.translatable("pmx.screen.add_state.title"));
@@ -25,8 +30,8 @@ public class PmxAddStateScreen extends Screen {
     protected void init() {
         List<Category> categories = buildCategories();
 
-        int listTop = 40;
-        int listBottom = this.height - 36;
+        listTop = 40;
+        listBottom = this.height - 36;
         list = new PmxStateList(this.minecraft, this.width - 40, listBottom - listTop,
                 listTop, listBottom, 22, categories);
         list.setLeftPos(20);
@@ -34,11 +39,13 @@ public class PmxAddStateScreen extends Screen {
         list.setRenderTopAndBottom(false);
         addWidget(list);
 
-        int maxWidth = this.width - 24;
-        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(80, maxWidth));
-        int leftX = (this.width - btnWidth) / 2;
+        GuiUtil.FooterButtons footer = GuiUtil.footerButtons(this.width, 80, 10);
+        int rowY = this.height - 28;
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.cancel"), b -> onClose())
-                .bounds(leftX, this.height - 28, btnWidth, 20).build());
+                .bounds(footer.leftX(), rowY, footer.btnWidth(), 20).build());
+        doneButton = addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> confirmSelection())
+                .bounds(footer.leftX() + footer.btnWidth() + footer.gap(), rowY, footer.btnWidth(), 20).build());
+        doneButton.active = false;
     }
 
     @Override
@@ -46,6 +53,8 @@ public class PmxAddStateScreen extends Screen {
         this.renderBackground(graphics);
         if (list != null) {
             list.render(graphics, mouseX, mouseY, partialTick);
+            int sepX = list.separatorX();
+            graphics.fill(sepX, listTop, sepX + 1, listBottom, 0x66FFFFFF);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }
@@ -53,6 +62,29 @@ public class PmxAddStateScreen extends Screen {
     @Override
     public void onClose() {
         Minecraft.getInstance().setScreen(parent);
+    }
+
+    private void confirmSelection() {
+        if (selectedPose == null || selectedAnim == null) return;
+        String label = selectedPose.getString() + " / " + selectedAnim.getString();
+        parent.addCustomState(label);
+        Minecraft.getInstance().setScreen(parent);
+    }
+
+    private void onPickPose(Component label) {
+        selectedPose = label;
+        updateDoneState();
+    }
+
+    private void onPickAnim(Component label) {
+        selectedAnim = label;
+        updateDoneState();
+    }
+
+    private void updateDoneState() {
+        if (doneButton != null) {
+            doneButton.active = selectedPose != null && selectedAnim != null;
+        }
     }
 
     private List<Category> buildCategories() {
@@ -117,9 +149,8 @@ public class PmxAddStateScreen extends Screen {
 
     private final class PmxStateList extends AbstractSelectionList<PmxStateList.Entry> {
         private final List<Category> categories;
-        private int columns = 1;
         private int buttonWidth = 90;
-        private int buttonGap = 6;
+        private final int buttonGap = 6;
 
         private PmxStateList(Minecraft minecraft, int width, int height,
                              int y0, int y1, int itemHeight, List<Category> categories) {
@@ -144,7 +175,7 @@ public class PmxAddStateScreen extends Screen {
         }
 
         private void recalcLayout(int width) {
-            columns = categories.size();
+            int columns = categories.size();
             int available = Math.max(0, width - (buttonGap * Math.max(0, columns - 1)));
             int minBtn = 80;
             int maxBtn = 140;
@@ -166,15 +197,24 @@ public class PmxAddStateScreen extends Screen {
         public void updateNarration(@NotNull net.minecraft.client.gui.narration.NarrationElementOutput output) {
         }
 
-        private abstract class Entry extends AbstractSelectionList.Entry<Entry> {}
+        @Override
+        protected void renderSelection(@NotNull GuiGraphics graphics, int y, int entryWidth, int entryHeight,
+                                       int borderColor, int fillColor) {
+            // Selection handled by per-button highlight.
+        }
+
+        int separatorX() {
+            return this.getRowLeft() + buttonWidth + buttonGap / 2;
+        }
+
+        private abstract static class Entry extends AbstractSelectionList.Entry<Entry> {}
 
         private final class HeaderEntry extends Entry {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
-                int startX = x;
                 for (int i = 0; i < categories.size(); i++) {
-                    int bx = startX + i * (buttonWidth + buttonGap);
+                    int bx = x + i * (buttonWidth + buttonGap);
                     Component label = categories.get(i).label();
                     graphics.drawCenteredString(font, label, bx + buttonWidth / 2, y + 5, 0xC0C0C0);
                 }
@@ -197,24 +237,32 @@ public class PmxAddStateScreen extends Screen {
                 lastX = x;
                 lastY = y;
                 lastHeight = height;
-                int startX = x;
                 for (int i = 0; i < categories.size(); i++) {
                     List<Component> items = categories.get(i).items();
                     if (rowIndex >= items.size()) continue;
                     Component label = items.get(rowIndex);
-                    int bx = startX + i * (buttonWidth + buttonGap);
-                    renderButton(graphics, bx, y + 2, buttonWidth, height - 4, label, mouseX, mouseY);
+                    int bx = x + i * (buttonWidth + buttonGap);
+                    renderButton(graphics, bx, y + 2, buttonWidth, height - 4, label, i,
+                            mouseX, mouseY);
                 }
             }
 
             private void renderButton(GuiGraphics graphics, int x, int y, int width, int height,
-                                      Component label, int mouseX, int mouseY) {
+                                      Component label, int column, int mouseX, int mouseY) {
                 boolean over = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
-                int fill = over ? 0x40222222 : 0x20222222;
-                int border = over ? 0xFFCCCCCC : 0xFF777777;
+                boolean selected = isSelected(label, column);
+                int fill = selected ? 0x55333333 : (over ? 0x40222222 : 0x20222222);
+                int border = selected ? 0xFFFFFFFF : (over ? 0xFFCCCCCC : 0xFF777777);
                 graphics.fill(x, y, x + width, y + height, fill);
                 graphics.renderOutline(x, y, width, height, border);
                 graphics.drawCenteredString(font, label, x + width / 2, y + 5, 0xFFFFFF);
+            }
+
+            private boolean isSelected(Component label, int column) {
+                if (column == 0) {
+                    return selectedPose != null && selectedPose.getString().equals(label.getString());
+                }
+                return selectedAnim != null && selectedAnim.getString().equals(label.getString());
             }
 
             @Override
@@ -230,8 +278,11 @@ public class PmxAddStateScreen extends Screen {
                     if (rowIndex >= items.size()) continue;
                     if (mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh) {
                         Component label = items.get(rowIndex);
-                        parent.addCustomState(label.getString());
-                        Minecraft.getInstance().setScreen(parent);
+                        if (i == 0) {
+                            onPickPose(label);
+                        } else {
+                            onPickAnim(label);
+                        }
                         return true;
                     }
                 }
