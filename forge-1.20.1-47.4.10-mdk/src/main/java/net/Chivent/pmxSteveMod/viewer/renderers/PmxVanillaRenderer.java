@@ -1,268 +1,347 @@
 package net.Chivent.pmxSteveMod.viewer.renderers;
 
+import com.mojang.blaze3d.shaders.Uniform;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
+import com.mojang.logging.LogUtils;
+import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
-import net.minecraft.Util;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.ResourceLocation;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.world.level.Level;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
-import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
 import org.slf4j.Logger;
 
-import java.util.function.Function;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class PmxVanillaRenderer extends PmxRenderBase {
+
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final float TRANSLUCENT_ALPHA_THRESHOLD = 0.999f;
-    private static final long SHADER_PACK_CHECK_INTERVAL_NANOS = 500_000_000L;
-    private static boolean cachedShaderPackActive = false;
-    private static long lastShaderPackCheckNanos = 0L;
-    private static final RenderStateShard.TransparencyStateShard PMX_NO_TRANSPARENCY =
-            new RenderStateShard.TransparencyStateShard("pmx_no_transparency", RenderSystem::disableBlend, () -> {});
-    private static final RenderStateShard.TransparencyStateShard PMX_TRANSLUCENT_TRANSPARENCY =
-            new RenderStateShard.TransparencyStateShard("pmx_translucent_transparency", () -> {
-                RenderSystem.enableBlend();
-                RenderSystem.blendFuncSeparate(
-                        GlStateManager.SourceFactor.SRC_ALPHA,
-                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                        GlStateManager.SourceFactor.ONE,
-                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
-                );
-            }, () -> {
-                RenderSystem.disableBlend();
-                RenderSystem.defaultBlendFunc();
-            });
-    private static final RenderStateShard.CullStateShard PMX_NO_CULL =
-            new RenderStateShard.CullStateShard(false);
-    private static final RenderStateShard.LightmapStateShard PMX_LIGHTMAP =
-            new RenderStateShard.LightmapStateShard(true);
-    private static final RenderStateShard.OverlayStateShard PMX_OVERLAY =
-            new RenderStateShard.OverlayStateShard(true);
-    private static final RenderStateShard.ShaderStateShard PMX_CUTOUT_SHADER =
-            new RenderStateShard.ShaderStateShard(GameRenderer::getRendertypeEntityCutoutNoCullShader);
-    private static final RenderStateShard.ShaderStateShard PMX_TRANSLUCENT_SHADER =
-            new RenderStateShard.ShaderStateShard(GameRenderer::getRendertypeEntityTranslucentShader);
-    private static final Function<ResourceLocation, RenderType> PMX_ENTITY_CUTOUT = Util.memoize(rl -> {
-        RenderType.CompositeState state = RenderType.CompositeState.builder()
-                .setShaderState(PMX_CUTOUT_SHADER)
-                .setTextureState(new RenderStateShard.TextureStateShard(rl, false, false))
-                .setTransparencyState(PMX_NO_TRANSPARENCY)
-                .setCullState(PMX_NO_CULL)
-                .setLightmapState(PMX_LIGHTMAP)
-                .setOverlayState(PMX_OVERLAY)
-                .createCompositeState(true);
-        return RenderType.create("pmx_entity_cutout", DefaultVertexFormat.NEW_ENTITY,
-                VertexFormat.Mode.TRIANGLES, 256, true, false, state);
-    });
-    private static final Function<ResourceLocation, RenderType> PMX_ENTITY_TRANSLUCENT = Util.memoize(rl -> {
-        RenderType.CompositeState state = RenderType.CompositeState.builder()
-                .setShaderState(PMX_TRANSLUCENT_SHADER)
-                .setTextureState(new RenderStateShard.TextureStateShard(rl, false, false))
-                .setTransparencyState(PMX_TRANSLUCENT_TRANSPARENCY)
-                .setCullState(PMX_NO_CULL)
-                .setLightmapState(PMX_LIGHTMAP)
-                .setOverlayState(PMX_OVERLAY)
-                .createCompositeState(true);
-        return RenderType.create("pmx_entity_translucent", DefaultVertexFormat.NEW_ENTITY,
-                VertexFormat.Mode.TRIANGLES, 256, true, true, state);
-    });
+
+    private final Set<String> textureLoadFailures = new HashSet<>();
+
+    private static final class MaterialGpu {
+        int texMode;
+        int toonMode;
+        int sphereMode;
+
+        ResourceLocation mainTex;
+        ResourceLocation sphereTex;
+        ResourceLocation toonTex;
+    }
+
+    private final Map<Integer, MaterialGpu> materialGpuCache = new HashMap<>();
+    private long cachedModelVersion = -1L;
 
     private final PmxGlMesh mesh = new PmxGlMesh();
 
+    private void setMat4(ShaderInstance sh, String name, Matrix4f m) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(m);
+    }
+    private void set3f(ShaderInstance sh, String name, float x, float y, float z) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(x, y, z);
+    }
+    private void set4f(ShaderInstance sh, String name, float x, float y, float z, float w) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(x, y, z, w);
+    }
+    private void set1f(ShaderInstance sh, String name, float v) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(v);
+    }
+    private void set2f(ShaderInstance sh, float x, float y) {
+        Uniform u = sh.getUniform("u_ScreenSize");
+        if (u != null) u.set(x, y);
+    }
+    private void set1i(ShaderInstance sh, String name, int v) {
+        Uniform u = sh.getUniform(name);
+        if (u != null) u.set(v);
+    }
+
     public void onViewerShutdown() {
-        resetTextureCache();
-        mesh.destroy();
+        RenderSystem.recordRenderCall(() -> {
+            mesh.destroy();
+            resetTextureCache();
+            materialGpuCache.clear();
+            textureLoadFailures.clear();
+            cachedModelVersion = -1L;
+        });
     }
 
     public void renderPlayer(PmxInstance instance,
                              AbstractClientPlayer player,
                              float partialTick,
-                             PoseStack poseStack,
-                             int packedLight) {
-        if (!instance.isReady() || instance.handle() == 0L) return;
-        if (instance.idxBuf() == null || instance.posBuf() == null
-                || instance.uvBuf() == null) {
+                             PoseStack poseStack) {
+        boolean ready = instance.isReady();
+        if (!ready || instance.handle() == 0L
+                || instance.idxBuf() == null || instance.posBuf() == null
+                || instance.nrmBuf() == null || instance.uvBuf() == null) {
             return;
+        }
+
+        ShaderInstance sh = PmxShaders.PMX_MMD;
+        if (sh == null) return;
+
+        long version = instance.modelVersion();
+        if (cachedModelVersion != version) {
+            materialGpuCache.clear();
+            resetTextureCache();
+            textureLoadFailures.clear();
+            cachedModelVersion = version;
         }
 
         if (shouldSkipMeshUpdate(instance, mesh)) return;
 
         poseStack.pushPose();
+
         float viewYRot = player.getViewYRot(partialTick);
         poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
 
-        PoseStack.Pose last = poseStack.last();
-        Matrix4f pose = last.pose();
-        boolean useNormals = isShaderPackActive() && instance.nrmBuf() != null;
-        int overlay = OverlayTexture.NO_OVERLAY;
+        Matrix4f pose = poseStack.last().pose();
+        float[] lightDir = getSunLightDir(player.level(), partialTick);
 
         SubmeshInfo[] subs = instance.submeshes();
-        if (subs != null) {
-            for (SubmeshInfo sub : subs) {
-                MaterialInfo mat = instance.material(sub.materialId());
-                if (mat == null) continue;
-                float alpha = mat.alpha();
-                if (alpha <= 0.0f) continue;
-
-                TextureEntry tex = getOrLoadMainTexture(instance, mat.mainTexPath());
-                ResourceLocation rl = tex != null ? tex.rl() : ensureMagentaTexture();
-                if (rl == null) continue;
-
-                boolean translucent = alpha < TRANSLUCENT_ALPHA_THRESHOLD;
-                RenderType type = translucent
-                        ? PMX_ENTITY_TRANSLUCENT.apply(rl)
-                        : PMX_ENTITY_CUTOUT.apply(rl);
-                drawSubmeshIndexed(sub, type, alpha, packedLight, overlay, useNormals, pose);
-            }
+        if (subs == null) {
+            poseStack.popPose();
+            return;
         }
+
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        GL30C.glBindVertexArray(mesh.vao);
+
+        for (SubmeshInfo sub : subs) {
+            drawSubmeshIndexed(instance, sub, pose, lightDir);
+        }
+
+        drawEdgePass(instance, subs, pose);
+        GL30C.glBindVertexArray(0);
+
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
+        RenderSystem.enableCull();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
         poseStack.popPose();
     }
 
-    private static boolean isShaderPackActive() {
-        long now = System.nanoTime();
-        if (now - lastShaderPackCheckNanos < SHADER_PACK_CHECK_INTERVAL_NANOS) {
-            return cachedShaderPackActive;
-        }
-        lastShaderPackCheckNanos = now;
-        boolean next = false;
-        try {
-            Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
-            Object inst = api.getMethod("getInstance").invoke(null);
-            Object active = api.getMethod("isShaderPackInUse").invoke(inst);
-            next = active instanceof Boolean b && b;
-        } catch (ReflectiveOperationException e) {
-            LOGGER.debug("[PMX] Iris/Oculus API not available: {}", "net.irisshaders.iris.api.v0.IrisApi");
-        } catch (Exception e) {
-            LOGGER.debug("[PMX] Iris/Oculus API error: {}", "net.irisshaders.iris.api.v0.IrisApi");
-        }
-        if (next != cachedShaderPackActive) {
-            LOGGER.debug("[PMX] Shader pack active changed: {}", next);
-        }
-        cachedShaderPackActive = next;
-        return cachedShaderPackActive;
-    }
+    private void drawSubmeshIndexed(PmxInstance instance,
+                                    SubmeshInfo sm,
+                                    Matrix4f pose,
+                                    float[] lightDir) {
+        if (sm == null) return;
 
-    private TextureEntry getOrLoadMainTexture(PmxInstance instance, String texPath) {
-        return loadTextureEntryCached(instance, texPath, "pmx/vanilla_tex_", false, false, null);
-    }
+        MaterialInfo mat = instance.material(sm.materialId());
+        if (mat == null) return;
 
-    private void drawSubmeshIndexed(SubmeshInfo sub,
-                                    RenderType renderType,
-                                    float alpha,
-                                    int packedLight,
-                                    int overlay,
-                                    boolean useNormals,
-                                    Matrix4f pose) {
-        DrawRange range = getDrawRange(sub, mesh);
+        DrawRange range = getDrawRange(sm, mesh);
         if (range == null) return;
-        renderType.setupRenderState();
-        ShaderInstance shader = RenderSystem.getShader();
-        Vector3f fixedLight = !useNormals ? new Vector3f(0.0f, 1.0f, 0.0f) : null;
-        if (shader != null) {
-            applyShaderUniforms(shader, pose, alpha, fixedLight);
-        }
 
-        GL30C.glBindVertexArray(mesh.vao);
-        setConstantAttributes(alpha, packedLight, overlay, useNormals);
+        float alpha = mat.alpha();
+        if (alpha <= 0.0f) return;
+
+        MaterialGpu gpu = getOrBuildMaterialGpu(instance, sm.materialId(), mat);
+
+        ShaderInstance sh = PmxShaders.PMX_MMD;
+        if (sh == null) return;
+
+        Matrix4f wv = new Matrix4f(pose);
+        Matrix4f wvp = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(pose);
+
+        RenderSystem.setShader(() -> sh);
+
+        setMat4(sh, "u_WV", wv);
+        setMat4(sh, "u_WVP", wvp);
+
+        set3f(sh, "u_LightColor", 1f, 1f, 1f);
+        set3f(sh, "u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
+
+        set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
+
+        int rgba = mat.diffuseRGBA();
+        float mr = ((rgba >>> 24) & 0xFF) / 255.0f;
+        float mg = ((rgba >>> 16) & 0xFF) / 255.0f;
+        float mb = ((rgba >>>  8) & 0xFF) / 255.0f;
+        set3f(sh, "u_Diffuse", mr, mg, mb);
+
+        set3f(sh, "u_Specular", mat.specularR(), mat.specularG(), mat.specularB());
+        set1f(sh, "u_SpecularPower", mat.specularPower());
+
+        set1f(sh, "u_Alpha", alpha);
+
+        TextureManager texMgr = Minecraft.getInstance().getTextureManager();
+        sh.setSampler("Sampler0", texMgr.getTexture(gpu.mainTex));
+        sh.setSampler("Sampler1", texMgr.getTexture(gpu.toonTex));
+        sh.setSampler("Sampler2", texMgr.getTexture(gpu.sphereTex));
+
+        set1i(sh, "u_TexMode", gpu.texMode);
+        float[] tm = mat.texMul();
+        float[] ta = mat.texAdd();
+        set4f(sh, "u_TexMulFactor", tm[0], tm[1], tm[2], tm[3]);
+        set4f(sh, "u_TexAddFactor", ta[0], ta[1], ta[2], ta[3]);
+
+        set1i(sh, "u_SphereTexMode", gpu.sphereMode);
+        float[] spMul = mat.sphereMul();
+        float[] spAdd = mat.sphereAdd();
+        set4f(sh, "u_SphereTexMulFactor", spMul[0], spMul[1], spMul[2], spMul[3]);
+        set4f(sh, "u_SphereTexAddFactor", spAdd[0], spAdd[1], spAdd[2], spAdd[3]);
+
+        set1i(sh, "u_ToonTexMode", gpu.toonMode);
+        float[] toonMul = mat.toonMul();
+        float[] toonAdd = mat.toonAdd();
+        set4f(sh, "u_ToonTexMulFactor", toonMul[0], toonMul[1], toonMul[2], toonMul[3]);
+        set4f(sh, "u_ToonTexAddFactor", toonAdd[0], toonAdd[1], toonAdd[2], toonAdd[3]);
+
+        sh.apply();
+
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+
+        if (mat.bothFace()) RenderSystem.disableCull();
+        else RenderSystem.enableCull();
+
         GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
-        GL30C.glBindVertexArray(0);
 
-        renderType.clearRenderState();
+        RenderSystem.enableCull();
     }
 
-    private static void applyShaderUniforms(ShaderInstance shader,
-                                            Matrix4f modelView,
-                                            float alpha,
-                                            Vector3f fixedLight) {
-        for (int i = 0; i < 12; i++) {
-            int texId = RenderSystem.getShaderTexture(i);
-            shader.setSampler("Sampler" + i, texId);
+    private void drawEdgePass(PmxInstance instance, SubmeshInfo[] subs, Matrix4f pose) {
+        ShaderInstance edgeShader = PmxShaders.PMX_EDGE;
+        if (edgeShader == null || subs == null) return;
+
+        Matrix4f wv = new Matrix4f(pose);
+        Matrix4f wvp = new Matrix4f(RenderSystem.getProjectionMatrix()).mul(pose);
+
+        RenderSystem.setShader(() -> edgeShader);
+        setMat4(edgeShader, "u_WV", wv);
+        setMat4(edgeShader, "u_WVP", wvp);
+
+        var window = Minecraft.getInstance().getWindow();
+        set2f(edgeShader, window.getScreenWidth(), window.getScreenHeight());
+
+        edgeShader.apply();
+
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        GL11C.glCullFace(GL11C.GL_FRONT);
+
+        for (SubmeshInfo sub : subs) {
+            MaterialInfo mat = instance.material(sub.materialId());
+            if (mat == null || !mat.edgeFlag()) continue;
+            if (mat.alpha() <= 0.0f) continue;
+
+            float edgeSize = mat.edgeSize();
+            float[] edgeColor = mat.edgeColor();
+            set1f(edgeShader, "u_EdgeSize", edgeSize);
+            set4f(edgeShader, "u_EdgeColor", edgeColor[0], edgeColor[1], edgeColor[2], edgeColor[3]);
+
+            DrawRange range = getDrawRange(sub, mesh);
+            if (range == null) continue;
+
+            GL11C.glDrawElements(GL11C.GL_TRIANGLES, range.count(), mesh.glIndexType, range.offsetBytes());
         }
-        if (shader.MODEL_VIEW_MATRIX != null) {
-            shader.MODEL_VIEW_MATRIX.set(modelView);
-        }
-        if (shader.PROJECTION_MATRIX != null) {
-            shader.PROJECTION_MATRIX.set(RenderSystem.getProjectionMatrix());
-        }
-        if (shader.INVERSE_VIEW_ROTATION_MATRIX != null) {
-            shader.INVERSE_VIEW_ROTATION_MATRIX.set(RenderSystem.getInverseViewRotationMatrix());
-        }
-        if (shader.COLOR_MODULATOR != null) {
-            shader.COLOR_MODULATOR.set(1.0f, 1.0f, 1.0f, alpha);
-        }
-        if (shader.GLINT_ALPHA != null) {
-            shader.GLINT_ALPHA.set(RenderSystem.getShaderGlintAlpha());
-        }
-        if (shader.FOG_START != null) {
-            shader.FOG_START.set(RenderSystem.getShaderFogStart());
-        }
-        if (shader.FOG_END != null) {
-            shader.FOG_END.set(RenderSystem.getShaderFogEnd());
-        }
-        if (shader.FOG_COLOR != null) {
-            shader.FOG_COLOR.set(RenderSystem.getShaderFogColor());
-        }
-        if (shader.FOG_SHAPE != null) {
-            shader.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
-        }
-        if (shader.TEXTURE_MATRIX != null) {
-            shader.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
-        }
-        if (shader.GAME_TIME != null) {
-            shader.GAME_TIME.set(RenderSystem.getShaderGameTime());
-        }
-        if (shader.SCREEN_SIZE != null) {
-            var window = net.minecraft.client.Minecraft.getInstance().getWindow();
-            shader.SCREEN_SIZE.set((float) window.getWidth(), (float) window.getHeight());
-        }
-        RenderSystem.setupShaderLights(shader);
-        if (fixedLight != null) {
-            if (shader.LIGHT0_DIRECTION != null) {
-                shader.LIGHT0_DIRECTION.set(fixedLight);
-            }
-            if (shader.LIGHT1_DIRECTION != null) {
-                shader.LIGHT1_DIRECTION.set(fixedLight);
-            }
-        }
-        shader.apply();
+
+        GL11C.glCullFace(GL11C.GL_BACK);
     }
 
-    private static void setConstantAttributes(float alpha, int packedLight, int overlay, boolean useNormals) {
-        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_COLOR);
-        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_UV1);
-        GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_UV2);
+    private static float[] getSunLightDir(Level level, float partialTick) {
+        if (level == null) return new float[] {0.2f, 1.0f, 0.2f};
+        float time = level.getTimeOfDay(partialTick);
+        float angleDeg = time * 360.0f;
+        Quaternionf rot = new Quaternionf()
+                .rotateY((float) Math.toRadians(-90.0f))
+                .rotateX((float) Math.toRadians(angleDeg));
+        Vector3f dir = new Vector3f(0.0f, 1.0f, 0.0f);
+        rot.transform(dir);
+        if (dir.lengthSquared() < 1.0e-4f) return new float[] {0.2f, 1.0f, 0.2f};
+        dir.normalize();
+        float timeOfDay = level.getTimeOfDay(partialTick);
+        boolean isDay = timeOfDay >= 0.25f && timeOfDay <= 0.75f;
+        if (!isDay) {
+            dir.negate();
+        }
+        Matrix3f invView = RenderSystem.getInverseViewRotationMatrix();
+        Matrix3f viewRot = new Matrix3f(invView).invert();
+        viewRot.transform(dir);
+        return new float[] {dir.x, dir.y, dir.z};
+    }
 
-        GL20C.glVertexAttrib4f(PmxGlMesh.LOC_COLOR, 1.0f, 1.0f, 1.0f, alpha);
-        int overlayU = (overlay & 0xFFFF);
-        int overlayV = (overlay >>> 16);
-        GL30C.glVertexAttribI2i(PmxGlMesh.LOC_UV1, overlayU, overlayV);
-        int lightU = (packedLight & 0xFFFF);
-        int lightV = (packedLight >>> 16);
-        GL30C.glVertexAttribI2i(PmxGlMesh.LOC_UV2, lightU, lightV);
+    private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {
+        MaterialGpu cached = materialGpuCache.get(materialId);
+        if (cached != null) return cached;
 
-        if (!useNormals) {
-            GL20C.glDisableVertexAttribArray(PmxGlMesh.LOC_NRM);
-            GL20C.glVertexAttrib3f(PmxGlMesh.LOC_NRM, 0.0f, 1.0f, 0.0f);
+        MaterialGpu gpu = new MaterialGpu();
+
+        TextureEntry main = getOrLoadTextureEntryLogged(instance, mat.mainTexPath(), false);
+        if (main != null && main.rl() != null) {
+            gpu.mainTex = main.rl();
+            gpu.texMode = main.hasAlpha() ? 2 : 1;
         } else {
-            GL20C.glEnableVertexAttribArray(PmxGlMesh.LOC_NRM);
+            gpu.mainTex = ensureMagentaTexture();
+            gpu.texMode = 0;
+            LOGGER.warn("[PMX] material {} main texture missing; using fallback. path={}", materialId, mat.mainTexPath());
         }
+
+        TextureEntry sphere = getOrLoadTextureEntryLogged(instance, mat.sphereTexPath(), false);
+        if (sphere != null && sphere.rl() != null) {
+            gpu.sphereTex = sphere.rl();
+            gpu.sphereMode = mat.sphereMode(); // 0/1/2
+        } else {
+            gpu.sphereTex = ensureMagentaTexture();
+            gpu.sphereMode = 0;
+            if (mat.sphereTexPath() != null) {
+                LOGGER.warn("[PMX] material {} sphere texture missing; using fallback. path={}", materialId, mat.sphereTexPath());
+            }
+        }
+
+        TextureEntry toon = getOrLoadTextureEntryLogged(instance, mat.toonTexPath(), true);
+        if (toon != null && toon.rl() != null) {
+            gpu.toonTex = toon.rl();
+            gpu.toonMode = 1;
+        } else {
+            gpu.toonTex = ensureMagentaTexture();
+            gpu.toonMode = 0;
+            if (mat.toonTexPath() != null) {
+                LOGGER.warn("[PMX] material {} toon texture missing; using fallback. path={}", materialId, mat.toonTexPath());
+            }
+        }
+
+        materialGpuCache.put(materialId, gpu);
+        return gpu;
+    }
+
+    private TextureEntry getOrLoadTextureEntryLogged(PmxInstance instance, String texPath, boolean clamp) {
+        return loadTextureEntryCached(instance, texPath, "pmx/tex_", clamp, true, key -> {
+            if (textureLoadFailures.add(key)) {
+                LOGGER.warn("[PMX] texture load failed: {}", key);
+            }
+        });
     }
 
 }
