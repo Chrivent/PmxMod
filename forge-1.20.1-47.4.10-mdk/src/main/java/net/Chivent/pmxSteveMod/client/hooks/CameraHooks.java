@@ -3,6 +3,7 @@ package net.Chivent.pmxSteveMod.client.hooks;
 import net.Chivent.pmxSteveMod.PmxSteveMod;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
+import net.Chivent.pmxSteveMod.viewer.renderers.PmxRenderBase;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -35,7 +36,7 @@ public final class CameraHooks {
             if (player == null) return;
 
             float partial = (float) event.getPartialTick();
-            float scale = 0.15f;
+            float scale = PmxRenderBase.MODEL_SCALE;
 
             float ix = instance.camInterestX() * scale;
             float iy = instance.camInterestY() * scale;
