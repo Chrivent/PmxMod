@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class PmxRenderBase {
+    protected static final float MODEL_SCALE = 0.15f;
     protected record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
 
     protected final Map<String, TextureEntry> textureCache = new HashMap<>();

@@ -105,7 +105,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         poseStack.pushPose();
         float viewYRot = player.getViewYRot(partialTick);
         poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
-        poseStack.scale(0.15f, 0.15f, 0.15f);
+        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
