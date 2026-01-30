@@ -103,7 +103,10 @@ struct DX11Viewer : Viewer {
     UINT	m_multiSampleQuality = 0;
     std::map<std::filesystem::path, DX11Texture>	    m_textures;
     Microsoft::WRL::ComPtr<ID3D11Device>			    m_device;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    m_backBuffer;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    m_renderTargetView;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    m_msaaColorTex;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    m_msaaRenderTargetView;
     Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     m_depthStencilView;
     Microsoft::WRL::ComPtr<ID3D11VertexShader>	        m_vs;
     Microsoft::WRL::ComPtr<ID3D11PixelShader>	        m_ps;

@@ -317,8 +317,8 @@ bool DX11Viewer::Setup() {
 	d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	d.OutputWindow = hwnd;
-	d.SampleDesc.Count = m_multiSampleCount;
-	d.SampleDesc.Quality = m_multiSampleQuality;
+	d.SampleDesc.Count = 1;
+	d.SampleDesc.Quality = 0;
 	d.Windowed = TRUE;
 	if (FAILED(factory->CreateSwapChain(m_device.Get(), &d, &m_swapChain)))
 		return false;
@@ -337,6 +337,9 @@ bool DX11Viewer::Setup() {
 
 bool DX11Viewer::Resize() {
 	m_renderTargetView.Reset();
+	m_msaaRenderTargetView.Reset();
+	m_msaaColorTex.Reset();
+	m_backBuffer.Reset();
 	m_depthStencilView.Reset();
 	m_depthTex.Reset();
 	if (FAILED(m_swapChain->ResizeBuffers(0, m_screenWidth, m_screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
@@ -355,6 +358,9 @@ void DX11Viewer::BeginFrame() {
 }
 
 bool DX11Viewer::EndFrame() {
+	if (m_multiSampleCount > 1 && m_msaaColorTex && m_backBuffer) {
+		m_context->ResolveSubresource(m_backBuffer.Get(), 0, m_msaaColorTex.Get(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+	}
 	if (FAILED(m_swapChain->Present(0, 0)))
 		return false;
 	return true;
@@ -480,11 +486,28 @@ bool DX11Viewer::CreateShaders() {
 }
 
 bool DX11Viewer::CreateRenderTargets() {
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(m_backBuffer.GetAddressOf()))))
 		return false;
-	if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
-		return false;
+	if (m_multiSampleCount > 1) {
+		D3D11_TEXTURE2D_DESC colorDesc{};
+		colorDesc.Width = static_cast<UINT>(m_screenWidth);
+		colorDesc.Height = static_cast<UINT>(m_screenHeight);
+		colorDesc.MipLevels = 1;
+		colorDesc.ArraySize = 1;
+		colorDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		colorDesc.SampleDesc.Count = m_multiSampleCount;
+		colorDesc.SampleDesc.Quality = m_multiSampleQuality;
+		colorDesc.Usage = D3D11_USAGE_DEFAULT;
+		colorDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+		if (FAILED(m_device->CreateTexture2D(&colorDesc, nullptr, &m_msaaColorTex)))
+			return false;
+		if (FAILED(m_device->CreateRenderTargetView(m_msaaColorTex.Get(), nullptr, &m_msaaRenderTargetView)))
+			return false;
+		m_renderTargetView = m_msaaRenderTargetView;
+	} else {
+		if (FAILED(m_device->CreateRenderTargetView(m_backBuffer.Get(), nullptr, &m_renderTargetView)))
+			return false;
+	}
 	D3D11_TEXTURE2D_DESC d{};
 	d.Width = static_cast<UINT>(m_screenWidth);
 	d.Height = static_cast<UINT>(m_screenHeight);
