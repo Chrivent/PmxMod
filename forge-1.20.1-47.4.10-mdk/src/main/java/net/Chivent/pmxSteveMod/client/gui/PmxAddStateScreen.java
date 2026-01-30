@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Locale;
 
 public class PmxAddStateScreen extends Screen {
     private final PmxStateSettingsScreen parent;
@@ -22,20 +21,15 @@ public class PmxAddStateScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        Pose[] allPoses = Pose.values();
-        int poseCount = 0;
-        for (Pose pose : allPoses) {
-            if (pose != Pose.STANDING) {
-                poseCount++;
-            }
-        }
-        Pose[] poses = new Pose[poseCount];
-        int poseIndex = 0;
-        for (Pose pose : allPoses) {
-            if (pose != Pose.STANDING) {
-                poses[poseIndex++] = pose;
-            }
-        }
+        Pose[] poses = new Pose[] {
+                Pose.FALL_FLYING,
+                Pose.SLEEPING,
+                Pose.SWIMMING,
+                Pose.SPIN_ATTACK,
+                Pose.CROUCHING,
+                Pose.DYING,
+                Pose.SITTING
+        };
         int columns = 2;
         int rows = (poses.length + columns - 1) / columns;
         int rowHeight = 22;
@@ -60,9 +54,9 @@ public class PmxAddStateScreen extends Screen {
             int row = i / columns;
             int x = startX + col * (buttonWidth + buttonGap);
             int y = presetStartY + row * rowHeight;
-            String label = formatPoseName(poses[i]);
-            addRenderableWidget(Button.builder(Component.literal(label), b -> {
-                parent.addCustomState(label);
+            Component label = poseLabel(poses[i]);
+            addRenderableWidget(Button.builder(label, b -> {
+                parent.addCustomState(label.getString());
                 Minecraft.getInstance().setScreen(parent);
             })
                     .bounds(x, y, buttonWidth, buttonHeight).build());
@@ -85,16 +79,17 @@ public class PmxAddStateScreen extends Screen {
         Minecraft.getInstance().setScreen(parent);
     }
 
-    private static String formatPoseName(Pose pose) {
-        String raw = pose.name().toLowerCase(Locale.ROOT);
-        String[] parts = raw.split("_");
-        StringBuilder out = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-            if (!out.isEmpty()) out.append(' ');
-            out.append(Character.toUpperCase(part.charAt(0)));
-            if (part.length() > 1) out.append(part.substring(1));
-        }
-        return out.toString();
+    private static Component poseLabel(Pose pose) {
+        String key = switch (pose) {
+            case FALL_FLYING -> "pmx.pose.fall_flying";
+            case SLEEPING -> "pmx.pose.sleeping";
+            case SWIMMING -> "pmx.pose.swimming";
+            case SPIN_ATTACK -> "pmx.pose.spin_attack";
+            case CROUCHING -> "pmx.pose.crouching";
+            case DYING -> "pmx.pose.dying";
+            case SITTING -> "pmx.pose.sitting";
+            default -> "pmx.pose.unknown";
+        };
+        return Component.translatable(key);
     }
 }
