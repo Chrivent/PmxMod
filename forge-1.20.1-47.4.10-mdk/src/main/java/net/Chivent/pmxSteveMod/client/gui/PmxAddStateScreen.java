@@ -2,16 +2,19 @@ package net.Chivent.pmxSteveMod.client.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 
 public class PmxAddStateScreen extends Screen {
     private final PmxStateSettingsScreen parent;
-    private int presetLabelY;
+    private PmxStateList list;
 
     public PmxAddStateScreen(PmxStateSettingsScreen parent) {
         super(Component.translatable("pmx.screen.add_state.title"));
@@ -20,7 +23,39 @@ public class PmxAddStateScreen extends Screen {
 
     @Override
     protected void init() {
-        int centerX = this.width / 2;
+        List<Category> categories = buildCategories();
+
+        int listTop = 40;
+        int listBottom = this.height - 36;
+        list = new PmxStateList(this.minecraft, this.width - 40, listBottom - listTop,
+                listTop, listBottom, 22, categories);
+        list.setLeftPos(20);
+        list.setRenderBackground(false);
+        list.setRenderTopAndBottom(false);
+        addWidget(list);
+
+        int maxWidth = this.width - 24;
+        int btnWidth = Math.min(GuiUtil.FOOTER_BUTTON_WIDTH, Math.max(80, maxWidth));
+        int leftX = (this.width - btnWidth) / 2;
+        addRenderableWidget(Button.builder(Component.translatable("pmx.button.cancel"), b -> onClose())
+                .bounds(leftX, this.height - 28, btnWidth, 20).build());
+    }
+
+    @Override
+    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics);
+        if (list != null) {
+            list.render(graphics, mouseX, mouseY, partialTick);
+        }
+        super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void onClose() {
+        Minecraft.getInstance().setScreen(parent);
+    }
+
+    private List<Category> buildCategories() {
         Pose[] poses = new Pose[] {
                 Pose.FALL_FLYING,
                 Pose.SLEEPING,
@@ -30,53 +65,38 @@ public class PmxAddStateScreen extends Screen {
                 Pose.DYING,
                 Pose.SITTING
         };
-        int columns = 2;
-        int rows = (poses.length + columns - 1) / columns;
-        int rowHeight = 22;
-        int presetSpacing = 6;
-        int presetLabelHeight = 12;
-        int footerHeight = 20;
-        int footerGap = 10;
-        int presetHeight = rows * rowHeight;
-        int totalHeight = presetLabelHeight + presetSpacing + presetHeight + footerGap + footerHeight;
+        List<Category> out = new ArrayList<>();
+        out.add(new Category(Component.translatable("pmx.settings.label.pose_presets"), poseLabels(poses)));
+        out.add(new Category(Component.translatable("pmx.settings.label.anim_movement"), List.of(
+                Component.translatable("pmx.anim.walk"),
+                Component.translatable("pmx.anim.run"),
+                Component.translatable("pmx.anim.jump"),
+                Component.translatable("pmx.anim.fall"),
+                Component.translatable("pmx.anim.land")
+        )));
+        out.add(new Category(Component.translatable("pmx.settings.label.anim_combat"), List.of(
+                Component.translatable("pmx.anim.attack"),
+                Component.translatable("pmx.anim.mine"),
+                Component.translatable("pmx.anim.hurt")
+        )));
+        out.add(new Category(Component.translatable("pmx.settings.label.anim_item"), List.of(
+                Component.translatable("pmx.anim.use_item"),
+                Component.translatable("pmx.anim.eat_drink"),
+                Component.translatable("pmx.anim.bow"),
+                Component.translatable("pmx.anim.crossbow"),
+                Component.translatable("pmx.anim.trident"),
+                Component.translatable("pmx.anim.shield"),
+                Component.translatable("pmx.anim.spyglass")
+        )));
+        return out;
+    }
 
-        presetLabelY = (this.height - totalHeight) / 2;
-        int presetStartY = presetLabelY + presetLabelHeight + presetSpacing;
-        int footerY = presetStartY + presetHeight + footerGap;
-
-        int buttonWidth = 96;
-        int buttonHeight = 20;
-        int buttonGap = 8;
-        int gridWidth = columns * buttonWidth + (columns - 1) * buttonGap;
-        int startX = centerX - (gridWidth / 2);
-        for (int i = 0; i < poses.length; i++) {
-            int col = i % columns;
-            int row = i / columns;
-            int x = startX + col * (buttonWidth + buttonGap);
-            int y = presetStartY + row * rowHeight;
-            Component label = poseLabel(poses[i]);
-            addRenderableWidget(Button.builder(label, b -> {
-                parent.addCustomState(label.getString());
-                Minecraft.getInstance().setScreen(parent);
-            })
-                    .bounds(x, y, buttonWidth, buttonHeight).build());
+    private static List<Component> poseLabels(Pose[] poses) {
+        List<Component> out = new ArrayList<>(poses.length);
+        for (Pose pose : poses) {
+            out.add(poseLabel(pose));
         }
-
-        addRenderableWidget(Button.builder(Component.translatable("pmx.button.cancel"), b -> onClose())
-                .bounds(centerX - 48, footerY, 96, 20).build());
-    }
-
-    @Override
-    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(graphics);
-        graphics.drawCenteredString(this.font, Component.translatable("pmx.settings.label.state_presets"),
-                this.width / 2, presetLabelY, 0xC0C0C0);
-        super.render(graphics, mouseX, mouseY, partialTick);
-    }
-
-    @Override
-    public void onClose() {
-        Minecraft.getInstance().setScreen(parent);
+        return out;
     }
 
     private static Component poseLabel(Pose pose) {
@@ -91,5 +111,132 @@ public class PmxAddStateScreen extends Screen {
             default -> "pmx.pose.unknown";
         };
         return Component.translatable(key);
+    }
+
+    private record Category(Component label, List<Component> items) {}
+
+    private final class PmxStateList extends AbstractSelectionList<PmxStateList.Entry> {
+        private final List<Category> categories;
+        private int columns = 1;
+        private int buttonWidth = 90;
+        private int buttonGap = 6;
+
+        private PmxStateList(Minecraft minecraft, int width, int height,
+                             int y0, int y1, int itemHeight, List<Category> categories) {
+            super(minecraft, width, height, y0, y1, itemHeight);
+            this.categories = categories;
+            recalcLayout(width);
+            buildEntries();
+        }
+
+        private void buildEntries() {
+            clearEntries();
+            addEntry(new HeaderEntry());
+            int maxRows = 0;
+            for (Category category : categories) {
+                if (category.items().size() > maxRows) {
+                    maxRows = category.items().size();
+                }
+            }
+            for (int row = 0; row < maxRows; row++) {
+                addEntry(new RowEntry(row));
+            }
+        }
+
+        private void recalcLayout(int width) {
+            columns = categories.size();
+            int available = Math.max(0, width - (buttonGap * Math.max(0, columns - 1)));
+            int minBtn = 80;
+            int maxBtn = 140;
+            int btn = columns > 0 ? (available / columns) : minBtn;
+            buttonWidth = Math.max(minBtn, Math.min(maxBtn, btn));
+        }
+
+        @Override
+        protected int getScrollbarPosition() {
+            return this.getRight() - 6;
+        }
+
+        @Override
+        public int getRowWidth() {
+            return this.width;
+        }
+
+        @Override
+        public void updateNarration(@NotNull net.minecraft.client.gui.narration.NarrationElementOutput output) {
+        }
+
+        private abstract class Entry extends AbstractSelectionList.Entry<Entry> {}
+
+        private final class HeaderEntry extends Entry {
+            @Override
+            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
+                               int mouseX, int mouseY, boolean hovered, float partialTick) {
+                int startX = x;
+                for (int i = 0; i < categories.size(); i++) {
+                    int bx = startX + i * (buttonWidth + buttonGap);
+                    Component label = categories.get(i).label();
+                    graphics.drawCenteredString(font, label, bx + buttonWidth / 2, y + 5, 0xC0C0C0);
+                }
+            }
+        }
+
+        private final class RowEntry extends Entry {
+            private final int rowIndex;
+            private int lastX;
+            private int lastY;
+            private int lastHeight;
+
+            private RowEntry(int rowIndex) {
+                this.rowIndex = rowIndex;
+            }
+
+            @Override
+            public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
+                               int mouseX, int mouseY, boolean hovered, float partialTick) {
+                lastX = x;
+                lastY = y;
+                lastHeight = height;
+                int startX = x;
+                for (int i = 0; i < categories.size(); i++) {
+                    List<Component> items = categories.get(i).items();
+                    if (rowIndex >= items.size()) continue;
+                    Component label = items.get(rowIndex);
+                    int bx = startX + i * (buttonWidth + buttonGap);
+                    renderButton(graphics, bx, y + 2, buttonWidth, height - 4, label, mouseX, mouseY);
+                }
+            }
+
+            private void renderButton(GuiGraphics graphics, int x, int y, int width, int height,
+                                      Component label, int mouseX, int mouseY) {
+                boolean over = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+                int fill = over ? 0x40222222 : 0x20222222;
+                int border = over ? 0xFFCCCCCC : 0xFF777777;
+                graphics.fill(x, y, x + width, y + height, fill);
+                graphics.renderOutline(x, y, width, height, border);
+                graphics.drawCenteredString(font, label, x + width / 2, y + 5, 0xFFFFFF);
+            }
+
+            @Override
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (mouseY < lastY || mouseY > lastY + lastHeight) return false;
+                int startX = lastX;
+                for (int i = 0; i < categories.size(); i++) {
+                    int bx = startX + i * (buttonWidth + buttonGap);
+                    int by = lastY + 2;
+                    int bw = buttonWidth;
+                    int bh = lastHeight - 4;
+                    List<Component> items = categories.get(i).items();
+                    if (rowIndex >= items.size()) continue;
+                    if (mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh) {
+                        Component label = items.get(rowIndex);
+                        parent.addCustomState(label.getString());
+                        Minecraft.getInstance().setScreen(parent);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
     }
 }
