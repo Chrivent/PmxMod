@@ -5,12 +5,12 @@ import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.renderers.PmxVanillaRenderer;
 import net.Chivent.pmxSteveMod.viewer.renderers.PmxOculusRenderer;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
+import net.Chivent.pmxSteveMod.client.util.PmxShaderPackUtil;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.ModList;
 import java.lang.reflect.Field;
 import java.util.IdentityHashMap;
 
@@ -44,7 +44,7 @@ public final class PlayerRenderHooks {
 
         net.minecraft.client.player.AbstractClientPlayer player =
                 (net.minecraft.client.player.AbstractClientPlayer) event.getEntity();
-        if (isOculusLoaded()) {
+        if (PmxShaderPackUtil.isOculusLoaded()) {
             OCULUS_RENDERER.renderPlayer(instance, player, event.getPartialTick(),
                     event.getPoseStack(), event.getPackedLight());
         } else {
@@ -57,9 +57,6 @@ public final class PlayerRenderHooks {
         OCULUS_RENDERER.onViewerShutdown();
     }
 
-    private static boolean isOculusLoaded() {
-        return ModList.get().isLoaded("oculus");
-    }
 
     private static void disableShadow(EntityRenderer<?> renderer) {
         ensureShadowFields();

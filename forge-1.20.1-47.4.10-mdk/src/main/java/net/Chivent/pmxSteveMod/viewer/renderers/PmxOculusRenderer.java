@@ -2,7 +2,6 @@ package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.logging.LogUtils;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
@@ -23,16 +22,12 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
-import org.slf4j.Logger;
+import net.Chivent.pmxSteveMod.client.util.PmxShaderPackUtil;
 
 import java.util.function.Function;
 
 public class PmxOculusRenderer extends PmxRenderBase {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final float TRANSLUCENT_ALPHA_THRESHOLD = 0.999f;
-    private static final long SHADER_PACK_CHECK_INTERVAL_NANOS = 500_000_000L;
-    private static boolean cachedShaderPackActive = false;
-    private static long lastShaderPackCheckNanos = 0L;
     private static final RenderStateShard.TransparencyStateShard PMX_NO_TRANSPARENCY =
             new RenderStateShard.TransparencyStateShard("pmx_no_transparency", RenderSystem::disableBlend, () -> {});
     private static final RenderStateShard.TransparencyStateShard PMX_TRANSLUCENT_TRANSPARENCY =
@@ -110,7 +105,7 @@ public class PmxOculusRenderer extends PmxRenderBase {
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
-        boolean useNormals = isShaderPackActive() && instance.nrmBuf() != null;
+        boolean useNormals = PmxShaderPackUtil.isShaderPackActive() && instance.nrmBuf() != null;
         int overlay = OverlayTexture.NO_OVERLAY;
 
         SubmeshInfo[] subs = instance.submeshes();
@@ -135,29 +130,7 @@ public class PmxOculusRenderer extends PmxRenderBase {
         poseStack.popPose();
     }
 
-    private static boolean isShaderPackActive() {
-        long now = System.nanoTime();
-        if (now - lastShaderPackCheckNanos < SHADER_PACK_CHECK_INTERVAL_NANOS) {
-            return cachedShaderPackActive;
-        }
-        lastShaderPackCheckNanos = now;
-        boolean next = false;
-        try {
-            Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
-            Object inst = api.getMethod("getInstance").invoke(null);
-            Object active = api.getMethod("isShaderPackInUse").invoke(inst);
-            next = active instanceof Boolean b && b;
-        } catch (ReflectiveOperationException e) {
-            LOGGER.debug("[PMX] Iris/Oculus API not available: {}", "net.irisshaders.iris.api.v0.IrisApi");
-        } catch (Exception e) {
-            LOGGER.debug("[PMX] Iris/Oculus API error: {}", "net.irisshaders.iris.api.v0.IrisApi");
-        }
-        if (next != cachedShaderPackActive) {
-            LOGGER.debug("[PMX] Shader pack active changed: {}", next);
-        }
-        cachedShaderPackActive = next;
-        return cachedShaderPackActive;
-    }
+    // Shader pack detection handled by PmxShaderPackUtil.
 
     private TextureEntry getOrLoadMainTexture(PmxInstance instance, String texPath) {
         return loadTextureEntryCached(instance, texPath, "pmx/vanilla_tex_", false, false, null);
