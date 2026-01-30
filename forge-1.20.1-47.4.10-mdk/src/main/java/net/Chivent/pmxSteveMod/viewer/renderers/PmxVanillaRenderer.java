@@ -19,6 +19,7 @@ import net.minecraft.resources.ResourceLocation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.platform.GlStateManager;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
@@ -173,8 +174,9 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         if (range == null) return;
         renderType.setupRenderState();
         ShaderInstance shader = RenderSystem.getShader();
+        Vector3f fixedLight = !useNormals ? new Vector3f(0.0f, 1.0f, 0.0f) : null;
         if (shader != null) {
-            applyShaderUniforms(shader, pose, alpha);
+            applyShaderUniforms(shader, pose, alpha, fixedLight);
         }
 
         GL30C.glBindVertexArray(mesh.vao);
@@ -187,7 +189,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
     private static void applyShaderUniforms(ShaderInstance shader,
                                             Matrix4f modelView,
-                                            float alpha) {
+                                            float alpha,
+                                            Vector3f fixedLight) {
         for (int i = 0; i < 12; i++) {
             int texId = RenderSystem.getShaderTexture(i);
             shader.setSampler("Sampler" + i, texId);
@@ -230,6 +233,14 @@ public class PmxVanillaRenderer extends PmxRenderBase {
             shader.SCREEN_SIZE.set((float) window.getWidth(), (float) window.getHeight());
         }
         RenderSystem.setupShaderLights(shader);
+        if (fixedLight != null) {
+            if (shader.LIGHT0_DIRECTION != null) {
+                shader.LIGHT0_DIRECTION.set(fixedLight);
+            }
+            if (shader.LIGHT1_DIRECTION != null) {
+                shader.LIGHT1_DIRECTION.set(fixedLight);
+            }
+        }
         shader.apply();
     }
 
@@ -253,4 +264,5 @@ public class PmxVanillaRenderer extends PmxRenderBase {
             GL20C.glEnableVertexAttribArray(PmxGlMesh.LOC_NRM);
         }
     }
+
 }
