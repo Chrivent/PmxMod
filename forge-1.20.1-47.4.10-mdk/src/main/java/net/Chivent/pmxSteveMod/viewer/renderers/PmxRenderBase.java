@@ -17,6 +17,8 @@ import org.lwjgl.opengl.GL30C;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -160,9 +162,7 @@ public abstract class PmxRenderBase {
         long ownerHandle = 0L;
 
         int vao = 0;
-        int vboPos = 0;
-        int vboNrm = 0;
-        int vboUv  = 0;
+        int vboInterleaved = 0;
         int ibo    = 0;
 
         int vertexCount = 0;
@@ -171,6 +171,15 @@ public abstract class PmxRenderBase {
         int glIndexType = GL11C.GL_UNSIGNED_INT;
 
         boolean ready = false;
+
+        private static final int STRIDE_FLOATS = 8;
+        private static final int STRIDE_BYTES = STRIDE_FLOATS * 4;
+        private static final int OFFSET_POS = 0;
+        private static final int OFFSET_NRM = 3 * 4;
+        private static final int OFFSET_UV0 = 6 * 4;
+
+        private ByteBuffer interleavedBytes;
+        private FloatBuffer interleavedFloats;
 
         void ensure(PmxInstance instance) {
             long h = instance.handle();
@@ -202,16 +211,19 @@ public abstract class PmxRenderBase {
             glIndexType = glType;
 
             vao = GL30C.glGenVertexArrays();
-            vboPos = GL15C.glGenBuffers();
-            vboNrm = GL15C.glGenBuffers();
-            vboUv  = GL15C.glGenBuffers();
+            vboInterleaved = GL15C.glGenBuffers();
             ibo    = GL15C.glGenBuffers();
 
             GL30C.glBindVertexArray(vao);
 
-            setupFloatVbo(vboPos, LOC_POS, 3, (long) vtxCount * 3L * 4L);
-            setupFloatVbo(vboUv, LOC_UV0, 2, (long) vtxCount * 2L * 4L);
-            setupFloatVbo(vboNrm, LOC_NRM, 3, (long) vtxCount * 3L * 4L);
+            GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vboInterleaved);
+            GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, (long) vtxCount * STRIDE_BYTES, GL15C.GL_DYNAMIC_DRAW);
+            GL20C.glEnableVertexAttribArray(LOC_POS);
+            GL20C.glVertexAttribPointer(LOC_POS, 3, GL11C.GL_FLOAT, false, STRIDE_BYTES, OFFSET_POS);
+            GL20C.glEnableVertexAttribArray(LOC_UV0);
+            GL20C.glVertexAttribPointer(LOC_UV0, 2, GL11C.GL_FLOAT, false, STRIDE_BYTES, OFFSET_UV0);
+            GL20C.glEnableVertexAttribArray(LOC_NRM);
+            GL20C.glVertexAttribPointer(LOC_NRM, 3, GL11C.GL_FLOAT, false, STRIDE_BYTES, OFFSET_NRM);
 
             GL20C.glDisableVertexAttribArray(LOC_COLOR);
             GL20C.glDisableVertexAttribArray(LOC_UV1);
@@ -230,10 +242,10 @@ public abstract class PmxRenderBase {
 
         void destroy() {
             vao = deleteVao(vao);
-            vboPos = deleteBuffer(vboPos);
-            vboNrm = deleteBuffer(vboNrm);
-            vboUv = deleteBuffer(vboUv);
+            vboInterleaved = deleteBuffer(vboInterleaved);
             ibo = deleteBuffer(ibo);
+            interleavedBytes = null;
+            interleavedFloats = null;
             ready = false;
             ownerHandle = 0L;
             vertexCount = 0;
@@ -244,9 +256,40 @@ public abstract class PmxRenderBase {
 
         void updateDynamic(PmxInstance instance) {
             int vtxCount = vertexCount;
-            uploadDynamic(vboPos, instance.posBuf(), (long) vtxCount * 3L * 4L);
-            uploadDynamic(vboNrm, instance.nrmBuf(), (long) vtxCount * 3L * 4L);
-            uploadDynamic(vboUv,  instance.uvBuf(),  (long) vtxCount * 2L * 4L);
+            if (vtxCount <= 0) return;
+            ByteBuffer posBuf = instance.posBuf();
+            ByteBuffer uvBuf = instance.uvBuf();
+            if (posBuf == null || uvBuf == null) return;
+            FloatBuffer pos = toFloatBuffer(posBuf);
+            FloatBuffer nrm = instance.nrmBuf() != null ? toFloatBuffer(instance.nrmBuf()) : null;
+            FloatBuffer uv = toFloatBuffer(uvBuf);
+            int requiredFloats = vtxCount * STRIDE_FLOATS;
+            int requiredBytes = requiredFloats * 4;
+            ensureInterleavedBuffer(requiredBytes);
+            interleavedBytes.clear();
+            FloatBuffer dst = interleavedFloats;
+            dst.clear();
+            for (int i = 0; i < vtxCount; i++) {
+                int posBase = i * 3;
+                int uvBase = i * 2;
+                dst.put(pos.get(posBase));
+                dst.put(pos.get(posBase + 1));
+                dst.put(pos.get(posBase + 2));
+                if (nrm != null) {
+                    int nrmBase = i * 3;
+                    dst.put(nrm.get(nrmBase));
+                    dst.put(nrm.get(nrmBase + 1));
+                    dst.put(nrm.get(nrmBase + 2));
+                } else {
+                    dst.put(0.0f);
+                    dst.put(1.0f);
+                    dst.put(0.0f);
+                }
+                dst.put(uv.get(uvBase));
+                dst.put(uv.get(uvBase + 1));
+            }
+            interleavedBytes.limit(requiredBytes);
+            uploadDynamic(vboInterleaved, interleavedBytes, requiredBytes);
         }
 
         private static void uploadDynamic(int vbo, ByteBuffer src, long expectedBytes) {
@@ -257,15 +300,21 @@ public abstract class PmxRenderBase {
             dup.rewind();
 
             GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
+            GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, expectedBytes, GL15C.GL_DYNAMIC_DRAW);
             GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
             GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
         }
 
-        private static void setupFloatVbo(int vbo, int loc, int size, long bytes) {
-            GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
-            GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, bytes, GL15C.GL_DYNAMIC_DRAW);
-            GL20C.glEnableVertexAttribArray(loc);
-            GL20C.glVertexAttribPointer(loc, size, GL11C.GL_FLOAT, false, 0, 0L);
+        private void ensureInterleavedBuffer(int requiredBytes) {
+            if (interleavedBytes != null && interleavedBytes.capacity() >= requiredBytes) return;
+            interleavedBytes = ByteBuffer.allocateDirect(requiredBytes).order(ByteOrder.nativeOrder());
+            interleavedFloats = interleavedBytes.asFloatBuffer();
+        }
+
+        private static FloatBuffer toFloatBuffer(ByteBuffer buffer) {
+            ByteBuffer dup = buffer.duplicate().order(ByteOrder.nativeOrder());
+            dup.rewind();
+            return dup.asFloatBuffer();
         }
 
         private static int deleteBuffer(int id) {
