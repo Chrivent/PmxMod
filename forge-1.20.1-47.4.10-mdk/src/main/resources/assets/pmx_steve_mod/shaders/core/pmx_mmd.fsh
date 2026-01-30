@@ -13,6 +13,7 @@ uniform vec3 u_Specular;
 uniform float u_SpecularPower;
 uniform vec3 u_LightColor;
 uniform vec3 u_LightDir;
+uniform vec2 u_LightUV;
 
 uniform int u_TexMode;
 uniform sampler2D Sampler0;
@@ -28,6 +29,7 @@ uniform int u_SphereTexMode;
 uniform sampler2D Sampler2;
 uniform vec4 u_SphereTexMulFactor;
 uniform vec4 u_SphereTexAddFactor;
+uniform sampler2D Sampler3;
 
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;
@@ -86,6 +88,9 @@ void main() {
         vec3 specularColor = u_Specular * u_LightColor;
         specular += pow(max(0.0, dot(halfVec, nor)), u_SpecularPower) * specularColor;
     }
+    vec3 lightMap = texture(Sampler3, u_LightUV).rgb;
+    color *= lightMap;
+    specular *= lightMap;
     color += specular;
     fragColor = vec4(color, alpha);
 }

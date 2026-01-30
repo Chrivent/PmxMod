@@ -65,8 +65,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         Uniform u = sh.getUniform(name);
         if (u != null) u.set(v);
     }
-    private void set2f(ShaderInstance sh, float x, float y) {
-        Uniform u = sh.getUniform("u_ScreenSize");
+    private void set2f(ShaderInstance sh, String name, float x, float y) {
+        Uniform u = sh.getUniform(name);
         if (u != null) u.set(x, y);
     }
     private void set1i(ShaderInstance sh, String name, int v) {
@@ -87,7 +87,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
     public void renderPlayer(PmxInstance instance,
                              AbstractClientPlayer player,
                              float partialTick,
-                             PoseStack poseStack) {
+                             PoseStack poseStack,
+                             int packedLight) {
         boolean ready = instance.isReady();
         if (!ready || instance.handle() == 0L
                 || instance.idxBuf() == null || instance.posBuf() == null
@@ -116,6 +117,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         Matrix4f pose = poseStack.last().pose();
         float[] lightDir = getSunLightDir(player.level(), partialTick);
+        float[] lightUV = getLightmapUV(packedLight);
 
         SubmeshInfo[] subs = instance.submeshes();
         if (subs == null) {
@@ -132,7 +134,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         GL30C.glBindVertexArray(mesh.vao);
 
         for (SubmeshInfo sub : subs) {
-            drawSubmeshIndexed(instance, sub, pose, lightDir);
+            drawSubmeshIndexed(instance, sub, pose, lightDir, lightUV);
         }
 
         drawEdgePass(instance, subs, pose);
@@ -149,7 +151,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
     private void drawSubmeshIndexed(PmxInstance instance,
                                     SubmeshInfo sm,
                                     Matrix4f pose,
-                                    float[] lightDir) {
+                                    float[] lightDir,
+                                    float[] lightUV) {
         if (sm == null) return;
 
         MaterialInfo mat = instance.material(sm.materialId());
@@ -176,6 +179,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         set3f(sh, "u_LightColor", 1f, 1f, 1f);
         set3f(sh, "u_LightDir", lightDir[0], lightDir[1], lightDir[2]);
+        set2f(sh, "u_LightUV", lightUV[0], lightUV[1]);
 
         set3f(sh, "u_Ambient", mat.ambientR(), mat.ambientG(), mat.ambientB());
 
@@ -194,6 +198,8 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         sh.setSampler("Sampler0", texMgr.getTexture(gpu.mainTex));
         sh.setSampler("Sampler1", texMgr.getTexture(gpu.toonTex));
         sh.setSampler("Sampler2", texMgr.getTexture(gpu.sphereTex));
+        Minecraft.getInstance().gameRenderer.lightTexture().turnOnLightLayer();
+        sh.setSampler("Sampler3", RenderSystem.getShaderTexture(2));
 
         set1i(sh, "u_TexMode", gpu.texMode);
         float[] tm = mat.texMul();
@@ -240,9 +246,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         setMat4(edgeShader, "u_WVP", wvp);
 
         var window = Minecraft.getInstance().getWindow();
-        set2f(edgeShader, window.getScreenWidth(), window.getScreenHeight());
-
-        edgeShader.apply();
+        set2f(edgeShader, "u_ScreenSize", window.getScreenWidth(), window.getScreenHeight());
 
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();
@@ -260,6 +264,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
             float[] edgeColor = mat.edgeColor();
             set1f(edgeShader, "u_EdgeSize", edgeSize);
             set4f(edgeShader, "u_EdgeColor", edgeColor[0], edgeColor[1], edgeColor[2], edgeColor[3]);
+            edgeShader.apply();
 
             DrawRange range = getDrawRange(sub, mesh);
             if (range == null) continue;
@@ -290,6 +295,14 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         Matrix3f viewRot = new Matrix3f(invView).invert();
         viewRot.transform(dir);
         return new float[] {dir.x, dir.y, dir.z};
+    }
+
+    private static float[] getLightmapUV(int packedLight) {
+        int lightU = (packedLight & 0xFFFF);
+        int lightV = (packedLight >>> 16);
+        float u = (lightU / 16.0f + 0.5f) / 16.0f;
+        float v = (lightV / 16.0f + 0.5f) / 16.0f;
+        return new float[] {u, v};
     }
 
     private MaterialGpu getOrBuildMaterialGpu(PmxInstance instance, int materialId, MaterialInfo mat) {

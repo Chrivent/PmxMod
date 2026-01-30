@@ -4,7 +4,8 @@
   "samplers": [
     { "name": "Sampler0" },
     { "name": "Sampler1" },
-    { "name": "Sampler2" }
+    { "name": "Sampler2" },
+    { "name": "Sampler3" }
   ],
   "attributes": [ "Position", "UV0", "Normal" ],
   "uniforms": [
@@ -32,6 +33,7 @@
     { "name": "u_ToonTexAddFactor", "type": "float", "count": 4, "values": [0,0,0,0] },
 
     { "name": "u_LightColor", "type": "float", "count": 3, "values": [1,1,1] },
-    { "name": "u_LightDir", "type": "float", "count": 3, "values": [0.2,1.0,0.2] }
+    { "name": "u_LightDir", "type": "float", "count": 3, "values": [0.2,1.0,0.2] },
+    { "name": "u_LightUV", "type": "float", "count": 2, "values": [1,1] }
   ]
 }

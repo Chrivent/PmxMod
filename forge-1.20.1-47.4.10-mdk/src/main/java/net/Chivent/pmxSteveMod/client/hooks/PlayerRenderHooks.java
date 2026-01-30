@@ -48,7 +48,8 @@ public final class PlayerRenderHooks {
             OCULUS_RENDERER.renderPlayer(instance, player, event.getPartialTick(),
                     event.getPoseStack(), event.getPackedLight());
         } else {
-            VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(), event.getPoseStack());
+            VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(),
+                    event.getPoseStack(), event.getPackedLight());
         }
     }
 
