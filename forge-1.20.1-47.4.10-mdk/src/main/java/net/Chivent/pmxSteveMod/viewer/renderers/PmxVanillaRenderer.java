@@ -231,11 +231,6 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         sh.apply();
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.depthMask(true);
-
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
