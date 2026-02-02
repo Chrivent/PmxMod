@@ -26,6 +26,7 @@ public class PmxModelSelectScreen extends Screen {
     private static final int INFO_PANEL_WIDTH = GuiUtil.MODEL_SELECT_INFO_PANEL_WIDTH;
     private static final int INFO_PANEL_PADDING = GuiUtil.MODEL_SELECT_INFO_PANEL_PADDING;
     private static final int INFO_PANEL_INSET = GuiUtil.MODEL_SELECT_INFO_PANEL_INSET;
+    private static final int RIGHT_PANEL_WIDTH = 140;
     private final Screen parent;
     private PmxModelList list;
     private Path modelDir;
@@ -33,6 +34,8 @@ public class PmxModelSelectScreen extends Screen {
     private volatile boolean rescanRequested = false;
     private double infoScroll = 0.0;
     private int infoScrollMax = 0;
+    private Button slotSettingsButton;
+    private Button stateSettingsButton;
 
     public PmxModelSelectScreen(Screen parent) {
         super(Component.translatable("pmx.screen.select_model.title"));
@@ -43,7 +46,14 @@ public class PmxModelSelectScreen extends Screen {
     protected void init() {
         modelDir = PmxViewer.get().getUserModelDir();
         int listLeft = INFO_PANEL_WIDTH + INFO_PANEL_PADDING;
-        int listWidth = Math.max(100, this.width - listLeft - 10);
+        int gap = 10;
+        int available = this.width - listLeft - gap;
+        int rightPanelWidth = Math.min(RIGHT_PANEL_WIDTH, Math.max(90, available / 4));
+        int listWidth = Math.max(100, available - rightPanelWidth - gap);
+        if (listWidth + rightPanelWidth + gap > available) {
+            rightPanelWidth = Math.max(90, available - listWidth - gap);
+        }
+        int rightPanelLeft = listLeft + listWidth + gap;
         list = new PmxModelList(this, this.minecraft, listWidth, this.height, 50, this.height - 40, 20);
         list.setLeftPos(listLeft);
         list.setRenderBackground(false);
@@ -51,6 +61,28 @@ public class PmxModelSelectScreen extends Screen {
         addWidget(list);
         reloadList();
         startWatcher();
+
+        int buttonHeight = 20;
+        int buttonGap = 6;
+        int buttonY = 50;
+        slotSettingsButton = addRenderableWidget(Button.builder(
+                Component.translatable("pmx.button.slot_settings"),
+                b -> {
+                    Path selected = getActiveModelPath();
+                    if (selected != null) {
+                        openModelSettings(selected);
+                    }
+                }
+        ).bounds(rightPanelLeft, buttonY, rightPanelWidth, buttonHeight).build());
+        stateSettingsButton = addRenderableWidget(Button.builder(
+                Component.translatable("pmx.button.state_settings"),
+                b -> {
+                    Path selected = getActiveModelPath();
+                    if (selected != null) {
+                        openStateSettings(selected);
+                    }
+                }
+        ).bounds(rightPanelLeft, buttonY + buttonHeight + buttonGap, rightPanelWidth, buttonHeight).build());
 
         int rowY = this.height - 32;
         int padding = 6;
@@ -68,6 +100,7 @@ public class PmxModelSelectScreen extends Screen {
         }).bounds(midX, rowY, itemWidth, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
                 .bounds(rightX, rowY, itemWidth, 20).build());
+        updateSettingsButtons();
     }
 
     private void reloadList() {
@@ -240,6 +273,24 @@ public class PmxModelSelectScreen extends Screen {
         infoScroll = 0.0;
     }
 
+    private Path getActiveModelPath() {
+        PmxViewer viewer = PmxViewer.get();
+        if (!viewer.isPmxVisible()) {
+            return null;
+        }
+        return viewer.getSelectedModelPath();
+    }
+
+    public void updateSettingsButtons() {
+        boolean enabled = getActiveModelPath() != null;
+        if (slotSettingsButton != null) {
+            slotSettingsButton.active = enabled;
+        }
+        if (stateSettingsButton != null) {
+            stateSettingsButton.active = enabled;
+        }
+    }
+
     private int infoPanelLeft() {
         return 10;
     }
@@ -281,6 +332,7 @@ public class PmxModelSelectScreen extends Screen {
             rescanRequested = false;
             reloadList();
         }
+        updateSettingsButtons();
         super.tick();
     }
 
@@ -400,13 +452,6 @@ public class PmxModelSelectScreen extends Screen {
         private static final class PmxModelEntry extends PmxEntry {
             private final PmxModelSelectScreen screen;
             private final Path modelPath;
-            private static final int BUTTON_WIDTH = 58;
-            private static final int BUTTON_GAP = 4;
-            private static final int BUTTON_PADDING = 6;
-            private int lastX;
-            private int lastY;
-            private int lastWidth;
-            private int lastHeight;
 
             private PmxModelEntry(PmxModelSelectScreen screen, Path modelPath) {
                 this.screen = screen;
@@ -416,43 +461,12 @@ public class PmxModelSelectScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
-                lastX = x;
-                lastY = y;
-                lastWidth = width;
-                lastHeight = height;
                 String name = modelPath.getFileName().toString();
                 graphics.drawString(screen.font, name, x + 6, y + 2, 0xFFFFFF, false);
-                int btnRight = x + width - BUTTON_PADDING;
-                int totalWidth = BUTTON_WIDTH * 2 + BUTTON_GAP;
-                int leftA = btnRight - totalWidth;
-                int leftB = leftA + BUTTON_WIDTH + BUTTON_GAP;
-                int btnTop = y + 1;
-                int btnBottom = y + height - 1;
-
-                Component labelA = Component.translatable("pmx.button.slot_settings");
-                Component labelB = Component.translatable("pmx.button.state_settings");
-                drawSmallButton(graphics, leftA, btnTop, btnBottom - btnTop,
-                        mouseX, mouseY, labelA);
-                drawSmallButton(graphics, leftB, btnTop, btnBottom - btnTop,
-                        mouseX, mouseY, labelB);
             }
 
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
-                int btnRight = lastX + lastWidth - BUTTON_PADDING;
-                int totalWidth = BUTTON_WIDTH * 2 + BUTTON_GAP;
-                int leftA = btnRight - totalWidth;
-                int leftB = leftA + BUTTON_WIDTH + BUTTON_GAP;
-                int rowTop = lastY;
-                int rowBottom = lastY + lastHeight;
-                if (mouseX >= leftA && mouseX <= leftA + BUTTON_WIDTH && mouseY >= rowTop && mouseY <= rowBottom) {
-                    screen.openModelSettings(modelPath);
-                    return true;
-                }
-                if (mouseX >= leftB && mouseX <= leftB + BUTTON_WIDTH && mouseY >= rowTop && mouseY <= rowBottom) {
-                    screen.openStateSettings(modelPath);
-                    return true;
-                }
                 PmxViewer viewer = PmxViewer.get();
                 viewer.setSelectedModelPath(modelPath);
                 viewer.setPmxVisible(true);
@@ -462,21 +476,8 @@ public class PmxModelSelectScreen extends Screen {
                     screen.list.setSelected(this);
                 }
                 screen.resetInfoScroll();
+                screen.updateSettingsButtons();
                 return true;
-            }
-
-            private void drawSmallButton(GuiGraphics graphics, int left, int top, int height,
-                                         int mouseX, int mouseY, Component label) {
-                int right = left + PmxModelEntry.BUTTON_WIDTH;
-                int bottom = top + height;
-                boolean hover = mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom;
-                int border = hover ? 0xFFCCCCCC : 0xFF777777;
-                int fill = hover ? 0x40222222 : 0x20222222;
-                graphics.fill(left, top, right, bottom, fill);
-                graphics.renderOutline(left, top, PmxModelEntry.BUTTON_WIDTH, height, border);
-                int labelX = left + (PmxModelEntry.BUTTON_WIDTH - screen.font.width(label)) / 2;
-                int labelY = top + 2;
-                graphics.drawString(screen.font, label, labelX, labelY, 0xFFFFFF, false);
             }
         }
 
@@ -503,6 +504,7 @@ public class PmxModelSelectScreen extends Screen {
                     screen.list.setSelected(this);
                 }
                 screen.resetInfoScroll();
+                screen.updateSettingsButtons();
                 return true;
             }
         }
