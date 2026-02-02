@@ -134,6 +134,7 @@ public abstract class PmxRenderBase {
         float bodyYaw = getBodyYawWithHeadClamp(player, partialTick);
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
         applyVanillaBodyTilt(player, partialTick, poseStack);
+        applyDeathRotation(player, partialTick, poseStack);
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
     }
 
@@ -230,6 +231,10 @@ public abstract class PmxRenderBase {
     protected float getBodyYawWithHeadClamp(AbstractClientPlayer player, float partialTick) {
         if (player == null) return 0.0f;
         float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+        if (player.getTicksFrozen() >= player.getTicksRequiredToFreeze()) {
+            float shake = Mth.cos(((float) player.tickCount + partialTick) * 3.25F) * 3.0F;
+            bodyYaw += shake;
+        }
         if (player.isPassenger() && player.getVehicle() instanceof net.minecraft.world.entity.LivingEntity living) {
             float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
             float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
@@ -241,6 +246,15 @@ public abstract class PmxRenderBase {
             }
         }
         return bodyYaw;
+    }
+
+    private static void applyDeathRotation(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
+        if (player == null || poseStack == null) return;
+        if (player.deathTime <= 0) return;
+        float progress = (((float) player.deathTime) + partialTick - 1.0F) / 20.0F * 1.6F;
+        progress = Mth.sqrt(progress);
+        if (progress > 1.0F) progress = 1.0F;
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(progress * 90.0F));
     }
 
     protected static final class PmxGlMesh {
