@@ -89,8 +89,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                              float partialTick,
                              PoseStack poseStack,
                              int packedLight) {
-        boolean ready = instance.isReady();
-        if (!ready || instance.handle() == 0L
+        if (!instance.isReady() || instance.handle() == 0L
                 || instance.idxBuf() == null || instance.posBuf() == null
                 || instance.nrmBuf() == null || instance.uvBuf() == null) {
             return;
@@ -149,7 +148,6 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         if (useMsaa) {
             endMsaa(prevFbo, width, height);
@@ -253,10 +251,6 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         var window = Minecraft.getInstance().getWindow();
         set2f(edgeShader, "u_ScreenSize", window.getWidth(), window.getHeight());
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         GL11C.glCullFace(GL11C.GL_FRONT);
 
