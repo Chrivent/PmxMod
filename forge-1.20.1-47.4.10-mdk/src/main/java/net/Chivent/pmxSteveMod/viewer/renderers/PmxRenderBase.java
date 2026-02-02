@@ -159,26 +159,41 @@ public abstract class PmxRenderBase {
     protected void applyVanillaBodyTilt(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
         if (player == null || poseStack == null) return;
 
+        float swimAmount = player.getSwimAmount(partialTick);
         if (player.isFallFlying()) {
             float flyTicks = player.getFallFlyingTicks() + partialTick;
             float rotScale = Mth.clamp(flyTicks * flyTicks / 100.0f, 0.0f, 1.0f);
             if (!player.isAutoSpinAttack()) {
                 poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rotScale * (90.0f + player.getXRot())));
             }
-            float viewYRot = player.getViewYRot(partialTick);
-            float bodyYRot = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
-            float yawDiff = Mth.wrapDegrees(viewYRot - bodyYRot);
-            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDiff));
+            Vec3 view = player.getViewVector(partialTick);
+            Vec3 delta = player.getDeltaMovementLerped(partialTick);
+            double d0 = delta.horizontalDistanceSqr();
+            double d1 = view.horizontalDistanceSqr();
+            if (d0 > 0.0D && d1 > 0.0D) {
+                double d2 = (delta.x * view.x + delta.z * view.z) / Math.sqrt(d0 * d1);
+                double d3 = delta.x * view.z - delta.z * view.x;
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotation((float)(Math.signum(d3) * Math.acos(d2))));
+            }
             return;
         }
 
-        if (player.isVisuallySwimming()) {
-            float swimAmount = player.getSwimAmount(partialTick);
+        if (swimAmount > 0.0f) {
             float target = player.isInWater()
-                    ? 90.0f
-                    : 90.0f + player.getXRot();
-            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(Mth.lerp(swimAmount, 0.0f, target)));
+                    || player.isInFluidType((fluidType, height) -> player.canSwimInFluidType(fluidType))
+                    ? 90.0f + player.getXRot()
+                    : 90.0f;
+            float rot = Mth.lerp(swimAmount, 0.0f, target);
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rot));
+            if (player.isVisuallySwimming()) {
+                poseStack.translate(0.0F, -1.0F, 0.3F);
+            }
             return;
+        }
+
+        if (player.isAutoSpinAttack()) {
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F + player.getXRot()));
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(((float)player.tickCount + partialTick) * -75.0F));
         }
     }
 
