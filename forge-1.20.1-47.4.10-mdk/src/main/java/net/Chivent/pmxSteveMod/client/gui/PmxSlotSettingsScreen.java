@@ -47,6 +47,18 @@ public class PmxSlotSettingsScreen extends PmxSettingsScreenBase {
             }
                 }
         );
+        boolean[] present = new boolean[SLOT_COUNT];
+        for (SettingsRow row : rows) {
+            if (row.slotIndex >= 0 && row.slotIndex < SLOT_COUNT) {
+                present[row.slotIndex] = true;
+            }
+        }
+        for (int i = 0; i < SLOT_COUNT; i++) {
+            if (!present[i]) {
+                rows.add(new SettingsRow(Component.translatable("pmx.settings.row.slot", i + 1).getString(), false, i));
+            }
+        }
+        rows.sort(java.util.Comparator.comparingInt(r -> r.slotIndex));
     }
 
     @Override
