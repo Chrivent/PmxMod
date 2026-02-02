@@ -36,6 +36,7 @@ public class PmxInstance {
     private static final String HEAD_BONE_NAME = "頭";
     private boolean headBoneChecked = false;
     private boolean headBoneAvailable = false;
+    private boolean headTrackingEnabled = true;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -146,7 +147,9 @@ public class PmxInstance {
     public void tickRender() {
         if (!ready || handle == 0L) return;
 
-        applyHeadAdditiveRotation();
+        if (headTrackingEnabled) {
+            applyHeadAdditiveRotation();
+        }
 
         PmxPlaybackController.Tick baseTick = playbackController.tickBase();
         float dt = baseTick.dt();
@@ -205,6 +208,10 @@ public class PmxInstance {
         float pitch = Mth.lerp(partialTick, player.xRotO, player.getXRot());
         float yaw = -wrappedDiff;
         PmxNative.nativeSetBoneRotationAdditive(handle, HEAD_BONE_NAME, pitch, yaw, 0.0f);
+    }
+
+    public void setHeadTrackingEnabled(boolean enabled) {
+        headTrackingEnabled = enabled;
     }
 
     public void syncCpuBuffersForRender() {
