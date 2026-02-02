@@ -31,7 +31,6 @@ import java.util.Set;
 public class PmxVanillaRenderer extends PmxRenderBase {
 
     private static final Logger LOGGER = LogUtils.getLogger();
-
     private final Set<String> textureLoadFailures = new HashSet<>();
 
     private static final class MaterialGpu {
@@ -77,6 +76,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
     public void onViewerShutdown() {
         RenderSystem.recordRenderCall(() -> {
             mesh.destroy();
+            destroyMsaaTargets();
             resetTextureCache();
             materialGpuCache.clear();
             textureLoadFailures.clear();
@@ -125,6 +125,12 @@ public class PmxVanillaRenderer extends PmxRenderBase {
             return;
         }
 
+        var window = Minecraft.getInstance().getWindow();
+        int width = window.getWidth();
+        int height = window.getHeight();
+        int prevFbo = beginMsaa(width, height);
+        boolean useMsaa = prevFbo >= 0;
+
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -144,6 +150,10 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        if (useMsaa) {
+            endMsaa(prevFbo, width, height);
+        }
 
         poseStack.popPose();
     }
@@ -246,7 +256,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         setMat4(edgeShader, "u_WVP", wvp);
 
         var window = Minecraft.getInstance().getWindow();
-        set2f(edgeShader, "u_ScreenSize", window.getScreenWidth(), window.getScreenHeight());
+        set2f(edgeShader, "u_ScreenSize", window.getWidth(), window.getHeight());
 
         RenderSystem.enableDepthTest();
         RenderSystem.enableBlend();

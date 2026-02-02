@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -83,6 +84,7 @@ public class PmxOculusRenderer extends PmxRenderBase {
     public void onViewerShutdown() {
         resetTextureCache();
         mesh.destroy();
+        destroyMsaaTargets();
     }
 
     public void renderPlayer(PmxInstance instance,
@@ -102,6 +104,12 @@ public class PmxOculusRenderer extends PmxRenderBase {
         float viewYRot = player.getViewYRot(partialTick);
         poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+
+        var window = Minecraft.getInstance().getWindow();
+        int width = window.getWidth();
+        int height = window.getHeight();
+        int prevFbo = beginMsaa(width, height);
+        boolean useMsaa = prevFbo >= 0;
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
@@ -127,6 +135,11 @@ public class PmxOculusRenderer extends PmxRenderBase {
                 drawSubmeshIndexed(sub, type, alpha, packedLight, overlay, useNormals, pose);
             }
         }
+
+        if (useMsaa) {
+            endMsaa(prevFbo, width, height);
+        }
+
         poseStack.popPose();
     }
 
