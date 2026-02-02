@@ -114,7 +114,7 @@ public abstract class PmxRenderBase {
     }
 
     protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
-        float bodyYaw = getBodyYaw(player, partialTick);
+        float bodyYaw = getBodyYawWithHeadClamp(player, partialTick);
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
         applyVanillaBodyTilt(player, partialTick, poseStack);
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
@@ -210,9 +210,20 @@ public abstract class PmxRenderBase {
         }
     }
 
-    protected float getBodyYaw(AbstractClientPlayer player, float partialTick) {
+    protected float getBodyYawWithHeadClamp(AbstractClientPlayer player, float partialTick) {
         if (player == null) return 0.0f;
-        return Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+        float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+        if (player.isPassenger() && player.getVehicle() instanceof net.minecraft.world.entity.LivingEntity living) {
+            float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
+            float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
+            float yawDiff = headYaw - vehicleBodyYaw;
+            float clamped = Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
+            bodyYaw = headYaw - clamped;
+            if (clamped * clamped > 2500.0f) {
+                bodyYaw += clamped * 0.2f;
+            }
+        }
+        return bodyYaw;
     }
 
     protected static final class PmxGlMesh {

@@ -214,19 +214,14 @@ public class PmxInstance {
         if (player.isPassenger() && player.getVehicle() instanceof LivingEntity living) {
             float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
             yawDiff = headYaw - vehicleBodyYaw;
-            float clamped = Mth.wrapDegrees(yawDiff);
-            if (clamped < -85.0f) clamped = -85.0f;
-            if (clamped > 85.0f) clamped = 85.0f;
+            float clamped = Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
             bodyYaw = headYaw - clamped;
             if (clamped * clamped > 2500.0f) {
                 bodyYaw += clamped * 0.2f;
             }
             yawDiff = headYaw - bodyYaw;
         }
-        float wrappedDiff = Mth.wrapDegrees(yawDiff);
-        if (wrappedDiff < -85.0f) wrappedDiff = -85.0f;
-        if (wrappedDiff > 85.0f) wrappedDiff = 85.0f;
-        return wrappedDiff;
+        return Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
     }
 
     public void syncCpuBuffersForRender() {
