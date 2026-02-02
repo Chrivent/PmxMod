@@ -175,6 +175,7 @@ public abstract class PmxRenderBase {
         if (player.isAutoSpinAttack()) {
             poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F + player.getXRot()));
             poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(((float)player.tickCount + partialTick) * -75.0F));
+            return;
         }
 
         float swimAmount = player.getSwimAmount(partialTick);
