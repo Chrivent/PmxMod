@@ -460,17 +460,7 @@ public abstract class PmxRenderBase {
             dup.rewind();
 
             GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
-            ByteBuffer mapped = GL30C.glMapBufferRange(
-                    GL15C.GL_ARRAY_BUFFER, 0L, expectedBytes,
-                    GL30C.GL_MAP_WRITE_BIT | GL30C.GL_MAP_INVALIDATE_BUFFER_BIT
-            );
-            if (mapped != null) {
-                MemoryUtil.memCopy(MemoryUtil.memAddress(dup), MemoryUtil.memAddress(mapped), expectedBytes);
-                GL30C.glUnmapBuffer(GL15C.GL_ARRAY_BUFFER);
-            } else {
-                GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
-            }
-            GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
+            GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
         }
 
         private void ensureInterleavedBuffer(int requiredBytes) {
