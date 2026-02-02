@@ -9,12 +9,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.resources.ResourceLocation;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
-import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,21 +27,11 @@ import java.util.Map;
 
 public abstract class PmxRenderBase {
     public static final float MODEL_SCALE = 0.1f;
-    protected static final int MSAA_SAMPLES = 4;
     protected record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
 
     protected final Map<String, TextureEntry> textureCache = new HashMap<>();
     protected int textureIdCounter = 0;
     protected ResourceLocation magentaTex = null;
-
-    private int msaaFbo = 0;
-    private int msaaColorRb = 0;
-    private int msaaDepthRb = 0;
-    private int msaaWidth = 0;
-    private int msaaHeight = 0;
-    private int msaaSourceFbo = 0;
-    private int msaaColorFormat = GL30C.GL_RGBA8;
-    private int msaaDepthFormat = GL30C.GL_DEPTH24_STENCIL8;
 
     protected void resetTextureCache() {
         textureCache.clear();
@@ -162,153 +150,6 @@ public abstract class PmxRenderBase {
             }
         }
         return false;
-    }
-
-    protected int beginMsaa(int width, int height) {
-        if (width <= 0 || height <= 0) return -1;
-        int prevFbo = GL11C.glGetInteger(GL30C.GL_FRAMEBUFFER_BINDING);
-        if (!ensureMsaaTargets(prevFbo, width, height)) return -1;
-
-        GL30C.glBindFramebuffer(GL30C.GL_DRAW_FRAMEBUFFER, msaaFbo);
-        GL30C.glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, prevFbo);
-        GL30C.glBlitFramebuffer(
-                0, 0, width, height,
-                0, 0, width, height,
-                GL11C.GL_COLOR_BUFFER_BIT | GL11C.GL_DEPTH_BUFFER_BIT,
-                GL11C.GL_NEAREST
-        );
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, msaaFbo);
-        GL11C.glDrawBuffer(GL30C.GL_COLOR_ATTACHMENT0);
-        return prevFbo;
-    }
-
-    protected void endMsaa(int prevFbo, int width, int height) {
-        if (msaaFbo == 0 || prevFbo < 0) return;
-        GL30C.glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, msaaFbo);
-        GL30C.glBindFramebuffer(GL30C.GL_DRAW_FRAMEBUFFER, prevFbo);
-        GL30C.glBlitFramebuffer(
-                0, 0, width, height,
-                0, 0, width, height,
-                GL11C.GL_COLOR_BUFFER_BIT | GL11C.GL_DEPTH_BUFFER_BIT,
-                GL11C.GL_NEAREST
-        );
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, prevFbo);
-    }
-
-    protected void destroyMsaaTargets() {
-        if (msaaColorRb != 0) GL30C.glDeleteRenderbuffers(msaaColorRb);
-        if (msaaDepthRb != 0) GL30C.glDeleteRenderbuffers(msaaDepthRb);
-        if (msaaFbo != 0) GL30C.glDeleteFramebuffers(msaaFbo);
-        msaaColorRb = 0;
-        msaaDepthRb = 0;
-        msaaFbo = 0;
-        msaaWidth = 0;
-        msaaHeight = 0;
-        msaaSourceFbo = 0;
-    }
-
-    private boolean ensureMsaaTargets(int prevFbo, int width, int height) {
-        if (msaaFbo != 0
-                && msaaSourceFbo == prevFbo
-                && msaaWidth == width
-                && msaaHeight == height) {
-            return true;
-        }
-
-        int colorFormat = queryColorInternalFormat(prevFbo);
-        int depthFormat = queryDepthInternalFormat(prevFbo);
-        if (msaaFbo != 0
-                && msaaWidth == width
-                && msaaHeight == height
-                && msaaColorFormat == colorFormat
-                && msaaDepthFormat == depthFormat) {
-            msaaSourceFbo = prevFbo;
-            return true;
-        }
-
-        destroyMsaaTargets();
-        msaaWidth = width;
-        msaaHeight = height;
-        msaaSourceFbo = prevFbo;
-        msaaColorFormat = colorFormat;
-        msaaDepthFormat = depthFormat;
-
-        msaaFbo = GL30C.glGenFramebuffers();
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, msaaFbo);
-
-        msaaColorRb = GL30C.glGenRenderbuffers();
-        GL30C.glBindRenderbuffer(GL30C.GL_RENDERBUFFER, msaaColorRb);
-        GL30C.glRenderbufferStorageMultisample(
-                GL30C.GL_RENDERBUFFER, MSAA_SAMPLES, msaaColorFormat, width, height
-        );
-        GL30C.glFramebufferRenderbuffer(
-                GL30C.GL_FRAMEBUFFER, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_RENDERBUFFER, msaaColorRb
-        );
-
-        msaaDepthRb = GL30C.glGenRenderbuffers();
-        GL30C.glBindRenderbuffer(GL30C.GL_RENDERBUFFER, msaaDepthRb);
-        GL30C.glRenderbufferStorageMultisample(
-                GL30C.GL_RENDERBUFFER, MSAA_SAMPLES, msaaDepthFormat, width, height
-        );
-        GL30C.glFramebufferRenderbuffer(
-                GL30C.GL_FRAMEBUFFER, GL30C.GL_DEPTH_STENCIL_ATTACHMENT, GL30C.GL_RENDERBUFFER, msaaDepthRb
-        );
-
-        GL11C.glDrawBuffer(GL30C.GL_COLOR_ATTACHMENT0);
-        GL11C.glReadBuffer(GL30C.GL_COLOR_ATTACHMENT0);
-        int status = GL30C.glCheckFramebufferStatus(GL30C.GL_FRAMEBUFFER);
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, 0);
-        return status == GL30C.GL_FRAMEBUFFER_COMPLETE;
-    }
-
-    private int queryColorInternalFormat(int fbo) {
-        if (fbo == 0) return GL30C.GL_RGBA8;
-        int type = getFramebufferAttachmentInt(fbo, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
-        if (type == GL11C.GL_NONE) return GL30C.GL_RGBA8;
-        int name = getFramebufferAttachmentInt(fbo, GL30C.GL_COLOR_ATTACHMENT0, GL30C.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
-        return getAttachmentInternalFormat(type, name);
-    }
-
-    private int queryDepthInternalFormat(int fbo) {
-        if (fbo == 0) return GL30C.GL_DEPTH24_STENCIL8;
-        int attachment = GL30C.GL_DEPTH_STENCIL_ATTACHMENT;
-        int type = getFramebufferAttachmentInt(fbo, attachment, GL30C.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
-        if (type == GL11C.GL_NONE) {
-            attachment = GL30C.GL_DEPTH_ATTACHMENT;
-            type = getFramebufferAttachmentInt(fbo, attachment, GL30C.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
-        }
-        if (type == GL11C.GL_NONE) return GL30C.GL_DEPTH24_STENCIL8;
-        int name = getFramebufferAttachmentInt(fbo, attachment, GL30C.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
-        int fmt = getAttachmentInternalFormat(type, name);
-        return fmt != 0 ? fmt : GL30C.GL_DEPTH24_STENCIL8;
-    }
-
-    private static int getFramebufferAttachmentInt(int fbo, int attachment, int pname) {
-        int prevFbo = GL11C.glGetInteger(GL30C.GL_FRAMEBUFFER_BINDING);
-        var buf = BufferUtils.createIntBuffer(1);
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, fbo);
-        GL30C.glGetFramebufferAttachmentParameteriv(
-                GL30C.GL_FRAMEBUFFER, attachment, pname, buf
-        );
-        GL30C.glBindFramebuffer(GL30C.GL_FRAMEBUFFER, prevFbo);
-        return buf.get(0);
-    }
-
-    private static int getAttachmentInternalFormat(int objectType, int name) {
-        var buf = BufferUtils.createIntBuffer(1);
-        if (objectType == GL11C.GL_TEXTURE) {
-            GL11C.glBindTexture(GL11C.GL_TEXTURE_2D, name);
-            GL11C.glGetTexLevelParameteriv(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_INTERNAL_FORMAT, buf);
-            GL11C.glBindTexture(GL11C.GL_TEXTURE_2D, 0);
-            return buf.get(0);
-        }
-        if (objectType == GL30C.GL_RENDERBUFFER) {
-            GL30C.glBindRenderbuffer(GL30C.GL_RENDERBUFFER, name);
-            GL30C.glGetRenderbufferParameteriv(GL30C.GL_RENDERBUFFER, GL30C.GL_RENDERBUFFER_INTERNAL_FORMAT, buf);
-            GL30C.glBindRenderbuffer(GL30C.GL_RENDERBUFFER, 0);
-            return buf.get(0);
-        }
-        return 0;
     }
 
     protected static final class PmxGlMesh {

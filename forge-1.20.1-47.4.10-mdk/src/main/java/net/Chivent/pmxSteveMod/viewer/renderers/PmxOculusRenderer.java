@@ -1,23 +1,16 @@
 package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
-import net.minecraft.Util;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.Minecraft;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.platform.GlStateManager;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
@@ -25,66 +18,14 @@ import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
 import net.Chivent.pmxSteveMod.client.util.PmxShaderPackUtil;
 
-import java.util.function.Function;
-
 public class PmxOculusRenderer extends PmxRenderBase {
     private static final float TRANSLUCENT_ALPHA_THRESHOLD = 0.999f;
-    private static final RenderStateShard.TransparencyStateShard PMX_NO_TRANSPARENCY =
-            new RenderStateShard.TransparencyStateShard("pmx_no_transparency", RenderSystem::disableBlend, () -> {});
-    private static final RenderStateShard.TransparencyStateShard PMX_TRANSLUCENT_TRANSPARENCY =
-            new RenderStateShard.TransparencyStateShard("pmx_translucent_transparency", () -> {
-                RenderSystem.enableBlend();
-                RenderSystem.blendFuncSeparate(
-                        GlStateManager.SourceFactor.SRC_ALPHA,
-                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                        GlStateManager.SourceFactor.ONE,
-                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA
-                );
-            }, () -> {
-                RenderSystem.disableBlend();
-                RenderSystem.defaultBlendFunc();
-            });
-    private static final RenderStateShard.CullStateShard PMX_NO_CULL =
-            new RenderStateShard.CullStateShard(false);
-    private static final RenderStateShard.LightmapStateShard PMX_LIGHTMAP =
-            new RenderStateShard.LightmapStateShard(true);
-    private static final RenderStateShard.OverlayStateShard PMX_OVERLAY =
-            new RenderStateShard.OverlayStateShard(true);
-    private static final RenderStateShard.ShaderStateShard PMX_CUTOUT_SHADER =
-            new RenderStateShard.ShaderStateShard(GameRenderer::getRendertypeEntityCutoutNoCullShader);
-    private static final RenderStateShard.ShaderStateShard PMX_TRANSLUCENT_SHADER =
-            new RenderStateShard.ShaderStateShard(GameRenderer::getRendertypeEntityTranslucentShader);
-    private static final Function<ResourceLocation, RenderType> PMX_ENTITY_CUTOUT = Util.memoize(rl -> {
-        RenderType.CompositeState state = RenderType.CompositeState.builder()
-                .setShaderState(PMX_CUTOUT_SHADER)
-                .setTextureState(new RenderStateShard.TextureStateShard(rl, false, false))
-                .setTransparencyState(PMX_NO_TRANSPARENCY)
-                .setCullState(PMX_NO_CULL)
-                .setLightmapState(PMX_LIGHTMAP)
-                .setOverlayState(PMX_OVERLAY)
-                .createCompositeState(true);
-        return RenderType.create("pmx_entity_cutout", DefaultVertexFormat.NEW_ENTITY,
-                VertexFormat.Mode.TRIANGLES, 256, true, false, state);
-    });
-    private static final Function<ResourceLocation, RenderType> PMX_ENTITY_TRANSLUCENT = Util.memoize(rl -> {
-        RenderType.CompositeState state = RenderType.CompositeState.builder()
-                .setShaderState(PMX_TRANSLUCENT_SHADER)
-                .setTextureState(new RenderStateShard.TextureStateShard(rl, false, false))
-                .setTransparencyState(PMX_TRANSLUCENT_TRANSPARENCY)
-                .setCullState(PMX_NO_CULL)
-                .setLightmapState(PMX_LIGHTMAP)
-                .setOverlayState(PMX_OVERLAY)
-                .createCompositeState(true);
-        return RenderType.create("pmx_entity_translucent", DefaultVertexFormat.NEW_ENTITY,
-                VertexFormat.Mode.TRIANGLES, 256, true, true, state);
-    });
 
     private final PmxGlMesh mesh = new PmxGlMesh();
 
     public void onViewerShutdown() {
         resetTextureCache();
         mesh.destroy();
-        destroyMsaaTargets();
     }
 
     public void renderPlayer(PmxInstance instance,
@@ -105,12 +46,6 @@ public class PmxOculusRenderer extends PmxRenderBase {
         poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
 
-        var window = Minecraft.getInstance().getWindow();
-        int width = window.getWidth();
-        int height = window.getHeight();
-        int prevFbo = beginMsaa(width, height);
-        boolean useMsaa = prevFbo >= 0;
-
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();
         boolean useNormals = PmxShaderPackUtil.isShaderPackActive() && instance.nrmBuf() != null;
@@ -130,14 +65,10 @@ public class PmxOculusRenderer extends PmxRenderBase {
 
                 boolean translucent = alpha < TRANSLUCENT_ALPHA_THRESHOLD;
                 RenderType type = translucent
-                        ? PMX_ENTITY_TRANSLUCENT.apply(rl)
-                        : PMX_ENTITY_CUTOUT.apply(rl);
+                        ? RenderType.entityTranslucent(rl)
+                        : RenderType.entityCutoutNoCull(rl);
                 drawSubmeshIndexed(sub, type, alpha, packedLight, overlay, useNormals, pose);
             }
-        }
-
-        if (useMsaa) {
-            endMsaa(prevFbo, width, height);
         }
 
         poseStack.popPose();

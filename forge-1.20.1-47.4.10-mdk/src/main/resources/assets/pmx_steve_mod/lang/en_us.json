@@ -7,7 +7,7 @@
   "pmx.button.sound_settings": "PMX Volume",
   "pmx.screen.select_model.disable": "<Disable PMX>",
   "pmx.screen.select_model.shader_notice.title": "[Shader mod detected]",
-  "pmx.screen.select_model.shader_notice.detail": "(toon, sphere disabled)",
+  "pmx.screen.select_model.shader_notice.detail": "(toon, sphere disabled, MSAA disabled)",
   "pmx.screen.emote_wheel.disabled": "Emote wheel is available only for PMX models.",
   "pmx.screen.select_model.title": "Select PMX Model",
   "pmx.screen.slot_settings.title": "Slot Settings",
