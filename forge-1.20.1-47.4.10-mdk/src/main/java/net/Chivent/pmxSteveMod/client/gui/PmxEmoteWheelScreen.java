@@ -11,7 +11,6 @@ import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
     public static final int SLOT_COUNT = 10;
-    private static final int MIN_WHEEL_RADIUS = 90;
 
     private final Screen parent;
     private int selectedSlot = -1;
@@ -243,7 +242,7 @@ public class PmxEmoteWheelScreen extends Screen {
     private int getWheelRadius() {
         int base = Math.min(this.width, this.height);
         int scaled = (int) Math.round(base * 0.36);
-        return Math.max(MIN_WHEEL_RADIUS, scaled);
+        return Math.max(GuiUtil.WHEEL_MIN_RADIUS, scaled);
     }
 
     private int getDeadZoneRadius(int wheelRadius) {

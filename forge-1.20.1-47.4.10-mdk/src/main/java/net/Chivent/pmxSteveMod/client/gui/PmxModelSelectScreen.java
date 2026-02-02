@@ -23,9 +23,9 @@ import java.util.Comparator;
 import java.util.List;
 
 public class PmxModelSelectScreen extends Screen {
-    private static final int INFO_PANEL_WIDTH = 190;
-    private static final int INFO_PANEL_PADDING = 12;
-    private static final int INFO_PANEL_INSET = 4;
+    private static final int INFO_PANEL_WIDTH = GuiUtil.MODEL_SELECT_INFO_PANEL_WIDTH;
+    private static final int INFO_PANEL_PADDING = GuiUtil.MODEL_SELECT_INFO_PANEL_PADDING;
+    private static final int INFO_PANEL_INSET = GuiUtil.MODEL_SELECT_INFO_PANEL_INSET;
     private final Screen parent;
     private PmxModelList list;
     private Path modelDir;

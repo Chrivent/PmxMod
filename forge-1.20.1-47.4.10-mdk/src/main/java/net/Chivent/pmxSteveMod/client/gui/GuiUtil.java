@@ -17,7 +17,12 @@ public final class GuiUtil {
     public static final ResourceLocation DEFAULT_SPRITE_ID =
             ResourceLocation.fromNamespaceAndPath("minecraft", "block/obsidian");
     public static final int FOOTER_BUTTON_WIDTH = 110;
+    public static final int WHEEL_MIN_RADIUS = 90;
+    public static final int MODEL_SELECT_INFO_PANEL_WIDTH = 190;
+    public static final int MODEL_SELECT_INFO_PANEL_PADDING = 12;
+    public static final int MODEL_SELECT_INFO_PANEL_INSET = 4;
     private static final int FOOTER_SIDE_PADDING = 20;
+    private static final double WHEEL_DEADZONE_RATIO = 0.42;
 
     public record FooterButtons(int btnWidth, int totalWidth, int leftX, int availWidth, int gap) {}
 
@@ -125,7 +130,7 @@ public final class GuiUtil {
     }
 
     public static int getWheelDeadZoneRadius(int wheelRadius) {
-        return (int) Math.round(wheelRadius * 0.42);
+        return (int) Math.round(wheelRadius * WHEEL_DEADZONE_RATIO);
     }
 
     public static ColorFloats toColorFloats(int color) {
