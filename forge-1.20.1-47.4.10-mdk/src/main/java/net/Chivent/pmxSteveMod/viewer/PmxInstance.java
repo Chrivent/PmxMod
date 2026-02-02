@@ -33,7 +33,7 @@ public class PmxInstance {
     private final PmxPlaybackController playbackController = new PmxPlaybackController();
     private final PmxMusicController musicController = new PmxMusicController();
     private final PmxCameraController cameraController = new PmxCameraController();
-    private static final String HEAD_BONE_NAME = "\u982D";
+    private static final String HEAD_BONE_NAME = "頭";
     private boolean headBoneChecked = false;
     private boolean headBoneAvailable = false;
 
@@ -188,7 +188,6 @@ public class PmxInstance {
 
     private void applyHeadAdditiveRotation() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null) return;
         AbstractClientPlayer player = mc.player;
         if (player == null) return;
         if (!headBoneChecked) {
