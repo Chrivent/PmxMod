@@ -42,7 +42,7 @@
   "pmx.settings.label.anim_movement": "이동",
   "pmx.settings.label.anim_combat": "전투",
   "pmx.settings.label.anim_item": "아이템 사용",
-  "pmx.pose.fall_flying": "낙하 비행",
+  "pmx.pose.fall_flying": "겉날개 비행",
   "pmx.pose.sleeping": "수면",
   "pmx.pose.swimming": "수영",
   "pmx.pose.spin_attack": "회전 공격",
