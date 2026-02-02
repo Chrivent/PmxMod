@@ -112,15 +112,20 @@ public abstract class PmxRenderBase {
     }
 
     protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
-        if (VanillaPoseUtil.applySleepPose(player, poseStack)) {
+        float bodyYaw = VanillaPoseUtil.getBodyYawWithHeadClamp(player, partialTick);
+        float rotationYaw = bodyYaw + VanillaPoseUtil.getShakingYawOffset(player);
+
+        if (VanillaPoseUtil.applySleepPose(player, poseStack, rotationYaw)) {
             poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
             return;
         }
 
-        float bodyYaw = VanillaPoseUtil.getBodyYawWithHeadClamp(player, partialTick);
-        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
-        VanillaPoseUtil.applyBodyTilt(player, partialTick, poseStack);
-        VanillaPoseUtil.applyDeathRotation(player, partialTick, poseStack);
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-rotationYaw));
+        if (player != null && player.deathTime > 0) {
+            VanillaPoseUtil.applyDeathRotation(player, partialTick, poseStack);
+        } else {
+            VanillaPoseUtil.applyBodyTilt(player, partialTick, poseStack);
+        }
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
     }
 

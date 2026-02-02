@@ -13,10 +13,6 @@ public final class VanillaPoseUtil {
     public static float getBodyYawWithHeadClamp(AbstractClientPlayer player, float partialTick) {
         if (player == null) return 0.0f;
         float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
-        if (player.getTicksFrozen() >= player.getTicksRequiredToFreeze()) {
-            float shake = Mth.cos(((float) player.tickCount + partialTick) * 3.25F) * 3.0F;
-            bodyYaw += shake;
-        }
         if (player.isPassenger() && player.getVehicle() instanceof net.minecraft.world.entity.LivingEntity living) {
             float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
             float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
@@ -38,7 +34,12 @@ public final class VanillaPoseUtil {
         return Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
     }
 
-    public static boolean applySleepPose(AbstractClientPlayer player, PoseStack poseStack) {
+    public static float getShakingYawOffset(AbstractClientPlayer player) {
+        if (player == null || !player.isFullyFrozen()) return 0.0f;
+        return (float) (Math.cos((double) player.tickCount * 3.25D) * Math.PI * 0.4F);
+    }
+
+    public static boolean applySleepPose(AbstractClientPlayer player, PoseStack poseStack, float rotationYaw) {
         if (player == null || poseStack == null) return false;
         if (!player.isSleeping()) return false;
 
@@ -46,12 +47,12 @@ public final class VanillaPoseUtil {
         if (bedDir != null) {
             float offset = player.getEyeHeight(Pose.STANDING) - 0.1F;
             poseStack.translate((float) bedDir.getStepX() * -offset, 0.0F, (float) bedDir.getStepZ() * -offset);
-            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(bedDir.toYRot() + 90.0F));
-            poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
-            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(270.0F));
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(sleepDirectionToRotation(bedDir) + 180.0F));
         } else {
-            poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(rotationYaw));
         }
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(270.0F));
         return true;
     }
 
@@ -102,6 +103,16 @@ public final class VanillaPoseUtil {
         float progress = (((float) player.deathTime) + partialTick - 1.0F) / 20.0F * 1.6F;
         progress = Mth.sqrt(progress);
         if (progress > 1.0F) progress = 1.0F;
-        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(progress * 90.0F));
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-progress * 90.0F));
+    }
+
+    private static float sleepDirectionToRotation(Direction facing) {
+        if (facing == null) return 0.0F;
+        return switch (facing) {
+            case SOUTH -> 90.0F;
+            case NORTH -> 270.0F;
+            case EAST -> 180.0F;
+            default -> 0.0F;
+        };
     }
 }
