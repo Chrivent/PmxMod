@@ -32,9 +32,10 @@ public class PmxAddStateScreen extends Screen {
 
         listTop = 40;
         listBottom = this.height - 36;
-        list = new PmxStateList(this.minecraft, this.width - 50, listBottom - listTop,
+        int listWidth = Math.min(this.width - 30, 520);
+        list = new PmxStateList(this.minecraft, listWidth, listBottom - listTop,
                 listTop, listBottom, 22, categories);
-        list.setLeftPos(20);
+        list.setLeftPos((this.width - listWidth) / 2);
         list.setRenderBackground(false);
         list.setRenderTopAndBottom(false);
         addWidget(list);
