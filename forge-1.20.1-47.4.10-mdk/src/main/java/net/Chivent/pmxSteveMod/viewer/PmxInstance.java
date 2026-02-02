@@ -6,11 +6,11 @@ import net.Chivent.pmxSteveMod.viewer.controllers.PmxCameraController;
 import net.Chivent.pmxSteveMod.viewer.controllers.PmxMusicController;
 import net.Chivent.pmxSteveMod.viewer.controllers.PmxPlaybackController;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
+import net.Chivent.pmxSteveMod.viewer.renderers.VanillaPoseUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 
 import java.io.InputStream;
@@ -201,27 +201,10 @@ public class PmxInstance {
             return;
         }
         float partialTick = mc.getFrameTime();
-        float wrappedDiff = getWrappedDiff(partialTick, player);
+        float wrappedDiff = VanillaPoseUtil.getClampedHeadYawDiff(player, partialTick);
         float pitch = Mth.lerp(partialTick, player.xRotO, player.getXRot());
         float yaw = -wrappedDiff;
         PmxNative.nativeSetBoneRotationAdditive(handle, HEAD_BONE_NAME, pitch, yaw, 0.0f);
-    }
-
-    private static float getWrappedDiff(float partialTick, AbstractClientPlayer player) {
-        float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
-        float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
-        float yawDiff = headYaw - bodyYaw;
-        if (player.isPassenger() && player.getVehicle() instanceof LivingEntity living) {
-            float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
-            yawDiff = headYaw - vehicleBodyYaw;
-            float clamped = Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
-            bodyYaw = headYaw - clamped;
-            if (clamped * clamped > 2500.0f) {
-                bodyYaw += clamped * 0.2f;
-            }
-            yawDiff = headYaw - bodyYaw;
-        }
-        return Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
     }
 
     public void syncCpuBuffersForRender() {

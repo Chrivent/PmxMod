@@ -11,10 +11,6 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.core.Direction;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.entity.Pose;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -116,25 +112,15 @@ public abstract class PmxRenderBase {
     }
 
     protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
-        if (player != null && player.isSleeping()) {
-            Direction bedDir = player.getBedOrientation();
-            if (bedDir != null) {
-                float offset = player.getEyeHeight(Pose.STANDING) - 0.1F;
-                poseStack.translate((float) bedDir.getStepX() * -offset, 0.0F, (float) bedDir.getStepZ() * -offset);
-                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(bedDir.toYRot() + 90.0F));
-                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
-                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(270.0F));
-            } else {
-                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
-            }
+        if (VanillaPoseUtil.applySleepPose(player, poseStack)) {
             poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
             return;
         }
 
-        float bodyYaw = getBodyYawWithHeadClamp(player, partialTick);
+        float bodyYaw = VanillaPoseUtil.getBodyYawWithHeadClamp(player, partialTick);
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
-        applyVanillaBodyTilt(player, partialTick, poseStack);
-        applyDeathRotation(player, partialTick, poseStack);
+        VanillaPoseUtil.applyBodyTilt(player, partialTick, poseStack);
+        VanillaPoseUtil.applyDeathRotation(player, partialTick, poseStack);
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
     }
 
@@ -187,75 +173,6 @@ public abstract class PmxRenderBase {
         return false;
     }
 
-    protected void applyVanillaBodyTilt(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
-        if (player == null || poseStack == null) return;
-
-        if (player.isAutoSpinAttack()) {
-            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F + player.getXRot()));
-            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(((float)player.tickCount + partialTick) * -75.0F));
-            return;
-        }
-
-        float swimAmount = player.getSwimAmount(partialTick);
-        if (player.isFallFlying()) {
-            float flyTicks = player.getFallFlyingTicks() + partialTick;
-            float rotScale = Mth.clamp(flyTicks * flyTicks / 100.0f, 0.0f, 1.0f);
-            if (!player.isAutoSpinAttack()) {
-                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rotScale * (90.0f + player.getXRot())));
-            }
-            Vec3 view = player.getViewVector(partialTick);
-            Vec3 delta = player.getDeltaMovementLerped(partialTick);
-            double d0 = delta.horizontalDistanceSqr();
-            double d1 = view.horizontalDistanceSqr();
-            if (d0 > 0.0D && d1 > 0.0D) {
-                double d2 = (delta.x * view.x + delta.z * view.z) / Math.sqrt(d0 * d1);
-                double d3 = delta.x * view.z - delta.z * view.x;
-                poseStack.mulPose(com.mojang.math.Axis.YP.rotation((float)(Math.signum(d3) * Math.acos(d2))));
-            }
-            return;
-        }
-
-        if (swimAmount > 0.0f) {
-            float target = player.isInWater()
-                    || player.isInFluidType((fluidType, height) -> player.canSwimInFluidType(fluidType))
-                    ? 90.0f + player.getXRot()
-                    : 90.0f;
-            float rot = Mth.lerp(swimAmount, 0.0f, target);
-            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rot));
-            if (player.isVisuallySwimming()) {
-                poseStack.translate(0.0F, -1.0F, 0.3F);
-            }
-        }
-    }
-
-    protected float getBodyYawWithHeadClamp(AbstractClientPlayer player, float partialTick) {
-        if (player == null) return 0.0f;
-        float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
-        if (player.getTicksFrozen() >= player.getTicksRequiredToFreeze()) {
-            float shake = Mth.cos(((float) player.tickCount + partialTick) * 3.25F) * 3.0F;
-            bodyYaw += shake;
-        }
-        if (player.isPassenger() && player.getVehicle() instanceof net.minecraft.world.entity.LivingEntity living) {
-            float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
-            float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
-            float yawDiff = headYaw - vehicleBodyYaw;
-            float clamped = Mth.clamp(Mth.wrapDegrees(yawDiff), -85.0f, 85.0f);
-            bodyYaw = headYaw - clamped;
-            if (clamped * clamped > 2500.0f) {
-                bodyYaw += clamped * 0.2f;
-            }
-        }
-        return bodyYaw;
-    }
-
-    private static void applyDeathRotation(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
-        if (player == null || poseStack == null) return;
-        if (player.deathTime <= 0) return;
-        float progress = (((float) player.deathTime) + partialTick - 1.0F) / 20.0F * 1.6F;
-        progress = Mth.sqrt(progress);
-        if (progress > 1.0F) progress = 1.0F;
-        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(progress * 90.0F));
-    }
 
     protected static final class PmxGlMesh {
         protected static final int LOC_POS = 0;
