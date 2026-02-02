@@ -6,6 +6,8 @@
   "pmx.button.open_music_folder": "音楽フォルダを開く",
   "pmx.button.sound_settings": "PMX音量",
   "pmx.screen.select_model.disable": "<PMX使用しない>",
+  "pmx.screen.select_model.shader_notice.title": "[シェーダーモード検出]",
+  "pmx.screen.select_model.shader_notice.detail": "(toon, sphere 無効化)",
   "pmx.screen.emote_wheel.disabled": "エモートホイールはPMXモデルでのみ使用できます。",
   "pmx.screen.select_model.title": "PMXモデル選択",
   "pmx.screen.slot_settings.title": "スロット設定",

@@ -2,6 +2,7 @@ package net.Chivent.pmxSteveMod.client.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.Chivent.pmxSteveMod.client.input.PmxKeyMappings;
+import net.Chivent.pmxSteveMod.client.util.PmxShaderPackUtil;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import net.minecraft.Util;
@@ -77,6 +78,7 @@ public class PmxModelSelectScreen extends Screen {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
+        renderOculusNotice(graphics);
         renderInfoPanel(graphics);
         list.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
@@ -96,6 +98,16 @@ public class PmxModelSelectScreen extends Screen {
     @Override
     public void renderBackground(@NotNull GuiGraphics graphics) {
         GuiUtil.renderDefaultBackground(graphics, this.width, this.height);
+    }
+
+    private void renderOculusNotice(@NotNull GuiGraphics graphics) {
+        if (!PmxShaderPackUtil.isOculusLoaded()) return;
+        Component title = Component.translatable("pmx.screen.select_model.shader_notice.title");
+        Component detail = Component.translatable("pmx.screen.select_model.shader_notice.detail");
+        int x = 10;
+        int y = 10;
+        graphics.drawString(this.font, title, x, y, 0xFFD28A, false);
+        graphics.drawString(this.font, detail, x, y + this.font.lineHeight, 0xFFD28A, false);
     }
 
     private static final class PmxVolumeSlider extends net.minecraft.client.gui.components.AbstractSliderButton {

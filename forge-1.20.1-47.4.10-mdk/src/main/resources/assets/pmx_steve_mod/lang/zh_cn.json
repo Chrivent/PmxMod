@@ -6,6 +6,8 @@
   "pmx.button.open_music_folder": "打开音乐文件夹",
   "pmx.button.sound_settings": "PMX音量",
   "pmx.screen.select_model.disable": "<禁用PMX>",
+  "pmx.screen.select_model.shader_notice.title": "[检测到着色器模组]",
+  "pmx.screen.select_model.shader_notice.detail": "(toon, sphere 已禁用)",
   "pmx.screen.emote_wheel.disabled": "表情轮盘仅适用于PMX模型。",
   "pmx.screen.select_model.title": "选择PMX模型",
   "pmx.screen.slot_settings.title": "槽位设置",
