@@ -12,7 +12,9 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.Pose;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -114,6 +116,21 @@ public abstract class PmxRenderBase {
     }
 
     protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
+        if (player != null && player.isSleeping()) {
+            Direction bedDir = player.getBedOrientation();
+            if (bedDir != null) {
+                float offset = player.getEyeHeight(Pose.STANDING) - 0.1F;
+                poseStack.translate((float) bedDir.getStepX() * -offset, 0.0F, (float) bedDir.getStepZ() * -offset);
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(bedDir.toYRot() + 90.0F));
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(270.0F));
+            } else {
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90.0F));
+            }
+            poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+            return;
+        }
+
         float bodyYaw = getBodyYawWithHeadClamp(player, partialTick);
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
         applyVanillaBodyTilt(player, partialTick, poseStack);
