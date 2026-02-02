@@ -59,9 +59,11 @@ public abstract class PmxSettingsScreenBase extends Screen {
     protected void init() {
         int listBottom = this.height - LIST_BOTTOM_PAD;
         int listHeight = listBottom - LIST_TOP;
-        this.list = new PmxSettingsList(this, minecraft, this.width,
+        int listLeft = 6;
+        int listWidth = Math.max(100, this.width - 20);
+        this.list = new PmxSettingsList(this, minecraft, listWidth,
                 listHeight, LIST_TOP, listBottom, LIST_ITEM_HEIGHT);
-        this.list.setLeftPos(0);
+        this.list.setLeftPos(listLeft);
         this.list.setRenderBackground(false);
         this.list.setRenderTopAndBottom(false);
         addWidget(this.list);

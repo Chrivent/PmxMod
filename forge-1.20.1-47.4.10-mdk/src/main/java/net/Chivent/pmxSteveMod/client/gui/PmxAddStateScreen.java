@@ -32,7 +32,7 @@ public class PmxAddStateScreen extends Screen {
 
         listTop = 40;
         listBottom = this.height - 36;
-        list = new PmxStateList(this.minecraft, this.width - 40, listBottom - listTop,
+        list = new PmxStateList(this.minecraft, this.width - 50, listBottom - listTop,
                 listTop, listBottom, 22, categories);
         list.setLeftPos(20);
         list.setRenderBackground(false);
@@ -185,7 +185,7 @@ public class PmxAddStateScreen extends Screen {
 
         @Override
         protected int getScrollbarPosition() {
-            return this.getRight() - 6;
+            return this.getRight() + 6;
         }
 
         @Override
