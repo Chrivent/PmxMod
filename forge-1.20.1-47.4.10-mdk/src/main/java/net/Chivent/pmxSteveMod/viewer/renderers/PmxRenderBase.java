@@ -40,6 +40,7 @@ public abstract class PmxRenderBase {
     private int msaaDepthRb = 0;
     private int msaaWidth = 0;
     private int msaaHeight = 0;
+    private int msaaSourceFbo = 0;
     private int msaaColorFormat = GL30C.GL_RGBA8;
     private int msaaDepthFormat = GL30C.GL_DEPTH24_STENCIL8;
 
@@ -202,9 +203,17 @@ public abstract class PmxRenderBase {
         msaaFbo = 0;
         msaaWidth = 0;
         msaaHeight = 0;
+        msaaSourceFbo = 0;
     }
 
     private boolean ensureMsaaTargets(int prevFbo, int width, int height) {
+        if (msaaFbo != 0
+                && msaaSourceFbo == prevFbo
+                && msaaWidth == width
+                && msaaHeight == height) {
+            return true;
+        }
+
         int colorFormat = queryColorInternalFormat(prevFbo);
         int depthFormat = queryDepthInternalFormat(prevFbo);
         if (msaaFbo != 0
@@ -212,12 +221,14 @@ public abstract class PmxRenderBase {
                 && msaaHeight == height
                 && msaaColorFormat == colorFormat
                 && msaaDepthFormat == depthFormat) {
+            msaaSourceFbo = prevFbo;
             return true;
         }
 
         destroyMsaaTargets();
         msaaWidth = width;
         msaaHeight = height;
+        msaaSourceFbo = prevFbo;
         msaaColorFormat = colorFormat;
         msaaDepthFormat = depthFormat;
 
@@ -448,7 +459,6 @@ public abstract class PmxRenderBase {
             dup.rewind();
 
             GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, vbo);
-            GL15C.glBufferData(GL15C.GL_ARRAY_BUFFER, expectedBytes, GL15C.GL_DYNAMIC_DRAW);
             GL15C.glBufferSubData(GL15C.GL_ARRAY_BUFFER, 0L, dup);
             GL15C.glBindBuffer(GL15C.GL_ARRAY_BUFFER, 0);
         }
