@@ -52,6 +52,8 @@ public final class PmxNative {
     public static native boolean nativeGetMusicTimes(long h, java.nio.ByteBuffer dst2f);
     public static native void nativeSyncPhysics(long h, float t);
     public static native void nativeUpdate(long h, float frame, float physicsElapsed);
+    public static native void nativeSetBoneRotationAdditive(long h, String boneName, float pitchDeg, float yawDeg, float rollDeg);
+    public static native boolean nativeHasBone(long h, String boneName);
 
     public static native String nativeGetModelName(long h);
     public static native String nativeGetEnglishModelName(long h);

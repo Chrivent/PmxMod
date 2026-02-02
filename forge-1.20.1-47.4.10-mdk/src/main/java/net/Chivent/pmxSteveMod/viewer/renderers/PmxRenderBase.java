@@ -196,6 +196,11 @@ public abstract class PmxRenderBase {
         }
     }
 
+    protected float getBodyYaw(AbstractClientPlayer player, float partialTick) {
+        if (player == null) return 0.0f;
+        return Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+    }
+
     protected static final class PmxGlMesh {
         protected static final int LOC_POS = 0;
         protected static final int LOC_COLOR = 1;

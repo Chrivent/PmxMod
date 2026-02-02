@@ -7,7 +7,10 @@ import net.Chivent.pmxSteveMod.viewer.controllers.PmxMusicController;
 import net.Chivent.pmxSteveMod.viewer.controllers.PmxPlaybackController;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 
 import java.io.InputStream;
@@ -30,6 +33,9 @@ public class PmxInstance {
     private final PmxPlaybackController playbackController = new PmxPlaybackController();
     private final PmxMusicController musicController = new PmxMusicController();
     private final PmxCameraController cameraController = new PmxCameraController();
+    private static final String HEAD_BONE_NAME = "\u982D";
+    private boolean headBoneChecked = false;
+    private boolean headBoneAvailable = false;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -113,6 +119,8 @@ public class PmxInstance {
             ready = true;
             playbackController.resetAll();
             resetSyncState(0f, 0f);
+            headBoneChecked = false;
+            headBoneAvailable = false;
         } catch (Throwable t) {
             LOGGER.error("[PMX] init error", t);
             ready = false;
@@ -131,10 +139,14 @@ public class PmxInstance {
         resetSyncState(0f, 0f);
 
         indicesCopiedOnce = false;
+        headBoneChecked = false;
+        headBoneAvailable = false;
     }
 
     public void tickRender() {
         if (!ready || handle == 0L) return;
+
+        applyHeadAdditiveRotation();
 
         PmxPlaybackController.Tick baseTick = playbackController.tickBase();
         float dt = baseTick.dt();
@@ -172,6 +184,45 @@ public class PmxInstance {
 
         cameraController.update(handle, evalFrame);
         PmxNative.nativeUpdate(handle, evalFrame, physicsDt);
+    }
+
+    private void applyHeadAdditiveRotation() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) return;
+        AbstractClientPlayer player = mc.player;
+        if (player == null) return;
+        if (!headBoneChecked) {
+            headBoneAvailable = PmxNative.nativeHasBone(handle, HEAD_BONE_NAME);
+            headBoneChecked = true;
+            if (!headBoneAvailable) {
+                LOGGER.warn("[PMX] head bone '{}' not found. Head tracking disabled.", HEAD_BONE_NAME);
+                return;
+            }
+        } else if (!headBoneAvailable) {
+            return;
+        }
+        float partialTick = mc.getFrameTime();
+        float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+        float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
+        float yawDiff = headYaw - bodyYaw;
+        if (player.isPassenger() && player.getVehicle() instanceof LivingEntity living) {
+            float vehicleBodyYaw = Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
+            yawDiff = headYaw - vehicleBodyYaw;
+            float clamped = Mth.wrapDegrees(yawDiff);
+            if (clamped < -85.0f) clamped = -85.0f;
+            if (clamped > 85.0f) clamped = 85.0f;
+            bodyYaw = headYaw - clamped;
+            if (clamped * clamped > 2500.0f) {
+                bodyYaw += clamped * 0.2f;
+            }
+            yawDiff = headYaw - bodyYaw;
+        }
+        float wrappedDiff = Mth.wrapDegrees(yawDiff);
+        if (wrappedDiff < -85.0f) wrappedDiff = -85.0f;
+        if (wrappedDiff > 85.0f) wrappedDiff = 85.0f;
+        float pitch = Mth.lerp(partialTick, player.xRotO, player.getXRot());
+        float yaw = -wrappedDiff;
+        PmxNative.nativeSetBoneRotationAdditive(handle, HEAD_BONE_NAME, pitch, yaw, 0.0f);
     }
 
     public void syncCpuBuffersForRender() {
@@ -539,3 +590,5 @@ public class PmxInstance {
             String commentEn
     ) {}
 }
+
+

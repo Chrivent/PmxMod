@@ -87,6 +87,7 @@ public:
 	std::vector<glm::vec3>					m_updateNormals;
 	std::vector<glm::vec2>					m_updateUVs;
 	std::vector<glm::mat4>					m_transforms;
+	std::vector<glm::quat>					m_additiveAnimRotate;
 	std::vector<char>						m_indices;
 	size_t									m_indexCount = 0;
 	size_t									m_indexElementSize = 0;
@@ -125,6 +126,7 @@ public:
 	void UpdatePhysicsAnimation(float elapsed) const;
 	void Update();
 	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
+	void ApplyAdditiveRotations();
 	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
 	void Destroy();
 

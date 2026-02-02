@@ -6,6 +6,8 @@
 #include "../src/Sound.h"
 #include "../src/Util.h"
 
+#include <ranges>
+
 struct PmxRuntime {
     std::shared_ptr<Model> model;
     std::unique_ptr<Animation> anim;
@@ -26,6 +28,14 @@ std::filesystem::path JStringToPath(JNIEnv* env, _jstring* s) {
     const std::wstring w(chars, chars + len);
     env->ReleaseStringChars(s, chars);
     return std::filesystem::path{w};
+}
+
+static std::string JStringToUtf8(JNIEnv* env, _jstring* s) {
+    const jchar* chars = env->GetStringChars(s, nullptr);
+    const jsize len = env->GetStringLength(s);
+    const std::wstring w(chars, chars + len);
+    env->ReleaseStringChars(s, chars);
+    return Util::WStringToUtf8(w);
 }
 
 static jstring PathToJStringUtf8(JNIEnv* env, const std::filesystem::path& p) {
@@ -352,6 +362,7 @@ extern "C" {
             for (const auto& ikSolver : rt->model->m_ikSolvers) {
                 ikSolver->m_enable = weight < 1.0f ? ikSolver->m_baseAnimEnable : true;
             }
+            rt->model->ApplyAdditiveRotations();
             rt->model->UpdateMorphAnimation();
             rt->model->UpdateNodeAnimation(false);
             rt->model->UpdatePhysicsAnimation(physicsElapsed);
@@ -382,6 +393,7 @@ extern "C" {
                 ? std::clamp(rt->blendElapsed / duration, 0.0f, 1.0f)
                 : 1.0f;
             rt->blendAnim->Evaluate(frame, weight);
+            rt->model->ApplyAdditiveRotations();
             rt->model->UpdateMorphAnimation();
             rt->model->UpdateNodeAnimation(false);
             rt->model->UpdatePhysicsAnimation(physicsElapsed);
@@ -400,6 +412,36 @@ extern "C" {
         rt->model->m_parallelUpdateCount = 1;
         rt->model->Update();
     }
+
+    JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSetBoneRotationAdditive(
+        JNIEnv* env, jclass, const jlong handle, _jstring* boneName, const jfloat pitchDeg, const jfloat yawDeg, const jfloat rollDeg) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model || !boneName) return;
+        const std::string name = JStringToUtf8(env, boneName);
+        if (name.empty()) return;
+        const auto it = std::ranges::find(rt->model->m_nodes, name, &Node::m_name);
+        if (it == rt->model->m_nodes.end()) return;
+        const auto idx = static_cast<size_t>(std::distance(rt->model->m_nodes.begin(), it));
+        const float px = glm::radians(pitchDeg);
+        const float py = glm::radians(yawDeg);
+        const float pz = glm::radians(rollDeg);
+        const glm::quat qx = glm::angleAxis(px, glm::vec3(1, 0, 0));
+        const glm::quat qy = glm::angleAxis(py, glm::vec3(0, 1, 0));
+        const glm::quat qz = glm::angleAxis(pz, glm::vec3(0, 0, 1));
+        const glm::quat q = glm::normalize(qy * qx * qz);
+        rt->model->m_additiveAnimRotate[idx] = q;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeHasBone(
+        JNIEnv* env, jclass, const jlong handle, _jstring* boneName) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model || !boneName) return JNI_FALSE;
+        const std::string name = JStringToUtf8(env, boneName);
+        if (name.empty()) return JNI_FALSE;
+        const auto it = std::ranges::find(rt->model->m_nodes, name, &Node::m_name);
+        return it != rt->model->m_nodes.end() ? JNI_TRUE : JNI_FALSE;
+    }
+
 
     JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetModelName(
         JNIEnv* env, jclass, const jlong handle) {
