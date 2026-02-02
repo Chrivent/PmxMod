@@ -44,6 +44,7 @@ public class PmxOculusRenderer extends PmxRenderBase {
         poseStack.pushPose();
         float viewYRot = player.getViewYRot(partialTick);
         poseStack.mulPose(Axis.YP.rotationDegrees(-viewYRot));
+        applyVanillaBodyTilt(player, partialTick, poseStack);
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
 
         PoseStack.Pose last = poseStack.last();

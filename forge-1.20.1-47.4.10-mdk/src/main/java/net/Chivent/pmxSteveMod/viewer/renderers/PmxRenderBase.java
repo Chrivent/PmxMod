@@ -3,12 +3,16 @@ package net.Chivent.pmxSteveMod.viewer.renderers;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -150,6 +154,32 @@ public abstract class PmxRenderBase {
             }
         }
         return false;
+    }
+
+    protected void applyVanillaBodyTilt(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
+        if (player == null || poseStack == null) return;
+
+        if (player.isFallFlying()) {
+            float flyTicks = player.getFallFlyingTicks() + partialTick;
+            float rotScale = Mth.clamp(flyTicks * flyTicks / 100.0f, 0.0f, 1.0f);
+            if (!player.isAutoSpinAttack()) {
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rotScale * (90.0f + player.getXRot())));
+            }
+            float viewYRot = player.getViewYRot(partialTick);
+            float bodyYRot = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
+            float yawDiff = Mth.wrapDegrees(viewYRot - bodyYRot);
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(yawDiff));
+            return;
+        }
+
+        if (player.isVisuallySwimming()) {
+            float swimAmount = player.getSwimAmount(partialTick);
+            float target = player.isInWater()
+                    ? 90.0f
+                    : 90.0f + player.getXRot();
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(Mth.lerp(swimAmount, 0.0f, target)));
+            return;
+        }
     }
 
     protected static final class PmxGlMesh {
