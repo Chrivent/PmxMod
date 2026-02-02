@@ -239,6 +239,11 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         sh.apply();
 
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
 
@@ -260,6 +265,11 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         var window = Minecraft.getInstance().getWindow();
         set2f(edgeShader, "u_ScreenSize", window.getWidth(), window.getHeight());
+
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
 
         RenderSystem.enableCull();
         GL11C.glCullFace(GL11C.GL_FRONT);
