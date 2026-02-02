@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 public class PmxEmoteWheelScreen extends Screen {
-    private static final int SLOT_COUNT = 6;
+    public static final int SLOT_COUNT = 10;
     private static final int MIN_WHEEL_RADIUS = 90;
 
     private final Screen parent;

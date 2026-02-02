@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.GuiGraphics;
 
 public class PmxSlotSettingsScreen extends PmxSettingsScreenBase {
-    private static final int SLOT_COUNT = 6;
+    private static final int SLOT_COUNT = PmxEmoteWheelScreen.SLOT_COUNT;
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.slot",
             "pmx.settings.header.motion",
