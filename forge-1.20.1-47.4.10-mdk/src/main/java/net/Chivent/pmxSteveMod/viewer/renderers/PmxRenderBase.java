@@ -107,6 +107,19 @@ public abstract class PmxRenderBase {
         }
     }
 
+    protected boolean shouldSkipRender(PmxInstance instance, boolean requireNormals) {
+        if (instance == null || !instance.isReady() || instance.handle() == 0L) return true;
+        if (instance.idxBuf() == null || instance.posBuf() == null || instance.uvBuf() == null) return true;
+        return requireNormals && instance.nrmBuf() == null;
+    }
+
+    protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
+        float bodyYaw = getBodyYaw(player, partialTick);
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-bodyYaw));
+        applyVanillaBodyTilt(player, partialTick, poseStack);
+        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+    }
+
     protected static Path resolveTexturePath(PmxInstance instance, String texPath) {
         try {
             Path p = Paths.get(texPath);

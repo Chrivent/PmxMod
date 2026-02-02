@@ -1,7 +1,6 @@
 package net.Chivent.pmxSteveMod.viewer.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.MaterialInfo;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance.SubmeshInfo;
@@ -33,19 +32,12 @@ public class PmxOculusRenderer extends PmxRenderBase {
                              float partialTick,
                              PoseStack poseStack,
                              int packedLight) {
-        if (!instance.isReady() || instance.handle() == 0L) return;
-        if (instance.idxBuf() == null || instance.posBuf() == null
-                || instance.uvBuf() == null) {
-            return;
-        }
+        if (shouldSkipRender(instance, false)) return;
 
         if (shouldSkipMeshUpdate(instance, mesh)) return;
 
         poseStack.pushPose();
-        float bodyYaw = getBodyYaw(player, partialTick);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-        applyVanillaBodyTilt(player, partialTick, poseStack);
-        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+        applyPlayerBasePose(poseStack, player, partialTick);
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();

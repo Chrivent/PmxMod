@@ -83,6 +83,13 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         if (u != null) u.set(v);
     }
 
+    private static void applyDefaultRenderState() {
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.depthMask(true);
+    }
+
     public void onViewerShutdown() {
         RenderSystem.recordRenderCall(() -> {
             mesh.destroy();
@@ -99,11 +106,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
                              float partialTick,
                              PoseStack poseStack,
                              int packedLight) {
-        if (!instance.isReady() || instance.handle() == 0L
-                || instance.idxBuf() == null || instance.posBuf() == null
-                || instance.nrmBuf() == null || instance.uvBuf() == null) {
-            return;
-        }
+        if (shouldSkipRender(instance, true)) return;
 
         ShaderInstance sh = PmxShaders.PMX_MMD;
         if (sh == null) return;
@@ -120,10 +123,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         poseStack.pushPose();
 
-        float bodyYaw = getBodyYaw(player, partialTick);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-        applyVanillaBodyTilt(player, partialTick, poseStack);
-        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+        applyPlayerBasePose(poseStack, player, partialTick);
 
         Matrix4f pose = poseStack.last().pose();
         float[] lightDir = getSunLightDir(player.level(), partialTick);
@@ -141,10 +141,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         int prevFbo = beginMsaa(width, height);
         boolean useMsaa = prevFbo >= 0;
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.depthMask(true);
+        applyDefaultRenderState();
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         GL30C.glBindVertexArray(mesh.vao);
@@ -240,10 +237,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         sh.apply();
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.depthMask(true);
+        applyDefaultRenderState();
 
         if (mat.bothFace()) RenderSystem.disableCull();
         else RenderSystem.enableCull();
@@ -267,10 +261,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
         var window = Minecraft.getInstance().getWindow();
         set2f(edgeShader, "u_ScreenSize", window.getWidth(), window.getHeight());
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.depthMask(true);
+        applyDefaultRenderState();
 
         RenderSystem.enableCull();
         GL11C.glCullFace(GL11C.GL_FRONT);
