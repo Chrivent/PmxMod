@@ -159,6 +159,11 @@ public abstract class PmxRenderBase {
     protected void applyVanillaBodyTilt(AbstractClientPlayer player, float partialTick, PoseStack poseStack) {
         if (player == null || poseStack == null) return;
 
+        if (player.isAutoSpinAttack()) {
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F + player.getXRot()));
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(((float)player.tickCount + partialTick) * -75.0F));
+        }
+
         float swimAmount = player.getSwimAmount(partialTick);
         if (player.isFallFlying()) {
             float flyTicks = player.getFallFlyingTicks() + partialTick;
@@ -188,12 +193,6 @@ public abstract class PmxRenderBase {
             if (player.isVisuallySwimming()) {
                 poseStack.translate(0.0F, -1.0F, 0.3F);
             }
-            return;
-        }
-
-        if (player.isAutoSpinAttack()) {
-            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F + player.getXRot()));
-            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(((float)player.tickCount + partialTick) * -75.0F));
         }
     }
 
