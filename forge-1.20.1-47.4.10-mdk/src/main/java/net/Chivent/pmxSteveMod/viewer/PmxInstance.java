@@ -201,6 +201,13 @@ public class PmxInstance {
             return;
         }
         float partialTick = mc.getFrameTime();
+        float wrappedDiff = getWrappedDiff(partialTick, player);
+        float pitch = Mth.lerp(partialTick, player.xRotO, player.getXRot());
+        float yaw = -wrappedDiff;
+        PmxNative.nativeSetBoneRotationAdditive(handle, HEAD_BONE_NAME, pitch, yaw, 0.0f);
+    }
+
+    private static float getWrappedDiff(float partialTick, AbstractClientPlayer player) {
         float bodyYaw = Mth.rotLerp(partialTick, player.yBodyRotO, player.yBodyRot);
         float headYaw = Mth.rotLerp(partialTick, player.yHeadRotO, player.yHeadRot);
         float yawDiff = headYaw - bodyYaw;
@@ -219,9 +226,7 @@ public class PmxInstance {
         float wrappedDiff = Mth.wrapDegrees(yawDiff);
         if (wrappedDiff < -85.0f) wrappedDiff = -85.0f;
         if (wrappedDiff > 85.0f) wrappedDiff = 85.0f;
-        float pitch = Mth.lerp(partialTick, player.xRotO, player.getXRot());
-        float yaw = -wrappedDiff;
-        PmxNative.nativeSetBoneRotationAdditive(handle, HEAD_BONE_NAME, pitch, yaw, 0.0f);
+        return wrappedDiff;
     }
 
     public void syncCpuBuffersForRender() {
