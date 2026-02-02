@@ -37,6 +37,7 @@ public class PmxInstance {
     private boolean headBoneChecked = false;
     private boolean headBoneAvailable = false;
     private boolean headTrackingEnabled = true;
+    private boolean viewTrackingEnabled = true;
 
     private ByteBuffer idxBuf;
     private ByteBuffer posBuf;
@@ -214,6 +215,14 @@ public class PmxInstance {
         headTrackingEnabled = enabled;
     }
 
+    public boolean isViewTrackingEnabled() {
+        return viewTrackingEnabled;
+    }
+
+    public void setViewTrackingEnabled(boolean enabled) {
+        viewTrackingEnabled = enabled;
+    }
+
     public void syncCpuBuffersForRender() {
         if (!ready || handle == 0L) return;
         copyIndicesOnce();
@@ -244,6 +253,7 @@ public class PmxInstance {
             } else {
                 cameraController.clear(handle);
             }
+            viewTrackingEnabled = !cameraController.isActive();
 
             Path safePath = toSafePath(vmdPath, "motion_cache");
             float blendSeconds = playbackController.shouldBlendNext() ? 0.3f : 0.0f;

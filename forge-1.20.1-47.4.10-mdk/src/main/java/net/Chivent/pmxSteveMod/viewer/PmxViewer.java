@@ -27,6 +27,7 @@ public class PmxViewer {
         if (!visible) {
             instance.stopMusic();
             instance.setHeadTrackingEnabled(true);
+            instance.setViewTrackingEnabled(true);
             currentSlotIndex = -1;
             currentMotionSlot = false;
         }
@@ -68,6 +69,7 @@ public class PmxViewer {
         currentSlotIndex = -1;
         currentMotionSlot = false;
         instance.setHeadTrackingEnabled(true);
+        instance.setViewTrackingEnabled(true);
         Path modelPath = selectedModelPath;
         PmxModelSettingsStore.RowData idle = PmxModelSettingsStore.get().getIdleRow(modelPath);
         if (idle == null || idle.motion == null || idle.motion.isBlank()) {
@@ -93,6 +95,7 @@ public class PmxViewer {
         currentSlotIndex = slotIndex;
         currentMotionSlot = slotIndex >= 0;
         instance.setHeadTrackingEnabled(!currentMotionSlot);
+        instance.setViewTrackingEnabled(!currentMotionSlot);
     }
 
     public int getCurrentSlotIndex() {

@@ -37,7 +37,7 @@ public class PmxOculusRenderer extends PmxRenderBase {
         if (shouldSkipMeshUpdate(instance, mesh)) return;
 
         poseStack.pushPose();
-        applyPlayerBasePose(poseStack, player, partialTick);
+        applyPlayerBasePose(instance, poseStack, player, partialTick);
 
         PoseStack.Pose last = poseStack.last();
         Matrix4f pose = last.pose();

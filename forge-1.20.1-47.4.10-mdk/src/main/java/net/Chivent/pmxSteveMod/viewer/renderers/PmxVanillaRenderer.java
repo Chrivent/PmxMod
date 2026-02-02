@@ -3,7 +3,6 @@ package net.Chivent.pmxSteveMod.viewer.renderers;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import com.mojang.logging.LogUtils;
 import net.Chivent.pmxSteveMod.client.PmxShaders;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
@@ -123,7 +122,7 @@ public class PmxVanillaRenderer extends PmxRenderBase {
 
         poseStack.pushPose();
 
-        applyPlayerBasePose(poseStack, player, partialTick);
+        applyPlayerBasePose(instance, poseStack, player, partialTick);
 
         Matrix4f pose = poseStack.last().pose();
         float[] lightDir = getSunLightDir(player.level(), partialTick);

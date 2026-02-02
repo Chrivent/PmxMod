@@ -111,8 +111,19 @@ public abstract class PmxRenderBase {
         return requireNormals && instance.nrmBuf() == null;
     }
 
-    protected void applyPlayerBasePose(PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
-        float bodyYaw = VanillaPoseUtil.getBodyYawWithHeadClamp(player, partialTick);
+    protected void applyPlayerBasePose(PmxInstance instance, PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
+        boolean trackView = instance == null || instance.isViewTrackingEnabled();
+        float bodyYaw;
+        boolean hasCamera = instance != null && instance.hasCamera();
+        if (hasCamera) {
+            bodyYaw = player != null
+                    ? player.getViewYRot(partialTick)
+                    : (float) Math.toDegrees(instance.camRotY());
+        } else if (trackView) {
+            bodyYaw = VanillaPoseUtil.getBodyYawWithHeadClamp(player, partialTick);
+        } else {
+            bodyYaw = player != null ? player.getViewYRot(partialTick) : 0.0f;
+        }
         float rotationYaw = bodyYaw + VanillaPoseUtil.getShakingYawOffset(player);
 
         if (VanillaPoseUtil.applySleepPose(player, poseStack, rotationYaw)) {
