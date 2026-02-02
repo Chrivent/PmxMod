@@ -1,12 +1,29 @@
 package net.Chivent.pmxSteveMod.client.gui;
 
 import java.nio.file.Path;
+import java.util.List;
+
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     private static final int IDLE_SLOT_INDEX = -2;
+    private static final int CROUCHING_IDLE_INDEX = -3;
+    private static final int SWIMMING_IDLE_INDEX = -4;
+    private static final int FALL_FLYING_IDLE_INDEX = -5;
+    private static final int SLEEPING_IDLE_INDEX = -6;
+    private static final int DYING_IDLE_INDEX = -7;
+    private static final int SITTING_IDLE_INDEX = -8;
+    private static final int[] FIXED_IDLE_SLOTS = new int[] {
+            IDLE_SLOT_INDEX,
+            CROUCHING_IDLE_INDEX,
+            SWIMMING_IDLE_INDEX,
+            FALL_FLYING_IDLE_INDEX,
+            SLEEPING_IDLE_INDEX,
+            DYING_IDLE_INDEX,
+            SITTING_IDLE_INDEX
+    };
     private static final String[] HEADER_KEYS = new String[] {
             "pmx.settings.header.state",
             "pmx.settings.header.motion",
@@ -72,36 +89,28 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
         loadRowsCommon(
                 data -> data.slotIndex < 0,
                 data -> {
-                    String name = data.name;
-                    if (!data.custom && data.slotIndex == IDLE_SLOT_INDEX) {
-                        name = Component.translatable("pmx.settings.row.idle").getString();
+                    if (!data.custom) {
+                        String labelKey = labelKeyForSlot(data.slotIndex);
+                        if (labelKey != null) {
+                            return Component.translatable(labelKey).getString();
+                        }
                     }
-                    return name;
+                    return data.name;
                 },
                 () -> {}
         );
-        for (SettingsRow row : rows) {
-            if (!row.custom && row.slotIndex == IDLE_SLOT_INDEX) {
-                row.motionLoop = true;
-            }
-        }
-        boolean hasIdle = rows.stream().anyMatch(r -> r.slotIndex == IDLE_SLOT_INDEX);
-        if (!hasIdle) {
-            SettingsRow row = new SettingsRow(Component.translatable("pmx.settings.row.idle").getString(), false, IDLE_SLOT_INDEX);
-            row.motionLoop = true;
-            rows.add(0, row);
-        }
+        normalizeFixedIdleRows();
         markWidthsDirty();
     }
 
     @Override
     protected boolean allowMotionLoopToggle(SettingsRow row) {
-        return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
+        return row.custom || !isFixedIdleSlot(row.slotIndex);
     }
 
     @Override
     protected boolean isSelectableRow(SettingsRow row) {
-        return row.custom || row.slotIndex != IDLE_SLOT_INDEX;
+        return row.custom || !isFixedIdleSlot(row.slotIndex);
     }
 
     @Override
@@ -141,7 +150,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
             prevIdle = store.getIdleRow(modelPath);
         }
         for (SettingsRow row : rows) {
-            if (!row.custom && row.slotIndex == IDLE_SLOT_INDEX) {
+            if (!row.custom && isFixedIdleSlot(row.slotIndex)) {
                 row.motionLoop = true;
             }
         }
@@ -171,5 +180,49 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
         } catch (Exception ignored) {
         }
         return resolved.equals(currentMotion);
+    }
+
+    private void normalizeFixedIdleRows() {
+        java.util.Map<Integer, SettingsRow> fixed = new java.util.HashMap<>();
+        List<SettingsRow> others = new java.util.ArrayList<>();
+        for (SettingsRow row : rows) {
+            if (!row.custom && isFixedIdleSlot(row.slotIndex)) {
+                fixed.put(row.slotIndex, row);
+            } else {
+                others.add(row);
+            }
+        }
+        rows.clear();
+        for (int slot : FIXED_IDLE_SLOTS) {
+            SettingsRow row = fixed.get(slot);
+            if (row == null) {
+                String labelKey = labelKeyForSlot(slot);
+                String name = labelKey == null ? "" : Component.translatable(labelKey).getString();
+                row = new SettingsRow(name, false, slot);
+            }
+            row.motionLoop = true;
+            rows.add(row);
+        }
+        rows.addAll(others);
+    }
+
+    private boolean isFixedIdleSlot(int slotIndex) {
+        for (int slot : FIXED_IDLE_SLOTS) {
+            if (slot == slotIndex) return true;
+        }
+        return false;
+    }
+
+    private String labelKeyForSlot(int slotIndex) {
+        return switch (slotIndex) {
+            case IDLE_SLOT_INDEX -> "pmx.settings.row.idle";
+            case CROUCHING_IDLE_INDEX -> "pmx.pose.crouching";
+            case SWIMMING_IDLE_INDEX -> "pmx.pose.swimming";
+            case FALL_FLYING_IDLE_INDEX -> "pmx.pose.fall_flying";
+            case SLEEPING_IDLE_INDEX -> "pmx.pose.sleeping";
+            case DYING_IDLE_INDEX -> "pmx.pose.dying";
+            case SITTING_IDLE_INDEX -> "pmx.pose.sitting";
+            default -> null;
+        };
     }
 }
