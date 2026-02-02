@@ -179,7 +179,7 @@ public class PmxAddStateScreen extends Screen {
             int columns = categories.size();
             int available = Math.max(0, width - (buttonGap * Math.max(0, columns - 1)));
             int minBtn = 80;
-            int maxBtn = 140;
+            int maxBtn = 100;
             int btn = columns > 0 ? (available / columns) : minBtn;
             buttonWidth = Math.max(minBtn, Math.min(maxBtn, btn));
         }
@@ -205,7 +205,15 @@ public class PmxAddStateScreen extends Screen {
         }
 
         int separatorX() {
-            return this.getRowLeft() + buttonWidth + buttonGap / 2;
+            int startX = columnStartX(this.getRowLeft(), this.getRowWidth());
+            return startX + buttonWidth + buttonGap / 2;
+        }
+
+        private int columnStartX(int x, int width) {
+            int columns = categories.size();
+            int totalWidth = columns * buttonWidth + Math.max(0, columns - 1) * buttonGap;
+            int offset = Math.max(0, (width - totalWidth) / 2);
+            return x + offset;
         }
 
         private abstract static class Entry extends AbstractSelectionList.Entry<Entry> {}
@@ -214,8 +222,9 @@ public class PmxAddStateScreen extends Screen {
             @Override
             public void render(@NotNull GuiGraphics graphics, int index, int y, int x, int width, int height,
                                int mouseX, int mouseY, boolean hovered, float partialTick) {
+                int startX = columnStartX(x, width);
                 for (int i = 0; i < categories.size(); i++) {
-                    int bx = x + i * (buttonWidth + buttonGap);
+                    int bx = startX + i * (buttonWidth + buttonGap);
                     Component label = categories.get(i).label();
                     graphics.drawCenteredString(font, label, bx + buttonWidth / 2, y + 5, 0xC0C0C0);
                 }
@@ -238,11 +247,12 @@ public class PmxAddStateScreen extends Screen {
                 lastX = x;
                 lastY = y;
                 lastHeight = height;
+                int startX = columnStartX(x, width);
                 for (int i = 0; i < categories.size(); i++) {
                     List<Component> items = categories.get(i).items();
                     if (rowIndex >= items.size()) continue;
                     Component label = items.get(rowIndex);
-                    int bx = x + i * (buttonWidth + buttonGap);
+                    int bx = startX + i * (buttonWidth + buttonGap);
                     renderButton(graphics, bx, y + 2, buttonWidth, height - 4, label, i,
                             mouseX, mouseY);
                 }
@@ -269,7 +279,7 @@ public class PmxAddStateScreen extends Screen {
             @Override
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (mouseY < lastY || mouseY > lastY + lastHeight) return false;
-                int startX = lastX;
+                int startX = columnStartX(lastX, getRowWidth());
                 for (int i = 0; i < categories.size(); i++) {
                     int bx = startX + i * (buttonWidth + buttonGap);
                     int by = lastY + 2;
