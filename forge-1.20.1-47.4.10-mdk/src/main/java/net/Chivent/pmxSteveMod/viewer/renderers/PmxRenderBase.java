@@ -4,13 +4,20 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.Chivent.pmxSteveMod.jni.PmxNative;
 import net.Chivent.pmxSteveMod.viewer.PmxInstance;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -30,6 +37,9 @@ import java.util.Map;
 public abstract class PmxRenderBase {
     public static final float MODEL_SCALE = 0.1f;
     protected record TextureEntry(ResourceLocation rl, boolean hasAlpha) {}
+    private static final ResourceLocation SPIN_ATTACK_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("minecraft", "textures/entity/trident_riptide.png");
+    private static ModelPart spinAttackBox;
 
     protected final Map<String, TextureEntry> textureCache = new HashMap<>();
     protected int textureIdCounter = 0;
@@ -138,6 +148,45 @@ public abstract class PmxRenderBase {
             VanillaPoseUtil.applyBodyTilt(player, partialTick, poseStack);
         }
         poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+    }
+
+    public void renderSpinAttackEffect(PmxInstance instance,
+                                          AbstractClientPlayer player,
+                                          float partialTick,
+                                          PoseStack poseStack,
+                                          MultiBufferSource buffer,
+                                          int packedLight) {
+        if (player == null || !player.isAutoSpinAttack()) return;
+        ModelPart box = getSpinAttackBox();
+        if (box == null) return;
+
+        poseStack.pushPose();
+        applyPlayerBasePose(instance, poseStack, player, partialTick);
+        float invScale = 1.0f / MODEL_SCALE;
+        poseStack.scale(invScale, invScale, invScale);
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+        poseStack.translate(0.0F, -1.501F, 0.0F);
+        VertexConsumer vc = buffer.getBuffer(RenderType.entityCutoutNoCull(SPIN_ATTACK_TEXTURE));
+        float age = (float) player.tickCount + partialTick;
+        for (int i = 0; i < 3; ++i) {
+            poseStack.pushPose();
+            float f = age * (float) (-(45 + i * 5));
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(f));
+            float scale = 0.75F * (float) i;
+            poseStack.scale(scale, scale, scale);
+            poseStack.translate(0.0F, -0.2F + 0.6F * (float) i, 0.0F);
+            box.render(poseStack, vc, packedLight, OverlayTexture.NO_OVERLAY);
+            poseStack.popPose();
+        }
+        poseStack.popPose();
+    }
+
+    private static ModelPart getSpinAttackBox() {
+        if (spinAttackBox != null) return spinAttackBox;
+        EntityModelSet models = Minecraft.getInstance().getEntityModels();
+        ModelPart root = models.bakeLayer(ModelLayers.PLAYER_SPIN_ATTACK);
+        spinAttackBox = root.getChild("box");
+        return spinAttackBox;
     }
 
     protected static Path resolveTexturePath(PmxInstance instance, String texPath) {

@@ -51,6 +51,9 @@ public final class PlayerRenderHooks {
             VANILLA_RENDERER.renderPlayer(instance, player, event.getPartialTick(),
                     event.getPoseStack(), event.getPackedLight());
         }
+
+        VANILLA_RENDERER.renderSpinAttackEffect(instance, player, event.getPartialTick(),
+                event.getPoseStack(), event.getMultiBufferSource(), event.getPackedLight());
     }
 
     public static void shutdownRenderer() {
