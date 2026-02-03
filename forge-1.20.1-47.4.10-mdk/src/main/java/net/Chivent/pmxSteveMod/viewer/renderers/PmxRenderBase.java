@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -18,6 +19,11 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
@@ -122,6 +128,14 @@ public abstract class PmxRenderBase {
     }
 
     protected void applyPlayerBasePose(PmxInstance instance, PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
+        applyPlayerBasePoseInternal(instance, poseStack, player, partialTick, true);
+    }
+
+    protected void applyPlayerBasePoseNoScale(PmxInstance instance, PoseStack poseStack, AbstractClientPlayer player, float partialTick) {
+        applyPlayerBasePoseInternal(instance, poseStack, player, partialTick, false);
+    }
+
+    private void applyPlayerBasePoseInternal(PmxInstance instance, PoseStack poseStack, AbstractClientPlayer player, float partialTick, boolean applyScale) {
         boolean trackView = instance == null || instance.isViewTrackingEnabled();
         float bodyYaw;
         boolean hasCamera = instance != null && instance.hasCamera();
@@ -137,7 +151,9 @@ public abstract class PmxRenderBase {
         float rotationYaw = bodyYaw + VanillaPoseUtil.getShakingYawOffset(player);
 
         if (VanillaPoseUtil.applySleepPose(player, poseStack, rotationYaw)) {
-            poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+            if (applyScale) {
+                poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+            }
             return;
         }
 
@@ -147,7 +163,9 @@ public abstract class PmxRenderBase {
         } else {
             VanillaPoseUtil.applyBodyTilt(player, partialTick, poseStack);
         }
-        poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+        if (applyScale) {
+            poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+        }
     }
 
     public void renderSpinAttackEffect(PmxInstance instance,
@@ -179,6 +197,45 @@ public abstract class PmxRenderBase {
             poseStack.popPose();
         }
         poseStack.popPose();
+    }
+
+    public void renderHeldItems(PmxInstance instance,
+                                AbstractClientPlayer player,
+                                float partialTick,
+                                PoseStack poseStack,
+                                MultiBufferSource buffer,
+                                int packedLight) {
+        if (instance == null || player == null) return;
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        if (main.isEmpty() && off.isEmpty()) return;
+
+        ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+        Matrix4f boneMat = new Matrix4f();
+
+        if (!main.isEmpty() && instance.getBoneGlobalMatrix("右手首", boneMat)) {
+            poseStack.pushPose();
+            applyPlayerBasePoseNoScale(instance, poseStack, player, partialTick);
+            Vector3f t = boneMat.getTranslation(new Vector3f());
+            Quaternionf r = boneMat.getUnnormalizedRotation(new Quaternionf());
+            poseStack.translate(t.x * MODEL_SCALE, t.y * MODEL_SCALE, t.z * MODEL_SCALE);
+            poseStack.mulPose(r);
+            itemRenderer.renderStatic(player, main, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false,
+                    poseStack, buffer, player.level(), packedLight, OverlayTexture.NO_OVERLAY, player.getId());
+            poseStack.popPose();
+        }
+
+        if (!off.isEmpty() && instance.getBoneGlobalMatrix("左手首", boneMat)) {
+            poseStack.pushPose();
+            applyPlayerBasePoseNoScale(instance, poseStack, player, partialTick);
+            Vector3f t = boneMat.getTranslation(new Vector3f());
+            Quaternionf r = boneMat.getUnnormalizedRotation(new Quaternionf());
+            poseStack.translate(t.x * MODEL_SCALE, t.y * MODEL_SCALE, t.z * MODEL_SCALE);
+            poseStack.mulPose(r);
+            itemRenderer.renderStatic(player, off, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true,
+                    poseStack, buffer, player.level(), packedLight, OverlayTexture.NO_OVERLAY, player.getId() + 1);
+            poseStack.popPose();
+        }
     }
 
     private static ModelPart getSpinAttackBox() {

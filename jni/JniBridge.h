@@ -23,6 +23,7 @@ extern "C" {
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeUpdate(JNIEnv*, jclass, jlong, jfloat, jfloat);
     JNIEXPORT void JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeSetBoneRotationAdditive(JNIEnv*, jclass, jlong, jstring, jfloat, jfloat, jfloat);
     JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeHasBone(JNIEnv*, jclass, jlong, jstring);
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetBoneGlobalMatrix(JNIEnv*, jclass, jlong, jstring, jobject);
 
     JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetModelName(JNIEnv* env, jclass, jlong handle);
     JNIEXPORT jstring JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetEnglishModelName(JNIEnv* env, jclass, jlong handle);

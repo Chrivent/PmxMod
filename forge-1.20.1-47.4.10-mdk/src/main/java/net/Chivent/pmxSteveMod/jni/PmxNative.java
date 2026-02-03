@@ -54,6 +54,7 @@ public final class PmxNative {
     public static native void nativeUpdate(long h, float frame, float physicsElapsed);
     public static native void nativeSetBoneRotationAdditive(long h, String boneName, float pitchDeg, float yawDeg, float rollDeg);
     public static native boolean nativeHasBone(long h, String boneName);
+    public static native boolean nativeGetBoneGlobalMatrix(long h, String boneName, java.nio.ByteBuffer dst16f);
 
     public static native String nativeGetModelName(long h);
     public static native String nativeGetEnglishModelName(long h);

@@ -6,6 +6,7 @@
 #include "../src/Sound.h"
 #include "../src/Util.h"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <ranges>
 
 struct PmxRuntime {
@@ -104,6 +105,15 @@ static void WriteVec4(JNIEnv* env, _jobject* buf, const glm::vec4& v) {
     out[0] = v.x; out[1] = v.y; out[2] = v.z; out[3] = v.w;
 }
 
+static void WriteMat4(JNIEnv* env, _jobject* buf, const glm::mat4& m) {
+    auto* out = static_cast<float*>(env->GetDirectBufferAddress(buf));
+    const jlong cap = env->GetDirectBufferCapacity(buf);
+    if (!out || cap < static_cast<jlong>(16 * sizeof(float))) return;
+    const float* src = glm::value_ptr(m);
+    for (int i = 0; i < 16; ++i)
+        out[i] = src[i];
+}
+
 static jint SphereModeToInt(const SphereMode m) {
     if (m == SphereMode::Mul) return 1;
     if (m == SphereMode::Add) return 2;
@@ -183,7 +193,6 @@ extern "C" {
         rt->motionMaxFrame = GetVmdMaxFrame(vmd);
         auto nextAnim = CreateAnimation(rt->model);
         if (!nextAnim->Add(vmd)) return JNI_FALSE;
-
         if (blendSeconds <= 0.0f) {
             rt->anim = std::move(nextAnim);
             rt->blendAnim.reset();
@@ -194,7 +203,6 @@ extern "C" {
             rt->motionMaxFrame = GetVmdMaxFrame(vmd);
             return JNI_TRUE;
         }
-
         rt->model->SaveBaseAnimation();
         rt->blendAnim = std::move(nextAnim);
         rt->blendElapsed = 0.0f;
@@ -220,12 +228,10 @@ extern "C" {
                 node->m_animTranslate = glm::vec3(0);
                 node->m_animRotate = glm::quat(1, 0, 0, 0);
             }
-            for (const auto& morph : rt->model->m_morphs) {
+            for (const auto& morph : rt->model->m_morphs)
                 morph->m_weight = 0.0f;
-            }
-            for (const auto& ikSolver : rt->model->m_ikSolvers) {
+            for (const auto& ikSolver : rt->model->m_ikSolvers)
                 ikSolver->m_enable = true;
-            }
             return JNI_TRUE;
         }
         rt->model->SaveBaseAnimation();
@@ -356,12 +362,10 @@ extern "C" {
                 node->m_animTranslate = glm::mix(node->m_baseAnimTranslate, glm::vec3(0), weight);
                 node->m_animRotate = glm::slerp(node->m_baseAnimRotate, glm::quat(1, 0, 0, 0), weight);
             }
-            for (const auto& morph : rt->model->m_morphs) {
+            for (const auto& morph : rt->model->m_morphs)
                 morph->m_weight = glm::mix(morph->m_saveAnimWeight, 0.0f, weight);
-            }
-            for (const auto& ikSolver : rt->model->m_ikSolvers) {
+            for (const auto& ikSolver : rt->model->m_ikSolvers)
                 ikSolver->m_enable = weight < 1.0f ? ikSolver->m_baseAnimEnable : true;
-            }
             rt->model->ApplyAdditiveRotations();
             rt->model->UpdateMorphAnimation();
             rt->model->UpdateNodeAnimation(false);
@@ -374,12 +378,10 @@ extern "C" {
                     node->m_animTranslate = glm::vec3(0);
                     node->m_animRotate = glm::quat(1, 0, 0, 0);
                 }
-                for (const auto& morph : rt->model->m_morphs) {
+                for (const auto& morph : rt->model->m_morphs)
                     morph->m_weight = 0.0f;
-                }
-                for (const auto& ikSolver : rt->model->m_ikSolvers) {
+                for (const auto& ikSolver : rt->model->m_ikSolvers)
                     ikSolver->m_enable = true;
-                }
                 rt->anim = CreateAnimation(rt->model);
                 rt->blendAnim.reset();
                 rt->blending = false;
@@ -406,9 +408,8 @@ extern "C" {
                 rt->blendElapsed = 0.0f;
                 rt->blendDuration = 0.0f;
             }
-        } else {
+        } else
             rt->model->UpdateAllAnimation(rt->anim.get(), frame, physicsElapsed);
-        }
         rt->model->m_parallelUpdateCount = 1;
         rt->model->Update();
     }
@@ -440,6 +441,18 @@ extern "C" {
         if (name.empty()) return JNI_FALSE;
         const auto it = std::ranges::find(rt->model->m_nodes, name, &Node::m_name);
         return it != rt->model->m_nodes.end() ? JNI_TRUE : JNI_FALSE;
+    }
+
+    JNIEXPORT jboolean JNICALL Java_net_Chivent_pmxSteveMod_jni_PmxNative_nativeGetBoneGlobalMatrix(
+        JNIEnv* env, jclass, const jlong handle, _jstring* boneName, _jobject* dst16f) {
+        const auto* rt = FromHandle(handle);
+        if (!rt || !rt->model || !boneName || !dst16f) return JNI_FALSE;
+        const std::string name = JStringToUtf8(env, boneName);
+        if (name.empty()) return JNI_FALSE;
+        const auto it = std::ranges::find(rt->model->m_nodes, name, &Node::m_name);
+        if (it == rt->model->m_nodes.end()) return JNI_FALSE;
+        WriteMat4(env, dst16f, (*it)->m_global);
+        return JNI_TRUE;
     }
 
 

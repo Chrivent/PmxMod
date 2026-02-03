@@ -51,6 +51,7 @@ public class PmxInstance {
 
     private final ByteBuffer tmp3f = ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder());
     private final ByteBuffer tmp4f = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.nativeOrder());
+    private final ByteBuffer tmp16f = ByteBuffer.allocateDirect(16 * 4).order(ByteOrder.nativeOrder());
 
     private boolean indicesCopiedOnce = false;
 
@@ -213,6 +214,15 @@ public class PmxInstance {
 
     public void setHeadTrackingEnabled(boolean enabled) {
         headTrackingEnabled = enabled;
+    }
+
+    public boolean getBoneGlobalMatrix(String boneName, org.joml.Matrix4f out) {
+        if (!ready || handle == 0L || boneName == null || out == null) return false;
+        tmp16f.clear();
+        if (!PmxNative.nativeGetBoneGlobalMatrix(handle, boneName, tmp16f)) return false;
+        tmp16f.rewind();
+        out.set(tmp16f.asFloatBuffer());
+        return true;
     }
 
     public boolean isViewTrackingEnabled() {
