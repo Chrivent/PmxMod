@@ -36,6 +36,7 @@ public class PmxModelSelectScreen extends Screen {
     private int infoScrollMax = 0;
     private Button slotSettingsButton;
     private Button stateSettingsButton;
+    private Button toolSettingsButton;
 
     public PmxModelSelectScreen(Screen parent) {
         super(Component.translatable("pmx.screen.select_model.title"));
@@ -83,6 +84,15 @@ public class PmxModelSelectScreen extends Screen {
                     }
                 }
         ).bounds(rightPanelLeft, buttonY + buttonHeight + buttonGap, rightPanelWidth, buttonHeight).build());
+        toolSettingsButton = addRenderableWidget(Button.builder(
+                Component.translatable("pmx.button.tool_settings"),
+                b -> {
+                    Path selected = getActiveModelPath();
+                    if (selected != null) {
+                        openToolSettings(selected);
+                    }
+                }
+        ).bounds(rightPanelLeft, buttonY + (buttonHeight + buttonGap) * 2, rightPanelWidth, buttonHeight).build());
 
         int rowY = this.height - 32;
         int padding = 6;
@@ -289,6 +299,9 @@ public class PmxModelSelectScreen extends Screen {
         if (stateSettingsButton != null) {
             stateSettingsButton.active = enabled;
         }
+        if (toolSettingsButton != null) {
+            toolSettingsButton.active = enabled;
+        }
     }
 
     private int infoPanelLeft() {
@@ -323,6 +336,12 @@ public class PmxModelSelectScreen extends Screen {
     private void openStateSettings(Path modelPath) {
         if (this.minecraft != null) {
             this.minecraft.setScreen(new PmxStateSettingsScreen(this, modelPath));
+        }
+    }
+
+    private void openToolSettings(Path modelPath) {
+        if (this.minecraft != null) {
+            this.minecraft.setScreen(new PmxToolSettingsScreen(this, modelPath));
         }
     }
 
