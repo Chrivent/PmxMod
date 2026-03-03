@@ -6,6 +6,8 @@ import java.util.List;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.GuiGraphics;
+import org.jetbrains.annotations.NotNull;
 
 public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     private static final int IDLE_SLOT_INDEX = -2;
@@ -37,6 +39,11 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
     public PmxStateSettingsScreen(Screen parent, Path modelPath) {
         super(parent, modelPath, Component.translatable("pmx.screen.state_settings.title"));
         loadRows();
+    }
+
+    @Override
+    public void renderBackground(@NotNull GuiGraphics graphics) {
+        super.renderBackground(graphics);
     }
 
     @Override
@@ -110,7 +117,7 @@ public class PmxStateSettingsScreen extends PmxSettingsScreenBase {
 
     @Override
     protected boolean isSelectableRow(SettingsRow row) {
-        return row.custom || !isFixedIdleSlot(row.slotIndex);
+        return row.custom;
     }
 
     @Override

@@ -21,6 +21,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.DiggerItem;
+import net.minecraft.world.item.FishingRodItem;
+import net.minecraft.world.item.ShieldItem;
+import net.minecraft.world.item.TridentItem;
+import net.Chivent.pmxSteveMod.client.settings.PmxToolSettingsStore;
+import net.Chivent.pmxSteveMod.viewer.PmxViewer;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -213,29 +222,100 @@ public abstract class PmxRenderBase {
         ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
         Matrix4f boneMat = new Matrix4f();
 
-        if (!main.isEmpty() && instance.getBoneGlobalMatrix("右手首", boneMat)) {
-            poseStack.pushPose();
-            applyPlayerBasePoseNoScale(instance, poseStack, player, partialTick);
-            Vector3f t = boneMat.getTranslation(new Vector3f());
-            Quaternionf r = boneMat.getUnnormalizedRotation(new Quaternionf());
-            poseStack.translate(t.x * MODEL_SCALE, t.y * MODEL_SCALE, t.z * MODEL_SCALE);
-            poseStack.mulPose(r);
-            itemRenderer.renderStatic(player, main, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false,
-                    poseStack, buffer, player.level(), packedLight, OverlayTexture.NO_OVERLAY, player.getId());
-            poseStack.popPose();
+        PmxToolSettingsStore.ToolOffsets toolOffsets = PmxToolSettingsStore.get().get(PmxViewer.get().getSelectedModelPath());
+        if (!main.isEmpty()) {
+            renderHeldItemForBone(instance, player, partialTick, poseStack, buffer, packedLight,
+                    itemRenderer, boneMat, "右手首", main, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false,
+                    toolOffsets, player.getId());
         }
 
-        if (!off.isEmpty() && instance.getBoneGlobalMatrix("左手首", boneMat)) {
-            poseStack.pushPose();
-            applyPlayerBasePoseNoScale(instance, poseStack, player, partialTick);
-            Vector3f t = boneMat.getTranslation(new Vector3f());
-            Quaternionf r = boneMat.getUnnormalizedRotation(new Quaternionf());
-            poseStack.translate(t.x * MODEL_SCALE, t.y * MODEL_SCALE, t.z * MODEL_SCALE);
-            poseStack.mulPose(r);
-            itemRenderer.renderStatic(player, off, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true,
-                    poseStack, buffer, player.level(), packedLight, OverlayTexture.NO_OVERLAY, player.getId() + 1);
-            poseStack.popPose();
+        if (!off.isEmpty()) {
+            renderHeldItemForBone(instance, player, partialTick, poseStack, buffer, packedLight,
+                    itemRenderer, boneMat, "左手首", off, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true,
+                    toolOffsets, player.getId() + 1);
         }
+    }
+
+    private void renderHeldItemForBone(PmxInstance instance,
+                                       AbstractClientPlayer player,
+                                       float partialTick,
+                                       PoseStack poseStack,
+                                       MultiBufferSource buffer,
+                                       int packedLight,
+                                       ItemRenderer itemRenderer,
+                                       Matrix4f boneMat,
+                                       String boneName,
+                                       ItemStack stack,
+                                       ItemDisplayContext displayContext,
+                                       boolean leftHand,
+                                       PmxToolSettingsStore.ToolOffsets toolOffsets,
+                                       int seed) {
+        if (instance == null || player == null || stack == null || stack.isEmpty()) return;
+        if (!instance.getBoneGlobalMatrix(boneName, boneMat)) return;
+        poseStack.pushPose();
+        applyPlayerBasePoseNoScale(instance, poseStack, player, partialTick);
+        Vector3f t = boneMat.getTranslation(new Vector3f());
+        Quaternionf r = boneMat.getUnnormalizedRotation(new Quaternionf());
+        poseStack.translate(t.x * MODEL_SCALE, t.y * MODEL_SCALE, t.z * MODEL_SCALE);
+        poseStack.mulPose(r);
+        applyToolCategoryOffsets(poseStack, player, stack, toolOffsets);
+        itemRenderer.renderStatic(player, stack, displayContext, leftHand,
+                poseStack, buffer, player.level(), packedLight, OverlayTexture.NO_OVERLAY, seed);
+        poseStack.popPose();
+    }
+
+    private void applyToolCategoryOffsets(PoseStack poseStack,
+                                          AbstractClientPlayer player,
+                                          ItemStack stack,
+                                          PmxToolSettingsStore.ToolOffsets toolOffsets) {
+        if (toolOffsets == null || stack == null) return;
+        PmxToolSettingsStore.ToolCategoryOffsets cat = resolveToolCategory(toolOffsets, stack);
+        if (cat == null) return;
+        applyToolOffset(poseStack, cat.base);
+        if (shouldUseAltOffset(player, stack)) {
+            applyToolOffset(poseStack, cat.alt);
+        }
+    }
+
+    private boolean shouldUseAltOffset(AbstractClientPlayer player, ItemStack stack) {
+        if (player == null || stack == null) return false;
+        if (!player.isUsingItem()) return false;
+        if (player.getUseItem() != stack) return false;
+        Item item = stack.getItem();
+        return item instanceof ShieldItem || item instanceof TridentItem;
+    }
+
+    private PmxToolSettingsStore.ToolCategoryOffsets resolveToolCategory(PmxToolSettingsStore.ToolOffsets toolOffsets,
+                                                                         ItemStack stack) {
+        Item item = stack.getItem();
+        if (item == Items.BOW) return toolOffsets.bow;
+        if (item == Items.CROSSBOW) return toolOffsets.crossbow;
+        if (item == Items.SHIELD || item instanceof ShieldItem) return toolOffsets.shield;
+        if (item == Items.TRIDENT || item instanceof TridentItem) return toolOffsets.trident;
+        if (item == Items.SPYGLASS) return toolOffsets.spyglass;
+        if (item == Items.GOAT_HORN) return toolOffsets.goatHorn;
+        if (item == Items.BRUSH) return toolOffsets.brush;
+        if (item instanceof FishingRodItem
+                || item == Items.CARROT_ON_A_STICK
+                || item == Items.WARPED_FUNGUS_ON_A_STICK) {
+            return toolOffsets.rod;
+        }
+        if (item instanceof DiggerItem || item instanceof SwordItem) {
+            return toolOffsets.handheld;
+        }
+        return null;
+    }
+
+    private void applyToolOffset(PoseStack poseStack, PmxToolSettingsStore.ToolOffset offset) {
+        if (offset == null) return;
+        poseStack.translate(
+                offset.posX * MODEL_SCALE,
+                offset.posY * MODEL_SCALE,
+                offset.posZ * MODEL_SCALE
+        );
+        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(offset.rotX));
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(offset.rotY));
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(offset.rotZ));
     }
 
     private static ModelPart getSpinAttackBox() {
