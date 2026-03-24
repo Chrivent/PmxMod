@@ -51,6 +51,10 @@ public class PmxToolSettingsScreen extends Screen {
     private final Path modelPath;
     private final EditBox[][][] fields = new EditBox[CATEGORIES.length][ROW_COUNT_MAX][AXIS_COUNT];
     private final List<EditBox> allFields = new ArrayList<>();
+    private final int[][][] baseFieldX = new int[CATEGORIES.length][ROW_COUNT_MAX][AXIS_COUNT];
+    private final int[][][] baseFieldY = new int[CATEGORIES.length][ROW_COUNT_MAX][AXIS_COUNT];
+    private int contentScroll = 0;
+    private int contentScrollMax = 0;
 
     public PmxToolSettingsScreen(Screen parent, Path modelPath) {
         super(Component.translatable("pmx.screen.tool_settings.title"));
@@ -69,6 +73,8 @@ public class PmxToolSettingsScreen extends Screen {
         int rightX = this.width - 10 - itemWidth;
         addRenderableWidget(Button.builder(Component.translatable("pmx.button.done"), b -> onClose())
                 .bounds(rightX, rowY, itemWidth, 20).build());
+        updateScrollMetrics();
+        updateFieldLayout();
     }
 
     private void layoutFields() {
@@ -109,6 +115,8 @@ public class PmxToolSettingsScreen extends Screen {
                     box.setFilter(PmxToolSettingsScreen::isNumericInput);
                     box.setResponder(ignored -> updateLiveValues());
                     fields[i][r][a] = box;
+                    baseFieldX[i][r][a] = x;
+                    baseFieldY[i][r][a] = y;
                     allFields.add(box);
                     addRenderableWidget(box);
                 }
@@ -222,6 +230,7 @@ public class PmxToolSettingsScreen extends Screen {
         this.renderBackground(graphics);
         graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
         renderTopPanel(graphics);
+        updateFieldLayout();
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
@@ -238,14 +247,19 @@ public class PmxToolSettingsScreen extends Screen {
         int panelRight = this.width - 10;
         int cellWidth = (panelRight - panelLeft) / GRID_COLS;
         int panelBottom = panelTop + cellHeight * GRID_ROWS;
+        int viewportTop = contentTop();
+        int viewportBottom = contentBottom();
+        int yOffset = -contentScroll;
+
+        graphics.enableScissor(panelLeft, viewportTop, panelRight, viewportBottom);
 
         int lineColor = 0x66FFFFFF;
         for (int c = 1; c < GRID_COLS; c++) {
             int x = panelLeft + cellWidth * c;
-            graphics.fill(x, panelTop, x + 1, panelBottom, lineColor);
+            graphics.fill(x, panelTop + yOffset, x + 1, panelBottom + yOffset, lineColor);
         }
         for (int r = 1; r < GRID_ROWS; r++) {
-            int y = panelTop + cellHeight * r;
+            int y = panelTop + cellHeight * r + yOffset;
             graphics.fill(panelLeft, y, panelRight, y + 1, lineColor);
         }
 
@@ -253,7 +267,7 @@ public class PmxToolSettingsScreen extends Screen {
             int row = i / GRID_COLS;
             int col = i % GRID_COLS;
             int cellLeft = panelLeft + cellWidth * col;
-            int cellTop = panelTop + cellHeight * row;
+            int cellTop = panelTop + cellHeight * row + yOffset;
             int headerX = cellLeft + cellPadding;
             graphics.drawString(this.font, Component.translatable(CATEGORIES[i].headerKey), headerX, cellTop, 0xFFFFFF, false);
 
@@ -265,6 +279,71 @@ public class PmxToolSettingsScreen extends Screen {
                 graphics.drawString(this.font, Component.translatable(ROW_LABEL_KEYS[r]), labelX, y, 0xB0B0B0, false);
             }
         }
+        graphics.disableScissor();
+    }
+
+    private int contentTop() {
+        return 40;
+    }
+
+    private int contentBottom() {
+        return this.height - 40;
+    }
+
+    private int contentHeight() {
+        int panelTop = 40;
+        int rowHeight = 20;
+        int rowGap = 6;
+        int headerHeight = this.font.lineHeight + 2;
+        int rowStartOffset = headerHeight + 4;
+        int maxRows = ROW_COUNT_MAX;
+        int cellHeight = rowStartOffset + (maxRows * rowHeight) + ((maxRows - 1) * rowGap) + 4;
+        int panelBottom = panelTop + cellHeight * GRID_ROWS;
+        return panelBottom - panelTop;
+    }
+
+    private void updateScrollMetrics() {
+        int viewportHeight = Math.max(0, contentBottom() - contentTop());
+        contentScrollMax = Math.max(0, contentHeight() - viewportHeight);
+        if (contentScroll < 0) contentScroll = 0;
+        if (contentScroll > contentScrollMax) contentScroll = contentScrollMax;
+    }
+
+    private void updateFieldLayout() {
+        int top = contentTop();
+        int bottom = contentBottom();
+        for (int i = 0; i < CATEGORIES.length; i++) {
+            for (int r = 0; r < ROW_COUNT_MAX; r++) {
+                for (int a = 0; a < AXIS_COUNT; a++) {
+                    EditBox box = fields[i][r][a];
+                    if (box == null) continue;
+                    int x = baseFieldX[i][r][a];
+                    int y = baseFieldY[i][r][a] - contentScroll;
+                    boolean visible = y >= top && y + box.getHeight() <= bottom;
+                    box.setX(x);
+                    if (visible) {
+                        box.setY(y);
+                    } else {
+                        box.setY(-1000);
+                        if (box.isFocused()) {
+                            box.setFocused(false);
+                        }
+                    }
+                    box.active = visible;
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (mouseY >= contentTop() && mouseY <= contentBottom() && contentScrollMax > 0) {
+            int step = Math.max(12, this.font.lineHeight * 3);
+            contentScroll = (int) Math.max(0, Math.min(contentScrollMax, contentScroll - delta * step));
+            updateFieldLayout();
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
