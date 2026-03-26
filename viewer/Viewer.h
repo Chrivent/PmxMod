@@ -56,6 +56,14 @@ struct Viewer {
     float	m_animTime = 0.0f;
     bool    m_paused = false;
     bool    m_prevSpaceDown = false;
+    bool    m_useMotionCamera = true;
+    bool    m_prevRDown = false;
+    bool    m_prevRightMouseDown = false;
+    double  m_prevCursorX = 0.0;
+    double  m_prevCursorY = 0.0;
+    glm::vec3 m_freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
+    float   m_freeCamYaw = glm::radians(-90.0f);
+    float   m_freeCamPitch = 0.0f;
     std::unique_ptr<CameraAnimation>	m_cameraAnim;
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     GLFWwindow* m_window = nullptr;
@@ -73,6 +81,8 @@ struct Viewer {
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
     void LoadCameraAnim(const SceneConfig& cfg);
     void StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime);
+    void HandleInput(Sound& music);
     void UpdateCamera();
+    void SyncFreeCameraToCurrentView();
     void InitDirs(const std::filesystem::path& shaderSubDir);
 };
