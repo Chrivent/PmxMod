@@ -172,7 +172,6 @@ void Model::Update() {
 void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
 	if (anim)
 		anim->Evaluate(frame);
-	ApplyAdditiveRotations();
 	UpdateMorphAnimation();
 	UpdateNodeAnimation(false);
 	UpdatePhysicsAnimation(physicsElapsed);
@@ -325,7 +324,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		node->m_name = bone.m_name;
 		m_nodes.emplace_back(std::move(node));
 	}
-	m_additiveAnimRotate.assign(m_nodes.size(), glm::quat(1, 0, 0, 0));
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto& bone = pmx.m_bones[i];
 		auto* node = m_nodes[i].get();
@@ -496,7 +494,6 @@ void Model::Destroy() {
 	m_vertexBoneInfos.clear();
 	m_indices.clear();
 	m_nodes.clear();
-	m_additiveAnimRotate.clear();
 	m_updateRanges.clear();
 	for (const auto& joint : m_joints)
 		m_physics->m_world->removeConstraint(joint->m_constraint.get());
@@ -505,18 +502,6 @@ void Model::Destroy() {
 		m_physics->m_world->removeRigidBody(rb->m_rigidBody.get());
 	m_rigidBodies.clear();
 	m_physics.reset();
-}
-
-void Model::ApplyAdditiveRotations() {
-	if (m_additiveAnimRotate.empty())
-		return;
-	for (size_t i = 0; i < m_additiveAnimRotate.size(); i++) {
-		const auto add = m_additiveAnimRotate[i];
-		m_additiveAnimRotate[i] = glm::quat(1, 0, 0, 0);
-		if (add.w == 1.0f && add.x == 0.0f && add.y == 0.0f && add.z == 0.0f)
-			continue;
-		m_nodes[i]->m_animRotate = glm::normalize(add * m_nodes[i]->m_animRotate);
-	}
 }
 
 void Model::SetupParallelUpdate() {
