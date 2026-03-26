@@ -62,6 +62,23 @@ std::pair<float, float> Sound::PullTimes() {
     return { static_cast<float>(dt), static_cast<float>(t) };
 }
 
+void Sound::Pause() const {
+    if (!m_hasSound)
+        return;
+    ma_sound_stop(m_sound.get());
+}
+
+void Sound::Resume() {
+    if (!m_hasSound)
+        return;
+    ma_uint64 frames{};
+    if (ma_sound_get_cursor_in_pcm_frames(m_sound.get(), &frames) == MA_SUCCESS) {
+        const double sr = ma_engine_get_sample_rate(m_engine.get());
+        m_prevTimeSec = sr > 0.0 ? static_cast<double>(frames) / sr : m_prevTimeSec;
+    }
+    ma_sound_start(m_sound.get());
+}
+
 void Sound::Stop() {
     Uninit();
 }

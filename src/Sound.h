@@ -18,6 +18,8 @@ struct Sound {
     double GetLengthSec() const { return m_lengthSec; }
     void SetVolume(float volume);
     std::pair<float, float> PullTimes();
+    void Pause() const;
+    void Resume();
     void Stop();
 
 private:

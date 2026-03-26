@@ -54,6 +54,8 @@ struct Viewer {
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
+    bool    m_paused = false;
+    bool    m_prevSpaceDown = false;
     std::unique_ptr<CameraAnimation>	m_cameraAnim;
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     GLFWwindow* m_window = nullptr;

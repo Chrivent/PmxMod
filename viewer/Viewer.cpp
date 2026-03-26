@@ -27,6 +27,8 @@ void Instance::UpdateAnimation(const Viewer& viewer) const {
 bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
     music.Init(cfg.m_musicPath, false);
+    m_paused = false;
+    m_prevSpaceDown = false;
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();
@@ -55,6 +57,15 @@ bool Viewer::Run(const SceneConfig& cfg) {
     int fpsFrame  = 0;
     while (!glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
+        const bool spaceDown = glfwGetKey(m_window, GLFW_KEY_SPACE) == GLFW_PRESS;
+        if (spaceDown && !m_prevSpaceDown) {
+            m_paused = !m_paused;
+            if (m_paused)
+                music.Pause();
+            else
+                music.Resume();
+        }
+        m_prevSpaceDown = spaceDown;
         int newW = 0, newH = 0;
         glfwGetFramebufferSize(m_window, &newW, &newH);
         if (newW != m_screenWidth || newH != m_screenHeight) {
@@ -150,6 +161,10 @@ void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveT
     if (elapsed > 1.0 / 30.0)
         elapsed = 1.0 / 30.0;
     saveTime = now;
+    if (m_paused) {
+        m_elapsed = 0.0f;
+        return;
+    }
     auto dt = static_cast<float>(elapsed);
     float t = m_animTime + dt;
     if (music.m_hasSound) {
