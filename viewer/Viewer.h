@@ -5,12 +5,10 @@
 #include <filesystem>
 
 #include "../src/Animation.h"
+#include "../src/Sound.h"
 
-struct Sound;
 struct SceneConfig;
 struct Material;
-struct ma_engine;
-struct ma_sound;
 struct Viewer;
 struct Animation;
 class Model;
@@ -40,24 +38,6 @@ struct Instance {
     virtual void Clear() {}
 
     void UpdateAnimation(const Viewer& viewer) const;
-};
-
-struct Sound {
-    Sound();
-    ~Sound();
-
-    bool m_hasSound = false;
-    float m_volume = 0.1f;
-
-    bool Init(const std::filesystem::path& path);
-    std::pair<float, float> PullTimes();
-
-private:
-    std::unique_ptr<ma_engine> m_engine;
-    std::unique_ptr<ma_sound>  m_sound;
-    double m_prevTimeSec = 0.0;
-
-    void Uninit();
 };
 
 struct Viewer {

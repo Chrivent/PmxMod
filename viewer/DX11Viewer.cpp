@@ -187,7 +187,7 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->VSSetShader(m_viewer->m_vs.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_ps.Get(), nullptr, 0);
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
         const auto& m = m_materials[m_materialID];
         const auto& mat = m.m_mat;
         if (mat.m_diffuse.a == 0)
@@ -225,7 +225,7 @@ void DX11Instance::Draw() const {
             m_viewer->m_context->RSSetState(m_viewer->m_bothFaceRs.Get());
         else
             m_viewer->m_context->RSSetState(m_viewer->m_frontFaceRs.Get());
-        m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+        m_viewer->m_context->DrawIndexed(m_indexCount, m_beginIndex, 0);
     }
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_edgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
@@ -238,7 +238,7 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->VSSetShader(m_viewer->m_edgeVs.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_edgePs.Get(), nullptr, 0);
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_edgeVsConstantBuffer.GetAddressOf());
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_edgeFlag)
@@ -256,7 +256,7 @@ void DX11Instance::Draw() const {
 			0, nullptr, &psCB, 0, 0);
 		m_viewer->m_context->PSSetConstantBuffers(2, 1, m_edgePsConstantBuffer.GetAddressOf());
 		m_viewer->m_context->RSSetState(m_viewer->m_edgeRs.Get());
-		m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+		m_viewer->m_context->DrawIndexed(m_indexCount, m_beginIndex, 0);
 	}
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_gsInputLayout.Get());
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
@@ -271,7 +271,7 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_gsVsConstantBuffer.GetAddressOf());
 	m_viewer->m_context->RSSetState(m_viewer->m_gsRs.Get());
 	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_gsDss.Get(), 0x01);
-	for (const auto& [m_beginIndex, m_vertexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_groundShadow)
@@ -282,7 +282,7 @@ void DX11Instance::Draw() const {
 		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_viewer->m_context->UpdateSubresource(m_gsPsConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		m_viewer->m_context->PSSetConstantBuffers(1, 1, m_gsPsConstantBuffer.GetAddressOf());
-		m_viewer->m_context->DrawIndexed(m_vertexCount, m_beginIndex, 0);
+		m_viewer->m_context->DrawIndexed(m_indexCount, m_beginIndex, 0);
 	}
 }
 
