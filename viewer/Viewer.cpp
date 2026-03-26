@@ -30,6 +30,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     m_paused = false;
     m_prevSpaceDown = false;
     m_useMotionCamera = true;
+    m_hasFreeCameraState = false;
     m_prevRDown = false;
     m_prevRightMouseDown = false;
     m_freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
@@ -62,7 +63,6 @@ bool Viewer::Run(const SceneConfig& cfg) {
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
     UpdateCamera();
-    SyncFreeCameraToCurrentView();
     while (!glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
         HandleInput(music);
@@ -106,8 +106,10 @@ void Viewer::HandleInput(Sound& music) {
 
     const bool rDown = glfwGetKey(m_window, GLFW_KEY_R) == GLFW_PRESS;
     if (rDown && !m_prevRDown) {
-        if (m_useMotionCamera)
+        if (m_useMotionCamera && !m_hasFreeCameraState) {
             SyncFreeCameraToCurrentView();
+            m_hasFreeCameraState = true;
+        }
         m_useMotionCamera = !m_useMotionCamera;
         m_prevRightMouseDown = false;
     }

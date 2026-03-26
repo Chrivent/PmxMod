@@ -57,6 +57,7 @@ struct Viewer {
     bool    m_paused = false;
     bool    m_prevSpaceDown = false;
     bool    m_useMotionCamera = true;
+    bool    m_hasFreeCameraState = false;
     bool    m_prevRDown = false;
     bool    m_prevRightMouseDown = false;
     double  m_prevCursorX = 0.0;
