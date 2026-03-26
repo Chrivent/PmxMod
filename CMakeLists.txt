@@ -4,9 +4,12 @@ project(PmxMod)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(glfw3  REQUIRED)
-find_package(glad   REQUIRED)
-find_package(glm    REQUIRED)
+set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "Vcpkg target triplet")
+list(PREPEND CMAKE_PREFIX_PATH "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}")
+
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 
 add_executable(PmxMod
@@ -51,3 +54,12 @@ add_custom_target(SyncResources
 )
 
 add_dependencies(PmxMod SyncResources)
+
+if (WIN32)
+    add_custom_command(TARGET PmxMod POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}/bin/glfw3.dll"
+            "$<TARGET_FILE_DIR:PmxMod>"
+            VERBATIM
+    )
+endif ()
