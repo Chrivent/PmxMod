@@ -110,7 +110,7 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 			node.UpdateAppendTransform();
 			node.UpdateGlobalTransform();
 		}
-		if (auto ikSolver = node.m_ikSolver.lock()) {
+		if (const auto ikSolver = node.m_ikSolver.lock()) {
 			ikSolver->Solve();
 			node.UpdateGlobalTransform();
 		}
