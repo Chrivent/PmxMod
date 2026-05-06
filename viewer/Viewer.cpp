@@ -88,7 +88,6 @@ bool Viewer::Run(const SceneConfig& cfg) {
     }
     for (const auto& instance : instances)
         instance->Clear();
-    instances.clear();
     glfwTerminate();
     return true;
 }

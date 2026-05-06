@@ -394,16 +394,10 @@ void GLFWInstance::Draw() const {
 }
 
 GLFWViewer::~GLFWViewer() {
-	m_shader.reset();
-	m_edgeShader.reset();
-	m_gsShader.reset();
 	for (auto& [m_texture, m_hasAlpha] : m_textures | std::views::values)
 		glDeleteTextures(1, &m_texture);
-	m_textures.clear();
 	if (m_dummyColorTex != 0)
 		glDeleteTextures(1, &m_dummyColorTex);
-	m_dummyColorTex = 0;
-	m_cameraAnim.reset();
 }
 
 void GLFWViewer::ConfigureGlfwHints() {
