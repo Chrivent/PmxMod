@@ -103,7 +103,7 @@ bool DX11Instance::Setup(Viewer& viewer) {
 	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	iBufDesc.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = &m_model->GetIndices()[0];
+	initData.pSysMem = m_model->GetIndices().data();
 	if (FAILED(m_viewer->m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
 		return false;
 	if (1 == m_model->GetIndexElementSize())

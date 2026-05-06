@@ -195,7 +195,7 @@ int main() {
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
 		for (int i = 0; i < n; i++) {
 			ModelConfig in;
-			in.m_modelPath = modelPaths[i][0].wstring();
+			in.m_modelPath = modelPaths[i].front().wstring();
 			for (auto& v : motionPaths[i])
 				in.m_animPaths.emplace_back(v.wstring());
 			cfg.m_modelConfigs.emplace_back(std::move(in));

@@ -94,15 +94,16 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-	auto kinematicNode = node ? node : model->GetNodes()[0];
-	m_offsetMat = glm::inverse(kinematicNode->m_global) * rbMat;
-	m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
+	m_offsetMat = node ? glm::inverse(node->m_global) * rbMat : rbMat;
+	m_kinematicMotionState = node
+		? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(node, m_offsetMat))
+		: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(m_offsetMat));
 	if (pmxRigidBody.m_op != Operation::Static) {
 		if (node) {
 			if (pmxRigidBody.m_op == Operation::Dynamic)
-				m_activeMotionState = std::make_unique<DynamicMotionState>(kinematicNode, m_offsetMat);
+				m_activeMotionState = std::make_unique<DynamicMotionState>(node, m_offsetMat);
 			else
-				m_activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(kinematicNode, m_offsetMat);
+				m_activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(node, m_offsetMat);
 		} else
 			m_activeMotionState = std::make_unique<DefaultMotionState>(m_offsetMat);
 	}
