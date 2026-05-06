@@ -26,4 +26,25 @@ struct Util {
             return {};
         return utf8;
     }
+
+    static std::string SjisToUtf8(const char* sjis) {
+        if (!sjis)
+            return {};
+        const int need = MultiByteToWideChar(
+            932, MB_ERR_INVALID_CHARS,
+            sjis, -1,
+            nullptr, 0);
+        if (need <= 0)
+            return {};
+        std::wstring w(static_cast<size_t>(need), L'\0');
+        const int written = MultiByteToWideChar(
+            932, MB_ERR_INVALID_CHARS,
+            sjis, -1,
+            w.data(), need);
+        if (written <= 0)
+            return {};
+        if (!w.empty() && w.back() == L'\0')
+            w.pop_back();
+        return Util::WStringToUtf8(w);
+    }
 };

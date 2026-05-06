@@ -5,27 +5,6 @@
 
 #include <ranges>
 
-std::string SjisToUtf8(const char* sjis) {
-	if (!sjis)
-		return {};
-	const int need = MultiByteToWideChar(
-		932, MB_ERR_INVALID_CHARS,
-		sjis, -1,
-		nullptr, 0);
-	if (need <= 0)
-		return {};
-	std::wstring w(static_cast<size_t>(need), L'\0');
-	const int written = MultiByteToWideChar(
-		932, MB_ERR_INVALID_CHARS,
-		sjis, -1,
-		w.data(), need);
-	if (written <= 0)
-		return {};
-	if (!w.empty() && w.back() == L'\0')
-		w.pop_back();
-	return Util::WStringToUtf8(w);
-}
-
 void SetBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.first = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.second = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
@@ -79,7 +58,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	}
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
-		auto nodeName = SjisToUtf8(motion.m_boneName);
+		auto nodeName = Util::SjisToUtf8(motion.m_boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
@@ -105,7 +84,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	m_iks.clear();
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
-			auto ikName = SjisToUtf8(m_name);
+			auto ikName = Util::SjisToUtf8(m_name);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
@@ -135,7 +114,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	}
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
-		auto morphName = SjisToUtf8(m_blendShapeName);
+		auto morphName = Util::SjisToUtf8(m_blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
