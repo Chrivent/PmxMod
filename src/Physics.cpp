@@ -18,7 +18,7 @@ DefaultMotionState::DefaultMotionState(const glm::mat4& transform) {
 	m_initialTransform = m_transform;
 }
 
-DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset)
+DynamicMotionState::DynamicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset)
 	: m_node(node)
 	, m_offset(offset) {
 	m_invOffset = glm::inverse(offset);
@@ -26,34 +26,44 @@ DynamicMotionState::DynamicMotionState(Node* node, const glm::mat4& offset)
 }
 
 void DynamicMotionState::Reset() {
-	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
+	const auto node = m_node.lock();
+	if (!node)
+		return;
+	glm::mat4 global = Util::InvZ(node->m_global * m_offset);
 	m_transform.setFromOpenGLMatrix(&global[0][0]);
 }
 
 void DynamicMotionState::ReflectGlobalTransform() {
+	const auto node = m_node.lock();
+	if (!node)
+		return;
 	glm::mat4 world;
 	m_transform.getOpenGLMatrix(&world[0][0]);
 	glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
 	PostProcessBtGlobal(btGlobal);
-	m_node->m_global = btGlobal;
-	m_node->UpdateChildTransform();
+	node->m_global = btGlobal;
+	node->UpdateChildTransform();
 }
 
 void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
-	btGlobal[3] = m_node->m_global[3];
+	if (const auto node = m_node.lock())
+		btGlobal[3] = node->m_global[3];
 }
 
-KinematicMotionState::KinematicMotionState(Node* node, const glm::mat4& offset)
+KinematicMotionState::KinematicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset)
 	: m_node(node)
 	, m_offset(offset) {
 }
 
 void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
-	glm::mat4 global = Util::InvZ(m_node->m_global * m_offset);
+	const auto node = m_node.lock();
+	if (!node)
+		return;
+	glm::mat4 global = Util::InvZ(node->m_global * m_offset);
 	worldTransform.setFromOpenGLMatrix(&global[0][0]);
 }
 
-void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node * node) {
+void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node) {
 	switch (pmxRigidBody.m_shape) {
 		case Shape::Sphere:
 			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.m_shapeSize.x);
@@ -84,7 +94,7 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-	auto* kinematicNode = node ? node : model->m_nodes[0].get();
+	auto kinematicNode = node ? node : model->m_nodes[0];
 	m_offsetMat = glm::inverse(kinematicNode->m_global) * rbMat;
 	m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 	if (pmxRigidBody.m_op != Operation::Static) {
@@ -154,12 +164,12 @@ void RigidBody::ReflectGlobalTransform() const {
 }
 
 void RigidBody::CalcLocalTransform() const {
-	if (m_node) {
-		if (const auto parent = m_node->m_parent.lock()) {
-			const auto local = glm::inverse(parent->m_global) * m_node->m_global;
-			m_node->m_local = local;
+	if (const auto node = m_node.lock()) {
+		if (const auto parent = node->m_parent.lock()) {
+			const auto local = glm::inverse(parent->m_global) * node->m_global;
+			node->m_local = local;
 		} else
-			m_node->m_local = m_node->m_global;
+			node->m_local = node->m_global;
 	}
 }
 

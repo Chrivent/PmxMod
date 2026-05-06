@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <memory>
 #include <vector>
 #include <btBulletDynamicsCommon.h>
 
@@ -35,9 +36,9 @@ public:
 
 class DynamicMotionState : public MotionState {
 public:
-	DynamicMotionState(Node* node, const glm::mat4& offset);
+	DynamicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset);
 
-	Node*		m_node;
+	std::weak_ptr<Node>	m_node;
 	glm::mat4	m_offset;
 	glm::mat4	m_invOffset = glm::mat4(1);
 	btTransform	m_transform;
@@ -61,9 +62,9 @@ protected:
 
 class KinematicMotionState final : public MotionState {
 public:
-	KinematicMotionState(Node* node, const glm::mat4& offset);
+	KinematicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset);
 
-	Node*		m_node;
+	std::weak_ptr<Node>	m_node;
 	glm::mat4	m_offset;
 
 	void getWorldTransform(btTransform& worldTransform) const override;
@@ -78,11 +79,11 @@ struct RigidBody {
 	Operation	m_rigidBodyType = Operation::Static;
 	uint16_t	m_group = 0;
 	uint16_t	m_groupMask = 0;
-	Node*		m_node = nullptr;
+	std::weak_ptr<Node>	m_node;
 	glm::mat4	m_offsetMat = glm::mat4(1);
 	std::string	m_name;
 
-	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, Node* node);
+	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
 	void SetActivation(bool activation) const;
 	void ResetTransform() const;
 	void Reset(const Physics* physics) const;

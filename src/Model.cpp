@@ -466,9 +466,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_physics->Create();
 	for (const auto& rigidBody : pmx.m_rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
-		Node* node = nullptr;
+		std::shared_ptr<Node> node;
 		if (rigidBody.m_boneIndex != -1)
-			node = m_nodes[rigidBody.m_boneIndex].get();
+			node = m_nodes[rigidBody.m_boneIndex];
 		rb->Create(rigidBody, this, node);
 		m_physics->m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
