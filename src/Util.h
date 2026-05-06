@@ -48,6 +48,6 @@ struct Util {
             return {};
         if (!w.empty() && w.back() == L'\0')
             w.pop_back();
-        return Util::WStringToUtf8(w);
+        return WStringToUtf8(w);
     }
 };
