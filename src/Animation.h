@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <map>
+#include <memory>
 
 #include "Reader.h"
 
@@ -32,10 +33,10 @@ struct IKAnimationKey {
 };
 
 struct Animation {
-	std::shared_ptr<Model>								m_model;
-	std::map<Node*, std::vector<NodeAnimationKey>>		m_nodes;
-	std::map<IkSolver*, std::vector<IKAnimationKey>>	m_iks;
-	std::map<Morph*, std::vector<MorphAnimationKey>>	m_morphs;
+	std::shared_ptr<Model> m_model;
+	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> m_nodes;
+	std::map<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>> m_iks;
+	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> m_morphs;
 
 	bool Add(const VMDReader& vmd);
 	void Destroy();

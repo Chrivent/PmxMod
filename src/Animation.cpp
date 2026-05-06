@@ -72,17 +72,20 @@ void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
 }
 
 bool Animation::Add(const VMDReader& vmd) {
-	std::map<std::string, std::pair<Node*, std::vector<NodeAnimationKey>>> nodeMap;
-	for (auto& node : m_nodes)
-		nodeMap.emplace(node.first->m_name, std::move(node));
+	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
+	for (auto& node : m_nodes) {
+		if (node.first)
+			nodeMap.emplace(node.first->m_name, std::move(node));
+	}
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
 		auto nodeName = SjisToUtf8(motion.m_boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->m_nodes, nodeName, &Node::m_name);
-			first = it != m_model->m_nodes.end() ? it->get() : nullptr;
+			auto it = std::ranges::find(m_model->m_nodes, nodeName,
+				[](const std::shared_ptr<Node>& node) { return node->m_name; });
+			first = it != m_model->m_nodes.end() ? *it : nullptr;
 		}
 		if (!first)
 			continue;
@@ -92,9 +95,13 @@ bool Animation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::m_time);
 		m_nodes.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<IkSolver*, std::vector<IKAnimationKey>>> ikMap;
-	for (auto& ik : m_iks)
-		ikMap.emplace(ik.first->m_ikNode->m_name, std::move(ik));
+	std::map<std::string, std::pair<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>>> ikMap;
+	for (auto& ik : m_iks) {
+		if (ik.first) {
+			if (const auto ikNode = ik.first->m_ikNode.lock())
+				ikMap.emplace(ikNode->m_name, std::move(ik));
+		}
+	}
 	m_iks.clear();
 	for (const auto& ik : vmd.m_iks) {
 		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
@@ -103,9 +110,12 @@ bool Animation::Add(const VMDReader& vmd) {
 			auto& [first, second] = findIt->second;
 			if (inserted) {
 				auto it = std::ranges::find(m_model->m_ikSolvers, ikName,
-					[](const std::unique_ptr<IkSolver>& ikSolver){ return ikSolver->m_ikNode->m_name; }
+					[](const std::shared_ptr<IkSolver>& ikSolver){
+						const auto ikNode = ikSolver->m_ikNode.lock();
+						return ikNode ? ikNode->m_name : std::string{};
+					}
 				);
-				first = it != m_model->m_ikSolvers.end() ? it->get() : nullptr;
+				first = it != m_model->m_ikSolvers.end() ? *it : nullptr;
 			}
 			if (!first)
 				continue;
@@ -118,9 +128,11 @@ bool Animation::Add(const VMDReader& vmd) {
 		std::ranges::sort(val.second, {}, &IKAnimationKey::m_time);
 		m_iks.insert(std::move(val));
 	}
-	std::map<std::string, std::pair<Morph*, std::vector<MorphAnimationKey>>> morphMap;
-	for (auto& morph : m_morphs)
-		morphMap.emplace(morph.first->m_name, std::move(morph));
+	std::map<std::string, std::pair<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>>> morphMap;
+	for (auto& morph : m_morphs) {
+		if (morph.first)
+			morphMap.emplace(morph.first->m_name, std::move(morph));
+	}
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
 		auto morphName = SjisToUtf8(m_blendShapeName);
@@ -128,7 +140,7 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(m_model->m_morphs, morphName, &Morph::m_name);
-			first = it != m_model->m_morphs.end() ? it->get() : nullptr;
+			first = it != m_model->m_morphs.end() ? std::shared_ptr<Morph>(m_model, it->get()) : nullptr;
 		}
 		if (!first)
 			continue;

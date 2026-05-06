@@ -1,24 +1,25 @@
 ﻿#pragma once
 
+#include <memory>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 
 struct Node;
 
 struct IKChain {
-	Node*		m_node;
-	bool		m_enableAxisLimit;
-	glm::vec3	m_limitMax;
-	glm::vec3	m_limitMin;
-	glm::vec3	m_prevAngle;
-	glm::quat	m_saveIKRot;
-	float		m_planeModeAngle;
+	std::weak_ptr<Node>	m_node;
+	bool				m_enableAxisLimit;
+	glm::vec3			m_limitMax;
+	glm::vec3			m_limitMin;
+	glm::vec3			m_prevAngle;
+	glm::quat			m_saveIKRot;
+	float				m_planeModeAngle;
 };
 
 struct IkSolver {
 	std::vector<IKChain>	m_chains;
-	Node*					m_ikNode = nullptr;
-	Node*					m_ikTarget = nullptr;
+	std::weak_ptr<Node>		m_ikNode;
+	std::weak_ptr<Node>		m_ikTarget;
 	uint32_t				m_iterateCount = 1;
 	float					m_limitAngle = glm::two_pi<float>();
 	bool					m_enable = true;

@@ -94,21 +94,25 @@ void Model::UpdateMorphAnimation() {
 }
 
 void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-	const auto pred = [&](const Node* node) { return node->m_isDeformAfterPhysics == afterPhysicsAnim; };
-	for (auto* node : m_sortedNodes | std::views::filter(pred))
-		node->UpdateLocalTransform();
-	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
-		if (!node->m_parent)
-			node->UpdateGlobalTransform();
+	const auto pred = [&](const std::reference_wrapper<Node>& node) {
+		return node.get().m_isDeformAfterPhysics == afterPhysicsAnim;
+	};
+	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred))
+		nodeRef.get().UpdateLocalTransform();
+	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
+		auto& node = nodeRef.get();
+		if (node.m_parent.expired())
+			node.UpdateGlobalTransform();
 	}
-	for (auto* node : m_sortedNodes | std::views::filter(pred)) {
-		if (node->m_appendNode) {
-			node->UpdateAppendTransform();
-			node->UpdateGlobalTransform();
+	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
+		auto& node = nodeRef.get();
+		if (!node.m_appendNode.expired()) {
+			node.UpdateAppendTransform();
+			node.UpdateGlobalTransform();
 		}
-		if (node->m_ikSolver) {
-			node->m_ikSolver->Solve();
-			node->UpdateGlobalTransform();
+		if (auto ikSolver = node.m_ikSolver.lock()) {
+			ikSolver->Solve();
+			node.UpdateGlobalTransform();
 		}
 	}
 }
@@ -126,7 +130,7 @@ void Model::ResetPhysics() const {
 		rb->CalcLocalTransform();
 	}
 	for (const auto& node : m_nodes) {
-		if (!node->m_parent)
+		if (node->m_parent.expired())
 			node->UpdateGlobalTransform();
 	}
 	for (auto& rb : m_rigidBodies)
@@ -144,7 +148,7 @@ void Model::UpdatePhysicsAnimation(const float elapsed) const {
 		rb->CalcLocalTransform();
 	}
 	for (const auto& node : m_nodes) {
-		if (!node->m_parent)
+		if (node->m_parent.expired())
 			node->UpdateGlobalTransform();
 	}
 }
@@ -319,7 +323,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_addMaterialFactors.resize(m_materials.size());
 	m_nodes.reserve(pmx.m_bones.size());
 	for (const auto& bone : pmx.m_bones) {
-		auto node = std::make_unique<Node>();
+		auto node = std::make_shared<Node>();
 		node->m_index = static_cast<uint32_t>(m_nodes.size());
 		node->m_name = bone.m_name;
 		m_nodes.emplace_back(std::move(node));
@@ -329,8 +333,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		auto* node = m_nodes[i].get();
 		glm::vec3 localPos = bone.m_position;
 		if (bone.m_parentBoneIndex != -1) {
-			auto* parent = m_nodes[bone.m_parentBoneIndex].get();
-			parent->AddChild(node);
+			auto parent = m_nodes[bone.m_parentBoneIndex];
+			parent->AddChild(m_nodes[i]);
 			localPos -= pmx.m_bones[bone.m_parentBoneIndex].m_position;
 		}
 		localPos.z *= -1;
@@ -346,7 +350,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		node->m_isAppendTranslate = appendTranslate;
 		if ((appendRotate || appendTranslate) && bone.m_appendBoneIndex != -1) {
 			bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
-			auto* appendNode = m_nodes[bone.m_appendBoneIndex].get();
+			auto appendNode = m_nodes[bone.m_appendBoneIndex];
 			float appendWeight = bone.m_appendWeight;
 			node->m_isAppendLocal = appendLocal;
 			node->m_appendNode = appendNode;
@@ -360,19 +364,21 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_sortedNodes.clear();
 	m_sortedNodes.reserve(m_nodes.size());
 	for (auto& node : m_nodes)
-		m_sortedNodes.push_back(node.get());
+		m_sortedNodes.emplace_back(*node);
 	std::ranges::stable_sort(m_sortedNodes,
-		[](const Node* x, const Node* y) { return x->m_deformDepth < y->m_deformDepth; }
+		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
+			return x.get().m_deformDepth < y.get().m_deformDepth;
+		}
 	);
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
 		const auto& bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
-			auto solver = std::make_unique<IkSolver>();
-			solver->m_ikNode = m_nodes[i].get();
-			m_nodes[i]->m_ikSolver = solver.get();
-			solver->m_ikTarget = m_nodes[bone.m_ikTargetBoneIndex].get();
+			auto solver = std::make_shared<IkSolver>();
+			solver->m_ikNode = m_nodes[i];
+			m_nodes[i]->m_ikSolver = solver;
+			solver->m_ikTarget = m_nodes[bone.m_ikTargetBoneIndex];
 			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
-				auto* linkNode = m_nodes[m_ikBoneIndex].get();
+				auto linkNode = m_nodes[m_ikBoneIndex];
 				IKChain chain{};
 				chain.m_node = linkNode;
 				chain.m_enableAxisLimit = m_enableLimit;
@@ -493,6 +499,7 @@ void Model::Destroy() {
 	m_uvs.clear();
 	m_vertexBoneInfos.clear();
 	m_indices.clear();
+	m_sortedNodes.clear();
 	m_nodes.clear();
 	m_updateRanges.clear();
 	for (const auto& joint : m_joints)

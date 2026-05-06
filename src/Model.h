@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <future>
+#include <functional>
 
 #include "Node.h"
 #include "IkSolver.h"
@@ -75,45 +76,45 @@ class Model {
 public:
 	~Model();
 
-	std::string								m_modelName;
-	std::string								m_englishModelName;
-	std::string								m_comment;
-	std::string								m_englishComment;
-	std::vector<glm::vec3>					m_positions;
-	std::vector<glm::vec3>					m_normals;
-	std::vector<glm::vec2>					m_uvs;
-	std::vector<Vertex>						m_vertexBoneInfos;
-	std::vector<glm::vec3>					m_updatePositions;
-	std::vector<glm::vec3>					m_updateNormals;
-	std::vector<glm::vec2>					m_updateUVs;
-	std::vector<glm::mat4>					m_transforms;
-	std::vector<char>						m_indices;
-	size_t									m_indexCount = 0;
-	size_t									m_indexElementSize = 0;
-	std::vector<std::vector<PositionMorph>>	m_positionMorphDatas;
-	std::vector<std::vector<UVMorph>>		m_uvMorphDatas;
-	std::vector<std::vector<MaterialMorph>>	m_materialMorphDatas;
-	std::vector<std::vector<BoneMorph>>		m_boneMorphDatas;
-	std::vector<std::vector<GroupMorph>>	m_groupMorphDatas;
-	std::vector<glm::vec3>					m_morphPositions;
-	std::vector<glm::vec4>					m_morphUVs;
-	std::vector<Material>					m_initMaterials;
-	std::vector<MaterialMorph>				m_mulMaterialFactors;
-	std::vector<MaterialMorph>				m_addMaterialFactors;
-	glm::vec3								m_bboxMin;
-	glm::vec3								m_bboxMax;
-	std::vector<Material>					m_materials;
-	std::vector<SubMesh>					m_subMeshes;
-	std::vector<Node*>						m_sortedNodes;
-	std::vector<std::unique_ptr<Node>>		m_nodes;
-	std::vector<std::unique_ptr<IkSolver>>	m_ikSolvers;
-	std::vector<std::unique_ptr<Morph>>		m_morphs;
-	std::unique_ptr<Physics>				m_physics;
-	std::vector<std::unique_ptr<RigidBody>>	m_rigidBodies;
-	std::vector<std::unique_ptr<Joint>>		m_joints;
-	uint32_t								m_parallelUpdateCount = 0;
-	std::vector<UpdateRange>				m_updateRanges;
-	std::vector<std::future<void>>			m_parallelUpdateFutures;
+	std::string									m_modelName;
+	std::string									m_englishModelName;
+	std::string									m_comment;
+	std::string									m_englishComment;
+	std::vector<glm::vec3>						m_positions;
+	std::vector<glm::vec3>						m_normals;
+	std::vector<glm::vec2>						m_uvs;
+	std::vector<Vertex>							m_vertexBoneInfos;
+	std::vector<glm::vec3>						m_updatePositions;
+	std::vector<glm::vec3>						m_updateNormals;
+	std::vector<glm::vec2>						m_updateUVs;
+	std::vector<glm::mat4>						m_transforms;
+	std::vector<char>							m_indices;
+	size_t										m_indexCount = 0;
+	size_t										m_indexElementSize = 0;
+	std::vector<std::vector<PositionMorph>>		m_positionMorphDatas;
+	std::vector<std::vector<UVMorph>>			m_uvMorphDatas;
+	std::vector<std::vector<MaterialMorph>>		m_materialMorphDatas;
+	std::vector<std::vector<BoneMorph>>			m_boneMorphDatas;
+	std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
+	std::vector<glm::vec3>						m_morphPositions;
+	std::vector<glm::vec4>						m_morphUVs;
+	std::vector<Material>						m_initMaterials;
+	std::vector<MaterialMorph>					m_mulMaterialFactors;
+	std::vector<MaterialMorph>					m_addMaterialFactors;
+	glm::vec3									m_bboxMin;
+	glm::vec3									m_bboxMax;
+	std::vector<Material>						m_materials;
+	std::vector<SubMesh>						m_subMeshes;
+	std::vector<std::reference_wrapper<Node>>	m_sortedNodes;
+	std::vector<std::shared_ptr<Node>>			m_nodes;
+	std::vector<std::shared_ptr<IkSolver>>		m_ikSolvers;
+	std::vector<std::unique_ptr<Morph>>			m_morphs;
+	std::unique_ptr<Physics>					m_physics;
+	std::vector<std::unique_ptr<RigidBody>>		m_rigidBodies;
+	std::vector<std::unique_ptr<Joint>>			m_joints;
+	uint32_t									m_parallelUpdateCount = 0;
+	std::vector<UpdateRange>					m_updateRanges;
+	std::vector<std::future<void>>				m_parallelUpdateFutures;
 
 	void InitializeAnimation();
 	void SaveBaseAnimation() const;

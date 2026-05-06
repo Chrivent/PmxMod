@@ -155,7 +155,7 @@ void RigidBody::ReflectGlobalTransform() const {
 
 void RigidBody::CalcLocalTransform() const {
 	if (m_node) {
-		if (const auto parent = m_node->m_parent) {
+		if (const auto parent = m_node->m_parent.lock()) {
 			const auto local = glm::inverse(parent->m_global) * m_node->m_global;
 			m_node->m_local = local;
 		} else
