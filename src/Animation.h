@@ -19,6 +19,7 @@ struct NodeAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_tzBezier;
 	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
 
+	/// VMD 모션 키에서 노드 애니메이션 키 값을 채운다.
 	void Set(const VMDReader::VMDMotion& motion);
 };
 
@@ -32,16 +33,25 @@ struct IKAnimationKey {
 	bool	m_ikEnable;
 };
 
-struct Animation {
+class Animation {
+public:
+	void SetModel(const std::shared_ptr<Model>& model) { m_model = model; }
+	const std::shared_ptr<Model>& GetModel() const { return m_model; }
+
+	/// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
+	bool Add(const VMDReader& vmd);
+	/// 애니메이션 트랙과 연결 상태를 해제한다.
+	void Destroy();
+	/// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
+	void Evaluate(float t, float animWeight = 1.0f) const;
+	/// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
+	void SyncPhysics(float t) const;
+
+private:
 	std::shared_ptr<Model> m_model;
 	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> m_nodes;
 	std::map<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>> m_iks;
 	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> m_morphs;
-
-	bool Add(const VMDReader& vmd);
-	void Destroy();
-	void Evaluate(float t, float animWeight = 1.0f) const;
-	void SyncPhysics(float t) const;
 };
 
 struct Camera {
@@ -50,6 +60,7 @@ struct Camera {
 	float		m_distance = 50;
 	float		m_fov = glm::radians(30.0f);
 
+	/// 현재 카메라 파라미터로 뷰 행렬을 계산한다.
 	glm::mat4 GetViewMatrix() const;
 };
 
@@ -67,10 +78,16 @@ struct CameraAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_fovBezier;
 };
 
-struct CameraAnimation {
+class CameraAnimation {
+public:
+	const Camera& GetCamera() const { return m_camera; }
+
+	/// VMD 카메라 키를 읽어 카메라 애니메이션을 생성한다.
+	bool Create(const VMDReader& vmd);
+	/// 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
+	void Evaluate(float t);
+
+private:
 	std::vector<CameraAnimationKey>	m_keys;
 	Camera m_camera;
-
-	bool Create(const VMDReader& vmd);
-	void Evaluate(float t);
 };

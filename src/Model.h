@@ -14,7 +14,7 @@ struct PositionMorph;
 struct MaterialMorph;
 struct RigidBody;
 struct Joint;
-struct Animation;
+class Animation;
 
 enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;
@@ -76,6 +76,45 @@ class Model {
 public:
 	~Model();
 
+	const std::vector<glm::vec3>& GetPositions() const { return m_positions; }
+	const std::vector<glm::vec3>& GetUpdatePositions() const { return m_updatePositions; }
+	const std::vector<glm::vec3>& GetUpdateNormals() const { return m_updateNormals; }
+	const std::vector<glm::vec2>& GetUpdateUVs() const { return m_updateUVs; }
+	const std::vector<char>& GetIndices() const { return m_indices; }
+	size_t GetIndexCount() const { return m_indexCount; }
+	size_t GetIndexElementSize() const { return m_indexElementSize; }
+	const std::vector<Material>& GetMaterials() const { return m_materials; }
+	const std::vector<SubMesh>& GetSubMeshes() const { return m_subMeshes; }
+	const std::vector<std::shared_ptr<Node>>& GetNodes() const { return m_nodes; }
+	const std::vector<std::shared_ptr<IkSolver>>& GetIkSolvers() const { return m_ikSolvers; }
+	const std::vector<std::unique_ptr<Morph>>& GetMorphs() const { return m_morphs; }
+
+	/// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
+	void InitializeAnimation();
+	/// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
+	void SaveBaseAnimation() const;
+	/// 저장된 기준 애니메이션 상태를 지운다.
+	void ClearBaseAnimation() const;
+	/// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
+	void BeginAnimation();
+	/// 현재 모프 가중치를 반영해 모프 애니메이션을 갱신한다.
+	void UpdateMorphAnimation();
+	/// 노드 애니메이션과 IK를 갱신한다.
+	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
+	/// 물리 월드의 강체와 제약 상태를 초기 위치로 되돌린다.
+	void ResetPhysics() const;
+	/// 경과 시간만큼 물리 시뮬레이션을 진행하고 본에 반영한다.
+	void UpdatePhysicsAnimation(float elapsed) const;
+	/// 모델의 전체 변형 결과를 현재 상태 기준으로 갱신한다.
+	void Update();
+	/// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
+	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
+	/// PMX 모델과 관련 리소스를 파일에서 로드한다.
+	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
+	/// 모델이 소유한 리소스와 런타임 상태를 해제한다.
+	void Destroy();
+
+private:
 	std::string									m_modelName;
 	std::string									m_englishModelName;
 	std::string									m_comment;
@@ -116,27 +155,22 @@ public:
 	std::vector<UpdateRange>					m_updateRanges;
 	std::vector<std::future<void>>				m_parallelUpdateFutures;
 
-	void InitializeAnimation();
-	void SaveBaseAnimation() const;
-	void ClearBaseAnimation() const;
-	void BeginAnimation();
-	void UpdateMorphAnimation();
-	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
-	void ResetPhysics() const;
-	void UpdatePhysicsAnimation(float elapsed) const;
-	void Update();
-	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
-	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
-	void Destroy();
-
-private:
+	/// 병렬 버텍스 갱신에 사용할 작업 범위를 구성한다.
 	void SetupParallelUpdate();
+	/// 지정된 버텍스 범위의 스키닝 결과를 갱신한다.
 	void Update(const UpdateRange& range);
+	/// 단일 모프를 지정한 가중치로 평가한다.
 	void EvalMorph(const Morph* morph, float weight);
+	/// 위치 모프 데이터를 버텍스 위치에 적용한다.
 	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
+	/// UV 모프 데이터를 버텍스 UV에 적용한다.
 	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
+	/// 재질 모프 누적을 시작하기 위해 재질 계수를 초기화한다.
 	void BeginMorphMaterial();
+	/// 누적된 재질 모프 결과를 최종 재질에 반영한다.
 	void EndMorphMaterial();
+	/// 재질 모프 데이터를 현재 재질 계수에 누적한다.
 	void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
+	/// 본 모프 데이터를 노드 애니메이션 변환에 적용한다.
 	void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
 };

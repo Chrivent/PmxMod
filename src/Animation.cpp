@@ -62,9 +62,9 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->m_nodes, nodeName,
+			auto it = std::ranges::find(m_model->GetNodes(), nodeName,
 				[](const std::shared_ptr<Node>& node) { return node->m_name; });
-			first = it != m_model->m_nodes.end() ? *it : nullptr;
+			first = it != m_model->GetNodes().end() ? *it : nullptr;
 		}
 		if (!first)
 			continue;
@@ -88,13 +88,13 @@ bool Animation::Add(const VMDReader& vmd) {
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
-				auto it = std::ranges::find(m_model->m_ikSolvers, ikName,
+				auto it = std::ranges::find(m_model->GetIkSolvers(), ikName,
 					[](const std::shared_ptr<IkSolver>& ikSolver){
 						const auto ikNode = ikSolver->m_ikNode.lock();
 						return ikNode ? ikNode->m_name : std::string{};
 					}
 				);
-				first = it != m_model->m_ikSolvers.end() ? *it : nullptr;
+				first = it != m_model->GetIkSolvers().end() ? *it : nullptr;
 			}
 			if (!first)
 				continue;
@@ -118,8 +118,8 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->m_morphs, morphName, &Morph::m_name);
-			first = it != m_model->m_morphs.end() ? std::shared_ptr<Morph>(m_model, it->get()) : nullptr;
+			auto it = std::ranges::find(m_model->GetMorphs(), morphName, &Morph::m_name);
+			first = it != m_model->GetMorphs().end() ? std::shared_ptr<Morph>(m_model, it->get()) : nullptr;
 		}
 		if (!first)
 			continue;

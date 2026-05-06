@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -93,8 +93,11 @@ struct DX11Instance : Instance {
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsVsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsPsConstantBuffer;
 
+    /// 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
     bool Setup(Viewer& viewer) override;
+    /// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
     void Update() const override;
+    /// 일반 메시, 엣지, 그림자 패스를 DX11로 렌더링한다.
     void Draw() const override;
 };
 
@@ -129,21 +132,35 @@ struct DX11Viewer : Viewer {
     Microsoft::WRL::ComPtr<ID3D11DeviceContext>         m_context;
     Microsoft::WRL::ComPtr<IDXGISwapChain>              m_swapChain;
 
+    /// DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
     void ConfigureGlfwHints() override;
+    /// DX11 디바이스, 스왑체인, 파이프라인 리소스를 초기화한다.
     bool Setup() override;
+    /// 창 크기에 맞춰 DX11 렌더 타깃과 깊이 버퍼를 재생성한다.
     bool Resize() override;
+    /// 렌더 타깃을 지우고 프레임 렌더링을 시작한다.
     void BeginFrame() override;
+    /// 스왑체인을 present해 프레임을 화면에 표시한다.
     bool EndFrame() override;
+    /// DX11 모델 인스턴스를 생성한다.
     std::unique_ptr<Instance> CreateInstance() const override;
 
+    /// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
     DX11Texture GetTexture(const std::filesystem::path& texturePath);
+    /// 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
     void UpdateViewport() const;
+    /// HLSL 버텍스 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
     bool MakeVS(const std::filesystem::path& f, const char* entry,
     Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVS, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
+    /// HLSL 픽셀 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
     bool MakePS(const std::filesystem::path& f, const char* entry,
         Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPS) const;
+    /// 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
     bool CreateShaders();
+    /// 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
     bool CreateRenderTargets();
+    /// 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
     bool CreatePipelineStates();
+    /// 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
     bool CreateDummyResources();
 };

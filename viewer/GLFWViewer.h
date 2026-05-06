@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Viewer.h"
 
@@ -35,6 +35,7 @@ struct GLFWShader {
     GLint	m_uLightColor = -1;
     GLint	m_uLightDir = -1;
 
+    /// 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
 };
 
@@ -50,6 +51,7 @@ struct GLFWEdgeShader {
     GLint	m_uEdgeSize = -1;
     GLint	m_uEdgeColor = -1;
 
+    /// 엣지 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
 };
 
@@ -61,6 +63,7 @@ struct GLFWGroundShadowShader {
     GLint	m_uWVP = -1;
     GLint	m_uShadowColor = -1;
 
+    /// 지면 그림자 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
 };
 
@@ -91,9 +94,13 @@ struct GLFWInstance : Instance {
     GLuint	m_gsVao = 0;
     std::vector<GLFWMaterial>   m_materials;
 
+    /// 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
     bool Setup(Viewer& viewer) override;
+    /// OpenGL 버퍼와 VAO 리소스를 해제한다.
     void Clear() override;
+    /// 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
     void Update() const override;
+    /// 일반 메시, 엣지, 그림자 패스를 OpenGL로 렌더링한다.
     void Draw() const override;
 };
 
@@ -107,12 +114,19 @@ struct GLFWViewer : Viewer {
     std::unique_ptr<GLFWGroundShadowShader>         m_gsShader;
     std::map<std::filesystem::path, GLFWTexture>    m_textures;
 
+    /// OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
     void ConfigureGlfwHints() override;
+    /// OpenGL 컨텍스트와 셰이더, 기본 텍스처를 초기화한다.
     bool Setup() override;
+    /// 창 크기에 맞춰 OpenGL 뷰포트와 투영 행렬을 갱신한다.
     bool Resize() override;
+    /// 컬러/깊이 버퍼를 지우고 프레임 렌더링을 시작한다.
     void BeginFrame() override;
+    /// GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
     bool EndFrame() override;
+    /// OpenGL 모델 인스턴스를 생성한다.
     std::unique_ptr<Instance> CreateInstance() const override;
 
+    /// 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
     GLFWTexture GetTexture(const std::filesystem::path& texturePath, bool clamp = false);
 };

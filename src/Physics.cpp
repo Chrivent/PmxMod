@@ -94,7 +94,7 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-	auto kinematicNode = node ? node : model->m_nodes[0];
+	auto kinematicNode = node ? node : model->GetNodes()[0];
 	m_offsetMat = glm::inverse(kinematicNode->m_global) * rbMat;
 	m_kinematicMotionState = std::make_unique<KinematicMotionState>(kinematicNode, m_offsetMat);
 	if (pmxRigidBody.m_op != Operation::Static) {

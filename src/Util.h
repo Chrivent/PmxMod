@@ -3,11 +3,13 @@
 #include <windows.h>
 
 struct Util {
+    /// Z축 반전 좌표계 사이에서 행렬을 변환한다.
     static glm::mat4 InvZ(const glm::mat4& m) {
         const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
         return invZ * m * invZ;
     }
 
+    /// Windows wide 문자열을 UTF-8 문자열로 변환한다.
     static std::string WStringToUtf8(const std::wstring& w) {
         if (w.empty())
             return {};
@@ -27,6 +29,7 @@ struct Util {
         return utf8;
     }
 
+    /// Shift-JIS C 문자열을 UTF-8 문자열로 변환한다.
     static std::string SjisToUtf8(const char* sjis) {
         if (!sjis)
             return {};

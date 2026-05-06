@@ -307,18 +307,31 @@ class PMXReader {
 		std::vector<Target>	m_targets;
 	};
 
+	/// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
 	void ReadString(std::istream& is, std::string* val) const;
+	/// PMX 헤더와 인덱스 크기 정보를 읽는다.
 	void ReadHeader(std::istream& is);
+	/// 모델 이름과 설명 정보를 읽는다.
 	void ReadInfo(std::istream& is);
+	/// 버텍스 목록과 스키닝 정보를 읽는다.
 	void ReadVertex(std::istream& is);
+	/// 면 인덱스 목록을 읽는다.
 	void ReadFace(std::istream& is);
+	/// 텍스처 경로 목록을 읽는다.
 	void ReadTexture(std::istream& is);
+	/// 재질 목록과 렌더링 속성을 읽는다.
 	void ReadMaterial(std::istream& is);
+	/// 본 계층과 IK 정보를 읽는다.
 	void ReadBone(std::istream& is);
+	/// 모프 목록과 모프별 데이터를 읽는다.
 	void ReadMorph(std::istream& is);
+	/// 표시 프레임 정보를 읽는다.
 	void ReadDisplayFrame(std::istream& is);
+	/// 강체 정보를 읽는다.
 	void ReadRigidbody(std::istream& is);
+	/// 조인트 제약 정보를 읽는다.
 	void ReadJoint(std::istream& is);
+	/// 소프트바디 정보를 읽는다.
 	void ReadSoftBody(std::istream& is);
 
 public:
@@ -411,6 +424,7 @@ public:
 	std::vector<PMXJoint>			m_joints;
 	std::vector<PMXSoftBody>		m_softbodies;
 
+	/// PMX 파일 전체를 읽어 내부 데이터 구조에 저장한다.
 	bool ReadFile(const std::filesystem::path& filename);
 };
 
@@ -459,12 +473,19 @@ class VMDReader {
 		std::vector<VMDIkInfo>	m_ikInfos;
 	};
 
+	/// VMD 헤더와 대상 모델 이름을 읽는다.
 	void ReadHeader(std::istream& is);
+	/// 본 모션 키프레임 목록을 읽는다.
 	void ReadMotion(std::istream& is);
+	/// 모프 키프레임 목록을 읽는다.
 	void ReadBlendShape(std::istream& is);
+	/// 카메라 키프레임 목록을 읽는다.
 	void ReadCamera(std::istream& is);
+	/// 라이트 키프레임 목록을 읽는다.
 	void ReadLight(std::istream& is);
+	/// 그림자 키프레임 목록을 읽는다.
 	void ReadShadow(std::istream& is);
+	/// IK 표시/활성화 키프레임 목록을 읽는다.
 	void ReadIK(std::istream& is);
 
 public:
@@ -484,5 +505,6 @@ public:
 	std::vector<VMDShadow>		m_shadows;
 	std::vector<VMDIk>			m_iks;
 
+	/// VMD 파일 전체를 읽어 모션/카메라/모프 데이터를 저장한다.
 	bool ReadFile(const std::filesystem::path& filename);
 };

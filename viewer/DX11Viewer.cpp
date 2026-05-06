@@ -92,25 +92,25 @@ bool DX11Instance::Setup(Viewer& viewer) {
 	m_viewer = &dynamic_cast<DX11Viewer&>(viewer);
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_model->m_positions.size());
+	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_model->GetPositions().size());
 	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(m_viewer->m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
 		return false;
 	D3D11_BUFFER_DESC iBufDesc = {};
 	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	iBufDesc.ByteWidth = static_cast<UINT>(m_model->m_indexElementSize * m_model->m_indexCount);
+	iBufDesc.ByteWidth = static_cast<UINT>(m_model->GetIndexElementSize() * m_model->GetIndexCount());
 	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	iBufDesc.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = &m_model->m_indices[0];
+	initData.pSysMem = &m_model->GetIndices()[0];
 	if (FAILED(m_viewer->m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
 		return false;
-	if (1 == m_model->m_indexElementSize)
+	if (1 == m_model->GetIndexElementSize())
 		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
-	else if (2 == m_model->m_indexElementSize)
+	else if (2 == m_model->GetIndexElementSize())
 		m_indexBufferFormat = DXGI_FORMAT_R16_UINT;
-	else if (4 == m_model->m_indexElementSize)
+	else if (4 == m_model->GetIndexElementSize())
 		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
 	else
 		return false;
@@ -128,7 +128,7 @@ bool DX11Instance::Setup(Viewer& viewer) {
 		return false;
 	if (FAILED(CreateBuffer<DX11GroundShadowPixelShader>(m_viewer->m_device.Get(), m_gsPsConstantBuffer)))
 		return false;
-	for (const auto& mat : m_model->m_materials) {
+	for (const auto& mat : m_model->GetMaterials()) {
 		DX11Material m(mat);
 		if (!mat.m_texture.empty())
 			m.m_texture = m_viewer->GetTexture(mat.m_texture);
@@ -143,15 +143,15 @@ bool DX11Instance::Setup(Viewer& viewer) {
 
 void DX11Instance::Update() const {
 	m_model->Update();
-	const size_t vtxCount = m_model->m_positions.size();
+	const size_t vtxCount = m_model->GetPositions().size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
 	if (FAILED(m_viewer->m_context->Map(m_vertexBuffer.Get(), 0,
 		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 		return;
 	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
-	const glm::vec3* positions = m_model->m_updatePositions.data();
-	const glm::vec3* normals = m_model->m_updateNormals.data();
-	const glm::vec2* uvs = m_model->m_updateUVs.data();
+	const glm::vec3* positions = m_model->GetUpdatePositions().data();
+	const glm::vec3* normals = m_model->GetUpdateNormals().data();
+	const glm::vec2* uvs = m_model->GetUpdateUVs().data();
 	for (size_t i = 0; i < vtxCount; i++) {
 		vertices[i].m_position = positions[i];
 		vertices[i].m_normal = normals[i];
@@ -161,8 +161,8 @@ void DX11Instance::Update() const {
 }
 
 void DX11Instance::Draw() const {
-	const auto& view = m_viewer->m_viewMat;
-	const auto& proj = m_viewer->m_projMat;
+	const auto& view = m_viewer->GetViewMatrix();
+	const auto& proj = m_viewer->GetProjMatrix();
 	const auto& dxMat = glm::mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -187,7 +187,7 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->VSSetShader(m_viewer->m_vs.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_ps.Get(), nullptr, 0);
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
         const auto& m = m_materials[m_materialID];
         const auto& mat = m.m_mat;
         if (mat.m_diffuse.a == 0)
@@ -217,8 +217,8 @@ void DX11Instance::Draw() const {
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
 			2, m.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
 			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mat.m_spTextureMulFactor, mat.m_spTextureAddFactor);
-        psCB.m_lightColor = m_viewer->m_lightColor;
-        psCB.m_lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
+        psCB.m_lightColor = m_viewer->GetLightColor();
+        psCB.m_lightDir = glm::mat3(m_viewer->GetViewMatrix()) * m_viewer->GetLightDir();
         m_viewer->m_context->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
         m_viewer->m_context->PSSetConstantBuffers(1, 1, m_psConstantBuffer.GetAddressOf());
         if (mat.m_bothFace)
@@ -231,14 +231,14 @@ void DX11Instance::Draw() const {
 	DX11EdgeVertexShader vsCB2{};
 	vsCB2.m_wv = wv;
 	vsCB2.m_wvp = wvp;
-	vsCB2.m_screenSize = glm::vec2(static_cast<float>(m_viewer->m_screenWidth),
-		static_cast<float>(m_viewer->m_screenHeight));
+	vsCB2.m_screenSize = glm::vec2(static_cast<float>(m_viewer->GetScreenWidth()),
+		static_cast<float>(m_viewer->GetScreenHeight()));
 	m_viewer->m_context->UpdateSubresource(m_edgeVsConstantBuffer.Get(),
 		0, nullptr, &vsCB2, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_edgeVs.Get(), nullptr, 0);
 	m_viewer->m_context->PSSetShader(m_viewer->m_edgePs.Get(), nullptr, 0);
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_edgeVsConstantBuffer.GetAddressOf());
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_edgeFlag)
@@ -260,7 +260,7 @@ void DX11Instance::Draw() const {
 	}
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_gsInputLayout.Get());
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-glm::normalize(m_viewer->m_lightDir), 0.f);
+	glm::vec4 light(-glm::normalize(m_viewer->GetLightDir()), 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB3{};
 	vsCB3.m_wvp = dxMat * proj * view * shadow * world;
@@ -271,7 +271,7 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_gsVsConstantBuffer.GetAddressOf());
 	m_viewer->m_context->RSSetState(m_viewer->m_gsRs.Get());
 	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_gsDss.Get(), 0x01);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_groundShadow)
