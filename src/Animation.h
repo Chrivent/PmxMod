@@ -20,7 +20,7 @@ struct NodeAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
 
 	/// VMD 모션 키에서 노드 애니메이션 키 값을 채운다.
-	void Set(const VMDReader::VMDMotion& motion);
+	void ApplyMotion(const VMDReader::VMDMotion& motion);
 };
 
 struct MorphAnimationKey {
@@ -35,8 +35,7 @@ struct IKAnimationKey {
 
 class Animation {
 public:
-	void SetModel(const std::shared_ptr<Model>& model) { m_model = model; }
-	const std::shared_ptr<Model>& GetModel() const { return m_model; }
+	std::shared_ptr<Model> m_model;
 
 	/// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
 	bool Add(const VMDReader& vmd);
@@ -48,7 +47,6 @@ public:
 	void SyncPhysics(float t) const;
 
 private:
-	std::shared_ptr<Model> m_model;
 	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> m_nodes;
 	std::map<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>> m_iks;
 	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> m_morphs;
@@ -61,7 +59,7 @@ struct Camera {
 	float		m_fov = glm::radians(30.0f);
 
 	/// 현재 카메라 파라미터로 뷰 행렬을 계산한다.
-	glm::mat4 GetViewMatrix() const;
+	glm::mat4 CalcViewMatrix() const;
 };
 
 struct CameraAnimationKey {
@@ -80,7 +78,7 @@ struct CameraAnimationKey {
 
 class CameraAnimation {
 public:
-	const Camera& GetCamera() const { return m_camera; }
+	Camera m_camera;
 
 	/// VMD 카메라 키를 읽어 카메라 애니메이션을 생성한다.
 	bool Create(const VMDReader& vmd);
@@ -89,5 +87,4 @@ public:
 
 private:
 	std::vector<CameraAnimationKey>	m_keys;
-	Camera m_camera;
 };

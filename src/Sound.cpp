@@ -40,8 +40,8 @@ bool Sound::Init(const std::filesystem::path& path, const bool loop) {
     return true;
 }
 
-void Sound::SetVolume(const float volume) {
-    m_volume = std::clamp(volume, 0.0f, 1.0f);
+void Sound::ApplyVolume() {
+    m_volume = std::clamp(m_volume, 0.0f, 1.0f);
     if (m_hasSound) {
         ma_sound_set_volume(m_sound.get(), m_volume);
     }
@@ -96,3 +96,4 @@ void Sound::Uninit() {
     m_engine = std::make_unique<ma_engine>();
     m_sound = std::make_unique<ma_sound>();
 }
+

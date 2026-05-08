@@ -1,4 +1,4 @@
-﻿#include "Model.h"
+#include "Model.h"
 
 #include "Animation.h"
 #include "Util.h"
@@ -119,7 +119,7 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 
 void Model::ResetPhysics() const {
 	for (auto& rb : m_rigidBodies) {
-		rb->SetActivation(false);
+		rb->ApplyActivation(false);
 		rb->ResetTransform();
 	}
 	m_physics->m_world->stepSimulation(
@@ -139,7 +139,7 @@ void Model::ResetPhysics() const {
 
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	for (auto& rb : m_rigidBodies)
-		rb->SetActivation(true);
+		rb->ApplyActivation(true);
 	m_physics->m_world->stepSimulation(
 		elapsed, m_physics->m_maxSubStepCount,
 		static_cast<btScalar>(1.0f / m_physics->m_fps));
@@ -727,3 +727,4 @@ void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weigh
 		node->m_rotate = glm::normalize(q * node->m_rotate);
 	}
 }
+

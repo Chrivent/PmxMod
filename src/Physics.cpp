@@ -1,4 +1,4 @@
-﻿#include "Physics.h"
+#include "Physics.h"
 
 #include "Model.h"
 #include "Util.h"
@@ -127,7 +127,7 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	m_name = pmxRigidBody.m_name;
 }
 
-void RigidBody::SetActivation(const bool activation) const {
+void RigidBody::ApplyActivation(const bool activation) const {
 	if (m_rigidBodyType != Operation::Static) {
 		if (activation) {
 			m_rigidBody->setCollisionFlags(
@@ -174,7 +174,7 @@ void RigidBody::CalcLocalTransform() const {
 	}
 }
 
-glm::mat4 RigidBody::GetTransform() const {
+glm::mat4 RigidBody::CalcTransform() const {
 	const btTransform transform = m_rigidBody->getCenterOfMassTransform();
 	glm::mat4 mat;
 	transform.getOpenGLMatrix(&mat[0][0]);
@@ -246,3 +246,4 @@ void Physics::Create() {
 	m_world->getPairCache()->setOverlapFilterCallback(filterCB.get());
 	m_filterCB = std::move(filterCB);
 }
+

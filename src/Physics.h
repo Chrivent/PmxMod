@@ -99,7 +99,7 @@ struct RigidBody {
 
 	/// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
 	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
-	void SetActivation(bool activation) const;
+	void ApplyActivation(bool activation) const;
 	/// 강체 변환을 초기 위치로 재설정한다.
 	void ResetTransform() const;
 	/// 물리 월드에 등록된 강체 상태를 초기화한다.
@@ -108,7 +108,7 @@ struct RigidBody {
 	void ReflectGlobalTransform() const;
 	/// PMX 오프셋 기준의 로컬 변환을 계산한다.
 	void CalcLocalTransform() const;
-	glm::mat4 GetTransform() const;
+	glm::mat4 CalcTransform() const;
 };
 
 struct Joint {

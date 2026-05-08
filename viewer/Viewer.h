@@ -29,12 +29,9 @@ class Instance {
 public:
     virtual ~Instance() = default;
 
-    void SetModel(const std::shared_ptr<Model>& model) { m_model = model; }
-    const std::shared_ptr<Model>& GetModel() const { return m_model; }
-    void SetAnimation(std::unique_ptr<Animation> anim) { m_anim = std::move(anim); }
-    const Animation* GetAnimation() const { return m_anim.get(); }
-    void SetScale(float scale) { m_scale = scale; }
-    float GetScale() const { return m_scale; }
+    std::shared_ptr<Model>	    m_model;
+    std::unique_ptr<Animation>	m_anim;
+    float m_scale = 1.0f;
 
     /// 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
     virtual bool Setup(Viewer& viewer) = 0;
@@ -48,10 +45,6 @@ public:
     /// 뷰어 시간과 애니메이션 설정을 기준으로 모델 애니메이션을 갱신한다.
     void UpdateAnimation(const Viewer& viewer) const;
 
-protected:
-    std::shared_ptr<Model>	    m_model;
-    std::unique_ptr<Animation>	m_anim;
-    float m_scale = 1.0f;
 };
 
 class Viewer {
@@ -91,20 +84,6 @@ public:
     /// 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
     void InitDirs(const std::filesystem::path& shaderSubDir);
 
-    float GetAnimTime() const { return m_animTime; }
-    float GetElapsed() const { return m_elapsed; }
-    const std::filesystem::path& GetShaderDir() const { return m_shaderDir; }
-    const std::filesystem::path& GetPmxDir() const { return m_pmxDir; }
-    const glm::mat4& GetViewMatrix() const { return m_viewMat; }
-    const glm::mat4& GetProjMatrix() const { return m_projMat; }
-    int GetScreenWidth() const { return m_screenWidth; }
-    int GetScreenHeight() const { return m_screenHeight; }
-    const glm::vec3& GetLightColor() const { return m_lightColor; }
-    const glm::vec3& GetLightDir() const { return m_lightDir; }
-    GLFWwindow* GetWindow() const { return m_window; }
-
-protected:
-    std::filesystem::path	m_resourceDir;
     std::filesystem::path	m_shaderDir;
     std::filesystem::path	m_pmxDir;
     glm::mat4	m_viewMat;
@@ -115,6 +94,10 @@ protected:
     glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
     float	m_elapsed = 0.0f;
     float	m_animTime = 0.0f;
+    GLFWwindow* m_window = nullptr;
+
+protected:
+    std::filesystem::path	m_resourceDir;
     bool    m_paused = false;
     bool    m_prevSpaceDown = false;
     bool    m_useMotionCamera = true;
@@ -128,5 +111,4 @@ protected:
     float   m_freeCamPitch = 0.0f;
     std::unique_ptr<CameraAnimation>	m_cameraAnim;
     float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
-    GLFWwindow* m_window = nullptr;
 };

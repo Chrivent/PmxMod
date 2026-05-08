@@ -128,5 +128,5 @@ struct GLFWViewer : Viewer {
     std::unique_ptr<Instance> CreateInstance() const override;
 
     /// 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
-    GLFWTexture GetTexture(const std::filesystem::path& texturePath, bool clamp = false);
+    GLFWTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 };

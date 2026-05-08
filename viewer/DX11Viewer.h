@@ -146,7 +146,7 @@ struct DX11Viewer : Viewer {
     std::unique_ptr<Instance> CreateInstance() const override;
 
     /// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
-    DX11Texture GetTexture(const std::filesystem::path& texturePath);
+    DX11Texture LoadTexture(const std::filesystem::path& texturePath);
     /// 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
     void UpdateViewport() const;
     /// HLSL 버텍스 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.

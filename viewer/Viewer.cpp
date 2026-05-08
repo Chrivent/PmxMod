@@ -21,7 +21,7 @@ void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
 
 void Instance::UpdateAnimation(const Viewer& viewer) const {
     m_model->BeginAnimation();
-    m_model->UpdateAllAnimation(m_anim.get(), viewer.GetAnimTime() * 30.0f, viewer.GetElapsed());
+    m_model->UpdateAllAnimation(m_anim.get(), viewer.m_animTime * 30.0f, viewer.m_elapsed);
 }
 
 bool Viewer::Run(const SceneConfig& cfg) {
@@ -180,10 +180,10 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
             std::cout << "Failed to load pmx file.\n";
             return false;
         }
-        instance->SetModel(pmxModel);
-        instance->GetModel()->InitializeAnimation();
+        instance->m_model = pmxModel;
+        instance->m_model->InitializeAnimation();
         auto vmdAnim = std::make_unique<Animation>();
-        vmdAnim->SetModel(instance->GetModel());
+        vmdAnim->m_model = instance->m_model;
         for (const auto& vmdPath : vmdPaths) {
             VMDReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
@@ -196,8 +196,8 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
             }
         }
         vmdAnim->SyncPhysics(0.0f);
-        instance->SetAnimation(std::move(vmdAnim));
-        instance->SetScale(scale);
+        instance->m_anim = std::move(vmdAnim);
+        instance->m_scale = scale;
         if (!instance->Setup(*this))
             return false;
         instances.emplace_back(std::move(instance));
@@ -232,7 +232,7 @@ void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveT
     }
     auto dt = static_cast<float>(elapsed);
     float t = m_animTime + dt;
-    if (music.HasSound()) {
+    if (music.m_hasSound) {
         auto [adt, at] = music.PullTimes();
         if (adt < 0.f)
             adt = 0.f;
@@ -246,8 +246,8 @@ void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveT
 void Viewer::UpdateCamera() {
     if (m_useMotionCamera && m_cameraAnim) {
         m_cameraAnim->Evaluate(m_animTime * 30.0f);
-        const auto cam = m_cameraAnim->GetCamera();
-        m_viewMat = cam.GetViewMatrix();
+        const auto cam = m_cameraAnim->m_camera;
+        m_viewMat = cam.CalcViewMatrix();
         m_projMat = glm::perspectiveFovRH(
             cam.m_fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
         );
@@ -287,3 +287,4 @@ void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
     m_shaderDir = m_resourceDir / shaderSubDir;
     m_pmxDir = m_resourceDir / "mmd";
 }
+

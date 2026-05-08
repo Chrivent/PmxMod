@@ -1,11 +1,11 @@
-﻿#include "Animation.h"
+#include "Animation.h"
 
 #include "Model.h"
 #include "Util.h"
 
 #include <ranges>
 
-void SetBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
+void AssignBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
 	bezier.first = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
 	bezier.second = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
 }
@@ -30,22 +30,22 @@ float FindBezierX(float time, const float x1, const float x2) {
 	return t;
 }
 
-void NodeAnimationKey::Set(const VMDReader::VMDMotion& motion) {
+void NodeAnimationKey::ApplyMotion(const VMDReader::VMDMotion& motion) {
 	m_time = static_cast<int32_t>(motion.m_frame);
 	m_translate = motion.m_translate * glm::vec3(1, 1, -1);
 	const glm::quat q = motion.m_quaternion;
 	const auto rot = Util::InvZ(glm::mat3_cast(q));
 	m_rotate = glm::quat_cast(rot);
-	SetBezier(m_txBezier,
+	AssignBezier(m_txBezier,
 		motion.m_interpolation[0], motion.m_interpolation[8],
 		motion.m_interpolation[4], motion.m_interpolation[12]);
-	SetBezier(m_tyBezier,
+	AssignBezier(m_tyBezier,
 		motion.m_interpolation[1], motion.m_interpolation[9],
 		motion.m_interpolation[5], motion.m_interpolation[13]);
-	SetBezier(m_tzBezier,
+	AssignBezier(m_tzBezier,
 		motion.m_interpolation[2], motion.m_interpolation[10],
 		motion.m_interpolation[6], motion.m_interpolation[14]);
-	SetBezier(m_rotBezier,
+	AssignBezier(m_rotBezier,
 		motion.m_interpolation[3], motion.m_interpolation[11],
 		motion.m_interpolation[7], motion.m_interpolation[15]);
 }
@@ -62,13 +62,13 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->GetNodes(), nodeName,
+			auto it = std::ranges::find(m_model->m_nodes, nodeName,
 				[](const std::shared_ptr<Node>& node) { return node->m_name; });
-			first = it != m_model->GetNodes().end() ? *it : nullptr;
+			first = it != m_model->m_nodes.end() ? *it : nullptr;
 		}
 		if (!first)
 			continue;
-		second.emplace_back().Set(motion);
+		second.emplace_back().ApplyMotion(motion);
 	}
 	for (auto& val : nodeMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::m_time);
@@ -88,13 +88,13 @@ bool Animation::Add(const VMDReader& vmd) {
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
-				auto it = std::ranges::find(m_model->GetIkSolvers(), ikName,
+				auto it = std::ranges::find(m_model->m_ikSolvers, ikName,
 					[](const std::shared_ptr<IkSolver>& ikSolver){
 						const auto ikNode = ikSolver->m_ikNode.lock();
 						return ikNode ? ikNode->m_name : std::string{};
 					}
 				);
-				first = it != m_model->GetIkSolvers().end() ? *it : nullptr;
+				first = it != m_model->m_ikSolvers.end() ? *it : nullptr;
 			}
 			if (!first)
 				continue;
@@ -118,8 +118,8 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(m_model->GetMorphs(), morphName, &Morph::m_name);
-			first = it != m_model->GetMorphs().end() ? std::shared_ptr<Morph>(m_model, it->get()) : nullptr;
+			auto it = std::ranges::find(m_model->m_morphs, morphName, &Morph::m_name);
+			first = it != m_model->m_morphs.end() ? std::shared_ptr<Morph>(m_model, it->get()) : nullptr;
 		}
 		if (!first)
 			continue;
@@ -218,7 +218,7 @@ void Animation::SyncPhysics(const float t) const {
 	}
 }
 
-glm::mat4 Camera::GetViewMatrix() const {
+glm::mat4 Camera::CalcViewMatrix() const {
 	glm::mat4 view(1.0f);
 	view = glm::translate(view, glm::vec3(0, 0, -m_distance));
 	glm::mat4 rot(1.0f);
@@ -242,22 +242,22 @@ bool CameraAnimation::Create(const VMDReader& vmd) {
 			key.m_rotate = cam.m_rotate;
 			key.m_distance = cam.m_distance;
 			key.m_fov = glm::radians(static_cast<float>(cam.m_viewAngle));
-			SetBezier(key.m_ixBezier,
+			AssignBezier(key.m_ixBezier,
 				cam.m_interpolation[0], cam.m_interpolation[1],
 				cam.m_interpolation[2], cam.m_interpolation[3]);
-			SetBezier(key.m_iyBezier,
+			AssignBezier(key.m_iyBezier,
 				cam.m_interpolation[4], cam.m_interpolation[5],
 				cam.m_interpolation[6], cam.m_interpolation[7]);
-			SetBezier(key.m_izBezier,
+			AssignBezier(key.m_izBezier,
 				cam.m_interpolation[8], cam.m_interpolation[9],
 				cam.m_interpolation[10], cam.m_interpolation[11]);
-			SetBezier(key.m_rotateBezier,
+			AssignBezier(key.m_rotateBezier,
 				cam.m_interpolation[12], cam.m_interpolation[13],
 				cam.m_interpolation[14], cam.m_interpolation[15]);
-			SetBezier(key.m_distanceBezier,
+			AssignBezier(key.m_distanceBezier,
 				cam.m_interpolation[16], cam.m_interpolation[17],
 				cam.m_interpolation[18], cam.m_interpolation[19]);
-			SetBezier(key.m_fovBezier,
+			AssignBezier(key.m_fovBezier,
 				cam.m_interpolation[20], cam.m_interpolation[21],
 				cam.m_interpolation[22], cam.m_interpolation[23]);
 			m_keys.push_back(key);
@@ -303,3 +303,4 @@ void CameraAnimation::Evaluate(const float t) {
 	m_camera.m_distance = glm::mix(prev.m_distance, m_distance, d_y);
 	m_camera.m_fov = glm::mix(prev.m_fov, m_fov, f_y);
 }
+

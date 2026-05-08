@@ -43,7 +43,7 @@ GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 	return vao;
 }
 
-void GetUniforms(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
+void LoadUniformLocations(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
 	for (int i = 0; i < count; i++)
 		*outs[i] = glGetUniformLocation(prog, names[i]);
 }
@@ -101,7 +101,7 @@ GLFWShader::~GLFWShader() {
 }
 
 bool GLFWShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.GetShaderDir() / "mmd.glsl");
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -123,7 +123,7 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		&m_uToonTexMode, &m_uToonTex, &m_uToonTexMulFactor, &m_uToonTexAddFactor,
 		&m_uLightColor, &m_uLightDir
 	};
-	GetUniforms(m_prog, names, outs, std::size(names));
+	LoadUniformLocations(m_prog, names, outs, std::size(names));
 	glUseProgram(m_prog);
 	glUniform1i(m_uTex, 0);
 	glUniform1i(m_uSphereTex, 1);
@@ -138,7 +138,7 @@ GLFWEdgeShader::~GLFWEdgeShader() {
 }
 
 bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.GetShaderDir() / "mmd_edge.glsl");
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd_edge.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -158,7 +158,7 @@ GLFWGroundShadowShader::~GLFWGroundShadowShader() {
 }
 
 bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.GetShaderDir() / "mmd_ground_shadow.glsl");
+	m_prog = CreateShader(viewer.m_shaderDir / "mmd_ground_shadow.glsl");
 	if (m_prog == 0)
 		return false;
 	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
@@ -175,13 +175,13 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 	m_viewer = &dynamic_cast<GLFWViewer&>(viewer);
 	if (m_model == nullptr)
 		return false;
-	const size_t vtxCount = m_model->GetPositions().size();
+	const size_t vtxCount = m_model->m_positions.size();
 	m_posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	m_norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	m_uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-	const size_t idxSize = m_model->GetIndexElementSize();
-	const size_t idxCount = m_model->GetIndexCount();
-	m_ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_model->GetIndices().data(), GL_STATIC_DRAW);
+	const size_t idxSize = m_model->m_indexElementSize;
+	const size_t idxCount = m_model->m_indexCount;
+	m_ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_model->m_indices.data(), GL_STATIC_DRAW);
 	if (idxSize == 1)
 		m_indexType = GL_UNSIGNED_BYTE;
 	else if (idxSize == 2)
@@ -213,17 +213,17 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 	m_vao = CreateVAO(buffers[0], locs[0], sizes[0], types[0], 3, m_ibo);
 	m_edgeVao = CreateVAO(buffers[1], locs[1], sizes[1], types[1], 2, m_ibo);
 	m_gsVao = CreateVAO(buffers[2], locs[2], sizes[2], types[2], 1, m_ibo);
-	for (const auto& mat : m_model->GetMaterials()) {
+	for (const auto& mat : m_model->m_materials) {
 		GLFWMaterial m(mat);
 		if (!mat.m_texture.empty()) {
-			auto [m_texture, m_hasAlpha] = m_viewer->GetTexture(mat.m_texture);
+			auto [m_texture, m_hasAlpha] = m_viewer->LoadTexture(mat.m_texture);
 			m.m_texture = m_texture;
 			m.m_textureHasAlpha = m_hasAlpha;
 		}
 		if (!mat.m_spTexture.empty())
-			m.m_spTexture = m_viewer->GetTexture(mat.m_spTexture).m_texture;
+			m.m_spTexture = m_viewer->LoadTexture(mat.m_spTexture).m_texture;
 		if (!mat.m_toonTexture.empty())
-			m.m_toonTexture = m_viewer->GetTexture(mat.m_toonTexture, true).m_texture;
+			m.m_toonTexture = m_viewer->LoadTexture(mat.m_toonTexture, true).m_texture;
 		m_materials.emplace_back(m);
 	}
 	return true;
@@ -250,27 +250,27 @@ void GLFWInstance::Clear() {
 
 void GLFWInstance::Update() const {
 	m_model->Update();
-	const size_t vtxCount = m_model->GetPositions().size();
+	const size_t vtxCount = m_model->m_positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		m_model->GetUpdatePositions().data());
+		m_model->m_updatePositions.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		m_model->GetUpdateNormals().data());
+		m_model->m_updateNormals.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
-		m_model->GetUpdateUVs().data());
+		m_model->m_updateUVs.data());
 }
 
 void GLFWInstance::Draw() const {
-	const auto& view = m_viewer->GetViewMatrix();
-	const auto& proj = m_viewer->GetProjMatrix();
+	const auto& view = m_viewer->m_viewMat;
+	const auto& proj = m_viewer->m_projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	const auto& shader = m_viewer->m_shader;
-	glm::vec3 lightColor = m_viewer->GetLightColor();
-	glm::vec3 lightDir = glm::mat3(m_viewer->GetViewMatrix()) * m_viewer->GetLightDir();
+	glm::vec3 lightColor = m_viewer->m_lightColor;
+	glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
 	glUseProgram(shader->m_prog);
 	glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 	glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
@@ -280,7 +280,7 @@ void GLFWInstance::Draw() const {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (mat.m_diffuse.a == 0)
@@ -332,19 +332,19 @@ void GLFWInstance::Draw() const {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		size_t offset = m_beginIndex * m_model->GetIndexElementSize();
+		size_t offset = m_beginIndex * m_model->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& edgeShader = m_viewer->m_edgeShader;
 	glUseProgram(edgeShader->m_prog);
 	glUniformMatrix4fv(edgeShader->m_uWV, 1, GL_FALSE, &wv[0][0]);
 	glUniformMatrix4fv(edgeShader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-	glm::vec2 screenSize(m_viewer->GetScreenWidth(), m_viewer->GetScreenHeight());
+	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
 	glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
 	glBindVertexArray(m_edgeVao);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_edgeFlag)
@@ -353,7 +353,7 @@ void GLFWInstance::Draw() const {
 			continue;
 		glUniform1f(edgeShader->m_uEdgeSize, mat.m_edgeSize);
 		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.m_edgeColor[0]);
-		size_t offset = m_beginIndex * m_model->GetIndexElementSize();
+		size_t offset = m_beginIndex * m_model->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& gsShader = m_viewer->m_gsShader;
@@ -361,7 +361,7 @@ void GLFWInstance::Draw() const {
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-m_viewer->GetLightDir(), 0.f);
+	glm::vec4 light(-m_viewer->m_lightDir, 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 	glUniformMatrix4fv(gsShader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 	glBindVertexArray(m_gsVao);
@@ -378,14 +378,14 @@ void GLFWInstance::Draw() const {
 		glDisable(GL_STENCIL_TEST);
 	}
 	glDisable(GL_CULL_FACE);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->GetSubMeshes()) {
+	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
 		const auto& m = m_materials[m_materialID];
 		const auto& mat = m.m_mat;
 		if (!mat.m_groundShadow)
 			continue;
 		if (mat.m_diffuse.a == 0.0f)
 			continue;
-		size_t offset = m_beginIndex * m_model->GetIndexElementSize();
+		size_t offset = m_beginIndex * m_model->m_indexElementSize;
 		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
@@ -450,7 +450,7 @@ std::unique_ptr<Instance> GLFWViewer::CreateInstance() const {
 	return std::make_unique<GLFWInstance>();
 }
 
-GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath, const bool clamp) {
+GLFWTexture GLFWViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
 	const auto it = m_textures.find(texturePath);
 	if (it != m_textures.end())
 		return it->second;
@@ -474,3 +474,4 @@ GLFWTexture GLFWViewer::GetTexture(const std::filesystem::path& texturePath, con
 	m_textures[texturePath] = GLFWTexture{ tex, hasAlpha };
 	return m_textures[texturePath];
 }
+
