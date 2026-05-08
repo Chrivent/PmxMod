@@ -4,7 +4,7 @@
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 
-struct Node;
+class Node;
 
 struct IKChain {
 	std::weak_ptr<Node>	m_node;
@@ -16,7 +16,8 @@ struct IKChain {
 	float				m_planeModeAngle;
 };
 
-struct IkSolver {
+class IkSolver {
+public:
 	std::vector<IKChain>	m_chains;
 	std::weak_ptr<Node>		m_ikNode;
 	std::weak_ptr<Node>		m_ikTarget;

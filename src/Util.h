@@ -2,7 +2,8 @@
 
 #include <windows.h>
 
-struct Util {
+class Util {
+public:
     /// Z축 반전 좌표계 사이에서 행렬을 변환한다.
     static glm::mat4 InvZ(const glm::mat4& m) {
         const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));

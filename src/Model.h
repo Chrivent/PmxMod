@@ -12,8 +12,8 @@ struct BoneMorph;
 struct UVMorph;
 struct PositionMorph;
 struct MaterialMorph;
-struct RigidBody;
-struct Joint;
+class RigidBody;
+class Joint;
 class Animation;
 
 enum class SphereMode : uint8_t;

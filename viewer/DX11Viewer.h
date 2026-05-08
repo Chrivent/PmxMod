@@ -7,7 +7,7 @@
 
 #include "Viewer.h"
 
-struct DX11Viewer;
+class DX11Viewer;
 
 struct DX11Vertex {
     glm::vec3	m_position;
@@ -70,7 +70,8 @@ struct DX11Texture {
     bool								                m_hasAlpha;
 };
 
-struct DX11Material {
+class DX11Material {
+public:
     const Material& m_mat;
     DX11Texture m_texture{};
     DX11Texture	m_spTexture{};
@@ -79,12 +80,21 @@ struct DX11Material {
     explicit DX11Material(const Material& mat);
 };
 
-struct DX11Instance : Instance {
-    DX11Viewer*                             m_viewer;
+class DX11Instance : public Instance {
+public:
+    /// 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
+    bool Setup(Viewer& viewer) override;
+    /// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
+    void Update() const override;
+    /// 일반 메시, 엣지, 그림자 패스를 DX11로 렌더링한다.
+    void Draw() const override;
+
+private:
+    DX11Viewer*                             m_viewer = nullptr;
     std::vector<DX11Material>               m_materials;
     Microsoft::WRL::ComPtr<ID3D11Buffer>    m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_indexBuffer;
-    DXGI_FORMAT                             m_indexBufferFormat;
+    DXGI_FORMAT                             m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_vsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_psConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_edgeVsConstantBuffer;
@@ -92,22 +102,11 @@ struct DX11Instance : Instance {
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_edgePsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsVsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsPsConstantBuffer;
-
-    /// 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
-    bool Setup(Viewer& viewer) override;
-    /// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
-    void Update() const override;
-    /// 일반 메시, 엣지, 그림자 패스를 DX11로 렌더링한다.
-    void Draw() const override;
 };
 
-struct DX11Viewer : Viewer {
-    UINT    m_multiSampleCount = 4;
-    UINT	m_multiSampleQuality = 0;
-    std::map<std::filesystem::path, DX11Texture>	    m_textures;
+class DX11Viewer : public Viewer {
+public:
     Microsoft::WRL::ComPtr<ID3D11Device>			    m_device;
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    m_renderTargetView;
-    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     m_depthStencilView;
     Microsoft::WRL::ComPtr<ID3D11VertexShader>	        m_vs;
     Microsoft::WRL::ComPtr<ID3D11PixelShader>	        m_ps;
     Microsoft::WRL::ComPtr<ID3D11InputLayout>	        m_inputLayout;
@@ -126,11 +125,8 @@ struct DX11Viewer : Viewer {
     Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    m_gsRs;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    m_gsDss;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    m_defaultDss;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    m_dummyTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_dummyTextureView;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_depthTex;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext>         m_context;
-    Microsoft::WRL::ComPtr<IDXGISwapChain>              m_swapChain;
 
     /// DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
     void ConfigureGlfwHints() override;
@@ -163,4 +159,14 @@ struct DX11Viewer : Viewer {
     bool CreatePipelineStates();
     /// 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
     bool CreateDummyResources();
+
+private:
+    UINT    m_multiSampleCount = 4;
+    UINT	m_multiSampleQuality = 0;
+    std::map<std::filesystem::path, DX11Texture>	    m_textures;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    m_renderTargetView;
+    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     m_depthStencilView;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    m_dummyTexture;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_depthTex;
+    Microsoft::WRL::ComPtr<IDXGISwapChain>              m_swapChain;
 };

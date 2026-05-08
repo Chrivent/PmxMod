@@ -5,9 +5,9 @@
 
 #include "Reader.h"
 
-struct IkSolver;
+class IkSolver;
 struct Morph;
-struct Node;
+class Node;
 class Model;
 
 struct NodeAnimationKey {

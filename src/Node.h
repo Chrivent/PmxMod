@@ -4,9 +4,10 @@
 #include <string>
 #include <glm/gtc/quaternion.hpp>
 
-struct IkSolver;
+class IkSolver;
 
-struct Node : std::enable_shared_from_this<Node> {
+class Node : public std::enable_shared_from_this<Node> {
+public:
 	uint32_t				m_index = 0;
 	std::string				m_name;
 	bool					m_enableIK = false;
