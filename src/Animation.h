@@ -28,7 +28,7 @@ struct MorphAnimationKey {
 	float	morphWeight;
 };
 
-struct IKAnimationKey {
+struct IkAnimationKey {
 	int32_t	time;
 	bool	ikEnable;
 };
@@ -48,7 +48,7 @@ public:
 
 private:
 	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> m_nodes;
-	std::map<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>> m_iks;
+	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> m_iks;
 	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> m_morphs;
 };
 
