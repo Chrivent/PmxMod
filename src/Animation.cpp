@@ -162,16 +162,16 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 				keyRotBezier] = *it;
 			const auto timeRange = static_cast<float>(keyTime - prev.time);
 			const float time = (t - static_cast<float>(prev.time)) / timeRange;
-			const float tx_x  = FindBezierX(time, keyTxBezier.first.x,  keyTxBezier.second.x);
-			const float ty_x  = FindBezierX(time, keyTyBezier.first.x,  keyTyBezier.second.x);
-			const float tz_x  = FindBezierX(time, keyTzBezier.first.x,  keyTzBezier.second.x);
-			const float rot_x = FindBezierX(time, keyRotBezier.first.x, keyRotBezier.second.x);
-			const float tx_y  = Bezier(tx_x,  keyTxBezier.first.y,  keyTxBezier.second.y);
-			const float ty_y  = Bezier(ty_x,  keyTyBezier.first.y,  keyTyBezier.second.y);
-			const float tz_y  = Bezier(tz_x,  keyTzBezier.first.y,  keyTzBezier.second.y);
-			const float rot_y = Bezier(rot_x, keyRotBezier.first.y, keyRotBezier.second.y);
-			vt = glm::mix(prev.translate, keyTranslate, glm::vec3(tx_y, ty_y, tz_y));
-			q  = glm::slerp(prev.rotate,   keyRotate,   rot_y);
+			const float txX  = FindBezierX(time, keyTxBezier.first.x,  keyTxBezier.second.x);
+			const float tyX  = FindBezierX(time, keyTyBezier.first.x,  keyTyBezier.second.x);
+			const float tzX  = FindBezierX(time, keyTzBezier.first.x,  keyTzBezier.second.x);
+			const float rotX = FindBezierX(time, keyRotBezier.first.x, keyRotBezier.second.x);
+			const float txY  = Bezier(txX,  keyTxBezier.first.y,  keyTxBezier.second.y);
+			const float tyY  = Bezier(tyX,  keyTyBezier.first.y,  keyTyBezier.second.y);
+			const float tzY  = Bezier(tzX,  keyTzBezier.first.y,  keyTzBezier.second.y);
+			const float rotY = Bezier(rotX, keyRotBezier.first.y, keyRotBezier.second.y);
+			vt = glm::mix(prev.translate, keyTranslate, glm::vec3(txY, tyY, tzY));
+			q  = glm::slerp(prev.rotate,   keyRotate,   rotY);
 		}
 		node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
 		node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;

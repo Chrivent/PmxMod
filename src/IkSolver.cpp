@@ -21,7 +21,7 @@ float DiffAngle(const float a, const float b) {
 glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before) {
 	glm::vec3 r;
 	const float sy = -m[0][2];
-	if (1.0f - std::abs(sy) < 1.0e-6f) {
+	if (1.0f - std::abs(sy) < std::numeric_limits<float>::epsilon()) {
 		r.y = std::asin(sy);
 		const float sx = std::sin(before.x);
 		const float sz = std::sin(before.z);
@@ -158,7 +158,7 @@ void IkSolver::SolveCore(uint32_t iteration) {
 		auto dot = glm::dot(chainTargetVec, chainIkVec);
 		dot = glm::clamp(dot, -1.0f, 1.0f);
 		float angle = std::acos(dot);
-		if (angle < 1.0e-6f)
+		if (angle < std::numeric_limits<float>::epsilon())
 			continue;
 		angle = glm::clamp(angle, -limitAngle, limitAngle);
 		auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));

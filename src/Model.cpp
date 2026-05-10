@@ -82,8 +82,8 @@ void Model::BeginAnimation() {
 		node->animTranslate = glm::vec3(0);
 		node->animRotate = glm::quat(1, 0, 0, 0);
 	}
-	std::ranges::fill(m_morphPositions, glm::vec3(0));
-	std::ranges::fill(m_morphUVs, glm::vec4(0));
+	std::ranges::fill(morphPositions, glm::vec3(0));
+	std::ranges::fill(morphUVs, glm::vec4(0));
 }
 
 void Model::UpdateMorphAnimation() {
@@ -94,17 +94,17 @@ void Model::UpdateMorphAnimation() {
 }
 
 void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-	const auto pred = [&](const std::reference_wrapper<Node>& node) {
+	const auto Pred = [&](const std::reference_wrapper<Node>& node) {
 		return node.get().isDeformAfterPhysics == afterPhysicsAnim;
 	};
-	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred))
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred))
 		nodeRef.get().UpdateLocalTransform();
-	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
 		auto& node = nodeRef.get();
 		if (node.parent.expired())
 			node.UpdateGlobalTransform();
 	}
-	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
 		auto& node = nodeRef.get();
 		if (!node.appendNode.expired()) {
 			node.UpdateAppendTransform();
@@ -118,14 +118,14 @@ void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 }
 
 void Model::ResetPhysics() const {
-	for (auto& rb : m_rigidBodies) {
+	for (auto& rb : rigidBodies) {
 		rb->ApplyActivation(false);
 		rb->ResetTransform();
 	}
-	m_physics->world->stepSimulation(
-		1.0f / 60.0f, m_physics->maxSubStepCount,
-		static_cast<btScalar>(1.0f / m_physics->fps));
-	for (auto& rb : m_rigidBodies) {
+	physics->world->stepSimulation(
+		1.0f / 60.0f, physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / physics->fps));
+	for (auto& rb : rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
 	}
@@ -133,17 +133,17 @@ void Model::ResetPhysics() const {
 		if (node->parent.expired())
 			node->UpdateGlobalTransform();
 	}
-	for (auto& rb : m_rigidBodies)
-		rb->Reset(m_physics.get());
+	for (auto& rb : rigidBodies)
+		rb->Reset(physics.get());
 }
 
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
-	for (auto& rb : m_rigidBodies)
+	for (auto& rb : rigidBodies)
 		rb->ApplyActivation(true);
-	m_physics->world->stepSimulation(
-		elapsed, m_physics->maxSubStepCount,
-		static_cast<btScalar>(1.0f / m_physics->fps));
-	for (auto& rb : m_rigidBodies) {
+	physics->world->stepSimulation(
+		elapsed, physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / physics->fps));
+	for (auto& rb : rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
 	}
@@ -155,21 +155,21 @@ void Model::UpdatePhysicsAnimation(const float elapsed) const {
 
 void Model::Update() {
 	for (size_t i = 0; i < nodes.size(); i++)
-		m_transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
-	if (m_parallelUpdateCount != m_updateRanges.size())
+		transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
+	if (parallelUpdateCount != updateRanges.size())
 		SetupParallelUpdate();
-	const size_t futureCount = m_parallelUpdateFutures.size();
+	const size_t futureCount = parallelUpdateFutures.size();
 	for (size_t i = 0; i < futureCount; i++) {
-		if (m_updateRanges[i + 1].vertexCount != 0) {
-			m_parallelUpdateFutures[i] = std::async(std::launch::async,
-			[this, range = m_updateRanges[i + 1]] { this->Update(range); }
+		if (updateRanges[i + 1].vertexCount != 0) {
+			parallelUpdateFutures[i] = std::async(std::launch::async,
+			[this, range = updateRanges[i + 1]] { this->Update(range); }
 			);
 		}
 	}
-	Update(m_updateRanges[0]);
+	Update(updateRanges[0]);
 	for (size_t i = 0; i < futureCount; i++) {
-		if (m_updateRanges[i + 1].vertexCount != 0)
-			m_parallelUpdateFutures[i].wait();
+		if (updateRanges[i + 1].vertexCount != 0)
+			parallelUpdateFutures[i].wait();
 	}
 }
 
@@ -187,24 +187,24 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	PMXReader pmx;
 	if (!pmx.ReadFile(filepath))
 		return false;
-	m_modelName        = pmx.info.modelName;
-	m_englishModelName = pmx.info.englishModelName;
-	m_comment          = pmx.info.comment;
-	m_englishComment   = pmx.info.englishComment;
+	modelName        = pmx.info.modelName;
+	englishModelName = pmx.info.englishModelName;
+	comment          = pmx.info.comment;
+	englishComment   = pmx.info.englishComment;
 	std::filesystem::path dirPath = filepath.parent_path();
 	size_t vertexCount = pmx.vertices.size();
 	positions.reserve(vertexCount);
-	m_normals.reserve(vertexCount);
-	m_uvs.reserve(vertexCount);
-	m_vertexBoneInfos.reserve(vertexCount);
-	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
-	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
+	normals.reserve(vertexCount);
+	uvs.reserve(vertexCount);
+	vertexBoneInfos.reserve(vertexCount);
+	bboxMax = glm::vec3(-std::numeric_limits<float>::max());
+	bboxMin = glm::vec3(std::numeric_limits<float>::max());
 	constexpr glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.vertices) {
 		glm::vec3 pos = v.position * invZ;
 		positions.push_back(pos);
-		m_normals.push_back(v.normal * invZ);
-		m_uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
+		normals.push_back(v.normal * invZ);
+		uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 		Vertex vtxBoneInfo{};
 		if (WeightType::SDEF != v.weightType) {
 			vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
@@ -243,31 +243,30 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			default:
 				break;
 		}
-		m_vertexBoneInfos.push_back(vtxBoneInfo);
-		m_bboxMax = glm::max(m_bboxMax, pos);
-		m_bboxMin = glm::min(m_bboxMin, pos);
+		vertexBoneInfos.push_back(vtxBoneInfo);
+		bboxMax = glm::max(bboxMax, pos);
+		bboxMin = glm::min(bboxMin, pos);
 	}
-	m_morphPositions.resize(positions.size());
-	m_morphUVs.resize(positions.size());
+	morphPositions.resize(positions.size());
+	morphUVs.resize(positions.size());
 	updatePositions.resize(positions.size());
-	updateNormals.resize(m_normals.size());
-	updateUVs.resize(m_uvs.size());
+	updateNormals.resize(normals.size());
+	updateUVs.resize(uvs.size());
 	indexElementSize = pmx.header.vertexIndexSize;
 	indices.resize(pmx.faces.size() * 3 * indexElementSize);
 	indexCount = pmx.faces.size() * 3;
-	auto fillIndices = [&](auto* out) {
-		using T = std::remove_pointer_t<decltype(out)>;
+	auto FillIndices = [&](auto* out) {
 		int idx = 0;
 		for (const auto& [tri] : pmx.faces) {
-			out[idx++] = static_cast<T>(tri[2]);
-			out[idx++] = static_cast<T>(tri[1]);
-			out[idx++] = static_cast<T>(tri[0]);
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[2]);
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[1]);
+			out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
 		}
 	};
 	switch (indexElementSize) {
-		case 1: fillIndices(reinterpret_cast<uint8_t*>(indices.data())); break;
-		case 2: fillIndices(reinterpret_cast<uint16_t*>(indices.data())); break;
-		case 4: fillIndices(reinterpret_cast<uint32_t*>(indices.data())); break;
+		case 1: FillIndices(reinterpret_cast<uint8_t*>(indices.data())); break;
+		case 2: FillIndices(reinterpret_cast<uint16_t*>(indices.data())); break;
+		case 4: FillIndices(reinterpret_cast<uint32_t*>(indices.data())); break;
 		default: return false;
 	}
 	std::vector<std::filesystem::path> texturePaths;
@@ -299,7 +298,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (mat.toonMode == ToonMode::Common) {
 			if (mat.toonTextureIndex != -1) {
 				std::stringstream ss;
-				ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
+				ss << "cartoon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
 				m.cartoonTexture = dataDir / ss.str();
 			}
 		} else if (mat.toonMode == ToonMode::Separate) {
@@ -318,9 +317,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		subMeshes.push_back(subMesh);
 		beginIndex += mat.numFaceVertices;
 	}
-	m_initMaterials = materials;
-	m_mulMaterialFactors.resize(materials.size());
-	m_addMaterialFactors.resize(materials.size());
+	initMaterials = materials;
+	mulMaterialFactors.resize(materials.size());
+	addMaterialFactors.resize(materials.size());
 	nodes.reserve(pmx.bones.size());
 	for (const auto& bone : pmx.bones) {
 		auto node = std::make_shared<Node>();
@@ -360,12 +359,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		node->initRotate = node->rotate;
 		node->initScale = node->scale;
 	}
-	m_transforms.resize(nodes.size());
-	m_sortedNodes.clear();
-	m_sortedNodes.reserve(nodes.size());
+	transforms.resize(nodes.size());
+	sortedNodes.clear();
+	sortedNodes.reserve(nodes.size());
 	for (auto& node : nodes)
-		m_sortedNodes.emplace_back(*node);
-	std::ranges::stable_sort(m_sortedNodes,
+		sortedNodes.emplace_back(*node);
+	std::ranges::stable_sort(sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
 			return x.get().deformDepth < y.get().deformDepth;
 		}
@@ -399,7 +398,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m->weight = 0.0f;
 		m->morphType = morph.morphType;
 		if (morph.morphType == MorphType::Position) {
-			m->dataIndex = m_positionMorphs.size();
+			m->dataIndex = positionMorphs.size();
 			std::vector<PositionMorph> morphData;
 			for (const auto& [morphVertexIndex, morphPosition] : morph.positionMorph) {
 				PositionMorph morphVtx{};
@@ -407,22 +406,22 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				morphVtx.position = morphPosition * invZ;
 				morphData.push_back(morphVtx);
 			}
-			m_positionMorphs.emplace_back(std::move(morphData));
+			positionMorphs.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::UV) {
-			m->dataIndex = m_uvMorphs.size();
+			m->dataIndex = uvMorphs.size();
 			std::vector<UvMorph> morphData;
 			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
-				UvMorph morphUV{};
-				morphUV.vertexIndex = morphVertexIndex;
-				morphUV.uv = morphUVValue;
-				morphData.push_back(morphUV);
+				UvMorph morphUv{};
+				morphUv.vertexIndex = morphVertexIndex;
+				morphUv.uv = morphUVValue;
+				morphData.push_back(morphUv);
 			}
-			m_uvMorphs.emplace_back(std::move(morphData));
+			uvMorphs.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::Material) {
-			m->dataIndex = m_materialMorphs.size();
-			m_materialMorphs.emplace_back(morph.materialMorph);
+			m->dataIndex = materialMorphs.size();
+			materialMorphs.emplace_back(morph.materialMorph);
 		} else if (morph.morphType == MorphType::Bone) {
-			m->dataIndex = m_boneMorphs.size();
+			m->dataIndex = boneMorphs.size();
 			std::vector<BoneMorph> boneMorphData;
 			for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morph.boneMorph) {
 				auto rot = Util::InvZ(glm::mat3_cast(morphQuaternion));
@@ -432,10 +431,10 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				boneMorphElem.quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
-			m_boneMorphs.emplace_back(boneMorphData);
+			boneMorphs.emplace_back(boneMorphData);
 		} else if (morph.morphType == MorphType::Group) {
-			m->dataIndex = m_groupMorphs.size();
-			m_groupMorphs.emplace_back(morph.groupMorph);
+			m->dataIndex = groupMorphs.size();
+			groupMorphs.emplace_back(morph.groupMorph);
 		}
 		morphs.emplace_back(std::move(m));
 	}
@@ -447,7 +446,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (morph->morphType != MorphType::Group)
 			return;
 		groupMorphStack.push_back(idx);
-		for (auto& [childIdx, w] : m_groupMorphs[morph->dataIndex]) {
+		for (auto& [childIdx, w] : groupMorphs[morph->dataIndex]) {
 			if (childIdx < 0)
 				continue;
 			if (std::ranges::find(groupMorphStack, childIdx) != groupMorphStack.end()) {
@@ -462,16 +461,16 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		groupMorphStack.clear();
 		fixInfiniteGroupMorph(i);
 	}
-	m_physics = std::make_unique<Physics>();
-	m_physics->Create();
+	physics = std::make_unique<Physics>();
+	physics->Create();
 	for (const auto& pmxRigidBody : pmx.rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		std::shared_ptr<Node> node;
 		if (pmxRigidBody.boneIndex != -1)
 			node = nodes[pmxRigidBody.boneIndex];
 		rb->Create(pmxRigidBody, this, node);
-		m_physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
-		m_rigidBodies.emplace_back(std::move(rb));
+		physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
+		rigidBodies.emplace_back(std::move(rb));
 	}
 	for (const auto& joint : pmx.joints) {
 		if (joint.rigidbodyAIndex != -1 &&
@@ -479,11 +478,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		    joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
 			auto j = std::make_unique<Joint>();
 			j->Create(joint,
-				m_rigidBodies[joint.rigidbodyAIndex].get(),
-				m_rigidBodies[joint.rigidbodyBIndex].get()
+				rigidBodies[joint.rigidbodyAIndex].get(),
+				rigidBodies[joint.rigidbodyBIndex].get()
 			);
-			m_physics->world->addConstraint(j->constraint.get());
-			m_joints.emplace_back(std::move(j));
+			physics->world->addConstraint(j->constraint.get());
+			joints.emplace_back(std::move(j));
 		}
 	}
 	ResetPhysics();
@@ -495,37 +494,37 @@ void Model::Destroy() {
 	materials.clear();
 	subMeshes.clear();
 	positions.clear();
-	m_normals.clear();
-	m_uvs.clear();
-	m_vertexBoneInfos.clear();
+	normals.clear();
+	uvs.clear();
+	vertexBoneInfos.clear();
 	indices.clear();
-	m_sortedNodes.clear();
+	sortedNodes.clear();
 	nodes.clear();
-	m_updateRanges.clear();
-	for (const auto& joint : m_joints)
-		m_physics->world->removeConstraint(joint->constraint.get());
-	m_joints.clear();
-	for (const auto& rb : m_rigidBodies)
-		m_physics->world->removeRigidBody(rb->rigidBody.get());
-	m_rigidBodies.clear();
-	m_physics.reset();
+	updateRanges.clear();
+	for (const auto& joint : joints)
+		physics->world->removeConstraint(joint->constraint.get());
+	joints.clear();
+	for (const auto& rb : rigidBodies)
+		physics->world->removeRigidBody(rb->rigidBody.get());
+	rigidBodies.clear();
+	physics.reset();
 }
 
 void Model::SetupParallelUpdate() {
-	if (!m_parallelUpdateCount)
-		m_parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
-	m_parallelUpdateCount = std::min<size_t>(m_parallelUpdateCount, 16);
-	m_updateRanges.resize(m_parallelUpdateCount);
-	m_parallelUpdateFutures.resize(m_parallelUpdateCount - 1);
+	if (!parallelUpdateCount)
+		parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
+	parallelUpdateCount = std::min<size_t>(parallelUpdateCount, 16);
+	updateRanges.resize(parallelUpdateCount);
+	parallelUpdateFutures.resize(parallelUpdateCount - 1);
 	const size_t vertexCount = positions.size();
-	constexpr size_t LowerVertexCount = 1000;
-	if (vertexCount < m_updateRanges.size() * LowerVertexCount) {
-		const size_t numRanges = (vertexCount + LowerVertexCount - 1) / LowerVertexCount;
-		for (size_t i = 0; i < m_updateRanges.size(); i++) {
-			auto& [rangeVertexOffset, rangeVertexCount] = m_updateRanges[i];
+	constexpr size_t lowerVertexCount = 1000;
+	if (vertexCount < updateRanges.size() * lowerVertexCount) {
+		const size_t numRanges = (vertexCount + lowerVertexCount - 1) / lowerVertexCount;
+		for (size_t i = 0; i < updateRanges.size(); i++) {
+			auto& [rangeVertexOffset, rangeVertexCount] = updateRanges[i];
 			if (i < numRanges) {
-				rangeVertexOffset = i * LowerVertexCount;
-				rangeVertexCount  = std::min(LowerVertexCount, vertexCount - rangeVertexOffset);
+				rangeVertexOffset = i * lowerVertexCount;
+				rangeVertexCount  = std::min(lowerVertexCount, vertexCount - rangeVertexOffset);
 			} else {
 				rangeVertexOffset = 0;
 				rangeVertexCount = 0;
@@ -533,29 +532,28 @@ void Model::SetupParallelUpdate() {
 		}
 		return;
 	}
-	const size_t numVertexCount = vertexCount / m_updateRanges.size();
+	const size_t numVertexCount = vertexCount / updateRanges.size();
 	size_t offset = 0;
-	for (size_t i = 0; i < m_updateRanges.size(); i++) {
-		auto& [rangeVertexOffset, rangeVertexCount] = m_updateRanges[i];
+	for (size_t i = 0; i < updateRanges.size(); i++) {
+		auto& [rangeVertexOffset, rangeVertexCount] = updateRanges[i];
 		rangeVertexOffset = offset;
-		rangeVertexCount  = numVertexCount + (i == 0 ? vertexCount % m_updateRanges.size() : 0);
+		rangeVertexCount  = numVertexCount + (i == 0 ? vertexCount % updateRanges.size() : 0);
 		offset += rangeVertexCount;
 	}
 }
 
 void Model::Update(const UpdateRange& range) {
 	const auto* position = positions.data() + range.vertexOffset;
-	const auto* normal = m_normals.data() + range.vertexOffset;
-	const auto* uv = m_uvs.data() + range.vertexOffset;
-	const auto* morphPos = m_morphPositions.data() + range.vertexOffset;
-	const auto* morphUV = m_morphUVs.data() + range.vertexOffset;
-	const auto* vtxInfo = m_vertexBoneInfos.data() + range.vertexOffset;
-	const auto* transforms = m_transforms.data();
+	const auto* normal = normals.data() + range.vertexOffset;
+	const auto* uv = uvs.data() + range.vertexOffset;
+	const auto* morphPos = morphPositions.data() + range.vertexOffset;
+	const auto* morphUv = morphUVs.data() + range.vertexOffset;
+	const auto* vtxInfo = vertexBoneInfos.data() + range.vertexOffset;
 	auto* updatePos = updatePositions.data() + range.vertexOffset;
 	auto* updateNormal = updateNormals.data() + range.vertexOffset;
-	auto* updateUV = updateUVs.data() + range.vertexOffset;
+	auto* updateUv = updateUVs.data() + range.vertexOffset;
 	for (size_t i = 0; i < range.vertexCount;
-		i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUV++, updatePos++, updateNormal++, updateUV++) {
+		i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUv++, updatePos++, updateNormal++, updateUv++) {
 		glm::mat4 m;
 		switch (vtxInfo->weightType) {
 			case WeightType::BDEF1: {
@@ -582,22 +580,22 @@ void Model::Update(const UpdateRange& range) {
 				const auto center = vtxInfo->sphericalDeformC, cr0 = vtxInfo->sphericalDeformR0, cr1 = vtxInfo->sphericalDeformR1;
 				const auto q0 = glm::quat_cast(nodes[i0]->global);
 				const auto q1 = glm::quat_cast(nodes[i1]->global);
-				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
+				const auto rotMat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 				const auto m0 = transforms[i0], m1 = transforms[i1];
 				const auto pos = *position + *morphPos;
-				*updatePos = rot_mat * (pos - center)
+				*updatePos = rotMat * (pos - center)
 				+ glm::vec3(m0 * glm::vec4(cr0, 1)) * w0
 				+ glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
-				*updateNormal = rot_mat * *normal;
+				*updateNormal = rotMat * *normal;
 				break;
 			}
 			case WeightType::QDEF: {
 				glm::dualquat dq[4]{};
 				float w[4] = {};
 				for (int bi = 0; bi < 4; bi++) {
-					auto boneID = vtxInfo->boneIndices[bi];
-					if (boneID != -1) {
-						dq[bi] = glm::normalize(glm::dualquat_cast(glm::mat3x4(glm::transpose(transforms[boneID]))));
+					auto boneId = vtxInfo->boneIndices[bi];
+					if (boneId != -1) {
+						dq[bi] = glm::normalize(glm::dualquat_cast(glm::mat3x4(glm::transpose(transforms[boneId]))));
 						w[bi] = vtxInfo->boneWeights[bi];
 					}
 				}
@@ -607,8 +605,8 @@ void Model::Update(const UpdateRange& range) {
 					w[2] *= -1.0f;
 				if (glm::dot(dq[0].real, dq[3].real) < 0)
 					w[3] *= -1.0f;
-				auto blendDQ = glm::normalize(w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3]);
-				m = glm::transpose(glm::mat3x4_cast(blendDQ));
+				auto blendDq = glm::normalize(w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3]);
+				m = glm::transpose(glm::mat3x4_cast(blendDq));
 				break;
 			}
 			default:
@@ -618,47 +616,57 @@ void Model::Update(const UpdateRange& range) {
 			*updatePos = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 			*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 		}
-		*updateUV = *uv + glm::vec2(morphUV->x, morphUV->y);
+		*updateUv = *uv + glm::vec2(morphUv->x, morphUv->y);
 	}
 }
 
 void Model::EvalMorph(const Morph* morph, const float weight) {
-	if (weight == 0)
+	if (std::abs(weight) <= std::numeric_limits<float>::epsilon())
 		return;
 	switch (morph->morphType) {
 		case MorphType::Position:
-			MorphPosition(m_positionMorphs[morph->dataIndex], weight);
+			MorphPosition(positionMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::UV:
-			MorphUV(m_uvMorphs[morph->dataIndex], weight);
+			MorphUv(uvMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Material:
-			MorphMaterial(m_materialMorphs[morph->dataIndex], weight);
+			MorphMaterial(materialMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Bone:
-			MorphBone(m_boneMorphs[morph->dataIndex], weight);
+			MorphBone(boneMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Group: {
-			for (const auto& [morphIndex, morphWeightValue] : m_groupMorphs[morph->dataIndex]) {
+			for (const auto& [morphIndex, morphWeightValue] : groupMorphs[morph->dataIndex]) {
 				if (morphIndex == -1)
 					continue;
 				EvalMorph(morphs[morphIndex].get(), morphWeightValue * weight);
 			}
 			break;
 		}
-		default:
+		case MorphType::AddUV1:
+			break;
+		case MorphType::AddUV2:
+			break;
+		case MorphType::AddUV3:
+			break;
+		case MorphType::AddUV4:
+			break;
+		case MorphType::Flip:
+			break;
+		case MorphType::Impulse:
 			break;
 	}
 }
 
 void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
 	for (const auto& [morphIndex, morphPosition] : morphData)
-		m_morphPositions[morphIndex] += morphPosition * weight;
+		morphPositions[morphIndex] += morphPosition * weight;
 }
 
-void Model::MorphUV(const std::vector<UvMorph>& morphData, const float weight) {
+void Model::MorphUv(const std::vector<UvMorph>& morphData, const float weight) {
 	for (const auto& [morphIndex, morphUVValue] : morphData)
-		m_morphUVs[morphIndex] += morphUVValue * weight;
+		morphUVs[morphIndex] += morphUVValue * weight;
 }
 
 void Model::BeginMorphMaterial() {
@@ -671,21 +679,21 @@ void Model::BeginMorphMaterial() {
 		glm::vec4(0), 0.0f, glm::vec4(0), glm::vec4(0), glm::vec4(0)
 	};
 	for (size_t i = 0; i < materials.size(); i++) {
-		auto& mul = m_mulMaterialFactors[i];
+		auto& mul = mulMaterialFactors[i];
 		mul = initMul;
-		mul.diffuse       = m_initMaterials[i].diffuse;
-		mul.specular      = m_initMaterials[i].specular;
-		mul.specularPower = m_initMaterials[i].specularPower;
-		mul.ambient       = m_initMaterials[i].ambient;
-		m_addMaterialFactors[i] = initAdd;
+		mul.diffuse       = initMaterials[i].diffuse;
+		mul.specular      = initMaterials[i].specular;
+		mul.specularPower = initMaterials[i].specularPower;
+		mul.ambient       = initMaterials[i].ambient;
+		addMaterialFactors[i] = initAdd;
 	}
 }
 
 void Model::EndMorphMaterial() {
 	for (size_t i = 0; i < materials.size(); i++) {
 		auto& mat = materials[i];
-		const auto& mul = m_mulMaterialFactors[i];
-		const auto& add = m_addMaterialFactors[i];
+		const auto& mul = mulMaterialFactors[i];
+		const auto& add = addMaterialFactors[i];
 		auto matFactor = mul;
 		Add(matFactor, add, 1.0f);
 		mat.diffuse        = matFactor.diffuse;
@@ -703,18 +711,17 @@ void Model::EndMorphMaterial() {
 
 void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
 	for (const auto& matMorph : morphData) {
-		auto apply = [&](const size_t mi) {
+		auto Apply = [&](const size_t mi) {
 			switch (matMorph.opType) {
-				case OpType::Mul: Mul(m_mulMaterialFactors[mi], matMorph, weight); break;
-				case OpType::Add: Add(m_addMaterialFactors[mi], matMorph, weight); break;
-				default: break;
+				case OpType::Mul: Mul(mulMaterialFactors[mi], matMorph, weight); break;
+				case OpType::Add: Add(addMaterialFactors[mi], matMorph, weight); break;
 			}
 		};
 		if (matMorph.materialIndex != -1) {
-			apply(static_cast<size_t>(matMorph.materialIndex));
+			Apply(static_cast<size_t>(matMorph.materialIndex));
 		} else {
 			for (size_t i = 0; i < materials.size(); i++)
-				apply(i);
+				Apply(i);
 		}
 	}
 }

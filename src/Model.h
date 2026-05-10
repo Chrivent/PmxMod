@@ -115,33 +115,33 @@ public:
 	void Destroy();
 
 private:
-	std::string									m_modelName;
-	std::string									m_englishModelName;
-	std::string									m_comment;
-	std::string									m_englishComment;
-	std::vector<glm::vec3>						m_normals;
-	std::vector<glm::vec2>						m_uvs;
-	std::vector<Vertex>							m_vertexBoneInfos;
-	std::vector<glm::mat4>						m_transforms;
-	std::vector<std::vector<PositionMorph>>		m_positionMorphs;
-	std::vector<std::vector<UvMorph>>			m_uvMorphs;
-	std::vector<std::vector<MaterialMorph>>		m_materialMorphs;
-	std::vector<std::vector<BoneMorph>>			m_boneMorphs;
-	std::vector<std::vector<GroupMorph>>		m_groupMorphs;
-	std::vector<glm::vec3>						m_morphPositions;
-	std::vector<glm::vec4>						m_morphUVs;
-	std::vector<Material>						m_initMaterials;
-	std::vector<MaterialMorph>					m_mulMaterialFactors;
-	std::vector<MaterialMorph>					m_addMaterialFactors;
-	glm::vec3									m_bboxMin;
-	glm::vec3									m_bboxMax;
-	std::vector<std::reference_wrapper<Node>>	m_sortedNodes;
-	std::unique_ptr<Physics>					m_physics;
-	std::vector<std::unique_ptr<RigidBody>>		m_rigidBodies;
-	std::vector<std::unique_ptr<Joint>>			m_joints;
-	uint32_t									m_parallelUpdateCount = 0;
-	std::vector<UpdateRange>					m_updateRanges;
-	std::vector<std::future<void>>				m_parallelUpdateFutures;
+	std::string									modelName;
+	std::string									englishModelName;
+	std::string									comment;
+	std::string									englishComment;
+	std::vector<glm::vec3>						normals;
+	std::vector<glm::vec2>						uvs;
+	std::vector<Vertex>							vertexBoneInfos;
+	std::vector<glm::mat4>						transforms;
+	std::vector<std::vector<PositionMorph>>		positionMorphs;
+	std::vector<std::vector<UvMorph>>			uvMorphs;
+	std::vector<std::vector<MaterialMorph>>		materialMorphs;
+	std::vector<std::vector<BoneMorph>>			boneMorphs;
+	std::vector<std::vector<GroupMorph>>		groupMorphs;
+	std::vector<glm::vec3>						morphPositions;
+	std::vector<glm::vec4>						morphUVs;
+	std::vector<Material>						initMaterials;
+	std::vector<MaterialMorph>					mulMaterialFactors;
+	std::vector<MaterialMorph>					addMaterialFactors;
+	glm::vec3									bboxMin;
+	glm::vec3									bboxMax;
+	std::vector<std::reference_wrapper<Node>>	sortedNodes;
+	std::unique_ptr<Physics>					physics;
+	std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
+	std::vector<std::unique_ptr<Joint>>			joints;
+	uint32_t									parallelUpdateCount = 0;
+	std::vector<UpdateRange>					updateRanges;
+	std::vector<std::future<void>>				parallelUpdateFutures;
 
 	/// 병렬 버텍스 갱신에 사용할 작업 범위를 구성한다.
 	void SetupParallelUpdate();
@@ -152,7 +152,7 @@ private:
 	/// 위치 모프 데이터를 버텍스 위치에 적용한다.
 	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
 	/// UV 모프 데이터를 버텍스 UV에 적용한다.
-	void MorphUV(const std::vector<UvMorph>& morphData, float weight);
+	void MorphUv(const std::vector<UvMorph>& morphData, float weight);
 	/// 재질 모프 누적을 시작하기 위해 재질 계수를 초기화한다.
 	void BeginMorphMaterial();
 	/// 누적된 재질 모프 결과를 최종 재질에 반영한다.
