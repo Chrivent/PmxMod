@@ -26,7 +26,7 @@ void Instance::UpdateAnimation(const Viewer& viewer) const {
 
 bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
-    music.Init(cfg.m_musicPath, false);
+    music.Init(cfg.musicPath, false);
     m_paused = false;
     m_prevSpaceDown = false;
     m_useMotionCamera = true;
@@ -172,11 +172,11 @@ unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, i
 
 bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances) {
     instances.clear();
-    instances.reserve(cfg.m_modelConfigs.size());
-    for (const auto& [m_modelPath, m_animPaths, m_scale] : cfg.m_modelConfigs) {
+    instances.reserve(cfg.modelConfigs.size());
+    for (const auto& [modelPath, animPaths, scale] : cfg.modelConfigs) {
         auto instance = CreateInstance();
         const auto pmxModel = std::make_shared<Model>();
-        if (!pmxModel->Load(m_modelPath, m_pmxDir)) {
+        if (!pmxModel->Load(modelPath, m_pmxDir)) {
             std::cout << "Failed to load pmx file.\n";
             return false;
         }
@@ -184,7 +184,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         instance->m_model->InitializeAnimation();
         auto vmdAnim = std::make_unique<Animation>();
         vmdAnim->model = instance->m_model;
-        for (const auto& vmdPath : m_animPaths) {
+        for (const auto& vmdPath : animPaths) {
             VmdReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
@@ -197,7 +197,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         }
         vmdAnim->SyncPhysics(0.0f);
         instance->m_anim = std::move(vmdAnim);
-        instance->m_scale = m_scale;
+        instance->m_scale = scale;
         if (!instance->Setup(*this))
             return false;
         instances.emplace_back(std::move(instance));
@@ -207,12 +207,12 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
 
 void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
     m_cameraAnim.reset();
-    if (cfg.m_cameraAnim.empty()) {
+    if (cfg.cameraAnim.empty()) {
         std::cout << "No camera VMD file.\n";
         return;
     }
     VmdReader camVmd;
-    if (camVmd.ReadFile(cfg.m_cameraAnim.c_str()) && !camVmd.cameras.empty()) {
+    if (camVmd.ReadFile(cfg.cameraAnim.c_str()) && !camVmd.cameras.empty()) {
         auto vmdCamAnim = std::make_unique<CameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))
             std::cout << "Failed to create VMDCameraAnimation.\n";

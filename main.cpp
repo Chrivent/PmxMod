@@ -86,36 +86,36 @@ inline bool PickFilesWin(
 static SceneConfig BuildTestSceneConfig1() {
 	SceneConfig cfg;
 	ModelConfig md1;
-	md1.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
-	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
-	md1.m_scale = 1.1f;
+	md1.modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
+	md1.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
+	md1.scale = 1.1f;
 	ModelConfig md2;
-	md2.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
-	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
-	md2.m_scale = 1.1f;
+	md2.modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
+	md2.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
+	md2.scale = 1.1f;
 	ModelConfig md3;
-	md3.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
-	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
-	md3.m_scale = 1.1f;
+	md3.modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
+	md3.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
+	md3.scale = 1.1f;
 	ModelConfig md4;
-	md4.m_modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
-	md4.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
-	md4.m_scale = 1.1f;
+	md4.modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
+	md4.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
+	md4.scale = 1.1f;
 	ModelConfig md5;
-	md5.m_modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	md5.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
-	md5.m_scale = 1.1f;
-	cfg.m_modelConfigs.emplace_back(std::move(md1));
-	cfg.m_modelConfigs.emplace_back(std::move(md2));
-	cfg.m_modelConfigs.emplace_back(std::move(md3));
-	cfg.m_modelConfigs.emplace_back(std::move(md4));
-	cfg.m_modelConfigs.emplace_back(std::move(md5));
-	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
-	cfg.m_musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
+	md5.modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
+	md5.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
+	md5.scale = 1.1f;
+	cfg.modelConfigs.emplace_back(std::move(md1));
+	cfg.modelConfigs.emplace_back(std::move(md2));
+	cfg.modelConfigs.emplace_back(std::move(md3));
+	cfg.modelConfigs.emplace_back(std::move(md4));
+	cfg.modelConfigs.emplace_back(std::move(md5));
+	cfg.cameraAnim = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
+	cfg.musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
 	ModelConfig bg;
-	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
-	bg.m_scale = 1.0f;
-	cfg.m_modelConfigs.emplace_back(std::move(bg));
+	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
+	bg.scale = 1.0f;
+	cfg.modelConfigs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -123,16 +123,16 @@ static SceneConfig BuildTestSceneConfig1() {
 static SceneConfig BuildTestSceneConfig2() {
 	SceneConfig cfg;
 	ModelConfig md;
-	md.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
-	md.m_animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
-	md.m_scale = 1.1f;
-	cfg.m_modelConfigs.emplace_back(std::move(md));
-	cfg.m_cameraAnim = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
-	cfg.m_musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
+	md.modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
+	md.animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
+	md.scale = 1.1f;
+	cfg.modelConfigs.emplace_back(std::move(md));
+	cfg.cameraAnim = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
+	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
 	ModelConfig bg;
-	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
-	bg.m_scale = 1.0f;
-	cfg.m_modelConfigs.emplace_back(std::move(bg));
+	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
+	bg.scale = 1.0f;
+	cfg.modelConfigs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -140,26 +140,26 @@ static SceneConfig BuildTestSceneConfig2() {
 static SceneConfig BuildTestSceneConfig3() {
 	SceneConfig cfg;
 	ModelConfig md1;
-	md1.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
-	md1.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
-	md1.m_scale = 1.2f;
+	md1.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
+	md1.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
+	md1.scale = 1.2f;
 	ModelConfig md2;
-	md2.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
-	md2.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
-	md2.m_scale = 1.2f;
+	md2.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
+	md2.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
+	md2.scale = 1.2f;
 	ModelConfig md3;
-	md3.m_modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
-	md3.m_animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
-	md3.m_scale = 1.2f;
-	cfg.m_modelConfigs.emplace_back(std::move(md1));
-	cfg.m_modelConfigs.emplace_back(std::move(md2));
-	cfg.m_modelConfigs.emplace_back(std::move(md3));
-	cfg.m_cameraAnim = R"(D:\예찬\MMD\motion\Dance Robot Dance\DanceRobotDance_Milo_Camera.vmd)";
-	cfg.m_musicPath = R"(D:\예찬\MMD\motion\Dance Robot Dance\0068_01.wav)";
+	md3.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
+	md3.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
+	md3.scale = 1.2f;
+	cfg.modelConfigs.emplace_back(std::move(md1));
+	cfg.modelConfigs.emplace_back(std::move(md2));
+	cfg.modelConfigs.emplace_back(std::move(md3));
+	cfg.cameraAnim = R"(D:\예찬\MMD\motion\Dance Robot Dance\DanceRobotDance_Milo_Camera.vmd)";
+	cfg.musicPath = R"(D:\예찬\MMD\motion\Dance Robot Dance\0068_01.wav)";
 	ModelConfig bg;
-	bg.m_modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
-	bg.m_scale = 1.0f;
-	cfg.m_modelConfigs.emplace_back(std::move(bg));
+	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
+	bg.scale = 1.0f;
+	cfg.modelConfigs.emplace_back(std::move(bg));
 	return cfg;
 }
 
@@ -195,21 +195,21 @@ int main() {
 		PickFilesWin(bgPath, L"배경/스테이지 모델(.pmx) 선택 (취소=없음)", kModelFilters, 1, false);
 		for (int i = 0; i < n; i++) {
 			ModelConfig in;
-			in.m_modelPath = modelPaths[i].front().wstring();
+			in.modelPath = modelPaths[i].front().wstring();
 			for (auto& v : motionPaths[i])
-				in.m_animPaths.emplace_back(v.wstring());
-			cfg.m_modelConfigs.emplace_back(std::move(in));
+				in.animPaths.emplace_back(v.wstring());
+			cfg.modelConfigs.emplace_back(std::move(in));
 		}
 		if (!bgPath.empty()) {
 			ModelConfig bg;
-			bg.m_modelPath = bgPath.front().wstring();
-			bg.m_scale = 1.0f;
-			cfg.m_modelConfigs.emplace_back(std::move(bg));
+			bg.modelPath = bgPath.front().wstring();
+			bg.scale = 1.0f;
+			cfg.modelConfigs.emplace_back(std::move(bg));
 		}
 		if (!cameraPath.empty())
-			cfg.m_cameraAnim = cameraPath.front().wstring();
+			cfg.cameraAnim = cameraPath.front().wstring();
 		if (!musicPath.empty())
-			cfg.m_musicPath = musicPath.front().wstring();
+			cfg.musicPath = musicPath.front().wstring();
 	}
 	int engineType;
 	std::cin >> engineType;

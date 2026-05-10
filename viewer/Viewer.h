@@ -13,15 +13,15 @@ class Animation;
 class Model;
 
 struct ModelConfig {
-    std::filesystem::path				m_modelPath;
-    std::vector<std::filesystem::path>	m_animPaths;
-    float								m_scale = 1.0f;
+    std::filesystem::path				modelPath;
+    std::vector<std::filesystem::path>	animPaths;
+    float								scale = 1.0f;
 };
 
 struct SceneConfig {
-    std::vector<ModelConfig>    m_modelConfigs;
-    std::filesystem::path	    m_cameraAnim;
-    std::filesystem::path	    m_musicPath;
+    std::vector<ModelConfig>    modelConfigs;
+    std::filesystem::path	    cameraAnim;
+    std::filesystem::path	    musicPath;
 };
 
 class Instance {
