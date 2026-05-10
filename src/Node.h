@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <memory>
 #include <string>
@@ -40,16 +40,16 @@ public:
 	glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 	std::weak_ptr<IkSolver>	ikSolver;
 
-	/// 이 노드에 자식 노드를 연결하고 형제 링크를 갱신한다.
+	// 이 노드에 자식 노드를 연결하고 형제 링크를 갱신한다.
 	void AddChild(const std::shared_ptr<Node>& childNode);
-	/// 로컬/글로벌 변환 계산 전에 프레임 상태를 초기화한다.
+	// 로컬/글로벌 변환 계산 전에 프레임 상태를 초기화한다.
 	void BeginUpdateTransform();
-	/// 기본, 애니메이션, IK, 부가 변환을 합쳐 로컬 행렬을 갱신한다.
+	// 기본, 애니메이션, IK, 부가 변환을 합쳐 로컬 행렬을 갱신한다.
 	void UpdateLocalTransform();
-	/// 부모 변환을 반영해 글로벌 행렬을 갱신한다.
+	// 부모 변환을 반영해 글로벌 행렬을 갱신한다.
 	void UpdateGlobalTransform();
-	/// 자식 노드들의 변환을 재귀적으로 갱신한다.
+	// 자식 노드들의 변환을 재귀적으로 갱신한다.
 	void UpdateChildTransform() const;
-	/// 부가 부모 본의 회전/이동 영향을 현재 노드에 적용한다.
+	// 부가 부모 본의 회전/이동 영향을 현재 노드에 적용한다.
 	void UpdateAppendTransform();
 };

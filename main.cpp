@@ -1,10 +1,10 @@
-﻿#include <iostream>
+#include <iostream>
 #include <shobjidl.h>
 
 #include "viewer/DX11Viewer.h"
 #include "viewer/GLFWViewer.h"
 
-/// Windows 파일 선택 대화상자를 열어 선택된 파일 경로들을 반환한다.
+// Windows 파일 선택 대화상자를 열어 선택된 파일 경로들을 반환한다.
 inline bool PickFilesWin(
 	std::vector<std::filesystem::path>& out,
 	const wchar_t* title,
@@ -82,7 +82,7 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-/// 개발 테스트용 다중 모델 씬 설정을 생성한다.
+// 개발 테스트용 다중 모델 씬 설정을 생성한다.
 static SceneConfig BuildTestSceneConfig1() {
 	SceneConfig cfg;
 	ModelConfig md1;
@@ -119,7 +119,7 @@ static SceneConfig BuildTestSceneConfig1() {
 	return cfg;
 }
 
-/// 개발 테스트용 단일 모델 씬 설정을 생성한다.
+// 개발 테스트용 단일 모델 씬 설정을 생성한다.
 static SceneConfig BuildTestSceneConfig2() {
 	SceneConfig cfg;
 	ModelConfig md;
@@ -136,7 +136,7 @@ static SceneConfig BuildTestSceneConfig2() {
 	return cfg;
 }
 
-/// 개발 테스트용 3인 모델 씬 설정을 생성한다.
+// 개발 테스트용 3인 모델 씬 설정을 생성한다.
 static SceneConfig BuildTestSceneConfig3() {
 	SceneConfig cfg;
 	ModelConfig md1;
@@ -163,7 +163,7 @@ static SceneConfig BuildTestSceneConfig3() {
 	return cfg;
 }
 
-/// 씬 설정을 구성하고 선택한 렌더러로 뷰어를 실행한다.
+// 씬 설정을 구성하고 선택한 렌더러로 뷰어를 실행한다.
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
 	constexpr COMDLG_FILTERSPEC kVMDFilters[]    = { {L"VMD Motion/Camera", L"*.vmd"} };

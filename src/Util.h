@@ -1,16 +1,16 @@
-﻿#pragma once
+#pragma once
 
 #include <windows.h>
 
 class Util {
 public:
-    /// Z축 반전 좌표계 사이에서 행렬을 변환한다.
+    // Z축 반전 좌표계 사이에서 행렬을 변환한다.
     static glm::mat4 InvZ(const glm::mat4& m) {
         const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
         return invZ * m * invZ;
     }
 
-    /// Windows wide 문자열을 UTF-8 문자열로 변환한다.
+    // Windows wide 문자열을 UTF-8 문자열로 변환한다.
     static std::string WStringToUtf8(const std::wstring& w) {
         if (w.empty())
             return {};
@@ -30,7 +30,7 @@ public:
         return utf8;
     }
 
-    /// Shift-JIS C 문자열을 UTF-8 문자열로 변환한다.
+    // Shift-JIS C 문자열을 UTF-8 문자열로 변환한다.
     static std::string SjisToUtf8(const char* sjis) {
         if (!sjis)
             return {};
