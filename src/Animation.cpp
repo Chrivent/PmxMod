@@ -30,7 +30,7 @@ float FindBezierX(float time, const float x1, const float x2) {
 	return t;
 }
 
-void NodeAnimationKey::ApplyMotion(const VMDReader::VMDMotion& motion) {
+void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 	time = static_cast<int32_t>(motion.frame);
 	translate = motion.translate * glm::vec3(1, 1, -1);
 	const glm::quat q = motion.quaternion;
@@ -50,7 +50,7 @@ void NodeAnimationKey::ApplyMotion(const VMDReader::VMDMotion& motion) {
 		motion.interpolation[7], motion.interpolation[15]);
 }
 
-bool Animation::Add(const VMDReader& vmd) {
+bool Animation::Add(const VmdReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : nodes) {
 		if (node.first)
@@ -232,7 +232,7 @@ glm::mat4 Camera::CalcViewMatrix() const {
 	return glm::lookAt(eye, center, up);
 }
 
-bool CameraAnimation::Create(const VMDReader& vmd) {
+bool CameraAnimation::Create(const VmdReader& vmd) {
 	if (!vmd.cameras.empty()) {
 		keys.clear();
 		for (const auto& cam: vmd.cameras) {

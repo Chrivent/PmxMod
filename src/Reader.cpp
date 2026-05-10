@@ -56,27 +56,27 @@ void ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 	}
 }
 
-void PMXReader::ReadString(std::istream& is, std::string* val) const {
+void PmxReader::ReadString(std::istream& is, std::string* val) const {
 	uint32_t bufSize;
 	Read(is, &bufSize);
 	if (bufSize > 0) {
-		if (header.encodeType == EncodeType::UTF16) {
+		if (header.encodeType == EncodeType::Utf16) {
 			std::wstring utf16Str(bufSize / 2, L'\0');
 			Read(is, utf16Str.data(), bufSize);
 			*val = Util::WStringToUtf8(utf16Str);
-		} else if (header.encodeType == EncodeType::UTF8) {
+		} else if (header.encodeType == EncodeType::Utf8) {
 			val->resize(bufSize);
 			Read(is, val->data(), bufSize);
 		}
 	}
 }
 
-void PMXReader::ReadHeader(std::istream& is) {
+void PmxReader::ReadHeader(std::istream& is) {
 	Read(is, header.magic, sizeof(header.magic));
 	Read(is, &header.version);
 	Read(is, &header.dataSize);
 	Read(is, &header.encodeType);
-	Read(is, &header.addUVNum);
+	Read(is, &header.addUvNum);
 	Read(is, &header.vertexIndexSize);
 	Read(is, &header.textureIndexSize);
 	Read(is, &header.materialIndexSize);
@@ -85,14 +85,14 @@ void PMXReader::ReadHeader(std::istream& is) {
 	Read(is, &header.rigidbodyIndexSize);
 }
 
-void PMXReader::ReadInfo(std::istream& is) {
+void PmxReader::ReadInfo(std::istream& is) {
 	ReadString(is, &info.modelName);
 	ReadString(is, &info.englishModelName);
 	ReadString(is, &info.comment);
 	ReadString(is, &info.englishComment);
 }
 
-void PMXReader::ReadVertex(std::istream& is) {
+void PmxReader::ReadVertex(std::istream& is) {
 	int32_t vertexCount;
 	Read(is, &vertexCount);
 	vertices.resize(vertexCount);
@@ -102,19 +102,19 @@ void PMXReader::ReadVertex(std::istream& is) {
 		Read(is, &position);
 		Read(is, &normal);
 		Read(is, &uv);
-		for (uint8_t i = 0; i < header.addUVNum; i++)
+		for (uint8_t i = 0; i < header.addUvNum; i++)
 			Read(is, &addUV[i]);
 		Read(is, &weightType);
 		switch (weightType) {
-			case WeightType::BDEF1:
+			case WeightType::BoneDeform1:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				break;
-			case WeightType::BDEF2:
+			case WeightType::BoneDeform2:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
 				Read(is, &boneWeights[0]);
 				break;
-			case WeightType::BDEF4:
+			case WeightType::BoneDeform4:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[2], header.boneIndexSize);
@@ -124,7 +124,7 @@ void PMXReader::ReadVertex(std::istream& is) {
 				Read(is, &boneWeights[2]);
 				Read(is, &boneWeights[3]);
 				break;
-			case WeightType::SDEF:
+			case WeightType::SphericalDeform:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
 				Read(is, &boneWeights[0]);
@@ -132,7 +132,7 @@ void PMXReader::ReadVertex(std::istream& is) {
 				Read(is, &sdefR0);
 				Read(is, &sdefR1);
 				break;
-			case WeightType::QDEF:
+			case WeightType::QuaternionDeform:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[2], header.boneIndexSize);
@@ -148,39 +148,39 @@ void PMXReader::ReadVertex(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadFace(std::istream& is) {
+void PmxReader::ReadFace(std::istream& is) {
 	int32_t faceCount = 0;
 	Read(is, &faceCount);
 	faceCount /= 3;
 	faces.resize(faceCount);
 	switch (header.vertexIndexSize) {
 		case 1: {
-			std::vector<uint8_t> vertices(faceCount * 3);
-			Read(is, vertices.data(), vertices.size());
+			std::vector<uint8_t> faceIndices(faceCount * 3);
+			Read(is, faceIndices.data(), faceIndices.size());
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = faceIndices[faceIdx * 3 + 2];
 			}
 		}
 		break;
 		case 2: {
-			std::vector<uint16_t> vertices(faceCount * 3);
-			Read(is, vertices.data(), vertices.size() * sizeof(uint16_t));
+			std::vector<uint16_t> faceIndices(faceCount * 3);
+			Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint16_t));
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = faceIndices[faceIdx * 3 + 2];
 			}
 		}
 		break;
 		case 4: {
-			std::vector<uint32_t> vertices(faceCount * 3);
-			Read(is, vertices.data(), vertices.size() * sizeof(uint32_t));
+			std::vector<uint32_t> faceIndices(faceCount * 3);
+			Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint32_t));
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = faceIndices[faceIdx * 3 + 2];
 			}
 		}
 		break;
@@ -188,7 +188,7 @@ void PMXReader::ReadFace(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadTexture(std::istream& is) {
+void PmxReader::ReadTexture(std::istream& is) {
 	int32_t texCount = 0;
 	Read(is, &texCount);
 	textures.resize(texCount);
@@ -200,7 +200,7 @@ void PMXReader::ReadTexture(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadMaterial(std::istream& is) {
+void PmxReader::ReadMaterial(std::istream& is) {
 	int32_t matCount = 0;
 	Read(is, &matCount);
 	materials.resize(matCount);
@@ -223,9 +223,9 @@ void PMXReader::ReadMaterial(std::istream& is) {
 		ReadIndex(is, &sphereTextureIndex, header.textureIndexSize);
 		Read(is, &sphereMode);
 		Read(is, &toonMode);
-		if (toonMode == ToonMode::Separate)
+		if (toonMode == CartoonMode::Separate)
 			ReadIndex(is, &toonTextureIndex, header.textureIndexSize);
-		else if (toonMode == ToonMode::Common) {
+		else if (toonMode == CartoonMode::Common) {
 			uint8_t toonIndex;
 			Read(is, &toonIndex);
 			toonTextureIndex = static_cast<int32_t>(toonIndex);
@@ -235,7 +235,7 @@ void PMXReader::ReadMaterial(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadBone(std::istream& is) {
+void PmxReader::ReadBone(std::istream& is) {
 	int32_t boneCount;
 	Read(is, &boneCount);
 	bones.resize(boneCount);
@@ -268,7 +268,7 @@ void PMXReader::ReadBone(std::istream& is) {
 		}
 		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
 			Read(is, &keyValue);
-		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
 			ReadIndex(is, &ikTargetBoneIndex, header.boneIndexSize);
 			Read(is, &ikIterationCount);
 			Read(is, &ikLimit);
@@ -290,7 +290,7 @@ void PMXReader::ReadBone(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadMorph(std::istream& is) {
+void PmxReader::ReadMorph(std::istream& is) {
 	int32_t morphCount;
 	Read(is, &morphCount);
 	morphs.resize(morphCount);
@@ -310,11 +310,11 @@ void PMXReader::ReadMorph(std::istream& is) {
 				ReadIndex(is, &vertexIndex, header.vertexIndexSize);
 				Read(is, &position);
 			}
-		} else if (morphType == MorphType::UV ||
-		           morphType == MorphType::AddUV1 ||
-		           morphType == MorphType::AddUV2 ||
-		           morphType == MorphType::AddUV3 ||
-		           morphType == MorphType::AddUV4) {
+		} else if (morphType == MorphType::Uv ||
+		           morphType == MorphType::AddUv1 ||
+		           morphType == MorphType::AddUv2 ||
+		           morphType == MorphType::AddUv3 ||
+		           morphType == MorphType::AddUv4) {
 			uvMorph.resize(dataCount);
 			for (auto& [vertexIndex, uv] : uvMorph) {
 				ReadIndex(is, &vertexIndex, header.vertexIndexSize);
@@ -372,7 +372,7 @@ void PMXReader::ReadMorph(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadDisplayFrame(std::istream& is) {
+void PmxReader::ReadDisplayFrame(std::istream& is) {
 	int32_t displayFrameCount;
 	Read(is, &displayFrameCount);
 	displayFrames.resize(displayFrameCount);
@@ -394,7 +394,7 @@ void PMXReader::ReadDisplayFrame(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadRigidbody(std::istream& is) {
+void PmxReader::ReadRigidbody(std::istream& is) {
 	int32_t rbCount;
 	Read(is, &rbCount);
 	rigidBodies.resize(rbCount);
@@ -420,7 +420,7 @@ void PMXReader::ReadRigidbody(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadJoint(std::istream& is) {
+void PmxReader::ReadJoint(std::istream& is) {
 	int32_t jointCount;
 	Read(is, &jointCount);
 	joints.resize(jointCount);
@@ -444,10 +444,10 @@ void PMXReader::ReadJoint(std::istream& is) {
 	}
 }
 
-void PMXReader::ReadSoftBody(std::istream& is) {
+void PmxReader::ReadSoftBody(std::istream& is) {
 	int32_t sbCount;
 	Read(is, &sbCount);
-	softbodies.resize(sbCount);
+	softBodies.resize(sbCount);
 	for (auto& [name, englishName, type, materialIndex
 		     , group, collisionGroup, flag, BLinkLength
 		     , numClusters, totalMass, collisionMargin, aeroModel
@@ -457,7 +457,7 @@ void PMXReader::ReadSoftBody(std::istream& is) {
 		     , SR_SPLT_CL, SK_SPLT_CL, SS_SPLT_CL
 		     , V_IT, P_IT, D_IT, C_IT
 		     , LST, AST, VST
-		     , anchorRigidBodies, pinVertexIndices] : softbodies) {
+		     , anchorRigidBodies, pinVertexIndices] : softBodies) {
 		ReadString(is, &name);
 		ReadString(is, &englishName);
 		Read(is, &type);
@@ -513,7 +513,7 @@ void PMXReader::ReadSoftBody(std::istream& is) {
 	}
 }
 
-bool PMXReader::ReadFile(const std::filesystem::path& filename) {
+bool PmxReader::ReadFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;
@@ -534,12 +534,12 @@ bool PMXReader::ReadFile(const std::filesystem::path& filename) {
 	return true;
 }
 
-void VMDReader::ReadHeader(std::istream& is) {
+void VmdReader::ReadHeader(std::istream& is) {
 	Read(is, header.header, sizeof(header.header));
 	Read(is, header.modelName, sizeof(header.modelName));
 }
 
-void VMDReader::ReadMotion(std::istream& is) {
+void VmdReader::ReadMotion(std::istream& is) {
 	uint32_t motionCount = 0;
 	Read(is, &motionCount);
 	motions.resize(motionCount);
@@ -554,7 +554,7 @@ void VMDReader::ReadMotion(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadBlendShape(std::istream& is) {
+void VmdReader::ReadBlendShape(std::istream& is) {
 	uint32_t blendShapeCount = 0;
 	Read(is, &blendShapeCount);
 	morphs.resize(blendShapeCount);
@@ -565,7 +565,7 @@ void VMDReader::ReadBlendShape(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadCamera(std::istream& is) {
+void VmdReader::ReadCamera(std::istream& is) {
 	uint32_t cameraCount = 0;
 	Read(is, &cameraCount);
 	cameras.resize(cameraCount);
@@ -581,7 +581,7 @@ void VMDReader::ReadCamera(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadLight(std::istream& is) {
+void VmdReader::ReadLight(std::istream& is) {
 	uint32_t lightCount = 0;
 	Read(is, &lightCount);
 	lights.resize(lightCount);
@@ -592,7 +592,7 @@ void VMDReader::ReadLight(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadShadow(std::istream& is) {
+void VmdReader::ReadShadow(std::istream& is) {
 	uint32_t shadowCount = 0;
 	Read(is, &shadowCount);
 	shadows.resize(shadowCount);
@@ -603,7 +603,7 @@ void VMDReader::ReadShadow(std::istream& is) {
 	}
 }
 
-void VMDReader::ReadIK(std::istream& is) {
+void VmdReader::ReadIk(std::istream& is) {
 	uint32_t ikCount = 0;
 	Read(is, &ikCount);
 	iks.resize(ikCount);
@@ -620,7 +620,7 @@ void VMDReader::ReadIK(std::istream& is) {
 	}
 }
 
-bool VMDReader::ReadFile(const std::filesystem::path& filename) {
+bool VmdReader::ReadFile(const std::filesystem::path& filename) {
 	std::ifstream is(filename, std::ios::binary);
 	if (!is)
 		return false;
@@ -636,6 +636,6 @@ bool VMDReader::ReadFile(const std::filesystem::path& filename) {
 	if (HasMore(is, end))
 		ReadShadow(is);
 	if (HasMore(is, end))
-		ReadIK(is);
+		ReadIk(is);
 	return true;
 }

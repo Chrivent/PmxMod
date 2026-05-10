@@ -20,7 +20,7 @@ struct NodeAnimationKey {
 	std::pair<glm::vec2, glm::vec2>	rotBezier;
 
 	/// VMD 모션 키에서 노드 애니메이션 키 값을 채운다.
-	void ApplyMotion(const VMDReader::VMDMotion& motion);
+	void ApplyMotion(const VmdReader::VmdMotion& motion);
 };
 
 struct MorphAnimationKey {
@@ -38,7 +38,7 @@ public:
 	std::shared_ptr<Model> model;
 
 	/// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
-	bool Add(const VMDReader& vmd);
+	bool Add(const VmdReader& vmd);
 	/// 애니메이션 트랙과 연결 상태를 해제한다.
 	void Destroy();
 	/// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
@@ -81,7 +81,7 @@ public:
 	Camera camera;
 
 	/// VMD 카메라 키를 읽어 카메라 애니메이션을 생성한다.
-	bool Create(const VMDReader& vmd);
+	bool Create(const VmdReader& vmd);
 	/// 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
 	void Evaluate(float t);
 

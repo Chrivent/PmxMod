@@ -97,7 +97,7 @@ public:
 	uint16_t	groupMask = 0;
 
 	/// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
-	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
+	void Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
 	void ApplyActivation(bool activation) const;
 	/// 강체 변환을 초기 위치로 재설정한다.
 	void ResetTransform() const;
@@ -124,7 +124,7 @@ public:
 	std::unique_ptr<btTypedConstraint>	constraint;
 
 	/// PMX 조인트 정보를 두 강체 사이의 Bullet 제약으로 생성한다.
-	void Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB);
+	void Create(const PmxReader::PmxJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB);
 };
 
 class Physics {

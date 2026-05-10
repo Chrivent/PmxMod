@@ -18,7 +18,7 @@ void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
 	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
 	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
-	out.toonTextureFactor = glm::mix(out.toonTextureFactor, out.toonTextureFactor * val.toonTextureFactor, weight);
+	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
 }
 
 void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
@@ -30,7 +30,7 @@ void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.edgeSize += val.edgeSize * weight;
 	out.textureFactor += val.textureFactor * weight;
 	out.sphereTextureFactor += val.sphereTextureFactor * weight;
-	out.toonTextureFactor += val.toonTextureFactor * weight;
+	out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
 }
 
 Model::~Model() {
@@ -184,7 +184,7 @@ void Model::UpdateAllAnimation(const Animation* anim, const float frame, const f
 
 bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
 	Destroy();
-	PMXReader pmx;
+	PmxReader pmx;
 	if (!pmx.ReadFile(filepath))
 		return false;
 	modelName        = pmx.info.modelName;
@@ -206,7 +206,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		normals.push_back(v.normal * invZ);
 		uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 		Vertex vtxBoneInfo{};
-		if (WeightType::SDEF != v.weightType) {
+		if (WeightType::SphericalDeform != v.weightType) {
 			vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
 			vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
 			vtxBoneInfo.boneIndices[2] = v.boneIndices[2];
@@ -218,15 +218,15 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		}
 		vtxBoneInfo.weightType = v.weightType;
 		switch (v.weightType) {
-			case WeightType::BDEF2:
+			case WeightType::BoneDeform2:
 				vtxBoneInfo.boneWeights[1] = 1.0f - vtxBoneInfo.boneWeights[0];
 				break;
-			case WeightType::SDEF: {
+			case WeightType::SphericalDeform: {
 					auto w0 = v.boneWeights[0];
 					auto w1 = 1.0f - w0;
-					auto center = v.sdefC * invZ;
-					auto r0 = v.sdefR0 * invZ;
-					auto r1 = v.sdefR1 * invZ;
+					auto center = v.sphericalDeformC * invZ;
+					auto r0 = v.sphericalDeformR0 * invZ;
+					auto r1 = v.sphericalDeformR1 * invZ;
 					auto rw = r0 * w0 + r1 * w1;
 					r0 = center + r0 - rw;
 					r1 = center + r1 - rw;
@@ -295,15 +295,15 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m.edgeColor = mat.edgeColor;
 		if (mat.textureIndex != -1)
 			m.texture = texturePaths[mat.textureIndex];
-		if (mat.toonMode == ToonMode::Common) {
-			if (mat.toonTextureIndex != -1) {
+		if (mat.cartoonMode == CartoonMode::Common) {
+			if (mat.cartoonTextureIndex != -1) {
 				std::stringstream ss;
-				ss << "cartoon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
+				ss << "cartoon" << std::setfill('0') << std::setw(2) << (mat.cartoonTextureIndex + 1) << ".bmp";
 				m.cartoonTexture = dataDir / ss.str();
 			}
-		} else if (mat.toonMode == ToonMode::Separate) {
-			if (mat.toonTextureIndex != -1)
-				m.cartoonTexture = texturePaths[mat.toonTextureIndex];
+		} else if (mat.cartoonMode == CartoonMode::Separate) {
+			if (mat.cartoonTextureIndex != -1)
+				m.cartoonTexture = texturePaths[mat.cartoonTextureIndex];
 		}
 		if (mat.sphereTextureIndex != -1) {
 			m.spTexture = texturePaths[mat.sphereTextureIndex];
@@ -371,7 +371,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	);
 	for (size_t i = 0; i < pmx.bones.size(); i++) {
 		const auto& bone = pmx.bones[i];
-		if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
+		if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
 			auto solver = std::make_shared<IkSolver>();
 			solver->ikNode = nodes[i];
 			nodes[i]->ikSolver = solver;
@@ -407,7 +407,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				morphData.push_back(morphVtx);
 			}
 			positionMorphs.emplace_back(std::move(morphData));
-		} else if (morph.morphType == MorphType::UV) {
+		} else if (morph.morphType == MorphType::Uv) {
 			m->dataIndex = uvMorphs.size();
 			std::vector<UvMorph> morphData;
 			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
@@ -556,17 +556,17 @@ void Model::Update(const UpdateRange& range) {
 		i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUv++, updatePos++, updateNormal++, updateUv++) {
 		glm::mat4 m;
 		switch (vtxInfo->weightType) {
-			case WeightType::BDEF1: {
+			case WeightType::BoneDeform1: {
 				m = transforms[vtxInfo->boneIndices[0]];
 				break;
 			}
-			case WeightType::BDEF2: {
+			case WeightType::BoneDeform2: {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = vtxInfo->boneWeights[1];
 				m = transforms[i0] * w0 + transforms[i1] * w1;
 				break;
 			}
-			case WeightType::BDEF4: {
+			case WeightType::BoneDeform4: {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto i2 = vtxInfo->boneIndices[2], i3 = vtxInfo->boneIndices[3];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = vtxInfo->boneWeights[1];
@@ -574,7 +574,7 @@ void Model::Update(const UpdateRange& range) {
 				m = transforms[i0] * w0 + transforms[i1] * w1 + transforms[i2] * w2 + transforms[i3] * w3;
 				break;
 			}
-			case WeightType::SDEF: {
+			case WeightType::SphericalDeform: {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = 1.0f - w0;
 				const auto center = vtxInfo->sphericalDeformC, cr0 = vtxInfo->sphericalDeformR0, cr1 = vtxInfo->sphericalDeformR1;
@@ -589,7 +589,7 @@ void Model::Update(const UpdateRange& range) {
 				*updateNormal = rotMat * *normal;
 				break;
 			}
-			case WeightType::QDEF: {
+			case WeightType::QuaternionDeform: {
 				glm::dualquat dq[4]{};
 				float w[4] = {};
 				for (int bi = 0; bi < 4; bi++) {
@@ -612,7 +612,7 @@ void Model::Update(const UpdateRange& range) {
 			default:
 				break;
 		}
-		if (WeightType::SDEF != vtxInfo->weightType) {
+		if (WeightType::SphericalDeform != vtxInfo->weightType) {
 			*updatePos = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
 			*updateNormal = glm::normalize(glm::mat3(m) * *normal);
 		}
@@ -627,7 +627,7 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 		case MorphType::Position:
 			MorphPosition(positionMorphs[morph->dataIndex], weight);
 			break;
-		case MorphType::UV:
+		case MorphType::Uv:
 			MorphUv(uvMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Material:
@@ -644,13 +644,13 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 			}
 			break;
 		}
-		case MorphType::AddUV1:
+		case MorphType::AddUv1:
 			break;
-		case MorphType::AddUV2:
+		case MorphType::AddUv2:
 			break;
-		case MorphType::AddUV3:
+		case MorphType::AddUv3:
 			break;
-		case MorphType::AddUV4:
+		case MorphType::AddUv4:
 			break;
 		case MorphType::Flip:
 			break;
@@ -704,8 +704,8 @@ void Model::EndMorphMaterial() {
 		mat.textureAddFactor   = add.textureFactor;
 		mat.sphereTextureMulFactor = mul.sphereTextureFactor;
 		mat.sphereTextureAddFactor = add.sphereTextureFactor;
-		mat.cartoonTextureMulFactor = mul.toonTextureFactor;
-		mat.cartoonTextureAddFactor = add.toonTextureFactor;
+		mat.cartoonTextureMulFactor = mul.cartoonTextureFactor;
+		mat.cartoonTextureAddFactor = add.cartoonTextureFactor;
 	}
 }
 

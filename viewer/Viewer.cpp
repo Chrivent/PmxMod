@@ -185,7 +185,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         auto vmdAnim = std::make_unique<Animation>();
         vmdAnim->model = instance->m_model;
         for (const auto& vmdPath : vmdPaths) {
-            VMDReader vmd;
+            VmdReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
                 return false;
@@ -211,7 +211,7 @@ void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
         std::cout << "No camera VMD file.\n";
         return;
     }
-    VMDReader camVmd;
+    VmdReader camVmd;
     if (camVmd.ReadFile(cfg.m_cameraAnim.c_str()) && !camVmd.cameras.empty()) {
         auto vmdCamAnim = std::make_unique<CameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))

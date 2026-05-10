@@ -63,7 +63,7 @@ void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const 
 	worldTransform.setFromOpenGLMatrix(&global[0][0]);
 }
 
-void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node) {
+void RigidBody::Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node) {
 	switch (pmxRigidBody.shape) {
 		case Shape::Sphere:
 			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.shapeSize.x);
@@ -181,7 +181,7 @@ glm::mat4 RigidBody::CalcTransform() const {
 	return Util::InvZ(mat);
 }
 
-void Joint::Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
+void Joint::Create(const PmxReader::PmxJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 	constraint = nullptr;
 	btMatrix3x3 rotMat;
 	rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);
