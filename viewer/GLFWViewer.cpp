@@ -1,7 +1,7 @@
 ﻿#include "GLFWViewer.h"
 
 #include "../src/Model.h"
-#include "../external/stb_image.h"
+#include <stb_image.h>
 
 #include <fstream>
 #include <ranges>

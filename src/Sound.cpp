@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #define MINIAUDIO_IMPLEMENTATION
-#include "../external/miniaudio.h"
+#include <miniaudio.h>
 
 Sound::Sound() {
     engine = std::make_unique<ma_engine>();

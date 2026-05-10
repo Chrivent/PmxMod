@@ -1,7 +1,7 @@
 ﻿#include "DX11Viewer.h"
 
 #include "../src/Model.h"
-#include "../external/stb_image.h"
+#include <stb_image.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>

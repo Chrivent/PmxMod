@@ -4,7 +4,7 @@
 #include "../src/Sound.h"
 
 #define	STB_IMAGE_IMPLEMENTATION
-#include "../external/stb_image.h"
+#include <stb_image.h>
 
 #include <iostream>
 #include <windows.h>
