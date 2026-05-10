@@ -2,11 +2,11 @@
 
 #ifdef VERTEX
 
-in vec3 in_Pos;
-uniform mat4 u_WVP;
+in vec3 position;
+uniform mat4 wvp;
 
 void main() {
-    gl_Position = u_WVP * vec4(in_Pos, 1.0);
+    gl_Position = wvp * vec4(position, 1.0);
 }
 
 #endif
@@ -14,10 +14,10 @@ void main() {
 #ifdef FRAGMENT
 
 out vec4 out_Color;
-uniform vec4 u_ShadowColor;
+uniform vec4 shadowColor;
 
 void main() {
-    out_Color = u_ShadowColor;
+    out_Color = shadowColor;
 }
 
 #endif

@@ -47,6 +47,10 @@ void LoadUniformLocations(const GLuint prog, const char* const* names, GLint* co
 		*outs[i] = glGetUniformLocation(prog, names[i]);
 }
 
+void* LoadGlProc(const char* name) {
+	return reinterpret_cast<void*>(glfwGetProcAddress(name));
+}
+
 std::string InjectDefine(const std::string& src, const char* defineLine) {
 	if (src.rfind("#version", 0) == 0) {
 		const auto nl = src.find('\n');
@@ -94,80 +98,80 @@ GLuint CreateShader(const std::filesystem::path& file) {
 }
 
 GLFWShader::~GLFWShader() {
-	if (m_prog != 0)
-		glDeleteProgram(m_prog);
-	m_prog = 0;
+	if (program != 0)
+		glDeleteProgram(program);
+	program = 0;
 }
 
 bool GLFWShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.m_shaderDir / "mmd.glsl");
-	if (m_prog == 0)
+	program = CreateShader(viewer.m_shaderDir / "mmd.glsl");
+	if (program == 0)
 		return false;
-	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
-	m_inNor = glGetAttribLocation(m_prog, "in_Nor");
-	m_inUV  = glGetAttribLocation(m_prog, "in_UV");
+	positionLocation = glGetAttribLocation(program, "position");
+	normalLocation = glGetAttribLocation(program, "normal");
+	uvLocation  = glGetAttribLocation(program, "uv");
 	const char* names[] = {
-		"u_WV", "u_WVP",
-		"u_Ambient", "u_Diffuse", "u_Specular", "u_SpecularPower", "u_Alpha",
-		"u_TexMode", "u_Tex", "u_TexMulFactor", "u_TexAddFactor",
-		"u_SphereTexMode", "u_SphereTex", "u_SphereTexMulFactor", "u_SphereTexAddFactor",
-		"u_ToonTexMode", "u_ToonTex", "u_ToonTexMulFactor", "u_ToonTexAddFactor",
-		"u_LightColor", "u_LightDir"
+		"wv", "wvp",
+		"ambient", "diffuse", "specular", "specularPower", "alpha",
+		"texMode", "tex", "texMulFactor", "texAddFactor",
+		"sphereTexMode", "sphereTex", "sphereTexMulFactor", "sphereTexAddFactor",
+		"toonTexMode", "toonTex", "toonTexMulFactor", "toonTexAddFactor",
+		"lightColor", "lightDir"
 	};
 	GLint* outs[] = {
-		&m_uWV, &m_uWVP,
-		&m_uAmbient, &m_uDiffuse, &m_uSpecular, &m_uSpecularPower, &m_uAlpha,
-		&m_uTexMode, &m_uTex, &m_uTexMulFactor, &m_uTexAddFactor,
-		&m_uSphereTexMode, &m_uSphereTex, &m_uSphereTexMulFactor, &m_uSphereTexAddFactor,
-		&m_uToonTexMode, &m_uToonTex, &m_uToonTexMulFactor, &m_uToonTexAddFactor,
-		&m_uLightColor, &m_uLightDir
+		&wvLocation, &wvpLocation,
+		&ambientLocation, &diffuseLocation, &specularLocation, &specularPowerLocation, &alphaLocation,
+		&texModeLocation, &texLocation, &texMulFactorLocation, &texAddFactorLocation,
+		&sphereTexModeLocation, &sphereTexLocation, &sphereTexMulFactorLocation, &sphereTexAddFactorLocation,
+		&toonTexModeLocation, &toonTexLocation, &toonTexMulFactorLocation, &toonTexAddFactorLocation,
+		&lightColorLocation, &lightDirLocation
 	};
-	LoadUniformLocations(m_prog, names, outs, std::size(names));
-	glUseProgram(m_prog);
-	glUniform1i(m_uTex, 0);
-	glUniform1i(m_uSphereTex, 1);
-	glUniform1i(m_uToonTex, 2);
+	LoadUniformLocations(program, names, outs, std::size(names));
+	glUseProgram(program);
+	glUniform1i(texLocation, 0);
+	glUniform1i(sphereTexLocation, 1);
+	glUniform1i(toonTexLocation, 2);
 	return true;
 }
 
 GLFWEdgeShader::~GLFWEdgeShader() {
-	if (m_prog != 0)
-		glDeleteProgram(m_prog);
-	m_prog = 0;
+	if (program != 0)
+		glDeleteProgram(program);
+	program = 0;
 }
 
 bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.m_shaderDir / "mmd_edge.glsl");
-	if (m_prog == 0)
+	program = CreateShader(viewer.m_shaderDir / "mmd_edge.glsl");
+	if (program == 0)
 		return false;
-	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
-	m_inNor = glGetAttribLocation(m_prog, "in_Nor");
-	m_uWV = glGetUniformLocation(m_prog, "u_WV");
-	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
-	m_uScreenSize = glGetUniformLocation(m_prog, "u_ScreenSize");
-	m_uEdgeSize = glGetUniformLocation(m_prog, "u_EdgeSize");
-	m_uEdgeColor = glGetUniformLocation(m_prog, "u_EdgeColor");
+	positionLocation = glGetAttribLocation(program, "position");
+	normalLocation = glGetAttribLocation(program, "normal");
+	wvLocation = glGetUniformLocation(program, "wv");
+	wvpLocation = glGetUniformLocation(program, "wvp");
+	screenSizeLocation = glGetUniformLocation(program, "screenSize");
+	edgeSizeLocation = glGetUniformLocation(program, "edgeSize");
+	edgeColorLocation = glGetUniformLocation(program, "edgeColor");
 	return true;
 }
 
 GLFWGroundShadowShader::~GLFWGroundShadowShader() {
-	if (m_prog != 0)
-		glDeleteProgram(m_prog);
-	m_prog = 0;
+	if (program != 0)
+		glDeleteProgram(program);
+	program = 0;
 }
 
 bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
-	m_prog = CreateShader(viewer.m_shaderDir / "mmd_ground_shadow.glsl");
-	if (m_prog == 0)
+	program = CreateShader(viewer.m_shaderDir / "mmd_ground_shadow.glsl");
+	if (program == 0)
 		return false;
-	m_inPos = glGetAttribLocation(m_prog, "in_Pos");
-	m_uWVP = glGetUniformLocation(m_prog, "u_WVP");
-	m_uShadowColor = glGetUniformLocation(m_prog, "u_ShadowColor");
+	positionLocation = glGetAttribLocation(program, "position");
+	wvpLocation = glGetUniformLocation(program, "wvp");
+	shadowColorLocation = glGetUniformLocation(program, "shadowColor");
 	return true;
 }
 
 GLFWMaterial::GLFWMaterial(const Material &mat)
-	: m_mat(mat) {
+	: mat(mat) {
 }
 
 bool GLFWInstance::Setup(Viewer& viewer) {
@@ -195,9 +199,9 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 		{ m_posVbo }
 	};
 	const GLint locs[][3] = {
-		{ m_viewer->m_shader->m_inPos, m_viewer->m_shader->m_inNor, m_viewer->m_shader->m_inUV },
-		{ m_viewer->m_edgeShader->m_inPos, m_viewer->m_edgeShader->m_inNor },
-		{ m_viewer->m_gsShader->m_inPos }
+		{ m_viewer->m_shader->positionLocation, m_viewer->m_shader->normalLocation, m_viewer->m_shader->uvLocation },
+		{ m_viewer->m_edgeShader->positionLocation, m_viewer->m_edgeShader->normalLocation },
+		{ m_viewer->m_gsShader->positionLocation }
 	};
 	constexpr GLint sizes[][3] = {
 		{ 3, 3, 2 },
@@ -215,14 +219,14 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 	for (const auto& mat : m_model->materials) {
 		GLFWMaterial m(mat);
 		if (!mat.texture.empty()) {
-			auto [m_texture, m_hasAlpha] = m_viewer->LoadTexture(mat.texture);
-			m.m_texture = m_texture;
-			m.m_textureHasAlpha = m_hasAlpha;
+			auto [texture, hasAlpha] = m_viewer->LoadTexture(mat.texture);
+			m.texture = texture;
+			m.textureHasAlpha = hasAlpha;
 		}
 		if (!mat.spTexture.empty())
-			m.m_spTexture = m_viewer->LoadTexture(mat.spTexture).m_texture;
+			m.spTexture = m_viewer->LoadTexture(mat.spTexture).texture;
 		if (!mat.cartoonTexture.empty())
-			m.m_toonTexture = m_viewer->LoadTexture(mat.cartoonTexture, true).m_texture;
+			m.toonTexture = m_viewer->LoadTexture(mat.cartoonTexture, true).texture;
 		m_materials.emplace_back(m);
 	}
 	return true;
@@ -270,59 +274,59 @@ void GLFWInstance::Draw() const {
 	const auto& shader = m_viewer->m_shader;
 	glm::vec3 lightColor = m_viewer->m_lightColor;
 	glm::vec3 lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
-	glUseProgram(shader->m_prog);
-	glUniformMatrix4fv(shader->m_uWV, 1, GL_FALSE, &wv[0][0]);
-	glUniformMatrix4fv(shader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
-	glUniform3fv(shader->m_uLightDir, 1, &lightDir[0]);
-	glUniform3fv(shader->m_uLightColor, 1, &lightColor[0]);
+	glUseProgram(shader->program);
+	glUniformMatrix4fv(shader->wvLocation, 1, GL_FALSE, &wv[0][0]);
+	glUniformMatrix4fv(shader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
+	glUniform3fv(shader->lightDirLocation, 1, &lightDir[0]);
+	glUniform3fv(shader->lightColorLocation, 1, &lightColor[0]);
 	glBindVertexArray(m_vao);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
 		const auto& m = m_materials[materialId];
-		const auto& mat = m.m_mat;
+		const auto& mat = m.mat;
 		if (mat.diffuse.a == 0)
 			continue;
-		glUniform3fv(shader->m_uAmbient, 1, &mat.ambient[0]);
-		glUniform3fv(shader->m_uDiffuse, 1, &mat.diffuse[0]);
-		glUniform3fv(shader->m_uSpecular, 1, &mat.specular[0]);
-		glUniform1f(shader->m_uSpecularPower, mat.specularPower);
-		glUniform1f(shader->m_uAlpha, mat.diffuse.a);
+		glUniform3fv(shader->ambientLocation, 1, &mat.ambient[0]);
+		glUniform3fv(shader->diffuseLocation, 1, &mat.diffuse[0]);
+		glUniform3fv(shader->specularLocation, 1, &mat.specular[0]);
+		glUniform1f(shader->specularPowerLocation, mat.specularPower);
+		glUniform1f(shader->alphaLocation, mat.diffuse.a);
 		glActiveTexture(GL_TEXTURE0 + 0);
-		if (m.m_texture != 0) {
-			if (!m.m_textureHasAlpha)
-				glUniform1i(shader->m_uTexMode, 1);
+		if (m.texture != 0) {
+			if (!m.textureHasAlpha)
+				glUniform1i(shader->texModeLocation, 1);
 			else
-				glUniform1i(shader->m_uTexMode, 2);
-			glUniform4fv(shader->m_uTexMulFactor, 1, &mat.textureMulFactor[0]);
-			glUniform4fv(shader->m_uTexAddFactor, 1, &mat.textureAddFactor[0]);
-			glBindTexture(GL_TEXTURE_2D, m.m_texture);
+				glUniform1i(shader->texModeLocation, 2);
+			glUniform4fv(shader->texMulFactorLocation, 1, &mat.textureMulFactor[0]);
+			glUniform4fv(shader->texAddFactorLocation, 1, &mat.textureAddFactor[0]);
+			glBindTexture(GL_TEXTURE_2D, m.texture);
 		} else {
-			glUniform1i(shader->m_uTexMode, 0);
+			glUniform1i(shader->texModeLocation, 0);
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
-		if (m.m_spTexture != 0) {
+		if (m.spTexture != 0) {
 			if (mat.spTextureMode == SphereMode::Mul)
-				glUniform1i(shader->m_uSphereTexMode, 1);
+				glUniform1i(shader->sphereTexModeLocation, 1);
 			else if (mat.spTextureMode == SphereMode::Add)
-				glUniform1i(shader->m_uSphereTexMode, 2);
-			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mat.sphereTextureMulFactor[0]);
-			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mat.sphereTextureAddFactor[0]);
-			glBindTexture(GL_TEXTURE_2D, m.m_spTexture);
+				glUniform1i(shader->sphereTexModeLocation, 2);
+			glUniform4fv(shader->sphereTexMulFactorLocation, 1, &mat.sphereTextureMulFactor[0]);
+			glUniform4fv(shader->sphereTexAddFactorLocation, 1, &mat.sphereTextureAddFactor[0]);
+			glBindTexture(GL_TEXTURE_2D, m.spTexture);
 		} else {
-			glUniform1i(shader->m_uSphereTexMode, 0);
+			glUniform1i(shader->sphereTexModeLocation, 0);
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
-		if (m.m_toonTexture != 0) {
-			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mat.cartoonTextureMulFactor[0]);
-			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mat.cartoonTextureAddFactor[0]);
-			glUniform1i(shader->m_uToonTexMode, 1);
-			glBindTexture(GL_TEXTURE_2D, m.m_toonTexture);
+		if (m.toonTexture != 0) {
+			glUniform4fv(shader->toonTexMulFactorLocation, 1, &mat.cartoonTextureMulFactor[0]);
+			glUniform4fv(shader->toonTexAddFactorLocation, 1, &mat.cartoonTextureAddFactor[0]);
+			glUniform1i(shader->toonTexModeLocation, 1);
+			glBindTexture(GL_TEXTURE_2D, m.toonTexture);
 		} else {
-			glUniform1i(shader->m_uToonTexMode, 0);
+			glUniform1i(shader->toonTexModeLocation, 0);
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
 		if (mat.bothFace)
@@ -335,37 +339,37 @@ void GLFWInstance::Draw() const {
 		glDrawElements(GL_TRIANGLES, indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& edgeShader = m_viewer->m_edgeShader;
-	glUseProgram(edgeShader->m_prog);
-	glUniformMatrix4fv(edgeShader->m_uWV, 1, GL_FALSE, &wv[0][0]);
-	glUniformMatrix4fv(edgeShader->m_uWVP, 1, GL_FALSE, &wvp[0][0]);
+	glUseProgram(edgeShader->program);
+	glUniformMatrix4fv(edgeShader->wvLocation, 1, GL_FALSE, &wv[0][0]);
+	glUniformMatrix4fv(edgeShader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
 	glm::vec2 screenSize(m_viewer->m_screenWidth, m_viewer->m_screenHeight);
-	glUniform2fv(edgeShader->m_uScreenSize, 1, &screenSize[0]);
+	glUniform2fv(edgeShader->screenSizeLocation, 1, &screenSize[0]);
 	glBindVertexArray(m_edgeVao);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
 		const auto& m = m_materials[materialId];
-		const auto& mat = m.m_mat;
+		const auto& mat = m.mat;
 		if (!mat.edgeFlag)
 			continue;
 		if (mat.diffuse.a == 0.0f)
 			continue;
-		glUniform1f(edgeShader->m_uEdgeSize, mat.edgeSize);
-		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.edgeColor[0]);
+		glUniform1f(edgeShader->edgeSizeLocation, mat.edgeSize);
+		glUniform4fv(edgeShader->edgeColorLocation, 1, &mat.edgeColor[0]);
 		size_t offset = beginIndex * m_model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& gsShader = m_viewer->m_gsShader;
-	glUseProgram(gsShader->m_prog);
+	glUseProgram(gsShader->program);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 	glm::vec4 light(-m_viewer->m_lightDir, 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
-	glUniformMatrix4fv(gsShader->m_uWVP, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
+	glUniformMatrix4fv(gsShader->wvpLocation, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 	glBindVertexArray(m_gsVao);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-	glUniform4fv(gsShader->m_uShadowColor, 1, &shadowColor[0]);
+	glUniform4fv(gsShader->shadowColorLocation, 1, &shadowColor[0]);
 	if (shadowColor.a < 1.0f) {
 		glEnable(GL_BLEND);
 		glEnable(GL_STENCIL_TEST);
@@ -379,7 +383,7 @@ void GLFWInstance::Draw() const {
 	glDisable(GL_CULL_FACE);
 	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
 		const auto& m = m_materials[materialId];
-		const auto& mat = m.m_mat;
+		const auto& mat = m.mat;
 		if (!mat.groundShadow)
 			continue;
 		if (mat.diffuse.a == 0.0f)
@@ -393,8 +397,8 @@ void GLFWInstance::Draw() const {
 }
 
 GLFWViewer::~GLFWViewer() {
-	for (auto& [m_texture, m_hasAlpha] : m_textures | std::views::values)
-		glDeleteTextures(1, &m_texture);
+	for (auto& textureInfo : m_textures | std::views::values)
+		glDeleteTextures(1, &textureInfo.texture);
 	if (m_dummyColorTex != 0)
 		glDeleteTextures(1, &m_dummyColorTex);
 }
@@ -409,7 +413,7 @@ void GLFWViewer::ConfigureGlfwHints() {
 
 bool GLFWViewer::Setup() {
 	glfwMakeContextCurrent(m_window);
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
+	if (!gladLoadGLLoader(LoadGlProc))
 		return false;
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);

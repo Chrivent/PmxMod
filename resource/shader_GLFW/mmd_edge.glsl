@@ -2,19 +2,19 @@
 
 #ifdef VERTEX
 
-in vec3 in_Pos;
-in vec3 in_Nor;
+in vec3 position;
+in vec3 normal;
 
-uniform mat4 u_WV;
-uniform mat4 u_WVP;
-uniform vec2 u_ScreenSize;
-uniform float u_EdgeSize;
+uniform mat4 wv;
+uniform mat4 wvp;
+uniform vec2 screenSize;
+uniform float edgeSize;
 
 void main() {
-    vec3 nor = mat3(u_WV) * in_Nor;
-    vec4 pos = u_WVP * vec4(in_Pos, 1.0);
+    vec3 nor = mat3(wv) * normal;
+    vec4 pos = wvp * vec4(position, 1.0);
     vec2 screenNor = normalize(vec2(nor));
-    pos.xy += screenNor * vec2(1.0) / (u_ScreenSize * 0.5) * u_EdgeSize * pos.w;
+    pos.xy += screenNor * vec2(1.0) / (screenSize * 0.5) * edgeSize * pos.w;
     gl_Position = pos;
 }
 
@@ -23,10 +23,10 @@ void main() {
 #ifdef FRAGMENT
 
 out vec4 out_Color;
-uniform vec4 u_EdgeColor;
+uniform vec4 edgeColor;
 
 void main() {
-    out_Color = u_EdgeColor;
+    out_Color = edgeColor;
 }
 
 #endif

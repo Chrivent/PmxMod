@@ -8,31 +8,31 @@ class GLFWShader {
 public:
     ~GLFWShader();
 
-    GLuint	m_prog = 0;
-    GLint	m_inPos = -1;
-    GLint	m_inNor = -1;
-    GLint	m_inUV = -1;
-    GLint	m_uWV = -1;
-    GLint	m_uWVP = -1;
-    GLint	m_uAmbient = -1;
-    GLint	m_uDiffuse = -1;
-    GLint	m_uSpecular = -1;
-    GLint	m_uSpecularPower = -1;
-    GLint	m_uAlpha = -1;
-    GLint	m_uTexMode = -1;
-    GLint	m_uTex = -1;
-    GLint	m_uTexMulFactor = -1;
-    GLint	m_uTexAddFactor = -1;
-    GLint	m_uSphereTexMode = -1;
-    GLint	m_uSphereTex = -1;
-    GLint	m_uSphereTexMulFactor = -1;
-    GLint	m_uSphereTexAddFactor = -1;
-    GLint	m_uToonTexMode = -1;
-    GLint	m_uToonTex = -1;
-    GLint	m_uToonTexMulFactor = -1;
-    GLint	m_uToonTexAddFactor = -1;
-    GLint	m_uLightColor = -1;
-    GLint	m_uLightDir = -1;
+    GLuint	program = 0;
+    GLint	positionLocation = -1;
+    GLint	normalLocation = -1;
+    GLint	uvLocation = -1;
+    GLint	wvLocation = -1;
+    GLint	wvpLocation = -1;
+    GLint	ambientLocation = -1;
+    GLint	diffuseLocation = -1;
+    GLint	specularLocation = -1;
+    GLint	specularPowerLocation = -1;
+    GLint	alphaLocation = -1;
+    GLint	texModeLocation = -1;
+    GLint	texLocation = -1;
+    GLint	texMulFactorLocation = -1;
+    GLint	texAddFactorLocation = -1;
+    GLint	sphereTexModeLocation = -1;
+    GLint	sphereTexLocation = -1;
+    GLint	sphereTexMulFactorLocation = -1;
+    GLint	sphereTexAddFactorLocation = -1;
+    GLint	toonTexModeLocation = -1;
+    GLint	toonTexLocation = -1;
+    GLint	toonTexMulFactorLocation = -1;
+    GLint	toonTexAddFactorLocation = -1;
+    GLint	lightColorLocation = -1;
+    GLint	lightDirLocation = -1;
 
     // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
@@ -42,14 +42,14 @@ class GLFWEdgeShader {
 public:
     ~GLFWEdgeShader();
 
-    GLuint	m_prog = 0;
-    GLint	m_inPos = -1;
-    GLint	m_inNor = -1;
-    GLint	m_uWV = -1;
-    GLint	m_uWVP = -1;
-    GLint	m_uScreenSize = -1;
-    GLint	m_uEdgeSize = -1;
-    GLint	m_uEdgeColor = -1;
+    GLuint	program = 0;
+    GLint	positionLocation = -1;
+    GLint	normalLocation = -1;
+    GLint	wvLocation = -1;
+    GLint	wvpLocation = -1;
+    GLint	screenSizeLocation = -1;
+    GLint	edgeSizeLocation = -1;
+    GLint	edgeColorLocation = -1;
 
     // 엣지 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
@@ -59,27 +59,27 @@ class GLFWGroundShadowShader {
 public:
     ~GLFWGroundShadowShader();
 
-    GLuint	m_prog = 0;
-    GLint	m_inPos = -1;
-    GLint	m_uWVP = -1;
-    GLint	m_uShadowColor = -1;
+    GLuint	program = 0;
+    GLint	positionLocation = -1;
+    GLint	wvpLocation = -1;
+    GLint	shadowColorLocation = -1;
 
     // 지면 그림자 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GLFWViewer& viewer);
 };
 
 struct GLFWTexture {
-    GLuint	m_texture;
-    bool	m_hasAlpha;
+    GLuint	texture;
+    bool	hasAlpha;
 };
 
 class GLFWMaterial {
 public:
-    const Material& m_mat;
-    GLuint  m_texture = 0;
-    bool	m_textureHasAlpha = false;
-    GLuint	m_spTexture = 0;
-    GLuint	m_toonTexture = 0;
+    const Material& mat;
+    GLuint  texture = 0;
+    bool	textureHasAlpha = false;
+    GLuint	spTexture = 0;
+    GLuint	toonTexture = 0;
 
     explicit GLFWMaterial(const Material& mat);
 };

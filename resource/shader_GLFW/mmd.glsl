@@ -2,22 +2,22 @@
 
 #ifdef VERTEX
 
-in vec3 in_Pos;
-in vec3 in_Nor;
-in vec2 in_UV;
+in vec3 position;
+in vec3 normal;
+in vec2 uv;
 
 out vec3 vs_Pos;
 out vec3 vs_Nor;
 out vec2 vs_UV;
 
-uniform mat4 u_WV;
-uniform mat4 u_WVP;
+uniform mat4 wv;
+uniform mat4 wvp;
 
 void main() {
-    gl_Position = u_WVP * vec4(in_Pos, 1.0);
-    vs_Pos = (u_WV * vec4(in_Pos, 1.0)).xyz;
-    vs_Nor = mat3(u_WV) * in_Nor;
-    vs_UV = in_UV;
+    gl_Position = wvp * vec4(position, 1.0);
+    vs_Pos = (wv * vec4(position, 1.0)).xyz;
+    vs_Nor = mat3(wv) * normal;
+    vs_UV = uv;
 }
 
 #endif
@@ -30,28 +30,28 @@ in vec2 vs_UV;
 
 out vec4 out_Color;
 
-uniform float u_Alpha;
-uniform vec3 u_Diffuse;
-uniform vec3 u_Ambient;
-uniform vec3 u_Specular;
-uniform float u_SpecularPower;
-uniform vec3 u_LightColor;
-uniform vec3 u_LightDir;
+uniform float alpha;
+uniform vec3 diffuse;
+uniform vec3 ambient;
+uniform vec3 specular;
+uniform float specularPower;
+uniform vec3 lightColor;
+uniform vec3 lightDir;
 
-uniform int u_TexMode;
-uniform sampler2D u_Tex;
-uniform vec4 u_TexMulFactor;
-uniform vec4 u_TexAddFactor;
+uniform int texMode;
+uniform sampler2D tex;
+uniform vec4 texMulFactor;
+uniform vec4 texAddFactor;
 
-uniform int u_ToonTexMode;
-uniform sampler2D u_ToonTex;
-uniform vec4 u_ToonTexMulFactor;
-uniform vec4 u_ToonTexAddFactor;
+uniform int toonTexMode;
+uniform sampler2D toonTex;
+uniform vec4 toonTexMulFactor;
+uniform vec4 toonTexAddFactor;
 
-uniform int u_SphereTexMode;
-uniform sampler2D u_SphereTex;
-uniform vec4 u_SphereTexMulFactor;
-uniform vec4 u_SphereTexAddFactor;
+uniform int sphereTexMode;
+uniform sampler2D sphereTex;
+uniform vec4 sphereTexMulFactor;
+uniform vec4 sphereTexAddFactor;
 
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;
@@ -66,52 +66,52 @@ vec3 ComputeTexAddFactor(vec3 texColor, vec4 factor) {
 
 void main() {
     vec3 eyeDir = normalize(vs_Pos);
-    vec3 lightDir = normalize(-u_LightDir);
+    vec3 lightDirection = normalize(-lightDir);
     vec3 nor = normalize(vs_Nor);
-    float ln = dot(nor, lightDir);
+    float ln = dot(nor, lightDirection);
     ln = clamp(ln + 0.5, 0.0, 1.0);
     vec3 color = vec3(0.0, 0.0, 0.0);
-    float alpha = u_Alpha;
-    vec3 diffuseColor = u_Diffuse * u_LightColor;
+    float opacity = alpha;
+    vec3 diffuseColor = diffuse * lightColor;
     color = diffuseColor;
-    color += u_Ambient;
+    color += ambient;
     color = clamp(color, 0.0, 1.0);
-    if (u_TexMode != 0) {
-        vec4 texColor = texture(u_Tex, vs_UV);
-        texColor.rgb = ComputeTexMulFactor(texColor.rgb, u_TexMulFactor);
-        texColor.rgb = ComputeTexAddFactor(texColor.rgb, u_TexAddFactor);
+    if (texMode != 0) {
+        vec4 texColor = texture(tex, vs_UV);
+        texColor.rgb = ComputeTexMulFactor(texColor.rgb, texMulFactor);
+        texColor.rgb = ComputeTexAddFactor(texColor.rgb, texAddFactor);
         color *= texColor.rgb;
-        if (u_TexMode == 2)
-            alpha *= texColor.a;
+        if (texMode == 2)
+            opacity *= texColor.a;
     }
-    if (alpha == 0.0)
+    if (opacity == 0.0)
         discard;
-    if (u_SphereTexMode != 0) {
+    if (sphereTexMode != 0) {
         vec2 spUV = vec2(0.0);
         spUV.x = nor.x * 0.5 + 0.5;
         spUV.y = 1.0 - (nor.y * 0.5 + 0.5);
-        vec3 spColor = texture(u_SphereTex, spUV).rgb;
-        spColor = ComputeTexMulFactor(spColor, u_SphereTexMulFactor);
-        spColor = ComputeTexAddFactor(spColor, u_SphereTexAddFactor);
-        if (u_SphereTexMode == 1)
+        vec3 spColor = texture(sphereTex, spUV).rgb;
+        spColor = ComputeTexMulFactor(spColor, sphereTexMulFactor);
+        spColor = ComputeTexAddFactor(spColor, sphereTexAddFactor);
+        if (sphereTexMode == 1)
             color *= spColor;
-        else if (u_SphereTexMode == 2)
+        else if (sphereTexMode == 2)
             color += spColor;
     }
-    if (u_ToonTexMode != 0) {
-        vec3 toonColor = texture(u_ToonTex, vec2(0.0, ln)).rgb;
-        toonColor = ComputeTexMulFactor(toonColor, u_ToonTexMulFactor);
-        toonColor = ComputeTexAddFactor(toonColor, u_ToonTexAddFactor);
+    if (toonTexMode != 0) {
+        vec3 toonColor = texture(toonTex, vec2(0.0, ln)).rgb;
+        toonColor = ComputeTexMulFactor(toonColor, toonTexMulFactor);
+        toonColor = ComputeTexAddFactor(toonColor, toonTexAddFactor);
         color *= toonColor;
     }
-    vec3 specular = vec3(0.0);
-    if (u_SpecularPower > 0) {
-        vec3 halfVec = normalize(eyeDir + lightDir);
-        vec3 specularColor = u_Specular * u_LightColor;
-        specular += pow(max(0.0, dot(halfVec, nor)), u_SpecularPower) * specularColor;
+    vec3 specularTerm = vec3(0.0);
+    if (specularPower > 0) {
+        vec3 halfVec = normalize(eyeDir + lightDirection);
+        vec3 specularColor = specular * lightColor;
+        specularTerm += pow(max(0.0, dot(halfVec, nor)), specularPower) * specularColor;
     }
-    color += specular;
-    out_Color = vec4(color, alpha);
+    color += specularTerm;
+    out_Color = vec4(color, opacity);
 }
 
 #endif
