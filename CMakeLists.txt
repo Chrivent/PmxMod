@@ -4,10 +4,12 @@ project(PmxMod)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(VCPKG_ROOT "C:/vcpkg" CACHE PATH "Path to vcpkg root")
 set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "Vcpkg target triplet")
-set(VCPKG_INCLUDE_DIR "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}/include")
-list(PREPEND CMAKE_PREFIX_PATH "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}")
-list(PREPEND CMAKE_MODULE_PATH "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}/share/stb")
+set(VCPKG_INSTALLED_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
+set(VCPKG_INCLUDE_DIR "${VCPKG_INSTALLED_DIR}/include")
+list(PREPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}")
+list(PREPEND CMAKE_MODULE_PATH "${VCPKG_INSTALLED_DIR}/share/stb")
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
@@ -64,7 +66,7 @@ add_dependencies(PmxMod SyncResources)
 if (WIN32)
     add_custom_command(TARGET PmxMod POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "C:/vcpkg/installed/${VCPKG_TARGET_TRIPLET}/bin/glfw3.dll"
+            "${VCPKG_INSTALLED_DIR}/bin/glfw3.dll"
             "$<TARGET_FILE_DIR:PmxMod>"
             VERBATIM
     )
