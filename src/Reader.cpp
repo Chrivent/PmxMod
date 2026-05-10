@@ -96,14 +96,14 @@ void PmxReader::ReadVertex(std::istream& is) {
 	int32_t vertexCount;
 	Read(is, &vertexCount);
 	vertices.resize(vertexCount);
-	for (auto& [position, normal, uv, addUV
+	for (auto& [position, normal, uv, addUv
 		     , weightType, boneIndices, boneWeights
-		     , sdefC, sdefR0, sdefR1, edgeMag] : vertices) {
+		     , sphericalDeformC, sphericalDeformR0, sphericalDeformR1, edgeMag] : vertices) {
 		Read(is, &position);
 		Read(is, &normal);
 		Read(is, &uv);
 		for (uint8_t i = 0; i < header.addUvNum; i++)
-			Read(is, &addUV[i]);
+			Read(is, &addUv[i]);
 		Read(is, &weightType);
 		switch (weightType) {
 			case WeightType::BoneDeform1:
@@ -128,9 +128,9 @@ void PmxReader::ReadVertex(std::istream& is) {
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
 				Read(is, &boneWeights[0]);
-				Read(is, &sdefC);
-				Read(is, &sdefR0);
-				Read(is, &sdefR1);
+				Read(is, &sphericalDeformC);
+				Read(is, &sphericalDeformR0);
+				Read(is, &sphericalDeformR1);
 				break;
 			case WeightType::QuaternionDeform:
 				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
@@ -208,7 +208,7 @@ void PmxReader::ReadMaterial(std::istream& is) {
 		     , specularPower, ambient, drawMode
 		     , edgeColor, edgeSize
 		     , textureIndex, sphereTextureIndex
-		     , sphereMode, toonMode, toonTextureIndex
+		     , sphereMode, cartoonMode, cartoonTextureIndex
 		     , memo, numFaceVertices] : materials) {
 		ReadString(is, &name);
 		ReadString(is, &englishName);
@@ -222,13 +222,13 @@ void PmxReader::ReadMaterial(std::istream& is) {
 		ReadIndex(is, &textureIndex, header.textureIndexSize);
 		ReadIndex(is, &sphereTextureIndex, header.textureIndexSize);
 		Read(is, &sphereMode);
-		Read(is, &toonMode);
-		if (toonMode == CartoonMode::Separate)
-			ReadIndex(is, &toonTextureIndex, header.textureIndexSize);
-		else if (toonMode == CartoonMode::Common) {
-			uint8_t toonIndex;
-			Read(is, &toonIndex);
-			toonTextureIndex = static_cast<int32_t>(toonIndex);
+		Read(is, &cartoonMode);
+		if (cartoonMode == CartoonMode::Separate)
+			ReadIndex(is, &cartoonTextureIndex, header.textureIndexSize);
+		else if (cartoonMode == CartoonMode::Common) {
+			uint8_t cartoonIndex;
+			Read(is, &cartoonIndex);
+			cartoonTextureIndex = static_cast<int32_t>(cartoonIndex);
 		}
 		ReadString(is, &memo);
 		Read(is, &numFaceVertices);
@@ -332,7 +332,7 @@ void PmxReader::ReadMorph(std::istream& is) {
 			for (auto& [materialIndex, opType, diffuse
 				     , specular, specularPower
 				     , ambient, edgeColor, edgeSize
-				     , textureFactor, sphereTextureFactor, toonTextureFactor] : materialMorph) {
+				     , textureFactor, sphereTextureFactor, cartoonTextureFactor] : materialMorph) {
 				ReadIndex(is, &materialIndex, header.materialIndexSize);
 				Read(is, &opType);
 				Read(is, &diffuse);
@@ -343,7 +343,7 @@ void PmxReader::ReadMorph(std::istream& is) {
 				Read(is, &edgeSize);
 				Read(is, &textureFactor);
 				Read(is, &sphereTextureFactor);
-				Read(is, &toonTextureFactor);
+				Read(is, &cartoonTextureFactor);
 			}
 		} else if (morphType == MorphType::Group) {
 			groupMorph.resize(dataCount);
@@ -449,14 +449,14 @@ void PmxReader::ReadSoftBody(std::istream& is) {
 	Read(is, &sbCount);
 	softBodies.resize(sbCount);
 	for (auto& [name, englishName, type, materialIndex
-		     , group, collisionGroup, flag, BLinkLength
+		     , group, collisionGroup, flag, bodyLinkLength
 		     , numClusters, totalMass, collisionMargin, aeroModel
-		     , VCF, DP, DG, LF, PR, VC, DF, MT
-		     , CHR, KHR, SHR, AHR
-		     , SRHR_CL, SKHR_CL, SSHR_CL
-		     , SR_SPLT_CL, SK_SPLT_CL, SS_SPLT_CL
-		     , V_IT, P_IT, D_IT, C_IT
-		     , LST, AST, VST
+		     , vcf, dp, dg, lf, pr, vc, df, mt
+		     , chr, khr, shr, ahr
+		     , sRhrCl, sKhrCl, sShrCl
+		     , srSplitCl, skSplitCl, ssSplitCl
+		     , vIt, pIt, dIt, cIt
+		     , lst, ast, vst
 		     , anchorRigidBodies, pinVertexIndices] : softBodies) {
 		ReadString(is, &name);
 		ReadString(is, &englishName);
@@ -465,36 +465,36 @@ void PmxReader::ReadSoftBody(std::istream& is) {
 		Read(is, &group);
 		Read(is, &collisionGroup);
 		Read(is, &flag);
-		Read(is, &BLinkLength);
+		Read(is, &bodyLinkLength);
 		Read(is, &numClusters);
 		Read(is, &totalMass);
 		Read(is, &collisionMargin);
 		Read(is, &aeroModel);
-		Read(is, &VCF);
-		Read(is, &DP);
-		Read(is, &DG);
-		Read(is, &LF);
-		Read(is, &PR);
-		Read(is, &VC);
-		Read(is, &DF);
-		Read(is, &MT);
-		Read(is, &CHR);
-		Read(is, &KHR);
-		Read(is, &SHR);
-		Read(is, &AHR);
-		Read(is, &SRHR_CL);
-		Read(is, &SKHR_CL);
-		Read(is, &SSHR_CL);
-		Read(is, &SR_SPLT_CL);
-		Read(is, &SK_SPLT_CL);
-		Read(is, &SS_SPLT_CL);
-		Read(is, &V_IT);
-		Read(is, &P_IT);
-		Read(is, &D_IT);
-		Read(is, &C_IT);
-		Read(is, &LST);
-		Read(is, &AST);
-		Read(is, &VST);
+		Read(is, &vcf);
+		Read(is, &dp);
+		Read(is, &dg);
+		Read(is, &lf);
+		Read(is, &pr);
+		Read(is, &vc);
+		Read(is, &df);
+		Read(is, &mt);
+		Read(is, &chr);
+		Read(is, &khr);
+		Read(is, &shr);
+		Read(is, &ahr);
+		Read(is, &sRhrCl);
+		Read(is, &sKhrCl);
+		Read(is, &sShrCl);
+		Read(is, &srSplitCl);
+		Read(is, &skSplitCl);
+		Read(is, &ssSplitCl);
+		Read(is, &vIt);
+		Read(is, &pIt);
+		Read(is, &dIt);
+		Read(is, &cIt);
+		Read(is, &lst);
+		Read(is, &ast);
+		Read(is, &vst);
 		int32_t arCount;
 		Read(is, &arCount);
 		anchorRigidBodies.resize(arCount);
