@@ -89,7 +89,7 @@ void RigidBody::Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model*
 	btVector3 localInertia(0, 0, 0);
 	if (pmxRigidBody.op != Operation::Static)
 		mass = pmxRigidBody.mass;
-	if (mass != 0)
+	if (mass > 0.0f)
 		shape->calculateLocalInertia(mass, localInertia);
 	const auto rx = glm::rotate(glm::mat4(1), pmxRigidBody.rotate.x, glm::vec3(1, 0, 0));
 	const auto ry = glm::rotate(glm::mat4(1), pmxRigidBody.rotate.y, glm::vec3(0, 1, 0));
@@ -249,4 +249,3 @@ void Physics::Create() {
 	world->getPairCache()->setOverlapFilterCallback(filter.get());
 	filterCallback = std::move(filter);
 }
-
