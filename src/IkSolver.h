@@ -7,24 +7,24 @@
 class Node;
 
 struct IKChain {
-	std::weak_ptr<Node>	m_node;
-	bool				m_enableAxisLimit;
-	glm::vec3			m_limitMax;
-	glm::vec3			m_limitMin;
-	glm::vec3			m_prevAngle;
-	glm::quat			m_saveIKRot;
-	float				m_planeModeAngle;
+	std::weak_ptr<Node>	node;
+	bool				enableAxisLimit;
+	glm::vec3			limitMax;
+	glm::vec3			limitMin;
+	glm::vec3			prevAngle;
+	glm::quat			saveIKRot;
+	float				planeModeAngle;
 };
 
 class IkSolver {
 public:
-	std::vector<IKChain>	m_chains;
-	std::weak_ptr<Node>		m_ikNode;
-	std::weak_ptr<Node>		m_ikTarget;
-	uint32_t				m_iterateCount = 1;
-	float					m_limitAngle = glm::two_pi<float>();
-	bool					m_enable = true;
-	bool					m_baseAnimEnable = true;
+	std::vector<IKChain>	chains;
+	std::weak_ptr<Node>		ikNode;
+	std::weak_ptr<Node>		ikTarget;
+	uint32_t				iterateCount = 1;
+	float					limitAngle = glm::two_pi<float>();
+	bool					enable = true;
+	bool					baseAnimEnable = true;
 
 	/// IK 체인을 반복 계산해 타깃 노드에 맞춘다.
 	void Solve();

@@ -47,7 +47,7 @@ void Model::InitializeAnimation() {
 	for (const auto& morph : m_morphs)
 		morph->m_weight = 0;
 	for (const auto& ikSolver : m_ikSolvers)
-		ikSolver->m_enable = true;
+		ikSolver->enable = true;
 	UpdateNodeAnimation(false);
 	UpdateNodeAnimation(true);
 	ResetPhysics();
@@ -61,7 +61,7 @@ void Model::SaveBaseAnimation() const {
 	for (const auto& morph : m_morphs)
 		morph->m_saveAnimWeight = morph->m_weight;
 	for (const auto& ikSolver : m_ikSolvers)
-		ikSolver->m_baseAnimEnable = ikSolver->m_enable;
+		ikSolver->baseAnimEnable = ikSolver->enable;
 }
 
 void Model::ClearBaseAnimation() const {
@@ -72,7 +72,7 @@ void Model::ClearBaseAnimation() const {
 	for (const auto& morph : m_morphs)
 		morph->m_saveAnimWeight = 0;
 	for (const auto& ikSolver : m_ikSolvers)
-		ikSolver->m_baseAnimEnable = true;
+		ikSolver->baseAnimEnable = true;
 }
 
 void Model::BeginAnimation() {
@@ -374,22 +374,22 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		const auto& bone = pmx.m_bones[i];
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_shared<IkSolver>();
-			solver->m_ikNode = m_nodes[i];
+			solver->ikNode = m_nodes[i];
 			m_nodes[i]->m_ikSolver = solver;
-			solver->m_ikTarget = m_nodes[bone.m_ikTargetBoneIndex];
+			solver->ikTarget = m_nodes[bone.m_ikTargetBoneIndex];
 			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
 				auto linkNode = m_nodes[m_ikBoneIndex];
 				IKChain chain{};
-				chain.m_node = linkNode;
-				chain.m_enableAxisLimit = m_enableLimit;
-				chain.m_limitMin = m_limitMax * glm::vec3(-1);
-				chain.m_limitMax = m_limitMin * glm::vec3(-1);
-				chain.m_saveIKRot = glm::quat(1, 0, 0, 0);
-				solver->m_chains.emplace_back(chain);
+				chain.node = linkNode;
+				chain.enableAxisLimit = m_enableLimit;
+				chain.limitMin = m_limitMax * glm::vec3(-1);
+				chain.limitMax = m_limitMin * glm::vec3(-1);
+				chain.saveIKRot = glm::quat(1, 0, 0, 0);
+				solver->chains.emplace_back(chain);
 				linkNode->m_enableIK = true;
 			}
-			solver->m_iterateCount = bone.m_ikIterationCount;
-			solver->m_limitAngle = bone.m_ikLimit;
+			solver->iterateCount = bone.m_ikIterationCount;
+			solver->limitAngle = bone.m_ikLimit;
 			m_ikSolvers.emplace_back(std::move(solver));
 		}
 	}

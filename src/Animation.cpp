@@ -77,8 +77,8 @@ bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<IkSolver>, std::vector<IKAnimationKey>>> ikMap;
 	for (auto& ik : m_iks) {
 		if (ik.first) {
-			if (const auto ikNode = ik.first->m_ikNode.lock())
-				ikMap.emplace(ikNode->m_name, std::move(ik));
+			if (const auto ikNodePtr = ik.first->ikNode.lock())
+				ikMap.emplace(ikNodePtr->m_name, std::move(ik));
 		}
 	}
 	m_iks.clear();
@@ -90,8 +90,8 @@ bool Animation::Add(const VMDReader& vmd) {
 			if (inserted) {
 				auto it = std::ranges::find(model->m_ikSolvers, ikName,
 					[](const std::shared_ptr<IkSolver>& ikSolver){
-						const auto ikNode = ikSolver->m_ikNode.lock();
-						return ikNode ? ikNode->m_name : std::string{};
+						const auto ikNodePtr = ikSolver->ikNode.lock();
+						return ikNodePtr ? ikNodePtr->m_name : std::string{};
 					}
 				);
 				first = it != model->m_ikSolvers.end() ? *it : nullptr;
@@ -180,13 +180,13 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		if (!ikSolver)
 			continue;
 		if (keys.empty()) {
-			ikSolver->m_enable = true;
+			ikSolver->enable = true;
 			continue;
 		}
 		const auto it = std::ranges::upper_bound(keys, t, std::less{},
 			[](const IKAnimationKey& k) { return static_cast<float>(k.time); });
 		const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
-		ikSolver->m_enable = animWeight < 1.0f ? ikSolver->m_baseAnimEnable : enable;
+		ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 	}
 	for (const auto& [morph, keys] : m_morphs) {
 		if (!morph)
