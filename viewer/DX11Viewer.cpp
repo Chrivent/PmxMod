@@ -61,7 +61,7 @@ D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
 	return d;
 }
 
-template<class T>
+template<typename T>
 HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
 	const UINT bytes = static_cast<UINT>(sizeof(T) + 15u & ~15u);
 	const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);

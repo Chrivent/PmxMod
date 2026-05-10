@@ -8,7 +8,7 @@ void Read(std::istream& is, void* dst, const std::size_t bytes) {
 	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
 }
 
-template <class T>
+template <typename T>
 void Read(std::istream& is, T* dst) {
 	Read(is, dst, sizeof(T));
 }
