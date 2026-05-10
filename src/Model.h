@@ -9,7 +9,7 @@
 
 struct GroupMorph;
 struct BoneMorph;
-struct UVMorph;
+struct UvMorph;
 struct PositionMorph;
 struct MaterialMorph;
 class RigidBody;
@@ -23,7 +23,7 @@ enum class WeightType : uint8_t;
 struct SubMesh {
 	int	beginIndex;
 	int	indexCount;
-	int	materialID;
+	int	materialId;
 };
 
 struct Vertex {
@@ -124,7 +124,7 @@ private:
 	std::vector<Vertex>							m_vertexBoneInfos;
 	std::vector<glm::mat4>						m_transforms;
 	std::vector<std::vector<PositionMorph>>		m_positionMorphDatas;
-	std::vector<std::vector<UVMorph>>			m_uvMorphDatas;
+	std::vector<std::vector<UvMorph>>			m_uvMorphDatas;
 	std::vector<std::vector<MaterialMorph>>		m_materialMorphDatas;
 	std::vector<std::vector<BoneMorph>>			m_boneMorphDatas;
 	std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
@@ -152,7 +152,7 @@ private:
 	/// 위치 모프 데이터를 버텍스 위치에 적용한다.
 	void MorphPosition(const std::vector<PositionMorph>& morphData, float weight);
 	/// UV 모프 데이터를 버텍스 UV에 적용한다.
-	void MorphUV(const std::vector<UVMorph>& morphData, float weight);
+	void MorphUV(const std::vector<UvMorph>& morphData, float weight);
 	/// 재질 모프 누적을 시작하기 위해 재질 계수를 초기화한다.
 	void BeginMorphMaterial();
 	/// 누적된 재질 모프 결과를 최종 재질에 반영한다.

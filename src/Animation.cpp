@@ -52,11 +52,11 @@ void NodeAnimationKey::ApplyMotion(const VMDReader::VMDMotion& motion) {
 
 bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
-	for (auto& node : m_nodes) {
+	for (auto& node : nodes) {
 		if (node.first)
 			nodeMap.emplace(node.first->name, std::move(node));
 	}
-	m_nodes.clear();
+	nodes.clear();
 	for (const auto& motion : vmd.motions) {
 		auto nodeName = Util::SjisToUtf8(motion.boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
@@ -72,16 +72,16 @@ bool Animation::Add(const VMDReader& vmd) {
 	}
 	for (auto& val : nodeMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::time);
-		m_nodes.insert(std::move(val));
+		nodes.insert(std::move(val));
 	}
 	std::map<std::string, std::pair<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>>> ikMap;
-	for (auto& ik : m_iks) {
+	for (auto& ik : iks) {
 		if (ik.first) {
 			if (const auto ikNodePtr = ik.first->ikNode.lock())
 				ikMap.emplace(ikNodePtr->name, std::move(ik));
 		}
 	}
-	m_iks.clear();
+	iks.clear();
 	for (const auto& ik : vmd.iks) {
 		for (const auto& [ikInfoName, ikInfoEnable] : ik.ikInfos) {
 			auto ikName = Util::SjisToUtf8(ikInfoName);
@@ -105,14 +105,14 @@ bool Animation::Add(const VMDReader& vmd) {
 	}
 	for (auto& val : ikMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &IkAnimationKey::time);
-		m_iks.insert(std::move(val));
+		iks.insert(std::move(val));
 	}
 	std::map<std::string, std::pair<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>>> morphMap;
-	for (auto& morph : m_morphs) {
+	for (auto& morph : morphs) {
 		if (morph.first)
 			morphMap.emplace(morph.first->name, std::move(morph));
 	}
-	m_morphs.clear();
+	morphs.clear();
 	for (const auto& [blendShapeName, morphFrame, morphAnimWeight] : vmd.morphs) {
 		auto morphName = Util::SjisToUtf8(blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
@@ -129,20 +129,20 @@ bool Animation::Add(const VMDReader& vmd) {
 	}
 	for (auto& val : morphMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
-		m_morphs.insert(std::move(val));
+		morphs.insert(std::move(val));
 	}
 	return true;
 }
 
 void Animation::Destroy() {
 	model.reset();
-	m_nodes.clear();
-	m_iks.clear();
-	m_morphs.clear();
+	nodes.clear();
+	iks.clear();
+	morphs.clear();
 }
 
 void Animation::Evaluate(const float t, const float animWeight) const {
-	for (const auto& [node, keys]: m_nodes) {
+	for (const auto& [node, keys]: nodes) {
 		if (!node)
 			continue;
 		if (keys.empty()) {
@@ -176,7 +176,7 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
 		node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
 	}
-	for (const auto& [ikSolver, keys] : m_iks) {
+	for (const auto& [ikSolver, keys] : iks) {
 		if (!ikSolver)
 			continue;
 		if (keys.empty()) {
@@ -188,7 +188,7 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 		ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 	}
-	for (const auto& [morph, keys] : m_morphs) {
+	for (const auto& [morph, keys] : morphs) {
 		if (!morph)
 			continue;
 		if (keys.empty())
@@ -234,7 +234,7 @@ glm::mat4 Camera::CalcViewMatrix() const {
 
 bool CameraAnimation::Create(const VMDReader& vmd) {
 	if (!vmd.cameras.empty()) {
-		m_keys.clear();
+		keys.clear();
 		for (const auto& cam: vmd.cameras) {
 			CameraAnimationKey key{};
 			key.time = static_cast<int32_t>(cam.frame);
@@ -260,25 +260,25 @@ bool CameraAnimation::Create(const VMDReader& vmd) {
 			AssignBezier(key.fovBezier,
 				cam.interpolation[20], cam.interpolation[21],
 				cam.interpolation[22], cam.interpolation[23]);
-			m_keys.push_back(key);
+			keys.push_back(key);
 		}
-		std::ranges::sort(m_keys, {}, &CameraAnimationKey::time);
+		std::ranges::sort(keys, {}, &CameraAnimationKey::time);
 	} else
 		return false;
 	return true;
 }
 
 void CameraAnimation::Evaluate(const float t) {
-	if (m_keys.empty())
+	if (keys.empty())
 		return;
-	const auto it = std::ranges::upper_bound(m_keys, t, std::less{},
+	const auto it = std::ranges::upper_bound(keys, t, std::less{},
 		[](const CameraAnimationKey& k) { return static_cast<float>(k.time); });
-	const auto& cur = it != m_keys.end() ? *it : m_keys.back();
+	const auto& cur = it != keys.end() ? *it : keys.back();
 	camera.interest = cur.interest;
 	camera.rotate = cur.rotate;
 	camera.distance = cur.distance;
 	camera.fov = cur.fov;
-	if (it == m_keys.begin() || it == m_keys.end())
+	if (it == keys.begin() || it == keys.end())
 		return;
 	const auto& [keyTime, keyInterest, keyRotate, keyDistance, keyFov,
 		keyIxBezier, keyIyBezier, keyIzBezier,

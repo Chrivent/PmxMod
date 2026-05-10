@@ -47,9 +47,9 @@ public:
 	void SyncPhysics(float t) const;
 
 private:
-	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> m_nodes;
-	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> m_iks;
-	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> m_morphs;
+	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> nodes;
+	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> iks;
+	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> morphs;
 };
 
 struct Camera {
@@ -86,5 +86,5 @@ public:
 	void Evaluate(float t);
 
 private:
-	std::vector<CameraAnimationKey>	m_keys;
+	std::vector<CameraAnimationKey>	keys;
 };

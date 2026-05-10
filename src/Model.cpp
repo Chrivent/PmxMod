@@ -314,7 +314,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		SubMesh subMesh{};
 		subMesh.beginIndex = static_cast<int>(beginIndex);
 		subMesh.indexCount = mat.numFaceVertices;
-		subMesh.materialID = static_cast<int>(materials.size() - 1);
+		subMesh.materialId = static_cast<int>(materials.size() - 1);
 		subMeshes.push_back(subMesh);
 		beginIndex += mat.numFaceVertices;
 	}
@@ -379,12 +379,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			solver->ikTarget = nodes[bone.ikTargetBoneIndex];
 			for (const auto& [ikBoneIndex, enableLimit, limitMin, limitMax] : bone.ikLinks) {
 				auto linkNode = nodes[ikBoneIndex];
-				IKChain chain{};
+				IkChain chain{};
 				chain.node = linkNode;
 				chain.enableAxisLimit = enableLimit;
 				chain.limitMin = limitMax * glm::vec3(-1);
 				chain.limitMax = limitMin * glm::vec3(-1);
-				chain.saveIKRot = glm::quat(1, 0, 0, 0);
+				chain.saveIkRot = glm::quat(1, 0, 0, 0);
 				solver->chains.emplace_back(chain);
 				linkNode->enableIK = true;
 			}
@@ -410,9 +410,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			m_positionMorphDatas.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::UV) {
 			m->dataIndex = m_uvMorphDatas.size();
-			std::vector<UVMorph> morphData;
+			std::vector<UvMorph> morphData;
 			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
-				UVMorph morphUV{};
+				UvMorph morphUV{};
 				morphUV.vertexIndex = morphVertexIndex;
 				morphUV.uv = morphUVValue;
 				morphData.push_back(morphUV);
@@ -656,7 +656,7 @@ void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const flo
 		m_morphPositions[morphIndex] += morphPosition * weight;
 }
 
-void Model::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
+void Model::MorphUV(const std::vector<UvMorph>& morphData, const float weight) {
 	for (const auto& [morphIndex, morphUVValue] : morphData)
 		m_morphUVs[morphIndex] += morphUVValue * weight;
 }

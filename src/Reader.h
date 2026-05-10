@@ -142,7 +142,7 @@ struct PositionMorph {
 	glm::vec3	position;
 };
 
-struct UVMorph {
+struct UvMorph {
 	int32_t		vertexIndex;
 	glm::vec4	uv;
 };
@@ -292,7 +292,7 @@ class PMXReader {
 		ControlPanel	controlPanel;
 		MorphType		morphType;
 		std::vector<PositionMorph>	positionMorph;
-		std::vector<UVMorph>		uvMorph;
+		std::vector<UvMorph>		uvMorph;
 		std::vector<BoneMorph>		boneMorph;
 		std::vector<MaterialMorph>	materialMorph;
 		std::vector<GroupMorph>		groupMorph;
