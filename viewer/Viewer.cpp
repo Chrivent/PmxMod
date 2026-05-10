@@ -183,7 +183,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         instance->m_model = pmxModel;
         instance->m_model->InitializeAnimation();
         auto vmdAnim = std::make_unique<Animation>();
-        vmdAnim->m_model = instance->m_model;
+        vmdAnim->model = instance->m_model;
         for (const auto& vmdPath : vmdPaths) {
             VMDReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
@@ -246,10 +246,10 @@ void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveT
 void Viewer::UpdateCamera() {
     if (m_useMotionCamera && m_cameraAnim) {
         m_cameraAnim->Evaluate(m_animTime * 30.0f);
-        const auto cam = m_cameraAnim->m_camera;
+        const auto cam = m_cameraAnim->camera;
         m_viewMat = cam.CalcViewMatrix();
         m_projMat = glm::perspectiveFovRH(
-            cam.m_fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
+            cam.fov, static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight), 1.0f, 10000.0f
         );
         return;
     }

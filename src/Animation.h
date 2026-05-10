@@ -11,31 +11,31 @@ class Node;
 class Model;
 
 struct NodeAnimationKey {
-	int32_t		m_time;
-	glm::vec3	m_translate;
-	glm::quat	m_rotate;
-	std::pair<glm::vec2, glm::vec2>	m_txBezier;
-	std::pair<glm::vec2, glm::vec2>	m_tyBezier;
-	std::pair<glm::vec2, glm::vec2>	m_tzBezier;
-	std::pair<glm::vec2, glm::vec2>	m_rotBezier;
+	int32_t		time;
+	glm::vec3	translate;
+	glm::quat	rotate;
+	std::pair<glm::vec2, glm::vec2>	txBezier;
+	std::pair<glm::vec2, glm::vec2>	tyBezier;
+	std::pair<glm::vec2, glm::vec2>	tzBezier;
+	std::pair<glm::vec2, glm::vec2>	rotBezier;
 
 	/// VMD 모션 키에서 노드 애니메이션 키 값을 채운다.
 	void ApplyMotion(const VMDReader::VMDMotion& motion);
 };
 
 struct MorphAnimationKey {
-	int32_t	m_time;
-	float	m_morphWeight;
+	int32_t	time;
+	float	morphWeight;
 };
 
 struct IKAnimationKey {
-	int32_t	m_time;
-	bool	m_ikEnable;
+	int32_t	time;
+	bool	ikEnable;
 };
 
 class Animation {
 public:
-	std::shared_ptr<Model> m_model;
+	std::shared_ptr<Model> model;
 
 	/// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
 	bool Add(const VMDReader& vmd);
@@ -53,32 +53,32 @@ private:
 };
 
 struct Camera {
-	glm::vec3	m_interest = glm::vec3(0, 10, 0);
-	glm::vec3	m_rotate = glm::vec3(0, 0, 0);
-	float		m_distance = 50;
-	float		m_fov = glm::radians(30.0f);
+	glm::vec3	interest = glm::vec3(0, 10, 0);
+	glm::vec3	rotate = glm::vec3(0, 0, 0);
+	float		distance = 50;
+	float		fov = glm::radians(30.0f);
 
 	/// 현재 카메라 파라미터로 뷰 행렬을 계산한다.
 	glm::mat4 CalcViewMatrix() const;
 };
 
 struct CameraAnimationKey {
-	int32_t		m_time;
-	glm::vec3	m_interest;
-	glm::vec3	m_rotate;
-	float		m_distance;
-	float		m_fov;
-	std::pair<glm::vec2, glm::vec2>	m_ixBezier;
-	std::pair<glm::vec2, glm::vec2>	m_iyBezier;
-	std::pair<glm::vec2, glm::vec2>	m_izBezier;
-	std::pair<glm::vec2, glm::vec2>	m_rotateBezier;
-	std::pair<glm::vec2, glm::vec2>	m_distanceBezier;
-	std::pair<glm::vec2, glm::vec2>	m_fovBezier;
+	int32_t		time;
+	glm::vec3	interest;
+	glm::vec3	rotate;
+	float		distance;
+	float		fov;
+	std::pair<glm::vec2, glm::vec2>	ixBezier;
+	std::pair<glm::vec2, glm::vec2>	iyBezier;
+	std::pair<glm::vec2, glm::vec2>	izBezier;
+	std::pair<glm::vec2, glm::vec2>	rotateBezier;
+	std::pair<glm::vec2, glm::vec2>	distanceBezier;
+	std::pair<glm::vec2, glm::vec2>	fovBezier;
 };
 
 class CameraAnimation {
 public:
-	Camera m_camera;
+	Camera camera;
 
 	/// VMD 카메라 키를 읽어 카메라 애니메이션을 생성한다.
 	bool Create(const VMDReader& vmd);
