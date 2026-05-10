@@ -1,12 +1,6 @@
 ﻿#pragma once
 
-#include <cstdint>
-#include <filesystem>
 #include <future>
-#include <functional>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "Node.h"
 #include "IkSolver.h"

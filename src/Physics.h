@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include <memory>
-#include <vector>
 #include <btBulletDynamicsCommon.h>
 
 #include "Reader.h"
@@ -28,43 +26,43 @@ public:
 
 class DefaultMotionState final : public MotionState {
 public:
-	explicit DefaultMotionState(const glm::mat4& transform);
+	explicit DefaultMotionState(const glm::mat4& initialMatrix);
 
 	/// Bullet에 현재 월드 변환을 전달한다.
-	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
+	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 	/// Bullet에서 계산된 월드 변환을 저장한다.
-	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
+	void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
 	/// 저장된 초기 변환으로 되돌린다.
-	void Reset() override { m_transform = m_initialTransform; }
+	void Reset() override { transform = initialTransform; }
 
 private:
-	btTransform	m_initialTransform;
-	btTransform	m_transform;
+	btTransform	initialTransform;
+	btTransform	transform;
 };
 
 class DynamicMotionState : public MotionState {
 public:
-	DynamicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset);
+	DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
 
 	/// Bullet에 현재 동적 강체 변환을 전달한다.
-	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = m_transform; }
+	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 	/// Bullet에서 계산된 동적 강체 변환을 저장한다.
-	void setWorldTransform(const btTransform& worldTransform) override { m_transform = worldTransform; }
+	void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
 	/// 연결된 본의 현재 변환 기준으로 물리 변환을 재설정한다.
 	void Reset() override;
 	/// 물리 변환을 연결된 본의 글로벌 변환에 반영한다.
 	void ReflectGlobalTransform() override;
 
 protected:
-	std::weak_ptr<Node>	m_node;
+	std::weak_ptr<Node>	node;
 
 	/// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스가 보정한다.
 	virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
 
 private:
-	glm::mat4	m_offset;
-	glm::mat4	m_invOffset = glm::mat4(1);
-	btTransform	m_transform;
+	glm::mat4	offset;
+	glm::mat4	invOffset = glm::mat4(1);
+	btTransform	transform;
 };
 
 class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
@@ -78,7 +76,7 @@ protected:
 
 class KinematicMotionState final : public MotionState {
 public:
-	KinematicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset);
+	KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
 
 	/// 연결된 본 변환을 Bullet 월드 변환으로 변환한다.
 	void getWorldTransform(btTransform& worldTransform) const override;
@@ -86,8 +84,8 @@ public:
 	void setWorldTransform(const btTransform& worldTransform) override {}
 
 private:
-	std::weak_ptr<Node>	m_node;
-	glm::mat4	m_offset;
+	std::weak_ptr<Node>	node;
+	glm::mat4	offset;
 };
 
 class RigidBody {
@@ -97,7 +95,7 @@ public:
 	uint16_t	groupMask = 0;
 
 	/// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
-	void Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
+	void Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr);
 	void ApplyActivation(bool activation) const;
 	/// 강체 변환을 초기 위치로 재설정한다.
 	void ResetTransform() const;
@@ -110,13 +108,13 @@ public:
 	glm::mat4 CalcTransform() const;
 
 private:
-	std::unique_ptr<btCollisionShape>	m_shape;
-	std::unique_ptr<MotionState>		m_activeMotionState;
-	std::unique_ptr<MotionState>		m_kinematicMotionState;
-	Operation	m_rigidBodyType = Operation::Static;
-	std::weak_ptr<Node>	m_node;
-	glm::mat4	m_offsetMat = glm::mat4(1);
-	std::string	m_name;
+	std::unique_ptr<btCollisionShape>	shape;
+	std::unique_ptr<MotionState>		activeMotionState;
+	std::unique_ptr<MotionState>		kinematicMotionState;
+	Operation	rigidBodyType = Operation::Static;
+	std::weak_ptr<Node>	node;
+	glm::mat4	offsetMat = glm::mat4(1);
+	std::string	name;
 };
 
 class Joint {
@@ -139,12 +137,12 @@ public:
 	void Create();
 
 private:
-	std::unique_ptr<btBroadphaseInterface>					m_broadPhase;
-	std::unique_ptr<btDefaultCollisionConfiguration>		m_collisionConfig;
-	std::unique_ptr<btCollisionDispatcher>					m_dispatcher;
-	std::unique_ptr<btSequentialImpulseConstraintSolver>	m_solver;
-	std::unique_ptr<btCollisionShape>						m_groundShape;
-	std::unique_ptr<btMotionState>							m_groundMS;
-	std::unique_ptr<btRigidBody>							m_groundRB;
-	std::unique_ptr<btOverlapFilterCallback>				m_filterCB;
+	std::unique_ptr<btBroadphaseInterface>					broadPhase;
+	std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;
+	std::unique_ptr<btCollisionDispatcher>					dispatcher;
+	std::unique_ptr<btSequentialImpulseConstraintSolver>	solver;
+	std::unique_ptr<btCollisionShape>						groundShape;
+	std::unique_ptr<btMotionState>							groundMotionState;
+	std::unique_ptr<btRigidBody>							groundRigidBody;
+	std::unique_ptr<btOverlapFilterCallback>				filterCallback;
 };

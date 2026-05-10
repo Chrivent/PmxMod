@@ -2,8 +2,6 @@
 
 #include "Viewer.h"
 
-#include <map>
-
 class GLFWViewer;
 
 class GLFWShader {
