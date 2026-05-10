@@ -29,7 +29,7 @@ void Node::UpdateLocalTransform() {
 	if (isAppendTranslate)
 		t += appendTranslate;
 	glm::quat r = animRotate * rotate;
-	if (enableIK)
+	if (enableIk)
 		r = ikRotate * r;
 	if (isAppendRotate)
 		r = r * appendRotate;
@@ -62,7 +62,7 @@ void Node::UpdateAppendTransform() {
 	if (isAppendRotate) {
 		glm::quat appendRot = !isAppendLocal && !appendNodePtr->appendNode.expired()
 		? appendNodePtr->appendRotate : appendNodePtr->animRotate * appendNodePtr->rotate;
-		if (appendNodePtr->enableIK)
+		if (appendNodePtr->enableIk)
 			appendRot = appendNodePtr->ikRotate * appendRot;
 		appendRotate = glm::slerp(glm::quat(1, 0, 0, 0), appendRot, appendWeight);
 	}

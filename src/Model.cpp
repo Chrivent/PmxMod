@@ -385,7 +385,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				chain.limitMax = limitMin * glm::vec3(-1);
 				chain.saveIkRot = glm::quat(1, 0, 0, 0);
 				solver->chains.emplace_back(chain);
-				linkNode->enableIK = true;
+				linkNode->enableIk = true;
 			}
 			solver->iterateCount = bone.ikIterationCount;
 			solver->limitAngle = bone.ikLimit;

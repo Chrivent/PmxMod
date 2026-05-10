@@ -10,7 +10,7 @@ class Node : public std::enable_shared_from_this<Node> {
 public:
 	uint32_t				index = 0;
 	std::string				name;
-	bool					enableIK = false;
+	bool					enableIk = false;
 	std::weak_ptr<Node>		parent;
 	std::weak_ptr<Node>		child;
 	std::weak_ptr<Node>		next;
