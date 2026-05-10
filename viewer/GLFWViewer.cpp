@@ -1,4 +1,4 @@
-#include "GLFWViewer.h"
+﻿#include "GLFWViewer.h"
 
 #include "../src/Model.h"
 
@@ -175,13 +175,13 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 	m_viewer = &dynamic_cast<GLFWViewer&>(viewer);
 	if (m_model == nullptr)
 		return false;
-	const size_t vtxCount = m_model->m_positions.size();
+	const size_t vtxCount = m_model->positions.size();
 	m_posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	m_norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 	m_uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-	const size_t idxSize = m_model->m_indexElementSize;
-	const size_t idxCount = m_model->m_indexCount;
-	m_ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_model->m_indices.data(), GL_STATIC_DRAW);
+	const size_t idxSize = m_model->indexElementSize;
+	const size_t idxCount = m_model->indexCount;
+	m_ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, m_model->indices.data(), GL_STATIC_DRAW);
 	if (idxSize == 1)
 		m_indexType = GL_UNSIGNED_BYTE;
 	else if (idxSize == 2)
@@ -213,17 +213,17 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 	m_vao = CreateVAO(buffers[0], locs[0], sizes[0], types[0], 3, m_ibo);
 	m_edgeVao = CreateVAO(buffers[1], locs[1], sizes[1], types[1], 2, m_ibo);
 	m_gsVao = CreateVAO(buffers[2], locs[2], sizes[2], types[2], 1, m_ibo);
-	for (const auto& mat : m_model->m_materials) {
+	for (const auto& mat : m_model->materials) {
 		GLFWMaterial m(mat);
-		if (!mat.m_texture.empty()) {
-			auto [m_texture, m_hasAlpha] = m_viewer->LoadTexture(mat.m_texture);
+		if (!mat.texture.empty()) {
+			auto [m_texture, m_hasAlpha] = m_viewer->LoadTexture(mat.texture);
 			m.m_texture = m_texture;
 			m.m_textureHasAlpha = m_hasAlpha;
 		}
-		if (!mat.m_spTexture.empty())
-			m.m_spTexture = m_viewer->LoadTexture(mat.m_spTexture).m_texture;
-		if (!mat.m_toonTexture.empty())
-			m.m_toonTexture = m_viewer->LoadTexture(mat.m_toonTexture, true).m_texture;
+		if (!mat.spTexture.empty())
+			m.m_spTexture = m_viewer->LoadTexture(mat.spTexture).m_texture;
+		if (!mat.toonTexture.empty())
+			m.m_toonTexture = m_viewer->LoadTexture(mat.toonTexture, true).m_texture;
 		m_materials.emplace_back(m);
 	}
 	return true;
@@ -250,16 +250,16 @@ void GLFWInstance::Clear() {
 
 void GLFWInstance::Update() const {
 	m_model->Update();
-	const size_t vtxCount = m_model->m_positions.size();
+	const size_t vtxCount = m_model->positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, m_posVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		m_model->m_updatePositions.data());
+		m_model->updatePositions.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_norVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		m_model->m_updateNormals.data());
+		m_model->updateNormals.data());
 	glBindBuffer(GL_ARRAY_BUFFER, m_uvVbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
-		m_model->m_updateUVs.data());
+		m_model->updateUVs.data());
 }
 
 void GLFWInstance::Draw() const {
@@ -280,24 +280,24 @@ void GLFWInstance::Draw() const {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
-		const auto& m = m_materials[m_materialID];
+	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
+		const auto& m = m_materials[subMeshMaterialID];
 		const auto& mat = m.m_mat;
-		if (mat.m_diffuse.a == 0)
+		if (mat.diffuse.a == 0)
 			continue;
-		glUniform3fv(shader->m_uAmbient, 1, &mat.m_ambient[0]);
-		glUniform3fv(shader->m_uDiffuse, 1, &mat.m_diffuse[0]);
-		glUniform3fv(shader->m_uSpecular, 1, &mat.m_specular[0]);
-		glUniform1f(shader->m_uSpecularPower, mat.m_specularPower);
-		glUniform1f(shader->m_uAlpha, mat.m_diffuse.a);
+		glUniform3fv(shader->m_uAmbient, 1, &mat.ambient[0]);
+		glUniform3fv(shader->m_uDiffuse, 1, &mat.diffuse[0]);
+		glUniform3fv(shader->m_uSpecular, 1, &mat.specular[0]);
+		glUniform1f(shader->m_uSpecularPower, mat.specularPower);
+		glUniform1f(shader->m_uAlpha, mat.diffuse.a);
 		glActiveTexture(GL_TEXTURE0 + 0);
 		if (m.m_texture != 0) {
 			if (!m.m_textureHasAlpha)
 				glUniform1i(shader->m_uTexMode, 1);
 			else
 				glUniform1i(shader->m_uTexMode, 2);
-			glUniform4fv(shader->m_uTexMulFactor, 1, &mat.m_textureMulFactor[0]);
-			glUniform4fv(shader->m_uTexAddFactor, 1, &mat.m_textureAddFactor[0]);
+			glUniform4fv(shader->m_uTexMulFactor, 1, &mat.textureMulFactor[0]);
+			glUniform4fv(shader->m_uTexAddFactor, 1, &mat.textureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, m.m_texture);
 		} else {
 			glUniform1i(shader->m_uTexMode, 0);
@@ -305,12 +305,12 @@ void GLFWInstance::Draw() const {
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
 		if (m.m_spTexture != 0) {
-			if (mat.m_spTextureMode == SphereMode::Mul)
+			if (mat.spTextureMode == SphereMode::Mul)
 				glUniform1i(shader->m_uSphereTexMode, 1);
-			else if (mat.m_spTextureMode == SphereMode::Add)
+			else if (mat.spTextureMode == SphereMode::Add)
 				glUniform1i(shader->m_uSphereTexMode, 2);
-			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mat.m_spTextureMulFactor[0]);
-			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mat.m_spTextureAddFactor[0]);
+			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mat.spTextureMulFactor[0]);
+			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mat.spTextureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, m.m_spTexture);
 		} else {
 			glUniform1i(shader->m_uSphereTexMode, 0);
@@ -318,22 +318,22 @@ void GLFWInstance::Draw() const {
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
 		if (m.m_toonTexture != 0) {
-			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mat.m_toonTextureMulFactor[0]);
-			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mat.m_toonTextureAddFactor[0]);
+			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mat.toonTextureMulFactor[0]);
+			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mat.toonTextureAddFactor[0]);
 			glUniform1i(shader->m_uToonTexMode, 1);
 			glBindTexture(GL_TEXTURE_2D, m.m_toonTexture);
 		} else {
 			glUniform1i(shader->m_uToonTexMode, 0);
 			glBindTexture(GL_TEXTURE_2D, m_viewer->m_dummyColorTex);
 		}
-		if (mat.m_bothFace)
+		if (mat.bothFace)
 			glDisable(GL_CULL_FACE);
 		else {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& edgeShader = m_viewer->m_edgeShader;
 	glUseProgram(edgeShader->m_prog);
@@ -344,17 +344,17 @@ void GLFWInstance::Draw() const {
 	glBindVertexArray(m_edgeVao);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
-		const auto& m = m_materials[m_materialID];
+	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
+		const auto& m = m_materials[subMeshMaterialID];
 		const auto& mat = m.m_mat;
-		if (!mat.m_edgeFlag)
+		if (!mat.edgeFlag)
 			continue;
-		if (mat.m_diffuse.a == 0.0f)
+		if (mat.diffuse.a == 0.0f)
 			continue;
-		glUniform1f(edgeShader->m_uEdgeSize, mat.m_edgeSize);
-		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.m_edgeColor[0]);
-		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		glUniform1f(edgeShader->m_uEdgeSize, mat.edgeSize);
+		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.edgeColor[0]);
+		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& gsShader = m_viewer->m_gsShader;
 	glUseProgram(gsShader->m_prog);
@@ -378,15 +378,15 @@ void GLFWInstance::Draw() const {
 		glDisable(GL_STENCIL_TEST);
 	}
 	glDisable(GL_CULL_FACE);
-	for (const auto& [m_beginIndex, m_indexCount, m_materialID] : m_model->m_subMeshes) {
-		const auto& m = m_materials[m_materialID];
+	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
+		const auto& m = m_materials[subMeshMaterialID];
 		const auto& mat = m.m_mat;
-		if (!mat.m_groundShadow)
+		if (!mat.groundShadow)
 			continue;
-		if (mat.m_diffuse.a == 0.0f)
+		if (mat.diffuse.a == 0.0f)
 			continue;
-		size_t offset = m_beginIndex * m_model->m_indexElementSize;
-		glDrawElements(GL_TRIANGLES, m_indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);

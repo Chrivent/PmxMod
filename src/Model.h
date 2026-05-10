@@ -21,73 +21,73 @@ enum class MorphType : uint8_t;
 enum class WeightType : uint8_t;
 
 struct SubMesh {
-	int	m_beginIndex;
-	int	m_indexCount;
-	int	m_materialID;
+	int	beginIndex;
+	int	indexCount;
+	int	materialID;
 };
 
 struct Vertex {
-	WeightType	m_weightType;
-	int32_t		m_boneIndices[4];
-	float		m_boneWeights[4];
-	glm::vec3	m_sdefC;
-	glm::vec3	m_sdefR0;
-	glm::vec3	m_sdefR1;
+	WeightType	weightType;
+	int32_t		boneIndices[4];
+	float		boneWeights[4];
+	glm::vec3	sdefC;
+	glm::vec3	sdefR0;
+	glm::vec3	sdefR1;
 };
 
 struct Morph {
-	std::string	m_name;
-	float		m_weight = 0;
-	float		m_saveAnimWeight = 0;
-	MorphType	m_morphType;
-	size_t		m_dataIndex = 0;
+	std::string	name;
+	float		weight = 0;
+	float		saveAnimWeight = 0;
+	MorphType	morphType;
+	size_t		dataIndex = 0;
 };
 
 struct Material {
-	glm::vec4				m_diffuse = glm::vec4(1);
-	glm::vec3				m_specular = glm::vec3(0);
-	float					m_specularPower = 1;
-	glm::vec3				m_ambient = glm::vec3(0.2f);
-	uint8_t					m_edgeFlag = 0;
-	float					m_edgeSize = 0;
-	glm::vec4				m_edgeColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	std::filesystem::path	m_texture;
-	std::filesystem::path	m_spTexture;
-	SphereMode				m_spTextureMode = SphereMode::None;
-	std::filesystem::path	m_toonTexture;
-	glm::vec4				m_textureMulFactor = glm::vec4(1);
-	glm::vec4				m_spTextureMulFactor = glm::vec4(1);
-	glm::vec4				m_toonTextureMulFactor = glm::vec4(1);
-	glm::vec4				m_textureAddFactor = glm::vec4(0);
-	glm::vec4				m_spTextureAddFactor = glm::vec4(0);
-	glm::vec4				m_toonTextureAddFactor = glm::vec4(0);
-	bool					m_bothFace = false;
-	bool					m_groundShadow = true;
-	bool					m_shadowCaster = true;
-	bool					m_shadowReceiver = true;
+	glm::vec4				diffuse = glm::vec4(1);
+	glm::vec3				specular = glm::vec3(0);
+	float					specularPower = 1;
+	glm::vec3				ambient = glm::vec3(0.2f);
+	uint8_t					edgeFlag = 0;
+	float					edgeSize = 0;
+	glm::vec4				edgeColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	std::filesystem::path	texture;
+	std::filesystem::path	spTexture;
+	SphereMode				spTextureMode = SphereMode::None;
+	std::filesystem::path	toonTexture;
+	glm::vec4				textureMulFactor = glm::vec4(1);
+	glm::vec4				spTextureMulFactor = glm::vec4(1);
+	glm::vec4				toonTextureMulFactor = glm::vec4(1);
+	glm::vec4				textureAddFactor = glm::vec4(0);
+	glm::vec4				spTextureAddFactor = glm::vec4(0);
+	glm::vec4				toonTextureAddFactor = glm::vec4(0);
+	bool					bothFace = false;
+	bool					groundShadow = true;
+	bool					shadowCaster = true;
+	bool					shadowReceiver = true;
 };
 
 struct UpdateRange {
-	size_t m_vertexOffset;
-	size_t m_vertexCount;
+	size_t vertexOffset;
+	size_t vertexCount;
 };
 
 class Model {
 public:
 	~Model();
 
-	std::vector<glm::vec3>						m_positions;
-	std::vector<glm::vec3>						m_updatePositions;
-	std::vector<glm::vec3>						m_updateNormals;
-	std::vector<glm::vec2>						m_updateUVs;
-	std::vector<char>							m_indices;
-	size_t										m_indexCount = 0;
-	size_t										m_indexElementSize = 0;
-	std::vector<Material>						m_materials;
-	std::vector<SubMesh>						m_subMeshes;
-	std::vector<std::shared_ptr<Node>>			m_nodes;
-	std::vector<std::shared_ptr<IkSolver>>		m_ikSolvers;
-	std::vector<std::unique_ptr<Morph>>			m_morphs;
+	std::vector<glm::vec3>						positions;
+	std::vector<glm::vec3>						updatePositions;
+	std::vector<glm::vec3>						updateNormals;
+	std::vector<glm::vec2>						updateUVs;
+	std::vector<char>							indices;
+	size_t										indexCount = 0;
+	size_t										indexElementSize = 0;
+	std::vector<Material>						materials;
+	std::vector<SubMesh>						subMeshes;
+	std::vector<std::shared_ptr<Node>>			nodes;
+	std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
+	std::vector<std::unique_ptr<Morph>>			morphs;
 
 	/// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
 	void InitializeAnimation();

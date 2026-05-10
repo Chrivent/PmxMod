@@ -1,4 +1,4 @@
-#include "Animation.h"
+﻿#include "Animation.h"
 
 #include "Model.h"
 #include "Util.h"
@@ -62,9 +62,9 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(model->m_nodes, nodeName,
+			auto it = std::ranges::find(model->nodes, nodeName,
 				[](const std::shared_ptr<Node>& node) { return node->m_name; });
-			first = it != model->m_nodes.end() ? *it : nullptr;
+			first = it != model->nodes.end() ? *it : nullptr;
 		}
 		if (!first)
 			continue;
@@ -88,13 +88,13 @@ bool Animation::Add(const VMDReader& vmd) {
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
-				auto it = std::ranges::find(model->m_ikSolvers, ikName,
+				auto it = std::ranges::find(model->ikSolvers, ikName,
 					[](const std::shared_ptr<IkSolver>& ikSolver){
 						const auto ikNodePtr = ikSolver->ikNode.lock();
 						return ikNodePtr ? ikNodePtr->m_name : std::string{};
 					}
 				);
-				first = it != model->m_ikSolvers.end() ? *it : nullptr;
+				first = it != model->ikSolvers.end() ? *it : nullptr;
 			}
 			if (!first)
 				continue;
@@ -110,7 +110,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>>> morphMap;
 	for (auto& morph : m_morphs) {
 		if (morph.first)
-			morphMap.emplace(morph.first->m_name, std::move(morph));
+			morphMap.emplace(morph.first->name, std::move(morph));
 	}
 	m_morphs.clear();
 	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
@@ -118,8 +118,8 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
-			auto it = std::ranges::find(model->m_morphs, morphName, &Morph::m_name);
-			first = it != model->m_morphs.end() ? std::shared_ptr<Morph>(model, it->get()) : nullptr;
+			auto it = std::ranges::find(model->morphs, morphName, &Morph::name);
+			first = it != model->morphs.end() ? std::shared_ptr<Morph>(model, it->get()) : nullptr;
 		}
 		if (!first)
 			continue;
@@ -202,7 +202,7 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 			const float time = (t - static_cast<float>(time0)) / static_cast<float>(time1 - time0);
 			weight = (weight1 - weight0) * time + weight0;
 		}
-		morph->m_weight = animWeight != 1.0f ? glm::mix(morph->m_saveAnimWeight, weight, animWeight) : weight;
+		morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;
 	}
 }
 
