@@ -12,7 +12,7 @@ public:
     Sound();
     ~Sound();
 
-    bool m_hasSound = false;
+    bool hasSound = false;
 
     /// 오디오 파일을 열고 필요하면 반복 재생으로 준비한다.
     bool Init(const std::filesystem::path& path, bool loop);
@@ -28,11 +28,11 @@ public:
     void Stop();
 
 private:
-    float m_volume = 0.1f;
-    double m_lengthSec = 0.0;
-    std::unique_ptr<ma_engine> m_engine;
-    std::unique_ptr<ma_sound>  m_sound;
-    double m_prevTimeSec = 0.0;
+    float volume = 0.1f;
+    double lengthSec = 0.0;
+    std::unique_ptr<ma_engine> engine;
+    std::unique_ptr<ma_sound>  sound;
+    double prevTimeSec = 0.0;
 
     /// miniaudio 엔진과 사운드 객체를 해제한다.
     void Uninit();

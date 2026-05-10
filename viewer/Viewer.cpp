@@ -232,7 +232,7 @@ void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveT
     }
     auto dt = static_cast<float>(elapsed);
     float t = m_animTime + dt;
-    if (music.m_hasSound) {
+    if (music.hasSound) {
         auto [adt, at] = music.PullTimes();
         if (adt < 0.f)
             adt = 0.f;
