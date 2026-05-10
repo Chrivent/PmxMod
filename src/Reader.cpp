@@ -1,4 +1,4 @@
-﻿#include "Reader.h"
+#include "Reader.h"
 
 #include "Util.h"
 
@@ -60,11 +60,11 @@ void PMXReader::ReadString(std::istream& is, std::string* val) const {
 	uint32_t bufSize;
 	Read(is, &bufSize);
 	if (bufSize > 0) {
-		if (m_header.m_encodeType == EncodeType::UTF16) {
+		if (header.encodeType == EncodeType::UTF16) {
 			std::wstring utf16Str(bufSize / 2, L'\0');
 			Read(is, utf16Str.data(), bufSize);
 			*val = Util::WStringToUtf8(utf16Str);
-		} else if (m_header.m_encodeType == EncodeType::UTF8) {
+		} else if (header.encodeType == EncodeType::UTF8) {
 			val->resize(bufSize);
 			Read(is, val->data(), bufSize);
 		}
@@ -72,79 +72,79 @@ void PMXReader::ReadString(std::istream& is, std::string* val) const {
 }
 
 void PMXReader::ReadHeader(std::istream& is) {
-	Read(is, m_header.m_magic, sizeof(m_header.m_magic));
-	Read(is, &m_header.m_version);
-	Read(is, &m_header.m_dataSize);
-	Read(is, &m_header.m_encodeType);
-	Read(is, &m_header.m_addUVNum);
-	Read(is, &m_header.m_vertexIndexSize);
-	Read(is, &m_header.m_textureIndexSize);
-	Read(is, &m_header.m_materialIndexSize);
-	Read(is, &m_header.m_boneIndexSize);
-	Read(is, &m_header.m_morphIndexSize);
-	Read(is, &m_header.m_rigidbodyIndexSize);
+	Read(is, header.magic, sizeof(header.magic));
+	Read(is, &header.version);
+	Read(is, &header.dataSize);
+	Read(is, &header.encodeType);
+	Read(is, &header.addUVNum);
+	Read(is, &header.vertexIndexSize);
+	Read(is, &header.textureIndexSize);
+	Read(is, &header.materialIndexSize);
+	Read(is, &header.boneIndexSize);
+	Read(is, &header.morphIndexSize);
+	Read(is, &header.rigidbodyIndexSize);
 }
 
 void PMXReader::ReadInfo(std::istream& is) {
-	ReadString(is, &m_info.m_modelName);
-	ReadString(is, &m_info.m_englishModelName);
-	ReadString(is, &m_info.m_comment);
-	ReadString(is, &m_info.m_englishComment);
+	ReadString(is, &info.modelName);
+	ReadString(is, &info.englishModelName);
+	ReadString(is, &info.comment);
+	ReadString(is, &info.englishComment);
 }
 
 void PMXReader::ReadVertex(std::istream& is) {
 	int32_t vertexCount;
 	Read(is, &vertexCount);
-	m_vertices.resize(vertexCount);
-	for (auto& [m_position, m_normal, m_uv, m_addUV
-		     , m_weightType, m_boneIndices, m_boneWeights
-		     , m_sdefC, m_sdefR0, m_sdefR1, m_edgeMag] : m_vertices) {
-		Read(is, &m_position);
-		Read(is, &m_normal);
-		Read(is, &m_uv);
-		for (uint8_t i = 0; i < m_header.m_addUVNum; i++)
-			Read(is, &m_addUV[i]);
-		Read(is, &m_weightType);
-		switch (m_weightType) {
+	vertices.resize(vertexCount);
+	for (auto& [position, normal, uv, addUV
+		     , weightType, boneIndices, boneWeights
+		     , sdefC, sdefR0, sdefR1, edgeMag] : vertices) {
+		Read(is, &position);
+		Read(is, &normal);
+		Read(is, &uv);
+		for (uint8_t i = 0; i < header.addUVNum; i++)
+			Read(is, &addUV[i]);
+		Read(is, &weightType);
+		switch (weightType) {
 			case WeightType::BDEF1:
-				ReadIndex(is, &m_boneIndices[0], m_header.m_boneIndexSize);
+				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 				break;
 			case WeightType::BDEF2:
-				ReadIndex(is, &m_boneIndices[0], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[1], m_header.m_boneIndexSize);
-				Read(is, &m_boneWeights[0]);
+				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+				Read(is, &boneWeights[0]);
 				break;
 			case WeightType::BDEF4:
-				ReadIndex(is, &m_boneIndices[0], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[1], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[2], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[3], m_header.m_boneIndexSize);
-				Read(is, &m_boneWeights[0]);
-				Read(is, &m_boneWeights[1]);
-				Read(is, &m_boneWeights[2]);
-				Read(is, &m_boneWeights[3]);
+				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[2], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[3], header.boneIndexSize);
+				Read(is, &boneWeights[0]);
+				Read(is, &boneWeights[1]);
+				Read(is, &boneWeights[2]);
+				Read(is, &boneWeights[3]);
 				break;
 			case WeightType::SDEF:
-				ReadIndex(is, &m_boneIndices[0], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[1], m_header.m_boneIndexSize);
-				Read(is, &m_boneWeights[0]);
-				Read(is, &m_sdefC);
-				Read(is, &m_sdefR0);
-				Read(is, &m_sdefR1);
+				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+				Read(is, &boneWeights[0]);
+				Read(is, &sdefC);
+				Read(is, &sdefR0);
+				Read(is, &sdefR1);
 				break;
 			case WeightType::QDEF:
-				ReadIndex(is, &m_boneIndices[0], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[1], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[2], m_header.m_boneIndexSize);
-				ReadIndex(is, &m_boneIndices[3], m_header.m_boneIndexSize);
-				Read(is, &m_boneWeights[0]);
-				Read(is, &m_boneWeights[1]);
-				Read(is, &m_boneWeights[2]);
-				Read(is, &m_boneWeights[3]);
+				ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[2], header.boneIndexSize);
+				ReadIndex(is, &boneIndices[3], header.boneIndexSize);
+				Read(is, &boneWeights[0]);
+				Read(is, &boneWeights[1]);
+				Read(is, &boneWeights[2]);
+				Read(is, &boneWeights[3]);
 				break;
 			default: ;
 		}
-		Read(is, &m_edgeMag);
+		Read(is, &edgeMag);
 	}
 }
 
@@ -152,15 +152,15 @@ void PMXReader::ReadFace(std::istream& is) {
 	int32_t faceCount = 0;
 	Read(is, &faceCount);
 	faceCount /= 3;
-	m_faces.resize(faceCount);
-	switch (m_header.m_vertexIndexSize) {
+	faces.resize(faceCount);
+	switch (header.vertexIndexSize) {
 		case 1: {
 			std::vector<uint8_t> vertices(faceCount * 3);
 			Read(is, vertices.data(), vertices.size());
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				m_faces[faceIdx].m_vertices[0] = vertices[faceIdx * 3 + 0];
-				m_faces[faceIdx].m_vertices[1] = vertices[faceIdx * 3 + 1];
-				m_faces[faceIdx].m_vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
 			}
 		}
 		break;
@@ -168,9 +168,9 @@ void PMXReader::ReadFace(std::istream& is) {
 			std::vector<uint16_t> vertices(faceCount * 3);
 			Read(is, vertices.data(), vertices.size() * sizeof(uint16_t));
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				m_faces[faceIdx].m_vertices[0] = vertices[faceIdx * 3 + 0];
-				m_faces[faceIdx].m_vertices[1] = vertices[faceIdx * 3 + 1];
-				m_faces[faceIdx].m_vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
 			}
 		}
 		break;
@@ -178,9 +178,9 @@ void PMXReader::ReadFace(std::istream& is) {
 			std::vector<uint32_t> vertices(faceCount * 3);
 			Read(is, vertices.data(), vertices.size() * sizeof(uint32_t));
 			for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
-				m_faces[faceIdx].m_vertices[0] = vertices[faceIdx * 3 + 0];
-				m_faces[faceIdx].m_vertices[1] = vertices[faceIdx * 3 + 1];
-				m_faces[faceIdx].m_vertices[2] = vertices[faceIdx * 3 + 2];
+				faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
+				faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
+				faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
 			}
 		}
 		break;
@@ -191,99 +191,99 @@ void PMXReader::ReadFace(std::istream& is) {
 void PMXReader::ReadTexture(std::istream& is) {
 	int32_t texCount = 0;
 	Read(is, &texCount);
-	m_textures.resize(texCount);
+	textures.resize(texCount);
 	std::string utf8;
-	for (auto& [m_textureName] : m_textures) {
+	for (auto& [textureName] : textures) {
 		ReadString(is, &utf8);
 		const auto* p = reinterpret_cast<const char8_t*>(utf8.data());
-		m_textureName = std::filesystem::path(std::u8string(p, p + utf8.size()));
+		textureName = std::filesystem::path(std::u8string(p, p + utf8.size()));
 	}
 }
 
 void PMXReader::ReadMaterial(std::istream& is) {
 	int32_t matCount = 0;
 	Read(is, &matCount);
-	m_materials.resize(matCount);
-	for (auto& [m_name, m_englishName, m_diffuse, m_specular
-		     , m_specularPower, m_ambient, m_drawMode
-		     , m_edgeColor, m_edgeSize
-		     , m_textureIndex, m_sphereTextureIndex
-		     , m_sphereMode, m_toonMode, m_toonTextureIndex
-		     , m_memo, m_numFaceVertices] : m_materials) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_diffuse);
-		Read(is, &m_specular);
-		Read(is, &m_specularPower);
-		Read(is, &m_ambient);
-		Read(is, &m_drawMode);
-		Read(is, &m_edgeColor);
-		Read(is, &m_edgeSize);
-		ReadIndex(is, &m_textureIndex, m_header.m_textureIndexSize);
-		ReadIndex(is, &m_sphereTextureIndex, m_header.m_textureIndexSize);
-		Read(is, &m_sphereMode);
-		Read(is, &m_toonMode);
-		if (m_toonMode == ToonMode::Separate)
-			ReadIndex(is, &m_toonTextureIndex, m_header.m_textureIndexSize);
-		else if (m_toonMode == ToonMode::Common) {
+	materials.resize(matCount);
+	for (auto& [name, englishName, diffuse, specular
+		     , specularPower, ambient, drawMode
+		     , edgeColor, edgeSize
+		     , textureIndex, sphereTextureIndex
+		     , sphereMode, toonMode, toonTextureIndex
+		     , memo, numFaceVertices] : materials) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &diffuse);
+		Read(is, &specular);
+		Read(is, &specularPower);
+		Read(is, &ambient);
+		Read(is, &drawMode);
+		Read(is, &edgeColor);
+		Read(is, &edgeSize);
+		ReadIndex(is, &textureIndex, header.textureIndexSize);
+		ReadIndex(is, &sphereTextureIndex, header.textureIndexSize);
+		Read(is, &sphereMode);
+		Read(is, &toonMode);
+		if (toonMode == ToonMode::Separate)
+			ReadIndex(is, &toonTextureIndex, header.textureIndexSize);
+		else if (toonMode == ToonMode::Common) {
 			uint8_t toonIndex;
 			Read(is, &toonIndex);
-			m_toonTextureIndex = static_cast<int32_t>(toonIndex);
+			toonTextureIndex = static_cast<int32_t>(toonIndex);
 		}
-		ReadString(is, &m_memo);
-		Read(is, &m_numFaceVertices);
+		ReadString(is, &memo);
+		Read(is, &numFaceVertices);
 	}
 }
 
 void PMXReader::ReadBone(std::istream& is) {
 	int32_t boneCount;
 	Read(is, &boneCount);
-	m_bones.resize(boneCount);
-	for (auto& [m_name, m_englishName, m_position, m_parentBoneIndex
-		     , m_deformDepth, m_boneFlag, m_positionOffset
-		     , m_linkBoneIndex, m_appendBoneIndex, m_appendWeight
-		     , m_fixedAxis, m_localXAxis, m_localZAxis, m_keyValue
-		     , m_ikTargetBoneIndex, m_ikIterationCount
-		     , m_ikLimit, m_ikLinks] : m_bones) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_position);
-		ReadIndex(is, &m_parentBoneIndex, m_header.m_boneIndexSize);
-		Read(is, &m_deformDepth);
-		Read(is, &m_boneFlag);
-		if ((static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::TargetShowMode)) == 0)
-			Read(is, &m_positionOffset);
+	bones.resize(boneCount);
+	for (auto& [name, englishName, position, parentBoneIndex
+		     , deformDepth, boneFlag, positionOffset
+		     , linkBoneIndex, appendBoneIndex, appendWeight
+		     , fixedAxis, localXAxis, localZAxis, keyValue
+		     , ikTargetBoneIndex, ikIterationCount
+		     , ikLimit, ikLinks] : bones) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &position);
+		ReadIndex(is, &parentBoneIndex, header.boneIndexSize);
+		Read(is, &deformDepth);
+		Read(is, &boneFlag);
+		if ((static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::TargetShowMode)) == 0)
+			Read(is, &positionOffset);
 		else
-			ReadIndex(is, &m_linkBoneIndex, m_header.m_boneIndexSize);
-		if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate) ||
-		    static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) {
-			ReadIndex(is, &m_appendBoneIndex, m_header.m_boneIndexSize);
-			Read(is, &m_appendWeight);
+			ReadIndex(is, &linkBoneIndex, header.boneIndexSize);
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate) ||
+		    static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) {
+			ReadIndex(is, &appendBoneIndex, header.boneIndexSize);
+			Read(is, &appendWeight);
 		}
-		if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::FixedAxis))
-			Read(is, &m_fixedAxis);
-		if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::LocalAxis)) {
-			Read(is, &m_localXAxis);
-			Read(is, &m_localZAxis);
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::FixedAxis))
+			Read(is, &fixedAxis);
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::LocalAxis)) {
+			Read(is, &localXAxis);
+			Read(is, &localZAxis);
 		}
-		if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
-			Read(is, &m_keyValue);
-		if (static_cast<uint16_t>(m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
-			ReadIndex(is, &m_ikTargetBoneIndex, m_header.m_boneIndexSize);
-			Read(is, &m_ikIterationCount);
-			Read(is, &m_ikLimit);
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
+			Read(is, &keyValue);
+		if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
+			ReadIndex(is, &ikTargetBoneIndex, header.boneIndexSize);
+			Read(is, &ikIterationCount);
+			Read(is, &ikLimit);
 			int32_t linkCount;
 			Read(is, &linkCount);
-			m_ikLinks.resize(linkCount);
-			for (auto& [m_ikBoneIndex
-				     , m_enableLimit
-				     , m_limitMin
-				     , m_limitMax] : m_ikLinks) {
-				ReadIndex(is, &m_ikBoneIndex, m_header.m_boneIndexSize);
-				Read(is, &m_enableLimit);
-				if (m_enableLimit != 0) {
-					Read(is, &m_limitMin);
-					Read(is, &m_limitMax);
+			ikLinks.resize(linkCount);
+			for (auto& [ikBoneIndex
+				     , enableLimit
+				     , limitMin
+				     , limitMax] : ikLinks) {
+				ReadIndex(is, &ikBoneIndex, header.boneIndexSize);
+				Read(is, &enableLimit);
+				if (enableLimit != 0) {
+					Read(is, &limitMin);
+					Read(is, &limitMax);
 				}
 			}
 		}
@@ -293,80 +293,80 @@ void PMXReader::ReadBone(std::istream& is) {
 void PMXReader::ReadMorph(std::istream& is) {
 	int32_t morphCount;
 	Read(is, &morphCount);
-	m_morphs.resize(morphCount);
-	for (auto& [m_name, m_englishName, m_controlPanel, m_morphType
-		     , m_positionMorph, m_uvMorph, m_boneMorph
-		     , m_materialMorph, m_groupMorph
-		     , m_flipMorph, m_impulseMorph] : m_morphs) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_controlPanel);
-		Read(is, &m_morphType);
+	morphs.resize(morphCount);
+	for (auto& [name, englishName, controlPanel, morphType
+		     , positionMorph, uvMorph, boneMorph
+		     , materialMorph, groupMorph
+		     , flipMorph, impulseMorph] : morphs) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &controlPanel);
+		Read(is, &morphType);
 		int32_t dataCount;
 		Read(is, &dataCount);
-		if (m_morphType == MorphType::Position) {
-			m_positionMorph.resize(dataCount);
-			for (auto& [m_vertexIndex, m_position] : m_positionMorph) {
-				ReadIndex(is, &m_vertexIndex, m_header.m_vertexIndexSize);
-				Read(is, &m_position);
+		if (morphType == MorphType::Position) {
+			positionMorph.resize(dataCount);
+			for (auto& [vertexIndex, position] : positionMorph) {
+				ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+				Read(is, &position);
 			}
-		} else if (m_morphType == MorphType::UV ||
-		           m_morphType == MorphType::AddUV1 ||
-		           m_morphType == MorphType::AddUV2 ||
-		           m_morphType == MorphType::AddUV3 ||
-		           m_morphType == MorphType::AddUV4) {
-			m_uvMorph.resize(dataCount);
-			for (auto& [m_vertexIndex, m_uv] : m_uvMorph) {
-				ReadIndex(is, &m_vertexIndex, m_header.m_vertexIndexSize);
-				Read(is, &m_uv);
+		} else if (morphType == MorphType::UV ||
+		           morphType == MorphType::AddUV1 ||
+		           morphType == MorphType::AddUV2 ||
+		           morphType == MorphType::AddUV3 ||
+		           morphType == MorphType::AddUV4) {
+			uvMorph.resize(dataCount);
+			for (auto& [vertexIndex, uv] : uvMorph) {
+				ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+				Read(is, &uv);
 			}
-		} else if (m_morphType == MorphType::Bone) {
-			m_boneMorph.resize(dataCount);
-			for (auto& [m_boneIndex, m_position, m_quaternion] : m_boneMorph) {
-				ReadIndex(is, &m_boneIndex, m_header.m_boneIndexSize);
-				Read(is, &m_position);
-				Read(is, &m_quaternion);
+		} else if (morphType == MorphType::Bone) {
+			boneMorph.resize(dataCount);
+			for (auto& [boneIndex, position, quaternion] : boneMorph) {
+				ReadIndex(is, &boneIndex, header.boneIndexSize);
+				Read(is, &position);
+				Read(is, &quaternion);
 			}
-		} else if (m_morphType == MorphType::Material) {
-			m_materialMorph.resize(dataCount);
-			for (auto& [m_materialIndex, m_opType, m_diffuse
-				     , m_specular, m_specularPower
-				     , m_ambient, m_edgeColor, m_edgeSize
-				     , m_textureFactor, m_sphereTextureFactor, m_toonTextureFactor] : m_materialMorph) {
-				ReadIndex(is, &m_materialIndex, m_header.m_materialIndexSize);
-				Read(is, &m_opType);
-				Read(is, &m_diffuse);
-				Read(is, &m_specular);
-				Read(is, &m_specularPower);
-				Read(is, &m_ambient);
-				Read(is, &m_edgeColor);
-				Read(is, &m_edgeSize);
-				Read(is, &m_textureFactor);
-				Read(is, &m_sphereTextureFactor);
-				Read(is, &m_toonTextureFactor);
+		} else if (morphType == MorphType::Material) {
+			materialMorph.resize(dataCount);
+			for (auto& [materialIndex, opType, diffuse
+				     , specular, specularPower
+				     , ambient, edgeColor, edgeSize
+				     , textureFactor, sphereTextureFactor, toonTextureFactor] : materialMorph) {
+				ReadIndex(is, &materialIndex, header.materialIndexSize);
+				Read(is, &opType);
+				Read(is, &diffuse);
+				Read(is, &specular);
+				Read(is, &specularPower);
+				Read(is, &ambient);
+				Read(is, &edgeColor);
+				Read(is, &edgeSize);
+				Read(is, &textureFactor);
+				Read(is, &sphereTextureFactor);
+				Read(is, &toonTextureFactor);
 			}
-		} else if (m_morphType == MorphType::Group) {
-			m_groupMorph.resize(dataCount);
-			for (auto& [m_morphIndex, m_weight] : m_groupMorph) {
-				ReadIndex(is, &m_morphIndex, m_header.m_morphIndexSize);
-				Read(is, &m_weight);
+		} else if (morphType == MorphType::Group) {
+			groupMorph.resize(dataCount);
+			for (auto& [morphIndex, weight] : groupMorph) {
+				ReadIndex(is, &morphIndex, header.morphIndexSize);
+				Read(is, &weight);
 			}
-		} else if (m_morphType == MorphType::Flip) {
-			m_flipMorph.resize(dataCount);
-			for (auto& [m_morphIndex, m_weight] : m_flipMorph) {
-				ReadIndex(is, &m_morphIndex, m_header.m_morphIndexSize);
-				Read(is, &m_weight);
+		} else if (morphType == MorphType::Flip) {
+			flipMorph.resize(dataCount);
+			for (auto& [morphIndex, weight] : flipMorph) {
+				ReadIndex(is, &morphIndex, header.morphIndexSize);
+				Read(is, &weight);
 			}
-		} else if (m_morphType == MorphType::Impulse) {
-			m_impulseMorph.resize(dataCount);
-			for (auto& [m_rigidbodyIndex
-				     , m_localFlag
-				     , m_translateVelocity
-				     , m_rotateTorque] : m_impulseMorph) {
-				ReadIndex(is, &m_rigidbodyIndex, m_header.m_rigidbodyIndexSize);
-				Read(is, &m_localFlag);
-				Read(is, &m_translateVelocity);
-				Read(is, &m_rotateTorque);
+		} else if (morphType == MorphType::Impulse) {
+			impulseMorph.resize(dataCount);
+			for (auto& [rigidbodyIndex
+				     , localFlag
+				     , translateVelocity
+				     , rotateTorque] : impulseMorph) {
+				ReadIndex(is, &rigidbodyIndex, header.rigidbodyIndexSize);
+				Read(is, &localFlag);
+				Read(is, &translateVelocity);
+				Read(is, &rotateTorque);
 			}
 		}
 	}
@@ -375,21 +375,21 @@ void PMXReader::ReadMorph(std::istream& is) {
 void PMXReader::ReadDisplayFrame(std::istream& is) {
 	int32_t displayFrameCount;
 	Read(is, &displayFrameCount);
-	m_displayFrames.resize(displayFrameCount);
-	for (auto& [m_name, m_englishName
-		     , m_flag, m_targets] : m_displayFrames) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_flag);
+	displayFrames.resize(displayFrameCount);
+	for (auto& [name, englishName
+		     , flag, targets] : displayFrames) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &flag);
 		int32_t targetCount;
 		Read(is, &targetCount);
-		m_targets.resize(targetCount);
-		for (auto& [m_type, m_index] : m_targets) {
-			Read(is, &m_type);
-			if (m_type == TargetType::BoneIndex)
-				ReadIndex(is, &m_index, m_header.m_boneIndexSize);
-			else if (m_type == TargetType::MorphIndex)
-				ReadIndex(is, &m_index, m_header.m_morphIndexSize);
+		targets.resize(targetCount);
+		for (auto& [type, index] : targets) {
+			Read(is, &type);
+			if (type == TargetType::BoneIndex)
+				ReadIndex(is, &index, header.boneIndexSize);
+			else if (type == TargetType::MorphIndex)
+				ReadIndex(is, &index, header.morphIndexSize);
 		}
 	}
 }
@@ -397,119 +397,119 @@ void PMXReader::ReadDisplayFrame(std::istream& is) {
 void PMXReader::ReadRigidbody(std::istream& is) {
 	int32_t rbCount;
 	Read(is, &rbCount);
-	m_rigidBodies.resize(rbCount);
-	for (auto& [m_name, m_englishName, m_boneIndex, m_group, m_collisionGroup
-		     , m_shape, m_shapeSize, m_translate, m_rotate, m_mass
-		     , m_translateDimmer, m_rotateDimmer
-		     , m_repulsion, m_friction, m_op] : m_rigidBodies) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		ReadIndex(is, &m_boneIndex, m_header.m_boneIndexSize);
-		Read(is, &m_group);
-		Read(is, &m_collisionGroup);
-		Read(is, &m_shape);
-		Read(is, &m_shapeSize);
-		Read(is, &m_translate);
-		Read(is, &m_rotate);
-		Read(is, &m_mass);
-		Read(is, &m_translateDimmer);
-		Read(is, &m_rotateDimmer);
-		Read(is, &m_repulsion);
-		Read(is, &m_friction);
-		Read(is, &m_op);
+	rigidBodies.resize(rbCount);
+	for (auto& [name, englishName, boneIndex, group, collisionGroup
+		     , shape, shapeSize, translate, rotate, mass
+		     , translateDimmer, rotateDimmer
+		     , repulsion, friction, op] : rigidBodies) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		ReadIndex(is, &boneIndex, header.boneIndexSize);
+		Read(is, &group);
+		Read(is, &collisionGroup);
+		Read(is, &shape);
+		Read(is, &shapeSize);
+		Read(is, &translate);
+		Read(is, &rotate);
+		Read(is, &mass);
+		Read(is, &translateDimmer);
+		Read(is, &rotateDimmer);
+		Read(is, &repulsion);
+		Read(is, &friction);
+		Read(is, &op);
 	}
 }
 
 void PMXReader::ReadJoint(std::istream& is) {
 	int32_t jointCount;
 	Read(is, &jointCount);
-	m_joints.resize(jointCount);
-	for (auto& [m_name, m_englishName, m_type, m_rigidbodyAIndex, m_rigidbodyBIndex
-		     , m_translate, m_rotate, m_translateLowerLimit, m_translateUpperLimit
-		     , m_rotateLowerLimit, m_rotateUpperLimit
-		     , m_springTranslateFactor, m_springRotateFactor] : m_joints) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_type);
-		ReadIndex(is, &m_rigidbodyAIndex, m_header.m_rigidbodyIndexSize);
-		ReadIndex(is, &m_rigidbodyBIndex, m_header.m_rigidbodyIndexSize);
-		Read(is, &m_translate);
-		Read(is, &m_rotate);
-		Read(is, &m_translateLowerLimit);
-		Read(is, &m_translateUpperLimit);
-		Read(is, &m_rotateLowerLimit);
-		Read(is, &m_rotateUpperLimit);
-		Read(is, &m_springTranslateFactor);
-		Read(is, &m_springRotateFactor);
+	joints.resize(jointCount);
+	for (auto& [name, englishName, type, rigidbodyAIndex, rigidbodyBIndex
+		     , translate, rotate, translateLowerLimit, translateUpperLimit
+		     , rotateLowerLimit, rotateUpperLimit
+		     , springTranslateFactor, springRotateFactor] : joints) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &type);
+		ReadIndex(is, &rigidbodyAIndex, header.rigidbodyIndexSize);
+		ReadIndex(is, &rigidbodyBIndex, header.rigidbodyIndexSize);
+		Read(is, &translate);
+		Read(is, &rotate);
+		Read(is, &translateLowerLimit);
+		Read(is, &translateUpperLimit);
+		Read(is, &rotateLowerLimit);
+		Read(is, &rotateUpperLimit);
+		Read(is, &springTranslateFactor);
+		Read(is, &springRotateFactor);
 	}
 }
 
 void PMXReader::ReadSoftBody(std::istream& is) {
 	int32_t sbCount;
 	Read(is, &sbCount);
-	m_softbodies.resize(sbCount);
-	for (auto& [m_name, m_englishName, m_type, m_materialIndex
-		     , m_group, m_collisionGroup, m_flag, m_BLinkLength
-		     , m_numClusters, m_totalMass, m_collisionMargin, m_aeroModel
-		     , m_VCF, m_DP, m_DG, m_LF, m_PR, m_VC, m_DF, m_MT
-		     , m_CHR, m_KHR, m_SHR, m_AHR
-		     , m_SRHR_CL, m_SKHR_CL, m_SSHR_CL
-		     , m_SR_SPLT_CL, m_SK_SPLT_CL, m_SS_SPLT_CL
-		     , m_V_IT, m_P_IT, m_D_IT, m_C_IT
-		     , m_LST, m_AST, m_VST
-		     , m_anchorRigidBodies, m_pinVertexIndices] : m_softbodies) {
-		ReadString(is, &m_name);
-		ReadString(is, &m_englishName);
-		Read(is, &m_type);
-		ReadIndex(is, &m_materialIndex, m_header.m_materialIndexSize);
-		Read(is, &m_group);
-		Read(is, &m_collisionGroup);
-		Read(is, &m_flag);
-		Read(is, &m_BLinkLength);
-		Read(is, &m_numClusters);
-		Read(is, &m_totalMass);
-		Read(is, &m_collisionMargin);
-		Read(is, &m_aeroModel);
-		Read(is, &m_VCF);
-		Read(is, &m_DP);
-		Read(is, &m_DG);
-		Read(is, &m_LF);
-		Read(is, &m_PR);
-		Read(is, &m_VC);
-		Read(is, &m_DF);
-		Read(is, &m_MT);
-		Read(is, &m_CHR);
-		Read(is, &m_KHR);
-		Read(is, &m_SHR);
-		Read(is, &m_AHR);
-		Read(is, &m_SRHR_CL);
-		Read(is, &m_SKHR_CL);
-		Read(is, &m_SSHR_CL);
-		Read(is, &m_SR_SPLT_CL);
-		Read(is, &m_SK_SPLT_CL);
-		Read(is, &m_SS_SPLT_CL);
-		Read(is, &m_V_IT);
-		Read(is, &m_P_IT);
-		Read(is, &m_D_IT);
-		Read(is, &m_C_IT);
-		Read(is, &m_LST);
-		Read(is, &m_AST);
-		Read(is, &m_VST);
+	softbodies.resize(sbCount);
+	for (auto& [name, englishName, type, materialIndex
+		     , group, collisionGroup, flag, BLinkLength
+		     , numClusters, totalMass, collisionMargin, aeroModel
+		     , VCF, DP, DG, LF, PR, VC, DF, MT
+		     , CHR, KHR, SHR, AHR
+		     , SRHR_CL, SKHR_CL, SSHR_CL
+		     , SR_SPLT_CL, SK_SPLT_CL, SS_SPLT_CL
+		     , V_IT, P_IT, D_IT, C_IT
+		     , LST, AST, VST
+		     , anchorRigidBodies, pinVertexIndices] : softbodies) {
+		ReadString(is, &name);
+		ReadString(is, &englishName);
+		Read(is, &type);
+		ReadIndex(is, &materialIndex, header.materialIndexSize);
+		Read(is, &group);
+		Read(is, &collisionGroup);
+		Read(is, &flag);
+		Read(is, &BLinkLength);
+		Read(is, &numClusters);
+		Read(is, &totalMass);
+		Read(is, &collisionMargin);
+		Read(is, &aeroModel);
+		Read(is, &VCF);
+		Read(is, &DP);
+		Read(is, &DG);
+		Read(is, &LF);
+		Read(is, &PR);
+		Read(is, &VC);
+		Read(is, &DF);
+		Read(is, &MT);
+		Read(is, &CHR);
+		Read(is, &KHR);
+		Read(is, &SHR);
+		Read(is, &AHR);
+		Read(is, &SRHR_CL);
+		Read(is, &SKHR_CL);
+		Read(is, &SSHR_CL);
+		Read(is, &SR_SPLT_CL);
+		Read(is, &SK_SPLT_CL);
+		Read(is, &SS_SPLT_CL);
+		Read(is, &V_IT);
+		Read(is, &P_IT);
+		Read(is, &D_IT);
+		Read(is, &C_IT);
+		Read(is, &LST);
+		Read(is, &AST);
+		Read(is, &VST);
 		int32_t arCount;
 		Read(is, &arCount);
-		m_anchorRigidBodies.resize(arCount);
-		for (auto& [m_rigidBodyIndex
-			     , m_vertexIndex
-			     , m_nearMode] : m_anchorRigidBodies) {
-			ReadIndex(is, &m_rigidBodyIndex, m_header.m_rigidbodyIndexSize);
-			ReadIndex(is, &m_vertexIndex, m_header.m_vertexIndexSize);
-			Read(is, &m_nearMode);
+		anchorRigidBodies.resize(arCount);
+		for (auto& [rigidBodyIndex
+			     , vertexIndex
+			     , nearMode] : anchorRigidBodies) {
+			ReadIndex(is, &rigidBodyIndex, header.rigidbodyIndexSize);
+			ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+			Read(is, &nearMode);
 		}
 		int32_t pvCount;
 		Read(is, &pvCount);
-		m_pinVertexIndices.resize(pvCount);
-		for (auto& pv : m_pinVertexIndices)
-			ReadIndex(is, &pv, m_header.m_vertexIndexSize);
+		pinVertexIndices.resize(pvCount);
+		for (auto& pv : pinVertexIndices)
+			ReadIndex(is, &pv, header.vertexIndexSize);
 	}
 }
 
@@ -535,87 +535,87 @@ bool PMXReader::ReadFile(const std::filesystem::path& filename) {
 }
 
 void VMDReader::ReadHeader(std::istream& is) {
-	Read(is, m_header.m_header, sizeof(m_header.m_header));
-	Read(is, m_header.m_modelName, sizeof(m_header.m_modelName));
+	Read(is, header.header, sizeof(header.header));
+	Read(is, header.modelName, sizeof(header.modelName));
 }
 
 void VMDReader::ReadMotion(std::istream& is) {
 	uint32_t motionCount = 0;
 	Read(is, &motionCount);
-	m_motions.resize(motionCount);
-	for (auto& [m_boneName, m_frame
-		     , m_translate, m_quaternion
-		     , m_interpolation] : m_motions) {
-		Read(is, m_boneName, sizeof(m_boneName));
-		Read(is, &m_frame);
-		Read(is, &m_translate);
-		Read(is, &m_quaternion);
-		Read(is, &m_interpolation);
+	motions.resize(motionCount);
+	for (auto& [boneName, frame
+		     , translate, quaternion
+		     , interpolation] : motions) {
+		Read(is, boneName, sizeof(boneName));
+		Read(is, &frame);
+		Read(is, &translate);
+		Read(is, &quaternion);
+		Read(is, &interpolation);
 	}
 }
 
 void VMDReader::ReadBlendShape(std::istream& is) {
 	uint32_t blendShapeCount = 0;
 	Read(is, &blendShapeCount);
-	m_morphs.resize(blendShapeCount);
-	for (auto& [m_blendShapeName, m_frame, m_weight] : m_morphs) {
-		Read(is, m_blendShapeName, sizeof(m_blendShapeName));
-		Read(is, &m_frame);
-		Read(is, &m_weight);
+	morphs.resize(blendShapeCount);
+	for (auto& [blendShapeName, frame, weight] : morphs) {
+		Read(is, blendShapeName, sizeof(blendShapeName));
+		Read(is, &frame);
+		Read(is, &weight);
 	}
 }
 
 void VMDReader::ReadCamera(std::istream& is) {
 	uint32_t cameraCount = 0;
 	Read(is, &cameraCount);
-	m_cameras.resize(cameraCount);
-	for (auto& [m_frame, m_distance, m_interest, m_rotate
-		     , m_interpolation, m_viewAngle, m_isPerspective] : m_cameras) {
-		Read(is, &m_frame);
-		Read(is, &m_distance);
-		Read(is, &m_interest);
-		Read(is, &m_rotate);
-		Read(is, &m_interpolation);
-		Read(is, &m_viewAngle);
-		Read(is, &m_isPerspective);
+	cameras.resize(cameraCount);
+	for (auto& [frame, distance, interest, rotate
+		     , interpolation, viewAngle, isPerspective] : cameras) {
+		Read(is, &frame);
+		Read(is, &distance);
+		Read(is, &interest);
+		Read(is, &rotate);
+		Read(is, &interpolation);
+		Read(is, &viewAngle);
+		Read(is, &isPerspective);
 	}
 }
 
 void VMDReader::ReadLight(std::istream& is) {
 	uint32_t lightCount = 0;
 	Read(is, &lightCount);
-	m_lights.resize(lightCount);
-	for (auto& [m_frame, m_color, m_position] : m_lights) {
-		Read(is, &m_frame);
-		Read(is, &m_color);
-		Read(is, &m_position);
+	lights.resize(lightCount);
+	for (auto& [frame, color, position] : lights) {
+		Read(is, &frame);
+		Read(is, &color);
+		Read(is, &position);
 	}
 }
 
 void VMDReader::ReadShadow(std::istream& is) {
 	uint32_t shadowCount = 0;
 	Read(is, &shadowCount);
-	m_shadows.resize(shadowCount);
-	for (auto& [m_frame, m_shadowType, m_distance] : m_shadows) {
-		Read(is, &m_frame);
-		Read(is, &m_shadowType);
-		Read(is, &m_distance);
+	shadows.resize(shadowCount);
+	for (auto& [frame, shadowType, distance] : shadows) {
+		Read(is, &frame);
+		Read(is, &shadowType);
+		Read(is, &distance);
 	}
 }
 
 void VMDReader::ReadIK(std::istream& is) {
 	uint32_t ikCount = 0;
 	Read(is, &ikCount);
-	m_iks.resize(ikCount);
-	for (auto& [m_frame, m_show, m_ikInfos] : m_iks) {
-		Read(is, &m_frame);
-		Read(is, &m_show);
+	iks.resize(ikCount);
+	for (auto& [frame, show, ikInfos] : iks) {
+		Read(is, &frame);
+		Read(is, &show);
 		uint32_t ikInfoCount = 0;
 		Read(is, &ikInfoCount);
-		m_ikInfos.resize(ikInfoCount);
-		for (auto& [m_name, m_enable]: m_ikInfos) {
-			Read(is, m_name, sizeof(m_name));
-			Read(is, &m_enable);
+		ikInfos.resize(ikInfoCount);
+		for (auto& [name, enable]: ikInfos) {
+			Read(is, name, sizeof(name));
+			Read(is, &enable);
 		}
 	}
 }

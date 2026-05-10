@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
@@ -138,173 +138,173 @@ enum class ShadowType : uint8_t {
 };
 
 struct PositionMorph {
-	int32_t		m_vertexIndex;
-	glm::vec3	m_position;
+	int32_t		vertexIndex;
+	glm::vec3	position;
 };
 
 struct UVMorph {
-	int32_t		m_vertexIndex;
-	glm::vec4	m_uv;
+	int32_t		vertexIndex;
+	glm::vec4	uv;
 };
 
 struct BoneMorph {
-	int32_t		m_boneIndex;
-	glm::vec3	m_position;
-	glm::quat	m_quaternion;
+	int32_t		boneIndex;
+	glm::vec3	position;
+	glm::quat	quaternion;
 };
 
 struct MaterialMorph {
-	int32_t		m_materialIndex;
-	OpType		m_opType;
-	glm::vec4	m_diffuse;
-	glm::vec3	m_specular;
-	float		m_specularPower;
-	glm::vec3	m_ambient;
-	glm::vec4	m_edgeColor;
-	float		m_edgeSize;
-	glm::vec4	m_textureFactor;
-	glm::vec4	m_sphereTextureFactor;
-	glm::vec4	m_toonTextureFactor;
+	int32_t		materialIndex;
+	OpType		opType;
+	glm::vec4	diffuse;
+	glm::vec3	specular;
+	float		specularPower;
+	glm::vec3	ambient;
+	glm::vec4	edgeColor;
+	float		edgeSize;
+	glm::vec4	textureFactor;
+	glm::vec4	sphereTextureFactor;
+	glm::vec4	toonTextureFactor;
 };
 
 struct GroupMorph {
-	int32_t	m_morphIndex;
-	float	m_weight;
+	int32_t	morphIndex;
+	float	weight;
 };
 
 struct FlipMorph {
-	int32_t	m_morphIndex;
-	float	m_weight;
+	int32_t	morphIndex;
+	float	weight;
 };
 
 struct ImpulseMorph {
-	int32_t		m_rigidbodyIndex;
-	uint8_t		m_localFlag;
-	glm::vec3	m_translateVelocity;
-	glm::vec3	m_rotateTorque;
+	int32_t		rigidbodyIndex;
+	uint8_t		localFlag;
+	glm::vec3	translateVelocity;
+	glm::vec3	rotateTorque;
 };
 
 struct Target {
-	TargetType	m_type;
-	int32_t		m_index;
+	TargetType	type;
+	int32_t		index;
 };
 
 struct AnchorRigidbody {
-	int32_t		m_rigidBodyIndex;
-	int32_t		m_vertexIndex;
-	uint8_t		m_nearMode;
+	int32_t		rigidBodyIndex;
+	int32_t		vertexIndex;
+	uint8_t		nearMode;
 };
 
 class PMXReader {
 	struct PMXHeader {
-		char		m_magic[4];
-		float		m_version;
-		uint8_t		m_dataSize;
-		EncodeType	m_encodeType;
-		uint8_t		m_addUVNum;
-		uint8_t		m_vertexIndexSize;
-		uint8_t		m_textureIndexSize;
-		uint8_t		m_materialIndexSize;
-		uint8_t		m_boneIndexSize;
-		uint8_t		m_morphIndexSize;
-		uint8_t		m_rigidbodyIndexSize;
+		char		magic[4];
+		float		version;
+		uint8_t		dataSize;
+		EncodeType	encodeType;
+		uint8_t		addUVNum;
+		uint8_t		vertexIndexSize;
+		uint8_t		textureIndexSize;
+		uint8_t		materialIndexSize;
+		uint8_t		boneIndexSize;
+		uint8_t		morphIndexSize;
+		uint8_t		rigidbodyIndexSize;
 	};
 
 	struct PMXInfo {
-		std::string	m_modelName;
-		std::string	m_englishModelName;
-		std::string	m_comment;
-		std::string	m_englishComment;
+		std::string	modelName;
+		std::string	englishModelName;
+		std::string	comment;
+		std::string	englishComment;
 	};
 
 	struct PMXVertex {
-		glm::vec3		m_position;
-		glm::vec3		m_normal;
-		glm::vec2		m_uv;
-		glm::vec4		m_addUV[4];
-		WeightType		m_weightType;
-		int32_t			m_boneIndices[4];
-		float			m_boneWeights[4];
-		glm::vec3		m_sdefC;
-		glm::vec3		m_sdefR0;
-		glm::vec3		m_sdefR1;
-		float			m_edgeMag;
+		glm::vec3		position;
+		glm::vec3		normal;
+		glm::vec2		uv;
+		glm::vec4		addUV[4];
+		WeightType		weightType;
+		int32_t			boneIndices[4];
+		float			boneWeights[4];
+		glm::vec3		sdefC;
+		glm::vec3		sdefR0;
+		glm::vec3		sdefR1;
+		float			edgeMag;
 	};
 
 	struct PMXFace {
-		uint32_t	m_vertices[3];
+		uint32_t	vertices[3];
 	};
 
 	struct PMXTexture {
-		std::filesystem::path m_textureName;
+		std::filesystem::path textureName;
 	};
 
 	struct PMXMaterial {
-		std::string	m_name;
-		std::string	m_englishName;
-		glm::vec4	m_diffuse;
-		glm::vec3	m_specular;
-		float		m_specularPower;
-		glm::vec3	m_ambient;
-		DrawModeFlags m_drawMode;
-		glm::vec4	m_edgeColor;
-		float		m_edgeSize;
-		int32_t	m_textureIndex;
-		int32_t	m_sphereTextureIndex;
-		SphereMode m_sphereMode;
-		ToonMode	m_toonMode;
-		int32_t		m_toonTextureIndex;
-		std::string	m_memo;
-		int32_t	m_numFaceVertices;
+		std::string	name;
+		std::string	englishName;
+		glm::vec4	diffuse;
+		glm::vec3	specular;
+		float		specularPower;
+		glm::vec3	ambient;
+		DrawModeFlags drawMode;
+		glm::vec4	edgeColor;
+		float		edgeSize;
+		int32_t	textureIndex;
+		int32_t	sphereTextureIndex;
+		SphereMode sphereMode;
+		ToonMode	toonMode;
+		int32_t		toonTextureIndex;
+		std::string	memo;
+		int32_t	numFaceVertices;
 	};
 
 	struct PMXIKLink {
-		int32_t			m_ikBoneIndex;
-		unsigned char	m_enableLimit;
-		glm::vec3	m_limitMin;
-		glm::vec3	m_limitMax;
+		int32_t			ikBoneIndex;
+		unsigned char	enableLimit;
+		glm::vec3	limitMin;
+		glm::vec3	limitMax;
 	};
 
 	struct PMXBone {
-		std::string	m_name;
-		std::string	m_englishName;
-		glm::vec3	m_position;
-		int32_t		m_parentBoneIndex;
-		int32_t		m_deformDepth;
-		BoneFlags	m_boneFlag;
-		glm::vec3	m_positionOffset;
-		int32_t		m_linkBoneIndex;
-		int32_t	m_appendBoneIndex;
-		float	m_appendWeight;
-		glm::vec3	m_fixedAxis;
-		glm::vec3	m_localXAxis;
-		glm::vec3	m_localZAxis;
-		int32_t	m_keyValue;
-		int32_t	m_ikTargetBoneIndex;
-		int32_t	m_ikIterationCount;
-		float	m_ikLimit;
-		std::vector<PMXIKLink>	m_ikLinks;
+		std::string	name;
+		std::string	englishName;
+		glm::vec3	position;
+		int32_t		parentBoneIndex;
+		int32_t		deformDepth;
+		BoneFlags	boneFlag;
+		glm::vec3	positionOffset;
+		int32_t		linkBoneIndex;
+		int32_t	appendBoneIndex;
+		float	appendWeight;
+		glm::vec3	fixedAxis;
+		glm::vec3	localXAxis;
+		glm::vec3	localZAxis;
+		int32_t	keyValue;
+		int32_t	ikTargetBoneIndex;
+		int32_t	ikIterationCount;
+		float	ikLimit;
+		std::vector<PMXIKLink>	ikLinks;
 	};
 
 	struct PMXMorph {
-		std::string		m_name;
-		std::string		m_englishName;
-		ControlPanel	m_controlPanel;
-		MorphType		m_morphType;
-		std::vector<PositionMorph>	m_positionMorph;
-		std::vector<UVMorph>		m_uvMorph;
-		std::vector<BoneMorph>		m_boneMorph;
-		std::vector<MaterialMorph>	m_materialMorph;
-		std::vector<GroupMorph>		m_groupMorph;
-		std::vector<FlipMorph>		m_flipMorph;
-		std::vector<ImpulseMorph>	m_impulseMorph;
+		std::string		name;
+		std::string		englishName;
+		ControlPanel	controlPanel;
+		MorphType		morphType;
+		std::vector<PositionMorph>	positionMorph;
+		std::vector<UVMorph>		uvMorph;
+		std::vector<BoneMorph>		boneMorph;
+		std::vector<MaterialMorph>	materialMorph;
+		std::vector<GroupMorph>		groupMorph;
+		std::vector<FlipMorph>		flipMorph;
+		std::vector<ImpulseMorph>	impulseMorph;
 	};
 
 	struct PMXDisplayFrame {
-		std::string	m_name;
-		std::string	m_englishName;
-		FrameType			m_flag;
-		std::vector<Target>	m_targets;
+		std::string	name;
+		std::string	englishName;
+		FrameType			flag;
+		std::vector<Target>	targets;
 	};
 
 	/// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
@@ -336,93 +336,93 @@ class PMXReader {
 
 public:
 	struct PMXRigidbody {
-		std::string	m_name;
-		std::string	m_englishName;
-		int32_t		m_boneIndex;
-		uint8_t		m_group;
-		uint16_t	m_collisionGroup;
-		Shape		m_shape;
-		glm::vec3	m_shapeSize;
-		glm::vec3	m_translate;
-		glm::vec3	m_rotate;
-		float	m_mass;
-		float	m_translateDimmer;
-		float	m_rotateDimmer;
-		float	m_repulsion;
-		float	m_friction;
-		Operation	m_op;
+		std::string	name;
+		std::string	englishName;
+		int32_t		boneIndex;
+		uint8_t		group;
+		uint16_t	collisionGroup;
+		Shape		shape;
+		glm::vec3	shapeSize;
+		glm::vec3	translate;
+		glm::vec3	rotate;
+		float	mass;
+		float	translateDimmer;
+		float	rotateDimmer;
+		float	repulsion;
+		float	friction;
+		Operation	op;
 	};
 
 	struct PMXJoint {
-		std::string	m_name;
-		std::string	m_englishName;
-		JointType	m_type;
-		int32_t		m_rigidbodyAIndex;
-		int32_t		m_rigidbodyBIndex;
-		glm::vec3	m_translate;
-		glm::vec3	m_rotate;
-		glm::vec3	m_translateLowerLimit;
-		glm::vec3	m_translateUpperLimit;
-		glm::vec3	m_rotateLowerLimit;
-		glm::vec3	m_rotateUpperLimit;
-		glm::vec3	m_springTranslateFactor;
-		glm::vec3	m_springRotateFactor;
+		std::string	name;
+		std::string	englishName;
+		JointType	type;
+		int32_t		rigidbodyAIndex;
+		int32_t		rigidbodyBIndex;
+		glm::vec3	translate;
+		glm::vec3	rotate;
+		glm::vec3	translateLowerLimit;
+		glm::vec3	translateUpperLimit;
+		glm::vec3	rotateLowerLimit;
+		glm::vec3	rotateUpperLimit;
+		glm::vec3	springTranslateFactor;
+		glm::vec3	springRotateFactor;
 	};
 
 	struct PMXSoftBody {
-		std::string	m_name;
-		std::string	m_englishName;
-		SoftBodyType	m_type;
-		int32_t			m_materialIndex;
-		uint8_t		m_group;
-		uint16_t	m_collisionGroup;
-		SoftBodyMask	m_flag;
-		int32_t	m_BLinkLength;
-		int32_t	m_numClusters;
-		float	m_totalMass;
-		float	m_collisionMargin;
-		int32_t		m_aeroModel;
-		float	m_VCF;
-		float	m_DP;
-		float	m_DG;
-		float	m_LF;
-		float	m_PR;
-		float	m_VC;
-		float	m_DF;
-		float	m_MT;
-		float	m_CHR;
-		float	m_KHR;
-		float	m_SHR;
-		float	m_AHR;
-		float	m_SRHR_CL;
-		float	m_SKHR_CL;
-		float	m_SSHR_CL;
-		float	m_SR_SPLT_CL;
-		float	m_SK_SPLT_CL;
-		float	m_SS_SPLT_CL;
-		int32_t	m_V_IT;
-		int32_t	m_P_IT;
-		int32_t	m_D_IT;
-		int32_t	m_C_IT;
-		float	m_LST;
-		float	m_AST;
-		float	m_VST;
-		std::vector<AnchorRigidbody>	m_anchorRigidBodies;
-		std::vector<int32_t>	m_pinVertexIndices;
+		std::string	name;
+		std::string	englishName;
+		SoftBodyType	type;
+		int32_t			materialIndex;
+		uint8_t		group;
+		uint16_t	collisionGroup;
+		SoftBodyMask	flag;
+		int32_t	BLinkLength;
+		int32_t	numClusters;
+		float	totalMass;
+		float	collisionMargin;
+		int32_t		aeroModel;
+		float	VCF;
+		float	DP;
+		float	DG;
+		float	LF;
+		float	PR;
+		float	VC;
+		float	DF;
+		float	MT;
+		float	CHR;
+		float	KHR;
+		float	SHR;
+		float	AHR;
+		float	SRHR_CL;
+		float	SKHR_CL;
+		float	SSHR_CL;
+		float	SR_SPLT_CL;
+		float	SK_SPLT_CL;
+		float	SS_SPLT_CL;
+		int32_t	V_IT;
+		int32_t	P_IT;
+		int32_t	D_IT;
+		int32_t	C_IT;
+		float	LST;
+		float	AST;
+		float	VST;
+		std::vector<AnchorRigidbody>	anchorRigidBodies;
+		std::vector<int32_t>	pinVertexIndices;
 	};
 
-	PMXHeader						m_header;
-	PMXInfo							m_info;
-	std::vector<PMXVertex>			m_vertices;
-	std::vector<PMXFace>			m_faces;
-	std::vector<PMXTexture>			m_textures;
-	std::vector<PMXMaterial>		m_materials;
-	std::vector<PMXBone>			m_bones;
-	std::vector<PMXMorph>			m_morphs;
-	std::vector<PMXDisplayFrame>	m_displayFrames;
-	std::vector<PMXRigidbody>		m_rigidBodies;
-	std::vector<PMXJoint>			m_joints;
-	std::vector<PMXSoftBody>		m_softbodies;
+	PMXHeader						header;
+	PMXInfo							info;
+	std::vector<PMXVertex>			vertices;
+	std::vector<PMXFace>			faces;
+	std::vector<PMXTexture>			textures;
+	std::vector<PMXMaterial>		materials;
+	std::vector<PMXBone>			bones;
+	std::vector<PMXMorph>			morphs;
+	std::vector<PMXDisplayFrame>	displayFrames;
+	std::vector<PMXRigidbody>		rigidBodies;
+	std::vector<PMXJoint>			joints;
+	std::vector<PMXSoftBody>		softbodies;
 
 	/// PMX 파일 전체를 읽어 내부 데이터 구조에 저장한다.
 	bool ReadFile(const std::filesystem::path& filename);
@@ -430,47 +430,47 @@ public:
 
 class VMDReader {
 	struct VMDHeader {
-		char m_header[30];
-		char m_modelName[20];
+		char header[30];
+		char modelName[20];
 	};
 
 	struct VMDMorph {
-		char			m_blendShapeName[15]{};
-		uint32_t		m_frame{};
-		float			m_weight{};
+		char			blendShapeName[15]{};
+		uint32_t		frame{};
+		float			weight{};
 	};
 
 	struct VMDCamera {
-		uint32_t		m_frame;
-		float			m_distance;
-		glm::vec3		m_interest;
-		glm::vec3		m_rotate;
-		uint8_t			m_interpolation[24];
-		uint32_t		m_viewAngle;
-		uint8_t			m_isPerspective;
+		uint32_t		frame;
+		float			distance;
+		glm::vec3		interest;
+		glm::vec3		rotate;
+		uint8_t			interpolation[24];
+		uint32_t		viewAngle;
+		uint8_t			isPerspective;
 	};
 
 	struct VMDLight {
-		uint32_t	m_frame;
-		glm::vec3	m_color;
-		glm::vec3	m_position;
+		uint32_t	frame;
+		glm::vec3	color;
+		glm::vec3	position;
 	};
 
 	struct VMDShadow {
-		uint32_t	m_frame;
-		ShadowType	m_shadowType;
-		float		m_distance;
+		uint32_t	frame;
+		ShadowType	shadowType;
+		float		distance;
 	};
 
 	struct VMDIkInfo {
-		char			m_name[20]{};
-		uint8_t			m_enable{};
+		char			name[20]{};
+		uint8_t			enable{};
 	};
 
 	struct VMDIk {
-		uint32_t	m_frame;
-		uint8_t		m_show;
-		std::vector<VMDIkInfo>	m_ikInfos;
+		uint32_t	frame;
+		uint8_t		show;
+		std::vector<VMDIkInfo>	ikInfos;
 	};
 
 	/// VMD 헤더와 대상 모델 이름을 읽는다.
@@ -490,20 +490,20 @@ class VMDReader {
 
 public:
 	struct VMDMotion {
-		char			m_boneName[15];
-		uint32_t		m_frame;
-		glm::vec3		m_translate;
-		glm::quat		m_quaternion;
-		uint8_t			m_interpolation[64];
+		char			boneName[15];
+		uint32_t		frame;
+		glm::vec3		translate;
+		glm::quat		quaternion;
+		uint8_t			interpolation[64];
 	};
 
-	VMDHeader					m_header;
-	std::vector<VMDMotion>		m_motions;
-	std::vector<VMDMorph>		m_morphs;
-	std::vector<VMDCamera>		m_cameras;
-	std::vector<VMDLight>		m_lights;
-	std::vector<VMDShadow>		m_shadows;
-	std::vector<VMDIk>			m_iks;
+	VMDHeader					header;
+	std::vector<VMDMotion>		motions;
+	std::vector<VMDMorph>		morphs;
+	std::vector<VMDCamera>		cameras;
+	std::vector<VMDLight>		lights;
+	std::vector<VMDShadow>		shadows;
+	std::vector<VMDIk>			iks;
 
 	/// VMD 파일 전체를 읽어 모션/카메라/모프 데이터를 저장한다.
 	bool ReadFile(const std::filesystem::path& filename);

@@ -31,23 +31,23 @@ float FindBezierX(float time, const float x1, const float x2) {
 }
 
 void NodeAnimationKey::ApplyMotion(const VMDReader::VMDMotion& motion) {
-	time = static_cast<int32_t>(motion.m_frame);
-	translate = motion.m_translate * glm::vec3(1, 1, -1);
-	const glm::quat q = motion.m_quaternion;
+	time = static_cast<int32_t>(motion.frame);
+	translate = motion.translate * glm::vec3(1, 1, -1);
+	const glm::quat q = motion.quaternion;
 	const auto rot = Util::InvZ(glm::mat3_cast(q));
 	rotate = glm::quat_cast(rot);
 	AssignBezier(txBezier,
-		motion.m_interpolation[0], motion.m_interpolation[8],
-		motion.m_interpolation[4], motion.m_interpolation[12]);
+		motion.interpolation[0], motion.interpolation[8],
+		motion.interpolation[4], motion.interpolation[12]);
 	AssignBezier(tyBezier,
-		motion.m_interpolation[1], motion.m_interpolation[9],
-		motion.m_interpolation[5], motion.m_interpolation[13]);
+		motion.interpolation[1], motion.interpolation[9],
+		motion.interpolation[5], motion.interpolation[13]);
 	AssignBezier(tzBezier,
-		motion.m_interpolation[2], motion.m_interpolation[10],
-		motion.m_interpolation[6], motion.m_interpolation[14]);
+		motion.interpolation[2], motion.interpolation[10],
+		motion.interpolation[6], motion.interpolation[14]);
 	AssignBezier(rotBezier,
-		motion.m_interpolation[3], motion.m_interpolation[11],
-		motion.m_interpolation[7], motion.m_interpolation[15]);
+		motion.interpolation[3], motion.interpolation[11],
+		motion.interpolation[7], motion.interpolation[15]);
 }
 
 bool Animation::Add(const VMDReader& vmd) {
@@ -57,8 +57,8 @@ bool Animation::Add(const VMDReader& vmd) {
 			nodeMap.emplace(node.first->name, std::move(node));
 	}
 	m_nodes.clear();
-	for (const auto& motion : vmd.m_motions) {
-		auto nodeName = Util::SjisToUtf8(motion.m_boneName);
+	for (const auto& motion : vmd.motions) {
+		auto nodeName = Util::SjisToUtf8(motion.boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
@@ -82,9 +82,9 @@ bool Animation::Add(const VMDReader& vmd) {
 		}
 	}
 	m_iks.clear();
-	for (const auto& ik : vmd.m_iks) {
-		for (const auto& [m_name, m_enable] : ik.m_ikInfos) {
-			auto ikName = Util::SjisToUtf8(m_name);
+	for (const auto& ik : vmd.iks) {
+		for (const auto& [ikInfoName, ikInfoEnable] : ik.ikInfos) {
+			auto ikName = Util::SjisToUtf8(ikInfoName);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
@@ -99,8 +99,8 @@ bool Animation::Add(const VMDReader& vmd) {
 			if (!first)
 				continue;
 			auto& [keyTime, ikEnable] = second.emplace_back();
-			keyTime = static_cast<int32_t>(ik.m_frame);
-			ikEnable = m_enable != 0;
+			keyTime = static_cast<int32_t>(ik.frame);
+			ikEnable = ikInfoEnable != 0;
 		}
 	}
 	for (auto& val : ikMap | std::views::values) {
@@ -113,8 +113,8 @@ bool Animation::Add(const VMDReader& vmd) {
 			morphMap.emplace(morph.first->name, std::move(morph));
 	}
 	m_morphs.clear();
-	for (const auto& [m_blendShapeName, m_frame, m_weight] : vmd.m_morphs) {
-		auto morphName = Util::SjisToUtf8(m_blendShapeName);
+	for (const auto& [blendShapeName, morphFrame, morphAnimWeight] : vmd.morphs) {
+		auto morphName = Util::SjisToUtf8(blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
 		if (inserted) {
@@ -124,8 +124,8 @@ bool Animation::Add(const VMDReader& vmd) {
 		if (!first)
 			continue;
 		auto& [keyTime, morphWeight] = second.emplace_back();
-		keyTime = static_cast<int32_t>(m_frame);
-		morphWeight = m_weight;
+		keyTime = static_cast<int32_t>(morphFrame);
+		morphWeight = morphAnimWeight;
 	}
 	for (auto& val : morphMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
@@ -233,33 +233,33 @@ glm::mat4 Camera::CalcViewMatrix() const {
 }
 
 bool CameraAnimation::Create(const VMDReader& vmd) {
-	if (!vmd.m_cameras.empty()) {
+	if (!vmd.cameras.empty()) {
 		m_keys.clear();
-		for (const auto& cam: vmd.m_cameras) {
+		for (const auto& cam: vmd.cameras) {
 			CameraAnimationKey key{};
-			key.time = static_cast<int32_t>(cam.m_frame);
-			key.interest = cam.m_interest * glm::vec3(1, 1, -1);
-			key.rotate = cam.m_rotate;
-			key.distance = cam.m_distance;
-			key.fov = glm::radians(static_cast<float>(cam.m_viewAngle));
+			key.time = static_cast<int32_t>(cam.frame);
+			key.interest = cam.interest * glm::vec3(1, 1, -1);
+			key.rotate = cam.rotate;
+			key.distance = cam.distance;
+			key.fov = glm::radians(static_cast<float>(cam.viewAngle));
 			AssignBezier(key.ixBezier,
-				cam.m_interpolation[0], cam.m_interpolation[1],
-				cam.m_interpolation[2], cam.m_interpolation[3]);
+				cam.interpolation[0], cam.interpolation[1],
+				cam.interpolation[2], cam.interpolation[3]);
 			AssignBezier(key.iyBezier,
-				cam.m_interpolation[4], cam.m_interpolation[5],
-				cam.m_interpolation[6], cam.m_interpolation[7]);
+				cam.interpolation[4], cam.interpolation[5],
+				cam.interpolation[6], cam.interpolation[7]);
 			AssignBezier(key.izBezier,
-				cam.m_interpolation[8], cam.m_interpolation[9],
-				cam.m_interpolation[10], cam.m_interpolation[11]);
+				cam.interpolation[8], cam.interpolation[9],
+				cam.interpolation[10], cam.interpolation[11]);
 			AssignBezier(key.rotateBezier,
-				cam.m_interpolation[12], cam.m_interpolation[13],
-				cam.m_interpolation[14], cam.m_interpolation[15]);
+				cam.interpolation[12], cam.interpolation[13],
+				cam.interpolation[14], cam.interpolation[15]);
 			AssignBezier(key.distanceBezier,
-				cam.m_interpolation[16], cam.m_interpolation[17],
-				cam.m_interpolation[18], cam.m_interpolation[19]);
+				cam.interpolation[16], cam.interpolation[17],
+				cam.interpolation[18], cam.interpolation[19]);
 			AssignBezier(key.fovBezier,
-				cam.m_interpolation[20], cam.m_interpolation[21],
-				cam.m_interpolation[22], cam.m_interpolation[23]);
+				cam.interpolation[20], cam.interpolation[21],
+				cam.interpolation[22], cam.interpolation[23]);
 			m_keys.push_back(key);
 		}
 		std::ranges::sort(m_keys, {}, &CameraAnimationKey::time);

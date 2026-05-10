@@ -64,43 +64,43 @@ void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const 
 }
 
 void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node) {
-	switch (pmxRigidBody.m_shape) {
+	switch (pmxRigidBody.shape) {
 		case Shape::Sphere:
-			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.m_shapeSize.x);
+			m_shape = std::make_unique<btSphereShape>(pmxRigidBody.shapeSize.x);
 			break;
 		case Shape::Box:
 			m_shape = std::make_unique<btBoxShape>(btVector3(
-				pmxRigidBody.m_shapeSize.x,
-				pmxRigidBody.m_shapeSize.y,
-				pmxRigidBody.m_shapeSize.z
+				pmxRigidBody.shapeSize.x,
+				pmxRigidBody.shapeSize.y,
+				pmxRigidBody.shapeSize.z
 			));
 			break;
 		case Shape::Capsule:
 			m_shape = std::make_unique<btCapsuleShape>(
-				pmxRigidBody.m_shapeSize.x,
-				pmxRigidBody.m_shapeSize.y
+				pmxRigidBody.shapeSize.x,
+				pmxRigidBody.shapeSize.y
 			);
 			break;
 	}
 	btScalar mass(0.0f);
 	btVector3 localInertia(0, 0, 0);
-	if (pmxRigidBody.m_op != Operation::Static)
-		mass = pmxRigidBody.m_mass;
+	if (pmxRigidBody.op != Operation::Static)
+		mass = pmxRigidBody.mass;
 	if (mass != 0)
 		m_shape->calculateLocalInertia(mass, localInertia);
-	const auto rx = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.x, glm::vec3(1, 0, 0));
-	const auto ry = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.y, glm::vec3(0, 1, 0));
-	const auto rz = glm::rotate(glm::mat4(1), pmxRigidBody.m_rotate.z, glm::vec3(0, 0, 1));
+	const auto rx = glm::rotate(glm::mat4(1), pmxRigidBody.rotate.x, glm::vec3(1, 0, 0));
+	const auto ry = glm::rotate(glm::mat4(1), pmxRigidBody.rotate.y, glm::vec3(0, 1, 0));
+	const auto rz = glm::rotate(glm::mat4(1), pmxRigidBody.rotate.z, glm::vec3(0, 0, 1));
 	const glm::mat4 rotMat = ry * rx * rz;
-	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
+	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.translate);
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
 	m_offsetMat = node ? glm::inverse(node->global) * rbMat : rbMat;
 	m_kinematicMotionState = node
 		? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(node, m_offsetMat))
 		: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(m_offsetMat));
-	if (pmxRigidBody.m_op != Operation::Static) {
+	if (pmxRigidBody.op != Operation::Static) {
 		if (node) {
-			if (pmxRigidBody.m_op == Operation::Dynamic)
+			if (pmxRigidBody.op == Operation::Dynamic)
 				m_activeMotionState = std::make_unique<DynamicMotionState>(node, m_offsetMat);
 			else
 				m_activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(node, m_offsetMat);
@@ -109,22 +109,22 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	}
 	btMotionState* motionState = m_activeMotionState ? m_activeMotionState.get() : m_kinematicMotionState.get();
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, m_shape.get(), localInertia);
-	rbInfo.m_linearDamping = pmxRigidBody.m_translateDimmer;
-	rbInfo.m_angularDamping = pmxRigidBody.m_rotateDimmer;
-	rbInfo.m_restitution = pmxRigidBody.m_repulsion;
-	rbInfo.m_friction = pmxRigidBody.m_friction;
+	rbInfo.m_linearDamping = pmxRigidBody.translateDimmer;
+	rbInfo.m_angularDamping = pmxRigidBody.rotateDimmer;
+	rbInfo.m_restitution = pmxRigidBody.repulsion;
+	rbInfo.m_friction = pmxRigidBody.friction;
 	rbInfo.m_additionalDamping = true;
 	rigidBody = std::make_unique<btRigidBody>(rbInfo);
 	rigidBody->setUserPointer(this);
 	rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
 	rigidBody->setActivationState(DISABLE_DEACTIVATION);
-	if (pmxRigidBody.m_op == Operation::Static)
+	if (pmxRigidBody.op == Operation::Static)
 		rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-	m_rigidBodyType = pmxRigidBody.m_op;
-	group = pmxRigidBody.m_group;
-	groupMask = pmxRigidBody.m_collisionGroup;
+	m_rigidBodyType = pmxRigidBody.op;
+	group = pmxRigidBody.group;
+	groupMask = pmxRigidBody.collisionGroup;
 	m_node = node;
-	m_name = pmxRigidBody.m_name;
+	m_name = pmxRigidBody.name;
 }
 
 void RigidBody::ApplyActivation(const bool activation) const {
@@ -184,10 +184,10 @@ glm::mat4 RigidBody::CalcTransform() const {
 void Joint::Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 	constraint = nullptr;
 	btMatrix3x3 rotMat;
-	rotMat.setEulerZYX(pmxJoint.m_rotate.x, pmxJoint.m_rotate.y, pmxJoint.m_rotate.z);
+	rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);
 	btTransform transform;
 	transform.setIdentity();
-	transform.setOrigin(btVector3(pmxJoint.m_translate.x, pmxJoint.m_translate.y, pmxJoint.m_translate.z));
+	transform.setOrigin(btVector3(pmxJoint.translate.x, pmxJoint.translate.y, pmxJoint.translate.z));
 	transform.setBasis(rotMat);
 	btTransform invA = rigidBodyA->rigidBody->getWorldTransform().inverse();
 	btTransform invB = rigidBodyB->rigidBody->getWorldTransform().inverse();
@@ -196,17 +196,17 @@ void Joint::Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBo
 	auto jointConstraint = std::make_unique<btGeneric6DofSpringConstraint>(
 		*rigidBodyA->rigidBody, *rigidBodyB->rigidBody,
 		invA, invB, true);
-	jointConstraint->setLinearLowerLimit(btVector3(pmxJoint.m_translateLowerLimit.x, pmxJoint.m_translateLowerLimit.y, pmxJoint.m_translateLowerLimit.z));
-	jointConstraint->setLinearUpperLimit(btVector3(pmxJoint.m_translateUpperLimit.x, pmxJoint.m_translateUpperLimit.y, pmxJoint.m_translateUpperLimit.z));
-	jointConstraint->setAngularLowerLimit(btVector3(pmxJoint.m_rotateLowerLimit.x, pmxJoint.m_rotateLowerLimit.y, pmxJoint.m_rotateLowerLimit.z));
-	jointConstraint->setAngularUpperLimit(btVector3(pmxJoint.m_rotateUpperLimit.x, pmxJoint.m_rotateUpperLimit.y, pmxJoint.m_rotateUpperLimit.z));
+	jointConstraint->setLinearLowerLimit(btVector3(pmxJoint.translateLowerLimit.x, pmxJoint.translateLowerLimit.y, pmxJoint.translateLowerLimit.z));
+	jointConstraint->setLinearUpperLimit(btVector3(pmxJoint.translateUpperLimit.x, pmxJoint.translateUpperLimit.y, pmxJoint.translateUpperLimit.z));
+	jointConstraint->setAngularLowerLimit(btVector3(pmxJoint.rotateLowerLimit.x, pmxJoint.rotateLowerLimit.y, pmxJoint.rotateLowerLimit.z));
+	jointConstraint->setAngularUpperLimit(btVector3(pmxJoint.rotateUpperLimit.x, pmxJoint.rotateUpperLimit.y, pmxJoint.rotateUpperLimit.z));
 	const float stiffness[6] = {
-		pmxJoint.m_springTranslateFactor.x,
-		pmxJoint.m_springTranslateFactor.y,
-		pmxJoint.m_springTranslateFactor.z,
-		pmxJoint.m_springRotateFactor.x,
-		pmxJoint.m_springRotateFactor.y,
-		pmxJoint.m_springRotateFactor.z,
+		pmxJoint.springTranslateFactor.x,
+		pmxJoint.springTranslateFactor.y,
+		pmxJoint.springTranslateFactor.z,
+		pmxJoint.springRotateFactor.x,
+		pmxJoint.springRotateFactor.y,
+		pmxJoint.springRotateFactor.z,
 	};
 	for (int i = 0; i < 6; i++) {
 		if (stiffness[i] != 0.0f) {

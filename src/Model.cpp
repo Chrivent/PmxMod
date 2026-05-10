@@ -10,27 +10,27 @@
 #include <glm/gtx/dual_quaternion.hpp>
 
 void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.m_diffuse = glm::mix(out.m_diffuse, out.m_diffuse * val.m_diffuse, weight);
-	out.m_specular = glm::mix(out.m_specular, out.m_specular * val.m_specular, weight);
-	out.m_specularPower = glm::mix(out.m_specularPower, out.m_specularPower * val.m_specularPower, weight);
-	out.m_ambient = glm::mix(out.m_ambient, out.m_ambient * val.m_ambient, weight);
-	out.m_edgeColor = glm::mix(out.m_edgeColor, out.m_edgeColor * val.m_edgeColor, weight);
-	out.m_edgeSize = glm::mix(out.m_edgeSize, out.m_edgeSize * val.m_edgeSize, weight);
-	out.m_textureFactor = glm::mix(out.m_textureFactor, out.m_textureFactor * val.m_textureFactor, weight);
-	out.m_sphereTextureFactor = glm::mix(out.m_sphereTextureFactor, out.m_sphereTextureFactor * val.m_sphereTextureFactor, weight);
-	out.m_toonTextureFactor = glm::mix(out.m_toonTextureFactor, out.m_toonTextureFactor * val.m_toonTextureFactor, weight);
+	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
+	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
+	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
+	out.ambient = glm::mix(out.ambient, out.ambient * val.ambient, weight);
+	out.edgeColor = glm::mix(out.edgeColor, out.edgeColor * val.edgeColor, weight);
+	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
+	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
+	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
+	out.toonTextureFactor = glm::mix(out.toonTextureFactor, out.toonTextureFactor * val.toonTextureFactor, weight);
 }
 
 void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.m_diffuse += val.m_diffuse * weight;
-	out.m_specular += val.m_specular * weight;
-	out.m_specularPower += val.m_specularPower * weight;
-	out.m_ambient += val.m_ambient * weight;
-	out.m_edgeColor += val.m_edgeColor * weight;
-	out.m_edgeSize += val.m_edgeSize * weight;
-	out.m_textureFactor += val.m_textureFactor * weight;
-	out.m_sphereTextureFactor += val.m_sphereTextureFactor * weight;
-	out.m_toonTextureFactor += val.m_toonTextureFactor * weight;
+	out.diffuse += val.diffuse * weight;
+	out.specular += val.specular * weight;
+	out.specularPower += val.specularPower * weight;
+	out.ambient += val.ambient * weight;
+	out.edgeColor += val.edgeColor * weight;
+	out.edgeSize += val.edgeSize * weight;
+	out.textureFactor += val.textureFactor * weight;
+	out.sphereTextureFactor += val.sphereTextureFactor * weight;
+	out.toonTextureFactor += val.toonTextureFactor * weight;
 }
 
 Model::~Model() {
@@ -187,12 +187,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	PMXReader pmx;
 	if (!pmx.ReadFile(filepath))
 		return false;
-	m_modelName        = pmx.m_info.m_modelName;
-	m_englishModelName = pmx.m_info.m_englishModelName;
-	m_comment          = pmx.m_info.m_comment;
-	m_englishComment   = pmx.m_info.m_englishComment;
+	m_modelName        = pmx.info.modelName;
+	m_englishModelName = pmx.info.englishModelName;
+	m_comment          = pmx.info.comment;
+	m_englishComment   = pmx.info.englishComment;
 	std::filesystem::path dirPath = filepath.parent_path();
-	size_t vertexCount = pmx.m_vertices.size();
+	size_t vertexCount = pmx.vertices.size();
 	positions.reserve(vertexCount);
 	m_normals.reserve(vertexCount);
 	m_uvs.reserve(vertexCount);
@@ -200,41 +200,41 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	m_bboxMax = glm::vec3(-std::numeric_limits<float>::max());
 	m_bboxMin = glm::vec3(std::numeric_limits<float>::max());
 	constexpr glm::vec3 invZ(1, 1, -1);
-	for (const auto& v : pmx.m_vertices) {
-		glm::vec3 pos = v.m_position * invZ;
+	for (const auto& v : pmx.vertices) {
+		glm::vec3 pos = v.position * invZ;
 		positions.push_back(pos);
-		m_normals.push_back(v.m_normal * invZ);
-		m_uvs.emplace_back(v.m_uv.x, 1.0f - v.m_uv.y);
+		m_normals.push_back(v.normal * invZ);
+		m_uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 		Vertex vtxBoneInfo{};
-		if (WeightType::SDEF != v.m_weightType) {
-			vtxBoneInfo.boneIndices[0] = v.m_boneIndices[0];
-			vtxBoneInfo.boneIndices[1] = v.m_boneIndices[1];
-			vtxBoneInfo.boneIndices[2] = v.m_boneIndices[2];
-			vtxBoneInfo.boneIndices[3] = v.m_boneIndices[3];
-			vtxBoneInfo.boneWeights[0] = v.m_boneWeights[0];
-			vtxBoneInfo.boneWeights[1] = v.m_boneWeights[1];
-			vtxBoneInfo.boneWeights[2] = v.m_boneWeights[2];
-			vtxBoneInfo.boneWeights[3] = v.m_boneWeights[3];
+		if (WeightType::SDEF != v.weightType) {
+			vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
+			vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
+			vtxBoneInfo.boneIndices[2] = v.boneIndices[2];
+			vtxBoneInfo.boneIndices[3] = v.boneIndices[3];
+			vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
+			vtxBoneInfo.boneWeights[1] = v.boneWeights[1];
+			vtxBoneInfo.boneWeights[2] = v.boneWeights[2];
+			vtxBoneInfo.boneWeights[3] = v.boneWeights[3];
 		}
-		vtxBoneInfo.weightType = v.m_weightType;
-		switch (v.m_weightType) {
+		vtxBoneInfo.weightType = v.weightType;
+		switch (v.weightType) {
 			case WeightType::BDEF2:
 				vtxBoneInfo.boneWeights[1] = 1.0f - vtxBoneInfo.boneWeights[0];
 				break;
 			case WeightType::SDEF: {
-					auto w0 = v.m_boneWeights[0];
+					auto w0 = v.boneWeights[0];
 					auto w1 = 1.0f - w0;
-					auto center = v.m_sdefC * invZ;
-					auto r0 = v.m_sdefR0 * invZ;
-					auto r1 = v.m_sdefR1 * invZ;
+					auto center = v.sdefC * invZ;
+					auto r0 = v.sdefR0 * invZ;
+					auto r1 = v.sdefR1 * invZ;
 					auto rw = r0 * w0 + r1 * w1;
 					r0 = center + r0 - rw;
 					r1 = center + r1 - rw;
 					auto cr0 = (center + r0) * 0.5f;
 					auto cr1 = (center + r1) * 0.5f;
-					vtxBoneInfo.boneIndices[0] = v.m_boneIndices[0];
-					vtxBoneInfo.boneIndices[1] = v.m_boneIndices[1];
-					vtxBoneInfo.boneWeights[0] = v.m_boneWeights[0];
+					vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
+					vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
+					vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
 					vtxBoneInfo.sdefC = center;
 					vtxBoneInfo.sdefR0 = cr0;
 					vtxBoneInfo.sdefR1 = cr1;
@@ -252,13 +252,13 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	updatePositions.resize(positions.size());
 	updateNormals.resize(m_normals.size());
 	updateUVs.resize(m_uvs.size());
-	indexElementSize = pmx.m_header.m_vertexIndexSize;
-	indices.resize(pmx.m_faces.size() * 3 * indexElementSize);
-	indexCount = pmx.m_faces.size() * 3;
+	indexElementSize = pmx.header.vertexIndexSize;
+	indices.resize(pmx.faces.size() * 3 * indexElementSize);
+	indexCount = pmx.faces.size() * 3;
 	auto fillIndices = [&](auto* out) {
 		using T = std::remove_pointer_t<decltype(out)>;
 		int idx = 0;
-		for (const auto& [tri] : pmx.m_faces) {
+		for (const auto& [tri] : pmx.faces) {
 			out[idx++] = static_cast<T>(tri[2]);
 			out[idx++] = static_cast<T>(tri[1]);
 			out[idx++] = static_cast<T>(tri[0]);
@@ -271,87 +271,87 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		default: return false;
 	}
 	std::vector<std::filesystem::path> texturePaths;
-	texturePaths.reserve(pmx.m_textures.size());
-	for (const auto& [m_textureName] : pmx.m_textures) {
-		std::filesystem::path texPath = dirPath / m_textureName;
+	texturePaths.reserve(pmx.textures.size());
+	for (const auto& [textureName] : pmx.textures) {
+		std::filesystem::path texPath = dirPath / textureName;
 		texturePaths.emplace_back(std::move(texPath));
 	}
-	materials.reserve(pmx.m_materials.size());
-	subMeshes.reserve(pmx.m_materials.size());
+	materials.reserve(pmx.materials.size());
+	subMeshes.reserve(pmx.materials.size());
 	uint32_t beginIndex = 0;
-	for (const auto& mat : pmx.m_materials) {
-		const auto dm = static_cast<uint8_t>(mat.m_drawMode);
+	for (const auto& mat : pmx.materials) {
+		const auto dm = static_cast<uint8_t>(mat.drawMode);
 		Material m;
-		m.diffuse = mat.m_diffuse;
-		m.specularPower = mat.m_specularPower;
-		m.specular = mat.m_specular;
-		m.ambient = mat.m_ambient;
+		m.diffuse = mat.diffuse;
+		m.specularPower = mat.specularPower;
+		m.specular = mat.specular;
+		m.ambient = mat.ambient;
 		m.spTextureMode = SphereMode::None;
 		m.bothFace      = (dm & static_cast<uint8_t>(DrawModeFlags::BothFace)) != 0;
 		m.edgeFlag      = (dm & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) != 0 ? 1 : 0;
 		m.groundShadow  = (dm & static_cast<uint8_t>(DrawModeFlags::GroundShadow)) != 0;
 		m.shadowCaster  = (dm & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow)) != 0;
 		m.shadowReceiver= (dm & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow)) != 0;
-		m.edgeSize = mat.m_edgeSize;
-		m.edgeColor = mat.m_edgeColor;
-		if (mat.m_textureIndex != -1)
-			m.texture = texturePaths[mat.m_textureIndex];
-		if (mat.m_toonMode == ToonMode::Common) {
-			if (mat.m_toonTextureIndex != -1) {
+		m.edgeSize = mat.edgeSize;
+		m.edgeColor = mat.edgeColor;
+		if (mat.textureIndex != -1)
+			m.texture = texturePaths[mat.textureIndex];
+		if (mat.toonMode == ToonMode::Common) {
+			if (mat.toonTextureIndex != -1) {
 				std::stringstream ss;
-				ss << "toon" << std::setfill('0') << std::setw(2) << (mat.m_toonTextureIndex + 1) << ".bmp";
+				ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
 				m.toonTexture = dataDir / ss.str();
 			}
-		} else if (mat.m_toonMode == ToonMode::Separate) {
-			if (mat.m_toonTextureIndex != -1)
-				m.toonTexture = texturePaths[mat.m_toonTextureIndex];
+		} else if (mat.toonMode == ToonMode::Separate) {
+			if (mat.toonTextureIndex != -1)
+				m.toonTexture = texturePaths[mat.toonTextureIndex];
 		}
-		if (mat.m_sphereTextureIndex != -1) {
-			m.spTexture = texturePaths[mat.m_sphereTextureIndex];
-			m.spTextureMode = mat.m_sphereMode;
+		if (mat.sphereTextureIndex != -1) {
+			m.spTexture = texturePaths[mat.sphereTextureIndex];
+			m.spTextureMode = mat.sphereMode;
 		}
 		materials.emplace_back(std::move(m));
 		SubMesh subMesh{};
 		subMesh.beginIndex = static_cast<int>(beginIndex);
-		subMesh.indexCount = mat.m_numFaceVertices;
+		subMesh.indexCount = mat.numFaceVertices;
 		subMesh.materialID = static_cast<int>(materials.size() - 1);
 		subMeshes.push_back(subMesh);
-		beginIndex += mat.m_numFaceVertices;
+		beginIndex += mat.numFaceVertices;
 	}
 	m_initMaterials = materials;
 	m_mulMaterialFactors.resize(materials.size());
 	m_addMaterialFactors.resize(materials.size());
-	nodes.reserve(pmx.m_bones.size());
-	for (const auto& bone : pmx.m_bones) {
+	nodes.reserve(pmx.bones.size());
+	for (const auto& bone : pmx.bones) {
 		auto node = std::make_shared<Node>();
 		node->index = static_cast<uint32_t>(nodes.size());
-		node->name = bone.m_name;
+		node->name = bone.name;
 		nodes.emplace_back(std::move(node));
 	}
-	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
-		const auto& bone = pmx.m_bones[i];
+	for (size_t i = 0; i < pmx.bones.size(); i++) {
+		const auto& bone = pmx.bones[i];
 		auto* node = nodes[i].get();
-		glm::vec3 localPos = bone.m_position;
-		if (bone.m_parentBoneIndex != -1) {
-			auto parentNode = nodes[bone.m_parentBoneIndex];
+		glm::vec3 localPos = bone.position;
+		if (bone.parentBoneIndex != -1) {
+			auto parentNode = nodes[bone.parentBoneIndex];
 			parentNode->AddChild(nodes[i]);
-			localPos -= pmx.m_bones[bone.m_parentBoneIndex].m_position;
+			localPos -= pmx.bones[bone.parentBoneIndex].position;
 		}
 		localPos.z *= -1;
 		node->translate = localPos;
-		node->global = glm::translate(glm::mat4(1), bone.m_position * invZ);
+		node->global = glm::translate(glm::mat4(1), bone.position * invZ);
 		node->inverseInit = glm::inverse(node->global);
-		node->deformDepth = bone.m_deformDepth;
-		bool deformAfterPhysics = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
+		node->deformDepth = bone.deformDepth;
+		bool deformAfterPhysics = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
 		node->isDeformAfterPhysics = deformAfterPhysics;
-		bool appendRotateEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
-		bool appendTranslateEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
+		bool appendRotateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
+		bool appendTranslateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
 		node->isAppendRotate = appendRotateEnabled;
 		node->isAppendTranslate = appendTranslateEnabled;
-		if ((appendRotateEnabled || appendTranslateEnabled) && bone.m_appendBoneIndex != -1) {
-			bool appendLocalEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
-			auto appendNodePtr = nodes[bone.m_appendBoneIndex];
-			float appendWeightValue = bone.m_appendWeight;
+		if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
+			bool appendLocalEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
+			auto appendNodePtr = nodes[bone.appendBoneIndex];
+			float appendWeightValue = bone.appendWeight;
 			node->isAppendLocal = appendLocalEnabled;
 			node->appendNode = appendNodePtr;
 			node->appendWeight = appendWeightValue;
@@ -370,72 +370,72 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			return x.get().deformDepth < y.get().deformDepth;
 		}
 	);
-	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
-		const auto& bone = pmx.m_bones[i];
-		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
+	for (size_t i = 0; i < pmx.bones.size(); i++) {
+		const auto& bone = pmx.bones[i];
+		if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_shared<IkSolver>();
 			solver->ikNode = nodes[i];
 			nodes[i]->ikSolver = solver;
-			solver->ikTarget = nodes[bone.m_ikTargetBoneIndex];
-			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
-				auto linkNode = nodes[m_ikBoneIndex];
+			solver->ikTarget = nodes[bone.ikTargetBoneIndex];
+			for (const auto& [ikBoneIndex, enableLimit, limitMin, limitMax] : bone.ikLinks) {
+				auto linkNode = nodes[ikBoneIndex];
 				IKChain chain{};
 				chain.node = linkNode;
-				chain.enableAxisLimit = m_enableLimit;
-				chain.limitMin = m_limitMax * glm::vec3(-1);
-				chain.limitMax = m_limitMin * glm::vec3(-1);
+				chain.enableAxisLimit = enableLimit;
+				chain.limitMin = limitMax * glm::vec3(-1);
+				chain.limitMax = limitMin * glm::vec3(-1);
 				chain.saveIKRot = glm::quat(1, 0, 0, 0);
 				solver->chains.emplace_back(chain);
 				linkNode->enableIK = true;
 			}
-			solver->iterateCount = bone.m_ikIterationCount;
-			solver->limitAngle = bone.m_ikLimit;
+			solver->iterateCount = bone.ikIterationCount;
+			solver->limitAngle = bone.ikLimit;
 			ikSolvers.emplace_back(std::move(solver));
 		}
 	}
-	for (const auto& morph : pmx.m_morphs) {
+	for (const auto& morph : pmx.morphs) {
 		auto m = std::make_unique<Morph>();
-		m->name = morph.m_name;
+		m->name = morph.name;
 		m->weight = 0.0f;
-		m->morphType = morph.m_morphType;
-		if (morph.m_morphType == MorphType::Position) {
+		m->morphType = morph.morphType;
+		if (morph.morphType == MorphType::Position) {
 			m->dataIndex = m_positionMorphDatas.size();
 			std::vector<PositionMorph> morphData;
-			for (const auto& [m_vertexIndex, m_position] : morph.m_positionMorph) {
+			for (const auto& [morphVertexIndex, morphPosition] : morph.positionMorph) {
 				PositionMorph morphVtx{};
-				morphVtx.m_vertexIndex = m_vertexIndex;
-				morphVtx.m_position = m_position * invZ;
+				morphVtx.vertexIndex = morphVertexIndex;
+				morphVtx.position = morphPosition * invZ;
 				morphData.push_back(morphVtx);
 			}
 			m_positionMorphDatas.emplace_back(std::move(morphData));
-		} else if (morph.m_morphType == MorphType::UV) {
+		} else if (morph.morphType == MorphType::UV) {
 			m->dataIndex = m_uvMorphDatas.size();
 			std::vector<UVMorph> morphData;
-			for (const auto& [m_vertexIndex, m_uv] : morph.m_uvMorph) {
+			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
 				UVMorph morphUV{};
-				morphUV.m_vertexIndex = m_vertexIndex;
-				morphUV.m_uv = m_uv;
+				morphUV.vertexIndex = morphVertexIndex;
+				morphUV.uv = morphUVValue;
 				morphData.push_back(morphUV);
 			}
 			m_uvMorphDatas.emplace_back(std::move(morphData));
-		} else if (morph.m_morphType == MorphType::Material) {
+		} else if (morph.morphType == MorphType::Material) {
 			m->dataIndex = m_materialMorphDatas.size();
-			m_materialMorphDatas.emplace_back(morph.m_materialMorph);
-		} else if (morph.m_morphType == MorphType::Bone) {
+			m_materialMorphDatas.emplace_back(morph.materialMorph);
+		} else if (morph.morphType == MorphType::Bone) {
 			m->dataIndex = m_boneMorphDatas.size();
 			std::vector<BoneMorph> boneMorphData;
-			for (const auto& [m_boneIndex, m_position, m_quaternion] : morph.m_boneMorph) {
-				auto rot = Util::InvZ(glm::mat3_cast(m_quaternion));
+			for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morph.boneMorph) {
+				auto rot = Util::InvZ(glm::mat3_cast(morphQuaternion));
 				BoneMorph boneMorphElem{};
-				boneMorphElem.m_boneIndex = m_boneIndex;
-				boneMorphElem.m_position = m_position * invZ;
-				boneMorphElem.m_quaternion = glm::quat_cast(rot);
+				boneMorphElem.boneIndex = morphBoneIndex;
+				boneMorphElem.position = morphPosition * invZ;
+				boneMorphElem.quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
 			m_boneMorphDatas.emplace_back(boneMorphData);
-		} else if (morph.m_morphType == MorphType::Group) {
+		} else if (morph.morphType == MorphType::Group) {
 			m->dataIndex = m_groupMorphDatas.size();
-			m_groupMorphDatas.emplace_back(morph.m_groupMorph);
+			m_groupMorphDatas.emplace_back(morph.groupMorph);
 		}
 		morphs.emplace_back(std::move(m));
 	}
@@ -464,23 +464,23 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	}
 	m_physics = std::make_unique<Physics>();
 	m_physics->Create();
-	for (const auto& pmxRigidBody : pmx.m_rigidBodies) {
+	for (const auto& pmxRigidBody : pmx.rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		std::shared_ptr<Node> node;
-		if (pmxRigidBody.m_boneIndex != -1)
-			node = nodes[pmxRigidBody.m_boneIndex];
+		if (pmxRigidBody.boneIndex != -1)
+			node = nodes[pmxRigidBody.boneIndex];
 		rb->Create(pmxRigidBody, this, node);
 		m_physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
 	}
-	for (const auto& joint : pmx.m_joints) {
-		if (joint.m_rigidbodyAIndex != -1 &&
-		    joint.m_rigidbodyBIndex != -1 &&
-		    joint.m_rigidbodyAIndex != joint.m_rigidbodyBIndex) {
+	for (const auto& joint : pmx.joints) {
+		if (joint.rigidbodyAIndex != -1 &&
+		    joint.rigidbodyBIndex != -1 &&
+		    joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
 			auto j = std::make_unique<Joint>();
 			j->Create(joint,
-				m_rigidBodies[joint.m_rigidbodyAIndex].get(),
-				m_rigidBodies[joint.m_rigidbodyBIndex].get()
+				m_rigidBodies[joint.rigidbodyAIndex].get(),
+				m_rigidBodies[joint.rigidbodyBIndex].get()
 			);
 			m_physics->world->addConstraint(j->constraint.get());
 			m_joints.emplace_back(std::move(j));
@@ -639,10 +639,10 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 			MorphBone(m_boneMorphDatas[morph->dataIndex], weight);
 			break;
 		case MorphType::Group: {
-			for (const auto& [m_morphIndex, m_weight] : m_groupMorphDatas[morph->dataIndex]) {
-				if (m_morphIndex == -1)
+			for (const auto& [morphIndex, morphWeightValue] : m_groupMorphDatas[morph->dataIndex]) {
+				if (morphIndex == -1)
 					continue;
-				EvalMorph(morphs[m_morphIndex].get(), m_weight * weight);
+				EvalMorph(morphs[morphIndex].get(), morphWeightValue * weight);
 			}
 			break;
 		}
@@ -652,13 +652,13 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 }
 
 void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
-	for (const auto& [m_index, m_position] : morphData)
-		m_morphPositions[m_index] += m_position * weight;
+	for (const auto& [morphIndex, morphPosition] : morphData)
+		m_morphPositions[morphIndex] += morphPosition * weight;
 }
 
 void Model::MorphUV(const std::vector<UVMorph>& morphData, const float weight) {
-	for (const auto& [m_index, m_uv] : morphData)
-		m_morphUVs[m_index] += m_uv * weight;
+	for (const auto& [morphIndex, morphUVValue] : morphData)
+		m_morphUVs[morphIndex] += morphUVValue * weight;
 }
 
 void Model::BeginMorphMaterial() {
@@ -673,10 +673,10 @@ void Model::BeginMorphMaterial() {
 	for (size_t i = 0; i < materials.size(); i++) {
 		auto& mul = m_mulMaterialFactors[i];
 		mul = initMul;
-		mul.m_diffuse       = m_initMaterials[i].diffuse;
-		mul.m_specular      = m_initMaterials[i].specular;
-		mul.m_specularPower = m_initMaterials[i].specularPower;
-		mul.m_ambient       = m_initMaterials[i].ambient;
+		mul.diffuse       = m_initMaterials[i].diffuse;
+		mul.specular      = m_initMaterials[i].specular;
+		mul.specularPower = m_initMaterials[i].specularPower;
+		mul.ambient       = m_initMaterials[i].ambient;
 		m_addMaterialFactors[i] = initAdd;
 	}
 }
@@ -688,30 +688,30 @@ void Model::EndMorphMaterial() {
 		const auto& add = m_addMaterialFactors[i];
 		auto matFactor = mul;
 		Add(matFactor, add, 1.0f);
-		mat.diffuse        = matFactor.m_diffuse;
-		mat.specular       = matFactor.m_specular;
-		mat.specularPower  = matFactor.m_specularPower;
-		mat.ambient        = matFactor.m_ambient;
-		mat.textureMulFactor   = mul.m_textureFactor;
-		mat.textureAddFactor   = add.m_textureFactor;
-		mat.spTextureMulFactor = mul.m_sphereTextureFactor;
-		mat.spTextureAddFactor = add.m_sphereTextureFactor;
-		mat.toonTextureMulFactor = mul.m_toonTextureFactor;
-		mat.toonTextureAddFactor = add.m_toonTextureFactor;
+		mat.diffuse        = matFactor.diffuse;
+		mat.specular       = matFactor.specular;
+		mat.specularPower  = matFactor.specularPower;
+		mat.ambient        = matFactor.ambient;
+		mat.textureMulFactor   = mul.textureFactor;
+		mat.textureAddFactor   = add.textureFactor;
+		mat.spTextureMulFactor = mul.sphereTextureFactor;
+		mat.spTextureAddFactor = add.sphereTextureFactor;
+		mat.toonTextureMulFactor = mul.toonTextureFactor;
+		mat.toonTextureAddFactor = add.toonTextureFactor;
 	}
 }
 
 void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) {
 	for (const auto& matMorph : morphData) {
 		auto apply = [&](const size_t mi) {
-			switch (matMorph.m_opType) {
+			switch (matMorph.opType) {
 				case OpType::Mul: Mul(m_mulMaterialFactors[mi], matMorph, weight); break;
 				case OpType::Add: Add(m_addMaterialFactors[mi], matMorph, weight); break;
 				default: break;
 			}
 		};
-		if (matMorph.m_materialIndex != -1) {
-			apply(static_cast<size_t>(matMorph.m_materialIndex));
+		if (matMorph.materialIndex != -1) {
+			apply(static_cast<size_t>(matMorph.materialIndex));
 		} else {
 			for (size_t i = 0; i < materials.size(); i++)
 				apply(i);
@@ -720,10 +720,10 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 }
 
 void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
-	for (const auto& [m_boneIndex, m_position, m_quaternion] : morphData) {
-		auto* node = nodes[m_boneIndex].get();
-		node->translate += m_position * weight;
-		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), m_quaternion, weight);
+	for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morphData) {
+		auto* node = nodes[morphBoneIndex].get();
+		node->translate += morphPosition * weight;
+		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), morphQuaternion, weight);
 		node->rotate = glm::normalize(q * node->rotate);
 	}
 }

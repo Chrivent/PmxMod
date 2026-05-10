@@ -212,7 +212,7 @@ void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
         return;
     }
     VMDReader camVmd;
-    if (camVmd.ReadFile(cfg.m_cameraAnim.c_str()) && !camVmd.m_cameras.empty()) {
+    if (camVmd.ReadFile(cfg.m_cameraAnim.c_str()) && !camVmd.cameras.empty()) {
         auto vmdCamAnim = std::make_unique<CameraAnimation>();
         if (!vmdCamAnim->Create(camVmd))
             std::cout << "Failed to create VMDCameraAnimation.\n";
