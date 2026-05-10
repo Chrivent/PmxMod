@@ -11,11 +11,11 @@ Sound::Sound() {
 }
 
 Sound::~Sound() {
-    Uninit();
+    UnInit();
 }
 
 bool Sound::Init(const std::filesystem::path& path, const bool loop) {
-    Uninit();
+    UnInit();
     if (path.empty())
         return false;
     if (ma_engine_init(nullptr, engine.get()) != MA_SUCCESS)
@@ -80,10 +80,10 @@ void Sound::Resume() {
 }
 
 void Sound::Stop() {
-    Uninit();
+    UnInit();
 }
 
-void Sound::Uninit() {
+void Sound::UnInit() {
     if (!hasSound)
         return;
     ma_sound_uninit(sound.get());

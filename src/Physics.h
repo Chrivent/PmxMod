@@ -85,14 +85,14 @@ public:
 
 private:
 	std::weak_ptr<Node>	node;
-	glm::mat4	offset;
+	glm::mat4			offset;
 };
 
 class RigidBody {
 public:
-	std::unique_ptr<btRigidBody>		rigidBody;
-	uint16_t	group = 0;
-	uint16_t	groupMask = 0;
+	std::unique_ptr<btRigidBody>	rigidBody;
+	uint16_t						group = 0;
+	uint16_t						groupMask = 0;
 
 	/// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
 	void Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr);
@@ -111,10 +111,10 @@ private:
 	std::unique_ptr<btCollisionShape>	shape;
 	std::unique_ptr<MotionState>		activeMotionState;
 	std::unique_ptr<MotionState>		kinematicMotionState;
-	Operation	rigidBodyType = Operation::Static;
-	std::weak_ptr<Node>	node;
-	glm::mat4	offsetMat = glm::mat4(1);
-	std::string	name;
+	Operation							rigidBodyType = Operation::Static;
+	std::weak_ptr<Node>					node;
+	glm::mat4							offsetMat = glm::mat4(1);
+	std::string							name;
 };
 
 class Joint {
@@ -129,9 +129,9 @@ class Physics {
 public:
 	~Physics();
 
-	std::unique_ptr<btDiscreteDynamicsWorld>				world;
-	double	fps = 120.0f;
-	int		maxSubStepCount = 10;
+	std::unique_ptr<btDiscreteDynamicsWorld>	world;
+	double										fps = 120.0f;
+	int											maxSubStepCount = 10;
 
 	/// Bullet 월드와 기본 물리 리소스를 생성한다.
 	void Create();
