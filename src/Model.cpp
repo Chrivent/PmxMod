@@ -235,9 +235,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 					vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
 					vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
 					vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
-					vtxBoneInfo.sdefC = center;
-					vtxBoneInfo.sdefR0 = cr0;
-					vtxBoneInfo.sdefR1 = cr1;
+					vtxBoneInfo.sphericalDeformC = center;
+					vtxBoneInfo.sphericalDeformR0 = cr0;
+					vtxBoneInfo.sphericalDeformR1 = cr1;
 				}
 				break;
 			default:
@@ -300,11 +300,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			if (mat.toonTextureIndex != -1) {
 				std::stringstream ss;
 				ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
-				m.toonTexture = dataDir / ss.str();
+				m.cartoonTexture = dataDir / ss.str();
 			}
 		} else if (mat.toonMode == ToonMode::Separate) {
 			if (mat.toonTextureIndex != -1)
-				m.toonTexture = texturePaths[mat.toonTextureIndex];
+				m.cartoonTexture = texturePaths[mat.toonTextureIndex];
 		}
 		if (mat.sphereTextureIndex != -1) {
 			m.spTexture = texturePaths[mat.sphereTextureIndex];
@@ -399,7 +399,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m->weight = 0.0f;
 		m->morphType = morph.morphType;
 		if (morph.morphType == MorphType::Position) {
-			m->dataIndex = m_positionMorphDatas.size();
+			m->dataIndex = m_positionMorphs.size();
 			std::vector<PositionMorph> morphData;
 			for (const auto& [morphVertexIndex, morphPosition] : morph.positionMorph) {
 				PositionMorph morphVtx{};
@@ -407,9 +407,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				morphVtx.position = morphPosition * invZ;
 				morphData.push_back(morphVtx);
 			}
-			m_positionMorphDatas.emplace_back(std::move(morphData));
+			m_positionMorphs.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::UV) {
-			m->dataIndex = m_uvMorphDatas.size();
+			m->dataIndex = m_uvMorphs.size();
 			std::vector<UvMorph> morphData;
 			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
 				UvMorph morphUV{};
@@ -417,12 +417,12 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				morphUV.uv = morphUVValue;
 				morphData.push_back(morphUV);
 			}
-			m_uvMorphDatas.emplace_back(std::move(morphData));
+			m_uvMorphs.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::Material) {
-			m->dataIndex = m_materialMorphDatas.size();
-			m_materialMorphDatas.emplace_back(morph.materialMorph);
+			m->dataIndex = m_materialMorphs.size();
+			m_materialMorphs.emplace_back(morph.materialMorph);
 		} else if (morph.morphType == MorphType::Bone) {
-			m->dataIndex = m_boneMorphDatas.size();
+			m->dataIndex = m_boneMorphs.size();
 			std::vector<BoneMorph> boneMorphData;
 			for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morph.boneMorph) {
 				auto rot = Util::InvZ(glm::mat3_cast(morphQuaternion));
@@ -432,10 +432,10 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				boneMorphElem.quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
-			m_boneMorphDatas.emplace_back(boneMorphData);
+			m_boneMorphs.emplace_back(boneMorphData);
 		} else if (morph.morphType == MorphType::Group) {
-			m->dataIndex = m_groupMorphDatas.size();
-			m_groupMorphDatas.emplace_back(morph.groupMorph);
+			m->dataIndex = m_groupMorphs.size();
+			m_groupMorphs.emplace_back(morph.groupMorph);
 		}
 		morphs.emplace_back(std::move(m));
 	}
@@ -447,7 +447,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (morph->morphType != MorphType::Group)
 			return;
 		groupMorphStack.push_back(idx);
-		for (auto& [childIdx, w] : m_groupMorphDatas[morph->dataIndex]) {
+		for (auto& [childIdx, w] : m_groupMorphs[morph->dataIndex]) {
 			if (childIdx < 0)
 				continue;
 			if (std::ranges::find(groupMorphStack, childIdx) != groupMorphStack.end()) {
@@ -579,7 +579,7 @@ void Model::Update(const UpdateRange& range) {
 			case WeightType::SDEF: {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = 1.0f - w0;
-				const auto center = vtxInfo->sdefC, cr0 = vtxInfo->sdefR0, cr1 = vtxInfo->sdefR1;
+				const auto center = vtxInfo->sphericalDeformC, cr0 = vtxInfo->sphericalDeformR0, cr1 = vtxInfo->sphericalDeformR1;
 				const auto q0 = glm::quat_cast(nodes[i0]->global);
 				const auto q1 = glm::quat_cast(nodes[i1]->global);
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
@@ -627,19 +627,19 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 		return;
 	switch (morph->morphType) {
 		case MorphType::Position:
-			MorphPosition(m_positionMorphDatas[morph->dataIndex], weight);
+			MorphPosition(m_positionMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::UV:
-			MorphUV(m_uvMorphDatas[morph->dataIndex], weight);
+			MorphUV(m_uvMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Material:
-			MorphMaterial(m_materialMorphDatas[morph->dataIndex], weight);
+			MorphMaterial(m_materialMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Bone:
-			MorphBone(m_boneMorphDatas[morph->dataIndex], weight);
+			MorphBone(m_boneMorphs[morph->dataIndex], weight);
 			break;
 		case MorphType::Group: {
-			for (const auto& [morphIndex, morphWeightValue] : m_groupMorphDatas[morph->dataIndex]) {
+			for (const auto& [morphIndex, morphWeightValue] : m_groupMorphs[morph->dataIndex]) {
 				if (morphIndex == -1)
 					continue;
 				EvalMorph(morphs[morphIndex].get(), morphWeightValue * weight);
@@ -694,10 +694,10 @@ void Model::EndMorphMaterial() {
 		mat.ambient        = matFactor.ambient;
 		mat.textureMulFactor   = mul.textureFactor;
 		mat.textureAddFactor   = add.textureFactor;
-		mat.spTextureMulFactor = mul.sphereTextureFactor;
-		mat.spTextureAddFactor = add.sphereTextureFactor;
-		mat.toonTextureMulFactor = mul.toonTextureFactor;
-		mat.toonTextureAddFactor = add.toonTextureFactor;
+		mat.sphereTextureMulFactor = mul.sphereTextureFactor;
+		mat.sphereTextureAddFactor = add.sphereTextureFactor;
+		mat.cartoonTextureMulFactor = mul.toonTextureFactor;
+		mat.cartoonTextureAddFactor = add.toonTextureFactor;
 	}
 }
 

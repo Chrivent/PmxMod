@@ -222,8 +222,8 @@ bool GLFWInstance::Setup(Viewer& viewer) {
 		}
 		if (!mat.spTexture.empty())
 			m.m_spTexture = m_viewer->LoadTexture(mat.spTexture).m_texture;
-		if (!mat.toonTexture.empty())
-			m.m_toonTexture = m_viewer->LoadTexture(mat.toonTexture, true).m_texture;
+		if (!mat.cartoonTexture.empty())
+			m.m_toonTexture = m_viewer->LoadTexture(mat.cartoonTexture, true).m_texture;
 		m_materials.emplace_back(m);
 	}
 	return true;
@@ -309,8 +309,8 @@ void GLFWInstance::Draw() const {
 				glUniform1i(shader->m_uSphereTexMode, 1);
 			else if (mat.spTextureMode == SphereMode::Add)
 				glUniform1i(shader->m_uSphereTexMode, 2);
-			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mat.spTextureMulFactor[0]);
-			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mat.spTextureAddFactor[0]);
+			glUniform4fv(shader->m_uSphereTexMulFactor, 1, &mat.sphereTextureMulFactor[0]);
+			glUniform4fv(shader->m_uSphereTexAddFactor, 1, &mat.sphereTextureAddFactor[0]);
 			glBindTexture(GL_TEXTURE_2D, m.m_spTexture);
 		} else {
 			glUniform1i(shader->m_uSphereTexMode, 0);
@@ -318,8 +318,8 @@ void GLFWInstance::Draw() const {
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
 		if (m.m_toonTexture != 0) {
-			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mat.toonTextureMulFactor[0]);
-			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mat.toonTextureAddFactor[0]);
+			glUniform4fv(shader->m_uToonTexMulFactor, 1, &mat.cartoonTextureMulFactor[0]);
+			glUniform4fv(shader->m_uToonTexAddFactor, 1, &mat.cartoonTextureAddFactor[0]);
 			glUniform1i(shader->m_uToonTexMode, 1);
 			glBindTexture(GL_TEXTURE_2D, m.m_toonTexture);
 		} else {

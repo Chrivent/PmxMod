@@ -30,9 +30,9 @@ struct Vertex {
 	WeightType	weightType;
 	int32_t		boneIndices[4];
 	float		boneWeights[4];
-	glm::vec3	sdefC;
-	glm::vec3	sdefR0;
-	glm::vec3	sdefR1;
+	glm::vec3	sphericalDeformC;
+	glm::vec3	sphericalDeformR0;
+	glm::vec3	sphericalDeformR1;
 };
 
 struct Morph {
@@ -54,13 +54,13 @@ struct Material {
 	std::filesystem::path	texture;
 	std::filesystem::path	spTexture;
 	SphereMode				spTextureMode = SphereMode::None;
-	std::filesystem::path	toonTexture;
+	std::filesystem::path	cartoonTexture;
 	glm::vec4				textureMulFactor = glm::vec4(1);
-	glm::vec4				spTextureMulFactor = glm::vec4(1);
-	glm::vec4				toonTextureMulFactor = glm::vec4(1);
+	glm::vec4				sphereTextureMulFactor = glm::vec4(1);
+	glm::vec4				cartoonTextureMulFactor = glm::vec4(1);
 	glm::vec4				textureAddFactor = glm::vec4(0);
-	glm::vec4				spTextureAddFactor = glm::vec4(0);
-	glm::vec4				toonTextureAddFactor = glm::vec4(0);
+	glm::vec4				sphereTextureAddFactor = glm::vec4(0);
+	glm::vec4				cartoonTextureAddFactor = glm::vec4(0);
 	bool					bothFace = false;
 	bool					groundShadow = true;
 	bool					shadowCaster = true;
@@ -123,11 +123,11 @@ private:
 	std::vector<glm::vec2>						m_uvs;
 	std::vector<Vertex>							m_vertexBoneInfos;
 	std::vector<glm::mat4>						m_transforms;
-	std::vector<std::vector<PositionMorph>>		m_positionMorphDatas;
-	std::vector<std::vector<UvMorph>>			m_uvMorphDatas;
-	std::vector<std::vector<MaterialMorph>>		m_materialMorphDatas;
-	std::vector<std::vector<BoneMorph>>			m_boneMorphDatas;
-	std::vector<std::vector<GroupMorph>>		m_groupMorphDatas;
+	std::vector<std::vector<PositionMorph>>		m_positionMorphs;
+	std::vector<std::vector<UvMorph>>			m_uvMorphs;
+	std::vector<std::vector<MaterialMorph>>		m_materialMorphs;
+	std::vector<std::vector<BoneMorph>>			m_boneMorphs;
+	std::vector<std::vector<GroupMorph>>		m_groupMorphs;
 	std::vector<glm::vec3>						m_morphPositions;
 	std::vector<glm::vec4>						m_morphUVs;
 	std::vector<Material>						m_initMaterials;

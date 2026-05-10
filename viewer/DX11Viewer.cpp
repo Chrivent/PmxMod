@@ -134,8 +134,8 @@ bool DX11Instance::Setup(Viewer& viewer) {
 			m.m_texture = m_viewer->LoadTexture(mat.texture);
 		if (!mat.spTexture.empty())
 			m.m_spTexture = m_viewer->LoadTexture(mat.spTexture);
-		if (!mat.toonTexture.empty())
-			m.m_toonTexture = m_viewer->LoadTexture(mat.toonTexture);
+		if (!mat.cartoonTexture.empty())
+			m.m_toonTexture = m_viewer->LoadTexture(mat.cartoonTexture);
 		m_materials.emplace_back(std::move(m));
 	}
 	return true;
@@ -206,7 +206,7 @@ void DX11Instance::Draw() const {
 			psCB.m_texMulFactor, psCB.m_texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
 			1, m.m_toonTexture, m_viewer->m_toonTextureSampler.Get(), 1, psCB.m_textureModes.y,
-			psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor);
+			psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 		int spMode = 0;
 		if (m.m_spTexture.m_texture) {
 			if (mat.spTextureMode == SphereMode::Mul)
@@ -216,7 +216,7 @@ void DX11Instance::Draw() const {
 		}
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
 			2, m.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
-			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mat.spTextureMulFactor, mat.spTextureAddFactor);
+			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
         psCB.m_lightColor = m_viewer->m_lightColor;
         psCB.m_lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
         m_viewer->m_context->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
