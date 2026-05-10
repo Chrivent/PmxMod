@@ -1,4 +1,4 @@
-﻿#include "Animation.h"
+#include "Animation.h"
 
 #include "Model.h"
 #include "Util.h"
@@ -54,7 +54,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : m_nodes) {
 		if (node.first)
-			nodeMap.emplace(node.first->m_name, std::move(node));
+			nodeMap.emplace(node.first->name, std::move(node));
 	}
 	m_nodes.clear();
 	for (const auto& motion : vmd.m_motions) {
@@ -63,7 +63,7 @@ bool Animation::Add(const VMDReader& vmd) {
 		auto& [first, second] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(model->nodes, nodeName,
-				[](const std::shared_ptr<Node>& node) { return node->m_name; });
+				[](const std::shared_ptr<Node>& node) { return node->name; });
 			first = it != model->nodes.end() ? *it : nullptr;
 		}
 		if (!first)
@@ -78,7 +78,7 @@ bool Animation::Add(const VMDReader& vmd) {
 	for (auto& ik : m_iks) {
 		if (ik.first) {
 			if (const auto ikNodePtr = ik.first->ikNode.lock())
-				ikMap.emplace(ikNodePtr->m_name, std::move(ik));
+				ikMap.emplace(ikNodePtr->name, std::move(ik));
 		}
 	}
 	m_iks.clear();
@@ -91,7 +91,7 @@ bool Animation::Add(const VMDReader& vmd) {
 				auto it = std::ranges::find(model->ikSolvers, ikName,
 					[](const std::shared_ptr<IkSolver>& ikSolver){
 						const auto ikNodePtr = ikSolver->ikNode.lock();
-						return ikNodePtr ? ikNodePtr->m_name : std::string{};
+						return ikNodePtr ? ikNodePtr->name : std::string{};
 					}
 				);
 				first = it != model->ikSolvers.end() ? *it : nullptr;
@@ -146,8 +146,8 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		if (!node)
 			continue;
 		if (keys.empty()) {
-			node->m_animTranslate = glm::vec3(0);
-			node->m_animRotate = glm::quat(1, 0, 0, 0);
+			node->animTranslate = glm::vec3(0);
+			node->animRotate = glm::quat(1, 0, 0, 0);
 			continue;
 		}
 		const auto it = std::ranges::upper_bound(keys, t, std::less{},
@@ -173,8 +173,8 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 			vt = glm::mix(prev.translate, keyTranslate, glm::vec3(tx_y, ty_y, tz_y));
 			q  = glm::slerp(prev.rotate,   keyRotate,   rot_y);
 		}
-		node->m_animTranslate = animWeight != 1.0f ? glm::mix(node->m_baseAnimTranslate, vt, animWeight) : vt;
-		node->m_animRotate = animWeight != 1.0f ? glm::slerp(node->m_baseAnimRotate, q, animWeight) : q;
+		node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
+		node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
 	}
 	for (const auto& [ikSolver, keys] : m_iks) {
 		if (!ikSolver)

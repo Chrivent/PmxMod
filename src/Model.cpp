@@ -1,4 +1,4 @@
-﻿#include "Model.h"
+#include "Model.h"
 
 #include "Animation.h"
 #include "Util.h"
@@ -40,8 +40,8 @@ Model::~Model() {
 void Model::InitializeAnimation() {
 	ClearBaseAnimation();
 	for (const auto& node : nodes) {
-		node->m_animTranslate = glm::vec3(0);
-		node->m_animRotate = glm::quat(1, 0, 0, 0);
+		node->animTranslate = glm::vec3(0);
+		node->animRotate = glm::quat(1, 0, 0, 0);
 	}
 	BeginAnimation();
 	for (const auto& morph : morphs)
@@ -55,8 +55,8 @@ void Model::InitializeAnimation() {
 
 void Model::SaveBaseAnimation() const {
 	for (const auto& node : nodes) {
-		node->m_baseAnimTranslate = node->m_animTranslate;
-		node->m_baseAnimRotate = node->m_animRotate;
+		node->baseAnimTranslate = node->animTranslate;
+		node->baseAnimRotate = node->animRotate;
 	}
 	for (const auto& morph : morphs)
 		morph->saveAnimWeight = morph->weight;
@@ -66,8 +66,8 @@ void Model::SaveBaseAnimation() const {
 
 void Model::ClearBaseAnimation() const {
 	for (const auto& node : nodes) {
-		node->m_baseAnimTranslate = glm::vec3(0);
-		node->m_baseAnimRotate = glm::quat(1, 0, 0, 0);
+		node->baseAnimTranslate = glm::vec3(0);
+		node->baseAnimRotate = glm::quat(1, 0, 0, 0);
 	}
 	for (const auto& morph : morphs)
 		morph->saveAnimWeight = 0;
@@ -79,8 +79,8 @@ void Model::BeginAnimation() {
 	for (const auto& node : nodes)
 		node->BeginUpdateTransform();
 	for (const auto& node : nodes) {
-		node->m_animTranslate = glm::vec3(0);
-		node->m_animRotate = glm::quat(1, 0, 0, 0);
+		node->animTranslate = glm::vec3(0);
+		node->animRotate = glm::quat(1, 0, 0, 0);
 	}
 	std::ranges::fill(m_morphPositions, glm::vec3(0));
 	std::ranges::fill(m_morphUVs, glm::vec4(0));
@@ -95,22 +95,22 @@ void Model::UpdateMorphAnimation() {
 
 void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 	const auto pred = [&](const std::reference_wrapper<Node>& node) {
-		return node.get().m_isDeformAfterPhysics == afterPhysicsAnim;
+		return node.get().isDeformAfterPhysics == afterPhysicsAnim;
 	};
 	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred))
 		nodeRef.get().UpdateLocalTransform();
 	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
 		auto& node = nodeRef.get();
-		if (node.m_parent.expired())
+		if (node.parent.expired())
 			node.UpdateGlobalTransform();
 	}
 	for (auto& nodeRef : m_sortedNodes | std::views::filter(pred)) {
 		auto& node = nodeRef.get();
-		if (!node.m_appendNode.expired()) {
+		if (!node.appendNode.expired()) {
 			node.UpdateAppendTransform();
 			node.UpdateGlobalTransform();
 		}
-		if (const auto ikSolver = node.m_ikSolver.lock()) {
+		if (const auto ikSolver = node.ikSolver.lock()) {
 			ikSolver->Solve();
 			node.UpdateGlobalTransform();
 		}
@@ -130,7 +130,7 @@ void Model::ResetPhysics() const {
 		rb->CalcLocalTransform();
 	}
 	for (const auto& node : nodes) {
-		if (node->m_parent.expired())
+		if (node->parent.expired())
 			node->UpdateGlobalTransform();
 	}
 	for (auto& rb : m_rigidBodies)
@@ -148,14 +148,14 @@ void Model::UpdatePhysicsAnimation(const float elapsed) const {
 		rb->CalcLocalTransform();
 	}
 	for (const auto& node : nodes) {
-		if (node->m_parent.expired())
+		if (node->parent.expired())
 			node->UpdateGlobalTransform();
 	}
 }
 
 void Model::Update() {
 	for (size_t i = 0; i < nodes.size(); i++)
-		m_transforms[i] = nodes[i]->m_global * nodes[i]->m_inverseInit;
+		m_transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
 	if (m_parallelUpdateCount != m_updateRanges.size())
 		SetupParallelUpdate();
 	const size_t futureCount = m_parallelUpdateFutures.size();
@@ -324,8 +324,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	nodes.reserve(pmx.m_bones.size());
 	for (const auto& bone : pmx.m_bones) {
 		auto node = std::make_shared<Node>();
-		node->m_index = static_cast<uint32_t>(nodes.size());
-		node->m_name = bone.m_name;
+		node->index = static_cast<uint32_t>(nodes.size());
+		node->name = bone.m_name;
 		nodes.emplace_back(std::move(node));
 	}
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
@@ -333,32 +333,32 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		auto* node = nodes[i].get();
 		glm::vec3 localPos = bone.m_position;
 		if (bone.m_parentBoneIndex != -1) {
-			auto parent = nodes[bone.m_parentBoneIndex];
-			parent->AddChild(nodes[i]);
+			auto parentNode = nodes[bone.m_parentBoneIndex];
+			parentNode->AddChild(nodes[i]);
 			localPos -= pmx.m_bones[bone.m_parentBoneIndex].m_position;
 		}
 		localPos.z *= -1;
-		node->m_translate = localPos;
-		node->m_global = glm::translate(glm::mat4(1), bone.m_position * invZ);
-		node->m_inverseInit = glm::inverse(node->m_global);
-		node->m_deformDepth = bone.m_deformDepth;
+		node->translate = localPos;
+		node->global = glm::translate(glm::mat4(1), bone.m_position * invZ);
+		node->inverseInit = glm::inverse(node->global);
+		node->deformDepth = bone.m_deformDepth;
 		bool deformAfterPhysics = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
-		node->m_isDeformAfterPhysics = deformAfterPhysics;
-		bool appendRotate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
-		bool appendTranslate = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
-		node->m_isAppendRotate = appendRotate;
-		node->m_isAppendTranslate = appendTranslate;
-		if ((appendRotate || appendTranslate) && bone.m_appendBoneIndex != -1) {
-			bool appendLocal = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
-			auto appendNode = nodes[bone.m_appendBoneIndex];
-			float appendWeight = bone.m_appendWeight;
-			node->m_isAppendLocal = appendLocal;
-			node->m_appendNode = appendNode;
-			node->m_appendWeight = appendWeight;
+		node->isDeformAfterPhysics = deformAfterPhysics;
+		bool appendRotateEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
+		bool appendTranslateEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
+		node->isAppendRotate = appendRotateEnabled;
+		node->isAppendTranslate = appendTranslateEnabled;
+		if ((appendRotateEnabled || appendTranslateEnabled) && bone.m_appendBoneIndex != -1) {
+			bool appendLocalEnabled = (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
+			auto appendNodePtr = nodes[bone.m_appendBoneIndex];
+			float appendWeightValue = bone.m_appendWeight;
+			node->isAppendLocal = appendLocalEnabled;
+			node->appendNode = appendNodePtr;
+			node->appendWeight = appendWeightValue;
 		}
-		node->m_initTranslate = node->m_translate;
-		node->m_initRotate = node->m_rotate;
-		node->m_initScale = node->m_scale;
+		node->initTranslate = node->translate;
+		node->initRotate = node->rotate;
+		node->initScale = node->scale;
 	}
 	m_transforms.resize(nodes.size());
 	m_sortedNodes.clear();
@@ -367,7 +367,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		m_sortedNodes.emplace_back(*node);
 	std::ranges::stable_sort(m_sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
-			return x.get().m_deformDepth < y.get().m_deformDepth;
+			return x.get().deformDepth < y.get().deformDepth;
 		}
 	);
 	for (size_t i = 0; i < pmx.m_bones.size(); i++) {
@@ -375,7 +375,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (static_cast<uint16_t>(bone.m_boneFlag) & static_cast<uint16_t>(BoneFlags::IK)) {
 			auto solver = std::make_shared<IkSolver>();
 			solver->ikNode = nodes[i];
-			nodes[i]->m_ikSolver = solver;
+			nodes[i]->ikSolver = solver;
 			solver->ikTarget = nodes[bone.m_ikTargetBoneIndex];
 			for (const auto& [m_ikBoneIndex, m_enableLimit, m_limitMin, m_limitMax] : bone.m_ikLinks) {
 				auto linkNode = nodes[m_ikBoneIndex];
@@ -386,7 +386,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				chain.limitMax = m_limitMin * glm::vec3(-1);
 				chain.saveIKRot = glm::quat(1, 0, 0, 0);
 				solver->chains.emplace_back(chain);
-				linkNode->m_enableIK = true;
+				linkNode->enableIK = true;
 			}
 			solver->iterateCount = bone.m_ikIterationCount;
 			solver->limitAngle = bone.m_ikLimit;
@@ -580,8 +580,8 @@ void Model::Update(const UpdateRange& range) {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = 1.0f - w0;
 				const auto center = vtxInfo->sdefC, cr0 = vtxInfo->sdefR0, cr1 = vtxInfo->sdefR1;
-				const auto q0 = glm::quat_cast(nodes[i0]->m_global);
-				const auto q1 = glm::quat_cast(nodes[i1]->m_global);
+				const auto q0 = glm::quat_cast(nodes[i0]->global);
+				const auto q1 = glm::quat_cast(nodes[i1]->global);
 				const auto rot_mat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 				const auto m0 = transforms[i0], m1 = transforms[i1];
 				const auto pos = *position + *morphPos;
@@ -722,9 +722,9 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 	for (const auto& [m_boneIndex, m_position, m_quaternion] : morphData) {
 		auto* node = nodes[m_boneIndex].get();
-		node->m_translate += m_position * weight;
+		node->translate += m_position * weight;
 		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), m_quaternion, weight);
-		node->m_rotate = glm::normalize(q * node->m_rotate);
+		node->rotate = glm::normalize(q * node->rotate);
 	}
 }
 

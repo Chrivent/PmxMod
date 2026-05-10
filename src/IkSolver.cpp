@@ -1,4 +1,4 @@
-﻿#include "IkSolver.h"
+#include "IkSolver.h"
 
 #include "Node.h"
 
@@ -88,7 +88,7 @@ void IkSolver::Solve() {
 		if (!chainNodePtr)
 			continue;
 		chain.prevAngle = glm::vec3(0);
-		chainNodePtr->m_ikRotate = glm::quat(1, 0, 0, 0);
+		chainNodePtr->ikRotate = glm::quat(1, 0, 0, 0);
 		chain.planeModeAngle = 0;
 		chainNodePtr->UpdateLocalTransform();
 		chainNodePtr->UpdateGlobalTransform();
@@ -96,19 +96,19 @@ void IkSolver::Solve() {
 	float maxDist = std::numeric_limits<float>::max();
 	for (uint32_t i = 0; i < iterateCount; i++) {
 		SolveCore(i);
-		auto targetPos = glm::vec3(ikTargetPtr->m_global[3]);
-		auto ikPos = glm::vec3(ikNodePtr->m_global[3]);
+		auto targetPos = glm::vec3(ikTargetPtr->global[3]);
+		auto ikPos = glm::vec3(ikNodePtr->global[3]);
 		const float dist = glm::length(targetPos - ikPos);
 		if (dist < maxDist) {
 			maxDist = dist;
 			for (auto &chain: chains) {
 				if (const auto chainNodePtr = chain.node.lock())
-					chain.saveIKRot = chainNodePtr->m_ikRotate;
+					chain.saveIKRot = chainNodePtr->ikRotate;
 			}
 		} else {
 			for (const auto &chain: chains) {
 				if (const auto chainNodePtr = chain.node.lock()) {
-					chainNodePtr->m_ikRotate = chain.saveIKRot;
+					chainNodePtr->ikRotate = chain.saveIKRot;
 					chainNodePtr->UpdateLocalTransform();
 					chainNodePtr->UpdateGlobalTransform();
 				}
@@ -123,7 +123,7 @@ void IkSolver::SolveCore(uint32_t iteration) {
 	auto ikTargetPtr = ikTarget.lock();
 	if (!ikNodePtr || !ikTargetPtr)
 		return;
-	auto ikPos = glm::vec3(ikNodePtr->m_global[3]);
+	auto ikPos = glm::vec3(ikNodePtr->global[3]);
 	for (size_t chainIdx = 0; chainIdx < chains.size(); chainIdx++) {
 		auto &chain = chains[chainIdx];
 		auto chainNodePtr = chain.node.lock();
@@ -149,8 +149,8 @@ void IkSolver::SolveCore(uint32_t iteration) {
 				continue;
 			}
 		}
-		auto targetPos = glm::vec3(ikTargetPtr->m_global[3]);
-		auto invChain = glm::inverse(chainNodePtr->m_global);
+		auto targetPos = glm::vec3(ikTargetPtr->global[3]);
+		auto invChain = glm::inverse(chainNodePtr->global);
 		auto chainIkPos = glm::vec3(invChain * glm::vec4(ikPos, 1));
 		auto chainTargetPos = glm::vec3(invChain * glm::vec4(targetPos, 1));
 		auto chainIkVec = glm::normalize(chainIkPos);
@@ -163,8 +163,8 @@ void IkSolver::SolveCore(uint32_t iteration) {
 		angle = glm::clamp(angle, -limitAngle, limitAngle);
 		auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
 		auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, cross);
-		auto animRot = chainNodePtr->m_animRotate * chainNodePtr->m_rotate;
-		auto chainRot = chainNodePtr->m_ikRotate * animRot * rot;
+		auto animRot = chainNodePtr->animRotate * chainNodePtr->rotate;
+		auto chainRot = chainNodePtr->ikRotate * animRot * rot;
 		if (chain.enableAxisLimit) {
 			auto chainRotM = glm::mat3_cast(chainRot);
 			auto rotXYZ = Decompose(chainRotM, chain.prevAngle);
@@ -179,7 +179,7 @@ void IkSolver::SolveCore(uint32_t iteration) {
 			chainRot = glm::quat_cast(chainRotM);
 		}
 		auto ikRot = chainRot * glm::inverse(animRot);
-		chainNodePtr->m_ikRotate = ikRot;
+		chainNodePtr->ikRotate = ikRot;
 		chainNodePtr->UpdateLocalTransform();
 		chainNodePtr->UpdateGlobalTransform();
 	}
@@ -198,9 +198,9 @@ void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisInd
 	auto chainNodePtr = chain.node.lock();
 	if (!ikNodePtr || !ikTargetPtr || !chainNodePtr)
 		return;
-	auto ikPos = glm::vec3(ikNodePtr->m_global[3]);
-	auto targetPos = glm::vec3(ikTargetPtr->m_global[3]);
-	auto invChain = glm::inverse(chainNodePtr->m_global);
+	auto ikPos = glm::vec3(ikNodePtr->global[3]);
+	auto targetPos = glm::vec3(ikTargetPtr->global[3]);
+	auto invChain = glm::inverse(chainNodePtr->global);
 	auto chainIkPos = glm::vec3(invChain * glm::vec4(ikPos, 1));
 	auto chainTargetPos = glm::vec3(invChain * glm::vec4(targetPos, 1));
 	auto chainIkVec = glm::normalize(chainIkPos);
@@ -232,8 +232,8 @@ void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int RotateAxisInd
 	newAngle = glm::clamp(newAngle, chain.limitMin[RotateAxisIndex], chain.limitMax[RotateAxisIndex]);
 	chain.planeModeAngle = newAngle;
 	auto ikRotM = glm::rotate(glm::quat(1, 0, 0, 0), newAngle, RotateAxis) *
-		glm::inverse(chainNodePtr->m_animRotate * chainNodePtr->m_rotate);
-	chainNodePtr->m_ikRotate = ikRotM;
+		glm::inverse(chainNodePtr->animRotate * chainNodePtr->rotate);
+	chainNodePtr->ikRotate = ikRotM;
 	chainNodePtr->UpdateLocalTransform();
 	chainNodePtr->UpdateGlobalTransform();
 }

@@ -29,7 +29,7 @@ void DynamicMotionState::Reset() {
 	const auto node = m_node.lock();
 	if (!node)
 		return;
-	glm::mat4 global = Util::InvZ(node->m_global * m_offset);
+	glm::mat4 global = Util::InvZ(node->global * m_offset);
 	m_transform.setFromOpenGLMatrix(&global[0][0]);
 }
 
@@ -41,13 +41,13 @@ void DynamicMotionState::ReflectGlobalTransform() {
 	m_transform.getOpenGLMatrix(&world[0][0]);
 	glm::mat4 btGlobal = Util::InvZ(world) * m_invOffset;
 	PostProcessBtGlobal(btGlobal);
-	node->m_global = btGlobal;
+	node->global = btGlobal;
 	node->UpdateChildTransform();
 }
 
 void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
 	if (const auto node = m_node.lock())
-		btGlobal[3] = node->m_global[3];
+		btGlobal[3] = node->global[3];
 }
 
 KinematicMotionState::KinematicMotionState(const std::shared_ptr<Node>& node, const glm::mat4& offset)
@@ -59,7 +59,7 @@ void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const 
 	const auto node = m_node.lock();
 	if (!node)
 		return;
-	glm::mat4 global = Util::InvZ(node->m_global * m_offset);
+	glm::mat4 global = Util::InvZ(node->global * m_offset);
 	worldTransform.setFromOpenGLMatrix(&global[0][0]);
 }
 
@@ -94,7 +94,7 @@ void RigidBody::Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model*
 	const glm::mat4 rotMat = ry * rx * rz;
 	const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.m_translate);
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-	m_offsetMat = node ? glm::inverse(node->m_global) * rbMat : rbMat;
+	m_offsetMat = node ? glm::inverse(node->global) * rbMat : rbMat;
 	m_kinematicMotionState = node
 		? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(node, m_offsetMat))
 		: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(m_offsetMat));
@@ -166,11 +166,11 @@ void RigidBody::ReflectGlobalTransform() const {
 
 void RigidBody::CalcLocalTransform() const {
 	if (const auto node = m_node.lock()) {
-		if (const auto parent = node->m_parent.lock()) {
-			const auto local = glm::inverse(parent->m_global) * node->m_global;
-			node->m_local = local;
+		if (const auto parent = node->parent.lock()) {
+			const auto local = glm::inverse(parent->global) * node->global;
+			node->local = local;
 		} else
-			node->m_local = node->m_global;
+			node->local = node->global;
 	}
 }
 
