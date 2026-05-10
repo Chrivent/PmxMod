@@ -1,12 +1,12 @@
 ﻿#include "DX11Viewer.h"
 
 #include "../src/Model.h"
-#include <stb_image.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
+#include <stb_image.h>
 
 D3D11_SAMPLER_DESC Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);

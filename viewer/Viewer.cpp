@@ -3,11 +3,11 @@
 #include "../src/Model.h"
 #include "../src/Sound.h"
 
-#define	STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <iostream>
 #include <windows.h>
+
+#define	STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
     fpsFrame++;

@@ -1,10 +1,10 @@
 ﻿#include "GLFWViewer.h"
 
 #include "../src/Model.h"
-#include <stb_image.h>
 
 #include <fstream>
 #include <ranges>
+#include <stb_image.h>
 
 GLuint CompileShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
