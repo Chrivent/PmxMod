@@ -3,6 +3,9 @@
 #include "Model.h"
 #include "Util.h"
 
+MotionState::~MotionState() = default;
+DefaultMotionState::~DefaultMotionState() = default;
+
 bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 	const auto endIt = nonFilterProxy.end();
 	if (std::ranges::find(nonFilterProxy, proxy0) != endIt || std::ranges::find(nonFilterProxy, proxy1) != endIt)

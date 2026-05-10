@@ -10,6 +10,8 @@ class Node;
 
 class MotionState : public btMotionState {
 public:
+	~MotionState() override;
+
 	// 모션 상태를 초기 물리 변환으로 되돌린다.
 	virtual void Reset() {}
 	// 물리 월드의 글로벌 변환을 연결된 본에 반영한다.
@@ -27,6 +29,7 @@ public:
 class DefaultMotionState final : public MotionState {
 public:
 	explicit DefaultMotionState(const glm::mat4& initialMatrix);
+	~DefaultMotionState() override;
 
 	// Bullet에 현재 월드 변환을 전달한다.
 	void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
