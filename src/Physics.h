@@ -20,7 +20,7 @@ public:
 
 class OverlapFilterCallback final : public btOverlapFilterCallback {
 public:
-	std::vector<btBroadphaseProxy*> m_nonFilterProxy;
+	std::vector<btBroadphaseProxy*> nonFilterProxy;
 
 	/// 두 broadphase 프록시가 충돌 후보가 될 수 있는지 필터링한다.
 	bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
@@ -92,9 +92,9 @@ private:
 
 class RigidBody {
 public:
-	std::unique_ptr<btRigidBody>		m_rigidBody;
-	uint16_t	m_group = 0;
-	uint16_t	m_groupMask = 0;
+	std::unique_ptr<btRigidBody>		rigidBody;
+	uint16_t	group = 0;
+	uint16_t	groupMask = 0;
 
 	/// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
 	void Create(const PMXReader::PMXRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& node);
@@ -121,7 +121,7 @@ private:
 
 class Joint {
 public:
-	std::unique_ptr<btTypedConstraint>	m_constraint;
+	std::unique_ptr<btTypedConstraint>	constraint;
 
 	/// PMX 조인트 정보를 두 강체 사이의 Bullet 제약으로 생성한다.
 	void Create(const PMXReader::PMXJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB);
@@ -131,9 +131,9 @@ class Physics {
 public:
 	~Physics();
 
-	std::unique_ptr<btDiscreteDynamicsWorld>				m_world;
-	double	m_fps = 120.0f;
-	int		m_maxSubStepCount = 10;
+	std::unique_ptr<btDiscreteDynamicsWorld>				world;
+	double	fps = 120.0f;
+	int		maxSubStepCount = 10;
 
 	/// Bullet 월드와 기본 물리 리소스를 생성한다.
 	void Create();

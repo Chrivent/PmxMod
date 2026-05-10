@@ -122,9 +122,9 @@ void Model::ResetPhysics() const {
 		rb->ApplyActivation(false);
 		rb->ResetTransform();
 	}
-	m_physics->m_world->stepSimulation(
-		1.0f / 60.0f, m_physics->m_maxSubStepCount,
-		static_cast<btScalar>(1.0f / m_physics->m_fps));
+	m_physics->world->stepSimulation(
+		1.0f / 60.0f, m_physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / m_physics->fps));
 	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
@@ -140,9 +140,9 @@ void Model::ResetPhysics() const {
 void Model::UpdatePhysicsAnimation(const float elapsed) const {
 	for (auto& rb : m_rigidBodies)
 		rb->ApplyActivation(true);
-	m_physics->m_world->stepSimulation(
-		elapsed, m_physics->m_maxSubStepCount,
-		static_cast<btScalar>(1.0f / m_physics->m_fps));
+	m_physics->world->stepSimulation(
+		elapsed, m_physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / m_physics->fps));
 	for (auto& rb : m_rigidBodies) {
 		rb->ReflectGlobalTransform();
 		rb->CalcLocalTransform();
@@ -464,13 +464,13 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	}
 	m_physics = std::make_unique<Physics>();
 	m_physics->Create();
-	for (const auto& rigidBody : pmx.m_rigidBodies) {
+	for (const auto& pmxRigidBody : pmx.m_rigidBodies) {
 		auto rb = std::make_unique<RigidBody>();
 		std::shared_ptr<Node> node;
-		if (rigidBody.m_boneIndex != -1)
-			node = nodes[rigidBody.m_boneIndex];
-		rb->Create(rigidBody, this, node);
-		m_physics->m_world->addRigidBody(rb->m_rigidBody.get(), 1 << rb->m_group, rb->m_groupMask);
+		if (pmxRigidBody.m_boneIndex != -1)
+			node = nodes[pmxRigidBody.m_boneIndex];
+		rb->Create(pmxRigidBody, this, node);
+		m_physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
 		m_rigidBodies.emplace_back(std::move(rb));
 	}
 	for (const auto& joint : pmx.m_joints) {
@@ -482,7 +482,7 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				m_rigidBodies[joint.m_rigidbodyAIndex].get(),
 				m_rigidBodies[joint.m_rigidbodyBIndex].get()
 			);
-			m_physics->m_world->addConstraint(j->m_constraint.get());
+			m_physics->world->addConstraint(j->constraint.get());
 			m_joints.emplace_back(std::move(j));
 		}
 	}
@@ -503,10 +503,10 @@ void Model::Destroy() {
 	nodes.clear();
 	m_updateRanges.clear();
 	for (const auto& joint : m_joints)
-		m_physics->m_world->removeConstraint(joint->m_constraint.get());
+		m_physics->world->removeConstraint(joint->constraint.get());
 	m_joints.clear();
 	for (const auto& rb : m_rigidBodies)
-		m_physics->m_world->removeRigidBody(rb->m_rigidBody.get());
+		m_physics->world->removeRigidBody(rb->rigidBody.get());
 	m_rigidBodies.clear();
 	m_physics.reset();
 }
