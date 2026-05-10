@@ -400,20 +400,20 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (morph.morphType == MorphType::Position) {
 			m->dataIndex = positionMorphs.size();
 			std::vector<PositionMorph> morphData;
-			for (const auto& [morphVertexIndex, morphPosition] : morph.positionMorph) {
+			for (const auto& [vertexIndex, position] : morph.positionMorph) {
 				PositionMorph morphVtx{};
-				morphVtx.vertexIndex = morphVertexIndex;
-				morphVtx.position = morphPosition * invZ;
+				morphVtx.vertexIndex = vertexIndex;
+				morphVtx.position = position * invZ;
 				morphData.push_back(morphVtx);
 			}
 			positionMorphs.emplace_back(std::move(morphData));
 		} else if (morph.morphType == MorphType::Uv) {
 			m->dataIndex = uvMorphs.size();
 			std::vector<UvMorph> morphData;
-			for (const auto& [morphVertexIndex, morphUVValue] : morph.uvMorph) {
+			for (const auto& [vertexIndex, uv] : morph.uvMorph) {
 				UvMorph morphUv{};
-				morphUv.vertexIndex = morphVertexIndex;
-				morphUv.uv = morphUVValue;
+				morphUv.vertexIndex = vertexIndex;
+				morphUv.uv = uv;
 				morphData.push_back(morphUv);
 			}
 			uvMorphs.emplace_back(std::move(morphData));
@@ -423,11 +423,11 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		} else if (morph.morphType == MorphType::Bone) {
 			m->dataIndex = boneMorphs.size();
 			std::vector<BoneMorph> boneMorphData;
-			for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morph.boneMorph) {
-				auto rot = Util::InvZ(glm::mat3_cast(morphQuaternion));
+			for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
+				auto rot = Util::InvZ(glm::mat3_cast(quaternion));
 				BoneMorph boneMorphElem{};
-				boneMorphElem.boneIndex = morphBoneIndex;
-				boneMorphElem.position = morphPosition * invZ;
+				boneMorphElem.boneIndex = boneIndex;
+				boneMorphElem.position = position * invZ;
 				boneMorphElem.quaternion = glm::quat_cast(rot);
 				boneMorphData.push_back(boneMorphElem);
 			}
@@ -446,14 +446,15 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		if (morph->morphType != MorphType::Group)
 			return;
 		groupMorphStack.push_back(idx);
-		for (auto& [childIdx, w] : groupMorphs[morph->dataIndex]) {
-			if (childIdx < 0)
+		for (auto& [morphIndex, weight] : groupMorphs[morph->dataIndex]) {
+			(void)weight;
+			if (morphIndex < 0)
 				continue;
-			if (std::ranges::find(groupMorphStack, childIdx) != groupMorphStack.end()) {
-				childIdx = -1;
+			if (std::ranges::find(groupMorphStack, morphIndex) != groupMorphStack.end()) {
+				morphIndex = -1;
 				continue;
 			}
-			fixInfiniteGroupMorph(childIdx);
+			fixInfiniteGroupMorph(morphIndex);
 		}
 		groupMorphStack.pop_back();
 	};
@@ -516,29 +517,29 @@ void Model::SetupParallelUpdate() {
 	parallelUpdateCount = std::min<size_t>(parallelUpdateCount, 16);
 	updateRanges.resize(parallelUpdateCount);
 	parallelUpdateFutures.resize(parallelUpdateCount - 1);
-	const size_t vertexCount = positions.size();
+	const size_t totalVertexCount = positions.size();
 	constexpr size_t lowerVertexCount = 1000;
-	if (vertexCount < updateRanges.size() * lowerVertexCount) {
-		const size_t numRanges = (vertexCount + lowerVertexCount - 1) / lowerVertexCount;
+	if (totalVertexCount < updateRanges.size() * lowerVertexCount) {
+		const size_t numRanges = (totalVertexCount + lowerVertexCount - 1) / lowerVertexCount;
 		for (size_t i = 0; i < updateRanges.size(); i++) {
-			auto& [rangeVertexOffset, rangeVertexCount] = updateRanges[i];
+			auto& [vertexOffset, vertexCount] = updateRanges[i];
 			if (i < numRanges) {
-				rangeVertexOffset = i * lowerVertexCount;
-				rangeVertexCount  = std::min(lowerVertexCount, vertexCount - rangeVertexOffset);
+				vertexOffset = i * lowerVertexCount;
+				vertexCount  = std::min(lowerVertexCount, totalVertexCount - vertexOffset);
 			} else {
-				rangeVertexOffset = 0;
-				rangeVertexCount = 0;
+				vertexOffset = 0;
+				vertexCount = 0;
 			}
 		}
 		return;
 	}
-	const size_t numVertexCount = vertexCount / updateRanges.size();
+	const size_t numVertexCount = totalVertexCount / updateRanges.size();
 	size_t offset = 0;
 	for (size_t i = 0; i < updateRanges.size(); i++) {
-		auto& [rangeVertexOffset, rangeVertexCount] = updateRanges[i];
-		rangeVertexOffset = offset;
-		rangeVertexCount  = numVertexCount + (i == 0 ? vertexCount % updateRanges.size() : 0);
-		offset += rangeVertexCount;
+		auto& [vertexOffset, vertexCount] = updateRanges[i];
+		vertexOffset = offset;
+		vertexCount  = numVertexCount + (i == 0 ? totalVertexCount % updateRanges.size() : 0);
+		offset += vertexCount;
 	}
 }
 
@@ -620,27 +621,27 @@ void Model::Update(const UpdateRange& range) {
 	}
 }
 
-void Model::EvalMorph(const Morph* morph, const float weight) {
-	if (std::abs(weight) <= std::numeric_limits<float>::epsilon())
+void Model::EvalMorph(const Morph* morph, const float morphWeight) {
+	if (std::abs(morphWeight) <= std::numeric_limits<float>::epsilon())
 		return;
 	switch (morph->morphType) {
 		case MorphType::Position:
-			MorphPosition(positionMorphs[morph->dataIndex], weight);
+			MorphPosition(positionMorphs[morph->dataIndex], morphWeight);
 			break;
 		case MorphType::Uv:
-			MorphUv(uvMorphs[morph->dataIndex], weight);
+			MorphUv(uvMorphs[morph->dataIndex], morphWeight);
 			break;
 		case MorphType::Material:
-			MorphMaterial(materialMorphs[morph->dataIndex], weight);
+			MorphMaterial(materialMorphs[morph->dataIndex], morphWeight);
 			break;
 		case MorphType::Bone:
-			MorphBone(boneMorphs[morph->dataIndex], weight);
+			MorphBone(boneMorphs[morph->dataIndex], morphWeight);
 			break;
 		case MorphType::Group: {
-			for (const auto& [morphIndex, morphWeightValue] : groupMorphs[morph->dataIndex]) {
+			for (const auto& [morphIndex, weight] : groupMorphs[morph->dataIndex]) {
 				if (morphIndex == -1)
 					continue;
-				EvalMorph(morphs[morphIndex].get(), morphWeightValue * weight);
+				EvalMorph(morphs[morphIndex].get(), weight * morphWeight);
 			}
 			break;
 		}
@@ -660,13 +661,13 @@ void Model::EvalMorph(const Morph* morph, const float weight) {
 }
 
 void Model::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) {
-	for (const auto& [morphIndex, morphPosition] : morphData)
-		morphPositions[morphIndex] += morphPosition * weight;
+	for (const auto& [vertexIndex, position] : morphData)
+		morphPositions[vertexIndex] += position * weight;
 }
 
 void Model::MorphUv(const std::vector<UvMorph>& morphData, const float weight) {
-	for (const auto& [morphIndex, morphUVValue] : morphData)
-		morphUVs[morphIndex] += morphUVValue * weight;
+	for (const auto& [vertexIndex, uv] : morphData)
+		morphUVs[vertexIndex] += uv * weight;
 }
 
 void Model::BeginMorphMaterial() {
@@ -727,10 +728,10 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 }
 
 void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
-	for (const auto& [morphBoneIndex, morphPosition, morphQuaternion] : morphData) {
-		auto* node = nodes[morphBoneIndex].get();
-		node->translate += morphPosition * weight;
-		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), morphQuaternion, weight);
+	for (const auto& [boneIndex, position, quaternion] : morphData) {
+		auto* node = nodes[boneIndex].get();
+		node->translate += position * weight;
+		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
 		node->rotate = glm::normalize(q * node->rotate);
 	}
 }

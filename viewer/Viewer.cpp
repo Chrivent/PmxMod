@@ -173,10 +173,10 @@ unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, i
 bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances) {
     instances.clear();
     instances.reserve(cfg.m_modelConfigs.size());
-    for (const auto& [modelPath, vmdPaths, scale] : cfg.m_modelConfigs) {
+    for (const auto& [m_modelPath, m_animPaths, m_scale] : cfg.m_modelConfigs) {
         auto instance = CreateInstance();
         const auto pmxModel = std::make_shared<Model>();
-        if (!pmxModel->Load(modelPath, m_pmxDir)) {
+        if (!pmxModel->Load(m_modelPath, m_pmxDir)) {
             std::cout << "Failed to load pmx file.\n";
             return false;
         }
@@ -184,7 +184,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         instance->m_model->InitializeAnimation();
         auto vmdAnim = std::make_unique<Animation>();
         vmdAnim->model = instance->m_model;
-        for (const auto& vmdPath : vmdPaths) {
+        for (const auto& vmdPath : m_animPaths) {
             VmdReader vmd;
             if (!vmd.ReadFile(vmdPath.c_str())) {
                 std::cout << "Failed to read VMD file.\n";
@@ -197,7 +197,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         }
         vmdAnim->SyncPhysics(0.0f);
         instance->m_anim = std::move(vmdAnim);
-        instance->m_scale = scale;
+        instance->m_scale = m_scale;
         if (!instance->Setup(*this))
             return false;
         instances.emplace_back(std::move(instance));

@@ -280,8 +280,8 @@ void GLFWInstance::Draw() const {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
-		const auto& m = m_materials[subMeshMaterialID];
+	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
+		const auto& m = m_materials[materialId];
 		const auto& mat = m.m_mat;
 		if (mat.diffuse.a == 0)
 			continue;
@@ -332,8 +332,8 @@ void GLFWInstance::Draw() const {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
-		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		size_t offset = beginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& edgeShader = m_viewer->m_edgeShader;
 	glUseProgram(edgeShader->m_prog);
@@ -344,8 +344,8 @@ void GLFWInstance::Draw() const {
 	glBindVertexArray(m_edgeVao);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
-	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
-		const auto& m = m_materials[subMeshMaterialID];
+	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
+		const auto& m = m_materials[materialId];
 		const auto& mat = m.m_mat;
 		if (!mat.edgeFlag)
 			continue;
@@ -353,8 +353,8 @@ void GLFWInstance::Draw() const {
 			continue;
 		glUniform1f(edgeShader->m_uEdgeSize, mat.edgeSize);
 		glUniform4fv(edgeShader->m_uEdgeColor, 1, &mat.edgeColor[0]);
-		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
-		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		size_t offset = beginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	const auto& gsShader = m_viewer->m_gsShader;
 	glUseProgram(gsShader->m_prog);
@@ -378,15 +378,15 @@ void GLFWInstance::Draw() const {
 		glDisable(GL_STENCIL_TEST);
 	}
 	glDisable(GL_CULL_FACE);
-	for (const auto& [subMeshBeginIndex, subMeshIndexCount, subMeshMaterialID] : m_model->subMeshes) {
-		const auto& m = m_materials[subMeshMaterialID];
+	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
+		const auto& m = m_materials[materialId];
 		const auto& mat = m.m_mat;
 		if (!mat.groundShadow)
 			continue;
 		if (mat.diffuse.a == 0.0f)
 			continue;
-		size_t offset = subMeshBeginIndex * m_model->indexElementSize;
-		glDrawElements(GL_TRIANGLES, subMeshIndexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
+		size_t offset = beginIndex * m_model->indexElementSize;
+		glDrawElements(GL_TRIANGLES, indexCount, m_indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
 	glDisable(GL_STENCIL_TEST);

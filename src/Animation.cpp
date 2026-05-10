@@ -83,8 +83,8 @@ bool Animation::Add(const VmdReader& vmd) {
 	}
 	iks.clear();
 	for (const auto& ik : vmd.iks) {
-		for (const auto& [ikInfoName, ikInfoEnable] : ik.ikInfos) {
-			auto ikName = Util::SjisToUtf8(ikInfoName);
+		for (const auto& [name, enable] : ik.ikInfos) {
+			auto ikName = Util::SjisToUtf8(name);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [first, second] = findIt->second;
 			if (inserted) {
@@ -98,9 +98,9 @@ bool Animation::Add(const VmdReader& vmd) {
 			}
 			if (!first)
 				continue;
-			auto& [keyTime, ikEnable] = second.emplace_back();
-			keyTime = static_cast<int32_t>(ik.frame);
-			ikEnable = ikInfoEnable != 0;
+			auto& [time, ikEnable] = second.emplace_back();
+			time = static_cast<int32_t>(ik.frame);
+			ikEnable = enable != 0;
 		}
 	}
 	for (auto& val : ikMap | std::views::values) {
@@ -113,7 +113,7 @@ bool Animation::Add(const VmdReader& vmd) {
 			morphMap.emplace(morph.first->name, std::move(morph));
 	}
 	morphs.clear();
-	for (const auto& [blendShapeName, morphFrame, morphAnimWeight] : vmd.morphs) {
+	for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 		auto morphName = Util::SjisToUtf8(blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [first, second] = findIt->second;
@@ -123,9 +123,9 @@ bool Animation::Add(const VmdReader& vmd) {
 		}
 		if (!first)
 			continue;
-		auto& [keyTime, morphWeight] = second.emplace_back();
-		keyTime = static_cast<int32_t>(morphFrame);
-		morphWeight = morphAnimWeight;
+		auto& [time, morphWeight] = second.emplace_back();
+		time = static_cast<int32_t>(frame);
+		morphWeight = weight;
 	}
 	for (auto& val : morphMap | std::views::values) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
@@ -157,21 +157,21 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		glm::quat q  = cur.rotate;
 		if (it != keys.begin() && it != keys.end()) {
 			const auto& prev = *(it - 1);
-			const auto& [keyTime, keyTranslate, keyRotate,
-				keyTxBezier, keyTyBezier, keyTzBezier,
-				keyRotBezier] = *it;
-			const auto timeRange = static_cast<float>(keyTime - prev.time);
-			const float time = (t - static_cast<float>(prev.time)) / timeRange;
-			const float txX  = FindBezierX(time, keyTxBezier.first.x,  keyTxBezier.second.x);
-			const float tyX  = FindBezierX(time, keyTyBezier.first.x,  keyTyBezier.second.x);
-			const float tzX  = FindBezierX(time, keyTzBezier.first.x,  keyTzBezier.second.x);
-			const float rotX = FindBezierX(time, keyRotBezier.first.x, keyRotBezier.second.x);
-			const float txY  = Bezier(txX,  keyTxBezier.first.y,  keyTxBezier.second.y);
-			const float tyY  = Bezier(tyX,  keyTyBezier.first.y,  keyTyBezier.second.y);
-			const float tzY  = Bezier(tzX,  keyTzBezier.first.y,  keyTzBezier.second.y);
-			const float rotY = Bezier(rotX, keyRotBezier.first.y, keyRotBezier.second.y);
-			vt = glm::mix(prev.translate, keyTranslate, glm::vec3(txY, tyY, tzY));
-			q  = glm::slerp(prev.rotate,   keyRotate,   rotY);
+			const auto& [time, translate, rotate,
+				txBezier, tyBezier, tzBezier,
+				rotBezier] = *it;
+			const auto timeRange = static_cast<float>(time - prev.time);
+			const float normalizedTime = (t - static_cast<float>(prev.time)) / timeRange;
+			const float txX  = FindBezierX(normalizedTime, txBezier.first.x,  txBezier.second.x);
+			const float tyX  = FindBezierX(normalizedTime, tyBezier.first.x,  tyBezier.second.x);
+			const float tzX  = FindBezierX(normalizedTime, tzBezier.first.x,  tzBezier.second.x);
+			const float rotX = FindBezierX(normalizedTime, rotBezier.first.x, rotBezier.second.x);
+			const float txY  = Bezier(txX,  txBezier.first.y,  txBezier.second.y);
+			const float tyY  = Bezier(tyX,  tyBezier.first.y,  tyBezier.second.y);
+			const float tzY  = Bezier(tzX,  tzBezier.first.y,  tzBezier.second.y);
+			const float rotY = Bezier(rotX, rotBezier.first.y, rotBezier.second.y);
+			vt = glm::mix(prev.translate, translate, glm::vec3(txY, tyY, tzY));
+			q  = glm::slerp(prev.rotate,   rotate,   rotY);
 		}
 		node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
 		node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
@@ -280,27 +280,26 @@ void CameraAnimation::Evaluate(const float t) {
 	camera.fov = cur.fov;
 	if (it == keys.begin() || it == keys.end())
 		return;
-	const auto& [keyTime, keyInterest, keyRotate, keyDistance, keyFov,
-		keyIxBezier, keyIyBezier, keyIzBezier,
-		keyRotateBezier, keyDistanceBezier, keyFovBezier] = *it;
+	const auto& [time, interest, rotate, distance, fov,
+		ixBezier, iyBezier, izBezier,
+		rotateBezier, distanceBezier, fovBezier] = *it;
 	const auto& prev = *(it - 1);
-	if (keyTime - prev.time <= 1) {
+	if (time - prev.time <= 1) {
 		camera.interest = prev.interest;
 		camera.rotate = prev.rotate;
 		camera.distance = prev.distance;
 		camera.fov = prev.fov;
 		return;
 	}
-	const float time = (t - static_cast<float>(prev.time)) / static_cast<float>(keyTime - prev.time);
-	const float ixY = Bezier(FindBezierX(time, keyIxBezier.first.x, keyIxBezier.second.x), keyIxBezier.first.y, keyIxBezier.second.y);
-	const float iyY = Bezier(FindBezierX(time, keyIyBezier.first.x, keyIyBezier.second.x), keyIyBezier.first.y, keyIyBezier.second.y);
-	const float izY = Bezier(FindBezierX(time, keyIzBezier.first.x, keyIzBezier.second.x), keyIzBezier.first.y, keyIzBezier.second.y);
-	const float rY = Bezier(FindBezierX(time, keyRotateBezier.first.x, keyRotateBezier.second.x), keyRotateBezier.first.y, keyRotateBezier.second.y);
-	const float dY = Bezier(FindBezierX(time, keyDistanceBezier.first.x, keyDistanceBezier.second.x), keyDistanceBezier.first.y, keyDistanceBezier.second.y);
-	const float fY = Bezier(FindBezierX(time, keyFovBezier.first.x, keyFovBezier.second.x), keyFovBezier.first.y, keyFovBezier.second.y);
-	camera.interest = glm::mix(prev.interest, keyInterest, glm::vec3(ixY, iyY, izY));
-	camera.rotate = glm::mix(prev.rotate, keyRotate, rY);
-	camera.distance = glm::mix(prev.distance, keyDistance, dY);
-	camera.fov = glm::mix(prev.fov, keyFov, fY);
+	const float normalizedTime = (t - static_cast<float>(prev.time)) / static_cast<float>(time - prev.time);
+	const float ixY = Bezier(FindBezierX(normalizedTime, ixBezier.first.x, ixBezier.second.x), ixBezier.first.y, ixBezier.second.y);
+	const float iyY = Bezier(FindBezierX(normalizedTime, iyBezier.first.x, iyBezier.second.x), iyBezier.first.y, iyBezier.second.y);
+	const float izY = Bezier(FindBezierX(normalizedTime, izBezier.first.x, izBezier.second.x), izBezier.first.y, izBezier.second.y);
+	const float rY = Bezier(FindBezierX(normalizedTime, rotateBezier.first.x, rotateBezier.second.x), rotateBezier.first.y, rotateBezier.second.y);
+	const float dY = Bezier(FindBezierX(normalizedTime, distanceBezier.first.x, distanceBezier.second.x), distanceBezier.first.y, distanceBezier.second.y);
+	const float fY = Bezier(FindBezierX(normalizedTime, fovBezier.first.x, fovBezier.second.x), fovBezier.first.y, fovBezier.second.y);
+	camera.interest = glm::mix(prev.interest, interest, glm::vec3(ixY, iyY, izY));
+	camera.rotate = glm::mix(prev.rotate, rotate, rY);
+	camera.distance = glm::mix(prev.distance, distance, dY);
+	camera.fov = glm::mix(prev.fov, fov, fY);
 }
-
