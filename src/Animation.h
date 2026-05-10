@@ -4,8 +4,8 @@
 
 #include "Reader.h"
 
-class IkSolver;
 struct Morph;
+class IkSolver;
 class Node;
 class Model;
 

@@ -1,9 +1,9 @@
 cbuffer VSData : register(b0) {
-    float4x4 WVP;
+    float4x4 wvp;
 };
 
 cbuffer PSData : register(b1) {
-    float4 ShadowColor;
+    float4 shadowColor;
 };
 
 struct VSInput {
@@ -16,10 +16,10 @@ struct VSOutput {
 
 VSOutput VSMain(VSInput input) {
     VSOutput vsOut;
-    vsOut.Position = mul(WVP, float4(input.Pos, 1.0));
+    vsOut.Position = mul(wvp, float4(input.Pos, 1.0));
     return vsOut;
 }
 
 float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
-    return ShadowColor;
+    return shadowColor;
 }

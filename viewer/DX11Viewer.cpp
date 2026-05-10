@@ -71,14 +71,14 @@ HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>&
 void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySRV, ID3D11SamplerState* dummySampler,
 	const UINT slot, const DX11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent, int& outMode,
 	glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
-	if (tex.m_texture) {
+	if (tex.texture) {
 		outMode = modeIfPresent;
 		outMul  = mulIn;
 		outAdd  = addIn;
 	} else
 		outMode = 0;
-	ID3D11ShaderResourceView* views = tex.m_texture ? tex.m_textureView.Get() : dummySRV;
-	ID3D11SamplerState* samplers = tex.m_texture ? sampler : dummySampler;
+	ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : dummySRV;
+	ID3D11SamplerState* samplers = tex.texture ? sampler : dummySampler;
 	context->PSSetShaderResources(slot, 1, &views);
 	context->PSSetSamplers(slot, 1, &samplers);
 }
@@ -152,9 +152,9 @@ void DX11Instance::Update() const {
 	const glm::vec3* updateNormalData = m_model->updateNormals.data();
 	const glm::vec2* updateUVData = m_model->updateUVs.data();
 	for (size_t i = 0; i < vtxCount; i++) {
-		vertices[i].m_position = updatePositionData[i];
-		vertices[i].m_normal = updateNormalData[i];
-		vertices[i].m_uv = updateUVData[i];
+		vertices[i].position = updatePositionData[i];
+		vertices[i].normal = updateNormalData[i];
+		vertices[i].uv = updateUVData[i];
 	}
 	m_viewer->m_context->Unmap(m_vertexBuffer.Get(), 0);
 }
@@ -179,8 +179,8 @@ void DX11Instance::Draw() const {
 	m_viewer->m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
 	m_viewer->m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DX11VertexShader vsCB1{};
-	vsCB1.m_wv = wv;
-	vsCB1.m_wvp = wvp;
+	vsCB1.wv = wv;
+	vsCB1.wvp = wvp;
 	m_viewer->m_context->UpdateSubresource(m_vsConstantBuffer.Get(),
 		0, nullptr, &vsCB1, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_vs.Get(), nullptr, 0);
@@ -192,32 +192,32 @@ void DX11Instance::Draw() const {
         if (mat.diffuse.a == 0)
             continue;
         DX11PixelShader psCB{};
-        psCB.m_alpha         = mat.diffuse.a;
-        psCB.m_diffuse       = mat.diffuse;
-        psCB.m_ambient       = mat.ambient;
-        psCB.m_specular      = mat.specular;
-        psCB.m_specularPower = mat.specularPower;
+        psCB.alpha         = mat.diffuse.a;
+        psCB.diffuse       = mat.diffuse;
+        psCB.ambient       = mat.ambient;
+        psCB.specular      = mat.specular;
+        psCB.specularPower = mat.specularPower;
 		int baseMode = 0;
-		if (m.m_texture.m_texture)
-			baseMode = !m.m_texture.m_hasAlpha ? 1 : 2;
+		if (m.m_texture.texture)
+			baseMode = !m.m_texture.hasAlpha ? 1 : 2;
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			0, m.m_texture, m_viewer->m_textureSampler.Get(), baseMode, psCB.m_textureModes.x,
-			psCB.m_texMulFactor, psCB.m_texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
+			0, m.m_texture, m_viewer->m_textureSampler.Get(), baseMode, psCB.textureModes.x,
+			psCB.texMulFactor, psCB.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			1, m.m_toonTexture, m_viewer->m_toonTextureSampler.Get(), 1, psCB.m_textureModes.y,
-			psCB.m_toonTexMulFactor, psCB.m_toonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
+			1, m.m_toonTexture, m_viewer->m_toonTextureSampler.Get(), 1, psCB.textureModes.y,
+			psCB.toonTexMulFactor, psCB.toonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 		int spMode = 0;
-		if (m.m_spTexture.m_texture) {
+		if (m.m_spTexture.texture) {
 			if (mat.spTextureMode == SphereMode::Mul)
 				spMode = 1;
 			else if (mat.spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
 		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			2, m.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.m_textureModes.z,
-			psCB.m_sphereTexMulFactor, psCB.m_sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
-        psCB.m_lightColor = m_viewer->m_lightColor;
-        psCB.m_lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
+			2, m.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.textureModes.z,
+			psCB.sphereTexMulFactor, psCB.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
+        psCB.lightColor = m_viewer->m_lightColor;
+        psCB.lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
         m_viewer->m_context->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
         m_viewer->m_context->PSSetConstantBuffers(1, 1, m_psConstantBuffer.GetAddressOf());
         if (mat.bothFace)
@@ -228,9 +228,9 @@ void DX11Instance::Draw() const {
     }
 	m_viewer->m_context->IASetInputLayout(m_viewer->m_edgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
-	vsCB2.m_wv = wv;
-	vsCB2.m_wvp = wvp;
-	vsCB2.m_screenSize = glm::vec2(static_cast<float>(m_viewer->m_screenWidth),
+	vsCB2.wv = wv;
+	vsCB2.wvp = wvp;
+	vsCB2.screenSize = glm::vec2(static_cast<float>(m_viewer->m_screenWidth),
 		static_cast<float>(m_viewer->m_screenHeight));
 	m_viewer->m_context->UpdateSubresource(m_edgeVsConstantBuffer.Get(),
 		0, nullptr, &vsCB2, 0, 0);
@@ -245,12 +245,12 @@ void DX11Instance::Draw() const {
 		if (mat.diffuse.a == 0)
 			continue;
 		DX11EdgeSizeVertexShader vsCB{};
-		vsCB.m_edgeSize = mat.edgeSize;
+		vsCB.edgeSize = mat.edgeSize;
 		m_viewer->m_context->UpdateSubresource(m_edgeSizeVsConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
 		m_viewer->m_context->VSSetConstantBuffers(1, 1, m_edgeSizeVsConstantBuffer.GetAddressOf());
 		DX11EdgePixelShader psCB{};
-		psCB.m_edgeColor = mat.edgeColor;
+		psCB.edgeColor = mat.edgeColor;
 		m_viewer->m_context->UpdateSubresource(m_edgePsConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
 		m_viewer->m_context->PSSetConstantBuffers(2, 1, m_edgePsConstantBuffer.GetAddressOf());
@@ -262,7 +262,7 @@ void DX11Instance::Draw() const {
 	glm::vec4 light(-glm::normalize(m_viewer->m_lightDir), 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB3{};
-	vsCB3.m_wvp = dxMat * proj * view * shadow * world;
+	vsCB3.wvp = dxMat * proj * view * shadow * world;
 	m_viewer->m_context->UpdateSubresource(m_gsVsConstantBuffer.Get(),
 		0, nullptr, &vsCB3, 0, 0);
 	m_viewer->m_context->VSSetShader(m_viewer->m_gsVs.Get(), nullptr, 0);
@@ -278,7 +278,7 @@ void DX11Instance::Draw() const {
 		if (mat.diffuse.a == 0)
 			continue;
 		DX11GroundShadowPixelShader psCB{};
-		psCB.m_shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+		psCB.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		m_viewer->m_context->UpdateSubresource(m_gsPsConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
 		m_viewer->m_context->PSSetConstantBuffers(1, 1, m_gsPsConstantBuffer.GetAddressOf());
 		m_viewer->m_context->DrawIndexed(indexCount, beginIndex, 0);
@@ -371,7 +371,7 @@ DX11Texture DX11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
 	if (!image)
 		return {};
-	D3D11_TEXTURE2D_DESC d = {};
+	D3D11_TEXTURE2D_DESC d;
 	d.Width = x;
 	d.Height = y;
 	d.MipLevels = 1;
@@ -382,7 +382,7 @@ DX11Texture DX11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	d.CPUAccessFlags = 0;
 	d.MiscFlags = 0;
-	const bool hasAlpha = comp == 4;
+	const bool textureHasAlpha = comp == 4;
 	d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = image;
@@ -396,9 +396,9 @@ DX11Texture DX11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	if (FAILED(m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV)))
 		return {};
 	DX11Texture tex;
-	tex.m_texture = tex2d;
-	tex.m_textureView = tex2dRV;
-	tex.m_hasAlpha = hasAlpha;
+	tex.texture = tex2d;
+	tex.textureView = tex2dRV;
+	tex.hasAlpha = textureHasAlpha;
 	m_textures[texturePath] = tex;
 	return m_textures[texturePath];
 }

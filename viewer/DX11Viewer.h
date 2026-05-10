@@ -8,64 +8,64 @@
 class DX11Viewer;
 
 struct DX11Vertex {
-    glm::vec3	m_position;
-    glm::vec3	m_normal;
-    glm::vec2	m_uv;
+    glm::vec3	position;
+    glm::vec3	normal;
+    glm::vec2	uv;
 };
 
 struct DX11VertexShader {
-    glm::mat4	m_wv;
-    glm::mat4	m_wvp;
+    glm::mat4	wv;
+    glm::mat4	wvp;
 };
 
 struct DX11PixelShader {
-    float		m_alpha;
-    glm::vec3	m_diffuse;
-    glm::vec3	m_ambient;
-    float		m_dummy1;
-    glm::vec3	m_specular;
-    float		m_specularPower;
-    glm::vec3	m_lightColor;
-    float		m_dummy2;
-    glm::vec3	m_lightDir;
-    float		m_dummy3;
-    glm::vec4	m_texMulFactor;
-    glm::vec4	m_texAddFactor;
-    glm::vec4	m_toonTexMulFactor;
-    glm::vec4	m_toonTexAddFactor;
-    glm::vec4	m_sphereTexMulFactor;
-    glm::vec4	m_sphereTexAddFactor;
-    glm::ivec4	m_textureModes;
+    float		alpha;
+    glm::vec3	diffuse;
+    glm::vec3	ambient;
+    float		dummy1;
+    glm::vec3	specular;
+    float		specularPower;
+    glm::vec3	lightColor;
+    float		dummy2;
+    glm::vec3	lightDir;
+    float		dummy3;
+    glm::vec4	texMulFactor;
+    glm::vec4	texAddFactor;
+    glm::vec4	toonTexMulFactor;
+    glm::vec4	toonTexAddFactor;
+    glm::vec4	sphereTexMulFactor;
+    glm::vec4	sphereTexAddFactor;
+    glm::ivec4	textureModes;
 };
 
 struct DX11EdgeVertexShader {
-    glm::mat4	m_wv;
-    glm::mat4	m_wvp;
-    glm::vec2	m_screenSize;
-    float		m_dummy[2];
+    glm::mat4	wv;
+    glm::mat4	wvp;
+    glm::vec2	screenSize;
+    float		dummy[2];
 };
 
 struct DX11EdgeSizeVertexShader {
-    float		m_edgeSize;
-    float		m_dummy[3];
+    float		edgeSize;
+    float		dummy[3];
 };
 
 struct DX11EdgePixelShader {
-    glm::vec4	m_edgeColor;
+    glm::vec4	edgeColor;
 };
 
 struct DX11GroundShadowVertexShader {
-    glm::mat4	m_wvp;
+    glm::mat4	wvp;
 };
 
 struct DX11GroundShadowPixelShader {
-    glm::vec4	m_shadowColor;
+    glm::vec4	shadowColor;
 };
 
 struct DX11Texture {
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>				m_texture;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	m_textureView;
-    bool								                m_hasAlpha;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>				texture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	textureView;
+    bool								                hasAlpha;
 };
 
 class DX11Material {
