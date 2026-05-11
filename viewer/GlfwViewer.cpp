@@ -272,7 +272,7 @@ void GlfwInstance::Update() const {
 void GlfwInstance::DrawModel() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	const auto& shader = viewer->shader;
@@ -339,7 +339,7 @@ void GlfwInstance::DrawModel() const {
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		}
-		size_t offset = beginIndex * model->indexElementSize;
+		const size_t offset = beginIndex * model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 }
@@ -347,7 +347,7 @@ void GlfwInstance::DrawModel() const {
 void GlfwInstance::DrawEdge() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	auto wv = view * world;
 	auto wvp = proj * view * world;
 	const auto& edgeShader = viewer->edgeShader;
@@ -368,7 +368,7 @@ void GlfwInstance::DrawEdge() const {
 			continue;
 		glUniform1f(edgeShader->edgeSizeLocation, mat.edgeSize);
 		glUniform4fv(edgeShader->edgeColorLocation, 1, &mat.edgeColor[0]);
-		size_t offset = beginIndex * model->indexElementSize;
+		const size_t offset = beginIndex * model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 }
@@ -376,14 +376,14 @@ void GlfwInstance::DrawEdge() const {
 void GlfwInstance::DrawGroundShadow() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	const auto& gsShader = viewer->gsShader;
 	glUseProgram(gsShader->program);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(-1, -1);
-	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-viewer->lightDir, 0.f);
-	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+	constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
+	const glm::vec4 light(-viewer->lightDir, 0.f);
+	const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 	glUniformMatrix4fv(gsShader->wvpLocation, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 	glBindVertexArray(gsVao);
 	auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
@@ -406,7 +406,7 @@ void GlfwInstance::DrawGroundShadow() const {
 			continue;
 		if (mat.diffuse.a == 0.0f)
 			continue;
-		size_t offset = beginIndex * model->indexElementSize;
+		const size_t offset = beginIndex * model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 	}
 	glDisable(GL_POLYGON_OFFSET_FILL);
