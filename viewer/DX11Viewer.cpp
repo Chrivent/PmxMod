@@ -83,112 +83,112 @@ void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySR
 	context->PSSetSamplers(slot, 1, &samplers);
 }
 
-DX11Material::DX11Material(const Material& mat)
-	: m_mat(mat) {
+DX11Material::DX11Material(const Material& sourceMat)
+	: mat(sourceMat) {
 }
 
-bool DX11Instance::Setup(Viewer& viewer) {
-	m_viewer = &dynamic_cast<DX11Viewer&>(viewer);
+bool DX11Instance::Setup(Viewer& baseViewer) {
+	viewer = &dynamic_cast<DX11Viewer&>(baseViewer);
 	D3D11_BUFFER_DESC vBufDesc = {};
 	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * m_model->positions.size());
+	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(DX11Vertex) * model->positions.size());
 	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	if (FAILED(m_viewer->m_device->CreateBuffer(&vBufDesc, nullptr, &m_vertexBuffer)))
+	if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 		return false;
 	D3D11_BUFFER_DESC iBufDesc = {};
 	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	iBufDesc.ByteWidth = static_cast<UINT>(m_model->indexElementSize * m_model->indexCount);
+	iBufDesc.ByteWidth = static_cast<UINT>(model->indexElementSize * model->indexCount);
 	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	iBufDesc.CPUAccessFlags = 0;
 	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = m_model->indices.data();
-	if (FAILED(m_viewer->m_device->CreateBuffer(&iBufDesc, &initData, &m_indexBuffer)))
+	initData.pSysMem = model->indices.data();
+	if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 		return false;
-	if (1 == m_model->indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
-	else if (2 == m_model->indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R16_UINT;
-	else if (4 == m_model->indexElementSize)
-		m_indexBufferFormat = DXGI_FORMAT_R32_UINT;
+	if (1 == model->indexElementSize)
+		indexBufferFormat = DXGI_FORMAT_R8_UINT;
+	else if (2 == model->indexElementSize)
+		indexBufferFormat = DXGI_FORMAT_R16_UINT;
+	else if (4 == model->indexElementSize)
+		indexBufferFormat = DXGI_FORMAT_R32_UINT;
 	else
 		return false;
-	if (FAILED(CreateBuffer<DX11VertexShader>(m_viewer->m_device.Get(), m_vsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11VertexShader>(viewer->device.Get(), vsConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11PixelShader>(m_viewer->m_device.Get(), m_psConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11PixelShader>(viewer->device.Get(), psConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11EdgeVertexShader>(m_viewer->m_device.Get(), m_edgeVsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11EdgeVertexShader>(viewer->device.Get(), edgeVsConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11EdgeSizeVertexShader>(m_viewer->m_device.Get(), m_edgeSizeVsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11EdgeSizeVertexShader>(viewer->device.Get(), edgeSizeVsConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11EdgePixelShader>(m_viewer->m_device.Get(), m_edgePsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11EdgePixelShader>(viewer->device.Get(), edgePsConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11GroundShadowVertexShader>(m_viewer->m_device.Get(), m_gsVsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11GroundShadowVertexShader>(viewer->device.Get(), gsVsConstantBuffer)))
 		return false;
-	if (FAILED(CreateBuffer<DX11GroundShadowPixelShader>(m_viewer->m_device.Get(), m_gsPsConstantBuffer)))
+	if (FAILED(CreateBuffer<DX11GroundShadowPixelShader>(viewer->device.Get(), gsPsConstantBuffer)))
 		return false;
-	for (const auto& mat : m_model->materials) {
-		DX11Material m(mat);
+	for (const auto& mat : model->materials) {
+		DX11Material material(mat);
 		if (!mat.texture.empty())
-			m.m_texture = m_viewer->LoadTexture(mat.texture);
+			material.texture = viewer->LoadTexture(mat.texture);
 		if (!mat.spTexture.empty())
-			m.m_spTexture = m_viewer->LoadTexture(mat.spTexture);
+			material.spTexture = viewer->LoadTexture(mat.spTexture);
 		if (!mat.cartoonTexture.empty())
-			m.m_toonTexture = m_viewer->LoadTexture(mat.cartoonTexture);
-		m_materials.emplace_back(std::move(m));
+			material.toonTexture = viewer->LoadTexture(mat.cartoonTexture);
+		materials.emplace_back(std::move(material));
 	}
 	return true;
 }
 
 void DX11Instance::Update() const {
-	m_model->Update();
-	const size_t vtxCount = m_model->positions.size();
+	model->Update();
+	const size_t vtxCount = model->positions.size();
 	D3D11_MAPPED_SUBRESOURCE mapRes;
-	if (FAILED(m_viewer->m_context->Map(m_vertexBuffer.Get(), 0,
+	if (FAILED(viewer->context->Map(vertexBuffer.Get(), 0,
 		D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 		return;
 	const auto vertices = static_cast<DX11Vertex*>(mapRes.pData);
-	const glm::vec3* updatePositionData = m_model->updatePositions.data();
-	const glm::vec3* updateNormalData = m_model->updateNormals.data();
-	const glm::vec2* updateUVData = m_model->updateUVs.data();
+	const glm::vec3* updatePositionData = model->updatePositions.data();
+	const glm::vec3* updateNormalData = model->updateNormals.data();
+	const glm::vec2* updateUVData = model->updateUVs.data();
 	for (size_t i = 0; i < vtxCount; i++) {
 		vertices[i].position = updatePositionData[i];
 		vertices[i].normal = updateNormalData[i];
 		vertices[i].uv = updateUVData[i];
 	}
-	m_viewer->m_context->Unmap(m_vertexBuffer.Get(), 0);
+	viewer->context->Unmap(vertexBuffer.Get(), 0);
 }
 
 void DX11Instance::Draw() const {
-	const auto& view = m_viewer->m_viewMat;
-	const auto& proj = m_viewer->m_projMat;
+	const auto& view = viewer->viewMat;
+	const auto& proj = viewer->projMat;
 	const auto& dxMat = glm::mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 0.5f, 0.0f,
 		0.0f, 0.0f, 0.5f, 1.0f
 	);
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(m_scale));
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	auto wv = view * world;
 	auto wvp = dxMat * proj * view * world;
-	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_defaultDss.Get(), 0x00);
+	viewer->context->OMSetDepthStencilState(viewer->defaultDss.Get(), 0x00);
 	UINT stride = sizeof(DX11Vertex);
 	UINT offset = 0;
-	m_viewer->m_context->IASetInputLayout(m_viewer->m_inputLayout.Get());
-	m_viewer->m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-	m_viewer->m_context->IASetIndexBuffer(m_indexBuffer.Get(), m_indexBufferFormat, 0);
-	m_viewer->m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	viewer->context->IASetInputLayout(viewer->inputLayout.Get());
+	viewer->context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	viewer->context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+	viewer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	DX11VertexShader vsCB1{};
 	vsCB1.wv = wv;
 	vsCB1.wvp = wvp;
-	m_viewer->m_context->UpdateSubresource(m_vsConstantBuffer.Get(),
+	viewer->context->UpdateSubresource(vsConstantBuffer.Get(),
 		0, nullptr, &vsCB1, 0, 0);
-	m_viewer->m_context->VSSetShader(m_viewer->m_vs.Get(), nullptr, 0);
-	m_viewer->m_context->PSSetShader(m_viewer->m_ps.Get(), nullptr, 0);
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
-	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
-        const auto& m = m_materials[materialId];
-        const auto& mat = m.m_mat;
+	viewer->context->VSSetShader(viewer->vs.Get(), nullptr, 0);
+	viewer->context->PSSetShader(viewer->ps.Get(), nullptr, 0);
+	viewer->context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+	for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+        const auto& material = materials[materialId];
+		const auto& mat = material.mat;
         if (mat.diffuse.a == 0)
             continue;
         DX11PixelShader psCB{};
@@ -198,90 +198,90 @@ void DX11Instance::Draw() const {
         psCB.specular      = mat.specular;
         psCB.specularPower = mat.specularPower;
 		int baseMode = 0;
-		if (m.m_texture.texture)
-			baseMode = !m.m_texture.hasAlpha ? 1 : 2;
-		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			0, m.m_texture, m_viewer->m_textureSampler.Get(), baseMode, psCB.textureModes.x,
+		if (material.texture.texture)
+			baseMode = !material.texture.hasAlpha ? 1 : 2;
+		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+			0, material.texture, viewer->textureSampler.Get(), baseMode, psCB.textureModes.x,
 			psCB.texMulFactor, psCB.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
-		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			1, m.m_toonTexture, m_viewer->m_toonTextureSampler.Get(), 1, psCB.textureModes.y,
+		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+			1, material.toonTexture, viewer->toonTextureSampler.Get(), 1, psCB.textureModes.y,
 			psCB.toonTexMulFactor, psCB.toonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 		int spMode = 0;
-		if (m.m_spTexture.texture) {
+		if (material.spTexture.texture) {
 			if (mat.spTextureMode == SphereMode::Mul)
 				spMode = 1;
 			else if (mat.spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
-		BindTexture(m_viewer->m_context.Get(), m_viewer->m_dummyTextureView.Get(), m_viewer->m_textureSampler.Get(),
-			2, m.m_spTexture, m_viewer->m_textureSampler.Get(), spMode, psCB.textureModes.z,
+		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+			2, material.spTexture, viewer->textureSampler.Get(), spMode, psCB.textureModes.z,
 			psCB.sphereTexMulFactor, psCB.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
-        psCB.lightColor = m_viewer->m_lightColor;
-        psCB.lightDir = glm::mat3(m_viewer->m_viewMat) * m_viewer->m_lightDir;
-        m_viewer->m_context->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-        m_viewer->m_context->PSSetConstantBuffers(1, 1, m_psConstantBuffer.GetAddressOf());
+        psCB.lightColor = viewer->lightColor;
+        psCB.lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
+        viewer->context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+        viewer->context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
         if (mat.bothFace)
-            m_viewer->m_context->RSSetState(m_viewer->m_bothFaceRs.Get());
+            viewer->context->RSSetState(viewer->bothFaceRs.Get());
         else
-            m_viewer->m_context->RSSetState(m_viewer->m_frontFaceRs.Get());
-        m_viewer->m_context->DrawIndexed(indexCount, beginIndex, 0);
+            viewer->context->RSSetState(viewer->frontFaceRs.Get());
+        viewer->context->DrawIndexed(indexCount, beginIndex, 0);
     }
-	m_viewer->m_context->IASetInputLayout(m_viewer->m_edgeInputLayout.Get());
+	viewer->context->IASetInputLayout(viewer->edgeInputLayout.Get());
 	DX11EdgeVertexShader vsCB2{};
 	vsCB2.wv = wv;
 	vsCB2.wvp = wvp;
-	vsCB2.screenSize = glm::vec2(static_cast<float>(m_viewer->m_screenWidth),
-		static_cast<float>(m_viewer->m_screenHeight));
-	m_viewer->m_context->UpdateSubresource(m_edgeVsConstantBuffer.Get(),
+	vsCB2.screenSize = glm::vec2(static_cast<float>(viewer->screenWidth),
+		static_cast<float>(viewer->screenHeight));
+	viewer->context->UpdateSubresource(edgeVsConstantBuffer.Get(),
 		0, nullptr, &vsCB2, 0, 0);
-	m_viewer->m_context->VSSetShader(m_viewer->m_edgeVs.Get(), nullptr, 0);
-	m_viewer->m_context->PSSetShader(m_viewer->m_edgePs.Get(), nullptr, 0);
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_edgeVsConstantBuffer.GetAddressOf());
-	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
-		const auto& m = m_materials[materialId];
-		const auto& mat = m.m_mat;
+	viewer->context->VSSetShader(viewer->edgeVs.Get(), nullptr, 0);
+	viewer->context->PSSetShader(viewer->edgePs.Get(), nullptr, 0);
+	viewer->context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
+	for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+		const auto& material = materials[materialId];
+		const auto& mat = material.mat;
 		if (!mat.edgeFlag)
 			continue;
 		if (mat.diffuse.a == 0)
 			continue;
 		DX11EdgeSizeVertexShader vsCB{};
 		vsCB.edgeSize = mat.edgeSize;
-		m_viewer->m_context->UpdateSubresource(m_edgeSizeVsConstantBuffer.Get(),
+		viewer->context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(),
 			0, nullptr, &vsCB, 0, 0);
-		m_viewer->m_context->VSSetConstantBuffers(1, 1, m_edgeSizeVsConstantBuffer.GetAddressOf());
+		viewer->context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
 		DX11EdgePixelShader psCB{};
 		psCB.edgeColor = mat.edgeColor;
-		m_viewer->m_context->UpdateSubresource(m_edgePsConstantBuffer.Get(),
+		viewer->context->UpdateSubresource(edgePsConstantBuffer.Get(),
 			0, nullptr, &psCB, 0, 0);
-		m_viewer->m_context->PSSetConstantBuffers(2, 1, m_edgePsConstantBuffer.GetAddressOf());
-		m_viewer->m_context->RSSetState(m_viewer->m_edgeRs.Get());
-		m_viewer->m_context->DrawIndexed(indexCount, beginIndex, 0);
+		viewer->context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
+		viewer->context->RSSetState(viewer->edgeRs.Get());
+		viewer->context->DrawIndexed(indexCount, beginIndex, 0);
 	}
-	m_viewer->m_context->IASetInputLayout(m_viewer->m_gsInputLayout.Get());
+	viewer->context->IASetInputLayout(viewer->gsInputLayout.Get());
 	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-glm::normalize(m_viewer->m_lightDir), 0.f);
+	glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
 	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	DX11GroundShadowVertexShader vsCB3{};
 	vsCB3.wvp = dxMat * proj * view * shadow * world;
-	m_viewer->m_context->UpdateSubresource(m_gsVsConstantBuffer.Get(),
+	viewer->context->UpdateSubresource(gsVsConstantBuffer.Get(),
 		0, nullptr, &vsCB3, 0, 0);
-	m_viewer->m_context->VSSetShader(m_viewer->m_gsVs.Get(), nullptr, 0);
-	m_viewer->m_context->PSSetShader(m_viewer->m_gsPs.Get(), nullptr, 0);
-	m_viewer->m_context->VSSetConstantBuffers(0, 1, m_gsVsConstantBuffer.GetAddressOf());
-	m_viewer->m_context->RSSetState(m_viewer->m_gsRs.Get());
-	m_viewer->m_context->OMSetDepthStencilState(m_viewer->m_gsDss.Get(), 0x01);
-	for (const auto& [beginIndex, indexCount, materialId] : m_model->subMeshes) {
-		const auto& m = m_materials[materialId];
-		const auto& mat = m.m_mat;
+	viewer->context->VSSetShader(viewer->gsVs.Get(), nullptr, 0);
+	viewer->context->PSSetShader(viewer->gsPs.Get(), nullptr, 0);
+	viewer->context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
+	viewer->context->RSSetState(viewer->gsRs.Get());
+	viewer->context->OMSetDepthStencilState(viewer->gsDss.Get(), 0x01);
+	for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+		const auto& material = materials[materialId];
+		const auto& mat = material.mat;
 		if (!mat.groundShadow)
 			continue;
 		if (mat.diffuse.a == 0)
 			continue;
 		DX11GroundShadowPixelShader psCB{};
 		psCB.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-		m_viewer->m_context->UpdateSubresource(m_gsPsConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
-		m_viewer->m_context->PSSetConstantBuffers(1, 1, m_gsPsConstantBuffer.GetAddressOf());
-		m_viewer->m_context->DrawIndexed(indexCount, beginIndex, 0);
+		viewer->context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCB, 0, 0);
+		viewer->context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
+		viewer->context->DrawIndexed(indexCount, beginIndex, 0);
 	}
 }
 
@@ -290,13 +290,13 @@ void DX11Viewer::ConfigureGlfwHints() {
 }
 
 bool DX11Viewer::Setup() {
-	HWND__* hwnd = glfwGetWin32Window(m_window);
+	HWND__* hwnd = glfwGetWin32Window(window);
 	constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
 	if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-		&featureLevels, 1, D3D11_SDK_VERSION, &m_device, nullptr, &m_context)))
+		&featureLevels, 1, D3D11_SDK_VERSION, &device, nullptr, &context)))
 		return false;
 	Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-	if (FAILED(m_device.As(&dxgiDevice)))
+	if (FAILED(device.As(&dxgiDevice)))
 		return false;
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
 	if (FAILED(dxgiDevice->GetAdapter(&adapter)))
@@ -304,22 +304,22 @@ bool DX11Viewer::Setup() {
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 	if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
 		return false;
-	m_multiSampleCount = 4;
+	multiSampleCount = 4;
 	UINT quality = 0;
-	if (FAILED(m_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, m_multiSampleCount, &quality)) || quality == 0) {
-		m_multiSampleCount = 1;
+	if (FAILED(device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, multiSampleCount, &quality)) || quality == 0) {
+		multiSampleCount = 1;
 		quality = 0;
 	}
-	m_multiSampleQuality = quality > 0 ? quality - 1 : 0;
+	multiSampleQuality = quality > 0 ? quality - 1 : 0;
 	DXGI_SWAP_CHAIN_DESC d{};
 	d.BufferCount = 2;
 	d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	d.OutputWindow = hwnd;
-	d.SampleDesc.Count = m_multiSampleCount;
-	d.SampleDesc.Quality = m_multiSampleQuality;
+	d.SampleDesc.Count = multiSampleCount;
+	d.SampleDesc.Quality = multiSampleQuality;
 	d.Windowed = TRUE;
-	if (FAILED(factory->CreateSwapChain(m_device.Get(), &d, &m_swapChain)))
+	if (FAILED(factory->CreateSwapChain(device.Get(), &d, &swapChain)))
 		return false;
 	if (!CreateRenderTargets())
 		return false;
@@ -335,10 +335,10 @@ bool DX11Viewer::Setup() {
 }
 
 bool DX11Viewer::Resize() {
-	m_renderTargetView.Reset();
-	m_depthStencilView.Reset();
-	m_depthTex.Reset();
-	if (FAILED(m_swapChain->ResizeBuffers(0, m_screenWidth, m_screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
+	renderTargetView.Reset();
+	depthStencilView.Reset();
+	depthTex.Reset();
+	if (FAILED(swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 		return false;
 	if (!CreateRenderTargets())
 		return false;
@@ -347,14 +347,14 @@ bool DX11Viewer::Resize() {
 }
 
 void DX11Viewer::BeginFrame() {
-	m_context->ClearRenderTargetView(m_renderTargetView.Get(), m_clearColor);
-	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-	m_context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
+	context->ClearRenderTargetView(renderTargetView.Get(), clearColor);
+	context->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
+	context->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
 }
 
 bool DX11Viewer::EndFrame() {
-	if (FAILED(m_swapChain->Present(0, 0)))
+	if (FAILED(swapChain->Present(0, 0)))
 		return false;
 	return true;
 }
@@ -364,8 +364,8 @@ std::unique_ptr<Instance> DX11Viewer::CreateInstance() const {
 }
 
 DX11Texture DX11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-	const auto it = m_textures.find(texturePath);
-	if (it != m_textures.end())
+	const auto it = textures.find(texturePath);
+	if (it != textures.end())
 		return it->second;
 	int x = 0, y = 0, comp = 0;
 	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
@@ -388,30 +388,30 @@ DX11Texture DX11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	initData.pSysMem = image;
 	initData.SysMemPitch = 4 * x;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
-	const HRESULT hr = m_device->CreateTexture2D(&d, &initData, &tex2d);
+	const HRESULT hr = device->CreateTexture2D(&d, &initData, &tex2d);
 	stbi_image_free(image);
 	if (FAILED(hr))
 		return {};
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2dRV;
-	if (FAILED(m_device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV)))
+	if (FAILED(device->CreateShaderResourceView(tex2d.Get(), nullptr, &tex2dRV)))
 		return {};
 	DX11Texture tex;
 	tex.texture = tex2d;
 	tex.textureView = tex2dRV;
 	tex.hasAlpha = textureHasAlpha;
-	m_textures[texturePath] = tex;
-	return m_textures[texturePath];
+	textures[texturePath] = tex;
+	return textures[texturePath];
 }
 
 void DX11Viewer::UpdateViewport() const {
 	D3D11_VIEWPORT vp;
-	vp.Width = static_cast<float>(m_screenWidth);
-	vp.Height = static_cast<float>(m_screenHeight);
+	vp.Width = static_cast<float>(screenWidth);
+	vp.Height = static_cast<float>(screenHeight);
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
-	m_context->RSSetViewports(1, &vp);
+	context->RSSetViewports(1, &vp);
 }
 
 bool DX11Viewer::MakeVS(const std::filesystem::path& f, const char* entry,
@@ -419,7 +419,7 @@ bool DX11Viewer::MakeVS(const std::filesystem::path& f, const char* entry,
 	if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		entry, "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBlob, nullptr)))
 		return false;
-	if (FAILED(m_device->CreateVertexShader(outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVS)))
+	if (FAILED(device->CreateVertexShader(outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVS)))
 		return false;
 	return true;
 }
@@ -429,110 +429,110 @@ bool DX11Viewer::MakePS(const std::filesystem::path& f, const char* entry, Micro
 	if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		entry, "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &blob, nullptr)))
 		return false;
-	if (FAILED(m_device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPS)))
+	if (FAILED(device->CreatePixelShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPS)))
 		return false;
 	return true;
 }
 
 bool DX11Viewer::CreateShaders() {
 	Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, edgeVsBlob, gsVsBlob;
-	if (!MakeVS(m_shaderDir / "mmd.hlsl", "VSMain", m_vs, vsBlob))
+	if (!MakeVS(shaderDir / "mmd.hlsl", "VSMain", vs, vsBlob))
 		return false;
-	if (!MakeVS(m_shaderDir / "mmd_edge.hlsl", "VSMain", m_edgeVs, edgeVsBlob))
+	if (!MakeVS(shaderDir / "mmd_edge.hlsl", "VSMain", edgeVs, edgeVsBlob))
 		return false;
-	if (!MakeVS(m_shaderDir / "mmd_ground_shadow.hlsl", "VSMain", m_gsVs, gsVsBlob))
+	if (!MakeVS(shaderDir / "mmd_ground_shadow.hlsl", "VSMain", gsVs, gsVsBlob))
 		return false;
-	if (!MakePS(m_shaderDir / "mmd.hlsl", "PSMain", m_ps))
+	if (!MakePS(shaderDir / "mmd.hlsl", "PSMain", ps))
 		return false;
-	if (!MakePS(m_shaderDir / "mmd_edge.hlsl", "PSMain", m_edgePs))
+	if (!MakePS(shaderDir / "mmd_edge.hlsl", "PSMain", edgePs))
 		return false;
-	if (!MakePS(m_shaderDir / "mmd_ground_shadow.hlsl", "PSMain", m_gsPs))
+	if (!MakePS(shaderDir / "mmd_ground_shadow.hlsl", "PSMain", gsPs))
 		return false;
 	constexpr D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	if (FAILED(m_device->CreateInputLayout(
+	if (FAILED(device->CreateInputLayout(
 		inputElementDesc, 3,
 		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
-		&m_inputLayout)))
+		&inputLayout)))
 		return false;
 	constexpr D3D11_INPUT_ELEMENT_DESC edgeInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	if (FAILED(m_device->CreateInputLayout(
+	if (FAILED(device->CreateInputLayout(
 		edgeInputElementDesc, 2,
 		edgeVsBlob->GetBufferPointer(), edgeVsBlob->GetBufferSize(),
-		&m_edgeInputLayout)))
+		&edgeInputLayout)))
 		return false;
 	constexpr D3D11_INPUT_ELEMENT_DESC gsInputElementDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	if (FAILED(m_device->CreateInputLayout(
+	if (FAILED(device->CreateInputLayout(
 		gsInputElementDesc, 1,
 		gsVsBlob->GetBufferPointer(), gsVsBlob->GetBufferSize(),
-		&m_gsInputLayout)))
+		&gsInputLayout)))
 		return false;
 	return true;
 }
 
 bool DX11Viewer::CreateRenderTargets() {
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+	if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
 		return false;
-	if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
+	if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView)))
 		return false;
 	D3D11_TEXTURE2D_DESC d{};
-	d.Width = static_cast<UINT>(m_screenWidth);
-	d.Height = static_cast<UINT>(m_screenHeight);
+	d.Width = static_cast<UINT>(screenWidth);
+	d.Height = static_cast<UINT>(screenHeight);
 	d.MipLevels = 1;
 	d.ArraySize = 1;
 	d.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	d.SampleDesc.Count = m_multiSampleCount;
-	d.SampleDesc.Quality = m_multiSampleQuality;
+	d.SampleDesc.Count = multiSampleCount;
+	d.SampleDesc.Quality = multiSampleQuality;
 	d.Usage = D3D11_USAGE_DEFAULT;
 	d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	if (FAILED(m_device->CreateTexture2D(&d, nullptr, &m_depthTex)))
+	if (FAILED(device->CreateTexture2D(&d, nullptr, &depthTex)))
 		return false;
-	if (FAILED(m_device->CreateDepthStencilView(m_depthTex.Get(), nullptr, &m_depthStencilView)))
+	if (FAILED(device->CreateDepthStencilView(depthTex.Get(), nullptr, &depthStencilView)))
 		return false;
 	return true;
 }
 
 bool DX11Viewer::CreatePipelineStates() {
 	auto wrapLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-	if (FAILED(m_device->CreateSamplerState(&wrapLinear, &m_textureSampler)))
+	if (FAILED(device->CreateSamplerState(&wrapLinear, &textureSampler)))
 		return false;
 	auto clampLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
-	if (FAILED(m_device->CreateSamplerState(&clampLinear, &m_toonTextureSampler)))
+	if (FAILED(device->CreateSamplerState(&clampLinear, &toonTextureSampler)))
 		return false;
 	auto blend = AlphaBlend();
-	if (FAILED(m_device->CreateBlendState(&blend, &m_blendState)))
+	if (FAILED(device->CreateBlendState(&blend, &blendState)))
 		return false;
 	auto frontRsDesc = Raster(D3D11_CULL_BACK, true);
-	if (FAILED(m_device->CreateRasterizerState(&frontRsDesc, &m_frontFaceRs)))
+	if (FAILED(device->CreateRasterizerState(&frontRsDesc, &frontFaceRs)))
 		return false;
 	auto bothRsDesc = Raster(D3D11_CULL_NONE, true);
-	if (FAILED(m_device->CreateRasterizerState(&bothRsDesc, &m_bothFaceRs)))
+	if (FAILED(device->CreateRasterizerState(&bothRsDesc, &bothFaceRs)))
 		return false;
 	auto edgeRsDesc = Raster(D3D11_CULL_FRONT, true);
 	edgeRsDesc.DepthClipEnable = FALSE;
-	if (FAILED(m_device->CreateRasterizerState(&edgeRsDesc, &m_edgeRs)))
+	if (FAILED(device->CreateRasterizerState(&edgeRsDesc, &edgeRs)))
 		return false;
 	auto gsRsDesc = Raster(D3D11_CULL_NONE, true);
 	gsRsDesc.DepthClipEnable = FALSE;
 	gsRsDesc.DepthBias = -1;
 	gsRsDesc.SlopeScaledDepthBias = -1.0f;
 	gsRsDesc.DepthBiasClamp = -1.0f;
-	if (FAILED(m_device->CreateRasterizerState(&gsRsDesc, &m_gsRs)))
+	if (FAILED(device->CreateRasterizerState(&gsRsDesc, &gsRs)))
 		return false;
 	auto gsDSS = MakeGroundShadowDepthStencilDesc();
-	if (FAILED(m_device->CreateDepthStencilState(&gsDSS, &m_gsDss)))
+	if (FAILED(device->CreateDepthStencilState(&gsDSS, &gsDss)))
 		return false;
 	auto defDSS = MakeDefaultDepthStencilDesc();
-	if (FAILED(m_device->CreateDepthStencilState(&defDSS, &m_defaultDss)))
+	if (FAILED(device->CreateDepthStencilState(&defDSS, &defaultDss)))
 		return false;
 	return true;
 }
@@ -548,9 +548,9 @@ bool DX11Viewer::CreateDummyResources() {
 	d.Usage = D3D11_USAGE_DEFAULT;
 	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	if (FAILED(m_device->CreateTexture2D(&d, nullptr, &m_dummyTexture)))
+	if (FAILED(device->CreateTexture2D(&d, nullptr, &dummyTexture)))
 		return false;
-	if (FAILED(m_device->CreateShaderResourceView(m_dummyTexture.Get(), nullptr, &m_dummyTextureView)))
+	if (FAILED(device->CreateShaderResourceView(dummyTexture.Get(), nullptr, &dummyTextureView)))
 		return false;
 	return true;
 }

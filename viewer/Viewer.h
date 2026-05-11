@@ -28,12 +28,12 @@ class Instance {
 public:
     virtual ~Instance() = default;
 
-    std::shared_ptr<Model>	    m_model;
-    std::unique_ptr<Animation>	m_anim;
-    float m_scale = 1.0f;
+    std::shared_ptr<Model>	    model;
+    std::unique_ptr<Animation>	anim;
+    float scale = 1.0f;
 
     // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
-    virtual bool Setup(Viewer& viewer) = 0;
+    virtual bool Setup(Viewer& baseViewer) = 0;
     // 모델의 동적 버텍스/상태를 렌더러 리소스에 반영한다.
     virtual void Update() const = 0;
     // 현재 인스턴스를 화면에 그린다.
@@ -83,31 +83,31 @@ public:
     // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
     void InitDirs(const std::filesystem::path& shaderSubDir);
 
-    std::filesystem::path	m_shaderDir;
-    std::filesystem::path	m_pmxDir;
-    glm::mat4	m_viewMat;
-    glm::mat4	m_projMat;
-    int			m_screenWidth = 0;
-    int			m_screenHeight = 0;
-    glm::vec3	m_lightColor = glm::vec3(1, 1, 1);
-    glm::vec3	m_lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
-    float	m_elapsed = 0.0f;
-    float	m_animTime = 0.0f;
-    GLFWwindow* m_window = nullptr;
+    std::filesystem::path	shaderDir;
+    std::filesystem::path	pmxDir;
+    glm::mat4	viewMat;
+    glm::mat4	projMat;
+    int			screenWidth = 0;
+    int			screenHeight = 0;
+    glm::vec3	lightColor = glm::vec3(1, 1, 1);
+    glm::vec3	lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+    float	elapsed = 0.0f;
+    float	animTime = 0.0f;
+    GLFWwindow* window = nullptr;
 
 protected:
-    std::filesystem::path	m_resourceDir;
-    bool    m_paused = false;
-    bool    m_prevSpaceDown = false;
-    bool    m_useMotionCamera = true;
-    bool    m_hasFreeCameraState = false;
-    bool    m_prevRDown = false;
-    bool    m_prevRightMouseDown = false;
-    double  m_prevCursorX = 0.0;
-    double  m_prevCursorY = 0.0;
-    glm::vec3 m_freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
-    float   m_freeCamYaw = glm::radians(-90.0f);
-    float   m_freeCamPitch = 0.0f;
-    std::unique_ptr<CameraAnimation>	m_cameraAnim;
-    float m_clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
+    std::filesystem::path	resourceDir;
+    bool    paused = false;
+    bool    prevSpaceDown = false;
+    bool    useMotionCamera = true;
+    bool    hasFreeCameraState = false;
+    bool    prevRDown = false;
+    bool    prevRightMouseDown = false;
+    double  prevCursorX = 0.0;
+    double  prevCursorY = 0.0;
+    glm::vec3 freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
+    float   freeCamYaw = glm::radians(-90.0f);
+    float   freeCamPitch = 0.0f;
+    std::unique_ptr<CameraAnimation>	cameraAnim;
+    float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 };

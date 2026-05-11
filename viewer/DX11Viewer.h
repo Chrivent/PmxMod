@@ -70,61 +70,61 @@ struct DX11Texture {
 
 class DX11Material {
 public:
-    const Material& m_mat;
-    DX11Texture m_texture{};
-    DX11Texture	m_spTexture{};
-    DX11Texture	m_toonTexture{};
+    const Material& mat;
+    DX11Texture texture{};
+    DX11Texture	spTexture{};
+    DX11Texture	toonTexture{};
 
-    explicit DX11Material(const Material& mat);
+    explicit DX11Material(const Material& sourceMat);
 };
 
 class DX11Instance : public Instance {
 public:
     // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
-    bool Setup(Viewer& viewer) override;
+    bool Setup(Viewer& baseViewer) override;
     // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
     void Update() const override;
     // 일반 메시, 엣지, 그림자 패스를 DX11로 렌더링한다.
     void Draw() const override;
 
 private:
-    DX11Viewer*                             m_viewer = nullptr;
-    std::vector<DX11Material>               m_materials;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>    m_vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_indexBuffer;
-    DXGI_FORMAT                             m_indexBufferFormat = DXGI_FORMAT_R8_UINT;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_vsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_psConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_edgeVsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_edgeSizeVsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_edgePsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsVsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer>	m_gsPsConstantBuffer;
+    DX11Viewer*                             viewer = nullptr;
+    std::vector<DX11Material>               materials;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
+    DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R8_UINT;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeSizeVsConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
 };
 
 class DX11Viewer : public Viewer {
 public:
-    Microsoft::WRL::ComPtr<ID3D11Device>			    m_device;
-    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        m_vs;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        m_ps;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        m_inputLayout;
-    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        m_textureSampler;
-    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        m_toonTextureSampler;
-    Microsoft::WRL::ComPtr<ID3D11BlendState>	        m_blendState;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    m_frontFaceRs;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    m_bothFaceRs;
-    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        m_edgeVs;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        m_edgePs;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        m_edgeInputLayout;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    m_edgeRs;
-    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        m_gsVs;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        m_gsPs;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        m_gsInputLayout;
-    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    m_gsRs;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    m_gsDss;
-    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    m_defaultDss;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    m_dummyTextureView;
-    Microsoft::WRL::ComPtr<ID3D11DeviceContext>         m_context;
+    Microsoft::WRL::ComPtr<ID3D11Device>			    device;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        vs;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        ps;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        inputLayout;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        textureSampler;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        toonTextureSampler;
+    Microsoft::WRL::ComPtr<ID3D11BlendState>	        blendState;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    frontFaceRs;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    bothFaceRs;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        edgeVs;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        edgePs;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        edgeInputLayout;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    edgeRs;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>	        gsVs;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>	        gsPs;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>	        gsInputLayout;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    gsRs;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    gsDss;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    defaultDss;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    dummyTextureView;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext>         context;
 
     // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
     void ConfigureGlfwHints() override;
@@ -159,12 +159,12 @@ public:
     bool CreateDummyResources();
 
 private:
-    UINT    m_multiSampleCount = 4;
-    UINT	m_multiSampleQuality = 0;
-    std::map<std::filesystem::path, DX11Texture>	    m_textures;
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    m_renderTargetView;
-    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     m_depthStencilView;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    m_dummyTexture;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>             m_depthTex;
-    Microsoft::WRL::ComPtr<IDXGISwapChain>              m_swapChain;
+    UINT    multiSampleCount = 4;
+    UINT	multiSampleQuality = 0;
+    std::map<std::filesystem::path, DX11Texture>	    textures;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
+    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>             depthTex;
+    Microsoft::WRL::ComPtr<IDXGISwapChain>              swapChain;
 };
