@@ -215,9 +215,9 @@ int main() {
 	std::cin >> engineType;
 	std::unique_ptr<Viewer> viewer;
 	if (engineType == 0)
-		viewer = std::make_unique<GLFWViewer>();
+		viewer = std::make_unique<GlfwViewer>();
 	else if (engineType == 1)
-		viewer = std::make_unique<DX11Viewer>();
+		viewer = std::make_unique<Dx11Viewer>();
 	if (viewer && !viewer->Run(cfg)) {
 		std::cout << "Failed to run.\n";
 		return 1;

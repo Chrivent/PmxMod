@@ -5,20 +5,20 @@
 
 #include "Viewer.h"
 
-class DX11Viewer;
+class Dx11Viewer;
 
-struct DX11Vertex {
+struct Dx11Vertex {
     glm::vec3	position;
     glm::vec3	normal;
     glm::vec2	uv;
 };
 
-struct DX11VertexShader {
+struct Dx11VertexShader {
     glm::mat4	wv;
     glm::mat4	wvp;
 };
 
-struct DX11PixelShader {
+struct Dx11PixelShader {
     float		alpha;
     glm::vec3	diffuse;
     glm::vec3	ambient;
@@ -31,54 +31,54 @@ struct DX11PixelShader {
     float		dummy3;
     glm::vec4	texMulFactor;
     glm::vec4	texAddFactor;
-    glm::vec4	toonTexMulFactor;
-    glm::vec4	toonTexAddFactor;
+    glm::vec4	cartoonTexMulFactor;
+    glm::vec4	cartoonTexAddFactor;
     glm::vec4	sphereTexMulFactor;
     glm::vec4	sphereTexAddFactor;
     glm::ivec4	textureModes;
 };
 
-struct DX11EdgeVertexShader {
+struct Dx11EdgeVertexShader {
     glm::mat4	wv;
     glm::mat4	wvp;
     glm::vec2	screenSize;
     float		dummy[2];
 };
 
-struct DX11EdgeSizeVertexShader {
+struct Dx11EdgeSizeVertexShader {
     float		edgeSize;
     float		dummy[3];
 };
 
-struct DX11EdgePixelShader {
+struct Dx11EdgePixelShader {
     glm::vec4	edgeColor;
 };
 
-struct DX11GroundShadowVertexShader {
+struct Dx11GroundShadowVertexShader {
     glm::mat4	wvp;
 };
 
-struct DX11GroundShadowPixelShader {
+struct Dx11GroundShadowPixelShader {
     glm::vec4	shadowColor;
 };
 
-struct DX11Texture {
+struct Dx11Texture {
     Microsoft::WRL::ComPtr<ID3D11Texture2D>				texture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	textureView;
     bool								                hasAlpha;
 };
 
-class DX11Material {
+class Dx11Material {
 public:
     const Material& mat;
-    DX11Texture texture{};
-    DX11Texture	spTexture{};
-    DX11Texture	toonTexture{};
+    Dx11Texture texture{};
+    Dx11Texture	spTexture{};
+    Dx11Texture	cartoonTexture{};
 
-    explicit DX11Material(const Material& sourceMat);
+    explicit Dx11Material(const Material& sourceMat);
 };
 
-class DX11Instance : public Instance {
+class Dx11Instance : public Instance {
 public:
     // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
     bool Setup(Viewer& baseViewer) override;
@@ -88,8 +88,8 @@ public:
     void Draw() const override;
 
 private:
-    DX11Viewer*                             viewer = nullptr;
-    std::vector<DX11Material>               materials;
+    Dx11Viewer*                             viewer = nullptr;
+    std::vector<Dx11Material>               materials;
     Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
     DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R8_UINT;
@@ -102,14 +102,14 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
 };
 
-class DX11Viewer : public Viewer {
+class Dx11Viewer : public Viewer {
 public:
     Microsoft::WRL::ComPtr<ID3D11Device>			    device;
     Microsoft::WRL::ComPtr<ID3D11VertexShader>	        vs;
     Microsoft::WRL::ComPtr<ID3D11PixelShader>	        ps;
     Microsoft::WRL::ComPtr<ID3D11InputLayout>	        inputLayout;
     Microsoft::WRL::ComPtr<ID3D11SamplerState>	        textureSampler;
-    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        toonTextureSampler;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>	        cartoonTextureSampler;
     Microsoft::WRL::ComPtr<ID3D11BlendState>	        blendState;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    frontFaceRs;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    bothFaceRs;
@@ -140,15 +140,15 @@ public:
     std::unique_ptr<Instance> CreateInstance() const override;
 
     // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
-    DX11Texture LoadTexture(const std::filesystem::path& texturePath);
+    Dx11Texture LoadTexture(const std::filesystem::path& texturePath);
     // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
     void UpdateViewport() const;
     // HLSL 버텍스 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
-    bool MakeVS(const std::filesystem::path& f, const char* entry,
-    Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVS, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
+    bool MakeVs(const std::filesystem::path& f, const char* entry,
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
     // HLSL 픽셀 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
-    bool MakePS(const std::filesystem::path& f, const char* entry,
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPS) const;
+    bool MakePs(const std::filesystem::path& f, const char* entry,
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPs) const;
     // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
     bool CreateShaders();
     // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
@@ -161,7 +161,7 @@ public:
 private:
     UINT    multiSampleCount = 4;
     UINT	multiSampleQuality = 0;
-    std::map<std::filesystem::path, DX11Texture>	    textures;
+    std::map<std::filesystem::path, Dx11Texture>	    textures;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
     Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
     Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;

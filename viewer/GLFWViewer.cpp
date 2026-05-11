@@ -25,7 +25,7 @@ GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, co
 	return b;
 }
 
-GLuint CreateVAO(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
+GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
 	const int attribCount, const GLuint ibo) {
 	GLuint vao = 0;
 	glGenVertexArrays(1, &vao);
@@ -97,13 +97,13 @@ GLuint CreateShader(const std::filesystem::path& file) {
 	return prog;
 }
 
-GLFWShader::~GLFWShader() {
+GlfwShader::~GlfwShader() {
 	if (program != 0)
 		glDeleteProgram(program);
 	program = 0;
 }
 
-bool GLFWShader::Setup(const GLFWViewer& viewer) {
+bool GlfwShader::Setup(const GlfwViewer& viewer) {
 	program = CreateShader(viewer.shaderDir / "mmd.glsl");
 	if (program == 0)
 		return false;
@@ -123,24 +123,24 @@ bool GLFWShader::Setup(const GLFWViewer& viewer) {
 		&ambientLocation, &diffuseLocation, &specularLocation, &specularPowerLocation, &alphaLocation,
 		&texModeLocation, &texLocation, &texMulFactorLocation, &texAddFactorLocation,
 		&sphereTexModeLocation, &sphereTexLocation, &sphereTexMulFactorLocation, &sphereTexAddFactorLocation,
-		&toonTexModeLocation, &toonTexLocation, &toonTexMulFactorLocation, &toonTexAddFactorLocation,
+		&cartoonTexModeLocation, &cartoonTexLocation, &cartoonTexMulFactorLocation, &cartoonTexAddFactorLocation,
 		&lightColorLocation, &lightDirLocation
 	};
 	LoadUniformLocations(program, names, outs, std::size(names));
 	glUseProgram(program);
 	glUniform1i(texLocation, 0);
 	glUniform1i(sphereTexLocation, 1);
-	glUniform1i(toonTexLocation, 2);
+	glUniform1i(cartoonTexLocation, 2);
 	return true;
 }
 
-GLFWEdgeShader::~GLFWEdgeShader() {
+GlfwEdgeShader::~GlfwEdgeShader() {
 	if (program != 0)
 		glDeleteProgram(program);
 	program = 0;
 }
 
-bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
+bool GlfwEdgeShader::Setup(const GlfwViewer& viewer) {
 	program = CreateShader(viewer.shaderDir / "mmd_edge.glsl");
 	if (program == 0)
 		return false;
@@ -154,13 +154,13 @@ bool GLFWEdgeShader::Setup(const GLFWViewer& viewer) {
 	return true;
 }
 
-GLFWGroundShadowShader::~GLFWGroundShadowShader() {
+GlfwGroundShadowShader::~GlfwGroundShadowShader() {
 	if (program != 0)
 		glDeleteProgram(program);
 	program = 0;
 }
 
-bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
+bool GlfwGroundShadowShader::Setup(const GlfwViewer& viewer) {
 	program = CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
 	if (program == 0)
 		return false;
@@ -170,12 +170,12 @@ bool GLFWGroundShadowShader::Setup(const GLFWViewer& viewer) {
 	return true;
 }
 
-GLFWMaterial::GLFWMaterial(const Material& sourceMat)
+GlfwMaterial::GlfwMaterial(const Material& sourceMat)
 	: mat(sourceMat) {
 }
 
-bool GLFWInstance::Setup(Viewer& baseViewer) {
-	viewer = &dynamic_cast<GLFWViewer&>(baseViewer);
+bool GlfwInstance::Setup(Viewer& baseViewer) {
+	viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 	if (model == nullptr)
 		return false;
 	const size_t vtxCount = model->positions.size();
@@ -213,26 +213,26 @@ bool GLFWInstance::Setup(Viewer& baseViewer) {
 		{ GL_FLOAT, GL_FLOAT },
 		{ GL_FLOAT }
 	};
-	vao = CreateVAO(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
-	edgeVao = CreateVAO(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
-	gsVao = CreateVAO(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
+	vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
+	edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
+	gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
 	for (const auto& mat : model->materials) {
-		GLFWMaterial material(mat);
+		GlfwMaterial material(mat);
 		if (!mat.texture.empty()) {
 			auto [texture, hasAlpha] = viewer->LoadTexture(mat.texture);
 			material.texture = texture;
 			material.textureHasAlpha = hasAlpha;
 		}
 		if (!mat.spTexture.empty())
-			material.spTexture = viewer->LoadTexture(mat.spTexture).texture;
+			material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
 		if (!mat.cartoonTexture.empty())
-			material.toonTexture = viewer->LoadTexture(mat.cartoonTexture, true).texture;
+			material.cartoonTexture = viewer->LoadTexture(mat.cartoonTexture, true).texture;
 		materials.emplace_back(material);
 	}
 	return true;
 }
 
-void GLFWInstance::Clear() {
+void GlfwInstance::Clear() {
 	if (posVbo != 0)
 		glDeleteBuffers(1, &posVbo);
 	if (norVbo != 0)
@@ -251,7 +251,7 @@ void GLFWInstance::Clear() {
 	vao = edgeVao = gsVao = 0;
 }
 
-void GLFWInstance::Update() const {
+void GlfwInstance::Update() const {
 	model->Update();
 	const size_t vtxCount = model->positions.size();
 	glBindBuffer(GL_ARRAY_BUFFER, posVbo);
@@ -265,7 +265,7 @@ void GLFWInstance::Update() const {
 		model->updateUVs.data());
 }
 
-void GLFWInstance::Draw() const {
+void GlfwInstance::Draw() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
@@ -307,26 +307,26 @@ void GLFWInstance::Draw() const {
 			glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 1);
-		if (material.spTexture != 0) {
+		if (material.sphereTexture != 0) {
 			if (mat.spTextureMode == SphereMode::Mul)
 				glUniform1i(shader->sphereTexModeLocation, 1);
 			else if (mat.spTextureMode == SphereMode::Add)
 				glUniform1i(shader->sphereTexModeLocation, 2);
 			glUniform4fv(shader->sphereTexMulFactorLocation, 1, &mat.sphereTextureMulFactor[0]);
 			glUniform4fv(shader->sphereTexAddFactorLocation, 1, &mat.sphereTextureAddFactor[0]);
-			glBindTexture(GL_TEXTURE_2D, material.spTexture);
+			glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
 		} else {
 			glUniform1i(shader->sphereTexModeLocation, 0);
 			glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
 		}
 		glActiveTexture(GL_TEXTURE0 + 2);
-		if (material.toonTexture != 0) {
-			glUniform4fv(shader->toonTexMulFactorLocation, 1, &mat.cartoonTextureMulFactor[0]);
-			glUniform4fv(shader->toonTexAddFactorLocation, 1, &mat.cartoonTextureAddFactor[0]);
-			glUniform1i(shader->toonTexModeLocation, 1);
-			glBindTexture(GL_TEXTURE_2D, material.toonTexture);
+		if (material.cartoonTexture != 0) {
+			glUniform4fv(shader->cartoonTexMulFactorLocation, 1, &mat.cartoonTextureMulFactor[0]);
+			glUniform4fv(shader->cartoonTexAddFactorLocation, 1, &mat.cartoonTextureAddFactor[0]);
+			glUniform1i(shader->cartoonTexModeLocation, 1);
+			glBindTexture(GL_TEXTURE_2D, material.cartoonTexture);
 		} else {
-			glUniform1i(shader->toonTexModeLocation, 0);
+			glUniform1i(shader->cartoonTexModeLocation, 0);
 			glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
 		}
 		if (mat.bothFace)
@@ -396,14 +396,14 @@ void GLFWInstance::Draw() const {
 	glDisable(GL_BLEND);
 }
 
-GLFWViewer::~GLFWViewer() {
-	for (auto& textureInfo : textures | std::views::values)
-		glDeleteTextures(1, &textureInfo.texture);
+GlfwViewer::~GlfwViewer() {
+	for (auto& [texture, hasAlpha] : textures | std::views::values)
+		glDeleteTextures(1, &texture);
 	if (dummyColorTex != 0)
 		glDeleteTextures(1, &dummyColorTex);
 }
 
-void GLFWViewer::ConfigureGlfwHints() {
+void GlfwViewer::ConfigureGlfwHints() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -411,20 +411,20 @@ void GLFWViewer::ConfigureGlfwHints() {
 	glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 }
 
-bool GLFWViewer::Setup() {
+bool GlfwViewer::Setup() {
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader(LoadGlProc))
 		return false;
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
 	InitDirs("shader_GLFW");
-	shader = std::make_unique<GLFWShader>();
+	shader = std::make_unique<GlfwShader>();
 	if (!shader->Setup(*this))
 		return false;
-	edgeShader = std::make_unique<GLFWEdgeShader>();
+	edgeShader = std::make_unique<GlfwEdgeShader>();
 	if (!edgeShader->Setup(*this))
 		return false;
-	gsShader = std::make_unique<GLFWGroundShadowShader>();
+	gsShader = std::make_unique<GlfwGroundShadowShader>();
 	if (!gsShader->Setup(*this))
 		return false;
 	glGenTextures(1, &dummyColorTex);
@@ -434,33 +434,33 @@ bool GLFWViewer::Setup() {
 	return true;
 }
 
-bool GLFWViewer::Resize() {
+bool GlfwViewer::Resize() {
 	glViewport(0, 0, screenWidth, screenHeight);
 	return true;
 }
 
-void GLFWViewer::BeginFrame() {
+void GlfwViewer::BeginFrame() {
 	glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-bool GLFWViewer::EndFrame() {
+bool GlfwViewer::EndFrame() {
 	glfwSwapBuffers(window);
 	return true;
 }
 
-std::unique_ptr<Instance> GLFWViewer::CreateInstance() const {
-	return std::make_unique<GLFWInstance>();
+std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {
+	return std::make_unique<GlfwInstance>();
 }
 
-GLFWTexture GLFWViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
+GlfwTexture GlfwViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
 	const auto it = textures.find(texturePath);
 	if (it != textures.end())
 		return it->second;
 	int x = 0, y = 0, comp = 0;
 	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp, true);
 	if (!image)
-		return GLFWTexture{ 0, false };
+		return GlfwTexture{ 0, false };
 	const bool hasAlpha = comp == 4;
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
@@ -474,7 +474,7 @@ GLFWTexture GLFWViewer::LoadTexture(const std::filesystem::path& texturePath, co
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
-	textures[texturePath] = GLFWTexture{ tex, hasAlpha };
+	textures[texturePath] = GlfwTexture{ tex, hasAlpha };
 	return textures[texturePath];
 }
 

@@ -2,11 +2,11 @@
 
 #include "Viewer.h"
 
-class GLFWViewer;
+class GlfwViewer;
 
-class GLFWShader {
+class GlfwShader {
 public:
-    ~GLFWShader();
+    ~GlfwShader();
 
     GLuint	program = 0;
     GLint	positionLocation = -1;
@@ -27,20 +27,20 @@ public:
     GLint	sphereTexLocation = -1;
     GLint	sphereTexMulFactorLocation = -1;
     GLint	sphereTexAddFactorLocation = -1;
-    GLint	toonTexModeLocation = -1;
-    GLint	toonTexLocation = -1;
-    GLint	toonTexMulFactorLocation = -1;
-    GLint	toonTexAddFactorLocation = -1;
+    GLint	cartoonTexModeLocation = -1;
+    GLint	cartoonTexLocation = -1;
+    GLint	cartoonTexMulFactorLocation = -1;
+    GLint	cartoonTexAddFactorLocation = -1;
     GLint	lightColorLocation = -1;
     GLint	lightDirLocation = -1;
 
     // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-    bool Setup(const GLFWViewer& viewer);
+    bool Setup(const GlfwViewer& viewer);
 };
 
-class GLFWEdgeShader {
+class GlfwEdgeShader {
 public:
-    ~GLFWEdgeShader();
+    ~GlfwEdgeShader();
 
     GLuint	program = 0;
     GLint	positionLocation = -1;
@@ -52,12 +52,12 @@ public:
     GLint	edgeColorLocation = -1;
 
     // 엣지 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-    bool Setup(const GLFWViewer& viewer);
+    bool Setup(const GlfwViewer& viewer);
 };
 
-class GLFWGroundShadowShader {
+class GlfwGroundShadowShader {
 public:
-    ~GLFWGroundShadowShader();
+    ~GlfwGroundShadowShader();
 
     GLuint	program = 0;
     GLint	positionLocation = -1;
@@ -65,26 +65,26 @@ public:
     GLint	shadowColorLocation = -1;
 
     // 지면 그림자 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-    bool Setup(const GLFWViewer& viewer);
+    bool Setup(const GlfwViewer& viewer);
 };
 
-struct GLFWTexture {
+struct GlfwTexture {
     GLuint	texture;
     bool	hasAlpha;
 };
 
-class GLFWMaterial {
+class GlfwMaterial {
 public:
     const Material& mat;
     GLuint  texture = 0;
     bool	textureHasAlpha = false;
-    GLuint	spTexture = 0;
-    GLuint	toonTexture = 0;
+    GLuint	sphereTexture = 0;
+    GLuint	cartoonTexture = 0;
 
-    explicit GLFWMaterial(const Material& sourceMat);
+    explicit GlfwMaterial(const Material& sourceMat);
 };
 
-class GLFWInstance : public Instance {
+class GlfwInstance : public Instance {
 public:
     // 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
     bool Setup(Viewer& baseViewer) override;
@@ -96,7 +96,7 @@ public:
     void Draw() const override;
 
 private:
-    GLFWViewer* viewer = nullptr;
+    GlfwViewer* viewer = nullptr;
     GLuint  posVbo = 0;
     GLuint	norVbo = 0;
     GLuint	uvVbo = 0;
@@ -105,17 +105,17 @@ private:
     GLuint	vao = 0;
     GLuint	edgeVao = 0;
     GLuint	gsVao = 0;
-    std::vector<GLFWMaterial>   materials;
+    std::vector<GlfwMaterial>   materials;
 };
 
-class GLFWViewer : public Viewer {
+class GlfwViewer : public Viewer {
 public:
-    ~GLFWViewer() override;
+    ~GlfwViewer() override;
 
     GLuint	    dummyColorTex = 0;
-    std::unique_ptr<GLFWShader>				        shader;
-    std::unique_ptr<GLFWEdgeShader>			        edgeShader;
-    std::unique_ptr<GLFWGroundShadowShader>         gsShader;
+    std::unique_ptr<GlfwShader>				        shader;
+    std::unique_ptr<GlfwEdgeShader>			        edgeShader;
+    std::unique_ptr<GlfwGroundShadowShader>         gsShader;
 
     // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
     void ConfigureGlfwHints() override;
@@ -131,9 +131,9 @@ public:
     std::unique_ptr<Instance> CreateInstance() const override;
 
     // 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
-    GLFWTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
+    GlfwTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 
 private:
     const int   msaaSamples = 4;
-    std::map<std::filesystem::path, GLFWTexture>    textures;
+    std::map<std::filesystem::path, GlfwTexture>    textures;
 };

@@ -26,7 +26,7 @@ struct SceneConfig {
 
 class Instance {
 public:
-    virtual ~Instance() = default;
+    virtual ~Instance();
 
     std::shared_ptr<Model>	    model;
     std::unique_ptr<Animation>	anim;
@@ -48,7 +48,7 @@ public:
 
 class Viewer {
 public:
-    virtual ~Viewer() = default;
+    virtual ~Viewer();
 
     // 씬 설정을 로드하고 메인 렌더 루프를 실행한다.
     bool Run(const SceneConfig& cfg);
