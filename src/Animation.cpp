@@ -26,7 +26,7 @@ float Bezier::FindBezierX(float time, const float x1, const float x2) {
 	while (true) {
 		const float x = EvaluateBezier(t, x1, x2);
 		const float diff = time - x;
-		if (std::abs(diff) < 1e-5f)
+		if (std::abs(diff) < std::numeric_limits<float>::epsilon())
 			break;
 		(diff < 0.0f ? stop : start) = t;
 		t = (start + stop) * 0.5f;
