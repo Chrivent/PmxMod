@@ -62,12 +62,9 @@ add_custom_target(SyncResources
 )
 
 add_dependencies(PmxMod SyncResources)
-
-if (WIN32)
-    add_custom_command(TARGET PmxMod POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${VCPKG_INSTALLED_DIR}/bin/glfw3.dll"
-            "$<TARGET_FILE_DIR:PmxMod>"
-            VERBATIM
-    )
-endif ()
+add_custom_command(TARGET PmxMod POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${VCPKG_INSTALLED_DIR}/bin/glfw3.dll"
+        "$<TARGET_FILE_DIR:PmxMod>"
+        VERBATIM
+)
