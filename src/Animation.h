@@ -65,6 +65,19 @@ private:
 	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> nodes;
 	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> iks;
 	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> morphs;
+
+	// VMD 본 모션을 노드 애니메이션 트랙에 병합한다.
+	void AddNodeAnimations(const VmdReader& vmd);
+	// VMD IK 키를 IK 애니메이션 트랙에 병합한다.
+	void AddIkAnimations(const VmdReader& vmd);
+	// VMD 모프 키를 모프 애니메이션 트랙에 병합한다.
+	void AddMorphAnimations(const VmdReader& vmd);
+	// 지정 시간의 노드 애니메이션을 평가한다.
+	void EvaluateNodes(float t, float animWeight) const;
+	// 지정 시간의 IK 애니메이션을 평가한다.
+	void EvaluateIks(float t, float animWeight) const;
+	// 지정 시간의 모프 애니메이션을 평가한다.
+	void EvaluateMorphs(float t, float animWeight) const;
 };
 
 struct Camera {

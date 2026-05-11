@@ -55,6 +55,13 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 }
 
 bool Animation::Add(const VmdReader& vmd) {
+	AddNodeAnimations(vmd);
+	AddIkAnimations(vmd);
+	AddMorphAnimations(vmd);
+	return true;
+}
+
+void Animation::AddNodeAnimations(const VmdReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : nodes) {
 		if (node.first)
@@ -78,6 +85,9 @@ bool Animation::Add(const VmdReader& vmd) {
 		std::ranges::sort(val.second, {}, &NodeAnimationKey::time);
 		nodes.insert(std::move(val));
 	}
+}
+
+void Animation::AddIkAnimations(const VmdReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>>> ikMap;
 	for (auto& ik : iks) {
 		if (ik.first) {
@@ -111,6 +121,9 @@ bool Animation::Add(const VmdReader& vmd) {
 		std::ranges::sort(val.second, {}, &IkAnimationKey::time);
 		iks.insert(std::move(val));
 	}
+}
+
+void Animation::AddMorphAnimations(const VmdReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>>> morphMap;
 	for (auto& morph : morphs) {
 		if (morph.first)
@@ -135,7 +148,6 @@ bool Animation::Add(const VmdReader& vmd) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
 		morphs.insert(std::move(val));
 	}
-	return true;
 }
 
 void Animation::Destroy() {
@@ -146,6 +158,12 @@ void Animation::Destroy() {
 }
 
 void Animation::Evaluate(const float t, const float animWeight) const {
+	EvaluateNodes(t, animWeight);
+	EvaluateIks(t, animWeight);
+	EvaluateMorphs(t, animWeight);
+}
+
+void Animation::EvaluateNodes(const float t, const float animWeight) const {
 	for (const auto& [node, keys]: nodes) {
 		if (!node)
 			continue;
@@ -176,6 +194,9 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
 		node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
 	}
+}
+
+void Animation::EvaluateIks(const float t, const float animWeight) const {
 	for (const auto& [ikSolver, keys] : iks) {
 		if (!ikSolver)
 			continue;
@@ -188,6 +209,9 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 		const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 		ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 	}
+}
+
+void Animation::EvaluateMorphs(const float t, const float animWeight) const {
 	for (const auto& [morph, keys] : morphs) {
 		if (!morph)
 			continue;
