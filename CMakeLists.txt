@@ -29,8 +29,8 @@ add_executable(PmxMod
         src/Animation.cpp src/Animation.h
         src/Sound.cpp src/Sound.h
         viewer/Viewer.cpp viewer/Viewer.h
-        viewer/GLFWViewer.cpp viewer/GLFWViewer.h
-        viewer/DX11Viewer.cpp viewer/DX11Viewer.h
+        viewer/GlfwViewer.cpp viewer/GlfwViewer.h
+        viewer/Dx11Viewer.cpp viewer/Dx11Viewer.h
 )
 
 target_link_libraries(PmxMod PUBLIC

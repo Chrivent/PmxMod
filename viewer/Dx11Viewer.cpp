@@ -1,4 +1,4 @@
-﻿#include "DX11Viewer.h"
+﻿#include "Dx11Viewer.h"
 
 #include "../src/Model.h"
 
@@ -323,7 +323,7 @@ bool Dx11Viewer::Setup() {
 		return false;
 	if (!CreateRenderTargets())
 		return false;
-	InitDirs("shader_DX11");
+	InitDirs("shader_Dx11");
 	if (!CreateShaders())
 		return false;
 	if (!CreatePipelineStates())

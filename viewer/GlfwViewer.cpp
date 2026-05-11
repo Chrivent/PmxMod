@@ -1,4 +1,4 @@
-﻿#include "GLFWViewer.h"
+﻿#include "GlfwViewer.h"
 
 #include "../src/Model.h"
 
@@ -417,7 +417,7 @@ bool GlfwViewer::Setup() {
 		return false;
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
-	InitDirs("shader_GLFW");
+	InitDirs("shader_Glfw");
 	shader = std::make_unique<GlfwShader>();
 	if (!shader->Setup(*this))
 		return false;

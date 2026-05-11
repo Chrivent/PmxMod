@@ -1,8 +1,8 @@
 ﻿#include <iostream>
 #include <shobjidl.h>
 
-#include "viewer/DX11Viewer.h"
-#include "viewer/GLFWViewer.h"
+#include "viewer/Dx11Viewer.h"
+#include "viewer/GlfwViewer.h"
 
 // Windows 파일 선택 대화상자를 열어 선택된 파일 경로들을 반환한다.
 inline bool PickFilesWin(
