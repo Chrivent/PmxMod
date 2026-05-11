@@ -115,7 +115,7 @@ bool GlfwShader::Setup(const GlfwViewer& viewer) {
 		"ambient", "diffuse", "specular", "specularPower", "alpha",
 		"texMode", "tex", "texMulFactor", "texAddFactor",
 		"sphereTexMode", "sphereTex", "sphereTexMulFactor", "sphereTexAddFactor",
-		"toonTexMode", "toonTex", "toonTexMulFactor", "toonTexAddFactor",
+		"cartoonTexMode", "cartoonTex", "cartoonTexMulFactor", "cartoonTexAddFactor",
 		"lightColor", "lightDir"
 	};
 	GLint* outs[] = {

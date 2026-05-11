@@ -43,10 +43,10 @@ uniform sampler2D tex;
 uniform vec4 texMulFactor;
 uniform vec4 texAddFactor;
 
-uniform int toonTexMode;
-uniform sampler2D toonTex;
-uniform vec4 toonTexMulFactor;
-uniform vec4 toonTexAddFactor;
+uniform int cartoonTexMode;
+uniform sampler2D cartoonTex;
+uniform vec4 cartoonTexMulFactor;
+uniform vec4 cartoonTexAddFactor;
 
 uniform int sphereTexMode;
 uniform sampler2D sphereTex;
@@ -98,11 +98,11 @@ void main() {
         else if (sphereTexMode == 2)
             color += spColor;
     }
-    if (toonTexMode != 0) {
-        vec3 toonColor = texture(toonTex, vec2(0.0, ln)).rgb;
-        toonColor = ComputeTexMulFactor(toonColor, toonTexMulFactor);
-        toonColor = ComputeTexAddFactor(toonColor, toonTexAddFactor);
-        color *= toonColor;
+    if (cartoonTexMode != 0) {
+        vec3 cartoonColor = texture(cartoonTex, vec2(0.0, ln)).rgb;
+        cartoonColor = ComputeTexMulFactor(cartoonColor, cartoonTexMulFactor);
+        cartoonColor = ComputeTexAddFactor(cartoonColor, cartoonTexAddFactor);
+        color *= cartoonColor;
     }
     vec3 specularTerm = vec3(0.0);
     if (specularPower > 0) {
