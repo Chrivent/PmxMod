@@ -122,6 +122,16 @@ void Dx11Instance::BindTexture(
 	viewer->context->PSSetSamplers(slot, 1, &samplers);
 }
 
+const glm::mat4& Dx11Instance::DxClipMatrix() {
+	static constexpr glm::mat4 dxMat(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.5f, 0.0f,
+		0.0f, 0.0f, 0.5f, 1.0f
+	);
+	return dxMat;
+}
+
 Dx11Material::Dx11Material(const Material& sourceMat)
 	: mat(sourceMat) {
 }
@@ -193,15 +203,9 @@ void Dx11Instance::Update() const {
 void Dx11Instance::DrawModel() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	const auto& dxMat = glm::mat4(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.5f, 0.0f,
-		0.0f, 0.0f, 0.5f, 1.0f
-	);
 	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	const auto wv = view * world;
-	const auto wvp = dxMat * proj * view * world;
+	const auto wvp = DxClipMatrix() * proj * view * world;
 	viewer->context->OMSetDepthStencilState(viewer->defaultDss.Get(), 0x00);
 	constexpr UINT stride = sizeof(Dx11Vertex);
 	constexpr UINT offset = 0;
@@ -209,11 +213,11 @@ void Dx11Instance::DrawModel() const {
 	viewer->context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 	viewer->context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 	viewer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	Dx11VertexShader vsCb1{};
-	vsCb1.wv = wv;
-	vsCb1.wvp = wvp;
+	Dx11VertexShader vsCb;
+	vsCb.wv = wv;
+	vsCb.wvp = wvp;
 	viewer->context->UpdateSubresource(vsConstantBuffer.Get(),
-		0, nullptr, &vsCb1, 0, 0);
+		0, nullptr, &vsCb, 0, 0);
 	viewer->context->VSSetShader(viewer->vs.Get(), nullptr, 0);
 	viewer->context->PSSetShader(viewer->ps.Get(), nullptr, 0);
 	viewer->context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
@@ -262,23 +266,17 @@ void Dx11Instance::DrawModel() const {
 void Dx11Instance::DrawEdge() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	const auto& dxMat = glm::mat4(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.5f, 0.0f,
-		0.0f, 0.0f, 0.5f, 1.0f
-	);
 	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	const auto wv = view * world;
-	const auto wvp = dxMat * proj * view * world;
+	const auto wvp = DxClipMatrix() * proj * view * world;
 	viewer->context->IASetInputLayout(viewer->edgeInputLayout.Get());
-	Dx11EdgeVertexShader vsCb2{};
-	vsCb2.wv = wv;
-	vsCb2.wvp = wvp;
-	vsCb2.screenSize = glm::vec2(static_cast<float>(viewer->screenWidth),
+	Dx11EdgeVertexShader vsCb1{};
+	vsCb1.wv = wv;
+	vsCb1.wvp = wvp;
+	vsCb1.screenSize = glm::vec2(static_cast<float>(viewer->screenWidth),
 		static_cast<float>(viewer->screenHeight));
 	viewer->context->UpdateSubresource(edgeVsConstantBuffer.Get(),
-		0, nullptr, &vsCb2, 0, 0);
+		0, nullptr, &vsCb1, 0, 0);
 	viewer->context->VSSetShader(viewer->edgeVs.Get(), nullptr, 0);
 	viewer->context->PSSetShader(viewer->edgePs.Get(), nullptr, 0);
 	viewer->context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
@@ -289,10 +287,10 @@ void Dx11Instance::DrawEdge() const {
 			continue;
 		if (mat.diffuse.a == 0)
 			continue;
-		Dx11EdgeSizeVertexShader vsCb{};
-		vsCb.edgeSize = mat.edgeSize;
+		Dx11EdgeSizeVertexShader vsCb2{};
+		vsCb2.edgeSize = mat.edgeSize;
 		viewer->context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(),
-			0, nullptr, &vsCb, 0, 0);
+			0, nullptr, &vsCb2, 0, 0);
 		viewer->context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
 		Dx11EdgePixelShader psCb{};
 		psCb.edgeColor = mat.edgeColor;
@@ -307,21 +305,15 @@ void Dx11Instance::DrawEdge() const {
 void Dx11Instance::DrawGroundShadow() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
-	const auto& dxMat = glm::mat4(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.5f, 0.0f,
-		0.0f, 0.0f, 0.5f, 1.0f
-	);
 	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	viewer->context->IASetInputLayout(viewer->gsInputLayout.Get());
 	constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 	const glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
 	const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
-	Dx11GroundShadowVertexShader vsCb3{};
-	vsCb3.wvp = dxMat * proj * view * shadow * world;
+	Dx11GroundShadowVertexShader vsCb;
+	vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
 	viewer->context->UpdateSubresource(gsVsConstantBuffer.Get(),
-		0, nullptr, &vsCb3, 0, 0);
+		0, nullptr, &vsCb, 0, 0);
 	viewer->context->VSSetShader(viewer->gsVs.Get(), nullptr, 0);
 	viewer->context->PSSetShader(viewer->gsPs.Get(), nullptr, 0);
 	viewer->context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());

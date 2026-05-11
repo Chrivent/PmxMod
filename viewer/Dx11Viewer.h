@@ -107,6 +107,8 @@ protected:
     void BindTexture(UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler,
         int modeIfPresent, int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
         const glm::vec4& mulIn, const glm::vec4& addIn) const;
+    // OpenGL 스타일 clip space를 DX11 depth range로 변환하는 행렬을 반환한다.
+    static const glm::mat4& DxClipMatrix();
 
     Dx11Viewer*                             viewer = nullptr;
     std::vector<Dx11Material>               materials;
