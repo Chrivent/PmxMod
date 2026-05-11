@@ -47,19 +47,26 @@ void Sound::ApplyVolume() {
     }
 }
 
-std::pair<float, float> Sound::PullTimes() {
-    if (!hasSound)
-        return { 0.f, 0.f };
+void Sound::PullTimes(float& deltaTime, float& time) {
+    if (!hasSound) {
+        deltaTime = 0.0f;
+        time = 0.0f;
+        return;
+    }
     ma_uint64 frames{};
-    if (ma_sound_get_cursor_in_pcm_frames(sound.get(), &frames) != MA_SUCCESS)
-        return { 0.f, static_cast<float>(prevTimeSec) };
+    if (ma_sound_get_cursor_in_pcm_frames(sound.get(), &frames) != MA_SUCCESS) {
+        deltaTime = 0.0f;
+        time = static_cast<float>(prevTimeSec);
+        return;
+    }
     const double sr = ma_engine_get_sample_rate(engine.get());
     const double t = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
     double dt = t - prevTimeSec;
     if (dt < 0.0)
         dt = 0.0;
     prevTimeSec = t;
-    return { static_cast<float>(dt), static_cast<float>(t) };
+    deltaTime = static_cast<float>(dt);
+    time = static_cast<float>(t);
 }
 
 void Sound::Pause() const {
