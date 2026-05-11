@@ -12,7 +12,7 @@
 Instance::~Instance() = default;
 Viewer::~Viewer() = default;
 
-void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
+void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
     fpsFrame++;
     const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
     if (sec > 1.0) {

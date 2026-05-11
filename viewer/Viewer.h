@@ -43,7 +43,6 @@ public:
 
     // 뷰어 시간과 애니메이션 설정을 기준으로 모델 애니메이션을 갱신한다.
     void UpdateAnimation(const Viewer& viewer) const;
-
 };
 
 class Viewer {
@@ -96,6 +95,9 @@ public:
     GLFWwindow* window = nullptr;
 
 protected:
+    // FPS 표시 시간을 갱신한다.
+    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
+
     std::filesystem::path	resourceDir;
     bool    paused = false;
     bool    prevSpaceDown = false;
