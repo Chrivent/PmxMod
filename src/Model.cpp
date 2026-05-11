@@ -149,7 +149,7 @@ void Model::Update() {
 	}
 }
 
-void Model::UpdateAllAnimation(const ModelAnimation* anim, const float frame, const float physicsElapsed) {
+void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
 	if (anim)
 		anim->Evaluate(frame);
 	UpdateMorphAnimation();
