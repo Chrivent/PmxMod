@@ -84,10 +84,14 @@ public:
     bool Setup(Viewer& baseViewer) override;
     // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
     void Update() const override;
-    // 일반 메시, 엣지, 그림자 패스를 DX11로 렌더링한다.
-    void Draw() const override;
-
-private:
+    
+protected:
+    // 일반 메시 패스를 DX11로 렌더링한다.
+    void DrawModel() const override;
+    // 엣지 패스를 DX11로 렌더링한다.
+    void DrawEdge() const override;
+    // 지면 그림자 패스를 DX11로 렌더링한다.
+    void DrawGroundShadow() const override;
     // 모델 버텍스 데이터를 매 프레임 갱신할 동적 버퍼 설명자를 만든다.
     static D3D11_BUFFER_DESC MakeVertexBufferDesc(size_t vertexCount);
     // 모델 인덱스 데이터를 한 번 업로드할 immutable 버퍼 설명자를 만든다.

@@ -190,7 +190,7 @@ void Dx11Instance::Update() const {
 	viewer->context->Unmap(vertexBuffer.Get(), 0);
 }
 
-void Dx11Instance::Draw() const {
+void Dx11Instance::DrawModel() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
 	const auto& dxMat = glm::mat4(
@@ -199,12 +199,12 @@ void Dx11Instance::Draw() const {
 		0.0f, 0.0f, 0.5f, 0.0f,
 		0.0f, 0.0f, 0.5f, 1.0f
 	);
-	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-	auto wv = view * world;
-	auto wvp = dxMat * proj * view * world;
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	const auto wv = view * world;
+	const auto wvp = dxMat * proj * view * world;
 	viewer->context->OMSetDepthStencilState(viewer->defaultDss.Get(), 0x00);
-	UINT stride = sizeof(Dx11Vertex);
-	UINT offset = 0;
+	constexpr UINT stride = sizeof(Dx11Vertex);
+	constexpr UINT offset = 0;
 	viewer->context->IASetInputLayout(viewer->inputLayout.Get());
 	viewer->context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 	viewer->context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
@@ -257,6 +257,20 @@ void Dx11Instance::Draw() const {
             viewer->context->RSSetState(viewer->frontFaceRs.Get());
         viewer->context->DrawIndexed(indexCount, beginIndex, 0);
     }
+}
+
+void Dx11Instance::DrawEdge() const {
+	const auto& view = viewer->viewMat;
+	const auto& proj = viewer->projMat;
+	const auto& dxMat = glm::mat4(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.5f, 0.0f,
+		0.0f, 0.0f, 0.5f, 1.0f
+	);
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	const auto wv = view * world;
+	const auto wvp = dxMat * proj * view * world;
 	viewer->context->IASetInputLayout(viewer->edgeInputLayout.Get());
 	Dx11EdgeVertexShader vsCb2{};
 	vsCb2.wv = wv;
@@ -288,10 +302,22 @@ void Dx11Instance::Draw() const {
 		viewer->context->RSSetState(viewer->edgeRs.Get());
 		viewer->context->DrawIndexed(indexCount, beginIndex, 0);
 	}
+}
+
+void Dx11Instance::DrawGroundShadow() const {
+	const auto& view = viewer->viewMat;
+	const auto& proj = viewer->projMat;
+	const auto& dxMat = glm::mat4(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.5f, 0.0f,
+		0.0f, 0.0f, 0.5f, 1.0f
+	);
+	const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	viewer->context->IASetInputLayout(viewer->gsInputLayout.Get());
-	glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-	glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
-	glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
+	constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
+	const glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
+	const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 	Dx11GroundShadowVertexShader vsCb3{};
 	vsCb3.wvp = dxMat * proj * view * shadow * world;
 	viewer->context->UpdateSubresource(gsVsConstantBuffer.Get(),

@@ -110,10 +110,14 @@ public:
     void Clear() override;
     // 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
     void Update() const override;
-    // 일반 메시, 엣지, 그림자 패스를 OpenGL로 렌더링한다.
-    void Draw() const override;
-
-private:
+    
+protected:
+    // 일반 메시 패스를 OpenGL로 렌더링한다.
+    void DrawModel() const override;
+    // 엣지 패스를 OpenGL로 렌더링한다.
+    void DrawEdge() const override;
+    // 지면 그림자 패스를 OpenGL로 렌더링한다.
+    void DrawGroundShadow() const override;
     // OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
     static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
     // 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.

@@ -269,7 +269,7 @@ void GlfwInstance::Update() const {
 		model->updateUVs.data());
 }
 
-void GlfwInstance::Draw() const {
+void GlfwInstance::DrawModel() const {
 	const auto& view = viewer->viewMat;
 	const auto& proj = viewer->projMat;
 	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
@@ -342,6 +342,14 @@ void GlfwInstance::Draw() const {
 		size_t offset = beginIndex * model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 	}
+}
+
+void GlfwInstance::DrawEdge() const {
+	const auto& view = viewer->viewMat;
+	const auto& proj = viewer->projMat;
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	auto wv = view * world;
+	auto wvp = proj * view * world;
 	const auto& edgeShader = viewer->edgeShader;
 	glUseProgram(edgeShader->program);
 	glUniformMatrix4fv(edgeShader->wvLocation, 1, GL_FALSE, &wv[0][0]);
@@ -363,6 +371,12 @@ void GlfwInstance::Draw() const {
 		size_t offset = beginIndex * model->indexElementSize;
 		glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 	}
+}
+
+void GlfwInstance::DrawGroundShadow() const {
+	const auto& view = viewer->viewMat;
+	const auto& proj = viewer->projMat;
+	auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 	const auto& gsShader = viewer->gsShader;
 	glUseProgram(gsShader->program);
 	glEnable(GL_POLYGON_OFFSET_FILL);
