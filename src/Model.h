@@ -142,6 +142,10 @@ private:
 	std::vector<UpdateRange>					updateRanges;
 	std::vector<std::future<void>>				parallelUpdateFutures;
 
+	// 재질 모프의 곱셈 계수를 가중치만큼 누적한다.
+	static void Mul(MaterialMorph& out, const MaterialMorph& val, float weight);
+	// 재질 모프의 덧셈 계수를 가중치만큼 누적한다.
+	static void Add(MaterialMorph& out, const MaterialMorph& val, float weight);
 	// 병렬 버텍스 갱신에 사용할 작업 범위를 구성한다.
 	void SetupParallelUpdate();
 	// 지정된 버텍스 범위의 스키닝 결과를 갱신한다.

@@ -9,30 +9,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
 
-void Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
-	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
-	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
-	out.ambient = glm::mix(out.ambient, out.ambient * val.ambient, weight);
-	out.edgeColor = glm::mix(out.edgeColor, out.edgeColor * val.edgeColor, weight);
-	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
-	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
-	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
-	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
-}
-
-void Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.diffuse += val.diffuse * weight;
-	out.specular += val.specular * weight;
-	out.specularPower += val.specularPower * weight;
-	out.ambient += val.ambient * weight;
-	out.edgeColor += val.edgeColor * weight;
-	out.edgeSize += val.edgeSize * weight;
-	out.textureFactor += val.textureFactor * weight;
-	out.sphereTextureFactor += val.sphereTextureFactor * weight;
-	out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
-}
-
 Model::~Model() {
 	Destroy();
 }
@@ -509,6 +485,30 @@ void Model::Destroy() {
 		physics->world->removeRigidBody(rb->rigidBody.get());
 	rigidBodies.clear();
 	physics.reset();
+}
+
+void Model::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
+	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
+	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
+	out.ambient = glm::mix(out.ambient, out.ambient * val.ambient, weight);
+	out.edgeColor = glm::mix(out.edgeColor, out.edgeColor * val.edgeColor, weight);
+	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
+	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
+	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
+	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
+}
+
+void Model::Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.diffuse += val.diffuse * weight;
+	out.specular += val.specular * weight;
+	out.specularPower += val.specularPower * weight;
+	out.ambient += val.ambient * weight;
+	out.edgeColor += val.edgeColor * weight;
+	out.edgeSize += val.edgeSize * weight;
+	out.textureFactor += val.textureFactor * weight;
+	out.sphereTextureFactor += val.sphereTextureFactor * weight;
+	out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
 }
 
 void Model::SetupParallelUpdate() {
