@@ -5,9 +5,13 @@
 
 #include <ranges>
 
-void Bezier::AssignBezier(std::pair<glm::vec2, glm::vec2>& bezier, const int x0, const int x1, const int y0, const int y1) {
-	bezier.first = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
-	bezier.second = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
+void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
+	p1 = glm::vec2(static_cast<float>(x0) / 127.0f, static_cast<float>(y0) / 127.0f);
+	p2 = glm::vec2(static_cast<float>(x1) / 127.0f, static_cast<float>(y1) / 127.0f);
+}
+
+float Bezier::Evaluate(const float time) const {
+	return EvaluateBezier(FindBezierX(time, p1.x, p2.x), p1.y, p2.y);
 }
 
 float Bezier::EvaluateBezier(const float t, const float p1, const float p2) {
@@ -36,16 +40,16 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 	const glm::quat q = motion.quaternion;
 	const auto rot = Util::InvZ(glm::mat3_cast(q));
 	rotate = glm::quat_cast(rot);
-	Bezier::AssignBezier(txBezier,
+	txBezier.Assign(
 		motion.interpolation[0], motion.interpolation[8],
 		motion.interpolation[4], motion.interpolation[12]);
-	Bezier::AssignBezier(tyBezier,
+	tyBezier.Assign(
 		motion.interpolation[1], motion.interpolation[9],
 		motion.interpolation[5], motion.interpolation[13]);
-	Bezier::AssignBezier(tzBezier,
+	tzBezier.Assign(
 		motion.interpolation[2], motion.interpolation[10],
 		motion.interpolation[6], motion.interpolation[14]);
-	Bezier::AssignBezier(rotBezier,
+	rotBezier.Assign(
 		motion.interpolation[3], motion.interpolation[11],
 		motion.interpolation[7], motion.interpolation[15]);
 }
@@ -162,14 +166,10 @@ void Animation::Evaluate(const float t, const float animWeight) const {
 				rotBezier] = *it;
 			const auto timeRange = static_cast<float>(time - prev.time);
 			const float normalizedTime = (t - static_cast<float>(prev.time)) / timeRange;
-			const float txX  = Bezier::FindBezierX(normalizedTime, txBezier.first.x,  txBezier.second.x);
-			const float tyX  = Bezier::FindBezierX(normalizedTime, tyBezier.first.x,  tyBezier.second.x);
-			const float tzX  = Bezier::FindBezierX(normalizedTime, tzBezier.first.x,  tzBezier.second.x);
-			const float rotX = Bezier::FindBezierX(normalizedTime, rotBezier.first.x, rotBezier.second.x);
-			const float txY  = Bezier::EvaluateBezier(txX,  txBezier.first.y,  txBezier.second.y);
-			const float tyY  = Bezier::EvaluateBezier(tyX,  tyBezier.first.y,  tyBezier.second.y);
-			const float tzY  = Bezier::EvaluateBezier(tzX,  tzBezier.first.y,  tzBezier.second.y);
-			const float rotY = Bezier::EvaluateBezier(rotX, rotBezier.first.y, rotBezier.second.y);
+			const float txY = txBezier.Evaluate(normalizedTime);
+			const float tyY = tyBezier.Evaluate(normalizedTime);
+			const float tzY = tzBezier.Evaluate(normalizedTime);
+			const float rotY = rotBezier.Evaluate(normalizedTime);
 			vt = glm::mix(prev.translate, translate, glm::vec3(txY, tyY, tzY));
 			q  = glm::slerp(prev.rotate,   rotate,   rotY);
 		}
@@ -242,22 +242,22 @@ bool CameraAnimation::Create(const VmdReader& vmd) {
 			key.rotate = cam.rotate;
 			key.distance = cam.distance;
 			key.fov = glm::radians(static_cast<float>(cam.viewAngle));
-			Bezier::AssignBezier(key.ixBezier,
+			key.ixBezier.Assign(
 				cam.interpolation[0], cam.interpolation[1],
 				cam.interpolation[2], cam.interpolation[3]);
-			Bezier::AssignBezier(key.iyBezier,
+			key.iyBezier.Assign(
 				cam.interpolation[4], cam.interpolation[5],
 				cam.interpolation[6], cam.interpolation[7]);
-			Bezier::AssignBezier(key.izBezier,
+			key.izBezier.Assign(
 				cam.interpolation[8], cam.interpolation[9],
 				cam.interpolation[10], cam.interpolation[11]);
-			Bezier::AssignBezier(key.rotateBezier,
+			key.rotateBezier.Assign(
 				cam.interpolation[12], cam.interpolation[13],
 				cam.interpolation[14], cam.interpolation[15]);
-			Bezier::AssignBezier(key.distanceBezier,
+			key.distanceBezier.Assign(
 				cam.interpolation[16], cam.interpolation[17],
 				cam.interpolation[18], cam.interpolation[19]);
-			Bezier::AssignBezier(key.fovBezier,
+			key.fovBezier.Assign(
 				cam.interpolation[20], cam.interpolation[21],
 				cam.interpolation[22], cam.interpolation[23]);
 			keys.push_back(key);
@@ -292,12 +292,12 @@ void CameraAnimation::Evaluate(const float t) {
 		return;
 	}
 	const float normalizedTime = (t - static_cast<float>(prev.time)) / static_cast<float>(time - prev.time);
-	const float ixY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, ixBezier.first.x, ixBezier.second.x), ixBezier.first.y, ixBezier.second.y);
-	const float iyY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, iyBezier.first.x, iyBezier.second.x), iyBezier.first.y, iyBezier.second.y);
-	const float izY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, izBezier.first.x, izBezier.second.x), izBezier.first.y, izBezier.second.y);
-	const float rY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, rotateBezier.first.x, rotateBezier.second.x), rotateBezier.first.y, rotateBezier.second.y);
-	const float dY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, distanceBezier.first.x, distanceBezier.second.x), distanceBezier.first.y, distanceBezier.second.y);
-	const float fY = Bezier::EvaluateBezier(Bezier::FindBezierX(normalizedTime, fovBezier.first.x, fovBezier.second.x), fovBezier.first.y, fovBezier.second.y);
+	const float ixY = ixBezier.Evaluate(normalizedTime);
+	const float iyY = iyBezier.Evaluate(normalizedTime);
+	const float izY = izBezier.Evaluate(normalizedTime);
+	const float rY = rotateBezier.Evaluate(normalizedTime);
+	const float dY = distanceBezier.Evaluate(normalizedTime);
+	const float fY = fovBezier.Evaluate(normalizedTime);
 	camera.interest = glm::mix(prev.interest, interest, glm::vec3(ixY, iyY, izY));
 	camera.rotate = glm::mix(prev.rotate, rotate, rY);
 	camera.distance = glm::mix(prev.distance, distance, dY);

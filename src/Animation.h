@@ -9,10 +9,16 @@ class IkSolver;
 class Node;
 class Model;
 
-class Bezier {
-public:
+struct Bezier {
+	glm::vec2	p1;
+	glm::vec2	p2;
+
 	// VMD 보간 바이트 네 개를 정규화된 2D Bezier 제어점으로 변환한다.
-	static void AssignBezier(std::pair<glm::vec2, glm::vec2>& bezier, int x0, int x1, int y0, int y1);
+	void Assign(int x0, int x1, int y0, int y1);
+	// 주어진 x 시간에 대응하는 Bezier 보간 값을 계산한다.
+	float Evaluate(float time) const;
+
+private:
 	// 3차 Bezier 곡선의 단일 축 값을 계산한다.
 	static float EvaluateBezier(float t, float p1, float p2);
 	// 주어진 x 시간에 대응하는 Bezier 매개변수 t를 이분 탐색으로 찾는다.
@@ -23,10 +29,10 @@ struct NodeAnimationKey {
 	int32_t		time;
 	glm::vec3	translate;
 	glm::quat	rotate;
-	std::pair<glm::vec2, glm::vec2>	txBezier;
-	std::pair<glm::vec2, glm::vec2>	tyBezier;
-	std::pair<glm::vec2, glm::vec2>	tzBezier;
-	std::pair<glm::vec2, glm::vec2>	rotBezier;
+	Bezier		txBezier;
+	Bezier		tyBezier;
+	Bezier		tzBezier;
+	Bezier		rotBezier;
 
 	// VMD 모션 키에서 노드 애니메이션 키 값을 채운다.
 	void ApplyMotion(const VmdReader::VmdMotion& motion);
@@ -77,12 +83,12 @@ struct CameraAnimationKey {
 	glm::vec3	rotate;
 	float		distance;
 	float		fov;
-	std::pair<glm::vec2, glm::vec2>	ixBezier;
-	std::pair<glm::vec2, glm::vec2>	iyBezier;
-	std::pair<glm::vec2, glm::vec2>	izBezier;
-	std::pair<glm::vec2, glm::vec2>	rotateBezier;
-	std::pair<glm::vec2, glm::vec2>	distanceBezier;
-	std::pair<glm::vec2, glm::vec2>	fovBezier;
+	Bezier		ixBezier;
+	Bezier		iyBezier;
+	Bezier		izBezier;
+	Bezier		rotateBezier;
+	Bezier		distanceBezier;
+	Bezier		fovBezier;
 };
 
 class CameraAnimation {
