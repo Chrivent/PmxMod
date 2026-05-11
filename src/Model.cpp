@@ -173,8 +173,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	normals.reserve(vertexCount);
 	uvs.reserve(vertexCount);
 	vertexBoneInfos.reserve(vertexCount);
-	bboxMax = glm::vec3(-std::numeric_limits<float>::max)();
-	bboxMin = glm::vec3(std::numeric_limits<float>::max)();
+	bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
+	bboxMin = glm::vec3((std::numeric_limits<float>::max)());
 	constexpr glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.vertices) {
 		glm::vec3 pos = v.position * invZ;
