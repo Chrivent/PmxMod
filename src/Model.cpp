@@ -169,7 +169,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	englishComment   = pmx.info.englishComment;
 	const std::filesystem::path modelDir = filepath.parent_path();
 	constexpr glm::vec3 invZ(1, 1, -1);
-
 	LoadVertices(pmx, invZ);
 	if (!LoadFaces(pmx))
 		return false;
