@@ -605,8 +605,6 @@ void Model::Update(const UpdateRange& range) {
 				m = glm::transpose(glm::mat3x4_cast(blendDq));
 				break;
 			}
-			default:
-				break;
 		}
 		if (WeightType::SphericalDeform != vtxInfo->weightType) {
 			*updatePos = glm::vec3(m * glm::vec4(*position + *morphPos, 1));
