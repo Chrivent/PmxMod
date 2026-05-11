@@ -127,10 +127,10 @@ Dx11Material::Dx11Material(const Material& sourceMat)
 
 bool Dx11Instance::Setup(Viewer& baseViewer) {
 	viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
-	auto vBufDesc = MakeVertexBufferDesc(model->positions.size());
+	const auto vBufDesc = MakeVertexBufferDesc(model->positions.size());
 	if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 		return false;
-	auto iBufDesc = MakeIndexBufferDesc(model->indexElementSize * model->indexCount);
+	const auto iBufDesc = MakeIndexBufferDesc(model->indexElementSize * model->indexCount);
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = model->indices.data();
 	if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
@@ -395,7 +395,7 @@ Dx11Texture Dx11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	if (!image)
 		return {};
 	const bool textureHasAlpha = comp == 4;
-	auto d = MakeTexture2DDesc(
+	const auto d = MakeTexture2DDesc(
 		static_cast<UINT>(x), static_cast<UINT>(y),
 		DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 	D3D11_SUBRESOURCE_DATA initData = {};
@@ -498,7 +498,7 @@ bool Dx11Viewer::CreateRenderTargets() {
 		return false;
 	if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView)))
 		return false;
-	auto d = MakeTexture2DDesc(
+	const auto d = MakeTexture2DDesc(
 		static_cast<UINT>(screenWidth), static_cast<UINT>(screenHeight),
 		DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
 		multiSampleCount, multiSampleQuality);
@@ -546,7 +546,7 @@ bool Dx11Viewer::CreatePipelineStates() {
 }
 
 bool Dx11Viewer::CreateDummyResources() {
-	auto d = MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+	const auto d = MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 	if (FAILED(device->CreateTexture2D(&d, nullptr, &dummyTexture)))
 		return false;
 	if (FAILED(device->CreateShaderResourceView(dummyTexture.Get(), nullptr, &dummyTextureView)))
