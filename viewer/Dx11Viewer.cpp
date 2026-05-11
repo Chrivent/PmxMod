@@ -106,19 +106,20 @@ D3D11_BUFFER_DESC Dx11Instance::MakeIndexBufferDesc(const size_t indexBytes) {
 	return d;
 }
 
-void Dx11Instance::BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv, ID3D11SamplerState* dummySampler,
-	const UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent, int& outMode,
-	glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
+void Dx11Instance::BindTexture(
+	const UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent,
+	int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
+	const glm::vec4& mulIn, const glm::vec4& addIn) const {
 	if (tex.texture) {
 		outMode = modeIfPresent;
 		outMul  = mulIn;
 		outAdd  = addIn;
 	} else
 		outMode = 0;
-	ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : dummySrv;
-	ID3D11SamplerState* samplers = tex.texture ? sampler : dummySampler;
-	context->PSSetShaderResources(slot, 1, &views);
-	context->PSSetSamplers(slot, 1, &samplers);
+	ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : viewer->dummyTextureView.Get();
+	ID3D11SamplerState* samplers = tex.texture ? sampler : viewer->textureSampler.Get();
+	viewer->context->PSSetShaderResources(slot, 1, &views);
+	viewer->context->PSSetSamplers(slot, 1, &samplers);
 }
 
 Dx11Material::Dx11Material(const Material& sourceMat)
@@ -230,10 +231,10 @@ void Dx11Instance::Draw() const {
 		int baseMode = 0;
 		if (material.texture.texture)
 			baseMode = !material.texture.hasAlpha ? 1 : 2;
-		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+		BindTexture(
 			0, material.texture, viewer->textureSampler.Get(), baseMode, psCb.textureModes.x,
 			psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
-		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+		BindTexture(
 			1, material.cartoonTexture, viewer->cartoonTextureSampler.Get(), 1, psCb.textureModes.y,
 			psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 		int spMode = 0;
@@ -243,7 +244,7 @@ void Dx11Instance::Draw() const {
 			else if (mat.spTextureMode == SphereMode::Add)
 				spMode = 2;
 		}
-		BindTexture(viewer->context.Get(), viewer->dummyTextureView.Get(), viewer->textureSampler.Get(),
+		BindTexture(
 			2, material.spTexture, viewer->textureSampler.Get(), spMode, psCb.textureModes.z,
 			psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
         psCb.lightColor = viewer->lightColor;

@@ -100,10 +100,9 @@ private:
         return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
     }
     // 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
-    static void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv,
-        ID3D11SamplerState* dummySampler, UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler,
+    void BindTexture(UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler,
         int modeIfPresent, int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
-        const glm::vec4& mulIn, const glm::vec4& addIn);
+        const glm::vec4& mulIn, const glm::vec4& addIn) const;
 
     Dx11Viewer*                             viewer = nullptr;
     std::vector<Dx11Material>               materials;
