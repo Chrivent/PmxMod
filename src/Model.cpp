@@ -371,46 +371,42 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	for (const auto& morph : pmx.morphs) {
 		auto m = std::make_unique<Morph>();
 		m->name = morph.name;
-		m->weight = 0.0f;
 		m->morphType = morph.morphType;
-		if (morph.morphType == MorphType::Position) {
-			m->dataIndex = positionMorphs.size();
-			std::vector<PositionMorph> morphData;
-			for (const auto& [vertexIndex, position] : morph.positionMorph) {
-				PositionMorph morphVtx{};
-				morphVtx.vertexIndex = vertexIndex;
-				morphVtx.position = position * invZ;
-				morphData.push_back(morphVtx);
+		switch (morph.morphType) {
+			case MorphType::Position: {
+				m->dataIndex = positionMorphs.size();
+				std::vector<PositionMorph> morphData;
+				morphData.reserve(morph.positionMorph.size());
+				for (const auto& [vertexIndex, position] : morph.positionMorph)
+					morphData.push_back({ vertexIndex, position * invZ });
+				positionMorphs.emplace_back(std::move(morphData));
+				break;
 			}
-			positionMorphs.emplace_back(std::move(morphData));
-		} else if (morph.morphType == MorphType::Uv) {
-			m->dataIndex = uvMorphs.size();
-			std::vector<UvMorph> morphData;
-			for (const auto& [vertexIndex, uv] : morph.uvMorph) {
-				UvMorph morphUv{};
-				morphUv.vertexIndex = vertexIndex;
-				morphUv.uv = uv;
-				morphData.push_back(morphUv);
+			case MorphType::Uv:
+				m->dataIndex = uvMorphs.size();
+				uvMorphs.emplace_back(morph.uvMorph);
+				break;
+			case MorphType::Material:
+				m->dataIndex = materialMorphs.size();
+				materialMorphs.emplace_back(morph.materialMorph);
+				break;
+			case MorphType::Bone: {
+				m->dataIndex = boneMorphs.size();
+				std::vector<BoneMorph> boneMorphData;
+				boneMorphData.reserve(morph.boneMorph.size());
+				for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
+					auto rot = Util::InvZ(glm::mat3_cast(quaternion));
+					boneMorphData.push_back({ boneIndex, position * invZ, glm::quat_cast(rot) });
+				}
+				boneMorphs.emplace_back(std::move(boneMorphData));
+				break;
 			}
-			uvMorphs.emplace_back(std::move(morphData));
-		} else if (morph.morphType == MorphType::Material) {
-			m->dataIndex = materialMorphs.size();
-			materialMorphs.emplace_back(morph.materialMorph);
-		} else if (morph.morphType == MorphType::Bone) {
-			m->dataIndex = boneMorphs.size();
-			std::vector<BoneMorph> boneMorphData;
-			for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
-				auto rot = Util::InvZ(glm::mat3_cast(quaternion));
-				BoneMorph boneMorphElem{};
-				boneMorphElem.boneIndex = boneIndex;
-				boneMorphElem.position = position * invZ;
-				boneMorphElem.quaternion = glm::quat_cast(rot);
-				boneMorphData.push_back(boneMorphElem);
-			}
-			boneMorphs.emplace_back(boneMorphData);
-		} else if (morph.morphType == MorphType::Group) {
-			m->dataIndex = groupMorphs.size();
-			groupMorphs.emplace_back(morph.groupMorph);
+			case MorphType::Group:
+				m->dataIndex = groupMorphs.size();
+				groupMorphs.emplace_back(morph.groupMorph);
+				break;
+			default:
+				break;
 		}
 		morphs.emplace_back(std::move(m));
 	}
@@ -423,7 +419,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			return;
 		groupMorphStack.push_back(idx);
 		for (auto& [morphIndex, weight] : groupMorphs[morph->dataIndex]) {
-			(void)weight;
 			if (morphIndex < 0)
 				continue;
 			if (std::ranges::find(groupMorphStack, morphIndex) != groupMorphStack.end()) {
