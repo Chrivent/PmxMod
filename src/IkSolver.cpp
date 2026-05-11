@@ -2,80 +2,6 @@
 
 #include "Node.h"
 
-float NormalizeAngle(float angle) {
-	angle = std::fmod(angle, glm::two_pi<float>());
-	if (angle < 0)
-		angle += glm::two_pi<float>();
-	return angle;
-}
-
-float DiffAngle(const float a, const float b) {
-	const float diff = NormalizeAngle(a) - NormalizeAngle(b);
-	if (diff > glm::pi<float>())
-		return diff - glm::two_pi<float>();
-	if (diff < -glm::pi<float>())
-		return diff + glm::two_pi<float>();
-	return diff;
-}
-
-glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before) {
-	glm::vec3 r;
-	const float sy = -m[0][2];
-	if (1.0f - std::abs(sy) < std::numeric_limits<float>::epsilon()) {
-		r.y = std::asin(sy);
-		const float sx = std::sin(before.x);
-		const float sz = std::sin(before.z);
-		if (std::abs(sx) < std::abs(sz)) {
-			const float cx = std::cos(before.x);
-			if (cx > 0) {
-				r.x = 0;
-				r.z = std::asin(-m[1][0]);
-			} else {
-				r.x = glm::pi<float>();
-				r.z = std::asin(m[1][0]);
-			}
-		} else {
-			const float cz = std::cos(before.z);
-			if (cz > 0) {
-				r.z = 0;
-				r.x = std::asin(-m[2][1]);
-			} else {
-				r.z = glm::pi<float>();
-				r.x = std::asin(m[2][1]);
-			}
-		}
-	} else {
-		r.x = std::atan2(m[1][2], m[2][2]);
-		r.y = std::asin(-m[0][2]);
-		r.z = std::atan2(m[0][1], m[0][0]);
-	}
-	constexpr auto pi = glm::pi<float>();
-	glm::vec3 tests[] = {
-		{r.x + pi, pi - r.y, r.z + pi},
-		{r.x + pi, pi - r.y, r.z - pi},
-		{r.x + pi, -pi - r.y, r.z + pi},
-		{r.x + pi, -pi - r.y, r.z - pi},
-		{r.x - pi, pi - r.y, r.z + pi},
-		{r.x - pi, pi - r.y, r.z - pi},
-		{r.x - pi, -pi - r.y, r.z + pi},
-		{r.x - pi, -pi - r.y, r.z - pi},
-	};
-	const float errX = std::abs(DiffAngle(r.x, before.x));
-	const float errY = std::abs(DiffAngle(r.y, before.y));
-	const float errZ = std::abs(DiffAngle(r.z, before.z));
-	float minErr = errX + errY + errZ;
-	for (const auto test: tests) {
-		const float err = std::abs(DiffAngle(test.x, before.x))
-						+ std::abs(DiffAngle(test.y, before.y))
-						+ std::abs(DiffAngle(test.z, before.z));
-		if (err < minErr) {
-			minErr = err;
-			r = test;
-		}
-	}
-	return r;
-}
-
 void IkSolver::Solve() {
 	if (!enable)
 		return;
@@ -236,4 +162,78 @@ void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int rotateAxisInd
 	chainNodePtr->ikRotate = ikRotM;
 	chainNodePtr->UpdateLocalTransform();
 	chainNodePtr->UpdateGlobalTransform();
+}
+
+float IkSolver::NormalizeAngle(float angle) {
+	angle = std::fmod(angle, glm::two_pi<float>());
+	if (angle < 0)
+		angle += glm::two_pi<float>();
+	return angle;
+}
+
+float IkSolver::DiffAngle(const float a, const float b) {
+	const float diff = NormalizeAngle(a) - NormalizeAngle(b);
+	if (diff > glm::pi<float>())
+		return diff - glm::two_pi<float>();
+	if (diff < -glm::pi<float>())
+		return diff + glm::two_pi<float>();
+	return diff;
+}
+
+glm::vec3 IkSolver::Decompose(const glm::mat3& m, const glm::vec3& before) {
+	glm::vec3 r;
+	const float sy = -m[0][2];
+	if (1.0f - std::abs(sy) < std::numeric_limits<float>::epsilon()) {
+		r.y = std::asin(sy);
+		const float sx = std::sin(before.x);
+		const float sz = std::sin(before.z);
+		if (std::abs(sx) < std::abs(sz)) {
+			const float cx = std::cos(before.x);
+			if (cx > 0) {
+				r.x = 0;
+				r.z = std::asin(-m[1][0]);
+			} else {
+				r.x = glm::pi<float>();
+				r.z = std::asin(m[1][0]);
+			}
+		} else {
+			const float cz = std::cos(before.z);
+			if (cz > 0) {
+				r.z = 0;
+				r.x = std::asin(-m[2][1]);
+			} else {
+				r.z = glm::pi<float>();
+				r.x = std::asin(m[2][1]);
+			}
+		}
+	} else {
+		r.x = std::atan2(m[1][2], m[2][2]);
+		r.y = std::asin(-m[0][2]);
+		r.z = std::atan2(m[0][1], m[0][0]);
+	}
+	constexpr auto pi = glm::pi<float>();
+	glm::vec3 tests[] = {
+		{r.x + pi, pi - r.y, r.z + pi},
+		{r.x + pi, pi - r.y, r.z - pi},
+		{r.x + pi, -pi - r.y, r.z + pi},
+		{r.x + pi, -pi - r.y, r.z - pi},
+		{r.x - pi, pi - r.y, r.z + pi},
+		{r.x - pi, pi - r.y, r.z - pi},
+		{r.x - pi, -pi - r.y, r.z + pi},
+		{r.x - pi, -pi - r.y, r.z - pi},
+	};
+	const float errX = std::abs(DiffAngle(r.x, before.x));
+	const float errY = std::abs(DiffAngle(r.y, before.y));
+	const float errZ = std::abs(DiffAngle(r.z, before.z));
+	float minErr = errX + errY + errZ;
+	for (const auto test: tests) {
+		const float err = std::abs(DiffAngle(test.x, before.x))
+						+ std::abs(DiffAngle(test.y, before.y))
+						+ std::abs(DiffAngle(test.z, before.z));
+		if (err < minErr) {
+			minErr = err;
+			r = test;
+		}
+	}
+	return r;
 }
