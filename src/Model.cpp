@@ -1,6 +1,6 @@
-#include "Model.h"
+﻿#include "Model.h"
 
-#include "Animation.h"
+#include "animation/ModelAnimation.h"
 #include "Util.h"
 
 #include <ranges>
@@ -149,7 +149,7 @@ void Model::Update() {
 	}
 }
 
-void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
+void Model::UpdateAllAnimation(const ModelAnimation* anim, const float frame, const float physicsElapsed) {
 	if (anim)
 		anim->Evaluate(frame);
 	UpdateMorphAnimation();
@@ -173,8 +173,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	normals.reserve(vertexCount);
 	uvs.reserve(vertexCount);
 	vertexBoneInfos.reserve(vertexCount);
-	bboxMax = glm::vec3(-std::numeric_limits<float>::max());
-	bboxMin = glm::vec3(std::numeric_limits<float>::max());
+	bboxMax = glm::vec3(-std::numeric_limits<float>::max)();
+	bboxMin = glm::vec3(std::numeric_limits<float>::max)();
 	constexpr glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.vertices) {
 		glm::vec3 pos = v.position * invZ;
@@ -220,8 +220,8 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 				break;
 		}
 		vertexBoneInfos.push_back(vtxBoneInfo);
-		bboxMax = glm::max(bboxMax, pos);
-		bboxMin = glm::min(bboxMin, pos);
+		bboxMax = (glm::max)(bboxMax, pos);
+		bboxMin = (glm::min)(bboxMin, pos);
 	}
 	morphPositions.resize(positions.size());
 	morphUVs.resize(positions.size());
@@ -513,7 +513,7 @@ void Model::Add(MaterialMorph& out, const MaterialMorph& val, const float weight
 
 void Model::SetupParallelUpdate() {
 	if (!parallelUpdateCount)
-		parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
+		parallelUpdateCount = (std::max)(1u, std::thread::hardware_concurrency());
 	parallelUpdateCount = std::min<size_t>(parallelUpdateCount, 16);
 	updateRanges.resize(parallelUpdateCount);
 	parallelUpdateFutures.resize(parallelUpdateCount - 1);
@@ -525,7 +525,7 @@ void Model::SetupParallelUpdate() {
 			auto& [vertexOffset, vertexCount] = updateRanges[i];
 			if (i < numRanges) {
 				vertexOffset = i * lowerVertexCount;
-				vertexCount  = std::min(lowerVertexCount, totalVertexCount - vertexOffset);
+				vertexCount  = (std::min)(lowerVertexCount, totalVertexCount - vertexOffset);
 			} else {
 				vertexOffset = 0;
 				vertexCount = 0;

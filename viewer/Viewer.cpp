@@ -185,7 +185,7 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         }
         instance->model = pmxModel;
         instance->model->InitializeAnimation();
-        auto vmdAnim = std::make_unique<Animation>();
+        auto vmdAnim = std::make_unique<ModelAnimation>();
         vmdAnim->model = instance->model;
         for (const auto& vmdPath : animPaths) {
             VmdReader vmd;

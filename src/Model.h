@@ -13,7 +13,7 @@ struct PositionMorph;
 struct MaterialMorph;
 class RigidBody;
 class Joint;
-class Animation;
+class ModelAnimation;
 
 enum class SphereMode : uint8_t;
 enum class MorphType : uint8_t;
@@ -107,7 +107,7 @@ public:
 	// 모델의 전체 변형 결과를 현재 상태 기준으로 갱신한다.
 	void Update();
 	// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
-	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
+	void UpdateAllAnimation(const ModelAnimation* anim, float frame, float physicsElapsed);
 	// PMX 모델과 관련 리소스를 파일에서 로드한다.
 	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
 	// 모델이 소유한 리소스와 런타임 상태를 해제한다.
