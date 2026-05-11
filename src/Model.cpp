@@ -487,7 +487,7 @@ void Model::Destroy() {
 	physics.reset();
 }
 
-void Model::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+void Model::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
 	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
 	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
@@ -499,7 +499,7 @@ void Model::Mul(MaterialMorph& out, const MaterialMorph& val, const float weight
 	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
 }
 
-void Model::Add(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+void Model::AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 	out.diffuse += val.diffuse * weight;
 	out.specular += val.specular * weight;
 	out.specularPower += val.specularPower * weight;
@@ -696,7 +696,7 @@ void Model::EndMorphMaterial() {
 		const auto& mul = mulMaterialFactors[i];
 		const auto& add = addMaterialFactors[i];
 		auto matFactor = mul;
-		Add(matFactor, add, 1.0f);
+		AccumulateMaterialAdd(matFactor, add, 1.0f);
 		mat.diffuse        = matFactor.diffuse;
 		mat.specular       = matFactor.specular;
 		mat.specularPower  = matFactor.specularPower;
@@ -714,8 +714,8 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 	for (const auto& matMorph : morphData) {
 		auto Apply = [&](const size_t mi) {
 			switch (matMorph.opType) {
-				case OpType::Mul: Mul(mulMaterialFactors[mi], matMorph, weight); break;
-				case OpType::Add: Add(addMaterialFactors[mi], matMorph, weight); break;
+				case OpType::Mul: AccumulateMaterialMul(mulMaterialFactors[mi], matMorph, weight); break;
+				case OpType::Add: AccumulateMaterialAdd(addMaterialFactors[mi], matMorph, weight); break;
 			}
 		};
 		if (matMorph.materialIndex != -1) {
