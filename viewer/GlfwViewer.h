@@ -86,6 +86,8 @@ public:
 
 class GlfwInstance : public Instance {
 public:
+    ~GlfwInstance() override;
+
     // 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
     bool Setup(Viewer& baseViewer) override;
     // OpenGL 버퍼와 VAO 리소스를 해제한다.

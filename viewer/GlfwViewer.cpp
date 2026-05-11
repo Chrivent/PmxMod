@@ -174,6 +174,10 @@ GlfwMaterial::GlfwMaterial(const Material& sourceMat)
 	: mat(sourceMat) {
 }
 
+GlfwInstance::~GlfwInstance() {
+	GlfwInstance::Clear();
+}
+
 bool GlfwInstance::Setup(Viewer& baseViewer) {
 	viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 	if (model == nullptr)
