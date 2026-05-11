@@ -167,7 +167,23 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	englishModelName = pmx.info.englishModelName;
 	comment          = pmx.info.comment;
 	englishComment   = pmx.info.englishComment;
-	std::filesystem::path dirPath = filepath.parent_path();
+	const std::filesystem::path modelDir = filepath.parent_path();
+	constexpr glm::vec3 invZ(1, 1, -1);
+
+	LoadVertices(pmx, invZ);
+	if (!LoadFaces(pmx))
+		return false;
+	LoadMaterials(pmx, modelDir, dataDir);
+	LoadNodes(pmx, invZ);
+	LoadMorphs(pmx, invZ);
+	FixInfiniteGroupMorphs();
+	LoadPhysics(pmx);
+	ResetPhysics();
+	SetupParallelUpdate();
+	return true;
+}
+
+void Model::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) {
 	size_t vertexCount = pmx.vertices.size();
 	positions.reserve(vertexCount);
 	normals.reserve(vertexCount);
@@ -175,7 +191,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	vertexBoneInfos.reserve(vertexCount);
 	bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
 	bboxMin = glm::vec3((std::numeric_limits<float>::max)());
-	constexpr glm::vec3 invZ(1, 1, -1);
 	for (const auto& v : pmx.vertices) {
 		glm::vec3 pos = v.position * invZ;
 		positions.push_back(pos);
@@ -228,6 +243,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	updatePositions.resize(positions.size());
 	updateNormals.resize(normals.size());
 	updateUVs.resize(uvs.size());
+}
+
+bool Model::LoadFaces(const PmxReader& pmx) {
 	indexElementSize = pmx.header.vertexIndexSize;
 	indices.resize(pmx.faces.size() * 3 * indexElementSize);
 	indexCount = pmx.faces.size() * 3;
@@ -245,10 +263,14 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		case 4: FillIndices(reinterpret_cast<uint32_t*>(indices.data())); break;
 		default: return false;
 	}
+	return true;
+}
+
+void Model::LoadMaterials(const PmxReader& pmx, const std::filesystem::path& modelDir, const std::filesystem::path& dataDir) {
 	std::vector<std::filesystem::path> texturePaths;
 	texturePaths.reserve(pmx.textures.size());
 	for (const auto& [textureName] : pmx.textures) {
-		std::filesystem::path texPath = dirPath / textureName;
+		std::filesystem::path texPath = modelDir / textureName;
 		texturePaths.emplace_back(std::move(texPath));
 	}
 	materials.reserve(pmx.materials.size());
@@ -296,6 +318,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 	initMaterials = materials;
 	mulMaterialFactors.resize(materials.size());
 	addMaterialFactors.resize(materials.size());
+}
+
+void Model::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) {
 	nodes.reserve(pmx.bones.size());
 	for (const auto& bone : pmx.bones) {
 		auto node = std::make_shared<Node>();
@@ -368,6 +393,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			ikSolvers.emplace_back(std::move(solver));
 		}
 	}
+}
+
+void Model::LoadMorphs(const PmxReader& pmx, const glm::vec3& invZ) {
 	for (const auto& morph : pmx.morphs) {
 		auto m = std::make_unique<Morph>();
 		m->name = morph.name;
@@ -410,6 +438,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		}
 		morphs.emplace_back(std::move(m));
 	}
+}
+
+void Model::FixInfiniteGroupMorphs() {
 	std::vector<int32_t> groupMorphStack;
 	std::function<void(int32_t)> fixInfiniteGroupMorph = [&](const int32_t idx) {
 		if (idx < 0)
@@ -433,6 +464,9 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 		groupMorphStack.clear();
 		fixInfiniteGroupMorph(i);
 	}
+}
+
+void Model::LoadPhysics(const PmxReader& pmx) {
 	physics = std::make_unique<Physics>();
 	physics->Create();
 	for (const auto& pmxRigidBody : pmx.rigidBodies) {
@@ -457,9 +491,6 @@ bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::p
 			joints.emplace_back(std::move(j));
 		}
 	}
-	ResetPhysics();
-	SetupParallelUpdate();
-	return true;
 }
 
 void Model::Destroy() {

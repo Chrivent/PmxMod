@@ -11,6 +11,7 @@ struct BoneMorph;
 struct UvMorph;
 struct PositionMorph;
 struct MaterialMorph;
+class PmxReader;
 class RigidBody;
 class Joint;
 class Animation;
@@ -146,6 +147,20 @@ private:
 	static void AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, float weight);
 	// 재질 모프의 덧셈 계수를 가중치만큼 누적한다.
 	static void AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, float weight);
+	// PMX 버텍스와 스키닝 정보를 모델 버텍스 버퍼로 변환한다.
+	void LoadVertices(const PmxReader& pmx, const glm::vec3& invZ);
+	// PMX 면 인덱스를 렌더링 인덱스 버퍼로 변환한다.
+	bool LoadFaces(const PmxReader& pmx);
+	// PMX 재질과 텍스처 경로를 모델 재질/서브메시로 변환한다.
+	void LoadMaterials(const PmxReader& pmx, const std::filesystem::path& modelDir, const std::filesystem::path& dataDir);
+	// PMX 본 계층과 IK 정보를 노드/IK 솔버로 변환한다.
+	void LoadNodes(const PmxReader& pmx, const glm::vec3& invZ);
+	// PMX 모프 데이터를 런타임 모프 버퍼로 변환한다.
+	void LoadMorphs(const PmxReader& pmx, const glm::vec3& invZ);
+	// 순환 참조가 있는 그룹 모프를 비활성 참조로 정리한다.
+	void FixInfiniteGroupMorphs();
+	// PMX 강체와 조인트를 물리 월드에 생성한다.
+	void LoadPhysics(const PmxReader& pmx);
 	// 병렬 버텍스 갱신에 사용할 작업 범위를 구성한다.
 	void SetupParallelUpdate();
 	// 지정된 버텍스 범위의 스키닝 결과를 갱신한다.
