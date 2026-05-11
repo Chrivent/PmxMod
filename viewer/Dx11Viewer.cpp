@@ -8,14 +8,14 @@
 #include <d3dcompiler.h>
 #include <stb_image.h>
 
-D3D11_SAMPLER_DESC Dx11Viewer::Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
+D3D11_SAMPLER_DESC Dx11Viewer::MakeSamplerDesc(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
 	d.Filter = f;
 	d.AddressU = d.AddressV = d.AddressW = addr;
 	return d;
 }
 
-D3D11_RASTERIZER_DESC Dx11Viewer::Raster(const D3D11_CULL_MODE cull, const bool frontCcw) {
+D3D11_RASTERIZER_DESC Dx11Viewer::MakeRasterizerDesc(const D3D11_CULL_MODE cull, const bool frontCcw) {
 	CD3D11_RASTERIZER_DESC d(D3D11_DEFAULT);
 	d.CullMode = cull;
 	d.FrontCounterClockwise = frontCcw;
@@ -23,7 +23,7 @@ D3D11_RASTERIZER_DESC Dx11Viewer::Raster(const D3D11_CULL_MODE cull, const bool 
 	return d;
 }
 
-D3D11_BLEND_DESC Dx11Viewer::AlphaBlend() {
+D3D11_BLEND_DESC Dx11Viewer::MakeAlphaBlendDesc() {
 	CD3D11_BLEND_DESC d(D3D11_DEFAULT);
 	d.RenderTarget[0].BlendEnable = TRUE;
 	d.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -33,6 +33,34 @@ D3D11_BLEND_DESC Dx11Viewer::AlphaBlend() {
 	d.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 	d.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	d.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	return d;
+}
+
+DXGI_SWAP_CHAIN_DESC Dx11Viewer::MakeSwapChainDesc(HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
+	DXGI_SWAP_CHAIN_DESC d{};
+	d.BufferCount = 2;
+	d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	d.OutputWindow = hwnd;
+	d.SampleDesc.Count = sampleCount;
+	d.SampleDesc.Quality = sampleQuality;
+	d.Windowed = TRUE;
+	return d;
+}
+
+D3D11_TEXTURE2D_DESC Dx11Viewer::MakeTexture2DDesc(
+	const UINT width, const UINT height, const DXGI_FORMAT format,
+	const UINT bindFlags, const UINT sampleCount, const UINT sampleQuality) {
+	D3D11_TEXTURE2D_DESC d{};
+	d.Width = width;
+	d.Height = height;
+	d.MipLevels = 1;
+	d.ArraySize = 1;
+	d.Format = format;
+	d.SampleDesc.Count = sampleCount;
+	d.SampleDesc.Quality = sampleQuality;
+	d.Usage = D3D11_USAGE_DEFAULT;
+	d.BindFlags = bindFlags;
 	return d;
 }
 
@@ -61,6 +89,23 @@ D3D11_DEPTH_STENCIL_DESC Dx11Viewer::MakeGroundShadowDepthStencilDesc() {
 	return d;
 }
 
+D3D11_BUFFER_DESC Dx11Instance::MakeVertexBufferDesc(const size_t vertexCount) {
+	D3D11_BUFFER_DESC d{};
+	d.Usage = D3D11_USAGE_DYNAMIC;
+	d.ByteWidth = static_cast<UINT>(sizeof(Dx11Vertex) * vertexCount);
+	d.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	return d;
+}
+
+D3D11_BUFFER_DESC Dx11Instance::MakeIndexBufferDesc(const size_t indexBytes) {
+	D3D11_BUFFER_DESC d{};
+	d.Usage = D3D11_USAGE_IMMUTABLE;
+	d.ByteWidth = static_cast<UINT>(indexBytes);
+	d.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	return d;
+}
+
 void Dx11Instance::BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv, ID3D11SamplerState* dummySampler,
 	const UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent, int& outMode,
 	glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
@@ -82,18 +127,10 @@ Dx11Material::Dx11Material(const Material& sourceMat)
 
 bool Dx11Instance::Setup(Viewer& baseViewer) {
 	viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
-	D3D11_BUFFER_DESC vBufDesc = {};
-	vBufDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vBufDesc.ByteWidth = static_cast<UINT>(sizeof(Dx11Vertex) * model->positions.size());
-	vBufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	auto vBufDesc = MakeVertexBufferDesc(model->positions.size());
 	if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 		return false;
-	D3D11_BUFFER_DESC iBufDesc = {};
-	iBufDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	iBufDesc.ByteWidth = static_cast<UINT>(model->indexElementSize * model->indexCount);
-	iBufDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	iBufDesc.CPUAccessFlags = 0;
+	auto iBufDesc = MakeIndexBufferDesc(model->indexElementSize * model->indexCount);
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = model->indices.data();
 	if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
@@ -304,14 +341,7 @@ bool Dx11Viewer::Setup() {
 		quality = 0;
 	}
 	multiSampleQuality = quality > 0 ? quality - 1 : 0;
-	DXGI_SWAP_CHAIN_DESC d{};
-	d.BufferCount = 2;
-	d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	d.OutputWindow = hwnd;
-	d.SampleDesc.Count = multiSampleCount;
-	d.SampleDesc.Quality = multiSampleQuality;
-	d.Windowed = TRUE;
+	auto d = MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
 	if (FAILED(factory->CreateSwapChain(device.Get(), &d, &swapChain)))
 		return false;
 	if (!CreateRenderTargets())
@@ -364,19 +394,10 @@ Dx11Texture Dx11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	stbi_uc* image = LoadImageRgba(texturePath, x, y, comp);
 	if (!image)
 		return {};
-	D3D11_TEXTURE2D_DESC d;
-	d.Width = x;
-	d.Height = y;
-	d.MipLevels = 1;
-	d.ArraySize = 1;
-	d.SampleDesc.Count = 1;
-	d.SampleDesc.Quality = 0;
-	d.Usage = D3D11_USAGE_DEFAULT;
-	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	d.CPUAccessFlags = 0;
-	d.MiscFlags = 0;
 	const bool textureHasAlpha = comp == 4;
-	d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	auto d = MakeTexture2DDesc(
+		static_cast<UINT>(x), static_cast<UINT>(y),
+		DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 	D3D11_SUBRESOURCE_DATA initData = {};
 	initData.pSysMem = image;
 	initData.SysMemPitch = 4 * x;
@@ -477,16 +498,10 @@ bool Dx11Viewer::CreateRenderTargets() {
 		return false;
 	if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView)))
 		return false;
-	D3D11_TEXTURE2D_DESC d{};
-	d.Width = static_cast<UINT>(screenWidth);
-	d.Height = static_cast<UINT>(screenHeight);
-	d.MipLevels = 1;
-	d.ArraySize = 1;
-	d.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	d.SampleDesc.Count = multiSampleCount;
-	d.SampleDesc.Quality = multiSampleQuality;
-	d.Usage = D3D11_USAGE_DEFAULT;
-	d.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	auto d = MakeTexture2DDesc(
+		static_cast<UINT>(screenWidth), static_cast<UINT>(screenHeight),
+		DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
+		multiSampleCount, multiSampleQuality);
 	if (FAILED(device->CreateTexture2D(&d, nullptr, &depthTex)))
 		return false;
 	if (FAILED(device->CreateDepthStencilView(depthTex.Get(), nullptr, &depthStencilView)))
@@ -495,26 +510,26 @@ bool Dx11Viewer::CreateRenderTargets() {
 }
 
 bool Dx11Viewer::CreatePipelineStates() {
-	auto wrapLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+	auto wrapLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 	if (FAILED(device->CreateSamplerState(&wrapLinear, &textureSampler)))
 		return false;
-	auto clampLinear = Sampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+	auto clampLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 	if (FAILED(device->CreateSamplerState(&clampLinear, &cartoonTextureSampler)))
 		return false;
-	auto blend = AlphaBlend();
+	auto blend = MakeAlphaBlendDesc();
 	if (FAILED(device->CreateBlendState(&blend, &blendState)))
 		return false;
-	auto frontRsDesc = Raster(D3D11_CULL_BACK, true);
+	auto frontRsDesc = MakeRasterizerDesc(D3D11_CULL_BACK, true);
 	if (FAILED(device->CreateRasterizerState(&frontRsDesc, &frontFaceRs)))
 		return false;
-	auto bothRsDesc = Raster(D3D11_CULL_NONE, true);
+	auto bothRsDesc = MakeRasterizerDesc(D3D11_CULL_NONE, true);
 	if (FAILED(device->CreateRasterizerState(&bothRsDesc, &bothFaceRs)))
 		return false;
-	auto edgeRsDesc = Raster(D3D11_CULL_FRONT, true);
+	auto edgeRsDesc = MakeRasterizerDesc(D3D11_CULL_FRONT, true);
 	edgeRsDesc.DepthClipEnable = FALSE;
 	if (FAILED(device->CreateRasterizerState(&edgeRsDesc, &edgeRs)))
 		return false;
-	auto gsRsDesc = Raster(D3D11_CULL_NONE, true);
+	auto gsRsDesc = MakeRasterizerDesc(D3D11_CULL_NONE, true);
 	gsRsDesc.DepthClipEnable = FALSE;
 	gsRsDesc.DepthBias = -1;
 	gsRsDesc.SlopeScaledDepthBias = -1.0f;
@@ -531,16 +546,7 @@ bool Dx11Viewer::CreatePipelineStates() {
 }
 
 bool Dx11Viewer::CreateDummyResources() {
-	D3D11_TEXTURE2D_DESC d{};
-	d.Width = 1;
-	d.Height = 1;
-	d.MipLevels = 1;
-	d.ArraySize = 1;
-	d.SampleDesc.Count = 1;
-	d.SampleDesc.Quality = 0;
-	d.Usage = D3D11_USAGE_DEFAULT;
-	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	auto d = MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 	if (FAILED(device->CreateTexture2D(&d, nullptr, &dummyTexture)))
 		return false;
 	if (FAILED(device->CreateShaderResourceView(dummyTexture.Get(), nullptr, &dummyTextureView)))
