@@ -244,15 +244,15 @@ void Dx11Instance::Draw() const {
 			continue;
 		if (mat.diffuse.a == 0)
 			continue;
-		Dx11EdgeSizeVertexShader vsCB{};
-		vsCB.edgeSize = mat.edgeSize;
+		Dx11EdgeSizeVertexShader vsCb{};
+		vsCb.edgeSize = mat.edgeSize;
 		viewer->context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(),
-			0, nullptr, &vsCB, 0, 0);
+			0, nullptr, &vsCb, 0, 0);
 		viewer->context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
-		Dx11EdgePixelShader psCB{};
-		psCB.edgeColor = mat.edgeColor;
+		Dx11EdgePixelShader psCb{};
+		psCb.edgeColor = mat.edgeColor;
 		viewer->context->UpdateSubresource(edgePsConstantBuffer.Get(),
-			0, nullptr, &psCB, 0, 0);
+			0, nullptr, &psCb, 0, 0);
 		viewer->context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
 		viewer->context->RSSetState(viewer->edgeRs.Get());
 		viewer->context->DrawIndexed(indexCount, beginIndex, 0);
