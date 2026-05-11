@@ -525,10 +525,6 @@ bool PmxReader::ReadFile(const std::filesystem::path& filename) {
 	return true;
 }
 
-void VmdReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
-	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
-}
-
 std::streampos VmdReader::GetFileEnd(std::istream& is) {
 	const auto origin = is.tellg();
 	is.seekg(0, std::ios::end);

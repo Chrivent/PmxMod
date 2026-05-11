@@ -489,7 +489,9 @@ class VmdReader {
 	};
 
 	// 지정한 바이트 수만큼 바이너리 스트림에서 읽는다.
-	static void Read(std::istream& is, void* dst, std::size_t bytes);
+	static void Read(std::istream& is, void* dst, const std::size_t bytes) {
+		is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
+	}
 	// POD 값을 바이너리 스트림에서 읽는다.
 	template <typename T>
 	static void Read(std::istream& is, T* dst) {
