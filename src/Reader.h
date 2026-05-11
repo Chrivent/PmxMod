@@ -307,6 +307,21 @@ class PmxReader {
 		std::vector<Target>	targets;
 	};
 
+	// 지정한 바이트 수만큼 바이너리 스트림에서 읽는다.
+	static void Read(std::istream& is, void* dst, const std::size_t bytes) {
+		is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
+	}
+	// POD 값을 바이너리 스트림에서 읽는다.
+	template <typename T>
+	static void Read(std::istream& is, T* dst) {
+		Read(is, dst, sizeof(T));
+	}
+	// 현재 위치를 보존한 채 스트림의 끝 위치를 구한다.
+	static std::streampos GetFileEnd(std::istream& is);
+	// 저장해 둔 끝 위치 이전에 읽을 데이터가 남아 있는지 확인한다.
+	static bool HasMore(std::istream& is, const std::streampos& end);
+	// PMX 헤더의 인덱스 크기 규칙에 맞춰 가변 크기 인덱스를 읽는다.
+	static void ReadIndex(std::istream& is, int32_t* index, uint8_t indexSize);
 	// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
 	void ReadString(std::istream& is, std::string* val) const;
 	// PMX 헤더와 인덱스 크기 정보를 읽는다.
@@ -473,6 +488,17 @@ class VmdReader {
 		std::vector<VmdIkInfo>	ikInfos;
 	};
 
+	// 지정한 바이트 수만큼 바이너리 스트림에서 읽는다.
+	static void Read(std::istream& is, void* dst, std::size_t bytes);
+	// POD 값을 바이너리 스트림에서 읽는다.
+	template <typename T>
+	static void Read(std::istream& is, T* dst) {
+		Read(is, dst, sizeof(T));
+	}
+	// 현재 위치를 보존한 채 스트림의 끝 위치를 구한다.
+	static std::streampos GetFileEnd(std::istream& is);
+	// 저장해 둔 끝 위치 이전에 읽을 데이터가 남아 있는지 확인한다.
+	static bool HasMore(std::istream& is, const std::streampos& end);
 	// VMD 헤더와 대상 모델 이름을 읽는다.
 	void ReadHeader(std::istream& is);
 	// 본 모션 키프레임 목록을 읽는다.

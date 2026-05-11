@@ -4,16 +4,7 @@
 
 #include <fstream>
 
-void Read(std::istream& is, void* dst, const std::size_t bytes) {
-	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
-}
-
-template <typename T>
-void Read(std::istream& is, T* dst) {
-	Read(is, dst, sizeof(T));
-}
-
-std::streampos GetFileEnd(std::istream& is) {
+std::streampos PmxReader::GetFileEnd(std::istream& is) {
 	const auto origin = is.tellg();
 	is.seekg(0, std::ios::end);
 	const auto end = is.tellg();
@@ -21,12 +12,12 @@ std::streampos GetFileEnd(std::istream& is) {
 	return end;
 }
 
-bool HasMore(std::istream& is, const std::streampos& end) {
+bool PmxReader::HasMore(std::istream& is, const std::streampos& end) {
 	const auto cur = is.tellg();
 	return cur != std::streampos(-1) && cur < end;
 }
 
-void ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
+void PmxReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 	switch (indexSize) {
 		case 1: {
 			uint8_t idx;
@@ -532,6 +523,23 @@ bool PmxReader::ReadFile(const std::filesystem::path& filename) {
 	if (HasMore(is, end))
 		ReadSoftBody(is);
 	return true;
+}
+
+void VmdReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
+	is.read(static_cast<char*>(dst), static_cast<long long>(bytes));
+}
+
+std::streampos VmdReader::GetFileEnd(std::istream& is) {
+	const auto origin = is.tellg();
+	is.seekg(0, std::ios::end);
+	const auto end = is.tellg();
+	is.seekg(origin, std::ios::beg);
+	return end;
+}
+
+bool VmdReader::HasMore(std::istream& is, const std::streampos& end) {
+	const auto cur = is.tellg();
+	return cur != std::streampos(-1) && cur < end;
 }
 
 void VmdReader::ReadHeader(std::istream& is) {
