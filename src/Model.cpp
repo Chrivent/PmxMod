@@ -1,6 +1,6 @@
 ﻿#include "Model.h"
 
-#include "animation/ModelAnimation.h"
+#include "Animation.h"
 #include "Util.h"
 
 #include <ranges>

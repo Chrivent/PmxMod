@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "../Reader.h"
+#include "Reader.h"
 
 struct Morph;
 class IkSolver;

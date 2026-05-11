@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "../src/animation/ModelAnimation.h"
+#include "../src/Animation.h"
 #include "../src/Sound.h"
 
 struct SceneConfig;

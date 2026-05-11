@@ -1,7 +1,7 @@
-﻿#include "ModelAnimation.h"
+#include "Animation.h"
 
-#include "../Model.h"
-#include "../Util.h"
+#include "Model.h"
+#include "Util.h"
 
 #include <ranges>
 
