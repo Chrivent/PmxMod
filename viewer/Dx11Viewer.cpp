@@ -8,14 +8,14 @@
 #include <d3dcompiler.h>
 #include <stb_image.h>
 
-D3D11_SAMPLER_DESC Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
+D3D11_SAMPLER_DESC Dx11Viewer::Sampler(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 	CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
 	d.Filter = f;
 	d.AddressU = d.AddressV = d.AddressW = addr;
 	return d;
 }
 
-D3D11_RASTERIZER_DESC Raster(const D3D11_CULL_MODE cull, const bool frontCcw) {
+D3D11_RASTERIZER_DESC Dx11Viewer::Raster(const D3D11_CULL_MODE cull, const bool frontCcw) {
 	CD3D11_RASTERIZER_DESC d(D3D11_DEFAULT);
 	d.CullMode = cull;
 	d.FrontCounterClockwise = frontCcw;
@@ -23,7 +23,7 @@ D3D11_RASTERIZER_DESC Raster(const D3D11_CULL_MODE cull, const bool frontCcw) {
 	return d;
 }
 
-D3D11_BLEND_DESC AlphaBlend() {
+D3D11_BLEND_DESC Dx11Viewer::AlphaBlend() {
 	CD3D11_BLEND_DESC d(D3D11_DEFAULT);
 	d.RenderTarget[0].BlendEnable = TRUE;
 	d.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -36,7 +36,7 @@ D3D11_BLEND_DESC AlphaBlend() {
 	return d;
 }
 
-D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
+D3D11_DEPTH_STENCIL_DESC Dx11Viewer::MakeDefaultDepthStencilDesc() {
 	CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 	d.DepthEnable = TRUE;
 	d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -45,7 +45,7 @@ D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
 	return d;
 }
 
-D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
+D3D11_DEPTH_STENCIL_DESC Dx11Viewer::MakeGroundShadowDepthStencilDesc() {
 	CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 	d.DepthEnable = TRUE;
 	d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -61,14 +61,7 @@ D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
 	return d;
 }
 
-template<typename T>
-HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
-	const UINT bytes = static_cast<UINT>(sizeof(T) + 15u & ~15u);
-	const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
-	return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
-}
-
-void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv, ID3D11SamplerState* dummySampler,
+void Dx11Instance::BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv, ID3D11SamplerState* dummySampler,
 	const UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent, int& outMode,
 	glm::vec4& outMul, glm::vec4& outAdd, const glm::vec4& mulIn, const glm::vec4& addIn) {
 	if (tex.texture) {

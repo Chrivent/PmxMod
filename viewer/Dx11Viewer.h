@@ -88,6 +88,19 @@ public:
     void Draw() const override;
 
 private:
+    // 상수 버퍼 크기를 16바이트 정렬해 생성한다.
+    template<typename T>
+    static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
+        const UINT bytes = static_cast<UINT>(sizeof(T) + 15u & ~15u);
+        const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
+        return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
+    }
+    // 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
+    static void BindTexture(ID3D11DeviceContext* context, ID3D11ShaderResourceView* dummySrv,
+        ID3D11SamplerState* dummySampler, UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler,
+        int modeIfPresent, int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
+        const glm::vec4& mulIn, const glm::vec4& addIn);
+
     Dx11Viewer*                             viewer = nullptr;
     std::vector<Dx11Material>               materials;
     Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
@@ -159,6 +172,17 @@ public:
     bool CreateDummyResources();
 
 private:
+    // 지정한 필터와 주소 모드로 샘플러 설명자를 만든다.
+    static D3D11_SAMPLER_DESC Sampler(D3D11_FILTER f, D3D11_TEXTURE_ADDRESS_MODE addr);
+    // 컬링 모드와 front-face 방향으로 래스터라이저 설명자를 만든다.
+    static D3D11_RASTERIZER_DESC Raster(D3D11_CULL_MODE cull, bool frontCcw);
+    // 일반 알파 블렌딩용 블렌드 설명자를 만든다.
+    static D3D11_BLEND_DESC AlphaBlend();
+    // 기본 깊이 테스트용 depth-stencil 설명자를 만든다.
+    static D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc();
+    // 지면 그림자 스텐실 처리용 depth-stencil 설명자를 만든다.
+    static D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc();
+
     UINT    multiSampleCount = 4;
     UINT	multiSampleQuality = 0;
     std::map<std::filesystem::path, Dx11Texture>	    textures;

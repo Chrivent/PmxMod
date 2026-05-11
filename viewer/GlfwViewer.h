@@ -2,7 +2,19 @@
 
 #include "Viewer.h"
 
+#include <string>
+
 class GlfwViewer;
+
+class GlfwShaderHelper {
+public:
+    // GLSL 셰이더 소스를 지정한 타입으로 컴파일한다.
+    static GLuint CompileShader(GLenum shaderType, const std::string& code);
+    // 단일 GLSL 파일에서 버텍스/프래그먼트 분기를 위한 define 줄을 삽입한다.
+    static std::string InjectDefine(const std::string& src, const char* defineLine);
+    // GLSL 파일을 읽어 버텍스/프래그먼트 셰이더 프로그램을 생성한다.
+    static GLuint CreateShader(const std::filesystem::path& file);
+};
 
 class GlfwShader {
 public:
@@ -36,6 +48,10 @@ public:
 
     // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GlfwViewer& viewer);
+
+private:
+    // uniform 이름 목록을 조회해 대응하는 위치 포인터들에 저장한다.
+    static void LoadUniformLocations(GLuint program, const char* const* names, GLint* const* outs, int count);
 };
 
 class GlfwEdgeShader {
@@ -98,6 +114,12 @@ public:
     void Draw() const override;
 
 private:
+    // OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
+    static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
+    // 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
+    static GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
+        int attribCount, GLuint ibo);
+
     GlfwViewer* viewer = nullptr;
     GLuint  posVbo = 0;
     GLuint	norVbo = 0;
@@ -136,6 +158,9 @@ public:
     GlfwTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 
 private:
+    // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
+    static void* LoadGlProc(const char* name);
+
     const int   msaaSamples = 4;
     std::map<std::filesystem::path, GlfwTexture>    textures;
 };

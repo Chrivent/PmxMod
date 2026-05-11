@@ -6,7 +6,7 @@
 #include <ranges>
 #include <stb_image.h>
 
-GLuint CompileShader(const GLenum shaderType, const std::string& code) {
+GLuint GlfwShaderHelper::CompileShader(const GLenum shaderType, const std::string& code) {
 	const GLuint shader = glCreateShader(shaderType);
 	if (!shader)
 		return 0;
@@ -17,7 +17,7 @@ GLuint CompileShader(const GLenum shaderType, const std::string& code) {
 	return shader;
 }
 
-GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
+GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
 	GLuint b = 0;
 	glGenBuffers(1, &b);
 	glBindBuffer(target, b);
@@ -25,7 +25,7 @@ GLuint CreateBuffer(const GLenum target, const size_t size, const void* data, co
 	return b;
 }
 
-GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
+GLuint GlfwInstance::CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
 	const int attribCount, const GLuint ibo) {
 	GLuint vao = 0;
 	glGenVertexArrays(1, &vao);
@@ -42,16 +42,16 @@ GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, c
 	return vao;
 }
 
-void LoadUniformLocations(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
+void GlfwShader::LoadUniformLocations(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
 	for (int i = 0; i < count; i++)
 		*outs[i] = glGetUniformLocation(prog, names[i]);
 }
 
-void* LoadGlProc(const char* name) {
+void* GlfwViewer::LoadGlProc(const char* name) {
 	return reinterpret_cast<void*>(glfwGetProcAddress(name));
 }
 
-std::string InjectDefine(const std::string& src, const char* defineLine) {
+std::string GlfwShaderHelper::InjectDefine(const std::string& src, const char* defineLine) {
 	if (src.rfind("#version", 0) == 0) {
 		const auto nl = src.find('\n');
 		if (nl != std::string::npos) {
@@ -67,7 +67,7 @@ std::string InjectDefine(const std::string& src, const char* defineLine) {
 	return std::string(defineLine) + "\n" + src;
 }
 
-GLuint CreateShader(const std::filesystem::path& file) {
+GLuint GlfwShaderHelper::CreateShader(const std::filesystem::path& file) {
 	std::ifstream f(file);
 	if (!f)
 		return 0;
@@ -104,7 +104,7 @@ GlfwShader::~GlfwShader() {
 }
 
 bool GlfwShader::Setup(const GlfwViewer& viewer) {
-	program = CreateShader(viewer.shaderDir / "mmd.glsl");
+	program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd.glsl");
 	if (program == 0)
 		return false;
 	positionLocation = glGetAttribLocation(program, "position");
@@ -141,7 +141,7 @@ GlfwEdgeShader::~GlfwEdgeShader() {
 }
 
 bool GlfwEdgeShader::Setup(const GlfwViewer& viewer) {
-	program = CreateShader(viewer.shaderDir / "mmd_edge.glsl");
+	program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd_edge.glsl");
 	if (program == 0)
 		return false;
 	positionLocation = glGetAttribLocation(program, "position");
@@ -161,7 +161,7 @@ GlfwGroundShadowShader::~GlfwGroundShadowShader() {
 }
 
 bool GlfwGroundShadowShader::Setup(const GlfwViewer& viewer) {
-	program = CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
+	program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
 	if (program == 0)
 		return false;
 	positionLocation = glGetAttribLocation(program, "position");
