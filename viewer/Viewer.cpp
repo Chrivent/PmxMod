@@ -161,14 +161,13 @@ void Viewer::HandleInput(Sound& music) {
     prevRightMouseDown = rightMouseDown;
 }
 
-unsigned char* Viewer::LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
+unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
     stbi_set_flip_vertically_on_load(flipY);
-    stbi_uc* image = nullptr;
     x = y = comp = 0;
     FILE* fp = nullptr;
     if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
         return nullptr;
-    image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
+    stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
     std::fclose(fp);
     return image;
 }

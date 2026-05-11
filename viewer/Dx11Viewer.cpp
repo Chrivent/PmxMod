@@ -368,7 +368,7 @@ Dx11Texture Dx11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 	if (it != textures.end())
 		return it->second;
 	int x = 0, y = 0, comp = 0;
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp);
+	stbi_uc* image = LoadImageRgba(texturePath, x, y, comp);
 	if (!image)
 		return {};
 	D3D11_TEXTURE2D_DESC d;

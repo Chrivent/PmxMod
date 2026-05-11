@@ -458,7 +458,7 @@ GlfwTexture GlfwViewer::LoadTexture(const std::filesystem::path& texturePath, co
 	if (it != textures.end())
 		return it->second;
 	int x = 0, y = 0, comp = 0;
-	stbi_uc* image = LoadImageRGBA(texturePath, x, y, comp, true);
+	stbi_uc* image = LoadImageRgba(texturePath, x, y, comp, true);
 	if (!image)
 		return GlfwTexture{ 0, false };
 	const bool hasAlpha = comp == 4;

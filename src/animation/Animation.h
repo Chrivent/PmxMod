@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 class Animation {
-public:
+protected:
 	// VMD 보간 바이트 네 개를 정규화된 2D Bezier 제어점으로 변환한다.
 	static void AssignBezier(std::pair<glm::vec2, glm::vec2>& bezier, int x0, int x1, int y0, int y1);
 	// 3차 Bezier 곡선의 단일 축 값을 계산한다.

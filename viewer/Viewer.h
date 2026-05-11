@@ -68,7 +68,7 @@ public:
     virtual std::unique_ptr<Instance> CreateInstance() const = 0;
 
     // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.
-    static unsigned char* LoadImageRGBA(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
+    static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
     // 씬 설정의 카메라 VMD를 로드한다.
