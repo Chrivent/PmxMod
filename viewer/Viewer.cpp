@@ -105,11 +105,11 @@ bool Viewer::Run(const SceneConfig& cfg) {
 unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
     stbi_set_flip_vertically_on_load(flipY);
     x = y = comp = 0;
-    FILE* fp = nullptr;
-    if (_wfopen_s(&fp, texturePath.c_str(), L"rb") != 0 || !fp)
+    FILE* imageFile = nullptr;
+    if (_wfopen_s(&imageFile, texturePath.c_str(), L"rb") != 0 || !imageFile)
         return nullptr;
-    stbi_uc* image = stbi_load_from_file(fp, &x, &y, &comp, STBI_rgb_alpha);
-    std::fclose(fp);
+    stbi_uc* image = stbi_load_from_file(imageFile, &x, &y, &comp, STBI_rgb_alpha);
+    std::fclose(imageFile);
     return image;
 }
 
