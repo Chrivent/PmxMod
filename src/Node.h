@@ -7,14 +7,17 @@
 class IkSolver;
 
 class Node : public std::enable_shared_from_this<Node> {
+	std::weak_ptr<Node>		child;
+	std::weak_ptr<Node>		next;
+	std::weak_ptr<Node>		prev;
+	glm::vec3				appendTranslate = glm::vec3(0);
+	glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
+
 public:
 	uint32_t				index = 0;
 	std::string				name;
 	bool					enableIk = false;
 	std::weak_ptr<Node>		parent;
-	std::weak_ptr<Node>		child;
-	std::weak_ptr<Node>		next;
-	std::weak_ptr<Node>		prev;
 	glm::vec3				translate = glm::vec3(0);
 	glm::quat				rotate = glm::quat(1, 0, 0, 0);
 	glm::vec3				scale = glm::vec3(1);
@@ -36,8 +39,6 @@ public:
 	bool					isAppendTranslate = false;
 	bool					isAppendLocal = false;
 	float					appendWeight = 0;
-	glm::vec3				appendTranslate = glm::vec3(0);
-	glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 	std::weak_ptr<IkSolver>	ikSolver;
 
 	// 이 노드에 자식 노드를 연결하고 형제 링크를 갱신한다.
