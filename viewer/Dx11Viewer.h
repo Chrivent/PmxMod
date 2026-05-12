@@ -191,7 +191,7 @@ public:
     void UpdateViewport() const;
     // HLSL 버텍스 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
     bool MakeVs(const std::filesystem::path& f, const char* entry,
-    Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
     // HLSL 픽셀 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
     bool MakePs(const std::filesystem::path& f, const char* entry,
         Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPs) const;
