@@ -2,6 +2,7 @@
 
 #include "Viewer.h"
 
+#include <map>
 #include <string>
 
 class GlfwViewer;

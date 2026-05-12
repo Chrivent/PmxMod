@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include <map>
-
 #include "Reader.h"
 
 struct Morph;
@@ -49,9 +47,24 @@ struct IkAnimationKey {
 };
 
 class Animation {
-	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> nodes;
-	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> iks;
-	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> morphs;
+	struct NodeAnimationTrack {
+		std::shared_ptr<Node> node;
+		std::vector<NodeAnimationKey> keys;
+	};
+
+	struct IkAnimationTrack {
+		std::shared_ptr<IkSolver> ikSolver;
+		std::vector<IkAnimationKey> keys;
+	};
+
+	struct MorphAnimationTrack {
+		std::shared_ptr<Morph> morph;
+		std::vector<MorphAnimationKey> keys;
+	};
+	
+	std::vector<NodeAnimationTrack> nodeTracks;
+	std::vector<IkAnimationTrack> ikTracks;
+	std::vector<MorphAnimationTrack> morphTracks;
 
 	// VMD 본 모션을 노드 애니메이션 트랙에 병합한다.
 	void AddNodeAnimations(const VmdReader& vmd);

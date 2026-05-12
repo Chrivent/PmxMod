@@ -3,6 +3,7 @@
 #include "Model.h"
 #include "Util.h"
 
+#include <map>
 #include <ranges>
 
 void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
@@ -55,95 +56,95 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 }
 
 void Animation::AddNodeAnimations(const VmdReader& vmd) {
-	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
-	for (auto& node : nodes) {
-		if (node.first)
-			nodeMap.emplace(node.first->name, std::move(node));
+	std::map<std::string, NodeAnimationTrack> nodeMap;
+	for (auto& track : nodeTracks) {
+		if (track.node)
+			nodeMap.emplace(track.node->name, std::move(track));
 	}
-	nodes.clear();
+	nodeTracks.clear();
 	for (const auto& motion : vmd.motions) {
 		auto nodeName = Util::SjisToUtf8(motion.boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
-		auto& [first, second] = findIt->second;
+		auto& [node, keys] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(model->nodes, nodeName,
-				[](const std::shared_ptr<Node>& node) { return node->name; });
-			first = it != model->nodes.end() ? *it : nullptr;
+				[](const std::shared_ptr<Node>& candidate) { return candidate->name; });
+			node = it != model->nodes.end() ? *it : nullptr;
 		}
-		if (!first)
+		if (!node)
 			continue;
-		second.emplace_back().ApplyMotion(motion);
+		keys.emplace_back().ApplyMotion(motion);
 	}
-	for (auto& val : nodeMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &NodeAnimationKey::time);
-		nodes.insert(std::move(val));
+	for (auto& track : nodeMap | std::views::values) {
+		std::ranges::sort(track.keys, {}, &NodeAnimationKey::time);
+		nodeTracks.emplace_back(std::move(track));
 	}
 }
 
 void Animation::AddIkAnimations(const VmdReader& vmd) {
-	std::map<std::string, std::pair<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>>> ikMap;
-	for (auto& ik : iks) {
-		if (ik.first) {
-			if (const auto ikNodePtr = ik.first->ikNode.lock())
-				ikMap.emplace(ikNodePtr->name, std::move(ik));
+	std::map<std::string, IkAnimationTrack> ikMap;
+	for (auto& track : ikTracks) {
+		if (track.ikSolver) {
+			if (const auto ikNodePtr = track.ikSolver->ikNode.lock())
+				ikMap.emplace(ikNodePtr->name, std::move(track));
 		}
 	}
-	iks.clear();
+	ikTracks.clear();
 	for (const auto& ik : vmd.iks) {
 		for (const auto& [name, enable] : ik.ikInfos) {
 			auto ikName = Util::SjisToUtf8(name);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
-			auto& [first, second] = findIt->second;
+			auto& [ikSolver, keys] = findIt->second;
 			if (inserted) {
 				auto it = std::ranges::find(model->ikSolvers, ikName,
-					[](const std::shared_ptr<IkSolver>& ikSolver){
-						const auto ikNodePtr = ikSolver->ikNode.lock();
+					[](const std::shared_ptr<IkSolver>& candidate){
+						const auto ikNodePtr = candidate->ikNode.lock();
 						return ikNodePtr ? ikNodePtr->name : std::string{};
 				});
-				first = it != model->ikSolvers.end() ? *it : nullptr;
+				ikSolver = it != model->ikSolvers.end() ? *it : nullptr;
 			}
-			if (!first)
+			if (!ikSolver)
 				continue;
-			auto& [time, ikEnable] = second.emplace_back();
+			auto& [time, ikEnable] = keys.emplace_back();
 			time = static_cast<int32_t>(ik.frame);
 			ikEnable = enable != 0;
 		}
 	}
-	for (auto& val : ikMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &IkAnimationKey::time);
-		iks.insert(std::move(val));
+	for (auto& track : ikMap | std::views::values) {
+		std::ranges::sort(track.keys, {}, &IkAnimationKey::time);
+		ikTracks.emplace_back(std::move(track));
 	}
 }
 
 void Animation::AddMorphAnimations(const VmdReader& vmd) {
-	std::map<std::string, std::pair<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>>> morphMap;
-	for (auto& morph : morphs) {
-		if (morph.first)
-			morphMap.emplace(morph.first->name, std::move(morph));
+	std::map<std::string, MorphAnimationTrack> morphMap;
+	for (auto& track : morphTracks) {
+		if (track.morph)
+			morphMap.emplace(track.morph->name, std::move(track));
 	}
-	morphs.clear();
+	morphTracks.clear();
 	for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 		auto morphName = Util::SjisToUtf8(blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
-		auto& [first, second] = findIt->second;
+		auto& [morph, keys] = findIt->second;
 		if (inserted) {
 			auto it = std::ranges::find(model->morphs, morphName, &Morph::name);
-			first = it != model->morphs.end() ? std::shared_ptr<Morph>(model, it->get()) : nullptr;
+			morph = it != model->morphs.end() ? std::shared_ptr<Morph>(model, it->get()) : nullptr;
 		}
-		if (!first)
+		if (!morph)
 			continue;
-		auto& [time, morphWeight] = second.emplace_back();
+		auto& [time, morphWeight] = keys.emplace_back();
 		time = static_cast<int32_t>(frame);
 		morphWeight = weight;
 	}
-	for (auto& val : morphMap | std::views::values) {
-		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
-		morphs.insert(std::move(val));
+	for (auto& track : morphMap | std::views::values) {
+		std::ranges::sort(track.keys, {}, &MorphAnimationKey::time);
+		morphTracks.emplace_back(std::move(track));
 	}
 }
 
 void Animation::EvaluateNodes(const float t, const float animWeight) const {
-	for (const auto& [node, keys]: nodes) {
+	for (const auto& [node, keys]: nodeTracks) {
 		if (!node)
 			continue;
 		if (keys.empty()) {
@@ -176,7 +177,7 @@ void Animation::EvaluateNodes(const float t, const float animWeight) const {
 }
 
 void Animation::EvaluateIks(const float t, const float animWeight) const {
-	for (const auto& [ikSolver, keys] : iks) {
+	for (const auto& [ikSolver, keys] : ikTracks) {
 		if (!ikSolver)
 			continue;
 		if (keys.empty()) {
@@ -191,7 +192,7 @@ void Animation::EvaluateIks(const float t, const float animWeight) const {
 }
 
 void Animation::EvaluateMorphs(const float t, const float animWeight) const {
-	for (const auto& [morph, keys] : morphs) {
+	for (const auto& [morph, keys] : morphTracks) {
 		if (!morph)
 			continue;
 		if (keys.empty())
@@ -218,9 +219,9 @@ bool Animation::Add(const VmdReader& vmd) {
 
 void Animation::Destroy() {
 	model.reset();
-	nodes.clear();
-	iks.clear();
-	morphs.clear();
+	nodeTracks.clear();
+	ikTracks.clear();
+	morphTracks.clear();
 }
 
 void Animation::Evaluate(const float t, const float animWeight) const {

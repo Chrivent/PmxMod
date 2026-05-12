@@ -1,9 +1,10 @@
 ﻿#pragma once
 
+#include "Viewer.h"
+
+#include <map>
 #include <d3d11.h>
 #include <wrl/client.h>
-
-#include "Viewer.h"
 
 class Dx11Viewer;
 
