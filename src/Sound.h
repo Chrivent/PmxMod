@@ -6,6 +6,15 @@ struct ma_engine;
 struct ma_sound;
 
 class Sound {
+    float volume = 0.1f;
+    double lengthSec = 0.0;
+    std::unique_ptr<ma_engine> engine;
+    std::unique_ptr<ma_sound>  sound;
+    double prevTimeSec = 0.0;
+
+    // miniaudio 엔진과 사운드 객체를 해제한다.
+    void UnInit();
+    
 public:
     Sound();
     ~Sound();
@@ -29,14 +38,4 @@ public:
     void Resume();
     // 사운드를 정지하고 재생 위치를 초기화한다.
     void Stop();
-
-private:
-    float volume = 0.1f;
-    double lengthSec = 0.0;
-    std::unique_ptr<ma_engine> engine;
-    std::unique_ptr<ma_sound>  sound;
-    double prevTimeSec = 0.0;
-
-    // miniaudio 엔진과 사운드 객체를 해제한다.
-    void UnInit();
 };

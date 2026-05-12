@@ -54,13 +54,6 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 		motion.interpolation[7], motion.interpolation[15]);
 }
 
-bool Animation::Add(const VmdReader& vmd) {
-	AddNodeAnimations(vmd);
-	AddIkAnimations(vmd);
-	AddMorphAnimations(vmd);
-	return true;
-}
-
 void Animation::AddNodeAnimations(const VmdReader& vmd) {
 	std::map<std::string, std::pair<std::shared_ptr<Node>, std::vector<NodeAnimationKey>>> nodeMap;
 	for (auto& node : nodes) {
@@ -106,8 +99,7 @@ void Animation::AddIkAnimations(const VmdReader& vmd) {
 					[](const std::shared_ptr<IkSolver>& ikSolver){
 						const auto ikNodePtr = ikSolver->ikNode.lock();
 						return ikNodePtr ? ikNodePtr->name : std::string{};
-					}
-				);
+				});
 				first = it != model->ikSolvers.end() ? *it : nullptr;
 			}
 			if (!first)
@@ -148,19 +140,6 @@ void Animation::AddMorphAnimations(const VmdReader& vmd) {
 		std::ranges::sort(val.second, {}, &MorphAnimationKey::time);
 		morphs.insert(std::move(val));
 	}
-}
-
-void Animation::Destroy() {
-	model.reset();
-	nodes.clear();
-	iks.clear();
-	morphs.clear();
-}
-
-void Animation::Evaluate(const float t, const float animWeight) const {
-	EvaluateNodes(t, animWeight);
-	EvaluateIks(t, animWeight);
-	EvaluateMorphs(t, animWeight);
 }
 
 void Animation::EvaluateNodes(const float t, const float animWeight) const {
@@ -205,7 +184,7 @@ void Animation::EvaluateIks(const float t, const float animWeight) const {
 			continue;
 		}
 		const auto it = std::ranges::upper_bound(keys, t, std::less{},
-			[](const IkAnimationKey& k) { return static_cast<float>(k.time); });
+		[](const IkAnimationKey& k) { return static_cast<float>(k.time); });
 		const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 		ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 	}
@@ -218,7 +197,7 @@ void Animation::EvaluateMorphs(const float t, const float animWeight) const {
 		if (keys.empty())
 			continue;
 		const auto it = std::ranges::upper_bound(keys, t, std::less{},
-			[](const MorphAnimationKey& k) { return static_cast<float>(k.time); });
+		[](const MorphAnimationKey& k) { return static_cast<float>(k.time); });
 		float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 		if (it != keys.begin() && it != keys.end()) {
 			auto [time0, weight0] = *(it - 1);
@@ -228,6 +207,26 @@ void Animation::EvaluateMorphs(const float t, const float animWeight) const {
 		}
 		morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;
 	}
+}
+
+bool Animation::Add(const VmdReader& vmd) {
+	AddNodeAnimations(vmd);
+	AddIkAnimations(vmd);
+	AddMorphAnimations(vmd);
+	return true;
+}
+
+void Animation::Destroy() {
+	model.reset();
+	nodes.clear();
+	iks.clear();
+	morphs.clear();
+}
+
+void Animation::Evaluate(const float t, const float animWeight) const {
+	EvaluateNodes(t, animWeight);
+	EvaluateIks(t, animWeight);
+	EvaluateMorphs(t, animWeight);
 }
 
 void Animation::SyncPhysics(const float t) const {
@@ -296,7 +295,7 @@ void CameraAnimation::Evaluate(const float t) {
 	if (keys.empty())
 		return;
 	const auto it = std::ranges::upper_bound(keys, t, std::less{},
-		[](const CameraAnimationKey& k) { return static_cast<float>(k.time); });
+	[](const CameraAnimationKey& k) { return static_cast<float>(k.time); });
 	const auto& cur = it != keys.end() ? *it : keys.back();
 	camera.interest = cur.interest;
 	camera.rotate = cur.rotate;

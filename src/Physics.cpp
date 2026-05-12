@@ -4,7 +4,6 @@
 #include "Util.h"
 
 MotionState::~MotionState() = default;
-DefaultMotionState::~DefaultMotionState() = default;
 
 bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 	const auto endIt = nonFilterProxy.end();
@@ -21,9 +20,10 @@ DefaultMotionState::DefaultMotionState(const glm::mat4& initialMatrix) {
 	initialTransform = transform;
 }
 
+DefaultMotionState::~DefaultMotionState() = default;
+
 DynamicMotionState::DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
-	: node(nodePtr)
-	, offset(offsetMatrix) {
+	: offset(offsetMatrix), node(nodePtr) {
 	invOffset = glm::inverse(offsetMatrix);
 	DynamicMotionState::Reset();
 }
@@ -54,9 +54,7 @@ void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) co
 }
 
 KinematicMotionState::KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
-	: node(nodePtr)
-	, offset(offsetMatrix) {
-}
+	: node(nodePtr), offset(offsetMatrix) {}
 
 void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
 	const auto nodePtr = node.lock();
@@ -99,8 +97,8 @@ void RigidBody::Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model*
 	const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
 	offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
 	kinematicMotionState = nodePtr
-		? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
-		: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
+	? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
+	: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
 	if (pmxRigidBody.op != Operation::Static) {
 		if (nodePtr) {
 			if (pmxRigidBody.op == Operation::Dynamic)

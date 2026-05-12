@@ -27,6 +27,9 @@ public:
 };
 
 class DefaultMotionState final : public MotionState {
+	btTransform	initialTransform;
+	btTransform	transform;
+	
 public:
 	explicit DefaultMotionState(const glm::mat4& initialMatrix);
 	~DefaultMotionState() override;
@@ -37,13 +40,19 @@ public:
 	void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
 	// 저장된 초기 변환으로 되돌린다.
 	void Reset() override { transform = initialTransform; }
-
-private:
-	btTransform	initialTransform;
-	btTransform	transform;
 };
 
 class DynamicMotionState : public MotionState {
+	glm::mat4	offset;
+	glm::mat4	invOffset = glm::mat4(1);
+	btTransform	transform;
+
+protected:
+	std::weak_ptr<Node>	node;
+
+	// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스가 보정한다.
+	virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
+	
 public:
 	DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
 
@@ -55,29 +64,21 @@ public:
 	void Reset() override;
 	// 물리 변환을 연결된 본의 글로벌 변환에 반영한다.
 	void ReflectGlobalTransform() override;
-
-protected:
-	std::weak_ptr<Node>	node;
-
-	// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스가 보정한다.
-	virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
-
-private:
-	glm::mat4	offset;
-	glm::mat4	invOffset = glm::mat4(1);
-	btTransform	transform;
 };
 
 class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
-public:
-	using DynamicMotionState::DynamicMotionState;
-
 protected:
 	// 물리 변환과 본 변환을 병합하기 위한 후처리를 수행한다.
 	void PostProcessBtGlobal(glm::mat4& btGlobal) const override;
+	
+public:
+	using DynamicMotionState::DynamicMotionState;
 };
 
 class KinematicMotionState final : public MotionState {
+	std::weak_ptr<Node>	node;
+	glm::mat4			offset;
+	
 public:
 	KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
 
@@ -85,13 +86,17 @@ public:
 	void getWorldTransform(btTransform& worldTransform) const override;
 	// 키네마틱 강체는 Bullet에서 쓰는 월드 변환 갱신을 무시한다.
 	void setWorldTransform(const btTransform& worldTransform) override {}
-
-private:
-	std::weak_ptr<Node>	node;
-	glm::mat4			offset;
 };
 
 class RigidBody {
+	std::unique_ptr<btCollisionShape>	shape;
+	std::unique_ptr<MotionState>		activeMotionState;
+	std::unique_ptr<MotionState>		kinematicMotionState;
+	Operation							rigidBodyType = Operation::Static;
+	std::weak_ptr<Node>					node;
+	glm::mat4							offsetMat = glm::mat4(1);
+	std::string							name;
+	
 public:
 	std::unique_ptr<btRigidBody>	rigidBody;
 	uint16_t						group = 0;
@@ -109,15 +114,6 @@ public:
 	// PMX 오프셋 기준의 로컬 변환을 계산한다.
 	void CalcLocalTransform() const;
 	glm::mat4 CalcTransform() const;
-
-private:
-	std::unique_ptr<btCollisionShape>	shape;
-	std::unique_ptr<MotionState>		activeMotionState;
-	std::unique_ptr<MotionState>		kinematicMotionState;
-	Operation							rigidBodyType = Operation::Static;
-	std::weak_ptr<Node>					node;
-	glm::mat4							offsetMat = glm::mat4(1);
-	std::string							name;
 };
 
 class Joint {
@@ -129,6 +125,15 @@ public:
 };
 
 class Physics {
+	std::unique_ptr<btBroadphaseInterface>					broadPhase;
+	std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;
+	std::unique_ptr<btCollisionDispatcher>					dispatcher;
+	std::unique_ptr<btSequentialImpulseConstraintSolver>	solver;
+	std::unique_ptr<btCollisionShape>						groundShape;
+	std::unique_ptr<btMotionState>							groundMotionState;
+	std::unique_ptr<btRigidBody>							groundRigidBody;
+	std::unique_ptr<btOverlapFilterCallback>				filterCallback;
+	
 public:
 	~Physics();
 
@@ -138,14 +143,4 @@ public:
 
 	// Bullet 월드와 기본 물리 리소스를 생성한다.
 	void Create();
-
-private:
-	std::unique_ptr<btBroadphaseInterface>					broadPhase;
-	std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;
-	std::unique_ptr<btCollisionDispatcher>					dispatcher;
-	std::unique_ptr<btSequentialImpulseConstraintSolver>	solver;
-	std::unique_ptr<btCollisionShape>						groundShape;
-	std::unique_ptr<btMotionState>							groundMotionState;
-	std::unique_ptr<btRigidBody>							groundRigidBody;
-	std::unique_ptr<btOverlapFilterCallback>				filterCallback;
 };

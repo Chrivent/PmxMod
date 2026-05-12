@@ -79,12 +79,6 @@ public:
 };
 
 class Dx11Instance : public Instance {
-public:
-    // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
-    bool Setup(Viewer& baseViewer) override;
-    // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
-    void Update() const override;
-    
 protected:
     // 일반 메시 패스를 DX11로 렌더링한다.
     void DrawModel() const override;
@@ -122,9 +116,40 @@ protected:
     Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
+    
+public:
+    // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
+    bool Setup(Viewer& baseViewer) override;
+    // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
+    void Update() const override;
 };
 
 class Dx11Viewer : public Viewer {
+    // 지정한 필터와 주소 모드로 샘플러 설명자를 만든다.
+    static D3D11_SAMPLER_DESC MakeSamplerDesc(D3D11_FILTER f, D3D11_TEXTURE_ADDRESS_MODE addr);
+    // 컬링 모드와 front-face 방향으로 래스터라이저 설명자를 만든다.
+    static D3D11_RASTERIZER_DESC MakeRasterizerDesc(D3D11_CULL_MODE cull, bool frontCcw);
+    // 일반 알파 블렌딩용 블렌드 설명자를 만든다.
+    static D3D11_BLEND_DESC MakeAlphaBlendDesc();
+    // GLFW 윈도우와 MSAA 설정으로 스왑체인 설명자를 만든다.
+    static DXGI_SWAP_CHAIN_DESC MakeSwapChainDesc(HWND__* hwnd, UINT sampleCount, UINT sampleQuality);
+    // 2D 텍스처의 기본 설명자를 만든다.
+    static D3D11_TEXTURE2D_DESC MakeTexture2DDesc(UINT width, UINT height, DXGI_FORMAT format,
+        UINT bindFlags, UINT sampleCount = 1, UINT sampleQuality = 0);
+    // 기본 깊이 테스트용 depth-stencil 설명자를 만든다.
+    static D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc();
+    // 지면 그림자 스텐실 처리용 depth-stencil 설명자를 만든다.
+    static D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc();
+
+    UINT    multiSampleCount = 4;
+    UINT	multiSampleQuality = 0;
+    std::map<std::filesystem::path, Dx11Texture>	    textures;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
+    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D>             depthTex;
+    Microsoft::WRL::ComPtr<IDXGISwapChain>              swapChain;
+    
 public:
     Microsoft::WRL::ComPtr<ID3D11Device>			    device;
     Microsoft::WRL::ComPtr<ID3D11VertexShader>	        vs;
@@ -160,7 +185,6 @@ public:
     bool EndFrame() override;
     // DX11 모델 인스턴스를 생성한다.
     std::unique_ptr<Instance> CreateInstance() const override;
-
     // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
     Dx11Texture LoadTexture(const std::filesystem::path& texturePath);
     // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
@@ -179,30 +203,4 @@ public:
     bool CreatePipelineStates();
     // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
     bool CreateDummyResources();
-
-private:
-    // 지정한 필터와 주소 모드로 샘플러 설명자를 만든다.
-    static D3D11_SAMPLER_DESC MakeSamplerDesc(D3D11_FILTER f, D3D11_TEXTURE_ADDRESS_MODE addr);
-    // 컬링 모드와 front-face 방향으로 래스터라이저 설명자를 만든다.
-    static D3D11_RASTERIZER_DESC MakeRasterizerDesc(D3D11_CULL_MODE cull, bool frontCcw);
-    // 일반 알파 블렌딩용 블렌드 설명자를 만든다.
-    static D3D11_BLEND_DESC MakeAlphaBlendDesc();
-    // GLFW 윈도우와 MSAA 설정으로 스왑체인 설명자를 만든다.
-    static DXGI_SWAP_CHAIN_DESC MakeSwapChainDesc(HWND__* hwnd, UINT sampleCount, UINT sampleQuality);
-    // 2D 텍스처의 기본 설명자를 만든다.
-    static D3D11_TEXTURE2D_DESC MakeTexture2DDesc(UINT width, UINT height, DXGI_FORMAT format,
-        UINT bindFlags, UINT sampleCount = 1, UINT sampleQuality = 0);
-    // 기본 깊이 테스트용 depth-stencil 설명자를 만든다.
-    static D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc();
-    // 지면 그림자 스텐실 처리용 depth-stencil 설명자를 만든다.
-    static D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc();
-
-    UINT    multiSampleCount = 4;
-    UINT	multiSampleQuality = 0;
-    std::map<std::filesystem::path, Dx11Texture>	    textures;
-    Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
-    Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D>             depthTex;
-    Microsoft::WRL::ComPtr<IDXGISwapChain>              swapChain;
 };

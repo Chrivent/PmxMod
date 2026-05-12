@@ -17,40 +17,6 @@ GLuint GlfwShaderHelper::CompileShader(const GLenum shaderType, const std::strin
 	return shader;
 }
 
-GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
-	GLuint b = 0;
-	glGenBuffers(1, &b);
-	glBindBuffer(target, b);
-	glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
-	return b;
-}
-
-GLuint GlfwInstance::CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
-	const int attribCount, const GLuint ibo) {
-	GLuint vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	for (int i = 0; i < attribCount; i++) {
-		if (locs[i] < 0)
-			continue;
-		glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
-		glVertexAttribPointer(locs[i], sizes[i], types[i], GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(locs[i]);
-	}
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBindVertexArray(0);
-	return vao;
-}
-
-void GlfwShader::LoadUniformLocations(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
-	for (int i = 0; i < count; i++)
-		*outs[i] = glGetUniformLocation(prog, names[i]);
-}
-
-void* GlfwViewer::LoadGlProc(const char* name) {
-	return reinterpret_cast<void*>(glfwGetProcAddress(name));
-}
-
 std::string GlfwShaderHelper::InjectDefine(const std::string& src, const char* defineLine) {
 	if (src.rfind("#version", 0) == 0) {
 		const auto nl = src.find('\n');
@@ -95,6 +61,11 @@ GLuint GlfwShaderHelper::CreateShader(const std::filesystem::path& file) {
 	glDeleteShader(vs);
 	glDeleteShader(fs);
 	return prog;
+}
+
+void GlfwShader::LoadUniformLocations(const GLuint prog, const char* const* names, GLint* const* outs, const int count) {
+	for (int i = 0; i < count; i++)
+		*outs[i] = glGetUniformLocation(prog, names[i]);
 }
 
 GlfwShader::~GlfwShader() {
@@ -172,101 +143,6 @@ bool GlfwGroundShadowShader::Setup(const GlfwViewer& viewer) {
 
 GlfwMaterial::GlfwMaterial(const Material& sourceMat)
 	: mat(sourceMat) {
-}
-
-GlfwInstance::~GlfwInstance() {
-	GlfwInstance::Clear();
-}
-
-bool GlfwInstance::Setup(Viewer& baseViewer) {
-	viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
-	if (model == nullptr)
-		return false;
-	const size_t vtxCount = model->positions.size();
-	posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-	norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-	uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-	const size_t idxSize = model->indexElementSize;
-	const size_t idxCount = model->indexCount;
-	ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->indices.data(), GL_STATIC_DRAW);
-	if (idxSize == 1)
-		indexType = GL_UNSIGNED_BYTE;
-	else if (idxSize == 2)
-		indexType = GL_UNSIGNED_SHORT;
-	else if (idxSize == 4)
-		indexType = GL_UNSIGNED_INT;
-	else
-		return false;
-	const GLuint buffers[][3]   = {
-		{ posVbo, norVbo, uvVbo },
-		{ posVbo, norVbo },
-		{ posVbo }
-	};
-	const GLint locs[][3] = {
-		{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
-		{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
-		{ viewer->gsShader->positionLocation }
-	};
-	constexpr GLint sizes[][3] = {
-		{ 3, 3, 2 },
-		{ 3, 3 },
-		{ 3 }
-	};
-	constexpr GLenum types[][3]  = {
-		{ GL_FLOAT, GL_FLOAT, GL_FLOAT },
-		{ GL_FLOAT, GL_FLOAT },
-		{ GL_FLOAT }
-	};
-	vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
-	edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
-	gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
-	for (const auto& mat : model->materials) {
-		GlfwMaterial material(mat);
-		if (!mat.texture.empty()) {
-			auto [texture, hasAlpha] = viewer->LoadTexture(mat.texture);
-			material.texture = texture;
-			material.textureHasAlpha = hasAlpha;
-		}
-		if (!mat.spTexture.empty())
-			material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
-		if (!mat.cartoonTexture.empty())
-			material.cartoonTexture = viewer->LoadTexture(mat.cartoonTexture, true).texture;
-		materials.emplace_back(material);
-	}
-	return true;
-}
-
-void GlfwInstance::Clear() {
-	if (posVbo != 0)
-		glDeleteBuffers(1, &posVbo);
-	if (norVbo != 0)
-		glDeleteBuffers(1, &norVbo);
-	if (uvVbo != 0)
-		glDeleteBuffers(1, &uvVbo);
-	if (ibo != 0)
-		glDeleteBuffers(1, &ibo);
-	posVbo = norVbo = uvVbo = ibo = 0;
-	if (vao != 0)
-		glDeleteVertexArrays(1, &vao);
-	if (edgeVao != 0)
-		glDeleteVertexArrays(1, &edgeVao);
-	if (gsVao != 0)
-		glDeleteVertexArrays(1, &gsVao);
-	vao = edgeVao = gsVao = 0;
-}
-
-void GlfwInstance::Update() const {
-	model->Update();
-	const size_t vtxCount = model->positions.size();
-	glBindBuffer(GL_ARRAY_BUFFER, posVbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		model->updatePositions.data());
-	glBindBuffer(GL_ARRAY_BUFFER, norVbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-		model->updateNormals.data());
-	glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
-		model->updateUVs.data());
 }
 
 void GlfwInstance::DrawModel() const {
@@ -414,6 +290,130 @@ void GlfwInstance::DrawGroundShadow() const {
 	glDisable(GL_BLEND);
 }
 
+GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
+	GLuint b = 0;
+	glGenBuffers(1, &b);
+	glBindBuffer(target, b);
+	glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
+	return b;
+}
+
+GLuint GlfwInstance::CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
+	const int attribCount, const GLuint ibo) {
+	GLuint vao = 0;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	for (int i = 0; i < attribCount; i++) {
+		if (locs[i] < 0)
+			continue;
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[i]);
+		glVertexAttribPointer(locs[i], sizes[i], types[i], GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(locs[i]);
+	}
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBindVertexArray(0);
+	return vao;
+}
+
+GlfwInstance::~GlfwInstance() {
+	GlfwInstance::Clear();
+}
+
+bool GlfwInstance::Setup(Viewer& baseViewer) {
+	viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
+	if (model == nullptr)
+		return false;
+	const size_t vtxCount = model->positions.size();
+	posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+	const size_t idxSize = model->indexElementSize;
+	const size_t idxCount = model->indexCount;
+	ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->indices.data(), GL_STATIC_DRAW);
+	if (idxSize == 1)
+		indexType = GL_UNSIGNED_BYTE;
+	else if (idxSize == 2)
+		indexType = GL_UNSIGNED_SHORT;
+	else if (idxSize == 4)
+		indexType = GL_UNSIGNED_INT;
+	else
+		return false;
+	const GLuint buffers[][3]   = {
+		{ posVbo, norVbo, uvVbo },
+		{ posVbo, norVbo },
+		{ posVbo }
+	};
+	const GLint locs[][3] = {
+		{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
+		{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
+		{ viewer->gsShader->positionLocation }
+	};
+	constexpr GLint sizes[][3] = {
+		{ 3, 3, 2 },
+		{ 3, 3 },
+		{ 3 }
+	};
+	constexpr GLenum types[][3]  = {
+		{ GL_FLOAT, GL_FLOAT, GL_FLOAT },
+		{ GL_FLOAT, GL_FLOAT },
+		{ GL_FLOAT }
+	};
+	vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
+	edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
+	gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
+	for (const auto& mat : model->materials) {
+		GlfwMaterial material(mat);
+		if (!mat.texture.empty()) {
+			auto [texture, hasAlpha] = viewer->LoadTexture(mat.texture);
+			material.texture = texture;
+			material.textureHasAlpha = hasAlpha;
+		}
+		if (!mat.spTexture.empty())
+			material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
+		if (!mat.cartoonTexture.empty())
+			material.cartoonTexture = viewer->LoadTexture(mat.cartoonTexture, true).texture;
+		materials.emplace_back(material);
+	}
+	return true;
+}
+
+void GlfwInstance::Clear() {
+	if (posVbo != 0)
+		glDeleteBuffers(1, &posVbo);
+	if (norVbo != 0)
+		glDeleteBuffers(1, &norVbo);
+	if (uvVbo != 0)
+		glDeleteBuffers(1, &uvVbo);
+	if (ibo != 0)
+		glDeleteBuffers(1, &ibo);
+	posVbo = norVbo = uvVbo = ibo = 0;
+	if (vao != 0)
+		glDeleteVertexArrays(1, &vao);
+	if (edgeVao != 0)
+		glDeleteVertexArrays(1, &edgeVao);
+	if (gsVao != 0)
+		glDeleteVertexArrays(1, &gsVao);
+	vao = edgeVao = gsVao = 0;
+}
+
+void GlfwInstance::Update() const {
+	model->Update();
+	const size_t vtxCount = model->positions.size();
+	glBindBuffer(GL_ARRAY_BUFFER, posVbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		model->updatePositions.data());
+	glBindBuffer(GL_ARRAY_BUFFER, norVbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		model->updateNormals.data());
+	glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
+		model->updateUVs.data());
+}
+
+void* GlfwViewer::LoadGlProc(const char* name) {
+	return reinterpret_cast<void*>(glfwGetProcAddress(name));
+}
+
 GlfwViewer::~GlfwViewer() {
 	for (auto& [texture, hasAlpha] : textures | std::views::values)
 		glDeleteTextures(1, &texture);
@@ -447,7 +447,9 @@ bool GlfwViewer::Setup() {
 		return false;
 	glGenTextures(1, &dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, dummyColorTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0,
+		GL_RGBA, 1, 1, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;
 }
@@ -483,7 +485,9 @@ GlfwTexture GlfwViewer::LoadTexture(const std::filesystem::path& texturePath, co
 	GLuint tex = 0;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	glTexImage2D(GL_TEXTURE_2D, 0,
+		GL_RGBA, x, y, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, image);
 	stbi_image_free(image);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

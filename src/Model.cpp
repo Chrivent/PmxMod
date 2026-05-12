@@ -9,177 +9,28 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
 
-Model::~Model() {
-	Destroy();
+void Model::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
+	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
+	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
+	out.ambient = glm::mix(out.ambient, out.ambient * val.ambient, weight);
+	out.edgeColor = glm::mix(out.edgeColor, out.edgeColor * val.edgeColor, weight);
+	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
+	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
+	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
+	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
 }
 
-void Model::InitializeAnimation() {
-	ClearBaseAnimation();
-	for (const auto& node : nodes) {
-		node->animTranslate = glm::vec3(0);
-		node->animRotate = glm::quat(1, 0, 0, 0);
-	}
-	BeginAnimation();
-	for (const auto& morph : morphs)
-		morph->weight = 0;
-	for (const auto& ikSolver : ikSolvers)
-		ikSolver->enable = true;
-	UpdateNodeAnimation(false);
-	UpdateNodeAnimation(true);
-	ResetPhysics();
-}
-
-void Model::SaveBaseAnimation() const {
-	for (const auto& node : nodes) {
-		node->baseAnimTranslate = node->animTranslate;
-		node->baseAnimRotate = node->animRotate;
-	}
-	for (const auto& morph : morphs)
-		morph->saveAnimWeight = morph->weight;
-	for (const auto& ikSolver : ikSolvers)
-		ikSolver->baseAnimEnable = ikSolver->enable;
-}
-
-void Model::ClearBaseAnimation() const {
-	for (const auto& node : nodes) {
-		node->baseAnimTranslate = glm::vec3(0);
-		node->baseAnimRotate = glm::quat(1, 0, 0, 0);
-	}
-	for (const auto& morph : morphs)
-		morph->saveAnimWeight = 0;
-	for (const auto& ikSolver : ikSolvers)
-		ikSolver->baseAnimEnable = true;
-}
-
-void Model::BeginAnimation() {
-	for (const auto& node : nodes)
-		node->BeginUpdateTransform();
-	for (const auto& node : nodes) {
-		node->animTranslate = glm::vec3(0);
-		node->animRotate = glm::quat(1, 0, 0, 0);
-	}
-	std::ranges::fill(morphPositions, glm::vec3(0));
-	std::ranges::fill(morphUVs, glm::vec4(0));
-}
-
-void Model::UpdateMorphAnimation() {
-	BeginMorphMaterial();
-	for (const auto& morph : morphs)
-		EvalMorph(morph.get(), morph->weight);
-	EndMorphMaterial();
-}
-
-void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-	const auto Pred = [&](const std::reference_wrapper<Node>& node) {
-		return node.get().isDeformAfterPhysics == afterPhysicsAnim;
-	};
-	for (auto& nodeRef : sortedNodes | std::views::filter(Pred))
-		nodeRef.get().UpdateLocalTransform();
-	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
-		auto& node = nodeRef.get();
-		if (node.parent.expired())
-			node.UpdateGlobalTransform();
-	}
-	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
-		auto& node = nodeRef.get();
-		if (!node.appendNode.expired()) {
-			node.UpdateAppendTransform();
-			node.UpdateGlobalTransform();
-		}
-		if (const auto ikSolver = node.ikSolver.lock()) {
-			ikSolver->Solve();
-			node.UpdateGlobalTransform();
-		}
-	}
-}
-
-void Model::ResetPhysics() const {
-	for (auto& rb : rigidBodies) {
-		rb->ApplyActivation(false);
-		rb->ResetTransform();
-	}
-	physics->world->stepSimulation(
-		1.0f / 60.0f, physics->maxSubStepCount,
-		static_cast<btScalar>(1.0f / physics->fps));
-	for (auto& rb : rigidBodies) {
-		rb->ReflectGlobalTransform();
-		rb->CalcLocalTransform();
-	}
-	for (const auto& node : nodes) {
-		if (node->parent.expired())
-			node->UpdateGlobalTransform();
-	}
-	for (auto& rb : rigidBodies)
-		rb->Reset(physics.get());
-}
-
-void Model::UpdatePhysicsAnimation(const float elapsed) const {
-	for (auto& rb : rigidBodies)
-		rb->ApplyActivation(true);
-	physics->world->stepSimulation(
-		elapsed, physics->maxSubStepCount,
-		static_cast<btScalar>(1.0f / physics->fps));
-	for (auto& rb : rigidBodies) {
-		rb->ReflectGlobalTransform();
-		rb->CalcLocalTransform();
-	}
-	for (const auto& node : nodes) {
-		if (node->parent.expired())
-			node->UpdateGlobalTransform();
-	}
-}
-
-void Model::Update() {
-	for (size_t i = 0; i < nodes.size(); i++)
-		transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
-	if (parallelUpdateCount != updateRanges.size())
-		SetupParallelUpdate();
-	const size_t futureCount = parallelUpdateFutures.size();
-	for (size_t i = 0; i < futureCount; i++) {
-		if (updateRanges[i + 1].vertexCount != 0) {
-			parallelUpdateFutures[i] = std::async(std::launch::async,
-			[this, range = updateRanges[i + 1]] { this->Update(range); }
-			);
-		}
-	}
-	Update(updateRanges[0]);
-	for (size_t i = 0; i < futureCount; i++) {
-		if (updateRanges[i + 1].vertexCount != 0)
-			parallelUpdateFutures[i].wait();
-	}
-}
-
-void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
-	if (anim)
-		anim->Evaluate(frame);
-	UpdateMorphAnimation();
-	UpdateNodeAnimation(false);
-	UpdatePhysicsAnimation(physicsElapsed);
-	UpdateNodeAnimation(true);
-}
-
-bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
-	Destroy();
-	PmxReader pmx;
-	if (!pmx.ReadFile(filepath))
-		return false;
-	modelName        = pmx.info.modelName;
-	englishModelName = pmx.info.englishModelName;
-	comment          = pmx.info.comment;
-	englishComment   = pmx.info.englishComment;
-	const std::filesystem::path modelDir = filepath.parent_path();
-	constexpr glm::vec3 invZ(1, 1, -1);
-	LoadVertices(pmx, invZ);
-	if (!LoadFaces(pmx))
-		return false;
-	LoadMaterials(pmx, modelDir, dataDir);
-	LoadNodes(pmx, invZ);
-	LoadMorphs(pmx, invZ);
-	FixInfiniteGroupMorphs();
-	LoadPhysics(pmx);
-	ResetPhysics();
-	SetupParallelUpdate();
-	return true;
+void Model::AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, const float weight) {
+	out.diffuse += val.diffuse * weight;
+	out.specular += val.specular * weight;
+	out.specularPower += val.specularPower * weight;
+	out.ambient += val.ambient * weight;
+	out.edgeColor += val.edgeColor * weight;
+	out.edgeSize += val.edgeSize * weight;
+	out.textureFactor += val.textureFactor * weight;
+	out.sphereTextureFactor += val.sphereTextureFactor * weight;
+	out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
 }
 
 void Model::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) {
@@ -212,24 +63,24 @@ void Model::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) {
 				vtxBoneInfo.boneWeights[1] = 1.0f - vtxBoneInfo.boneWeights[0];
 				break;
 			case WeightType::SphericalDeform: {
-					auto w0 = v.boneWeights[0];
-					auto w1 = 1.0f - w0;
-					auto center = v.sphericalDeformC * invZ;
-					auto r0 = v.sphericalDeformR0 * invZ;
-					auto r1 = v.sphericalDeformR1 * invZ;
-					auto rw = r0 * w0 + r1 * w1;
-					r0 = center + r0 - rw;
-					r1 = center + r1 - rw;
-					auto cr0 = (center + r0) * 0.5f;
-					auto cr1 = (center + r1) * 0.5f;
-					vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
-					vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
-					vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
-					vtxBoneInfo.sphericalDeformC = center;
-					vtxBoneInfo.sphericalDeformR0 = cr0;
-					vtxBoneInfo.sphericalDeformR1 = cr1;
-				}
-				break;
+				auto w0 = v.boneWeights[0];
+				auto w1 = 1.0f - w0;
+				auto center = v.sphericalDeformC * invZ;
+				auto r0 = v.sphericalDeformR0 * invZ;
+				auto r1 = v.sphericalDeformR1 * invZ;
+				auto rw = r0 * w0 + r1 * w1;
+				r0 = center + r0 - rw;
+				r1 = center + r1 - rw;
+				auto cr0 = (center + r0) * 0.5f;
+				auto cr1 = (center + r1) * 0.5f;
+				vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
+				vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
+				vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
+				vtxBoneInfo.sphericalDeformC = center;
+				vtxBoneInfo.sphericalDeformR0 = cr0;
+				vtxBoneInfo.sphericalDeformR1 = cr1;
+			}
+			break;
 			default:
 				break;
 		}
@@ -365,10 +216,9 @@ void Model::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) {
 	for (auto& node : nodes)
 		sortedNodes.emplace_back(*node);
 	std::ranges::stable_sort(sortedNodes,
-		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
-			return x.get().deformDepth < y.get().deformDepth;
-		}
-	);
+	[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
+		return x.get().deformDepth < y.get().deformDepth;
+	});
 	for (size_t i = 0; i < pmx.bones.size(); i++) {
 		const auto& bone = pmx.bones[i];
 		if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
@@ -376,7 +226,8 @@ void Model::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) {
 			solver->ikNode = nodes[i];
 			nodes[i]->ikSolver = solver;
 			solver->ikTarget = nodes[bone.ikTargetBoneIndex];
-			for (const auto& [ikBoneIndex, enableLimit, limitMin, limitMax] : bone.ikLinks) {
+			for (const auto& [ikBoneIndex, enableLimit,
+				limitMin, limitMax] : bone.ikLinks) {
 				auto linkNode = nodes[ikBoneIndex];
 				IkChain chain{};
 				chain.node = linkNode;
@@ -479,61 +330,16 @@ void Model::LoadPhysics(const PmxReader& pmx) {
 	}
 	for (const auto& joint : pmx.joints) {
 		if (joint.rigidbodyAIndex != -1 &&
-		    joint.rigidbodyBIndex != -1 &&
-		    joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
+			joint.rigidbodyBIndex != -1 &&
+			joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
 			auto j = std::make_unique<Joint>();
 			j->Create(joint,
 				rigidBodies[joint.rigidbodyAIndex].get(),
-				rigidBodies[joint.rigidbodyBIndex].get()
-			);
+				rigidBodies[joint.rigidbodyBIndex].get());
 			physics->world->addConstraint(j->constraint.get());
 			joints.emplace_back(std::move(j));
 		}
 	}
-}
-
-void Model::Destroy() {
-	materials.clear();
-	subMeshes.clear();
-	positions.clear();
-	normals.clear();
-	uvs.clear();
-	vertexBoneInfos.clear();
-	indices.clear();
-	sortedNodes.clear();
-	nodes.clear();
-	updateRanges.clear();
-	for (const auto& joint : joints)
-		physics->world->removeConstraint(joint->constraint.get());
-	joints.clear();
-	for (const auto& rb : rigidBodies)
-		physics->world->removeRigidBody(rb->rigidBody.get());
-	rigidBodies.clear();
-	physics.reset();
-}
-
-void Model::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
-	out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
-	out.specularPower = glm::mix(out.specularPower, out.specularPower * val.specularPower, weight);
-	out.ambient = glm::mix(out.ambient, out.ambient * val.ambient, weight);
-	out.edgeColor = glm::mix(out.edgeColor, out.edgeColor * val.edgeColor, weight);
-	out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
-	out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
-	out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
-	out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
-}
-
-void Model::AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, const float weight) {
-	out.diffuse += val.diffuse * weight;
-	out.specular += val.specular * weight;
-	out.specularPower += val.specularPower * weight;
-	out.ambient += val.ambient * weight;
-	out.edgeColor += val.edgeColor * weight;
-	out.edgeSize += val.edgeSize * weight;
-	out.textureFactor += val.textureFactor * weight;
-	out.sphereTextureFactor += val.sphereTextureFactor * weight;
-	out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
 }
 
 void Model::SetupParallelUpdate() {
@@ -579,7 +385,7 @@ void Model::Update(const UpdateRange& range) {
 	auto* updateNormal = updateNormals.data() + range.vertexOffset;
 	auto* updateUv = updateUVs.data() + range.vertexOffset;
 	for (size_t i = 0; i < range.vertexCount;
-		i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUv++, updatePos++, updateNormal++, updateUv++) {
+	     i++, vtxInfo++, position++, normal++, uv++, morphPos++, morphUv++, updatePos++, updateNormal++, updateUv++) {
 		glm::mat4 m;
 		switch (vtxInfo->weightType) {
 			case WeightType::BoneDeform1: {
@@ -603,15 +409,17 @@ void Model::Update(const UpdateRange& range) {
 			case WeightType::SphericalDeform: {
 				const auto i0 = vtxInfo->boneIndices[0], i1 = vtxInfo->boneIndices[1];
 				const auto w0 = vtxInfo->boneWeights[0], w1 = 1.0f - w0;
-				const auto center = vtxInfo->sphericalDeformC, cr0 = vtxInfo->sphericalDeformR0, cr1 = vtxInfo->sphericalDeformR1;
+				const auto center = vtxInfo->sphericalDeformC,
+				cr0 = vtxInfo->sphericalDeformR0,
+				cr1 = vtxInfo->sphericalDeformR1;
 				const auto q0 = glm::quat_cast(nodes[i0]->global);
 				const auto q1 = glm::quat_cast(nodes[i1]->global);
 				const auto rotMat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 				const auto m0 = transforms[i0], m1 = transforms[i1];
 				const auto pos = *position + *morphPos;
 				*updatePos = rotMat * (pos - center)
-				+ glm::vec3(m0 * glm::vec4(cr0, 1)) * w0
-				+ glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
+					+ glm::vec3(m0 * glm::vec4(cr0, 1)) * w0
+					+ glm::vec3(m1 * glm::vec4(cr1, 1)) * w1;
 				*updateNormal = rotMat * *normal;
 				break;
 			}
@@ -741,9 +549,9 @@ void Model::MorphMaterial(const std::vector<MaterialMorph>& morphData, const flo
 				case OpType::Add: AccumulateMaterialAdd(addMaterialFactors[mi], matMorph, weight); break;
 			}
 		};
-		if (matMorph.materialIndex != -1) {
+		if (matMorph.materialIndex != -1)
 			Apply(static_cast<size_t>(matMorph.materialIndex));
-		} else {
+		else {
 			for (size_t i = 0; i < materials.size(); i++)
 				Apply(i);
 		}
@@ -757,5 +565,197 @@ void Model::MorphBone(const std::vector<BoneMorph>& morphData, const float weigh
 		const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
 		node->rotate = glm::normalize(q * node->rotate);
 	}
+}
+
+Model::~Model() {
+	Destroy();
+}
+
+void Model::InitializeAnimation() {
+	ClearBaseAnimation();
+	for (const auto& node : nodes) {
+		node->animTranslate = glm::vec3(0);
+		node->animRotate = glm::quat(1, 0, 0, 0);
+	}
+	BeginAnimation();
+	for (const auto& morph : morphs)
+		morph->weight = 0;
+	for (const auto& ikSolver : ikSolvers)
+		ikSolver->enable = true;
+	UpdateNodeAnimation(false);
+	UpdateNodeAnimation(true);
+	ResetPhysics();
+}
+
+void Model::SaveBaseAnimation() const {
+	for (const auto& node : nodes) {
+		node->baseAnimTranslate = node->animTranslate;
+		node->baseAnimRotate = node->animRotate;
+	}
+	for (const auto& morph : morphs)
+		morph->saveAnimWeight = morph->weight;
+	for (const auto& ikSolver : ikSolvers)
+		ikSolver->baseAnimEnable = ikSolver->enable;
+}
+
+void Model::ClearBaseAnimation() const {
+	for (const auto& node : nodes) {
+		node->baseAnimTranslate = glm::vec3(0);
+		node->baseAnimRotate = glm::quat(1, 0, 0, 0);
+	}
+	for (const auto& morph : morphs)
+		morph->saveAnimWeight = 0;
+	for (const auto& ikSolver : ikSolvers)
+		ikSolver->baseAnimEnable = true;
+}
+
+void Model::BeginAnimation() {
+	for (const auto& node : nodes)
+		node->BeginUpdateTransform();
+	for (const auto& node : nodes) {
+		node->animTranslate = glm::vec3(0);
+		node->animRotate = glm::quat(1, 0, 0, 0);
+	}
+	std::ranges::fill(morphPositions, glm::vec3(0));
+	std::ranges::fill(morphUVs, glm::vec4(0));
+}
+
+void Model::UpdateMorphAnimation() {
+	BeginMorphMaterial();
+	for (const auto& morph : morphs)
+		EvalMorph(morph.get(), morph->weight);
+	EndMorphMaterial();
+}
+
+void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
+	const auto Pred = [&](const std::reference_wrapper<Node>& node) {
+		return node.get().isDeformAfterPhysics == afterPhysicsAnim;
+	};
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred))
+		nodeRef.get().UpdateLocalTransform();
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
+		auto& node = nodeRef.get();
+		if (node.parent.expired())
+			node.UpdateGlobalTransform();
+	}
+	for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
+		auto& node = nodeRef.get();
+		if (!node.appendNode.expired()) {
+			node.UpdateAppendTransform();
+			node.UpdateGlobalTransform();
+		}
+		if (const auto ikSolver = node.ikSolver.lock()) {
+			ikSolver->Solve();
+			node.UpdateGlobalTransform();
+		}
+	}
+}
+
+void Model::ResetPhysics() const {
+	for (auto& rb : rigidBodies) {
+		rb->ApplyActivation(false);
+		rb->ResetTransform();
+	}
+	physics->world->stepSimulation(
+		1.0f / 60.0f, physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / physics->fps));
+	for (auto& rb : rigidBodies) {
+		rb->ReflectGlobalTransform();
+		rb->CalcLocalTransform();
+	}
+	for (const auto& node : nodes) {
+		if (node->parent.expired())
+			node->UpdateGlobalTransform();
+	}
+	for (auto& rb : rigidBodies)
+		rb->Reset(physics.get());
+}
+
+void Model::UpdatePhysicsAnimation(const float elapsed) const {
+	for (auto& rb : rigidBodies)
+		rb->ApplyActivation(true);
+	physics->world->stepSimulation(
+		elapsed, physics->maxSubStepCount,
+		static_cast<btScalar>(1.0f / physics->fps));
+	for (auto& rb : rigidBodies) {
+		rb->ReflectGlobalTransform();
+		rb->CalcLocalTransform();
+	}
+	for (const auto& node : nodes) {
+		if (node->parent.expired())
+			node->UpdateGlobalTransform();
+	}
+}
+
+void Model::Update() {
+	for (size_t i = 0; i < nodes.size(); i++)
+		transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
+	if (parallelUpdateCount != updateRanges.size())
+		SetupParallelUpdate();
+	const size_t futureCount = parallelUpdateFutures.size();
+	for (size_t i = 0; i < futureCount; i++) {
+		if (updateRanges[i + 1].vertexCount != 0) {
+			parallelUpdateFutures[i] = std::async(std::launch::async,
+			[this, range = updateRanges[i + 1]] { this->Update(range); });
+		}
+	}
+	Update(updateRanges[0]);
+	for (size_t i = 0; i < futureCount; i++) {
+		if (updateRanges[i + 1].vertexCount != 0)
+			parallelUpdateFutures[i].wait();
+	}
+}
+
+void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
+	if (anim)
+		anim->Evaluate(frame);
+	UpdateMorphAnimation();
+	UpdateNodeAnimation(false);
+	UpdatePhysicsAnimation(physicsElapsed);
+	UpdateNodeAnimation(true);
+}
+
+bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
+	Destroy();
+	PmxReader pmx;
+	if (!pmx.ReadFile(filepath))
+		return false;
+	modelName        = pmx.info.modelName;
+	englishModelName = pmx.info.englishModelName;
+	comment          = pmx.info.comment;
+	englishComment   = pmx.info.englishComment;
+	const std::filesystem::path modelDir = filepath.parent_path();
+	constexpr glm::vec3 invZ(1, 1, -1);
+	LoadVertices(pmx, invZ);
+	if (!LoadFaces(pmx))
+		return false;
+	LoadMaterials(pmx, modelDir, dataDir);
+	LoadNodes(pmx, invZ);
+	LoadMorphs(pmx, invZ);
+	FixInfiniteGroupMorphs();
+	LoadPhysics(pmx);
+	ResetPhysics();
+	SetupParallelUpdate();
+	return true;
+}
+
+void Model::Destroy() {
+	materials.clear();
+	subMeshes.clear();
+	positions.clear();
+	normals.clear();
+	uvs.clear();
+	vertexBoneInfos.clear();
+	indices.clear();
+	sortedNodes.clear();
+	nodes.clear();
+	updateRanges.clear();
+	for (const auto& joint : joints)
+		physics->world->removeConstraint(joint->constraint.get());
+	joints.clear();
+	for (const auto& rb : rigidBodies)
+		physics->world->removeRigidBody(rb->rigidBody.get());
+	rigidBodies.clear();
+	physics.reset();
 }
 

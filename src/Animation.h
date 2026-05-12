@@ -49,19 +49,6 @@ struct IkAnimationKey {
 };
 
 class Animation {
-public:
-	std::shared_ptr<Model> model;
-
-	// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
-	bool Add(const VmdReader& vmd);
-	// 애니메이션 트랙과 연결 상태를 해제한다.
-	void Destroy();
-	// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
-	void Evaluate(float t, float animWeight = 1.0f) const;
-	// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
-	void SyncPhysics(float t) const;
-
-private:
 	std::map<std::shared_ptr<Node>, std::vector<NodeAnimationKey>> nodes;
 	std::map<std::shared_ptr<IkSolver>, std::vector<IkAnimationKey>> iks;
 	std::map<std::shared_ptr<Morph>, std::vector<MorphAnimationKey>> morphs;
@@ -78,6 +65,18 @@ private:
 	void EvaluateIks(float t, float animWeight) const;
 	// 지정 시간의 모프 애니메이션을 평가한다.
 	void EvaluateMorphs(float t, float animWeight) const;
+	
+public:
+	std::shared_ptr<Model> model;
+
+	// VMD 데이터를 모델 애니메이션 트랙에 추가한다.
+	bool Add(const VmdReader& vmd);
+	// 애니메이션 트랙과 연결 상태를 해제한다.
+	void Destroy();
+	// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
+	void Evaluate(float t, float animWeight = 1.0f) const;
+	// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
+	void SyncPhysics(float t) const;
 };
 
 struct Camera {
@@ -105,6 +104,8 @@ struct CameraAnimationKey {
 };
 
 class CameraAnimation {
+	std::vector<CameraAnimationKey>	keys;
+	
 public:
 	Camera camera;
 
@@ -112,7 +113,4 @@ public:
 	bool Create(const VmdReader& vmd);
 	// 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
 	void Evaluate(float t);
-
-private:
-	std::vector<CameraAnimationKey>	keys;
 };

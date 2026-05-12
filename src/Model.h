@@ -73,48 +73,6 @@ struct UpdateRange {
 };
 
 class Model {
-public:
-	~Model();
-
-	std::vector<glm::vec3>						positions;
-	std::vector<glm::vec3>						updatePositions;
-	std::vector<glm::vec3>						updateNormals;
-	std::vector<glm::vec2>						updateUVs;
-	std::vector<char>							indices;
-	size_t										indexCount = 0;
-	size_t										indexElementSize = 0;
-	std::vector<Material>						materials;
-	std::vector<SubMesh>						subMeshes;
-	std::vector<std::shared_ptr<Node>>			nodes;
-	std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
-	std::vector<std::unique_ptr<Morph>>			morphs;
-
-	// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
-	void InitializeAnimation();
-	// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
-	void SaveBaseAnimation() const;
-	// 저장된 기준 애니메이션 상태를 지운다.
-	void ClearBaseAnimation() const;
-	// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
-	void BeginAnimation();
-	// 현재 모프 가중치를 반영해 모프 애니메이션을 갱신한다.
-	void UpdateMorphAnimation();
-	// 노드 애니메이션과 IK를 갱신한다.
-	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
-	// 물리 월드의 강체와 제약 상태를 초기 위치로 되돌린다.
-	void ResetPhysics() const;
-	// 경과 시간만큼 물리 시뮬레이션을 진행하고 본에 반영한다.
-	void UpdatePhysicsAnimation(float elapsed) const;
-	// 모델의 전체 변형 결과를 현재 상태 기준으로 갱신한다.
-	void Update();
-	// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
-	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
-	// PMX 모델과 관련 리소스를 파일에서 로드한다.
-	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
-	// 모델이 소유한 리소스와 런타임 상태를 해제한다.
-	void Destroy();
-
-private:
 	std::string									modelName;
 	std::string									englishModelName;
 	std::string									comment;
@@ -179,4 +137,45 @@ private:
 	void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
 	// 본 모프 데이터를 노드 애니메이션 변환에 적용한다.
 	void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
+	
+public:
+	~Model();
+
+	std::vector<glm::vec3>						positions;
+	std::vector<glm::vec3>						updatePositions;
+	std::vector<glm::vec3>						updateNormals;
+	std::vector<glm::vec2>						updateUVs;
+	std::vector<char>							indices;
+	size_t										indexCount = 0;
+	size_t										indexElementSize = 0;
+	std::vector<Material>						materials;
+	std::vector<SubMesh>						subMeshes;
+	std::vector<std::shared_ptr<Node>>			nodes;
+	std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
+	std::vector<std::unique_ptr<Morph>>			morphs;
+
+	// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
+	void InitializeAnimation();
+	// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
+	void SaveBaseAnimation() const;
+	// 저장된 기준 애니메이션 상태를 지운다.
+	void ClearBaseAnimation() const;
+	// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
+	void BeginAnimation();
+	// 현재 모프 가중치를 반영해 모프 애니메이션을 갱신한다.
+	void UpdateMorphAnimation();
+	// 노드 애니메이션과 IK를 갱신한다.
+	void UpdateNodeAnimation(bool afterPhysicsAnim) const;
+	// 물리 월드의 강체와 제약 상태를 초기 위치로 되돌린다.
+	void ResetPhysics() const;
+	// 경과 시간만큼 물리 시뮬레이션을 진행하고 본에 반영한다.
+	void UpdatePhysicsAnimation(float elapsed) const;
+	// 모델의 전체 변형 결과를 현재 상태 기준으로 갱신한다.
+	void Update();
+	// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
+	void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
+	// PMX 모델과 관련 리소스를 파일에서 로드한다.
+	bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
+	// 모델이 소유한 리소스와 런타임 상태를 해제한다.
+	void Destroy();
 };

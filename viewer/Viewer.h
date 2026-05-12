@@ -25,6 +25,14 @@ struct SceneConfig {
 };
 
 class Instance {
+protected:
+    // 일반 메시 패스를 그린다.
+    virtual void DrawModel() const = 0;
+    // 엣지 패스를 그린다.
+    virtual void DrawEdge() const = 0;
+    // 지면 그림자 패스를 그린다.
+    virtual void DrawGroundShadow() const = 0;
+    
 public:
     virtual ~Instance();
 
@@ -42,17 +50,28 @@ public:
     virtual void Clear() {}
     // 뷰어 시간과 애니메이션 설정을 기준으로 모델 애니메이션을 갱신한다.
     void UpdateAnimation(const Viewer& viewer) const;
-
-protected:
-    // 일반 메시 패스를 그린다.
-    virtual void DrawModel() const = 0;
-    // 엣지 패스를 그린다.
-    virtual void DrawEdge() const = 0;
-    // 지면 그림자 패스를 그린다.
-    virtual void DrawGroundShadow() const = 0;
 };
 
 class Viewer {
+protected:
+    // FPS 표시 시간을 갱신한다.
+    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
+
+    std::filesystem::path	resourceDir;
+    bool    paused = false;
+    bool    prevSpaceDown = false;
+    bool    useMotionCamera = true;
+    bool    hasFreeCameraState = false;
+    bool    prevRDown = false;
+    bool    prevRightMouseDown = false;
+    double  prevCursorX = 0.0;
+    double  prevCursorY = 0.0;
+    glm::vec3 freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
+    float   freeCamYaw = glm::radians(-90.0f);
+    float   freeCamPitch = 0.0f;
+    std::unique_ptr<CameraAnimation>	cameraAnim;
+    float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
+    
 public:
     virtual ~Viewer();
 
@@ -100,23 +119,4 @@ public:
     float	elapsed = 0.0f;
     float	animTime = 0.0f;
     GLFWwindow* window = nullptr;
-
-protected:
-    // FPS 표시 시간을 갱신한다.
-    static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
-
-    std::filesystem::path	resourceDir;
-    bool    paused = false;
-    bool    prevSpaceDown = false;
-    bool    useMotionCamera = true;
-    bool    hasFreeCameraState = false;
-    bool    prevRDown = false;
-    bool    prevRightMouseDown = false;
-    double  prevCursorX = 0.0;
-    double  prevCursorY = 0.0;
-    glm::vec3 freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
-    float   freeCamYaw = glm::radians(-90.0f);
-    float   freeCamPitch = 0.0f;
-    std::unique_ptr<CameraAnimation>	cameraAnim;
-    float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 };

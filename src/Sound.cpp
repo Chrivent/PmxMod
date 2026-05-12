@@ -5,6 +5,20 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 
+void Sound::UnInit() {
+    if (!hasSound)
+        return;
+    ma_sound_uninit(sound.get());
+    ma_engine_uninit(engine.get());
+    hasSound = false;
+    prevTimeSec = 0.0;
+    lengthSec = 0.0;
+    engine.reset();
+    sound.reset();
+    engine = std::make_unique<ma_engine>();
+    sound = std::make_unique<ma_sound>();
+}
+
 Sound::Sound() {
     engine = std::make_unique<ma_engine>();
     sound = std::make_unique<ma_sound>();
@@ -29,9 +43,8 @@ bool Sound::Init(const std::filesystem::path& path, const bool loop) {
     if (ma_sound_get_length_in_pcm_frames(sound.get(), &lengthFrames) == MA_SUCCESS) {
         const double sr = ma_engine_get_sample_rate(engine.get());
         lengthSec = sr > 0.0 ? static_cast<double>(lengthFrames) / sr : 0.0;
-    } else {
+    } else
         lengthSec = 0.0;
-    }
     ma_sound_set_looping(sound.get(), loop ? MA_TRUE : MA_FALSE);
     ma_sound_set_volume(sound.get(), volume);
     ma_sound_start(sound.get());
@@ -42,9 +55,8 @@ bool Sound::Init(const std::filesystem::path& path, const bool loop) {
 
 void Sound::ApplyVolume() {
     volume = std::clamp(volume, 0.0f, 1.0f);
-    if (hasSound) {
+    if (hasSound)
         ma_sound_set_volume(sound.get(), volume);
-    }
 }
 
 void Sound::PullTimes(float& deltaTime, float& time) {
@@ -88,19 +100,5 @@ void Sound::Resume() {
 
 void Sound::Stop() {
     UnInit();
-}
-
-void Sound::UnInit() {
-    if (!hasSound)
-        return;
-    ma_sound_uninit(sound.get());
-    ma_engine_uninit(engine.get());
-    hasSound = false;
-    prevTimeSec = 0.0;
-    lengthSec = 0.0;
-    engine.reset();
-    sound.reset();
-    engine = std::make_unique<ma_engine>();
-    sound = std::make_unique<ma_sound>();
 }
 

@@ -17,6 +17,9 @@ public:
 };
 
 class GlfwShader {
+    // uniform 이름 목록을 조회해 대응하는 위치 포인터들에 저장한다.
+    static void LoadUniformLocations(GLuint program, const char* const* names, GLint* const* outs, int count);
+    
 public:
     ~GlfwShader();
 
@@ -48,10 +51,6 @@ public:
 
     // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
     bool Setup(const GlfwViewer& viewer);
-
-private:
-    // uniform 이름 목록을 조회해 대응하는 위치 포인터들에 저장한다.
-    static void LoadUniformLocations(GLuint program, const char* const* names, GLint* const* outs, int count);
 };
 
 class GlfwEdgeShader {
@@ -101,16 +100,6 @@ public:
 };
 
 class GlfwInstance : public Instance {
-public:
-    ~GlfwInstance() override;
-
-    // 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
-    bool Setup(Viewer& baseViewer) override;
-    // OpenGL 버퍼와 VAO 리소스를 해제한다.
-    void Clear() override;
-    // 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
-    void Update() const override;
-    
 protected:
     // 일반 메시 패스를 OpenGL로 렌더링한다.
     void DrawModel() const override;
@@ -134,9 +123,25 @@ protected:
     GLuint	edgeVao = 0;
     GLuint	gsVao = 0;
     std::vector<GlfwMaterial>   materials;
+    
+public:
+    ~GlfwInstance() override;
+
+    // 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
+    bool Setup(Viewer& baseViewer) override;
+    // OpenGL 버퍼와 VAO 리소스를 해제한다.
+    void Clear() override;
+    // 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
+    void Update() const override;
 };
 
 class GlfwViewer : public Viewer {
+    // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
+    static void* LoadGlProc(const char* name);
+
+    const int   msaaSamples = 4;
+    std::map<std::filesystem::path, GlfwTexture>    textures;
+    
 public:
     ~GlfwViewer() override;
 
@@ -160,11 +165,4 @@ public:
 
     // 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
     GlfwTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
-
-private:
-    // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
-    static void* LoadGlProc(const char* name);
-
-    const int   msaaSamples = 4;
-    std::map<std::filesystem::path, GlfwTexture>    textures;
 };
