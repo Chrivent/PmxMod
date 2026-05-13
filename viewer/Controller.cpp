@@ -49,10 +49,10 @@ bool Controller::OpenControlWindow() {
 	wc.hInstance = instance;
 	wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
 	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-	wc.lpszClassName = kControllerWindowClass;
+	wc.lpszClassName = L"PmxModControllerWindow";
 	RegisterClassExW(&wc);
 	controlWindow = CreateWindowExW(
-		0, kControllerWindowClass, L"PmxMod Controller",
+		0, L"PmxModControllerWindow", L"PmxMod Controller",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, 420, 220,
 		nullptr, nullptr, instance, this);
@@ -156,7 +156,7 @@ void Controller::ShowOpenSceneDialog() {
 	OPENFILENAMEW ofn{};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = controlWindow;
-	ofn.lpstrFilter = kSceneFileFilter;
+	ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename.data();
 	ofn.nMaxFile = static_cast<DWORD>(filename.size());
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
@@ -178,7 +178,7 @@ void Controller::ShowSaveSceneDialog() {
 	OPENFILENAMEW ofn{};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = controlWindow;
-	ofn.lpstrFilter = kSceneFileFilter;
+	ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
 	ofn.lpstrFile = filename.data();
 	ofn.nMaxFile = static_cast<DWORD>(filename.size());
 	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
@@ -204,7 +204,7 @@ LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wPara
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	switch (msg) {
 		case WM_CREATE: {
-			HMENU menu = CreateMenu();
+			const HMENU menu = CreateMenu();
 			HMENU fileMenu = CreatePopupMenu();
 			AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
 			AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
@@ -233,7 +233,7 @@ LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wPara
 					break;
 			}
 			break;
-		case kShowControlWindowMessage:
+		case WM_APP + 2:
 			ShowWindow(hwnd, SW_SHOWNORMAL);
 			SetForegroundWindow(hwnd);
 			return 0;
