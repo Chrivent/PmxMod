@@ -3,9 +3,6 @@
 #include "Model.h"
 #include "Util.h"
 
-#include <map>
-#include <ranges>
-
 void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
 	auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };
 	p1 = glm::vec2(Normalize(x0), Normalize(y0));
@@ -24,14 +21,18 @@ float Bezier::EvaluateBezier(const float t, const float p1, const float p2) {
 
 float Bezier::FindBezierX(float time, const float x1, const float x2) {
 	time = std::clamp(time, 0.0f, 1.0f);
-	float start = 0.0f, stop = 1.0f;
+	float start = 0.0f;
+	float stop = 1.0f;
 	float t = 0.5f;
 	while (true) {
 		const float x = EvaluateBezier(t, x1, x2);
 		const float diff = time - x;
-		if (std::abs(diff) < 1e-5f)
+		if (std::abs(diff) < 1.0e-5f)
 			break;
-		(diff < 0.0f ? stop : start) = t;
+		if (diff < 0.0f)
+			stop = t;
+		else
+			start = t;
 		t = (start + stop) * 0.5f;
 	}
 	return t;
@@ -57,54 +58,105 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 		motion.interpolation[7], motion.interpolation[15]);
 }
 
-void Animation::AddNodeAnimations(const VmdReader& vmd) {
-	std::map<std::string, NodeAnimationTrack> nodeMap;
-	for (auto& track : nodeTracks) {
+bool AnimationHelper::IsTrackBound(const NodeAnimationTrack& track) {
+	return track.node != nullptr;
+}
+
+bool AnimationHelper::IsTrackBound(const IkAnimationTrack& track) {
+	return track.ikSolver != nullptr;
+}
+
+bool AnimationHelper::IsTrackBound(const MorphAnimationTrack& track) {
+	return track.morph != nullptr;
+}
+
+std::map<std::string, NodeAnimationTrack> AnimationHelper::TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {
+	std::map<std::string, NodeAnimationTrack> trackMap;
+	for (auto& track : tracks) {
 		if (track.node)
-			nodeMap.emplace(track.node->name, std::move(track));
+			trackMap.emplace(track.node->name, std::move(track));
 	}
-	nodeTracks.clear();
+	tracks.clear();
+	return trackMap;
+}
+
+std::map<std::string, IkAnimationTrack> AnimationHelper::TakeIkTrackMap(std::vector<IkAnimationTrack>& tracks) {
+	std::map<std::string, IkAnimationTrack> trackMap;
+	for (auto& track : tracks) {
+		if (!track.ikSolver)
+			continue;
+		const auto ikNode = track.ikSolver->ikNode.lock();
+		if (!ikNode)
+			continue;
+		trackMap.emplace(ikNode->name, std::move(track));
+	}
+	tracks.clear();
+	return trackMap;
+}
+
+std::map<std::string, MorphAnimationTrack> AnimationHelper::TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks) {
+	std::map<std::string, MorphAnimationTrack> trackMap;
+	for (auto& track : tracks) {
+		if (track.morph)
+			trackMap.emplace(track.morph->name, std::move(track));
+	}
+	tracks.clear();
+	return trackMap;
+}
+
+std::shared_ptr<Node> Animation::FindNodeByName(const std::string& name) const {
+	const auto it = std::ranges::find_if(model->nodes,
+		[&name](const std::shared_ptr<Node>& node) {
+			return node && node->name == name;
+	});
+	return it != model->nodes.end() ? *it : nullptr;
+}
+
+std::shared_ptr<IkSolver> Animation::FindIkSolverByName(const std::string& name) const {
+	const auto it = std::ranges::find_if(model->ikSolvers,
+		[&name](const std::shared_ptr<IkSolver>& solver) {
+			if (!solver)
+				return false;
+			const auto ikNode = solver->ikNode.lock();
+			return ikNode && ikNode->name == name;
+	});
+	return it != model->ikSolvers.end() ? *it : nullptr;
+}
+
+std::shared_ptr<Morph> Animation::FindMorphByName(const std::string& name) const {
+	const auto it = std::ranges::find_if(model->morphs,
+		[&name](const auto& morph) {
+			return morph && morph->name == name;
+	});
+	if (it == model->morphs.end())
+		return nullptr;
+	return std::shared_ptr<Morph>(model, it->get());
+}
+
+void Animation::AddNodeAnimations(const VmdReader& vmd) {
+	auto nodeMap = AnimationHelper::TakeNodeTrackMap(nodeTracks);
 	for (const auto& motion : vmd.motions) {
 		auto nodeName = Util::SjisToUtf8(motion.boneName);
 		auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 		auto& [node, keys] = findIt->second;
-		if (inserted) {
-			auto it = std::ranges::find(model->nodes, nodeName,
-				[](const std::shared_ptr<Node>& candidate) { return candidate->name; });
-			node = it != model->nodes.end() ? *it : nullptr;
-		}
+		if (inserted)
+			node = FindNodeByName(nodeName);
 		if (!node)
 			continue;
 		keys.emplace_back().ApplyMotion(motion);
 	}
-	for (auto& track : nodeMap | std::views::values) {
-		std::ranges::sort(track.keys, {}, &NodeAnimationKey::time);
-		nodeTracks.emplace_back(std::move(track));
-	}
+	AnimationHelper::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
 }
 
 void Animation::AddIkAnimations(const VmdReader& vmd) {
-	std::map<std::string, IkAnimationTrack> ikMap;
-	for (auto& track : ikTracks) {
-		if (track.ikSolver) {
-			if (const auto ikNodePtr = track.ikSolver->ikNode.lock())
-				ikMap.emplace(ikNodePtr->name, std::move(track));
-		}
-	}
-	ikTracks.clear();
+	auto ikMap = AnimationHelper::TakeIkTrackMap(ikTracks);
 	for (const auto& ik : vmd.iks) {
 		for (const auto& [name, enable] : ik.ikInfos) {
 			auto ikName = Util::SjisToUtf8(name);
 			auto [findIt, inserted] = ikMap.try_emplace(ikName);
 			auto& [ikSolver, keys] = findIt->second;
-			if (inserted) {
-				auto it = std::ranges::find(model->ikSolvers, ikName,
-					[](const std::shared_ptr<IkSolver>& candidate){
-						const auto ikNodePtr = candidate->ikNode.lock();
-						return ikNodePtr ? ikNodePtr->name : std::string{};
-				});
-				ikSolver = it != model->ikSolvers.end() ? *it : nullptr;
-			}
+			if (inserted)
+				ikSolver = FindIkSolverByName(ikName);
 			if (!ikSolver)
 				continue;
 			auto& [time, ikEnable] = keys.emplace_back();
@@ -112,37 +164,24 @@ void Animation::AddIkAnimations(const VmdReader& vmd) {
 			ikEnable = enable != 0;
 		}
 	}
-	for (auto& track : ikMap | std::views::values) {
-		std::ranges::sort(track.keys, {}, &IkAnimationKey::time);
-		ikTracks.emplace_back(std::move(track));
-	}
+	AnimationHelper::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
 }
 
 void Animation::AddMorphAnimations(const VmdReader& vmd) {
-	std::map<std::string, MorphAnimationTrack> morphMap;
-	for (auto& track : morphTracks) {
-		if (track.morph)
-			morphMap.emplace(track.morph->name, std::move(track));
-	}
-	morphTracks.clear();
+	auto morphMap = AnimationHelper::TakeMorphTrackMap(morphTracks);
 	for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 		auto morphName = Util::SjisToUtf8(blendShapeName);
 		auto [findIt, inserted] = morphMap.try_emplace(morphName);
 		auto& [morph, keys] = findIt->second;
-		if (inserted) {
-			auto it = std::ranges::find(model->morphs, morphName, &Morph::name);
-			morph = it != model->morphs.end() ? std::shared_ptr<Morph>(model, it->get()) : nullptr;
-		}
+		if (inserted)
+			morph = FindMorphByName(morphName);
 		if (!morph)
 			continue;
 		auto& [time, morphWeight] = keys.emplace_back();
 		time = static_cast<int32_t>(frame);
 		morphWeight = weight;
 	}
-	for (auto& track : morphMap | std::views::values) {
-		std::ranges::sort(track.keys, {}, &MorphAnimationKey::time);
-		morphTracks.emplace_back(std::move(track));
-	}
+	AnimationHelper::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
 }
 
 void Animation::EvaluateNodes(const float t, const float animWeight) const {
@@ -154,8 +193,7 @@ void Animation::EvaluateNodes(const float t, const float animWeight) const {
 			node->animRotate = glm::quat(1, 0, 0, 0);
 			continue;
 		}
-		const auto it = std::ranges::upper_bound(keys, t, std::less{},
-			[](const NodeAnimationKey& k) { return static_cast<float>(k.time); });
+		const auto it = AnimationHelper::FindUpperKey(keys, t);
 		const auto& cur = it != keys.end() ? *it : keys.back();
 		glm::vec3 vt = cur.translate;
 		glm::quat q  = cur.rotate;
@@ -186,8 +224,7 @@ void Animation::EvaluateIks(const float t, const float animWeight) const {
 			ikSolver->enable = true;
 			continue;
 		}
-		const auto it = std::ranges::upper_bound(keys, t, std::less{},
-		[](const IkAnimationKey& k) { return static_cast<float>(k.time); });
+		const auto it = AnimationHelper::FindUpperKey(keys, t);
 		const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 		ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 	}
@@ -199,8 +236,7 @@ void Animation::EvaluateMorphs(const float t, const float animWeight) const {
 			continue;
 		if (keys.empty())
 			continue;
-		const auto it = std::ranges::upper_bound(keys, t, std::less{},
-		[](const MorphAnimationKey& k) { return static_cast<float>(k.time); });
+		const auto it = AnimationHelper::FindUpperKey(keys, t);
 		float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 		if (it != keys.begin() && it != keys.end()) {
 			auto [time0, weight0] = *(it - 1);
@@ -296,8 +332,7 @@ bool CameraAnimation::Create(const VmdReader& vmd) {
 void CameraAnimation::Evaluate(const float t) {
 	if (keys.empty())
 		return;
-	const auto it = std::ranges::upper_bound(keys, t, std::less{},
-	[](const CameraAnimationKey& k) { return static_cast<float>(k.time); });
+	const auto it = AnimationHelper::FindUpperKey(keys, t);
 	const auto& cur = it != keys.end() ? *it : keys.back();
 	camera.interest = cur.interest;
 	camera.rotate = cur.rotate;

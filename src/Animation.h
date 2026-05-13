@@ -2,6 +2,9 @@
 
 #include "Reader.h"
 
+#include <map>
+#include <ranges>
+
 struct Morph;
 class IkSolver;
 class Node;
@@ -46,25 +49,55 @@ struct IkAnimationKey {
 	bool	ikEnable;
 };
 
+struct NodeAnimationTrack {
+	std::shared_ptr<Node> node;
+	std::vector<NodeAnimationKey> keys;
+};
+
+struct IkAnimationTrack {
+	std::shared_ptr<IkSolver> ikSolver;
+	std::vector<IkAnimationKey> keys;
+};
+
+struct MorphAnimationTrack {
+	std::shared_ptr<Morph> morph;
+	std::vector<MorphAnimationKey> keys;
+};
+
+class AnimationHelper {
+public:
+	template <typename Keys>
+	static auto FindUpperKey(const Keys& keys, const float t) {
+		return std::ranges::upper_bound(keys, t, std::less{}, [](const auto& key) {
+			return static_cast<float>(key.time);
+		});
+	}
+	template <typename TrackMap, typename TrackList, typename TimeMember>
+	static void FlushTrackMap(TrackMap& trackMap, TrackList& tracks, TimeMember timeMember) {
+		tracks.clear();
+		for (auto& track : trackMap | std::views::values) {
+			if (!IsTrackBound(track))
+				continue;
+			std::ranges::sort(track.keys, {}, timeMember);
+			tracks.emplace_back(std::move(track));
+		}
+	}
+	static bool IsTrackBound(const NodeAnimationTrack& track);
+	static bool IsTrackBound(const IkAnimationTrack& track);
+	static bool IsTrackBound(const MorphAnimationTrack& track);
+	static std::map<std::string, NodeAnimationTrack> TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks);
+	static std::map<std::string, IkAnimationTrack> TakeIkTrackMap(std::vector<IkAnimationTrack>& tracks);
+	static std::map<std::string, MorphAnimationTrack> TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks);
+};
+
 class Animation {
-	struct NodeAnimationTrack {
-		std::shared_ptr<Node> node;
-		std::vector<NodeAnimationKey> keys;
-	};
-
-	struct IkAnimationTrack {
-		std::shared_ptr<IkSolver> ikSolver;
-		std::vector<IkAnimationKey> keys;
-	};
-
-	struct MorphAnimationTrack {
-		std::shared_ptr<Morph> morph;
-		std::vector<MorphAnimationKey> keys;
-	};
-	
 	std::vector<NodeAnimationTrack> nodeTracks;
 	std::vector<IkAnimationTrack> ikTracks;
 	std::vector<MorphAnimationTrack> morphTracks;
+	
+	std::shared_ptr<Node> FindNodeByName(const std::string& name) const;
+	std::shared_ptr<IkSolver> FindIkSolverByName(const std::string& name) const;
+	std::shared_ptr<Morph> FindMorphByName(const std::string& name) const;
 
 	// VMD 본 모션을 노드 애니메이션 트랙에 병합한다.
 	void AddNodeAnimations(const VmdReader& vmd);
