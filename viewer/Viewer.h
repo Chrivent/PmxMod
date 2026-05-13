@@ -7,23 +7,10 @@
 #include "../src/Sound.h"
 #include "Controller.h"
 
-struct SceneConfig;
 struct Material;
 class Viewer;
 class Animation;
 class Model;
-
-struct ModelConfig {
-    std::filesystem::path				modelPath;
-    std::vector<std::filesystem::path>	animPaths;
-    float								scale = 1.0f;
-};
-
-struct SceneConfig {
-    std::vector<ModelConfig>    modelConfigs;
-    std::filesystem::path	    cameraAnim;
-    std::filesystem::path	    musicPath;
-};
 
 class Instance {
 protected:

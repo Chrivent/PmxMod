@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 
-#include <memory>
+#include <vector>
+#include <windows.h>
 #include <filesystem>
 #include <glm/glm.hpp>
 
@@ -8,7 +9,22 @@ class CameraAnimation;
 class Sound;
 class Viewer;
 
+struct ModelConfig {
+	std::filesystem::path modelPath;
+	std::vector<std::filesystem::path> animPaths;
+	float scale = 1.0f;
+};
+
+struct SceneConfig {
+	std::vector<ModelConfig> modelConfigs;
+	std::filesystem::path cameraAnim;
+	std::filesystem::path musicPath;
+};
+
 class Controller {
+	static constexpr int kOpenButtonId = 1001;
+	static constexpr int kSaveButtonId = 1002;
+
 	bool paused = false;
 	bool prevSpaceDown = false;
 	bool useMotionCamera = true;
@@ -21,21 +37,32 @@ class Controller {
 	float freeCamYaw = 0.0f;
 	float freeCamPitch = 0.0f;
 	std::unique_ptr<CameraAnimation> cameraAnim;
+	SceneConfig sceneConfig;
+	std::filesystem::path sceneFilePath;
+	HWND controlWindow = nullptr;
+	HWND statusText = nullptr;
 
 	void SyncFreeCameraToCurrentView(const Viewer& viewer);
+	void ResizeControlWindow() const;
+	void SetStatusText(const std::wstring& text) const;
+	bool SaveSceneConfig(const std::filesystem::path& filepath) const;
+	bool LoadSceneConfig(const std::filesystem::path& filepath);
+	void ShowOpenSceneDialog();
+	void ShowSaveSceneDialog();
+
+	static LRESULT CALLBACK ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 public:
 	Controller();
 	~Controller();
 
-	// 입력/카메라 상태를 기본값으로 되돌린다.
+	void SetSceneConfig(const SceneConfig& cfg);
 	void Reset();
-	// 씬 설정의 카메라 VMD를 로드한다.
+	bool OpenControlWindow();
+	void PollControlWindow() const;
+	void DestroyControlWindow();
 	void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
-	// 음악 재생 위치와 프레임 시간을 기준으로 애니메이션 시간을 진행한다.
 	void StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const;
-	// 키보드와 마우스 입력을 처리해 재생/카메라 상태를 변경한다.
 	void HandleInput(const Viewer& viewer, Sound& music);
-	// 모션 카메라 또는 자유 카메라 상태로 뷰 행렬을 갱신한다.
 	void UpdateCamera(Viewer& viewer) const;
 };

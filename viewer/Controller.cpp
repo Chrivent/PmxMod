@@ -6,13 +6,35 @@
 #include "../src/Reader.h"
 #include "../src/Sound.h"
 
+#include <commdlg.h>
+#include <fstream>
 #include <iostream>
+
+namespace {
+	constexpr wchar_t kControllerWindowClass[] = L"PmxModControllerWindow";
+	constexpr wchar_t kSceneFileFilter[] = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
+
+	std::string PathToUtf8(const std::filesystem::path& path) {
+		const auto u8 = path.u8string();
+		return { reinterpret_cast<const char*>(u8.data()), u8.size() };
+	}
+
+	std::filesystem::path Utf8ToPath(const std::string& value) {
+		const auto* begin = reinterpret_cast<const char8_t*>(value.data());
+		return std::filesystem::path(std::u8string(begin, begin + value.size()));
+	}
+}
 
 Controller::Controller() {
 	Reset();
 }
 
 Controller::~Controller() = default;
+
+void Controller::SetSceneConfig(const SceneConfig& cfg) {
+	sceneConfig = cfg;
+	sceneFilePath.clear();
+}
 
 void Controller::Reset() {
 	paused = false;
@@ -27,6 +49,218 @@ void Controller::Reset() {
 	freeCamYaw = glm::radians(-90.0f);
 	freeCamPitch = 0.0f;
 	cameraAnim.reset();
+}
+
+bool Controller::OpenControlWindow() {
+	if (controlWindow) {
+		ShowWindow(controlWindow, SW_SHOWNORMAL);
+		return true;
+	}
+	const HINSTANCE instance = GetModuleHandleW(nullptr);
+	WNDCLASSEXW wc{};
+	wc.cbSize = sizeof(wc);
+	wc.lpfnWndProc = ControlWindowProc;
+	wc.hInstance = instance;
+	wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+	wc.lpszClassName = kControllerWindowClass;
+	RegisterClassExW(&wc);
+	controlWindow = CreateWindowExW(
+		0, kControllerWindowClass, L"PmxMod Controller",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, 420, 220,
+		nullptr, nullptr, instance, this);
+	if (!controlWindow)
+		return false;
+	ShowWindow(controlWindow, SW_SHOWNORMAL);
+	UpdateWindow(controlWindow);
+	return true;
+}
+
+void Controller::PollControlWindow() const {
+	if (!controlWindow)
+		return;
+	MSG msg{};
+	while (PeekMessageW(&msg, controlWindow, 0, 0, PM_REMOVE)) {
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
+	}
+}
+
+void Controller::DestroyControlWindow() {
+	if (controlWindow)
+		DestroyWindow(controlWindow);
+	controlWindow = nullptr;
+	statusText = nullptr;
+}
+
+void Controller::ResizeControlWindow() const {
+	if (!controlWindow)
+		return;
+	RECT client{};
+	GetClientRect(controlWindow, &client);
+	constexpr int x = 14;
+	constexpr int y = 14;
+	const int width = client.right - x * 2;
+	constexpr int height = 64;
+	if (statusText)
+		MoveWindow(statusText, x, y, width, height, TRUE);
+}
+
+void Controller::SetStatusText(const std::wstring& text) const {
+	if (statusText)
+		SetWindowTextW(statusText, text.c_str());
+}
+
+bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
+	std::ofstream out(filepath, std::ios::binary);
+	if (!out)
+		return false;
+	out << "PmxModScene 1\n";
+	out << "camera " << std::quoted(PathToUtf8(sceneConfig.cameraAnim)) << '\n';
+	out << "music " << std::quoted(PathToUtf8(sceneConfig.musicPath)) << '\n';
+	out << "models " << sceneConfig.modelConfigs.size() << '\n';
+	for (const auto& model : sceneConfig.modelConfigs) {
+		out << "model " << std::quoted(PathToUtf8(model.modelPath)) << ' '
+			<< model.scale << ' ' << model.animPaths.size() << '\n';
+		for (const auto& animPath : model.animPaths)
+			out << "anim " << std::quoted(PathToUtf8(animPath)) << '\n';
+	}
+	return static_cast<bool>(out);
+}
+
+bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
+	std::ifstream in(filepath, std::ios::binary);
+	if (!in)
+		return false;
+	std::string magic;
+	int version = 0;
+	if (!(in >> magic >> version) || magic != "PmxModScene" || version != 1)
+		return false;
+	SceneConfig loaded;
+	std::string tag;
+	std::string value;
+	if (!(in >> tag >> std::quoted(value)) || tag != "camera")
+		return false;
+	loaded.cameraAnim = Utf8ToPath(value);
+	if (!(in >> tag >> std::quoted(value)) || tag != "music")
+		return false;
+	loaded.musicPath = Utf8ToPath(value);
+	size_t modelCount = 0;
+	if (!(in >> tag >> modelCount) || tag != "models")
+		return false;
+	loaded.modelConfigs.reserve(modelCount);
+	for (size_t i = 0; i < modelCount; i++) {
+		ModelConfig model;
+		size_t animCount = 0;
+		if (!(in >> tag >> std::quoted(value) >> model.scale >> animCount) || tag != "model")
+			return false;
+		model.modelPath = Utf8ToPath(value);
+		model.animPaths.reserve(animCount);
+		for (size_t j = 0; j < animCount; j++) {
+			if (!(in >> tag >> std::quoted(value)) || tag != "anim")
+				return false;
+			model.animPaths.emplace_back(Utf8ToPath(value));
+		}
+		loaded.modelConfigs.emplace_back(std::move(model));
+	}
+	sceneConfig = std::move(loaded);
+	sceneFilePath = filepath;
+	return true;
+}
+
+void Controller::ShowOpenSceneDialog() {
+	std::vector<wchar_t> filename(MAX_PATH, L'\0');
+	OPENFILENAMEW ofn{};
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = controlWindow;
+	ofn.lpstrFilter = kSceneFileFilter;
+	ofn.lpstrFile = filename.data();
+	ofn.nMaxFile = static_cast<DWORD>(filename.size());
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+	ofn.lpstrDefExt = L"pms";
+	if (!GetOpenFileNameW(&ofn))
+		return;
+	if (LoadSceneConfig(filename.data()))
+		SetStatusText(L"Scene config loaded. Running scene is not reloaded yet.");
+	else
+		SetStatusText(L"Failed to load scene config.");
+}
+
+void Controller::ShowSaveSceneDialog() {
+	std::vector<wchar_t> filename(MAX_PATH, L'\0');
+	if (!sceneFilePath.empty()) {
+		const auto native = sceneFilePath.wstring();
+		std::wcsncpy(filename.data(), native.c_str(), filename.size() - 1);
+	}
+	OPENFILENAMEW ofn{};
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = controlWindow;
+	ofn.lpstrFilter = kSceneFileFilter;
+	ofn.lpstrFile = filename.data();
+	ofn.nMaxFile = static_cast<DWORD>(filename.size());
+	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+	ofn.lpstrDefExt = L"pms";
+	if (!GetSaveFileNameW(&ofn))
+		return;
+	sceneFilePath = filename.data();
+	if (SaveSceneConfig(sceneFilePath))
+		SetStatusText(L"Current scene config saved.");
+	else
+		SetStatusText(L"Failed to save scene config.");
+}
+
+LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	auto* controller = reinterpret_cast<Controller*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+	if (msg == WM_NCCREATE) {
+		const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
+		controller = static_cast<Controller*>(create->lpCreateParams);
+		SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(controller));
+	}
+	if (!controller)
+		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	switch (msg) {
+		case WM_CREATE: {
+			HMENU menu = CreateMenu();
+			HMENU fileMenu = CreatePopupMenu();
+			AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
+			AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
+			AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
+			SetMenu(hwnd, menu);
+			controller->statusText = CreateWindowExW(
+				0, L"STATIC", L"Open or save the current scene config.",
+				WS_CHILD | WS_VISIBLE,
+				0, 0, 0, 0,
+				hwnd, nullptr, GetModuleHandleW(nullptr), nullptr);
+			controller->ResizeControlWindow();
+			return 0;
+		}
+		case WM_SIZE:
+			controller->ResizeControlWindow();
+			return 0;
+		case WM_COMMAND:
+			switch (LOWORD(wParam)) {
+				case kOpenButtonId:
+					controller->ShowOpenSceneDialog();
+					return 0;
+				case kSaveButtonId:
+					controller->ShowSaveSceneDialog();
+					return 0;
+				default:
+					break;
+			}
+			break;
+		case WM_CLOSE:
+			ShowWindow(hwnd, SW_HIDE);
+			return 0;
+		case WM_DESTROY:
+			controller->controlWindow = nullptr;
+			controller->statusText = nullptr;
+			return 0;
+		default:
+			break;
+	}
+	return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 void Controller::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {

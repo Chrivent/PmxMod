@@ -38,6 +38,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
     music.Init(cfg.musicPath, false);
     controller.Reset();
+    controller.SetSceneConfig(cfg);
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();
@@ -55,9 +56,11 @@ bool Viewer::Run(const SceneConfig& cfg) {
         glfwTerminate();
         return false;
     }
+    controller.OpenControlWindow();
     controller.LoadCameraAnim(cfg.cameraAnim);
     std::vector<std::unique_ptr<Instance>> instances;
     if (!LoadInstances(cfg, instances)) {
+        controller.DestroyControlWindow();
         glfwTerminate();
         return false;
     }
@@ -67,6 +70,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     controller.UpdateCamera(*this);
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        controller.PollControlWindow();
         controller.HandleInput(*this, music);
         int newW = 0, newH = 0;
         glfwGetFramebufferSize(window, &newW, &newH);
@@ -90,6 +94,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     }
     for (const auto& instance : instances)
         instance->Clear();
+    controller.DestroyControlWindow();
     glfwTerminate();
     return true;
 }
