@@ -40,8 +40,8 @@ class Controller {
 	float freeCamYaw = 0.0f;
 	float freeCamPitch = 0.0f;
 	std::unique_ptr<CameraAnimation> cameraAnim;
-	SceneConfig sceneConfig;
 	std::filesystem::path sceneFilePath;
+	bool sceneConfigDirty = false;
 	HWND controlWindow = nullptr;
 	HWND statusText = nullptr;
 
@@ -52,18 +52,20 @@ class Controller {
 	bool LoadSceneConfig(const std::filesystem::path& filepath);
 	void ShowOpenSceneDialog();
 	void ShowSaveSceneDialog();
-
 	static LRESULT CALLBACK ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 public:
+	SceneConfig sceneConfig;
+	
 	Controller();
 	~Controller();
 
-	void SetSceneConfig(const SceneConfig& cfg);
+	void ApplySceneConfig(const SceneConfig& cfg);
 	void Reset();
 	bool OpenControlWindow();
 	void PollControlWindow() const;
 	void DestroyControlWindow();
+	bool ConsumeSceneConfigDirty();
 	void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
 	void StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const;
 	void HandleInput(const Viewer& viewer, Sound& music);

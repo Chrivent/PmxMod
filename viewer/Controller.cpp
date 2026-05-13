@@ -17,9 +17,10 @@ Controller::~Controller() {
 	DestroyControlWindow();
 }
 
-void Controller::SetSceneConfig(const SceneConfig& cfg) {
+void Controller::ApplySceneConfig(const SceneConfig& cfg) {
 	sceneConfig = cfg;
 	sceneFilePath.clear();
+	sceneConfigDirty = false;
 }
 
 void Controller::Reset() {
@@ -35,6 +36,7 @@ void Controller::Reset() {
 	freeCamYaw = glm::radians(-90.0f);
 	freeCamPitch = 0.0f;
 	cameraAnim.reset();
+	sceneConfigDirty = false;
 }
 
 bool Controller::OpenControlWindow() {
@@ -192,6 +194,7 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 	if (!sceneConfig.Load(filepath))
 		return false;
 	sceneFilePath = filepath;
+	sceneConfigDirty = true;
 	return true;
 }
 
@@ -208,7 +211,7 @@ void Controller::ShowOpenSceneDialog() {
 	if (!GetOpenFileNameW(&ofn))
 		return;
 	if (LoadSceneConfig(filename.data()))
-		SetStatusText(L"Scene config loaded. Running scene is not reloaded yet.");
+		SetStatusText(L"Scene config loaded.");
 	else
 		SetStatusText(L"Failed to load scene config.");
 }
@@ -234,6 +237,12 @@ void Controller::ShowSaveSceneDialog() {
 		SetStatusText(L"Current scene config saved.");
 	else
 		SetStatusText(L"Failed to save scene config.");
+}
+
+bool Controller::ConsumeSceneConfigDirty() {
+	const bool dirty = sceneConfigDirty;
+	sceneConfigDirty = false;
+	return dirty;
 }
 
 LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

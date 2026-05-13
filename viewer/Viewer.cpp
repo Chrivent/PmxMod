@@ -36,9 +36,8 @@ Viewer::~Viewer() = default;
 
 bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
-    music.Init(cfg.musicPath, false);
     controller.Reset();
-    controller.SetSceneConfig(cfg);
+    controller.ApplySceneConfig(cfg);
     if (!glfwInit()) {
         std::cout << "Failed to initialize GLFW.\n";
         return false;
@@ -62,21 +61,38 @@ bool Viewer::Run(const SceneConfig& cfg) {
         return false;
     }
     controller.OpenControlWindow();
-    controller.LoadCameraAnim(cfg.cameraAnim);
     std::vector<std::unique_ptr<Instance>> instances;
-    if (!LoadInstances(cfg, instances)) {
-        std::cout << "Failed to load scene instances.\n";
-        controller.DestroyControlWindow();
-        glfwTerminate();
-        return false;
-    }
     auto fpsTime  = std::chrono::steady_clock::now();
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
+    auto clearInstances = [](const std::vector<std::unique_ptr<Instance>>& targetInstances) {
+        for (const auto& instance : targetInstances)
+            instance->Clear();
+    };
+    auto loadScene = [&](const SceneConfig& sceneConfig) {
+        std::vector<std::unique_ptr<Instance>> loadedInstances;
+        if (!LoadInstances(sceneConfig, loadedInstances)) {
+            std::cout << "Failed to load scene instances.\n";
+            return false;
+        }
+        clearInstances(instances);
+        instances = std::move(loadedInstances);
+        music.Stop();
+        music.Init(sceneConfig.musicPath, false);
+        controller.LoadCameraAnim(sceneConfig.cameraAnim);
+        elapsed = 0.0f;
+        animTime = 0.0f;
+        saveTime = std::chrono::steady_clock::now();
+        return true;
+    };
+    if (!cfg.modelConfigs.empty() || !cfg.cameraAnim.empty() || !cfg.musicPath.empty())
+        loadScene(cfg);
     controller.UpdateCamera(*this);
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         controller.PollControlWindow();
+        if (controller.ConsumeSceneConfigDirty())
+            loadScene(controller.sceneConfig);
         controller.HandleInput(*this, music);
         int newW = 0, newH = 0;
         glfwGetFramebufferSize(window, &newW, &newH);
@@ -98,8 +114,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
             break;
         TickFps(fpsTime, fpsFrame);
     }
-    for (const auto& instance : instances)
-        instance->Clear();
+    clearInstances(instances);
     controller.DestroyControlWindow();
     glfwTerminate();
     return true;
