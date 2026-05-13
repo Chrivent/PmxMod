@@ -58,18 +58,6 @@ void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 		motion.interpolation[7], motion.interpolation[15]);
 }
 
-bool AnimationHelper::IsTrackBound(const NodeAnimationTrack& track) {
-	return track.node != nullptr;
-}
-
-bool AnimationHelper::IsTrackBound(const IkAnimationTrack& track) {
-	return track.ikSolver != nullptr;
-}
-
-bool AnimationHelper::IsTrackBound(const MorphAnimationTrack& track) {
-	return track.morph != nullptr;
-}
-
 std::map<std::string, NodeAnimationTrack> AnimationHelper::TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {
 	std::map<std::string, NodeAnimationTrack> trackMap;
 	for (auto& track : tracks) {

@@ -85,11 +85,11 @@ public:
 		}
 	}
 	// 노드 트랙이 실제 노드에 연결되어 있는지 확인한다.
-	static bool IsTrackBound(const NodeAnimationTrack& track);
+	static bool IsTrackBound(const NodeAnimationTrack& track) { return track.node != nullptr; }
 	// IK 트랙이 실제 IK 솔버에 연결되어 있는지 확인한다.
-	static bool IsTrackBound(const IkAnimationTrack& track);
+	static bool IsTrackBound(const IkAnimationTrack& track) { return track.ikSolver != nullptr; }
 	// 모프 트랙이 실제 모프에 연결되어 있는지 확인한다.
-	static bool IsTrackBound(const MorphAnimationTrack& track);
+	static bool IsTrackBound(const MorphAnimationTrack& track) { return track.morph != nullptr; }
 	// 노드 트랙 목록을 노드 이름 기반 맵으로 옮긴다.
 	static std::map<std::string, NodeAnimationTrack> TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks);
 	// IK 트랙 목록을 IK 노드 이름 기반 맵으로 옮긴다.
