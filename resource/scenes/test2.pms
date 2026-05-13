@@ -1,0 +1,7 @@
+PmxModScene 2
+camera	C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd
+music	C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav
+models	2
+model	1.1	1	C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx
+anim	C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd
+model	1	0	C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx

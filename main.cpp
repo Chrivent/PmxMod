@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <fstream>
 #include <shobjidl.h>
 
 #include "viewer/Dx11Viewer.h"
@@ -82,85 +83,65 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-// 개발 테스트용 다중 모델 씬 설정을 생성한다.
-static SceneConfig BuildTestSceneConfig1() {
-	SceneConfig cfg;
-	ModelConfig md1;
-	md1.modelPath = R"(D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx)";
-	md1.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd)");
-	md1.scale = 1.1f;
-	ModelConfig md2;
-	md2.modelPath = R"(D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx)";
-	md2.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd)");
-	md2.scale = 1.1f;
-	ModelConfig md3;
-	md3.modelPath = R"(D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx)";
-	md3.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd)");
-	md3.scale = 1.1f;
-	ModelConfig md4;
-	md4.modelPath = R"(D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx)";
-	md4.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd)");
-	md4.scale = 1.1f;
-	ModelConfig md5;
-	md5.modelPath = R"(D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx)";
-	md5.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd)");
-	md5.scale = 1.1f;
-	cfg.modelConfigs.emplace_back(std::move(md1));
-	cfg.modelConfigs.emplace_back(std::move(md2));
-	cfg.modelConfigs.emplace_back(std::move(md3));
-	cfg.modelConfigs.emplace_back(std::move(md4));
-	cfg.modelConfigs.emplace_back(std::move(md5));
-	cfg.cameraAnim = R"(D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd)";
-	cfg.musicPath = R"(D:\예찬\MMD\wav\Kimagure Mercy.wav)";
-	ModelConfig bg;
-	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
-	bg.scale = 1.0f;
-	cfg.modelConfigs.emplace_back(std::move(bg));
-	return cfg;
-}
-
-// 개발 테스트용 단일 모델 씬 설정을 생성한다.
-static SceneConfig BuildTestSceneConfig2() {
-	SceneConfig cfg;
-	ModelConfig md;
-	md.modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\models\Kisaki\Kisaki.pmx)";
-	md.animPaths.emplace_back(R"(C:\Users\Ha Yechan\Desktop\PMXViewer\motions\(4)GokurakuJodo.vmd)");
-	md.scale = 1.1f;
-	cfg.modelConfigs.emplace_back(std::move(md));
-	cfg.cameraAnim = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\cameras\(4)GokurakuJodo_camera.vmd)";
-	cfg.musicPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\musics\04.wav)";
-	ModelConfig bg;
-	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\PMXViewer\backgrounds\torisutsuki\torisutsuki.pmx)";
-	bg.scale = 1.0f;
-	cfg.modelConfigs.emplace_back(std::move(bg));
-	return cfg;
-}
-
-// 개발 테스트용 3인 모델 씬 설정을 생성한다.
-static SceneConfig BuildTestSceneConfig3() {
-	SceneConfig cfg;
-	ModelConfig md1;
-	md1.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx)";
-	md1.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd)");
-	md1.scale = 1.2f;
-	ModelConfig md2;
-	md2.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx)";
-	md2.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd)");
-	md2.scale = 1.2f;
-	ModelConfig md3;
-	md3.modelPath = R"(D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx)";
-	md3.animPaths.emplace_back(R"(D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd)");
-	md3.scale = 1.2f;
-	cfg.modelConfigs.emplace_back(std::move(md1));
-	cfg.modelConfigs.emplace_back(std::move(md2));
-	cfg.modelConfigs.emplace_back(std::move(md3));
-	cfg.cameraAnim = R"(D:\예찬\MMD\motion\Dance Robot Dance\DanceRobotDance_Milo_Camera.vmd)";
-	cfg.musicPath = R"(D:\예찬\MMD\motion\Dance Robot Dance\0068_01.wav)";
-	ModelConfig bg;
-	bg.modelPath = R"(C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx)";
-	bg.scale = 1.0f;
-	cfg.modelConfigs.emplace_back(std::move(bg));
-	return cfg;
+static bool LoadSceneConfigFile(const std::filesystem::path& filepath, SceneConfig& cfg) {
+	std::ifstream in(filepath, std::ios::binary);
+	if (!in)
+		return false;
+	std::string magic;
+	int version = 0;
+	if (!(in >> magic >> version) || magic != "PmxModScene" || version != 2)
+		return false;
+	std::string line;
+	std::getline(in, line);
+	SceneConfig loaded;
+	if (!std::getline(in, line))
+		return false;
+	size_t tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "camera")
+		return false;
+	loaded.cameraAnim = std::filesystem::u8path(line.substr(tab + 1));
+	if (!std::getline(in, line))
+		return false;
+	tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "music")
+		return false;
+	loaded.musicPath = std::filesystem::u8path(line.substr(tab + 1));
+	if (!std::getline(in, line))
+		return false;
+	tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "models")
+		return false;
+	const size_t modelCount = std::stoull(line.substr(tab + 1));
+	loaded.modelConfigs.reserve(modelCount);
+	for (size_t i = 0; i < modelCount; i++) {
+		ModelConfig model;
+		if (!std::getline(in, line))
+			return false;
+		const size_t tab1 = line.find('\t');
+		if (tab1 == std::string::npos || line.substr(0, tab1) != "model")
+			return false;
+		const size_t tab2 = line.find('\t', tab1 + 1);
+		if (tab2 == std::string::npos)
+			return false;
+		const size_t tab3 = line.find('\t', tab2 + 1);
+		if (tab3 == std::string::npos)
+			return false;
+		model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
+		const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
+		model.modelPath = std::filesystem::u8path(line.substr(tab3 + 1));
+		model.animPaths.reserve(animCount);
+		for (size_t j = 0; j < animCount; j++) {
+			if (!std::getline(in, line))
+				return false;
+			tab = line.find('\t');
+			if (tab == std::string::npos || line.substr(0, tab) != "anim")
+				return false;
+			model.animPaths.emplace_back(std::filesystem::u8path(line.substr(tab + 1)));
+		}
+		loaded.modelConfigs.emplace_back(std::move(model));
+	}
+	cfg = std::move(loaded);
+	return true;
 }
 
 // 씬 설정을 구성하고 선택한 렌더러로 뷰어를 실행한다.
@@ -170,9 +151,13 @@ int main() {
 	constexpr COMDLG_FILTERSPEC kMusicFilters[]  = { {L"Audio", L"*.wav;*.mp3;*.ogg;*.flac"} };
 	const bool kTestMode = true;
 	SceneConfig cfg;
-	if (kTestMode)
-		cfg = BuildTestSceneConfig1();
-	else {
+	if (kTestMode) {
+		const std::filesystem::path testScenePath = "resource/scenes/test1.pms";
+		if (!LoadSceneConfigFile(testScenePath, cfg)) {
+			std::cerr << "Failed to load test scene config: " << testScenePath << '\n';
+			return 1;
+		}
+	} else {
 		std::vector<std::vector<std::filesystem::path>> modelPaths;
 		std::vector<std::vector<std::filesystem::path>> motionPaths;
 		std::vector<std::filesystem::path> cameraPath;
@@ -213,8 +198,8 @@ int main() {
 	}
 	int engineType = 0;
 	if (!(std::cin >> engineType)) {
-		std::cerr << "Failed to read engine type.\n";
-		return 1;
+		std::cin.clear();
+		engineType = 0;
 	}
 	std::unique_ptr<Viewer> viewer;
 	if (engineType == 0)

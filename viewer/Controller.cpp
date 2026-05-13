@@ -101,15 +101,27 @@ bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
 	std::ofstream out(filepath, std::ios::binary);
 	if (!out)
 		return false;
-	out << "PmxModScene 1\n";
-	out << "camera " << sceneConfig.cameraAnim << '\n';
-	out << "music " << sceneConfig.musicPath << '\n';
-	out << "models " << sceneConfig.modelConfigs.size() << '\n';
+	out << "PmxModScene 2\n";
+	const auto camera = sceneConfig.cameraAnim.u8string();
+	out << "camera\t";
+	out.write(reinterpret_cast<const char*>(camera.data()), static_cast<std::streamsize>(camera.size()));
+	out << '\n';
+	const auto music = sceneConfig.musicPath.u8string();
+	out << "music\t";
+	out.write(reinterpret_cast<const char*>(music.data()), static_cast<std::streamsize>(music.size()));
+	out << '\n';
+	out << "models\t" << sceneConfig.modelConfigs.size() << '\n';
 	for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
-		out << "model " << modelPath << ' '
-			<< scale << ' ' << animPaths.size() << '\n';
-		for (const auto& animPath : animPaths)
-			out << "anim " << animPath << '\n';
+		const auto model = modelPath.u8string();
+		out << "model\t" << scale << '\t' << animPaths.size() << '\t';
+		out.write(reinterpret_cast<const char*>(model.data()), static_cast<std::streamsize>(model.size()));
+		out << '\n';
+		for (const auto& animPath : animPaths) {
+			const auto anim = animPath.u8string();
+			out << "anim\t";
+			out.write(reinterpret_cast<const char*>(anim.data()), static_cast<std::streamsize>(anim.size()));
+			out << '\n';
+		}
 	}
 	return static_cast<bool>(out);
 }
@@ -120,29 +132,51 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 		return false;
 	std::string magic;
 	int version = 0;
-	if (!(in >> magic >> version) || magic != "PmxModScene" || version != 1)
+	if (!(in >> magic >> version) || magic != "PmxModScene" || version != 2)
 		return false;
+	std::string line;
+	std::getline(in, line);
 	SceneConfig loaded;
-	std::string tag;
-	if (!(in >> tag >> loaded.cameraAnim) || tag != "camera")
+	if (!std::getline(in, line))
 		return false;
-	if (!(in >> tag >> loaded.musicPath) || tag != "music")
+	size_t tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "camera")
 		return false;
-	size_t modelCount = 0;
-	if (!(in >> tag >> modelCount) || tag != "models")
+	loaded.cameraAnim = std::filesystem::u8path(line.substr(tab + 1));
+	if (!std::getline(in, line))
 		return false;
+	tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "music")
+		return false;
+	loaded.musicPath = std::filesystem::u8path(line.substr(tab + 1));
+	if (!std::getline(in, line))
+		return false;
+	tab = line.find('\t');
+	if (tab == std::string::npos || line.substr(0, tab) != "models")
+		return false;
+	const size_t modelCount = std::stoull(line.substr(tab + 1));
 	loaded.modelConfigs.reserve(modelCount);
 	for (size_t i = 0; i < modelCount; i++) {
 		ModelConfig model;
-		size_t animCount = 0;
-		if (!(in >> tag >> model.modelPath >> model.scale >> animCount) || tag != "model")
+		if (!std::getline(in, line))
 			return false;
+		const size_t tab1 = line.find('\t');
+		const size_t tab2 = line.find('\t', tab1 + 1);
+		const size_t tab3 = line.find('\t', tab2 + 1);
+		if (tab1 == std::string::npos || tab2 == std::string::npos || tab3 == std::string::npos ||
+			line.substr(0, tab1) != "model")
+			return false;
+		model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
+		const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
+		model.modelPath = std::filesystem::u8path(line.substr(tab3 + 1));
 		model.animPaths.reserve(animCount);
 		for (size_t j = 0; j < animCount; j++) {
-			std::filesystem::path animPath;
-			if (!(in >> tag >> animPath) || tag != "anim")
+			if (!std::getline(in, line))
 				return false;
-			model.animPaths.emplace_back(std::move(animPath));
+			tab = line.find('\t');
+			if (tab == std::string::npos || line.substr(0, tab) != "anim")
+				return false;
+			model.animPaths.emplace_back(std::filesystem::u8path(line.substr(tab + 1)));
 		}
 		loaded.modelConfigs.emplace_back(std::move(model));
 	}
@@ -152,7 +186,7 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 }
 
 void Controller::ShowOpenSceneDialog() {
-	std::vector<wchar_t> filename(MAX_PATH, L'\0');
+	std::vector filename(MAX_PATH, L'\0');
 	OPENFILENAMEW ofn{};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = controlWindow;

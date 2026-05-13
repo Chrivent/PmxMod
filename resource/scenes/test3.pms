@@ -1,0 +1,11 @@
+PmxModScene 2
+camera	D:\예찬\MMD\motion\Dance Robot Dance\DanceRobotDance_Milo_Camera.vmd
+music	D:\예찬\MMD\motion\Dance Robot Dance\0068_01.wav
+models	4
+model	1.2	1	D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0 T_Pose.pmx
+anim	D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P1.vmd
+model	1.2	1	D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0 T_Pose.pmx
+anim	D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P2.vmd
+model	1.2	1	D:\예찬\MMD\model\Blue Archive\Kokona 1.0\Kokona 1.0_T.pmx
+anim	D:\예찬\MMD\motion\Dance Robot Dance\mmd_DanceRobotDance_P3.vmd
+model	1	0	C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx

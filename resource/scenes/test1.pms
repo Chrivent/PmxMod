@@ -1,0 +1,15 @@
+PmxModScene 2
+camera	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\camera.vmd
+music	D:\예찬\MMD\wav\Kimagure Mercy.wav
+models	6
+model	1.1	1	D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx
+anim	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Haku.vmd
+model	1.1	1	D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx
+anim	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Luka.vmd
+model	1.1	1	D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx
+anim	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Miku.vmd
+model	1.1	1	D:\예찬\MMD\model\Booth\else\Mimyung Chronos\Mimyung Chronos.pmx
+anim	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Rin.vmd
+model	1.1	1	D:\예찬\MMD\model\Booth\Chrivent Elf\Chrivent Elf.pmx
+anim	D:\예찬\MMD\motion\Kimagure Mercy motion配布用\配布用Tda\Teto.vmd
+model	1	0	C:\Users\Ha Yechan\Desktop\sdfa\edit pv song\stage.pmx
