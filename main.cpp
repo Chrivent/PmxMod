@@ -211,8 +211,11 @@ int main() {
 		if (!musicPath.empty())
 			cfg.musicPath = musicPath.front().wstring();
 	}
-	int engineType;
-	std::cin >> engineType;
+	int engineType = 0;
+	if (!(std::cin >> engineType)) {
+		std::cerr << "Failed to read engine type.\n";
+		return 1;
+	}
 	std::unique_ptr<Viewer> viewer;
 	if (engineType == 0)
 		viewer = std::make_unique<GlfwViewer>();

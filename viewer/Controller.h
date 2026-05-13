@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <windows.h>
 #include <filesystem>
+
 #include <glm/glm.hpp>
 
 class CameraAnimation;
@@ -37,6 +37,9 @@ class Controller {
 	float freeCamYaw = 0.0f;
 	float freeCamPitch = 0.0f;
 	std::unique_ptr<CameraAnimation> cameraAnim;
+	constexpr wchar_t kControllerWindowClass[] = L"PmxModControllerWindow";
+	constexpr wchar_t kSceneFileFilter[] = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
+	constexpr UINT kShowControlWindowMessage = WM_APP + 2;
 	SceneConfig sceneConfig;
 	std::filesystem::path sceneFilePath;
 	HWND controlWindow = nullptr;

@@ -39,20 +39,25 @@ bool Viewer::Run(const SceneConfig& cfg) {
     music.Init(cfg.musicPath, false);
     controller.Reset();
     controller.SetSceneConfig(cfg);
-    if (!glfwInit())
+    if (!glfwInit()) {
+        std::cout << "Failed to initialize GLFW.\n";
         return false;
+    }
     ConfigureGlfwHints();
     window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
     if (!window) {
+        std::cout << "Failed to create viewer window.\n";
         glfwTerminate();
         return false;
     }
     glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
     if (screenWidth <= 0 || screenHeight <= 0) {
+        std::cout << "Invalid framebuffer size.\n";
         glfwTerminate();
         return false;
     }
     if (!Setup()) {
+        std::cout << "Failed to set up renderer.\n";
         glfwTerminate();
         return false;
     }
@@ -60,6 +65,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
     controller.LoadCameraAnim(cfg.cameraAnim);
     std::vector<std::unique_ptr<Instance>> instances;
     if (!LoadInstances(cfg, instances)) {
+        std::cout << "Failed to load scene instances.\n";
         controller.DestroyControlWindow();
         glfwTerminate();
         return false;

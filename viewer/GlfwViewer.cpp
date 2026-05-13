@@ -3,6 +3,7 @@
 #include "../src/Model.h"
 
 #include <fstream>
+#include <iostream>
 #include <ranges>
 #include <stb_image.h>
 
@@ -431,20 +432,28 @@ void GlfwViewer::ConfigureGlfwHints() {
 
 bool GlfwViewer::Setup() {
 	glfwMakeContextCurrent(window);
-	if (!gladLoadGLLoader(LoadGlProc))
+	if (!gladLoadGLLoader(LoadGlProc)) {
+		std::cout << "Failed to load OpenGL functions.\n";
 		return false;
+	}
 	glfwSwapInterval(0);
 	glEnable(GL_MULTISAMPLE);
 	InitDirs("shader_Glfw");
 	shader = std::make_unique<GlfwShader>();
-	if (!shader->Setup(*this))
+	if (!shader->Setup(*this)) {
+		std::cout << "Failed to set up main GLFW shader: " << (shaderDir / "mmd.glsl") << '\n';
 		return false;
+	}
 	edgeShader = std::make_unique<GlfwEdgeShader>();
-	if (!edgeShader->Setup(*this))
+	if (!edgeShader->Setup(*this)) {
+		std::cout << "Failed to set up edge GLFW shader: " << (shaderDir / "mmd_edge.glsl") << '\n';
 		return false;
+	}
 	gsShader = std::make_unique<GlfwGroundShadowShader>();
-	if (!gsShader->Setup(*this))
+	if (!gsShader->Setup(*this)) {
+		std::cout << "Failed to set up ground shadow GLFW shader: " << (shaderDir / "mmd_ground_shadow.glsl") << '\n';
 		return false;
+	}
 	glGenTextures(1, &dummyColorTex);
 	glBindTexture(GL_TEXTURE_2D, dummyColorTex);
 	glTexImage2D(GL_TEXTURE_2D, 0,

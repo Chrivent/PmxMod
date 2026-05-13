@@ -6,30 +6,16 @@
 #include "../src/Reader.h"
 #include "../src/Sound.h"
 
-#include <commdlg.h>
 #include <fstream>
 #include <iostream>
-
-namespace {
-	constexpr wchar_t kControllerWindowClass[] = L"PmxModControllerWindow";
-	constexpr wchar_t kSceneFileFilter[] = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
-
-	std::string PathToUtf8(const std::filesystem::path& path) {
-		const auto u8 = path.u8string();
-		return { reinterpret_cast<const char*>(u8.data()), u8.size() };
-	}
-
-	std::filesystem::path Utf8ToPath(const std::string& value) {
-		const auto* begin = reinterpret_cast<const char8_t*>(value.data());
-		return std::filesystem::path(std::u8string(begin, begin + value.size()));
-	}
-}
 
 Controller::Controller() {
 	Reset();
 }
 
-Controller::~Controller() = default;
+Controller::~Controller() {
+	DestroyControlWindow();
+}
 
 void Controller::SetSceneConfig(const SceneConfig& cfg) {
 	sceneConfig = cfg;
@@ -101,10 +87,9 @@ void Controller::ResizeControlWindow() const {
 	GetClientRect(controlWindow, &client);
 	constexpr int x = 14;
 	constexpr int y = 14;
-	const int width = client.right - x * 2;
-	constexpr int height = 64;
+	const int width = static_cast<int>(client.right) - x * 2;
 	if (statusText)
-		MoveWindow(statusText, x, y, width, height, TRUE);
+		MoveWindow(statusText, x, y, width, 64, TRUE);
 }
 
 void Controller::SetStatusText(const std::wstring& text) const {
@@ -117,14 +102,14 @@ bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
 	if (!out)
 		return false;
 	out << "PmxModScene 1\n";
-	out << "camera " << std::quoted(PathToUtf8(sceneConfig.cameraAnim)) << '\n';
-	out << "music " << std::quoted(PathToUtf8(sceneConfig.musicPath)) << '\n';
+	out << "camera " << sceneConfig.cameraAnim << '\n';
+	out << "music " << sceneConfig.musicPath << '\n';
 	out << "models " << sceneConfig.modelConfigs.size() << '\n';
-	for (const auto& model : sceneConfig.modelConfigs) {
-		out << "model " << std::quoted(PathToUtf8(model.modelPath)) << ' '
-			<< model.scale << ' ' << model.animPaths.size() << '\n';
-		for (const auto& animPath : model.animPaths)
-			out << "anim " << std::quoted(PathToUtf8(animPath)) << '\n';
+	for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
+		out << "model " << modelPath << ' '
+			<< scale << ' ' << animPaths.size() << '\n';
+		for (const auto& animPath : animPaths)
+			out << "anim " << animPath << '\n';
 	}
 	return static_cast<bool>(out);
 }
@@ -139,13 +124,10 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 		return false;
 	SceneConfig loaded;
 	std::string tag;
-	std::string value;
-	if (!(in >> tag >> std::quoted(value)) || tag != "camera")
+	if (!(in >> tag >> loaded.cameraAnim) || tag != "camera")
 		return false;
-	loaded.cameraAnim = Utf8ToPath(value);
-	if (!(in >> tag >> std::quoted(value)) || tag != "music")
+	if (!(in >> tag >> loaded.musicPath) || tag != "music")
 		return false;
-	loaded.musicPath = Utf8ToPath(value);
 	size_t modelCount = 0;
 	if (!(in >> tag >> modelCount) || tag != "models")
 		return false;
@@ -153,14 +135,14 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 	for (size_t i = 0; i < modelCount; i++) {
 		ModelConfig model;
 		size_t animCount = 0;
-		if (!(in >> tag >> std::quoted(value) >> model.scale >> animCount) || tag != "model")
+		if (!(in >> tag >> model.modelPath >> model.scale >> animCount) || tag != "model")
 			return false;
-		model.modelPath = Utf8ToPath(value);
 		model.animPaths.reserve(animCount);
 		for (size_t j = 0; j < animCount; j++) {
-			if (!(in >> tag >> std::quoted(value)) || tag != "anim")
+			std::filesystem::path animPath;
+			if (!(in >> tag >> animPath) || tag != "anim")
 				return false;
-			model.animPaths.emplace_back(Utf8ToPath(value));
+			model.animPaths.emplace_back(std::move(animPath));
 		}
 		loaded.modelConfigs.emplace_back(std::move(model));
 	}
@@ -216,6 +198,7 @@ LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wPara
 		const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
 		controller = static_cast<Controller*>(create->lpCreateParams);
 		SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(controller));
+		controller->controlWindow = hwnd;
 	}
 	if (!controller)
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -250,6 +233,10 @@ LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wPara
 					break;
 			}
 			break;
+		case kShowControlWindowMessage:
+			ShowWindow(hwnd, SW_SHOWNORMAL);
+			SetForegroundWindow(hwnd);
+			return 0;
 		case WM_CLOSE:
 			ShowWindow(hwnd, SW_HIDE);
 			return 0;
