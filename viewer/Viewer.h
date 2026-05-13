@@ -5,6 +5,7 @@
 
 #include "../src/Animation.h"
 #include "../src/Sound.h"
+#include "Controller.h"
 
 struct SceneConfig;
 struct Material;
@@ -58,18 +59,7 @@ protected:
     static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
 
     std::filesystem::path	resourceDir;
-    bool    paused = false;
-    bool    prevSpaceDown = false;
-    bool    useMotionCamera = true;
-    bool    hasFreeCameraState = false;
-    bool    prevRDown = false;
-    bool    prevRightMouseDown = false;
-    double  prevCursorX = 0.0;
-    double  prevCursorY = 0.0;
-    glm::vec3 freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
-    float   freeCamYaw = glm::radians(-90.0f);
-    float   freeCamPitch = 0.0f;
-    std::unique_ptr<CameraAnimation>	cameraAnim;
+    Controller controller;
     float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     
 public:
@@ -95,16 +85,6 @@ public:
     static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
     // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
     bool LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<Instance>>& instances);
-    // 씬 설정의 카메라 VMD를 로드한다.
-    void LoadCameraAnim(const SceneConfig& cfg);
-    // 음악 재생 위치와 프레임 시간을 기준으로 애니메이션 시간을 진행한다.
-    void StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime);
-    // 키보드와 마우스 입력을 처리해 재생/카메라 상태를 변경한다.
-    void HandleInput(Sound& music);
-    // 모션 카메라 또는 자유 카메라 상태로 뷰 행렬을 갱신한다.
-    void UpdateCamera();
-    // 현재 뷰 행렬을 자유 카메라 위치/회전 상태로 동기화한다.
-    void SyncFreeCameraToCurrentView();
     // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
     void InitDirs(const std::filesystem::path& shaderSubDir);
 

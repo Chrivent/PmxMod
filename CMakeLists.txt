@@ -28,6 +28,7 @@ add_executable(PmxMod
         src/Reader.cpp src/Reader.h
         src/Animation.cpp src/Animation.h
         src/Sound.cpp src/Sound.h
+        viewer/Controller.cpp viewer/Controller.h
         viewer/Viewer.cpp viewer/Viewer.h
         viewer/GlfwViewer.cpp viewer/GlfwViewer.h
         viewer/Dx11Viewer.cpp viewer/Dx11Viewer.h

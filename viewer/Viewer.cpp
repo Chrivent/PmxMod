@@ -37,15 +37,7 @@ Viewer::~Viewer() = default;
 bool Viewer::Run(const SceneConfig& cfg) {
     Sound music;
     music.Init(cfg.musicPath, false);
-    paused = false;
-    prevSpaceDown = false;
-    useMotionCamera = true;
-    hasFreeCameraState = false;
-    prevRDown = false;
-    prevRightMouseDown = false;
-    freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
-    freeCamYaw = glm::radians(-90.0f);
-    freeCamPitch = 0.0f;
+    controller.Reset();
     if (!glfwInit())
         return false;
     ConfigureGlfwHints();
@@ -63,7 +55,7 @@ bool Viewer::Run(const SceneConfig& cfg) {
         glfwTerminate();
         return false;
     }
-    LoadCameraAnim(cfg);
+    controller.LoadCameraAnim(cfg.cameraAnim);
     std::vector<std::unique_ptr<Instance>> instances;
     if (!LoadInstances(cfg, instances)) {
         glfwTerminate();
@@ -72,10 +64,10 @@ bool Viewer::Run(const SceneConfig& cfg) {
     auto fpsTime  = std::chrono::steady_clock::now();
     auto saveTime = std::chrono::steady_clock::now();
     int fpsFrame  = 0;
-    UpdateCamera();
+    controller.UpdateCamera(*this);
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        HandleInput(music);
+        controller.HandleInput(*this, music);
         int newW = 0, newH = 0;
         glfwGetFramebufferSize(window, &newW, &newH);
         if (newW != screenWidth || newH != screenHeight) {
@@ -84,8 +76,8 @@ bool Viewer::Run(const SceneConfig& cfg) {
             if (!Resize())
                 break;
         }
-        StepTime(music, saveTime);
-        UpdateCamera();
+        controller.StepTime(*this, music, saveTime);
+        controller.UpdateCamera(*this);
         BeginFrame();
         for (const auto& instance : instances) {
             instance->UpdateAnimation(*this);
@@ -146,137 +138,6 @@ bool Viewer::LoadInstances(const SceneConfig& cfg, std::vector<std::unique_ptr<I
         instances.emplace_back(std::move(instance));
     }
     return true;
-}
-
-void Viewer::LoadCameraAnim(const SceneConfig& cfg) {
-    cameraAnim.reset();
-    if (cfg.cameraAnim.empty()) {
-        std::cout << "No camera VMD file.\n";
-        return;
-    }
-    VmdReader camVmd;
-    if (camVmd.ReadFile(cfg.cameraAnim.c_str()) && !camVmd.cameras.empty()) {
-        auto vmdCamAnim = std::make_unique<CameraAnimation>();
-        if (!vmdCamAnim->Create(camVmd))
-            std::cout << "Failed to create VMDCameraAnimation.\n";
-        cameraAnim = std::move(vmdCamAnim);
-    }
-}
-
-void Viewer::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime) {
-    const auto now = std::chrono::steady_clock::now();
-    double elapsedSeconds = std::chrono::duration<double>(now - saveTime).count();
-    if (elapsedSeconds > 1.0 / 30.0)
-        elapsedSeconds = 1.0 / 30.0;
-    saveTime = now;
-    if (paused) {
-        elapsed = 0.0f;
-        return;
-    }
-    auto dt = static_cast<float>(elapsedSeconds);
-    float t = animTime + dt;
-    if (music.hasSound) {
-        float adt = 0.0f;
-        float at = 0.0f;
-        music.PullTimes(adt, at);
-        if (adt < 0.f)
-            adt = 0.f;
-        dt = adt;
-        t  = at;
-    }
-    elapsed  = dt;
-    animTime = t;
-}
-
-void Viewer::HandleInput(Sound& music) {
-    const bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-    if (spaceDown && !prevSpaceDown) {
-        paused = !paused;
-        if (paused)
-            music.Pause();
-        else
-            music.Resume();
-    }
-    prevSpaceDown = spaceDown;
-    const bool rDown = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
-    if (rDown && !prevRDown) {
-        if (useMotionCamera && !hasFreeCameraState) {
-            SyncFreeCameraToCurrentView();
-            hasFreeCameraState = true;
-        }
-        useMotionCamera = !useMotionCamera;
-        prevRightMouseDown = false;
-    }
-    prevRDown = rDown;
-    if (useMotionCamera)
-        return;
-    const float moveSpeed = 100.0f * max(elapsed, 1.0f / 120.0f);
-    glm::vec3 forward(
-        std::cos(freeCamPitch) * std::cos(freeCamYaw),
-        std::sin(freeCamPitch),
-        std::cos(freeCamPitch) * std::sin(freeCamYaw)
-    );
-    forward = glm::normalize(forward);
-    const glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
-    constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        freeCamPosition += forward * moveSpeed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        freeCamPosition -= forward * moveSpeed;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        freeCamPosition -= right * moveSpeed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        freeCamPosition += right * moveSpeed;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        freeCamPosition -= up * moveSpeed;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        freeCamPosition += up * moveSpeed;
-    const bool rightMouseDown = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    double cursorX = 0.0, cursorY = 0.0;
-    glfwGetCursorPos(window, &cursorX, &cursorY);
-    if (rightMouseDown) {
-        if (prevRightMouseDown) {
-            constexpr float mouseSensitivity = 0.0035f;
-            const double dx = cursorX - prevCursorX;
-            const double dy = cursorY - prevCursorY;
-            freeCamYaw += static_cast<float>(dx) * mouseSensitivity;
-            freeCamPitch -= static_cast<float>(dy) * mouseSensitivity;
-            freeCamPitch = std::clamp(freeCamPitch, glm::radians(-89.0f), glm::radians(89.0f));
-        }
-        prevCursorX = cursorX;
-        prevCursorY = cursorY;
-    }
-    prevRightMouseDown = rightMouseDown;
-}
-
-void Viewer::UpdateCamera() {
-    if (useMotionCamera && cameraAnim) {
-        cameraAnim->Evaluate(animTime * 30.0f);
-        const auto cam = cameraAnim->camera;
-        viewMat = cam.CalcViewMatrix();
-        projMat = glm::perspectiveFovRH(
-            cam.fov, static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f, 10000.0f
-        );
-        return;
-    }
-    glm::vec3 forward(
-        std::cos(freeCamPitch) * std::cos(freeCamYaw),
-        std::sin(freeCamPitch),
-        std::cos(freeCamPitch) * std::sin(freeCamYaw)
-    );
-    forward = glm::normalize(forward);
-    viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
-    projMat = glm::perspectiveFovRH(
-        glm::radians(30.0f), static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f, 10000.0f
-    );
-}
-
-void Viewer::SyncFreeCameraToCurrentView() {
-    const glm::mat4 invView = glm::inverse(viewMat);
-    freeCamPosition = glm::vec3(invView[3]);
-    const glm::vec3 forward = -glm::normalize(glm::vec3(invView[2]));
-    freeCamYaw = std::atan2(forward.z, forward.x);
-    freeCamPitch = std::asin(std::clamp(forward.y, -1.0f, 1.0f));
 }
 
 void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
