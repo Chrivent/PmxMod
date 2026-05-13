@@ -1,5 +1,4 @@
 ﻿#include <iostream>
-#include <fstream>
 #include <shobjidl.h>
 
 #include "viewer/Dx11Viewer.h"
@@ -83,67 +82,6 @@ inline bool PickFilesWin(
     return !out.empty();
 }
 
-static bool LoadSceneConfigFile(const std::filesystem::path& filepath, SceneConfig& cfg) {
-	std::ifstream in(filepath, std::ios::binary);
-	if (!in)
-		return false;
-	std::string magic;
-	int version = 0;
-	if (!(in >> magic >> version) || magic != "PmxModScene" || version != 2)
-		return false;
-	std::string line;
-	std::getline(in, line);
-	SceneConfig loaded;
-	if (!std::getline(in, line))
-		return false;
-	size_t tab = line.find('\t');
-	if (tab == std::string::npos || line.substr(0, tab) != "camera")
-		return false;
-	loaded.cameraAnim = std::filesystem::u8path(line.substr(tab + 1));
-	if (!std::getline(in, line))
-		return false;
-	tab = line.find('\t');
-	if (tab == std::string::npos || line.substr(0, tab) != "music")
-		return false;
-	loaded.musicPath = std::filesystem::u8path(line.substr(tab + 1));
-	if (!std::getline(in, line))
-		return false;
-	tab = line.find('\t');
-	if (tab == std::string::npos || line.substr(0, tab) != "models")
-		return false;
-	const size_t modelCount = std::stoull(line.substr(tab + 1));
-	loaded.modelConfigs.reserve(modelCount);
-	for (size_t i = 0; i < modelCount; i++) {
-		ModelConfig model;
-		if (!std::getline(in, line))
-			return false;
-		const size_t tab1 = line.find('\t');
-		if (tab1 == std::string::npos || line.substr(0, tab1) != "model")
-			return false;
-		const size_t tab2 = line.find('\t', tab1 + 1);
-		if (tab2 == std::string::npos)
-			return false;
-		const size_t tab3 = line.find('\t', tab2 + 1);
-		if (tab3 == std::string::npos)
-			return false;
-		model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
-		const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
-		model.modelPath = std::filesystem::u8path(line.substr(tab3 + 1));
-		model.animPaths.reserve(animCount);
-		for (size_t j = 0; j < animCount; j++) {
-			if (!std::getline(in, line))
-				return false;
-			tab = line.find('\t');
-			if (tab == std::string::npos || line.substr(0, tab) != "anim")
-				return false;
-			model.animPaths.emplace_back(std::filesystem::u8path(line.substr(tab + 1)));
-		}
-		loaded.modelConfigs.emplace_back(std::move(model));
-	}
-	cfg = std::move(loaded);
-	return true;
-}
-
 // 씬 설정을 구성하고 선택한 렌더러로 뷰어를 실행한다.
 int main() {
 	constexpr COMDLG_FILTERSPEC kModelFilters[]  = { {L"PMX Model", L"*.pmx"} };
@@ -153,8 +91,8 @@ int main() {
 	SceneConfig cfg;
 	if (kTestMode) {
 		const std::filesystem::path testScenePath = "resource/scenes/test1.pms";
-		if (!LoadSceneConfigFile(testScenePath, cfg)) {
-			std::cerr << "Failed to load test scene config: " << testScenePath << '\n';
+		if (!cfg.Load(testScenePath)) {
+			std::cout << "Failed to load test scene config: " << testScenePath << '\n';
 			return 1;
 		}
 	} else {

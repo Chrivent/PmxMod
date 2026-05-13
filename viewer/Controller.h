@@ -19,6 +19,9 @@ struct SceneConfig {
 	std::vector<ModelConfig> modelConfigs;
 	std::filesystem::path cameraAnim;
 	std::filesystem::path musicPath;
+
+	bool Load(const std::filesystem::path& filepath);
+	bool Save(const std::filesystem::path& filepath) const;
 };
 
 class Controller {

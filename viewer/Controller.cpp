@@ -97,21 +97,21 @@ void Controller::SetStatusText(const std::wstring& text) const {
 		SetWindowTextW(statusText, text.c_str());
 }
 
-bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
+bool SceneConfig::Save(const std::filesystem::path& filepath) const {
 	std::ofstream out(filepath, std::ios::binary);
 	if (!out)
 		return false;
 	out << "PmxModScene 2\n";
-	const auto camera = sceneConfig.cameraAnim.u8string();
+	const auto camera = cameraAnim.u8string();
 	out << "camera\t";
 	out.write(reinterpret_cast<const char*>(camera.data()), static_cast<std::streamsize>(camera.size()));
 	out << '\n';
-	const auto music = sceneConfig.musicPath.u8string();
+	const auto music = musicPath.u8string();
 	out << "music\t";
 	out.write(reinterpret_cast<const char*>(music.data()), static_cast<std::streamsize>(music.size()));
 	out << '\n';
-	out << "models\t" << sceneConfig.modelConfigs.size() << '\n';
-	for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
+	out << "models\t" << modelConfigs.size() << '\n';
+	for (const auto& [modelPath, animPaths, scale] : modelConfigs) {
 		const auto model = modelPath.u8string();
 		out << "model\t" << scale << '\t' << animPaths.size() << '\t';
 		out.write(reinterpret_cast<const char*>(model.data()), static_cast<std::streamsize>(model.size()));
@@ -126,7 +126,7 @@ bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
 	return static_cast<bool>(out);
 }
 
-bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
+bool SceneConfig::Load(const std::filesystem::path& filepath) {
 	std::ifstream in(filepath, std::ios::binary);
 	if (!in)
 		return false;
@@ -180,7 +180,17 @@ bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
 		}
 		loaded.modelConfigs.emplace_back(std::move(model));
 	}
-	sceneConfig = std::move(loaded);
+	*this = std::move(loaded);
+	return true;
+}
+
+bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
+	return sceneConfig.Save(filepath);
+}
+
+bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
+	if (!sceneConfig.Load(filepath))
+		return false;
 	sceneFilePath = filepath;
 	return true;
 }
