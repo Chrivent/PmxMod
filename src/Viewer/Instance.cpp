@@ -1,0 +1,18 @@
+﻿#include "Instance.h"
+
+#include "Viewer.h"
+
+namespace Chrivent {
+    Instance::~Instance() = default;
+
+    void Instance::Draw() const {
+        DrawModel();
+        DrawEdge();
+        DrawGroundShadow();
+    }
+
+    void Instance::UpdateAnimation(const Viewer& viewer) const {
+        model->BeginAnimation();
+        model->UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed);
+    }
+}

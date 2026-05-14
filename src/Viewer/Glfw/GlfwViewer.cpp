@@ -1,7 +1,6 @@
 ﻿#include "GlfwViewer.h"
 
 #include "GlfwShaderHelper.h"
-#include "../Model.h"
 
 #include <iostream>
 #include <ranges>

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../Viewer/Viewer.h"
 #include "Controller.h"
 #include "Sound.h"
+#include "../Viewer/Viewer.h"
 
 namespace Chrivent {
     class Program {

@@ -1,12 +1,13 @@
 ﻿#pragma once
 
-#include "Viewer.h"
+#include "../Viewer.h"
 
 #include <map>
 #include <d3d11.h>
 #include <wrl/client.h>
 
 namespace Chrivent {
+    struct Material;
     class Dx11Viewer;
 
     struct Dx11Vertex {

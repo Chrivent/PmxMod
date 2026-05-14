@@ -40,9 +40,12 @@ add_executable(PmxMod
         src/Physics.h src/Physics.cpp
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
-        src/Viewer/GlfwViewer.h src/Viewer/GlfwViewer.cpp
-        src/Viewer/GlfwShaderHelper.h src/Viewer/GlfwShaderHelper.cpp
-        src/Viewer/Dx11Viewer.h src/Viewer/Dx11Viewer.cpp
+        src/Viewer/Instance.h src/Viewer/Instance.cpp
+        
+        src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
+        src/Viewer/Glfw/GlfwShaderHelper.h src/Viewer/Glfw/GlfwShaderHelper.cpp
+        
+        src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
 )
 
 target_link_libraries(PmxMod PUBLIC

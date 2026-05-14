@@ -1,6 +1,5 @@
 ﻿#include "Viewer.h"
 
-#include "../Model.h"
 #include <iostream>
 #include <windows.h>
 
@@ -8,19 +7,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-    Instance::~Instance() = default;
-
-    void Instance::Draw() const {
-        DrawModel();
-        DrawEdge();
-        DrawGroundShadow();
-    }
-
-    void Instance::UpdateAnimation(const Viewer& viewer) const {
-        model->BeginAnimation();
-        model->UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed);
-    }
-
     Viewer::~Viewer() = default;
 
     unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {

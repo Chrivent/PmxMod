@@ -1,7 +1,7 @@
 #include "Program.h"
 
-#include "../Viewer/Dx11Viewer.h"
-#include "../Viewer/GlfwViewer.h"
+#include "../Viewer/Dx11/Dx11Viewer.h"
+#include "../Viewer/Glfw/GlfwViewer.h"
 
 #include <iostream>
 
