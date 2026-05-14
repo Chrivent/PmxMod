@@ -44,6 +44,7 @@ add_executable(PmxMod
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
         src/Viewer/Glfw/GlfwShaderHelper.h src/Viewer/Glfw/GlfwShaderHelper.cpp
+        src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
 )
