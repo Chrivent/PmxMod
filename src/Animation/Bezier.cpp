@@ -1,0 +1,38 @@
+﻿#include "Bezier.h"
+
+#include <algorithm>
+
+void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
+	auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };
+	p1 = glm::vec2(Normalize(x0), Normalize(y0));
+	p2 = glm::vec2(Normalize(x1), Normalize(y1));
+}
+
+float Bezier::Evaluate(const float time) const {
+	const float bezierParameter = FindBezierX(time, p1.x, p2.x);
+	return EvaluateBezier(bezierParameter, p1.y, p2.y);
+}
+
+float Bezier::EvaluateBezier(const float t, const float p1, const float p2) {
+	const float it = 1.0f - t;
+	return 3.0f * it * it * t * p1 + 3.0f * it * t * t * p2 + t * t * t;
+}
+
+float Bezier::FindBezierX(float time, const float x1, const float x2) {
+	time = std::clamp(time, 0.0f, 1.0f);
+	float start = 0.0f;
+	float stop = 1.0f;
+	float t = 0.5f;
+	while (true) {
+		const float x = EvaluateBezier(t, x1, x2);
+		const float diff = time - x;
+		if (std::abs(diff) < 1.0e-5f)
+			break;
+		if (diff < 0.0f)
+			stop = t;
+		else
+			start = t;
+		t = (start + stop) * 0.5f;
+	}
+	return t;
+}
