@@ -113,6 +113,8 @@ namespace Chrivent {
 		uint32_t									parallelUpdateCount = 0;
 		std::vector<UpdateRange>					updateRanges;
 		std::vector<std::future<void>>				parallelUpdateFutures;
+		
+		~Model();
 
 		// 재질 모프의 곱셈 계수를 가중치만큼 누적한다.
 		static void AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, float weight);
@@ -132,8 +134,6 @@ namespace Chrivent {
 		void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight);
 		// 본 모프 데이터를 노드 애니메이션 변환에 적용한다.
 		void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
-		~Model();
-
 		// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
 		void InitializeAnimation();
 		// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
