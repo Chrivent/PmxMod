@@ -14,7 +14,7 @@ GLuint GlfwShaderHelper::CompileShader(const GLenum shaderType, const std::strin
 }
 
 std::string GlfwShaderHelper::InjectDefine(const std::string& src, const char* defineLine) {
-	if (src.rfind("#version", 0) == 0) {
+	if (src.starts_with("#version")) {
 		const auto nl = src.find('\n');
 		if (nl != std::string::npos) {
 			std::string out;
