@@ -122,8 +122,6 @@ namespace Chrivent {
 		void LoadPhysics(const PmxReader& pmx);
 		// 병렬 버텍스 갱신에 사용할 작업 범위를 구성한다.
 		void SetupParallelUpdate();
-		// 지정된 버텍스 범위의 스키닝 결과를 갱신한다.
-		void Update(const UpdateRange& range);
 		// 단일 모프를 지정한 가중치로 평가한다.
 		void EvalMorph(const Morph* morph, float morphWeight);
 		// 위치 모프 데이터를 버텍스 위치에 적용한다.

@@ -35,6 +35,7 @@ add_executable(PmxMod
         src/Animation/Bezier.h src/Animation/Bezier.cpp
 
         src/Model/Model.h src/Model/Model.cpp
+        src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
         
         src/Util.h src/Util.cpp
         src/IkSolver.h src/IkSolver.cpp
