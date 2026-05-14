@@ -5,7 +5,7 @@
 namespace Chrivent {
 	class PmxReader;
 
-	class ModelLoader final {
+	class ModelLoader {
 		Model& model;
 
 		// PMX 정점 정보를 모델의 기본 정점 버퍼로 변환한다.

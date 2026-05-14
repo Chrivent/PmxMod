@@ -64,14 +64,14 @@ namespace Chrivent {
 	}
 
 	void ModelPose::ResetPhysics() const {
-		for (auto& rb : model.rigidBodies) {
+		for (const auto& rb : model.rigidBodies) {
 			rb->ApplyActivation(false);
 			rb->ResetTransform();
 		}
 		model.physics->world->stepSimulation(
 			1.0f / 60.0f, model.physics->maxSubStepCount,
 			static_cast<btScalar>(1.0f / model.physics->fps));
-		for (auto& rb : model.rigidBodies) {
+		for (const auto& rb : model.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}
@@ -79,17 +79,17 @@ namespace Chrivent {
 			if (node->parent.expired())
 				node->UpdateGlobalTransform();
 		}
-		for (auto& rb : model.rigidBodies)
+		for (const auto& rb : model.rigidBodies)
 			rb->Reset(model.physics.get());
 	}
 
 	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {
-		for (auto& rb : model.rigidBodies)
+		for (const auto& rb : model.rigidBodies)
 			rb->ApplyActivation(true);
 		model.physics->world->stepSimulation(
 			elapsed, model.physics->maxSubStepCount,
 			static_cast<btScalar>(1.0f / model.physics->fps));
-		for (auto& rb : model.rigidBodies) {
+		for (const auto& rb : model.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}

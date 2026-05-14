@@ -3,7 +3,7 @@
 #include "Model.h"
 
 namespace Chrivent {
-	class ModelPose final {
+	class ModelPose {
 		Model& model;
 
 		// 지정된 정점 범위의 스키닝 결과를 갱신한다.

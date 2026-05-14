@@ -36,7 +36,7 @@ add_executable(PmxMod
 
         src/Model/Model.h src/Model/Model.cpp
         src/Model/ModelLoader.h src/Model/ModelLoader.cpp
-        src/Model/ModelMorph.h
+        src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp
         
         src/Util.h src/Util.cpp
