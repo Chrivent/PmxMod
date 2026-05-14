@@ -4,12 +4,6 @@
 #include "../Reader/PmxReader.h"
 #include "../Util.h"
 
-#include <functional>
-#include <iomanip>
-#include <limits>
-#include <ranges>
-#include <sstream>
-
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
