@@ -1,7 +1,7 @@
 #include "Animation.h"
 
-#include "Model.h"
-#include "Util.h"
+#include "../Model.h"
+#include "../Util.h"
 
 void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
 	auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };

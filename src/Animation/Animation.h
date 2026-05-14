@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Reader.h"
+#include "../Reader.h"
 
 #include <map>
 #include <ranges>

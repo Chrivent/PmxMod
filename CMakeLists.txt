@@ -26,7 +26,7 @@ add_executable(PmxMod
         src/Node.cpp src/Node.h
         src/Physics.cpp src/Physics.h
         src/Reader.cpp src/Reader.h
-        src/Animation.cpp src/Animation.h
+        src/Animation/Animation.cpp src/Animation/Animation.h
         src/Sound.cpp src/Sound.h
         viewer/Controller.cpp viewer/Controller.h
         viewer/Viewer.cpp viewer/Viewer.h

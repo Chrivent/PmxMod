@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "../src/Animation.h"
+#include "../src/Animation/Animation.h"
 #include "../src/Sound.h"
 #include "Controller.h"
 

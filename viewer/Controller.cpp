@@ -2,7 +2,7 @@
 
 #include "Viewer.h"
 
-#include "../src/Animation.h"
+#include "../src/Animation/Animation.h"
 #include "../src/Reader.h"
 #include "../src/Sound.h"
 
