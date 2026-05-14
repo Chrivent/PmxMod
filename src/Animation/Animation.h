@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Bezier.h"
-#include "../Reader.h"
+#include "../Reader/VmdReader.h"
 
 struct Morph;
 class IkSolver;

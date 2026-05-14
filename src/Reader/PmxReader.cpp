@@ -1,51 +1,14 @@
-﻿#include "Reader.h"
+﻿#include "PmxReader.h"
 
-#include "Util.h"
+#include "ReaderHelper.h"
+#include "../Util.h"
 
 #include <fstream>
 
-std::streampos PmxReader::GetFileEnd(std::istream& is) {
-	const auto origin = is.tellg();
-	is.seekg(0, std::ios::end);
-	const auto end = is.tellg();
-	is.seekg(origin, std::ios::beg);
-	return end;
-}
-
-bool PmxReader::HasMore(std::istream& is, const std::streampos& end) {
-	const auto cur = is.tellg();
-	return cur != std::streampos(-1) && cur < end;
-}
-
-void PmxReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
-	switch (indexSize) {
-		case 1: {
-			uint8_t idx;
-			Read(is, &idx);
-			if (idx != 0xFF)
-				*index = static_cast<int32_t>(idx);
-			else
-				*index = -1;
-		}
-		break;
-		case 2: {
-			uint16_t idx;
-			Read(is, &idx);
-			if (idx != 0xFFFF)
-				*index = static_cast<int32_t>(idx);
-			else
-				*index = -1;
-		}
-		break;
-		case 4: {
-			uint32_t idx;
-			Read(is, &idx);
-			*index = static_cast<int32_t>(idx);
-		}
-		break;
-		default: ;
-	}
-}
+using ReaderHelper::GetFileEnd;
+using ReaderHelper::HasMore;
+using ReaderHelper::Read;
+using ReaderHelper::ReadIndex;
 
 void PmxReader::ReadString(std::istream& is, std::string* val) const {
 	uint32_t bufSize;
@@ -522,124 +485,5 @@ bool PmxReader::ReadFile(const std::filesystem::path& filename) {
 	ReadJoint(is);
 	if (HasMore(is, end))
 		ReadSoftBody(is);
-	return true;
-}
-
-std::streampos VmdReader::GetFileEnd(std::istream& is) {
-	const auto origin = is.tellg();
-	is.seekg(0, std::ios::end);
-	const auto end = is.tellg();
-	is.seekg(origin, std::ios::beg);
-	return end;
-}
-
-bool VmdReader::HasMore(std::istream& is, const std::streampos& end) {
-	const auto cur = is.tellg();
-	return cur != std::streampos(-1) && cur < end;
-}
-
-void VmdReader::ReadHeader(std::istream& is) {
-	Read(is, header.header, sizeof(header.header));
-	Read(is, header.modelName, sizeof(header.modelName));
-}
-
-void VmdReader::ReadMotion(std::istream& is) {
-	uint32_t motionCount = 0;
-	Read(is, &motionCount);
-	motions.resize(motionCount);
-	for (auto& [boneName, frame
-		     , translate, quaternion
-		     , interpolation] : motions) {
-		Read(is, boneName, sizeof(boneName));
-		Read(is, &frame);
-		Read(is, &translate);
-		Read(is, &quaternion);
-		Read(is, &interpolation);
-	}
-}
-
-void VmdReader::ReadBlendShape(std::istream& is) {
-	uint32_t blendShapeCount = 0;
-	Read(is, &blendShapeCount);
-	morphs.resize(blendShapeCount);
-	for (auto& [blendShapeName, frame, weight] : morphs) {
-		Read(is, blendShapeName, sizeof(blendShapeName));
-		Read(is, &frame);
-		Read(is, &weight);
-	}
-}
-
-void VmdReader::ReadCamera(std::istream& is) {
-	uint32_t cameraCount = 0;
-	Read(is, &cameraCount);
-	cameras.resize(cameraCount);
-	for (auto& [frame, distance, interest, rotate
-		     , interpolation, viewAngle, isPerspective] : cameras) {
-		Read(is, &frame);
-		Read(is, &distance);
-		Read(is, &interest);
-		Read(is, &rotate);
-		Read(is, &interpolation);
-		Read(is, &viewAngle);
-		Read(is, &isPerspective);
-	}
-}
-
-void VmdReader::ReadLight(std::istream& is) {
-	uint32_t lightCount = 0;
-	Read(is, &lightCount);
-	lights.resize(lightCount);
-	for (auto& [frame, color, position] : lights) {
-		Read(is, &frame);
-		Read(is, &color);
-		Read(is, &position);
-	}
-}
-
-void VmdReader::ReadShadow(std::istream& is) {
-	uint32_t shadowCount = 0;
-	Read(is, &shadowCount);
-	shadows.resize(shadowCount);
-	for (auto& [frame, shadowType, distance] : shadows) {
-		Read(is, &frame);
-		Read(is, &shadowType);
-		Read(is, &distance);
-	}
-}
-
-void VmdReader::ReadIk(std::istream& is) {
-	uint32_t ikCount = 0;
-	Read(is, &ikCount);
-	iks.resize(ikCount);
-	for (auto& [frame, show, ikInfos] : iks) {
-		Read(is, &frame);
-		Read(is, &show);
-		uint32_t ikInfoCount = 0;
-		Read(is, &ikInfoCount);
-		ikInfos.resize(ikInfoCount);
-		for (auto& [name, enable]: ikInfos) {
-			Read(is, name, sizeof(name));
-			Read(is, &enable);
-		}
-	}
-}
-
-bool VmdReader::ReadFile(const std::filesystem::path& filename) {
-	std::ifstream is(filename, std::ios::binary);
-	if (!is)
-		return false;
-	const auto end = GetFileEnd(is);
-	ReadHeader(is);
-	ReadMotion(is);
-	if (HasMore(is, end))
-		ReadBlendShape(is);
-	if (HasMore(is, end))
-		ReadCamera(is);
-	if (HasMore(is, end))
-		ReadLight(is);
-	if (HasMore(is, end))
-		ReadShadow(is);
-	if (HasMore(is, end))
-		ReadIk(is);
 	return true;
 }

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Bezier.h"
-#include "../Reader.h"
+#include "../Reader/VmdReader.h"
 
 struct Camera {
     glm::vec3	interest = glm::vec3(0, 10, 0);

@@ -2,7 +2,7 @@
 
 #include <btBulletDynamicsCommon.h>
 
-#include "Reader.h"
+#include "Reader/PmxReader.h"
 
 class Physics;
 class Model;
