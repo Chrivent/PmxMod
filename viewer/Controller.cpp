@@ -139,19 +139,26 @@ bool SceneConfig::Load(const std::filesystem::path& filepath) {
 	std::string line;
 	std::getline(in, line);
 	SceneConfig loaded;
-	if (!std::getline(in, line))
+	auto ReadLine = [&in, &line]() {
+		if (!std::getline(in, line))
+			return false;
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
+		return true;
+	};
+	if (!ReadLine())
 		return false;
 	size_t tab = line.find('\t');
 	if (tab == std::string::npos || line.substr(0, tab) != "camera")
 		return false;
 	loaded.cameraAnim = std::filesystem::u8path(line.substr(tab + 1));
-	if (!std::getline(in, line))
+	if (!ReadLine())
 		return false;
 	tab = line.find('\t');
 	if (tab == std::string::npos || line.substr(0, tab) != "music")
 		return false;
 	loaded.musicPath = std::filesystem::u8path(line.substr(tab + 1));
-	if (!std::getline(in, line))
+	if (!ReadLine())
 		return false;
 	tab = line.find('\t');
 	if (tab == std::string::npos || line.substr(0, tab) != "models")
@@ -160,7 +167,7 @@ bool SceneConfig::Load(const std::filesystem::path& filepath) {
 	loaded.modelConfigs.reserve(modelCount);
 	for (size_t i = 0; i < modelCount; i++) {
 		ModelConfig model;
-		if (!std::getline(in, line))
+		if (!ReadLine())
 			return false;
 		const size_t tab1 = line.find('\t');
 		const size_t tab2 = line.find('\t', tab1 + 1);
@@ -173,7 +180,7 @@ bool SceneConfig::Load(const std::filesystem::path& filepath) {
 		model.modelPath = std::filesystem::u8path(line.substr(tab3 + 1));
 		model.animPaths.reserve(animCount);
 		for (size_t j = 0; j < animCount; j++) {
-			if (!std::getline(in, line))
+			if (!ReadLine())
 				return false;
 			tab = line.find('\t');
 			if (tab == std::string::npos || line.substr(0, tab) != "anim")
@@ -315,6 +322,7 @@ void Controller::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {
 		if (!vmdCamAnim->Create(camVmd))
 			std::cout << "Failed to create VMDCameraAnimation.\n";
 		cameraAnim = std::move(vmdCamAnim);
+		return;
 	}
 }
 
