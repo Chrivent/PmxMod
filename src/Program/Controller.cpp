@@ -1,9 +1,9 @@
 ﻿#include "Controller.h"
 
-#include "Viewer.h"
+#include "../Viewer/Viewer.h"
 
-#include "../src/Animation/CameraAnimation.h"
-#include "../src/Sound.h"
+#include "../Animation/CameraAnimation.h"
+#include "../Program/Sound.h"
 
 #include <fstream>
 #include <iostream>

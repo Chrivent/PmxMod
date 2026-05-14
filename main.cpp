@@ -1,4 +1,4 @@
-﻿#include "viewer/Program.h"
+﻿#include "src/Program/Program.h"
 
 int main() {
     Chrivent::Program program;

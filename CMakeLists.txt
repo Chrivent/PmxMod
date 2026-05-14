@@ -20,7 +20,9 @@ find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRE
 
 add_executable(PmxMod
         main.cpp
-        viewer/Program.h viewer/Program.cpp
+        src/Program/Program.h src/Program/Program.cpp
+        src/Program/Controller.h src/Program/Controller.cpp
+        src/Program/Sound.h src/Program/Sound.cpp
         
         src/Reader/PmxReader.h src/Reader/PmxReader.cpp
         src/Reader/VmdReader.h src/Reader/VmdReader.cpp
@@ -36,14 +38,11 @@ add_executable(PmxMod
         src/Model.h src/Model.cpp
         src/Node.h src/Node.cpp
         src/Physics.h src/Physics.cpp
-        src/Sound.h src/Sound.cpp
-        
-        viewer/Controller.h viewer/Controller.cpp
-        
-        viewer/Viewer.h viewer/Viewer.cpp
-        viewer/GlfwViewer.h viewer/GlfwViewer.cpp
-        viewer/GlfwShaderHelper.h viewer/GlfwShaderHelper.cpp
-        viewer/Dx11Viewer.h viewer/Dx11Viewer.cpp
+
+        src/Viewer/Viewer.h src/Viewer/Viewer.cpp
+        src/Viewer/GlfwViewer.h src/Viewer/GlfwViewer.cpp
+        src/Viewer/GlfwShaderHelper.h src/Viewer/GlfwShaderHelper.cpp
+        src/Viewer/Dx11Viewer.h src/Viewer/Dx11Viewer.cpp
 )
 
 target_link_libraries(PmxMod PUBLIC

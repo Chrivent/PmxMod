@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer.h"
+#include "../Viewer/Viewer.h"
 
 namespace Chrivent {
     class Program {

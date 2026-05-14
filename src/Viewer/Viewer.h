@@ -3,9 +3,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "../src/Animation/Animation.h"
-#include "../src/Sound.h"
-#include "Controller.h"
+#include "../Animation/Animation.h"
+#include "../Program/Controller.h"
 
 namespace Chrivent {
     struct Material;

@@ -1,7 +1,7 @@
 ﻿#include "Viewer.h"
 
-#include "../src/Model.h"
-#include "../src/Sound.h"
+#include "../Model.h"
+#include "../Program/Sound.h"
 
 #include <iostream>
 #include <windows.h>
