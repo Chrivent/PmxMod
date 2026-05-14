@@ -16,8 +16,14 @@ namespace Chrivent {
         // 지면 그림자 패스를 그린다.
         virtual void DrawGroundShadow() const = 0;
     
-    public:
-        virtual ~Instance();
+	public:
+        Instance();
+		virtual ~Instance();
+        
+        Instance(const Instance&) = delete;
+        Instance& operator=(const Instance&) = delete;
+        Instance(Instance&&) = delete;
+        Instance& operator=(Instance&&) = delete;
 
         std::shared_ptr<Model>	    model;
         std::unique_ptr<Animation>	anim;

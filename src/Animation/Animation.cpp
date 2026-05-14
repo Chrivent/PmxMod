@@ -1,10 +1,12 @@
 ﻿#include "Animation.h"
 
 #include "AnimationHelper.h"
-#include "../Model.h"
+#include "../Model/Model.h"
 #include "../Util.h"
 
 namespace Chrivent {
+	using namespace AnimationHelper;
+	
 	void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
 		time = static_cast<int32_t>(motion.frame);
 		translate = motion.translate * glm::vec3(1, 1, -1);
@@ -55,7 +57,7 @@ namespace Chrivent {
 	}
 
 	void Animation::AddNodeAnimations(const VmdReader& vmd) {
-		auto nodeMap = AnimationHelper::TakeNodeTrackMap(nodeTracks);
+		auto nodeMap = TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmd.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName);
 			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
@@ -66,11 +68,11 @@ namespace Chrivent {
 				continue;
 			keys.emplace_back().ApplyMotion(motion);
 		}
-		AnimationHelper::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
+		FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
 	}
 
 	void Animation::AddIkAnimations(const VmdReader& vmd) {
-		auto ikMap = AnimationHelper::TakeIkTrackMap(ikTracks);
+		auto ikMap = TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmd.iks) {
 			for (const auto& [name, enable] : ik.ikInfos) {
 				auto ikName = Util::SjisToUtf8(name);
@@ -85,11 +87,11 @@ namespace Chrivent {
 				ikEnable = enable != 0;
 			}
 		}
-		AnimationHelper::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
+		FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
 	}
 
 	void Animation::AddMorphAnimations(const VmdReader& vmd) {
-		auto morphMap = AnimationHelper::TakeMorphTrackMap(morphTracks);
+		auto morphMap = TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName);
 			auto [findIt, inserted] = morphMap.try_emplace(morphName);
@@ -102,7 +104,7 @@ namespace Chrivent {
 			time = static_cast<int32_t>(frame);
 			morphWeight = weight;
 		}
-		AnimationHelper::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
+		FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
 	}
 
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
@@ -114,7 +116,7 @@ namespace Chrivent {
 				node->animRotate = glm::quat(1, 0, 0, 0);
 				continue;
 			}
-			const auto it = AnimationHelper::FindUpperKey(keys, t);
+			const auto it = FindUpperKey(keys, t);
 			const auto& cur = it != keys.end() ? *it : keys.back();
 			glm::vec3 vt = cur.translate;
 			glm::quat q  = cur.rotate;
@@ -145,7 +147,7 @@ namespace Chrivent {
 				ikSolver->enable = true;
 				continue;
 			}
-			const auto it = AnimationHelper::FindUpperKey(keys, t);
+			const auto it = FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 			ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 		}
@@ -157,7 +159,7 @@ namespace Chrivent {
 				continue;
 			if (keys.empty())
 				continue;
-			const auto it = AnimationHelper::FindUpperKey(keys, t);
+			const auto it = FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
 				auto [time0, weight0] = *(it - 1);

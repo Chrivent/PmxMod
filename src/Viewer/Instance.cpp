@@ -5,6 +5,7 @@
 #include "../Model/Model.h"
 
 namespace Chrivent {
+    Instance::Instance() = default;
     Instance::~Instance() = default;
 
     void Instance::Draw() const {

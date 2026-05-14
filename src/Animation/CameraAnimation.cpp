@@ -3,6 +3,8 @@
 #include "AnimationHelper.h"
 
 namespace Chrivent {
+	using namespace AnimationHelper;
+	
 	glm::mat4 Camera::CalcViewMatrix() const {
 		glm::mat4 view(1.0f);
 		view = glm::translate(view, glm::vec3(0, 0, -distance));
@@ -55,7 +57,7 @@ namespace Chrivent {
 	void CameraAnimation::Evaluate(const float t) {
 		if (keys.empty())
 			return;
-		const auto it = AnimationHelper::FindUpperKey(keys, t);
+		const auto it = FindUpperKey(keys, t);
 		const auto& cur = it != keys.end() ? *it : keys.back();
 		camera.interest = cur.interest;
 		camera.rotate = cur.rotate;

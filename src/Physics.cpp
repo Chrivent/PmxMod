@@ -1,6 +1,6 @@
 ﻿#include "Physics.h"
 
-#include "Model.h"
+#include "Model/Model.h"
 #include "Util.h"
 
 namespace Chrivent {

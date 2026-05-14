@@ -1,16 +1,14 @@
 ﻿#include "Dx11DescHelper.h"
 
-#include "Dx11Viewer.h"
-
 namespace Chrivent::Dx11DescHelper {
-    D3D11_SAMPLER_DESC Dx11Viewer::MakeSamplerDesc(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
+    D3D11_SAMPLER_DESC MakeSamplerDesc(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 		CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
 		d.Filter = f;
 		d.AddressU = d.AddressV = d.AddressW = addr;
 		return d;
 	}
 
-	D3D11_RASTERIZER_DESC Dx11Viewer::MakeRasterizerDesc(const D3D11_CULL_MODE cull, const bool frontCcw) {
+	D3D11_RASTERIZER_DESC MakeRasterizerDesc(const D3D11_CULL_MODE cull, const bool frontCcw) {
 		CD3D11_RASTERIZER_DESC d(D3D11_DEFAULT);
 		d.CullMode = cull;
 		d.FrontCounterClockwise = frontCcw;
@@ -18,7 +16,7 @@ namespace Chrivent::Dx11DescHelper {
 		return d;
 	}
 
-	D3D11_BLEND_DESC Dx11Viewer::MakeAlphaBlendDesc() {
+	D3D11_BLEND_DESC MakeAlphaBlendDesc() {
 		CD3D11_BLEND_DESC d(D3D11_DEFAULT);
 		d.RenderTarget[0].BlendEnable = TRUE;
 		d.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -31,7 +29,7 @@ namespace Chrivent::Dx11DescHelper {
 		return d;
 	}
 
-	DXGI_SWAP_CHAIN_DESC Dx11Viewer::MakeSwapChainDesc(HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
+	DXGI_SWAP_CHAIN_DESC MakeSwapChainDesc(HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
 		DXGI_SWAP_CHAIN_DESC d{};
 		d.BufferCount = 2;
 		d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -43,7 +41,7 @@ namespace Chrivent::Dx11DescHelper {
 		return d;
 	}
 
-	D3D11_TEXTURE2D_DESC Dx11Viewer::MakeTexture2DDesc(
+	D3D11_TEXTURE2D_DESC MakeTexture2DDesc(
 		const UINT width, const UINT height, const DXGI_FORMAT format,
 		const UINT bindFlags, const UINT sampleCount, const UINT sampleQuality) {
 		D3D11_TEXTURE2D_DESC d{};
@@ -59,7 +57,7 @@ namespace Chrivent::Dx11DescHelper {
 		return d;
 	}
 
-	D3D11_DEPTH_STENCIL_DESC Dx11Viewer::MakeDefaultDepthStencilDesc() {
+	D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc() {
 		CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 		d.DepthEnable = TRUE;
 		d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -68,7 +66,7 @@ namespace Chrivent::Dx11DescHelper {
 		return d;
 	}
 
-	D3D11_DEPTH_STENCIL_DESC Dx11Viewer::MakeGroundShadowDepthStencilDesc() {
+	D3D11_DEPTH_STENCIL_DESC MakeGroundShadowDepthStencilDesc() {
 		CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 		d.DepthEnable = TRUE;
 		d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
