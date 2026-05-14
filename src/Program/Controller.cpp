@@ -227,7 +227,6 @@ namespace Chrivent {
 			if (!vmdCamAnim->Create(camVmd))
 				std::cout << "Failed to create VMDCameraAnimation.\n";
 			cameraAnim = std::move(vmdCamAnim);
-			return;
 		}
 	}
 
