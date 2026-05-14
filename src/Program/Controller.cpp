@@ -240,16 +240,22 @@ namespace Chrivent {
 			viewer.elapsed = 0.0f;
 			return;
 		}
-		auto dt = static_cast<float>(elapsedSeconds);
+		const float clockDt = static_cast<float>(elapsedSeconds);
+		float dt = clockDt;
 		float t = viewer.animTime + dt;
 		if (music.hasSound) {
-			float adt = 0.0f;
-			float at = 0.0f;
-			music.PullTimes(adt, at);
-			if (adt < 0.f)
-				adt = 0.f;
-			dt = adt;
-			t = at;
+			float audioDt = 0.0f;
+			float audioTime = 0.0f;
+			music.PullTimes(audioDt, audioTime);
+			if (audioDt < 0.0f)
+				audioDt = 0.0f;
+			if (audioTime > viewer.animTime) {
+				dt = audioDt;
+				t = audioTime;
+			} else {
+				dt = clockDt;
+				t = viewer.animTime + clockDt;
+			}
 		}
 		viewer.elapsed = dt;
 		viewer.animTime = t;
