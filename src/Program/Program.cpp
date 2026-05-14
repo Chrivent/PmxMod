@@ -47,6 +47,7 @@ namespace Chrivent {
         ClearInstances();
         music.Stop();
         controller.DestroyControlWindow();
+        viewer.reset();
         glfwTerminate();
     }
 
