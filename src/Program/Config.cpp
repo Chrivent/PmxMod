@@ -8,7 +8,7 @@ namespace Chrivent {
 		std::ofstream out(filepath, std::ios::binary);
 		if (!out)
 			return false;
-		out << "PmxModScene 2\n";
+		out << "PmxModScene\n";
 		const auto camera = cameraAnim.u8string();
 		out << "camera\t";
 		out.write(reinterpret_cast<const char*>(camera.data()), static_cast<std::streamsize>(camera.size()));
@@ -38,8 +38,7 @@ namespace Chrivent {
 		if (!in)
 			return false;
 		std::string magic;
-		int version = 0;
-		if (!(in >> magic >> version) || magic != "PmxModScene" || version != 2)
+		if (!(in >> magic) || magic != "PmxModScene")
 			return false;
 		std::string line;
 		std::getline(in, line);
