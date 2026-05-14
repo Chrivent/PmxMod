@@ -129,7 +129,7 @@ namespace Chrivent {
 	}
 
 	void Controller::ShowSaveSceneDialog() {
-		std::vector<wchar_t> filename(MAX_PATH, L'\0');
+		std::vector filename(MAX_PATH, L'\0');
 		if (!sceneFilePath.empty()) {
 			const auto native = sceneFilePath.wstring();
 			std::wcsncpy(filename.data(), native.c_str(), filename.size() - 1);

@@ -109,15 +109,12 @@ namespace Chrivent {
 		std::unique_ptr<Physics>					physics;
 		std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
 		std::vector<std::unique_ptr<Joint>>			joints;
-
 		uint32_t									parallelUpdateCount = 0;
 		std::vector<UpdateRange>					updateRanges;
 		std::vector<std::future<void>>				parallelUpdateFutures;
 		
 		~Model();
 
-		// PMX 모델과 관련 리소스를 파일에서 로드한다.
-		bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
 		void Destroy();
 	};

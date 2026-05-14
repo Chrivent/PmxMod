@@ -29,7 +29,7 @@ namespace Chrivent {
 	public:
 		explicit ModelLoader(Model& model) : model(model) {}
 
-		// PMX 파일을 읽어 모델 데이터 전체를 초기화한다.
+		// PMX 모델과 관련 리소스를 파일에서 로드한다.
 		bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) const;
 	};
 }

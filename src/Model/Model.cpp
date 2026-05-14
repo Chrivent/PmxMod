@@ -7,11 +7,6 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
-		const ModelLoader loader(*this);
-		return loader.Load(filepath, dataDir);
-	}
-
 	void Model::Destroy() {
 		materials.clear();
 		subMeshes.clear();
