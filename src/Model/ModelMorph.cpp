@@ -1,7 +1,5 @@
 ﻿#include "ModelMorph.h"
 
-#include "../Reader/PmxReader.h"
-
 namespace Chrivent {
 	void ModelMorph::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 		out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);

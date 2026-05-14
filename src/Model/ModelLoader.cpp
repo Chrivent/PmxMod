@@ -1,11 +1,7 @@
 ﻿#include "ModelLoader.h"
 
 #include "ModelPose.h"
-#include "../Reader/PmxReader.h"
 #include "../Util.h"
-
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
 
 namespace Chrivent {
 	void ModelLoader::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) const {
@@ -338,7 +334,7 @@ namespace Chrivent {
 		LoadMorphs(pmx, invZ);
 		FixInfiniteGroupMorphs();
 		LoadPhysics(pmx);
-		ModelPose pose(model);
+		const ModelPose pose(model);
 		pose.ResetPhysics();
 		pose.SetupParallelUpdate();
 		return true;

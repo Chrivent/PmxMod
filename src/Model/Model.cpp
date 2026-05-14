@@ -1,7 +1,5 @@
 #include "Model.h"
 
-#include "ModelLoader.h"
-
 namespace Chrivent {
 	Model::~Model() {
 		Destroy();
