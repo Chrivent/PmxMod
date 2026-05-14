@@ -1,7 +1,7 @@
 ﻿#include "GlfwInstance.h"
 
 #include "GlfwViewer.h"
-#include "../../Model.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	void GlfwInstance::DrawModel() const {

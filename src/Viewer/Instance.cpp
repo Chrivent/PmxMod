@@ -2,7 +2,7 @@
 
 #include "Viewer.h"
 #include "../Animation/Animation.h"
-#include "../Model.h"
+#include "../Model/Model.h"
 
 namespace Chrivent {
     Instance::~Instance() = default;

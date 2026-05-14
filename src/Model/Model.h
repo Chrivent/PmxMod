@@ -2,9 +2,9 @@
 
 #include <future>
 
-#include "Node.h"
-#include "IkSolver.h"
-#include "Physics.h"
+#include "../Node.h"
+#include "../IkSolver.h"
+#include "../Physics.h"
 
 namespace Chrivent {
 	struct GroupMorph;

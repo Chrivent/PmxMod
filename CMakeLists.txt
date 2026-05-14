@@ -33,10 +33,11 @@ add_executable(PmxMod
         src/Animation/CameraAnimation.h src/Animation/CameraAnimation.cpp
         src/Animation/AnimationHelper.h src/Animation/AnimationHelper.cpp
         src/Animation/Bezier.h src/Animation/Bezier.cpp
+
+        src/Model/Model.h src/Model/Model.cpp
         
         src/Util.h src/Util.cpp
         src/IkSolver.h src/IkSolver.cpp
-        src/Model.h src/Model.cpp
         src/Node.h src/Node.cpp
         src/Physics.h src/Physics.cpp
 
@@ -48,6 +49,7 @@ add_executable(PmxMod
         src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
+        src/Viewer/Dx11/Dx11DescHelper.h src/Viewer/Dx11/Dx11DescHelper.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 )
 

@@ -5,9 +5,7 @@
 #include "ReaderHelper.h"
 
 namespace Chrivent {
-	using ReaderHelper::GetFileEnd;
-	using ReaderHelper::HasMore;
-	using ReaderHelper::Read;
+	using namespace ReaderHelper;
 
 	void VmdReader::ReadHeader(std::istream& is) {
 		Read(is, header.header, sizeof(header.header));

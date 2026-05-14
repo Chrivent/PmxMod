@@ -1,7 +1,7 @@
 #include "Program.h"
 
 #include "../Animation/Animation.h"
-#include "../Model.h"
+#include "../Model/Model.h"
 #include "../Reader/VmdReader.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"

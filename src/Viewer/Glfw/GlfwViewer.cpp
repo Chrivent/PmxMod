@@ -8,6 +8,8 @@
 #include <stb_image.h>
 
 namespace Chrivent {
+	using namespace GlfwShaderHelper;
+	
 	GlfwShader::~GlfwShader() {
 		if (program != 0)
 			glDeleteProgram(program);
@@ -15,7 +17,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd.glsl");
+		program = CreateShader(viewer.shaderDir / "mmd.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -53,7 +55,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwEdgeShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd_edge.glsl");
+		program = CreateShader(viewer.shaderDir / "mmd_edge.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -73,7 +75,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwGroundShadowShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderHelper::CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
+		program = CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");

@@ -1,7 +1,7 @@
 ﻿#include "Dx11Instance.h"
 
 #include "Dx11Viewer.h"
-#include "../../Model.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	void Dx11Instance::DrawModel() const {

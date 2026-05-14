@@ -6,10 +6,7 @@
 #include <fstream>
 
 namespace Chrivent {
-	using ReaderHelper::GetFileEnd;
-	using ReaderHelper::HasMore;
-	using ReaderHelper::Read;
-	using ReaderHelper::ReadIndex;
+	using namespace ReaderHelper;
 
 	void PmxReader::ReadString(std::istream& is, std::string* val) const {
 		uint32_t bufSize;
