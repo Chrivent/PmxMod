@@ -8,6 +8,142 @@
 #include <iostream>
 
 namespace Chrivent {
+	void Controller::SyncFreeCameraToCurrentView(const Viewer& viewer) {
+		const glm::mat4 invView = glm::inverse(viewer.viewMat);
+		freeCamPosition = glm::vec3(invView[3]);
+		const glm::vec3 forward = -glm::normalize(glm::vec3(invView[2]));
+		freeCamYaw = std::atan2(forward.z, forward.x);
+		freeCamPitch = std::asin(std::clamp(forward.y, -1.0f, 1.0f));
+	}
+
+	void Controller::ResizeControlWindow() const {
+		if (!controlWindow)
+			return;
+		RECT client{};
+		GetClientRect(controlWindow, &client);
+		constexpr int x = 14;
+		constexpr int y = 14;
+		const int width = static_cast<int>(client.right) - x * 2;
+		if (statusText)
+			MoveWindow(statusText, x, y, width, 64, TRUE);
+	}
+
+	void Controller::SetStatusText(const std::wstring& text) const {
+		if (statusText)
+			SetWindowTextW(statusText, text.c_str());
+	}
+
+	bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
+		return sceneConfig.Save(filepath);
+	}
+
+	bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
+		if (!sceneConfig.Load(filepath))
+			return false;
+		sceneFilePath = filepath;
+		sceneConfigDirty = true;
+		return true;
+	}
+
+	void Controller::ShowOpenSceneDialog() {
+		std::vector filename(MAX_PATH, L'\0');
+		OPENFILENAMEW ofn{};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = controlWindow;
+		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
+		ofn.lpstrFile = filename.data();
+		ofn.nMaxFile = static_cast<DWORD>(filename.size());
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+		ofn.lpstrDefExt = L"pms";
+		if (!GetOpenFileNameW(&ofn))
+			return;
+		if (LoadSceneConfig(filename.data()))
+			SetStatusText(L"Scene config loaded.");
+		else
+			SetStatusText(L"Failed to load scene config.");
+	}
+
+	void Controller::ShowSaveSceneDialog() {
+		std::vector filename(MAX_PATH, L'\0');
+		if (!sceneFilePath.empty()) {
+			const auto native = sceneFilePath.wstring();
+			std::wcsncpy(filename.data(), native.c_str(), filename.size() - 1);
+		}
+		OPENFILENAMEW ofn{};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = controlWindow;
+		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
+		ofn.lpstrFile = filename.data();
+		ofn.nMaxFile = static_cast<DWORD>(filename.size());
+		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+		ofn.lpstrDefExt = L"pms";
+		if (!GetSaveFileNameW(&ofn))
+			return;
+		sceneFilePath = filename.data();
+		if (SaveSceneConfig(sceneFilePath))
+			SetStatusText(L"Current scene config saved.");
+		else
+			SetStatusText(L"Failed to save scene config.");
+	}
+
+	LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+		auto* controller = reinterpret_cast<Controller*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+		if (msg == WM_NCCREATE) {
+			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
+			controller = static_cast<Controller*>(create->lpCreateParams);
+			SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(controller));
+			controller->controlWindow = hwnd;
+		}
+		if (!controller)
+			return DefWindowProcW(hwnd, msg, wParam, lParam);
+		switch (msg) {
+			case WM_CREATE: {
+				const HMENU menu = CreateMenu();
+				HMENU fileMenu = CreatePopupMenu();
+				AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
+				AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
+				AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
+				SetMenu(hwnd, menu);
+				controller->statusText = CreateWindowExW(
+					0, L"STATIC", L"Open or save the current scene config.",
+					WS_CHILD | WS_VISIBLE,
+					0, 0, 0, 0,
+					hwnd, nullptr, GetModuleHandleW(nullptr), nullptr);
+				controller->ResizeControlWindow();
+				return 0;
+			}
+			case WM_SIZE:
+				controller->ResizeControlWindow();
+				return 0;
+			case WM_COMMAND:
+				switch (LOWORD(wParam)) {
+					case kOpenButtonId:
+						controller->ShowOpenSceneDialog();
+						return 0;
+					case kSaveButtonId:
+						controller->ShowSaveSceneDialog();
+						return 0;
+					default:
+						break;
+				}
+				break;
+			case WM_APP + 2:
+				ShowWindow(hwnd, SW_SHOWNORMAL);
+				SetForegroundWindow(hwnd);
+				return 0;
+			case WM_CLOSE:
+				ShowWindow(hwnd, SW_HIDE);
+				return 0;
+			case WM_DESTROY:
+				controller->controlWindow = nullptr;
+				controller->statusText = nullptr;
+				return 0;
+			default:
+				break;
+		}
+		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	}
+
 	Controller::Controller() {
 		Reset();
 	}
@@ -81,138 +217,10 @@ namespace Chrivent {
 		statusText = nullptr;
 	}
 
-	void Controller::ResizeControlWindow() const {
-		if (!controlWindow)
-			return;
-		RECT client{};
-		GetClientRect(controlWindow, &client);
-		constexpr int x = 14;
-		constexpr int y = 14;
-		const int width = static_cast<int>(client.right) - x * 2;
-		if (statusText)
-			MoveWindow(statusText, x, y, width, 64, TRUE);
-	}
-
-	void Controller::SetStatusText(const std::wstring& text) const {
-		if (statusText)
-			SetWindowTextW(statusText, text.c_str());
-	}
-
-	bool Controller::SaveSceneConfig(const std::filesystem::path& filepath) const {
-		return sceneConfig.Save(filepath);
-	}
-
-	bool Controller::LoadSceneConfig(const std::filesystem::path& filepath) {
-		if (!sceneConfig.Load(filepath))
-			return false;
-		sceneFilePath = filepath;
-		sceneConfigDirty = true;
-		return true;
-	}
-
-	void Controller::ShowOpenSceneDialog() {
-		std::vector filename(MAX_PATH, L'\0');
-		OPENFILENAMEW ofn{};
-		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = controlWindow;
-		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
-		ofn.lpstrFile = filename.data();
-		ofn.nMaxFile = static_cast<DWORD>(filename.size());
-		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-		ofn.lpstrDefExt = L"pms";
-		if (!GetOpenFileNameW(&ofn))
-			return;
-		if (LoadSceneConfig(filename.data()))
-			SetStatusText(L"Scene config loaded.");
-		else
-			SetStatusText(L"Failed to load scene config.");
-	}
-
-	void Controller::ShowSaveSceneDialog() {
-		std::vector filename(MAX_PATH, L'\0');
-		if (!sceneFilePath.empty()) {
-			const auto native = sceneFilePath.wstring();
-			std::wcsncpy(filename.data(), native.c_str(), filename.size() - 1);
-		}
-		OPENFILENAMEW ofn{};
-		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = controlWindow;
-		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
-		ofn.lpstrFile = filename.data();
-		ofn.nMaxFile = static_cast<DWORD>(filename.size());
-		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
-		ofn.lpstrDefExt = L"pms";
-		if (!GetSaveFileNameW(&ofn))
-			return;
-		sceneFilePath = filename.data();
-		if (SaveSceneConfig(sceneFilePath))
-			SetStatusText(L"Current scene config saved.");
-		else
-			SetStatusText(L"Failed to save scene config.");
-	}
-
 	bool Controller::ConsumeSceneConfigDirty() {
 		const bool dirty = sceneConfigDirty;
 		sceneConfigDirty = false;
 		return dirty;
-	}
-
-	LRESULT CALLBACK Controller::ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-		auto* controller = reinterpret_cast<Controller*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-		if (msg == WM_NCCREATE) {
-			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
-			controller = static_cast<Controller*>(create->lpCreateParams);
-			SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(controller));
-			controller->controlWindow = hwnd;
-		}
-		if (!controller)
-			return DefWindowProcW(hwnd, msg, wParam, lParam);
-		switch (msg) {
-			case WM_CREATE: {
-				const HMENU menu = CreateMenu();
-				HMENU fileMenu = CreatePopupMenu();
-				AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
-				AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
-				AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
-				SetMenu(hwnd, menu);
-				controller->statusText = CreateWindowExW(
-					0, L"STATIC", L"Open or save the current scene config.",
-					WS_CHILD | WS_VISIBLE,
-					0, 0, 0, 0,
-					hwnd, nullptr, GetModuleHandleW(nullptr), nullptr);
-				controller->ResizeControlWindow();
-				return 0;
-			}
-			case WM_SIZE:
-				controller->ResizeControlWindow();
-				return 0;
-			case WM_COMMAND:
-				switch (LOWORD(wParam)) {
-				case kOpenButtonId:
-						controller->ShowOpenSceneDialog();
-						return 0;
-				case kSaveButtonId:
-						controller->ShowSaveSceneDialog();
-						return 0;
-				default:
-						break;
-				}
-				break;
-			case WM_APP + 2:
-				ShowWindow(hwnd, SW_SHOWNORMAL);
-				SetForegroundWindow(hwnd);
-				return 0;
-			case WM_CLOSE:
-				ShowWindow(hwnd, SW_HIDE);
-				return 0;
-			case WM_DESTROY:
-				controller->controlWindow = nullptr;
-				controller->statusText = nullptr;
-				return 0;
-			default:
-				break;
-		}
-		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
 	void Controller::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {
@@ -324,11 +332,11 @@ namespace Chrivent {
 
 	void Controller::UpdateCamera(Viewer& viewer) const {
 		if (useMotionCamera && cameraAnim) {
-			cameraAnim->Evaluate(viewer.animTime * 30.0f);
-			const auto cam = cameraAnim->camera;
-			viewer.viewMat = cam.CalcViewMatrix();
+			Camera camera;
+			cameraAnim->Evaluate(camera, viewer.animTime * 30.0f);
+			viewer.viewMat = camera.CalcViewMatrix();
 			viewer.projMat = glm::perspectiveFovRH(
-				cam.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
+				camera.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
 			);
 			return;
 		}
@@ -342,13 +350,5 @@ namespace Chrivent {
 		viewer.projMat = glm::perspectiveFovRH(
 			glm::radians(30.0f), static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
 		);
-	}
-
-	void Controller::SyncFreeCameraToCurrentView(const Viewer& viewer) {
-		const glm::mat4 invView = glm::inverse(viewer.viewMat);
-		freeCamPosition = glm::vec3(invView[3]);
-		const glm::vec3 forward = -glm::normalize(glm::vec3(invView[2]));
-		freeCamYaw = std::atan2(forward.z, forward.x);
-		freeCamPitch = std::asin(std::clamp(forward.y, -1.0f, 1.0f));
 	}
 }

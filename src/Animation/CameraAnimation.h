@@ -32,11 +32,9 @@ namespace Chrivent {
         std::vector<CameraAnimationKey>	keys;
 	
     public:
-        Camera camera;
-
         // VMD 카메라 키를 읽어 카메라 애니메이션을 생성한다.
         bool Create(const VmdReader& vmd);
         // 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
-        void Evaluate(float t);
+        void Evaluate(Camera& camera, float t);
     };
 }

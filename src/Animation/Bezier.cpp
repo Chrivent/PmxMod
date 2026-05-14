@@ -3,17 +3,6 @@
 #include <algorithm>
 
 namespace Chrivent {
-	void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
-		auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };
-		p1 = glm::vec2(Normalize(x0), Normalize(y0));
-		p2 = glm::vec2(Normalize(x1), Normalize(y1));
-	}
-
-	float Bezier::Evaluate(const float time) const {
-		const float bezierParameter = FindBezierX(time, p1.x, p2.x);
-		return EvaluateBezier(bezierParameter, p1.y, p2.y);
-	}
-
 	float Bezier::EvaluateBezier(const float t, const float p1, const float p2) {
 		const float it = 1.0f - t;
 		return 3.0f * it * it * t * p1 + 3.0f * it * t * t * p2 + t * t * t;
@@ -36,5 +25,16 @@ namespace Chrivent {
 			t = (start + stop) * 0.5f;
 		}
 		return t;
+	}
+	
+	void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
+		auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };
+		p1 = glm::vec2(Normalize(x0), Normalize(y0));
+		p2 = glm::vec2(Normalize(x1), Normalize(y1));
+	}
+
+	float Bezier::Evaluate(const float time) const {
+		const float bezierParameter = FindBezierX(time, p1.x, p2.x);
+		return EvaluateBezier(bezierParameter, p1.y, p2.y);
 	}
 }
