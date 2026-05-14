@@ -42,18 +42,11 @@ namespace Chrivent {
 
     class Viewer {
     protected:
-        // FPS 표시 시간을 갱신한다.
-        static void TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame);
-
         std::filesystem::path	resourceDir;
-        Controller controller;
         float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     
     public:
         virtual ~Viewer();
-
-        // 씬 설정을 로드하고 메인 렌더 루프를 실행한다.
-        bool Run(const SceneConfig& cfg);
 
         // 렌더러별 GLFW 윈도우 힌트를 설정한다.
         virtual void ConfigureGlfwHints() = 0;

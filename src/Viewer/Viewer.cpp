@@ -1,8 +1,6 @@
 ﻿#include "Viewer.h"
 
 #include "../Model.h"
-#include "../Program/Sound.h"
-
 #include <iostream>
 #include <windows.h>
 
@@ -23,103 +21,7 @@ namespace Chrivent {
         model->UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed);
     }
 
-    void Viewer::TickFps(std::chrono::steady_clock::time_point& fpsTime, int& fpsFrame) {
-        fpsFrame++;
-        const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
-        if (sec > 1.0) {
-            std::cout << (fpsFrame / sec) << " fps\n";
-            fpsFrame = 0;
-            fpsTime = std::chrono::steady_clock::now();
-        }
-    }
-
     Viewer::~Viewer() = default;
-
-    bool Viewer::Run(const SceneConfig& cfg) {
-        Sound music;
-        controller.Reset();
-        controller.ApplySceneConfig(cfg);
-        if (!glfwInit()) {
-            std::cout << "Failed to initialize GLFW.\n";
-            return false;
-        }
-        ConfigureGlfwHints();
-        window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
-        if (!window) {
-            std::cout << "Failed to create viewer window.\n";
-            glfwTerminate();
-            return false;
-        }
-        glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
-        if (screenWidth <= 0 || screenHeight <= 0) {
-            std::cout << "Invalid framebuffer size.\n";
-            glfwTerminate();
-            return false;
-        }
-        if (!Setup()) {
-            std::cout << "Failed to set up renderer.\n";
-            glfwTerminate();
-            return false;
-        }
-        controller.OpenControlWindow();
-        std::vector<std::unique_ptr<Instance>> instances;
-        auto fpsTime  = std::chrono::steady_clock::now();
-        auto saveTime = std::chrono::steady_clock::now();
-        int fpsFrame  = 0;
-        auto ClearInstances = [](const std::vector<std::unique_ptr<Instance>>& targetInstances) {
-            for (const auto& instance : targetInstances)
-                instance->Clear();
-        };
-        auto LoadScene = [&](const SceneConfig& sceneConfig) {
-            std::vector<std::unique_ptr<Instance>> loadedInstances;
-            if (!LoadInstances(sceneConfig, loadedInstances)) {
-                std::cout << "Failed to load scene instances.\n";
-                return false;
-            }
-            ClearInstances(instances);
-            instances = std::move(loadedInstances);
-            music.Stop();
-            music.Init(sceneConfig.musicPath, false);
-            controller.LoadCameraAnim(sceneConfig.cameraAnim);
-            elapsed = 0.0f;
-            animTime = 0.0f;
-            saveTime = std::chrono::steady_clock::now();
-            return true;
-        };
-        if (!cfg.modelConfigs.empty() || !cfg.cameraAnim.empty() || !cfg.musicPath.empty())
-            LoadScene(cfg);
-        controller.UpdateCamera(*this);
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-            controller.PollControlWindow();
-            if (controller.ConsumeSceneConfigDirty())
-                LoadScene(controller.sceneConfig);
-            controller.HandleInput(*this, music);
-            int newW = 0, newH = 0;
-            glfwGetFramebufferSize(window, &newW, &newH);
-            if (newW != screenWidth || newH != screenHeight) {
-                screenWidth = newW;
-                screenHeight = newH;
-                if (!Resize())
-                    break;
-            }
-            controller.StepTime(*this, music, saveTime);
-            controller.UpdateCamera(*this);
-            BeginFrame();
-            for (const auto& instance : instances) {
-                instance->UpdateAnimation(*this);
-                instance->Update();
-                instance->Draw();
-            }
-            if (!EndFrame())
-                break;
-            TickFps(fpsTime, fpsFrame);
-        }
-        ClearInstances(instances);
-        controller.DestroyControlWindow();
-        glfwTerminate();
-        return true;
-    }
 
     unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
         stbi_set_flip_vertically_on_load(flipY);
