@@ -164,7 +164,7 @@ namespace Chrivent {
 			morph->weight = 0;
 		for (const auto& ikSolver : ikSolvers)
 			ikSolver->enable = true;
-		ModelPose pose(*this);
+		const ModelPose pose(*this);
 		pose.UpdateNodeAnimation(false);
 		pose.UpdateNodeAnimation(true);
 		pose.ResetPhysics();
@@ -214,7 +214,7 @@ namespace Chrivent {
 		if (anim)
 			anim->Evaluate(frame);
 		UpdateMorphAnimation();
-		ModelPose pose(*this);
+		const ModelPose pose(*this);
 		pose.UpdateNodeAnimation(false);
 		pose.UpdatePhysicsAnimation(physicsElapsed);
 		pose.UpdateNodeAnimation(true);
