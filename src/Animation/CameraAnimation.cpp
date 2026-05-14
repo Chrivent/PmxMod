@@ -54,7 +54,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void CameraAnimation::Evaluate(Camera& camera, const float t) {
+	void CameraAnimation::Evaluate(const float t) {
 		if (keys.empty())
 			return;
 		const auto it = FindUpperKey(keys, t);

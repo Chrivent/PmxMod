@@ -332,11 +332,11 @@ namespace Chrivent {
 
 	void Controller::UpdateCamera(Viewer& viewer) const {
 		if (useMotionCamera && cameraAnim) {
-			Camera camera;
-			cameraAnim->Evaluate(camera, viewer.animTime * 30.0f);
-			viewer.viewMat = camera.CalcViewMatrix();
+			cameraAnim->Evaluate(viewer.animTime * 30.0f);
+			const auto cam = cameraAnim->camera;
+			viewer.viewMat = cam.CalcViewMatrix();
 			viewer.projMat = glm::perspectiveFovRH(
-				camera.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
+				cam.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
 			);
 			return;
 		}
