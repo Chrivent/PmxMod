@@ -139,7 +139,7 @@ namespace Chrivent {
 		std::string line;
 		std::getline(in, line);
 		SceneConfig loaded;
-		auto ReadLine = [&in, &line]() {
+		auto ReadLine = [&in, &line] {
 			if (!std::getline(in, line))
 				return false;
 			if (!line.empty() && line.back() == '\r')
