@@ -70,8 +70,7 @@ namespace Chrivent {
         bool								                hasAlpha;
     };
 
-    class Dx11Material {
-    public:
+    struct Dx11Material {
         const Material& mat;
         Dx11Texture texture{};
         Dx11Texture	spTexture{};
