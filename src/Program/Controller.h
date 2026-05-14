@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 
-#include "../Config.h"
+#include "Config.h"
 
 namespace Chrivent {
 	class CameraAnimation;

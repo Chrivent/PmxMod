@@ -21,6 +21,7 @@ find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRE
 add_executable(PmxMod
         main.cpp
         src/Program/Program.h src/Program/Program.cpp
+        src/Program/Config.h src/Program/Config.cpp
         src/Program/Controller.h src/Program/Controller.cpp
         src/Program/Sound.h src/Program/Sound.cpp
         
@@ -34,7 +35,6 @@ add_executable(PmxMod
         src/Animation/Bezier.h src/Animation/Bezier.cpp
         
         src/Util.h src/Util.cpp
-        src/Config.h src/Config.cpp
         src/IkSolver.h src/IkSolver.cpp
         src/Model.h src/Model.cpp
         src/Node.h src/Node.cpp
