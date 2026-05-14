@@ -10,6 +10,10 @@
 #include <glm/gtx/quaternion.hpp>
 
 namespace Chrivent {
+	Model::~Model() {
+		Destroy();
+	}
+	
 	void Model::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 		out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
 		out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
@@ -147,10 +151,6 @@ namespace Chrivent {
 			const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
 			node->rotate = glm::normalize(q * node->rotate);
 		}
-	}
-
-	Model::~Model() {
-		Destroy();
 	}
 
 	void Model::InitializeAnimation() {
