@@ -76,8 +76,7 @@ namespace Chrivent {
         bool	hasAlpha;
     };
 
-    class GlfwMaterial {
-    public:
+    struct GlfwMaterial {
         const Material& mat;
         GLuint  texture = 0;
         bool	textureHasAlpha = false;

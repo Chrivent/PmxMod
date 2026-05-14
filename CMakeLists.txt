@@ -47,6 +47,7 @@ add_executable(PmxMod
         src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
+        src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 )
 
 target_link_libraries(PmxMod PUBLIC
