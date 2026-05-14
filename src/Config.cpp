@@ -51,18 +51,25 @@ namespace Chrivent {
 				line.pop_back();
 			return true;
 		};
+		auto PathFromUtf8 = [](const std::string& utf8) {
+			std::u8string u8;
+			u8.reserve(utf8.size());
+			for (const unsigned char c : utf8)
+				u8.push_back(static_cast<char8_t>(c));
+			return std::filesystem::path(u8);
+		};
 		if (!ReadLine())
 			return false;
 		size_t tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "camera")
 			return false;
-		loaded.cameraAnim = std::filesystem::u8path(line.substr(tab + 1));
+		loaded.cameraAnim = PathFromUtf8(line.substr(tab + 1));
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "music")
 			return false;
-		loaded.musicPath = std::filesystem::u8path(line.substr(tab + 1));
+		loaded.musicPath = PathFromUtf8(line.substr(tab + 1));
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
@@ -82,7 +89,7 @@ namespace Chrivent {
 				return false;
 			model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
 			const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
-			model.modelPath = std::filesystem::u8path(line.substr(tab3 + 1));
+			model.modelPath = PathFromUtf8(line.substr(tab3 + 1));
 			model.animPaths.reserve(animCount);
 			for (size_t j = 0; j < animCount; j++) {
 				if (!ReadLine())
@@ -90,11 +97,11 @@ namespace Chrivent {
 				tab = line.find('\t');
 				if (tab == std::string::npos || line.substr(0, tab) != "anim")
 					return false;
-				model.animPaths.emplace_back(std::filesystem::u8path(line.substr(tab + 1)));
+				model.animPaths.emplace_back(PathFromUtf8(line.substr(tab + 1)));
 			}
 			loaded.modelConfigs.emplace_back(std::move(model));
 		}
-		*this = std::move(loaded);
+		*this = loaded;
 		return true;
 	}
 }

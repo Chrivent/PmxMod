@@ -52,7 +52,7 @@ namespace Chrivent {
 
     bool Program::LoadScene(const SceneConfig& sceneConfig) {
         std::vector<std::unique_ptr<Instance>> loadedInstances;
-        if (!viewer->LoadInstances(sceneConfig, loadedInstances)) {
+        if (!LoadInstances(sceneConfig, loadedInstances)) {
             std::cout << "Failed to load scene instances.\n";
             return false;
         }
@@ -64,6 +64,41 @@ namespace Chrivent {
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
         saveTime = std::chrono::steady_clock::now();
+        return true;
+    }
+
+    bool Program::LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const {
+        loadedInstances.clear();
+        loadedInstances.reserve(sceneConfig.modelConfigs.size());
+        for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
+            auto instance = viewer->CreateInstance();
+            const auto pmxModel = std::make_shared<Model>();
+            if (!pmxModel->Load(modelPath, viewer->pmxDir)) {
+                std::cout << "Failed to load pmx file.\n";
+                return false;
+            }
+            instance->model = pmxModel;
+            instance->model->InitializeAnimation();
+            auto vmdAnim = std::make_unique<Animation>();
+            vmdAnim->model = instance->model;
+            for (const auto& vmdPath : animPaths) {
+                VmdReader vmd;
+                if (!vmd.ReadFile(vmdPath.c_str())) {
+                    std::cout << "Failed to read VMD file.\n";
+                    return false;
+                }
+                if (!vmdAnim->Add(vmd)) {
+                    std::cout << "Failed to add VMDAnimation.\n";
+                    return false;
+                }
+            }
+            vmdAnim->SyncPhysics(0.0f);
+            instance->anim = std::move(vmdAnim);
+            instance->scale = scale;
+            if (!instance->Setup(*viewer))
+                return false;
+            loadedInstances.emplace_back(std::move(instance));
+        }
         return true;
     }
 

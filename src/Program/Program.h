@@ -22,6 +22,8 @@ namespace Chrivent {
         void Shutdown();
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig);
+        // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
+        bool LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영한다.
