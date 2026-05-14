@@ -2,6 +2,7 @@
 
 #include "../Instance.h"
 
+#include <vector>
 #include <glad/glad.h>
 
 namespace Chrivent {

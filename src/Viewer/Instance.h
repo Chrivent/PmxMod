@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include "../Model.h"
-#include "../Animation/Animation.h"
+#include <memory>
 
 namespace Chrivent {
+    class Animation;
+    class Model;
     class Viewer;
     
     class Instance {

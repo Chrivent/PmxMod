@@ -1,6 +1,8 @@
 ﻿#include "Instance.h"
 
 #include "Viewer.h"
+#include "../Animation/Animation.h"
+#include "../Model.h"
 
 namespace Chrivent {
     Instance::~Instance() = default;

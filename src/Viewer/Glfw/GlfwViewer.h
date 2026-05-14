@@ -3,9 +3,11 @@
 #include "../Viewer.h"
 
 #include <map>
+#include <glad/glad.h>
 
 namespace Chrivent {
     class GlfwViewer;
+    struct Material;
 
     class GlfwShader {
     public:

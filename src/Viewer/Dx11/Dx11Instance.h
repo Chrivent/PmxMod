@@ -2,8 +2,10 @@
 
 #include "../Instance.h"
 
+#include <vector>
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <glm/glm.hpp>
 
 namespace Chrivent {
     struct Dx11Texture;

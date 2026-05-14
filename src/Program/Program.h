@@ -17,7 +17,7 @@ namespace Chrivent {
         // 실행할 렌더러를 선택해 생성한다.
         void CreateViewer(int engineType);
         // GLFW 윈도우와 렌더러별 리소스를 초기화한다.
-        bool InitializeViewer() const;
+        bool InitializeViewer();
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.
         void Shutdown();
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.

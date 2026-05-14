@@ -1,5 +1,8 @@
 #include "Program.h"
 
+#include "../Animation/Animation.h"
+#include "../Model.h"
+#include "../Reader/VmdReader.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
 
@@ -15,7 +18,7 @@ namespace Chrivent {
             viewer.reset();
     }
 
-    bool Program::InitializeViewer() const {
+    bool Program::InitializeViewer() {
         if (!viewer)
             return false;
         if (!glfwInit()) {
@@ -26,17 +29,20 @@ namespace Chrivent {
         viewer->window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
         if (!viewer->window) {
             std::cout << "Failed to create viewer window.\n";
+            viewer.reset();
             glfwTerminate();
             return false;
         }
         glfwGetFramebufferSize(viewer->window, &viewer->screenWidth, &viewer->screenHeight);
         if (viewer->screenWidth <= 0 || viewer->screenHeight <= 0) {
             std::cout << "Invalid framebuffer size.\n";
+            viewer.reset();
             glfwTerminate();
             return false;
         }
         if (!viewer->Setup()) {
             std::cout << "Failed to set up renderer.\n";
+            viewer.reset();
             glfwTerminate();
             return false;
         }

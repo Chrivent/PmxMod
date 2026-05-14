@@ -1,7 +1,9 @@
 ﻿#pragma once
 
-#include <glad/glad.h>
+#include <memory>
+#include <filesystem>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include "Instance.h"
 
