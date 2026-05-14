@@ -2,7 +2,7 @@
 
 #include "../Model.h"
 
-namespace AnimationHelper {
+namespace Chrivent::AnimationHelper {
 	std::map<std::string, NodeAnimationTrack> TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {
 		std::map<std::string, NodeAnimationTrack> trackMap;
 		for (auto& track : tracks) {

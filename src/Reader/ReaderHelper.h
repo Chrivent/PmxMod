@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-namespace ReaderHelper {
+namespace Chrivent::ReaderHelper {
 	// 현재 위치를 보존한 채 스트림의 끝 위치를 구한다.
 	std::streampos GetFileEnd(std::istream& is);
 	// 저장해 둔 끝 위치 이전에 읽을 데이터가 남아 있는지 확인한다.

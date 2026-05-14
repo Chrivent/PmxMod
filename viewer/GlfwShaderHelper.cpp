@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-namespace GlfwShaderHelper {
+namespace Chrivent::GlfwShaderHelper {
 	GLuint CompileShader(const GLenum shaderType, const std::string& code) {
 		const GLuint shader = glCreateShader(shaderType);
 		if (!shader)

@@ -5,7 +5,7 @@
 #include <map>
 #include <ranges>
 
-namespace AnimationHelper {
+namespace Chrivent::AnimationHelper {
 	// 노드 트랙이 실제 노드에 연결되어 있는지 확인한다.
 	static bool IsTrackBound(const NodeAnimationTrack& track) { return track.node != nullptr; }
 	// IK 트랙이 실제 IK 솔버에 연결되어 있는지 확인한다.

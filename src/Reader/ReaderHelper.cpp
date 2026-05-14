@@ -1,6 +1,6 @@
 ﻿#include "ReaderHelper.h"
 
-namespace ReaderHelper {
+namespace Chrivent::ReaderHelper {
 	std::streampos GetFileEnd(std::istream& is) {
 		const auto origin = is.tellg();
 		is.seekg(0, std::ios::end);
