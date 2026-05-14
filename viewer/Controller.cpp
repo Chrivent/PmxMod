@@ -3,7 +3,6 @@
 #include "Viewer.h"
 
 #include "../src/Animation/CameraAnimation.h"
-#include "../src/Reader.h"
 #include "../src/Sound.h"
 
 #include <fstream>
