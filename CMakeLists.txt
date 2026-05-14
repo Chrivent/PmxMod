@@ -26,17 +26,17 @@ add_executable(PmxMod
         src/Animation/AnimationHelper.h src/Animation/AnimationHelper.cpp
         src/Animation/Bezier.h src/Animation/Bezier.cpp
         
-        src/Util.h
-        src/IkSolver.cpp src/IkSolver.h
-        src/Model.cpp src/Model.h
-        src/Node.cpp src/Node.h
-        src/Physics.cpp src/Physics.h
-        src/Reader.cpp src/Reader.h
-        src/Sound.cpp src/Sound.h
-        viewer/Controller.cpp viewer/Controller.h
-        viewer/Viewer.cpp viewer/Viewer.h
-        viewer/GlfwViewer.cpp viewer/GlfwViewer.h
-        viewer/Dx11Viewer.cpp viewer/Dx11Viewer.h
+        src/Util.h src/Util.cpp
+        src/IkSolver.h src/IkSolver.cpp
+        src/Model.h src/Model.cpp
+        src/Node.h src/Node.cpp
+        src/Physics.h src/Physics.cpp
+        src/Reader.h src/Reader.cpp
+        src/Sound.h src/Sound.cpp
+        viewer/Controller.h viewer/Controller.cpp
+        viewer/Viewer.h viewer/Viewer.cpp
+        viewer/GlfwViewer.h viewer/GlfwViewer.cpp
+        viewer/Dx11Viewer.h viewer/Dx11Viewer.cpp
 )
 
 target_link_libraries(PmxMod PUBLIC
