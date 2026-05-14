@@ -59,7 +59,8 @@ namespace Chrivent {
         ClearInstances();
         instances = std::move(loadedInstances);
         music.Stop();
-        music.Init(sceneConfig.musicPath, false);
+        if (!sceneConfig.musicPath.empty())
+            music.Init(sceneConfig.musicPath, false);
         controller.LoadCameraAnim(sceneConfig.cameraAnim);
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
@@ -169,8 +170,7 @@ namespace Chrivent {
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;
-        if (!cfg.modelConfigs.empty() || !cfg.cameraAnim.empty() || !cfg.musicPath.empty())
-            LoadScene(cfg);
+        LoadScene(cfg);
         controller.UpdateCamera(*viewer);
         while (!glfwWindowShouldClose(viewer->window)) {
             if (!RunFrame())
