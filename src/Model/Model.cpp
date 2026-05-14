@@ -339,7 +339,7 @@ namespace Chrivent {
 					rigidBodies[joint.rigidbodyBIndex].get());
 				physics->world->addConstraint(j->constraint.get());
 				joints.emplace_back(std::move(j));
-				}
+			}
 		}
 	}
 
