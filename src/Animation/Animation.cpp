@@ -2,6 +2,7 @@
 
 #include "AnimationHelper.h"
 #include "../Model/Model.h"
+#include "../Model/ModelPose.h"
 #include "../Util.h"
 
 namespace Chrivent {
@@ -197,9 +198,10 @@ namespace Chrivent {
 			model->BeginAnimation();
 			Evaluate(t, static_cast<float>(1 + i) / 30.0f);
 			model->UpdateMorphAnimation();
-			model->UpdateNodeAnimation(false);
-			model->UpdatePhysicsAnimation(1.0f / 30.0f);
-			model->UpdateNodeAnimation(true);
+			ModelPose pose(*model);
+			pose.UpdateNodeAnimation(false);
+			pose.UpdatePhysicsAnimation(1.0f / 30.0f);
+			pose.UpdateNodeAnimation(true);
 		}
 	}
 }

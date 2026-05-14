@@ -5,9 +5,9 @@
 
 namespace Chrivent {
 	struct Morph;
+	struct Model;
 	class IkSolver;
 	class Node;
-	class Model;
 
 	struct NodeAnimationKey {
 		int32_t		time;

@@ -1,8 +1,8 @@
 ﻿#include "Model.h"
 
-#include "ModelSkinning.h"
+#include "ModelLoader.h"
+#include "ModelPose.h"
 #include "../Animation/Animation.h"
-#include "../Util.h"
 
 #include <ranges>
 
@@ -10,8 +10,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 namespace Chrivent {
-	using namespace ModelSkinning;
-	
 	void Model::AccumulateMaterialMul(MaterialMorph& out, const MaterialMorph& val, const float weight) {
 		out.diffuse = glm::mix(out.diffuse, out.diffuse * val.diffuse, weight);
 		out.specular = glm::mix(out.specular, out.specular * val.specular, weight);
@@ -34,347 +32,6 @@ namespace Chrivent {
 		out.textureFactor += val.textureFactor * weight;
 		out.sphereTextureFactor += val.sphereTextureFactor * weight;
 		out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
-	}
-
-	void Model::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) {
-		size_t vertexCount = pmx.vertices.size();
-		positions.reserve(vertexCount);
-		normals.reserve(vertexCount);
-		uvs.reserve(vertexCount);
-		vertexBoneInfos.reserve(vertexCount);
-		bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
-		bboxMin = glm::vec3((std::numeric_limits<float>::max)());
-		for (const auto& v : pmx.vertices) {
-			glm::vec3 pos = v.position * invZ;
-			positions.push_back(pos);
-			normals.push_back(v.normal * invZ);
-			uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
-			Vertex vtxBoneInfo{};
-			if (WeightType::SphericalDeform != v.weightType) {
-				vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
-				vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
-				vtxBoneInfo.boneIndices[2] = v.boneIndices[2];
-				vtxBoneInfo.boneIndices[3] = v.boneIndices[3];
-				vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
-				vtxBoneInfo.boneWeights[1] = v.boneWeights[1];
-				vtxBoneInfo.boneWeights[2] = v.boneWeights[2];
-				vtxBoneInfo.boneWeights[3] = v.boneWeights[3];
-			}
-			vtxBoneInfo.weightType = v.weightType;
-			switch (v.weightType) {
-				case WeightType::BoneDeform2:
-					vtxBoneInfo.boneWeights[1] = 1.0f - vtxBoneInfo.boneWeights[0];
-					break;
-				case WeightType::SphericalDeform: {
-					auto w0 = v.boneWeights[0];
-					auto w1 = 1.0f - w0;
-					auto center = v.sphericalDeformC * invZ;
-					auto r0 = v.sphericalDeformR0 * invZ;
-					auto r1 = v.sphericalDeformR1 * invZ;
-					auto rw = r0 * w0 + r1 * w1;
-					r0 = center + r0 - rw;
-					r1 = center + r1 - rw;
-					auto cr0 = (center + r0) * 0.5f;
-					auto cr1 = (center + r1) * 0.5f;
-					vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
-					vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
-					vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
-					vtxBoneInfo.sphericalDeformC = center;
-					vtxBoneInfo.sphericalDeformR0 = cr0;
-					vtxBoneInfo.sphericalDeformR1 = cr1;
-				}
-					break;
-				default:
-					break;
-			}
-			vertexBoneInfos.push_back(vtxBoneInfo);
-			bboxMax = (glm::max)(bboxMax, pos);
-			bboxMin = (glm::min)(bboxMin, pos);
-		}
-		morphPositions.resize(positions.size());
-		morphUVs.resize(positions.size());
-		updatePositions.resize(positions.size());
-		updateNormals.resize(normals.size());
-		updateUVs.resize(uvs.size());
-	}
-
-	bool Model::LoadFaces(const PmxReader& pmx) {
-		indexElementSize = pmx.header.vertexIndexSize;
-		indices.resize(pmx.faces.size() * 3 * indexElementSize);
-		indexCount = pmx.faces.size() * 3;
-		auto FillIndices = [&](auto* out) {
-			int idx = 0;
-			for (const auto& [tri] : pmx.faces) {
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[2]);
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[1]);
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
-			}
-		};
-		switch (indexElementSize) {
-			case 1: FillIndices(reinterpret_cast<uint8_t*>(indices.data())); break;
-			case 2: FillIndices(reinterpret_cast<uint16_t*>(indices.data())); break;
-			case 4: FillIndices(reinterpret_cast<uint32_t*>(indices.data())); break;
-			default: return false;
-		}
-		return true;
-	}
-
-	void Model::LoadMaterials(const PmxReader& pmx, const std::filesystem::path& modelDir, const std::filesystem::path& dataDir) {
-		std::vector<std::filesystem::path> texturePaths;
-		texturePaths.reserve(pmx.textures.size());
-		for (const auto& [textureName] : pmx.textures) {
-			std::filesystem::path texPath = modelDir / textureName;
-			texturePaths.emplace_back(std::move(texPath));
-		}
-		materials.reserve(pmx.materials.size());
-		subMeshes.reserve(pmx.materials.size());
-		uint32_t beginIndex = 0;
-		for (const auto& mat : pmx.materials) {
-			const auto dm = static_cast<uint8_t>(mat.drawMode);
-			Material m;
-			m.diffuse = mat.diffuse;
-			m.specularPower = mat.specularPower;
-			m.specular = mat.specular;
-			m.ambient = mat.ambient;
-			m.spTextureMode = SphereMode::None;
-			m.bothFace      = (dm & static_cast<uint8_t>(DrawModeFlags::BothFace)) != 0;
-			m.edgeFlag      = (dm & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) != 0 ? 1 : 0;
-			m.groundShadow  = (dm & static_cast<uint8_t>(DrawModeFlags::GroundShadow)) != 0;
-			m.shadowCaster  = (dm & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow)) != 0;
-			m.shadowReceiver= (dm & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow)) != 0;
-			m.edgeSize = mat.edgeSize;
-			m.edgeColor = mat.edgeColor;
-			if (mat.textureIndex != -1)
-				m.texture = texturePaths[mat.textureIndex];
-			if (mat.cartoonMode == CartoonMode::Common) {
-				if (mat.cartoonTextureIndex != -1) {
-					std::stringstream ss;
-					ss << "cartoon" << std::setfill('0') << std::setw(2) << (mat.cartoonTextureIndex + 1) << ".bmp";
-					m.cartoonTexture = dataDir / ss.str();
-				}
-			} else if (mat.cartoonMode == CartoonMode::Separate) {
-				if (mat.cartoonTextureIndex != -1)
-					m.cartoonTexture = texturePaths[mat.cartoonTextureIndex];
-			}
-			if (mat.sphereTextureIndex != -1) {
-				m.spTexture = texturePaths[mat.sphereTextureIndex];
-				m.spTextureMode = mat.sphereMode;
-			}
-			materials.emplace_back(std::move(m));
-			SubMesh subMesh{};
-			subMesh.beginIndex = static_cast<int>(beginIndex);
-			subMesh.indexCount = mat.numFaceVertices;
-			subMesh.materialId = static_cast<int>(materials.size() - 1);
-			subMeshes.push_back(subMesh);
-			beginIndex += mat.numFaceVertices;
-		}
-		initMaterials = materials;
-		mulMaterialFactors.resize(materials.size());
-		addMaterialFactors.resize(materials.size());
-	}
-
-	void Model::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) {
-		nodes.reserve(pmx.bones.size());
-		for (const auto& bone : pmx.bones) {
-			auto node = std::make_shared<Node>();
-			node->index = static_cast<uint32_t>(nodes.size());
-			node->name = bone.name;
-			nodes.emplace_back(std::move(node));
-		}
-		for (size_t i = 0; i < pmx.bones.size(); i++) {
-			const auto& bone = pmx.bones[i];
-			auto* node = nodes[i].get();
-			glm::vec3 localPos = bone.position;
-			if (bone.parentBoneIndex != -1) {
-				auto parentNode = nodes[bone.parentBoneIndex];
-				parentNode->AddChild(nodes[i]);
-				localPos -= pmx.bones[bone.parentBoneIndex].position;
-			}
-			localPos.z *= -1;
-			node->translate = localPos;
-			node->global = glm::translate(glm::mat4(1), bone.position * invZ);
-			node->inverseInit = glm::inverse(node->global);
-			node->deformDepth = bone.deformDepth;
-			bool deformAfterPhysics = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
-			node->isDeformAfterPhysics = deformAfterPhysics;
-			bool appendRotateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
-			bool appendTranslateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
-			node->isAppendRotate = appendRotateEnabled;
-			node->isAppendTranslate = appendTranslateEnabled;
-			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
-				bool appendLocalEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
-				auto appendNodePtr = nodes[bone.appendBoneIndex];
-				float appendWeightValue = bone.appendWeight;
-				node->isAppendLocal = appendLocalEnabled;
-				node->appendNode = appendNodePtr;
-				node->appendWeight = appendWeightValue;
-			}
-			node->initTranslate = node->translate;
-			node->initRotate = node->rotate;
-			node->initScale = node->scale;
-		}
-		transforms.resize(nodes.size());
-		sortedNodes.clear();
-		sortedNodes.reserve(nodes.size());
-		for (auto& node : nodes)
-			sortedNodes.emplace_back(*node);
-		std::ranges::stable_sort(sortedNodes,
-		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
-			return x.get().deformDepth < y.get().deformDepth;
-		});
-		for (size_t i = 0; i < pmx.bones.size(); i++) {
-			const auto& bone = pmx.bones[i];
-			if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
-				auto solver = std::make_shared<IkSolver>();
-				solver->ikNode = nodes[i];
-				nodes[i]->ikSolver = solver;
-				solver->ikTarget = nodes[bone.ikTargetBoneIndex];
-				for (const auto& [ikBoneIndex, enableLimit,
-					limitMin, limitMax] : bone.ikLinks) {
-					auto linkNode = nodes[ikBoneIndex];
-					IkChain chain{};
-					chain.node = linkNode;
-					chain.enableAxisLimit = enableLimit;
-					chain.limitMin = limitMax * glm::vec3(-1);
-					chain.limitMax = limitMin * glm::vec3(-1);
-					chain.saveIkRot = glm::quat(1, 0, 0, 0);
-					solver->chains.emplace_back(chain);
-					linkNode->enableIk = true;
-					}
-				solver->iterateCount = bone.ikIterationCount;
-				solver->limitAngle = bone.ikLimit;
-				ikSolvers.emplace_back(std::move(solver));
-			}
-		}
-	}
-
-	void Model::LoadMorphs(const PmxReader& pmx, const glm::vec3& invZ) {
-		for (const auto& morph : pmx.morphs) {
-			auto m = std::make_unique<Morph>();
-			m->name = morph.name;
-			m->morphType = morph.morphType;
-			switch (morph.morphType) {
-				case MorphType::Position: {
-					m->dataIndex = positionMorphs.size();
-					std::vector<PositionMorph> morphData;
-					morphData.reserve(morph.positionMorph.size());
-					for (const auto& [vertexIndex, position] : morph.positionMorph)
-						morphData.push_back({ vertexIndex, position * invZ });
-					positionMorphs.emplace_back(std::move(morphData));
-					break;
-				}
-				case MorphType::Uv:
-					m->dataIndex = uvMorphs.size();
-					uvMorphs.emplace_back(morph.uvMorph);
-					break;
-				case MorphType::Material:
-					m->dataIndex = materialMorphs.size();
-					materialMorphs.emplace_back(morph.materialMorph);
-					break;
-				case MorphType::Bone: {
-					m->dataIndex = boneMorphs.size();
-					std::vector<BoneMorph> boneMorphData;
-					boneMorphData.reserve(morph.boneMorph.size());
-					for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
-						auto rot = Util::InvZ(glm::mat3_cast(quaternion));
-						boneMorphData.push_back({ boneIndex, position * invZ, glm::quat_cast(rot) });
-					}
-					boneMorphs.emplace_back(std::move(boneMorphData));
-					break;
-				}
-				case MorphType::Group:
-					m->dataIndex = groupMorphs.size();
-					groupMorphs.emplace_back(morph.groupMorph);
-					break;
-				default:
-					break;
-			}
-			morphs.emplace_back(std::move(m));
-		}
-	}
-
-	void Model::FixInfiniteGroupMorphs() {
-		std::vector<int32_t> groupMorphStack;
-		std::function<void(int32_t)> fixInfiniteGroupMorph = [&](const int32_t idx) {
-			if (idx < 0)
-				return;
-			const auto* morph = morphs[idx].get();
-			if (morph->morphType != MorphType::Group)
-				return;
-			groupMorphStack.push_back(idx);
-			for (auto& [morphIndex, weight] : groupMorphs[morph->dataIndex]) {
-				if (morphIndex < 0)
-					continue;
-				if (std::ranges::find(groupMorphStack, morphIndex) != groupMorphStack.end()) {
-					morphIndex = -1;
-					continue;
-				}
-				fixInfiniteGroupMorph(morphIndex);
-			}
-			groupMorphStack.pop_back();
-		};
-		for (int32_t i = 0; i < static_cast<int32_t>(morphs.size()); i++) {
-			groupMorphStack.clear();
-			fixInfiniteGroupMorph(i);
-		}
-	}
-
-	void Model::LoadPhysics(const PmxReader& pmx) {
-		physics = std::make_unique<Physics>();
-		physics->Create();
-		for (const auto& pmxRigidBody : pmx.rigidBodies) {
-			auto rb = std::make_unique<RigidBody>();
-			std::shared_ptr<Node> node;
-			if (pmxRigidBody.boneIndex != -1)
-				node = nodes[pmxRigidBody.boneIndex];
-			rb->Create(pmxRigidBody, this, node);
-			physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
-			rigidBodies.emplace_back(std::move(rb));
-		}
-		for (const auto& joint : pmx.joints) {
-			if (joint.rigidbodyAIndex != -1 &&
-				joint.rigidbodyBIndex != -1 &&
-				joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
-				auto j = std::make_unique<Joint>();
-				j->Create(joint,
-					rigidBodies[joint.rigidbodyAIndex].get(),
-					rigidBodies[joint.rigidbodyBIndex].get());
-				physics->world->addConstraint(j->constraint.get());
-				joints.emplace_back(std::move(j));
-			}
-		}
-	}
-
-	void Model::SetupParallelUpdate() {
-		if (!parallelUpdateCount)
-			parallelUpdateCount = (std::max)(1u, std::thread::hardware_concurrency());
-		parallelUpdateCount = std::min<size_t>(parallelUpdateCount, 16);
-		updateRanges.resize(parallelUpdateCount);
-		parallelUpdateFutures.resize(parallelUpdateCount - 1);
-		const size_t totalVertexCount = positions.size();
-		constexpr size_t lowerVertexCount = 1000;
-		if (totalVertexCount < updateRanges.size() * lowerVertexCount) {
-			const size_t numRanges = (totalVertexCount + lowerVertexCount - 1) / lowerVertexCount;
-			for (size_t i = 0; i < updateRanges.size(); i++) {
-				auto& [vertexOffset, vertexCount] = updateRanges[i];
-				if (i < numRanges) {
-					vertexOffset = i * lowerVertexCount;
-					vertexCount  = (std::min)(lowerVertexCount, totalVertexCount - vertexOffset);
-				} else {
-					vertexOffset = 0;
-					vertexCount = 0;
-				}
-			}
-			return;
-		}
-		const size_t numVertexCount = totalVertexCount / updateRanges.size();
-		size_t offset = 0;
-		for (size_t i = 0; i < updateRanges.size(); i++) {
-			auto& [vertexOffset, vertexCount] = updateRanges[i];
-			vertexOffset = offset;
-			vertexCount  = numVertexCount + (i == 0 ? totalVertexCount % updateRanges.size() : 0);
-			offset += vertexCount;
-		}
 	}
 
 	void Model::EvalMorph(const Morph* morph, const float morphWeight) {
@@ -507,9 +164,10 @@ namespace Chrivent {
 			morph->weight = 0;
 		for (const auto& ikSolver : ikSolvers)
 			ikSolver->enable = true;
-		UpdateNodeAnimation(false);
-		UpdateNodeAnimation(true);
-		ResetPhysics();
+		ModelPose pose(*this);
+		pose.UpdateNodeAnimation(false);
+		pose.UpdateNodeAnimation(true);
+		pose.ResetPhysics();
 	}
 
 	void Model::SaveBaseAnimation() const {
@@ -552,119 +210,19 @@ namespace Chrivent {
 		EndMorphMaterial();
 	}
 
-	void Model::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
-		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
-			return node.get().isDeformAfterPhysics == afterPhysicsAnim;
-		};
-		for (auto& nodeRef : sortedNodes | std::views::filter(Pred))
-			nodeRef.get().UpdateLocalTransform();
-		for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
-			auto& node = nodeRef.get();
-			if (node.parent.expired())
-				node.UpdateGlobalTransform();
-		}
-		for (auto& nodeRef : sortedNodes | std::views::filter(Pred)) {
-			auto& node = nodeRef.get();
-			if (!node.appendNode.expired()) {
-				node.UpdateAppendTransform();
-				node.UpdateGlobalTransform();
-			}
-			if (const auto ikSolver = node.ikSolver.lock()) {
-				ikSolver->Solve();
-				node.UpdateGlobalTransform();
-			}
-		}
-	}
-
-	void Model::ResetPhysics() const {
-		for (auto& rb : rigidBodies) {
-			rb->ApplyActivation(false);
-			rb->ResetTransform();
-		}
-		physics->world->stepSimulation(
-			1.0f / 60.0f, physics->maxSubStepCount,
-			static_cast<btScalar>(1.0f / physics->fps));
-		for (auto& rb : rigidBodies) {
-			rb->ReflectGlobalTransform();
-			rb->CalcLocalTransform();
-		}
-		for (const auto& node : nodes) {
-			if (node->parent.expired())
-				node->UpdateGlobalTransform();
-		}
-		for (auto& rb : rigidBodies)
-			rb->Reset(physics.get());
-	}
-
-	void Model::UpdatePhysicsAnimation(const float elapsed) const {
-		for (auto& rb : rigidBodies)
-			rb->ApplyActivation(true);
-		physics->world->stepSimulation(
-			elapsed, physics->maxSubStepCount,
-			static_cast<btScalar>(1.0f / physics->fps));
-		for (auto& rb : rigidBodies) {
-			rb->ReflectGlobalTransform();
-			rb->CalcLocalTransform();
-		}
-		for (const auto& node : nodes) {
-			if (node->parent.expired())
-				node->UpdateGlobalTransform();
-		}
-	}
-
-	void Model::Update() {
-		for (size_t i = 0; i < nodes.size(); i++)
-			transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
-		if (parallelUpdateCount != updateRanges.size())
-			SetupParallelUpdate();
-		const SkinningContext skinningContext{ positions, normals, uvs,
-			vertexBoneInfos, transforms, morphPositions, morphUVs,
-			updatePositions, updateNormals, updateUVs, nodes };
-		const size_t futureCount = parallelUpdateFutures.size();
-		for (size_t i = 0; i < futureCount; i++) {
-			if (updateRanges[i + 1].vertexCount != 0) {
-				parallelUpdateFutures[i] = std::async(std::launch::async,
-				[skinningContext, range = updateRanges[i + 1]] { UpdateSkinning(skinningContext, range); });
-			}
-		}
-		UpdateSkinning(skinningContext, updateRanges[0]);
-		for (size_t i = 0; i < futureCount; i++) {
-			if (updateRanges[i + 1].vertexCount != 0)
-				parallelUpdateFutures[i].wait();
-		}
-	}
-
 	void Model::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) {
 		if (anim)
 			anim->Evaluate(frame);
 		UpdateMorphAnimation();
-		UpdateNodeAnimation(false);
-		UpdatePhysicsAnimation(physicsElapsed);
-		UpdateNodeAnimation(true);
+		ModelPose pose(*this);
+		pose.UpdateNodeAnimation(false);
+		pose.UpdatePhysicsAnimation(physicsElapsed);
+		pose.UpdateNodeAnimation(true);
 	}
 
 	bool Model::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) {
-		Destroy();
-		PmxReader pmx;
-		if (!pmx.ReadFile(filepath))
-			return false;
-		modelName        = pmx.info.modelName;
-		englishModelName = pmx.info.englishModelName;
-		comment          = pmx.info.comment;
-		englishComment   = pmx.info.englishComment;
-		const std::filesystem::path modelDir = filepath.parent_path();
-		constexpr glm::vec3 invZ(1, 1, -1);
-		LoadVertices(pmx, invZ);
-		if (!LoadFaces(pmx))
-			return false;
-		LoadMaterials(pmx, modelDir, dataDir);
-		LoadNodes(pmx, invZ);
-		LoadMorphs(pmx, invZ);
-		FixInfiniteGroupMorphs();
-		LoadPhysics(pmx);
-		ResetPhysics();
-		SetupParallelUpdate();
-		return true;
+		const ModelLoader loader(*this);
+		return loader.Load(filepath, dataDir);
 	}
 
 	void Model::Destroy() {

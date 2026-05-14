@@ -3,8 +3,8 @@
 #include <memory>
 
 namespace Chrivent {
+    struct Model;
     class Animation;
-    class Model;
     class Viewer;
     
     class Instance {

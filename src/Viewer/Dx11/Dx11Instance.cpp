@@ -2,6 +2,7 @@
 
 #include "Dx11Viewer.h"
 #include "../../Model/Model.h"
+#include "../../Model/ModelPose.h"
 
 namespace Chrivent {
 	void Dx11Instance::DrawModel() const {
@@ -230,7 +231,8 @@ namespace Chrivent {
 	}
 
 	void Dx11Instance::Update() const {
-		model->Update();
+		const ModelPose pose(*model);
+		pose.Update();
 		const size_t vtxCount = model->positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(viewer->context->Map(vertexBuffer.Get(), 0,

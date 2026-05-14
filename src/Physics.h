@@ -5,8 +5,8 @@
 #include "Reader/PmxReader.h"
 
 namespace Chrivent {
+	struct Model;
 	class Physics;
-	class Model;
 	class Node;
 
 	class MotionState : public btMotionState {

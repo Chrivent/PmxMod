@@ -2,6 +2,7 @@
 
 #include "GlfwViewer.h"
 #include "../../Model/Model.h"
+#include "../../Model/ModelPose.h"
 
 namespace Chrivent {
 	void GlfwInstance::DrawModel() const {
@@ -256,7 +257,8 @@ namespace Chrivent {
 	}
 
 	void GlfwInstance::Update() const {
-		model->Update();
+		const ModelPose pose(*model);
+		pose.Update();
 		const size_t vtxCount = model->positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
