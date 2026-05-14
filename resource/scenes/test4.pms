@@ -1,0 +1,7 @@
+PmxModScene
+camera	D:\예찬\MMD\motion\Dramaturgy\カメラ標準（Tda式）.vmd
+music	D:\예찬\MMD\wav\Dramaturgy.wav
+models	2
+model	1.0	1	D:\예찬\MMD\model\Hatsune Miku (Tda)\Hatsune Miku (Tda).pmx
+anim	D:\예찬\MMD\motion\Dramaturgy\Dramaturgy.vmd
+model	1	0	D:\예찬\MMD\background\dcl_us_coffee_square_by_daucongluyen-dbv6bra\DCL-US Coffee Square\DCL-US Coffee Square.pmx
