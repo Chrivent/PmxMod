@@ -30,7 +30,6 @@ namespace Chrivent {
         virtual bool EndFrame() = 0;
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
-
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.
         static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, bool flipY = false);
         // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
