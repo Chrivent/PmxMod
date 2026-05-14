@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Instance.h"
-#include "../Program/Controller.h"
+#include "../Config.h"
 
 namespace Chrivent {
     class Viewer {
