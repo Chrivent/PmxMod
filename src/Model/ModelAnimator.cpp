@@ -1,0 +1,72 @@
+﻿#include "ModelAnimator.h"
+
+#include "ModelMorph.h"
+#include "ModelPose.h"
+#include "../Animation/Animation.h"
+
+namespace Chrivent {
+	void ModelAnimator::InitializeAnimation() const {
+		ClearBaseAnimation();
+		for (const auto& node : model.nodes) {
+			node->animTranslate = glm::vec3(0);
+			node->animRotate = glm::quat(1, 0, 0, 0);
+		}
+		BeginAnimation();
+		for (const auto& morph : model.morphs)
+			morph->weight = 0;
+		for (const auto& ikSolver : model.ikSolvers)
+			ikSolver->enable = true;
+		const ModelPose pose(model);
+		pose.UpdateNodeAnimation(false);
+		pose.UpdateNodeAnimation(true);
+		pose.ResetPhysics();
+	}
+
+	void ModelAnimator::SaveBaseAnimation() const {
+		for (const auto& node : model.nodes) {
+			node->baseAnimTranslate = node->animTranslate;
+			node->baseAnimRotate = node->animRotate;
+		}
+		for (const auto& morph : model.morphs)
+			morph->saveAnimWeight = morph->weight;
+		for (const auto& ikSolver : model.ikSolvers)
+			ikSolver->baseAnimEnable = ikSolver->enable;
+	}
+
+	void ModelAnimator::ClearBaseAnimation() const {
+		for (const auto& node : model.nodes) {
+			node->baseAnimTranslate = glm::vec3(0);
+			node->baseAnimRotate = glm::quat(1, 0, 0, 0);
+		}
+		for (const auto& morph : model.morphs)
+			morph->saveAnimWeight = 0;
+		for (const auto& ikSolver : model.ikSolvers)
+			ikSolver->baseAnimEnable = true;
+	}
+
+	void ModelAnimator::BeginAnimation() const {
+		for (const auto& node : model.nodes)
+			node->BeginUpdateTransform();
+		for (const auto& node : model.nodes) {
+			node->animTranslate = glm::vec3(0);
+			node->animRotate = glm::quat(1, 0, 0, 0);
+		}
+		std::ranges::fill(model.morphPositions, glm::vec3(0));
+		std::ranges::fill(model.morphUVs, glm::vec4(0));
+	}
+
+	void ModelAnimator::UpdateMorphAnimation() const {
+		const ModelMorph morph(model);
+		morph.Update();
+	}
+
+	void ModelAnimator::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) const {
+		if (anim)
+			anim->Evaluate(frame);
+		UpdateMorphAnimation();
+		const ModelPose pose(model);
+		pose.UpdateNodeAnimation(false);
+		pose.UpdatePhysicsAnimation(physicsElapsed);
+		pose.UpdateNodeAnimation(true);
+	}
+}

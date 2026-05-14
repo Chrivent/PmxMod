@@ -2,7 +2,7 @@
 
 #include "Viewer.h"
 #include "../Animation/Animation.h"
-#include "../Model/Model.h"
+#include "../Model/ModelAnimator.h"
 
 namespace Chrivent {
     Instance::Instance() = default;
@@ -15,7 +15,8 @@ namespace Chrivent {
     }
 
     void Instance::UpdateAnimation(const Viewer& viewer) const {
-        model->BeginAnimation();
-        model->UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed);
+        const ModelAnimator animator(*model);
+        animator.BeginAnimation();
+        animator.UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed);
     }
 }

@@ -1,7 +1,8 @@
 #include "Program.h"
 
 #include "../Animation/Animation.h"
-#include "../Model/Model.h"
+#include "../Model/ModelLoader.h"
+#include "../Model/ModelAnimator.h"
 #include "../Reader/VmdReader.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
@@ -81,12 +82,14 @@ namespace Chrivent {
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             auto instance = viewer->CreateInstance();
             const auto pmxModel = std::make_shared<Model>();
-            if (!pmxModel->Load(modelPath, viewer->pmxDir)) {
+            const ModelLoader loader(*pmxModel);
+            if (!loader.Load(modelPath, viewer->pmxDir)) {
                 std::cout << "Failed to load pmx file.\n";
                 return false;
             }
             instance->model = pmxModel;
-            instance->model->InitializeAnimation();
+            const ModelAnimator animator(*instance->model);
+            animator.InitializeAnimation();
             auto vmdAnim = std::make_unique<Animation>();
             vmdAnim->model = instance->model;
             for (const auto& vmdPath : animPaths) {

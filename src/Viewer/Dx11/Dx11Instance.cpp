@@ -1,7 +1,6 @@
 ﻿#include "Dx11Instance.h"
 
 #include "Dx11Viewer.h"
-#include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {

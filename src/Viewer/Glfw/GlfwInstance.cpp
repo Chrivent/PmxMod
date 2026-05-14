@@ -1,7 +1,6 @@
 ﻿#include "GlfwInstance.h"
 
 #include "GlfwViewer.h"
-#include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {

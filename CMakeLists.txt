@@ -35,6 +35,7 @@ add_executable(PmxMod
         src/Animation/Bezier.h src/Animation/Bezier.cpp
 
         src/Model/Model.h src/Model/Model.cpp
+        src/Model/ModelAnimator.h src/Model/ModelAnimator.cpp
         src/Model/ModelLoader.h src/Model/ModelLoader.cpp
         src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp

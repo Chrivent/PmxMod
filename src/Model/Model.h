@@ -116,18 +116,6 @@ namespace Chrivent {
 		
 		~Model();
 
-		// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
-		void InitializeAnimation();
-		// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
-		void SaveBaseAnimation() const;
-		// 저장된 기준 애니메이션 상태를 지운다.
-		void ClearBaseAnimation() const;
-		// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
-		void BeginAnimation();
-		// 현재 모프 가중치를 반영해 모프 애니메이션을 갱신한다.
-		void UpdateMorphAnimation();
-		// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
-		void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed);
 		// PMX 모델과 관련 리소스를 파일에서 로드한다.
 		bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir);
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
