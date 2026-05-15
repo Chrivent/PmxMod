@@ -200,7 +200,8 @@ namespace Chrivent {
 				solver->ikNode = model.nodes[i];
 				model.nodes[i]->ikSolver = solver;
 				solver->ikTarget = model.nodes[bone.ikTargetBoneIndex];
-				for (const auto& [ikBoneIndex, enableLimit, limitMin, limitMax] : bone.ikLinks) {
+				for (const auto& [ikBoneIndex, enableLimit,
+					limitMin, limitMax] : bone.ikLinks) {
 					auto linkNode = model.nodes[ikBoneIndex];
 					IkChain chain{};
 					chain.node = linkNode;
