@@ -43,6 +43,7 @@ add_executable(PmxMod
         src/Model/ModelLoader.h src/Model/ModelLoader.cpp
         src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp
+        src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
         
         src/Util.h src/Util.cpp
         src/IkSolver.h src/IkSolver.cpp

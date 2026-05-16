@@ -337,7 +337,6 @@ namespace Chrivent {
 		LoadPhysics(pmx);
 		const ModelPose pose(model);
 		pose.ResetPhysics();
-		pose.SetupParallelUpdate();
 		return true;
 	}
 }
