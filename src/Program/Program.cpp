@@ -1,6 +1,7 @@
 #include "Program.h"
 
 #include "../Animation/Animation.h"
+#include "../Animation/AnimationBuilder.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
 #include "../Reader/VmdReader.h"
@@ -92,13 +93,14 @@ namespace Chrivent {
             animator.InitializeAnimation();
             auto vmdAnim = std::make_unique<Animation>();
             vmdAnim->model = instance->model;
+            const AnimationBuilder animationBuilder(*vmdAnim);
             for (const auto& vmdPath : animPaths) {
                 VmdReader vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
                     std::cout << "Failed to read VMD file.\n";
                     return false;
                 }
-                if (!vmdAnim->Add(vmd)) {
+                if (!animationBuilder.Add(vmd)) {
                     std::cout << "Failed to add VMDAnimation.\n";
                     return false;
                 }

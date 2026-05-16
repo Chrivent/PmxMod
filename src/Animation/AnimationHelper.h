@@ -3,7 +3,9 @@
 #include "Animation.h"
 
 #include <map>
+#include <string>
 #include <ranges>
+#include <algorithm>
 
 namespace Chrivent::AnimationHelper {
 	// 노드 트랙이 실제 노드에 연결되어 있는지 확인한다.

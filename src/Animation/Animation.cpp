@@ -2,110 +2,9 @@
 
 #include "AnimationHelper.h"
 #include "../Model/Model.h"
-#include "../Util.h"
 
 namespace Chrivent {
 	using namespace AnimationHelper;
-	
-	void NodeAnimationKey::ApplyMotion(const VmdReader::VmdMotion& motion) {
-		time = static_cast<int32_t>(motion.frame);
-		translate = motion.translate * glm::vec3(1, 1, -1);
-		const glm::quat q = motion.quaternion;
-		const auto rot = Util::InvZ(glm::mat3_cast(q));
-		rotate = glm::quat_cast(rot);
-		txBezier.Assign(
-			motion.interpolation[0], motion.interpolation[8],
-			motion.interpolation[4], motion.interpolation[12]);
-		tyBezier.Assign(
-			motion.interpolation[1], motion.interpolation[9],
-			motion.interpolation[5], motion.interpolation[13]);
-		tzBezier.Assign(
-			motion.interpolation[2], motion.interpolation[10],
-			motion.interpolation[6], motion.interpolation[14]);
-		rotBezier.Assign(
-			motion.interpolation[3], motion.interpolation[11],
-			motion.interpolation[7], motion.interpolation[15]);
-	}
-
-	std::shared_ptr<Node> Animation::FindNodeByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(model->nodes,
-			[&name](const std::shared_ptr<Node>& node) {
-				return node && node->name == name;
-		});
-		return it != model->nodes.end() ? *it : nullptr;
-	}
-
-	std::shared_ptr<IkSolver> Animation::FindIkSolverByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(model->ikSolvers,
-			[&name](const std::shared_ptr<IkSolver>& solver) {
-				if (!solver)
-					return false;
-				const auto ikNode = solver->ikNode.lock();
-				return ikNode && ikNode->name == name;
-		});
-		return it != model->ikSolvers.end() ? *it : nullptr;
-	}
-
-	std::shared_ptr<Morph> Animation::FindMorphByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(model->morphs,
-			[&name](const auto& morph) {
-				return morph && morph->name == name;
-		});
-		if (it == model->morphs.end())
-			return nullptr;
-		return std::shared_ptr<Morph>(model, it->get());
-	}
-
-	void Animation::AddNodeAnimations(const VmdReader& vmd) {
-		auto nodeMap = TakeNodeTrackMap(nodeTracks);
-		for (const auto& motion : vmd.motions) {
-			auto nodeName = Util::SjisToUtf8(motion.boneName);
-			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
-			auto& [node, keys] = findIt->second;
-			if (inserted)
-				node = FindNodeByName(nodeName);
-			if (!node)
-				continue;
-			keys.emplace_back().ApplyMotion(motion);
-		}
-		FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
-	}
-
-	void Animation::AddIkAnimations(const VmdReader& vmd) {
-		auto ikMap = TakeIkTrackMap(ikTracks);
-		for (const auto& ik : vmd.iks) {
-			for (const auto& [name, enable] : ik.ikInfos) {
-				auto ikName = Util::SjisToUtf8(name);
-				auto [findIt, inserted] = ikMap.try_emplace(ikName);
-				auto& [ikSolver, keys] = findIt->second;
-				if (inserted)
-					ikSolver = FindIkSolverByName(ikName);
-				if (!ikSolver)
-					continue;
-				auto& [time, ikEnable] = keys.emplace_back();
-				time = static_cast<int32_t>(ik.frame);
-				ikEnable = enable != 0;
-			}
-		}
-		FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
-	}
-
-	void Animation::AddMorphAnimations(const VmdReader& vmd) {
-		auto morphMap = TakeMorphTrackMap(morphTracks);
-		for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
-			auto morphName = Util::SjisToUtf8(blendShapeName);
-			auto [findIt, inserted] = morphMap.try_emplace(morphName);
-			auto& [morph, keys] = findIt->second;
-			if (inserted)
-				morph = FindMorphByName(morphName);
-			if (!morph)
-				continue;
-			auto& [time, morphWeight] = keys.emplace_back();
-			time = static_cast<int32_t>(frame);
-			morphWeight = weight;
-		}
-		FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
-	}
 
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
 		for (const auto& [node, keys]: nodeTracks) {
@@ -169,13 +68,6 @@ namespace Chrivent {
 			}
 			morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;
 		}
-	}
-
-	bool Animation::Add(const VmdReader& vmd) {
-		AddNodeAnimations(vmd);
-		AddIkAnimations(vmd);
-		AddMorphAnimations(vmd);
-		return true;
 	}
 
 	void Animation::Destroy() {

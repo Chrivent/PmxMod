@@ -30,6 +30,8 @@ add_executable(PmxMod
         src/Reader/ReaderHelper.h src/Reader/ReaderHelper.cpp
 
         src/Animation/Animation.h src/Animation/Animation.cpp
+        src/Animation/AnimationBinder.h src/Animation/AnimationBinder.cpp
+        src/Animation/AnimationBuilder.h src/Animation/AnimationBuilder.cpp
         src/Animation/CameraAnimation.h src/Animation/CameraAnimation.cpp
         src/Animation/AnimationHelper.h src/Animation/AnimationHelper.cpp
         src/Animation/Bezier.h src/Animation/Bezier.cpp
