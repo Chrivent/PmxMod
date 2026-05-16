@@ -103,7 +103,7 @@ namespace Chrivent {
                     return false;
                 }
             }
-            vmdAnim->SyncPhysics(0.0f);
+            animator.SyncPhysics(*vmdAnim, 0.0f);
             instance->anim = std::move(vmdAnim);
             instance->scale = scale;
             if (!instance->Setup(*viewer))

@@ -1,8 +1,7 @@
 ﻿#include "Animation.h"
 
 #include "AnimationHelper.h"
-#include "../Model/ModelAnimator.h"
-#include "../Model/ModelPose.h"
+#include "../Model/Model.h"
 #include "../Util.h"
 
 namespace Chrivent {
@@ -190,19 +189,5 @@ namespace Chrivent {
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);
 		EvaluateMorphs(t, animWeight);
-	}
-
-	void Animation::SyncPhysics(const float t) const {
-		const ModelAnimator animator(*model);
-		animator.SaveBaseAnimation();
-		for (int i = 0; i < 30; i++) {
-			animator.BeginAnimation();
-			Evaluate(t, static_cast<float>(1 + i) / 30.0f);
-			animator.UpdateMorphAnimation();
-			ModelPose pose(*model);
-			pose.UpdateNodeAnimation(false);
-			pose.UpdatePhysicsAnimation(1.0f / 30.0f);
-			pose.UpdateNodeAnimation(true);
-		}
 	}
 }

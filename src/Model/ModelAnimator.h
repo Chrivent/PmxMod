@@ -23,5 +23,7 @@ namespace Chrivent {
 		void UpdateMorphAnimation() const;
 		// 지정한 애니메이션 프레임과 물리 시간으로 모든 애니메이션 단계를 갱신한다.
 		void UpdateAllAnimation(const Animation* anim, float frame, float physicsElapsed) const;
+		// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
+		void SyncPhysics(const Animation& anim, float frame) const;
 	};
 }

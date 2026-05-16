@@ -80,7 +80,5 @@ namespace Chrivent {
 		void Destroy();
 		// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
 		void Evaluate(float t, float animWeight = 1.0f) const;
-		// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
-		void SyncPhysics(float t) const;
 	};
 }
