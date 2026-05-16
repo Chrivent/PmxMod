@@ -193,7 +193,7 @@ namespace Chrivent {
 		for (size_t i = 0; i < futureCount; i++) {
 			if (model.updateRanges[i + 1].vertexCount != 0) {
 				model.parallelUpdateFutures[i] = std::async(std::launch::async,
-				                                            [this, range = model.updateRanges[i + 1]] { UpdateSkinning(range); });
+					[this, range = model.updateRanges[i + 1]] { UpdateSkinning(range); });
 			}
 		}
 		UpdateSkinning(model.updateRanges[0]);
