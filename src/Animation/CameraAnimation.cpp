@@ -2,6 +2,8 @@
 
 #include "AnimationKeySearch.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace Chrivent {
 	glm::mat4 Camera::CalcViewMatrix() const {
 		glm::mat4 view(1.0f);
@@ -15,41 +17,6 @@ namespace Chrivent {
 		const glm::vec3 center = glm::mat3(view) * glm::vec3(0, 0, -1) + eye;
 		const glm::vec3 up = glm::mat3(view) * glm::vec3(0, 1, 0);
 		return glm::lookAt(eye, center, up);
-	}
-
-	bool CameraAnimation::Create(const VmdReader& vmd) {
-		if (vmd.cameras.empty())
-			return false;
-		keys.clear();
-		for (const auto& cam: vmd.cameras) {
-			CameraAnimationKey key{};
-			key.time = static_cast<int32_t>(cam.frame);
-			key.interest = cam.interest * glm::vec3(1, 1, -1);
-			key.rotate = cam.rotate;
-			key.distance = cam.distance;
-			key.fov = glm::radians(static_cast<float>(cam.viewAngle));
-			key.ixBezier.Assign(
-				cam.interpolation[0], cam.interpolation[1],
-				cam.interpolation[2], cam.interpolation[3]);
-			key.iyBezier.Assign(
-				cam.interpolation[4], cam.interpolation[5],
-				cam.interpolation[6], cam.interpolation[7]);
-			key.izBezier.Assign(
-				cam.interpolation[8], cam.interpolation[9],
-				cam.interpolation[10], cam.interpolation[11]);
-			key.rotateBezier.Assign(
-				cam.interpolation[12], cam.interpolation[13],
-				cam.interpolation[14], cam.interpolation[15]);
-			key.distanceBezier.Assign(
-				cam.interpolation[16], cam.interpolation[17],
-				cam.interpolation[18], cam.interpolation[19]);
-			key.fovBezier.Assign(
-				cam.interpolation[20], cam.interpolation[21],
-				cam.interpolation[22], cam.interpolation[23]);
-			keys.push_back(key);
-		}
-		std::ranges::sort(keys, {}, &CameraAnimationKey::time);
-		return true;
 	}
 
 	void CameraAnimation::Evaluate(const float t) {

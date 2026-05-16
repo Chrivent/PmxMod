@@ -12,9 +12,9 @@ namespace Chrivent {
 	struct UvMorph;
 	struct PositionMorph;
 	struct MaterialMorph;
+	struct Animation;
 	class RigidBody;
 	class Joint;
-	class Animation;
 
 	enum class SphereMode : uint8_t;
 	enum class MorphType : uint8_t;

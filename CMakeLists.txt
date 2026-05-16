@@ -33,6 +33,7 @@ add_executable(PmxMod
         src/Animation/AnimationBinder.h src/Animation/AnimationBinder.cpp
         src/Animation/AnimationBuilder.h src/Animation/AnimationBuilder.cpp
         src/Animation/CameraAnimation.h src/Animation/CameraAnimation.cpp
+        src/Animation/CameraAnimationBuilder.h src/Animation/CameraAnimationBuilder.cpp
         src/Animation/AnimationKeySearch.h
         src/Animation/AnimationTrackMap.h src/Animation/AnimationTrackMap.cpp
         src/Animation/Bezier.h src/Animation/Bezier.cpp

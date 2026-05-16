@@ -3,7 +3,7 @@
 #include "Model.h"
 
 namespace Chrivent {
-	class Animation;
+	struct Animation;
 
 	class ModelAnimator {
 		Model& model;

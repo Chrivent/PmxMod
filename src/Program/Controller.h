@@ -8,7 +8,7 @@
 #include "Config.h"
 
 namespace Chrivent {
-	class CameraAnimation;
+	struct CameraAnimation;
 	class Sound;
 	class Viewer;
 

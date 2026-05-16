@@ -3,7 +3,9 @@
 #include "../Viewer/Viewer.h"
 
 #include "../Animation/CameraAnimation.h"
+#include "../Animation/CameraAnimationBuilder.h"
 #include "../Program/Sound.h"
+#include "../Reader/VmdReader.h"
 
 #include <iostream>
 
@@ -232,7 +234,8 @@ namespace Chrivent {
 		VmdReader camVmd;
 		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.cameras.empty()) {
 			auto vmdCamAnim = std::make_unique<CameraAnimation>();
-			if (!vmdCamAnim->Create(camVmd))
+			const CameraAnimationBuilder cameraAnimationBuilder(*vmdCamAnim);
+			if (!cameraAnimationBuilder.Add(camVmd))
 				std::cout << "Failed to create VMDCameraAnimation.\n";
 			cameraAnim = std::move(vmdCamAnim);
 		}

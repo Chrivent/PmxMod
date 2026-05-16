@@ -7,6 +7,8 @@ namespace Chrivent {
 	class AnimationBuilder {
 		Animation& animation;
 
+		// VMD 본 모션 키를 런타임 노드 애니메이션 키로 변환한다.
+		static NodeAnimationKey CreateNodeAnimationKey(const VmdReader::VmdMotion& motion);
 		// VMD 본 모션 키를 노드 애니메이션 트랙에 병합한다.
 		void AddNodeAnimations(const VmdReader& vmd) const;
 		// VMD IK 키를 IK 애니메이션 트랙에 병합한다.

@@ -5,7 +5,7 @@
 #include "../Util.h"
 
 namespace Chrivent {
-	static NodeAnimationKey CreateNodeAnimationKey(const VmdReader::VmdMotion& motion) {
+	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdReader::VmdMotion& motion) {
 		NodeAnimationKey key{};
 		key.time = static_cast<int32_t>(motion.frame);
 		key.translate = motion.translate * glm::vec3(1, 1, -1);
@@ -29,7 +29,8 @@ namespace Chrivent {
 
 	void AnimationBuilder::AddNodeAnimations(const VmdReader& vmd) const {
 		const AnimationBinder binder(animation);
-		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(animation.nodeTracks);
+		auto& nodeTracks = animation.nodeTracks;
+		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmd.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName);
 			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
@@ -40,12 +41,13 @@ namespace Chrivent {
 				continue;
 			keys.emplace_back(CreateNodeAnimationKey(motion));
 		}
-		AnimationTrackMap::FlushTrackMap(nodeMap, animation.nodeTracks, &NodeAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdReader& vmd) const {
 		const AnimationBinder binder(animation);
-		auto ikMap = AnimationTrackMap::TakeIkTrackMap(animation.ikTracks);
+		auto& ikTracks = animation.ikTracks;
+		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmd.iks) {
 			for (const auto& [name, enable] : ik.ikInfos) {
 				auto ikName = Util::SjisToUtf8(name);
@@ -60,12 +62,13 @@ namespace Chrivent {
 				ikEnable = enable != 0;
 			}
 		}
-		AnimationTrackMap::FlushTrackMap(ikMap, animation.ikTracks, &IkAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdReader& vmd) const {
 		const AnimationBinder binder(animation);
-		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(animation.morphTracks);
+		auto& morphTracks = animation.morphTracks;
+		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName);
 			auto [findIt, inserted] = morphMap.try_emplace(morphName);
@@ -78,7 +81,7 @@ namespace Chrivent {
 			time = static_cast<int32_t>(frame);
 			morphWeight = weight;
 		}
-		AnimationTrackMap::FlushTrackMap(morphMap, animation.morphTracks, &MorphAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
 	}
 
 	bool AnimationBuilder::Add(const VmdReader& vmd) const {

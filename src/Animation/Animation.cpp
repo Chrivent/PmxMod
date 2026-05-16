@@ -4,6 +4,19 @@
 #include "../Model/Model.h"
 
 namespace Chrivent {
+	void Animation::Destroy() {
+		model.reset();
+		nodeTracks.clear();
+		ikTracks.clear();
+		morphTracks.clear();
+	}
+
+	void Animation::Evaluate(const float t, const float animWeight) const {
+		EvaluateNodes(t, animWeight);
+		EvaluateIks(t, animWeight);
+		EvaluateMorphs(t, animWeight);
+	}
+	
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
 		for (const auto& [node, keys]: nodeTracks) {
 			if (!node)
@@ -66,18 +79,5 @@ namespace Chrivent {
 			}
 			morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;
 		}
-	}
-
-	void Animation::Destroy() {
-		model.reset();
-		nodeTracks.clear();
-		ikTracks.clear();
-		morphTracks.clear();
-	}
-
-	void Animation::Evaluate(const float t, const float animWeight) const {
-		EvaluateNodes(t, animWeight);
-		EvaluateIks(t, animWeight);
-		EvaluateMorphs(t, animWeight);
 	}
 }
