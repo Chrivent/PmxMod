@@ -1,10 +1,10 @@
 ﻿#include "Animation.h"
 
-#include "AnimationHelper.h"
+#include "AnimationKeySearch.h"
 #include "../Model/Model.h"
 
 namespace Chrivent {
-	using namespace AnimationHelper;
+	using namespace AnimationKeySearch;
 
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
 		for (const auto& [node, keys]: nodeTracks) {

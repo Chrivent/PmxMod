@@ -1,11 +1,11 @@
-#include "AnimationBuilder.h"
+﻿#include "AnimationBuilder.h"
 
 #include "AnimationBinder.h"
-#include "AnimationHelper.h"
+#include "AnimationTrackMap.h"
 #include "../Util.h"
 
 namespace Chrivent {
-	using namespace AnimationHelper;
+	using namespace AnimationTrackMap;
 
 	static NodeAnimationKey CreateNodeAnimationKey(const VmdReader::VmdMotion& motion) {
 		NodeAnimationKey key{};

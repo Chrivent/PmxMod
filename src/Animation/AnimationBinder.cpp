@@ -1,4 +1,4 @@
-#include "AnimationBinder.h"
+﻿#include "AnimationBinder.h"
 
 #include "../Model/Model.h"
 

@@ -1,9 +1,9 @@
 ﻿#include "CameraAnimation.h"
 
-#include "AnimationHelper.h"
+#include "AnimationKeySearch.h"
 
 namespace Chrivent {
-	using namespace AnimationHelper;
+	using namespace AnimationKeySearch;
 	
 	glm::mat4 Camera::CalcViewMatrix() const {
 		glm::mat4 view(1.0f);
