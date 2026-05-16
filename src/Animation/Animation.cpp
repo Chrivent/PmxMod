@@ -4,8 +4,6 @@
 #include "../Model/Model.h"
 
 namespace Chrivent {
-	using namespace AnimationKeySearch;
-
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
 		for (const auto& [node, keys]: nodeTracks) {
 			if (!node)
@@ -15,7 +13,7 @@ namespace Chrivent {
 				node->animRotate = glm::quat(1, 0, 0, 0);
 				continue;
 			}
-			const auto it = FindUpperKey(keys, t);
+			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			const auto& cur = it != keys.end() ? *it : keys.back();
 			glm::vec3 vt = cur.translate;
 			glm::quat q  = cur.rotate;
@@ -46,7 +44,7 @@ namespace Chrivent {
 				ikSolver->enable = true;
 				continue;
 			}
-			const auto it = FindUpperKey(keys, t);
+			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
 			ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 		}
@@ -58,7 +56,7 @@ namespace Chrivent {
 				continue;
 			if (keys.empty())
 				continue;
-			const auto it = FindUpperKey(keys, t);
+			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
 				auto [time0, weight0] = *(it - 1);

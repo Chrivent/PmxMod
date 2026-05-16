@@ -2,8 +2,8 @@
 
 #include "../Model/Model.h"
 
-namespace Chrivent::AnimationTrackMap {
-	std::map<std::string, NodeAnimationTrack> TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {
+namespace Chrivent {
+	std::map<std::string, NodeAnimationTrack> AnimationTrackMap::TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {
 		std::map<std::string, NodeAnimationTrack> trackMap;
 		for (auto& track : tracks) {
 			if (track.node)
@@ -13,7 +13,7 @@ namespace Chrivent::AnimationTrackMap {
 		return trackMap;
 	}
 
-	std::map<std::string, IkAnimationTrack> TakeIkTrackMap(std::vector<IkAnimationTrack>& tracks) {
+	std::map<std::string, IkAnimationTrack> AnimationTrackMap::TakeIkTrackMap(std::vector<IkAnimationTrack>& tracks) {
 		std::map<std::string, IkAnimationTrack> trackMap;
 		for (auto& track : tracks) {
 			if (!track.ikSolver)
@@ -27,7 +27,7 @@ namespace Chrivent::AnimationTrackMap {
 		return trackMap;
 	}
 
-	std::map<std::string, MorphAnimationTrack> TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks) {
+	std::map<std::string, MorphAnimationTrack> AnimationTrackMap::TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks) {
 		std::map<std::string, MorphAnimationTrack> trackMap;
 		for (auto& track : tracks) {
 			if (track.morph)
