@@ -15,7 +15,7 @@ namespace Chrivent {
 	public:
 		explicit AnimationBinder(const Animation& animation) : animation(animation) {}
 
-		void BindNodeTrack(NodeAnimationTrack& track, const std::string& name) const{ track.node = FindNodeByName(name); }
+		void BindNodeTrack(NodeAnimationTrack& track, const std::string& name) const { track.node = FindNodeByName(name); }
 		void BindIkTrack(IkAnimationTrack& track, const std::string& name) const { track.ikSolver = FindIkSolverByName(name); }
 		void BindMorphTrack(MorphAnimationTrack& track, const std::string& name) const { track.morph = FindMorphByName(name); }
 	};
