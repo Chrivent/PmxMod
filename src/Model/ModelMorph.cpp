@@ -30,22 +30,22 @@ namespace Chrivent {
 			return;
 		switch (morph->morphType) {
 			case MorphType::Position:
-				MorphPosition(model.positionMorphs[morph->dataIndex], morphWeight);
+				MorphPosition(model.morphData.positionMorphs[morph->dataIndex], morphWeight);
 				break;
 			case MorphType::Uv:
-				MorphUv(model.uvMorphs[morph->dataIndex], morphWeight);
+				MorphUv(model.morphData.uvMorphs[morph->dataIndex], morphWeight);
 				break;
 			case MorphType::Material:
-				MorphMaterial(model.materialMorphs[morph->dataIndex], morphWeight);
+				MorphMaterial(model.morphData.materialMorphs[morph->dataIndex], morphWeight);
 				break;
 			case MorphType::Bone:
-				MorphBone(model.boneMorphs[morph->dataIndex], morphWeight);
+				MorphBone(model.morphData.boneMorphs[morph->dataIndex], morphWeight);
 				break;
 			case MorphType::Group: {
-				for (const auto& [morphIndex, weight] : model.groupMorphs[morph->dataIndex]) {
+				for (const auto& [morphIndex, weight] : model.morphData.groupMorphs[morph->dataIndex]) {
 					if (morphIndex == -1)
 						continue;
-					EvalMorph(model.morphs[morphIndex].get(), weight * morphWeight);
+					EvalMorph(model.morphData.morphs[morphIndex].get(), weight * morphWeight);
 				}
 				break;
 			}
@@ -66,12 +66,12 @@ namespace Chrivent {
 
 	void ModelMorph::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) const {
 		for (const auto& [vertexIndex, position] : morphData)
-			model.morphPositions[vertexIndex] += position * weight;
+			model.morphData.morphPositions[vertexIndex] += position * weight;
 	}
 
 	void ModelMorph::MorphUv(const std::vector<UvMorph>& morphData, const float weight) const {
 		for (const auto& [vertexIndex, uv] : morphData)
-			model.morphUVs[vertexIndex] += uv * weight;
+			model.morphData.morphUVs[vertexIndex] += uv * weight;
 	}
 
 	void ModelMorph::BeginMorphMaterial() const {
@@ -83,22 +83,22 @@ namespace Chrivent {
 			0, OpType::Add, glm::vec4(0), glm::vec3(0), 0.0f, glm::vec3(0),
 			glm::vec4(0), 0.0f, glm::vec4(0), glm::vec4(0), glm::vec4(0)
 		};
-		for (size_t i = 0; i < model.materials.size(); i++) {
-			auto& mul = model.mulMaterialFactors[i];
+		for (size_t i = 0; i < model.materialData.materials.size(); i++) {
+			auto& mul = model.materialData.mulMaterialFactors[i];
 			mul = initMul;
-			mul.diffuse       = model.initMaterials[i].diffuse;
-			mul.specular      = model.initMaterials[i].specular;
-			mul.specularPower = model.initMaterials[i].specularPower;
-			mul.ambient       = model.initMaterials[i].ambient;
-			model.addMaterialFactors[i] = initAdd;
+			mul.diffuse       = model.materialData.initMaterials[i].diffuse;
+			mul.specular      = model.materialData.initMaterials[i].specular;
+			mul.specularPower = model.materialData.initMaterials[i].specularPower;
+			mul.ambient       = model.materialData.initMaterials[i].ambient;
+			model.materialData.addMaterialFactors[i] = initAdd;
 		}
 	}
 
 	void ModelMorph::EndMorphMaterial() const {
-		for (size_t i = 0; i < model.materials.size(); i++) {
-			auto& mat = model.materials[i];
-			const auto& mul = model.mulMaterialFactors[i];
-			const auto& add = model.addMaterialFactors[i];
+		for (size_t i = 0; i < model.materialData.materials.size(); i++) {
+			auto& mat = model.materialData.materials[i];
+			const auto& mul = model.materialData.mulMaterialFactors[i];
+			const auto& add = model.materialData.addMaterialFactors[i];
 			auto matFactor = mul;
 			AccumulateMaterialAdd(matFactor, add, 1.0f);
 			mat.diffuse        = matFactor.diffuse;
@@ -118,14 +118,14 @@ namespace Chrivent {
 		for (const auto& matMorph : morphData) {
 			auto Apply = [&](const size_t mi) {
 				switch (matMorph.opType) {
-					case OpType::Mul: AccumulateMaterialMul(model.mulMaterialFactors[mi], matMorph, weight); break;
-					case OpType::Add: AccumulateMaterialAdd(model.addMaterialFactors[mi], matMorph, weight); break;
+					case OpType::Mul: AccumulateMaterialMul(model.materialData.mulMaterialFactors[mi], matMorph, weight); break;
+					case OpType::Add: AccumulateMaterialAdd(model.materialData.addMaterialFactors[mi], matMorph, weight); break;
 				}
 			};
 			if (matMorph.materialIndex != -1)
 				Apply(static_cast<size_t>(matMorph.materialIndex));
 			else {
-				for (size_t i = 0; i < model.materials.size(); i++)
+				for (size_t i = 0; i < model.materialData.materials.size(); i++)
 					Apply(i);
 			}
 		}
@@ -133,7 +133,7 @@ namespace Chrivent {
 
 	void ModelMorph::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 		for (const auto& [boneIndex, position, quaternion] : morphData) {
-			auto* node = model.nodes[boneIndex].get();
+			auto* node = model.skeleton.nodes[boneIndex].get();
 			node->translate += position * weight;
 			const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
 			node->rotate = glm::normalize(q * node->rotate);
@@ -142,7 +142,7 @@ namespace Chrivent {
 
 	void ModelMorph::Update() const {
 		BeginMorphMaterial();
-		for (const auto& morph : model.morphs)
+		for (const auto& morph : model.morphData.morphs)
 			EvalMorph(morph.get(), morph->weight);
 		EndMorphMaterial();
 	}

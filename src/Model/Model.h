@@ -72,11 +72,14 @@ namespace Chrivent {
 		size_t vertexCount;
 	};
 
-	struct Model {
+	struct ModelInfo {
 		std::string									modelName;
 		std::string									englishModelName;
 		std::string									comment;
 		std::string									englishComment;
+	};
+
+	struct ModelGeometry {
 		std::vector<glm::vec3>						positions;
 		std::vector<glm::vec3>						normals;
 		std::vector<glm::vec2>						uvs;
@@ -84,11 +87,32 @@ namespace Chrivent {
 		std::vector<char>							indices;
 		size_t										indexCount = 0;
 		size_t										indexElementSize = 0;
+		glm::vec3									bboxMin;
+		glm::vec3									bboxMax;
+		std::vector<glm::vec3>						updatePositions;
+		std::vector<glm::vec3>						updateNormals;
+		std::vector<glm::vec2>						updateUVs;
+		uint32_t									parallelUpdateCount = 0;
+		std::vector<UpdateRange>					updateRanges;
+		std::vector<std::future<void>>				parallelUpdateFutures;
+	};
+
+	struct ModelMaterialData {
 		std::vector<Material>						materials;
 		std::vector<SubMesh>						subMeshes;
-		std::vector<glm::mat4>						transforms;
+		std::vector<Material>						initMaterials;
+		std::vector<MaterialMorph>					mulMaterialFactors;
+		std::vector<MaterialMorph>					addMaterialFactors;
+	};
+
+	struct ModelSkeleton {
 		std::vector<std::shared_ptr<Node>>			nodes;
 		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
+		std::vector<glm::mat4>						transforms;
+		std::vector<std::reference_wrapper<Node>>	sortedNodes;
+	};
+
+	struct ModelMorphData {
 		std::vector<std::unique_ptr<Morph>>			morphs;
 		std::vector<std::vector<PositionMorph>>		positionMorphs;
 		std::vector<std::vector<UvMorph>>			uvMorphs;
@@ -97,21 +121,21 @@ namespace Chrivent {
 		std::vector<std::vector<GroupMorph>>		groupMorphs;
 		std::vector<glm::vec3>						morphPositions;
 		std::vector<glm::vec4>						morphUVs;
-		std::vector<glm::vec3>						updatePositions;
-		std::vector<glm::vec3>						updateNormals;
-		std::vector<glm::vec2>						updateUVs;
-		std::vector<Material>						initMaterials;
-		std::vector<MaterialMorph>					mulMaterialFactors;
-		std::vector<MaterialMorph>					addMaterialFactors;
-		glm::vec3									bboxMin;
-		glm::vec3									bboxMax;
-		std::vector<std::reference_wrapper<Node>>	sortedNodes;
+	};
+
+	struct ModelPhysicsData {
 		std::unique_ptr<Physics>					physics;
 		std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
 		std::vector<std::unique_ptr<Joint>>			joints;
-		uint32_t									parallelUpdateCount = 0;
-		std::vector<UpdateRange>					updateRanges;
-		std::vector<std::future<void>>				parallelUpdateFutures;
+	};
+
+	struct Model {
+		ModelInfo			info;
+		ModelGeometry		geometry;
+		ModelMaterialData	materialData;
+		ModelSkeleton		skeleton;
+		ModelMorphData		morphData;
+		ModelPhysicsData	physicsData;
 		
 		~Model();
 

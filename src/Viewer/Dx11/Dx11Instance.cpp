@@ -26,7 +26,7 @@ namespace Chrivent {
 		viewer->context->VSSetShader(viewer->vs.Get(), nullptr, 0);
 		viewer->context->PSSetShader(viewer->ps.Get(), nullptr, 0);
 		viewer->context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
-		for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
@@ -86,7 +86,7 @@ namespace Chrivent {
 		viewer->context->VSSetShader(viewer->edgeVs.Get(), nullptr, 0);
 		viewer->context->PSSetShader(viewer->edgePs.Get(), nullptr, 0);
 		viewer->context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
-		for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag)
@@ -125,7 +125,7 @@ namespace Chrivent {
 		viewer->context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->context->RSSetState(viewer->gsRs.Get());
 		viewer->context->OMSetDepthStencilState(viewer->gsDss.Get(), 0x01);
-		for (const auto& [beginIndex, indexCount, materialId] : model->subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow)
@@ -186,19 +186,19 @@ namespace Chrivent {
 
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
-		const auto vBufDesc = MakeVertexBufferDesc(model->positions.size());
+		const auto vBufDesc = MakeVertexBufferDesc(model->geometry.positions.size());
 		if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;
-		const auto iBufDesc = MakeIndexBufferDesc(model->indexElementSize * model->indexCount);
+		const auto iBufDesc = MakeIndexBufferDesc(model->geometry.indexElementSize * model->geometry.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = model->indices.data();
+		initData.pSysMem = model->geometry.indices.data();
 		if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 			return false;
-		if (1 == model->indexElementSize)
+		if (1 == model->geometry.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R8_UINT;
-		else if (2 == model->indexElementSize)
+		else if (2 == model->geometry.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R16_UINT;
-		else if (4 == model->indexElementSize)
+		else if (4 == model->geometry.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
@@ -216,7 +216,7 @@ namespace Chrivent {
 			return false;
 		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(viewer->device.Get(), gsPsConstantBuffer)))
 			return false;
-		for (const auto& mat : model->materials) {
+		for (const auto& mat : model->materialData.materials) {
 			Dx11Material material(mat);
 			if (!mat.texture.empty())
 				material.texture = viewer->LoadTexture(mat.texture);
@@ -232,15 +232,15 @@ namespace Chrivent {
 	void Dx11Instance::Update() const {
 		const ModelPose pose(*model);
 		pose.Update();
-		const size_t vtxCount = model->positions.size();
+		const size_t vtxCount = model->geometry.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(viewer->context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
-		const glm::vec3* updatePositionData = model->updatePositions.data();
-		const glm::vec3* updateNormalData = model->updateNormals.data();
-		const glm::vec2* updateUvData = model->updateUVs.data();
+		const glm::vec3* updatePositionData = model->geometry.updatePositions.data();
+		const glm::vec3* updateNormalData = model->geometry.updateNormals.data();
+		const glm::vec2* updateUvData = model->geometry.updateUVs.data();
 		for (size_t i = 0; i < vtxCount; i++) {
 			vertices[i].position = updatePositionData[i];
 			vertices[i].normal = updateNormalData[i];

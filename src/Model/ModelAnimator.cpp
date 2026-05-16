@@ -7,14 +7,14 @@
 namespace Chrivent {
 	void ModelAnimator::InitializeAnimation() const {
 		ClearBaseAnimation();
-		for (const auto& node : model.nodes) {
+		for (const auto& node : model.skeleton.nodes) {
 			node->animTranslate = glm::vec3(0);
 			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
 		BeginAnimation();
-		for (const auto& morph : model.morphs)
+		for (const auto& morph : model.morphData.morphs)
 			morph->weight = 0;
-		for (const auto& ikSolver : model.ikSolvers)
+		for (const auto& ikSolver : model.skeleton.ikSolvers)
 			ikSolver->enable = true;
 		const ModelPose pose(model);
 		pose.UpdateNodeAnimation(false);
@@ -23,36 +23,36 @@ namespace Chrivent {
 	}
 
 	void ModelAnimator::SaveBaseAnimation() const {
-		for (const auto& node : model.nodes) {
+		for (const auto& node : model.skeleton.nodes) {
 			node->baseAnimTranslate = node->animTranslate;
 			node->baseAnimRotate = node->animRotate;
 		}
-		for (const auto& morph : model.morphs)
+		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = morph->weight;
-		for (const auto& ikSolver : model.ikSolvers)
+		for (const auto& ikSolver : model.skeleton.ikSolvers)
 			ikSolver->baseAnimEnable = ikSolver->enable;
 	}
 
 	void ModelAnimator::ClearBaseAnimation() const {
-		for (const auto& node : model.nodes) {
+		for (const auto& node : model.skeleton.nodes) {
 			node->baseAnimTranslate = glm::vec3(0);
 			node->baseAnimRotate = glm::quat(1, 0, 0, 0);
 		}
-		for (const auto& morph : model.morphs)
+		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = 0;
-		for (const auto& ikSolver : model.ikSolvers)
+		for (const auto& ikSolver : model.skeleton.ikSolvers)
 			ikSolver->baseAnimEnable = true;
 	}
 
 	void ModelAnimator::BeginAnimation() const {
-		for (const auto& node : model.nodes)
+		for (const auto& node : model.skeleton.nodes)
 			node->BeginUpdateTransform();
-		for (const auto& node : model.nodes) {
+		for (const auto& node : model.skeleton.nodes) {
 			node->animTranslate = glm::vec3(0);
 			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
-		std::ranges::fill(model.morphPositions, glm::vec3(0));
-		std::ranges::fill(model.morphUVs, glm::vec4(0));
+		std::ranges::fill(model.morphData.morphPositions, glm::vec3(0));
+		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
 	}
 
 	void ModelAnimator::UpdateMorphAnimation() const {
