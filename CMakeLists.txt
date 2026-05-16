@@ -29,14 +29,16 @@ add_executable(PmxMod
         src/Reader/VmdReader.h src/Reader/VmdReader.cpp
         src/Reader/ReaderHelper.h src/Reader/ReaderHelper.cpp
 
+        src/Animation/AnimationKeySearch.h
+        src/Animation/Bezier.h src/Animation/Bezier.cpp
+
         src/Animation/Model/Animation.h src/Animation/Model/Animation.cpp
         src/Animation/Model/AnimationBinder.h src/Animation/Model/AnimationBinder.cpp
         src/Animation/Model/AnimationBuilder.h src/Animation/Model/AnimationBuilder.cpp
         src/Animation/Model/AnimationTrackMap.h src/Animation/Model/AnimationTrackMap.cpp
+        
         src/Animation/Camera/CameraAnimation.h src/Animation/Camera/CameraAnimation.cpp
         src/Animation/Camera/CameraAnimationBuilder.h src/Animation/Camera/CameraAnimationBuilder.cpp
-        src/Animation/AnimationKeySearch.h
-        src/Animation/Bezier.h src/Animation/Bezier.cpp
 
         src/Model/Model.h src/Model/Model.cpp
         src/Model/ModelAnimator.h src/Model/ModelAnimator.cpp
