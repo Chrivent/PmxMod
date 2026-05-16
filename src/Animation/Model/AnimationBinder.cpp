@@ -1,6 +1,6 @@
 ﻿#include "AnimationBinder.h"
 
-#include "../Model/Model.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	std::shared_ptr<Node> AnimationBinder::FindNodeByName(const std::string& name) const {

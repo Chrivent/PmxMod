@@ -1,7 +1,7 @@
 ﻿#include "Animation.h"
 
-#include "AnimationKeySearch.h"
-#include "../Model/Model.h"
+#include "../AnimationKeySearch.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	void Animation::Destroy() {

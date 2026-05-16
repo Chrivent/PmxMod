@@ -1,7 +1,7 @@
 ﻿#include "Instance.h"
 
 #include "Viewer.h"
-#include "../Animation/Animation.h"
+#include "../Animation/Model/Animation.h"
 #include "../Model/ModelAnimator.h"
 
 namespace Chrivent {

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Bezier.h"
+#include "../Bezier.h"
 
 #include <memory>
 #include <glm/gtc/quaternion.hpp>

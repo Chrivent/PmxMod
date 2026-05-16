@@ -2,7 +2,7 @@
 
 #include "ModelMorph.h"
 #include "ModelPose.h"
-#include "../Animation/Animation.h"
+#include "../Animation/Model/Animation.h"
 
 namespace Chrivent {
 	void ModelAnimator::InitializeAnimation() const {

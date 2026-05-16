@@ -1,6 +1,6 @@
 ﻿#include "AnimationTrackMap.h"
 
-#include "../Model/Model.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	std::map<std::string, NodeAnimationTrack> AnimationTrackMap::TakeNodeTrackMap(std::vector<NodeAnimationTrack>& tracks) {

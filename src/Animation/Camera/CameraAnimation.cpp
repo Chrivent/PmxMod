@@ -1,6 +1,6 @@
 ﻿#include "CameraAnimation.h"
 
-#include "AnimationKeySearch.h"
+#include "../AnimationKeySearch.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 

@@ -1,7 +1,7 @@
 #include "Program.h"
 
-#include "../Animation/Animation.h"
-#include "../Animation/AnimationBuilder.h"
+#include "../Animation/Model/Animation.h"
+#include "../Animation/Model/AnimationBuilder.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
 #include "../Reader/VmdReader.h"

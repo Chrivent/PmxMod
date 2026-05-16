@@ -2,8 +2,8 @@
 
 #include "../Viewer/Viewer.h"
 
-#include "../Animation/CameraAnimation.h"
-#include "../Animation/CameraAnimationBuilder.h"
+#include "../Animation/Camera/CameraAnimation.h"
+#include "../Animation/Camera/CameraAnimationBuilder.h"
 #include "../Program/Sound.h"
 #include "../Reader/VmdReader.h"
 
