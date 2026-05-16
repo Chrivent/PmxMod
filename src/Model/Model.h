@@ -72,14 +72,14 @@ namespace Chrivent {
 		size_t vertexCount;
 	};
 
-	struct ModelInfo {
+	struct ModelInfoData {
 		std::string									modelName;
 		std::string									englishModelName;
 		std::string									comment;
 		std::string									englishComment;
 	};
 
-	struct ModelGeometry {
+	struct ModelGeometryData {
 		std::vector<glm::vec3>						positions;
 		std::vector<glm::vec3>						normals;
 		std::vector<glm::vec2>						uvs;
@@ -105,7 +105,7 @@ namespace Chrivent {
 		std::vector<MaterialMorph>					addMaterialFactors;
 	};
 
-	struct ModelSkeleton {
+	struct ModelSkeletonData {
 		std::vector<std::shared_ptr<Node>>			nodes;
 		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
 		std::vector<glm::mat4>						transforms;
@@ -130,10 +130,10 @@ namespace Chrivent {
 	};
 
 	struct Model {
-		ModelInfo			info;
-		ModelGeometry		geometry;
+		ModelInfoData			infoData;
+		ModelGeometryData		geometryData;
 		ModelMaterialData	materialData;
-		ModelSkeleton		skeleton;
+		ModelSkeletonData	skeletonData;
 		ModelMorphData		morphData;
 		ModelPhysicsData	physicsData;
 		

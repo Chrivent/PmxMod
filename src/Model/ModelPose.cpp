@@ -8,14 +8,14 @@ namespace Chrivent {
 		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
 			return node.get().isDeformAfterPhysics == afterPhysicsAnim;
 		};
-		for (auto& nodeRef : model.skeleton.sortedNodes | std::views::filter(Pred))
+		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred))
 			nodeRef.get().UpdateLocalTransform();
-		for (auto& nodeRef : model.skeleton.sortedNodes | std::views::filter(Pred)) {
+		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
 			if (node.parent.expired())
 				node.UpdateGlobalTransform();
 		}
-		for (auto& nodeRef : model.skeleton.sortedNodes | std::views::filter(Pred)) {
+		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
 			if (!node.appendNode.expired()) {
 				node.UpdateAppendTransform();
@@ -40,7 +40,7 @@ namespace Chrivent {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}
-		for (const auto& node : model.skeleton.nodes) {
+		for (const auto& node : model.skeletonData.nodes) {
 			if (node->parent.expired())
 				node->UpdateGlobalTransform();
 		}
@@ -58,15 +58,15 @@ namespace Chrivent {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}
-		for (const auto& node : model.skeleton.nodes) {
+		for (const auto& node : model.skeletonData.nodes) {
 			if (node->parent.expired())
 				node->UpdateGlobalTransform();
 		}
 	}
 
 	void ModelPose::Update() const {
-		for (size_t i = 0; i < model.skeleton.nodes.size(); i++)
-			model.skeleton.transforms[i] = model.skeleton.nodes[i]->global * model.skeleton.nodes[i]->inverseInit;
+		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
+			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->global * model.skeletonData.nodes[i]->inverseInit;
 		const ModelSkinning skinning(model);
 		skinning.Update();
 	}

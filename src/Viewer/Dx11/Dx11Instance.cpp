@@ -186,19 +186,19 @@ namespace Chrivent {
 
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
-		const auto vBufDesc = MakeVertexBufferDesc(model->geometry.positions.size());
+		const auto vBufDesc = MakeVertexBufferDesc(model->geometryData.positions.size());
 		if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;
-		const auto iBufDesc = MakeIndexBufferDesc(model->geometry.indexElementSize * model->geometry.indexCount);
+		const auto iBufDesc = MakeIndexBufferDesc(model->geometryData.indexElementSize * model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = model->geometry.indices.data();
+		initData.pSysMem = model->geometryData.indices.data();
 		if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 			return false;
-		if (1 == model->geometry.indexElementSize)
+		if (1 == model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R8_UINT;
-		else if (2 == model->geometry.indexElementSize)
+		else if (2 == model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R16_UINT;
-		else if (4 == model->geometry.indexElementSize)
+		else if (4 == model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
@@ -232,15 +232,15 @@ namespace Chrivent {
 	void Dx11Instance::Update() const {
 		const ModelPose pose(*model);
 		pose.Update();
-		const size_t vtxCount = model->geometry.positions.size();
+		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(viewer->context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
-		const glm::vec3* updatePositionData = model->geometry.updatePositions.data();
-		const glm::vec3* updateNormalData = model->geometry.updateNormals.data();
-		const glm::vec2* updateUvData = model->geometry.updateUVs.data();
+		const glm::vec3* updatePositionData = model->geometryData.updatePositions.data();
+		const glm::vec3* updateNormalData = model->geometryData.updateNormals.data();
+		const glm::vec2* updateUvData = model->geometryData.updateUVs.data();
 		for (size_t i = 0; i < vtxCount; i++) {
 			vertices[i].position = updatePositionData[i];
 			vertices[i].normal = updateNormalData[i];

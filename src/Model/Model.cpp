@@ -6,13 +6,13 @@ namespace Chrivent {
 	}
 
 	void Model::Destroy() {
-		for (auto& future : geometry.parallelUpdateFutures) {
+		for (auto& future : geometryData.parallelUpdateFutures) {
 			if (future.valid())
 				future.wait();
 		}
-		geometry.parallelUpdateFutures.clear();
-		geometry.updateRanges.clear();
-		geometry.parallelUpdateCount = 0;
+		geometryData.parallelUpdateFutures.clear();
+		geometryData.updateRanges.clear();
+		geometryData.parallelUpdateCount = 0;
 		if (physicsData.physics && physicsData.physics->world) {
 			for (const auto& joint : physicsData.joints) {
 				if (joint && joint->constraint)
@@ -26,26 +26,26 @@ namespace Chrivent {
 		physicsData.joints.clear();
 		physicsData.rigidBodies.clear();
 		physicsData.physics.reset();
-		info.modelName.clear();
-		info.englishModelName.clear();
-		info.comment.clear();
-		info.englishComment.clear();
+		infoData.modelName.clear();
+		infoData.englishModelName.clear();
+		infoData.comment.clear();
+		infoData.englishComment.clear();
 		materialData.materials.clear();
 		materialData.initMaterials.clear();
 		materialData.mulMaterialFactors.clear();
 		materialData.addMaterialFactors.clear();
 		materialData.subMeshes.clear();
-		geometry.positions.clear();
-		geometry.normals.clear();
-		geometry.uvs.clear();
-		geometry.vertexBoneInfos.clear();
-		geometry.indices.clear();
-		geometry.indexCount = 0;
-		geometry.indexElementSize = 0;
-		skeleton.sortedNodes.clear();
-		skeleton.nodes.clear();
-		skeleton.ikSolvers.clear();
-		skeleton.transforms.clear();
+		geometryData.positions.clear();
+		geometryData.normals.clear();
+		geometryData.uvs.clear();
+		geometryData.vertexBoneInfos.clear();
+		geometryData.indices.clear();
+		geometryData.indexCount = 0;
+		geometryData.indexElementSize = 0;
+		skeletonData.sortedNodes.clear();
+		skeletonData.nodes.clear();
+		skeletonData.ikSolvers.clear();
+		skeletonData.transforms.clear();
 		morphData.morphs.clear();
 		morphData.positionMorphs.clear();
 		morphData.uvMorphs.clear();
@@ -54,8 +54,8 @@ namespace Chrivent {
 		morphData.groupMorphs.clear();
 		morphData.morphPositions.clear();
 		morphData.morphUVs.clear();
-		geometry.updatePositions.clear();
-		geometry.updateNormals.clear();
-		geometry.updateUVs.clear();
+		geometryData.updatePositions.clear();
+		geometryData.updateNormals.clear();
+		geometryData.updateUVs.clear();
 	}
 }

@@ -4,22 +4,22 @@
 
 namespace Chrivent {
 	std::shared_ptr<Node> AnimationBinder::FindNodeByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(animation.model->skeleton.nodes,
+		const auto it = std::ranges::find_if(animation.model->skeletonData.nodes,
 			[&name](const std::shared_ptr<Node>& node) {
 				return node && node->name == name;
 		});
-		return it != animation.model->skeleton.nodes.end() ? *it : nullptr;
+		return it != animation.model->skeletonData.nodes.end() ? *it : nullptr;
 	}
 
 	std::shared_ptr<IkSolver> AnimationBinder::FindIkSolverByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(animation.model->skeleton.ikSolvers,
+		const auto it = std::ranges::find_if(animation.model->skeletonData.ikSolvers,
 			[&name](const std::shared_ptr<IkSolver>& solver) {
 				if (!solver)
 					return false;
 				const auto ikNode = solver->ikNode.lock();
 				return ikNode && ikNode->name == name;
 		});
-		return it != animation.model->skeleton.ikSolvers.end() ? *it : nullptr;
+		return it != animation.model->skeletonData.ikSolvers.end() ? *it : nullptr;
 	}
 
 	std::shared_ptr<Morph> AnimationBinder::FindMorphByName(const std::string& name) const {

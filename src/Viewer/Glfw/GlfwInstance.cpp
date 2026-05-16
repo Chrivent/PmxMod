@@ -74,7 +74,7 @@ namespace Chrivent {
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
 			}
-			const size_t offset = beginIndex * model->geometry.indexElementSize;
+			const size_t offset = beginIndex * model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -103,7 +103,7 @@ namespace Chrivent {
 				continue;
 			glUniform1f(edgeShader->edgeSizeLocation, mat.edgeSize);
 			glUniform4fv(edgeShader->edgeColorLocation, 1, &mat.edgeColor[0]);
-			const size_t offset = beginIndex * model->geometry.indexElementSize;
+			const size_t offset = beginIndex * model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -141,7 +141,7 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			const size_t offset = beginIndex * model->geometry.indexElementSize;
+			const size_t offset = beginIndex * model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -182,13 +182,13 @@ namespace Chrivent {
 		viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 		if (model == nullptr)
 			return false;
-		const size_t vtxCount = model->geometry.positions.size();
+		const size_t vtxCount = model->geometryData.positions.size();
 		posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-		const size_t idxSize = model->geometry.indexElementSize;
-		const size_t idxCount = model->geometry.indexCount;
-		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->geometry.indices.data(), GL_STATIC_DRAW);
+		const size_t idxSize = model->geometryData.indexElementSize;
+		const size_t idxCount = model->geometryData.indexCount;
+		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
 		if (idxSize == 1)
 			indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
@@ -258,15 +258,15 @@ namespace Chrivent {
 	void GlfwInstance::Update() const {
 		const ModelPose pose(*model);
 		pose.Update();
-		const size_t vtxCount = model->geometry.positions.size();
+		const size_t vtxCount = model->geometryData.positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-			model->geometry.updatePositions.data());
+			model->geometryData.updatePositions.data());
 		glBindBuffer(GL_ARRAY_BUFFER, norVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-			model->geometry.updateNormals.data());
+			model->geometryData.updateNormals.data());
 		glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
-			model->geometry.updateUVs.data());
+			model->geometryData.updateUVs.data());
 	}
 }

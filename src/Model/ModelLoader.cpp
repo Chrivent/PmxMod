@@ -6,17 +6,17 @@
 namespace Chrivent {
 	void ModelLoader::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) const {
 		size_t vertexCount = pmx.vertices.size();
-		model.geometry.positions.reserve(vertexCount);
-		model.geometry.normals.reserve(vertexCount);
-		model.geometry.uvs.reserve(vertexCount);
-		model.geometry.vertexBoneInfos.reserve(vertexCount);
-		model.geometry.bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
-		model.geometry.bboxMin = glm::vec3((std::numeric_limits<float>::max)());
+		model.geometryData.positions.reserve(vertexCount);
+		model.geometryData.normals.reserve(vertexCount);
+		model.geometryData.uvs.reserve(vertexCount);
+		model.geometryData.vertexBoneInfos.reserve(vertexCount);
+		model.geometryData.bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
+		model.geometryData.bboxMin = glm::vec3((std::numeric_limits<float>::max)());
 		for (const auto& v : pmx.vertices) {
 			glm::vec3 pos = v.position * invZ;
-			model.geometry.positions.push_back(pos);
-			model.geometry.normals.push_back(v.normal * invZ);
-			model.geometry.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
+			model.geometryData.positions.push_back(pos);
+			model.geometryData.normals.push_back(v.normal * invZ);
+			model.geometryData.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 			Vertex vtxBoneInfo{};
 			if (WeightType::SphericalDeform != v.weightType) {
 				vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
@@ -55,21 +55,21 @@ namespace Chrivent {
 				default:
 					break;
 			}
-			model.geometry.vertexBoneInfos.push_back(vtxBoneInfo);
-			model.geometry.bboxMax = (glm::max)(model.geometry.bboxMax, pos);
-			model.geometry.bboxMin = (glm::min)(model.geometry.bboxMin, pos);
+			model.geometryData.vertexBoneInfos.push_back(vtxBoneInfo);
+			model.geometryData.bboxMax = (glm::max)(model.geometryData.bboxMax, pos);
+			model.geometryData.bboxMin = (glm::min)(model.geometryData.bboxMin, pos);
 		}
-		model.morphData.morphPositions.resize(model.geometry.positions.size());
-		model.morphData.morphUVs.resize(model.geometry.positions.size());
-		model.geometry.updatePositions.resize(model.geometry.positions.size());
-		model.geometry.updateNormals.resize(model.geometry.normals.size());
-		model.geometry.updateUVs.resize(model.geometry.uvs.size());
+		model.morphData.morphPositions.resize(model.geometryData.positions.size());
+		model.morphData.morphUVs.resize(model.geometryData.positions.size());
+		model.geometryData.updatePositions.resize(model.geometryData.positions.size());
+		model.geometryData.updateNormals.resize(model.geometryData.normals.size());
+		model.geometryData.updateUVs.resize(model.geometryData.uvs.size());
 	}
 
 	bool ModelLoader::LoadFaces(const PmxReader& pmx) const {
-		model.geometry.indexElementSize = pmx.header.vertexIndexSize;
-		model.geometry.indices.resize(pmx.faces.size() * 3 * model.geometry.indexElementSize);
-		model.geometry.indexCount = pmx.faces.size() * 3;
+		model.geometryData.indexElementSize = pmx.header.vertexIndexSize;
+		model.geometryData.indices.resize(pmx.faces.size() * 3 * model.geometryData.indexElementSize);
+		model.geometryData.indexCount = pmx.faces.size() * 3;
 		auto FillIndices = [&](auto* out) {
 			int idx = 0;
 			for (const auto& [tri] : pmx.faces) {
@@ -78,10 +78,10 @@ namespace Chrivent {
 				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
 			}
 		};
-		switch (model.geometry.indexElementSize) {
-			case 1: FillIndices(reinterpret_cast<uint8_t*>(model.geometry.indices.data())); break;
-			case 2: FillIndices(reinterpret_cast<uint16_t*>(model.geometry.indices.data())); break;
-			case 4: FillIndices(reinterpret_cast<uint32_t*>(model.geometry.indices.data())); break;
+		switch (model.geometryData.indexElementSize) {
+			case 1: FillIndices(reinterpret_cast<uint8_t*>(model.geometryData.indices.data())); break;
+			case 2: FillIndices(reinterpret_cast<uint16_t*>(model.geometryData.indices.data())); break;
+			case 4: FillIndices(reinterpret_cast<uint32_t*>(model.geometryData.indices.data())); break;
 			default: return false;
 		}
 		return true;
@@ -145,20 +145,20 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) const {
-		model.skeleton.nodes.reserve(pmx.bones.size());
+		model.skeletonData.nodes.reserve(pmx.bones.size());
 		for (const auto& bone : pmx.bones) {
 			auto node = std::make_shared<Node>();
-			node->index = static_cast<uint32_t>(model.skeleton.nodes.size());
+			node->index = static_cast<uint32_t>(model.skeletonData.nodes.size());
 			node->name = bone.name;
-			model.skeleton.nodes.emplace_back(std::move(node));
+			model.skeletonData.nodes.emplace_back(std::move(node));
 		}
 		for (size_t i = 0; i < pmx.bones.size(); i++) {
 			const auto& bone = pmx.bones[i];
-			auto* node = model.skeleton.nodes[i].get();
+			auto* node = model.skeletonData.nodes[i].get();
 			glm::vec3 localPos = bone.position;
 			if (bone.parentBoneIndex != -1) {
-				auto parentNode = model.skeleton.nodes[bone.parentBoneIndex];
-				parentNode->AddChild(model.skeleton.nodes[i]);
+				auto parentNode = model.skeletonData.nodes[bone.parentBoneIndex];
+				parentNode->AddChild(model.skeletonData.nodes[i]);
 				localPos -= pmx.bones[bone.parentBoneIndex].position;
 			}
 			localPos.z *= -1;
@@ -174,7 +174,7 @@ namespace Chrivent {
 			node->isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
 				bool appendLocalEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
-				auto appendNodePtr = model.skeleton.nodes[bone.appendBoneIndex];
+				auto appendNodePtr = model.skeletonData.nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
 				node->isAppendLocal = appendLocalEnabled;
 				node->appendNode = appendNodePtr;
@@ -184,12 +184,12 @@ namespace Chrivent {
 			node->initRotate = node->rotate;
 			node->initScale = node->scale;
 		}
-		model.skeleton.transforms.resize(model.skeleton.nodes.size());
-		model.skeleton.sortedNodes.clear();
-		model.skeleton.sortedNodes.reserve(model.skeleton.nodes.size());
-		for (auto& node : model.skeleton.nodes)
-			model.skeleton.sortedNodes.emplace_back(*node);
-		std::ranges::stable_sort(model.skeleton.sortedNodes,
+		model.skeletonData.transforms.resize(model.skeletonData.nodes.size());
+		model.skeletonData.sortedNodes.clear();
+		model.skeletonData.sortedNodes.reserve(model.skeletonData.nodes.size());
+		for (auto& node : model.skeletonData.nodes)
+			model.skeletonData.sortedNodes.emplace_back(*node);
+		std::ranges::stable_sort(model.skeletonData.sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
 			return x.get().deformDepth < y.get().deformDepth;
 		});
@@ -197,12 +197,12 @@ namespace Chrivent {
 			const auto& bone = pmx.bones[i];
 			if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
-				solver->ikNode = model.skeleton.nodes[i];
-				model.skeleton.nodes[i]->ikSolver = solver;
-				solver->ikTarget = model.skeleton.nodes[bone.ikTargetBoneIndex];
+				solver->ikNode = model.skeletonData.nodes[i];
+				model.skeletonData.nodes[i]->ikSolver = solver;
+				solver->ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
 				for (const auto& [ikBoneIndex, enableLimit,
 					limitMin, limitMax] : bone.ikLinks) {
-					auto linkNode = model.skeleton.nodes[ikBoneIndex];
+					auto linkNode = model.skeletonData.nodes[ikBoneIndex];
 					IkChain chain{};
 					chain.node = linkNode;
 					chain.enableAxisLimit = enableLimit;
@@ -214,7 +214,7 @@ namespace Chrivent {
 				}
 				solver->iterateCount = bone.ikIterationCount;
 				solver->limitAngle = bone.ikLimit;
-				model.skeleton.ikSolvers.emplace_back(std::move(solver));
+				model.skeletonData.ikSolvers.emplace_back(std::move(solver));
 			}
 		}
 	}
@@ -297,7 +297,7 @@ namespace Chrivent {
 			auto rb = std::make_unique<RigidBody>();
 			std::shared_ptr<Node> node;
 			if (pmxRigidBody.boneIndex != -1)
-				node = model.skeleton.nodes[pmxRigidBody.boneIndex];
+				node = model.skeletonData.nodes[pmxRigidBody.boneIndex];
 			rb->Create(pmxRigidBody, &model, node);
 			model.physicsData.physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
 			model.physicsData.rigidBodies.emplace_back(std::move(rb));
@@ -321,10 +321,10 @@ namespace Chrivent {
 		PmxReader pmx;
 		if (!pmx.ReadFile(filepath))
 			return false;
-		model.info.modelName = pmx.info.modelName;
-		model.info.englishModelName = pmx.info.englishModelName;
-		model.info.comment = pmx.info.comment;
-		model.info.englishComment = pmx.info.englishComment;
+		model.infoData.modelName = pmx.info.modelName;
+		model.infoData.englishModelName = pmx.info.englishModelName;
+		model.infoData.comment = pmx.info.comment;
+		model.infoData.englishComment = pmx.info.englishComment;
 		const std::filesystem::path modelDir = filepath.parent_path();
 		constexpr glm::vec3 invZ(1, 1, -1);
 		LoadVertices(pmx, invZ);
