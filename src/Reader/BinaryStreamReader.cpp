@@ -1,7 +1,7 @@
-﻿#include "ReaderHelper.h"
+﻿#include "BinaryStreamReader.h"
 
-namespace Chrivent::ReaderHelper {
-	std::streampos GetFileEnd(std::istream& is) {
+namespace Chrivent {
+	std::streampos BinaryStreamReader::GetFileEnd(std::istream& is) {
 		const auto origin = is.tellg();
 		is.seekg(0, std::ios::end);
 		const auto end = is.tellg();
@@ -9,16 +9,16 @@ namespace Chrivent::ReaderHelper {
 		return end;
 	}
 
-	bool HasMore(std::istream& is, const std::streampos& end) {
+	bool BinaryStreamReader::HasMore(std::istream& is, const std::streampos& end) {
 		const auto cur = is.tellg();
 		return cur != std::streampos(-1) && cur < end;
 	}
 
-	void Read(std::istream& is, void* dst, const std::size_t bytes) {
+	void BinaryStreamReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
 		is.read(static_cast<char*>(dst), static_cast<std::streamsize>(bytes));
 	}
 
-	void ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
+	void BinaryStreamReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 		switch (indexSize) {
 			case 1: {
 				uint8_t idx;

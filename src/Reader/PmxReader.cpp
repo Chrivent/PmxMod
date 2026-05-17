@@ -1,40 +1,38 @@
-﻿#include "PmxReader.h"
+#include "PmxReader.h"
 
-#include "ReaderHelper.h"
+#include "BinaryStreamReader.h"
 #include "../Util.h"
 
 #include <fstream>
 
 namespace Chrivent {
-	using namespace ReaderHelper;
-
 	void PmxReader::ReadString(std::istream& is, std::string* val) const {
 		uint32_t bufSize;
-		Read(is, &bufSize);
+		BinaryStreamReader::Read(is, &bufSize);
 		if (bufSize > 0) {
 			if (header.encodeType == EncodeType::Utf16) {
 				std::wstring utf16Str(bufSize / 2, L'\0');
-				Read(is, utf16Str.data(), bufSize);
+				BinaryStreamReader::Read(is, utf16Str.data(), bufSize);
 				*val = Util::WStringToUtf8(utf16Str);
 			} else if (header.encodeType == EncodeType::Utf8) {
 				val->resize(bufSize);
-				Read(is, val->data(), bufSize);
+				BinaryStreamReader::Read(is, val->data(), bufSize);
 			}
 		}
 	}
 
 	void PmxReader::ReadHeader(std::istream& is) {
-		Read(is, header.magic, sizeof(header.magic));
-		Read(is, &header.version);
-		Read(is, &header.dataSize);
-		Read(is, &header.encodeType);
-		Read(is, &header.addUvNum);
-		Read(is, &header.vertexIndexSize);
-		Read(is, &header.textureIndexSize);
-		Read(is, &header.materialIndexSize);
-		Read(is, &header.boneIndexSize);
-		Read(is, &header.morphIndexSize);
-		Read(is, &header.rigidbodyIndexSize);
+		BinaryStreamReader::Read(is, header.magic, sizeof(header.magic));
+		BinaryStreamReader::Read(is, &header.version);
+		BinaryStreamReader::Read(is, &header.dataSize);
+		BinaryStreamReader::Read(is, &header.encodeType);
+		BinaryStreamReader::Read(is, &header.addUvNum);
+		BinaryStreamReader::Read(is, &header.vertexIndexSize);
+		BinaryStreamReader::Read(is, &header.textureIndexSize);
+		BinaryStreamReader::Read(is, &header.materialIndexSize);
+		BinaryStreamReader::Read(is, &header.boneIndexSize);
+		BinaryStreamReader::Read(is, &header.morphIndexSize);
+		BinaryStreamReader::Read(is, &header.rigidbodyIndexSize);
 	}
 
 	void PmxReader::ReadInfo(std::istream& is) {
@@ -46,69 +44,69 @@ namespace Chrivent {
 
 	void PmxReader::ReadVertex(std::istream& is) {
 		int32_t vertexCount;
-		Read(is, &vertexCount);
+		BinaryStreamReader::Read(is, &vertexCount);
 		vertices.resize(vertexCount);
 		for (auto& [position, normal, uv, addUv
 				 , weightType, boneIndices, boneWeights
 				 , sphericalDeformC, sphericalDeformR0, sphericalDeformR1, edgeMag] : vertices) {
-			Read(is, &position);
-			Read(is, &normal);
-			Read(is, &uv);
+			BinaryStreamReader::Read(is, &position);
+			BinaryStreamReader::Read(is, &normal);
+			BinaryStreamReader::Read(is, &uv);
 			for (uint8_t i = 0; i < header.addUvNum; i++)
-				Read(is, &addUv[i]);
-			Read(is, &weightType);
+				BinaryStreamReader::Read(is, &addUv[i]);
+			BinaryStreamReader::Read(is, &weightType);
 			switch (weightType) {
 				case WeightType::BoneDeform1:
-					ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[0], header.boneIndexSize);
 					break;
 				case WeightType::BoneDeform2:
-					ReadIndex(is, &boneIndices[0], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[1], header.boneIndexSize);
-					Read(is, &boneWeights[0]);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+					BinaryStreamReader::Read(is, &boneWeights[0]);
 					break;
 				case WeightType::BoneDeform4:
-					ReadIndex(is, &boneIndices[0], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[1], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[2], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[3], header.boneIndexSize);
-					Read(is, &boneWeights[0]);
-					Read(is, &boneWeights[1]);
-					Read(is, &boneWeights[2]);
-					Read(is, &boneWeights[3]);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[2], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[3], header.boneIndexSize);
+					BinaryStreamReader::Read(is, &boneWeights[0]);
+					BinaryStreamReader::Read(is, &boneWeights[1]);
+					BinaryStreamReader::Read(is, &boneWeights[2]);
+					BinaryStreamReader::Read(is, &boneWeights[3]);
 					break;
 				case WeightType::SphericalDeform:
-					ReadIndex(is, &boneIndices[0], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[1], header.boneIndexSize);
-					Read(is, &boneWeights[0]);
-					Read(is, &sphericalDeformC);
-					Read(is, &sphericalDeformR0);
-					Read(is, &sphericalDeformR1);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+					BinaryStreamReader::Read(is, &boneWeights[0]);
+					BinaryStreamReader::Read(is, &sphericalDeformC);
+					BinaryStreamReader::Read(is, &sphericalDeformR0);
+					BinaryStreamReader::Read(is, &sphericalDeformR1);
 					break;
 				case WeightType::QuaternionDeform:
-					ReadIndex(is, &boneIndices[0], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[1], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[2], header.boneIndexSize);
-					ReadIndex(is, &boneIndices[3], header.boneIndexSize);
-					Read(is, &boneWeights[0]);
-					Read(is, &boneWeights[1]);
-					Read(is, &boneWeights[2]);
-					Read(is, &boneWeights[3]);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[0], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[1], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[2], header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &boneIndices[3], header.boneIndexSize);
+					BinaryStreamReader::Read(is, &boneWeights[0]);
+					BinaryStreamReader::Read(is, &boneWeights[1]);
+					BinaryStreamReader::Read(is, &boneWeights[2]);
+					BinaryStreamReader::Read(is, &boneWeights[3]);
 					break;
 				default: ;
 			}
-			Read(is, &edgeMag);
+			BinaryStreamReader::Read(is, &edgeMag);
 				 }
 	}
 
 	void PmxReader::ReadFace(std::istream& is) {
 		int32_t faceCount = 0;
-		Read(is, &faceCount);
+		BinaryStreamReader::Read(is, &faceCount);
 		faceCount /= 3;
 		faces.resize(faceCount);
 		switch (header.vertexIndexSize) {
 			case 1: {
 				std::vector<uint8_t> faceIndices(faceCount * 3);
-				Read(is, faceIndices.data(), faceIndices.size());
+				BinaryStreamReader::Read(is, faceIndices.data(), faceIndices.size());
 				for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
 					faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
 					faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
@@ -118,7 +116,7 @@ namespace Chrivent {
 				break;
 			case 2: {
 				std::vector<uint16_t> faceIndices(faceCount * 3);
-				Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint16_t));
+				BinaryStreamReader::Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint16_t));
 				for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
 					faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
 					faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
@@ -128,7 +126,7 @@ namespace Chrivent {
 				break;
 			case 4: {
 				std::vector<uint32_t> faceIndices(faceCount * 3);
-				Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint32_t));
+				BinaryStreamReader::Read(is, faceIndices.data(), faceIndices.size() * sizeof(uint32_t));
 				for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++) {
 					faces[faceIdx].vertices[0] = faceIndices[faceIdx * 3 + 0];
 					faces[faceIdx].vertices[1] = faceIndices[faceIdx * 3 + 1];
@@ -142,7 +140,7 @@ namespace Chrivent {
 
 	void PmxReader::ReadTexture(std::istream& is) {
 		int32_t texCount = 0;
-		Read(is, &texCount);
+		BinaryStreamReader::Read(is, &texCount);
 		textures.resize(texCount);
 		std::string utf8;
 		for (auto& [textureName] : textures) {
@@ -154,7 +152,7 @@ namespace Chrivent {
 
 	void PmxReader::ReadMaterial(std::istream& is) {
 		int32_t matCount = 0;
-		Read(is, &matCount);
+		BinaryStreamReader::Read(is, &matCount);
 		materials.resize(matCount);
 		for (auto& [name, englishName, diffuse, specular
 				 , specularPower, ambient, drawMode
@@ -164,32 +162,32 @@ namespace Chrivent {
 				 , memo, numFaceVertices] : materials) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &diffuse);
-			Read(is, &specular);
-			Read(is, &specularPower);
-			Read(is, &ambient);
-			Read(is, &drawMode);
-			Read(is, &edgeColor);
-			Read(is, &edgeSize);
-			ReadIndex(is, &textureIndex, header.textureIndexSize);
-			ReadIndex(is, &sphereTextureIndex, header.textureIndexSize);
-			Read(is, &sphereMode);
-			Read(is, &cartoonMode);
+			BinaryStreamReader::Read(is, &diffuse);
+			BinaryStreamReader::Read(is, &specular);
+			BinaryStreamReader::Read(is, &specularPower);
+			BinaryStreamReader::Read(is, &ambient);
+			BinaryStreamReader::Read(is, &drawMode);
+			BinaryStreamReader::Read(is, &edgeColor);
+			BinaryStreamReader::Read(is, &edgeSize);
+			BinaryStreamReader::ReadIndex(is, &textureIndex, header.textureIndexSize);
+			BinaryStreamReader::ReadIndex(is, &sphereTextureIndex, header.textureIndexSize);
+			BinaryStreamReader::Read(is, &sphereMode);
+			BinaryStreamReader::Read(is, &cartoonMode);
 			if (cartoonMode == CartoonMode::Separate)
-				ReadIndex(is, &cartoonTextureIndex, header.textureIndexSize);
+				BinaryStreamReader::ReadIndex(is, &cartoonTextureIndex, header.textureIndexSize);
 			else if (cartoonMode == CartoonMode::Common) {
 				uint8_t cartoonIndex;
-				Read(is, &cartoonIndex);
+				BinaryStreamReader::Read(is, &cartoonIndex);
 				cartoonTextureIndex = static_cast<int32_t>(cartoonIndex);
 			}
 			ReadString(is, &memo);
-			Read(is, &numFaceVertices);
+			BinaryStreamReader::Read(is, &numFaceVertices);
 				 }
 	}
 
 	void PmxReader::ReadBone(std::istream& is) {
 		int32_t boneCount;
-		Read(is, &boneCount);
+		BinaryStreamReader::Read(is, &boneCount);
 		bones.resize(boneCount);
 		for (auto& [name, englishName, position, parentBoneIndex
 				 , deformDepth, boneFlag, positionOffset
@@ -199,43 +197,43 @@ namespace Chrivent {
 				 , ikLimit, ikLinks] : bones) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &position);
-			ReadIndex(is, &parentBoneIndex, header.boneIndexSize);
-			Read(is, &deformDepth);
-			Read(is, &boneFlag);
+			BinaryStreamReader::Read(is, &position);
+			BinaryStreamReader::ReadIndex(is, &parentBoneIndex, header.boneIndexSize);
+			BinaryStreamReader::Read(is, &deformDepth);
+			BinaryStreamReader::Read(is, &boneFlag);
 			if ((static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::TargetShowMode)) == 0)
-				Read(is, &positionOffset);
+				BinaryStreamReader::Read(is, &positionOffset);
 			else
-				ReadIndex(is, &linkBoneIndex, header.boneIndexSize);
+				BinaryStreamReader::ReadIndex(is, &linkBoneIndex, header.boneIndexSize);
 			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate) ||
 				static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) {
-				ReadIndex(is, &appendBoneIndex, header.boneIndexSize);
-				Read(is, &appendWeight);
+				BinaryStreamReader::ReadIndex(is, &appendBoneIndex, header.boneIndexSize);
+				BinaryStreamReader::Read(is, &appendWeight);
 				}
 			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::FixedAxis))
-				Read(is, &fixedAxis);
+				BinaryStreamReader::Read(is, &fixedAxis);
 			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::LocalAxis)) {
-				Read(is, &localXAxis);
-				Read(is, &localZAxis);
+				BinaryStreamReader::Read(is, &localXAxis);
+				BinaryStreamReader::Read(is, &localZAxis);
 			}
 			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
-				Read(is, &keyValue);
+				BinaryStreamReader::Read(is, &keyValue);
 			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
-				ReadIndex(is, &ikTargetBoneIndex, header.boneIndexSize);
-				Read(is, &ikIterationCount);
-				Read(is, &ikLimit);
+				BinaryStreamReader::ReadIndex(is, &ikTargetBoneIndex, header.boneIndexSize);
+				BinaryStreamReader::Read(is, &ikIterationCount);
+				BinaryStreamReader::Read(is, &ikLimit);
 				int32_t linkCount;
-				Read(is, &linkCount);
+				BinaryStreamReader::Read(is, &linkCount);
 				ikLinks.resize(linkCount);
 				for (auto& [ikBoneIndex
 						 , enableLimit
 						 , limitMin
 						 , limitMax] : ikLinks) {
-					ReadIndex(is, &ikBoneIndex, header.boneIndexSize);
-					Read(is, &enableLimit);
+					BinaryStreamReader::ReadIndex(is, &ikBoneIndex, header.boneIndexSize);
+					BinaryStreamReader::Read(is, &enableLimit);
 					if (enableLimit != 0) {
-						Read(is, &limitMin);
-						Read(is, &limitMax);
+						BinaryStreamReader::Read(is, &limitMin);
+						BinaryStreamReader::Read(is, &limitMax);
 					}
 						 }
 			}
@@ -244,7 +242,7 @@ namespace Chrivent {
 
 	void PmxReader::ReadMorph(std::istream& is) {
 		int32_t morphCount;
-		Read(is, &morphCount);
+		BinaryStreamReader::Read(is, &morphCount);
 		morphs.resize(morphCount);
 		for (auto& [name, englishName, controlPanel, morphType
 				 , positionMorph, uvMorph, boneMorph
@@ -252,15 +250,15 @@ namespace Chrivent {
 				 , flipMorph, impulseMorph] : morphs) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &controlPanel);
-			Read(is, &morphType);
+			BinaryStreamReader::Read(is, &controlPanel);
+			BinaryStreamReader::Read(is, &morphType);
 			int32_t dataCount;
-			Read(is, &dataCount);
+			BinaryStreamReader::Read(is, &dataCount);
 			if (morphType == MorphType::Position) {
 				positionMorph.resize(dataCount);
 				for (auto& [vertexIndex, position] : positionMorph) {
-					ReadIndex(is, &vertexIndex, header.vertexIndexSize);
-					Read(is, &position);
+					BinaryStreamReader::ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+					BinaryStreamReader::Read(is, &position);
 				}
 			} else if (morphType == MorphType::Uv ||
 					   morphType == MorphType::AddUv1 ||
@@ -269,15 +267,15 @@ namespace Chrivent {
 					   morphType == MorphType::AddUv4) {
 				uvMorph.resize(dataCount);
 				for (auto& [vertexIndex, uv] : uvMorph) {
-					ReadIndex(is, &vertexIndex, header.vertexIndexSize);
-					Read(is, &uv);
+					BinaryStreamReader::ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+					BinaryStreamReader::Read(is, &uv);
 				}
 					   } else if (morphType == MorphType::Bone) {
 					   	boneMorph.resize(dataCount);
 					   	for (auto& [boneIndex, position, quaternion] : boneMorph) {
-					   		ReadIndex(is, &boneIndex, header.boneIndexSize);
-					   		Read(is, &position);
-					   		Read(is, &quaternion);
+					   		BinaryStreamReader::ReadIndex(is, &boneIndex, header.boneIndexSize);
+					   		BinaryStreamReader::Read(is, &position);
+					   		BinaryStreamReader::Read(is, &quaternion);
 					   	}
 					   } else if (morphType == MorphType::Material) {
 					   	materialMorph.resize(dataCount);
@@ -285,29 +283,29 @@ namespace Chrivent {
 									, specular, specularPower
 									, ambient, edgeColor, edgeSize
 									, textureFactor, sphereTextureFactor, cartoonTextureFactor] : materialMorph) {
-					   		ReadIndex(is, &materialIndex, header.materialIndexSize);
-					   		Read(is, &opType);
-					   		Read(is, &diffuse);
-					   		Read(is, &specular);
-					   		Read(is, &specularPower);
-					   		Read(is, &ambient);
-					   		Read(is, &edgeColor);
-					   		Read(is, &edgeSize);
-					   		Read(is, &textureFactor);
-					   		Read(is, &sphereTextureFactor);
-					   		Read(is, &cartoonTextureFactor);
+					   		BinaryStreamReader::ReadIndex(is, &materialIndex, header.materialIndexSize);
+					   		BinaryStreamReader::Read(is, &opType);
+					   		BinaryStreamReader::Read(is, &diffuse);
+					   		BinaryStreamReader::Read(is, &specular);
+					   		BinaryStreamReader::Read(is, &specularPower);
+					   		BinaryStreamReader::Read(is, &ambient);
+					   		BinaryStreamReader::Read(is, &edgeColor);
+					   		BinaryStreamReader::Read(is, &edgeSize);
+					   		BinaryStreamReader::Read(is, &textureFactor);
+					   		BinaryStreamReader::Read(is, &sphereTextureFactor);
+					   		BinaryStreamReader::Read(is, &cartoonTextureFactor);
 									}
 					   } else if (morphType == MorphType::Group) {
 					   	groupMorph.resize(dataCount);
 					   	for (auto& [morphIndex, weight] : groupMorph) {
-					   		ReadIndex(is, &morphIndex, header.morphIndexSize);
-					   		Read(is, &weight);
+					   		BinaryStreamReader::ReadIndex(is, &morphIndex, header.morphIndexSize);
+					   		BinaryStreamReader::Read(is, &weight);
 					   	}
 					   } else if (morphType == MorphType::Flip) {
 					   	flipMorph.resize(dataCount);
 					   	for (auto& [morphIndex, weight] : flipMorph) {
-					   		ReadIndex(is, &morphIndex, header.morphIndexSize);
-					   		Read(is, &weight);
+					   		BinaryStreamReader::ReadIndex(is, &morphIndex, header.morphIndexSize);
+					   		BinaryStreamReader::Read(is, &weight);
 					   	}
 					   } else if (morphType == MorphType::Impulse) {
 					   	impulseMorph.resize(dataCount);
@@ -315,10 +313,10 @@ namespace Chrivent {
 									, localFlag
 									, translateVelocity
 									, rotateTorque] : impulseMorph) {
-					   		ReadIndex(is, &rigidbodyIndex, header.rigidbodyIndexSize);
-					   		Read(is, &localFlag);
-					   		Read(is, &translateVelocity);
-					   		Read(is, &rotateTorque);
+					   		BinaryStreamReader::ReadIndex(is, &rigidbodyIndex, header.rigidbodyIndexSize);
+					   		BinaryStreamReader::Read(is, &localFlag);
+					   		BinaryStreamReader::Read(is, &translateVelocity);
+					   		BinaryStreamReader::Read(is, &rotateTorque);
 									}
 					   }
 				 }
@@ -326,29 +324,29 @@ namespace Chrivent {
 
 	void PmxReader::ReadDisplayFrame(std::istream& is) {
 		int32_t displayFrameCount;
-		Read(is, &displayFrameCount);
+		BinaryStreamReader::Read(is, &displayFrameCount);
 		displayFrames.resize(displayFrameCount);
 		for (auto& [name, englishName
 				 , flag, targets] : displayFrames) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &flag);
+			BinaryStreamReader::Read(is, &flag);
 			int32_t targetCount;
-			Read(is, &targetCount);
+			BinaryStreamReader::Read(is, &targetCount);
 			targets.resize(targetCount);
 			for (auto& [type, index] : targets) {
-				Read(is, &type);
+				BinaryStreamReader::Read(is, &type);
 				if (type == TargetType::BoneIndex)
-					ReadIndex(is, &index, header.boneIndexSize);
+					BinaryStreamReader::ReadIndex(is, &index, header.boneIndexSize);
 				else if (type == TargetType::MorphIndex)
-					ReadIndex(is, &index, header.morphIndexSize);
+					BinaryStreamReader::ReadIndex(is, &index, header.morphIndexSize);
 			}
 				 }
 	}
 
 	void PmxReader::ReadRigidbody(std::istream& is) {
 		int32_t rbCount;
-		Read(is, &rbCount);
+		BinaryStreamReader::Read(is, &rbCount);
 		rigidBodies.resize(rbCount);
 		for (auto& [name, englishName, boneIndex, group, collisionGroup
 				 , shape, shapeSize, translate, rotate, mass
@@ -356,25 +354,25 @@ namespace Chrivent {
 				 , repulsion, friction, op] : rigidBodies) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			ReadIndex(is, &boneIndex, header.boneIndexSize);
-			Read(is, &group);
-			Read(is, &collisionGroup);
-			Read(is, &shape);
-			Read(is, &shapeSize);
-			Read(is, &translate);
-			Read(is, &rotate);
-			Read(is, &mass);
-			Read(is, &translateDimmer);
-			Read(is, &rotateDimmer);
-			Read(is, &repulsion);
-			Read(is, &friction);
-			Read(is, &op);
+			BinaryStreamReader::ReadIndex(is, &boneIndex, header.boneIndexSize);
+			BinaryStreamReader::Read(is, &group);
+			BinaryStreamReader::Read(is, &collisionGroup);
+			BinaryStreamReader::Read(is, &shape);
+			BinaryStreamReader::Read(is, &shapeSize);
+			BinaryStreamReader::Read(is, &translate);
+			BinaryStreamReader::Read(is, &rotate);
+			BinaryStreamReader::Read(is, &mass);
+			BinaryStreamReader::Read(is, &translateDimmer);
+			BinaryStreamReader::Read(is, &rotateDimmer);
+			BinaryStreamReader::Read(is, &repulsion);
+			BinaryStreamReader::Read(is, &friction);
+			BinaryStreamReader::Read(is, &op);
 				 }
 	}
 
 	void PmxReader::ReadJoint(std::istream& is) {
 		int32_t jointCount;
-		Read(is, &jointCount);
+		BinaryStreamReader::Read(is, &jointCount);
 		joints.resize(jointCount);
 		for (auto& [name, englishName, type, rigidbodyAIndex, rigidbodyBIndex
 				 , translate, rotate, translateLowerLimit, translateUpperLimit
@@ -382,23 +380,23 @@ namespace Chrivent {
 				 , springTranslateFactor, springRotateFactor] : joints) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &type);
-			ReadIndex(is, &rigidbodyAIndex, header.rigidbodyIndexSize);
-			ReadIndex(is, &rigidbodyBIndex, header.rigidbodyIndexSize);
-			Read(is, &translate);
-			Read(is, &rotate);
-			Read(is, &translateLowerLimit);
-			Read(is, &translateUpperLimit);
-			Read(is, &rotateLowerLimit);
-			Read(is, &rotateUpperLimit);
-			Read(is, &springTranslateFactor);
-			Read(is, &springRotateFactor);
+			BinaryStreamReader::Read(is, &type);
+			BinaryStreamReader::ReadIndex(is, &rigidbodyAIndex, header.rigidbodyIndexSize);
+			BinaryStreamReader::ReadIndex(is, &rigidbodyBIndex, header.rigidbodyIndexSize);
+			BinaryStreamReader::Read(is, &translate);
+			BinaryStreamReader::Read(is, &rotate);
+			BinaryStreamReader::Read(is, &translateLowerLimit);
+			BinaryStreamReader::Read(is, &translateUpperLimit);
+			BinaryStreamReader::Read(is, &rotateLowerLimit);
+			BinaryStreamReader::Read(is, &rotateUpperLimit);
+			BinaryStreamReader::Read(is, &springTranslateFactor);
+			BinaryStreamReader::Read(is, &springRotateFactor);
 				 }
 	}
 
 	void PmxReader::ReadSoftBody(std::istream& is) {
 		int32_t sbCount;
-		Read(is, &sbCount);
+		BinaryStreamReader::Read(is, &sbCount);
 		softBodies.resize(sbCount);
 		for (auto& [name, englishName, type, materialIndex
 				 , group, collisionGroup, flag, bodyLinkLength
@@ -412,56 +410,56 @@ namespace Chrivent {
 				 , anchorRigidBodies, pinVertexIndices] : softBodies) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
-			Read(is, &type);
-			ReadIndex(is, &materialIndex, header.materialIndexSize);
-			Read(is, &group);
-			Read(is, &collisionGroup);
-			Read(is, &flag);
-			Read(is, &bodyLinkLength);
-			Read(is, &numClusters);
-			Read(is, &totalMass);
-			Read(is, &collisionMargin);
-			Read(is, &aeroModel);
-			Read(is, &vcf);
-			Read(is, &dp);
-			Read(is, &dg);
-			Read(is, &lf);
-			Read(is, &pr);
-			Read(is, &vc);
-			Read(is, &df);
-			Read(is, &mt);
-			Read(is, &chr);
-			Read(is, &khr);
-			Read(is, &shr);
-			Read(is, &ahr);
-			Read(is, &sRhrCl);
-			Read(is, &sKhrCl);
-			Read(is, &sShrCl);
-			Read(is, &srSplitCl);
-			Read(is, &skSplitCl);
-			Read(is, &ssSplitCl);
-			Read(is, &vIt);
-			Read(is, &pIt);
-			Read(is, &dIt);
-			Read(is, &cIt);
-			Read(is, &lst);
-			Read(is, &ast);
-			Read(is, &vst);
+			BinaryStreamReader::Read(is, &type);
+			BinaryStreamReader::ReadIndex(is, &materialIndex, header.materialIndexSize);
+			BinaryStreamReader::Read(is, &group);
+			BinaryStreamReader::Read(is, &collisionGroup);
+			BinaryStreamReader::Read(is, &flag);
+			BinaryStreamReader::Read(is, &bodyLinkLength);
+			BinaryStreamReader::Read(is, &numClusters);
+			BinaryStreamReader::Read(is, &totalMass);
+			BinaryStreamReader::Read(is, &collisionMargin);
+			BinaryStreamReader::Read(is, &aeroModel);
+			BinaryStreamReader::Read(is, &vcf);
+			BinaryStreamReader::Read(is, &dp);
+			BinaryStreamReader::Read(is, &dg);
+			BinaryStreamReader::Read(is, &lf);
+			BinaryStreamReader::Read(is, &pr);
+			BinaryStreamReader::Read(is, &vc);
+			BinaryStreamReader::Read(is, &df);
+			BinaryStreamReader::Read(is, &mt);
+			BinaryStreamReader::Read(is, &chr);
+			BinaryStreamReader::Read(is, &khr);
+			BinaryStreamReader::Read(is, &shr);
+			BinaryStreamReader::Read(is, &ahr);
+			BinaryStreamReader::Read(is, &sRhrCl);
+			BinaryStreamReader::Read(is, &sKhrCl);
+			BinaryStreamReader::Read(is, &sShrCl);
+			BinaryStreamReader::Read(is, &srSplitCl);
+			BinaryStreamReader::Read(is, &skSplitCl);
+			BinaryStreamReader::Read(is, &ssSplitCl);
+			BinaryStreamReader::Read(is, &vIt);
+			BinaryStreamReader::Read(is, &pIt);
+			BinaryStreamReader::Read(is, &dIt);
+			BinaryStreamReader::Read(is, &cIt);
+			BinaryStreamReader::Read(is, &lst);
+			BinaryStreamReader::Read(is, &ast);
+			BinaryStreamReader::Read(is, &vst);
 			int32_t arCount;
-			Read(is, &arCount);
+			BinaryStreamReader::Read(is, &arCount);
 			anchorRigidBodies.resize(arCount);
 			for (auto& [rigidBodyIndex
 					 , vertexIndex
 					 , nearMode] : anchorRigidBodies) {
-				ReadIndex(is, &rigidBodyIndex, header.rigidbodyIndexSize);
-				ReadIndex(is, &vertexIndex, header.vertexIndexSize);
-				Read(is, &nearMode);
+				BinaryStreamReader::ReadIndex(is, &rigidBodyIndex, header.rigidbodyIndexSize);
+				BinaryStreamReader::ReadIndex(is, &vertexIndex, header.vertexIndexSize);
+				BinaryStreamReader::Read(is, &nearMode);
 					 }
 			int32_t pvCount;
-			Read(is, &pvCount);
+			BinaryStreamReader::Read(is, &pvCount);
 			pinVertexIndices.resize(pvCount);
 			for (auto& pv : pinVertexIndices)
-				ReadIndex(is, &pv, header.vertexIndexSize);
+				BinaryStreamReader::ReadIndex(is, &pv, header.vertexIndexSize);
 				 }
 	}
 
@@ -469,7 +467,7 @@ namespace Chrivent {
 		std::ifstream is(filename, std::ios::binary);
 		if (!is)
 			return false;
-		const auto end = GetFileEnd(is);
+		const auto end = BinaryStreamReader::GetFileEnd(is);
 		ReadHeader(is);
 		ReadInfo(is);
 		ReadVertex(is);
@@ -481,7 +479,7 @@ namespace Chrivent {
 		ReadDisplayFrame(is);
 		ReadRigidbody(is);
 		ReadJoint(is);
-		if (HasMore(is, end))
+		if (BinaryStreamReader::HasMore(is, end))
 			ReadSoftBody(is);
 		return true;
 	}

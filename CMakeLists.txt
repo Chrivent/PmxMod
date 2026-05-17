@@ -27,7 +27,7 @@ add_executable(PmxMod
         
         src/Reader/PmxReader.h src/Reader/PmxReader.cpp
         src/Reader/VmdReader.h src/Reader/VmdReader.cpp
-        src/Reader/ReaderHelper.h src/Reader/ReaderHelper.cpp
+        src/Reader/BinaryStreamReader.h src/Reader/BinaryStreamReader.cpp
 
         src/Animation/AnimationKeySearch.h
         src/Animation/Bezier.h src/Animation/Bezier.cpp
