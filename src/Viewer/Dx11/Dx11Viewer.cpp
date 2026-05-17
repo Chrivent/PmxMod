@@ -1,7 +1,7 @@
 ﻿#include "Dx11Viewer.h"
 
 #include "Dx11Instance.h"
-#include "Dx11DescHelper.h"
+#include "Dx11DescriptorFactory.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
@@ -10,8 +10,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-	using namespace Dx11DescHelper;
-	
 	void Dx11Viewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
@@ -38,7 +36,7 @@ namespace Chrivent {
 			quality = 0;
 		}
 		multiSampleQuality = quality > 0 ? quality - 1 : 0;
-		auto d = MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
+		auto d = Dx11DescriptorFactory::MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
 		if (FAILED(factory->CreateSwapChain(device.Get(), &d, &swapChain)))
 			return false;
 		if (!CreateRenderTargets())
@@ -92,7 +90,7 @@ namespace Chrivent {
 		if (!image)
 			return {};
 		const bool textureHasAlpha = comp == 4;
-		const auto d = MakeTexture2DDesc(
+		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
 			static_cast<UINT>(x), static_cast<UINT>(y),
 			DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
@@ -194,7 +192,7 @@ namespace Chrivent {
 			return false;
 		if (FAILED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView)))
 			return false;
-		const auto d = MakeTexture2DDesc(
+		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
 			static_cast<UINT>(screenWidth), static_cast<UINT>(screenHeight),
 			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
 			multiSampleCount, multiSampleQuality);
@@ -206,43 +204,43 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {
-		auto wrapLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		auto wrapLinear = Dx11DescriptorFactory::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		if (FAILED(device->CreateSamplerState(&wrapLinear, &textureSampler)))
 			return false;
-		auto clampLinear = MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		auto clampLinear = Dx11DescriptorFactory::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 		if (FAILED(device->CreateSamplerState(&clampLinear, &cartoonTextureSampler)))
 			return false;
-		auto blend = MakeAlphaBlendDesc();
+		auto blend = Dx11DescriptorFactory::MakeAlphaBlendDesc();
 		if (FAILED(device->CreateBlendState(&blend, &blendState)))
 			return false;
-		auto frontRsDesc = MakeRasterizerDesc(D3D11_CULL_BACK, true);
+		auto frontRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_BACK, true);
 		if (FAILED(device->CreateRasterizerState(&frontRsDesc, &frontFaceRs)))
 			return false;
-		auto bothRsDesc = MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		auto bothRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		if (FAILED(device->CreateRasterizerState(&bothRsDesc, &bothFaceRs)))
 			return false;
-		auto edgeRsDesc = MakeRasterizerDesc(D3D11_CULL_FRONT, true);
+		auto edgeRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
 		edgeRsDesc.DepthClipEnable = FALSE;
 		if (FAILED(device->CreateRasterizerState(&edgeRsDesc, &edgeRs)))
 			return false;
-		auto gsRsDesc = MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		auto gsRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		gsRsDesc.DepthClipEnable = FALSE;
 		gsRsDesc.DepthBias = -1;
 		gsRsDesc.SlopeScaledDepthBias = -1.0f;
 		gsRsDesc.DepthBiasClamp = -1.0f;
 		if (FAILED(device->CreateRasterizerState(&gsRsDesc, &gsRs)))
 			return false;
-		auto gsDssDesc = MakeGroundShadowDepthStencilDesc();
+		auto gsDssDesc = Dx11DescriptorFactory::MakeGroundShadowDepthStencilDesc();
 		if (FAILED(device->CreateDepthStencilState(&gsDssDesc, &gsDss)))
 			return false;
-		auto defDssDesc  = MakeDefaultDepthStencilDesc();
+		auto defDssDesc  = Dx11DescriptorFactory::MakeDefaultDepthStencilDesc();
 		if (FAILED(device->CreateDepthStencilState(&defDssDesc, &defaultDss)))
 			return false;
 		return true;
 	}
 
 	bool Dx11Viewer::CreateDummyResources() {
-		const auto d = MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		if (FAILED(device->CreateTexture2D(&d, nullptr, &dummyTexture)))
 			return false;
 		if (FAILED(device->CreateShaderResourceView(dummyTexture.Get(), nullptr, &dummyTextureView)))

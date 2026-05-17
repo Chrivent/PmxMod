@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20)
 
 project(PmxMod)
 set(CMAKE_CXX_STANDARD 20)
@@ -56,11 +56,11 @@ add_executable(PmxMod
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
-        src/Viewer/Glfw/GlfwShaderHelper.h src/Viewer/Glfw/GlfwShaderHelper.cpp
+        src/Viewer/Glfw/GlfwShaderFactory.h src/Viewer/Glfw/GlfwShaderFactory.cpp
         src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
-        src/Viewer/Dx11/Dx11DescHelper.h src/Viewer/Dx11/Dx11DescHelper.cpp
+        src/Viewer/Dx11/Dx11DescriptorFactory.h src/Viewer/Dx11/Dx11DescriptorFactory.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 )
 

@@ -1,9 +1,9 @@
-﻿#include "GlfwShaderHelper.h"
+﻿#include "GlfwShaderFactory.h"
 
 #include <fstream>
 
-namespace Chrivent::GlfwShaderHelper {
-	GLuint CompileShader(const GLenum shaderType, const std::string& code) {
+namespace Chrivent {
+	GLuint GlfwShaderFactory::CompileShader(const GLenum shaderType, const std::string& code) {
 		const GLuint shader = glCreateShader(shaderType);
 		if (!shader)
 			return 0;
@@ -14,7 +14,7 @@ namespace Chrivent::GlfwShaderHelper {
 		return shader;
 	}
 
-	std::string InjectDefine(const std::string& src, const char* defineLine) {
+	std::string GlfwShaderFactory::InjectDefine(const std::string& src, const char* defineLine) {
 		if (src.starts_with("#version")) {
 			const auto nl = src.find('\n');
 			if (nl != std::string::npos) {
@@ -30,7 +30,7 @@ namespace Chrivent::GlfwShaderHelper {
 		return std::string(defineLine) + "\n" + src;
 	}
 
-	GLuint CreateShader(const std::filesystem::path& file) {
+	GLuint GlfwShaderFactory::CreateShader(const std::filesystem::path& file) {
 		std::ifstream f(file);
 		if (!f)
 			return 0;
