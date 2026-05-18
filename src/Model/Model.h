@@ -130,8 +130,8 @@ namespace Chrivent {
 	};
 
 	struct Model {
-		ModelInfoData			infoData;
-		ModelGeometryData		geometryData;
+		ModelInfoData		infoData;
+		ModelGeometryData	geometryData;
 		ModelMaterialData	materialData;
 		ModelSkeletonData	skeletonData;
 		ModelMorphData		morphData;
