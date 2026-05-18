@@ -69,6 +69,8 @@ namespace Chrivent {
 		void ReadShadow(std::istream& is);
 		// IK 표시/활성화 키프레임 목록을 읽는다.
 		void ReadIk(std::istream& is);
+		// 이전에 읽은 VMD 데이터를 초기화한다.
+		void Clear();
 
 	public:
 		struct VmdMotion {

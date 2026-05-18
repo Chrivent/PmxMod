@@ -328,6 +328,8 @@ namespace Chrivent {
 		void ReadJoint(std::istream& is);
 		// 소프트바디 정보를 읽는다.
 		void ReadSoftBody(std::istream& is);
+		// 이전에 읽은 PMX 데이터를 초기화한다.
+		void Clear();
 
 	public:
 		struct PmxRigidbody {

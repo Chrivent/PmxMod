@@ -1,7 +1,7 @@
-﻿#include "BinaryStreamReader.h"
+﻿#include "BinaryReader.h"
 
 namespace Chrivent {
-	std::streampos BinaryStreamReader::GetFileEnd(std::istream& is) {
+	std::streampos BinaryReader::GetFileEnd(std::istream& is) {
 		const auto origin = is.tellg();
 		is.seekg(0, std::ios::end);
 		const auto end = is.tellg();
@@ -9,16 +9,17 @@ namespace Chrivent {
 		return end;
 	}
 
-	bool BinaryStreamReader::HasMore(std::istream& is, const std::streampos& end) {
+	bool BinaryReader::HasMore(std::istream& is, const std::streampos& end) {
 		const auto cur = is.tellg();
 		return cur != std::streampos(-1) && cur < end;
 	}
 
-	void BinaryStreamReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
-		is.read(static_cast<char*>(dst), static_cast<std::streamsize>(bytes));
+	void BinaryReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
+		if (!is.read(static_cast<char*>(dst), static_cast<std::streamsize>(bytes)))
+			throw std::runtime_error("Failed to read binary stream.");
 	}
 
-	void BinaryStreamReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
+	void BinaryReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 		switch (indexSize) {
 			case 1: {
 				uint8_t idx;
@@ -45,7 +46,7 @@ namespace Chrivent {
 			}
 				break;
 			default:
-				break;
+				throw std::runtime_error("Invalid PMX index size.");
 		}
 	}
 }

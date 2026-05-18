@@ -3,7 +3,7 @@
 #include <filesystem>
 
 namespace Chrivent {
-	class BinaryStreamReader {
+	class BinaryReader {
 	public:
 		// 현재 위치를 보존한 채 스트림의 끝 위치를 구한다.
 		static std::streampos GetFileEnd(std::istream& is);
