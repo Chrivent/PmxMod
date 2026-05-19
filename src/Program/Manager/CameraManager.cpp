@@ -40,16 +40,18 @@ namespace Chrivent {
 
 	CameraManager::~CameraManager() = default;
 	
-	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) {
+	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = static_cast<float>(std::max(0, frame)) / 30.0f;
 		viewer.elapsed = 0.0f;
 		viewer.animTime = seconds;
 		music.SeekSeconds(seconds);
+		if (!paused)
+			music.Resume();
 		saveTime = std::chrono::steady_clock::now();
 	}
 
 	void CameraManager::Reset() {
-		paused = false;
+		paused = true;
 		useMotionCamera = true;
 		hasFreeCameraState = false;
 		freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
@@ -110,7 +112,7 @@ namespace Chrivent {
 		music.Resume();
 	}
 
-	void CameraManager::Pause(const Sound& music) {
+	void CameraManager::Pause(Sound& music) {
 		paused = true;
 		music.Pause();
 	}

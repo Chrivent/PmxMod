@@ -74,6 +74,7 @@ namespace Chrivent {
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
         saveTime = std::chrono::steady_clock::now();
+        cameraManager.Stop(*viewer, music, saveTime);
         return true;
     }
 

@@ -12,6 +12,7 @@ namespace Chrivent {
         std::unique_ptr<ma_engine> engine;
         std::unique_ptr<ma_sound>  sound;
         double prevTimeSec = 0.0;
+        bool playing = false;
 
         // miniaudio 엔진과 사운드 객체를 해제한다.
         void UnInit();
@@ -36,7 +37,7 @@ namespace Chrivent {
         // 이전 호출 시각과 현재 재생 시각을 출력하고 내부 기준 시간을 갱신한다.
         void PullTimes(float& deltaTime, float& time);
         // 재생 중인 사운드를 일시정지한다.
-        void Pause() const;
+        void Pause();
         // 사운드 재생을 재개한다.
         void Resume();
         // 사운드 재생 위치를 지정한 초로 이동한다.

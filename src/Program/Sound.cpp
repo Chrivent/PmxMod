@@ -12,6 +12,7 @@ namespace Chrivent {
         ma_sound_uninit(sound.get());
         ma_engine_uninit(engine.get());
         hasSound = false;
+        playing = false;
         prevTimeSec = 0.0;
         lengthSec = 0.0;
         engine.reset();
@@ -48,8 +49,8 @@ namespace Chrivent {
             lengthSec = 0.0;
         ma_sound_set_looping(sound.get(), loop ? MA_TRUE : MA_FALSE);
         ma_sound_set_volume(sound.get(), volume);
-        ma_sound_start(sound.get());
         hasSound = true;
+        playing = false;
         prevTimeSec = 0.0;
         return true;
     }
@@ -82,10 +83,11 @@ namespace Chrivent {
         time = static_cast<float>(t);
     }
 
-    void Sound::Pause() const {
+    void Sound::Pause() {
         if (!hasSound)
             return;
         ma_sound_stop(sound.get());
+        playing = false;
     }
 
     void Sound::Resume() {
@@ -96,7 +98,8 @@ namespace Chrivent {
             const double sr = ma_engine_get_sample_rate(engine.get());
             prevTimeSec = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
         }
-        ma_sound_start(sound.get());
+        if (ma_sound_start(sound.get()) == MA_SUCCESS)
+            playing = true;
     }
 
     void Sound::SeekSeconds(const float seconds) {
@@ -109,8 +112,11 @@ namespace Chrivent {
             ? std::clamp(static_cast<double>(seconds), 0.0, lengthSec)
             : (std::max)(0.0, static_cast<double>(seconds));
         const auto frame = static_cast<ma_uint64>(clampedTime * sr);
-        if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS)
+        if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
             prevTimeSec = clampedTime;
+            if (playing)
+                ma_sound_start(sound.get());
+        }
     }
 
     void Sound::Stop() {
