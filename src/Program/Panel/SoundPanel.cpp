@@ -54,7 +54,7 @@ namespace Chrivent {
 			0, 0, 0, 0,
 			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
 		if (sound)
-			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>(std::round(sound->GetVolume() * 100.0f)));
+			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, std::round(sound->GetVolume() * 100.0f));
 		UpdateValueText();
 	}
 
