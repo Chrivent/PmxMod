@@ -1,17 +1,17 @@
-﻿#include "VmdReader.h"
+﻿#include "VmdParser.h"
 
 #include <fstream>
+#include <iostream>
 
 #include "BinaryReader.h"
 
 namespace Chrivent {
-
-	void VmdReader::ReadHeader(std::istream& is) {
+	void VmdParser::ReadHeader(std::istream& is) {
 		BinaryReader::Read(is, header.header, sizeof(header.header));
 		BinaryReader::Read(is, header.modelName, sizeof(header.modelName));
 	}
 
-	void VmdReader::ReadMotion(std::istream& is) {
+	void VmdParser::ReadMotion(std::istream& is) {
 		uint32_t motionCount = 0;
 		BinaryReader::Read(is, &motionCount);
 		motions.resize(motionCount);
@@ -26,7 +26,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void VmdReader::ReadBlendShape(std::istream& is) {
+	void VmdParser::ReadBlendShape(std::istream& is) {
 		uint32_t blendShapeCount = 0;
 		BinaryReader::Read(is, &blendShapeCount);
 		morphs.resize(blendShapeCount);
@@ -37,7 +37,7 @@ namespace Chrivent {
 		}
 	}
 
-	void VmdReader::ReadCamera(std::istream& is) {
+	void VmdParser::ReadCamera(std::istream& is) {
 		uint32_t cameraCount = 0;
 		BinaryReader::Read(is, &cameraCount);
 		cameras.resize(cameraCount);
@@ -53,7 +53,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void VmdReader::ReadLight(std::istream& is) {
+	void VmdParser::ReadLight(std::istream& is) {
 		uint32_t lightCount = 0;
 		BinaryReader::Read(is, &lightCount);
 		lights.resize(lightCount);
@@ -64,7 +64,7 @@ namespace Chrivent {
 		}
 	}
 
-	void VmdReader::ReadShadow(std::istream& is) {
+	void VmdParser::ReadShadow(std::istream& is) {
 		uint32_t shadowCount = 0;
 		BinaryReader::Read(is, &shadowCount);
 		shadows.resize(shadowCount);
@@ -75,7 +75,7 @@ namespace Chrivent {
 		}
 	}
 
-	void VmdReader::ReadIk(std::istream& is) {
+	void VmdParser::ReadIk(std::istream& is) {
 		uint32_t ikCount = 0;
 		BinaryReader::Read(is, &ikCount);
 		iks.resize(ikCount);
@@ -92,7 +92,7 @@ namespace Chrivent {
 		}
 	}
 
-	void VmdReader::Clear() {
+	void VmdParser::Clear() {
 		header = {};
 		motions.clear();
 		morphs.clear();
@@ -102,29 +102,48 @@ namespace Chrivent {
 		iks.clear();
 	}
 
-	bool VmdReader::ReadFile(const std::filesystem::path& filename) {
+	bool VmdParser::ReadFile(const std::filesystem::path& filename) {
 		Clear();
-		try {
-			std::ifstream is(filename, std::ios::binary);
-			if (!is)
-				return false;
-			const auto end = BinaryReader::GetFileEnd(is);
-			ReadHeader(is);
-			ReadMotion(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadBlendShape(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadCamera(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadLight(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadShadow(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadIk(is);
-			return true;
-		} catch (...) {
-			Clear();
+
+		std::ifstream is(filename, std::ios::binary);
+		if (!is) {
+			std::cerr << "Failed to open VMD file: " << filename.string() << '\n';
 			return false;
 		}
+
+		const auto fail = [&](const char* stage) {
+			if (is)
+				return false;
+			std::cerr << "Failed to read VMD " << stage << ": " << filename.string() << '\n';
+			Clear();
+			return true;
+		};
+
+		const auto end = BinaryReader::GetFileEnd(is);
+		ReadHeader(is);
+		if (fail("header")) return false;
+		ReadMotion(is);
+		if (fail("motions")) return false;
+		if (BinaryReader::HasMore(is, end)) {
+			ReadBlendShape(is);
+			if (fail("morphs")) return false;
+		}
+		if (BinaryReader::HasMore(is, end)) {
+			ReadCamera(is);
+			if (fail("cameras")) return false;
+		}
+		if (BinaryReader::HasMore(is, end)) {
+			ReadLight(is);
+			if (fail("lights")) return false;
+		}
+		if (BinaryReader::HasMore(is, end)) {
+			ReadShadow(is);
+			if (fail("shadows")) return false;
+		}
+		if (BinaryReader::HasMore(is, end)) {
+			ReadIk(is);
+			if (fail("IK")) return false;
+		}
+		return true;
 	}
 }

@@ -65,7 +65,7 @@ namespace Chrivent {
 		worldTransform.setFromOpenGLMatrix(&global[0][0]);
 	}
 
-	void RigidBody::Create(const PmxReader::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr) {
+	void RigidBody::Create(const PmxParser::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr) {
 		switch (pmxRigidBody.shape) {
 			case Shape::Sphere:
 				shape = std::make_unique<btSphereShape>(pmxRigidBody.shapeSize.x);
@@ -183,7 +183,7 @@ namespace Chrivent {
 		return Util::InvZ(mat);
 	}
 
-	void Joint::Create(const PmxReader::PmxJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
+	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
 		constraint = nullptr;
 		btMatrix3x3 rotMat;
 		rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);

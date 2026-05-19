@@ -10,7 +10,7 @@ namespace Chrivent {
 		Mode2
 	};
 
-	class VmdReader {
+	class VmdParser {
 		struct VmdHeader {
 			char header[30];
 			char modelName[20];

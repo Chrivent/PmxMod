@@ -5,7 +5,7 @@
 #include "../../Util.h"
 
 namespace Chrivent {
-	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdReader::VmdMotion& motion) {
+	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {
 		NodeAnimationKey key{};
 		key.time = static_cast<int32_t>(motion.frame);
 		key.translate = motion.translate * glm::vec3(1, 1, -1);
@@ -27,7 +27,7 @@ namespace Chrivent {
 		return key;
 	}
 
-	void AnimationBuilder::AddNodeAnimations(const VmdReader& vmd) const {
+	void AnimationBuilder::AddNodeAnimations(const VmdParser& vmd) const {
 		const AnimationBinder binder(animation);
 		auto& nodeTracks = animation.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
@@ -44,7 +44,7 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
 	}
 
-	void AnimationBuilder::AddIkAnimations(const VmdReader& vmd) const {
+	void AnimationBuilder::AddIkAnimations(const VmdParser& vmd) const {
 		const AnimationBinder binder(animation);
 		auto& ikTracks = animation.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
@@ -65,7 +65,7 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
 	}
 
-	void AnimationBuilder::AddMorphAnimations(const VmdReader& vmd) const {
+	void AnimationBuilder::AddMorphAnimations(const VmdParser& vmd) const {
 		const AnimationBinder binder(animation);
 		auto& morphTracks = animation.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
@@ -84,7 +84,7 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
 	}
 
-	bool AnimationBuilder::Add(const VmdReader& vmd) const {
+	bool AnimationBuilder::Add(const VmdParser& vmd) const {
 		AddNodeAnimations(vmd);
 		AddIkAnimations(vmd);
 		AddMorphAnimations(vmd);

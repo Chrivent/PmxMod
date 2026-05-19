@@ -190,7 +190,7 @@ namespace Chrivent {
 		uint8_t		nearMode;
 	};
 
-	class PmxReader {
+	class PmxParser {
 		struct PmxHeader {
 			char		magic[4];
 			float		version;

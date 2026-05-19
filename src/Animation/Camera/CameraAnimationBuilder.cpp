@@ -29,7 +29,7 @@ namespace Chrivent {
 		return key;
 	}
 
-	bool CameraAnimationBuilder::Add(const VmdReader& vmd) const {
+	bool CameraAnimationBuilder::Add(const VmdParser& vmd) const {
 		if (vmd.cameras.empty())
 			return false;
 		animation.keys.clear();

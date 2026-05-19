@@ -4,7 +4,7 @@
 #include "../Util.h"
 
 namespace Chrivent {
-	void ModelLoader::LoadVertices(const PmxReader& pmx, const glm::vec3& invZ) const {
+	void ModelLoader::LoadVertices(const PmxParser& pmx, const glm::vec3& invZ) const {
 		size_t vertexCount = pmx.vertices.size();
 		model.geometryData.positions.reserve(vertexCount);
 		model.geometryData.normals.reserve(vertexCount);
@@ -66,7 +66,7 @@ namespace Chrivent {
 		model.geometryData.updateUVs.resize(model.geometryData.uvs.size());
 	}
 
-	bool ModelLoader::LoadFaces(const PmxReader& pmx) const {
+	bool ModelLoader::LoadFaces(const PmxParser& pmx) const {
 		model.geometryData.indexElementSize = pmx.header.vertexIndexSize;
 		model.geometryData.indices.resize(pmx.faces.size() * 3 * model.geometryData.indexElementSize);
 		model.geometryData.indexCount = pmx.faces.size() * 3;
@@ -88,7 +88,7 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadMaterials(
-		const PmxReader& pmx,
+		const PmxParser& pmx,
 		const std::filesystem::path& modelDir,
 		const std::filesystem::path& dataDir) const {
 		std::vector<std::filesystem::path> texturePaths;
@@ -144,7 +144,7 @@ namespace Chrivent {
 		model.materialData.addMaterialFactors.resize(model.materialData.materials.size());
 	}
 
-	void ModelLoader::LoadNodes(const PmxReader& pmx, const glm::vec3& invZ) const {
+	void ModelLoader::LoadNodes(const PmxParser& pmx, const glm::vec3& invZ) const {
 		model.skeletonData.nodes.reserve(pmx.bones.size());
 		for (const auto& bone : pmx.bones) {
 			auto node = std::make_shared<Node>();
@@ -219,7 +219,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::LoadMorphs(const PmxReader& pmx, const glm::vec3& invZ) const {
+	void ModelLoader::LoadMorphs(const PmxParser& pmx, const glm::vec3& invZ) const {
 		for (const auto& morph : pmx.morphs) {
 			auto m = std::make_unique<Morph>();
 			m->name = morph.name;
@@ -290,7 +290,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::LoadPhysics(const PmxReader& pmx) const {
+	void ModelLoader::LoadPhysics(const PmxParser& pmx) const {
 		model.physicsData.physics = std::make_unique<Physics>();
 		model.physicsData.physics->Create();
 		for (const auto& pmxRigidBody : pmx.rigidBodies) {
@@ -318,7 +318,7 @@ namespace Chrivent {
 
 	bool ModelLoader::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) const {
 		model.Destroy();
-		PmxReader pmx;
+		PmxParser pmx;
 		if (!pmx.ReadFile(filepath))
 			return false;
 		model.infoData.modelName = pmx.info.modelName;

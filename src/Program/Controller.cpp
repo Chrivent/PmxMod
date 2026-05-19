@@ -5,7 +5,7 @@
 #include "../Animation/Camera/CameraAnimation.h"
 #include "../Animation/Camera/CameraAnimationBuilder.h"
 #include "../Program/Sound.h"
-#include "../Reader/VmdReader.h"
+#include "../Reader/VmdParser.h"
 
 #include <iostream>
 
@@ -231,7 +231,7 @@ namespace Chrivent {
 			std::cout << "No camera VMD file.\n";
 			return;
 		}
-		VmdReader camVmd;
+		VmdParser camVmd;
 		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.cameras.empty()) {
 			auto vmdCamAnim = std::make_unique<CameraAnimation>();
 			const CameraAnimationBuilder cameraAnimationBuilder(*vmdCamAnim);

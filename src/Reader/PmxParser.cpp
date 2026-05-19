@@ -1,12 +1,13 @@
-﻿#include "PmxReader.h"
+﻿#include "PmxParser.h"
 
 #include "BinaryReader.h"
 #include "../Util.h"
 
 #include <fstream>
+#include <iostream>
 
 namespace Chrivent {
-	void PmxReader::ReadString(std::istream& is, std::string* val) const {
+	void PmxParser::ReadString(std::istream& is, std::string* val) const {
 		uint32_t bufSize;
 		BinaryReader::Read(is, &bufSize);
 		if (bufSize > 0) {
@@ -21,7 +22,7 @@ namespace Chrivent {
 		}
 	}
 
-	void PmxReader::ReadHeader(std::istream& is) {
+	void PmxParser::ReadHeader(std::istream& is) {
 		BinaryReader::Read(is, header.magic, sizeof(header.magic));
 		BinaryReader::Read(is, &header.version);
 		BinaryReader::Read(is, &header.dataSize);
@@ -35,14 +36,14 @@ namespace Chrivent {
 		BinaryReader::Read(is, &header.rigidbodyIndexSize);
 	}
 
-	void PmxReader::ReadInfo(std::istream& is) {
+	void PmxParser::ReadInfo(std::istream& is) {
 		ReadString(is, &info.modelName);
 		ReadString(is, &info.englishModelName);
 		ReadString(is, &info.comment);
 		ReadString(is, &info.englishComment);
 	}
 
-	void PmxReader::ReadVertex(std::istream& is) {
+	void PmxParser::ReadVertex(std::istream& is) {
 		int32_t vertexCount;
 		BinaryReader::Read(is, &vertexCount);
 		vertices.resize(vertexCount);
@@ -98,7 +99,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadFace(std::istream& is) {
+	void PmxParser::ReadFace(std::istream& is) {
 		int32_t faceCount = 0;
 		BinaryReader::Read(is, &faceCount);
 		faceCount /= 3;
@@ -138,7 +139,7 @@ namespace Chrivent {
 		}
 	}
 
-	void PmxReader::ReadTexture(std::istream& is) {
+	void PmxParser::ReadTexture(std::istream& is) {
 		int32_t texCount = 0;
 		BinaryReader::Read(is, &texCount);
 		textures.resize(texCount);
@@ -150,7 +151,7 @@ namespace Chrivent {
 		}
 	}
 
-	void PmxReader::ReadMaterial(std::istream& is) {
+	void PmxParser::ReadMaterial(std::istream& is) {
 		int32_t matCount = 0;
 		BinaryReader::Read(is, &matCount);
 		materials.resize(matCount);
@@ -185,7 +186,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadBone(std::istream& is) {
+	void PmxParser::ReadBone(std::istream& is) {
 		int32_t boneCount;
 		BinaryReader::Read(is, &boneCount);
 		bones.resize(boneCount);
@@ -240,7 +241,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadMorph(std::istream& is) {
+	void PmxParser::ReadMorph(std::istream& is) {
 		int32_t morphCount;
 		BinaryReader::Read(is, &morphCount);
 		morphs.resize(morphCount);
@@ -322,7 +323,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadDisplayFrame(std::istream& is) {
+	void PmxParser::ReadDisplayFrame(std::istream& is) {
 		int32_t displayFrameCount;
 		BinaryReader::Read(is, &displayFrameCount);
 		displayFrames.resize(displayFrameCount);
@@ -344,7 +345,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadRigidbody(std::istream& is) {
+	void PmxParser::ReadRigidbody(std::istream& is) {
 		int32_t rbCount;
 		BinaryReader::Read(is, &rbCount);
 		rigidBodies.resize(rbCount);
@@ -370,7 +371,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadJoint(std::istream& is) {
+	void PmxParser::ReadJoint(std::istream& is) {
 		int32_t jointCount;
 		BinaryReader::Read(is, &jointCount);
 		joints.resize(jointCount);
@@ -394,7 +395,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::ReadSoftBody(std::istream& is) {
+	void PmxParser::ReadSoftBody(std::istream& is) {
 		int32_t sbCount;
 		BinaryReader::Read(is, &sbCount);
 		softBodies.resize(sbCount);
@@ -463,7 +464,7 @@ namespace Chrivent {
 				 }
 	}
 
-	void PmxReader::Clear() {
+	void PmxParser::Clear() {
 		header = {};
 		info = {};
 		vertices.clear();
@@ -478,30 +479,47 @@ namespace Chrivent {
 		softBodies.clear();
 	}
 
-	bool PmxReader::ReadFile(const std::filesystem::path& filename) {
+	bool PmxParser::ReadFile(const std::filesystem::path& filename) {
 		Clear();
-		try {
-			std::ifstream is(filename, std::ios::binary);
-			if (!is)
-				return false;
-			const auto end = BinaryReader::GetFileEnd(is);
-			ReadHeader(is);
-			ReadInfo(is);
-			ReadVertex(is);
-			ReadFace(is);
-			ReadTexture(is);
-			ReadMaterial(is);
-			ReadBone(is);
-			ReadMorph(is);
-			ReadDisplayFrame(is);
-			ReadRigidbody(is);
-			ReadJoint(is);
-			if (BinaryReader::HasMore(is, end))
-				ReadSoftBody(is);
-			return true;
-		} catch (...) {
-			Clear();
+		std::ifstream is(filename, std::ios::binary);
+		if (!is) {
+			std::cerr << "Failed to open PMX file: " << filename.string() << '\n';
 			return false;
 		}
+		const auto Fail = [&](const char* stage) {
+			if (is)
+				return false;
+			std::cerr << "Failed to read PMX " << stage << ": " << filename.string() << '\n';
+			Clear();
+			return true;
+		};
+		const auto end = BinaryReader::GetFileEnd(is);
+		ReadHeader(is);
+		if (Fail("header")) return false;
+		ReadInfo(is);
+		if (Fail("info")) return false;
+		ReadVertex(is);
+		if (Fail("vertices")) return false;
+		ReadFace(is);
+		if (Fail("faces")) return false;
+		ReadTexture(is);
+		if (Fail("textures")) return false;
+		ReadMaterial(is);
+		if (Fail("materials")) return false;
+		ReadBone(is);
+		if (Fail("bones")) return false;
+		ReadMorph(is);
+		if (Fail("morphs")) return false;
+		ReadDisplayFrame(is);
+		if (Fail("display frames")) return false;
+		ReadRigidbody(is);
+		if (Fail("rigid bodies")) return false;
+		ReadJoint(is);
+		if (Fail("joints")) return false;
+		if (BinaryReader::HasMore(is, end)) {
+			ReadSoftBody(is);
+			if (Fail("soft bodies")) return false;
+		}
+		return true;
 	}
 }

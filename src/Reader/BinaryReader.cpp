@@ -14,39 +14,42 @@ namespace Chrivent {
 		return cur != std::streampos(-1) && cur < end;
 	}
 
-	void BinaryReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
-		if (!is.read(static_cast<char*>(dst), static_cast<std::streamsize>(bytes)))
-			throw std::runtime_error("Failed to read binary stream.");
+	bool BinaryReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
+		return static_cast<bool>(is.read(static_cast<char*>(dst), static_cast<std::streamsize>(bytes)));
 	}
 
-	void BinaryReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
+	bool BinaryReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 		switch (indexSize) {
 			case 1: {
 				uint8_t idx;
-				Read(is, &idx);
+				if (!Read(is, &idx))
+					return false;
 				if (idx != 0xFF)
 					*index = static_cast<int32_t>(idx);
 				else
 					*index = -1;
 			}
-				break;
+				return true;
 			case 2: {
 				uint16_t idx;
-				Read(is, &idx);
+				if (!Read(is, &idx))
+					return false;
 				if (idx != 0xFFFF)
 					*index = static_cast<int32_t>(idx);
 				else
 					*index = -1;
 			}
-				break;
+				return true;
 			case 4: {
 				uint32_t idx;
-				Read(is, &idx);
+				if (!Read(is, &idx))
+					return false;
 				*index = static_cast<int32_t>(idx);
 			}
-				break;
+				return true;
 			default:
-				throw std::runtime_error("Invalid PMX index size.");
+				is.setstate(std::ios::failbit);
+				return false;
 		}
 	}
 }

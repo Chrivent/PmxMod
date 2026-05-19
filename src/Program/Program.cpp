@@ -1,10 +1,10 @@
-#include "Program.h"
+﻿#include "Program.h"
 
 #include "../Animation/Model/Animation.h"
 #include "../Animation/Model/AnimationBuilder.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
-#include "../Reader/VmdReader.h"
+#include "../Reader/VmdParser.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
 
@@ -95,7 +95,7 @@ namespace Chrivent {
             vmdAnim->model = instance->model;
             const AnimationBuilder animationBuilder(*vmdAnim);
             for (const auto& vmdPath : animPaths) {
-                VmdReader vmd;
+                VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
                     std::cout << "Failed to read VMD file.\n";
                     return false;

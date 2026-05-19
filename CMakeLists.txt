@@ -25,8 +25,8 @@ add_executable(PmxMod
         src/Program/Controller.h src/Program/Controller.cpp
         src/Program/Sound.h src/Program/Sound.cpp
         
-        src/Reader/PmxReader.h src/Reader/PmxReader.cpp
-        src/Reader/VmdReader.h src/Reader/VmdReader.cpp
+        src/Reader/PmxParser.h src/Reader/PmxParser.cpp
+        src/Reader/VmdParser.h src/Reader/VmdParser.cpp
         src/Reader/BinaryReader.h src/Reader/BinaryReader.cpp
 
         src/Animation/AnimationKeySearch.h
