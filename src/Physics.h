@@ -2,7 +2,7 @@
 
 #include <btBulletDynamicsCommon.h>
 
-#include "Reader/PmxParser.h"
+#include "Parser/PmxParser.h"
 
 namespace Chrivent {
 	struct Model;

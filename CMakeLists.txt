@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+﻿cmake_minimum_required(VERSION 3.20)
 
 project(PmxMod)
 set(CMAKE_CXX_STANDARD 20)
@@ -25,9 +25,9 @@ add_executable(PmxMod
         src/Program/Controller.h src/Program/Controller.cpp
         src/Program/Sound.h src/Program/Sound.cpp
         
-        src/Reader/PmxParser.h src/Reader/PmxParser.cpp
-        src/Reader/VmdParser.h src/Reader/VmdParser.cpp
-        src/Reader/BinaryReader.h src/Reader/BinaryReader.cpp
+        src/Parser/PmxParser.h src/Parser/PmxParser.cpp
+        src/Parser/VmdParser.h src/Parser/VmdParser.cpp
+        src/Parser/BinaryReader.h src/Parser/BinaryReader.cpp
 
         src/Animation/AnimationKeySearch.h
         src/Animation/Bezier.h src/Animation/Bezier.cpp
@@ -46,6 +46,7 @@ add_executable(PmxMod
         src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp
         src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
+        src/Model/ModelTypes.h
         
         src/Util.h src/Util.cpp
         src/IkSolver.h src/IkSolver.cpp

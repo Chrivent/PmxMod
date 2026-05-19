@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Animation.h"
-#include "../../Reader/VmdParser.h"
+#include "../../Parser/VmdParser.h"
 
 namespace Chrivent {
 	class AnimationBuilder {

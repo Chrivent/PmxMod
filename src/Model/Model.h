@@ -2,23 +2,15 @@
 
 #include <future>
 
+#include "ModelTypes.h"
 #include "../Node.h"
 #include "../IkSolver.h"
 #include "../Physics.h"
 
 namespace Chrivent {
-	struct GroupMorph;
-	struct BoneMorph;
-	struct UvMorph;
-	struct PositionMorph;
-	struct MaterialMorph;
 	struct Animation;
 	class RigidBody;
 	class Joint;
-
-	enum class SphereMode : uint8_t;
-	enum class MorphType : uint8_t;
-	enum class WeightType : uint8_t;
 
 	struct SubMesh {
 		int	beginIndex;

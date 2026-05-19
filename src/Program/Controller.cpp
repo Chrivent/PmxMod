@@ -5,7 +5,7 @@
 #include "../Animation/Camera/CameraAnimation.h"
 #include "../Animation/Camera/CameraAnimationBuilder.h"
 #include "../Program/Sound.h"
-#include "../Reader/VmdParser.h"
+#include "../Parser/VmdParser.h"
 
 #include <iostream>
 

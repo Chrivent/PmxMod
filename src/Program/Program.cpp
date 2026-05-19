@@ -4,7 +4,7 @@
 #include "../Animation/Model/AnimationBuilder.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
-#include "../Reader/VmdParser.h"
+#include "../Parser/VmdParser.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
 
