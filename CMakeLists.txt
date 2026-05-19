@@ -55,13 +55,16 @@ add_executable(PmxMod
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
+        src/Viewer/TextureCache.h
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
         src/Viewer/Glfw/GlfwShaderFactory.h src/Viewer/Glfw/GlfwShaderFactory.cpp
+        src/Viewer/Glfw/GlfwTextureCache.h src/Viewer/Glfw/GlfwTextureCache.cpp
         src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
         src/Viewer/Dx11/Dx11DescriptorFactory.h src/Viewer/Dx11/Dx11DescriptorFactory.cpp
+        src/Viewer/Dx11/Dx11TextureCache.h src/Viewer/Dx11/Dx11TextureCache.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 )
 

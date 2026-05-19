@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "GlfwTextureCache.h"
 
-#include <map>
 #include <glad/glad.h>
 
 namespace Chrivent {
@@ -73,11 +73,6 @@ namespace Chrivent {
         bool Setup(const GlfwViewer& viewer);
     };
 
-    struct GlfwTexture {
-        GLuint	texture;
-        bool	hasAlpha;
-    };
-
     struct GlfwMaterial {
         const Material& mat;
         GLuint  texture = 0;
@@ -95,7 +90,7 @@ namespace Chrivent {
         }
 
         const int   msaaSamples = 4;
-        std::map<std::filesystem::path, GlfwTexture>    textures;
+        GlfwTextureCache textureCache;
     
     public:
         ~GlfwViewer() override;

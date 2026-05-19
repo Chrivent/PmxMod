@@ -4,8 +4,6 @@
 #include "GlfwShaderFactory.h"
 
 #include <iostream>
-#include <ranges>
-#include <stb_image.h>
 
 namespace Chrivent {
 	GlfwShader::~GlfwShader() {
@@ -83,8 +81,6 @@ namespace Chrivent {
 	}
 
 	GlfwViewer::~GlfwViewer() {
-		for (auto& [texture, hasAlpha] : textures | std::views::values)
-			glDeleteTextures(1, &texture);
 		if (dummyColorTex != 0)
 			glDeleteTextures(1, &dummyColorTex);
 	}
@@ -150,29 +146,6 @@ namespace Chrivent {
 	}
 
 	GlfwTexture GlfwViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		const auto it = textures.find(texturePath);
-		if (it != textures.end())
-			return it->second;
-		int x = 0, y = 0, comp = 0;
-		stbi_uc* image = LoadImageRgba(texturePath, x, y, comp, true);
-		if (!image)
-			return GlfwTexture{ 0, false };
-		const bool hasAlpha = comp == 4;
-		GLuint tex = 0;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glTexImage2D(GL_TEXTURE_2D, 0,
-			GL_RGBA, x, y, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, image);
-		stbi_image_free(image);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if (clamp) {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-		textures[texturePath] = GlfwTexture{ tex, hasAlpha };
-		return textures[texturePath];
+		return textureCache.Load(texturePath, clamp);
 	}
 }

@@ -7,9 +7,16 @@
 #include <GLFW/glfw3native.h>
 
 #include <d3dcompiler.h>
-#include <stb_image.h>
+#include <iostream>
 
 namespace Chrivent {
+	void Dx11Viewer::PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob) {
+		std::cerr << "Failed to compile HLSL shader: " << file.string()
+			<< " entry=" << entry << " target=" << target << '\n';
+		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
+			std::cerr << static_cast<const char*>(errorBlob->GetBufferPointer()) << '\n';
+	}
+
 	void Dx11Viewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
@@ -82,34 +89,7 @@ namespace Chrivent {
 	}
 
 	Dx11Texture Dx11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		const auto it = textures.find(texturePath);
-		if (it != textures.end())
-			return it->second;
-		int x = 0, y = 0, comp = 0;
-		stbi_uc* image = LoadImageRgba(texturePath, x, y, comp);
-		if (!image)
-			return {};
-		const bool textureHasAlpha = comp == 4;
-		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
-			static_cast<UINT>(x), static_cast<UINT>(y),
-			DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
-		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = image;
-		initData.SysMemPitch = 4 * x;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
-		const HRESULT hr = device->CreateTexture2D(&d, &initData, &tex2D);
-		stbi_image_free(image);
-		if (FAILED(hr))
-			return {};
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
-		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
-			return {};
-		Dx11Texture tex;
-		tex.texture = tex2D;
-		tex.textureView = tex2DRv;
-		tex.hasAlpha = textureHasAlpha;
-		textures[texturePath] = tex;
-		return textures[texturePath];
+		return textureCache.Load(device.Get(), texturePath);
 	}
 
 	void Dx11Viewer::UpdateViewport() const {
@@ -125,23 +105,33 @@ namespace Chrivent {
 
 	bool Dx11Viewer::MakeVs(const std::filesystem::path& f, const char* entry,
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const {
+		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 		if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entry, "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBlob, nullptr)))
+			entry, "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBlob, &errorBlob))) {
+			PrintShaderCompileError(f, entry, "vs_5_0", errorBlob.Get());
 			return false;
+		}
 		if (FAILED(device->CreateVertexShader(
-			outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVs)))
+			outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVs))) {
+			std::cerr << "Failed to create DX11 vertex shader: " << f.string() << " entry=" << entry << '\n';
 			return false;
+		}
 		return true;
 	}
 
 	bool Dx11Viewer::MakePs(const std::filesystem::path& f, const char* entry, Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPs) const {
 		Microsoft::WRL::ComPtr<ID3DBlob> blob;
+		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 		if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entry, "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &blob, nullptr)))
+			entry, "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &blob, &errorBlob))) {
+			PrintShaderCompileError(f, entry, "ps_5_0", errorBlob.Get());
 			return false;
+		}
 		if (FAILED(device->CreatePixelShader(
-			blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPs)))
+			blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPs))) {
+			std::cerr << "Failed to create DX11 pixel shader: " << f.string() << " entry=" << entry << '\n';
 			return false;
+		}
 		return true;
 	}
 
@@ -166,23 +156,29 @@ namespace Chrivent {
 		};
 		if (FAILED(device->CreateInputLayout(inputElementDesc, 3,
 			vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
-			&inputLayout)))
+			&inputLayout))) {
+			std::cerr << "Failed to create DX11 input layout for model shader.\n";
 			return false;
+		}
 		constexpr D3D11_INPUT_ELEMENT_DESC edgeInputElementDesc[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		if (FAILED(device->CreateInputLayout(edgeInputElementDesc, 2,
 			edgeVsBlob->GetBufferPointer(), edgeVsBlob->GetBufferSize(),
-			&edgeInputLayout)))
+			&edgeInputLayout))) {
+			std::cerr << "Failed to create DX11 input layout for edge shader.\n";
 			return false;
+		}
 		constexpr D3D11_INPUT_ELEMENT_DESC gsInputElementDesc[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		if (FAILED(device->CreateInputLayout(gsInputElementDesc, 1,
 			gsVsBlob->GetBufferPointer(), gsVsBlob->GetBufferSize(),
-			&gsInputLayout)))
+			&gsInputLayout))) {
+			std::cerr << "Failed to create DX11 input layout for ground shadow shader.\n";
 			return false;
+		}
 		return true;
 	}
 

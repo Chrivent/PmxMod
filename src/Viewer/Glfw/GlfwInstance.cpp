@@ -223,9 +223,9 @@ namespace Chrivent {
 		for (const auto& mat : model->materialData.materials) {
 			GlfwMaterial material(mat);
 			if (!mat.texture.empty()) {
-				auto [texture, hasAlpha] = viewer->LoadTexture(mat.texture);
-				material.texture = texture;
-				material.textureHasAlpha = hasAlpha;
+				const auto texture = viewer->LoadTexture(mat.texture);
+				material.texture = texture.texture;
+				material.textureHasAlpha = texture.hasAlpha;
 			}
 			if (!mat.spTexture.empty())
 				material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;

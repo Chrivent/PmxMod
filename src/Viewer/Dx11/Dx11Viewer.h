@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "Dx11TextureCache.h"
 
-#include <map>
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -65,12 +65,6 @@ namespace Chrivent {
         glm::vec4	shadowColor;
     };
 
-    struct Dx11Texture {
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>				texture;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	textureView;
-        bool								                hasAlpha;
-    };
-
     struct Dx11Material {
         const Material& mat;
         Dx11Texture texture{};
@@ -81,9 +75,12 @@ namespace Chrivent {
     };
 
     class Dx11Viewer : public Viewer {
+        // HLSL 컴파일 실패 정보를 콘솔에 출력한다.
+        static void PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob);
+
         UINT    multiSampleCount = 4;
         UINT	multiSampleQuality = 0;
-        std::map<std::filesystem::path, Dx11Texture>	    textures;
+        Dx11TextureCache textureCache;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
         Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;
@@ -145,3 +142,4 @@ namespace Chrivent {
         bool CreateDummyResources();
     };
 }
+
