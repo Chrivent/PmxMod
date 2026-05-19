@@ -147,11 +147,28 @@ namespace Chrivent {
         guiManager.PollGuiWindows();
         if (guiManager.ConsumeSceneConfigDirty())
             LoadScene(guiManager.sceneConfig);
+        int seekFrame = 0;
+        if (guiManager.ConsumeSeekFrame(seekFrame))
+            cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
+        switch (guiManager.ConsumePlaybackCommand()) {
+            case PlaybackCommand::Play:
+                cameraManager.Play(music);
+                break;
+            case PlaybackCommand::Pause:
+                cameraManager.Pause(music);
+                break;
+            case PlaybackCommand::Stop:
+                cameraManager.Stop(*viewer, music, saveTime);
+                break;
+            case PlaybackCommand::None:
+                break;
+        }
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(*viewer, music, saveTime);
+        guiManager.SetPlaybackFrame(static_cast<int>(viewer->animTime * 30.0f + 0.5f));
         cameraManager.UpdateCamera(*viewer);
         viewer->BeginFrame();
         for (const auto& instance : instances) {

@@ -22,7 +22,7 @@ namespace Chrivent {
 
 	GuiManager::GuiManager()
 		: viewerMenu(sceneConfigStorage), sceneConfig(sceneConfigStorage) {
-		playbackPanel.SetTimelineSliderId(kPlaybackTimelineSliderId);
+		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		Reset();
 	}
@@ -76,6 +76,18 @@ namespace Chrivent {
 
 	bool GuiManager::ConsumeSceneConfigDirty() {
 		return viewerMenu.ConsumeSceneConfigDirty();
+	}
+
+	PlaybackCommand GuiManager::ConsumePlaybackCommand() {
+		return playbackPanel.ConsumeCommand();
+	}
+
+	bool GuiManager::ConsumeSeekFrame(int& frame) {
+		return playbackPanel.ConsumeSeekFrame(frame);
+	}
+
+	void GuiManager::SetPlaybackFrame(const int frame) {
+		playbackPanel.SetCurrentFrame(frame);
 	}
 
 	void GuiManager::BindSound(Sound& sound) {

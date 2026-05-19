@@ -39,6 +39,8 @@ namespace Chrivent {
         void Pause() const;
         // 사운드 재생을 재개한다.
         void Resume();
+        // 사운드 재생 위치를 지정한 초로 이동한다.
+        void SeekSeconds(float seconds);
         // 사운드를 정지하고 재생 위치를 초기화한다.
         void Stop();
     };

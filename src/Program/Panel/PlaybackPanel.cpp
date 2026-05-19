@@ -1,6 +1,7 @@
 ﻿#include "PlaybackPanel.h"
 
 #include "../Manager/GuiManager.h"
+#include <CommCtrl.h>
 #include <algorithm>
 
 namespace Chrivent {
@@ -24,12 +25,23 @@ namespace Chrivent {
 				panel->Resize(client);
 				return 0;
 			}
+			case WM_COMMAND:
+				if (panel->HandleCommand(LOWORD(wParam)))
+					return 0;
+				break;
+			case WM_HSCROLL:
+				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam)))
+					return 0;
+				break;
 			case WM_CLOSE:
 				ShowWindow(hwnd, SW_HIDE);
 				return 0;
 			case WM_DESTROY:
 				panel->panelWindow = nullptr;
 				panel->timelineSlider = nullptr;
+				panel->playButton = nullptr;
+				panel->pauseButton = nullptr;
+				panel->stopButton = nullptr;
 				return 0;
 			default:
 				break;
@@ -37,8 +49,11 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
-	void PlaybackPanel::SetTimelineSliderId(const int id) {
-		timelineSliderId = id;
+	void PlaybackPanel::SetControlIds(const int timelineId, const int playId, const int pauseId, const int stopId) {
+		timelineSliderId = timelineId;
+		playButtonId = playId;
+		pauseButtonId = pauseId;
+		stopButtonId = stopId;
 	}
 
 	void PlaybackPanel::Show() {
@@ -59,7 +74,7 @@ namespace Chrivent {
 		panelWindow = CreateWindowExW(
 			0, L"PmxModPlaybackPanel", L"Playback",
 			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 420, 120,
+			CW_USEDEFAULT, CW_USEDEFAULT, 440, 150,
 			nullptr, nullptr, instance, this);
 		if (!panelWindow)
 			return;
@@ -78,16 +93,63 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::CreateContent(const HWND parent) {
-		timelineSlider = GuiManager::CreateHorizontalSlider(parent, timelineSliderId, 0, 1000, 0);
+		timelineSlider = GuiManager::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
+		playButton = CreateWindowExW(
+			0, L"BUTTON", L"Play",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(playButtonId)), GetModuleHandleW(nullptr), nullptr);
+		pauseButton = CreateWindowExW(
+			0, L"BUTTON", L"Pause",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(pauseButtonId)), GetModuleHandleW(nullptr), nullptr);
+		stopButton = CreateWindowExW(
+			0, L"BUTTON", L"Stop",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
 	}
 
 	void PlaybackPanel::Resize(const RECT& clientRect) {
 		constexpr int margin = 18;
 		constexpr int sliderHeight = 36;
+		constexpr int buttonWidth = 72;
+		constexpr int buttonHeight = 28;
+		constexpr int buttonGap = 8;
 		const int width = (std::max)(0, static_cast<int>(clientRect.right) - margin * 2);
-		const int y = (std::max)(margin, (static_cast<int>(clientRect.bottom) - sliderHeight) / 2);
+		constexpr int sliderY = 18;
 		if (timelineSlider)
-			MoveWindow(timelineSlider, margin, y, width, sliderHeight, TRUE);
+			MoveWindow(timelineSlider, margin, sliderY, width, sliderHeight, TRUE);
+		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
+		const int buttonX = (std::max)(margin, (static_cast<int>(clientRect.right) - buttonTotalWidth) / 2);
+		constexpr int buttonY = sliderY + sliderHeight + 10;
+		if (playButton)
+			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
+		if (pauseButton)
+			MoveWindow(pauseButton, buttonX + buttonWidth + buttonGap, buttonY, buttonWidth, buttonHeight, TRUE);
+		if (stopButton)
+			MoveWindow(stopButton, buttonX + (buttonWidth + buttonGap) * 2, buttonY, buttonWidth, buttonHeight, TRUE);
+	}
+
+	bool PlaybackPanel::HandleCommand(const int commandId) {
+		if (commandId == playButtonId)
+			pendingCommand = PlaybackCommand::Play;
+		else if (commandId == pauseButtonId)
+			pendingCommand = PlaybackCommand::Pause;
+		else if (commandId == stopButtonId)
+			pendingCommand = PlaybackCommand::Stop;
+		else
+			return false;
+		return true;
+	}
+
+	bool PlaybackPanel::HandleScroll(const HWND control) {
+		if (control != timelineSlider)
+			return false;
+		seekFrame = static_cast<int>(SendMessageW(timelineSlider, TBM_GETPOS, 0, 0));
+		seekRequested = true;
+		return true;
 	}
 
 	void PlaybackPanel::Destroy() {
@@ -95,5 +157,28 @@ namespace Chrivent {
 			DestroyWindow(panelWindow);
 		panelWindow = nullptr;
 		timelineSlider = nullptr;
+		playButton = nullptr;
+		pauseButton = nullptr;
+		stopButton = nullptr;
+	}
+
+	PlaybackCommand PlaybackPanel::ConsumeCommand() {
+		const PlaybackCommand command = pendingCommand;
+		pendingCommand = PlaybackCommand::None;
+		return command;
+	}
+
+	bool PlaybackPanel::ConsumeSeekFrame(int& frame) {
+		if (!seekRequested)
+			return false;
+		frame = seekFrame;
+		seekRequested = false;
+		return true;
+	}
+
+	void PlaybackPanel::SetCurrentFrame(const int frame) const {
+		if (!timelineSlider)
+			return;
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>((std::max)(0, frame)));
 	}
 }

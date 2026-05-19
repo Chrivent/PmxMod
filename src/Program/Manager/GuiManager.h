@@ -13,6 +13,9 @@ namespace Chrivent {
 
 	class GuiManager {
 		static constexpr int kPlaybackTimelineSliderId = 1001;
+		static constexpr int kPlaybackPlayButtonId = 1002;
+		static constexpr int kPlaybackPauseButtonId = 1003;
+		static constexpr int kPlaybackStopButtonId = 1004;
 		static constexpr int kSoundVolumeSliderId = 2001;
 
 		SceneConfig sceneConfigStorage;
@@ -45,6 +48,12 @@ namespace Chrivent {
 		void DestroyGui();
 		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
+		// 플레이백 패널의 재생 명령을 반환하고 초기화한다.
+		PlaybackCommand ConsumePlaybackCommand();
+		// 플레이백 패널의 프레임 이동 요청을 반환하고 초기화한다.
+		bool ConsumeSeekFrame(int& frame);
+		// 현재 재생 프레임을 플레이백 패널에 표시한다.
+		void SetPlaybackFrame(int frame);
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound);
 		// 눈금 없는 가로 슬라이더 컨트롤을 생성한다.
