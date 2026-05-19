@@ -22,7 +22,7 @@ namespace Chrivent {
         std::vector<CameraAnimationKey>	keys;
         Camera camera;
         
-        // 吏?뺥븳 ?쒓컙??移대찓???ㅻ? 蹂닿컙???꾩옱 移대찓?쇱뿉 ?곸슜?쒕떎.
+        // 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
         void Evaluate(float t);
     };
 }

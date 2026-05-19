@@ -27,11 +27,11 @@ namespace Chrivent {
 		double prevCursorY = 0.0;
 
 	public:
-		// ?댁쟾 ?꾨젅???낅젰 ?곹깭瑜?珥덇린?뷀븳??
+		// 이전 프레임 입력 상태를 초기화한다.
 		void Reset();
-		// ?꾩옱 GLFW ?낅젰???쎌뼱 ?대쾲 ?꾨젅???낅젰 ?곹깭濡?蹂?섑븳??
+		// 현재 GLFW 입력을 읽어 이번 프레임 입력 상태로 변환한다.
 		void Update(const Viewer& viewer);
-		// ?대쾲 ?꾨젅?꾩뿉 怨꾩궛???낅젰 ?곹깭瑜?諛섑솚?쒕떎.
+		// 이번 프레임에 계산된 입력 상태를 반환한다.
 		const InputState& GetState() const { return state; }
 	};
 }

@@ -3,6 +3,7 @@
 #include "../Sound.h"
 
 #include <CommCtrl.h>
+#include <algorithm>
 #include <cmath>
 #include <string>
 

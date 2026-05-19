@@ -18,7 +18,7 @@ namespace Chrivent {
 		float distance = 50;
 		float fov = glm::radians(30.0f);
 
-		// ?꾩옱 移대찓???뚮씪誘명꽣濡?酉??됰젹??怨꾩궛?쒕떎.
+		// 현재 카메라 파라미터로 뷰 행렬을 계산한다.
 		glm::mat4 CalcViewMatrix() const;
 	};
 
@@ -31,22 +31,22 @@ namespace Chrivent {
 		float freeCamPitch = 0.0f;
 		std::unique_ptr<CameraAnimation> cameraAnim;
 
-		// ?꾩옱 紐⑥뀡 移대찓???쒖젏?먯꽌 ?먯쑀 移대찓???꾩튂? ?뚯쟾媛믪쓣 ?숆린?뷀븳??
+		// 현재 모션 카메라 시점에서 자유 카메라 위치와 회전값을 동기화한다.
 		void SyncFreeCameraToCurrentView(const Viewer& viewer);
 
 	public:
 		CameraManager();
 		~CameraManager();
 
-		// 移대찓?쇱? ?ъ깮 ?곹깭瑜?湲곕낯媛믪쑝濡?珥덇린?뷀븳??
+		// 카메라와 재생 상태를 기본값으로 초기화한다.
 		void Reset();
-		// 移대찓??VMD ?뚯씪???쎌뼱 紐⑥뀡 移대찓???좊땲硫붿씠?섏쓣 以鍮꾪븳??
+		// 카메라 VMD 파일을 읽어 모션 카메라 애니메이션을 준비한다.
 		void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
-		// ?쇱떆?뺤?? ?ъ슫???숆린?붾? 諛섏쁺??酉곗뼱 ?좊땲硫붿씠???쒓컙??媛깆떊?쒕떎.
+		// 일시정지와 사운드 동기화를 반영해 뷰어 애니메이션 시간을 갱신한다.
 		void StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const;
-		// ?낅젰 留ㅻ땲?媛 ?뺣━??議곗옉 ?곹깭瑜?移대찓?쇱? ?ъ깮 ?곹깭??諛섏쁺?쒕떎.
+		// 입력 매니저가 정리한 조작 상태를 카메라와 재생 상태에 반영한다.
 		void HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music);
-		// ?꾩옱 移대찓??紐⑤뱶??留욎떠 酉곗뼱??view/projection ?됰젹??媛깆떊?쒕떎.
+		// 현재 카메라 모드에 맞춰 뷰어의 view/projection 행렬을 갱신한다.
 		void UpdateCamera(Viewer& viewer) const;
 	};
 }

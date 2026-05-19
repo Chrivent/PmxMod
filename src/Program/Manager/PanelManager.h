@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include "../Config.h"
+#include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
 #include "../../Viewer/ViewerMenu.h"
 
@@ -11,10 +12,12 @@ namespace Chrivent {
 	class Viewer;
 
 	class PanelManager {
+		static constexpr int kPlaybackTimelineSliderId = 1001;
 		static constexpr int kSoundVolumeSliderId = 2001;
 
 		SceneConfig sceneConfigStorage;
 		ViewerMenu viewerMenu;
+		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
 		HWND renderWindow = nullptr;
 		WNDPROC prevRenderWindowProc = nullptr;

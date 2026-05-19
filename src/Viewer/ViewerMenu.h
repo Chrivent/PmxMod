@@ -22,17 +22,17 @@ namespace Chrivent {
 	public:
 		explicit ViewerMenu(SceneConfig& config);
 
-		// ?뚯씪 硫붾돱瑜??뚮뜑留?李??곷떒 硫붾돱??異붽??쒕떎.
+		// 파일 메뉴를 렌더링 창 상단 메뉴에 추가한다.
 		static void AddMenu(HMENU menu);
-		// ?뚯씪 ??붿긽?먯쓽 遺紐④? ???뚮뜑留?李??몃뱾???곌껐?쒕떎.
+		// 파일 대화상자의 부모가 될 렌더링 창 핸들을 연결한다.
 		void AttachOwner(HWND owner);
-		// 硫붾돱 紐낅졊??泥섎━?쒕떎.
+		// 메뉴 명령을 처리한다.
 		bool HandleCommand(int commandId);
-		// ?몃??먯꽌 ?꾨떖?????ㅼ젙??硫붾돱 ?곹깭??諛섏쁺?쒕떎.
+		// 외부에서 전달된 씬 설정을 메뉴 상태에 반영한다.
 		void ApplySceneConfig(const SceneConfig& cfg);
-		// ??蹂寃??뚮옒洹몃? 珥덇린?뷀븳??
+		// 씬 변경 플래그를 초기화한다.
 		void Reset();
-		// ???ㅼ젙 蹂寃??뚮옒洹몃? 諛섑솚?섍퀬 珥덇린?뷀븳??
+		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
 	};
 }
