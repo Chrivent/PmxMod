@@ -3,9 +3,9 @@
 #include <future>
 
 #include "ModelTypes.h"
-#include "../Node.h"
-#include "../IkSolver.h"
-#include "../Physics.h"
+#include "Bone/Node.h"
+#include "Bone/IkSolver.h"
+#include "Bone/Physics.h"
 
 namespace Chrivent {
 	struct Animation;

@@ -47,11 +47,11 @@ add_executable(PmxMod
         src/Model/ModelPose.h src/Model/ModelPose.cpp
         src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
         src/Model/ModelTypes.h
+        src/Model/Bone/IkSolver.h src/Model/Bone/IkSolver.cpp
+        src/Model/Bone/Node.h src/Model/Bone/Node.cpp
+        src/Model/Bone/Physics.h src/Model/Bone/Physics.cpp
         
         src/Util.h src/Util.cpp
-        src/IkSolver.h src/IkSolver.cpp
-        src/Node.h src/Node.cpp
-        src/Physics.h src/Physics.cpp
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp

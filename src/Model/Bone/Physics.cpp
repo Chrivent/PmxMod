@@ -1,7 +1,7 @@
 ﻿#include "Physics.h"
 
-#include "Model/Model.h"
-#include "Util.h"
+#include "../Model.h"
+#include "../../Util.h"
 
 namespace Chrivent {
 	MotionState::~MotionState() = default;
