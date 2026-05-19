@@ -2,7 +2,6 @@
 
 #include <future>
 
-#include "ModelTypes.h"
 #include "Bone/Node.h"
 #include "Bone/IkSolver.h"
 #include "Physics/Physics.h"
