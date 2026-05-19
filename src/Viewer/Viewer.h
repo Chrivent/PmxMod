@@ -45,6 +45,7 @@ namespace Chrivent {
         glm::vec3	lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
         float	elapsed = 0.0f;
         float	animTime = 0.0f;
+        bool	skipPhysics = false;
         GLFWwindow* window = nullptr;
     };
 }

@@ -60,13 +60,14 @@ namespace Chrivent {
 		morph.Update();
 	}
 
-	void ModelAnimator::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed) const {
+	void ModelAnimator::UpdateAllAnimation(const Animation* anim, const float frame, const float physicsElapsed, const bool updatePhysics) const {
 		if (anim)
 			anim->Evaluate(frame);
 		UpdateMorphAnimation();
 		const ModelPose pose(model);
 		pose.UpdateNodeAnimation(false);
-		pose.UpdatePhysicsAnimation(physicsElapsed);
+		if (updatePhysics)
+			pose.UpdatePhysicsAnimation(physicsElapsed);
 		pose.UpdateNodeAnimation(true);
 	}
 

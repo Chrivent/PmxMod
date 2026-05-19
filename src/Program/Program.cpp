@@ -73,6 +73,7 @@ namespace Chrivent {
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
+        viewer->skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
         guiManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
@@ -173,18 +174,23 @@ namespace Chrivent {
         int seekFrame = 0;
         bool seekFinished = false;
         if (guiManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
+            viewer->skipPhysics = !seekFinished;
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
-            if (seekFinished)
+            if (seekFinished) {
                 SyncSeekedPhysics(seekFrame);
+                viewer->skipPhysics = false;
+            }
         }
         switch (guiManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
+                viewer->skipPhysics = false;
                 cameraManager.Play(music);
                 break;
             case PlaybackCommand::Pause:
                 cameraManager.Pause(music);
                 break;
             case PlaybackCommand::Stop:
+                viewer->skipPhysics = false;
                 cameraManager.Stop(*viewer, music, saveTime);
                 break;
             case PlaybackCommand::None:
