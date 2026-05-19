@@ -24,6 +24,10 @@ add_executable(PmxMod
         src/Program/Config.h src/Program/Config.cpp
         src/Program/Controller.h src/Program/Controller.cpp
         src/Program/Sound.h src/Program/Sound.cpp
+        src/Program/Panel/PanelCommandId.h
+        src/Program/Panel/ToolPanel.h
+        src/Program/Panel/ScenePanel.h src/Program/Panel/ScenePanel.cpp
+        src/Program/Panel/SoundPanel.h
         
         src/Parser/PmxParser.h src/Parser/PmxParser.cpp
         src/Parser/VmdParser.h src/Parser/VmdParser.cpp

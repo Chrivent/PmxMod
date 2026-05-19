@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 
 #include "Config.h"
+#include "Panel/ScenePanel.h"
+#include "Panel/SoundPanel.h"
 
 namespace Chrivent {
 	struct CameraAnimation;
@@ -13,9 +15,6 @@ namespace Chrivent {
 	class Viewer;
 
 	class Controller {
-		static constexpr int kOpenButtonId = 1001;
-		static constexpr int kSaveButtonId = 1002;
-
 		bool paused = false;
 		bool prevSpaceDown = false;
 		bool useMotionCamera = true;
@@ -28,30 +27,20 @@ namespace Chrivent {
 		float freeCamYaw = 0.0f;
 		float freeCamPitch = 0.0f;
 		std::unique_ptr<CameraAnimation> cameraAnim;
-		std::filesystem::path sceneFilePath;
-		bool sceneConfigDirty = false;
+		SceneConfig sceneConfigStorage;
+		ScenePanel scenePanel;
+		SoundPanel soundPanel;
 		HWND controlWindow = nullptr;
-		HWND statusText = nullptr;
 
 		// 현재 모션 카메라 시점에서 자유 카메라 위치와 회전값을 동기화한다.
 		void SyncFreeCameraToCurrentView(const Viewer& viewer);
 		// 컨트롤 창 크기에 맞춰 내부 윈도우 컨트롤 배치를 갱신한다.
-		void ResizeControlWindow() const;
-		// 컨트롤 창의 상태 문구를 변경한다.
-		void SetStatusText(const std::wstring& text) const;
-		// 현재 씬 설정을 지정한 파일에 저장한다.
-		bool SaveSceneConfig(const std::filesystem::path& filepath) const;
-		// 지정한 파일에서 씬 설정을 읽고 로드 대기 상태로 표시한다.
-		bool LoadSceneConfig(const std::filesystem::path& filepath);
-		// 씬 설정 파일을 여는 시스템 파일 선택 창을 표시한다.
-		void ShowOpenSceneDialog();
-		// 씬 설정 파일을 저장할 시스템 파일 선택 창을 표시한다.
-		void ShowSaveSceneDialog();
+		void ResizeControlWindow();
 		// 컨트롤 창의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	public:
-		SceneConfig sceneConfig;
+		SceneConfig& sceneConfig;
 	
 		Controller();
 		~Controller();
