@@ -179,6 +179,7 @@ namespace Chrivent {
             return false;
         }
         controller.OpenControlWindow();
+        controller.BindSound(music);
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;

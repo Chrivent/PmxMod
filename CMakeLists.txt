@@ -27,7 +27,7 @@ add_executable(PmxMod
         src/Program/Panel/PanelCommandId.h
         src/Program/Panel/ToolPanel.h
         src/Program/Panel/ScenePanel.h src/Program/Panel/ScenePanel.cpp
-        src/Program/Panel/SoundPanel.h
+        src/Program/Panel/SoundPanel.h src/Program/Panel/SoundPanel.cpp
         
         src/Parser/PmxParser.h src/Parser/PmxParser.cpp
         src/Parser/VmdParser.h src/Parser/VmdParser.cpp
@@ -82,6 +82,7 @@ target_link_libraries(PmxMod PUBLIC
         d3d11
         dxgi
         d3dcompiler
+        comctl32
 
         BulletDynamics
         BulletCollision

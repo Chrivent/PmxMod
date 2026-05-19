@@ -57,6 +57,8 @@ namespace Chrivent {
 		void DestroyControlWindow();
 		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
+		// 컨트롤 창의 사운드 패널이 조절할 사운드 객체를 연결한다.
+		void BindSound(Sound& sound);
 		// 카메라 VMD 파일을 읽어 모션 카메라 애니메이션을 준비한다.
 		void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
 		// 일시정지와 사운드 동기화를 반영해 뷰어 애니메이션 시간을 갱신한다.

@@ -11,6 +11,7 @@ namespace Chrivent {
 		virtual void Create(HWND parent) {}
 		virtual void Resize(const RECT& clientRect) {}
 		virtual bool HandleCommand(int commandId) { return false; }
+		virtual bool HandleScroll(HWND control) { return false; }
 		virtual void Destroy() {}
 	};
 }

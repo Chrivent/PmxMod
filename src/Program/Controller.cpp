@@ -56,6 +56,13 @@ namespace Chrivent {
 				if (controller->soundPanel.HandleCommand(LOWORD(wParam)))
 					return 0;
 				break;
+			case WM_HSCROLL:
+			case WM_VSCROLL:
+				if (controller->scenePanel.HandleScroll(reinterpret_cast<HWND>(lParam)))
+					return 0;
+				if (controller->soundPanel.HandleScroll(reinterpret_cast<HWND>(lParam)))
+					return 0;
+				break;
 			case WM_APP + 2:
 				ShowWindow(hwnd, SW_SHOWNORMAL);
 				SetForegroundWindow(hwnd);
@@ -149,6 +156,10 @@ namespace Chrivent {
 
 	bool Controller::ConsumeSceneConfigDirty() {
 		return scenePanel.ConsumeSceneConfigDirty();
+	}
+
+	void Controller::BindSound(Sound& sound) {
+		soundPanel.BindSound(sound);
 	}
 
 	void Controller::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {

@@ -54,8 +54,8 @@ namespace Chrivent {
         return true;
     }
 
-    void Sound::ApplyVolume() {
-        volume = std::clamp(volume, 0.0f, 1.0f);
+    void Sound::SetVolume(const float value) {
+        volume = std::clamp(value, 0.0f, 1.0f);
         if (hasSound)
             ma_sound_set_volume(sound.get(), volume);
     }
