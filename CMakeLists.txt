@@ -49,7 +49,10 @@ add_executable(PmxMod
         src/Model/ModelTypes.h
         src/Model/Bone/IkSolver.h src/Model/Bone/IkSolver.cpp
         src/Model/Bone/Node.h src/Model/Bone/Node.cpp
-        src/Model/Bone/Physics.h src/Model/Bone/Physics.cpp
+        src/Model/Physics/Physics.h src/Model/Physics/Physics.cpp
+        src/Model/Physics/RigidBody.h src/Model/Physics/RigidBody.cpp
+        src/Model/Physics/Joint.h src/Model/Physics/Joint.cpp
+        src/Model/Physics/MotionState.h src/Model/Physics/MotionState.cpp
         
         src/Util.h src/Util.cpp
 

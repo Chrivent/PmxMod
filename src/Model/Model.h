@@ -5,12 +5,12 @@
 #include "ModelTypes.h"
 #include "Bone/Node.h"
 #include "Bone/IkSolver.h"
-#include "Bone/Physics.h"
+#include "Physics/Physics.h"
+#include "Physics/RigidBody.h"
+#include "Physics/Joint.h"
 
 namespace Chrivent {
 	struct Animation;
-	class RigidBody;
-	class Joint;
 
 	struct SubMesh {
 		int	beginIndex;
