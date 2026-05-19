@@ -54,7 +54,7 @@ namespace Chrivent {
     void Program::Shutdown() {
         ClearInstances();
         music.Stop();
-        controller.DestroyControlWindow();
+        panelManager.DestroyPanelWindows();
         viewer.reset();
         glfwTerminate();
     }
@@ -70,7 +70,7 @@ namespace Chrivent {
         music.Stop();
         if (!sceneConfig.musicPath.empty())
             music.Init(sceneConfig.musicPath, false);
-        controller.LoadCameraAnim(sceneConfig.cameraAnim);
+        cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
         saveTime = std::chrono::steady_clock::now();
@@ -144,14 +144,15 @@ namespace Chrivent {
 
     bool Program::RunFrame() {
         glfwPollEvents();
-        controller.PollControlWindow();
-        if (controller.ConsumeSceneConfigDirty())
-            LoadScene(controller.sceneConfig);
-        controller.HandleInput(*viewer, music);
+        panelManager.PollPanelWindows();
+        if (panelManager.ConsumeSceneConfigDirty())
+            LoadScene(panelManager.sceneConfig);
+        inputManager.Update(*viewer);
+        cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())
             return false;
-        controller.StepTime(*viewer, music, saveTime);
-        controller.UpdateCamera(*viewer);
+        cameraManager.StepTime(*viewer, music, saveTime);
+        cameraManager.UpdateCamera(*viewer);
         viewer->BeginFrame();
         for (const auto& instance : instances) {
             instance->UpdateAnimation(*viewer);
@@ -172,19 +173,21 @@ namespace Chrivent {
         }
         CreateViewer(engineType);
         const SceneConfig cfg;
-        controller.Reset();
-        controller.ApplySceneConfig(cfg);
+        cameraManager.Reset();
+        inputManager.Reset();
+        panelManager.Reset();
+        panelManager.ApplySceneConfig(cfg);
         if (!InitializeViewer()) {
             std::cout << "Failed to run.\n";
             return false;
         }
-        controller.BindSound(music);
-        controller.OpenControlWindow();
+        panelManager.BindSound(music);
+        panelManager.OpenPanelWindows();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;
         LoadScene(cfg);
-        controller.UpdateCamera(*viewer);
+        cameraManager.UpdateCamera(*viewer);
         while (!glfwWindowShouldClose(viewer->window)) {
             if (!RunFrame())
                 break;
