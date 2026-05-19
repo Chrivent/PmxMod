@@ -1,11 +1,11 @@
 ﻿#pragma once
 
 #include "PanelCommandId.h"
-#include "ToolPanel.h"
+#include "Panel.h"
 #include "../Config.h"
 
 namespace Chrivent {
-	class ScenePanel final : public ToolPanel {
+	class ScenePanel final : public Panel {
 		static constexpr int kOpenButtonId = PanelCommandId::sceneBase + 1;
 		static constexpr int kSaveButtonId = PanelCommandId::sceneBase + 2;
 

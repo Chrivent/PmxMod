@@ -3,9 +3,9 @@
 #include <windows.h>
 
 namespace Chrivent {
-	class ToolPanel {
+	class Panel {
 	public:
-		virtual ~ToolPanel() = default;
+		virtual ~Panel() = default;
 
 		virtual void AddMenu(HMENU menu) {}
 		virtual void Create(HWND parent) {}

@@ -178,8 +178,8 @@ namespace Chrivent {
             std::cout << "Failed to run.\n";
             return false;
         }
-        controller.OpenControlWindow();
         controller.BindSound(music);
+        controller.OpenControlWindow();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;

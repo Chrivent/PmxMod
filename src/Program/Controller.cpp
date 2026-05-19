@@ -23,7 +23,6 @@ namespace Chrivent {
 		RECT client{};
 		GetClientRect(controlWindow, &client);
 		scenePanel.Resize(client);
-		soundPanel.Resize(client);
 	}
 
 	LRESULT CALLBACK Controller::ControlWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -40,10 +39,8 @@ namespace Chrivent {
 			case WM_CREATE: {
 				const HMENU menu = CreateMenu();
 				controller->scenePanel.AddMenu(menu);
-				controller->soundPanel.AddMenu(menu);
 				SetMenu(hwnd, menu);
 				controller->scenePanel.Create(hwnd);
-				controller->soundPanel.Create(hwnd);
 				controller->ResizeControlWindow();
 				return 0;
 			}
@@ -52,15 +49,6 @@ namespace Chrivent {
 				return 0;
 			case WM_COMMAND:
 				if (controller->scenePanel.HandleCommand(LOWORD(wParam)))
-					return 0;
-				if (controller->soundPanel.HandleCommand(LOWORD(wParam)))
-					return 0;
-				break;
-			case WM_HSCROLL:
-			case WM_VSCROLL:
-				if (controller->scenePanel.HandleScroll(reinterpret_cast<HWND>(lParam)))
-					return 0;
-				if (controller->soundPanel.HandleScroll(reinterpret_cast<HWND>(lParam)))
 					return 0;
 				break;
 			case WM_APP + 2:
@@ -113,6 +101,7 @@ namespace Chrivent {
 	bool Controller::OpenControlWindow() {
 		if (controlWindow) {
 			ShowWindow(controlWindow, SW_SHOWNORMAL);
+			soundPanel.Show();
 			return true;
 		}
 		const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -133,17 +122,19 @@ namespace Chrivent {
 			return false;
 		ShowWindow(controlWindow, SW_SHOWNORMAL);
 		UpdateWindow(controlWindow);
+		soundPanel.Show();
 		return true;
 	}
 
 	void Controller::PollControlWindow() const {
-		if (!controlWindow)
-			return;
 		MSG msg{};
-		while (PeekMessageW(&msg, controlWindow, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
+		if (controlWindow) {
+			while (PeekMessageW(&msg, controlWindow, 0, 0, PM_REMOVE)) {
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
 		}
+		soundPanel.Poll();
 	}
 
 	void Controller::DestroyControlWindow() {

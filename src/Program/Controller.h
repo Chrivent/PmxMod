@@ -49,11 +49,11 @@ namespace Chrivent {
 		void ApplySceneConfig(const SceneConfig& cfg);
 		// 입력, 카메라, 씬 로드 상태를 기본값으로 초기화한다.
 		void Reset();
-		// 씬 열기/저장을 위한 컨트롤 창을 생성하거나 다시 표시한다.
+		// 씬 패널과 사운드 패널 창을 생성하거나 다시 표시한다.
 		bool OpenControlWindow();
-		// 컨트롤 창에 쌓인 Win32 메시지를 처리한다.
+		// 패널 창들에 쌓인 Win32 메시지를 처리한다.
 		void PollControlWindow() const;
-		// 컨트롤 창을 파괴하고 관련 핸들을 초기화한다.
+		// 패널 창들을 파괴하고 관련 핸들을 초기화한다.
 		void DestroyControlWindow();
 		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
