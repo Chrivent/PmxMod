@@ -1,8 +1,6 @@
 ﻿#include "ViewerMenu.h"
 
-#include <cwchar>
 #include <iostream>
-#include <vector>
 
 namespace Chrivent {
 	ViewerMenu::ViewerMenu(SceneConfig& config) : sceneConfig(config) {}

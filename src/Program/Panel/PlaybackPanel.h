@@ -45,5 +45,7 @@ namespace Chrivent {
 		bool ConsumeSeekFrame(int& frame);
 		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
 		void SetCurrentFrame(int frame) const;
+		// 슬라이더가 이동할 수 있는 마지막 프레임을 설정한다.
+		void SetFrameRange(int maxFrame) const;
 	};
 }

@@ -1,7 +1,5 @@
 ﻿#include "Sound.h"
 
-#include <algorithm>
-
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 

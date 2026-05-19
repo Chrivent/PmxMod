@@ -11,6 +11,23 @@ namespace Chrivent {
 		morphTracks.clear();
 	}
 
+	int32_t Animation::GetLastFrame() const {
+		int32_t lastFrame = 0;
+		for (const auto& [node, keys] : nodeTracks) {
+			if (!keys.empty())
+				lastFrame = (std::max)(lastFrame, keys.back().time);
+		}
+		for (const auto& [ikSolver, keys] : ikTracks) {
+			if (!keys.empty())
+				lastFrame = (std::max)(lastFrame, keys.back().time);
+		}
+		for (const auto& [morph, keys] : morphTracks) {
+			if (!keys.empty())
+				lastFrame = (std::max)(lastFrame, keys.back().time);
+		}
+		return lastFrame;
+	}
+
 	void Animation::Evaluate(const float t, const float animWeight) const {
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);

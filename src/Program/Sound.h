@@ -29,6 +29,8 @@ namespace Chrivent {
         Sound& operator=(Sound&&) = delete;
         
         float GetVolume() const { return volume; }
+        // 전체 사운드 길이를 초 단위로 반환한다.
+        double GetLengthSeconds() const { return lengthSec; }
 
         // 오디오 파일을 열고 필요하면 반복 재생으로 준비한다.
         bool Init(const std::filesystem::path& path, bool loop);

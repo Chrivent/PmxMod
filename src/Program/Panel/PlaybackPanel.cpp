@@ -1,8 +1,8 @@
 ﻿#include "PlaybackPanel.h"
 
 #include "../Manager/GuiManager.h"
+
 #include <CommCtrl.h>
-#include <algorithm>
 
 namespace Chrivent {
 	LRESULT CALLBACK PlaybackPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -180,5 +180,13 @@ namespace Chrivent {
 		if (!timelineSlider)
 			return;
 		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>((std::max)(0, frame)));
+	}
+
+	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
+		if (!timelineSlider)
+			return;
+		const int safeMaxFrame = (std::max)(0, maxFrame);
+		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
 	}
 }

@@ -86,8 +86,12 @@ namespace Chrivent {
 		return playbackPanel.ConsumeSeekFrame(frame);
 	}
 
-	void GuiManager::SetPlaybackFrame(const int frame) {
+	void GuiManager::SetPlaybackFrame(const int frame) const {
 		playbackPanel.SetCurrentFrame(frame);
+	}
+
+	void GuiManager::SetPlaybackFrameRange(const int maxFrame) const {
+		playbackPanel.SetFrameRange(maxFrame);
 	}
 
 	void GuiManager::BindSound(Sound& sound) {

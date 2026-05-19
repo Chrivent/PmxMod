@@ -75,6 +75,7 @@ namespace Chrivent {
         viewer->animTime = 0.0f;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
+        guiManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         return true;
     }
 
@@ -116,6 +117,27 @@ namespace Chrivent {
         return true;
     }
 
+    int Program::CalculatePlaybackLastFrame() const {
+        int lastFrame = cameraManager.GetLastFrame();
+        if (music.hasSound)
+            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
+        for (const auto& instance : instances) {
+            if (instance && instance->anim)
+                lastFrame = (std::max)(lastFrame, instance->anim->GetLastFrame());
+        }
+        return lastFrame;
+    }
+
+    void Program::SyncSeekedPhysics(const int frame) const {
+        for (const auto& instance : instances) {
+            if (!instance || !instance->model || !instance->anim)
+                continue;
+            const ModelAnimator animator(*instance->model);
+            animator.BeginAnimation();
+            animator.SyncPhysics(*instance->anim, static_cast<float>(frame));
+        }
+    }
+
     void Program::ClearInstances() {
         for (const auto& instance : instances)
             instance->Clear();
@@ -149,8 +171,10 @@ namespace Chrivent {
         if (guiManager.ConsumeSceneConfigDirty())
             LoadScene(guiManager.sceneConfig);
         int seekFrame = 0;
-        if (guiManager.ConsumeSeekFrame(seekFrame))
+        if (guiManager.ConsumeSeekFrame(seekFrame)) {
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
+            SyncSeekedPhysics(seekFrame);
+        }
         switch (guiManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
                 cameraManager.Play(music);

@@ -3,6 +3,10 @@
 #include "../AnimationKeySearch.h"
 
 namespace Chrivent {
+	int32_t CameraAnimation::GetLastFrame() const {
+		return keys.empty() ? 0 : keys.back().time;
+	}
+
 	void CameraAnimation::Evaluate(const float t) {
 		if (keys.empty())
 			return;

@@ -1,9 +1,9 @@
 ﻿#pragma once
 
+#include "Sound.h"
 #include "Manager/CameraManager.h"
 #include "Manager/GuiManager.h"
 #include "Manager/InputManager.h"
-#include "Sound.h"
 #include "../Viewer/Viewer.h"
 
 namespace Chrivent {
@@ -28,6 +28,10 @@ namespace Chrivent {
         bool LoadScene(const SceneConfig& sceneConfig);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
         bool LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
+        // 현재 씬의 모델 모션, 카메라 모션, 음악 중 가장 긴 재생 프레임을 계산한다.
+        int CalculatePlaybackLastFrame() const;
+        // 지정한 프레임으로 이동한 직후 모델 물리 상태를 동기화한다.
+        void SyncSeekedPhysics(int frame) const;
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영한다.

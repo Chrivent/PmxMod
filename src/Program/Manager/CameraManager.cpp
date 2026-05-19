@@ -6,9 +6,6 @@
 #include "../Sound.h"
 #include "../../Viewer/Viewer.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <algorithm>
-#include <cmath>
 #include <iostream>
 
 namespace Chrivent {
@@ -74,6 +71,10 @@ namespace Chrivent {
 				std::cout << "Failed to create VMDCameraAnimation.\n";
 			cameraAnim = std::move(vmdCamAnim);
 		}
+	}
+
+	int32_t CameraManager::GetLastFrame() const {
+		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
 	}
 
 	void CameraManager::StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {

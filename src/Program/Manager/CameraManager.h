@@ -1,9 +1,6 @@
 ﻿#pragma once
 
-#include <chrono>
 #include <filesystem>
-#include <memory>
-
 #include <glm/glm.hpp>
 
 namespace Chrivent {
@@ -44,6 +41,8 @@ namespace Chrivent {
 		void Reset();
 		// 카메라 VMD 파일을 읽어 모션 카메라 애니메이션을 준비한다.
 		void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
+		// 카메라 모션의 마지막 프레임을 반환한다.
+		int32_t GetLastFrame() const;
 		// 일시정지와 사운드 동기화를 반영해 뷰어 애니메이션 시간을 갱신한다.
 		void StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const;
 		// 재생 상태로 전환한다.
