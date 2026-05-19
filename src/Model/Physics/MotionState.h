@@ -1,9 +1,8 @@
 ﻿#pragma once
 
-#include <btBulletDynamicsCommon.h>
-
-#include <glm/gtc/quaternion.hpp>
 #include <memory>
+#include <glm/gtc/quaternion.hpp>
+#include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
 	struct Node;

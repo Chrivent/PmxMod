@@ -2,8 +2,8 @@
 
 #include "../../Parser/PmxParser.h"
 
-#include <btBulletDynamicsCommon.h>
 #include <memory>
+#include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
 	class RigidBody;

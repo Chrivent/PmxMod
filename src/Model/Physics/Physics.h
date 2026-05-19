@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include <btBulletDynamicsCommon.h>
 #include <memory>
 #include <vector>
+#include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
 	class OverlapFilterCallback final : public btOverlapFilterCallback {

@@ -1,7 +1,5 @@
 ﻿#include "Physics.h"
 
-#include <vector>
-
 namespace Chrivent {
 	bool OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 		const auto endIt = nonFilterProxy.end();
