@@ -98,15 +98,19 @@ namespace Chrivent {
 	}
 
 	void CameraManager::HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music) {
-		const auto& input = inputManager.GetState();
-		if (input.togglePause) {
+		const auto& [togglePause, toggleCameraMode,
+			moveForward, moveBackward,
+			moveLeft, moveRight,
+			moveDown, moveUp,
+			rotateCamera, mouseDelta] = inputManager.GetState();
+		if (togglePause) {
 			paused = !paused;
 			if (paused)
 				music.Pause();
 			else
 				music.Resume();
 		}
-		if (input.toggleCameraMode) {
+		if (toggleCameraMode) {
 			if (useMotionCamera && !hasFreeCameraState) {
 				SyncFreeCameraToCurrentView(viewer);
 				hasFreeCameraState = true;
@@ -124,22 +128,22 @@ namespace Chrivent {
 		forward = glm::normalize(forward);
 		const glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
 		constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
-		if (input.moveForward)
+		if (moveForward)
 			freeCamPosition += forward * moveSpeed;
-		if (input.moveBackward)
+		if (moveBackward)
 			freeCamPosition -= forward * moveSpeed;
-		if (input.moveLeft)
+		if (moveLeft)
 			freeCamPosition -= right * moveSpeed;
-		if (input.moveRight)
+		if (moveRight)
 			freeCamPosition += right * moveSpeed;
-		if (input.moveDown)
+		if (moveDown)
 			freeCamPosition -= up * moveSpeed;
-		if (input.moveUp)
+		if (moveUp)
 			freeCamPosition += up * moveSpeed;
-		if (input.rotateCamera) {
+		if (rotateCamera) {
 			constexpr float mouseSensitivity = 0.0035f;
-			freeCamYaw += input.mouseDelta.x * mouseSensitivity;
-			freeCamPitch -= input.mouseDelta.y * mouseSensitivity;
+			freeCamYaw += mouseDelta.x * mouseSensitivity;
+			freeCamPitch -= mouseDelta.y * mouseSensitivity;
 			freeCamPitch = std::clamp(freeCamPitch, glm::radians(-89.0f), glm::radians(89.0f));
 		}
 	}
