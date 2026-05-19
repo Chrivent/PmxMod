@@ -171,9 +171,11 @@ namespace Chrivent {
         if (guiManager.ConsumeSceneConfigDirty())
             LoadScene(guiManager.sceneConfig);
         int seekFrame = 0;
-        if (guiManager.ConsumeSeekFrame(seekFrame)) {
+        bool seekFinished = false;
+        if (guiManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
-            SyncSeekedPhysics(seekFrame);
+            if (seekFinished)
+                SyncSeekedPhysics(seekFrame);
         }
         switch (guiManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:

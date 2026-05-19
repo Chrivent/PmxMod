@@ -17,6 +17,7 @@ namespace Chrivent {
 		int stopButtonId = 0;
 		PlaybackCommand pendingCommand = PlaybackCommand::None;
 		bool seekRequested = false;
+		bool seekFinished = false;
 		int seekFrame = 0;
 		HWND panelWindow = nullptr;
 		HWND timelineSlider = nullptr;
@@ -37,12 +38,12 @@ namespace Chrivent {
 		void Poll() const;
 		void Resize(const RECT& clientRect) override;
 		bool HandleCommand(int commandId) override;
-		bool HandleScroll(HWND control) override;
+		bool HandleScroll(HWND control, int scrollCode) override;
 		void Destroy() override;
 		// 버튼으로 들어온 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumeCommand();
 		// 슬라이더로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
-		bool ConsumeSeekFrame(int& frame);
+		bool ConsumeSeekFrame(int& frame, bool& finished);
 		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
 		void SetCurrentFrame(int frame) const;
 		// 슬라이더가 이동할 수 있는 마지막 프레임을 설정한다.

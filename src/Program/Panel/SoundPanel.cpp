@@ -28,7 +28,7 @@ namespace Chrivent {
 			}
 			case WM_HSCROLL:
 			case WM_VSCROLL:
-				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam)))
+				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
 					return 0;
 				break;
 			case WM_CLOSE:
@@ -142,7 +142,7 @@ namespace Chrivent {
 			MoveWindow(valueText, x, y + titleHeight + 4 + sliderHeight + 4, sliderWidth, valueHeight, TRUE);
 	}
 
-	bool SoundPanel::HandleScroll(const HWND control) {
+	bool SoundPanel::HandleScroll(const HWND control, const int scrollCode) {
 		if (control != volumeSlider)
 			return false;
 		ApplySliderValue();

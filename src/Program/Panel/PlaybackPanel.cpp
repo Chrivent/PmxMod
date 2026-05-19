@@ -30,7 +30,7 @@ namespace Chrivent {
 					return 0;
 				break;
 			case WM_HSCROLL:
-				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam)))
+				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
 					return 0;
 				break;
 			case WM_CLOSE:
@@ -144,11 +144,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool PlaybackPanel::HandleScroll(const HWND control) {
+	bool PlaybackPanel::HandleScroll(const HWND control, const int scrollCode) {
 		if (control != timelineSlider)
 			return false;
 		seekFrame = static_cast<int>(SendMessageW(timelineSlider, TBM_GETPOS, 0, 0));
 		seekRequested = true;
+		seekFinished = scrollCode == TB_ENDTRACK;
 		return true;
 	}
 
@@ -168,11 +169,13 @@ namespace Chrivent {
 		return command;
 	}
 
-	bool PlaybackPanel::ConsumeSeekFrame(int& frame) {
+	bool PlaybackPanel::ConsumeSeekFrame(int& frame, bool& finished) {
 		if (!seekRequested)
 			return false;
 		frame = seekFrame;
+		finished = seekFinished;
 		seekRequested = false;
+		seekFinished = false;
 		return true;
 	}
 

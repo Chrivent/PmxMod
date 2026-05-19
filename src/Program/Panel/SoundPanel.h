@@ -26,7 +26,7 @@ namespace Chrivent {
 		void Show();
 		void Poll() const;
 		void Resize(const RECT& clientRect) override;
-		bool HandleScroll(HWND control) override;
+		bool HandleScroll(HWND control, int scrollCode) override;
 		void Destroy() override;
 	};
 }

@@ -49,7 +49,7 @@ namespace Chrivent {
 		// 플레이백 패널의 재생 명령을 반환하고 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand();
 		// 플레이백 패널의 프레임 이동 요청을 반환하고 초기화한다.
-		bool ConsumeSeekFrame(int& frame);
+		bool ConsumeSeekFrame(int& frame, bool& finished);
 		// 현재 재생 프레임을 플레이백 패널에 표시한다.
 		void SetPlaybackFrame(int frame) const;
 		// 플레이백 패널 슬라이더의 마지막 프레임을 설정한다.

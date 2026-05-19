@@ -82,8 +82,8 @@ namespace Chrivent {
 		return playbackPanel.ConsumeCommand();
 	}
 
-	bool GuiManager::ConsumeSeekFrame(int& frame) {
-		return playbackPanel.ConsumeSeekFrame(frame);
+	bool GuiManager::ConsumeSeekFrame(int& frame, bool& finished) {
+		return playbackPanel.ConsumeSeekFrame(frame, finished);
 	}
 
 	void GuiManager::SetPlaybackFrame(const int frame) const {
