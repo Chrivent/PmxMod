@@ -8,8 +8,8 @@
 namespace Chrivent {
 	struct Morph;
 	struct Model;
-	class IkSolver;
-	class Node;
+	struct Node;
+	struct IkSolver;
 
 	struct NodeAnimationKey {
 		int32_t		time;

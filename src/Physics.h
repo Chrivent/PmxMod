@@ -6,8 +6,8 @@
 
 namespace Chrivent {
 	struct Model;
+	struct Node;
 	class Physics;
-	class Node;
 
 	class MotionState : public btMotionState {
 	public:

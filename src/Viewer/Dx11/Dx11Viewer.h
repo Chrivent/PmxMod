@@ -74,6 +74,52 @@ namespace Chrivent {
         explicit Dx11Material(const Material& sourceMat) : mat(sourceMat) {}
     };
 
+    // DX11 디바이스와 프레임 제출에 필요한 기본 리소스를 보관한다.
+    struct Dx11DeviceResources {
+        Microsoft::WRL::ComPtr<ID3D11Device>        device;
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+        Microsoft::WRL::ComPtr<IDXGISwapChain>      swapChain;
+    };
+
+    // 현재 스왑체인 크기에 맞춰 재생성되는 렌더 타깃 리소스를 보관한다.
+    struct Dx11RenderTargets {
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  renderTargetView;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
+    };
+
+    // 모델, 엣지, 지면 그림자 렌더링에 쓰는 셰이더와 입력 레이아웃을 보관한다.
+    struct Dx11ShaderSet {
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>  vs;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>   ps;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout>   inputLayout;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>  edgeVs;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>   edgePs;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout>   edgeInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>  gsVs;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>   gsPs;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout>   gsInputLayout;
+    };
+
+    // 샘플러, 블렌드, 래스터라이저, 깊이 스텐실 상태를 보관한다.
+    struct Dx11PipelineStates {
+        Microsoft::WRL::ComPtr<ID3D11SamplerState>      textureSampler;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState>      cartoonTextureSampler;
+        Microsoft::WRL::ComPtr<ID3D11BlendState>        blendState;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   frontFaceRs;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   bothFaceRs;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   edgeRs;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   gsRs;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> gsDss;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> defaultDss;
+    };
+
+    // 텍스처가 없는 재질에 바인딩할 기본 텍스처 리소스를 보관한다.
+    struct Dx11DummyTexture {
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>             texture;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;
+    };
+
     class Dx11Viewer : public Viewer {
         // HLSL 컴파일 실패 정보를 콘솔에 출력한다.
         static void PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob);
@@ -81,34 +127,13 @@ namespace Chrivent {
         UINT    multiSampleCount = 4;
         UINT	multiSampleQuality = 0;
         Dx11TextureCache textureCache;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	    renderTargetView;
-        Microsoft::WRL::ComPtr <ID3D11DepthStencilView>     depthStencilView;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>			    dummyTexture;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>             depthTex;
-        Microsoft::WRL::ComPtr<IDXGISwapChain>              swapChain;
     
     public:
-        Microsoft::WRL::ComPtr<ID3D11Device>			    device;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>	        vs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>	        ps;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>	        inputLayout;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>	        textureSampler;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>	        cartoonTextureSampler;
-        Microsoft::WRL::ComPtr<ID3D11BlendState>	        blendState;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    frontFaceRs;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    bothFaceRs;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>	        edgeVs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>	        edgePs;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>	        edgeInputLayout;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    edgeRs;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>	        gsVs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>	        gsPs;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>	        gsInputLayout;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>	    gsRs;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    gsDss;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	    defaultDss;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    dummyTextureView;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext>         context;
+        Dx11DeviceResources deviceResources;
+        Dx11RenderTargets renderTargets;
+        Dx11ShaderSet shaders;
+        Dx11PipelineStates pipelineStates;
+        Dx11DummyTexture dummyTexture;
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;

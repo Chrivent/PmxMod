@@ -10,22 +10,22 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
-		viewer->context->OMSetDepthStencilState(viewer->defaultDss.Get(), 0x00);
+		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
 		constexpr UINT stride = sizeof(Dx11Vertex);
 		constexpr UINT offset = 0;
-		viewer->context->IASetInputLayout(viewer->inputLayout.Get());
-		viewer->context->IASetVertexBuffers(0, 1,
+		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.inputLayout.Get());
+		viewer->deviceResources.context->IASetVertexBuffers(0, 1,
 			vertexBuffer.GetAddressOf(), &stride, &offset);
-		viewer->context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
-		viewer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		Dx11VertexShader vsCb;
 		vsCb.wv = wv;
 		vsCb.wvp = wvp;
-		viewer->context->UpdateSubresource(vsConstantBuffer.Get(),
+		viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(),
 			0, nullptr, &vsCb, 0, 0);
-		viewer->context->VSSetShader(viewer->vs.Get(), nullptr, 0);
-		viewer->context->PSSetShader(viewer->ps.Get(), nullptr, 0);
-		viewer->context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		viewer->deviceResources.context->VSSetShader(viewer->shaders.vs.Get(), nullptr, 0);
+		viewer->deviceResources.context->PSSetShader(viewer->shaders.ps.Get(), nullptr, 0);
+		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -41,10 +41,10 @@ namespace Chrivent {
 			if (material.texture.texture)
 				baseMode = !material.texture.hasAlpha ? 1 : 2;
 			BindTexture(
-				0, material.texture, viewer->textureSampler.Get(), baseMode, psCb.textureModes.x,
+				0, material.texture, viewer->pipelineStates.textureSampler.Get(), baseMode, psCb.textureModes.x,
 				psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
 			BindTexture(
-				1, material.cartoonTexture, viewer->cartoonTextureSampler.Get(), 1, psCb.textureModes.y,
+				1, material.cartoonTexture, viewer->pipelineStates.cartoonTextureSampler.Get(), 1, psCb.textureModes.y,
 				psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 			int spMode = 0;
 			if (material.spTexture.texture) {
@@ -54,17 +54,17 @@ namespace Chrivent {
 					spMode = 2;
 			}
 			BindTexture(
-				2, material.spTexture, viewer->textureSampler.Get(), spMode, psCb.textureModes.z,
+				2, material.spTexture, viewer->pipelineStates.textureSampler.Get(), spMode, psCb.textureModes.z,
 				psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
 			psCb.lightColor = viewer->lightColor;
 			psCb.lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
-			viewer->context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			viewer->context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
+			viewer->deviceResources.context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
+			viewer->deviceResources.context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 			if (mat.bothFace)
-				viewer->context->RSSetState(viewer->bothFaceRs.Get());
+				viewer->deviceResources.context->RSSetState(viewer->pipelineStates.bothFaceRs.Get());
 			else
-				viewer->context->RSSetState(viewer->frontFaceRs.Get());
-			viewer->context->DrawIndexed(indexCount, beginIndex, 0);
+				viewer->deviceResources.context->RSSetState(viewer->pipelineStates.frontFaceRs.Get());
+			viewer->deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -74,18 +74,18 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
-		viewer->context->IASetInputLayout(viewer->edgeInputLayout.Get());
+		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.edgeInputLayout.Get());
 		Dx11EdgeVertexShader vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
 		vsCb1.screenSize = glm::vec2(
 			static_cast<float>(viewer->screenWidth),
 			static_cast<float>(viewer->screenHeight));
-		viewer->context->UpdateSubresource(edgeVsConstantBuffer.Get(),
+		viewer->deviceResources.context->UpdateSubresource(edgeVsConstantBuffer.Get(),
 			0, nullptr, &vsCb1, 0, 0);
-		viewer->context->VSSetShader(viewer->edgeVs.Get(), nullptr, 0);
-		viewer->context->PSSetShader(viewer->edgePs.Get(), nullptr, 0);
-		viewer->context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
+		viewer->deviceResources.context->VSSetShader(viewer->shaders.edgeVs.Get(), nullptr, 0);
+		viewer->deviceResources.context->PSSetShader(viewer->shaders.edgePs.Get(), nullptr, 0);
+		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -95,16 +95,16 @@ namespace Chrivent {
 				continue;
 			Dx11EdgeSizeVertexShader vsCb2{};
 			vsCb2.edgeSize = mat.edgeSize;
-			viewer->context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(),
+			viewer->deviceResources.context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(),
 				0, nullptr, &vsCb2, 0, 0);
-			viewer->context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
+			viewer->deviceResources.context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
 			Dx11EdgePixelShader psCb{};
 			psCb.edgeColor = mat.edgeColor;
-			viewer->context->UpdateSubresource(edgePsConstantBuffer.Get(),
+			viewer->deviceResources.context->UpdateSubresource(edgePsConstantBuffer.Get(),
 				0, nullptr, &psCb, 0, 0);
-			viewer->context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
-			viewer->context->RSSetState(viewer->edgeRs.Get());
-			viewer->context->DrawIndexed(indexCount, beginIndex, 0);
+			viewer->deviceResources.context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
+			viewer->deviceResources.context->RSSetState(viewer->pipelineStates.edgeRs.Get());
+			viewer->deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -112,19 +112,19 @@ namespace Chrivent {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
-		viewer->context->IASetInputLayout(viewer->gsInputLayout.Get());
+		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.gsInputLayout.Get());
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 		Dx11GroundShadowVertexShader vsCb;
 		vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
-		viewer->context->UpdateSubresource(gsVsConstantBuffer.Get(),
+		viewer->deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(),
 			0, nullptr, &vsCb, 0, 0);
-		viewer->context->VSSetShader(viewer->gsVs.Get(), nullptr, 0);
-		viewer->context->PSSetShader(viewer->gsPs.Get(), nullptr, 0);
-		viewer->context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
-		viewer->context->RSSetState(viewer->gsRs.Get());
-		viewer->context->OMSetDepthStencilState(viewer->gsDss.Get(), 0x01);
+		viewer->deviceResources.context->VSSetShader(viewer->shaders.gsVs.Get(), nullptr, 0);
+		viewer->deviceResources.context->PSSetShader(viewer->shaders.gsPs.Get(), nullptr, 0);
+		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
+		viewer->deviceResources.context->RSSetState(viewer->pipelineStates.gsRs.Get());
+		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.gsDss.Get(), 0x01);
 		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -134,10 +134,10 @@ namespace Chrivent {
 				continue;
 			Dx11GroundShadowPixelShader psCb{};
 			psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-			viewer->context->UpdateSubresource(gsPsConstantBuffer.Get(),
+			viewer->deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(),
 				0, nullptr, &psCb, 0, 0);
-			viewer->context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
-			viewer->context->DrawIndexed(indexCount, beginIndex, 0);
+			viewer->deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
+			viewer->deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -168,10 +168,10 @@ namespace Chrivent {
 			outAdd  = addIn;
 		} else
 			outMode = 0;
-		ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : viewer->dummyTextureView.Get();
-		ID3D11SamplerState* samplers = tex.texture ? sampler : viewer->textureSampler.Get();
-		viewer->context->PSSetShaderResources(slot, 1, &views);
-		viewer->context->PSSetSamplers(slot, 1, &samplers);
+		ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : viewer->dummyTexture.textureView.Get();
+		ID3D11SamplerState* samplers = tex.texture ? sampler : viewer->pipelineStates.textureSampler.Get();
+		viewer->deviceResources.context->PSSetShaderResources(slot, 1, &views);
+		viewer->deviceResources.context->PSSetSamplers(slot, 1, &samplers);
 	}
 
 	const glm::mat4& Dx11Instance::DxClipMatrix() {
@@ -187,12 +187,12 @@ namespace Chrivent {
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
 		const auto vBufDesc = MakeVertexBufferDesc(model->geometryData.positions.size());
-		if (FAILED(viewer->device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
+		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;
 		const auto iBufDesc = MakeIndexBufferDesc(model->geometryData.indexElementSize * model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = model->geometryData.indices.data();
-		if (FAILED(viewer->device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
+		if (FAILED(viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 			return false;
 		if (1 == model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R8_UINT;
@@ -202,19 +202,19 @@ namespace Chrivent {
 			indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
-		if (FAILED(CreateBuffer<Dx11VertexShader>(viewer->device.Get(), vsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11VertexShader>(viewer->deviceResources.device.Get(), vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11PixelShader>(viewer->device.Get(), psConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11PixelShader>(viewer->deviceResources.device.Get(), psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(viewer->device.Get(), edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(viewer->deviceResources.device.Get(), edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(viewer->device.Get(), edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(viewer->deviceResources.device.Get(), edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(viewer->device.Get(), edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(viewer->deviceResources.device.Get(), edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(viewer->device.Get(), gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(viewer->deviceResources.device.Get(), gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(viewer->device.Get(), gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(viewer->deviceResources.device.Get(), gsPsConstantBuffer)))
 			return false;
 		for (const auto& mat : model->materialData.materials) {
 			Dx11Material material(mat);
@@ -234,7 +234,7 @@ namespace Chrivent {
 		pose.Update();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(viewer->context->Map(vertexBuffer.Get(), 0,
+		if (FAILED(viewer->deviceResources.context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
@@ -246,6 +246,8 @@ namespace Chrivent {
 			vertices[i].normal = updateNormalData[i];
 			vertices[i].uv = updateUvData[i];
 		}
-		viewer->context->Unmap(vertexBuffer.Get(), 0);
+		viewer->deviceResources.context->Unmap(vertexBuffer.Get(), 0);
 	}
 }
+
+

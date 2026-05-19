@@ -5,16 +5,9 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
-	class IkSolver;
+	struct IkSolver;
 
-	class Node : public std::enable_shared_from_this<Node> {
-		std::weak_ptr<Node>		child;
-		std::weak_ptr<Node>		next;
-		std::weak_ptr<Node>		prev;
-		glm::vec3				appendTranslate = glm::vec3(0);
-		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
-
-	public:
+	struct Node : std::enable_shared_from_this<Node> {
 		uint32_t				index = 0;
 		std::string				name;
 		bool					enableIk = false;
@@ -54,5 +47,12 @@ namespace Chrivent {
 		void UpdateChildTransform() const;
 		// 부가 부모 본의 회전/이동 영향을 현재 노드에 적용한다.
 		void UpdateAppendTransform();
+		
+	private:
+		std::weak_ptr<Node>		child;
+		std::weak_ptr<Node>		next;
+		std::weak_ptr<Node>		prev;
+		glm::vec3				appendTranslate = glm::vec3(0);
+		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 	};
 }
