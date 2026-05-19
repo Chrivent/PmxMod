@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Manager/CameraManager.h"
+#include "Manager/GuiManager.h"
 #include "Manager/InputManager.h"
-#include "Manager/PanelManager.h"
 #include "Sound.h"
 #include "../Viewer/Viewer.h"
 
@@ -11,7 +11,7 @@ namespace Chrivent {
         std::unique_ptr<Viewer> viewer;
         InputManager inputManager;
         CameraManager cameraManager;
-        PanelManager panelManager;
+        GuiManager guiManager;
         Sound music;
         std::vector<std::unique_ptr<Instance>> instances;
         std::chrono::steady_clock::time_point fpsTime;

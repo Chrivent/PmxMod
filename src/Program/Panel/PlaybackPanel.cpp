@@ -1,6 +1,6 @@
 ﻿#include "PlaybackPanel.h"
 
-#include <CommCtrl.h>
+#include "../Manager/GuiManager.h"
 #include <algorithm>
 
 namespace Chrivent {
@@ -78,17 +78,7 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::CreateContent(const HWND parent) {
-		INITCOMMONCONTROLSEX init;
-		init.dwSize = sizeof(init);
-		init.dwICC = ICC_BAR_CLASSES;
-		InitCommonControlsEx(&init);
-		timelineSlider = CreateWindowExW(
-			0, TRACKBAR_CLASSW, L"",
-			WS_CHILD | WS_VISIBLE | TBS_HORZ | TBS_NOTICKS,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(timelineSliderId)), GetModuleHandleW(nullptr), nullptr);
-		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, 1000));
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
+		timelineSlider = GuiManager::CreateHorizontalSlider(parent, timelineSliderId, 0, 1000, 0);
 	}
 
 	void PlaybackPanel::Resize(const RECT& clientRect) {

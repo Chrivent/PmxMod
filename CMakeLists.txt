@@ -26,7 +26,7 @@ add_executable(PmxMod
         
         src/Program/Manager/CameraManager.h src/Program/Manager/CameraManager.cpp
         src/Program/Manager/InputManager.h src/Program/Manager/InputManager.cpp
-        src/Program/Manager/PanelManager.h src/Program/Manager/PanelManager.cpp
+        src/Program/Manager/GuiManager.h src/Program/Manager/GuiManager.cpp
         
         src/Program/Panel/Panel.h
         src/Program/Panel/PlaybackPanel.h src/Program/Panel/PlaybackPanel.cpp
@@ -53,8 +53,10 @@ add_executable(PmxMod
         src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp
         src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
+        
         src/Model/Bone/IkSolver.h src/Model/Bone/IkSolver.cpp
         src/Model/Bone/Node.h src/Model/Bone/Node.cpp
+        
         src/Model/Physics/Physics.h src/Model/Physics/Physics.cpp
         src/Model/Physics/RigidBody.h src/Model/Physics/RigidBody.cpp
         src/Model/Physics/Joint.h src/Model/Physics/Joint.cpp
