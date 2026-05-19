@@ -3,22 +3,24 @@
 #include <windows.h>
 
 #include "../Config.h"
-#include "../Panel/ScenePanel.h"
 #include "../Panel/SoundPanel.h"
+#include "../../Viewer/ViewerMenu.h"
 
 namespace Chrivent {
 	class Sound;
+	class Viewer;
 
 	class PanelManager {
-		SceneConfig sceneConfigStorage;
-		ScenePanel scenePanel;
-		SoundPanel soundPanel;
-		HWND controlWindow = nullptr;
+		static constexpr int kSoundVolumeSliderId = 2001;
 
-		// ???⑤꼸 李??ш린??留욎떠 ?대? ?덈룄??而⑦듃濡?諛곗튂瑜?媛깆떊?쒕떎.
-		void ResizeControlWindow();
-		// ???⑤꼸 李쎌쓽 Win32 硫붿떆吏瑜?泥섎━?쒕떎.
-		static LRESULT CALLBACK ControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		SceneConfig sceneConfigStorage;
+		ViewerMenu viewerMenu;
+		SoundPanel soundPanel;
+		HWND renderWindow = nullptr;
+		WNDPROC prevRenderWindowProc = nullptr;
+
+		// 렌더링 창의 Win32 메시지를 받아 뷰어 메뉴 명령을 처리한다.
+		static LRESULT CALLBACK RenderWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	public:
 		SceneConfig& sceneConfig;
@@ -26,19 +28,21 @@ namespace Chrivent {
 		PanelManager();
 		~PanelManager();
 
-		// ?몃??먯꽌 ?꾨떖?????ㅼ젙???⑤꼸 ?곹깭??諛섏쁺?쒕떎.
+		// 렌더링 창에 상단 메뉴를 연결한다.
+		void AttachRenderWindow(const Viewer& viewer);
+		// 외부에서 전달된 씬 설정을 메뉴 상태에 반영한다.
 		void ApplySceneConfig(const SceneConfig& cfg);
-		// ?⑤꼸 ?곹깭瑜?湲곕낯媛믪쑝濡?珥덇린?뷀븳??
+		// 메뉴와 패널 상태를 기본값으로 초기화한다.
 		void Reset();
-		// ???⑤꼸怨??ъ슫???⑤꼸 李쎌쓣 ?앹꽦?섍굅???ㅼ떆 ?쒖떆?쒕떎.
+		// 별도 패널 창들을 생성하거나 다시 표시한다.
 		bool OpenPanelWindows();
-		// ?⑤꼸 李쎈뱾???볦씤 Win32 硫붿떆吏瑜?泥섎━?쒕떎.
+		// 별도 패널 창들에 쌓인 Win32 메시지를 처리한다.
 		void PollPanelWindows() const;
-		// ?⑤꼸 李쎈뱾???뚭눼?섍퀬 愿???몃뱾??珥덇린?뷀븳??
+		// 패널 창과 렌더링 창 메뉴 연결을 정리한다.
 		void DestroyPanelWindows();
-		// ???ㅼ젙 蹂寃??뚮옒洹몃? 諛섑솚?섍퀬 珥덇린?뷀븳??
+		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
-		// ?ъ슫???⑤꼸??議곗젅???ъ슫??媛앹껜瑜??곌껐?쒕떎.
+		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound);
 	};
 }

@@ -1,14 +1,12 @@
 ﻿#pragma once
 
-#include "PanelCommandId.h"
 #include "Panel.h"
 
 namespace Chrivent {
 	class Sound;
 
 	class SoundPanel final : public Panel {
-		static constexpr int kVolumeSliderId = PanelCommandId::soundBase + 1;
-
+		int volumeSliderId = 0;
 		Sound* sound = nullptr;
 		HWND panelWindow = nullptr;
 		HWND titleText = nullptr;
@@ -23,6 +21,7 @@ namespace Chrivent {
 	public:
 		SoundPanel() = default;
 
+		void SetVolumeSliderId(int id);
 		void BindSound(Sound& soundRef);
 		void Show();
 		void Poll() const;

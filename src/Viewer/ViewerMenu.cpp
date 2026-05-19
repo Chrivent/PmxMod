@@ -1,25 +1,28 @@
-﻿#include "ScenePanel.h"
+﻿#include "ViewerMenu.h"
+
+#include <cwchar>
+#include <iostream>
+#include <vector>
 
 namespace Chrivent {
-	ScenePanel::ScenePanel(SceneConfig& config) : sceneConfig(config) {}
+	ViewerMenu::ViewerMenu(SceneConfig& config) : sceneConfig(config) {}
 
-	void ScenePanel::AddMenu(const HMENU menu) {
+	void ViewerMenu::AddMenu(const HMENU menu) {
 		HMENU fileMenu = CreatePopupMenu();
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
 	}
 
-	void ScenePanel::SetStatusText(const std::wstring& text) const {
-		if (statusText)
-			SetWindowTextW(statusText, text.c_str());
+	void ViewerMenu::AttachOwner(const HWND owner) {
+		ownerWindow = owner;
 	}
 
-	bool ScenePanel::SaveSceneConfig(const std::filesystem::path& filepath) const {
+	bool ViewerMenu::SaveSceneConfig(const std::filesystem::path& filepath) const {
 		return sceneConfig.Save(filepath);
 	}
 
-	bool ScenePanel::LoadSceneConfig(const std::filesystem::path& filepath) {
+	bool ViewerMenu::LoadSceneConfig(const std::filesystem::path& filepath) {
 		if (!sceneConfig.Load(filepath))
 			return false;
 		sceneFilePath = filepath;
@@ -27,11 +30,11 @@ namespace Chrivent {
 		return true;
 	}
 
-	void ScenePanel::ShowOpenSceneDialog() {
+	void ViewerMenu::ShowOpenSceneDialog() {
 		std::vector filename(MAX_PATH, L'\0');
 		OPENFILENAMEW ofn{};
 		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = parentWindow;
+		ofn.hwndOwner = ownerWindow;
 		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
 		ofn.lpstrFile = filename.data();
 		ofn.nMaxFile = static_cast<DWORD>(filename.size());
@@ -40,12 +43,12 @@ namespace Chrivent {
 		if (!GetOpenFileNameW(&ofn))
 			return;
 		if (LoadSceneConfig(filename.data()))
-			SetStatusText(L"Scene config loaded.");
+			std::cout << "Scene config loaded.\n";
 		else
-			SetStatusText(L"Failed to load scene config.");
+			std::cout << "Failed to load scene config.\n";
 	}
 
-	void ScenePanel::ShowSaveSceneDialog() {
+	void ViewerMenu::ShowSaveSceneDialog() {
 		std::vector filename(MAX_PATH, L'\0');
 		if (!sceneFilePath.empty()) {
 			const auto native = sceneFilePath.wstring();
@@ -53,7 +56,7 @@ namespace Chrivent {
 		}
 		OPENFILENAMEW ofn{};
 		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = parentWindow;
+		ofn.hwndOwner = ownerWindow;
 		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
 		ofn.lpstrFile = filename.data();
 		ofn.nMaxFile = static_cast<DWORD>(filename.size());
@@ -63,29 +66,12 @@ namespace Chrivent {
 			return;
 		sceneFilePath = filename.data();
 		if (SaveSceneConfig(sceneFilePath))
-			SetStatusText(L"Current scene config saved.");
+			std::cout << "Current scene config saved.\n";
 		else
-			SetStatusText(L"Failed to save scene config.");
+			std::cout << "Failed to save scene config.\n";
 	}
 
-	void ScenePanel::Create(HWND parent) {
-		parentWindow = parent;
-		statusText = CreateWindowExW(
-			0, L"STATIC", L"Open or save the current scene config.",
-			WS_CHILD | WS_VISIBLE,
-			0, 0, 0, 0,
-			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
-	}
-
-	void ScenePanel::Resize(const RECT& clientRect) {
-		constexpr int x = 14;
-		constexpr int y = 14;
-		const int width = static_cast<int>(clientRect.right) - x * 2;
-		if (statusText)
-			MoveWindow(statusText, x, y, width, 64, TRUE);
-	}
-
-	bool ScenePanel::HandleCommand(const int commandId) {
+	bool ViewerMenu::HandleCommand(const int commandId) {
 		switch (commandId) {
 			case kOpenButtonId:
 				ShowOpenSceneDialog();
@@ -98,22 +84,17 @@ namespace Chrivent {
 		}
 	}
 
-	void ScenePanel::Destroy() {
-		statusText = nullptr;
-		parentWindow = nullptr;
-	}
-
-	void ScenePanel::ApplySceneConfig(const SceneConfig& cfg) {
+	void ViewerMenu::ApplySceneConfig(const SceneConfig& cfg) {
 		sceneConfig = cfg;
 		sceneFilePath.clear();
 		sceneConfigDirty = false;
 	}
 
-	void ScenePanel::Reset() {
+	void ViewerMenu::Reset() {
 		sceneConfigDirty = false;
 	}
 
-	bool ScenePanel::ConsumeSceneConfigDirty() {
+	bool ViewerMenu::ConsumeSceneConfigDirty() {
 		const bool dirty = sceneConfigDirty;
 		sceneConfigDirty = false;
 		return dirty;

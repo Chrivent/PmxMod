@@ -182,6 +182,7 @@ namespace Chrivent {
             return false;
         }
         panelManager.BindSound(music);
+        panelManager.AttachRenderWindow(*viewer);
         panelManager.OpenPanelWindows();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();

@@ -63,6 +63,10 @@ namespace Chrivent {
 		UpdateValueText();
 	}
 
+	void SoundPanel::SetVolumeSliderId(const int id) {
+		volumeSliderId = id;
+	}
+
 	void SoundPanel::BindSound(Sound& soundRef) {
 		sound = &soundRef;
 		if (volumeSlider)
@@ -120,7 +124,7 @@ namespace Chrivent {
 			0, TRACKBAR_CLASSW, L"",
 			WS_CHILD | WS_VISIBLE | TBS_VERT | TBS_AUTOTICKS | TBS_BOTH,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kVolumeSliderId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(volumeSliderId)), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(volumeSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, 100));
 		SendMessageW(volumeSlider, TBM_SETTICFREQ, 10, 0);
 		valueText = CreateWindowExW(

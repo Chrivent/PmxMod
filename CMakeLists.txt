@@ -28,9 +28,7 @@ add_executable(PmxMod
         src/Program/Manager/InputManager.h src/Program/Manager/InputManager.cpp
         src/Program/Manager/PanelManager.h src/Program/Manager/PanelManager.cpp
         
-        src/Program/Panel/PanelCommandId.h
         src/Program/Panel/Panel.h
-        src/Program/Panel/ScenePanel.h src/Program/Panel/ScenePanel.cpp
         src/Program/Panel/SoundPanel.h src/Program/Panel/SoundPanel.cpp
         
         src/Parser/PmxParser.h src/Parser/PmxParser.cpp
@@ -64,6 +62,7 @@ add_executable(PmxMod
         src/Util.h src/Util.cpp
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
+        src/Viewer/ViewerMenu.h src/Viewer/ViewerMenu.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         src/Viewer/TextureCache.h
         
