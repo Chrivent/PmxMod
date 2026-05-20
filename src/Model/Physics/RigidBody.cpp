@@ -90,9 +90,9 @@ namespace Chrivent {
 			activeMotionState->Reset();
 	}
 
-	void RigidBody::Reset(const Physics* physics) const {
-		if (const auto cache = physics->GetInfo().world->getPairCache()) {
-			const auto dispatcher = physics->GetInfo().world->getDispatcher();
+	void RigidBody::Reset(const PhysicsInfo& physicsInfo) const {
+		if (const auto cache = physicsInfo.world->getPairCache()) {
+			const auto dispatcher = physicsInfo.world->getDispatcher();
 			cache->cleanProxyFromPairs(info.rigidBody->getBroadphaseHandle(), dispatcher);
 		}
 		info.rigidBody->setAngularVelocity(btVector3(0, 0, 0));

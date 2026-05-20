@@ -310,8 +310,8 @@ namespace Chrivent {
 				joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
 				auto j = std::make_unique<Joint>();
 				j->Create(joint,
-					model.physicsData.rigidBodies[joint.rigidbodyAIndex].get(),
-					model.physicsData.rigidBodies[joint.rigidbodyBIndex].get());
+					model.physicsData.rigidBodies[joint.rigidbodyAIndex]->GetInfo(),
+					model.physicsData.rigidBodies[joint.rigidbodyBIndex]->GetInfo());
 				model.physicsData.physics->GetInfo().world->addConstraint(j->GetConstraint());
 				model.physicsData.joints.emplace_back(std::move(j));
 			}

@@ -36,7 +36,6 @@ namespace Chrivent {
 		~Physics();
 
 		PhysicsInfo& GetInfo() { return info; }
-		const PhysicsInfo& GetInfo() const { return info; }
 
 		// Bullet 월드와 기본 물리 리소스를 생성한다.
 		void Create();

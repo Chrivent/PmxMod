@@ -9,8 +9,7 @@ namespace Chrivent {
     class GlfwViewer;
     struct Material;
 
-    class GlfwShader {
-    public:
+    struct GlfwShader {
         ~GlfwShader();
 
         GLuint	program = 0;
@@ -43,8 +42,7 @@ namespace Chrivent {
         bool Setup(const GlfwViewer& viewer);
     };
 
-    class GlfwEdgeShader {
-    public:
+    struct GlfwEdgeShader {
         ~GlfwEdgeShader();
 
         GLuint	program = 0;
@@ -60,8 +58,7 @@ namespace Chrivent {
         bool Setup(const GlfwViewer& viewer);
     };
 
-    class GlfwGroundShadowShader {
-    public:
+    struct GlfwGroundShadowShader {
         ~GlfwGroundShadowShader();
 
         GLuint	program = 0;

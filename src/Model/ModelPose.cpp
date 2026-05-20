@@ -45,7 +45,7 @@ namespace Chrivent {
 				node->UpdateGlobalTransform();
 		}
 		for (const auto& rb : model.physicsData.rigidBodies)
-			rb->Reset(model.physicsData.physics.get());
+			rb->Reset(model.physicsData.physics->GetInfo());
 	}
 
 	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {

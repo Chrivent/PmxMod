@@ -3,7 +3,7 @@
 #include "RigidBody.h"
 
 namespace Chrivent {
-	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBody* rigidBodyA, const RigidBody* rigidBodyB) {
+	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBodyInfo& rigidBodyA, const RigidBodyInfo& rigidBodyB) {
 		constraint = nullptr;
 		btMatrix3x3 rotMat;
 		rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);
@@ -11,12 +11,12 @@ namespace Chrivent {
 		transform.setIdentity();
 		transform.setOrigin(btVector3(pmxJoint.translate.x, pmxJoint.translate.y, pmxJoint.translate.z));
 		transform.setBasis(rotMat);
-		btTransform invA = rigidBodyA->GetInfo().rigidBody->getWorldTransform().inverse();
-		btTransform invB = rigidBodyB->GetInfo().rigidBody->getWorldTransform().inverse();
+		btTransform invA = rigidBodyA.rigidBody->getWorldTransform().inverse();
+		btTransform invB = rigidBodyB.rigidBody->getWorldTransform().inverse();
 		invA = invA * transform;
 		invB = invB * transform;
 		auto jointConstraint = std::make_unique<btGeneric6DofSpringConstraint>(
-			*rigidBodyA->GetInfo().rigidBody, *rigidBodyB->GetInfo().rigidBody,
+			*rigidBodyA.rigidBody, *rigidBodyB.rigidBody,
 			invA, invB, true);
 		jointConstraint->setLinearLowerLimit(btVector3(pmxJoint.translateLowerLimit.x, pmxJoint.translateLowerLimit.y, pmxJoint.translateLowerLimit.z));
 		jointConstraint->setLinearUpperLimit(btVector3(pmxJoint.translateUpperLimit.x, pmxJoint.translateUpperLimit.y, pmxJoint.translateUpperLimit.z));
