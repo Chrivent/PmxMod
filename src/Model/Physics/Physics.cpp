@@ -11,8 +11,8 @@ namespace Chrivent {
 	}
 
 	Physics::~Physics() {
-		if (world && groundRigidBody)
-			world->removeRigidBody(groundRigidBody.get());
+		if (info.world && groundRigidBody)
+			info.world->removeRigidBody(groundRigidBody.get());
 	}
 
 	void Physics::Create() {
@@ -20,23 +20,23 @@ namespace Chrivent {
 		collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 		dispatcher = std::make_unique<btCollisionDispatcher>(collisionConfig.get());
 		solver = std::make_unique<btSequentialImpulseConstraintSolver>();
-		world = std::make_unique<btDiscreteDynamicsWorld>(
+		info.world = std::make_unique<btDiscreteDynamicsWorld>(
 			dispatcher.get(),
 			broadPhase.get(),
 			solver.get(),
 			collisionConfig.get()
 		);
-		world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
+		info.world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
 		groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
 		btTransform groundTransform;
 		groundTransform.setIdentity();
 		groundMotionState = std::make_unique<btDefaultMotionState>(groundTransform);
 		btRigidBody::btRigidBodyConstructionInfo groundInfo(0, groundMotionState.get(), groundShape.get(), btVector3(0, 0, 0));
 		groundRigidBody = std::make_unique<btRigidBody>(groundInfo);
-		world->addRigidBody(groundRigidBody.get());
+		info.world->addRigidBody(groundRigidBody.get());
 		auto filter = std::make_unique<OverlapFilterCallback>();
 		filter->AddNonFilterProxy(groundRigidBody->getBroadphaseProxy());
-		world->getPairCache()->setOverlapFilterCallback(filter.get());
+		info.world->getPairCache()->setOverlapFilterCallback(filter.get());
 		filterCallback = std::move(filter);
 	}
 }

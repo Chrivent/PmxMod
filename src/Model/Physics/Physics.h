@@ -5,6 +5,12 @@
 #include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
+	struct PhysicsInfo {
+		std::unique_ptr<btDiscreteDynamicsWorld>	world;
+		double										fps = 120.0f;
+		int											maxSubStepCount = 10;
+	};
+
 	class OverlapFilterCallback final : public btOverlapFilterCallback {
 		std::vector<btBroadphaseProxy*> nonFilterProxy;
 
@@ -16,6 +22,7 @@ namespace Chrivent {
 	};
 	
 	class Physics {
+		PhysicsInfo info;
 		std::unique_ptr<btBroadphaseInterface>					broadPhase;
 		std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;
 		std::unique_ptr<btCollisionDispatcher>					dispatcher;
@@ -28,9 +35,8 @@ namespace Chrivent {
 	public:
 		~Physics();
 
-		std::unique_ptr<btDiscreteDynamicsWorld>	world;
-		double										fps = 120.0f;
-		int											maxSubStepCount = 10;
+		PhysicsInfo& GetInfo() { return info; }
+		const PhysicsInfo& GetInfo() const { return info; }
 
 		// Bullet 월드와 기본 물리 리소스를 생성한다.
 		void Create();

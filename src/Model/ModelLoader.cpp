@@ -300,7 +300,8 @@ namespace Chrivent {
 			if (pmxRigidBody.boneIndex != -1)
 				node = model.skeletonData.nodes[pmxRigidBody.boneIndex];
 			rb->Create(pmxRigidBody, &model, node);
-			model.physicsData.physics->world->addRigidBody(rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
+			model.physicsData.physics->GetInfo().world->addRigidBody(
+				rb->GetInfo().rigidBody.get(), 1 << rb->GetInfo().group, rb->GetInfo().groupMask);
 			model.physicsData.rigidBodies.emplace_back(std::move(rb));
 		}
 		for (const auto& joint : pmxData.joints) {
@@ -311,7 +312,7 @@ namespace Chrivent {
 				j->Create(joint,
 					model.physicsData.rigidBodies[joint.rigidbodyAIndex].get(),
 					model.physicsData.rigidBodies[joint.rigidbodyBIndex].get());
-				model.physicsData.physics->world->addConstraint(j->GetConstraint());
+				model.physicsData.physics->GetInfo().world->addConstraint(j->GetConstraint());
 				model.physicsData.joints.emplace_back(std::move(j));
 			}
 		}

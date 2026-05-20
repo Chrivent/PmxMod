@@ -8,19 +8,25 @@ namespace Chrivent {
 	class Physics;
 	struct Model;
 
+	struct RigidBodyInfo {
+		std::unique_ptr<btRigidBody>	rigidBody;
+		uint16_t						group = 0;
+		uint16_t						groupMask = 0;
+	};
+
 	class RigidBody {
+		RigidBodyInfo info;
 		std::unique_ptr<btCollisionShape>	shape;
-		std::unique_ptr<MotionState>			activeMotionState;
-		std::unique_ptr<MotionState>			kinematicMotionState;
+		std::unique_ptr<MotionState>		activeMotionState;
+		std::unique_ptr<MotionState>		kinematicMotionState;
 		Operation							rigidBodyType = Operation::Static;
 		std::weak_ptr<Node>					node;
 		glm::mat4							offsetMat = glm::mat4(1);
 		std::string							name;
 
 	public:
-		std::unique_ptr<btRigidBody>	rigidBody;
-		uint16_t						group = 0;
-		uint16_t						groupMask = 0;
+		RigidBodyInfo& GetInfo() { return info; }
+		const RigidBodyInfo& GetInfo() const { return info; }
 
 		// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
 		void Create(const PmxParser::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr);

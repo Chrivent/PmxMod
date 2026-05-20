@@ -57,15 +57,15 @@ namespace Chrivent {
 		rbInfo.m_restitution = pmxRigidBody.repulsion;
 		rbInfo.m_friction = pmxRigidBody.friction;
 		rbInfo.m_additionalDamping = true;
-		rigidBody = std::make_unique<btRigidBody>(rbInfo);
-		rigidBody->setUserPointer(this);
-		rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
-		rigidBody->setActivationState(DISABLE_DEACTIVATION);
+		info.rigidBody = std::make_unique<btRigidBody>(rbInfo);
+		info.rigidBody->setUserPointer(this);
+		info.rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
+		info.rigidBody->setActivationState(DISABLE_DEACTIVATION);
 		if (pmxRigidBody.op == Operation::Static)
-			rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+			info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 		rigidBodyType = pmxRigidBody.op;
-		group = pmxRigidBody.group;
-		groupMask = pmxRigidBody.collisionGroup;
+		info.group = pmxRigidBody.group;
+		info.groupMask = pmxRigidBody.collisionGroup;
 		node = nodePtr;
 		name = pmxRigidBody.name;
 	}
@@ -73,16 +73,16 @@ namespace Chrivent {
 	void RigidBody::ApplyActivation(const bool activation) const {
 		if (rigidBodyType != Operation::Static) {
 			if (activation) {
-				rigidBody->setCollisionFlags(
-					rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-				rigidBody->setMotionState(activeMotionState.get());
+				info.rigidBody->setCollisionFlags(
+					info.rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+				info.rigidBody->setMotionState(activeMotionState.get());
 			} else {
-				rigidBody->setCollisionFlags(
-					rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-				rigidBody->setMotionState(kinematicMotionState.get());
+				info.rigidBody->setCollisionFlags(
+					info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+				info.rigidBody->setMotionState(kinematicMotionState.get());
 			}
 		} else
-			rigidBody->setMotionState(kinematicMotionState.get());
+			info.rigidBody->setMotionState(kinematicMotionState.get());
 	}
 
 	void RigidBody::ResetTransform() const {
@@ -91,13 +91,13 @@ namespace Chrivent {
 	}
 
 	void RigidBody::Reset(const Physics* physics) const {
-		if (const auto cache = physics->world->getPairCache()) {
-			const auto dispatcher = physics->world->getDispatcher();
-			cache->cleanProxyFromPairs(rigidBody->getBroadphaseHandle(), dispatcher);
+		if (const auto cache = physics->GetInfo().world->getPairCache()) {
+			const auto dispatcher = physics->GetInfo().world->getDispatcher();
+			cache->cleanProxyFromPairs(info.rigidBody->getBroadphaseHandle(), dispatcher);
 		}
-		rigidBody->setAngularVelocity(btVector3(0, 0, 0));
-		rigidBody->setLinearVelocity(btVector3(0, 0, 0));
-		rigidBody->clearForces();
+		info.rigidBody->setAngularVelocity(btVector3(0, 0, 0));
+		info.rigidBody->setLinearVelocity(btVector3(0, 0, 0));
+		info.rigidBody->clearForces();
 	}
 
 	void RigidBody::ReflectGlobalTransform() const {
@@ -118,7 +118,7 @@ namespace Chrivent {
 	}
 
 	glm::mat4 RigidBody::CalcTransform() const {
-		const btTransform transform = rigidBody->getCenterOfMassTransform();
+		const btTransform transform = info.rigidBody->getCenterOfMassTransform();
 		glm::mat4 mat;
 		transform.getOpenGLMatrix(&mat[0][0]);
 		return Util::InvZ(mat);

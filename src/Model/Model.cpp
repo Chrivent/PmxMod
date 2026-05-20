@@ -13,14 +13,14 @@ namespace Chrivent {
 		geometryData.parallelUpdateFutures.clear();
 		geometryData.updateRanges.clear();
 		geometryData.parallelUpdateCount = 0;
-		if (physicsData.physics && physicsData.physics->world) {
+		if (physicsData.physics && physicsData.physics->GetInfo().world) {
 			for (const auto& joint : physicsData.joints) {
 				if (joint && joint->GetConstraint())
-					physicsData.physics->world->removeConstraint(joint->GetConstraint());
+					physicsData.physics->GetInfo().world->removeConstraint(joint->GetConstraint());
 			}
 			for (const auto& rb : physicsData.rigidBodies) {
-				if (rb && rb->rigidBody)
-					physicsData.physics->world->removeRigidBody(rb->rigidBody.get());
+				if (rb && rb->GetInfo().rigidBody)
+					physicsData.physics->GetInfo().world->removeRigidBody(rb->GetInfo().rigidBody.get());
 			}
 		}
 		physicsData.joints.clear();
