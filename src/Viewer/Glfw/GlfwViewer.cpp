@@ -85,7 +85,7 @@ namespace Chrivent {
 	}
 
 	GlfwViewer::~GlfwViewer() {
-		auto& info = GetGlfwInfo();
+		const auto& info = GetGlfwInfo();
 		if (info.dummyColorTex != 0)
 			glDeleteTextures(1, &info.dummyColorTex);
 	}
