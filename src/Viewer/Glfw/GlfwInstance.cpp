@@ -9,11 +9,11 @@ namespace Chrivent {
 	GlfwDrawer::GlfwDrawer(const GlfwInstance& sourceInstance) : instance(sourceInstance) {}
 
 	void GlfwDrawer::DrawModel() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto vao = instance.vao;
-		const auto indexType = instance.indexType;
+		const auto& info = instance.GetGlfwInfo();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto vao = info.vao;
+		const auto indexType = info.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -89,11 +89,11 @@ namespace Chrivent {
 	}
 
 	void GlfwDrawer::DrawEdge() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto edgeVao = instance.edgeVao;
-		const auto indexType = instance.indexType;
+		const auto& info = instance.GetGlfwInfo();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto edgeVao = info.edgeVao;
+		const auto indexType = info.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -123,11 +123,11 @@ namespace Chrivent {
 	}
 
 	void GlfwDrawer::DrawGroundShadow() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto gsVao = instance.gsVao;
-		const auto indexType = instance.indexType;
+		const auto& info = instance.GetGlfwInfo();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto gsVao = info.gsVao;
+		const auto indexType = info.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -193,6 +193,10 @@ namespace Chrivent {
 		return vao;
 	}
 
+	GlfwInstance::GlfwInstance() {
+		info = std::make_unique<GlfwInstanceInfo>();
+	}
+
 	GlfwInstance::~GlfwInstance() {
 		GlfwInstance::Clear();
 	}
@@ -207,17 +211,19 @@ namespace Chrivent {
 		if (ibo != 0)
 			glDeleteBuffers(1, &ibo);
 		posVbo = norVbo = uvVbo = ibo = 0;
-		if (vao != 0)
-			glDeleteVertexArrays(1, &vao);
-		if (edgeVao != 0)
-			glDeleteVertexArrays(1, &edgeVao);
-		if (gsVao != 0)
-			glDeleteVertexArrays(1, &gsVao);
-		vao = edgeVao = gsVao = 0;
+		auto& info = GetGlfwInfo();
+		if (info.vao != 0)
+			glDeleteVertexArrays(1, &info.vao);
+		if (info.edgeVao != 0)
+			glDeleteVertexArrays(1, &info.edgeVao);
+		if (info.gsVao != 0)
+			glDeleteVertexArrays(1, &info.gsVao);
+		info.vao = info.edgeVao = info.gsVao = 0;
 	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
-		viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
+		auto& info = GetGlfwInfo();
+		info.viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 		if (info.model == nullptr)
 			return false;
 		drawer = std::make_unique<GlfwDrawer>(*this);
@@ -229,11 +235,11 @@ namespace Chrivent {
 		const size_t idxCount = info.model->geometryData.indexCount;
 		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, info.model->geometryData.indices.data(), GL_STATIC_DRAW);
 		if (idxSize == 1)
-			indexType = GL_UNSIGNED_BYTE;
+			info.indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
-			indexType = GL_UNSIGNED_SHORT;
+			info.indexType = GL_UNSIGNED_SHORT;
 		else if (idxSize == 4)
-			indexType = GL_UNSIGNED_INT;
+			info.indexType = GL_UNSIGNED_INT;
 		else
 			return false;
 		const GLuint buffers[][3]   = {
@@ -242,9 +248,9 @@ namespace Chrivent {
 			{ posVbo }
 		};
 		const GLint locs[][3] = {
-			{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
-			{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
-			{ viewer->gsShader->positionLocation }
+			{ info.viewer->shader->positionLocation, info.viewer->shader->normalLocation, info.viewer->shader->uvLocation },
+			{ info.viewer->edgeShader->positionLocation, info.viewer->edgeShader->normalLocation },
+			{ info.viewer->gsShader->positionLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
@@ -256,26 +262,27 @@ namespace Chrivent {
 			{ GL_FLOAT, GL_FLOAT },
 			{ GL_FLOAT }
 		};
-		vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
-		edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
-		gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
+		info.vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
+		info.edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
+		info.gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
 		for (const auto& mat : info.model->materialData.materials) {
 			GlfwViewerMaterial material(mat);
 			if (!mat.texture.empty()) {
-				const auto texture = viewer->LoadTexture(mat.texture);
+				const auto texture = info.viewer->LoadTexture(mat.texture);
 				material.texture = texture.texture;
 				material.textureHasAlpha = texture.hasAlpha;
 			}
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
+				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture).texture;
 			if (!mat.cartoonTexture.empty())
-				material.cartoonTexture = viewer->LoadTexture(mat.cartoonTexture, true).texture;
-			materials.emplace_back(material);
+				material.cartoonTexture = info.viewer->LoadTexture(mat.cartoonTexture, true).texture;
+			info.materials.emplace_back(material);
 		}
 		return true;
 	}
 
 	void GlfwInstance::Update() const {
+		const auto& info = GetGlfwInfo();
 		const ModelPose pose(*info.model);
 		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();

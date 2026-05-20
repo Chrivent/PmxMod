@@ -9,14 +9,14 @@ namespace Chrivent {
 	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance) : instance(sourceInstance) {}
 
 	void Dx11Drawer::DrawModel() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto& vertexBuffer = instance.vertexBuffer;
-		const auto& indexBuffer = instance.indexBuffer;
-		const auto indexBufferFormat = instance.indexBufferFormat;
-		const auto& vsConstantBuffer = instance.vsConstantBuffer;
-		const auto& psConstantBuffer = instance.psConstantBuffer;
+		const auto& info = instance.GetDx11Info();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto& vertexBuffer = info.vertexBuffer;
+		const auto& indexBuffer = info.indexBuffer;
+		const auto indexBufferFormat = info.indexBufferFormat;
+		const auto& vsConstantBuffer = info.vsConstantBuffer;
+		const auto& psConstantBuffer = info.psConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -81,12 +81,12 @@ namespace Chrivent {
 	}
 
 	void Dx11Drawer::DrawEdge() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto& edgeVsConstantBuffer = instance.edgeVsConstantBuffer;
-		const auto& edgeSizeVsConstantBuffer = instance.edgeSizeVsConstantBuffer;
-		const auto& edgePsConstantBuffer = instance.edgePsConstantBuffer;
+		const auto& info = instance.GetDx11Info();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto& edgeVsConstantBuffer = info.edgeVsConstantBuffer;
+		const auto& edgeSizeVsConstantBuffer = info.edgeSizeVsConstantBuffer;
+		const auto& edgePsConstantBuffer = info.edgePsConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -127,11 +127,11 @@ namespace Chrivent {
 	}
 
 	void Dx11Drawer::DrawGroundShadow() const {
-		const auto* viewer = instance.viewer;
-		const auto& info = instance.GetInfo();
-		const auto& materials = instance.materials;
-		const auto& gsVsConstantBuffer = instance.gsVsConstantBuffer;
-		const auto& gsPsConstantBuffer = instance.gsPsConstantBuffer;
+		const auto& info = instance.GetDx11Info();
+		const auto* viewer = info.viewer;
+		const auto& materials = info.materials;
+		const auto& gsVsConstantBuffer = info.gsVsConstantBuffer;
+		const auto& gsPsConstantBuffer = info.gsPsConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -191,10 +191,11 @@ namespace Chrivent {
 			outAdd  = addIn;
 		} else
 			outMode = 0;
-		ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : viewer->dummyTexture.textureView.Get();
-		ID3D11SamplerState* samplers = tex.texture ? sampler : viewer->pipelineStates.textureSampler.Get();
-		viewer->deviceResources.context->PSSetShaderResources(slot, 1, &views);
-		viewer->deviceResources.context->PSSetSamplers(slot, 1, &samplers);
+		const auto& info = GetDx11Info();
+		ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : info.viewer->dummyTexture.textureView.Get();
+		ID3D11SamplerState* samplers = tex.texture ? sampler : info.viewer->pipelineStates.textureSampler.Get();
+		info.viewer->deviceResources.context->PSSetShaderResources(slot, 1, &views);
+		info.viewer->deviceResources.context->PSSetSamplers(slot, 1, &samplers);
 	}
 
 	const glm::mat4& Dx11Instance::DxClipMatrix() {
@@ -207,58 +208,64 @@ namespace Chrivent {
 		return dxMat;
 	}
 
+	Dx11Instance::Dx11Instance() {
+		info = std::make_unique<Dx11InstanceInfo>();
+	}
+
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
-		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
+		auto& info = GetDx11Info();
+		info.viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
 		drawer = std::make_unique<Dx11Drawer>(*this);
 		const auto vBufDesc = MakeVertexBufferDesc(info.model->geometryData.positions.size());
-		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
+		if (FAILED(info.viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
 			return false;
 		const auto iBufDesc = MakeIndexBufferDesc(info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = info.model->geometryData.indices.data();
-		if (FAILED(viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
+		if (FAILED(info.viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
 			return false;
 		if (1 == info.model->geometryData.indexElementSize)
-			indexBufferFormat = DXGI_FORMAT_R8_UINT;
+			info.indexBufferFormat = DXGI_FORMAT_R8_UINT;
 		else if (2 == info.model->geometryData.indexElementSize)
-			indexBufferFormat = DXGI_FORMAT_R16_UINT;
+			info.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 		else if (4 == info.model->geometryData.indexElementSize)
-			indexBufferFormat = DXGI_FORMAT_R32_UINT;
+			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
-		if (FAILED(CreateBuffer<Dx11VertexShader>(viewer->deviceResources.device.Get(), vsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11VertexShader>(info.viewer->deviceResources.device.Get(), info.vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11PixelShader>(viewer->deviceResources.device.Get(), psConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11PixelShader>(info.viewer->deviceResources.device.Get(), info.psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(viewer->deviceResources.device.Get(), edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(info.viewer->deviceResources.device.Get(), info.edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(viewer->deviceResources.device.Get(), edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(info.viewer->deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(viewer->deviceResources.device.Get(), edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(info.viewer->deviceResources.device.Get(), info.edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(viewer->deviceResources.device.Get(), gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(info.viewer->deviceResources.device.Get(), info.gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(viewer->deviceResources.device.Get(), gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(info.viewer->deviceResources.device.Get(), info.gsPsConstantBuffer)))
 			return false;
 		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);
 			if (!mat.texture.empty())
-				material.texture = viewer->LoadTexture(mat.texture);
+				material.texture = info.viewer->LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
-				material.spTexture = viewer->LoadTexture(mat.spTexture);
+				material.spTexture = info.viewer->LoadTexture(mat.spTexture);
 			if (!mat.cartoonTexture.empty())
-				material.cartoonTexture = viewer->LoadTexture(mat.cartoonTexture);
-			materials.emplace_back(std::move(material));
+				material.cartoonTexture = info.viewer->LoadTexture(mat.cartoonTexture);
+			info.materials.emplace_back(std::move(material));
 		}
 		return true;
 	}
 
 	void Dx11Instance::Update() const {
+		const auto& info = GetDx11Info();
 		const ModelPose pose(*info.model);
 		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(viewer->deviceResources.context->Map(vertexBuffer.Get(), 0,
+		if (FAILED(info.viewer->deviceResources.context->Map(info.vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
@@ -270,7 +277,7 @@ namespace Chrivent {
 			vertices[i].normal = updateNormalData[i];
 			vertices[i].uv = updateUvData[i];
 		}
-		viewer->deviceResources.context->Unmap(vertexBuffer.Get(), 0);
+		info.viewer->deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
 	}
 }
 

@@ -6,7 +6,10 @@
 #include "../Model/ModelAnimator.h"
 
 namespace Chrivent {
-    Instance::Instance() = default;
+    InstanceInfo::InstanceInfo() = default;
+    InstanceInfo::~InstanceInfo() = default;
+
+    Instance::Instance() : info(std::make_unique<InstanceInfo>()) {}
     Instance::~Instance() = default;
 
     void Instance::Draw() const {
@@ -15,8 +18,9 @@ namespace Chrivent {
     }
 
     void Instance::UpdateAnimation(const Viewer& viewer) const {
-        const ModelAnimator animator(*info.model);
+        const auto& instanceInfo = GetInfo();
+        const ModelAnimator animator(*instanceInfo.model);
         animator.BeginAnimation();
-        animator.UpdateAllAnimation(info.anim.get(), viewer.animTime * 30.0f, viewer.elapsed, !viewer.skipPhysics);
+        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewer.animTime * 30.0f, viewer.elapsed, !viewer.skipPhysics);
     }
 }

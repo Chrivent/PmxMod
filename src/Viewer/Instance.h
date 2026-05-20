@@ -1,14 +1,18 @@
 ﻿#pragma once
 
+#include "../Animation/Model/Animation.h"
+
 #include <memory>
 
 namespace Chrivent {
     struct Model;
-    class Animation;
     class Drawer;
     class Viewer;
 
     struct InstanceInfo {
+        InstanceInfo();
+        virtual ~InstanceInfo();
+
         std::shared_ptr<Model>	    model;
         std::unique_ptr<Animation>	anim;
         float scale = 1.0f;
@@ -16,7 +20,7 @@ namespace Chrivent {
     
     class Instance {
     protected:
-        InstanceInfo info;
+        std::unique_ptr<InstanceInfo> info;
         std::unique_ptr<Drawer> drawer;
     
 	public:
@@ -28,8 +32,8 @@ namespace Chrivent {
         Instance(Instance&&) = delete;
         Instance& operator=(Instance&&) = delete;
 
-        InstanceInfo& GetInfo() { return info; }
-        const InstanceInfo& GetInfo() const { return info; }
+        InstanceInfo& GetInfo() { return *info; }
+        const InstanceInfo& GetInfo() const { return *info; }
 
         virtual void Clear() {}
         // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.

@@ -10,28 +10,35 @@ namespace Chrivent {
     class GlfwDrawer;
     struct GlfwViewerMaterial;
 
+    struct GlfwInstanceInfo : InstanceInfo {
+        GlfwViewer* viewer = nullptr;
+        GLenum	indexType = GL_UNSIGNED_BYTE;
+        GLuint	vao = 0;
+        GLuint	edgeVao = 0;
+        GLuint	gsVao = 0;
+        std::vector<GlfwViewerMaterial> materials;
+    };
+
     class GlfwInstance : public Instance {
         friend class GlfwDrawer;
 
     protected:
+        GlfwInstanceInfo& GetGlfwInfo() { return static_cast<GlfwInstanceInfo&>(GetInfo()); }
+        const GlfwInstanceInfo& GetGlfwInfo() const { return static_cast<const GlfwInstanceInfo&>(GetInfo()); }
+
         // OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
         static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
         // 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
         static GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
             int attribCount, GLuint ibo);
 
-        GlfwViewer* viewer = nullptr;
         GLuint  posVbo = 0;
         GLuint	norVbo = 0;
         GLuint	uvVbo = 0;
         GLuint	ibo = 0;
-        GLenum	indexType = GL_UNSIGNED_BYTE;
-        GLuint	vao = 0;
-        GLuint	edgeVao = 0;
-        GLuint	gsVao = 0;
-        std::vector<GlfwViewerMaterial> materials;
     
     public:
+        GlfwInstance();
         ~GlfwInstance() override;
 
         // OpenGL 버퍼와 VAO 리소스를 해제한다.

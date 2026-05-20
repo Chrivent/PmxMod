@@ -13,10 +13,28 @@ namespace Chrivent {
     class Dx11Drawer;
     class Dx11Viewer;
 
+    struct Dx11InstanceInfo : InstanceInfo {
+        Dx11Viewer*                             viewer = nullptr;
+        std::vector<Dx11Material>               materials;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
+        DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R8_UINT;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeSizeVsConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
+    };
+
     class Dx11Instance : public Instance {
         friend class Dx11Drawer;
 
     protected:
+        Dx11InstanceInfo& GetDx11Info() { return static_cast<Dx11InstanceInfo&>(GetInfo()); }
+        const Dx11InstanceInfo& GetDx11Info() const { return static_cast<const Dx11InstanceInfo&>(GetInfo()); }
+
         // 모델 버텍스 데이터를 매 프레임 갱신할 동적 버퍼 설명자를 만든다.
         static D3D11_BUFFER_DESC MakeVertexBufferDesc(size_t vertexCount);
         // 모델 인덱스 데이터를 한 번 업로드할 immutable 버퍼 설명자를 만든다.
@@ -35,20 +53,8 @@ namespace Chrivent {
             return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
         }
 
-        Dx11Viewer*                             viewer = nullptr;
-        std::vector<Dx11Material>               materials;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
-        DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R8_UINT;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeSizeVsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
-    
     public:
+        Dx11Instance();
         // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
         bool Setup(Viewer& baseViewer) override;
         // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
