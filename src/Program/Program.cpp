@@ -122,7 +122,7 @@ namespace Chrivent {
 
     int Program::CalculatePlaybackLastFrame() const {
         int lastFrame = cameraManager.GetLastFrame();
-        if (music.hasSound)
+        if (music.HasSound())
             lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
         for (const auto& instance : instances) {
             if (instance && instance->anim)
@@ -172,7 +172,7 @@ namespace Chrivent {
         glfwPollEvents();
         panelManager.PollGuiWindows();
         if (panelManager.ConsumeSceneConfigDirty())
-            LoadScene(panelManager.sceneConfig);
+            LoadScene(panelManager.GetSceneConfig());
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {

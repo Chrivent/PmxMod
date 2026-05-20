@@ -15,8 +15,8 @@ namespace Chrivent {
 		geometryData.parallelUpdateCount = 0;
 		if (physicsData.physics && physicsData.physics->world) {
 			for (const auto& joint : physicsData.joints) {
-				if (joint && joint->constraint)
-					physicsData.physics->world->removeConstraint(joint->constraint.get());
+				if (joint && joint->GetConstraint())
+					physicsData.physics->world->removeConstraint(joint->GetConstraint());
 			}
 			for (const auto& rb : physicsData.rigidBodies) {
 				if (rb && rb->rigidBody)

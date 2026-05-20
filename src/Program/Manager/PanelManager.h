@@ -29,11 +29,10 @@ namespace Chrivent {
 		static LRESULT CALLBACK RenderWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	public:
-		SceneConfig& sceneConfig;
-
 		PanelManager();
 		~PanelManager();
 		
+		SceneConfig& GetSceneConfig() { return sceneConfigStorage; }
 		void SetPlaybackFrame(const int frame) const { playbackPanel.SetCurrentFrame(frame); }
 		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
 		void ApplySceneConfig(const SceneConfig& cfg) { viewerMenu.ApplySceneConfig(cfg); }

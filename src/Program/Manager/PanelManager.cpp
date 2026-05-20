@@ -19,7 +19,7 @@ namespace Chrivent {
 	}
 
 	PanelManager::PanelManager()
-		: viewerMenu(sceneConfigStorage), sceneConfig(sceneConfigStorage) {
+		: viewerMenu(sceneConfigStorage) {
 		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		Reset();

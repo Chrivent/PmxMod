@@ -92,7 +92,7 @@ namespace Chrivent {
 		const float clockDt = static_cast<float>(elapsedSeconds);
 		float dt = clockDt;
 		float t = viewer.animTime + dt;
-		if (music.hasSound) {
+		if (music.HasSound()) {
 			float audioDt = 0.0f;
 			float audioTime = 0.0f;
 			music.PullTimes(audioDt, audioTime);

@@ -176,7 +176,7 @@ namespace Chrivent {
 	void PlaybackPanel::SetCurrentFrame(const int frame) const {
 		if (!timelineSlider)
 			return;
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>((std::max)(0, frame)));
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, (std::max)(0, frame));
 	}
 
 	void PlaybackPanel::SetFrameRange(const int maxFrame) const {

@@ -311,7 +311,7 @@ namespace Chrivent {
 				j->Create(joint,
 					model.physicsData.rigidBodies[joint.rigidbodyAIndex].get(),
 					model.physicsData.rigidBodies[joint.rigidbodyBIndex].get());
-				model.physicsData.physics->world->addConstraint(j->constraint.get());
+				model.physicsData.physics->world->addConstraint(j->GetConstraint());
 				model.physicsData.joints.emplace_back(std::move(j));
 			}
 		}

@@ -6,8 +6,10 @@
 
 namespace Chrivent {
 	class OverlapFilterCallback final : public btOverlapFilterCallback {
-	public:
 		std::vector<btBroadphaseProxy*> nonFilterProxy;
+
+	public:
+		void AddNonFilterProxy(btBroadphaseProxy* proxy) { nonFilterProxy.push_back(proxy); }
 
 		// 두 broadphase 프록시가 충돌 후보가 될 수 있는지 필터링한다.
 		bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;

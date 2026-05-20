@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <filesystem>
+#include <memory>
 
 struct ma_engine;
 struct ma_sound;
@@ -13,13 +14,12 @@ namespace Chrivent {
         std::unique_ptr<ma_sound>  sound;
         double prevTimeSec = 0.0;
         bool playing = false;
+        bool hasSound = false;
 
         // miniaudio 엔진과 사운드 객체를 해제한다.
         void UnInit();
     
     public:
-        bool hasSound = false;
-        
         Sound();
         ~Sound();
     
@@ -28,6 +28,7 @@ namespace Chrivent {
         Sound(Sound&&) = delete;
         Sound& operator=(Sound&&) = delete;
         
+        bool HasSound() const { return hasSound; }
         float GetVolume() const { return volume; }
         double GetLengthSeconds() const { return lengthSec; }
 

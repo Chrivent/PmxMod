@@ -35,7 +35,7 @@ namespace Chrivent {
 		groundRigidBody = std::make_unique<btRigidBody>(groundInfo);
 		world->addRigidBody(groundRigidBody.get());
 		auto filter = std::make_unique<OverlapFilterCallback>();
-		filter->nonFilterProxy.push_back(groundRigidBody->getBroadphaseProxy());
+		filter->AddNonFilterProxy(groundRigidBody->getBroadphaseProxy());
 		world->getPairCache()->setOverlapFilterCallback(filter.get());
 		filterCallback = std::move(filter);
 	}
