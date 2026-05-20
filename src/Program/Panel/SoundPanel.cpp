@@ -1,6 +1,6 @@
 ﻿#include "SoundPanel.h"
 
-#include "../Manager/GuiManager.h"
+#include "../GuiDrawer.h"
 #include "../Sound.h"
 
 #include <CommCtrl.h>
@@ -116,7 +116,7 @@ namespace Chrivent {
 			0, 0, 0, 0,
 			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
 		const int initialVolume = sound ? static_cast<int>(std::round(sound->GetVolume() * 100.0f)) : 0;
-		volumeSlider = GuiManager::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, initialVolume, 10);
+		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, initialVolume, 10);
 		valueText = CreateWindowExW(
 			0, L"STATIC", L"",
 			WS_CHILD | WS_VISIBLE | SS_CENTER,

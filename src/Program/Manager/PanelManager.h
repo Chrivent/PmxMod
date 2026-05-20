@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <windows.h>
+
 #include "../Config.h"
 #include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
@@ -9,7 +11,7 @@ namespace Chrivent {
 	class Sound;
 	class Viewer;
 
-	class GuiManager {
+	class PanelManager {
 		static constexpr int kPlaybackTimelineSliderId = 1001;
 		static constexpr int kPlaybackPlayButtonId = 1002;
 		static constexpr int kPlaybackPauseButtonId = 1003;
@@ -29,8 +31,8 @@ namespace Chrivent {
 	public:
 		SceneConfig& sceneConfig;
 
-		GuiManager();
-		~GuiManager();
+		PanelManager();
+		~PanelManager();
 
 		// 렌더링 창에 상단 메뉴를 연결한다.
 		void AttachRenderWindow(const Viewer& viewer);
@@ -56,9 +58,5 @@ namespace Chrivent {
 		void SetPlaybackFrameRange(int maxFrame) const;
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound);
-		// 눈금 없는 가로 슬라이더 컨트롤을 생성한다.
-		static HWND CreateHorizontalSlider(HWND parent, int controlId, int minValue, int maxValue, int initialValue);
-		// 눈금이 있는 세로 슬라이더 컨트롤을 생성한다.
-		static HWND CreateVerticalTickSlider(HWND parent, int controlId, int minValue, int maxValue, int initialValue, int tickFrequency);
 	};
 }

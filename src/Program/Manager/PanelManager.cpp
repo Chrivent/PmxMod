@@ -1,0 +1,98 @@
+﻿#include "PanelManager.h"
+
+#include "../Sound.h"
+#include "../../Viewer/Viewer.h"
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
+namespace Chrivent {
+	LRESULT CALLBACK PanelManager::RenderWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+		auto* panelManager = static_cast<PanelManager*>(GetPropW(hwnd, L"PmxModPanelManager"));
+		if (panelManager && msg == WM_COMMAND) {
+			if (panelManager->viewerMenu.HandleCommand(LOWORD(wParam)))
+				return 0;
+		}
+		if (panelManager && panelManager->prevRenderWindowProc)
+			return CallWindowProcW(panelManager->prevRenderWindowProc, hwnd, msg, wParam, lParam);
+		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	}
+
+	PanelManager::PanelManager()
+		: viewerMenu(sceneConfigStorage), sceneConfig(sceneConfigStorage) {
+		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
+		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
+		Reset();
+	}
+
+	PanelManager::~PanelManager() {
+		DestroyGui();
+	}
+
+	void PanelManager::AttachRenderWindow(const Viewer& viewer) {
+		renderWindow = glfwGetWin32Window(viewer.window);
+		if (!renderWindow)
+			return;
+		viewerMenu.AttachOwner(renderWindow);
+		const HMENU menu = CreateMenu();
+		viewerMenu.AddMenu(menu);
+		SetMenu(renderWindow, menu);
+		DrawMenuBar(renderWindow);
+		SetPropW(renderWindow, L"PmxModPanelManager", this);
+		prevRenderWindowProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(renderWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(RenderWindowProc)));
+	}
+
+	void PanelManager::ApplySceneConfig(const SceneConfig& cfg) {
+		viewerMenu.ApplySceneConfig(cfg);
+	}
+
+	void PanelManager::Reset() {
+		viewerMenu.Reset();
+	}
+
+	bool PanelManager::OpenGuiWindows() {
+		playbackPanel.Show();
+		soundPanel.Show();
+		return true;
+	}
+
+	void PanelManager::PollGuiWindows() const {
+		playbackPanel.Poll();
+		soundPanel.Poll();
+	}
+
+	void PanelManager::DestroyGui() {
+		if (renderWindow && prevRenderWindowProc) {
+			SetWindowLongPtrW(renderWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(prevRenderWindowProc));
+			RemovePropW(renderWindow, L"PmxModPanelManager");
+			prevRenderWindowProc = nullptr;
+		}
+		renderWindow = nullptr;
+		playbackPanel.Destroy();
+		soundPanel.Destroy();
+	}
+
+	bool PanelManager::ConsumeSceneConfigDirty() {
+		return viewerMenu.ConsumeSceneConfigDirty();
+	}
+
+	PlaybackCommand PanelManager::ConsumePlaybackCommand() {
+		return playbackPanel.ConsumeCommand();
+	}
+
+	bool PanelManager::ConsumeSeekFrame(int& frame, bool& finished) {
+		return playbackPanel.ConsumeSeekFrame(frame, finished);
+	}
+
+	void PanelManager::SetPlaybackFrame(const int frame) const {
+		playbackPanel.SetCurrentFrame(frame);
+	}
+
+	void PanelManager::SetPlaybackFrameRange(const int maxFrame) const {
+		playbackPanel.SetFrameRange(maxFrame);
+	}
+
+	void PanelManager::BindSound(Sound& sound) {
+		soundPanel.BindSound(sound);
+	}
+}

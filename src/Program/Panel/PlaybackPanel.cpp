@@ -1,8 +1,9 @@
 ﻿#include "PlaybackPanel.h"
 
-#include "../Manager/GuiManager.h"
+#include "../GuiDrawer.h"
 
 #include <CommCtrl.h>
+#include <algorithm>
 
 namespace Chrivent {
 	LRESULT CALLBACK PlaybackPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -93,7 +94,7 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::CreateContent(const HWND parent) {
-		timelineSlider = GuiManager::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
+		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
 		playButton = CreateWindowExW(
 			0, L"BUTTON", L"Play",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,

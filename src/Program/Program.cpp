@@ -54,7 +54,7 @@ namespace Chrivent {
     void Program::Shutdown() {
         ClearInstances();
         music.Stop();
-        guiManager.DestroyGui();
+        panelManager.DestroyGui();
         viewer.reset();
         glfwTerminate();
     }
@@ -76,7 +76,7 @@ namespace Chrivent {
         viewer->skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
-        guiManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         return true;
     }
 
@@ -168,12 +168,12 @@ namespace Chrivent {
 
     bool Program::RunFrame() {
         glfwPollEvents();
-        guiManager.PollGuiWindows();
-        if (guiManager.ConsumeSceneConfigDirty())
-            LoadScene(guiManager.sceneConfig);
+        panelManager.PollGuiWindows();
+        if (panelManager.ConsumeSceneConfigDirty())
+            LoadScene(panelManager.sceneConfig);
         int seekFrame = 0;
         bool seekFinished = false;
-        if (guiManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
+        if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
             viewer->skipPhysics = !seekFinished;
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
             if (seekFinished) {
@@ -181,7 +181,7 @@ namespace Chrivent {
                 viewer->skipPhysics = false;
             }
         }
-        switch (guiManager.ConsumePlaybackCommand()) {
+        switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
                 viewer->skipPhysics = false;
                 cameraManager.Play(music);
@@ -201,7 +201,7 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(*viewer, music, saveTime);
-        guiManager.SetPlaybackFrame(static_cast<int>(viewer->animTime * 30.0f + 0.5f));
+        panelManager.SetPlaybackFrame(static_cast<int>(viewer->animTime * 30.0f + 0.5f));
         cameraManager.UpdateCamera(*viewer);
         viewer->BeginFrame();
         for (const auto& instance : instances) {
@@ -225,15 +225,15 @@ namespace Chrivent {
         const SceneConfig cfg;
         cameraManager.Reset();
         inputManager.Reset();
-        guiManager.Reset();
-        guiManager.ApplySceneConfig(cfg);
+        panelManager.Reset();
+        panelManager.ApplySceneConfig(cfg);
         if (!InitializeViewer()) {
             std::cout << "Failed to run.\n";
             return false;
         }
-        guiManager.BindSound(music);
-        guiManager.AttachRenderWindow(*viewer);
-        guiManager.OpenGuiWindows();
+        panelManager.BindSound(music);
+        panelManager.AttachRenderWindow(*viewer);
+        panelManager.OpenGuiWindows();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;

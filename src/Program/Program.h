@@ -2,7 +2,7 @@
 
 #include "Sound.h"
 #include "Manager/CameraManager.h"
-#include "Manager/GuiManager.h"
+#include "Manager/PanelManager.h"
 #include "Manager/InputManager.h"
 #include "../Viewer/Viewer.h"
 
@@ -11,7 +11,7 @@ namespace Chrivent {
         std::unique_ptr<Viewer> viewer;
         InputManager inputManager;
         CameraManager cameraManager;
-        GuiManager guiManager;
+        PanelManager panelManager;
         Sound music;
         std::vector<std::unique_ptr<Instance>> instances;
         std::chrono::steady_clock::time_point fpsTime;
