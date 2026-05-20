@@ -4,7 +4,7 @@
 
 namespace Chrivent {
     struct Model;
-    struct Animation;
+    class Animation;
     class Viewer;
     
     class Instance {

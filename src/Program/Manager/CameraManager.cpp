@@ -66,9 +66,11 @@ namespace Chrivent {
 		VmdParser camVmd;
 		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.cameras.empty()) {
 			auto vmdCamAnim = std::make_unique<CameraAnimation>();
-			const CameraAnimationBuilder cameraAnimationBuilder(*vmdCamAnim);
+			CameraAnimationInfo cameraAnimationInfo;
+			const CameraAnimationBuilder cameraAnimationBuilder(cameraAnimationInfo);
 			if (!cameraAnimationBuilder.Add(camVmd))
 				std::cout << "Failed to create VMDCameraAnimation.\n";
+			vmdCamAnim->SetInfo(std::move(cameraAnimationInfo));
 			cameraAnim = std::move(vmdCamAnim);
 		}
 	}
@@ -181,7 +183,7 @@ namespace Chrivent {
 	void CameraManager::UpdateCamera(Viewer& viewer) const {
 		if (useMotionCamera && cameraAnim) {
 			cameraAnim->Evaluate(viewer.animTime * 30.0f);
-			const auto cam = cameraAnim->camera;
+			const auto cam = cameraAnim->GetInfo().camera;
 			viewer.viewMat = cam.CalcViewMatrix();
 			viewer.projMat = glm::perspectiveFovRH(
 				cam.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f

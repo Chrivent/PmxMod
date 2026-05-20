@@ -9,7 +9,7 @@
 #include "Physics/Joint.h"
 
 namespace Chrivent {
-	struct Animation;
+	class Animation;
 
 	struct SubMesh {
 		int	beginIndex;

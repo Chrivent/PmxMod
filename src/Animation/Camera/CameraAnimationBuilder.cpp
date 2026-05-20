@@ -32,10 +32,10 @@ namespace Chrivent {
 	bool CameraAnimationBuilder::Add(const VmdParser& vmd) const {
 		if (vmd.cameras.empty())
 			return false;
-		animation.keys.clear();
+		info.keys.clear();
 		for (const auto& camera : vmd.cameras)
-			animation.keys.push_back(CreateCameraKey(camera));
-		std::ranges::sort(animation.keys, {}, &CameraAnimationKey::time);
+			info.keys.push_back(CreateCameraKey(camera));
+		std::ranges::sort(info.keys, {}, &CameraAnimationKey::time);
 		return true;
 	}
 }

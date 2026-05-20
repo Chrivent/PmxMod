@@ -6,7 +6,7 @@
 
 namespace Chrivent {
 	class AnimationBinder {
-		const Animation& animation;
+		AnimationInfo& info;
 
 		// 이름과 일치하는 모델 노드를 찾는다.
 		std::shared_ptr<Node> FindNodeByName(const std::string& name) const;
@@ -16,7 +16,7 @@ namespace Chrivent {
 		std::shared_ptr<Morph> FindMorphByName(const std::string& name) const;
 
 	public:
-		explicit AnimationBinder(const Animation& animation) : animation(animation) {}
+		explicit AnimationBinder(AnimationInfo& info) : info(info) {}
 
 		// 노드 트랙을 이름과 일치하는 모델 노드에 연결한다.
 		void BindNodeTrack(NodeAnimationTrack& track, const std::string& name) const { track.node = FindNodeByName(name); }

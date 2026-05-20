@@ -28,8 +28,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddNodeAnimations(const VmdParser& vmd) const {
-		const AnimationBinder binder(animation);
-		auto& nodeTracks = animation.nodeTracks;
+		const AnimationBinder binder(info);
+		auto& nodeTracks = info.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmd.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName);
@@ -45,8 +45,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdParser& vmd) const {
-		const AnimationBinder binder(animation);
-		auto& ikTracks = animation.ikTracks;
+		const AnimationBinder binder(info);
+		auto& ikTracks = info.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmd.iks) {
 			for (const auto& [name, enable] : ik.ikInfos) {
@@ -66,8 +66,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdParser& vmd) const {
-		const AnimationBinder binder(animation);
-		auto& morphTracks = animation.morphTracks;
+		const AnimationBinder binder(info);
+		auto& morphTracks = info.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName);

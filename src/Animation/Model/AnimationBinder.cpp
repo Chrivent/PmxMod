@@ -4,31 +4,37 @@
 
 namespace Chrivent {
 	std::shared_ptr<Node> AnimationBinder::FindNodeByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(animation.model->skeletonData.nodes,
+		if (!info.model)
+			return nullptr;
+		const auto it = std::ranges::find_if(info.model->skeletonData.nodes,
 			[&name](const std::shared_ptr<Node>& node) {
 				return node && node->name == name;
 		});
-		return it != animation.model->skeletonData.nodes.end() ? *it : nullptr;
+		return it != info.model->skeletonData.nodes.end() ? *it : nullptr;
 	}
 
 	std::shared_ptr<IkSolver> AnimationBinder::FindIkSolverByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(animation.model->skeletonData.ikSolvers,
+		if (!info.model)
+			return nullptr;
+		const auto it = std::ranges::find_if(info.model->skeletonData.ikSolvers,
 			[&name](const std::shared_ptr<IkSolver>& solver) {
 				if (!solver)
 					return false;
 				const auto ikNode = solver->ikNode.lock();
 				return ikNode && ikNode->name == name;
 		});
-		return it != animation.model->skeletonData.ikSolvers.end() ? *it : nullptr;
+		return it != info.model->skeletonData.ikSolvers.end() ? *it : nullptr;
 	}
 
 	std::shared_ptr<Morph> AnimationBinder::FindMorphByName(const std::string& name) const {
-		const auto it = std::ranges::find_if(animation.model->morphData.morphs,
+		if (!info.model)
+			return nullptr;
+		const auto it = std::ranges::find_if(info.model->morphData.morphs,
 			[&name](const auto& morph) {
 				return morph && morph->name == name;
 		});
-		if (it == animation.model->morphData.morphs.end())
+		if (it == info.model->morphData.morphs.end())
 			return nullptr;
-		return std::shared_ptr<Morph>(animation.model, it->get());
+		return std::shared_ptr<Morph>(info.model, it->get());
 	}
 }

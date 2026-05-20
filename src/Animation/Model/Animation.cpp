@@ -5,23 +5,23 @@
 
 namespace Chrivent {
 	void Animation::Destroy() {
-		model.reset();
-		nodeTracks.clear();
-		ikTracks.clear();
-		morphTracks.clear();
+		info.model.reset();
+		info.nodeTracks.clear();
+		info.ikTracks.clear();
+		info.morphTracks.clear();
 	}
 
 	int32_t Animation::GetLastFrame() const {
 		int32_t lastFrame = 0;
-		for (const auto& [node, keys] : nodeTracks) {
+		for (const auto& [node, keys] : info.nodeTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().time);
 		}
-		for (const auto& [ikSolver, keys] : ikTracks) {
+		for (const auto& [ikSolver, keys] : info.ikTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().time);
 		}
-		for (const auto& [morph, keys] : morphTracks) {
+		for (const auto& [morph, keys] : info.morphTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().time);
 		}
@@ -35,7 +35,7 @@ namespace Chrivent {
 	}
 	
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
-		for (const auto& [node, keys]: nodeTracks) {
+		for (const auto& [node, keys]: info.nodeTracks) {
 			if (!node)
 				continue;
 			if (keys.empty()) {
@@ -67,7 +67,7 @@ namespace Chrivent {
 	}
 
 	void Animation::EvaluateIks(const float t, const float animWeight) const {
-		for (const auto& [ikSolver, keys] : ikTracks) {
+		for (const auto& [ikSolver, keys] : info.ikTracks) {
 			if (!ikSolver)
 				continue;
 			if (keys.empty()) {
@@ -81,7 +81,7 @@ namespace Chrivent {
 	}
 
 	void Animation::EvaluateMorphs(const float t, const float animWeight) const {
-		for (const auto& [morph, keys] : morphTracks) {
+		for (const auto& [morph, keys] : info.morphTracks) {
 			if (!morph)
 				continue;
 			if (keys.empty())

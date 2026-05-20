@@ -5,7 +5,7 @@
 
 namespace Chrivent {
 	class AnimationBuilder {
-		Animation& animation;
+		AnimationInfo& info;
 
 		// VMD 본 모션 키를 런타임 노드 애니메이션 키로 변환한다.
 		static NodeAnimationKey CreateNodeAnimationKey(const VmdParser::VmdMotion& motion);
@@ -17,7 +17,7 @@ namespace Chrivent {
 		void AddMorphAnimations(const VmdParser& vmd) const;
 
 	public:
-		explicit AnimationBuilder(Animation& animation) : animation(animation) {}
+		explicit AnimationBuilder(AnimationInfo& info) : info(info) {}
 
 		// VMD 데이터를 애니메이션 트랙에 추가한다.
 		bool Add(const VmdParser& vmd) const;

@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct CameraAnimation;
+	class CameraAnimation;
 	class InputManager;
 	class Sound;
 	class Viewer;

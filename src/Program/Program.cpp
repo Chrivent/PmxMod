@@ -95,8 +95,9 @@ namespace Chrivent {
             const ModelAnimator animator(*instance->model);
             animator.InitializeAnimation();
             auto vmdAnim = std::make_unique<Animation>();
-            vmdAnim->model = instance->model;
-            const AnimationBuilder animationBuilder(*vmdAnim);
+            AnimationInfo animationInfo;
+            animationInfo.model = instance->model;
+            const AnimationBuilder animationBuilder(animationInfo);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
@@ -108,6 +109,7 @@ namespace Chrivent {
                     return false;
                 }
             }
+            vmdAnim->SetInfo(std::move(animationInfo));
             animator.SyncPhysics(*vmdAnim, 0.0f);
             instance->anim = std::move(vmdAnim);
             instance->scale = scale;
