@@ -28,15 +28,15 @@ namespace Chrivent {
             return false;
         }
         viewer->ConfigureGlfwHints();
-        viewer->window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
-        if (!viewer->window) {
+        viewer->GetInfo().window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+        if (!viewer->GetInfo().window) {
             std::cout << "Failed to create viewer window.\n";
             viewer.reset();
             glfwTerminate();
             return false;
         }
-        glfwGetFramebufferSize(viewer->window, &viewer->screenWidth, &viewer->screenHeight);
-        if (viewer->screenWidth <= 0 || viewer->screenHeight <= 0) {
+        glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
+        if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
             std::cout << "Invalid framebuffer size.\n";
             viewer.reset();
             glfwTerminate();
@@ -71,11 +71,11 @@ namespace Chrivent {
         if (!sceneConfig.musicPath.empty())
             music.Init(sceneConfig.musicPath, false);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
-        viewer->elapsed = 0.0f;
-        viewer->animTime = 0.0f;
-        viewer->skipPhysics = false;
+        viewer->GetInfo().elapsed = 0.0f;
+        viewer->GetInfo().animTime = 0.0f;
+        viewer->GetInfo().skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
-        cameraManager.Stop(*viewer, music, saveTime);
+        cameraManager.Stop(viewer->GetInfo(), music, saveTime);
         panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         return true;
     }
@@ -87,7 +87,7 @@ namespace Chrivent {
             auto instance = viewer->CreateInstance();
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
-            if (!loader.Load(modelPath, viewer->pmxDir)) {
+            if (!loader.Load(modelPath, viewer->GetInfo().pmxDir)) {
                 std::cout << "Failed to load pmx file.\n";
                 return false;
             }
@@ -150,11 +150,11 @@ namespace Chrivent {
     bool Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
-        glfwGetFramebufferSize(viewer->window, &newW, &newH);
-        if (newW == viewer->screenWidth && newH == viewer->screenHeight)
+        glfwGetFramebufferSize(viewer->GetInfo().window, &newW, &newH);
+        if (newW == viewer->GetInfo().screenWidth && newH == viewer->GetInfo().screenHeight)
             return true;
-        viewer->screenWidth = newW;
-        viewer->screenHeight = newH;
+        viewer->GetInfo().screenWidth = newW;
+        viewer->GetInfo().screenHeight = newH;
         return viewer->Resize();
     }
 
@@ -176,39 +176,39 @@ namespace Chrivent {
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-            viewer->skipPhysics = !seekFinished;
-            cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
+            viewer->GetInfo().skipPhysics = !seekFinished;
+            cameraManager.SeekFrame(viewer->GetInfo(), music, seekFrame, saveTime);
             if (seekFinished) {
                 SyncSeekedPhysics(seekFrame);
-                viewer->skipPhysics = false;
+                viewer->GetInfo().skipPhysics = false;
             }
         }
         switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
-                viewer->skipPhysics = false;
+                viewer->GetInfo().skipPhysics = false;
                 cameraManager.Play(music);
                 break;
             case PlaybackCommand::Pause:
                 cameraManager.Pause(music);
                 break;
             case PlaybackCommand::Stop:
-                viewer->skipPhysics = false;
-                cameraManager.Stop(*viewer, music, saveTime);
+                viewer->GetInfo().skipPhysics = false;
+                cameraManager.Stop(viewer->GetInfo(), music, saveTime);
                 SyncSeekedPhysics(0);
                 break;
             case PlaybackCommand::None:
                 break;
         }
-        inputManager.Update(*viewer);
-        cameraManager.HandleInput(inputManager, *viewer, music);
+        inputManager.Update(viewer->GetInfo());
+        cameraManager.HandleInput(inputManager, viewer->GetInfo(), music);
         if (!UpdateFramebufferSize())
             return false;
-        cameraManager.StepTime(*viewer, music, saveTime);
-        panelManager.SetPlaybackFrame(static_cast<int>(viewer->animTime * 30.0f + 0.5f));
-        cameraManager.UpdateCamera(*viewer);
+        cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
+        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * 30.0f + 0.5f));
+        cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();
         for (const auto& instance : instances) {
-            instance->UpdateAnimation(*viewer);
+            instance->UpdateAnimation(viewer->GetInfo());
             instance->Update();
             instance->Draw();
         }
@@ -235,14 +235,14 @@ namespace Chrivent {
             return false;
         }
         panelManager.BindSound(music);
-        panelManager.AttachRenderWindow(*viewer);
+        panelManager.AttachRenderWindow(viewer->GetInfo());
         panelManager.OpenGuiWindows();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;
         LoadScene(cfg);
-        cameraManager.UpdateCamera(*viewer);
-        while (!glfwWindowShouldClose(viewer->window)) {
+        cameraManager.UpdateCamera(viewer->GetInfo());
+        while (!glfwWindowShouldClose(viewer->GetInfo().window)) {
             if (!RunFrame())
                 break;
         }

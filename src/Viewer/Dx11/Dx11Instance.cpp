@@ -32,12 +32,12 @@ namespace Chrivent {
 		info.viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
 		drawer = std::make_unique<Dx11Drawer>(info);
 		const auto vBufDesc = MakeVertexBufferDesc(info.model->geometryData.positions.size());
-		if (FAILED(info.viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
+		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
 			return false;
 		const auto iBufDesc = MakeIndexBufferDesc(info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = info.model->geometryData.indices.data();
-		if (FAILED(info.viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
+		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
 			return false;
 		if (1 == info.model->geometryData.indexElementSize)
 			info.indexBufferFormat = DXGI_FORMAT_R8_UINT;
@@ -47,19 +47,19 @@ namespace Chrivent {
 			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
-		if (FAILED(CreateBuffer<Dx11VertexShader>(info.viewer->deviceResources.device.Get(), info.vsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11VertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11PixelShader>(info.viewer->deviceResources.device.Get(), info.psConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11PixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(info.viewer->deviceResources.device.Get(), info.edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(info.viewer->deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(info.viewer->deviceResources.device.Get(), info.edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(info.viewer->deviceResources.device.Get(), info.gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(info.viewer->deviceResources.device.Get(), info.gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
 			return false;
 		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);
@@ -80,7 +80,7 @@ namespace Chrivent {
 		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(info.viewer->deviceResources.context->Map(info.vertexBuffer.Get(), 0,
+		if (FAILED(info.viewer->GetDx11Info().deviceResources.context->Map(info.vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
@@ -92,7 +92,7 @@ namespace Chrivent {
 			vertices[i].normal = updateNormalData[i];
 			vertices[i].uv = updateUvData[i];
 		}
-		info.viewer->deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
+		info.viewer->GetDx11Info().deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
 	}
 }
 

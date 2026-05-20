@@ -12,27 +12,27 @@ namespace Chrivent {
 		prevCursorY = 0.0;
 	}
 
-	void InputManager::Update(const Viewer& viewer) {
+	void InputManager::Update(const ViewerInfo& viewerInfo) {
 		state = {};
-		const bool spaceDown = glfwGetKey(viewer.window, GLFW_KEY_SPACE) == GLFW_PRESS;
+		const bool spaceDown = glfwGetKey(viewerInfo.window, GLFW_KEY_SPACE) == GLFW_PRESS;
 		state.togglePause = spaceDown && !prevSpaceDown;
 		prevSpaceDown = spaceDown;
 
-		const bool rDown = glfwGetKey(viewer.window, GLFW_KEY_R) == GLFW_PRESS;
+		const bool rDown = glfwGetKey(viewerInfo.window, GLFW_KEY_R) == GLFW_PRESS;
 		state.toggleCameraMode = rDown && !prevRDown;
 		prevRDown = rDown;
 
-		state.moveForward = glfwGetKey(viewer.window, GLFW_KEY_W) == GLFW_PRESS;
-		state.moveBackward = glfwGetKey(viewer.window, GLFW_KEY_S) == GLFW_PRESS;
-		state.moveLeft = glfwGetKey(viewer.window, GLFW_KEY_A) == GLFW_PRESS;
-		state.moveRight = glfwGetKey(viewer.window, GLFW_KEY_D) == GLFW_PRESS;
-		state.moveDown = glfwGetKey(viewer.window, GLFW_KEY_Q) == GLFW_PRESS;
-		state.moveUp = glfwGetKey(viewer.window, GLFW_KEY_E) == GLFW_PRESS;
+		state.moveForward = glfwGetKey(viewerInfo.window, GLFW_KEY_W) == GLFW_PRESS;
+		state.moveBackward = glfwGetKey(viewerInfo.window, GLFW_KEY_S) == GLFW_PRESS;
+		state.moveLeft = glfwGetKey(viewerInfo.window, GLFW_KEY_A) == GLFW_PRESS;
+		state.moveRight = glfwGetKey(viewerInfo.window, GLFW_KEY_D) == GLFW_PRESS;
+		state.moveDown = glfwGetKey(viewerInfo.window, GLFW_KEY_Q) == GLFW_PRESS;
+		state.moveUp = glfwGetKey(viewerInfo.window, GLFW_KEY_E) == GLFW_PRESS;
 
-		state.rotateCamera = glfwGetMouseButton(viewer.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+		state.rotateCamera = glfwGetMouseButton(viewerInfo.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 		double cursorX = 0.0;
 		double cursorY = 0.0;
-		glfwGetCursorPos(viewer.window, &cursorX, &cursorY);
+		glfwGetCursorPos(viewerInfo.window, &cursorX, &cursorY);
 		if (state.rotateCamera && prevRightMouseDown)
 			state.mouseDelta = glm::vec2(static_cast<float>(cursorX - prevCursorX), static_cast<float>(cursorY - prevCursorY));
 		prevCursorX = cursorX;

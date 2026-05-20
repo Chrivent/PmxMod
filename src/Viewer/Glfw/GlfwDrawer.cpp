@@ -12,14 +12,14 @@ namespace Chrivent {
 		const auto& materials = info.materials;
 		const auto vao = info.vao;
 		const auto indexType = info.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
+		const auto& view = viewer->GetInfo().viewMat;
+		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		auto wv = view * world;
 		auto wvp = proj * view * world;
-		const auto& shader = viewer->shader;
-		glm::vec3 lightColor = viewer->lightColor;
-		glm::vec3 lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
+		const auto& shader = viewer->GetGlfwInfo().shader;
+		glm::vec3 lightColor = viewer->GetInfo().lightColor;
+		glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		glUseProgram(shader->program);
 		glUniformMatrix4fv(shader->wvLocation, 1, GL_FALSE, &wv[0][0]);
 		glUniformMatrix4fv(shader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
@@ -50,7 +50,7 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, material.texture);
 			} else {
 				glUniform1i(shader->texModeLocation, 0);
-				glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
+				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			}
 			glActiveTexture(GL_TEXTURE0 + 1);
 			if (material.sphereTexture != 0) {
@@ -63,7 +63,7 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
 			} else {
 				glUniform1i(shader->sphereTexModeLocation, 0);
-				glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
+				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			}
 			glActiveTexture(GL_TEXTURE0 + 2);
 			if (material.cartoonTexture != 0) {
@@ -73,7 +73,7 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, material.cartoonTexture);
 			} else {
 				glUniform1i(shader->cartoonTexModeLocation, 0);
-				glBindTexture(GL_TEXTURE_2D, viewer->dummyColorTex);
+				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			}
 			if (mat.bothFace)
 				glDisable(GL_CULL_FACE);
@@ -91,16 +91,16 @@ namespace Chrivent {
 		const auto& materials = info.materials;
 		const auto edgeVao = info.edgeVao;
 		const auto indexType = info.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
+		const auto& view = viewer->GetInfo().viewMat;
+		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		auto wv = view * world;
 		auto wvp = proj * view * world;
-		const auto& edgeShader = viewer->edgeShader;
+		const auto& edgeShader = viewer->GetGlfwInfo().edgeShader;
 		glUseProgram(edgeShader->program);
 		glUniformMatrix4fv(edgeShader->wvLocation, 1, GL_FALSE, &wv[0][0]);
 		glUniformMatrix4fv(edgeShader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
-		glm::vec2 screenSize(viewer->screenWidth, viewer->screenHeight);
+		glm::vec2 screenSize(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
 		glUniform2fv(edgeShader->screenSizeLocation, 1, &screenSize[0]);
 		glBindVertexArray(edgeVao);
 		glEnable(GL_CULL_FACE);
@@ -124,15 +124,15 @@ namespace Chrivent {
 		const auto& materials = info.materials;
 		const auto gsVao = info.gsVao;
 		const auto indexType = info.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
+		const auto& view = viewer->GetInfo().viewMat;
+		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const auto& gsShader = viewer->gsShader;
+		const auto& gsShader = viewer->GetGlfwInfo().gsShader;
 		glUseProgram(gsShader->program);
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-		const glm::vec4 light(-viewer->lightDir, 0.f);
+		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		glUniformMatrix4fv(gsShader->wvpLocation, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
 		glBindVertexArray(gsVao);

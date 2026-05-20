@@ -6,6 +6,7 @@
 #include <stb_image.h>
 
 namespace Chrivent {
+    Viewer::Viewer() : info(std::make_unique<ViewerInfo>()) {}
     Viewer::~Viewer() = default;
 
     unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
@@ -30,7 +31,7 @@ namespace Chrivent {
             buf.resize(buf.size() * 2);
         }
         resourceDir = resourceDir.parent_path() / "resource";
-        shaderDir = resourceDir / shaderSubDir;
-        pmxDir = resourceDir / "mmd";
+        info->shaderDir = resourceDir / shaderSubDir;
+        info->pmxDir = resourceDir / "mmd";
     }
 }

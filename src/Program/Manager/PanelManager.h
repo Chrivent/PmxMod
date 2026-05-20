@@ -9,7 +9,7 @@
 
 namespace Chrivent {
 	class Sound;
-	class Viewer;
+	struct ViewerInfo;
 
 	class PanelManager {
 		static constexpr int kPlaybackTimelineSliderId = 1001;
@@ -43,7 +43,7 @@ namespace Chrivent {
 		void Reset() { viewerMenu.Reset(); }
 
 		// 렌더링 창에 상단 메뉴를 연결한다.
-		void AttachRenderWindow(const Viewer& viewer);
+		void AttachRenderWindow(const ViewerInfo& viewerInfo);
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.

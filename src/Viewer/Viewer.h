@@ -10,13 +10,35 @@
 #include "Instance.h"
 
 namespace Chrivent {
+    struct ViewerInfo {
+        std::filesystem::path	shaderDir;
+        std::filesystem::path	pmxDir;
+        glm::mat4	viewMat;
+        glm::mat4	projMat;
+        int			screenWidth = 0;
+        int			screenHeight = 0;
+        glm::vec3	lightColor = glm::vec3(1, 1, 1);
+        glm::vec3	lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+        float	elapsed = 0.0f;
+        float	animTime = 0.0f;
+        bool	skipPhysics = false;
+        GLFWwindow* window = nullptr;
+
+        virtual ~ViewerInfo() = default;
+    };
+
     class Viewer {
     protected:
+        std::unique_ptr<ViewerInfo> info;
         std::filesystem::path	resourceDir;
         float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
     
     public:
+        Viewer();
         virtual ~Viewer();
+
+        ViewerInfo& GetInfo() { return *info; }
+        const ViewerInfo& GetInfo() const { return *info; }
 
         // 렌더러별 GLFW 윈도우 힌트를 설정한다.
         virtual void ConfigureGlfwHints() = 0;
@@ -35,17 +57,5 @@ namespace Chrivent {
         // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
         void InitDirs(const std::filesystem::path& shaderSubDir);
 
-        std::filesystem::path	shaderDir;
-        std::filesystem::path	pmxDir;
-        glm::mat4	viewMat;
-        glm::mat4	projMat;
-        int			screenWidth = 0;
-        int			screenHeight = 0;
-        glm::vec3	lightColor = glm::vec3(1, 1, 1);
-        glm::vec3	lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
-        float	elapsed = 0.0f;
-        float	animTime = 0.0f;
-        bool	skipPhysics = false;
-        GLFWwindow* window = nullptr;
     };
 }

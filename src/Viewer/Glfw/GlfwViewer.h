@@ -40,7 +40,7 @@ namespace Chrivent {
         ~GlfwShader();
 
         // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-        bool Setup(const GlfwViewer& viewer);
+        bool Setup(const ViewerInfo& viewerInfo);
     };
 
     struct GlfwEdgeShader {
@@ -56,7 +56,7 @@ namespace Chrivent {
         ~GlfwEdgeShader();
 
         // 엣지 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-        bool Setup(const GlfwViewer& viewer);
+        bool Setup(const ViewerInfo& viewerInfo);
     };
 
     struct GlfwGroundShadowShader {
@@ -68,7 +68,7 @@ namespace Chrivent {
         ~GlfwGroundShadowShader();
 
         // 지면 그림자 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
-        bool Setup(const GlfwViewer& viewer);
+        bool Setup(const ViewerInfo& viewerInfo);
     };
 
     struct GlfwViewerMaterial : ViewerMaterial {
@@ -80,6 +80,13 @@ namespace Chrivent {
         explicit GlfwViewerMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
+    struct GlfwViewerInfo : ViewerInfo {
+        GLuint                                  dummyColorTex = 0;
+        std::unique_ptr<GlfwShader>             shader;
+        std::unique_ptr<GlfwEdgeShader>         edgeShader;
+        std::unique_ptr<GlfwGroundShadowShader> gsShader;
+    };
+
     class GlfwViewer : public Viewer {
         static void* LoadGlProc(const char* name) {
             return reinterpret_cast<void*>(glfwGetProcAddress(name));
@@ -89,12 +96,11 @@ namespace Chrivent {
         GlfwTextureCache    textureCache;
     
     public:
+        GlfwViewer();
         ~GlfwViewer() override;
 
-        GLuint                                  dummyColorTex = 0;
-        std::unique_ptr<GlfwShader>             shader;
-        std::unique_ptr<GlfwEdgeShader>         edgeShader;
-        std::unique_ptr<GlfwGroundShadowShader> gsShader;
+        GlfwViewerInfo& GetGlfwInfo() { return static_cast<GlfwViewerInfo&>(GetInfo()); }
+        const GlfwViewerInfo& GetGlfwInfo() const { return static_cast<const GlfwViewerInfo&>(GetInfo()); }
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;

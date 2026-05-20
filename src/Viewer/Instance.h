@@ -6,6 +6,7 @@
 
 namespace Chrivent {
     struct Model;
+    struct ViewerInfo;
     class Drawer;
     class Viewer;
 
@@ -43,6 +44,6 @@ namespace Chrivent {
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.
         void Draw() const;
         // 뷰어 시간과 애니메이션 설정을 기준으로 모델 애니메이션을 갱신한다.
-        void UpdateAnimation(const Viewer& viewer) const;
+        void UpdateAnimation(const ViewerInfo& viewerInfo) const;
     };
 }

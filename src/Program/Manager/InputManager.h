@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	class Viewer;
+	struct ViewerInfo;
 
 	struct InputState {
 		bool togglePause = false;
@@ -32,6 +32,6 @@ namespace Chrivent {
 		// 이전 프레임 입력 상태를 초기화한다.
 		void Reset();
 		// 현재 GLFW 입력을 읽어 이번 프레임 입력 상태로 변환한다.
-		void Update(const Viewer& viewer);
+		void Update(const ViewerInfo& viewerInfo);
 	};
 }

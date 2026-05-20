@@ -115,6 +115,14 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;
     };
 
+    struct Dx11ViewerInfo : ViewerInfo {
+        Dx11DeviceResources deviceResources;
+        Dx11RenderTargets renderTargets;
+        Dx11ShaderSet shaders;
+        Dx11PipelineStates pipelineStates;
+        Dx11DummyTexture dummyTexture;
+    };
+
     class Dx11Viewer : public Viewer {
         // HLSL 컴파일 실패 정보를 콘솔에 출력한다.
         static void PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob);
@@ -124,11 +132,10 @@ namespace Chrivent {
         Dx11TextureCache textureCache;
     
     public:
-        Dx11DeviceResources deviceResources;
-        Dx11RenderTargets renderTargets;
-        Dx11ShaderSet shaders;
-        Dx11PipelineStates pipelineStates;
-        Dx11DummyTexture dummyTexture;
+        Dx11Viewer();
+
+        Dx11ViewerInfo& GetDx11Info() { return static_cast<Dx11ViewerInfo&>(GetInfo()); }
+        const Dx11ViewerInfo& GetDx11Info() const { return static_cast<const Dx11ViewerInfo&>(GetInfo()); }
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;

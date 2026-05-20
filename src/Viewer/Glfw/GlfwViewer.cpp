@@ -12,8 +12,8 @@ namespace Chrivent {
 		program = 0;
 	}
 
-	bool GlfwShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderFactory::CreateShader(viewer.shaderDir / "mmd.glsl");
+	bool GlfwShader::Setup(const ViewerInfo& viewerInfo) {
+		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -50,8 +50,8 @@ namespace Chrivent {
 		program = 0;
 	}
 
-	bool GlfwEdgeShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderFactory::CreateShader(viewer.shaderDir / "mmd_edge.glsl");
+	bool GlfwEdgeShader::Setup(const ViewerInfo& viewerInfo) {
+		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd_edge.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -70,8 +70,8 @@ namespace Chrivent {
 		program = 0;
 	}
 
-	bool GlfwGroundShadowShader::Setup(const GlfwViewer& viewer) {
-		program = GlfwShaderFactory::CreateShader(viewer.shaderDir / "mmd_ground_shadow.glsl");
+	bool GlfwGroundShadowShader::Setup(const ViewerInfo& viewerInfo) {
+		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd_ground_shadow.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -80,9 +80,14 @@ namespace Chrivent {
 		return true;
 	}
 
+	GlfwViewer::GlfwViewer() {
+		info = std::make_unique<GlfwViewerInfo>();
+	}
+
 	GlfwViewer::~GlfwViewer() {
-		if (dummyColorTex != 0)
-			glDeleteTextures(1, &dummyColorTex);
+		auto& info = GetGlfwInfo();
+		if (info.dummyColorTex != 0)
+			glDeleteTextures(1, &info.dummyColorTex);
 	}
 
 	void GlfwViewer::ConfigureGlfwHints() {
@@ -94,7 +99,8 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::Setup() {
-		glfwMakeContextCurrent(window);
+		auto& info = GetGlfwInfo();
+		glfwMakeContextCurrent(info.window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
 			std::cout << "Failed to load OpenGL functions.\n";
 			return false;
@@ -102,23 +108,23 @@ namespace Chrivent {
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		InitDirs("shader_Glfw");
-		shader = std::make_unique<GlfwShader>();
-		if (!shader->Setup(*this)) {
-			std::cout << "Failed to set up main GLFW shader: " << (shaderDir / "mmd.glsl") << '\n';
+		info.shader = std::make_unique<GlfwShader>();
+		if (!info.shader->Setup(info)) {
+			std::cout << "Failed to set up main GLFW shader: " << (info.shaderDir / "mmd.glsl") << '\n';
 			return false;
 		}
-		edgeShader = std::make_unique<GlfwEdgeShader>();
-		if (!edgeShader->Setup(*this)) {
-			std::cout << "Failed to set up edge GLFW shader: " << (shaderDir / "mmd_edge.glsl") << '\n';
+		info.edgeShader = std::make_unique<GlfwEdgeShader>();
+		if (!info.edgeShader->Setup(info)) {
+			std::cout << "Failed to set up edge GLFW shader: " << (info.shaderDir / "mmd_edge.glsl") << '\n';
 			return false;
 		}
-		gsShader = std::make_unique<GlfwGroundShadowShader>();
-		if (!gsShader->Setup(*this)) {
-			std::cout << "Failed to set up ground shadow GLFW shader: " << (shaderDir / "mmd_ground_shadow.glsl") << '\n';
+		info.gsShader = std::make_unique<GlfwGroundShadowShader>();
+		if (!info.gsShader->Setup(info)) {
+			std::cout << "Failed to set up ground shadow GLFW shader: " << (info.shaderDir / "mmd_ground_shadow.glsl") << '\n';
 			return false;
 		}
-		glGenTextures(1, &dummyColorTex);
-		glBindTexture(GL_TEXTURE_2D, dummyColorTex);
+		glGenTextures(1, &info.dummyColorTex);
+		glBindTexture(GL_TEXTURE_2D, info.dummyColorTex);
 		glTexImage2D(GL_TEXTURE_2D, 0,
 			GL_RGBA, 1, 1, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -127,7 +133,8 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::Resize() {
-		glViewport(0, 0, screenWidth, screenHeight);
+		const auto& info = GetGlfwInfo();
+		glViewport(0, 0, info.screenWidth, info.screenHeight);
 		return true;
 	}
 
@@ -137,7 +144,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::EndFrame() {
-		glfwSwapBuffers(window);
+		glfwSwapBuffers(GetInfo().window);
 		return true;
 	}
 

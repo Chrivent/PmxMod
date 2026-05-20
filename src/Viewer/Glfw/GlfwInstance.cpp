@@ -86,9 +86,9 @@ namespace Chrivent {
 			{ posVbo }
 		};
 		const GLint locs[][3] = {
-			{ info.viewer->shader->positionLocation, info.viewer->shader->normalLocation, info.viewer->shader->uvLocation },
-			{ info.viewer->edgeShader->positionLocation, info.viewer->edgeShader->normalLocation },
-			{ info.viewer->gsShader->positionLocation }
+			{ info.viewer->GetGlfwInfo().shader->positionLocation, info.viewer->GetGlfwInfo().shader->normalLocation, info.viewer->GetGlfwInfo().shader->uvLocation },
+			{ info.viewer->GetGlfwInfo().edgeShader->positionLocation, info.viewer->GetGlfwInfo().edgeShader->normalLocation },
+			{ info.viewer->GetGlfwInfo().gsShader->positionLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },

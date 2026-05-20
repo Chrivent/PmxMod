@@ -17,10 +17,10 @@ namespace Chrivent {
             drawer->Draw();
     }
 
-    void Instance::UpdateAnimation(const Viewer& viewer) const {
+    void Instance::UpdateAnimation(const ViewerInfo& viewerInfo) const {
         const auto& instanceInfo = GetInfo();
         const ModelAnimator animator(*instanceInfo.model);
         animator.BeginAnimation();
-        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewer.animTime * 30.0f, viewer.elapsed, !viewer.skipPhysics);
+        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * 30.0f, viewerInfo.elapsed, !viewerInfo.skipPhysics);
     }
 }

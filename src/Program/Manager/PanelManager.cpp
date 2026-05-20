@@ -29,8 +29,8 @@ namespace Chrivent {
 		DestroyGui();
 	}
 
-	void PanelManager::AttachRenderWindow(const Viewer& viewer) {
-		renderWindow = glfwGetWin32Window(viewer.window);
+	void PanelManager::AttachRenderWindow(const ViewerInfo& viewerInfo) {
+		renderWindow = glfwGetWin32Window(viewerInfo.window);
 		if (!renderWindow)
 			return;
 		viewerMenu.AttachOwner(renderWindow);
