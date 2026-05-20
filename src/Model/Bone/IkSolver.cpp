@@ -3,48 +3,6 @@
 #include "Node.h"
 
 namespace Chrivent {
-	void IkSolver::Solve() {
-		if (!info.enable)
-			return;
-		const auto ikNodePtr = info.ikNode.lock();
-		const auto ikTargetPtr = info.ikTarget.lock();
-		if (!ikNodePtr || !ikTargetPtr)
-			return;
-		for (auto &chain: info.chains) {
-			const auto chainNodePtr = chain.node.lock();
-			if (!chainNodePtr)
-				continue;
-			chain.prevAngle = glm::vec3(0);
-			chainNodePtr->GetInfo().ikRotate = glm::quat(1, 0, 0, 0);
-			chain.planeModeAngle = 0;
-			chainNodePtr->UpdateLocalTransform();
-			chainNodePtr->UpdateGlobalTransform();
-		}
-		float maxDist = std::numeric_limits<float>::max();
-		for (uint32_t i = 0; i < info.iterateCount; i++) {
-			SolveCore(i);
-			auto targetPos = glm::vec3(ikTargetPtr->GetInfo().global[3]);
-			auto ikPos = glm::vec3(ikNodePtr->GetInfo().global[3]);
-			const float dist = glm::length(targetPos - ikPos);
-			if (dist < maxDist) {
-				maxDist = dist;
-				for (auto &chain: info.chains) {
-					if (const auto chainNodePtr = chain.node.lock())
-						chain.saveIkRot = chainNodePtr->GetInfo().ikRotate;
-				}
-			} else {
-				for (const auto &chain: info.chains) {
-					if (const auto chainNodePtr = chain.node.lock()) {
-						chainNodePtr->GetInfo().ikRotate = chain.saveIkRot;
-						chainNodePtr->UpdateLocalTransform();
-						chainNodePtr->UpdateGlobalTransform();
-					}
-				}
-				break;
-			}
-		}
-	}
-
 	void IkSolver::SolveCore(uint32_t iteration) {
 		auto ikNodePtr = info.ikNode.lock();
 		auto ikTargetPtr = info.ikTarget.lock();
@@ -62,19 +20,19 @@ namespace Chrivent {
 					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
 					SolvePlane(iteration, chainIdx, 0);
 					continue;
-					}
+				}
 				if ((chain.limitMin.y != 0 || chain.limitMax.y != 0) &&
 					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
 					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
 					SolvePlane(iteration, chainIdx, 1);
 					continue;
-					}
+				}
 				if ((chain.limitMin.z != 0 || chain.limitMax.z != 0) &&
 					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
 					(chain.limitMin.y == 0 || chain.limitMax.y == 0)) {
 					SolvePlane(iteration, chainIdx, 2);
 					continue;
-					}
+				}
 			}
 			auto targetPos = glm::vec3(ikTargetPtr->GetInfo().global[3]);
 			auto invChain = glm::inverse(chainNodePtr->GetInfo().global);
@@ -164,14 +122,14 @@ namespace Chrivent {
 		chainNodePtr->UpdateLocalTransform();
 		chainNodePtr->UpdateGlobalTransform();
 	}
-	
+
 	float IkSolver::NormalizeAngle(float angle) {
 		angle = std::fmod(angle, glm::two_pi<float>());
 		if (angle < 0)
 			angle += glm::two_pi<float>();
 		return angle;
 	}
-
+	
 	float IkSolver::DiffAngle(const float a, const float b) {
 		const float diff = NormalizeAngle(a) - NormalizeAngle(b);
 		if (diff > glm::pi<float>())
@@ -237,5 +195,47 @@ namespace Chrivent {
 			}
 		}
 		return r;
+	}
+
+	void IkSolver::Solve() {
+		if (!info.enable)
+			return;
+		const auto ikNodePtr = info.ikNode.lock();
+		const auto ikTargetPtr = info.ikTarget.lock();
+		if (!ikNodePtr || !ikTargetPtr)
+			return;
+		for (auto &chain: info.chains) {
+			const auto chainNodePtr = chain.node.lock();
+			if (!chainNodePtr)
+				continue;
+			chain.prevAngle = glm::vec3(0);
+			chainNodePtr->GetInfo().ikRotate = glm::quat(1, 0, 0, 0);
+			chain.planeModeAngle = 0;
+			chainNodePtr->UpdateLocalTransform();
+			chainNodePtr->UpdateGlobalTransform();
+		}
+		float maxDist = std::numeric_limits<float>::max();
+		for (uint32_t i = 0; i < info.iterateCount; i++) {
+			SolveCore(i);
+			auto targetPos = glm::vec3(ikTargetPtr->GetInfo().global[3]);
+			auto ikPos = glm::vec3(ikNodePtr->GetInfo().global[3]);
+			const float dist = glm::length(targetPos - ikPos);
+			if (dist < maxDist) {
+				maxDist = dist;
+				for (auto &chain: info.chains) {
+					if (const auto chainNodePtr = chain.node.lock())
+						chain.saveIkRot = chainNodePtr->GetInfo().ikRotate;
+				}
+			} else {
+				for (const auto &chain: info.chains) {
+					if (const auto chainNodePtr = chain.node.lock()) {
+						chainNodePtr->GetInfo().ikRotate = chain.saveIkRot;
+						chainNodePtr->UpdateLocalTransform();
+						chainNodePtr->UpdateGlobalTransform();
+					}
+				}
+				break;
+			}
+		}
 	}
 }
