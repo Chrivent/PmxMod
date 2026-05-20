@@ -71,12 +71,12 @@ namespace Chrivent {
 			if (!ikSolver)
 				continue;
 			if (keys.empty()) {
-				ikSolver->enable = true;
+				ikSolver->info.enable = true;
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
-			ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
+			ikSolver->info.enable = animWeight < 1.0f ? ikSolver->info.baseAnimEnable : enable;
 		}
 	}
 

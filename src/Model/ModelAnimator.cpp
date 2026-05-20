@@ -15,7 +15,7 @@ namespace Chrivent {
 		for (const auto& morph : model.morphData.morphs)
 			morph->weight = 0;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->enable = true;
+			ikSolver->info.enable = true;
 		const ModelPose pose(model);
 		pose.UpdateNodeAnimation(false);
 		pose.UpdateNodeAnimation(true);
@@ -30,7 +30,7 @@ namespace Chrivent {
 		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = morph->weight;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->baseAnimEnable = ikSolver->enable;
+			ikSolver->info.baseAnimEnable = ikSolver->info.enable;
 	}
 
 	void ModelAnimator::ClearBaseAnimation() const {
@@ -41,7 +41,7 @@ namespace Chrivent {
 		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = 0;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->baseAnimEnable = true;
+			ikSolver->info.baseAnimEnable = true;
 	}
 
 	void ModelAnimator::BeginAnimation() const {

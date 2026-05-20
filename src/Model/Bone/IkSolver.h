@@ -16,7 +16,7 @@ namespace Chrivent {
 		float				planeModeAngle;
 	};
 
-	struct IkSolver {
+	struct IkSolverInfo {
 		std::vector<IkChain>	chains;
 		std::weak_ptr<Node>		ikNode;
 		std::weak_ptr<Node>		ikTarget;
@@ -24,6 +24,10 @@ namespace Chrivent {
 		float					limitAngle = glm::two_pi<float>();
 		bool					enable = true;
 		bool					baseAnimEnable = true;
+	};
+
+	struct IkSolver {
+		IkSolverInfo info;
 
 		// IK 체인을 반복 계산해 타깃 노드에 맞춘다.
 		void Solve();

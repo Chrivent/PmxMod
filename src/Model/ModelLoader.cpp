@@ -198,9 +198,9 @@ namespace Chrivent {
 			const auto& bone = pmxData.bones[i];
 			if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
-				solver->ikNode = model.skeletonData.nodes[i];
+				solver->info.ikNode = model.skeletonData.nodes[i];
 				model.skeletonData.nodes[i]->ikSolver = solver;
-				solver->ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
+				solver->info.ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
 				for (const auto& [ikBoneIndex, enableLimit,
 					limitMin, limitMax] : bone.ikLinks) {
 					auto linkNode = model.skeletonData.nodes[ikBoneIndex];
@@ -210,11 +210,11 @@ namespace Chrivent {
 					chain.limitMin = limitMax * glm::vec3(-1);
 					chain.limitMax = limitMin * glm::vec3(-1);
 					chain.saveIkRot = glm::quat(1, 0, 0, 0);
-					solver->chains.emplace_back(chain);
+					solver->info.chains.emplace_back(chain);
 					linkNode->enableIk = true;
 				}
-				solver->iterateCount = bone.ikIterationCount;
-				solver->limitAngle = bone.ikLimit;
+				solver->info.iterateCount = bone.ikIterationCount;
+				solver->info.limitAngle = bone.ikLimit;
 				model.skeletonData.ikSolvers.emplace_back(std::move(solver));
 			}
 		}

@@ -18,7 +18,7 @@ namespace Chrivent {
 		for (auto& track : tracks) {
 			if (!track.ikSolver)
 				continue;
-			const auto ikNode = track.ikSolver->ikNode.lock();
+			const auto ikNode = track.ikSolver->info.ikNode.lock();
 			if (!ikNode)
 				continue;
 			trackMap.emplace(ikNode->name, std::move(track));

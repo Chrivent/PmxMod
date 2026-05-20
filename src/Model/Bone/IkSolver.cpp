@@ -4,13 +4,13 @@
 
 namespace Chrivent {
 	void IkSolver::Solve() {
-		if (!enable)
+		if (!info.enable)
 			return;
-		const auto ikNodePtr = ikNode.lock();
-		const auto ikTargetPtr = ikTarget.lock();
+		const auto ikNodePtr = info.ikNode.lock();
+		const auto ikTargetPtr = info.ikTarget.lock();
 		if (!ikNodePtr || !ikTargetPtr)
 			return;
-		for (auto &chain: chains) {
+		for (auto &chain: info.chains) {
 			const auto chainNodePtr = chain.node.lock();
 			if (!chainNodePtr)
 				continue;
@@ -21,19 +21,19 @@ namespace Chrivent {
 			chainNodePtr->UpdateGlobalTransform();
 		}
 		float maxDist = std::numeric_limits<float>::max();
-		for (uint32_t i = 0; i < iterateCount; i++) {
+		for (uint32_t i = 0; i < info.iterateCount; i++) {
 			SolveCore(i);
 			auto targetPos = glm::vec3(ikTargetPtr->global[3]);
 			auto ikPos = glm::vec3(ikNodePtr->global[3]);
 			const float dist = glm::length(targetPos - ikPos);
 			if (dist < maxDist) {
 				maxDist = dist;
-				for (auto &chain: chains) {
+				for (auto &chain: info.chains) {
 					if (const auto chainNodePtr = chain.node.lock())
 						chain.saveIkRot = chainNodePtr->ikRotate;
 				}
 			} else {
-				for (const auto &chain: chains) {
+				for (const auto &chain: info.chains) {
 					if (const auto chainNodePtr = chain.node.lock()) {
 						chainNodePtr->ikRotate = chain.saveIkRot;
 						chainNodePtr->UpdateLocalTransform();
@@ -46,13 +46,13 @@ namespace Chrivent {
 	}
 
 	void IkSolver::SolveCore(uint32_t iteration) {
-		auto ikNodePtr = ikNode.lock();
-		auto ikTargetPtr = ikTarget.lock();
+		auto ikNodePtr = info.ikNode.lock();
+		auto ikTargetPtr = info.ikTarget.lock();
 		if (!ikNodePtr || !ikTargetPtr)
 			return;
 		auto ikPos = glm::vec3(ikNodePtr->global[3]);
-		for (size_t chainIdx = 0; chainIdx < chains.size(); chainIdx++) {
-			auto &chain = chains[chainIdx];
+		for (size_t chainIdx = 0; chainIdx < info.chains.size(); chainIdx++) {
+			auto &chain = info.chains[chainIdx];
 			auto chainNodePtr = chain.node.lock();
 			if (!chainNodePtr || chainNodePtr == ikTargetPtr)
 				continue;
@@ -87,7 +87,7 @@ namespace Chrivent {
 			float angle = std::acos(dot);
 			if (angle < std::numeric_limits<float>::epsilon())
 				continue;
-			angle = glm::clamp(angle, -limitAngle, limitAngle);
+			angle = glm::clamp(angle, -info.limitAngle, info.limitAngle);
 			auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
 			auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, cross);
 			auto animRot = chainNodePtr->animRotate * chainNodePtr->rotate;
@@ -97,7 +97,7 @@ namespace Chrivent {
 				auto currentEuler = Decompose(chainRotM, chain.prevAngle);
 				glm::vec3 limitedEuler;
 				limitedEuler = glm::clamp(currentEuler, chain.limitMin, chain.limitMax);
-				limitedEuler = glm::clamp(limitedEuler - chain.prevAngle, -limitAngle, limitAngle) + chain.prevAngle;
+				limitedEuler = glm::clamp(limitedEuler - chain.prevAngle, -info.limitAngle, info.limitAngle) + chain.prevAngle;
 				auto r = glm::rotate(glm::quat(1, 0, 0, 0), limitedEuler.x, glm::vec3(1, 0, 0));
 				r = glm::rotate(r, limitedEuler.y, glm::vec3(0, 1, 0));
 				r = glm::rotate(r, limitedEuler.z, glm::vec3(0, 0, 1));
@@ -119,9 +119,9 @@ namespace Chrivent {
 			{ 0, 0, 1 }
 		};
 		const glm::vec3& rotateAxis = axis[rotateAxisIndex];
-		auto &chain = chains[chainIdx];
-		auto ikNodePtr = ikNode.lock();
-		auto ikTargetPtr = ikTarget.lock();
+		auto &chain = info.chains[chainIdx];
+		auto ikNodePtr = info.ikNode.lock();
+		auto ikTargetPtr = info.ikTarget.lock();
 		auto chainNodePtr = chain.node.lock();
 		if (!ikNodePtr || !ikTargetPtr || !chainNodePtr)
 			return;
@@ -135,7 +135,7 @@ namespace Chrivent {
 		auto dot = glm::dot(chainTargetVec, chainIkVec);
 		dot = glm::clamp(dot, -1.0f, 1.0f);
 		float angle = std::acos(dot);
-		angle = glm::clamp(angle, -limitAngle, limitAngle);
+		angle = glm::clamp(angle, -info.limitAngle, info.limitAngle);
 		auto rot1 = glm::rotate(glm::quat(1, 0, 0, 0), angle, rotateAxis);
 		auto targetVec1 = rot1 * chainTargetVec;
 		auto dot1 = glm::dot(targetVec1, chainIkVec);

@@ -20,7 +20,7 @@ namespace Chrivent {
 			[&name](const std::shared_ptr<IkSolver>& solver) {
 				if (!solver)
 					return false;
-				const auto ikNode = solver->ikNode.lock();
+				const auto ikNode = solver->info.ikNode.lock();
 				return ikNode && ikNode->name == name;
 		});
 		return it != info.model->skeletonData.ikSolvers.end() ? *it : nullptr;
