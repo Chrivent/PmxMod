@@ -8,8 +8,10 @@
 namespace Chrivent {
 	Dx11Texture Dx11TextureCache::Load(ID3D11Device* device, const std::filesystem::path& texturePath) {
 		const auto it = textures.find(texturePath);
-		if (it != textures.end())
-			return it->second;
+		if (it != textures.end()) {
+			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
+			return texture ? *texture : Dx11Texture{};
+		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)
@@ -29,11 +31,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
 		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
 			return {};
-		Dx11Texture tex;
-		tex.texture = tex2D;
-		tex.textureView = tex2DRv;
-		tex.hasAlpha = textureHasAlpha;
+		const auto tex = std::make_shared<Dx11Texture>();
+		tex->texture = tex2D;
+		tex->textureView = tex2DRv;
+		tex->hasAlpha = textureHasAlpha;
 		textures[texturePath] = tex;
-		return textures[texturePath];
+		return *tex;
 	}
 }

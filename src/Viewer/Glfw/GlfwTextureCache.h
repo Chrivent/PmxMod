@@ -9,7 +9,7 @@ namespace Chrivent {
 		GLuint texture = 0;
 	};
 
-	class GlfwTextureCache : public TextureCache<GlfwTexture> {
+	class GlfwTextureCache : public TextureCache {
 	public:
 		~GlfwTextureCache() override;
 
