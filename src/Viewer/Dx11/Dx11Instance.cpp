@@ -1,15 +1,27 @@
 ﻿#include "Dx11Instance.h"
 
+#include "Dx11Drawer.h"
+
 #include "Dx11Viewer.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {
-	void Dx11Instance::DrawModel() const {
+	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance) : instance(sourceInstance) {}
+
+	void Dx11Drawer::DrawModel() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto& vertexBuffer = instance.vertexBuffer;
+		const auto& indexBuffer = instance.indexBuffer;
+		const auto indexBufferFormat = instance.indexBufferFormat;
+		const auto& vsConstantBuffer = instance.vsConstantBuffer;
+		const auto& psConstantBuffer = instance.psConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
-		const auto wvp = DxClipMatrix() * proj * view * world;
+		const auto wvp = Dx11Instance::DxClipMatrix() * proj * view * world;
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
 		constexpr UINT stride = sizeof(Dx11Vertex);
 		constexpr UINT offset = 0;
@@ -40,10 +52,10 @@ namespace Chrivent {
 			int baseMode = 0;
 			if (material.texture.texture)
 				baseMode = !material.texture.hasAlpha ? 1 : 2;
-			BindTexture(
+			instance.BindTexture(
 				0, material.texture, viewer->pipelineStates.textureSampler.Get(), baseMode, psCb.textureModes.x,
 				psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
-			BindTexture(
+			instance.BindTexture(
 				1, material.cartoonTexture, viewer->pipelineStates.cartoonTextureSampler.Get(), 1, psCb.textureModes.y,
 				psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
 			int spMode = 0;
@@ -53,7 +65,7 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					spMode = 2;
 			}
-			BindTexture(
+			instance.BindTexture(
 				2, material.spTexture, viewer->pipelineStates.textureSampler.Get(), spMode, psCb.textureModes.z,
 				psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
 			psCb.lightColor = viewer->lightColor;
@@ -68,12 +80,18 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Instance::DrawEdge() const {
+	void Dx11Drawer::DrawEdge() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto& edgeVsConstantBuffer = instance.edgeVsConstantBuffer;
+		const auto& edgeSizeVsConstantBuffer = instance.edgeSizeVsConstantBuffer;
+		const auto& edgePsConstantBuffer = instance.edgePsConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
-		const auto wvp = DxClipMatrix() * proj * view * world;
+		const auto wvp = Dx11Instance::DxClipMatrix() * proj * view * world;
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.edgeInputLayout.Get());
 		Dx11EdgeVertexShader vsCb1{};
 		vsCb1.wv = wv;
@@ -108,7 +126,12 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Instance::DrawGroundShadow() const {
+	void Dx11Drawer::DrawGroundShadow() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto& gsVsConstantBuffer = instance.gsVsConstantBuffer;
+		const auto& gsPsConstantBuffer = instance.gsPsConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -117,7 +140,7 @@ namespace Chrivent {
 		const glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 		Dx11GroundShadowVertexShader vsCb;
-		vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
+		vsCb.wvp = Dx11Instance::DxClipMatrix() * proj * view * shadow * world;
 		viewer->deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(),
 			0, nullptr, &vsCb, 0, 0);
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.gsVs.Get(), nullptr, 0);
@@ -186,6 +209,7 @@ namespace Chrivent {
 
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
+		drawer = std::make_unique<Dx11Drawer>(*this);
 		const auto vBufDesc = MakeVertexBufferDesc(info.model->geometryData.positions.size());
 		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;

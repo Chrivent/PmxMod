@@ -10,8 +10,6 @@ namespace Chrivent {
     struct Material;
 
     struct GlfwShader {
-        ~GlfwShader();
-
         GLuint	program = 0;
         GLint	positionLocation = -1;
         GLint	normalLocation = -1;
@@ -37,14 +35,14 @@ namespace Chrivent {
         GLint	cartoonTexAddFactorLocation = -1;
         GLint	lightColorLocation = -1;
         GLint	lightDirLocation = -1;
+        
+        ~GlfwShader();
 
         // 모델 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
         bool Setup(const GlfwViewer& viewer);
     };
 
     struct GlfwEdgeShader {
-        ~GlfwEdgeShader();
-
         GLuint	program = 0;
         GLint	positionLocation = -1;
         GLint	normalLocation = -1;
@@ -53,18 +51,20 @@ namespace Chrivent {
         GLint	screenSizeLocation = -1;
         GLint	edgeSizeLocation = -1;
         GLint	edgeColorLocation = -1;
+        
+        ~GlfwEdgeShader();
 
         // 엣지 렌더링 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
         bool Setup(const GlfwViewer& viewer);
     };
 
     struct GlfwGroundShadowShader {
-        ~GlfwGroundShadowShader();
-
         GLuint	program = 0;
         GLint	positionLocation = -1;
         GLint	wvpLocation = -1;
         GLint	shadowColorLocation = -1;
+        
+        ~GlfwGroundShadowShader();
 
         // 지면 그림자 셰이더 프로그램을 컴파일하고 uniform 위치를 조회한다.
         bool Setup(const GlfwViewer& viewer);

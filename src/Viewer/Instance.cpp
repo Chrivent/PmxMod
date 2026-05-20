@@ -1,5 +1,6 @@
 ﻿#include "Instance.h"
 
+#include "Drawer.h"
 #include "Viewer.h"
 #include "../Animation/Model/Animation.h"
 #include "../Model/ModelAnimator.h"
@@ -9,9 +10,8 @@ namespace Chrivent {
     Instance::~Instance() = default;
 
     void Instance::Draw() const {
-        DrawModel();
-        DrawEdge();
-        DrawGroundShadow();
+        if (drawer)
+            drawer->Draw();
     }
 
     void Instance::UpdateAnimation(const Viewer& viewer) const {

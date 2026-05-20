@@ -1,10 +1,19 @@
 ﻿#include "GlfwInstance.h"
 
+#include "GlfwDrawer.h"
+
 #include "GlfwViewer.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {
-	void GlfwInstance::DrawModel() const {
+	GlfwDrawer::GlfwDrawer(const GlfwInstance& sourceInstance) : instance(sourceInstance) {}
+
+	void GlfwDrawer::DrawModel() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto vao = instance.vao;
+		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -79,7 +88,12 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwInstance::DrawEdge() const {
+	void GlfwDrawer::DrawEdge() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto edgeVao = instance.edgeVao;
+		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -108,7 +122,12 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwInstance::DrawGroundShadow() const {
+	void GlfwDrawer::DrawGroundShadow() const {
+		const auto* viewer = instance.viewer;
+		const auto& info = instance.GetInfo();
+		const auto& materials = instance.materials;
+		const auto gsVao = instance.gsVao;
+		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
@@ -201,6 +220,7 @@ namespace Chrivent {
 		viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 		if (info.model == nullptr)
 			return false;
+		drawer = std::make_unique<GlfwDrawer>(*this);
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);

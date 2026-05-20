@@ -10,16 +10,13 @@
 namespace Chrivent {
     struct Dx11Texture;
     struct Dx11Material;
+    class Dx11Drawer;
     class Dx11Viewer;
 
     class Dx11Instance : public Instance {
+        friend class Dx11Drawer;
+
     protected:
-        // 일반 메시 패스를 DX11로 렌더링한다.
-        void DrawModel() const override;
-        // 엣지 패스를 DX11로 렌더링한다.
-        void DrawEdge() const override;
-        // 지면 그림자 패스를 DX11로 렌더링한다.
-        void DrawGroundShadow() const override;
         // 모델 버텍스 데이터를 매 프레임 갱신할 동적 버퍼 설명자를 만든다.
         static D3D11_BUFFER_DESC MakeVertexBufferDesc(size_t vertexCount);
         // 모델 인덱스 데이터를 한 번 업로드할 immutable 버퍼 설명자를 만든다.
