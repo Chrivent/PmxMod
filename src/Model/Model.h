@@ -12,9 +12,9 @@ namespace Chrivent {
 	class Animation;
 
 	struct SubMesh {
-		int	beginIndex;
-		int	indexCount;
-		int	materialId;
+		size_t	beginIndex = 0;
+		size_t	indexCount = 0;
+		size_t	materialId = 0;
 	};
 
 	struct Vertex {

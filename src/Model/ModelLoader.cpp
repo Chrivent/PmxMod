@@ -100,7 +100,7 @@ namespace Chrivent {
 		}
 		model.materialData.materials.reserve(pmxData.materials.size());
 		model.materialData.subMeshes.reserve(pmxData.materials.size());
-		uint32_t beginIndex = 0;
+		size_t beginIndex = 0;
 		for (const auto& mat : pmxData.materials) {
 			const auto dm = static_cast<uint8_t>(mat.drawMode);
 			Material m;
@@ -134,11 +134,11 @@ namespace Chrivent {
 			}
 			model.materialData.materials.emplace_back(std::move(m));
 			SubMesh subMesh{};
-			subMesh.beginIndex = static_cast<int>(beginIndex);
-			subMesh.indexCount = mat.numFaceVertices;
-			subMesh.materialId = static_cast<int>(model.materialData.materials.size() - 1);
+			subMesh.beginIndex = beginIndex;
+			subMesh.indexCount = static_cast<size_t>(mat.numFaceVertices);
+			subMesh.materialId = model.materialData.materials.size() - 1;
 			model.materialData.subMeshes.push_back(subMesh);
-			beginIndex += mat.numFaceVertices;
+			beginIndex += subMesh.indexCount;
 		}
 		model.materialData.initMaterials = model.materialData.materials;
 		model.materialData.mulMaterialFactors.resize(model.materialData.materials.size());
