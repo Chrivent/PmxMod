@@ -106,7 +106,7 @@ set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
 
 add_custom_target(SyncResources
         COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory  "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
         VERBATIM
 )
 
