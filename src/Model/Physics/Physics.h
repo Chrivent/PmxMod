@@ -15,13 +15,13 @@ namespace Chrivent {
 	
 	class Physics {
 		std::unique_ptr<btBroadphaseInterface>					broadPhase;
-		std::unique_ptr<btDefaultCollisionConfiguration>			collisionConfig;
+		std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;
 		std::unique_ptr<btCollisionDispatcher>					dispatcher;
-		std::unique_ptr<btSequentialImpulseConstraintSolver>		solver;
+		std::unique_ptr<btSequentialImpulseConstraintSolver>	solver;
 		std::unique_ptr<btCollisionShape>						groundShape;
 		std::unique_ptr<btMotionState>							groundMotionState;
-		std::unique_ptr<btRigidBody>								groundRigidBody;
-		std::unique_ptr<btOverlapFilterCallback>					filterCallback;
+		std::unique_ptr<btRigidBody>							groundRigidBody;
+		std::unique_ptr<btOverlapFilterCallback>				filterCallback;
 
 	public:
 		~Physics();
