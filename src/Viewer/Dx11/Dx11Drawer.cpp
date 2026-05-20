@@ -48,12 +48,14 @@ namespace Chrivent {
 			int baseMode = 0;
 			if (material.texture.texture)
 				baseMode = !material.texture.hasAlpha ? 1 : 2;
-			BindTexture(
-				0, material.texture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), baseMode, psCb.textureModes.x,
-				psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor);
-			BindTexture(
-				1, material.cartoonTexture, viewer->GetDx11Info().pipelineStates.cartoonTextureSampler.Get(), 1, psCb.textureModes.y,
-				psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor);
+			BindTexture({
+				0, material.texture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), baseMode,
+				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor
+			});
+			BindTexture({
+				1, material.cartoonTexture, viewer->GetDx11Info().pipelineStates.cartoonTextureSampler.Get(), 1,
+				psCb.textureModes.y, psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor
+			});
 			int spMode = 0;
 			if (material.spTexture.texture) {
 				if (mat.spTextureMode == SphereMode::Mul)
@@ -61,9 +63,10 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					spMode = 2;
 			}
-			BindTexture(
-				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode, psCb.textureModes.z,
-				psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor);
+			BindTexture({
+				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode,
+				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor
+			});
 			psCb.lightColor = viewer->GetInfo().lightColor;
 			psCb.lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
@@ -151,20 +154,21 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Drawer::BindTexture(
-		const UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler, const int modeIfPresent,
-		int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
-		const glm::vec4& mulIn, const glm::vec4& addIn) const {
-		if (tex.texture) {
-			outMode = modeIfPresent;
-			outMul  = mulIn;
-			outAdd  = addIn;
+	void Dx11Drawer::BindTexture(const Dx11TextureBinding& binding) const {
+		if (binding.texture.texture) {
+			binding.mode = binding.modeIfPresent;
+			binding.mulFactor  = binding.sourceMulFactor;
+			binding.addFactor  = binding.sourceAddFactor;
 		} else
-			outMode = 0;
-		ID3D11ShaderResourceView* views = tex.texture ? tex.textureView.Get() : info.viewer->GetDx11Info().dummyTexture.textureView.Get();
-		ID3D11SamplerState* samplers = tex.texture ? sampler : info.viewer->GetDx11Info().pipelineStates.textureSampler.Get();
-		info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(slot, 1, &views);
-		info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(slot, 1, &samplers);
+			binding.mode = 0;
+		ID3D11ShaderResourceView* views = binding.texture.texture
+			? binding.texture.textureView.Get()
+			: info.viewer->GetDx11Info().dummyTexture.textureView.Get();
+		ID3D11SamplerState* samplers = binding.texture.texture
+			? binding.sampler
+			: info.viewer->GetDx11Info().pipelineStates.textureSampler.Get();
+		info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(binding.slot, 1, &views);
+		info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(binding.slot, 1, &samplers);
 	}
 
 	const glm::mat4& Dx11Drawer::DxClipMatrix() {
