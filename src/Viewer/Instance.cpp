@@ -15,8 +15,8 @@ namespace Chrivent {
     }
 
     void Instance::UpdateAnimation(const Viewer& viewer) const {
-        const ModelAnimator animator(*model);
+        const ModelAnimator animator(*info.model);
         animator.BeginAnimation();
-        animator.UpdateAllAnimation(anim.get(), viewer.animTime * 30.0f, viewer.elapsed, !viewer.skipPhysics);
+        animator.UpdateAllAnimation(info.anim.get(), viewer.animTime * 30.0f, viewer.elapsed, !viewer.skipPhysics);
     }
 }

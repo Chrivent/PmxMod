@@ -6,9 +6,17 @@ namespace Chrivent {
     struct Model;
     class Animation;
     class Viewer;
+
+    struct InstanceInfo {
+        std::shared_ptr<Model>	    model;
+        std::unique_ptr<Animation>	anim;
+        float scale = 1.0f;
+    };
     
     class Instance {
     protected:
+        InstanceInfo info;
+
         // 일반 메시 패스를 그린다.
         virtual void DrawModel() const = 0;
         // 엣지 패스를 그린다.
@@ -25,9 +33,7 @@ namespace Chrivent {
         Instance(Instance&&) = delete;
         Instance& operator=(Instance&&) = delete;
 
-        std::shared_ptr<Model>	    model;
-        std::unique_ptr<Animation>	anim;
-        float scale = 1.0f;
+        InstanceInfo& GetInfo() { return info; }
 
         virtual void Clear() {}
         // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.

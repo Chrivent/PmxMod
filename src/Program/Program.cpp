@@ -91,12 +91,12 @@ namespace Chrivent {
                 std::cout << "Failed to load pmx file.\n";
                 return false;
             }
-            instance->model = pmxModel;
-            const ModelAnimator animator(*instance->model);
+            instance->GetInfo().model = pmxModel;
+            const ModelAnimator animator(*instance->GetInfo().model);
             animator.InitializeAnimation();
             auto vmdAnim = std::make_unique<Animation>();
             AnimationInfo animationInfo;
-            animationInfo.model = instance->model;
+            animationInfo.model = instance->GetInfo().model;
             const AnimationBuilder animationBuilder(animationInfo);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
@@ -111,8 +111,8 @@ namespace Chrivent {
             }
             vmdAnim->SetInfo(std::move(animationInfo));
             animator.SyncPhysics(*vmdAnim, 0.0f);
-            instance->anim = std::move(vmdAnim);
-            instance->scale = scale;
+            instance->GetInfo().anim = std::move(vmdAnim);
+            instance->GetInfo().scale = scale;
             if (!instance->Setup(*viewer))
                 return false;
             loadedInstances.emplace_back(std::move(instance));
@@ -125,19 +125,19 @@ namespace Chrivent {
         if (music.HasSound())
             lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
         for (const auto& instance : instances) {
-            if (instance && instance->anim)
-                lastFrame = (std::max)(lastFrame, instance->anim->GetLastFrame());
+            if (instance && instance->GetInfo().anim)
+                lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
         }
         return lastFrame;
     }
 
     void Program::SyncSeekedPhysics(const int frame) const {
         for (const auto& instance : instances) {
-            if (!instance || !instance->model || !instance->anim)
+            if (!instance || !instance->GetInfo().model || !instance->GetInfo().anim)
                 continue;
-            const ModelAnimator animator(*instance->model);
+            const ModelAnimator animator(*instance->GetInfo().model);
             animator.BeginAnimation();
-            animator.SyncPhysics(*instance->anim, static_cast<float>(frame));
+            animator.SyncPhysics(*instance->GetInfo().anim, static_cast<float>(frame));
         }
     }
 

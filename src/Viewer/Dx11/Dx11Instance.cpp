@@ -7,7 +7,7 @@ namespace Chrivent {
 	void Dx11Instance::DrawModel() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
@@ -26,7 +26,7 @@ namespace Chrivent {
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.vs.Get(), nullptr, 0);
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.ps.Get(), nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
@@ -71,7 +71,7 @@ namespace Chrivent {
 	void Dx11Instance::DrawEdge() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.edgeInputLayout.Get());
@@ -86,7 +86,7 @@ namespace Chrivent {
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.edgeVs.Get(), nullptr, 0);
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.edgePs.Get(), nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag)
@@ -111,7 +111,7 @@ namespace Chrivent {
 	void Dx11Instance::DrawGroundShadow() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.gsInputLayout.Get());
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-glm::normalize(viewer->lightDir), 0.f);
@@ -125,7 +125,7 @@ namespace Chrivent {
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->deviceResources.context->RSSetState(viewer->pipelineStates.gsRs.Get());
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.gsDss.Get(), 0x01);
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow)
@@ -186,19 +186,19 @@ namespace Chrivent {
 
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
-		const auto vBufDesc = MakeVertexBufferDesc(model->geometryData.positions.size());
+		const auto vBufDesc = MakeVertexBufferDesc(info.model->geometryData.positions.size());
 		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;
-		const auto iBufDesc = MakeIndexBufferDesc(model->geometryData.indexElementSize * model->geometryData.indexCount);
+		const auto iBufDesc = MakeIndexBufferDesc(info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = model->geometryData.indices.data();
+		initData.pSysMem = info.model->geometryData.indices.data();
 		if (FAILED(viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 			return false;
-		if (1 == model->geometryData.indexElementSize)
+		if (1 == info.model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R8_UINT;
-		else if (2 == model->geometryData.indexElementSize)
+		else if (2 == info.model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R16_UINT;
-		else if (4 == model->geometryData.indexElementSize)
+		else if (4 == info.model->geometryData.indexElementSize)
 			indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
@@ -216,7 +216,7 @@ namespace Chrivent {
 			return false;
 		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(viewer->deviceResources.device.Get(), gsPsConstantBuffer)))
 			return false;
-		for (const auto& mat : model->materialData.materials) {
+		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);
 			if (!mat.texture.empty())
 				material.texture = viewer->LoadTexture(mat.texture);
@@ -230,17 +230,17 @@ namespace Chrivent {
 	}
 
 	void Dx11Instance::Update() const {
-		const ModelPose pose(*model);
+		const ModelPose pose(*info.model);
 		pose.Update();
-		const size_t vtxCount = model->geometryData.positions.size();
+		const size_t vtxCount = info.model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(viewer->deviceResources.context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
 		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
-		const glm::vec3* updatePositionData = model->geometryData.updatePositions.data();
-		const glm::vec3* updateNormalData = model->geometryData.updateNormals.data();
-		const glm::vec2* updateUvData = model->geometryData.updateUVs.data();
+		const glm::vec3* updatePositionData = info.model->geometryData.updatePositions.data();
+		const glm::vec3* updateNormalData = info.model->geometryData.updateNormals.data();
+		const glm::vec2* updateUvData = info.model->geometryData.updateUVs.data();
 		for (size_t i = 0; i < vtxCount; i++) {
 			vertices[i].position = updatePositionData[i];
 			vertices[i].normal = updateNormalData[i];

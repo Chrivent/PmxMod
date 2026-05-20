@@ -7,7 +7,7 @@ namespace Chrivent {
 	void GlfwInstance::DrawModel() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		auto wv = view * world;
 		auto wvp = proj * view * world;
 		const auto& shader = viewer->shader;
@@ -22,7 +22,7 @@ namespace Chrivent {
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
@@ -74,7 +74,7 @@ namespace Chrivent {
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
 			}
-			const size_t offset = beginIndex * model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -82,7 +82,7 @@ namespace Chrivent {
 	void GlfwInstance::DrawEdge() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		auto wv = view * world;
 		auto wvp = proj * view * world;
 		const auto& edgeShader = viewer->edgeShader;
@@ -94,7 +94,7 @@ namespace Chrivent {
 		glBindVertexArray(edgeVao);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag)
@@ -103,7 +103,7 @@ namespace Chrivent {
 				continue;
 			glUniform1f(edgeShader->edgeSizeLocation, mat.edgeSize);
 			glUniform4fv(edgeShader->edgeColorLocation, 1, &mat.edgeColor[0]);
-			const size_t offset = beginIndex * model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -111,7 +111,7 @@ namespace Chrivent {
 	void GlfwInstance::DrawGroundShadow() const {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto& gsShader = viewer->gsShader;
 		glUseProgram(gsShader->program);
 		glEnable(GL_POLYGON_OFFSET_FILL);
@@ -134,14 +134,14 @@ namespace Chrivent {
 			glDisable(GL_STENCIL_TEST);
 		}
 		glDisable(GL_CULL_FACE);
-		for (const auto& [beginIndex, indexCount, materialId] : model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow)
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			const size_t offset = beginIndex * model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -199,15 +199,15 @@ namespace Chrivent {
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
-		if (model == nullptr)
+		if (info.model == nullptr)
 			return false;
-		const size_t vtxCount = model->geometryData.positions.size();
+		const size_t vtxCount = info.model->geometryData.positions.size();
 		posVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		norVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		uvVbo  = CreateBuffer(GL_ARRAY_BUFFER, sizeof(glm::vec2) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-		const size_t idxSize = model->geometryData.indexElementSize;
-		const size_t idxCount = model->geometryData.indexCount;
-		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
+		const size_t idxSize = info.model->geometryData.indexElementSize;
+		const size_t idxCount = info.model->geometryData.indexCount;
+		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, info.model->geometryData.indices.data(), GL_STATIC_DRAW);
 		if (idxSize == 1)
 			indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
@@ -239,7 +239,7 @@ namespace Chrivent {
 		vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
 		edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
 		gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
-		for (const auto& mat : model->materialData.materials) {
+		for (const auto& mat : info.model->materialData.materials) {
 			GlfwMaterial material(mat);
 			if (!mat.texture.empty()) {
 				const auto texture = viewer->LoadTexture(mat.texture);
@@ -256,17 +256,17 @@ namespace Chrivent {
 	}
 
 	void GlfwInstance::Update() const {
-		const ModelPose pose(*model);
+		const ModelPose pose(*info.model);
 		pose.Update();
-		const size_t vtxCount = model->geometryData.positions.size();
+		const size_t vtxCount = info.model->geometryData.positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-			model->geometryData.updatePositions.data());
+			info.model->geometryData.updatePositions.data());
 		glBindBuffer(GL_ARRAY_BUFFER, norVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
-			model->geometryData.updateNormals.data());
+			info.model->geometryData.updateNormals.data());
 		glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
-			model->geometryData.updateUVs.data());
+			info.model->geometryData.updateUVs.data());
 	}
 }

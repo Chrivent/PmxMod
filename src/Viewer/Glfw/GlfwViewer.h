@@ -74,7 +74,7 @@ namespace Chrivent {
     };
 
     struct GlfwMaterial {
-        const Material& mat;
+        const   Material& mat;
         GLuint  texture = 0;
         bool	textureHasAlpha = false;
         GLuint	sphereTexture = 0;
@@ -88,16 +88,16 @@ namespace Chrivent {
             return reinterpret_cast<void*>(glfwGetProcAddress(name));
         }
 
-        const int   msaaSamples = 4;
-        GlfwTextureCache textureCache;
+        const int           msaaSamples = 4;
+        GlfwTextureCache    textureCache;
     
     public:
         ~GlfwViewer() override;
 
-        GLuint	    dummyColorTex = 0;
-        std::unique_ptr<GlfwShader>				        shader;
-        std::unique_ptr<GlfwEdgeShader>			        edgeShader;
-        std::unique_ptr<GlfwGroundShadowShader>         gsShader;
+        GLuint                                  dummyColorTex = 0;
+        std::unique_ptr<GlfwShader>             shader;
+        std::unique_ptr<GlfwEdgeShader>         edgeShader;
+        std::unique_ptr<GlfwGroundShadowShader> gsShader;
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;
