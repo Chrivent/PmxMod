@@ -4,9 +4,9 @@
 #include "../../Parser/PmxParser.h"
 
 namespace Chrivent {
+	class Node;
 	class Physics;
 	struct Model;
-	struct Node;
 
 	class RigidBody {
 		std::unique_ptr<btCollisionShape>	shape;

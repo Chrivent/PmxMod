@@ -37,7 +37,7 @@ namespace Chrivent {
 		const glm::mat4 rotMat = ry * rx * rz;
 		const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.translate);
 		const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-		offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
+		offsetMat = nodePtr ? glm::inverse(nodePtr->GetInfo().global) * rbMat : rbMat;
 		kinematicMotionState = nodePtr
 			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
 			: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
@@ -109,11 +109,11 @@ namespace Chrivent {
 
 	void RigidBody::CalcLocalTransform() const {
 		if (const auto nodePtr = node.lock()) {
-			if (const auto parent = nodePtr->parent.lock()) {
-				const auto local = glm::inverse(parent->global) * nodePtr->global;
-				nodePtr->local = local;
+			if (const auto parent = nodePtr->GetInfo().parent.lock()) {
+				const auto local = glm::inverse(parent->GetInfo().global) * nodePtr->GetInfo().global;
+				nodePtr->GetInfo().local = local;
 			} else
-				nodePtr->local = nodePtr->global;
+				nodePtr->GetInfo().local = nodePtr->GetInfo().global;
 		}
 	}
 

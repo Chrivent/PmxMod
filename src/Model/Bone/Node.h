@@ -5,9 +5,10 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
-	struct IkSolver;
+	class Node;
+	class IkSolver;
 
-	struct Node : std::enable_shared_from_this<Node> {
+	struct NodeInfo {
 		uint32_t				index = 0;
 		std::string				name;
 		bool					enableIk = false;
@@ -34,7 +35,19 @@ namespace Chrivent {
 		bool					isAppendLocal = false;
 		float					appendWeight = 0;
 		std::weak_ptr<IkSolver>	ikSolver;
+	};
 
+	class Node : public std::enable_shared_from_this<Node> {
+		NodeInfo info;
+		std::weak_ptr<Node>		child;
+		std::weak_ptr<Node>		next;
+		std::weak_ptr<Node>		prev;
+		glm::vec3				appendTranslate = glm::vec3(0);
+		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
+
+	public:
+		NodeInfo& GetInfo() { return info; }
+		
 		// 이 노드에 자식 노드를 연결하고 형제 링크를 갱신한다.
 		void AddChild(const std::shared_ptr<Node>& childNode);
 		// 로컬/글로벌 변환 계산 전에 프레임 상태를 초기화한다.
@@ -47,12 +60,5 @@ namespace Chrivent {
 		void UpdateChildTransform() const;
 		// 부가 부모 본의 회전/이동 영향을 현재 노드에 적용한다.
 		void UpdateAppendTransform();
-		
-	private:
-		std::weak_ptr<Node>		child;
-		std::weak_ptr<Node>		next;
-		std::weak_ptr<Node>		prev;
-		glm::vec3				appendTranslate = glm::vec3(0);
-		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 	};
 }

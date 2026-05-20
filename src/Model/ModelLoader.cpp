@@ -149,8 +149,8 @@ namespace Chrivent {
 		model.skeletonData.nodes.reserve(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
 			auto node = std::make_shared<Node>();
-			node->index = static_cast<uint32_t>(model.skeletonData.nodes.size());
-			node->name = bone.name;
+			node->GetInfo().index = static_cast<uint32_t>(model.skeletonData.nodes.size());
+			node->GetInfo().name = bone.name;
 			model.skeletonData.nodes.emplace_back(std::move(node));
 		}
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
@@ -163,27 +163,27 @@ namespace Chrivent {
 				localPos -= pmxData.bones[bone.parentBoneIndex].position;
 			}
 			localPos.z *= -1;
-			node->translate = localPos;
-			node->global = glm::translate(glm::mat4(1), bone.position * invZ);
-			node->inverseInit = glm::inverse(node->global);
-			node->deformDepth = bone.deformDepth;
+			node->GetInfo().translate = localPos;
+			node->GetInfo().global = glm::translate(glm::mat4(1), bone.position * invZ);
+			node->GetInfo().inverseInit = glm::inverse(node->GetInfo().global);
+			node->GetInfo().deformDepth = bone.deformDepth;
 			bool deformAfterPhysics = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
-			node->isDeformAfterPhysics = deformAfterPhysics;
+			node->GetInfo().isDeformAfterPhysics = deformAfterPhysics;
 			bool appendRotateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
 			bool appendTranslateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
-			node->isAppendRotate = appendRotateEnabled;
-			node->isAppendTranslate = appendTranslateEnabled;
+			node->GetInfo().isAppendRotate = appendRotateEnabled;
+			node->GetInfo().isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
 				bool appendLocalEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
 				auto appendNodePtr = model.skeletonData.nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
-				node->isAppendLocal = appendLocalEnabled;
-				node->appendNode = appendNodePtr;
-				node->appendWeight = appendWeightValue;
+				node->GetInfo().isAppendLocal = appendLocalEnabled;
+				node->GetInfo().appendNode = appendNodePtr;
+				node->GetInfo().appendWeight = appendWeightValue;
 			}
-			node->initTranslate = node->translate;
-			node->initRotate = node->rotate;
-			node->initScale = node->scale;
+			node->GetInfo().initTranslate = node->GetInfo().translate;
+			node->GetInfo().initRotate = node->GetInfo().rotate;
+			node->GetInfo().initScale = node->GetInfo().scale;
 		}
 		model.skeletonData.transforms.resize(model.skeletonData.nodes.size());
 		model.skeletonData.sortedNodes.clear();
@@ -192,15 +192,15 @@ namespace Chrivent {
 			model.skeletonData.sortedNodes.emplace_back(*node);
 		std::ranges::stable_sort(model.skeletonData.sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
-			return x.get().deformDepth < y.get().deformDepth;
+			return x.get().GetInfo().deformDepth < y.get().GetInfo().deformDepth;
 		});
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
 			if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
-				solver->info.ikNode = model.skeletonData.nodes[i];
-				model.skeletonData.nodes[i]->ikSolver = solver;
-				solver->info.ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
+				solver->GetInfo().ikNode = model.skeletonData.nodes[i];
+				model.skeletonData.nodes[i]->GetInfo().ikSolver = solver;
+				solver->GetInfo().ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
 				for (const auto& [ikBoneIndex, enableLimit,
 					limitMin, limitMax] : bone.ikLinks) {
 					auto linkNode = model.skeletonData.nodes[ikBoneIndex];
@@ -210,11 +210,11 @@ namespace Chrivent {
 					chain.limitMin = limitMax * glm::vec3(-1);
 					chain.limitMax = limitMin * glm::vec3(-1);
 					chain.saveIkRot = glm::quat(1, 0, 0, 0);
-					solver->info.chains.emplace_back(chain);
-					linkNode->enableIk = true;
+					solver->GetInfo().chains.emplace_back(chain);
+					linkNode->GetInfo().enableIk = true;
 				}
-				solver->info.iterateCount = bone.ikIterationCount;
-				solver->info.limitAngle = bone.ikLimit;
+				solver->GetInfo().iterateCount = bone.ikIterationCount;
+				solver->GetInfo().limitAngle = bone.ikLimit;
 				model.skeletonData.ikSolvers.emplace_back(std::move(solver));
 			}
 		}

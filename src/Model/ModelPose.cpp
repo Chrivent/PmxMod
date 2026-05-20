@@ -6,22 +6,22 @@
 namespace Chrivent {
 	void ModelPose::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
-			return node.get().isDeformAfterPhysics == afterPhysicsAnim;
+			return node.get().GetInfo().isDeformAfterPhysics == afterPhysicsAnim;
 		};
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred))
 			nodeRef.get().UpdateLocalTransform();
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
-			if (node.parent.expired())
+			if (node.GetInfo().parent.expired())
 				node.UpdateGlobalTransform();
 		}
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
-			if (!node.appendNode.expired()) {
+			if (!node.GetInfo().appendNode.expired()) {
 				node.UpdateAppendTransform();
 				node.UpdateGlobalTransform();
 			}
-			if (const auto ikSolver = node.ikSolver.lock()) {
+			if (const auto ikSolver = node.GetInfo().ikSolver.lock()) {
 				ikSolver->Solve();
 				node.UpdateGlobalTransform();
 			}
@@ -41,7 +41,7 @@ namespace Chrivent {
 			rb->CalcLocalTransform();
 		}
 		for (const auto& node : model.skeletonData.nodes) {
-			if (node->parent.expired())
+			if (node->GetInfo().parent.expired())
 				node->UpdateGlobalTransform();
 		}
 		for (const auto& rb : model.physicsData.rigidBodies)
@@ -59,14 +59,14 @@ namespace Chrivent {
 			rb->CalcLocalTransform();
 		}
 		for (const auto& node : model.skeletonData.nodes) {
-			if (node->parent.expired())
+			if (node->GetInfo().parent.expired())
 				node->UpdateGlobalTransform();
 		}
 	}
 
 	void ModelPose::Update() const {
 		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
-			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->global * model.skeletonData.nodes[i]->inverseInit;
+			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->GetInfo().global * model.skeletonData.nodes[i]->GetInfo().inverseInit;
 		const ModelSkinning skinning(model);
 		skinning.Update();
 	}

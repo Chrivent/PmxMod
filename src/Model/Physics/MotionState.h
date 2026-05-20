@@ -5,7 +5,7 @@
 #include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
-	struct Node;
+	class Node;
 
 	class MotionState : public btMotionState {
 	public:

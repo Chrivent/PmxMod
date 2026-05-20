@@ -39,8 +39,8 @@ namespace Chrivent {
 			if (!node)
 				continue;
 			if (keys.empty()) {
-				node->animTranslate = glm::vec3(0);
-				node->animRotate = glm::quat(1, 0, 0, 0);
+				node->GetInfo().animTranslate = glm::vec3(0);
+				node->GetInfo().animRotate = glm::quat(1, 0, 0, 0);
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
@@ -61,8 +61,8 @@ namespace Chrivent {
 				vt = glm::mix(prev.translate, translate, glm::vec3(txY, tyY, tzY));
 				q  = glm::slerp(prev.rotate,   rotate,   rotY);
 			}
-			node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
-			node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
+			node->GetInfo().animTranslate = animWeight != 1.0f ? glm::mix(node->GetInfo().baseAnimTranslate, vt, animWeight) : vt;
+			node->GetInfo().animRotate = animWeight != 1.0f ? glm::slerp(node->GetInfo().baseAnimRotate, q, animWeight) : q;
 		}
 	}
 
@@ -71,12 +71,12 @@ namespace Chrivent {
 			if (!ikSolver)
 				continue;
 			if (keys.empty()) {
-				ikSolver->info.enable = true;
+				ikSolver->GetInfo().enable = true;
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
-			ikSolver->info.enable = animWeight < 1.0f ? ikSolver->info.baseAnimEnable : enable;
+			ikSolver->GetInfo().enable = animWeight < 1.0f ? ikSolver->GetInfo().baseAnimEnable : enable;
 		}
 	}
 
