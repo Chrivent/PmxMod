@@ -20,8 +20,6 @@ namespace Chrivent {
     };
 
     class GlfwInstance : public Instance {
-        friend class GlfwDrawer;
-
     protected:
         GlfwInstanceInfo& GetGlfwInfo() { return static_cast<GlfwInstanceInfo&>(GetInfo()); }
         const GlfwInstanceInfo& GetGlfwInfo() const { return static_cast<const GlfwInstanceInfo&>(GetInfo()); }

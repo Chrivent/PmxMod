@@ -3,10 +3,10 @@
 #include "../Drawer.h"
 
 namespace Chrivent {
-	class GlfwInstance;
+	struct GlfwInstanceInfo;
 
 	class GlfwDrawer : public Drawer {
-		const GlfwInstance& instance;
+		const GlfwInstanceInfo& info;
 
 	protected:
 		// 일반 메시 패스를 OpenGL로 렌더링한다.
@@ -17,7 +17,7 @@ namespace Chrivent {
 		void DrawGroundShadow() const override;
 
 	public:
-		explicit GlfwDrawer(const GlfwInstance& sourceInstance);
+		explicit GlfwDrawer(const GlfwInstanceInfo& sourceInfo);
 		~GlfwDrawer() override = default;
 	};
 }
