@@ -3,13 +3,13 @@
 #include <Windows.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace Chrivent::Util {
-    glm::mat4 InvZ(const glm::mat4& m) {
+namespace Chrivent {
+    glm::mat4 Util::InvZ(const glm::mat4& m) {
         const glm::mat4 invZ = glm::scale(glm::mat4(1), glm::vec3(1, 1, -1));
         return invZ * m * invZ;
     }
 
-    std::string WStringToUtf8(const std::wstring& w) {
+    std::string Util::WStringToUtf8(const std::wstring& w) {
         std::string utf8;
         if (w.empty())
             return utf8;
@@ -29,7 +29,7 @@ namespace Chrivent::Util {
         return utf8;
     }
 
-    std::string SjisToUtf8(const char* sjis) {
+    std::string Util::SjisToUtf8(const char* sjis) {
         std::string result;
         if (!sjis)
             return result;
