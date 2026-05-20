@@ -27,11 +27,11 @@ namespace Chrivent {
 		return key;
 	}
 
-	void AnimationBuilder::AddNodeAnimations(const VmdParser& vmd) const {
+	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) const {
 		const AnimationBinder binder(info);
 		auto& nodeTracks = info.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
-		for (const auto& motion : vmd.motions) {
+		for (const auto& motion : vmdData.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName);
 			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 			auto& [node, keys] = findIt->second;
@@ -44,11 +44,11 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
 	}
 
-	void AnimationBuilder::AddIkAnimations(const VmdParser& vmd) const {
+	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) const {
 		const AnimationBinder binder(info);
 		auto& ikTracks = info.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
-		for (const auto& ik : vmd.iks) {
+		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikInfos) {
 				auto ikName = Util::SjisToUtf8(name);
 				auto [findIt, inserted] = ikMap.try_emplace(ikName);
@@ -65,11 +65,11 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
 	}
 
-	void AnimationBuilder::AddMorphAnimations(const VmdParser& vmd) const {
+	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) const {
 		const AnimationBinder binder(info);
 		auto& morphTracks = info.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
-		for (const auto& [blendShapeName, frame, weight] : vmd.morphs) {
+		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName);
 			auto [findIt, inserted] = morphMap.try_emplace(morphName);
 			auto& [morph, keys] = findIt->second;
@@ -84,10 +84,10 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
 	}
 
-	bool AnimationBuilder::Add(const VmdParser& vmd) const {
-		AddNodeAnimations(vmd);
-		AddIkAnimations(vmd);
-		AddMorphAnimations(vmd);
+	bool AnimationBuilder::Add(const VmdParser::VmdData& vmdData) const {
+		AddNodeAnimations(vmdData);
+		AddIkAnimations(vmdData);
+		AddMorphAnimations(vmdData);
 		return true;
 	}
 }

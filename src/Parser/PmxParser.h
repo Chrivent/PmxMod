@@ -191,6 +191,7 @@ namespace Chrivent {
 	};
 
 	class PmxParser {
+	public:
 		struct PmxHeader {
 			char		magic[4];
 			float		version;
@@ -301,37 +302,7 @@ namespace Chrivent {
 			FrameType			flag;
 			std::vector<Target>	targets;
 		};
-	
-		// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
-		void ReadString(std::istream& is, std::string* val) const;
-		// PMX 헤더와 인덱스 크기 정보를 읽는다.
-		void ReadHeader(std::istream& is);
-		// 모델 이름과 설명 정보를 읽는다.
-		void ReadInfo(std::istream& is);
-		// 버텍스 목록과 스키닝 정보를 읽는다.
-		void ReadVertex(std::istream& is);
-		// 면 인덱스 목록을 읽는다.
-		void ReadFace(std::istream& is);
-		// 텍스처 경로 목록을 읽는다.
-		void ReadTexture(std::istream& is);
-		// 재질 목록과 렌더링 속성을 읽는다.
-		void ReadMaterial(std::istream& is);
-		// 본 계층과 IK 정보를 읽는다.
-		void ReadBone(std::istream& is);
-		// 모프 목록과 모프별 데이터를 읽는다.
-		void ReadMorph(std::istream& is);
-		// 표시 프레임 정보를 읽는다.
-		void ReadDisplayFrame(std::istream& is);
-		// 강체 정보를 읽는다.
-		void ReadRigidbody(std::istream& is);
-		// 조인트 제약 정보를 읽는다.
-		void ReadJoint(std::istream& is);
-		// 소프트바디 정보를 읽는다.
-		void ReadSoftBody(std::istream& is);
-		// 이전에 읽은 PMX 데이터를 초기화한다.
-		void Clear();
 
-	public:
 		struct PmxRigidbody {
 			std::string	name;
 			std::string	englishName;
@@ -408,19 +379,56 @@ namespace Chrivent {
 			std::vector<int32_t>			pinVertexIndices;
 		};
 
-		PmxHeader						header;
-		PmxInfo							info;
-		std::vector<PmxVertex>			vertices;
-		std::vector<PmxFace>			faces;
-		std::vector<PmxTexture>			textures;
-		std::vector<PmxMaterial>		materials;
-		std::vector<PmxBone>			bones;
-		std::vector<PmxMorph>			morphs;
-		std::vector<PmxDisplayFrame>	displayFrames;
-		std::vector<PmxRigidbody>		rigidBodies;
-		std::vector<PmxJoint>			joints;
-		std::vector<PmxSoftBody>		softBodies;
+		struct PmxData {
+			PmxHeader						header;
+			PmxInfo							info;
+			std::vector<PmxVertex>			vertices;
+			std::vector<PmxFace>			faces;
+			std::vector<PmxTexture>			textures;
+			std::vector<PmxMaterial>		materials;
+			std::vector<PmxBone>			bones;
+			std::vector<PmxMorph>			morphs;
+			std::vector<PmxDisplayFrame>	displayFrames;
+			std::vector<PmxRigidbody>		rigidBodies;
+			std::vector<PmxJoint>			joints;
+			std::vector<PmxSoftBody>		softBodies;
+		};
 
+	private:
+		PmxData data{};
+
+		// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
+		void ReadString(std::istream& is, std::string* val) const;
+		// PMX 헤더와 인덱스 크기 정보를 읽는다.
+		void ReadHeader(std::istream& is);
+		// 모델 이름과 설명 정보를 읽는다.
+		void ReadInfo(std::istream& is);
+		// 버텍스 목록과 스키닝 정보를 읽는다.
+		void ReadVertex(std::istream& is);
+		// 면 인덱스 목록을 읽는다.
+		void ReadFace(std::istream& is);
+		// 텍스처 경로 목록을 읽는다.
+		void ReadTexture(std::istream& is);
+		// 재질 목록과 렌더링 속성을 읽는다.
+		void ReadMaterial(std::istream& is);
+		// 본 계층과 IK 정보를 읽는다.
+		void ReadBone(std::istream& is);
+		// 모프 목록과 모프별 데이터를 읽는다.
+		void ReadMorph(std::istream& is);
+		// 표시 프레임 정보를 읽는다.
+		void ReadDisplayFrame(std::istream& is);
+		// 강체 정보를 읽는다.
+		void ReadRigidbody(std::istream& is);
+		// 조인트 제약 정보를 읽는다.
+		void ReadJoint(std::istream& is);
+		// 소프트바디 정보를 읽는다.
+		void ReadSoftBody(std::istream& is);
+		// 이전에 읽은 PMX 데이터를 초기화한다.
+		void Clear();
+
+	public:
+		const PmxData& GetData() const { return data; }
+		
 		// PMX 파일 전체를 읽어 내부 데이터 구조에 저장한다.
 		bool ReadFile(const std::filesystem::path& filename);
 	};

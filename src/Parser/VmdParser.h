@@ -11,6 +11,7 @@ namespace Chrivent {
 	};
 
 	class VmdParser {
+	public:
 		struct VmdHeader {
 			char header[30];
 			char modelName[20];
@@ -54,7 +55,28 @@ namespace Chrivent {
 			uint8_t		show;
 			std::vector<VmdIkInfo>	ikInfos;
 		};
-	
+
+		struct VmdMotion {
+			char			boneName[15];
+			uint32_t		frame;
+			glm::vec3		translate;
+			glm::quat		quaternion;
+			uint8_t			interpolation[64];
+		};
+
+		struct VmdData {
+			VmdHeader					header;
+			std::vector<VmdMotion>		motions;
+			std::vector<VmdMorph>		morphs;
+			std::vector<VmdCamera>		cameras;
+			std::vector<VmdLight>		lights;
+			std::vector<VmdShadow>		shadows;
+			std::vector<VmdIk>			iks;
+		};
+
+	private:
+		VmdData data{};
+
 		// VMD 헤더와 대상 모델 이름을 읽는다.
 		void ReadHeader(std::istream& is);
 		// 본 모션 키프레임 목록을 읽는다.
@@ -73,22 +95,8 @@ namespace Chrivent {
 		void Clear();
 
 	public:
-		struct VmdMotion {
-			char			boneName[15];
-			uint32_t		frame;
-			glm::vec3		translate;
-			glm::quat		quaternion;
-			uint8_t			interpolation[64];
-		};
-
-		VmdHeader					header;
-		std::vector<VmdMotion>		motions;
-		std::vector<VmdMorph>		morphs;
-		std::vector<VmdCamera>		cameras;
-		std::vector<VmdLight>		lights;
-		std::vector<VmdShadow>		shadows;
-		std::vector<VmdIk>			iks;
-
+		const VmdData& GetData() const { return data; }
+		
 		// VMD 파일 전체를 읽어 모션/카메라/모프 데이터를 저장한다.
 		bool ReadFile(const std::filesystem::path& filename);
 	};

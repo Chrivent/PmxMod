@@ -14,6 +14,6 @@ namespace Chrivent {
 		explicit CameraAnimationBuilder(CameraAnimationInfo& info) : info(info) {}
 
 		// VMD 카메라 데이터를 카메라 애니메이션 키에 추가한다.
-		bool Add(const VmdParser& vmd) const;
+		bool Add(const VmdParser::VmdData& vmdData) const;
 	};
 }

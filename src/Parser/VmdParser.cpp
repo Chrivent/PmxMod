@@ -7,17 +7,17 @@
 
 namespace Chrivent {
 	void VmdParser::ReadHeader(std::istream& is) {
-		BinaryReader::Read(is, header.header, sizeof(header.header));
-		BinaryReader::Read(is, header.modelName, sizeof(header.modelName));
+		BinaryReader::Read(is, data.header.header, sizeof(data.header.header));
+		BinaryReader::Read(is, data.header.modelName, sizeof(data.header.modelName));
 	}
 
 	void VmdParser::ReadMotion(std::istream& is) {
 		uint32_t motionCount = 0;
 		BinaryReader::Read(is, &motionCount);
-		motions.resize(motionCount);
+		data.motions.resize(motionCount);
 		for (auto& [boneName, frame
 				 , translate, quaternion
-				 , interpolation] : motions) {
+				 , interpolation] : data.motions) {
 			BinaryReader::Read(is, boneName, sizeof(boneName));
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &translate);
@@ -29,8 +29,8 @@ namespace Chrivent {
 	void VmdParser::ReadBlendShape(std::istream& is) {
 		uint32_t blendShapeCount = 0;
 		BinaryReader::Read(is, &blendShapeCount);
-		morphs.resize(blendShapeCount);
-		for (auto& [blendShapeName, frame, weight] : morphs) {
+		data.morphs.resize(blendShapeCount);
+		for (auto& [blendShapeName, frame, weight] : data.morphs) {
 			BinaryReader::Read(is, blendShapeName, sizeof(blendShapeName));
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &weight);
@@ -40,9 +40,9 @@ namespace Chrivent {
 	void VmdParser::ReadCamera(std::istream& is) {
 		uint32_t cameraCount = 0;
 		BinaryReader::Read(is, &cameraCount);
-		cameras.resize(cameraCount);
+		data.cameras.resize(cameraCount);
 		for (auto& [frame, distance, interest, rotate
-				 , interpolation, viewAngle, isPerspective] : cameras) {
+				 , interpolation, viewAngle, isPerspective] : data.cameras) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &distance);
 			BinaryReader::Read(is, &interest);
@@ -56,8 +56,8 @@ namespace Chrivent {
 	void VmdParser::ReadLight(std::istream& is) {
 		uint32_t lightCount = 0;
 		BinaryReader::Read(is, &lightCount);
-		lights.resize(lightCount);
-		for (auto& [frame, color, position] : lights) {
+		data.lights.resize(lightCount);
+		for (auto& [frame, color, position] : data.lights) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &color);
 			BinaryReader::Read(is, &position);
@@ -67,8 +67,8 @@ namespace Chrivent {
 	void VmdParser::ReadShadow(std::istream& is) {
 		uint32_t shadowCount = 0;
 		BinaryReader::Read(is, &shadowCount);
-		shadows.resize(shadowCount);
-		for (auto& [frame, shadowType, distance] : shadows) {
+		data.shadows.resize(shadowCount);
+		for (auto& [frame, shadowType, distance] : data.shadows) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &shadowType);
 			BinaryReader::Read(is, &distance);
@@ -78,8 +78,8 @@ namespace Chrivent {
 	void VmdParser::ReadIk(std::istream& is) {
 		uint32_t ikCount = 0;
 		BinaryReader::Read(is, &ikCount);
-		iks.resize(ikCount);
-		for (auto& [frame, show, ikInfos] : iks) {
+		data.iks.resize(ikCount);
+		for (auto& [frame, show, ikInfos] : data.iks) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &show);
 			uint32_t ikInfoCount = 0;
@@ -93,13 +93,13 @@ namespace Chrivent {
 	}
 
 	void VmdParser::Clear() {
-		header = {};
-		motions.clear();
-		morphs.clear();
-		cameras.clear();
-		lights.clear();
-		shadows.clear();
-		iks.clear();
+		data.header = {};
+		data.motions.clear();
+		data.morphs.clear();
+		data.cameras.clear();
+		data.lights.clear();
+		data.shadows.clear();
+		data.iks.clear();
 	}
 
 	bool VmdParser::ReadFile(const std::filesystem::path& filename) {

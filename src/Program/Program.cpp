@@ -104,7 +104,7 @@ namespace Chrivent {
                     std::cout << "Failed to read VMD file.\n";
                     return false;
                 }
-                if (!animationBuilder.Add(vmd)) {
+                if (!animationBuilder.Add(vmd.GetData())) {
                     std::cout << "Failed to add VMDAnimation.\n";
                     return false;
                 }

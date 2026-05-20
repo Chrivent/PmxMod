@@ -57,10 +57,9 @@ namespace Chrivent {
 		AnimationInfo info;
 
 	public:
-		// 애니메이션 정보를 반환한다.
 		const AnimationInfo& GetInfo() const { return info; }
-		// 애니메이션 정보를 통째로 교체한다.
 		void SetInfo(AnimationInfo animationInfo) { info = std::move(animationInfo); }
+		
 		// 애니메이션 트랙과 연결 상태를 해제한다.
 		void Destroy();
 		// 포함된 모든 트랙 중 가장 마지막 키 프레임을 반환한다.

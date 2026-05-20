@@ -64,11 +64,11 @@ namespace Chrivent {
 			return;
 		}
 		VmdParser camVmd;
-		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.cameras.empty()) {
+		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.GetData().cameras.empty()) {
 			auto vmdCamAnim = std::make_unique<CameraAnimation>();
 			CameraAnimationInfo cameraAnimationInfo;
 			const CameraAnimationBuilder cameraAnimationBuilder(cameraAnimationInfo);
-			if (!cameraAnimationBuilder.Add(camVmd))
+			if (!cameraAnimationBuilder.Add(camVmd.GetData()))
 				std::cout << "Failed to create VMDCameraAnimation.\n";
 			vmdCamAnim->SetInfo(std::move(cameraAnimationInfo));
 			cameraAnim = std::move(vmdCamAnim);
