@@ -194,6 +194,7 @@ namespace Chrivent {
             case PlaybackCommand::Stop:
                 viewer->skipPhysics = false;
                 cameraManager.Stop(*viewer, music, saveTime);
+                SyncSeekedPhysics(0);
                 break;
             case PlaybackCommand::None:
                 break;
