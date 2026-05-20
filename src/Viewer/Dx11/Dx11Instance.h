@@ -24,19 +24,19 @@ namespace Chrivent {
         static D3D11_BUFFER_DESC MakeVertexBufferDesc(size_t vertexCount);
         // 모델 인덱스 데이터를 한 번 업로드할 immutable 버퍼 설명자를 만든다.
         static D3D11_BUFFER_DESC MakeIndexBufferDesc(size_t indexBytes);
-        // 상수 버퍼 크기를 16바이트 정렬해 생성한다.
-        template<typename T>
-        static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
-            const UINT bytes = static_cast<UINT>(sizeof(T) + 15u & ~15u);
-            const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
-            return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
-        }
         // 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
         void BindTexture(UINT slot, const Dx11Texture& tex, ID3D11SamplerState* sampler,
             int modeIfPresent, int& outMode, glm::vec4& outMul, glm::vec4& outAdd,
             const glm::vec4& mulIn, const glm::vec4& addIn) const;
         // OpenGL 스타일 clip space를 DX11 depth range로 변환하는 행렬을 반환한다.
         static const glm::mat4& DxClipMatrix();
+        
+        template<typename T>
+        static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
+            const UINT bytes = static_cast<UINT>(sizeof(T) + 15u & ~15u);
+            const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
+            return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
+        }
 
         Dx11Viewer*                             viewer = nullptr;
         std::vector<Dx11Material>               materials;

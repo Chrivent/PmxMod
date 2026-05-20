@@ -42,14 +42,6 @@ namespace Chrivent {
 		prevRenderWindowProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(renderWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(RenderWindowProc)));
 	}
 
-	void PanelManager::ApplySceneConfig(const SceneConfig& cfg) {
-		viewerMenu.ApplySceneConfig(cfg);
-	}
-
-	void PanelManager::Reset() {
-		viewerMenu.Reset();
-	}
-
 	bool PanelManager::OpenGuiWindows() {
 		playbackPanel.Show();
 		soundPanel.Show();
@@ -70,21 +62,5 @@ namespace Chrivent {
 		renderWindow = nullptr;
 		playbackPanel.Destroy();
 		soundPanel.Destroy();
-	}
-
-	bool PanelManager::ConsumeSceneConfigDirty() {
-		return viewerMenu.ConsumeSceneConfigDirty();
-	}
-
-	PlaybackCommand PanelManager::ConsumePlaybackCommand() {
-		return playbackPanel.ConsumeCommand();
-	}
-
-	bool PanelManager::ConsumeSeekFrame(int& frame, bool& finished) {
-		return playbackPanel.ConsumeSeekFrame(frame, finished);
-	}
-
-	void PanelManager::BindSound(Sound& sound) {
-		soundPanel.BindSound(sound);
 	}
 }

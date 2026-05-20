@@ -74,21 +74,18 @@ namespace Chrivent {
         explicit Dx11Material(const Material& sourceMat) : mat(sourceMat) {}
     };
 
-    // DX11 디바이스와 프레임 제출에 필요한 기본 리소스를 보관한다.
     struct Dx11DeviceResources {
         Microsoft::WRL::ComPtr<ID3D11Device>        device;
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
         Microsoft::WRL::ComPtr<IDXGISwapChain>      swapChain;
     };
 
-    // 현재 스왑체인 크기에 맞춰 재생성되는 렌더 타깃 리소스를 보관한다.
     struct Dx11RenderTargets {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  renderTargetView;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
     };
 
-    // 모델, 엣지, 지면 그림자 렌더링에 쓰는 셰이더와 입력 레이아웃을 보관한다.
     struct Dx11ShaderSet {
         Microsoft::WRL::ComPtr<ID3D11VertexShader>  vs;
         Microsoft::WRL::ComPtr<ID3D11PixelShader>   ps;
@@ -101,7 +98,6 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11InputLayout>   gsInputLayout;
     };
 
-    // 샘플러, 블렌드, 래스터라이저, 깊이 스텐실 상태를 보관한다.
     struct Dx11PipelineStates {
         Microsoft::WRL::ComPtr<ID3D11SamplerState>      textureSampler;
         Microsoft::WRL::ComPtr<ID3D11SamplerState>      cartoonTextureSampler;
@@ -114,7 +110,6 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> defaultDss;
     };
 
-    // 텍스처가 없는 재질에 바인딩할 기본 텍스처 리소스를 보관한다.
     struct Dx11DummyTexture {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>             texture;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;

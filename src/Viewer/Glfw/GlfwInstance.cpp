@@ -177,6 +177,25 @@ namespace Chrivent {
 	GlfwInstance::~GlfwInstance() {
 		GlfwInstance::Clear();
 	}
+	
+	void GlfwInstance::Clear() {
+		if (posVbo != 0)
+			glDeleteBuffers(1, &posVbo);
+		if (norVbo != 0)
+			glDeleteBuffers(1, &norVbo);
+		if (uvVbo != 0)
+			glDeleteBuffers(1, &uvVbo);
+		if (ibo != 0)
+			glDeleteBuffers(1, &ibo);
+		posVbo = norVbo = uvVbo = ibo = 0;
+		if (vao != 0)
+			glDeleteVertexArrays(1, &vao);
+		if (edgeVao != 0)
+			glDeleteVertexArrays(1, &edgeVao);
+		if (gsVao != 0)
+			glDeleteVertexArrays(1, &gsVao);
+		vao = edgeVao = gsVao = 0;
+	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
 		viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
@@ -234,25 +253,6 @@ namespace Chrivent {
 			materials.emplace_back(material);
 		}
 		return true;
-	}
-
-	void GlfwInstance::Clear() {
-		if (posVbo != 0)
-			glDeleteBuffers(1, &posVbo);
-		if (norVbo != 0)
-			glDeleteBuffers(1, &norVbo);
-		if (uvVbo != 0)
-			glDeleteBuffers(1, &uvVbo);
-		if (ibo != 0)
-			glDeleteBuffers(1, &ibo);
-		posVbo = norVbo = uvVbo = ibo = 0;
-		if (vao != 0)
-			glDeleteVertexArrays(1, &vao);
-		if (edgeVao != 0)
-			glDeleteVertexArrays(1, &edgeVao);
-		if (gsVao != 0)
-			glDeleteVertexArrays(1, &gsVao);
-		vao = edgeVao = gsVao = 0;
 	}
 
 	void GlfwInstance::Update() const {

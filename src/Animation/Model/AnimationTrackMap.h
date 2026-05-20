@@ -9,11 +9,8 @@
 
 namespace Chrivent {
 	class AnimationTrackMap {
-		// 노드 트랙이 실제 노드에 연결되어 있는지 확인한다.
 		static bool IsTrackBound(const NodeAnimationTrack& track) { return track.node != nullptr; }
-		// IK 트랙이 실제 IK 솔버에 연결되어 있는지 확인한다.
 		static bool IsTrackBound(const IkAnimationTrack& track) { return track.ikSolver != nullptr; }
-		// 모프 트랙이 실제 모프에 연결되어 있는지 확인한다.
 		static bool IsTrackBound(const MorphAnimationTrack& track) { return track.morph != nullptr; }
 
 	public:
@@ -24,7 +21,6 @@ namespace Chrivent {
 		// 모프 트랙 목록을 모프 이름 기반 맵으로 옮긴다.
 		static std::map<std::string, MorphAnimationTrack> TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks);
 
-		// 트랙 맵의 바인딩된 트랙만 시간순으로 정렬해 트랙 목록으로 옮긴다.
 		template <typename TrackMap, typename TrackList, typename TimeMember>
 		static void FlushTrackMap(TrackMap& trackMap, TrackList& tracks, TimeMember timeMember) {
 			tracks.clear();

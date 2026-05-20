@@ -84,7 +84,6 @@ namespace Chrivent {
     };
 
     class GlfwViewer : public Viewer {
-        // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
         static void* LoadGlProc(const char* name) {
             return reinterpret_cast<void*>(glfwGetProcAddress(name));
         }
