@@ -260,7 +260,7 @@ namespace Chrivent {
 		edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
 		gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
 		for (const auto& mat : info.model->materialData.materials) {
-			GlfwMaterial material(mat);
+			GlfwViewerMaterial material(mat);
 			if (!mat.texture.empty()) {
 				const auto texture = viewer->LoadTexture(mat.texture);
 				material.texture = texture.texture;

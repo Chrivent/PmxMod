@@ -8,7 +8,7 @@
 namespace Chrivent {
     class GlfwViewer;
     class GlfwDrawer;
-    class GlfwMaterial;
+    struct GlfwViewerMaterial;
 
     class GlfwInstance : public Instance {
         friend class GlfwDrawer;
@@ -29,7 +29,7 @@ namespace Chrivent {
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
-        std::vector<GlfwMaterial>   materials;
+        std::vector<GlfwViewerMaterial> materials;
     
     public:
         ~GlfwInstance() override;

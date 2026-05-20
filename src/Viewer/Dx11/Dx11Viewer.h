@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "../ViewerMaterial.h"
 #include "Dx11TextureCache.h"
 
 #include <d3d11.h>
@@ -65,13 +66,12 @@ namespace Chrivent {
         glm::vec4	shadowColor;
     };
 
-    struct Dx11Material {
-        const Material& mat;
+    struct Dx11Material : ViewerMaterial {
         Dx11Texture texture{};
         Dx11Texture	spTexture{};
         Dx11Texture	cartoonTexture{};
 
-        explicit Dx11Material(const Material& sourceMat) : mat(sourceMat) {}
+        explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
     struct Dx11DeviceResources {

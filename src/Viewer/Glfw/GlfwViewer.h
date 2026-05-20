@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "../ViewerMaterial.h"
 #include "GlfwTextureCache.h"
 
 #include <glad/glad.h>
@@ -70,14 +71,13 @@ namespace Chrivent {
         bool Setup(const GlfwViewer& viewer);
     };
 
-    struct GlfwMaterial {
-        const   Material& mat;
+    struct GlfwViewerMaterial : ViewerMaterial {
         GLuint  texture = 0;
         bool	textureHasAlpha = false;
         GLuint	sphereTexture = 0;
         GLuint	cartoonTexture = 0;
 
-        explicit GlfwMaterial(const Material& sourceMat) : mat(sourceMat) {}
+        explicit GlfwViewerMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
     class GlfwViewer : public Viewer {
