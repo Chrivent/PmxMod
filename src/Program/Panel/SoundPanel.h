@@ -25,8 +25,8 @@ namespace Chrivent {
 	public:
 		SoundPanel() = default;
 
-		// GUI 매니저가 관리하는 볼륨 슬라이더 ID를 설정한다.
-		void SetVolumeSliderId(int id);
+		void SetVolumeSliderId(const int id) { volumeSliderId = id; }
+		
 		// 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& soundRef);
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.

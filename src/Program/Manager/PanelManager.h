@@ -33,6 +33,9 @@ namespace Chrivent {
 
 		PanelManager();
 		~PanelManager();
+		
+		void SetPlaybackFrame(const int frame) const { playbackPanel.SetCurrentFrame(frame); }
+		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
 
 		// 렌더링 창에 상단 메뉴를 연결한다.
 		void AttachRenderWindow(const Viewer& viewer);
@@ -52,10 +55,6 @@ namespace Chrivent {
 		PlaybackCommand ConsumePlaybackCommand();
 		// 플레이백 패널의 프레임 이동 요청을 반환하고 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
-		// 현재 재생 프레임을 플레이백 패널에 표시한다.
-		void SetPlaybackFrame(int frame) const;
-		// 플레이백 패널 슬라이더의 마지막 프레임을 설정한다.
-		void SetPlaybackFrameRange(int maxFrame) const;
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound);
 	};

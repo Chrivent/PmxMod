@@ -62,10 +62,6 @@ namespace Chrivent {
 		UpdateValueText();
 	}
 
-	void SoundPanel::SetVolumeSliderId(const int id) {
-		volumeSliderId = id;
-	}
-
 	void SoundPanel::BindSound(Sound& soundRef) {
 		sound = &soundRef;
 		if (volumeSlider)

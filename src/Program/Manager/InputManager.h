@@ -27,11 +27,11 @@ namespace Chrivent {
 		double prevCursorY = 0.0;
 
 	public:
+		const InputState& GetState() const { return state; }
+		
 		// 이전 프레임 입력 상태를 초기화한다.
 		void Reset();
 		// 현재 GLFW 입력을 읽어 이번 프레임 입력 상태로 변환한다.
 		void Update(const Viewer& viewer);
-		// 이번 프레임에 계산된 입력 상태를 반환한다.
-		const InputState& GetState() const { return state; }
 	};
 }

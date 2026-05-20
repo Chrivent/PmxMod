@@ -17,46 +17,72 @@ namespace Chrivent {
 		if (!panel)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
-			case WM_CREATE:
-				panel->CreateContent(hwnd);
+		case WM_CREATE:
+			panel->CreateContent(hwnd);
+			return 0;
+		case WM_SIZE: {
+			RECT client{};
+			GetClientRect(hwnd, &client);
+			panel->Resize(client);
+			return 0;
+		}
+		case WM_COMMAND:
+			if (panel->HandleCommand(LOWORD(wParam)))
 				return 0;
-			case WM_SIZE: {
-				RECT client{};
-				GetClientRect(hwnd, &client);
-				panel->Resize(client);
+			break;
+		case WM_HSCROLL:
+			if (panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
 				return 0;
-			}
-			case WM_COMMAND:
-				if (panel->HandleCommand(LOWORD(wParam)))
-					return 0;
-				break;
-			case WM_HSCROLL:
-				if (panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
-					return 0;
-				break;
-			case WM_CLOSE:
-				ShowWindow(hwnd, SW_HIDE);
-				return 0;
-			case WM_DESTROY:
-				panel->panelWindow = nullptr;
-				panel->timelineSlider = nullptr;
-				panel->playButton = nullptr;
-				panel->pauseButton = nullptr;
-				panel->stopButton = nullptr;
-				return 0;
-			default:
-				break;
+			break;
+		case WM_CLOSE:
+			ShowWindow(hwnd, SW_HIDE);
+			return 0;
+		case WM_DESTROY:
+			panel->panelWindow = nullptr;
+			panel->timelineSlider = nullptr;
+			panel->playButton = nullptr;
+			panel->pauseButton = nullptr;
+			panel->stopButton = nullptr;
+			return 0;
+		default:
+			break;
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
-	void PlaybackPanel::SetControlIds(const int timelineId, const int playId, const int pauseId, const int stopId) {
-		timelineSliderId = timelineId;
-		playButtonId = playId;
-		pauseButtonId = pauseId;
-		stopButtonId = stopId;
+	void PlaybackPanel::CreateContent(const HWND parent) {
+		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
+		playButton = CreateWindowExW(
+			0, L"BUTTON", L"Play",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(playButtonId)), GetModuleHandleW(nullptr), nullptr);
+		pauseButton = CreateWindowExW(
+			0, L"BUTTON", L"Pause",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(pauseButtonId)), GetModuleHandleW(nullptr), nullptr);
+		stopButton = CreateWindowExW(
+			0, L"BUTTON", L"Stop",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
 	}
 
+	void PlaybackPanel::SetCurrentFrame(const int frame) const {
+		if (!timelineSlider)
+			return;
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>((std::max)(0, frame)));
+	}
+
+	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
+		if (!timelineSlider)
+			return;
+		const int safeMaxFrame = (std::max)(0, maxFrame);
+		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
+	}
+	
 	void PlaybackPanel::Show() {
 		if (panelWindow) {
 			ShowWindow(panelWindow, SW_SHOWNORMAL);
@@ -91,25 +117,6 @@ namespace Chrivent {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
-	}
-
-	void PlaybackPanel::CreateContent(const HWND parent) {
-		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
-		playButton = CreateWindowExW(
-			0, L"BUTTON", L"Play",
-			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(playButtonId)), GetModuleHandleW(nullptr), nullptr);
-		pauseButton = CreateWindowExW(
-			0, L"BUTTON", L"Pause",
-			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(pauseButtonId)), GetModuleHandleW(nullptr), nullptr);
-		stopButton = CreateWindowExW(
-			0, L"BUTTON", L"Stop",
-			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
 	}
 
 	void PlaybackPanel::Resize(const RECT& clientRect) {
@@ -178,19 +185,5 @@ namespace Chrivent {
 		seekRequested = false;
 		seekFinished = false;
 		return true;
-	}
-
-	void PlaybackPanel::SetCurrentFrame(const int frame) const {
-		if (!timelineSlider)
-			return;
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>((std::max)(0, frame)));
-	}
-
-	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
-		if (!timelineSlider)
-			return;
-		const int safeMaxFrame = (std::max)(0, maxFrame);
-		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
 	}
 }
