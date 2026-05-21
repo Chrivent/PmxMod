@@ -75,7 +75,7 @@ namespace Chrivent {
 		SaveBaseAnimation();
 		for (int i = 0; i < 30; i++) {
 			BeginAnimation();
-			anim.Evaluate(frame, 1 + i / 30.0f);
+			anim.Evaluate(frame, (1 + i) / 30.0f);
 			UpdateMorphAnimation();
 			const ModelPose pose(model);
 			pose.UpdateNodeAnimation(false);
