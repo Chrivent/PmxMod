@@ -1,26 +1,26 @@
-﻿#include "ViewerMenu.h"
+﻿#include "MenuBar.h"
 
 #include <iostream>
 
 namespace Chrivent {
-	ViewerMenu::ViewerMenu(SceneConfig& config) : sceneConfig(config) {}
+	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
 
-	void ViewerMenu::AddMenu(const HMENU menu) {
+	void MenuBar::AddMenu(const HMENU menu) {
 		HMENU fileMenu = CreatePopupMenu();
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
 	}
 
-	void ViewerMenu::AttachOwner(const HWND owner) {
+	void MenuBar::AttachOwner(const HWND owner) {
 		ownerWindow = owner;
 	}
 
-	bool ViewerMenu::SaveSceneConfig(const std::filesystem::path& filepath) const {
+	bool MenuBar::SaveSceneConfig(const std::filesystem::path& filepath) const {
 		return sceneConfig.Save(filepath);
 	}
 
-	bool ViewerMenu::LoadSceneConfig(const std::filesystem::path& filepath) {
+	bool MenuBar::LoadSceneConfig(const std::filesystem::path& filepath) {
 		if (!sceneConfig.Load(filepath))
 			return false;
 		sceneFilePath = filepath;
@@ -28,7 +28,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void ViewerMenu::ShowOpenSceneDialog() {
+	void MenuBar::ShowOpenSceneDialog() {
 		std::vector filename(MAX_PATH, L'\0');
 		OPENFILENAMEW ofn{};
 		ofn.lStructSize = sizeof(ofn);
@@ -46,7 +46,7 @@ namespace Chrivent {
 			std::cout << "Failed to load scene config.\n";
 	}
 
-	void ViewerMenu::ShowSaveSceneDialog() {
+	void MenuBar::ShowSaveSceneDialog() {
 		std::vector filename(MAX_PATH, L'\0');
 		if (!sceneFilePath.empty()) {
 			const auto native = sceneFilePath.wstring();
@@ -69,7 +69,7 @@ namespace Chrivent {
 			std::cout << "Failed to save scene config.\n";
 	}
 
-	bool ViewerMenu::HandleCommand(const int commandId) {
+	bool MenuBar::HandleCommand(const int commandId) {
 		switch (commandId) {
 			case kOpenButtonId:
 				ShowOpenSceneDialog();
@@ -82,17 +82,17 @@ namespace Chrivent {
 		}
 	}
 
-	void ViewerMenu::ApplySceneConfig(const SceneConfig& cfg) {
+	void MenuBar::ApplySceneConfig(const SceneConfig& cfg) {
 		sceneConfig = cfg;
 		sceneFilePath.clear();
 		sceneConfigDirty = false;
 	}
 
-	void ViewerMenu::Reset() {
+	void MenuBar::Reset() {
 		sceneConfigDirty = false;
 	}
 
-	bool ViewerMenu::ConsumeSceneConfigDirty() {
+	bool MenuBar::ConsumeSceneConfigDirty() {
 		const bool dirty = sceneConfigDirty;
 		sceneConfigDirty = false;
 		return dirty;

@@ -6,6 +6,8 @@
 #include <vector>
 
 namespace Chrivent {
+	class MenuBar;
+
 	enum class PanelWindowArea {
 		Model,
 		Motion,
@@ -22,6 +24,7 @@ namespace Chrivent {
 		};
 
 		HWND window = nullptr;
+		MenuBar* menuBar = nullptr;
 		std::vector<PanelEntry> panels;
 		bool controlsCreated = false;
 
@@ -34,6 +37,7 @@ namespace Chrivent {
 		~PanelWindow();
 
 		HWND GetWindow() const { return window; }
+		void AttachMenuBar(MenuBar& menu);
 		void RegisterPanel(Panel& panel, const std::wstring& title, PanelWindowArea area);
 		void Show();
 		void Poll() const;

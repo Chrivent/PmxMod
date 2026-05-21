@@ -23,6 +23,7 @@ add_executable(PmxMod
         src/Program/Program.h src/Program/Program.cpp
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
+        src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
         src/Program/Sound.h src/Program/Sound.cpp
         
@@ -39,7 +40,6 @@ add_executable(PmxMod
         src/Parser/BinaryReader.h src/Parser/BinaryReader.cpp
 
         src/Animation/AnimationKeySearch.h
-        src/Animation/AnimationTiming.h
         src/Animation/Bezier.h src/Animation/Bezier.cpp
 
         src/Animation/Model/Animation.h src/Animation/Model/Animation.cpp
@@ -68,7 +68,6 @@ add_executable(PmxMod
         src/Util.h src/Util.cpp
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
-        src/Viewer/ViewerMenu.h src/Viewer/ViewerMenu.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         src/Viewer/ViewerMaterial.h

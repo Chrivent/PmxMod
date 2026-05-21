@@ -3,8 +3,6 @@
 #include "../Bezier.h"
 #include "../../Program/Manager/CameraManager.h"
 
-#include <cstdint>
-
 namespace Chrivent {
     struct CameraAnimationKey {
         uint32_t	frame = 0;

@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-#include "../Program/Config.h"
+#include "Config.h"
 
 #include <windows.h>
 
 namespace Chrivent {
-	class ViewerMenu {
+	class MenuBar {
 		static constexpr int kOpenButtonId = 1000;
 		static constexpr int kSaveButtonId = 1001;
 
@@ -20,7 +20,7 @@ namespace Chrivent {
 		void ShowSaveSceneDialog();
 
 	public:
-		explicit ViewerMenu(SceneConfig& config);
+		explicit MenuBar(SceneConfig& config);
 
 		// 파일 메뉴를 렌더링 창 상단 메뉴에 추가한다.
 		static void AddMenu(HMENU menu);

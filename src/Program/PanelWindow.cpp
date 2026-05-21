@@ -1,5 +1,7 @@
 #include "PanelWindow.h"
 
+#include "MenuBar.h"
+
 namespace Chrivent {
 	LRESULT CALLBACK PanelWindow::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 		auto* panelWindow = reinterpret_cast<PanelWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
@@ -13,6 +15,8 @@ namespace Chrivent {
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
 			case WM_COMMAND:
+				if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam)))
+					return 0;
 				for (const auto& entry : panelWindow->panels) {
 					if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam)))
 						return 0;
@@ -51,6 +55,17 @@ namespace Chrivent {
 		panels.push_back({&panel, title, area});
 	}
 
+	void PanelWindow::AttachMenuBar(MenuBar& menu) {
+		menuBar = &menu;
+		if (!window)
+			return;
+		menuBar->AttachOwner(window);
+		const HMENU menuHandle = CreateMenu();
+		menuBar->AddMenu(menuHandle);
+		SetMenu(window, menuHandle);
+		DrawMenuBar(window);
+	}
+
 	void PanelWindow::Show() {
 		if (window) {
 			ShowWindow(window, SW_SHOWNORMAL);
@@ -73,6 +88,13 @@ namespace Chrivent {
 			nullptr, nullptr, instance, this);
 		if (!window)
 			return;
+		if (menuBar) {
+			menuBar->AttachOwner(window);
+			const HMENU menuHandle = CreateMenu();
+			menuBar->AddMenu(menuHandle);
+			SetMenu(window, menuHandle);
+			DrawMenuBar(window);
+		}
 		CreatePanelControls();
 		LayoutPanels();
 		ShowWindow(window, SW_SHOWNORMAL);

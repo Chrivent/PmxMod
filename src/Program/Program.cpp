@@ -2,7 +2,6 @@
 
 #include "../Animation/Model/Animation.h"
 #include "../Animation/Model/AnimationBuilder.h"
-#include "../Animation/AnimationTiming.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
 #include "../Parser/VmdParser.h"
@@ -127,7 +126,7 @@ namespace Chrivent {
     int Program::CalculatePlaybackLastFrame() const {
         uint32_t lastFrame = cameraManager.GetLastFrame();
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * AnimationTiming::motionFps)));
+            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * 30.0)));
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim)
                 lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
@@ -208,7 +207,7 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
-        panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * AnimationTiming::motionFps + 0.5f);
+        panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();
         for (const auto& instance : instances) {

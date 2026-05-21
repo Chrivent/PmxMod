@@ -2,7 +2,6 @@
 
 #include "ModelMorph.h"
 #include "ModelPose.h"
-#include "../Animation/AnimationTiming.h"
 #include "../Animation/Model/Animation.h"
 
 namespace Chrivent {
@@ -74,13 +73,13 @@ namespace Chrivent {
 
 	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {
 		SaveBaseAnimation();
-		for (int i = 0; i < AnimationTiming::renderFps; i++) {
+		for (int i = 0; i < 30; i++) {
 			BeginAnimation();
-			anim.Evaluate(frame, 1 + i / AnimationTiming::renderFps);
+			anim.Evaluate(frame, 1 + i / 30.0f);
 			UpdateMorphAnimation();
 			const ModelPose pose(model);
 			pose.UpdateNodeAnimation(false);
-			pose.UpdatePhysicsAnimation(AnimationTiming::renderSecondsPerFrame);
+			pose.UpdatePhysicsAnimation(1.0f / 30.0f);
 			pose.UpdateNodeAnimation(true);
 		}
 	}
