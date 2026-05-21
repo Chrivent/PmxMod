@@ -77,8 +77,8 @@ namespace Chrivent {
         if (dt < 0.0)
             dt = 0.0;
         prevTimeSec = t;
-        deltaTime = static_cast<float>(dt);
-        time = static_cast<float>(t);
+        deltaTime = dt;
+        time = t;
     }
 
     void Sound::Pause() {
@@ -109,7 +109,7 @@ namespace Chrivent {
         const double clampedTime = lengthSec > 0.0
             ? std::clamp(static_cast<double>(seconds), 0.0, lengthSec)
             : (std::max)(0.0, static_cast<double>(seconds));
-        const auto frame = static_cast<ma_uint64>(clampedTime * sr);
+        const auto frame = clampedTime * sr;
         if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
             prevTimeSec = clampedTime;
             if (playing)

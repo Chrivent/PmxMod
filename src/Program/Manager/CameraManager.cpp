@@ -90,7 +90,7 @@ namespace Chrivent {
 			viewerInfo.elapsed = 0.0f;
 			return;
 		}
-		const float clockDt = static_cast<float>(elapsedSeconds);
+		const float clockDt = elapsedSeconds;
 		float dt = clockDt;
 		float t = viewerInfo.animTime + dt;
 		if (music.HasSound()) {

@@ -94,7 +94,7 @@ namespace Chrivent {
 		Dx11EdgeVertexShader vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
-		vsCb1.screenSize = glm::vec2(static_cast<float>(viewer->GetInfo().screenWidth), static_cast<float>(viewer->GetInfo().screenHeight));
+		vsCb1.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgeVsConstantBuffer.Get(), 0, nullptr, &vsCb1, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.edgeVs.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.edgePs.Get(), nullptr, 0);

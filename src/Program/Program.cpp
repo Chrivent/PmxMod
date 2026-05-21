@@ -138,7 +138,7 @@ namespace Chrivent {
                 continue;
             const ModelAnimator animator(*instance->GetInfo().model);
             animator.BeginAnimation();
-            animator.SyncPhysics(*instance->GetInfo().anim, static_cast<float>(frame));
+            animator.SyncPhysics(*instance->GetInfo().anim, frame);
         }
     }
 
@@ -205,7 +205,7 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
-        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * AnimationTiming::motionFps + 0.5f));
+        panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * AnimationTiming::motionFps + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();
         for (const auto& instance : instances) {

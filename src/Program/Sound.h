@@ -16,7 +16,7 @@ namespace Chrivent {
         bool playing = false;
         bool hasSound = false;
 
-        // miniaudio 엔진과 사운드 객체를 해제한다.
+        // MiniAudio 엔진과 사운드 객체를 해제한다.
         void UnInit();
     
     public:

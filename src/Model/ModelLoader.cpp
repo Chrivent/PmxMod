@@ -135,7 +135,7 @@ namespace Chrivent {
 			model.materialData.materials.emplace_back(std::move(m));
 			SubMesh subMesh{};
 			subMesh.beginIndex = beginIndex;
-			subMesh.indexCount = static_cast<size_t>(mat.numFaceVertices);
+			subMesh.indexCount = mat.numFaceVertices;
 			subMesh.materialId = model.materialData.materials.size() - 1;
 			model.materialData.subMeshes.push_back(subMesh);
 			beginIndex += subMesh.indexCount;
@@ -149,7 +149,7 @@ namespace Chrivent {
 		model.skeletonData.nodes.reserve(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
 			auto node = std::make_shared<Node>();
-			node->GetInfo().index = static_cast<uint32_t>(model.skeletonData.nodes.size());
+			node->GetInfo().index = model.skeletonData.nodes.size();
 			node->GetInfo().name = bone.name;
 			model.skeletonData.nodes.emplace_back(std::move(node));
 		}

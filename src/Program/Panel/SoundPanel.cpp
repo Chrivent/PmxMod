@@ -49,7 +49,7 @@ namespace Chrivent {
 	void SoundPanel::UpdateValueText() const {
 		if (!valueText || !sound)
 			return;
-		const int percent = static_cast<int>(std::round(sound->GetVolume() * 100.0f));
+		const int percent = std::round(sound->GetVolume() * 100.0f);
 		const std::wstring text = std::to_wstring(percent) + L"%";
 		SetWindowTextW(valueText, text.c_str());
 	}
@@ -57,7 +57,7 @@ namespace Chrivent {
 	void SoundPanel::ApplySliderValue() const {
 		if (!sound || !volumeSlider)
 			return;
-		const auto sliderValue = static_cast<int>(SendMessageW(volumeSlider, TBM_GETPOS, 0, 0));
+		const auto sliderValue = SendMessageW(volumeSlider, TBM_GETPOS, 0, 0);
 		sound->SetVolume(static_cast<float>(100 - sliderValue) / 100.0f);
 		UpdateValueText();
 	}
@@ -65,7 +65,7 @@ namespace Chrivent {
 	void SoundPanel::BindSound(Sound& soundRef) {
 		sound = &soundRef;
 		if (volumeSlider)
-			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, static_cast<LPARAM>(100 - std::round(sound->GetVolume() * 100.0f)));
+			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, 100 - std::round(sound->GetVolume() * 100.0f));
 		UpdateValueText();
 	}
 
@@ -111,7 +111,7 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE,
 			0, 0, 0, 0,
 			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
-		const int initialVolume = sound ? static_cast<int>(std::round(sound->GetVolume() * 100.0f)) : 0;
+		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
 		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume, 10);
 		valueText = CreateWindowExW(
 			0, L"STATIC", L"",
@@ -127,7 +127,7 @@ namespace Chrivent {
 		constexpr int sliderWidth = 64;
 		constexpr int sliderHeight = 150;
 		constexpr int valueHeight = 20;
-		const int right = static_cast<int>(clientRect.right);
+		const int right = clientRect.right;
 		const int x = (std::max)(margin, (right - sliderWidth) / 2);
 		constexpr int y = 14;
 		if (titleText)

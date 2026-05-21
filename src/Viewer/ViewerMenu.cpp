@@ -57,7 +57,7 @@ namespace Chrivent {
 		ofn.hwndOwner = ownerWindow;
 		ofn.lpstrFilter = L"PmxMod Scene (*.pms)\0*.pms\0All Files (*.*)\0*.*\0";
 		ofn.lpstrFile = filename.data();
-		ofn.nMaxFile = static_cast<DWORD>(filename.size());
+		ofn.nMaxFile = filename.size();
 		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 		ofn.lpstrDefExt = L"pms";
 		if (!GetSaveFileNameW(&ofn))
