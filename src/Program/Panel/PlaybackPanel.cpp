@@ -111,12 +111,12 @@ namespace Chrivent {
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
 		constexpr int buttonGap = 8;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right) - margin * 2);
+		const int width = (std::max)(0, static_cast<int>(clientRect.right - margin * 2));
 		constexpr int sliderY = 18;
 		if (timelineSlider)
 			MoveWindow(timelineSlider, margin, sliderY, width, sliderHeight, TRUE);
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
-		const int buttonX = (std::max)(margin, (static_cast<int>(clientRect.right) - buttonTotalWidth) / 2);
+		const int buttonX = (std::max)(margin, (static_cast<int>(clientRect.right - buttonTotalWidth)) / 2);
 		constexpr int buttonY = sliderY + sliderHeight + 10;
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);

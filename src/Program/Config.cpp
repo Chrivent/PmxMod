@@ -101,6 +101,6 @@ namespace Chrivent {
 				out << '\n';
 			}
 		}
-		return static_cast<bool>(out);
+		return out.good();
 	}
 }
