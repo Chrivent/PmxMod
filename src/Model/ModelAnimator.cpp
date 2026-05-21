@@ -76,7 +76,7 @@ namespace Chrivent {
 		SaveBaseAnimation();
 		for (int i = 0; i < AnimationTiming::renderFps; i++) {
 			BeginAnimation();
-			anim.Evaluate(frame, static_cast<float>(1 + i) / AnimationTiming::renderFps);
+			anim.Evaluate(frame, 1 + i / AnimationTiming::renderFps);
 			UpdateMorphAnimation();
 			const ModelPose pose(model);
 			pose.UpdateNodeAnimation(false);

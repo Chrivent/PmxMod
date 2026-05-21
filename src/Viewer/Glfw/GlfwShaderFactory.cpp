@@ -41,7 +41,7 @@ namespace Chrivent {
 		if (!shader)
 			return 0;
 		const char* codes = code.c_str();
-		const auto codesLen = static_cast<GLint>(code.size());
+		const GLint codesLen = code.size();
 		glShaderSource(shader, 1, &codes, &codesLen);
 		glCompileShader(shader);
 		GLint compileStatus = GL_FALSE;

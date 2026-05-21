@@ -92,7 +92,7 @@ namespace Chrivent {
 			if (it != keys.begin() && it != keys.end()) {
 				auto [frame0, weight0] = *(it - 1);
 				auto [frame1, weight1] = *it;
-				const float frame = (t - frame0) / static_cast<float>(frame1 - frame0);
+				const float frame = (t - frame0) / (frame1 - frame0);
 				weight = (weight1 - weight0) * frame + weight0;
 			}
 			morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;

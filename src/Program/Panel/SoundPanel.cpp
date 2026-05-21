@@ -58,7 +58,7 @@ namespace Chrivent {
 		if (!sound || !volumeSlider)
 			return;
 		const auto sliderValue = SendMessageW(volumeSlider, TBM_GETPOS, 0, 0);
-		sound->SetVolume(static_cast<float>(100 - sliderValue) / 100.0f);
+		sound->SetVolume((100 - sliderValue) / 100.0f);
 		UpdateValueText();
 	}
 

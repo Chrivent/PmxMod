@@ -42,7 +42,7 @@ namespace Chrivent {
         ma_uint64 lengthFrames = 0;
         if (ma_sound_get_length_in_pcm_frames(sound.get(), &lengthFrames) == MA_SUCCESS) {
             const double sr = ma_engine_get_sample_rate(engine.get());
-            lengthSec = sr > 0.0 ? static_cast<double>(lengthFrames) / sr : 0.0;
+            lengthSec = sr > 0.0 ? lengthFrames / sr : 0.0;
         } else
             lengthSec = 0.0;
         ma_sound_set_looping(sound.get(), loop ? MA_TRUE : MA_FALSE);
@@ -72,7 +72,7 @@ namespace Chrivent {
             return;
         }
         const double sr = ma_engine_get_sample_rate(engine.get());
-        const double t = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
+        const double t = sr > 0.0 ? frames / sr : prevTimeSec;
         double dt = t - prevTimeSec;
         if (dt < 0.0)
             dt = 0.0;
@@ -94,7 +94,7 @@ namespace Chrivent {
         ma_uint64 frames{};
         if (ma_sound_get_cursor_in_pcm_frames(sound.get(), &frames) == MA_SUCCESS) {
             const double sr = ma_engine_get_sample_rate(engine.get());
-            prevTimeSec = sr > 0.0 ? static_cast<double>(frames) / sr : prevTimeSec;
+            prevTimeSec = sr > 0.0 ? frames / sr : prevTimeSec;
         }
         if (ma_sound_start(sound.get()) == MA_SUCCESS)
             playing = true;
@@ -108,7 +108,7 @@ namespace Chrivent {
             return;
         const double clampedTime = lengthSec > 0.0
             ? std::clamp(static_cast<double>(seconds), 0.0, lengthSec)
-            : (std::max)(0.0, static_cast<double>(seconds));
+            : (std::max)(0.0f, seconds);
         const auto frame = clampedTime * sr;
         if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
             prevTimeSec = clampedTime;

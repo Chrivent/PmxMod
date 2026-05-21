@@ -39,7 +39,7 @@ namespace Chrivent {
 	CameraManager::~CameraManager() = default;
 	
 	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
-		const float seconds = static_cast<float>(std::max(0, frame)) / AnimationTiming::motionFps;
+		const float seconds = std::max(0, frame) / AnimationTiming::motionFps;
 		viewerInfo.elapsed = 0.0f;
 		viewerInfo.animTime = seconds;
 		music.SeekSeconds(seconds);

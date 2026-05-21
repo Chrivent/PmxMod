@@ -28,7 +28,7 @@ namespace Chrivent {
 	}
 	
 	void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
-		auto Normalize = [](const int value) { return static_cast<float>(value) / 127.0f; };
+		auto Normalize = [](const int value) { return value / 127.0f; };
 		p1 = glm::vec2(Normalize(x0), Normalize(y0));
 		p2 = glm::vec2(Normalize(x1), Normalize(y1));
 	}
