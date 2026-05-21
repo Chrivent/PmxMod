@@ -13,16 +13,16 @@ namespace Chrivent {
     struct ViewerInfo {
         std::filesystem::path	shaderDir;
         std::filesystem::path	pmxDir;
-        glm::mat4	viewMat;
-        glm::mat4	projMat;
-        int			screenWidth = 0;
-        int			screenHeight = 0;
-        glm::vec3	lightColor = glm::vec3(1, 1, 1);
-        glm::vec3	lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
-        float	elapsed = 0.0f;
-        float	animTime = 0.0f;
-        bool	skipPhysics = false;
-        GLFWwindow* window = nullptr;
+        glm::mat4	            viewMat;
+        glm::mat4	            projMat;
+        int			            screenWidth = 0;
+        int			            screenHeight = 0;
+        glm::vec3	            lightColor = glm::vec3(1, 1, 1);
+        glm::vec3	            lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+        float	                elapsed = 0.0f;
+        float	                animTime = 0.0f;
+        bool	                skipPhysics = false;
+        GLFWwindow*             window = nullptr;
 
         virtual ~ViewerInfo() = default;
     };
