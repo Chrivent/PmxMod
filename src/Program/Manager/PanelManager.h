@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include "../Config.h"
+#include "../PanelWindow.h"
 #include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
 #include "../../Viewer/ViewerMenu.h"
@@ -22,6 +23,7 @@ namespace Chrivent {
 		ViewerMenu viewerMenu;
 		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
+		PanelWindow panelWindow;
 		HWND renderWindow = nullptr;
 		WNDPROC prevRenderWindowProc = nullptr;
 

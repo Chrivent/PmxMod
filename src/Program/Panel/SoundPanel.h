@@ -29,6 +29,8 @@ namespace Chrivent {
 		
 		// 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& soundRef);
+		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
+		void Create(HWND parent) override;
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.
 		void Show();
 		// 패널 윈도우에 쌓인 메시지를 처리한다.

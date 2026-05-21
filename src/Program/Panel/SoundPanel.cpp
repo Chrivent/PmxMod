@@ -106,6 +106,8 @@ namespace Chrivent {
 	}
 
 	void SoundPanel::CreateContent(const HWND parent) {
+		if (volumeSlider)
+			return;
 		titleText = CreateWindowExW(
 			0, L"STATIC", L"Sound",
 			WS_CHILD | WS_VISIBLE,
@@ -121,15 +123,19 @@ namespace Chrivent {
 		UpdateValueText();
 	}
 
+	void SoundPanel::Create(const HWND parent) {
+		CreateContent(parent);
+	}
+
 	void SoundPanel::Resize(const RECT& clientRect) {
 		constexpr int margin = 14;
 		constexpr int titleHeight = 20;
 		constexpr int sliderWidth = 64;
 		constexpr int sliderHeight = 150;
 		constexpr int valueHeight = 20;
-		const int right = clientRect.right;
-		const int x = (std::max)(margin, (right - sliderWidth) / 2);
-		constexpr int y = 14;
+		const int width = clientRect.right - clientRect.left;
+		const int x = clientRect.left + (std::max)(margin, (width - sliderWidth) / 2);
+		const int y = clientRect.top + 8;
 		if (titleText)
 			MoveWindow(titleText, x, y, sliderWidth, titleHeight, TRUE);
 		if (volumeSlider)
@@ -148,6 +154,12 @@ namespace Chrivent {
 	void SoundPanel::Destroy() {
 		if (panelWindow)
 			DestroyWindow(panelWindow);
+		if (titleText)
+			DestroyWindow(titleText);
+		if (volumeSlider)
+			DestroyWindow(volumeSlider);
+		if (valueText)
+			DestroyWindow(valueText);
 		panelWindow = nullptr;
 		titleText = nullptr;
 		volumeSlider = nullptr;

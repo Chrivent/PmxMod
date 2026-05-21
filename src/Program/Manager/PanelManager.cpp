@@ -22,6 +22,8 @@ namespace Chrivent {
 		: viewerMenu(sceneConfigStorage) {
 		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
+		panelWindow.RegisterPanel(playbackPanel, L"Playback", PanelWindowArea::Playback);
+		panelWindow.RegisterPanel(soundPanel, L"Sound", PanelWindowArea::Bottom);
 		Reset();
 	}
 
@@ -43,14 +45,12 @@ namespace Chrivent {
 	}
 
 	bool PanelManager::OpenGuiWindows() {
-		playbackPanel.Show();
-		soundPanel.Show();
+		panelWindow.Show();
 		return true;
 	}
 
 	void PanelManager::PollGuiWindows() const {
-		playbackPanel.Poll();
-		soundPanel.Poll();
+		panelWindow.Poll();
 	}
 
 	void PanelManager::DestroyGui() {
@@ -60,7 +60,6 @@ namespace Chrivent {
 			prevRenderWindowProc = nullptr;
 		}
 		renderWindow = nullptr;
-		playbackPanel.Destroy();
-		soundPanel.Destroy();
+		panelWindow.Destroy();
 	}
 }

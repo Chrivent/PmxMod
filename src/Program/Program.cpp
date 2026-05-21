@@ -67,7 +67,10 @@ namespace Chrivent {
             return false;
         }
         ClearInstances();
-        instances = std::move(loadedInstances);
+        instances.clear();
+        instances.reserve(loadedInstances.size());
+        for (auto& instance : loadedInstances)
+            instances.emplace_back(std::move(instance));
         music.Stop();
         if (!sceneConfig.musicPath.empty())
             music.Init(sceneConfig.musicPath, false);
@@ -235,13 +238,14 @@ namespace Chrivent {
             std::cout << "Failed to run.\n";
             return false;
         }
-        panelManager.BindSound(music);
-        panelManager.AttachRenderWindow(viewer->GetInfo());
-        panelManager.OpenGuiWindows();
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;
         LoadScene(cfg);
+        panelManager.BindSound(music);
+        panelManager.AttachRenderWindow(viewer->GetInfo());
+        panelManager.OpenGuiWindows();
+        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         cameraManager.UpdateCamera(viewer->GetInfo());
         while (!glfwWindowShouldClose(viewer->GetInfo().window)) {
             if (!RunFrame())

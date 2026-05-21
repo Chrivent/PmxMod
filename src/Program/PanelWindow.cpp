@@ -1,4 +1,184 @@
-﻿#include "PanelWindow.h"
+#include "PanelWindow.h"
 
 namespace Chrivent {
+	LRESULT CALLBACK PanelWindow::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+		auto* panelWindow = reinterpret_cast<PanelWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+		if (msg == WM_NCCREATE) {
+			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
+			panelWindow = static_cast<PanelWindow*>(create->lpCreateParams);
+			SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(panelWindow));
+			panelWindow->window = hwnd;
+		}
+		if (!panelWindow)
+			return DefWindowProcW(hwnd, msg, wParam, lParam);
+		switch (msg) {
+			case WM_COMMAND:
+				for (const auto& entry : panelWindow->panels) {
+					if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam)))
+						return 0;
+				}
+				break;
+			case WM_HSCROLL:
+			case WM_VSCROLL:
+				for (const auto& entry : panelWindow->panels) {
+					if (entry.panel && entry.panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
+						return 0;
+				}
+				break;
+			case WM_SIZE:
+				if (panelWindow->controlsCreated)
+					panelWindow->LayoutPanels();
+				return 0;
+			case WM_CLOSE:
+				ShowWindow(hwnd, SW_HIDE);
+				return 0;
+			case WM_DESTROY:
+				panelWindow->window = nullptr;
+				for (auto& entry : panelWindow->panels)
+					entry.frame = nullptr;
+				return 0;
+			default:
+				break;
+		}
+		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	}
+
+	PanelWindow::~PanelWindow() {
+		Destroy();
+	}
+
+	void PanelWindow::RegisterPanel(Panel& panel, const std::wstring& title, const PanelWindowArea area) {
+		panels.push_back({&panel, title, area});
+	}
+
+	void PanelWindow::Show() {
+		if (window) {
+			ShowWindow(window, SW_SHOWNORMAL);
+			SetForegroundWindow(window);
+			return;
+		}
+		const HINSTANCE instance = GetModuleHandleW(nullptr);
+		WNDCLASSEXW wc{};
+		wc.cbSize = sizeof(wc);
+		wc.lpfnWndProc = WindowProc;
+		wc.hInstance = instance;
+		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+		wc.lpszClassName = L"PmxModPanelWindow";
+		RegisterClassExW(&wc);
+		window = CreateWindowExW(
+			0, L"PmxModPanelWindow", L"Settings",
+			WS_OVERLAPPEDWINDOW,
+			CW_USEDEFAULT, CW_USEDEFAULT, 760, 540,
+			nullptr, nullptr, instance, this);
+		if (!window)
+			return;
+		CreatePanelControls();
+		LayoutPanels();
+		ShowWindow(window, SW_SHOWNORMAL);
+		UpdateWindow(window);
+	}
+
+	void PanelWindow::Poll() const {
+		if (!window)
+			return;
+		MSG msg{};
+		while (PeekMessageW(&msg, window, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
+	}
+
+	void PanelWindow::Destroy() {
+		if (!window)
+			return;
+		controlsCreated = false;
+		for (auto& entry : panels) {
+			if (entry.panel)
+				entry.panel->Destroy();
+			entry.frame = nullptr;
+		}
+		if (window)
+			DestroyWindow(window);
+		window = nullptr;
+	}
+
+	void PanelWindow::CreatePanelControls() {
+		if (!window)
+			return;
+		for (auto& entry : panels) {
+			if (!entry.panel || entry.frame)
+				continue;
+			entry.frame = CreateWindowExW(
+				0, L"BUTTON", entry.title.c_str(),
+				WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+				0, 0, 0, 0,
+				window, nullptr, GetModuleHandleW(nullptr), nullptr);
+			entry.panel->Create(window);
+		}
+		controlsCreated = true;
+	}
+
+	void PanelWindow::LayoutPanels() const {
+		if (!window)
+			return;
+		RECT client{};
+		GetClientRect(window, &client);
+		const int width = client.right - client.left;
+		const int height = client.bottom - client.top;
+		if (width <= 0 || height <= 0)
+			return;
+
+		constexpr int margin = 10;
+		constexpr int gap = 8;
+		const int bottomHeight = (std::max)(120, height / 4);
+		const int topHeight = (std::max)(0, height - bottomHeight - margin * 2 - gap);
+		const int modelWidth = (std::max)(160, width / 3);
+		const int rightX = margin + modelWidth + gap;
+		const int rightWidth = (std::max)(0, width - rightX - margin);
+		const int motionHeight = (std::max)(120, topHeight * 2 / 3);
+		const int playbackY = margin + motionHeight + gap;
+		const int playbackHeight = (std::max)(0, topHeight - motionHeight - gap);
+		const int bottomY = margin + topHeight + gap;
+
+		int bottomIndex = 0;
+		int bottomCount = 0;
+		for (const auto& entry : panels) {
+			if (entry.area == PanelWindowArea::Bottom)
+				bottomCount++;
+		}
+
+		for (const auto& entry : panels) {
+			if (!entry.panel || !entry.frame)
+				continue;
+
+			RECT area{};
+			switch (entry.area) {
+				case PanelWindowArea::Model:
+					area = {margin, margin, margin + modelWidth, margin + topHeight};
+					break;
+				case PanelWindowArea::Motion:
+					area = {rightX, margin, rightX + rightWidth, margin + motionHeight};
+					break;
+				case PanelWindowArea::Playback:
+					area = {rightX, playbackY, rightX + rightWidth, playbackY + playbackHeight};
+					break;
+				case PanelWindowArea::Bottom: {
+					const int panelWidth = bottomCount > 0
+						? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount
+						: 0;
+					const int x = margin + bottomIndex * (panelWidth + gap);
+					area = {x, bottomY, x + panelWidth, bottomY + bottomHeight};
+					bottomIndex++;
+					break;
+				}
+			}
+
+			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
+			const int areaHeight = (std::max)(0, static_cast<int>(area.bottom - area.top));
+			MoveWindow(entry.frame, area.left, area.top, areaWidth, areaHeight, TRUE);
+			RECT panelRect{area.left, area.top + 18, area.right, area.bottom};
+			entry.panel->Resize(panelRect);
+		}
+	}
 }

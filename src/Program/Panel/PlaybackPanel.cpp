@@ -51,6 +51,8 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::CreateContent(const HWND parent) {
+		if (timelineSlider)
+			return;
 		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
 		playButton = CreateWindowExW(
 			0, L"BUTTON", L"Play",
@@ -67,6 +69,10 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
+	}
+
+	void PlaybackPanel::Create(const HWND parent) {
+		CreateContent(parent);
 	}
 	
 	void PlaybackPanel::Show() {
@@ -111,13 +117,13 @@ namespace Chrivent {
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
 		constexpr int buttonGap = 8;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right - margin * 2));
-		constexpr int sliderY = 18;
+		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
+		const int sliderY = clientRect.top + 8;
 		if (timelineSlider)
-			MoveWindow(timelineSlider, margin, sliderY, width, sliderHeight, TRUE);
+			MoveWindow(timelineSlider, clientRect.left + margin, sliderY, width, sliderHeight, TRUE);
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
-		const int buttonX = (std::max)(margin, static_cast<int>((clientRect.right - buttonTotalWidth) / 2));
-		constexpr int buttonY = sliderY + sliderHeight + 10;
+		const int buttonX = (std::max)(clientRect.left + margin, clientRect.left + (clientRect.right - clientRect.left - buttonTotalWidth) / 2);
+		const int buttonY = sliderY + sliderHeight + 10;
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
 		if (pauseButton)
@@ -150,6 +156,14 @@ namespace Chrivent {
 	void PlaybackPanel::Destroy() {
 		if (panelWindow)
 			DestroyWindow(panelWindow);
+		if (timelineSlider)
+			DestroyWindow(timelineSlider);
+		if (playButton)
+			DestroyWindow(playButton);
+		if (pauseButton)
+			DestroyWindow(pauseButton);
+		if (stopButton)
+			DestroyWindow(stopButton);
 		panelWindow = nullptr;
 		timelineSlider = nullptr;
 		playButton = nullptr;
