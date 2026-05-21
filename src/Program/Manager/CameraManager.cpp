@@ -3,6 +3,7 @@
 #include "InputManager.h"
 #include "../../Animation/Camera/CameraAnimation.h"
 #include "../../Animation/Camera/CameraAnimationBuilder.h"
+#include "../../Animation/AnimationTiming.h"
 #include "../Sound.h"
 #include "../../Viewer/Viewer.h"
 
@@ -38,7 +39,7 @@ namespace Chrivent {
 	CameraManager::~CameraManager() = default;
 	
 	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
-		const float seconds = static_cast<float>(std::max(0, frame)) / 30.0f;
+		const float seconds = static_cast<float>(std::max(0, frame)) / AnimationTiming::fps;
 		viewerInfo.elapsed = 0.0f;
 		viewerInfo.animTime = seconds;
 		music.SeekSeconds(seconds);
@@ -75,15 +76,15 @@ namespace Chrivent {
 		}
 	}
 
-	int32_t CameraManager::GetLastFrame() const {
+	uint32_t CameraManager::GetLastFrame() const {
 		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
 	}
 
 	void CameraManager::StepTime(ViewerInfo& viewerInfo, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
 		const auto now = std::chrono::steady_clock::now();
 		double elapsedSeconds = std::chrono::duration<double>(now - saveTime).count();
-		if (elapsedSeconds > 1.0 / 30.0)
-			elapsedSeconds = 1.0 / 30.0;
+		if (elapsedSeconds > AnimationTiming::secondsPerFrame)
+			elapsedSeconds = AnimationTiming::secondsPerFrame;
 		saveTime = now;
 		if (paused) {
 			viewerInfo.elapsed = 0.0f;
@@ -182,7 +183,7 @@ namespace Chrivent {
 
 	void CameraManager::UpdateCamera(ViewerInfo& viewerInfo) const {
 		if (useMotionCamera && cameraAnim) {
-			cameraAnim->Evaluate(viewerInfo.animTime * 30.0f);
+			cameraAnim->Evaluate(viewerInfo.animTime * AnimationTiming::fps);
 			const auto cam = cameraAnim->GetInfo().camera;
 			viewerInfo.viewMat = cam.CalcViewMatrix();
 			viewerInfo.projMat = glm::perspectiveFovRH(

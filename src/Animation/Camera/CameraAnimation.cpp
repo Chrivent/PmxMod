@@ -3,8 +3,8 @@
 #include "../AnimationKeySearch.h"
 
 namespace Chrivent {
-	int32_t CameraAnimation::GetLastFrame() const {
-		return info.keys.empty() ? 0 : info.keys.back().time;
+	uint32_t CameraAnimation::GetLastFrame() const {
+		return info.keys.empty() ? 0 : info.keys.back().frame;
 	}
 
 	void CameraAnimation::Evaluate(const float t) {
@@ -18,18 +18,20 @@ namespace Chrivent {
 		info.camera.fov = cur.fov;
 		if (it == info.keys.begin() || it == info.keys.end())
 			return;
-		const auto& [time, interest, rotate, distance, fov,
+		const auto& [frame, interest, rotate, distance, fov,
 			ixBezier, iyBezier, izBezier,
 			rotateBezier, distanceBezier, fovBezier] = *it;
 		const auto& prev = *(it - 1);
-		if (time - prev.time <= 1) {
+		if (frame - prev.frame <= 1) {
 			info.camera.interest = prev.interest;
 			info.camera.rotate = prev.rotate;
 			info.camera.distance = prev.distance;
 			info.camera.fov = prev.fov;
 			return;
 		}
-		const float normalizedTime = (t - static_cast<float>(prev.time)) / static_cast<float>(time - prev.time);
+		const float prevFrame = static_cast<float>(prev.frame);
+		const float nextFrame = static_cast<float>(frame);
+		const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);
 		const float ixY = ixBezier.Evaluate(normalizedTime);
 		const float iyY = iyBezier.Evaluate(normalizedTime);
 		const float izY = izBezier.Evaluate(normalizedTime);

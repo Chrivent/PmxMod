@@ -15,14 +15,14 @@ namespace Chrivent {
             return utf8;
         const int need = WideCharToMultiByte(
             CP_UTF8, 0,
-            w.data(), static_cast<int>(w.size()),
+            w.data(), w.size(),
             nullptr, 0, nullptr, nullptr);
         if (need <= 0)
             return utf8;
-        utf8.resize(static_cast<size_t>(need));
+        utf8.resize(need);
         const int written = WideCharToMultiByte(
             CP_UTF8, 0,
-            w.data(), static_cast<int>(w.size()),
+            w.data(), w.size(),
             utf8.data(), need, nullptr, nullptr);
         if (written != need)
             utf8.clear();
@@ -39,7 +39,7 @@ namespace Chrivent {
             nullptr, 0);
         if (need <= 0)
             return result;
-        std::wstring w(static_cast<size_t>(need), L'\0');
+        std::wstring w(need, L'\0');
         const int written = MultiByteToWideChar(
             932, MB_ERR_INVALID_CHARS,
             sjis, -1,

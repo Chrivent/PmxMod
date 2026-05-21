@@ -2,6 +2,7 @@
 
 #include "Drawer.h"
 #include "Viewer.h"
+#include "../Animation/AnimationTiming.h"
 #include "../Animation/Model/Animation.h"
 #include "../Model/ModelAnimator.h"
 
@@ -21,6 +22,6 @@ namespace Chrivent {
         const auto& instanceInfo = GetInfo();
         const ModelAnimator animator(*instanceInfo.model);
         animator.BeginAnimation();
-        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * 30.0f, viewerInfo.elapsed, !viewerInfo.skipPhysics);
+        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * AnimationTiming::fps, viewerInfo.elapsed, !viewerInfo.skipPhysics);
     }
 }

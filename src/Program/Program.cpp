@@ -2,6 +2,7 @@
 
 #include "../Animation/Model/Animation.h"
 #include "../Animation/Model/AnimationBuilder.h"
+#include "../Animation/AnimationTiming.h"
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
 #include "../Parser/VmdParser.h"
@@ -121,12 +122,12 @@ namespace Chrivent {
     }
 
     int Program::CalculatePlaybackLastFrame() const {
-        int lastFrame = cameraManager.GetLastFrame();
+        int lastFrame = static_cast<int>(cameraManager.GetLastFrame());
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
+            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * AnimationTiming::fps)));
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim)
-                lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
+                lastFrame = (std::max)(lastFrame, static_cast<int>(instance->GetInfo().anim->GetLastFrame()));
         }
         return lastFrame;
     }
@@ -204,7 +205,7 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
-        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * 30.0f + 0.5f));
+        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * AnimationTiming::fps + 0.5f));
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();
         for (const auto& instance : instances) {

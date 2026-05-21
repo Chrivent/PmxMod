@@ -7,7 +7,7 @@
 namespace Chrivent {
 	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {
 		NodeAnimationKey key{};
-		key.time = static_cast<int32_t>(motion.frame);
+		key.frame = motion.frame;
 		key.translate = motion.translate * glm::vec3(1, 1, -1);
 		const glm::quat q = motion.quaternion;
 		const auto rot = Util::InvZ(glm::mat3_cast(q));
@@ -41,7 +41,7 @@ namespace Chrivent {
 				continue;
 			keys.emplace_back(CreateNodeAnimationKey(motion));
 		}
-		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::frame);
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) const {
@@ -57,12 +57,12 @@ namespace Chrivent {
 					binder.BindIkTrack(findIt->second, ikName);
 				if (!ikSolver)
 					continue;
-				auto& [time, ikEnable] = keys.emplace_back();
-				time = static_cast<int32_t>(ik.frame);
+				auto& [frame, ikEnable] = keys.emplace_back();
+				frame = ik.frame;
 				ikEnable = enable != 0;
 			}
 		}
-		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::frame);
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) const {
@@ -77,11 +77,11 @@ namespace Chrivent {
 				binder.BindMorphTrack(findIt->second, morphName);
 			if (!morph)
 				continue;
-			auto& [time, morphWeight] = keys.emplace_back();
-			time = static_cast<int32_t>(frame);
+			auto& [keyFrame, morphWeight] = keys.emplace_back();
+			keyFrame = frame;
 			morphWeight = weight;
 		}
-		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::time);
+		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::frame);
 	}
 
 	bool AnimationBuilder::Add(const VmdParser::VmdData& vmdData) const {

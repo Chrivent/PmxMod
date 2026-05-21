@@ -11,19 +11,19 @@ namespace Chrivent {
 		info.morphTracks.clear();
 	}
 
-	int32_t Animation::GetLastFrame() const {
-		int32_t lastFrame = 0;
+	uint32_t Animation::GetLastFrame() const {
+		uint32_t lastFrame = 0;
 		for (const auto& [node, keys] : info.nodeTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().time);
+				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
 		for (const auto& [ikSolver, keys] : info.ikTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().time);
+				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
 		for (const auto& [morph, keys] : info.morphTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().time);
+				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
 		return lastFrame;
 	}
@@ -49,11 +49,12 @@ namespace Chrivent {
 			glm::quat q  = cur.rotate;
 			if (it != keys.begin() && it != keys.end()) {
 				const auto& prev = *(it - 1);
-				const auto& [time, translate, rotate,
+				const auto& [frame, translate, rotate,
 					txBezier, tyBezier, tzBezier,
 					rotBezier] = *it;
-				const auto timeRange = static_cast<float>(time - prev.time);
-				const float normalizedTime = (t - static_cast<float>(prev.time)) / timeRange;
+				const float prevFrame = static_cast<float>(prev.frame);
+				const float nextFrame = static_cast<float>(frame);
+				const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);
 				const float txY = txBezier.Evaluate(normalizedTime);
 				const float tyY = tyBezier.Evaluate(normalizedTime);
 				const float tzY = tzBezier.Evaluate(normalizedTime);
@@ -89,10 +90,10 @@ namespace Chrivent {
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
-				auto [time0, weight0] = *(it - 1);
-				auto [time1, weight1] = *it;
-				const float time = (t - static_cast<float>(time0)) / static_cast<float>(time1 - time0);
-				weight = (weight1 - weight0) * time + weight0;
+				auto [frame0, weight0] = *(it - 1);
+				auto [frame1, weight1] = *it;
+				const float frame = (t - static_cast<float>(frame0)) / (static_cast<float>(frame1) - static_cast<float>(frame0));
+				weight = (weight1 - weight0) * frame + weight0;
 			}
 			morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;
 		}

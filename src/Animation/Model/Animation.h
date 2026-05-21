@@ -2,6 +2,7 @@
 
 #include "../Bezier.h"
 
+#include <cstdint>
 #include <memory>
 #include <glm/gtc/quaternion.hpp>
 
@@ -12,7 +13,7 @@ namespace Chrivent {
 	class IkSolver;
 
 	struct NodeAnimationKey {
-		int32_t		time;
+		uint32_t	frame = 0;
 		glm::vec3	translate;
 		glm::quat	rotate;
 		Bezier		txBezier;
@@ -22,12 +23,12 @@ namespace Chrivent {
 	};
 
 	struct MorphAnimationKey {
-		int32_t	time;
+		uint32_t	frame = 0;
 		float	morphWeight;
 	};
 
 	struct IkAnimationKey {
-		int32_t	time;
+		uint32_t	frame = 0;
 		bool	ikEnable;
 	};
 
@@ -63,7 +64,7 @@ namespace Chrivent {
 		// 애니메이션 트랙과 연결 상태를 해제한다.
 		void Destroy();
 		// 포함된 모든 트랙 중 가장 마지막 키 프레임을 반환한다.
-		int32_t GetLastFrame() const;
+		uint32_t GetLastFrame() const;
 		// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
 		void Evaluate(float t, float animWeight = 1.0f) const;
 		

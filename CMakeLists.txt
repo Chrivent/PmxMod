@@ -38,6 +38,7 @@ add_executable(PmxMod
         src/Parser/BinaryReader.h src/Parser/BinaryReader.cpp
 
         src/Animation/AnimationKeySearch.h
+        src/Animation/AnimationTiming.h
         src/Animation/Bezier.h src/Animation/Bezier.cpp
 
         src/Animation/Model/Animation.h src/Animation/Model/Animation.cpp

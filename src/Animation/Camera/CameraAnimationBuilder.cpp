@@ -3,7 +3,7 @@
 namespace Chrivent {
 	CameraAnimationKey CameraAnimationBuilder::CreateCameraKey(const auto& camera) {
 		CameraAnimationKey key{};
-		key.time = static_cast<int32_t>(camera.frame);
+		key.frame = camera.frame;
 		key.interest = camera.interest * glm::vec3(1, 1, -1);
 		key.rotate = camera.rotate;
 		key.distance = camera.distance;
@@ -35,7 +35,7 @@ namespace Chrivent {
 		info.keys.clear();
 		for (const auto& camera : vmdData.cameras)
 			info.keys.push_back(CreateCameraKey(camera));
-		std::ranges::sort(info.keys, {}, &CameraAnimationKey::time);
+		std::ranges::sort(info.keys, {}, &CameraAnimationKey::frame);
 		return true;
 	}
 }
