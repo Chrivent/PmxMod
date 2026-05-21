@@ -122,9 +122,9 @@ namespace Chrivent {
     }
 
     int Program::CalculatePlaybackLastFrame() const {
-        int lastFrame = static_cast<int>(cameraManager.GetLastFrame());
+        int lastFrame = cameraManager.GetLastFrame();
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * AnimationTiming::fps)));
+            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * AnimationTiming::motionFps)));
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim)
                 lastFrame = (std::max)(lastFrame, static_cast<int>(instance->GetInfo().anim->GetLastFrame()));
@@ -205,7 +205,7 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
-        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * AnimationTiming::fps + 0.5f));
+        panelManager.SetPlaybackFrame(static_cast<int>(viewer->GetInfo().animTime * AnimationTiming::motionFps + 0.5f));
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();
         for (const auto& instance : instances) {

@@ -2,7 +2,8 @@
 
 namespace Chrivent {
 	struct AnimationTiming {
-		static constexpr float fps = 60.0f;
-		static constexpr float secondsPerFrame = 1.0f / fps;
+		static constexpr float motionFps = 30.0f;
+		static constexpr float renderFps = 60.0f;
+		static constexpr float renderSecondsPerFrame = 1.0f / renderFps;
 	};
 }

@@ -10,7 +10,7 @@ namespace Chrivent {
 		GLuint b = 0;
 		glGenBuffers(1, &b);
 		glBindBuffer(target, b);
-		glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
+		glBufferData(target, size, data, usage);
 		return b;
 	}
 
@@ -125,13 +125,13 @@ namespace Chrivent {
 		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount,
 			info.model->geometryData.updatePositions.data());
 		glBindBuffer(GL_ARRAY_BUFFER, norVbo);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec3) * vtxCount),
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount,
 			info.model->geometryData.updateNormals.data());
 		glBindBuffer(GL_ARRAY_BUFFER, uvVbo);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(glm::vec2) * vtxCount),
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * vtxCount,
 			info.model->geometryData.updateUVs.data());
 	}
 }

@@ -123,7 +123,7 @@ namespace Chrivent {
 				}
 			};
 			if (matMorph.materialIndex != -1)
-				Apply(static_cast<size_t>(matMorph.materialIndex));
+				Apply(matMorph.materialIndex);
 			else {
 				for (size_t i = 0; i < model.materialData.materials.size(); i++)
 					Apply(i);

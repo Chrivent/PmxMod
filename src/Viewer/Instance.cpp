@@ -22,6 +22,6 @@ namespace Chrivent {
         const auto& instanceInfo = GetInfo();
         const ModelAnimator animator(*instanceInfo.model);
         animator.BeginAnimation();
-        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * AnimationTiming::fps, viewerInfo.elapsed, !viewerInfo.skipPhysics);
+        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * AnimationTiming::motionFps, viewerInfo.elapsed, !viewerInfo.skipPhysics);
     }
 }

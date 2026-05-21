@@ -25,7 +25,7 @@ namespace Chrivent {
 			std::u8string u8;
 			u8.reserve(utf8.size());
 			for (const unsigned char c : utf8)
-				u8.push_back(static_cast<char8_t>(c));
+				u8.push_back(c);
 			return std::filesystem::path(u8);
 		};
 		if (!ReadLine())
@@ -82,22 +82,22 @@ namespace Chrivent {
 		out << "PmxModScene\n";
 		const auto camera = cameraAnim.u8string();
 		out << "camera\t";
-		out.write(reinterpret_cast<const char*>(camera.data()), static_cast<std::streamsize>(camera.size()));
+		out.write(reinterpret_cast<const char*>(camera.data()), camera.size());
 		out << '\n';
 		const auto music = musicPath.u8string();
 		out << "music\t";
-		out.write(reinterpret_cast<const char*>(music.data()), static_cast<std::streamsize>(music.size()));
+		out.write(reinterpret_cast<const char*>(music.data()), music.size());
 		out << '\n';
 		out << "models\t" << modelConfigs.size() << '\n';
 		for (const auto& [modelPath, animPaths, scale] : modelConfigs) {
 			const auto model = modelPath.u8string();
 			out << "model\t" << scale << '\t' << animPaths.size() << '\t';
-			out.write(reinterpret_cast<const char*>(model.data()), static_cast<std::streamsize>(model.size()));
+			out.write(reinterpret_cast<const char*>(model.data()), model.size());
 			out << '\n';
 			for (const auto& animPath : animPaths) {
 				const auto anim = animPath.u8string();
 				out << "anim\t";
-				out.write(reinterpret_cast<const char*>(anim.data()), static_cast<std::streamsize>(anim.size()));
+				out.write(reinterpret_cast<const char*>(anim.data()), anim.size());
 				out << '\n';
 			}
 		}

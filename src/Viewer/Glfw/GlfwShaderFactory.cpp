@@ -21,7 +21,7 @@ namespace Chrivent {
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
 			return {};
-		std::string log(static_cast<size_t>(logLength), '\0');
+		std::string log(logLength, '\0');
 		glGetShaderInfoLog(shader, logLength, nullptr, log.data());
 		return log;
 	}
@@ -31,7 +31,7 @@ namespace Chrivent {
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
 			return {};
-		std::string log(static_cast<size_t>(logLength), '\0');
+		std::string log(logLength, '\0');
 		glGetProgramInfoLog(program, logLength, nullptr, log.data());
 		return log;
 	}

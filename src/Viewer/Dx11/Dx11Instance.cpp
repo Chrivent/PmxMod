@@ -9,7 +9,7 @@ namespace Chrivent {
 	D3D11_BUFFER_DESC Dx11Instance::MakeVertexBufferDesc(const size_t vertexCount) {
 		D3D11_BUFFER_DESC d{};
 		d.Usage = D3D11_USAGE_DYNAMIC;
-		d.ByteWidth = static_cast<UINT>(sizeof(Dx11Vertex) * vertexCount);
+		d.ByteWidth = sizeof(Dx11Vertex) * vertexCount;
 		d.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		return d;
@@ -18,7 +18,7 @@ namespace Chrivent {
 	D3D11_BUFFER_DESC Dx11Instance::MakeIndexBufferDesc(const size_t indexBytes) {
 		D3D11_BUFFER_DESC d{};
 		d.Usage = D3D11_USAGE_IMMUTABLE;
-		d.ByteWidth = static_cast<UINT>(indexBytes);
+		d.ByteWidth = indexBytes;
 		d.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		return d;
 	}

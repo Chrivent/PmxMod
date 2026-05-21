@@ -23,7 +23,7 @@ namespace Chrivent {
     void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
         std::vector<wchar_t> buf(MAX_PATH);
         while (true) {
-            const DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
+            const DWORD n = GetModuleFileNameW(nullptr, buf.data(), buf.size());
             if (n < buf.size() - 1) {
                 resourceDir = std::filesystem::path(std::wstring(buf.data(), n));
                 break;

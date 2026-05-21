@@ -35,7 +35,7 @@ namespace Chrivent {
 		}
 		model.physicsData.physics->GetInfo().world->stepSimulation(
 			1.0f / 60.0f, model.physicsData.physics->GetInfo().maxSubStepCount,
-			static_cast<btScalar>(1.0f / model.physicsData.physics->GetInfo().fps));
+			1.0f / model.physicsData.physics->GetInfo().fps);
 		for (const auto& rb : model.physicsData.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
@@ -53,7 +53,7 @@ namespace Chrivent {
 			rb->ApplyActivation(true);
 		model.physicsData.physics->GetInfo().world->stepSimulation(
 			elapsed, model.physicsData.physics->GetInfo().maxSubStepCount,
-			static_cast<btScalar>(1.0f / model.physicsData.physics->GetInfo().fps));
+			1.0f / model.physicsData.physics->GetInfo().fps);
 		for (const auto& rb : model.physicsData.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();

@@ -34,7 +34,7 @@ namespace Chrivent {
 		double cursorY = 0.0;
 		glfwGetCursorPos(viewerInfo.window, &cursorX, &cursorY);
 		if (state.rotateCamera && prevRightMouseDown)
-			state.mouseDelta = glm::vec2(static_cast<float>(cursorX - prevCursorX), static_cast<float>(cursorY - prevCursorY));
+			state.mouseDelta = glm::vec2(cursorX - prevCursorX, cursorY - prevCursorY);
 		prevCursorX = cursorX;
 		prevCursorY = cursorY;
 		prevRightMouseDown = state.rotateCamera;

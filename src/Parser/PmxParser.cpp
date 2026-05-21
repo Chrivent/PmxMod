@@ -179,7 +179,7 @@ namespace Chrivent {
 			else if (cartoonMode == CartoonMode::Common) {
 				uint8_t cartoonIndex;
 				BinaryReader::Read(is, &cartoonIndex);
-				cartoonTextureIndex = static_cast<int32_t>(cartoonIndex);
+				cartoonTextureIndex = cartoonIndex;
 			}
 			ReadString(is, &memo);
 			BinaryReader::Read(is, &numFaceVertices);

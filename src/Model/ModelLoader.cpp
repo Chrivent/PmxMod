@@ -74,9 +74,9 @@ namespace Chrivent {
 		auto FillIndices = [&](auto* out) {
 			int idx = 0;
 			for (const auto& [tri] : pmxData.faces) {
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[2]);
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[1]);
-				out[idx++] = static_cast<std::remove_pointer_t<decltype(out)>>(tri[0]);
+				out[idx++] = tri[2];
+				out[idx++] = tri[1];
+				out[idx++] = tri[0];
 			}
 		};
 		switch (model.geometryData.indexElementSize) {
@@ -285,7 +285,7 @@ namespace Chrivent {
 			}
 			groupMorphStack.pop_back();
 		};
-		for (int32_t i = 0; i < static_cast<int32_t>(model.morphData.morphs.size()); i++) {
+		for (int32_t i = 0; i < model.morphData.morphs.size(); i++) {
 			groupMorphStack.clear();
 			fixInfiniteGroupMorph(i);
 		}

@@ -141,7 +141,7 @@ namespace Chrivent {
 	bool PlaybackPanel::HandleScroll(const HWND control, const int scrollCode) {
 		if (control != timelineSlider)
 			return false;
-		seekFrame = static_cast<int>(SendMessageW(timelineSlider, TBM_GETPOS, 0, 0));
+		seekFrame = SendMessageW(timelineSlider, TBM_GETPOS, 0, 0);
 		seekRequested = true;
 		seekFinished = scrollCode == TB_ENDTRACK;
 		return true;

@@ -29,8 +29,8 @@ namespace Chrivent {
 			info.camera.fov = prev.fov;
 			return;
 		}
-		const float prevFrame = static_cast<float>(prev.frame);
-		const float nextFrame = static_cast<float>(frame);
+		const float prevFrame = prev.frame;
+		const float nextFrame = frame;
 		const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);
 		const float ixY = ixBezier.Evaluate(normalizedTime);
 		const float iyY = iyBezier.Evaluate(normalizedTime);

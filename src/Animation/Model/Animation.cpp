@@ -52,8 +52,8 @@ namespace Chrivent {
 				const auto& [frame, translate, rotate,
 					txBezier, tyBezier, tzBezier,
 					rotBezier] = *it;
-				const float prevFrame = static_cast<float>(prev.frame);
-				const float nextFrame = static_cast<float>(frame);
+				const float prevFrame = prev.frame;
+				const float nextFrame = frame;
 				const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);
 				const float txY = txBezier.Evaluate(normalizedTime);
 				const float tyY = tyBezier.Evaluate(normalizedTime);
@@ -92,7 +92,7 @@ namespace Chrivent {
 			if (it != keys.begin() && it != keys.end()) {
 				auto [frame0, weight0] = *(it - 1);
 				auto [frame1, weight1] = *it;
-				const float frame = (t - static_cast<float>(frame0)) / (static_cast<float>(frame1) - static_cast<float>(frame0));
+				const float frame = (t - frame0) / static_cast<float>(frame1 - frame0);
 				weight = (weight1 - weight0) * frame + weight0;
 			}
 			morph->weight = animWeight != 1.0f ? glm::mix(morph->saveAnimWeight, weight, animWeight) : weight;

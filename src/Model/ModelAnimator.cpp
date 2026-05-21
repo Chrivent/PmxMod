@@ -74,13 +74,13 @@ namespace Chrivent {
 
 	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {
 		SaveBaseAnimation();
-		for (int i = 0; i < static_cast<int>(AnimationTiming::fps); i++) {
+		for (int i = 0; i < AnimationTiming::renderFps; i++) {
 			BeginAnimation();
-			anim.Evaluate(frame, static_cast<float>(1 + i) / AnimationTiming::fps);
+			anim.Evaluate(frame, static_cast<float>(1 + i) / AnimationTiming::renderFps);
 			UpdateMorphAnimation();
 			const ModelPose pose(model);
 			pose.UpdateNodeAnimation(false);
-			pose.UpdatePhysicsAnimation(AnimationTiming::secondsPerFrame);
+			pose.UpdatePhysicsAnimation(AnimationTiming::renderSecondsPerFrame);
 			pose.UpdateNodeAnimation(true);
 		}
 	}

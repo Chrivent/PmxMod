@@ -18,8 +18,7 @@ namespace Chrivent {
 			return {};
 		const bool textureHasAlpha = comp == 4;
 		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
-			static_cast<UINT>(x), static_cast<UINT>(y),
-			DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+			x, y, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = image;
 		initData.SysMemPitch = 4 * x;

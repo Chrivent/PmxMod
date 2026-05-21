@@ -68,7 +68,7 @@ namespace Chrivent {
         ma_uint64 frames{};
         if (ma_sound_get_cursor_in_pcm_frames(sound.get(), &frames) != MA_SUCCESS) {
             deltaTime = 0.0f;
-            time = static_cast<float>(prevTimeSec);
+            time = prevTimeSec;
             return;
         }
         const double sr = ma_engine_get_sample_rate(engine.get());

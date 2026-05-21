@@ -18,7 +18,7 @@ namespace Chrivent {
 		std::cerr << "Failed to compile HLSL shader: " << file.string()
 			<< " entry=" << entry << " target=" << target << '\n';
 		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
-			std::cerr << static_cast<const char*>(errorBlob->GetBufferPointer()) << '\n';
+			std::cerr << errorBlob->GetBufferPointer() << '\n';
 	}
 
 	void Dx11Viewer::ConfigureGlfwHints() {
@@ -98,8 +98,8 @@ namespace Chrivent {
 
 	void Dx11Viewer::UpdateViewport() const {
 		D3D11_VIEWPORT vp;
-		vp.Width = static_cast<float>(GetInfo().screenWidth);
-		vp.Height = static_cast<float>(GetInfo().screenHeight);
+		vp.Width = GetInfo().screenWidth;
+		vp.Height = GetInfo().screenHeight;
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		vp.TopLeftX = 0;
@@ -193,7 +193,7 @@ namespace Chrivent {
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &GetDx11Info().renderTargets.renderTargetView)))
 			return false;
 		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
-			static_cast<UINT>(GetInfo().screenWidth), static_cast<UINT>(GetInfo().screenHeight),
+			GetInfo().screenWidth, GetInfo().screenHeight,
 			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
 			multiSampleCount, multiSampleQuality);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateTexture2D(&d, nullptr, &GetDx11Info().renderTargets.depthTex)))
