@@ -122,12 +122,12 @@ namespace Chrivent {
     }
 
     int Program::CalculatePlaybackLastFrame() const {
-        int lastFrame = cameraManager.GetLastFrame();
+        uint32_t lastFrame = cameraManager.GetLastFrame();
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * AnimationTiming::motionFps)));
+            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * AnimationTiming::motionFps)));
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim)
-                lastFrame = (std::max)(lastFrame, static_cast<int>(instance->GetInfo().anim->GetLastFrame()));
+                lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
         }
         return lastFrame;
     }

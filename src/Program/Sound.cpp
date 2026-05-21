@@ -106,8 +106,9 @@ namespace Chrivent {
         const double sr = ma_engine_get_sample_rate(engine.get());
         if (sr <= 0.0)
             return;
+        const double seekSeconds = seconds;
         const double clampedTime = lengthSec > 0.0
-            ? std::clamp(static_cast<double>(seconds), 0.0, lengthSec)
+            ? std::clamp(seekSeconds, 0.0, lengthSec)
             : (std::max)(0.0f, seconds);
         const auto frame = clampedTime * sr;
         if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
