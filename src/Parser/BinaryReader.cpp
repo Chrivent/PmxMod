@@ -24,7 +24,7 @@ namespace Chrivent {
 				uint8_t idx;
 				Read(is, &idx);
 				if (idx != 0xFF)
-					*index = static_cast<int32_t>(idx);
+					*index = idx;
 				else
 					*index = -1;
 				break;
@@ -33,7 +33,7 @@ namespace Chrivent {
 				uint16_t idx;
 				Read(is, &idx);
 				if (idx != 0xFFFF)
-					*index = static_cast<int32_t>(idx);
+					*index = idx;
 				else
 					*index = -1;
 				break;
@@ -41,7 +41,7 @@ namespace Chrivent {
 			case 4: {
 				uint32_t idx;
 				Read(is, &idx);
-				*index = static_cast<int32_t>(idx);
+				*index = idx;
 				break;
 			}
 			default:
