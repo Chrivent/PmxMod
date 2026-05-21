@@ -127,9 +127,9 @@ namespace Chrivent {
         // HLSL 컴파일 실패 정보를 콘솔에 출력한다.
         static void PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob);
 
-        UINT    multiSampleCount = 4;
-        UINT	multiSampleQuality = 0;
-        Dx11TextureCache textureCache;
+        UINT                multiSampleCount = 4;
+        UINT	            multiSampleQuality = 0;
+        Dx11TextureCache    textureCache;
     
     public:
         Dx11Viewer();
