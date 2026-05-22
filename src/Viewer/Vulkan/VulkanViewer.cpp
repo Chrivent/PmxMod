@@ -2,6 +2,8 @@
 
 #include "VulkanInstance.h"
 
+#include <iostream>
+
 namespace Chrivent {
 	VulkanViewer::VulkanViewer() {
 		info = std::make_unique<VulkanViewerInfo>();
@@ -40,6 +42,38 @@ namespace Chrivent {
 	}
 
 	void VulkanViewer::BeginFrame() {
+		frameReady = false;
+		const auto& deviceInfo = device.GetInfo();
+		const auto& syncInfo = syncObject.GetInfo();
+		const size_t frameIndex = syncInfo.currentFrame;
+		const VkFence inFlightFence = syncInfo.inFlightFences[frameIndex];
+		vkWaitForFences(deviceInfo.device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+		const VkResult acquireResult = vkAcquireNextImageKHR(
+			deviceInfo.device,
+			swapChain.GetInfo().swapChain,
+			UINT64_MAX,
+			syncInfo.imageAvailableSemaphores[frameIndex],
+			VK_NULL_HANDLE,
+			&currentImageIndex);
+		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
+			Resize();
+			return;
+		}
+		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
+			std::cerr << "Failed to acquire Vulkan swapchain image.\n";
+			return;
+		}
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
+		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
+		if (!commandBuffer.Record(
+			currentImageIndex,
+			renderPass.GetRenderPass(),
+			frameBuffers[currentImageIndex],
+			swapChain.GetInfo().extent,
+			clearColor))
+			return;
+		frameReady = true;
 	}
 
 	bool VulkanViewer::EndFrame() {

@@ -16,12 +16,12 @@ namespace Chrivent {
 		VulkanRenderPass& operator=(const VulkanRenderPass&) = delete;
 		VulkanRenderPass(VulkanRenderPass&&) = delete;
 		VulkanRenderPass& operator=(VulkanRenderPass&&) = delete;
+		
+		VkRenderPass GetRenderPass() const { return renderPass; }
 
 		// 스왑체인 이미지 포맷에 맞는 기본 color render pass를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);
 		// 생성한 render pass 리소스를 해제한다.
 		void Destroy();
-
-		VkRenderPass GetRenderPass() const { return renderPass; }
 	};
 }

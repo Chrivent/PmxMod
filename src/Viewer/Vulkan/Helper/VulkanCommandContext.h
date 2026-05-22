@@ -19,10 +19,10 @@ namespace Chrivent {
 		
 		VkCommandPool GetCommandPool() const { return commandPool; }
 		const VulkanCommandBuffer& GetCommandBuffer() const { return commandBuffer; }
-
-		// 洹몃옒?쎌뒪 ???⑤?由ъ뿉 留욌뒗 command pool怨?command buffer瑜??앹꽦?쒕떎.
+		
+		// 그래픽스 큐 패밀리에 맞는 command pool과 command buffer를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);
-		// ?앹꽦??command pool怨?command buffer瑜??댁젣?쒕떎.
+		// 생성한 command pool과 command buffer를 해제한다.
 		void Destroy();
 	};
 }

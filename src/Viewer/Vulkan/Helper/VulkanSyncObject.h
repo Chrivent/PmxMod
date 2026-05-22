@@ -1,18 +1,21 @@
-﻿#pragma once
+#pragma once
 
 #include "VulkanDevice.h"
 
 #include <array>
 
 namespace Chrivent {
-	class VulkanSyncObject {
+	struct VulkanSyncObjectInfo {
 		static constexpr size_t kMaxFramesInFlight = 2;
-
 		std::array<VkSemaphore, kMaxFramesInFlight> imageAvailableSemaphores{};
 		std::array<VkSemaphore, kMaxFramesInFlight> renderFinishedSemaphores{};
 		std::array<VkFence, kMaxFramesInFlight> inFlightFences{};
-		VkDevice device = VK_NULL_HANDLE;
 		size_t currentFrame = 0;
+	};
+
+	class VulkanSyncObject {
+		VulkanSyncObjectInfo info;
+		VkDevice device = VK_NULL_HANDLE;
 
 	public:
 		VulkanSyncObject() = default;
@@ -22,12 +25,15 @@ namespace Chrivent {
 		VulkanSyncObject& operator=(const VulkanSyncObject&) = delete;
 		VulkanSyncObject(VulkanSyncObject&&) = delete;
 		VulkanSyncObject& operator=(VulkanSyncObject&&) = delete;
+		
+		VulkanSyncObjectInfo& GetInfo() { return info; }
+		const VulkanSyncObjectInfo& GetInfo() const { return info; }
 
-		// ?붾툝踰꾪띁留곸뿉 ?ъ슜???몃쭏?ъ뼱? ?쒖뒪瑜??앹꽦?쒕떎.
+		// 더블버퍼링에 사용할 세마포어와 펜스를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo);
-		// ?앹꽦???몃쭏?ъ뼱? ?쒖뒪瑜??댁젣?쒕떎.
+		// 생성한 세마포어와 펜스를 해제한다.
 		void Destroy();
-		// ?ㅼ쓬 ?꾨젅?꾩쓽 ?숆린??媛앹껜瑜??ъ슜?섎룄濡??몃뜳?ㅻ? ?섍릿??
+		// 다음 프레임의 동기화 객체를 사용하도록 인덱스를 넘긴다.
 		void AdvanceFrame();
 	};
 }

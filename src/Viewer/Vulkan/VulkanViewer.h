@@ -29,6 +29,8 @@ namespace Chrivent {
 		VulkanCommandContext commandContext;
 		VulkanSyncObject syncObject;
 		VulkanTextureCache textureCache;
+		uint32_t currentImageIndex = 0;
+		bool frameReady = false;
 
 	public:
 		VulkanViewer();

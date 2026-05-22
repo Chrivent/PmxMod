@@ -17,6 +17,9 @@ namespace Chrivent {
 		VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
 		VulkanCommandBuffer(VulkanCommandBuffer&&) = delete;
 		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = delete;
+		
+		VkCommandBuffer GetCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
+		const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return commandBuffers; }
 
 		// ?ㅼ솑泥댁씤 ?대?吏 ?섏뿉 留욎떠 ?뚮뜑留?紐낅졊 踰꾪띁瑜??좊떦?쒕떎.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, VkCommandPool sourceCommandPool, const VulkanSwapChainInfo& swapChainInfo);
@@ -24,8 +27,5 @@ namespace Chrivent {
 		bool Record(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkExtent2D extent, const float clearColor[4]) const;
 		// ?좊떦??紐낅졊 踰꾪띁瑜??댁젣?쒕떎.
 		void Destroy();
-
-		VkCommandBuffer GetCommandBuffer(uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
-		const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return commandBuffers; }
 	};
 }
