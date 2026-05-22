@@ -2,7 +2,7 @@
 
 **[English](./README.md)** | [한국어](./README.ko.md)
 
-PMX/VMD model viewer built with C++20. The project can render through OpenGL or DirectX 11.
+PMX/VMD model viewer built with C++20. The project currently renders through OpenGL or DirectX 11, with Vulkan support in progress.
 
 ## Requirements
 
@@ -10,6 +10,13 @@ PMX/VMD model viewer built with C++20. The project can render through OpenGL or 
 - Visual Studio C++ toolchain
 - CMake 3.20 or newer
 - vcpkg
+- Vulkan SDK
+
+## Renderer Support
+
+- OpenGL: supported
+- DirectX 11: supported
+- Vulkan: in progress
 
 ## Dependencies
 
@@ -17,13 +24,17 @@ Install the required packages with vcpkg:
 
 ```powershell
 C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+winget install --id KhronosGroup.VulkanSDK -e
 ```
 
 If vcpkg is installed somewhere else, use that path instead:
 
 ```powershell
 D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+winget install --id KhronosGroup.VulkanSDK -e
 ```
+
+After installing the Vulkan SDK, open a new PowerShell window so CMake can see the SDK environment variables.
 
 ## Build
 
@@ -61,4 +72,5 @@ For a custom vcpkg location, add this to VS Code settings:
 
 - `stb` is found through vcpkg's `FindStb.cmake`.
 - `miniaudio` is header-only and is found by locating `miniaudio.h`.
+- Vulkan is found through the installed Vulkan SDK.
 - Runtime resources are copied from `resource/` into the CMake build directory by the `SyncResources` target.

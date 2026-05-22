@@ -15,6 +15,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
 
@@ -93,7 +94,7 @@ add_executable(PmxMod
         src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
 )
 
-target_link_libraries(PmxMod PUBLIC
+target_link_libraries(PmxMod PRIVATE
         glfw
         glad::glad
         glm::glm
@@ -102,6 +103,7 @@ target_link_libraries(PmxMod PUBLIC
         dxgi
         d3dcompiler
         comctl32
+        Vulkan::Vulkan
 
         BulletDynamics
         BulletCollision
@@ -111,7 +113,6 @@ target_include_directories(PmxMod PRIVATE
         ${Stb_INCLUDE_DIR}
         ${MINIAUDIO_INCLUDE_DIR}
 )
-target_compile_definitions(PmxMod PUBLIC)
 
 set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
 set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")

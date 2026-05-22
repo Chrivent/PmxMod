@@ -2,7 +2,7 @@
 
 [English](./README.md) | **[한국어](./README.ko.md)**
 
-PMX/VMD 모델을 C++20로 로드하고 OpenGL 또는 DirectX 11 렌더러로 실행하는 프로젝트입니다.
+C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL과 DirectX 11 렌더러를 지원하며, Vulkan 렌더러는 구현 중입니다.
 
 ## 요구 사항
 
@@ -10,6 +10,13 @@ PMX/VMD 모델을 C++20로 로드하고 OpenGL 또는 DirectX 11 렌더러로 �
 - Visual Studio C++ toolchain
 - CMake 3.20 이상
 - vcpkg
+- Vulkan SDK
+
+## 렌더러 지원 상태
+
+- OpenGL: 지원
+- DirectX 11: 지원
+- Vulkan: 구현 중
 
 ## 의존성 설치
 
@@ -17,13 +24,17 @@ vcpkg가 `C:/vcpkg`에 설치되어 있다면 아래 명령으로 필요한 패�
 
 ```powershell
 C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+winget install --id KhronosGroup.VulkanSDK -e
 ```
 
 vcpkg가 다른 위치에 설치되어 있다면 해당 경로의 `vcpkg.exe`를 사용하면 됩니다.
 
 ```powershell
 D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+winget install --id KhronosGroup.VulkanSDK -e
 ```
+
+Vulkan SDK 설치 후에는 새 PowerShell 창을 열어야 CMake가 Vulkan SDK 환경 변수를 인식할 수 있습니다.
 
 ## 빌드
 
@@ -34,7 +45,7 @@ cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Releas
 cmake --build cmake-build-release --target PmxMod
 ```
 
-vcpkg가 다른 위치에 있다면 configure할 때 `VCPKG_ROOT`를 지정합니다.
+vcpkg가 다른 위치에 있다면 configure 단계에서 `VCPKG_ROOT`를 지정합니다.
 
 ```powershell
 cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT=D:/dev/vcpkg
@@ -61,4 +72,5 @@ vcpkg 경로가 기본값과 다르면 VS Code 설정에 아래 값을 추가합
 
 - `stb`는 vcpkg의 `FindStb.cmake`를 통해 찾습니다.
 - `miniaudio`는 header-only 라이브러리라 `miniaudio.h` 위치를 찾아 include 경로로 추가합니다.
+- Vulkan은 설치된 Vulkan SDK를 통해 찾습니다.
 - 실행 리소스는 `SyncResources` 타깃이 `resource/`에서 CMake 빌드 디렉터리로 복사합니다.
