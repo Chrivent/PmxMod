@@ -30,9 +30,50 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanCommandBuffer::Record(
+		const uint32_t imageIndex,
+		const VkRenderPass renderPass,
+		const VkFramebuffer frameBuffer,
+		const VkExtent2D extent,
+		const float clearColor[4]) const {
+		if (imageIndex >= commandBuffers.size()) {
+			std::cerr << "Failed to record Vulkan command buffer: image index is out of range.\n";
+			return false;
+		}
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+			std::cerr << "Failed to begin Vulkan command buffer.\n";
+			return false;
+		}
+		VkClearValue clearValue;
+		clearValue.color = { {
+			clearColor[0],
+			clearColor[1],
+			clearColor[2],
+			clearColor[3]
+		} };
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = renderPass;
+		renderPassInfo.framebuffer = frameBuffer;
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = extent;
+		renderPassInfo.clearValueCount = 1;
+		renderPassInfo.pClearValues = &clearValue;
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(commandBuffer);
+		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+			std::cerr << "Failed to record Vulkan command buffer.\n";
+			return false;
+		}
+		return true;
+	}
+
 	void VulkanCommandBuffer::Destroy() {
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE && !commandBuffers.empty())
-			vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
+			vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 		commandBuffers.clear();
 		device = VK_NULL_HANDLE;
 		commandPool = VK_NULL_HANDLE;
