@@ -4,6 +4,7 @@
 #include "../Sound.h"
 
 #include <CommCtrl.h>
+#include <algorithm>
 
 namespace Chrivent {
 	LRESULT CALLBACK SoundPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -131,17 +132,21 @@ namespace Chrivent {
 		constexpr int margin = 14;
 		constexpr int titleHeight = 20;
 		constexpr int sliderWidth = 64;
-		constexpr int sliderHeight = 150;
 		constexpr int valueHeight = 20;
+		constexpr int gap = 4;
 		const int width = clientRect.right - clientRect.left;
-		const int x = clientRect.left + (std::max)(margin, (width - sliderWidth) / 2);
-		const int y = clientRect.top + 8;
+		const int height = clientRect.bottom - clientRect.top;
+		const int contentWidth = (std::max)(0, width - margin * 2);
+		const int controlWidth = (std::min)(sliderWidth, contentWidth);
+		const int sliderHeight = (std::max)(0, height - margin * 2 - titleHeight - valueHeight - gap * 2);
+		const int x = clientRect.left + (std::max)(margin, (width - controlWidth) / 2);
+		const int y = clientRect.top + margin;
 		if (titleText)
-			MoveWindow(titleText, x, y, sliderWidth, titleHeight, TRUE);
+			MoveWindow(titleText, x, y, controlWidth, titleHeight, TRUE);
 		if (volumeSlider)
-			MoveWindow(volumeSlider, x, y + titleHeight + 4, sliderWidth, sliderHeight, TRUE);
+			MoveWindow(volumeSlider, x, y + titleHeight + gap, controlWidth, sliderHeight, TRUE);
 		if (valueText)
-			MoveWindow(valueText, x, y + titleHeight + 4 + sliderHeight + 4, sliderWidth, valueHeight, TRUE);
+			MoveWindow(valueText, x, y + titleHeight + gap + sliderHeight + gap, controlWidth, valueHeight, TRUE);
 	}
 
 	bool SoundPanel::HandleScroll(const HWND control, const int scrollCode) {
