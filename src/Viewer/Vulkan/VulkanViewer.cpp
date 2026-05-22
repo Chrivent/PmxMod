@@ -21,7 +21,7 @@ namespace Chrivent {
 			return false;
 		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), depthBuffer.GetInfo().format))
 			return false;
 		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass()))
 			return false;
@@ -41,7 +41,7 @@ namespace Chrivent {
 			return false;
 		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), depthBuffer.GetInfo().format))
 			return false;
 		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass()))
 			return false;
