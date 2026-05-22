@@ -11,11 +11,15 @@ namespace Chrivent {
 	bool VulkanFrameBuffer::Initialize(
 		const VulkanDeviceInfo& deviceInfo,
 		const VulkanSwapChainInfo& swapChainInfo,
-		const VkRenderPass renderPass) {
+		const VkRenderPass renderPass,
+		const VkImageView depthImageView) {
 		device = deviceInfo.device;
 		frameBuffers.resize(swapChainInfo.imageViews.size());
 		for (size_t i = 0; i < swapChainInfo.imageViews.size(); i++) {
-			const std::array attachments = { swapChainInfo.imageViews[i] };
+			const std::array attachments = {
+				swapChainInfo.imageViews[i],
+				depthImageView
+			};
 			VkFramebufferCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			createInfo.renderPass = renderPass;
