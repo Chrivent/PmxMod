@@ -30,8 +30,7 @@ namespace Chrivent {
 				}
 				break;
 			case WM_SIZE:
-				if (panelWindow->controlsCreated)
-					panelWindow->LayoutPanels();
+				panelWindow->LayoutPanels();
 				return 0;
 			case WM_CLOSE:
 				ShowWindow(hwnd, SW_HIDE);
@@ -112,9 +111,6 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Destroy() {
-		if (!window)
-			return;
-		controlsCreated = false;
 		for (auto& entry : panels) {
 			if (entry.panel)
 				entry.panel->Destroy();
@@ -138,7 +134,6 @@ namespace Chrivent {
 				window, nullptr, GetModuleHandleW(nullptr), nullptr);
 			entry.panel->Create(window);
 		}
-		controlsCreated = true;
 	}
 
 	void PanelWindow::LayoutPanels() const {

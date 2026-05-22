@@ -26,7 +26,6 @@ namespace Chrivent {
 		HWND window = nullptr;
 		MenuBar* menuBar = nullptr;
 		std::vector<PanelEntry> panels;
-		bool controlsCreated = false;
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		void CreatePanelControls();
