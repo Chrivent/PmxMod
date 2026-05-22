@@ -37,6 +37,8 @@ namespace Chrivent {
 		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
 		void ApplySceneConfig(const SceneConfig& cfg) { menuBar.ApplySceneConfig(cfg); }
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
+		int GetRendererType() const { return menuBar.GetRendererType(); }
+		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
 		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }

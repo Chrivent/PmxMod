@@ -18,6 +18,7 @@ namespace Chrivent {
             viewer = std::make_unique<Dx11Viewer>();
         else
             viewer.reset();
+        currentRendererType = engineType;
     }
 
     bool Program::InitializeViewer() {
@@ -51,10 +52,32 @@ namespace Chrivent {
         return true;
     }
 
+    bool Program::ChangeRenderer(const int engineType) {
+        if (engineType == currentRendererType)
+            return true;
+        ClearInstances();
+        if (viewer && viewer->GetInfo().window)
+            glfwDestroyWindow(viewer->GetInfo().window);
+        viewer.reset();
+        CreateViewer(engineType);
+        if (!InitializeViewer())
+            return false;
+        saveTime = std::chrono::steady_clock::now();
+        if (!LoadScene(panelManager.GetSceneConfig()))
+            return false;
+        panelManager.BindSound(music);
+        panelManager.AttachRenderWindow(viewer->GetInfo());
+        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        cameraManager.UpdateCamera(viewer->GetInfo());
+        return true;
+    }
+
     void Program::Shutdown() {
         ClearInstances();
         music.Stop();
         panelManager.DestroyGui();
+        if (viewer && viewer->GetInfo().window)
+            glfwDestroyWindow(viewer->GetInfo().window);
         viewer.reset();
         glfwTerminate();
     }
@@ -174,6 +197,11 @@ namespace Chrivent {
     bool Program::RunFrame() {
         glfwPollEvents();
         panelManager.PollGuiWindows();
+        if (panelManager.ConsumeRendererDirty()) {
+            if (!ChangeRenderer(panelManager.GetRendererType()))
+                return false;
+            return true;
+        }
         if (panelManager.ConsumeSceneConfigDirty())
             LoadScene(panelManager.GetSceneConfig());
         int seekFrame = 0;
@@ -222,12 +250,7 @@ namespace Chrivent {
     }
 
     bool Program::Run() {
-        int engineType = 0;
-        if (!(std::cin >> engineType)) {
-            std::cin.clear();
-            engineType = 0;
-        }
-        CreateViewer(engineType);
+        CreateViewer(0);
         const SceneConfig cfg;
         cameraManager.Reset();
         inputManager.Reset();

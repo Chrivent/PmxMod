@@ -4,7 +4,6 @@
 #include "../Sound.h"
 
 #include <CommCtrl.h>
-#include <algorithm>
 
 namespace Chrivent {
 	LRESULT CALLBACK SoundPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
