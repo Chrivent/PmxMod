@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "Helper/VulkanDevice.h"
 #include "VulkanTextureCache.h"
 
 namespace Chrivent {
@@ -16,6 +17,7 @@ namespace Chrivent {
 	};
 
 	class VulkanViewer : public Viewer {
+		VulkanDevice device;
 		VulkanTextureCache textureCache;
 
 	public:

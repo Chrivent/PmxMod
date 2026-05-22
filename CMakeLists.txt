@@ -90,6 +90,7 @@ add_executable(PmxMod
 
         src/Viewer/Vulkan/VulkanViewer.h src/Viewer/Vulkan/VulkanViewer.cpp
         src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
+        src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
         src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
         src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
 )

@@ -12,18 +12,19 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::Setup() {
-		return false;
+		InitDirs("shader_Vulkan");
+		return device.Initialize(GetInfo().window);
 	}
 
 	bool VulkanViewer::Resize() {
-		return false;
+		return true;
 	}
 
 	void VulkanViewer::BeginFrame() {
 	}
 
 	bool VulkanViewer::EndFrame() {
-		return false;
+		return true;
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {
