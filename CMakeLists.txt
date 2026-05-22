@@ -32,6 +32,8 @@ add_executable(PmxMod
         src/Program/Manager/PanelManager.h src/Program/Manager/PanelManager.cpp
         
         src/Program/Panel/Panel.h
+        src/Program/Panel/ModelPanel.h src/Program/Panel/ModelPanel.cpp
+        src/Program/Panel/MotionPanel.h src/Program/Panel/MotionPanel.cpp
         src/Program/Panel/PlaybackPanel.h src/Program/Panel/PlaybackPanel.cpp
         src/Program/Panel/SoundPanel.h src/Program/Panel/SoundPanel.cpp
         

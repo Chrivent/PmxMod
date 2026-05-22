@@ -3,6 +3,8 @@
 #include "../Config.h"
 #include "../MenuBar.h"
 #include "../PanelWindow.h"
+#include "../Panel/ModelPanel.h"
+#include "../Panel/MotionPanel.h"
 #include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
 
@@ -19,6 +21,8 @@ namespace Chrivent {
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
+		ModelPanel modelPanel;
+		MotionPanel motionPanel;
 		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
 		PanelWindow panelWindow;
