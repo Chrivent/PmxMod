@@ -52,7 +52,7 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::RegisterPanel(Panel& panel, const std::wstring& title, const PanelWindowArea area) {
-		panels.push_back({&panel, title, area});
+		panels.push_back({ &panel, title, area });
 	}
 
 	void PanelWindow::AttachMenuBar(MenuBar& menu) {
