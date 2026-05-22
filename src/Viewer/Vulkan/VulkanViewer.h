@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "Helper/VulkanCommandContext.h"
 #include "Helper/VulkanDevice.h"
 #include "Helper/VulkanFrameBuffer.h"
 #include "Helper/VulkanRenderPass.h"
@@ -24,6 +25,7 @@ namespace Chrivent {
 		VulkanSwapChain swapChain;
 		VulkanRenderPass renderPass;
 		VulkanFrameBuffer frameBuffer;
+		VulkanCommandContext commandContext;
 		VulkanTextureCache textureCache;
 
 	public:

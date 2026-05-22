@@ -19,17 +19,22 @@ namespace Chrivent {
 			return false;
 		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		return frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass());
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass()))
+			return false;
+		return commandContext.Initialize(device.GetInfo(), swapChain.GetInfo());
 	}
 
 	bool VulkanViewer::Resize() {
+		commandContext.Destroy();
 		frameBuffer.Destroy();
 		renderPass.Destroy();
 		if (!swapChain.Recreate(device.GetInfo(), GetInfo().window))
 			return false;
 		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		return frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass());
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass()))
+			return false;
+		return commandContext.Initialize(device.GetInfo(), swapChain.GetInfo());
 	}
 
 	void VulkanViewer::BeginFrame() {
