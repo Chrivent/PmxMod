@@ -14,9 +14,14 @@ namespace Chrivent {
 		HMENU rendererMenu = CreatePopupMenu();
 		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
 		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
+		AppendMenuW(rendererMenu, MF_GRAYED, kVulkanRendererId, L"Vulkan");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
-		CheckMenuRadioItem(menu, kOpenGlRendererId, kDirectX11RendererId,
-			rendererType == 1 ? kDirectX11RendererId : kOpenGlRendererId, MF_BYCOMMAND);
+		int rendererId = kOpenGlRendererId;
+		if (rendererType == RendererType::DirectX11)
+			rendererId = kDirectX11RendererId;
+		else if (rendererType == RendererType::Vulkan)
+			rendererId = kVulkanRendererId;
+		CheckMenuRadioItem(rendererMenu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
 	}
 
 	void MenuBar::AttachOwner(const HWND owner) {
@@ -76,7 +81,7 @@ namespace Chrivent {
 			std::cerr << "Failed to save scene config.\n";
 	}
 
-	void MenuBar::SelectRenderer(const int renderer) {
+	void MenuBar::SelectRenderer(const RendererType renderer) {
 		if (rendererType == renderer)
 			return;
 		rendererType = renderer;
@@ -90,8 +95,12 @@ namespace Chrivent {
 		const HMENU menu = GetMenu(ownerWindow);
 		if (!menu)
 			return;
-		CheckMenuRadioItem(menu, kOpenGlRendererId, kDirectX11RendererId,
-			rendererType == 1 ? kDirectX11RendererId : kOpenGlRendererId, MF_BYCOMMAND);
+		int rendererId = kOpenGlRendererId;
+		if (rendererType == RendererType::DirectX11)
+			rendererId = kDirectX11RendererId;
+		else if (rendererType == RendererType::Vulkan)
+			rendererId = kVulkanRendererId;
+		CheckMenuRadioItem(menu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
 		DrawMenuBar(ownerWindow);
 	}
 
@@ -104,10 +113,13 @@ namespace Chrivent {
 				ShowSaveSceneDialog();
 				return true;
 			case kOpenGlRendererId:
-				SelectRenderer(0);
+				SelectRenderer(RendererType::OpenGl);
 				return true;
 			case kDirectX11RendererId:
-				SelectRenderer(1);
+				SelectRenderer(RendererType::DirectX11);
+				return true;
+			case kVulkanRendererId:
+				SelectRenderer(RendererType::Vulkan);
 				return true;
 			default:
 				return false;

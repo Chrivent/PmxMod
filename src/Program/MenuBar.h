@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Config.h"
+#include "RendererType.h"
 
 #include <windows.h>
 
@@ -10,11 +11,12 @@ namespace Chrivent {
 		static constexpr int kSaveButtonId = 1001;
 		static constexpr int kOpenGlRendererId = 1100;
 		static constexpr int kDirectX11RendererId = 1101;
+		static constexpr int kVulkanRendererId = 1102;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
 		bool sceneConfigDirty = false;
-		int rendererType = 0;
+		RendererType rendererType = RendererType::OpenGl;
 		bool rendererDirty = false;
 		HWND ownerWindow = nullptr;
 
@@ -22,7 +24,7 @@ namespace Chrivent {
 		bool LoadSceneConfig(const std::filesystem::path& filepath);
 		void ShowOpenSceneDialog();
 		void ShowSaveSceneDialog();
-		void SelectRenderer(int renderer);
+		void SelectRenderer(RendererType renderer);
 		void UpdateRendererMenuCheck() const;
 
 	public:
@@ -40,7 +42,7 @@ namespace Chrivent {
 		void Reset();
 		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
-		int GetRendererType() const { return rendererType; }
+		RendererType GetRendererType() const { return rendererType; }
 		bool ConsumeRendererDirty();
 	};
 }

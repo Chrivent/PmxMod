@@ -11,14 +11,19 @@
 #include <iostream>
 
 namespace Chrivent {
-    void Program::CreateViewer(const int engineType) {
-        if (engineType == 0)
-            viewer = std::make_unique<GlfwViewer>();
-        else if (engineType == 1)
-            viewer = std::make_unique<Dx11Viewer>();
-        else
-            viewer.reset();
-        currentRendererType = engineType;
+    void Program::CreateViewer(const RendererType rendererType) {
+        switch (rendererType) {
+            case RendererType::OpenGl:
+                viewer = std::make_unique<GlfwViewer>();
+                break;
+            case RendererType::DirectX11:
+                viewer = std::make_unique<Dx11Viewer>();
+                break;
+            case RendererType::Vulkan:
+                viewer.reset();
+                break;
+        }
+        currentRendererType = rendererType;
     }
 
     bool Program::InitializeViewer() {
@@ -52,14 +57,14 @@ namespace Chrivent {
         return true;
     }
 
-    bool Program::ChangeRenderer(const int engineType) {
-        if (engineType == currentRendererType)
+    bool Program::ChangeRenderer(const RendererType rendererType) {
+        if (rendererType == currentRendererType)
             return true;
         ClearInstances();
         if (viewer && viewer->GetInfo().window)
             glfwDestroyWindow(viewer->GetInfo().window);
         viewer.reset();
-        CreateViewer(engineType);
+        CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
         saveTime = std::chrono::steady_clock::now();
@@ -250,7 +255,7 @@ namespace Chrivent {
     }
 
     bool Program::Run() {
-        CreateViewer(0);
+        CreateViewer(RendererType::OpenGl);
         const SceneConfig cfg;
         cameraManager.Reset();
         inputManager.Reset();

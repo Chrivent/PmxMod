@@ -3,6 +3,7 @@
 #include "../Config.h"
 #include "../MenuBar.h"
 #include "../PanelWindow.h"
+#include "../RendererType.h"
 #include "../Panel/ModelPanel.h"
 #include "../Panel/MotionPanel.h"
 #include "../Panel/PlaybackPanel.h"
@@ -37,7 +38,7 @@ namespace Chrivent {
 		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
 		void ApplySceneConfig(const SceneConfig& cfg) { menuBar.ApplySceneConfig(cfg); }
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
-		int GetRendererType() const { return menuBar.GetRendererType(); }
+		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
