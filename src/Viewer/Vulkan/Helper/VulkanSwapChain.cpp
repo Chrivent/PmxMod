@@ -1,4 +1,4 @@
-#include "VulkanSwapChain.h"
+﻿#include "VulkanSwapChain.h"
 
 #include <algorithm>
 #include <iostream>
