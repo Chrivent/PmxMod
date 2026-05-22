@@ -1,5 +1,6 @@
 ﻿#include "VulkanCommandBuffer.h"
 
+#include <array>
 #include <iostream>
 
 namespace Chrivent {
@@ -47,21 +48,22 @@ namespace Chrivent {
 			std::cerr << "Failed to begin Vulkan command buffer.\n";
 			return false;
 		}
-		VkClearValue clearValue;
-		clearValue.color = { {
+		std::array<VkClearValue, 2> clearValues{};
+		clearValues[0].color = { {
 			clearColor[0],
 			clearColor[1],
 			clearColor[2],
 			clearColor[3]
 		} };
+		clearValues[1].depthStencil = { 1.0f, 0 };
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = renderPass;
 		renderPassInfo.framebuffer = frameBuffer;
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = extent;
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearValue;
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdEndRenderPass(commandBuffer);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {

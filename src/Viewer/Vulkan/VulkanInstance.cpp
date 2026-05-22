@@ -6,14 +6,14 @@
 namespace Chrivent {
 	VulkanInstance::VulkanInstance() {
 		info = std::make_unique<VulkanInstanceInfo>();
-		drawer = std::make_unique<VulkanDrawer>(GetVulkanInfo());
+		drawer = std::make_unique<VulkanDrawer>(static_cast<VulkanInstanceInfo&>(GetInfo()));
 	}
 
 	void VulkanInstance::Clear() {
 	}
 
 	bool VulkanInstance::Setup(Viewer& baseViewer) {
-		GetVulkanInfo().viewer = dynamic_cast<VulkanViewer*>(&baseViewer);
+		static_cast<VulkanInstanceInfo&>(GetInfo()).viewer = dynamic_cast<VulkanViewer*>(&baseViewer);
 		return false;
 	}
 

@@ -14,10 +14,6 @@ namespace Chrivent {
 	};
 
 	class VulkanInstance : public Instance {
-	protected:
-		VulkanInstanceInfo& GetVulkanInfo() { return static_cast<VulkanInstanceInfo&>(GetInfo()); }
-		const VulkanInstanceInfo& GetVulkanInfo() const { return static_cast<const VulkanInstanceInfo&>(GetInfo()); }
-
 	public:
 		VulkanInstance();
 		~VulkanInstance() override = default;
