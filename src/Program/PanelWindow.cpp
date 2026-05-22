@@ -56,8 +56,6 @@ namespace Chrivent {
 
 	void PanelWindow::AttachMenuBar(MenuBar& menu) {
 		menuBar = &menu;
-		if (!window)
-			return;
 		menuBar->AttachOwner(window);
 		const HMENU menuHandle = CreateMenu();
 		menuBar->AddMenu(menuHandle);
@@ -66,11 +64,6 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Show() {
-		if (window) {
-			ShowWindow(window, SW_SHOWNORMAL);
-			SetForegroundWindow(window);
-			return;
-		}
 		const HINSTANCE instance = GetModuleHandleW(nullptr);
 		WNDCLASSEXW wc{};
 		wc.cbSize = sizeof(wc);
@@ -85,8 +78,6 @@ namespace Chrivent {
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
 			nullptr, nullptr, instance, this);
-		if (!window)
-			return;
 		if (menuBar) {
 			menuBar->AttachOwner(window);
 			const HMENU menuHandle = CreateMenu();
@@ -101,8 +92,6 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Poll() const {
-		if (!window)
-			return;
 		MSG msg{};
 		while (PeekMessageW(&msg, window, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -116,14 +105,10 @@ namespace Chrivent {
 				entry.panel->Destroy();
 			entry.frame = nullptr;
 		}
-		if (window)
-			DestroyWindow(window);
-		window = nullptr;
+		DestroyWindow(window);
 	}
 
 	void PanelWindow::CreatePanelControls() {
-		if (!window)
-			return;
 		for (auto& entry : panels) {
 			if (!entry.panel || entry.frame)
 				continue;
@@ -137,8 +122,6 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::LayoutPanels() const {
-		if (!window)
-			return;
 		RECT client{};
 		GetClientRect(window, &client);
 		const int width = client.right - client.left;
