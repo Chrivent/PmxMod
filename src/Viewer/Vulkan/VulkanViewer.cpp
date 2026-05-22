@@ -21,7 +21,9 @@ namespace Chrivent {
 			return false;
 		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass()))
 			return false;
-		return commandContext.Initialize(device.GetInfo(), swapChain.GetInfo());
+		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
+			return false;
+		return syncObject.Initialize(device.GetInfo());
 	}
 
 	bool VulkanViewer::Resize() {

@@ -6,6 +6,7 @@
 #include "Helper/VulkanFrameBuffer.h"
 #include "Helper/VulkanRenderPass.h"
 #include "Helper/VulkanSwapChain.h"
+#include "Helper/VulkanSyncObject.h"
 #include "VulkanTextureCache.h"
 
 namespace Chrivent {
@@ -26,6 +27,7 @@ namespace Chrivent {
 		VulkanRenderPass renderPass;
 		VulkanFrameBuffer frameBuffer;
 		VulkanCommandContext commandContext;
+		VulkanSyncObject syncObject;
 		VulkanTextureCache textureCache;
 
 	public:
