@@ -20,7 +20,7 @@ namespace Chrivent {
 		DrawLine = 0x80
 	};
 
-	enum class CartoonMode : uint8_t {
+	enum class ToonMode : uint8_t {
 		Separate,
 		Common
 	};
@@ -182,7 +182,7 @@ namespace Chrivent {
 		float		edgeSize;
 		glm::vec4	textureFactor;
 		glm::vec4	sphereTextureFactor;
-		glm::vec4	cartoonTextureFactor;
+		glm::vec4	toonTextureFactor;
 	};
 
 	struct GroupMorph {
@@ -248,8 +248,8 @@ namespace Chrivent {
 			int32_t			textureIndex;
 			int32_t			sphereTextureIndex;
 			SphereMode		sphereMode;
-			CartoonMode		cartoonMode;
-			int32_t			cartoonTextureIndex;
+			ToonMode		toonMode;
+			int32_t			toonTextureIndex;
 			std::string		memo;
 			int32_t			numFaceVertices;
 		};

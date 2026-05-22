@@ -67,8 +67,8 @@ namespace Chrivent {
 				material.texture = info.viewer->LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
 				material.spTexture = info.viewer->LoadTexture(mat.spTexture);
-			if (!mat.cartoonTexture.empty())
-				material.cartoonTexture = info.viewer->LoadTexture(mat.cartoonTexture);
+			if (!mat.toonTexture.empty())
+				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
 			info.materials.emplace_back(std::move(material));
 		}
 		return true;

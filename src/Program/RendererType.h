@@ -2,7 +2,7 @@
 
 namespace Chrivent {
     enum class RendererType {
-        OpenGl,
+        OpenGL,
         DirectX11,
         Vulkan
     };

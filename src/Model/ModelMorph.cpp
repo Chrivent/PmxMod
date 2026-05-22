@@ -10,7 +10,7 @@ namespace Chrivent {
 		out.edgeSize = glm::mix(out.edgeSize, out.edgeSize * val.edgeSize, weight);
 		out.textureFactor = glm::mix(out.textureFactor, out.textureFactor * val.textureFactor, weight);
 		out.sphereTextureFactor = glm::mix(out.sphereTextureFactor, out.sphereTextureFactor * val.sphereTextureFactor, weight);
-		out.cartoonTextureFactor = glm::mix(out.cartoonTextureFactor, out.cartoonTextureFactor * val.cartoonTextureFactor, weight);
+		out.toonTextureFactor = glm::mix(out.toonTextureFactor, out.toonTextureFactor * val.toonTextureFactor, weight);
 	}
 
 	void ModelMorph::AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, const float weight) {
@@ -22,7 +22,7 @@ namespace Chrivent {
 		out.edgeSize += val.edgeSize * weight;
 		out.textureFactor += val.textureFactor * weight;
 		out.sphereTextureFactor += val.sphereTextureFactor * weight;
-		out.cartoonTextureFactor += val.cartoonTextureFactor * weight;
+		out.toonTextureFactor += val.toonTextureFactor * weight;
 	}
 
 	void ModelMorph::EvalMorph(const Morph* morph, const float morphWeight) const {
@@ -109,8 +109,8 @@ namespace Chrivent {
 			mat.textureAddFactor   = add.textureFactor;
 			mat.sphereTextureMulFactor = mul.sphereTextureFactor;
 			mat.sphereTextureAddFactor = add.sphereTextureFactor;
-			mat.cartoonTextureMulFactor = mul.cartoonTextureFactor;
-			mat.cartoonTextureAddFactor = add.cartoonTextureFactor;
+			mat.toonTextureMulFactor = mul.toonTextureFactor;
+			mat.toonTextureAddFactor = add.toonTextureFactor;
 		}
 	}
 

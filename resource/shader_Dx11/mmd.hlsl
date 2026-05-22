@@ -1,4 +1,4 @@
-cbuffer VSData : register(b0) {
+﻿cbuffer VSData : register(b0) {
     float4x4 wv;
     float4x4 wvp;
 };
@@ -13,18 +13,18 @@ cbuffer PSData : register(b1) {
     float3  lightDir;
     float4  texMulFactor;
     float4  texAddFactor;
-    float4  cartoonTexMulFactor;
-    float4  cartoonTexAddFactor;
+    float4  toonTexMulFactor;
+    float4  toonTexAddFactor;
     float4  sphereTexMulFactor;
     float4  sphereTexAddFactor;
     int4    textureModes;
 }
 
 Texture2D tex : register(t0);
-Texture2D cartoonTex : register(t1);
+Texture2D toonTex : register(t1);
 Texture2D sphereTex : register(t2);
 sampler texSampler : register(s0);
-sampler cartoonTexSampler : register(s1);
+sampler toonTexSampler : register(s1);
 sampler sphereTexSampler : register(s2);
 
 struct VSInput {
@@ -73,7 +73,7 @@ float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
     color += ambient;
     color = clamp(color, 0.0, 1.0);
     int texMode = textureModes.x;
-    int cartoonTexMode = textureModes.y;
+    int toonTexMode = textureModes.y;
     int sphereTexMode = textureModes.z;
     if (texMode != 0) {
         float4 texColor = tex.Sample(texSampler, vsOut.UV);
@@ -97,11 +97,11 @@ float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
         else if (sphereTexMode == 2)
             color += spColor;
     }
-    if (cartoonTexMode != 0) {
-        float3 cartoonColor = cartoonTex.Sample(cartoonTexSampler, float2(0.0, 1.0 - ln)).rgb;
-        cartoonColor = ComputeTexMulFactor(cartoonColor, cartoonTexMulFactor);
-        cartoonColor = ComputeTexAddFactor(cartoonColor, cartoonTexAddFactor);
-        color *= cartoonColor;
+    if (toonTexMode != 0) {
+        float3 toonColor = toonTex.Sample(toonTexSampler, float2(0.0, 1.0 - ln)).rgb;
+        toonColor = ComputeTexMulFactor(toonColor, toonTexMulFactor);
+        toonColor = ComputeTexAddFactor(toonColor, toonTexAddFactor);
+        color *= toonColor;
     }
     float3 specularTerm = (float3)0.0;
     if (specularPower > 0.0) {

@@ -24,7 +24,7 @@ namespace Chrivent {
 			"ambient", "diffuse", "specular", "specularPower", "alpha",
 			"texMode", "tex", "texMulFactor", "texAddFactor",
 			"sphereTexMode", "sphereTex", "sphereTexMulFactor", "sphereTexAddFactor",
-			"cartoonTexMode", "cartoonTex", "cartoonTexMulFactor", "cartoonTexAddFactor",
+			"toonTexMode", "toonTex", "toonTexMulFactor", "toonTexAddFactor",
 			"lightColor", "lightDir"
 		};
 		GLint* outs[] = {
@@ -32,7 +32,7 @@ namespace Chrivent {
 			&ambientLocation, &diffuseLocation, &specularLocation, &specularPowerLocation, &alphaLocation,
 			&texModeLocation, &texLocation, &texMulFactorLocation, &texAddFactorLocation,
 			&sphereTexModeLocation, &sphereTexLocation, &sphereTexMulFactorLocation, &sphereTexAddFactorLocation,
-			&cartoonTexModeLocation, &cartoonTexLocation, &cartoonTexMulFactorLocation, &cartoonTexAddFactorLocation,
+			&toonTexModeLocation, &toonTexLocation, &toonTexMulFactorLocation, &toonTexAddFactorLocation,
 			&lightColorLocation, &lightDirLocation
 		};
 		for (int i = 0; i < std::size(names); i++)
@@ -40,7 +40,7 @@ namespace Chrivent {
 		glUseProgram(program);
 		glUniform1i(texLocation, 0);
 		glUniform1i(sphereTexLocation, 1);
-		glUniform1i(cartoonTexLocation, 2);
+		glUniform1i(toonTexLocation, 2);
 		return true;
 	}
 

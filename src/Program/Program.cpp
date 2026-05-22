@@ -13,7 +13,7 @@
 namespace Chrivent {
     void Program::CreateViewer(const RendererType rendererType) {
         switch (rendererType) {
-            case RendererType::OpenGl:
+            case RendererType::OpenGL:
                 viewer = std::make_unique<GlfwViewer>();
                 break;
             case RendererType::DirectX11:
@@ -255,7 +255,7 @@ namespace Chrivent {
     }
 
     bool Program::Run() {
-        CreateViewer(RendererType::OpenGl);
+        CreateViewer(RendererType::OpenGL);
         const SceneConfig cfg;
         cameraManager.Reset();
         inputManager.Reset();

@@ -208,7 +208,7 @@ namespace Chrivent {
 		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&wrapLinear, &GetDx11Info().pipelineStates.textureSampler)))
 			return false;
 		auto clampLinear = Dx11DescriptorFactory::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&clampLinear, &GetDx11Info().pipelineStates.cartoonTextureSampler)))
+		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&clampLinear, &GetDx11Info().pipelineStates.toonTextureSampler)))
 			return false;
 		auto blend = Dx11DescriptorFactory::MakeAlphaBlendDesc();
 		if (FAILED(GetDx11Info().deviceResources.device->CreateBlendState(&blend, &GetDx11Info().pipelineStates.blendState)))

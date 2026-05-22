@@ -112,8 +112,8 @@ namespace Chrivent {
 			}
 			if (!mat.spTexture.empty())
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture).texture;
-			if (!mat.cartoonTexture.empty())
-				material.cartoonTexture = info.viewer->LoadTexture(mat.cartoonTexture, true).texture;
+			if (!mat.toonTexture.empty())
+				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true).texture;
 			info.materials.emplace_back(material);
 		}
 		return true;

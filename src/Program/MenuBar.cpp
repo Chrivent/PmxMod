@@ -113,7 +113,7 @@ namespace Chrivent {
 				ShowSaveSceneDialog();
 				return true;
 			case kOpenGlRendererId:
-				SelectRenderer(RendererType::OpenGl);
+				SelectRenderer(RendererType::OpenGL);
 				return true;
 			case kDirectX11RendererId:
 				SelectRenderer(RendererType::DirectX11);

@@ -29,10 +29,10 @@ namespace Chrivent {
         GLint	sphereTexLocation = -1;
         GLint	sphereTexMulFactorLocation = -1;
         GLint	sphereTexAddFactorLocation = -1;
-        GLint	cartoonTexModeLocation = -1;
-        GLint	cartoonTexLocation = -1;
-        GLint	cartoonTexMulFactorLocation = -1;
-        GLint	cartoonTexAddFactorLocation = -1;
+        GLint	toonTexModeLocation = -1;
+        GLint	toonTexLocation = -1;
+        GLint	toonTexMulFactorLocation = -1;
+        GLint	toonTexAddFactorLocation = -1;
         GLint	lightColorLocation = -1;
         GLint	lightDirLocation = -1;
         
@@ -74,7 +74,7 @@ namespace Chrivent {
         GLuint  texture = 0;
         bool	textureHasAlpha = false;
         GLuint	sphereTexture = 0;
-        GLuint	cartoonTexture = 0;
+        GLuint	toonTexture = 0;
 
         explicit GlfwViewerMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };

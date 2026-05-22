@@ -16,7 +16,7 @@ namespace Chrivent {
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
 		bool sceneConfigDirty = false;
-		RendererType rendererType = RendererType::OpenGl;
+		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		HWND ownerWindow = nullptr;
 

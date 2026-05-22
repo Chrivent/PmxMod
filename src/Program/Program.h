@@ -18,7 +18,7 @@ namespace Chrivent {
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;
-        RendererType currentRendererType = RendererType::OpenGl;
+        RendererType currentRendererType = RendererType::OpenGL;
 
         // 실행할 렌더러를 선택해 생성한다.
         void CreateViewer(RendererType rendererType);

@@ -45,13 +45,13 @@ namespace Chrivent {
 		std::filesystem::path	texture;
 		std::filesystem::path	spTexture;
 		SphereMode				spTextureMode = SphereMode::None;
-		std::filesystem::path	cartoonTexture;
+		std::filesystem::path	toonTexture;
 		glm::vec4				textureMulFactor = glm::vec4(1);
 		glm::vec4				sphereTextureMulFactor = glm::vec4(1);
-		glm::vec4				cartoonTextureMulFactor = glm::vec4(1);
+		glm::vec4				toonTextureMulFactor = glm::vec4(1);
 		glm::vec4				textureAddFactor = glm::vec4(0);
 		glm::vec4				sphereTextureAddFactor = glm::vec4(0);
-		glm::vec4				cartoonTextureAddFactor = glm::vec4(0);
+		glm::vec4				toonTextureAddFactor = glm::vec4(0);
 		bool					bothFace = false;
 		bool					groundShadow = true;
 		bool					shadowCaster = true;

@@ -53,8 +53,8 @@ namespace Chrivent {
 				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor
 			});
 			BindTexture({
-				1, material.cartoonTexture, viewer->GetDx11Info().pipelineStates.cartoonTextureSampler.Get(), 1,
-				psCb.textureModes.y, psCb.cartoonTexMulFactor, psCb.cartoonTexAddFactor, mat.cartoonTextureMulFactor, mat.cartoonTextureAddFactor
+				1, material.toonTexture, viewer->GetDx11Info().pipelineStates.toonTextureSampler.Get(), 1,
+				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor
 			});
 			int spMode = 0;
 			if (material.spTexture.texture) {

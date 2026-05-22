@@ -34,8 +34,8 @@ namespace Chrivent {
         float		dummy3;
         glm::vec4	texMulFactor;
         glm::vec4	texAddFactor;
-        glm::vec4	cartoonTexMulFactor;
-        glm::vec4	cartoonTexAddFactor;
+        glm::vec4	toonTexMulFactor;
+        glm::vec4	toonTexAddFactor;
         glm::vec4	sphereTexMulFactor;
         glm::vec4	sphereTexAddFactor;
         glm::ivec4	textureModes;
@@ -68,7 +68,7 @@ namespace Chrivent {
     struct Dx11Material : ViewerMaterial {
         Dx11Texture texture{};
         Dx11Texture	spTexture{};
-        Dx11Texture	cartoonTexture{};
+        Dx11Texture	toonTexture{};
 
         explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
@@ -99,7 +99,7 @@ namespace Chrivent {
 
     struct Dx11PipelineStates {
         Microsoft::WRL::ComPtr<ID3D11SamplerState>      textureSampler;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>      cartoonTextureSampler;
+        Microsoft::WRL::ComPtr<ID3D11SamplerState>      toonTextureSampler;
         Microsoft::WRL::ComPtr<ID3D11BlendState>        blendState;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState>   frontFaceRs;
         Microsoft::WRL::ComPtr<ID3D11RasterizerState>   bothFaceRs;

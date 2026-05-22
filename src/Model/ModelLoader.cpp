@@ -118,15 +118,15 @@ namespace Chrivent {
 			m.edgeColor = mat.edgeColor;
 			if (mat.textureIndex != -1)
 				m.texture = texturePaths[mat.textureIndex];
-			if (mat.cartoonMode == CartoonMode::Common) {
-				if (mat.cartoonTextureIndex != -1) {
+			if (mat.toonMode == ToonMode::Common) {
+				if (mat.toonTextureIndex != -1) {
 					std::stringstream ss;
-					ss << "cartoon" << std::setfill('0') << std::setw(2) << (mat.cartoonTextureIndex + 1) << ".bmp";
-					m.cartoonTexture = dataDir / ss.str();
+					ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
+					m.toonTexture = dataDir / ss.str();
 				}
-			} else if (mat.cartoonMode == CartoonMode::Separate) {
-				if (mat.cartoonTextureIndex != -1)
-					m.cartoonTexture = texturePaths[mat.cartoonTextureIndex];
+			} else if (mat.toonMode == ToonMode::Separate) {
+				if (mat.toonTextureIndex != -1)
+					m.toonTexture = texturePaths[mat.toonTextureIndex];
 			}
 			if (mat.sphereTextureIndex != -1) {
 				m.spTexture = texturePaths[mat.sphereTextureIndex];

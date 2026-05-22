@@ -66,13 +66,13 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			}
 			glActiveTexture(GL_TEXTURE0 + 2);
-			if (material.cartoonTexture != 0) {
-				glUniform4fv(shader->cartoonTexMulFactorLocation, 1, &mat.cartoonTextureMulFactor[0]);
-				glUniform4fv(shader->cartoonTexAddFactorLocation, 1, &mat.cartoonTextureAddFactor[0]);
-				glUniform1i(shader->cartoonTexModeLocation, 1);
-				glBindTexture(GL_TEXTURE_2D, material.cartoonTexture);
+			if (material.toonTexture != 0) {
+				glUniform4fv(shader->toonTexMulFactorLocation, 1, &mat.toonTextureMulFactor[0]);
+				glUniform4fv(shader->toonTexAddFactorLocation, 1, &mat.toonTextureAddFactor[0]);
+				glUniform1i(shader->toonTexModeLocation, 1);
+				glBindTexture(GL_TEXTURE_2D, material.toonTexture);
 			} else {
-				glUniform1i(shader->cartoonTexModeLocation, 0);
+				glUniform1i(shader->toonTexModeLocation, 0);
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			}
 			if (mat.bothFace)

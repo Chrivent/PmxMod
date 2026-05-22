@@ -159,7 +159,7 @@ namespace Chrivent {
 				 , specularPower, ambient, drawMode
 				 , edgeColor, edgeSize
 				 , textureIndex, sphereTextureIndex
-				 , sphereMode, cartoonMode, cartoonTextureIndex
+				 , sphereMode, toonMode, toonTextureIndex
 				 , memo, numFaceVertices] : data.materials) {
 			ReadString(is, &name);
 			ReadString(is, &englishName);
@@ -173,13 +173,13 @@ namespace Chrivent {
 			BinaryReader::ReadIndex(is, &textureIndex, data.header.textureIndexSize);
 			BinaryReader::ReadIndex(is, &sphereTextureIndex, data.header.textureIndexSize);
 			BinaryReader::Read(is, &sphereMode);
-			BinaryReader::Read(is, &cartoonMode);
-			if (cartoonMode == CartoonMode::Separate)
-				BinaryReader::ReadIndex(is, &cartoonTextureIndex, data.header.textureIndexSize);
-			else if (cartoonMode == CartoonMode::Common) {
-				uint8_t cartoonIndex;
-				BinaryReader::Read(is, &cartoonIndex);
-				cartoonTextureIndex = cartoonIndex;
+			BinaryReader::Read(is, &toonMode);
+			if (toonMode == ToonMode::Separate)
+				BinaryReader::ReadIndex(is, &toonTextureIndex, data.header.textureIndexSize);
+			else if (toonMode == ToonMode::Common) {
+				uint8_t toonIndex;
+				BinaryReader::Read(is, &toonIndex);
+				toonTextureIndex = toonIndex;
 			}
 			ReadString(is, &memo);
 			BinaryReader::Read(is, &numFaceVertices);
@@ -283,7 +283,7 @@ namespace Chrivent {
 					   	for (auto& [materialIndex, opType, diffuse
 									, specular, specularPower
 									, ambient, edgeColor, edgeSize
-									, textureFactor, sphereTextureFactor, cartoonTextureFactor] : materialMorph) {
+									, textureFactor, sphereTextureFactor, toonTextureFactor] : materialMorph) {
 					   		BinaryReader::ReadIndex(is, &materialIndex, data.header.materialIndexSize);
 					   		BinaryReader::Read(is, &opType);
 					   		BinaryReader::Read(is, &diffuse);
@@ -294,7 +294,7 @@ namespace Chrivent {
 					   		BinaryReader::Read(is, &edgeSize);
 					   		BinaryReader::Read(is, &textureFactor);
 					   		BinaryReader::Read(is, &sphereTextureFactor);
-					   		BinaryReader::Read(is, &cartoonTextureFactor);
+					   		BinaryReader::Read(is, &toonTextureFactor);
 									}
 					   } else if (morphType == MorphType::Group) {
 					   	groupMorph.resize(dataCount);
