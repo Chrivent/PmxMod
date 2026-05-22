@@ -84,7 +84,7 @@ namespace Chrivent {
 		window = CreateWindowExW(
 			0, L"PmxModPanelWindow", L"Settings",
 			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 760, 540,
+			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
 			nullptr, nullptr, instance, this);
 		if (!window)
 			return;
