@@ -7,6 +7,7 @@
 #include "../Parser/VmdParser.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
+#include "../Viewer/Vulkan/VulkanViewer.h"
 
 #include <iostream>
 
@@ -20,7 +21,7 @@ namespace Chrivent {
                 viewer = std::make_unique<Dx11Viewer>();
                 break;
             case RendererType::Vulkan:
-                viewer.reset();
+                viewer = std::make_unique<VulkanViewer>();
                 break;
         }
         currentRendererType = rendererType;

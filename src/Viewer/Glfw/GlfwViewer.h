@@ -3,11 +3,8 @@
 #include "../Viewer.h"
 #include "GlfwTextureCache.h"
 
-#include <glad/glad.h>
-
 namespace Chrivent {
     class GlfwViewer;
-    struct Material;
 
     struct GlfwShader {
         GLuint	program = 0;

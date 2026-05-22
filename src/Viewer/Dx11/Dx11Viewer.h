@@ -3,11 +3,7 @@
 #include "../Viewer.h"
 #include "Dx11TextureCache.h"
 
-#include <d3d11.h>
-#include <wrl/client.h>
-
 namespace Chrivent {
-    struct Material;
     class Dx11Viewer;
 
     struct Dx11Vertex {

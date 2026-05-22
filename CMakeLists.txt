@@ -86,6 +86,11 @@ add_executable(PmxMod
         src/Viewer/Dx11/Dx11DescriptorFactory.h src/Viewer/Dx11/Dx11DescriptorFactory.cpp
         src/Viewer/Dx11/Dx11TextureCache.h src/Viewer/Dx11/Dx11TextureCache.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
+
+        src/Viewer/Vulkan/VulkanViewer.h src/Viewer/Vulkan/VulkanViewer.cpp
+        src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
+        src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
+        src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
 )
 
 target_link_libraries(PmxMod PUBLIC

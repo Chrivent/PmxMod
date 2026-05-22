@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <string>
 
 namespace Chrivent {
 	const char* GlfwShaderFactory::ShaderTypeName(const GLenum shaderType) {

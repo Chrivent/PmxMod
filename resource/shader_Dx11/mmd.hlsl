@@ -1,4 +1,4 @@
-﻿cbuffer VSData : register(b0) {
+cbuffer VSData : register(b0) {
     float4x4 wv;
     float4x4 wvp;
 };
