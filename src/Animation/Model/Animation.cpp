@@ -48,7 +48,7 @@ namespace Chrivent {
 			glm::vec3 vt = cur.translate;
 			glm::quat q  = cur.rotate;
 			if (it != keys.begin() && it != keys.end()) {
-				const auto& prev = *(it - 1);
+				const auto& prev = *std::prev(it);
 				const auto& [frame, translate, rotate,
 					txBezier, tyBezier, tzBezier,
 					rotBezier] = *it;
@@ -76,7 +76,7 @@ namespace Chrivent {
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
-			const bool enable = it != keys.begin() ? (it - 1)->ikEnable : keys.begin()->ikEnable;
+			const bool enable = it != keys.begin() ? std::prev(it)->ikEnable : keys.begin()->ikEnable;
 			ikSolver->GetInfo().enable = animWeight < 1.0f ? ikSolver->GetInfo().baseAnimEnable : enable;
 		}
 	}
@@ -90,7 +90,7 @@ namespace Chrivent {
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
-				auto [frame0, weight0] = *(it - 1);
+				auto [frame0, weight0] = *std::prev(it);
 				auto [frame1, weight1] = *it;
 				const float frame = (t - frame0) / (frame1 - frame0);
 				weight = (weight1 - weight0) * frame + weight0;

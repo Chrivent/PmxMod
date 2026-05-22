@@ -21,7 +21,7 @@ namespace Chrivent {
 		const auto& [frame, interest, rotate, distance, fov,
 			ixBezier, iyBezier, izBezier,
 			rotateBezier, distanceBezier, fovBezier] = *it;
-		const auto& prev = *(it - 1);
+		const auto& prev = *std::prev(it);
 		if (frame - prev.frame <= 1) {
 			info.camera.interest = prev.interest;
 			info.camera.rotate = prev.rotate;
