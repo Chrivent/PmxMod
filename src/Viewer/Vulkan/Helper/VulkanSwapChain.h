@@ -25,9 +25,9 @@ namespace Chrivent {
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
 		static VulkanSwapChainSupport QuerySupport(const VulkanDeviceInfo& deviceInfo);
-		// ?ъ슜??surface format???좏깮?쒕떎.
+		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-		// ?ъ슜??present mode瑜??좏깮?쒕떎.
+		// 사용할 present mode를 선택한다.
 		static VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 		// 현재 윈도우 크기에 맞는 swap extent를 선택한다.
 		static VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
