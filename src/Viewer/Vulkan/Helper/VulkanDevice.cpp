@@ -1,9 +1,7 @@
 #include "VulkanDevice.h"
 
 #include <iostream>
-#include <iterator>
 #include <set>
-#include <string>
 #include <vector>
 
 namespace Chrivent {

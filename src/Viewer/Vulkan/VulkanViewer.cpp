@@ -13,11 +13,13 @@ namespace Chrivent {
 
 	bool VulkanViewer::Setup() {
 		InitDirs("shader_Vulkan");
-		return device.Initialize(GetInfo().window);
+		if (!device.Initialize(GetInfo().window))
+			return false;
+		return swapChain.Initialize(device.GetInfo(), GetInfo().window);
 	}
 
 	bool VulkanViewer::Resize() {
-		return true;
+		return swapChain.Recreate(device.GetInfo(), GetInfo().window);
 	}
 
 	void VulkanViewer::BeginFrame() {

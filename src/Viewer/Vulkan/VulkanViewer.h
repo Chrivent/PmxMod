@@ -2,6 +2,7 @@
 
 #include "../Viewer.h"
 #include "Helper/VulkanDevice.h"
+#include "Helper/VulkanSwapChain.h"
 #include "VulkanTextureCache.h"
 
 namespace Chrivent {
@@ -18,6 +19,7 @@ namespace Chrivent {
 
 	class VulkanViewer : public Viewer {
 		VulkanDevice device;
+		VulkanSwapChain swapChain;
 		VulkanTextureCache textureCache;
 
 	public:

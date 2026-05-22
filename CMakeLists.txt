@@ -21,6 +21,9 @@ find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRE
 
 add_executable(PmxMod
         main.cpp
+
+        src/Util.h src/Util.cpp
+        
         src/Program/Program.h src/Program/Program.cpp
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
@@ -68,8 +71,6 @@ add_executable(PmxMod
         src/Model/Physics/RigidBody.h src/Model/Physics/RigidBody.cpp
         src/Model/Physics/Joint.h src/Model/Physics/Joint.cpp
         src/Model/Physics/MotionState.h src/Model/Physics/MotionState.cpp
-        
-        src/Util.h src/Util.cpp
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
@@ -78,21 +79,23 @@ add_executable(PmxMod
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
         src/Viewer/Glfw/GlfwDrawer.h src/Viewer/Glfw/GlfwDrawer.cpp
-        src/Viewer/Glfw/Helper/GlfwShaderFactory.h src/Viewer/Glfw/Helper/GlfwShaderFactory.cpp
         src/Viewer/Glfw/GlfwTextureCache.h src/Viewer/Glfw/GlfwTextureCache.cpp
         src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
         
         src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
         src/Viewer/Dx11/Dx11Drawer.h src/Viewer/Dx11/Dx11Drawer.cpp
-        src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
         src/Viewer/Dx11/Dx11TextureCache.h src/Viewer/Dx11/Dx11TextureCache.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 
         src/Viewer/Vulkan/VulkanViewer.h src/Viewer/Vulkan/VulkanViewer.cpp
         src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
-        src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
         src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
         src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
+
+        src/Viewer/Glfw/Helper/GlfwShaderFactory.h src/Viewer/Glfw/Helper/GlfwShaderFactory.cpp
+        src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
+        src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
+        src/Viewer/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Vulkan/Helper/VulkanSwapChain.cpp
 )
 
 target_link_libraries(PmxMod PRIVATE
