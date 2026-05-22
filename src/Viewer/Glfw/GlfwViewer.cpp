@@ -1,7 +1,7 @@
 ﻿#include "GlfwViewer.h"
 
 #include "GlfwInstance.h"
-#include "GlfwShaderFactory.h"
+#include "Helper/GlfwShaderFactory.h"
 
 #include <iostream>
 

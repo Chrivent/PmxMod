@@ -1,6 +1,6 @@
 ﻿#include "Dx11TextureCache.h"
 
-#include "Dx11DescriptorFactory.h"
+#include "Helper/Dx11DescriptorFactory.h"
 #include "../Viewer.h"
 
 #include <stb_image.h>

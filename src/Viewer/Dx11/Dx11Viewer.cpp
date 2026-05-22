@@ -1,7 +1,7 @@
 ﻿#include "Dx11Viewer.h"
 
 #include "Dx11Instance.h"
-#include "Dx11DescriptorFactory.h"
+#include "Helper/Dx11DescriptorFactory.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
