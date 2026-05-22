@@ -8,7 +8,7 @@ namespace Chrivent {
 
 	class VulkanTextureCache : public TextureCache {
 	public:
-		// ?띿뒪泥섎? 罹먯떆?먯꽌 李얘굅???뚯씪?먯꽌 濡쒕뱶??Vulkan ?띿뒪泥섎줈 諛섑솚?쒕떎.
+		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
 		VulkanTexture Load(const std::filesystem::path& texturePath);
 	};
 }

@@ -25,19 +25,19 @@ namespace Chrivent {
 		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
 		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 
-		// Vulkan ?뚮뜑留곸뿉 ?꾩슂??GLFW ?덈룄???뚰듃瑜??ㅼ젙?쒕떎.
+		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
-		// Vulkan ?뚮뜑??由ъ냼?ㅻ? 珥덇린?뷀븳??
+		// Vulkan 렌더러 리소스를 초기화한다.
 		bool Setup() override;
-		// 李??ш린??留욎떠 Vulkan ?ㅼ솑泥댁씤怨??뚮뜑 ?源껋쓣 ?ъ깮?깊븳??
+		// 창 크기에 맞춰 Vulkan 스왑체인과 렌더 타깃을 재생성한다.
 		bool Resize() override;
-		// Vulkan ?꾨젅???뚮뜑留곸쓣 ?쒖옉?쒕떎.
+		// Vulkan 프레임 렌더링을 시작한다.
 		void BeginFrame() override;
-		// Vulkan ?꾨젅?꾩쓣 ?쒖텧?섍퀬 ?붾㈃???쒖떆?쒕떎.
+		// Vulkan 프레임을 제출하고 화면에 표시한다.
 		bool EndFrame() override;
-		// Vulkan 紐⑤뜽 ?몄뒪?댁뒪瑜??앹꽦?쒕떎.
+		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
-		// ?띿뒪泥섎? 罹먯떆?먯꽌 李얘굅???뚯씪?먯꽌 濡쒕뱶??Vulkan ?띿뒪泥섎줈 諛섑솚?쒕떎.
+		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
 		VulkanTexture LoadTexture(const std::filesystem::path& texturePath);
 	};
 }

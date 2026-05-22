@@ -9,11 +9,11 @@ namespace Chrivent {
 		const VulkanInstanceInfo& info;
 
 	protected:
-		// ?쇰컲 硫붿떆 ?⑥뒪瑜?Vulkan?쇰줈 ?뚮뜑留곹븳??
+		// 일반 메시 패스를 Vulkan으로 렌더링한다.
 		void DrawModel() const override;
-		// ?ｌ? ?⑥뒪瑜?Vulkan?쇰줈 ?뚮뜑留곹븳??
+		// 엣지 패스를 Vulkan으로 렌더링한다.
 		void DrawEdge() const override;
-		// 吏硫?洹몃┝???⑥뒪瑜?Vulkan?쇰줈 ?뚮뜑留곹븳??
+		// 지면 그림자 패스를 Vulkan으로 렌더링한다.
 		void DrawGroundShadow() const override;
 
 	public:

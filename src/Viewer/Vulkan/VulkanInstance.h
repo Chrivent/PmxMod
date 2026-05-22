@@ -22,11 +22,11 @@ namespace Chrivent {
 		VulkanInstance();
 		~VulkanInstance() override = default;
 
-		// Vulkan 紐⑤뜽 由ъ냼?ㅻ? ?댁젣?쒕떎.
+		// Vulkan 모델 리소스를 해제한다.
 		void Clear() override;
-		// 紐⑤뜽 ?곗씠?곕? Vulkan 由ъ냼?ㅻ줈 ?낅줈?쒗븳??
+		// 모델 데이터를 Vulkan 리소스로 업로드한다.
 		bool Setup(Viewer& baseViewer) override;
-		// 紐⑤뜽??媛깆떊??踰꾪뀓???곗씠?곕? Vulkan 由ъ냼?ㅼ뿉 諛섏쁺?쒕떎.
+		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
 		void Update() const override;
 	};
 }
