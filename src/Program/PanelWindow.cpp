@@ -128,7 +128,6 @@ namespace Chrivent {
 		const int height = client.bottom - client.top;
 		if (width <= 0 || height <= 0)
 			return;
-
 		constexpr int margin = 10;
 		constexpr int gap = 8;
 		const int bottomHeight = (std::max)(120, height / 4);
@@ -140,18 +139,15 @@ namespace Chrivent {
 		const int playbackY = margin + motionHeight + gap;
 		const int playbackHeight = (std::max)(0, topHeight - motionHeight - gap);
 		const int bottomY = margin + topHeight + gap;
-
 		int bottomIndex = 0;
 		int bottomCount = 0;
 		for (const auto& entry : panels) {
 			if (entry.area == PanelWindowArea::Bottom)
 				bottomCount++;
 		}
-
 		for (const auto& entry : panels) {
 			if (!entry.panel || !entry.frame)
 				continue;
-
 			RECT area{};
 			switch (entry.area) {
 				case PanelWindowArea::Model:
@@ -173,7 +169,6 @@ namespace Chrivent {
 					break;
 				}
 			}
-
 			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
 			const int areaHeight = (std::max)(0, static_cast<int>(area.bottom - area.top));
 			MoveWindow(entry.frame, area.left, area.top, areaWidth, areaHeight, TRUE);
