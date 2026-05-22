@@ -49,7 +49,7 @@ namespace Chrivent {
 		if (ibo != 0)
 			glDeleteBuffers(1, &ibo);
 		posVbo = norVbo = uvVbo = ibo = 0;
-		auto& info = GetGlfwInfo();
+		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
 		if (info.vao != 0)
 			glDeleteVertexArrays(1, &info.vao);
 		if (info.edgeVao != 0)
@@ -60,7 +60,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
-		auto& info = GetGlfwInfo();
+		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
 		info.viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
 		if (info.model == nullptr)
 			return false;
@@ -120,7 +120,7 @@ namespace Chrivent {
 	}
 
 	void GlfwInstance::Update() const {
-		const auto& info = GetGlfwInfo();
+		const auto& info = static_cast<const GlfwInstanceInfo&>(GetInfo());
 		const ModelPose pose(*info.model);
 		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();

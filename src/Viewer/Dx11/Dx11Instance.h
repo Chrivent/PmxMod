@@ -28,9 +28,6 @@ namespace Chrivent {
 
     class Dx11Instance : public Instance {
     protected:
-        Dx11InstanceInfo& GetDx11Info() { return static_cast<Dx11InstanceInfo&>(GetInfo()); }
-        const Dx11InstanceInfo& GetDx11Info() const { return static_cast<const Dx11InstanceInfo&>(GetInfo()); }
-
         // 모델 버텍스 데이터를 매 프레임 갱신할 동적 버퍼 설명자를 만든다.
         static D3D11_BUFFER_DESC MakeVertexBufferDesc(size_t vertexCount);
         // 모델 인덱스 데이터를 한 번 업로드할 immutable 버퍼 설명자를 만든다.

@@ -20,9 +20,6 @@ namespace Chrivent {
 
     class GlfwInstance : public Instance {
     protected:
-        GlfwInstanceInfo& GetGlfwInfo() { return static_cast<GlfwInstanceInfo&>(GetInfo()); }
-        const GlfwInstanceInfo& GetGlfwInfo() const { return static_cast<const GlfwInstanceInfo&>(GetInfo()); }
-
         // OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
         static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
         // 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
