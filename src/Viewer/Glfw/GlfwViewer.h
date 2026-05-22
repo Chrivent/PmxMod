@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
-#include "../ViewerMaterial.h"
 #include "GlfwTextureCache.h"
 
 #include <glad/glad.h>

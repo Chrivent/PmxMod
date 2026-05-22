@@ -8,22 +8,28 @@ namespace Chrivent {
 	class MenuBar {
 		static constexpr int kOpenButtonId = 1000;
 		static constexpr int kSaveButtonId = 1001;
+		static constexpr int kOpenGlRendererId = 1100;
+		static constexpr int kDirectX11RendererId = 1101;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
 		bool sceneConfigDirty = false;
+		int rendererType = 0;
+		bool rendererDirty = false;
 		HWND ownerWindow = nullptr;
 
 		bool SaveSceneConfig(const std::filesystem::path& filepath) const;
 		bool LoadSceneConfig(const std::filesystem::path& filepath);
 		void ShowOpenSceneDialog();
 		void ShowSaveSceneDialog();
+		void SelectRenderer(int renderer);
+		void UpdateRendererMenuCheck() const;
 
 	public:
 		explicit MenuBar(SceneConfig& config);
 
-		// 파일 메뉴를 렌더링 창 상단 메뉴에 추가한다.
-		static void AddMenu(HMENU menu);
+		// 설정 창 상단 메뉴를 구성한다.
+		void AddMenu(HMENU menu) const;
 		// 파일 대화상자의 부모가 될 렌더링 창 핸들을 연결한다.
 		void AttachOwner(HWND owner);
 		// 메뉴 명령을 처리한다.
@@ -34,5 +40,7 @@ namespace Chrivent {
 		void Reset();
 		// 씬 설정 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeSceneConfigDirty();
+		int GetRendererType() const { return rendererType; }
+		bool ConsumeRendererDirty();
 	};
 }

@@ -72,7 +72,6 @@ add_executable(PmxMod
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
-        src/Viewer/ViewerMaterial.h
         src/Viewer/TextureCache.h
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp

@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
-#include "../ViewerMaterial.h"
 #include "Dx11TextureCache.h"
 
 #include <d3d11.h>

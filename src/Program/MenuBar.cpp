@@ -5,11 +5,18 @@
 namespace Chrivent {
 	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
 
-	void MenuBar::AddMenu(const HMENU menu) {
+	void MenuBar::AddMenu(const HMENU menu) const {
 		HMENU fileMenu = CreatePopupMenu();
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
+
+		HMENU rendererMenu = CreatePopupMenu();
+		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
+		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
+		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
+		CheckMenuRadioItem(menu, kOpenGlRendererId, kDirectX11RendererId,
+			rendererType == 1 ? kDirectX11RendererId : kOpenGlRendererId, MF_BYCOMMAND);
 	}
 
 	void MenuBar::AttachOwner(const HWND owner) {
@@ -69,6 +76,25 @@ namespace Chrivent {
 			std::cerr << "Failed to save scene config.\n";
 	}
 
+	void MenuBar::SelectRenderer(const int renderer) {
+		if (rendererType == renderer)
+			return;
+		rendererType = renderer;
+		rendererDirty = true;
+		UpdateRendererMenuCheck();
+	}
+
+	void MenuBar::UpdateRendererMenuCheck() const {
+		if (!ownerWindow)
+			return;
+		const HMENU menu = GetMenu(ownerWindow);
+		if (!menu)
+			return;
+		CheckMenuRadioItem(menu, kOpenGlRendererId, kDirectX11RendererId,
+			rendererType == 1 ? kDirectX11RendererId : kOpenGlRendererId, MF_BYCOMMAND);
+		DrawMenuBar(ownerWindow);
+	}
+
 	bool MenuBar::HandleCommand(const int commandId) {
 		switch (commandId) {
 			case kOpenButtonId:
@@ -76,6 +102,12 @@ namespace Chrivent {
 				return true;
 			case kSaveButtonId:
 				ShowSaveSceneDialog();
+				return true;
+			case kOpenGlRendererId:
+				SelectRenderer(0);
+				return true;
+			case kDirectX11RendererId:
+				SelectRenderer(1);
 				return true;
 			default:
 				return false;
@@ -90,11 +122,18 @@ namespace Chrivent {
 
 	void MenuBar::Reset() {
 		sceneConfigDirty = false;
+		rendererDirty = false;
 	}
 
 	bool MenuBar::ConsumeSceneConfigDirty() {
 		const bool dirty = sceneConfigDirty;
 		sceneConfigDirty = false;
+		return dirty;
+	}
+
+	bool MenuBar::ConsumeRendererDirty() {
+		const bool dirty = rendererDirty;
+		rendererDirty = false;
 		return dirty;
 	}
 }

@@ -10,6 +10,15 @@
 #include "Instance.h"
 
 namespace Chrivent {
+    struct Material;
+    
+    struct ViewerMaterial {
+        const Material& mat;
+
+        explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
+        virtual ~ViewerMaterial() = default;
+    };
+    
     struct ViewerInfo {
         std::filesystem::path	shaderDir;
         std::filesystem::path	pmxDir;
