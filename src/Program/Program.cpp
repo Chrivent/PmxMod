@@ -24,26 +24,26 @@ namespace Chrivent {
         if (!viewer)
             return false;
         if (!glfwInit()) {
-            std::cout << "Failed to initialize GLFW.\n";
+            std::cerr << "Failed to initialize GLFW.\n";
             return false;
         }
         viewer->ConfigureGlfwHints();
         viewer->GetInfo().window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
         if (!viewer->GetInfo().window) {
-            std::cout << "Failed to create viewer window.\n";
+            std::cerr << "Failed to create viewer window.\n";
             viewer.reset();
             glfwTerminate();
             return false;
         }
         glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
         if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
-            std::cout << "Invalid framebuffer size.\n";
+            std::cerr << "Invalid framebuffer size.\n";
             viewer.reset();
             glfwTerminate();
             return false;
         }
         if (!viewer->Setup()) {
-            std::cout << "Failed to set up renderer.\n";
+            std::cerr << "Failed to set up renderer.\n";
             viewer.reset();
             glfwTerminate();
             return false;
@@ -62,7 +62,7 @@ namespace Chrivent {
     bool Program::LoadScene(const SceneConfig& sceneConfig) {
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
-            std::cout << "Failed to load scene instances.\n";
+            std::cerr << "Failed to load scene instances.\n";
             return false;
         }
         ClearInstances();
@@ -91,7 +91,7 @@ namespace Chrivent {
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
             if (!loader.Load(modelPath, viewer->GetInfo().pmxDir)) {
-                std::cout << "Failed to load pmx file.\n";
+                std::cerr << "Failed to load pmx file.\n";
                 return false;
             }
             instance->GetInfo().model = pmxModel;
@@ -104,11 +104,11 @@ namespace Chrivent {
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
-                    std::cout << "Failed to read VMD file.\n";
+                    std::cerr << "Failed to read VMD file.\n";
                     return false;
                 }
                 if (!animationBuilder.Add(vmd.GetData())) {
-                    std::cout << "Failed to add VMDAnimation.\n";
+                    std::cerr << "Failed to add VMDAnimation.\n";
                     return false;
                 }
             }
@@ -234,7 +234,7 @@ namespace Chrivent {
         panelManager.Reset();
         panelManager.ApplySceneConfig(cfg);
         if (!InitializeViewer()) {
-            std::cout << "Failed to run.\n";
+            std::cerr << "Failed to run.\n";
             return false;
         }
         fpsTime = std::chrono::steady_clock::now();

@@ -102,7 +102,7 @@ namespace Chrivent {
 		auto& info = GetGlfwInfo();
 		glfwMakeContextCurrent(info.window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
-			std::cout << "Failed to load OpenGL functions.\n";
+			std::cerr << "Failed to load OpenGL functions.\n";
 			return false;
 		}
 		glfwSwapInterval(0);
@@ -110,17 +110,17 @@ namespace Chrivent {
 		InitDirs("shader_Glfw");
 		info.shader = std::make_unique<GlfwShader>();
 		if (!info.shader->Setup(info)) {
-			std::cout << "Failed to set up main GLFW shader: " << (info.shaderDir / "mmd.glsl") << '\n';
+			std::cerr << "Failed to set up main GLFW shader: " << (info.shaderDir / "mmd.glsl") << '\n';
 			return false;
 		}
 		info.edgeShader = std::make_unique<GlfwEdgeShader>();
 		if (!info.edgeShader->Setup(info)) {
-			std::cout << "Failed to set up edge GLFW shader: " << (info.shaderDir / "mmd_edge.glsl") << '\n';
+			std::cerr << "Failed to set up edge GLFW shader: " << (info.shaderDir / "mmd_edge.glsl") << '\n';
 			return false;
 		}
 		info.gsShader = std::make_unique<GlfwGroundShadowShader>();
 		if (!info.gsShader->Setup(info)) {
-			std::cout << "Failed to set up ground shadow GLFW shader: " << (info.shaderDir / "mmd_ground_shadow.glsl") << '\n';
+			std::cerr << "Failed to set up ground shadow GLFW shader: " << (info.shaderDir / "mmd_ground_shadow.glsl") << '\n';
 			return false;
 		}
 		glGenTextures(1, &info.dummyColorTex);

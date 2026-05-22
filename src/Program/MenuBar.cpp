@@ -43,7 +43,7 @@ namespace Chrivent {
 		if (LoadSceneConfig(filename.data()))
 			std::cout << "Scene config loaded.\n";
 		else
-			std::cout << "Failed to load scene config.\n";
+			std::cerr << "Failed to load scene config.\n";
 	}
 
 	void MenuBar::ShowSaveSceneDialog() {
@@ -66,7 +66,7 @@ namespace Chrivent {
 		if (SaveSceneConfig(sceneFilePath))
 			std::cout << "Current scene config saved.\n";
 		else
-			std::cout << "Failed to save scene config.\n";
+			std::cerr << "Failed to save scene config.\n";
 	}
 
 	bool MenuBar::HandleCommand(const int commandId) {
