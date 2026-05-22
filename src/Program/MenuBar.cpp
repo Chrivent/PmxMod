@@ -14,7 +14,7 @@ namespace Chrivent {
 		HMENU rendererMenu = CreatePopupMenu();
 		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
 		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
-		AppendMenuW(rendererMenu, MF_GRAYED, kVulkanRendererId, L"Vulkan");
+		AppendMenuW(rendererMenu, MF_STRING, kVulkanRendererId, L"Vulkan");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
 		int rendererId = kOpenGlRendererId;
 		if (rendererType == RendererType::DirectX11)
