@@ -73,7 +73,7 @@ namespace Chrivent {
 
 	void VulkanCommandBuffer::Destroy() {
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE && !commandBuffers.empty())
-			vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+			vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
 		commandBuffers.clear();
 		device = VK_NULL_HANDLE;
 		commandPool = VK_NULL_HANDLE;

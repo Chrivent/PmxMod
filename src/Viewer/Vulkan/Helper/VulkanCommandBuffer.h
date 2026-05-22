@@ -18,7 +18,7 @@ namespace Chrivent {
 		VulkanCommandBuffer(VulkanCommandBuffer&&) = delete;
 		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = delete;
 		
-		VkCommandBuffer GetCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
+		VkCommandBuffer GetCommandBuffer(uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
 		const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return commandBuffers; }
 
 		// ?ㅼ솑泥댁씤 ?대?吏 ?섏뿉 留욎떠 ?뚮뜑留?紐낅졊 踰꾪띁瑜??좊떦?쒕떎.
