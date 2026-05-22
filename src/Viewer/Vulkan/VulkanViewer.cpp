@@ -15,11 +15,21 @@ namespace Chrivent {
 		InitDirs("shader_Vulkan");
 		if (!device.Initialize(GetInfo().window))
 			return false;
-		return swapChain.Initialize(device.GetInfo(), GetInfo().window);
+		if (!swapChain.Initialize(device.GetInfo(), GetInfo().window))
+			return false;
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
+			return false;
+		return frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass());
 	}
 
 	bool VulkanViewer::Resize() {
-		return swapChain.Recreate(device.GetInfo(), GetInfo().window);
+		frameBuffer.Destroy();
+		renderPass.Destroy();
+		if (!swapChain.Recreate(device.GetInfo(), GetInfo().window))
+			return false;
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo()))
+			return false;
+		return frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass());
 	}
 
 	void VulkanViewer::BeginFrame() {

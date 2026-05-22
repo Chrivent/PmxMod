@@ -95,6 +95,8 @@ add_executable(PmxMod
         src/Viewer/Glfw/Helper/GlfwShaderFactory.h src/Viewer/Glfw/Helper/GlfwShaderFactory.cpp
         src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
         src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
+        src/Viewer/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Vulkan/Helper/VulkanRenderPass.cpp
+        src/Viewer/Vulkan/Helper/VulkanFrameBuffer.h src/Viewer/Vulkan/Helper/VulkanFrameBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Vulkan/Helper/VulkanSwapChain.cpp
 )
 
