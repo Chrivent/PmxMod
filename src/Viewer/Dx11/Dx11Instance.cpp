@@ -3,26 +3,10 @@
 #include "Dx11Drawer.h"
 
 #include "Dx11Viewer.h"
+#include "Helper/Dx11DescriptorFactory.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {
-	D3D11_BUFFER_DESC Dx11Instance::MakeVertexBufferDesc(const size_t vertexCount) {
-		D3D11_BUFFER_DESC d{};
-		d.Usage = D3D11_USAGE_DYNAMIC;
-		d.ByteWidth = sizeof(Dx11Vertex) * vertexCount;
-		d.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		return d;
-	}
-
-	D3D11_BUFFER_DESC Dx11Instance::MakeIndexBufferDesc(const size_t indexBytes) {
-		D3D11_BUFFER_DESC d{};
-		d.Usage = D3D11_USAGE_IMMUTABLE;
-		d.ByteWidth = indexBytes;
-		d.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		return d;
-	}
-
 	Dx11Instance::Dx11Instance() {
 		info = std::make_unique<Dx11InstanceInfo>();
 	}
@@ -31,10 +15,12 @@ namespace Chrivent {
 		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());;
 		info.viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
 		drawer = std::make_unique<Dx11Drawer>(info);
-		const auto vBufDesc = MakeVertexBufferDesc(info.model->geometryData.positions.size());
+		const auto vBufDesc = Dx11DescriptorFactory::MakeDynamicVertexBufferDesc(
+			sizeof(Dx11Vertex) * info.model->geometryData.positions.size());
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
 			return false;
-		const auto iBufDesc = MakeIndexBufferDesc(info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
+		const auto iBufDesc = Dx11DescriptorFactory::MakeImmutableIndexBufferDesc(
+			info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = info.model->geometryData.indices.data();
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
@@ -95,5 +81,4 @@ namespace Chrivent {
 		info.viewer->GetDx11Info().deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
 	}
 }
-
 

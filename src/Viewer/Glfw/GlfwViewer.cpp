@@ -1,7 +1,7 @@
 ﻿#include "GlfwViewer.h"
 
 #include "GlfwInstance.h"
-#include "Helper/GlfwShaderFactory.h"
+#include "Helper/GlfwShaderCompiler.h"
 
 #include <iostream>
 
@@ -12,8 +12,8 @@ namespace Chrivent {
 		program = 0;
 	}
 
-	bool GlfwShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd.glsl");
+	bool GlfwModelShader::Setup(const ViewerInfo& viewerInfo) {
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -44,14 +44,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	GlfwEdgeShader::~GlfwEdgeShader() {
-		if (program != 0)
-			glDeleteProgram(program);
-		program = 0;
-	}
-
 	bool GlfwEdgeShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd_edge.glsl");
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd_edge.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -64,14 +58,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	GlfwGroundShadowShader::~GlfwGroundShadowShader() {
-		if (program != 0)
-			glDeleteProgram(program);
-		program = 0;
-	}
-
 	bool GlfwGroundShadowShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderFactory::CreateShader(viewerInfo.shaderDir / "mmd_ground_shadow.glsl");
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd_ground_shadow.glsl");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -109,7 +97,7 @@ namespace Chrivent {
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		InitDirs("shader_Glfw");
-		info.shader = std::make_unique<GlfwShader>();
+		info.shader = std::make_unique<GlfwModelShader>();
 		if (!info.shader->Setup(info)) {
 			std::cerr << "Failed to set up main GLFW shader: " << (info.shaderDir / "mmd.glsl") << '\n';
 			return false;

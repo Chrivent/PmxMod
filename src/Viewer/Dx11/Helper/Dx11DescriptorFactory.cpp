@@ -60,6 +60,23 @@ namespace Chrivent {
 		return d;
 	}
 
+	D3D11_BUFFER_DESC Dx11DescriptorFactory::MakeDynamicVertexBufferDesc(const UINT byteWidth) {
+		D3D11_BUFFER_DESC d{};
+		d.Usage = D3D11_USAGE_DYNAMIC;
+		d.ByteWidth = byteWidth;
+		d.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		return d;
+	}
+
+	D3D11_BUFFER_DESC Dx11DescriptorFactory::MakeImmutableIndexBufferDesc(const UINT byteWidth) {
+		D3D11_BUFFER_DESC d{};
+		d.Usage = D3D11_USAGE_IMMUTABLE;
+		d.ByteWidth = byteWidth;
+		d.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		return d;
+	}
+
 	D3D11_DEPTH_STENCIL_DESC Dx11DescriptorFactory::MakeDefaultDepthStencilDesc() {
 		CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 		d.DepthEnable = TRUE;

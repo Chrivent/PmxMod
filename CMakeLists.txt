@@ -92,7 +92,7 @@ add_executable(PmxMod
         src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
         src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
 
-        src/Viewer/Glfw/Helper/GlfwShaderFactory.h src/Viewer/Glfw/Helper/GlfwShaderFactory.cpp
+        src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp
         src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp

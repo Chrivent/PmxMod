@@ -16,6 +16,10 @@ namespace Chrivent {
 		// 2D 텍스처의 기본 설명자를 만든다.
 		static D3D11_TEXTURE2D_DESC MakeTexture2DDesc(UINT width, UINT height, DXGI_FORMAT format,
 			UINT bindFlags, UINT sampleCount = 1, UINT sampleQuality = 0);
+		// 매 프레임 갱신할 동적 버텍스 버퍼 설명자를 만든다.
+		static D3D11_BUFFER_DESC MakeDynamicVertexBufferDesc(UINT byteWidth);
+		// 한 번 업로드할 immutable 인덱스 버퍼 설명자를 만든다.
+		static D3D11_BUFFER_DESC MakeImmutableIndexBufferDesc(UINT byteWidth);
 		// 기본 깊이 테스트용 depth-stencil 설명자를 만든다.
 		static D3D11_DEPTH_STENCIL_DESC MakeDefaultDepthStencilDesc();
 		// 지면 그림자 스텐실 처리용 depth-stencil 설명자를 만든다.
