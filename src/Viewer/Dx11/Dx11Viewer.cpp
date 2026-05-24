@@ -1,7 +1,7 @@
 ﻿#include "Dx11Viewer.h"
 
 #include "Dx11Instance.h"
-#include "Helper/Dx11DescriptorFactory.h"
+#include "Helper/Dx11DescBuilder.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
@@ -37,7 +37,7 @@ namespace Chrivent {
 			quality = 0;
 		}
 		multiSampleQuality = quality > 0 ? quality - 1 : 0;
-		auto d = Dx11DescriptorFactory::MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
+		auto d = Dx11DescBuilder::MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
 		if (FAILED(factory->CreateSwapChain(GetDx11Info().deviceResources.device.Get(), &d, &GetDx11Info().deviceResources.swapChain)))
 			return false;
 		if (!CreateRenderTargets())
@@ -110,7 +110,7 @@ namespace Chrivent {
 			return false;
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &GetDx11Info().renderTargets.renderTargetView)))
 			return false;
-		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
+		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
 			GetInfo().screenWidth, GetInfo().screenHeight,
 			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
 			multiSampleCount, multiSampleQuality);
@@ -122,34 +122,34 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {
-		auto wrapLinear = Dx11DescriptorFactory::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&wrapLinear, &GetDx11Info().pipelineStates.textureSampler)))
 			return false;
-		auto clampLinear = Dx11DescriptorFactory::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		auto clampLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&clampLinear, &GetDx11Info().pipelineStates.toonTextureSampler)))
 			return false;
-		auto blend = Dx11DescriptorFactory::MakeAlphaBlendDesc();
+		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
 		if (FAILED(GetDx11Info().deviceResources.device->CreateBlendState(&blend, &GetDx11Info().pipelineStates.blendState)))
 			return false;
-		auto frontRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_BACK, true);
+		auto frontRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&frontRsDesc, &GetDx11Info().pipelineStates.frontFaceRs)))
 			return false;
-		auto bothRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		auto bothRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&bothRsDesc, &GetDx11Info().pipelineStates.bothFaceRs)))
 			return false;
-		auto edgeRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
+		auto edgeRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&edgeRsDesc, &GetDx11Info().pipelineStates.edgeRs)))
 			return false;
-		auto gsRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		auto gsRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		gsRsDesc.DepthBias = -1;
 		gsRsDesc.SlopeScaledDepthBias = -1.0f;
 		gsRsDesc.DepthBiasClamp = -1.0f;
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&gsRsDesc, &GetDx11Info().pipelineStates.gsRs)))
 			return false;
-		auto gsDssDesc = Dx11DescriptorFactory::MakeGroundShadowDepthStencilDesc();
+		auto gsDssDesc = Dx11DescBuilder::MakeGroundShadowDepthStencilDesc();
 		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&gsDssDesc, &GetDx11Info().pipelineStates.gsDss)))
 			return false;
-		auto defDssDesc  = Dx11DescriptorFactory::MakeDefaultDepthStencilDesc();
+		auto defDssDesc  = Dx11DescBuilder::MakeDefaultDepthStencilDesc();
 		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&defDssDesc, &GetDx11Info().pipelineStates.defaultDss)))
 			return false;
 		return true;

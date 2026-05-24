@@ -1,6 +1,6 @@
 ﻿#include "Dx11TextureCache.h"
 
-#include "Helper/Dx11DescriptorFactory.h"
+#include "Helper/Dx11DescBuilder.h"
 #include "../Viewer.h"
 
 #include <stb_image.h>
@@ -13,7 +13,7 @@ namespace Chrivent {
 			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
 			return texture ? *texture : Dx11Texture{};
 		}
-		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+		const auto d = Dx11DescBuilder::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		constexpr uint8_t white[] = { 255, 255, 255, 255 };
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = white;
@@ -45,7 +45,7 @@ namespace Chrivent {
 		if (!image)
 			return {};
 		const bool textureHasAlpha = comp == 4;
-		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(
+		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
 			x, y, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = image;

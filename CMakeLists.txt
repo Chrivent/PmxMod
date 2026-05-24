@@ -99,7 +99,7 @@ add_executable(PmxMod
         src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp
         
         src/Viewer/Dx11/Helper/Dx11Constants.h
-        src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
+        src/Viewer/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Dx11/Helper/Dx11DescBuilder.cpp
         src/Viewer/Dx11/Helper/Dx11Shader.h src/Viewer/Dx11/Helper/Dx11Shader.cpp
         src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
         

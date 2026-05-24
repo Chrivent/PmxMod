@@ -3,7 +3,7 @@
 #include "Dx11Drawer.h"
 
 #include "Dx11Viewer.h"
-#include "Helper/Dx11DescriptorFactory.h"
+#include "Helper/Dx11DescBuilder.h"
 #include "../../Model/ModelPose.h"
 
 namespace Chrivent {
@@ -15,11 +15,11 @@ namespace Chrivent {
 		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());;
 		info.viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
 		drawer = std::make_unique<Dx11Drawer>(info);
-		const auto vBufDesc = Dx11DescriptorFactory::MakeDynamicVertexBufferDesc(
+		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(
 			sizeof(Dx11Vertex) * info.model->geometryData.positions.size());
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
 			return false;
-		const auto iBufDesc = Dx11DescriptorFactory::MakeImmutableIndexBufferDesc(
+		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(
 			info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = info.model->geometryData.indices.data();

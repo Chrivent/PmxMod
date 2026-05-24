@@ -3,7 +3,7 @@
 #include <d3d11.h>
 
 namespace Chrivent {
-	class Dx11DescriptorFactory {
+	class Dx11DescBuilder {
 	public:
 		// 지정한 필터와 주소 모드로 샘플러 설명자를 만든다.
 		static D3D11_SAMPLER_DESC MakeSamplerDesc(D3D11_FILTER f, D3D11_TEXTURE_ADDRESS_MODE addr);
