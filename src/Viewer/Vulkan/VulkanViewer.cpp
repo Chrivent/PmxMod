@@ -66,8 +66,12 @@ namespace Chrivent {
 		const auto& deviceInfo = device.GetInfo();
 		const auto& syncInfo = syncObject.GetInfo();
 		const size_t frameIndex = syncInfo.currentFrame;
-		const VkFence inFlightFence = syncInfo.inFlightFences[frameIndex];
-		vkWaitForFences(deviceInfo.device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(
+			deviceInfo.device,
+			VulkanSyncObjectInfo::kMaxFramesInFlight,
+			syncInfo.inFlightFences.data(),
+			VK_TRUE,
+			UINT64_MAX);
 		const VkResult acquireResult = vkAcquireNextImageKHR(
 			deviceInfo.device,
 			swapChain.GetInfo().swapChain,
