@@ -3,37 +3,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanColorBuffer::~VulkanColorBuffer() {
-		Destroy();
-	}
-
-	bool VulkanColorBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
-		device = deviceInfo.device;
-		info.format = swapChainInfo.imageFormat;
-		if (!CreateImage(deviceInfo, swapChainInfo))
-			return false;
-		return CreateImageView();
-	}
-
-	void VulkanColorBuffer::Destroy() {
-		if (device == VK_NULL_HANDLE)
-			return;
-		if (info.imageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(device, info.imageView, nullptr);
-			info.imageView = VK_NULL_HANDLE;
-		}
-		if (info.image != VK_NULL_HANDLE) {
-			vkDestroyImage(device, info.image, nullptr);
-			info.image = VK_NULL_HANDLE;
-		}
-		if (info.imageMemory != VK_NULL_HANDLE) {
-			vkFreeMemory(device, info.imageMemory, nullptr);
-			info.imageMemory = VK_NULL_HANDLE;
-		}
-		info.format = VK_FORMAT_UNDEFINED;
-		device = VK_NULL_HANDLE;
-	}
-
 	bool VulkanColorBuffer::FindMemoryType(
 		const VulkanDeviceInfo& deviceInfo,
 		const uint32_t typeFilter,
@@ -108,5 +77,36 @@ namespace Chrivent {
 			return false;
 		}
 		return true;
+	}
+
+	VulkanColorBuffer::~VulkanColorBuffer() {
+		Destroy();
+	}
+
+	bool VulkanColorBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+		device = deviceInfo.device;
+		info.format = swapChainInfo.imageFormat;
+		if (!CreateImage(deviceInfo, swapChainInfo))
+			return false;
+		return CreateImageView();
+	}
+
+	void VulkanColorBuffer::Destroy() {
+		if (device == VK_NULL_HANDLE)
+			return;
+		if (info.imageView != VK_NULL_HANDLE) {
+			vkDestroyImageView(device, info.imageView, nullptr);
+			info.imageView = VK_NULL_HANDLE;
+		}
+		if (info.image != VK_NULL_HANDLE) {
+			vkDestroyImage(device, info.image, nullptr);
+			info.image = VK_NULL_HANDLE;
+		}
+		if (info.imageMemory != VK_NULL_HANDLE) {
+			vkFreeMemory(device, info.imageMemory, nullptr);
+			info.imageMemory = VK_NULL_HANDLE;
+		}
+		info.format = VK_FORMAT_UNDEFINED;
+		device = VK_NULL_HANDLE;
 	}
 }

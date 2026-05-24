@@ -13,7 +13,7 @@ namespace Chrivent {
 
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
 		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());;
-		info.viewer = &dynamic_cast<Dx11Viewer&>(baseViewer);
+		info.viewer = &static_cast<Dx11Viewer&>(baseViewer);
 		drawer = std::make_unique<Dx11Drawer>(info);
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(
 			sizeof(Dx11Vertex) * info.model->geometryData.positions.size());

@@ -5,43 +5,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanDescriptorSet::~VulkanDescriptorSet() {
-		Destroy();
-	}
-
-	bool VulkanDescriptorSet::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanPipelineInfo& pipelineInfo,
-		const VulkanBufferInfo& vertexConstantBuffer,
-		std::vector<VulkanMaterial>& materials,
-		const VulkanPassType sourcePassType) {
-		Destroy();
-		device = deviceInfo.device;
-		passType = sourcePassType;
-		if (!CreateDescriptorPool(materials.size()))
-			return false;
-		if (!AllocateDescriptorSets(pipelineInfo, materials.size()))
-			return false;
-		UpdateVertexDescriptorSet(vertexConstantBuffer);
-		UpdatePixelDescriptorSets(materials);
-		UpdateTextureDescriptorSets(materials);
-		return true;
-	}
-
-	void VulkanDescriptorSet::Destroy() {
-		if (device == VK_NULL_HANDLE)
-			return;
-		if (info.descriptorPool != VK_NULL_HANDLE) {
-			vkDestroyDescriptorPool(device, info.descriptorPool, nullptr);
-			info.descriptorPool = VK_NULL_HANDLE;
-		}
-		info.vertexDescriptorSet = VK_NULL_HANDLE;
-		info.pixelDescriptorSets.clear();
-		info.textureDescriptorSets.clear();
-		passType = VulkanPassType::Model;
-		device = VK_NULL_HANDLE;
-	}
-
 	bool VulkanDescriptorSet::CreateDescriptorPool(const size_t materialCount) {
 		if (materialCount > std::numeric_limits<uint32_t>::max()) {
 			std::cerr << "Failed to create Vulkan descriptor pool: material count is too large.\n";
@@ -241,5 +204,42 @@ namespace Chrivent {
 			};
 			vkUpdateDescriptorSets(device, std::size(writes), writes, 0, nullptr);
 		}
+	}
+
+	VulkanDescriptorSet::~VulkanDescriptorSet() {
+		Destroy();
+	}
+
+	bool VulkanDescriptorSet::Initialize(
+		const VulkanDeviceInfo& deviceInfo,
+		const VulkanPipelineInfo& pipelineInfo,
+		const VulkanBufferInfo& vertexConstantBuffer,
+		std::vector<VulkanMaterial>& materials,
+		const VulkanPassType sourcePassType) {
+		Destroy();
+		device = deviceInfo.device;
+		passType = sourcePassType;
+		if (!CreateDescriptorPool(materials.size()))
+			return false;
+		if (!AllocateDescriptorSets(pipelineInfo, materials.size()))
+			return false;
+		UpdateVertexDescriptorSet(vertexConstantBuffer);
+		UpdatePixelDescriptorSets(materials);
+		UpdateTextureDescriptorSets(materials);
+		return true;
+	}
+
+	void VulkanDescriptorSet::Destroy() {
+		if (device == VK_NULL_HANDLE)
+			return;
+		if (info.descriptorPool != VK_NULL_HANDLE) {
+			vkDestroyDescriptorPool(device, info.descriptorPool, nullptr);
+			info.descriptorPool = VK_NULL_HANDLE;
+		}
+		info.vertexDescriptorSet = VK_NULL_HANDLE;
+		info.pixelDescriptorSets.clear();
+		info.textureDescriptorSets.clear();
+		passType = VulkanPassType::Model;
+		device = VK_NULL_HANDLE;
 	}
 }

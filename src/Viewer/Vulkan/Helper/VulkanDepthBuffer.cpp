@@ -3,41 +3,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanDepthBuffer::~VulkanDepthBuffer() {
-		Destroy();
-	}
-
-	bool VulkanDepthBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
-		device = deviceInfo.device;
-		info.format = FindDepthFormat(deviceInfo);
-		if (info.format == VK_FORMAT_UNDEFINED) {
-			std::cerr << "Failed to find a supported Vulkan depth format.\n";
-			return false;
-		}
-		if (!CreateImage(deviceInfo, swapChainInfo))
-			return false;
-		return CreateImageView();
-	}
-
-	void VulkanDepthBuffer::Destroy() {
-		if (device == VK_NULL_HANDLE)
-			return;
-		if (info.imageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(device, info.imageView, nullptr);
-			info.imageView = VK_NULL_HANDLE;
-		}
-		if (info.image != VK_NULL_HANDLE) {
-			vkDestroyImage(device, info.image, nullptr);
-			info.image = VK_NULL_HANDLE;
-		}
-		if (info.imageMemory != VK_NULL_HANDLE) {
-			vkFreeMemory(device, info.imageMemory, nullptr);
-			info.imageMemory = VK_NULL_HANDLE;
-		}
-		info.format = VK_FORMAT_UNDEFINED;
-		device = VK_NULL_HANDLE;
-	}
-
 	VkFormat VulkanDepthBuffer::FindDepthFormat(const VulkanDeviceInfo& deviceInfo) {
 		constexpr VkFormat candidates[] = {
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -50,10 +15,6 @@ namespace Chrivent {
 			std::size(candidates),
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-	}
-
-	bool VulkanDepthBuffer::HasStencilComponent(const VkFormat format) {
-		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
 	VkFormat VulkanDepthBuffer::FindSupportedFormat(
@@ -149,5 +110,44 @@ namespace Chrivent {
 			return false;
 		}
 		return true;
+	}
+
+	VulkanDepthBuffer::~VulkanDepthBuffer() {
+		Destroy();
+	}
+
+	bool VulkanDepthBuffer::HasStencilComponent(const VkFormat format) {
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+	}
+
+	bool VulkanDepthBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+		device = deviceInfo.device;
+		info.format = FindDepthFormat(deviceInfo);
+		if (info.format == VK_FORMAT_UNDEFINED) {
+			std::cerr << "Failed to find a supported Vulkan depth format.\n";
+			return false;
+		}
+		if (!CreateImage(deviceInfo, swapChainInfo))
+			return false;
+		return CreateImageView();
+	}
+
+	void VulkanDepthBuffer::Destroy() {
+		if (device == VK_NULL_HANDLE)
+			return;
+		if (info.imageView != VK_NULL_HANDLE) {
+			vkDestroyImageView(device, info.imageView, nullptr);
+			info.imageView = VK_NULL_HANDLE;
+		}
+		if (info.image != VK_NULL_HANDLE) {
+			vkDestroyImage(device, info.image, nullptr);
+			info.image = VK_NULL_HANDLE;
+		}
+		if (info.imageMemory != VK_NULL_HANDLE) {
+			vkFreeMemory(device, info.imageMemory, nullptr);
+			info.imageMemory = VK_NULL_HANDLE;
+		}
+		info.format = VK_FORMAT_UNDEFINED;
+		device = VK_NULL_HANDLE;
 	}
 }

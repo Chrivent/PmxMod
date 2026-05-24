@@ -67,7 +67,7 @@ namespace Chrivent {
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
 		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
-		info.viewer = &dynamic_cast<GlfwViewer&>(baseViewer);
+		info.viewer = &static_cast<GlfwViewer&>(baseViewer);
 		if (info.model == nullptr)
 			return false;
 		drawer = std::make_unique<GlfwDrawer>(info);

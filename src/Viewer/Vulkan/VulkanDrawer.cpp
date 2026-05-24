@@ -8,7 +8,15 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanDrawer::VulkanDrawer(const VulkanInstanceInfo& sourceInfo) : info(sourceInfo) {}
+	const glm::mat4& VulkanDrawer::VulkanClipMatrix() {
+		static constexpr glm::mat4 vulkanMat(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, -1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return vulkanMat;
+	}
 
 	void VulkanDrawer::DrawModel() const {
 		if (info.viewer == nullptr)
@@ -136,13 +144,5 @@ namespace Chrivent {
 		}
 	}
 
-	const glm::mat4& VulkanDrawer::VulkanClipMatrix() {
-		static constexpr glm::mat4 vulkanMat(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, -1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
-		return vulkanMat;
-	}
+	VulkanDrawer::VulkanDrawer(const VulkanInstanceInfo& sourceInfo) : info(sourceInfo) {}
 }

@@ -9,6 +9,42 @@
 #include <iostream>
 
 namespace Chrivent {
+	std::vector<VulkanVertex> VulkanInstance::MakeVertices(const ModelGeometryData& geometryData, const bool useUpdateData) {
+		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
+			? geometryData.updatePositions
+			: geometryData.positions;
+		const auto& normals = useUpdateData && geometryData.updateNormals.size() == geometryData.normals.size()
+			? geometryData.updateNormals
+			: geometryData.normals;
+		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
+			? geometryData.updateUVs
+			: geometryData.uvs;
+		std::vector<VulkanVertex> vertices;
+		vertices.reserve(positions.size());
+		for (size_t i = 0; i < positions.size(); i++) {
+			VulkanVertex vertex{};
+			vertex.position = positions[i];
+			if (i < normals.size())
+				vertex.normal = normals[i];
+			if (i < uvs.size())
+				vertex.uv = uvs[i];
+			vertices.emplace_back(vertex);
+		}
+		return vertices;
+	}
+
+	bool VulkanInstance::GetIndexType(const size_t indexElementSize, VkIndexType& indexType) {
+		if (indexElementSize == 2) {
+			indexType = VK_INDEX_TYPE_UINT16;
+			return true;
+		}
+		if (indexElementSize == 4) {
+			indexType = VK_INDEX_TYPE_UINT32;
+			return true;
+		}
+		return false;
+	}
+
 	VulkanInstance::VulkanInstance() {
 		info = std::make_unique<VulkanInstanceInfo>();
 		drawer = std::make_unique<VulkanDrawer>(static_cast<VulkanInstanceInfo&>(GetInfo()));
@@ -32,7 +68,7 @@ namespace Chrivent {
 	bool VulkanInstance::Setup(Viewer& baseViewer) {
 		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
 		Clear();
-		info.viewer = dynamic_cast<VulkanViewer*>(&baseViewer);
+		info.viewer = static_cast<VulkanViewer*>(&baseViewer);
 		if (info.viewer == nullptr || info.model == nullptr)
 			return false;
 		const auto& geometryData = info.model->geometryData;
@@ -160,41 +196,5 @@ namespace Chrivent {
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
 		if (!info.vertexBuffer.Write(vertices.data(), vertexBufferSize))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
-	}
-
-	std::vector<VulkanVertex> VulkanInstance::MakeVertices(const ModelGeometryData& geometryData, const bool useUpdateData) {
-		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
-			? geometryData.updatePositions
-			: geometryData.positions;
-		const auto& normals = useUpdateData && geometryData.updateNormals.size() == geometryData.normals.size()
-			? geometryData.updateNormals
-			: geometryData.normals;
-		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
-			? geometryData.updateUVs
-			: geometryData.uvs;
-		std::vector<VulkanVertex> vertices;
-		vertices.reserve(positions.size());
-		for (size_t i = 0; i < positions.size(); i++) {
-			VulkanVertex vertex{};
-			vertex.position = positions[i];
-			if (i < normals.size())
-				vertex.normal = normals[i];
-			if (i < uvs.size())
-				vertex.uv = uvs[i];
-			vertices.emplace_back(vertex);
-		}
-		return vertices;
-	}
-
-	bool VulkanInstance::GetIndexType(const size_t indexElementSize, VkIndexType& indexType) {
-		if (indexElementSize == 2) {
-			indexType = VK_INDEX_TYPE_UINT16;
-			return true;
-		}
-		if (indexElementSize == 4) {
-			indexType = VK_INDEX_TYPE_UINT32;
-			return true;
-		}
-		return false;
 	}
 }

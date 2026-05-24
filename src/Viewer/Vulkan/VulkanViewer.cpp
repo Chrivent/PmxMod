@@ -9,6 +9,82 @@ namespace Chrivent {
 		info = std::make_unique<VulkanViewerInfo>();
 	}
 
+	void VulkanViewer::DrawIndexed(
+		const VulkanBufferInfo& vertexBuffer,
+		const VulkanBufferInfo& indexBuffer,
+		const VkIndexType indexType,
+		const size_t firstIndex,
+		const size_t indexCount) const {
+		if (!frameReady)
+			return;
+		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
+			indexCount > std::numeric_limits<uint32_t>::max()) {
+			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
+			return;
+		}
+		commandContext.GetCommandBuffer().DrawIndexed(
+			currentImageIndex,
+			vertexBuffer,
+			indexBuffer,
+			indexType,
+			firstIndex,
+			indexCount);
+	}
+
+	void VulkanViewer::BindModelPipeline(const bool bothFace) const {
+		if (!frameReady)
+			return;
+		const VkPipeline targetPipeline = bothFace
+			? pipeline.GetInfo().bothFacePipeline
+			: pipeline.GetInfo().pipeline;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+	}
+
+	void VulkanViewer::BindEdgePipeline() const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
+	}
+
+	void VulkanViewer::BindGroundShadowPipeline() const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
+	}
+
+	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			0,
+			&descriptorSetInfo.vertexDescriptorSet,
+			1);
+	}
+
+	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet) const {
+		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			1,
+			&descriptorSet,
+			1);
+	}
+
+	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
+		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			2,
+			&descriptorSet,
+			1);
+	}
+
 	void VulkanViewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
@@ -161,81 +237,5 @@ namespace Chrivent {
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
 		return textureCache.Load(device.GetInfo(), commandContext.GetCommandPool(), texturePath, clamp);
-	}
-
-	void VulkanViewer::DrawIndexed(
-		const VulkanBufferInfo& vertexBuffer,
-		const VulkanBufferInfo& indexBuffer,
-		const VkIndexType indexType,
-		const size_t firstIndex,
-		const size_t indexCount) const {
-		if (!frameReady)
-			return;
-		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
-			indexCount > std::numeric_limits<uint32_t>::max()) {
-			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
-			return;
-		}
-		commandContext.GetCommandBuffer().DrawIndexed(
-			currentImageIndex,
-			vertexBuffer,
-			indexBuffer,
-			indexType,
-			firstIndex,
-			indexCount);
-	}
-
-	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const {
-		if (!frameReady)
-			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
-			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
-			0,
-			&descriptorSetInfo.vertexDescriptorSet,
-			1);
-	}
-
-	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet) const {
-		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
-			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
-			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
-			1,
-			&descriptorSet,
-			1);
-	}
-
-	void VulkanViewer::BindModelPipeline(const bool bothFace) const {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = bothFace
-			? pipeline.GetInfo().bothFacePipeline
-			: pipeline.GetInfo().pipeline;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
-	}
-
-	void VulkanViewer::BindEdgePipeline() const {
-		if (!frameReady)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
-	}
-
-	void VulkanViewer::BindGroundShadowPipeline() const {
-		if (!frameReady)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
-	}
-
-	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
-		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
-			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
-			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
-			2,
-			&descriptorSet,
-			1);
 	}
 }

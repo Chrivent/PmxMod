@@ -8,55 +8,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanPipeline::~VulkanPipeline() {
-		Destroy();
-	}
-
-	bool VulkanPipeline::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
-		const VkRenderPass renderPass,
-		const std::filesystem::path& shaderDir) {
-		device = deviceInfo.device;
-		if (!CreateDescriptorSetLayouts())
-			return false;
-		if (!CreatePipelineLayout())
-			return false;
-		return CreateGraphicsPipelines(deviceInfo, swapChainInfo, renderPass, shaderDir);
-	}
-
-	void VulkanPipeline::Destroy() {
-		if (device == VK_NULL_HANDLE)
-			return;
-		if (info.pipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.pipeline, nullptr);
-			info.pipeline = VK_NULL_HANDLE;
-		}
-		if (info.bothFacePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.bothFacePipeline, nullptr);
-			info.bothFacePipeline = VK_NULL_HANDLE;
-		}
-		if (info.edgePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.edgePipeline, nullptr);
-			info.edgePipeline = VK_NULL_HANDLE;
-		}
-		if (info.groundShadowPipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.groundShadowPipeline, nullptr);
-			info.groundShadowPipeline = VK_NULL_HANDLE;
-		}
-		if (info.pipelineLayout != VK_NULL_HANDLE) {
-			vkDestroyPipelineLayout(device, info.pipelineLayout, nullptr);
-			info.pipelineLayout = VK_NULL_HANDLE;
-		}
-		for (VkDescriptorSetLayout& descriptorSetLayout : info.descriptorSetLayouts) {
-			if (descriptorSetLayout != VK_NULL_HANDLE) {
-				vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-				descriptorSetLayout = VK_NULL_HANDLE;
-			}
-		}
-		device = VK_NULL_HANDLE;
-	}
-
 	bool VulkanPipeline::CreateDescriptorSetLayouts() {
 		constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
@@ -326,5 +277,54 @@ namespace Chrivent {
 				.offset = offsetof(VulkanVertex, uv)
 			}
 		};
+	}
+
+	VulkanPipeline::~VulkanPipeline() {
+		Destroy();
+	}
+
+	bool VulkanPipeline::Initialize(
+		const VulkanDeviceInfo& deviceInfo,
+		const VulkanSwapChainInfo& swapChainInfo,
+		const VkRenderPass renderPass,
+		const std::filesystem::path& shaderDir) {
+		device = deviceInfo.device;
+		if (!CreateDescriptorSetLayouts())
+			return false;
+		if (!CreatePipelineLayout())
+			return false;
+		return CreateGraphicsPipelines(deviceInfo, swapChainInfo, renderPass, shaderDir);
+	}
+
+	void VulkanPipeline::Destroy() {
+		if (device == VK_NULL_HANDLE)
+			return;
+		if (info.pipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.pipeline, nullptr);
+			info.pipeline = VK_NULL_HANDLE;
+		}
+		if (info.bothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.bothFacePipeline, nullptr);
+			info.bothFacePipeline = VK_NULL_HANDLE;
+		}
+		if (info.edgePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.edgePipeline, nullptr);
+			info.edgePipeline = VK_NULL_HANDLE;
+		}
+		if (info.groundShadowPipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.groundShadowPipeline, nullptr);
+			info.groundShadowPipeline = VK_NULL_HANDLE;
+		}
+		if (info.pipelineLayout != VK_NULL_HANDLE) {
+			vkDestroyPipelineLayout(device, info.pipelineLayout, nullptr);
+			info.pipelineLayout = VK_NULL_HANDLE;
+		}
+		for (VkDescriptorSetLayout& descriptorSetLayout : info.descriptorSetLayouts) {
+			if (descriptorSetLayout != VK_NULL_HANDLE) {
+				vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+				descriptorSetLayout = VK_NULL_HANDLE;
+			}
+		}
+		device = VK_NULL_HANDLE;
 	}
 }
