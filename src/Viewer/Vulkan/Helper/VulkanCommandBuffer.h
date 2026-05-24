@@ -3,6 +3,8 @@
 #include "VulkanDevice.h"
 #include "VulkanSwapChain.h"
 
+#include <vector>
+
 namespace Chrivent {
 	class VulkanCommandBuffer {
 		std::vector<VkCommandBuffer> commandBuffers;
@@ -21,11 +23,11 @@ namespace Chrivent {
 		VkCommandBuffer GetCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
 		const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return commandBuffers; }
 
-		// ?ㅼ솑泥댁씤 ?대?吏 ?섏뿉 留욎떠 ?뚮뜑留?紐낅졊 踰꾪띁瑜??좊떦?쒕떎.
+		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, VkCommandPool sourceCommandPool, const VulkanSwapChainInfo& swapChainInfo);
-		// 吏?뺥븳 ?ㅼ솑泥댁씤 ?대?吏?????湲곕낯 ?뚮뜑 ?⑥뒪 紐낅졊??湲곕줉?쒕떎.
+		// 지정한 스왑체인 이미지에 대한 기본 렌더 패스 명령을 기록한다.
 		bool Record(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkExtent2D extent, const float clearColor[4]) const;
-		// ?좊떦??紐낅졊 踰꾪띁瑜??댁젣?쒕떎.
+		// 할당한 명령 버퍼를 해제한다.
 		void Destroy();
 	};
 }

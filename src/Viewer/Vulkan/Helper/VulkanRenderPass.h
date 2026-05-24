@@ -19,9 +19,9 @@ namespace Chrivent {
 		
 		VkRenderPass GetRenderPass() const { return renderPass; }
 
-		// ?ㅼ솑泥댁씤 color format怨?depth format??留욌뒗 render pass瑜??앹꽦?쒕떎.
+		// 스왑체인 color format과 depth format에 맞는 render pass를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo, VkFormat depthFormat);
-		// ?앹꽦??render pass 由ъ냼?ㅻ? ?댁젣?쒕떎.
+		// 생성한 render pass 리소스를 해제한다.
 		void Destroy();
 	};
 }
