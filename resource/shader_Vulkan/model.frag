@@ -62,7 +62,7 @@ void main() {
     if (sphereTexMode != 0) {
         vec2 spUv = vec2(0.0);
         spUv.x = nor.x * 0.5 + 0.5;
-        spUv.y = 1.0 - (nor.y * 0.5 + 0.5);
+        spUv.y = nor.y * 0.5 + 0.5;
         vec3 spColor = texture(sphereTex, spUv).rgb;
         spColor = ComputeTexMulFactor(spColor, pixelConstants.sphereTexMulFactor);
         spColor = ComputeTexAddFactor(spColor, pixelConstants.sphereTexAddFactor);
@@ -72,7 +72,7 @@ void main() {
             color += spColor;
     }
     if (toonTexMode != 0) {
-        vec3 toonColor = texture(toonTex, vec2(0.0, ln)).rgb;
+        vec3 toonColor = texture(toonTex, vec2(0.0, 1.0 - ln)).rgb;
         toonColor = ComputeTexMulFactor(toonColor, pixelConstants.toonTexMulFactor);
         toonColor = ComputeTexAddFactor(toonColor, pixelConstants.toonTexAddFactor);
         color *= toonColor;

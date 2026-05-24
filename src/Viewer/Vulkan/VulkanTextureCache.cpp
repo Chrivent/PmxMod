@@ -29,7 +29,7 @@ namespace Chrivent {
 			return texture ? *texture : VulkanTexture{};
 		}
 		int x = 0, y = 0, comp = 0;
-		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp, true);
+		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)
 			return {};
 		const bool textureHasAlpha = comp == 4;

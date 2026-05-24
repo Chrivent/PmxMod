@@ -15,5 +15,5 @@ void main() {
     gl_Position = wvp * vec4(position, 1.0);
     vs_Pos = (wv * vec4(position, 1.0)).xyz;
     vs_Nor = mat3(wv) * normal;
-    vs_UV = uv;
+    vs_UV = vec2(uv.x, 1.0 - uv.y);
 }

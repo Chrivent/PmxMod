@@ -9,8 +9,7 @@ namespace Chrivent {
     Viewer::Viewer() : info(std::make_unique<ViewerInfo>()) {}
     Viewer::~Viewer() = default;
 
-    unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp, const bool flipY) {
-        stbi_set_flip_vertically_on_load(flipY);
+    unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
         x = y = comp = 0;
         FILE* imageFile = nullptr;
         if (_wfopen_s(&imageFile, texturePath.c_str(), L"rb") != 0 || !imageFile)
