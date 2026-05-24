@@ -23,7 +23,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.defaultDss.Get(), 0x00);
 		constexpr UINT stride = sizeof(Dx11Vertex);
 		constexpr UINT offset = 0;
-		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.inputLayout.Get());
+		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.model.inputLayout.Get());
 		viewer->GetDx11Info().deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->GetDx11Info().deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->GetDx11Info().deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -31,8 +31,8 @@ namespace Chrivent {
 		vsCb.wv = wv;
 		vsCb.wvp = wvp;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.vs.Get(), nullptr, 0);
-		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.ps.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.model.vertexShader.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.model.pixelShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
@@ -90,14 +90,14 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
-		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edgeInputLayout.Get());
+		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edge.inputLayout.Get());
 		Dx11EdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
 		vsCb1.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgeVsConstantBuffer.Get(), 0, nullptr, &vsCb1, 0, 0);
-		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.edgeVs.Get(), nullptr, 0);
-		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.edgePs.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.edge.vertexShader.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.edge.pixelShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
@@ -127,15 +127,15 @@ namespace Chrivent {
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.gsInputLayout.Get());
+		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.groundShadow.inputLayout.Get());
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-glm::normalize(viewer->GetInfo().lightDir), 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 		Dx11GroundShadowVertexConstants vsCb;
 		vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.gsVs.Get(), nullptr, 0);
-		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.gsPs.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.groundShadow.vertexShader.Get(), nullptr, 0);
+		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.groundShadow.pixelShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.gsRs.Get());
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.gsDss.Get(), 0x01);

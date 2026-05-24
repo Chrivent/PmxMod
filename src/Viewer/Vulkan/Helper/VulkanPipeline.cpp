@@ -1,5 +1,6 @@
 ﻿#include "VulkanPipeline.h"
 
+#include "VulkanShaderCompiler.h"
 #include "VulkanShaderModule.h"
 #include "../VulkanInstance.h"
 
@@ -126,11 +127,22 @@ namespace Chrivent {
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
+		std::vector<char> vertexShaderCode;
+		std::vector<char> fragmentShaderCode;
+		std::string error;
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
 		VulkanShaderModule vertexShader;
 		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(deviceInfo, shaderDir / "model.vert.spv"))
+		if (!vertexShader.Initialize(deviceInfo, vertexShaderCode))
 			return false;
-		if (!fragmentShader.Initialize(deviceInfo, shaderDir / "model.frag.spv"))
+		if (!fragmentShader.Initialize(deviceInfo, fragmentShaderCode))
 			return false;
 		const VkPipelineShaderStageCreateInfo shaderStages[] = {
 			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule()),

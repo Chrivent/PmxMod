@@ -6,19 +6,9 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#include <d3dcompiler.h>
-#include <iostream>
-
 namespace Chrivent {
 	Dx11Viewer::Dx11Viewer() {
 		info = std::make_unique<Dx11ViewerInfo>();
-	}
-
-	void Dx11Viewer::PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob) {
-		std::cerr << "Failed to compile HLSL shader: " << file.string()
-			<< " entry=" << entry << " target=" << target << '\n';
-		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
-			std::cerr << errorBlob->GetBufferPointer() << '\n';
 	}
 
 	void Dx11Viewer::ConfigureGlfwHints() {
@@ -107,83 +97,11 @@ namespace Chrivent {
 		GetDx11Info().deviceResources.context->RSSetViewports(1, &vp);
 	}
 
-	bool Dx11Viewer::MakeVs(const std::filesystem::path& f, const char* entry,
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const {
-		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-		if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entry, "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBlob, &errorBlob))) {
-			PrintShaderCompileError(f, entry, "vs_5_0", errorBlob.Get());
-			return false;
-		}
-		if (FAILED(GetDx11Info().deviceResources.device->CreateVertexShader(
-			outBlob->GetBufferPointer(), outBlob->GetBufferSize(), nullptr, &outVs))) {
-			std::cerr << "Failed to create DX11 vertex shader: " << f.string() << " entry=" << entry << '\n';
-			return false;
-		}
-		return true;
-	}
-
-	bool Dx11Viewer::MakePs(const std::filesystem::path& f, const char* entry, Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPs) const {
-		Microsoft::WRL::ComPtr<ID3DBlob> blob;
-		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-		if (FAILED(D3DCompileFromFile(f.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-			entry, "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &blob, &errorBlob))) {
-			PrintShaderCompileError(f, entry, "ps_5_0", errorBlob.Get());
-			return false;
-		}
-		if (FAILED(GetDx11Info().deviceResources.device->CreatePixelShader(
-			blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &outPs))) {
-			std::cerr << "Failed to create DX11 pixel shader: " << f.string() << " entry=" << entry << '\n';
-			return false;
-		}
-		return true;
-	}
-
 	bool Dx11Viewer::CreateShaders() {
-		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, edgeVsBlob, gsVsBlob;
-		if (!MakeVs(GetInfo().shaderDir / "model.hlsl", "VSMain", GetDx11Info().shaders.vs, vsBlob))
-			return false;
-		if (!MakeVs(GetInfo().shaderDir / "edge.hlsl", "VSMain", GetDx11Info().shaders.edgeVs, edgeVsBlob))
-			return false;
-		if (!MakeVs(GetInfo().shaderDir / "ground_shadow.hlsl", "VSMain", GetDx11Info().shaders.gsVs, gsVsBlob))
-			return false;
-		if (!MakePs(GetInfo().shaderDir / "model.hlsl", "PSMain", GetDx11Info().shaders.ps))
-			return false;
-		if (!MakePs(GetInfo().shaderDir / "edge.hlsl", "PSMain", GetDx11Info().shaders.edgePs))
-			return false;
-		if (!MakePs(GetInfo().shaderDir / "ground_shadow.hlsl", "PSMain", GetDx11Info().shaders.gsPs))
-			return false;
-		constexpr D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
-		if (FAILED(GetDx11Info().deviceResources.device->CreateInputLayout(inputElementDesc, 3,
-			vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
-			&GetDx11Info().shaders.inputLayout))) {
-			std::cerr << "Failed to create DX11 input layout for model shader.\n";
-			return false;
-		}
-		constexpr D3D11_INPUT_ELEMENT_DESC edgeInputElementDesc[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
-		if (FAILED(GetDx11Info().deviceResources.device->CreateInputLayout(edgeInputElementDesc, 2,
-			edgeVsBlob->GetBufferPointer(), edgeVsBlob->GetBufferSize(),
-			&GetDx11Info().shaders.edgeInputLayout))) {
-			std::cerr << "Failed to create DX11 input layout for edge shader.\n";
-			return false;
-		}
-		constexpr D3D11_INPUT_ELEMENT_DESC gsInputElementDesc[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
-		if (FAILED(GetDx11Info().deviceResources.device->CreateInputLayout(gsInputElementDesc, 1,
-			gsVsBlob->GetBufferPointer(), gsVsBlob->GetBufferSize(),
-			&GetDx11Info().shaders.gsInputLayout))) {
-			std::cerr << "Failed to create DX11 input layout for ground shadow shader.\n";
-			return false;
-		}
-		return true;
+		ID3D11Device* device = GetDx11Info().deviceResources.device.Get();
+		return GetDx11Info().shaders.model.Initialize(device, GetInfo().shaderDir / "model.hlsl")
+			&& GetDx11Info().shaders.edge.Initialize(device, GetInfo().shaderDir / "edge.hlsl")
+			&& GetDx11Info().shaders.groundShadow.Initialize(device, GetInfo().shaderDir / "ground_shadow.hlsl");
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {

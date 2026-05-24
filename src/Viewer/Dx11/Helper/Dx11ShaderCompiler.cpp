@@ -1,0 +1,30 @@
+﻿#include "Dx11ShaderCompiler.h"
+
+namespace Chrivent {
+	bool Dx11ShaderCompiler::CompileFile(
+		const std::filesystem::path& file,
+		const char* entry,
+		const char* target,
+		Microsoft::WRL::ComPtr<ID3DBlob>& outBytecode,
+		std::string& outError) {
+		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+		const HRESULT hr = D3DCompileFromFile(
+			file.c_str(),
+			nullptr,
+			D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			entry,
+			target,
+			D3DCOMPILE_OPTIMIZATION_LEVEL3,
+			0,
+			&outBytecode,
+			&errorBlob);
+		if (SUCCEEDED(hr))
+			return true;
+		outError = "Failed to compile HLSL shader: " + file.string()
+			+ " entry=" + entry
+			+ " target=" + target + '\n';
+		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
+			outError += static_cast<const char*>(errorBlob->GetBufferPointer());
+		return false;
+	}
+}

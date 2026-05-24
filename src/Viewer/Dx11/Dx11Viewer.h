@@ -3,6 +3,7 @@
 #include "../Viewer.h"
 #include "Dx11TextureCache.h"
 #include "Helper/Dx11Constants.h"
+#include "Helper/Dx11Shader.h"
 
 namespace Chrivent {
     class Dx11Viewer;
@@ -34,15 +35,9 @@ namespace Chrivent {
     };
 
     struct Dx11ShaderSet {
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>  vs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>   ps;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>   inputLayout;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>  edgeVs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>   edgePs;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>   edgeInputLayout;
-        Microsoft::WRL::ComPtr<ID3D11VertexShader>  gsVs;
-        Microsoft::WRL::ComPtr<ID3D11PixelShader>   gsPs;
-        Microsoft::WRL::ComPtr<ID3D11InputLayout>   gsInputLayout;
+        Dx11ModelShader         model;
+        Dx11EdgeShader          edge;
+        Dx11GroundShadowShader  groundShadow;
     };
 
     struct Dx11PipelineStates {
@@ -71,9 +66,6 @@ namespace Chrivent {
     };
 
     class Dx11Viewer : public Viewer {
-        // HLSL 컴파일 실패 정보를 콘솔에 출력한다.
-        static void PrintShaderCompileError(const std::filesystem::path& file, const char* entry, const char* target, ID3DBlob* errorBlob);
-
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;
         Dx11TextureCache    textureCache;
@@ -100,12 +92,6 @@ namespace Chrivent {
         Dx11Texture LoadTexture(const std::filesystem::path& texturePath);
         // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
         void UpdateViewport() const;
-        // HLSL 버텍스 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
-        bool MakeVs(const std::filesystem::path& f, const char* entry,
-            Microsoft::WRL::ComPtr<ID3D11VertexShader>& outVs, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob) const;
-        // HLSL 픽셀 셰이더를 컴파일하고 DX11 셰이더 객체를 생성한다.
-        bool MakePs(const std::filesystem::path& f, const char* entry,
-            Microsoft::WRL::ComPtr<ID3D11PixelShader>& outPs) const;
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
         bool CreateShaders();
         // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.

@@ -1,6 +1,5 @@
 ﻿#include "VulkanShaderModule.h"
 
-#include <fstream>
 #include <iostream>
 
 namespace Chrivent {
@@ -8,21 +7,18 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanShaderModule::Initialize(const VulkanDeviceInfo& deviceInfo, const std::filesystem::path& file) {
+	bool VulkanShaderModule::Initialize(const VulkanDeviceInfo& deviceInfo, const std::vector<char>& spvBytes) {
 		device = deviceInfo.device;
-		std::vector<char> code;
-		if (!ReadSpvFile(file, code))
-			return false;
-		if (code.empty() || code.size() % sizeof(uint32_t) != 0) {
-			std::cerr << "Invalid SPIR-V shader file size: " << file.string() << '\n';
+		if (spvBytes.empty() || spvBytes.size() % sizeof(uint32_t) != 0) {
+			std::cerr << "Invalid SPIR-V shader byte size.\n";
 			return false;
 		}
 		VkShaderModuleCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size();
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+		createInfo.codeSize = spvBytes.size();
+		createInfo.pCode = reinterpret_cast<const uint32_t*>(spvBytes.data());
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan shader module: " << file.string() << '\n';
+			std::cerr << "Failed to create Vulkan shader module.\n";
 			return false;
 		}
 		return true;
@@ -36,23 +32,4 @@ namespace Chrivent {
 		device = VK_NULL_HANDLE;
 	}
 
-	bool VulkanShaderModule::ReadSpvFile(const std::filesystem::path& file, std::vector<char>& code) {
-		std::ifstream stream(file, std::ios::ate | std::ios::binary);
-		if (!stream) {
-			std::cerr << "Failed to open SPIR-V shader file: " << file.string() << '\n';
-			return false;
-		}
-		const std::streamsize fileSize = stream.tellg();
-		if (fileSize <= 0) {
-			std::cerr << "SPIR-V shader file is empty: " << file.string() << '\n';
-			return false;
-		}
-		code.resize(fileSize);
-		stream.seekg(0);
-		if (!stream.read(code.data(), fileSize)) {
-			std::cerr << "Failed to read SPIR-V shader file: " << file.string() << '\n';
-			return false;
-		}
-		return true;
-	}
 }

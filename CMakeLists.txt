@@ -101,6 +101,8 @@ add_executable(PmxMod
         src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp
         src/Viewer/Dx11/Helper/Dx11Constants.h
         src/Viewer/Dx11/Helper/Dx11DescriptorFactory.h src/Viewer/Dx11/Helper/Dx11DescriptorFactory.cpp
+        src/Viewer/Dx11/Helper/Dx11Shader.h src/Viewer/Dx11/Helper/Dx11Shader.cpp
+        src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
         src/Viewer/Vulkan/Helper/VulkanBuffer.h src/Viewer/Vulkan/Helper/VulkanBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp
@@ -110,6 +112,7 @@ add_executable(PmxMod
         src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
         src/Viewer/Vulkan/Helper/VulkanPipeline.h src/Viewer/Vulkan/Helper/VulkanPipeline.cpp
         src/Viewer/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Vulkan/Helper/VulkanRenderPass.cpp
+        src/Viewer/Vulkan/Helper/VulkanShaderCompiler.h src/Viewer/Vulkan/Helper/VulkanShaderCompiler.cpp
         src/Viewer/Vulkan/Helper/VulkanShaderModule.h src/Viewer/Vulkan/Helper/VulkanShaderModule.cpp
         src/Viewer/Vulkan/Helper/VulkanFrameBuffer.h src/Viewer/Vulkan/Helper/VulkanFrameBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Vulkan/Helper/VulkanSwapChain.cpp
