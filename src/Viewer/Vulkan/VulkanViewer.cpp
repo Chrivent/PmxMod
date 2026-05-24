@@ -169,4 +169,14 @@ namespace Chrivent {
 			indexType,
 			static_cast<uint32_t>(indexCount));
 	}
+
+	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			descriptorSetInfo.descriptorSets.data(),
+			descriptorSetInfo.descriptorSets.size());
+	}
 }

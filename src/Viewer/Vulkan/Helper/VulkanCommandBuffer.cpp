@@ -90,6 +90,27 @@ namespace Chrivent {
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 	}
 
+	void VulkanCommandBuffer::BindDescriptorSets(
+		const uint32_t imageIndex,
+		const VkPipelineLayout pipelineLayout,
+		const VkDescriptorSet* descriptorSets,
+		const uint32_t descriptorSetCount) const {
+		if (imageIndex >= commandBuffers.size() ||
+			pipelineLayout == VK_NULL_HANDLE ||
+			descriptorSets == nullptr ||
+			descriptorSetCount == 0)
+			return;
+		vkCmdBindDescriptorSets(
+			commandBuffers[imageIndex],
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout,
+			0,
+			descriptorSetCount,
+			descriptorSets,
+			0,
+			nullptr);
+	}
+
 	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex) const {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to end Vulkan command buffer: image index is out of range.\n";
