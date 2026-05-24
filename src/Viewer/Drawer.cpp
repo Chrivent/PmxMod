@@ -5,7 +5,7 @@ namespace Chrivent {
 
 	void Drawer::Draw() const {
 		DrawModel();
-		//DrawEdge();
-		//DrawGroundShadow();
+		DrawEdge();
+		DrawGroundShadow();
 	}
 }
