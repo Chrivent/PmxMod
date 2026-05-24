@@ -17,6 +17,7 @@ namespace Chrivent {
 		VulkanTexture texture{};
 		VulkanTexture sphereTexture{};
 		VulkanTexture toonTexture{};
+		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
@@ -49,9 +50,11 @@ namespace Chrivent {
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
-		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t indexCount) const;
+		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
 		// 현재 프레임 command buffer에 모델 descriptor set을 바인딩한다.
 		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const;
+		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
+		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet) const;
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
 		// Vulkan 렌더러 리소스를 초기화한다.

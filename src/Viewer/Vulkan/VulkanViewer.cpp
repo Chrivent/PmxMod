@@ -158,11 +158,13 @@ namespace Chrivent {
 		const VulkanBufferInfo& vertexBuffer,
 		const VulkanBufferInfo& indexBuffer,
 		const VkIndexType indexType,
+		const size_t firstIndex,
 		const size_t indexCount) const {
 		if (!frameReady)
 			return;
-		if (indexCount > std::numeric_limits<uint32_t>::max()) {
-			std::cerr << "Failed to draw Vulkan model: index count is too large.\n";
+		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
+			indexCount > std::numeric_limits<uint32_t>::max()) {
+			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
 			return;
 		}
 		commandContext.GetCommandBuffer().DrawIndexed(
@@ -170,6 +172,7 @@ namespace Chrivent {
 			vertexBuffer,
 			indexBuffer,
 			indexType,
+			static_cast<uint32_t>(firstIndex),
 			static_cast<uint32_t>(indexCount));
 	}
 
@@ -179,7 +182,19 @@ namespace Chrivent {
 		commandContext.GetCommandBuffer().BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
+			0,
 			descriptorSetInfo.descriptorSets.data(),
 			descriptorSetInfo.descriptorSets.size());
+	}
+
+	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
+		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			2,
+			&descriptorSet,
+			1);
 	}
 }

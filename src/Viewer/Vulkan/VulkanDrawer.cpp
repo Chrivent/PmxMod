@@ -20,9 +20,14 @@ namespace Chrivent {
 		vertexConstants.wvp = viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
-		if (!info.materials.empty()) {
-			const auto& material = info.materials.front();
+		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+			if (materialId >= info.materials.size())
+				continue;
+			const auto& material = info.materials[materialId];
 			const auto& mat = material.mat;
+			if (mat.diffuse.a == 0)
+				continue;
 			VulkanModelPixelConstants pixelConstants{};
 			pixelConstants.alpha = mat.diffuse.a;
 			pixelConstants.diffuse = mat.diffuse;
@@ -49,13 +54,14 @@ namespace Chrivent {
 			}
 			if (!info.modelPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants)))
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
+			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
+			info.viewer->DrawIndexed(
+				info.vertexBuffer.GetInfo(),
+				info.indexBuffer.GetInfo(),
+				info.indexType,
+				beginIndex,
+				indexCount);
 		}
-		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
-		info.viewer->DrawIndexed(
-			info.vertexBuffer.GetInfo(),
-			info.indexBuffer.GetInfo(),
-			info.indexType,
-			info.indexCount);
 	}
 
 	void VulkanDrawer::DrawEdge() const {
