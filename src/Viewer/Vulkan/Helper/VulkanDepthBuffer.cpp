@@ -40,9 +40,9 @@ namespace Chrivent {
 
 	VkFormat VulkanDepthBuffer::FindDepthFormat(const VulkanDeviceInfo& deviceInfo) {
 		constexpr VkFormat candidates[] = {
-			VK_FORMAT_D32_SFLOAT,
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
-			VK_FORMAT_D24_UNORM_S8_UINT
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D32_SFLOAT
 		};
 		return FindSupportedFormat(
 			deviceInfo,
@@ -50,6 +50,10 @@ namespace Chrivent {
 			std::size(candidates),
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	}
+
+	bool VulkanDepthBuffer::HasStencilComponent(const VkFormat format) {
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
 	VkFormat VulkanDepthBuffer::FindSupportedFormat(
@@ -134,6 +138,8 @@ namespace Chrivent {
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = info.format;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		if (HasStencilComponent(info.format))
+			viewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;

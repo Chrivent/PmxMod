@@ -37,6 +37,7 @@ namespace Chrivent {
 		
 		VulkanDepthBufferInfo& GetInfo() { return info; }
 		const VulkanDepthBufferInfo& GetInfo() const { return info; }
+		static bool HasStencilComponent(VkFormat format);
 
 		// 스왑체인 크기에 맞는 depth image와 image view를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);

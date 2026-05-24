@@ -27,6 +27,8 @@ namespace Chrivent {
 
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
+	
+	struct VulkanViewerInfo : ViewerInfo {};
 
 	class VulkanViewer : public Viewer {
 		VulkanDevice device;
@@ -43,6 +45,7 @@ namespace Chrivent {
 		bool frameReady = false;
 
 	public:
+		VulkanViewer();
 		~VulkanViewer() override = default;
 
 		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }

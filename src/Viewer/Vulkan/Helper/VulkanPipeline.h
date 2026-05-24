@@ -41,6 +41,9 @@ namespace Chrivent {
 			VkCullModeFlags cullMode,
 			bool usePositionOnly,
 			bool useDepthBias,
+			bool enableStencilTest,
+			bool disableDepthWrite,
+			VkCompareOp depthCompareOp,
 			VkPipeline& outPipeline) const;
 		// 셰이더 stage 생성 정보를 만든다.
 		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);

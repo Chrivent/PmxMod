@@ -139,10 +139,10 @@ namespace Chrivent {
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
-		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, info.pipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, info.bothFacePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, info.edgePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, info.groundShadowPipeline);
+		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, info.pipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, info.bothFacePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, info.edgePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, info.groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
@@ -155,6 +155,9 @@ namespace Chrivent {
 		const VkCullModeFlags cullMode,
 		const bool usePositionOnly,
 		const bool useDepthBias,
+		const bool enableStencilTest,
+		const bool disableDepthWrite,
+		const VkCompareOp depthCompareOp,
 		VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
@@ -219,6 +222,7 @@ namespace Chrivent {
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = useDepthBias ? VK_TRUE : VK_FALSE;
 		rasterizer.depthBiasConstantFactor = useDepthBias ? -1.0f : 0.0f;
+		rasterizer.depthBiasClamp = useDepthBias ? -1.0f : 0.0f;
 		rasterizer.depthBiasSlopeFactor = useDepthBias ? -1.0f : 0.0f;
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -228,10 +232,23 @@ namespace Chrivent {
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthWriteEnable = disableDepthWrite ? VK_FALSE : VK_TRUE;
+		depthStencil.depthCompareOp = depthCompareOp;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
-		depthStencil.stencilTestEnable = VK_FALSE;
+		depthStencil.stencilTestEnable = enableStencilTest ? VK_TRUE : VK_FALSE;
+		if (enableStencilTest) {
+			const VkStencilOpState stencilState{
+				.failOp = VK_STENCIL_OP_KEEP,
+				.passOp = VK_STENCIL_OP_REPLACE,
+				.depthFailOp = VK_STENCIL_OP_KEEP,
+				.compareOp = VK_COMPARE_OP_NOT_EQUAL,
+				.compareMask = 1,
+				.writeMask = 1,
+				.reference = 1
+			};
+			depthStencil.front = stencilState;
+			depthStencil.back = stencilState;
+		}
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 		colorBlendAttachment.blendEnable = VK_TRUE;
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
