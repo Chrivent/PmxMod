@@ -1,7 +1,9 @@
 ﻿#include "VulkanPipeline.h"
 
 #include "VulkanShaderModule.h"
+#include "../VulkanInstance.h"
 
+#include <cstddef>
 #include <iostream>
 
 namespace Chrivent {
@@ -126,20 +128,22 @@ namespace Chrivent {
 		const std::filesystem::path& shaderDir) {
 		VulkanShaderModule vertexShader;
 		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(deviceInfo, shaderDir / "debug_triangle.vert.spv"))
+		if (!vertexShader.Initialize(deviceInfo, shaderDir / "model.vert.spv"))
 			return false;
-		if (!fragmentShader.Initialize(deviceInfo, shaderDir / "debug_triangle.frag.spv"))
+		if (!fragmentShader.Initialize(deviceInfo, shaderDir / "model.frag.spv"))
 			return false;
 		const VkPipelineShaderStageCreateInfo shaderStages[] = {
 			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule()),
 			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule())
 		};
+		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
+		const std::array attributeDescriptions = MakeVertexAttributeDescriptions();
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.pVertexBindingDescriptions = nullptr;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -231,7 +235,7 @@ namespace Chrivent {
 	VkVertexInputBindingDescription VulkanPipeline::MakeVertexBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription;
 		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(float) * 8;
+		bindingDescription.stride = sizeof(VulkanVertex);
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 		return bindingDescription;
 	}
@@ -242,19 +246,19 @@ namespace Chrivent {
 				.location = 0,
 				.binding = 0,
 				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = 0
+				.offset = offsetof(VulkanVertex, position)
 			},
 			VkVertexInputAttributeDescription{
 				.location = 1,
 				.binding = 0,
 				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = sizeof(float) * 3
+				.offset = offsetof(VulkanVertex, normal)
 			},
 			VkVertexInputAttributeDescription{
 				.location = 2,
 				.binding = 0,
 				.format = VK_FORMAT_R32G32_SFLOAT,
-				.offset = sizeof(float) * 6
+				.offset = offsetof(VulkanVertex, uv)
 			}
 		};
 	}

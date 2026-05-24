@@ -145,8 +145,6 @@ set(VULKAN_SHADER_SOURCES
         edge.frag
         ground_shadow.vert
         ground_shadow.frag
-        debug_triangle.vert
-        debug_triangle.frag
 )
 
 add_custom_target(SyncResources
