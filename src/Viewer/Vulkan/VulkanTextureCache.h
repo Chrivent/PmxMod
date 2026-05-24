@@ -13,7 +13,19 @@ namespace Chrivent {
 		uint32_t height = 0;
 	};
 
+	struct VulkanTextureKey {
+		std::filesystem::path path;
+		bool clamp = false;
+
+		bool operator<(const VulkanTextureKey& other) const {
+			if (path != other.path)
+				return path < other.path;
+			return clamp < other.clamp;
+		}
+	};
+
 	class VulkanTextureCache : public TextureCache {
+		std::map<VulkanTextureKey, std::shared_ptr<VulkanTexture>> vulkanTextures;
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스 메모리 중 요청한 속성을 만족하는 memory type index를 찾는다.
