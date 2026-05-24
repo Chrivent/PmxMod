@@ -17,7 +17,12 @@ namespace Chrivent {
 		VulkanTexture texture{};
 		VulkanTexture sphereTexture{};
 		VulkanTexture toonTexture{};
+		std::unique_ptr<VulkanBuffer> pixelConstantBuffer;
+		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+		bool hasTexture = false;
+		bool hasSphereTexture = false;
+		bool hasToonTexture = false;
 
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
@@ -53,8 +58,10 @@ namespace Chrivent {
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace) const;
-		// 현재 프레임 command buffer에 모델 descriptor set을 바인딩한다.
+		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
 		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const;
+		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.
+		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet) const;
 		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
 		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet) const;
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
@@ -70,6 +77,6 @@ namespace Chrivent {
 		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
-		VulkanTexture LoadTexture(const std::filesystem::path& texturePath);
+		VulkanTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 	};
 }

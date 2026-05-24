@@ -19,7 +19,6 @@ namespace Chrivent {
 		info.vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
 		info.modelVertexConstantBuffer.Destroy();
-		info.modelPixelConstantBuffer.Destroy();
 		info.modelDescriptorSet.Destroy();
 		info.materials.clear();
 		info.indexType = VK_INDEX_TYPE_UINT16;
@@ -67,30 +66,34 @@ namespace Chrivent {
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
-		if (!info.modelPixelConstantBuffer.Initialize(
-			deviceInfo,
-			sizeof(VulkanModelPixelConstants),
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-			return false;
 		info.indexCount = geometryData.indexCount;
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
+			material.pixelConstantBuffer = std::make_unique<VulkanBuffer>();
+			if (!material.pixelConstantBuffer->Initialize(
+				deviceInfo,
+				sizeof(VulkanModelPixelConstants),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
 			if (!mat.texture.empty()) {
 				material.texture = info.viewer->LoadTexture(mat.texture);
-				if (material.texture.image == VK_NULL_HANDLE)
+				material.hasTexture = material.texture.image != VK_NULL_HANDLE;
+				if (!material.hasTexture)
 					material.texture = info.viewer->GetDummyTexture();
 			} else
 				material.texture = info.viewer->GetDummyTexture();
 			if (!mat.spTexture.empty()) {
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
-				if (material.sphereTexture.image == VK_NULL_HANDLE)
+				material.hasSphereTexture = material.sphereTexture.image != VK_NULL_HANDLE;
+				if (!material.hasSphereTexture)
 					material.sphereTexture = info.viewer->GetDummyTexture();
 			} else
 				material.sphereTexture = info.viewer->GetDummyTexture();
 			if (!mat.toonTexture.empty()) {
-				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
-				if (material.toonTexture.image == VK_NULL_HANDLE)
+				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true);
+				material.hasToonTexture = material.toonTexture.image != VK_NULL_HANDLE;
+				if (!material.hasToonTexture)
 					material.toonTexture = info.viewer->GetDummyTexture();
 			} else
 				material.toonTexture = info.viewer->GetDummyTexture();
@@ -100,7 +103,6 @@ namespace Chrivent {
 			deviceInfo,
 			info.viewer->GetPipelineInfo(),
 			info.modelVertexConstantBuffer.GetInfo(),
-			info.modelPixelConstantBuffer.GetInfo(),
 			info.materials))
 			return false;
 		return true;

@@ -150,8 +150,8 @@ namespace Chrivent {
 		return std::make_unique<VulkanInstance>();
 	}
 
-	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(device.GetInfo(), commandContext.GetCommandPool(), texturePath);
+	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
+		return textureCache.Load(device.GetInfo(), commandContext.GetCommandPool(), texturePath, clamp);
 	}
 
 	void VulkanViewer::DrawIndexed(
@@ -172,8 +172,8 @@ namespace Chrivent {
 			vertexBuffer,
 			indexBuffer,
 			indexType,
-			static_cast<uint32_t>(firstIndex),
-			static_cast<uint32_t>(indexCount));
+			firstIndex,
+			indexCount);
 	}
 
 	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const {
@@ -183,8 +183,19 @@ namespace Chrivent {
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			0,
-			descriptorSetInfo.descriptorSets.data(),
-			descriptorSetInfo.descriptorSets.size());
+			&descriptorSetInfo.vertexDescriptorSet,
+			1);
+	}
+
+	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet) const {
+		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
+			return;
+		commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex,
+			pipeline.GetInfo().pipelineLayout,
+			1,
+			&descriptorSet,
+			1);
 	}
 
 	void VulkanViewer::BindModelPipeline(const bool bothFace) const {

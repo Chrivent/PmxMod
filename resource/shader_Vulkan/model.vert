@@ -8,7 +8,7 @@ layout(location = 0) out vec3 vsPos;
 layout(location = 1) out vec3 vsNor;
 layout(location = 2) out vec2 vsUv;
 
-layout(set = 0, binding = 0) uniform ModelVertexConstants {
+layout(std140, set = 0, binding = 0) uniform ModelVertexConstants {
     mat4 wv;
     mat4 wvp;
 } vertexConstants;

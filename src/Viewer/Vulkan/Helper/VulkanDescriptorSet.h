@@ -8,7 +8,8 @@ namespace Chrivent {
 
 	struct VulkanDescriptorSetInfo {
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		std::array<VkDescriptorSet, 2> descriptorSets{};
+		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> pixelDescriptorSets;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 	};
 
@@ -20,8 +21,10 @@ namespace Chrivent {
 		bool CreateDescriptorPool(size_t materialCount);
 		// pipeline layout에 맞춰 vertex/pixel/texture descriptor set을 할당한다.
 		bool AllocateDescriptorSets(const VulkanPipelineInfo& pipelineInfo, size_t materialCount);
-		// uniform buffer 정보를 descriptor set에 기록한다.
-		void UpdateDescriptorSets(const VulkanBufferInfo& vertexConstantBuffer, const VulkanBufferInfo& pixelConstantBuffer) const;
+		// vertex uniform buffer 정보를 descriptor set에 기록한다.
+		void UpdateVertexDescriptorSet(const VulkanBufferInfo& vertexConstantBuffer) const;
+		// 재질별 pixel uniform buffer 정보를 descriptor set에 기록한다.
+		void UpdatePixelDescriptorSets(std::vector<VulkanMaterial>& materials) const;
 		// 재질별 텍스처 정보를 descriptor set에 기록한다.
 		void UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const;
 
@@ -41,7 +44,6 @@ namespace Chrivent {
 		bool Initialize(const VulkanDeviceInfo& deviceInfo,
 			const VulkanPipelineInfo& pipelineInfo,
 			const VulkanBufferInfo& vertexConstantBuffer,
-			const VulkanBufferInfo& pixelConstantBuffer,
 			std::vector<VulkanMaterial>& materials);
 		// descriptor pool과 set 핸들을 해제한다.
 		void Destroy();

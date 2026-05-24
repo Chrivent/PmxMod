@@ -13,7 +13,6 @@ namespace Chrivent {
 		const VulkanDeviceInfo& deviceInfo,
 		const VulkanPipelineInfo& pipelineInfo,
 		const VulkanBufferInfo& vertexConstantBuffer,
-		const VulkanBufferInfo& pixelConstantBuffer,
 		std::vector<VulkanMaterial>& materials) {
 		Destroy();
 		device = deviceInfo.device;
@@ -21,7 +20,8 @@ namespace Chrivent {
 			return false;
 		if (!AllocateDescriptorSets(pipelineInfo, materials.size()))
 			return false;
-		UpdateDescriptorSets(vertexConstantBuffer, pixelConstantBuffer);
+		UpdateVertexDescriptorSet(vertexConstantBuffer);
+		UpdatePixelDescriptorSets(materials);
 		UpdateTextureDescriptorSets(materials);
 		return true;
 	}
@@ -33,7 +33,8 @@ namespace Chrivent {
 			vkDestroyDescriptorPool(device, info.descriptorPool, nullptr);
 			info.descriptorPool = VK_NULL_HANDLE;
 		}
-		info.descriptorSets = {};
+		info.vertexDescriptorSet = VK_NULL_HANDLE;
+		info.pixelDescriptorSets.clear();
 		info.textureDescriptorSets.clear();
 		device = VK_NULL_HANDLE;
 	}
@@ -46,7 +47,7 @@ namespace Chrivent {
 		std::vector poolSizes{
 			VkDescriptorPoolSize{
 				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.descriptorCount = 2
+				.descriptorCount = static_cast<uint32_t>(1 + materialCount)
 			}
 		};
 		if (materialCount > 0) {
@@ -59,7 +60,7 @@ namespace Chrivent {
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		createInfo.poolSizeCount = poolSizes.size();
 		createInfo.pPoolSizes = poolSizes.data();
-		createInfo.maxSets = info.descriptorSets.size() + materialCount;
+		createInfo.maxSets = 1 + materialCount + materialCount;
 		if (vkCreateDescriptorPool(device, &createInfo, nullptr, &info.descriptorPool) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan descriptor pool.\n";
 			return false;
@@ -68,18 +69,27 @@ namespace Chrivent {
 	}
 
 	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipelineInfo& pipelineInfo, const size_t materialCount) {
-		const VkDescriptorSetLayout layouts[] = {
-			pipelineInfo.descriptorSetLayouts[0],
-			pipelineInfo.descriptorSetLayouts[1]
-		};
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = info.descriptorPool;
-		allocateInfo.descriptorSetCount = info.descriptorSets.size();
-		allocateInfo.pSetLayouts = layouts;
-		if (vkAllocateDescriptorSets(device, &allocateInfo, info.descriptorSets.data()) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan descriptor sets.\n";
+		allocateInfo.descriptorSetCount = 1;
+		allocateInfo.pSetLayouts = &pipelineInfo.descriptorSetLayouts[0];
+		if (vkAllocateDescriptorSets(device, &allocateInfo, &info.vertexDescriptorSet) != VK_SUCCESS) {
+			std::cerr << "Failed to allocate Vulkan vertex descriptor set.\n";
 			return false;
+		}
+		info.pixelDescriptorSets.resize(materialCount);
+		if (!info.pixelDescriptorSets.empty()) {
+			const std::vector pixelLayouts(materialCount, pipelineInfo.descriptorSetLayouts[1]);
+			VkDescriptorSetAllocateInfo pixelAllocateInfo{};
+			pixelAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			pixelAllocateInfo.descriptorPool = info.descriptorPool;
+			pixelAllocateInfo.descriptorSetCount = pixelLayouts.size();
+			pixelAllocateInfo.pSetLayouts = pixelLayouts.data();
+			if (vkAllocateDescriptorSets(device, &pixelAllocateInfo, info.pixelDescriptorSets.data()) != VK_SUCCESS) {
+				std::cerr << "Failed to allocate Vulkan pixel descriptor sets.\n";
+				return false;
+			}
 		}
 		info.textureDescriptorSets.resize(materialCount);
 		if (info.textureDescriptorSets.empty())
@@ -97,36 +107,44 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanDescriptorSet::UpdateDescriptorSets(
-		const VulkanBufferInfo& vertexConstantBuffer,
-		const VulkanBufferInfo& pixelConstantBuffer) const {
+	void VulkanDescriptorSet::UpdateVertexDescriptorSet(const VulkanBufferInfo& vertexConstantBuffer) const {
 		const VkDescriptorBufferInfo vertexBufferInfo{
 			.buffer = vertexConstantBuffer.buffer,
 			.offset = 0,
 			.range = vertexConstantBuffer.size
 		};
-		const VkDescriptorBufferInfo pixelBufferInfo{
-			.buffer = pixelConstantBuffer.buffer,
-			.offset = 0,
-			.range = pixelConstantBuffer.size
+		const VkWriteDescriptorSet write{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.pNext = nullptr,
+			.dstSet = info.vertexDescriptorSet,
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.pImageInfo = nullptr,
+			.pBufferInfo = &vertexBufferInfo,
+			.pTexelBufferView = nullptr
 		};
-		const VkWriteDescriptorSet writes[] = {
-			VkWriteDescriptorSet{
+		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	}
+
+	void VulkanDescriptorSet::UpdatePixelDescriptorSets(std::vector<VulkanMaterial>& materials) const {
+		for (size_t i = 0; i < materials.size(); i++) {
+			if (i >= info.pixelDescriptorSets.size())
+				return;
+			VulkanMaterial& material = materials[i];
+			material.pixelDescriptorSet = info.pixelDescriptorSets[i];
+			if (!material.pixelConstantBuffer)
+				continue;
+			const VkDescriptorBufferInfo pixelBufferInfo{
+				.buffer = material.pixelConstantBuffer->GetInfo().buffer,
+				.offset = 0,
+				.range = material.pixelConstantBuffer->GetInfo().size
+			};
+			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.pNext = nullptr,
-				.dstSet = info.descriptorSets[0],
-				.dstBinding = 0,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.pImageInfo = nullptr,
-				.pBufferInfo = &vertexBufferInfo,
-				.pTexelBufferView = nullptr
-			},
-			VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.pNext = nullptr,
-				.dstSet = info.descriptorSets[1],
+				.dstSet = material.pixelDescriptorSet,
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
@@ -134,9 +152,9 @@ namespace Chrivent {
 				.pImageInfo = nullptr,
 				.pBufferInfo = &pixelBufferInfo,
 				.pTexelBufferView = nullptr
-			}
-		};
-		vkUpdateDescriptorSets(device, std::size(writes), writes, 0, nullptr);
+			};
+			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+		}
 	}
 
 	void VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const {

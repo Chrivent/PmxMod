@@ -6,7 +6,7 @@ layout(location = 2) in vec2 vsUv;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 1, binding = 0) uniform ModelPixelConstants {
+layout(std140, set = 1, binding = 0) uniform ModelPixelConstants {
     vec4 diffuseAlpha;
     vec4 ambientSpecularPower;
     vec4 specular;

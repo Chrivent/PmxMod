@@ -21,9 +21,13 @@ namespace Chrivent {
 	VulkanTexture VulkanTextureCache::Load(
 		const VulkanDeviceInfo& deviceInfo,
 		const VkCommandPool commandPool,
-		const std::filesystem::path& texturePath) {
+		const std::filesystem::path& texturePath,
+		const bool clamp) {
 		device = deviceInfo.device;
-		const auto it = textures.find(texturePath);
+		std::filesystem::path cacheKey = texturePath;
+		if (clamp)
+			cacheKey += L".__clamp__";
+		const auto it = textures.find(cacheKey);
 		if (it != textures.end()) {
 			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
 			return texture ? *texture : VulkanTexture{};
@@ -35,12 +39,12 @@ namespace Chrivent {
 		const bool textureHasAlpha = comp == 4;
 		const auto texture = std::make_shared<VulkanTexture>();
 		texture->hasAlpha = textureHasAlpha;
-		if (!UploadRgbaPixels(deviceInfo, commandPool, image, x, y, *texture)) {
+		if (!UploadRgbaPixels(deviceInfo, commandPool, image, x, y, *texture, clamp)) {
 			stbi_image_free(image);
 			return {};
 		}
 		stbi_image_free(image);
-		textures[texturePath] = texture;
+		textures[cacheKey] = texture;
 		return *texture;
 	}
 
@@ -55,7 +59,7 @@ namespace Chrivent {
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<VulkanTexture>();
 		texture->hasAlpha = false;
-		if (!UploadRgbaPixels(deviceInfo, commandPool, pixels, 1, 1, *texture))
+		if (!UploadRgbaPixels(deviceInfo, commandPool, pixels, 1, 1, *texture, false))
 			return {};
 		textures[key] = texture;
 		return *texture;
@@ -67,7 +71,8 @@ namespace Chrivent {
 		const unsigned char* pixels,
 		const uint32_t width,
 		const uint32_t height,
-		VulkanTexture& texture) const {
+		VulkanTexture& texture,
+		const bool clamp) const {
 		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(
@@ -92,7 +97,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateImageView(texture.image, texture.imageView))
 			return false;
-		if (!CreateSampler(texture.sampler))
+		if (!CreateSampler(texture.sampler, clamp))
 			return false;
 		return true;
 	}
@@ -288,14 +293,17 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanTextureCache::CreateSampler(VkSampler& sampler) const {
+	bool VulkanTextureCache::CreateSampler(VkSampler& sampler, const bool clamp) const {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		const VkSamplerAddressMode addressMode = clamp
+			? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+			: VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeU = addressMode;
+		samplerInfo.addressModeV = addressMode;
+		samplerInfo.addressModeW = addressMode;
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;

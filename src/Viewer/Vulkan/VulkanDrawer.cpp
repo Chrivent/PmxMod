@@ -40,19 +40,21 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			if (!mat.texture.empty())
+			if (material.hasTexture)
 				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
-			if (!mat.toonTexture.empty())
+			if (material.hasToonTexture)
 				pixelConstants.textureModes.y = 1;
-			if (!mat.spTexture.empty()) {
+			if (material.hasSphereTexture) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					pixelConstants.textureModes.z = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			if (!info.modelPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants)))
+			if (!material.pixelConstantBuffer ||
+				!material.pixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
 			info.viewer->BindModelPipeline(mat.bothFace);
+			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet);
 			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
 			info.viewer->DrawIndexed(
 				info.vertexBuffer.GetInfo(),
