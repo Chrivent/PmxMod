@@ -14,7 +14,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::Setup() {
-		InitDirs("shader_Vulkan");
+		InitDirs("shader_glsl");
 		if (!device.Initialize(GetInfo().window))
 			return false;
 		if (!swapChain.Initialize(device.GetInfo(), GetInfo().window))
@@ -205,6 +205,18 @@ namespace Chrivent {
 			? pipeline.GetInfo().bothFacePipeline
 			: pipeline.GetInfo().pipeline;
 		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+	}
+
+	void VulkanViewer::BindEdgePipeline() const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
+	}
+
+	void VulkanViewer::BindGroundShadowPipeline() const {
+		if (!frameReady)
+			return;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
 	}
 
 	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {

@@ -11,8 +11,8 @@ namespace Chrivent {
 
 	void GlfwViewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
@@ -27,7 +27,7 @@ namespace Chrivent {
 		}
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		InitDirs("shader_Glfw");
+		InitDirs("shader_glsl");
 		info.shader = std::make_unique<GlfwModelShader>();
 		if (!info.shader->Setup(info)) {
 			std::cerr << "Failed to set up main GLFW shader.\n";

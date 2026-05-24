@@ -3,9 +3,16 @@
 #include "GlfwInstance.h"
 #include "GlfwViewer.h"
 #include "../../Model/Model.h"
+#include "../ShaderConstants.h"
 
 namespace Chrivent {
 	GlfwDrawer::GlfwDrawer(const GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
+
+	void GlfwDrawer::UpdateUniformBuffer(const GLuint buffer, const GLuint binding, const void* data, const size_t size) {
+		glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
+		glBindBufferBase(GL_UNIFORM_BUFFER, binding, buffer);
+	}
 
 	void GlfwDrawer::DrawModel() const {
 		const auto* viewer = info.viewer;
@@ -15,16 +22,14 @@ namespace Chrivent {
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		auto wv = view * world;
-		auto wvp = proj * view * world;
+		ModelVertexConstants vertexConstants;
+		vertexConstants.wv = view * world;
+		vertexConstants.wvp = proj * view * world;
 		const auto& shader = viewer->GetGlfwInfo().shader;
-		glm::vec3 lightColor = viewer->GetInfo().lightColor;
-		glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
+		const glm::vec3 lightColor = viewer->GetInfo().lightColor;
+		const glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		glUseProgram(shader->program);
-		glUniformMatrix4fv(shader->wvLocation, 1, GL_FALSE, &wv[0][0]);
-		glUniformMatrix4fv(shader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
-		glUniform3fv(shader->lightDirLocation, 1, &lightDir[0]);
-		glUniform3fv(shader->lightColorLocation, 1, &lightColor[0]);
+		UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
 		glBindVertexArray(vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
@@ -34,47 +39,43 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			glUniform3fv(shader->ambientLocation, 1, &mat.ambient[0]);
-			glUniform3fv(shader->diffuseLocation, 1, &mat.diffuse[0]);
-			glUniform3fv(shader->specularLocation, 1, &mat.specular[0]);
-			glUniform1f(shader->specularPowerLocation, mat.specularPower);
-			glUniform1f(shader->alphaLocation, mat.diffuse.a);
+			ModelPixelConstants pixelConstants{};
+			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
+			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
+			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
+			pixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
+			pixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
+			pixelConstants.texMulFactor = mat.textureMulFactor;
+			pixelConstants.texAddFactor = mat.textureAddFactor;
+			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;
+			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
+			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
+			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
 			glActiveTexture(GL_TEXTURE0 + 0);
 			if (material.texture != 0) {
 				if (!material.textureHasAlpha)
-					glUniform1i(shader->texModeLocation, 1);
+					pixelConstants.textureModes.x = 1;
 				else
-					glUniform1i(shader->texModeLocation, 2);
-				glUniform4fv(shader->texMulFactorLocation, 1, &mat.textureMulFactor[0]);
-				glUniform4fv(shader->texAddFactorLocation, 1, &mat.textureAddFactor[0]);
+					pixelConstants.textureModes.x = 2;
 				glBindTexture(GL_TEXTURE_2D, material.texture);
-			} else {
-				glUniform1i(shader->texModeLocation, 0);
+			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
-			}
 			glActiveTexture(GL_TEXTURE0 + 1);
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
-					glUniform1i(shader->sphereTexModeLocation, 1);
+					pixelConstants.textureModes.z = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
-					glUniform1i(shader->sphereTexModeLocation, 2);
-				glUniform4fv(shader->sphereTexMulFactorLocation, 1, &mat.sphereTextureMulFactor[0]);
-				glUniform4fv(shader->sphereTexAddFactorLocation, 1, &mat.sphereTextureAddFactor[0]);
+					pixelConstants.textureModes.z = 2;
 				glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
-			} else {
-				glUniform1i(shader->sphereTexModeLocation, 0);
+			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
-			}
 			glActiveTexture(GL_TEXTURE0 + 2);
 			if (material.toonTexture != 0) {
-				glUniform4fv(shader->toonTexMulFactorLocation, 1, &mat.toonTextureMulFactor[0]);
-				glUniform4fv(shader->toonTexAddFactorLocation, 1, &mat.toonTextureAddFactor[0]);
-				glUniform1i(shader->toonTexModeLocation, 1);
+				pixelConstants.textureModes.y = 1;
 				glBindTexture(GL_TEXTURE_2D, material.toonTexture);
-			} else {
-				glUniform1i(shader->toonTexModeLocation, 0);
+			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
-			}
+			UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
 			if (mat.bothFace)
 				glDisable(GL_CULL_FACE);
 			else {
@@ -94,14 +95,8 @@ namespace Chrivent {
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		auto wv = view * world;
-		auto wvp = proj * view * world;
 		const auto& edgeShader = viewer->GetGlfwInfo().edgeShader;
 		glUseProgram(edgeShader->program);
-		glUniformMatrix4fv(edgeShader->wvLocation, 1, GL_FALSE, &wv[0][0]);
-		glUniformMatrix4fv(edgeShader->wvpLocation, 1, GL_FALSE, &wvp[0][0]);
-		glm::vec2 screenSize(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
-		glUniform2fv(edgeShader->screenSizeLocation, 1, &screenSize[0]);
 		glBindVertexArray(edgeVao);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
@@ -112,8 +107,15 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			glUniform1f(edgeShader->edgeSizeLocation, mat.edgeSize);
-			glUniform4fv(edgeShader->edgeColorLocation, 1, &mat.edgeColor[0]);
+			EdgeVertexConstants vertexConstants;
+			vertexConstants.wv = view * world;
+			vertexConstants.wvp = proj * view * world;
+			vertexConstants.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
+			vertexConstants.edgeSize = mat.edgeSize;
+			EdgePixelConstants pixelConstants;
+			pixelConstants.edgeColor = mat.edgeColor;
+			UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
+			UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
 			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
@@ -134,10 +136,13 @@ namespace Chrivent {
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
-		glUniformMatrix4fv(gsShader->wvpLocation, 1, GL_FALSE, &(proj * view * shadow * world)[0][0]);
+		GroundShadowVertexConstants vertexConstants;
+		vertexConstants.wvp = proj * view * shadow * world;
+		UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
 		glBindVertexArray(gsVao);
-		auto shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-		glUniform4fv(gsShader->shadowColorLocation, 1, &shadowColor[0]);
+		GroundShadowPixelConstants pixelConstants;
+		const auto shadowColor = pixelConstants.shadowColor;
+		UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
 		if (shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);

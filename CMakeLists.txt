@@ -76,6 +76,7 @@ add_executable(PmxMod
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
+        src/Viewer/ShaderConstants.h
         src/Viewer/TextureCache.h
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
@@ -101,7 +102,6 @@ add_executable(PmxMod
         src/Viewer/Dx11/Helper/Dx11Shader.h src/Viewer/Dx11/Helper/Dx11Shader.cpp
         src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
         
-        src/Viewer/Vulkan/Helper/VulkanConstants.h
         src/Viewer/Vulkan/Helper/VulkanBuffer.h src/Viewer/Vulkan/Helper/VulkanBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp
@@ -142,6 +142,7 @@ set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
 set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
 
 add_custom_target(SyncResources
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${RESOURCE_OUT_DIR}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${RESOURCE_SRC_DIR}" "${RESOURCE_OUT_DIR}"
         VERBATIM

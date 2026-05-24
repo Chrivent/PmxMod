@@ -55,6 +55,10 @@ namespace Chrivent {
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace) const;
+		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
+		void BindEdgePipeline() const;
+		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
+		void BindGroundShadowPipeline() const;
 		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
 		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const;
 		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.

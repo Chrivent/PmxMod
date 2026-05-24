@@ -1,8 +1,14 @@
-#version 450
+#version 460
+
+#ifdef VULKAN
+#define SET(n) set = n,
+#else
+#define SET(n)
+#endif
 
 layout(location = 0) in vec3 inPosition;
 
-layout(set = 0, binding = 0) uniform GroundShadowVertexConstants {
+layout(SET(0) binding = 0) uniform GroundShadowVertexConstants {
     mat4 wvp;
 } shadowConstants;
 

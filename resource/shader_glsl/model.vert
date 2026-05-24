@@ -1,4 +1,10 @@
-#version 450
+#version 460
+
+#ifdef VULKAN
+#define SET(n) set = n,
+#else
+#define SET(n)
+#endif
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -8,7 +14,7 @@ layout(location = 0) out vec3 vsPos;
 layout(location = 1) out vec3 vsNor;
 layout(location = 2) out vec2 vsUv;
 
-layout(set = 0, binding = 0) uniform ModelVertexConstants {
+layout(SET(0) binding = 0) uniform ModelVertexConstants {
     mat4 wv;
     mat4 wvp;
 } vertexConstants;

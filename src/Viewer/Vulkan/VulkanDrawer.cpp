@@ -2,7 +2,7 @@
 
 #include "VulkanInstance.h"
 #include "VulkanViewer.h"
-#include "Helper/VulkanConstants.h"
+#include "../ShaderConstants.h"
 #include "../../Model/Model.h"
 
 #include <iostream>
@@ -15,7 +15,7 @@ namespace Chrivent {
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		VulkanModelVertexConstants vertexConstants;
+		ModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
@@ -28,7 +28,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			VulkanModelPixelConstants pixelConstants{};
+			ModelPixelConstants pixelConstants{};
 			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
 			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
@@ -66,9 +66,74 @@ namespace Chrivent {
 	}
 
 	void VulkanDrawer::DrawEdge() const {
+		if (info.viewer == nullptr)
+			return;
+		const auto& viewerInfo = info.viewer->GetInfo();
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		info.viewer->BindEdgePipeline();
+		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+			if (materialId >= info.materials.size())
+				continue;
+			const auto& material = info.materials[materialId];
+			const auto& mat = material.mat;
+			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
+				continue;
+			EdgeVertexConstants vertexConstants;
+			vertexConstants.wv = viewerInfo.viewMat * world;
+			vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
+			vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
+			vertexConstants.edgeSize = mat.edgeSize;
+			if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
+				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
+			EdgePixelConstants pixelConstants;
+			pixelConstants.edgeColor = mat.edgeColor;
+			if (!material.pixelConstantBuffer ||
+				!material.pixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
+				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
+			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet);
+			info.viewer->DrawIndexed(
+				info.vertexBuffer.GetInfo(),
+				info.indexBuffer.GetInfo(),
+				info.indexType,
+				beginIndex,
+				indexCount);
+		}
 	}
 
 	void VulkanDrawer::DrawGroundShadow() const {
+		if (info.viewer == nullptr)
+			return;
+		const auto& viewerInfo = info.viewer->GetInfo();
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
+		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
+		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		GroundShadowVertexConstants vertexConstants;
+		vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
+		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
+			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
+		info.viewer->BindGroundShadowPipeline();
+		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+			if (materialId >= info.materials.size())
+				continue;
+			const auto& material = info.materials[materialId];
+			const auto& mat = material.mat;
+			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
+				continue;
+			GroundShadowPixelConstants pixelConstants;
+			if (!material.pixelConstantBuffer ||
+				!material.pixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
+				std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
+			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet);
+			info.viewer->DrawIndexed(
+				info.vertexBuffer.GetInfo(),
+				info.indexBuffer.GetInfo(),
+				info.indexType,
+				beginIndex,
+				indexCount);
+		}
 	}
 
 	const glm::mat4& VulkanDrawer::VulkanClipMatrix() {

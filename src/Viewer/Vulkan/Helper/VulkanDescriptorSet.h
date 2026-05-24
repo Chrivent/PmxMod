@@ -41,7 +41,8 @@ namespace Chrivent {
 		const VulkanDescriptorSetInfo& GetInfo() const { return info; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
-		bool Initialize(const VulkanDeviceInfo& deviceInfo,
+		bool Initialize(
+			const VulkanDeviceInfo& deviceInfo,
 			const VulkanPipelineInfo& pipelineInfo,
 			const VulkanBufferInfo& vertexConstantBuffer,
 			std::vector<VulkanMaterial>& materials);

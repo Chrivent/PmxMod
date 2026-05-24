@@ -1,8 +1,14 @@
-#version 450
+#version 460
+
+#ifdef VULKAN
+#define SET(n) set = n,
+#else
+#define SET(n)
+#endif
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 1, binding = 0) uniform GroundShadowPixelConstants {
+layout(SET(1) binding = 0) uniform GroundShadowPixelConstants {
     vec4 shadowColor;
 } shadowConstants;
 

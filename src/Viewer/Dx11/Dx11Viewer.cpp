@@ -42,7 +42,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateRenderTargets())
 			return false;
-		InitDirs("shader_Dx11");
+		InitDirs("shader_hlsl");
 		if (!CreateShaders())
 			return false;
 		if (!CreatePipelineStates())

@@ -2,10 +2,11 @@
 
 #include "VulkanDrawer.h"
 #include "VulkanViewer.h"
-#include "Helper/VulkanConstants.h"
+#include "../ShaderConstants.h"
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
+#include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
@@ -60,9 +61,14 @@ namespace Chrivent {
 			return false;
 		if (!info.indexBuffer.Write(geometryData.indices.data(), indexBufferSize))
 			return false;
+		constexpr size_t vertexConstantsSize = std::max({
+			sizeof(ModelVertexConstants),
+			sizeof(EdgeVertexConstants),
+			sizeof(GroundShadowVertexConstants)
+		});
 		if (!info.modelVertexConstantBuffer.Initialize(
 			deviceInfo,
-			sizeof(VulkanModelVertexConstants),
+			vertexConstantsSize,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
@@ -72,7 +78,7 @@ namespace Chrivent {
 			material.pixelConstantBuffer = std::make_unique<VulkanBuffer>();
 			if (!material.pixelConstantBuffer->Initialize(
 				deviceInfo,
-				sizeof(VulkanModelPixelConstants),
+				sizeof(ModelPixelConstants),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;

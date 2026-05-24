@@ -1,9 +1,15 @@
-#version 450
+#version 460
+
+#ifdef VULKAN
+#define SET(n) set = n,
+#else
+#define SET(n)
+#endif
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 
-layout(set = 0, binding = 0) uniform EdgeVertexConstants {
+layout(SET(0) binding = 0) uniform EdgeVertexConstants {
     mat4 wv;
     mat4 wvp;
     vec2 screenSize;

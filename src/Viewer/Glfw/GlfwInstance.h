@@ -15,6 +15,8 @@ namespace Chrivent {
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
+        GLuint	vertexConstantsUbo = 0;
+        GLuint	pixelConstantsUbo = 0;
         std::vector<GlfwViewerMaterial> materials;
     };
 

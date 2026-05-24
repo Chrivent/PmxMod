@@ -36,6 +36,14 @@ namespace Chrivent {
 			vkDestroyPipeline(device, info.bothFacePipeline, nullptr);
 			info.bothFacePipeline = VK_NULL_HANDLE;
 		}
+		if (info.edgePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.edgePipeline, nullptr);
+			info.edgePipeline = VK_NULL_HANDLE;
+		}
+		if (info.groundShadowPipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.groundShadowPipeline, nullptr);
+			info.groundShadowPipeline = VK_NULL_HANDLE;
+		}
 		if (info.pipelineLayout != VK_NULL_HANDLE) {
 			vkDestroyPipelineLayout(device, info.pipelineLayout, nullptr);
 			info.pipelineLayout = VK_NULL_HANDLE;
@@ -131,8 +139,10 @@ namespace Chrivent {
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
-		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, VK_CULL_MODE_BACK_BIT, info.pipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, VK_CULL_MODE_NONE, info.bothFacePipeline);
+		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, info.pipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, info.bothFacePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, info.edgePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, info.groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
@@ -140,16 +150,20 @@ namespace Chrivent {
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir,
+		const char* vertexShaderName,
+		const char* fragmentShaderName,
 		const VkCullModeFlags cullMode,
+		const bool usePositionOnly,
+		const bool useDepthBias,
 		VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.vert", VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / vertexShaderName, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.frag", VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / fragmentShaderName, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
@@ -165,12 +179,17 @@ namespace Chrivent {
 		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		const std::array attributeDescriptions = MakeVertexAttributeDescriptions();
+		const std::array positionOnlyAttributeDescriptions = { attributeDescriptions[0] };
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly
+			? positionOnlyAttributeDescriptions.size()
+			: attributeDescriptions.size();
+		vertexInputInfo.pVertexAttributeDescriptions = usePositionOnly
+			? positionOnlyAttributeDescriptions.data()
+			: attributeDescriptions.data();
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -198,7 +217,9 @@ namespace Chrivent {
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.cullMode = cullMode;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_FALSE;
+		rasterizer.depthBiasEnable = useDepthBias ? VK_TRUE : VK_FALSE;
+		rasterizer.depthBiasConstantFactor = useDepthBias ? -1.0f : 0.0f;
+		rasterizer.depthBiasSlopeFactor = useDepthBias ? -1.0f : 0.0f;
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;

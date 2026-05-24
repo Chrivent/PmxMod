@@ -4,6 +4,7 @@
 
 #include "GlfwViewer.h"
 #include "../../Model/ModelPose.h"
+#include "../ShaderConstants.h"
 
 namespace Chrivent {
 	GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
@@ -50,6 +51,10 @@ namespace Chrivent {
 			glDeleteBuffers(1, &ibo);
 		posVbo = norVbo = uvVbo = ibo = 0;
 		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
+		if (info.vertexConstantsUbo != 0)
+			glDeleteBuffers(1, &info.vertexConstantsUbo);
+		if (info.pixelConstantsUbo != 0)
+			glDeleteBuffers(1, &info.pixelConstantsUbo);
 		if (info.vao != 0)
 			glDeleteVertexArrays(1, &info.vao);
 		if (info.edgeVao != 0)
@@ -57,6 +62,7 @@ namespace Chrivent {
 		if (info.gsVao != 0)
 			glDeleteVertexArrays(1, &info.gsVao);
 		info.vao = info.edgeVao = info.gsVao = 0;
+		info.vertexConstantsUbo = info.pixelConstantsUbo = 0;
 	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
@@ -103,6 +109,18 @@ namespace Chrivent {
 		info.vao = CreateVao(buffers[0], locs[0], sizes[0], types[0], 3, ibo);
 		info.edgeVao = CreateVao(buffers[1], locs[1], sizes[1], types[1], 2, ibo);
 		info.gsVao = CreateVao(buffers[2], locs[2], sizes[2], types[2], 1, ibo);
+		constexpr size_t vertexConstantsSize = std::max({
+			sizeof(ModelVertexConstants),
+			sizeof(EdgeVertexConstants),
+			sizeof(GroundShadowVertexConstants)
+		});
+		constexpr size_t pixelConstantsSize = std::max({
+			sizeof(ModelPixelConstants),
+			sizeof(EdgePixelConstants),
+			sizeof(GroundShadowPixelConstants)
+		});
+		info.vertexConstantsUbo = CreateBuffer(GL_UNIFORM_BUFFER, vertexConstantsSize, nullptr, GL_DYNAMIC_DRAW);
+		info.pixelConstantsUbo = CreateBuffer(GL_UNIFORM_BUFFER, pixelConstantsSize, nullptr, GL_DYNAMIC_DRAW);
 		for (const auto& mat : info.model->materialData.materials) {
 			GlfwViewerMaterial material(mat);
 			if (!mat.texture.empty()) {

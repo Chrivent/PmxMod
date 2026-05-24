@@ -3,12 +3,12 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct VulkanModelVertexConstants {
+	struct ModelVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 	};
 
-	struct VulkanModelPixelConstants {
+	struct ModelPixelConstants {
 		glm::vec4 diffuseAlpha = glm::vec4(1.0f);
 		glm::vec4 ambientSpecularPower = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
 		glm::vec4 specular = glm::vec4(0.0f);
@@ -23,22 +23,22 @@ namespace Chrivent {
 		glm::ivec4 textureModes = glm::ivec4(0);
 	};
 
-	struct VulkanEdgeVertexConstants {
+	struct EdgeVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 		glm::vec2 screenSize;
 		float edgeSize = 0.0f;
 	};
 
-	struct VulkanEdgePixelConstants {
+	struct EdgePixelConstants {
 		glm::vec4 edgeColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	};
 
-	struct VulkanGroundShadowVertexConstants {
+	struct GroundShadowVertexConstants {
 		glm::mat4 wvp;
 	};
 
-	struct VulkanGroundShadowPixelConstants {
+	struct GroundShadowPixelConstants {
 		glm::vec4 shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	};
 }
