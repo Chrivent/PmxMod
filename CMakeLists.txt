@@ -18,6 +18,11 @@ find_package(Bullet CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
+find_program(GLSLC_EXECUTABLE
+        NAMES glslc
+        HINTS "$ENV{VULKAN_SDK}/Bin"
+        REQUIRED
+)
 
 add_executable(PmxMod
         main.cpp
@@ -127,6 +132,16 @@ target_include_directories(PmxMod PRIVATE
 
 set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")
 set(RESOURCE_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/resource")
+set(VULKAN_SHADER_SRC_DIR "${RESOURCE_SRC_DIR}/shader_Vulkan")
+set(VULKAN_SHADER_OUT_DIR "${RESOURCE_OUT_DIR}/shader_Vulkan")
+set(VULKAN_SHADER_SOURCES
+        model.vert
+        model.frag
+        edge.vert
+        edge.frag
+        ground_shadow.vert
+        ground_shadow.frag
+)
 
 add_custom_target(SyncResources
         COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCE_OUT_DIR}"
@@ -134,7 +149,24 @@ add_custom_target(SyncResources
         VERBATIM
 )
 
-add_dependencies(PmxMod SyncResources)
+set(VULKAN_SHADER_OUTPUTS)
+foreach(shader ${VULKAN_SHADER_SOURCES})
+        set(shader_src "${VULKAN_SHADER_SRC_DIR}/${shader}")
+        set(shader_out "${VULKAN_SHADER_OUT_DIR}/${shader}.spv")
+        list(APPEND VULKAN_SHADER_OUTPUTS "${shader_out}")
+        add_custom_command(
+                OUTPUT "${shader_out}"
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${VULKAN_SHADER_OUT_DIR}"
+                COMMAND "${GLSLC_EXECUTABLE}" "${shader_src}" -o "${shader_out}"
+                DEPENDS "${shader_src}"
+                VERBATIM
+        )
+endforeach()
+
+add_custom_target(CompileVulkanShaders DEPENDS ${VULKAN_SHADER_OUTPUTS})
+add_dependencies(CompileVulkanShaders SyncResources)
+add_dependencies(PmxMod CompileVulkanShaders)
+
 add_custom_command(TARGET PmxMod POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${VCPKG_INSTALLED_DIR}/bin/glfw3.dll"
