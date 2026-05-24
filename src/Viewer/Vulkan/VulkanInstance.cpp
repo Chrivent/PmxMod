@@ -78,22 +78,19 @@ namespace Chrivent {
 				return false;
 			if (!mat.texture.empty()) {
 				material.texture = info.viewer->LoadTexture(mat.texture);
-				material.hasTexture = material.texture.image != VK_NULL_HANDLE;
-				if (!material.hasTexture)
+				if (material.texture.image == VK_NULL_HANDLE)
 					material.texture = info.viewer->GetDummyTexture();
 			} else
 				material.texture = info.viewer->GetDummyTexture();
 			if (!mat.spTexture.empty()) {
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
-				material.hasSphereTexture = material.sphereTexture.image != VK_NULL_HANDLE;
-				if (!material.hasSphereTexture)
+				if (material.sphereTexture.image == VK_NULL_HANDLE)
 					material.sphereTexture = info.viewer->GetDummyTexture();
 			} else
 				material.sphereTexture = info.viewer->GetDummyTexture();
 			if (!mat.toonTexture.empty()) {
 				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true);
-				material.hasToonTexture = material.toonTexture.image != VK_NULL_HANDLE;
-				if (!material.hasToonTexture)
+				if (material.toonTexture.image == VK_NULL_HANDLE)
 					material.toonTexture = info.viewer->GetDummyTexture();
 			} else
 				material.toonTexture = info.viewer->GetDummyTexture();

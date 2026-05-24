@@ -20,9 +20,6 @@ namespace Chrivent {
 		std::unique_ptr<VulkanBuffer> pixelConstantBuffer;
 		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-		bool hasTexture = false;
-		bool hasSphereTexture = false;
-		bool hasToonTexture = false;
 
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};

@@ -40,11 +40,11 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			if (material.hasTexture)
+			if (!mat.texture.empty())
 				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
-			if (material.hasToonTexture)
+			if (!mat.toonTexture.empty())
 				pixelConstants.textureModes.y = 1;
-			if (material.hasSphereTexture) {
+			if (!mat.spTexture.empty()) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					pixelConstants.textureModes.z = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
