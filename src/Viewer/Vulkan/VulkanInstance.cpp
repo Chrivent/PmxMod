@@ -6,7 +6,6 @@
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
-#include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
@@ -20,7 +19,11 @@ namespace Chrivent {
 		info.vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
 		info.modelVertexConstantBuffer.Destroy();
+		info.edgeVertexConstantBuffer.Destroy();
+		info.groundShadowVertexConstantBuffer.Destroy();
 		info.modelDescriptorSet.Destroy();
+		info.edgeDescriptorSet.Destroy();
+		info.groundShadowDescriptorSet.Destroy();
 		info.materials.clear();
 		info.indexType = VK_INDEX_TYPE_UINT16;
 		info.indexCount = 0;
@@ -61,14 +64,21 @@ namespace Chrivent {
 			return false;
 		if (!info.indexBuffer.Write(geometryData.indices.data(), indexBufferSize))
 			return false;
-		constexpr size_t vertexConstantsSize = std::max({
-			sizeof(ModelVertexConstants),
-			sizeof(EdgeVertexConstants),
-			sizeof(GroundShadowVertexConstants)
-		});
 		if (!info.modelVertexConstantBuffer.Initialize(
 			deviceInfo,
-			vertexConstantsSize,
+			sizeof(ModelVertexConstants),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
+		if (!info.edgeVertexConstantBuffer.Initialize(
+			deviceInfo,
+			sizeof(EdgeVertexConstants),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
+		if (!info.groundShadowVertexConstantBuffer.Initialize(
+			deviceInfo,
+			sizeof(GroundShadowVertexConstants),
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
@@ -76,9 +86,23 @@ namespace Chrivent {
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
 			material.pixelConstantBuffer = std::make_unique<VulkanBuffer>();
+			material.edgePixelConstantBuffer = std::make_unique<VulkanBuffer>();
+			material.groundShadowPixelConstantBuffer = std::make_unique<VulkanBuffer>();
 			if (!material.pixelConstantBuffer->Initialize(
 				deviceInfo,
 				sizeof(ModelPixelConstants),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
+			if (!material.edgePixelConstantBuffer->Initialize(
+				deviceInfo,
+				sizeof(EdgePixelConstants),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
+			if (!material.groundShadowPixelConstantBuffer->Initialize(
+				deviceInfo,
+				sizeof(GroundShadowPixelConstants),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;
@@ -106,7 +130,22 @@ namespace Chrivent {
 			deviceInfo,
 			info.viewer->GetPipelineInfo(),
 			info.modelVertexConstantBuffer.GetInfo(),
-			info.materials))
+			info.materials,
+			VulkanPassType::Model))
+			return false;
+		if (!info.edgeDescriptorSet.Initialize(
+			deviceInfo,
+			info.viewer->GetPipelineInfo(),
+			info.edgeVertexConstantBuffer.GetInfo(),
+			info.materials,
+			VulkanPassType::Edge))
+			return false;
+		if (!info.groundShadowDescriptorSet.Initialize(
+			deviceInfo,
+			info.viewer->GetPipelineInfo(),
+			info.groundShadowVertexConstantBuffer.GetInfo(),
+			info.materials,
+			VulkanPassType::GroundShadow))
 			return false;
 		return true;
 	}

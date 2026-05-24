@@ -5,10 +5,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanViewer::VulkanViewer() {
-		info = std::make_unique<VulkanViewerInfo>();
-	}
-
 	void VulkanViewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}

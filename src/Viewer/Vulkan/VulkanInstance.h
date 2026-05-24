@@ -21,7 +21,11 @@ namespace Chrivent {
 		VulkanBuffer vertexBuffer;
 		VulkanBuffer indexBuffer;
 		VulkanBuffer modelVertexConstantBuffer;
+		VulkanBuffer edgeVertexConstantBuffer;
+		VulkanBuffer groundShadowVertexConstantBuffer;
 		VulkanDescriptorSet modelDescriptorSet;
+		VulkanDescriptorSet edgeDescriptorSet;
+		VulkanDescriptorSet groundShadowDescriptorSet;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
 		size_t indexCount = 0;
 	};

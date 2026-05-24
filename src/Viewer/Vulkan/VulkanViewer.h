@@ -18,13 +18,14 @@ namespace Chrivent {
 		VulkanTexture sphereTexture{};
 		VulkanTexture toonTexture{};
 		std::unique_ptr<VulkanBuffer> pixelConstantBuffer;
+		std::unique_ptr<VulkanBuffer> edgePixelConstantBuffer;
+		std::unique_ptr<VulkanBuffer> groundShadowPixelConstantBuffer;
 		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-	};
-	
-	struct VulkanViewerInfo : ViewerInfo {
 	};
 
 	class VulkanViewer : public Viewer {
@@ -42,11 +43,8 @@ namespace Chrivent {
 		bool frameReady = false;
 
 	public:
-		VulkanViewer();
 		~VulkanViewer() override = default;
 
-		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
-		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
 		const VulkanPipelineInfo& GetPipelineInfo() const { return pipeline.GetInfo(); }
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }

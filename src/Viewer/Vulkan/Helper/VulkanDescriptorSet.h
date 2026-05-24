@@ -5,6 +5,11 @@
 
 namespace Chrivent {
 	struct VulkanMaterial;
+	enum class VulkanPassType {
+		Model,
+		Edge,
+		GroundShadow
+	};
 
 	struct VulkanDescriptorSetInfo {
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -16,6 +21,7 @@ namespace Chrivent {
 	class VulkanDescriptorSet {
 		VulkanDescriptorSetInfo info;
 		VkDevice device = VK_NULL_HANDLE;
+		VulkanPassType passType = VulkanPassType::Model;
 
 		// uniform buffer와 texture sampler용 descriptor pool을 생성한다.
 		bool CreateDescriptorPool(size_t materialCount);
@@ -45,7 +51,8 @@ namespace Chrivent {
 			const VulkanDeviceInfo& deviceInfo,
 			const VulkanPipelineInfo& pipelineInfo,
 			const VulkanBufferInfo& vertexConstantBuffer,
-			std::vector<VulkanMaterial>& materials);
+			std::vector<VulkanMaterial>& materials,
+			VulkanPassType sourcePassType);
 		// descriptor pool과 set 핸들을 해제한다.
 		void Destroy();
 	};
