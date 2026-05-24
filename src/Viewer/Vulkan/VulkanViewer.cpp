@@ -78,7 +78,7 @@ namespace Chrivent {
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
 		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
-		if (!commandBuffer.Record(
+		if (!commandBuffer.BeginRecord(
 			currentImageIndex,
 			renderPass.GetRenderPass(),
 			frameBuffers[currentImageIndex],
@@ -92,6 +92,10 @@ namespace Chrivent {
 	bool VulkanViewer::EndFrame() {
 		if (!frameReady)
 			return true;
+		if (!commandContext.GetCommandBuffer().EndRecord(currentImageIndex)) {
+			frameReady = false;
+			return false;
+		}
 		const auto& deviceInfo = device.GetInfo();
 		const auto& [imageAvailableSemaphores,
 			renderFinishedSemaphores,
@@ -145,5 +149,24 @@ namespace Chrivent {
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath) {
 		return textureCache.Load(texturePath);
+	}
+
+	void VulkanViewer::DrawIndexed(
+		const VulkanBufferInfo& vertexBuffer,
+		const VulkanBufferInfo& indexBuffer,
+		const VkIndexType indexType,
+		const size_t indexCount) const {
+		if (!frameReady)
+			return;
+		if (indexCount > std::numeric_limits<uint32_t>::max()) {
+			std::cerr << "Failed to draw Vulkan model: index count is too large.\n";
+			return;
+		}
+		commandContext.GetCommandBuffer().DrawIndexed(
+			currentImageIndex,
+			vertexBuffer,
+			indexBuffer,
+			indexType,
+			static_cast<uint32_t>(indexCount));
 	}
 }

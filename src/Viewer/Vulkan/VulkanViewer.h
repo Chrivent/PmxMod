@@ -43,7 +43,9 @@ namespace Chrivent {
 		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
 		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
-
+		
+		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
+		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t indexCount) const;
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
 		// Vulkan 렌더러 리소스를 초기화한다.

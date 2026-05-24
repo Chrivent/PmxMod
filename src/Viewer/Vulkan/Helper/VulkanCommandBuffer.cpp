@@ -31,7 +31,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanCommandBuffer::Record(
+	bool VulkanCommandBuffer::BeginRecord(
 		const uint32_t imageIndex,
 		const VkRenderPass renderPass,
 		const VkFramebuffer frameBuffer,
@@ -68,7 +68,34 @@ namespace Chrivent {
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		if (pipeline != VK_NULL_HANDLE)
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		return true;
+	}
+
+	void VulkanCommandBuffer::DrawIndexed(
+		const uint32_t imageIndex,
+		const VulkanBufferInfo& vertexBuffer,
+		const VulkanBufferInfo& indexBuffer,
+		const VkIndexType indexType,
+		const uint32_t indexCount) const {
+		if (imageIndex >= commandBuffers.size() ||
+			vertexBuffer.buffer == VK_NULL_HANDLE ||
+			indexBuffer.buffer == VK_NULL_HANDLE ||
+			indexCount == 0)
+			return;
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		constexpr VkDeviceSize offsets[] = { 0 };
+		const VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, indexType);
+		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+	}
+
+	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex) const {
+		if (imageIndex >= commandBuffers.size()) {
+			std::cerr << "Failed to end Vulkan command buffer: image index is out of range.\n";
+			return false;
+		}
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
 		vkCmdEndRenderPass(commandBuffer);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan command buffer.\n";
