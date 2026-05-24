@@ -35,12 +35,22 @@ namespace Chrivent {
 		return log;
 	}
 
+	bool GlfwShaderCompiler::ReadShaderFile(const std::filesystem::path& file, std::string& code) {
+		std::ifstream f(file);
+		if (!f) {
+			std::cerr << "Failed to open GLSL shader file: " << file.string() << '\n';
+			return false;
+		}
+		code.assign(std::istreambuf_iterator(f), {});
+		return true;
+	}
+
 	GLuint GlfwShaderCompiler::CompileShader(const GLenum shaderType, const std::string& code) {
 		const GLuint shader = glCreateShader(shaderType);
 		if (!shader)
 			return 0;
 		const char* codes = code.c_str();
-		const GLint codesLen = code.size();
+		const auto codesLen = static_cast<GLint>(code.size());
 		glShaderSource(shader, 1, &codes, &codesLen);
 		glCompileShader(shader);
 		GLint compileStatus = GL_FALSE;
@@ -56,31 +66,13 @@ namespace Chrivent {
 		return shader;
 	}
 
-	std::string GlfwShaderCompiler::InjectDefine(const std::string& src, const char* defineLine) {
-		if (src.starts_with("#version")) {
-			const auto nl = src.find('\n');
-			if (nl != std::string::npos) {
-				std::string out;
-				out.reserve(src.size() + 64);
-				out.append(src, 0, nl + 1);
-				out.append(defineLine);
-				out.push_back('\n');
-				out.append(src, nl + 1, std::string::npos);
-				return out;
-			}
-		}
-		return std::string(defineLine) + "\n" + src;
-	}
-
-	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& file) {
-		std::ifstream f(file);
-		if (!f) {
-			std::cerr << "Failed to open GLSL shader file: " << file.string() << '\n';
+	GLuint GlfwShaderCompiler::CreateShader(
+		const std::filesystem::path& vertexFile,
+		const std::filesystem::path& fragmentFile) {
+		std::string vsCode;
+		std::string fsCode;
+		if (!ReadShaderFile(vertexFile, vsCode) || !ReadShaderFile(fragmentFile, fsCode))
 			return 0;
-		}
-		const std::string src((std::istreambuf_iterator(f)), {});
-		const std::string vsCode = InjectDefine(src, "#define VERTEX");
-		const std::string fsCode = InjectDefine(src, "#define FRAGMENT");
 		const GLuint vs = CompileShader(GL_VERTEX_SHADER, vsCode);
 		const GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsCode);
 		if (!vs || !fs) {
@@ -104,7 +96,8 @@ namespace Chrivent {
 		GLint linkStatus = GL_FALSE;
 		glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
 		if (linkStatus == GL_FALSE) {
-			std::cerr << "Failed to link GLSL shader program: " << file.string() << '\n';
+			std::cerr << "Failed to link GLSL shader program: "
+				<< vertexFile.string() << ", " << fragmentFile.string() << '\n';
 			const std::string log = GetProgramInfoLog(prog);
 			if (!log.empty())
 				std::cerr << log << '\n';

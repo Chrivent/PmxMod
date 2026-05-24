@@ -1,7 +1,5 @@
 #version 140
 
-#ifdef VERTEX
-
 in vec3 position;
 in vec3 normal;
 
@@ -17,16 +15,3 @@ void main() {
     pos.xy += screenNor * vec2(1.0) / (screenSize * 0.5) * edgeSize * pos.w;
     gl_Position = pos;
 }
-
-#endif
-
-#ifdef FRAGMENT
-
-out vec4 out_Color;
-uniform vec4 edgeColor;
-
-void main() {
-    out_Color = edgeColor;
-}
-
-#endif

@@ -13,7 +13,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwModelShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd.glsl");
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "model.vert", viewerInfo.shaderDir / "model.frag");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -45,7 +45,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwEdgeShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd_edge.glsl");
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "edge.vert", viewerInfo.shaderDir / "edge.frag");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -59,7 +59,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwGroundShadowShader::Setup(const ViewerInfo& viewerInfo) {
-		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "mmd_ground_shadow.glsl");
+		program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "ground_shadow.vert", viewerInfo.shaderDir / "ground_shadow.frag");
 		if (program == 0)
 			return false;
 		positionLocation = glGetAttribLocation(program, "position");
@@ -99,17 +99,17 @@ namespace Chrivent {
 		InitDirs("shader_Glfw");
 		info.shader = std::make_unique<GlfwModelShader>();
 		if (!info.shader->Setup(info)) {
-			std::cerr << "Failed to set up main GLFW shader: " << (info.shaderDir / "mmd.glsl") << '\n';
+			std::cerr << "Failed to set up main GLFW shader.\n";
 			return false;
 		}
 		info.edgeShader = std::make_unique<GlfwEdgeShader>();
 		if (!info.edgeShader->Setup(info)) {
-			std::cerr << "Failed to set up edge GLFW shader: " << (info.shaderDir / "mmd_edge.glsl") << '\n';
+			std::cerr << "Failed to set up edge GLFW shader.\n";
 			return false;
 		}
 		info.gsShader = std::make_unique<GlfwGroundShadowShader>();
 		if (!info.gsShader->Setup(info)) {
-			std::cerr << "Failed to set up ground shadow GLFW shader: " << (info.shaderDir / "mmd_ground_shadow.glsl") << '\n';
+			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}
 		glGenTextures(1, &info.dummyColorTex);

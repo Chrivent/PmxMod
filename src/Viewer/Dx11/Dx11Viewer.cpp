@@ -141,17 +141,17 @@ namespace Chrivent {
 
 	bool Dx11Viewer::CreateShaders() {
 		Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, edgeVsBlob, gsVsBlob;
-		if (!MakeVs(GetInfo().shaderDir / "mmd.hlsl", "VSMain", GetDx11Info().shaders.vs, vsBlob))
+		if (!MakeVs(GetInfo().shaderDir / "model.hlsl", "VSMain", GetDx11Info().shaders.vs, vsBlob))
 			return false;
-		if (!MakeVs(GetInfo().shaderDir / "mmd_edge.hlsl", "VSMain", GetDx11Info().shaders.edgeVs, edgeVsBlob))
+		if (!MakeVs(GetInfo().shaderDir / "edge.hlsl", "VSMain", GetDx11Info().shaders.edgeVs, edgeVsBlob))
 			return false;
-		if (!MakeVs(GetInfo().shaderDir / "mmd_ground_shadow.hlsl", "VSMain", GetDx11Info().shaders.gsVs, gsVsBlob))
+		if (!MakeVs(GetInfo().shaderDir / "ground_shadow.hlsl", "VSMain", GetDx11Info().shaders.gsVs, gsVsBlob))
 			return false;
-		if (!MakePs(GetInfo().shaderDir / "mmd.hlsl", "PSMain", GetDx11Info().shaders.ps))
+		if (!MakePs(GetInfo().shaderDir / "model.hlsl", "PSMain", GetDx11Info().shaders.ps))
 			return false;
-		if (!MakePs(GetInfo().shaderDir / "mmd_edge.hlsl", "PSMain", GetDx11Info().shaders.edgePs))
+		if (!MakePs(GetInfo().shaderDir / "edge.hlsl", "PSMain", GetDx11Info().shaders.edgePs))
 			return false;
-		if (!MakePs(GetInfo().shaderDir / "mmd_ground_shadow.hlsl", "PSMain", GetDx11Info().shaders.gsPs))
+		if (!MakePs(GetInfo().shaderDir / "ground_shadow.hlsl", "PSMain", GetDx11Info().shaders.gsPs))
 			return false;
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
