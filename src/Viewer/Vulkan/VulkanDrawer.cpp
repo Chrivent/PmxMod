@@ -17,7 +17,7 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		VulkanModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
 		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
@@ -69,5 +69,15 @@ namespace Chrivent {
 	}
 
 	void VulkanDrawer::DrawGroundShadow() const {
+	}
+
+	const glm::mat4& VulkanDrawer::VulkanClipMatrix() {
+		static constexpr glm::mat4 vulkanMat(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, -1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return vulkanMat;
 	}
 }
