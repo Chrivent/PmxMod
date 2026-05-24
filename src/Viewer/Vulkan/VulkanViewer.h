@@ -42,6 +42,7 @@ namespace Chrivent {
 
 		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
 		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
+		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
 
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
