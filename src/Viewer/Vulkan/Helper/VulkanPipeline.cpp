@@ -126,22 +126,20 @@ namespace Chrivent {
 		const std::filesystem::path& shaderDir) {
 		VulkanShaderModule vertexShader;
 		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(deviceInfo, shaderDir / "model.vert.spv"))
+		if (!vertexShader.Initialize(deviceInfo, shaderDir / "debug_triangle.vert.spv"))
 			return false;
-		if (!fragmentShader.Initialize(deviceInfo, shaderDir / "model.frag.spv"))
+		if (!fragmentShader.Initialize(deviceInfo, shaderDir / "debug_triangle.frag.spv"))
 			return false;
 		const VkPipelineShaderStageCreateInfo shaderStages[] = {
 			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule()),
 			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule())
 		};
-		const VkVertexInputBindingDescription vertexBinding = MakeVertexBindingDescription();
-		const auto vertexAttributes = MakeVertexAttributeDescriptions();
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.pVertexBindingDescriptions = &vertexBinding;
-		vertexInputInfo.vertexAttributeDescriptionCount = vertexAttributes.size();
-		vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.data();
+		vertexInputInfo.vertexBindingDescriptionCount = 0;
+		vertexInputInfo.pVertexBindingDescriptions = nullptr;
+		vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -167,7 +165,7 @@ namespace Chrivent {
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizer.cullMode = VK_CULL_MODE_NONE;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.lineWidth = 1.0f;

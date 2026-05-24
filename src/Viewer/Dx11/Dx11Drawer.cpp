@@ -27,7 +27,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->GetDx11Info().deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->GetDx11Info().deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		Dx11VertexShader vsCb;
+		Dx11ModelVertexConstants vsCb;
 		vsCb.wv = wv;
 		vsCb.wvp = wvp;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
@@ -39,7 +39,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11PixelShader psCb{};
+			Dx11ModelPixelConstants psCb{};
 			psCb.alpha         = mat.diffuse.a;
 			psCb.diffuse       = mat.diffuse;
 			psCb.ambient       = mat.ambient;
@@ -91,7 +91,7 @@ namespace Chrivent {
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edgeInputLayout.Get());
-		Dx11EdgeVertexShader vsCb1{};
+		Dx11EdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
 		vsCb1.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
@@ -106,11 +106,11 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11EdgeSizeVertexShader vsCb2{};
+			Dx11EdgeSizeConstants vsCb2{};
 			vsCb2.edgeSize = mat.edgeSize;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(), 0, nullptr, &vsCb2, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
-			Dx11EdgePixelShader psCb{};
+			Dx11EdgePixelConstants psCb{};
 			psCb.edgeColor = mat.edgeColor;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgePsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
@@ -131,7 +131,7 @@ namespace Chrivent {
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-glm::normalize(viewer->GetInfo().lightDir), 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
-		Dx11GroundShadowVertexShader vsCb;
+		Dx11GroundShadowVertexConstants vsCb;
 		vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.gsVs.Get(), nullptr, 0);
@@ -146,7 +146,7 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11GroundShadowPixelShader psCb{};
+			Dx11GroundShadowPixelConstants psCb{};
 			psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());

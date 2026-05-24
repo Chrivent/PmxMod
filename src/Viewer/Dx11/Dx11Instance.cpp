@@ -33,19 +33,19 @@ namespace Chrivent {
 			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
-		if (FAILED(CreateBuffer<Dx11VertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11ModelVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11PixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11ModelPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeSizeVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgeSizeConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgePixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11EdgePixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowVertexShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowPixelShader>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<Dx11GroundShadowPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
 			return false;
 		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);

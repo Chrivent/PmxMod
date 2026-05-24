@@ -2,6 +2,7 @@
 
 #include "../Viewer.h"
 #include "Dx11TextureCache.h"
+#include "Helper/Dx11Constants.h"
 
 namespace Chrivent {
     class Dx11Viewer;
@@ -10,55 +11,6 @@ namespace Chrivent {
         glm::vec3	position;
         glm::vec3	normal;
         glm::vec2	uv;
-    };
-
-    struct Dx11VertexShader {
-        glm::mat4	wv;
-        glm::mat4	wvp;
-    };
-
-    struct Dx11PixelShader {
-        float		alpha;
-        glm::vec3	diffuse;
-        glm::vec3	ambient;
-        float		dummy1;
-        glm::vec3	specular;
-        float		specularPower;
-        glm::vec3	lightColor;
-        float		dummy2;
-        glm::vec3	lightDir;
-        float		dummy3;
-        glm::vec4	texMulFactor;
-        glm::vec4	texAddFactor;
-        glm::vec4	toonTexMulFactor;
-        glm::vec4	toonTexAddFactor;
-        glm::vec4	sphereTexMulFactor;
-        glm::vec4	sphereTexAddFactor;
-        glm::ivec4	textureModes;
-    };
-
-    struct Dx11EdgeVertexShader {
-        glm::mat4	wv;
-        glm::mat4	wvp;
-        glm::vec2	screenSize;
-        float		dummy[2];
-    };
-
-    struct Dx11EdgeSizeVertexShader {
-        float		edgeSize;
-        float		dummy[3];
-    };
-
-    struct Dx11EdgePixelShader {
-        glm::vec4	edgeColor;
-    };
-
-    struct Dx11GroundShadowVertexShader {
-        glm::mat4	wvp;
-    };
-
-    struct Dx11GroundShadowPixelShader {
-        glm::vec4	shadowColor;
     };
 
     struct Dx11Material : ViewerMaterial {
@@ -164,4 +116,3 @@ namespace Chrivent {
         bool CreateDummyResources();
     };
 }
-
