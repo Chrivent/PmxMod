@@ -1,6 +1,7 @@
 ﻿#include "GlfwShaderCompiler.h"
 
-#include <fstream>
+#include "../../GlslPreprocessor.h"
+
 #include <iostream>
 
 namespace Chrivent {
@@ -36,12 +37,11 @@ namespace Chrivent {
 	}
 
 	bool GlfwShaderCompiler::ReadShaderFile(const std::filesystem::path& file, std::string& code) {
-		std::ifstream f(file);
-		if (!f) {
-			std::cerr << "Failed to open GLSL shader file: " << file.string() << '\n';
+		std::string error;
+		if (!GlslPreprocessor::LoadSource(file, code, error)) {
+			std::cerr << error << '\n';
 			return false;
 		}
-		code.assign(std::istreambuf_iterator(f), {});
 		return true;
 	}
 

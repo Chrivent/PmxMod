@@ -1,36 +1,3 @@
-#version 460
-
-#ifdef VULKAN
-#define SET(n) set = n,
-#else
-#define SET(n)
-#endif
-
-layout(location = 0) in vec3 vsPos;
-layout(location = 1) in vec3 vsNor;
-layout(location = 2) in vec2 vsUv;
-
-layout(location = 0) out vec4 outColor;
-
-layout(SET(1) binding = 0) uniform ModelPixelConstants {
-    vec4 diffuseAlpha;
-    vec4 ambientSpecularPower;
-    vec4 specular;
-    vec4 lightColor;
-    vec4 lightDir;
-    vec4 texMulFactor;
-    vec4 texAddFactor;
-    vec4 toonTexMulFactor;
-    vec4 toonTexAddFactor;
-    vec4 sphereTexMulFactor;
-    vec4 sphereTexAddFactor;
-    ivec4 textureModes;
-} pixelConstants;
-
-layout(SET(2) binding = 0) uniform sampler2D tex;
-layout(SET(2) binding = 1) uniform sampler2D toonTex;
-layout(SET(2) binding = 2) uniform sampler2D sphereTex;
-
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;
     return mix(vec3(1.0), ret, factor.a);

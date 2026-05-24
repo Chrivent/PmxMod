@@ -11,7 +11,7 @@ namespace Chrivent {
 		static std::string GetShaderInfoLog(GLuint shader);
 		// GLSL 프로그램 링크 실패 시 OpenGL info log를 가져온다.
 		static std::string GetProgramInfoLog(GLuint program);
-		// GLSL 파일을 문자열로 읽는다.
+		// GLSL 파일을 읽어 전처리된 최종 소스를 만든다.
 		static bool ReadShaderFile(const std::filesystem::path& file, std::string& code);
 
 	public:

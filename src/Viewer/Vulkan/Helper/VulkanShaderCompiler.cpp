@@ -1,6 +1,7 @@
 ﻿#include "VulkanShaderCompiler.h"
 
-#include <fstream>
+#include "../../GlslPreprocessor.h"
+
 #include <shaderc/shaderc.hpp>
 
 namespace Chrivent {
@@ -35,13 +36,7 @@ namespace Chrivent {
 		const std::filesystem::path& file,
 		std::string& outCode,
 		std::string& outError) {
-		std::ifstream stream(file);
-		if (!stream) {
-			outError = "Failed to open Vulkan GLSL shader file: " + file.string();
-			return false;
-		}
-		outCode.assign(std::istreambuf_iterator(stream), {});
-		return true;
+		return GlslPreprocessor::LoadSource(file, outCode, outError);
 	}
 
 	const char* VulkanShaderCompiler::ShaderStageName(const VkShaderStageFlagBits shaderStage) {

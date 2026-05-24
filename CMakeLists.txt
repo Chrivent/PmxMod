@@ -75,6 +75,7 @@ add_executable(PmxMod
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
+        src/Viewer/GlslPreprocessor.h src/Viewer/GlslPreprocessor.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         src/Viewer/ShaderConstants.h
         src/Viewer/TextureCache.h

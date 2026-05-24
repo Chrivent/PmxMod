@@ -3,12 +3,10 @@
 #include "VulkanDevice.h"
 
 #include <filesystem>
-#include <string>
-#include <vector>
 
 namespace Chrivent {
 	class VulkanShaderCompiler {
-		// GLSL 셰이더 파일을 문자열로 읽는다.
+		// GLSL 셰이더 파일을 읽어 전처리된 최종 소스를 만든다.
 		static bool ReadShaderFile(const std::filesystem::path& file, std::string& outCode, std::string& outError);
 		// Vulkan shader stage를 로그에 출력할 문자열로 변환한다.
 		static const char* ShaderStageName(VkShaderStageFlagBits shaderStage);

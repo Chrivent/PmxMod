@@ -159,11 +159,11 @@ namespace Chrivent {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / vertexShaderName, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "vulkan" / vertexShaderName, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / fragmentShaderName, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "vulkan" / fragmentShaderName, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}

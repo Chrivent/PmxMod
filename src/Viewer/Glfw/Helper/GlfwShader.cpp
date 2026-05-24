@@ -10,7 +10,7 @@ namespace Chrivent {
     }
 
     bool GlfwModelShader::Setup(const ViewerInfo& viewerInfo) {
-        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "model.vert", viewerInfo.shaderDir / "model.frag");
+        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "opengl" / "model.vert", viewerInfo.shaderDir / "opengl" / "model.frag");
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");
@@ -20,7 +20,7 @@ namespace Chrivent {
     }
 
     bool GlfwEdgeShader::Setup(const ViewerInfo& viewerInfo) {
-        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "edge.vert", viewerInfo.shaderDir / "edge.frag");
+        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "opengl" / "edge.vert", viewerInfo.shaderDir / "opengl" / "edge.frag");
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");
@@ -29,7 +29,7 @@ namespace Chrivent {
     }
 
     bool GlfwGroundShadowShader::Setup(const ViewerInfo& viewerInfo) {
-        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "ground_shadow.vert", viewerInfo.shaderDir / "ground_shadow.frag");
+        program = GlfwShaderCompiler::CreateShader(viewerInfo.shaderDir / "opengl" / "ground_shadow.vert", viewerInfo.shaderDir / "opengl" / "ground_shadow.frag");
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");
