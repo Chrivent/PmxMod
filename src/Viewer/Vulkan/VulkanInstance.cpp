@@ -20,6 +20,7 @@ namespace Chrivent {
 		info.indexBuffer.Destroy();
 		info.modelVertexConstantBuffer.Destroy();
 		info.modelPixelConstantBuffer.Destroy();
+		info.modelDescriptorSet.Destroy();
 		info.materials.clear();
 		info.indexType = VK_INDEX_TYPE_UINT16;
 		info.indexCount = 0;
@@ -71,6 +72,12 @@ namespace Chrivent {
 			sizeof(VulkanModelPixelConstants),
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
+		if (!info.modelDescriptorSet.Initialize(
+			deviceInfo,
+			info.viewer->GetPipelineInfo(),
+			info.modelVertexConstantBuffer.GetInfo(),
+			info.modelPixelConstantBuffer.GetInfo()))
 			return false;
 		info.indexCount = geometryData.indexCount;
 		for (const auto& mat : info.model->materialData.materials) {

@@ -43,6 +43,7 @@ namespace Chrivent {
 		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
 		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
+		const VulkanPipelineInfo& GetPipelineInfo() const { return pipeline.GetInfo(); }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t indexCount) const;

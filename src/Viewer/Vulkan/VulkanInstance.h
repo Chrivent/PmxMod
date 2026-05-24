@@ -2,6 +2,7 @@
 
 #include "../Instance.h"
 #include "Helper/VulkanBuffer.h"
+#include "Helper/VulkanDescriptorSet.h"
 
 namespace Chrivent {
 	class VulkanViewer;
@@ -21,6 +22,7 @@ namespace Chrivent {
 		VulkanBuffer indexBuffer;
 		VulkanBuffer modelVertexConstantBuffer;
 		VulkanBuffer modelPixelConstantBuffer;
+		VulkanDescriptorSet modelDescriptorSet;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
 		size_t indexCount = 0;
 	};
