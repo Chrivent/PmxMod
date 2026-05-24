@@ -3,8 +3,6 @@
 #include "../Instance.h"
 #include "Helper/VulkanBuffer.h"
 
-#include <glm/glm.hpp>
-
 namespace Chrivent {
 	class VulkanViewer;
 	struct ModelGeometryData;
@@ -21,6 +19,8 @@ namespace Chrivent {
 		std::vector<VulkanMaterial> materials;
 		VulkanBuffer vertexBuffer;
 		VulkanBuffer indexBuffer;
+		VulkanBuffer modelVertexConstantBuffer;
+		VulkanBuffer modelPixelConstantBuffer;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
 		size_t indexCount = 0;
 	};

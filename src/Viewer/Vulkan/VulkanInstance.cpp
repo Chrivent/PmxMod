@@ -2,6 +2,7 @@
 
 #include "VulkanDrawer.h"
 #include "VulkanViewer.h"
+#include "Helper/VulkanConstants.h"
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
@@ -17,6 +18,8 @@ namespace Chrivent {
 		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
 		info.vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
+		info.modelVertexConstantBuffer.Destroy();
+		info.modelPixelConstantBuffer.Destroy();
 		info.materials.clear();
 		info.indexType = VK_INDEX_TYPE_UINT16;
 		info.indexCount = 0;
@@ -28,7 +31,6 @@ namespace Chrivent {
 		info.viewer = dynamic_cast<VulkanViewer*>(&baseViewer);
 		if (info.viewer == nullptr || info.model == nullptr)
 			return false;
-
 		const auto& geometryData = info.model->geometryData;
 		if (!GetIndexType(geometryData.indexElementSize, info.indexType)) {
 			std::cerr << "Failed to get Vulkan index type.\n";
@@ -41,7 +43,6 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
 			return false;
 		}
-
 		const auto& deviceInfo = info.viewer->GetDeviceInfo();
 		if (!info.vertexBuffer.Initialize(
 			deviceInfo,
@@ -59,8 +60,19 @@ namespace Chrivent {
 			return false;
 		if (!info.indexBuffer.Write(geometryData.indices.data(), indexBufferSize))
 			return false;
+		if (!info.modelVertexConstantBuffer.Initialize(
+			deviceInfo,
+			sizeof(VulkanModelVertexConstants),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
+		if (!info.modelPixelConstantBuffer.Initialize(
+			deviceInfo,
+			sizeof(VulkanModelPixelConstants),
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
 		info.indexCount = geometryData.indexCount;
-
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
 			if (!mat.texture.empty())
@@ -96,7 +108,6 @@ namespace Chrivent {
 		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
 			? geometryData.updateUVs
 			: geometryData.uvs;
-
 		std::vector<VulkanVertex> vertices;
 		vertices.reserve(positions.size());
 		for (size_t i = 0; i < positions.size(); i++) {
