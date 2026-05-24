@@ -84,10 +84,16 @@ namespace Chrivent {
 			VulkanMaterial material(mat);
 			if (!mat.texture.empty())
 				material.texture = info.viewer->LoadTexture(mat.texture);
+			else
+				material.texture = info.viewer->GetDummyTexture();
 			if (!mat.spTexture.empty())
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
+			else
+				material.sphereTexture = info.viewer->GetDummyTexture();
 			if (!mat.toonTexture.empty())
 				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
+			else
+				material.toonTexture = info.viewer->GetDummyTexture();
 			info.materials.emplace_back(std::move(material));
 		}
 		return true;

@@ -32,42 +32,69 @@ namespace Chrivent {
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)
 			return {};
-		const VkDeviceSize imageSize = x * y * 4;
 		const bool textureHasAlpha = comp == 4;
+		const auto texture = std::make_shared<VulkanTexture>();
+		texture->hasAlpha = textureHasAlpha;
+		if (!UploadRgbaPixels(deviceInfo, commandPool, image, x, y, *texture)) {
+			stbi_image_free(image);
+			return {};
+		}
+		stbi_image_free(image);
+		textures[texturePath] = texture;
+		return *texture;
+	}
+
+	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDeviceInfo& deviceInfo, const VkCommandPool commandPool) {
+		device = deviceInfo.device;
+		const std::filesystem::path key("__dummy_white__");
+		const auto it = textures.find(key);
+		if (it != textures.end()) {
+			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
+			return texture ? *texture : VulkanTexture{};
+		}
+		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
+		const auto texture = std::make_shared<VulkanTexture>();
+		texture->hasAlpha = false;
+		if (!UploadRgbaPixels(deviceInfo, commandPool, pixels, 1, 1, *texture))
+			return {};
+		textures[key] = texture;
+		return *texture;
+	}
+
+	bool VulkanTextureCache::UploadRgbaPixels(
+		const VulkanDeviceInfo& deviceInfo,
+		const VkCommandPool commandPool,
+		const unsigned char* pixels,
+		const uint32_t width,
+		const uint32_t height,
+		VulkanTexture& texture) const {
+		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(
 			deviceInfo,
 			imageSize,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-			stbi_image_free(image);
-			return {};
-		}
-		if (!stagingBuffer.Write(image, imageSize)) {
-			stbi_image_free(image);
-			return {};
-		}
-		stbi_image_free(image);
-		const auto texture = std::make_shared<VulkanTexture>();
-		texture->width = x;
-		texture->height = y;
-		texture->hasAlpha = textureHasAlpha;
-		if (!CreateImage(deviceInfo, texture->width, texture->height, texture->image, texture->imageMemory))
-			return {};
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			return false;
+		if (!stagingBuffer.Write(pixels, imageSize))
+			return false;
+		texture.width = width;
+		texture.height = height;
+		if (!CreateImage(deviceInfo, texture.width, texture.height, texture.image, texture.imageMemory))
+			return false;
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 		if (!BeginSingleTimeCommands(deviceInfo, commandPool, commandBuffer))
-			return {};
-		TransitionImageLayout(commandBuffer, texture->image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		CopyBufferToImage(commandBuffer, stagingBuffer.GetInfo().buffer, texture->image, texture->width, texture->height);
-		TransitionImageLayout(commandBuffer, texture->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			return false;
+		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		CopyBufferToImage(commandBuffer, stagingBuffer.GetInfo().buffer, texture.image, texture.width, texture.height);
+		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		if (!EndSingleTimeCommands(deviceInfo, commandPool, commandBuffer))
-			return {};
-		if (!CreateImageView(texture->image, texture->imageView))
-			return {};
-		if (!CreateSampler(texture->sampler))
-			return {};
-		textures[texturePath] = texture;
-		return *texture;
+			return false;
+		if (!CreateImageView(texture.image, texture.imageView))
+			return false;
+		if (!CreateSampler(texture.sampler))
+			return false;
+		return true;
 	}
 
 	bool VulkanTextureCache::FindMemoryType(

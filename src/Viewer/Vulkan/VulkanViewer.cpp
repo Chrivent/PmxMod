@@ -29,6 +29,9 @@ namespace Chrivent {
 			return false;
 		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
+		dummyTexture = textureCache.CreateWhiteTexture(device.GetInfo(), commandContext.GetCommandPool());
+		if (dummyTexture.image == VK_NULL_HANDLE)
+			return false;
 		return syncObject.Initialize(device.GetInfo());
 	}
 
