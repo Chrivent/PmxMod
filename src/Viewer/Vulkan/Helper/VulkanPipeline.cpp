@@ -127,14 +127,14 @@ namespace Chrivent {
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
-		std::vector<char> vertexShaderCode;
-		std::vector<char> fragmentShaderCode;
+		std::vector<uint32_t> vertexShaderCode;
+		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.vert", VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(shaderDir / "model.frag", VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}

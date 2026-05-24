@@ -21,7 +21,7 @@ namespace Chrivent {
 		VkShaderModule GetShaderModule() const { return shaderModule; }
 
 		// SPIR-V 바이트 코드에서 Vulkan shader module을 생성한다.
-		bool Initialize(const VulkanDeviceInfo& deviceInfo, const std::vector<char>& spvBytes);
+		bool Initialize(const VulkanDeviceInfo& deviceInfo, const std::vector<uint32_t>& spvBytes);
 		// 생성한 shader module 리소스를 해제한다.
 		void Destroy();
 	};
