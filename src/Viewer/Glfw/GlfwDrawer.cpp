@@ -6,8 +6,6 @@
 #include "../ShaderConstants.h"
 
 namespace Chrivent {
-	GlfwDrawer::GlfwDrawer(const GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
-
 	void GlfwDrawer::UpdateUniformBuffer(const GLuint buffer, const GLuint binding, const void* data, const size_t size) {
 		glBindBuffer(GL_UNIFORM_BUFFER, buffer);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
@@ -168,4 +166,6 @@ namespace Chrivent {
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 	}
+
+	GlfwDrawer::GlfwDrawer(const GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
 }

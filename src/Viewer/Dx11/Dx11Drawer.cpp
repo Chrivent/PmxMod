@@ -5,7 +5,30 @@
 #include "../../Model/Model.h"
 
 namespace Chrivent {
-	Dx11Drawer::Dx11Drawer(const Dx11InstanceInfo& sourceInfo) : info(sourceInfo) {}
+	void Dx11Drawer::BindTexture(const Dx11TextureBinding& binding) const {
+		if (binding.texture.texture) {
+			binding.mode = binding.modeIfPresent;
+			binding.mulFactor  = binding.sourceMulFactor;
+			binding.addFactor  = binding.sourceAddFactor;
+		} else
+			binding.mode = 0;
+		ID3D11ShaderResourceView* views = binding.texture.texture
+		? binding.texture.textureView.Get() : info.viewer->GetDx11Info().dummyTexture.textureView.Get();
+		ID3D11SamplerState* samplers = binding.texture.texture
+		? binding.sampler : info.viewer->GetDx11Info().pipelineStates.textureSampler.Get();
+		info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(binding.slot, 1, &views);
+		info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(binding.slot, 1, &samplers);
+	}
+
+	const glm::mat4& Dx11Drawer::DxClipMatrix() {
+		static constexpr glm::mat4 dxMat(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return dxMat;
+	}
 
 	void Dx11Drawer::DrawModel() const {
 		const auto* viewer = info.viewer;
@@ -154,30 +177,5 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Drawer::BindTexture(const Dx11TextureBinding& binding) const {
-		if (binding.texture.texture) {
-			binding.mode = binding.modeIfPresent;
-			binding.mulFactor  = binding.sourceMulFactor;
-			binding.addFactor  = binding.sourceAddFactor;
-		} else
-			binding.mode = 0;
-		ID3D11ShaderResourceView* views = binding.texture.texture
-			? binding.texture.textureView.Get()
-			: info.viewer->GetDx11Info().dummyTexture.textureView.Get();
-		ID3D11SamplerState* samplers = binding.texture.texture
-			? binding.sampler
-			: info.viewer->GetDx11Info().pipelineStates.textureSampler.Get();
-		info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(binding.slot, 1, &views);
-		info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(binding.slot, 1, &samplers);
-	}
-
-	const glm::mat4& Dx11Drawer::DxClipMatrix() {
-		static constexpr glm::mat4 dxMat(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
-		return dxMat;
-	}
+	Dx11Drawer::Dx11Drawer(const Dx11InstanceInfo& sourceInfo) : info(sourceInfo) {}
 }
