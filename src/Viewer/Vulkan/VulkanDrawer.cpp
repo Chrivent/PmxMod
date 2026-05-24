@@ -29,13 +29,11 @@ namespace Chrivent {
 			if (mat.diffuse.a == 0)
 				continue;
 			VulkanModelPixelConstants pixelConstants{};
-			pixelConstants.alpha = mat.diffuse.a;
-			pixelConstants.diffuse = mat.diffuse;
-			pixelConstants.ambient = mat.ambient;
-			pixelConstants.specularPower = mat.specularPower;
-			pixelConstants.specular = mat.specular;
-			pixelConstants.lightColor = viewerInfo.lightColor;
-			pixelConstants.lightDir = glm::mat3(viewerInfo.viewMat) * viewerInfo.lightDir;
+			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
+			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
+			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
+			pixelConstants.lightColor = glm::vec4(viewerInfo.lightColor, 0.0f);
+			pixelConstants.lightDir = glm::vec4(glm::mat3(viewerInfo.viewMat) * viewerInfo.lightDir, 0.0f);
 			pixelConstants.texMulFactor = mat.textureMulFactor;
 			pixelConstants.texAddFactor = mat.textureAddFactor;
 			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;

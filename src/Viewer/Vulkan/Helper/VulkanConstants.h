@@ -9,14 +9,12 @@ namespace Chrivent {
 	};
 
 	struct VulkanModelPixelConstants {
-		float alpha = 1.0f;
-		alignas(16) glm::vec3 diffuse = glm::vec3(1.0f);
-		alignas(16) glm::vec3 ambient = glm::vec3(0.2f);
-		float specularPower = 1.0f;
-		alignas(16) glm::vec3 specular = glm::vec3(0.0f);
-		alignas(16) glm::vec3 lightColor = glm::vec3(1.0f);
-		alignas(16) glm::vec3 lightDir = glm::vec3(0.0f, -1.0f, 0.0f);
-		alignas(16) glm::vec4 texMulFactor = glm::vec4(1.0f);
+		glm::vec4 diffuseAlpha = glm::vec4(1.0f);
+		glm::vec4 ambientSpecularPower = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);
+		glm::vec4 specular = glm::vec4(0.0f);
+		glm::vec4 lightColor = glm::vec4(1.0f);
+		glm::vec4 lightDir = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+		glm::vec4 texMulFactor = glm::vec4(1.0f);
 		glm::vec4 texAddFactor = glm::vec4(0.0f);
 		glm::vec4 toonTexMulFactor = glm::vec4(1.0f);
 		glm::vec4 toonTexAddFactor = glm::vec4(0.0f);

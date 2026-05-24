@@ -7,13 +7,11 @@ layout(location = 2) in vec2 vsUv;
 layout(location = 0) out vec4 outColor;
 
 layout(set = 1, binding = 0) uniform ModelPixelConstants {
-    float alpha;
-    vec3 diffuse;
-    vec3 ambient;
-    float specularPower;
-    vec3 specular;
-    vec3 lightColor;
-    vec3 lightDir;
+    vec4 diffuseAlpha;
+    vec4 ambientSpecularPower;
+    vec4 specular;
+    vec4 lightColor;
+    vec4 lightDir;
     vec4 texMulFactor;
     vec4 texAddFactor;
     vec4 toonTexMulFactor;
@@ -43,14 +41,14 @@ void main() {
     int toonTexMode = pixelConstants.textureModes.y;
     int sphereTexMode = pixelConstants.textureModes.z;
     vec3 eyeDir = normalize(vsPos);
-    vec3 lightDirection = normalize(-pixelConstants.lightDir);
+    vec3 lightDirection = normalize(-pixelConstants.lightDir.xyz);
     vec3 nor = normalize(vsNor);
     float ln = dot(nor, lightDirection);
     ln = clamp(ln + 0.5, 0.0, 1.0);
-    vec3 color = pixelConstants.diffuse * pixelConstants.lightColor;
-    color += pixelConstants.ambient;
+    vec3 color = pixelConstants.diffuseAlpha.rgb * pixelConstants.lightColor.rgb;
+    color += pixelConstants.ambientSpecularPower.rgb;
     color = clamp(color, 0.0, 1.0);
-    float opacity = pixelConstants.alpha;
+    float opacity = pixelConstants.diffuseAlpha.a;
     if (texMode != 0) {
         vec4 texColor = texture(tex, vsUv);
         texColor.rgb = ComputeTexMulFactor(texColor.rgb, pixelConstants.texMulFactor);
@@ -64,7 +62,7 @@ void main() {
     if (sphereTexMode != 0) {
         vec2 spUv = vec2(0.0);
         spUv.x = nor.x * 0.5 + 0.5;
-        spUv.y = 1.0 - (nor.y * 0.5 + 0.5);
+        spUv.y = nor.y * 0.5 + 0.5;
         vec3 spColor = texture(sphereTex, spUv).rgb;
         spColor = ComputeTexMulFactor(spColor, pixelConstants.sphereTexMulFactor);
         spColor = ComputeTexAddFactor(spColor, pixelConstants.sphereTexAddFactor);
@@ -74,15 +72,15 @@ void main() {
             color += spColor;
     }
     if (toonTexMode != 0) {
-        vec3 toonColor = texture(toonTex, vec2(0.0, ln)).rgb;
+        vec3 toonColor = texture(toonTex, vec2(0.0, 1.0 - ln)).rgb;
         toonColor = ComputeTexMulFactor(toonColor, pixelConstants.toonTexMulFactor);
         toonColor = ComputeTexAddFactor(toonColor, pixelConstants.toonTexAddFactor);
         color *= toonColor;
     }
-    if (pixelConstants.specularPower > 0.0) {
+    if (pixelConstants.ambientSpecularPower.a > 0.0) {
         vec3 halfVec = normalize(eyeDir + lightDirection);
-        vec3 specularColor = pixelConstants.specular * pixelConstants.lightColor;
-        color += pow(max(0.0, dot(halfVec, nor)), pixelConstants.specularPower) * specularColor;
+        vec3 specularColor = pixelConstants.specular.rgb * pixelConstants.lightColor.rgb;
+        color += pow(max(0.0, dot(halfVec, nor)), pixelConstants.ambientSpecularPower.a) * specularColor;
     }
     outColor = vec4(color, opacity);
 }
