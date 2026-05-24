@@ -9,11 +9,13 @@
 
 namespace Chrivent {
 	VulkanTextureCache::~VulkanTextureCache() {
-		for (const auto& texture : vulkanTextures | std::views::values) {
-			if (texture)
-				DestroyTexture(*texture);
+		for (const auto& texture : textures | std::views::values) {
+			const auto vulkanTexture = std::dynamic_pointer_cast<VulkanTexture>(texture);
+			if (!vulkanTexture)
+				continue;
+			DestroyTexture(*vulkanTexture);
 		}
-		vulkanTextures.clear();
+		textures.clear();
 	}
 
 	VulkanTexture VulkanTextureCache::Load(
@@ -22,38 +24,48 @@ namespace Chrivent {
 		const std::filesystem::path& texturePath,
 		const bool clamp) {
 		device = deviceInfo.device;
-		const VulkanTextureKey cacheKey{ texturePath, clamp };
-		const auto it = vulkanTextures.find(cacheKey);
-		if (it != vulkanTextures.end())
-			return it->second ? *it->second : VulkanTexture{};
+		const TextureKey cacheKey{
+			TextureKind::File,
+			texturePath,
+			clamp
+		};
+		const auto it = textures.find(cacheKey);
+		if (it != textures.end()) {
+			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
+			return texture ? *texture : VulkanTexture{};
+		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)
 			return {};
 		const bool textureHasAlpha = comp == 4;
 		const auto texture = std::make_shared<VulkanTexture>();
+		texture->key = cacheKey;
 		texture->hasAlpha = textureHasAlpha;
 		if (!UploadRgbaPixels(deviceInfo, commandPool, image, x, y, *texture, clamp)) {
 			stbi_image_free(image);
 			return {};
 		}
 		stbi_image_free(image);
-		vulkanTextures[cacheKey] = texture;
+		textures[cacheKey] = texture;
 		return *texture;
 	}
 
 	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDeviceInfo& deviceInfo, const VkCommandPool commandPool) {
 		device = deviceInfo.device;
-		const VulkanTextureKey key{ "__dummy_white__", false };
-		const auto it = vulkanTextures.find(key);
-		if (it != vulkanTextures.end())
-			return it->second ? *it->second : VulkanTexture{};
+		const TextureKey key{ TextureKind::White };
+		const auto it = textures.find(key);
+		if (it != textures.end()) {
+			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
+			return texture ? *texture : VulkanTexture{};
+		}
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<VulkanTexture>();
+		texture->key = key;
 		texture->hasAlpha = false;
 		if (!UploadRgbaPixels(deviceInfo, commandPool, pixels, 1, 1, *texture, false))
 			return {};
-		vulkanTextures[key] = texture;
+		textures[key] = texture;
 		return *texture;
 	}
 

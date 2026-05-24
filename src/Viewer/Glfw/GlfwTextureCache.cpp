@@ -17,7 +17,7 @@ namespace Chrivent {
 	}
 
 	GlfwTexture GlfwTextureCache::CreateWhiteTexture() {
-		const std::filesystem::path key("__dummy_white__");
+		const TextureKey key{ TextureKind::White };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
 			const auto texture = std::dynamic_pointer_cast<GlfwTexture>(it->second);
@@ -34,6 +34,7 @@ namespace Chrivent {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		const auto texture = std::make_shared<GlfwTexture>();
+		texture->key = key;
 		texture->texture = tex;
 		texture->hasAlpha = false;
 		textures[key] = texture;
@@ -41,7 +42,8 @@ namespace Chrivent {
 	}
 
 	GlfwTexture GlfwTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
-		const auto it = textures.find(texturePath);
+		const TextureKey key{ TextureKind::File, texturePath, clamp };
+		const auto it = textures.find(key);
 		if (it != textures.end()) {
 			const auto texture = std::dynamic_pointer_cast<GlfwTexture>(it->second);
 			return texture ? *texture : GlfwTexture{};
@@ -66,9 +68,10 @@ namespace Chrivent {
 		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		const auto texture = std::make_shared<GlfwTexture>();
+		texture->key = key;
 		texture->texture = tex;
 		texture->hasAlpha = hasAlpha;
-		textures[texturePath] = texture;
+		textures[key] = texture;
 		return *texture;
 	}
 }

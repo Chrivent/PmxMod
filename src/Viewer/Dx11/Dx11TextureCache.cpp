@@ -7,7 +7,7 @@
 
 namespace Chrivent {
 	Dx11Texture Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
-		const std::filesystem::path key("__dummy_white__");
+		const TextureKey key{ TextureKind::White };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
 			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
@@ -25,6 +25,7 @@ namespace Chrivent {
 		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
 			return {};
 		const auto texture = std::make_shared<Dx11Texture>();
+		texture->key = key;
 		texture->texture = tex2D;
 		texture->textureView = tex2DRv;
 		texture->hasAlpha = false;
@@ -33,7 +34,8 @@ namespace Chrivent {
 	}
 
 	Dx11Texture Dx11TextureCache::Load(ID3D11Device* device, const std::filesystem::path& texturePath) {
-		const auto it = textures.find(texturePath);
+		const TextureKey key{ TextureKind::File, texturePath };
+		const auto it = textures.find(key);
 		if (it != textures.end()) {
 			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
 			return texture ? *texture : Dx11Texture{};
@@ -57,10 +59,11 @@ namespace Chrivent {
 		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
 			return {};
 		const auto tex = std::make_shared<Dx11Texture>();
+		tex->key = key;
 		tex->texture = tex2D;
 		tex->textureView = tex2DRv;
 		tex->hasAlpha = textureHasAlpha;
-		textures[texturePath] = tex;
+		textures[key] = tex;
 		return *tex;
 	}
 }
