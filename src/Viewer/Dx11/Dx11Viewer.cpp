@@ -240,12 +240,10 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::CreateDummyResources() {
-		const auto d = Dx11DescriptorFactory::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateTexture2D(&d, nullptr, &GetDx11Info().dummyTexture.texture)))
-			return false;
-		if (FAILED(GetDx11Info().deviceResources.device->CreateShaderResourceView(GetDx11Info().dummyTexture.texture.Get(), nullptr, &GetDx11Info().dummyTexture.textureView)))
-			return false;
-		return true;
+		const Dx11Texture dummyTexture = textureCache.CreateWhiteTexture(GetDx11Info().deviceResources.device.Get());
+		GetDx11Info().dummyTexture.texture = dummyTexture.texture;
+		GetDx11Info().dummyTexture.textureView = dummyTexture.textureView;
+		return GetDx11Info().dummyTexture.texture && GetDx11Info().dummyTexture.textureView;
 	}
 }
 

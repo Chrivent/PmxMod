@@ -16,6 +16,30 @@ namespace Chrivent {
 		}
 	}
 
+	GlfwTexture GlfwTextureCache::CreateWhiteTexture() {
+		const std::filesystem::path key("__dummy_white__");
+		const auto it = textures.find(key);
+		if (it != textures.end()) {
+			const auto texture = std::dynamic_pointer_cast<GlfwTexture>(it->second);
+			return texture ? *texture : GlfwTexture{};
+		}
+		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
+		GLuint tex = 0;
+		glGenTextures(1, &tex);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glTexImage2D(GL_TEXTURE_2D, 0,
+			GL_RGBA, 1, 1, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		const auto texture = std::make_shared<GlfwTexture>();
+		texture->texture = tex;
+		texture->hasAlpha = false;
+		textures[key] = texture;
+		return *texture;
+	}
+
 	GlfwTexture GlfwTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
 		const auto it = textures.find(texturePath);
 		if (it != textures.end()) {

@@ -9,12 +9,6 @@ namespace Chrivent {
 		info = std::make_unique<GlfwViewerInfo>();
 	}
 
-	GlfwViewer::~GlfwViewer() {
-		const auto& info = GetGlfwInfo();
-		if (info.dummyColorTex != 0)
-			glDeleteTextures(1, &info.dummyColorTex);
-	}
-
 	void GlfwViewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -49,12 +43,9 @@ namespace Chrivent {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}
-		glGenTextures(1, &info.dummyColorTex);
-		glBindTexture(GL_TEXTURE_2D, info.dummyColorTex);
-		glTexImage2D(GL_TEXTURE_2D, 0,
-			GL_RGBA, 1, 1, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		info.dummyColorTex = textureCache.CreateWhiteTexture().texture;
+		if (info.dummyColorTex == 0)
+			return false;
 		return true;
 	}
 

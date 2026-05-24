@@ -33,7 +33,7 @@ namespace Chrivent {
 
     public:
         GlfwViewer();
-        ~GlfwViewer() override;
+        ~GlfwViewer() override = default;
 
         GlfwViewerInfo& GetGlfwInfo() { return static_cast<GlfwViewerInfo&>(GetInfo()); }
         const GlfwViewerInfo& GetGlfwInfo() const { return static_cast<const GlfwViewerInfo&>(GetInfo()); }
