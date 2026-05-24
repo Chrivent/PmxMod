@@ -138,7 +138,6 @@ namespace Chrivent {
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&bothRsDesc, &GetDx11Info().pipelineStates.bothFaceRs)))
 			return false;
 		auto edgeRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
-		edgeRsDesc.DepthClipEnable = FALSE;
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&edgeRsDesc, &GetDx11Info().pipelineStates.edgeRs)))
 			return false;
 		auto gsRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
