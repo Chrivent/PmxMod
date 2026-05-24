@@ -82,7 +82,7 @@ namespace Chrivent {
 			EdgeVertexConstants vertexConstants;
 			vertexConstants.wv = viewerInfo.viewMat * world;
 			vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
-			vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
+			vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, -viewerInfo.screenHeight);
 			vertexConstants.edgeSize = mat.edgeSize;
 			if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
