@@ -19,13 +19,15 @@ namespace Chrivent {
 			return false;
 		if (!swapChain.Initialize(device.GetInfo(), GetInfo().window))
 			return false;
+		if (!colorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+			return false;
 		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
 		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), depthBuffer.GetInfo().format))
 			return false;
 		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), depthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), colorBuffer.GetInfo().imageView, depthBuffer.GetInfo().imageView))
 			return false;
 		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
@@ -42,8 +44,11 @@ namespace Chrivent {
 		frameBuffer.Destroy();
 		pipeline.Destroy();
 		renderPass.Destroy();
+		colorBuffer.Destroy();
 		depthBuffer.Destroy();
 		if (!swapChain.Recreate(device.GetInfo(), GetInfo().window))
+			return false;
+		if (!colorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
 		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
@@ -51,7 +56,7 @@ namespace Chrivent {
 			return false;
 		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), depthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), colorBuffer.GetInfo().imageView, depthBuffer.GetInfo().imageView))
 			return false;
 		return commandContext.Initialize(device.GetInfo(), swapChain.GetInfo());
 	}

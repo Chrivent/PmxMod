@@ -2,6 +2,7 @@
 
 #include "../Viewer.h"
 #include "Helper/VulkanCommandContext.h"
+#include "Helper/VulkanColorBuffer.h"
 #include "Helper/VulkanDepthBuffer.h"
 #include "Helper/VulkanDescriptorSet.h"
 #include "Helper/VulkanDevice.h"
@@ -33,6 +34,7 @@ namespace Chrivent {
 	class VulkanViewer : public Viewer {
 		VulkanDevice device;
 		VulkanSwapChain swapChain;
+		VulkanColorBuffer colorBuffer;
 		VulkanDepthBuffer depthBuffer;
 		VulkanRenderPass renderPass;
 		VulkanPipeline pipeline;

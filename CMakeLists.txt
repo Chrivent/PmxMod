@@ -104,6 +104,7 @@ add_executable(PmxMod
         src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
         
         src/Viewer/Vulkan/Helper/VulkanBuffer.h src/Viewer/Vulkan/Helper/VulkanBuffer.cpp
+        src/Viewer/Vulkan/Helper/VulkanColorBuffer.h src/Viewer/Vulkan/Helper/VulkanColorBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp
         src/Viewer/Vulkan/Helper/VulkanDepthBuffer.h src/Viewer/Vulkan/Helper/VulkanDepthBuffer.cpp

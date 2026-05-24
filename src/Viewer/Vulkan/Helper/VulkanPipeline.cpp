@@ -227,7 +227,7 @@ namespace Chrivent {
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampling.rasterizationSamples = deviceInfo.sampleCount;
 		multisampling.sampleShadingEnable = VK_FALSE;
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -237,7 +237,7 @@ namespace Chrivent {
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = enableStencilTest ? VK_TRUE : VK_FALSE;
 		if (enableStencilTest) {
-			const VkStencilOpState stencilState{
+			constexpr VkStencilOpState stencilState{
 				.failOp = VK_STENCIL_OP_KEEP,
 				.passOp = VK_STENCIL_OP_REPLACE,
 				.depthFailOp = VK_STENCIL_OP_KEEP,

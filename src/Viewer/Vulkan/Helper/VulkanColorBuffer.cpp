@@ -1,25 +1,21 @@
-﻿#include "VulkanDepthBuffer.h"
+﻿#include "VulkanColorBuffer.h"
 
 #include <iostream>
 
 namespace Chrivent {
-	VulkanDepthBuffer::~VulkanDepthBuffer() {
+	VulkanColorBuffer::~VulkanColorBuffer() {
 		Destroy();
 	}
 
-	bool VulkanDepthBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanColorBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		device = deviceInfo.device;
-		info.format = FindDepthFormat(deviceInfo);
-		if (info.format == VK_FORMAT_UNDEFINED) {
-			std::cerr << "Failed to find a supported Vulkan depth format.\n";
-			return false;
-		}
+		info.format = swapChainInfo.imageFormat;
 		if (!CreateImage(deviceInfo, swapChainInfo))
 			return false;
 		return CreateImageView();
 	}
 
-	void VulkanDepthBuffer::Destroy() {
+	void VulkanColorBuffer::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (info.imageView != VK_NULL_HANDLE) {
@@ -38,42 +34,7 @@ namespace Chrivent {
 		device = VK_NULL_HANDLE;
 	}
 
-	VkFormat VulkanDepthBuffer::FindDepthFormat(const VulkanDeviceInfo& deviceInfo) {
-		constexpr VkFormat candidates[] = {
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
-			VK_FORMAT_D24_UNORM_S8_UINT,
-			VK_FORMAT_D32_SFLOAT
-		};
-		return FindSupportedFormat(
-			deviceInfo,
-			candidates,
-			std::size(candidates),
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-	}
-
-	bool VulkanDepthBuffer::HasStencilComponent(const VkFormat format) {
-		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-	}
-
-	VkFormat VulkanDepthBuffer::FindSupportedFormat(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkFormat* candidates,
-		const uint32_t candidateCount,
-		const VkImageTiling tiling,
-		const VkFormatFeatureFlags features) {
-		for (uint32_t i = 0; i < candidateCount; i++) {
-			VkFormatProperties properties{};
-			vkGetPhysicalDeviceFormatProperties(deviceInfo.physicalDevice, candidates[i], &properties);
-			if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
-				return candidates[i];
-			if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
-				return candidates[i];
-		}
-		return VK_FORMAT_UNDEFINED;
-	}
-
-	bool VulkanDepthBuffer::FindMemoryType(
+	bool VulkanColorBuffer::FindMemoryType(
 		const VulkanDeviceInfo& deviceInfo,
 		const uint32_t typeFilter,
 		const VkMemoryPropertyFlags properties,
@@ -90,7 +51,7 @@ namespace Chrivent {
 		return false;
 	}
 
-	bool VulkanDepthBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanColorBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -102,18 +63,18 @@ namespace Chrivent {
 		imageInfo.format = info.format;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		imageInfo.samples = deviceInfo.sampleCount;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateImage(deviceInfo.device, &imageInfo, nullptr, &info.image) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan depth image.\n";
+			std::cerr << "Failed to create Vulkan MSAA color image.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(deviceInfo.device, info.image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			std::cerr << "Failed to find Vulkan depth image memory type.\n";
+			std::cerr << "Failed to find Vulkan MSAA color image memory type.\n";
 			return false;
 		}
 		VkMemoryAllocateInfo allocateInfo{};
@@ -121,31 +82,29 @@ namespace Chrivent {
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
 		if (vkAllocateMemory(deviceInfo.device, &allocateInfo, nullptr, &info.imageMemory) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan depth image memory.\n";
+			std::cerr << "Failed to allocate Vulkan MSAA color image memory.\n";
 			return false;
 		}
 		if (vkBindImageMemory(deviceInfo.device, info.image, info.imageMemory, 0) != VK_SUCCESS) {
-			std::cerr << "Failed to bind Vulkan depth image memory.\n";
+			std::cerr << "Failed to bind Vulkan MSAA color image memory.\n";
 			return false;
 		}
 		return true;
 	}
 
-	bool VulkanDepthBuffer::CreateImageView() {
+	bool VulkanColorBuffer::CreateImageView() {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = info.image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = info.format;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if (HasStencilComponent(info.format))
-			viewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		if (vkCreateImageView(device, &viewInfo, nullptr, &info.imageView) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan depth image view.\n";
+			std::cerr << "Failed to create Vulkan MSAA color image view.\n";
 			return false;
 		}
 		return true;

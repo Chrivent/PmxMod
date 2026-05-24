@@ -53,6 +53,7 @@ namespace Chrivent {
 				continue;
 			info.physicalDevice = candidate;
 			info.queueFamilies = FindQueueFamilies(candidate);
+			info.sampleCount = ChooseSampleCount(candidate);
 			return true;
 		}
 		std::cerr << "Failed to find a suitable Vulkan physical device.\n";
@@ -118,6 +119,19 @@ namespace Chrivent {
 				break;
 		}
 		return indices;
+	}
+
+	VkSampleCountFlagBits VulkanDevice::ChooseSampleCount(const VkPhysicalDevice candidate) {
+		VkPhysicalDeviceProperties properties{};
+		vkGetPhysicalDeviceProperties(candidate, &properties);
+		const VkSampleCountFlags supportedSamples =
+			properties.limits.framebufferColorSampleCounts &
+			properties.limits.framebufferDepthSampleCounts;
+		if ((supportedSamples & VK_SAMPLE_COUNT_4_BIT) != 0)
+			return VK_SAMPLE_COUNT_4_BIT;
+		if ((supportedSamples & VK_SAMPLE_COUNT_2_BIT) != 0)
+			return VK_SAMPLE_COUNT_2_BIT;
+		return VK_SAMPLE_COUNT_1_BIT;
 	}
 
 	bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice candidate) {
