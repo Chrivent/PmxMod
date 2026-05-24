@@ -61,18 +61,18 @@ namespace Chrivent {
 			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			glActiveTexture(GL_TEXTURE0 + 1);
+			if (material.toonTexture != 0) {
+				pixelConstants.textureModes.y = 1;
+				glBindTexture(GL_TEXTURE_2D, material.toonTexture);
+			} else
+				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
+			glActiveTexture(GL_TEXTURE0 + 2);
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					pixelConstants.textureModes.z = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 				glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
-			} else
-				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
-			glActiveTexture(GL_TEXTURE0 + 2);
-			if (material.toonTexture != 0) {
-				pixelConstants.textureModes.y = 1;
-				glBindTexture(GL_TEXTURE_2D, material.toonTexture);
 			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
 			UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
