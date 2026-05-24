@@ -5,6 +5,7 @@
 #include "Helper/VulkanDepthBuffer.h"
 #include "Helper/VulkanDevice.h"
 #include "Helper/VulkanFrameBuffer.h"
+#include "Helper/VulkanPipeline.h"
 #include "Helper/VulkanRenderPass.h"
 #include "Helper/VulkanSwapChain.h"
 #include "Helper/VulkanSyncObject.h"
@@ -27,6 +28,7 @@ namespace Chrivent {
 		VulkanSwapChain swapChain;
 		VulkanDepthBuffer depthBuffer;
 		VulkanRenderPass renderPass;
+		VulkanPipeline pipeline;
 		VulkanFrameBuffer frameBuffer;
 		VulkanCommandContext commandContext;
 		VulkanSyncObject syncObject;

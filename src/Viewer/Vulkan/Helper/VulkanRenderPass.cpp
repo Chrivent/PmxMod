@@ -55,7 +55,7 @@ namespace Chrivent {
 		};
 		VkRenderPassCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		createInfo.attachmentCount = attachments.size();
 		createInfo.pAttachments = attachments.data();
 		createInfo.subpassCount = 1;
 		createInfo.pSubpasses = &subpass;

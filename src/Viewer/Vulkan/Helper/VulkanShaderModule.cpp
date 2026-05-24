@@ -47,7 +47,7 @@ namespace Chrivent {
 			std::cerr << "SPIR-V shader file is empty: " << file.string() << '\n';
 			return false;
 		}
-		code.resize(static_cast<size_t>(fileSize));
+		code.resize(fileSize);
 		stream.seekg(0);
 		if (!stream.read(code.data(), fileSize)) {
 			std::cerr << "Failed to read SPIR-V shader file: " << file.string() << '\n';
