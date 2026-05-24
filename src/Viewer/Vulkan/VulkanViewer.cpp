@@ -82,6 +82,7 @@ namespace Chrivent {
 			currentImageIndex,
 			renderPass.GetRenderPass(),
 			frameBuffers[currentImageIndex],
+			pipeline.GetInfo().pipeline,
 			swapChain.GetInfo().extent,
 			clearColor))
 			return;

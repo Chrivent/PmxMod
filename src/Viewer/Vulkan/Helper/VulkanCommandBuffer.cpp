@@ -35,6 +35,7 @@ namespace Chrivent {
 		const uint32_t imageIndex,
 		const VkRenderPass renderPass,
 		const VkFramebuffer frameBuffer,
+		const VkPipeline pipeline,
 		const VkExtent2D extent,
 		const float clearColor[4]) const {
 		if (imageIndex >= commandBuffers.size()) {
@@ -65,6 +66,8 @@ namespace Chrivent {
 		renderPassInfo.clearValueCount = clearValues.size();
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		if (pipeline != VK_NULL_HANDLE)
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdEndRenderPass(commandBuffer);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan command buffer.\n";

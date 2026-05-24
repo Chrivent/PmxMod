@@ -25,8 +25,8 @@ namespace Chrivent {
 
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, VkCommandPool sourceCommandPool, const VulkanSwapChainInfo& swapChainInfo);
-		// 지정한 스왑체인 이미지에 대한 기본 렌더 패스 명령을 기록한다.
-		bool Record(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkExtent2D extent, const float clearColor[4]) const;
+		// 지정한 스왑체인 이미지에 대한 기본 렌더 패스와 파이프라인 바인딩 명령을 기록한다.
+		bool Record(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkPipeline pipeline, VkExtent2D extent, const float clearColor[4]) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Destroy();
 	};

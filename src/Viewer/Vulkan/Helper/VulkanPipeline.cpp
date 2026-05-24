@@ -1,5 +1,7 @@
 ﻿#include "VulkanPipeline.h"
 
+#include "VulkanShaderModule.h"
+
 #include <iostream>
 
 namespace Chrivent {
@@ -41,7 +43,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::CreateDescriptorSetLayouts() {
-		const VkDescriptorSetLayoutBinding vertexConstantBinding{
+		constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
@@ -56,7 +58,7 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan vertex descriptor set layout.\n";
 			return false;
 		}
-		const VkDescriptorSetLayoutBinding pixelConstantBinding{
+		constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
@@ -71,7 +73,7 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan pixel descriptor set layout.\n";
 			return false;
 		}
-		const std::array<VkDescriptorSetLayoutBinding, 3> textureBindings = {
+		constexpr std::array textureBindings = {
 			VkDescriptorSetLayoutBinding{
 				.binding = 0,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -229,7 +231,7 @@ namespace Chrivent {
 	}
 
 	VkVertexInputBindingDescription VulkanPipeline::MakeVertexBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
+		VkVertexInputBindingDescription bindingDescription;
 		bindingDescription.binding = 0;
 		bindingDescription.stride = sizeof(float) * 8;
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
