@@ -148,7 +148,7 @@ namespace Chrivent {
 	}
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(texturePath);
+		return textureCache.Load(device.GetInfo(), commandContext.GetCommandPool(), texturePath);
 	}
 
 	void VulkanViewer::DrawIndexed(
