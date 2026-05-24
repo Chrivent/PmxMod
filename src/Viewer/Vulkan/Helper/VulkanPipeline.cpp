@@ -22,7 +22,7 @@ namespace Chrivent {
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
-		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir);
+		return CreateGraphicsPipelines(deviceInfo, swapChainInfo, renderPass, shaderDir);
 	}
 
 	void VulkanPipeline::Destroy() {
@@ -31,6 +31,10 @@ namespace Chrivent {
 		if (info.pipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, info.pipeline, nullptr);
 			info.pipeline = VK_NULL_HANDLE;
+		}
+		if (info.bothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, info.bothFacePipeline, nullptr);
+			info.bothFacePipeline = VK_NULL_HANDLE;
 		}
 		if (info.pipelineLayout != VK_NULL_HANDLE) {
 			vkDestroyPipelineLayout(device, info.pipelineLayout, nullptr);
@@ -122,11 +126,22 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanPipeline::CreateGraphicsPipeline(
+	bool VulkanPipeline::CreateGraphicsPipelines(
 		const VulkanDeviceInfo& deviceInfo,
 		const VulkanSwapChainInfo& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
+		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, VK_CULL_MODE_BACK_BIT, info.pipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, VK_CULL_MODE_NONE, info.bothFacePipeline);
+	}
+
+	bool VulkanPipeline::CreateGraphicsPipeline(
+		const VulkanDeviceInfo& deviceInfo,
+		const VulkanSwapChainInfo& swapChainInfo,
+		const VkRenderPass renderPass,
+		const std::filesystem::path& shaderDir,
+		const VkCullModeFlags cullMode,
+		VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
@@ -181,7 +196,7 @@ namespace Chrivent {
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.cullMode = VK_CULL_MODE_NONE;
+		rasterizer.cullMode = cullMode;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.lineWidth = 1.0f;
@@ -228,7 +243,7 @@ namespace Chrivent {
 		createInfo.layout = info.pipelineLayout;
 		createInfo.renderPass = renderPass;
 		createInfo.subpass = 0;
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &info.pipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan graphics pipeline.\n";
 			return false;
 		}

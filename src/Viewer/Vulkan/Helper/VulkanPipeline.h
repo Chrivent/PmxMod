@@ -9,6 +9,7 @@
 namespace Chrivent {
 	struct VulkanPipelineInfo {
 		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkPipeline bothFacePipeline = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 		std::array<VkDescriptorSetLayout, 3> descriptorSetLayouts{};
 	};
@@ -21,8 +22,10 @@ namespace Chrivent {
 		bool CreateDescriptorSetLayouts();
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
 		bool CreatePipelineLayout();
-		// 모델 렌더링용 graphics pipeline을 생성한다.
-		bool CreateGraphicsPipeline(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo, VkRenderPass renderPass, const std::filesystem::path& shaderDir);
+		// 모델 렌더링용 graphics pipeline들을 생성한다.
+		bool CreateGraphicsPipelines(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo, VkRenderPass renderPass, const std::filesystem::path& shaderDir);
+		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
+		bool CreateGraphicsPipeline(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo, VkRenderPass renderPass, const std::filesystem::path& shaderDir, VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
 		// 셰이더 stage 생성 정보를 만든다.
 		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
 		// 모델 vertex buffer binding 정보를 만든다.

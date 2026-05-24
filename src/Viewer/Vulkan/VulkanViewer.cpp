@@ -187,6 +187,15 @@ namespace Chrivent {
 			descriptorSetInfo.descriptorSets.size());
 	}
 
+	void VulkanViewer::BindModelPipeline(const bool bothFace) const {
+		if (!frameReady)
+			return;
+		const VkPipeline targetPipeline = bothFace
+			? pipeline.GetInfo().bothFacePipeline
+			: pipeline.GetInfo().pipeline;
+		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+	}
+
 	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;

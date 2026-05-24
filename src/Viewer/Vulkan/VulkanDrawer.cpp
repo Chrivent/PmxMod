@@ -54,6 +54,7 @@ namespace Chrivent {
 			}
 			if (!info.modelPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants)))
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
+			info.viewer->BindModelPipeline(mat.bothFace);
 			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
 			info.viewer->DrawIndexed(
 				info.vertexBuffer.GetInfo(),

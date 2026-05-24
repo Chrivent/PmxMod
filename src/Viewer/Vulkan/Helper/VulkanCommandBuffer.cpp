@@ -71,6 +71,12 @@ namespace Chrivent {
 		return true;
 	}
 
+	void VulkanCommandBuffer::BindPipeline(const uint32_t imageIndex, const VkPipeline pipeline) const {
+		if (imageIndex >= commandBuffers.size() || pipeline == VK_NULL_HANDLE)
+			return;
+		vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+	}
+
 	void VulkanCommandBuffer::DrawIndexed(
 		const uint32_t imageIndex,
 		const VulkanBufferInfo& vertexBuffer,
