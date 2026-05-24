@@ -141,7 +141,6 @@ namespace Chrivent {
 		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&edgeRsDesc, &GetDx11Info().pipelineStates.edgeRs)))
 			return false;
 		auto gsRsDesc = Dx11DescriptorFactory::MakeRasterizerDesc(D3D11_CULL_NONE, true);
-		gsRsDesc.DepthClipEnable = FALSE;
 		gsRsDesc.DepthBias = -1;
 		gsRsDesc.SlopeScaledDepthBias = -1.0f;
 		gsRsDesc.DepthBiasClamp = -1.0f;
