@@ -12,6 +12,8 @@ namespace Chrivent {
 	class VulkanBuffer {
 		VulkanBufferInfo info;
 		VkDevice device = VK_NULL_HANDLE;
+		void* mappedData = nullptr;
+		bool persistentlyMapped = false;
 
 		// 물리 디바이스 메모리 중 요청한 속성을 만족하는 memory type index를 찾는다.
 		static bool FindMemoryType(const VulkanDeviceInfo& deviceInfo, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& memoryType);

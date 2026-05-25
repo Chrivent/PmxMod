@@ -38,7 +38,7 @@ namespace Chrivent {
 
 	class VulkanInstance : public Instance {
 		// 모델의 현재 버텍스 배열을 Vulkan 입력 레이아웃에 맞게 변환한다.
-		static std::vector<VulkanVertex> MakeVertices(const ModelGeometryData& geometryData, bool useUpdateData);
+		static void FillVertices(const ModelGeometryData& geometryData, bool useUpdateData, std::vector<VulkanVertex>& vertices);
 		// PMX 인덱스 바이트 크기를 Vulkan index type으로 변환한다.
 		static bool GetIndexType(size_t indexElementSize, VkIndexType& indexType);
 

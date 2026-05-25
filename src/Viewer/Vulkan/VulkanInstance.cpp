@@ -9,7 +9,10 @@
 #include <iostream>
 
 namespace Chrivent {
-	std::vector<VulkanVertex> VulkanInstance::MakeVertices(const ModelGeometryData& geometryData, const bool useUpdateData) {
+	void VulkanInstance::FillVertices(
+		const ModelGeometryData& geometryData,
+		const bool useUpdateData,
+		std::vector<VulkanVertex>& vertices) {
 		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
 			? geometryData.updatePositions
 			: geometryData.positions;
@@ -19,18 +22,16 @@ namespace Chrivent {
 		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
 			? geometryData.updateUVs
 			: geometryData.uvs;
-		std::vector<VulkanVertex> vertices;
-		vertices.reserve(positions.size());
+		vertices.resize(positions.size());
 		for (size_t i = 0; i < positions.size(); i++) {
-			VulkanVertex vertex{};
+			auto& vertex = vertices[i];
+			vertex = {};
 			vertex.position = positions[i];
 			if (i < normals.size())
 				vertex.normal = normals[i];
 			if (i < uvs.size())
 				vertex.uv = uvs[i];
-			vertices.emplace_back(vertex);
 		}
-		return vertices;
 	}
 
 	bool VulkanInstance::GetIndexType(const size_t indexElementSize, VkIndexType& indexType) {
@@ -81,7 +82,8 @@ namespace Chrivent {
 			std::cerr << "Failed to get Vulkan index type.\n";
 			return false;
 		}
-		const std::vector<VulkanVertex> vertices = MakeVertices(geometryData, false);
+		std::vector<VulkanVertex> vertices;
+		FillVertices(geometryData, false, vertices);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
 		const VkDeviceSize indexBufferSize = geometryData.indices.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
@@ -197,7 +199,8 @@ namespace Chrivent {
 			return;
 		const ModelPose pose(*info.model);
 		pose.Update();
-		const std::vector<VulkanVertex> vertices = MakeVertices(info.model->geometryData, true);
+		std::vector<VulkanVertex> vertices;
+		FillVertices(info.model->geometryData, true, vertices);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
 		if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";

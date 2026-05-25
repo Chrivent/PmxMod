@@ -22,7 +22,8 @@ namespace Chrivent {
 			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
 			return;
 		}
-		commandContext.GetCommandBuffer().DrawIndexed(
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.DrawIndexed(
 			currentImageIndex,
 			vertexBuffer,
 			indexBuffer,
@@ -37,25 +38,29 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = bothFace
 			? pipeline.GetInfo().bothFacePipeline
 			: pipeline.GetInfo().pipeline;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
 	}
 
 	void VulkanViewer::BindEdgePipeline() const {
 		if (!frameReady)
 			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
 	}
 
 	void VulkanViewer::BindGroundShadowPipeline() const {
 		if (!frameReady)
 			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
 	}
 
 	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) const {
 		if (!frameReady)
 			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			0,
@@ -68,7 +73,8 @@ namespace Chrivent {
 	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			1,
@@ -81,7 +87,8 @@ namespace Chrivent {
 	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(
+		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			2,
@@ -179,7 +186,7 @@ namespace Chrivent {
 				VK_TRUE,
 				UINT64_MAX);
 		}
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		auto& commandBuffer = commandContext.GetCommandBuffer();
 		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
 		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
 		if (!commandBuffer.BeginRecord(

@@ -15,6 +15,9 @@ namespace Chrivent {
 		device = deviceInfo.device;
 		commandPool = sourceCommandPool;
 		commandBuffers.resize(swapChainInfo.imageViews.size());
+		boundVertexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
+		boundIndexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
+		boundIndexTypes.assign(commandBuffers.size(), VK_INDEX_TYPE_MAX_ENUM);
 		if (commandBuffers.empty()) {
 			std::cerr << "Failed to allocate Vulkan command buffers: swapchain image view is empty.\n";
 			return false;
@@ -37,12 +40,15 @@ namespace Chrivent {
 		const VkFramebuffer frameBuffer,
 		const VkPipeline pipeline,
 		const VkExtent2D extent,
-		const float clearColor[4]) const {
+		const float clearColor[4]) {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to record Vulkan command buffer: image index is out of range.\n";
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		boundVertexBuffers[imageIndex] = VK_NULL_HANDLE;
+		boundIndexBuffers[imageIndex] = VK_NULL_HANDLE;
+		boundIndexTypes[imageIndex] = VK_INDEX_TYPE_MAX_ENUM;
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
@@ -83,17 +89,25 @@ namespace Chrivent {
 		const VulkanBufferInfo& indexBuffer,
 		const VkIndexType indexType,
 		const uint32_t firstIndex,
-		const uint32_t indexCount) const {
+		const uint32_t indexCount) {
 		if (imageIndex >= commandBuffers.size() ||
 			vertexBuffer.buffer == VK_NULL_HANDLE ||
 			indexBuffer.buffer == VK_NULL_HANDLE ||
 			indexCount == 0)
 			return;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		constexpr VkDeviceSize offsets[] = { 0 };
-		const VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, indexType);
+		if (boundVertexBuffers[imageIndex] != vertexBuffer.buffer) {
+			constexpr VkDeviceSize offsets[] = { 0 };
+			const VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			boundVertexBuffers[imageIndex] = vertexBuffer.buffer;
+		}
+		if (boundIndexBuffers[imageIndex] != indexBuffer.buffer ||
+			boundIndexTypes[imageIndex] != indexType) {
+			vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, indexType);
+			boundIndexBuffers[imageIndex] = indexBuffer.buffer;
+			boundIndexTypes[imageIndex] = indexType;
+		}
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
 	}
 
@@ -139,6 +153,9 @@ namespace Chrivent {
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE && !commandBuffers.empty())
 			vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
 		commandBuffers.clear();
+		boundVertexBuffers.clear();
+		boundIndexBuffers.clear();
+		boundIndexTypes.clear();
 		device = VK_NULL_HANDLE;
 		commandPool = VK_NULL_HANDLE;
 	}

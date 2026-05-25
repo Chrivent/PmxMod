@@ -60,6 +60,13 @@ namespace Chrivent {
 			std::cerr << "Failed to bind Vulkan buffer memory.\n";
 			return false;
 		}
+		if ((properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
+			if (vkMapMemory(deviceInfo.device, info.memory, 0, size, 0, &mappedData) != VK_SUCCESS) {
+				std::cerr << "Failed to persistently map Vulkan buffer memory.\n";
+				return false;
+			}
+			persistentlyMapped = true;
+		}
 		return true;
 	}
 
@@ -70,12 +77,17 @@ namespace Chrivent {
 			std::cerr << "Failed to write Vulkan buffer: source data is larger than buffer.\n";
 			return false;
 		}
-		void* mappedData = nullptr;
-		if (vkMapMemory(device, info.memory, offset, dataSize, 0, &mappedData) != VK_SUCCESS) {
+		if (persistentlyMapped) {
+			auto* destination = static_cast<unsigned char*>(mappedData) + offset;
+			std::memcpy(destination, sourceData, dataSize);
+			return true;
+		}
+		void* writeTarget = nullptr;
+		if (vkMapMemory(device, info.memory, offset, dataSize, 0, &writeTarget) != VK_SUCCESS) {
 			std::cerr << "Failed to map Vulkan buffer memory.\n";
 			return false;
 		}
-		std::memcpy(mappedData, sourceData, dataSize);
+		std::memcpy(writeTarget, sourceData, dataSize);
 		vkUnmapMemory(device, info.memory);
 		return true;
 	}
@@ -83,6 +95,10 @@ namespace Chrivent {
 	void VulkanBuffer::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
+		if (persistentlyMapped && info.memory != VK_NULL_HANDLE)
+			vkUnmapMemory(device, info.memory);
+		mappedData = nullptr;
+		persistentlyMapped = false;
 		if (info.buffer != VK_NULL_HANDLE) {
 			vkDestroyBuffer(device, info.buffer, nullptr);
 			info.buffer = VK_NULL_HANDLE;

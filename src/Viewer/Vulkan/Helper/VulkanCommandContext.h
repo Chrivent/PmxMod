@@ -18,6 +18,7 @@ namespace Chrivent {
 		VulkanCommandContext& operator=(VulkanCommandContext&&) = delete;
 		
 		VkCommandPool GetCommandPool() const { return commandPool; }
+		VulkanCommandBuffer& GetCommandBuffer() { return commandBuffer; }
 		const VulkanCommandBuffer& GetCommandBuffer() const { return commandBuffer; }
 		
 		// 그래픽스 큐 패밀리에 맞는 command pool과 command buffer를 생성한다.
