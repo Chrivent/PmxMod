@@ -2,7 +2,7 @@
 
 [English](./README.md) | **[한국어](./README.ko.md)**
 
-C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL과 DirectX 11 렌더러를 지원하며, Vulkan 렌더러는 구현 중입니다.
+C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL, DirectX 11, Vulkan 렌더러를 지원합니다.
 
 ## 요구 사항
 
@@ -16,7 +16,7 @@ C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL과 DirectX 1
 
 - OpenGL: 지원
 - DirectX 11: 지원
-- Vulkan: 구현 중
+- Vulkan: 지원
 
 ## 의존성 설치
 

@@ -2,7 +2,7 @@
 
 **[English](./README.md)** | [한국어](./README.ko.md)
 
-PMX/VMD model viewer built with C++20. The project currently renders through OpenGL or DirectX 11, with Vulkan support in progress.
+PMX/VMD model viewer built with C++20. The project currently renders through OpenGL, DirectX 11, and Vulkan.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ PMX/VMD model viewer built with C++20. The project currently renders through Ope
 
 - OpenGL: supported
 - DirectX 11: supported
-- Vulkan: in progress
+- Vulkan: supported
 
 ## Dependencies
 
