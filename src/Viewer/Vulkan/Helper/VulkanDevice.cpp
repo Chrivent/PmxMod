@@ -106,13 +106,21 @@ namespace Chrivent {
 		std::vector<VkQueueFamilyProperties> families(queueFamilyCount);
 		vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, families.data());
 		for (uint32_t i = 0; i < queueFamilyCount; i++) {
-			if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			VkBool32 presentSupport = VK_FALSE;
+			vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, info.surface, &presentSupport);
+			const bool supportsGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+			if (supportsGraphics && presentSupport) {
+				indices.graphicsFamily = i;
+				indices.presentFamily = i;
+				indices.hasGraphicsFamily = true;
+				indices.hasPresentFamily = true;
+				break;
+			}
+			if (supportsGraphics && !indices.hasGraphicsFamily) {
 				indices.graphicsFamily = i;
 				indices.hasGraphicsFamily = true;
 			}
-			VkBool32 presentSupport = VK_FALSE;
-			vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, info.surface, &presentSupport);
-			if (presentSupport) {
+			if (presentSupport && !indices.hasPresentFamily) {
 				indices.presentFamily = i;
 				indices.hasPresentFamily = true;
 			}
