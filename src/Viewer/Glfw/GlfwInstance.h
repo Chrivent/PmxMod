@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Instance.h"
+#include "Assist/GlfwDynamicBufferRing.h"
 
 #include <glad/glad.h>
 
@@ -15,8 +16,9 @@ namespace Chrivent {
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
-        GLuint	vertexConstantsUbo = 0;
-        GLuint	pixelConstantsUbo = 0;
+        size_t uniformBufferOffsetAlignment = 1;
+        GlfwDynamicBufferRing vertexConstantsRing;
+        GlfwDynamicBufferRing pixelConstantsRing;
         std::vector<GlfwViewerMaterial> materials;
     };
 

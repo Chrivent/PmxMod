@@ -51,10 +51,8 @@ namespace Chrivent {
 			glDeleteBuffers(1, &ibo);
 		posVbo = norVbo = uvVbo = ibo = 0;
 		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
-		if (info.vertexConstantsUbo != 0)
-			glDeleteBuffers(1, &info.vertexConstantsUbo);
-		if (info.pixelConstantsUbo != 0)
-			glDeleteBuffers(1, &info.pixelConstantsUbo);
+		info.vertexConstantsRing.Clear();
+		info.pixelConstantsRing.Clear();
 		if (info.vao != 0)
 			glDeleteVertexArrays(1, &info.vao);
 		if (info.edgeVao != 0)
@@ -62,7 +60,7 @@ namespace Chrivent {
 		if (info.gsVao != 0)
 			glDeleteVertexArrays(1, &info.gsVao);
 		info.vao = info.edgeVao = info.gsVao = 0;
-		info.vertexConstantsUbo = info.pixelConstantsUbo = 0;
+		info.uniformBufferOffsetAlignment = 1;
 	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
@@ -119,8 +117,31 @@ namespace Chrivent {
 			sizeof(EdgePixelConstants),
 			sizeof(GroundShadowPixelConstants)
 		});
-		info.vertexConstantsUbo = CreateBuffer(GL_UNIFORM_BUFFER, vertexConstantsSize, nullptr, GL_DYNAMIC_DRAW);
-		info.pixelConstantsUbo = CreateBuffer(GL_UNIFORM_BUFFER, pixelConstantsSize, nullptr, GL_DYNAMIC_DRAW);
+		GLint uniformBufferOffsetAlignment = 1;
+		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferOffsetAlignment);
+		info.uniformBufferOffsetAlignment = std::max(1, uniformBufferOffsetAlignment);
+		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
+		constexpr size_t ringSlack = 2;
+		const auto AlignedSize = [&](const size_t size) {
+			const size_t alignment = info.uniformBufferOffsetAlignment;
+			const size_t remainder = size % alignment;
+			if (remainder == 0)
+				return size;
+			return size + (alignment - remainder);
+		};
+		std::string error;
+		if (!info.vertexConstantsRing.Setup(
+			GL_UNIFORM_BUFFER,
+			AlignedSize(vertexConstantsSize) * (drawCount + ringSlack),
+			GL_DYNAMIC_DRAW,
+			error))
+			return false;
+		if (!info.pixelConstantsRing.Setup(
+			GL_UNIFORM_BUFFER,
+			AlignedSize(pixelConstantsSize) * (drawCount + ringSlack),
+			GL_DYNAMIC_DRAW,
+			error))
+			return false;
 		for (const auto& mat : info.model->materialData.materials) {
 			GlfwViewerMaterial material(mat);
 			if (!mat.texture.empty()) {

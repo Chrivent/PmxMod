@@ -18,6 +18,7 @@ namespace Chrivent {
 
 		// OpenGL 업로드 링 버퍼를 생성한다.
 		bool Setup(GLenum bufferTarget, size_t bufferSize, GLenum bufferUsage, std::string& outError);
+		void BeginFrame(size_t frameIndex) override;
 		void Clear() override;
 		std::optional<GlslUploadSlice> Allocate(size_t size, size_t alignment, std::string& outError) override;
 	};

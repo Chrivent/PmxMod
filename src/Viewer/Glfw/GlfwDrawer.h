@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Drawer.h"
+#include "Assist/GlfwDynamicBufferRing.h"
 
 #include <glad/glad.h>
 
@@ -11,8 +12,10 @@ namespace Chrivent {
 		const GlfwInstanceInfo& info;
 
 	protected:
-		// uniform buffer에 상수 데이터를 갱신하고 지정한 binding에 연결한다.
-		static void UpdateUniformBuffer(GLuint buffer, GLuint binding, const void* data, size_t size);
+		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.
+		void BeginDynamicBufferFrame() const;
+		// uniform buffer ring에 상수 데이터를 기록하고 지정한 binding에 연결한다.
+		void UpdateUniformBuffer(GlfwDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
 
 		// 일반 메시 패스를 OpenGL로 렌더링한다.
 		void DrawModel() const override;

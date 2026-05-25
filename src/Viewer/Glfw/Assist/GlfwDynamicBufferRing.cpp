@@ -22,9 +22,18 @@ namespace Chrivent {
 			return false;
 		}
 		glBindBuffer(target, buffer);
-		glBufferData(target, static_cast<GLsizeiptr>(capacity), nullptr, usage);
+		glBufferData(target, capacity, nullptr, usage);
 		glBindBuffer(target, 0);
 		return true;
+	}
+
+	void GlfwDynamicBufferRing::BeginFrame(const size_t frameIndex) {
+		GlslDynamicBufferRing::BeginFrame(frameIndex);
+		if (buffer == 0)
+			return;
+		glBindBuffer(target, buffer);
+		glBufferData(target, capacity, nullptr, usage);
+		glBindBuffer(target, 0);
 	}
 
 	void GlfwDynamicBufferRing::Clear() {

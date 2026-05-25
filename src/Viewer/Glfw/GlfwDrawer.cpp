@@ -6,13 +6,29 @@
 #include "../Assist/Glsl/GlslShaderConstants.h"
 
 namespace Chrivent {
-	void GlfwDrawer::UpdateUniformBuffer(const GLuint buffer, const GLuint binding, const void* data, const size_t size) {
-		glBindBuffer(GL_UNIFORM_BUFFER, buffer);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
-		glBindBufferBase(GL_UNIFORM_BUFFER, binding, buffer);
+	void GlfwDrawer::BeginDynamicBufferFrame() const {
+		auto& instanceInfo = const_cast<GlfwInstanceInfo&>(info);
+		instanceInfo.vertexConstantsRing.BeginFrame(0);
+		instanceInfo.pixelConstantsRing.BeginFrame(0);
+	}
+
+	void GlfwDrawer::UpdateUniformBuffer(
+		GlfwDynamicBufferRing& ring,
+		const GLuint binding,
+		const void* data,
+		const size_t size) const {
+		const auto& instanceInfo = const_cast<GlfwInstanceInfo&>(info);
+		std::string error;
+		const auto slice = ring.Allocate(size, instanceInfo.uniformBufferOffsetAlignment, error);
+		if (!slice.has_value())
+			return;
+		glBindBuffer(GL_UNIFORM_BUFFER, ring.GetBuffer());
+		glBufferSubData(GL_UNIFORM_BUFFER, slice->offset, slice->size, data);
+		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
 	}
 
 	void GlfwDrawer::DrawModel() const {
+		BeginDynamicBufferFrame();
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto vao = info.vao;
@@ -27,7 +43,11 @@ namespace Chrivent {
 		const glm::vec3 lightColor = viewer->GetInfo().lightColor;
 		const glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		glUseProgram(shader->program);
-		UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
+		UpdateUniformBuffer(
+			const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+			0,
+			&vertexConstants,
+			sizeof(vertexConstants));
 		glBindVertexArray(vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
@@ -73,7 +93,11 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
 			} else
 				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
-			UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
+			UpdateUniformBuffer(
+				const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+				1,
+				&pixelConstants,
+				sizeof(pixelConstants));
 			if (mat.bothFace)
 				glDisable(GL_CULL_FACE);
 			else {
@@ -112,8 +136,16 @@ namespace Chrivent {
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
-			UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
+			UpdateUniformBuffer(
+				const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+				0,
+				&vertexConstants,
+				sizeof(vertexConstants));
+			UpdateUniformBuffer(
+				const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+				1,
+				&pixelConstants,
+				sizeof(pixelConstants));
 			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
@@ -136,11 +168,19 @@ namespace Chrivent {
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
-		UpdateUniformBuffer(info.vertexConstantsUbo, 0, &vertexConstants, sizeof(vertexConstants));
+		UpdateUniformBuffer(
+			const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+			0,
+			&vertexConstants,
+			sizeof(vertexConstants));
 		glBindVertexArray(gsVao);
 		GroundShadowPixelConstants pixelConstants;
 		const auto shadowColor = pixelConstants.shadowColor;
-		UpdateUniformBuffer(info.pixelConstantsUbo, 1, &pixelConstants, sizeof(pixelConstants));
+		UpdateUniformBuffer(
+			const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+			1,
+			&pixelConstants,
+			sizeof(pixelConstants));
 		if (shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);
