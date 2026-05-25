@@ -5,14 +5,14 @@
 
 namespace Chrivent {
 	struct VulkanColorBufferInfo {
-		VkImage image = VK_NULL_HANDLE;
-		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	};
 
 	class VulkanColorBuffer {
 		VulkanColorBufferInfo info;
+		VkImage image = VK_NULL_HANDLE;
+		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
 
 		// Finds a Vulkan memory type index that matches the requested properties.

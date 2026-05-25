@@ -29,7 +29,7 @@ namespace Chrivent {
 		createInfo.maxSets = passType == VulkanPassType::Model
 			? 1 + materialCount + materialCount
 			: 1 + materialCount;
-		if (vkCreateDescriptorPool(device, &createInfo, nullptr, &info.descriptorPool) != VK_SUCCESS) {
+		if (vkCreateDescriptorPool(device, &createInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan descriptor pool.\n";
 			return false;
 		}
@@ -39,7 +39,7 @@ namespace Chrivent {
 	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipelineInfo& pipelineInfo, const size_t materialCount) {
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocateInfo.descriptorPool = info.descriptorPool;
+		allocateInfo.descriptorPool = descriptorPool;
 		allocateInfo.descriptorSetCount = 1;
 		allocateInfo.pSetLayouts = &pipelineInfo.descriptorSetLayouts[0];
 		if (vkAllocateDescriptorSets(device, &allocateInfo, &info.vertexDescriptorSet) != VK_SUCCESS) {
@@ -51,7 +51,7 @@ namespace Chrivent {
 			const std::vector pixelLayouts(materialCount, pipelineInfo.descriptorSetLayouts[1]);
 			VkDescriptorSetAllocateInfo pixelAllocateInfo{};
 			pixelAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			pixelAllocateInfo.descriptorPool = info.descriptorPool;
+			pixelAllocateInfo.descriptorPool = descriptorPool;
 			pixelAllocateInfo.descriptorSetCount = pixelLayouts.size();
 			pixelAllocateInfo.pSetLayouts = pixelLayouts.data();
 			if (vkAllocateDescriptorSets(device, &pixelAllocateInfo, info.pixelDescriptorSets.data()) != VK_SUCCESS) {
@@ -61,16 +61,16 @@ namespace Chrivent {
 		}
 		if (passType != VulkanPassType::Model)
 			return true;
-		info.textureDescriptorSets.resize(materialCount);
-		if (info.textureDescriptorSets.empty())
+		textureDescriptorSets.resize(materialCount);
+		if (textureDescriptorSets.empty())
 			return true;
 		const std::vector textureLayouts(materialCount, pipelineInfo.descriptorSetLayouts[2]);
 		VkDescriptorSetAllocateInfo textureAllocateInfo{};
 		textureAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		textureAllocateInfo.descriptorPool = info.descriptorPool;
+		textureAllocateInfo.descriptorPool = descriptorPool;
 		textureAllocateInfo.descriptorSetCount = textureLayouts.size();
 		textureAllocateInfo.pSetLayouts = textureLayouts.data();
-		if (vkAllocateDescriptorSets(device, &textureAllocateInfo, info.textureDescriptorSets.data()) != VK_SUCCESS) {
+		if (vkAllocateDescriptorSets(device, &textureAllocateInfo, textureDescriptorSets.data()) != VK_SUCCESS) {
 			std::cerr << "Failed to allocate Vulkan texture descriptor sets.\n";
 			return false;
 		}
@@ -142,10 +142,10 @@ namespace Chrivent {
 
 	void VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
-			if (i >= info.textureDescriptorSets.size())
+			if (i >= textureDescriptorSets.size())
 				return;
 			VulkanMaterial& material = materials[i];
-			material.textureDescriptorSet = info.textureDescriptorSets[i];
+			material.textureDescriptorSet = textureDescriptorSets[i];
 			const VkDescriptorImageInfo imageInfos[] = {
 				VkDescriptorImageInfo{
 					.sampler = material.texture.sampler,
@@ -234,13 +234,13 @@ namespace Chrivent {
 	void VulkanDescriptorSet::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		if (info.descriptorPool != VK_NULL_HANDLE) {
-			vkDestroyDescriptorPool(device, info.descriptorPool, nullptr);
-			info.descriptorPool = VK_NULL_HANDLE;
+		if (descriptorPool != VK_NULL_HANDLE) {
+			vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+			descriptorPool = VK_NULL_HANDLE;
 		}
 		info.vertexDescriptorSet = VK_NULL_HANDLE;
 		info.pixelDescriptorSets.clear();
-		info.textureDescriptorSets.clear();
+		textureDescriptorSets.clear();
 		passType = VulkanPassType::Model;
 		device = VK_NULL_HANDLE;
 	}

@@ -5,12 +5,12 @@
 namespace Chrivent {
 	struct VulkanBufferInfo {
 		VkBuffer buffer = VK_NULL_HANDLE;
-		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDeviceSize size = 0;
 	};
 
 	class VulkanBuffer {
 		VulkanBufferInfo info;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
 		void* mappedData = nullptr;
 		bool persistentlyMapped = false;

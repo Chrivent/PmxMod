@@ -12,14 +12,14 @@ namespace Chrivent {
 	};
 
 	struct VulkanDescriptorSetInfo {
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
 		std::vector<VkDescriptorSet> pixelDescriptorSets;
-		std::vector<VkDescriptorSet> textureDescriptorSets;
 	};
 
 	class VulkanDescriptorSet {
 		VulkanDescriptorSetInfo info;
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> textureDescriptorSets;
 		VkDevice device = VK_NULL_HANDLE;
 		VulkanPassType passType = VulkanPassType::Model;
 

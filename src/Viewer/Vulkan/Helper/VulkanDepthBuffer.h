@@ -5,14 +5,14 @@
 
 namespace Chrivent {
 	struct VulkanDepthBufferInfo {
-		VkImage image = VK_NULL_HANDLE;
-		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	};
 
 	class VulkanDepthBuffer {
 		VulkanDepthBufferInfo info;
+		VkImage image = VK_NULL_HANDLE;
+		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스에서 사용할 수 있는 depth format을 찾는다.
