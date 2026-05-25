@@ -95,6 +95,9 @@ add_executable(PmxMod
 
         src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
         src/Viewer/Assist/Glsl/GlslShaderConstants.h
+        src/Viewer/Assist/Glsl/GlslDynamicBufferRing.h src/Viewer/Assist/Glsl/GlslDynamicBufferRing.cpp
+        src/Viewer/Glfw/Assist/GlfwDynamicBufferRing.h src/Viewer/Glfw/Assist/GlfwDynamicBufferRing.cpp
+        src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.h src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.cpp
 
         src/Viewer/Glfw/Helper/GlfwShader.h src/Viewer/Glfw/Helper/GlfwShader.cpp
         src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp
