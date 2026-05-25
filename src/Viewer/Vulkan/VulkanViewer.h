@@ -51,6 +51,7 @@ namespace Chrivent {
 		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
 		const VulkanPipelineInfo& GetPipelineInfo() const { return pipeline.GetInfo(); }
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
+		size_t GetCurrentFrameIndex() const { return syncObject.GetInfo().currentFrame; }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;

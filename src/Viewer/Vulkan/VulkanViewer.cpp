@@ -114,7 +114,7 @@ namespace Chrivent {
 		dummyTexture = textureCache.CreateWhiteTexture(device.GetInfo(), commandContext.GetCommandPool());
 		if (dummyTexture.image == VK_NULL_HANDLE)
 			return false;
-		return syncObject.Initialize(device.GetInfo());
+		return syncObject.Initialize(device.GetInfo(), swapChain.GetInfo().images.size());
 	}
 
 	bool VulkanViewer::Resize() {
@@ -138,7 +138,10 @@ namespace Chrivent {
 			return false;
 		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), colorBuffer.GetInfo().imageView, depthBuffer.GetInfo().imageView))
 			return false;
-		return commandContext.Initialize(device.GetInfo(), swapChain.GetInfo());
+		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
+			return false;
+		syncObject.ResetImageTracking(swapChain.GetInfo().images.size());
+		return true;
 	}
 
 	void VulkanViewer::BeginFrame() {
@@ -148,8 +151,8 @@ namespace Chrivent {
 		const size_t frameIndex = syncInfo.currentFrame;
 		vkWaitForFences(
 			deviceInfo.device,
-			VulkanSyncObjectInfo::kMaxFramesInFlight,
-			syncInfo.inFlightFences.data(),
+			1,
+			&syncInfo.inFlightFences[frameIndex],
 			VK_TRUE,
 			UINT64_MAX);
 		const VkResult acquireResult = vkAcquireNextImageKHR(
@@ -166,6 +169,15 @@ namespace Chrivent {
 		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
 			std::cerr << "Failed to acquire Vulkan swapchain image.\n";
 			return;
+		}
+		if (currentImageIndex < syncInfo.imagesInFlight.size() &&
+			syncInfo.imagesInFlight[currentImageIndex] != VK_NULL_HANDLE) {
+			vkWaitForFences(
+				deviceInfo.device,
+				1,
+				&syncInfo.imagesInFlight[currentImageIndex],
+				VK_TRUE,
+				UINT64_MAX);
 		}
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
@@ -189,11 +201,11 @@ namespace Chrivent {
 			return false;
 		}
 		const auto& deviceInfo = device.GetInfo();
-		const auto& [imageAvailableSemaphores,
-			renderFinishedSemaphores,
-			inFlightFences,
-			currentFrame] = syncObject.GetInfo();
-		const size_t frameIndex = currentFrame;
+		const auto& syncInfo = syncObject.GetInfo();
+		const auto& imageAvailableSemaphores = syncInfo.imageAvailableSemaphores;
+		const auto& renderFinishedSemaphores = syncInfo.renderFinishedSemaphores;
+		const auto& inFlightFences = syncInfo.inFlightFences;
+		const size_t frameIndex = syncInfo.currentFrame;
 		const VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[frameIndex] };
 		constexpr VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[frameIndex] };
@@ -201,6 +213,8 @@ namespace Chrivent {
 			commandContext.GetCommandBuffer().GetCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
+		if (currentImageIndex < syncObject.GetInfo().imagesInFlight.size())
+			syncObject.GetInfo().imagesInFlight[currentImageIndex] = inFlightFence;
 		vkResetFences(deviceInfo.device, 1, &inFlightFence);
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

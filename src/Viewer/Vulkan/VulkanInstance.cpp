@@ -114,18 +114,19 @@ namespace Chrivent {
 				return size;
 			return size + (alignment - remainder);
 		};
+		constexpr size_t bufferedFrames = 2;
 		std::string error;
-		if (!info.modelVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelVertexConstants)) * ringSlack, error))
+		if (!info.modelVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelVertexConstants)) * ringSlack * bufferedFrames, error))
 			return false;
-		if (!info.edgeVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack), error))
+		if (!info.edgeVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
-		if (!info.groundShadowVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowVertexConstants)) * ringSlack, error))
+		if (!info.groundShadowVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowVertexConstants)) * ringSlack * bufferedFrames, error))
 			return false;
-		if (!info.modelPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelPixelConstants)) * (drawCount + ringSlack), error))
+		if (!info.modelPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
-		if (!info.edgePixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgePixelConstants)) * (drawCount + ringSlack), error))
+		if (!info.edgePixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgePixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
-		if (!info.groundShadowPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack), error))
+		if (!info.groundShadowPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
 		info.indexCount = geometryData.indexCount;
 		for (const auto& mat : info.model->materialData.materials) {

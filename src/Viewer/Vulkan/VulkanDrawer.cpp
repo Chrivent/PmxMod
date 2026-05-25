@@ -22,8 +22,9 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
-		instanceInfo.modelVertexConstantsRing.BeginFrame(0);
-		instanceInfo.modelPixelConstantsRing.BeginFrame(0);
+		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		instanceInfo.modelVertexConstantsRing.BeginFrame(frameIndex);
+		instanceInfo.modelPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		ModelVertexConstants vertexConstants;
@@ -90,8 +91,9 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
-		instanceInfo.edgeVertexConstantsRing.BeginFrame(0);
-		instanceInfo.edgePixelConstantsRing.BeginFrame(0);
+		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		instanceInfo.edgeVertexConstantsRing.BeginFrame(frameIndex);
+		instanceInfo.edgePixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		info.viewer->BindEdgePipeline();
@@ -139,8 +141,9 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
-		instanceInfo.groundShadowVertexConstantsRing.BeginFrame(0);
-		instanceInfo.groundShadowPixelConstantsRing.BeginFrame(0);
+		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		instanceInfo.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
+		instanceInfo.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);

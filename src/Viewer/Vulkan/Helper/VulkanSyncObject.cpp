@@ -7,9 +7,10 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanSyncObject::Initialize(const VulkanDeviceInfo& deviceInfo) {
+	bool VulkanSyncObject::Initialize(const VulkanDeviceInfo& deviceInfo, const size_t swapChainImageCount) {
 		device = deviceInfo.device;
 		info.currentFrame = 0;
+		ResetImageTracking(swapChainImageCount);
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		VkFenceCreateInfo fenceInfo{};
@@ -25,6 +26,10 @@ namespace Chrivent {
 			}
 		}
 		return true;
+	}
+
+	void VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
+		info.imagesInFlight.assign(swapChainImageCount, VK_NULL_HANDLE);
 	}
 
 	void VulkanSyncObject::Destroy() {
@@ -44,6 +49,7 @@ namespace Chrivent {
 				info.inFlightFences[i] = VK_NULL_HANDLE;
 			}
 		}
+		info.imagesInFlight.clear();
 		info.currentFrame = 0;
 		device = VK_NULL_HANDLE;
 	}

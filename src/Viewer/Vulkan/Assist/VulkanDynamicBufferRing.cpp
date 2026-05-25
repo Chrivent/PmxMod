@@ -20,6 +20,10 @@ namespace Chrivent {
 		return true;
 	}
 
+	void VulkanDynamicBufferRing::BeginFrame(const size_t frameIndex) {
+		GlslDynamicBufferRing::BeginFrame(frameIndex % kBufferedFrames);
+	}
+
 	void VulkanDynamicBufferRing::Clear() {
 		buffer.Destroy();
 		GlslDynamicBufferRing::Clear();
@@ -29,15 +33,21 @@ namespace Chrivent {
 		const size_t size,
 		const size_t alignment,
 		std::string& outError) {
+		const size_t frameCapacity = capacity / kBufferedFrames;
+		if (frameCapacity == 0) {
+			outError = "Vulkan dynamic buffer ring frame capacity is zero.";
+			return std::nullopt;
+		}
 		const size_t alignedOffset = AlignUp(writeOffset, alignment);
-		if (alignedOffset + size > capacity) {
+		if (alignedOffset + size > frameCapacity) {
 			outError = "Vulkan dynamic buffer ring is out of space for this frame.";
 			return std::nullopt;
 		}
 		writeOffset = alignedOffset + size;
 		outError.clear();
+		const size_t frameBaseOffset = currentFrameIndex * frameCapacity;
 		return GlslUploadSlice{
-			.offset = alignedOffset,
+			.offset = frameBaseOffset + alignedOffset,
 			.size = size,
 			.cpuAddress = nullptr
 		};

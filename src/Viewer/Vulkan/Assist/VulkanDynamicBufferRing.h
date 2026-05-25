@@ -5,6 +5,7 @@
 
 namespace Chrivent {
 	class VulkanDynamicBufferRing : public GlslDynamicBufferRing {
+		static constexpr size_t kBufferedFrames = 2;
 		VulkanBuffer buffer;
 
 	public:
@@ -16,6 +17,7 @@ namespace Chrivent {
 		// Vulkan 업로드 링 버퍼를 생성한다.
 		bool Setup(const VulkanDeviceInfo& deviceInfo, size_t bufferSize, std::string& outError);
 		void Clear() override;
+		void BeginFrame(size_t frameIndex) override;
 		std::optional<GlslUploadSlice> Allocate(size_t size, size_t alignment, std::string& outError) override;
 		bool Write(const GlslUploadSlice& slice, const void* data, std::string& outError) const;
 	};
