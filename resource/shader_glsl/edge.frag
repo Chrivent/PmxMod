@@ -1,6 +1,8 @@
 layout(location = 0) out vec4 outColor;
 
-PMX_EDGE_PIXEL_CONSTANTS
+PMX_LAYOUT_UBO(1, 0) uniform EdgePixelConstants {
+    vec4 edgeColor;
+} edgeConstants;
 
 void main() {
     outColor = edgeConstants.edgeColor;

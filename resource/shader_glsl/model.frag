@@ -4,10 +4,24 @@ layout(location = 2) in vec2 vsUv;
 
 layout(location = 0) out vec4 outColor;
 
-PMX_MODEL_PIXEL_CONSTANTS
-PMX_MODEL_TEX
-PMX_MODEL_TOON_TEX
-PMX_MODEL_SPHERE_TEX
+PMX_LAYOUT_UBO(1, 0) uniform ModelPixelConstants {
+    vec4 diffuseAlpha;
+    vec4 ambientSpecularPower;
+    vec4 specular;
+    vec4 lightColor;
+    vec4 lightDir;
+    vec4 texMulFactor;
+    vec4 texAddFactor;
+    vec4 toonTexMulFactor;
+    vec4 toonTexAddFactor;
+    vec4 sphereTexMulFactor;
+    vec4 sphereTexAddFactor;
+    ivec4 textureModes;
+} pixelConstants;
+
+PMX_LAYOUT_SAMPLER(2, 0) uniform sampler2D tex;
+PMX_LAYOUT_SAMPLER(2, 1) uniform sampler2D toonTex;
+PMX_LAYOUT_SAMPLER(2, 2) uniform sampler2D sphereTex;
 
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;

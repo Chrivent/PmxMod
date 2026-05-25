@@ -1,7 +1,12 @@
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 
-PMX_EDGE_VERTEX_CONSTANTS
+PMX_LAYOUT_UBO(0, 0) uniform EdgeVertexConstants {
+    mat4 wv;
+    mat4 wvp;
+    vec2 screenSize;
+    float edgeSize;
+} edgeConstants;
 
 void main() {
     vec3 nor = mat3(edgeConstants.wv) * inNormal;
