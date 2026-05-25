@@ -174,8 +174,8 @@ namespace Chrivent {
 			&vertexConstants,
 			sizeof(vertexConstants));
 		glBindVertexArray(gsVao);
-		GroundShadowPixelConstants pixelConstants;
-		const auto shadowColor = pixelConstants.shadowColor;
+		constexpr GroundShadowPixelConstants pixelConstants;
+		constexpr auto shadowColor = pixelConstants.shadowColor;
 		UpdateUniformBuffer(
 			const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
 			1,

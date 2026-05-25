@@ -40,6 +40,6 @@ namespace Chrivent {
 	};
 
 	struct GroundShadowPixelConstants {
-		glm::vec4	shadowColor = glm::vec4(0.1f, 0.1f, 0.1f, 0.5f);
+		glm::vec4	shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	};
 }
