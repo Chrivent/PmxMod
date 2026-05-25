@@ -42,6 +42,9 @@ namespace Chrivent {
 		const auto& shader = viewer->GetGlfwInfo().shader;
 		const glm::vec3 lightColor = viewer->GetInfo().lightColor;
 		const glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
+		ModelPixelConstants basePixelConstants{};
+		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
+		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
 		UpdateUniformBuffer(
 			const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
@@ -57,12 +60,10 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			ModelPixelConstants pixelConstants{};
+			ModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
 			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
-			pixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
-			pixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 			pixelConstants.texMulFactor = mat.textureMulFactor;
 			pixelConstants.texAddFactor = mat.textureAddFactor;
 			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;
@@ -118,6 +119,10 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto& edgeShader = viewer->GetGlfwInfo().edgeShader;
+		EdgeVertexConstants baseVertexConstants{};
+		baseVertexConstants.wv = view * world;
+		baseVertexConstants.wvp = proj * view * world;
+		baseVertexConstants.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
 		glUseProgram(edgeShader->program);
 		glBindVertexArray(edgeVao);
 		glEnable(GL_CULL_FACE);
@@ -129,10 +134,7 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			EdgeVertexConstants vertexConstants;
-			vertexConstants.wv = view * world;
-			vertexConstants.wvp = proj * view * world;
-			vertexConstants.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
+			EdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;

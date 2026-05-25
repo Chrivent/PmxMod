@@ -44,8 +44,12 @@ namespace Chrivent {
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		const auto lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		const auto wv = view * world;
 		const auto wvp = DxClipMatrix() * proj * view * world;
+		Dx11ModelPixelConstants basePsCb{};
+		basePsCb.lightColor = viewer->GetInfo().lightColor;
+		basePsCb.lightDir = lightDir;
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.defaultDss.Get(), 0x00);
 		constexpr UINT stride = sizeof(Dx11Vertex);
 		constexpr UINT offset = 0;
@@ -65,7 +69,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11ModelPixelConstants psCb{};
+			Dx11ModelPixelConstants psCb = basePsCb;
 			psCb.alpha         = mat.diffuse.a;
 			psCb.diffuse       = mat.diffuse;
 			psCb.ambient       = mat.ambient;
@@ -93,8 +97,6 @@ namespace Chrivent {
 				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode,
 				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor
 			);
-			psCb.lightColor = viewer->GetInfo().lightColor;
-			psCb.lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 			if (mat.bothFace)
@@ -125,6 +127,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.edge.vertexShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.edge.pixelShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
+		viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.edgeRs.Get());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -140,7 +143,6 @@ namespace Chrivent {
 			psCb.edgeColor = mat.edgeColor;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgePsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
-			viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.edgeRs.Get());
 			viewer->GetDx11Info().deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
@@ -165,6 +167,10 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.gsRs.Get());
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.gsDss.Get(), 0x01);
+		Dx11GroundShadowPixelConstants psCb{};
+		psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
+		viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -172,10 +178,6 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11GroundShadowPixelConstants psCb{};
-			psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
-			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
 			viewer->GetDx11Info().deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
