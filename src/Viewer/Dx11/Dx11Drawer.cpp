@@ -8,7 +8,8 @@ namespace Chrivent {
 	void Dx11Drawer::BindTexture(
 		const UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
 		const int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
-		const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor) const {
+		const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor,
+		ID3D11ShaderResourceView*& lastView, ID3D11SamplerState*& lastSampler) const {
 		if (texture.texture) {
 			mode = modeIfPresent;
 			mulFactor  = sourceMulFactor;
@@ -19,8 +20,14 @@ namespace Chrivent {
 		? texture.textureView.Get() : info.viewer->GetDx11Info().dummyTexture.textureView.Get();
 		ID3D11SamplerState* samplers = texture.texture
 		? sampler : info.viewer->GetDx11Info().pipelineStates.textureSampler.Get();
-		info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(slot, 1, &views);
-		info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(slot, 1, &samplers);
+		if (lastView != views) {
+			info.viewer->GetDx11Info().deviceResources.context->PSSetShaderResources(slot, 1, &views);
+			lastView = views;
+		}
+		if (lastSampler != samplers) {
+			info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(slot, 1, &samplers);
+			lastSampler = samplers;
+		}
 	}
 
 	const glm::mat4& Dx11Drawer::DxClipMatrix() {
@@ -64,6 +71,9 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.model.vertexShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.model.pixelShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		ID3D11ShaderResourceView* boundViews[3] = { nullptr, nullptr, nullptr };
+		ID3D11SamplerState* boundSamplers[3] = { nullptr, nullptr, nullptr };
+		const ID3D11RasterizerState* currentRs = nullptr;
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -80,11 +90,13 @@ namespace Chrivent {
 				baseMode = !material.texture.hasAlpha ? 1 : 2;
 			BindTexture(
 				0, material.texture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), baseMode,
-				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor
+				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor,
+				boundViews[0], boundSamplers[0]
 			);
 			BindTexture(
 				1, material.toonTexture, viewer->GetDx11Info().pipelineStates.toonTextureSampler.Get(), 1,
-				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor
+				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor,
+				boundViews[1], boundSamplers[1]
 			);
 			int spMode = 0;
 			if (material.spTexture.texture) {
@@ -95,14 +107,18 @@ namespace Chrivent {
 			}
 			BindTexture(
 				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode,
-				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor
+				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor,
+				boundViews[2], boundSamplers[2]
 			);
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
-			if (mat.bothFace)
-				viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.bothFaceRs.Get());
-			else
-				viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.frontFaceRs.Get());
+			ID3D11RasterizerState* targetRs = mat.bothFace
+				? viewer->GetDx11Info().pipelineStates.bothFaceRs.Get()
+				: viewer->GetDx11Info().pipelineStates.frontFaceRs.Get();
+			if (currentRs != targetRs) {
+				viewer->GetDx11Info().deviceResources.context->RSSetState(targetRs);
+				currentRs = targetRs;
+			}
 			viewer->GetDx11Info().deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
@@ -167,7 +183,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.gsRs.Get());
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.gsDss.Get(), 0x01);
-		Dx11GroundShadowPixelConstants psCb{};
+		Dx11GroundShadowPixelConstants psCb;
 		psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());

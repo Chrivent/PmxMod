@@ -55,6 +55,9 @@ namespace Chrivent {
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		GLuint boundTextures[3] = { 0, 0, 0 };
+		bool cullEnabled = true;
+		GLenum cullFaceMode = GL_BACK;
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
@@ -71,39 +74,60 @@ namespace Chrivent {
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
 			glActiveTexture(GL_TEXTURE0 + 0);
+			GLuint baseTexture = viewer->GetGlfwInfo().dummyColorTex;
 			if (material.texture != 0) {
 				if (!material.textureHasAlpha)
 					pixelConstants.textureModes.x = 1;
 				else
 					pixelConstants.textureModes.x = 2;
-				glBindTexture(GL_TEXTURE_2D, material.texture);
-			} else
-				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
+				baseTexture = material.texture;
+			}
+			if (boundTextures[0] != baseTexture) {
+				glBindTexture(GL_TEXTURE_2D, baseTexture);
+				boundTextures[0] = baseTexture;
+			}
 			glActiveTexture(GL_TEXTURE0 + 1);
+			GLuint toonTexture = viewer->GetGlfwInfo().dummyColorTex;
 			if (material.toonTexture != 0) {
 				pixelConstants.textureModes.y = 1;
-				glBindTexture(GL_TEXTURE_2D, material.toonTexture);
-			} else
-				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
+				toonTexture = material.toonTexture;
+			}
+			if (boundTextures[1] != toonTexture) {
+				glBindTexture(GL_TEXTURE_2D, toonTexture);
+				boundTextures[1] = toonTexture;
+			}
 			glActiveTexture(GL_TEXTURE0 + 2);
+			GLuint sphereTexture = viewer->GetGlfwInfo().dummyColorTex;
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					pixelConstants.textureModes.z = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
-				glBindTexture(GL_TEXTURE_2D, material.sphereTexture);
-			} else
-				glBindTexture(GL_TEXTURE_2D, viewer->GetGlfwInfo().dummyColorTex);
+				sphereTexture = material.sphereTexture;
+			}
+			if (boundTextures[2] != sphereTexture) {
+				glBindTexture(GL_TEXTURE_2D, sphereTexture);
+				boundTextures[2] = sphereTexture;
+			}
 			UpdateUniformBuffer(
 				const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
 				1,
 				&pixelConstants,
 				sizeof(pixelConstants));
-			if (mat.bothFace)
-				glDisable(GL_CULL_FACE);
-			else {
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
+			if (mat.bothFace) {
+				if (cullEnabled) {
+					glDisable(GL_CULL_FACE);
+					cullEnabled = false;
+				}
+			} else {
+				if (!cullEnabled) {
+					glEnable(GL_CULL_FACE);
+					cullEnabled = true;
+				}
+				if (cullFaceMode != GL_BACK) {
+					glCullFace(GL_BACK);
+					cullFaceMode = GL_BACK;
+				}
 			}
 			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));

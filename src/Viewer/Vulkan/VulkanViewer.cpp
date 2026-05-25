@@ -7,6 +7,8 @@
 namespace Chrivent {
 	VulkanViewer::VulkanViewer() {
 		info = std::make_unique<VulkanViewerInfo>();
+		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
+		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
 
 	void VulkanViewer::DrawIndexed(
@@ -32,34 +34,46 @@ namespace Chrivent {
 			indexCount);
 	}
 
-	void VulkanViewer::BindModelPipeline(const bool bothFace) const {
+	void VulkanViewer::BindModelPipeline(const bool bothFace) {
 		if (!frameReady)
 			return;
 		const VkPipeline targetPipeline = bothFace
 			? pipeline.GetInfo().bothFacePipeline
 			: pipeline.GetInfo().pipeline;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.pipeline == targetPipeline)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
+		bindStateCache.pipeline = targetPipeline;
 	}
 
-	void VulkanViewer::BindEdgePipeline() const {
+	void VulkanViewer::BindEdgePipeline() {
 		if (!frameReady)
 			return;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.pipeline == pipeline.GetInfo().edgePipeline)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
+		bindStateCache.pipeline = pipeline.GetInfo().edgePipeline;
 	}
 
-	void VulkanViewer::BindGroundShadowPipeline() const {
+	void VulkanViewer::BindGroundShadowPipeline() {
 		if (!frameReady)
 			return;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.pipeline == pipeline.GetInfo().groundShadowPipeline)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
+		bindStateCache.pipeline = pipeline.GetInfo().groundShadowPipeline;
 	}
 
-	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) const {
+	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) {
 		if (!frameReady)
 			return;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.vertexDescriptorSet == descriptorSetInfo.vertexDescriptorSet &&
+			bindStateCache.vertexDynamicOffset == dynamicOffset)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
@@ -68,12 +82,17 @@ namespace Chrivent {
 			1,
 			&dynamicOffset,
 			1);
+		bindStateCache.vertexDescriptorSet = descriptorSetInfo.vertexDescriptorSet;
+		bindStateCache.vertexDynamicOffset = dynamicOffset;
 	}
 
-	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) const {
+	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
+			bindStateCache.pixelDynamicOffset == dynamicOffset)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
@@ -82,18 +101,23 @@ namespace Chrivent {
 			1,
 			&dynamicOffset,
 			1);
+		bindStateCache.pixelDescriptorSet = descriptorSet;
+		bindStateCache.pixelDynamicOffset = dynamicOffset;
 	}
 
-	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
+	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		if (bindStateCache.textureDescriptorSet == descriptorSet)
+			return;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			2,
 			&descriptorSet,
 			1);
+		bindStateCache.textureDescriptorSet = descriptorSet;
 	}
 
 	void VulkanViewer::ConfigureGlfwHints() {
@@ -153,6 +177,8 @@ namespace Chrivent {
 
 	void VulkanViewer::BeginFrame() {
 		frameReady = false;
+		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
+		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		const auto& deviceInfo = device.GetInfo();
 		const auto& syncInfo = syncObject.GetInfo();
 		const size_t frameIndex = syncInfo.currentFrame;
@@ -197,6 +223,7 @@ namespace Chrivent {
 			swapChain.GetInfo().extent,
 			clearColor))
 			return;
+		bindStateCache.pipeline = pipeline.GetInfo().pipeline;
 		frameReady = true;
 	}
 

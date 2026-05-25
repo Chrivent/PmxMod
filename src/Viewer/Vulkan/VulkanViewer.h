@@ -29,6 +29,15 @@ namespace Chrivent {
 	
 	struct VulkanViewerInfo : ViewerInfo {};
 
+	struct VulkanBindStateCache {
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
+		uint32_t vertexDynamicOffset = (std::numeric_limits<uint32_t>::max)();
+		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
+		uint32_t pixelDynamicOffset = (std::numeric_limits<uint32_t>::max)();
+		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+	};
+
 	class VulkanViewer : public Viewer {
 		VulkanDevice device;
 		VulkanSwapChain swapChain;
@@ -43,6 +52,7 @@ namespace Chrivent {
 		VulkanTexture dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
+		VulkanBindStateCache bindStateCache;
 
 	public:
 		VulkanViewer();
@@ -56,17 +66,17 @@ namespace Chrivent {
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
-		void BindModelPipeline(bool bothFace) const;
+		void BindModelPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
-		void BindEdgePipeline() const;
+		void BindEdgePipeline();
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
-		void BindGroundShadowPipeline() const;
+		void BindGroundShadowPipeline();
 		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
-		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, uint32_t dynamicOffset) const;
+		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, uint32_t dynamicOffset);
 		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.
-		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset) const;
+		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
 		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
-		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet) const;
+		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
 		// Vulkan 렌더러 리소스를 초기화한다.

@@ -16,7 +16,8 @@ namespace Chrivent {
 		void BindTexture(
 			UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
 			int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
-			const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor) const;
+			const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor,
+			ID3D11ShaderResourceView*& lastView, ID3D11SamplerState*& lastSampler) const;
 		// OpenGL 스타일 clip space를 DX11 depth range로 변환하는 행렬을 반환한다.
 		static const glm::mat4& DxClipMatrix();
 
