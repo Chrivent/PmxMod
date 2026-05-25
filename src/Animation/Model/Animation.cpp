@@ -5,7 +5,6 @@
 
 namespace Chrivent {
 	void Animation::Destroy() {
-		info.model.reset();
 		info.nodeTracks.clear();
 		info.ikTracks.clear();
 		info.morphTracks.clear();

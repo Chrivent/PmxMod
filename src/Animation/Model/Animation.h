@@ -8,7 +8,6 @@
 
 namespace Chrivent {
 	struct Morph;
-	struct Model;
 	class Node;
 	class IkSolver;
 
@@ -48,7 +47,6 @@ namespace Chrivent {
 	};
 
 	struct AnimationInfo {
-		std::shared_ptr<Model> model;
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;
 		std::vector<MorphAnimationTrack> morphTracks;
@@ -58,7 +56,6 @@ namespace Chrivent {
 		AnimationInfo info;
 
 	public:
-		const AnimationInfo& GetInfo() const { return info; }
 		void SetInfo(AnimationInfo animationInfo) { info = std::move(animationInfo); }
 		
 		// 애니메이션 트랙과 연결 상태를 해제한다.

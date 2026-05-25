@@ -30,9 +30,5 @@ namespace Chrivent {
 		virtual void BeginFrame(size_t frameIndex);
 		// 지정한 크기와 정렬 조건에 맞는 업로드 구간을 예약한다.
 		virtual std::optional<GlslUploadSlice> Allocate(size_t size, size_t alignment, std::string& outError) = 0;
-
-		size_t GetCapacity() const { return capacity; }
-		size_t GetWriteOffset() const { return writeOffset; }
-		size_t GetCurrentFrameIndex() const { return currentFrameIndex; }
 	};
 }

@@ -5,8 +5,11 @@
 #include <string>
 
 namespace Chrivent {
+	class Model;
+
 	class AnimationBinder {
 		AnimationInfo& info;
+		std::shared_ptr<Model> model;
 
 		// 이름과 일치하는 모델 노드를 찾는다.
 		std::shared_ptr<Node> FindNodeByName(const std::string& name) const;
@@ -16,7 +19,7 @@ namespace Chrivent {
 		std::shared_ptr<Morph> FindMorphByName(const std::string& name) const;
 
 	public:
-		explicit AnimationBinder(AnimationInfo& info) : info(info) {}
+		AnimationBinder(AnimationInfo& info, std::shared_ptr<Model> model) : info(info), model(std::move(model)) {}
 
 		void BindNodeTrack(NodeAnimationTrack& track, const std::string& name) const { track.node = FindNodeByName(name); }
 		void BindIkTrack(IkAnimationTrack& track, const std::string& name) const { track.ikSolver = FindIkSolverByName(name); }

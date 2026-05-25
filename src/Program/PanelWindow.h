@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Panel/Panel.h"
 
@@ -34,8 +34,6 @@ namespace Chrivent {
 	public:
 		PanelWindow() = default;
 		~PanelWindow();
-
-		HWND GetWindow() const { return window; }
 		
 		void AttachMenuBar(MenuBar& menu);
 		void RegisterPanel(Panel& panel, const std::wstring& title, PanelWindowArea area);

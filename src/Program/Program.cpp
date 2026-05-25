@@ -125,8 +125,7 @@ namespace Chrivent {
             animator.InitializeAnimation();
             auto vmdAnim = std::make_unique<Animation>();
             AnimationInfo animationInfo;
-            animationInfo.model = instance->GetInfo().model;
-            const AnimationBuilder animationBuilder(animationInfo);
+            const AnimationBuilder animationBuilder(animationInfo, instance->GetInfo().model);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
