@@ -2,7 +2,7 @@
 
 #include "VulkanDrawer.h"
 #include "VulkanViewer.h"
-#include "../ShaderConstants.h"
+#include "../Assist/Glsl/GlslShaderConstants.h"
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 

@@ -1,6 +1,6 @@
 ﻿#include "GlfwShaderCompiler.h"
 
-#include "../../GlslPreprocessor.h"
+#include "../../Assist/Glsl/GlslPreprocessor.h"
 
 #include <iostream>
 

@@ -3,7 +3,7 @@
 #include "GlfwInstance.h"
 #include "GlfwViewer.h"
 #include "../../Model/Model.h"
-#include "../ShaderConstants.h"
+#include "../Assist/Glsl/GlslShaderConstants.h"
 
 namespace Chrivent {
 	void GlfwDrawer::UpdateUniformBuffer(const GLuint buffer, const GLuint binding, const void* data, const size_t size) {

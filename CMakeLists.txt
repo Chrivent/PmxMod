@@ -75,9 +75,7 @@ add_executable(PmxMod
 
         src/Viewer/Viewer.h src/Viewer/Viewer.cpp
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
-        src/Viewer/GlslPreprocessor.h src/Viewer/GlslPreprocessor.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
-        src/Viewer/ShaderConstants.h
         src/Viewer/TextureCache.h
         
         src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
@@ -94,6 +92,9 @@ add_executable(PmxMod
         src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
         src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
         src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
+
+        src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
+        src/Viewer/Assist/Glsl/GlslShaderConstants.h
 
         src/Viewer/Glfw/Helper/GlfwShader.h src/Viewer/Glfw/Helper/GlfwShader.cpp
         src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp

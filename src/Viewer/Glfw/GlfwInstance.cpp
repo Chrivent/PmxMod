@@ -4,7 +4,7 @@
 
 #include "GlfwViewer.h"
 #include "../../Model/ModelPose.h"
-#include "../ShaderConstants.h"
+#include "../Assist/Glsl/GlslShaderConstants.h"
 
 namespace Chrivent {
 	GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
