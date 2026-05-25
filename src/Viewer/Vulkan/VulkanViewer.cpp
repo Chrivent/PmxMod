@@ -38,28 +38,28 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = bothFace
 			? pipeline.GetInfo().bothFacePipeline
 			: pipeline.GetInfo().pipeline;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
 	}
 
 	void VulkanViewer::BindEdgePipeline() const {
 		if (!frameReady)
 			return;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
 	}
 
 	void VulkanViewer::BindGroundShadowPipeline() const {
 		if (!frameReady)
 			return;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
 	}
 
 	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) const {
 		if (!frameReady)
 			return;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
@@ -73,7 +73,7 @@ namespace Chrivent {
 	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
@@ -87,7 +87,7 @@ namespace Chrivent {
 	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		const auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
