@@ -2,10 +2,10 @@ PmxModScene
 camera	D:\예찬\MMD\motion\Kep1er - WA DA DA\SMOOTH Camera.vmd
 music	D:\예찬\MMD\motion\Kep1er - WA DA DA\Kep1er - WA DA DA.wav
 models	4
-model	1.1	1	D:\예찬\MMD\model\Booth\else\Kamile Yume\Kamile Yume.pmx
+model	1.0	1	D:\예찬\MMD\model\Hatsune Miku (Tda)\Hatsune Miku (Tda).pmx
 anim	D:\예찬\MMD\motion\Kep1er - WA DA DA\WA DA DA 1.vmd
-model	1.1	1	D:\예찬\MMD\model\Booth\else\Poongpoong Kyoko\Poongpoong Kyoko.pmx
+model	1.0	1	D:\예찬\MMD\model\Hatsune Miku (Tda)\Hatsune Miku (Tda).pmx
 anim	D:\예찬\MMD\motion\Kep1er - WA DA DA\WA DA DA 2.vmd
-model	1.1	1	D:\예찬\MMD\model\Booth\else\Yeonyuwi Milk\Yeonyuwi Milk.pmx
+model	1.0	1	D:\예찬\MMD\model\Hatsune Miku (Tda)\Hatsune Miku (Tda).pmx
 anim	D:\예찬\MMD\motion\Kep1er - WA DA DA\WA DA DA 3.vmd
 model	1	0	D:\예찬\MMD\background\edit pv song\stage.pmx
