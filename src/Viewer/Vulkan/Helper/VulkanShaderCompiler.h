@@ -3,9 +3,12 @@
 #include "VulkanDevice.h"
 
 #include <filesystem>
+#include <string>
 
 namespace Chrivent {
 	class VulkanShaderCompiler {
+		// Vulkan GLSL 공통 preamble을 만든다.
+		static std::string BuildPreamble();
 		// GLSL 셰이더 파일을 읽어 전처리된 최종 소스를 만든다.
 		static bool ReadShaderFile(const std::filesystem::path& file, std::string& outCode, std::string& outError);
 		// Vulkan shader stage를 로그에 출력할 문자열로 변환한다.

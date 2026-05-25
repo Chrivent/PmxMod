@@ -2,9 +2,12 @@
 
 #include <filesystem>
 #include <glad/glad.h>
+#include <string>
 
 namespace Chrivent {
 	class GlfwShaderCompiler {
+		// OpenGL GLSL 공통 preamble을 만든다.
+		static std::string BuildPreamble();
 		// OpenGL 셰이더 타입을 로그에 출력할 문자열로 변환한다.
 		static const char* ShaderTypeName(GLenum shaderType);
 		// GLSL 셰이더 컴파일 실패 시 OpenGL info log를 가져온다.

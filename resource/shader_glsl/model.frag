@@ -1,3 +1,14 @@
+layout(location = 0) in vec3 vsPos;
+layout(location = 1) in vec3 vsNor;
+layout(location = 2) in vec2 vsUv;
+
+layout(location = 0) out vec4 outColor;
+
+PMX_MODEL_PIXEL_CONSTANTS
+PMX_MODEL_TEX
+PMX_MODEL_TOON_TEX
+PMX_MODEL_SPHERE_TEX
+
 vec3 ComputeTexMulFactor(vec3 texColor, vec4 factor) {
     vec3 ret = texColor * factor.rgb;
     return mix(vec3(1.0), ret, factor.a);

@@ -5,6 +5,20 @@
 #include <iostream>
 
 namespace Chrivent {
+	std::string GlfwShaderCompiler::BuildPreamble() {
+		return R"(#version 460 core
+#define PMX_MODEL_VERTEX_CONSTANTS layout(std140, binding = 0) uniform ModelVertexConstants { mat4 wv; mat4 wvp; } vertexConstants;
+#define PMX_MODEL_PIXEL_CONSTANTS layout(std140, binding = 1) uniform ModelPixelConstants { vec4 diffuseAlpha; vec4 ambientSpecularPower; vec4 specular; vec4 lightColor; vec4 lightDir; vec4 texMulFactor; vec4 texAddFactor; vec4 toonTexMulFactor; vec4 toonTexAddFactor; vec4 sphereTexMulFactor; vec4 sphereTexAddFactor; ivec4 textureModes; } pixelConstants;
+#define PMX_MODEL_TEX layout(binding = 0) uniform sampler2D tex;
+#define PMX_MODEL_TOON_TEX layout(binding = 1) uniform sampler2D toonTex;
+#define PMX_MODEL_SPHERE_TEX layout(binding = 2) uniform sampler2D sphereTex;
+#define PMX_EDGE_VERTEX_CONSTANTS layout(std140, binding = 0) uniform EdgeVertexConstants { mat4 wv; mat4 wvp; vec2 screenSize; float edgeSize; } edgeConstants;
+#define PMX_EDGE_PIXEL_CONSTANTS layout(std140, binding = 1) uniform EdgePixelConstants { vec4 edgeColor; } edgeConstants;
+#define PMX_GROUND_SHADOW_VERTEX_CONSTANTS layout(std140, binding = 0) uniform GroundShadowVertexConstants { mat4 wvp; } shadowConstants;
+#define PMX_GROUND_SHADOW_PIXEL_CONSTANTS layout(std140, binding = 1) uniform GroundShadowPixelConstants { vec4 shadowColor; } shadowConstants;
+)";
+	}
+
 	const char* GlfwShaderCompiler::ShaderTypeName(const GLenum shaderType) {
 		switch (shaderType) {
 		case GL_VERTEX_SHADER:
@@ -38,7 +52,7 @@ namespace Chrivent {
 
 	bool GlfwShaderCompiler::ReadShaderFile(const std::filesystem::path& file, std::string& code) {
 		std::string error;
-		if (!GlslPreprocessor::LoadSource(file, code, error)) {
+		if (!GlslPreprocessor::LoadSource(file, BuildPreamble(), code, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}

@@ -64,4 +64,21 @@ namespace Chrivent {
 		std::vector<std::filesystem::path> includeStack;
 		return ResolveIncludes(file, outCode, outError, includeStack);
 	}
+
+	bool GlslPreprocessor::LoadSource(
+		const std::filesystem::path& file,
+		const std::string_view preamble,
+		std::string& outCode,
+		std::string& outError) {
+		std::string source;
+		if (!LoadSource(file, source, outError))
+			return false;
+		outCode.clear();
+		outCode.reserve(preamble.size() + source.size() + 1);
+		outCode.append(preamble);
+		if (!preamble.empty() && preamble.back() != '\n')
+			outCode.push_back('\n');
+		outCode.append(source);
+		return true;
+	}
 }

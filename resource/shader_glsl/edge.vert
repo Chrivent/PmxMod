@@ -1,3 +1,8 @@
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+
+PMX_EDGE_VERTEX_CONSTANTS
+
 void main() {
     vec3 nor = mat3(edgeConstants.wv) * inNormal;
     vec4 pos = edgeConstants.wvp * vec4(inPosition, 1.0);
