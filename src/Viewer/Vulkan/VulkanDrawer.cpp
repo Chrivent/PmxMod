@@ -23,6 +23,7 @@ namespace Chrivent {
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
 		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
 		instanceInfo.modelVertexConstantsRing.BeginFrame(frameIndex);
 		instanceInfo.modelPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -79,7 +80,7 @@ namespace Chrivent {
 			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
 			info.viewer->DrawIndexed(
-				info.vertexBuffer.GetInfo(),
+				vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),
 				info.indexType,
 				beginIndex,
@@ -92,6 +93,7 @@ namespace Chrivent {
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
 		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
 		instanceInfo.edgeVertexConstantsRing.BeginFrame(frameIndex);
 		instanceInfo.edgePixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -129,7 +131,7 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 			info.viewer->BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->DrawIndexed(
-				info.vertexBuffer.GetInfo(),
+				vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),
 				info.indexType,
 				beginIndex,
@@ -142,6 +144,7 @@ namespace Chrivent {
 			return;
 		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
 		const size_t frameIndex = info.viewer->GetCurrentFrameIndex();
+		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
 		instanceInfo.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
 		instanceInfo.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -178,7 +181,7 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
 			info.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->DrawIndexed(
-				info.vertexBuffer.GetInfo(),
+				vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),
 				info.indexType,
 				beginIndex,

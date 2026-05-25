@@ -52,7 +52,8 @@ namespace Chrivent {
 
 	void VulkanInstance::Clear() {
 		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
-		info.vertexBuffer.Destroy();
+		for (auto& vertexBuffer : info.vertexBuffers)
+			vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
 		info.modelVertexConstantsRing.Clear();
 		info.edgeVertexConstantsRing.Clear();
@@ -88,14 +89,16 @@ namespace Chrivent {
 			return false;
 		}
 		const auto& deviceInfo = info.viewer->GetDeviceInfo();
-		if (!info.vertexBuffer.Initialize(
-			deviceInfo,
-			vertexBufferSize,
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-			return false;
-		if (!info.vertexBuffer.Write(vertices.data(), vertexBufferSize))
-			return false;
+		for (auto& vertexBuffer : info.vertexBuffers) {
+			if (!vertexBuffer.Initialize(
+				deviceInfo,
+				vertexBufferSize,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
+			if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
+				return false;
+		}
 		if (!info.indexBuffer.Initialize(
 			deviceInfo,
 			indexBufferSize,
@@ -186,13 +189,17 @@ namespace Chrivent {
 
 	void VulkanInstance::Update() const {
 		const auto& info = static_cast<const VulkanInstanceInfo&>(GetInfo());
-		if (info.model == nullptr || info.vertexBuffer.GetInfo().buffer == VK_NULL_HANDLE)
+		if (info.model == nullptr || info.viewer == nullptr)
+			return;
+		const size_t frameIndex = info.viewer->GetCurrentFrameIndex() % VulkanInstanceInfo::kBufferedFrames;
+		const auto& vertexBuffer = info.vertexBuffers[frameIndex];
+		if (vertexBuffer.GetInfo().buffer == VK_NULL_HANDLE)
 			return;
 		const ModelPose pose(*info.model);
 		pose.Update();
 		const std::vector<VulkanVertex> vertices = MakeVertices(info.model->geometryData, true);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
-		if (!info.vertexBuffer.Write(vertices.data(), vertexBufferSize))
+		if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
 	}
 }

@@ -17,9 +17,10 @@ namespace Chrivent {
 	};
 
 	struct VulkanInstanceInfo : InstanceInfo {
+		static constexpr size_t kBufferedFrames = 2;
 		VulkanViewer* viewer = nullptr;
 		std::vector<VulkanMaterial> materials;
-		VulkanBuffer vertexBuffer;
+		std::array<VulkanBuffer, kBufferedFrames> vertexBuffers;
 		VulkanBuffer indexBuffer;
 		size_t uniformBufferOffsetAlignment = 1;
 		VulkanDynamicBufferRing modelVertexConstantsRing;
