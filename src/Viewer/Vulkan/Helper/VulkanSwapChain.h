@@ -43,7 +43,6 @@ namespace Chrivent {
 		VulkanSwapChain(VulkanSwapChain&&) = delete;
 		VulkanSwapChain& operator=(VulkanSwapChain&&) = delete;
 		
-		VulkanSwapChainInfo& GetInfo() { return info; }
 		const VulkanSwapChainInfo& GetInfo() const { return info; }
 
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.

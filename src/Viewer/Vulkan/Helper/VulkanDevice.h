@@ -60,7 +60,6 @@ namespace Chrivent {
 		VulkanDevice(VulkanDevice&&) = delete;
 		VulkanDevice& operator=(VulkanDevice&&) = delete;
 		
-		VulkanDeviceInfo& GetInfo() { return info; }
 		const VulkanDeviceInfo& GetInfo() const { return info; }
 
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.

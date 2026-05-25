@@ -61,7 +61,6 @@ namespace Chrivent {
 		VulkanPipeline(VulkanPipeline&&) = delete;
 		VulkanPipeline& operator=(VulkanPipeline&&) = delete;
 
-		VulkanPipelineInfo& GetInfo() { return info; }
 		const VulkanPipelineInfo& GetInfo() const { return info; }
 
 		// 렌더 패스와 스왑체인 설정에 맞는 모델 graphics pipeline을 생성한다.

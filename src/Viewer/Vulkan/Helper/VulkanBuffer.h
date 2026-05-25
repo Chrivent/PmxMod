@@ -27,7 +27,6 @@ namespace Chrivent {
 		VulkanBuffer(VulkanBuffer&&) = delete;
 		VulkanBuffer& operator=(VulkanBuffer&&) = delete;
 
-		VulkanBufferInfo& GetInfo() { return info; }
 		const VulkanBufferInfo& GetInfo() const { return info; }
 
 		// 지정한 크기와 용도에 맞는 Vulkan buffer와 메모리를 생성한다.

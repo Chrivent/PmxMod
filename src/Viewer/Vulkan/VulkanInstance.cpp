@@ -75,7 +75,7 @@ namespace Chrivent {
 		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
 		Clear();
 		info.viewer = static_cast<VulkanViewer*>(&baseViewer);
-		if (info.viewer == nullptr || info.model == nullptr)
+		if (info.model == nullptr)
 			return false;
 		const auto& geometryData = info.model->geometryData;
 		if (!GetIndexType(geometryData.indexElementSize, info.indexType)) {

@@ -43,7 +43,6 @@ namespace Chrivent {
 		VulkanDescriptorSet(VulkanDescriptorSet&&) = delete;
 		VulkanDescriptorSet& operator=(VulkanDescriptorSet&&) = delete;
 
-		VulkanDescriptorSetInfo& GetInfo() { return info; }
 		const VulkanDescriptorSetInfo& GetInfo() const { return info; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.

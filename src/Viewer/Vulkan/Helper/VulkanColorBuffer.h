@@ -31,7 +31,6 @@ namespace Chrivent {
 		VulkanColorBuffer(VulkanColorBuffer&&) = delete;
 		VulkanColorBuffer& operator=(VulkanColorBuffer&&) = delete;
 
-		VulkanColorBufferInfo& GetInfo() { return info; }
 		const VulkanColorBufferInfo& GetInfo() const { return info; }
 
 		// Creates the multisampled color image and image view for the swapchain.

@@ -11,7 +11,6 @@ namespace Chrivent {
 	public:
 		~VulkanDynamicBufferRing() override = default;
 		
-		VulkanBuffer& GetBuffer() { return buffer; }
 		const VulkanBuffer& GetBuffer() const { return buffer; }
 
 		// Vulkan 업로드 링 버퍼를 생성한다.

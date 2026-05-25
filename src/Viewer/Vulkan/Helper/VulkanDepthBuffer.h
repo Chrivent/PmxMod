@@ -35,7 +35,6 @@ namespace Chrivent {
 		VulkanDepthBuffer(VulkanDepthBuffer&&) = delete;
 		VulkanDepthBuffer& operator=(VulkanDepthBuffer&&) = delete;
 		
-		VulkanDepthBufferInfo& GetInfo() { return info; }
 		const VulkanDepthBufferInfo& GetInfo() const { return info; }
 		static bool HasStencilComponent(VkFormat format);
 
