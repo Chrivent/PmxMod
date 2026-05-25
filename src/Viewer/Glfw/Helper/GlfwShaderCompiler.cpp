@@ -7,7 +7,7 @@
 namespace Chrivent {
 	std::string GlfwShaderCompiler::BuildPreamble() {
 		return R"(#version 460 core
-#define PMX_LAYOUT_UBO(setIndex, bindingIndex) layout(std140, binding = bindingIndex)
+#define PMX_LAYOUT_UBO(setIndex, bindingIndex) layout(std140, binding = setIndex)
 #define PMX_LAYOUT_SAMPLER(setIndex, bindingIndex) layout(binding = bindingIndex)
 )";
 	}
