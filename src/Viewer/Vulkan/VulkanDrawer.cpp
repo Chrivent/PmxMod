@@ -21,14 +21,23 @@ namespace Chrivent {
 	void VulkanDrawer::DrawModel() const {
 		if (info.viewer == nullptr)
 			return;
+		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
+		instanceInfo.modelVertexConstantsRing.BeginFrame(0);
+		instanceInfo.modelPixelConstantsRing.BeginFrame(0);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		ModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
-		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
+		std::string error;
+		const auto vertexSlice = instanceInfo.modelVertexConstantsRing.Allocate(
+			sizeof(vertexConstants),
+			info.uniformBufferOffsetAlignment,
+			error);
+		if (!vertexSlice.has_value() ||
+			!instanceInfo.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
-		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo());
+		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
@@ -58,11 +67,15 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			if (!material.pixelConstantBuffer ||
-				!material.pixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
+			const auto pixelSlice = instanceInfo.modelPixelConstantsRing.Allocate(
+				sizeof(pixelConstants),
+				info.uniformBufferOffsetAlignment,
+				error);
+			if (!pixelSlice.has_value() ||
+				!instanceInfo.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
 			info.viewer->BindModelPipeline(mat.bothFace);
-			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet);
+			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
 			info.viewer->DrawIndexed(
 				info.vertexBuffer.GetInfo(),
@@ -76,10 +89,13 @@ namespace Chrivent {
 	void VulkanDrawer::DrawEdge() const {
 		if (info.viewer == nullptr)
 			return;
+		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
+		instanceInfo.edgeVertexConstantsRing.BeginFrame(0);
+		instanceInfo.edgePixelConstantsRing.BeginFrame(0);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		info.viewer->BindEdgePipeline();
-		info.viewer->BindModelDescriptorSets(info.edgeDescriptorSet.GetInfo());
+		std::string error;
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
@@ -92,14 +108,24 @@ namespace Chrivent {
 			vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 			vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, -viewerInfo.screenHeight);
 			vertexConstants.edgeSize = mat.edgeSize;
-			if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
+			const auto vertexSlice = instanceInfo.edgeVertexConstantsRing.Allocate(
+				sizeof(vertexConstants),
+				info.uniformBufferOffsetAlignment,
+				error);
+			if (!vertexSlice.has_value() ||
+				!instanceInfo.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
+			info.viewer->BindModelDescriptorSets(info.edgeDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			if (!material.edgePixelConstantBuffer ||
-				!material.edgePixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
+			const auto pixelSlice = instanceInfo.edgePixelConstantsRing.Allocate(
+				sizeof(pixelConstants),
+				info.uniformBufferOffsetAlignment,
+				error);
+			if (!pixelSlice.has_value() ||
+				!instanceInfo.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
-			info.viewer->BindPixelDescriptorSet(material.edgePixelDescriptorSet);
+			info.viewer->BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->DrawIndexed(
 				info.vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),
@@ -112,6 +138,9 @@ namespace Chrivent {
 	void VulkanDrawer::DrawGroundShadow() const {
 		if (info.viewer == nullptr)
 			return;
+		auto& instanceInfo = const_cast<VulkanInstanceInfo&>(info);
+		instanceInfo.groundShadowVertexConstantsRing.BeginFrame(0);
+		instanceInfo.groundShadowPixelConstantsRing.BeginFrame(0);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
@@ -119,10 +148,16 @@ namespace Chrivent {
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
-		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants)))
+		std::string error;
+		const auto vertexSlice = instanceInfo.groundShadowVertexConstantsRing.Allocate(
+			sizeof(vertexConstants),
+			info.uniformBufferOffsetAlignment,
+			error);
+		if (!vertexSlice.has_value() ||
+			!instanceInfo.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
 		info.viewer->BindGroundShadowPipeline();
-		info.viewer->BindModelDescriptorSets(info.groundShadowDescriptorSet.GetInfo());
+		info.viewer->BindModelDescriptorSets(info.groundShadowDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
@@ -131,10 +166,14 @@ namespace Chrivent {
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
 			GroundShadowPixelConstants pixelConstants;
-			if (!material.groundShadowPixelConstantBuffer ||
-				!material.groundShadowPixelConstantBuffer->Write(&pixelConstants, sizeof(pixelConstants)))
+			const auto pixelSlice = instanceInfo.groundShadowPixelConstantsRing.Allocate(
+				sizeof(pixelConstants),
+				info.uniformBufferOffsetAlignment,
+				error);
+			if (!pixelSlice.has_value() ||
+				!instanceInfo.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
-			info.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet);
+			info.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->DrawIndexed(
 				info.vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),

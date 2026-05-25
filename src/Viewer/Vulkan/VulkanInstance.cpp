@@ -54,13 +54,17 @@ namespace Chrivent {
 		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
 		info.vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
-		info.modelVertexConstantBuffer.Destroy();
-		info.edgeVertexConstantBuffer.Destroy();
-		info.groundShadowVertexConstantBuffer.Destroy();
+		info.modelVertexConstantsRing.Clear();
+		info.edgeVertexConstantsRing.Clear();
+		info.groundShadowVertexConstantsRing.Clear();
+		info.modelPixelConstantsRing.Clear();
+		info.edgePixelConstantsRing.Clear();
+		info.groundShadowPixelConstantsRing.Clear();
 		info.modelDescriptorSet.Destroy();
 		info.edgeDescriptorSet.Destroy();
 		info.groundShadowDescriptorSet.Destroy();
 		info.materials.clear();
+		info.uniformBufferOffsetAlignment = 1;
 		info.indexType = VK_INDEX_TYPE_UINT16;
 		info.indexCount = 0;
 	}
@@ -100,48 +104,32 @@ namespace Chrivent {
 			return false;
 		if (!info.indexBuffer.Write(geometryData.indices.data(), indexBufferSize))
 			return false;
-		if (!info.modelVertexConstantBuffer.Initialize(
-			deviceInfo,
-			sizeof(ModelVertexConstants),
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+		info.uniformBufferOffsetAlignment = std::max<size_t>(1, deviceInfo.properties.limits.minUniformBufferOffsetAlignment);
+		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
+		constexpr size_t ringSlack = 2;
+		const auto AlignedSize = [&](const size_t size) {
+			const size_t alignment = info.uniformBufferOffsetAlignment;
+			const size_t remainder = size % alignment;
+			if (remainder == 0)
+				return size;
+			return size + (alignment - remainder);
+		};
+		std::string error;
+		if (!info.modelVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelVertexConstants)) * ringSlack, error))
 			return false;
-		if (!info.edgeVertexConstantBuffer.Initialize(
-			deviceInfo,
-			sizeof(EdgeVertexConstants),
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+		if (!info.edgeVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack), error))
 			return false;
-		if (!info.groundShadowVertexConstantBuffer.Initialize(
-			deviceInfo,
-			sizeof(GroundShadowVertexConstants),
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+		if (!info.groundShadowVertexConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowVertexConstants)) * ringSlack, error))
+			return false;
+		if (!info.modelPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(ModelPixelConstants)) * (drawCount + ringSlack), error))
+			return false;
+		if (!info.edgePixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(EdgePixelConstants)) * (drawCount + ringSlack), error))
+			return false;
+		if (!info.groundShadowPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack), error))
 			return false;
 		info.indexCount = geometryData.indexCount;
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
-			material.pixelConstantBuffer = std::make_unique<VulkanBuffer>();
-			material.edgePixelConstantBuffer = std::make_unique<VulkanBuffer>();
-			material.groundShadowPixelConstantBuffer = std::make_unique<VulkanBuffer>();
-			if (!material.pixelConstantBuffer->Initialize(
-				deviceInfo,
-				sizeof(ModelPixelConstants),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				return false;
-			if (!material.edgePixelConstantBuffer->Initialize(
-				deviceInfo,
-				sizeof(EdgePixelConstants),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				return false;
-			if (!material.groundShadowPixelConstantBuffer->Initialize(
-				deviceInfo,
-				sizeof(GroundShadowPixelConstants),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				return false;
 			if (!mat.texture.empty()) {
 				material.texture = info.viewer->LoadTexture(mat.texture);
 				if (material.texture.image == VK_NULL_HANDLE)
@@ -165,21 +153,30 @@ namespace Chrivent {
 		if (!info.modelDescriptorSet.Initialize(
 			deviceInfo,
 			info.viewer->GetPipelineInfo(),
-			info.modelVertexConstantBuffer.GetInfo(),
+			info.modelVertexConstantsRing.GetBuffer().GetInfo(),
+			sizeof(ModelVertexConstants),
+			info.modelPixelConstantsRing.GetBuffer().GetInfo(),
+			sizeof(ModelPixelConstants),
 			info.materials,
 			VulkanPassType::Model))
 			return false;
 		if (!info.edgeDescriptorSet.Initialize(
 			deviceInfo,
 			info.viewer->GetPipelineInfo(),
-			info.edgeVertexConstantBuffer.GetInfo(),
+			info.edgeVertexConstantsRing.GetBuffer().GetInfo(),
+			sizeof(EdgeVertexConstants),
+			info.edgePixelConstantsRing.GetBuffer().GetInfo(),
+			sizeof(EdgePixelConstants),
 			info.materials,
 			VulkanPassType::Edge))
 			return false;
 		if (!info.groundShadowDescriptorSet.Initialize(
 			deviceInfo,
 			info.viewer->GetPipelineInfo(),
-			info.groundShadowVertexConstantBuffer.GetInfo(),
+			info.groundShadowVertexConstantsRing.GetBuffer().GetInfo(),
+			sizeof(GroundShadowVertexConstants),
+			info.groundShadowPixelConstantsRing.GetBuffer().GetInfo(),
+			sizeof(GroundShadowPixelConstants),
 			info.materials,
 			VulkanPassType::GroundShadow))
 			return false;

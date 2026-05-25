@@ -52,7 +52,7 @@ namespace Chrivent {
 		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
 	}
 
-	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const {
+	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) const {
 		if (!frameReady)
 			return;
 		commandContext.GetCommandBuffer().BindDescriptorSets(
@@ -60,10 +60,12 @@ namespace Chrivent {
 			pipeline.GetInfo().pipelineLayout,
 			0,
 			&descriptorSetInfo.vertexDescriptorSet,
+			1,
+			&dynamicOffset,
 			1);
 	}
 
-	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet) const {
+	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) const {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
 			return;
 		commandContext.GetCommandBuffer().BindDescriptorSets(
@@ -71,6 +73,8 @@ namespace Chrivent {
 			pipeline.GetInfo().pipelineLayout,
 			1,
 			&descriptorSet,
+			1,
+			&dynamicOffset,
 			1);
 	}
 

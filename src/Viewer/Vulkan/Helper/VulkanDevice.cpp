@@ -52,6 +52,7 @@ namespace Chrivent {
 			if (!IsDeviceSuitable(candidate))
 				continue;
 			info.physicalDevice = candidate;
+			vkGetPhysicalDeviceProperties(candidate, &info.properties);
 			info.queueFamilies = FindQueueFamilies(candidate);
 			info.sampleCount = ChooseSampleCount(candidate);
 			return true;
@@ -173,6 +174,7 @@ namespace Chrivent {
 			info.vkInstance = VK_NULL_HANDLE;
 		}
 		info.physicalDevice = VK_NULL_HANDLE;
+		info.properties = {};
 		info.graphicsQueue = VK_NULL_HANDLE;
 		info.presentQueue = VK_NULL_HANDLE;
 		info.queueFamilies = {};

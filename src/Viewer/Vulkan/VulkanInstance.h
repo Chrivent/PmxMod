@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Instance.h"
+#include "Assist/VulkanDynamicBufferRing.h"
 #include "Helper/VulkanBuffer.h"
 #include "Helper/VulkanDescriptorSet.h"
 
@@ -20,9 +21,13 @@ namespace Chrivent {
 		std::vector<VulkanMaterial> materials;
 		VulkanBuffer vertexBuffer;
 		VulkanBuffer indexBuffer;
-		VulkanBuffer modelVertexConstantBuffer;
-		VulkanBuffer edgeVertexConstantBuffer;
-		VulkanBuffer groundShadowVertexConstantBuffer;
+		size_t uniformBufferOffsetAlignment = 1;
+		VulkanDynamicBufferRing modelVertexConstantsRing;
+		VulkanDynamicBufferRing edgeVertexConstantsRing;
+		VulkanDynamicBufferRing groundShadowVertexConstantsRing;
+		VulkanDynamicBufferRing modelPixelConstantsRing;
+		VulkanDynamicBufferRing edgePixelConstantsRing;
+		VulkanDynamicBufferRing groundShadowPixelConstantsRing;
 		VulkanDescriptorSet modelDescriptorSet;
 		VulkanDescriptorSet edgeDescriptorSet;
 		VulkanDescriptorSet groundShadowDescriptorSet;

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../Viewer.h"
+#include "Assist/VulkanDynamicBufferRing.h"
 #include "Helper/VulkanCommandContext.h"
 #include "Helper/VulkanColorBuffer.h"
 #include "Helper/VulkanDepthBuffer.h"
@@ -18,9 +19,6 @@ namespace Chrivent {
 		VulkanTexture texture{};
 		VulkanTexture sphereTexture{};
 		VulkanTexture toonTexture{};
-		std::unique_ptr<VulkanBuffer> pixelConstantBuffer;
-		std::unique_ptr<VulkanBuffer> edgePixelConstantBuffer;
-		std::unique_ptr<VulkanBuffer> groundShadowPixelConstantBuffer;
 		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
@@ -63,9 +61,9 @@ namespace Chrivent {
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
 		void BindGroundShadowPipeline() const;
 		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
-		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo) const;
+		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, uint32_t dynamicOffset) const;
 		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.
-		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet) const;
+		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset) const;
 		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
 		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet) const;
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.

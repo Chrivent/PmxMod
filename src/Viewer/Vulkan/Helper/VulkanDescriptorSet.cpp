@@ -12,7 +12,7 @@ namespace Chrivent {
 		}
 		std::vector poolSizes{
 			VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				.descriptorCount = static_cast<uint32_t>(1 + materialCount)
 			}
 		};
@@ -77,11 +77,13 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanDescriptorSet::UpdateVertexDescriptorSet(const VulkanBufferInfo& vertexConstantBuffer) const {
+	void VulkanDescriptorSet::UpdateVertexDescriptorSet(
+		const VulkanBufferInfo& vertexConstantBuffer,
+		const VkDeviceSize vertexConstantRange) const {
 		const VkDescriptorBufferInfo vertexBufferInfo{
 			.buffer = vertexConstantBuffer.buffer,
 			.offset = 0,
-			.range = vertexConstantBuffer.size
+			.range = vertexConstantRange
 		};
 		const VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -90,7 +92,7 @@ namespace Chrivent {
 			.dstBinding = 0,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.pImageInfo = nullptr,
 			.pBufferInfo = &vertexBufferInfo,
 			.pTexelBufferView = nullptr
@@ -98,32 +100,29 @@ namespace Chrivent {
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
-	void VulkanDescriptorSet::UpdatePixelDescriptorSets(std::vector<VulkanMaterial>& materials) const {
+	void VulkanDescriptorSet::UpdatePixelDescriptorSets(
+		const VulkanBufferInfo& pixelConstantBuffer,
+		const VkDeviceSize pixelConstantRange,
+		std::vector<VulkanMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
 			if (i >= info.pixelDescriptorSets.size())
 				return;
 			VulkanMaterial& material = materials[i];
 			VkDescriptorSet* descriptorSet = nullptr;
-			VulkanBuffer* pixelConstantBuffer = nullptr;
 			if (passType == VulkanPassType::Model) {
 				descriptorSet = &material.pixelDescriptorSet;
-				pixelConstantBuffer = material.pixelConstantBuffer.get();
 			} else if (passType == VulkanPassType::Edge) {
 				descriptorSet = &material.edgePixelDescriptorSet;
-				pixelConstantBuffer = material.edgePixelConstantBuffer.get();
 			} else if (passType == VulkanPassType::GroundShadow) {
 				descriptorSet = &material.groundShadowPixelDescriptorSet;
-				pixelConstantBuffer = material.groundShadowPixelConstantBuffer.get();
 			}
 			if (descriptorSet == nullptr)
 				continue;
 			*descriptorSet = info.pixelDescriptorSets[i];
-			if (pixelConstantBuffer == nullptr)
-				continue;
 			const VkDescriptorBufferInfo pixelBufferInfo{
-				.buffer = pixelConstantBuffer->GetInfo().buffer,
+				.buffer = pixelConstantBuffer.buffer,
 				.offset = 0,
-				.range = pixelConstantBuffer->GetInfo().size
+				.range = pixelConstantRange
 			};
 			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -132,7 +131,7 @@ namespace Chrivent {
 				.dstBinding = 0,
 				.dstArrayElement = 0,
 				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				.pImageInfo = nullptr,
 				.pBufferInfo = &pixelBufferInfo,
 				.pTexelBufferView = nullptr
@@ -214,6 +213,9 @@ namespace Chrivent {
 		const VulkanDeviceInfo& deviceInfo,
 		const VulkanPipelineInfo& pipelineInfo,
 		const VulkanBufferInfo& vertexConstantBuffer,
+		const VkDeviceSize vertexConstantRange,
+		const VulkanBufferInfo& pixelConstantBuffer,
+		const VkDeviceSize pixelConstantRange,
 		std::vector<VulkanMaterial>& materials,
 		const VulkanPassType sourcePassType) {
 		Destroy();
@@ -223,8 +225,8 @@ namespace Chrivent {
 			return false;
 		if (!AllocateDescriptorSets(pipelineInfo, materials.size()))
 			return false;
-		UpdateVertexDescriptorSet(vertexConstantBuffer);
-		UpdatePixelDescriptorSets(materials);
+		UpdateVertexDescriptorSet(vertexConstantBuffer, vertexConstantRange);
+		UpdatePixelDescriptorSets(pixelConstantBuffer, pixelConstantRange, materials);
 		UpdateTextureDescriptorSets(materials);
 		return true;
 	}

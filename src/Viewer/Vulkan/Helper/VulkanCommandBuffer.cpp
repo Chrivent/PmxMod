@@ -102,7 +102,9 @@ namespace Chrivent {
 		const VkPipelineLayout pipelineLayout,
 		const uint32_t firstSet,
 		const VkDescriptorSet* descriptorSets,
-		const uint32_t descriptorSetCount) const {
+		const uint32_t descriptorSetCount,
+		const uint32_t* dynamicOffsets,
+		const uint32_t dynamicOffsetCount) const {
 		if (imageIndex >= commandBuffers.size() ||
 			pipelineLayout == VK_NULL_HANDLE ||
 			descriptorSets == nullptr ||
@@ -115,8 +117,8 @@ namespace Chrivent {
 			firstSet,
 			descriptorSetCount,
 			descriptorSets,
-			0,
-			nullptr);
+			dynamicOffsetCount,
+			dynamicOffsets);
 	}
 
 	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex) const {

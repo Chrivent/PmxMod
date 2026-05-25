@@ -11,7 +11,7 @@ namespace Chrivent {
 	bool VulkanPipeline::CreateDescriptorSetLayouts() {
 		constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 			.pImmutableSamplers = nullptr
@@ -26,7 +26,7 @@ namespace Chrivent {
 		}
 		constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
 			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 			.pImmutableSamplers = nullptr
