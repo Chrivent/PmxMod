@@ -1,6 +1,12 @@
 ﻿#pragma once
 
+#include <cstdint>
+#include <filesystem>
+#include <functional>
 #include <future>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "Bone/Node.h"
 #include "Bone/IkSolver.h"

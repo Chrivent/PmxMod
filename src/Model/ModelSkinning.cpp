@@ -1,5 +1,9 @@
 ﻿#include "ModelSkinning.h"
 
+#include <algorithm>
+#include <future>
+#include <thread>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/dual_quaternion.hpp>
@@ -135,7 +139,7 @@ namespace Chrivent {
 		UpdateVertices(model.geometryData.updateRanges[0]);
 		for (size_t i = 0; i < futureCount; i++) {
 			if (model.geometryData.updateRanges[i + 1].vertexCount != 0)
-				model.geometryData.parallelUpdateFutures[i].wait();
+				model.geometryData.parallelUpdateFutures[i].get();
 		}
 	}
 }

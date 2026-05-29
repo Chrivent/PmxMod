@@ -4,6 +4,12 @@
 #include "../Parser/PmxParser.h"
 #include "../Util.h"
 
+#include <algorithm>
+#include <functional>
+#include <iomanip>
+#include <limits>
+#include <sstream>
+
 namespace Chrivent {
 	void ModelLoader::LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
 		size_t vertexCount = pmxData.vertices.size();
