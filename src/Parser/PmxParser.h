@@ -1,6 +1,9 @@
 ﻿#pragma once
 
+#include <cstdint>
 #include <filesystem>
+#include <string>
+#include <vector>
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {

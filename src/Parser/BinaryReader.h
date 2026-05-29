@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include <filesystem>
+#include <cstdint>
+#include <istream>
 
 namespace Chrivent {
 	class BinaryReader {

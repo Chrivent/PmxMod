@@ -210,7 +210,7 @@ namespace Chrivent {
 				Util::HasFlag(boneFlag, BoneFlags::AppendTranslate)) {
 				BinaryReader::ReadIndex(is, &appendBoneIndex, data.header.boneIndexSize);
 				BinaryReader::Read(is, &appendWeight);
-				}
+			}
 			if (Util::HasFlag(boneFlag, BoneFlags::FixedAxis))
 				BinaryReader::Read(is, &fixedAxis);
 			if (Util::HasFlag(boneFlag, BoneFlags::LocalAxis)) {
