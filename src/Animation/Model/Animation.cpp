@@ -4,12 +4,6 @@
 #include "../../Model/Model.h"
 
 namespace Chrivent {
-	void Animation::Destroy() {
-		info.nodeTracks.clear();
-		info.ikTracks.clear();
-		info.morphTracks.clear();
-	}
-
 	uint32_t Animation::GetLastFrame() const {
 		uint32_t lastFrame = 0;
 		for (const auto& [node, keys] : info.nodeTracks) {

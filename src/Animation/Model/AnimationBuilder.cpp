@@ -27,8 +27,8 @@ namespace Chrivent {
 		return key;
 	}
 
-	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) const {
-		const AnimationBinder binder(info, model);
+	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) {
+		const AnimationBinder binder(model);
 		auto& nodeTracks = info.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
@@ -44,8 +44,8 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::frame);
 	}
 
-	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) const {
-		const AnimationBinder binder(info, model);
+	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
+		const AnimationBinder binder(model);
 		auto& ikTracks = info.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
@@ -65,8 +65,8 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::frame);
 	}
 
-	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) const {
-		const AnimationBinder binder(info, model);
+	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) {
+		const AnimationBinder binder(model);
 		auto& morphTracks = info.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
@@ -84,10 +84,13 @@ namespace Chrivent {
 		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::frame);
 	}
 
-	bool AnimationBuilder::Add(const VmdParser::VmdData& vmdData) const {
+	void AnimationBuilder::Build(const VmdParser::VmdData& vmdData) {
 		AddNodeAnimations(vmdData);
 		AddIkAnimations(vmdData);
 		AddMorphAnimations(vmdData);
-		return true;
+	}
+
+	AnimationInfo AnimationBuilder::TakeInfo() {
+		return std::move(info);
 	}
 }

@@ -123,21 +123,16 @@ namespace Chrivent {
             instance->GetInfo().model = pmxModel;
             const ModelAnimator animator(*instance->GetInfo().model);
             animator.InitializeAnimation();
-            auto vmdAnim = std::make_unique<Animation>();
-            AnimationInfo animationInfo;
-            const AnimationBuilder animationBuilder(animationInfo, instance->GetInfo().model);
+            AnimationBuilder animationBuilder(instance->GetInfo().model);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
                     std::cerr << "Failed to read VMD file.\n";
                     return false;
                 }
-                if (!animationBuilder.Add(vmd.GetData())) {
-                    std::cerr << "Failed to add VMDAnimation.\n";
-                    return false;
-                }
+                animationBuilder.Build(vmd.GetData());
             }
-            vmdAnim->SetInfo(std::move(animationInfo));
+            auto vmdAnim = std::make_unique<Animation>(animationBuilder.TakeInfo());
             animator.SyncPhysics(*vmdAnim, 0.0f);
             instance->GetInfo().anim = std::move(vmdAnim);
             instance->GetInfo().scale = scale;
