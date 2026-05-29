@@ -7,6 +7,7 @@
 namespace Chrivent {
     class Util {
     public:
+        // enum 플래그에 지정한 비트가 포함되어 있는지 확인한다.
         template <typename Enum>
         static constexpr bool HasFlag(Enum flags, Enum flag) {
             return (std::to_underlying(flags) & std::to_underlying(flag)) != 0;
