@@ -108,18 +108,17 @@ namespace Chrivent {
 		model.materialData.subMeshes.reserve(pmxData.materials.size());
 		size_t beginIndex = 0;
 		for (const auto& mat : pmxData.materials) {
-			const auto dm = static_cast<uint8_t>(mat.drawMode);
 			Material m;
 			m.diffuse = mat.diffuse;
 			m.specularPower = mat.specularPower;
 			m.specular = mat.specular;
 			m.ambient = mat.ambient;
 			m.spTextureMode = SphereMode::None;
-			m.bothFace = (dm & static_cast<uint8_t>(DrawModeFlags::BothFace)) != 0;
-			m.edgeFlag = (dm & static_cast<uint8_t>(DrawModeFlags::DrawEdge)) != 0 ? 1 : 0;
-			m.groundShadow = (dm & static_cast<uint8_t>(DrawModeFlags::GroundShadow)) != 0;
-			m.shadowCaster = (dm & static_cast<uint8_t>(DrawModeFlags::CastSelfShadow)) != 0;
-			m.shadowReceiver = (dm & static_cast<uint8_t>(DrawModeFlags::ReceiveSelfShadow)) != 0;
+			m.bothFace = Util::HasFlag(mat.drawMode, DrawModeFlags::BothFace);
+			m.edgeFlag = Util::HasFlag(mat.drawMode, DrawModeFlags::DrawEdge) ? 1 : 0;
+			m.groundShadow = Util::HasFlag(mat.drawMode, DrawModeFlags::GroundShadow);
+			m.shadowCaster = Util::HasFlag(mat.drawMode, DrawModeFlags::CastSelfShadow);
+			m.shadowReceiver = Util::HasFlag(mat.drawMode, DrawModeFlags::ReceiveSelfShadow);
 			m.edgeSize = mat.edgeSize;
 			m.edgeColor = mat.edgeColor;
 			if (mat.textureIndex != -1)
@@ -173,14 +172,14 @@ namespace Chrivent {
 			node->GetInfo().global = glm::translate(glm::mat4(1), bone.position * invZ);
 			node->GetInfo().inverseInit = glm::inverse(node->GetInfo().global);
 			node->GetInfo().deformDepth = bone.deformDepth;
-			bool deformAfterPhysics = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::DeformAfterPhysics)) != 0;
+			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, BoneFlags::DeformAfterPhysics);
 			node->GetInfo().isDeformAfterPhysics = deformAfterPhysics;
-			bool appendRotateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate)) != 0;
-			bool appendTranslateEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) != 0;
+			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendRotate);
+			bool appendTranslateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendTranslate);
 			node->GetInfo().isAppendRotate = appendRotateEnabled;
 			node->GetInfo().isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
-				bool appendLocalEnabled = (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::AppendLocal)) != 0;
+				bool appendLocalEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendLocal);
 				auto appendNodePtr = model.skeletonData.nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
 				node->GetInfo().isAppendLocal = appendLocalEnabled;
@@ -202,7 +201,7 @@ namespace Chrivent {
 		});
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
-			if (static_cast<uint16_t>(bone.boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
+			if (Util::HasFlag(bone.boneFlag, BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
 				solver->GetInfo().ikNode = model.skeletonData.nodes[i];
 				model.skeletonData.nodes[i]->GetInfo().ikSolver = solver;

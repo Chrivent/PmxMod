@@ -202,24 +202,24 @@ namespace Chrivent {
 			BinaryReader::ReadIndex(is, &parentBoneIndex, data.header.boneIndexSize);
 			BinaryReader::Read(is, &deformDepth);
 			BinaryReader::Read(is, &boneFlag);
-			if ((static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::TargetShowMode)) == 0)
+			if (!Util::HasFlag(boneFlag, BoneFlags::TargetShowMode))
 				BinaryReader::Read(is, &positionOffset);
 			else
 				BinaryReader::ReadIndex(is, &linkBoneIndex, data.header.boneIndexSize);
-			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendRotate) ||
-				static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::AppendTranslate)) {
+			if (Util::HasFlag(boneFlag, BoneFlags::AppendRotate) ||
+				Util::HasFlag(boneFlag, BoneFlags::AppendTranslate)) {
 				BinaryReader::ReadIndex(is, &appendBoneIndex, data.header.boneIndexSize);
 				BinaryReader::Read(is, &appendWeight);
 				}
-			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::FixedAxis))
+			if (Util::HasFlag(boneFlag, BoneFlags::FixedAxis))
 				BinaryReader::Read(is, &fixedAxis);
-			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::LocalAxis)) {
+			if (Util::HasFlag(boneFlag, BoneFlags::LocalAxis)) {
 				BinaryReader::Read(is, &localXAxis);
 				BinaryReader::Read(is, &localZAxis);
 			}
-			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::DeformOuterParent))
+			if (Util::HasFlag(boneFlag, BoneFlags::DeformOuterParent))
 				BinaryReader::Read(is, &keyValue);
-			if (static_cast<uint16_t>(boneFlag) & static_cast<uint16_t>(BoneFlags::Ik)) {
+			if (Util::HasFlag(boneFlag, BoneFlags::Ik)) {
 				BinaryReader::ReadIndex(is, &ikTargetBoneIndex, data.header.boneIndexSize);
 				BinaryReader::Read(is, &ikIterationCount);
 				BinaryReader::Read(is, &ikLimit);
