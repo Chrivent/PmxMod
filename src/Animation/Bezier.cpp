@@ -1,6 +1,7 @@
 ﻿#include "Bezier.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Chrivent {
 	float Bezier::EvaluateBezier(const float t, const float p1, const float p2) {
