@@ -1,6 +1,5 @@
 ﻿#include "ModelMorph.h"
 
-#include <cmath>
 #include <limits>
 
 namespace Chrivent {

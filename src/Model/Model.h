@@ -1,5 +1,11 @@
 ﻿#pragma once
 
+#include "Bone/Node.h"
+#include "Bone/IkSolver.h"
+#include "Physics/Physics.h"
+#include "Physics/RigidBody.h"
+#include "Physics/Joint.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -7,12 +13,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "Bone/Node.h"
-#include "Bone/IkSolver.h"
-#include "Physics/Physics.h"
-#include "Physics/RigidBody.h"
-#include "Physics/Joint.h"
 
 namespace Chrivent {
 	class Animation;
