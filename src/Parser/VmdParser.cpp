@@ -15,15 +15,15 @@ namespace Chrivent {
 		uint32_t motionCount = 0;
 		BinaryReader::Read(is, &motionCount);
 		data.motions.resize(motionCount);
-		for (auto& [boneName, frame
-				 , translate, quaternion
-				 , interpolation] : data.motions) {
+		for (auto& [boneName, frame,
+			translate, quaternion,
+			interpolation] : data.motions) {
 			BinaryReader::Read(is, boneName, sizeof(boneName));
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &translate);
 			BinaryReader::Read(is, &quaternion);
 			BinaryReader::Read(is, &interpolation);
-				 }
+		}
 	}
 
 	void VmdParser::ReadBlendShape(std::istream& is) {
@@ -41,8 +41,8 @@ namespace Chrivent {
 		uint32_t cameraCount = 0;
 		BinaryReader::Read(is, &cameraCount);
 		data.cameras.resize(cameraCount);
-		for (auto& [frame, distance, interest, rotate
-				 , interpolation, viewAngle, isPerspective] : data.cameras) {
+		for (auto& [frame, distance, interest, rotate,
+			interpolation, viewAngle, isPerspective] : data.cameras) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &distance);
 			BinaryReader::Read(is, &interest);
@@ -50,7 +50,7 @@ namespace Chrivent {
 			BinaryReader::Read(is, &interpolation);
 			BinaryReader::Read(is, &viewAngle);
 			BinaryReader::Read(is, &isPerspective);
-				 }
+		}
 	}
 
 	void VmdParser::ReadLight(std::istream& is) {
