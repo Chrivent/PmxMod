@@ -3,6 +3,10 @@
 #include "MotionState.h"
 #include "../../Parser/PmxParser.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 namespace Chrivent {
 	class Node;
 	struct PhysicsInfo;
