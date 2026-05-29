@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
+#include <vector>
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {

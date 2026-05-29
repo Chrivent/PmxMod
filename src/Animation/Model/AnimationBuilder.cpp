@@ -28,6 +28,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) {
+		if (vmdData.motions.empty())
+			return;
 		const AnimationBinder binder(model);
 		auto& nodeTracks = info.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
@@ -45,6 +47,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
+		if (vmdData.iks.empty())
+			return;
 		const AnimationBinder binder(model);
 		auto& ikTracks = info.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
@@ -66,6 +70,8 @@ namespace Chrivent {
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) {
+		if (vmdData.morphs.empty())
+			return;
 		const AnimationBinder binder(model);
 		auto& morphTracks = info.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
