@@ -175,20 +175,20 @@ namespace Chrivent {
 		}
 		constexpr auto pi = glm::pi<float>();
 		glm::vec3 tests[] = {
-			{r.x + pi, pi - r.y, r.z + pi},
-			{r.x + pi, pi - r.y, r.z - pi},
-			{r.x + pi, -pi - r.y, r.z + pi},
-			{r.x + pi, -pi - r.y, r.z - pi},
-			{r.x - pi, pi - r.y, r.z + pi},
-			{r.x - pi, pi - r.y, r.z - pi},
-			{r.x - pi, -pi - r.y, r.z + pi},
-			{r.x - pi, -pi - r.y, r.z - pi},
+			{ r.x + pi, pi - r.y, r.z + pi },
+			{ r.x + pi, pi - r.y, r.z - pi },
+			{ r.x + pi, -pi - r.y, r.z + pi },
+			{ r.x + pi, -pi - r.y, r.z - pi },
+			{ r.x - pi, pi - r.y, r.z + pi },
+			{ r.x - pi, pi - r.y, r.z - pi },
+			{ r.x - pi, -pi - r.y, r.z + pi },
+			{ r.x - pi, -pi - r.y, r.z - pi },
 		};
 		const float errX = std::abs(DiffAngle(r.x, before.x));
 		const float errY = std::abs(DiffAngle(r.y, before.y));
 		const float errZ = std::abs(DiffAngle(r.z, before.z));
 		float minErr = errX + errY + errZ;
-		for (const auto test: tests) {
+		for (const auto test : tests) {
 			const float err = std::abs(DiffAngle(test.x, before.x))
 				+ std::abs(DiffAngle(test.y, before.y))
 				+ std::abs(DiffAngle(test.z, before.z));
