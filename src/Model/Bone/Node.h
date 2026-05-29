@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <glm/gtc/quaternion.hpp>

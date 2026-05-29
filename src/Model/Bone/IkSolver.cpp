@@ -2,6 +2,9 @@
 
 #include "Node.h"
 
+#include <cmath>
+#include <limits>
+
 namespace Chrivent {
 	void IkSolver::SolveCore(uint32_t iteration) {
 		auto ikNodePtr = info.ikNode.lock();
