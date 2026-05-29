@@ -26,6 +26,7 @@ add_executable(PmxMod
         src/Util.h src/Util.cpp
         
         src/Program/Program.h src/Program/Program.cpp
+        src/Program/Camera.h src/Program/Camera.cpp
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp

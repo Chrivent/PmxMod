@@ -1,7 +1,11 @@
 ﻿#pragma once
 
 #include "../Bezier.h"
-#include "../../Program/Manager/CameraManager.h"
+#include "../../Program/Camera.h"
+
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace Chrivent {
     struct CameraAnimationKey {
@@ -18,21 +22,16 @@ namespace Chrivent {
         Bezier		fovBezier;
     };
 
-    struct CameraAnimationInfo {
-        std::vector<CameraAnimationKey>	keys;
-        Camera camera;
-    };
-
     class CameraAnimation {
-        CameraAnimationInfo info;
+        std::vector<CameraAnimationKey> keys;
+        Camera camera;
 
     public:
-        const CameraAnimationInfo& GetInfo() const { return info; }
-        void SetInfo(CameraAnimationInfo animationInfo) { info = std::move(animationInfo); }
+        explicit CameraAnimation(std::vector<CameraAnimationKey> animationKeys) : keys(std::move(animationKeys)) {}
         
         // 카메라 트랙의 가장 마지막 키 프레임을 반환한다.
         uint32_t GetLastFrame() const;
-        // 지정한 시간의 카메라 키를 보간해 현재 카메라에 적용한다.
-        void Evaluate(float t);
+        // 지정한 시간의 카메라 키를 보간해 현재 카메라를 반환한다.
+        const Camera& Evaluate(float t);
     };
 }

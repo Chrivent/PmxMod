@@ -5,15 +5,11 @@
 
 namespace Chrivent {
 	class CameraAnimationBuilder {
-		CameraAnimationInfo& info;
-		
 		// VMD 카메라 키를 런타임 카메라 애니메이션 키로 변환한다.
-		static CameraAnimationKey CreateCameraKey(const auto& camera);
+		static CameraAnimationKey CreateCameraKey(const VmdParser::VmdCamera& camera);
 
 	public:
-		explicit CameraAnimationBuilder(CameraAnimationInfo& info) : info(info) {}
-
-		// VMD 카메라 데이터를 카메라 애니메이션 키에 추가한다.
-		bool Add(const VmdParser::VmdData& vmdData) const;
+		// VMD 카메라 데이터를 런타임 카메라 애니메이션 키 목록으로 변환한다.
+		static std::vector<CameraAnimationKey> Build(const VmdParser::VmdData& vmdData);
 	};
 }

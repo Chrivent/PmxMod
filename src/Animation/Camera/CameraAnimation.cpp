@@ -4,30 +4,30 @@
 
 namespace Chrivent {
 	uint32_t CameraAnimation::GetLastFrame() const {
-		return info.keys.empty() ? 0 : info.keys.back().frame;
+		return keys.empty() ? 0 : keys.back().frame;
 	}
 
-	void CameraAnimation::Evaluate(const float t) {
-		if (info.keys.empty())
-			return;
-		const auto it = AnimationKeySearch::FindUpperKey(info.keys, t);
-		const auto& cur = it != info.keys.end() ? *it : info.keys.back();
-		info.camera.interest = cur.interest;
-		info.camera.rotate = cur.rotate;
-		info.camera.distance = cur.distance;
-		info.camera.fov = cur.fov;
-		if (it == info.keys.begin() || it == info.keys.end())
-			return;
+	const Camera& CameraAnimation::Evaluate(const float t) {
+		if (keys.empty())
+			return camera;
+		const auto it = AnimationKeySearch::FindUpperKey(keys, t);
+		const auto& cur = it != keys.end() ? *it : keys.back();
+		camera.interest = cur.interest;
+		camera.rotate = cur.rotate;
+		camera.distance = cur.distance;
+		camera.fov = cur.fov;
+		if (it == keys.begin() || it == keys.end())
+			return camera;
 		const auto& [frame, interest, rotate, distance, fov,
 			ixBezier, iyBezier, izBezier,
 			rotateBezier, distanceBezier, fovBezier] = *it;
 		const auto& prev = *std::prev(it);
 		if (frame - prev.frame <= 1) {
-			info.camera.interest = prev.interest;
-			info.camera.rotate = prev.rotate;
-			info.camera.distance = prev.distance;
-			info.camera.fov = prev.fov;
-			return;
+			camera.interest = prev.interest;
+			camera.rotate = prev.rotate;
+			camera.distance = prev.distance;
+			camera.fov = prev.fov;
+			return camera;
 		}
 		const float prevFrame = prev.frame;
 		const float nextFrame = frame;
@@ -38,9 +38,10 @@ namespace Chrivent {
 		const float rY = rotateBezier.Evaluate(normalizedTime);
 		const float dY = distanceBezier.Evaluate(normalizedTime);
 		const float fY = fovBezier.Evaluate(normalizedTime);
-		info.camera.interest = glm::mix(prev.interest, interest, glm::vec3(ixY, iyY, izY));
-		info.camera.rotate = glm::mix(prev.rotate, rotate, rY);
-		info.camera.distance = glm::mix(prev.distance, distance, dY);
-		info.camera.fov = glm::mix(prev.fov, fov, fY);
+		camera.interest = glm::mix(prev.interest, interest, glm::vec3(ixY, iyY, izY));
+		camera.rotate = glm::mix(prev.rotate, rotate, rY);
+		camera.distance = glm::mix(prev.distance, distance, dY);
+		camera.fov = glm::mix(prev.fov, fov, fY);
+		return camera;
 	}
 }

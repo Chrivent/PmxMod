@@ -9,20 +9,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	glm::mat4 Camera::CalcViewMatrix() const {
-		glm::mat4 view(1.0f);
-		view = glm::translate(view, glm::vec3(0, 0, -distance));
-		glm::mat4 rot(1.0f);
-		rot = glm::rotate(rot, rotate.y, glm::vec3(0, 1, 0));
-		rot = glm::rotate(rot, rotate.z, glm::vec3(0, 0, -1));
-		rot = glm::rotate(rot, rotate.x, glm::vec3(1, 0, 0));
-		view = rot * view;
-		const glm::vec3 eye = glm::vec3(view[3]) + interest;
-		const glm::vec3 center = glm::mat3(view) * glm::vec3(0, 0, -1) + eye;
-		const glm::vec3 up = glm::mat3(view) * glm::vec3(0, 1, 0);
-		return glm::lookAt(eye, center, up);
-	}
-
 	void CameraManager::SyncFreeCameraToCurrentView(const ViewerInfo& viewerInfo) {
 		const glm::mat4 invView = glm::inverse(viewerInfo.viewMat);
 		freeCamPosition = glm::vec3(invView[3]);
@@ -65,13 +51,10 @@ namespace Chrivent {
 		}
 		VmdParser camVmd;
 		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.GetData().cameras.empty()) {
-			auto vmdCamAnim = std::make_unique<CameraAnimation>();
-			CameraAnimationInfo cameraAnimationInfo;
-			const CameraAnimationBuilder cameraAnimationBuilder(cameraAnimationInfo);
-			if (!cameraAnimationBuilder.Add(camVmd.GetData()))
+			auto cameraKeys = CameraAnimationBuilder::Build(camVmd.GetData());
+			if (cameraKeys.empty())
 				std::cerr << "Failed to create VMDCameraAnimation.\n";
-			vmdCamAnim->SetInfo(std::move(cameraAnimationInfo));
-			cameraAnim = std::move(vmdCamAnim);
+			cameraAnim = std::make_unique<CameraAnimation>(std::move(cameraKeys));
 		}
 	}
 
@@ -182,8 +165,7 @@ namespace Chrivent {
 
 	void CameraManager::UpdateCamera(ViewerInfo& viewerInfo) const {
 		if (useMotionCamera && cameraAnim) {
-			cameraAnim->Evaluate(viewerInfo.animTime * 30.0f);
-			const auto cam = cameraAnim->GetInfo().camera;
+			const auto& cam = cameraAnim->Evaluate(viewerInfo.animTime * 30.0f);
 			viewerInfo.viewMat = cam.CalcViewMatrix();
 			viewerInfo.projMat = glm::perspectiveFovRH(
 				cam.fov, static_cast<float>(viewerInfo.screenWidth), static_cast<float>(viewerInfo.screenHeight), 1.0f, 10000.0f

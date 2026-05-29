@@ -1,7 +1,10 @@
 ﻿#include "CameraAnimationBuilder.h"
 
+#include <algorithm>
+#include <ranges>
+
 namespace Chrivent {
-	CameraAnimationKey CameraAnimationBuilder::CreateCameraKey(const auto& camera) {
+	CameraAnimationKey CameraAnimationBuilder::CreateCameraKey(const VmdParser::VmdCamera& camera) {
 		CameraAnimationKey key{};
 		key.frame = camera.frame;
 		key.interest = camera.interest * glm::vec3(1, 1, -1);
@@ -29,13 +32,11 @@ namespace Chrivent {
 		return key;
 	}
 
-	bool CameraAnimationBuilder::Add(const VmdParser::VmdData& vmdData) const {
-		if (vmdData.cameras.empty())
-			return false;
-		info.keys.clear();
-		for (const auto& camera : vmdData.cameras)
-			info.keys.push_back(CreateCameraKey(camera));
-		std::ranges::sort(info.keys, {}, &CameraAnimationKey::frame);
-		return true;
+	std::vector<CameraAnimationKey> CameraAnimationBuilder::Build(const VmdParser::VmdData& vmdData) {
+		auto keys = vmdData.cameras
+			| std::views::transform(CreateCameraKey)
+			| std::ranges::to<std::vector>();
+		std::ranges::sort(keys, {}, &CameraAnimationKey::frame);
+		return keys;
 	}
 }
