@@ -3,7 +3,7 @@
 namespace Chrivent {
 	Drawer::~Drawer() = default;
 
-	void Drawer::Draw() const {
+	void Drawer::Draw() {
 		DrawModel();
 		DrawEdge();
 		DrawGroundShadow();

@@ -16,7 +16,7 @@ namespace Chrivent {
 		const VulkanBufferInfo& indexBuffer,
 		const VkIndexType indexType,
 		const size_t firstIndex,
-		const size_t indexCount) const {
+		const size_t indexCount) {
 		if (!frameReady)
 			return;
 		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
@@ -24,7 +24,7 @@ namespace Chrivent {
 			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
 			return;
 		}
-		auto& commandBuffer = const_cast<VulkanCommandContext&>(commandContext).GetCommandBuffer();
+		auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.DrawIndexed(
 			currentImageIndex,
 			vertexBuffer,

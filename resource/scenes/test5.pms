@@ -2,8 +2,8 @@ PmxModScene
 camera	D:\예찬\MMD\motion\V\HIMEHINA V Camera Motion.vmd
 music	D:\예찬\MMD\motion\V\mmd-himehina-v-sour-4-k-60-fps-qtlmqr.wav
 models	3
-model	1.2	1	D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0.pmx
-anim	D:\예찬\MMD\motion\V\V_Motion(MMD)_Full_HimeTanaka_v1.0[f0].vmd
 model	1.2	1	D:\예찬\MMD\model\Blue Archive\Maid Midori\Maid Midori 1.0.pmx
+anim	D:\예찬\MMD\motion\V\V_Motion(MMD)_Full_HimeTanaka_v1.0[f0].vmd
+model	1.2	1	D:\예찬\MMD\model\Blue Archive\Maid Momoi\Maid Momoi 1.0.pmx
 anim	D:\예찬\MMD\motion\V\V_Motion(MMD)_Full_HinaSuzuki_v1.0[f0].vmd
 model	1	0	D:\예찬\MMD\background\PDF 2nd Melancholic Stage\Melancholic Stage.pmx

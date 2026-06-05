@@ -9,7 +9,7 @@ namespace Chrivent {
 	struct GlfwInstanceInfo;
 
 	class GlfwDrawer : public Drawer {
-		const GlfwInstanceInfo& info;
+		GlfwInstanceInfo& info;
 
 	protected:
 		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.
@@ -18,14 +18,14 @@ namespace Chrivent {
 		void UpdateUniformBuffer(GlfwDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
 
 		// 일반 메시 패스를 OpenGL로 렌더링한다.
-		void DrawModel() const override;
+		void DrawModel() override;
 		// 엣지 패스를 OpenGL로 렌더링한다.
-		void DrawEdge() const override;
+		void DrawEdge() override;
 		// 지면 그림자 패스를 OpenGL로 렌더링한다.
-		void DrawGroundShadow() const override;
+		void DrawGroundShadow() override;
 
 	public:
-		explicit GlfwDrawer(const GlfwInstanceInfo& sourceInfo);
+		explicit GlfwDrawer(GlfwInstanceInfo& sourceInfo);
 		~GlfwDrawer() override = default;
 	};
 }

@@ -2,6 +2,7 @@
 
 #include "../TextureCache.h"
 
+#include <filesystem>
 #include <glad/glad.h>
 
 namespace Chrivent {

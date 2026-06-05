@@ -3,6 +3,7 @@
 #include "../Instance.h"
 #include "Assist/GlfwDynamicBufferRing.h"
 
+#include <vector>
 #include <glad/glad.h>
 
 namespace Chrivent {

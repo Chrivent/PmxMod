@@ -64,7 +64,7 @@ namespace Chrivent {
 		size_t GetCurrentFrameIndex() const { return syncObject.GetInfo().currentFrame; }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
-		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
+		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.

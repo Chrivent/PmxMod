@@ -23,11 +23,11 @@ namespace Chrivent {
 
 	protected:
 		// 일반 메시 패스를 DX11로 렌더링한다.
-		void DrawModel() const override;
+		void DrawModel() override;
 		// 엣지 패스를 DX11로 렌더링한다.
-		void DrawEdge() const override;
+		void DrawEdge() override;
 		// 지면 그림자 패스를 DX11로 렌더링한다.
-		void DrawGroundShadow() const override;
+		void DrawGroundShadow() override;
 
 	public:
 		explicit Dx11Drawer(const Dx11InstanceInfo& sourceInfo);

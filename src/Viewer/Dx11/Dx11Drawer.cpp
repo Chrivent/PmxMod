@@ -40,7 +40,7 @@ namespace Chrivent {
 		return dxMat;
 	}
 
-	void Dx11Drawer::DrawModel() const {
+	void Dx11Drawer::DrawModel() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto& vertexBuffer = info.vertexBuffer;
@@ -123,7 +123,7 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Drawer::DrawEdge() const {
+	void Dx11Drawer::DrawEdge() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto& edgeVsConstantBuffer = info.edgeVsConstantBuffer;
@@ -163,7 +163,7 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Drawer::DrawGroundShadow() const {
+	void Dx11Drawer::DrawGroundShadow() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto& gsVsConstantBuffer = info.gsVsConstantBuffer;

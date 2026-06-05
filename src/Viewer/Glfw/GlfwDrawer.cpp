@@ -7,9 +7,8 @@
 
 namespace Chrivent {
 	void GlfwDrawer::BeginDynamicBufferFrame() const {
-		auto& instanceInfo = const_cast<GlfwInstanceInfo&>(info);
-		instanceInfo.vertexConstantsRing.BeginFrame(0);
-		instanceInfo.pixelConstantsRing.BeginFrame(0);
+		info.vertexConstantsRing.BeginFrame(0);
+		info.pixelConstantsRing.BeginFrame(0);
 	}
 
 	void GlfwDrawer::UpdateUniformBuffer(
@@ -17,9 +16,8 @@ namespace Chrivent {
 		const GLuint binding,
 		const void* data,
 		const size_t size) const {
-		const auto& instanceInfo = const_cast<GlfwInstanceInfo&>(info);
 		std::string error;
-		const auto slice = ring.Allocate(size, instanceInfo.uniformBufferOffsetAlignment, error);
+		const auto slice = ring.Allocate(size, info.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
 			return;
 		glBindBuffer(GL_UNIFORM_BUFFER, ring.GetBuffer());
@@ -27,7 +25,7 @@ namespace Chrivent {
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
 	}
 
-	void GlfwDrawer::DrawModel() const {
+	void GlfwDrawer::DrawModel() {
 		BeginDynamicBufferFrame();
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
@@ -47,7 +45,7 @@ namespace Chrivent {
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
 		UpdateUniformBuffer(
-			const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+			info.vertexConstantsRing,
 			0,
 			&vertexConstants,
 			sizeof(vertexConstants));
@@ -112,7 +110,7 @@ namespace Chrivent {
 				boundTextures[2] = sphereTexture;
 			}
 			UpdateUniformBuffer(
-				const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+				info.pixelConstantsRing,
 				1,
 				&pixelConstants,
 				sizeof(pixelConstants));
@@ -136,7 +134,7 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwDrawer::DrawEdge() const {
+	void GlfwDrawer::DrawEdge() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto edgeVao = info.edgeVao;
@@ -165,12 +163,12 @@ namespace Chrivent {
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			UpdateUniformBuffer(
-				const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+				info.vertexConstantsRing,
 				0,
 				&vertexConstants,
 				sizeof(vertexConstants));
 			UpdateUniformBuffer(
-				const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+				info.pixelConstantsRing,
 				1,
 				&pixelConstants,
 				sizeof(pixelConstants));
@@ -179,7 +177,7 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwDrawer::DrawGroundShadow() const {
+	void GlfwDrawer::DrawGroundShadow() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto gsVao = info.gsVao;
@@ -197,7 +195,7 @@ namespace Chrivent {
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
 		UpdateUniformBuffer(
-			const_cast<GlfwDynamicBufferRing&>(info.vertexConstantsRing),
+			info.vertexConstantsRing,
 			0,
 			&vertexConstants,
 			sizeof(vertexConstants));
@@ -205,7 +203,7 @@ namespace Chrivent {
 		constexpr GroundShadowPixelConstants pixelConstants;
 		constexpr auto shadowColor = pixelConstants.shadowColor;
 		UpdateUniformBuffer(
-			const_cast<GlfwDynamicBufferRing&>(info.pixelConstantsRing),
+			info.pixelConstantsRing,
 			1,
 			&pixelConstants,
 			sizeof(pixelConstants));
@@ -235,5 +233,5 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 	}
 
-	GlfwDrawer::GlfwDrawer(const GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
+	GlfwDrawer::GlfwDrawer(GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
 }

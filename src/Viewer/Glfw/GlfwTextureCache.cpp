@@ -8,9 +8,7 @@
 namespace Chrivent {
 	GlfwTextureCache::~GlfwTextureCache() {
 		for (const auto& texture : textures | std::views::values) {
-			const auto glfwTexture = std::dynamic_pointer_cast<GlfwTexture>(texture);
-			if (!glfwTexture)
-				continue;
+			const auto glfwTexture = std::static_pointer_cast<GlfwTexture>(texture);
 			const GLuint textureId = glfwTexture->texture;
 			glDeleteTextures(1, &textureId);
 		}
@@ -20,8 +18,8 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::White };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<GlfwTexture>(it->second);
-			return texture ? *texture : GlfwTexture{};
+			const auto texture = std::static_pointer_cast<GlfwTexture>(it->second);
+			return *texture;
 		}
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
@@ -45,8 +43,8 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<GlfwTexture>(it->second);
-			return texture ? *texture : GlfwTexture{};
+			const auto texture = std::static_pointer_cast<GlfwTexture>(it->second);
+			return *texture;
 		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
