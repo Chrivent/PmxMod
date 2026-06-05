@@ -72,7 +72,7 @@ namespace Chrivent {
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
 		void BindGroundShadowPipeline();
 		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
-		void BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, uint32_t dynamicOffset);
+		void BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, uint32_t dynamicOffset);
 		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.
 		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
 		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.

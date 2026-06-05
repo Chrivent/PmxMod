@@ -1,5 +1,7 @@
 ﻿#include "VulkanDepthBuffer.h"
 
+#include "VulkanMemory.h"
+
 #include <iostream>
 
 namespace Chrivent {
@@ -34,23 +36,6 @@ namespace Chrivent {
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	bool VulkanDepthBuffer::FindMemoryType(
-		const VulkanDeviceInfo& deviceInfo,
-		const uint32_t typeFilter,
-		const VkMemoryPropertyFlags properties,
-		uint32_t& memoryType) {
-		VkPhysicalDeviceMemoryProperties memoryProperties{};
-		vkGetPhysicalDeviceMemoryProperties(deviceInfo.physicalDevice, &memoryProperties);
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
-			if ((typeFilter & 1 << i) != 0 &&
-				(memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-				memoryType = i;
-				return true;
-			}
-		}
-		return false;
-	}
-
 	bool VulkanDepthBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -73,7 +58,7 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(deviceInfo.device, image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+		if (!VulkanMemory::FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			std::cerr << "Failed to find Vulkan depth image memory type.\n";
 			return false;
 		}

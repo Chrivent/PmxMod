@@ -42,19 +42,19 @@ namespace Chrivent {
 		allocateInfo.descriptorPool = descriptorPool;
 		allocateInfo.descriptorSetCount = 1;
 		allocateInfo.pSetLayouts = &pipelineInfo.descriptorSetLayouts[0];
-		if (vkAllocateDescriptorSets(device, &allocateInfo, &info.vertexDescriptorSet) != VK_SUCCESS) {
+		if (vkAllocateDescriptorSets(device, &allocateInfo, &vertexDescriptorSet) != VK_SUCCESS) {
 			std::cerr << "Failed to allocate Vulkan vertex descriptor set.\n";
 			return false;
 		}
-		info.pixelDescriptorSets.resize(materialCount);
-		if (!info.pixelDescriptorSets.empty()) {
+		pixelDescriptorSets.resize(materialCount);
+		if (!pixelDescriptorSets.empty()) {
 			const std::vector pixelLayouts(materialCount, pipelineInfo.descriptorSetLayouts[1]);
 			VkDescriptorSetAllocateInfo pixelAllocateInfo{};
 			pixelAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			pixelAllocateInfo.descriptorPool = descriptorPool;
 			pixelAllocateInfo.descriptorSetCount = pixelLayouts.size();
 			pixelAllocateInfo.pSetLayouts = pixelLayouts.data();
-			if (vkAllocateDescriptorSets(device, &pixelAllocateInfo, info.pixelDescriptorSets.data()) != VK_SUCCESS) {
+			if (vkAllocateDescriptorSets(device, &pixelAllocateInfo, pixelDescriptorSets.data()) != VK_SUCCESS) {
 				std::cerr << "Failed to allocate Vulkan pixel descriptor sets.\n";
 				return false;
 			}
@@ -88,7 +88,7 @@ namespace Chrivent {
 		const VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.pNext = nullptr,
-			.dstSet = info.vertexDescriptorSet,
+			.dstSet = vertexDescriptorSet,
 			.dstBinding = 0,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
@@ -105,7 +105,7 @@ namespace Chrivent {
 		const VkDeviceSize pixelConstantRange,
 		std::vector<VulkanMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
-			if (i >= info.pixelDescriptorSets.size())
+			if (i >= pixelDescriptorSets.size())
 				return;
 			VulkanMaterial& material = materials[i];
 			VkDescriptorSet* descriptorSet = nullptr;
@@ -118,7 +118,7 @@ namespace Chrivent {
 			}
 			if (descriptorSet == nullptr)
 				continue;
-			*descriptorSet = info.pixelDescriptorSets[i];
+			*descriptorSet = pixelDescriptorSets[i];
 			const VkDescriptorBufferInfo pixelBufferInfo{
 				.buffer = pixelConstantBuffer.buffer,
 				.offset = 0,
@@ -238,8 +238,8 @@ namespace Chrivent {
 			vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 			descriptorPool = VK_NULL_HANDLE;
 		}
-		info.vertexDescriptorSet = VK_NULL_HANDLE;
-		info.pixelDescriptorSets.clear();
+		vertexDescriptorSet = VK_NULL_HANDLE;
+		pixelDescriptorSets.clear();
 		textureDescriptorSets.clear();
 		passType = VulkanPassType::Model;
 		device = VK_NULL_HANDLE;

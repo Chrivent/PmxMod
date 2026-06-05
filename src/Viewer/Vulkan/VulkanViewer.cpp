@@ -67,10 +67,10 @@ namespace Chrivent {
 		bindStateCache.pipeline = pipeline.GetInfo().groundShadowPipeline;
 	}
 
-	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSetInfo& descriptorSetInfo, const uint32_t dynamicOffset) {
+	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, const uint32_t dynamicOffset) {
 		if (!frameReady)
 			return;
-		if (bindStateCache.vertexDescriptorSet == descriptorSetInfo.vertexDescriptorSet &&
+		if (bindStateCache.vertexDescriptorSet == descriptorSet.GetVertexDescriptorSet() &&
 			bindStateCache.vertexDynamicOffset == dynamicOffset)
 			return;
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
@@ -78,11 +78,11 @@ namespace Chrivent {
 			currentImageIndex,
 			pipeline.GetInfo().pipelineLayout,
 			0,
-			&descriptorSetInfo.vertexDescriptorSet,
+			&descriptorSet.GetVertexDescriptorSet(),
 			1,
 			&dynamicOffset,
 			1);
-		bindStateCache.vertexDescriptorSet = descriptorSetInfo.vertexDescriptorSet;
+		bindStateCache.vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
 		bindStateCache.vertexDynamicOffset = dynamicOffset;
 	}
 

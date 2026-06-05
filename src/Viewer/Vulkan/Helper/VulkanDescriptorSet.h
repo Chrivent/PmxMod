@@ -3,6 +3,8 @@
 #include "VulkanBuffer.h"
 #include "VulkanPipeline.h"
 
+#include <vector>
+
 namespace Chrivent {
 	struct VulkanMaterial;
 	enum class VulkanPassType {
@@ -11,14 +13,10 @@ namespace Chrivent {
 		GroundShadow
 	};
 
-	struct VulkanDescriptorSetInfo {
-		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
-		std::vector<VkDescriptorSet> pixelDescriptorSets;
-	};
-
 	class VulkanDescriptorSet {
-		VulkanDescriptorSetInfo info;
+		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> pixelDescriptorSets;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 		VkDevice device = VK_NULL_HANDLE;
 		VulkanPassType passType = VulkanPassType::Model;
@@ -43,7 +41,7 @@ namespace Chrivent {
 		VulkanDescriptorSet(VulkanDescriptorSet&&) = delete;
 		VulkanDescriptorSet& operator=(VulkanDescriptorSet&&) = delete;
 
-		const VulkanDescriptorSetInfo& GetInfo() const { return info; }
+		const VkDescriptorSet& GetVertexDescriptorSet() const { return vertexDescriptorSet; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
 		bool Initialize(

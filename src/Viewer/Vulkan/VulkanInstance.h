@@ -5,6 +5,9 @@
 #include "Helper/VulkanBuffer.h"
 #include "Helper/VulkanDescriptorSet.h"
 
+#include <array>
+#include <vector>
+
 namespace Chrivent {
 	class VulkanViewer;
 	struct ModelGeometryData;

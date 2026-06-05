@@ -1,6 +1,7 @@
 ﻿#include "VulkanTextureCache.h"
 
 #include "Helper/VulkanBuffer.h"
+#include "Helper/VulkanMemory.h"
 #include "../Viewer.h"
 
 #include <iostream>
@@ -8,23 +9,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-	bool VulkanTextureCache::FindMemoryType(
-		const VulkanDeviceInfo& deviceInfo,
-		const uint32_t typeFilter,
-		const VkMemoryPropertyFlags properties,
-		uint32_t& memoryType) {
-		VkPhysicalDeviceMemoryProperties memoryProperties{};
-		vkGetPhysicalDeviceMemoryProperties(deviceInfo.physicalDevice, &memoryProperties);
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
-			if ((typeFilter & 1 << i) != 0 &&
-				(memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-				memoryType = i;
-				return true;
-			}
-		}
-		return false;
-	}
-
 	bool VulkanTextureCache::BeginSingleTimeCommands(
 		const VulkanDeviceInfo& deviceInfo,
 		const VkCommandPool commandPool,
@@ -43,6 +27,8 @@ namespace Chrivent {
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 			std::cerr << "Failed to begin Vulkan texture command buffer.\n";
+			vkFreeCommandBuffers(deviceInfo.device, commandPool, 1, &commandBuffer);
+			commandBuffer = VK_NULL_HANDLE;
 			return false;
 		}
 		return true;
@@ -54,6 +40,7 @@ namespace Chrivent {
 		const VkCommandBuffer commandBuffer) {
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan texture command buffer.\n";
+			vkFreeCommandBuffers(deviceInfo.device, commandPool, 1, &commandBuffer);
 			return false;
 		}
 		VkSubmitInfo submitInfo{};
@@ -62,6 +49,7 @@ namespace Chrivent {
 		submitInfo.pCommandBuffers = &commandBuffer;
 		if (vkQueueSubmit(deviceInfo.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 			std::cerr << "Failed to submit Vulkan texture command buffer.\n";
+			vkFreeCommandBuffers(deviceInfo.device, commandPool, 1, &commandBuffer);
 			return false;
 		}
 		vkQueueWaitIdle(deviceInfo.graphicsQueue);
@@ -155,20 +143,30 @@ namespace Chrivent {
 			return false;
 		texture.width = width;
 		texture.height = height;
-		if (!CreateImage(deviceInfo, texture.width, texture.height, texture.image, texture.imageMemory))
+		if (!CreateImage(deviceInfo, texture.width, texture.height, texture.image, texture.imageMemory)) {
+			DestroyTexture(texture);
 			return false;
+		}
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-		if (!BeginSingleTimeCommands(deviceInfo, commandPool, commandBuffer))
+		if (!BeginSingleTimeCommands(deviceInfo, commandPool, commandBuffer)) {
+			DestroyTexture(texture);
 			return false;
+		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		CopyBufferToImage(commandBuffer, stagingBuffer.GetInfo().buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		if (!EndSingleTimeCommands(deviceInfo, commandPool, commandBuffer))
+		if (!EndSingleTimeCommands(deviceInfo, commandPool, commandBuffer)) {
+			DestroyTexture(texture);
 			return false;
-		if (!CreateImageView(texture.image, texture.imageView))
+		}
+		if (!CreateImageView(texture.image, texture.imageView)) {
+			DestroyTexture(texture);
 			return false;
-		if (!CreateSampler(texture.sampler, clamp))
+		}
+		if (!CreateSampler(texture.sampler, clamp)) {
+			DestroyTexture(texture);
 			return false;
+		}
 		return true;
 	}
 
@@ -199,7 +197,7 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(deviceInfo.device, image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+		if (!VulkanMemory::FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			std::cerr << "Failed to find Vulkan texture image memory type.\n";
 			return false;
 		}
@@ -284,9 +282,7 @@ namespace Chrivent {
 
 	VulkanTextureCache::~VulkanTextureCache() {
 		for (const auto& texture : textures | std::views::values) {
-			const auto vulkanTexture = std::dynamic_pointer_cast<VulkanTexture>(texture);
-			if (!vulkanTexture)
-				continue;
+			const auto vulkanTexture = std::static_pointer_cast<VulkanTexture>(texture);
 			DestroyTexture(*vulkanTexture);
 		}
 		textures.clear();
@@ -305,8 +301,8 @@ namespace Chrivent {
 		};
 		const auto it = textures.find(cacheKey);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
-			return texture ? *texture : VulkanTexture{};
+			const auto texture = std::static_pointer_cast<VulkanTexture>(it->second);
+			return *texture;
 		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
@@ -330,8 +326,8 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::White };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<VulkanTexture>(it->second);
-			return texture ? *texture : VulkanTexture{};
+			const auto texture = std::static_pointer_cast<VulkanTexture>(it->second);
+			return *texture;
 		}
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<VulkanTexture>();

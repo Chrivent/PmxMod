@@ -15,11 +15,9 @@ namespace Chrivent {
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
 
-		// Finds a Vulkan memory type index that matches the requested properties.
-		static bool FindMemoryType(const VulkanDeviceInfo& deviceInfo, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& memoryType);
-		// Creates the multisampled color attachment image and its memory.
+		// 멀티샘플 color attachment image와 메모리를 생성한다.
 		bool CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);
-		// Creates an image view for the multisampled color image.
+		// 멀티샘플 color image용 image view를 생성한다.
 		bool CreateImageView();
 
 	public:
@@ -33,9 +31,9 @@ namespace Chrivent {
 
 		const VulkanColorBufferInfo& GetInfo() const { return info; }
 
-		// Creates the multisampled color image and image view for the swapchain.
+		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);
-		// Releases the multisampled color resources.
+		// 생성한 멀티샘플 color 리소스를 해제한다.
 		void Destroy();
 	};
 }

@@ -3,6 +3,8 @@
 #include "../TextureCache.h"
 #include "Helper/VulkanDevice.h"
 
+#include <filesystem>
+
 namespace Chrivent {
 	struct VulkanTexture : Texture {
 		VkImage image = VK_NULL_HANDLE;
@@ -16,8 +18,6 @@ namespace Chrivent {
 	class VulkanTextureCache : public TextureCache {
 		VkDevice device = VK_NULL_HANDLE;
 
-		// 물리 디바이스 메모리 중 요청한 속성을 만족하는 memory type index를 찾는다.
-		static bool FindMemoryType(const VulkanDeviceInfo& deviceInfo, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& memoryType);
 		// 일회성 복사/레이아웃 전환용 command buffer 기록을 시작한다.
 		static bool BeginSingleTimeCommands(const VulkanDeviceInfo& deviceInfo, VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
 		// 일회성 command buffer를 제출하고 해제한다.

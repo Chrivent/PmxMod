@@ -19,8 +19,6 @@ namespace Chrivent {
 		static VkFormat FindDepthFormat(const VulkanDeviceInfo& deviceInfo);
 		// 후보 format 중 tiling과 feature 조건을 만족하는 format을 찾는다.
 		static VkFormat FindSupportedFormat(const VulkanDeviceInfo& deviceInfo, const VkFormat* candidates, uint32_t candidateCount, VkImageTiling tiling, VkFormatFeatureFlags features);
-		// 메모리 요구 조건에 맞는 Vulkan memory type index를 찾는다.
-		static bool FindMemoryType(const VulkanDeviceInfo& deviceInfo, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& memoryType);
 		// depth attachment로 사용할 image와 메모리를 생성한다.
 		bool CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);
 		// depth image를 framebuffer에 연결하기 위한 image view를 생성한다.

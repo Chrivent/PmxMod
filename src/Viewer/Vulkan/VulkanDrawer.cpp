@@ -42,7 +42,7 @@ namespace Chrivent {
 		if (!vertexSlice.has_value() ||
 			!info.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
-		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
+		info.viewer->BindModelDescriptorSets(info.modelDescriptorSet, vertexSlice.has_value() ? vertexSlice->offset : 0);
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
@@ -120,7 +120,7 @@ namespace Chrivent {
 			if (!vertexSlice.has_value() ||
 				!info.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
-			info.viewer->BindModelDescriptorSets(info.edgeDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
+			info.viewer->BindModelDescriptorSets(info.edgeDescriptorSet, vertexSlice.has_value() ? vertexSlice->offset : 0);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			const auto pixelSlice = info.edgePixelConstantsRing.Allocate(
@@ -171,10 +171,7 @@ namespace Chrivent {
 			!info.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
 		info.viewer->BindGroundShadowPipeline();
-		info.viewer->BindModelDescriptorSets(info.groundShadowDescriptorSet.GetInfo(), vertexSlice.has_value() ? vertexSlice->offset : 0);
-		const auto& descriptorSets = info.groundShadowDescriptorSet.GetInfo().pixelDescriptorSets;
-		if (!descriptorSets.empty())
-			info.viewer->BindPixelDescriptorSet(descriptorSets.front(), pixelSlice.has_value() ? pixelSlice->offset : 0);
+		info.viewer->BindModelDescriptorSets(info.groundShadowDescriptorSet, vertexSlice.has_value() ? vertexSlice->offset : 0);
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
@@ -182,6 +179,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
+			info.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->DrawIndexed(
 				vertexBuffer.GetInfo(),
 				info.indexBuffer.GetInfo(),
