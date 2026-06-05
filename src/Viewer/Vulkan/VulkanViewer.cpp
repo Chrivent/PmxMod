@@ -130,15 +130,15 @@ namespace Chrivent {
 			return false;
 		if (!swapChain.Initialize(device.GetInfo(), GetInfo().window))
 			return false;
-		if (!colorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaColorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaDepthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), depthBuffer.GetInfo().format))
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
 			return false;
 		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), colorBuffer.GetInfo().imageView, depthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
 			return false;
 		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
@@ -155,19 +155,19 @@ namespace Chrivent {
 		frameBuffer.Destroy();
 		pipeline.Destroy();
 		renderPass.Destroy();
-		colorBuffer.Destroy();
-		depthBuffer.Destroy();
+		msaaColorBuffer.Destroy();
+		msaaDepthBuffer.Destroy();
 		if (!swapChain.Recreate(device.GetInfo(), GetInfo().window))
 			return false;
-		if (!colorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaColorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!depthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaDepthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), depthBuffer.GetInfo().format))
+		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
 			return false;
 		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), colorBuffer.GetInfo().imageView, depthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
 			return false;
 		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
 			return false;

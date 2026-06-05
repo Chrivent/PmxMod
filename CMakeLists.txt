@@ -122,10 +122,10 @@ set(VULKAN_SOURCES
         src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.h src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.cpp
 
         src/Viewer/Vulkan/Helper/VulkanBuffer.h src/Viewer/Vulkan/Helper/VulkanBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanColorBuffer.h src/Viewer/Vulkan/Helper/VulkanColorBuffer.cpp
+        src/Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.h src/Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp
-        src/Viewer/Vulkan/Helper/VulkanDepthBuffer.h src/Viewer/Vulkan/Helper/VulkanDepthBuffer.cpp
+        src/Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h src/Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
         src/Viewer/Vulkan/Helper/VulkanDescriptorSet.h src/Viewer/Vulkan/Helper/VulkanDescriptorSet.cpp
         src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
         src/Viewer/Vulkan/Helper/VulkanMemory.h

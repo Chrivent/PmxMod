@@ -4,13 +4,13 @@
 #include "VulkanSwapChain.h"
 
 namespace Chrivent {
-	struct VulkanColorBufferInfo {
+	struct VulkanMsaaColorBufferInfo {
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_UNDEFINED;
 	};
 
-	class VulkanColorBuffer {
-		VulkanColorBufferInfo info;
+	class VulkanMsaaColorBuffer {
+		VulkanMsaaColorBufferInfo info;
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
@@ -21,15 +21,15 @@ namespace Chrivent {
 		bool CreateImageView();
 
 	public:
-		VulkanColorBuffer() = default;
-		~VulkanColorBuffer();
+		VulkanMsaaColorBuffer() = default;
+		~VulkanMsaaColorBuffer();
 
-		VulkanColorBuffer(const VulkanColorBuffer&) = delete;
-		VulkanColorBuffer& operator=(const VulkanColorBuffer&) = delete;
-		VulkanColorBuffer(VulkanColorBuffer&&) = delete;
-		VulkanColorBuffer& operator=(VulkanColorBuffer&&) = delete;
+		VulkanMsaaColorBuffer(const VulkanMsaaColorBuffer&) = delete;
+		VulkanMsaaColorBuffer& operator=(const VulkanMsaaColorBuffer&) = delete;
+		VulkanMsaaColorBuffer(VulkanMsaaColorBuffer&&) = delete;
+		VulkanMsaaColorBuffer& operator=(VulkanMsaaColorBuffer&&) = delete;
 
-		const VulkanColorBufferInfo& GetInfo() const { return info; }
+		const VulkanMsaaColorBufferInfo& GetInfo() const { return info; }
 
 		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
 		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo);

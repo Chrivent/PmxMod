@@ -54,7 +54,7 @@ namespace Chrivent {
 			info.physicalDevice = candidate;
 			vkGetPhysicalDeviceProperties(candidate, &info.properties);
 			info.queueFamilies = FindQueueFamilies(candidate);
-			info.sampleCount = ChooseSampleCount(candidate);
+			info.msaaSampleCount = ChooseMsaaSampleCount(candidate);
 			return true;
 		}
 		std::cerr << "Failed to find a suitable Vulkan physical device.\n";
@@ -130,7 +130,7 @@ namespace Chrivent {
 		return indices;
 	}
 
-	VkSampleCountFlagBits VulkanDevice::ChooseSampleCount(const VkPhysicalDevice candidate) {
+	VkSampleCountFlagBits VulkanDevice::ChooseMsaaSampleCount(const VkPhysicalDevice candidate) {
 		VkPhysicalDeviceProperties properties{};
 		vkGetPhysicalDeviceProperties(candidate, &properties);
 		const VkSampleCountFlags supportedSamples =

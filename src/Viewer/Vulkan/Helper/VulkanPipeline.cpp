@@ -178,7 +178,7 @@ namespace Chrivent {
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.rasterizationSamples = deviceInfo.sampleCount;
+		multisampling.rasterizationSamples = deviceInfo.msaaSampleCount;
 		multisampling.sampleShadingEnable = VK_FALSE;
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;

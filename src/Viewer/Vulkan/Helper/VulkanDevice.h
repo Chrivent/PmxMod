@@ -23,7 +23,7 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
-		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
+		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
 		VulkanQueueFamilyIndices queueFamilies;
 	};
 
@@ -47,7 +47,7 @@ namespace Chrivent {
 		// 물리 디바이스에서 그래픽/표시 큐 패밀리를 찾는다.
 		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
 		// 물리 디바이스가 지원하는 샘플 수 중 현재 렌더러에서 사용할 값을 고른다.
-		static VkSampleCountFlagBits ChooseSampleCount(VkPhysicalDevice candidate);
+		static VkSampleCountFlagBits ChooseMsaaSampleCount(VkPhysicalDevice candidate);
 		// 물리 디바이스가 필수 디바이스 확장을 지원하는지 확인한다.
 		static bool CheckDeviceExtensionSupport(VkPhysicalDevice candidate);
 

@@ -1,11 +1,11 @@
-﻿#include "VulkanColorBuffer.h"
+﻿#include "VulkanMsaaColorBuffer.h"
 
 #include "VulkanMemory.h"
 
 #include <iostream>
 
 namespace Chrivent {
-	bool VulkanColorBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanMsaaColorBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -18,7 +18,7 @@ namespace Chrivent {
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		imageInfo.samples = deviceInfo.sampleCount;
+		imageInfo.samples = deviceInfo.msaaSampleCount;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateImage(deviceInfo.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan MSAA color image.\n";
@@ -46,7 +46,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanColorBuffer::CreateImageView() {
+	bool VulkanMsaaColorBuffer::CreateImageView() {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -64,11 +64,11 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanColorBuffer::~VulkanColorBuffer() {
+	VulkanMsaaColorBuffer::~VulkanMsaaColorBuffer() {
 		Destroy();
 	}
 
-	bool VulkanColorBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanMsaaColorBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		device = deviceInfo.device;
 		info.format = swapChainInfo.imageFormat;
 		if (!CreateImage(deviceInfo, swapChainInfo))
@@ -76,7 +76,7 @@ namespace Chrivent {
 		return CreateImageView();
 	}
 
-	void VulkanColorBuffer::Destroy() {
+	void VulkanMsaaColorBuffer::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (info.imageView != VK_NULL_HANDLE) {

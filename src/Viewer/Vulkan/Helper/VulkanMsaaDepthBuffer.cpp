@@ -1,11 +1,11 @@
-﻿#include "VulkanDepthBuffer.h"
+﻿#include "VulkanMsaaDepthBuffer.h"
 
 #include "VulkanMemory.h"
 
 #include <iostream>
 
 namespace Chrivent {
-	VkFormat VulkanDepthBuffer::FindDepthFormat(const VulkanDeviceInfo& deviceInfo) {
+	VkFormat VulkanMsaaDepthBuffer::FindDepthFormat(const VulkanDeviceInfo& deviceInfo) {
 		constexpr VkFormat candidates[] = {
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D24_UNORM_S8_UINT,
@@ -19,7 +19,7 @@ namespace Chrivent {
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 	}
 
-	VkFormat VulkanDepthBuffer::FindSupportedFormat(
+	VkFormat VulkanMsaaDepthBuffer::FindSupportedFormat(
 		const VulkanDeviceInfo& deviceInfo,
 		const VkFormat* candidates,
 		const uint32_t candidateCount,
@@ -36,7 +36,7 @@ namespace Chrivent {
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	bool VulkanDepthBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanMsaaDepthBuffer::CreateImage(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -49,7 +49,7 @@ namespace Chrivent {
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.samples = deviceInfo.sampleCount;
+		imageInfo.samples = deviceInfo.msaaSampleCount;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateImage(deviceInfo.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan depth image.\n";
@@ -77,7 +77,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanDepthBuffer::CreateImageView() {
+	bool VulkanMsaaDepthBuffer::CreateImageView() {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -97,15 +97,15 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanDepthBuffer::~VulkanDepthBuffer() {
+	VulkanMsaaDepthBuffer::~VulkanMsaaDepthBuffer() {
 		Destroy();
 	}
 
-	bool VulkanDepthBuffer::HasStencilComponent(const VkFormat format) {
+	bool VulkanMsaaDepthBuffer::HasStencilComponent(const VkFormat format) {
 		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
-	bool VulkanDepthBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanMsaaDepthBuffer::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
 		device = deviceInfo.device;
 		info.format = FindDepthFormat(deviceInfo);
 		if (info.format == VK_FORMAT_UNDEFINED) {
@@ -117,7 +117,7 @@ namespace Chrivent {
 		return CreateImageView();
 	}
 
-	void VulkanDepthBuffer::Destroy() {
+	void VulkanMsaaDepthBuffer::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (info.imageView != VK_NULL_HANDLE) {

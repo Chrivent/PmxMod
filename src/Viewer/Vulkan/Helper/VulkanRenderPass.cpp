@@ -1,6 +1,6 @@
 ﻿#include "VulkanRenderPass.h"
 
-#include "VulkanDepthBuffer.h"
+#include "VulkanMsaaDepthBuffer.h"
 
 #include <array>
 #include <iostream>
@@ -17,7 +17,7 @@ namespace Chrivent {
 		device = deviceInfo.device;
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = swapChainInfo.imageFormat;
-		colorAttachment.samples = deviceInfo.sampleCount;
+		colorAttachment.samples = deviceInfo.msaaSampleCount;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -26,10 +26,10 @@ namespace Chrivent {
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = depthFormat;
-		depthAttachment.samples = deviceInfo.sampleCount;
+		depthAttachment.samples = deviceInfo.msaaSampleCount;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VulkanDepthBuffer::HasStencilComponent(depthFormat)
+		depthAttachment.stencilLoadOp = VulkanMsaaDepthBuffer::HasStencilComponent(depthFormat)
 			? VK_ATTACHMENT_LOAD_OP_CLEAR
 			: VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
