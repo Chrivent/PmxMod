@@ -29,7 +29,6 @@ namespace Chrivent {
 		BeginDynamicBufferFrame();
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
-		const auto vao = info.vao;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
@@ -49,7 +48,7 @@ namespace Chrivent {
 			0,
 			&vertexConstants,
 			sizeof(vertexConstants));
-		glBindVertexArray(vao);
+		glBindVertexArray(info.vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -137,7 +136,6 @@ namespace Chrivent {
 	void GlfwDrawer::DrawEdge() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
-		const auto edgeVao = info.edgeVao;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
@@ -148,7 +146,7 @@ namespace Chrivent {
 		baseVertexConstants.wvp = proj * view * world;
 		baseVertexConstants.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
 		glUseProgram(edgeShader->program);
-		glBindVertexArray(edgeVao);
+		glBindVertexArray(info.edgeVao);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
@@ -180,7 +178,6 @@ namespace Chrivent {
 	void GlfwDrawer::DrawGroundShadow() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
-		const auto gsVao = info.gsVao;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;
 		const auto& proj = viewer->GetInfo().projMat;
@@ -199,15 +196,14 @@ namespace Chrivent {
 			0,
 			&vertexConstants,
 			sizeof(vertexConstants));
-		glBindVertexArray(gsVao);
+		glBindVertexArray(info.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		constexpr auto shadowColor = pixelConstants.shadowColor;
 		UpdateUniformBuffer(
 			info.pixelConstantsRing,
 			1,
 			&pixelConstants,
 			sizeof(pixelConstants));
-		if (shadowColor.a < 1.0f) {
+		if (pixelConstants.shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
