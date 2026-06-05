@@ -2,6 +2,7 @@
 
 #include "../Instance.h"
 
+#include <vector>
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -28,9 +29,10 @@ namespace Chrivent {
 
     class Dx11Instance : public Instance {
     protected:
+        // DX11 상수 버퍼 크기 규칙에 맞춰 16바이트 정렬 버퍼를 생성한다.
         template<typename T>
         static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
-            const UINT bytes = sizeof(T) + 15u & ~15u;
+            constexpr UINT bytes = (sizeof(T) + 15u) / 16u * 16u;
             const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
             return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
         }

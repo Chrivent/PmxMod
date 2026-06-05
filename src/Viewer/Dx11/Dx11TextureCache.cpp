@@ -10,8 +10,8 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::White };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
-			return texture ? *texture : Dx11Texture{};
+			const auto texture = std::static_pointer_cast<Dx11Texture>(it->second);
+			return *texture;
 		}
 		const auto d = Dx11DescBuilder::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		constexpr uint8_t white[] = { 255, 255, 255, 255 };
@@ -37,8 +37,8 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath };
 		const auto it = textures.find(key);
 		if (it != textures.end()) {
-			const auto texture = std::dynamic_pointer_cast<Dx11Texture>(it->second);
-			return texture ? *texture : Dx11Texture{};
+			const auto texture = std::static_pointer_cast<Dx11Texture>(it->second);
+			return *texture;
 		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);

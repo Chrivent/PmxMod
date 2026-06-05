@@ -8,7 +8,7 @@ struct ma_sound;
 
 namespace Chrivent {
     class Sound {
-        float volume = 0.1f;
+        float volume = 0.5f;
         double lengthSec = 0.0;
         std::unique_ptr<ma_engine> engine;
         std::unique_ptr<ma_sound>  sound;

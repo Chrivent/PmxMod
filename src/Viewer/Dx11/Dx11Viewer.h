@@ -5,6 +5,9 @@
 #include "Helper/Dx11Constants.h"
 #include "Helper/Dx11Shader.h"
 
+#include <filesystem>
+#include <memory>
+
 namespace Chrivent {
     class Dx11Viewer;
 
