@@ -26,7 +26,7 @@ namespace Chrivent {
 
 	public:
 		Dx12Viewer();
-		~Dx12Viewer() override = default;
+		~Dx12Viewer() override;
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
