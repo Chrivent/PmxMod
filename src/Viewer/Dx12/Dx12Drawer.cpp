@@ -3,6 +3,8 @@
 #include "Dx12Instance.h"
 #include "Dx12Viewer.h"
 #include "Helper/Dx12Constants.h"
+#include "../Assist/ViewerMatrix.h"
+#include "../Assist/ViewerTextureMode.h"
 #include "../../Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,21 +14,14 @@ namespace Chrivent {
 	void Dx12Drawer::DrawModel() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
-		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		constexpr glm::mat4 dxClipMatrix(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
 		Dx12ModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = dxClipMatrix * viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
@@ -60,16 +55,9 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			if (material.texture.resource)
-				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
-			if (material.toonTexture.resource)
-				pixelConstants.textureModes.y = 1;
-			if (material.sphereTexture.resource) {
-				if (mat.spTextureMode == SphereMode::Mul)
-					pixelConstants.textureModes.z = 1;
-				else if (mat.spTextureMode == SphereMode::Add)
-					pixelConstants.textureModes.z = 2;
-			}
+			pixelConstants.textureModes.x = ViewerTextureMode::Base(material.texture.resource != nullptr, material.texture.hasAlpha);
+			pixelConstants.textureModes.y = ViewerTextureMode::Toon(material.toonTexture.resource != nullptr);
+			pixelConstants.textureModes.z = ViewerTextureMode::Sphere(material.sphereTexture.resource != nullptr, mat.spTextureMode);
 			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId];
 			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
@@ -85,21 +73,14 @@ namespace Chrivent {
 	void Dx12Drawer::DrawEdge() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
-		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		constexpr glm::mat4 dxClipMatrix(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
 		Dx12EdgeVertexConstants vertexConstants{};
 		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = dxClipMatrix * viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
 		if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 edge vertex constants.\n";
@@ -140,23 +121,14 @@ namespace Chrivent {
 	void Dx12Drawer::DrawGroundShadow() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
-		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		constexpr glm::mat4 dxClipMatrix(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
-		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
-		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = ViewerMatrix::BuildGroundShadowMatrix(viewerInfo.lightDir);
 		Dx12GroundShadowVertexConstants vertexConstants;
-		vertexConstants.wvp = dxClipMatrix * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
+		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;

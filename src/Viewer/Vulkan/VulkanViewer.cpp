@@ -7,6 +7,11 @@
 namespace Chrivent {
 	VulkanViewer::VulkanViewer() {
 		info = std::make_unique<VulkanViewerInfo>();
+		auto& vulkanInfo = GetVulkanInfo();
+		vulkanInfo.deviceInfo = &device.GetInfo();
+		vulkanInfo.pipelineInfo = &pipeline.GetInfo();
+		vulkanInfo.dummyTexture = &dummyTexture;
+		vulkanInfo.syncInfo = &syncObject.GetInfo();
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}

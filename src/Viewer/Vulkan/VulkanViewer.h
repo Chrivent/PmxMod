@@ -27,7 +27,12 @@ namespace Chrivent {
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 	
-	struct VulkanViewerInfo : ViewerInfo {};
+	struct VulkanViewerInfo : ViewerInfo {
+		const VulkanDeviceInfo* deviceInfo = nullptr;
+		const VulkanPipelineInfo* pipelineInfo = nullptr;
+		const VulkanTexture* dummyTexture = nullptr;
+		const VulkanSyncObjectInfo* syncInfo = nullptr;
+	};
 
 	struct VulkanBindStateCache {
 		VkPipeline pipeline = VK_NULL_HANDLE;
@@ -58,10 +63,8 @@ namespace Chrivent {
 		VulkanViewer();
 		~VulkanViewer() override = default;
 
-		const VulkanDeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
-		const VulkanPipelineInfo& GetPipelineInfo() const { return pipeline.GetInfo(); }
-		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
-		size_t GetCurrentFrameIndex() const { return syncObject.GetInfo().currentFrame; }
+		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
+		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);

@@ -21,12 +21,10 @@ namespace Chrivent {
 		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 
-	struct Dx12ViewerInfo : ViewerInfo {};
-
-	struct Dx12RenderContextInfo {
-		const Dx12DeviceInfo& deviceInfo;
+	struct Dx12ViewerInfo : ViewerInfo {
+		const Dx12DeviceInfo* deviceInfo = nullptr;
 		ID3D12GraphicsCommandList* commandList = nullptr;
-		const Dx12Texture& dummyTexture;
+		const Dx12Texture* dummyTexture = nullptr;
 	};
 
 	class Dx12Viewer : public Viewer {
@@ -42,6 +40,9 @@ namespace Chrivent {
 		Dx12Viewer();
 		~Dx12Viewer() override;
 
+		Dx12ViewerInfo& GetDx12Info() { return static_cast<Dx12ViewerInfo&>(GetInfo()); }
+		const Dx12ViewerInfo& GetDx12Info() const { return static_cast<const Dx12ViewerInfo&>(GetInfo()); }
+
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;
 		// DX12 렌더러 리소스를 초기화한다.
@@ -54,8 +55,6 @@ namespace Chrivent {
 		bool EndFrame() override;
 		// DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
-		// DX12 draw/setup에 필요한 외부 접근용 렌더링 context를 묶어 반환한다.
-		Dx12RenderContextInfo BuildRenderContext() const;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
 		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
 		// material의 양면 렌더링 여부에 맞는 DX12 model pipeline state를 바인딩한다.

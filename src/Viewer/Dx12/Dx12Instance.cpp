@@ -59,8 +59,10 @@ namespace Chrivent {
 	bool Dx12Instance::CreateTextureDescriptors(Dx12InstanceInfo& info) {
 		if (info.viewer == nullptr || info.materials.empty())
 			return true;
-		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
-		const auto& deviceInfo = renderContext.deviceInfo;
+		const auto& viewerInfo = info.viewer->GetDx12Info();
+		if (viewerInfo.deviceInfo == nullptr || viewerInfo.dummyTexture == nullptr)
+			return false;
+		const auto& deviceInfo = *viewerInfo.deviceInfo;
 		if (!deviceInfo.device)
 			return false;
 		if (info.materials.size() > (std::numeric_limits<UINT>::max)() / 3)
@@ -85,9 +87,9 @@ namespace Chrivent {
 		};
 		for (Dx12Material& material : info.materials) {
 			material.textureDescriptorHandle = gpuHandle;
-			const Dx12Texture& texture = material.texture.resource ? material.texture : renderContext.dummyTexture;
-			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : renderContext.dummyTexture;
-			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : renderContext.dummyTexture;
+			const Dx12Texture& texture = material.texture.resource ? material.texture : *viewerInfo.dummyTexture;
+			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : *viewerInfo.dummyTexture;
+			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : *viewerInfo.dummyTexture;
 			CreateSrv(texture, cpuHandle);
 			cpuHandle.ptr += info.textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
@@ -146,8 +148,10 @@ namespace Chrivent {
 		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indices.size() > (std::numeric_limits<UINT>::max)())
 			return false;
-		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
-		const auto& deviceInfo = renderContext.deviceInfo;
+		const auto& viewerInfo = info.viewer->GetDx12Info();
+		if (viewerInfo.deviceInfo == nullptr)
+			return false;
+		const auto& deviceInfo = *viewerInfo.deviceInfo;
 		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
 			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
 			return false;

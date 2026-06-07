@@ -2,6 +2,8 @@
 
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
+#include "../Assist/ViewerMatrix.h"
+#include "../Assist/ViewerTextureMode.h"
 #include "../../Model/Model.h"
 
 namespace Chrivent {
@@ -30,16 +32,6 @@ namespace Chrivent {
 		}
 	}
 
-	const glm::mat4& Dx11Drawer::DxClipMatrix() {
-		static constexpr glm::mat4 dxMat(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
-		return dxMat;
-	}
-
 	void Dx11Drawer::DrawModel() {
 		const auto* viewer = info.viewer;
 		const auto& materials = info.materials;
@@ -53,7 +45,7 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		const auto wv = view * world;
-		const auto wvp = DxClipMatrix() * proj * view * world;
+		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
 		Dx11ModelPixelConstants basePsCb{};
 		basePsCb.lightColor = viewer->GetInfo().lightColor;
 		basePsCb.lightDir = lightDir;
@@ -85,9 +77,7 @@ namespace Chrivent {
 			psCb.ambient       = mat.ambient;
 			psCb.specular      = mat.specular;
 			psCb.specularPower = mat.specularPower;
-			int baseMode = 0;
-			if (material.texture.texture)
-				baseMode = !material.texture.hasAlpha ? 1 : 2;
+			const int baseMode = ViewerTextureMode::Base(material.texture.texture != nullptr, material.texture.hasAlpha);
 			BindTexture(
 				0, material.texture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), baseMode,
 				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor,
@@ -98,13 +88,7 @@ namespace Chrivent {
 				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor,
 				boundViews[1], boundSamplers[1]
 			);
-			int spMode = 0;
-			if (material.spTexture.texture) {
-				if (mat.spTextureMode == SphereMode::Mul)
-					spMode = 1;
-				else if (mat.spTextureMode == SphereMode::Add)
-					spMode = 2;
-			}
+			const int spMode = ViewerTextureMode::Sphere(material.spTexture.texture != nullptr, mat.spTextureMode);
 			BindTexture(
 				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode,
 				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor,
@@ -133,7 +117,7 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
-		const auto wvp = DxClipMatrix() * proj * view * world;
+		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edge.inputLayout.Get());
 		Dx11EdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
@@ -172,11 +156,9 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.groundShadow.inputLayout.Get());
-		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = ViewerMatrix::BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
 		Dx11GroundShadowVertexConstants vsCb;
-		vsCb.wvp = DxClipMatrix() * proj * view * shadow * world;
+		vsCb.wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.groundShadow.vertexShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.groundShadow.pixelShader.Get(), nullptr, 0);

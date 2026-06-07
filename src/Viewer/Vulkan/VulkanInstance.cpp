@@ -90,7 +90,14 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
 			return false;
 		}
-		const auto& deviceInfo = info.viewer->GetDeviceInfo();
+		const auto& viewerInfo = info.viewer->GetVulkanInfo();
+		if (viewerInfo.deviceInfo == nullptr ||
+			viewerInfo.pipelineInfo == nullptr ||
+			viewerInfo.dummyTexture == nullptr)
+			return false;
+		const auto& deviceInfo = *viewerInfo.deviceInfo;
+		const auto& pipelineInfo = *viewerInfo.pipelineInfo;
+		const auto& dummyTexture = *viewerInfo.dummyTexture;
 		for (auto& vertexBuffer : info.vertexBuffers) {
 			if (!vertexBuffer.Initialize(
 				deviceInfo,
@@ -139,26 +146,26 @@ namespace Chrivent {
 			if (!mat.texture.empty()) {
 				material.texture = info.viewer->LoadTexture(mat.texture);
 				if (material.texture.image == VK_NULL_HANDLE)
-					material.texture = info.viewer->GetDummyTexture();
+					material.texture = dummyTexture;
 			} else
-				material.texture = info.viewer->GetDummyTexture();
+				material.texture = dummyTexture;
 			if (!mat.spTexture.empty()) {
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
 				if (material.sphereTexture.image == VK_NULL_HANDLE)
-					material.sphereTexture = info.viewer->GetDummyTexture();
+					material.sphereTexture = dummyTexture;
 			} else
-				material.sphereTexture = info.viewer->GetDummyTexture();
+				material.sphereTexture = dummyTexture;
 			if (!mat.toonTexture.empty()) {
 				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true);
 				if (material.toonTexture.image == VK_NULL_HANDLE)
-					material.toonTexture = info.viewer->GetDummyTexture();
+					material.toonTexture = dummyTexture;
 			} else
-				material.toonTexture = info.viewer->GetDummyTexture();
+				material.toonTexture = dummyTexture;
 			info.materials.emplace_back(std::move(material));
 		}
 		if (!info.modelDescriptorSet.Initialize(
 			deviceInfo,
-			info.viewer->GetPipelineInfo(),
+			pipelineInfo,
 			info.modelVertexConstantsRing.GetBuffer().GetInfo(),
 			sizeof(ModelVertexConstants),
 			info.modelPixelConstantsRing.GetBuffer().GetInfo(),
@@ -168,7 +175,7 @@ namespace Chrivent {
 			return false;
 		if (!info.edgeDescriptorSet.Initialize(
 			deviceInfo,
-			info.viewer->GetPipelineInfo(),
+			pipelineInfo,
 			info.edgeVertexConstantsRing.GetBuffer().GetInfo(),
 			sizeof(EdgeVertexConstants),
 			info.edgePixelConstantsRing.GetBuffer().GetInfo(),
@@ -178,7 +185,7 @@ namespace Chrivent {
 			return false;
 		if (!info.groundShadowDescriptorSet.Initialize(
 			deviceInfo,
-			info.viewer->GetPipelineInfo(),
+			pipelineInfo,
 			info.groundShadowVertexConstantsRing.GetBuffer().GetInfo(),
 			sizeof(GroundShadowVertexConstants),
 			info.groundShadowPixelConstantsRing.GetBuffer().GetInfo(),
@@ -193,7 +200,10 @@ namespace Chrivent {
 		const auto& info = static_cast<const VulkanInstanceInfo&>(GetInfo());
 		if (info.model == nullptr || info.viewer == nullptr)
 			return;
-		const size_t frameIndex = info.viewer->GetCurrentFrameIndex() % VulkanInstanceInfo::kBufferedFrames;
+		const auto& viewerInfo = info.viewer->GetVulkanInfo();
+		if (viewerInfo.syncInfo == nullptr)
+			return;
+		const size_t frameIndex = viewerInfo.syncInfo->currentFrame % VulkanInstanceInfo::kBufferedFrames;
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex];
 		if (vertexBuffer.GetInfo().buffer == VK_NULL_HANDLE)
 			return;

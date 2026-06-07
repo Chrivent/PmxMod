@@ -10,6 +10,9 @@
 namespace Chrivent {
 	Dx12Viewer::Dx12Viewer() {
 		info = std::make_unique<Dx12ViewerInfo>();
+		auto& dx12Info = GetDx12Info();
+		dx12Info.deviceInfo = &device.GetInfo();
+		dx12Info.dummyTexture = &dummyTexture;
 	}
 
 	Dx12Viewer::~Dx12Viewer() {
@@ -35,6 +38,7 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
 		}
+		GetDx12Info().commandList = commandContext.GetInfo().commandList.Get();
 		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
 		if (!swapChain.Initialize(device.GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
@@ -117,14 +121,6 @@ namespace Chrivent {
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
 		return std::make_unique<Dx12Instance>();
-	}
-
-	Dx12RenderContextInfo Dx12Viewer::BuildRenderContext() const {
-		return Dx12RenderContextInfo{
-			device.GetInfo(),
-			commandContext.GetInfo().commandList.Get(),
-			dummyTexture
-		};
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
