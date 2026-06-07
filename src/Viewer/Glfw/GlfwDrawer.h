@@ -25,7 +25,8 @@ namespace Chrivent {
 		void DrawGroundShadow() override;
 
 	public:
-		explicit GlfwDrawer(GlfwInstanceInfo& sourceInfo);
 		~GlfwDrawer() override = default;
+
+		explicit GlfwDrawer(GlfwInstanceInfo& sourceInfo);
 	};
 }

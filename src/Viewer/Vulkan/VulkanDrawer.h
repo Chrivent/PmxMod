@@ -19,7 +19,8 @@ namespace Chrivent {
 		void DrawGroundShadow() override;
 
 	public:
-		explicit VulkanDrawer(VulkanInstanceInfo& sourceInfo);
 		~VulkanDrawer() override = default;
+
+		explicit VulkanDrawer(VulkanInstanceInfo& sourceInfo);
 	};
 }

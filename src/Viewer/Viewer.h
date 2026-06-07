@@ -15,8 +15,9 @@ namespace Chrivent {
     struct ViewerMaterial {
         const Material& mat;
 
-        explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
         virtual ~ViewerMaterial() = default;
+
+        explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
     };
     
     struct ViewerInfo {

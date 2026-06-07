@@ -6,13 +6,13 @@
 namespace Chrivent {
 	MotionState::~MotionState() = default;
 
+	DefaultMotionState::~DefaultMotionState() = default;
+
 	DefaultMotionState::DefaultMotionState(const glm::mat4& initialMatrix) {
 		glm::mat4 trans = Util::InvZ(initialMatrix);
 		transform.setFromOpenGLMatrix(&trans[0][0]);
 		initialTransform = transform;
 	}
-
-	DefaultMotionState::~DefaultMotionState() = default;
 
 	DynamicMotionState::DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
 		: offset(offsetMatrix), node(nodePtr) {

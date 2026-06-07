@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
@@ -21,8 +20,9 @@ namespace Chrivent {
 		btTransform	transform;
 
 	public:
-		explicit DefaultMotionState(const glm::mat4& initialMatrix);
 		~DefaultMotionState() override;
+
+		explicit DefaultMotionState(const glm::mat4& initialMatrix);
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 		void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }

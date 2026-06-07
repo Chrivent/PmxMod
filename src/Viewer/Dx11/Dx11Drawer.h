@@ -28,7 +28,8 @@ namespace Chrivent {
 		void DrawGroundShadow() override;
 
 	public:
-		explicit Dx11Drawer(const Dx11InstanceInfo& sourceInfo);
 		~Dx11Drawer() override = default;
+
+		explicit Dx11Drawer(const Dx11InstanceInfo& sourceInfo);
 	};
 }
