@@ -66,7 +66,6 @@ namespace Chrivent {
 		~VulkanViewer() override = default;
 
 		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
-		const VulkanViewerInfo& GetVulkanInfo() const { return static_cast<const VulkanViewerInfo&>(GetInfo()); }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);

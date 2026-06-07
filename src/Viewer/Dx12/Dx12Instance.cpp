@@ -4,6 +4,7 @@
 #include "Dx12Viewer.h"
 #include "Helper/Dx12Constants.h"
 #include "../../Model/Model.h"
+#include "../../Model/ModelPose.h"
 
 #include <iostream>
 #include <limits>
@@ -213,6 +214,8 @@ namespace Chrivent {
 		const auto& info = static_cast<const Dx12InstanceInfo&>(GetInfo());
 		if (info.model == nullptr || !info.vertexBuffer.IsInitialized())
 			return;
+		const ModelPose pose(*info.model);
+		pose.Update();
 		const std::vector<Dx12Vertex> vertices = BuildVertices(info.model->geometryData, true);
 		if (vertices.empty())
 			return;

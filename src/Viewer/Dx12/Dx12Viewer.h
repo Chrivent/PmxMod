@@ -41,7 +41,6 @@ namespace Chrivent {
 		~Dx12Viewer() override;
 
 		Dx12ViewerInfo& GetDx12Info() { return static_cast<Dx12ViewerInfo&>(GetInfo()); }
-		const Dx12ViewerInfo& GetDx12Info() const { return static_cast<const Dx12ViewerInfo&>(GetInfo()); }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;

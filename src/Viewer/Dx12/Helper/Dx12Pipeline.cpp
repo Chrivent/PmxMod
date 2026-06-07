@@ -107,7 +107,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
 		pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-		pipelineDesc.RasterizerState.FrontCounterClockwise = FALSE;
+		pipelineDesc.RasterizerState.FrontCounterClockwise = TRUE;
 		pipelineDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 		pipelineDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 		pipelineDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
@@ -198,6 +198,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
 		pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+		pipelineDesc.RasterizerState.FrontCounterClockwise = TRUE;
 		pipelineDesc.RasterizerState.DepthClipEnable = TRUE;
 		pipelineDesc.DepthStencilState.DepthEnable = TRUE;
 		pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -276,6 +277,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
 		pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		pipelineDesc.RasterizerState.FrontCounterClockwise = TRUE;
 		pipelineDesc.RasterizerState.DepthBias = -1;
 		pipelineDesc.RasterizerState.DepthBiasClamp = -1.0f;
 		pipelineDesc.RasterizerState.SlopeScaledDepthBias = -1.0f;
