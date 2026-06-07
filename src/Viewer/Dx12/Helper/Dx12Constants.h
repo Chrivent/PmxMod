@@ -27,4 +27,28 @@ namespace Chrivent {
 		glm::vec4 sphereTexAddFactor{};
 		glm::ivec4 textureModes{};
 	};
+
+	struct Dx12EdgeVertexConstants {
+		glm::mat4 wv;
+		glm::mat4 wvp;
+		glm::vec2 screenSize{};
+		float padding[2]{};
+	};
+
+	struct Dx12EdgeSizeConstants {
+		float edgeSize = 0.0f;
+		float padding[3]{};
+	};
+
+	struct Dx12EdgePixelConstants {
+		glm::vec4 edgeColor{};
+	};
+
+	struct Dx12GroundShadowVertexConstants {
+		glm::mat4 wvp;
+	};
+
+	struct Dx12GroundShadowPixelConstants {
+		glm::vec4 shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+	};
 }

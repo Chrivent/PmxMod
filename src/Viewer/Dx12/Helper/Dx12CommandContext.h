@@ -20,7 +20,6 @@ namespace Chrivent {
 		Dx12CommandContextInfo info;
 
 	public:
-		ID3D12GraphicsCommandList* GetCommandList() const { return info.commandList.Get(); }
 		const Dx12CommandContextInfo& GetInfo() const { return info; }
 
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.

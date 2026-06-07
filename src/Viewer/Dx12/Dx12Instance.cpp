@@ -59,7 +59,8 @@ namespace Chrivent {
 	bool Dx12Instance::CreateTextureDescriptors(Dx12InstanceInfo& info) {
 		if (info.viewer == nullptr || info.materials.empty())
 			return true;
-		const auto& deviceInfo = info.viewer->GetDeviceInfo();
+		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
+		const auto& deviceInfo = renderContext.deviceInfo;
 		if (!deviceInfo.device)
 			return false;
 		if (info.materials.size() > (std::numeric_limits<UINT>::max)() / 3)
@@ -84,9 +85,9 @@ namespace Chrivent {
 		};
 		for (Dx12Material& material : info.materials) {
 			material.textureDescriptorHandle = gpuHandle;
-			const Dx12Texture& texture = material.texture.resource ? material.texture : info.viewer->GetDummyTexture();
-			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : info.viewer->GetDummyTexture();
-			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : info.viewer->GetDummyTexture();
+			const Dx12Texture& texture = material.texture.resource ? material.texture : renderContext.dummyTexture;
+			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : renderContext.dummyTexture;
+			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : renderContext.dummyTexture;
 			CreateSrv(texture, cpuHandle);
 			cpuHandle.ptr += info.textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
@@ -111,6 +112,15 @@ namespace Chrivent {
 		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers)
 			pixelConstantBuffer.Destroy();
 		info.modelPixelConstantBuffers.clear();
+		info.edgeVertexConstantBuffer.Destroy();
+		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers)
+			edgeSizeConstantBuffer.Destroy();
+		info.edgeSizeConstantBuffers.clear();
+		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers)
+			edgePixelConstantBuffer.Destroy();
+		info.edgePixelConstantBuffers.clear();
+		info.groundShadowVertexConstantBuffer.Destroy();
+		info.groundShadowPixelConstantBuffer.Destroy();
 		info.textureDescriptorHeap.Reset();
 		info.textureDescriptorSize = 0;
 		info.vertexBufferView = {};
@@ -136,17 +146,18 @@ namespace Chrivent {
 		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indices.size() > (std::numeric_limits<UINT>::max)())
 			return false;
-		const auto& deviceInfo = info.viewer->GetDeviceInfo();
+		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
+		const auto& deviceInfo = renderContext.deviceInfo;
 		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
 			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
 			return false;
 		if (!info.indexBuffer.InitializeUpload(deviceInfo, indices.size()) ||
 			!info.indexBuffer.Write(indices.data(), indices.size()))
 			return false;
-		info.vertexBufferView.BufferLocation = info.vertexBuffer.GetGpuAddress();
+		info.vertexBufferView.BufferLocation = info.vertexBuffer.ResolveGpuAddress();
 		info.vertexBufferView.SizeInBytes = vertexByteSize;
 		info.vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
-		info.indexBufferView.BufferLocation = info.indexBuffer.GetGpuAddress();
+		info.indexBufferView.BufferLocation = info.indexBuffer.ResolveGpuAddress();
 		info.indexBufferView.SizeInBytes = indices.size();
 		info.indexBufferView.Format = indexFormat;
 		info.indexCount = geometryData.indexCount;
@@ -154,10 +165,31 @@ namespace Chrivent {
 		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12ModelPixelConstants));
 		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
 			return false;
+		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgeVertexConstants));
+		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgeSizeConstants));
+		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgePixelConstants));
+		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12GroundShadowVertexConstants));
+		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12GroundShadowPixelConstants));
+		if (!info.edgeVertexConstantBuffer.InitializeUpload(deviceInfo, edgeVertexConstantSize))
+			return false;
+		if (!info.groundShadowVertexConstantBuffer.InitializeUpload(deviceInfo, groundShadowVertexConstantSize))
+			return false;
+		if (!info.groundShadowPixelConstantBuffer.InitializeUpload(deviceInfo, groundShadowPixelConstantSize))
+			return false;
 		info.materials.reserve(info.model->materialData.materials.size());
 		info.modelPixelConstantBuffers.resize(info.model->materialData.materials.size());
 		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers) {
 			if (!pixelConstantBuffer.InitializeUpload(deviceInfo, pixelConstantSize))
+				return false;
+		}
+		info.edgeSizeConstantBuffers.resize(info.model->materialData.materials.size());
+		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers) {
+			if (!edgeSizeConstantBuffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
+				return false;
+		}
+		info.edgePixelConstantBuffers.resize(info.model->materialData.materials.size());
+		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers) {
+			if (!edgePixelConstantBuffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
 				return false;
 		}
 		for (const auto& mat : info.model->materialData.materials) {
@@ -175,7 +207,7 @@ namespace Chrivent {
 
 	void Dx12Instance::Update() const {
 		const auto& info = static_cast<const Dx12InstanceInfo&>(GetInfo());
-		if (info.model == nullptr || info.vertexBuffer.GetResource() == nullptr)
+		if (info.model == nullptr || !info.vertexBuffer.IsInitialized())
 			return;
 		const std::vector<Dx12Vertex> vertices = BuildVertices(info.model->geometryData, true);
 		if (vertices.empty())

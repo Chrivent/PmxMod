@@ -30,6 +30,11 @@ namespace Chrivent {
 		UINT indexCount = 0;
 		Dx12Buffer modelVertexConstantBuffer;
 		std::vector<Dx12Buffer> modelPixelConstantBuffers;
+		Dx12Buffer edgeVertexConstantBuffer;
+		std::vector<Dx12Buffer> edgeSizeConstantBuffers;
+		std::vector<Dx12Buffer> edgePixelConstantBuffers;
+		Dx12Buffer groundShadowVertexConstantBuffer;
+		Dx12Buffer groundShadowPixelConstantBuffer;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;
 		UINT textureDescriptorSize = 0;
 		std::vector<Dx12Material> materials;

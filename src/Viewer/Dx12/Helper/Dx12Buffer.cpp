@@ -3,7 +3,7 @@
 #include <cstring>
 
 namespace Chrivent {
-	D3D12_GPU_VIRTUAL_ADDRESS Dx12Buffer::GetGpuAddress() const {
+	D3D12_GPU_VIRTUAL_ADDRESS Dx12Buffer::ResolveGpuAddress() const {
 		if (!resource)
 			return 0;
 		return resource->GetGPUVirtualAddress();

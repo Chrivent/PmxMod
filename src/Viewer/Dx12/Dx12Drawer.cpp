@@ -12,7 +12,8 @@ namespace Chrivent {
 	void Dx12Drawer::DrawModel() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetCommandList();
+		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
+		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -38,7 +39,7 @@ namespace Chrivent {
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, info.modelVertexConstantBuffer.GetGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, info.modelVertexConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size() || materialId >= info.modelPixelConstantBuffers.size())
 				continue;
@@ -46,6 +47,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0.0f)
 				continue;
+			info.viewer->BindModelPipelineState(mat.bothFace);
 			Dx12ModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.alpha = mat.diffuse.a;
 			pixelConstants.diffuse = mat.diffuse;
@@ -73,16 +75,112 @@ namespace Chrivent {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
 			}
-			commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.GetGpuAddress());
+			commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
 	}
 
-	void Dx12Drawer::DrawEdge() {}
+	void Dx12Drawer::DrawEdge() {
+		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
+			return;
+		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
+		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
+		if (commandList == nullptr)
+			return;
+		const auto& viewerInfo = info.viewer->GetInfo();
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		constexpr glm::mat4 dxClipMatrix(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		Dx12EdgeVertexConstants vertexConstants{};
+		vertexConstants.wv = viewerInfo.viewMat * world;
+		vertexConstants.wvp = dxClipMatrix * viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
+		if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+			std::cerr << "Failed to update DX12 edge vertex constants.\n";
+			return;
+		}
+		info.viewer->BindEdgePipelineState();
+		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
+		commandList->IASetIndexBuffer(&info.indexBufferView);
+		commandList->SetGraphicsRootConstantBufferView(0, info.edgeVertexConstantBuffer.ResolveGpuAddress());
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+			if (materialId >= info.materials.size() ||
+				materialId >= info.edgeSizeConstantBuffers.size() ||
+				materialId >= info.edgePixelConstantBuffers.size())
+				continue;
+			const auto& mat = info.materials[materialId].mat;
+			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
+				continue;
+			Dx12EdgeSizeConstants edgeSizeConstants{};
+			edgeSizeConstants.edgeSize = mat.edgeSize;
+			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId];
+			if (!edgeSizeConstantBuffer.Write(&edgeSizeConstants, sizeof(edgeSizeConstants))) {
+				std::cerr << "Failed to update DX12 edge size constants.\n";
+				continue;
+			}
+			Dx12EdgePixelConstants pixelConstants{};
+			pixelConstants.edgeColor = mat.edgeColor;
+			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId];
+			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+				std::cerr << "Failed to update DX12 edge pixel constants.\n";
+				continue;
+			}
+			commandList->SetGraphicsRootConstantBufferView(1, edgeSizeConstantBuffer.ResolveGpuAddress());
+			commandList->SetGraphicsRootConstantBufferView(2, edgePixelConstantBuffer.ResolveGpuAddress());
+			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+		}
+	}
 
-	void Dx12Drawer::DrawGroundShadow() {}
+	void Dx12Drawer::DrawGroundShadow() {
+		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
+			return;
+		const Dx12RenderContextInfo renderContext = info.viewer->BuildRenderContext();
+		ID3D12GraphicsCommandList* commandList = renderContext.commandList;
+		if (commandList == nullptr)
+			return;
+		const auto& viewerInfo = info.viewer->GetInfo();
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		constexpr glm::mat4 dxClipMatrix(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
+		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
+		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		Dx12GroundShadowVertexConstants vertexConstants;
+		vertexConstants.wvp = dxClipMatrix * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
+		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
+			return;
+		}
+		constexpr Dx12GroundShadowPixelConstants pixelConstants{};
+		if (!info.groundShadowPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
+			return;
+		}
+		info.viewer->BindGroundShadowPipelineState();
+		commandList->OMSetStencilRef(0x01);
+		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
+		commandList->IASetIndexBuffer(&info.indexBufferView);
+		commandList->SetGraphicsRootConstantBufferView(0, info.groundShadowVertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, info.groundShadowPixelConstantBuffer.ResolveGpuAddress());
+		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+			if (materialId >= info.materials.size())
+				continue;
+			const auto& mat = info.materials[materialId].mat;
+			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
+				continue;
+			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+		}
+	}
 
 	Dx12Drawer::Dx12Drawer(const Dx12InstanceInfo& sourceInfo) : info(sourceInfo) {}
 }

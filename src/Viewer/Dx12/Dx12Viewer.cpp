@@ -16,6 +16,7 @@ namespace Chrivent {
 		commandContext.WaitForGpu(device.GetInfo());
 		pipeline.Destroy();
 		commandContext.Destroy();
+		depthBuffer.Destroy();
 		swapChain.Destroy();
 		device.Destroy();
 	}
@@ -39,6 +40,10 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
 			return false;
 		}
+		if (!depthBuffer.Initialize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
+			std::cerr << "Failed to initialize DX12 depth buffer.\n";
+			return false;
+		}
 		if (!pipeline.Initialize(device.GetInfo(), GetInfo().shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
@@ -53,14 +58,16 @@ namespace Chrivent {
 
 	bool Dx12Viewer::Resize() {
 		commandContext.WaitForGpu(device.GetInfo());
-		return swapChain.Resize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
+		if (!swapChain.Resize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
+			return false;
+		return depthBuffer.Initialize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
 	}
 
 	void Dx12Viewer::BeginFrame() {
 		if (!commandContext.BeginFrame())
 			return;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
-		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
+		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		if (!commandList || !backBuffer)
 			return;
 		D3D12_RESOURCE_BARRIER barrier{};
@@ -71,16 +78,27 @@ namespace Chrivent {
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		commandList->ResourceBarrier(1, &barrier);
 		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain.CalculateCurrentRtvHandle();
-		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthBuffer.ResolveDsvHandle();
+		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		commandList->SetGraphicsRootSignature(pipeline.GetModelRootSignature());
-		commandList->SetPipelineState(pipeline.GetModelPipelineState());
+		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		D3D12_VIEWPORT viewport{};
+		viewport.Width = static_cast<float>(GetInfo().screenWidth);
+		viewport.Height = static_cast<float>(GetInfo().screenHeight);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		commandList->RSSetViewports(1, &viewport);
+		D3D12_RECT scissorRect{};
+		scissorRect.right = GetInfo().screenWidth;
+		scissorRect.bottom = GetInfo().screenHeight;
+		commandList->RSSetScissorRects(1, &scissorRect);
+		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	bool Dx12Viewer::EndFrame() {
 		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
-		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
+		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		if (!commandList || !backBuffer)
 			return false;
 		D3D12_RESOURCE_BARRIER barrier{};
@@ -101,7 +119,27 @@ namespace Chrivent {
 		return std::make_unique<Dx12Instance>();
 	}
 
+	Dx12RenderContextInfo Dx12Viewer::BuildRenderContext() const {
+		return Dx12RenderContextInfo{
+			device.GetInfo(),
+			commandContext.GetInfo().commandList.Get(),
+			dummyTexture
+		};
+	}
+
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 		return textureCache.Load(device.GetInfo(), texturePath);
+	}
+
+	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {
+		pipeline.BindModel(commandContext.GetInfo().commandList.Get(), bothFace);
+	}
+
+	void Dx12Viewer::BindEdgePipelineState() const {
+		pipeline.BindEdge(commandContext.GetInfo().commandList.Get());
+	}
+
+	void Dx12Viewer::BindGroundShadowPipelineState() const {
+		pipeline.BindGroundShadow(commandContext.GetInfo().commandList.Get());
 	}
 }
