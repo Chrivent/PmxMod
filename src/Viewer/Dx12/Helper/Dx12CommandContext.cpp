@@ -27,7 +27,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12CommandContext::BeginFrame() {
+	bool Dx12CommandContext::BeginFrame() const {
 		if (!info.commandAllocator || !info.commandList)
 			return false;
 		if (FAILED(info.commandAllocator->Reset()))
@@ -35,7 +35,7 @@ namespace Chrivent {
 		return SUCCEEDED(info.commandList->Reset(info.commandAllocator.Get(), nullptr));
 	}
 
-	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) const {
 		if (!deviceInfo.commandQueue || !info.commandList)
 			return false;
 		if (FAILED(info.commandList->Close()))
