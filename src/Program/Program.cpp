@@ -6,6 +6,7 @@
 #include "../Model/ModelAnimator.h"
 #include "../Parser/VmdParser.h"
 #include "../Viewer/Dx11/Dx11Viewer.h"
+#include "../Viewer/Dx12/Dx12Viewer.h"
 #include "../Viewer/Glfw/GlfwViewer.h"
 #include "../Viewer/Vulkan/VulkanViewer.h"
 
@@ -19,6 +20,9 @@ namespace Chrivent {
                 break;
             case RendererType::DirectX11:
                 viewer = std::make_unique<Dx11Viewer>();
+                break;
+            case RendererType::DirectX12:
+                viewer = std::make_unique<Dx12Viewer>();
                 break;
             case RendererType::Vulkan:
                 viewer = std::make_unique<VulkanViewer>();

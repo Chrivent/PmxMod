@@ -113,6 +113,17 @@ set(DX11_SOURCES
         src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
 )
 
+set(DX12_SOURCES
+        src/Viewer/Dx12/Dx12Viewer.h src/Viewer/Dx12/Dx12Viewer.cpp
+        src/Viewer/Dx12/Dx12Drawer.h src/Viewer/Dx12/Dx12Drawer.cpp
+        src/Viewer/Dx12/Dx12TextureCache.h src/Viewer/Dx12/Dx12TextureCache.cpp
+        src/Viewer/Dx12/Dx12Instance.h src/Viewer/Dx12/Dx12Instance.cpp
+
+        src/Viewer/Dx12/Helper/Dx12CommandContext.h src/Viewer/Dx12/Helper/Dx12CommandContext.cpp
+        src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
+        src/Viewer/Dx12/Helper/Dx12SwapChain.h src/Viewer/Dx12/Helper/Dx12SwapChain.cpp
+)
+
 set(VULKAN_SOURCES
         src/Viewer/Vulkan/VulkanViewer.h src/Viewer/Vulkan/VulkanViewer.cpp
         src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
@@ -148,6 +159,7 @@ target_sources(PmxMod PRIVATE
         ${VIEWER_CORE_SOURCES}
         ${GLFW_SOURCES}
         ${DX11_SOURCES}
+        ${DX12_SOURCES}
         ${VULKAN_SOURCES}
 )
 
@@ -159,9 +171,11 @@ target_link_libraries(PmxMod PRIVATE
         glm::glm
 
         d3d11
+        d3d12
         dxgi
         d3dcompiler
         comctl32
+        
         Vulkan::Vulkan
         ${SHADERC_LIBRARY}
 

@@ -93,7 +93,8 @@ namespace Chrivent {
 					BinaryReader::Read(is, &boneWeights[2]);
 					BinaryReader::Read(is, &boneWeights[3]);
 					break;
-				default: ;
+				default:
+					break;
 			}
 			BinaryReader::Read(is, &edgeMag);
 		}
@@ -135,7 +136,8 @@ namespace Chrivent {
 				}
 			}
 				break;
-			default: ;
+			default:
+				break;
 		}
 	}
 

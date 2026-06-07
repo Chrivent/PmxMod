@@ -11,7 +11,8 @@ namespace Chrivent {
 		static constexpr int kSaveButtonId = 1001;
 		static constexpr int kOpenGlRendererId = 1100;
 		static constexpr int kDirectX11RendererId = 1101;
-		static constexpr int kVulkanRendererId = 1102;
+		static constexpr int kDirectX12RendererId = 1102;
+		static constexpr int kVulkanRendererId = 1103;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;

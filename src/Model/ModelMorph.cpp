@@ -30,39 +30,21 @@ namespace Chrivent {
 	void ModelMorph::EvalMorph(const Morph* morph, const float morphWeight) const {
 		if (std::abs(morphWeight) <= std::numeric_limits<float>::epsilon())
 			return;
-		switch (morph->morphType) {
-			case MorphType::Position:
-				MorphPosition(model.morphData.positionMorphs[morph->dataIndex], morphWeight);
-				break;
-			case MorphType::Uv:
-				MorphUv(model.morphData.uvMorphs[morph->dataIndex], morphWeight);
-				break;
-			case MorphType::Material:
-				MorphMaterial(model.morphData.materialMorphs[morph->dataIndex], morphWeight);
-				break;
-			case MorphType::Bone:
-				MorphBone(model.morphData.boneMorphs[morph->dataIndex], morphWeight);
-				break;
-			case MorphType::Group: {
-				for (const auto& [morphIndex, weight] : model.morphData.groupMorphs[morph->dataIndex]) {
-					if (morphIndex == -1)
-						continue;
-					EvalMorph(model.morphData.morphs[morphIndex].get(), weight * morphWeight);
-				}
-				break;
+		const MorphType type = morph->morphType;
+		if (type == MorphType::Position)
+			MorphPosition(model.morphData.positionMorphs[morph->dataIndex], morphWeight);
+		else if (type == MorphType::Uv)
+			MorphUv(model.morphData.uvMorphs[morph->dataIndex], morphWeight);
+		else if (type == MorphType::Material)
+			MorphMaterial(model.morphData.materialMorphs[morph->dataIndex], morphWeight);
+		else if (type == MorphType::Bone)
+			MorphBone(model.morphData.boneMorphs[morph->dataIndex], morphWeight);
+		else if (type == MorphType::Group) {
+			for (const auto& [morphIndex, weight] : model.morphData.groupMorphs[morph->dataIndex]) {
+				if (morphIndex == -1)
+					continue;
+				EvalMorph(model.morphData.morphs[morphIndex].get(), weight * morphWeight);
 			}
-			case MorphType::AddUv1:
-				break;
-			case MorphType::AddUv2:
-				break;
-			case MorphType::AddUv3:
-				break;
-			case MorphType::AddUv4:
-				break;
-			case MorphType::Flip:
-				break;
-			case MorphType::Impulse:
-				break;
 		}
 	}
 
