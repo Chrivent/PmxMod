@@ -1,6 +1,25 @@
 ﻿#include "Dx12SwapChain.h"
 
 namespace Chrivent {
+	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12DeviceInfo& deviceInfo) {
+		if (!deviceInfo.device || !swapChain)
+			return false;
+		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
+		rtvHeapDesc.NumDescriptors = kFrameCount;
+		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		if (FAILED(deviceInfo.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap))))
+			return false;
+		rtvDescriptorSize = deviceInfo.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		for (UINT index = 0; index < kFrameCount; index++) {
+			if (FAILED(swapChain->GetBuffer(index, IID_PPV_ARGS(&backBuffers[index]))))
+				return false;
+			deviceInfo.device->CreateRenderTargetView(backBuffers[index].Get(), nullptr, rtvHandle);
+			rtvHandle.ptr += rtvDescriptorSize;
+		}
+		return true;
+	}
+
 	bool Dx12SwapChain::Initialize(const Dx12DeviceInfo& deviceInfo, const HWND hwnd, const int width, const int height) {
 		Destroy();
 		if (!deviceInfo.factory || !deviceInfo.device || !deviceInfo.commandQueue || !hwnd)
@@ -57,25 +76,6 @@ namespace Chrivent {
 		swapChain.Reset();
 		rtvDescriptorSize = 0;
 		frameIndex = 0;
-	}
-
-	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12DeviceInfo& deviceInfo) {
-		if (!deviceInfo.device || !swapChain)
-			return false;
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = kFrameCount;
-		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(deviceInfo.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap))))
-			return false;
-		rtvDescriptorSize = deviceInfo.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		for (UINT index = 0; index < kFrameCount; index++) {
-			if (FAILED(swapChain->GetBuffer(index, IID_PPV_ARGS(&backBuffers[index]))))
-				return false;
-			deviceInfo.device->CreateRenderTargetView(backBuffers[index].Get(), nullptr, rtvHandle);
-			rtvHandle.ptr += rtvDescriptorSize;
-		}
-		return true;
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::CalculateCurrentRtvHandle() const {

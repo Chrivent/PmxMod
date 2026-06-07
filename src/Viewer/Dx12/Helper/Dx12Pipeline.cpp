@@ -6,18 +6,6 @@
 #include <limits>
 
 namespace Chrivent {
-	bool Dx12Pipeline::Initialize(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
-		Destroy();
-		if (!CreateModelRootSignature(deviceInfo))
-			return false;
-		return CreateModelPipelineState(deviceInfo, shaderDir);
-	}
-
-	void Dx12Pipeline::Destroy() {
-		info.modelPipelineState.Reset();
-		info.modelRootSignature.Reset();
-	}
-
 	bool Dx12Pipeline::CreateModelRootSignature(const Dx12DeviceInfo& deviceInfo) {
 		if (!deviceInfo.device)
 			return false;
@@ -136,5 +124,17 @@ namespace Chrivent {
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
 			IID_PPV_ARGS(&info.modelPipelineState)));
+	}
+
+	bool Dx12Pipeline::Initialize(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
+		Destroy();
+		if (!CreateModelRootSignature(deviceInfo))
+			return false;
+		return CreateModelPipelineState(deviceInfo, shaderDir);
+	}
+
+	void Dx12Pipeline::Destroy() {
+		info.modelPipelineState.Reset();
+		info.modelRootSignature.Reset();
 	}
 }

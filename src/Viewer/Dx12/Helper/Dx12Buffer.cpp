@@ -3,6 +3,12 @@
 #include <cstring>
 
 namespace Chrivent {
+	D3D12_GPU_VIRTUAL_ADDRESS Dx12Buffer::GetGpuAddress() const {
+		if (!resource)
+			return 0;
+		return resource->GetGPUVirtualAddress();
+	}
+
 	bool Dx12Buffer::InitializeUpload(const Dx12DeviceInfo& deviceInfo, const size_t size) {
 		Destroy();
 		if (!deviceInfo.device || size == 0)
@@ -48,11 +54,5 @@ namespace Chrivent {
 	void Dx12Buffer::Destroy() {
 		resource.Reset();
 		byteSize = 0;
-	}
-
-	D3D12_GPU_VIRTUAL_ADDRESS Dx12Buffer::GetGpuAddress() const {
-		if (!resource)
-			return 0;
-		return resource->GetGPUVirtualAddress();
 	}
 }
