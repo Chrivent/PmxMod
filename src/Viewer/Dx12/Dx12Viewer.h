@@ -13,6 +13,9 @@
 namespace Chrivent {
 	struct Dx12Material : ViewerMaterial {
 		Dx12Texture texture{};
+		Dx12Texture sphereTexture{};
+		Dx12Texture toonTexture{};
+		D3D12_GPU_DESCRIPTOR_HANDLE textureDescriptorHandle{};
 
 		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
@@ -25,6 +28,7 @@ namespace Chrivent {
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
 		Dx12TextureCache textureCache;
+		Dx12Texture dummyTexture;
 
 	public:
 		Dx12Viewer();
@@ -32,6 +36,7 @@ namespace Chrivent {
 
 		const Dx12DeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
 		ID3D12GraphicsCommandList* GetCommandList() const { return commandContext.GetCommandList(); }
+		const Dx12Texture& GetDummyTexture() const { return dummyTexture; }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;

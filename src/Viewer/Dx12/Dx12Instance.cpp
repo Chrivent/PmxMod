@@ -2,6 +2,7 @@
 
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
+#include "Helper/Dx12Constants.h"
 #include "../../Model/Model.h"
 
 #include <iostream>
@@ -55,6 +56,48 @@ namespace Chrivent {
 		return false;
 	}
 
+	bool Dx12Instance::CreateTextureDescriptors(Dx12InstanceInfo& info) {
+		if (info.viewer == nullptr || info.materials.empty())
+			return true;
+		const auto& deviceInfo = info.viewer->GetDeviceInfo();
+		if (!deviceInfo.device)
+			return false;
+		if (info.materials.size() > (std::numeric_limits<UINT>::max)() / 3)
+			return false;
+		const size_t descriptorCount = info.materials.size() * 3;
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		heapDesc.NumDescriptors = static_cast<UINT>(descriptorCount);
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		if (FAILED(deviceInfo.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&info.textureDescriptorHeap))))
+			return false;
+		info.textureDescriptorSize = deviceInfo.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = info.textureDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = info.textureDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		const auto CreateSrv = [&](const Dx12Texture& texture, D3D12_CPU_DESCRIPTOR_HANDLE targetHandle) {
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+			srvDesc.Format = texture.format;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Texture2D.MipLevels = 1;
+			deviceInfo.device->CreateShaderResourceView(texture.resource.Get(), &srvDesc, targetHandle);
+		};
+		for (Dx12Material& material : info.materials) {
+			material.textureDescriptorHandle = gpuHandle;
+			const Dx12Texture& texture = material.texture.resource ? material.texture : info.viewer->GetDummyTexture();
+			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : info.viewer->GetDummyTexture();
+			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : info.viewer->GetDummyTexture();
+			CreateSrv(texture, cpuHandle);
+			cpuHandle.ptr += info.textureDescriptorSize;
+			CreateSrv(toonTexture, cpuHandle);
+			cpuHandle.ptr += info.textureDescriptorSize;
+			CreateSrv(sphereTexture, cpuHandle);
+			cpuHandle.ptr += info.textureDescriptorSize;
+			gpuHandle.ptr += info.textureDescriptorSize * 3;
+		}
+		return true;
+	}
+
 	Dx12Instance::Dx12Instance() {
 		info = std::make_unique<Dx12InstanceInfo>();
 		drawer = std::make_unique<Dx12Drawer>(static_cast<Dx12InstanceInfo&>(GetInfo()));
@@ -64,6 +107,12 @@ namespace Chrivent {
 		auto& info = static_cast<Dx12InstanceInfo&>(GetInfo());
 		info.vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
+		info.modelVertexConstantBuffer.Destroy();
+		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers)
+			pixelConstantBuffer.Destroy();
+		info.modelPixelConstantBuffers.clear();
+		info.textureDescriptorHeap.Reset();
+		info.textureDescriptorSize = 0;
 		info.vertexBufferView = {};
 		info.indexBufferView = {};
 		info.indexCount = 0;
@@ -101,10 +150,27 @@ namespace Chrivent {
 		info.indexBufferView.SizeInBytes = indices.size();
 		info.indexBufferView.Format = indexFormat;
 		info.indexCount = geometryData.indexCount;
+		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12ModelVertexConstants));
+		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12ModelPixelConstants));
+		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
+			return false;
 		info.materials.reserve(info.model->materialData.materials.size());
-		for (const auto& mat : info.model->materialData.materials)
-			info.materials.emplace_back(mat);
-		return true;
+		info.modelPixelConstantBuffers.resize(info.model->materialData.materials.size());
+		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers) {
+			if (!pixelConstantBuffer.InitializeUpload(deviceInfo, pixelConstantSize))
+				return false;
+		}
+		for (const auto& mat : info.model->materialData.materials) {
+			Dx12Material material(mat);
+			if (!mat.texture.empty())
+				material.texture = info.viewer->LoadTexture(mat.texture);
+			if (!mat.spTexture.empty())
+				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
+			if (!mat.toonTexture.empty())
+				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
+			info.materials.emplace_back(material);
+		}
+		return CreateTextureDescriptors(info);
 	}
 
 	void Dx12Instance::Update() const {

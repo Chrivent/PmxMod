@@ -2,10 +2,10 @@
 
 #include "Dx12Instance.h"
 
+#include <iostream>
+
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-
-#include <iostream>
 
 namespace Chrivent {
 	Dx12Viewer::Dx12Viewer() {
@@ -41,6 +41,11 @@ namespace Chrivent {
 		}
 		if (!pipeline.Initialize(device.GetInfo(), GetInfo().shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
+			return false;
+		}
+		dummyTexture = textureCache.CreateWhiteTexture(device.GetInfo());
+		if (!dummyTexture.resource) {
+			std::cerr << "Failed to initialize DX12 dummy texture.\n";
 			return false;
 		}
 		return true;
@@ -97,6 +102,6 @@ namespace Chrivent {
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(texturePath);
+		return textureCache.Load(device.GetInfo(), texturePath);
 	}
 }

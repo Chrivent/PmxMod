@@ -9,6 +9,12 @@ namespace Chrivent {
 		return resource->GetGPUVirtualAddress();
 	}
 
+	size_t Dx12Buffer::AlignConstantBufferSize(const size_t size) {
+		constexpr size_t alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+		const size_t blockCount = (size + alignment - 1) / alignment;
+		return blockCount * alignment;
+	}
+
 	bool Dx12Buffer::InitializeUpload(const Dx12DeviceInfo& deviceInfo, const size_t size) {
 		Destroy();
 		if (!deviceInfo.device || size == 0)

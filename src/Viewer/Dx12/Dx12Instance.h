@@ -5,6 +5,7 @@
 
 #include <d3d12.h>
 #include <glm/glm.hpp>
+#include <wrl/client.h>
 
 #include <vector>
 
@@ -27,6 +28,10 @@ namespace Chrivent {
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
+		Dx12Buffer modelVertexConstantBuffer;
+		std::vector<Dx12Buffer> modelPixelConstantBuffers;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;
+		UINT textureDescriptorSize = 0;
 		std::vector<Dx12Material> materials;
 	};
 
@@ -35,6 +40,8 @@ namespace Chrivent {
 		static std::vector<Dx12Vertex> BuildVertices(const ModelGeometryData& geometryData, bool useUpdateData);
 		// PMX index element 크기에 맞춰 DX12 index buffer 데이터를 만든다.
 		static bool BuildIndexData(const ModelGeometryData& geometryData, std::vector<char>& indices, DXGI_FORMAT& format);
+		// material별 텍스처 SRV descriptor를 생성한다.
+		static bool CreateTextureDescriptors(Dx12InstanceInfo& info);
 
 	public:
 		Dx12Instance();
