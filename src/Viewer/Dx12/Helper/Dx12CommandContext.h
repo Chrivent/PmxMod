@@ -20,6 +20,9 @@ namespace Chrivent {
 		Dx12CommandContextInfo info;
 
 	public:
+		ID3D12GraphicsCommandList* GetCommandList() const { return info.commandList.Get(); }
+		const Dx12CommandContextInfo& GetInfo() const { return info; }
+
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.
 		bool Initialize(const Dx12DeviceInfo& deviceInfo);
 		// 한 프레임의 명령 기록을 시작할 수 있도록 allocator와 list를 초기화한다.
@@ -30,8 +33,5 @@ namespace Chrivent {
 		bool WaitForGpu(const Dx12DeviceInfo& deviceInfo);
 		// 생성한 DX12 명령 리소스를 해제한다.
 		void Destroy();
-
-		ID3D12GraphicsCommandList* GetCommandList() const { return info.commandList.Get(); }
-		const Dx12CommandContextInfo& GetInfo() const { return info; }
 	};
 }

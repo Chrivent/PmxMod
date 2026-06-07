@@ -14,8 +14,8 @@ namespace Chrivent {
 	}
 
 	void Dx12Pipeline::Destroy() {
-		modelPipelineState.Reset();
-		modelRootSignature.Reset();
+		info.modelPipelineState.Reset();
+		info.modelRootSignature.Reset();
 	}
 
 	bool Dx12Pipeline::CreateModelRootSignature(const Dx12DeviceInfo& deviceInfo) {
@@ -79,11 +79,11 @@ namespace Chrivent {
 			0,
 			signatureBlob->GetBufferPointer(),
 			signatureBlob->GetBufferSize(),
-			IID_PPV_ARGS(&modelRootSignature)));
+			IID_PPV_ARGS(&info.modelRootSignature)));
 	}
 
 	bool Dx12Pipeline::CreateModelPipelineState(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !modelRootSignature)
+		if (!deviceInfo.device || !info.modelRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -100,7 +100,7 @@ namespace Chrivent {
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = modelRootSignature.Get();
+		pipelineDesc.pRootSignature = info.modelRootSignature.Get();
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		auto& [BlendEnable, LogicOpEnable, SrcBlend, DestBlend,
@@ -135,6 +135,6 @@ namespace Chrivent {
 		pipelineDesc.SampleDesc.Count = 1;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
-			IID_PPV_ARGS(&modelPipelineState)));
+			IID_PPV_ARGS(&info.modelPipelineState)));
 	}
 }

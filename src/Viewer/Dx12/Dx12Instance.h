@@ -1,6 +1,10 @@
 ﻿#pragma once
 
 #include "../Instance.h"
+#include "Helper/Dx12Buffer.h"
+
+#include <d3d12.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 
@@ -8,13 +12,30 @@ namespace Chrivent {
 	class Dx12Drawer;
 	class Dx12Viewer;
 	struct Dx12Material;
+	struct ModelGeometryData;
+
+	struct Dx12Vertex {
+		glm::vec3 position{};
+		glm::vec3 normal{};
+		glm::vec2 uv{};
+	};
 
 	struct Dx12InstanceInfo : InstanceInfo {
 		Dx12Viewer* viewer = nullptr;
+		Dx12Buffer vertexBuffer;
+		Dx12Buffer indexBuffer;
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
+		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		UINT indexCount = 0;
 		std::vector<Dx12Material> materials;
 	};
 
 	class Dx12Instance : public Instance {
+		// 모델 geometry를 DX12 vertex 배열로 변환한다.
+		static std::vector<Dx12Vertex> BuildVertices(const ModelGeometryData& geometryData, bool useUpdateData);
+		// PMX index element 크기에 맞춰 DX12 index buffer 데이터를 만든다.
+		static bool BuildIndexData(const ModelGeometryData& geometryData, std::vector<char>& indices, DXGI_FORMAT& format);
+
 	public:
 		Dx12Instance();
 		~Dx12Instance() override = default;

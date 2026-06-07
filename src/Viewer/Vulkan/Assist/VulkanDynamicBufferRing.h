@@ -3,7 +3,6 @@
 #include "../../Assist/Glsl/GlslDynamicBufferRing.h"
 #include "../Helper/VulkanBuffer.h"
 
-#include <cstddef>
 #include <optional>
 #include <string>
 

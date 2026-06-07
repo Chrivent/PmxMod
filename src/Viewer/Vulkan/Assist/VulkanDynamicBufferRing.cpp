@@ -20,13 +20,13 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanDynamicBufferRing::BeginFrame(const size_t frameIndex) {
-		GlslDynamicBufferRing::BeginFrame(frameIndex % kBufferedFrames);
-	}
-
 	void VulkanDynamicBufferRing::Clear() {
 		buffer.Destroy();
 		GlslDynamicBufferRing::Clear();
+	}
+
+	void VulkanDynamicBufferRing::BeginFrame(const size_t frameIndex) {
+		GlslDynamicBufferRing::BeginFrame(frameIndex % kBufferedFrames);
 	}
 
 	std::optional<GlslUploadSlice> VulkanDynamicBufferRing::Allocate(

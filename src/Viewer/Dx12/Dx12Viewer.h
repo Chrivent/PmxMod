@@ -16,7 +16,7 @@ namespace Chrivent {
 
 		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
-	
+
 	struct Dx12ViewerInfo : ViewerInfo {};
 
 	class Dx12Viewer : public Viewer {
@@ -29,6 +29,9 @@ namespace Chrivent {
 	public:
 		Dx12Viewer();
 		~Dx12Viewer() override;
+
+		const Dx12DeviceInfo& GetDeviceInfo() const { return device.GetInfo(); }
+		ID3D12GraphicsCommandList* GetCommandList() const { return commandContext.GetCommandList(); }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;

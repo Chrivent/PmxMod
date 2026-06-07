@@ -21,6 +21,8 @@ namespace Chrivent {
 		bool CreateRenderTargetViews(const Dx12DeviceInfo& deviceInfo);
 
 	public:
+		ID3D12Resource* GetCurrentBackBuffer() const { return backBuffers[frameIndex].Get(); }
+
 		// DX12 스왑체인과 back buffer RTV를 생성한다.
 		bool Initialize(const Dx12DeviceInfo& deviceInfo, HWND hwnd, int width, int height);
 		// 창 크기에 맞춰 스왑체인을 다시 생성한다.
@@ -29,8 +31,7 @@ namespace Chrivent {
 		bool Present();
 		// 생성한 DX12 스왑체인 리소스를 해제한다.
 		void Destroy();
-
-		ID3D12Resource* GetCurrentBackBuffer() const { return backBuffers[frameIndex].Get(); }
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRtvHandle() const;
+		// 현재 back buffer의 RTV descriptor handle을 계산한다.
+		D3D12_CPU_DESCRIPTOR_HANDLE CalculateCurrentRtvHandle() const;
 	};
 }

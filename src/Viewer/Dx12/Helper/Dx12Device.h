@@ -16,11 +16,11 @@ namespace Chrivent {
 		Dx12DeviceInfo info;
 
 	public:
+		const Dx12DeviceInfo& GetInfo() const { return info; }
+
 		// DX12 디바이스와 command queue를 생성한다.
 		bool Initialize();
 		// 생성한 DX12 디바이스 리소스를 해제한다.
 		void Destroy();
-
-		const Dx12DeviceInfo& GetInfo() const { return info; }
 	};
 }

@@ -54,7 +54,7 @@ namespace Chrivent {
 	void Dx12Viewer::BeginFrame() {
 		if (!commandContext.BeginFrame())
 			return;
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList();
+		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		if (!commandList || !backBuffer)
 			return;
@@ -65,7 +65,7 @@ namespace Chrivent {
 		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		commandList->ResourceBarrier(1, &barrier);
-		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain.GetCurrentRtvHandle();
+		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain.CalculateCurrentRtvHandle();
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		commandList->SetGraphicsRootSignature(pipeline.GetModelRootSignature());
@@ -74,7 +74,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::EndFrame() {
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList();
+		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		if (!commandList || !backBuffer)
 			return false;

@@ -119,6 +119,7 @@ set(DX12_SOURCES
         src/Viewer/Dx12/Dx12TextureCache.h src/Viewer/Dx12/Dx12TextureCache.cpp
         src/Viewer/Dx12/Dx12Instance.h src/Viewer/Dx12/Dx12Instance.cpp
 
+        src/Viewer/Dx12/Helper/Dx12Buffer.h src/Viewer/Dx12/Helper/Dx12Buffer.cpp
         src/Viewer/Dx12/Helper/Dx12CommandContext.h src/Viewer/Dx12/Helper/Dx12CommandContext.cpp
         src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
         src/Viewer/Dx12/Helper/Dx12Pipeline.h src/Viewer/Dx12/Helper/Dx12Pipeline.cpp
