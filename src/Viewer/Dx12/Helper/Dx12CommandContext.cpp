@@ -27,6 +27,24 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool Dx12CommandContext::BeginFrame() {
+		if (!info.commandAllocator || !info.commandList)
+			return false;
+		if (FAILED(info.commandAllocator->Reset()))
+			return false;
+		return SUCCEEDED(info.commandList->Reset(info.commandAllocator.Get(), nullptr));
+	}
+
+	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) {
+		if (!deviceInfo.commandQueue || !info.commandList)
+			return false;
+		if (FAILED(info.commandList->Close()))
+			return false;
+		ID3D12CommandList* commandLists[] = { info.commandList.Get() };
+		deviceInfo.commandQueue->ExecuteCommandLists(1, commandLists);
+		return true;
+	}
+
 	bool Dx12CommandContext::WaitForGpu(const Dx12DeviceInfo& deviceInfo) {
 		if (!deviceInfo.commandQueue || !info.fence || !info.fenceEvent)
 			return false;

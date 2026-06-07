@@ -2,6 +2,7 @@
 
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
+#include "../../Model/Model.h"
 
 namespace Chrivent {
 	Dx12Instance::Dx12Instance() {
@@ -18,7 +19,12 @@ namespace Chrivent {
 		auto& info = static_cast<Dx12InstanceInfo&>(GetInfo());
 		Clear();
 		info.viewer = static_cast<Dx12Viewer*>(&baseViewer);
-		return info.model != nullptr;
+		if (info.model == nullptr)
+			return false;
+		info.materials.reserve(info.model->materialData.materials.size());
+		for (const auto& mat : info.model->materialData.materials)
+			info.materials.emplace_back(mat);
+		return true;
 	}
 
 	void Dx12Instance::Update() const {}
