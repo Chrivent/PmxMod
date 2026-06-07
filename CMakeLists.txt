@@ -121,6 +121,8 @@ set(DX12_SOURCES
 
         src/Viewer/Dx12/Helper/Dx12CommandContext.h src/Viewer/Dx12/Helper/Dx12CommandContext.cpp
         src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
+        src/Viewer/Dx12/Helper/Dx12Pipeline.h src/Viewer/Dx12/Helper/Dx12Pipeline.cpp
+        src/Viewer/Dx12/Helper/Dx12ShaderCompiler.h src/Viewer/Dx12/Helper/Dx12ShaderCompiler.cpp
         src/Viewer/Dx12/Helper/Dx12SwapChain.h src/Viewer/Dx12/Helper/Dx12SwapChain.cpp
 )
 

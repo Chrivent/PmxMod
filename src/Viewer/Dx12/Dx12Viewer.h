@@ -4,6 +4,7 @@
 #include "Dx12TextureCache.h"
 #include "Helper/Dx12CommandContext.h"
 #include "Helper/Dx12Device.h"
+#include "Helper/Dx12Pipeline.h"
 #include "Helper/Dx12SwapChain.h"
 
 #include <filesystem>
@@ -22,6 +23,7 @@ namespace Chrivent {
 		Dx12Device device;
 		Dx12SwapChain swapChain;
 		Dx12CommandContext commandContext;
+		Dx12Pipeline pipeline;
 		Dx12TextureCache textureCache;
 
 	public:

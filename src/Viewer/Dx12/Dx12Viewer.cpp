@@ -14,6 +14,7 @@ namespace Chrivent {
 
 	Dx12Viewer::~Dx12Viewer() {
 		commandContext.WaitForGpu(device.GetInfo());
+		pipeline.Destroy();
 		commandContext.Destroy();
 		swapChain.Destroy();
 		device.Destroy();
@@ -36,6 +37,10 @@ namespace Chrivent {
 		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
 		if (!swapChain.Initialize(device.GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
+			return false;
+		}
+		if (!pipeline.Initialize(device.GetInfo(), GetInfo().shaderDir)) {
+			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}
 		return true;
@@ -63,6 +68,9 @@ namespace Chrivent {
 		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain.GetCurrentRtvHandle();
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		commandList->SetGraphicsRootSignature(pipeline.GetModelRootSignature());
+		commandList->SetPipelineState(pipeline.GetModelPipelineState());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	bool Dx12Viewer::EndFrame() {
