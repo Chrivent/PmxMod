@@ -14,6 +14,8 @@
 #include "Helper/VulkanSyncObject.h"
 #include "VulkanTextureCache.h"
 
+#include <memory>
+
 namespace Chrivent {
 	struct VulkanMaterial : ViewerMaterial {
 		VulkanTexture texture{};
@@ -28,10 +30,10 @@ namespace Chrivent {
 	};
 	
 	struct VulkanViewerInfo : ViewerInfo {
-		const VulkanDeviceInfo* deviceInfo = nullptr;
-		const VulkanPipelineInfo* pipelineInfo = nullptr;
-		const VulkanTexture* dummyTexture = nullptr;
-		const VulkanSyncObjectInfo* syncInfo = nullptr;
+		std::shared_ptr<const VulkanDeviceInfo> deviceInfo;
+		std::shared_ptr<const VulkanPipelineInfo> pipelineInfo;
+		std::shared_ptr<const VulkanTexture> dummyTexture;
+		std::shared_ptr<const VulkanSyncObjectInfo> syncInfo;
 	};
 
 	struct VulkanBindStateCache {
@@ -44,17 +46,17 @@ namespace Chrivent {
 	};
 
 	class VulkanViewer : public Viewer {
-		VulkanDevice device;
+		std::shared_ptr<VulkanDevice> device;
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
 		VulkanMsaaDepthBuffer msaaDepthBuffer;
 		VulkanRenderPass renderPass;
-		VulkanPipeline pipeline;
+		std::shared_ptr<VulkanPipeline> pipeline;
 		VulkanFrameBuffer frameBuffer;
 		VulkanCommandContext commandContext;
-		VulkanSyncObject syncObject;
+		std::shared_ptr<VulkanSyncObject> syncObject;
 		VulkanTextureCache textureCache;
-		VulkanTexture dummyTexture;
+		std::shared_ptr<VulkanTexture> dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		VulkanBindStateCache bindStateCache;

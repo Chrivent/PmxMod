@@ -3,7 +3,6 @@
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
 #include "../Assist/ViewerMatrix.h"
-#include "../Assist/ViewerTextureMode.h"
 #include "../../Model/Model.h"
 
 namespace Chrivent {
@@ -77,7 +76,9 @@ namespace Chrivent {
 			psCb.ambient       = mat.ambient;
 			psCb.specular      = mat.specular;
 			psCb.specularPower = mat.specularPower;
-			const int baseMode = ViewerTextureMode::Base(material.texture.texture != nullptr, material.texture.hasAlpha);
+			int baseMode = 0;
+			if (material.texture.texture)
+				baseMode = !material.texture.hasAlpha ? 1 : 2;
 			BindTexture(
 				0, material.texture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), baseMode,
 				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor,
@@ -88,7 +89,13 @@ namespace Chrivent {
 				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor,
 				boundViews[1], boundSamplers[1]
 			);
-			const int spMode = ViewerTextureMode::Sphere(material.spTexture.texture != nullptr, mat.spTextureMode);
+			int spMode = 0;
+			if (material.spTexture.texture) {
+				if (mat.spTextureMode == SphereMode::Mul)
+					spMode = 1;
+				else if (mat.spTextureMode == SphereMode::Add)
+					spMode = 2;
+			}
 			BindTexture(
 				2, material.spTexture, viewer->GetDx11Info().pipelineStates.textureSampler.Get(), spMode,
 				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor,
@@ -156,7 +163,9 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.groundShadow.inputLayout.Get());
-		const glm::mat4 shadow = ViewerMatrix::BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
+		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
+		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
+		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 		Dx11GroundShadowVertexConstants vsCb;
 		vsCb.wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);

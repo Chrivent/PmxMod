@@ -85,7 +85,6 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/TextureCache.h
 
         src/Viewer/Assist/ViewerMatrix.h src/Viewer/Assist/ViewerMatrix.cpp
-        src/Viewer/Assist/ViewerTextureMode.h
         src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
         src/Viewer/Assist/Glsl/GlslShaderConstants.h
         src/Viewer/Assist/Glsl/GlslDynamicBufferRing.h src/Viewer/Assist/Glsl/GlslDynamicBufferRing.cpp

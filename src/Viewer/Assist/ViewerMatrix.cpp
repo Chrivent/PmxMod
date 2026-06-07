@@ -21,9 +21,4 @@ namespace Chrivent {
 		return vulkanClipMatrix;
 	}
 
-	glm::mat4 ViewerMatrix::BuildGroundShadowMatrix(const glm::vec3& lightDir) {
-		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
-		const glm::vec4 light(-lightDir, 0.0f);
-		return glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
-	}
 }

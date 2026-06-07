@@ -91,9 +91,9 @@ namespace Chrivent {
 			return false;
 		}
 		const auto& viewerInfo = info.viewer->GetVulkanInfo();
-		if (viewerInfo.deviceInfo == nullptr ||
-			viewerInfo.pipelineInfo == nullptr ||
-			viewerInfo.dummyTexture == nullptr)
+		if (!viewerInfo.deviceInfo ||
+			!viewerInfo.pipelineInfo ||
+			!viewerInfo.dummyTexture)
 			return false;
 		const auto& deviceInfo = *viewerInfo.deviceInfo;
 		const auto& pipelineInfo = *viewerInfo.pipelineInfo;
@@ -201,7 +201,7 @@ namespace Chrivent {
 		if (info.model == nullptr || info.viewer == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetVulkanInfo();
-		if (viewerInfo.syncInfo == nullptr)
+		if (!viewerInfo.syncInfo)
 			return;
 		const size_t frameIndex = viewerInfo.syncInfo->currentFrame % VulkanInstanceInfo::kBufferedFrames;
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex];

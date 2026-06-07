@@ -6,12 +6,16 @@
 
 namespace Chrivent {
 	VulkanViewer::VulkanViewer() {
+		device = std::make_shared<VulkanDevice>();
+		pipeline = std::make_shared<VulkanPipeline>();
+		syncObject = std::make_shared<VulkanSyncObject>();
+		dummyTexture = std::make_shared<VulkanTexture>();
 		info = std::make_unique<VulkanViewerInfo>();
 		auto& vulkanInfo = GetVulkanInfo();
-		vulkanInfo.deviceInfo = &device.GetInfo();
-		vulkanInfo.pipelineInfo = &pipeline.GetInfo();
-		vulkanInfo.dummyTexture = &dummyTexture;
-		vulkanInfo.syncInfo = &syncObject.GetInfo();
+		vulkanInfo.deviceInfo = std::shared_ptr<const VulkanDeviceInfo>(device, &device->GetInfo());
+		vulkanInfo.pipelineInfo = std::shared_ptr<const VulkanPipelineInfo>(pipeline, &pipeline->GetInfo());
+		vulkanInfo.dummyTexture = dummyTexture;
+		vulkanInfo.syncInfo = std::shared_ptr<const VulkanSyncObjectInfo>(syncObject, &syncObject->GetInfo());
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
@@ -43,8 +47,8 @@ namespace Chrivent {
 		if (!frameReady)
 			return;
 		const VkPipeline targetPipeline = bothFace
-			? pipeline.GetInfo().bothFacePipeline
-			: pipeline.GetInfo().pipeline;
+			? pipeline->GetInfo().bothFacePipeline
+			: pipeline->GetInfo().pipeline;
 		if (bindStateCache.pipeline == targetPipeline)
 			return;
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
@@ -55,21 +59,21 @@ namespace Chrivent {
 	void VulkanViewer::BindEdgePipeline() {
 		if (!frameReady)
 			return;
-		if (bindStateCache.pipeline == pipeline.GetInfo().edgePipeline)
+		if (bindStateCache.pipeline == pipeline->GetInfo().edgePipeline)
 			return;
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
-		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().edgePipeline);
-		bindStateCache.pipeline = pipeline.GetInfo().edgePipeline;
+		commandBuffer.BindPipeline(currentImageIndex, pipeline->GetInfo().edgePipeline);
+		bindStateCache.pipeline = pipeline->GetInfo().edgePipeline;
 	}
 
 	void VulkanViewer::BindGroundShadowPipeline() {
 		if (!frameReady)
 			return;
-		if (bindStateCache.pipeline == pipeline.GetInfo().groundShadowPipeline)
+		if (bindStateCache.pipeline == pipeline->GetInfo().groundShadowPipeline)
 			return;
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
-		commandBuffer.BindPipeline(currentImageIndex, pipeline.GetInfo().groundShadowPipeline);
-		bindStateCache.pipeline = pipeline.GetInfo().groundShadowPipeline;
+		commandBuffer.BindPipeline(currentImageIndex, pipeline->GetInfo().groundShadowPipeline);
+		bindStateCache.pipeline = pipeline->GetInfo().groundShadowPipeline;
 	}
 
 	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, const uint32_t dynamicOffset) {
@@ -81,7 +85,7 @@ namespace Chrivent {
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
+			pipeline->GetInfo().pipelineLayout,
 			0,
 			&descriptorSet.GetVertexDescriptorSet(),
 			1,
@@ -100,7 +104,7 @@ namespace Chrivent {
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
+			pipeline->GetInfo().pipelineLayout,
 			1,
 			&descriptorSet,
 			1,
@@ -118,7 +122,7 @@ namespace Chrivent {
 		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
-			pipeline.GetInfo().pipelineLayout,
+			pipeline->GetInfo().pipelineLayout,
 			2,
 			&descriptorSet,
 			1);
@@ -131,52 +135,52 @@ namespace Chrivent {
 
 	bool VulkanViewer::Setup() {
 		InitDirs("shader_glsl");
-		if (!device.Initialize(GetInfo().window))
+		if (!device->Initialize(GetInfo().window))
 			return false;
-		if (!swapChain.Initialize(device.GetInfo(), GetInfo().window))
+		if (!swapChain.Initialize(device->GetInfo(), GetInfo().window))
 			return false;
-		if (!msaaColorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!msaaDepthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaDepthBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
+		if (!renderPass.Initialize(device->GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
 			return false;
-		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
+		if (!pipeline->Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
 			return false;
-		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!commandContext.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		dummyTexture = textureCache.CreateWhiteTexture(device.GetInfo(), commandContext.GetCommandPool());
-		if (dummyTexture.image == VK_NULL_HANDLE)
+		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo(), commandContext.GetCommandPool());
+		if (dummyTexture->image == VK_NULL_HANDLE)
 			return false;
-		return syncObject.Initialize(device.GetInfo(), swapChain.GetInfo().images.size());
+		return syncObject->Initialize(device->GetInfo(), swapChain.GetInfo().images.size());
 	}
 
 	bool VulkanViewer::Resize() {
-		if (device.GetInfo().device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(device.GetInfo().device);
+		if (device->GetInfo().device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(device->GetInfo().device);
 		commandContext.Destroy();
 		frameBuffer.Destroy();
-		pipeline.Destroy();
+		pipeline->Destroy();
 		renderPass.Destroy();
 		msaaColorBuffer.Destroy();
 		msaaDepthBuffer.Destroy();
-		if (!swapChain.Recreate(device.GetInfo(), GetInfo().window))
+		if (!swapChain.Recreate(device->GetInfo(), GetInfo().window))
 			return false;
-		if (!msaaColorBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!msaaDepthBuffer.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!msaaDepthBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		if (!renderPass.Initialize(device.GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
+		if (!renderPass.Initialize(device->GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
 			return false;
-		if (!pipeline.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
+		if (!pipeline->Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
 			return false;
-		if (!frameBuffer.Initialize(device.GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
+		if (!frameBuffer.Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
 			return false;
-		if (!commandContext.Initialize(device.GetInfo(), swapChain.GetInfo()))
+		if (!commandContext.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		syncObject.ResetImageTracking(swapChain.GetInfo().images.size());
+		syncObject->ResetImageTracking(swapChain.GetInfo().images.size());
 		return true;
 	}
 
@@ -184,8 +188,8 @@ namespace Chrivent {
 		frameReady = false;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
-		const auto& deviceInfo = device.GetInfo();
-		const auto& syncInfo = syncObject.GetInfo();
+		const auto& deviceInfo = device->GetInfo();
+		const auto& syncInfo = syncObject->GetInfo();
 		const size_t frameIndex = syncInfo.currentFrame;
 		vkWaitForFences(
 			deviceInfo.device,
@@ -224,11 +228,11 @@ namespace Chrivent {
 			currentImageIndex,
 			renderPass.GetRenderPass(),
 			frameBuffers[currentImageIndex],
-			pipeline.GetInfo().pipeline,
+			pipeline->GetInfo().pipeline,
 			swapChain.GetInfo().extent,
 			clearColor))
 			return;
-		bindStateCache.pipeline = pipeline.GetInfo().pipeline;
+		bindStateCache.pipeline = pipeline->GetInfo().pipeline;
 		frameReady = true;
 	}
 
@@ -239,8 +243,8 @@ namespace Chrivent {
 			frameReady = false;
 			return false;
 		}
-		const auto& deviceInfo = device.GetInfo();
-		const auto& syncInfo = syncObject.GetInfo();
+		const auto& deviceInfo = device->GetInfo();
+		const auto& syncInfo = syncObject->GetInfo();
 		const auto& imageAvailableSemaphores = syncInfo.imageAvailableSemaphores;
 		const auto& renderFinishedSemaphores = syncInfo.renderFinishedSemaphores;
 		const auto& inFlightFences = syncInfo.inFlightFences;
@@ -252,8 +256,8 @@ namespace Chrivent {
 			commandContext.GetCommandBuffer().GetCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
-		if (currentImageIndex < syncObject.GetInfo().imagesInFlight.size())
-			syncObject.GetInfo().imagesInFlight[currentImageIndex] = inFlightFence;
+		if (currentImageIndex < syncObject->GetInfo().imagesInFlight.size())
+			syncObject->GetInfo().imagesInFlight[currentImageIndex] = inFlightFence;
 		vkResetFences(deviceInfo.device, 1, &inFlightFence);
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -283,7 +287,7 @@ namespace Chrivent {
 			std::cerr << "Failed to present Vulkan swapchain image.\n";
 			return false;
 		}
-		syncObject.AdvanceFrame();
+		syncObject->AdvanceFrame();
 		frameReady = false;
 		return true;
 	}
@@ -293,6 +297,6 @@ namespace Chrivent {
 	}
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		return textureCache.Load(device.GetInfo(), commandContext.GetCommandPool(), texturePath, clamp);
+		return textureCache.Load(device->GetInfo(), commandContext.GetCommandPool(), texturePath, clamp);
 	}
 }

@@ -3,7 +3,6 @@
 #include "VulkanInstance.h"
 #include "VulkanViewer.h"
 #include "../Assist/ViewerMatrix.h"
-#include "../Assist/ViewerTextureMode.h"
 #include "../Assist/Glsl/GlslShaderConstants.h"
 #include "../../Model/Model.h"
 
@@ -14,7 +13,7 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		const auto& vulkanInfo = info.viewer->GetVulkanInfo();
-		if (vulkanInfo.syncInfo == nullptr)
+		if (!vulkanInfo.syncInfo)
 			return;
 		const size_t frameIndex = vulkanInfo.syncInfo->currentFrame;
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
@@ -55,9 +54,16 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			pixelConstants.textureModes.x = ViewerTextureMode::Base(!mat.texture.empty(), material.texture.hasAlpha);
-			pixelConstants.textureModes.y = ViewerTextureMode::Toon(!mat.toonTexture.empty());
-			pixelConstants.textureModes.z = ViewerTextureMode::Sphere(!mat.spTexture.empty(), mat.spTextureMode);
+			if (!mat.texture.empty())
+				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
+			if (!mat.toonTexture.empty())
+				pixelConstants.textureModes.y = 1;
+			if (!mat.spTexture.empty()) {
+				if (mat.spTextureMode == SphereMode::Mul)
+					pixelConstants.textureModes.z = 1;
+				else if (mat.spTextureMode == SphereMode::Add)
+					pixelConstants.textureModes.z = 2;
+			}
 			const auto pixelSlice = info.modelPixelConstantsRing.Allocate(
 				sizeof(pixelConstants),
 				info.uniformBufferOffsetAlignment,
@@ -81,7 +87,7 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		const auto& vulkanInfo = info.viewer->GetVulkanInfo();
-		if (vulkanInfo.syncInfo == nullptr)
+		if (!vulkanInfo.syncInfo)
 			return;
 		const size_t frameIndex = vulkanInfo.syncInfo->currentFrame;
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
@@ -135,7 +141,7 @@ namespace Chrivent {
 		if (info.viewer == nullptr)
 			return;
 		const auto& vulkanInfo = info.viewer->GetVulkanInfo();
-		if (vulkanInfo.syncInfo == nullptr)
+		if (!vulkanInfo.syncInfo)
 			return;
 		const size_t frameIndex = vulkanInfo.syncInfo->currentFrame;
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex % VulkanInstanceInfo::kBufferedFrames];
@@ -143,7 +149,9 @@ namespace Chrivent {
 		info.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const glm::mat4 shadow = ViewerMatrix::BuildGroundShadowMatrix(viewerInfo.lightDir);
+		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
+		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
+		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ViewerMatrix::VulkanClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		constexpr GroundShadowPixelConstants pixelConstants{};

@@ -4,7 +4,6 @@
 #include "Dx12Viewer.h"
 #include "Helper/Dx12Constants.h"
 #include "../Assist/ViewerMatrix.h"
-#include "../Assist/ViewerTextureMode.h"
 #include "../../Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,7 +13,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawModel() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -55,9 +54,16 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			pixelConstants.textureModes.x = ViewerTextureMode::Base(material.texture.resource != nullptr, material.texture.hasAlpha);
-			pixelConstants.textureModes.y = ViewerTextureMode::Toon(material.toonTexture.resource != nullptr);
-			pixelConstants.textureModes.z = ViewerTextureMode::Sphere(material.sphereTexture.resource != nullptr, mat.spTextureMode);
+			if (material.texture.resource)
+				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
+			if (material.toonTexture.resource)
+				pixelConstants.textureModes.y = 1;
+			if (material.sphereTexture.resource) {
+				if (mat.spTextureMode == SphereMode::Mul)
+					pixelConstants.textureModes.z = 1;
+				else if (mat.spTextureMode == SphereMode::Add)
+					pixelConstants.textureModes.z = 2;
+			}
 			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId];
 			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
@@ -73,7 +79,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawEdge() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
@@ -121,12 +127,14 @@ namespace Chrivent {
 	void Dx12Drawer::DrawGroundShadow() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList;
+		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const glm::mat4 shadow = ViewerMatrix::BuildGroundShadowMatrix(viewerInfo.lightDir);
+		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
+		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
+		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		Dx12GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {

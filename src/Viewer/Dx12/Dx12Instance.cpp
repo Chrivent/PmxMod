@@ -60,7 +60,7 @@ namespace Chrivent {
 		if (info.viewer == nullptr || info.materials.empty())
 			return true;
 		const auto& viewerInfo = info.viewer->GetDx12Info();
-		if (viewerInfo.deviceInfo == nullptr || viewerInfo.dummyTexture == nullptr)
+		if (!viewerInfo.deviceInfo || !viewerInfo.dummyTexture)
 			return false;
 		const auto& deviceInfo = *viewerInfo.deviceInfo;
 		if (!deviceInfo.device)
@@ -149,7 +149,7 @@ namespace Chrivent {
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indices.size() > (std::numeric_limits<UINT>::max)())
 			return false;
 		const auto& viewerInfo = info.viewer->GetDx12Info();
-		if (viewerInfo.deviceInfo == nullptr)
+		if (!viewerInfo.deviceInfo)
 			return false;
 		const auto& deviceInfo = *viewerInfo.deviceInfo;
 		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||

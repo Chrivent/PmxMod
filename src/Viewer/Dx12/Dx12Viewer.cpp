@@ -9,19 +9,21 @@
 
 namespace Chrivent {
 	Dx12Viewer::Dx12Viewer() {
+		device = std::make_shared<Dx12Device>();
+		dummyTexture = std::make_shared<Dx12Texture>();
 		info = std::make_unique<Dx12ViewerInfo>();
 		auto& dx12Info = GetDx12Info();
-		dx12Info.deviceInfo = &device.GetInfo();
-		dx12Info.dummyTexture = &dummyTexture;
+		dx12Info.deviceInfo = std::shared_ptr<const Dx12DeviceInfo>(device, &device->GetInfo());
+		dx12Info.dummyTexture = dummyTexture;
 	}
 
 	Dx12Viewer::~Dx12Viewer() {
-		commandContext.WaitForGpu(device.GetInfo());
+		commandContext.WaitForGpu(device->GetInfo());
 		pipeline.Destroy();
 		commandContext.Destroy();
 		depthBuffer.Destroy();
 		swapChain.Destroy();
-		device.Destroy();
+		device->Destroy();
 	}
 
 	void Dx12Viewer::ConfigureGlfwHints() {
@@ -30,30 +32,30 @@ namespace Chrivent {
 
 	bool Dx12Viewer::Setup() {
 		InitDirs("shader_hlsl");
-		if (!device.Initialize()) {
+		if (!device->Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
 		}
-		if (!commandContext.Initialize(device.GetInfo())) {
+		if (!commandContext.Initialize(device->GetInfo())) {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
 		}
-		GetDx12Info().commandList = commandContext.GetInfo().commandList.Get();
+		GetDx12Info().commandList = commandContext.GetInfo().commandList;
 		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
-		if (!swapChain.Initialize(device.GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
+		if (!swapChain.Initialize(device->GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
 			return false;
 		}
-		if (!depthBuffer.Initialize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
+		if (!depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		if (!pipeline.Initialize(device.GetInfo(), GetInfo().shaderDir)) {
+		if (!pipeline.Initialize(device->GetInfo(), GetInfo().shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}
-		dummyTexture = textureCache.CreateWhiteTexture(device.GetInfo());
-		if (!dummyTexture.resource) {
+		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo());
+		if (!dummyTexture->resource) {
 			std::cerr << "Failed to initialize DX12 dummy texture.\n";
 			return false;
 		}
@@ -61,10 +63,10 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::Resize() {
-		commandContext.WaitForGpu(device.GetInfo());
-		if (!swapChain.Resize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
+		commandContext.WaitForGpu(device->GetInfo());
+		if (!swapChain.Resize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
 			return false;
-		return depthBuffer.Initialize(device.GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
+		return depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
 	}
 
 	void Dx12Viewer::BeginFrame() {
@@ -112,11 +114,11 @@ namespace Chrivent {
 		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		commandList->ResourceBarrier(1, &barrier);
-		if (!commandContext.Execute(device.GetInfo()))
+		if (!commandContext.Execute(device->GetInfo()))
 			return false;
 		if (!swapChain.Present())
 			return false;
-		return commandContext.WaitForGpu(device.GetInfo());
+		return commandContext.WaitForGpu(device->GetInfo());
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
@@ -124,7 +126,7 @@ namespace Chrivent {
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(device.GetInfo(), texturePath);
+		return textureCache.Load(device->GetInfo(), texturePath);
 	}
 
 	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {

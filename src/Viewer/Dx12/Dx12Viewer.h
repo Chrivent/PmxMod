@@ -22,19 +22,19 @@ namespace Chrivent {
 	};
 
 	struct Dx12ViewerInfo : ViewerInfo {
-		const Dx12DeviceInfo* deviceInfo = nullptr;
-		ID3D12GraphicsCommandList* commandList = nullptr;
-		const Dx12Texture* dummyTexture = nullptr;
+		std::shared_ptr<const Dx12DeviceInfo> deviceInfo;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+		std::shared_ptr<const Dx12Texture> dummyTexture;
 	};
 
 	class Dx12Viewer : public Viewer {
-		Dx12Device device;
+		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
 		Dx12TextureCache textureCache;
-		Dx12Texture dummyTexture;
+		std::shared_ptr<Dx12Texture> dummyTexture;
 
 	public:
 		Dx12Viewer();
