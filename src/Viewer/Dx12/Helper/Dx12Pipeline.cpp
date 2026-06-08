@@ -33,9 +33,12 @@ namespace Chrivent {
 				MinLOD, MaxLOD, ShaderRegister, RegisterSpace,
 				ShaderVisibility] = samplers[index];
 			Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-			AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			const D3D12_TEXTURE_ADDRESS_MODE addressMode = index == 1
+				? D3D12_TEXTURE_ADDRESS_MODE_CLAMP
+				: D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			AddressU = addressMode;
+			AddressV = addressMode;
+			AddressW = addressMode;
 			MipLODBias = 0.0f;
 			MaxAnisotropy = 1;
 			ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -99,7 +102,7 @@ namespace Chrivent {
 		SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		BlendOp = D3D12_BLEND_OP_ADD;
-		SrcBlendAlpha = D3D12_BLEND_ONE;
+		SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
 		DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
 		BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		LogicOp = D3D12_LOGIC_OP_NOOP;
@@ -114,7 +117,7 @@ namespace Chrivent {
 		pipelineDesc.RasterizerState.DepthClipEnable = TRUE;
 		pipelineDesc.DepthStencilState.DepthEnable = TRUE;
 		pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		pipelineDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		pipelineDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		pipelineDesc.DepthStencilState.StencilEnable = FALSE;
 		pipelineDesc.InputLayout = { inputElements, 3 };
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -191,7 +194,7 @@ namespace Chrivent {
 		pipelineDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -270,7 +273,7 @@ namespace Chrivent {
 		pipelineDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
 		pipelineDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
