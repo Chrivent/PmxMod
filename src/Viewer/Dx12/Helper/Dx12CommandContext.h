@@ -2,6 +2,7 @@
 
 #include "Dx12Device.h"
 
+#include <array>
 #include <cstdint>
 #include <d3d12.h>
 #include <windows.h>
@@ -9,11 +10,15 @@
 
 namespace Chrivent {
 	struct Dx12CommandContextInfo {
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
+		static constexpr UINT kFrameCount = 2;
+
+		std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, kFrameCount> commandAllocators{};
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
 		HANDLE fenceEvent = nullptr;
-		uint64_t fenceValue = 0;
+		std::array<uint64_t, kFrameCount> frameFenceValues{};
+		uint64_t nextFenceValue = 1;
+		UINT frameIndex = 0;
 	};
 
 	class Dx12CommandContext {
@@ -25,9 +30,9 @@ namespace Chrivent {
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.
 		bool Initialize(const Dx12DeviceInfo& deviceInfo);
 		// 한 프레임의 명령 기록을 시작할 수 있도록 allocator와 list를 초기화한다.
-		bool BeginFrame() const;
+		bool BeginFrame(const Dx12DeviceInfo& deviceInfo, UINT frameIndex);
 		// 기록한 명령 리스트를 닫고 command queue에 제출한다.
-		bool Execute(const Dx12DeviceInfo& deviceInfo) const;
+		bool Execute(const Dx12DeviceInfo& deviceInfo);
 		// CPU와 GPU를 동기화해 기록된 명령이 모두 끝날 때까지 대기한다.
 		bool WaitForGpu(const Dx12DeviceInfo& deviceInfo);
 		// 생성한 DX12 명령 리소스를 해제한다.

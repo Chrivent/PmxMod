@@ -77,7 +77,7 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::BeginFrame() {
-		if (!commandContext.BeginFrame())
+		if (!commandContext.BeginFrame(device->GetInfo(), swapChain.GetFrameIndex()))
 			return;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
@@ -147,7 +147,7 @@ namespace Chrivent {
 			return false;
 		if (!swapChain.Present())
 			return false;
-		return commandContext.WaitForGpu(device->GetInfo());
+		return true;
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

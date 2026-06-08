@@ -5,14 +5,16 @@ namespace Chrivent {
 		Destroy();
 		if (!deviceInfo.device || !deviceInfo.commandQueue)
 			return false;
-		if (FAILED(deviceInfo.device->CreateCommandAllocator(
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(&info.commandAllocator))))
-			return false;
+		for (auto& commandAllocator : info.commandAllocators) {
+			if (FAILED(deviceInfo.device->CreateCommandAllocator(
+				D3D12_COMMAND_LIST_TYPE_DIRECT,
+				IID_PPV_ARGS(&commandAllocator))))
+				return false;
+		}
 		if (FAILED(deviceInfo.device->CreateCommandList(
 			0,
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			info.commandAllocator.Get(),
+			info.commandAllocators[0].Get(),
 			nullptr,
 			IID_PPV_ARGS(&info.commandList))))
 			return false;
@@ -23,40 +25,56 @@ namespace Chrivent {
 		info.fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 		if (!info.fenceEvent)
 			return false;
-		info.fenceValue = 1;
+		info.nextFenceValue = 1;
 		return true;
 	}
 
-	bool Dx12CommandContext::BeginFrame() const {
-		if (!info.commandAllocator || !info.commandList)
+	bool Dx12CommandContext::BeginFrame(const Dx12DeviceInfo& deviceInfo, const UINT frameIndex) {
+		if (!deviceInfo.device || !info.commandList || !info.fence || !info.fenceEvent)
 			return false;
-		if (FAILED(info.commandAllocator->Reset()))
+		info.frameIndex = frameIndex % Dx12CommandContextInfo::kFrameCount;
+		const uint64_t frameFenceValue = info.frameFenceValues[info.frameIndex];
+		if (frameFenceValue != 0 && info.fence->GetCompletedValue() < frameFenceValue) {
+			if (FAILED(info.fence->SetEventOnCompletion(frameFenceValue, info.fenceEvent)))
+				return false;
+			WaitForSingleObject(info.fenceEvent, INFINITE);
+		}
+		ID3D12CommandAllocator* commandAllocator = info.commandAllocators[info.frameIndex].Get();
+		if (commandAllocator == nullptr)
 			return false;
-		return SUCCEEDED(info.commandList->Reset(info.commandAllocator.Get(), nullptr));
+		if (FAILED(commandAllocator->Reset()))
+			return false;
+		return SUCCEEDED(info.commandList->Reset(commandAllocator, nullptr));
 	}
 
-	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) const {
-		if (!deviceInfo.commandQueue || !info.commandList)
+	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) {
+		if (!deviceInfo.commandQueue || !info.commandList || !info.fence)
 			return false;
 		if (FAILED(info.commandList->Close()))
 			return false;
 		ID3D12CommandList* commandLists[] = { info.commandList.Get() };
 		deviceInfo.commandQueue->ExecuteCommandLists(1, commandLists);
+		const uint64_t signalValue = info.nextFenceValue;
+		if (FAILED(deviceInfo.commandQueue->Signal(info.fence.Get(), signalValue)))
+			return false;
+		info.frameFenceValues[info.frameIndex] = signalValue;
+		info.nextFenceValue++;
 		return true;
 	}
 
 	bool Dx12CommandContext::WaitForGpu(const Dx12DeviceInfo& deviceInfo) {
 		if (!deviceInfo.commandQueue || !info.fence || !info.fenceEvent)
 			return false;
-		const uint64_t waitValue = info.fenceValue;
+		const uint64_t waitValue = info.nextFenceValue;
 		if (FAILED(deviceInfo.commandQueue->Signal(info.fence.Get(), waitValue)))
 			return false;
-		info.fenceValue++;
+		info.nextFenceValue++;
 		if (info.fence->GetCompletedValue() >= waitValue)
 			return true;
 		if (FAILED(info.fence->SetEventOnCompletion(waitValue, info.fenceEvent)))
 			return false;
 		WaitForSingleObject(info.fenceEvent, INFINITE);
+		info.frameFenceValues.fill(0);
 		return true;
 	}
 
@@ -67,7 +85,10 @@ namespace Chrivent {
 		}
 		info.fence.Reset();
 		info.commandList.Reset();
-		info.commandAllocator.Reset();
-		info.fenceValue = 0;
+		for (auto& commandAllocator : info.commandAllocators)
+			commandAllocator.Reset();
+		info.frameFenceValues = {};
+		info.nextFenceValue = 1;
+		info.frameIndex = 0;
 	}
 }
