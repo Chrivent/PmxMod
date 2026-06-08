@@ -2,13 +2,13 @@
 
 **[English](./README.md)** | [한국어](./README.ko.md)
 
-PMX/VMD model viewer built with C++20. The project currently renders through OpenGL, DirectX 11, and Vulkan.
+PMX/VMD model viewer built with C++23. The project currently renders through OpenGL, DirectX 11, DirectX 12, and Vulkan.
 
 ## Requirements
 
 - Windows
 - Visual Studio C++ toolchain
-- CMake 3.20 or newer
+- CMake 4.1.2 or newer
 - vcpkg
 - Vulkan SDK
 
@@ -16,6 +16,7 @@ PMX/VMD model viewer built with C++20. The project currently renders through Ope
 
 - OpenGL: supported
 - DirectX 11: supported
+- DirectX 12: supported
 - Vulkan: supported
 
 ## Dependencies
@@ -73,4 +74,6 @@ For a custom vcpkg location, add this to VS Code settings:
 - `stb` is found through vcpkg's `FindStb.cmake`.
 - `miniaudio` is header-only and is found by locating `miniaudio.h`.
 - Vulkan is found through the installed Vulkan SDK.
+- OpenGL is used as the visual reference renderer. DirectX 11, DirectX 12, and Vulkan keep matching model, edge, ground shadow, texture, depth, stencil, blend, and MSAA behavior where the APIs allow it.
+- DirectX 12 and Vulkan use explicit MSAA render targets and resolve into the swapchain image. This differs from OpenGL's default framebuffer flow, but follows the same sample-count policy and visual result.
 - Runtime resources are copied from `resource/` into the CMake build directory by the `SyncResources` target.

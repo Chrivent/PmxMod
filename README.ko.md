@@ -2,13 +2,13 @@
 
 [English](./README.md) | **[한국어](./README.ko.md)**
 
-C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL, DirectX 11, Vulkan 렌더러를 지원합니다.
+C++23으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL, DirectX 11, DirectX 12, Vulkan 렌더러를 지원합니다.
 
 ## 요구 사항
 
 - Windows
 - Visual Studio C++ toolchain
-- CMake 3.20 이상
+- CMake 4.1.2 이상
 - vcpkg
 - Vulkan SDK
 
@@ -16,6 +16,7 @@ C++20으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL, DirectX 11,
 
 - OpenGL: 지원
 - DirectX 11: 지원
+- DirectX 12: 지원
 - Vulkan: 지원
 
 ## 의존성 설치
@@ -73,4 +74,6 @@ vcpkg 경로가 기본값과 다르면 VS Code 설정에 아래 값을 추가합
 - `stb`는 vcpkg의 `FindStb.cmake`를 통해 찾습니다.
 - `miniaudio`는 header-only 라이브러리라 `miniaudio.h` 위치를 찾아 include 경로로 추가합니다.
 - Vulkan은 설치된 Vulkan SDK를 통해 찾습니다.
+- OpenGL을 화면 기준 렌더러로 사용합니다. DirectX 11, DirectX 12, Vulkan은 API가 허용하는 범위에서 모델, 엣지, 지면 그림자, 텍스처, 깊이, 스텐실, 블렌드, MSAA 동작을 OpenGL 기준에 맞춥니다.
+- DirectX 12와 Vulkan은 별도 MSAA 렌더 타깃에 그린 뒤 스왑체인 이미지로 resolve합니다. OpenGL의 기본 framebuffer 흐름과 구현 방식은 다르지만, sample count 정책과 최종 화면 결과를 맞추는 방향입니다.
 - 실행 리소스는 `SyncResources` 타깃이 `resource/`에서 CMake 빌드 디렉터리로 복사합니다.
