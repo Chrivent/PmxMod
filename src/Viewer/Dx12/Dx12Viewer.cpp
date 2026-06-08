@@ -97,8 +97,8 @@ namespace Chrivent {
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 		D3D12_VIEWPORT viewport{};
-		viewport.Width = static_cast<float>(GetInfo().screenWidth);
-		viewport.Height = static_cast<float>(GetInfo().screenHeight);
+		viewport.Width = GetInfo().screenWidth;
+		viewport.Height = GetInfo().screenHeight;
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		commandList->RSSetViewports(1, &viewport);

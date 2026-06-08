@@ -65,10 +65,9 @@ namespace Chrivent {
 		if (FAILED(uploadBuffer->Map(0, &readRange, &mappedData)))
 			return false;
 		auto* destination = static_cast<std::uint8_t*>(mappedData) + layout.Offset;
-		const auto* source = static_cast<const std::uint8_t*>(pixels);
 		const UINT sourcePitch = width * 4;
 		for (UINT row = 0; row < rowCount; row++)
-			std::memcpy(destination + layout.Footprint.RowPitch * row, source + sourcePitch * row, sourcePitch);
+			std::memcpy(destination + layout.Footprint.RowPitch * row, pixels + sourcePitch * row, sourcePitch);
 		uploadBuffer->Unmap(0, nullptr);
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -143,7 +142,7 @@ namespace Chrivent {
 		const auto texture = std::make_shared<Dx12Texture>();
 		texture->key = key;
 		texture->hasAlpha = comp == 4;
-		const bool uploaded = UploadRgbaPixels(deviceInfo, image, static_cast<UINT>(x), static_cast<UINT>(y), *texture);
+		const bool uploaded = UploadRgbaPixels(deviceInfo, image, x, y, *texture);
 		stbi_image_free(image);
 		if (!uploaded)
 			return {};
