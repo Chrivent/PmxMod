@@ -125,6 +125,7 @@ set(DX12_SOURCES
         src/Viewer/Dx12/Helper/Dx12Constants.h
         src/Viewer/Dx12/Helper/Dx12DepthBuffer.h src/Viewer/Dx12/Helper/Dx12DepthBuffer.cpp
         src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
+        src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.cpp
         src/Viewer/Dx12/Helper/Dx12Pipeline.h src/Viewer/Dx12/Helper/Dx12Pipeline.cpp
         src/Viewer/Dx12/Helper/Dx12ShaderCompiler.h src/Viewer/Dx12/Helper/Dx12ShaderCompiler.cpp
         src/Viewer/Dx12/Helper/Dx12SwapChain.h src/Viewer/Dx12/Helper/Dx12SwapChain.cpp

@@ -121,7 +121,7 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = 1;
+		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
 			IID_PPV_ARGS(&info.modelFrontFacePipelineState))))
@@ -209,7 +209,7 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = 1;
+		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
 			IID_PPV_ARGS(&info.edgePipelineState)));
@@ -298,7 +298,7 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = 1;
+		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
 			IID_PPV_ARGS(&info.groundShadowPipelineState)));

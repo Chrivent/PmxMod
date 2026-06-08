@@ -22,6 +22,7 @@ namespace Chrivent {
 		pipeline.Destroy();
 		commandContext.Destroy();
 		depthBuffer.Destroy();
+		msaaColorBuffer.Destroy();
 		swapChain.Destroy();
 		device->Destroy();
 	}
@@ -46,6 +47,10 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
 			return false;
 		}
+		if (!msaaColorBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
+			std::cerr << "Failed to initialize DX12 MSAA color buffer.\n";
+			return false;
+		}
 		if (!depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
@@ -66,6 +71,8 @@ namespace Chrivent {
 		commandContext.WaitForGpu(device->GetInfo());
 		if (!swapChain.Resize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
 			return false;
+		if (!msaaColorBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
+			return false;
 		return depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
 	}
 
@@ -74,7 +81,8 @@ namespace Chrivent {
 			return;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
-		if (!commandList || !backBuffer)
+		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
+		if (!commandList || !backBuffer || !msaaColor)
 			return;
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -83,7 +91,7 @@ namespace Chrivent {
 		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		commandList->ResourceBarrier(1, &barrier);
-		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain.CalculateCurrentRtvHandle();
+		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = msaaColorBuffer.ResolveRtvHandle();
 		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthBuffer.ResolveDsvHandle();
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
@@ -105,15 +113,36 @@ namespace Chrivent {
 	bool Dx12Viewer::EndFrame() {
 		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
-		if (!commandList || !backBuffer)
+		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
+		if (!commandList || !backBuffer || !msaaColor)
 			return false;
-		D3D12_RESOURCE_BARRIER barrier{};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = backBuffer;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(1, &barrier);
+		const D3D12_RESOURCE_STATES sourceState = device->GetInfo().msaaSampleCount > 1
+			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
+			: D3D12_RESOURCE_STATE_COPY_SOURCE;
+		const D3D12_RESOURCE_STATES destinationState = device->GetInfo().msaaSampleCount > 1
+			? D3D12_RESOURCE_STATE_RESOLVE_DEST
+			: D3D12_RESOURCE_STATE_COPY_DEST;
+		D3D12_RESOURCE_BARRIER barriers[2]{};
+		barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barriers[0].Transition.pResource = msaaColor;
+		barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barriers[0].Transition.StateAfter = sourceState;
+		barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barriers[1].Transition.pResource = backBuffer;
+		barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barriers[1].Transition.StateAfter = destinationState;
+		barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		commandList->ResourceBarrier(2, barriers);
+		if (device->GetInfo().msaaSampleCount > 1)
+			commandList->ResolveSubresource(backBuffer, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+		else
+			commandList->CopyResource(backBuffer, msaaColor);
+		barriers[0].Transition.StateBefore = sourceState;
+		barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barriers[1].Transition.StateBefore = destinationState;
+		barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		commandList->ResourceBarrier(2, barriers);
 		if (!commandContext.Execute(device->GetInfo()))
 			return false;
 		if (!swapChain.Present())

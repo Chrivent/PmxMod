@@ -10,10 +10,14 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
 		Microsoft::WRL::ComPtr<ID3D12Device> device;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
+		UINT msaaSampleCount = 1;
 	};
 
 	class Dx12Device {
 		Dx12DeviceInfo info;
+
+		// 디바이스가 지원하는 MSAA sample count를 선택한다.
+		static UINT ChooseMsaaSampleCount(ID3D12Device* device);
 
 	public:
 		const Dx12DeviceInfo& GetInfo() const { return info; }

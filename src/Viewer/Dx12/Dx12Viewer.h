@@ -5,6 +5,7 @@
 #include "Helper/Dx12CommandContext.h"
 #include "Helper/Dx12DepthBuffer.h"
 #include "Helper/Dx12Device.h"
+#include "Helper/Dx12MsaaColorBuffer.h"
 #include "Helper/Dx12Pipeline.h"
 #include "Helper/Dx12SwapChain.h"
 
@@ -30,6 +31,7 @@ namespace Chrivent {
 	class Dx12Viewer : public Viewer {
 		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
+		Dx12MsaaColorBuffer msaaColorBuffer;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;

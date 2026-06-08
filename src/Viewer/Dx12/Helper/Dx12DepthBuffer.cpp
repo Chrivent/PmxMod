@@ -31,7 +31,8 @@ namespace Chrivent {
 		resourceDesc.DepthOrArraySize = 1;
 		resourceDesc.MipLevels = 1;
 		resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
+		resourceDesc.SampleDesc.Quality = 0;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		if (FAILED(deviceInfo.device->CreateCommittedResource(
 			&heapProperties,

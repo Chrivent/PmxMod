@@ -1,6 +1,31 @@
 ﻿#include "Dx12Device.h"
 
 namespace Chrivent {
+	UINT Dx12Device::ChooseMsaaSampleCount(ID3D12Device* device) {
+		if (device == nullptr)
+			return 1;
+		constexpr UINT sampleCounts[] = { 4u, 2u };
+		for (const UINT sampleCount : sampleCounts) {
+			D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS colorQualityLevels{};
+			colorQualityLevels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			colorQualityLevels.SampleCount = sampleCount;
+			D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS depthQualityLevels{};
+			depthQualityLevels.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+			depthQualityLevels.SampleCount = sampleCount;
+			const bool supportsColor = SUCCEEDED(device->CheckFeatureSupport(
+				D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+				&colorQualityLevels,
+				sizeof(colorQualityLevels))) && colorQualityLevels.NumQualityLevels > 0;
+			const bool supportsDepth = SUCCEEDED(device->CheckFeatureSupport(
+				D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+				&depthQualityLevels,
+				sizeof(depthQualityLevels))) && depthQualityLevels.NumQualityLevels > 0;
+			if (supportsColor && supportsDepth)
+				return sampleCount;
+		}
+		return 1;
+	}
+
 	bool Dx12Device::Initialize() {
 		Destroy();
 		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&info.factory))))
@@ -22,6 +47,7 @@ namespace Chrivent {
 		}
 		if (!info.device)
 			return false;
+		info.msaaSampleCount = ChooseMsaaSampleCount(info.device.Get());
 		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 		if (FAILED(info.device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&info.commandQueue))))
@@ -34,5 +60,6 @@ namespace Chrivent {
 		info.device.Reset();
 		info.adapter.Reset();
 		info.factory.Reset();
+		info.msaaSampleCount = 1;
 	}
 }
