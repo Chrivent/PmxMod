@@ -2,7 +2,7 @@
 
 #include "Dx12Instance.h"
 #include "Dx12Viewer.h"
-#include "../Assist/Hlsl/HlslConstants.h"
+#include "../Assist/Hlsl/HlslShaderConstants.h"
 #include "../../Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>

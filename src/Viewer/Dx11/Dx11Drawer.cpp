@@ -2,7 +2,7 @@
 
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
-#include "../Assist/Hlsl/HlslConstants.h"
+#include "../Assist/Hlsl/HlslShaderConstants.h"
 #include "../../Model/Model.h"
 
 namespace Chrivent {

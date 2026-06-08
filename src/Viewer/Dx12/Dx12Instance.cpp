@@ -2,7 +2,7 @@
 
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
-#include "../Assist/Hlsl/HlslConstants.h"
+#include "../Assist/Hlsl/HlslShaderConstants.h"
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 

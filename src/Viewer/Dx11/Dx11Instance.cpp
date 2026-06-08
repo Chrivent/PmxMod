@@ -3,7 +3,7 @@
 #include "Dx11Drawer.h"
 
 #include "Dx11Viewer.h"
-#include "../Assist/Hlsl/HlslConstants.h"
+#include "../Assist/Hlsl/HlslShaderConstants.h"
 #include "Helper/Dx11DescBuilder.h"
 #include "../../Model/ModelPose.h"
 
