@@ -34,12 +34,28 @@ namespace Chrivent {
 		}
 	}
 
-	bool VulkanInstance::GetIndexType(const size_t indexElementSize, VkIndexType& indexType) {
-		if (indexElementSize == 2) {
+	bool VulkanInstance::BuildIndexData(
+		const ModelGeometryData& geometryData,
+		std::vector<char>& indices,
+		VkIndexType& indexType) {
+		indices.clear();
+		if (geometryData.indexElementSize == 1) {
+			std::vector<uint16_t> convertedIndices(geometryData.indexCount);
+			for (size_t index = 0; index < geometryData.indexCount; index++)
+				convertedIndices[index] = static_cast<unsigned char>(geometryData.indices[index]);
+			const size_t byteSize = sizeof(uint16_t) * convertedIndices.size();
+			const auto* bytes = reinterpret_cast<const char*>(convertedIndices.data());
+			indices.assign(bytes, bytes + byteSize);
 			indexType = VK_INDEX_TYPE_UINT16;
 			return true;
 		}
-		if (indexElementSize == 4) {
+		if (geometryData.indexElementSize == 2) {
+			indices = geometryData.indices;
+			indexType = VK_INDEX_TYPE_UINT16;
+			return true;
+		}
+		if (geometryData.indexElementSize == 4) {
+			indices = geometryData.indices;
 			indexType = VK_INDEX_TYPE_UINT32;
 			return true;
 		}
@@ -78,14 +94,15 @@ namespace Chrivent {
 		if (info.model == nullptr)
 			return false;
 		const auto& geometryData = info.model->geometryData;
-		if (!GetIndexType(geometryData.indexElementSize, info.indexType)) {
-			std::cerr << "Failed to get Vulkan index type.\n";
+		std::vector<char> indices;
+		if (!BuildIndexData(geometryData, indices, info.indexType)) {
+			std::cerr << "Failed to build Vulkan index data.\n";
 			return false;
 		}
 		std::vector<VulkanVertex> vertices;
 		FillVertices(geometryData, false, vertices);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
-		const VkDeviceSize indexBufferSize = geometryData.indices.size();
+		const VkDeviceSize indexBufferSize = indices.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
 			return false;
@@ -114,7 +131,7 @@ namespace Chrivent {
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
-		if (!info.indexBuffer.Write(geometryData.indices.data(), indexBufferSize))
+		if (!info.indexBuffer.Write(indices.data(), indexBufferSize))
 			return false;
 		info.uniformBufferOffsetAlignment = std::max<size_t>(1, deviceInfo.properties.limits.minUniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
@@ -147,18 +164,24 @@ namespace Chrivent {
 				material.texture = info.viewer->LoadTexture(mat.texture);
 				if (material.texture.image == VK_NULL_HANDLE)
 					material.texture = dummyTexture;
+				else
+					material.textureEnabled = true;
 			} else
 				material.texture = dummyTexture;
 			if (!mat.spTexture.empty()) {
 				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
 				if (material.sphereTexture.image == VK_NULL_HANDLE)
 					material.sphereTexture = dummyTexture;
+				else
+					material.sphereTextureEnabled = true;
 			} else
 				material.sphereTexture = dummyTexture;
 			if (!mat.toonTexture.empty()) {
 				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true);
 				if (material.toonTexture.image == VK_NULL_HANDLE)
 					material.toonTexture = dummyTexture;
+				else
+					material.toonTextureEnabled = true;
 			} else
 				material.toonTexture = dummyTexture;
 			info.materials.emplace_back(std::move(material));
