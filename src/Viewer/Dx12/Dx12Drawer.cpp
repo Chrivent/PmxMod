@@ -3,13 +3,22 @@
 #include "Dx12Instance.h"
 #include "Dx12Viewer.h"
 #include "../Assist/Hlsl/HlslConstants.h"
-#include "../Assist/ViewerMatrix.h"
 #include "../../Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace Chrivent {
+	const glm::mat4& Dx12Drawer::ClipMatrix() {
+		static constexpr glm::mat4 clipMatrix(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return clipMatrix;
+	}
+
 	void Dx12Drawer::DrawModel() {
 		if (info.viewer == nullptr || info.model == nullptr || info.indexCount == 0)
 			return;
@@ -20,7 +29,7 @@ namespace Chrivent {
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
@@ -86,7 +95,7 @@ namespace Chrivent {
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslEdgeVertexConstants vertexConstants{};
 		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
 		if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 edge vertex constants.\n";
@@ -136,7 +145,7 @@ namespace Chrivent {
 		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
 		HlslGroundShadowVertexConstants vertexConstants;
-		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
+		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;

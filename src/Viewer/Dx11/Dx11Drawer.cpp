@@ -3,10 +3,19 @@
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
 #include "../Assist/Hlsl/HlslConstants.h"
-#include "../Assist/ViewerMatrix.h"
 #include "../../Model/Model.h"
 
 namespace Chrivent {
+	const glm::mat4& Dx11Drawer::ClipMatrix() {
+		static constexpr glm::mat4 clipMatrix(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return clipMatrix;
+	}
+
 	void Dx11Drawer::BindTexture(
 		const UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
 		const int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
@@ -45,7 +54,7 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		const auto wv = view * world;
-		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
+		const auto wvp = ClipMatrix() * proj * view * world;
 		HlslModelPixelConstants basePsCb{};
 		basePsCb.lightColor = viewer->GetInfo().lightColor;
 		basePsCb.lightDir = lightDir;
@@ -125,7 +134,7 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto wv = view * world;
-		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
+		const auto wvp = ClipMatrix() * proj * view * world;
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edge.inputLayout.Get());
 		HlslEdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
@@ -168,7 +177,7 @@ namespace Chrivent {
 		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
 		HlslGroundShadowVertexConstants vsCb;
-		vsCb.wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * shadow * world;
+		vsCb.wvp = ClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.groundShadow.vertexShader.Get(), nullptr, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetShader(viewer->GetDx11Info().shaders.groundShadow.pixelShader.Get(), nullptr, 0);
