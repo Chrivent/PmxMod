@@ -70,7 +70,7 @@ namespace Chrivent {
 			return false;
 		const size_t descriptorCount = info.materials.size() * 3;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-		heapDesc.NumDescriptors = static_cast<UINT>(descriptorCount);
+		heapDesc.NumDescriptors = descriptorCount;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		if (FAILED(deviceInfo.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&info.textureDescriptorHeap))))

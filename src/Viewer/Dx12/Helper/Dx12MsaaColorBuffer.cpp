@@ -22,8 +22,8 @@ namespace Chrivent {
 		heapProperties.VisibleNodeMask = 1;
 		D3D12_RESOURCE_DESC resourceDesc{};
 		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resourceDesc.Width = static_cast<UINT64>(width);
-		resourceDesc.Height = static_cast<UINT>(height);
+		resourceDesc.Width = width;
+		resourceDesc.Height = height;
 		resourceDesc.DepthOrArraySize = 1;
 		resourceDesc.MipLevels = 1;
 		resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
