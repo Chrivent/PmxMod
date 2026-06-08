@@ -2,7 +2,7 @@
 
 #include "Dx12Instance.h"
 #include "Dx12Viewer.h"
-#include "Helper/Dx12Constants.h"
+#include "../Assist/Hlsl/HlslConstants.h"
 #include "../Assist/ViewerMatrix.h"
 #include "../../Model/Model.h"
 
@@ -18,14 +18,14 @@ namespace Chrivent {
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		Dx12ModelVertexConstants vertexConstants;
+		HlslModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
 		}
-		Dx12ModelPixelConstants basePixelConstants{};
+		HlslModelPixelConstants basePixelConstants{};
 		basePixelConstants.lightColor = viewerInfo.lightColor;
 		basePixelConstants.lightDir = glm::mat3(viewerInfo.viewMat) * viewerInfo.lightDir;
 		ID3D12DescriptorHeap* descriptorHeaps[] = { info.textureDescriptorHeap.Get() };
@@ -42,7 +42,7 @@ namespace Chrivent {
 			if (mat.diffuse.a == 0.0f)
 				continue;
 			info.viewer->BindModelPipelineState(mat.bothFace);
-			Dx12ModelPixelConstants pixelConstants = basePixelConstants;
+			HlslModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.alpha = mat.diffuse.a;
 			pixelConstants.diffuse = mat.diffuse;
 			pixelConstants.ambient = mat.ambient;
@@ -84,7 +84,7 @@ namespace Chrivent {
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		Dx12EdgeVertexConstants vertexConstants{};
+		HlslEdgeVertexConstants vertexConstants{};
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
@@ -104,14 +104,14 @@ namespace Chrivent {
 			const auto& mat = info.materials[materialId].mat;
 			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
 				continue;
-			Dx12EdgeSizeConstants edgeSizeConstants{};
+			HlslEdgeSizeConstants edgeSizeConstants{};
 			edgeSizeConstants.edgeSize = mat.edgeSize;
 			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId];
 			if (!edgeSizeConstantBuffer.Write(&edgeSizeConstants, sizeof(edgeSizeConstants))) {
 				std::cerr << "Failed to update DX12 edge size constants.\n";
 				continue;
 			}
-			Dx12EdgePixelConstants pixelConstants{};
+			HlslEdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
 			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId];
 			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
@@ -135,13 +135,13 @@ namespace Chrivent {
 		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
 		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
-		Dx12GroundShadowVertexConstants vertexConstants;
+		HlslGroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ViewerMatrix::DirectXClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;
 		}
-		constexpr Dx12GroundShadowPixelConstants pixelConstants{};
+		constexpr HlslGroundShadowPixelConstants pixelConstants{};
 		if (!info.groundShadowPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
 			return;

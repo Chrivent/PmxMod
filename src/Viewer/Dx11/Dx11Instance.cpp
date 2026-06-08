@@ -3,6 +3,7 @@
 #include "Dx11Drawer.h"
 
 #include "Dx11Viewer.h"
+#include "../Assist/Hlsl/HlslConstants.h"
 #include "Helper/Dx11DescBuilder.h"
 #include "../../Model/ModelPose.h"
 
@@ -33,19 +34,19 @@ namespace Chrivent {
 			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
-		if (FAILED(CreateBuffer<Dx11ModelVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslModelVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11ModelPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslModelPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslEdgeVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgeSizeConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslEdgeSizeConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11EdgePixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslEdgePixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslGroundShadowVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<Dx11GroundShadowPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslGroundShadowPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
 			return false;
 		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);

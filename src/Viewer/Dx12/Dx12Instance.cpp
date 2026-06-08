@@ -2,7 +2,7 @@
 
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
-#include "Helper/Dx12Constants.h"
+#include "../Assist/Hlsl/HlslConstants.h"
 #include "../../Model/Model.h"
 #include "../../Model/ModelPose.h"
 
@@ -166,15 +166,15 @@ namespace Chrivent {
 		info.indexBufferView.SizeInBytes = indices.size();
 		info.indexBufferView.Format = indexFormat;
 		info.indexCount = geometryData.indexCount;
-		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12ModelVertexConstants));
-		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12ModelPixelConstants));
+		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelVertexConstants));
+		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelPixelConstants));
 		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
 			return false;
-		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgeVertexConstants));
-		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgeSizeConstants));
-		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12EdgePixelConstants));
-		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12GroundShadowVertexConstants));
-		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(Dx12GroundShadowPixelConstants));
+		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeVertexConstants));
+		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeSizeConstants));
+		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgePixelConstants));
+		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowVertexConstants));
+		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowPixelConstants));
 		if (!info.edgeVertexConstantBuffer.InitializeUpload(deviceInfo, edgeVertexConstantSize))
 			return false;
 		if (!info.groundShadowVertexConstantBuffer.InitializeUpload(deviceInfo, groundShadowVertexConstantSize))

@@ -88,6 +88,7 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
         src/Viewer/Assist/Glsl/GlslShaderConstants.h
         src/Viewer/Assist/Glsl/GlslDynamicBufferRing.h src/Viewer/Assist/Glsl/GlslDynamicBufferRing.cpp
+        src/Viewer/Assist/Hlsl/HlslConstants.h
 )
 
 set(GLFW_SOURCES
@@ -108,7 +109,6 @@ set(DX11_SOURCES
         src/Viewer/Dx11/Dx11TextureCache.h src/Viewer/Dx11/Dx11TextureCache.cpp
         src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
 
-        src/Viewer/Dx11/Helper/Dx11Constants.h
         src/Viewer/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Dx11/Helper/Dx11DescBuilder.cpp
         src/Viewer/Dx11/Helper/Dx11Shader.h src/Viewer/Dx11/Helper/Dx11Shader.cpp
         src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
@@ -122,7 +122,6 @@ set(DX12_SOURCES
 
         src/Viewer/Dx12/Helper/Dx12Buffer.h src/Viewer/Dx12/Helper/Dx12Buffer.cpp
         src/Viewer/Dx12/Helper/Dx12CommandContext.h src/Viewer/Dx12/Helper/Dx12CommandContext.cpp
-        src/Viewer/Dx12/Helper/Dx12Constants.h
         src/Viewer/Dx12/Helper/Dx12DepthBuffer.h src/Viewer/Dx12/Helper/Dx12DepthBuffer.cpp
         src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
         src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.cpp

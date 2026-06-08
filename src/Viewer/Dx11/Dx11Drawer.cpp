@@ -2,6 +2,7 @@
 
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
+#include "../Assist/Hlsl/HlslConstants.h"
 #include "../Assist/ViewerMatrix.h"
 #include "../../Model/Model.h"
 
@@ -45,7 +46,7 @@ namespace Chrivent {
 		const auto lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
 		const auto wv = view * world;
 		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
-		Dx11ModelPixelConstants basePsCb{};
+		HlslModelPixelConstants basePsCb{};
 		basePsCb.lightColor = viewer->GetInfo().lightColor;
 		basePsCb.lightDir = lightDir;
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.defaultDss.Get(), 0x00);
@@ -55,7 +56,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->GetDx11Info().deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->GetDx11Info().deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		Dx11ModelVertexConstants vsCb;
+		HlslModelVertexConstants vsCb;
 		vsCb.wv = wv;
 		vsCb.wvp = wvp;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
@@ -70,7 +71,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11ModelPixelConstants psCb = basePsCb;
+			HlslModelPixelConstants psCb = basePsCb;
 			psCb.alpha         = mat.diffuse.a;
 			psCb.diffuse       = mat.diffuse;
 			psCb.ambient       = mat.ambient;
@@ -126,7 +127,7 @@ namespace Chrivent {
 		const auto wv = view * world;
 		const auto wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * world;
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.edge.inputLayout.Get());
-		Dx11EdgeVertexConstants vsCb1{};
+		HlslEdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
 		vsCb1.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
@@ -142,11 +143,11 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0)
 				continue;
-			Dx11EdgeSizeConstants vsCb2{};
+			HlslEdgeSizeConstants vsCb2{};
 			vsCb2.edgeSize = mat.edgeSize;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgeSizeVsConstantBuffer.Get(), 0, nullptr, &vsCb2, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(1, 1, edgeSizeVsConstantBuffer.GetAddressOf());
-			Dx11EdgePixelConstants psCb{};
+			HlslEdgePixelConstants psCb{};
 			psCb.edgeColor = mat.edgeColor;
 			viewer->GetDx11Info().deviceResources.context->UpdateSubresource(edgePsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(2, 1, edgePsConstantBuffer.GetAddressOf());
@@ -166,7 +167,7 @@ namespace Chrivent {
 		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
 		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
 		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
-		Dx11GroundShadowVertexConstants vsCb;
+		HlslGroundShadowVertexConstants vsCb;
 		vsCb.wvp = ViewerMatrix::DirectXClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->VSSetShader(viewer->GetDx11Info().shaders.groundShadow.vertexShader.Get(), nullptr, 0);
@@ -174,7 +175,7 @@ namespace Chrivent {
 		viewer->GetDx11Info().deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->GetDx11Info().deviceResources.context->RSSetState(viewer->GetDx11Info().pipelineStates.gsRs.Get());
 		viewer->GetDx11Info().deviceResources.context->OMSetDepthStencilState(viewer->GetDx11Info().pipelineStates.gsDss.Get(), 0x01);
-		Dx11GroundShadowPixelConstants psCb;
+		HlslGroundShadowPixelConstants psCb;
 		psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 		viewer->GetDx11Info().deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());

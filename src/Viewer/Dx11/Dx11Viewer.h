@@ -2,7 +2,6 @@
 
 #include "../Viewer.h"
 #include "Dx11TextureCache.h"
-#include "Helper/Dx11Constants.h"
 #include "Helper/Dx11Shader.h"
 
 #include <filesystem>

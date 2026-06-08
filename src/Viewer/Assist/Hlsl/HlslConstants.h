@@ -3,12 +3,12 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct Dx12ModelVertexConstants {
+	struct HlslModelVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 	};
 
-	struct Dx12ModelPixelConstants {
+	struct HlslModelPixelConstants {
 		float alpha = 0.0f;
 		glm::vec3 diffuse{};
 		glm::vec3 ambient{};
@@ -28,27 +28,27 @@ namespace Chrivent {
 		glm::ivec4 textureModes{};
 	};
 
-	struct Dx12EdgeVertexConstants {
+	struct HlslEdgeVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 		glm::vec2 screenSize{};
 		float padding[2]{};
 	};
 
-	struct Dx12EdgeSizeConstants {
+	struct HlslEdgeSizeConstants {
 		float edgeSize = 0.0f;
 		float padding[3]{};
 	};
 
-	struct Dx12EdgePixelConstants {
+	struct HlslEdgePixelConstants {
 		glm::vec4 edgeColor{};
 	};
 
-	struct Dx12GroundShadowVertexConstants {
+	struct HlslGroundShadowVertexConstants {
 		glm::mat4 wvp;
 	};
 
-	struct Dx12GroundShadowPixelConstants {
+	struct HlslGroundShadowPixelConstants {
 		glm::vec4 shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	};
 }
