@@ -7,7 +7,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	struct Dx12PipelineInfo {
+	class Dx12Pipeline {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> modelRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelFrontFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelBothFacePipelineState;
@@ -15,10 +15,6 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> edgePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> groundShadowPipelineState;
-	};
-	
-	class Dx12Pipeline {
-		Dx12PipelineInfo info;
 		
 		// 모델 셰이더의 리소스 배치와 맞는 root signature를 생성한다.
 		bool CreateModelRootSignature(const Dx12DeviceInfo& deviceInfo);

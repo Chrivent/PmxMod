@@ -222,7 +222,7 @@ namespace Chrivent {
 				UINT64_MAX);
 		}
 		auto& commandBuffer = commandContext.GetInfo().commandBuffer;
-		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
+		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
 		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
 		if (!commandBuffer.BeginRecord(
 			currentImageIndex,
@@ -253,7 +253,7 @@ namespace Chrivent {
 		constexpr VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[frameIndex] };
 		const VkCommandBuffer commandBuffers[] = {
-			commandContext.GetInfo().commandBuffer.GetCommandBuffer(currentImageIndex)
+			commandContext.GetInfo().commandBuffer.ResolveCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
 		if (currentImageIndex < syncObject->GetInfo().imagesInFlight.size())

@@ -70,11 +70,11 @@ namespace Chrivent {
 			0,
 			signatureBlob->GetBufferPointer(),
 			signatureBlob->GetBufferSize(),
-			IID_PPV_ARGS(&info.modelRootSignature)));
+			IID_PPV_ARGS(&modelRootSignature)));
 	}
 
 	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !info.modelRootSignature)
+		if (!deviceInfo.device || !modelRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -91,7 +91,7 @@ namespace Chrivent {
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = info.modelRootSignature.Get();
+		pipelineDesc.pRootSignature = modelRootSignature.Get();
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		auto& [BlendEnable, LogicOpEnable, SrcBlend, DestBlend,
@@ -127,12 +127,12 @@ namespace Chrivent {
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
-			IID_PPV_ARGS(&info.modelFrontFacePipelineState))))
+			IID_PPV_ARGS(&modelFrontFacePipelineState))))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
-			IID_PPV_ARGS(&info.modelBothFacePipelineState)));
+			IID_PPV_ARGS(&modelBothFacePipelineState)));
 	}
 
 	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12DeviceInfo& deviceInfo) {
@@ -167,11 +167,11 @@ namespace Chrivent {
 			0,
 			signatureBlob->GetBufferPointer(),
 			signatureBlob->GetBufferSize(),
-			IID_PPV_ARGS(&info.edgeRootSignature)));
+			IID_PPV_ARGS(&edgeRootSignature)));
 	}
 
 	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !info.edgeRootSignature)
+		if (!deviceInfo.device || !edgeRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -187,7 +187,7 @@ namespace Chrivent {
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = info.edgeRootSignature.Get();
+		pipelineDesc.pRootSignature = edgeRootSignature.Get();
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		pipelineDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
@@ -215,7 +215,7 @@ namespace Chrivent {
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
-			IID_PPV_ARGS(&info.edgePipelineState)));
+			IID_PPV_ARGS(&edgePipelineState)));
 	}
 
 	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12DeviceInfo& deviceInfo) {
@@ -247,11 +247,11 @@ namespace Chrivent {
 			0,
 			signatureBlob->GetBufferPointer(),
 			signatureBlob->GetBufferSize(),
-			IID_PPV_ARGS(&info.groundShadowRootSignature)));
+			IID_PPV_ARGS(&groundShadowRootSignature)));
 	}
 
 	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !info.groundShadowRootSignature)
+		if (!deviceInfo.device || !groundShadowRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -266,7 +266,7 @@ namespace Chrivent {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = info.groundShadowRootSignature.Get();
+		pipelineDesc.pRootSignature = groundShadowRootSignature.Get();
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		pipelineDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
@@ -304,7 +304,7 @@ namespace Chrivent {
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
 			&pipelineDesc,
-			IID_PPV_ARGS(&info.groundShadowPipelineState)));
+			IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
@@ -325,34 +325,34 @@ namespace Chrivent {
 	void Dx12Pipeline::BindModel(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(info.modelRootSignature.Get());
+		commandList->SetGraphicsRootSignature(modelRootSignature.Get());
 		ID3D12PipelineState* pipelineState = bothFace
-			? info.modelBothFacePipelineState.Get()
-			: info.modelFrontFacePipelineState.Get();
+			? modelBothFacePipelineState.Get()
+			: modelFrontFacePipelineState.Get();
 		commandList->SetPipelineState(pipelineState);
 	}
 
 	void Dx12Pipeline::BindEdge(ID3D12GraphicsCommandList* commandList) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(info.edgeRootSignature.Get());
-		commandList->SetPipelineState(info.edgePipelineState.Get());
+		commandList->SetGraphicsRootSignature(edgeRootSignature.Get());
+		commandList->SetPipelineState(edgePipelineState.Get());
 	}
 
 	void Dx12Pipeline::BindGroundShadow(ID3D12GraphicsCommandList* commandList) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(info.groundShadowRootSignature.Get());
-		commandList->SetPipelineState(info.groundShadowPipelineState.Get());
+		commandList->SetGraphicsRootSignature(groundShadowRootSignature.Get());
+		commandList->SetPipelineState(groundShadowPipelineState.Get());
 	}
 
 	void Dx12Pipeline::Destroy() {
-		info.groundShadowPipelineState.Reset();
-		info.groundShadowRootSignature.Reset();
-		info.edgePipelineState.Reset();
-		info.edgeRootSignature.Reset();
-		info.modelBothFacePipelineState.Reset();
-		info.modelFrontFacePipelineState.Reset();
-		info.modelRootSignature.Reset();
+		groundShadowPipelineState.Reset();
+		groundShadowRootSignature.Reset();
+		edgePipelineState.Reset();
+		edgeRootSignature.Reset();
+		modelBothFacePipelineState.Reset();
+		modelFrontFacePipelineState.Reset();
+		modelRootSignature.Reset();
 	}
 }

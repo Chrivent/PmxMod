@@ -8,6 +8,10 @@ namespace Chrivent {
 		Destroy();
 	}
 
+	VkCommandBuffer VulkanCommandBuffer::ResolveCommandBuffer(const uint32_t imageIndex) const {
+		return commandBuffers[imageIndex];
+	}
+
 	bool VulkanCommandBuffer::Initialize(
 		const VulkanDeviceInfo& deviceInfo,
 		const VkCommandPool sourceCommandPool,
