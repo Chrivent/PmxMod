@@ -5,7 +5,7 @@ namespace Chrivent {
 		Destroy();
 		if (!deviceInfo.device || !deviceInfo.commandQueue)
 			return false;
-		for (auto& commandAllocator : info.commandAllocators) {
+		for (auto& commandAllocator : commandAllocators) {
 			if (FAILED(deviceInfo.device->CreateCommandAllocator(
 				D3D12_COMMAND_LIST_TYPE_DIRECT,
 				IID_PPV_ARGS(&commandAllocator))))
@@ -14,81 +14,81 @@ namespace Chrivent {
 		if (FAILED(deviceInfo.device->CreateCommandList(
 			0,
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			info.commandAllocators[0].Get(),
+			commandAllocators[0].Get(),
 			nullptr,
-			IID_PPV_ARGS(&info.commandList))))
+			IID_PPV_ARGS(&commandList))))
 			return false;
-		if (FAILED(info.commandList->Close()))
+		if (FAILED(commandList->Close()))
 			return false;
-		if (FAILED(deviceInfo.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&info.fence))))
+		if (FAILED(deviceInfo.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
 			return false;
-		info.fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-		if (!info.fenceEvent)
+		fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+		if (!fenceEvent)
 			return false;
-		info.nextFenceValue = 1;
+		nextFenceValue = 1;
 		return true;
 	}
 
 	bool Dx12CommandContext::BeginFrame(const Dx12DeviceInfo& deviceInfo, const UINT frameIndex) {
-		if (!deviceInfo.device || !info.commandList || !info.fence || !info.fenceEvent)
+		if (!deviceInfo.device || !commandList || !fence || !fenceEvent)
 			return false;
-		info.frameIndex = frameIndex % Dx12CommandContextInfo::kFrameCount;
-		const uint64_t frameFenceValue = info.frameFenceValues[info.frameIndex];
-		if (frameFenceValue != 0 && info.fence->GetCompletedValue() < frameFenceValue) {
-			if (FAILED(info.fence->SetEventOnCompletion(frameFenceValue, info.fenceEvent)))
+		this->frameIndex = frameIndex % kFrameCount;
+		const uint64_t frameFenceValue = frameFenceValues[this->frameIndex];
+		if (frameFenceValue != 0 && fence->GetCompletedValue() < frameFenceValue) {
+			if (FAILED(fence->SetEventOnCompletion(frameFenceValue, fenceEvent)))
 				return false;
-			WaitForSingleObject(info.fenceEvent, INFINITE);
+			WaitForSingleObject(fenceEvent, INFINITE);
 		}
-		ID3D12CommandAllocator* commandAllocator = info.commandAllocators[info.frameIndex].Get();
+		ID3D12CommandAllocator* commandAllocator = commandAllocators[this->frameIndex].Get();
 		if (commandAllocator == nullptr)
 			return false;
 		if (FAILED(commandAllocator->Reset()))
 			return false;
-		return SUCCEEDED(info.commandList->Reset(commandAllocator, nullptr));
+		return SUCCEEDED(commandList->Reset(commandAllocator, nullptr));
 	}
 
 	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) {
-		if (!deviceInfo.commandQueue || !info.commandList || !info.fence)
+		if (!deviceInfo.commandQueue || !commandList || !fence)
 			return false;
-		if (FAILED(info.commandList->Close()))
+		if (FAILED(commandList->Close()))
 			return false;
-		ID3D12CommandList* commandLists[] = { info.commandList.Get() };
+		ID3D12CommandList* commandLists[] = { commandList.Get() };
 		deviceInfo.commandQueue->ExecuteCommandLists(1, commandLists);
-		const uint64_t signalValue = info.nextFenceValue;
-		if (FAILED(deviceInfo.commandQueue->Signal(info.fence.Get(), signalValue)))
+		const uint64_t signalValue = nextFenceValue;
+		if (FAILED(deviceInfo.commandQueue->Signal(fence.Get(), signalValue)))
 			return false;
-		info.frameFenceValues[info.frameIndex] = signalValue;
-		info.nextFenceValue++;
+		frameFenceValues[frameIndex] = signalValue;
+		nextFenceValue++;
 		return true;
 	}
 
 	bool Dx12CommandContext::WaitForGpu(const Dx12DeviceInfo& deviceInfo) {
-		if (!deviceInfo.commandQueue || !info.fence || !info.fenceEvent)
+		if (!deviceInfo.commandQueue || !fence || !fenceEvent)
 			return false;
-		const uint64_t waitValue = info.nextFenceValue;
-		if (FAILED(deviceInfo.commandQueue->Signal(info.fence.Get(), waitValue)))
+		const uint64_t waitValue = nextFenceValue;
+		if (FAILED(deviceInfo.commandQueue->Signal(fence.Get(), waitValue)))
 			return false;
-		info.nextFenceValue++;
-		if (info.fence->GetCompletedValue() >= waitValue)
+		nextFenceValue++;
+		if (fence->GetCompletedValue() >= waitValue)
 			return true;
-		if (FAILED(info.fence->SetEventOnCompletion(waitValue, info.fenceEvent)))
+		if (FAILED(fence->SetEventOnCompletion(waitValue, fenceEvent)))
 			return false;
-		WaitForSingleObject(info.fenceEvent, INFINITE);
-		info.frameFenceValues.fill(0);
+		WaitForSingleObject(fenceEvent, INFINITE);
+		frameFenceValues.fill(0);
 		return true;
 	}
 
 	void Dx12CommandContext::Destroy() {
-		if (info.fenceEvent) {
-			CloseHandle(info.fenceEvent);
-			info.fenceEvent = nullptr;
+		if (fenceEvent) {
+			CloseHandle(fenceEvent);
+			fenceEvent = nullptr;
 		}
-		info.fence.Reset();
-		info.commandList.Reset();
-		for (auto& commandAllocator : info.commandAllocators)
+		fence.Reset();
+		commandList.Reset();
+		for (auto& commandAllocator : commandAllocators)
 			commandAllocator.Reset();
-		info.frameFenceValues = {};
-		info.nextFenceValue = 1;
-		info.frameIndex = 0;
+		frameFenceValues = {};
+		nextFenceValue = 1;
+		frameIndex = 0;
 	}
 }

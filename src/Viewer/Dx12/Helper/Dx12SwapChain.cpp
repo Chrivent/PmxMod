@@ -77,10 +77,4 @@ namespace Chrivent {
 		rtvDescriptorSize = 0;
 		frameIndex = 0;
 	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::CalculateCurrentRtvHandle() const {
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		rtvHandle.ptr += frameIndex * rtvDescriptorSize;
-		return rtvHandle;
-	}
 }

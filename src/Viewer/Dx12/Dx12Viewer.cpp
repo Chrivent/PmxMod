@@ -41,7 +41,7 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
 		}
-		GetDx12Info().commandList = commandContext.GetInfo().commandList;
+		GetDx12Info().commandList = commandContext.GetCommandList();
 		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
 		if (!swapChain.Initialize(device->GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
@@ -79,7 +79,7 @@ namespace Chrivent {
 	void Dx12Viewer::BeginFrame() {
 		if (!commandContext.BeginFrame(device->GetInfo(), swapChain.GetFrameIndex()))
 			return;
-		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
@@ -111,7 +111,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::EndFrame() {
-		ID3D12GraphicsCommandList* commandList = commandContext.GetInfo().commandList.Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
@@ -159,14 +159,14 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {
-		pipeline.BindModel(commandContext.GetInfo().commandList.Get(), bothFace);
+		pipeline.BindModel(commandContext.GetCommandList().Get(), bothFace);
 	}
 
 	void Dx12Viewer::BindEdgePipelineState() const {
-		pipeline.BindEdge(commandContext.GetInfo().commandList.Get());
+		pipeline.BindEdge(commandContext.GetCommandList().Get());
 	}
 
 	void Dx12Viewer::BindGroundShadowPipelineState() const {
-		pipeline.BindGroundShadow(commandContext.GetInfo().commandList.Get());
+		pipeline.BindGroundShadow(commandContext.GetCommandList().Get());
 	}
 }

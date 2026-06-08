@@ -33,7 +33,7 @@ namespace Chrivent {
 			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
 			return;
 		}
-		auto& commandBuffer = commandContext.GetCommandBuffer();
+		auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.DrawIndexed(
 			currentImageIndex,
 			vertexBuffer,
@@ -51,7 +51,7 @@ namespace Chrivent {
 			: pipeline->GetInfo().pipeline;
 		if (bindStateCache.pipeline == targetPipeline)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
 		bindStateCache.pipeline = targetPipeline;
 	}
@@ -61,7 +61,7 @@ namespace Chrivent {
 			return;
 		if (bindStateCache.pipeline == pipeline->GetInfo().edgePipeline)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindPipeline(currentImageIndex, pipeline->GetInfo().edgePipeline);
 		bindStateCache.pipeline = pipeline->GetInfo().edgePipeline;
 	}
@@ -71,7 +71,7 @@ namespace Chrivent {
 			return;
 		if (bindStateCache.pipeline == pipeline->GetInfo().groundShadowPipeline)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindPipeline(currentImageIndex, pipeline->GetInfo().groundShadowPipeline);
 		bindStateCache.pipeline = pipeline->GetInfo().groundShadowPipeline;
 	}
@@ -82,7 +82,7 @@ namespace Chrivent {
 		if (bindStateCache.vertexDescriptorSet == descriptorSet.GetVertexDescriptorSet() &&
 			bindStateCache.vertexDynamicOffset == dynamicOffset)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline->GetInfo().pipelineLayout,
@@ -101,7 +101,7 @@ namespace Chrivent {
 		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
 			bindStateCache.pixelDynamicOffset == dynamicOffset)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline->GetInfo().pipelineLayout,
@@ -119,7 +119,7 @@ namespace Chrivent {
 			return;
 		if (bindStateCache.textureDescriptorSet == descriptorSet)
 			return;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
+		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindDescriptorSets(
 			currentImageIndex,
 			pipeline->GetInfo().pipelineLayout,
@@ -151,7 +151,7 @@ namespace Chrivent {
 			return false;
 		if (!commandContext.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
-		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo(), commandContext.GetCommandPool());
+		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo(), commandContext.GetInfo().commandPool);
 		if (dummyTexture->image == VK_NULL_HANDLE)
 			return false;
 		return syncObject->Initialize(device->GetInfo(), swapChain.GetInfo().images.size());
@@ -221,7 +221,7 @@ namespace Chrivent {
 				VK_TRUE,
 				UINT64_MAX);
 		}
-		auto& commandBuffer = commandContext.GetCommandBuffer();
+		auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		vkResetCommandBuffer(commandBuffer.GetCommandBuffer(currentImageIndex), 0);
 		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
 		if (!commandBuffer.BeginRecord(
@@ -239,7 +239,7 @@ namespace Chrivent {
 	bool VulkanViewer::EndFrame() {
 		if (!frameReady)
 			return true;
-		if (!commandContext.GetCommandBuffer().EndRecord(currentImageIndex)) {
+		if (!commandContext.GetInfo().commandBuffer.EndRecord(currentImageIndex)) {
 			frameReady = false;
 			return false;
 		}
@@ -253,7 +253,7 @@ namespace Chrivent {
 		constexpr VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[frameIndex] };
 		const VkCommandBuffer commandBuffers[] = {
-			commandContext.GetCommandBuffer().GetCommandBuffer(currentImageIndex)
+			commandContext.GetInfo().commandBuffer.GetCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
 		if (currentImageIndex < syncObject->GetInfo().imagesInFlight.size())
@@ -297,6 +297,6 @@ namespace Chrivent {
 	}
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		return textureCache.Load(device->GetInfo(), commandContext.GetCommandPool(), texturePath, clamp);
+		return textureCache.Load(device->GetInfo(), commandContext.GetInfo().commandPool, texturePath, clamp);
 	}
 }

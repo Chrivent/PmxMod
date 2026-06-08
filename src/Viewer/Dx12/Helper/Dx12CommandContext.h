@@ -9,7 +9,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	struct Dx12CommandContextInfo {
+	class Dx12CommandContext {
 		static constexpr UINT kFrameCount = 2;
 
 		std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, kFrameCount> commandAllocators{};
@@ -19,13 +19,9 @@ namespace Chrivent {
 		std::array<uint64_t, kFrameCount> frameFenceValues{};
 		uint64_t nextFenceValue = 1;
 		UINT frameIndex = 0;
-	};
-
-	class Dx12CommandContext {
-		Dx12CommandContextInfo info;
 
 	public:
-		const Dx12CommandContextInfo& GetInfo() const { return info; }
+		const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& GetCommandList() const { return commandList; }
 
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.
 		bool Initialize(const Dx12DeviceInfo& deviceInfo);

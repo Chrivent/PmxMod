@@ -33,7 +33,5 @@ namespace Chrivent {
 		bool Present();
 		// 생성한 DX12 스왑체인 리소스를 해제한다.
 		void Destroy();
-		// 현재 back buffer의 RTV descriptor handle을 계산한다.
-		D3D12_CPU_DESCRIPTOR_HANDLE CalculateCurrentRtvHandle() const;
 	};
 }
