@@ -87,7 +87,7 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
         src/Viewer/Assist/Glsl/GlslShaderConstants.h
         src/Viewer/Assist/Glsl/GlslDynamicBufferRing.h src/Viewer/Assist/Glsl/GlslDynamicBufferRing.cpp
-        src/Viewer/Assist/Hlsl/HlslConstants.h
+        src/Viewer/Assist/Hlsl/HlslShaderConstants.h
 )
 
 set(GLFW_SOURCES
