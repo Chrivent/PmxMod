@@ -1,12 +1,12 @@
 ﻿#pragma once
 
+#include <d3dcompiler.h>
 #include <filesystem>
 #include <string>
 #include <wrl/client.h>
-#include <d3dcompiler.h>
 
 namespace Chrivent {
-	class Dx11ShaderCompiler {
+	class HlslShaderCompiler {
 	public:
 		// HLSL 파일을 지정한 entry/target으로 컴파일해 bytecode blob을 만든다.
 		static bool CompileFile(

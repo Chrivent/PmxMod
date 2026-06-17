@@ -88,6 +88,7 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/Glsl/GlslShaderConstants.h
         src/Viewer/Glsl/GlslDynamicBufferRing.h src/Viewer/Glsl/GlslDynamicBufferRing.cpp
         src/Viewer/Hlsl/HlslShaderConstants.h
+        src/Viewer/Hlsl/HlslShaderCompiler.h src/Viewer/Hlsl/HlslShaderCompiler.cpp
 )
 
 set(GLFW_SOURCES
@@ -110,7 +111,6 @@ set(DX11_SOURCES
 
         src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.cpp
         src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.h src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.cpp
-        src/Viewer/Hlsl/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Hlsl/Dx11/Helper/Dx11ShaderCompiler.cpp
 )
 
 set(DX12_SOURCES
@@ -125,7 +125,6 @@ set(DX12_SOURCES
         src/Viewer/Hlsl/Dx12/Helper/Dx12Device.h src/Viewer/Hlsl/Dx12/Helper/Dx12Device.cpp
         src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.cpp
         src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.h src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12ShaderCompiler.h src/Viewer/Hlsl/Dx12/Helper/Dx12ShaderCompiler.cpp
         src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.h src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.cpp
 )
 

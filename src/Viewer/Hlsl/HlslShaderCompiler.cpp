@@ -1,7 +1,7 @@
-﻿#include "Dx12ShaderCompiler.h"
+﻿#include "HlslShaderCompiler.h"
 
 namespace Chrivent {
-	bool Dx12ShaderCompiler::CompileFile(
+	bool HlslShaderCompiler::CompileFile(
 		const std::filesystem::path& file,
 		const char* entry,
 		const char* target,
@@ -20,7 +20,7 @@ namespace Chrivent {
 			&errorBlob);
 		if (SUCCEEDED(hr))
 			return true;
-		outError = "Failed to compile DX12 HLSL shader: " + file.string()
+		outError = "Failed to compile HLSL shader: " + file.string()
 			+ " entry=" + entry
 			+ " target=" + target + '\n';
 		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)

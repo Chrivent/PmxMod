@@ -1,6 +1,6 @@
 ﻿#include "Dx12Pipeline.h"
 
-#include "Dx12ShaderCompiler.h"
+#include "../../HlslShaderCompiler.h"
 
 #include <iostream>
 #include <limits>
@@ -80,8 +80,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "model.hlsl";
-		if (!Dx12ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!Dx12ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
+			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -177,8 +177,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "edge.hlsl";
-		if (!Dx12ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!Dx12ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
+			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -257,8 +257,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "ground_shadow.hlsl";
-		if (!Dx12ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!Dx12ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
+			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}

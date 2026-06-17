@@ -1,6 +1,6 @@
 ﻿#include "Dx11Shader.h"
 
-#include "Dx11ShaderCompiler.h"
+#include "../../HlslShaderCompiler.h"
 
 #include <iostream>
 
@@ -51,11 +51,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBytecode;
 		std::string error;
-		if (!Dx11ShaderCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error)) {
+		if (!HlslShaderCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!Dx11ShaderCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error)) {
+		if (!HlslShaderCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
