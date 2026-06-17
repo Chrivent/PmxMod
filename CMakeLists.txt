@@ -144,7 +144,7 @@ set(VULKAN_SOURCES
         src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
         src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.h src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.cpp
         src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.h src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.h
+        src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.h src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.cpp
         src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.h src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.cpp
         src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.cpp
         src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.h src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.cpp
