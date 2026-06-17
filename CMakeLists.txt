@@ -84,74 +84,74 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         src/Viewer/TextureCache.h
 
-        src/Viewer/Assist/Glsl/GlslPreprocessor.h src/Viewer/Assist/Glsl/GlslPreprocessor.cpp
-        src/Viewer/Assist/Glsl/GlslShaderConstants.h
-        src/Viewer/Assist/Glsl/GlslDynamicBufferRing.h src/Viewer/Assist/Glsl/GlslDynamicBufferRing.cpp
-        src/Viewer/Assist/Hlsl/HlslShaderConstants.h
+        src/Viewer/Glsl/GlslPreprocessor.h src/Viewer/Glsl/GlslPreprocessor.cpp
+        src/Viewer/Glsl/GlslShaderConstants.h
+        src/Viewer/Glsl/GlslDynamicBufferRing.h src/Viewer/Glsl/GlslDynamicBufferRing.cpp
+        src/Viewer/Hlsl/HlslShaderConstants.h
 )
 
 set(GLFW_SOURCES
-        src/Viewer/Glfw/GlfwViewer.h src/Viewer/Glfw/GlfwViewer.cpp
-        src/Viewer/Glfw/GlfwDrawer.h src/Viewer/Glfw/GlfwDrawer.cpp
-        src/Viewer/Glfw/GlfwTextureCache.h src/Viewer/Glfw/GlfwTextureCache.cpp
-        src/Viewer/Glfw/GlfwInstance.h src/Viewer/Glfw/GlfwInstance.cpp
+        src/Viewer/Glsl/Glfw/GlfwViewer.h src/Viewer/Glsl/Glfw/GlfwViewer.cpp
+        src/Viewer/Glsl/Glfw/GlfwDrawer.h src/Viewer/Glsl/Glfw/GlfwDrawer.cpp
+        src/Viewer/Glsl/Glfw/GlfwTextureCache.h src/Viewer/Glsl/Glfw/GlfwTextureCache.cpp
+        src/Viewer/Glsl/Glfw/GlfwInstance.h src/Viewer/Glsl/Glfw/GlfwInstance.cpp
 
-        src/Viewer/Glfw/Assist/GlfwDynamicBufferRing.h src/Viewer/Glfw/Assist/GlfwDynamicBufferRing.cpp
+        src/Viewer/Glsl/Glfw/GlfwDynamicBufferRing.h src/Viewer/Glsl/Glfw/GlfwDynamicBufferRing.cpp
 
-        src/Viewer/Glfw/Helper/GlfwShader.h src/Viewer/Glfw/Helper/GlfwShader.cpp
-        src/Viewer/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glfw/Helper/GlfwShaderCompiler.cpp
+        src/Viewer/Glsl/Glfw/Helper/GlfwShader.h src/Viewer/Glsl/Glfw/Helper/GlfwShader.cpp
+        src/Viewer/Glsl/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glsl/Glfw/Helper/GlfwShaderCompiler.cpp
 )
 
 set(DX11_SOURCES
-        src/Viewer/Dx11/Dx11Viewer.h src/Viewer/Dx11/Dx11Viewer.cpp
-        src/Viewer/Dx11/Dx11Drawer.h src/Viewer/Dx11/Dx11Drawer.cpp
-        src/Viewer/Dx11/Dx11TextureCache.h src/Viewer/Dx11/Dx11TextureCache.cpp
-        src/Viewer/Dx11/Dx11Instance.h src/Viewer/Dx11/Dx11Instance.cpp
+        src/Viewer/Hlsl/Dx11/Dx11Viewer.h src/Viewer/Hlsl/Dx11/Dx11Viewer.cpp
+        src/Viewer/Hlsl/Dx11/Dx11Drawer.h src/Viewer/Hlsl/Dx11/Dx11Drawer.cpp
+        src/Viewer/Hlsl/Dx11/Dx11TextureCache.h src/Viewer/Hlsl/Dx11/Dx11TextureCache.cpp
+        src/Viewer/Hlsl/Dx11/Dx11Instance.h src/Viewer/Hlsl/Dx11/Dx11Instance.cpp
 
-        src/Viewer/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Dx11/Helper/Dx11DescBuilder.cpp
-        src/Viewer/Dx11/Helper/Dx11Shader.h src/Viewer/Dx11/Helper/Dx11Shader.cpp
-        src/Viewer/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Dx11/Helper/Dx11ShaderCompiler.cpp
+        src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.cpp
+        src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.h src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.cpp
+        src/Viewer/Hlsl/Dx11/Helper/Dx11ShaderCompiler.h src/Viewer/Hlsl/Dx11/Helper/Dx11ShaderCompiler.cpp
 )
 
 set(DX12_SOURCES
-        src/Viewer/Dx12/Dx12Viewer.h src/Viewer/Dx12/Dx12Viewer.cpp
-        src/Viewer/Dx12/Dx12Drawer.h src/Viewer/Dx12/Dx12Drawer.cpp
-        src/Viewer/Dx12/Dx12TextureCache.h src/Viewer/Dx12/Dx12TextureCache.cpp
-        src/Viewer/Dx12/Dx12Instance.h src/Viewer/Dx12/Dx12Instance.cpp
+        src/Viewer/Hlsl/Dx12/Dx12Viewer.h src/Viewer/Hlsl/Dx12/Dx12Viewer.cpp
+        src/Viewer/Hlsl/Dx12/Dx12Drawer.h src/Viewer/Hlsl/Dx12/Dx12Drawer.cpp
+        src/Viewer/Hlsl/Dx12/Dx12TextureCache.h src/Viewer/Hlsl/Dx12/Dx12TextureCache.cpp
+        src/Viewer/Hlsl/Dx12/Dx12Instance.h src/Viewer/Hlsl/Dx12/Dx12Instance.cpp
 
-        src/Viewer/Dx12/Helper/Dx12Buffer.h src/Viewer/Dx12/Helper/Dx12Buffer.cpp
-        src/Viewer/Dx12/Helper/Dx12CommandContext.h src/Viewer/Dx12/Helper/Dx12CommandContext.cpp
-        src/Viewer/Dx12/Helper/Dx12DepthBuffer.h src/Viewer/Dx12/Helper/Dx12DepthBuffer.cpp
-        src/Viewer/Dx12/Helper/Dx12Device.h src/Viewer/Dx12/Helper/Dx12Device.cpp
-        src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Dx12/Helper/Dx12MsaaColorBuffer.cpp
-        src/Viewer/Dx12/Helper/Dx12Pipeline.h src/Viewer/Dx12/Helper/Dx12Pipeline.cpp
-        src/Viewer/Dx12/Helper/Dx12ShaderCompiler.h src/Viewer/Dx12/Helper/Dx12ShaderCompiler.cpp
-        src/Viewer/Dx12/Helper/Dx12SwapChain.h src/Viewer/Dx12/Helper/Dx12SwapChain.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12Buffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12Buffer.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12CommandContext.h src/Viewer/Hlsl/Dx12/Helper/Dx12CommandContext.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12DepthBuffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12DepthBuffer.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12Device.h src/Viewer/Hlsl/Dx12/Helper/Dx12Device.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.h src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12ShaderCompiler.h src/Viewer/Hlsl/Dx12/Helper/Dx12ShaderCompiler.cpp
+        src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.h src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.cpp
 )
 
 set(VULKAN_SOURCES
-        src/Viewer/Vulkan/VulkanViewer.h src/Viewer/Vulkan/VulkanViewer.cpp
-        src/Viewer/Vulkan/VulkanDrawer.h src/Viewer/Vulkan/VulkanDrawer.cpp
-        src/Viewer/Vulkan/VulkanTextureCache.h src/Viewer/Vulkan/VulkanTextureCache.cpp
-        src/Viewer/Vulkan/VulkanInstance.h src/Viewer/Vulkan/VulkanInstance.cpp
+        src/Viewer/Glsl/Vulkan/VulkanViewer.h src/Viewer/Glsl/Vulkan/VulkanViewer.cpp
+        src/Viewer/Glsl/Vulkan/VulkanDrawer.h src/Viewer/Glsl/Vulkan/VulkanDrawer.cpp
+        src/Viewer/Glsl/Vulkan/VulkanTextureCache.h src/Viewer/Glsl/Vulkan/VulkanTextureCache.cpp
+        src/Viewer/Glsl/Vulkan/VulkanInstance.h src/Viewer/Glsl/Vulkan/VulkanInstance.cpp
 
-        src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.h src/Viewer/Vulkan/Assist/VulkanDynamicBufferRing.cpp
+        src/Viewer/Glsl/Vulkan/VulkanDynamicBufferRing.h src/Viewer/Glsl/Vulkan/VulkanDynamicBufferRing.cpp
 
-        src/Viewer/Vulkan/Helper/VulkanBuffer.h src/Viewer/Vulkan/Helper/VulkanBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.h src/Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Vulkan/Helper/VulkanCommandBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Vulkan/Helper/VulkanCommandContext.cpp
-        src/Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h src/Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanDescriptorSet.h src/Viewer/Vulkan/Helper/VulkanDescriptorSet.cpp
-        src/Viewer/Vulkan/Helper/VulkanDevice.h src/Viewer/Vulkan/Helper/VulkanDevice.cpp
-        src/Viewer/Vulkan/Helper/VulkanMemory.h
-        src/Viewer/Vulkan/Helper/VulkanPipeline.h src/Viewer/Vulkan/Helper/VulkanPipeline.cpp
-        src/Viewer/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Vulkan/Helper/VulkanRenderPass.cpp
-        src/Viewer/Vulkan/Helper/VulkanShaderCompiler.h src/Viewer/Vulkan/Helper/VulkanShaderCompiler.cpp
-        src/Viewer/Vulkan/Helper/VulkanShaderModule.h src/Viewer/Vulkan/Helper/VulkanShaderModule.cpp
-        src/Viewer/Vulkan/Helper/VulkanFrameBuffer.h src/Viewer/Vulkan/Helper/VulkanFrameBuffer.cpp
-        src/Viewer/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Vulkan/Helper/VulkanSwapChain.cpp
-        src/Viewer/Vulkan/Helper/VulkanSyncObject.h src/Viewer/Vulkan/Helper/VulkanSyncObject.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanBuffer.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanCommandBuffer.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Glsl/Vulkan/Helper/VulkanCommandContext.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.h src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.h src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.h
+        src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.h src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.h src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanShaderModule.h src/Viewer/Glsl/Vulkan/Helper/VulkanShaderModule.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanFrameBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanFrameBuffer.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Glsl/Vulkan/Helper/VulkanSwapChain.cpp
+        src/Viewer/Glsl/Vulkan/Helper/VulkanSyncObject.h src/Viewer/Glsl/Vulkan/Helper/VulkanSyncObject.cpp
 )
 
 add_executable(PmxMod main.cpp)

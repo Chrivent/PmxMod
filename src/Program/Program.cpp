@@ -5,10 +5,10 @@
 #include "../Model/ModelLoader.h"
 #include "../Model/ModelAnimator.h"
 #include "../Parser/VmdParser.h"
-#include "../Viewer/Dx11/Dx11Viewer.h"
-#include "../Viewer/Dx12/Dx12Viewer.h"
-#include "../Viewer/Glfw/GlfwViewer.h"
-#include "../Viewer/Vulkan/VulkanViewer.h"
+#include "../Viewer/Glsl/Glfw/GlfwViewer.h"
+#include "../Viewer/Glsl/Vulkan/VulkanViewer.h"
+#include "../Viewer/Hlsl/Dx11/Dx11Viewer.h"
+#include "../Viewer/Hlsl/Dx12/Dx12Viewer.h"
 
 #include <iostream>
 
