@@ -186,9 +186,7 @@ namespace Chrivent {
 		glUseProgram(gsShader->program);
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
-		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
 		UpdateUniformBuffer(

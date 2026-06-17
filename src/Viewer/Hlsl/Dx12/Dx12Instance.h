@@ -1,10 +1,10 @@
 ﻿#pragma once
 
 #include "../../Instance.h"
+#include "../../ViewerGeometry.h"
 #include "Helper/Dx12Buffer.h"
 
 #include <d3d12.h>
-#include <glm/glm.hpp>
 #include <wrl/client.h>
 
 #include <vector>
@@ -13,13 +13,8 @@ namespace Chrivent {
 	class Dx12Drawer;
 	class Dx12Viewer;
 	struct Dx12Material;
-	struct ModelGeometryData;
 
-	struct Dx12Vertex {
-		glm::vec3 position{};
-		glm::vec3 normal{};
-		glm::vec2 uv{};
-	};
+	using Dx12Vertex = ViewerVertex;
 
 	struct Dx12InstanceInfo : InstanceInfo {
 		Dx12Viewer* viewer = nullptr;
@@ -41,10 +36,6 @@ namespace Chrivent {
 	};
 
 	class Dx12Instance : public Instance {
-		// 모델 geometry를 DX12 vertex 배열로 변환한다.
-		static std::vector<Dx12Vertex> BuildVertices(const ModelGeometryData& geometryData, bool useUpdateData);
-		// PMX index element 크기에 맞춰 DX12 index buffer 데이터를 만든다.
-		static bool BuildIndexData(const ModelGeometryData& geometryData, std::vector<char>& indices, DXGI_FORMAT& format);
 		// material별 텍스처 SRV descriptor를 생성한다.
 		static bool CreateTextureDescriptors(Dx12InstanceInfo& info);
 

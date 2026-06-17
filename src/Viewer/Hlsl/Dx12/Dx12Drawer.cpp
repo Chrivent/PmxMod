@@ -9,7 +9,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	const glm::mat4& Dx12Drawer::ClipMatrix() {
+	const glm::mat4& Dx12Drawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
@@ -141,9 +141,7 @@ namespace Chrivent {
 			return;
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
-		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewerInfo.lightDir);
 		HlslGroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {

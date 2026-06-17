@@ -9,59 +9,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	void VulkanInstance::FillVertices(
-		const ModelGeometryData& geometryData,
-		const bool useUpdateData,
-		std::vector<VulkanVertex>& vertices) {
-		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
-			? geometryData.updatePositions
-			: geometryData.positions;
-		const auto& normals = useUpdateData && geometryData.updateNormals.size() == geometryData.normals.size()
-			? geometryData.updateNormals
-			: geometryData.normals;
-		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
-			? geometryData.updateUVs
-			: geometryData.uvs;
-		vertices.resize(positions.size());
-		for (size_t i = 0; i < positions.size(); i++) {
-			auto& vertex = vertices[i];
-			vertex = {};
-			vertex.position = positions[i];
-			if (i < normals.size())
-				vertex.normal = normals[i];
-			if (i < uvs.size())
-				vertex.uv = uvs[i];
-		}
-	}
-
-	bool VulkanInstance::BuildIndexData(
-		const ModelGeometryData& geometryData,
-		std::vector<char>& indices,
-		VkIndexType& indexType) {
-		indices.clear();
-		if (geometryData.indexElementSize == 1) {
-			std::vector<uint16_t> convertedIndices(geometryData.indexCount);
-			for (size_t index = 0; index < geometryData.indexCount; index++)
-				convertedIndices[index] = static_cast<unsigned char>(geometryData.indices[index]);
-			const size_t byteSize = sizeof(uint16_t) * convertedIndices.size();
-			const auto* bytes = reinterpret_cast<const char*>(convertedIndices.data());
-			indices.assign(bytes, bytes + byteSize);
-			indexType = VK_INDEX_TYPE_UINT16;
-			return true;
-		}
-		if (geometryData.indexElementSize == 2) {
-			indices = geometryData.indices;
-			indexType = VK_INDEX_TYPE_UINT16;
-			return true;
-		}
-		if (geometryData.indexElementSize == 4) {
-			indices = geometryData.indices;
-			indexType = VK_INDEX_TYPE_UINT32;
-			return true;
-		}
-		return false;
-	}
-
 	VulkanInstance::VulkanInstance() {
 		info = std::make_unique<VulkanInstanceInfo>();
 		drawer = std::make_unique<VulkanDrawer>(static_cast<VulkanInstanceInfo&>(GetInfo()));
@@ -94,15 +41,17 @@ namespace Chrivent {
 		if (info.model == nullptr)
 			return false;
 		const auto& geometryData = info.model->geometryData;
-		std::vector<char> indices;
-		if (!BuildIndexData(geometryData, indices, info.indexType)) {
+		ViewerIndexData indexData;
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
 			std::cerr << "Failed to build Vulkan index data.\n";
 			return false;
 		}
-		std::vector<VulkanVertex> vertices;
-		FillVertices(geometryData, false, vertices);
+		info.indexType = indexData.elementSize == sizeof(uint16_t)
+			? VK_INDEX_TYPE_UINT16
+			: VK_INDEX_TYPE_UINT32;
+		const std::vector<VulkanVertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
-		const VkDeviceSize indexBufferSize = indices.size();
+		const VkDeviceSize indexBufferSize = indexData.bytes.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
 			return false;
@@ -131,7 +80,7 @@ namespace Chrivent {
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
-		if (!info.indexBuffer.Write(indices.data(), indexBufferSize))
+		if (!info.indexBuffer.Write(indexData.bytes.data(), indexBufferSize))
 			return false;
 		info.uniformBufferOffsetAlignment = std::max<size_t>(1, deviceInfo.properties.limits.minUniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
@@ -157,7 +106,7 @@ namespace Chrivent {
 			return false;
 		if (!info.groundShadowPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
-		info.indexCount = geometryData.indexCount;
+		info.indexCount = indexData.indexCount;
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
 			if (!mat.texture.empty()) {
@@ -232,8 +181,7 @@ namespace Chrivent {
 			return;
 		const ModelPose pose(*info.model);
 		pose.Update();
-		std::vector<VulkanVertex> vertices;
-		FillVertices(info.model->geometryData, true, vertices);
+		const std::vector<VulkanVertex> vertices = ViewerGeometry::BuildVertices(info.model->geometryData, true);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
 		if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";

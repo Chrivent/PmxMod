@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../../Instance.h"
+#include "../../ViewerGeometry.h"
 #include "VulkanDynamicBufferRing.h"
 #include "Helper/VulkanBuffer.h"
 #include "Helper/VulkanDescriptorSet.h"
@@ -10,14 +11,9 @@
 
 namespace Chrivent {
 	class VulkanViewer;
-	struct ModelGeometryData;
 	struct VulkanMaterial;
 
-	struct VulkanVertex {
-		glm::vec3 position;
-		glm::vec3 normal;
-		glm::vec2 uv;
-	};
+	using VulkanVertex = ViewerVertex;
 
 	struct VulkanInstanceInfo : InstanceInfo {
 		static constexpr size_t kBufferedFrames = 2;
@@ -40,11 +36,6 @@ namespace Chrivent {
 	};
 
 	class VulkanInstance : public Instance {
-		// 모델의 현재 버텍스 배열을 Vulkan 입력 레이아웃에 맞게 변환한다.
-		static void FillVertices(const ModelGeometryData& geometryData, bool useUpdateData, std::vector<VulkanVertex>& vertices);
-		// PMX 인덱스 데이터를 Vulkan에서 사용할 수 있는 index buffer 데이터로 변환한다.
-		static bool BuildIndexData(const ModelGeometryData& geometryData, std::vector<char>& indices, VkIndexType& indexType);
-
 	public:
 		VulkanInstance();
 		~VulkanInstance() override = default;

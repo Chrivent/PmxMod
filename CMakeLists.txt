@@ -83,6 +83,7 @@ set(VIEWER_CORE_SOURCES
         src/Viewer/Drawer.h src/Viewer/Drawer.cpp
         src/Viewer/Instance.h src/Viewer/Instance.cpp
         src/Viewer/TextureCache.h
+        src/Viewer/ViewerGeometry.h src/Viewer/ViewerGeometry.cpp
 
         src/Viewer/Glsl/GlslPreprocessor.h src/Viewer/Glsl/GlslPreprocessor.cpp
         src/Viewer/Glsl/GlslShaderConstants.h

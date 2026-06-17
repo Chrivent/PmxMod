@@ -126,11 +126,8 @@ namespace Chrivent {
 
 	Dx12Texture Dx12TextureCache::Load(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<Dx12Texture>(it->second);
+		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
-		}
 		int x = 0;
 		int y = 0;
 		int comp = 0;
@@ -152,11 +149,8 @@ namespace Chrivent {
 
 	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12DeviceInfo& deviceInfo) {
 		const TextureKey key{ TextureKind::White };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<Dx12Texture>(it->second);
+		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
-		}
 		constexpr unsigned char white[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<Dx12Texture>();
 		texture->key = key;

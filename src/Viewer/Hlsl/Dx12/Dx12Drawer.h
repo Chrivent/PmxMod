@@ -10,10 +10,9 @@ namespace Chrivent {
 	class Dx12Drawer : public Drawer {
 		const Dx12InstanceInfo& info;
 
-		// OpenGL 스타일 clip space를 DirectX depth range로 변환하는 행렬을 반환한다.
-		static const glm::mat4& ClipMatrix();
-
 	protected:
+		// DirectX depth range로 맞추는 clip 보정 행렬을 반환한다.
+		const glm::mat4& ClipMatrix() const override;
 		// 일반 메시 패스를 DX12로 렌더링한다.
 		void DrawModel() override;
 		// 엣지 패스를 DX12로 렌더링한다.

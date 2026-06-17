@@ -10,53 +10,6 @@
 #include <limits>
 
 namespace Chrivent {
-	std::vector<Dx12Vertex> Dx12Instance::BuildVertices(const ModelGeometryData& geometryData, const bool useUpdateData) {
-		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
-			? geometryData.updatePositions
-			: geometryData.positions;
-		const auto& normals = useUpdateData && geometryData.updateNormals.size() == geometryData.normals.size()
-			? geometryData.updateNormals
-			: geometryData.normals;
-		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
-			? geometryData.updateUVs
-			: geometryData.uvs;
-		std::vector<Dx12Vertex> vertices(positions.size());
-		for (size_t index = 0; index < positions.size(); index++) {
-			auto& [position, normal, uv] = vertices[index];
-			position = positions[index];
-			if (index < normals.size())
-				normal = normals[index];
-			if (index < uvs.size())
-				uv = uvs[index];
-		}
-		return vertices;
-	}
-
-	bool Dx12Instance::BuildIndexData(const ModelGeometryData& geometryData, std::vector<char>& indices, DXGI_FORMAT& format) {
-		indices.clear();
-		if (geometryData.indexElementSize == 1) {
-			std::vector<uint16_t> convertedIndices(geometryData.indexCount);
-			for (size_t index = 0; index < geometryData.indexCount; index++)
-				convertedIndices[index] = geometryData.indices[index];
-			const size_t byteSize = sizeof(uint16_t) * convertedIndices.size();
-			const auto* bytes = reinterpret_cast<const char*>(convertedIndices.data());
-			indices.assign(bytes, bytes + byteSize);
-			format = DXGI_FORMAT_R16_UINT;
-			return true;
-		}
-		if (geometryData.indexElementSize == 2) {
-			indices = geometryData.indices;
-			format = DXGI_FORMAT_R16_UINT;
-			return true;
-		}
-		if (geometryData.indexElementSize == 4) {
-			indices = geometryData.indices;
-			format = DXGI_FORMAT_R32_UINT;
-			return true;
-		}
-		return false;
-	}
-
 	bool Dx12Instance::CreateTextureDescriptors(Dx12InstanceInfo& info) {
 		if (info.viewer == nullptr || info.materials.empty())
 			return true;
@@ -139,15 +92,17 @@ namespace Chrivent {
 		if (info.model == nullptr)
 			return false;
 		const auto& geometryData = info.model->geometryData;
-		std::vector<Dx12Vertex> vertices = BuildVertices(geometryData, false);
-		std::vector<char> indices;
-		DXGI_FORMAT indexFormat = DXGI_FORMAT_UNKNOWN;
-		if (vertices.empty() || !BuildIndexData(geometryData, indices, indexFormat) || indices.empty()) {
+		std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
+		ViewerIndexData indexData;
+		if (vertices.empty() || !ViewerGeometry::BuildIndexData(geometryData, indexData) || indexData.bytes.empty()) {
 			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
 			return false;
 		}
+		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
+			? DXGI_FORMAT_R16_UINT
+			: DXGI_FORMAT_R32_UINT;
 		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
-		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indices.size() > (std::numeric_limits<UINT>::max)())
+		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
 			return false;
 		const auto& viewerInfo = info.viewer->GetDx12Info();
 		if (!viewerInfo.deviceInfo)
@@ -156,16 +111,16 @@ namespace Chrivent {
 		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
 			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
 			return false;
-		if (!info.indexBuffer.InitializeUpload(deviceInfo, indices.size()) ||
-			!info.indexBuffer.Write(indices.data(), indices.size()))
+		if (!info.indexBuffer.InitializeUpload(deviceInfo, indexData.bytes.size()) ||
+			!info.indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
 			return false;
 		info.vertexBufferView.BufferLocation = info.vertexBuffer.ResolveGpuAddress();
 		info.vertexBufferView.SizeInBytes = vertexByteSize;
 		info.vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
 		info.indexBufferView.BufferLocation = info.indexBuffer.ResolveGpuAddress();
-		info.indexBufferView.SizeInBytes = indices.size();
+		info.indexBufferView.SizeInBytes = indexData.bytes.size();
 		info.indexBufferView.Format = indexFormat;
-		info.indexCount = geometryData.indexCount;
+		info.indexCount = indexData.indexCount;
 		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelVertexConstants));
 		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelPixelConstants));
 		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
@@ -216,7 +171,7 @@ namespace Chrivent {
 			return;
 		const ModelPose pose(*info.model);
 		pose.Update();
-		const std::vector<Dx12Vertex> vertices = BuildVertices(info.model->geometryData, true);
+		const std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(info.model->geometryData, true);
 		if (vertices.empty())
 			return;
 		if (!info.vertexBuffer.Write(vertices.data(), sizeof(Dx12Vertex) * vertices.size()))

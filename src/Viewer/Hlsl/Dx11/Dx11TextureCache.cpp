@@ -8,11 +8,8 @@
 namespace Chrivent {
 	Dx11Texture Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
 		const TextureKey key{ TextureKind::White };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<Dx11Texture>(it->second);
+		if (const auto texture = FindCachedTexture<Dx11Texture>(key))
 			return *texture;
-		}
 		const auto d = Dx11DescBuilder::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		constexpr uint8_t white[] = { 255, 255, 255, 255 };
 		D3D11_SUBRESOURCE_DATA initData = {};
@@ -35,11 +32,8 @@ namespace Chrivent {
 
 	Dx11Texture Dx11TextureCache::Load(ID3D11Device* device, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<Dx11Texture>(it->second);
+		if (const auto texture = FindCachedTexture<Dx11Texture>(key))
 			return *texture;
-		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)

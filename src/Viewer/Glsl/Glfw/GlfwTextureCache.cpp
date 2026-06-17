@@ -16,11 +16,8 @@ namespace Chrivent {
 
 	GlfwTexture GlfwTextureCache::CreateWhiteTexture() {
 		const TextureKey key{ TextureKind::White };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<GlfwTexture>(it->second);
+		if (const auto texture = FindCachedTexture<GlfwTexture>(key))
 			return *texture;
-		}
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
 		glGenTextures(1, &tex);
@@ -41,11 +38,8 @@ namespace Chrivent {
 
 	GlfwTexture GlfwTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
-		const auto it = textures.find(key);
-		if (it != textures.end()) {
-			const auto texture = std::static_pointer_cast<GlfwTexture>(it->second);
+		if (const auto texture = FindCachedTexture<GlfwTexture>(key))
 			return *texture;
-		}
 		int x = 0, y = 0, comp = 0;
 		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
 		if (!image)

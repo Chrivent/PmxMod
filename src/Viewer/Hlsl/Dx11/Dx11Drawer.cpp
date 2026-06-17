@@ -6,7 +6,7 @@
 #include "../../../Model/Model.h"
 
 namespace Chrivent {
-	const glm::mat4& Dx11Drawer::ClipMatrix() {
+	const glm::mat4& Dx11Drawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
@@ -173,9 +173,7 @@ namespace Chrivent {
 		const auto& proj = viewer->GetInfo().projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		viewer->GetDx11Info().deviceResources.context->IASetInputLayout(viewer->GetDx11Info().shaders.groundShadow.inputLayout.Get());
-		constexpr glm::vec4 plane(0.f, 1.f, 0.f, 0.f);
-		const glm::vec4 light(-viewer->GetInfo().lightDir, 0.f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
 		HlslGroundShadowVertexConstants vsCb;
 		vsCb.wvp = ClipMatrix() * proj * view * shadow * world;
 		viewer->GetDx11Info().deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);

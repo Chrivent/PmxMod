@@ -8,7 +8,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	const glm::mat4& VulkanDrawer::ClipMatrix() {
+	const glm::mat4& VulkanDrawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, -1.0f, 0.0f, 0.0f,
@@ -158,9 +158,7 @@ namespace Chrivent {
 		info.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
-		const glm::vec4 light(-viewerInfo.lightDir, 0.0f);
-		const glm::mat4 shadow = glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewerInfo.lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		constexpr GroundShadowPixelConstants pixelConstants{};
