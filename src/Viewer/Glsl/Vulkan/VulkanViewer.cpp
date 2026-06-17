@@ -20,6 +20,34 @@ namespace Chrivent {
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
 
+	bool VulkanViewer::CreateSwapChainResources() {
+		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
+			return false;
+		if (!msaaDepthBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
+			return false;
+		if (!renderPass.Initialize(device->GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
+			return false;
+		if (!pipeline->Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
+			return false;
+		if (!frameBuffer.Initialize(
+			device->GetInfo(),
+			swapChain.GetInfo(),
+			renderPass.GetRenderPass(),
+			msaaColorBuffer.GetInfo().imageView,
+			msaaDepthBuffer.GetInfo().imageView))
+			return false;
+		return commandContext.Initialize(device->GetInfo(), swapChain.GetInfo());
+	}
+
+	void VulkanViewer::DestroySwapChainResources() {
+		commandContext.Destroy();
+		frameBuffer.Destroy();
+		pipeline->Destroy();
+		renderPass.Destroy();
+		msaaColorBuffer.Destroy();
+		msaaDepthBuffer.Destroy();
+	}
+
 	void VulkanViewer::DrawIndexed(
 		const VulkanBufferInfo& vertexBuffer,
 		const VulkanBufferInfo& indexBuffer,
@@ -139,17 +167,7 @@ namespace Chrivent {
 			return false;
 		if (!swapChain.Initialize(device->GetInfo(), GetInfo().window))
 			return false;
-		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
-			return false;
-		if (!msaaDepthBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
-			return false;
-		if (!renderPass.Initialize(device->GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
-			return false;
-		if (!pipeline->Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
-			return false;
-		if (!frameBuffer.Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
-			return false;
-		if (!commandContext.Initialize(device->GetInfo(), swapChain.GetInfo()))
+		if (!CreateSwapChainResources())
 			return false;
 		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo(), commandContext.GetInfo().commandPool);
 		if (dummyTexture->image == VK_NULL_HANDLE)
@@ -160,25 +178,10 @@ namespace Chrivent {
 	bool VulkanViewer::Resize() {
 		if (device->GetInfo().device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(device->GetInfo().device);
-		commandContext.Destroy();
-		frameBuffer.Destroy();
-		pipeline->Destroy();
-		renderPass.Destroy();
-		msaaColorBuffer.Destroy();
-		msaaDepthBuffer.Destroy();
+		DestroySwapChainResources();
 		if (!swapChain.Recreate(device->GetInfo(), GetInfo().window))
 			return false;
-		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
-			return false;
-		if (!msaaDepthBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
-			return false;
-		if (!renderPass.Initialize(device->GetInfo(), swapChain.GetInfo(), msaaDepthBuffer.GetInfo().format))
-			return false;
-		if (!pipeline->Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), GetInfo().shaderDir))
-			return false;
-		if (!frameBuffer.Initialize(device->GetInfo(), swapChain.GetInfo(), renderPass.GetRenderPass(), msaaColorBuffer.GetInfo().imageView, msaaDepthBuffer.GetInfo().imageView))
-			return false;
-		if (!commandContext.Initialize(device->GetInfo(), swapChain.GetInfo()))
+		if (!CreateSwapChainResources())
 			return false;
 		syncObject->ResetImageTracking(swapChain.GetInfo().images.size());
 		return true;

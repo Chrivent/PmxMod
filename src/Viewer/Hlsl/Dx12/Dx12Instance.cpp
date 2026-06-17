@@ -10,6 +10,86 @@
 #include <limits>
 
 namespace Chrivent {
+	bool Dx12Instance::CreateGeometryBuffers(Dx12InstanceInfo& info, const Dx12DeviceInfo& deviceInfo) {
+		const auto& geometryData = info.model->geometryData;
+		const std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
+		ViewerIndexData indexData;
+		if (vertices.empty() || !ViewerGeometry::BuildIndexData(geometryData, indexData) || indexData.bytes.empty()) {
+			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
+			return false;
+		}
+		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
+			? DXGI_FORMAT_R16_UINT
+			: DXGI_FORMAT_R32_UINT;
+		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
+		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
+			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
+			return false;
+		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
+			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
+			return false;
+		if (!info.indexBuffer.InitializeUpload(deviceInfo, indexData.bytes.size()) ||
+			!info.indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
+			return false;
+		info.vertexBufferView.BufferLocation = info.vertexBuffer.ResolveGpuAddress();
+		info.vertexBufferView.SizeInBytes = vertexByteSize;
+		info.vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
+		info.indexBufferView.BufferLocation = info.indexBuffer.ResolveGpuAddress();
+		info.indexBufferView.SizeInBytes = indexData.bytes.size();
+		info.indexBufferView.Format = indexFormat;
+		info.indexCount = indexData.indexCount;
+		return true;
+	}
+
+	bool Dx12Instance::CreateConstantBuffers(Dx12InstanceInfo& info, const Dx12DeviceInfo& deviceInfo) {
+		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelVertexConstants));
+		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelPixelConstants));
+		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
+			return false;
+		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeVertexConstants));
+		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeSizeConstants));
+		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgePixelConstants));
+		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowVertexConstants));
+		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowPixelConstants));
+		if (!info.edgeVertexConstantBuffer.InitializeUpload(deviceInfo, edgeVertexConstantSize))
+			return false;
+		if (!info.groundShadowVertexConstantBuffer.InitializeUpload(deviceInfo, groundShadowVertexConstantSize))
+			return false;
+		if (!info.groundShadowPixelConstantBuffer.InitializeUpload(deviceInfo, groundShadowPixelConstantSize))
+			return false;
+		const size_t materialCount = info.model->materialData.materials.size();
+		info.modelPixelConstantBuffers.resize(materialCount);
+		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers) {
+			if (!pixelConstantBuffer.InitializeUpload(deviceInfo, pixelConstantSize))
+				return false;
+		}
+		info.edgeSizeConstantBuffers.resize(materialCount);
+		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers) {
+			if (!edgeSizeConstantBuffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
+				return false;
+		}
+		info.edgePixelConstantBuffers.resize(materialCount);
+		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers) {
+			if (!edgePixelConstantBuffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
+				return false;
+		}
+		return true;
+	}
+
+	void Dx12Instance::LoadMaterials(Dx12InstanceInfo& info) {
+		info.materials.reserve(info.model->materialData.materials.size());
+		for (const auto& mat : info.model->materialData.materials) {
+			Dx12Material material(mat);
+			if (!mat.texture.empty())
+				material.texture = info.viewer->LoadTexture(mat.texture);
+			if (!mat.spTexture.empty())
+				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
+			if (!mat.toonTexture.empty())
+				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
+			info.materials.emplace_back(material);
+		}
+	}
+
 	bool Dx12Instance::CreateTextureDescriptors(Dx12InstanceInfo& info) {
 		if (info.viewer == nullptr || info.materials.empty())
 			return true;
@@ -91,77 +171,15 @@ namespace Chrivent {
 		info.viewer = static_cast<Dx12Viewer*>(&baseViewer);
 		if (info.model == nullptr)
 			return false;
-		const auto& geometryData = info.model->geometryData;
-		std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
-		ViewerIndexData indexData;
-		if (vertices.empty() || !ViewerGeometry::BuildIndexData(geometryData, indexData) || indexData.bytes.empty()) {
-			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
-			return false;
-		}
-		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
-			? DXGI_FORMAT_R16_UINT
-			: DXGI_FORMAT_R32_UINT;
-		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
-		if (vertexByteSize > (std::numeric_limits<UINT>::max)() || indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
-			return false;
 		const auto& viewerInfo = info.viewer->GetDx12Info();
 		if (!viewerInfo.deviceInfo)
 			return false;
 		const auto& deviceInfo = *viewerInfo.deviceInfo;
-		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
-			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
+		if (!CreateGeometryBuffers(info, deviceInfo))
 			return false;
-		if (!info.indexBuffer.InitializeUpload(deviceInfo, indexData.bytes.size()) ||
-			!info.indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
+		if (!CreateConstantBuffers(info, deviceInfo))
 			return false;
-		info.vertexBufferView.BufferLocation = info.vertexBuffer.ResolveGpuAddress();
-		info.vertexBufferView.SizeInBytes = vertexByteSize;
-		info.vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
-		info.indexBufferView.BufferLocation = info.indexBuffer.ResolveGpuAddress();
-		info.indexBufferView.SizeInBytes = indexData.bytes.size();
-		info.indexBufferView.Format = indexFormat;
-		info.indexCount = indexData.indexCount;
-		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelVertexConstants));
-		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelPixelConstants));
-		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
-			return false;
-		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeVertexConstants));
-		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeSizeConstants));
-		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgePixelConstants));
-		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowVertexConstants));
-		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowPixelConstants));
-		if (!info.edgeVertexConstantBuffer.InitializeUpload(deviceInfo, edgeVertexConstantSize))
-			return false;
-		if (!info.groundShadowVertexConstantBuffer.InitializeUpload(deviceInfo, groundShadowVertexConstantSize))
-			return false;
-		if (!info.groundShadowPixelConstantBuffer.InitializeUpload(deviceInfo, groundShadowPixelConstantSize))
-			return false;
-		info.materials.reserve(info.model->materialData.materials.size());
-		info.modelPixelConstantBuffers.resize(info.model->materialData.materials.size());
-		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers) {
-			if (!pixelConstantBuffer.InitializeUpload(deviceInfo, pixelConstantSize))
-				return false;
-		}
-		info.edgeSizeConstantBuffers.resize(info.model->materialData.materials.size());
-		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers) {
-			if (!edgeSizeConstantBuffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
-				return false;
-		}
-		info.edgePixelConstantBuffers.resize(info.model->materialData.materials.size());
-		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers) {
-			if (!edgePixelConstantBuffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
-				return false;
-		}
-		for (const auto& mat : info.model->materialData.materials) {
-			Dx12Material material(mat);
-			if (!mat.texture.empty())
-				material.texture = info.viewer->LoadTexture(mat.texture);
-			if (!mat.spTexture.empty())
-				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture);
-			if (!mat.toonTexture.empty())
-				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
-			info.materials.emplace_back(material);
-		}
+		LoadMaterials(info);
 		return CreateTextureDescriptors(info);
 	}
 

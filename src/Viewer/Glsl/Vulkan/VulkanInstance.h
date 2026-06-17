@@ -11,7 +11,10 @@
 
 namespace Chrivent {
 	class VulkanViewer;
+	struct VulkanDeviceInfo;
 	struct VulkanMaterial;
+	struct VulkanPipelineInfo;
+	struct VulkanTexture;
 
 	using VulkanVertex = ViewerVertex;
 
@@ -36,6 +39,15 @@ namespace Chrivent {
 	};
 
 	class VulkanInstance : public Instance {
+		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
+		static bool CreateGeometryBuffers(VulkanInstanceInfo& info, const VulkanDeviceInfo& deviceInfo);
+		// 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
+		static bool SetupConstantRings(VulkanInstanceInfo& info, const VulkanDeviceInfo& deviceInfo);
+		// 모델 material 정보를 Vulkan material 캐시와 descriptor 준비 데이터로 변환한다.
+		static void LoadMaterials(VulkanInstanceInfo& info, const VulkanTexture& dummyTexture);
+		// 패스별 descriptor set을 생성한다.
+		static bool CreateDescriptorSets(VulkanInstanceInfo& info, const VulkanDeviceInfo& deviceInfo, const VulkanPipelineInfo& pipelineInfo);
+
 	public:
 		VulkanInstance();
 		~VulkanInstance() override = default;

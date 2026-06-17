@@ -8,14 +8,7 @@
 #include "../../../Model/ModelPose.h"
 
 namespace Chrivent {
-	Dx11Instance::Dx11Instance() {
-		info = std::make_unique<Dx11InstanceInfo>();
-	}
-
-	bool Dx11Instance::Setup(Viewer& baseViewer) {
-		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());
-		info.viewer = &static_cast<Dx11Viewer&>(baseViewer);
-		drawer = std::make_unique<Dx11Drawer>(info);
+	bool Dx11Instance::CreateGeometryBuffers(Dx11InstanceInfo& info) {
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(
 			sizeof(Dx11Vertex) * info.model->geometryData.positions.size());
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
@@ -34,6 +27,10 @@ namespace Chrivent {
 			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
+		return true;
+	}
+
+	bool Dx11Instance::CreateConstantBuffers(Dx11InstanceInfo& info) {
 		if (FAILED(CreateBuffer<HlslModelVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<HlslModelPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
@@ -48,6 +45,10 @@ namespace Chrivent {
 			return false;
 		if (FAILED(CreateBuffer<HlslGroundShadowPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
 			return false;
+		return true;
+	}
+
+	void Dx11Instance::LoadMaterials(Dx11InstanceInfo& info) {
 		for (const auto& mat : info.model->materialData.materials) {
 			Dx11Material material(mat);
 			if (!mat.texture.empty())
@@ -58,6 +59,21 @@ namespace Chrivent {
 				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
 			info.materials.emplace_back(std::move(material));
 		}
+	}
+
+	Dx11Instance::Dx11Instance() {
+		info = std::make_unique<Dx11InstanceInfo>();
+	}
+
+	bool Dx11Instance::Setup(Viewer& baseViewer) {
+		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());
+		info.viewer = &static_cast<Dx11Viewer&>(baseViewer);
+		drawer = std::make_unique<Dx11Drawer>(info);
+		if (!CreateGeometryBuffers(info))
+			return false;
+		if (!CreateConstantBuffers(info))
+			return false;
+		LoadMaterials(info);
 		return true;
 	}
 

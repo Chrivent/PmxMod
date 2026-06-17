@@ -28,7 +28,12 @@ namespace Chrivent {
     };
 
     class Dx11Instance : public Instance {
-    protected:
+        // 모델 geometry 데이터를 DX11 vertex/index buffer로 생성한다.
+        static bool CreateGeometryBuffers(Dx11InstanceInfo& info);
+        // 패스별 constant buffer를 생성한다.
+        static bool CreateConstantBuffers(Dx11InstanceInfo& info);
+        // 모델 material 정보를 DX11 material 캐시와 texture 리소스로 변환한다.
+        static void LoadMaterials(Dx11InstanceInfo& info);
         // DX11 상수 버퍼 크기 규칙에 맞춰 16바이트 정렬 버퍼를 생성한다.
         template<typename T>
         static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {

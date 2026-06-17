@@ -15,6 +15,18 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> edgePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> groundShadowPipelineState;
+
+		// root signature 직렬화와 생성 실패 로그 처리를 공통으로 수행한다.
+		static bool CreateRootSignature(
+			const Dx12DeviceInfo& deviceInfo,
+			const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc,
+			Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature);
+		// PMX 재질의 alpha blend 방식에 맞는 render target blend state를 채운다.
+		static void ConfigureAlphaBlend(D3D12_RENDER_TARGET_BLEND_DESC& blendDesc);
+		// 공통 rasterizer 기본값을 채우고 패스별 cull mode만 반영한다.
+		static void ConfigureRasterizer(D3D12_RASTERIZER_DESC& rasterizerDesc, D3D12_CULL_MODE cullMode);
+		// 일반 메시와 엣지 패스에서 쓰는 depth stencil 기본값을 채운다.
+		static void ConfigureDefaultDepthStencil(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 		
 		// 모델 셰이더의 리소스 배치와 맞는 root signature를 생성한다.
 		bool CreateModelRootSignature(const Dx12DeviceInfo& deviceInfo);

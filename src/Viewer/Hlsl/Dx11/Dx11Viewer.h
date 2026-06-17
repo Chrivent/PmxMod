@@ -71,6 +71,17 @@ namespace Chrivent {
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;
         Dx11TextureCache    textureCache;
+
+        // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
+        void UpdateViewport() const;
+        // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
+        bool CreateShaders();
+        // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
+        bool CreateRenderTargets();
+        // 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
+        bool CreatePipelineStates();
+        // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
+        bool CreateDummyResources();
     
     public:
         Dx11Viewer();
@@ -92,15 +103,5 @@ namespace Chrivent {
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
         Dx11Texture LoadTexture(const std::filesystem::path& texturePath);
-        // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
-        void UpdateViewport() const;
-        // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
-        bool CreateShaders();
-        // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
-        bool CreateRenderTargets();
-        // 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
-        bool CreatePipelineStates();
-        // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
-        bool CreateDummyResources();
     };
 }

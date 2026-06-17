@@ -6,40 +6,12 @@
 #include "../../../Model/Model.h"
 #include "../../../Model/ModelPose.h"
 
+#include <algorithm>
 #include <iostream>
+#include <string>
 
 namespace Chrivent {
-	VulkanInstance::VulkanInstance() {
-		info = std::make_unique<VulkanInstanceInfo>();
-		drawer = std::make_unique<VulkanDrawer>(static_cast<VulkanInstanceInfo&>(GetInfo()));
-	}
-
-	void VulkanInstance::Clear() {
-		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
-		for (auto& vertexBuffer : info.vertexBuffers)
-			vertexBuffer.Destroy();
-		info.indexBuffer.Destroy();
-		info.modelVertexConstantsRing.Clear();
-		info.edgeVertexConstantsRing.Clear();
-		info.groundShadowVertexConstantsRing.Clear();
-		info.modelPixelConstantsRing.Clear();
-		info.edgePixelConstantsRing.Clear();
-		info.groundShadowPixelConstantsRing.Clear();
-		info.modelDescriptorSet.Destroy();
-		info.edgeDescriptorSet.Destroy();
-		info.groundShadowDescriptorSet.Destroy();
-		info.materials.clear();
-		info.uniformBufferOffsetAlignment = 1;
-		info.indexType = VK_INDEX_TYPE_UINT16;
-		info.indexCount = 0;
-	}
-
-	bool VulkanInstance::Setup(Viewer& baseViewer) {
-		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
-		Clear();
-		info.viewer = static_cast<VulkanViewer*>(&baseViewer);
-		if (info.model == nullptr)
-			return false;
+	bool VulkanInstance::CreateGeometryBuffers(VulkanInstanceInfo& info, const VulkanDeviceInfo& deviceInfo) {
 		const auto& geometryData = info.model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
@@ -56,14 +28,6 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
 			return false;
 		}
-		const auto& viewerInfo = info.viewer->GetVulkanInfo();
-		if (!viewerInfo.deviceInfo ||
-			!viewerInfo.pipelineInfo ||
-			!viewerInfo.dummyTexture)
-			return false;
-		const auto& deviceInfo = *viewerInfo.deviceInfo;
-		const auto& pipelineInfo = *viewerInfo.pipelineInfo;
-		const auto& dummyTexture = *viewerInfo.dummyTexture;
 		for (auto& vertexBuffer : info.vertexBuffers) {
 			if (!vertexBuffer.Initialize(
 				deviceInfo,
@@ -82,6 +46,11 @@ namespace Chrivent {
 			return false;
 		if (!info.indexBuffer.Write(indexData.bytes.data(), indexBufferSize))
 			return false;
+		info.indexCount = indexData.indexCount;
+		return true;
+	}
+
+	bool VulkanInstance::SetupConstantRings(VulkanInstanceInfo& info, const VulkanDeviceInfo& deviceInfo) {
 		info.uniformBufferOffsetAlignment = std::max<size_t>(1, deviceInfo.properties.limits.minUniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
@@ -106,7 +75,10 @@ namespace Chrivent {
 			return false;
 		if (!info.groundShadowPixelConstantsRing.Setup(deviceInfo, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
-		info.indexCount = indexData.indexCount;
+		return true;
+	}
+
+	void VulkanInstance::LoadMaterials(VulkanInstanceInfo& info, const VulkanTexture& dummyTexture) {
 		for (const auto& mat : info.model->materialData.materials) {
 			VulkanMaterial material(mat);
 			if (!mat.texture.empty()) {
@@ -135,6 +107,12 @@ namespace Chrivent {
 				material.toonTexture = dummyTexture;
 			info.materials.emplace_back(std::move(material));
 		}
+	}
+
+	bool VulkanInstance::CreateDescriptorSets(
+		VulkanInstanceInfo& info,
+		const VulkanDeviceInfo& deviceInfo,
+		const VulkanPipelineInfo& pipelineInfo) {
 		if (!info.modelDescriptorSet.Initialize(
 			deviceInfo,
 			pipelineInfo,
@@ -166,6 +144,53 @@ namespace Chrivent {
 			VulkanPassType::GroundShadow))
 			return false;
 		return true;
+	}
+
+	VulkanInstance::VulkanInstance() {
+		info = std::make_unique<VulkanInstanceInfo>();
+		drawer = std::make_unique<VulkanDrawer>(static_cast<VulkanInstanceInfo&>(GetInfo()));
+	}
+
+	void VulkanInstance::Clear() {
+		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
+		for (auto& vertexBuffer : info.vertexBuffers)
+			vertexBuffer.Destroy();
+		info.indexBuffer.Destroy();
+		info.modelVertexConstantsRing.Clear();
+		info.edgeVertexConstantsRing.Clear();
+		info.groundShadowVertexConstantsRing.Clear();
+		info.modelPixelConstantsRing.Clear();
+		info.edgePixelConstantsRing.Clear();
+		info.groundShadowPixelConstantsRing.Clear();
+		info.modelDescriptorSet.Destroy();
+		info.edgeDescriptorSet.Destroy();
+		info.groundShadowDescriptorSet.Destroy();
+		info.materials.clear();
+		info.uniformBufferOffsetAlignment = 1;
+		info.indexType = VK_INDEX_TYPE_UINT16;
+		info.indexCount = 0;
+	}
+
+	bool VulkanInstance::Setup(Viewer& baseViewer) {
+		auto& info = static_cast<VulkanInstanceInfo&>(GetInfo());
+		Clear();
+		info.viewer = static_cast<VulkanViewer*>(&baseViewer);
+		if (info.model == nullptr)
+			return false;
+		const auto& viewerInfo = info.viewer->GetVulkanInfo();
+		if (!viewerInfo.deviceInfo ||
+			!viewerInfo.pipelineInfo ||
+			!viewerInfo.dummyTexture)
+			return false;
+		const auto& deviceInfo = *viewerInfo.deviceInfo;
+		const auto& pipelineInfo = *viewerInfo.pipelineInfo;
+		const auto& dummyTexture = *viewerInfo.dummyTexture;
+		if (!CreateGeometryBuffers(info, deviceInfo))
+			return false;
+		if (!SetupConstantRings(info, deviceInfo))
+			return false;
+		LoadMaterials(info, dummyTexture);
+		return CreateDescriptorSets(info, deviceInfo, pipelineInfo);
 	}
 
 	void VulkanInstance::Update() const {
