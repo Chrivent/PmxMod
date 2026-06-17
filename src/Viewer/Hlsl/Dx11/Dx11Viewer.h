@@ -87,7 +87,6 @@ namespace Chrivent {
         Dx11Viewer();
 
         Dx11ViewerInfo& GetDx11Info() { return static_cast<Dx11ViewerInfo&>(GetInfo()); }
-        const Dx11ViewerInfo& GetDx11Info() const { return static_cast<const Dx11ViewerInfo&>(GetInfo()); }
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;

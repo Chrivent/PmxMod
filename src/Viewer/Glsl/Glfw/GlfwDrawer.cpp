@@ -27,7 +27,7 @@ namespace Chrivent {
 
 	void GlfwDrawer::DrawModel() {
 		BeginDynamicBufferFrame();
-		const auto* viewer = info.viewer;
+		auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;
@@ -134,7 +134,7 @@ namespace Chrivent {
 	}
 
 	void GlfwDrawer::DrawEdge() {
-		const auto* viewer = info.viewer;
+		auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;
@@ -176,7 +176,7 @@ namespace Chrivent {
 	}
 
 	void GlfwDrawer::DrawGroundShadow() {
-		const auto* viewer = info.viewer;
+		auto* viewer = info.viewer;
 		const auto& materials = info.materials;
 		const auto indexType = info.indexType;
 		const auto& view = viewer->GetInfo().viewMat;

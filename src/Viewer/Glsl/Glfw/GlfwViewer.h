@@ -40,7 +40,6 @@ namespace Chrivent {
         ~GlfwViewer() override = default;
 
         GlfwViewerInfo& GetGlfwInfo() { return static_cast<GlfwViewerInfo&>(GetInfo()); }
-        const GlfwViewerInfo& GetGlfwInfo() const { return static_cast<const GlfwViewerInfo&>(GetInfo()); }
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;
