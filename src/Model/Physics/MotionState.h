@@ -11,7 +11,9 @@ namespace Chrivent {
 	public:
 		~MotionState() override;
 
+		// 물리 변환을 초기 상태로 되돌린다.
 		virtual void Reset() {}
+		// 물리 변환을 연결된 본 변환에 반영한다.
 		virtual void ReflectGlobalTransform() {}
 	};
 
@@ -26,6 +28,8 @@ namespace Chrivent {
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 		void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
+		
+		// 기본 모션 상태의 변환을 생성 시점 값으로 되돌린다.
 		void Reset() override { transform = initialTransform; }
 	};
 
@@ -37,6 +41,7 @@ namespace Chrivent {
 	protected:
 		std::weak_ptr<Node>	node;
 
+		// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스별 후처리를 수행한다.
 		virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
 
 	public:

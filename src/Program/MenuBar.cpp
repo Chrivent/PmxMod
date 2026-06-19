@@ -3,33 +3,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
-
-	void MenuBar::AddMenu(const HMENU menu) const {
-		HMENU fileMenu = CreatePopupMenu();
-		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
-		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
-		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
-		HMENU rendererMenu = CreatePopupMenu();
-		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
-		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
-		AppendMenuW(rendererMenu, MF_STRING, kDirectX12RendererId, L"DirectX 12");
-		AppendMenuW(rendererMenu, MF_STRING, kVulkanRendererId, L"Vulkan");
-		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
-		int rendererId = kOpenGlRendererId;
-		if (rendererType == RendererType::DirectX11)
-			rendererId = kDirectX11RendererId;
-		else if (rendererType == RendererType::DirectX12)
-			rendererId = kDirectX12RendererId;
-		else if (rendererType == RendererType::Vulkan)
-			rendererId = kVulkanRendererId;
-		CheckMenuRadioItem(rendererMenu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
-	}
-
-	void MenuBar::AttachOwner(const HWND owner) {
-		ownerWindow = owner;
-	}
-
 	bool MenuBar::SaveSceneConfig(const std::filesystem::path& filepath) const {
 		return sceneConfig.Save(filepath);
 	}
@@ -109,6 +82,29 @@ namespace Chrivent {
 			rendererId = kVulkanRendererId;
 		CheckMenuRadioItem(rendererMenu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
 		DrawMenuBar(ownerWindow);
+	}
+
+	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
+
+	void MenuBar::AddMenu(const HMENU menu) const {
+		HMENU fileMenu = CreatePopupMenu();
+		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, L"Open...");
+		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, L"Save...");
+		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), L"File");
+		HMENU rendererMenu = CreatePopupMenu();
+		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
+		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
+		AppendMenuW(rendererMenu, MF_STRING, kDirectX12RendererId, L"DirectX 12");
+		AppendMenuW(rendererMenu, MF_STRING, kVulkanRendererId, L"Vulkan");
+		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
+		int rendererId = kOpenGlRendererId;
+		if (rendererType == RendererType::DirectX11)
+			rendererId = kDirectX11RendererId;
+		else if (rendererType == RendererType::DirectX12)
+			rendererId = kDirectX12RendererId;
+		else if (rendererType == RendererType::Vulkan)
+			rendererId = kVulkanRendererId;
+		CheckMenuRadioItem(rendererMenu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
 	}
 
 	bool MenuBar::HandleCommand(const int commandId) {

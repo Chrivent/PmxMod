@@ -20,6 +20,7 @@ namespace Chrivent {
         static std::string WStringToUtf8(const std::wstring& w);
         // Shift-JIS C 문자열을 UTF-8 문자열로 변환한다.
         static std::string SjisToUtf8(const char* sjis);
-        static std::filesystem::path Util::PathFromUtf8(const std::string& utf8);
+        // UTF-8 문자열을 파일 시스템 경로로 변환한다.
+        static std::filesystem::path PathFromUtf8(const std::string& utf8);
     };
 }

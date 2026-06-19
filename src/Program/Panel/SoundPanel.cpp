@@ -61,11 +61,28 @@ namespace Chrivent {
 		UpdateValueText();
 	}
 
+	void SoundPanel::CreateContent(const HWND parent) {
+		if (volumeSlider)
+			return;
+		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
+		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume, 10);
+		valueText = CreateWindowExW(
+			0, L"STATIC", L"",
+			WS_CHILD | WS_VISIBLE | SS_CENTER,
+			0, 0, 0, 0,
+			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
+		UpdateValueText();
+	}
+
 	void SoundPanel::BindSound(Sound& soundRef) {
 		sound = &soundRef;
 		if (volumeSlider)
 			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, 100 - std::round(sound->GetVolume() * 100.0f));
 		UpdateValueText();
+	}
+
+	void SoundPanel::Create(const HWND parent) {
+		CreateContent(parent);
 	}
 
 	void SoundPanel::Show() {
@@ -102,23 +119,6 @@ namespace Chrivent {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
-	}
-
-	void SoundPanel::CreateContent(const HWND parent) {
-		if (volumeSlider)
-			return;
-		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
-		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume, 10);
-		valueText = CreateWindowExW(
-			0, L"STATIC", L"",
-			WS_CHILD | WS_VISIBLE | SS_CENTER,
-			0, 0, 0, 0,
-			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
-		UpdateValueText();
-	}
-
-	void SoundPanel::Create(const HWND parent) {
-		CreateContent(parent);
 	}
 
 	void SoundPanel::Resize(const RECT& clientRect) {

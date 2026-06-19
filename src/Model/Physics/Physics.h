@@ -15,6 +15,7 @@ namespace Chrivent {
 		std::vector<btBroadphaseProxy*> nonFilterProxy;
 
 	public:
+		// broadphase 충돌 필터를 적용하지 않을 프록시를 등록한다.
 		void AddNonFilterProxy(btBroadphaseProxy* proxy) { nonFilterProxy.push_back(proxy); }
 
 		// 두 broadphase 프록시가 충돌 후보가 될 수 있는지 필터링한다.

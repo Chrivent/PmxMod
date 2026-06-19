@@ -5,21 +5,6 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanViewer::VulkanViewer() {
-		device = std::make_shared<VulkanDevice>();
-		pipeline = std::make_shared<VulkanPipeline>();
-		syncObject = std::make_shared<VulkanSyncObject>();
-		dummyTexture = std::make_shared<VulkanTexture>();
-		info = std::make_unique<VulkanViewerInfo>();
-		auto& vulkanInfo = GetVulkanInfo();
-		vulkanInfo.deviceInfo = std::shared_ptr<const VulkanDeviceInfo>(device, &device->GetInfo());
-		vulkanInfo.pipelineInfo = std::shared_ptr<const VulkanPipelineInfo>(pipeline, &pipeline->GetInfo());
-		vulkanInfo.dummyTexture = dummyTexture;
-		vulkanInfo.syncInfo = std::shared_ptr<const VulkanSyncObjectInfo>(syncObject, &syncObject->GetInfo());
-		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
-	}
-
 	bool VulkanViewer::CreateSwapChainResources() {
 		if (!msaaColorBuffer.Initialize(device->GetInfo(), swapChain.GetInfo()))
 			return false;
@@ -46,6 +31,21 @@ namespace Chrivent {
 		renderPass.Destroy();
 		msaaColorBuffer.Destroy();
 		msaaDepthBuffer.Destroy();
+	}
+
+	VulkanViewer::VulkanViewer() {
+		device = std::make_shared<VulkanDevice>();
+		pipeline = std::make_shared<VulkanPipeline>();
+		syncObject = std::make_shared<VulkanSyncObject>();
+		dummyTexture = std::make_shared<VulkanTexture>();
+		info = std::make_unique<VulkanViewerInfo>();
+		auto& vulkanInfo = GetVulkanInfo();
+		vulkanInfo.deviceInfo = std::shared_ptr<const VulkanDeviceInfo>(device, &device->GetInfo());
+		vulkanInfo.pipelineInfo = std::shared_ptr<const VulkanPipelineInfo>(pipeline, &pipeline->GetInfo());
+		vulkanInfo.dummyTexture = dummyTexture;
+		vulkanInfo.syncInfo = std::shared_ptr<const VulkanSyncObjectInfo>(syncObject, &syncObject->GetInfo());
+		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
+		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
 
 	void VulkanViewer::DrawIndexed(

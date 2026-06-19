@@ -27,6 +27,14 @@ namespace Chrivent {
 		return true;
 	}
 
+	void GlfwDynamicBufferRing::Clear() {
+		if (buffer != 0) {
+			glDeleteBuffers(1, &buffer);
+			buffer = 0;
+		}
+		GlslDynamicBufferRing::Clear();
+	}
+
 	void GlfwDynamicBufferRing::BeginFrame(const size_t frameIndex) {
 		GlslDynamicBufferRing::BeginFrame(frameIndex);
 		if (buffer == 0)
@@ -34,14 +42,6 @@ namespace Chrivent {
 		glBindBuffer(target, buffer);
 		glBufferData(target, capacity, nullptr, usage);
 		glBindBuffer(target, 0);
-	}
-
-	void GlfwDynamicBufferRing::Clear() {
-		if (buffer != 0) {
-			glDeleteBuffers(1, &buffer);
-			buffer = 0;
-		}
-		GlslDynamicBufferRing::Clear();
 	}
 
 	std::optional<GlslUploadSlice> GlfwDynamicBufferRing::Allocate(

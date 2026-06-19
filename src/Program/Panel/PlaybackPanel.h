@@ -40,6 +40,10 @@ namespace Chrivent {
 			stopButtonId = stopId;
 		}
 		
+		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
+		void SetCurrentFrame(int frame) const;
+		// 슬라이더가 이동할 수 있는 마지막 프레임을 설정한다.
+		void SetFrameRange(int maxFrame) const;
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
 		void Create(HWND parent) override;
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.
@@ -58,9 +62,5 @@ namespace Chrivent {
 		PlaybackCommand ConsumeCommand();
 		// 슬라이더로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
-		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
-		void SetCurrentFrame(int frame) const;
-		// 슬라이더가 이동할 수 있는 마지막 프레임을 설정한다.
-		void SetFrameRange(int maxFrame) const;
 	};
 }

@@ -1,12 +1,6 @@
 ﻿#include "Dx12DepthBuffer.h"
 
 namespace Chrivent {
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12DepthBuffer::ResolveDsvHandle() const {
-		if (!dsvHeap)
-			return {};
-		return dsvHeap->GetCPUDescriptorHandleForHeapStart();
-	}
-
 	bool Dx12DepthBuffer::Initialize(const Dx12DeviceInfo& deviceInfo, const int width, const int height) {
 		Destroy();
 		if (!deviceInfo.device || width <= 0 || height <= 0)
@@ -44,6 +38,12 @@ namespace Chrivent {
 			return false;
 		deviceInfo.device->CreateDepthStencilView(depthStencil.Get(), nullptr, ResolveDsvHandle());
 		return true;
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE Dx12DepthBuffer::ResolveDsvHandle() const {
+		if (!dsvHeap)
+			return {};
+		return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
 	void Dx12DepthBuffer::Destroy() {

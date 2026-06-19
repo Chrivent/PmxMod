@@ -26,14 +26,14 @@ namespace Chrivent {
 		CameraManager();
 		~CameraManager();
 
+		uint32_t GetLastFrame() const;
+
 		// 지정한 프레임으로 재생 시간을 이동한다.
 		void SeekFrame(ViewerInfo& viewerInfo, Sound& music, int frame, std::chrono::steady_clock::time_point& saveTime) const;
 		// 카메라와 재생 상태를 기본값으로 초기화한다.
 		void Reset();
 		// 카메라 VMD 파일을 읽어 모션 카메라 애니메이션을 준비한다.
 		void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
-		// 카메라 모션의 마지막 프레임을 반환한다.
-		uint32_t GetLastFrame() const;
 		// 일시정지와 사운드 동기화를 반영해 뷰어 애니메이션 시간을 갱신한다.
 		void StepTime(ViewerInfo& viewerInfo, Sound& music, std::chrono::steady_clock::time_point& saveTime) const;
 		// 재생 상태로 전환한다.

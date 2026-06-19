@@ -28,10 +28,6 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
-		info.imagesInFlight.assign(swapChainImageCount, VK_NULL_HANDLE);
-	}
-
 	void VulkanSyncObject::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
@@ -52,6 +48,10 @@ namespace Chrivent {
 		info.imagesInFlight.clear();
 		info.currentFrame = 0;
 		device = VK_NULL_HANDLE;
+	}
+
+	void VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
+		info.imagesInFlight.assign(swapChainImageCount, VK_NULL_HANDLE);
 	}
 
 	void VulkanSyncObject::AdvanceFrame() {

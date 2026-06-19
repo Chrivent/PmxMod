@@ -28,6 +28,12 @@ namespace Chrivent {
         UnInit();
     }
 
+    void Sound::SetVolume(const float value) {
+        volume = std::clamp(value, 0.0f, 1.0f);
+        if (hasSound)
+            ma_sound_set_volume(sound.get(), volume);
+    }
+
     bool Sound::Init(const std::filesystem::path& path, const bool loop) {
         UnInit();
         if (path.empty())
@@ -51,12 +57,6 @@ namespace Chrivent {
         playing = false;
         prevTimeSec = 0.0;
         return true;
-    }
-
-    void Sound::SetVolume(const float value) {
-        volume = std::clamp(value, 0.0f, 1.0f);
-        if (hasSound)
-            ma_sound_set_volume(sound.get(), volume);
     }
 
     void Sound::PullTimes(float& deltaTime, float& time) {

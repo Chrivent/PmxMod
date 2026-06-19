@@ -7,6 +7,82 @@
 #include <GLFW/glfw3native.h>
 
 namespace Chrivent {
+	void Dx11Viewer::UpdateViewport() {
+		D3D11_VIEWPORT vp;
+		vp.Width = GetInfo().screenWidth;
+		vp.Height = GetInfo().screenHeight;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		GetDx11Info().deviceResources.context->RSSetViewports(1, &vp);
+	}
+
+	bool Dx11Viewer::CreateShaders() {
+		ID3D11Device* device = GetDx11Info().deviceResources.device.Get();
+		return GetDx11Info().shaders.model.Initialize(device, GetInfo().shaderDir / "model.hlsl")
+			&& GetDx11Info().shaders.edge.Initialize(device, GetInfo().shaderDir / "edge.hlsl")
+			&& GetDx11Info().shaders.groundShadow.Initialize(device, GetInfo().shaderDir / "ground_shadow.hlsl");
+	}
+
+	bool Dx11Viewer::CreateRenderTargets() {
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+		if (FAILED(GetDx11Info().deviceResources.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+			return false;
+		if (FAILED(GetDx11Info().deviceResources.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &GetDx11Info().renderTargets.renderTargetView)))
+			return false;
+		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
+			GetInfo().screenWidth, GetInfo().screenHeight,
+			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
+			multiSampleCount, multiSampleQuality);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateTexture2D(&d, nullptr, &GetDx11Info().renderTargets.depthTex)))
+			return false;
+		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilView(GetDx11Info().renderTargets.depthTex.Get(), nullptr, &GetDx11Info().renderTargets.depthStencilView)))
+			return false;
+		return true;
+	}
+
+	bool Dx11Viewer::CreatePipelineStates() {
+		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&wrapLinear, &GetDx11Info().pipelineStates.textureSampler)))
+			return false;
+		auto clampLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&clampLinear, &GetDx11Info().pipelineStates.toonTextureSampler)))
+			return false;
+		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
+		if (FAILED(GetDx11Info().deviceResources.device->CreateBlendState(&blend, &GetDx11Info().pipelineStates.blendState)))
+			return false;
+		auto frontRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&frontRsDesc, &GetDx11Info().pipelineStates.frontFaceRs)))
+			return false;
+		auto bothRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&bothRsDesc, &GetDx11Info().pipelineStates.bothFaceRs)))
+			return false;
+		auto edgeRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
+		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&edgeRsDesc, &GetDx11Info().pipelineStates.edgeRs)))
+			return false;
+		auto gsRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		gsRsDesc.DepthBias = -1;
+		gsRsDesc.SlopeScaledDepthBias = -1.0f;
+		gsRsDesc.DepthBiasClamp = -1.0f;
+		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&gsRsDesc, &GetDx11Info().pipelineStates.gsRs)))
+			return false;
+		auto gsDssDesc = Dx11DescBuilder::MakeGroundShadowDepthStencilDesc();
+		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&gsDssDesc, &GetDx11Info().pipelineStates.gsDss)))
+			return false;
+		auto defDssDesc  = Dx11DescBuilder::MakeDefaultDepthStencilDesc();
+		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&defDssDesc, &GetDx11Info().pipelineStates.defaultDss)))
+			return false;
+		return true;
+	}
+
+	bool Dx11Viewer::CreateDummyResources() {
+		const Dx11Texture dummyTexture = textureCache.CreateWhiteTexture(GetDx11Info().deviceResources.device.Get());
+		GetDx11Info().dummyTexture.texture = dummyTexture.texture;
+		GetDx11Info().dummyTexture.textureView = dummyTexture.textureView;
+		return GetDx11Info().dummyTexture.texture && GetDx11Info().dummyTexture.textureView;
+	}
+
 	Dx11Viewer::Dx11Viewer() {
 		info = std::make_unique<Dx11ViewerInfo>();
 	}
@@ -84,82 +160,6 @@ namespace Chrivent {
 
 	Dx11Texture Dx11Viewer::LoadTexture(const std::filesystem::path& texturePath) {
 		return textureCache.Load(GetDx11Info().deviceResources.device.Get(), texturePath);
-	}
-
-	void Dx11Viewer::UpdateViewport() {
-		D3D11_VIEWPORT vp;
-		vp.Width = GetInfo().screenWidth;
-		vp.Height = GetInfo().screenHeight;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		GetDx11Info().deviceResources.context->RSSetViewports(1, &vp);
-	}
-
-	bool Dx11Viewer::CreateShaders() {
-		ID3D11Device* device = GetDx11Info().deviceResources.device.Get();
-		return GetDx11Info().shaders.model.Initialize(device, GetInfo().shaderDir / "model.hlsl")
-			&& GetDx11Info().shaders.edge.Initialize(device, GetInfo().shaderDir / "edge.hlsl")
-			&& GetDx11Info().shaders.groundShadow.Initialize(device, GetInfo().shaderDir / "ground_shadow.hlsl");
-	}
-
-	bool Dx11Viewer::CreateRenderTargets() {
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		if (FAILED(GetDx11Info().deviceResources.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
-			return false;
-		if (FAILED(GetDx11Info().deviceResources.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &GetDx11Info().renderTargets.renderTargetView)))
-			return false;
-		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
-			GetInfo().screenWidth, GetInfo().screenHeight,
-			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
-			multiSampleCount, multiSampleQuality);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateTexture2D(&d, nullptr, &GetDx11Info().renderTargets.depthTex)))
-			return false;
-		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilView(GetDx11Info().renderTargets.depthTex.Get(), nullptr, &GetDx11Info().renderTargets.depthStencilView)))
-			return false;
-		return true;
-	}
-
-	bool Dx11Viewer::CreatePipelineStates() {
-		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&wrapLinear, &GetDx11Info().pipelineStates.textureSampler)))
-			return false;
-		auto clampLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateSamplerState(&clampLinear, &GetDx11Info().pipelineStates.toonTextureSampler)))
-			return false;
-		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
-		if (FAILED(GetDx11Info().deviceResources.device->CreateBlendState(&blend, &GetDx11Info().pipelineStates.blendState)))
-			return false;
-		auto frontRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&frontRsDesc, &GetDx11Info().pipelineStates.frontFaceRs)))
-			return false;
-		auto bothRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&bothRsDesc, &GetDx11Info().pipelineStates.bothFaceRs)))
-			return false;
-		auto edgeRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
-		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&edgeRsDesc, &GetDx11Info().pipelineStates.edgeRs)))
-			return false;
-		auto gsRsDesc = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
-		gsRsDesc.DepthBias = -1;
-		gsRsDesc.SlopeScaledDepthBias = -1.0f;
-		gsRsDesc.DepthBiasClamp = -1.0f;
-		if (FAILED(GetDx11Info().deviceResources.device->CreateRasterizerState(&gsRsDesc, &GetDx11Info().pipelineStates.gsRs)))
-			return false;
-		auto gsDssDesc = Dx11DescBuilder::MakeGroundShadowDepthStencilDesc();
-		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&gsDssDesc, &GetDx11Info().pipelineStates.gsDss)))
-			return false;
-		auto defDssDesc  = Dx11DescBuilder::MakeDefaultDepthStencilDesc();
-		if (FAILED(GetDx11Info().deviceResources.device->CreateDepthStencilState(&defDssDesc, &GetDx11Info().pipelineStates.defaultDss)))
-			return false;
-		return true;
-	}
-
-	bool Dx11Viewer::CreateDummyResources() {
-		const Dx11Texture dummyTexture = textureCache.CreateWhiteTexture(GetDx11Info().deviceResources.device.Get());
-		GetDx11Info().dummyTexture.texture = dummyTexture.texture;
-		GetDx11Info().dummyTexture.textureView = dummyTexture.textureView;
-		return GetDx11Info().dummyTexture.texture && GetDx11Info().dummyTexture.textureView;
 	}
 }
 

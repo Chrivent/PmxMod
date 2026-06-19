@@ -30,20 +30,28 @@ namespace Chrivent {
 	public:
 		PanelManager();
 		~PanelManager();
-		
+
 		SceneConfig& GetSceneConfig() { return sceneConfigStorage; }
-		void SetPlaybackFrame(const int frame) const { playbackPanel.SetCurrentFrame(frame); }
-		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
-		void ApplySceneConfig(const SceneConfig& cfg) { menuBar.ApplySceneConfig(cfg); }
-		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
 		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
-		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
-		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
-		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
-		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }
-		void Reset() { menuBar.Reset(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
+		void SetPlaybackFrame(const int frame) const { playbackPanel.SetCurrentFrame(frame); }
+		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
+
+		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
+		void ApplySceneConfig(const SceneConfig& cfg) { menuBar.ApplySceneConfig(cfg); }
+		// 씬 설정 변경 여부를 반환하고 내부 플래그를 초기화한다.
+		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
+		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
+		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
+		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
+		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
+		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
+		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
+		// 사운드 패널이 조절할 사운드 객체를 연결한다.
+		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }
+		// 메뉴와 패널의 일회성 변경 상태를 초기화한다.
+		void Reset() { menuBar.Reset(); }
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.

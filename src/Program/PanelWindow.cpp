@@ -46,71 +46,6 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
-	PanelWindow::~PanelWindow() {
-		Destroy();
-	}
-
-	void PanelWindow::RegisterPanel(Panel& panel, const std::wstring& title, const PanelWindowArea area) {
-		panels.push_back({ &panel, title, area });
-	}
-
-	void PanelWindow::AttachMenuBar(MenuBar& menu) {
-		menuBar = &menu;
-		menuBar->AttachOwner(window);
-		const HMENU menuHandle = CreateMenu();
-		menuBar->AddMenu(menuHandle);
-		SetMenu(window, menuHandle);
-		DrawMenuBar(window);
-	}
-
-	void PanelWindow::Show() {
-		closeRequested = false;
-		const HINSTANCE instance = GetModuleHandleW(nullptr);
-		WNDCLASSEXW wc{};
-		wc.cbSize = sizeof(wc);
-		wc.lpfnWndProc = WindowProc;
-		wc.hInstance = instance;
-		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-		wc.lpszClassName = L"PmxModPanelWindow";
-		RegisterClassExW(&wc);
-		window = CreateWindowExW(
-			0, L"PmxModPanelWindow", L"Settings",
-			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
-			nullptr, nullptr, instance, this);
-		if (menuBar) {
-			menuBar->AttachOwner(window);
-			const HMENU menuHandle = CreateMenu();
-			menuBar->AddMenu(menuHandle);
-			SetMenu(window, menuHandle);
-			DrawMenuBar(window);
-		}
-		CreatePanelControls();
-		LayoutPanels();
-		ShowWindow(window, SW_SHOWNORMAL);
-		UpdateWindow(window);
-	}
-
-	void PanelWindow::Poll() const {
-		MSG msg{};
-		while (PeekMessageW(&msg, window, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
-		}
-	}
-
-	void PanelWindow::Destroy() {
-		for (auto& entry : panels) {
-			if (entry.panel)
-				entry.panel->Destroy();
-			entry.frame = nullptr;
-		}
-		if (window)
-			DestroyWindow(window);
-		closeRequested = false;
-	}
-
 	void PanelWindow::CreatePanelControls() {
 		for (auto& entry : panels) {
 			if (!entry.panel || entry.frame)
@@ -178,5 +113,70 @@ namespace Chrivent {
 			RECT panelRect{area.left, area.top + 18, area.right, area.bottom};
 			entry.panel->Resize(panelRect);
 		}
+	}
+
+	PanelWindow::~PanelWindow() {
+		Destroy();
+	}
+
+	void PanelWindow::AttachMenuBar(MenuBar& menu) {
+		menuBar = &menu;
+		menuBar->SetOwnerWindow(window);
+		const HMENU menuHandle = CreateMenu();
+		menuBar->AddMenu(menuHandle);
+		SetMenu(window, menuHandle);
+		DrawMenuBar(window);
+	}
+
+	void PanelWindow::RegisterPanel(Panel& panel, const std::wstring& title, const PanelWindowArea area) {
+		panels.push_back({ &panel, title, area });
+	}
+
+	void PanelWindow::Show() {
+		closeRequested = false;
+		const HINSTANCE instance = GetModuleHandleW(nullptr);
+		WNDCLASSEXW wc{};
+		wc.cbSize = sizeof(wc);
+		wc.lpfnWndProc = WindowProc;
+		wc.hInstance = instance;
+		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+		wc.lpszClassName = L"PmxModPanelWindow";
+		RegisterClassExW(&wc);
+		window = CreateWindowExW(
+			0, L"PmxModPanelWindow", L"Settings",
+			WS_OVERLAPPEDWINDOW,
+			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
+			nullptr, nullptr, instance, this);
+		if (menuBar) {
+			menuBar->SetOwnerWindow(window);
+			const HMENU menuHandle = CreateMenu();
+			menuBar->AddMenu(menuHandle);
+			SetMenu(window, menuHandle);
+			DrawMenuBar(window);
+		}
+		CreatePanelControls();
+		LayoutPanels();
+		ShowWindow(window, SW_SHOWNORMAL);
+		UpdateWindow(window);
+	}
+
+	void PanelWindow::Poll() const {
+		MSG msg{};
+		while (PeekMessageW(&msg, window, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessageW(&msg);
+		}
+	}
+
+	void PanelWindow::Destroy() {
+		for (auto& entry : panels) {
+			if (entry.panel)
+				entry.panel->Destroy();
+			entry.frame = nullptr;
+		}
+		if (window)
+			DestroyWindow(window);
+		closeRequested = false;
 	}
 }

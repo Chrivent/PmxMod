@@ -36,6 +36,7 @@ namespace Chrivent {
         InstanceInfo& GetInfo() { return *info; }
         const InstanceInfo& GetInfo() const { return *info; }
 
+        // 렌더러별 인스턴스 리소스를 해제한다.
         virtual void Clear() {}
         // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
         virtual bool Setup(Viewer& baseViewer) = 0;

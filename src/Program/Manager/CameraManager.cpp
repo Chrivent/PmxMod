@@ -22,7 +22,11 @@ namespace Chrivent {
 	}
 
 	CameraManager::~CameraManager() = default;
-	
+
+	uint32_t CameraManager::GetLastFrame() const {
+		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
+	}
+
 	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
 		viewerInfo.elapsed = 0.0f;
@@ -56,10 +60,6 @@ namespace Chrivent {
 				std::cerr << "Failed to create VMDCameraAnimation.\n";
 			cameraAnim = std::make_unique<CameraAnimation>(std::move(cameraKeys));
 		}
-	}
-
-	uint32_t CameraManager::GetLastFrame() const {
-		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
 	}
 
 	void CameraManager::StepTime(ViewerInfo& viewerInfo, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {

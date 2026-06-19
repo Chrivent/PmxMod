@@ -71,6 +71,20 @@ namespace Chrivent {
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
 	}
 
+	void PlaybackPanel::SetCurrentFrame(const int frame) const {
+		if (!timelineSlider)
+			return;
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, (std::max)(0, frame));
+	}
+
+	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
+		if (!timelineSlider)
+			return;
+		const int safeMaxFrame = (std::max)(0, maxFrame);
+		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
+	}
+
 	void PlaybackPanel::Create(const HWND parent) {
 		CreateContent(parent);
 	}
@@ -185,19 +199,5 @@ namespace Chrivent {
 		seekRequested = false;
 		seekFinished = false;
 		return true;
-	}
-	
-	void PlaybackPanel::SetCurrentFrame(const int frame) const {
-		if (!timelineSlider)
-			return;
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, (std::max)(0, frame));
-	}
-
-	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
-		if (!timelineSlider)
-			return;
-		const int safeMaxFrame = (std::max)(0, maxFrame);
-		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
 	}
 }

@@ -6,16 +6,6 @@
 #include "../../../Model/Model.h"
 
 namespace Chrivent {
-	const glm::mat4& Dx11Drawer::ClipMatrix() const {
-		static constexpr glm::mat4 clipMatrix(
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.0f, 0.0f, 0.5f, 1.0f
-		);
-		return clipMatrix;
-	}
-
 	void Dx11Drawer::BindTexture(
 		const UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
 		const int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
@@ -39,6 +29,16 @@ namespace Chrivent {
 			info.viewer->GetDx11Info().deviceResources.context->PSSetSamplers(slot, 1, &samplers);
 			lastSampler = samplers;
 		}
+	}
+
+	const glm::mat4& Dx11Drawer::ClipMatrix() const {
+		static constexpr glm::mat4 clipMatrix(
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.5f, 0.0f,
+			0.0f, 0.0f, 0.5f, 1.0f
+		);
+		return clipMatrix;
 	}
 
 	void Dx11Drawer::DrawModel() {

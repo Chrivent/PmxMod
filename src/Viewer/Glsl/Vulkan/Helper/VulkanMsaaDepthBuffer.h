@@ -34,6 +34,8 @@ namespace Chrivent {
 		VulkanMsaaDepthBuffer& operator=(VulkanMsaaDepthBuffer&&) = delete;
 		
 		const VulkanMsaaDepthBufferInfo& GetInfo() const { return info; }
+		
+		// depth format에 stencil 성분이 포함되어 있는지 확인한다.
 		static bool HasStencilComponent(VkFormat format);
 
 		// 스왑체인 크기에 맞는 멀티샘플 depth image와 image view를 생성한다.
