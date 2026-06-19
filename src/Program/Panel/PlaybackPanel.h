@@ -52,10 +52,18 @@ namespace Chrivent {
 
 		// 플레이백 패널 윈도우의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// 숫자 입력 칸의 Enter 입력을 재생 범위 확정으로 처리한다.
+		static LRESULT CALLBACK EditWindowProc(
+			HWND hwnd,
+			UINT msg,
+			WPARAM wParam,
+			LPARAM lParam,
+			UINT_PTR subclassId,
+			DWORD_PTR data);
 		// 패널 안에 타임라인 슬라이더와 재생 제어 버튼을 만든다.
 		void CreateContent(HWND parent);
-		// 입력 컨트롤의 숫자를 읽어 사용자 재생 범위로 적용한다.
-		void ApplyInputFrameRange();
+		// 수정한 입력 칸을 기준으로 시작과 끝 프레임의 순서를 보정한다.
+		void ApplyInputFrameRange(int editedControlId);
 		// 전체 프레임 입력값을 타임라인 길이로 적용한다.
 		void ApplyInputTotalFrame();
 		// 지정한 재생 범위를 슬라이더와 입력 컨트롤에 반영한다.

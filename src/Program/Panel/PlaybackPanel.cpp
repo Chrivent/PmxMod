@@ -55,6 +55,27 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	LRESULT CALLBACK PlaybackPanel::EditWindowProc(
+		const HWND hwnd,
+		const UINT msg,
+		const WPARAM wParam,
+		const LPARAM lParam,
+		const UINT_PTR subclassId,
+		const DWORD_PTR data) {
+		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
+			auto* panel = reinterpret_cast<PlaybackPanel*>(data);
+			const int controlId = GetDlgCtrlID(hwnd);
+			if (controlId == panel->controlIds.totalFrameEdit)
+				panel->ApplyInputTotalFrame();
+			else
+				panel->ApplyInputFrameRange(controlId);
+			return 0;
+		}
+		if (msg == WM_NCDESTROY)
+			RemoveWindowSubclass(hwnd, EditWindowProc, subclassId);
+		return DefSubclassProc(hwnd, msg, wParam, lParam);
+	}
+
 	void PlaybackPanel::CreateContent(const HWND parent) {
 		if (timelineSlider)
 			return;
@@ -102,10 +123,13 @@ namespace Chrivent {
 		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(totalFrameEdit, EM_SETLIMITTEXT, 10, 0);
+		SetWindowSubclass(startFrameEdit, EditWindowProc, controlIds.startFrameEdit, reinterpret_cast<DWORD_PTR>(this));
+		SetWindowSubclass(endFrameEdit, EditWindowProc, controlIds.endFrameEdit, reinterpret_cast<DWORD_PTR>(this));
+		SetWindowSubclass(totalFrameEdit, EditWindowProc, controlIds.totalFrameEdit, reinterpret_cast<DWORD_PTR>(this));
 		ApplyFrameRange(frameRange, customFrameRange);
 	}
 
-	void PlaybackPanel::ApplyInputFrameRange() {
+	void PlaybackPanel::ApplyInputFrameRange(const int editedControlId) {
 		if (updatingRangeControls)
 			return;
 		wchar_t startText[16]{};
@@ -114,8 +138,15 @@ namespace Chrivent {
 		GetWindowTextW(endFrameEdit, endText, std::size(endText));
 		if (startText[0] == L'\0' || endText[0] == L'\0')
 			return;
-		const int start = _wtoi(startText);
-		const int end = _wtoi(endText);
+		int start = _wtoi(startText);
+		int end = _wtoi(endText);
+		if (editedControlId == controlIds.startFrameEdit) {
+			start = std::clamp(start, 0, totalFrame - 1);
+			end = std::clamp((std::max)(end, start + 1), start + 1, totalFrame);
+		} else {
+			end = std::clamp(end, 1, totalFrame);
+			start = std::clamp((std::min)(start, end - 1), 0, end - 1);
+		}
 		ApplyFrameRange({start, end}, true);
 		timelineRangeChanged = true;
 	}
@@ -270,7 +301,7 @@ namespace Chrivent {
 			pendingCommand = PlaybackCommand::Stop;
 		else if ((commandId == controlIds.startFrameEdit || commandId == controlIds.endFrameEdit) &&
 			notificationCode == EN_KILLFOCUS)
-			ApplyInputFrameRange();
+			ApplyInputFrameRange(commandId);
 		else if (commandId == controlIds.totalFrameEdit && notificationCode == EN_KILLFOCUS)
 			ApplyInputTotalFrame();
 		else if (commandId == controlIds.resetRangeButton) {
