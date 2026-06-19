@@ -1,5 +1,6 @@
 ﻿#include "MotionPanel.h"
 
+#include "../GuiBackBuffer.h"
 #include "../GuiDrawer.h"
 
 #include <algorithm>
@@ -30,10 +31,19 @@ namespace Chrivent {
 			case WM_MOUSEWHEEL:
 				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
 				return 0;
+			case WM_ERASEBKGND:
+				return 1;
 			case WM_PAINT: {
 				PAINTSTRUCT paint{};
-				const HDC deviceContext = BeginPaint(hwnd, &paint);
-				panel->Paint(deviceContext);
+				const HDC targetDc = BeginPaint(hwnd, &paint);
+				RECT client{};
+				GetClientRect(hwnd, &client);
+				const GuiBackBuffer backBuffer(targetDc, client);
+				if (const HDC memoryDc = backBuffer.GetDc()) {
+					panel->Paint(memoryDc);
+					backBuffer.Present();
+				} else
+					panel->Paint(targetDc);
 				EndPaint(hwnd, &paint);
 				return 0;
 			}

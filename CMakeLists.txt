@@ -25,6 +25,7 @@ set(PROGRAM_SOURCES
         src/Program/Program.h src/Program/Program.cpp
         src/Program/Camera.h src/Program/Camera.cpp
         src/Program/Config.h src/Program/Config.cpp
+        src/Program/GuiBackBuffer.h src/Program/GuiBackBuffer.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
