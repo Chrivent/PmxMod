@@ -12,7 +12,7 @@ namespace Chrivent {
 			0, TRACKBAR_CLASSW, L"",
 			WS_CHILD | WS_VISIBLE | TBS_HORZ | TBS_NOTICKS,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(controlId), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlId)), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(slider, TBM_SETRANGE, TRUE, MAKELPARAM(minValue, maxValue));
 		SendMessageW(slider, TBM_SETPOS, TRUE, initialValue);
 		return slider;
