@@ -21,14 +21,11 @@ namespace Chrivent {
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
 			case WM_SIZE:
-				panel->UpdateScrollBars();
+				panel->UpdateVerticalScrollBar();
 				InvalidateRect(hwnd, nullptr, TRUE);
 				return 0;
 			case WM_VSCROLL:
 				panel->ScrollRows(wParam, wParam);
-				return 0;
-			case WM_HSCROLL:
-				panel->ScrollFrames(wParam, wParam);
 				return 0;
 			case WM_MOUSEWHEEL:
 				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
@@ -49,13 +46,12 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
-	void MotionPanel::UpdateScrollBars() const {
+	void MotionPanel::UpdateVerticalScrollBar() const {
 		if (!timelineWindow)
 			return;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
 		const int visibleRows = (std::max)(1, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight));
-		const int visibleFrames = (std::max)(1, static_cast<int>((client.right - kLabelWidth) / kFrameWidth));
 		SCROLLINFO vertical{};
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
@@ -64,14 +60,6 @@ namespace Chrivent {
 		vertical.nPage = visibleRows;
 		vertical.nPos = firstRow;
 		SetScrollInfo(timelineWindow, SB_VERT, &vertical, TRUE);
-		SCROLLINFO horizontal{};
-		horizontal.cbSize = sizeof(horizontal);
-		horizontal.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
-		horizontal.nMin = 0;
-		horizontal.nMax = static_cast<int>(lastFrame);
-		horizontal.nPage = visibleFrames;
-		horizontal.nPos = firstFrame;
-		SetScrollInfo(timelineWindow, SB_HORZ, &horizontal, TRUE);
 	}
 
 	void MotionPanel::Paint(const HDC deviceContext) const {
@@ -143,24 +131,16 @@ namespace Chrivent {
 		InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::ScrollFrames(const int scrollCode, const int trackPosition) {
-		SCROLLINFO info{};
-		info.cbSize = sizeof(info);
-		info.fMask = SIF_ALL;
-		GetScrollInfo(timelineWindow, SB_HORZ, &info);
-		int position = info.nPos;
-		switch (scrollCode) {
-			case SB_LINELEFT: position--; break;
-			case SB_LINERIGHT: position++; break;
-			case SB_PAGELEFT: position -= info.nPage; break;
-			case SB_PAGERIGHT: position += info.nPage; break;
-			case SB_THUMBPOSITION:
-			case SB_THUMBTRACK: position = trackPosition; break;
-			default: return;
-		}
-		firstFrame = std::clamp(position, info.nMin, (std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
-		SetScrollPos(timelineWindow, SB_HORZ, firstFrame, TRUE);
-		InvalidateRect(timelineWindow, nullptr, TRUE);
+	void MotionPanel::FollowCurrentFrame() {
+		RECT client{};
+		GetClientRect(timelineWindow, &client);
+		const int timelineWidth = (std::max)(0, static_cast<int>(client.right) - kLabelWidth);
+		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
+		const int current = currentFrame;
+		const int nextFirstFrame = (std::max)(0, current - visibleFrames / 2);
+		if (firstFrame == nextFirstFrame)
+			return;
+		firstFrame = nextFirstFrame;
 	}
 
 	void MotionPanel::Create(const HWND parent) {
@@ -176,10 +156,10 @@ namespace Chrivent {
 		RegisterClassExW(&windowClass);
 		timelineWindow = CreateWindowExW(
 			WS_EX_CLIENTEDGE, windowClass.lpszClassName, L"",
-			WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL,
+			WS_CHILD | WS_VISIBLE | WS_VSCROLL,
 			0, 0, 0, 0,
 			parent, nullptr, instance, this);
-		UpdateScrollBars();
+		UpdateVerticalScrollBar();
 	}
 
 	void MotionPanel::Resize(const RECT& clientRect) {
@@ -191,7 +171,7 @@ namespace Chrivent {
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
 		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
 		MoveWindow(timelineWindow, x, y, width, height, TRUE);
-		UpdateScrollBars();
+		UpdateVerticalScrollBar();
 	}
 
 	void MotionPanel::Destroy() {
@@ -216,7 +196,7 @@ namespace Chrivent {
 		currentFrame = 0;
 		firstRow = 0;
 		firstFrame = 0;
-		UpdateScrollBars();
+		UpdateVerticalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
@@ -225,7 +205,9 @@ namespace Chrivent {
 		if (currentFrame == frame)
 			return;
 		currentFrame = frame;
-		if (timelineWindow)
+		if (timelineWindow) {
+			FollowCurrentFrame();
 			InvalidateRect(timelineWindow, nullptr, FALSE);
+		}
 	}
 }

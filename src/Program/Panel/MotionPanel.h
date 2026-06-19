@@ -28,14 +28,14 @@ namespace Chrivent {
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-		// 현재 크기와 데이터 범위에 맞춰 스크롤바 범위를 갱신한다.
-		void UpdateScrollBars() const;
+		// 현재 크기와 데이터 범위에 맞춰 세로 스크롤바 범위를 갱신한다.
+		void UpdateVerticalScrollBar() const;
 		// 현재 스크롤 위치를 반영해 모션 타임라인을 그린다.
 		void Paint(HDC deviceContext) const;
 		// 세로 스크롤 명령을 현재 표시 행에 반영한다.
 		void ScrollRows(int scrollCode, int trackPosition);
-		// 가로 스크롤 명령을 현재 표시 프레임에 반영한다.
-		void ScrollFrames(int scrollCode, int trackPosition);
+		// 플레이백 프레임 표시선이 중앙에 도달하면 타임라인을 따라 이동시킨다.
+		void FollowCurrentFrame();
 
 	public:
 		MotionPanel() = default;
