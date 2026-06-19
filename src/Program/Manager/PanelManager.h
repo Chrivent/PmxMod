@@ -9,11 +9,8 @@
 #include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
 
-struct GLFWwindow;
-
 namespace Chrivent {
 	class Sound;
-	struct ViewerInfo;
 
 	class PanelManager {
 		static constexpr int kPlaybackTimelineSliderId = 1001;
@@ -29,7 +26,6 @@ namespace Chrivent {
 		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
 		PanelWindow panelWindow;
-		GLFWwindow* renderWindow = nullptr;
 
 	public:
 		PanelManager();
@@ -48,15 +44,11 @@ namespace Chrivent {
 		void Reset() { menuBar.Reset(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
-		// 렌더링 창을 연결하고 메뉴 표시 상태를 갱신한다.
-		void AttachRenderWindow(const ViewerInfo& viewerInfo);
-		// 렌더링 창의 닫기 및 메뉴 표시 요청을 처리한다.
-		void UpdateRenderWindow();
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.
 		void PollGuiWindows() const;
-		// GUI 창과 렌더링 창 메뉴 연결을 정리한다.
+		// GUI 창과 패널 컨트롤을 정리한다.
 		void DestroyGui();
 	};
 }

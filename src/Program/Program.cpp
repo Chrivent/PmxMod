@@ -119,7 +119,6 @@ namespace Chrivent {
         if (!LoadScene(panelManager.GetSceneConfig()))
             return false;
         panelManager.BindSound(music);
-        panelManager.AttachRenderWindow(viewer->GetInfo());
         panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         cameraManager.UpdateCamera(viewer->GetInfo());
         return true;
@@ -241,7 +240,6 @@ namespace Chrivent {
     bool Program::RunFrame() {
         glfwPollEvents();
         panelManager.PollGuiWindows();
-        panelManager.UpdateRenderWindow();
         if (panelManager.ConsumeRendererDirty()) {
             if (!ChangeRenderer(panelManager.GetRendererType()))
                 return false;
@@ -306,7 +304,6 @@ namespace Chrivent {
             return false;
         }
         panelManager.BindSound(music);
-        panelManager.AttachRenderWindow(viewer->GetInfo());
         panelManager.OpenGuiWindows();
         panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
         fpsTime = std::chrono::steady_clock::now();
@@ -314,7 +311,7 @@ namespace Chrivent {
         fpsFrame = 0;
         LoadScene(cfg);
         cameraManager.UpdateCamera(viewer->GetInfo());
-        while (!panelManager.IsCloseRequested()) {
+        while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->GetInfo().window)) {
             if (!RunFrame())
                 break;
         }

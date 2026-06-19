@@ -86,7 +86,7 @@ namespace Chrivent {
 		return textureCache.Load(GetDx11Info().deviceResources.device.Get(), texturePath);
 	}
 
-	void Dx11Viewer::UpdateViewport() const {
+	void Dx11Viewer::UpdateViewport() {
 		D3D11_VIEWPORT vp;
 		vp.Width = GetInfo().screenWidth;
 		vp.Height = GetInfo().screenHeight;

@@ -1,7 +1,6 @@
 ﻿#include "PanelManager.h"
 
 #include "../Sound.h"
-#include "../../Viewer/Viewer.h"
 
 namespace Chrivent {
 	PanelManager::PanelManager()
@@ -20,26 +19,6 @@ namespace Chrivent {
 		DestroyGui();
 	}
 
-	void PanelManager::AttachRenderWindow(const ViewerInfo& viewerInfo) {
-		renderWindow = viewerInfo.window;
-		menuBar.SetRenderWindowVisible(true);
-	}
-
-	void PanelManager::UpdateRenderWindow() {
-		if (!renderWindow)
-			return;
-		if (glfwWindowShouldClose(renderWindow)) {
-			glfwSetWindowShouldClose(renderWindow, GLFW_FALSE);
-			glfwHideWindow(renderWindow);
-			menuBar.SetRenderWindowVisible(false);
-		}
-		if (!menuBar.ConsumeRenderWindowOpenRequested())
-			return;
-		glfwShowWindow(renderWindow);
-		glfwFocusWindow(renderWindow);
-		menuBar.SetRenderWindowVisible(true);
-	}
-
 	bool PanelManager::OpenGuiWindows() {
 		panelWindow.Show();
 		return true;
@@ -50,7 +29,6 @@ namespace Chrivent {
 	}
 
 	void PanelManager::DestroyGui() {
-		renderWindow = nullptr;
 		panelWindow.Destroy();
 	}
 }

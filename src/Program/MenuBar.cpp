@@ -24,9 +24,6 @@ namespace Chrivent {
 		else if (rendererType == RendererType::Vulkan)
 			rendererId = kVulkanRendererId;
 		CheckMenuRadioItem(rendererMenu, kOpenGlRendererId, kVulkanRendererId, rendererId, MF_BYCOMMAND);
-		HMENU windowMenu = CreatePopupMenu();
-		AppendMenuW(windowMenu, MF_STRING | (renderWindowVisible ? MF_CHECKED : MF_UNCHECKED), kRenderWindowId, L"Render Window");
-		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(windowMenu), L"Window");
 	}
 
 	void MenuBar::AttachOwner(const HWND owner) {
@@ -114,19 +111,6 @@ namespace Chrivent {
 		DrawMenuBar(ownerWindow);
 	}
 
-	void MenuBar::UpdateRenderWindowMenuCheck() const {
-		if (!ownerWindow)
-			return;
-		const HMENU menu = GetMenu(ownerWindow);
-		if (!menu)
-			return;
-		const HMENU windowMenu = GetSubMenu(menu, 2);
-		if (!windowMenu)
-			return;
-		CheckMenuItem(windowMenu, kRenderWindowId, MF_BYCOMMAND | (renderWindowVisible ? MF_CHECKED : MF_UNCHECKED));
-		DrawMenuBar(ownerWindow);
-	}
-
 	bool MenuBar::HandleCommand(const int commandId) {
 		switch (commandId) {
 			case kOpenButtonId:
@@ -147,9 +131,6 @@ namespace Chrivent {
 			case kVulkanRendererId:
 				SelectRenderer(RendererType::Vulkan);
 				return true;
-			case kRenderWindowId:
-				renderWindowOpenRequested = true;
-				return true;
 			default:
 				return false;
 		}
@@ -164,7 +145,6 @@ namespace Chrivent {
 	void MenuBar::Reset() {
 		sceneConfigDirty = false;
 		rendererDirty = false;
-		renderWindowOpenRequested = false;
 	}
 
 	bool MenuBar::ConsumeSceneConfigDirty() {
@@ -179,16 +159,4 @@ namespace Chrivent {
 		return dirty;
 	}
 
-	bool MenuBar::ConsumeRenderWindowOpenRequested() {
-		const bool requested = renderWindowOpenRequested;
-		renderWindowOpenRequested = false;
-		return requested;
-	}
-
-	void MenuBar::SetRenderWindowVisible(const bool visible) {
-		if (renderWindowVisible == visible)
-			return;
-		renderWindowVisible = visible;
-		UpdateRenderWindowMenuCheck();
-	}
 }

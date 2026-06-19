@@ -73,7 +73,7 @@ namespace Chrivent {
         Dx11TextureCache    textureCache;
 
         // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
-        void UpdateViewport() const;
+        void UpdateViewport();
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
         bool CreateShaders();
         // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
