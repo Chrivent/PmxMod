@@ -11,6 +11,7 @@
 #include "../Viewer/Hlsl/Dx12/Dx12Viewer.h"
 #include "../Util.h"
 
+#include <algorithm>
 #include <iostream>
 #include <unordered_map>
 
@@ -246,39 +247,95 @@ namespace Chrivent {
                     frames.emplace_back(frame);
             }
         }
-        std::vector<MotionTimelineRow> rows;
-        rows.reserve(model.skeletonData.nodes.size() + model.skeletonData.ikSolvers.size() + model.morphData.morphs.size());
-        for (const auto& node : model.skeletonData.nodes) {
-            if (!node || !node->GetInfo().isVisible)
+        const auto NormalizeFrames = [](std::vector<uint32_t>& frames) {
+            std::ranges::sort(frames);
+            const auto uniqueFrames = std::ranges::unique(frames);
+            frames.erase(uniqueFrames.begin(), uniqueFrames.end());
+        };
+        std::vector<MotionTimelineGroup> groups;
+        groups.reserve(model.skeletonData.displayFrames.size());
+        for (const auto& [name
+            , boneIndices
+            , morphIndices] : model.skeletonData.displayFrames) {
+            MotionTimelineGroup group{
+                .name = Util::Utf8ToWString(name)
+            };
+            group.rows.reserve(boneIndices.size() + morphIndices.size());
+            for (const uint32_t boneIndex : boneIndices) {
+                if (boneIndex >= model.skeletonData.nodes.size())
+                    continue;
+                const auto& node = model.skeletonData.nodes[boneIndex];
+                if (!node)
+                    continue;
+                auto frames = nodeKeyFrames[node.get()];
+                if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
+                    const auto& ikFrames = ikKeyFrames[ikSolver.get()];
+                    frames.insert(frames.end(), ikFrames.begin(), ikFrames.end());
+                }
+                NormalizeFrames(frames);
+                group.keyFrames.insert(group.keyFrames.end(), frames.begin(), frames.end());
+                group.rows.push_back({
+                    .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .keyFrames = std::move(frames)
+                });
+            }
+            for (const uint32_t morphIndex : morphIndices) {
+                if (morphIndex >= model.morphData.morphs.size())
+                    continue;
+                const auto& morph = model.morphData.morphs[morphIndex];
+                if (!morph)
+                    continue;
+                auto frames = morphKeyFrames[morph.get()];
+                group.keyFrames.insert(group.keyFrames.end(), frames.begin(), frames.end());
+                group.rows.push_back({
+                    .name = Util::Utf8ToWString(morph->name),
+                    .keyFrames = std::move(frames)
+                });
+            }
+            if (group.rows.empty())
                 continue;
-            rows.push_back({
-                .name = Util::Utf8ToWString(node->GetInfo().name),
-                .keyFrames = nodeKeyFrames[node.get()]
-            });
+            NormalizeFrames(group.keyFrames);
+            groups.emplace_back(std::move(group));
         }
-        for (const auto& ikSolver : model.skeletonData.ikSolvers) {
-            if (!ikSolver)
-                continue;
-            const auto ikNode = ikSolver->GetInfo().ikNode.lock();
-            if (!ikNode || !ikNode->GetInfo().isVisible)
-                continue;
-            rows.push_back({
-                .name = L"IK: " + Util::Utf8ToWString(ikNode->GetInfo().name),
-                .keyFrames = ikKeyFrames[ikSolver.get()]
-            });
-        }
-        for (const auto& morph : model.morphData.morphs) {
-            if (!morph)
-                continue;
-            rows.push_back({
-                .name = L"모프: " + Util::Utf8ToWString(morph->name),
-                .keyFrames = morphKeyFrames[morph.get()]
-            });
+        if (groups.empty()) {
+            MotionTimelineGroup boneGroup{.name = L"본"};
+            for (const auto& node : model.skeletonData.nodes) {
+                if (!node)
+                    continue;
+                auto frames = nodeKeyFrames[node.get()];
+                if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
+                    const auto& ikFrames = ikKeyFrames[ikSolver.get()];
+                    frames.insert(frames.end(), ikFrames.begin(), ikFrames.end());
+                }
+                NormalizeFrames(frames);
+                boneGroup.keyFrames.insert(boneGroup.keyFrames.end(), frames.begin(), frames.end());
+                boneGroup.rows.push_back({
+                    .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .keyFrames = std::move(frames)
+                });
+            }
+            NormalizeFrames(boneGroup.keyFrames);
+            if (!boneGroup.rows.empty())
+                groups.emplace_back(std::move(boneGroup));
+            MotionTimelineGroup morphGroup{.name = L"모프"};
+            for (const auto& morph : model.morphData.morphs) {
+                if (!morph)
+                    continue;
+                auto frames = morphKeyFrames[morph.get()];
+                morphGroup.keyFrames.insert(morphGroup.keyFrames.end(), frames.begin(), frames.end());
+                morphGroup.rows.push_back({
+                    .name = Util::Utf8ToWString(morph->name),
+                    .keyFrames = std::move(frames)
+                });
+            }
+            NormalizeFrames(morphGroup.keyFrames);
+            if (!morphGroup.rows.empty())
+                groups.emplace_back(std::move(morphGroup));
         }
         std::wstring modelName = Util::Utf8ToWString(model.infoData.modelName);
         if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
             modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
-        panelManager.SetMotionTimeline(std::move(modelName), std::move(rows));
+        panelManager.SetMotionTimeline(std::move(modelName), std::move(groups));
     }
 
     void Program::ClearInstances() {

@@ -172,7 +172,6 @@ namespace Chrivent {
 			node->GetInfo().global = glm::translate(glm::mat4(1), bone.position * invZ);
 			node->GetInfo().inverseInit = glm::inverse(node->GetInfo().global);
 			node->GetInfo().deformDepth = bone.deformDepth;
-			node->GetInfo().isVisible = Util::HasFlag(bone.boneFlag, BoneFlags::Visible);
 			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, BoneFlags::DeformAfterPhysics);
 			node->GetInfo().isDeformAfterPhysics = deformAfterPhysics;
 			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendRotate);
@@ -223,6 +222,20 @@ namespace Chrivent {
 				solver->GetInfo().limitAngle = bone.ikLimit;
 				model.skeletonData.ikSolvers.emplace_back(std::move(solver));
 			}
+		}
+		model.skeletonData.displayFrames.reserve(pmxData.displayFrames.size());
+		for (const auto& displayFrame : pmxData.displayFrames) {
+			ModelDisplayFrame frame;
+			frame.name = displayFrame.name.empty() ? displayFrame.englishName : displayFrame.name;
+			for (const auto& [type, index] : displayFrame.targets) {
+				if (index < 0)
+					continue;
+				if (type == TargetType::BoneIndex && index < pmxData.bones.size())
+					frame.boneIndices.emplace_back(index);
+				else if (type == TargetType::MorphIndex && index < pmxData.morphs.size())
+					frame.morphIndices.emplace_back(index);
+			}
+			model.skeletonData.displayFrames.emplace_back(std::move(frame));
 		}
 	}
 

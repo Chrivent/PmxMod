@@ -4,6 +4,7 @@
 #include "../GuiDrawer.h"
 
 #include <algorithm>
+#include <windowsx.h>
 
 namespace Chrivent {
 	LRESULT CALLBACK MotionPanel::WindowProc(
@@ -31,6 +32,13 @@ namespace Chrivent {
 			case WM_MOUSEWHEEL:
 				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
 				return 0;
+			case WM_LBUTTONDOWN: {
+				const int x = GET_X_LPARAM(lParam);
+				const int y = GET_Y_LPARAM(lParam);
+				if (x < kLabelWidth && y >= kHeaderHeight)
+					panel->ToggleGroup(panel->firstRow + (y - kHeaderHeight) / kRowHeight);
+				return 0;
+			}
 			case WM_ERASEBKGND:
 				return 1;
 			case WM_PAINT: {
@@ -66,10 +74,19 @@ namespace Chrivent {
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
 		vertical.nMin = 0;
-		vertical.nMax = (std::max)(0, static_cast<int>(rows.size()) - 1);
+		vertical.nMax = (std::max)(0, GetVisibleRowCount() - 1);
 		vertical.nPage = visibleRows;
 		vertical.nPos = firstRow;
 		SetScrollInfo(timelineWindow, SB_VERT, &vertical, TRUE);
+	}
+
+	int MotionPanel::GetVisibleRowCount() const {
+		int count = static_cast<int>(groups.size());
+		for (const auto& group : groups) {
+			if (group.expanded)
+				count += group.rows.size();
+		}
+		return count;
 	}
 
 	void MotionPanel::Paint(const HDC deviceContext) const {
@@ -95,18 +112,27 @@ namespace Chrivent {
 					{x + 2, 0, x + kFrameWidth * 5, kHeaderHeight}, RGB(207, 211, 218), DT_LEFT);
 		}
 		const int visibleRows = (std::max)(0, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight + 1));
-		for (int offset = 0; offset < visibleRows; offset++) {
-			const int rowIndex = firstRow + offset;
-			if (rowIndex >= static_cast<int>(rows.size()))
-				break;
-			const int top = kHeaderHeight + offset * kRowHeight;
+		int visibleRowIndex = 0;
+		int paintedRows = 0;
+		const auto DrawRow = [&](const std::wstring& name, const std::vector<uint32_t>& keyFrames,
+			const bool groupRow, const bool expanded, const bool drawKeys) {
+			if (visibleRowIndex++ < firstRow || paintedRows >= visibleRows)
+				return;
+			const int top = kHeaderHeight + paintedRows * kRowHeight;
 			const RECT labelRect{0, top, kLabelWidth, top + kRowHeight};
 			GuiDrawer::FillRectColor(deviceContext, labelRect,
-				offset % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55));
-			GuiDrawer::DrawTextLine(deviceContext, rows[rowIndex].name,
-				{8, top, kLabelWidth - 4, top + kRowHeight}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
+				paintedRows % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55));
+			if (groupRow)
+				GuiDrawer::DrawTriangle(deviceContext, 12, top + kRowHeight / 2, 5, expanded, RGB(228, 228, 232));
+			GuiDrawer::DrawTextLine(deviceContext, name,
+				{groupRow ? 24 : 32, top, kLabelWidth - 4, top + kRowHeight},
+				RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 			GuiDrawer::DrawLine(deviceContext, 0, top + kRowHeight, client.right, top + kRowHeight, RGB(64, 67, 75));
-			for (const uint32_t frame : rows[rowIndex].keyFrames) {
+			if (!drawKeys) {
+				paintedRows++;
+				return;
+			}
+			for (const uint32_t frame : keyFrames) {
 				if (frame > totalFrame || frame < firstFrame)
 					continue;
 				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
@@ -114,12 +140,44 @@ namespace Chrivent {
 					break;
 				GuiDrawer::DrawDiamond(deviceContext, x, top + kRowHeight / 2, 5, RGB(246, 190, 53));
 			}
+			paintedRows++;
+		};
+		for (const auto& [name
+			, rows
+			, keyFrames
+			, expanded] : groups) {
+			DrawRow(name, keyFrames, true, expanded, !expanded);
+			if (paintedRows >= visibleRows)
+				break;
+			if (!expanded)
+				continue;
+			for (const auto& [name, keyFrames] : rows) {
+				DrawRow(name, keyFrames, false, false, true);
+				if (paintedRows >= visibleRows)
+					break;
+			}
 		}
 		GuiDrawer::DrawLine(deviceContext, kLabelWidth, 0, kLabelWidth, client.bottom, RGB(93, 98, 108));
 		if (currentFrame >= static_cast<uint32_t>(firstFrame)) {
 			const int currentX = kLabelWidth + (static_cast<int>(currentFrame) - firstFrame) * kFrameWidth;
 			if (currentX <= client.right)
 				GuiDrawer::DrawLine(deviceContext, currentX, 0, currentX, client.bottom, RGB(52, 211, 235));
+		}
+	}
+
+	void MotionPanel::ToggleGroup(const int visibleRowIndex) {
+		int currentRow = 0;
+		for (auto& group : groups) {
+			if (currentRow == visibleRowIndex) {
+				group.expanded = !group.expanded;
+				UpdateVerticalScrollBar();
+				firstRow = GetScrollPos(timelineWindow, SB_VERT);
+				InvalidateRect(timelineWindow, nullptr, TRUE);
+				return;
+			}
+			currentRow++;
+			if (group.expanded)
+				currentRow += group.rows.size();
 		}
 	}
 
@@ -138,7 +196,8 @@ namespace Chrivent {
 			case SB_THUMBTRACK: position = trackPosition; break;
 			default: return;
 		}
-		firstRow = std::clamp(position, info.nMin, (std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
+		firstRow = std::clamp(position, info.nMin,
+			(std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
 		SetScrollPos(timelineWindow, SB_VERT, firstRow, TRUE);
 		InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
@@ -191,7 +250,7 @@ namespace Chrivent {
 			DestroyWindow(timelineWindow);
 		timelineWindow = nullptr;
 		modelName.clear();
-		rows.clear();
+		groups.clear();
 		totalFrame = 1;
 		currentFrame = 0;
 		rangeStartFrame = 0;
@@ -202,9 +261,9 @@ namespace Chrivent {
 
 	void MotionPanel::SetTimeline(
 		std::wstring name,
-		std::vector<MotionTimelineRow> timelineRows) {
+		std::vector<MotionTimelineGroup> timelineGroups) {
 		modelName = std::move(name);
-		rows = std::move(timelineRows);
+		groups = std::move(timelineGroups);
 		currentFrame = rangeStartFrame;
 		firstRow = 0;
 		firstFrame = rangeStartFrame;

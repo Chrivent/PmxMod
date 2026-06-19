@@ -29,7 +29,6 @@ namespace Chrivent {
 		glm::quat				initRotate = glm::quat(1, 0, 0, 0);
 		glm::vec3				initScale = glm::vec3(1);
 		int32_t					deformDepth = -1;
-		bool					isVisible = false;
 		bool					isDeformAfterPhysics = false;
 		std::weak_ptr<Node>		appendNode;
 		bool					isAppendRotate = false;

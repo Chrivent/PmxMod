@@ -60,6 +60,35 @@ namespace Chrivent {
 		DeleteObject(brush);
 	}
 
+	void GuiDrawer::DrawTriangle(
+		const HDC deviceContext,
+		const int centerX,
+		const int centerY,
+		const int radius,
+		const bool expanded,
+		const COLORREF color) {
+		const POINT collapsedPoints[] = {
+			{centerX - radius / 2, centerY - radius},
+			{centerX - radius / 2, centerY + radius},
+			{centerX + radius, centerY}
+		};
+		const POINT expandedPoints[] = {
+			{centerX - radius, centerY - radius / 2},
+			{centerX + radius, centerY - radius / 2},
+			{centerX, centerY + radius}
+		};
+		const POINT* points = expanded ? expandedPoints : collapsedPoints;
+		const HBRUSH brush = CreateSolidBrush(color);
+		const HPEN pen = CreatePen(PS_SOLID, 1, color);
+		const HGDIOBJ previousBrush = SelectObject(deviceContext, brush);
+		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
+		Polygon(deviceContext, points, 3);
+		SelectObject(deviceContext, previousPen);
+		SelectObject(deviceContext, previousBrush);
+		DeleteObject(pen);
+		DeleteObject(brush);
+	}
+
 	void GuiDrawer::DrawTextLine(
 		const HDC deviceContext,
 		const std::wstring& text,

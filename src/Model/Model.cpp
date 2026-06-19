@@ -46,6 +46,7 @@ namespace Chrivent {
 		skeletonData.nodes.clear();
 		skeletonData.ikSolvers.clear();
 		skeletonData.transforms.clear();
+		skeletonData.displayFrames.clear();
 		morphData.morphs.clear();
 		morphData.positionMorphs.clear();
 		morphData.uvMorphs.clear();

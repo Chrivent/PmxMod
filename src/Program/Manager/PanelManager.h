@@ -86,8 +86,8 @@ namespace Chrivent {
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
 		// 선택 모델의 모션 트랙을 모션 패널에 표시한다.
-		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineRow> rows) {
-			motionPanel.SetTimeline(std::move(modelName), std::move(rows));
+		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
+			motionPanel.SetTimeline(std::move(modelName), std::move(groups));
 		}
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }

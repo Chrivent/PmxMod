@@ -68,6 +68,12 @@ namespace Chrivent {
 		size_t vertexOffset;
 		size_t vertexCount;
 	};
+	
+	struct ModelDisplayFrame {
+		std::string				name;
+		std::vector<uint32_t>	boneIndices;
+		std::vector<uint32_t>	morphIndices;
+	};
 
 	struct ModelInfoData {
 		std::string									modelName;
@@ -107,6 +113,7 @@ namespace Chrivent {
 		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
 		std::vector<glm::mat4>						transforms;
 		std::vector<std::reference_wrapper<Node>>	sortedNodes;
+		std::vector<ModelDisplayFrame>				displayFrames;
 	};
 
 	struct ModelMorphData {
