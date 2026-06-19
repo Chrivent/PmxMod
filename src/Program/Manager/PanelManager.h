@@ -16,14 +16,12 @@ namespace Chrivent {
 	class Sound;
 
 	class PanelManager {
-		static constexpr int kPlaybackTimelineSliderId = 1001;
 		static constexpr int kPlaybackPlayButtonId = 1002;
 		static constexpr int kPlaybackPauseButtonId = 1003;
 		static constexpr int kPlaybackStopButtonId = 1004;
 		static constexpr int kPlaybackStartFrameEditId = 1005;
 		static constexpr int kPlaybackEndFrameEditId = 1006;
 		static constexpr int kPlaybackResetRangeButtonId = 1007;
-		static constexpr int kPlaybackTotalFrameEditId = 1008;
 		static constexpr int kSoundVolumeSliderId = 2001;
 		static constexpr int kModelAddButtonId = 3001;
 		static constexpr int kModelListId = 3002;
@@ -48,15 +46,13 @@ namespace Chrivent {
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
 		void SetPlaybackFrame(const int frame) {
-			playbackPanel.SetCurrentFrame(frame);
 			motionPanel.SetCurrentFrame((std::max)(0, frame));
 		}
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 
 		void SetPlaybackFrameRange(const int maxFrame) {
-			playbackPanel.SetFrameRange(maxFrame);
-			const auto [start, end] = playbackPanel.GetFrameRange();
-			motionPanel.SetFrameRange(start, end, playbackPanel.GetTotalFrame());
+			playbackPanel.SetLastFrame(maxFrame);
+			motionPanel.SetLastFrame(maxFrame);
 		}
 
 		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
@@ -70,14 +66,10 @@ namespace Chrivent {
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
-		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
-		// 변경된 플레이백 입력 범위와 전체 프레임을 반환하고 모션 패널에 반영한다.
+		bool ConsumeSeekFrame(int& frame, bool& finished) { return motionPanel.ConsumeSeekFrame(frame, finished); }
+		// 변경된 플레이백 입력 범위를 반환한다.
 		bool ConsumePlaybackFrameRangeChange(PlaybackFrameRange& range) {
-			int totalFrame = 0;
-			if (!playbackPanel.ConsumeTimelineRangeChange(range, totalFrame))
-				return false;
-			motionPanel.SetFrameRange(range.start, range.end, totalFrame);
-			return true;
+			return playbackPanel.ConsumeTimelineRangeChange(range);
 		}
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }

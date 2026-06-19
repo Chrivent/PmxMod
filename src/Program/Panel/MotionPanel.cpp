@@ -24,10 +24,14 @@ namespace Chrivent {
 		switch (msg) {
 			case WM_SIZE:
 				panel->UpdateVerticalScrollBar();
+				panel->UpdateHorizontalScrollBar();
 				InvalidateRect(hwnd, nullptr, TRUE);
 				return 0;
 			case WM_VSCROLL:
 				panel->ScrollRows(LOWORD(wParam), HIWORD(wParam));
+				return 0;
+			case WM_HSCROLL:
+				panel->ScrollFrames(LOWORD(wParam), HIWORD(wParam));
 				return 0;
 			case WM_MOUSEWHEEL:
 				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
@@ -78,6 +82,19 @@ namespace Chrivent {
 		vertical.nPage = visibleRows;
 		vertical.nPos = firstRow;
 		SetScrollInfo(timelineWindow, SB_VERT, &vertical, TRUE);
+	}
+
+	void MotionPanel::UpdateHorizontalScrollBar() const {
+		if (!timelineWindow)
+			return;
+		SCROLLINFO horizontal{};
+		horizontal.cbSize = sizeof(horizontal);
+		horizontal.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+		horizontal.nMin = 0;
+		horizontal.nMax = totalFrame;
+		horizontal.nPage = 1;
+		horizontal.nPos = currentFrame;
+		SetScrollInfo(timelineWindow, SB_HORZ, &horizontal, TRUE);
 	}
 
 	int MotionPanel::GetVisibleRowCount() const {
@@ -202,6 +219,40 @@ namespace Chrivent {
 		InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
+	void MotionPanel::ScrollFrames(const int scrollCode, const int) {
+		SCROLLINFO info{};
+		info.cbSize = sizeof(info);
+		info.fMask = SIF_ALL;
+		GetScrollInfo(timelineWindow, SB_HORZ, &info);
+		int position = currentFrame;
+		RECT client{};
+		GetClientRect(timelineWindow, &client);
+		const int timelineWidth = client.right - kLabelWidth;
+		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
+		switch (scrollCode) {
+			case SB_LINELEFT: position--; break;
+			case SB_LINERIGHT: position++; break;
+			case SB_PAGELEFT: position -= visibleFrames; break;
+			case SB_PAGERIGHT: position += visibleFrames; break;
+			case SB_THUMBPOSITION:
+			case SB_THUMBTRACK: position = info.nTrackPos; break;
+			case SB_LEFT: position = 0; break;
+			case SB_RIGHT: position = totalFrame; break;
+			case SB_ENDSCROLL:
+				seekRequested = true;
+				seekFinished = true;
+				return;
+			default: return;
+		}
+		currentFrame = std::clamp(position, 0, static_cast<int>(totalFrame));
+		seekFrame = currentFrame;
+		seekRequested = true;
+		seekFinished = scrollCode != SB_THUMBTRACK;
+		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
+		FollowCurrentFrame();
+		InvalidateRect(timelineWindow, nullptr, FALSE);
+	}
+
 	void MotionPanel::FollowCurrentFrame() {
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
@@ -227,10 +278,11 @@ namespace Chrivent {
 		RegisterClassExW(&windowClass);
 		timelineWindow = CreateWindowExW(
 			WS_EX_CLIENTEDGE, windowClass.lpszClassName, L"",
-			WS_CHILD | WS_VISIBLE | WS_VSCROLL,
+			WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL,
 			0, 0, 0, 0,
 			parent, nullptr, instance, this);
 		UpdateVerticalScrollBar();
+		UpdateHorizontalScrollBar();
 	}
 
 	void MotionPanel::Resize(const RECT& clientRect) {
@@ -243,6 +295,7 @@ namespace Chrivent {
 		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
 		MoveWindow(timelineWindow, x, y, width, height, TRUE);
 		UpdateVerticalScrollBar();
+		UpdateHorizontalScrollBar();
 	}
 
 	void MotionPanel::Destroy() {
@@ -253,10 +306,11 @@ namespace Chrivent {
 		groups.clear();
 		totalFrame = 1;
 		currentFrame = 0;
-		rangeStartFrame = 0;
-		rangeEndFrame = 0;
 		firstRow = 0;
 		firstFrame = 0;
+		seekRequested = false;
+		seekFinished = false;
+		seekFrame = 0;
 	}
 
 	void MotionPanel::SetTimeline(
@@ -264,35 +318,42 @@ namespace Chrivent {
 		std::vector<MotionTimelineGroup> timelineGroups) {
 		modelName = std::move(name);
 		groups = std::move(timelineGroups);
-		currentFrame = rangeStartFrame;
 		firstRow = 0;
-		firstFrame = rangeStartFrame;
+		FollowCurrentFrame();
 		UpdateVerticalScrollBar();
+		UpdateHorizontalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetFrameRange(
-		const uint32_t startFrame,
-		const uint32_t endFrame,
-		const uint32_t maxFrame) {
+	void MotionPanel::SetLastFrame(const uint32_t maxFrame) {
 		totalFrame = (std::max)(1u, maxFrame);
-		rangeStartFrame = startFrame;
-		rangeEndFrame = std::clamp(endFrame, startFrame + 1, totalFrame);
-		currentFrame = std::clamp(currentFrame, rangeStartFrame, rangeEndFrame);
-		firstFrame = rangeStartFrame;
+		currentFrame = (std::min)(currentFrame, totalFrame);
+		FollowCurrentFrame();
+		UpdateHorizontalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
 	void MotionPanel::SetCurrentFrame(const uint32_t frame) {
-		const uint32_t rangedFrame = std::clamp(frame, rangeStartFrame, rangeEndFrame);
-		if (currentFrame == rangedFrame)
+		const uint32_t timelineFrame = (std::min)(frame, totalFrame);
+		if (currentFrame == timelineFrame)
 			return;
-		currentFrame = rangedFrame;
+		currentFrame = timelineFrame;
 		if (timelineWindow) {
 			FollowCurrentFrame();
+			SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
 			InvalidateRect(timelineWindow, nullptr, FALSE);
 		}
+	}
+
+	bool MotionPanel::ConsumeSeekFrame(int& frame, bool& finished) {
+		if (!seekRequested)
+			return false;
+		frame = seekFrame;
+		finished = seekFinished;
+		seekRequested = false;
+		seekFinished = false;
+		return true;
 	}
 }
