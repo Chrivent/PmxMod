@@ -46,6 +46,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
+        PositionViewerOnRightMonitor();
         glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
         if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
@@ -60,6 +61,48 @@ namespace Chrivent {
             return false;
         }
         return true;
+    }
+
+    void Program::PositionViewerOnRightMonitor() const {
+        int monitorCount = 0;
+        GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+        if (!monitors || monitorCount < 2)
+            return;
+        int firstX = 0;
+        int firstY = 0;
+        int firstWidth = 0;
+        int firstHeight = 0;
+        glfwGetMonitorWorkarea(monitors[0], &firstX, &firstY, &firstWidth, &firstHeight);
+        int leftmostX = firstX;
+        int rightX = firstX;
+        int rightY = firstY;
+        int rightWidth = firstWidth;
+        int rightHeight = firstHeight;
+        bool hasDistinctWorkArea = false;
+        for (int index = 1; index < monitorCount; index++) {
+            int x = 0;
+            int y = 0;
+            int width = 0;
+            int height = 0;
+            glfwGetMonitorWorkarea(monitors[index], &x, &y, &width, &height);
+            hasDistinctWorkArea = hasDistinctWorkArea
+                || x != firstX || y != firstY || width != firstWidth || height != firstHeight;
+            leftmostX = (std::min)(leftmostX, x);
+            if (x > rightX) {
+                rightX = x;
+                rightY = y;
+                rightWidth = width;
+                rightHeight = height;
+            }
+        }
+        if (!hasDistinctWorkArea || rightX <= leftmostX)
+            return;
+        int windowWidth = 0;
+        int windowHeight = 0;
+        glfwGetWindowSize(viewer->GetInfo().window, &windowWidth, &windowHeight);
+        const int x = rightX + (std::max)(0, (rightWidth - windowWidth) / 2);
+        const int y = rightY + (std::max)(0, (rightHeight - windowHeight) / 2);
+        glfwSetWindowPos(viewer->GetInfo().window, x, y);
     }
 
     bool Program::ChangeRenderer(const RendererType rendererType) {
@@ -198,6 +241,7 @@ namespace Chrivent {
     bool Program::RunFrame() {
         glfwPollEvents();
         panelManager.PollGuiWindows();
+        panelManager.UpdateRenderWindow();
         if (panelManager.ConsumeRendererDirty()) {
             if (!ChangeRenderer(panelManager.GetRendererType()))
                 return false;
@@ -270,7 +314,7 @@ namespace Chrivent {
         fpsFrame = 0;
         LoadScene(cfg);
         cameraManager.UpdateCamera(viewer->GetInfo());
-        while (!glfwWindowShouldClose(viewer->GetInfo().window)) {
+        while (!panelManager.IsCloseRequested()) {
             if (!RunFrame())
                 break;
         }

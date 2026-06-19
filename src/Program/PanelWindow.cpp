@@ -33,7 +33,7 @@ namespace Chrivent {
 				panelWindow->LayoutPanels();
 				return 0;
 			case WM_CLOSE:
-				ShowWindow(hwnd, SW_HIDE);
+				panelWindow->closeRequested = true;
 				return 0;
 			case WM_DESTROY:
 				panelWindow->window = nullptr;
@@ -64,6 +64,7 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Show() {
+		closeRequested = false;
 		const HINSTANCE instance = GetModuleHandleW(nullptr);
 		WNDCLASSEXW wc{};
 		wc.cbSize = sizeof(wc);
@@ -105,7 +106,9 @@ namespace Chrivent {
 				entry.panel->Destroy();
 			entry.frame = nullptr;
 		}
-		DestroyWindow(window);
+		if (window)
+			DestroyWindow(window);
+		closeRequested = false;
 	}
 
 	void PanelWindow::CreatePanelControls() {

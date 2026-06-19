@@ -26,6 +26,7 @@ namespace Chrivent {
 		HWND window = nullptr;
 		MenuBar* menuBar = nullptr;
 		std::vector<PanelEntry> panels;
+		bool closeRequested = false;
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		void CreatePanelControls();
@@ -37,6 +38,7 @@ namespace Chrivent {
 		
 		void AttachMenuBar(MenuBar& menu);
 		void RegisterPanel(Panel& panel, const std::wstring& title, PanelWindowArea area);
+		bool IsCloseRequested() const { return closeRequested; }
 		void Show();
 		void Poll() const;
 		void Destroy();

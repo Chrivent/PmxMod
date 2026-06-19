@@ -24,6 +24,8 @@ namespace Chrivent {
         void CreateViewer(RendererType rendererType);
         // GLFW 윈도우와 렌더러별 리소스를 초기화한다.
         bool InitializeViewer();
+        // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
+        void PositionViewerOnRightMonitor() const;
         // 선택한 렌더러로 뷰어 창과 렌더 리소스를 다시 생성한다.
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.

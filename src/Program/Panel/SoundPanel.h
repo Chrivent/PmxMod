@@ -9,7 +9,6 @@ namespace Chrivent {
 		int volumeSliderId = 0;
 		Sound* sound = nullptr;
 		HWND panelWindow = nullptr;
-		HWND titleText = nullptr;
 		HWND volumeSlider = nullptr;
 		HWND valueText = nullptr;
 

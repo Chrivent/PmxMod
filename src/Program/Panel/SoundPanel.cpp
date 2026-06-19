@@ -36,7 +36,6 @@ namespace Chrivent {
 				return 0;
 			case WM_DESTROY:
 				panel->panelWindow = nullptr;
-				panel->titleText = nullptr;
 				panel->volumeSlider = nullptr;
 				panel->valueText = nullptr;
 				return 0;
@@ -108,11 +107,6 @@ namespace Chrivent {
 	void SoundPanel::CreateContent(const HWND parent) {
 		if (volumeSlider)
 			return;
-		titleText = CreateWindowExW(
-			0, L"STATIC", L"Sound",
-			WS_CHILD | WS_VISIBLE,
-			0, 0, 0, 0,
-			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
 		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
 		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume, 10);
 		valueText = CreateWindowExW(
@@ -129,7 +123,6 @@ namespace Chrivent {
 
 	void SoundPanel::Resize(const RECT& clientRect) {
 		constexpr int margin = 14;
-		constexpr int titleHeight = 20;
 		constexpr int sliderWidth = 64;
 		constexpr int valueHeight = 20;
 		constexpr int gap = 4;
@@ -137,15 +130,13 @@ namespace Chrivent {
 		const int height = clientRect.bottom - clientRect.top;
 		const int contentWidth = (std::max)(0, width - margin * 2);
 		const int controlWidth = (std::min)(sliderWidth, contentWidth);
-		const int sliderHeight = (std::max)(0, height - margin * 2 - titleHeight - valueHeight - gap * 2);
+		const int sliderHeight = (std::max)(0, height - margin * 2 - valueHeight - gap);
 		const int x = clientRect.left + (std::max)(margin, (width - controlWidth) / 2);
 		const int y = clientRect.top + margin;
-		if (titleText)
-			MoveWindow(titleText, x, y, controlWidth, titleHeight, TRUE);
 		if (volumeSlider)
-			MoveWindow(volumeSlider, x, y + titleHeight + gap, controlWidth, sliderHeight, TRUE);
+			MoveWindow(volumeSlider, x, y, controlWidth, sliderHeight, TRUE);
 		if (valueText)
-			MoveWindow(valueText, x, y + titleHeight + gap + sliderHeight + gap, controlWidth, valueHeight, TRUE);
+			MoveWindow(valueText, x, y + sliderHeight + gap, controlWidth, valueHeight, TRUE);
 	}
 
 	bool SoundPanel::HandleScroll(const HWND control, const int scrollCode) {
@@ -158,14 +149,11 @@ namespace Chrivent {
 	void SoundPanel::Destroy() {
 		if (panelWindow)
 			DestroyWindow(panelWindow);
-		if (titleText)
-			DestroyWindow(titleText);
 		if (volumeSlider)
 			DestroyWindow(volumeSlider);
 		if (valueText)
 			DestroyWindow(valueText);
 		panelWindow = nullptr;
-		titleText = nullptr;
 		volumeSlider = nullptr;
 		valueText = nullptr;
 	}

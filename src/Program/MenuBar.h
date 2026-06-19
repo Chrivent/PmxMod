@@ -13,12 +13,15 @@ namespace Chrivent {
 		static constexpr int kDirectX11RendererId = 1101;
 		static constexpr int kDirectX12RendererId = 1102;
 		static constexpr int kVulkanRendererId = 1103;
+		static constexpr int kRenderWindowId = 1200;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
 		bool sceneConfigDirty = false;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
+		bool renderWindowOpenRequested = false;
+		bool renderWindowVisible = true;
 		HWND ownerWindow = nullptr;
 
 		bool SaveSceneConfig(const std::filesystem::path& filepath) const;
@@ -27,6 +30,8 @@ namespace Chrivent {
 		void ShowSaveSceneDialog();
 		void SelectRenderer(RendererType renderer);
 		void UpdateRendererMenuCheck() const;
+		// 렌더링 창의 표시 상태에 맞춰 창 메뉴의 체크 표시를 갱신한다.
+		void UpdateRenderWindowMenuCheck() const;
 
 	public:
 		explicit MenuBar(SceneConfig& config);
@@ -45,5 +50,9 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty();
 		RendererType GetRendererType() const { return rendererType; }
 		bool ConsumeRendererDirty();
+		// 렌더링 창 표시 요청을 반환하고 초기화한다.
+		bool ConsumeRenderWindowOpenRequested();
+		// 렌더링 창의 현재 표시 상태를 메뉴에 반영한다.
+		void SetRenderWindowVisible(bool visible);
 	};
 }

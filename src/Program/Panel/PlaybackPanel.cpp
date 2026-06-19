@@ -58,17 +58,17 @@ namespace Chrivent {
 			0, L"BUTTON", L"Play",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(playButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(playButtonId), GetModuleHandleW(nullptr), nullptr);
 		pauseButton = CreateWindowExW(
 			0, L"BUTTON", L"Pause",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(pauseButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(pauseButtonId), GetModuleHandleW(nullptr), nullptr);
 		stopButton = CreateWindowExW(
 			0, L"BUTTON", L"Stop",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(stopButtonId), GetModuleHandleW(nullptr), nullptr);
 	}
 
 	void PlaybackPanel::Create(const HWND parent) {

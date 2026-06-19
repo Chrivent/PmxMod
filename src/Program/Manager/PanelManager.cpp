@@ -3,9 +3,6 @@
 #include "../Sound.h"
 #include "../../Viewer/Viewer.h"
 
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-
 namespace Chrivent {
 	PanelManager::PanelManager()
 		: menuBar(sceneConfigStorage) {
@@ -24,7 +21,23 @@ namespace Chrivent {
 	}
 
 	void PanelManager::AttachRenderWindow(const ViewerInfo& viewerInfo) {
-		renderWindow = glfwGetWin32Window(viewerInfo.window);
+		renderWindow = viewerInfo.window;
+		menuBar.SetRenderWindowVisible(true);
+	}
+
+	void PanelManager::UpdateRenderWindow() {
+		if (!renderWindow)
+			return;
+		if (glfwWindowShouldClose(renderWindow)) {
+			glfwSetWindowShouldClose(renderWindow, GLFW_FALSE);
+			glfwHideWindow(renderWindow);
+			menuBar.SetRenderWindowVisible(false);
+		}
+		if (!menuBar.ConsumeRenderWindowOpenRequested())
+			return;
+		glfwShowWindow(renderWindow);
+		glfwFocusWindow(renderWindow);
+		menuBar.SetRenderWindowVisible(true);
 	}
 
 	bool PanelManager::OpenGuiWindows() {
