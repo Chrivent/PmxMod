@@ -25,7 +25,7 @@ namespace Chrivent {
 				InvalidateRect(hwnd, nullptr, TRUE);
 				return 0;
 			case WM_VSCROLL:
-				panel->ScrollRows(wParam, wParam);
+				panel->ScrollRows(LOWORD(wParam), HIWORD(wParam));
 				return 0;
 			case WM_MOUSEWHEEL:
 				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
