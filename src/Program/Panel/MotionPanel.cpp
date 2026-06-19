@@ -139,7 +139,7 @@ namespace Chrivent {
 		const int timelineWidth = (std::max)(0, static_cast<int>(client.right) - kLabelWidth);
 		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
 		const int current = currentFrame;
-		const int nextFirstFrame = (std::max)(static_cast<int>(rangeStartFrame), current - visibleFrames / 2);
+		const int nextFirstFrame = (std::max)(0, current - visibleFrames / 2);
 		if (firstFrame == nextFirstFrame)
 			return;
 		firstFrame = nextFirstFrame;

@@ -249,7 +249,7 @@ namespace Chrivent {
         std::vector<MotionTimelineRow> rows;
         rows.reserve(model.skeletonData.nodes.size() + model.skeletonData.ikSolvers.size() + model.morphData.morphs.size());
         for (const auto& node : model.skeletonData.nodes) {
-            if (!node)
+            if (!node || !node->GetInfo().isVisible)
                 continue;
             rows.push_back({
                 .name = Util::Utf8ToWString(node->GetInfo().name),
@@ -260,7 +260,7 @@ namespace Chrivent {
             if (!ikSolver)
                 continue;
             const auto ikNode = ikSolver->GetInfo().ikNode.lock();
-            if (!ikNode)
+            if (!ikNode || !ikNode->GetInfo().isVisible)
                 continue;
             rows.push_back({
                 .name = L"IK: " + Util::Utf8ToWString(ikNode->GetInfo().name),

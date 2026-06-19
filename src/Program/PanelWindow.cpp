@@ -164,14 +164,6 @@ namespace Chrivent {
 	void PanelWindow::Poll() const {
 		MSG msg{};
 		while (PeekMessageW(&msg, window, 0, 0, PM_REMOVE)) {
-			if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN) {
-				const int controlId = GetDlgCtrlID(msg.hwnd);
-				for (const auto& entry : panels) {
-					if (entry.panel && entry.panel->HandleCommand(controlId, EN_KILLFOCUS))
-						break;
-				}
-				continue;
-			}
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}

@@ -55,6 +55,27 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	LRESULT CALLBACK PlaybackPanel::EditWindowProc(
+		const HWND hwnd,
+		const UINT msg,
+		const WPARAM wParam,
+		const LPARAM lParam,
+		const UINT_PTR subclassId,
+		const DWORD_PTR data) {
+		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
+			auto* panel = reinterpret_cast<PlaybackPanel*>(data);
+			const int controlId = GetDlgCtrlID(hwnd);
+			if (controlId == panel->controlIds.totalFrameEdit)
+				panel->ApplyInputTotalFrame();
+			else
+				panel->ApplyInputFrameRange(controlId);
+			return 0;
+		}
+		if (msg == WM_NCDESTROY)
+			RemoveWindowSubclass(hwnd, EditWindowProc, subclassId);
+		return DefSubclassProc(hwnd, msg, wParam, lParam);
+	}
+
 	void PlaybackPanel::CreateContent(const HWND parent) {
 		if (timelineSlider)
 			return;
@@ -102,6 +123,9 @@ namespace Chrivent {
 		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(totalFrameEdit, EM_SETLIMITTEXT, 10, 0);
+		SetWindowSubclass(startFrameEdit, EditWindowProc, controlIds.startFrameEdit, reinterpret_cast<DWORD_PTR>(this));
+		SetWindowSubclass(endFrameEdit, EditWindowProc, controlIds.endFrameEdit, reinterpret_cast<DWORD_PTR>(this));
+		SetWindowSubclass(totalFrameEdit, EditWindowProc, controlIds.totalFrameEdit, reinterpret_cast<DWORD_PTR>(this));
 		ApplyFrameRange(frameRange, customFrameRange);
 	}
 

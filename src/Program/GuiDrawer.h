@@ -6,6 +6,9 @@
 
 namespace Chrivent {
 	class GuiDrawer {
+		// 한글과 일본어를 함께 표시할 수 있는 UI 폰트를 반환한다.
+		static HFONT GetTextFont();
+
 	public:
 		// 지정한 영역을 단색 브러시로 채운다.
 		static void FillRectColor(HDC deviceContext, const RECT& rect, COLORREF color);

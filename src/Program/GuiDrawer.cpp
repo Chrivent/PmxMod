@@ -3,6 +3,19 @@
 #include <CommCtrl.h>
 
 namespace Chrivent {
+	HFONT GuiDrawer::GetTextFont() {
+		static const HFONT font = CreateFontW(
+			-14, 0, 0, 0, FW_NORMAL,
+			FALSE, FALSE, FALSE,
+			DEFAULT_CHARSET,
+			OUT_DEFAULT_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			CLEARTYPE_QUALITY,
+			DEFAULT_PITCH | FF_DONTCARE,
+			L"Yu Gothic UI");
+		return font;
+	}
+
 	void GuiDrawer::FillRectColor(const HDC deviceContext, const RECT& rect, const COLORREF color) {
 		const HBRUSH brush = CreateSolidBrush(color);
 		FillRect(deviceContext, &rect, brush);
@@ -53,9 +66,11 @@ namespace Chrivent {
 		RECT rect,
 		const COLORREF color,
 		const UINT format) {
+		const HGDIOBJ previousFont = SelectObject(deviceContext, GetTextFont());
 		SetBkMode(deviceContext, TRANSPARENT);
 		SetTextColor(deviceContext, color);
 		DrawTextW(deviceContext, text.c_str(), text.size(), &rect, format | DT_SINGLELINE | DT_VCENTER);
+		SelectObject(deviceContext, previousFont);
 	}
 
 	HWND GuiDrawer::CreateHorizontalSlider(const HWND parent, const int controlId, const int minValue, const int maxValue, const int initialValue) {

@@ -172,6 +172,7 @@ namespace Chrivent {
 			node->GetInfo().global = glm::translate(glm::mat4(1), bone.position * invZ);
 			node->GetInfo().inverseInit = glm::inverse(node->GetInfo().global);
 			node->GetInfo().deformDepth = bone.deformDepth;
+			node->GetInfo().isVisible = Util::HasFlag(bone.boneFlag, BoneFlags::Visible);
 			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, BoneFlags::DeformAfterPhysics);
 			node->GetInfo().isDeformAfterPhysics = deformAfterPhysics;
 			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendRotate);
