@@ -3,10 +3,19 @@
 #include "../Sound.h"
 
 namespace Chrivent {
+	void PanelManager::UpdateModelPanel() {
+		std::vector<std::filesystem::path> modelPaths;
+		modelPaths.reserve(sceneConfigStorage.modelConfigs.size());
+		for (const auto& modelConfig : sceneConfigStorage.modelConfigs)
+			modelPaths.emplace_back(modelConfig.modelPath);
+		modelPanel.UpdateModelPaths(modelPaths);
+	}
+
 	PanelManager::PanelManager()
 		: menuBar(sceneConfigStorage) {
 		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
+		modelPanel.SetAddButtonId(kModelAddButtonId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, L"Model", PanelWindowArea::Model);
 		panelWindow.RegisterPanel(motionPanel, L"Motion", PanelWindowArea::Motion);
@@ -17,6 +26,16 @@ namespace Chrivent {
 
 	PanelManager::~PanelManager() {
 		DestroyGui();
+	}
+
+	void PanelManager::ApplySceneConfig(const SceneConfig& cfg) {
+		menuBar.ApplySceneConfig(cfg);
+		UpdateModelPanel();
+	}
+
+	void PanelManager::CommitSceneConfig(const SceneConfig& cfg) {
+		sceneConfigStorage = cfg;
+		UpdateModelPanel();
 	}
 
 	bool PanelManager::OpenGuiWindows() {

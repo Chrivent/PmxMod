@@ -245,8 +245,19 @@ namespace Chrivent {
                 return false;
             return true;
         }
-        if (panelManager.ConsumeSceneConfigDirty())
-            LoadScene(panelManager.GetSceneConfig());
+        std::filesystem::path modelPath;
+        if (panelManager.ConsumeAddModelPath(modelPath)) {
+            SceneConfig sceneConfig = panelManager.GetSceneConfig();
+            sceneConfig.modelConfigs.emplace_back(ModelConfig{
+                .modelPath = std::move(modelPath),
+                .animPaths = {},
+                .scale = 1.0f
+            });
+            if (LoadScene(sceneConfig))
+                panelManager.CommitSceneConfig(sceneConfig);
+        }
+        if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig()))
+            panelManager.RefreshModelList();
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
