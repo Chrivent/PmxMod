@@ -51,4 +51,12 @@ namespace Chrivent {
         result = WStringToUtf8(w);
         return result;
     }
+    
+    std::filesystem::path Util::PathFromUtf8(const std::string& utf8) {
+        std::u8string u8;
+        u8.reserve(utf8.size());
+        for (const unsigned char c : utf8)
+            u8.push_back(c);
+        return std::filesystem::path(u8);
+    }
 }

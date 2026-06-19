@@ -104,45 +104,42 @@ namespace Chrivent {
 
 	bool VmdParser::ReadFile(const std::filesystem::path& filename) {
 		Clear();
-
 		std::ifstream is(filename, std::ios::binary);
 		if (!is) {
 			std::cerr << "Failed to open VMD file: " << filename.string() << '\n';
 			return false;
 		}
-
-		const auto fail = [&](const char* stage) {
+		const auto Fail = [&](const char* stage) {
 			if (is)
 				return false;
 			std::cerr << "Failed to read VMD " << stage << ": " << filename.string() << '\n';
 			Clear();
 			return true;
 		};
-
 		const auto end = BinaryReader::GetFileEnd(is);
 		ReadHeader(is);
-		if (fail("header")) return false;
+		if (Fail("header")) return false;
 		ReadMotion(is);
-		if (fail("motions")) return false;
+		if (Fail("motions")) return false;
 		if (BinaryReader::HasMore(is, end)) {
 			ReadBlendShape(is);
-			if (fail("morphs")) return false;
+			if (Fail("morphs")) return false;
 		}
 		if (BinaryReader::HasMore(is, end)) {
 			ReadCamera(is);
-			if (fail("cameras")) return false;
+			if (Fail("cameras")) return false;
 		}
 		if (BinaryReader::HasMore(is, end)) {
 			ReadLight(is);
-			if (fail("lights")) return false;
+			if (Fail("lights")) return false;
 		}
 		if (BinaryReader::HasMore(is, end)) {
 			ReadShadow(is);
-			if (fail("shadows")) return false;
+			if (Fail("shadows")) return false;
 		}
 		if (BinaryReader::HasMore(is, end)) {
 			ReadIk(is);
-			if (fail("IK")) return false;
+			if (Fail("IK")) return false;
 		}
 		return true;
 	}
