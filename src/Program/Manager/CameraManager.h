@@ -27,6 +27,7 @@ namespace Chrivent {
 		~CameraManager();
 
 		uint32_t GetLastFrame() const;
+		bool IsPlaying() const { return !paused; }
 
 		// 지정한 프레임으로 재생 시간을 이동한다.
 		void SeekFrame(ViewerInfo& viewerInfo, Sound& music, int frame, std::chrono::steady_clock::time_point& saveTime) const;

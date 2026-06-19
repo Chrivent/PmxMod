@@ -379,7 +379,7 @@ namespace Chrivent {
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
         const float playbackFrame = viewer->GetInfo().animTime * 30.0f;
-        if (viewer->GetInfo().elapsed > 0.0f && playbackFrame >= endFrame) {
+        if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
             cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
             cameraManager.Pause(music);
             SyncSeekedPhysics(endFrame);
