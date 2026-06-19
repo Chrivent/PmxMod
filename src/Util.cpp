@@ -29,6 +29,25 @@ namespace Chrivent {
         return utf8;
     }
 
+    std::wstring Util::Utf8ToWString(const std::string& utf8) {
+        if (utf8.empty())
+            return {};
+        const int need = MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS,
+            utf8.data(), static_cast<int>(utf8.size()),
+            nullptr, 0);
+        if (need <= 0)
+            return {};
+        std::wstring result(need, L'\0');
+        const int written = MultiByteToWideChar(
+            CP_UTF8, MB_ERR_INVALID_CHARS,
+            utf8.data(), static_cast<int>(utf8.size()),
+            result.data(), need);
+        if (written != need)
+            return {};
+        return result;
+    }
+
     std::string Util::SjisToUtf8(const char* sjis) {
         std::string result;
         if (!sjis)

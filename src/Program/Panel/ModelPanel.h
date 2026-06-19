@@ -8,6 +8,9 @@
 namespace Chrivent {
 	class ModelPanel final : public Panel {
 		int addButtonId = 0;
+		int modelListId = 0;
+		int selectedModelIndex = -1;
+		int pendingSelectedModelIndex = -1;
 		HWND parentWindow = nullptr;
 		HWND addButton = nullptr;
 		HWND modelList = nullptr;
@@ -22,7 +25,10 @@ namespace Chrivent {
 	public:
 		ModelPanel() = default;
 
-		void SetAddButtonId(const int id) { addButtonId = id; }
+		void SetControlIds(const int addId, const int listId) {
+			addButtonId = addId;
+			modelListId = listId;
+		}
 
 		// 부모 윈도우 아래에 모델 패널 컨트롤을 생성한다.
 		void Create(HWND parent) override;
@@ -34,6 +40,8 @@ namespace Chrivent {
 		void Destroy() override;
 		// 선택된 모델 경로를 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath);
+		// 선택된 모델 인덱스를 반환하고 대기 중인 요청을 초기화한다.
+		bool ConsumeSelectedModelIndex(size_t& modelIndex);
 		// 씬에 배치된 모델 경로 목록을 패널에 반영한다.
 		void UpdateModelPaths(const std::vector<std::filesystem::path>& paths);
 	};

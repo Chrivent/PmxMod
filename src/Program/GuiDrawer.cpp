@@ -3,6 +3,61 @@
 #include <CommCtrl.h>
 
 namespace Chrivent {
+	void GuiDrawer::FillRectColor(const HDC deviceContext, const RECT& rect, const COLORREF color) {
+		const HBRUSH brush = CreateSolidBrush(color);
+		FillRect(deviceContext, &rect, brush);
+		DeleteObject(brush);
+	}
+
+	void GuiDrawer::DrawLine(
+		const HDC deviceContext,
+		const int x1,
+		const int y1,
+		const int x2,
+		const int y2,
+		const COLORREF color) {
+		const HPEN pen = CreatePen(PS_SOLID, 1, color);
+		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
+		MoveToEx(deviceContext, x1, y1, nullptr);
+		LineTo(deviceContext, x2, y2);
+		SelectObject(deviceContext, previousPen);
+		DeleteObject(pen);
+	}
+
+	void GuiDrawer::DrawDiamond(
+		const HDC deviceContext,
+		const int centerX,
+		const int centerY,
+		const int radius,
+		const COLORREF color) {
+		const POINT points[] = {
+			{centerX, centerY - radius},
+			{centerX + radius, centerY},
+			{centerX, centerY + radius},
+			{centerX - radius, centerY}
+		};
+		const HBRUSH brush = CreateSolidBrush(color);
+		const HPEN pen = CreatePen(PS_SOLID, 1, color);
+		const HGDIOBJ previousBrush = SelectObject(deviceContext, brush);
+		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
+		Polygon(deviceContext, points, 4);
+		SelectObject(deviceContext, previousPen);
+		SelectObject(deviceContext, previousBrush);
+		DeleteObject(pen);
+		DeleteObject(brush);
+	}
+
+	void GuiDrawer::DrawTextLine(
+		const HDC deviceContext,
+		const std::wstring& text,
+		RECT rect,
+		const COLORREF color,
+		const UINT format) {
+		SetBkMode(deviceContext, TRANSPARENT);
+		SetTextColor(deviceContext, color);
+		DrawTextW(deviceContext, text.c_str(), text.size(), &rect, format | DT_SINGLELINE | DT_VCENTER);
+	}
+
 	HWND GuiDrawer::CreateHorizontalSlider(const HWND parent, const int controlId, const int minValue, const int maxValue, const int initialValue) {
 		INITCOMMONCONTROLSEX init;
 		init.dwSize = sizeof(init);

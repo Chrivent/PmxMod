@@ -59,7 +59,9 @@ namespace Chrivent {
 
 	public:
 		explicit Animation(AnimationInfo animationInfo) : info(std::move(animationInfo)) {}
-		
+
+		const AnimationInfo& GetInfo() const { return info; }
+
 		// 포함된 모든 트랙 중 가장 마지막 키 프레임을 반환한다.
 		uint32_t GetLastFrame() const;
 		// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.

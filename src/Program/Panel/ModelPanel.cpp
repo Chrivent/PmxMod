@@ -38,9 +38,9 @@ namespace Chrivent {
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(addButtonId)), GetModuleHandleW(nullptr), nullptr);
 		modelList = CreateWindowExW(
 			WS_EX_CLIENTEDGE, L"LISTBOX", L"",
-			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOINTEGRALHEIGHT,
+			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOINTEGRALHEIGHT | LBS_NOTIFY,
 			0, 0, 0, 0,
-			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(modelListId)), GetModuleHandleW(nullptr), nullptr);
 		RefreshModelList();
 	}
 
@@ -61,9 +61,17 @@ namespace Chrivent {
 	}
 
 	bool ModelPanel::HandleCommand(const int commandId) {
-		if (commandId != addButtonId)
+		if (commandId == addButtonId) {
+			ShowOpenModelDialog();
+			return true;
+		}
+		if (commandId != modelListId || !modelList)
 			return false;
-		ShowOpenModelDialog();
+		const auto selection = SendMessageW(modelList, LB_GETCURSEL, 0, 0);
+		if (selection == LB_ERR)
+			return true;
+		selectedModelIndex = selection;
+		pendingSelectedModelIndex = selectedModelIndex;
 		return true;
 	}
 
@@ -76,6 +84,8 @@ namespace Chrivent {
 		addButton = nullptr;
 		modelList = nullptr;
 		pendingModelPath.clear();
+		selectedModelIndex = -1;
+		pendingSelectedModelIndex = -1;
 	}
 
 	bool ModelPanel::ConsumeAddModelPath(std::filesystem::path& modelPath) {
@@ -86,8 +96,24 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool ModelPanel::ConsumeSelectedModelIndex(size_t& modelIndex) {
+		if (pendingSelectedModelIndex < 0)
+			return false;
+		modelIndex = pendingSelectedModelIndex;
+		pendingSelectedModelIndex = -1;
+		return true;
+	}
+
 	void ModelPanel::UpdateModelPaths(const std::vector<std::filesystem::path>& paths) {
 		modelPaths = paths;
 		RefreshModelList();
+		if (modelPaths.empty()) {
+			selectedModelIndex = -1;
+			pendingSelectedModelIndex = -1;
+			return;
+		}
+		selectedModelIndex = std::clamp(selectedModelIndex, 0, static_cast<int>(modelPaths.size() - 1));
+		SendMessageW(modelList, LB_SETCURSEL, selectedModelIndex, 0);
+		pendingSelectedModelIndex = selectedModelIndex;
 	}
 }

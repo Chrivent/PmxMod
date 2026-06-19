@@ -9,6 +9,9 @@
 #include "../Panel/PlaybackPanel.h"
 #include "../Panel/SoundPanel.h"
 
+#include <algorithm>
+#include <utility>
+
 namespace Chrivent {
 	class Sound;
 
@@ -19,6 +22,7 @@ namespace Chrivent {
 		static constexpr int kPlaybackStopButtonId = 1004;
 		static constexpr int kSoundVolumeSliderId = 2001;
 		static constexpr int kModelAddButtonId = 3001;
+		static constexpr int kModelListId = 3002;
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
@@ -39,7 +43,10 @@ namespace Chrivent {
 		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
-		void SetPlaybackFrame(const int frame) const { playbackPanel.SetCurrentFrame(frame); }
+		void SetPlaybackFrame(const int frame) {
+			playbackPanel.SetCurrentFrame(frame);
+			motionPanel.SetCurrentFrame((std::max)(0, frame));
+		}
 		void SetPlaybackFrameRange(const int maxFrame) const { playbackPanel.SetFrameRange(maxFrame); }
 
 		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
@@ -56,8 +63,14 @@ namespace Chrivent {
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }
+		// 모델 패널에서 선택한 모델 인덱스를 반환하고 대기 요청을 초기화한다.
+		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
+		// 선택 모델의 모션 트랙을 모션 패널에 표시한다.
+		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineRow> rows, uint32_t lastFrame) {
+			motionPanel.SetTimeline(std::move(modelName), std::move(rows), lastFrame);
+		}
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }
 		// 메뉴와 패널의 일회성 변경 상태를 초기화한다.

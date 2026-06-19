@@ -9,8 +9,10 @@
 #include "../Viewer/Glsl/Vulkan/VulkanViewer.h"
 #include "../Viewer/Hlsl/Dx11/Dx11Viewer.h"
 #include "../Viewer/Hlsl/Dx12/Dx12Viewer.h"
+#include "../Util.h"
 
 #include <iostream>
+#include <unordered_map>
 
 namespace Chrivent {
     void Program::CreateViewer(const RendererType rendererType) {
@@ -210,6 +212,77 @@ namespace Chrivent {
         }
     }
 
+    void Program::UpdateMotionPanel(const size_t modelIndex) {
+        if (modelIndex >= instances.size() || !instances[modelIndex] || !instances[modelIndex]->GetInfo().model)
+            return;
+        const auto& instanceInfo = instances[modelIndex]->GetInfo();
+        const auto& model = *instanceInfo.model;
+        std::unordered_map<const Node*, std::vector<uint32_t>> nodeKeyFrames;
+        std::unordered_map<const IkSolver*, std::vector<uint32_t>> ikKeyFrames;
+        std::unordered_map<const Morph*, std::vector<uint32_t>> morphKeyFrames;
+        uint32_t lastFrame = 0;
+        if (instanceInfo.anim) {
+            const auto& animationInfo = instanceInfo.anim->GetInfo();
+            for (const auto& [node, keys] : animationInfo.nodeTracks) {
+                auto& frames = nodeKeyFrames[node.get()];
+                frames.reserve(keys.size());
+                for (const auto& key : keys) {
+                    frames.emplace_back(key.frame);
+                    lastFrame = (std::max)(lastFrame, key.frame);
+                }
+            }
+            for (const auto& [ikSolver, keys] : animationInfo.ikTracks) {
+                auto& frames = ikKeyFrames[ikSolver.get()];
+                frames.reserve(keys.size());
+                for (const auto& key : keys) {
+                    frames.emplace_back(key.frame);
+                    lastFrame = (std::max)(lastFrame, key.frame);
+                }
+            }
+            for (const auto& [morph, keys] : animationInfo.morphTracks) {
+                auto& frames = morphKeyFrames[morph.get()];
+                frames.reserve(keys.size());
+                for (const auto& key : keys) {
+                    frames.emplace_back(key.frame);
+                    lastFrame = (std::max)(lastFrame, key.frame);
+                }
+            }
+        }
+        std::vector<MotionTimelineRow> rows;
+        rows.reserve(model.skeletonData.nodes.size() + model.skeletonData.ikSolvers.size() + model.morphData.morphs.size());
+        for (const auto& node : model.skeletonData.nodes) {
+            if (!node)
+                continue;
+            rows.push_back({
+                .name = Util::Utf8ToWString(node->GetInfo().name),
+                .keyFrames = nodeKeyFrames[node.get()]
+            });
+        }
+        for (const auto& ikSolver : model.skeletonData.ikSolvers) {
+            if (!ikSolver)
+                continue;
+            const auto ikNode = ikSolver->GetInfo().ikNode.lock();
+            if (!ikNode)
+                continue;
+            rows.push_back({
+                .name = L"IK: " + Util::Utf8ToWString(ikNode->GetInfo().name),
+                .keyFrames = ikKeyFrames[ikSolver.get()]
+            });
+        }
+        for (const auto& morph : model.morphData.morphs) {
+            if (!morph)
+                continue;
+            rows.push_back({
+                .name = L"모프: " + Util::Utf8ToWString(morph->name),
+                .keyFrames = morphKeyFrames[morph.get()]
+            });
+        }
+        std::wstring modelName = Util::Utf8ToWString(model.infoData.modelName);
+        if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
+            modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
+        panelManager.SetMotionTimeline(std::move(modelName), std::move(rows), lastFrame);
+    }
+
     void Program::ClearInstances() {
         for (const auto& instance : instances)
             instance->Clear();
@@ -258,6 +331,9 @@ namespace Chrivent {
         }
         if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig()))
             panelManager.RefreshModelList();
+        size_t selectedModelIndex = 0;
+        if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
+            UpdateMotionPanel(selectedModelIndex);
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {

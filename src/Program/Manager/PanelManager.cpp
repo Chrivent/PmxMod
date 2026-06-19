@@ -15,7 +15,7 @@ namespace Chrivent {
 		: menuBar(sceneConfigStorage) {
 		playbackPanel.SetControlIds(kPlaybackTimelineSliderId, kPlaybackPlayButtonId, kPlaybackPauseButtonId, kPlaybackStopButtonId);
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
-		modelPanel.SetAddButtonId(kModelAddButtonId);
+		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, L"Model", PanelWindowArea::Model);
 		panelWindow.RegisterPanel(motionPanel, L"Motion", PanelWindowArea::Motion);

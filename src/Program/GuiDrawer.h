@@ -1,10 +1,20 @@
 ﻿#pragma once
 
+#include <string>
+
 #include <windows.h>
 
 namespace Chrivent {
 	class GuiDrawer {
 	public:
+		// 지정한 영역을 단색 브러시로 채운다.
+		static void FillRectColor(HDC deviceContext, const RECT& rect, COLORREF color);
+		// 지정한 두 점 사이에 단색 선을 그린다.
+		static void DrawLine(HDC deviceContext, int x1, int y1, int x2, int y2, COLORREF color);
+		// 지정한 중심과 반지름으로 채워진 마름모를 그린다.
+		static void DrawDiamond(HDC deviceContext, int centerX, int centerY, int radius, COLORREF color);
+		// 지정한 영역에 한 줄 텍스트를 그린다.
+		static void DrawTextLine(HDC deviceContext, const std::wstring& text, RECT rect, COLORREF color, UINT format);
 		// 눈금 없는 가로 슬라이더 컨트롤을 생성한다.
 		static HWND CreateHorizontalSlider(HWND parent, int controlId, int minValue, int maxValue, int initialValue);
 		// 눈금이 있는 세로 슬라이더 컨트롤을 생성한다.
