@@ -74,7 +74,7 @@ namespace Chrivent {
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
-			if (frame > rangeEndFrame)
+			if (frame > totalFrame)
 				break;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
@@ -97,7 +97,7 @@ namespace Chrivent {
 				{8, top, kLabelWidth - 4, top + kRowHeight}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 			GuiDrawer::DrawLine(deviceContext, 0, top + kRowHeight, client.right, top + kRowHeight, RGB(64, 67, 75));
 			for (const uint32_t frame : rows[rowIndex].keyFrames) {
-				if (frame < rangeStartFrame || frame > rangeEndFrame || frame < firstFrame)
+				if (frame > totalFrame || frame < firstFrame)
 					continue;
 				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 				if (x > client.right)
@@ -182,7 +182,7 @@ namespace Chrivent {
 		timelineWindow = nullptr;
 		modelName.clear();
 		rows.clear();
-		lastFrame = 0;
+		totalFrame = 1;
 		currentFrame = 0;
 		rangeStartFrame = 0;
 		rangeEndFrame = 0;
@@ -192,11 +192,9 @@ namespace Chrivent {
 
 	void MotionPanel::SetTimeline(
 		std::wstring name,
-		std::vector<MotionTimelineRow> timelineRows,
-		const uint32_t maxFrame) {
+		std::vector<MotionTimelineRow> timelineRows) {
 		modelName = std::move(name);
 		rows = std::move(timelineRows);
-		lastFrame = maxFrame;
 		currentFrame = rangeStartFrame;
 		firstRow = 0;
 		firstFrame = rangeStartFrame;
@@ -205,9 +203,13 @@ namespace Chrivent {
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetFrameRange(const uint32_t startFrame, const uint32_t endFrame) {
+	void MotionPanel::SetFrameRange(
+		const uint32_t startFrame,
+		const uint32_t endFrame,
+		const uint32_t maxFrame) {
+		totalFrame = (std::max)(1u, maxFrame);
 		rangeStartFrame = startFrame;
-		rangeEndFrame = (std::max)(startFrame, endFrame);
+		rangeEndFrame = std::clamp(endFrame, startFrame + 1, totalFrame);
 		currentFrame = std::clamp(currentFrame, rangeStartFrame, rangeEndFrame);
 		firstFrame = rangeStartFrame;
 		if (timelineWindow)

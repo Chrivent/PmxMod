@@ -27,7 +27,7 @@ namespace Chrivent {
 			return 0;
 		}
 		case WM_COMMAND:
-			if (panel->HandleCommand(LOWORD(wParam)))
+			if (panel->HandleCommand(LOWORD(wParam), HIWORD(wParam)))
 				return 0;
 			break;
 		case WM_HSCROLL:
@@ -47,6 +47,7 @@ namespace Chrivent {
 			panel->rangeSeparatorText = nullptr;
 			panel->endFrameEdit = nullptr;
 			panel->resetRangeButton = nullptr;
+			panel->totalFrameEdit = nullptr;
 			return 0;
 		default:
 			break;
@@ -57,27 +58,27 @@ namespace Chrivent {
 	void PlaybackPanel::CreateContent(const HWND parent) {
 		if (timelineSlider)
 			return;
-		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, timelineSliderId, 0, 10000, 0);
+		timelineSlider = GuiDrawer::CreateHorizontalSlider(parent, controlIds.timelineSlider, 0, 10000, 0);
 		playButton = CreateWindowExW(
 			0, L"BUTTON", L"Play",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(playButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.playButton)), GetModuleHandleW(nullptr), nullptr);
 		pauseButton = CreateWindowExW(
 			0, L"BUTTON", L"Pause",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(pauseButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.pauseButton)), GetModuleHandleW(nullptr), nullptr);
 		stopButton = CreateWindowExW(
 			0, L"BUTTON", L"Stop",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.stopButton)), GetModuleHandleW(nullptr), nullptr);
 		startFrameEdit = CreateWindowExW(
 			WS_EX_CLIENTEDGE, L"EDIT", L"0",
 			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(startFrameEditId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.startFrameEdit)), GetModuleHandleW(nullptr), nullptr);
 		rangeSeparatorText = CreateWindowExW(
 			0, L"STATIC", L"~",
 			WS_CHILD | WS_VISIBLE | SS_CENTER,
@@ -87,14 +88,20 @@ namespace Chrivent {
 			WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(frameRange.end).c_str(),
 			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(endFrameEditId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.endFrameEdit)), GetModuleHandleW(nullptr), nullptr);
 		resetRangeButton = CreateWindowExW(
 			0, L"BUTTON", L"Reset",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(resetRangeButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.resetRangeButton)), GetModuleHandleW(nullptr), nullptr);
+		totalFrameEdit = CreateWindowExW(
+			WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(totalFrame).c_str(),
+			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.totalFrameEdit)), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
+		SendMessageW(totalFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		ApplyFrameRange(frameRange, customFrameRange);
 	}
 
@@ -109,42 +116,62 @@ namespace Chrivent {
 			return;
 		const int start = _wtoi(startText);
 		const int end = _wtoi(endText);
-		if (start < 0 || end < start)
+		ApplyFrameRange({start, end}, true);
+		timelineRangeChanged = true;
+	}
+
+	void PlaybackPanel::ApplyInputTotalFrame() {
+		if (updatingRangeControls)
 			return;
-		frameRange = {start, end};
-		customFrameRange = true;
-		if (timelineSlider) {
-			SendMessageW(timelineSlider, TBM_SETRANGEMIN, FALSE, frameRange.start);
-			SendMessageW(timelineSlider, TBM_SETRANGEMAX, TRUE, frameRange.end);
-		}
-		frameRangeChanged = true;
+		wchar_t text[16]{};
+		GetWindowTextW(totalFrameEdit, text, std::size(text));
+		if (text[0] == L'\0')
+			return;
+		totalFrame = (std::max)(1, _wtoi(text));
+		customTotalFrame = true;
+		ApplyFrameRange(frameRange, customFrameRange);
+		timelineRangeChanged = true;
 	}
 
 	void PlaybackPanel::ApplyFrameRange(const PlaybackFrameRange range, const bool customRange) {
-		frameRange = range;
+		frameRange = NormalizeFrameRange(range);
 		customFrameRange = customRange;
 		if (timelineSlider) {
-			SendMessageW(timelineSlider, TBM_SETRANGEMIN, FALSE, frameRange.start);
-			SendMessageW(timelineSlider, TBM_SETRANGEMAX, TRUE, frameRange.end);
+			SendMessageW(timelineSlider, TBM_SETRANGEMIN, FALSE, 0);
+			SendMessageW(timelineSlider, TBM_SETRANGEMAX, TRUE, totalFrame);
 		}
+		UpdateRangeControls();
+	}
+
+	PlaybackFrameRange PlaybackPanel::NormalizeFrameRange(PlaybackFrameRange range) const {
+		range.start = std::clamp(range.start, 0, totalFrame - 1);
+		range.end = std::clamp(range.end, range.start + 1, totalFrame);
+		return range;
+	}
+
+	void PlaybackPanel::UpdateRangeControls() {
 		updatingRangeControls = true;
 		if (startFrameEdit)
 			SetWindowTextW(startFrameEdit, std::to_wstring(frameRange.start).c_str());
 		if (endFrameEdit)
 			SetWindowTextW(endFrameEdit, std::to_wstring(frameRange.end).c_str());
+		if (totalFrameEdit)
+			SetWindowTextW(totalFrameEdit, std::to_wstring(totalFrame).c_str());
 		updatingRangeControls = false;
 	}
 
 	void PlaybackPanel::SetCurrentFrame(const int frame) const {
 		if (!timelineSlider)
 			return;
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, (std::max)(0, frame));
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, std::clamp(frame, frameRange.start, frameRange.end));
 	}
 
 	void PlaybackPanel::SetFrameRange(const int maxFrame) {
-		defaultLastFrame = (std::max)(0, maxFrame);
+		defaultLastFrame = (std::max)(1, maxFrame);
+		if (!customTotalFrame)
+			totalFrame = defaultLastFrame;
 		if (!customFrameRange)
-			ApplyFrameRange({0, defaultLastFrame}, false);
+			ApplyFrameRange({0, totalFrame}, false);
 		else
 			ApplyFrameRange(frameRange, true);
 		if (timelineSlider)
@@ -200,12 +227,14 @@ namespace Chrivent {
 		constexpr int frameEditWidth = 66;
 		constexpr int separatorWidth = 24;
 		constexpr int resetButtonWidth = 64;
+		constexpr int totalFrameEditWidth = 72;
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
 		const int sliderY = clientRect.top + 8;
 		if (timelineSlider)
 			MoveWindow(timelineSlider, clientRect.left + margin, sliderY, width, sliderHeight, TRUE);
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
-		constexpr int rangeWidth = frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
+		constexpr int rangeWidth =
+			frameEditWidth * 2 + separatorWidth + buttonGap * 2 + resetButtonWidth + totalFrameEditWidth;
 		const int buttonX = clientRect.left + margin;
 		const int buttonY = sliderY + sliderHeight + 10;
 		if (playButton)
@@ -226,20 +255,29 @@ namespace Chrivent {
 		if (resetRangeButton)
 			MoveWindow(resetRangeButton, rangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
 				buttonY, resetButtonWidth, buttonHeight, TRUE);
+		if (totalFrameEdit)
+			MoveWindow(totalFrameEdit,
+				rangeX + frameEditWidth * 2 + separatorWidth + buttonGap * 2 + resetButtonWidth,
+				buttonY, totalFrameEditWidth, buttonHeight, TRUE);
 	}
 
-	bool PlaybackPanel::HandleCommand(const int commandId) {
-		if (commandId == playButtonId)
+	bool PlaybackPanel::HandleCommand(const int commandId, const int notificationCode) {
+		if (commandId == controlIds.playButton)
 			pendingCommand = PlaybackCommand::Play;
-		else if (commandId == pauseButtonId)
+		else if (commandId == controlIds.pauseButton)
 			pendingCommand = PlaybackCommand::Pause;
-		else if (commandId == stopButtonId)
+		else if (commandId == controlIds.stopButton)
 			pendingCommand = PlaybackCommand::Stop;
-		else if (commandId == startFrameEditId || commandId == endFrameEditId)
+		else if ((commandId == controlIds.startFrameEdit || commandId == controlIds.endFrameEdit) &&
+			notificationCode == EN_KILLFOCUS)
 			ApplyInputFrameRange();
-		else if (commandId == resetRangeButtonId) {
-			ApplyFrameRange({0, defaultLastFrame}, false);
-			frameRangeChanged = true;
+		else if (commandId == controlIds.totalFrameEdit && notificationCode == EN_KILLFOCUS)
+			ApplyInputTotalFrame();
+		else if (commandId == controlIds.resetRangeButton) {
+			totalFrame = defaultLastFrame;
+			customTotalFrame = false;
+			ApplyFrameRange({0, totalFrame}, false);
+			timelineRangeChanged = true;
 		}
 		else
 			return false;
@@ -249,7 +287,11 @@ namespace Chrivent {
 	bool PlaybackPanel::HandleScroll(const HWND control, const int scrollCode) {
 		if (control != timelineSlider)
 			return false;
-		seekFrame = SendMessageW(timelineSlider, TBM_GETPOS, 0, 0);
+		seekFrame = std::clamp(
+			static_cast<int>(SendMessageW(timelineSlider, TBM_GETPOS, 0, 0)),
+			frameRange.start,
+			frameRange.end);
+		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, seekFrame);
 		seekRequested = true;
 		seekFinished = scrollCode == TB_ENDTRACK;
 		return true;
@@ -274,6 +316,8 @@ namespace Chrivent {
 			DestroyWindow(endFrameEdit);
 		if (resetRangeButton)
 			DestroyWindow(resetRangeButton);
+		if (totalFrameEdit)
+			DestroyWindow(totalFrameEdit);
 		panelWindow = nullptr;
 		timelineSlider = nullptr;
 		playButton = nullptr;
@@ -283,6 +327,7 @@ namespace Chrivent {
 		rangeSeparatorText = nullptr;
 		endFrameEdit = nullptr;
 		resetRangeButton = nullptr;
+		totalFrameEdit = nullptr;
 	}
 
 	PlaybackCommand PlaybackPanel::ConsumeCommand() {
@@ -301,11 +346,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool PlaybackPanel::ConsumeFrameRangeChange(PlaybackFrameRange& range) {
-		if (!frameRangeChanged)
+	bool PlaybackPanel::ConsumeTimelineRangeChange(PlaybackFrameRange& range, int& total) {
+		if (!timelineRangeChanged)
 			return false;
 		range = frameRange;
-		frameRangeChanged = false;
+		total = totalFrame;
+		timelineRangeChanged = false;
 		return true;
 	}
 }

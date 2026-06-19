@@ -60,12 +60,12 @@ namespace Chrivent {
 			width, listHeight, TRUE);
 	}
 
-	bool ModelPanel::HandleCommand(const int commandId) {
+	bool ModelPanel::HandleCommand(const int commandId, const int notificationCode) {
 		if (commandId == addButtonId) {
 			ShowOpenModelDialog();
 			return true;
 		}
-		if (commandId != modelListId || !modelList)
+		if (commandId != modelListId || notificationCode != LBN_SELCHANGE || !modelList)
 			return false;
 		const auto selection = SendMessageW(modelList, LB_GETCURSEL, 0, 0);
 		if (selection == LB_ERR)

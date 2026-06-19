@@ -18,7 +18,7 @@ namespace Chrivent {
 				if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam)))
 					return 0;
 				for (const auto& entry : panelWindow->panels) {
-					if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam)))
+					if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam), HIWORD(wParam)))
 						return 0;
 				}
 				break;

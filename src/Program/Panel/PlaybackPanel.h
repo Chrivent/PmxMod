@@ -15,22 +15,29 @@ namespace Chrivent {
 		int end = 0;
 	};
 
+	struct PlaybackControlIds {
+		int timelineSlider = 0;
+		int playButton = 0;
+		int pauseButton = 0;
+		int stopButton = 0;
+		int startFrameEdit = 0;
+		int endFrameEdit = 0;
+		int resetRangeButton = 0;
+		int totalFrameEdit = 0;
+	};
+
 	class PlaybackPanel final : public Panel {
-		int timelineSliderId = 0;
-		int playButtonId = 0;
-		int pauseButtonId = 0;
-		int stopButtonId = 0;
-		int startFrameEditId = 0;
-		int endFrameEditId = 0;
-		int resetRangeButtonId = 0;
+		PlaybackControlIds controlIds;
 		PlaybackCommand pendingCommand = PlaybackCommand::None;
 		bool seekRequested = false;
 		bool seekFinished = false;
 		bool customFrameRange = false;
-		bool frameRangeChanged = false;
+		bool customTotalFrame = false;
+		bool timelineRangeChanged = false;
 		bool updatingRangeControls = false;
 		int seekFrame = 0;
 		int defaultLastFrame = 0;
+		int totalFrame = 1;
 		PlaybackFrameRange frameRange;
 		HWND panelWindow = nullptr;
 		HWND timelineSlider = nullptr;
@@ -41,6 +48,7 @@ namespace Chrivent {
 		HWND rangeSeparatorText = nullptr;
 		HWND endFrameEdit = nullptr;
 		HWND resetRangeButton = nullptr;
+		HWND totalFrameEdit = nullptr;
 
 		// 플레이백 패널 윈도우의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -48,30 +56,22 @@ namespace Chrivent {
 		void CreateContent(HWND parent);
 		// 입력 컨트롤의 숫자를 읽어 사용자 재생 범위로 적용한다.
 		void ApplyInputFrameRange();
+		// 전체 프레임 입력값을 타임라인 길이로 적용한다.
+		void ApplyInputTotalFrame();
 		// 지정한 재생 범위를 슬라이더와 입력 컨트롤에 반영한다.
 		void ApplyFrameRange(PlaybackFrameRange range, bool customRange);
+		// 시작과 끝 프레임을 전체 프레임 안의 유효한 범위로 보정한다.
+		PlaybackFrameRange NormalizeFrameRange(PlaybackFrameRange range) const;
+		// 전체 프레임과 재생 범위를 모든 입력 컨트롤에 반영한다.
+		void UpdateRangeControls();
 
 	public:
 		PlaybackPanel() = default;
 
 		PlaybackFrameRange GetFrameRange() const { return frameRange; }
+		int GetTotalFrame() const { return totalFrame; }
 
-		void SetControlIds(
-			const int timelineId,
-			const int playId,
-			const int pauseId,
-			const int stopId,
-			const int startEditId,
-			const int endEditId,
-			const int resetButtonId) {
-			timelineSliderId = timelineId;
-			playButtonId = playId;
-			pauseButtonId = pauseId;
-			stopButtonId = stopId;
-			startFrameEditId = startEditId;
-			endFrameEditId = endEditId;
-			resetRangeButtonId = resetButtonId;
-		}
+		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		
 		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
 		void SetCurrentFrame(int frame) const;
@@ -86,7 +86,7 @@ namespace Chrivent {
 		// 패널 크기에 맞춰 슬라이더와 버튼 위치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
 		// 재생 제어 버튼 명령을 내부 재생 명령으로 저장한다.
-		bool HandleCommand(int commandId) override;
+		bool HandleCommand(int commandId, int notificationCode) override;
 		// 타임라인 슬라이더 이동을 프레임 이동 요청으로 저장한다.
 		bool HandleScroll(HWND control, int scrollCode) override;
 		// 패널 윈도우와 컨트롤 핸들을 정리한다.
@@ -95,7 +95,7 @@ namespace Chrivent {
 		PlaybackCommand ConsumeCommand();
 		// 슬라이더로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
-		// 변경된 사용자 재생 범위를 반환하고 변경 상태를 초기화한다.
-		bool ConsumeFrameRangeChange(PlaybackFrameRange& range);
+		// 변경된 사용자 재생 범위와 전체 프레임을 반환하고 변경 상태를 초기화한다.
+		bool ConsumeTimelineRangeChange(PlaybackFrameRange& range, int& total);
 	};
 }

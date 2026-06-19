@@ -13,14 +13,16 @@ namespace Chrivent {
 
 	PanelManager::PanelManager()
 		: menuBar(sceneConfigStorage) {
-		playbackPanel.SetControlIds(
-			kPlaybackTimelineSliderId,
-			kPlaybackPlayButtonId,
-			kPlaybackPauseButtonId,
-			kPlaybackStopButtonId,
-			kPlaybackStartFrameEditId,
-			kPlaybackEndFrameEditId,
-			kPlaybackResetRangeButtonId);
+		playbackPanel.SetControlIds({
+			.timelineSlider = kPlaybackTimelineSliderId,
+			.playButton = kPlaybackPlayButtonId,
+			.pauseButton = kPlaybackPauseButtonId,
+			.stopButton = kPlaybackStopButtonId,
+			.startFrameEdit = kPlaybackStartFrameEditId,
+			.endFrameEdit = kPlaybackEndFrameEditId,
+			.resetRangeButton = kPlaybackResetRangeButtonId,
+			.totalFrameEdit = kPlaybackTotalFrameEditId
+		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);
 		panelWindow.AttachMenuBar(menuBar);

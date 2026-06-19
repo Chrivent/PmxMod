@@ -154,6 +154,11 @@ namespace Chrivent {
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(viewer->GetInfo(), music, saveTime);
         panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        const int startFrame = panelManager.GetPlaybackFrameRange().start;
+        if (startFrame > 0) {
+            cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
+            SyncSeekedPhysics(startFrame);
+        }
         return true;
     }
 
@@ -220,32 +225,25 @@ namespace Chrivent {
         std::unordered_map<const Node*, std::vector<uint32_t>> nodeKeyFrames;
         std::unordered_map<const IkSolver*, std::vector<uint32_t>> ikKeyFrames;
         std::unordered_map<const Morph*, std::vector<uint32_t>> morphKeyFrames;
-        uint32_t lastFrame = 0;
         if (instanceInfo.anim) {
-            const auto& animationInfo = instanceInfo.anim->GetInfo();
-            for (const auto& [node, keys] : animationInfo.nodeTracks) {
+            const auto& [nodeTracks, ikTracks, morphTracks] = instanceInfo.anim->GetInfo();
+            for (const auto& [node, keys] : nodeTracks) {
                 auto& frames = nodeKeyFrames[node.get()];
                 frames.reserve(keys.size());
-                for (const auto& key : keys) {
+                for (const auto& key : keys)
                     frames.emplace_back(key.frame);
-                    lastFrame = (std::max)(lastFrame, key.frame);
-                }
             }
-            for (const auto& [ikSolver, keys] : animationInfo.ikTracks) {
+            for (const auto& [ikSolver, keys] : ikTracks) {
                 auto& frames = ikKeyFrames[ikSolver.get()];
                 frames.reserve(keys.size());
-                for (const auto& key : keys) {
-                    frames.emplace_back(key.frame);
-                    lastFrame = (std::max)(lastFrame, key.frame);
-                }
+                for (const auto& [frame, ikEnable] : keys)
+                    frames.emplace_back(frame);
             }
-            for (const auto& [morph, keys] : animationInfo.morphTracks) {
+            for (const auto& [morph, keys] : morphTracks) {
                 auto& frames = morphKeyFrames[morph.get()];
                 frames.reserve(keys.size());
-                for (const auto& key : keys) {
-                    frames.emplace_back(key.frame);
-                    lastFrame = (std::max)(lastFrame, key.frame);
-                }
+                for (const auto& [frame, morphWeight] : keys)
+                    frames.emplace_back(frame);
             }
         }
         std::vector<MotionTimelineRow> rows;
@@ -280,7 +278,7 @@ namespace Chrivent {
         std::wstring modelName = Util::Utf8ToWString(model.infoData.modelName);
         if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
             modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
-        panelManager.SetMotionTimeline(std::move(modelName), std::move(rows), lastFrame);
+        panelManager.SetMotionTimeline(std::move(modelName), std::move(rows));
     }
 
     void Program::ClearInstances() {
@@ -334,7 +332,13 @@ namespace Chrivent {
         size_t selectedModelIndex = 0;
         if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
             UpdateMotionPanel(selectedModelIndex);
-        panelManager.SyncPlaybackFrameRange();
+        PlaybackFrameRange changedRange;
+        if (panelManager.ConsumePlaybackFrameRangeChange(changedRange)) {
+            const int currentFrame = viewer->GetInfo().animTime * 30.0f + 0.5f;
+            const int rangedFrame = std::clamp(currentFrame, changedRange.start, changedRange.end);
+            if (rangedFrame != currentFrame)
+                cameraManager.SeekFrame(viewer->GetInfo(), music, rangedFrame, saveTime);
+        }
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
@@ -348,6 +352,11 @@ namespace Chrivent {
         switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
                 viewer->GetInfo().skipPhysics = false;
+                if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
+                    viewer->GetInfo().animTime * 30.0f < start || viewer->GetInfo().animTime * 30.0f >= end) {
+                    cameraManager.SeekFrame(viewer->GetInfo(), music, start, saveTime);
+                    SyncSeekedPhysics(start);
+                }
                 cameraManager.Play(music);
                 break;
             case PlaybackCommand::Pause:
@@ -356,7 +365,9 @@ namespace Chrivent {
             case PlaybackCommand::Stop:
                 viewer->GetInfo().skipPhysics = false;
                 cameraManager.Stop(viewer->GetInfo(), music, saveTime);
-                SyncSeekedPhysics(0);
+                if (const int startFrame = panelManager.GetPlaybackFrameRange().start; startFrame > 0)
+                    cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
+                SyncSeekedPhysics(panelManager.GetPlaybackFrameRange().start);
                 break;
             case PlaybackCommand::None:
                 break;
@@ -366,6 +377,14 @@ namespace Chrivent {
         if (!UpdateFramebufferSize())
             return false;
         cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
+        const int endFrame = panelManager.GetPlaybackFrameRange().end;
+        const float playbackFrame = viewer->GetInfo().animTime * 30.0f;
+        if (viewer->GetInfo().elapsed > 0.0f && playbackFrame >= endFrame) {
+            cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
+            cameraManager.Pause(music);
+            SyncSeekedPhysics(endFrame);
+            viewer->GetInfo().skipPhysics = false;
+        }
         panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->BeginFrame();

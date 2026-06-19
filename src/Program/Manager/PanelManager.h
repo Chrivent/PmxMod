@@ -23,6 +23,7 @@ namespace Chrivent {
 		static constexpr int kPlaybackStartFrameEditId = 1005;
 		static constexpr int kPlaybackEndFrameEditId = 1006;
 		static constexpr int kPlaybackResetRangeButtonId = 1007;
+		static constexpr int kPlaybackTotalFrameEditId = 1008;
 		static constexpr int kSoundVolumeSliderId = 2001;
 		static constexpr int kModelAddButtonId = 3001;
 		static constexpr int kModelListId = 3002;
@@ -50,10 +51,12 @@ namespace Chrivent {
 			playbackPanel.SetCurrentFrame(frame);
 			motionPanel.SetCurrentFrame((std::max)(0, frame));
 		}
+		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
+
 		void SetPlaybackFrameRange(const int maxFrame) {
 			playbackPanel.SetFrameRange(maxFrame);
 			const auto [start, end] = playbackPanel.GetFrameRange();
-			motionPanel.SetFrameRange(start, end);
+			motionPanel.SetFrameRange(start, end, playbackPanel.GetTotalFrame());
 		}
 
 		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
@@ -68,11 +71,13 @@ namespace Chrivent {
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return playbackPanel.ConsumeSeekFrame(frame, finished); }
-		// 플레이백 입력 범위 변경을 모션 패널에 반영한다.
-		void SyncPlaybackFrameRange() {
-			PlaybackFrameRange range;
-			if (playbackPanel.ConsumeFrameRangeChange(range))
-				motionPanel.SetFrameRange(range.start, range.end);
+		// 변경된 플레이백 입력 범위와 전체 프레임을 반환하고 모션 패널에 반영한다.
+		bool ConsumePlaybackFrameRangeChange(PlaybackFrameRange& range) {
+			int totalFrame = 0;
+			if (!playbackPanel.ConsumeTimelineRangeChange(range, totalFrame))
+				return false;
+			motionPanel.SetFrameRange(range.start, range.end, totalFrame);
+			return true;
 		}
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }
@@ -81,8 +86,8 @@ namespace Chrivent {
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
 		// 선택 모델의 모션 트랙을 모션 패널에 표시한다.
-		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineRow> rows, uint32_t lastFrame) {
-			motionPanel.SetTimeline(std::move(modelName), std::move(rows), lastFrame);
+		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineRow> rows) {
+			motionPanel.SetTimeline(std::move(modelName), std::move(rows));
 		}
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }

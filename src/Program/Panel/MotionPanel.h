@@ -21,7 +21,7 @@ namespace Chrivent {
 		HWND timelineWindow = nullptr;
 		std::wstring modelName;
 		std::vector<MotionTimelineRow> rows;
-		uint32_t lastFrame = 0;
+		uint32_t totalFrame = 1;
 		uint32_t currentFrame = 0;
 		uint32_t rangeStartFrame = 0;
 		uint32_t rangeEndFrame = 0;
@@ -49,9 +49,9 @@ namespace Chrivent {
 		// 모션 타임라인 컨트롤 핸들과 표시 데이터를 정리한다.
 		void Destroy() override;
 		// 선택 모델의 이름과 트랙별 키프레임을 타임라인에 표시한다.
-		void SetTimeline(std::wstring name, std::vector<MotionTimelineRow> timelineRows, uint32_t maxFrame);
-		// 플레이백 패널의 시작과 끝 프레임을 모션 타임라인에 반영한다.
-		void SetFrameRange(uint32_t startFrame, uint32_t endFrame);
+		void SetTimeline(std::wstring name, std::vector<MotionTimelineRow> timelineRows);
+		// 플레이백 패널의 재생 범위와 전체 프레임을 모션 타임라인에 반영한다.
+		void SetFrameRange(uint32_t startFrame, uint32_t endFrame, uint32_t maxFrame);
 		// 현재 재생 프레임을 타임라인 표시선에 반영한다.
 		void SetCurrentFrame(uint32_t frame);
 	};
