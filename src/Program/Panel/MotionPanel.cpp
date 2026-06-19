@@ -74,6 +74,8 @@ namespace Chrivent {
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
+			if (frame > rangeEndFrame)
+				break;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
 			GuiDrawer::DrawLine(deviceContext, x, 0, x, client.bottom,
@@ -95,9 +97,9 @@ namespace Chrivent {
 				{8, top, kLabelWidth - 4, top + kRowHeight}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 			GuiDrawer::DrawLine(deviceContext, 0, top + kRowHeight, client.right, top + kRowHeight, RGB(64, 67, 75));
 			for (const uint32_t frame : rows[rowIndex].keyFrames) {
-				if (frame < static_cast<uint32_t>(firstFrame))
+				if (frame < rangeStartFrame || frame > rangeEndFrame || frame < firstFrame)
 					continue;
-				const int x = kLabelWidth + (static_cast<int>(frame) - firstFrame) * kFrameWidth;
+				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 				if (x > client.right)
 					break;
 				GuiDrawer::DrawDiamond(deviceContext, x, top + kRowHeight / 2, 5, RGB(246, 190, 53));
@@ -137,7 +139,7 @@ namespace Chrivent {
 		const int timelineWidth = (std::max)(0, static_cast<int>(client.right) - kLabelWidth);
 		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
 		const int current = currentFrame;
-		const int nextFirstFrame = (std::max)(0, current - visibleFrames / 2);
+		const int nextFirstFrame = (std::max)(static_cast<int>(rangeStartFrame), current - visibleFrames / 2);
 		if (firstFrame == nextFirstFrame)
 			return;
 		firstFrame = nextFirstFrame;
@@ -182,6 +184,8 @@ namespace Chrivent {
 		rows.clear();
 		lastFrame = 0;
 		currentFrame = 0;
+		rangeStartFrame = 0;
+		rangeEndFrame = 0;
 		firstRow = 0;
 		firstFrame = 0;
 	}
@@ -193,18 +197,28 @@ namespace Chrivent {
 		modelName = std::move(name);
 		rows = std::move(timelineRows);
 		lastFrame = maxFrame;
-		currentFrame = 0;
+		currentFrame = rangeStartFrame;
 		firstRow = 0;
-		firstFrame = 0;
+		firstFrame = rangeStartFrame;
 		UpdateVerticalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
+	void MotionPanel::SetFrameRange(const uint32_t startFrame, const uint32_t endFrame) {
+		rangeStartFrame = startFrame;
+		rangeEndFrame = (std::max)(startFrame, endFrame);
+		currentFrame = std::clamp(currentFrame, rangeStartFrame, rangeEndFrame);
+		firstFrame = rangeStartFrame;
+		if (timelineWindow)
+			InvalidateRect(timelineWindow, nullptr, TRUE);
+	}
+
 	void MotionPanel::SetCurrentFrame(const uint32_t frame) {
-		if (currentFrame == frame)
+		const uint32_t rangedFrame = std::clamp(frame, rangeStartFrame, rangeEndFrame);
+		if (currentFrame == rangedFrame)
 			return;
-		currentFrame = frame;
+		currentFrame = rangedFrame;
 		if (timelineWindow) {
 			FollowCurrentFrame();
 			InvalidateRect(timelineWindow, nullptr, FALSE);

@@ -334,6 +334,7 @@ namespace Chrivent {
         size_t selectedModelIndex = 0;
         if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
             UpdateMotionPanel(selectedModelIndex);
+        panelManager.SyncPlaybackFrameRange();
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {

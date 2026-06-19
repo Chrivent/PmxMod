@@ -10,40 +10,73 @@ namespace Chrivent {
 		Stop
 	};
 
+	struct PlaybackFrameRange {
+		int start = 0;
+		int end = 0;
+	};
+
 	class PlaybackPanel final : public Panel {
 		int timelineSliderId = 0;
 		int playButtonId = 0;
 		int pauseButtonId = 0;
 		int stopButtonId = 0;
+		int startFrameEditId = 0;
+		int endFrameEditId = 0;
+		int resetRangeButtonId = 0;
 		PlaybackCommand pendingCommand = PlaybackCommand::None;
 		bool seekRequested = false;
 		bool seekFinished = false;
+		bool customFrameRange = false;
+		bool frameRangeChanged = false;
+		bool updatingRangeControls = false;
 		int seekFrame = 0;
+		int defaultLastFrame = 0;
+		PlaybackFrameRange frameRange;
 		HWND panelWindow = nullptr;
 		HWND timelineSlider = nullptr;
 		HWND playButton = nullptr;
 		HWND pauseButton = nullptr;
 		HWND stopButton = nullptr;
+		HWND startFrameEdit = nullptr;
+		HWND rangeSeparatorText = nullptr;
+		HWND endFrameEdit = nullptr;
+		HWND resetRangeButton = nullptr;
 
 		// 플레이백 패널 윈도우의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// 패널 안에 타임라인 슬라이더와 재생 제어 버튼을 만든다.
 		void CreateContent(HWND parent);
+		// 입력 컨트롤의 숫자를 읽어 사용자 재생 범위로 적용한다.
+		void ApplyInputFrameRange();
+		// 지정한 재생 범위를 슬라이더와 입력 컨트롤에 반영한다.
+		void ApplyFrameRange(PlaybackFrameRange range, bool customRange);
 
 	public:
 		PlaybackPanel() = default;
 
-		void SetControlIds(const int timelineId, const int playId, const int pauseId, const int stopId) {
+		PlaybackFrameRange GetFrameRange() const { return frameRange; }
+
+		void SetControlIds(
+			const int timelineId,
+			const int playId,
+			const int pauseId,
+			const int stopId,
+			const int startEditId,
+			const int endEditId,
+			const int resetButtonId) {
 			timelineSliderId = timelineId;
 			playButtonId = playId;
 			pauseButtonId = pauseId;
 			stopButtonId = stopId;
+			startFrameEditId = startEditId;
+			endFrameEditId = endEditId;
+			resetRangeButtonId = resetButtonId;
 		}
 		
 		// 현재 재생 프레임을 슬라이더 위치에 반영한다.
 		void SetCurrentFrame(int frame) const;
 		// 슬라이더가 이동할 수 있는 마지막 프레임을 설정한다.
-		void SetFrameRange(int maxFrame) const;
+		void SetFrameRange(int maxFrame);
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
 		void Create(HWND parent) override;
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.
@@ -62,5 +95,7 @@ namespace Chrivent {
 		PlaybackCommand ConsumeCommand();
 		// 슬라이더로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
+		// 변경된 사용자 재생 범위를 반환하고 변경 상태를 초기화한다.
+		bool ConsumeFrameRangeChange(PlaybackFrameRange& range);
 	};
 }

@@ -43,6 +43,10 @@ namespace Chrivent {
 			panel->playButton = nullptr;
 			panel->pauseButton = nullptr;
 			panel->stopButton = nullptr;
+			panel->startFrameEdit = nullptr;
+			panel->rangeSeparatorText = nullptr;
+			panel->endFrameEdit = nullptr;
+			panel->resetRangeButton = nullptr;
 			return 0;
 		default:
 			break;
@@ -69,6 +73,66 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(stopButtonId)), GetModuleHandleW(nullptr), nullptr);
+		startFrameEdit = CreateWindowExW(
+			WS_EX_CLIENTEDGE, L"EDIT", L"0",
+			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(startFrameEditId)), GetModuleHandleW(nullptr), nullptr);
+		rangeSeparatorText = CreateWindowExW(
+			0, L"STATIC", L"~",
+			WS_CHILD | WS_VISIBLE | SS_CENTER,
+			0, 0, 0, 0,
+			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
+		endFrameEdit = CreateWindowExW(
+			WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(frameRange.end).c_str(),
+			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(endFrameEditId)), GetModuleHandleW(nullptr), nullptr);
+		resetRangeButton = CreateWindowExW(
+			0, L"BUTTON", L"Reset",
+			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(resetRangeButtonId)), GetModuleHandleW(nullptr), nullptr);
+		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
+		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
+		ApplyFrameRange(frameRange, customFrameRange);
+	}
+
+	void PlaybackPanel::ApplyInputFrameRange() {
+		if (updatingRangeControls)
+			return;
+		wchar_t startText[16]{};
+		wchar_t endText[16]{};
+		GetWindowTextW(startFrameEdit, startText, std::size(startText));
+		GetWindowTextW(endFrameEdit, endText, std::size(endText));
+		if (startText[0] == L'\0' || endText[0] == L'\0')
+			return;
+		const int start = _wtoi(startText);
+		const int end = _wtoi(endText);
+		if (start < 0 || end < start)
+			return;
+		frameRange = {start, end};
+		customFrameRange = true;
+		if (timelineSlider) {
+			SendMessageW(timelineSlider, TBM_SETRANGEMIN, FALSE, frameRange.start);
+			SendMessageW(timelineSlider, TBM_SETRANGEMAX, TRUE, frameRange.end);
+		}
+		frameRangeChanged = true;
+	}
+
+	void PlaybackPanel::ApplyFrameRange(const PlaybackFrameRange range, const bool customRange) {
+		frameRange = range;
+		customFrameRange = customRange;
+		if (timelineSlider) {
+			SendMessageW(timelineSlider, TBM_SETRANGEMIN, FALSE, frameRange.start);
+			SendMessageW(timelineSlider, TBM_SETRANGEMAX, TRUE, frameRange.end);
+		}
+		updatingRangeControls = true;
+		if (startFrameEdit)
+			SetWindowTextW(startFrameEdit, std::to_wstring(frameRange.start).c_str());
+		if (endFrameEdit)
+			SetWindowTextW(endFrameEdit, std::to_wstring(frameRange.end).c_str());
+		updatingRangeControls = false;
 	}
 
 	void PlaybackPanel::SetCurrentFrame(const int frame) const {
@@ -77,12 +141,14 @@ namespace Chrivent {
 		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, (std::max)(0, frame));
 	}
 
-	void PlaybackPanel::SetFrameRange(const int maxFrame) const {
-		if (!timelineSlider)
-			return;
-		const int safeMaxFrame = (std::max)(0, maxFrame);
-		SendMessageW(timelineSlider, TBM_SETRANGE, TRUE, MAKELPARAM(0, safeMaxFrame));
-		SendMessageW(timelineSlider, TBM_SETPOS, TRUE, 0);
+	void PlaybackPanel::SetFrameRange(const int maxFrame) {
+		defaultLastFrame = (std::max)(0, maxFrame);
+		if (!customFrameRange)
+			ApplyFrameRange({0, defaultLastFrame}, false);
+		else
+			ApplyFrameRange(frameRange, true);
+		if (timelineSlider)
+			SendMessageW(timelineSlider, TBM_SETPOS, TRUE, frameRange.start);
 	}
 
 	void PlaybackPanel::Create(const HWND parent) {
@@ -131,12 +197,16 @@ namespace Chrivent {
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
 		constexpr int buttonGap = 8;
+		constexpr int frameEditWidth = 66;
+		constexpr int separatorWidth = 24;
+		constexpr int resetButtonWidth = 64;
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
 		const int sliderY = clientRect.top + 8;
 		if (timelineSlider)
 			MoveWindow(timelineSlider, clientRect.left + margin, sliderY, width, sliderHeight, TRUE);
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
-		const int buttonX = (std::max)(clientRect.left + margin, clientRect.left + (clientRect.right - clientRect.left - buttonTotalWidth) / 2);
+		constexpr int rangeWidth = frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
+		const int buttonX = clientRect.left + margin;
 		const int buttonY = sliderY + sliderHeight + 10;
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
@@ -144,6 +214,18 @@ namespace Chrivent {
 			MoveWindow(pauseButton, buttonX + buttonWidth + buttonGap, buttonY, buttonWidth, buttonHeight, TRUE);
 		if (stopButton)
 			MoveWindow(stopButton, buttonX + (buttonWidth + buttonGap) * 2, buttonY, buttonWidth, buttonHeight, TRUE);
+		const int rangeX = (std::max)(
+			buttonX + buttonTotalWidth + buttonGap,
+			static_cast<int>(clientRect.right) - margin - rangeWidth);
+		if (startFrameEdit)
+			MoveWindow(startFrameEdit, rangeX, buttonY, frameEditWidth, buttonHeight, TRUE);
+		if (rangeSeparatorText)
+			MoveWindow(rangeSeparatorText, rangeX + frameEditWidth, buttonY + 4, separatorWidth, buttonHeight, TRUE);
+		if (endFrameEdit)
+			MoveWindow(endFrameEdit, rangeX + frameEditWidth + separatorWidth, buttonY, frameEditWidth, buttonHeight, TRUE);
+		if (resetRangeButton)
+			MoveWindow(resetRangeButton, rangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
+				buttonY, resetButtonWidth, buttonHeight, TRUE);
 	}
 
 	bool PlaybackPanel::HandleCommand(const int commandId) {
@@ -153,6 +235,12 @@ namespace Chrivent {
 			pendingCommand = PlaybackCommand::Pause;
 		else if (commandId == stopButtonId)
 			pendingCommand = PlaybackCommand::Stop;
+		else if (commandId == startFrameEditId || commandId == endFrameEditId)
+			ApplyInputFrameRange();
+		else if (commandId == resetRangeButtonId) {
+			ApplyFrameRange({0, defaultLastFrame}, false);
+			frameRangeChanged = true;
+		}
 		else
 			return false;
 		return true;
@@ -178,11 +266,23 @@ namespace Chrivent {
 			DestroyWindow(pauseButton);
 		if (stopButton)
 			DestroyWindow(stopButton);
+		if (startFrameEdit)
+			DestroyWindow(startFrameEdit);
+		if (rangeSeparatorText)
+			DestroyWindow(rangeSeparatorText);
+		if (endFrameEdit)
+			DestroyWindow(endFrameEdit);
+		if (resetRangeButton)
+			DestroyWindow(resetRangeButton);
 		panelWindow = nullptr;
 		timelineSlider = nullptr;
 		playButton = nullptr;
 		pauseButton = nullptr;
 		stopButton = nullptr;
+		startFrameEdit = nullptr;
+		rangeSeparatorText = nullptr;
+		endFrameEdit = nullptr;
+		resetRangeButton = nullptr;
 	}
 
 	PlaybackCommand PlaybackPanel::ConsumeCommand() {
@@ -198,6 +298,14 @@ namespace Chrivent {
 		finished = seekFinished;
 		seekRequested = false;
 		seekFinished = false;
+		return true;
+	}
+
+	bool PlaybackPanel::ConsumeFrameRangeChange(PlaybackFrameRange& range) {
+		if (!frameRangeChanged)
+			return false;
+		range = frameRange;
+		frameRangeChanged = false;
 		return true;
 	}
 }
