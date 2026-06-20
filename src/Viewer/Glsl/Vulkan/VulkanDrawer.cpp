@@ -83,12 +83,7 @@ namespace Chrivent {
 			info.viewer->BindModelPipeline(mat.bothFace);
 			info.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
 			info.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
-			info.viewer->DrawIndexed(
-				vertexBuffer.GetInfo(),
-				info.indexBuffer.GetInfo(),
-				info.indexType,
-				beginIndex,
-				indexCount);
+			info.viewer->DrawIndexed(vertexBuffer.GetInfo(), info.indexBuffer.GetInfo(), info.indexType, beginIndex, indexCount);
 		}
 	}
 
@@ -137,12 +132,7 @@ namespace Chrivent {
 				!info.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 			info.viewer->BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
-			info.viewer->DrawIndexed(
-				vertexBuffer.GetInfo(),
-				info.indexBuffer.GetInfo(),
-				info.indexType,
-				beginIndex,
-				indexCount);
+			info.viewer->DrawIndexed(vertexBuffer.GetInfo(), info.indexBuffer.GetInfo(), info.indexType, beginIndex, indexCount);
 		}
 	}
 
@@ -187,12 +177,7 @@ namespace Chrivent {
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
 			info.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice.has_value() ? pixelSlice->offset : 0);
-			info.viewer->DrawIndexed(
-				vertexBuffer.GetInfo(),
-				info.indexBuffer.GetInfo(),
-				info.indexType,
-				beginIndex,
-				indexCount);
+			info.viewer->DrawIndexed(vertexBuffer.GetInfo(), info.indexBuffer.GetInfo(), info.indexType, beginIndex, indexCount);
 		}
 	}
 

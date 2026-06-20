@@ -11,11 +11,7 @@
 #include <windowsx.h>
 
 namespace Chrivent {
-	LRESULT CALLBACK MotionPanel::WindowProc(
-		const HWND hwnd,
-		const UINT msg,
-		const WPARAM wParam,
-		const LPARAM lParam) {
+	LRESULT CALLBACK MotionPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 		auto* panel = reinterpret_cast<MotionPanel*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 		if (msg == WM_NCCREATE) {
 			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -220,9 +216,7 @@ namespace Chrivent {
 			{8, 0, kLabelWidth - 4, kHeaderHeight}, RGB(235, 235, 238), DT_LEFT | DT_END_ELLIPSIS);
 		const int timelineWidth = client.right - kLabelWidth;
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
-		const uint32_t lastVisibleFrame = (std::min)(
-			totalFrame,
-			static_cast<uint32_t>(firstFrame + visibleFrames));
+		const uint32_t lastVisibleFrame = (std::min)(totalFrame, static_cast<uint32_t>(firstFrame + visibleFrames));
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
@@ -262,25 +256,14 @@ namespace Chrivent {
 				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 				if (x > client.right)
 					return;
-				GuiDrawer::DrawDiamond(
-					deviceContext,
-					x,
-					top + kRowHeight / 2,
-					5,
-					selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
+				GuiDrawer::DrawDiamond(deviceContext, x, top + kRowHeight / 2, 5, selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 			};
 			if (group) {
-				auto frame = std::ranges::lower_bound(
-					group->keyFrames,
-					static_cast<uint32_t>(firstFrame));
+				auto frame = std::ranges::lower_bound(group->keyFrames, static_cast<uint32_t>(firstFrame));
 				for (; frame != group->keyFrames.end() && *frame <= lastVisibleFrame; ++frame)
 					DrawKey(*frame, IsGroupFrameSelected(*group, *frame));
 			} else if (row) {
-				auto key = std::ranges::lower_bound(
-					row->keys,
-					static_cast<uint32_t>(firstFrame),
-					{},
-					&MotionTimelineKey::frame);
+				auto key = std::ranges::lower_bound(row->keys, static_cast<uint32_t>(firstFrame), {}, &MotionTimelineKey::frame);
 				for (; key != row->keys.end() && key->frame <= lastVisibleFrame; ++key)
 					DrawKey(key->frame, key->selected);
 			}
@@ -502,8 +485,7 @@ namespace Chrivent {
 
 	bool MotionPanel::IsGroupFrameSelected(const MotionTimelineGroup& group, const uint32_t frame) {
 		for (const auto& row : group.rows) {
-			const auto key = std::ranges::lower_bound(
-				row.keys, frame, {}, &MotionTimelineKey::frame);
+			const auto key = std::ranges::lower_bound(row.keys, frame, {}, &MotionTimelineKey::frame);
 			if (key != row.keys.end() && key->frame == frame && key->selected)
 				return true;
 		}
@@ -727,9 +709,7 @@ namespace Chrivent {
 		seekFrame = 0;
 	}
 
-	void MotionPanel::SetTimeline(
-		std::wstring name,
-		std::vector<MotionTimelineGroup> timelineGroups) {
+	void MotionPanel::SetTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups) {
 		modelName = std::move(name);
 		groups = std::move(timelineGroups);
 		firstRow = 0;

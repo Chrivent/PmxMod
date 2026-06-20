@@ -32,8 +32,7 @@ namespace Chrivent {
 		}
 	}
 
-	std::unordered_map<std::string, std::wstring> Language::LoadFile(
-		const std::filesystem::path& filepath) {
+	std::unordered_map<std::string, std::wstring> Language::LoadFile(const std::filesystem::path& filepath) {
 		std::ifstream stream(filepath, std::ios::binary);
 		if (!stream)
 			return {};

@@ -8,9 +8,7 @@
 #include <GLFW/glfw3native.h>
 
 namespace Chrivent {
-	void Dx12Viewer::PrepareBackBufferForRendering(
-		ID3D12GraphicsCommandList* commandList,
-		ID3D12Resource* backBuffer) {
+	void Dx12Viewer::PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) {
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Transition.pResource = backBuffer;
@@ -25,9 +23,7 @@ namespace Chrivent {
 		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthBuffer.ResolveDsvHandle();
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		commandList->ClearDepthStencilView(
-			dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-			1.0f, 0, 0, nullptr);
+		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
 	void Dx12Viewer::SetViewportAndScissor(ID3D12GraphicsCommandList* commandList) const {

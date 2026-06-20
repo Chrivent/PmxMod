@@ -1,16 +1,14 @@
 ﻿#include "Dx11DescBuilder.h"
 
 namespace Chrivent {
-	D3D11_SAMPLER_DESC Dx11DescBuilder::MakeSamplerDesc(
-		const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
+	D3D11_SAMPLER_DESC Dx11DescBuilder::MakeSamplerDesc(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {
 		CD3D11_SAMPLER_DESC d(D3D11_DEFAULT);
 		d.Filter = f;
 		d.AddressU = d.AddressV = d.AddressW = addr;
 		return d;
 	}
 
-	D3D11_RASTERIZER_DESC Dx11DescBuilder::MakeRasterizerDesc(
-		const D3D11_CULL_MODE cull, const bool frontCcw) {
+	D3D11_RASTERIZER_DESC Dx11DescBuilder::MakeRasterizerDesc(const D3D11_CULL_MODE cull, const bool frontCcw) {
 		CD3D11_RASTERIZER_DESC d(D3D11_DEFAULT);
 		d.CullMode = cull;
 		d.FrontCounterClockwise = frontCcw;

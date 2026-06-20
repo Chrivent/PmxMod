@@ -43,11 +43,7 @@ namespace Chrivent {
 		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
-		UpdateUniformBuffer(
-			info.vertexConstantsRing,
-			0,
-			&vertexConstants,
-			sizeof(vertexConstants));
+		UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
 		glBindVertexArray(info.vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
@@ -108,11 +104,7 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, sphereTexture);
 				boundTextures[2] = sphereTexture;
 			}
-			UpdateUniformBuffer(
-				info.pixelConstantsRing,
-				1,
-				&pixelConstants,
-				sizeof(pixelConstants));
+			UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -160,16 +152,8 @@ namespace Chrivent {
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			UpdateUniformBuffer(
-				info.vertexConstantsRing,
-				0,
-				&vertexConstants,
-				sizeof(vertexConstants));
-			UpdateUniformBuffer(
-				info.pixelConstantsRing,
-				1,
-				&pixelConstants,
-				sizeof(pixelConstants));
+			UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+			UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
 			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
@@ -189,18 +173,10 @@ namespace Chrivent {
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
-		UpdateUniformBuffer(
-			info.vertexConstantsRing,
-			0,
-			&vertexConstants,
-			sizeof(vertexConstants));
+		UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
 		glBindVertexArray(info.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		UpdateUniformBuffer(
-			info.pixelConstantsRing,
-			1,
-			&pixelConstants,
-			sizeof(pixelConstants));
+		UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
 		if (pixelConstants.shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);

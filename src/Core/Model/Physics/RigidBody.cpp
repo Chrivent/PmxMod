@@ -19,10 +19,7 @@ namespace Chrivent {
 				));
 				break;
 			case Shape::Capsule:
-				shape = std::make_unique<btCapsuleShape>(
-					pmxRigidBody.shapeSize.x,
-					pmxRigidBody.shapeSize.y
-				);
+				shape = std::make_unique<btCapsuleShape>(pmxRigidBody.shapeSize.x, pmxRigidBody.shapeSize.y);
 				break;
 		}
 		btScalar mass(0.0f);
@@ -73,12 +70,10 @@ namespace Chrivent {
 	void RigidBody::ApplyActivation(const bool activation) const {
 		if (rigidBodyType != Operation::Static) {
 			if (activation) {
-				info.rigidBody->setCollisionFlags(
-					info.rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+				info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
 				info.rigidBody->setMotionState(activeMotionState.get());
 			} else {
-				info.rigidBody->setCollisionFlags(
-					info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+				info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 				info.rigidBody->setMotionState(kinematicMotionState.get());
 			}
 		} else

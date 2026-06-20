@@ -6,9 +6,7 @@ namespace Chrivent {
 		if (!deviceInfo.device || !deviceInfo.commandQueue)
 			return false;
 		for (auto& commandAllocator : commandAllocators) {
-			if (FAILED(deviceInfo.device->CreateCommandAllocator(
-				D3D12_COMMAND_LIST_TYPE_DIRECT,
-				IID_PPV_ARGS(&commandAllocator))))
+			if (FAILED(deviceInfo.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
 				return false;
 		}
 		if (FAILED(deviceInfo.device->CreateCommandList(

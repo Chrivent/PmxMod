@@ -41,9 +41,7 @@ namespace Chrivent {
 		blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 	}
 
-	void Dx12Pipeline::ConfigureRasterizer(
-		D3D12_RASTERIZER_DESC& rasterizerDesc,
-		const D3D12_CULL_MODE cullMode) {
+	void Dx12Pipeline::ConfigureRasterizer(D3D12_RASTERIZER_DESC& rasterizerDesc, const D3D12_CULL_MODE cullMode) {
 		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 		rasterizerDesc.CullMode = cullMode;
 		rasterizerDesc.FrontCounterClockwise = TRUE;
@@ -143,9 +141,7 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(
-			&pipelineDesc,
-			IID_PPV_ARGS(&modelFrontFacePipelineState))))
+		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelFrontFacePipelineState))))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
@@ -203,9 +199,7 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
-			&pipelineDesc,
-			IID_PPV_ARGS(&edgePipelineState)));
+		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&edgePipelineState)));
 	}
 
 	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12DeviceInfo& deviceInfo) {

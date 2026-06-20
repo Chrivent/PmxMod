@@ -116,12 +116,7 @@ namespace Chrivent {
 			languageId = kJapaneseLanguageId;
 		else if (Language::GetCurrent() == LanguageType::Chinese)
 			languageId = kChineseLanguageId;
-		CheckMenuRadioItem(
-			languageMenu,
-			kEnglishLanguageId,
-			kChineseLanguageId,
-			languageId,
-			MF_BYCOMMAND);
+		CheckMenuRadioItem(languageMenu, kEnglishLanguageId, kChineseLanguageId, languageId, MF_BYCOMMAND);
 		DrawMenuBar(ownerWindow);
 	}
 

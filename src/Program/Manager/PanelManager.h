@@ -55,10 +55,7 @@ namespace Chrivent {
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
-		void SetFrameLimits(
-			const int autoLastFrame,
-			const int motionLastFrame,
-			const bool resetPlaybackRange = false) {
+		void SetFrameLimits(const int autoLastFrame, const int motionLastFrame, const bool resetPlaybackRange = false) {
 			playbackPanel.SetLastFrame(autoLastFrame, resetPlaybackRange);
 			motionPanel.SetLastFrame(motionLastFrame);
 		}

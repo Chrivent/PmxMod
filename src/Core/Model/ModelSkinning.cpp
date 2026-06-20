@@ -98,9 +98,7 @@ namespace Chrivent {
 						const auto boneId = boneIndices[bi];
 						if (boneId == -1)
 							continue;
-						dq[bi] = glm::normalize(glm::dualquat_cast(
-							glm::mat3x4(glm::transpose(model.skeletonData.transforms[boneId]))
-						));
+						dq[bi] = glm::normalize(glm::dualquat_cast(glm::mat3x4(glm::transpose(model.skeletonData.transforms[boneId]))));
 						w[bi] = boneWeights[bi];
 					}
 					if (glm::dot(dq[0].real, dq[1].real) < 0.0f)
@@ -109,10 +107,7 @@ namespace Chrivent {
 						w[2] *= -1.0f;
 					if (glm::dot(dq[0].real, dq[3].real) < 0.0f)
 						w[3] *= -1.0f;
-					const auto blendDq = glm::normalize(
-						w[0] * dq[0] + w[1] * dq[1]
-						+ w[2] * dq[2] + w[3] * dq[3]
-					);
+					const auto blendDq = glm::normalize(w[0] * dq[0] + w[1] * dq[1] + w[2] * dq[2] + w[3] * dq[3]);
 					m = glm::transpose(glm::mat3x4_cast(blendDq));
 					break;
 				}

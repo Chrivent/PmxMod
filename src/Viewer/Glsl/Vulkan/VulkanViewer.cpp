@@ -62,13 +62,7 @@ namespace Chrivent {
 			return;
 		}
 		auto& commandBuffer = commandContext.GetInfo().commandBuffer;
-		commandBuffer.DrawIndexed(
-			currentImageIndex,
-			vertexBuffer,
-			indexBuffer,
-			indexType,
-			firstIndex,
-			indexCount);
+		commandBuffer.DrawIndexed(currentImageIndex, vertexBuffer, indexBuffer, indexType, firstIndex, indexCount);
 	}
 
 	void VulkanViewer::BindModelPipeline(const bool bothFace) {
@@ -148,12 +142,7 @@ namespace Chrivent {
 		if (bindStateCache.textureDescriptorSet == descriptorSet)
 			return;
 		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
-		commandBuffer.BindDescriptorSets(
-			currentImageIndex,
-			pipeline->GetInfo().pipelineLayout,
-			2,
-			&descriptorSet,
-			1);
+		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->GetInfo().pipelineLayout, 2, &descriptorSet, 1);
 		bindStateCache.textureDescriptorSet = descriptorSet;
 	}
 
@@ -194,12 +183,7 @@ namespace Chrivent {
 		const auto& deviceInfo = device->GetInfo();
 		const auto& syncInfo = syncObject->GetInfo();
 		const size_t frameIndex = syncInfo.currentFrame;
-		vkWaitForFences(
-			deviceInfo.device,
-			1,
-			&syncInfo.inFlightFences[frameIndex],
-			VK_TRUE,
-			UINT64_MAX);
+		vkWaitForFences(deviceInfo.device, 1, &syncInfo.inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
 		const VkResult acquireResult = vkAcquireNextImageKHR(
 			deviceInfo.device,
 			swapChain.GetInfo().swapChain,
@@ -217,12 +201,7 @@ namespace Chrivent {
 		}
 		if (currentImageIndex < syncInfo.imagesInFlight.size() &&
 			syncInfo.imagesInFlight[currentImageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(
-				deviceInfo.device,
-				1,
-				&syncInfo.imagesInFlight[currentImageIndex],
-				VK_TRUE,
-				UINT64_MAX);
+			vkWaitForFences(deviceInfo.device, 1, &syncInfo.imagesInFlight[currentImageIndex], VK_TRUE, UINT64_MAX);
 		}
 		auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);

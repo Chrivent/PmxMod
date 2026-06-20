@@ -12,9 +12,7 @@
 namespace Chrivent {
 	class TaskExecutor {
 		struct TaskBatch {
-			explicit TaskBatch(
-				const std::size_t count,
-				std::function<void(std::size_t)> task)
+			explicit TaskBatch(const std::size_t count, std::function<void(std::size_t)> task)
 				: work(std::move(task)),
 				  workCount(count),
 				  remainingCount(count) {}

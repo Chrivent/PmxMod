@@ -33,8 +33,7 @@ namespace Chrivent {
 		const auto Measure = [](const auto& task) {
 			const auto start = std::chrono::steady_clock::now();
 			task();
-			return std::chrono::duration<double, std::milli>(
-				std::chrono::steady_clock::now() - start).count();
+			return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 		};
 		timing->initializeMilliseconds = Measure([&] { animator.BeginAnimation(); });
 		timing->animationEvaluateMilliseconds = Measure([&] { if (animation) animation->Evaluate(frame); });

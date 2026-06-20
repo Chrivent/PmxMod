@@ -27,10 +27,7 @@ namespace Chrivent {
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model);
 		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
-		panelWindow.RegisterPanel(
-			interpolationCurvePanel,
-			"panel.interpolation_curve",
-			PanelWindowArea::InterpolationCurve);
+		panelWindow.RegisterPanel(interpolationCurvePanel, "panel.interpolation_curve", PanelWindowArea::InterpolationCurve);
 		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
 		panelWindow.RegisterPanel(soundPanel, "panel.sound", PanelWindowArea::Bottom);
 		Reset();

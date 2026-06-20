@@ -53,10 +53,7 @@ namespace Chrivent {
 		};
 	}
 
-	bool VulkanDynamicBufferRing::Write(
-		const GlslUploadSlice& slice,
-		const void* data,
-		std::string& outError) const {
+	bool VulkanDynamicBufferRing::Write(const GlslUploadSlice& slice, const void* data, std::string& outError) const {
 		if (data == nullptr) {
 			outError = "Failed to write Vulkan dynamic buffer ring: source data is null.";
 			return false;

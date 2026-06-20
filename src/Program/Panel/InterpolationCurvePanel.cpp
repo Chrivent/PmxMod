@@ -13,8 +13,7 @@ namespace Chrivent {
 		const UINT msg,
 		const WPARAM wParam,
 		const LPARAM lParam) {
-		auto* panel = reinterpret_cast<InterpolationCurvePanel*>(
-			GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+		auto* panel = reinterpret_cast<InterpolationCurvePanel*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 		if (msg == WM_NCCREATE) {
 			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
 			panel = static_cast<InterpolationCurvePanel*>(create->lpCreateParams);
@@ -78,9 +77,7 @@ namespace Chrivent {
 			const int areaBottom = channelIndex + 1 == channelCount
 				? height
 				: areaTop + channelHeight;
-			const int graphSize = (std::max)(
-				0,
-				(std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
+			const int graphSize = (std::max)(0, (std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
 			if (graphSize <= 0)
 				continue;
 			const int left = (width - graphSize) / 2;
@@ -132,27 +129,14 @@ namespace Chrivent {
 						controlPoints[3].y,
 						RGB(100, 110, 124));
 				}
-				const HPEN curvePen = CreatePen(
-					PS_SOLID,
-					2,
-					curveColors[curveIndex % std::size(curveColors)]);
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, curveColors[curveIndex % std::size(curveColors)]);
 				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
 				PolyBezier(deviceContext, controlPoints, 4);
 				SelectObject(deviceContext, previousPen);
 				DeleteObject(curvePen);
 				if (showControlPoints) {
-					GuiDrawer::DrawDiamond(
-						deviceContext,
-						controlPoints[1].x,
-						controlPoints[1].y,
-						5,
-						RGB(246, 190, 53));
-					GuiDrawer::DrawDiamond(
-						deviceContext,
-						controlPoints[2].x,
-						controlPoints[2].y,
-						5,
-						RGB(246, 190, 53));
+					GuiDrawer::DrawDiamond(deviceContext, controlPoints[1].x, controlPoints[1].y, 5, RGB(246, 190, 53));
+					GuiDrawer::DrawDiamond(deviceContext, controlPoints[2].x, controlPoints[2].y, 5, RGB(246, 190, 53));
 				}
 			}
 		}
@@ -185,19 +169,9 @@ namespace Chrivent {
 		if (!graphWindow)
 			return;
 		constexpr int margin = 12;
-		const int width = (std::max)(
-			0,
-			static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
-		const int height = (std::max)(
-			0,
-			static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
-		MoveWindow(
-			graphWindow,
-			clientRect.left + margin,
-			clientRect.top + margin,
-			width,
-			height,
-			TRUE);
+		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
+		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
+		MoveWindow(graphWindow, clientRect.left + margin, clientRect.top + margin, width, height, TRUE);
 	}
 
 	void InterpolationCurvePanel::Destroy() {

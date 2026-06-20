@@ -130,9 +130,6 @@ namespace Chrivent {
         const HWND viewerWindow = glfwGetWin32Window(info->window);
         POINT origin{12, 12};
         ClientToScreen(viewerWindow, &origin);
-        SetWindowPos(
-            fpsOverlay, HWND_TOP,
-            origin.x, origin.y, 120, 32,
-            SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SetWindowPos(fpsOverlay, HWND_TOP, origin.x, origin.y, 120, 32, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 }
