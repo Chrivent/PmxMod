@@ -1,7 +1,7 @@
 ﻿#include "ModelSkinning.h"
 
 #include <algorithm>
-#include <future>
+#include <execution>
 #include <thread>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -14,7 +14,6 @@ namespace Chrivent {
 			model.geometryData.parallelUpdateCount = (std::max)(1u, std::thread::hardware_concurrency());
 		model.geometryData.parallelUpdateCount = std::min<size_t>(model.geometryData.parallelUpdateCount, 16);
 		model.geometryData.updateRanges.resize(model.geometryData.parallelUpdateCount);
-		model.geometryData.parallelUpdateFutures.resize(model.geometryData.parallelUpdateCount - 1);
 		const size_t totalVertexCount = model.geometryData.positions.size();
 		constexpr size_t lowerVertexCount = 1000;
 		if (totalVertexCount < model.geometryData.updateRanges.size() * lowerVertexCount) {
@@ -130,16 +129,13 @@ namespace Chrivent {
 		if (model.geometryData.updateRanges.empty() ||
 			model.geometryData.parallelUpdateCount != model.geometryData.updateRanges.size())
 			SetupParallelUpdate();
-		const size_t futureCount = model.geometryData.parallelUpdateFutures.size();
-		for (size_t i = 0; i < futureCount; i++) {
-			if (model.geometryData.updateRanges[i + 1].vertexCount != 0)
-				model.geometryData.parallelUpdateFutures[i] = std::async(std::launch::async,
-					[this, range = model.geometryData.updateRanges[i + 1]] { UpdateVertices(range); });
-		}
-		UpdateVertices(model.geometryData.updateRanges[0]);
-		for (size_t i = 0; i < futureCount; i++) {
-			if (model.geometryData.updateRanges[i + 1].vertexCount != 0)
-				model.geometryData.parallelUpdateFutures[i].get();
-		}
+		std::for_each(
+			std::execution::par,
+			model.geometryData.updateRanges.begin(),
+			model.geometryData.updateRanges.end(),
+			[this](const UpdateRange& range) {
+				if (range.vertexCount != 0)
+					UpdateVertices(range);
+			});
 	}
 }

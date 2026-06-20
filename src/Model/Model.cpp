@@ -6,11 +6,6 @@ namespace Chrivent {
 	}
 
 	void Model::Destroy() {
-		for (auto& future : geometryData.parallelUpdateFutures) {
-			if (future.valid())
-				future.wait();
-		}
-		geometryData.parallelUpdateFutures.clear();
 		geometryData.updateRanges.clear();
 		geometryData.parallelUpdateCount = 0;
 		if (physicsData.physics && physicsData.physics->GetInfo().world) {

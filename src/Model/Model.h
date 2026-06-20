@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <future>
 #include <memory>
 #include <string>
 #include <vector>
@@ -97,7 +96,6 @@ namespace Chrivent {
 		std::vector<glm::vec2>						updateUVs;
 		uint32_t									parallelUpdateCount = 0;
 		std::vector<UpdateRange>					updateRanges;
-		std::vector<std::future<void>>				parallelUpdateFutures;
 	};
 
 	struct ModelMaterialData {
