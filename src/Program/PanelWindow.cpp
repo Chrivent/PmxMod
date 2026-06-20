@@ -151,7 +151,7 @@ namespace Chrivent {
 		}
 		CreatePanelControls();
 		LayoutPanels();
-		ShowWindow(window, SW_SHOWNORMAL);
+		ShowWindow(window, SW_MAXIMIZE);
 		UpdateWindow(window);
 	}
 

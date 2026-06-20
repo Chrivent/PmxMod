@@ -4,6 +4,11 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -42,6 +47,11 @@ namespace Chrivent {
         std::unique_ptr<ViewerInfo> info;
         std::filesystem::path	resourceDir;
         float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
+        HWND fpsOverlay = nullptr;
+        HFONT fpsFont = nullptr;
+
+        // FPS 오버레이 윈도우의 그리기 메시지를 처리한다.
+        static LRESULT CALLBACK FpsOverlayWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     
     public:
         Viewer();
@@ -66,6 +76,12 @@ namespace Chrivent {
         static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
         // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
         void InitDirs(const std::filesystem::path& shaderSubDir);
+        // 렌더링 창 좌측 상단에 FPS 오버레이를 생성한다.
+        void CreateFpsOverlay();
+        // FPS 오버레이의 표시 여부를 설정한다.
+        void SetFpsVisible(bool visible) const;
+        // FPS 오버레이에 현재 측정값을 표시한다.
+        void UpdateFps(double fps) const;
 
     };
 }

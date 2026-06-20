@@ -19,7 +19,8 @@ namespace Chrivent {
 			.stopButton = kPlaybackStopButtonId,
 			.startFrameEdit = kPlaybackStartFrameEditId,
 			.endFrameEdit = kPlaybackEndFrameEditId,
-			.resetRangeButton = kPlaybackResetRangeButtonId
+			.resetRangeButton = kPlaybackResetRangeButtonId,
+			.repeatCheck = kPlaybackRepeatCheckId
 		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);

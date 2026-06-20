@@ -13,12 +13,14 @@ namespace Chrivent {
 		static constexpr int kDirectX11RendererId = 1101;
 		static constexpr int kDirectX12RendererId = 1102;
 		static constexpr int kVulkanRendererId = 1103;
+		static constexpr int kFpsViewId = 1200;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
 		bool sceneConfigDirty = false;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
+		bool fpsVisible = false;
 		HWND ownerWindow = nullptr;
 
 		// 현재 씬 설정을 지정한 파일에 저장한다.
@@ -38,6 +40,7 @@ namespace Chrivent {
 		explicit MenuBar(SceneConfig& config);
 
 		RendererType GetRendererType() const { return rendererType; }
+		bool IsFpsVisible() const { return fpsVisible; }
 		void SetOwnerWindow(const HWND owner) { ownerWindow = owner; }
 
 		// 설정 창 상단 메뉴를 구성한다.

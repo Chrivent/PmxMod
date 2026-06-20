@@ -97,6 +97,9 @@ namespace Chrivent {
 		AppendMenuW(rendererMenu, MF_STRING, kDirectX12RendererId, L"DirectX 12");
 		AppendMenuW(rendererMenu, MF_STRING, kVulkanRendererId, L"Vulkan");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), L"Renderer");
+		HMENU viewMenu = CreatePopupMenu();
+		AppendMenuW(viewMenu, MF_STRING | (fpsVisible ? MF_CHECKED : MF_UNCHECKED), kFpsViewId, L"FPS");
+		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(viewMenu), L"View");
 		int rendererId = kOpenGlRendererId;
 		if (rendererType == RendererType::DirectX11)
 			rendererId = kDirectX11RendererId;
@@ -126,6 +129,14 @@ namespace Chrivent {
 				return true;
 			case kVulkanRendererId:
 				SelectRenderer(RendererType::Vulkan);
+				return true;
+			case kFpsViewId:
+				fpsVisible = !fpsVisible;
+				if (ownerWindow)
+					CheckMenuItem(GetMenu(ownerWindow), kFpsViewId, MF_BYCOMMAND |
+						(fpsVisible ? MF_CHECKED : MF_UNCHECKED));
+				if (ownerWindow)
+					DrawMenuBar(ownerWindow);
 				return true;
 			default:
 				return false;

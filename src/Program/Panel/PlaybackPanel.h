@@ -22,6 +22,7 @@ namespace Chrivent {
 		int startFrameEdit = 0;
 		int endFrameEdit = 0;
 		int resetRangeButton = 0;
+		int repeatCheck = 0;
 	};
 
 	class PlaybackPanel final : public Panel {
@@ -42,6 +43,7 @@ namespace Chrivent {
 		HWND rangeSeparatorText = nullptr;
 		HWND endFrameEdit = nullptr;
 		HWND resetRangeButton = nullptr;
+		HWND repeatCheck = nullptr;
 
 		// 플레이백 패널 윈도우의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -68,6 +70,7 @@ namespace Chrivent {
 		PlaybackPanel() = default;
 
 		PlaybackFrameRange GetFrameRange() const { return frameRange; }
+		bool IsRepeatEnabled() const { return repeatCheck && SendMessageW(repeatCheck, BM_GETCHECK, 0, 0) == BST_CHECKED; }
 
 		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		

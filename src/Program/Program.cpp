@@ -50,6 +50,7 @@ namespace Chrivent {
             return false;
         }
         PositionViewerOnRightMonitor();
+        glfwMaximizeWindow(viewer->GetInfo().window);
         glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
         if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
@@ -63,6 +64,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
+        viewer->CreateFpsOverlay();
         return true;
     }
 
@@ -364,7 +366,7 @@ namespace Chrivent {
         fpsFrame++;
         const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
         if (sec > 1.0) {
-            std::cout << (fpsFrame / sec) << " fps\n";
+            viewer->UpdateFps(fpsFrame / sec);
             fpsFrame = 0;
             fpsTime = std::chrono::steady_clock::now();
         }
@@ -427,9 +429,8 @@ namespace Chrivent {
             case PlaybackCommand::Stop:
                 viewer->GetInfo().skipPhysics = false;
                 cameraManager.Stop(viewer->GetInfo(), music, saveTime);
-                if (const int startFrame = panelManager.GetPlaybackFrameRange().start; startFrame > 0)
-                    cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
-                SyncSeekedPhysics(panelManager.GetPlaybackFrameRange().start);
+                cameraManager.SeekFrame(viewer->GetInfo(), music, 0, saveTime);
+                SyncSeekedPhysics(0);
                 break;
             case PlaybackCommand::None:
                 break;
@@ -442,13 +443,20 @@ namespace Chrivent {
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
         const float playbackFrame = viewer->GetInfo().animTime * 30.0f;
         if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
-            cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
-            cameraManager.Pause(music);
-            SyncSeekedPhysics(endFrame);
+            if (panelManager.IsPlaybackRepeatEnabled()) {
+                const int startFrame = panelManager.GetPlaybackFrameRange().start;
+                cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
+                SyncSeekedPhysics(startFrame);
+            } else {
+                cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
+                cameraManager.Pause(music);
+                SyncSeekedPhysics(endFrame);
+            }
             viewer->GetInfo().skipPhysics = false;
         }
         panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
+        viewer->SetFpsVisible(panelManager.IsFpsVisible());
         viewer->BeginFrame();
         for (const auto& instance : instances) {
             instance->UpdateAnimation(viewer->GetInfo());

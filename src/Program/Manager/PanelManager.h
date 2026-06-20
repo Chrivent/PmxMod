@@ -22,6 +22,7 @@ namespace Chrivent {
 		static constexpr int kPlaybackStartFrameEditId = 1005;
 		static constexpr int kPlaybackEndFrameEditId = 1006;
 		static constexpr int kPlaybackResetRangeButtonId = 1007;
+		static constexpr int kPlaybackRepeatCheckId = 1008;
 		static constexpr int kSoundVolumeSliderId = 2001;
 		static constexpr int kModelAddButtonId = 3001;
 		static constexpr int kModelListId = 3002;
@@ -43,12 +44,14 @@ namespace Chrivent {
 
 		SceneConfig& GetSceneConfig() { return sceneConfigStorage; }
 		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
+		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
 		void SetPlaybackFrame(const int frame) {
 			motionPanel.SetCurrentFrame((std::max)(0, frame));
 		}
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
+		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
 		void SetFrameLimits(const int autoLastFrame, const int motionLastFrame) {
 			playbackPanel.SetLastFrame(autoLastFrame);

@@ -41,6 +41,7 @@ namespace Chrivent {
 			panel->rangeSeparatorText = nullptr;
 			panel->endFrameEdit = nullptr;
 			panel->resetRangeButton = nullptr;
+			panel->repeatCheck = nullptr;
 			return 0;
 		default:
 			break;
@@ -104,6 +105,11 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.resetRangeButton)), GetModuleHandleW(nullptr), nullptr);
+		repeatCheck = CreateWindowExW(
+			0, L"BUTTON", L"Repeat",
+			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.repeatCheck)), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SetWindowSubclass(startFrameEdit, EditWindowProc, controlIds.startFrameEdit, reinterpret_cast<DWORD_PTR>(this));
@@ -203,17 +209,18 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::Resize(const RECT& clientRect) {
-		constexpr int margin = 18;
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
 		constexpr int buttonGap = 8;
 		constexpr int frameEditWidth = 66;
 		constexpr int separatorWidth = 24;
 		constexpr int resetButtonWidth = 64;
+		constexpr int repeatWidth = 74;
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
 		constexpr int rangeWidth =
-			frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
-		const int buttonX = clientRect.left + margin;
+			repeatWidth + buttonGap + frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
+		const int clientWidth = clientRect.right - clientRect.left;
+		const int buttonX = clientRect.left + (clientWidth - buttonTotalWidth) / 2;
 		const int buttonY = clientRect.top + 12;
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
@@ -221,18 +228,20 @@ namespace Chrivent {
 			MoveWindow(pauseButton, buttonX + buttonWidth + buttonGap, buttonY, buttonWidth, buttonHeight, TRUE);
 		if (stopButton)
 			MoveWindow(stopButton, buttonX + (buttonWidth + buttonGap) * 2, buttonY, buttonWidth, buttonHeight, TRUE);
-		const int rangeX = (std::max)(
-			buttonX + buttonTotalWidth + buttonGap,
-			static_cast<int>(clientRect.right) - margin - rangeWidth);
+		const int rangeX = clientRect.left + (clientWidth - rangeWidth) / 2;
+		const int rangeY = buttonY + buttonHeight + 12;
+		if (repeatCheck)
+			MoveWindow(repeatCheck, rangeX, rangeY, repeatWidth, buttonHeight, TRUE);
+		const int frameRangeX = rangeX + repeatWidth + buttonGap;
 		if (startFrameEdit)
-			MoveWindow(startFrameEdit, rangeX, buttonY, frameEditWidth, buttonHeight, TRUE);
+			MoveWindow(startFrameEdit, frameRangeX, rangeY, frameEditWidth, buttonHeight, TRUE);
 		if (rangeSeparatorText)
-			MoveWindow(rangeSeparatorText, rangeX + frameEditWidth, buttonY + 4, separatorWidth, buttonHeight, TRUE);
+			MoveWindow(rangeSeparatorText, frameRangeX + frameEditWidth, rangeY + 4, separatorWidth, buttonHeight, TRUE);
 		if (endFrameEdit)
-			MoveWindow(endFrameEdit, rangeX + frameEditWidth + separatorWidth, buttonY, frameEditWidth, buttonHeight, TRUE);
+			MoveWindow(endFrameEdit, frameRangeX + frameEditWidth + separatorWidth, rangeY, frameEditWidth, buttonHeight, TRUE);
 		if (resetRangeButton)
-			MoveWindow(resetRangeButton, rangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
-				buttonY, resetButtonWidth, buttonHeight, TRUE);
+			MoveWindow(resetRangeButton, frameRangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
+				rangeY, resetButtonWidth, buttonHeight, TRUE);
 	}
 
 	bool PlaybackPanel::HandleCommand(const int commandId, const int notificationCode) {
@@ -271,6 +280,8 @@ namespace Chrivent {
 			DestroyWindow(endFrameEdit);
 		if (resetRangeButton)
 			DestroyWindow(resetRangeButton);
+		if (repeatCheck)
+			DestroyWindow(repeatCheck);
 		panelWindow = nullptr;
 		playButton = nullptr;
 		pauseButton = nullptr;
@@ -279,6 +290,7 @@ namespace Chrivent {
 		rangeSeparatorText = nullptr;
 		endFrameEdit = nullptr;
 		resetRangeButton = nullptr;
+		repeatCheck = nullptr;
 	}
 
 	PlaybackCommand PlaybackPanel::ConsumeCommand() {
