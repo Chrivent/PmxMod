@@ -18,6 +18,8 @@ namespace Chrivent {
 
 		// 디바이스가 지원하는 MSAA sample count를 선택한다.
 		static UINT ChooseMsaaSampleCount(ID3D12Device* device);
+		// 선택된 DXGI 어댑터 정보를 공통 GPU 로그 형식으로 출력한다.
+		static void PrintGpuInfo(const DXGI_ADAPTER_DESC1& description);
 
 	public:
 		const Dx12DeviceInfo& GetInfo() const { return info; }

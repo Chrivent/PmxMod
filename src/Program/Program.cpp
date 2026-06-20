@@ -17,7 +17,7 @@
 #include <cwchar>
 #include <iomanip>
 #include <iostream>
-#include <string_view>
+#include <string>
 #include <unordered_map>
 
 namespace Chrivent {
@@ -27,7 +27,7 @@ namespace Chrivent {
             << L"       [--benchmark <frames>] [--warmup <frames>]\n";
     }
 
-    bool Program::ParseRenderer(const std::wstring_view value, RendererType& rendererType) {
+    bool Program::ParseRenderer(const std::wstring& value, RendererType& rendererType) {
         if (value == L"opengl")
             rendererType = RendererType::OpenGL;
         else if (value == L"dx11")
@@ -52,7 +52,7 @@ namespace Chrivent {
 
     bool Program::ParseArguments(const int argumentCount, wchar_t* arguments[], ProgramOptions& options) {
         for (int index = 1; index < argumentCount; index++) {
-            const std::wstring_view argument = arguments[index];
+            const std::wstring argument = arguments[index];
             if (index + 1 >= argumentCount)
                 return false;
             if (argument == L"--scene")
@@ -762,7 +762,7 @@ namespace Chrivent {
     }
 
     int Program::Run(const int argumentCount, wchar_t* arguments[]) {
-        if (argumentCount == 2 && std::wstring_view(arguments[1]) == L"--help") {
+        if (argumentCount == 2 && std::wstring(arguments[1]) == L"--help") {
             PrintUsage();
             return 0;
         }

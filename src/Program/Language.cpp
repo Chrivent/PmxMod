@@ -73,7 +73,7 @@ namespace Chrivent {
 		currentTexts = LoadFile(ResolveLanguageDirectory() / ResolveFilename(type));
 	}
 
-	std::wstring Language::Text(const std::string_view key) {
+	std::wstring Language::Text(const std::string& key) {
 		const std::string ownedKey(key);
 		if (const auto current = currentTexts.find(ownedKey); current != currentTexts.end())
 			return current->second;

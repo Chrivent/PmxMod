@@ -1,5 +1,7 @@
 ﻿#include "Dx12Device.h"
 
+#include <iostream>
+
 namespace Chrivent {
 	UINT Dx12Device::ChooseMsaaSampleCount(ID3D12Device* device) {
 		if (device == nullptr)
@@ -26,6 +28,11 @@ namespace Chrivent {
 		return 1;
 	}
 
+	void Dx12Device::PrintGpuInfo(const DXGI_ADAPTER_DESC1& description) {
+		std::wcout << L"dx12_gpu=" << description.Description << L'\n';
+		std::wcout << L"dx12_gpu_type=" << (description.DedicatedVideoMemory > 0 ? L"discrete" : L"integrated") << L'\n';
+	}
+
 	bool Dx12Device::Initialize() {
 		Destroy();
 		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&info.factory))))
@@ -47,6 +54,9 @@ namespace Chrivent {
 		}
 		if (!info.device)
 			return false;
+		DXGI_ADAPTER_DESC1 description{};
+		if (SUCCEEDED(info.adapter->GetDesc1(&description)))
+			PrintGpuInfo(description);
 		info.msaaSampleCount = ChooseMsaaSampleCount(info.device.Get());
 		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;

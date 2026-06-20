@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 
 namespace Chrivent {
@@ -34,6 +33,6 @@ namespace Chrivent {
 		static void SetCurrent(LanguageType type);
 		static LanguageType GetCurrent() { return currentType; }
 		// 번역 키에 대응하는 문자열을 반환하고 없으면 영어 또는 키를 사용한다.
-		static std::wstring Text(std::string_view key);
+		static std::wstring Text(const std::string& key);
 	};
 }

@@ -44,6 +44,10 @@ namespace Chrivent {
 		bool CreateLogicalDevice();
 		// 물리 디바이스가 필요한 큐와 확장을 지원하는지 확인한다.
 		bool IsDeviceSuitable(VkPhysicalDevice candidate) const;
+		// 물리 디바이스 종류와 성능 한도를 기준으로 선택 우선순위를 계산한다.
+		static uint64_t ScorePhysicalDevice(const VkPhysicalDeviceProperties& properties);
+		// Vulkan 물리 디바이스 종류를 로그용 이름으로 변환한다.
+		static const char* GetPhysicalDeviceTypeName(VkPhysicalDeviceType type);
 		// 물리 디바이스에서 그래픽/표시 큐 패밀리를 찾는다.
 		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
 		// 물리 디바이스가 지원하는 샘플 수 중 현재 렌더러에서 사용할 값을 고른다.

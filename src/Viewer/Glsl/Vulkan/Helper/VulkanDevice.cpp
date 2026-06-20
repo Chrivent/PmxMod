@@ -48,17 +48,28 @@ namespace Chrivent {
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(info.vkInstance, &deviceCount, devices.data());
+		uint64_t highestScore = 0;
 		for (const auto candidate : devices) {
 			if (!IsDeviceSuitable(candidate))
 				continue;
+			VkPhysicalDeviceProperties properties{};
+			vkGetPhysicalDeviceProperties(candidate, &properties);
+			const uint64_t score = ScorePhysicalDevice(properties);
+			if (info.physicalDevice != VK_NULL_HANDLE && score <= highestScore)
+				continue;
+			highestScore = score;
 			info.physicalDevice = candidate;
-			vkGetPhysicalDeviceProperties(candidate, &info.properties);
-			info.queueFamilies = FindQueueFamilies(candidate);
-			info.msaaSampleCount = ChooseMsaaSampleCount(candidate);
-			return true;
+			info.properties = properties;
 		}
-		std::cerr << "Failed to find a suitable Vulkan physical device.\n";
-		return false;
+		if (info.physicalDevice == VK_NULL_HANDLE) {
+			std::cerr << "Failed to find a suitable Vulkan physical device.\n";
+			return false;
+		}
+		info.queueFamilies = FindQueueFamilies(info.physicalDevice);
+		info.msaaSampleCount = ChooseMsaaSampleCount(info.physicalDevice);
+		std::cout << "vulkan_gpu=" << info.properties.deviceName << '\n';
+		std::cout << "vulkan_gpu_type=" << GetPhysicalDeviceTypeName(info.properties.deviceType) << '\n';
+		return true;
 	}
 
 	bool VulkanDevice::CreateLogicalDevice() {
@@ -97,6 +108,42 @@ namespace Chrivent {
 	bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice candidate) const {
 		const VulkanQueueFamilyIndices families = FindQueueFamilies(candidate);
 		return families.IsComplete() && CheckDeviceExtensionSupport(candidate);
+	}
+
+	uint64_t VulkanDevice::ScorePhysicalDevice(const VkPhysicalDeviceProperties& properties) {
+		uint64_t deviceTypeScore = 0;
+		switch (properties.deviceType) {
+			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+				deviceTypeScore = 4;
+				break;
+			case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+				deviceTypeScore = 3;
+				break;
+			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+				deviceTypeScore = 2;
+				break;
+			case VK_PHYSICAL_DEVICE_TYPE_CPU:
+				deviceTypeScore = 1;
+				break;
+			default:
+				break;
+		}
+		return deviceTypeScore * 1'000'000 + properties.limits.maxImageDimension2D;
+	}
+
+	const char* VulkanDevice::GetPhysicalDeviceTypeName(const VkPhysicalDeviceType type) {
+		switch (type) {
+			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+				return "discrete";
+			case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+				return "integrated";
+			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+				return "virtual";
+			case VK_PHYSICAL_DEVICE_TYPE_CPU:
+				return "cpu";
+			default:
+				return "other";
+		}
 	}
 
 	VulkanQueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice candidate) const {

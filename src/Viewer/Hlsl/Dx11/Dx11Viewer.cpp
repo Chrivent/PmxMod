@@ -6,7 +6,37 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <iostream>
+
 namespace Chrivent {
+	bool Dx11Viewer::CreateDevice() {
+		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
+		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory))))
+			return false;
+		constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
+		for (UINT index = 0; ; index++) {
+			Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+			if (FAILED(factory->EnumAdapterByGpuPreference(
+				index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter))))
+				break;
+			DXGI_ADAPTER_DESC1 description{};
+			if (FAILED(adapter->GetDesc1(&description)) || (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+				continue;
+			if (FAILED(D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, 0,
+				&featureLevels, 1, D3D11_SDK_VERSION, &GetDx11Info().deviceResources.device, nullptr,
+				&GetDx11Info().deviceResources.context)))
+				continue;
+			PrintGpuInfo(description);
+			return true;
+		}
+		return false;
+	}
+
+	void Dx11Viewer::PrintGpuInfo(const DXGI_ADAPTER_DESC1& description) {
+		std::wcout << L"dx11_gpu=" << description.Description << L'\n';
+		std::wcout << L"dx11_gpu_type=" << (description.DedicatedVideoMemory > 0 ? L"discrete" : L"integrated") << L'\n';
+	}
+
 	void Dx11Viewer::UpdateViewport() {
 		D3D11_VIEWPORT vp;
 		vp.Width = GetInfo().screenWidth;
@@ -93,9 +123,7 @@ namespace Chrivent {
 
 	bool Dx11Viewer::Setup() {
 		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
-		constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
-		if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0,
-			&featureLevels, 1, D3D11_SDK_VERSION, &GetDx11Info().deviceResources.device, nullptr, &GetDx11Info().deviceResources.context)))
+		if (!CreateDevice())
 			return false;
 		Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
 		if (FAILED(GetDx11Info().deviceResources.device.As(&dxgiDevice)))

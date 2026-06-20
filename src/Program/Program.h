@@ -11,7 +11,6 @@
 
 #include <chrono>
 #include <filesystem>
-#include <string_view>
 #include <vector>
 
 namespace Chrivent {
@@ -56,7 +55,7 @@ namespace Chrivent {
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
         // 렌더러 이름을 프로그램 렌더러 형식으로 변환한다.
-        static bool ParseRenderer(std::wstring_view value, RendererType& rendererType);
+        static bool ParseRenderer(const std::wstring& value, RendererType& rendererType);
         // 양의 정수 명령행 값을 크기 값으로 변환한다.
         static bool ParseCount(const wchar_t* value, std::size_t& count);
         // 명령행 인자를 프로그램 실행 옵션으로 구성한다.

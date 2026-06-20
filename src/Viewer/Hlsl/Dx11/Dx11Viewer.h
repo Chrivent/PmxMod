@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <dxgi1_6.h>
 
 namespace Chrivent {
     class Dx11Viewer;
@@ -72,6 +73,10 @@ namespace Chrivent {
         UINT	            multiSampleQuality = 0;
         Dx11TextureCache    textureCache;
 
+        // DX11을 지원하는 고성능 DXGI 어댑터를 선택해 디바이스를 생성한다.
+        bool CreateDevice();
+        // 선택된 DXGI 어댑터 정보를 공통 GPU 로그 형식으로 출력한다.
+        static void PrintGpuInfo(const DXGI_ADAPTER_DESC1& description);
         // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
         void UpdateViewport();
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
