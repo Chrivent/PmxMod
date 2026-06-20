@@ -14,6 +14,10 @@ namespace Chrivent {
 		static constexpr int kDirectX12RendererId = 1102;
 		static constexpr int kVulkanRendererId = 1103;
 		static constexpr int kFpsViewId = 1200;
+		static constexpr int kEnglishLanguageId = 1300;
+		static constexpr int kKoreanLanguageId = 1301;
+		static constexpr int kJapaneseLanguageId = 1302;
+		static constexpr int kChineseLanguageId = 1303;
 
 		SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;

@@ -52,6 +52,8 @@ namespace Chrivent {
 
         // FPS 오버레이 윈도우의 그리기 메시지를 처리한다.
         static LRESULT CALLBACK FpsOverlayWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+        // 렌더링 창 클라이언트 좌측 상단에 FPS 오버레이를 배치한다.
+        void PositionFpsOverlay() const;
     
     public:
         Viewer();

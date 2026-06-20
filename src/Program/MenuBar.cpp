@@ -100,6 +100,12 @@ namespace Chrivent {
 		HMENU viewMenu = CreatePopupMenu();
 		AppendMenuW(viewMenu, MF_STRING | (fpsVisible ? MF_CHECKED : MF_UNCHECKED), kFpsViewId, L"FPS");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(viewMenu), L"View");
+		HMENU languageMenu = CreatePopupMenu();
+		AppendMenuW(languageMenu, MF_STRING, kEnglishLanguageId, L"English");
+		AppendMenuW(languageMenu, MF_STRING, kKoreanLanguageId, L"한국어");
+		AppendMenuW(languageMenu, MF_STRING, kJapaneseLanguageId, L"日本語");
+		AppendMenuW(languageMenu, MF_STRING, kChineseLanguageId, L"中文");
+		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(languageMenu), L"Language");
 		int rendererId = kOpenGlRendererId;
 		if (rendererType == RendererType::DirectX11)
 			rendererId = kDirectX11RendererId;
@@ -137,6 +143,11 @@ namespace Chrivent {
 						(fpsVisible ? MF_CHECKED : MF_UNCHECKED));
 				if (ownerWindow)
 					DrawMenuBar(ownerWindow);
+				return true;
+			case kEnglishLanguageId:
+			case kKoreanLanguageId:
+			case kJapaneseLanguageId:
+			case kChineseLanguageId:
 				return true;
 			default:
 				return false;

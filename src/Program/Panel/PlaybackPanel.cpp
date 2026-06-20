@@ -217,8 +217,7 @@ namespace Chrivent {
 		constexpr int resetButtonWidth = 64;
 		constexpr int repeatWidth = 74;
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
-		constexpr int rangeWidth =
-			repeatWidth + buttonGap + frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
+		constexpr int rangeWidth = frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
 		const int clientWidth = clientRect.right - clientRect.left;
 		const int buttonX = clientRect.left + (clientWidth - buttonTotalWidth) / 2;
 		const int buttonY = clientRect.top + 12;
@@ -230,18 +229,18 @@ namespace Chrivent {
 			MoveWindow(stopButton, buttonX + (buttonWidth + buttonGap) * 2, buttonY, buttonWidth, buttonHeight, TRUE);
 		const int rangeX = clientRect.left + (clientWidth - rangeWidth) / 2;
 		const int rangeY = buttonY + buttonHeight + 12;
-		if (repeatCheck)
-			MoveWindow(repeatCheck, rangeX, rangeY, repeatWidth, buttonHeight, TRUE);
-		const int frameRangeX = rangeX + repeatWidth + buttonGap;
 		if (startFrameEdit)
-			MoveWindow(startFrameEdit, frameRangeX, rangeY, frameEditWidth, buttonHeight, TRUE);
+			MoveWindow(startFrameEdit, rangeX, rangeY, frameEditWidth, buttonHeight, TRUE);
 		if (rangeSeparatorText)
-			MoveWindow(rangeSeparatorText, frameRangeX + frameEditWidth, rangeY + 4, separatorWidth, buttonHeight, TRUE);
+			MoveWindow(rangeSeparatorText, rangeX + frameEditWidth, rangeY + 4, separatorWidth, buttonHeight, TRUE);
 		if (endFrameEdit)
-			MoveWindow(endFrameEdit, frameRangeX + frameEditWidth + separatorWidth, rangeY, frameEditWidth, buttonHeight, TRUE);
+			MoveWindow(endFrameEdit, rangeX + frameEditWidth + separatorWidth, rangeY, frameEditWidth, buttonHeight, TRUE);
 		if (resetRangeButton)
-			MoveWindow(resetRangeButton, frameRangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
+			MoveWindow(resetRangeButton, rangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
 				rangeY, resetButtonWidth, buttonHeight, TRUE);
+		if (repeatCheck)
+			MoveWindow(repeatCheck, clientRect.left + (clientWidth - repeatWidth) / 2,
+				rangeY + buttonHeight + 8, repeatWidth, buttonHeight, TRUE);
 	}
 
 	bool PlaybackPanel::HandleCommand(const int commandId, const int notificationCode) {

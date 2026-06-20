@@ -23,18 +23,20 @@ namespace Chrivent {
         const UINT msg,
         const WPARAM wParam,
         const LPARAM lParam) {
+        if (msg == WM_ERASEBKGND)
+            return 1;
         if (msg == WM_PAINT) {
             PAINTSTRUCT paint{};
             const HDC deviceContext = BeginPaint(hwnd, &paint);
             RECT client{};
             GetClientRect(hwnd, &client);
-            const HBRUSH background = CreateSolidBrush(RGB(24, 27, 32));
-            FillRect(deviceContext, &client, background);
-            DeleteObject(background);
+            const HBRUSH transparentColor = CreateSolidBrush(RGB(0, 0, 0));
+            FillRect(deviceContext, &client, transparentColor);
+            DeleteObject(transparentColor);
             wchar_t text[32]{};
             GetWindowTextW(hwnd, text, std::size(text));
             SetBkMode(deviceContext, TRANSPARENT);
-            SetTextColor(deviceContext, RGB(240, 243, 247));
+            SetTextColor(deviceContext, RGB(160, 255, 120));
             const auto font = reinterpret_cast<HFONT>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             const HGDIOBJ previousFont = font ? SelectObject(deviceContext, font) : nullptr;
             DrawTextW(deviceContext, text, -1, &client, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
@@ -85,25 +87,33 @@ namespace Chrivent {
         windowClass.lpszClassName = L"PmxModFpsOverlay";
         RegisterClassExW(&windowClass);
         fpsFont = CreateFontW(
-            -18, 0, 0, 0, FW_SEMIBOLD,
+            -22, 0, 0, 0, FW_SEMIBOLD,
             FALSE, FALSE, FALSE,
             DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS,
             CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY,
+            ANTIALIASED_QUALITY,
             DEFAULT_PITCH | FF_DONTCARE,
-            L"Segoe UI");
+            L"Arial");
         fpsOverlay = CreateWindowExW(
-            0, windowClass.lpszClassName, L"0 FPS",
-            WS_CHILD,
-            12, 12, 100, 28,
+            WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+            windowClass.lpszClassName, L"0 FPS",
+            WS_POPUP,
+            0, 0, 120, 32,
             viewerWindow, nullptr, instance, nullptr);
         SetWindowLongPtrW(fpsOverlay, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(fpsFont));
+        SetLayeredWindowAttributes(fpsOverlay, RGB(0, 0, 0), 255, LWA_COLORKEY);
+        PositionFpsOverlay();
     }
 
     void Viewer::SetFpsVisible(const bool visible) const {
-        if (fpsOverlay)
-            ShowWindow(fpsOverlay, visible ? SW_SHOWNA : SW_HIDE);
+        if (!fpsOverlay)
+            return;
+        if (visible) {
+            PositionFpsOverlay();
+            ShowWindow(fpsOverlay, SW_SHOWNOACTIVATE);
+        } else
+            ShowWindow(fpsOverlay, SW_HIDE);
     }
 
     void Viewer::UpdateFps(const double fps) const {
@@ -111,6 +121,18 @@ namespace Chrivent {
             return;
         const std::wstring text = std::format(L"{:.1f} FPS", fps);
         SetWindowTextW(fpsOverlay, text.c_str());
-        InvalidateRect(fpsOverlay, nullptr, TRUE);
+        InvalidateRect(fpsOverlay, nullptr, FALSE);
+    }
+
+    void Viewer::PositionFpsOverlay() const {
+        if (!fpsOverlay || !info->window)
+            return;
+        const HWND viewerWindow = glfwGetWin32Window(info->window);
+        POINT origin{12, 12};
+        ClientToScreen(viewerWindow, &origin);
+        SetWindowPos(
+            fpsOverlay, HWND_TOP,
+            origin.x, origin.y, 120, 32,
+            SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 }

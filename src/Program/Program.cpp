@@ -51,6 +51,7 @@ namespace Chrivent {
         }
         PositionViewerOnRightMonitor();
         glfwMaximizeWindow(viewer->GetInfo().window);
+        glfwPollEvents();
         glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
         if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
@@ -63,6 +64,25 @@ namespace Chrivent {
             viewer.reset();
             glfwTerminate();
             return false;
+        }
+        if (!viewer->Resize()) {
+            viewer.reset();
+            glfwTerminate();
+            return false;
+        }
+        glfwPollEvents();
+        int framebufferWidth = 0;
+        int framebufferHeight = 0;
+        glfwGetFramebufferSize(viewer->GetInfo().window, &framebufferWidth, &framebufferHeight);
+        if (framebufferWidth != viewer->GetInfo().screenWidth ||
+            framebufferHeight != viewer->GetInfo().screenHeight) {
+            viewer->GetInfo().screenWidth = framebufferWidth;
+            viewer->GetInfo().screenHeight = framebufferHeight;
+            if (!viewer->Resize()) {
+                viewer.reset();
+                glfwTerminate();
+                return false;
+            }
         }
         viewer->CreateFpsOverlay();
         return true;
