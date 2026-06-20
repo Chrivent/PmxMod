@@ -20,24 +20,42 @@ namespace Chrivent {
 	};
 
 	class MotionPanel final : public Panel {
+		static constexpr int kFrameEditId = 4001;
+		static constexpr int kMaxEditableFrame = 65535;
 		static constexpr int kHeaderHeight = 28;
 		static constexpr int kLabelWidth = 150;
 		static constexpr int kRowHeight = 22;
 		static constexpr int kFrameWidth = 12;
 
 		HWND timelineWindow = nullptr;
+		HWND frameEdit = nullptr;
 		std::wstring modelName;
 		std::vector<MotionTimelineGroup> groups;
-		uint32_t totalFrame = 1;
+		uint32_t totalFrame = 0;
 		uint32_t currentFrame = 0;
 		int firstRow = 0;
 		int firstFrame = 0;
 		bool seekRequested = false;
 		bool seekFinished = false;
+		bool updatingFrameEdit = false;
 		int seekFrame = 0;
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// 프레임 입력 칸의 Enter와 포커스 해제를 처리한다.
+		static LRESULT CALLBACK EditWindowProc(
+			HWND hwnd,
+			UINT msg,
+			WPARAM wParam,
+			LPARAM lParam,
+			UINT_PTR subclassId,
+			DWORD_PTR data);
+		// 상단 입력값을 독립 프레임 이동 요청으로 반영한다.
+		void ApplyInputFrame();
+		// 상단 입력 칸이 포커스를 잃으면 스크롤 범위 안으로 복귀한다.
+		void ClampInputFrameToScrollRange();
+		// 현재 프레임을 상단 입력 칸에 표시한다.
+		void UpdateFrameEditText();
 		// 현재 크기와 데이터 범위에 맞춰 세로 스크롤바 범위를 갱신한다.
 		void UpdateVerticalScrollBar() const;
 		// 마지막 프레임과 현재 프레임에 맞춰 가로 스크롤바 범위를 갱신한다.
@@ -62,6 +80,8 @@ namespace Chrivent {
 		void Create(HWND parent) override;
 		// 패널 크기에 맞춰 모션 타임라인 컨트롤 배치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
+		// 상단 프레임 입력 칸의 변경과 포커스 해제를 처리한다.
+		bool HandleCommand(int commandId, int notificationCode) override;
 		// 모션 타임라인 컨트롤 핸들과 표시 데이터를 정리한다.
 		void Destroy() override;
 		// 선택 모델의 이름과 트랙별 키프레임을 타임라인에 표시한다.

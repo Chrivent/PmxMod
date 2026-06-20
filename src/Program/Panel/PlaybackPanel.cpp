@@ -123,10 +123,10 @@ namespace Chrivent {
 		int start = _wtoi(startText);
 		int end = _wtoi(endText);
 		if (editedControlId == controlIds.startFrameEdit) {
-			start = std::clamp(start, 0, lastFrame - 1);
-			end = std::clamp((std::max)(end, start + 1), start + 1, lastFrame);
+			start = std::clamp(start, 0, kMaxEditableFrame - 1);
+			end = std::clamp((std::max)(end, start + 1), start + 1, kMaxEditableFrame);
 		} else {
-			end = std::clamp(end, 1, lastFrame);
+			end = std::clamp(end, 1, kMaxEditableFrame);
 			start = std::clamp((std::min)(start, end - 1), 0, end - 1);
 		}
 		ApplyFrameRange({start, end}, true);
@@ -139,9 +139,9 @@ namespace Chrivent {
 		UpdateRangeControls();
 	}
 
-	PlaybackFrameRange PlaybackPanel::NormalizeFrameRange(PlaybackFrameRange range) const {
-		range.start = std::clamp(range.start, 0, lastFrame - 1);
-		range.end = std::clamp(range.end, range.start + 1, lastFrame);
+	PlaybackFrameRange PlaybackPanel::NormalizeFrameRange(PlaybackFrameRange range) {
+		range.start = std::clamp(range.start, 0, kMaxEditableFrame - 1);
+		range.end = std::clamp(range.end, range.start + 1, kMaxEditableFrame);
 		return range;
 	}
 
@@ -155,9 +155,9 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::SetLastFrame(const int maxFrame) {
-		lastFrame = (std::max)(1, maxFrame);
+		autoLastFrame = std::clamp(maxFrame, 1, kMaxEditableFrame);
 		if (!customFrameRange)
-			ApplyFrameRange({0, lastFrame}, false);
+			ApplyFrameRange({ 0, autoLastFrame }, false);
 		else
 			ApplyFrameRange(frameRange, true);
 	}
@@ -246,7 +246,7 @@ namespace Chrivent {
 			notificationCode == EN_KILLFOCUS)
 			ApplyInputFrameRange(commandId);
 		else if (commandId == controlIds.resetRangeButton) {
-			ApplyFrameRange({0, lastFrame}, false);
+			ApplyFrameRange({0, autoLastFrame}, false);
 			timelineRangeChanged = true;
 		}
 		else

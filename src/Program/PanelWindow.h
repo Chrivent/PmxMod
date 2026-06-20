@@ -11,7 +11,6 @@ namespace Chrivent {
 	enum class PanelWindowArea {
 		Model,
 		Motion,
-		Playback,
 		Bottom
 	};
 

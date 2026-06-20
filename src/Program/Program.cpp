@@ -122,7 +122,7 @@ namespace Chrivent {
         if (!LoadScene(panelManager.GetSceneConfig()))
             return false;
         panelManager.BindSound(music);
-        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         cameraManager.UpdateCamera(viewer->GetInfo());
         return true;
     }
@@ -154,7 +154,7 @@ namespace Chrivent {
         viewer->GetInfo().skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(viewer->GetInfo(), music, saveTime);
-        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
             cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
@@ -197,14 +197,19 @@ namespace Chrivent {
         return true;
     }
 
-    int Program::CalculatePlaybackLastFrame() const {
+    int Program::CalculateMotionLastFrame() const {
         uint32_t lastFrame = cameraManager.GetLastFrame();
-        if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * 30.0)));
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim)
                 lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
         }
+        return lastFrame;
+    }
+
+    int Program::CalculatePlaybackLastFrame() const {
+        uint32_t lastFrame = CalculateMotionLastFrame();
+        if (music.HasSound())
+            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * 30.0)));
         return lastFrame;
     }
 
@@ -469,7 +474,7 @@ namespace Chrivent {
         }
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
-        panelManager.SetPlaybackFrameRange(CalculatePlaybackLastFrame());
+        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;

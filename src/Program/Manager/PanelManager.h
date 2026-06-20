@@ -50,9 +50,9 @@ namespace Chrivent {
 		}
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 
-		void SetPlaybackFrameRange(const int maxFrame) {
-			playbackPanel.SetLastFrame(maxFrame);
-			motionPanel.SetLastFrame(maxFrame);
+		void SetFrameLimits(const int autoLastFrame, const int motionLastFrame) {
+			playbackPanel.SetLastFrame(autoLastFrame);
+			motionPanel.SetLastFrame(motionLastFrame);
 		}
 
 		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.

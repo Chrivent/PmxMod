@@ -3,7 +3,9 @@
 #include "../GuiBackBuffer.h"
 #include "../GuiDrawer.h"
 
+#include <CommCtrl.h>
 #include <algorithm>
+#include <string>
 #include <windowsx.h>
 
 namespace Chrivent {
@@ -68,6 +70,59 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	LRESULT CALLBACK MotionPanel::EditWindowProc(
+		const HWND hwnd,
+		const UINT msg,
+		const WPARAM wParam,
+		const LPARAM lParam,
+		const UINT_PTR subclassId,
+		const DWORD_PTR data) {
+		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
+			reinterpret_cast<MotionPanel*>(data)->ApplyInputFrame();
+			return 0;
+		}
+		if (msg == WM_NCDESTROY)
+			RemoveWindowSubclass(hwnd, EditWindowProc, subclassId);
+		return DefSubclassProc(hwnd, msg, wParam, lParam);
+	}
+
+	void MotionPanel::ApplyInputFrame() {
+		if (updatingFrameEdit || !frameEdit)
+			return;
+		wchar_t text[16]{};
+		GetWindowTextW(frameEdit, text, std::size(text));
+		if (text[0] == L'\0')
+			return;
+		currentFrame = std::clamp(_wtoi(text), 0, kMaxEditableFrame);
+		seekFrame = currentFrame;
+		seekRequested = true;
+		seekFinished = true;
+		FollowCurrentFrame();
+		SetScrollPos(timelineWindow, SB_HORZ, (std::min)(currentFrame, totalFrame), TRUE);
+		InvalidateRect(timelineWindow, nullptr, FALSE);
+	}
+
+	void MotionPanel::ClampInputFrameToScrollRange() {
+		if (currentFrame <= totalFrame)
+			return;
+		currentFrame = totalFrame;
+		seekFrame = currentFrame;
+		seekRequested = true;
+		seekFinished = true;
+		UpdateFrameEditText();
+		FollowCurrentFrame();
+		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
+		InvalidateRect(timelineWindow, nullptr, FALSE);
+	}
+
+	void MotionPanel::UpdateFrameEditText() {
+		if (!frameEdit || GetFocus() == frameEdit)
+			return;
+		updatingFrameEdit = true;
+		SetWindowTextW(frameEdit, std::to_wstring(currentFrame).c_str());
+		updatingFrameEdit = false;
+	}
+
 	void MotionPanel::UpdateVerticalScrollBar() const {
 		if (!timelineWindow)
 			return;
@@ -89,12 +144,13 @@ namespace Chrivent {
 			return;
 		SCROLLINFO horizontal{};
 		horizontal.cbSize = sizeof(horizontal);
-		horizontal.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+		horizontal.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_DISABLENOSCROLL;
 		horizontal.nMin = 0;
 		horizontal.nMax = totalFrame;
 		horizontal.nPage = 1;
-		horizontal.nPos = currentFrame;
+		horizontal.nPos = (std::min)(currentFrame, totalFrame);
 		SetScrollInfo(timelineWindow, SB_HORZ, &horizontal, TRUE);
+		ShowScrollBar(timelineWindow, SB_HORZ, TRUE);
 	}
 
 	int MotionPanel::GetVisibleRowCount() const {
@@ -118,15 +174,10 @@ namespace Chrivent {
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
-			if (frame > totalFrame)
-				break;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
 			GuiDrawer::DrawLine(deviceContext, x, 0, x, client.bottom,
 				major ? RGB(65, 77, 92) : RGB(43, 49, 59));
-			if (major)
-				GuiDrawer::DrawTextLine(deviceContext, std::to_wstring(frame),
-					{x + 2, 0, x + kFrameWidth * 5, kHeaderHeight}, RGB(207, 211, 218), DT_LEFT);
 		}
 		const int visibleRows = (std::max)(0, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight + 1));
 		int visibleRowIndex = 0;
@@ -179,6 +230,14 @@ namespace Chrivent {
 			const int currentX = kLabelWidth + (static_cast<int>(currentFrame) - firstFrame) * kFrameWidth;
 			if (currentX <= client.right)
 				GuiDrawer::DrawLine(deviceContext, currentX, 0, currentX, client.bottom, RGB(52, 211, 235));
+		}
+		for (int offset = 0; offset < visibleFrames; offset++) {
+			const int frame = firstFrame + offset;
+			if (frame % 5 == 0) {
+				const int x = kLabelWidth + offset * kFrameWidth;
+				GuiDrawer::DrawTextLine(deviceContext, std::to_wstring(frame),
+					{x + 2, 0, x + kFrameWidth * 5, kHeaderHeight}, RGB(207, 211, 218), DT_LEFT);
+			}
 		}
 	}
 
@@ -281,6 +340,13 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL,
 			0, 0, 0, 0,
 			parent, nullptr, instance, this);
+		frameEdit = CreateWindowExW(
+			WS_EX_CLIENTEDGE, L"EDIT", L"0",
+			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_CENTER | ES_AUTOHSCROLL,
+			0, 0, 0, 0,
+			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kFrameEditId)), instance, nullptr);
+		SendMessageW(frameEdit, EM_SETLIMITTEXT, 5, 0);
+		SetWindowSubclass(frameEdit, EditWindowProc, kFrameEditId, reinterpret_cast<DWORD_PTR>(this));
 		UpdateVerticalScrollBar();
 		UpdateHorizontalScrollBar();
 	}
@@ -289,22 +355,42 @@ namespace Chrivent {
 		if (!timelineWindow)
 			return;
 		constexpr int margin = 8;
+		constexpr int toolbarHeight = 28;
+		constexpr int editWidth = 72;
+		constexpr int editHeight = 22;
 		const int x = clientRect.left + margin;
-		const int y = clientRect.top + margin;
+		const int y = clientRect.top + margin + toolbarHeight;
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
-		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
+		const int height = (std::max)(
+			0,
+			static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
+		const int editX = clientRect.left + (clientRect.right - clientRect.left - editWidth) / 2;
+		MoveWindow(frameEdit, editX, clientRect.top + margin, editWidth, editHeight, TRUE);
 		MoveWindow(timelineWindow, x, y, width, height, TRUE);
 		UpdateVerticalScrollBar();
 		UpdateHorizontalScrollBar();
 	}
 
+	bool MotionPanel::HandleCommand(const int commandId, const int notificationCode) {
+		if (commandId != kFrameEditId)
+			return false;
+		if (notificationCode == EN_CHANGE)
+			ApplyInputFrame();
+		else if (notificationCode == EN_KILLFOCUS)
+			ClampInputFrameToScrollRange();
+		return true;
+	}
+
 	void MotionPanel::Destroy() {
+		if (frameEdit)
+			DestroyWindow(frameEdit);
 		if (timelineWindow)
 			DestroyWindow(timelineWindow);
 		timelineWindow = nullptr;
+		frameEdit = nullptr;
 		modelName.clear();
 		groups.clear();
-		totalFrame = 1;
+		totalFrame = 0;
 		currentFrame = 0;
 		firstRow = 0;
 		firstFrame = 0;
@@ -327,22 +413,21 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::SetLastFrame(const uint32_t maxFrame) {
-		totalFrame = (std::max)(1u, maxFrame);
-		currentFrame = (std::min)(currentFrame, totalFrame);
-		FollowCurrentFrame();
+		totalFrame = maxFrame;
 		UpdateHorizontalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
 	void MotionPanel::SetCurrentFrame(const uint32_t frame) {
-		const uint32_t timelineFrame = (std::min)(frame, totalFrame);
+		const uint32_t timelineFrame = (std::min)(frame, static_cast<uint32_t>(kMaxEditableFrame));
 		if (currentFrame == timelineFrame)
 			return;
 		currentFrame = timelineFrame;
 		if (timelineWindow) {
 			FollowCurrentFrame();
-			SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
+			SetScrollPos(timelineWindow, SB_HORZ, (std::min)(currentFrame, totalFrame), TRUE);
+			UpdateFrameEditText();
 			InvalidateRect(timelineWindow, nullptr, FALSE);
 		}
 	}

@@ -34,7 +34,9 @@ namespace Chrivent {
         bool LoadScene(const SceneConfig& sceneConfig);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
         bool LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
-        // 현재 씬의 모델 모션, 카메라 모션, 음악 중 가장 긴 재생 프레임을 계산한다.
+        // 현재 씬의 모델 모션과 카메라 모션 중 가장 긴 프레임을 계산한다.
+        int CalculateMotionLastFrame() const;
+        // 현재 씬의 모션과 음악 중 가장 긴 자동 재생 프레임을 계산한다.
         int CalculatePlaybackLastFrame() const;
         // 지정한 프레임으로 이동한 직후 모델 물리 상태를 동기화한다.
         void SyncSeekedPhysics(int frame) const;

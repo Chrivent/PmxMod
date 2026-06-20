@@ -25,12 +25,14 @@ namespace Chrivent {
 	};
 
 	class PlaybackPanel final : public Panel {
+		static constexpr int kMaxEditableFrame = 65535;
+
 		PlaybackControlIds controlIds;
 		PlaybackCommand pendingCommand = PlaybackCommand::None;
 		bool customFrameRange = false;
 		bool timelineRangeChanged = false;
 		bool updatingRangeControls = false;
-		int lastFrame = 1;
+		int autoLastFrame = 1;
 		PlaybackFrameRange frameRange;
 		HWND panelWindow = nullptr;
 		HWND playButton = nullptr;
@@ -57,8 +59,8 @@ namespace Chrivent {
 		void ApplyInputFrameRange(int editedControlId);
 		// 지정한 재생 범위를 입력 컨트롤에 반영한다.
 		void ApplyFrameRange(PlaybackFrameRange range, bool customRange);
-		// 시작과 끝 프레임을 마지막 프레임 안의 유효한 범위로 보정한다.
-		PlaybackFrameRange NormalizeFrameRange(PlaybackFrameRange range) const;
+		// 시작과 끝 프레임을 입력 가능한 범위와 순서에 맞게 보정한다.
+		static PlaybackFrameRange NormalizeFrameRange(PlaybackFrameRange range);
 		// 재생 범위를 입력 컨트롤에 반영한다.
 		void UpdateRangeControls();
 
@@ -69,7 +71,7 @@ namespace Chrivent {
 
 		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		
-		// 자동 범위와 입력 가능한 마지막 프레임을 설정한다.
+		// Auto 버튼으로 복원할 마지막 프레임을 설정한다.
 		void SetLastFrame(int maxFrame);
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
 		void Create(HWND parent) override;

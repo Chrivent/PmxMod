@@ -73,9 +73,6 @@ namespace Chrivent {
 		const int modelWidth = (std::max)(160, width / 3);
 		const int rightX = margin + modelWidth + gap;
 		const int rightWidth = (std::max)(0, width - rightX - margin);
-		const int motionHeight = (std::max)(120, topHeight * 2 / 3);
-		const int playbackY = margin + motionHeight + gap;
-		const int playbackHeight = (std::max)(0, topHeight - motionHeight - gap);
 		const int bottomY = margin + topHeight + gap;
 		int bottomIndex = 0;
 		int bottomCount = 0;
@@ -92,10 +89,7 @@ namespace Chrivent {
 					area = {margin, margin, margin + modelWidth, margin + topHeight};
 					break;
 				case PanelWindowArea::Motion:
-					area = {rightX, margin, rightX + rightWidth, margin + motionHeight};
-					break;
-				case PanelWindowArea::Playback:
-					area = {rightX, playbackY, rightX + rightWidth, playbackY + playbackHeight};
+					area = {rightX, margin, rightX + rightWidth, margin + topHeight};
 					break;
 				case PanelWindowArea::Bottom: {
 					const int panelWidth = bottomCount > 0
