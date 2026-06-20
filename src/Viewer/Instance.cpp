@@ -2,10 +2,7 @@
 
 #include "Drawer.h"
 #include "Viewer.h"
-#include "../Animation/Model/Animation.h"
-#include "../Model/ModelAnimator.h"
-#include "../Model/ModelPose.h"
-#include "../Model/ModelSkinning.h"
+#include "../Model/ModelUpdater.h"
 
 namespace Chrivent {
     InstanceInfo::InstanceInfo() = default;
@@ -21,22 +18,21 @@ namespace Chrivent {
 
     void Instance::PrepareUpdate(const ViewerInfo& viewerInfo) const {
         const auto& instanceInfo = GetInfo();
-        const ModelAnimator animator(*instanceInfo.model);
-        animator.BeginAnimation();
-        animator.UpdateAllAnimation(instanceInfo.anim.get(), viewerInfo.animTime * 30.0f, viewerInfo.elapsed, !viewerInfo.skipPhysics);
-        const ModelPose pose(*instanceInfo.model);
-        pose.UpdateTransforms();
-        const ModelSkinning skinning(*instanceInfo.model);
-        skinning.PrepareUpdate();
+        const ModelUpdater updater(*instanceInfo.model);
+        updater.Prepare(
+            instanceInfo.anim.get(),
+            viewerInfo.animTime * 30.0f,
+            viewerInfo.elapsed,
+            !viewerInfo.skipPhysics);
     }
 
     std::size_t Instance::GetSkinningTaskCount() const {
-        const ModelSkinning skinning(*GetInfo().model);
-        return skinning.GetUpdateRangeCount();
+        const ModelUpdater updater(*GetInfo().model);
+        return updater.GetSkinningTaskCount();
     }
 
     void Instance::UpdateSkinning(const std::size_t taskIndex) const {
-        const ModelSkinning skinning(*GetInfo().model);
-        skinning.UpdateRange(taskIndex);
+        const ModelUpdater updater(*GetInfo().model);
+        updater.UpdateSkinning(taskIndex);
     }
 }

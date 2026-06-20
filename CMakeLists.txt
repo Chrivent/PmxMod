@@ -73,6 +73,7 @@ set(MODEL_SOURCES
         src/Model/ModelMorph.h src/Model/ModelMorph.cpp
         src/Model/ModelPose.h src/Model/ModelPose.cpp
         src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
+        src/Model/ModelUpdater.h src/Model/ModelUpdater.cpp
 
         src/Model/Bone/IkSolver.h src/Model/Bone/IkSolver.cpp
         src/Model/Bone/Node.h src/Model/Bone/Node.cpp
