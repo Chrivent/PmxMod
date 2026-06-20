@@ -13,6 +13,7 @@
   "language.chinese": "Chinese",
   "panel.model": "Model",
   "panel.motion": "Motion",
+  "panel.interpolation_curve": "Interpolation Curve",
   "panel.playback": "Playback",
   "panel.sound": "Sound",
   "model.add": "Add",
@@ -26,5 +27,13 @@
   "playback.repeat": "Repeat",
   "motion.select_model": "Select a model",
   "motion.bones": "Bones",
-  "motion.morphs": "Morphs"
+  "motion.morphs": "Morphs",
+  "motion.camera": "Camera",
+  "motion.model": "Model",
+  "interpolation.x": "X Movement",
+  "interpolation.y": "Y Movement",
+  "interpolation.z": "Z Movement",
+  "interpolation.rotation": "Rotation",
+  "interpolation.distance": "Distance",
+  "interpolation.fov": "Field of View"
 }

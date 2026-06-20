@@ -13,6 +13,7 @@
   "language.chinese": "중국어",
   "panel.model": "모델",
   "panel.motion": "모션",
+  "panel.interpolation_curve": "보간 곡선",
   "panel.playback": "재생",
   "panel.sound": "사운드",
   "model.add": "추가",
@@ -26,5 +27,13 @@
   "playback.repeat": "반복",
   "motion.select_model": "모델을 선택하세요",
   "motion.bones": "본",
-  "motion.morphs": "모프"
+  "motion.morphs": "모프",
+  "motion.camera": "카메라",
+  "motion.model": "모델",
+  "interpolation.x": "X 이동",
+  "interpolation.y": "Y 이동",
+  "interpolation.z": "Z 이동",
+  "interpolation.rotation": "회전",
+  "interpolation.distance": "거리",
+  "interpolation.fov": "시야각"
 }

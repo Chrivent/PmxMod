@@ -29,12 +29,12 @@ namespace Chrivent {
 	
 	void Bezier::Assign(const int x0, const int x1, const int y0, const int y1) {
 		auto Normalize = [](const int value) { return value / 127.0f; };
-		p1 = glm::vec2(Normalize(x0), Normalize(y0));
-		p2 = glm::vec2(Normalize(x1), Normalize(y1));
+		controlPoints.p1 = glm::vec2(Normalize(x0), Normalize(y0));
+		controlPoints.p2 = glm::vec2(Normalize(x1), Normalize(y1));
 	}
 
 	float Bezier::Evaluate(const float time) const {
-		const float bezierParameter = FindBezierX(time, p1.x, p2.x);
-		return EvaluateBezier(bezierParameter, p1.y, p2.y);
+		const float bezierParameter = FindBezierX(time, controlPoints.p1.x, controlPoints.p2.x);
+		return EvaluateBezier(bezierParameter, controlPoints.p1.y, controlPoints.p2.y);
 	}
 }

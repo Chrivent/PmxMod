@@ -73,9 +73,10 @@ namespace Chrivent {
 		constexpr int gap = 8;
 		const int bottomHeight = (std::max)(120, height / 4);
 		const int topHeight = (std::max)(0, height - bottomHeight - margin * 2 - gap);
-		const int modelWidth = (std::max)(160, width / 3);
-		const int rightX = margin + modelWidth + gap;
-		const int rightWidth = (std::max)(0, width - rightX - margin);
+		const int sideWidth = std::clamp(width / 4, 160, 320);
+		const int motionX = margin + sideWidth + gap;
+		const int interpolationX = width - margin - sideWidth;
+		const int motionWidth = (std::max)(0, interpolationX - gap - motionX);
 		const int bottomY = margin + topHeight + gap;
 		int bottomIndex = 0;
 		int bottomCount = 0;
@@ -89,10 +90,18 @@ namespace Chrivent {
 			RECT area{};
 			switch (entry.area) {
 				case PanelWindowArea::Model:
-					area = {margin, margin, margin + modelWidth, margin + topHeight};
+					area = {margin, margin, margin + sideWidth, margin + topHeight};
 					break;
 				case PanelWindowArea::Motion:
-					area = {rightX, margin, rightX + rightWidth, margin + topHeight};
+					area = {motionX, margin, motionX + motionWidth, margin + topHeight};
+					break;
+				case PanelWindowArea::InterpolationCurve:
+					area = {
+						interpolationX,
+						margin,
+						interpolationX + sideWidth,
+						margin + topHeight
+					};
 					break;
 				case PanelWindowArea::Bottom: {
 					const int panelWidth = bottomCount > 0

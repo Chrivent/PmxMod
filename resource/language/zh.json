@@ -13,6 +13,7 @@
   "language.chinese": "中文",
   "panel.model": "模型",
   "panel.motion": "动作",
+  "panel.interpolation_curve": "插值曲线",
   "panel.playback": "播放",
   "panel.sound": "声音",
   "model.add": "添加",
@@ -26,5 +27,13 @@
   "playback.repeat": "循环",
   "motion.select_model": "请选择模型",
   "motion.bones": "骨骼",
-  "motion.morphs": "变形"
+  "motion.morphs": "变形",
+  "motion.camera": "摄像机",
+  "motion.model": "模型",
+  "interpolation.x": "X移动",
+  "interpolation.y": "Y移动",
+  "interpolation.z": "Z移动",
+  "interpolation.rotation": "旋转",
+  "interpolation.distance": "距离",
+  "interpolation.fov": "视野角"
 }

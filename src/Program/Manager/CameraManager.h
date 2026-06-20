@@ -1,11 +1,10 @@
 ﻿#pragma once
 
-#include "../Camera.h"
+#include "../../Animation/Camera/CameraAnimation.h"
 
 #include <filesystem>
 
 namespace Chrivent {
-	class CameraAnimation;
 	class InputManager;
 	class Sound;
 	struct ViewerInfo;
@@ -27,6 +26,7 @@ namespace Chrivent {
 		~CameraManager();
 
 		uint32_t GetLastFrame() const;
+		const std::vector<CameraAnimationKey>& GetAnimationKeys() const;
 		bool IsPlaying() const { return !paused; }
 
 		// 지정한 프레임으로 재생 시간을 이동한다.

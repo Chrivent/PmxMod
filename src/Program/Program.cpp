@@ -1,5 +1,6 @@
 ﻿#include "Program.h"
 
+#include "../Animation/Camera/CameraAnimation.h"
 #include "../Animation/Model/Animation.h"
 #include "../Animation/Model/AnimationBuilder.h"
 #include "../Model/ModelLoader.h"
@@ -142,10 +143,9 @@ namespace Chrivent {
         if (!InitializeViewer())
             return false;
         saveTime = std::chrono::steady_clock::now();
-        if (!LoadScene(panelManager.GetSceneConfig()))
+        if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
         panelManager.BindSound(music);
-        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         cameraManager.UpdateCamera(viewer->GetInfo());
         return true;
     }
@@ -160,7 +160,7 @@ namespace Chrivent {
         glfwTerminate();
     }
 
-    bool Program::LoadScene(const SceneConfig& sceneConfig) {
+    bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
             std::cerr << "Failed to load scene instances.\n";
@@ -177,7 +177,10 @@ namespace Chrivent {
         viewer->GetInfo().skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(viewer->GetInfo(), music, saveTime);
-        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
+        panelManager.SetFrameLimits(
+            CalculatePlaybackLastFrame(),
+            CalculateMotionLastFrame(),
+            resetPlaybackRange);
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
             cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
@@ -251,37 +254,97 @@ namespace Chrivent {
             return;
         const auto& instanceInfo = instances[modelIndex]->GetInfo();
         const auto& model = *instanceInfo.model;
-        std::unordered_map<const Node*, std::vector<uint32_t>> nodeKeyFrames;
-        std::unordered_map<const IkSolver*, std::vector<uint32_t>> ikKeyFrames;
-        std::unordered_map<const Morph*, std::vector<uint32_t>> morphKeyFrames;
-        if (instanceInfo.anim) {
-            const auto& [nodeTracks, ikTracks, morphTracks] = instanceInfo.anim->GetInfo();
-            for (const auto& [node, keys] : nodeTracks) {
-                auto& frames = nodeKeyFrames[node.get()];
-                frames.reserve(keys.size());
+        const auto MakeCurve = [](std::wstring name, const Bezier& bezier) {
+            return MotionBezierCurve{
+                .name = std::move(name),
+                .controlPoints = bezier.GetControlPoints()
+            };
+        };
+        const auto NormalizeKeys = [](std::vector<MotionTimelineKey>& keys) {
+            std::ranges::sort(keys, {}, &MotionTimelineKey::frame);
+            std::vector<MotionTimelineKey> normalized;
+            normalized.reserve(keys.size());
+            for (auto& key : keys) {
+                if (!normalized.empty() && normalized.back().frame == key.frame) {
+                    if (normalized.back().curves.empty() && !key.curves.empty())
+                        normalized.back().curves = std::move(key.curves);
+                    continue;
+                }
+                normalized.emplace_back(std::move(key));
+            }
+            keys = std::move(normalized);
+        };
+        const auto CollectFrames = [](const std::vector<MotionTimelineRow>& rows) {
+            std::vector<uint32_t> frames;
+            for (const auto& [name, keys] : rows) {
                 for (const auto& key : keys)
                     frames.emplace_back(key.frame);
             }
-            for (const auto& [ikSolver, keys] : ikTracks) {
-                auto& frames = ikKeyFrames[ikSolver.get()];
-                frames.reserve(keys.size());
-                for (const auto& [frame, ikEnable] : keys)
-                    frames.emplace_back(frame);
-            }
-            for (const auto& [morph, keys] : morphTracks) {
-                auto& frames = morphKeyFrames[morph.get()];
-                frames.reserve(keys.size());
-                for (const auto& [frame, morphWeight] : keys)
-                    frames.emplace_back(frame);
-            }
-        }
-        const auto NormalizeFrames = [](std::vector<uint32_t>& frames) {
             std::ranges::sort(frames);
             const auto uniqueFrames = std::ranges::unique(frames);
             frames.erase(uniqueFrames.begin(), uniqueFrames.end());
+            return frames;
         };
+        std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
+        std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
+        std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
+        if (instanceInfo.anim) {
+            const auto& [nodeTracks, ikTracks, morphTracks] = instanceInfo.anim->GetInfo();
+            for (const auto& [node, keys] : nodeTracks) {
+                auto& timelineKeys = nodeKeys[node.get()];
+                timelineKeys.reserve(keys.size());
+                for (const auto& key : keys) {
+                    timelineKeys.push_back({
+                        .frame = key.frame,
+                        .curves = {
+                            MakeCurve(Language::Text("interpolation.x"), key.txBezier),
+                            MakeCurve(Language::Text("interpolation.y"), key.tyBezier),
+                            MakeCurve(Language::Text("interpolation.z"), key.tzBezier),
+                            MakeCurve(Language::Text("interpolation.rotation"), key.rotBezier)
+                        }
+                    });
+                }
+            }
+            for (const auto& [ikSolver, keys] : ikTracks) {
+                auto& timelineKeys = ikKeys[ikSolver.get()];
+                timelineKeys.reserve(keys.size());
+                for (const auto& [frame, ikEnable] : keys)
+                    timelineKeys.push_back({.frame = frame});
+            }
+            for (const auto& [morph, keys] : morphTracks) {
+                auto& timelineKeys = morphKeys[morph.get()];
+                timelineKeys.reserve(keys.size());
+                for (const auto& [frame, morphWeight] : keys)
+                    timelineKeys.push_back({.frame = frame});
+            }
+        }
         std::vector<MotionTimelineGroup> groups;
-        groups.reserve(model.skeletonData.displayFrames.size());
+        groups.reserve(model.skeletonData.displayFrames.size() + 1);
+        const auto& cameraKeys = cameraManager.GetAnimationKeys();
+        if (!cameraKeys.empty()) {
+            MotionTimelineRow cameraRow{.name = Language::Text("motion.camera")};
+            cameraRow.keys.reserve(cameraKeys.size());
+            for (const auto& key : cameraKeys) {
+                cameraRow.keys.push_back({
+                    .frame = key.frame,
+                    .curves = {
+                        MakeCurve(Language::Text("interpolation.x"), key.ixBezier),
+                        MakeCurve(Language::Text("interpolation.y"), key.iyBezier),
+                        MakeCurve(Language::Text("interpolation.z"), key.izBezier),
+                        MakeCurve(Language::Text("interpolation.rotation"), key.rotateBezier),
+                        MakeCurve(Language::Text("interpolation.distance"), key.distanceBezier),
+                        MakeCurve(Language::Text("interpolation.fov"), key.fovBezier)
+                    }
+                });
+            }
+            MotionTimelineGroup cameraGroup{
+                .name = Language::Text("motion.camera"),
+                .rows = {std::move(cameraRow)},
+                .mode = MotionTimelineMode::Camera
+            };
+            cameraGroup.keyFrames = CollectFrames(cameraGroup.rows);
+            groups.emplace_back(std::move(cameraGroup));
+        }
         for (const auto& [name
             , boneIndices
             , morphIndices] : model.skeletonData.displayFrames) {
@@ -295,16 +358,15 @@ namespace Chrivent {
                 const auto& node = model.skeletonData.nodes[boneIndex];
                 if (!node)
                     continue;
-                auto frames = nodeKeyFrames[node.get()];
+                auto keys = nodeKeys[node.get()];
                 if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
-                    const auto& ikFrames = ikKeyFrames[ikSolver.get()];
-                    frames.insert(frames.end(), ikFrames.begin(), ikFrames.end());
+                    const auto& solverKeys = ikKeys[ikSolver.get()];
+                    keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
-                NormalizeFrames(frames);
-                group.keyFrames.insert(group.keyFrames.end(), frames.begin(), frames.end());
+                NormalizeKeys(keys);
                 group.rows.push_back({
                     .name = Util::Utf8ToWString(node->GetInfo().name),
-                    .keyFrames = std::move(frames)
+                    .keys = std::move(keys)
                 });
             }
             for (const uint32_t morphIndex : morphIndices) {
@@ -313,50 +375,47 @@ namespace Chrivent {
                 const auto& morph = model.morphData.morphs[morphIndex];
                 if (!morph)
                     continue;
-                auto frames = morphKeyFrames[morph.get()];
-                group.keyFrames.insert(group.keyFrames.end(), frames.begin(), frames.end());
+                auto keys = morphKeys[morph.get()];
                 group.rows.push_back({
                     .name = Util::Utf8ToWString(morph->name),
-                    .keyFrames = std::move(frames)
+                    .keys = std::move(keys)
                 });
             }
             if (group.rows.empty())
                 continue;
-            NormalizeFrames(group.keyFrames);
+            group.keyFrames = CollectFrames(group.rows);
             groups.emplace_back(std::move(group));
         }
-        if (groups.empty()) {
+        if (groups.size() == (cameraKeys.empty() ? 0 : 1)) {
             MotionTimelineGroup boneGroup{.name = Language::Text("motion.bones")};
             for (const auto& node : model.skeletonData.nodes) {
                 if (!node)
                     continue;
-                auto frames = nodeKeyFrames[node.get()];
+                auto keys = nodeKeys[node.get()];
                 if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
-                    const auto& ikFrames = ikKeyFrames[ikSolver.get()];
-                    frames.insert(frames.end(), ikFrames.begin(), ikFrames.end());
+                    const auto& solverKeys = ikKeys[ikSolver.get()];
+                    keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
-                NormalizeFrames(frames);
-                boneGroup.keyFrames.insert(boneGroup.keyFrames.end(), frames.begin(), frames.end());
+                NormalizeKeys(keys);
                 boneGroup.rows.push_back({
                     .name = Util::Utf8ToWString(node->GetInfo().name),
-                    .keyFrames = std::move(frames)
+                    .keys = std::move(keys)
                 });
             }
-            NormalizeFrames(boneGroup.keyFrames);
+            boneGroup.keyFrames = CollectFrames(boneGroup.rows);
             if (!boneGroup.rows.empty())
                 groups.emplace_back(std::move(boneGroup));
             MotionTimelineGroup morphGroup{.name = Language::Text("motion.morphs")};
             for (const auto& morph : model.morphData.morphs) {
                 if (!morph)
                     continue;
-                auto frames = morphKeyFrames[morph.get()];
-                morphGroup.keyFrames.insert(morphGroup.keyFrames.end(), frames.begin(), frames.end());
+                auto keys = morphKeys[morph.get()];
                 morphGroup.rows.push_back({
                     .name = Util::Utf8ToWString(morph->name),
-                    .keyFrames = std::move(frames)
+                    .keys = std::move(keys)
                 });
             }
-            NormalizeFrames(morphGroup.keyFrames);
+            morphGroup.keyFrames = CollectFrames(morphGroup.rows);
             if (!morphGroup.rows.empty())
                 groups.emplace_back(std::move(morphGroup));
         }

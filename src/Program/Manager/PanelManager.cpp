@@ -27,6 +27,10 @@ namespace Chrivent {
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model);
 		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
+		panelWindow.RegisterPanel(
+			interpolationCurvePanel,
+			"panel.interpolation_curve",
+			PanelWindowArea::InterpolationCurve);
 		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
 		panelWindow.RegisterPanel(soundPanel, "panel.sound", PanelWindowArea::Bottom);
 		Reset();
@@ -55,8 +59,11 @@ namespace Chrivent {
 		panelWindow.RefreshLanguage();
 	}
 
-	void PanelManager::PollGuiWindows() const {
+	void PanelManager::PollGuiWindows() {
 		panelWindow.Poll();
+		InterpolationSelection selection;
+		if (motionPanel.ConsumeInterpolationSelection(selection))
+			interpolationCurvePanel.SetSelection(std::move(selection));
 	}
 
 	void PanelManager::DestroyGui() {

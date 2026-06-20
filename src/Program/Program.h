@@ -31,7 +31,7 @@ namespace Chrivent {
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.
         void Shutdown();
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
-        bool LoadScene(const SceneConfig& sceneConfig);
+        bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
         bool LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
         // 현재 씬의 모델 모션과 카메라 모션 중 가장 긴 프레임을 계산한다.

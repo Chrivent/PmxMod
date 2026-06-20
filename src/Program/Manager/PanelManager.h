@@ -4,6 +4,7 @@
 #include "../MenuBar.h"
 #include "../PanelWindow.h"
 #include "../RendererType.h"
+#include "../Panel/InterpolationCurvePanel.h"
 #include "../Panel/ModelPanel.h"
 #include "../Panel/MotionPanel.h"
 #include "../Panel/PlaybackPanel.h"
@@ -31,6 +32,7 @@ namespace Chrivent {
 		MenuBar menuBar;
 		ModelPanel modelPanel;
 		MotionPanel motionPanel;
+		InterpolationCurvePanel interpolationCurvePanel;
 		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
 		PanelWindow panelWindow;
@@ -53,8 +55,11 @@ namespace Chrivent {
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
-		void SetFrameLimits(const int autoLastFrame, const int motionLastFrame) {
-			playbackPanel.SetLastFrame(autoLastFrame);
+		void SetFrameLimits(
+			const int autoLastFrame,
+			const int motionLastFrame,
+			const bool resetPlaybackRange = false) {
+			playbackPanel.SetLastFrame(autoLastFrame, resetPlaybackRange);
 			motionPanel.SetLastFrame(motionLastFrame);
 		}
 
@@ -95,7 +100,7 @@ namespace Chrivent {
 		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
 		void RefreshLanguage() const;
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.
-		void PollGuiWindows() const;
+		void PollGuiWindows();
 		// GUI 창과 패널 컨트롤을 정리한다.
 		void DestroyGui();
 	};

@@ -27,6 +27,11 @@ namespace Chrivent {
 		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
 	}
 
+	const std::vector<CameraAnimationKey>& CameraManager::GetAnimationKeys() const {
+		static constexpr std::vector<CameraAnimationKey> emptyKeys;
+		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
+	}
+
 	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
 		viewerInfo.elapsed = 0.0f;

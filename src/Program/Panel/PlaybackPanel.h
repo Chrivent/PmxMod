@@ -75,8 +75,8 @@ namespace Chrivent {
 
 		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		
-		// Auto 버튼으로 복원할 마지막 프레임을 설정한다.
-		void SetLastFrame(int maxFrame);
+		// Auto 버튼으로 복원할 마지막 프레임을 설정하고 필요하면 범위를 초기화한다.
+		void SetLastFrame(int maxFrame, bool resetRange);
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
 		void Create(HWND parent) override;
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.

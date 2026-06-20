@@ -13,6 +13,7 @@
   "language.chinese": "中国語",
   "panel.model": "モデル",
   "panel.motion": "モーション",
+  "panel.interpolation_curve": "補間曲線",
   "panel.playback": "再生",
   "panel.sound": "サウンド",
   "model.add": "追加",
@@ -26,5 +27,13 @@
   "playback.repeat": "繰り返し",
   "motion.select_model": "モデルを選択してください",
   "motion.bones": "ボーン",
-  "motion.morphs": "モーフ"
+  "motion.morphs": "モーフ",
+  "motion.camera": "カメラ",
+  "motion.model": "モデル",
+  "interpolation.x": "X移動",
+  "interpolation.y": "Y移動",
+  "interpolation.z": "Z移動",
+  "interpolation.rotation": "回転",
+  "interpolation.distance": "距離",
+  "interpolation.fov": "視野角"
 }

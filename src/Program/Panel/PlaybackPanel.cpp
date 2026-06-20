@@ -163,9 +163,9 @@ namespace Chrivent {
 		updatingRangeControls = false;
 	}
 
-	void PlaybackPanel::SetLastFrame(const int maxFrame) {
+	void PlaybackPanel::SetLastFrame(const int maxFrame, const bool resetRange) {
 		autoLastFrame = std::clamp(maxFrame, 1, kMaxEditableFrame);
-		if (!customFrameRange)
+		if (resetRange || !customFrameRange)
 			ApplyFrameRange({ 0, autoLastFrame }, false);
 		else
 			ApplyFrameRange(frameRange, true);
