@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../../Instance.h"
+#include "../../ViewerGeometry.h"
 #include "GlfwDynamicBufferRing.h"
 
 #include <vector>
@@ -24,11 +25,11 @@ namespace Chrivent {
     };
 
     class GlfwInstance : public Instance {
-        // OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
-        static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
-        // 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
-        static GLuint CreateVao(const GLuint* buffers, const GLint* locs, const GLint* sizes, const GLenum* types,
-            int attribCount, GLuint ibo);
+		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
+		static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
+		// 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
+		static GLuint CreateVao(GLuint vertexBuffer, const GLint* locations, const GLint* sizes, const size_t* offsets,
+			int attributeCount, GLuint indexBuffer);
         // 모델 geometry 데이터를 OpenGL vertex/index buffer로 생성한다.
         bool CreateGeometryBuffers(GlfwInstanceInfo& info);
         // shader attribute 위치에 맞춰 모델/엣지/지면 그림자 VAO를 생성한다.
@@ -38,9 +39,7 @@ namespace Chrivent {
         // 모델 material 정보를 OpenGL material 캐시와 texture handle로 변환한다.
         static void LoadMaterials(GlfwInstanceInfo& info);
 
-        GLuint  posVbo = 0;
-        GLuint	norVbo = 0;
-        GLuint	uvVbo = 0;
+        GLuint  vertexVbo = 0;
         GLuint	ibo = 0;
     
     public:

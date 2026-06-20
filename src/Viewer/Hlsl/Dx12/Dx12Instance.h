@@ -7,6 +7,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+#include <array>
 #include <vector>
 
 namespace Chrivent {
@@ -17,10 +18,11 @@ namespace Chrivent {
 	using Dx12Vertex = ViewerVertex;
 
 	struct Dx12InstanceInfo : InstanceInfo {
+		static constexpr size_t kBufferedFrames = 2;
 		Dx12Viewer* viewer = nullptr;
-		Dx12Buffer vertexBuffer;
+		std::array<Dx12Buffer, kBufferedFrames> vertexBuffers;
 		Dx12Buffer indexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
+		std::array<D3D12_VERTEX_BUFFER_VIEW, kBufferedFrames> vertexBufferViews{};
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
 		Dx12Buffer modelVertexConstantBuffer;

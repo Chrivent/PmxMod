@@ -25,6 +25,8 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
+		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
+		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslModelVertexConstants vertexConstants;
@@ -40,7 +42,7 @@ namespace Chrivent {
 		ID3D12DescriptorHeap* descriptorHeaps[] = { info.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
-		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, info.modelVertexConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
@@ -91,6 +93,8 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
+		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
+		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslEdgeVertexConstants vertexConstants{};
@@ -102,7 +106,7 @@ namespace Chrivent {
 			return;
 		}
 		info.viewer->BindEdgePipelineState();
-		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, info.edgeVertexConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
@@ -139,6 +143,8 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
 		if (commandList == nullptr)
 			return;
+		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
+		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewerInfo.lightDir);
@@ -155,7 +161,7 @@ namespace Chrivent {
 		}
 		info.viewer->BindGroundShadowPipelineState();
 		commandList->OMSetStencilRef(0x01);
-		commandList->IASetVertexBuffers(0, 1, &info.vertexBufferView);
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, info.groundShadowVertexConstantBuffer.ResolveGpuAddress());
 		commandList->SetGraphicsRootConstantBufferView(1, info.groundShadowPixelConstantBuffer.ResolveGpuAddress());

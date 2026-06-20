@@ -5,6 +5,7 @@
 #include "Dx11Viewer.h"
 #include "../HlslShaderConstants.h"
 #include "Helper/Dx11DescBuilder.h"
+#include "../../ViewerGeometry.h"
 #include "../../../Core/Model/Model.h"
 
 namespace Chrivent {
@@ -84,15 +85,7 @@ namespace Chrivent {
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.context->Map(info.vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
-		const auto vertices = static_cast<Dx11Vertex*>(mapRes.pData);
-		const glm::vec3* updatePositionData = info.model->geometryData.updatePositions.data();
-		const glm::vec3* updateNormalData = info.model->geometryData.updateNormals.data();
-		const glm::vec2* updateUvData = info.model->geometryData.updateUVs.data();
-		for (size_t i = 0; i < vtxCount; i++) {
-			vertices[i].position = updatePositionData[i];
-			vertices[i].normal = updateNormalData[i];
-			vertices[i].uv = updateUvData[i];
-		}
+		ViewerGeometry::WriteVertices(info.model->geometryData, true, static_cast<Dx11Vertex*>(mapRes.pData), vtxCount);
 		info.viewer->GetDx11Info().deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
 	}
 }

@@ -20,8 +20,8 @@ namespace Chrivent {
 		info.indexType = indexData.elementSize == sizeof(uint16_t)
 			? VK_INDEX_TYPE_UINT16
 			: VK_INDEX_TYPE_UINT32;
-		const std::vector<VulkanVertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
-		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
+		const size_t vertexCount = geometryData.positions.size();
+		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertexCount;
 		const VkDeviceSize indexBufferSize = indexData.bytes.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
 			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
@@ -34,7 +34,8 @@ namespace Chrivent {
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;
-			if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
+			if (!ViewerGeometry::WriteVertices(geometryData, false,
+				static_cast<VulkanVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
 				return false;
 		}
 		if (!info.indexBuffer.Initialize(
@@ -203,9 +204,9 @@ namespace Chrivent {
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex];
 		if (vertexBuffer.GetInfo().buffer == VK_NULL_HANDLE)
 			return;
-		const std::vector<VulkanVertex> vertices = ViewerGeometry::BuildVertices(info.model->geometryData, true);
-		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
-		if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
+		const size_t vertexCount = info.model->geometryData.positions.size();
+		if (!ViewerGeometry::WriteVertices(info.model->geometryData, true,
+			static_cast<VulkanVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
 	}
 }

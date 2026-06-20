@@ -145,8 +145,10 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::BeginFrame() {
-		if (!commandContext.BeginFrame(device->GetInfo(), swapChain.GetFrameIndex()))
+		const UINT frameIndex = swapChain.GetFrameIndex();
+		if (!commandContext.BeginFrame(device->GetInfo(), frameIndex))
 			return;
+		GetDx12Info().frameIndex = frameIndex;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();

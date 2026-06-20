@@ -11,28 +11,35 @@
 namespace Chrivent {
 	bool Dx12Instance::CreateGeometryBuffers(Dx12InstanceInfo& info, const Dx12DeviceInfo& deviceInfo) {
 		const auto& geometryData = info.model->geometryData;
-		const std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(geometryData, false);
 		ViewerIndexData indexData;
-		if (vertices.empty() || !ViewerGeometry::BuildIndexData(geometryData, indexData) || indexData.bytes.empty()) {
+		if (geometryData.positions.empty() ||
+			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
+			indexData.bytes.empty()) {
 			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
 			return false;
 		}
 		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
 			? DXGI_FORMAT_R16_UINT
 			: DXGI_FORMAT_R32_UINT;
-		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertices.size();
+		const size_t vertexCount = geometryData.positions.size();
+		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertexCount;
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
 			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
 			return false;
-		if (!info.vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
-			!info.vertexBuffer.Write(vertices.data(), vertexByteSize))
-			return false;
+		for (size_t frameIndex = 0; frameIndex < Dx12InstanceInfo::kBufferedFrames; frameIndex++) {
+			Dx12Buffer& vertexBuffer = info.vertexBuffers[frameIndex];
+			if (!vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
+				!ViewerGeometry::WriteVertices(geometryData, false,
+					static_cast<Dx12Vertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+				return false;
+			auto& vertexBufferView = info.vertexBufferViews[frameIndex];
+			vertexBufferView.BufferLocation = vertexBuffer.ResolveGpuAddress();
+			vertexBufferView.SizeInBytes = vertexByteSize;
+			vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
+		}
 		if (!info.indexBuffer.InitializeUpload(deviceInfo, indexData.bytes.size()) ||
 			!info.indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
 			return false;
-		info.vertexBufferView.BufferLocation = info.vertexBuffer.ResolveGpuAddress();
-		info.vertexBufferView.SizeInBytes = vertexByteSize;
-		info.vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
 		info.indexBufferView.BufferLocation = info.indexBuffer.ResolveGpuAddress();
 		info.indexBufferView.SizeInBytes = indexData.bytes.size();
 		info.indexBufferView.Format = indexFormat;
@@ -141,7 +148,8 @@ namespace Chrivent {
 
 	void Dx12Instance::Clear() {
 		auto& info = static_cast<Dx12InstanceInfo&>(GetInfo());
-		info.vertexBuffer.Destroy();
+		for (Dx12Buffer& vertexBuffer : info.vertexBuffers)
+			vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
 		info.modelVertexConstantBuffer.Destroy();
 		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers)
@@ -158,7 +166,7 @@ namespace Chrivent {
 		info.groundShadowPixelConstantBuffer.Destroy();
 		info.textureDescriptorHeap.Reset();
 		info.textureDescriptorSize = 0;
-		info.vertexBufferView = {};
+		info.vertexBufferViews = {};
 		info.indexBufferView = {};
 		info.indexCount = 0;
 		info.materials.clear();
@@ -184,12 +192,15 @@ namespace Chrivent {
 
 	void Dx12Instance::Upload() const {
 		const auto& info = static_cast<const Dx12InstanceInfo&>(GetInfo());
-		if (info.model == nullptr || !info.vertexBuffer.IsInitialized())
+		if (info.model == nullptr || info.viewer == nullptr)
 			return;
-		const std::vector<Dx12Vertex> vertices = ViewerGeometry::BuildVertices(info.model->geometryData, true);
-		if (vertices.empty())
+		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
+		const Dx12Buffer& vertexBuffer = info.vertexBuffers[frameIndex];
+		if (!vertexBuffer.IsInitialized())
 			return;
-		if (!info.vertexBuffer.Write(vertices.data(), sizeof(Dx12Vertex) * vertices.size()))
+		const size_t vertexCount = info.model->geometryData.positions.size();
+		if (!ViewerGeometry::WriteVertices(info.model->geometryData, true,
+			static_cast<Dx12Vertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
 			std::cerr << "Failed to update DX12 vertex buffer.\n";
 	}
 }

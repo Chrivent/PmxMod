@@ -9,11 +9,13 @@
 namespace Chrivent {
 	class Dx12Buffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+		void* mappedData = nullptr;
 		size_t byteSize = 0;
 
 	public:
 		// DX12 buffer resource가 생성되어 있는지 확인한다.
 		bool IsInitialized() const { return resource != nullptr; }
+		void* ResolveMappedData() const { return mappedData; }
 
 		// DX12 constant buffer 규칙에 맞게 256바이트 단위로 정렬한다.
 		static size_t AlignConstantBufferSize(size_t size);

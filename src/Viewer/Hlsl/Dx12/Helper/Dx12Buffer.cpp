@@ -42,23 +42,20 @@ namespace Chrivent {
 			IID_PPV_ARGS(&resource))))
 			return false;
 		byteSize = size;
-		return true;
+		constexpr D3D12_RANGE readRange{ 0, 0 };
+		return SUCCEEDED(resource->Map(0, &readRange, &mappedData));
 	}
 
 	bool Dx12Buffer::Write(const void* data, const size_t size) const {
-		if (!resource || data == nullptr || size > byteSize)
-			return false;
-		void* mappedData = nullptr;
-		constexpr D3D12_RANGE readRange{ 0, 0 };
-		if (FAILED(resource->Map(0, &readRange, &mappedData)))
+		if (!resource || mappedData == nullptr || data == nullptr || size > byteSize)
 			return false;
 		std::memcpy(mappedData, data, size);
-		resource->Unmap(0, nullptr);
 		return true;
 	}
 
 	void Dx12Buffer::Destroy() {
 		resource.Reset();
+		mappedData = nullptr;
 		byteSize = 0;
 	}
 }

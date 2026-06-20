@@ -26,6 +26,7 @@ namespace Chrivent {
 		std::shared_ptr<const Dx12DeviceInfo> deviceInfo;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		std::shared_ptr<const Dx12Texture> dummyTexture;
+		UINT frameIndex = 0;
 	};
 
 	class Dx12Viewer : public Viewer {
