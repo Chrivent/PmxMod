@@ -5,7 +5,7 @@
 #include "Dx11Viewer.h"
 #include "../HlslShaderConstants.h"
 #include "Helper/Dx11DescBuilder.h"
-#include "../../../Model/Model.h"
+#include "../../../Core/Model/Model.h"
 
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers(Dx11InstanceInfo& info) {

@@ -1,8 +1,8 @@
 ﻿#include "CameraManager.h"
 
 #include "InputManager.h"
-#include "../../Animation/Camera/CameraAnimation.h"
-#include "../../Animation/Camera/CameraAnimationBuilder.h"
+#include "../../Core/Animation/Camera/CameraAnimation.h"
+#include "../../Core/Animation/Camera/CameraAnimationBuilder.h"
 #include "../Sound.h"
 #include "../../Viewer/Viewer.h"
 

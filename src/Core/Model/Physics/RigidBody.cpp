@@ -3,7 +3,7 @@
 #include "Physics.h"
 #include "../Bone/Node.h"
 #include "../Model.h"
-#include "../../Util.h"
+#include "../../../Util.h"
 
 namespace Chrivent {
 	void RigidBody::Create(const PmxParser::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr) {

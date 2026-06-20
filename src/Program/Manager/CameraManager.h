@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../../Animation/Camera/CameraAnimation.h"
+#include "../../Core/Animation/Camera/CameraAnimation.h"
 
 #include <filesystem>
 

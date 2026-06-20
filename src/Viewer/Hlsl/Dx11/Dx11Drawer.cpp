@@ -3,7 +3,7 @@
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
 #include "../HlslShaderConstants.h"
-#include "../../../Model/Model.h"
+#include "../../../Core/Model/Model.h"
 
 namespace Chrivent {
 	void Dx11Drawer::BindTexture(

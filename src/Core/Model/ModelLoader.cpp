@@ -2,7 +2,7 @@
 
 #include "ModelPose.h"
 #include "../Parser/PmxParser.h"
-#include "../Util.h"
+#include "../../Util.h"
 
 #include <algorithm>
 #include <functional>

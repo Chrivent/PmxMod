@@ -3,7 +3,7 @@
 #include "VulkanInstance.h"
 #include "VulkanViewer.h"
 #include "../GlslShaderConstants.h"
-#include "../../../Model/Model.h"
+#include "../../../Core/Model/Model.h"
 
 #include <iostream>
 

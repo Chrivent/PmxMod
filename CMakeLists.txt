@@ -17,14 +17,26 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
-find_library(SHADERC_LIBRARY shaderc_shared HINTS "$ENV{VULKAN_SDK}/Lib" "${VCPKG_INSTALLED_DIR}/lib" REQUIRED)
-find_file(SHADERC_DLL shaderc_shared.dll HINTS "$ENV{VULKAN_SDK}/Bin" "${VCPKG_INSTALLED_DIR}/bin" REQUIRED)
+find_library(
+        SHADERC_LIBRARY
+        shaderc_shared
+        HINTS "$ENV{VULKAN_SDK}/Lib" "${VCPKG_INSTALLED_DIR}/lib"
+        REQUIRED
+)
+find_file(
+        SHADERC_DLL
+        shaderc_shared.dll
+        HINTS "$ENV{VULKAN_SDK}/Bin" "${VCPKG_INSTALLED_DIR}/bin"
+        REQUIRED
+)
 
-set(PROGRAM_SOURCES
-        src/Util.h src/Util.cpp
+add_subdirectory(src/Core)
+add_subdirectory(src/Viewer)
+
+add_executable(PmxMod
+        main.cpp
 
         src/Program/Program.h src/Program/Program.cpp
-        src/Program/Camera.h src/Program/Camera.cpp
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiBackBuffer.h src/Program/GuiBackBuffer.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
@@ -47,159 +59,17 @@ set(PROGRAM_SOURCES
         src/Program/Panel/SoundPanel.h src/Program/Panel/SoundPanel.cpp
 )
 
-set(PARSER_SOURCES
-        src/Parser/PmxParser.h src/Parser/PmxParser.cpp
-        src/Parser/VmdParser.h src/Parser/VmdParser.cpp
-        src/Parser/BinaryReader.h src/Parser/BinaryReader.cpp
-)
-
-set(ANIMATION_SOURCES
-        src/Animation/AnimationKeySearch.h
-        src/Animation/Bezier.h src/Animation/Bezier.cpp
-
-        src/Animation/Model/Animation.h src/Animation/Model/Animation.cpp
-        src/Animation/Model/AnimationBinder.h src/Animation/Model/AnimationBinder.cpp
-        src/Animation/Model/AnimationBuilder.h src/Animation/Model/AnimationBuilder.cpp
-        src/Animation/Model/AnimationTrackMap.h src/Animation/Model/AnimationTrackMap.cpp
-
-        src/Animation/Camera/CameraAnimation.h src/Animation/Camera/CameraAnimation.cpp
-        src/Animation/Camera/CameraAnimationBuilder.h src/Animation/Camera/CameraAnimationBuilder.cpp
-)
-
-set(MODEL_SOURCES
-        src/Model/Model.h src/Model/Model.cpp
-        src/Model/ModelAnimator.h src/Model/ModelAnimator.cpp
-        src/Model/ModelLoader.h src/Model/ModelLoader.cpp
-        src/Model/ModelMorph.h src/Model/ModelMorph.cpp
-        src/Model/ModelPose.h src/Model/ModelPose.cpp
-        src/Model/ModelSkinning.h src/Model/ModelSkinning.cpp
-        src/Model/ModelUpdater.h src/Model/ModelUpdater.cpp
-
-        src/Model/Bone/IkSolver.h src/Model/Bone/IkSolver.cpp
-        src/Model/Bone/Node.h src/Model/Bone/Node.cpp
-
-        src/Model/Physics/Physics.h src/Model/Physics/Physics.cpp
-        src/Model/Physics/RigidBody.h src/Model/Physics/RigidBody.cpp
-        src/Model/Physics/Joint.h src/Model/Physics/Joint.cpp
-        src/Model/Physics/MotionState.h src/Model/Physics/MotionState.cpp
-)
-
-set(VIEWER_CORE_SOURCES
-        src/Viewer/Viewer.h src/Viewer/Viewer.cpp
-        src/Viewer/Drawer.h src/Viewer/Drawer.cpp
-        src/Viewer/Instance.h src/Viewer/Instance.cpp
-        src/Viewer/TextureCache.h
-        src/Viewer/ViewerGeometry.h src/Viewer/ViewerGeometry.cpp
-
-        src/Viewer/Glsl/GlslPreprocessor.h src/Viewer/Glsl/GlslPreprocessor.cpp
-        src/Viewer/Glsl/GlslShaderConstants.h
-        src/Viewer/Glsl/GlslDynamicBufferRing.h src/Viewer/Glsl/GlslDynamicBufferRing.cpp
-        src/Viewer/Hlsl/HlslShaderConstants.h
-        src/Viewer/Hlsl/HlslShaderCompiler.h src/Viewer/Hlsl/HlslShaderCompiler.cpp
-)
-
-set(GLFW_SOURCES
-        src/Viewer/Glsl/Glfw/GlfwViewer.h src/Viewer/Glsl/Glfw/GlfwViewer.cpp
-        src/Viewer/Glsl/Glfw/GlfwDrawer.h src/Viewer/Glsl/Glfw/GlfwDrawer.cpp
-        src/Viewer/Glsl/Glfw/GlfwTextureCache.h src/Viewer/Glsl/Glfw/GlfwTextureCache.cpp
-        src/Viewer/Glsl/Glfw/GlfwInstance.h src/Viewer/Glsl/Glfw/GlfwInstance.cpp
-
-        src/Viewer/Glsl/Glfw/GlfwDynamicBufferRing.h src/Viewer/Glsl/Glfw/GlfwDynamicBufferRing.cpp
-
-        src/Viewer/Glsl/Glfw/Helper/GlfwShader.h src/Viewer/Glsl/Glfw/Helper/GlfwShader.cpp
-        src/Viewer/Glsl/Glfw/Helper/GlfwShaderCompiler.h src/Viewer/Glsl/Glfw/Helper/GlfwShaderCompiler.cpp
-)
-
-set(DX11_SOURCES
-        src/Viewer/Hlsl/Dx11/Dx11Viewer.h src/Viewer/Hlsl/Dx11/Dx11Viewer.cpp
-        src/Viewer/Hlsl/Dx11/Dx11Drawer.h src/Viewer/Hlsl/Dx11/Dx11Drawer.cpp
-        src/Viewer/Hlsl/Dx11/Dx11TextureCache.h src/Viewer/Hlsl/Dx11/Dx11TextureCache.cpp
-        src/Viewer/Hlsl/Dx11/Dx11Instance.h src/Viewer/Hlsl/Dx11/Dx11Instance.cpp
-
-        src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.h src/Viewer/Hlsl/Dx11/Helper/Dx11DescBuilder.cpp
-        src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.h src/Viewer/Hlsl/Dx11/Helper/Dx11Shader.cpp
-)
-
-set(DX12_SOURCES
-        src/Viewer/Hlsl/Dx12/Dx12Viewer.h src/Viewer/Hlsl/Dx12/Dx12Viewer.cpp
-        src/Viewer/Hlsl/Dx12/Dx12Drawer.h src/Viewer/Hlsl/Dx12/Dx12Drawer.cpp
-        src/Viewer/Hlsl/Dx12/Dx12TextureCache.h src/Viewer/Hlsl/Dx12/Dx12TextureCache.cpp
-        src/Viewer/Hlsl/Dx12/Dx12Instance.h src/Viewer/Hlsl/Dx12/Dx12Instance.cpp
-
-        src/Viewer/Hlsl/Dx12/Helper/Dx12Buffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12Buffer.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12CommandContext.h src/Viewer/Hlsl/Dx12/Helper/Dx12CommandContext.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12DepthBuffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12DepthBuffer.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12Device.h src/Viewer/Hlsl/Dx12/Helper/Dx12Device.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.h src/Viewer/Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.h src/Viewer/Hlsl/Dx12/Helper/Dx12Pipeline.cpp
-        src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.h src/Viewer/Hlsl/Dx12/Helper/Dx12SwapChain.cpp
-)
-
-set(VULKAN_SOURCES
-        src/Viewer/Glsl/Vulkan/VulkanViewer.h src/Viewer/Glsl/Vulkan/VulkanViewer.cpp
-        src/Viewer/Glsl/Vulkan/VulkanDrawer.h src/Viewer/Glsl/Vulkan/VulkanDrawer.cpp
-        src/Viewer/Glsl/Vulkan/VulkanTextureCache.h src/Viewer/Glsl/Vulkan/VulkanTextureCache.cpp
-        src/Viewer/Glsl/Vulkan/VulkanInstance.h src/Viewer/Glsl/Vulkan/VulkanInstance.cpp
-
-        src/Viewer/Glsl/Vulkan/VulkanDynamicBufferRing.h src/Viewer/Glsl/Vulkan/VulkanDynamicBufferRing.cpp
-
-        src/Viewer/Glsl/Vulkan/Helper/VulkanBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanBuffer.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanCommandBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanCommandBuffer.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanCommandContext.h src/Viewer/Glsl/Vulkan/Helper/VulkanCommandContext.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.h src/Viewer/Glsl/Vulkan/Helper/VulkanDescriptorSet.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.h src/Viewer/Glsl/Vulkan/Helper/VulkanDevice.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.h src/Viewer/Glsl/Vulkan/Helper/VulkanMemory.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.h src/Viewer/Glsl/Vulkan/Helper/VulkanPipeline.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.h src/Viewer/Glsl/Vulkan/Helper/VulkanRenderPass.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.h src/Viewer/Glsl/Vulkan/Helper/VulkanShaderCompiler.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanShaderModule.h src/Viewer/Glsl/Vulkan/Helper/VulkanShaderModule.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanFrameBuffer.h src/Viewer/Glsl/Vulkan/Helper/VulkanFrameBuffer.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanSwapChain.h src/Viewer/Glsl/Vulkan/Helper/VulkanSwapChain.cpp
-        src/Viewer/Glsl/Vulkan/Helper/VulkanSyncObject.h src/Viewer/Glsl/Vulkan/Helper/VulkanSyncObject.cpp
-)
-
-add_executable(PmxMod main.cpp)
-
-target_sources(PmxMod PRIVATE
-        ${PROGRAM_SOURCES}
-        ${PARSER_SOURCES}
-        ${ANIMATION_SOURCES}
-        ${MODEL_SOURCES}
-        ${VIEWER_CORE_SOURCES}
-        ${GLFW_SOURCES}
-        ${DX11_SOURCES}
-        ${DX12_SOURCES}
-        ${VULKAN_SOURCES}
-)
-
 target_compile_features(PmxMod PRIVATE cxx_std_23)
 
-target_link_libraries(PmxMod PRIVATE
-        glfw
-        glad::glad
-        glm::glm
-
-        d3d11
-        d3d12
-        dxgi
-        d3dcompiler
-        
-        Vulkan::Vulkan
-        ${SHADERC_LIBRARY}
-
-        BulletDynamics
-        BulletCollision
-        LinearMath
-
-        comctl32
-        nlohmann_json::nlohmann_json
+target_include_directories(PmxMod PRIVATE
+        ${MINIAUDIO_INCLUDE_DIR}
 )
 
-target_include_directories(PmxMod PRIVATE
-        ${Stb_INCLUDE_DIR}
-        ${MINIAUDIO_INCLUDE_DIR}
+target_link_libraries(PmxMod PRIVATE
+        PmxMod::Core
+        PmxMod::Viewer
+        comctl32
+        nlohmann_json::nlohmann_json
 )
 
 set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")

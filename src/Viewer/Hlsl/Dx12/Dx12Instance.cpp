@@ -3,7 +3,7 @@
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
 #include "../HlslShaderConstants.h"
-#include "../../../Model/Model.h"
+#include "../../../Core/Model/Model.h"
 
 #include <iostream>
 #include <limits>

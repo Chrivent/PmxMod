@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../../Animation/Bezier.h"
+#include "../../Core/Animation/Bezier.h"
 #include "Panel.h"
 
 #include <string>

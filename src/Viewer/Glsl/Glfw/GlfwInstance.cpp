@@ -2,7 +2,7 @@
 
 #include "GlfwDrawer.h"
 #include "GlfwViewer.h"
-#include "../../../Model/Model.h"
+#include "../../../Core/Model/Model.h"
 #include "../GlslShaderConstants.h"
 
 #include <algorithm>

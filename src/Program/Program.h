@@ -6,7 +6,7 @@
 #include "Manager/PanelManager.h"
 #include "Manager/InputManager.h"
 #include "TaskExecutor.h"
-#include "../Model/ModelUpdater.h"
+#include "../Core/Model/ModelUpdater.h"
 #include "../Viewer/Viewer.h"
 
 #include <chrono>

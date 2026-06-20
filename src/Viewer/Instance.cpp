@@ -2,7 +2,7 @@
 
 #include "Drawer.h"
 #include "Viewer.h"
-#include "../Model/ModelUpdater.h"
+#include "../Core/Model/ModelUpdater.h"
 
 namespace Chrivent {
     InstanceInfo::InstanceInfo() = default;

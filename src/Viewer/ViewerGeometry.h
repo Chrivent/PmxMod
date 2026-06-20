@@ -1,12 +1,9 @@
 ﻿#pragma once
 
-#include "../Model/Model.h"
+#include "../Core/Model/Model.h"
 
-#include <glm/glm.hpp>
-
-#include <cstddef>
-#include <cstdint>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace Chrivent {
 	struct ViewerVertex {
