@@ -71,8 +71,8 @@ namespace Chrivent {
 		for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
 			constexpr int labelHeight = 18;
 			constexpr int padding = 12;
-			const auto& curves = selection.channels[channelIndex];
-			if (curves.empty())
+			const auto& channel = selection.channels[channelIndex];
+			if (channel.curves.empty())
 				continue;
 			const int areaTop = static_cast<int>(channelIndex) * channelHeight;
 			const int areaBottom = channelIndex + 1 == channelCount
@@ -89,7 +89,7 @@ namespace Chrivent {
 			const int bottom = top + graphSize;
 			GuiDrawer::DrawTextLine(
 				deviceContext,
-				curves.front().name,
+				channel.name,
 				{padding, areaTop, width - padding, areaTop + labelHeight},
 				RGB(220, 224, 230),
 				DT_LEFT | DT_END_ELLIPSIS);
@@ -102,8 +102,8 @@ namespace Chrivent {
 				GuiDrawer::DrawLine(deviceContext, x, top, x, bottom, color);
 				GuiDrawer::DrawLine(deviceContext, left, y, right, y, color);
 			}
-			for (size_t curveIndex = 0; curveIndex < curves.size(); curveIndex++) {
-				const auto& curve = curves[curveIndex];
+			for (size_t curveIndex = 0; curveIndex < channel.curves.size(); curveIndex++) {
+				const auto& curve = channel.curves[curveIndex];
 				const auto ToPoint = [&](const glm::vec2 point) {
 					return POINT{
 						left + std::lround(std::clamp(point.x, 0.0f, 1.0f) * graphSize),
@@ -112,8 +112,8 @@ namespace Chrivent {
 				};
 				const POINT controlPoints[] = {
 					{left, bottom},
-					ToPoint(curve.controlPoints.p1),
-					ToPoint(curve.controlPoints.p2),
+					ToPoint(curve.p1),
+					ToPoint(curve.p2),
 					{right, top}
 				};
 				if (showControlPoints) {

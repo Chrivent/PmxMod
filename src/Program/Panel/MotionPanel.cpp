@@ -220,6 +220,9 @@ namespace Chrivent {
 			{8, 0, kLabelWidth - 4, kHeaderHeight}, RGB(235, 235, 238), DT_LEFT | DT_END_ELLIPSIS);
 		const int timelineWidth = client.right - kLabelWidth;
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
+		const uint32_t lastVisibleFrame = (std::min)(
+			totalFrame,
+			static_cast<uint32_t>(firstFrame + visibleFrames));
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
@@ -267,11 +270,19 @@ namespace Chrivent {
 					selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 			};
 			if (group) {
-				for (const uint32_t frame : group->keyFrames)
-					DrawKey(frame, IsGroupFrameSelected(*group, frame));
+				auto frame = std::ranges::lower_bound(
+					group->keyFrames,
+					static_cast<uint32_t>(firstFrame));
+				for (; frame != group->keyFrames.end() && *frame <= lastVisibleFrame; ++frame)
+					DrawKey(*frame, IsGroupFrameSelected(*group, *frame));
 			} else if (row) {
-				for (const auto& key : row->keys)
-					DrawKey(key.frame, key.selected);
+				auto key = std::ranges::lower_bound(
+					row->keys,
+					static_cast<uint32_t>(firstFrame),
+					{},
+					&MotionTimelineKey::frame);
+				for (; key != row->keys.end() && key->frame <= lastVisibleFrame; ++key)
+					DrawKey(key->frame, key->selected);
 			}
 			paintedRows++;
 		};
@@ -348,7 +359,8 @@ namespace Chrivent {
 			if (!IsGroupVisible(group))
 				continue;
 			if (!group.grouped) {
-				for (auto& [name, keys] : group.rows) {
+				for (auto& row : group.rows) {
+					auto& keys = row.keys;
 					if (currentRow++ != visibleRowIndex)
 						continue;
 					for (auto& key : keys) {
@@ -375,7 +387,8 @@ namespace Chrivent {
 					const bool select = !additive || !IsGroupFrameSelected(group, frame);
 					if (!additive)
 						ClearKeySelection();
-					for (auto& [name, keys] : group.rows) {
+					for (auto& row : group.rows) {
+						auto& keys = row.keys;
 						for (auto& key : keys) {
 							if (key.frame == frame)
 								key.selected = select;
@@ -390,7 +403,8 @@ namespace Chrivent {
 			currentRow++;
 			if (!group.expanded)
 				continue;
-			for (auto& [name, keys] : group.rows) {
+			for (auto& row : group.rows) {
+				auto& keys = row.keys;
 				if (currentRow++ != visibleRowIndex)
 					continue;
 				for (auto& key : keys) {
@@ -425,7 +439,8 @@ namespace Chrivent {
 			if (!IsGroupVisible(group))
 				continue;
 			if (!group.grouped) {
-				for (auto& [name, keys] : group.rows) {
+				for (auto& row : group.rows) {
+					auto& keys = row.keys;
 					const int rowY = kHeaderHeight + (visibleRow - firstRow) * kRowHeight + kRowHeight / 2;
 					for (auto& key : keys) {
 						const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
@@ -444,7 +459,8 @@ namespace Chrivent {
 					if (x < selectionRect.left || x > selectionRect.right
 						|| groupY < selectionRect.top || groupY > selectionRect.bottom)
 						continue;
-					for (auto& [name, keys] : group.rows) {
+					for (auto& row : group.rows) {
+						auto& keys = row.keys;
 						for (auto& key : keys) {
 							if (key.frame == frame)
 								key.selected = true;
@@ -473,8 +489,8 @@ namespace Chrivent {
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
-			for (auto& [name, keys] : group.rows) {
-				for (auto& key : keys)
+			for (auto& row : group.rows) {
+				for (auto& key : row.keys)
 					key.selected = false;
 			}
 		}
@@ -485,29 +501,39 @@ namespace Chrivent {
 	}
 
 	bool MotionPanel::IsGroupFrameSelected(const MotionTimelineGroup& group, const uint32_t frame) {
-		for (const auto& [name, keys] : group.rows) {
-			for (const auto& key : keys) {
-				if (key.frame == frame && key.selected)
-					return true;
-			}
+		for (const auto& row : group.rows) {
+			const auto key = std::ranges::lower_bound(
+				row.keys, frame, {}, &MotionTimelineKey::frame);
+			if (key != row.keys.end() && key->frame == frame && key->selected)
+				return true;
 		}
 		return false;
 	}
 
 	InterpolationSelection MotionPanel::BuildInterpolationSelection() const {
+		static constexpr size_t kMaxCurvesPerChannel = 256;
 		InterpolationSelection selection;
 		for (const auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
-			for (const auto& [name, keys] : group.rows) {
-				for (const auto& key : keys) {
+			for (const auto& row : group.rows) {
+				for (const auto& key : row.keys) {
 					if (!key.selected)
 						continue;
 					selection.selectedKeyCount++;
-					if (selection.channels.size() < key.curves.size())
+					if (selection.channels.size() < key.curves.size()) {
+						const size_t previousSize = selection.channels.size();
 						selection.channels.resize(key.curves.size());
-					for (size_t index = 0; index < key.curves.size(); index++)
-						selection.channels[index].emplace_back(key.curves[index]);
+						for (size_t index = previousSize; index < selection.channels.size(); index++) {
+							if (index < row.curveNames.size())
+								selection.channels[index].name = row.curveNames[index];
+						}
+					}
+					for (size_t index = 0; index < key.curves.size(); index++) {
+						auto& curves = selection.channels[index].curves;
+						if (curves.size() < kMaxCurvesPerChannel)
+							curves.emplace_back(key.curves[index]);
+					}
 				}
 			}
 		}

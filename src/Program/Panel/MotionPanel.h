@@ -15,12 +15,13 @@ namespace Chrivent {
 
 	struct MotionTimelineKey {
 		uint32_t frame = 0;
-		std::vector<MotionBezierCurve> curves;
-		bool selected = true;
+		std::vector<BezierControlPoints> curves;
+		bool selected = false;
 	};
 
 	struct MotionTimelineRow {
 		std::wstring name;
+		std::vector<std::wstring> curveNames;
 		std::vector<MotionTimelineKey> keys;
 	};
 

@@ -254,12 +254,6 @@ namespace Chrivent {
             return;
         const auto& instanceInfo = instances[modelIndex]->GetInfo();
         const auto& model = *instanceInfo.model;
-        const auto MakeCurve = [](std::wstring name, const Bezier& bezier) {
-            return MotionBezierCurve{
-                .name = std::move(name),
-                .controlPoints = bezier.GetControlPoints()
-            };
-        };
         const auto NormalizeKeys = [](std::vector<MotionTimelineKey>& keys) {
             std::ranges::sort(keys, {}, &MotionTimelineKey::frame);
             std::vector<MotionTimelineKey> normalized;
@@ -276,8 +270,8 @@ namespace Chrivent {
         };
         const auto CollectFrames = [](const std::vector<MotionTimelineRow>& rows) {
             std::vector<uint32_t> frames;
-            for (const auto& [name, keys] : rows) {
-                for (const auto& key : keys)
+            for (const auto& row : rows) {
+                for (const auto& key : row.keys)
                     frames.emplace_back(key.frame);
             }
             std::ranges::sort(frames);
@@ -297,10 +291,10 @@ namespace Chrivent {
                     timelineKeys.push_back({
                         .frame = key.frame,
                         .curves = {
-                            MakeCurve(Language::Text("interpolation.x"), key.txBezier),
-                            MakeCurve(Language::Text("interpolation.y"), key.tyBezier),
-                            MakeCurve(Language::Text("interpolation.z"), key.tzBezier),
-                            MakeCurve(Language::Text("interpolation.rotation"), key.rotBezier)
+                            key.txBezier.GetControlPoints(),
+                            key.tyBezier.GetControlPoints(),
+                            key.tzBezier.GetControlPoints(),
+                            key.rotBezier.GetControlPoints()
                         }
                     });
                 }
@@ -322,20 +316,30 @@ namespace Chrivent {
         groups.reserve(model.skeletonData.displayFrames.size() + 1);
         const auto& cameraKeys = cameraManager.GetAnimationKeys();
         if (!cameraKeys.empty()) {
-            MotionTimelineRow cameraRow{.name = Language::Text("motion.camera")};
+            MotionTimelineRow cameraRow{
+                .name = Language::Text("motion.camera"),
+                .curveNames = {
+                    Language::Text("interpolation.x"),
+                    Language::Text("interpolation.y"),
+                    Language::Text("interpolation.z"),
+                    Language::Text("interpolation.rotation"),
+                    Language::Text("interpolation.distance"),
+                    Language::Text("interpolation.fov")
+                }
+            };
             cameraRow.keys.reserve(cameraKeys.size());
             for (const auto& key : cameraKeys) {
                 cameraRow.keys.push_back({
-                    .frame = key.frame,
-                    .curves = {
-                        MakeCurve(Language::Text("interpolation.x"), key.ixBezier),
-                        MakeCurve(Language::Text("interpolation.y"), key.iyBezier),
-                        MakeCurve(Language::Text("interpolation.z"), key.izBezier),
-                        MakeCurve(Language::Text("interpolation.rotation"), key.rotateBezier),
-                        MakeCurve(Language::Text("interpolation.distance"), key.distanceBezier),
-                        MakeCurve(Language::Text("interpolation.fov"), key.fovBezier)
-                    }
-                });
+                        .frame = key.frame,
+                        .curves = {
+                            key.ixBezier.GetControlPoints(),
+                            key.iyBezier.GetControlPoints(),
+                            key.izBezier.GetControlPoints(),
+                            key.rotateBezier.GetControlPoints(),
+                            key.distanceBezier.GetControlPoints(),
+                            key.fovBezier.GetControlPoints()
+                        }
+                    });
             }
             MotionTimelineGroup cameraGroup{
                 .name = Language::Text("motion.camera"),
@@ -367,6 +371,12 @@ namespace Chrivent {
                 NormalizeKeys(keys);
                 group.rows.push_back({
                     .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .curveNames = {
+                        Language::Text("interpolation.x"),
+                        Language::Text("interpolation.y"),
+                        Language::Text("interpolation.z"),
+                        Language::Text("interpolation.rotation")
+                    },
                     .keys = std::move(keys)
                 });
             }
@@ -377,6 +387,7 @@ namespace Chrivent {
                 if (!morph)
                     continue;
                 auto keys = morphKeys[morph.get()];
+                NormalizeKeys(keys);
                 group.rows.push_back({
                     .name = Util::Utf8ToWString(morph->name),
                     .keys = std::move(keys)
@@ -400,6 +411,12 @@ namespace Chrivent {
                 NormalizeKeys(keys);
                 boneGroup.rows.push_back({
                     .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .curveNames = {
+                        Language::Text("interpolation.x"),
+                        Language::Text("interpolation.y"),
+                        Language::Text("interpolation.z"),
+                        Language::Text("interpolation.rotation")
+                    },
                     .keys = std::move(keys)
                 });
             }
@@ -411,6 +428,7 @@ namespace Chrivent {
                 if (!morph)
                     continue;
                 auto keys = morphKeys[morph.get()];
+                NormalizeKeys(keys);
                 morphGroup.rows.push_back({
                     .name = Util::Utf8ToWString(morph->name),
                     .keys = std::move(keys)

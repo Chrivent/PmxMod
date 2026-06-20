@@ -7,14 +7,14 @@
 #include <vector>
 
 namespace Chrivent {
-	struct MotionBezierCurve {
+	struct InterpolationCurveChannel {
 		std::wstring name;
-		BezierControlPoints controlPoints;
+		std::vector<BezierControlPoints> curves;
 	};
 
 	struct InterpolationSelection {
 		std::size_t selectedKeyCount = 0;
-		std::vector<std::vector<MotionBezierCurve>> channels;
+		std::vector<InterpolationCurveChannel> channels;
 	};
 
 	class InterpolationCurvePanel final : public Panel {
