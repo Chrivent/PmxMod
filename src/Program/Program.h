@@ -6,6 +6,7 @@
 #include "Manager/PanelManager.h"
 #include "Manager/InputManager.h"
 #include "TaskExecutor.h"
+#include "../Model/ModelUpdater.h"
 #include "../Viewer/Viewer.h"
 
 #include <chrono>
@@ -25,6 +26,13 @@ namespace Chrivent {
 
         struct FrameTiming {
             double animationMilliseconds = 0.0;
+            double initializeCpuMilliseconds = 0.0;
+            double animationEvaluateCpuMilliseconds = 0.0;
+            double morphCpuMilliseconds = 0.0;
+            double beforePhysicsPoseCpuMilliseconds = 0.0;
+            double physicsCpuMilliseconds = 0.0;
+            double afterPhysicsPoseCpuMilliseconds = 0.0;
+            double transformCpuMilliseconds = 0.0;
             double skinningMilliseconds = 0.0;
             double uploadDrawMilliseconds = 0.0;
             double presentMilliseconds = 0.0;
@@ -39,6 +47,7 @@ namespace Chrivent {
         Sound music;
         std::vector<std::unique_ptr<Instance>> instances;
         std::vector<std::size_t> skinningTaskOffsets;
+        std::vector<ModelUpdateTiming> modelUpdateTimings;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;

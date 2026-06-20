@@ -6,6 +6,7 @@
 
 namespace Chrivent {
     struct Model;
+    struct ModelUpdateTiming;
     struct ViewerInfo;
     class Drawer;
     class Viewer;
@@ -45,7 +46,7 @@ namespace Chrivent {
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.
         void Draw() const;
         // 뷰어 시간을 기준으로 애니메이션, 물리, 본 행렬과 스키닝 범위를 준비한다.
-        void PrepareUpdate(const ViewerInfo& viewerInfo) const;
+        void PrepareUpdate(const ViewerInfo& viewerInfo, ModelUpdateTiming* timing = nullptr) const;
         // 현재 모델의 스키닝 작업 범위 개수를 반환한다.
         std::size_t GetSkinningTaskCount() const;
         // 지정된 범위의 CPU 스키닝을 수행한다.

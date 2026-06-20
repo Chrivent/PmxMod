@@ -634,8 +634,14 @@ namespace Chrivent {
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->SetFpsVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
+        if (timing) {
+            modelUpdateTimings.clear();
+            modelUpdateTimings.resize(instances.size());
+        }
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-            instances[index]->PrepareUpdate(viewer->GetInfo());
+            instances[index]->PrepareUpdate(
+                viewer->GetInfo(),
+                timing ? &modelUpdateTimings[index] : nullptr);
         });
         const auto animationEnd = std::chrono::steady_clock::now();
         skinningTaskOffsets.resize(instances.size() + 1);
@@ -664,6 +670,21 @@ namespace Chrivent {
                 return std::chrono::duration<double, std::milli>(end - start).count();
             };
             timing->animationMilliseconds = Milliseconds(animationStart, animationEnd);
+            for (const auto& [initializeMilliseconds
+                , animationEvaluateMilliseconds
+                , morphMilliseconds
+                , beforePhysicsPoseMilliseconds
+                , physicsMilliseconds
+                , afterPhysicsPoseMilliseconds
+                , transformMilliseconds] : modelUpdateTimings) {
+                timing->initializeCpuMilliseconds += initializeMilliseconds;
+                timing->animationEvaluateCpuMilliseconds += animationEvaluateMilliseconds;
+                timing->morphCpuMilliseconds += morphMilliseconds;
+                timing->beforePhysicsPoseCpuMilliseconds += beforePhysicsPoseMilliseconds;
+                timing->physicsCpuMilliseconds += physicsMilliseconds;
+                timing->afterPhysicsPoseCpuMilliseconds += afterPhysicsPoseMilliseconds;
+                timing->transformCpuMilliseconds += transformMilliseconds;
+            }
             timing->skinningMilliseconds = Milliseconds(animationEnd, skinningEnd);
             timing->uploadDrawMilliseconds = Milliseconds(skinningEnd, uploadDrawEnd);
             timing->presentMilliseconds = Milliseconds(uploadDrawEnd, frameEnd);
@@ -687,12 +708,33 @@ namespace Chrivent {
             if (!RunFrame(&timing))
                 return 1;
             total.animationMilliseconds += timing.animationMilliseconds;
+            total.initializeCpuMilliseconds += timing.initializeCpuMilliseconds;
+            total.animationEvaluateCpuMilliseconds += timing.animationEvaluateCpuMilliseconds;
+            total.morphCpuMilliseconds += timing.morphCpuMilliseconds;
+            total.beforePhysicsPoseCpuMilliseconds += timing.beforePhysicsPoseCpuMilliseconds;
+            total.physicsCpuMilliseconds += timing.physicsCpuMilliseconds;
+            total.afterPhysicsPoseCpuMilliseconds += timing.afterPhysicsPoseCpuMilliseconds;
+            total.transformCpuMilliseconds += timing.transformCpuMilliseconds;
             total.skinningMilliseconds += timing.skinningMilliseconds;
             total.uploadDrawMilliseconds += timing.uploadDrawMilliseconds;
             total.presentMilliseconds += timing.presentMilliseconds;
             total.totalMilliseconds += timing.totalMilliseconds;
             maximum.animationMilliseconds = (std::max)(
                 maximum.animationMilliseconds, timing.animationMilliseconds);
+            maximum.initializeCpuMilliseconds = (std::max)(
+                maximum.initializeCpuMilliseconds, timing.initializeCpuMilliseconds);
+            maximum.animationEvaluateCpuMilliseconds = (std::max)(
+                maximum.animationEvaluateCpuMilliseconds, timing.animationEvaluateCpuMilliseconds);
+            maximum.morphCpuMilliseconds = (std::max)(
+                maximum.morphCpuMilliseconds, timing.morphCpuMilliseconds);
+            maximum.beforePhysicsPoseCpuMilliseconds = (std::max)(
+                maximum.beforePhysicsPoseCpuMilliseconds, timing.beforePhysicsPoseCpuMilliseconds);
+            maximum.physicsCpuMilliseconds = (std::max)(
+                maximum.physicsCpuMilliseconds, timing.physicsCpuMilliseconds);
+            maximum.afterPhysicsPoseCpuMilliseconds = (std::max)(
+                maximum.afterPhysicsPoseCpuMilliseconds, timing.afterPhysicsPoseCpuMilliseconds);
+            maximum.transformCpuMilliseconds = (std::max)(
+                maximum.transformCpuMilliseconds, timing.transformCpuMilliseconds);
             maximum.skinningMilliseconds = (std::max)(
                 maximum.skinningMilliseconds, timing.skinningMilliseconds);
             maximum.uploadDrawMilliseconds = (std::max)(
@@ -713,6 +755,28 @@ namespace Chrivent {
         std::cout << "benchmark_frames=" << benchmarkFrames << '\n';
         std::cout << "benchmark_warmup_frames=" << warmupFrames << '\n';
         PrintMetric("animation", total.animationMilliseconds, maximum.animationMilliseconds);
+        PrintMetric(
+            "animation_initialize_cpu",
+            total.initializeCpuMilliseconds,
+            maximum.initializeCpuMilliseconds);
+        PrintMetric(
+            "animation_evaluate_cpu",
+            total.animationEvaluateCpuMilliseconds,
+            maximum.animationEvaluateCpuMilliseconds);
+        PrintMetric("morph_cpu", total.morphCpuMilliseconds, maximum.morphCpuMilliseconds);
+        PrintMetric(
+            "pose_before_physics_cpu",
+            total.beforePhysicsPoseCpuMilliseconds,
+            maximum.beforePhysicsPoseCpuMilliseconds);
+        PrintMetric("physics_cpu", total.physicsCpuMilliseconds, maximum.physicsCpuMilliseconds);
+        PrintMetric(
+            "pose_after_physics_cpu",
+            total.afterPhysicsPoseCpuMilliseconds,
+            maximum.afterPhysicsPoseCpuMilliseconds);
+        PrintMetric(
+            "transform_cpu",
+            total.transformCpuMilliseconds,
+            maximum.transformCpuMilliseconds);
         PrintMetric("skinning", total.skinningMilliseconds, maximum.skinningMilliseconds);
         PrintMetric("upload_draw", total.uploadDrawMilliseconds, maximum.uploadDrawMilliseconds);
         PrintMetric("present", total.presentMilliseconds, maximum.presentMilliseconds);
