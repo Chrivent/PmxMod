@@ -5,6 +5,7 @@
 #include "Manager/CameraManager.h"
 #include "Manager/PanelManager.h"
 #include "Manager/InputManager.h"
+#include "TaskExecutor.h"
 #include "../Viewer/Viewer.h"
 
 namespace Chrivent {
@@ -13,8 +14,10 @@ namespace Chrivent {
         InputManager inputManager;
         CameraManager cameraManager;
         PanelManager panelManager;
+        TaskExecutor taskExecutor;
         Sound music;
         std::vector<std::unique_ptr<Instance>> instances;
+        std::vector<std::size_t> skinningTaskOffsets;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;

@@ -15,7 +15,7 @@ namespace Chrivent {
 		void ResetPhysics() const;
 		// 물리 시뮬레이션을 진행하고 강체 변환을 노드에 반영한다.
 		void UpdatePhysicsAnimation(float elapsed) const;
-		// 현재 포즈를 기준으로 최종 스키닝 정점 버퍼를 갱신한다.
-		void Update() const;
+		// 현재 노드 전역 행렬을 스키닝용 최종 본 행렬로 변환한다.
+		void UpdateTransforms() const;
 	};
 }

@@ -33,6 +33,7 @@ set(PROGRAM_SOURCES
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
         src/Program/RendererType.h
         src/Program/Sound.h src/Program/Sound.cpp
+        src/Program/TaskExecutor.h src/Program/TaskExecutor.cpp
 
         src/Program/Manager/CameraManager.h src/Program/Manager/CameraManager.cpp
         src/Program/Manager/InputManager.h src/Program/Manager/InputManager.cpp

@@ -5,7 +5,7 @@
 #include "Dx11Viewer.h"
 #include "../HlslShaderConstants.h"
 #include "Helper/Dx11DescBuilder.h"
-#include "../../../Model/ModelPose.h"
+#include "../../../Model/Model.h"
 
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers(Dx11InstanceInfo& info) {
@@ -77,10 +77,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11Instance::Update() const {
+	void Dx11Instance::Upload() const {
 		const auto& info = static_cast<const Dx11InstanceInfo&>(GetInfo());
-		const ModelPose pose(*info.model);
-		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.context->Map(info.vertexBuffer.Get(), 0,

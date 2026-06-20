@@ -2,7 +2,7 @@
 
 #include "GlfwDrawer.h"
 #include "GlfwViewer.h"
-#include "../../../Model/ModelPose.h"
+#include "../../../Model/Model.h"
 #include "../GlslShaderConstants.h"
 
 #include <algorithm>
@@ -178,10 +178,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwInstance::Update() const {
+	void GlfwInstance::Upload() const {
 		const auto& info = static_cast<const GlfwInstanceInfo&>(GetInfo());
-		const ModelPose pose(*info.model);
-		pose.Update();
 		const size_t vtxCount = info.model->geometryData.positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, posVbo);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * vtxCount,

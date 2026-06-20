@@ -54,6 +54,6 @@ namespace Chrivent {
 		// 모델 데이터를 DX12 리소스로 업로드한다.
 		bool Setup(Viewer& baseViewer) override;
 		// 모델의 갱신된 버텍스 데이터를 DX12 리소스에 반영한다.
-		void Update() const override;
+		void Upload() const override;
 	};
 }

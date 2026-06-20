@@ -1,6 +1,4 @@
 ﻿#include "ModelPose.h"
-#include "ModelSkinning.h"
-
 #include <ranges>
 
 namespace Chrivent {
@@ -64,10 +62,8 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelPose::Update() const {
+	void ModelPose::UpdateTransforms() const {
 		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
 			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->GetInfo().global * model.skeletonData.nodes[i]->GetInfo().inverseInit;
-		const ModelSkinning skinning(model);
-		skinning.Update();
 	}
 }

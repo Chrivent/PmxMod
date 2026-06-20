@@ -1,7 +1,6 @@
 ﻿#include "ModelSkinning.h"
 
 #include <algorithm>
-#include <execution>
 #include <thread>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -40,7 +39,8 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelSkinning::UpdateVertices(const UpdateRange& range) const {
+	void ModelSkinning::UpdateRange(const std::size_t rangeIndex) const {
+		const auto& range = model.geometryData.updateRanges[rangeIndex];
 		for (size_t index = range.vertexOffset; index < range.vertexOffset + range.vertexCount; index++) {
 			const auto& position = model.geometryData.positions[index];
 			const auto& normal = model.geometryData.normals[index];
@@ -125,17 +125,9 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelSkinning::Update() const {
+	void ModelSkinning::PrepareUpdate() const {
 		if (model.geometryData.updateRanges.empty() ||
 			model.geometryData.parallelUpdateCount != model.geometryData.updateRanges.size())
 			SetupParallelUpdate();
-		std::for_each(
-			std::execution::par,
-			model.geometryData.updateRanges.begin(),
-			model.geometryData.updateRanges.end(),
-			[this](const UpdateRange& range) {
-				if (range.vertexCount != 0)
-					UpdateVertices(range);
-			});
 	}
 }

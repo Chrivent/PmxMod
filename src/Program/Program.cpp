@@ -560,10 +560,23 @@ namespace Chrivent {
         panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->SetFpsVisible(panelManager.IsFpsVisible());
+        taskExecutor.Run(instances.size(), [&](const std::size_t index) {
+            instances[index]->PrepareUpdate(viewer->GetInfo());
+        });
+        skinningTaskOffsets.resize(instances.size() + 1);
+        skinningTaskOffsets[0] = 0;
+        for (std::size_t index = 0; index < instances.size(); index++) {
+            skinningTaskOffsets[index + 1] =
+                skinningTaskOffsets[index] + instances[index]->GetSkinningTaskCount();
+        }
+        taskExecutor.Run(skinningTaskOffsets.back(), [&](const std::size_t taskIndex) {
+            const auto offset = std::ranges::upper_bound(skinningTaskOffsets, taskIndex);
+            const std::size_t instanceIndex = std::distance(skinningTaskOffsets.begin(), offset) - 1;
+            instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
+        });
         viewer->BeginFrame();
         for (const auto& instance : instances) {
-            instance->UpdateAnimation(viewer->GetInfo());
-            instance->Update();
+            instance->Upload();
             instance->Draw();
         }
         if (!viewer->EndFrame())

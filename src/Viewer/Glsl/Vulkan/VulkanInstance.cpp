@@ -4,7 +4,6 @@
 #include "VulkanViewer.h"
 #include "../GlslShaderConstants.h"
 #include "../../../Model/Model.h"
-#include "../../../Model/ModelPose.h"
 
 #include <algorithm>
 #include <iostream>
@@ -193,7 +192,7 @@ namespace Chrivent {
 		return CreateDescriptorSets(info, deviceInfo, pipelineInfo);
 	}
 
-	void VulkanInstance::Update() const {
+	void VulkanInstance::Upload() const {
 		const auto& info = static_cast<const VulkanInstanceInfo&>(GetInfo());
 		if (info.model == nullptr || info.viewer == nullptr)
 			return;
@@ -204,8 +203,6 @@ namespace Chrivent {
 		const auto& vertexBuffer = info.vertexBuffers[frameIndex];
 		if (vertexBuffer.GetInfo().buffer == VK_NULL_HANDLE)
 			return;
-		const ModelPose pose(*info.model);
-		pose.Update();
 		const std::vector<VulkanVertex> vertices = ViewerGeometry::BuildVertices(info.model->geometryData, true);
 		const VkDeviceSize vertexBufferSize = sizeof(VulkanVertex) * vertices.size();
 		if (!vertexBuffer.Write(vertices.data(), vertexBufferSize))
