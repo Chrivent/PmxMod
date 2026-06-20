@@ -14,10 +14,78 @@
 #include "Language.h"
 
 #include <algorithm>
+#include <cwchar>
+#include <iomanip>
 #include <iostream>
+#include <string_view>
 #include <unordered_map>
 
 namespace Chrivent {
+    void Program::PrintUsage() {
+        std::wcout
+            << L"PmxMod [--scene <file.pms>] [--renderer <opengl|dx11|dx12|vulkan>]\n"
+            << L"       [--benchmark <frames>] [--warmup <frames>]\n";
+    }
+
+    bool Program::ParseRenderer(const std::wstring_view value, RendererType& rendererType) {
+        if (value == L"opengl")
+            rendererType = RendererType::OpenGL;
+        else if (value == L"dx11")
+            rendererType = RendererType::DirectX11;
+        else if (value == L"dx12")
+            rendererType = RendererType::DirectX12;
+        else if (value == L"vulkan")
+            rendererType = RendererType::Vulkan;
+        else
+            return false;
+        return true;
+    }
+
+    bool Program::ParseCount(const wchar_t* value, std::size_t& count) {
+        wchar_t* end = nullptr;
+        const unsigned long long parsed = std::wcstoull(value, &end, 10);
+        if (!value[0] || !end || *end != L'\0')
+            return false;
+        count = static_cast<std::size_t>(parsed);
+        return true;
+    }
+
+    bool Program::ParseArguments(
+        const int argumentCount,
+        wchar_t* arguments[],
+        ProgramOptions& options) {
+        for (int index = 1; index < argumentCount; index++) {
+            const std::wstring_view argument = arguments[index];
+            if (index + 1 >= argumentCount)
+                return false;
+            if (argument == L"--scene")
+                options.scenePath = arguments[++index];
+            else if (argument == L"--renderer") {
+                if (!ParseRenderer(arguments[++index], options.rendererType))
+                    return false;
+            } else if (argument == L"--benchmark") {
+                if (!ParseCount(arguments[++index], options.benchmarkFrames)
+                    || options.benchmarkFrames == 0)
+                    return false;
+            } else if (argument == L"--warmup") {
+                if (!ParseCount(arguments[++index], options.warmupFrames))
+                    return false;
+            } else
+                return false;
+        }
+        return true;
+    }
+
+    const char* Program::GetRendererName(const RendererType rendererType) {
+        switch (rendererType) {
+            case RendererType::OpenGL: return "opengl";
+            case RendererType::DirectX11: return "dx11";
+            case RendererType::DirectX12: return "dx12";
+            case RendererType::Vulkan: return "vulkan";
+        }
+        return "unknown";
+    }
+
     void Program::CreateViewer(const RendererType rendererType) {
         switch (rendererType) {
             case RendererType::OpenGL:
@@ -471,7 +539,8 @@ namespace Chrivent {
         }
     }
 
-    bool Program::RunFrame() {
+    bool Program::RunFrame(FrameTiming* timing) {
+        const auto frameStart = std::chrono::steady_clock::now();
         glfwPollEvents();
         panelManager.PollGuiWindows();
         if (panelManager.ConsumeLanguageDirty()) {
@@ -542,7 +611,11 @@ namespace Chrivent {
         cameraManager.HandleInput(inputManager, viewer->GetInfo(), music);
         if (!UpdateFramebufferSize())
             return false;
-        cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
+        if (benchmarkMode) {
+            viewer->GetInfo().elapsed = 1.0f / 30.0f;
+            viewer->GetInfo().animTime += viewer->GetInfo().elapsed;
+        } else
+            cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
         const float playbackFrame = viewer->GetInfo().animTime * 30.0f;
         if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
@@ -560,9 +633,11 @@ namespace Chrivent {
         panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(viewer->GetInfo());
         viewer->SetFpsVisible(panelManager.IsFpsVisible());
+        const auto animationStart = std::chrono::steady_clock::now();
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
             instances[index]->PrepareUpdate(viewer->GetInfo());
         });
+        const auto animationEnd = std::chrono::steady_clock::now();
         skinningTaskOffsets.resize(instances.size() + 1);
         skinningTaskOffsets[0] = 0;
         for (std::size_t index = 0; index < instances.size(); index++) {
@@ -574,28 +649,103 @@ namespace Chrivent {
             const std::size_t instanceIndex = std::distance(skinningTaskOffsets.begin(), offset) - 1;
             instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
         });
+        const auto skinningEnd = std::chrono::steady_clock::now();
         viewer->BeginFrame();
         for (const auto& instance : instances) {
             instance->Upload();
             instance->Draw();
         }
+        const auto uploadDrawEnd = std::chrono::steady_clock::now();
         if (!viewer->EndFrame())
             return false;
+        const auto frameEnd = std::chrono::steady_clock::now();
+        if (timing) {
+            const auto Milliseconds = [](const auto start, const auto end) {
+                return std::chrono::duration<double, std::milli>(end - start).count();
+            };
+            timing->animationMilliseconds = Milliseconds(animationStart, animationEnd);
+            timing->skinningMilliseconds = Milliseconds(animationEnd, skinningEnd);
+            timing->uploadDrawMilliseconds = Milliseconds(skinningEnd, uploadDrawEnd);
+            timing->presentMilliseconds = Milliseconds(uploadDrawEnd, frameEnd);
+            timing->totalMilliseconds = Milliseconds(frameStart, frameEnd);
+        }
         TickFps();
         return true;
     }
 
-    bool Program::Run() {
+    int Program::RunBenchmark(
+        const std::size_t warmupFrames,
+        const std::size_t benchmarkFrames) {
+        for (std::size_t frame = 0; frame < warmupFrames; frame++) {
+            if (!RunFrame())
+                return 1;
+        }
+        FrameTiming total;
+        FrameTiming maximum;
+        for (std::size_t frame = 0; frame < benchmarkFrames; frame++) {
+            FrameTiming timing;
+            if (!RunFrame(&timing))
+                return 1;
+            total.animationMilliseconds += timing.animationMilliseconds;
+            total.skinningMilliseconds += timing.skinningMilliseconds;
+            total.uploadDrawMilliseconds += timing.uploadDrawMilliseconds;
+            total.presentMilliseconds += timing.presentMilliseconds;
+            total.totalMilliseconds += timing.totalMilliseconds;
+            maximum.animationMilliseconds = (std::max)(
+                maximum.animationMilliseconds, timing.animationMilliseconds);
+            maximum.skinningMilliseconds = (std::max)(
+                maximum.skinningMilliseconds, timing.skinningMilliseconds);
+            maximum.uploadDrawMilliseconds = (std::max)(
+                maximum.uploadDrawMilliseconds, timing.uploadDrawMilliseconds);
+            maximum.presentMilliseconds = (std::max)(
+                maximum.presentMilliseconds, timing.presentMilliseconds);
+            maximum.totalMilliseconds = (std::max)(
+                maximum.totalMilliseconds, timing.totalMilliseconds);
+        }
+        const double frameCount = benchmarkFrames;
+        const auto PrintMetric = [frameCount](const char* name, const double sum, const double max) {
+            std::cout << name << "_avg_ms=" << sum / frameCount
+                << ' ' << name << "_max_ms=" << max << '\n';
+        };
+        std::cout << std::fixed << std::setprecision(3);
+        std::cout << "benchmark_renderer=" << GetRendererName(currentRendererType) << '\n';
+        std::cout << "benchmark_models=" << instances.size() << '\n';
+        std::cout << "benchmark_frames=" << benchmarkFrames << '\n';
+        std::cout << "benchmark_warmup_frames=" << warmupFrames << '\n';
+        PrintMetric("animation", total.animationMilliseconds, maximum.animationMilliseconds);
+        PrintMetric("skinning", total.skinningMilliseconds, maximum.skinningMilliseconds);
+        PrintMetric("upload_draw", total.uploadDrawMilliseconds, maximum.uploadDrawMilliseconds);
+        PrintMetric("present", total.presentMilliseconds, maximum.presentMilliseconds);
+        PrintMetric("frame", total.totalMilliseconds, maximum.totalMilliseconds);
+        std::cout << "benchmark_fps=" << 1000.0 / (total.totalMilliseconds / frameCount) << '\n';
+        return 0;
+    }
+
+    int Program::Run(const int argumentCount, wchar_t* arguments[]) {
+        if (argumentCount == 2 && std::wstring_view(arguments[1]) == L"--help") {
+            PrintUsage();
+            return 0;
+        }
+        ProgramOptions options;
+        if (!ParseArguments(argumentCount, arguments, options)) {
+            PrintUsage();
+            return 1;
+        }
         Language::Initialize();
-        CreateViewer(RendererType::OpenGL);
-        const SceneConfig cfg;
+        CreateViewer(options.rendererType);
+        SceneConfig cfg;
+        if (!options.scenePath.empty() && !cfg.Load(options.scenePath)) {
+            std::cerr << "Failed to load scene config.\n";
+            return 1;
+        }
+        benchmarkMode = options.benchmarkFrames > 0;
         cameraManager.Reset();
         inputManager.Reset();
         panelManager.Reset();
         panelManager.ApplySceneConfig(cfg);
         if (!InitializeViewer()) {
             std::cerr << "Failed to run.\n";
-            return false;
+            return 1;
         }
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
@@ -603,13 +753,31 @@ namespace Chrivent {
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;
-        LoadScene(cfg);
+        const auto loadStart = std::chrono::steady_clock::now();
+        if (!LoadScene(cfg)) {
+            Shutdown();
+            return 1;
+        }
+        const auto loadEnd = std::chrono::steady_clock::now();
+        if (benchmarkMode) {
+            std::cout << std::fixed << std::setprecision(3)
+                << "scene_load_ms="
+                << std::chrono::duration<double, std::milli>(loadEnd - loadStart).count()
+                << '\n';
+        }
         cameraManager.UpdateCamera(viewer->GetInfo());
+        if (benchmarkMode) {
+            const int result = RunBenchmark(options.warmupFrames, options.benchmarkFrames);
+            Shutdown();
+            return result;
+        }
         while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->GetInfo().window)) {
-            if (!RunFrame())
-                break;
+            if (!RunFrame()) {
+                Shutdown();
+                return 1;
+            }
         }
         Shutdown();
-        return true;
+        return 0;
     }
 }

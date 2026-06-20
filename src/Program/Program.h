@@ -8,8 +8,29 @@
 #include "TaskExecutor.h"
 #include "../Viewer/Viewer.h"
 
+#include <chrono>
+#include <cstddef>
+#include <filesystem>
+#include <string_view>
+#include <vector>
+
 namespace Chrivent {
     class Program {
+        struct ProgramOptions {
+            std::filesystem::path scenePath;
+            RendererType rendererType = RendererType::OpenGL;
+            std::size_t benchmarkFrames = 0;
+            std::size_t warmupFrames = 60;
+        };
+
+        struct FrameTiming {
+            double animationMilliseconds = 0.0;
+            double skinningMilliseconds = 0.0;
+            double uploadDrawMilliseconds = 0.0;
+            double presentMilliseconds = 0.0;
+            double totalMilliseconds = 0.0;
+        };
+
         std::unique_ptr<Viewer> viewer;
         InputManager inputManager;
         CameraManager cameraManager;
@@ -22,7 +43,21 @@ namespace Chrivent {
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
+        bool benchmarkMode = false;
 
+        // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
+        static void PrintUsage();
+        // 렌더러 이름을 프로그램 렌더러 형식으로 변환한다.
+        static bool ParseRenderer(std::wstring_view value, RendererType& rendererType);
+        // 양의 정수 명령행 값을 크기 값으로 변환한다.
+        static bool ParseCount(const wchar_t* value, std::size_t& count);
+        // 명령행 인자를 프로그램 실행 옵션으로 구성한다.
+        static bool ParseArguments(
+            int argumentCount,
+            wchar_t* arguments[],
+            ProgramOptions& options);
+        // 렌더러 형식을 성능 결과에 사용할 짧은 이름으로 변환한다.
+        static const char* GetRendererName(RendererType rendererType);
         // 실행할 렌더러를 선택해 생성한다.
         void CreateViewer(RendererType rendererType);
         // GLFW 윈도우와 렌더러별 리소스를 초기화한다.
@@ -52,10 +87,12 @@ namespace Chrivent {
         // FPS 표시 시간을 갱신한다.
         void TickFps();
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.
-        bool RunFrame();
+        bool RunFrame(FrameTiming* timing = nullptr);
+        // 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.
+        int RunBenchmark(std::size_t warmupFrames, std::size_t benchmarkFrames);
         
     public:
-        // 씬 설정을 구성하고 선택한 렌더러로 뷰어를 실행한다.
-        bool Run();
+        // 명령행 옵션으로 씬과 렌더러를 구성하고 프로그램을 실행한다.
+        int Run(int argumentCount, wchar_t* arguments[]);
     };
 }

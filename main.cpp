@@ -1,8 +1,6 @@
 ﻿#include "src/Program/Program.h"
 
-int main() {
-    Chrivent::Program program;
-    if (!program.Run())
-        return 1;
-    return 0;
+int wmain(const int argc, wchar_t* argv[]) {
+	Chrivent::Program program;
+	return program.Run(argc, argv);
 }
