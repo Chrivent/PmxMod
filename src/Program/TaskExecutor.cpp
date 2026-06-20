@@ -6,6 +6,7 @@ namespace Chrivent {
 	void TaskExecutor::WorkerLoop() {
 		std::size_t observedGeneration = 0;
 		while (true) {
+			std::shared_ptr<TaskBatch> batch;
 			{
 				std::unique_lock lock(mutex);
 				workCondition.wait(lock, [&] {
@@ -14,19 +15,20 @@ namespace Chrivent {
 				if (stopping)
 					return;
 				observedGeneration = generation;
+				batch = currentBatch;
 			}
-			ExecuteWork();
+			ExecuteWork(batch);
 		}
 	}
 
-	void TaskExecutor::ExecuteWork() {
+	void TaskExecutor::ExecuteWork(const std::shared_ptr<TaskBatch>& batch) {
 		while (true) {
-			const std::size_t index = nextIndex.fetch_add(1, std::memory_order_relaxed);
-			if (index >= workCount)
+			const std::size_t index = batch->nextIndex.fetch_add(1, std::memory_order_relaxed);
+			if (index >= batch->workCount)
 				return;
-			work(index);
-			if (remainingCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-				completionCondition.notify_one();
+			batch->work(index);
+			if (batch->remainingCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+				batch->completionCondition.notify_one();
 		}
 	}
 
@@ -52,20 +54,17 @@ namespace Chrivent {
 		std::function<void(std::size_t)> task) {
 		if (count == 0)
 			return;
+		const auto batch = std::make_shared<TaskBatch>(count, std::move(task));
 		{
 			const std::lock_guard lock(mutex);
-			work = std::move(task);
-			workCount = count;
-			nextIndex.store(0, std::memory_order_relaxed);
-			remainingCount.store(count, std::memory_order_release);
+			currentBatch = batch;
 			generation++;
 		}
 		workCondition.notify_all();
-		ExecuteWork();
-		std::unique_lock lock(mutex);
-		completionCondition.wait(lock, [&] {
-			return remainingCount.load(std::memory_order_acquire) == 0;
+		ExecuteWork(batch);
+		std::unique_lock lock(batch->completionMutex);
+		batch->completionCondition.wait(lock, [&] {
+			return batch->remainingCount.load(std::memory_order_acquire) == 0;
 		});
-		work = {};
 	}
 }
