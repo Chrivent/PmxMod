@@ -7,7 +7,7 @@
 namespace Chrivent {
 	struct PhysicsInfo {
 		std::unique_ptr<btDiscreteDynamicsWorld>	world;
-		double										fps = 60.0f;
+		double										fps = 120.0f;
 		int											maxSubStepCount = 10;
 	};
 
