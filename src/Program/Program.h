@@ -10,7 +10,6 @@
 #include "../Viewer/Viewer.h"
 
 #include <chrono>
-#include <cstddef>
 #include <filesystem>
 #include <string_view>
 #include <vector>

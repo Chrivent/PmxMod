@@ -2,7 +2,6 @@
 
 #include "../Core/Model/Model.h"
 
-#include <cstddef>
 #include <vector>
 #include <glm/glm.hpp>
 
