@@ -24,14 +24,14 @@ PMX/VMD model viewer built with C++23. The project currently renders through Ope
 Install the required packages with vcpkg:
 
 ```powershell
-C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
 If vcpkg is installed somewhere else, use that path instead:
 
 ```powershell
-D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
@@ -73,6 +73,7 @@ For a custom vcpkg location, add this to VS Code settings:
 
 - `stb` is found through vcpkg's `FindStb.cmake`.
 - `miniaudio` is header-only and is found by locating `miniaudio.h`.
+- `nlohmann-json` parses the runtime GUI language files.
 - Vulkan is found through the installed Vulkan SDK.
 - OpenGL is used as the visual reference renderer. DirectX 11, DirectX 12, and Vulkan keep matching model, edge, ground shadow, texture, depth, stencil, blend, and MSAA behavior where the APIs allow it.
 - DirectX 12 and Vulkan use explicit MSAA render targets and resolve into the swapchain image. This differs from OpenGL's default framebuffer flow, but follows the same sample-count policy and visual result.

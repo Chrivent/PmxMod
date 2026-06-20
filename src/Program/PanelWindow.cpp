@@ -1,6 +1,9 @@
 ﻿#include "PanelWindow.h"
 
+#include "Language.h"
 #include "MenuBar.h"
+
+#include <utility>
 
 namespace Chrivent {
 	LRESULT CALLBACK PanelWindow::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -51,7 +54,7 @@ namespace Chrivent {
 			if (!entry.panel || entry.frame)
 				continue;
 			entry.frame = CreateWindowExW(
-				0, L"BUTTON", entry.title.c_str(),
+				0, L"BUTTON", Language::Text(entry.titleKey).c_str(),
 				WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
 				0, 0, 0, 0,
 				window, nullptr, GetModuleHandleW(nullptr), nullptr);
@@ -122,8 +125,8 @@ namespace Chrivent {
 		DrawMenuBar(window);
 	}
 
-	void PanelWindow::RegisterPanel(Panel& panel, const std::wstring& title, const PanelWindowArea area) {
-		panels.push_back({ &panel, title, area });
+	void PanelWindow::RegisterPanel(Panel& panel, std::string titleKey, const PanelWindowArea area) {
+		panels.push_back({ &panel, std::move(titleKey), area });
 	}
 
 	void PanelWindow::Show() {
@@ -138,7 +141,7 @@ namespace Chrivent {
 		wc.lpszClassName = L"PmxModPanelWindow";
 		RegisterClassExW(&wc);
 		window = CreateWindowExW(
-			0, L"PmxModPanelWindow", L"Settings",
+			0, L"PmxModPanelWindow", Language::Text("window.settings").c_str(),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
 			nullptr, nullptr, instance, this);
@@ -161,6 +164,27 @@ namespace Chrivent {
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
 		}
+	}
+
+	void PanelWindow::RefreshLanguage() const {
+		if (!window)
+			return;
+		SetWindowTextW(window, Language::Text("window.settings").c_str());
+		if (menuBar) {
+			const HMENU previousMenu = GetMenu(window);
+			const HMENU menuHandle = CreateMenu();
+			menuBar->AddMenu(menuHandle);
+			SetMenu(window, menuHandle);
+			if (previousMenu)
+				DestroyMenu(previousMenu);
+		}
+		for (auto& entry : panels) {
+			if (entry.frame)
+				SetWindowTextW(entry.frame, Language::Text(entry.titleKey).c_str());
+			if (entry.panel)
+				entry.panel->UpdateLanguage();
+		}
+		DrawMenuBar(window);
 	}
 
 	void PanelWindow::Destroy() {

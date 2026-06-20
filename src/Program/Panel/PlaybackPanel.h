@@ -33,6 +33,7 @@ namespace Chrivent {
 		bool customFrameRange = false;
 		bool timelineRangeChanged = false;
 		bool updatingRangeControls = false;
+		bool repeatEnabled = false;
 		int autoLastFrame = 1;
 		PlaybackFrameRange frameRange;
 		HWND panelWindow = nullptr;
@@ -70,7 +71,7 @@ namespace Chrivent {
 		PlaybackPanel() = default;
 
 		PlaybackFrameRange GetFrameRange() const { return frameRange; }
-		bool IsRepeatEnabled() const { return repeatCheck && SendMessageW(repeatCheck, BM_GETCHECK, 0, 0) == BST_CHECKED; }
+		bool IsRepeatEnabled() const { return repeatEnabled; }
 
 		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		
@@ -84,6 +85,8 @@ namespace Chrivent {
 		void Poll() const;
 		// 패널 크기에 맞춰 버튼과 입력 칸 위치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
+		// 현재 언어에 맞춰 플레이백 컨트롤 문구를 갱신한다.
+		void UpdateLanguage() override;
 		// 재생 제어 버튼 명령을 내부 재생 명령으로 저장한다.
 		bool HandleCommand(int commandId, int notificationCode) override;
 		// 패널 윈도우와 컨트롤 핸들을 정리한다.

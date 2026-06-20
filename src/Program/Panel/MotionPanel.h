@@ -80,6 +80,8 @@ namespace Chrivent {
 		void Create(HWND parent) override;
 		// 패널 크기에 맞춰 모션 타임라인 컨트롤 배치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
+		// 현재 언어에 맞춰 모션 패널의 고정 문구를 다시 그린다.
+		void UpdateLanguage() override;
 		// 상단 프레임 입력 칸의 변경과 포커스 해제를 처리한다.
 		bool HandleCommand(int commandId, int notificationCode) override;
 		// 모션 타임라인 컨트롤 핸들과 표시 데이터를 정리한다.

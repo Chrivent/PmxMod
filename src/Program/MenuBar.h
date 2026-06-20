@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Config.h"
+#include "Language.h"
 #include "RendererType.h"
 
 #include <windows.h>
@@ -25,6 +26,7 @@ namespace Chrivent {
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		bool fpsVisible = false;
+		bool languageDirty = false;
 		HWND ownerWindow = nullptr;
 
 		// 현재 씬 설정을 지정한 파일에 저장한다.
@@ -39,6 +41,10 @@ namespace Chrivent {
 		void SelectRenderer(RendererType renderer);
 		// 현재 렌더러에 맞춰 메뉴의 선택 표시를 갱신한다.
 		void UpdateRendererMenuCheck() const;
+		// 현재 언어에 맞춰 메뉴의 선택 표시를 갱신한다.
+		void UpdateLanguageMenuCheck() const;
+		// GUI 언어를 선택하고 변경 상태를 기록한다.
+		void SelectLanguage(LanguageType type);
 
 	public:
 		explicit MenuBar(SceneConfig& config);
@@ -59,5 +65,7 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty();
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
+		// 언어 변경 플래그를 반환하고 초기화한다.
+		bool ConsumeLanguageDirty();
 	};
 }

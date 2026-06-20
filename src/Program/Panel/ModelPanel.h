@@ -34,6 +34,8 @@ namespace Chrivent {
 		void Create(HWND parent) override;
 		// 패널 크기에 맞춰 모델 패널 컨트롤 배치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
+		// 현재 언어에 맞춰 Add 버튼 문구를 갱신한다.
+		void UpdateLanguage() override;
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(int commandId, int notificationCode) override;
 		// 모델 패널 컨트롤 핸들을 정리한다.

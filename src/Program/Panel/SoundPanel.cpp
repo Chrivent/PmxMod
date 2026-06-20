@@ -1,6 +1,7 @@
 ﻿#include "SoundPanel.h"
 
 #include "../GuiDrawer.h"
+#include "../Language.h"
 #include "../Sound.h"
 
 #include <CommCtrl.h>
@@ -101,7 +102,7 @@ namespace Chrivent {
 		wc.lpszClassName = L"PmxModSoundPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(
-			0, L"PmxModSoundPanel", L"Sound",
+			0, L"PmxModSoundPanel", Language::Text("panel.sound").c_str(),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT, 180, 260,
 			nullptr, nullptr, instance, this);

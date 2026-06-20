@@ -1,14 +1,24 @@
 ﻿#include "ModelPanel.h"
 
+#include "../Language.h"
+
 #include <algorithm>
 
 namespace Chrivent {
 	void ModelPanel::ShowOpenModelDialog() {
 		std::vector filename(32768, L'\0');
+		std::wstring filter = Language::Text("model.dialog.pmx");
+		filter.append(1, L'\0');
+		filter += L"*.pmx";
+		filter.append(1, L'\0');
+		filter += Language::Text("dialog.all_files");
+		filter.append(1, L'\0');
+		filter += L"*.*";
+		filter.append(2, L'\0');
 		OPENFILENAMEW ofn{};
 		ofn.lStructSize = sizeof(ofn);
 		ofn.hwndOwner = parentWindow;
-		ofn.lpstrFilter = L"PMX Model (*.pmx)\0*.pmx\0All Files (*.*)\0*.*\0";
+		ofn.lpstrFilter = filter.c_str();
 		ofn.lpstrFile = filename.data();
 		ofn.nMaxFile = static_cast<DWORD>(filename.size());
 		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
@@ -32,7 +42,7 @@ namespace Chrivent {
 			return;
 		parentWindow = parent;
 		addButton = CreateWindowExW(
-			0, L"BUTTON", L"Add",
+			0, L"BUTTON", Language::Text("model.add").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(addButtonId)), GetModuleHandleW(nullptr), nullptr);
@@ -58,6 +68,11 @@ namespace Chrivent {
 			buttonWidth, buttonHeight, TRUE);
 		MoveWindow(modelList, clientRect.left + margin, clientRect.top + margin + buttonHeight + gap,
 			width, listHeight, TRUE);
+	}
+
+	void ModelPanel::UpdateLanguage() {
+		if (addButton)
+			SetWindowTextW(addButton, Language::Text("model.add").c_str());
 	}
 
 	bool ModelPanel::HandleCommand(const int commandId, const int notificationCode) {

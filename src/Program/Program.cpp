@@ -10,6 +10,7 @@
 #include "../Viewer/Hlsl/Dx11/Dx11Viewer.h"
 #include "../Viewer/Hlsl/Dx12/Dx12Viewer.h"
 #include "../Util.h"
+#include "Language.h"
 
 #include <algorithm>
 #include <iostream>
@@ -325,7 +326,7 @@ namespace Chrivent {
             groups.emplace_back(std::move(group));
         }
         if (groups.empty()) {
-            MotionTimelineGroup boneGroup{.name = L"본"};
+            MotionTimelineGroup boneGroup{.name = Language::Text("motion.bones")};
             for (const auto& node : model.skeletonData.nodes) {
                 if (!node)
                     continue;
@@ -344,7 +345,7 @@ namespace Chrivent {
             NormalizeFrames(boneGroup.keyFrames);
             if (!boneGroup.rows.empty())
                 groups.emplace_back(std::move(boneGroup));
-            MotionTimelineGroup morphGroup{.name = L"모프"};
+            MotionTimelineGroup morphGroup{.name = Language::Text("motion.morphs")};
             for (const auto& morph : model.morphData.morphs) {
                 if (!morph)
                     continue;
@@ -395,6 +396,10 @@ namespace Chrivent {
     bool Program::RunFrame() {
         glfwPollEvents();
         panelManager.PollGuiWindows();
+        if (panelManager.ConsumeLanguageDirty()) {
+            panelManager.RefreshLanguage();
+            return true;
+        }
         if (panelManager.ConsumeRendererDirty()) {
             if (!ChangeRenderer(panelManager.GetRendererType()))
                 return false;
@@ -490,6 +495,7 @@ namespace Chrivent {
     }
 
     bool Program::Run() {
+        Language::Initialize();
         CreateViewer(RendererType::OpenGL);
         const SceneConfig cfg;
         cameraManager.Reset();

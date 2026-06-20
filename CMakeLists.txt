@@ -13,6 +13,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
@@ -27,6 +28,7 @@ set(PROGRAM_SOURCES
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiBackBuffer.h src/Program/GuiBackBuffer.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
+        src/Program/Language.h src/Program/Language.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
         src/Program/RendererType.h
@@ -180,7 +182,6 @@ target_link_libraries(PmxMod PRIVATE
         d3d12
         dxgi
         d3dcompiler
-        comctl32
         
         Vulkan::Vulkan
         ${SHADERC_LIBRARY}
@@ -188,6 +189,9 @@ target_link_libraries(PmxMod PRIVATE
         BulletDynamics
         BulletCollision
         LinearMath
+
+        comctl32
+        nlohmann_json::nlohmann_json
 )
 
 target_include_directories(PmxMod PRIVATE

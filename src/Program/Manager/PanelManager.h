@@ -66,6 +66,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
+		// 언어 변경 여부를 반환하고 내부 플래그를 초기화한다.
+		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
@@ -90,6 +92,8 @@ namespace Chrivent {
 		void Reset() { menuBar.Reset(); }
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
+		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
+		void RefreshLanguage() const;
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.
 		void PollGuiWindows() const;
 		// GUI 창과 패널 컨트롤을 정리한다.

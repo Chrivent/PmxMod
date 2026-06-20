@@ -24,14 +24,14 @@ C++23으로 작성한 PMX/VMD 모델 뷰어입니다. 현재 OpenGL, DirectX 11,
 vcpkg가 `C:/vcpkg`에 설치되어 있다면 아래 명령으로 필요한 패키지를 설치합니다.
 
 ```powershell
-C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
 vcpkg가 다른 위치에 설치되어 있다면 해당 경로의 `vcpkg.exe`를 사용하면 됩니다.
 
 ```powershell
-D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio --triplet x64-windows
+D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
@@ -73,6 +73,7 @@ vcpkg 경로가 기본값과 다르면 VS Code 설정에 아래 값을 추가합
 
 - `stb`는 vcpkg의 `FindStb.cmake`를 통해 찾습니다.
 - `miniaudio`는 header-only 라이브러리라 `miniaudio.h` 위치를 찾아 include 경로로 추가합니다.
+- `nlohmann-json`은 실행 중 GUI 언어 파일을 읽는 데 사용합니다.
 - Vulkan은 설치된 Vulkan SDK를 통해 찾습니다.
 - OpenGL을 화면 기준 렌더러로 사용합니다. DirectX 11, DirectX 12, Vulkan은 API가 허용하는 범위에서 모델, 엣지, 지면 그림자, 텍스처, 깊이, 스텐실, 블렌드, MSAA 동작을 OpenGL 기준에 맞춥니다.
 - DirectX 12와 Vulkan은 별도 MSAA 렌더 타깃에 그린 뒤 스왑체인 이미지로 resolve합니다. OpenGL의 기본 framebuffer 흐름과 구현 방식은 다르지만, sample count 정책과 최종 화면 결과를 맞추는 방향입니다.

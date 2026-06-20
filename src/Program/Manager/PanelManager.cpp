@@ -25,10 +25,10 @@ namespace Chrivent {
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);
 		panelWindow.AttachMenuBar(menuBar);
-		panelWindow.RegisterPanel(modelPanel, L"Model", PanelWindowArea::Model);
-		panelWindow.RegisterPanel(motionPanel, L"Motion", PanelWindowArea::Motion);
-		panelWindow.RegisterPanel(playbackPanel, L"Playback", PanelWindowArea::Bottom);
-		panelWindow.RegisterPanel(soundPanel, L"Sound", PanelWindowArea::Bottom);
+		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model);
+		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
+		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
+		panelWindow.RegisterPanel(soundPanel, "panel.sound", PanelWindowArea::Bottom);
 		Reset();
 	}
 
@@ -49,6 +49,10 @@ namespace Chrivent {
 	bool PanelManager::OpenGuiWindows() {
 		panelWindow.Show();
 		return true;
+	}
+
+	void PanelManager::RefreshLanguage() const {
+		panelWindow.RefreshLanguage();
 	}
 
 	void PanelManager::PollGuiWindows() const {

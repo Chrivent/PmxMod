@@ -2,6 +2,7 @@
 
 #include "../GuiBackBuffer.h"
 #include "../GuiDrawer.h"
+#include "../Language.h"
 
 #include <CommCtrl.h>
 #include <algorithm>
@@ -168,7 +169,7 @@ namespace Chrivent {
 		GuiDrawer::FillRectColor(deviceContext, client, RGB(26, 29, 35));
 		constexpr RECT modelHeader{0, 0, kLabelWidth, kHeaderHeight};
 		GuiDrawer::FillRectColor(deviceContext, modelHeader, RGB(57, 61, 70));
-		GuiDrawer::DrawTextLine(deviceContext, modelName.empty() ? L"모델을 선택하세요" : modelName,
+		GuiDrawer::DrawTextLine(deviceContext, modelName.empty() ? Language::Text("motion.select_model") : modelName,
 			{8, 0, kLabelWidth - 4, kHeaderHeight}, RGB(235, 235, 238), DT_LEFT | DT_END_ELLIPSIS);
 		const int timelineWidth = client.right - kLabelWidth;
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
@@ -369,6 +370,11 @@ namespace Chrivent {
 		MoveWindow(timelineWindow, x, y, width, height, TRUE);
 		UpdateVerticalScrollBar();
 		UpdateHorizontalScrollBar();
+	}
+
+	void MotionPanel::UpdateLanguage() {
+		if (timelineWindow)
+			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
 	bool MotionPanel::HandleCommand(const int commandId, const int notificationCode) {
