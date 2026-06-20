@@ -340,7 +340,8 @@ namespace Chrivent {
             MotionTimelineGroup cameraGroup{
                 .name = Language::Text("motion.camera"),
                 .rows = {std::move(cameraRow)},
-                .mode = MotionTimelineMode::Camera
+                .mode = MotionTimelineMode::Camera,
+                .grouped = false
             };
             cameraGroup.keyFrames = CollectFrames(cameraGroup.rows);
             groups.emplace_back(std::move(cameraGroup));

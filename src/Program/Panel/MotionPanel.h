@@ -29,6 +29,7 @@ namespace Chrivent {
 		std::vector<MotionTimelineRow> rows;
 		std::vector<uint32_t> keyFrames;
 		MotionTimelineMode mode = MotionTimelineMode::Model;
+		bool grouped = true;
 		bool expanded = false;
 	};
 

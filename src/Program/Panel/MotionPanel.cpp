@@ -199,9 +199,13 @@ namespace Chrivent {
 		for (const auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
-			count++;
-			if (group.expanded)
+			if (!group.grouped)
 				count += group.rows.size();
+			else {
+				count++;
+				if (group.expanded)
+					count += group.rows.size();
+			}
 		}
 		return count;
 	}
@@ -274,6 +278,11 @@ namespace Chrivent {
 		for (const auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
+			if (!group.grouped) {
+				for (const auto& row : group.rows)
+					DrawRow(row.name, nullptr, &row, false, false, true);
+				continue;
+			}
 			DrawRow(group.name, &group, nullptr, true, group.expanded, !group.expanded);
 			if (paintedRows >= visibleRows)
 				break;
@@ -296,8 +305,8 @@ namespace Chrivent {
 			GuiDrawer::DrawLine(deviceContext, left, bottom, left, top, RGB(100, 220, 255));
 		}
 		GuiDrawer::DrawLine(deviceContext, kLabelWidth, 0, kLabelWidth, client.bottom, RGB(93, 98, 108));
-		if (currentFrame >= static_cast<uint32_t>(firstFrame)) {
-			const int currentX = kLabelWidth + (static_cast<int>(currentFrame) - firstFrame) * kFrameWidth;
+		if (currentFrame >= firstFrame) {
+			const int currentX = kLabelWidth + (currentFrame - firstFrame) * kFrameWidth;
 			if (currentX <= client.right)
 				GuiDrawer::DrawLine(deviceContext, currentX, 0, currentX, client.bottom, RGB(52, 211, 235));
 		}
@@ -316,6 +325,10 @@ namespace Chrivent {
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
+			if (!group.grouped) {
+				currentRow += group.rows.size();
+				continue;
+			}
 			if (currentRow == visibleRowIndex) {
 				group.expanded = !group.expanded;
 				UpdateVerticalScrollBar();
@@ -334,6 +347,26 @@ namespace Chrivent {
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
+			if (!group.grouped) {
+				for (auto& [name, keys] : group.rows) {
+					if (currentRow++ != visibleRowIndex)
+						continue;
+					for (auto& key : keys) {
+						const int keyX = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+						if (std::abs(keyX - x) > 6)
+							continue;
+						const bool select = !additive || !key.selected;
+						if (!additive)
+							ClearKeySelection();
+						key.selected = select;
+						interpolationSelectionDirty = true;
+						InvalidateRect(timelineWindow, nullptr, FALSE);
+						return true;
+					}
+					return false;
+				}
+				continue;
+			}
 			if (currentRow == visibleRowIndex && !group.expanded) {
 				for (const uint32_t frame : group.keyFrames) {
 					const int keyX = kLabelWidth + (frame - firstFrame) * kFrameWidth;
@@ -391,6 +424,19 @@ namespace Chrivent {
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
+			if (!group.grouped) {
+				for (auto& [name, keys] : group.rows) {
+					const int rowY = kHeaderHeight + (visibleRow - firstRow) * kRowHeight + kRowHeight / 2;
+					for (auto& key : keys) {
+						const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+						if (x >= selectionRect.left && x <= selectionRect.right
+							&& rowY >= selectionRect.top && rowY <= selectionRect.bottom)
+							key.selected = true;
+					}
+					visibleRow++;
+				}
+				continue;
+			}
 			const int groupY = kHeaderHeight + (visibleRow - firstRow) * kRowHeight + kRowHeight / 2;
 			if (!group.expanded) {
 				for (const uint32_t frame : group.keyFrames) {
@@ -601,9 +647,7 @@ namespace Chrivent {
 		const int x = clientRect.left + margin;
 		const int y = clientRect.top + margin + toolbarHeight;
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
-		const int height = (std::max)(
-			0,
-			static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
+		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
 		const int editX = clientRect.right - margin - editWidth;
 		MoveWindow(modeButton, clientRect.left + margin, clientRect.top + margin,
 			buttonWidth, editHeight, TRUE);
