@@ -731,8 +731,12 @@ namespace Chrivent {
                 << ' ' << name << "_max_ms=" << max << '\n';
         };
         std::cout << std::fixed << std::setprecision(3);
+        const auto physicsModelCount = std::ranges::count_if(instances, [](const auto& instance) {
+            return instance->GetInfo().model->physicsData.physics != nullptr;
+        });
         std::cout << "benchmark_renderer=" << GetRendererName(currentRendererType) << '\n';
         std::cout << "benchmark_models=" << instances.size() << '\n';
+        std::cout << "benchmark_physics_models=" << physicsModelCount << '\n';
         std::cout << "benchmark_frames=" << benchmarkFrames << '\n';
         std::cout << "benchmark_warmup_frames=" << warmupFrames << '\n';
         PrintMetric("animation", total.animationMilliseconds, maximum.animationMilliseconds);

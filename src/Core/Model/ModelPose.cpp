@@ -27,6 +27,8 @@ namespace Chrivent {
 	}
 
 	void ModelPose::ResetPhysics() const {
+		if (!model.physicsData.physics || model.physicsData.rigidBodies.empty())
+			return;
 		for (const auto& rb : model.physicsData.rigidBodies) {
 			rb->ApplyActivation(false);
 			rb->ResetTransform();
@@ -47,6 +49,8 @@ namespace Chrivent {
 	}
 
 	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {
+		if (!model.physicsData.physics || model.physicsData.rigidBodies.empty())
+			return;
 		for (const auto& rb : model.physicsData.rigidBodies)
 			rb->ApplyActivation(true);
 		model.physicsData.physics->GetInfo().world->stepSimulation(

@@ -311,6 +311,8 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
+		if (pmxData.rigidBodies.empty())
+			return;
 		model.physicsData.physics = std::make_unique<Physics>();
 		model.physicsData.physics->Create();
 		for (const auto& pmxRigidBody : pmxData.rigidBodies) {
