@@ -69,7 +69,7 @@ namespace Chrivent {
 	}
 
 	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam) {
-		const HDC deviceContext = reinterpret_cast<HDC>(wParam);
+		const auto deviceContext = reinterpret_cast<HDC>(wParam);
 		SetTextColor(deviceContext, textColor);
 		if (message == WM_CTLCOLOREDIT || message == WM_CTLCOLORLISTBOX) {
 			static const HBRUSH controlBrush = CreateSolidBrush(controlColor);
