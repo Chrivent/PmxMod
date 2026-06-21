@@ -120,14 +120,14 @@ namespace Chrivent {
 						controlPoints[0].y,
 						controlPoints[1].x,
 						controlPoints[1].y,
-						RGB(100, 110, 124));
+						RGB(115, 120, 130));
 					GuiDrawer::DrawLine(
 						deviceContext,
 						controlPoints[2].x,
 						controlPoints[2].y,
 						controlPoints[3].x,
 						controlPoints[3].y,
-						RGB(100, 110, 124));
+						RGB(115, 120, 130));
 				}
 				const HPEN curvePen = CreatePen(PS_SOLID, 2, curveColors[curveIndex % std::size(curveColors)]);
 				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
@@ -135,8 +135,18 @@ namespace Chrivent {
 				SelectObject(deviceContext, previousPen);
 				DeleteObject(curvePen);
 				if (showControlPoints) {
-					GuiDrawer::DrawDiamond(deviceContext, controlPoints[1].x, controlPoints[1].y, 5, RGB(246, 190, 53));
-					GuiDrawer::DrawDiamond(deviceContext, controlPoints[2].x, controlPoints[2].y, 5, RGB(246, 190, 53));
+					GuiDrawer::DrawCircle(
+						deviceContext,
+						controlPoints[1].x,
+						controlPoints[1].y,
+						3,
+						RGB(174, 179, 188));
+					GuiDrawer::DrawCircle(
+						deviceContext,
+						controlPoints[2].x,
+						controlPoints[2].y,
+						3,
+						RGB(174, 179, 188));
 				}
 			}
 		}

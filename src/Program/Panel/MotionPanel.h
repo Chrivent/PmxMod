@@ -16,6 +16,7 @@ namespace Chrivent {
 	struct MotionTimelineKey {
 		uint32_t frame = 0;
 		std::vector<BezierControlPoints> curves;
+		std::vector<float> values;
 		bool selected = false;
 	};
 
@@ -23,6 +24,8 @@ namespace Chrivent {
 		std::wstring name;
 		std::vector<std::wstring> curveNames;
 		std::vector<MotionTimelineKey> keys;
+		bool expandable = false;
+		bool expanded = false;
 	};
 
 	struct MotionTimelineGroup {
@@ -41,6 +44,7 @@ namespace Chrivent {
 		static constexpr int kHeaderHeight = 28;
 		static constexpr int kLabelWidth = 150;
 		static constexpr int kRowHeight = 22;
+		static constexpr int kCurveRowHeight = 66;
 		static constexpr int kFrameWidth = 12;
 
 		HWND timelineWindow = nullptr;
@@ -88,6 +92,14 @@ namespace Chrivent {
 		void Paint(HDC deviceContext) const;
 		// 클릭한 표시 행이 그룹이면 펼침 상태를 전환한다.
 		void ToggleGroup(int visibleRowIndex);
+		// 지정한 채널의 키 값과 보간 데이터를 타임라인 곡선으로 그린다.
+		void DrawValueCurve(
+			HDC deviceContext,
+			const MotionTimelineRow& row,
+			size_t channelIndex,
+			int top,
+			int bottom,
+			int right) const;
 		// 클릭한 다이아몬드를 단일 또는 다중 선택 상태로 반영한다.
 		bool SelectKey(int visibleRowIndex, int x, bool additive);
 		// 드래그 사각형 안의 다이아몬드를 선택 상태로 반영한다.

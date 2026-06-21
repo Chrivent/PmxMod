@@ -342,8 +342,10 @@ namespace Chrivent {
             normalized.reserve(keys.size());
             for (auto& key : keys) {
                 if (!normalized.empty() && normalized.back().frame == key.frame) {
-                    if (normalized.back().curves.empty() && !key.curves.empty())
+                    if (normalized.back().curves.empty() && !key.curves.empty()) {
                         normalized.back().curves = std::move(key.curves);
+                        normalized.back().values = std::move(key.values);
+                    }
                     continue;
                 }
                 normalized.emplace_back(std::move(key));
@@ -369,14 +371,23 @@ namespace Chrivent {
             for (const auto& [node, keys] : nodeTracks) {
                 auto& timelineKeys = nodeKeys[node.get()];
                 timelineKeys.reserve(keys.size());
-                for (const auto& key : keys) {
+                for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
+                    glm::quat rotation = glm::normalize(rotate);
+                    if (rotation.w < 0.0f)
+                        rotation = -rotation;
                     timelineKeys.push_back({
-                        .frame = key.frame,
+                        .frame = frame,
                         .curves = {
-                            key.txBezier.GetControlPoints(),
-                            key.tyBezier.GetControlPoints(),
-                            key.tzBezier.GetControlPoints(),
-                            key.rotBezier.GetControlPoints()
+                            txBezier.GetControlPoints(),
+                            tyBezier.GetControlPoints(),
+                            tzBezier.GetControlPoints(),
+                            rotBezier.GetControlPoints()
+                        },
+                        .values = {
+                            translate.x,
+                            translate.y,
+                            translate.z,
+                            glm::degrees(glm::angle(rotation))
                         }
                     });
                 }
@@ -459,7 +470,8 @@ namespace Chrivent {
                         Language::Text("interpolation.z"),
                         Language::Text("interpolation.rotation")
                     },
-                    .keys = std::move(keys)
+                    .keys = std::move(keys),
+                    .expandable = true
                 });
             }
             for (const uint32_t morphIndex : morphIndices) {
@@ -499,7 +511,8 @@ namespace Chrivent {
                         Language::Text("interpolation.z"),
                         Language::Text("interpolation.rotation")
                     },
-                    .keys = std::move(keys)
+                    .keys = std::move(keys),
+                    .expandable = true
                 });
             }
             boneGroup.keyFrames = CollectFrames(boneGroup.rows);
