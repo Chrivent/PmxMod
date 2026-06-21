@@ -110,6 +110,7 @@ namespace Chrivent {
             std::cerr << "Failed to initialize GLFW.\n";
             return false;
         }
+        glfwDefaultWindowHints();
         viewer->ConfigureGlfwHints();
         viewer->GetInfo().window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
         if (!viewer->GetInfo().window) {
@@ -206,12 +207,16 @@ namespace Chrivent {
         const bool resumePlayback = cameraManager.IsPlaying();
         const int playbackFrame = viewer ? viewer->GetInfo().animTime * 30.0f + 0.5f : 0;
         GLFWwindow* previousWindow = viewer ? viewer->GetInfo().window : nullptr;
+        if (resumePlayback)
+            cameraManager.Pause(music);
         if (viewer)
             viewer->WaitIdle();
         ClearInstances();
         viewer.reset();
-        if (previousWindow)
+        if (previousWindow) {
+            glfwMakeContextCurrent(nullptr);
             glfwDestroyWindow(previousWindow);
+        }
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;

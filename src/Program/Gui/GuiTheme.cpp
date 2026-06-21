@@ -1,12 +1,37 @@
 ﻿#include "GuiTheme.h"
 
-#include "Language.h"
+#include "../Language.h"
 
 #include <CommCtrl.h>
 #include <dwmapi.h>
+#include <iostream>
 #include <uxtheme.h>
 
 namespace Chrivent {
+	COLORREF GuiTheme::GetCurveColor(const std::size_t channelIndex) {
+		constexpr COLORREF colors[] = {
+			RGB(255, 105, 105),
+			RGB(120, 225, 130),
+			RGB(105, 165, 255),
+			RGB(214, 145, 255),
+			RGB(255, 190, 95),
+			RGB(95, 220, 220)
+		};
+		return colors[channelIndex % std::size(colors)];
+	}
+
+	COLORREF GuiTheme::GetCurveKeyColor(const std::size_t channelIndex) {
+		constexpr COLORREF colors[] = {
+			RGB(176, 55, 55),
+			RGB(55, 150, 65),
+			RGB(50, 100, 180),
+			RGB(135, 75, 180),
+			RGB(180, 115, 35),
+			RGB(35, 145, 145)
+		};
+		return colors[channelIndex % std::size(colors)];
+	}
+
 	HFONT GuiTheme::GetFont() {
 		static const HFONT englishFont = CreateFontW(
 			-15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
@@ -48,10 +73,12 @@ namespace Chrivent {
 		SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(GetFont()), TRUE);
 		wchar_t className[32]{};
 		GetClassNameW(control, className, 32);
-		if (lstrcmpW(className, TRACKBAR_CLASSW) == 0)
-			SetWindowTheme(control, L"", L"");
-		else
-			SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
+		const HRESULT result = lstrcmpW(className, TRACKBAR_CLASSW) == 0
+			? SetWindowTheme(control, L"", L"")
+			: SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
+		if (FAILED(result))
+			std::cerr << "Failed to apply Win32 control theme: 0x" << std::hex
+				<< static_cast<unsigned long>(result) << std::dec << '\n';
 	}
 
 	void GuiTheme::ApplyWindow(const HWND window) {
@@ -59,7 +86,10 @@ namespace Chrivent {
 			return;
 		constexpr BOOL enabled = TRUE;
 		constexpr DWORD immersiveDarkModeAttribute = 20;
-		DwmSetWindowAttribute(window, immersiveDarkModeAttribute, &enabled, sizeof(enabled));
+		const HRESULT result = DwmSetWindowAttribute(window, immersiveDarkModeAttribute, &enabled, sizeof(enabled));
+		if (FAILED(result))
+			std::cerr << "Failed to apply dark window frame: 0x" << std::hex
+				<< static_cast<unsigned long>(result) << std::dec << '\n';
 		ApplyControl(window);
 		EnumChildWindows(window, [](const HWND child, const LPARAM) {
 			ApplyControl(child);

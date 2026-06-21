@@ -1,7 +1,8 @@
 ﻿#include "InterpolationCurvePanel.h"
 
-#include "../GuiBackBuffer.h"
-#include "../GuiDrawer.h"
+#include "../Gui/GuiBackBuffer.h"
+#include "../Gui/GuiDrawer.h"
+#include "../Gui/GuiTheme.h"
 
 #include <algorithm>
 #include <cmath>
@@ -51,14 +52,6 @@ namespace Chrivent {
 		const size_t channelCount = selection.channels.size();
 		if (channelCount == 0)
 			return;
-		constexpr COLORREF curveColors[] = {
-			RGB(100, 220, 255),
-			RGB(246, 190, 53),
-			RGB(255, 125, 176),
-			RGB(133, 225, 133),
-			RGB(188, 150, 255),
-			RGB(255, 160, 105)
-		};
 		const int width = client.right - client.left;
 		const int height = client.bottom - client.top;
 		const int channelHeight = height / channelCount;
@@ -121,7 +114,7 @@ namespace Chrivent {
 						controlPoints[3].y,
 						RGB(115, 120, 130));
 				}
-				const HPEN curvePen = CreatePen(PS_SOLID, 2, curveColors[curveIndex % std::size(curveColors)]);
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::GetCurveColor(channelIndex));
 				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
 				PolyBezier(deviceContext, controlPoints, 4);
 				SelectObject(deviceContext, previousPen);

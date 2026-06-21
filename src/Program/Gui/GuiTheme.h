@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <cstddef>
 #include <windows.h>
 
 namespace Chrivent {
@@ -10,6 +11,10 @@ namespace Chrivent {
 		static constexpr COLORREF borderColor = RGB(92, 101, 114);
 		static constexpr COLORREF textColor = RGB(229, 232, 238);
 
+		// 채널 인덱스에 대응하는 보간 곡선 색상을 반환한다.
+		static COLORREF GetCurveColor(std::size_t channelIndex);
+		// 채널 곡선보다 어두운 키 다이아몬드 색상을 반환한다.
+		static COLORREF GetCurveKeyColor(std::size_t channelIndex);
 		// 현재 언어의 글리프를 안정적으로 표시하는 UI 폰트를 반환한다.
 		static HFONT GetFont();
 		// GUI 창 배경에 공통으로 사용할 브러시를 반환한다.

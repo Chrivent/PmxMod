@@ -1,8 +1,8 @@
 ﻿#include "MotionPanel.h"
 
-#include "../GuiBackBuffer.h"
-#include "../GuiDrawer.h"
-#include "../GuiTheme.h"
+#include "../Gui/GuiBackBuffer.h"
+#include "../Gui/GuiDrawer.h"
+#include "../Gui/GuiTheme.h"
 #include "../Language.h"
 
 #include <CommCtrl.h>
@@ -212,17 +212,6 @@ namespace Chrivent {
 		const HDC deviceContext, const MotionTimelineRow& row, const int top, const int bottom, const int right) const {
 		if (row.keys.empty())
 			return;
-		constexpr COLORREF colors[] = {
-			RGB(255, 105, 105),
-			RGB(120, 225, 130),
-			RGB(105, 165, 255),
-			RGB(214, 145, 255),
-			RGB(255, 190, 95),
-			RGB(95, 220, 220)
-		};
-		const auto DrawControlPoint = [&](const POINT point) {
-			GuiDrawer::DrawCircle(deviceContext, point.x, point.y, 3, RGB(174, 179, 188));
-		};
 		const int savedDc = SaveDC(deviceContext);
 		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
 		for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
@@ -245,33 +234,26 @@ namespace Chrivent {
 			};
 			for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
 				const auto& previousKey = row.keys[keyIndex - 1];
-				const auto& [frame, curves
-					, values, selected] = row.keys[keyIndex];
+				const auto& nextKey = row.keys[keyIndex];
 				if (channelIndex >= previousKey.values.size() ||
-					channelIndex >= values.size() ||
-					channelIndex >= curves.size() ||
-					frame <= previousKey.frame)
+					channelIndex >= nextKey.values.size() ||
+					channelIndex >= nextKey.curves.size() ||
+					nextKey.frame <= previousKey.frame)
 					continue;
-				const auto& [p1, p2] = curves[channelIndex];
+				const auto& [p1, p2] = nextKey.curves[channelIndex];
 				const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;
-				const int endX = kLabelWidth + (frame - firstFrame) * kFrameWidth;
+				const int endX = kLabelWidth + (nextKey.frame - firstFrame) * kFrameWidth;
 				if (endX < kLabelWidth || startX > right)
 					continue;
 				const float startValue = previousKey.values[channelIndex];
-				const float endValue = values[channelIndex];
+				const float endValue = nextKey.values[channelIndex];
 				const POINT points[] = {
 					{startX, ValueToY(startValue)},
 					{startX + std::lround((endX - startX) * p1.x), ValueToY(std::lerp(startValue, endValue, p1.y))},
 					{startX + std::lround((endX - startX) * p2.x), ValueToY(std::lerp(startValue, endValue, p2.y))},
 					{endX, ValueToY(endValue)}
 				};
-				if (selected) {
-					GuiDrawer::DrawLine(deviceContext, points[0].x, points[0].y, points[1].x, points[1].y, RGB(115, 120, 130));
-					GuiDrawer::DrawLine(deviceContext, points[2].x, points[2].y, points[3].x, points[3].y, RGB(115, 120, 130));
-					DrawControlPoint(points[1]);
-					DrawControlPoint(points[2]);
-				}
-				const HPEN curvePen = CreatePen(PS_SOLID, 2, colors[channelIndex % std::size(colors)]);
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::GetCurveColor(channelIndex));
 				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
 				PolyBezier(deviceContext, points, 4);
 				SelectObject(deviceContext, previousPen);
@@ -283,15 +265,15 @@ namespace Chrivent {
 				const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
 				if (x > right)
 					break;
-				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5,
-					key.selected ? RGB(246, 190, 53) : colors[channelIndex % std::size(colors)]);
+				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]),
+					key.selected ? 6 : 5, GuiTheme::GetCurveKeyColor(channelIndex));
 			}
 		}
 		RestoreDC(deviceContext, savedDc);
 		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
 		for (int index = 0; index < legendCount; index++) {
 			const int y = top + 12 + index * 22;
-			GuiDrawer::DrawCircle(deviceContext, 18, y, 4, colors[index]);
+			GuiDrawer::DrawCircle(deviceContext, 18, y, 4, GuiTheme::GetCurveColor(index));
 			GuiDrawer::DrawTextLine(deviceContext, row.curveNames[index],
 				{30, y - 10, kLabelWidth - 6, y + 10}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 		}

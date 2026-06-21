@@ -38,9 +38,9 @@ add_executable(PmxMod
 
         src/Program/Program.h src/Program/Program.cpp
         src/Program/Config.h src/Program/Config.cpp
-        src/Program/GuiBackBuffer.h src/Program/GuiBackBuffer.cpp
-        src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
-        src/Program/GuiTheme.h src/Program/GuiTheme.cpp
+        src/Program/Gui/GuiBackBuffer.h src/Program/Gui/GuiBackBuffer.cpp
+        src/Program/Gui/GuiDrawer.h src/Program/Gui/GuiDrawer.cpp
+        src/Program/Gui/GuiTheme.h src/Program/Gui/GuiTheme.cpp
         src/Program/Language.h src/Program/Language.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp

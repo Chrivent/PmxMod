@@ -1,6 +1,6 @@
 ﻿#include "PlaybackPanel.h"
 
-#include "../GuiTheme.h"
+#include "../Gui/GuiTheme.h"
 #include "../Language.h"
 
 #include <CommCtrl.h>

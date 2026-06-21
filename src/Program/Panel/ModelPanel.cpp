@@ -1,6 +1,6 @@
 ﻿#include "ModelPanel.h"
 
-#include "../GuiTheme.h"
+#include "../Gui/GuiTheme.h"
 #include "../Language.h"
 
 #include <algorithm>

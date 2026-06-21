@@ -1,7 +1,7 @@
 ﻿#include "PanelWindow.h"
 
-#include "GuiDrawer.h"
-#include "GuiTheme.h"
+#include "Gui/GuiDrawer.h"
+#include "Gui/GuiTheme.h"
 #include "Language.h"
 #include "MenuBar.h"
 
