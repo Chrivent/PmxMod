@@ -218,7 +218,7 @@ namespace Chrivent {
             return false;
         panelManager.BindSound(music);
         cameraManager.SeekFrame(viewer->GetInfo(), music, playbackFrame, saveTime);
-        SyncSeekedPhysics(playbackFrame);
+        ResetPhysics(playbackFrame);
         if (resumePlayback)
             cameraManager.Play(music);
         cameraManager.UpdateCamera(viewer->GetInfo());
@@ -259,7 +259,7 @@ namespace Chrivent {
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
             cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
-            SyncSeekedPhysics(startFrame);
+            ResetPhysics(startFrame);
         }
         return true;
     }
@@ -314,24 +314,21 @@ namespace Chrivent {
         return lastFrame;
     }
 
-    void Program::SyncSeekedPhysics(const int frame) const {
-        for (const auto& instance : instances) {
-            if (!instance || !instance->GetInfo().model || !instance->GetInfo().anim)
-                continue;
-            const ModelAnimator animator(*instance->GetInfo().model);
-            animator.BeginAnimation();
-            animator.SyncPhysics(*instance->GetInfo().anim, frame);
-        }
-    }
-
     void Program::ResetPhysics(const int frame) const {
         for (const auto& instance : instances) {
             if (!instance || !instance->GetInfo().model || !instance->GetInfo().anim)
                 continue;
-            const ModelPose pose(*instance->GetInfo().model);
+            const auto& instanceInfo = instance->GetInfo();
+            const ModelAnimator animator(*instanceInfo.model);
+            const ModelPose pose(*instanceInfo.model);
+            animator.BeginAnimation();
+            instanceInfo.anim->Evaluate(frame);
+            animator.UpdateMorphAnimation();
+            pose.UpdateNodeAnimation(false);
+            pose.UpdateNodeAnimation(true);
             pose.ResetPhysics();
+            animator.SyncPhysics(*instanceInfo.anim, frame);
         }
-        SyncSeekedPhysics(frame);
     }
 
     void Program::UpdateMotionPanel(const size_t modelIndex) {
@@ -602,7 +599,7 @@ namespace Chrivent {
             viewer->GetInfo().skipPhysics = !seekFinished;
             cameraManager.SeekFrame(viewer->GetInfo(), music, seekFrame, saveTime);
             if (seekFinished) {
-                SyncSeekedPhysics(seekFrame);
+                ResetPhysics(seekFrame);
                 viewer->GetInfo().skipPhysics = false;
             }
         }
@@ -612,7 +609,7 @@ namespace Chrivent {
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
                     viewer->GetInfo().animTime * 30.0f < start || viewer->GetInfo().animTime * 30.0f >= end) {
                     cameraManager.SeekFrame(viewer->GetInfo(), music, start, saveTime);
-                    SyncSeekedPhysics(start);
+                    ResetPhysics(start);
                 }
                 cameraManager.Play(music);
                 break;
@@ -623,7 +620,7 @@ namespace Chrivent {
                 viewer->GetInfo().skipPhysics = false;
                 cameraManager.Stop(viewer->GetInfo(), music, saveTime);
                 cameraManager.SeekFrame(viewer->GetInfo(), music, 0, saveTime);
-                SyncSeekedPhysics(0);
+                ResetPhysics(0);
                 break;
             case PlaybackCommand::None:
                 break;
@@ -644,11 +641,11 @@ namespace Chrivent {
             if (panelManager.IsPlaybackRepeatEnabled()) {
                 const int startFrame = panelManager.GetPlaybackFrameRange().start;
                 cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
-                SyncSeekedPhysics(startFrame);
+                ResetPhysics(startFrame);
             } else {
                 cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
                 cameraManager.Pause(music);
-                SyncSeekedPhysics(endFrame);
+                ResetPhysics(endFrame);
             }
             viewer->GetInfo().skipPhysics = false;
         }

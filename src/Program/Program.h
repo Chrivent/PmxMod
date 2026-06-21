@@ -80,8 +80,6 @@ namespace Chrivent {
         int CalculateMotionLastFrame() const;
         // 현재 씬의 모션과 음악 중 가장 긴 자동 재생 프레임을 계산한다.
         int CalculatePlaybackLastFrame() const;
-        // 지정한 프레임으로 이동한 직후 모델 물리 상태를 동기화한다.
-        void SyncSeekedPhysics(int frame) const;
         // 모든 모델의 물리를 초기화하고 지정한 프레임 상태로 다시 동기화한다.
         void ResetPhysics(int frame) const;
         // 선택된 모델의 본, IK, 모프 키프레임을 모션 패널에 표시한다.
