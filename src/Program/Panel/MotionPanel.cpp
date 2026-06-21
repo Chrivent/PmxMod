@@ -305,7 +305,7 @@ namespace Chrivent {
 			{8, 0, kLabelWidth - 4, kHeaderHeight}, RGB(235, 235, 238), DT_LEFT | DT_END_ELLIPSIS);
 		const int timelineWidth = client.right - kLabelWidth;
 		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
-		const uint32_t lastVisibleFrame = (std::min)(totalFrame, static_cast<uint32_t>(firstFrame + visibleFrames));
+		const int lastVisibleFrame = (std::min)(totalFrame, firstFrame + visibleFrames);
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
@@ -358,7 +358,7 @@ namespace Chrivent {
 				paintedRows += rowUnits;
 				return;
 			}
-			const auto DrawKey = [&](const uint32_t frame, const bool selected) {
+			const auto DrawKey = [&](const int frame, const bool selected) {
 				if (frame > totalFrame || frame < firstFrame)
 					return;
 				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
@@ -526,7 +526,7 @@ namespace Chrivent {
 				continue;
 			}
 			if (currentRow == visibleRowIndex && !group.expanded) {
-				for (const uint32_t frame : group.keyFrames) {
+				for (const int frame : group.keyFrames) {
 					const int keyX = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 					if (std::abs(keyX - x) > 6)
 						continue;
@@ -597,7 +597,7 @@ namespace Chrivent {
 			}
 			const int groupY = kHeaderHeight + (visibleRow - firstRow) * kRowHeight + kRowHeight / 2;
 			if (!group.expanded) {
-				for (const uint32_t frame : group.keyFrames) {
+				for (const int frame : group.keyFrames) {
 					const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 					if (x < selectionRect.left || x > selectionRect.right
 						|| groupY < selectionRect.top || groupY > selectionRect.bottom)
@@ -643,7 +643,7 @@ namespace Chrivent {
 		return group.mode == mode;
 	}
 
-	bool MotionPanel::IsGroupFrameSelected(const MotionTimelineGroup& group, const uint32_t frame) {
+	bool MotionPanel::IsGroupFrameSelected(const MotionTimelineGroup& group, const int frame) {
 		for (const auto& row : group.rows) {
 			const auto key = std::ranges::lower_bound(row.keys, frame, {}, &MotionTimelineKey::frame);
 			if (key != row.keys.end() && key->frame == frame && key->selected)
@@ -753,7 +753,7 @@ namespace Chrivent {
 				return;
 			default: return;
 		}
-		currentFrame = std::clamp(position, 0, static_cast<int>(totalFrame));
+		currentFrame = std::clamp(position, 0, totalFrame);
 		seekFrame = currentFrame;
 		seekRequested = true;
 		seekFinished = scrollCode != SB_THUMBTRACK;
@@ -888,15 +888,15 @@ namespace Chrivent {
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetLastFrame(const uint32_t maxFrame) {
-		totalFrame = maxFrame;
+	void MotionPanel::SetLastFrame(const int maxFrame) {
+		totalFrame = std::clamp(maxFrame, 0, kMaxEditableFrame);
 		UpdateHorizontalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetCurrentFrame(const uint32_t frame) {
-		const uint32_t timelineFrame = (std::min)(frame, static_cast<uint32_t>(kMaxEditableFrame));
+	void MotionPanel::SetCurrentFrame(const int frame) {
+		const int timelineFrame = std::clamp(frame, 0, kMaxEditableFrame);
 		if (currentFrame == timelineFrame)
 			return;
 		currentFrame = timelineFrame;

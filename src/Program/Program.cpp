@@ -18,6 +18,7 @@
 #include <cwchar>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <unordered_map>
 
@@ -301,18 +302,22 @@ namespace Chrivent {
     }
 
     int Program::CalculateMotionLastFrame() const {
-        uint32_t lastFrame = cameraManager.GetLastFrame();
+        int lastFrame = cameraManager.GetLastFrame();
         for (const auto& instance : instances) {
-            if (instance && instance->GetInfo().anim)
-                lastFrame = (std::max)(lastFrame, instance->GetInfo().anim->GetLastFrame());
+            if (instance && instance->GetInfo().anim) {
+                const uint32_t animationLastFrame = instance->GetInfo().anim->GetLastFrame();
+                const int timelineLastFrame = static_cast<int>((std::min)(
+                    animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)())));
+                lastFrame = (std::max)(lastFrame, timelineLastFrame);
+            }
         }
         return lastFrame;
     }
 
     int Program::CalculatePlaybackLastFrame() const {
-        uint32_t lastFrame = CalculateMotionLastFrame();
+        int lastFrame = CalculateMotionLastFrame();
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<uint32_t>(std::ceil(music.GetLengthSeconds() * 30.0)));
+            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
         return lastFrame;
     }
 
@@ -355,7 +360,7 @@ namespace Chrivent {
             keys = std::move(normalized);
         };
         const auto CollectFrames = [](const std::vector<MotionTimelineRow>& rows) {
-            std::vector<uint32_t> frames;
+            std::vector<int> frames;
             for (const auto& row : rows) {
                 for (const auto& key : row.keys)
                     frames.emplace_back(key.frame);
@@ -364,6 +369,10 @@ namespace Chrivent {
             const auto uniqueFrames = std::ranges::unique(frames);
             frames.erase(uniqueFrames.begin(), uniqueFrames.end());
             return frames;
+        };
+        const auto ToTimelineFrame = [](const uint32_t frame) {
+            constexpr uint32_t maxFrame = (std::numeric_limits<int>::max)();
+            return frame > maxFrame ? (std::numeric_limits<int>::max)() : static_cast<int>(frame);
         };
         std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
@@ -378,7 +387,7 @@ namespace Chrivent {
                     if (rotation.w < 0.0f)
                         rotation = -rotation;
                     timelineKeys.push_back({
-                        .frame = frame,
+                        .frame = ToTimelineFrame(frame),
                         .curves = {
                             txBezier.GetControlPoints(),
                             tyBezier.GetControlPoints(),
@@ -398,13 +407,13 @@ namespace Chrivent {
                 auto& timelineKeys = ikKeys[ikSolver.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
-                    timelineKeys.push_back({.frame = frame});
+                    timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
             for (const auto& [morph, keys] : morphTracks) {
                 auto& timelineKeys = morphKeys[morph.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)
-                    timelineKeys.push_back({.frame = frame});
+                    timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
         }
         std::vector<MotionTimelineGroup> groups;
@@ -425,7 +434,7 @@ namespace Chrivent {
             cameraRow.keys.reserve(cameraKeys.size());
             for (const auto& key : cameraKeys) {
                 cameraRow.keys.push_back({
-                        .frame = key.frame,
+                        .frame = ToTimelineFrame(key.frame),
                         .curves = {
                             key.ixBezier.GetControlPoints(),
                             key.iyBezier.GetControlPoints(),

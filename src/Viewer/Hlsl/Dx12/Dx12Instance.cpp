@@ -4,6 +4,7 @@
 #include "Dx12Viewer.h"
 #include "../HlslShaderConstants.h"
 #include "../../../Core/Model/Model.h"
+#include "../../ViewerGeometry.h"
 
 #include <iostream>
 #include <limits>
@@ -22,7 +23,7 @@ namespace Chrivent {
 			? DXGI_FORMAT_R16_UINT
 			: DXGI_FORMAT_R32_UINT;
 		const size_t vertexCount = geometryData.positions.size();
-		const size_t vertexByteSize = sizeof(Dx12Vertex) * vertexCount;
+		const size_t vertexByteSize = sizeof(ViewerVertex) * vertexCount;
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
 			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
 			return false;
@@ -30,12 +31,12 @@ namespace Chrivent {
 			Dx12Buffer& vertexBuffer = info.vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(deviceInfo, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
-					static_cast<Dx12Vertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+					static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
 				return false;
 			auto& vertexBufferView = info.vertexBufferViews[frameIndex];
 			vertexBufferView.BufferLocation = vertexBuffer.ResolveGpuAddress();
 			vertexBufferView.SizeInBytes = vertexByteSize;
-			vertexBufferView.StrideInBytes = sizeof(Dx12Vertex);
+			vertexBufferView.StrideInBytes = sizeof(ViewerVertex);
 		}
 		if (!info.indexBuffer.InitializeUpload(deviceInfo, indexData.bytes.size()) ||
 			!info.indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
@@ -50,34 +51,39 @@ namespace Chrivent {
 	bool Dx12Instance::CreateConstantBuffers(Dx12InstanceInfo& info, const Dx12DeviceInfo& deviceInfo) {
 		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelVertexConstants));
 		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslModelPixelConstants));
-		if (!info.modelVertexConstantBuffer.InitializeUpload(deviceInfo, vertexConstantSize))
-			return false;
 		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeVertexConstants));
 		const size_t edgeSizeConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgeSizeConstants));
 		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslEdgePixelConstants));
 		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowVertexConstants));
 		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(HlslGroundShadowPixelConstants));
-		if (!info.edgeVertexConstantBuffer.InitializeUpload(deviceInfo, edgeVertexConstantSize))
-			return false;
-		if (!info.groundShadowVertexConstantBuffer.InitializeUpload(deviceInfo, groundShadowVertexConstantSize))
-			return false;
-		if (!info.groundShadowPixelConstantBuffer.InitializeUpload(deviceInfo, groundShadowPixelConstantSize))
-			return false;
+		for (size_t frameIndex = 0; frameIndex < Dx12InstanceInfo::kBufferedFrames; frameIndex++) {
+			if (!info.modelVertexConstantBuffers[frameIndex].InitializeUpload(deviceInfo, vertexConstantSize) ||
+				!info.edgeVertexConstantBuffers[frameIndex].InitializeUpload(deviceInfo, edgeVertexConstantSize) ||
+				!info.groundShadowVertexConstantBuffers[frameIndex].InitializeUpload(deviceInfo, groundShadowVertexConstantSize) ||
+				!info.groundShadowPixelConstantBuffers[frameIndex].InitializeUpload(deviceInfo, groundShadowPixelConstantSize))
+				return false;
+		}
 		const size_t materialCount = info.model->materialData.materials.size();
 		info.modelPixelConstantBuffers.resize(materialCount);
-		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers) {
-			if (!pixelConstantBuffer.InitializeUpload(deviceInfo, pixelConstantSize))
-				return false;
+		for (auto& frameBuffers : info.modelPixelConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers) {
+				if (!buffer.InitializeUpload(deviceInfo, pixelConstantSize))
+					return false;
+			}
 		}
 		info.edgeSizeConstantBuffers.resize(materialCount);
-		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers) {
-			if (!edgeSizeConstantBuffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
-				return false;
+		for (auto& frameBuffers : info.edgeSizeConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers) {
+				if (!buffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
+					return false;
+			}
 		}
 		info.edgePixelConstantBuffers.resize(materialCount);
-		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers) {
-			if (!edgePixelConstantBuffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
-				return false;
+		for (auto& frameBuffers : info.edgePixelConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers) {
+				if (!buffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
+					return false;
+			}
 		}
 		return true;
 	}
@@ -151,19 +157,29 @@ namespace Chrivent {
 		for (Dx12Buffer& vertexBuffer : info.vertexBuffers)
 			vertexBuffer.Destroy();
 		info.indexBuffer.Destroy();
-		info.modelVertexConstantBuffer.Destroy();
-		for (Dx12Buffer& pixelConstantBuffer : info.modelPixelConstantBuffers)
-			pixelConstantBuffer.Destroy();
+		for (Dx12Buffer& buffer : info.modelVertexConstantBuffers)
+			buffer.Destroy();
+		for (auto& frameBuffers : info.modelPixelConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers)
+				buffer.Destroy();
+		}
 		info.modelPixelConstantBuffers.clear();
-		info.edgeVertexConstantBuffer.Destroy();
-		for (Dx12Buffer& edgeSizeConstantBuffer : info.edgeSizeConstantBuffers)
-			edgeSizeConstantBuffer.Destroy();
+		for (Dx12Buffer& buffer : info.edgeVertexConstantBuffers)
+			buffer.Destroy();
+		for (auto& frameBuffers : info.edgeSizeConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers)
+				buffer.Destroy();
+		}
 		info.edgeSizeConstantBuffers.clear();
-		for (Dx12Buffer& edgePixelConstantBuffer : info.edgePixelConstantBuffers)
-			edgePixelConstantBuffer.Destroy();
+		for (auto& frameBuffers : info.edgePixelConstantBuffers) {
+			for (Dx12Buffer& buffer : frameBuffers)
+				buffer.Destroy();
+		}
 		info.edgePixelConstantBuffers.clear();
-		info.groundShadowVertexConstantBuffer.Destroy();
-		info.groundShadowPixelConstantBuffer.Destroy();
+		for (Dx12Buffer& buffer : info.groundShadowVertexConstantBuffers)
+			buffer.Destroy();
+		for (Dx12Buffer& buffer : info.groundShadowPixelConstantBuffers)
+			buffer.Destroy();
 		info.textureDescriptorHeap.Reset();
 		info.textureDescriptorSize = 0;
 		info.vertexBufferViews = {};
@@ -200,7 +216,7 @@ namespace Chrivent {
 			return;
 		const size_t vertexCount = info.model->geometryData.positions.size();
 		if (!ViewerGeometry::WriteVertices(info.model->geometryData, true,
-			static_cast<Dx12Vertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+			static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
 			std::cerr << "Failed to update DX12 vertex buffer.\n";
 	}
 }

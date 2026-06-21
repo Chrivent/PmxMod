@@ -7,6 +7,7 @@
 #include "../../Viewer/Viewer.h"
 
 #include <iostream>
+#include <limits>
 
 namespace Chrivent {
 	void CameraManager::ResetFreeCamera() {
@@ -21,8 +22,10 @@ namespace Chrivent {
 
 	CameraManager::~CameraManager() = default;
 
-	uint32_t CameraManager::GetLastFrame() const {
-		return cameraAnim ? cameraAnim->GetLastFrame() : 0;
+	int CameraManager::GetLastFrame() const {
+		if (!cameraAnim)
+			return 0;
+		return static_cast<int>((std::min)(cameraAnim->GetLastFrame(), static_cast<uint32_t>((std::numeric_limits<int>::max)())));
 	}
 
 	const std::vector<CameraAnimationKey>& CameraManager::GetAnimationKeys() const {

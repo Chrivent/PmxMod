@@ -16,8 +16,6 @@ namespace Chrivent {
 	struct VulkanPipelineInfo;
 	struct VulkanTexture;
 
-	using VulkanVertex = ViewerVertex;
-
 	struct VulkanInstanceInfo : InstanceInfo {
 		static constexpr size_t kBufferedFrames = 2;
 		VulkanViewer* viewer = nullptr;

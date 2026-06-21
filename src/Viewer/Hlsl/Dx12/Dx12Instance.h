@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "../../Instance.h"
-#include "../../ViewerGeometry.h"
 #include "Helper/Dx12Buffer.h"
 
 #include <d3d12.h>
@@ -15,8 +14,6 @@ namespace Chrivent {
 	class Dx12Viewer;
 	struct Dx12Material;
 
-	using Dx12Vertex = ViewerVertex;
-
 	struct Dx12InstanceInfo : InstanceInfo {
 		static constexpr size_t kBufferedFrames = 2;
 		Dx12Viewer* viewer = nullptr;
@@ -25,13 +22,13 @@ namespace Chrivent {
 		std::array<D3D12_VERTEX_BUFFER_VIEW, kBufferedFrames> vertexBufferViews{};
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
-		Dx12Buffer modelVertexConstantBuffer;
-		std::vector<Dx12Buffer> modelPixelConstantBuffers;
-		Dx12Buffer edgeVertexConstantBuffer;
-		std::vector<Dx12Buffer> edgeSizeConstantBuffers;
-		std::vector<Dx12Buffer> edgePixelConstantBuffers;
-		Dx12Buffer groundShadowVertexConstantBuffer;
-		Dx12Buffer groundShadowPixelConstantBuffer;
+		std::array<Dx12Buffer, kBufferedFrames> modelVertexConstantBuffers;
+		std::vector<std::array<Dx12Buffer, kBufferedFrames>> modelPixelConstantBuffers;
+		std::array<Dx12Buffer, kBufferedFrames> edgeVertexConstantBuffers;
+		std::vector<std::array<Dx12Buffer, kBufferedFrames>> edgeSizeConstantBuffers;
+		std::vector<std::array<Dx12Buffer, kBufferedFrames>> edgePixelConstantBuffers;
+		std::array<Dx12Buffer, kBufferedFrames> groundShadowVertexConstantBuffers;
+		std::array<Dx12Buffer, kBufferedFrames> groundShadowPixelConstantBuffers;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;
 		UINT textureDescriptorSize = 0;
 		std::vector<Dx12Material> materials;

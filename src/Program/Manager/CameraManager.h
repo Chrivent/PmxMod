@@ -24,7 +24,7 @@ namespace Chrivent {
 		CameraManager();
 		~CameraManager();
 
-		uint32_t GetLastFrame() const;
+		int GetLastFrame() const;
 		const std::vector<CameraAnimationKey>& GetAnimationKeys() const;
 		bool IsPlaying() const { return !paused; }
 

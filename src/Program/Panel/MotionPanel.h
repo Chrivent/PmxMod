@@ -3,7 +3,6 @@
 #include "InterpolationCurvePanel.h"
 #include "Panel.h"
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -14,7 +13,7 @@ namespace Chrivent {
 	};
 
 	struct MotionTimelineKey {
-		uint32_t frame = 0;
+		int frame = 0;
 		std::vector<BezierControlPoints> curves;
 		std::vector<float> values;
 		bool selected = false;
@@ -31,7 +30,7 @@ namespace Chrivent {
 	struct MotionTimelineGroup {
 		std::wstring name;
 		std::vector<MotionTimelineRow> rows;
-		std::vector<uint32_t> keyFrames;
+		std::vector<int> keyFrames;
 		MotionTimelineMode mode = MotionTimelineMode::Model;
 		bool grouped = true;
 		bool expanded = false;
@@ -55,8 +54,8 @@ namespace Chrivent {
 		MotionTimelineMode mode = MotionTimelineMode::Camera;
 		POINT selectionStart{};
 		POINT selectionEnd{};
-		uint32_t totalFrame = 0;
-		uint32_t currentFrame = 0;
+		int totalFrame = 0;
+		int currentFrame = 0;
 		int firstRow = 0;
 		int firstFrame = 0;
 		bool seekRequested = false;
@@ -99,7 +98,7 @@ namespace Chrivent {
 		// 현재 모드에서 표시할 그룹인지 확인한다.
 		bool IsGroupVisible(const MotionTimelineGroup& group) const;
 		// 그룹의 해당 프레임에 선택된 실제 키가 있는지 확인한다.
-		static bool IsGroupFrameSelected(const MotionTimelineGroup& group, uint32_t frame);
+		static bool IsGroupFrameSelected(const MotionTimelineGroup& group, int frame);
 		// 현재 선택된 키와 채널별 보간 곡선을 보간 패널용 데이터로 구성한다.
 		InterpolationSelection BuildInterpolationSelection() const;
 		// 모델과 카메라 타임라인 표시 모드를 전환한다.
@@ -133,9 +132,9 @@ namespace Chrivent {
 		// 선택 모델의 이름과 트랙별 키프레임을 타임라인에 표시한다.
 		void SetTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups);
 		// 가로 스크롤바가 이동할 수 있는 마지막 프레임을 설정한다.
-		void SetLastFrame(uint32_t maxFrame);
+		void SetLastFrame(int maxFrame);
 		// 현재 재생 프레임을 타임라인 표시선에 반영한다.
-		void SetCurrentFrame(uint32_t frame);
+		void SetCurrentFrame(int frame);
 		// 가로 스크롤바로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
 		// 변경된 키 선택과 보간 곡선 정보를 반환한다.

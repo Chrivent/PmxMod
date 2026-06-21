@@ -27,12 +27,13 @@ namespace Chrivent {
 			return;
 		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
 		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = info.modelVertexConstantBuffers[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
-		if (!info.modelVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
 		}
@@ -44,7 +45,7 @@ namespace Chrivent {
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, info.modelVertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size() || materialId >= info.modelPixelConstantBuffers.size())
 				continue;
@@ -75,7 +76,7 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId];
+			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
@@ -95,20 +96,21 @@ namespace Chrivent {
 			return;
 		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
 		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = info.edgeVertexConstantBuffers[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		HlslEdgeVertexConstants vertexConstants{};
 		vertexConstants.wv = viewerInfo.viewMat * world;
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
 		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
-		if (!info.edgeVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 edge vertex constants.\n";
 			return;
 		}
 		info.viewer->BindEdgePipelineState();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, info.edgeVertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size() ||
 				materialId >= info.edgeSizeConstantBuffers.size() ||
@@ -119,14 +121,14 @@ namespace Chrivent {
 				continue;
 			HlslEdgeSizeConstants edgeSizeConstants{};
 			edgeSizeConstants.edgeSize = mat.edgeSize;
-			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId];
+			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId][frameIndex];
 			if (!edgeSizeConstantBuffer.Write(&edgeSizeConstants, sizeof(edgeSizeConstants))) {
 				std::cerr << "Failed to update DX12 edge size constants.\n";
 				continue;
 			}
 			HlslEdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
-			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId];
+			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId][frameIndex];
 			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
 				continue;
@@ -145,17 +147,19 @@ namespace Chrivent {
 			return;
 		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
 		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = info.groundShadowVertexConstantBuffers[frameIndex];
+		const Dx12Buffer& pixelConstantBuffer = info.groundShadowPixelConstantBuffers[frameIndex];
 		const auto& viewerInfo = info.viewer->GetInfo();
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewerInfo.lightDir);
 		HlslGroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
-		if (!info.groundShadowVertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;
 		}
 		constexpr HlslGroundShadowPixelConstants pixelConstants{};
-		if (!info.groundShadowPixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+		if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
 			return;
 		}
@@ -163,8 +167,8 @@ namespace Chrivent {
 		commandList->OMSetStencilRef(0x01);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&info.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, info.groundShadowVertexConstantBuffer.ResolveGpuAddress());
-		commandList->SetGraphicsRootConstantBufferView(1, info.groundShadowPixelConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
 			if (materialId >= info.materials.size())
 				continue;
