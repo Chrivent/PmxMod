@@ -3,18 +3,17 @@
 #include "../../Viewer/Viewer.h"
 
 namespace Chrivent {
-	void InputManager::ScrollCallback(GLFWwindow* sourceWindow, const double, const double yOffset) {
-		if (activeManager && activeManager->window == sourceWindow)
+	void InputManager::ScrollCallback(GLFWwindow*, const double, const double yOffset) {
+		if (activeManager)
 			activeManager->pendingWheelDelta += yOffset;
 	}
 
 	void InputManager::AttachWindow(GLFWwindow* sourceWindow) {
-		window = sourceWindow;
 		activeManager = this;
 		pendingWheelDelta = 0.0;
-		if (!window)
+		if (!sourceWindow)
 			return;
-		glfwSetScrollCallback(window, ScrollCallback);
+		glfwSetScrollCallback(sourceWindow, ScrollCallback);
 	}
 
 	void InputManager::Reset() {

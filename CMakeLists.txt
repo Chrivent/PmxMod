@@ -40,6 +40,7 @@ add_executable(PmxMod
         src/Program/Config.h src/Program/Config.cpp
         src/Program/GuiBackBuffer.h src/Program/GuiBackBuffer.cpp
         src/Program/GuiDrawer.h src/Program/GuiDrawer.cpp
+        src/Program/GuiTheme.h src/Program/GuiTheme.cpp
         src/Program/Language.h src/Program/Language.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
@@ -69,7 +70,9 @@ target_link_libraries(PmxMod PRIVATE
         PmxMod::Core
         PmxMod::Viewer
         comctl32
+        dwmapi
         nlohmann_json::nlohmann_json
+        uxtheme
 )
 
 set(RESOURCE_SRC_DIR "${CMAKE_SOURCE_DIR}/resource")

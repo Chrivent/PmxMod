@@ -24,7 +24,6 @@ namespace Chrivent {
 		inline static InputManager* activeManager = nullptr;
 
 		InputState state;
-		GLFWwindow* window = nullptr;
 		bool prevSpaceDown = false;
 		bool prevRightMouseDown = false;
 		double prevCursorX = 0.0;
@@ -32,7 +31,7 @@ namespace Chrivent {
 		double pendingWheelDelta = 0.0;
 
 		// GLFW 스크롤 입력을 다음 입력 갱신까지 누적한다.
-		static void ScrollCallback(GLFWwindow* sourceWindow, double xOffset, double yOffset);
+		static void ScrollCallback(GLFWwindow*, double, double yOffset);
 
 	public:
 		const InputState& GetState() const { return state; }

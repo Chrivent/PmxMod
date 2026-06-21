@@ -1,5 +1,6 @@
 ﻿#include "PanelWindow.h"
 
+#include "GuiTheme.h"
 #include "Language.h"
 #include "MenuBar.h"
 
@@ -17,6 +18,11 @@ namespace Chrivent {
 		if (!panelWindow)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
+			case WM_CTLCOLORBTN:
+			case WM_CTLCOLOREDIT:
+			case WM_CTLCOLORLISTBOX:
+			case WM_CTLCOLORSTATIC:
+				return GuiTheme::HandleControlColor(msg, wParam);
 			case WM_COMMAND:
 				if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam)))
 					return 0;
@@ -54,10 +60,11 @@ namespace Chrivent {
 			if (!entry.panel || entry.frame)
 				continue;
 			entry.frame = CreateWindowExW(
-				0, L"BUTTON", Language::Text(entry.titleKey).c_str(),
-				WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+				0, L"STATIC", Language::Text(entry.titleKey).c_str(),
+				WS_CHILD | WS_VISIBLE | SS_LEFT,
 				0, 0, 0, 0,
 				window, nullptr, GetModuleHandleW(nullptr), nullptr);
+			GuiTheme::ApplyControl(entry.frame);
 			entry.panel->Create(window);
 		}
 	}
@@ -116,7 +123,7 @@ namespace Chrivent {
 			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
 			const int areaHeight = (std::max)(0, static_cast<int>(area.bottom - area.top));
 			MoveWindow(entry.frame, area.left, area.top, areaWidth, areaHeight, TRUE);
-			RECT panelRect{area.left, area.top + 18, area.right, area.bottom};
+			RECT panelRect{area.left, area.top + 22, area.right, area.bottom};
 			entry.panel->Resize(panelRect);
 		}
 	}
@@ -146,7 +153,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
 		wc.lpszClassName = L"PmxModPanelWindow";
 		RegisterClassExW(&wc);
 		window = CreateWindowExW(
@@ -162,6 +169,7 @@ namespace Chrivent {
 			DrawMenuBar(window);
 		}
 		CreatePanelControls();
+		GuiTheme::ApplyWindow(window);
 		LayoutPanels();
 		ShowWindow(window, SW_MAXIMIZE);
 		UpdateWindow(window);
@@ -193,6 +201,7 @@ namespace Chrivent {
 			if (entry.panel)
 				entry.panel->UpdateLanguage();
 		}
+		GuiTheme::ApplyWindow(window);
 		DrawMenuBar(window);
 	}
 

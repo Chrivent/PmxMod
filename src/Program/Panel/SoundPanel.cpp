@@ -1,6 +1,7 @@
 ﻿#include "SoundPanel.h"
 
 #include "../GuiDrawer.h"
+#include "../GuiTheme.h"
 #include "../Language.h"
 #include "../Sound.h"
 
@@ -18,6 +19,8 @@ namespace Chrivent {
 		if (!panel)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
+			case WM_CTLCOLORSTATIC:
+				return GuiTheme::HandleControlColor(msg, wParam);
 			case WM_CREATE:
 				panel->CreateContent(hwnd);
 				return 0;
@@ -72,6 +75,7 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | SS_CENTER,
 			0, 0, 0, 0,
 			parent, nullptr, GetModuleHandleW(nullptr), nullptr);
+		GuiTheme::ApplyControl(valueText);
 		UpdateValueText();
 	}
 
@@ -98,7 +102,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
 		wc.lpszClassName = L"PmxModSoundPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(
@@ -108,6 +112,7 @@ namespace Chrivent {
 			nullptr, nullptr, instance, this);
 		if (!panelWindow)
 			return;
+		GuiTheme::ApplyWindow(panelWindow);
 		ShowWindow(panelWindow, SW_SHOWNORMAL);
 		UpdateWindow(panelWindow);
 	}

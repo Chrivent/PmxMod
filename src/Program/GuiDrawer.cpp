@@ -1,19 +1,12 @@
 ﻿#include "GuiDrawer.h"
 
+#include "GuiTheme.h"
+
 #include <CommCtrl.h>
 
 namespace Chrivent {
 	HFONT GuiDrawer::GetTextFont() {
-		static const HFONT font = CreateFontW(
-			-14, 0, 0, 0, FW_NORMAL,
-			FALSE, FALSE, FALSE,
-			DEFAULT_CHARSET,
-			OUT_DEFAULT_PRECIS,
-			CLIP_DEFAULT_PRECIS,
-			CLEARTYPE_QUALITY,
-			DEFAULT_PITCH | FF_DONTCARE,
-			L"Yu Gothic UI");
-		return font;
+		return GuiTheme::GetFont();
 	}
 
 	void GuiDrawer::FillRectColor(const HDC deviceContext, const RECT& rect, const COLORREF color) {
@@ -110,6 +103,7 @@ namespace Chrivent {
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlId)), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(slider, TBM_SETRANGE, TRUE, MAKELPARAM(minValue, maxValue));
 		SendMessageW(slider, TBM_SETPOS, TRUE, initialValue);
+		GuiTheme::ApplyControl(slider);
 		return slider;
 	}
 
@@ -132,6 +126,7 @@ namespace Chrivent {
 		SendMessageW(slider, TBM_SETRANGE, TRUE, MAKELPARAM(minValue, maxValue));
 		SendMessageW(slider, TBM_SETTICFREQ, tickFrequency, 0);
 		SendMessageW(slider, TBM_SETPOS, TRUE, initialValue);
+		GuiTheme::ApplyControl(slider);
 		return slider;
 	}
 }

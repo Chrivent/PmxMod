@@ -1,5 +1,6 @@
 ﻿#include "ModelPanel.h"
 
+#include "../GuiTheme.h"
 #include "../Language.h"
 
 #include <algorithm>
@@ -51,6 +52,8 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOINTEGRALHEIGHT | LBS_NOTIFY,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(modelListId)), GetModuleHandleW(nullptr), nullptr);
+		GuiTheme::ApplyControl(addButton);
+		GuiTheme::ApplyControl(modelList);
 		RefreshModelList();
 	}
 

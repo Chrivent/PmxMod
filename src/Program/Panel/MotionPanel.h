@@ -32,7 +32,7 @@ namespace Chrivent {
 		std::wstring name;
 		std::vector<MotionTimelineRow> rows;
 		std::vector<uint32_t> keyFrames;
-		MotionTimelineMode mode = MotionTimelineMode::Camera;
+		MotionTimelineMode mode = MotionTimelineMode::Model;
 		bool grouped = true;
 		bool expanded = false;
 	};
@@ -52,7 +52,7 @@ namespace Chrivent {
 		HWND modeButton = nullptr;
 		std::wstring modelName;
 		std::vector<MotionTimelineGroup> groups;
-		MotionTimelineMode mode = MotionTimelineMode::Model;
+		MotionTimelineMode mode = MotionTimelineMode::Camera;
 		POINT selectionStart{};
 		POINT selectionEnd{};
 		uint32_t totalFrame = 0;

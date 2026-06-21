@@ -1,5 +1,6 @@
 ﻿#include "PlaybackPanel.h"
 
+#include "../GuiTheme.h"
 #include "../Language.h"
 
 #include <CommCtrl.h>
@@ -18,6 +19,10 @@ namespace Chrivent {
 		if (!panel)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORSTATIC:
+			return GuiTheme::HandleControlColor(msg, wParam);
 		case WM_CREATE:
 			panel->CreateContent(hwnd);
 			return 0;
@@ -112,6 +117,14 @@ namespace Chrivent {
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SetWindowSubclass(startFrameEdit, EditWindowProc, controlIds.startFrameEdit, reinterpret_cast<DWORD_PTR>(this));
 		SetWindowSubclass(endFrameEdit, EditWindowProc, controlIds.endFrameEdit, reinterpret_cast<DWORD_PTR>(this));
+		GuiTheme::ApplyControl(playButton);
+		GuiTheme::ApplyControl(pauseButton);
+		GuiTheme::ApplyControl(stopButton);
+		GuiTheme::ApplyControl(startFrameEdit);
+		GuiTheme::ApplyControl(rangeSeparatorText);
+		GuiTheme::ApplyControl(endFrameEdit);
+		GuiTheme::ApplyControl(resetRangeButton);
+		GuiTheme::ApplyControl(repeatCheck);
 		ApplyFrameRange(frameRange, customFrameRange);
 	}
 
@@ -181,7 +194,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
 		wc.lpszClassName = L"PmxModPlaybackPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(
@@ -191,6 +204,7 @@ namespace Chrivent {
 			nullptr, nullptr, instance, this);
 		if (!panelWindow)
 			return;
+		GuiTheme::ApplyWindow(panelWindow);
 		ShowWindow(panelWindow, SW_SHOWNORMAL);
 		UpdateWindow(panelWindow);
 	}

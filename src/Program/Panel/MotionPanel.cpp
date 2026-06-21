@@ -2,6 +2,7 @@
 
 #include "../GuiBackBuffer.h"
 #include "../GuiDrawer.h"
+#include "../GuiTheme.h"
 #include "../Language.h"
 
 #include <CommCtrl.h>
@@ -800,6 +801,8 @@ namespace Chrivent {
 			nullptr);
 		SendMessageW(frameEdit, EM_SETLIMITTEXT, 5, 0);
 		SetWindowSubclass(frameEdit, EditWindowProc, kFrameEditId, reinterpret_cast<DWORD_PTR>(this));
+		GuiTheme::ApplyControl(frameEdit);
+		GuiTheme::ApplyControl(modeButton);
 		UpdateModeButtonText();
 		UpdateVerticalScrollBar();
 		UpdateHorizontalScrollBar();
