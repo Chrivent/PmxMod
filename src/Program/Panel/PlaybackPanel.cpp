@@ -133,8 +133,7 @@ namespace Chrivent {
 			end = std::clamp(end, 1, kMaxEditableFrame);
 			start = std::clamp((std::min)(start, end - 1), 0, end - 1);
 		}
-		ApplyFrameRange({start, end}, true);
-		timelineRangeChanged = true;
+		ApplyFrameRange({ start, end }, true);
 	}
 
 	void PlaybackPanel::ApplyFrameRange(const PlaybackFrameRange range, const bool customRange) {
@@ -264,10 +263,8 @@ namespace Chrivent {
 		else if ((commandId == controlIds.startFrameEdit || commandId == controlIds.endFrameEdit) &&
 			notificationCode == EN_KILLFOCUS)
 			ApplyInputFrameRange(commandId);
-		else if (commandId == controlIds.resetRangeButton) {
+		else if (commandId == controlIds.resetRangeButton)
 			ApplyFrameRange({0, autoLastFrame}, false);
-			timelineRangeChanged = true;
-		}
 		else if (commandId == controlIds.repeatCheck)
 			repeatEnabled = SendMessageW(repeatCheck, BM_GETCHECK, 0, 0) == BST_CHECKED;
 		else
@@ -309,13 +306,5 @@ namespace Chrivent {
 		const PlaybackCommand command = pendingCommand;
 		pendingCommand = PlaybackCommand::None;
 		return command;
-	}
-
-	bool PlaybackPanel::ConsumeTimelineRangeChange(PlaybackFrameRange& range) {
-		if (!timelineRangeChanged)
-			return false;
-		range = frameRange;
-		timelineRangeChanged = false;
-		return true;
 	}
 }

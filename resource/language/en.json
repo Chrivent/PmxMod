@@ -6,7 +6,6 @@
   "menu.renderer": "Renderer",
   "menu.physics": "Physics",
   "menu.physics_enabled": "Enable Physics",
-  "menu.physics_reset": "Reset Physics",
   "menu.view": "View",
   "menu.language": "Language",
   "menu.fps": "FPS",

@@ -6,7 +6,6 @@
   "menu.renderer": "レンダラー",
   "menu.physics": "物理",
   "menu.physics_enabled": "物理を有効化",
-  "menu.physics_reset": "物理をリセット",
   "menu.view": "表示",
   "menu.language": "言語",
   "menu.fps": "FPS",

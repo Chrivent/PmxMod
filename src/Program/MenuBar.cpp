@@ -144,7 +144,6 @@ namespace Chrivent {
 		HMENU physicsMenu = CreatePopupMenu();
 		AppendMenuW(physicsMenu, MF_STRING | (physicsEnabled ? MF_CHECKED : MF_UNCHECKED),
 			kPhysicsEnabledId, Language::Text("menu.physics_enabled").c_str());
-		AppendMenuW(physicsMenu, MF_STRING, kPhysicsResetId, Language::Text("menu.physics_reset").c_str());
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(physicsMenu), Language::Text("menu.physics").c_str());
 		HMENU viewMenu = CreatePopupMenu();
 		AppendMenuW(viewMenu, MF_STRING | (fpsVisible ? MF_CHECKED : MF_UNCHECKED),
@@ -202,9 +201,6 @@ namespace Chrivent {
 				if (ownerWindow)
 					DrawMenuBar(ownerWindow);
 				return true;
-			case kPhysicsResetId:
-				physicsResetRequested = true;
-				return true;
 			case kFpsViewId:
 				fpsVisible = !fpsVisible;
 				if (ownerWindow)
@@ -239,7 +235,6 @@ namespace Chrivent {
 	void MenuBar::Reset() {
 		sceneConfigDirty = false;
 		rendererDirty = false;
-		physicsResetRequested = false;
 		languageDirty = false;
 	}
 
@@ -253,12 +248,6 @@ namespace Chrivent {
 		const bool dirty = rendererDirty;
 		rendererDirty = false;
 		return dirty;
-	}
-
-	bool MenuBar::ConsumePhysicsResetRequest() {
-		const bool requested = physicsResetRequested;
-		physicsResetRequested = false;
-		return requested;
 	}
 
 	bool MenuBar::ConsumeLanguageDirty() {

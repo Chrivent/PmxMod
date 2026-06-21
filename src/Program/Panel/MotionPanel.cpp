@@ -328,9 +328,20 @@ namespace Chrivent {
 				return;
 			const int top = kHeaderHeight + (rowStart - firstRow) * kRowHeight;
 			const int rowHeight = rowUnits * kRowHeight;
+			const bool curveRow = channelIndex >= 0;
+			if (curveRow) {
+				const RECT curveRect{0, top, client.right, top + rowHeight};
+				GuiDrawer::FillRectColor(deviceContext, curveRect, RGB(31, 37, 45));
+				for (int offset = 0; offset < visibleFrames; offset++) {
+					const int frame = firstFrame + offset;
+					const int x = kLabelWidth + offset * kFrameWidth;
+					GuiDrawer::DrawLine(deviceContext, x, top, x, top + rowHeight,
+						frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
+				}
+			}
 			const RECT labelRect{0, top, kLabelWidth, top + rowHeight};
-			GuiDrawer::FillRectColor(deviceContext, labelRect,
-				paintedRows % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55));
+			const COLORREF labelColor = curveRow ? RGB(37, 43, 52) : paintedRows % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55);
+			GuiDrawer::FillRectColor(deviceContext, labelRect, labelColor);
 			if (groupRow)
 				GuiDrawer::DrawTriangle(deviceContext, 12, top + rowHeight / 2, 5, expanded, RGB(228, 228, 232));
 			GuiDrawer::DrawTextLine(deviceContext, name,
@@ -434,7 +445,9 @@ namespace Chrivent {
 			if (!group.grouped) {
 				for (auto& row : group.rows) {
 					if (currentRow == visibleRowIndex && row.expandable) {
-						row.expanded = !row.expanded;
+						const bool expand = !row.expanded;
+						CollapseCurveRows();
+						row.expanded = expand;
 						UpdateVerticalScrollBar();
 						InvalidateRect(timelineWindow, nullptr, TRUE);
 						return;
@@ -457,7 +470,9 @@ namespace Chrivent {
 				continue;
 			for (auto& row : group.rows) {
 				if (currentRow == visibleRowIndex && row.expandable) {
-					row.expanded = !row.expanded;
+					const bool expand = !row.expanded;
+					CollapseCurveRows();
+					row.expanded = expand;
 					UpdateVerticalScrollBar();
 					InvalidateRect(timelineWindow, nullptr, TRUE);
 					return;
@@ -466,6 +481,13 @@ namespace Chrivent {
 				if (row.expanded)
 					currentRow += row.curveNames.size() * curveRowUnits;
 			}
+		}
+	}
+
+	void MotionPanel::CollapseCurveRows() {
+		for (auto& group : groups) {
+			for (auto& row : group.rows)
+				row.expanded = false;
 		}
 	}
 
@@ -657,9 +679,16 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ToggleMode() {
-		mode = mode == MotionTimelineMode::Model
+		SetMode(mode == MotionTimelineMode::Model
 			? MotionTimelineMode::Camera
-			: MotionTimelineMode::Model;
+			: MotionTimelineMode::Model);
+	}
+
+	void MotionPanel::SetMode(const MotionTimelineMode timelineMode) {
+		if (mode == timelineMode)
+			return;
+		mode = timelineMode;
+		CollapseCurveRows();
 		firstRow = 0;
 		interpolationSelectionDirty = true;
 		UpdateModeButtonText();
@@ -837,7 +866,7 @@ namespace Chrivent {
 		seekFinished = false;
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
-		mode = MotionTimelineMode::Model;
+		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
 

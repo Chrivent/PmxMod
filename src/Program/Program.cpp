@@ -117,6 +117,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
+        inputManager.AttachWindow(viewer->GetInfo().window);
         PositionViewerOnRightMonitor();
         glfwMaximizeWindow(viewer->GetInfo().window);
         glfwPollEvents();
@@ -250,6 +251,7 @@ namespace Chrivent {
         if (!sceneConfig.musicPath.empty())
             music.Init(sceneConfig.musicPath, false);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
+        panelManager.SetMotionMode(MotionTimelineMode::Camera);
         viewer->GetInfo().elapsed = 0.0f;
         viewer->GetInfo().animTime = 0.0f;
         viewer->GetInfo().skipPhysics = false;
@@ -579,10 +581,6 @@ namespace Chrivent {
                 return false;
             return true;
         }
-        if (panelManager.ConsumePhysicsResetRequest()) {
-            const int currentFrame = viewer->GetInfo().animTime * 30.0f + 0.5f;
-            ResetPhysics(currentFrame);
-        }
         std::filesystem::path modelPath;
         if (panelManager.ConsumeAddModelPath(modelPath)) {
             SceneConfig sceneConfig = panelManager.GetSceneConfig();
@@ -599,13 +597,6 @@ namespace Chrivent {
         size_t selectedModelIndex = 0;
         if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
             UpdateMotionPanel(selectedModelIndex);
-        PlaybackFrameRange changedRange;
-        if (panelManager.ConsumePlaybackFrameRangeChange(changedRange)) {
-            const int currentFrame = viewer->GetInfo().animTime * 30.0f + 0.5f;
-            const int rangedFrame = std::clamp(currentFrame, changedRange.start, changedRange.end);
-            if (rangedFrame != currentFrame)
-                cameraManager.SeekFrame(viewer->GetInfo(), music, rangedFrame, saveTime);
-        }
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
@@ -638,7 +629,7 @@ namespace Chrivent {
             case PlaybackCommand::None:
                 break;
         }
-        cameraManager.SetMotionCameraEnabled(panelManager.IsCameraMode(), viewer->GetInfo());
+        cameraManager.SetMotionCameraEnabled(panelManager.IsCameraMode());
         inputManager.Update(viewer->GetInfo());
         cameraManager.HandleInput(inputManager, viewer->GetInfo(), music);
         if (!UpdateFramebufferSize())

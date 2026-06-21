@@ -9,12 +9,10 @@
 #include <iostream>
 
 namespace Chrivent {
-	void CameraManager::SyncFreeCameraToCurrentView(const ViewerInfo& viewerInfo) {
-		const glm::mat4 invView = glm::inverse(viewerInfo.viewMat);
-		freeCamPosition = glm::vec3(invView[3]);
-		const glm::vec3 forward = -glm::normalize(glm::vec3(invView[2]));
-		freeCamYaw = std::atan2(forward.z, forward.x);
-		freeCamPitch = std::asin(std::clamp(forward.y, -1.0f, 1.0f));
+	void CameraManager::ResetFreeCamera() {
+		freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
+		freeCamYaw = glm::radians(-90.0f);
+		freeCamPitch = 0.0f;
 	}
 
 	CameraManager::CameraManager() {
@@ -32,11 +30,7 @@ namespace Chrivent {
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}
 
-	void CameraManager::SetMotionCameraEnabled(const bool enabled, const ViewerInfo& viewerInfo) {
-		if (useMotionCamera == enabled)
-			return;
-		if (!enabled)
-			SyncFreeCameraToCurrentView(viewerInfo);
+	void CameraManager::SetMotionCameraEnabled(const bool enabled) {
 		useMotionCamera = enabled;
 	}
 
@@ -53,14 +47,14 @@ namespace Chrivent {
 	void CameraManager::Reset() {
 		paused = true;
 		useMotionCamera = true;
-		freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
-		freeCamYaw = glm::radians(-90.0f);
-		freeCamPitch = 0.0f;
+		ResetFreeCamera();
 		cameraAnim.reset();
 	}
 
 	void CameraManager::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {
 		cameraAnim.reset();
+		useMotionCamera = true;
+		ResetFreeCamera();
 		if (cameraAnimPath.empty()) {
 			std::cout << "No camera VMD file.\n";
 			return;
@@ -129,7 +123,7 @@ namespace Chrivent {
 			moveForward, moveBackward,
 			moveLeft, moveRight,
 			moveDown, moveUp,
-			rotateCamera, mouseDelta] = inputManager.GetState();
+			rotateCamera, mouseDelta, wheelDelta] = inputManager.GetState();
 		if (togglePause) {
 			paused = !paused;
 			if (paused)
@@ -160,6 +154,8 @@ namespace Chrivent {
 			freeCamPosition -= up * moveSpeed;
 		if (moveUp)
 			freeCamPosition += up * moveSpeed;
+		if (wheelDelta != 0.0f)
+			freeCamPosition += forward * moveSpeed * wheelDelta * 5.0f;
 		if (rotateCamera) {
 			constexpr float mouseSensitivity = 0.0035f;
 			freeCamYaw += mouseDelta.x * mouseSensitivity;

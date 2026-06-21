@@ -3,12 +3,27 @@
 #include "../../Viewer/Viewer.h"
 
 namespace Chrivent {
+	void InputManager::ScrollCallback(GLFWwindow* sourceWindow, const double, const double yOffset) {
+		if (activeManager && activeManager->window == sourceWindow)
+			activeManager->pendingWheelDelta += yOffset;
+	}
+
+	void InputManager::AttachWindow(GLFWwindow* sourceWindow) {
+		window = sourceWindow;
+		activeManager = this;
+		pendingWheelDelta = 0.0;
+		if (!window)
+			return;
+		glfwSetScrollCallback(window, ScrollCallback);
+	}
+
 	void InputManager::Reset() {
 		state = {};
 		prevSpaceDown = false;
 		prevRightMouseDown = false;
 		prevCursorX = 0.0;
 		prevCursorY = 0.0;
+		pendingWheelDelta = 0.0;
 	}
 
 	void InputManager::Update(const ViewerInfo& viewerInfo) {
@@ -33,5 +48,7 @@ namespace Chrivent {
 		prevCursorX = cursorX;
 		prevCursorY = cursorY;
 		prevRightMouseDown = state.rotateCamera;
+		state.wheelDelta = pendingWheelDelta;
+		pendingWheelDelta = 0.0;
 	}
 }

@@ -32,7 +32,7 @@ namespace Chrivent {
 		std::wstring name;
 		std::vector<MotionTimelineRow> rows;
 		std::vector<uint32_t> keyFrames;
-		MotionTimelineMode mode = MotionTimelineMode::Model;
+		MotionTimelineMode mode = MotionTimelineMode::Camera;
 		bool grouped = true;
 		bool expanded = false;
 	};
@@ -86,6 +86,8 @@ namespace Chrivent {
 		void Paint(HDC deviceContext) const;
 		// 클릭한 표시 행이 그룹이면 펼침 상태를 전환한다.
 		void ToggleGroup(int visibleRowIndex);
+		// 열려 있는 모든 본 곡선 행을 닫는다.
+		void CollapseCurveRows();
 		// 지정한 채널의 키 값과 보간 데이터를 타임라인 곡선으로 그린다.
 		void DrawValueCurve(HDC deviceContext, const MotionTimelineRow& row, size_t channelIndex, int top, int bottom, int right) const;
 		// 클릭한 다이아몬드를 단일 또는 다중 선택 상태로 반영한다.
@@ -116,6 +118,8 @@ namespace Chrivent {
 
 		MotionTimelineMode GetMode() const { return mode; }
 
+		// 모델 또는 카메라 타임라인 표시 모드를 설정한다.
+		void SetMode(MotionTimelineMode timelineMode);
 		// 부모 윈도우 아래에 모션 타임라인 컨트롤을 생성한다.
 		void Create(HWND parent) override;
 		// 패널 크기에 맞춰 모션 타임라인 컨트롤 배치를 갱신한다.

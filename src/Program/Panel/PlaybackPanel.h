@@ -31,7 +31,6 @@ namespace Chrivent {
 		PlaybackControlIds controlIds;
 		PlaybackCommand pendingCommand = PlaybackCommand::None;
 		bool customFrameRange = false;
-		bool timelineRangeChanged = false;
 		bool updatingRangeControls = false;
 		bool repeatEnabled = false;
 		int autoLastFrame = 1;
@@ -87,7 +86,5 @@ namespace Chrivent {
 		void Destroy() override;
 		// 버튼으로 들어온 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumeCommand();
-		// 변경된 사용자 재생 범위를 반환하고 변경 상태를 초기화한다.
-		bool ConsumeTimelineRangeChange(PlaybackFrameRange& range);
 	};
 }

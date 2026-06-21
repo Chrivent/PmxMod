@@ -17,8 +17,8 @@ namespace Chrivent {
 		float freeCamPitch = 0.0f;
 		std::unique_ptr<CameraAnimation> cameraAnim;
 
-		// 현재 모션 카메라 시점에서 자유 카메라 위치와 회전값을 동기화한다.
-		void SyncFreeCameraToCurrentView(const ViewerInfo& viewerInfo);
+		// 자유 카메라 위치와 회전값을 기본 시점으로 되돌린다.
+		void ResetFreeCamera();
 
 	public:
 		CameraManager();
@@ -29,7 +29,7 @@ namespace Chrivent {
 		bool IsPlaying() const { return !paused; }
 
 		// 모션 패널 모드에 맞춰 자유 카메라와 모션 카메라를 전환한다.
-		void SetMotionCameraEnabled(bool enabled, const ViewerInfo& viewerInfo);
+		void SetMotionCameraEnabled(bool enabled);
 		// 지정한 프레임으로 재생 시간을 이동한다.
 		void SeekFrame(ViewerInfo& viewerInfo, Sound& music, int frame, std::chrono::steady_clock::time_point& saveTime) const;
 		// 카메라와 재생 상태를 기본값으로 초기화한다.

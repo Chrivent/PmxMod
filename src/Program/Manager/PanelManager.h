@@ -51,9 +51,8 @@ namespace Chrivent {
 		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
-		void SetPlaybackFrame(const int frame) {
-			motionPanel.SetCurrentFrame((std::max)(0, frame));
-		}
+		void SetMotionMode(const MotionTimelineMode mode) { motionPanel.SetMode(mode); }
+		void SetPlaybackFrame(const int frame) { motionPanel.SetCurrentFrame((std::max)(0, frame)); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
@@ -70,18 +69,12 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
-		// 물리 초기화 요청을 반환하고 내부 플래그를 초기화한다.
-		bool ConsumePhysicsResetRequest() { return menuBar.ConsumePhysicsResetRequest(); }
 		// 언어 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return motionPanel.ConsumeSeekFrame(frame, finished); }
-		// 변경된 플레이백 입력 범위를 반환한다.
-		bool ConsumePlaybackFrameRangeChange(PlaybackFrameRange& range) {
-			return playbackPanel.ConsumeTimelineRangeChange(range);
-		}
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }
 		// 모델 패널에서 선택한 모델 인덱스를 반환하고 대기 요청을 초기화한다.
