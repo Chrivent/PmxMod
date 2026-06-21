@@ -65,23 +65,26 @@ namespace Chrivent {
 		}
 		const size_t materialCount = info.model->materialData.materials.size();
 		info.modelPixelConstantBuffers.resize(materialCount);
-		for (auto& [buffers] : info.modelPixelConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers) {
-				if (!buffer.InitializeUpload(deviceInfo, pixelConstantSize))
+		for (auto& buffers : info.modelPixelConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12InstanceInfo::kBufferedFrames);
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++) {
+				if (!buffers[i].InitializeUpload(deviceInfo, pixelConstantSize))
 					return false;
 			}
 		}
 		info.edgeSizeConstantBuffers.resize(materialCount);
-		for (auto& [buffers] : info.edgeSizeConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers) {
-				if (!buffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
+		for (auto& buffers : info.edgeSizeConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12InstanceInfo::kBufferedFrames);
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++) {
+				if (!buffers[i].InitializeUpload(deviceInfo, edgeSizeConstantSize))
 					return false;
 			}
 		}
 		info.edgePixelConstantBuffers.resize(materialCount);
-		for (auto& [buffers] : info.edgePixelConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers) {
-				if (!buffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
+		for (auto& buffers : info.edgePixelConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12InstanceInfo::kBufferedFrames);
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++) {
+				if (!buffers[i].InitializeUpload(deviceInfo, edgePixelConstantSize))
 					return false;
 			}
 		}
@@ -159,21 +162,21 @@ namespace Chrivent {
 		info.indexBuffer.Destroy();
 		for (Dx12Buffer& buffer : info.modelVertexConstantBuffers)
 			buffer.Destroy();
-		for (auto& [buffers] : info.modelPixelConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers)
-				buffer.Destroy();
+		for (auto& buffers : info.modelPixelConstantBuffers) {
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
+				buffers[i].Destroy();
 		}
 		info.modelPixelConstantBuffers.clear();
 		for (Dx12Buffer& buffer : info.edgeVertexConstantBuffers)
 			buffer.Destroy();
-		for (auto& [buffers] : info.edgeSizeConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers)
-				buffer.Destroy();
+		for (auto& buffers : info.edgeSizeConstantBuffers) {
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
+				buffers[i].Destroy();
 		}
 		info.edgeSizeConstantBuffers.clear();
-		for (auto& [buffers] : info.edgePixelConstantBuffers) {
-			for (Dx12Buffer& buffer : buffers)
-				buffer.Destroy();
+		for (auto& buffers : info.edgePixelConstantBuffers) {
+			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
+				buffers[i].Destroy();
 		}
 		info.edgePixelConstantBuffers.clear();
 		for (Dx12Buffer& buffer : info.groundShadowVertexConstantBuffers)

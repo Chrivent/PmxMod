@@ -2,7 +2,6 @@
 
 #include "VulkanMsaaDepthBuffer.h"
 
-#include <array>
 #include <iostream>
 
 namespace Chrivent {
@@ -66,15 +65,15 @@ namespace Chrivent {
 		dependency.srcAccessMask = 0;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		const std::array attachments = {
+		const VkAttachmentDescription attachments[] = {
 			colorAttachment,
 			depthAttachment,
 			resolveAttachment
 		};
 		VkRenderPassCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		createInfo.attachmentCount = attachments.size();
-		createInfo.pAttachments = attachments.data();
+		createInfo.attachmentCount = 3;
+		createInfo.pAttachments = attachments;
 		createInfo.subpassCount = 1;
 		createInfo.pSubpasses = &subpass;
 		createInfo.dependencyCount = 1;

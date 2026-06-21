@@ -16,10 +16,6 @@ namespace Chrivent {
 	struct Dx12InstanceInfo : InstanceInfo {
 		static constexpr size_t kBufferedFrames = 2;
 
-		struct FrameBufferSet {
-			Dx12Buffer buffers[kBufferedFrames];
-		};
-
 		Dx12Viewer* viewer = nullptr;
 		Dx12Buffer vertexBuffers[kBufferedFrames];
 		Dx12Buffer indexBuffer;
@@ -27,10 +23,10 @@ namespace Chrivent {
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
 		Dx12Buffer modelVertexConstantBuffers[kBufferedFrames];
-		std::vector<FrameBufferSet> modelPixelConstantBuffers;
+		std::vector<std::unique_ptr<Dx12Buffer[]>> modelPixelConstantBuffers;
 		Dx12Buffer edgeVertexConstantBuffers[kBufferedFrames];
-		std::vector<FrameBufferSet> edgeSizeConstantBuffers;
-		std::vector<FrameBufferSet> edgePixelConstantBuffers;
+		std::vector<std::unique_ptr<Dx12Buffer[]>> edgeSizeConstantBuffers;
+		std::vector<std::unique_ptr<Dx12Buffer[]>> edgePixelConstantBuffers;
 		Dx12Buffer groundShadowVertexConstantBuffers[kBufferedFrames];
 		Dx12Buffer groundShadowPixelConstantBuffers[kBufferedFrames];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;

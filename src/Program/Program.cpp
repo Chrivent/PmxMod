@@ -432,19 +432,29 @@ namespace Chrivent {
                 }
             };
             cameraRow.keys.reserve(cameraKeys.size());
-            for (const auto& key : cameraKeys) {
+            for (const auto& [frame, interest, rotate, distance, fov
+                , ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier] : cameraKeys) {
                 cameraRow.keys.push_back({
-                        .frame = ToTimelineFrame(key.frame),
-                        .curves = {
-                            key.ixBezier.GetControlPoints(),
-                            key.iyBezier.GetControlPoints(),
-                            key.izBezier.GetControlPoints(),
-                            key.rotateBezier.GetControlPoints(),
-                            key.distanceBezier.GetControlPoints(),
-                            key.fovBezier.GetControlPoints()
-                        }
-                    });
+                    .frame = ToTimelineFrame(frame),
+                    .curves = {
+                        ixBezier.GetControlPoints(),
+                        iyBezier.GetControlPoints(),
+                        izBezier.GetControlPoints(),
+                        rotateBezier.GetControlPoints(),
+                        distanceBezier.GetControlPoints(),
+                        fovBezier.GetControlPoints()
+                    },
+                    .values = {
+                        interest.x,
+                        interest.y,
+                        interest.z,
+                        glm::degrees(glm::length(rotate)),
+                        distance,
+                        glm::degrees(fov)
+                    }
+                });
             }
+            cameraRow.expandable = true;
             MotionTimelineGroup cameraGroup{
                 .name = Language::Text("motion.camera"),
                 .rows = {std::move(cameraRow)},

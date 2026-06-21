@@ -2,15 +2,14 @@
 
 #include "VulkanDevice.h"
 
-#include <array>
 #include <vector>
 
 namespace Chrivent {
 	struct VulkanSyncObjectInfo {
 		static constexpr size_t kMaxFramesInFlight = 2;
-		std::array<VkSemaphore, kMaxFramesInFlight> imageAvailableSemaphores{};
-		std::array<VkSemaphore, kMaxFramesInFlight> renderFinishedSemaphores{};
-		std::array<VkFence, kMaxFramesInFlight> inFlightFences{};
+		VkSemaphore imageAvailableSemaphores[kMaxFramesInFlight]{};
+		VkSemaphore renderFinishedSemaphores[kMaxFramesInFlight]{};
+		VkFence inFlightFences[kMaxFramesInFlight]{};
 		std::vector<VkFence> imagesInFlight;
 		size_t currentFrame = 0;
 	};

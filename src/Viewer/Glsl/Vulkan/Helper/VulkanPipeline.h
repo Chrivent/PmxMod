@@ -3,7 +3,6 @@
 #include "VulkanDevice.h"
 #include "VulkanSwapChain.h"
 
-#include <array>
 #include <filesystem>
 
 namespace Chrivent {
@@ -13,7 +12,7 @@ namespace Chrivent {
 		VkPipeline edgePipeline = VK_NULL_HANDLE;
 		VkPipeline groundShadowPipeline = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		std::array<VkDescriptorSetLayout, 3> descriptorSetLayouts{};
+		VkDescriptorSetLayout descriptorSetLayouts[3]{};
 	};
 
 	class VulkanPipeline {
@@ -50,7 +49,7 @@ namespace Chrivent {
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
 		// 모델 vertex attribute 정보를 만든다.
-		static std::array<VkVertexInputAttributeDescription, 3> MakeVertexAttributeDescriptions();
+		static std::unique_ptr<VkVertexInputAttributeDescription[]> MakeVertexAttributeDescriptions();
 
 	public:
 		VulkanPipeline() = default;

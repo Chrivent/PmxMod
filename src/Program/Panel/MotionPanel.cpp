@@ -189,110 +189,112 @@ namespace Chrivent {
 	}
 
 	int MotionPanel::GetVisibleRowCount() const {
-		constexpr int curveRowUnits = kCurveRowHeight / kRowHeight;
+		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		int count = 0;
 		for (const auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
 			if (!group.grouped) {
 				for (const auto& row : group.rows)
-					count += 1 + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
+					count += 1 + (row.expanded ? curveRowUnits : 0);
 			} else {
 				count++;
 				if (group.expanded) {
 					for (const auto& row : group.rows)
-						count += 1 + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
+						count += 1 + (row.expanded ? curveRowUnits : 0);
 				}
 			}
 		}
 		return count;
 	}
 
-	void MotionPanel::DrawValueCurve(
-		const HDC deviceContext, const MotionTimelineRow& row, const size_t channelIndex,
-		const int top, const int bottom, const int right) const {
-		if (row.keys.size() < 2)
+	void MotionPanel::DrawValueCurves(
+		const HDC deviceContext, const MotionTimelineRow& row, const int top, const int bottom, const int right) const {
+		if (row.keys.empty())
 			return;
-		float minimum = (std::numeric_limits<float>::max)();
-		float maximum = std::numeric_limits<float>::lowest();
-		for (const auto& key : row.keys) {
-			if (channelIndex >= key.values.size())
-				continue;
-			minimum = (std::min)(minimum, key.values[channelIndex]);
-			maximum = (std::max)(maximum, key.values[channelIndex]);
-		}
-		if (minimum > maximum)
-			return;
-		if (std::abs(maximum - minimum) < 1.0e-5f) {
-			minimum -= 0.5f;
-			maximum += 0.5f;
-		}
 		constexpr COLORREF colors[] = {
 			RGB(255, 105, 105),
 			RGB(120, 225, 130),
 			RGB(105, 165, 255),
-			RGB(214, 145, 255)
-		};
-		const auto ValueToY = [&](const float value) {
-			return bottom - 5
-				- std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 10));
+			RGB(214, 145, 255),
+			RGB(255, 190, 95),
+			RGB(95, 220, 220)
 		};
 		const auto DrawControlPoint = [&](const POINT point) {
 			GuiDrawer::DrawCircle(deviceContext, point.x, point.y, 3, RGB(174, 179, 188));
 		};
 		const int savedDc = SaveDC(deviceContext);
 		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
-		for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
-			const auto& previousKey = row.keys[keyIndex - 1];
-			const auto& nextKey = row.keys[keyIndex];
-			if (channelIndex >= previousKey.values.size() ||
-				channelIndex >= nextKey.values.size() ||
-				channelIndex >= nextKey.curves.size() ||
-				nextKey.frame <= previousKey.frame)
-				continue;
-			const auto& [p1, p2] = nextKey.curves[channelIndex];
-			const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;
-			const int endX = kLabelWidth + (nextKey.frame - firstFrame) * kFrameWidth;
-			if (endX < kLabelWidth || startX > right)
-				continue;
-			const float startValue = previousKey.values[channelIndex];
-			const float endValue = nextKey.values[channelIndex];
-			const POINT points[] = {
-				{startX, ValueToY(startValue)},
-				{
-					startX + std::lround((endX - startX) * p1.x),
-					ValueToY(std::lerp(startValue, endValue, p1.y))
-				},
-				{
-					startX + std::lround((endX - startX) * p2.x),
-					ValueToY(std::lerp(startValue, endValue, p2.y))
-				},
-				{endX, ValueToY(endValue)}
-			};
-			if (nextKey.selected) {
-				GuiDrawer::DrawLine(deviceContext,
-					points[0].x, points[0].y, points[1].x, points[1].y, RGB(115, 120, 130));
-				GuiDrawer::DrawLine(deviceContext,
-					points[2].x, points[2].y, points[3].x, points[3].y, RGB(115, 120, 130));
-				DrawControlPoint(points[1]);
-				DrawControlPoint(points[2]);
+		for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
+			float minimum = (std::numeric_limits<float>::max)();
+			float maximum = std::numeric_limits<float>::lowest();
+			for (const auto& key : row.keys) {
+				if (channelIndex >= key.values.size())
+					continue;
+				minimum = (std::min)(minimum, key.values[channelIndex]);
+				maximum = (std::max)(maximum, key.values[channelIndex]);
 			}
-			const HPEN curvePen = CreatePen(PS_SOLID, 2, colors[channelIndex % std::size(colors)]);
-			const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
-			PolyBezier(deviceContext, points, 4);
-			SelectObject(deviceContext, previousPen);
-			DeleteObject(curvePen);
-		}
-		for (const auto& key : row.keys) {
-			if (channelIndex >= key.values.size() || key.frame < firstFrame)
+			if (minimum > maximum)
 				continue;
-			const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
-			if (x > right)
-				break;
-			GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5,
-				key.selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
+			if (std::abs(maximum - minimum) < 1.0e-5f) {
+				minimum -= 0.5f;
+				maximum += 0.5f;
+			}
+			const auto ValueToY = [&](const float value) {
+				return bottom - 8 - std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 16));
+			};
+			for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
+				const auto& previousKey = row.keys[keyIndex - 1];
+				const auto& [frame, curves
+					, values, selected] = row.keys[keyIndex];
+				if (channelIndex >= previousKey.values.size() ||
+					channelIndex >= values.size() ||
+					channelIndex >= curves.size() ||
+					frame <= previousKey.frame)
+					continue;
+				const auto& [p1, p2] = curves[channelIndex];
+				const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;
+				const int endX = kLabelWidth + (frame - firstFrame) * kFrameWidth;
+				if (endX < kLabelWidth || startX > right)
+					continue;
+				const float startValue = previousKey.values[channelIndex];
+				const float endValue = values[channelIndex];
+				const POINT points[] = {
+					{startX, ValueToY(startValue)},
+					{startX + std::lround((endX - startX) * p1.x), ValueToY(std::lerp(startValue, endValue, p1.y))},
+					{startX + std::lround((endX - startX) * p2.x), ValueToY(std::lerp(startValue, endValue, p2.y))},
+					{endX, ValueToY(endValue)}
+				};
+				if (selected) {
+					GuiDrawer::DrawLine(deviceContext, points[0].x, points[0].y, points[1].x, points[1].y, RGB(115, 120, 130));
+					GuiDrawer::DrawLine(deviceContext, points[2].x, points[2].y, points[3].x, points[3].y, RGB(115, 120, 130));
+					DrawControlPoint(points[1]);
+					DrawControlPoint(points[2]);
+				}
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, colors[channelIndex % std::size(colors)]);
+				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
+				PolyBezier(deviceContext, points, 4);
+				SelectObject(deviceContext, previousPen);
+				DeleteObject(curvePen);
+			}
+			for (const auto& key : row.keys) {
+				if (channelIndex >= key.values.size() || key.frame < firstFrame)
+					continue;
+				const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+				if (x > right)
+					break;
+				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5,
+					key.selected ? RGB(246, 190, 53) : colors[channelIndex % std::size(colors)]);
+			}
 		}
 		RestoreDC(deviceContext, savedDc);
+		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
+		for (int index = 0; index < legendCount; index++) {
+			const int y = top + 12 + index * 22;
+			GuiDrawer::DrawCircle(deviceContext, 18, y, 4, colors[index]);
+			GuiDrawer::DrawTextLine(deviceContext, row.curveNames[index],
+				{30, y - 10, kLabelWidth - 6, y + 10}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
+		}
 	}
 
 	void MotionPanel::Paint(const HDC deviceContext) const {
@@ -316,23 +318,14 @@ namespace Chrivent {
 		const int visibleRows = (std::max)(0, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight + 1));
 		int visibleRowIndex = 0;
 		int paintedRows = 0;
-		const auto DrawRow = [&](
-			const std::wstring& name,
-			const MotionTimelineGroup* group,
-			const MotionTimelineRow* row,
-			const bool groupRow,
-			const bool expanded,
-			const bool drawKeys,
-			const int indent,
-			const int channelIndex,
-			const int rowUnits) {
+		const auto DrawRow = [&](const std::wstring& name, const MotionTimelineGroup* group, const MotionTimelineRow* row,
+			const bool groupRow, const bool expanded, const bool drawKeys, const int indent, const bool curveRow, const int rowUnits) {
 			const int rowStart = visibleRowIndex;
 			visibleRowIndex += rowUnits;
 			if (rowStart + rowUnits <= firstRow || paintedRows >= visibleRows)
 				return;
 			const int top = kHeaderHeight + (rowStart - firstRow) * kRowHeight;
 			const int rowHeight = rowUnits * kRowHeight;
-			const bool curveRow = channelIndex >= 0;
 			if (curveRow) {
 				const RECT curveRect{0, top, client.right, top + rowHeight};
 				GuiDrawer::FillRectColor(deviceContext, curveRect, RGB(31, 37, 45));
@@ -352,8 +345,8 @@ namespace Chrivent {
 				{indent, top, kLabelWidth - 4, top + rowHeight},
 				RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 			GuiDrawer::DrawLine(deviceContext, 0, top + rowHeight, client.right, top + rowHeight, RGB(64, 67, 75));
-			if (row && channelIndex >= 0)
-				DrawValueCurve(deviceContext, *row, channelIndex, top, top + rowHeight, client.right);
+			if (row && curveRow)
+				DrawValueCurves(deviceContext, *row, top, top + rowHeight, client.right);
 			if (!drawKeys) {
 				paintedRows += rowUnits;
 				return;
@@ -367,7 +360,7 @@ namespace Chrivent {
 				GuiDrawer::DrawDiamond(deviceContext, x, top + rowHeight / 2, 5,
 					selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 			};
-			if (channelIndex >= 0) {
+			if (curveRow) {
 				paintedRows += rowUnits;
 				return;
 			}
@@ -387,29 +380,21 @@ namespace Chrivent {
 				continue;
 			if (!group.grouped) {
 				for (const auto& row : group.rows) {
-					DrawRow(row.name, nullptr, &row, false, row.expanded, true,
-						32, -1, 1);
-					if (row.expanded) {
-						for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++)
-							DrawRow(row.curveNames[channelIndex], nullptr, &row, false, false, true, 42,
-								channelIndex, kCurveRowHeight / kRowHeight);
-					}
+					DrawRow(row.name, nullptr, &row, false, row.expanded, true, 32, false, 1);
+					if (row.expanded)
+						DrawRow(L"", nullptr, &row, false, false, false, 0, true, kCurveGraphHeight / kRowHeight);
 				}
 				continue;
 			}
-			DrawRow(group.name, &group, nullptr, true, group.expanded, !group.expanded, 24, -1, 1);
+			DrawRow(group.name, &group, nullptr, true, group.expanded, !group.expanded, 24, false, 1);
 			if (paintedRows >= visibleRows)
 				break;
 			if (!group.expanded)
 				continue;
 			for (const auto& row : group.rows) {
-				DrawRow(row.name, nullptr, &row, false, row.expanded, true,
-					32, -1, 1);
-				if (row.expanded) {
-					for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++)
-						DrawRow(row.curveNames[channelIndex], nullptr, &row, false, false, true, 42,
-							channelIndex, kCurveRowHeight / kRowHeight);
-				}
+				DrawRow(row.name, nullptr, &row, false, row.expanded, true, 32, false, 1);
+				if (row.expanded)
+					DrawRow(L"", nullptr, &row, false, false, false, 0, true, kCurveGraphHeight / kRowHeight);
 				if (paintedRows >= visibleRows)
 					break;
 			}
@@ -441,7 +426,7 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ToggleGroup(const int visibleRowIndex) {
-		constexpr int curveRowUnits = kCurveRowHeight / kRowHeight;
+		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		int currentRow = 0;
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
@@ -458,7 +443,7 @@ namespace Chrivent {
 					}
 					currentRow++;
 					if (row.expanded)
-						currentRow += row.curveNames.size() * curveRowUnits;
+						currentRow += curveRowUnits;
 				}
 				continue;
 			}
@@ -483,7 +468,7 @@ namespace Chrivent {
 				}
 				currentRow++;
 				if (row.expanded)
-					currentRow += row.curveNames.size() * curveRowUnits;
+					currentRow += curveRowUnits;
 			}
 		}
 	}
@@ -496,7 +481,7 @@ namespace Chrivent {
 	}
 
 	bool MotionPanel::SelectKey(const int visibleRowIndex, const int x, const bool additive) {
-		constexpr int curveRowUnits = kCurveRowHeight / kRowHeight;
+		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		const auto SelectRowKey = [&](MotionTimelineRow& row) {
 			for (auto& key : row.keys) {
 				const int keyX = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
@@ -518,7 +503,7 @@ namespace Chrivent {
 				continue;
 			if (!group.grouped) {
 				for (auto& row : group.rows) {
-					const int rowEnd = currentRow + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
+					const int rowEnd = currentRow + (row.expanded ? curveRowUnits : 0);
 					if (visibleRowIndex >= currentRow && visibleRowIndex <= rowEnd)
 						return SelectRowKey(row);
 					currentRow = rowEnd + 1;
@@ -550,7 +535,7 @@ namespace Chrivent {
 			if (!group.expanded)
 				continue;
 			for (auto& row : group.rows) {
-				const int rowEnd = currentRow + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
+				const int rowEnd = currentRow + (row.expanded ? curveRowUnits : 0);
 				if (visibleRowIndex >= currentRow && visibleRowIndex <= rowEnd)
 					return SelectRowKey(row);
 				currentRow = rowEnd + 1;
@@ -560,7 +545,7 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::SelectKeysInRectangle(const bool additive) {
-		constexpr int curveRowUnits = kCurveRowHeight / kRowHeight;
+		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		const RECT selectionRect{
 			(std::min)(selectionStart.x, selectionEnd.x),
 			(std::min)(selectionStart.y, selectionEnd.y),
@@ -587,10 +572,8 @@ namespace Chrivent {
 					SelectRowKeys(row, visibleRow);
 					visibleRow++;
 					if (row.expanded) {
-						for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
-							SelectRowKeys(row, visibleRow + curveRowUnits / 2);
-							visibleRow += curveRowUnits;
-						}
+						SelectRowKeys(row, visibleRow + curveRowUnits / 2);
+						visibleRow += curveRowUnits;
 					}
 				}
 				continue;
@@ -618,10 +601,8 @@ namespace Chrivent {
 				SelectRowKeys(row, visibleRow);
 				visibleRow++;
 				if (row.expanded) {
-					for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
-						SelectRowKeys(row, visibleRow + curveRowUnits / 2);
-						visibleRow += curveRowUnits;
-					}
+					SelectRowKeys(row, visibleRow + curveRowUnits / 2);
+					visibleRow += curveRowUnits;
 				}
 			}
 		}

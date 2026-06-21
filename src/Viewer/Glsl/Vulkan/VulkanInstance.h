@@ -6,7 +6,6 @@
 #include "Helper/VulkanBuffer.h"
 #include "Helper/VulkanDescriptorSet.h"
 
-#include <array>
 #include <vector>
 
 namespace Chrivent {
@@ -20,7 +19,7 @@ namespace Chrivent {
 		static constexpr size_t kBufferedFrames = 2;
 		VulkanViewer* viewer = nullptr;
 		std::vector<VulkanMaterial> materials;
-		std::array<VulkanBuffer, kBufferedFrames> vertexBuffers;
+		VulkanBuffer vertexBuffers[kBufferedFrames];
 		VulkanBuffer indexBuffer;
 		size_t uniformBufferOffsetAlignment = 1;
 		VulkanDynamicBufferRing modelVertexConstantsRing;

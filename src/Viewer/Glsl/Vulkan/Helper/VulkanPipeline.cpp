@@ -39,7 +39,7 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan pixel descriptor set layout.\n";
 			return false;
 		}
-		constexpr std::array textureBindings = {
+		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
 				.binding = 0,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -64,8 +64,8 @@ namespace Chrivent {
 		};
 		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = textureBindings.size();
-		textureLayoutInfo.pBindings = textureBindings.data();
+		textureLayoutInfo.bindingCount = 3;
+		textureLayoutInfo.pBindings = textureBindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &info.descriptorSetLayouts[2]) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan texture descriptor set layout.\n";
 			return false;
@@ -76,8 +76,8 @@ namespace Chrivent {
 	bool VulkanPipeline::CreatePipelineLayout() {
 		VkPipelineLayoutCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		createInfo.setLayoutCount = info.descriptorSetLayouts.size();
-		createInfo.pSetLayouts = info.descriptorSetLayouts.data();
+		createInfo.setLayoutCount = 3;
+		createInfo.pSetLayouts = info.descriptorSetLayouts;
 		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &info.pipelineLayout) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan pipeline layout.\n";
 			return false;
@@ -132,18 +132,13 @@ namespace Chrivent {
 			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule())
 		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
-		const std::array attributeDescriptions = MakeVertexAttributeDescriptions();
-		const std::array positionOnlyAttributeDescriptions = { attributeDescriptions[0] };
+		const auto values = MakeVertexAttributeDescriptions().get();
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly
-			? positionOnlyAttributeDescriptions.size()
-			: attributeDescriptions.size();
-		vertexInputInfo.pVertexAttributeDescriptions = usePositionOnly
-			? positionOnlyAttributeDescriptions.data()
-			: attributeDescriptions.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : 3;
+		vertexInputInfo.pVertexAttributeDescriptions = values;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -251,32 +246,32 @@ namespace Chrivent {
 	VkVertexInputBindingDescription VulkanPipeline::MakeVertexBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription;
 		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(VulkanVertex);
+		bindingDescription.stride = sizeof(ViewerVertex);
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 		return bindingDescription;
 	}
 
-	std::array<VkVertexInputAttributeDescription, 3> VulkanPipeline::MakeVertexAttributeDescriptions() {
-		return {
-			VkVertexInputAttributeDescription{
-				.location = 0,
-				.binding = 0,
-				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = offsetof(VulkanVertex, position)
-			},
-			VkVertexInputAttributeDescription{
-				.location = 1,
-				.binding = 0,
-				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = offsetof(VulkanVertex, normal)
-			},
-			VkVertexInputAttributeDescription{
-				.location = 2,
-				.binding = 0,
-				.format = VK_FORMAT_R32G32_SFLOAT,
-				.offset = offsetof(VulkanVertex, uv)
-			}
+	std::unique_ptr<VkVertexInputAttributeDescription[]> VulkanPipeline::MakeVertexAttributeDescriptions() {
+		auto descriptions = std::make_unique<VkVertexInputAttributeDescription[]>(3);
+		descriptions[0] = {
+			.location = 0,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(ViewerVertex, position)
 		};
+		descriptions[1] = {
+			.location = 1,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(ViewerVertex, normal)
+		};
+		descriptions[2] = {
+			.location = 2,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = offsetof(ViewerVertex, uv)
+		};
+		return descriptions;
 	}
 
 	VulkanPipeline::~VulkanPipeline() {

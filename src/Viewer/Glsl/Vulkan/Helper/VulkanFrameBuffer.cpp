@@ -1,6 +1,5 @@
 ﻿#include "VulkanFrameBuffer.h"
 
-#include <array>
 #include <iostream>
 
 namespace Chrivent {
@@ -17,7 +16,7 @@ namespace Chrivent {
 		device = deviceInfo.device;
 		frameBuffers.resize(swapChainInfo.imageViews.size());
 		for (size_t i = 0; i < swapChainInfo.imageViews.size(); i++) {
-			const std::array attachments = {
+			const VkImageView attachments[] = {
 				colorImageView,
 				depthImageView,
 				swapChainInfo.imageViews[i],
@@ -25,8 +24,8 @@ namespace Chrivent {
 			VkFramebufferCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			createInfo.renderPass = renderPass;
-			createInfo.attachmentCount = attachments.size();
-			createInfo.pAttachments = attachments.data();
+			createInfo.attachmentCount = 3;
+			createInfo.pAttachments = attachments;
 			createInfo.width = swapChainInfo.extent.width;
 			createInfo.height = swapChainInfo.extent.height;
 			createInfo.layers = 1;

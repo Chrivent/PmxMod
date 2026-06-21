@@ -44,6 +44,7 @@ namespace Chrivent {
 		static constexpr int kLabelWidth = 150;
 		static constexpr int kRowHeight = 22;
 		static constexpr int kCurveRowHeight = 66;
+		static constexpr int kCurveGraphHeight = kCurveRowHeight * 4;
 		static constexpr int kFrameWidth = 12;
 
 		HWND timelineWindow = nullptr;
@@ -87,8 +88,8 @@ namespace Chrivent {
 		void ToggleGroup(int visibleRowIndex);
 		// 열려 있는 모든 본 곡선 행을 닫는다.
 		void CollapseCurveRows();
-		// 지정한 채널의 키 값과 보간 데이터를 타임라인 곡선으로 그린다.
-		void DrawValueCurve(HDC deviceContext, const MotionTimelineRow& row, size_t channelIndex, int top, int bottom, int right) const;
+		// 모든 채널의 키 값과 보간 데이터를 하나의 타임라인 곡선 영역에 겹쳐 그린다.
+		void DrawValueCurves(HDC deviceContext, const MotionTimelineRow& row, int top, int bottom, int right) const;
 		// 클릭한 다이아몬드를 단일 또는 다중 선택 상태로 반영한다.
 		bool SelectKey(int visibleRowIndex, int x, bool additive);
 		// 드래그 사각형 안의 다이아몬드를 선택 상태로 반영한다.
