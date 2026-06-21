@@ -22,12 +22,7 @@ namespace Chrivent {
 		collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 		dispatcher = std::make_unique<btCollisionDispatcher>(collisionConfig.get());
 		solver = std::make_unique<btSequentialImpulseConstraintSolver>();
-		info.world = std::make_unique<btDiscreteDynamicsWorld>(
-			dispatcher.get(),
-			broadPhase.get(),
-			solver.get(),
-			collisionConfig.get()
-		);
+		info.world = std::make_unique<btDiscreteDynamicsWorld>(dispatcher.get(), broadPhase.get(), solver.get(), collisionConfig.get());
 		info.world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
 		groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
 		btTransform groundTransform;

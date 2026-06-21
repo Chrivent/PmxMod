@@ -46,10 +46,7 @@ namespace Chrivent {
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 설정한다.
 		void SetViewportAndScissor(ID3D12GraphicsCommandList* commandList) const;
 		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
-		void ResolveToBackBuffer(
-			ID3D12GraphicsCommandList* commandList,
-			ID3D12Resource* backBuffer,
-			ID3D12Resource* msaaColor) const;
+		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
 
 	public:
 		Dx12Viewer();

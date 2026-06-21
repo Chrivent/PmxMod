@@ -12,11 +12,8 @@ namespace Chrivent {
 				shape = std::make_unique<btSphereShape>(pmxRigidBody.shapeSize.x);
 				break;
 			case Shape::Box:
-				shape = std::make_unique<btBoxShape>(btVector3(
-					pmxRigidBody.shapeSize.x,
-					pmxRigidBody.shapeSize.y,
-					pmxRigidBody.shapeSize.z
-				));
+				shape = std::make_unique<btBoxShape>(
+					btVector3(pmxRigidBody.shapeSize.x, pmxRigidBody.shapeSize.y, pmxRigidBody.shapeSize.z));
 				break;
 			case Shape::Capsule:
 				shape = std::make_unique<btCapsuleShape>(pmxRigidBody.shapeSize.x, pmxRigidBody.shapeSize.y);

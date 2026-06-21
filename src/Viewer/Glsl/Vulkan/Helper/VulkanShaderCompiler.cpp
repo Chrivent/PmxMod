@@ -12,10 +12,7 @@ namespace Chrivent {
 )";
 	}
 
-	bool VulkanShaderCompiler::ReadShaderFile(
-		const std::filesystem::path& file,
-		std::string& outCode,
-		std::string& outError) {
+	bool VulkanShaderCompiler::ReadShaderFile(const std::filesystem::path& file, std::string& outCode, std::string& outError) {
 		return GlslPreprocessor::LoadSource(file, BuildPreamble(), outCode, outError);
 	}
 

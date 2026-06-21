@@ -52,12 +52,7 @@ namespace Chrivent {
 	}
 
 	LRESULT CALLBACK PlaybackPanel::EditWindowProc(
-		const HWND hwnd,
-		const UINT msg,
-		const WPARAM wParam,
-		const LPARAM lParam,
-		const UINT_PTR subclassId,
-		const DWORD_PTR data) {
+		const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR subclassId, const DWORD_PTR data) {
 		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
 			auto* panel = reinterpret_cast<PlaybackPanel*>(data);
 			const int controlId = GetDlgCtrlID(hwnd);

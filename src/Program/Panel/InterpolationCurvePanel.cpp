@@ -8,11 +8,7 @@
 #include <utility>
 
 namespace Chrivent {
-	LRESULT CALLBACK InterpolationCurvePanel::WindowProc(
-		const HWND hwnd,
-		const UINT msg,
-		const WPARAM wParam,
-		const LPARAM lParam) {
+	LRESULT CALLBACK InterpolationCurvePanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 		auto* panel = reinterpret_cast<InterpolationCurvePanel*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 		if (msg == WM_NCCREATE) {
 			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -135,18 +131,8 @@ namespace Chrivent {
 				SelectObject(deviceContext, previousPen);
 				DeleteObject(curvePen);
 				if (showControlPoints) {
-					GuiDrawer::DrawCircle(
-						deviceContext,
-						controlPoints[1].x,
-						controlPoints[1].y,
-						3,
-						RGB(174, 179, 188));
-					GuiDrawer::DrawCircle(
-						deviceContext,
-						controlPoints[2].x,
-						controlPoints[2].y,
-						3,
-						RGB(174, 179, 188));
+					GuiDrawer::DrawCircle(deviceContext, controlPoints[1].x, controlPoints[1].y, 3, RGB(174, 179, 188));
+					GuiDrawer::DrawCircle(deviceContext, controlPoints[2].x, controlPoints[2].y, 3, RGB(174, 179, 188));
 				}
 			}
 		}

@@ -5,11 +5,7 @@ namespace Chrivent {
 		GlfwDynamicBufferRing::Clear();
 	}
 
-	bool GlfwDynamicBufferRing::Setup(
-		const GLenum bufferTarget,
-		const size_t bufferSize,
-		const GLenum bufferUsage,
-		std::string& outError) {
+	bool GlfwDynamicBufferRing::Setup(const GLenum bufferTarget, const size_t bufferSize, const GLenum bufferUsage, std::string& outError) {
 		Clear();
 		if (!GlslDynamicBufferRing::Setup(bufferSize, outError))
 			return false;
@@ -44,10 +40,7 @@ namespace Chrivent {
 		glBindBuffer(target, 0);
 	}
 
-	std::optional<GlslUploadSlice> GlfwDynamicBufferRing::Allocate(
-		const size_t size,
-		const size_t alignment,
-		std::string& outError) {
+	std::optional<GlslUploadSlice> GlfwDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
 		const size_t alignedOffset = AlignUp(writeOffset, alignment);
 		if (alignedOffset + size > capacity) {
 			outError = "OpenGL dynamic buffer ring is out of space for this frame.";

@@ -144,9 +144,7 @@ namespace Chrivent {
 		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelFrontFacePipelineState))))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
-			&pipelineDesc,
-			IID_PPV_ARGS(&modelBothFacePipelineState)));
+		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
 	}
 
 	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12DeviceInfo& deviceInfo) {
@@ -259,9 +257,7 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(
-			&pipelineDesc,
-			IID_PPV_ARGS(&groundShadowPipelineState)));
+		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {

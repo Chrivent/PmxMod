@@ -4,11 +4,7 @@
 #include <sstream>
 
 namespace Chrivent {
-	bool GlslPreprocessor::LoadSource(
-		const std::filesystem::path& file,
-		const std::string& preamble,
-		std::string& outCode,
-		std::string& outError) {
+	bool GlslPreprocessor::LoadSource(const std::filesystem::path& file, const std::string& preamble, std::string& outCode, std::string& outError) {
 		const auto normalizedPath = std::filesystem::weakly_canonical(file);
 		const std::ifstream stream(normalizedPath);
 		if (!stream) {

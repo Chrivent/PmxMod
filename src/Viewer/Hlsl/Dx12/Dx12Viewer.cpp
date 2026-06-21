@@ -39,10 +39,7 @@ namespace Chrivent {
 		commandList->RSSetScissorRects(1, &scissorRect);
 	}
 
-	void Dx12Viewer::ResolveToBackBuffer(
-		ID3D12GraphicsCommandList* commandList,
-		ID3D12Resource* backBuffer,
-		ID3D12Resource* msaaColor) const {
+	void Dx12Viewer::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const {
 		const D3D12_RESOURCE_STATES sourceState = device->GetInfo().msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
 			: D3D12_RESOURCE_STATE_COPY_SOURCE;

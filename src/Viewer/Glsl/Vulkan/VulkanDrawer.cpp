@@ -38,10 +38,7 @@ namespace Chrivent {
 		basePixelConstants.lightColor = glm::vec4(viewerInfo.lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		std::string error;
-		const auto vertexSlice = info.modelVertexConstantsRing.Allocate(
-			sizeof(vertexConstants),
-			info.uniformBufferOffsetAlignment,
-			error);
+		const auto vertexSlice = info.modelVertexConstantsRing.Allocate(sizeof(vertexConstants), info.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
 			!info.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
@@ -73,10 +70,7 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			const auto pixelSlice = info.modelPixelConstantsRing.Allocate(
-				sizeof(pixelConstants),
-				info.uniformBufferOffsetAlignment,
-				error);
+			const auto pixelSlice = info.modelPixelConstantsRing.Allocate(sizeof(pixelConstants), info.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
 				!info.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
@@ -114,20 +108,14 @@ namespace Chrivent {
 				continue;
 			EdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
-			const auto vertexSlice = info.edgeVertexConstantsRing.Allocate(
-				sizeof(vertexConstants),
-				info.uniformBufferOffsetAlignment,
-				error);
+			const auto vertexSlice = info.edgeVertexConstantsRing.Allocate(sizeof(vertexConstants), info.uniformBufferOffsetAlignment, error);
 			if (!vertexSlice.has_value() ||
 				!info.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
 			info.viewer->BindModelDescriptorSets(info.edgeDescriptorSet, vertexSlice.has_value() ? vertexSlice->offset : 0);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			const auto pixelSlice = info.edgePixelConstantsRing.Allocate(
-				sizeof(pixelConstants),
-				info.uniformBufferOffsetAlignment,
-				error);
+			const auto pixelSlice = info.edgePixelConstantsRing.Allocate(sizeof(pixelConstants), info.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
 				!info.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
@@ -153,17 +141,11 @@ namespace Chrivent {
 		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
 		constexpr GroundShadowPixelConstants pixelConstants{};
 		std::string error;
-		const auto vertexSlice = info.groundShadowVertexConstantsRing.Allocate(
-			sizeof(vertexConstants),
-			info.uniformBufferOffsetAlignment,
-			error);
+		const auto vertexSlice = info.groundShadowVertexConstantsRing.Allocate(sizeof(vertexConstants), info.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
 			!info.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error))
 			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
-		const auto pixelSlice = info.groundShadowPixelConstantsRing.Allocate(
-			sizeof(pixelConstants),
-			info.uniformBufferOffsetAlignment,
-			error);
+		const auto pixelSlice = info.groundShadowPixelConstantsRing.Allocate(sizeof(pixelConstants), info.uniformBufferOffsetAlignment, error);
 		if (!pixelSlice.has_value() ||
 			!info.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error))
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";

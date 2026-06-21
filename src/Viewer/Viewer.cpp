@@ -18,11 +18,7 @@ namespace Chrivent {
             DeleteObject(fpsFont);
     }
 
-    LRESULT CALLBACK Viewer::FpsOverlayWindowProc(
-        const HWND hwnd,
-        const UINT msg,
-        const WPARAM wParam,
-        const LPARAM lParam) {
+    LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;
         if (msg == WM_PAINT) {

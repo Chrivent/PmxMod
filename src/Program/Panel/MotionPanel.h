@@ -69,13 +69,7 @@ namespace Chrivent {
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// 프레임 입력 칸의 Enter와 포커스 해제를 처리한다.
-		static LRESULT CALLBACK EditWindowProc(
-			HWND hwnd,
-			UINT msg,
-			WPARAM wParam,
-			LPARAM lParam,
-			UINT_PTR subclassId,
-			DWORD_PTR data);
+		static LRESULT CALLBACK EditWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR subclassId, DWORD_PTR data);
 		// 상단 입력값을 독립 프레임 이동 요청으로 반영한다.
 		void ApplyInputFrame();
 		// 상단 입력 칸이 포커스를 잃으면 스크롤 범위 안으로 복귀한다.
@@ -93,13 +87,7 @@ namespace Chrivent {
 		// 클릭한 표시 행이 그룹이면 펼침 상태를 전환한다.
 		void ToggleGroup(int visibleRowIndex);
 		// 지정한 채널의 키 값과 보간 데이터를 타임라인 곡선으로 그린다.
-		void DrawValueCurve(
-			HDC deviceContext,
-			const MotionTimelineRow& row,
-			size_t channelIndex,
-			int top,
-			int bottom,
-			int right) const;
+		void DrawValueCurve(HDC deviceContext, const MotionTimelineRow& row, size_t channelIndex, int top, int bottom, int right) const;
 		// 클릭한 다이아몬드를 단일 또는 다중 선택 상태로 반영한다.
 		bool SelectKey(int visibleRowIndex, int x, bool additive);
 		// 드래그 사각형 안의 다이아몬드를 선택 상태로 반영한다.

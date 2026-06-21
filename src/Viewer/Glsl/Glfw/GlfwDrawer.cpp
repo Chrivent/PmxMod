@@ -11,11 +11,7 @@ namespace Chrivent {
 		info.pixelConstantsRing.BeginFrame(0);
 	}
 
-	void GlfwDrawer::UpdateUniformBuffer(
-		GlfwDynamicBufferRing& ring,
-		const GLuint binding,
-		const void* data,
-		const size_t size) const {
+	void GlfwDrawer::UpdateUniformBuffer(GlfwDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
 		const auto slice = ring.Allocate(size, info.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())

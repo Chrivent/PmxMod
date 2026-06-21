@@ -22,13 +22,7 @@ namespace Chrivent {
 		DeleteObject(brush);
 	}
 
-	void GuiDrawer::DrawLine(
-		const HDC deviceContext,
-		const int x1,
-		const int y1,
-		const int x2,
-		const int y2,
-		const COLORREF color) {
+	void GuiDrawer::DrawLine(const HDC deviceContext, const int x1, const int y1, const int x2, const int y2, const COLORREF color) {
 		const HPEN pen = CreatePen(PS_SOLID, 1, color);
 		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
 		MoveToEx(deviceContext, x1, y1, nullptr);
@@ -37,12 +31,7 @@ namespace Chrivent {
 		DeleteObject(pen);
 	}
 
-	void GuiDrawer::DrawDiamond(
-		const HDC deviceContext,
-		const int centerX,
-		const int centerY,
-		const int radius,
-		const COLORREF color) {
+	void GuiDrawer::DrawDiamond(const HDC deviceContext, const int centerX, const int centerY, const int radius, const COLORREF color) {
 		const POINT points[] = {
 			{centerX, centerY - radius},
 			{centerX + radius, centerY},
@@ -60,22 +49,12 @@ namespace Chrivent {
 		DeleteObject(brush);
 	}
 
-	void GuiDrawer::DrawCircle(
-		const HDC deviceContext,
-		const int centerX,
-		const int centerY,
-		const int radius,
-		const COLORREF color) {
+	void GuiDrawer::DrawCircle(const HDC deviceContext, const int centerX, const int centerY, const int radius, const COLORREF color) {
 		const HBRUSH brush = CreateSolidBrush(color);
 		const HPEN pen = CreatePen(PS_SOLID, 1, color);
 		const HGDIOBJ previousBrush = SelectObject(deviceContext, brush);
 		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
-		Ellipse(
-			deviceContext,
-			centerX - radius,
-			centerY - radius,
-			centerX + radius + 1,
-			centerY + radius + 1);
+		Ellipse(deviceContext, centerX - radius, centerY - radius, centerX + radius + 1, centerY + radius + 1);
 		SelectObject(deviceContext, previousPen);
 		SelectObject(deviceContext, previousBrush);
 		DeleteObject(pen);
@@ -111,12 +90,7 @@ namespace Chrivent {
 		DeleteObject(brush);
 	}
 
-	void GuiDrawer::DrawTextLine(
-		const HDC deviceContext,
-		const std::wstring& text,
-		RECT rect,
-		const COLORREF color,
-		const UINT format) {
+	void GuiDrawer::DrawTextLine(const HDC deviceContext, const std::wstring& text, RECT rect, const COLORREF color, const UINT format) {
 		const HGDIOBJ previousFont = SelectObject(deviceContext, GetTextFont());
 		SetBkMode(deviceContext, TRANSPARENT);
 		SetTextColor(deviceContext, color);

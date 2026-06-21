@@ -1,10 +1,7 @@
 ﻿#include "VulkanDynamicBufferRing.h"
 
 namespace Chrivent {
-	bool VulkanDynamicBufferRing::Setup(
-		const VulkanDeviceInfo& deviceInfo,
-		const size_t bufferSize,
-		std::string& outError) {
+	bool VulkanDynamicBufferRing::Setup(const VulkanDeviceInfo& deviceInfo, const size_t bufferSize, std::string& outError) {
 		Clear();
 		if (!GlslDynamicBufferRing::Setup(bufferSize, outError))
 			return false;
@@ -29,10 +26,7 @@ namespace Chrivent {
 		GlslDynamicBufferRing::BeginFrame(frameIndex % kBufferedFrames);
 	}
 
-	std::optional<GlslUploadSlice> VulkanDynamicBufferRing::Allocate(
-		const size_t size,
-		const size_t alignment,
-		std::string& outError) {
+	std::optional<GlslUploadSlice> VulkanDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
 		const size_t frameCapacity = capacity / kBufferedFrames;
 		if (frameCapacity == 0) {
 			outError = "Vulkan dynamic buffer ring frame capacity is zero.";

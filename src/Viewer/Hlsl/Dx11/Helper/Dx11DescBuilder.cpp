@@ -29,8 +29,7 @@ namespace Chrivent {
 		return d;
 	}
 
-	DXGI_SWAP_CHAIN_DESC Dx11DescBuilder::MakeSwapChainDesc(
-		HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
+	DXGI_SWAP_CHAIN_DESC Dx11DescBuilder::MakeSwapChainDesc(HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
 		DXGI_SWAP_CHAIN_DESC d{};
 		d.BufferCount = 2;
 		d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;

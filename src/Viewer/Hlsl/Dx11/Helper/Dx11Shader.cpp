@@ -5,26 +5,12 @@
 #include <iostream>
 
 namespace Chrivent {
-	bool Dx11Shader::CreateVertexShader(
-		ID3D11Device* device,
-		ID3DBlob* bytecode,
-		Microsoft::WRL::ComPtr<ID3D11VertexShader>& outShader) {
-		return SUCCEEDED(device->CreateVertexShader(
-			bytecode->GetBufferPointer(),
-			bytecode->GetBufferSize(),
-			nullptr,
-			&outShader));
+	bool Dx11Shader::CreateVertexShader(ID3D11Device* device, ID3DBlob* bytecode, Microsoft::WRL::ComPtr<ID3D11VertexShader>& outShader) {
+		return SUCCEEDED(device->CreateVertexShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(), nullptr, &outShader));
 	}
 
-	bool Dx11Shader::CreatePixelShader(
-		ID3D11Device* device,
-		ID3DBlob* bytecode,
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>& outShader) {
-		return SUCCEEDED(device->CreatePixelShader(
-			bytecode->GetBufferPointer(),
-			bytecode->GetBufferSize(),
-			nullptr,
-			&outShader));
+	bool Dx11Shader::CreatePixelShader(ID3D11Device* device, ID3DBlob* bytecode, Microsoft::WRL::ComPtr<ID3D11PixelShader>& outShader) {
+		return SUCCEEDED(device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(), nullptr, &outShader));
 	}
 
 	bool Dx11Shader::CreateInputLayout(

@@ -780,15 +780,9 @@ namespace Chrivent {
         std::cout << "benchmark_warmup_frames=" << warmupFrames << '\n';
         PrintMetric("animation", total.animationMilliseconds, maximum.animationMilliseconds);
         PrintMetric("animation_initialize_cpu", total.initializeCpuMilliseconds, maximum.initializeCpuMilliseconds);
-        PrintMetric(
-            "animation_evaluate_cpu",
-            total.animationEvaluateCpuMilliseconds,
-            maximum.animationEvaluateCpuMilliseconds);
+        PrintMetric("animation_evaluate_cpu", total.animationEvaluateCpuMilliseconds, maximum.animationEvaluateCpuMilliseconds);
         PrintMetric("morph_cpu", total.morphCpuMilliseconds, maximum.morphCpuMilliseconds);
-        PrintMetric(
-            "pose_before_physics_cpu",
-            total.beforePhysicsPoseCpuMilliseconds,
-            maximum.beforePhysicsPoseCpuMilliseconds);
+        PrintMetric("pose_before_physics_cpu", total.beforePhysicsPoseCpuMilliseconds, maximum.beforePhysicsPoseCpuMilliseconds);
         PrintMetric("physics_cpu", total.physicsCpuMilliseconds, maximum.physicsCpuMilliseconds);
         PrintMetric("pose_after_physics_cpu", total.afterPhysicsPoseCpuMilliseconds, maximum.afterPhysicsPoseCpuMilliseconds);
         PrintMetric("transform_cpu", total.transformCpuMilliseconds, maximum.transformCpuMilliseconds);

@@ -73,9 +73,7 @@ namespace Chrivent {
 		return shader;
 	}
 
-	GLuint GlfwShaderCompiler::CreateShader(
-		const std::filesystem::path& vertexFile,
-		const std::filesystem::path& fragmentFile) {
+	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& vertexFile, const std::filesystem::path& fragmentFile) {
 		std::string vsCode;
 		std::string fsCode;
 		if (!ReadShaderFile(vertexFile, vsCode) || !ReadShaderFile(fragmentFile, fsCode))

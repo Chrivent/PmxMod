@@ -110,12 +110,7 @@ namespace Chrivent {
 	}
 
 	LRESULT CALLBACK MotionPanel::EditWindowProc(
-		const HWND hwnd,
-		const UINT msg,
-		const WPARAM wParam,
-		const LPARAM lParam,
-		const UINT_PTR subclassId,
-		const DWORD_PTR data) {
+		const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR subclassId, const DWORD_PTR data) {
 		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
 			reinterpret_cast<MotionPanel*>(data)->ApplyInputFrame();
 			return 0;
@@ -213,12 +208,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::DrawValueCurve(
-		const HDC deviceContext,
-		const MotionTimelineRow& row,
-		const size_t channelIndex,
-		const int top,
-		const int bottom,
-		const int right) const {
+		const HDC deviceContext, const MotionTimelineRow& row, const size_t channelIndex,
+		const int top, const int bottom, const int right) const {
 		if (row.keys.size() < 2)
 			return;
 		float minimum = (std::numeric_limits<float>::max)();
@@ -681,9 +672,7 @@ namespace Chrivent {
 	void MotionPanel::UpdateModeButtonText() const {
 		if (!modeButton)
 			return;
-		SetWindowTextW(
-			modeButton,
-			Language::Text(mode == MotionTimelineMode::Model ? "motion.camera" : "motion.model").c_str());
+		SetWindowTextW(modeButton, Language::Text(mode == MotionTimelineMode::Model ? "motion.camera" : "motion.model").c_str());
 	}
 
 	void MotionPanel::ScrollRows(const int scrollCode, const int trackPosition) {

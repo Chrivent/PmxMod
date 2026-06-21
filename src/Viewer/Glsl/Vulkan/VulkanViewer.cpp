@@ -106,13 +106,7 @@ namespace Chrivent {
 			return;
 		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
 		commandBuffer.BindDescriptorSets(
-			currentImageIndex,
-			pipeline->GetInfo().pipelineLayout,
-			0,
-			&descriptorSet.GetVertexDescriptorSet(),
-			1,
-			&dynamicOffset,
-			1);
+			currentImageIndex, pipeline->GetInfo().pipelineLayout, 0, &descriptorSet.GetVertexDescriptorSet(), 1, &dynamicOffset, 1);
 		bindStateCache.vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
 		bindStateCache.vertexDynamicOffset = dynamicOffset;
 	}
@@ -124,14 +118,7 @@ namespace Chrivent {
 			bindStateCache.pixelDynamicOffset == dynamicOffset)
 			return;
 		const auto& commandBuffer = commandContext.GetInfo().commandBuffer;
-		commandBuffer.BindDescriptorSets(
-			currentImageIndex,
-			pipeline->GetInfo().pipelineLayout,
-			1,
-			&descriptorSet,
-			1,
-			&dynamicOffset,
-			1);
+		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->GetInfo().pipelineLayout, 1, &descriptorSet, 1, &dynamicOffset, 1);
 		bindStateCache.pixelDescriptorSet = descriptorSet;
 		bindStateCache.pixelDynamicOffset = dynamicOffset;
 	}
