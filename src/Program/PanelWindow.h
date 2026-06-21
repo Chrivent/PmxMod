@@ -21,6 +21,7 @@ namespace Chrivent {
 			std::string titleKey;
 			PanelWindowArea area = PanelWindowArea::Bottom;
 			HWND frame = nullptr;
+			RECT bounds{};
 		};
 
 		HWND window = nullptr;
@@ -32,8 +33,10 @@ namespace Chrivent {
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// 등록된 패널의 프레임과 내부 컨트롤을 생성한다.
 		void CreatePanelControls();
+		// 패널 영역의 배경과 경계선을 그린다.
+		void Paint(HDC deviceContext) const;
 		// 패널 창 크기에 맞춰 등록된 패널 영역을 배치한다.
-		void LayoutPanels() const;
+		void LayoutPanels();
 
 	public:
 		PanelWindow() = default;

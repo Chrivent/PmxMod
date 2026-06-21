@@ -23,8 +23,8 @@ namespace Chrivent {
 		// 지정한 영역에 한 줄 텍스트를 그린다.
 		static void DrawTextLine(HDC deviceContext, const std::wstring& text, RECT rect, COLORREF color, UINT format);
 		// 눈금 없는 가로 슬라이더 컨트롤을 생성한다.
-		static HWND CreateHorizontalSlider(HWND parent, int controlId, int minValue, int maxValue, int initialValue);
+		static HWND CreateHorizontalSlider(HWND parent, UINT_PTR controlId, int minValue, int maxValue, int initialValue);
 		// 눈금이 있는 세로 슬라이더 컨트롤을 생성한다.
-		static HWND CreateVerticalTickSlider(HWND parent, int controlId, int minValue, int maxValue, int initialValue, int tickFrequency);
+		static HWND CreateVerticalTickSlider(HWND parent, UINT_PTR controlId, int minValue, int maxValue, int initialValue, int tickFrequency);
 	};
 }

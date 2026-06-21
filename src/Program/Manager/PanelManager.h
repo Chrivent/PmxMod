@@ -17,16 +17,16 @@ namespace Chrivent {
 	class Sound;
 
 	class PanelManager {
-		static constexpr int kPlaybackPlayButtonId = 1002;
-		static constexpr int kPlaybackPauseButtonId = 1003;
-		static constexpr int kPlaybackStopButtonId = 1004;
-		static constexpr int kPlaybackStartFrameEditId = 1005;
-		static constexpr int kPlaybackEndFrameEditId = 1006;
-		static constexpr int kPlaybackResetRangeButtonId = 1007;
-		static constexpr int kPlaybackRepeatCheckId = 1008;
-		static constexpr int kSoundVolumeSliderId = 2001;
-		static constexpr int kModelAddButtonId = 3001;
-		static constexpr int kModelListId = 3002;
+		static constexpr UINT_PTR kPlaybackPlayButtonId = 1002;
+		static constexpr UINT_PTR kPlaybackPauseButtonId = 1003;
+		static constexpr UINT_PTR kPlaybackStopButtonId = 1004;
+		static constexpr UINT_PTR kPlaybackStartFrameEditId = 1005;
+		static constexpr UINT_PTR kPlaybackEndFrameEditId = 1006;
+		static constexpr UINT_PTR kPlaybackResetRangeButtonId = 1007;
+		static constexpr UINT_PTR kPlaybackRepeatCheckId = 1008;
+		static constexpr UINT_PTR kSoundVolumeSliderId = 2001;
+		static constexpr UINT_PTR kModelAddButtonId = 3001;
+		static constexpr UINT_PTR kModelListId = 3002;
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;

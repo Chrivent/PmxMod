@@ -7,6 +7,7 @@ namespace Chrivent {
 	public:
 		static constexpr COLORREF backgroundColor = RGB(24, 27, 33);
 		static constexpr COLORREF controlColor = RGB(36, 40, 48);
+		static constexpr COLORREF borderColor = RGB(92, 101, 114);
 		static constexpr COLORREF textColor = RGB(229, 232, 238);
 
 		// 현재 언어의 글리프를 안정적으로 표시하는 UI 폰트를 반환한다.

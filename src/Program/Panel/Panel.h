@@ -16,7 +16,7 @@ namespace Chrivent {
 		// 현재 언어에 맞춰 패널의 고정 GUI 문구를 갱신한다.
 		virtual void UpdateLanguage() {}
 		// 버튼이나 메뉴에서 들어온 명령을 처리한다.
-		virtual bool HandleCommand(int commandId, int notificationCode) { return false; }
+		virtual bool HandleCommand(UINT_PTR commandId, int notificationCode) { return false; }
 		// 슬라이더 등 스크롤 컨트롤에서 들어온 변경을 처리한다.
 		virtual bool HandleScroll(HWND control, int scrollCode) { return false; }
 		// 패널 윈도우와 보유 컨트롤을 해제한다.

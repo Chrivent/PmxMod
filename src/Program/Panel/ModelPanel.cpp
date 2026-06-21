@@ -46,12 +46,12 @@ namespace Chrivent {
 			0, L"BUTTON", Language::Text("model.add").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(addButtonId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(addButtonId), GetModuleHandleW(nullptr), nullptr);
 		modelList = CreateWindowExW(
 			WS_EX_CLIENTEDGE, L"LISTBOX", L"",
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOINTEGRALHEIGHT | LBS_NOTIFY,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(modelListId)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(modelListId), GetModuleHandleW(nullptr), nullptr);
 		GuiTheme::ApplyControl(addButton);
 		GuiTheme::ApplyControl(modelList);
 		RefreshModelList();
@@ -78,7 +78,7 @@ namespace Chrivent {
 			SetWindowTextW(addButton, Language::Text("model.add").c_str());
 	}
 
-	bool ModelPanel::HandleCommand(const int commandId, const int notificationCode) {
+	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
 		if (commandId == addButtonId) {
 			ShowOpenModelDialog();
 			return true;

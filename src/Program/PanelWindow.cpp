@@ -1,5 +1,6 @@
 ﻿#include "PanelWindow.h"
 
+#include "GuiDrawer.h"
 #include "GuiTheme.h"
 #include "Language.h"
 #include "MenuBar.h"
@@ -18,6 +19,15 @@ namespace Chrivent {
 		if (!panelWindow)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
+			case WM_ERASEBKGND:
+				return 1;
+			case WM_PAINT: {
+				PAINTSTRUCT paint{};
+				const HDC deviceContext = BeginPaint(hwnd, &paint);
+				panelWindow->Paint(deviceContext);
+				EndPaint(hwnd, &paint);
+				return 0;
+			}
 			case WM_CTLCOLORBTN:
 			case WM_CTLCOLOREDIT:
 			case WM_CTLCOLORLISTBOX:
@@ -55,6 +65,21 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	void PanelWindow::Paint(const HDC deviceContext) const {
+		RECT client{};
+		GetClientRect(window, &client);
+		GuiDrawer::FillRectColor(deviceContext, client, GuiTheme::backgroundColor);
+		for (auto& entry : panels) {
+			if (IsRectEmpty(&entry.bounds))
+				continue;
+			const RECT& bounds = entry.bounds;
+			GuiDrawer::DrawLine(deviceContext, bounds.left, bounds.top, bounds.right - 1, bounds.top, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, bounds.right - 1, bounds.top, bounds.right - 1, bounds.bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, bounds.right - 1, bounds.bottom - 1, bounds.left, bounds.bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, bounds.left, bounds.bottom - 1, bounds.left, bounds.top, GuiTheme::borderColor);
+		}
+	}
+
 	void PanelWindow::CreatePanelControls() {
 		for (auto& entry : panels) {
 			if (!entry.panel || entry.frame)
@@ -69,7 +94,7 @@ namespace Chrivent {
 		}
 	}
 
-	void PanelWindow::LayoutPanels() const {
+	void PanelWindow::LayoutPanels() {
 		RECT client{};
 		GetClientRect(window, &client);
 		const int width = client.right - client.left;
@@ -91,29 +116,22 @@ namespace Chrivent {
 			if (entry.area == PanelWindowArea::Bottom)
 				bottomCount++;
 		}
-		for (const auto& entry : panels) {
+		for (auto& entry : panels) {
 			if (!entry.panel || !entry.frame)
 				continue;
 			RECT area{};
 			switch (entry.area) {
 				case PanelWindowArea::Model:
-					area = {margin, margin, margin + sideWidth, margin + topHeight};
+					area = { margin, margin, margin + sideWidth, margin + topHeight };
 					break;
 				case PanelWindowArea::Motion:
-					area = {motionX, margin, motionX + motionWidth, margin + topHeight};
+					area = { motionX, margin, motionX + motionWidth, margin + topHeight };
 					break;
 				case PanelWindowArea::InterpolationCurve:
-					area = {
-						interpolationX,
-						margin,
-						interpolationX + sideWidth,
-						margin + topHeight
-					};
+					area = { interpolationX, margin, interpolationX + sideWidth, margin + topHeight };
 					break;
 				case PanelWindowArea::Bottom: {
-					const int panelWidth = bottomCount > 0
-						? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount
-						: 0;
+					const int panelWidth = bottomCount > 0 ? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount : 0;
 					const int x = margin + bottomIndex * (panelWidth + gap);
 					area = {x, bottomY, x + panelWidth, bottomY + bottomHeight};
 					bottomIndex++;
@@ -121,11 +139,12 @@ namespace Chrivent {
 				}
 			}
 			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
-			const int areaHeight = (std::max)(0, static_cast<int>(area.bottom - area.top));
-			MoveWindow(entry.frame, area.left, area.top, areaWidth, areaHeight, TRUE);
-			RECT panelRect{area.left, area.top + 22, area.right, area.bottom};
+			entry.bounds = area;
+			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, TRUE);
+			RECT panelRect{area.left + 4, area.top + 24, area.right - 4, area.bottom - 4};
 			entry.panel->Resize(panelRect);
 		}
+		InvalidateRect(window, nullptr, TRUE);
 	}
 
 	PanelWindow::~PanelWindow() {

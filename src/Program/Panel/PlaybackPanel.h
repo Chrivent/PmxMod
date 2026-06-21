@@ -16,13 +16,13 @@ namespace Chrivent {
 	};
 
 	struct PlaybackControlIds {
-		int playButton = 0;
-		int pauseButton = 0;
-		int stopButton = 0;
-		int startFrameEdit = 0;
-		int endFrameEdit = 0;
-		int resetRangeButton = 0;
-		int repeatCheck = 0;
+		UINT_PTR playButton = 0;
+		UINT_PTR pauseButton = 0;
+		UINT_PTR stopButton = 0;
+		UINT_PTR startFrameEdit = 0;
+		UINT_PTR endFrameEdit = 0;
+		UINT_PTR resetRangeButton = 0;
+		UINT_PTR repeatCheck = 0;
 	};
 
 	class PlaybackPanel final : public Panel {
@@ -52,7 +52,7 @@ namespace Chrivent {
 		// 패널 안에 재생 제어 버튼과 재생 범위 입력 칸을 만든다.
 		void CreateContent(HWND parent);
 		// 수정한 입력 칸을 기준으로 시작과 끝 프레임의 순서를 보정한다.
-		void ApplyInputFrameRange(int editedControlId);
+		void ApplyInputFrameRange(UINT_PTR editedControlId);
 		// 지정한 재생 범위를 입력 컨트롤에 반영한다.
 		void ApplyFrameRange(PlaybackFrameRange range, bool customRange);
 		// 시작과 끝 프레임을 입력 가능한 범위와 순서에 맞게 보정한다.
@@ -81,7 +81,7 @@ namespace Chrivent {
 		// 현재 언어에 맞춰 플레이백 컨트롤 문구를 갱신한다.
 		void UpdateLanguage() override;
 		// 재생 제어 버튼 명령을 내부 재생 명령으로 저장한다.
-		bool HandleCommand(int commandId, int notificationCode) override;
+		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 패널 윈도우와 컨트롤 핸들을 정리한다.
 		void Destroy() override;
 		// 버튼으로 들어온 재생 명령을 반환하고 내부 상태를 초기화한다.

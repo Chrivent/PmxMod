@@ -7,8 +7,8 @@
 
 namespace Chrivent {
 	class ModelPanel final : public Panel {
-		int addButtonId = 0;
-		int modelListId = 0;
+		UINT_PTR addButtonId = 0;
+		UINT_PTR modelListId = 0;
 		int selectedModelIndex = -1;
 		int pendingSelectedModelIndex = -1;
 		HWND parentWindow = nullptr;
@@ -25,7 +25,7 @@ namespace Chrivent {
 	public:
 		ModelPanel() = default;
 
-		void SetControlIds(const int addId, const int listId) {
+		void SetControlIds(const UINT_PTR addId, const UINT_PTR listId) {
 			addButtonId = addId;
 			modelListId = listId;
 		}
@@ -37,7 +37,7 @@ namespace Chrivent {
 		// 현재 언어에 맞춰 Add 버튼 문구를 갱신한다.
 		void UpdateLanguage() override;
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
-		bool HandleCommand(int commandId, int notificationCode) override;
+		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모델 패널 컨트롤 핸들을 정리한다.
 		void Destroy() override;
 		// 선택된 모델 경로를 반환하고 대기 중인 요청을 초기화한다.

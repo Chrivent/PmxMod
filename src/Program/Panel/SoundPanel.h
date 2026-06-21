@@ -6,7 +6,7 @@ namespace Chrivent {
 	class Sound;
 
 	class SoundPanel final : public Panel {
-		int volumeSliderId = 0;
+		UINT_PTR volumeSliderId = 0;
 		Sound* sound = nullptr;
 		HWND panelWindow = nullptr;
 		HWND volumeSlider = nullptr;
@@ -24,7 +24,7 @@ namespace Chrivent {
 	public:
 		SoundPanel() = default;
 
-		void SetVolumeSliderId(const int id) { volumeSliderId = id; }
+		void SetVolumeSliderId(const UINT_PTR id) { volumeSliderId = id; }
 		
 		// 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& soundRef);

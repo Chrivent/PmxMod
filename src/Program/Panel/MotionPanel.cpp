@@ -240,6 +240,8 @@ namespace Chrivent {
 		const auto DrawControlPoint = [&](const POINT point) {
 			GuiDrawer::DrawCircle(deviceContext, point.x, point.y, 3, RGB(174, 179, 188));
 		};
+		const int savedDc = SaveDC(deviceContext);
+		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
 		for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
 			const auto& previousKey = row.keys[keyIndex - 1];
 			const auto& nextKey = row.keys[keyIndex];
@@ -290,6 +292,7 @@ namespace Chrivent {
 			GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5,
 				key.selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 		}
+		RestoreDC(deviceContext, savedDc);
 	}
 
 	void MotionPanel::Paint(const HDC deviceContext) const {
@@ -791,12 +794,12 @@ namespace Chrivent {
 			WS_EX_CLIENTEDGE, L"EDIT", L"0",
 			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_CENTER | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kFrameEditId)), instance, nullptr);
+			parent, reinterpret_cast<HMENU>(kFrameEditId), instance, nullptr);
 		modeButton = CreateWindowExW(
 			0, L"BUTTON", L"",
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0, parent,
-			reinterpret_cast<HMENU>(static_cast<INT_PTR>(kModeButtonId)),
+			reinterpret_cast<HMENU>(kModeButtonId),
 			instance,
 			nullptr);
 		SendMessageW(frameEdit, EM_SETLIMITTEXT, 5, 0);
@@ -835,7 +838,7 @@ namespace Chrivent {
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	bool MotionPanel::HandleCommand(const int commandId, const int notificationCode) {
+	bool MotionPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
 		if (commandId == kModeButtonId && notificationCode == BN_CLICKED) {
 			ToggleMode();
 			return true;

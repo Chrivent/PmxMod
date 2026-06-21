@@ -76,22 +76,22 @@ namespace Chrivent {
 			0, L"BUTTON", Language::Text("playback.play").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.playButton)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.playButton), GetModuleHandleW(nullptr), nullptr);
 		pauseButton = CreateWindowExW(
 			0, L"BUTTON", Language::Text("playback.pause").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.pauseButton)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.pauseButton), GetModuleHandleW(nullptr), nullptr);
 		stopButton = CreateWindowExW(
 			0, L"BUTTON", Language::Text("playback.stop").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.stopButton)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.stopButton), GetModuleHandleW(nullptr), nullptr);
 		startFrameEdit = CreateWindowExW(
 			WS_EX_CLIENTEDGE, L"EDIT", L"0",
 			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.startFrameEdit)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.startFrameEdit), GetModuleHandleW(nullptr), nullptr);
 		rangeSeparatorText = CreateWindowExW(
 			0, L"STATIC", L"~",
 			WS_CHILD | WS_VISIBLE | SS_CENTER,
@@ -101,17 +101,17 @@ namespace Chrivent {
 			WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(frameRange.end).c_str(),
 			WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT | ES_AUTOHSCROLL,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.endFrameEdit)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.endFrameEdit), GetModuleHandleW(nullptr), nullptr);
 		resetRangeButton = CreateWindowExW(
 			0, L"BUTTON", Language::Text("playback.auto").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.resetRangeButton)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.resetRangeButton), GetModuleHandleW(nullptr), nullptr);
 		repeatCheck = CreateWindowExW(
 			0, L"BUTTON", Language::Text("playback.repeat").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
 			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(static_cast<INT_PTR>(controlIds.repeatCheck)), GetModuleHandleW(nullptr), nullptr);
+			parent, reinterpret_cast<HMENU>(controlIds.repeatCheck), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(repeatCheck, BM_SETCHECK, repeatEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
 		SendMessageW(startFrameEdit, EM_SETLIMITTEXT, 10, 0);
 		SendMessageW(endFrameEdit, EM_SETLIMITTEXT, 10, 0);
@@ -128,7 +128,7 @@ namespace Chrivent {
 		ApplyFrameRange(frameRange, customFrameRange);
 	}
 
-	void PlaybackPanel::ApplyInputFrameRange(const int editedControlId) {
+	void PlaybackPanel::ApplyInputFrameRange(const UINT_PTR editedControlId) {
 		if (updatingRangeControls)
 			return;
 		wchar_t startText[16]{};
@@ -267,7 +267,7 @@ namespace Chrivent {
 			SetWindowTextW(repeatCheck, Language::Text("playback.repeat").c_str());
 	}
 
-	bool PlaybackPanel::HandleCommand(const int commandId, const int notificationCode) {
+	bool PlaybackPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
 		if (commandId == controlIds.playButton)
 			pendingCommand = PlaybackCommand::Play;
 		else if (commandId == controlIds.pauseButton)

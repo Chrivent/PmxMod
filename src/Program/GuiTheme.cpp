@@ -2,6 +2,7 @@
 
 #include "Language.h"
 
+#include <CommCtrl.h>
 #include <dwmapi.h>
 #include <uxtheme.h>
 
@@ -45,7 +46,12 @@ namespace Chrivent {
 		if (!control)
 			return;
 		SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(GetFont()), TRUE);
-		SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
+		wchar_t className[32]{};
+		GetClassNameW(control, className, 32);
+		if (lstrcmpW(className, TRACKBAR_CLASSW) == 0)
+			SetWindowTheme(control, L"", L"");
+		else
+			SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
 	}
 
 	void GuiTheme::ApplyWindow(const HWND window) {

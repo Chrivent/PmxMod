@@ -38,8 +38,8 @@ namespace Chrivent {
 	};
 
 	class MotionPanel final : public Panel {
-		static constexpr int kFrameEditId = 4001;
-		static constexpr int kModeButtonId = 4002;
+		static constexpr UINT_PTR kFrameEditId = 4001;
+		static constexpr UINT_PTR kModeButtonId = 4002;
 		static constexpr int kMaxEditableFrame = 65535;
 		static constexpr int kHeaderHeight = 28;
 		static constexpr int kLabelWidth = 150;
@@ -127,7 +127,7 @@ namespace Chrivent {
 		// 현재 언어에 맞춰 모션 패널의 고정 문구를 다시 그린다.
 		void UpdateLanguage() override;
 		// 상단 프레임 입력 칸의 변경과 포커스 해제를 처리한다.
-		bool HandleCommand(int commandId, int notificationCode) override;
+		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모션 타임라인 컨트롤 핸들과 표시 데이터를 정리한다.
 		void Destroy() override;
 		// 선택 모델의 이름과 트랙별 키프레임을 타임라인에 표시한다.
