@@ -274,6 +274,11 @@ namespace Chrivent {
 		return true;
 	}
 
+	void VulkanViewer::WaitIdle() {
+		if (device->GetInfo().device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(device->GetInfo().device);
+	}
+
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {
 		return std::make_unique<VulkanInstance>();
 	}

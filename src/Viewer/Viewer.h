@@ -72,6 +72,8 @@ namespace Chrivent {
         virtual void BeginFrame() = 0;
         // 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
         virtual bool EndFrame() = 0;
+        // 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다린다.
+        virtual void WaitIdle() = 0;
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.

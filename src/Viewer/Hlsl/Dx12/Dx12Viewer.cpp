@@ -171,6 +171,10 @@ namespace Chrivent {
 		return true;
 	}
 
+	void Dx12Viewer::WaitIdle() {
+		commandContext.WaitForGpu(device->GetInfo());
+	}
+
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
 		return std::make_unique<Dx12Instance>();
 	}

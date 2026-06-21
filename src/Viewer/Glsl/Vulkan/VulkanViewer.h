@@ -99,6 +99,8 @@ namespace Chrivent {
 		void BeginFrame() override;
 		// Vulkan 프레임을 제출하고 화면에 표시한다.
 		bool EndFrame() override;
+		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
+		void WaitIdle() override;
 		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

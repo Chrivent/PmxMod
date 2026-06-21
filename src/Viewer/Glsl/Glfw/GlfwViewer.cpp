@@ -76,6 +76,11 @@ namespace Chrivent {
 		return true;
 	}
 
+	void GlfwViewer::WaitIdle() {
+		glfwMakeContextCurrent(GetInfo().window);
+		glFinish();
+	}
+
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {
 		return std::make_unique<GlfwInstance>();
 	}

@@ -200,10 +200,15 @@ namespace Chrivent {
     bool Program::ChangeRenderer(const RendererType rendererType) {
         if (rendererType == currentRendererType)
             return true;
+        const bool resumePlayback = cameraManager.IsPlaying();
+        const int playbackFrame = viewer ? viewer->GetInfo().animTime * 30.0f + 0.5f : 0;
+        GLFWwindow* previousWindow = viewer ? viewer->GetInfo().window : nullptr;
+        if (viewer)
+            viewer->WaitIdle();
         ClearInstances();
-        if (viewer && viewer->GetInfo().window)
-            glfwDestroyWindow(viewer->GetInfo().window);
         viewer.reset();
+        if (previousWindow)
+            glfwDestroyWindow(previousWindow);
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
@@ -211,17 +216,24 @@ namespace Chrivent {
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
         panelManager.BindSound(music);
+        cameraManager.SeekFrame(viewer->GetInfo(), music, playbackFrame, saveTime);
+        SyncSeekedPhysics(playbackFrame);
+        if (resumePlayback)
+            cameraManager.Play(music);
         cameraManager.UpdateCamera(viewer->GetInfo());
         return true;
     }
 
     void Program::Shutdown() {
+        GLFWwindow* window = viewer ? viewer->GetInfo().window : nullptr;
+        if (viewer)
+            viewer->WaitIdle();
         ClearInstances();
         music.Stop();
         panelManager.DestroyGui();
-        if (viewer && viewer->GetInfo().window)
-            glfwDestroyWindow(viewer->GetInfo().window);
         viewer.reset();
+        if (window)
+            glfwDestroyWindow(window);
         glfwTerminate();
     }
 

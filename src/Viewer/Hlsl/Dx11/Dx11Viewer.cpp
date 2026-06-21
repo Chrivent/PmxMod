@@ -182,6 +182,21 @@ namespace Chrivent {
 		return true;
 	}
 
+	void Dx11Viewer::WaitIdle() {
+		const auto& deviceResources = GetDx11Info().deviceResources;
+		if (!deviceResources.device || !deviceResources.context)
+			return;
+		D3D11_QUERY_DESC queryDesc{};
+		queryDesc.Query = D3D11_QUERY_EVENT;
+		Microsoft::WRL::ComPtr<ID3D11Query> query;
+		if (FAILED(deviceResources.device->CreateQuery(&queryDesc, &query)))
+			return;
+		deviceResources.context->End(query.Get());
+		deviceResources.context->Flush();
+		while (deviceResources.context->GetData(query.Get(), nullptr, 0, 0) == S_FALSE)
+			SwitchToThread();
+	}
+
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {
 		return std::make_unique<Dx11Instance>();
 	}

@@ -18,6 +18,8 @@ namespace Chrivent {
 				batch = currentBatch;
 			}
 			ExecuteWork(batch);
+			if (batch->remainingOperationCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+				batch->remainingOperationCount.notify_one();
 		}
 	}
 
@@ -27,8 +29,8 @@ namespace Chrivent {
 			if (index >= batch->workCount)
 				return;
 			batch->work(index);
-			if (batch->remainingCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-				batch->completionCondition.notify_one();
+			if (batch->remainingOperationCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+				batch->remainingOperationCount.notify_one();
 		}
 	}
 
@@ -52,7 +54,7 @@ namespace Chrivent {
 	void TaskExecutor::Run(const std::size_t count, std::function<void(std::size_t)> task) {
 		if (count == 0)
 			return;
-		const auto batch = std::make_shared<TaskBatch>(count, std::move(task));
+		const auto batch = std::make_shared<TaskBatch>(count, workers.size(), std::move(task));
 		{
 			const std::lock_guard lock(mutex);
 			currentBatch = batch;
@@ -60,9 +62,10 @@ namespace Chrivent {
 		}
 		workCondition.notify_all();
 		ExecuteWork(batch);
-		std::unique_lock lock(batch->completionMutex);
-		batch->completionCondition.wait(lock, [&] {
-			return batch->remainingCount.load(std::memory_order_acquire) == 0;
-		});
+		std::size_t remainingOperationCount = batch->remainingOperationCount.load(std::memory_order_acquire);
+		while (remainingOperationCount != 0) {
+			batch->remainingOperationCount.wait(remainingOperationCount, std::memory_order_acquire);
+			remainingOperationCount = batch->remainingOperationCount.load(std::memory_order_acquire);
+		}
 	}
 }

@@ -53,6 +53,8 @@ namespace Chrivent {
         void BeginFrame() override;
         // GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
         bool EndFrame() override;
+        // OpenGL 명령이 모두 처리될 때까지 기다린다.
+        void WaitIdle() override;
         // OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
 

@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <atomic>
-#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -12,17 +11,13 @@
 namespace Chrivent {
 	class TaskExecutor {
 		struct TaskBatch {
-			explicit TaskBatch(const std::size_t count, std::function<void(std::size_t)> task)
-				: work(std::move(task)),
-				  workCount(count),
-				  remainingCount(count) {}
+			explicit TaskBatch(const std::size_t count, const std::size_t workerCount, std::function<void(std::size_t)> task)
+				: work(std::move(task)), workCount(count), remainingOperationCount(count + workerCount) {}
 
 			std::function<void(std::size_t)> work;
 			std::size_t workCount;
 			std::atomic_size_t nextIndex = 0;
-			std::atomic_size_t remainingCount;
-			std::mutex completionMutex;
-			std::condition_variable completionCondition;
+			std::atomic_size_t remainingOperationCount;
 		};
 
 		std::vector<std::thread> workers;
