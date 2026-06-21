@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <windowsx.h>
 
 namespace Chrivent {
 	LRESULT CALLBACK InterpolationCurvePanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -20,6 +21,9 @@ namespace Chrivent {
 		if (!panel)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
+			case WM_LBUTTONDOWN:
+				panel->SelectControlPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+				return 0;
 			case WM_ERASEBKGND:
 				return 1;
 			case WM_PAINT: {
@@ -45,6 +49,65 @@ namespace Chrivent {
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
 
+	void InterpolationCurvePanel::SelectControlPoint(const int x, const int y) {
+		const int previousChannel = selectedChannel;
+		const int previousCurve = selectedCurve;
+		const int previousControlPoint = selectedControlPoint;
+		selectedChannel = -1;
+		selectedCurve = -1;
+		selectedControlPoint = -1;
+		if (selection.selectedKeyCount == 1 && graphWindow) {
+			RECT client{};
+			GetClientRect(graphWindow, &client);
+			const size_t channelCount = selection.channels.size();
+			const int width = client.right - client.left;
+			const int height = client.bottom - client.top;
+			const int channelHeight = channelCount == 0 ? 0 : height / channelCount;
+			for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
+				constexpr int labelHeight = 18;
+				constexpr int padding = 12;
+				const auto& [name, curves] = selection.channels[channelIndex];
+				const int areaTop = channelIndex * channelHeight;
+				const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
+				const int graphSize = (std::max)(0,
+					(std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
+				if (graphSize <= 0)
+					continue;
+				const int left = (width - graphSize) / 2;
+				const int top = areaTop + labelHeight + (areaBottom - areaTop - labelHeight - graphSize) / 2;
+				const int bottom = top + graphSize;
+				for (size_t curveIndex = 0; curveIndex < curves.size(); curveIndex++) {
+					const auto& [p1, p2] = curves[curveIndex];
+					const POINT points[] = {
+						{
+							left + std::lround(std::clamp(p1.x, 0.0f, 1.0f) * graphSize),
+							bottom - std::lround(std::clamp(p1.y, 0.0f, 1.0f) * graphSize)
+						},
+						{
+							left + std::lround(std::clamp(p2.x, 0.0f, 1.0f) * graphSize),
+							bottom - std::lround(std::clamp(p2.y, 0.0f, 1.0f) * graphSize)
+						}
+					};
+					for (int pointIndex = 0; pointIndex < 2; pointIndex++) {
+						if (std::abs(x - points[pointIndex].x) + std::abs(y - points[pointIndex].y) > 7)
+							continue;
+						selectedChannel = channelIndex;
+						selectedCurve = curveIndex;
+						selectedControlPoint = pointIndex;
+						break;
+					}
+					if (selectedControlPoint >= 0)
+						break;
+				}
+				if (selectedControlPoint >= 0)
+					break;
+			}
+		}
+		if (selectedChannel != previousChannel || selectedCurve != previousCurve ||
+			selectedControlPoint != previousControlPoint)
+			InvalidateRect(graphWindow, nullptr, FALSE);
+	}
+
 	void InterpolationCurvePanel::Paint(const HDC deviceContext) const {
 		RECT client{};
 		GetClientRect(graphWindow, &client);
@@ -59,8 +122,8 @@ namespace Chrivent {
 		for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
 			constexpr int labelHeight = 18;
 			constexpr int padding = 12;
-			const auto& channel = selection.channels[channelIndex];
-			if (channel.curves.empty())
+			const auto& [name, curves] = selection.channels[channelIndex];
+			if (curves.empty())
 				continue;
 			const int areaTop = channelIndex * channelHeight;
 			const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
@@ -71,8 +134,8 @@ namespace Chrivent {
 			const int top = areaTop + labelHeight + (areaBottom - areaTop - labelHeight - graphSize) / 2;
 			const int right = left + graphSize;
 			const int bottom = top + graphSize;
-			GuiDrawer::DrawTextLine(deviceContext, channel.name,
-				{padding, areaTop, width - padding, areaTop + labelHeight},
+			GuiDrawer::DrawTextLine(deviceContext, name,
+				{ padding, areaTop, width - padding, areaTop + labelHeight },
 				RGB(220, 224, 230),
 				DT_LEFT | DT_END_ELLIPSIS);
 			for (int index = 0; index <= 10; index++) {
@@ -84,8 +147,8 @@ namespace Chrivent {
 				GuiDrawer::DrawLine(deviceContext, x, top, x, bottom, color);
 				GuiDrawer::DrawLine(deviceContext, left, y, right, y, color);
 			}
-			for (size_t curveIndex = 0; curveIndex < channel.curves.size(); curveIndex++) {
-				const auto& curve = channel.curves[curveIndex];
+			for (size_t curveIndex = 0; curveIndex < curves.size(); curveIndex++) {
+				const auto& [p1, p2] = curves[curveIndex];
 				const auto ToPoint = [&](const glm::vec2 point) {
 					return POINT{
 						left + std::lround(std::clamp(point.x, 0.0f, 1.0f) * graphSize),
@@ -93,10 +156,10 @@ namespace Chrivent {
 					};
 				};
 				const POINT controlPoints[] = {
-					{left, bottom},
-					ToPoint(curve.p1),
-					ToPoint(curve.p2),
-					{right, top}
+					{ left, bottom },
+					ToPoint(p1),
+					ToPoint(p2),
+					{ right, top }
 				};
 				if (showControlPoints) {
 					GuiDrawer::DrawLine(
@@ -120,8 +183,16 @@ namespace Chrivent {
 				SelectObject(deviceContext, previousPen);
 				DeleteObject(curvePen);
 				if (showControlPoints) {
-					GuiDrawer::DrawCircle(deviceContext, controlPoints[1].x, controlPoints[1].y, 3, RGB(174, 179, 188));
-					GuiDrawer::DrawCircle(deviceContext, controlPoints[2].x, controlPoints[2].y, 3, RGB(174, 179, 188));
+					for (int pointIndex = 0; pointIndex < 2; pointIndex++) {
+						const bool selected = selectedChannel == channelIndex
+							&& selectedCurve == curveIndex
+							&& selectedControlPoint == pointIndex;
+						const COLORREF color = selected
+							? GuiTheme::GetSelectedCurveKeyColor()
+							: RGB(174, 179, 188);
+						GuiDrawer::DrawDiamond(
+							deviceContext, controlPoints[pointIndex + 1].x, controlPoints[pointIndex + 1].y, 5, color);
+					}
 				}
 			}
 		}
@@ -164,10 +235,16 @@ namespace Chrivent {
 			DestroyWindow(graphWindow);
 		graphWindow = nullptr;
 		selection = {};
+		selectedChannel = -1;
+		selectedCurve = -1;
+		selectedControlPoint = -1;
 	}
 
 	void InterpolationCurvePanel::SetSelection(InterpolationSelection interpolationSelection) {
 		selection = std::move(interpolationSelection);
+		selectedChannel = -1;
+		selectedCurve = -1;
+		selectedControlPoint = -1;
 		if (graphWindow)
 			InvalidateRect(graphWindow, nullptr, TRUE);
 	}

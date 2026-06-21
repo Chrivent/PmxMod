@@ -275,7 +275,7 @@ namespace Chrivent {
 		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
 		for (int index = 0; index < legendCount; index++) {
 			const int y = top + 12 + index * 22;
-			GuiDrawer::DrawCircle(deviceContext, 18, y, 4, GuiTheme::GetCurveColor(index));
+			GuiDrawer::DrawDiamond(deviceContext, 18, y, 5, GuiTheme::GetCurveColor(index));
 			GuiDrawer::DrawTextLine(deviceContext, row.curveNames[index],
 				{30, y - 10, kLabelWidth - 6, y + 10}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 		}

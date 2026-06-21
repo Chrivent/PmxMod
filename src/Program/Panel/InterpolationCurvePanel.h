@@ -20,9 +20,14 @@ namespace Chrivent {
 	class InterpolationCurvePanel final : public Panel {
 		HWND graphWindow = nullptr;
 		InterpolationSelection selection;
+		int selectedChannel = -1;
+		int selectedCurve = -1;
+		int selectedControlPoint = -1;
 
 		// 보간 곡선 그래프 컨트롤의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// 클릭한 보간 제어점을 선택하고 빈 영역이면 선택을 해제한다.
+		void SelectControlPoint(int x, int y);
 		// 현재 그래프 영역에 눈금, 제어점, 보간 곡선을 그린다.
 		void Paint(HDC deviceContext) const;
 

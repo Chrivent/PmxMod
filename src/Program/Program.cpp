@@ -311,8 +311,8 @@ namespace Chrivent {
         for (const auto& instance : instances) {
             if (instance && instance->GetInfo().anim) {
                 const uint32_t animationLastFrame = instance->GetInfo().anim->GetLastFrame();
-                const int timelineLastFrame = static_cast<int>((std::min)(
-                    animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)())));
+                const int timelineLastFrame = (std::min)(
+                    animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)()));
                 lastFrame = (std::max)(lastFrame, timelineLastFrame);
             }
         }

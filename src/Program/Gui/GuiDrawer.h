@@ -16,8 +16,6 @@ namespace Chrivent {
 		static void DrawLine(HDC deviceContext, int x1, int y1, int x2, int y2, COLORREF color);
 		// 지정한 중심과 반지름으로 채워진 마름모를 그린다.
 		static void DrawDiamond(HDC deviceContext, int centerX, int centerY, int radius, COLORREF color);
-		// 지정한 중심과 반지름으로 채워진 원을 그린다.
-		static void DrawCircle(HDC deviceContext, int centerX, int centerY, int radius, COLORREF color);
 		// 펼침 상태에 따라 오른쪽 또는 아래쪽을 향하는 삼각형을 그린다.
 		static void DrawTriangle(HDC deviceContext, int centerX, int centerY, int radius, bool expanded, COLORREF color);
 		// 지정한 영역에 한 줄 텍스트를 그린다.
