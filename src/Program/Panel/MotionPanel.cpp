@@ -265,8 +265,10 @@ namespace Chrivent {
 				const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
 				if (x > right)
 					break;
-				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]),
-					key.selected ? 6 : 5, GuiTheme::GetCurveKeyColor(channelIndex));
+				const COLORREF keyColor = key.selected
+					? GuiTheme::GetSelectedCurveKeyColor()
+					: GuiTheme::GetCurveColor(channelIndex);
+				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5, keyColor);
 			}
 		}
 		RestoreDC(deviceContext, savedDc);

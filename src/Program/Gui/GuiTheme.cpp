@@ -14,22 +14,14 @@ namespace Chrivent {
 			RGB(120, 225, 130),
 			RGB(105, 165, 255),
 			RGB(214, 145, 255),
-			RGB(255, 190, 95),
+			RGB(255, 135, 185),
 			RGB(95, 220, 220)
 		};
 		return colors[channelIndex % std::size(colors)];
 	}
 
-	COLORREF GuiTheme::GetCurveKeyColor(const std::size_t channelIndex) {
-		constexpr COLORREF colors[] = {
-			RGB(176, 55, 55),
-			RGB(55, 150, 65),
-			RGB(50, 100, 180),
-			RGB(135, 75, 180),
-			RGB(180, 115, 35),
-			RGB(35, 145, 145)
-		};
-		return colors[channelIndex % std::size(colors)];
+	COLORREF GuiTheme::GetSelectedCurveKeyColor() {
+		return RGB(246, 190, 53);
 	}
 
 	HFONT GuiTheme::GetFont() {
