@@ -6,7 +6,6 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include <array>
 #include <vector>
 
 namespace Chrivent {
@@ -16,19 +15,24 @@ namespace Chrivent {
 
 	struct Dx12InstanceInfo : InstanceInfo {
 		static constexpr size_t kBufferedFrames = 2;
+
+		struct FrameBufferSet {
+			Dx12Buffer buffers[kBufferedFrames];
+		};
+
 		Dx12Viewer* viewer = nullptr;
-		std::array<Dx12Buffer, kBufferedFrames> vertexBuffers;
+		Dx12Buffer vertexBuffers[kBufferedFrames];
 		Dx12Buffer indexBuffer;
-		std::array<D3D12_VERTEX_BUFFER_VIEW, kBufferedFrames> vertexBufferViews{};
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[kBufferedFrames]{};
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
-		std::array<Dx12Buffer, kBufferedFrames> modelVertexConstantBuffers;
-		std::vector<std::array<Dx12Buffer, kBufferedFrames>> modelPixelConstantBuffers;
-		std::array<Dx12Buffer, kBufferedFrames> edgeVertexConstantBuffers;
-		std::vector<std::array<Dx12Buffer, kBufferedFrames>> edgeSizeConstantBuffers;
-		std::vector<std::array<Dx12Buffer, kBufferedFrames>> edgePixelConstantBuffers;
-		std::array<Dx12Buffer, kBufferedFrames> groundShadowVertexConstantBuffers;
-		std::array<Dx12Buffer, kBufferedFrames> groundShadowPixelConstantBuffers;
+		Dx12Buffer modelVertexConstantBuffers[kBufferedFrames];
+		std::vector<FrameBufferSet> modelPixelConstantBuffers;
+		Dx12Buffer edgeVertexConstantBuffers[kBufferedFrames];
+		std::vector<FrameBufferSet> edgeSizeConstantBuffers;
+		std::vector<FrameBufferSet> edgePixelConstantBuffers;
+		Dx12Buffer groundShadowVertexConstantBuffers[kBufferedFrames];
+		Dx12Buffer groundShadowPixelConstantBuffers[kBufferedFrames];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;
 		UINT textureDescriptorSize = 0;
 		std::vector<Dx12Material> materials;

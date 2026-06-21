@@ -72,7 +72,8 @@ namespace Chrivent {
 		if (FAILED(fence->SetEventOnCompletion(waitValue, fenceEvent)))
 			return false;
 		WaitForSingleObject(fenceEvent, INFINITE);
-		frameFenceValues.fill(0);
+		for (uint64_t& frameFenceValue : frameFenceValues)
+			frameFenceValue = 0;
 		return true;
 	}
 
@@ -85,7 +86,8 @@ namespace Chrivent {
 		commandList.Reset();
 		for (auto& commandAllocator : commandAllocators)
 			commandAllocator.Reset();
-		frameFenceValues = {};
+		for (uint64_t& frameFenceValue : frameFenceValues)
+			frameFenceValue = 0;
 		nextFenceValue = 1;
 		frameIndex = 0;
 	}

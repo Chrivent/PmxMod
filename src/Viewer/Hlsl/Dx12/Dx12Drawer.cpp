@@ -76,7 +76,7 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId].buffers[frameIndex];
 			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
@@ -121,14 +121,14 @@ namespace Chrivent {
 				continue;
 			HlslEdgeSizeConstants edgeSizeConstants{};
 			edgeSizeConstants.edgeSize = mat.edgeSize;
-			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId].buffers[frameIndex];
 			if (!edgeSizeConstantBuffer.Write(&edgeSizeConstants, sizeof(edgeSizeConstants))) {
 				std::cerr << "Failed to update DX12 edge size constants.\n";
 				continue;
 			}
 			HlslEdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
-			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId].buffers[frameIndex];
 			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
 				continue;

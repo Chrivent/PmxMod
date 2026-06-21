@@ -65,22 +65,22 @@ namespace Chrivent {
 		}
 		const size_t materialCount = info.model->materialData.materials.size();
 		info.modelPixelConstantBuffers.resize(materialCount);
-		for (auto& frameBuffers : info.modelPixelConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers) {
+		for (auto& [buffers] : info.modelPixelConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers) {
 				if (!buffer.InitializeUpload(deviceInfo, pixelConstantSize))
 					return false;
 			}
 		}
 		info.edgeSizeConstantBuffers.resize(materialCount);
-		for (auto& frameBuffers : info.edgeSizeConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers) {
+		for (auto& [buffers] : info.edgeSizeConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers) {
 				if (!buffer.InitializeUpload(deviceInfo, edgeSizeConstantSize))
 					return false;
 			}
 		}
 		info.edgePixelConstantBuffers.resize(materialCount);
-		for (auto& frameBuffers : info.edgePixelConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers) {
+		for (auto& [buffers] : info.edgePixelConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers) {
 				if (!buffer.InitializeUpload(deviceInfo, edgePixelConstantSize))
 					return false;
 			}
@@ -159,20 +159,20 @@ namespace Chrivent {
 		info.indexBuffer.Destroy();
 		for (Dx12Buffer& buffer : info.modelVertexConstantBuffers)
 			buffer.Destroy();
-		for (auto& frameBuffers : info.modelPixelConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers)
+		for (auto& [buffers] : info.modelPixelConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers)
 				buffer.Destroy();
 		}
 		info.modelPixelConstantBuffers.clear();
 		for (Dx12Buffer& buffer : info.edgeVertexConstantBuffers)
 			buffer.Destroy();
-		for (auto& frameBuffers : info.edgeSizeConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers)
+		for (auto& [buffers] : info.edgeSizeConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers)
 				buffer.Destroy();
 		}
 		info.edgeSizeConstantBuffers.clear();
-		for (auto& frameBuffers : info.edgePixelConstantBuffers) {
-			for (Dx12Buffer& buffer : frameBuffers)
+		for (auto& [buffers] : info.edgePixelConstantBuffers) {
+			for (Dx12Buffer& buffer : buffers)
 				buffer.Destroy();
 		}
 		info.edgePixelConstantBuffers.clear();
@@ -182,7 +182,8 @@ namespace Chrivent {
 			buffer.Destroy();
 		info.textureDescriptorHeap.Reset();
 		info.textureDescriptorSize = 0;
-		info.vertexBufferViews = {};
+		for (auto& vertexBufferView : info.vertexBufferViews)
+			vertexBufferView = {};
 		info.indexBufferView = {};
 		info.indexCount = 0;
 		info.materials.clear();

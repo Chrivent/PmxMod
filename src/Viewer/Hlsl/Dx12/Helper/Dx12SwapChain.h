@@ -2,7 +2,6 @@
 
 #include "Dx12Device.h"
 
-#include <array>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <windows.h>
@@ -14,7 +13,7 @@ namespace Chrivent {
 
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, kFrameCount> backBuffers{};
+		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffers[kFrameCount]{};
 		UINT rtvDescriptorSize = 0;
 		UINT frameIndex = 0;
 

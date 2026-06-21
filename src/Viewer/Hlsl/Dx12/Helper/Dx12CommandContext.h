@@ -2,7 +2,6 @@
 
 #include "Dx12Device.h"
 
-#include <array>
 #include <cstdint>
 #include <d3d12.h>
 #include <windows.h>
@@ -12,11 +11,11 @@ namespace Chrivent {
 	class Dx12CommandContext {
 		static constexpr UINT kFrameCount = 2;
 
-		std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, kFrameCount> commandAllocators{};
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocators[kFrameCount]{};
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
 		HANDLE fenceEvent = nullptr;
-		std::array<uint64_t, kFrameCount> frameFenceValues{};
+		uint64_t frameFenceValues[kFrameCount]{};
 		uint64_t nextFenceValue = 1;
 		UINT frameIndex = 0;
 
