@@ -195,12 +195,12 @@ namespace Chrivent {
 				continue;
 			if (!group.grouped) {
 				for (const auto& row : group.rows)
-					count += 1 + (row.expanded ? static_cast<int>(row.curveNames.size()) * curveRowUnits : 0);
+					count += 1 + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
 			} else {
 				count++;
 				if (group.expanded) {
 					for (const auto& row : group.rows)
-						count += 1 + (row.expanded ? static_cast<int>(row.curveNames.size()) * curveRowUnits : 0);
+						count += 1 + (row.expanded ? row.curveNames.size() * curveRowUnits : 0);
 				}
 			}
 		}
@@ -281,8 +281,7 @@ namespace Chrivent {
 			DeleteObject(curvePen);
 		}
 		for (const auto& key : row.keys) {
-			if (channelIndex >= key.values.size() ||
-				key.frame < static_cast<uint32_t>(firstFrame))
+			if (channelIndex >= key.values.size() || key.frame < firstFrame)
 				continue;
 			const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
 			if (x > right)
@@ -358,11 +357,11 @@ namespace Chrivent {
 				return;
 			}
 			if (group) {
-				auto frame = std::ranges::lower_bound(group->keyFrames, static_cast<uint32_t>(firstFrame));
+				auto frame = std::ranges::lower_bound(group->keyFrames, firstFrame);
 				for (; frame != group->keyFrames.end() && *frame <= lastVisibleFrame; ++frame)
 					DrawKey(*frame, IsGroupFrameSelected(*group, *frame));
 			} else if (row) {
-				auto key = std::ranges::lower_bound(row->keys, static_cast<uint32_t>(firstFrame), {}, &MotionTimelineKey::frame);
+				auto key = std::ranges::lower_bound(row->keys, firstFrame, {}, &MotionTimelineKey::frame);
 				for (; key != row->keys.end() && key->frame <= lastVisibleFrame; ++key)
 					DrawKey(key->frame, key->selected);
 			}
@@ -394,7 +393,7 @@ namespace Chrivent {
 				if (row.expanded) {
 					for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++)
 						DrawRow(row.curveNames[channelIndex], nullptr, &row, false, false, true, 42,
-							static_cast<int>(channelIndex), kCurveRowHeight / kRowHeight);
+							channelIndex, kCurveRowHeight / kRowHeight);
 				}
 				if (paintedRows >= visibleRows)
 					break;

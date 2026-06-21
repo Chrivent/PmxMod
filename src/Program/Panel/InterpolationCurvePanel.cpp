@@ -61,7 +61,7 @@ namespace Chrivent {
 		};
 		const int width = client.right - client.left;
 		const int height = client.bottom - client.top;
-		const int channelHeight = height / static_cast<int>(channelCount);
+		const int channelHeight = height / channelCount;
 		const bool showControlPoints = selection.selectedKeyCount == 1;
 		for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
 			constexpr int labelHeight = 18;
@@ -69,10 +69,8 @@ namespace Chrivent {
 			const auto& channel = selection.channels[channelIndex];
 			if (channel.curves.empty())
 				continue;
-			const int areaTop = static_cast<int>(channelIndex) * channelHeight;
-			const int areaBottom = channelIndex + 1 == channelCount
-				? height
-				: areaTop + channelHeight;
+			const int areaTop = channelIndex * channelHeight;
+			const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
 			const int graphSize = (std::max)(0, (std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
 			if (graphSize <= 0)
 				continue;
@@ -80,9 +78,7 @@ namespace Chrivent {
 			const int top = areaTop + labelHeight + (areaBottom - areaTop - labelHeight - graphSize) / 2;
 			const int right = left + graphSize;
 			const int bottom = top + graphSize;
-			GuiDrawer::DrawTextLine(
-				deviceContext,
-				channel.name,
+			GuiDrawer::DrawTextLine(deviceContext, channel.name,
 				{padding, areaTop, width - padding, areaTop + labelHeight},
 				RGB(220, 224, 230),
 				DT_LEFT | DT_END_ELLIPSIS);

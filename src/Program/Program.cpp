@@ -47,7 +47,7 @@ namespace Chrivent {
         const unsigned long long parsed = std::wcstoull(value, &end, 10);
         if (!value[0] || !end || *end != L'\0')
             return false;
-        count = static_cast<std::size_t>(parsed);
+        count = parsed;
         return true;
     }
 
