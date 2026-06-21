@@ -5,6 +5,7 @@
 #include "../Core/Animation/Model/AnimationBuilder.h"
 #include "../Core/Model/ModelLoader.h"
 #include "../Core/Model/ModelAnimator.h"
+#include "../Core/Model/ModelPose.h"
 #include "../Core/Parser/VmdParser.h"
 #include "../Viewer/Glsl/Glfw/GlfwViewer.h"
 #include "../Viewer/Glsl/Vulkan/VulkanViewer.h"
@@ -323,6 +324,16 @@ namespace Chrivent {
         }
     }
 
+    void Program::ResetPhysics(const int frame) const {
+        for (const auto& instance : instances) {
+            if (!instance || !instance->GetInfo().model || !instance->GetInfo().anim)
+                continue;
+            const ModelPose pose(*instance->GetInfo().model);
+            pose.ResetPhysics();
+        }
+        SyncSeekedPhysics(frame);
+    }
+
     void Program::UpdateMotionPanel(const size_t modelIndex) {
         if (modelIndex >= instances.size() || !instances[modelIndex] || !instances[modelIndex]->GetInfo().model)
             return;
@@ -558,6 +569,10 @@ namespace Chrivent {
                 return false;
             return true;
         }
+        if (panelManager.ConsumePhysicsResetRequest()) {
+            const int currentFrame = viewer->GetInfo().animTime * 30.0f + 0.5f;
+            ResetPhysics(currentFrame);
+        }
         std::filesystem::path modelPath;
         if (panelManager.ConsumeAddModelPath(modelPath)) {
             SceneConfig sceneConfig = panelManager.GetSceneConfig();
@@ -613,6 +628,7 @@ namespace Chrivent {
             case PlaybackCommand::None:
                 break;
         }
+        cameraManager.SetMotionCameraEnabled(panelManager.IsCameraMode(), viewer->GetInfo());
         inputManager.Update(viewer->GetInfo());
         cameraManager.HandleInput(inputManager, viewer->GetInfo(), music);
         if (!UpdateFramebufferSize())
@@ -644,8 +660,9 @@ namespace Chrivent {
             modelUpdateTimings.clear();
             modelUpdateTimings.resize(instances.size());
         }
+        const bool physicsEnabled = panelManager.IsPhysicsEnabled();
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-            instances[index]->PrepareUpdate(viewer->GetInfo(), timing ? &modelUpdateTimings[index] : nullptr);
+            instances[index]->PrepareUpdate(viewer->GetInfo(), physicsEnabled, timing ? &modelUpdateTimings[index] : nullptr);
         });
         const auto animationEnd = std::chrono::steady_clock::now();
         skinningTaskOffsets.resize(instances.size() + 1);

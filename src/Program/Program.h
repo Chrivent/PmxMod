@@ -82,6 +82,8 @@ namespace Chrivent {
         int CalculatePlaybackLastFrame() const;
         // 지정한 프레임으로 이동한 직후 모델 물리 상태를 동기화한다.
         void SyncSeekedPhysics(int frame) const;
+        // 모든 모델의 물리를 초기화하고 지정한 프레임 상태로 다시 동기화한다.
+        void ResetPhysics(int frame) const;
         // 선택된 모델의 본, IK, 모프 키프레임을 모션 패널에 표시한다.
         void UpdateMotionPanel(size_t modelIndex);
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.

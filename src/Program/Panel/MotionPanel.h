@@ -114,6 +114,8 @@ namespace Chrivent {
 	public:
 		MotionPanel() = default;
 
+		MotionTimelineMode GetMode() const { return mode; }
+
 		// 부모 윈도우 아래에 모션 타임라인 컨트롤을 생성한다.
 		void Create(HWND parent) override;
 		// 패널 크기에 맞춰 모션 타임라인 컨트롤 배치를 갱신한다.

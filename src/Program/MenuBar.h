@@ -14,6 +14,8 @@ namespace Chrivent {
 		static constexpr int kDirectX11RendererId = 1101;
 		static constexpr int kDirectX12RendererId = 1102;
 		static constexpr int kVulkanRendererId = 1103;
+		static constexpr int kPhysicsEnabledId = 1150;
+		static constexpr int kPhysicsResetId = 1151;
 		static constexpr int kFpsViewId = 1200;
 		static constexpr int kEnglishLanguageId = 1300;
 		static constexpr int kKoreanLanguageId = 1301;
@@ -25,6 +27,8 @@ namespace Chrivent {
 		bool sceneConfigDirty = false;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
+		bool physicsEnabled = true;
+		bool physicsResetRequested = false;
 		bool fpsVisible = false;
 		bool languageDirty = false;
 		HWND ownerWindow = nullptr;
@@ -50,6 +54,7 @@ namespace Chrivent {
 		explicit MenuBar(SceneConfig& config);
 
 		RendererType GetRendererType() const { return rendererType; }
+		bool IsPhysicsEnabled() const { return physicsEnabled; }
 		bool IsFpsVisible() const { return fpsVisible; }
 		void SetOwnerWindow(const HWND owner) { ownerWindow = owner; }
 
@@ -65,6 +70,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty();
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
+		// 물리 초기화 요청을 반환하고 내부 플래그를 초기화한다.
+		bool ConsumePhysicsResetRequest();
 		// 언어 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeLanguageDirty();
 	};

@@ -46,6 +46,8 @@ namespace Chrivent {
 
 		SceneConfig& GetSceneConfig() { return sceneConfigStorage; }
 		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
+		bool IsPhysicsEnabled() const { return menuBar.IsPhysicsEnabled(); }
+		bool IsCameraMode() const { return motionPanel.GetMode() == MotionTimelineMode::Camera; }
 		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
@@ -68,6 +70,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
+		// 물리 초기화 요청을 반환하고 내부 플래그를 초기화한다.
+		bool ConsumePhysicsResetRequest() { return menuBar.ConsumePhysicsResetRequest(); }
 		// 언어 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.

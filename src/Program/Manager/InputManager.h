@@ -7,7 +7,6 @@ namespace Chrivent {
 
 	struct InputState {
 		bool togglePause = false;
-		bool toggleCameraMode = false;
 		bool moveForward = false;
 		bool moveBackward = false;
 		bool moveLeft = false;
@@ -21,7 +20,6 @@ namespace Chrivent {
 	class InputManager {
 		InputState state;
 		bool prevSpaceDown = false;
-		bool prevRDown = false;
 		bool prevRightMouseDown = false;
 		double prevCursorX = 0.0;
 		double prevCursorY = 0.0;

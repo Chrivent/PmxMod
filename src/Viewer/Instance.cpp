@@ -16,15 +16,11 @@ namespace Chrivent {
             drawer->Draw();
     }
 
-    void Instance::PrepareUpdate(const ViewerInfo& viewerInfo, ModelUpdateTiming* timing) const {
+    void Instance::PrepareUpdate(const ViewerInfo& viewerInfo, const bool physicsEnabled, ModelUpdateTiming* timing) const {
         const auto& instanceInfo = GetInfo();
         const ModelUpdater updater(*instanceInfo.model);
-        updater.Prepare(
-            instanceInfo.anim.get(),
-            viewerInfo.animTime * 30.0f,
-            viewerInfo.elapsed,
-            !viewerInfo.skipPhysics,
-            timing);
+        updater.Prepare(instanceInfo.anim.get(), viewerInfo.animTime * 30.0f, viewerInfo.elapsed,
+            physicsEnabled && !viewerInfo.skipPhysics, timing);
     }
 
     std::size_t Instance::GetSkinningTaskCount() const {

@@ -32,6 +32,14 @@ namespace Chrivent {
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}
 
+	void CameraManager::SetMotionCameraEnabled(const bool enabled, const ViewerInfo& viewerInfo) {
+		if (useMotionCamera == enabled)
+			return;
+		if (!enabled)
+			SyncFreeCameraToCurrentView(viewerInfo);
+		useMotionCamera = enabled;
+	}
+
 	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
 		viewerInfo.elapsed = 0.0f;
@@ -45,7 +53,6 @@ namespace Chrivent {
 	void CameraManager::Reset() {
 		paused = true;
 		useMotionCamera = true;
-		hasFreeCameraState = false;
 		freeCamPosition = glm::vec3(0.0f, 10.0f, 40.0f);
 		freeCamYaw = glm::radians(-90.0f);
 		freeCamPitch = 0.0f;
@@ -118,7 +125,7 @@ namespace Chrivent {
 	}
 
 	void CameraManager::HandleInput(const InputManager& inputManager, const ViewerInfo& viewerInfo, Sound& music) {
-		const auto& [togglePause, toggleCameraMode,
+		const auto& [togglePause,
 			moveForward, moveBackward,
 			moveLeft, moveRight,
 			moveDown, moveUp,
@@ -129,13 +136,6 @@ namespace Chrivent {
 				music.Pause();
 			else
 				music.Resume();
-		}
-		if (toggleCameraMode) {
-			if (useMotionCamera && !hasFreeCameraState) {
-				SyncFreeCameraToCurrentView(viewerInfo);
-				hasFreeCameraState = true;
-			}
-			useMotionCamera = !useMotionCamera;
 		}
 		if (useMotionCamera)
 			return;

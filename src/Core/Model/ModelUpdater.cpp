@@ -8,12 +8,8 @@
 #include <chrono>
 
 namespace Chrivent {
-	void ModelUpdater::Prepare(
-		const Animation* animation,
-		const float frame,
-		const float physicsElapsed,
-		const bool updatePhysics,
-		ModelUpdateTiming* timing) const {
+	void ModelUpdater::Prepare(const Animation* animation, const float frame, const float physicsElapsed,
+		const bool updatePhysics, ModelUpdateTiming* timing) const {
 		const ModelAnimator animator(model);
 		const ModelPose pose(model);
 		if (!timing) {
