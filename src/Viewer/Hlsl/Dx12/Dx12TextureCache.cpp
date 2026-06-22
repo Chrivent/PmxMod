@@ -6,12 +6,8 @@
 #include <windows.h>
 
 namespace Chrivent {
-	bool Dx12TextureCache::UploadRgbaPixels(
-		const Dx12Device& deviceInfo,
-		const unsigned char* pixels,
-		const UINT width,
-		const UINT height,
-		Dx12Texture& texture) {
+	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& deviceInfo, const unsigned char* pixels,
+		const UINT width, const UINT height, Dx12Texture& texture) {
 		if (!deviceInfo.device || !deviceInfo.commandQueue || pixels == nullptr || width == 0 || height == 0)
 			return false;
 		D3D12_RESOURCE_DESC textureDesc{};

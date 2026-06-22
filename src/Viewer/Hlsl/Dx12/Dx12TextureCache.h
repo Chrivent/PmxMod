@@ -16,12 +16,8 @@ namespace Chrivent {
 
 	class Dx12TextureCache : public TextureCache {
 		// RGBA 픽셀을 DX12 texture resource로 업로드한다.
-		static bool UploadRgbaPixels(
-			const Dx12Device& deviceInfo,
-			const unsigned char* pixels,
-			UINT width,
-			UINT height,
-			Dx12Texture& texture);
+		static bool UploadRgbaPixels(const Dx12Device& deviceInfo, const unsigned char* pixels,
+			UINT width, UINT height, Dx12Texture& texture);
 
 	public:
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 리소스로 반환한다.
