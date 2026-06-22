@@ -2,6 +2,7 @@
 
 #include "RendererType.h"
 #include "Sound.h"
+#include "../Shader/ShaderPackage.h"
 #include "Manager/CameraManager.h"
 #include "Manager/PanelManager.h"
 #include "Manager/InputManager.h"
@@ -46,6 +47,7 @@ namespace Chrivent {
         std::vector<std::unique_ptr<Instance>> instances;
         std::vector<std::size_t> skinningTaskOffsets;
         std::vector<ModelUpdateTiming> modelUpdateTimings;
+        std::vector<ShaderPackage> shaderPackages;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;
@@ -72,6 +74,8 @@ namespace Chrivent {
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.
         void Shutdown();
+        // 실행 파일 리소스 폴더에서 개발용 효과 패키지를 검색한다.
+        void DiscoverShaderPackages();
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.

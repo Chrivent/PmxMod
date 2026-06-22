@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "pmxmod.sample-pass-through",
+  "name": "Sample Pass Through",
+  "version": "1.0.0",
+  "author": "PmxMod",
+  "effects": [
+    "effects/pass-through/effect.json"
+  ]
+}

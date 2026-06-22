@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "pass-through",
+  "name": "Pass Through",
+  "type": "post_process",
+  "passes": [
+    {
+      "name": "main",
+      "shader": "effects/pass-through/effect.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain"
+    }
+  ]
+}

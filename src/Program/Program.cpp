@@ -239,6 +239,21 @@ namespace Chrivent {
         glfwTerminate();
     }
 
+    void Program::DiscoverShaderPackages() {
+        shaderPackages.clear();
+        if (!viewer)
+            return;
+        auto discovery = ShaderPackageLoader::Discover(viewer->shaderDir.parent_path() / "shaders");
+        shaderPackages = std::move(discovery.packages);
+        for (const auto& error : discovery.errors)
+            std::cerr << "Failed to load shader package: " << error << '\n';
+        std::size_t effectCount = 0;
+        for (const auto& package : shaderPackages)
+            effectCount += package.effects.size();
+        std::cout << "shader_packages=" << shaderPackages.size() << '\n';
+        std::cout << "effects=" << effectCount << '\n';
+    }
+
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
         music.Pause();
         std::vector<std::unique_ptr<Instance>> loadedInstances;
@@ -832,6 +847,7 @@ namespace Chrivent {
             std::cerr << "Failed to run.\n";
             return 1;
         }
+        DiscoverShaderPackages();
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
