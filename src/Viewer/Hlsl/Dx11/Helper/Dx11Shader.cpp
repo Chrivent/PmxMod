@@ -43,7 +43,7 @@ namespace Chrivent {
 			std::cerr << "Failed to create DX11 pixel shader: " << file.string() << " entry=" << pixelEntry << '\n';
 			return false;
 		}
-		if (!CreateInputLayout(device, vertexBytecode.Get(), inputElements, inputElementCount, inputLayout)) {
+		if (inputElementCount > 0 && !CreateInputLayout(device, vertexBytecode.Get(), inputElements, inputElementCount, inputLayout)) {
 			std::cerr << "Failed to create DX11 input layout: " << file.string() << '\n';
 			return false;
 		}
@@ -72,5 +72,9 @@ namespace Chrivent {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		return Dx11Shader::Initialize(device, file, inputElements, 1);
+	}
+
+	bool Dx11PostProcessShader::Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry) {
+		return Dx11Shader::Initialize(device, file, nullptr, 0, vertexEntry, pixelEntry);
 	}
 }

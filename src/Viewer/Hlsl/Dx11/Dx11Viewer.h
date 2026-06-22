@@ -32,7 +32,12 @@ namespace Chrivent {
     };
 
     struct Dx11RenderTargets {
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  renderTargetView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         backBuffer;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  backBufferView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         sceneColorMsaa;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  sceneColorMsaaView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         sceneColor;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
     };
@@ -41,6 +46,7 @@ namespace Chrivent {
         Dx11ModelShader         model;
         Dx11EdgeShader          edge;
         Dx11GroundShadowShader  groundShadow;
+        Dx11PostProcessShader   postProcess;
     };
 
     struct Dx11PipelineStates {
@@ -73,8 +79,12 @@ namespace Chrivent {
         void UpdateViewport() const;
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
         bool CreateShaders();
-        // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
+        // 스왑체인과 장면 색상, 깊이 스텐실 리소스를 생성한다.
         bool CreateRenderTargets();
+        // 장면 색상을 셰이더 입력용 단일 샘플 텍스처로 변환한다.
+        void ResolveSceneColor() const;
+        // 준비된 포스트 프로세스 셰이더로 장면 색상을 스왑체인에 그린다.
+        void DrawPostProcess() const;
         // 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
         bool CreatePipelineStates();
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
@@ -95,12 +105,14 @@ namespace Chrivent {
         bool Setup() override;
         // 창 크기에 맞춰 DX11 렌더 타깃과 깊이 버퍼를 재생성한다.
         bool Resize() override;
-        // 렌더 타깃을 지우고 프레임 렌더링을 시작한다.
+        // 장면 색상과 깊이 타깃을 지우고 프레임 렌더링을 시작한다.
         void BeginFrame() override;
-        // 스왑체인을 present해 프레임을 화면에 표시한다.
+        // 장면 색상을 스왑체인으로 복사하고 화면에 표시한다.
         bool EndFrame() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
         void WaitIdle() override;
+        // 첫 번째 패스를 DX11 풀스크린 포스트 프로세스 셰이더로 준비한다.
+        bool LoadPostProcessEffect(const EffectDefinition& effect) override;
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.

@@ -38,4 +38,9 @@ namespace Chrivent {
 		// 지면 그림자 렌더링용 HLSL shader 묶음을 생성한다.
 		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
 	};
+
+	struct Dx11PostProcessShader : Dx11Shader {
+		// 입력 레이아웃이 없는 풀스크린 포스트 프로세스 셰이더를 생성한다.
+		bool Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry);
+	};
 }

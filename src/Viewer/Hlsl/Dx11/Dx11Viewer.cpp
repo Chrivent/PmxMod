@@ -2,6 +2,7 @@
 
 #include "Dx11Instance.h"
 #include "Helper/Dx11DescBuilder.h"
+#include "../../../Shader/ShaderPackage.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
@@ -56,20 +57,57 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		if (FAILED(deviceResources.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+		const auto& device = deviceResources.device;
+		if (FAILED(deviceResources.swapChain->GetBuffer(0, IID_PPV_ARGS(renderTargets.backBuffer.GetAddressOf()))))
 			return false;
-		if (FAILED(deviceResources.device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargets.renderTargetView)))
+		if (FAILED(device->CreateRenderTargetView(renderTargets.backBuffer.Get(), nullptr, &renderTargets.backBufferView)))
 			return false;
-		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
-			screenWidth, screenHeight,
-			DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL,
-			multiSampleCount, multiSampleQuality);
-		if (FAILED(deviceResources.device->CreateTexture2D(&d, nullptr, &renderTargets.depthTex)))
+		const auto sceneColorMsaaDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_RENDER_TARGET, multiSampleCount, multiSampleQuality);
+		if (FAILED(device->CreateTexture2D(&sceneColorMsaaDesc, nullptr, &renderTargets.sceneColorMsaa)))
 			return false;
-		if (FAILED(deviceResources.device->CreateDepthStencilView(renderTargets.depthTex.Get(), nullptr, &renderTargets.depthStencilView)))
+		if (FAILED(device->CreateRenderTargetView(renderTargets.sceneColorMsaa.Get(), nullptr, &renderTargets.sceneColorMsaaView)))
+			return false;
+		const auto sceneColorDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+		if (FAILED(device->CreateTexture2D(&sceneColorDesc, nullptr, &renderTargets.sceneColor)))
+			return false;
+		if (FAILED(device->CreateShaderResourceView(renderTargets.sceneColor.Get(), nullptr, &renderTargets.sceneColorView)))
+			return false;
+		const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL, multiSampleCount, multiSampleQuality);
+		if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &renderTargets.depthTex)))
+			return false;
+		if (FAILED(device->CreateDepthStencilView(renderTargets.depthTex.Get(), nullptr, &renderTargets.depthStencilView)))
 			return false;
 		return true;
+	}
+
+	void Dx11Viewer::ResolveSceneColor() const {
+		auto& context = deviceResources.context;
+		context->OMSetRenderTargets(0, nullptr, nullptr);
+		if (multiSampleCount > 1) {
+			context->ResolveSubresource(
+				renderTargets.sceneColor.Get(), 0,
+				renderTargets.sceneColorMsaa.Get(), 0,
+				DXGI_FORMAT_R8G8B8A8_UNORM);
+		} else {
+			context->CopyResource(renderTargets.sceneColor.Get(), renderTargets.sceneColorMsaa.Get());
+		}
+	}
+
+	void Dx11Viewer::DrawPostProcess() const {
+		auto& context = deviceResources.context;
+		context->OMSetRenderTargets(1, renderTargets.backBufferView.GetAddressOf(), nullptr);
+		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+		context->OMSetDepthStencilState(nullptr, 0);
+		context->RSSetState(pipelineStates.bothFaceRs.Get());
+		context->IASetInputLayout(nullptr);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		context->VSSetShader(shaders.postProcess.vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(shaders.postProcess.pixelShader.Get(), nullptr, 0);
+		context->PSSetShaderResources(0, 1, renderTargets.sceneColorView.GetAddressOf());
+		context->PSSetSamplers(0, 1, pipelineStates.toonTextureSampler.GetAddressOf());
+		context->Draw(3, 0);
+		ID3D11ShaderResourceView* emptyView = nullptr;
+		context->PSSetShaderResources(0, 1, &emptyView);
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {
@@ -154,7 +192,13 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::Resize() {
-		renderTargets.renderTargetView.Reset();
+		deviceResources.context->OMSetRenderTargets(0, nullptr, nullptr);
+		renderTargets.backBuffer.Reset();
+		renderTargets.backBufferView.Reset();
+		renderTargets.sceneColorMsaa.Reset();
+		renderTargets.sceneColorMsaaView.Reset();
+		renderTargets.sceneColor.Reset();
+		renderTargets.sceneColorView.Reset();
 		renderTargets.depthStencilView.Reset();
 		renderTargets.depthTex.Reset();
 		if (FAILED(deviceResources.swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
@@ -166,13 +210,19 @@ namespace Chrivent {
 	}
 
 	void Dx11Viewer::BeginFrame() {
-		deviceResources.context->ClearRenderTargetView(renderTargets.renderTargetView.Get(), clearColor);
+		deviceResources.context->ClearRenderTargetView(renderTargets.sceneColorMsaaView.Get(), clearColor);
 		deviceResources.context->ClearDepthStencilView(renderTargets.depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		deviceResources.context->OMSetRenderTargets(1, renderTargets.renderTargetView.GetAddressOf(), renderTargets.depthStencilView.Get());
+		deviceResources.context->OMSetRenderTargets(1, renderTargets.sceneColorMsaaView.GetAddressOf(), renderTargets.depthStencilView.Get());
 		deviceResources.context->OMSetBlendState(pipelineStates.blendState.Get(), nullptr, 0xffffffff);
 	}
 
 	bool Dx11Viewer::EndFrame() {
+		ResolveSceneColor();
+		if (shaders.postProcess.vertexShader && shaders.postProcess.pixelShader)
+			DrawPostProcess();
+		else
+			deviceResources.context->CopyResource(
+				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
 		if (FAILED(deviceResources.swapChain->Present(0, 0)))
 			return false;
 		return true;
@@ -191,6 +241,14 @@ namespace Chrivent {
 		resources.context->Flush();
 		while (resources.context->GetData(query.Get(), nullptr, 0, 0) == S_FALSE)
 			SwitchToThread();
+	}
+
+	bool Dx11Viewer::LoadPostProcessEffect(const EffectDefinition& effect) {
+		if (effect.passes.empty())
+			return false;
+		const auto& pass = effect.passes.front();
+		return shaders.postProcess.Initialize(deviceResources.device.Get(), pass.shaderPath,
+			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

@@ -252,6 +252,9 @@ namespace Chrivent {
             effectCount += package.effects.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
+        if (!shaderPackages.empty() && !shaderPackages.front().effects.empty() && viewer->LoadPostProcessEffect(shaderPackages.front().effects.front())) {
+            std::cout << "active_effect=" << shaderPackages.front().id << ':' << shaderPackages.front().effects.front().id << '\n';
+        }
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {

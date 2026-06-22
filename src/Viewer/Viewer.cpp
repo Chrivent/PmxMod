@@ -3,12 +3,14 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#include <format>
-
 #define	STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace Chrivent {
+    bool Viewer::LoadPostProcessEffect(const EffectDefinition&) {
+        return false;
+    }
+
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;

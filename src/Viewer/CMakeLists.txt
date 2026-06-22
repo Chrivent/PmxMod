@@ -75,6 +75,7 @@ target_include_directories(PmxModViewer
 target_link_libraries(PmxModViewer
         PUBLIC
         PmxModCore
+        PmxModShader
         glfw
         glad::glad
         glm::glm
