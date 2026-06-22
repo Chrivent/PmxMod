@@ -4,22 +4,22 @@
 namespace Chrivent {
 	void ModelPose::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
 		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
-			return node.get().GetInfo().isDeformAfterPhysics == afterPhysicsAnim;
+			return node.get().isDeformAfterPhysics == afterPhysicsAnim;
 		};
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred))
 			nodeRef.get().UpdateLocalTransform();
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
-			if (node.GetInfo().parent.expired())
+			if (node.parent.expired())
 				node.UpdateGlobalTransform();
 		}
 		for (auto& nodeRef : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
 			auto& node = nodeRef.get();
-			if (!node.GetInfo().appendNode.expired()) {
+			if (!node.appendNode.expired()) {
 				node.UpdateAppendTransform();
 				node.UpdateGlobalTransform();
 			}
-			if (const auto ikSolver = node.GetInfo().ikSolver.lock()) {
+			if (const auto ikSolver = node.ikSolver.lock()) {
 				ikSolver->Solve();
 				node.UpdateGlobalTransform();
 			}
@@ -33,19 +33,19 @@ namespace Chrivent {
 			rb->ApplyActivation(false);
 			rb->ResetTransform();
 		}
-		model.physicsData.physics->GetInfo().world->stepSimulation(
-			1.0f / 60.0f, model.physicsData.physics->GetInfo().maxSubStepCount,
-			1.0f / model.physicsData.physics->GetInfo().fps);
+		model.physicsData.physics->world->stepSimulation(
+			1.0f / 60.0f, model.physicsData.physics->maxSubStepCount,
+			1.0f / model.physicsData.physics->fps);
 		for (const auto& rb : model.physicsData.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}
 		for (const auto& node : model.skeletonData.nodes) {
-			if (node->GetInfo().parent.expired())
+			if (node->parent.expired())
 				node->UpdateGlobalTransform();
 		}
 		for (const auto& rb : model.physicsData.rigidBodies)
-			rb->Reset(model.physicsData.physics->GetInfo());
+			rb->Reset(*model.physicsData.physics);
 	}
 
 	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {
@@ -53,21 +53,21 @@ namespace Chrivent {
 			return;
 		for (const auto& rb : model.physicsData.rigidBodies)
 			rb->ApplyActivation(true);
-		model.physicsData.physics->GetInfo().world->stepSimulation(
-			elapsed, model.physicsData.physics->GetInfo().maxSubStepCount,
-			1.0f / model.physicsData.physics->GetInfo().fps);
+		model.physicsData.physics->world->stepSimulation(
+			elapsed, model.physicsData.physics->maxSubStepCount,
+			1.0f / model.physicsData.physics->fps);
 		for (const auto& rb : model.physicsData.rigidBodies) {
 			rb->ReflectGlobalTransform();
 			rb->CalcLocalTransform();
 		}
 		for (const auto& node : model.skeletonData.nodes) {
-			if (node->GetInfo().parent.expired())
+			if (node->parent.expired())
 				node->UpdateGlobalTransform();
 		}
 	}
 
 	void ModelPose::UpdateTransforms() const {
 		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
-			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->GetInfo().global * model.skeletonData.nodes[i]->GetInfo().inverseInit;
+			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->global * model.skeletonData.nodes[i]->inverseInit;
 	}
 }

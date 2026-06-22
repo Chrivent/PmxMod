@@ -87,7 +87,6 @@ namespace Chrivent {
 		void UpdateHorizontalScrollBar() const;
 		// 고정 파형 트랙을 제외한 타임라인 행 영역의 아래쪽 좌표를 반환한다.
 		int ResolveTimelineBottom() const;
-		// 펼쳐진 그룹을 포함해 현재 화면에 표시할 전체 행 수를 반환한다.
 		int GetVisibleRowCount() const;
 		// 현재 가로 프레임 범위에 맞춰 하단 단일 채널 오디오 파형을 그린다.
 		void DrawWaveform(HDC deviceContext, int top, int right, int bottom) const;
@@ -106,7 +105,7 @@ namespace Chrivent {
 		// 모든 실제 키의 선택 상태를 해제한다.
 		void ClearKeySelection();
 		// 현재 모드에서 표시할 그룹인지 확인한다.
-		bool IsGroupVisible(const MotionTimelineGroup& group) const;
+		bool IsGroupVisible(const MotionTimelineGroup& group) const { return group.mode == mode; }
 		// 그룹의 해당 프레임에 선택된 실제 키가 있는지 확인한다.
 		static bool IsGroupFrameSelected(const MotionTimelineGroup& group, int frame);
 		// 현재 선택된 키와 채널별 보간 곡선을 보간 패널용 데이터로 구성한다.
@@ -127,9 +126,7 @@ namespace Chrivent {
 
 		MotionTimelineMode GetMode() const { return mode; }
 
-		// 모션 타임라인 하단에 표시할 오디오 파형 데이터를 연결한다.
 		void SetWaveform(const AudioWaveform& audioWaveform);
-		// 모델 또는 카메라 타임라인 표시 모드를 설정한다.
 		void SetMode(MotionTimelineMode timelineMode);
 		// 부모 윈도우 아래에 모션 타임라인 컨트롤을 생성한다.
 		void Create(HWND parent) override;
@@ -141,11 +138,8 @@ namespace Chrivent {
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모션 타임라인 컨트롤 핸들과 표시 데이터를 정리한다.
 		void Destroy() override;
-		// 선택 모델의 이름과 트랙별 키프레임을 타임라인에 표시한다.
 		void SetTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups);
-		// 가로 스크롤바가 이동할 수 있는 마지막 프레임을 설정한다.
 		void SetLastFrame(int maxFrame);
-		// 현재 재생 프레임을 타임라인 표시선에 반영한다.
 		void SetCurrentFrame(int frame);
 		// 가로 스크롤바로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);

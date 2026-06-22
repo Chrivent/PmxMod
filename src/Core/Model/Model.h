@@ -131,7 +131,8 @@ namespace Chrivent {
 		std::vector<std::unique_ptr<Joint>>			joints;
 	};
 
-	struct Model {
+	class Model {
+	public:
 		ModelInfoData		infoData;
 		ModelGeometryData	geometryData;
 		ModelMaterialData	materialData;

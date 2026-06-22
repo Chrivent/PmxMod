@@ -118,9 +118,9 @@ namespace Chrivent {
 	void ModelMorph::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 		for (const auto& [boneIndex, position, quaternion] : morphData) {
 			auto* node = model.skeletonData.nodes[boneIndex].get();
-			node->GetInfo().translate += position * weight;
+			node->translate += position * weight;
 			const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
-			node->GetInfo().rotate = glm::normalize(q * node->GetInfo().rotate);
+			node->rotate = glm::normalize(q * node->rotate);
 		}
 	}
 

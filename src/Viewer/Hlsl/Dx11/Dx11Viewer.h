@@ -60,14 +60,6 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;
     };
 
-    struct Dx11ViewerInfo : ViewerInfo {
-        Dx11DeviceResources deviceResources;
-        Dx11RenderTargets renderTargets;
-        Dx11ShaderSet shaders;
-        Dx11PipelineStates pipelineStates;
-        Dx11DummyTexture dummyTexture;
-    };
-
     class Dx11Viewer : public Viewer {
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;
@@ -78,7 +70,7 @@ namespace Chrivent {
         // 선택된 DXGI 어댑터 정보를 공통 GPU 로그 형식으로 출력한다.
         static void PrintGpuInfo(const DXGI_ADAPTER_DESC1& description);
         // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
-        void UpdateViewport();
+        void UpdateViewport() const;
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
         bool CreateShaders();
         // 스왑체인 렌더 타깃과 깊이 스텐실 리소스를 생성한다.
@@ -89,9 +81,13 @@ namespace Chrivent {
         bool CreateDummyResources();
     
     public:
-        Dx11Viewer();
+        Dx11DeviceResources deviceResources;
+        Dx11RenderTargets renderTargets;
+        Dx11ShaderSet shaders;
+        Dx11PipelineStates pipelineStates;
+        Dx11DummyTexture dummyTexture;
 
-        Dx11ViewerInfo& GetDx11Info() { return static_cast<Dx11ViewerInfo&>(GetInfo()); }
+        Dx11Viewer() = default;
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;
@@ -108,6 +104,8 @@ namespace Chrivent {
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
-        Dx11Texture LoadTexture(const std::filesystem::path& texturePath);
+        Dx11Texture LoadTexture(const std::filesystem::path& texturePath) {
+            return textureCache.Load(deviceResources.device.Get(), texturePath);
+        }
     };
 }

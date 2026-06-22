@@ -11,20 +11,11 @@ namespace Chrivent {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-	struct VulkanSwapChainInfo {
-		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-		std::vector<VkImage> images;
-		std::vector<VkImageView> imageViews;
-		VkFormat imageFormat = VK_FORMAT_UNDEFINED;
-		VkExtent2D extent{};
-	};
-
 	class VulkanSwapChain {
-		VulkanSwapChainInfo info;
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
-		static VulkanSwapChainSupport QuerySupport(const VulkanDeviceInfo& deviceInfo);
+		static VulkanSwapChainSupport QuerySupport(const VulkanDevice& deviceInfo);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		// 사용할 present mode를 선택한다.
@@ -35,6 +26,12 @@ namespace Chrivent {
 		bool CreateImageViews();
 
 	public:
+		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+		std::vector<VkImage> images;
+		std::vector<VkImageView> imageViews;
+		VkFormat imageFormat = VK_FORMAT_UNDEFINED;
+		VkExtent2D extent{};
+
 		VulkanSwapChain() = default;
 		~VulkanSwapChain();
 
@@ -43,12 +40,10 @@ namespace Chrivent {
 		VulkanSwapChain(VulkanSwapChain&&) = delete;
 		VulkanSwapChain& operator=(VulkanSwapChain&&) = delete;
 		
-		const VulkanSwapChainInfo& GetInfo() const { return info; }
-
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.
-		bool Initialize(const VulkanDeviceInfo& deviceInfo, GLFWwindow* window);
+		bool Initialize(const VulkanDevice& deviceInfo, GLFWwindow* window);
 		// 창 크기 변경에 맞춰 스왑체인과 image view를 다시 생성한다.
-		bool Recreate(const VulkanDeviceInfo& deviceInfo, GLFWwindow* window);
+		bool Recreate(const VulkanDevice& deviceInfo, GLFWwindow* window);
 		// 생성한 스왑체인 리소스를 해제한다.
 		void Destroy();
 	};

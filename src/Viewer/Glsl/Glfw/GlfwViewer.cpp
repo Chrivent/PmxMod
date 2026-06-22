@@ -13,10 +13,6 @@ namespace Chrivent {
 		return "other";
 	}
 
-	GlfwViewer::GlfwViewer() {
-		info = std::make_unique<GlfwViewerInfo>();
-	}
-
 	void GlfwViewer::ConfigureGlfwHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -27,8 +23,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::Setup() {
-		auto& info = GetGlfwInfo();
-		glfwMakeContextCurrent(info.window);
+		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
 			std::cerr << "Failed to load OpenGL functions.\n";
 			return false;
@@ -39,30 +34,29 @@ namespace Chrivent {
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		InitDirs("shader_glsl");
-		info.shader = std::make_unique<GlfwModelShader>();
-		if (!info.shader->Setup(info)) {
+		shader = std::make_unique<GlfwModelShader>();
+		if (!shader->Setup(*this)) {
 			std::cerr << "Failed to set up main GLFW shader.\n";
 			return false;
 		}
-		info.edgeShader = std::make_unique<GlfwEdgeShader>();
-		if (!info.edgeShader->Setup(info)) {
+		edgeShader = std::make_unique<GlfwEdgeShader>();
+		if (!edgeShader->Setup(*this)) {
 			std::cerr << "Failed to set up edge GLFW shader.\n";
 			return false;
 		}
-		info.gsShader = std::make_unique<GlfwGroundShadowShader>();
-		if (!info.gsShader->Setup(info)) {
+		gsShader = std::make_unique<GlfwGroundShadowShader>();
+		if (!gsShader->Setup(*this)) {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}
-		info.dummyColorTex = textureCache.CreateWhiteTexture().texture;
-		if (info.dummyColorTex == 0)
+		dummyColorTex = textureCache.CreateWhiteTexture().texture;
+		if (dummyColorTex == 0)
 			return false;
 		return true;
 	}
 
 	bool GlfwViewer::Resize() {
-		const auto& info = GetGlfwInfo();
-		glViewport(0, 0, info.screenWidth, info.screenHeight);
+		glViewport(0, 0, screenWidth, screenHeight);
 		return true;
 	}
 
@@ -72,12 +66,12 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::EndFrame() {
-		glfwSwapBuffers(GetInfo().window);
+		glfwSwapBuffers(window);
 		return true;
 	}
 
 	void GlfwViewer::WaitIdle() {
-		glfwMakeContextCurrent(GetInfo().window);
+		glfwMakeContextCurrent(window);
 		glFinish();
 	}
 
@@ -85,7 +79,4 @@ namespace Chrivent {
 		return std::make_unique<GlfwInstance>();
 	}
 
-	GlfwTexture GlfwViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		return textureCache.Load(texturePath, clamp);
-	}
 }

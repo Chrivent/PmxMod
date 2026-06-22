@@ -8,14 +8,14 @@ namespace Chrivent {
 	void Model::Destroy() {
 		geometryData.updateRanges.clear();
 		geometryData.parallelUpdateCount = 0;
-		if (physicsData.physics && physicsData.physics->GetInfo().world) {
+		if (physicsData.physics && physicsData.physics->world) {
 			for (const auto& joint : physicsData.joints) {
 				if (joint && joint->GetConstraint())
-					physicsData.physics->GetInfo().world->removeConstraint(joint->GetConstraint());
+					physicsData.physics->world->removeConstraint(joint->GetConstraint());
 			}
 			for (const auto& rb : physicsData.rigidBodies) {
-				if (rb && rb->GetInfo().rigidBody)
-					physicsData.physics->GetInfo().world->removeRigidBody(rb->GetInfo().rigidBody.get());
+				if (rb && rb->rigidBody)
+					physicsData.physics->world->removeRigidBody(rb->rigidBody.get());
 			}
 		}
 		physicsData.joints.clear();

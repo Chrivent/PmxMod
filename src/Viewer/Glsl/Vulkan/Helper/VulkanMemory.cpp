@@ -1,7 +1,7 @@
 ﻿#include "VulkanMemory.h"
 
 namespace Chrivent {
-    bool VulkanMemory::FindMemoryType(const VulkanDeviceInfo& deviceInfo, const uint32_t typeFilter,
+    bool VulkanMemory::FindMemoryType(const VulkanDevice& deviceInfo, const uint32_t typeFilter,
         const VkMemoryPropertyFlags properties, uint32_t& memoryType) {
         VkPhysicalDeviceMemoryProperties memoryProperties{};
         vkGetPhysicalDeviceMemoryProperties(deviceInfo.physicalDevice, &memoryProperties);

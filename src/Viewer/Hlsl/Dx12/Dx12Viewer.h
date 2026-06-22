@@ -22,14 +22,8 @@ namespace Chrivent {
 		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 
-	struct Dx12ViewerInfo : ViewerInfo {
-		std::shared_ptr<const Dx12DeviceInfo> deviceInfo;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-		std::shared_ptr<const Dx12Texture> dummyTexture;
-		UINT frameIndex = 0;
-	};
-
 	class Dx12Viewer : public Viewer {
+	public:
 		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
@@ -39,12 +33,14 @@ namespace Chrivent {
 		Dx12TextureCache textureCache;
 		std::shared_ptr<Dx12Texture> dummyTexture;
 		bool frameReady = false;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+		UINT frameIndex = 0;
 
+	private:
 		// 현재 back buffer를 render target 상태로 전환한다.
 		static void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer);
 		// MSAA color/depth target을 바인딩하고 프레임 시작 clear를 수행한다.
 		void ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const;
-		// 현재 화면 크기에 맞는 viewport와 scissor rect를 설정한다.
 		void SetViewportAndScissor(ID3D12GraphicsCommandList* commandList) const;
 		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
 		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
@@ -53,7 +49,6 @@ namespace Chrivent {
 		Dx12Viewer();
 		~Dx12Viewer() override;
 
-		Dx12ViewerInfo& GetDx12Info() { return static_cast<Dx12ViewerInfo&>(GetInfo()); }
 		bool IsFrameReady() const { return frameReady; }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.

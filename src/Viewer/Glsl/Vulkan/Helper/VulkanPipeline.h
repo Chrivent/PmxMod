@@ -6,17 +6,7 @@
 #include <filesystem>
 
 namespace Chrivent {
-	struct VulkanPipelineInfo {
-		VkPipeline pipeline = VK_NULL_HANDLE;
-		VkPipeline bothFacePipeline = VK_NULL_HANDLE;
-		VkPipeline edgePipeline = VK_NULL_HANDLE;
-		VkPipeline groundShadowPipeline = VK_NULL_HANDLE;
-		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		VkDescriptorSetLayout descriptorSetLayouts[3]{};
-	};
-
 	class VulkanPipeline {
-		VulkanPipelineInfo info;
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 모델 데이터에서 사용할 descriptor set layout들을 생성한다.
@@ -25,14 +15,14 @@ namespace Chrivent {
 		bool CreatePipelineLayout();
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(
-			const VulkanDeviceInfo& deviceInfo,
-			const VulkanSwapChainInfo& swapChainInfo,
+			const VulkanDevice& deviceInfo,
+			const VulkanSwapChain& swapChainInfo,
 			VkRenderPass renderPass,
 			const std::filesystem::path& shaderDir);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
-			const VulkanDeviceInfo& deviceInfo,
-			const VulkanSwapChainInfo& swapChainInfo,
+			const VulkanDevice& deviceInfo,
+			const VulkanSwapChain& swapChainInfo,
 			VkRenderPass renderPass,
 			const std::filesystem::path& shaderDir,
 			const char* vertexShaderName,
@@ -52,6 +42,13 @@ namespace Chrivent {
 		static void FillVertexAttributeDescriptions(VkVertexInputAttributeDescription (&descriptions)[3]);
 
 	public:
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkPipeline bothFacePipeline = VK_NULL_HANDLE;
+		VkPipeline edgePipeline = VK_NULL_HANDLE;
+		VkPipeline groundShadowPipeline = VK_NULL_HANDLE;
+		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+		VkDescriptorSetLayout descriptorSetLayouts[3]{};
+
 		VulkanPipeline() = default;
 		~VulkanPipeline();
 
@@ -60,10 +57,8 @@ namespace Chrivent {
 		VulkanPipeline(VulkanPipeline&&) = delete;
 		VulkanPipeline& operator=(VulkanPipeline&&) = delete;
 
-		const VulkanPipelineInfo& GetInfo() const { return info; }
-
 		// 렌더 패스와 스왑체인 설정에 맞는 모델 graphics pipeline을 생성한다.
-		bool Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo, VkRenderPass renderPass, const std::filesystem::path& shaderDir);
+		bool Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo, VkRenderPass renderPass, const std::filesystem::path& shaderDir);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Destroy();
 	};

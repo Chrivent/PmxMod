@@ -5,10 +5,10 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct VulkanInstanceInfo;
+	class VulkanInstance;
 
 	class VulkanDrawer : public Drawer {
-		VulkanInstanceInfo& info;
+		VulkanInstance& instance;
 
 	protected:
 		// GL/DX와 같은 화면 좌표 및 깊이 범위로 맞추는 Vulkan clip 보정 행렬을 반환한다.
@@ -23,6 +23,6 @@ namespace Chrivent {
 	public:
 		~VulkanDrawer() override = default;
 
-		explicit VulkanDrawer(VulkanInstanceInfo& sourceInfo);
+		explicit VulkanDrawer(VulkanInstance& sourceInstance);
 	};
 }

@@ -1,7 +1,7 @@
 ﻿#include "Dx12CommandContext.h"
 
 namespace Chrivent {
-	bool Dx12CommandContext::Initialize(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12CommandContext::Initialize(const Dx12Device& deviceInfo) {
 		Destroy();
 		if (!deviceInfo.device || !deviceInfo.commandQueue)
 			return false;
@@ -27,7 +27,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12CommandContext::BeginFrame(const Dx12DeviceInfo& deviceInfo, const UINT frameIndex) {
+	bool Dx12CommandContext::BeginFrame(const Dx12Device& deviceInfo, const UINT frameIndex) {
 		if (!deviceInfo.device || !commandList || !fence || !fenceEvent)
 			return false;
 		this->frameIndex = frameIndex % kFrameCount;
@@ -45,7 +45,7 @@ namespace Chrivent {
 		return SUCCEEDED(commandList->Reset(commandAllocator, nullptr));
 	}
 
-	bool Dx12CommandContext::Execute(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12CommandContext::Execute(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.commandQueue || !commandList || !fence)
 			return false;
 		if (FAILED(commandList->Close()))
@@ -60,7 +60,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12CommandContext::WaitForGpu(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12CommandContext::WaitForGpu(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.commandQueue || !fence || !fenceEvent)
 			return false;
 		const uint64_t waitValue = nextFenceValue;

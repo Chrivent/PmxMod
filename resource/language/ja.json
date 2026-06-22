@@ -1,6 +1,7 @@
 {
   "window.settings": "設定",
   "menu.file": "ファイル",
+  "menu.new": "新規",
   "menu.open": "開く...",
   "menu.save": "保存...",
   "menu.renderer": "レンダラー",
@@ -9,6 +10,7 @@
   "menu.view": "表示",
   "menu.language": "言語",
   "menu.fps": "FPS",
+  "menu.reset_panel_layout": "パネル境界をリセット",
   "language.english": "英語",
   "language.korean": "韓国語",
   "language.japanese": "日本語",

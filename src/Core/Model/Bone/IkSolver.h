@@ -18,19 +18,7 @@ namespace Chrivent {
 		float				planeModeAngle;
 	};
 
-	struct IkSolverInfo {
-		std::vector<IkChain>	chains;
-		std::weak_ptr<Node>		ikNode;
-		std::weak_ptr<Node>		ikTarget;
-		uint32_t				iterateCount = 1;
-		float					limitAngle = glm::two_pi<float>();
-		bool					enable = true;
-		bool					baseAnimEnable = true;
-	};
-
 	class IkSolver {
-		IkSolverInfo info;
-
 		// 단일 반복 단계에서 일반 IK 체인을 계산한다.
 		void SolveCore(uint32_t iteration);
 		// 축 제한이 평면 모드인 체인 요소를 계산한다.
@@ -43,7 +31,13 @@ namespace Chrivent {
 		static glm::vec3 Decompose(const glm::mat3& m, const glm::vec3& before);
 
 	public:
-		IkSolverInfo& GetInfo() { return info; }
+		std::vector<IkChain>	chains;
+		std::weak_ptr<Node>		ikNode;
+		std::weak_ptr<Node>		ikTarget;
+		uint32_t				iterateCount = 1;
+		float					limitAngle = glm::two_pi<float>();
+		bool					enable = true;
+		bool					baseAnimEnable = true;
 		
 		// IK 체인을 반복 계산해 타깃 노드에 맞춘다.
 		void Solve();

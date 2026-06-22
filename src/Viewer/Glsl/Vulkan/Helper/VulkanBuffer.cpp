@@ -9,25 +9,22 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanBuffer::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkDeviceSize size,
-		const VkBufferUsageFlags usage,
-		const VkMemoryPropertyFlags properties) {
+	bool VulkanBuffer::Initialize(const VulkanDevice& deviceInfo, const VkDeviceSize bufferSize,
+		const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
 		Destroy();
 		device = deviceInfo.device;
-		info.size = size;
+		size = bufferSize;
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = size;
+		bufferInfo.size = bufferSize;
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateBuffer(deviceInfo.device, &bufferInfo, nullptr, &info.buffer) != VK_SUCCESS) {
+		if (vkCreateBuffer(deviceInfo.device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan buffer.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
-		vkGetBufferMemoryRequirements(deviceInfo.device, info.buffer, &memoryRequirements);
+		vkGetBufferMemoryRequirements(deviceInfo.device, buffer, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, properties, memoryType)) {
 			std::cerr << "Failed to find Vulkan buffer memory type.\n";
@@ -41,12 +38,12 @@ namespace Chrivent {
 			std::cerr << "Failed to allocate Vulkan buffer memory.\n";
 			return false;
 		}
-		if (vkBindBufferMemory(deviceInfo.device, info.buffer, memory, 0) != VK_SUCCESS) {
+		if (vkBindBufferMemory(deviceInfo.device, buffer, memory, 0) != VK_SUCCESS) {
 			std::cerr << "Failed to bind Vulkan buffer memory.\n";
 			return false;
 		}
 		if ((properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
-			if (vkMapMemory(deviceInfo.device, memory, 0, size, 0, &mappedData) != VK_SUCCESS) {
+			if (vkMapMemory(deviceInfo.device, memory, 0, bufferSize, 0, &mappedData) != VK_SUCCESS) {
 				std::cerr << "Failed to persistently map Vulkan buffer memory.\n";
 				return false;
 			}
@@ -58,7 +55,7 @@ namespace Chrivent {
 	bool VulkanBuffer::Write(const void* sourceData, const VkDeviceSize dataSize, const VkDeviceSize offset) const {
 		if (device == VK_NULL_HANDLE || memory == VK_NULL_HANDLE || sourceData == nullptr)
 			return false;
-		if (offset + dataSize > info.size) {
+		if (offset + dataSize > size) {
 			std::cerr << "Failed to write Vulkan buffer: source data is larger than buffer.\n";
 			return false;
 		}
@@ -84,15 +81,15 @@ namespace Chrivent {
 			vkUnmapMemory(device, memory);
 		mappedData = nullptr;
 		persistentlyMapped = false;
-		if (info.buffer != VK_NULL_HANDLE) {
-			vkDestroyBuffer(device, info.buffer, nullptr);
-			info.buffer = VK_NULL_HANDLE;
+		if (buffer != VK_NULL_HANDLE) {
+			vkDestroyBuffer(device, buffer, nullptr);
+			buffer = VK_NULL_HANDLE;
 		}
 		if (memory != VK_NULL_HANDLE) {
 			vkFreeMemory(device, memory, nullptr);
 			memory = VK_NULL_HANDLE;
 		}
-		info.size = 0;
+		size = 0;
 		device = VK_NULL_HANDLE;
 	}
 }

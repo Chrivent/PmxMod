@@ -65,10 +65,6 @@ namespace Chrivent {
 		return true;
 	}
 
-	void PanelManager::RefreshLanguage() const {
-		panelWindow.RefreshLanguage();
-	}
-
 	void PanelManager::PollGuiWindows() {
 		panelWindow.Poll();
 		UpdateSidePanelVisibility();
@@ -77,7 +73,4 @@ namespace Chrivent {
 			interpolationCurvePanel.SetSelection(std::move(selection));
 	}
 
-	void PanelManager::DestroyGui() {
-		panelWindow.Destroy();
-	}
 }

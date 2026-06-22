@@ -1,6 +1,7 @@
 {
   "window.settings": "设置",
   "menu.file": "文件",
+  "menu.new": "新建",
   "menu.open": "打开...",
   "menu.save": "保存...",
   "menu.renderer": "渲染器",
@@ -9,6 +10,7 @@
   "menu.view": "视图",
   "menu.language": "语言",
   "menu.fps": "FPS",
+  "menu.reset_panel_layout": "重置面板边界",
   "language.english": "英语",
   "language.korean": "韩语",
   "language.japanese": "日语",

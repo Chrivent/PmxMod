@@ -15,7 +15,7 @@ namespace Chrivent {
 	class Language {
 		static inline std::unordered_map<std::string, std::wstring> fallbackTexts;
 		static inline std::unordered_map<std::string, std::wstring> currentTexts;
-		static inline LanguageType currentType = LanguageType::English;
+		static inline auto currentType = LanguageType::English;
 
 		// 실행 파일 기준 언어 리소스 디렉터리를 반환한다.
 		static std::filesystem::path ResolveLanguageDirectory();
@@ -29,7 +29,6 @@ namespace Chrivent {
 	public:
 		// Windows UI 표시 언어를 기준으로 번역 리소스를 초기화한다.
 		static void Initialize();
-		// 현재 GUI 언어를 변경하고 번역 리소스를 다시 읽는다.
 		static void SetCurrent(LanguageType type);
 		static LanguageType GetCurrent() { return currentType; }
 		// 번역 키에 대응하는 문자열을 반환하고 없으면 영어 또는 키를 사용한다.

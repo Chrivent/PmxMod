@@ -178,10 +178,6 @@ namespace Chrivent {
 			ApplyFrameRange(frameRange, true);
 	}
 
-	void PlaybackPanel::Create(const HWND parent) {
-		CreateContent(parent);
-	}
-	
 	void PlaybackPanel::Show() {
 		if (panelWindow) {
 			ShowWindow(panelWindow, SW_SHOWNORMAL);

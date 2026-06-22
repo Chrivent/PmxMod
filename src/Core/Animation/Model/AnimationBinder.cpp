@@ -8,7 +8,7 @@ namespace Chrivent {
 			return nullptr;
 		const auto it = std::ranges::find_if(model->skeletonData.nodes,
 			[&name](const std::shared_ptr<Node>& node) {
-				return node && node->GetInfo().name == name;
+				return node && node->name == name;
 		});
 		return it != model->skeletonData.nodes.end() ? *it : nullptr;
 	}
@@ -20,8 +20,8 @@ namespace Chrivent {
 			[&name](const std::shared_ptr<IkSolver>& solver) {
 				if (!solver)
 					return false;
-				const auto ikNode = solver->GetInfo().ikNode.lock();
-				return ikNode && ikNode->GetInfo().name == name;
+				const auto ikNode = solver->ikNode.lock();
+				return ikNode && ikNode->name == name;
 		});
 		return it != model->skeletonData.ikSolvers.end() ? *it : nullptr;
 	}

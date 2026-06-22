@@ -12,7 +12,7 @@ namespace Chrivent {
 
 	public:
 		// 화면 크기에 맞는 DX12 MSAA color render target과 RTV를 생성한다.
-		bool Initialize(const Dx12DeviceInfo& deviceInfo, int width, int height);
+		bool Initialize(const Dx12Device& deviceInfo, int width, int height);
 		// MSAA color render target resource를 반환한다.
 		ID3D12Resource* ResolveResource() const { return renderTarget.Get(); }
 		// RTV heap에서 MSAA color render target view handle을 해석해 반환한다.

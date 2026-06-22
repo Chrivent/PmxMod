@@ -35,41 +35,38 @@ namespace Chrivent {
 
 	bool Dx12Device::Initialize() {
 		Destroy();
-		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&info.factory))))
+		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory))))
 			return false;
 		for (UINT index = 0; ; index++) {
-			Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-			if (FAILED(info.factory->EnumAdapterByGpuPreference(
-				index,
-				DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-				IID_PPV_ARGS(&adapter))))
+			Microsoft::WRL::ComPtr<IDXGIAdapter1> newAdapter;
+			if (FAILED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&newAdapter))))
 				break;
 			DXGI_ADAPTER_DESC1 desc{};
-			if (FAILED(adapter->GetDesc1(&desc)) || (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+			if (FAILED(newAdapter->GetDesc1(&desc)) || (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
 				continue;
-			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&info.device)))) {
-				info.adapter = adapter;
+			if (SUCCEEDED(D3D12CreateDevice(newAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)))) {
+				adapter = newAdapter;
 				break;
 			}
 		}
-		if (!info.device)
+		if (!device)
 			return false;
 		DXGI_ADAPTER_DESC1 description{};
-		if (SUCCEEDED(info.adapter->GetDesc1(&description)))
+		if (SUCCEEDED(adapter->GetDesc1(&description)))
 			PrintGpuInfo(description);
-		info.msaaSampleCount = ChooseMsaaSampleCount(info.device.Get());
+		msaaSampleCount = ChooseMsaaSampleCount(device.Get());
 		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		if (FAILED(info.device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&info.commandQueue))))
+		if (FAILED(device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue))))
 			return false;
 		return true;
 	}
 
 	void Dx12Device::Destroy() {
-		info.commandQueue.Reset();
-		info.device.Reset();
-		info.adapter.Reset();
-		info.factory.Reset();
-		info.msaaSampleCount = 1;
+		commandQueue.Reset();
+		device.Reset();
+		adapter.Reset();
+		factory.Reset();
+		msaaSampleCount = 1;
 	}
 }

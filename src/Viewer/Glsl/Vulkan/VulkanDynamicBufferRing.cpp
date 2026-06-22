@@ -1,7 +1,7 @@
 ﻿#include "VulkanDynamicBufferRing.h"
 
 namespace Chrivent {
-	bool VulkanDynamicBufferRing::Setup(const VulkanDeviceInfo& deviceInfo, const size_t bufferSize, std::string& outError) {
+	bool VulkanDynamicBufferRing::Setup(const VulkanDevice& deviceInfo, const size_t bufferSize, std::string& outError) {
 		Clear();
 		if (!GlslDynamicBufferRing::Setup(bufferSize, outError))
 			return false;
@@ -20,10 +20,6 @@ namespace Chrivent {
 	void VulkanDynamicBufferRing::Clear() {
 		buffer.Destroy();
 		GlslDynamicBufferRing::Clear();
-	}
-
-	void VulkanDynamicBufferRing::BeginFrame(const size_t frameIndex) {
-		GlslDynamicBufferRing::BeginFrame(frameIndex % kBufferedFrames);
 	}
 
 	std::optional<GlslUploadSlice> VulkanDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {

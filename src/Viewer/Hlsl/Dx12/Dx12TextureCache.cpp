@@ -7,7 +7,7 @@
 
 namespace Chrivent {
 	bool Dx12TextureCache::UploadRgbaPixels(
-		const Dx12DeviceInfo& deviceInfo,
+		const Dx12Device& deviceInfo,
 		const unsigned char* pixels,
 		const UINT width,
 		const UINT height,
@@ -124,7 +124,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Texture Dx12TextureCache::Load(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& texturePath) {
+	Dx12Texture Dx12TextureCache::Load(const Dx12Device& deviceInfo, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
@@ -147,7 +147,7 @@ namespace Chrivent {
 		return *texture;
 	}
 
-	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12DeviceInfo& deviceInfo) {
+	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12Device& deviceInfo) {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;

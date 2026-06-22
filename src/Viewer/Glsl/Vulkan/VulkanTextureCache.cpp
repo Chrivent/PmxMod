@@ -9,9 +9,7 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-	bool VulkanTextureCache::BeginSingleTimeCommands(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkCommandPool commandPool,
+	bool VulkanTextureCache::BeginSingleTimeCommands(const VulkanDevice& deviceInfo, const VkCommandPool commandPool,
 		VkCommandBuffer& commandBuffer) {
 		VkCommandBufferAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -34,9 +32,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanTextureCache::EndSingleTimeCommands(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkCommandPool commandPool,
+	bool VulkanTextureCache::EndSingleTimeCommands(const VulkanDevice& deviceInfo, const VkCommandPool commandPool,
 		const VkCommandBuffer commandBuffer) {
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan texture command buffer.\n";
@@ -57,11 +53,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanTextureCache::TransitionImageLayout(
-		const VkCommandBuffer commandBuffer,
-		const VkImage image,
-		const VkImageLayout oldLayout,
-		const VkImageLayout newLayout) {
+	void VulkanTextureCache::TransitionImageLayout(const VkCommandBuffer commandBuffer, const VkImage image,
+		const VkImageLayout oldLayout, const VkImageLayout newLayout) {
 		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = oldLayout;
@@ -98,12 +91,8 @@ namespace Chrivent {
 			&barrier);
 	}
 
-	void VulkanTextureCache::CopyBufferToImage(
-		const VkCommandBuffer commandBuffer,
-		const VkBuffer buffer,
-		const VkImage image,
-		const uint32_t width,
-		const uint32_t height) {
+	void VulkanTextureCache::CopyBufferToImage(const VkCommandBuffer commandBuffer, const VkBuffer buffer,
+		const VkImage image, const uint32_t width, const uint32_t height) {
 		VkBufferImageCopy region;
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
@@ -117,14 +106,8 @@ namespace Chrivent {
 		vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 	}
 
-	bool VulkanTextureCache::UploadRgbaPixels(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkCommandPool commandPool,
-		const unsigned char* pixels,
-		const uint32_t width,
-		const uint32_t height,
-		VulkanTexture& texture,
-		const bool clamp) const {
+	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& deviceInfo, const VkCommandPool commandPool,
+		const unsigned char* pixels, const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) const {
 		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(
@@ -147,7 +130,7 @@ namespace Chrivent {
 			return false;
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		CopyBufferToImage(commandBuffer, stagingBuffer.GetInfo().buffer, texture.image, texture.width, texture.height);
+		CopyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		if (!EndSingleTimeCommands(deviceInfo, commandPool, commandBuffer)) {
 			DestroyTexture(texture);
@@ -164,12 +147,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanTextureCache::CreateImage(
-		const VulkanDeviceInfo& deviceInfo,
-		const uint32_t width,
-		const uint32_t height,
-		VkImage& image,
-		VkDeviceMemory& imageMemory) {
+	bool VulkanTextureCache::CreateImage(const VulkanDevice& deviceInfo, const uint32_t width, const uint32_t height,
+		VkImage& image, VkDeviceMemory& imageMemory) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -282,11 +261,8 @@ namespace Chrivent {
 		textures.clear();
 	}
 
-	VulkanTexture VulkanTextureCache::Load(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkCommandPool commandPool,
-		const std::filesystem::path& texturePath,
-		const bool clamp) {
+	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& deviceInfo, const VkCommandPool commandPool,
+		const std::filesystem::path& texturePath, const bool clamp) {
 		device = deviceInfo.device;
 		const TextureKey cacheKey{
 			TextureKind::File,
@@ -312,7 +288,7 @@ namespace Chrivent {
 		return *texture;
 	}
 
-	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDeviceInfo& deviceInfo, const VkCommandPool commandPool) {
+	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& deviceInfo, const VkCommandPool commandPool) {
 		device = deviceInfo.device;
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture<VulkanTexture>(key))

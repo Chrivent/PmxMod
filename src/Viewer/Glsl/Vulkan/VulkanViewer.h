@@ -32,13 +32,6 @@ namespace Chrivent {
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 	
-	struct VulkanViewerInfo : ViewerInfo {
-		std::shared_ptr<const VulkanDeviceInfo> deviceInfo;
-		std::shared_ptr<const VulkanPipelineInfo> pipelineInfo;
-		std::shared_ptr<const VulkanTexture> dummyTexture;
-		std::shared_ptr<const VulkanSyncObjectInfo> syncInfo;
-	};
-
 	struct VulkanBindStateCache {
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
@@ -49,6 +42,7 @@ namespace Chrivent {
 	};
 
 	class VulkanViewer : public Viewer {
+	public:
 		std::shared_ptr<VulkanDevice> device;
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
@@ -64,6 +58,7 @@ namespace Chrivent {
 		bool frameReady = false;
 		VulkanBindStateCache bindStateCache;
 
+	private:
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
 		bool CreateSwapChainResources();
 		// swapchain 재생성 전에 의존 리소스를 역순으로 해제한다.
@@ -72,11 +67,9 @@ namespace Chrivent {
 	public:
 		VulkanViewer();
 		~VulkanViewer() override = default;
-
-		VulkanViewerInfo& GetVulkanInfo() { return static_cast<VulkanViewerInfo&>(GetInfo()); }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
-		void DrawIndexed(const VulkanBufferInfo& vertexBuffer, const VulkanBufferInfo& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
+		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.

@@ -79,13 +79,13 @@ namespace Chrivent {
 		uint32_t ikCount = 0;
 		BinaryReader::Read(is, &ikCount);
 		data.iks.resize(ikCount);
-		for (auto& [frame, show, ikInfos] : data.iks) {
+		for (auto& [frame, show, ikStates] : data.iks) {
 			BinaryReader::Read(is, &frame);
 			BinaryReader::Read(is, &show);
 			uint32_t ikInfoCount = 0;
 			BinaryReader::Read(is, &ikInfoCount);
-			ikInfos.resize(ikInfoCount);
-			for (auto& [name, enable]: ikInfos) {
+			ikStates.resize(ikInfoCount);
+			for (auto& [name, enable]: ikStates) {
 				BinaryReader::Read(is, name, sizeof(name));
 				BinaryReader::Read(is, &enable);
 			}

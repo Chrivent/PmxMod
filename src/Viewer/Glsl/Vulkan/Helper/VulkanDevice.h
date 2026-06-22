@@ -15,24 +15,10 @@ namespace Chrivent {
 		bool IsComplete() const { return hasGraphicsFamily && hasPresentFamily; }
 	};
 
-	struct VulkanDeviceInfo {
-		VkInstance vkInstance = VK_NULL_HANDLE;
-		VkSurfaceKHR surface = VK_NULL_HANDLE;
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		VkPhysicalDeviceProperties properties{};
-		VkDevice device = VK_NULL_HANDLE;
-		VkQueue graphicsQueue = VK_NULL_HANDLE;
-		VkQueue presentQueue = VK_NULL_HANDLE;
-		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
-		VulkanQueueFamilyIndices queueFamilies;
-	};
-
 	class VulkanDevice {
 		static constexpr const char* kDeviceExtensions[] = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
-
-		VulkanDeviceInfo info;
 
 		// Vulkan 인스턴스를 생성한다.
 		bool CreateInstance();
@@ -46,7 +32,6 @@ namespace Chrivent {
 		bool IsDeviceSuitable(VkPhysicalDevice candidate) const;
 		// 물리 디바이스 종류와 성능 한도를 기준으로 선택 우선순위를 계산한다.
 		static uint64_t ScorePhysicalDevice(const VkPhysicalDeviceProperties& properties);
-		// Vulkan 물리 디바이스 종류를 로그용 이름으로 변환한다.
 		static const char* GetPhysicalDeviceTypeName(VkPhysicalDeviceType type);
 		// 물리 디바이스에서 그래픽/표시 큐 패밀리를 찾는다.
 		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
@@ -56,6 +41,16 @@ namespace Chrivent {
 		static bool CheckDeviceExtensionSupport(VkPhysicalDevice candidate);
 
 	public:
+		VkInstance vkInstance = VK_NULL_HANDLE;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		VkPhysicalDeviceProperties properties{};
+		VkDevice device = VK_NULL_HANDLE;
+		VkQueue graphicsQueue = VK_NULL_HANDLE;
+		VkQueue presentQueue = VK_NULL_HANDLE;
+		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
+		VulkanQueueFamilyIndices queueFamilies;
+
 		VulkanDevice() = default;
 		~VulkanDevice();
 
@@ -64,8 +59,6 @@ namespace Chrivent {
 		VulkanDevice(VulkanDevice&&) = delete;
 		VulkanDevice& operator=(VulkanDevice&&) = delete;
 		
-		const VulkanDeviceInfo& GetInfo() const { return info; }
-
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
 		bool Initialize(GLFWwindow* window);
 		// 생성한 Vulkan 디바이스 리소스를 해제한다.

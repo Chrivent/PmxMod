@@ -91,7 +91,6 @@ namespace Chrivent {
 		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
-		// 선택 모델의 모션 트랙을 모션 패널에 표시한다.
 		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
 			motionPanel.SetTimeline(std::move(modelName), std::move(groups));
 		}
@@ -102,10 +101,10 @@ namespace Chrivent {
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
 		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
-		void RefreshLanguage() const;
+		void RefreshLanguage() const { panelWindow.RefreshLanguage(); }
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.
 		void PollGuiWindows();
 		// GUI 창과 패널 컨트롤을 정리한다.
-		void DestroyGui();
+		void DestroyGui() { panelWindow.Destroy(); }
 	};
 }

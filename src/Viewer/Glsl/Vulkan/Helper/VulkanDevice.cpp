@@ -24,7 +24,7 @@ namespace Chrivent {
 		createInfo.pApplicationInfo = &appInfo;
 		createInfo.enabledExtensionCount = glfwExtensionCount;
 		createInfo.ppEnabledExtensionNames = glfwExtensions;
-		if (vkCreateInstance(&createInfo, nullptr, &info.vkInstance) != VK_SUCCESS) {
+		if (vkCreateInstance(&createInfo, nullptr, &vkInstance) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan instance.\n";
 			return false;
 		}
@@ -32,7 +32,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanDevice::CreateSurface(GLFWwindow* window) {
-		if (glfwCreateWindowSurface(info.vkInstance, window, nullptr, &info.surface) != VK_SUCCESS) {
+		if (glfwCreateWindowSurface(vkInstance, window, nullptr, &surface) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan surface.\n";
 			return false;
 		}
@@ -41,41 +41,41 @@ namespace Chrivent {
 
 	bool VulkanDevice::PickPhysicalDevice() {
 		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(info.vkInstance, &deviceCount, nullptr);
+		vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr);
 		if (deviceCount == 0) {
 			std::cerr << "Failed to find a Vulkan physical device.\n";
 			return false;
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(info.vkInstance, &deviceCount, devices.data());
+		vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data());
 		uint64_t highestScore = 0;
 		for (const auto candidate : devices) {
 			if (!IsDeviceSuitable(candidate))
 				continue;
-			VkPhysicalDeviceProperties properties{};
-			vkGetPhysicalDeviceProperties(candidate, &properties);
-			const uint64_t score = ScorePhysicalDevice(properties);
-			if (info.physicalDevice != VK_NULL_HANDLE && score <= highestScore)
+			VkPhysicalDeviceProperties newProperties{};
+			vkGetPhysicalDeviceProperties(candidate, &newProperties);
+			const uint64_t score = ScorePhysicalDevice(newProperties);
+			if (physicalDevice != VK_NULL_HANDLE && score <= highestScore)
 				continue;
 			highestScore = score;
-			info.physicalDevice = candidate;
-			info.properties = properties;
+			physicalDevice = candidate;
+			properties = newProperties;
 		}
-		if (info.physicalDevice == VK_NULL_HANDLE) {
+		if (physicalDevice == VK_NULL_HANDLE) {
 			std::cerr << "Failed to find a suitable Vulkan physical device.\n";
 			return false;
 		}
-		info.queueFamilies = FindQueueFamilies(info.physicalDevice);
-		info.msaaSampleCount = ChooseMsaaSampleCount(info.physicalDevice);
-		std::cout << "vulkan_gpu=" << info.properties.deviceName << '\n';
-		std::cout << "vulkan_gpu_type=" << GetPhysicalDeviceTypeName(info.properties.deviceType) << '\n';
+		queueFamilies = FindQueueFamilies(physicalDevice);
+		msaaSampleCount = ChooseMsaaSampleCount(physicalDevice);
+		std::cout << "vulkan_gpu=" << properties.deviceName << '\n';
+		std::cout << "vulkan_gpu_type=" << GetPhysicalDeviceTypeName(properties.deviceType) << '\n';
 		return true;
 	}
 
 	bool VulkanDevice::CreateLogicalDevice() {
 		const std::set uniqueQueueFamilies = {
-			info.queueFamilies.graphicsFamily,
-			info.queueFamilies.presentFamily
+			queueFamilies.graphicsFamily,
+			queueFamilies.presentFamily
 		};
 		constexpr float queuePriority = 1.0f;
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -96,12 +96,12 @@ namespace Chrivent {
 		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.enabledExtensionCount = std::size(kDeviceExtensions);
 		createInfo.ppEnabledExtensionNames = kDeviceExtensions;
-		if (vkCreateDevice(info.physicalDevice, &createInfo, nullptr, &info.device) != VK_SUCCESS) {
+		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan logical device.\n";
 			return false;
 		}
-		vkGetDeviceQueue(info.device, info.queueFamilies.graphicsFamily, 0, &info.graphicsQueue);
-		vkGetDeviceQueue(info.device, info.queueFamilies.presentFamily, 0, &info.presentQueue);
+		vkGetDeviceQueue(device, queueFamilies.graphicsFamily, 0, &graphicsQueue);
+		vkGetDeviceQueue(device, queueFamilies.presentFamily, 0, &presentQueue);
 		return true;
 	}
 
@@ -154,7 +154,7 @@ namespace Chrivent {
 		vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, families.data());
 		for (uint32_t i = 0; i < queueFamilyCount; i++) {
 			VkBool32 presentSupport = VK_FALSE;
-			vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, info.surface, &presentSupport);
+			vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, surface, &presentSupport);
 			const bool supportsGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
 			if (supportsGraphics && presentSupport) {
 				indices.graphicsFamily = i;
@@ -216,22 +216,22 @@ namespace Chrivent {
 	}
 
 	void VulkanDevice::Destroy() {
-		if (info.device != VK_NULL_HANDLE) {
-			vkDestroyDevice(info.device, nullptr);
-			info.device = VK_NULL_HANDLE;
+		if (device != VK_NULL_HANDLE) {
+			vkDestroyDevice(device, nullptr);
+			device = VK_NULL_HANDLE;
 		}
-		if (info.surface != VK_NULL_HANDLE && info.vkInstance != VK_NULL_HANDLE) {
-			vkDestroySurfaceKHR(info.vkInstance, info.surface, nullptr);
-			info.surface = VK_NULL_HANDLE;
+		if (surface != VK_NULL_HANDLE && vkInstance != VK_NULL_HANDLE) {
+			vkDestroySurfaceKHR(vkInstance, surface, nullptr);
+			surface = VK_NULL_HANDLE;
 		}
-		if (info.vkInstance != VK_NULL_HANDLE) {
-			vkDestroyInstance(info.vkInstance, nullptr);
-			info.vkInstance = VK_NULL_HANDLE;
+		if (vkInstance != VK_NULL_HANDLE) {
+			vkDestroyInstance(vkInstance, nullptr);
+			vkInstance = VK_NULL_HANDLE;
 		}
-		info.physicalDevice = VK_NULL_HANDLE;
-		info.properties = {};
-		info.graphicsQueue = VK_NULL_HANDLE;
-		info.presentQueue = VK_NULL_HANDLE;
-		info.queueFamilies = {};
+		physicalDevice = VK_NULL_HANDLE;
+		properties = {};
+		graphicsQueue = VK_NULL_HANDLE;
+		presentQueue = VK_NULL_HANDLE;
+		queueFamilies = {};
 	}
 }

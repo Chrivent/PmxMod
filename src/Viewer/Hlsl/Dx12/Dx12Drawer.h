@@ -5,10 +5,10 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct Dx12InstanceInfo;
+	class Dx12Instance;
 
 	class Dx12Drawer : public Drawer {
-		const Dx12InstanceInfo& info;
+		const Dx12Instance& instance;
 
 	protected:
 		// DirectX depth range로 맞추는 clip 보정 행렬을 반환한다.
@@ -23,6 +23,6 @@ namespace Chrivent {
 	public:
 		~Dx12Drawer() override = default;
 
-		explicit Dx12Drawer(const Dx12InstanceInfo& sourceInfo);
+		explicit Dx12Drawer(const Dx12Instance& sourceInstance);
 	};
 }

@@ -1,7 +1,7 @@
 ﻿#include "Dx12SwapChain.h"
 
 namespace Chrivent {
-	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.device || !swapChain)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
@@ -20,7 +20,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12SwapChain::Initialize(const Dx12DeviceInfo& deviceInfo, const HWND hwnd, const int width, const int height) {
+	bool Dx12SwapChain::Initialize(const Dx12Device& deviceInfo, const HWND hwnd, const int width, const int height) {
 		Destroy();
 		if (!deviceInfo.factory || !deviceInfo.device || !deviceInfo.commandQueue || !hwnd)
 			return false;
@@ -34,12 +34,7 @@ namespace Chrivent {
 		swapChainDesc.SampleDesc.Count = 1;
 		Microsoft::WRL::ComPtr<IDXGISwapChain1> baseSwapChain;
 		if (FAILED(deviceInfo.factory->CreateSwapChainForHwnd(
-			deviceInfo.commandQueue.Get(),
-			hwnd,
-			&swapChainDesc,
-			nullptr,
-			nullptr,
-			&baseSwapChain)))
+			deviceInfo.commandQueue.Get(), hwnd, &swapChainDesc, nullptr, nullptr, &baseSwapChain)))
 			return false;
 		if (FAILED(deviceInfo.factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)))
 			return false;
@@ -49,7 +44,7 @@ namespace Chrivent {
 		return CreateRenderTargetViews(deviceInfo);
 	}
 
-	bool Dx12SwapChain::Resize(const Dx12DeviceInfo& deviceInfo, const int width, const int height) {
+	bool Dx12SwapChain::Resize(const Dx12Device& deviceInfo, const int width, const int height) {
 		if (!swapChain || width <= 0 || height <= 0)
 			return false;
 		for (auto& backBuffer : backBuffers)

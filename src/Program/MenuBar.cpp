@@ -15,6 +15,12 @@ namespace Chrivent {
 		return true;
 	}
 
+	void MenuBar::CreateNewScene() {
+		sceneConfig = {};
+		sceneFilePath.clear();
+		sceneConfigDirty = true;
+	}
+
 	void MenuBar::ShowOpenSceneDialog() {
 		std::vector filename(MAX_PATH, L'\0');
 		std::wstring filter = Language::Text("scene.dialog.scene");
@@ -138,6 +144,7 @@ namespace Chrivent {
 
 	void MenuBar::AddMenu(const HMENU menu) const {
 		HMENU fileMenu = CreatePopupMenu();
+		AppendMenuW(fileMenu, MF_STRING, kNewButtonId, Language::Text("menu.new").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, Language::Text("menu.open").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, Language::Text("menu.save").c_str());
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), Language::Text("menu.file").c_str());
@@ -154,6 +161,7 @@ namespace Chrivent {
 		HMENU viewMenu = CreatePopupMenu();
 		AppendMenuW(viewMenu, MF_STRING | (fpsVisible ? MF_CHECKED : MF_UNCHECKED),
 			kFpsViewId, Language::Text("menu.fps").c_str());
+		AppendMenuW(viewMenu, MF_STRING, kResetPanelLayoutId, Language::Text("menu.reset_panel_layout").c_str());
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(viewMenu), Language::Text("menu.view").c_str());
 		HMENU languageMenu = CreatePopupMenu();
 		AppendMenuW(languageMenu, MF_STRING, kEnglishLanguageId, L"English");
@@ -181,6 +189,9 @@ namespace Chrivent {
 
 	bool MenuBar::HandleCommand(const int commandId) {
 		switch (commandId) {
+			case kNewButtonId:
+				CreateNewScene();
+				return true;
 			case kOpenButtonId:
 				ShowOpenSceneDialog();
 				return true;
@@ -215,6 +226,9 @@ namespace Chrivent {
 				if (ownerWindow)
 					DrawMenuBar(ownerWindow);
 				return true;
+			case kResetPanelLayoutId:
+				panelLayoutResetRequested = true;
+				return true;
 			case kEnglishLanguageId:
 				SelectLanguage(LanguageType::English);
 				return true;
@@ -242,6 +256,7 @@ namespace Chrivent {
 		sceneConfigDirty = false;
 		rendererDirty = false;
 		languageDirty = false;
+		panelLayoutResetRequested = false;
 	}
 
 	bool MenuBar::ConsumeSceneConfigDirty() {
@@ -260,6 +275,12 @@ namespace Chrivent {
 		const bool dirty = languageDirty;
 		languageDirty = false;
 		return dirty;
+	}
+
+	bool MenuBar::ConsumePanelLayoutResetRequest() {
+		const bool requested = panelLayoutResetRequested;
+		panelLayoutResetRequested = false;
+		return requested;
 	}
 
 }

@@ -42,28 +42,28 @@ namespace Chrivent {
 		return vao;
 	}
 
-	bool GlfwInstance::CreateGeometryBuffers(GlfwInstanceInfo& info) {
-		const size_t vtxCount = info.model->geometryData.positions.size();
+	bool GlfwInstance::CreateGeometryBuffers() {
+		const size_t vtxCount = model->geometryData.positions.size();
 		vertexVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(ViewerVertex) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
-		const size_t idxSize = info.model->geometryData.indexElementSize;
-		const size_t idxCount = info.model->geometryData.indexCount;
-		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, info.model->geometryData.indices.data(), GL_STATIC_DRAW);
+		const size_t idxSize = model->geometryData.indexElementSize;
+		const size_t idxCount = model->geometryData.indexCount;
+		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
 		if (idxSize == 1)
-			info.indexType = GL_UNSIGNED_BYTE;
+			indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
-			info.indexType = GL_UNSIGNED_SHORT;
+			indexType = GL_UNSIGNED_SHORT;
 		else if (idxSize == 4)
-			info.indexType = GL_UNSIGNED_INT;
+			indexType = GL_UNSIGNED_INT;
 		else
 			return false;
 		return true;
 	}
 
-	void GlfwInstance::CreateVertexArrays(GlfwInstanceInfo& info) const {
+	void GlfwInstance::CreateVertexArrays() {
 		const GLint locs[][3] = {
-			{ info.viewer->GetGlfwInfo().shader->positionLocation, info.viewer->GetGlfwInfo().shader->normalLocation, info.viewer->GetGlfwInfo().shader->uvLocation },
-			{ info.viewer->GetGlfwInfo().edgeShader->positionLocation, info.viewer->GetGlfwInfo().edgeShader->normalLocation },
-			{ info.viewer->GetGlfwInfo().gsShader->positionLocation }
+			{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
+			{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
+			{ viewer->gsShader->positionLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
@@ -75,66 +75,62 @@ namespace Chrivent {
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal) },
 			{ offsetof(ViewerVertex, position) }
 		};
-		info.vao = CreateVao(vertexVbo, locs[0], sizes[0], offsets[0], 3, ibo);
-		info.edgeVao = CreateVao(vertexVbo, locs[1], sizes[1], offsets[1], 2, ibo);
-		info.gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
+		vao = CreateVao(vertexVbo, locs[0], sizes[0], offsets[0], 3, ibo);
+		edgeVao = CreateVao(vertexVbo, locs[1], sizes[1], offsets[1], 2, ibo);
+		gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
 	}
 
-	bool GlfwInstance::SetupConstantRings(GlfwInstanceInfo& info) {
+	bool GlfwInstance::SetupConstantRings() {
 		constexpr size_t vertexConstantsSize = std::max({
-			sizeof(ModelVertexConstants),
-			sizeof(EdgeVertexConstants),
-			sizeof(GroundShadowVertexConstants)
+			sizeof(ShaderModelVertexConstants),
+			sizeof(GlslEdgeVertexConstants),
+			sizeof(ShaderGroundShadowVertexConstants)
 		});
 		constexpr size_t pixelConstantsSize = std::max({
-			sizeof(ModelPixelConstants),
-			sizeof(EdgePixelConstants),
-			sizeof(GroundShadowPixelConstants)
+			sizeof(GlslModelPixelConstants),
+			sizeof(ShaderEdgePixelConstants),
+			sizeof(ShaderGroundShadowPixelConstants)
 		});
 		GLint uniformBufferOffsetAlignment = 1;
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferOffsetAlignment);
-		info.uniformBufferOffsetAlignment = std::max(1, uniformBufferOffsetAlignment);
-		const size_t drawCount = std::max<size_t>(1, info.model->materialData.subMeshes.size());
+		this->uniformBufferOffsetAlignment = std::max(1, uniformBufferOffsetAlignment);
+		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
 		const auto AlignedSize = [&](const size_t size) {
-			const size_t alignment = info.uniformBufferOffsetAlignment;
+			const size_t alignment = this->uniformBufferOffsetAlignment;
 			const size_t remainder = size % alignment;
 			if (remainder == 0)
 				return size;
 			return size + (alignment - remainder);
 		};
 		std::string error;
-		if (!info.vertexConstantsRing.Setup(
+		if (!vertexConstantsRing.Setup(
 			GL_UNIFORM_BUFFER,
 			AlignedSize(vertexConstantsSize) * (drawCount + ringSlack),
 			GL_DYNAMIC_DRAW,
 			error))
 			return false;
-		return info.pixelConstantsRing.Setup(
+		return pixelConstantsRing.Setup(
 			GL_UNIFORM_BUFFER,
 			AlignedSize(pixelConstantsSize) * (drawCount + ringSlack),
 			GL_DYNAMIC_DRAW,
 			error);
 	}
 
-	void GlfwInstance::LoadMaterials(GlfwInstanceInfo& info) {
-		for (const auto& mat : info.model->materialData.materials) {
+	void GlfwInstance::LoadMaterials() {
+		for (const auto& mat : model->materialData.materials) {
 			GlfwViewerMaterial material(mat);
 			if (!mat.texture.empty()) {
-				const auto texture = info.viewer->LoadTexture(mat.texture);
+				const auto texture = viewer->LoadTexture(mat.texture);
 				material.texture = texture.texture;
 				material.textureHasAlpha = texture.hasAlpha;
 			}
 			if (!mat.spTexture.empty())
-				material.sphereTexture = info.viewer->LoadTexture(mat.spTexture).texture;
+				material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
 			if (!mat.toonTexture.empty())
-				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture, true).texture;
-			info.materials.emplace_back(material);
+				material.toonTexture = viewer->LoadTexture(mat.toonTexture, true).texture;
+			materials.emplace_back(material);
 		}
-	}
-
-	GlfwInstance::GlfwInstance() {
-		info = std::make_unique<GlfwInstanceInfo>();
 	}
 
 	GlfwInstance::~GlfwInstance() {
@@ -147,37 +143,34 @@ namespace Chrivent {
 		if (ibo != 0)
 			glDeleteBuffers(1, &ibo);
 		vertexVbo = ibo = 0;
-		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
-		info.vertexConstantsRing.Clear();
-		info.pixelConstantsRing.Clear();
-		if (info.vao != 0)
-			glDeleteVertexArrays(1, &info.vao);
-		if (info.edgeVao != 0)
-			glDeleteVertexArrays(1, &info.edgeVao);
-		if (info.gsVao != 0)
-			glDeleteVertexArrays(1, &info.gsVao);
-		info.vao = info.edgeVao = info.gsVao = 0;
-		info.uniformBufferOffsetAlignment = 1;
+		vertexConstantsRing.Clear();
+		pixelConstantsRing.Clear();
+		if (vao != 0)
+			glDeleteVertexArrays(1, &vao);
+		if (edgeVao != 0)
+			glDeleteVertexArrays(1, &edgeVao);
+		if (gsVao != 0)
+			glDeleteVertexArrays(1, &gsVao);
+		vao = edgeVao = gsVao = 0;
+		uniformBufferOffsetAlignment = 1;
 	}
 
 	bool GlfwInstance::Setup(Viewer& baseViewer) {
-		auto& info = static_cast<GlfwInstanceInfo&>(GetInfo());
-		info.viewer = &static_cast<GlfwViewer&>(baseViewer);
-		if (info.model == nullptr)
+		viewer = &static_cast<GlfwViewer&>(baseViewer);
+		if (model == nullptr)
 			return false;
-		drawer = std::make_unique<GlfwDrawer>(info);
-		if (!CreateGeometryBuffers(info))
+		drawer = std::make_unique<GlfwDrawer>(*this);
+		if (!CreateGeometryBuffers())
 			return false;
-		CreateVertexArrays(info);
-		if (!SetupConstantRings(info))
+		CreateVertexArrays();
+		if (!SetupConstantRings())
 			return false;
-		LoadMaterials(info);
+		LoadMaterials();
 		return true;
 	}
 
 	void GlfwInstance::Upload() const {
-		const auto& info = static_cast<const GlfwInstanceInfo&>(GetInfo());
-		const size_t vtxCount = info.model->geometryData.positions.size();
+		const size_t vtxCount = model->geometryData.positions.size();
 		glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
 		auto* vertices = static_cast<ViewerVertex*>(glMapBufferRange(
 			GL_ARRAY_BUFFER,
@@ -188,7 +181,7 @@ namespace Chrivent {
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";
 			return;
 		}
-		const bool writeSucceeded = ViewerGeometry::WriteVertices(info.model->geometryData, true, vertices, vtxCount);
+		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true, vertices, vtxCount);
 		const bool unmapSucceeded = glUnmapBuffer(GL_ARRAY_BUFFER) == GL_TRUE;
 		if (!writeSucceeded || !unmapSucceeded)
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";

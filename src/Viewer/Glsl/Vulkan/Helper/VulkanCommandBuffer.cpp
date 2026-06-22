@@ -7,14 +7,7 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	VkCommandBuffer VulkanCommandBuffer::ResolveCommandBuffer(const uint32_t imageIndex) const {
-		return commandBuffers[imageIndex];
-	}
-
-	bool VulkanCommandBuffer::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VkCommandPool sourceCommandPool,
-		const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanCommandBuffer::Initialize(const VulkanDevice& deviceInfo, const VkCommandPool sourceCommandPool, const VulkanSwapChain& swapChainInfo) {
 		device = deviceInfo.device;
 		commandPool = sourceCommandPool;
 		commandBuffers.resize(swapChainInfo.imageViews.size());
@@ -37,13 +30,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanCommandBuffer::BeginRecord(
-		const uint32_t imageIndex,
-		const VkRenderPass renderPass,
-		const VkFramebuffer frameBuffer,
-		const VkPipeline pipeline,
-		const VkExtent2D extent,
-		const float clearColor[4]) {
+	bool VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex, const VkRenderPass renderPass,
+		const VkFramebuffer frameBuffer, const VkPipeline pipeline, const VkExtent2D extent, const float clearColor[4]) {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to record Vulkan command buffer: image index is out of range.\n";
 			return false;
@@ -86,13 +74,8 @@ namespace Chrivent {
 		vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
 
-	void VulkanCommandBuffer::DrawIndexed(
-		const uint32_t imageIndex,
-		const VulkanBufferInfo& vertexBuffer,
-		const VulkanBufferInfo& indexBuffer,
-		const VkIndexType indexType,
-		const uint32_t firstIndex,
-		const uint32_t indexCount) {
+	void VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
+		const VulkanBuffer& indexBuffer, const VkIndexType indexType, const uint32_t firstIndex, const uint32_t indexCount) {
 		if (imageIndex >= commandBuffers.size() ||
 			vertexBuffer.buffer == VK_NULL_HANDLE ||
 			indexBuffer.buffer == VK_NULL_HANDLE ||
@@ -114,14 +97,9 @@ namespace Chrivent {
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
 	}
 
-	void VulkanCommandBuffer::BindDescriptorSets(
-		const uint32_t imageIndex,
-		const VkPipelineLayout pipelineLayout,
-		const uint32_t firstSet,
-		const VkDescriptorSet* descriptorSets,
-		const uint32_t descriptorSetCount,
-		const uint32_t* dynamicOffsets,
-		const uint32_t dynamicOffsetCount) const {
+	void VulkanCommandBuffer::BindDescriptorSets(const uint32_t imageIndex, const VkPipelineLayout pipelineLayout,
+		const uint32_t firstSet, const VkDescriptorSet* descriptorSets, const uint32_t descriptorSetCount,
+		const uint32_t* dynamicOffsets, const uint32_t dynamicOffsetCount) const {
 		if (imageIndex >= commandBuffers.size() ||
 			pipelineLayout == VK_NULL_HANDLE ||
 			descriptorSets == nullptr ||

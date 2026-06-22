@@ -5,6 +5,7 @@ target_sources(PmxModViewer PRIVATE
         Viewer.h Viewer.cpp
         Drawer.h Drawer.cpp
         Instance.h Instance.cpp
+        ShaderConstants.h
         TextureCache.h
         ViewerGeometry.h ViewerGeometry.cpp
 

@@ -3,7 +3,7 @@
 #include "RigidBody.h"
 
 namespace Chrivent {
-	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBodyInfo& rigidBodyA, const RigidBodyInfo& rigidBodyB) {
+	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBody& rigidBodyA, const RigidBody& rigidBodyB) {
 		constraint = nullptr;
 		btMatrix3x3 rotMat;
 		rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);

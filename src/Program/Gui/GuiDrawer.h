@@ -7,7 +7,6 @@
 
 namespace Chrivent {
 	class GuiDrawer {
-		// 한글과 일본어를 함께 표시할 수 있는 UI 폰트를 반환한다.
 		static HFONT GetTextFont();
 
 	public:

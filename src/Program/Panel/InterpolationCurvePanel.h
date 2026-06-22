@@ -40,7 +40,6 @@ namespace Chrivent {
 		void Resize(const RECT& clientRect) override;
 		// 보간 곡선 그래프 컨트롤을 정리한다.
 		void Destroy() override;
-		// 선택된 키의 채널별 보간 곡선을 그래프에 반영한다.
 		void SetSelection(InterpolationSelection interpolationSelection);
 	};
 }

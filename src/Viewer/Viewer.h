@@ -25,26 +25,8 @@ namespace Chrivent {
         explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
     };
     
-    struct ViewerInfo {
-        std::filesystem::path	shaderDir;
-        std::filesystem::path	pmxDir;
-        glm::mat4	            viewMat;
-        glm::mat4	            projMat;
-        int			            screenWidth = 0;
-        int			            screenHeight = 0;
-        glm::vec3	            lightColor = glm::vec3(1, 1, 1);
-        glm::vec3	            lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
-        float	                elapsed = 0.0f;
-        float	                animTime = 0.0f;
-        bool	                skipPhysics = false;
-        GLFWwindow*             window = nullptr;
-
-        virtual ~ViewerInfo() = default;
-    };
-
     class Viewer {
     protected:
-        std::unique_ptr<ViewerInfo> info;
         std::filesystem::path	resourceDir;
         float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
         HWND fpsOverlay = nullptr;
@@ -56,11 +38,21 @@ namespace Chrivent {
         void PositionFpsOverlay() const;
     
     public:
-        Viewer();
-        virtual ~Viewer();
+        std::filesystem::path shaderDir;
+        std::filesystem::path pmxDir;
+        glm::mat4 viewMat;
+        glm::mat4 projMat;
+        int screenWidth = 0;
+        int screenHeight = 0;
+        glm::vec3 lightColor = glm::vec3(1, 1, 1);
+        glm::vec3 lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+        float elapsed = 0.0f;
+        float animTime = 0.0f;
+        bool skipPhysics = false;
+        GLFWwindow* window = nullptr;
 
-        ViewerInfo& GetInfo() { return *info; }
-        const ViewerInfo& GetInfo() const { return *info; }
+        Viewer() = default;
+        virtual ~Viewer();
 
         // 렌더러별 GLFW 윈도우 힌트를 설정한다.
         virtual void ConfigureGlfwHints() = 0;
@@ -82,7 +74,6 @@ namespace Chrivent {
         void InitDirs(const std::filesystem::path& shaderSubDir);
         // 렌더링 창 좌측 상단에 FPS 오버레이를 생성한다.
         void CreateFpsOverlay();
-        // FPS 오버레이의 표시 여부를 설정한다.
         void SetFpsVisible(bool visible) const;
         // FPS 오버레이에 현재 측정값을 표시한다.
         void UpdateFps(double fps) const;

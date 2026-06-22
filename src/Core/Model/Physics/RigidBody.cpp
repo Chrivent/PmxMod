@@ -31,7 +31,7 @@ namespace Chrivent {
 		const glm::mat4 rotMat = ry * rx * rz;
 		const glm::mat4 translateMat = glm::translate(glm::mat4(1), pmxRigidBody.translate);
 		const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
-		offsetMat = nodePtr ? glm::inverse(nodePtr->GetInfo().global) * rbMat : rbMat;
+		offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
 		kinematicMotionState = nodePtr
 			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
 			: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
@@ -51,15 +51,15 @@ namespace Chrivent {
 		rbInfo.m_restitution = pmxRigidBody.repulsion;
 		rbInfo.m_friction = pmxRigidBody.friction;
 		rbInfo.m_additionalDamping = true;
-		info.rigidBody = std::make_unique<btRigidBody>(rbInfo);
-		info.rigidBody->setUserPointer(this);
-		info.rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
-		info.rigidBody->setActivationState(DISABLE_DEACTIVATION);
+		rigidBody = std::make_unique<btRigidBody>(rbInfo);
+		rigidBody->setUserPointer(this);
+		rigidBody->setSleepingThresholds(0.01f, glm::radians(0.1f));
+		rigidBody->setActivationState(DISABLE_DEACTIVATION);
 		if (pmxRigidBody.op == Operation::Static)
-			info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+			rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 		rigidBodyType = pmxRigidBody.op;
-		info.group = pmxRigidBody.group;
-		info.groupMask = pmxRigidBody.collisionGroup;
+		group = pmxRigidBody.group;
+		groupMask = pmxRigidBody.collisionGroup;
 		node = nodePtr;
 		name = pmxRigidBody.name;
 	}
@@ -67,14 +67,14 @@ namespace Chrivent {
 	void RigidBody::ApplyActivation(const bool activation) const {
 		if (rigidBodyType != Operation::Static) {
 			if (activation) {
-				info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-				info.rigidBody->setMotionState(activeMotionState.get());
+				rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+				rigidBody->setMotionState(activeMotionState.get());
 			} else {
-				info.rigidBody->setCollisionFlags(info.rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-				info.rigidBody->setMotionState(kinematicMotionState.get());
+				rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+				rigidBody->setMotionState(kinematicMotionState.get());
 			}
 		} else
-			info.rigidBody->setMotionState(kinematicMotionState.get());
+			rigidBody->setMotionState(kinematicMotionState.get());
 	}
 
 	void RigidBody::ResetTransform() const {
@@ -82,14 +82,14 @@ namespace Chrivent {
 			activeMotionState->Reset();
 	}
 
-	void RigidBody::Reset(const PhysicsInfo& physicsInfo) const {
-		if (const auto cache = physicsInfo.world->getPairCache()) {
-			const auto dispatcher = physicsInfo.world->getDispatcher();
-			cache->cleanProxyFromPairs(info.rigidBody->getBroadphaseHandle(), dispatcher);
+	void RigidBody::Reset(const Physics& physics) const {
+		if (const auto cache = physics.world->getPairCache()) {
+			const auto dispatcher = physics.world->getDispatcher();
+			cache->cleanProxyFromPairs(rigidBody->getBroadphaseHandle(), dispatcher);
 		}
-		info.rigidBody->setAngularVelocity(btVector3(0, 0, 0));
-		info.rigidBody->setLinearVelocity(btVector3(0, 0, 0));
-		info.rigidBody->clearForces();
+		rigidBody->setAngularVelocity(btVector3(0, 0, 0));
+		rigidBody->setLinearVelocity(btVector3(0, 0, 0));
+		rigidBody->clearForces();
 	}
 
 	void RigidBody::ReflectGlobalTransform() const {
@@ -101,16 +101,16 @@ namespace Chrivent {
 
 	void RigidBody::CalcLocalTransform() const {
 		if (const auto nodePtr = node.lock()) {
-			if (const auto parent = nodePtr->GetInfo().parent.lock()) {
-				const auto local = glm::inverse(parent->GetInfo().global) * nodePtr->GetInfo().global;
-				nodePtr->GetInfo().local = local;
+			if (const auto parent = nodePtr->parent.lock()) {
+				const auto local = glm::inverse(parent->global) * nodePtr->global;
+				nodePtr->local = local;
 			} else
-				nodePtr->GetInfo().local = nodePtr->GetInfo().global;
+				nodePtr->local = nodePtr->global;
 		}
 	}
 
 	glm::mat4 RigidBody::CalcTransform() const {
-		const btTransform transform = info.rigidBody->getCenterOfMassTransform();
+		const btTransform transform = rigidBody->getCenterOfMassTransform();
 		glm::mat4 mat;
 		transform.getOpenGLMatrix(&mat[0][0]);
 		return Util::InvZ(mat);

@@ -60,7 +60,6 @@ namespace Chrivent {
         static bool ParseCount(const wchar_t* value, std::size_t& count);
         // 명령행 인자를 프로그램 실행 옵션으로 구성한다.
         static bool ParseArguments(int argumentCount, wchar_t* arguments[], ProgramOptions& options);
-        // 렌더러 형식을 성능 결과에 사용할 짧은 이름으로 변환한다.
         static const char* GetRendererName(RendererType rendererType);
         // 실행할 렌더러를 선택해 생성한다.
         void CreateViewer(RendererType rendererType);

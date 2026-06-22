@@ -14,10 +14,6 @@ namespace Chrivent {
 		return cur != std::streampos(-1) && cur < end;
 	}
 
-	void BinaryReader::Read(std::istream& is, void* dst, const std::size_t bytes) {
-		is.read(static_cast<char*>(dst), bytes);
-	}
-
 	void BinaryReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {
 		switch (indexSize) {
 			case 1: {

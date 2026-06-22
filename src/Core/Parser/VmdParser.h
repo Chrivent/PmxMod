@@ -47,7 +47,7 @@ namespace Chrivent {
 			float		distance;
 		};
 
-		struct VmdIkInfo {
+		struct VmdIkState {
 			char			name[20]{};
 			uint8_t			enable{};
 		};
@@ -55,7 +55,7 @@ namespace Chrivent {
 		struct VmdIk {
 			uint32_t	frame;
 			uint8_t		show;
-			std::vector<VmdIkInfo>	ikInfos;
+			std::vector<VmdIkState>	ikStates;
 		};
 
 		struct VmdMotion {

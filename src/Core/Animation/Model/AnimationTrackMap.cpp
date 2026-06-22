@@ -7,7 +7,7 @@ namespace Chrivent {
 		std::map<std::string, NodeAnimationTrack> trackMap;
 		for (auto& track : tracks) {
 			if (track.node)
-				trackMap.emplace(track.node->GetInfo().name, std::move(track));
+				trackMap.emplace(track.node->name, std::move(track));
 		}
 		tracks.clear();
 		return trackMap;
@@ -18,10 +18,10 @@ namespace Chrivent {
 		for (auto& track : tracks) {
 			if (!track.ikSolver)
 				continue;
-			const auto ikNode = track.ikSolver->GetInfo().ikNode.lock();
+			const auto ikNode = track.ikSolver->ikNode.lock();
 			if (!ikNode)
 				continue;
-			trackMap.emplace(ikNode->GetInfo().name, std::move(track));
+			trackMap.emplace(ikNode->name, std::move(track));
 		}
 		tracks.clear();
 		return trackMap;

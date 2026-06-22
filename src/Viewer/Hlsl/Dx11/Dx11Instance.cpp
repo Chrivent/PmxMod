@@ -11,8 +11,8 @@
 #include <limits>
 
 namespace Chrivent {
-	bool Dx11Instance::CreateGeometryBuffers(Dx11InstanceInfo& info) {
-		const auto& geometryData = info.model->geometryData;
+	bool Dx11Instance::CreateGeometryBuffers() {
+		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (geometryData.positions.empty() ||
 			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
@@ -23,78 +23,72 @@ namespace Chrivent {
 			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
 			return false;
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
-		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
+		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
 			return false;
 		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(static_cast<UINT>(indexData.bytes.size()));
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = indexData.bytes.data();
-		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
+		if (FAILED(viewer->deviceResources.device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
 			return false;
 		if (indexData.elementSize == sizeof(uint16_t))
-			info.indexBufferFormat = DXGI_FORMAT_R16_UINT;
+			indexBufferFormat = DXGI_FORMAT_R16_UINT;
 		else if (indexData.elementSize == sizeof(uint32_t))
-			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
+			indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
 		return true;
 	}
 
-	bool Dx11Instance::CreateConstantBuffers(Dx11InstanceInfo& info) {
-		if (FAILED(CreateBuffer<HlslModelVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.vsConstantBuffer)))
+	bool Dx11Instance::CreateConstantBuffers() {
+		if (FAILED(CreateBuffer<ShaderModelVertexConstants>(viewer->deviceResources.device.Get(), vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslModelPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.psConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslModelPixelConstants>(viewer->deviceResources.device.Get(), psConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslEdgeVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslEdgeVertexConstants>(viewer->deviceResources.device.Get(), edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslEdgeSizeConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgeSizeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<HlslEdgeSizeConstants>(viewer->deviceResources.device.Get(), edgeSizeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslEdgePixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<ShaderEdgePixelConstants>(viewer->deviceResources.device.Get(), edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslGroundShadowVertexConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<ShaderGroundShadowVertexConstants>(viewer->deviceResources.device.Get(), gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<HlslGroundShadowPixelConstants>(info.viewer->GetDx11Info().deviceResources.device.Get(), info.gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<ShaderGroundShadowPixelConstants>(viewer->deviceResources.device.Get(), gsPsConstantBuffer)))
 			return false;
 		return true;
 	}
 
-	void Dx11Instance::LoadMaterials(Dx11InstanceInfo& info) {
-		for (const auto& mat : info.model->materialData.materials) {
+	void Dx11Instance::LoadMaterials() {
+		for (const auto& mat : model->materialData.materials) {
 			Dx11Material material(mat);
 			if (!mat.texture.empty())
-				material.texture = info.viewer->LoadTexture(mat.texture);
+				material.texture = viewer->LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
-				material.spTexture = info.viewer->LoadTexture(mat.spTexture);
+				material.spTexture = viewer->LoadTexture(mat.spTexture);
 			if (!mat.toonTexture.empty())
-				material.toonTexture = info.viewer->LoadTexture(mat.toonTexture);
-			info.materials.emplace_back(std::move(material));
+				material.toonTexture = viewer->LoadTexture(mat.toonTexture);
+			materials.emplace_back(std::move(material));
 		}
 	}
 
-	Dx11Instance::Dx11Instance() {
-		info = std::make_unique<Dx11InstanceInfo>();
-	}
-
 	bool Dx11Instance::Setup(Viewer& baseViewer) {
-		auto& info = static_cast<Dx11InstanceInfo&>(GetInfo());
-		info.viewer = &static_cast<Dx11Viewer&>(baseViewer);
-		drawer = std::make_unique<Dx11Drawer>(info);
-		if (!CreateGeometryBuffers(info))
+		viewer = &static_cast<Dx11Viewer&>(baseViewer);
+		drawer = std::make_unique<Dx11Drawer>(*this);
+		if (!CreateGeometryBuffers())
 			return false;
-		if (!CreateConstantBuffers(info))
+		if (!CreateConstantBuffers())
 			return false;
-		LoadMaterials(info);
+		LoadMaterials();
 		return true;
 	}
 
 	void Dx11Instance::Upload() const {
-		const auto& info = static_cast<const Dx11InstanceInfo&>(GetInfo());
-		const size_t vtxCount = info.model->geometryData.positions.size();
+		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(info.viewer->GetDx11Info().deviceResources.context->Map(info.vertexBuffer.Get(), 0,
+		if (FAILED(viewer->deviceResources.context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
-		ViewerGeometry::WriteVertices(info.model->geometryData, true, static_cast<Dx11Vertex*>(mapRes.pData), vtxCount);
-		info.viewer->GetDx11Info().deviceResources.context->Unmap(info.vertexBuffer.Get(), 0);
+		ViewerGeometry::WriteVertices(model->geometryData, true, static_cast<Dx11Vertex*>(mapRes.pData), vtxCount);
+		viewer->deviceResources.context->Unmap(vertexBuffer.Get(), 0);
 	}
 }
 

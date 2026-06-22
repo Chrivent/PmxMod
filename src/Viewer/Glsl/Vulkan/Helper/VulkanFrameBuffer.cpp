@@ -8,8 +8,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanFrameBuffer::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
+		const VulkanDevice& deviceInfo,
+		const VulkanSwapChain& swapChainInfo,
 		const VkRenderPass renderPass,
 		const VkImageView colorImageView,
 		const VkImageView depthImageView) {

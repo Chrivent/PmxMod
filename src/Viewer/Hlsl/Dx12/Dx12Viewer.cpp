@@ -28,22 +28,22 @@ namespace Chrivent {
 
 	void Dx12Viewer::SetViewportAndScissor(ID3D12GraphicsCommandList* commandList) const {
 		D3D12_VIEWPORT viewport{};
-		viewport.Width = GetInfo().screenWidth;
-		viewport.Height = GetInfo().screenHeight;
+		viewport.Width = screenWidth;
+		viewport.Height = screenHeight;
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		commandList->RSSetViewports(1, &viewport);
 		D3D12_RECT scissorRect{};
-		scissorRect.right = GetInfo().screenWidth;
-		scissorRect.bottom = GetInfo().screenHeight;
+		scissorRect.right = screenWidth;
+		scissorRect.bottom = screenHeight;
 		commandList->RSSetScissorRects(1, &scissorRect);
 	}
 
 	void Dx12Viewer::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const {
-		const D3D12_RESOURCE_STATES sourceState = device->GetInfo().msaaSampleCount > 1
+		const D3D12_RESOURCE_STATES sourceState = device->msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
 			: D3D12_RESOURCE_STATE_COPY_SOURCE;
-		const D3D12_RESOURCE_STATES destinationState = device->GetInfo().msaaSampleCount > 1
+		const D3D12_RESOURCE_STATES destinationState = device->msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_DEST
 			: D3D12_RESOURCE_STATE_COPY_DEST;
 		D3D12_RESOURCE_BARRIER barriers[2]{};
@@ -58,7 +58,7 @@ namespace Chrivent {
 		barriers[1].Transition.StateAfter = destinationState;
 		barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		commandList->ResourceBarrier(2, barriers);
-		if (device->GetInfo().msaaSampleCount > 1)
+		if (device->msaaSampleCount > 1)
 			commandList->ResolveSubresource(backBuffer, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
 			commandList->CopyResource(backBuffer, msaaColor);
@@ -72,14 +72,10 @@ namespace Chrivent {
 	Dx12Viewer::Dx12Viewer() {
 		device = std::make_shared<Dx12Device>();
 		dummyTexture = std::make_shared<Dx12Texture>();
-		info = std::make_unique<Dx12ViewerInfo>();
-		auto& dx12Info = GetDx12Info();
-		dx12Info.deviceInfo = std::shared_ptr<const Dx12DeviceInfo>(device, &device->GetInfo());
-		dx12Info.dummyTexture = dummyTexture;
 	}
 
 	Dx12Viewer::~Dx12Viewer() {
-		commandContext.WaitForGpu(device->GetInfo());
+		commandContext.WaitForGpu(*device);
 		pipeline.Destroy();
 		commandContext.Destroy();
 		depthBuffer.Destroy();
@@ -98,29 +94,29 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
 		}
-		if (!commandContext.Initialize(device->GetInfo())) {
+		if (!commandContext.Initialize(*device)) {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
 		}
-		GetDx12Info().commandList = commandContext.GetCommandList();
-		HWND__* hwnd = glfwGetWin32Window(GetInfo().window);
-		if (!swapChain.Initialize(device->GetInfo(), hwnd, GetInfo().screenWidth, GetInfo().screenHeight)) {
+		commandList = commandContext.GetCommandList();
+		HWND__* hwnd = glfwGetWin32Window(window);
+		if (!swapChain.Initialize(*device, hwnd, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
 			return false;
 		}
-		if (!msaaColorBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
+		if (!msaaColorBuffer.Initialize(*device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 MSAA color buffer.\n";
 			return false;
 		}
-		if (!depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight)) {
+		if (!depthBuffer.Initialize(*device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		if (!pipeline.Initialize(device->GetInfo(), GetInfo().shaderDir)) {
+		if (!pipeline.Initialize(*device, shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}
-		*dummyTexture = textureCache.CreateWhiteTexture(device->GetInfo());
+		*dummyTexture = textureCache.CreateWhiteTexture(*device);
 		if (!dummyTexture->resource) {
 			std::cerr << "Failed to initialize DX12 dummy texture.\n";
 			return false;
@@ -129,20 +125,20 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::Resize() {
-		commandContext.WaitForGpu(device->GetInfo());
-		if (!swapChain.Resize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
+		commandContext.WaitForGpu(*device);
+		if (!swapChain.Resize(*device, screenWidth, screenHeight))
 			return false;
-		if (!msaaColorBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight))
+		if (!msaaColorBuffer.Initialize(*device, screenWidth, screenHeight))
 			return false;
-		return depthBuffer.Initialize(device->GetInfo(), GetInfo().screenWidth, GetInfo().screenHeight);
+		return depthBuffer.Initialize(*device, screenWidth, screenHeight);
 	}
 
 	void Dx12Viewer::BeginFrame() {
 		frameReady = false;
 		const UINT frameIndex = swapChain.GetFrameIndex();
-		if (!commandContext.BeginFrame(device->GetInfo(), frameIndex))
+		if (!commandContext.BeginFrame(*device, frameIndex))
 			return;
-		GetDx12Info().frameIndex = frameIndex;
+		this->frameIndex = frameIndex;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
@@ -165,7 +161,7 @@ namespace Chrivent {
 		if (!commandList || !backBuffer || !msaaColor)
 			return false;
 		ResolveToBackBuffer(commandList, backBuffer, msaaColor);
-		if (!commandContext.Execute(device->GetInfo()))
+		if (!commandContext.Execute(*device))
 			return false;
 		if (!swapChain.Present())
 			return false;
@@ -174,7 +170,7 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::WaitIdle() {
-		commandContext.WaitForGpu(device->GetInfo());
+		commandContext.WaitForGpu(*device);
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
@@ -182,7 +178,7 @@ namespace Chrivent {
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(device->GetInfo(), texturePath);
+		return textureCache.Load(*device, texturePath);
 	}
 
 	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {

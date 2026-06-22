@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Panel/Panel.h"
+#include "Settings.h"
 
 #include <string>
 #include <vector>
@@ -16,6 +17,13 @@ namespace Chrivent {
 	};
 
 	class PanelWindow {
+		enum class DragBoundary {
+			None,
+			Left,
+			Right,
+			Bottom
+		};
+
 		struct PanelEntry {
 			Panel* panel = nullptr;
 			std::string titleKey;
@@ -29,6 +37,8 @@ namespace Chrivent {
 		MenuBar* menuBar = nullptr;
 		std::vector<PanelEntry> panels;
 		bool closeRequested = false;
+		PanelLayoutSettings layoutSettings;
+		DragBoundary dragBoundary = DragBoundary::None;
 
 		// 패널 창의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -38,6 +48,12 @@ namespace Chrivent {
 		void Paint(HDC deviceContext) const;
 		// 패널 창 크기에 맞춰 등록된 패널 영역을 배치한다.
 		void LayoutPanels();
+		// 마우스 좌표에 있는 조절 가능한 패널 경계를 반환한다.
+		DragBoundary HitTestBoundary(int x, int y) const;
+		// 드래그한 좌표를 현재 패널 경계 설정에 반영한다.
+		void MoveBoundary(int x, int y);
+		// 패널 경계를 기본 비율로 되돌린다.
+		void ResetPanelLayout();
 
 	public:
 		PanelWindow() = default;
@@ -49,7 +65,6 @@ namespace Chrivent {
 		void AttachMenuBar(MenuBar& menu);
 		// 패널과 제목, 배치 영역을 패널 창에 등록한다.
 		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area, bool visible = true);
-		// 등록된 패널 프레임과 내부 컨트롤의 표시 여부를 설정한다.
 		void SetPanelVisible(const Panel& panel, bool visible);
 		// 패널 창과 등록된 패널 컨트롤을 생성해 표시한다.
 		void Show();

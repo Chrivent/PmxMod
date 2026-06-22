@@ -23,7 +23,6 @@ namespace Chrivent {
 		if (vmdData.motions.empty())
 			return;
 		const AnimationBinder binder(model);
-		auto& nodeTracks = info.nodeTracks;
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName);
@@ -42,10 +41,9 @@ namespace Chrivent {
 		if (vmdData.iks.empty())
 			return;
 		const AnimationBinder binder(model);
-		auto& ikTracks = info.ikTracks;
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
-			for (const auto& [name, enable] : ik.ikInfos) {
+			for (const auto& [name, enable] : ik.ikStates) {
 				auto ikName = Util::SjisToUtf8(name);
 				auto [findIt, inserted] = ikMap.try_emplace(ikName);
 				auto& [ikSolver, keys] = findIt->second;
@@ -65,7 +63,6 @@ namespace Chrivent {
 		if (vmdData.morphs.empty())
 			return;
 		const AnimationBinder binder(model);
-		auto& morphTracks = info.morphTracks;
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName);
@@ -88,7 +85,8 @@ namespace Chrivent {
 		AddMorphAnimations(vmdData);
 	}
 
-	AnimationInfo AnimationBuilder::TakeInfo() {
-		return std::move(info);
+	std::unique_ptr<Animation> AnimationBuilder::TakeAnimation() {
+		return std::make_unique<Animation>(
+			std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks));
 	}
 }

@@ -1,7 +1,7 @@
 ﻿#include "Dx12DepthBuffer.h"
 
 namespace Chrivent {
-	bool Dx12DepthBuffer::Initialize(const Dx12DeviceInfo& deviceInfo, const int width, const int height) {
+	bool Dx12DepthBuffer::Initialize(const Dx12Device& deviceInfo, const int width, const int height) {
 		Destroy();
 		if (!deviceInfo.device || width <= 0 || height <= 0)
 			return false;

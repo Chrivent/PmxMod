@@ -20,7 +20,7 @@ namespace Chrivent {
 		vertexLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		vertexLayoutInfo.bindingCount = 1;
 		vertexLayoutInfo.pBindings = &vertexConstantBinding;
-		if (vkCreateDescriptorSetLayout(device, &vertexLayoutInfo, nullptr, &info.descriptorSetLayouts[0]) != VK_SUCCESS) {
+		if (vkCreateDescriptorSetLayout(device, &vertexLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan vertex descriptor set layout.\n";
 			return false;
 		}
@@ -35,7 +35,7 @@ namespace Chrivent {
 		pixelLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		pixelLayoutInfo.bindingCount = 1;
 		pixelLayoutInfo.pBindings = &pixelConstantBinding;
-		if (vkCreateDescriptorSetLayout(device, &pixelLayoutInfo, nullptr, &info.descriptorSetLayouts[1]) != VK_SUCCESS) {
+		if (vkCreateDescriptorSetLayout(device, &pixelLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan pixel descriptor set layout.\n";
 			return false;
 		}
@@ -66,7 +66,7 @@ namespace Chrivent {
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		textureLayoutInfo.bindingCount = 3;
 		textureLayoutInfo.pBindings = textureBindings;
-		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &info.descriptorSetLayouts[2]) != VK_SUCCESS) {
+		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan texture descriptor set layout.\n";
 			return false;
 		}
@@ -77,8 +77,8 @@ namespace Chrivent {
 		VkPipelineLayoutCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		createInfo.setLayoutCount = 3;
-		createInfo.pSetLayouts = info.descriptorSetLayouts;
-		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &info.pipelineLayout) != VK_SUCCESS) {
+		createInfo.pSetLayouts = descriptorSetLayouts;
+		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan pipeline layout.\n";
 			return false;
 		}
@@ -86,19 +86,19 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipelines(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
+		const VulkanDevice& deviceInfo,
+		const VulkanSwapChain& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir) {
-		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, info.pipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, info.bothFacePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, info.edgePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, info.groundShadowPipeline);
+		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
+			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
+		const VulkanDevice& deviceInfo,
+		const VulkanSwapChain& swapChainInfo,
 		const VkRenderPass renderPass,
 		const std::filesystem::path& shaderDir,
 		const char* vertexShaderName,
@@ -225,7 +225,7 @@ namespace Chrivent {
 		createInfo.pMultisampleState = &multisampling;
 		createInfo.pDepthStencilState = &depthStencil;
 		createInfo.pColorBlendState = &colorBlending;
-		createInfo.layout = info.pipelineLayout;
+		createInfo.layout = pipelineLayout;
 		createInfo.renderPass = renderPass;
 		createInfo.subpass = 0;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
@@ -277,11 +277,8 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanPipeline::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
-		const VkRenderPass renderPass,
-		const std::filesystem::path& shaderDir) {
+	bool VulkanPipeline::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo,
+		const VkRenderPass renderPass, const std::filesystem::path& shaderDir) {
 		device = deviceInfo.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
@@ -293,27 +290,27 @@ namespace Chrivent {
 	void VulkanPipeline::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		if (info.pipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.pipeline, nullptr);
-			info.pipeline = VK_NULL_HANDLE;
+		if (pipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, pipeline, nullptr);
+			pipeline = VK_NULL_HANDLE;
 		}
-		if (info.bothFacePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.bothFacePipeline, nullptr);
-			info.bothFacePipeline = VK_NULL_HANDLE;
+		if (bothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, bothFacePipeline, nullptr);
+			bothFacePipeline = VK_NULL_HANDLE;
 		}
-		if (info.edgePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.edgePipeline, nullptr);
-			info.edgePipeline = VK_NULL_HANDLE;
+		if (edgePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, edgePipeline, nullptr);
+			edgePipeline = VK_NULL_HANDLE;
 		}
-		if (info.groundShadowPipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, info.groundShadowPipeline, nullptr);
-			info.groundShadowPipeline = VK_NULL_HANDLE;
+		if (groundShadowPipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, groundShadowPipeline, nullptr);
+			groundShadowPipeline = VK_NULL_HANDLE;
 		}
-		if (info.pipelineLayout != VK_NULL_HANDLE) {
-			vkDestroyPipelineLayout(device, info.pipelineLayout, nullptr);
-			info.pipelineLayout = VK_NULL_HANDLE;
+		if (pipelineLayout != VK_NULL_HANDLE) {
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			pipelineLayout = VK_NULL_HANDLE;
 		}
-		for (VkDescriptorSetLayout& descriptorSetLayout : info.descriptorSetLayouts) {
+		for (VkDescriptorSetLayout& descriptorSetLayout : descriptorSetLayouts) {
 			if (descriptorSetLayout != VK_NULL_HANDLE) {
 				vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 				descriptorSetLayout = VK_NULL_HANDLE;

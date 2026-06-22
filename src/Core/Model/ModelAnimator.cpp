@@ -8,14 +8,14 @@ namespace Chrivent {
 	void ModelAnimator::InitializeAnimation() const {
 		ClearBaseAnimation();
 		for (const auto& node : model.skeletonData.nodes) {
-			node->GetInfo().animTranslate = glm::vec3(0);
-			node->GetInfo().animRotate = glm::quat(1, 0, 0, 0);
+			node->animTranslate = glm::vec3(0);
+			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
 		BeginAnimation();
 		for (const auto& morph : model.morphData.morphs)
 			morph->weight = 0;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->GetInfo().enable = true;
+			ikSolver->enable = true;
 		const ModelPose pose(model);
 		pose.UpdateNodeAnimation(false);
 		pose.UpdateNodeAnimation(true);
@@ -24,32 +24,32 @@ namespace Chrivent {
 
 	void ModelAnimator::SaveBaseAnimation() const {
 		for (const auto& node : model.skeletonData.nodes) {
-			node->GetInfo().baseAnimTranslate = node->GetInfo().animTranslate;
-			node->GetInfo().baseAnimRotate = node->GetInfo().animRotate;
+			node->baseAnimTranslate = node->animTranslate;
+			node->baseAnimRotate = node->animRotate;
 		}
 		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = morph->weight;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->GetInfo().baseAnimEnable = ikSolver->GetInfo().enable;
+			ikSolver->baseAnimEnable = ikSolver->enable;
 	}
 
 	void ModelAnimator::ClearBaseAnimation() const {
 		for (const auto& node : model.skeletonData.nodes) {
-			node->GetInfo().baseAnimTranslate = glm::vec3(0);
-			node->GetInfo().baseAnimRotate = glm::quat(1, 0, 0, 0);
+			node->baseAnimTranslate = glm::vec3(0);
+			node->baseAnimRotate = glm::quat(1, 0, 0, 0);
 		}
 		for (const auto& morph : model.morphData.morphs)
 			morph->saveAnimWeight = 0;
 		for (const auto& ikSolver : model.skeletonData.ikSolvers)
-			ikSolver->GetInfo().baseAnimEnable = true;
+			ikSolver->baseAnimEnable = true;
 	}
 
 	void ModelAnimator::BeginAnimation() const {
 		for (const auto& node : model.skeletonData.nodes)
 			node->BeginUpdateTransform();
 		for (const auto& node : model.skeletonData.nodes) {
-			node->GetInfo().animTranslate = glm::vec3(0);
-			node->GetInfo().animRotate = glm::quat(1, 0, 0, 0);
+			node->animTranslate = glm::vec3(0);
+			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
 		std::ranges::fill(model.morphData.morphPositions, glm::vec3(0));
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));

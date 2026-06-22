@@ -4,13 +4,6 @@ cbuffer VSData : register(b0) {
 };
 
 cbuffer PSData : register(b1) {
-    float   alpha;
-    float3  diffuse;
-    float3  ambient;
-    float3  specular;
-    float   specularPower;
-    float3  lightColor;
-    float3  lightDir;
     float4  texMulFactor;
     float4  texAddFactor;
     float4  toonTexMulFactor;
@@ -18,6 +11,13 @@ cbuffer PSData : register(b1) {
     float4  sphereTexMulFactor;
     float4  sphereTexAddFactor;
     int4    textureModes;
+    float   alpha;
+    float3  diffuse;
+    float3  ambient;
+    float3  specular;
+    float   specularPower;
+    float3  lightColor;
+    float3  lightDir;
 }
 
 Texture2D tex : register(t0);

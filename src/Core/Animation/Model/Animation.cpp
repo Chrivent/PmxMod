@@ -6,15 +6,15 @@
 namespace Chrivent {
 	uint32_t Animation::GetLastFrame() const {
 		uint32_t lastFrame = 0;
-		for (const auto& [node, keys] : info.nodeTracks) {
+		for (const auto& [node, keys] : nodeTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
-		for (const auto& [ikSolver, keys] : info.ikTracks) {
+		for (const auto& [ikSolver, keys] : ikTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
-		for (const auto& [morph, keys] : info.morphTracks) {
+		for (const auto& [morph, keys] : morphTracks) {
 			if (!keys.empty())
 				lastFrame = (std::max)(lastFrame, keys.back().frame);
 		}
@@ -28,12 +28,12 @@ namespace Chrivent {
 	}
 	
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
-		for (const auto& [node, keys]: info.nodeTracks) {
+		for (const auto& [node, keys]: nodeTracks) {
 			if (!node)
 				continue;
 			if (keys.empty()) {
-				node->GetInfo().animTranslate = glm::vec3(0);
-				node->GetInfo().animRotate = glm::quat(1, 0, 0, 0);
+				node->animTranslate = glm::vec3(0);
+				node->animRotate = glm::quat(1, 0, 0, 0);
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
@@ -55,27 +55,27 @@ namespace Chrivent {
 				vt = glm::mix(prev.translate, translate, glm::vec3(txY, tyY, tzY));
 				q  = glm::slerp(prev.rotate,   rotate,   rotY);
 			}
-			node->GetInfo().animTranslate = animWeight != 1.0f ? glm::mix(node->GetInfo().baseAnimTranslate, vt, animWeight) : vt;
-			node->GetInfo().animRotate = animWeight != 1.0f ? glm::slerp(node->GetInfo().baseAnimRotate, q, animWeight) : q;
+			node->animTranslate = animWeight != 1.0f ? glm::mix(node->baseAnimTranslate, vt, animWeight) : vt;
+			node->animRotate = animWeight != 1.0f ? glm::slerp(node->baseAnimRotate, q, animWeight) : q;
 		}
 	}
 
 	void Animation::EvaluateIks(const float t, const float animWeight) const {
-		for (const auto& [ikSolver, keys] : info.ikTracks) {
+		for (const auto& [ikSolver, keys] : ikTracks) {
 			if (!ikSolver)
 				continue;
 			if (keys.empty()) {
-				ikSolver->GetInfo().enable = true;
+				ikSolver->enable = true;
 				continue;
 			}
 			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? std::prev(it)->ikEnable : keys.begin()->ikEnable;
-			ikSolver->GetInfo().enable = animWeight < 1.0f ? ikSolver->GetInfo().baseAnimEnable : enable;
+			ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 		}
 	}
 
 	void Animation::EvaluateMorphs(const float t, const float animWeight) const {
-		for (const auto& [morph, keys] : info.morphTracks) {
+		for (const auto& [morph, keys] : morphTracks) {
 			if (!morph)
 				continue;
 			if (keys.empty())

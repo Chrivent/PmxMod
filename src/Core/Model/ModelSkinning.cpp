@@ -40,8 +40,8 @@ namespace Chrivent {
 	}
 
 	void ModelSkinning::UpdateRange(const std::size_t rangeIndex) const {
-		const auto& range = model.geometryData.updateRanges[rangeIndex];
-		for (size_t index = range.vertexOffset; index < range.vertexOffset + range.vertexCount; index++) {
+		const auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[rangeIndex];
+		for (size_t index = vertexOffset; index < vertexOffset + vertexCount; index++) {
 			const auto& position = model.geometryData.positions[index];
 			const auto& normal = model.geometryData.normals[index];
 			const auto& uv = model.geometryData.uvs[index];
@@ -80,8 +80,8 @@ namespace Chrivent {
 					const auto center = sphericalDeformC;
 					const auto cr0 = sphericalDeformR0;
 					const auto cr1 = sphericalDeformR1;
-					const auto q0 = glm::quat_cast(model.skeletonData.nodes[i0]->GetInfo().global);
-					const auto q1 = glm::quat_cast(model.skeletonData.nodes[i1]->GetInfo().global);
+					const auto q0 = glm::quat_cast(model.skeletonData.nodes[i0]->global);
+					const auto q1 = glm::quat_cast(model.skeletonData.nodes[i1]->global);
 					const auto rotMat = glm::mat3_cast(glm::slerp(q0, q1, w1));
 					const auto m0 = model.skeletonData.transforms[i0], m1 = model.skeletonData.transforms[i1];
 					const auto pos = position + morphPos;

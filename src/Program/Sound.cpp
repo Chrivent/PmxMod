@@ -24,11 +24,11 @@ namespace Chrivent {
     }
 
     void Sound::BuildWaveform(const std::filesystem::path& path) {
-        constexpr ma_uint32 waveformSampleRate = 3000;
         constexpr ma_uint32 timelineFrameRate = 30;
-        constexpr ma_uint32 waveformSamplesPerFrame = 10;
-        constexpr ma_uint64 samplesPerPeak =
-            waveformSampleRate / timelineFrameRate / waveformSamplesPerFrame;
+        constexpr ma_uint32 waveformSamplesPerFrame = 48;
+        constexpr ma_uint32 sourceSamplesPerPeak = 10;
+        constexpr ma_uint32 waveformSampleRate = timelineFrameRate * waveformSamplesPerFrame * sourceSamplesPerPeak;
+        constexpr ma_uint64 samplesPerPeak = sourceSamplesPerPeak;
         constexpr ma_uint64 bufferFrameCount = 4096;
         ma_decoder decoder{};
         const ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 1, waveformSampleRate);
@@ -164,7 +164,4 @@ namespace Chrivent {
         }
     }
 
-    void Sound::Stop() {
-        UnInit();
-    }
 }

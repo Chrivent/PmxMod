@@ -9,17 +9,10 @@
 
 namespace Chrivent {
 	class Node;
-	struct PhysicsInfo;
-	struct Model;
-
-	struct RigidBodyInfo {
-		std::unique_ptr<btRigidBody>	rigidBody;
-		uint16_t						group = 0;
-		uint16_t						groupMask = 0;
-	};
+	class Physics;
+	class Model;
 
 	class RigidBody {
-		RigidBodyInfo info;
 		std::unique_ptr<btCollisionShape>	shape;
 		std::unique_ptr<MotionState>		activeMotionState;
 		std::unique_ptr<MotionState>		kinematicMotionState;
@@ -29,7 +22,9 @@ namespace Chrivent {
 		std::string							name;
 
 	public:
-		RigidBodyInfo& GetInfo() { return info; }
+		std::unique_ptr<btRigidBody> rigidBody;
+		uint16_t group = 0;
+		uint16_t groupMask = 0;
 
 		// PMX 강체 정보를 Bullet 강체와 모션 상태로 생성한다.
 		void Create(const PmxParser::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr);
@@ -38,7 +33,7 @@ namespace Chrivent {
 		// 강체 변환을 초기 위치로 재설정한다.
 		void ResetTransform() const;
 		// 물리 월드에 등록된 강체 상태를 초기화한다.
-		void Reset(const PhysicsInfo& physicsInfo) const;
+		void Reset(const Physics& physics) const;
 		// 물리 계산 결과를 연결된 본 변환에 반영한다.
 		void ReflectGlobalTransform() const;
 		// PMX 오프셋 기준의 로컬 변환을 계산한다.

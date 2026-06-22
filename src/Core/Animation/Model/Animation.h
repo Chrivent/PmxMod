@@ -48,21 +48,15 @@ namespace Chrivent {
 		std::vector<MorphAnimationKey> keys;
 	};
 
-	struct AnimationInfo {
+	class Animation {
+	public:
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;
 		std::vector<MorphAnimationTrack> morphTracks;
-	};
 
-	class Animation {
-		AnimationInfo info;
+		Animation(std::vector<NodeAnimationTrack> nodes, std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
+			: nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
 
-	public:
-		explicit Animation(AnimationInfo animationInfo) : info(std::move(animationInfo)) {}
-
-		const AnimationInfo& GetInfo() const { return info; }
-
-		// 포함된 모든 트랙 중 가장 마지막 키 프레임을 반환한다.
 		uint32_t GetLastFrame() const;
 		// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
 		void Evaluate(float t, float animWeight = 1.0f) const;

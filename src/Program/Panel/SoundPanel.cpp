@@ -86,10 +86,6 @@ namespace Chrivent {
 		UpdateValueText();
 	}
 
-	void SoundPanel::Create(const HWND parent) {
-		CreateContent(parent);
-	}
-
 	void SoundPanel::Show() {
 		if (panelWindow) {
 			ShowWindow(panelWindow, SW_SHOWNORMAL);

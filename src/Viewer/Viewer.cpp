@@ -9,8 +9,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-    Viewer::Viewer() : info(std::make_unique<ViewerInfo>()) {}
-
     Viewer::~Viewer() {
         if (fpsOverlay)
             DestroyWindow(fpsOverlay);
@@ -65,14 +63,14 @@ namespace Chrivent {
             buf.resize(buf.size() * 2);
         }
         resourceDir = resourceDir.parent_path() / "resource";
-        info->shaderDir = resourceDir / shaderSubDir;
-        info->pmxDir = resourceDir / "mmd";
+        shaderDir = resourceDir / shaderSubDir;
+        pmxDir = resourceDir / "mmd";
     }
 
     void Viewer::CreateFpsOverlay() {
-        if (fpsOverlay || !info->window)
+        if (fpsOverlay || !window)
             return;
-        const HWND viewerWindow = glfwGetWin32Window(info->window);
+        const HWND viewerWindow = glfwGetWin32Window(window);
         if (!viewerWindow)
             return;
         const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -121,9 +119,9 @@ namespace Chrivent {
     }
 
     void Viewer::PositionFpsOverlay() const {
-        if (!fpsOverlay || !info->window)
+        if (!fpsOverlay || !window)
             return;
-        const HWND viewerWindow = glfwGetWin32Window(info->window);
+        const HWND viewerWindow = glfwGetWin32Window(window);
         POINT origin{12, 12};
         ClientToScreen(viewerWindow, &origin);
         SetWindowPos(fpsOverlay, HWND_TOP, origin.x, origin.y, 120, 32, SWP_NOACTIVATE | SWP_SHOWWINDOW);

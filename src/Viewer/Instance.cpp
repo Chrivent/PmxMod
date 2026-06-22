@@ -5,10 +5,7 @@
 #include "../Core/Model/ModelUpdater.h"
 
 namespace Chrivent {
-    InstanceInfo::InstanceInfo() = default;
-    InstanceInfo::~InstanceInfo() = default;
-
-    Instance::Instance() : info(std::make_unique<InstanceInfo>()) {}
+    Instance::Instance() = default;
     Instance::~Instance() = default;
 
     void Instance::Draw() const {
@@ -16,20 +13,19 @@ namespace Chrivent {
             drawer->Draw();
     }
 
-    void Instance::PrepareUpdate(const ViewerInfo& viewerInfo, const bool physicsEnabled, ModelUpdateTiming* timing) const {
-        const auto& instanceInfo = GetInfo();
-        const ModelUpdater updater(*instanceInfo.model);
-        updater.Prepare(instanceInfo.anim.get(), viewerInfo.animTime * 30.0f, viewerInfo.elapsed,
-            physicsEnabled && !viewerInfo.skipPhysics, timing);
+    void Instance::PrepareUpdate(const Viewer& viewer, const bool physicsEnabled, ModelUpdateTiming* timing) const {
+        const ModelUpdater updater(*model);
+        updater.Prepare(anim.get(), viewer.animTime * 30.0f, viewer.elapsed,
+            physicsEnabled && !viewer.skipPhysics, timing);
     }
 
     std::size_t Instance::GetSkinningTaskCount() const {
-        const ModelUpdater updater(*GetInfo().model);
+        const ModelUpdater updater(*model);
         return updater.GetSkinningTaskCount();
     }
 
     void Instance::UpdateSkinning(const std::size_t taskIndex) const {
-        const ModelUpdater updater(*GetInfo().model);
+        const ModelUpdater updater(*model);
         updater.UpdateSkinning(taskIndex);
     }
 }

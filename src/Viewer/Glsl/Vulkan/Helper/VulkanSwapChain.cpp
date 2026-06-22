@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanSwapChainSupport VulkanSwapChain::QuerySupport(const VulkanDeviceInfo& deviceInfo) {
+	VulkanSwapChainSupport VulkanSwapChain::QuerySupport(const VulkanDevice& deviceInfo) {
 		VulkanSwapChainSupport support;
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceInfo.physicalDevice, deviceInfo.surface, &support.capabilities);
 		uint32_t formatCount = 0;
@@ -58,13 +58,13 @@ namespace Chrivent {
 	}
 
 	bool VulkanSwapChain::CreateImageViews() {
-		info.imageViews.resize(info.images.size());
-		for (size_t i = 0; i < info.images.size(); i++) {
+		imageViews.resize(images.size());
+		for (size_t i = 0; i < images.size(); i++) {
 			VkImageViewCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			createInfo.image = info.images[i];
+			createInfo.image = images[i];
 			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = info.imageFormat;
+			createInfo.format = imageFormat;
 			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -74,7 +74,7 @@ namespace Chrivent {
 			createInfo.subresourceRange.levelCount = 1;
 			createInfo.subresourceRange.baseArrayLayer = 0;
 			createInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(device, &createInfo, nullptr, &info.imageViews[i]) != VK_SUCCESS) {
+			if (vkCreateImageView(device, &createInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
 				std::cerr << "Failed to create Vulkan swapchain image view.\n";
 				return false;
 			}
@@ -86,7 +86,7 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanSwapChain::Initialize(const VulkanDeviceInfo& deviceInfo, GLFWwindow* window) {
+	bool VulkanSwapChain::Initialize(const VulkanDevice& deviceInfo, GLFWwindow* window) {
 		device = deviceInfo.device;
 		const auto [capabilities,
 			formats,
@@ -97,8 +97,8 @@ namespace Chrivent {
 		}
 		const auto [format, colorSpace] = ChooseSurfaceFormat(formats);
 		const VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
-		const VkExtent2D extent = ChooseExtent(capabilities, window);
-		if (extent.width == 0 || extent.height == 0) {
+		const VkExtent2D selectedExtent = ChooseExtent(capabilities, window);
+		if (selectedExtent.width == 0 || selectedExtent.height == 0) {
 			std::cerr << "Invalid Vulkan swapchain extent.\n";
 			return false;
 		}
@@ -111,7 +111,7 @@ namespace Chrivent {
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = format;
 		createInfo.imageColorSpace = colorSpace;
-		createInfo.imageExtent = extent;
+		createInfo.imageExtent = selectedExtent;
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
@@ -129,19 +129,19 @@ namespace Chrivent {
 		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
-		if (vkCreateSwapchainKHR(deviceInfo.device, &createInfo, nullptr, &info.swapChain) != VK_SUCCESS) {
+		if (vkCreateSwapchainKHR(deviceInfo.device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan swapchain.\n";
 			return false;
 		}
-		vkGetSwapchainImagesKHR(deviceInfo.device, info.swapChain, &imageCount, nullptr);
-		info.images.resize(imageCount);
-		vkGetSwapchainImagesKHR(deviceInfo.device, info.swapChain, &imageCount, info.images.data());
-		info.imageFormat = format;
-		info.extent = extent;
+		vkGetSwapchainImagesKHR(deviceInfo.device, swapChain, &imageCount, nullptr);
+		images.resize(imageCount);
+		vkGetSwapchainImagesKHR(deviceInfo.device, swapChain, &imageCount, images.data());
+		imageFormat = format;
+		extent = selectedExtent;
 		return CreateImageViews();
 	}
 
-	bool VulkanSwapChain::Recreate(const VulkanDeviceInfo& deviceInfo, GLFWwindow* window) {
+	bool VulkanSwapChain::Recreate(const VulkanDevice& deviceInfo, GLFWwindow* window) {
 		if (deviceInfo.device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(deviceInfo.device);
 		Destroy();
@@ -151,16 +151,16 @@ namespace Chrivent {
 	void VulkanSwapChain::Destroy() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		for (const VkImageView imageView : info.imageViews)
+		for (const VkImageView imageView : imageViews)
 			vkDestroyImageView(device, imageView, nullptr);
-		info.imageViews.clear();
-		info.images.clear();
-		if (info.swapChain != VK_NULL_HANDLE) {
-			vkDestroySwapchainKHR(device, info.swapChain, nullptr);
-			info.swapChain = VK_NULL_HANDLE;
+		imageViews.clear();
+		images.clear();
+		if (swapChain != VK_NULL_HANDLE) {
+			vkDestroySwapchainKHR(device, swapChain, nullptr);
+			swapChain = VK_NULL_HANDLE;
 		}
-		info.imageFormat = VK_FORMAT_UNDEFINED;
-		info.extent = {};
+		imageFormat = VK_FORMAT_UNDEFINED;
+		extent = {};
 		device = VK_NULL_HANDLE;
 	}
 }

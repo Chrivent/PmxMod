@@ -24,7 +24,7 @@ namespace Chrivent {
 		const auto nodePtr = node.lock();
 		if (!nodePtr)
 			return;
-		glm::mat4 global = Util::InvZ(nodePtr->GetInfo().global * offset);
+		glm::mat4 global = Util::InvZ(nodePtr->global * offset);
 		transform.setFromOpenGLMatrix(&global[0][0]);
 	}
 
@@ -36,13 +36,13 @@ namespace Chrivent {
 		transform.getOpenGLMatrix(&worldTransformMat[0][0]);
 		glm::mat4 btGlobal = Util::InvZ(worldTransformMat) * invOffset;
 		PostProcessBtGlobal(btGlobal);
-		nodePtr->GetInfo().global = btGlobal;
+		nodePtr->global = btGlobal;
 		nodePtr->UpdateChildTransform();
 	}
 
 	void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
 		if (const auto nodePtr = node.lock())
-			btGlobal[3] = nodePtr->GetInfo().global[3];
+			btGlobal[3] = nodePtr->global[3];
 	}
 
 	KinematicMotionState::KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
@@ -52,7 +52,7 @@ namespace Chrivent {
 		const auto nodePtr = node.lock();
 		if (!nodePtr)
 			return;
-		glm::mat4 global = Util::InvZ(nodePtr->GetInfo().global * offset);
+		glm::mat4 global = Util::InvZ(nodePtr->global * offset);
 		worldTransform.setFromOpenGLMatrix(&global[0][0]);
 	}
 }

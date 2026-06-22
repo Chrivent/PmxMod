@@ -7,13 +7,13 @@
 
 namespace Chrivent {
 	void GlfwDrawer::BeginDynamicBufferFrame() const {
-		info.vertexConstantsRing.BeginFrame(0);
-		info.pixelConstantsRing.BeginFrame(0);
+		instance.vertexConstantsRing.BeginFrame(0);
+		instance.pixelConstantsRing.BeginFrame(0);
 	}
 
 	bool GlfwDrawer::UpdateUniformBuffer(GlfwDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
-		const auto slice = ring.Allocate(size, info.uniformBufferOffsetAlignment, error);
+		const auto slice = ring.Allocate(size, instance.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
 			return false;
 		glBindBuffer(GL_UNIFORM_BUFFER, ring.GetBuffer());
@@ -24,25 +24,25 @@ namespace Chrivent {
 
 	void GlfwDrawer::DrawModel() {
 		BeginDynamicBufferFrame();
-		auto* viewer = info.viewer;
-		const auto& materials = info.materials;
-		const auto indexType = info.indexType;
-		const auto& view = viewer->GetInfo().viewMat;
-		const auto& proj = viewer->GetInfo().projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		ModelVertexConstants vertexConstants;
+		const auto* viewer = instance.viewer;
+		const auto& materials = instance.materials;
+		const auto indexType = instance.indexType;
+		const auto& view = viewer->viewMat;
+		const auto& proj = viewer->projMat;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ShaderModelVertexConstants vertexConstants;
 		vertexConstants.wv = view * world;
 		vertexConstants.wvp = proj * view * world;
-		const auto& shader = viewer->GetGlfwInfo().shader;
-		const glm::vec3 lightColor = viewer->GetInfo().lightColor;
-		const glm::vec3 lightDir = glm::mat3(viewer->GetInfo().viewMat) * viewer->GetInfo().lightDir;
-		ModelPixelConstants basePixelConstants{};
+		const auto& shader = viewer->shader;
+		const glm::vec3 lightColor = viewer->lightColor;
+		const glm::vec3 lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
+		GlslModelPixelConstants basePixelConstants{};
 		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
-		if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
-		glBindVertexArray(info.vao);
+		glBindVertexArray(instance.vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -51,12 +51,12 @@ namespace Chrivent {
 		GLuint boundTextures[3] = { 0, 0, 0 };
 		bool cullEnabled = true;
 		GLenum cullFaceMode = GL_BACK;
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			ModelPixelConstants pixelConstants = basePixelConstants;
+			GlslModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
 			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
@@ -67,7 +67,7 @@ namespace Chrivent {
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
 			glActiveTexture(GL_TEXTURE0 + 0);
-			GLuint baseTexture = viewer->GetGlfwInfo().dummyColorTex;
+			GLuint baseTexture = viewer->dummyColorTex;
 			if (material.texture != 0) {
 				if (!material.textureHasAlpha)
 					pixelConstants.textureModes.x = 1;
@@ -80,7 +80,7 @@ namespace Chrivent {
 				boundTextures[0] = baseTexture;
 			}
 			glActiveTexture(GL_TEXTURE0 + 1);
-			GLuint toonTexture = viewer->GetGlfwInfo().dummyColorTex;
+			GLuint toonTexture = viewer->dummyColorTex;
 			if (material.toonTexture != 0) {
 				pixelConstants.textureModes.y = 1;
 				toonTexture = material.toonTexture;
@@ -90,7 +90,7 @@ namespace Chrivent {
 				boundTextures[1] = toonTexture;
 			}
 			glActiveTexture(GL_TEXTURE0 + 2);
-			GLuint sphereTexture = viewer->GetGlfwInfo().dummyColorTex;
+			GLuint sphereTexture = viewer->dummyColorTex;
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					pixelConstants.textureModes.z = 1;
@@ -102,7 +102,7 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, sphereTexture);
 				boundTextures[2] = sphereTexture;
 			}
-			if (!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
 			if (mat.bothFace) {
 				if (cullEnabled) {
@@ -119,63 +119,63 @@ namespace Chrivent {
 					cullFaceMode = GL_BACK;
 				}
 			}
-			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
 
 	void GlfwDrawer::DrawEdge() {
-		auto* viewer = info.viewer;
-		const auto& materials = info.materials;
-		const auto indexType = info.indexType;
-		const auto& view = viewer->GetInfo().viewMat;
-		const auto& proj = viewer->GetInfo().projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const auto& edgeShader = viewer->GetGlfwInfo().edgeShader;
-		EdgeVertexConstants baseVertexConstants{};
+		const auto* viewer = instance.viewer;
+		const auto& materials = instance.materials;
+		const auto indexType = instance.indexType;
+		const auto& view = viewer->viewMat;
+		const auto& proj = viewer->projMat;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto& edgeShader = viewer->edgeShader;
+		GlslEdgeVertexConstants baseVertexConstants{};
 		baseVertexConstants.wv = view * world;
 		baseVertexConstants.wvp = proj * view * world;
-		baseVertexConstants.screenSize = glm::vec2(viewer->GetInfo().screenWidth, viewer->GetInfo().screenHeight);
+		baseVertexConstants.screenSize = glm::vec2(viewer->screenWidth, viewer->screenHeight);
 		glUseProgram(edgeShader->program);
-		glBindVertexArray(info.edgeVao);
+		glBindVertexArray(instance.edgeVao);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag)
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			EdgeVertexConstants vertexConstants = baseVertexConstants;
+			GlslEdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
-			EdgePixelConstants pixelConstants;
+			ShaderEdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
-				!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
+				!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
-			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
 
 	void GlfwDrawer::DrawGroundShadow() {
-		auto* viewer = info.viewer;
-		const auto& materials = info.materials;
-		const auto indexType = info.indexType;
-		const auto& view = viewer->GetInfo().viewMat;
-		const auto& proj = viewer->GetInfo().projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const auto& gsShader = viewer->GetGlfwInfo().gsShader;
+		const auto* viewer = instance.viewer;
+		const auto& materials = instance.materials;
+		const auto indexType = instance.indexType;
+		const auto& view = viewer->viewMat;
+		const auto& proj = viewer->projMat;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto& gsShader = viewer->gsShader;
 		glUseProgram(gsShader->program);
-		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
-		GroundShadowVertexConstants vertexConstants;
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->lightDir);
+		ShaderGroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
-		if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
-		glBindVertexArray(info.gsVao);
-		constexpr GroundShadowPixelConstants pixelConstants;
-		if (!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+		glBindVertexArray(instance.gsVao);
+		constexpr ShaderGroundShadowPixelConstants pixelConstants;
+		if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 			return;
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
@@ -190,14 +190,14 @@ namespace Chrivent {
 			glDisable(GL_STENCIL_TEST);
 		}
 		glDisable(GL_CULL_FACE);
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow)
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -205,5 +205,5 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 	}
 
-	GlfwDrawer::GlfwDrawer(GlfwInstanceInfo& sourceInfo) : info(sourceInfo) {}
+	GlfwDrawer::GlfwDrawer(GlfwInstance& sourceInstance) : instance(sourceInstance) {}
 }

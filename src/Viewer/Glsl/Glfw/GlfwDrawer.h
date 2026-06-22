@@ -6,10 +6,10 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
-	struct GlfwInstanceInfo;
+	class GlfwInstance;
 
 	class GlfwDrawer : public Drawer {
-		GlfwInstanceInfo& info;
+		GlfwInstance& instance;
 
 		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.
 		void BeginDynamicBufferFrame() const;
@@ -27,6 +27,6 @@ namespace Chrivent {
 	public:
 		~GlfwDrawer() override = default;
 
-		explicit GlfwDrawer(GlfwInstanceInfo& sourceInfo);
+		explicit GlfwDrawer(GlfwInstance& sourceInstance);
 	};
 }

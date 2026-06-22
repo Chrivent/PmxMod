@@ -33,14 +33,10 @@ namespace Chrivent {
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}
 
-	void CameraManager::SetMotionCameraEnabled(const bool enabled) {
-		useMotionCamera = enabled;
-	}
-
-	void CameraManager::SeekFrame(ViewerInfo& viewerInfo, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
+	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
-		viewerInfo.elapsed = 0.0f;
-		viewerInfo.animTime = seconds;
+		viewer.elapsed = 0.0f;
+		viewer.animTime = seconds;
 		music.SeekSeconds(seconds);
 		if (!paused)
 			music.Resume();
@@ -71,35 +67,35 @@ namespace Chrivent {
 		}
 	}
 
-	void CameraManager::StepTime(ViewerInfo& viewerInfo, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
+	void CameraManager::StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
 		const auto now = std::chrono::steady_clock::now();
 		double elapsedSeconds = std::chrono::duration<double>(now - saveTime).count();
 		if (elapsedSeconds > 1.0 / 30.0)
 			elapsedSeconds = 1.0 / 30.0;
 		saveTime = now;
 		if (paused) {
-			viewerInfo.elapsed = 0.0f;
+			viewer.elapsed = 0.0f;
 			return;
 		}
 		const float clockDt = elapsedSeconds;
 		float dt = clockDt;
-		float t = viewerInfo.animTime + dt;
+		float t = viewer.animTime + dt;
 		if (music.HasSound()) {
 			float audioDt = 0.0f;
 			float audioTime = 0.0f;
 			music.PullTimes(audioDt, audioTime);
 			if (audioDt < 0.0f)
 				audioDt = 0.0f;
-			if (audioTime > viewerInfo.animTime) {
+			if (audioTime > viewer.animTime) {
 				dt = audioDt;
 				t = audioTime;
 			} else {
 				dt = clockDt;
-				t = viewerInfo.animTime + clockDt;
+				t = viewer.animTime + clockDt;
 			}
 		}
-		viewerInfo.elapsed = dt;
-		viewerInfo.animTime = t;
+		viewer.elapsed = dt;
+		viewer.animTime = t;
 	}
 
 	void CameraManager::Play(Sound& music) {
@@ -112,16 +108,16 @@ namespace Chrivent {
 		music.Pause();
 	}
 
-	void CameraManager::Stop(ViewerInfo& viewerInfo, Sound& music, std::chrono::steady_clock::time_point& saveTime) {
+	void CameraManager::Stop(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) {
 		paused = true;
-		viewerInfo.elapsed = 0.0f;
-		viewerInfo.animTime = 0.0f;
+		viewer.elapsed = 0.0f;
+		viewer.animTime = 0.0f;
 		music.SeekSeconds(0.0f);
 		music.Pause();
 		saveTime = std::chrono::steady_clock::now();
 	}
 
-	void CameraManager::HandleInput(const InputManager& inputManager, const ViewerInfo& viewerInfo, Sound& music) {
+	void CameraManager::HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music) {
 		const auto& [togglePause,
 			moveForward, moveBackward,
 			moveLeft, moveRight,
@@ -136,7 +132,7 @@ namespace Chrivent {
 		}
 		if (useMotionCamera)
 			return;
-		const float moveSpeed = 100.0f * std::max(viewerInfo.elapsed, 1.0f / 120.0f);
+		const float moveSpeed = 100.0f * std::max(viewer.elapsed, 1.0f / 120.0f);
 		glm::vec3 forward(
 			std::cos(freeCamPitch) * std::cos(freeCamYaw),
 			std::sin(freeCamPitch),
@@ -167,12 +163,12 @@ namespace Chrivent {
 		}
 	}
 
-	void CameraManager::UpdateCamera(ViewerInfo& viewerInfo) const {
+	void CameraManager::UpdateCamera(Viewer& viewer) const {
 		if (useMotionCamera && cameraAnim) {
-			const auto& cam = cameraAnim->Evaluate(viewerInfo.animTime * 30.0f);
-			viewerInfo.viewMat = cam.CalcViewMatrix();
-			viewerInfo.projMat = glm::perspectiveFovRH(
-				cam.fov, static_cast<float>(viewerInfo.screenWidth), static_cast<float>(viewerInfo.screenHeight), 1.0f, 10000.0f
+			const auto& cam = cameraAnim->Evaluate(viewer.animTime * 30.0f);
+			viewer.viewMat = cam.CalcViewMatrix();
+			viewer.projMat = glm::perspectiveFovRH(
+				cam.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
 			);
 			return;
 		}
@@ -182,9 +178,9 @@ namespace Chrivent {
 			std::cos(freeCamPitch) * std::sin(freeCamYaw)
 		);
 		forward = glm::normalize(forward);
-		viewerInfo.viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
-		viewerInfo.projMat = glm::perspectiveFovRH(
-			glm::radians(30.0f), static_cast<float>(viewerInfo.screenWidth), static_cast<float>(viewerInfo.screenHeight), 1.0f, 10000.0f
+		viewer.viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
+		viewer.projMat = glm::perspectiveFovRH(
+			glm::radians(30.0f), static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
 		);
 	}
 }

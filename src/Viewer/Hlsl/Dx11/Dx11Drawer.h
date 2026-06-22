@@ -6,11 +6,11 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct Dx11InstanceInfo;
+	class Dx11Instance;
 	struct Dx11Texture;
 
 	class Dx11Drawer : public Drawer {
-		const Dx11InstanceInfo& info;
+		const Dx11Instance& instance;
 
 		// 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
 		void BindTexture(
@@ -32,6 +32,6 @@ namespace Chrivent {
 	public:
 		~Dx11Drawer() override = default;
 
-		explicit Dx11Drawer(const Dx11InstanceInfo& sourceInfo);
+		explicit Dx11Drawer(const Dx11Instance& sourceInstance);
 	};
 }

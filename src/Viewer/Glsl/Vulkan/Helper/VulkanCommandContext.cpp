@@ -7,24 +7,24 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanCommandContext::Initialize(const VulkanDeviceInfo& deviceInfo, const VulkanSwapChainInfo& swapChainInfo) {
+	bool VulkanCommandContext::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo) {
 		device = deviceInfo.device;
 		VkCommandPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		createInfo.queueFamilyIndex = deviceInfo.queueFamilies.graphicsFamily;
-		if (vkCreateCommandPool(device, &createInfo, nullptr, &info.commandPool) != VK_SUCCESS) {
+		if (vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan command pool.\n";
 			return false;
 		}
-		return info.commandBuffer.Initialize(deviceInfo, info.commandPool, swapChainInfo);
+		return commandBuffer.Initialize(deviceInfo, commandPool, swapChainInfo);
 	}
 
 	void VulkanCommandContext::Destroy() {
-		info.commandBuffer.Destroy();
-		if (device != VK_NULL_HANDLE && info.commandPool != VK_NULL_HANDLE) {
-			vkDestroyCommandPool(device, info.commandPool, nullptr);
-			info.commandPool = VK_NULL_HANDLE;
+		commandBuffer.Destroy();
+		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE) {
+			vkDestroyCommandPool(device, commandPool, nullptr);
+			commandPool = VK_NULL_HANDLE;
 		}
 		device = VK_NULL_HANDLE;
 	}

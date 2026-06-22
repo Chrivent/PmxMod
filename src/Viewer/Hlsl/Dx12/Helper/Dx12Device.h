@@ -5,24 +5,18 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	struct Dx12DeviceInfo {
-		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-		Microsoft::WRL::ComPtr<ID3D12Device> device;
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
-		UINT msaaSampleCount = 1;
-	};
-
 	class Dx12Device {
-		Dx12DeviceInfo info;
-
 		// 디바이스가 지원하는 MSAA sample count를 선택한다.
 		static UINT ChooseMsaaSampleCount(ID3D12Device* device);
 		// 선택된 DXGI 어댑터 정보를 공통 GPU 로그 형식으로 출력한다.
 		static void PrintGpuInfo(const DXGI_ADAPTER_DESC1& description);
 
 	public:
-		const Dx12DeviceInfo& GetInfo() const { return info; }
+		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
+		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+		Microsoft::WRL::ComPtr<ID3D12Device> device;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
+		UINT msaaSampleCount = 1;
 
 		// DX12 디바이스와 command queue를 생성한다.
 		bool Initialize();

@@ -7,7 +7,7 @@
 
 namespace Chrivent {
 	bool Dx12Pipeline::CreateRootSignature(
-		const Dx12DeviceInfo& deviceInfo,
+		const Dx12Device& deviceInfo,
 		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc,
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature) {
 		Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
@@ -58,7 +58,7 @@ namespace Chrivent {
 		depthStencilDesc.StencilEnable = FALSE;
 	}
 
-	bool Dx12Pipeline::CreateModelRootSignature(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12Pipeline::CreateModelRootSignature(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.device)
 			return false;
 		D3D12_DESCRIPTOR_RANGE srvRange;
@@ -110,7 +110,7 @@ namespace Chrivent {
 		return CreateRootSignature(deviceInfo, rootSignatureDesc, modelRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
 		if (!deviceInfo.device || !modelRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
@@ -147,7 +147,7 @@ namespace Chrivent {
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
 	}
 
-	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.device)
 			return false;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};
@@ -167,7 +167,7 @@ namespace Chrivent {
 		return CreateRootSignature(deviceInfo, rootSignatureDesc, edgeRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
 		if (!deviceInfo.device || !edgeRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
@@ -200,7 +200,7 @@ namespace Chrivent {
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&edgePipelineState)));
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12DeviceInfo& deviceInfo) {
+	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12Device& deviceInfo) {
 		if (!deviceInfo.device)
 			return false;
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
@@ -217,7 +217,7 @@ namespace Chrivent {
 		return CreateRootSignature(deviceInfo, rootSignatureDesc, groundShadowRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
 		if (!deviceInfo.device || !groundShadowRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
@@ -260,7 +260,7 @@ namespace Chrivent {
 		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
-	bool Dx12Pipeline::Initialize(const Dx12DeviceInfo& deviceInfo, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::Initialize(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
 		Destroy();
 		if (!CreateModelRootSignature(deviceInfo))
 			return false;

@@ -1,6 +1,7 @@
 {
   "window.settings": "설정",
   "menu.file": "파일",
+  "menu.new": "새로 만들기",
   "menu.open": "열기...",
   "menu.save": "저장...",
   "menu.renderer": "렌더러",
@@ -9,6 +10,7 @@
   "menu.view": "보기",
   "menu.language": "언어",
   "menu.fps": "FPS",
+  "menu.reset_panel_layout": "패널 경계 초기화",
   "language.english": "영어",
   "language.korean": "한국어",
   "language.japanese": "일본어",

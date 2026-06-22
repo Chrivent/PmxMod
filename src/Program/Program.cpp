@@ -112,19 +112,19 @@ namespace Chrivent {
         }
         glfwDefaultWindowHints();
         viewer->ConfigureGlfwHints();
-        viewer->GetInfo().window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
-        if (!viewer->GetInfo().window) {
+        viewer->window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+        if (!viewer->window) {
             std::cerr << "Failed to create viewer window.\n";
             viewer.reset();
             glfwTerminate();
             return false;
         }
-        inputManager.AttachWindow(viewer->GetInfo().window);
+        inputManager.AttachWindow(viewer->window);
         PositionViewerOnRightMonitor();
-        glfwMaximizeWindow(viewer->GetInfo().window);
+        glfwMaximizeWindow(viewer->window);
         glfwPollEvents();
-        glfwGetFramebufferSize(viewer->GetInfo().window, &viewer->GetInfo().screenWidth, &viewer->GetInfo().screenHeight);
-        if (viewer->GetInfo().screenWidth <= 0 || viewer->GetInfo().screenHeight <= 0) {
+        glfwGetFramebufferSize(viewer->window, &viewer->screenWidth, &viewer->screenHeight);
+        if (viewer->screenWidth <= 0 || viewer->screenHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
             viewer.reset();
             glfwTerminate();
@@ -144,11 +144,10 @@ namespace Chrivent {
         glfwPollEvents();
         int framebufferWidth = 0;
         int framebufferHeight = 0;
-        glfwGetFramebufferSize(viewer->GetInfo().window, &framebufferWidth, &framebufferHeight);
-        if (framebufferWidth != viewer->GetInfo().screenWidth ||
-            framebufferHeight != viewer->GetInfo().screenHeight) {
-            viewer->GetInfo().screenWidth = framebufferWidth;
-            viewer->GetInfo().screenHeight = framebufferHeight;
+        glfwGetFramebufferSize(viewer->window, &framebufferWidth, &framebufferHeight);
+        if (framebufferWidth != viewer->screenWidth || framebufferHeight != viewer->screenHeight) {
+            viewer->screenWidth = framebufferWidth;
+            viewer->screenHeight = framebufferHeight;
             if (!viewer->Resize()) {
                 viewer.reset();
                 glfwTerminate();
@@ -195,18 +194,18 @@ namespace Chrivent {
             return;
         int windowWidth = 0;
         int windowHeight = 0;
-        glfwGetWindowSize(viewer->GetInfo().window, &windowWidth, &windowHeight);
+        glfwGetWindowSize(viewer->window, &windowWidth, &windowHeight);
         const int x = rightX + (std::max)(0, (rightWidth - windowWidth) / 2);
         const int y = rightY + (std::max)(0, (rightHeight - windowHeight) / 2);
-        glfwSetWindowPos(viewer->GetInfo().window, x, y);
+        glfwSetWindowPos(viewer->window, x, y);
     }
 
     bool Program::ChangeRenderer(const RendererType rendererType) {
         if (rendererType == currentRendererType)
             return true;
         const bool resumePlayback = cameraManager.IsPlaying();
-        const int playbackFrame = viewer ? viewer->GetInfo().animTime * 30.0f + 0.5f : 0;
-        GLFWwindow* previousWindow = viewer ? viewer->GetInfo().window : nullptr;
+        const int playbackFrame = viewer ? viewer->animTime * 30.0f + 0.5f : 0;
+        GLFWwindow* previousWindow = viewer ? viewer->window : nullptr;
         if (resumePlayback)
             cameraManager.Pause(music);
         if (viewer)
@@ -224,16 +223,16 @@ namespace Chrivent {
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
         panelManager.BindSound(music);
-        cameraManager.SeekFrame(viewer->GetInfo(), music, playbackFrame, saveTime);
+        cameraManager.SeekFrame(*viewer, music, playbackFrame, saveTime);
         ResetPhysics(playbackFrame);
         if (resumePlayback)
             cameraManager.Play(music);
-        cameraManager.UpdateCamera(viewer->GetInfo());
+        cameraManager.UpdateCamera(*viewer);
         return true;
     }
 
     void Program::Shutdown() {
-        GLFWwindow* window = viewer ? viewer->GetInfo().window : nullptr;
+        GLFWwindow* window = viewer ? viewer->window : nullptr;
         if (viewer)
             viewer->WaitIdle();
         ClearInstances();
@@ -263,15 +262,15 @@ namespace Chrivent {
         panelManager.BindSound(music);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.SetMotionMode(MotionTimelineMode::Camera);
-        viewer->GetInfo().elapsed = 0.0f;
-        viewer->GetInfo().animTime = 0.0f;
-        viewer->GetInfo().skipPhysics = false;
+        viewer->elapsed = 0.0f;
+        viewer->animTime = 0.0f;
+        viewer->skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
-        cameraManager.Stop(viewer->GetInfo(), music, saveTime);
+        cameraManager.Stop(*viewer, music, saveTime);
         panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
-            cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
+            cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
             ResetPhysics(startFrame);
         }
         return true;
@@ -284,14 +283,14 @@ namespace Chrivent {
             auto instance = viewer->CreateInstance();
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
-            if (!loader.Load(modelPath, viewer->GetInfo().pmxDir)) {
+            if (!loader.Load(modelPath, viewer->pmxDir)) {
                 std::cerr << "Failed to load pmx file.\n";
                 return false;
             }
-            instance->GetInfo().model = pmxModel;
-            const ModelAnimator animator(*instance->GetInfo().model);
+            instance->model = pmxModel;
+            const ModelAnimator animator(*instance->model);
             animator.InitializeAnimation();
-            AnimationBuilder animationBuilder(instance->GetInfo().model);
+            AnimationBuilder animationBuilder(instance->model);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 if (!vmd.ReadFile(vmdPath.c_str())) {
@@ -300,10 +299,10 @@ namespace Chrivent {
                 }
                 animationBuilder.Build(vmd.GetData());
             }
-            auto vmdAnim = std::make_unique<Animation>(animationBuilder.TakeInfo());
+            auto vmdAnim = animationBuilder.TakeAnimation();
             animator.SyncPhysics(*vmdAnim, 0.0f);
-            instance->GetInfo().anim = std::move(vmdAnim);
-            instance->GetInfo().scale = scale;
+            instance->anim = std::move(vmdAnim);
+            instance->scale = scale;
             if (!instance->Setup(*viewer))
                 return false;
             loadedInstances.emplace_back(std::move(instance));
@@ -314,8 +313,8 @@ namespace Chrivent {
     int Program::CalculateMotionLastFrame() const {
         int lastFrame = cameraManager.GetLastFrame();
         for (const auto& instance : instances) {
-            if (instance && instance->GetInfo().anim) {
-                const uint32_t animationLastFrame = instance->GetInfo().anim->GetLastFrame();
+            if (instance && instance->anim) {
+                const uint32_t animationLastFrame = instance->anim->GetLastFrame();
                 const int timelineLastFrame = (std::min)(
                     animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)()));
                 lastFrame = (std::max)(lastFrame, timelineLastFrame);
@@ -333,26 +332,25 @@ namespace Chrivent {
 
     void Program::ResetPhysics(const int frame) const {
         for (const auto& instance : instances) {
-            if (!instance || !instance->GetInfo().model || !instance->GetInfo().anim)
+            if (!instance || !instance->model || !instance->anim)
                 continue;
-            const auto& instanceInfo = instance->GetInfo();
-            const ModelAnimator animator(*instanceInfo.model);
-            const ModelPose pose(*instanceInfo.model);
+            const ModelAnimator animator(*instance->model);
+            const ModelPose pose(*instance->model);
             animator.BeginAnimation();
-            instanceInfo.anim->Evaluate(frame);
+            instance->anim->Evaluate(frame);
             animator.UpdateMorphAnimation();
             pose.UpdateNodeAnimation(false);
             pose.UpdateNodeAnimation(true);
             pose.ResetPhysics();
-            animator.SyncPhysics(*instanceInfo.anim, frame);
+            animator.SyncPhysics(*instance->anim, frame);
         }
     }
 
     void Program::UpdateMotionPanel(const size_t modelIndex) {
-        if (modelIndex >= instances.size() || !instances[modelIndex] || !instances[modelIndex]->GetInfo().model)
+        if (modelIndex >= instances.size() || !instances[modelIndex] || !instances[modelIndex]->model)
             return;
-        const auto& instanceInfo = instances[modelIndex]->GetInfo();
-        const auto& model = *instanceInfo.model;
+        const auto& instance = *instances[modelIndex];
+        const auto& model = *instance.model;
         const auto NormalizeKeys = [](std::vector<MotionTimelineKey>& keys) {
             std::ranges::sort(keys, {}, &MotionTimelineKey::frame);
             std::vector<MotionTimelineKey> normalized;
@@ -387,9 +385,8 @@ namespace Chrivent {
         std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
         std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
-        if (instanceInfo.anim) {
-            const auto& [nodeTracks, ikTracks, morphTracks] = instanceInfo.anim->GetInfo();
-            for (const auto& [node, keys] : nodeTracks) {
+        if (instance.anim) {
+            for (const auto& [node, keys] : instance.anim->nodeTracks) {
                 auto& timelineKeys = nodeKeys[node.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
@@ -413,13 +410,13 @@ namespace Chrivent {
                     });
                 }
             }
-            for (const auto& [ikSolver, keys] : ikTracks) {
+            for (const auto& [ikSolver, keys] : instance.anim->ikTracks) {
                 auto& timelineKeys = ikKeys[ikSolver.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
-            for (const auto& [morph, keys] : morphTracks) {
+            for (const auto& [morph, keys] : instance.anim->morphTracks) {
                 auto& timelineKeys = morphKeys[morph.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)
@@ -488,13 +485,13 @@ namespace Chrivent {
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
-                if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
+                if (const auto ikSolver = node->ikSolver.lock()) {
                     const auto& solverKeys = ikKeys[ikSolver.get()];
                     keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
                 NormalizeKeys(keys);
                 group.rows.push_back({
-                    .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .name = Util::Utf8ToWString(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -529,13 +526,13 @@ namespace Chrivent {
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
-                if (const auto ikSolver = node->GetInfo().ikSolver.lock()) {
+                if (const auto ikSolver = node->ikSolver.lock()) {
                     const auto& solverKeys = ikKeys[ikSolver.get()];
                     keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
                 NormalizeKeys(keys);
                 boneGroup.rows.push_back({
-                    .name = Util::Utf8ToWString(node->GetInfo().name),
+                    .name = Util::Utf8ToWString(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -579,11 +576,11 @@ namespace Chrivent {
     bool Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
-        glfwGetFramebufferSize(viewer->GetInfo().window, &newW, &newH);
-        if (newW == viewer->GetInfo().screenWidth && newH == viewer->GetInfo().screenHeight)
+        glfwGetFramebufferSize(viewer->window, &newW, &newH);
+        if (newW == viewer->screenWidth && newH == viewer->screenHeight)
             return true;
-        viewer->GetInfo().screenWidth = newW;
-        viewer->GetInfo().screenHeight = newH;
+        viewer->screenWidth = newW;
+        viewer->screenHeight = newH;
         return viewer->Resize();
     }
 
@@ -629,21 +626,21 @@ namespace Chrivent {
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-            viewer->GetInfo().skipPhysics = !seekFinished;
-            cameraManager.SeekFrame(viewer->GetInfo(), music, seekFrame, saveTime);
+            viewer->skipPhysics = !seekFinished;
+            cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
             if (seekFinished) {
                 ResetPhysics(seekFrame);
-                viewer->GetInfo().skipPhysics = false;
+                viewer->skipPhysics = false;
             }
         }
         switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
-                viewer->GetInfo().skipPhysics = false;
+                viewer->skipPhysics = false;
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
                     panelManager.ConsumePlaybackRangeRestartRequest() ||
-                    viewer->GetInfo().animTime * 30.0f < start ||
-                    viewer->GetInfo().animTime * 30.0f >= end) {
-                    cameraManager.SeekFrame(viewer->GetInfo(), music, start, saveTime);
+                    viewer->animTime * 30.0f < start ||
+                    viewer->animTime * 30.0f >= end) {
+                    cameraManager.SeekFrame(*viewer, music, start, saveTime);
                     ResetPhysics(start);
                 }
                 cameraManager.Play(music);
@@ -652,40 +649,40 @@ namespace Chrivent {
                 cameraManager.Pause(music);
                 break;
             case PlaybackCommand::Stop:
-                viewer->GetInfo().skipPhysics = false;
-                cameraManager.Stop(viewer->GetInfo(), music, saveTime);
-                cameraManager.SeekFrame(viewer->GetInfo(), music, 0, saveTime);
+                viewer->skipPhysics = false;
+                cameraManager.Stop(*viewer, music, saveTime);
+                cameraManager.SeekFrame(*viewer, music, 0, saveTime);
                 ResetPhysics(0);
                 break;
             case PlaybackCommand::None:
                 break;
         }
         cameraManager.SetMotionCameraEnabled(panelManager.IsCameraMode());
-        inputManager.Update(viewer->GetInfo());
-        cameraManager.HandleInput(inputManager, viewer->GetInfo(), music);
+        inputManager.Update(*viewer);
+        cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())
             return false;
         if (benchmarkMode) {
-            viewer->GetInfo().elapsed = 1.0f / 30.0f;
-            viewer->GetInfo().animTime += viewer->GetInfo().elapsed;
+            viewer->elapsed = 1.0f / 30.0f;
+            viewer->animTime += viewer->elapsed;
         } else
-            cameraManager.StepTime(viewer->GetInfo(), music, saveTime);
+            cameraManager.StepTime(*viewer, music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
-        const float playbackFrame = viewer->GetInfo().animTime * 30.0f;
+        const float playbackFrame = viewer->animTime * 30.0f;
         if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
             if (panelManager.IsPlaybackRepeatEnabled()) {
                 const int startFrame = panelManager.GetPlaybackFrameRange().start;
-                cameraManager.SeekFrame(viewer->GetInfo(), music, startFrame, saveTime);
+                cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
                 ResetPhysics(startFrame);
             } else {
-                cameraManager.SeekFrame(viewer->GetInfo(), music, endFrame, saveTime);
+                cameraManager.SeekFrame(*viewer, music, endFrame, saveTime);
                 cameraManager.Pause(music);
                 ResetPhysics(endFrame);
             }
-            viewer->GetInfo().skipPhysics = false;
+            viewer->skipPhysics = false;
         }
-        panelManager.SetPlaybackFrame(viewer->GetInfo().animTime * 30.0f + 0.5f);
-        cameraManager.UpdateCamera(viewer->GetInfo());
+        panelManager.SetPlaybackFrame(viewer->animTime * 30.0f + 0.5f);
+        cameraManager.UpdateCamera(*viewer);
         viewer->SetFpsVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
         if (timing) {
@@ -694,7 +691,7 @@ namespace Chrivent {
         }
         const bool physicsEnabled = panelManager.IsPhysicsEnabled();
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-            instances[index]->PrepareUpdate(viewer->GetInfo(), physicsEnabled, timing ? &modelUpdateTimings[index] : nullptr);
+            instances[index]->PrepareUpdate(*viewer, physicsEnabled, timing ? &modelUpdateTimings[index] : nullptr);
         });
         const auto animationEnd = std::chrono::steady_clock::now();
         skinningTaskOffsets.resize(instances.size() + 1);
@@ -793,7 +790,7 @@ namespace Chrivent {
         };
         std::cout << std::fixed << std::setprecision(3);
         const auto physicsModelCount = std::ranges::count_if(instances, [](const auto& instance) {
-            return instance->GetInfo().model->physicsData.physics != nullptr;
+            return instance->model->physicsData.physics != nullptr;
         });
         std::cout << "benchmark_renderer=" << GetRendererName(currentRendererType) << '\n';
         std::cout << "benchmark_models=" << instances.size() << '\n';
@@ -861,13 +858,13 @@ namespace Chrivent {
                 << std::chrono::duration<double, std::milli>(loadEnd - loadStart).count()
                 << '\n';
         }
-        cameraManager.UpdateCamera(viewer->GetInfo());
+        cameraManager.UpdateCamera(*viewer);
         if (benchmarkMode) {
             const int result = RunBenchmark(options.warmupFrames, options.benchmarkFrames);
             Shutdown();
             return result;
         }
-        while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->GetInfo().window)) {
+        while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->window)) {
             if (!RunFrame()) {
                 Shutdown();
                 return 1;

@@ -24,11 +24,11 @@ namespace Chrivent {
 		// uniform buffer와 texture sampler용 descriptor pool을 생성한다.
 		bool CreateDescriptorPool(size_t materialCount);
 		// pipeline layout에 맞춰 vertex/pixel/texture descriptor set을 할당한다.
-		bool AllocateDescriptorSets(const VulkanPipelineInfo& pipelineInfo, size_t materialCount);
+		bool AllocateDescriptorSets(const VulkanPipeline& pipelineInfo, size_t materialCount);
 		// vertex uniform buffer 정보를 descriptor set에 기록한다.
-		void UpdateVertexDescriptorSet(const VulkanBufferInfo& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
+		void UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
 		// 재질별 pixel uniform buffer 정보를 descriptor set에 기록한다.
-		void UpdatePixelDescriptorSets(const VulkanBufferInfo& pixelConstantBuffer, VkDeviceSize pixelConstantRange, std::vector<VulkanMaterial>& materials) const;
+		void UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange, std::vector<VulkanMaterial>& materials) const;
 		// 재질별 텍스처 정보를 descriptor set에 기록한다.
 		void UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const;
 
@@ -44,15 +44,10 @@ namespace Chrivent {
 		const VkDescriptorSet& GetVertexDescriptorSet() const { return vertexDescriptorSet; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
-		bool Initialize(
-			const VulkanDeviceInfo& deviceInfo,
-			const VulkanPipelineInfo& pipelineInfo,
-			const VulkanBufferInfo& vertexConstantBuffer,
-			VkDeviceSize vertexConstantRange,
-			const VulkanBufferInfo& pixelConstantBuffer,
-			VkDeviceSize pixelConstantRange,
-			std::vector<VulkanMaterial>& materials,
-			VulkanPassType sourcePassType);
+		bool Initialize(const VulkanDevice& deviceInfo, const VulkanPipeline& pipelineInfo,
+			const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange,
+			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange,
+			std::vector<VulkanMaterial>& materials, VulkanPassType sourcePassType);
 		// descriptor pool과 set 핸들을 해제한다.
 		void Destroy();
 	};

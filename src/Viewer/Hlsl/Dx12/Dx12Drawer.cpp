@@ -20,40 +20,40 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawModel() {
-		if (info.viewer == nullptr || !info.viewer->IsFrameReady() || info.model == nullptr || info.indexCount == 0)
+		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
-		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
-		const Dx12Buffer& vertexConstantBuffer = info.modelVertexConstantBuffers[frameIndex];
-		const auto& viewerInfo = info.viewer->GetInfo();
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		HlslModelVertexConstants vertexConstants;
-		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
+		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
+		const auto& viewer = *instance.viewer;
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ShaderModelVertexConstants vertexConstants;
+		vertexConstants.wv = viewer.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
 		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
 		}
 		HlslModelPixelConstants basePixelConstants{};
-		basePixelConstants.lightColor = viewerInfo.lightColor;
-		basePixelConstants.lightDir = glm::mat3(viewerInfo.viewMat) * viewerInfo.lightDir;
-		ID3D12DescriptorHeap* descriptorHeaps[] = { info.textureDescriptorHeap.Get() };
+		basePixelConstants.lightColor = viewer.lightColor;
+		basePixelConstants.lightDir = glm::mat3(viewer.viewMat) * viewer.lightDir;
+		ID3D12DescriptorHeap* descriptorHeaps[] = { instance.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-		commandList->IASetIndexBuffer(&info.indexBufferView);
+		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
-			if (materialId >= info.materials.size() || materialId >= info.modelPixelConstantBuffers.size())
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			if (materialId >= instance.materials.size() || materialId >= instance.modelPixelConstantBuffers.size())
 				continue;
-			const Dx12Material& material = info.materials[materialId];
+			const Dx12Material& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			info.viewer->BindModelPipelineState(mat.bothFace);
+			instance.viewer->BindModelPipelineState(mat.bothFace);
 			HlslModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.alpha = mat.diffuse.a;
 			pixelConstants.diffuse = mat.diffuse;
@@ -76,7 +76,7 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					pixelConstants.textureModes.z = 2;
 			}
-			const Dx12Buffer& pixelConstantBuffer = info.modelPixelConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& pixelConstantBuffer = instance.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
@@ -89,46 +89,46 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawEdge() {
-		if (info.viewer == nullptr || !info.viewer->IsFrameReady() || info.model == nullptr || info.indexCount == 0)
+		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
-		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
-		const Dx12Buffer& vertexConstantBuffer = info.edgeVertexConstantBuffers[frameIndex];
-		const auto& viewerInfo = info.viewer->GetInfo();
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
+		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = instance.edgeVertexConstantBuffers[frameIndex];
+		const auto& viewer = *instance.viewer;
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		HlslEdgeVertexConstants vertexConstants{};
-		vertexConstants.wv = viewerInfo.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * world;
-		vertexConstants.screenSize = glm::vec2(viewerInfo.screenWidth, viewerInfo.screenHeight);
+		vertexConstants.wv = viewer.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		vertexConstants.screenSize = glm::vec2(viewer.screenWidth, viewer.screenHeight);
 		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 edge vertex constants.\n";
 			return;
 		}
-		info.viewer->BindEdgePipelineState();
+		instance.viewer->BindEdgePipelineState();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-		commandList->IASetIndexBuffer(&info.indexBufferView);
+		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
-			if (materialId >= info.materials.size() ||
-				materialId >= info.edgeSizeConstantBuffers.size() ||
-				materialId >= info.edgePixelConstantBuffers.size())
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			if (materialId >= instance.materials.size() ||
+				materialId >= instance.edgeSizeConstantBuffers.size() ||
+				materialId >= instance.edgePixelConstantBuffers.size())
 				continue;
-			const auto& mat = info.materials[materialId].mat;
+			const auto& mat = instance.materials[materialId].mat;
 			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
 				continue;
 			HlslEdgeSizeConstants edgeSizeConstants{};
 			edgeSizeConstants.edgeSize = mat.edgeSize;
-			const Dx12Buffer& edgeSizeConstantBuffer = info.edgeSizeConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& edgeSizeConstantBuffer = instance.edgeSizeConstantBuffers[materialId][frameIndex];
 			if (!edgeSizeConstantBuffer.Write(&edgeSizeConstants, sizeof(edgeSizeConstants))) {
 				std::cerr << "Failed to update DX12 edge size constants.\n";
 				continue;
 			}
-			HlslEdgePixelConstants pixelConstants{};
+			ShaderEdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
-			const Dx12Buffer& edgePixelConstantBuffer = info.edgePixelConstantBuffers[materialId][frameIndex];
+			const Dx12Buffer& edgePixelConstantBuffer = instance.edgePixelConstantBuffers[materialId][frameIndex];
 			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
 				continue;
@@ -140,44 +140,44 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawGroundShadow() {
-		if (info.viewer == nullptr || !info.viewer->IsFrameReady() || info.model == nullptr || info.indexCount == 0)
+		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = info.viewer->GetDx12Info().commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = info.viewer->GetDx12Info().frameIndex % Dx12InstanceInfo::kBufferedFrames;
-		const auto& vertexBufferView = info.vertexBufferViews[frameIndex];
-		const Dx12Buffer& vertexConstantBuffer = info.groundShadowVertexConstantBuffers[frameIndex];
-		const Dx12Buffer& pixelConstantBuffer = info.groundShadowPixelConstantBuffers[frameIndex];
-		const auto& viewerInfo = info.viewer->GetInfo();
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
-		const glm::mat4 shadow = BuildGroundShadowMatrix(viewerInfo.lightDir);
-		HlslGroundShadowVertexConstants vertexConstants;
-		vertexConstants.wvp = ClipMatrix() * viewerInfo.projMat * viewerInfo.viewMat * shadow * world;
+		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = instance.groundShadowVertexConstantBuffers[frameIndex];
+		const Dx12Buffer& pixelConstantBuffer = instance.groundShadowPixelConstantBuffers[frameIndex];
+		const auto& viewer = *instance.viewer;
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer.lightDir);
+		ShaderGroundShadowVertexConstants vertexConstants;
+		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * shadow * world;
 		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;
 		}
-		constexpr HlslGroundShadowPixelConstants pixelConstants{};
+		constexpr ShaderGroundShadowPixelConstants pixelConstants{};
 		if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
 			return;
 		}
-		info.viewer->BindGroundShadowPipelineState();
+		instance.viewer->BindGroundShadowPipelineState();
 		commandList->OMSetStencilRef(0x01);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-		commandList->IASetIndexBuffer(&info.indexBufferView);
+		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
 		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
-		for (const auto& [beginIndex, indexCount, materialId] : info.model->materialData.subMeshes) {
-			if (materialId >= info.materials.size())
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			if (materialId >= instance.materials.size())
 				continue;
-			const auto& mat = info.materials[materialId].mat;
+			const auto& mat = instance.materials[materialId].mat;
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
 	}
 
-	Dx12Drawer::Dx12Drawer(const Dx12InstanceInfo& sourceInfo) : info(sourceInfo) {}
+	Dx12Drawer::Dx12Drawer(const Dx12Instance& sourceInstance) : instance(sourceInstance) {}
 }

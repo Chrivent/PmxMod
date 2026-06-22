@@ -1,6 +1,7 @@
 {
   "window.settings": "Settings",
   "menu.file": "File",
+  "menu.new": "New",
   "menu.open": "Open...",
   "menu.save": "Save...",
   "menu.renderer": "Renderer",
@@ -9,6 +10,7 @@
   "menu.view": "View",
   "menu.language": "Language",
   "menu.fps": "FPS",
+  "menu.reset_panel_layout": "Reset Panel Layout",
   "language.english": "English",
   "language.korean": "Korean",
   "language.japanese": "Japanese",

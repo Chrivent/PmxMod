@@ -19,29 +19,24 @@ namespace Chrivent {
         explicit GlfwViewerMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
-    struct GlfwViewerInfo : ViewerInfo {
-        GLuint                                      dummyColorTex = 0;
-        std::unique_ptr<GlfwModelShader>            shader;
-        std::unique_ptr<GlfwEdgeShader>             edgeShader;
-        std::unique_ptr<GlfwGroundShadowShader>     gsShader;
-    };
-
     class GlfwViewer : public Viewer {
         // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
         static void* LoadGlProc(const char* name) {
             return reinterpret_cast<void*>(glfwGetProcAddress(name));
         }
-        // OpenGL renderer 이름으로 GPU 종류를 판별한다.
         static const char* GetGpuTypeName(const std::string& renderer);
 
         const int           msaaSamples = 4;
         GlfwTextureCache    textureCache;
 
     public:
-        GlfwViewer();
-        ~GlfwViewer() override = default;
+        GLuint dummyColorTex = 0;
+        std::unique_ptr<GlfwModelShader> shader;
+        std::unique_ptr<GlfwEdgeShader> edgeShader;
+        std::unique_ptr<GlfwGroundShadowShader> gsShader;
 
-        GlfwViewerInfo& GetGlfwInfo() { return static_cast<GlfwViewerInfo&>(GetInfo()); }
+        GlfwViewer() = default;
+        ~GlfwViewer() override = default;
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;
@@ -59,6 +54,8 @@ namespace Chrivent {
         std::unique_ptr<Instance> CreateInstance() const override;
 
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
-        GlfwTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
+        GlfwTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false) {
+            return textureCache.Load(texturePath, clamp);
+        }
     };
 }

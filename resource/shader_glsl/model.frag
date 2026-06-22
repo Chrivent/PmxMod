@@ -5,11 +5,6 @@ layout(location = 2) in vec2 vsUv;
 layout(location = 0) out vec4 outColor;
 
 PMX_LAYOUT_UBO(1, 0) uniform ModelPixelConstants {
-    vec4 diffuseAlpha;
-    vec4 ambientSpecularPower;
-    vec4 specular;
-    vec4 lightColor;
-    vec4 lightDir;
     vec4 texMulFactor;
     vec4 texAddFactor;
     vec4 toonTexMulFactor;
@@ -17,6 +12,11 @@ PMX_LAYOUT_UBO(1, 0) uniform ModelPixelConstants {
     vec4 sphereTexMulFactor;
     vec4 sphereTexAddFactor;
     ivec4 textureModes;
+    vec4 diffuseAlpha;
+    vec4 ambientSpecularPower;
+    vec4 specular;
+    vec4 lightColor;
+    vec4 lightDir;
 } pixelConstants;
 
 PMX_LAYOUT_SAMPLER(2, 0) uniform sampler2D tex;

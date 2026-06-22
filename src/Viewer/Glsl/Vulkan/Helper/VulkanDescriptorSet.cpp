@@ -36,7 +36,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipelineInfo& pipelineInfo, const size_t materialCount) {
+	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipeline& pipelineInfo, const size_t materialCount) {
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = descriptorPool;
@@ -77,9 +77,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanDescriptorSet::UpdateVertexDescriptorSet(
-		const VulkanBufferInfo& vertexConstantBuffer,
-		const VkDeviceSize vertexConstantRange) const {
+	void VulkanDescriptorSet::UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, const VkDeviceSize vertexConstantRange) const {
 		const VkDescriptorBufferInfo vertexBufferInfo{
 			.buffer = vertexConstantBuffer.buffer,
 			.offset = 0,
@@ -100,22 +98,19 @@ namespace Chrivent {
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
-	void VulkanDescriptorSet::UpdatePixelDescriptorSets(
-		const VulkanBufferInfo& pixelConstantBuffer,
-		const VkDeviceSize pixelConstantRange,
+	void VulkanDescriptorSet::UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, const VkDeviceSize pixelConstantRange,
 		std::vector<VulkanMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
 			if (i >= pixelDescriptorSets.size())
 				return;
 			VulkanMaterial& material = materials[i];
 			VkDescriptorSet* descriptorSet = nullptr;
-			if (passType == VulkanPassType::Model) {
+			if (passType == VulkanPassType::Model)
 				descriptorSet = &material.pixelDescriptorSet;
-			} else if (passType == VulkanPassType::Edge) {
+			else if (passType == VulkanPassType::Edge)
 				descriptorSet = &material.edgePixelDescriptorSet;
-			} else if (passType == VulkanPassType::GroundShadow) {
+			else if (passType == VulkanPassType::GroundShadow)
 				descriptorSet = &material.groundShadowPixelDescriptorSet;
-			}
 			if (descriptorSet == nullptr)
 				continue;
 			*descriptorSet = pixelDescriptorSets[i];
@@ -210,11 +205,11 @@ namespace Chrivent {
 	}
 
 	bool VulkanDescriptorSet::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanPipelineInfo& pipelineInfo,
-		const VulkanBufferInfo& vertexConstantBuffer,
+		const VulkanDevice& deviceInfo,
+		const VulkanPipeline& pipelineInfo,
+		const VulkanBuffer& vertexConstantBuffer,
 		const VkDeviceSize vertexConstantRange,
-		const VulkanBufferInfo& pixelConstantBuffer,
+		const VulkanBuffer& pixelConstantBuffer,
 		const VkDeviceSize pixelConstantRange,
 		std::vector<VulkanMaterial>& materials,
 		const VulkanPassType sourcePassType) {

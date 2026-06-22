@@ -15,7 +15,7 @@ namespace Chrivent {
 		return resource->GetGPUVirtualAddress();
 	}
 
-	bool Dx12Buffer::InitializeUpload(const Dx12DeviceInfo& deviceInfo, const size_t size) {
+	bool Dx12Buffer::InitializeUpload(const Dx12Device& deviceInfo, const size_t size) {
 		Destroy();
 		if (!deviceInfo.device || size == 0)
 			return false;
@@ -33,13 +33,8 @@ namespace Chrivent {
 		resourceDesc.MipLevels = 1;
 		resourceDesc.SampleDesc.Count = 1;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		if (FAILED(deviceInfo.device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&resource))))
+		if (FAILED(deviceInfo.device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
+			&resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&resource))))
 			return false;
 		byteSize = size;
 		constexpr D3D12_RANGE readRange{ 0, 0 };

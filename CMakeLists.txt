@@ -45,6 +45,7 @@ add_executable(PmxMod
         src/Program/MenuBar.h src/Program/MenuBar.cpp
         src/Program/PanelWindow.h src/Program/PanelWindow.cpp
         src/Program/RendererType.h
+        src/Program/Settings.h src/Program/Settings.cpp
         src/Program/Sound.h src/Program/Sound.cpp
         src/Program/TaskExecutor.h src/Program/TaskExecutor.cpp
 

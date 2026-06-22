@@ -9,10 +9,7 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanRenderPass::Initialize(
-		const VulkanDeviceInfo& deviceInfo,
-		const VulkanSwapChainInfo& swapChainInfo,
-		const VkFormat depthFormat) {
+	bool VulkanRenderPass::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo, const VkFormat depthFormat) {
 		device = deviceInfo.device;
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = swapChainInfo.imageFormat;

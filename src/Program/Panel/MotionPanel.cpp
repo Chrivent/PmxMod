@@ -231,11 +231,11 @@ namespace Chrivent {
 				frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
 		}
 		const int centerY = top + (bottom - top) / 2;
-		GuiDrawer::DrawLine(deviceContext, kLabelWidth, centerY, right, centerY, RGB(69, 76, 88));
 		if (waveform)
 			GuiDrawer::DrawWaveform(deviceContext, {kLabelWidth, top, right, bottom},
 				waveform->minimums, waveform->maximums, waveform->samplesPerFrame,
 				firstFrame, kFrameWidth, RGB(92, 151, 255));
+		GuiDrawer::DrawLine(deviceContext, kLabelWidth, centerY, right, centerY, RGB(96, 105, 120));
 		GuiDrawer::DrawLine(deviceContext, 0, top, right, top, RGB(93, 98, 108));
 		GuiDrawer::DrawLine(deviceContext, kLabelWidth, top, kLabelWidth, bottom, RGB(93, 98, 108));
 	}
@@ -639,10 +639,6 @@ namespace Chrivent {
 					key.selected = false;
 			}
 		}
-	}
-
-	bool MotionPanel::IsGroupVisible(const MotionTimelineGroup& group) const {
-		return group.mode == mode;
 	}
 
 	bool MotionPanel::IsGroupFrameSelected(const MotionTimelineGroup& group, const int frame) {
