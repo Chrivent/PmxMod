@@ -14,6 +14,7 @@
   "language.japanese": "日语",
   "language.chinese": "中文",
   "panel.model": "模型",
+  "panel.camera": "相机",
   "panel.motion": "动作",
   "panel.interpolation_curve": "插值曲线",
   "panel.playback": "播放",

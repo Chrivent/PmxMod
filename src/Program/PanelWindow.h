@@ -22,6 +22,7 @@ namespace Chrivent {
 			PanelWindowArea area = PanelWindowArea::Bottom;
 			HWND frame = nullptr;
 			RECT bounds{};
+			bool visible = true;
 		};
 
 		HWND window = nullptr;
@@ -47,7 +48,9 @@ namespace Chrivent {
 		// 패널 창에서 사용할 메뉴바를 연결한다.
 		void AttachMenuBar(MenuBar& menu);
 		// 패널과 제목, 배치 영역을 패널 창에 등록한다.
-		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area);
+		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area, bool visible = true);
+		// 등록된 패널 프레임과 내부 컨트롤의 표시 여부를 설정한다.
+		void SetPanelVisible(const Panel& panel, bool visible);
 		// 패널 창과 등록된 패널 컨트롤을 생성해 표시한다.
 		void Show();
 		// 패널 창에 쌓인 Win32 메시지를 처리한다.

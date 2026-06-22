@@ -246,16 +246,20 @@ namespace Chrivent {
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
+        const bool resumeMusic = cameraManager.IsPlaying();
+        music.Pause();
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
+            if (resumeMusic)
+                music.Resume();
             std::cerr << "Failed to load scene instances.\n";
             return false;
         }
         ClearInstances();
         instances = std::move(loadedInstances);
         music.Stop();
-        if (!sceneConfig.musicPath.empty())
-            music.Init(sceneConfig.musicPath, false);
+        if (!sceneConfig.musicPath.empty() && music.Init(sceneConfig.musicPath, false))
+            music.Pause();
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.SetMotionMode(MotionTimelineMode::Camera);
         viewer->GetInfo().elapsed = 0.0f;

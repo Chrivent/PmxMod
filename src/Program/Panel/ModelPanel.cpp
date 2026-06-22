@@ -78,6 +78,13 @@ namespace Chrivent {
 			SetWindowTextW(addButton, Language::Text("model.add").c_str());
 	}
 
+	void ModelPanel::SetVisible(const bool visible) const {
+		if (addButton)
+			ShowWindow(addButton, visible ? SW_SHOW : SW_HIDE);
+		if (modelList)
+			ShowWindow(modelList, visible ? SW_SHOW : SW_HIDE);
+	}
+
 	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
 		if (commandId == addButtonId) {
 			ShowOpenModelDialog();

@@ -238,7 +238,7 @@ namespace Chrivent {
 				if (channelIndex >= previousKey.values.size() ||
 					channelIndex >= nextKey.values.size() ||
 					channelIndex >= nextKey.curves.size() ||
-					nextKey.frame <= previousKey.frame)
+					nextKey.frame - previousKey.frame <= 1)
 					continue;
 				const auto& [p1, p2] = nextKey.curves[channelIndex];
 				const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;

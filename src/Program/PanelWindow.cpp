@@ -70,13 +70,13 @@ namespace Chrivent {
 		GetClientRect(window, &client);
 		GuiDrawer::FillRectColor(deviceContext, client, GuiTheme::backgroundColor);
 		for (auto& entry : panels) {
-			if (IsRectEmpty(&entry.bounds))
+			if (!entry.visible || IsRectEmpty(&entry.bounds))
 				continue;
-			const RECT& bounds = entry.bounds;
-			GuiDrawer::DrawLine(deviceContext, bounds.left, bounds.top, bounds.right - 1, bounds.top, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, bounds.right - 1, bounds.top, bounds.right - 1, bounds.bottom - 1, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, bounds.right - 1, bounds.bottom - 1, bounds.left, bounds.bottom - 1, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, bounds.left, bounds.bottom - 1, bounds.left, bounds.top, GuiTheme::borderColor);
+			const auto& [left, top, right, bottom] = entry.bounds;
+			GuiDrawer::DrawLine(deviceContext, left, top, right - 1, top, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, right - 1, top, right - 1, bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, right - 1, bottom - 1, left, bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, left, bottom - 1, left, top, GuiTheme::borderColor);
 		}
 	}
 
@@ -91,6 +91,7 @@ namespace Chrivent {
 				window, nullptr, GetModuleHandleW(nullptr), nullptr);
 			GuiTheme::ApplyControl(entry.frame);
 			entry.panel->Create(window);
+			ShowWindow(entry.frame, entry.visible ? SW_SHOW : SW_HIDE);
 		}
 	}
 
@@ -113,11 +114,11 @@ namespace Chrivent {
 		int bottomIndex = 0;
 		int bottomCount = 0;
 		for (const auto& entry : panels) {
-			if (entry.area == PanelWindowArea::Bottom)
+			if (entry.visible && entry.area == PanelWindowArea::Bottom)
 				bottomCount++;
 		}
 		for (auto& entry : panels) {
-			if (!entry.panel || !entry.frame)
+			if (!entry.panel || !entry.frame || !entry.visible)
 				continue;
 			RECT area{};
 			switch (entry.area) {
@@ -160,8 +161,22 @@ namespace Chrivent {
 		DrawMenuBar(window);
 	}
 
-	void PanelWindow::RegisterPanel(Panel& panel, std::string titleKey, const PanelWindowArea area) {
-		panels.push_back({ &panel, std::move(titleKey), area });
+	void PanelWindow::RegisterPanel(
+		Panel& panel, std::string titleKey, const PanelWindowArea area, const bool visible) {
+		panels.push_back({ &panel, std::move(titleKey), area, nullptr, {}, visible });
+	}
+
+	void PanelWindow::SetPanelVisible(const Panel& panel, const bool visible) {
+		for (auto& entry : panels) {
+			if (entry.panel != &panel || entry.visible == visible)
+				continue;
+			entry.visible = visible;
+			entry.bounds = {};
+			if (entry.frame)
+				ShowWindow(entry.frame, visible ? SW_SHOW : SW_HIDE);
+			LayoutPanels();
+			return;
+		}
 	}
 
 	void PanelWindow::Show() {

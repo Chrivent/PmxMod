@@ -53,6 +53,7 @@ add_executable(PmxMod
         src/Program/Manager/PanelManager.h src/Program/Manager/PanelManager.cpp
 
         src/Program/Panel/Panel.h
+        src/Program/Panel/CameraPanel.h
         src/Program/Panel/InterpolationCurvePanel.h src/Program/Panel/InterpolationCurvePanel.cpp
         src/Program/Panel/ModelPanel.h src/Program/Panel/ModelPanel.cpp
         src/Program/Panel/MotionPanel.h src/Program/Panel/MotionPanel.cpp

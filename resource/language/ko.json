@@ -14,6 +14,7 @@
   "language.japanese": "일본어",
   "language.chinese": "중국어",
   "panel.model": "모델",
+  "panel.camera": "카메라",
   "panel.motion": "모션",
   "panel.interpolation_curve": "보간 곡선",
   "panel.playback": "재생",

@@ -4,6 +4,7 @@
 #include "../MenuBar.h"
 #include "../PanelWindow.h"
 #include "../RendererType.h"
+#include "../Panel/CameraPanel.h"
 #include "../Panel/InterpolationCurvePanel.h"
 #include "../Panel/ModelPanel.h"
 #include "../Panel/MotionPanel.h"
@@ -31,6 +32,7 @@ namespace Chrivent {
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
 		ModelPanel modelPanel;
+		CameraPanel cameraPanel;
 		MotionPanel motionPanel;
 		InterpolationCurvePanel interpolationCurvePanel;
 		PlaybackPanel playbackPanel;
@@ -39,6 +41,8 @@ namespace Chrivent {
 
 		// 현재 씬 설정의 모델 경로를 모델 패널 목록에 반영한다.
 		void UpdateModelPanel();
+		// 모션 타임라인 모드에 맞춰 모델과 카메라 패널을 교체한다.
+		void UpdateSidePanelVisibility();
 
 	public:
 		PanelManager();
@@ -51,7 +55,10 @@ namespace Chrivent {
 		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
-		void SetMotionMode(const MotionTimelineMode mode) { motionPanel.SetMode(mode); }
+		void SetMotionMode(const MotionTimelineMode mode) {
+			motionPanel.SetMode(mode);
+			UpdateSidePanelVisibility();
+		}
 		void SetPlaybackFrame(const int frame) { motionPanel.SetCurrentFrame((std::max)(0, frame)); }
 		void SetRendererType(const RendererType rendererType) { menuBar.ApplyRenderer(rendererType); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }

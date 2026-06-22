@@ -11,6 +11,13 @@ namespace Chrivent {
 		modelPanel.UpdateModelPaths(modelPaths);
 	}
 
+	void PanelManager::UpdateSidePanelVisibility() {
+		const bool cameraMode = IsCameraMode();
+		modelPanel.SetVisible(!cameraMode);
+		panelWindow.SetPanelVisible(modelPanel, !cameraMode);
+		panelWindow.SetPanelVisible(cameraPanel, cameraMode);
+	}
+
 	PanelManager::PanelManager()
 		: menuBar(sceneConfigStorage) {
 		playbackPanel.SetControlIds({
@@ -25,7 +32,8 @@ namespace Chrivent {
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);
 		panelWindow.AttachMenuBar(menuBar);
-		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model);
+		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
+		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);
 		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
 		panelWindow.RegisterPanel(interpolationCurvePanel, "panel.interpolation_curve", PanelWindowArea::InterpolationCurve);
 		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
@@ -58,6 +66,7 @@ namespace Chrivent {
 
 	void PanelManager::PollGuiWindows() {
 		panelWindow.Poll();
+		UpdateSidePanelVisibility();
 		InterpolationSelection selection;
 		if (motionPanel.ConsumeInterpolationSelection(selection))
 			interpolationCurvePanel.SetSelection(std::move(selection));
