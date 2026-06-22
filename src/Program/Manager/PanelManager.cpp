@@ -13,13 +13,12 @@ namespace Chrivent {
 
 	void PanelManager::UpdateSidePanelVisibility() {
 		const bool cameraMode = IsCameraMode();
-		modelPanel.SetVisible(!cameraMode);
-		panelWindow.SetPanelVisible(modelPanel, !cameraMode);
-		panelWindow.SetPanelVisible(cameraPanel, cameraMode);
+		modelPanel.UpdateVisibility(!cameraMode);
+		panelWindow.UpdatePanelVisibility(modelPanel, !cameraMode);
+		panelWindow.UpdatePanelVisibility(cameraPanel, cameraMode);
 	}
 
-	PanelManager::PanelManager()
-		: menuBar(sceneConfigStorage) {
+	PanelManager::PanelManager() : menuBar(sceneConfigStorage) {
 		playbackPanel.SetControlIds({
 			.playButton = kPlaybackPlayButtonId,
 			.pauseButton = kPlaybackPauseButtonId,
@@ -30,7 +29,7 @@ namespace Chrivent {
 			.repeatCheck = kPlaybackRepeatCheckId
 		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
-		modelPanel.SetControlIds(kModelAddButtonId, kModelListId);
+		modelPanel.ApplyControlIds(kModelAddButtonId, kModelListId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
 		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);
@@ -57,7 +56,7 @@ namespace Chrivent {
 
 	void PanelManager::BindSound(Sound& sound) {
 		soundPanel.BindSound(sound);
-		motionPanel.SetWaveform(sound.GetWaveform());
+		motionPanel.AttachWaveform(sound.GetWaveform());
 	}
 
 	bool PanelManager::OpenGuiWindows() {
@@ -70,7 +69,7 @@ namespace Chrivent {
 		UpdateSidePanelVisibility();
 		InterpolationSelection selection;
 		if (motionPanel.ConsumeInterpolationSelection(selection))
-			interpolationCurvePanel.SetSelection(std::move(selection));
+			interpolationCurvePanel.ApplySelection(std::move(selection));
 	}
 
 }

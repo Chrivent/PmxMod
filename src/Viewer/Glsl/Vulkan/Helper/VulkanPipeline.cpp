@@ -86,30 +86,21 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipelines(
-		const VulkanDevice& deviceInfo,
-		const VulkanSwapChain& swapChainInfo,
-		const VkRenderPass renderPass,
-		const std::filesystem::path& shaderDir) {
-		return CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
-			&& CreateGraphicsPipeline(deviceInfo, swapChainInfo, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkRenderPass renderPass, const std::filesystem::path& shaderDir) {
+		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDevice& deviceInfo,
-		const VulkanSwapChain& swapChainInfo,
-		const VkRenderPass renderPass,
-		const std::filesystem::path& shaderDir,
-		const char* vertexShaderName,
-		const char* fragmentShaderName,
-		const VkCullModeFlags cullMode,
-		const bool usePositionOnly,
-		const bool useDepthBias,
-		const bool enableStencilTest,
-		const bool disableDepthWrite,
-		const VkCompareOp depthCompareOp,
-		VkPipeline& outPipeline) const {
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkRenderPass renderPass, const std::filesystem::path& shaderDir,
+		const char* vertexShaderName, const char* fragmentShaderName,
+		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias,
+		const bool enableStencilTest, const bool disableDepthWrite,
+		const VkCompareOp depthCompareOp, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
@@ -123,9 +114,9 @@ namespace Chrivent {
 		}
 		VulkanShaderModule vertexShader;
 		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(deviceInfo, vertexShaderCode))
+		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode))
 			return false;
-		if (!fragmentShader.Initialize(deviceInfo, fragmentShaderCode))
+		if (!fragmentShader.Initialize(sourceDevice, fragmentShaderCode))
 			return false;
 		const VkPipelineShaderStageCreateInfo shaderStages[] = {
 			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule()),
@@ -147,13 +138,13 @@ namespace Chrivent {
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = swapChainInfo.extent.width;
-		viewport.height = swapChainInfo.extent.height;
+		viewport.width = sourceSwapChain.extent.width;
+		viewport.height = sourceSwapChain.extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = swapChainInfo.extent;
+		scissor.extent = sourceSwapChain.extent;
 		VkPipelineViewportStateCreateInfo viewportState{};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
@@ -174,7 +165,7 @@ namespace Chrivent {
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.rasterizationSamples = deviceInfo.msaaSampleCount;
+		multisampling.rasterizationSamples = sourceDevice.msaaSampleCount;
 		multisampling.sampleShadingEnable = VK_FALSE;
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -277,14 +268,14 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanPipeline::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo,
+	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkRenderPass renderPass, const std::filesystem::path& shaderDir) {
-		device = deviceInfo.device;
+		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
-		return CreateGraphicsPipelines(deviceInfo, swapChainInfo, renderPass, shaderDir);
+		return CreateGraphicsPipelines(sourceDevice, sourceSwapChain, renderPass, shaderDir);
 	}
 
 	void VulkanPipeline::Destroy() {

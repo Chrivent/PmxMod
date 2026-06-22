@@ -40,6 +40,7 @@ namespace Chrivent {
 		void Resize(const RECT& clientRect) override;
 		// 보간 곡선 그래프 컨트롤을 정리한다.
 		void Destroy() override;
-		void SetSelection(InterpolationSelection interpolationSelection);
+		// 선택된 키와 보간 곡선 데이터를 교체하고 제어점 선택을 초기화한다.
+		void ApplySelection(InterpolationSelection interpolationSelection);
 	};
 }

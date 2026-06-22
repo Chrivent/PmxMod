@@ -68,7 +68,7 @@ namespace Chrivent {
 		queueFamilies = FindQueueFamilies(physicalDevice);
 		msaaSampleCount = ChooseMsaaSampleCount(physicalDevice);
 		std::cout << "vulkan_gpu=" << properties.deviceName << '\n';
-		std::cout << "vulkan_gpu_type=" << GetPhysicalDeviceTypeName(properties.deviceType) << '\n';
+		std::cout << "vulkan_gpu_type=" << ResolvePhysicalDeviceTypeName(properties.deviceType) << '\n';
 		return true;
 	}
 
@@ -131,7 +131,7 @@ namespace Chrivent {
 		return deviceTypeScore * 1'000'000 + properties.limits.maxImageDimension2D;
 	}
 
-	const char* VulkanDevice::GetPhysicalDeviceTypeName(const VkPhysicalDeviceType type) {
+	const char* VulkanDevice::ResolvePhysicalDeviceTypeName(const VkPhysicalDeviceType type) {
 		switch (type) {
 			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
 				return "discrete";

@@ -9,11 +9,11 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanRenderPass::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo, const VkFormat depthFormat) {
-		device = deviceInfo.device;
+	bool VulkanRenderPass::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
+		device = sourceDevice.device;
 		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = swapChainInfo.imageFormat;
-		colorAttachment.samples = deviceInfo.msaaSampleCount;
+		colorAttachment.format = sourceSwapChain.imageFormat;
+		colorAttachment.samples = sourceDevice.msaaSampleCount;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -22,7 +22,7 @@ namespace Chrivent {
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = depthFormat;
-		depthAttachment.samples = deviceInfo.msaaSampleCount;
+		depthAttachment.samples = sourceDevice.msaaSampleCount;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.stencilLoadOp = VulkanMsaaDepthBuffer::HasStencilComponent(depthFormat)
@@ -32,7 +32,7 @@ namespace Chrivent {
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		VkAttachmentDescription resolveAttachment{};
-		resolveAttachment.format = swapChainInfo.imageFormat;
+		resolveAttachment.format = sourceSwapChain.imageFormat;
 		resolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		resolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -75,7 +75,7 @@ namespace Chrivent {
 		createInfo.pSubpasses = &subpass;
 		createInfo.dependencyCount = 1;
 		createInfo.pDependencies = &dependency;
-		if (vkCreateRenderPass(deviceInfo.device, &createInfo, nullptr, &renderPass) != VK_SUCCESS) {
+		if (vkCreateRenderPass(sourceDevice.device, &createInfo, nullptr, &renderPass) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan render pass.\n";
 			return false;
 		}

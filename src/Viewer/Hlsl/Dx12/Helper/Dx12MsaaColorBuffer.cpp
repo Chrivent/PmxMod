@@ -1,14 +1,14 @@
 ﻿#include "Dx12MsaaColorBuffer.h"
 
 namespace Chrivent {
-	bool Dx12MsaaColorBuffer::Initialize(const Dx12Device& deviceInfo, const int width, const int height) {
+	bool Dx12MsaaColorBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
 		Destroy();
-		if (!deviceInfo.device || width <= 0 || height <= 0)
+		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = 1;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(deviceInfo.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeap))))
+		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeap))))
 			return false;
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -27,18 +27,15 @@ namespace Chrivent {
 		resourceDesc.DepthOrArraySize = 1;
 		resourceDesc.MipLevels = 1;
 		resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		resourceDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
+		resourceDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
 		resourceDesc.SampleDesc.Quality = 0;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		if (FAILED(deviceInfo.device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			&clearValue,
-			IID_PPV_ARGS(&renderTarget))))
+		if (FAILED(sourceDevice.device->CreateCommittedResource(
+			&heapProperties, D3D12_HEAP_FLAG_NONE,
+			&resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
+			&clearValue, IID_PPV_ARGS(&renderTarget))))
 			return false;
-		deviceInfo.device->CreateRenderTargetView(renderTarget.Get(), nullptr, ResolveRtvHandle());
+		sourceDevice.device->CreateRenderTargetView(renderTarget.Get(), nullptr, ResolveRtvHandle());
 		return true;
 	}
 

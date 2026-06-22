@@ -17,7 +17,7 @@ namespace Chrivent {
 		const VulkanBuffer& GetBuffer() const { return buffer; }
 
 		// Vulkan 업로드 링 버퍼를 생성한다.
-		bool Setup(const VulkanDevice& deviceInfo, size_t bufferSize, std::string& outError);
+		bool Setup(const VulkanDevice& sourceDevice, size_t bufferSize, std::string& outError);
 		// Vulkan 업로드 링 버퍼 리소스와 공통 상태를 정리한다.
 		void Clear() override;
 		// 프레임별 링 버퍼 위치를 새 프레임에 맞춰 초기화한다.

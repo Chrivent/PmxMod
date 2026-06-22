@@ -1,17 +1,17 @@
 ﻿#include "BinaryReader.h"
 
 namespace Chrivent {
-	std::streampos BinaryReader::GetFileEnd(std::istream& is) {
+	bool BinaryReader::HasMore(std::istream& is, const std::streampos& end) {
+		const auto cur = is.tellg();
+		return cur != std::streampos(-1) && cur < end;
+	}
+
+	std::streampos BinaryReader::ResolveFileEnd(std::istream& is) {
 		const auto origin = is.tellg();
 		is.seekg(0, std::ios::end);
 		const auto end = is.tellg();
 		is.seekg(origin, std::ios::beg);
 		return end;
-	}
-
-	bool BinaryReader::HasMore(std::istream& is, const std::streampos& end) {
-		const auto cur = is.tellg();
-		return cur != std::streampos(-1) && cur < end;
 	}
 
 	void BinaryReader::ReadIndex(std::istream& is, int32_t* index, const uint8_t indexSize) {

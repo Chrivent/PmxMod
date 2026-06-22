@@ -495,7 +495,7 @@ namespace Chrivent {
 			Clear();
 			return true;
 		};
-		const auto end = BinaryReader::GetFileEnd(is);
+		const auto end = BinaryReader::ResolveFileEnd(is);
 		ReadHeader(is);
 		if (Fail("header")) return false;
 		ReadInfo(is);

@@ -30,7 +30,7 @@ namespace Chrivent {
 		VulkanSyncObject& operator=(VulkanSyncObject&&) = delete;
 		
 		// 더블버퍼링에 사용할 세마포어와 펜스를 생성한다.
-		bool Initialize(const VulkanDevice& deviceInfo, size_t swapChainImageCount);
+		bool Initialize(const VulkanDevice& sourceDevice, size_t swapChainImageCount);
 		// 생성한 세마포어와 펜스를 해제한다.
 		void Destroy();
 		// 스왑체인 이미지별 fence 추적과 present 완료 세마포어를 초기화한다.

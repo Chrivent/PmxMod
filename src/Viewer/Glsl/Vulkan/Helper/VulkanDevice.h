@@ -32,7 +32,8 @@ namespace Chrivent {
 		bool IsDeviceSuitable(VkPhysicalDevice candidate) const;
 		// 물리 디바이스 종류와 성능 한도를 기준으로 선택 우선순위를 계산한다.
 		static uint64_t ScorePhysicalDevice(const VkPhysicalDeviceProperties& properties);
-		static const char* GetPhysicalDeviceTypeName(VkPhysicalDeviceType type);
+		// Vulkan 물리 디바이스 종류를 로그용 이름으로 변환한다.
+		static const char* ResolvePhysicalDeviceTypeName(VkPhysicalDeviceType type);
 		// 물리 디바이스에서 그래픽/표시 큐 패밀리를 찾는다.
 		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
 		// 물리 디바이스가 지원하는 샘플 수 중 현재 렌더러에서 사용할 값을 고른다.

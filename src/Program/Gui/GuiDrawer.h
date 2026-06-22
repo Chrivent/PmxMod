@@ -27,6 +27,7 @@ namespace Chrivent {
 		// 눈금 없는 가로 슬라이더 컨트롤을 생성한다.
 		static HWND CreateHorizontalSlider(HWND parent, UINT_PTR controlId, int minValue, int maxValue, int initialValue);
 		// 눈금이 있는 세로 슬라이더 컨트롤을 생성한다.
-		static HWND CreateVerticalTickSlider(HWND parent, UINT_PTR controlId, int minValue, int maxValue, int initialValue, int tickFrequency);
+		// 눈금 없는 세로 트랙바를 생성한다.
+		static HWND CreateVerticalSlider(HWND parent, UINT_PTR controlId, int minValue, int maxValue, int initialValue);
 	};
 }

@@ -25,7 +25,8 @@ namespace Chrivent {
 	public:
 		ModelPanel() = default;
 
-		void SetControlIds(const UINT_PTR addId, const UINT_PTR listId) {
+		// 추가 버튼과 모델 목록의 컨트롤 ID를 적용한다.
+		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR listId) {
 			addButtonId = addId;
 			modelListId = listId;
 		}
@@ -36,7 +37,8 @@ namespace Chrivent {
 		void Resize(const RECT& clientRect) override;
 		// 현재 언어에 맞춰 Add 버튼 문구를 갱신한다.
 		void UpdateLanguage() override;
-		void SetVisible(bool visible) const;
+		// 모델 패널의 버튼과 목록 표시 상태를 갱신한다.
+		void UpdateVisibility(bool visible) const;
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모델 패널 컨트롤 핸들을 정리한다.

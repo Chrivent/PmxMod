@@ -19,9 +19,9 @@ namespace Chrivent {
             physicsEnabled && !viewer.skipPhysics, timing);
     }
 
-    std::size_t Instance::GetSkinningTaskCount() const {
+    std::size_t Instance::CalculateSkinningTaskCount() const {
         const ModelUpdater updater(*model);
-        return updater.GetSkinningTaskCount();
+        return updater.CalculateSkinningTaskCount();
     }
 
     void Instance::UpdateSkinning(const std::size_t taskIndex) const {

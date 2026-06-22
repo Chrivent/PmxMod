@@ -24,7 +24,7 @@ namespace Chrivent {
 		// uniform buffer와 texture sampler용 descriptor pool을 생성한다.
 		bool CreateDescriptorPool(size_t materialCount);
 		// pipeline layout에 맞춰 vertex/pixel/texture descriptor set을 할당한다.
-		bool AllocateDescriptorSets(const VulkanPipeline& pipelineInfo, size_t materialCount);
+		bool AllocateDescriptorSets(const VulkanPipeline& sourcePipeline, size_t materialCount);
 		// vertex uniform buffer 정보를 descriptor set에 기록한다.
 		void UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
 		// 재질별 pixel uniform buffer 정보를 descriptor set에 기록한다.
@@ -44,7 +44,7 @@ namespace Chrivent {
 		const VkDescriptorSet& GetVertexDescriptorSet() const { return vertexDescriptorSet; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
-		bool Initialize(const VulkanDevice& deviceInfo, const VulkanPipeline& pipelineInfo,
+		bool Initialize(const VulkanDevice& sourceDevice, const VulkanPipeline& sourcePipeline,
 			const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange,
 			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange,
 			std::vector<VulkanMaterial>& materials, VulkanPassType sourcePassType);

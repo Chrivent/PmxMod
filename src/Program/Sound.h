@@ -42,8 +42,9 @@ namespace Chrivent {
         float GetVolume() const { return volume; }
         double GetLengthSeconds() const { return lengthSec; }
         const AudioWaveform& GetWaveform() const { return waveform; }
-        void SetVolume(float value);
 
+        // 볼륨을 유효 범위로 보정하고 재생 중인 사운드에 반영한다.
+        void ApplyVolume(float value);
         // 오디오 파일을 열고 필요하면 반복 재생으로 준비한다.
         bool Init(const std::filesystem::path& path, bool loop);
         // 이전 호출 시각과 현재 재생 시각을 출력하고 내부 기준 시간을 갱신한다.

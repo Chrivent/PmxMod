@@ -57,7 +57,8 @@ namespace Chrivent {
 		Animation(std::vector<NodeAnimationTrack> nodes, std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
 			: nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
 
-		uint32_t GetLastFrame() const;
+		// 포함된 모든 트랙을 순회해 가장 마지막 키 프레임을 계산한다.
+		uint32_t CalculateLastFrame() const;
 		// 지정한 시간의 애니메이션 값을 모델에 평가해 적용한다.
 		void Evaluate(float t, float animWeight = 1.0f) const;
 		

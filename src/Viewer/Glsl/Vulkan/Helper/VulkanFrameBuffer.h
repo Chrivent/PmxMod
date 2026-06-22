@@ -20,7 +20,8 @@ namespace Chrivent {
 		const std::vector<VkFramebuffer>& GetFrameBuffers() const { return frameBuffers; }
 		
 		// 스왑체인 image view마다 멀티샘플 color, depth, resolve attachment를 묶은 framebuffer를 생성한다.
-		bool Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo, VkRenderPass renderPass, VkImageView colorImageView, VkImageView depthImageView);
+		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+			VkRenderPass renderPass, VkImageView colorImageView, VkImageView depthImageView);
 		// 생성한 framebuffer 리소스를 해제한다.
 		void Destroy();
 	};

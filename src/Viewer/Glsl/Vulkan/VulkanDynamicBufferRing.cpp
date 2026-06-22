@@ -1,14 +1,11 @@
 ﻿#include "VulkanDynamicBufferRing.h"
 
 namespace Chrivent {
-	bool VulkanDynamicBufferRing::Setup(const VulkanDevice& deviceInfo, const size_t bufferSize, std::string& outError) {
+	bool VulkanDynamicBufferRing::Setup(const VulkanDevice& sourceDevice, const size_t bufferSize, std::string& outError) {
 		Clear();
 		if (!GlslDynamicBufferRing::Setup(bufferSize, outError))
 			return false;
-		if (!buffer.Initialize(
-			deviceInfo,
-			bufferSize,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		if (!buffer.Initialize(sourceDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 			outError = "Failed to create Vulkan dynamic buffer ring.";
 			GlslDynamicBufferRing::Clear();

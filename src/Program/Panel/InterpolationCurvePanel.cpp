@@ -177,21 +177,16 @@ namespace Chrivent {
 						controlPoints[3].y,
 						RGB(115, 120, 130));
 				}
-				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::GetCurveColor(channelIndex));
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::ResolveCurveColor(channelIndex));
 				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
 				PolyBezier(deviceContext, controlPoints, 4);
 				SelectObject(deviceContext, previousPen);
 				DeleteObject(curvePen);
 				if (showControlPoints) {
 					for (int pointIndex = 0; pointIndex < 2; pointIndex++) {
-						const bool selected = selectedChannel == channelIndex
-							&& selectedCurve == curveIndex
-							&& selectedControlPoint == pointIndex;
-						const COLORREF color = selected
-							? GuiTheme::GetSelectedCurveKeyColor()
-							: RGB(174, 179, 188);
 						GuiDrawer::DrawDiamond(
-							deviceContext, controlPoints[pointIndex + 1].x, controlPoints[pointIndex + 1].y, 5, color);
+							deviceContext, controlPoints[pointIndex + 1].x, controlPoints[pointIndex + 1].y,
+							5, GuiTheme::GetSelectedCurveKeyColor());
 					}
 				}
 			}
@@ -240,7 +235,7 @@ namespace Chrivent {
 		selectedControlPoint = -1;
 	}
 
-	void InterpolationCurvePanel::SetSelection(InterpolationSelection interpolationSelection) {
+	void InterpolationCurvePanel::ApplySelection(InterpolationSelection interpolationSelection) {
 		selection = std::move(interpolationSelection);
 		selectedChannel = -1;
 		selectedCurve = -1;

@@ -33,6 +33,7 @@ namespace Chrivent {
 		bool customFrameRange = false;
 		bool updatingRangeControls = false;
 		bool repeatEnabled = false;
+		bool playing = false;
 		int autoLastFrame = 1;
 		PlaybackFrameRange frameRange;
 		HWND panelWindow = nullptr;
@@ -68,7 +69,10 @@ namespace Chrivent {
 
 		void SetControlIds(const PlaybackControlIds& ids) { controlIds = ids; }
 		
-		void SetLastFrame(int maxFrame, bool resetRange);
+		// 재생 상태에 따라 재생 시작과 범위 편집 컨트롤을 활성화한다.
+		void ApplyPlaybackState(bool isPlaying);
+		// Auto 기준 마지막 프레임을 갱신하고 필요하면 재생 범위를 초기화한다.
+		void UpdateLastFrame(int maxFrame, bool resetRange);
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
 		void Create(const HWND parent) override { CreateContent(parent); }
 		// 패널 윈도우를 생성하거나 이미 있으면 다시 표시한다.

@@ -18,17 +18,17 @@ namespace Chrivent {
 		UINT frameIndex = 0;
 
 		// 스왑체인 back buffer마다 RTV descriptor를 생성한다.
-		bool CreateRenderTargetViews(const Dx12Device& deviceInfo);
+		bool CreateRenderTargetViews(const Dx12Device& sourceDevice);
 
 	public:
 		UINT GetFrameIndex() const { return frameIndex; }
 
 		// DX12 스왑체인과 back buffer RTV를 생성한다.
-		bool Initialize(const Dx12Device& deviceInfo, HWND hwnd, int width, int height);
+		bool Initialize(const Dx12Device& sourceDevice, HWND hwnd, int width, int height);
 		// 현재 frame index에 해당하는 back buffer를 선택한다.
 		ID3D12Resource* ResolveCurrentBackBuffer() const { return backBuffers[frameIndex].Get(); }
 		// 창 크기에 맞춰 스왑체인을 다시 생성한다.
-		bool Resize(const Dx12Device& deviceInfo, int width, int height);
+		bool Resize(const Dx12Device& sourceDevice, int width, int height);
 		// swap chain의 현재 back buffer를 화면에 표시한다.
 		bool Present();
 		// 생성한 DX12 스왑체인 리소스를 해제한다.

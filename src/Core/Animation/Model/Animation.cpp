@@ -4,7 +4,7 @@
 #include "../../Model/Model.h"
 
 namespace Chrivent {
-	uint32_t Animation::GetLastFrame() const {
+	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;
 		for (const auto& [node, keys] : nodeTracks) {
 			if (!keys.empty())
@@ -43,8 +43,7 @@ namespace Chrivent {
 			if (it != keys.begin() && it != keys.end()) {
 				const auto& prev = *std::prev(it);
 				const auto& [frame, translate, rotate,
-					txBezier, tyBezier, tzBezier,
-					rotBezier] = *it;
+					txBezier, tyBezier, tzBezier, rotBezier] = *it;
 				const float prevFrame = prev.frame;
 				const float nextFrame = frame;
 				const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);

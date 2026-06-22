@@ -10,8 +10,10 @@ namespace Chrivent {
 		static std::string BuildPreamble();
 		// OpenGL 셰이더 타입을 로그에 출력할 문자열로 변환한다.
 		static const char* ShaderTypeName(GLenum shaderType);
-		static std::string GetShaderInfoLog(GLuint shader);
-		static std::string GetProgramInfoLog(GLuint program);
+		// GLSL 셰이더 컴파일 로그를 읽는다.
+		static std::string ReadShaderLog(GLuint shader);
+		// GLSL 프로그램 링크 로그를 읽는다.
+		static std::string ReadProgramLog(GLuint program);
 		// GLSL 파일을 읽어 전처리된 최종 소스를 만든다.
 		static bool ReadShaderFile(const std::filesystem::path& file, std::string& code);
 

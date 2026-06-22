@@ -15,7 +15,7 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
-		static VulkanSwapChainSupport QuerySupport(const VulkanDevice& deviceInfo);
+		static VulkanSwapChainSupport QuerySupport(const VulkanDevice& sourceDevice);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		// 사용할 present mode를 선택한다.
@@ -41,9 +41,9 @@ namespace Chrivent {
 		VulkanSwapChain& operator=(VulkanSwapChain&&) = delete;
 		
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.
-		bool Initialize(const VulkanDevice& deviceInfo, GLFWwindow* window);
+		bool Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 창 크기 변경에 맞춰 스왑체인과 image view를 다시 생성한다.
-		bool Recreate(const VulkanDevice& deviceInfo, GLFWwindow* window);
+		bool Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 생성한 스왑체인 리소스를 해제한다.
 		void Destroy();
 	};

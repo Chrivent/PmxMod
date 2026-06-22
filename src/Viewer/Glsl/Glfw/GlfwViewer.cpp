@@ -5,7 +5,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	const char* GlfwViewer::GetGpuTypeName(const std::string& renderer) {
+	const char* GlfwViewer::ResolveGpuTypeName(const std::string& renderer) {
 		if (renderer.contains("NVIDIA") || renderer.contains("Radeon RX") || renderer.contains("Radeon Pro"))
 			return "discrete";
 		if (renderer.contains("Intel") || renderer.contains("Radeon(TM) Graphics"))
@@ -30,7 +30,7 @@ namespace Chrivent {
 		}
 		const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 		std::cout << "opengl_gpu=" << (renderer ? renderer : "unknown") << '\n';
-		std::cout << "opengl_gpu_type=" << GetGpuTypeName(renderer ? renderer : "") << '\n';
+		std::cout << "opengl_gpu_type=" << ResolveGpuTypeName(renderer ? renderer : "") << '\n';
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		InitDirs("shader_glsl");

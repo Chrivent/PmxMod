@@ -6,9 +6,9 @@
 #include <windows.h>
 
 namespace Chrivent {
-	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& deviceInfo, const unsigned char* pixels,
+	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
 		const UINT width, const UINT height, Dx12Texture& texture) {
-		if (!deviceInfo.device || !deviceInfo.commandQueue || pixels == nullptr || width == 0 || height == 0)
+		if (!sourceDevice.device || !sourceDevice.commandQueue || pixels == nullptr || width == 0 || height == 0)
 			return false;
 		D3D12_RESOURCE_DESC textureDesc{};
 		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -23,7 +23,7 @@ namespace Chrivent {
 		defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
 		defaultHeap.CreationNodeMask = 1;
 		defaultHeap.VisibleNodeMask = 1;
-		if (FAILED(deviceInfo.device->CreateCommittedResource(
+		if (FAILED(sourceDevice.device->CreateCommittedResource(
 			&defaultHeap,
 			D3D12_HEAP_FLAG_NONE,
 			&textureDesc,
@@ -34,7 +34,8 @@ namespace Chrivent {
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
 		UINT rowCount = 0;
 		UINT64 uploadByteSize = 0;
-		deviceInfo.device->GetCopyableFootprints(&textureDesc, 0, 1, 0, &layout, &rowCount, nullptr, &uploadByteSize);
+		sourceDevice.device->GetCopyableFootprints(&textureDesc, 0, 1, 0,
+			&layout, &rowCount, nullptr, &uploadByteSize);
 		D3D12_HEAP_PROPERTIES uploadHeap{};
 		uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
 		uploadHeap.CreationNodeMask = 1;
@@ -48,13 +49,9 @@ namespace Chrivent {
 		uploadDesc.SampleDesc.Count = 1;
 		uploadDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
-		if (FAILED(deviceInfo.device->CreateCommittedResource(
-			&uploadHeap,
-			D3D12_HEAP_FLAG_NONE,
-			&uploadDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&uploadBuffer))))
+		if (FAILED(sourceDevice.device->CreateCommittedResource(
+			&uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr, IID_PPV_ARGS(&uploadBuffer))))
 			return false;
 		void* mappedData = nullptr;
 		constexpr D3D12_RANGE readRange{ 0, 0 };
@@ -67,14 +64,10 @@ namespace Chrivent {
 		uploadBuffer->Unmap(0, nullptr);
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-		if (FAILED(deviceInfo.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
+		if (FAILED(sourceDevice.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
 			return false;
-		if (FAILED(deviceInfo.device->CreateCommandList(
-			0,
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			commandAllocator.Get(),
-			nullptr,
-			IID_PPV_ARGS(&commandList))))
+		if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+			commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList))))
 			return false;
 		D3D12_TEXTURE_COPY_LOCATION destinationLocation{};
 		destinationLocation.pResource = texture.resource.Get();
@@ -94,15 +87,15 @@ namespace Chrivent {
 		if (FAILED(commandList->Close()))
 			return false;
 		ID3D12CommandList* commandLists[] = { commandList.Get() };
-		deviceInfo.commandQueue->ExecuteCommandLists(1, commandLists);
+		sourceDevice.commandQueue->ExecuteCommandLists(1, commandLists);
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		if (FAILED(deviceInfo.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
+		if (FAILED(sourceDevice.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
 			return false;
 		HANDLE fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		if (fenceEvent == nullptr)
 			return false;
 		constexpr UINT64 fenceValue = 1;
-		if (FAILED(deviceInfo.commandQueue->Signal(fence.Get(), fenceValue))) {
+		if (FAILED(sourceDevice.commandQueue->Signal(fence.Get(), fenceValue))) {
 			CloseHandle(fenceEvent);
 			return false;
 		}
@@ -120,7 +113,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Texture Dx12TextureCache::Load(const Dx12Device& deviceInfo, const std::filesystem::path& texturePath) {
+	Dx12Texture Dx12TextureCache::Load(const Dx12Device& sourceDevice, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
@@ -135,7 +128,7 @@ namespace Chrivent {
 		const auto texture = std::make_shared<Dx12Texture>();
 		texture->key = key;
 		texture->hasAlpha = comp == 4;
-		const bool uploaded = UploadRgbaPixels(deviceInfo, image, x, y, *texture);
+		const bool uploaded = UploadRgbaPixels(sourceDevice, image, x, y, *texture);
 		stbi_image_free(image);
 		if (!uploaded)
 			return {};
@@ -143,7 +136,7 @@ namespace Chrivent {
 		return *texture;
 	}
 
-	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12Device& deviceInfo) {
+	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12Device& sourceDevice) {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
@@ -151,7 +144,7 @@ namespace Chrivent {
 		const auto texture = std::make_shared<Dx12Texture>();
 		texture->key = key;
 		texture->hasAlpha = false;
-		if (!UploadRgbaPixels(deviceInfo, white, 1, 1, *texture))
+		if (!UploadRgbaPixels(sourceDevice, white, 1, 1, *texture))
 			return {};
 		textures[key] = texture;
 		return *texture;

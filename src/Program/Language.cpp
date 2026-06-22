@@ -65,10 +65,10 @@ namespace Chrivent {
 	void Language::Initialize() {
 		const auto directory = ResolveLanguageDirectory();
 		fallbackTexts = LoadFile(directory / ResolveFilename(LanguageType::English));
-		SetCurrent(DetectWindowsUiLanguage());
+		ChangeCurrent(DetectWindowsUiLanguage());
 	}
 
-	void Language::SetCurrent(const LanguageType type) {
+	void Language::ChangeCurrent(const LanguageType type) {
 		currentType = type;
 		currentTexts = LoadFile(ResolveLanguageDirectory() / ResolveFilename(type));
 	}

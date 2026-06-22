@@ -4,20 +4,20 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanSwapChainSupport VulkanSwapChain::QuerySupport(const VulkanDevice& deviceInfo) {
+	VulkanSwapChainSupport VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice) {
 		VulkanSwapChainSupport support;
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceInfo.physicalDevice, deviceInfo.surface, &support.capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &support.capabilities);
 		uint32_t formatCount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(deviceInfo.physicalDevice, deviceInfo.surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, nullptr);
 		if (formatCount > 0) {
 			support.formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(deviceInfo.physicalDevice, deviceInfo.surface, &formatCount, support.formats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, support.formats.data());
 		}
 		uint32_t presentModeCount = 0;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(deviceInfo.physicalDevice, deviceInfo.surface, &presentModeCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, nullptr);
 		if (presentModeCount > 0) {
 			support.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(deviceInfo.physicalDevice, deviceInfo.surface, &presentModeCount, support.presentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, support.presentModes.data());
 		}
 		return support;
 	}
@@ -86,11 +86,11 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanSwapChain::Initialize(const VulkanDevice& deviceInfo, GLFWwindow* window) {
-		device = deviceInfo.device;
+	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
+		device = sourceDevice.device;
 		const auto [capabilities,
 			formats,
-			presentModes] = QuerySupport(deviceInfo);
+			presentModes] = QuerySupport(sourceDevice);
 		if (formats.empty() || presentModes.empty()) {
 			std::cerr << "Failed to find Vulkan swapchain surface support.\n";
 			return false;
@@ -107,7 +107,7 @@ namespace Chrivent {
 			imageCount = capabilities.maxImageCount;
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = deviceInfo.surface;
+		createInfo.surface = sourceDevice.surface;
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = format;
 		createInfo.imageColorSpace = colorSpace;
@@ -115,10 +115,10 @@ namespace Chrivent {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
-			deviceInfo.queueFamilies.graphicsFamily,
-			deviceInfo.queueFamilies.presentFamily
+			sourceDevice.queueFamilies.graphicsFamily,
+			sourceDevice.queueFamilies.presentFamily
 		};
-		if (deviceInfo.queueFamilies.graphicsFamily != deviceInfo.queueFamilies.presentFamily) {
+		if (sourceDevice.queueFamilies.graphicsFamily != sourceDevice.queueFamilies.presentFamily) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -129,23 +129,23 @@ namespace Chrivent {
 		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
-		if (vkCreateSwapchainKHR(deviceInfo.device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+		if (vkCreateSwapchainKHR(sourceDevice.device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan swapchain.\n";
 			return false;
 		}
-		vkGetSwapchainImagesKHR(deviceInfo.device, swapChain, &imageCount, nullptr);
+		vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, nullptr);
 		images.resize(imageCount);
-		vkGetSwapchainImagesKHR(deviceInfo.device, swapChain, &imageCount, images.data());
+		vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, images.data());
 		imageFormat = format;
 		extent = selectedExtent;
 		return CreateImageViews();
 	}
 
-	bool VulkanSwapChain::Recreate(const VulkanDevice& deviceInfo, GLFWwindow* window) {
-		if (deviceInfo.device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(deviceInfo.device);
+	bool VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window) {
+		if (sourceDevice.device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(sourceDevice.device);
 		Destroy();
-		return Initialize(deviceInfo, window);
+		return Initialize(sourceDevice, window);
 	}
 
 	void VulkanSwapChain::Destroy() {

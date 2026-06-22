@@ -7,24 +7,18 @@
 
 namespace Chrivent {
 	bool Dx12Pipeline::CreateRootSignature(
-		const Dx12Device& deviceInfo,
+		const Dx12Device& sourceDevice,
 		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc,
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature) {
 		Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
 		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-		if (FAILED(D3D12SerializeRootSignature(
-			&rootSignatureDesc,
-			D3D_ROOT_SIGNATURE_VERSION_1,
-			&signatureBlob,
-			&errorBlob))) {
+		if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob))) {
 			if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
 				std::cerr << static_cast<const char*>(errorBlob->GetBufferPointer()) << '\n';
 			return false;
 		}
-		return SUCCEEDED(deviceInfo.device->CreateRootSignature(
-			0,
-			signatureBlob->GetBufferPointer(),
-			signatureBlob->GetBufferSize(),
+		return SUCCEEDED(sourceDevice.device->CreateRootSignature(0,
+			signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
 			IID_PPV_ARGS(&rootSignature)));
 	}
 
@@ -58,8 +52,8 @@ namespace Chrivent {
 		depthStencilDesc.StencilEnable = FALSE;
 	}
 
-	bool Dx12Pipeline::CreateModelRootSignature(const Dx12Device& deviceInfo) {
-		if (!deviceInfo.device)
+	bool Dx12Pipeline::CreateModelRootSignature(const Dx12Device& sourceDevice) {
+		if (!sourceDevice.device)
 			return false;
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -107,11 +101,11 @@ namespace Chrivent {
 		rootSignatureDesc.NumStaticSamplers = 3;
 		rootSignatureDesc.pStaticSamplers = samplers;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return CreateRootSignature(deviceInfo, rootSignatureDesc, modelRootSignature);
+		return CreateRootSignature(sourceDevice, rootSignatureDesc, modelRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !modelRootSignature)
+	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -140,15 +134,15 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		if (FAILED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelFrontFacePipelineState))))
+		pipelineDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
+		if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelFrontFacePipelineState))))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
 	}
 
-	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& deviceInfo) {
-		if (!deviceInfo.device)
+	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& sourceDevice) {
+		if (!sourceDevice.device)
 			return false;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -164,11 +158,11 @@ namespace Chrivent {
 		rootSignatureDesc.NumParameters = 3;
 		rootSignatureDesc.pParameters = rootParameters;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return CreateRootSignature(deviceInfo, rootSignatureDesc, edgeRootSignature);
+		return CreateRootSignature(sourceDevice, rootSignatureDesc, edgeRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !edgeRootSignature)
+	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+		if (!sourceDevice.device || !edgeRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -196,12 +190,12 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&edgePipelineState)));
+		pipelineDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&edgePipelineState)));
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12Device& deviceInfo) {
-		if (!deviceInfo.device)
+	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12Device& sourceDevice) {
+		if (!sourceDevice.device)
 			return false;
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -214,11 +208,11 @@ namespace Chrivent {
 		rootSignatureDesc.NumParameters = 2;
 		rootSignatureDesc.pParameters = rootParameters;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return CreateRootSignature(deviceInfo, rootSignatureDesc, groundShadowRootSignature);
+		return CreateRootSignature(sourceDevice, rootSignatureDesc, groundShadowRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
-		if (!deviceInfo.device || !groundShadowRootSignature)
+	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+		if (!sourceDevice.device || !groundShadowRootSignature)
 			return false;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
@@ -256,23 +250,23 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		pipelineDesc.SampleDesc.Count = deviceInfo.msaaSampleCount;
-		return SUCCEEDED(deviceInfo.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
+		pipelineDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
-	bool Dx12Pipeline::Initialize(const Dx12Device& deviceInfo, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
 		Destroy();
-		if (!CreateModelRootSignature(deviceInfo))
+		if (!CreateModelRootSignature(sourceDevice))
 			return false;
-		if (!CreateModelPipelineStates(deviceInfo, shaderDir))
+		if (!CreateModelPipelineStates(sourceDevice, shaderDir))
 			return false;
-		if (!CreateEdgeRootSignature(deviceInfo))
+		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;
-		if (!CreateEdgePipelineState(deviceInfo, shaderDir))
+		if (!CreateEdgePipelineState(sourceDevice, shaderDir))
 			return false;
-		if (!CreateGroundShadowRootSignature(deviceInfo))
+		if (!CreateGroundShadowRootSignature(sourceDevice))
 			return false;
-		return CreateGroundShadowPipelineState(deviceInfo, shaderDir);
+		return CreateGroundShadowPipelineState(sourceDevice, shaderDir);
 	}
 
 	void Dx12Pipeline::BindModel(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {

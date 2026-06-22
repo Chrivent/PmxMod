@@ -24,11 +24,14 @@ namespace Chrivent {
 		CameraManager();
 		~CameraManager();
 
-		int GetLastFrame() const;
-		const std::vector<CameraAnimationKey>& GetAnimationKeys() const;
 		bool IsPlaying() const { return !paused; }
 
-		void SetMotionCameraEnabled(bool enabled) { useMotionCamera = enabled; }
+		// 카메라 애니메이션의 마지막 프레임을 int 범위로 계산한다.
+		int CalculateLastFrame() const;
+		// 카메라 애니메이션이 없을 때 빈 목록을 반환해 표시용 키 목록을 제공한다.
+		const std::vector<CameraAnimationKey>& ResolveAnimationKeys() const;
+		// 모션 카메라 사용 상태를 전환한다.
+		void ApplyMotionCameraState(bool enabled) { useMotionCamera = enabled; }
 		// 지정한 프레임으로 재생 시간을 이동한다.
 		void SeekFrame(Viewer& viewer, Sound& music, int frame, std::chrono::steady_clock::time_point& saveTime) const;
 		// 카메라와 재생 상태를 기본값으로 초기화한다.

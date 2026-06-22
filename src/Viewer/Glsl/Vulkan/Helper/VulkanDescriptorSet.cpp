@@ -36,19 +36,19 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipeline& pipelineInfo, const size_t materialCount) {
+	bool VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipeline& sourcePipeline, const size_t materialCount) {
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = descriptorPool;
 		allocateInfo.descriptorSetCount = 1;
-		allocateInfo.pSetLayouts = &pipelineInfo.descriptorSetLayouts[0];
+		allocateInfo.pSetLayouts = &sourcePipeline.descriptorSetLayouts[0];
 		if (vkAllocateDescriptorSets(device, &allocateInfo, &vertexDescriptorSet) != VK_SUCCESS) {
 			std::cerr << "Failed to allocate Vulkan vertex descriptor set.\n";
 			return false;
 		}
 		pixelDescriptorSets.resize(materialCount);
 		if (!pixelDescriptorSets.empty()) {
-			const std::vector pixelLayouts(materialCount, pipelineInfo.descriptorSetLayouts[1]);
+			const std::vector pixelLayouts(materialCount, sourcePipeline.descriptorSetLayouts[1]);
 			VkDescriptorSetAllocateInfo pixelAllocateInfo{};
 			pixelAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			pixelAllocateInfo.descriptorPool = descriptorPool;
@@ -64,7 +64,7 @@ namespace Chrivent {
 		textureDescriptorSets.resize(materialCount);
 		if (textureDescriptorSets.empty())
 			return true;
-		const std::vector textureLayouts(materialCount, pipelineInfo.descriptorSetLayouts[2]);
+		const std::vector textureLayouts(materialCount, sourcePipeline.descriptorSetLayouts[2]);
 		VkDescriptorSetAllocateInfo textureAllocateInfo{};
 		textureAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		textureAllocateInfo.descriptorPool = descriptorPool;
@@ -205,8 +205,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanDescriptorSet::Initialize(
-		const VulkanDevice& deviceInfo,
-		const VulkanPipeline& pipelineInfo,
+		const VulkanDevice& sourceDevice,
+		const VulkanPipeline& sourcePipeline,
 		const VulkanBuffer& vertexConstantBuffer,
 		const VkDeviceSize vertexConstantRange,
 		const VulkanBuffer& pixelConstantBuffer,
@@ -214,11 +214,11 @@ namespace Chrivent {
 		std::vector<VulkanMaterial>& materials,
 		const VulkanPassType sourcePassType) {
 		Destroy();
-		device = deviceInfo.device;
+		device = sourceDevice.device;
 		passType = sourcePassType;
 		if (!CreateDescriptorPool(materials.size()))
 			return false;
-		if (!AllocateDescriptorSets(pipelineInfo, materials.size()))
+		if (!AllocateDescriptorSets(sourcePipeline, materials.size()))
 			return false;
 		UpdateVertexDescriptorSet(vertexConstantBuffer, vertexConstantRange);
 		UpdatePixelDescriptorSets(pixelConstantBuffer, pixelConstantRange, materials);

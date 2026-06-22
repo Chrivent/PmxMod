@@ -7,17 +7,17 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanCommandContext::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo) {
-		device = deviceInfo.device;
+	bool VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
+		device = sourceDevice.device;
 		VkCommandPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		createInfo.queueFamilyIndex = deviceInfo.queueFamilies.graphicsFamily;
+		createInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
 		if (vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan command pool.\n";
 			return false;
 		}
-		return commandBuffer.Initialize(deviceInfo, commandPool, swapChainInfo);
+		return commandBuffer.Initialize(sourceDevice, commandPool, sourceSwapChain);
 	}
 
 	void VulkanCommandContext::Destroy() {

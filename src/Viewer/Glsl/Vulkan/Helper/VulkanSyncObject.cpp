@@ -31,8 +31,8 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanSyncObject::Initialize(const VulkanDevice& deviceInfo, const size_t swapChainImageCount) {
-		device = deviceInfo.device;
+	bool VulkanSyncObject::Initialize(const VulkanDevice& sourceDevice, const size_t swapChainImageCount) {
+		device = sourceDevice.device;
 		currentFrame = 0;
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

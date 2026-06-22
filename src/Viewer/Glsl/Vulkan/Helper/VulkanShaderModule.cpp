@@ -7,8 +7,8 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanShaderModule::Initialize(const VulkanDevice& deviceInfo, const std::vector<uint32_t>& spvBytes) {
-		device = deviceInfo.device;
+	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice, const std::vector<uint32_t>& spvBytes) {
+		device = sourceDevice.device;
 		if (spvBytes.empty()) {
 			std::cerr << "Invalid SPIR-V shader byte size.\n";
 			return false;

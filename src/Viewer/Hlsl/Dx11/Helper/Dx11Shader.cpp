@@ -13,27 +13,17 @@ namespace Chrivent {
 		return SUCCEEDED(device->CreatePixelShader(bytecode->GetBufferPointer(), bytecode->GetBufferSize(), nullptr, &outShader));
 	}
 
-	bool Dx11Shader::CreateInputLayout(
-		ID3D11Device* device,
-		ID3DBlob* vertexBytecode,
-		const D3D11_INPUT_ELEMENT_DESC* inputElements,
-		const UINT inputElementCount,
+	bool Dx11Shader::CreateInputLayout(ID3D11Device* device, ID3DBlob* vertexBytecode,
+		const D3D11_INPUT_ELEMENT_DESC* inputElements, const UINT inputElementCount,
 		Microsoft::WRL::ComPtr<ID3D11InputLayout>& outInputLayout) {
-		return SUCCEEDED(device->CreateInputLayout(
-			inputElements,
-			inputElementCount,
-			vertexBytecode->GetBufferPointer(),
-			vertexBytecode->GetBufferSize(),
+		return SUCCEEDED(device->CreateInputLayout( inputElements, inputElementCount,
+			vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
 			&outInputLayout));
 	}
 
-	bool Dx11Shader::Initialize(
-		ID3D11Device* device,
-		const std::filesystem::path& file,
-		const D3D11_INPUT_ELEMENT_DESC* inputElements,
-		const UINT inputElementCount,
-		const char* vertexEntry,
-		const char* pixelEntry) {
+	bool Dx11Shader::Initialize(ID3D11Device* device, const std::filesystem::path& file,
+		const D3D11_INPUT_ELEMENT_DESC* inputElements, const UINT inputElementCount,
+		const char* vertexEntry, const char* pixelEntry) {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBytecode;
 		std::string error;

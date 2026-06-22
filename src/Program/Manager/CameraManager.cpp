@@ -22,13 +22,13 @@ namespace Chrivent {
 
 	CameraManager::~CameraManager() = default;
 
-	int CameraManager::GetLastFrame() const {
+	int CameraManager::CalculateLastFrame() const {
 		if (!cameraAnim)
 			return 0;
 		return (std::min)(cameraAnim->GetLastFrame(), static_cast<uint32_t>((std::numeric_limits<int>::max)()));
 	}
 
-	const std::vector<CameraAnimationKey>& CameraManager::GetAnimationKeys() const {
+	const std::vector<CameraAnimationKey>& CameraManager::ResolveAnimationKeys() const {
 		static constexpr std::vector<CameraAnimationKey> emptyKeys;
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}

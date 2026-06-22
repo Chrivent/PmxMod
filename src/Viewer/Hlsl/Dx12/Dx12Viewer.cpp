@@ -26,7 +26,7 @@ namespace Chrivent {
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	void Dx12Viewer::SetViewportAndScissor(ID3D12GraphicsCommandList* commandList) const {
+	void Dx12Viewer::ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList) const {
 		D3D12_VIEWPORT viewport{};
 		viewport.Width = screenWidth;
 		viewport.Height = screenHeight;
@@ -146,7 +146,7 @@ namespace Chrivent {
 			return;
 		PrepareBackBufferForRendering(commandList, backBuffer);
 		ClearRenderTargets(commandList);
-		SetViewportAndScissor(commandList);
+		ApplyViewportAndScissor(commandList);
 		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		frameReady = true;

@@ -27,7 +27,7 @@ namespace Chrivent {
 		// 스왑체인 이미지 인덱스에 대응하는 command buffer를 반환한다.
 		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
-		bool Initialize(const VulkanDevice& deviceInfo, VkCommandPool sourceCommandPool, const VulkanSwapChain& swapChainInfo);
+		bool Initialize(const VulkanDevice& sourceDevice, VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
 		// 지정한 스왑체인 이미지에 대한 렌더 패스를 시작하고 파이프라인을 바인딩한다.
 		bool BeginRecord(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkPipeline pipeline, VkExtent2D extent, const float clearColor[4]);
 		// 현재 command buffer에 graphics pipeline을 바인딩한다.

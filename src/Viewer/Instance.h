@@ -37,7 +37,8 @@ namespace Chrivent {
         void Draw() const;
         // 뷰어 시간과 물리 설정을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
         void PrepareUpdate(const Viewer& viewer, bool physicsEnabled, ModelUpdateTiming* timing = nullptr) const;
-        std::size_t GetSkinningTaskCount() const;
+        // 연결된 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.
+        std::size_t CalculateSkinningTaskCount() const;
         // 지정된 범위의 CPU 스키닝을 수행한다.
         void UpdateSkinning(std::size_t taskIndex) const;
     };

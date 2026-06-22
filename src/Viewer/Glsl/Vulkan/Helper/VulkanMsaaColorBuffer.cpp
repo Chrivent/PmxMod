@@ -5,12 +5,12 @@
 #include <iostream>
 
 namespace Chrivent {
-	bool VulkanMsaaColorBuffer::CreateImage(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo) {
+	bool VulkanMsaaColorBuffer::CreateImage(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = swapChainInfo.extent.width;
-		imageInfo.extent.height = swapChainInfo.extent.height;
+		imageInfo.extent.width = sourceSwapChain.extent.width;
+		imageInfo.extent.height = sourceSwapChain.extent.height;
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
@@ -18,16 +18,16 @@ namespace Chrivent {
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		imageInfo.samples = deviceInfo.msaaSampleCount;
+		imageInfo.samples = sourceDevice.msaaSampleCount;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateImage(deviceInfo.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		if (vkCreateImage(sourceDevice.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan MSAA color image.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
-		vkGetImageMemoryRequirements(deviceInfo.device, image, &memoryRequirements);
+		vkGetImageMemoryRequirements(sourceDevice.device, image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(deviceInfo, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			std::cerr << "Failed to find Vulkan MSAA color image memory type.\n";
 			return false;
 		}
@@ -35,11 +35,11 @@ namespace Chrivent {
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(deviceInfo.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
 			std::cerr << "Failed to allocate Vulkan MSAA color image memory.\n";
 			return false;
 		}
-		if (vkBindImageMemory(deviceInfo.device, image, imageMemory, 0) != VK_SUCCESS) {
+		if (vkBindImageMemory(sourceDevice.device, image, imageMemory, 0) != VK_SUCCESS) {
 			std::cerr << "Failed to bind Vulkan MSAA color image memory.\n";
 			return false;
 		}
@@ -68,10 +68,10 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanMsaaColorBuffer::Initialize(const VulkanDevice& deviceInfo, const VulkanSwapChain& swapChainInfo) {
-		device = deviceInfo.device;
-		format = swapChainInfo.imageFormat;
-		if (!CreateImage(deviceInfo, swapChainInfo))
+	bool VulkanMsaaColorBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
+		device = sourceDevice.device;
+		format = sourceSwapChain.imageFormat;
+		if (!CreateImage(sourceDevice, sourceSwapChain))
 			return false;
 		return CreateImageView();
 	}

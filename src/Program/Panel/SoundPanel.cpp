@@ -61,7 +61,7 @@ namespace Chrivent {
 		if (!sound || !volumeSlider)
 			return;
 		const auto sliderValue = SendMessageW(volumeSlider, TBM_GETPOS, 0, 0);
-		sound->SetVolume((100 - sliderValue) / 100.0f);
+		sound->ApplyVolume((100 - sliderValue) / 100.0f);
 		UpdateValueText();
 	}
 
@@ -69,7 +69,7 @@ namespace Chrivent {
 		if (volumeSlider)
 			return;
 		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
-		volumeSlider = GuiDrawer::CreateVerticalTickSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume, 10);
+		volumeSlider = GuiDrawer::CreateVerticalSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume);
 		valueText = CreateWindowExW(
 			0, L"STATIC", L"",
 			WS_CHILD | WS_VISIBLE | SS_CENTER,
@@ -98,7 +98,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
+		wc.hbrBackground = GuiTheme::ResolveBackgroundBrush();
 		wc.lpszClassName = L"PmxModSoundPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(

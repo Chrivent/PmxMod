@@ -7,10 +7,10 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanCommandBuffer::Initialize(const VulkanDevice& deviceInfo, const VkCommandPool sourceCommandPool, const VulkanSwapChain& swapChainInfo) {
-		device = deviceInfo.device;
+	bool VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice, const VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain) {
+		device = sourceDevice.device;
 		commandPool = sourceCommandPool;
-		commandBuffers.resize(swapChainInfo.imageViews.size());
+		commandBuffers.resize(sourceSwapChain.imageViews.size());
 		boundVertexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
 		boundIndexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
 		boundIndexTypes.assign(commandBuffers.size(), VK_INDEX_TYPE_MAX_ENUM);
@@ -76,10 +76,7 @@ namespace Chrivent {
 
 	void VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
 		const VulkanBuffer& indexBuffer, const VkIndexType indexType, const uint32_t firstIndex, const uint32_t indexCount) {
-		if (imageIndex >= commandBuffers.size() ||
-			vertexBuffer.buffer == VK_NULL_HANDLE ||
-			indexBuffer.buffer == VK_NULL_HANDLE ||
-			indexCount == 0)
+		if (imageIndex >= commandBuffers.size() || vertexBuffer.buffer == VK_NULL_HANDLE || indexBuffer.buffer == VK_NULL_HANDLE || indexCount == 0)
 			return;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
 		if (boundVertexBuffers[imageIndex] != vertexBuffer.buffer) {
@@ -88,8 +85,7 @@ namespace Chrivent {
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			boundVertexBuffers[imageIndex] = vertexBuffer.buffer;
 		}
-		if (boundIndexBuffers[imageIndex] != indexBuffer.buffer ||
-			boundIndexTypes[imageIndex] != indexType) {
+		if (boundIndexBuffers[imageIndex] != indexBuffer.buffer || boundIndexTypes[imageIndex] != indexType) {
 			vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, indexType);
 			boundIndexBuffers[imageIndex] = indexBuffer.buffer;
 			boundIndexTypes[imageIndex] = indexType;
@@ -105,15 +101,8 @@ namespace Chrivent {
 			descriptorSets == nullptr ||
 			descriptorSetCount == 0)
 			return;
-		vkCmdBindDescriptorSets(
-			commandBuffers[imageIndex],
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelineLayout,
-			firstSet,
-			descriptorSetCount,
-			descriptorSets,
-			dynamicOffsetCount,
-			dynamicOffsets);
+		vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+			firstSet, descriptorSetCount, descriptorSets, dynamicOffsetCount, dynamicOffsets);
 	}
 
 	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex) const {

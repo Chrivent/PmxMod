@@ -26,87 +26,86 @@ namespace Chrivent {
 		if (!panel)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
-			case WM_SIZE:
-				panel->UpdateVerticalScrollBar();
-				panel->UpdateHorizontalScrollBar();
-				InvalidateRect(hwnd, nullptr, TRUE);
-				return 0;
-			case WM_VSCROLL:
-				panel->ScrollRows(LOWORD(wParam), HIWORD(wParam));
-				return 0;
-			case WM_HSCROLL:
-				panel->ScrollFrames(LOWORD(wParam), HIWORD(wParam));
-				return 0;
-			case WM_MOUSEWHEEL:
-				panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
-				return 0;
-			case WM_LBUTTONDOWN: {
-				const int x = GET_X_LPARAM(lParam);
-				const int y = GET_Y_LPARAM(lParam);
-				if (y >= kHeaderHeight && y < panel->ResolveTimelineBottom()) {
-					const int visibleRow = panel->firstRow + (y - kHeaderHeight) / kRowHeight;
-					if (x < kLabelWidth)
-						panel->ToggleGroup(visibleRow);
-					else {
-						panel->selectionStart = {x, y};
-						panel->selectionEnd = panel->selectionStart;
-						panel->selectingKeys = true;
-						SetCapture(hwnd);
-					}
+		case WM_SIZE:
+			panel->UpdateVerticalScrollBar();
+			panel->UpdateHorizontalScrollBar();
+			InvalidateRect(hwnd, nullptr, TRUE);
+			return 0;
+		case WM_VSCROLL:
+			panel->ScrollRows(LOWORD(wParam), HIWORD(wParam));
+			return 0;
+		case WM_HSCROLL:
+			panel->ScrollFrames(LOWORD(wParam), HIWORD(wParam));
+			return 0;
+		case WM_MOUSEWHEEL:
+			panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+			return 0;
+		case WM_LBUTTONDOWN: {
+			const int x = GET_X_LPARAM(lParam);
+			const int y = GET_Y_LPARAM(lParam);
+			if (y >= kHeaderHeight && y < panel->ResolveTimelineBottom()) {
+				const int visibleRow = panel->firstRow + (y - kHeaderHeight) / kRowHeight;
+				if (x < kLabelWidth)
+					panel->ToggleGroup(visibleRow);
+				else {
+					panel->selectionStart = {x, y};
+					panel->selectionEnd = panel->selectionStart;
+					panel->selectingKeys = true;
+					SetCapture(hwnd);
 				}
-				return 0;
 			}
-			case WM_MOUSEMOVE:
-				if (panel->selectingKeys && (wParam & MK_LBUTTON)) {
-					panel->selectionEnd = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-					InvalidateRect(hwnd, nullptr, FALSE);
-				}
-				return 0;
-			case WM_LBUTTONUP:
-				if (panel->selectingKeys) {
-					panel->selectionEnd = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-					panel->selectingKeys = false;
-					ReleaseCapture();
-					const bool additive = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-					const int width = std::abs(panel->selectionEnd.x - panel->selectionStart.x);
-					const int height = std::abs(panel->selectionEnd.y - panel->selectionStart.y);
-					if (width > 3 || height > 3)
-						panel->SelectKeysInRectangle(additive);
-					else {
-						const int visibleRow = panel->firstRow
-							+ (panel->selectionStart.y - kHeaderHeight) / kRowHeight;
-						if (!panel->SelectKey(visibleRow, panel->selectionStart.x, additive)) {
-							panel->ClearKeySelection();
-							panel->interpolationSelectionDirty = true;
-						}
-					}
-					InvalidateRect(hwnd, nullptr, FALSE);
-				}
-				return 0;
-			case WM_CAPTURECHANGED:
+			return 0;
+		}
+		case WM_MOUSEMOVE:
+			if (panel->selectingKeys && (wParam & MK_LBUTTON)) {
+				panel->selectionEnd = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+				InvalidateRect(hwnd, nullptr, FALSE);
+			}
+			return 0;
+		case WM_LBUTTONUP:
+			if (panel->selectingKeys) {
+				panel->selectionEnd = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
 				panel->selectingKeys = false;
-				return 0;
-			case WM_ERASEBKGND:
-				return 1;
-			case WM_PAINT: {
-				PAINTSTRUCT paint{};
-				const HDC targetDc = BeginPaint(hwnd, &paint);
-				RECT client{};
-				GetClientRect(hwnd, &client);
-				const GuiBackBuffer backBuffer(targetDc, client);
-				if (const HDC memoryDc = backBuffer.GetDc()) {
-					panel->Paint(memoryDc);
-					backBuffer.Present();
-				} else
-					panel->Paint(targetDc);
-				EndPaint(hwnd, &paint);
-				return 0;
+				ReleaseCapture();
+				const bool additive = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+				const int width = std::abs(panel->selectionEnd.x - panel->selectionStart.x);
+				const int height = std::abs(panel->selectionEnd.y - panel->selectionStart.y);
+				if (width > 3 || height > 3)
+					panel->SelectKeysInRectangle(additive);
+				else {
+					const int visibleRow = panel->firstRow + (panel->selectionStart.y - kHeaderHeight) / kRowHeight;
+					if (!panel->SelectKey(visibleRow, panel->selectionStart.x, additive)) {
+						panel->ClearKeySelection();
+						panel->interpolationSelectionDirty = true;
+					}
+				}
+				InvalidateRect(hwnd, nullptr, FALSE);
 			}
-			case WM_DESTROY:
-				panel->timelineWindow = nullptr;
-				return 0;
-			default:
-				break;
+			return 0;
+		case WM_CAPTURECHANGED:
+			panel->selectingKeys = false;
+			return 0;
+		case WM_ERASEBKGND:
+			return 1;
+		case WM_PAINT: {
+			PAINTSTRUCT paint{};
+			const HDC targetDc = BeginPaint(hwnd, &paint);
+			RECT client{};
+			GetClientRect(hwnd, &client);
+			const GuiBackBuffer backBuffer(targetDc, client);
+			if (const HDC memoryDc = backBuffer.GetDc()) {
+				panel->Paint(memoryDc);
+				backBuffer.Present();
+			} else
+				panel->Paint(targetDc);
+			EndPaint(hwnd, &paint);
+			return 0;
+		}
+		case WM_DESTROY:
+			panel->timelineWindow = nullptr;
+			return 0;
+		default:
+			break;
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
@@ -130,7 +129,6 @@ namespace Chrivent {
 		if (text[0] == L'\0')
 			return;
 		currentFrame = std::clamp(_wtoi(text), 0, kMaxEditableFrame);
-		playbackRangeRestartRequested = currentFrame > totalFrame;
 		seekFrame = currentFrame;
 		seekRequested = true;
 		seekFinished = true;
@@ -170,7 +168,7 @@ namespace Chrivent {
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
 		vertical.nMin = 0;
-		vertical.nMax = (std::max)(0, GetVisibleRowCount() - 1);
+		vertical.nMax = (std::max)(0, CalculateVisibleRowCount() - 1);
 		vertical.nPage = visibleRows;
 		vertical.nPos = firstRow;
 		SetScrollInfo(timelineWindow, SB_VERT, &vertical, TRUE);
@@ -198,7 +196,7 @@ namespace Chrivent {
 		return (std::max)(kHeaderHeight, static_cast<int>(client.bottom) - kWaveformHeight);
 	}
 
-	int MotionPanel::GetVisibleRowCount() const {
+	int MotionPanel::CalculateVisibleRowCount() const {
 		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		int count = 0;
 		for (const auto& group : groups) {
@@ -227,90 +225,15 @@ namespace Chrivent {
 			{8, top, kLabelWidth - 4, bottom}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 		for (int x = kLabelWidth; x < right; x += kFrameWidth) {
 			const int frame = firstFrame + (x - kLabelWidth) / kFrameWidth;
-			GuiDrawer::DrawLine(deviceContext, x, top, x, bottom,
-				frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
+			GuiDrawer::DrawLine(deviceContext, x, top, x, bottom, frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
 		}
 		const int centerY = top + (bottom - top) / 2;
 		if (waveform)
 			GuiDrawer::DrawWaveform(deviceContext, {kLabelWidth, top, right, bottom},
-				waveform->minimums, waveform->maximums, waveform->samplesPerFrame,
-				firstFrame, kFrameWidth, RGB(92, 151, 255));
+				waveform->minimums, waveform->maximums, waveform->samplesPerFrame, firstFrame, kFrameWidth, RGB(92, 151, 255));
 		GuiDrawer::DrawLine(deviceContext, kLabelWidth, centerY, right, centerY, RGB(96, 105, 120));
 		GuiDrawer::DrawLine(deviceContext, 0, top, right, top, RGB(93, 98, 108));
 		GuiDrawer::DrawLine(deviceContext, kLabelWidth, top, kLabelWidth, bottom, RGB(93, 98, 108));
-	}
-
-	void MotionPanel::DrawValueCurves(
-		const HDC deviceContext, const MotionTimelineRow& row, const int top, const int bottom, const int right) const {
-		if (row.keys.empty())
-			return;
-		const int savedDc = SaveDC(deviceContext);
-		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
-		for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
-			float minimum = (std::numeric_limits<float>::max)();
-			float maximum = std::numeric_limits<float>::lowest();
-			for (const auto& key : row.keys) {
-				if (channelIndex >= key.values.size())
-					continue;
-				minimum = (std::min)(minimum, key.values[channelIndex]);
-				maximum = (std::max)(maximum, key.values[channelIndex]);
-			}
-			if (minimum > maximum)
-				continue;
-			if (std::abs(maximum - minimum) < 1.0e-5f) {
-				minimum -= 0.5f;
-				maximum += 0.5f;
-			}
-			const auto ValueToY = [&](const float value) {
-				return bottom - 8 - std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 16));
-			};
-			for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
-				const auto& previousKey = row.keys[keyIndex - 1];
-				const auto& nextKey = row.keys[keyIndex];
-				if (channelIndex >= previousKey.values.size() ||
-					channelIndex >= nextKey.values.size() ||
-					channelIndex >= nextKey.curves.size() ||
-					nextKey.frame - previousKey.frame <= 1)
-					continue;
-				const auto& [p1, p2] = nextKey.curves[channelIndex];
-				const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;
-				const int endX = kLabelWidth + (nextKey.frame - firstFrame) * kFrameWidth;
-				if (endX < kLabelWidth || startX > right)
-					continue;
-				const float startValue = previousKey.values[channelIndex];
-				const float endValue = nextKey.values[channelIndex];
-				const POINT points[] = {
-					{startX, ValueToY(startValue)},
-					{startX + std::lround((endX - startX) * p1.x), ValueToY(std::lerp(startValue, endValue, p1.y))},
-					{startX + std::lround((endX - startX) * p2.x), ValueToY(std::lerp(startValue, endValue, p2.y))},
-					{endX, ValueToY(endValue)}
-				};
-				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::GetCurveColor(channelIndex));
-				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
-				PolyBezier(deviceContext, points, 4);
-				SelectObject(deviceContext, previousPen);
-				DeleteObject(curvePen);
-			}
-			for (const auto& key : row.keys) {
-				if (channelIndex >= key.values.size() || key.frame < firstFrame)
-					continue;
-				const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
-				if (x > right)
-					break;
-				const COLORREF keyColor = key.selected
-					? GuiTheme::GetSelectedCurveKeyColor()
-					: GuiTheme::GetCurveColor(channelIndex);
-				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5, keyColor);
-			}
-		}
-		RestoreDC(deviceContext, savedDc);
-		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
-		for (int index = 0; index < legendCount; index++) {
-			const int y = top + 12 + index * 22;
-			GuiDrawer::DrawDiamond(deviceContext, 18, y, 5, GuiTheme::GetCurveColor(index));
-			GuiDrawer::DrawTextLine(deviceContext, row.curveNames[index],
-				{30, y - 10, kLabelWidth - 6, y + 10}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
-		}
 	}
 
 	void MotionPanel::Paint(const HDC deviceContext) const {
@@ -329,8 +252,7 @@ namespace Chrivent {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
-			GuiDrawer::DrawLine(deviceContext, x, 0, x, timelineBottom,
-				major ? RGB(65, 77, 92) : RGB(43, 49, 59));
+			GuiDrawer::DrawLine(deviceContext, x, 0, x, timelineBottom, major ? RGB(65, 77, 92) : RGB(43, 49, 59));
 		}
 		const int visibleRows = (std::max)(0, (timelineBottom - kHeaderHeight) / kRowHeight + 1);
 		int visibleRowIndex = 0;
@@ -351,8 +273,7 @@ namespace Chrivent {
 				for (int offset = 0; offset < visibleFrames; offset++) {
 					const int frame = firstFrame + offset;
 					const int x = kLabelWidth + offset * kFrameWidth;
-					GuiDrawer::DrawLine(deviceContext, x, top, x, top + rowHeight,
-						frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
+					GuiDrawer::DrawLine(deviceContext, x, top, x, top + rowHeight, frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
 				}
 			}
 			const RECT labelRect{0, top, kLabelWidth, top + rowHeight};
@@ -360,8 +281,7 @@ namespace Chrivent {
 			GuiDrawer::FillRectColor(deviceContext, labelRect, labelColor);
 			if (groupRow)
 				GuiDrawer::DrawTriangle(deviceContext, 12, top + rowHeight / 2, 5, expanded, RGB(228, 228, 232));
-			GuiDrawer::DrawTextLine(deviceContext, name,
-				{indent, top, kLabelWidth - 4, top + rowHeight},
+			GuiDrawer::DrawTextLine(deviceContext, name, {indent, top, kLabelWidth - 4, top + rowHeight},
 				RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 			GuiDrawer::DrawLine(deviceContext, 0, top + rowHeight, client.right, top + rowHeight, RGB(64, 67, 75));
 			if (row && curveRow)
@@ -376,8 +296,7 @@ namespace Chrivent {
 				const int x = kLabelWidth + (frame - firstFrame) * kFrameWidth;
 				if (x > client.right)
 					return;
-				GuiDrawer::DrawDiamond(deviceContext, x, top + rowHeight / 2, 5,
-					selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
+				GuiDrawer::DrawDiamond(deviceContext, x, top + rowHeight / 2, 5, selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 			};
 			if (curveRow) {
 				paintedRows += rowUnits;
@@ -498,6 +417,79 @@ namespace Chrivent {
 		for (auto& group : groups) {
 			for (auto& row : group.rows)
 				row.expanded = false;
+		}
+	}
+
+	void MotionPanel::DrawValueCurves(
+		const HDC deviceContext, const MotionTimelineRow& row, const int top, const int bottom, const int right) const {
+		if (row.keys.empty())
+			return;
+		const int savedDc = SaveDC(deviceContext);
+		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
+		for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
+			float minimum = (std::numeric_limits<float>::max)();
+			float maximum = std::numeric_limits<float>::lowest();
+			for (const auto& key : row.keys) {
+				if (channelIndex >= key.values.size())
+					continue;
+				minimum = (std::min)(minimum, key.values[channelIndex]);
+				maximum = (std::max)(maximum, key.values[channelIndex]);
+			}
+			if (minimum > maximum)
+				continue;
+			if (std::abs(maximum - minimum) < 1.0e-5f) {
+				minimum -= 0.5f;
+				maximum += 0.5f;
+			}
+			const auto ValueToY = [&](const float value) {
+				return bottom - 8 - std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 16));
+			};
+			for (size_t keyIndex = 1; keyIndex < row.keys.size(); keyIndex++) {
+				const auto& previousKey = row.keys[keyIndex - 1];
+				const auto& nextKey = row.keys[keyIndex];
+				if (channelIndex >= previousKey.values.size() ||
+					channelIndex >= nextKey.values.size() ||
+					channelIndex >= nextKey.curves.size() ||
+					nextKey.frame - previousKey.frame <= 1)
+					continue;
+				const auto& [p1, p2] = nextKey.curves[channelIndex];
+				const int startX = kLabelWidth + (previousKey.frame - firstFrame) * kFrameWidth;
+				const int endX = kLabelWidth + (nextKey.frame - firstFrame) * kFrameWidth;
+				if (endX < kLabelWidth || startX > right)
+					continue;
+				const float startValue = previousKey.values[channelIndex];
+				const float endValue = nextKey.values[channelIndex];
+				const POINT points[] = {
+					{startX, ValueToY(startValue)},
+					{startX + std::lround((endX - startX) * p1.x), ValueToY(std::lerp(startValue, endValue, p1.y))},
+					{startX + std::lround((endX - startX) * p2.x), ValueToY(std::lerp(startValue, endValue, p2.y))},
+					{endX, ValueToY(endValue)}
+				};
+				const HPEN curvePen = CreatePen(PS_SOLID, 2, GuiTheme::ResolveCurveColor(channelIndex));
+				const HGDIOBJ previousPen = SelectObject(deviceContext, curvePen);
+				PolyBezier(deviceContext, points, 4);
+				SelectObject(deviceContext, previousPen);
+				DeleteObject(curvePen);
+			}
+			for (const auto& key : row.keys) {
+				if (channelIndex >= key.values.size() || key.frame < firstFrame)
+					continue;
+				const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+				if (x > right)
+					break;
+				const COLORREF keyColor = key.selected
+					? GuiTheme::GetSelectedCurveKeyColor()
+					: GuiTheme::ResolveCurveColor(channelIndex);
+				GuiDrawer::DrawDiamond(deviceContext, x, ValueToY(key.values[channelIndex]), 5, keyColor);
+			}
+		}
+		RestoreDC(deviceContext, savedDc);
+		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
+		for (int index = 0; index < legendCount; index++) {
+			const int y = top + 12 + index * 22;
+			GuiDrawer::DrawDiamond(deviceContext, 18, y, 5, GuiTheme::ResolveCurveColor(index));
+			GuiDrawer::DrawTextLine(deviceContext, row.curveNames[index],
+				{30, y - 10, kLabelWidth - 6, y + 10}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
 		}
 	}
 
@@ -681,28 +673,7 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ToggleMode() {
-		SetMode(mode == MotionTimelineMode::Model
-			? MotionTimelineMode::Camera
-			: MotionTimelineMode::Model);
-	}
-
-	void MotionPanel::SetWaveform(const AudioWaveform& audioWaveform) {
-		waveform = &audioWaveform;
-		if (timelineWindow)
-			InvalidateRect(timelineWindow, nullptr, FALSE);
-	}
-
-	void MotionPanel::SetMode(const MotionTimelineMode timelineMode) {
-		if (mode == timelineMode)
-			return;
-		mode = timelineMode;
-		CollapseCurveRows();
-		firstRow = 0;
-		interpolationSelectionDirty = true;
-		UpdateModeButtonText();
-		UpdateVerticalScrollBar();
-		if (timelineWindow)
-			InvalidateRect(timelineWindow, nullptr, TRUE);
+		ChangeMode(mode == MotionTimelineMode::Model ? MotionTimelineMode::Camera : MotionTimelineMode::Model);
 	}
 
 	void MotionPanel::UpdateModeButtonText() const {
@@ -726,8 +697,7 @@ namespace Chrivent {
 			case SB_THUMBTRACK: position = trackPosition; break;
 			default: return;
 		}
-		firstRow = std::clamp(position, info.nMin,
-			(std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
+		firstRow = std::clamp(position, info.nMin, (std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
 		SetScrollPos(timelineWindow, SB_VERT, firstRow, TRUE);
 		InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
@@ -761,7 +731,6 @@ namespace Chrivent {
 		seekFrame = currentFrame;
 		seekRequested = true;
 		seekFinished = scrollCode != SB_THUMBTRACK;
-		playbackRangeRestartRequested = false;
 		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
 		FollowCurrentFrame();
 		InvalidateRect(timelineWindow, nullptr, FALSE);
@@ -777,6 +746,31 @@ namespace Chrivent {
 		if (firstFrame == nextFirstFrame)
 			return;
 		firstFrame = nextFirstFrame;
+	}
+
+	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
+		playing = isPlaying;
+		if (frameEdit)
+			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
+	}
+
+	void MotionPanel::AttachWaveform(const AudioWaveform& audioWaveform) {
+		waveform = &audioWaveform;
+		if (timelineWindow)
+			InvalidateRect(timelineWindow, nullptr, FALSE);
+	}
+
+	void MotionPanel::ChangeMode(const MotionTimelineMode timelineMode) {
+		if (mode == timelineMode)
+			return;
+		mode = timelineMode;
+		CollapseCurveRows();
+		firstRow = 0;
+		interpolationSelectionDirty = true;
+		UpdateModeButtonText();
+		UpdateVerticalScrollBar();
+		if (timelineWindow)
+			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
 	void MotionPanel::Create(const HWND parent) {
@@ -812,6 +806,7 @@ namespace Chrivent {
 		GuiTheme::ApplyControl(frameEdit);
 		GuiTheme::ApplyControl(modeButton);
 		UpdateModeButtonText();
+		ApplyPlaybackState(playing);
 		UpdateVerticalScrollBar();
 		UpdateHorizontalScrollBar();
 	}
@@ -820,7 +815,7 @@ namespace Chrivent {
 		if (!timelineWindow)
 			return;
 		constexpr int margin = 8;
-		constexpr int toolbarHeight = 28;
+		constexpr int toolbarHeight = 32;
 		constexpr int editWidth = 72;
 		constexpr int editHeight = 22;
 		constexpr int buttonWidth = 84;
@@ -829,8 +824,7 @@ namespace Chrivent {
 		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
 		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
 		const int editX = clientRect.right - margin - editWidth;
-		MoveWindow(modeButton, clientRect.left + margin, clientRect.top + margin,
-			buttonWidth, editHeight, TRUE);
+		MoveWindow(modeButton, clientRect.left + margin, clientRect.top + margin, buttonWidth, editHeight, TRUE);
 		MoveWindow(frameEdit, editX, clientRect.top + margin, editWidth, editHeight, TRUE);
 		MoveWindow(timelineWindow, x, y, width, height, TRUE);
 		UpdateVerticalScrollBar();
@@ -877,16 +871,15 @@ namespace Chrivent {
 		seekFinished = false;
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
-		playbackRangeRestartRequested = false;
+		playing = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
 
-	void MotionPanel::SetTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups) {
+	void MotionPanel::ApplyTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups) {
 		modelName = std::move(name);
 		groups = std::move(timelineGroups);
 		firstRow = 0;
-		playbackRangeRestartRequested = false;
 		interpolationSelectionDirty = true;
 		FollowCurrentFrame();
 		UpdateVerticalScrollBar();
@@ -895,14 +888,14 @@ namespace Chrivent {
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetLastFrame(const int maxFrame) {
+	void MotionPanel::UpdateLastFrame(const int maxFrame) {
 		totalFrame = std::clamp(maxFrame, 0, kMaxEditableFrame);
 		UpdateHorizontalScrollBar();
 		if (timelineWindow)
 			InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
 
-	void MotionPanel::SetCurrentFrame(const int frame) {
+	void MotionPanel::UpdateCurrentFrame(const int frame) {
 		const int timelineFrame = std::clamp(frame, 0, kMaxEditableFrame);
 		if (currentFrame == timelineFrame)
 			return;
@@ -923,12 +916,6 @@ namespace Chrivent {
 		seekRequested = false;
 		seekFinished = false;
 		return true;
-	}
-
-	bool MotionPanel::ConsumePlaybackRangeRestartRequest() {
-		const bool requested = playbackRangeRestartRequested;
-		playbackRangeRestartRequested = false;
-		return requested;
 	}
 
 	bool MotionPanel::ConsumeInterpolationSelection(InterpolationSelection& selection) {

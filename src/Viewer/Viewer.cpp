@@ -9,13 +9,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-    Viewer::~Viewer() {
-        if (fpsOverlay)
-            DestroyWindow(fpsOverlay);
-        if (fpsFont)
-            DeleteObject(fpsFont);
-    }
-
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;
@@ -40,6 +33,22 @@ namespace Chrivent {
             return 0;
         }
         return DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+
+    void Viewer::PositionFpsOverlay() const {
+        if (!fpsOverlay || !window)
+            return;
+        const HWND viewerWindow = glfwGetWin32Window(window);
+        POINT origin{12, 12};
+        ClientToScreen(viewerWindow, &origin);
+        SetWindowPos(fpsOverlay, HWND_TOP, origin.x, origin.y, 120, 32, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+
+    Viewer::~Viewer() {
+        if (fpsOverlay)
+            DestroyWindow(fpsOverlay);
+        if (fpsFont)
+            DeleteObject(fpsFont);
     }
 
     unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
@@ -100,16 +109,6 @@ namespace Chrivent {
         PositionFpsOverlay();
     }
 
-    void Viewer::SetFpsVisible(const bool visible) const {
-        if (!fpsOverlay)
-            return;
-        if (visible) {
-            PositionFpsOverlay();
-            ShowWindow(fpsOverlay, SW_SHOWNOACTIVATE);
-        } else
-            ShowWindow(fpsOverlay, SW_HIDE);
-    }
-
     void Viewer::UpdateFps(const double fps) const {
         if (!fpsOverlay)
             return;
@@ -118,12 +117,13 @@ namespace Chrivent {
         InvalidateRect(fpsOverlay, nullptr, FALSE);
     }
 
-    void Viewer::PositionFpsOverlay() const {
-        if (!fpsOverlay || !window)
+    void Viewer::UpdateFpsVisibility(const bool visible) const {
+        if (!fpsOverlay)
             return;
-        const HWND viewerWindow = glfwGetWin32Window(window);
-        POINT origin{12, 12};
-        ClientToScreen(viewerWindow, &origin);
-        SetWindowPos(fpsOverlay, HWND_TOP, origin.x, origin.y, 120, 32, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        if (visible) {
+            PositionFpsOverlay();
+            ShowWindow(fpsOverlay, SW_SHOWNOACTIVATE);
+        } else
+            ShowWindow(fpsOverlay, SW_HIDE);
     }
 }

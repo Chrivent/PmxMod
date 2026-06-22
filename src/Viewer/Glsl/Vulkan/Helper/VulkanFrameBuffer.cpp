@@ -7,29 +7,25 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanFrameBuffer::Initialize(
-		const VulkanDevice& deviceInfo,
-		const VulkanSwapChain& swapChainInfo,
-		const VkRenderPass renderPass,
-		const VkImageView colorImageView,
-		const VkImageView depthImageView) {
-		device = deviceInfo.device;
-		frameBuffers.resize(swapChainInfo.imageViews.size());
-		for (size_t i = 0; i < swapChainInfo.imageViews.size(); i++) {
+	bool VulkanFrameBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkRenderPass renderPass, const VkImageView colorImageView, const VkImageView depthImageView) {
+		device = sourceDevice.device;
+		frameBuffers.resize(sourceSwapChain.imageViews.size());
+		for (size_t i = 0; i < sourceSwapChain.imageViews.size(); i++) {
 			const VkImageView attachments[] = {
 				colorImageView,
 				depthImageView,
-				swapChainInfo.imageViews[i],
+				sourceSwapChain.imageViews[i],
 			};
 			VkFramebufferCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			createInfo.renderPass = renderPass;
 			createInfo.attachmentCount = 3;
 			createInfo.pAttachments = attachments;
-			createInfo.width = swapChainInfo.extent.width;
-			createInfo.height = swapChainInfo.extent.height;
+			createInfo.width = sourceSwapChain.extent.width;
+			createInfo.height = sourceSwapChain.extent.height;
 			createInfo.layers = 1;
-			if (vkCreateFramebuffer(deviceInfo.device, &createInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS) {
+			if (vkCreateFramebuffer(sourceDevice.device, &createInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS) {
 				std::cerr << "Failed to create Vulkan framebuffer.\n";
 				return false;
 			}

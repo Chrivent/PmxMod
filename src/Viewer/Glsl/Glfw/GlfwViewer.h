@@ -24,7 +24,8 @@ namespace Chrivent {
         static void* LoadGlProc(const char* name) {
             return reinterpret_cast<void*>(glfwGetProcAddress(name));
         }
-        static const char* GetGpuTypeName(const std::string& renderer);
+        // OpenGL renderer 이름을 GPU 종류 이름으로 분류한다.
+        static const char* ResolveGpuTypeName(const std::string& renderer);
 
         const int           msaaSamples = 4;
         GlfwTextureCache    textureCache;

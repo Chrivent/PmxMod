@@ -75,7 +75,7 @@ namespace Chrivent {
         return true;
     }
 
-    const char* Program::GetRendererName(const RendererType rendererType) {
+    const char* Program::ResolveRendererName(const RendererType rendererType) {
         switch (rendererType) {
             case RendererType::OpenGL: return "opengl";
             case RendererType::DirectX11: return "dx11";
@@ -203,11 +203,8 @@ namespace Chrivent {
     bool Program::ChangeRenderer(const RendererType rendererType) {
         if (rendererType == currentRendererType)
             return true;
-        const bool resumePlayback = cameraManager.IsPlaying();
         const int playbackFrame = viewer ? viewer->animTime * 30.0f + 0.5f : 0;
         GLFWwindow* previousWindow = viewer ? viewer->window : nullptr;
-        if (resumePlayback)
-            cameraManager.Pause(music);
         if (viewer)
             viewer->WaitIdle();
         ClearInstances();
@@ -225,8 +222,6 @@ namespace Chrivent {
         panelManager.BindSound(music);
         cameraManager.SeekFrame(*viewer, music, playbackFrame, saveTime);
         ResetPhysics(playbackFrame);
-        if (resumePlayback)
-            cameraManager.Play(music);
         cameraManager.UpdateCamera(*viewer);
         return true;
     }
@@ -245,12 +240,9 @@ namespace Chrivent {
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
-        const bool resumeMusic = cameraManager.IsPlaying();
         music.Pause();
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
-            if (resumeMusic)
-                music.Resume();
             std::cerr << "Failed to load scene instances.\n";
             return false;
         }
@@ -261,13 +253,13 @@ namespace Chrivent {
             music.Pause();
         panelManager.BindSound(music);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
-        panelManager.SetMotionMode(MotionTimelineMode::Camera);
+        panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
         viewer->elapsed = 0.0f;
         viewer->animTime = 0.0f;
         viewer->skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
-        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
+        panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
             cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
@@ -311,10 +303,10 @@ namespace Chrivent {
     }
 
     int Program::CalculateMotionLastFrame() const {
-        int lastFrame = cameraManager.GetLastFrame();
+        int lastFrame = cameraManager.CalculateLastFrame();
         for (const auto& instance : instances) {
             if (instance && instance->anim) {
-                const uint32_t animationLastFrame = instance->anim->GetLastFrame();
+                const uint32_t animationLastFrame = instance->anim->CalculateLastFrame();
                 const int timelineLastFrame = (std::min)(
                     animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)()));
                 lastFrame = (std::max)(lastFrame, timelineLastFrame);
@@ -425,7 +417,7 @@ namespace Chrivent {
         }
         std::vector<MotionTimelineGroup> groups;
         groups.reserve(model.skeletonData.displayFrames.size() + 1);
-        const auto& cameraKeys = cameraManager.GetAnimationKeys();
+        const auto& cameraKeys = cameraManager.ResolveAnimationKeys();
         if (!cameraKeys.empty()) {
             MotionTimelineRow cameraRow{
                 .name = Language::Text("motion.camera"),
@@ -564,7 +556,7 @@ namespace Chrivent {
         std::wstring modelName = Util::Utf8ToWString(model.infoData.modelName);
         if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
             modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
-        panelManager.SetMotionTimeline(std::move(modelName), std::move(groups));
+        panelManager.ApplyMotionTimeline(std::move(modelName), std::move(groups));
     }
 
     void Program::ClearInstances() {
@@ -637,7 +629,6 @@ namespace Chrivent {
             case PlaybackCommand::Play:
                 viewer->skipPhysics = false;
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
-                    panelManager.ConsumePlaybackRangeRestartRequest() ||
                     viewer->animTime * 30.0f < start ||
                     viewer->animTime * 30.0f >= end) {
                     cameraManager.SeekFrame(*viewer, music, start, saveTime);
@@ -657,7 +648,7 @@ namespace Chrivent {
             case PlaybackCommand::None:
                 break;
         }
-        cameraManager.SetMotionCameraEnabled(panelManager.IsCameraMode());
+        cameraManager.ApplyMotionCameraState(panelManager.IsCameraMode());
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())
@@ -681,9 +672,10 @@ namespace Chrivent {
             }
             viewer->skipPhysics = false;
         }
+        panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
         panelManager.SetPlaybackFrame(viewer->animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(*viewer);
-        viewer->SetFpsVisible(panelManager.IsFpsVisible());
+        viewer->UpdateFpsVisibility(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
         if (timing) {
             modelUpdateTimings.clear();
@@ -698,7 +690,7 @@ namespace Chrivent {
         skinningTaskOffsets[0] = 0;
         for (std::size_t index = 0; index < instances.size(); index++) {
             skinningTaskOffsets[index + 1] =
-                skinningTaskOffsets[index] + instances[index]->GetSkinningTaskCount();
+                skinningTaskOffsets[index] + instances[index]->CalculateSkinningTaskCount();
         }
         taskExecutor.Run(skinningTaskOffsets.back(), [&](const std::size_t taskIndex) {
             const auto offset = std::ranges::upper_bound(skinningTaskOffsets, taskIndex);
@@ -792,7 +784,7 @@ namespace Chrivent {
         const auto physicsModelCount = std::ranges::count_if(instances, [](const auto& instance) {
             return instance->model->physicsData.physics != nullptr;
         });
-        std::cout << "benchmark_renderer=" << GetRendererName(currentRendererType) << '\n';
+        std::cout << "benchmark_renderer=" << ResolveRendererName(currentRendererType) << '\n';
         std::cout << "benchmark_models=" << instances.size() << '\n';
         std::cout << "benchmark_physics_models=" << physicsModelCount << '\n';
         std::cout << "benchmark_frames=" << benchmarkFrames << '\n';
@@ -842,7 +834,7 @@ namespace Chrivent {
         }
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
-        panelManager.SetFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
+        panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
         fpsFrame = 0;

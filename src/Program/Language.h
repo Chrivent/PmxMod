@@ -29,8 +29,9 @@ namespace Chrivent {
 	public:
 		// Windows UI 표시 언어를 기준으로 번역 리소스를 초기화한다.
 		static void Initialize();
-		static void SetCurrent(LanguageType type);
 		static LanguageType GetCurrent() { return currentType; }
+		// 현재 언어를 바꾸고 해당 JSON 번역 리소스를 다시 읽는다.
+		static void ChangeCurrent(LanguageType type);
 		// 번역 키에 대응하는 문자열을 반환하고 없으면 영어 또는 키를 사용한다.
 		static std::wstring Text(const std::string& key);
 	};

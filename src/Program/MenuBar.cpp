@@ -129,12 +129,27 @@ namespace Chrivent {
 	void MenuBar::SelectLanguage(const LanguageType type) {
 		if (Language::GetCurrent() == type)
 			return;
-		Language::SetCurrent(type);
+		Language::ChangeCurrent(type);
 		languageDirty = true;
 		UpdateLanguageMenuCheck();
 	}
 
 	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
+
+	void MenuBar::ApplyPlaybackState(const bool isPlaying) {
+		if (playing == isPlaying)
+			return;
+		playing = isPlaying;
+		if (!ownerWindow)
+			return;
+		const HMENU menu = GetMenu(ownerWindow);
+		if (!menu)
+			return;
+		const UINT state = MF_BYPOSITION | (isPlaying ? MF_GRAYED : MF_ENABLED);
+		EnableMenuItem(menu, 0, state);
+		EnableMenuItem(menu, 1, state);
+		DrawMenuBar(ownerWindow);
+	}
 
 	void MenuBar::ApplyRenderer(const RendererType renderer) {
 		rendererType = renderer;
@@ -147,13 +162,14 @@ namespace Chrivent {
 		AppendMenuW(fileMenu, MF_STRING, kNewButtonId, Language::Text("menu.new").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, Language::Text("menu.open").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, Language::Text("menu.save").c_str());
-		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(fileMenu), Language::Text("menu.file").c_str());
+		const UINT editableMenuState = MF_POPUP | (playing ? MF_GRAYED : MF_ENABLED);
+		AppendMenuW(menu, editableMenuState, reinterpret_cast<UINT_PTR>(fileMenu), Language::Text("menu.file").c_str());
 		HMENU rendererMenu = CreatePopupMenu();
 		AppendMenuW(rendererMenu, MF_STRING, kOpenGlRendererId, L"OpenGL");
 		AppendMenuW(rendererMenu, MF_STRING, kDirectX11RendererId, L"DirectX 11");
 		AppendMenuW(rendererMenu, MF_STRING, kDirectX12RendererId, L"DirectX 12");
 		AppendMenuW(rendererMenu, MF_STRING, kVulkanRendererId, L"Vulkan");
-		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(rendererMenu), Language::Text("menu.renderer").c_str());
+		AppendMenuW(menu, editableMenuState, reinterpret_cast<UINT_PTR>(rendererMenu), Language::Text("menu.renderer").c_str());
 		HMENU physicsMenu = CreatePopupMenu();
 		AppendMenuW(physicsMenu, MF_STRING | (physicsEnabled ? MF_CHECKED : MF_UNCHECKED),
 			kPhysicsEnabledId, Language::Text("menu.physics_enabled").c_str());

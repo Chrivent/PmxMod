@@ -42,7 +42,7 @@ namespace Chrivent {
 		skinning.PrepareUpdate();
 	}
 
-	std::size_t ModelUpdater::GetSkinningTaskCount() const {
+	std::size_t ModelUpdater::CalculateSkinningTaskCount() const {
 		const ModelSkinning skinning(model);
 		return skinning.GetUpdateRangeCount();
 	}

@@ -20,9 +20,9 @@ namespace Chrivent {
     struct ViewerMaterial {
         const Material& mat;
 
-        virtual ~ViewerMaterial() = default;
-
         explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
+
+        virtual ~ViewerMaterial() = default;
     };
     
     class Viewer {
@@ -74,9 +74,9 @@ namespace Chrivent {
         void InitDirs(const std::filesystem::path& shaderSubDir);
         // 렌더링 창 좌측 상단에 FPS 오버레이를 생성한다.
         void CreateFpsOverlay();
-        void SetFpsVisible(bool visible) const;
         // FPS 오버레이에 현재 측정값을 표시한다.
         void UpdateFps(double fps) const;
-
+        // FPS 오버레이의 표시 상태와 위치를 갱신한다.
+        void UpdateFpsVisibility(bool visible) const;
     };
 }

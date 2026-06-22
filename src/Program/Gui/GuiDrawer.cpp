@@ -8,7 +8,7 @@
 
 namespace Chrivent {
 	HFONT GuiDrawer::GetTextFont() {
-		return GuiTheme::GetFont();
+		return GuiTheme::ResolveFont();
 	}
 
 	void GuiDrawer::FillRectColor(const HDC deviceContext, const RECT& rect, const COLORREF color) {
@@ -81,13 +81,7 @@ namespace Chrivent {
 		DeleteObject(pen);
 	}
 
-	void GuiDrawer::DrawTriangle(
-		const HDC deviceContext,
-		const int centerX,
-		const int centerY,
-		const int radius,
-		const bool expanded,
-		const COLORREF color) {
+	void GuiDrawer::DrawTriangle(const HDC deviceContext, const int centerX, const int centerY, const int radius, const bool expanded, const COLORREF color) {
 		const POINT collapsedPoints[] = {
 			{centerX - radius / 2, centerY - radius},
 			{centerX - radius / 2, centerY + radius},
@@ -134,18 +128,18 @@ namespace Chrivent {
 		return slider;
 	}
 
-	HWND GuiDrawer::CreateVerticalTickSlider(const HWND parent, const UINT_PTR controlId, const int minValue, const int maxValue, const int initialValue, const int tickFrequency) {
+	HWND GuiDrawer::CreateVerticalSlider(const HWND parent, const UINT_PTR controlId, const int minValue,
+		const int maxValue, const int initialValue) {
 		INITCOMMONCONTROLSEX init;
 		init.dwSize = sizeof(init);
 		init.dwICC = ICC_BAR_CLASSES;
 		InitCommonControlsEx(&init);
 		const HWND slider = CreateWindowExW(
 			0, TRACKBAR_CLASSW, L"",
-			WS_CHILD | WS_VISIBLE | TBS_VERT | TBS_AUTOTICKS | TBS_BOTH,
+			WS_CHILD | WS_VISIBLE | TBS_VERT | TBS_NOTICKS,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(controlId), GetModuleHandleW(nullptr), nullptr);
 		SendMessageW(slider, TBM_SETRANGE, TRUE, MAKELPARAM(minValue, maxValue));
-		SendMessageW(slider, TBM_SETTICFREQ, tickFrequency, 0);
 		SendMessageW(slider, TBM_SETPOS, TRUE, initialValue);
 		GuiTheme::ApplyControl(slider);
 		return slider;

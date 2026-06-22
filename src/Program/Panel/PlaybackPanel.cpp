@@ -126,6 +126,7 @@ namespace Chrivent {
 		GuiTheme::ApplyControl(resetRangeButton);
 		GuiTheme::ApplyControl(repeatCheck);
 		ApplyFrameRange(frameRange, customFrameRange);
+		ApplyPlaybackState(playing);
 	}
 
 	void PlaybackPanel::ApplyInputFrameRange(const UINT_PTR editedControlId) {
@@ -170,7 +171,22 @@ namespace Chrivent {
 		updatingRangeControls = false;
 	}
 
-	void PlaybackPanel::SetLastFrame(const int maxFrame, const bool resetRange) {
+	void PlaybackPanel::ApplyPlaybackState(const bool isPlaying) {
+		playing = isPlaying;
+		const BOOL enabled = isPlaying ? FALSE : TRUE;
+		if (playButton)
+			EnableWindow(playButton, enabled);
+		if (startFrameEdit)
+			EnableWindow(startFrameEdit, enabled);
+		if (endFrameEdit)
+			EnableWindow(endFrameEdit, enabled);
+		if (resetRangeButton)
+			EnableWindow(resetRangeButton, enabled);
+		if (repeatCheck)
+			EnableWindow(repeatCheck, enabled);
+	}
+
+	void PlaybackPanel::UpdateLastFrame(const int maxFrame, const bool resetRange) {
 		autoLastFrame = std::clamp(maxFrame, 1, kMaxEditableFrame);
 		if (resetRange || !customFrameRange)
 			ApplyFrameRange({ 0, autoLastFrame }, false);
@@ -190,7 +206,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
+		wc.hbrBackground = GuiTheme::ResolveBackgroundBrush();
 		wc.lpszClassName = L"PmxModPlaybackPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(
@@ -226,8 +242,10 @@ namespace Chrivent {
 		constexpr int buttonTotalWidth = buttonWidth * 3 + buttonGap * 2;
 		constexpr int rangeWidth = frameEditWidth * 2 + separatorWidth + buttonGap + resetButtonWidth;
 		const int clientWidth = clientRect.right - clientRect.left;
+		const int clientHeight = clientRect.bottom - clientRect.top;
+		constexpr int contentHeight = buttonHeight * 3 + 20;
 		const int buttonX = clientRect.left + (clientWidth - buttonTotalWidth) / 2;
-		const int buttonY = clientRect.top + 12;
+		const int buttonY = clientRect.top + (std::max)(0, (clientHeight - contentHeight) / 2);
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
 		if (pauseButton)
@@ -244,10 +262,10 @@ namespace Chrivent {
 			MoveWindow(endFrameEdit, rangeX + frameEditWidth + separatorWidth, rangeY, frameEditWidth, buttonHeight, TRUE);
 		if (resetRangeButton)
 			MoveWindow(resetRangeButton, rangeX + frameEditWidth * 2 + separatorWidth + buttonGap,
-				rangeY, resetButtonWidth, buttonHeight, TRUE);
+			           rangeY, resetButtonWidth, buttonHeight, TRUE);
 		if (repeatCheck)
 			MoveWindow(repeatCheck, clientRect.left + (clientWidth - repeatWidth) / 2,
-				rangeY + buttonHeight + 8, repeatWidth, buttonHeight, TRUE);
+			           rangeY + buttonHeight + 8, repeatWidth, buttonHeight, TRUE);
 	}
 
 	void PlaybackPanel::UpdateLanguage() {

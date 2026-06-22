@@ -8,7 +8,7 @@
 #include <uxtheme.h>
 
 namespace Chrivent {
-	COLORREF GuiTheme::GetCurveColor(const std::size_t channelIndex) {
+	COLORREF GuiTheme::ResolveCurveColor(const std::size_t channelIndex) {
 		constexpr COLORREF colors[] = {
 			RGB(255, 105, 105),
 			RGB(120, 225, 130),
@@ -20,7 +20,7 @@ namespace Chrivent {
 		return colors[channelIndex % std::size(colors)];
 	}
 
-	HFONT GuiTheme::GetFont() {
+	HFONT GuiTheme::ResolveFont() {
 		static const HFONT englishFont = CreateFontW(
 			-15, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
 			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
@@ -50,23 +50,9 @@ namespace Chrivent {
 		}
 	}
 
-	HBRUSH GuiTheme::GetBackgroundBrush() {
+	HBRUSH GuiTheme::ResolveBackgroundBrush() {
 		static const HBRUSH brush = CreateSolidBrush(backgroundColor);
 		return brush;
-	}
-
-	void GuiTheme::ApplyControl(const HWND control) {
-		if (!control)
-			return;
-		SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(GetFont()), TRUE);
-		wchar_t className[32]{};
-		GetClassNameW(control, className, 32);
-		const HRESULT result = lstrcmpW(className, TRACKBAR_CLASSW) == 0
-			? SetWindowTheme(control, L"", L"")
-			: SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
-		if (FAILED(result))
-			std::cerr << "Failed to apply Win32 control theme: 0x" << std::hex
-				<< static_cast<unsigned long>(result) << std::dec << '\n';
 	}
 
 	void GuiTheme::ApplyWindow(const HWND window) {
@@ -76,14 +62,26 @@ namespace Chrivent {
 		constexpr DWORD immersiveDarkModeAttribute = 20;
 		const HRESULT result = DwmSetWindowAttribute(window, immersiveDarkModeAttribute, &enabled, sizeof(enabled));
 		if (FAILED(result))
-			std::cerr << "Failed to apply dark window frame: 0x" << std::hex
-				<< static_cast<unsigned long>(result) << std::dec << '\n';
+			std::cerr << "Failed to apply dark window frame: 0x" << std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
 		ApplyControl(window);
 		EnumChildWindows(window, [](const HWND child, const LPARAM) {
 			ApplyControl(child);
 			return TRUE;
 		}, 0);
 		RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_ERASE);
+	}
+
+	void GuiTheme::ApplyControl(const HWND control) {
+		if (!control)
+			return;
+		SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(ResolveFont()), TRUE);
+		wchar_t className[32]{};
+		GetClassNameW(control, className, 32);
+		const HRESULT result = lstrcmpW(className, TRACKBAR_CLASSW) == 0
+			? SetWindowTheme(control, L"", L"")
+			: SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
+		if (FAILED(result))
+			std::cerr << "Failed to apply Win32 control theme: 0x" << std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
 	}
 
 	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam) {
@@ -96,6 +94,6 @@ namespace Chrivent {
 		}
 		SetBkColor(deviceContext, backgroundColor);
 		SetBkMode(deviceContext, TRANSPARENT);
-		return reinterpret_cast<LRESULT>(GetBackgroundBrush());
+		return reinterpret_cast<LRESULT>(ResolveBackgroundBrush());
 	}
 }

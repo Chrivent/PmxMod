@@ -23,7 +23,7 @@ namespace Chrivent {
 		}
 	}
 
-	std::string GlfwShaderCompiler::GetShaderInfoLog(const GLuint shader) {
+	std::string GlfwShaderCompiler::ReadShaderLog(const GLuint shader) {
 		GLint logLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
@@ -33,7 +33,7 @@ namespace Chrivent {
 		return log;
 	}
 
-	std::string GlfwShaderCompiler::GetProgramInfoLog(const GLuint program) {
+	std::string GlfwShaderCompiler::ReadProgramLog(const GLuint program) {
 		GLint logLength = 0;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
@@ -64,7 +64,7 @@ namespace Chrivent {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 		if (compileStatus == GL_FALSE) {
 			std::cerr << "Failed to compile GLSL " << ShaderTypeName(shaderType) << " shader.\n";
-			const std::string log = GetShaderInfoLog(shader);
+			const std::string log = ReadShaderLog(shader);
 			if (!log.empty())
 				std::cerr << log << '\n';
 			glDeleteShader(shader);
@@ -103,7 +103,7 @@ namespace Chrivent {
 		if (linkStatus == GL_FALSE) {
 			std::cerr << "Failed to link GLSL shader program: "
 				<< vertexFile.string() << ", " << fragmentFile.string() << '\n';
-			const std::string log = GetProgramInfoLog(prog);
+			const std::string log = ReadProgramLog(prog);
 			if (!log.empty())
 				std::cerr << log << '\n';
 			glDeleteProgram(prog);

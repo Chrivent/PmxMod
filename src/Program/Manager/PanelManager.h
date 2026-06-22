@@ -55,18 +55,26 @@ namespace Chrivent {
 		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
-		void SetMotionMode(const MotionTimelineMode mode) {
-			motionPanel.SetMode(mode);
+		// 모션 표시 모드를 바꾸고 좌측 패널 표시를 함께 갱신한다.
+		void ApplyMotionMode(const MotionTimelineMode mode) {
+			motionPanel.ChangeMode(mode);
 			UpdateSidePanelVisibility();
 		}
-		void SetPlaybackFrame(const int frame) { motionPanel.SetCurrentFrame((std::max)(0, frame)); }
+		void SetPlaybackFrame(const int frame) { motionPanel.UpdateCurrentFrame((std::max)(0, frame)); }
 		void SetRendererType(const RendererType rendererType) { menuBar.ApplyRenderer(rendererType); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
-		void SetFrameLimits(const int autoLastFrame, const int motionLastFrame, const bool resetPlaybackRange = false) {
-			playbackPanel.SetLastFrame(autoLastFrame, resetPlaybackRange);
-			motionPanel.SetLastFrame(motionLastFrame);
+		// Auto 범위와 모션 스크롤의 마지막 프레임을 함께 갱신한다.
+		void UpdateFrameLimits(const int autoLastFrame, const int motionLastFrame, const bool resetPlaybackRange = false) {
+			playbackPanel.UpdateLastFrame(autoLastFrame, resetPlaybackRange);
+			motionPanel.UpdateLastFrame(motionLastFrame);
+		}
+		// 실제 재생 상태를 메뉴와 편집 패널의 활성화 상태에 반영한다.
+		void ApplyPlaybackState(const bool playing) {
+			menuBar.ApplyPlaybackState(playing);
+			playbackPanel.ApplyPlaybackState(playing);
+			motionPanel.ApplyPlaybackState(playing);
 		}
 
 		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
@@ -81,8 +89,6 @@ namespace Chrivent {
 		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
-		// 범위 밖 프레임 입력 후 재생 시 범위 시작점 복귀 요청을 반환한다.
-		bool ConsumePlaybackRangeRestartRequest() { return motionPanel.ConsumePlaybackRangeRestartRequest(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return motionPanel.ConsumeSeekFrame(frame, finished); }
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
@@ -91,8 +97,9 @@ namespace Chrivent {
 		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
-		void SetMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
-			motionPanel.SetTimeline(std::move(modelName), std::move(groups));
+		// 선택 모델의 이름과 모션 타임라인을 패널에 적용한다.
+		void ApplyMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
+			motionPanel.ApplyTimeline(std::move(modelName), std::move(groups));
 		}
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
 		void BindSound(Sound& sound);

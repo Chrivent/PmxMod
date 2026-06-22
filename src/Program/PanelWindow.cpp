@@ -22,107 +22,92 @@ namespace Chrivent {
 		if (!panelWindow)
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
-			case WM_ERASEBKGND:
-				return 1;
-			case WM_PAINT: {
-				PAINTSTRUCT paint{};
-				const HDC deviceContext = BeginPaint(hwnd, &paint);
-				panelWindow->Paint(deviceContext);
-				EndPaint(hwnd, &paint);
+		case WM_ERASEBKGND:
+			return 1;
+		case WM_PAINT: {
+			PAINTSTRUCT paint{};
+			const HDC deviceContext = BeginPaint(hwnd, &paint);
+			panelWindow->Paint(deviceContext);
+			EndPaint(hwnd, &paint);
+			return 0;
+		}
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORLISTBOX:
+		case WM_CTLCOLORSTATIC:
+			return GuiTheme::HandleControlColor(msg, wParam);
+		case WM_COMMAND:
+			if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam))) {
+				if (panelWindow->menuBar->ConsumePanelLayoutResetRequest())
+					panelWindow->ResetPanelLayout();
 				return 0;
 			}
-			case WM_CTLCOLORBTN:
-			case WM_CTLCOLOREDIT:
-			case WM_CTLCOLORLISTBOX:
-			case WM_CTLCOLORSTATIC:
-				return GuiTheme::HandleControlColor(msg, wParam);
-			case WM_COMMAND:
-				if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam))) {
-					if (panelWindow->menuBar->ConsumePanelLayoutResetRequest())
-						panelWindow->ResetPanelLayout();
+			for (const auto& entry : panelWindow->panels) {
+				if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam), HIWORD(wParam)))
 					return 0;
-				}
-				for (const auto& entry : panelWindow->panels) {
-					if (entry.panel && entry.panel->HandleCommand(LOWORD(wParam), HIWORD(wParam)))
-						return 0;
-				}
-				break;
-			case WM_HSCROLL:
-			case WM_VSCROLL:
-				for (const auto& entry : panelWindow->panels) {
-					if (entry.panel && entry.panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
-						return 0;
-				}
-				break;
-			case WM_SIZE:
-				panelWindow->LayoutPanels();
+			}
+			break;
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+			for (const auto& entry : panelWindow->panels) {
+				if (entry.panel && entry.panel->HandleScroll(reinterpret_cast<HWND>(lParam), LOWORD(wParam)))
+					return 0;
+			}
+			break;
+		case WM_SIZE:
+			panelWindow->LayoutPanels();
+			return 0;
+		case WM_LBUTTONDOWN:
+			panelWindow->dragBoundary = panelWindow->HitTestBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			if (panelWindow->dragBoundary != DragBoundary::None)
+				SetCapture(hwnd);
+			return 0;
+		case WM_MOUSEMOVE:
+			if (panelWindow->dragBoundary != DragBoundary::None && (wParam & MK_LBUTTON)) {
+				panelWindow->MoveBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				return 0;
-			case WM_LBUTTONDOWN:
-				panelWindow->dragBoundary = panelWindow->HitTestBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-				if (panelWindow->dragBoundary != DragBoundary::None)
-					SetCapture(hwnd);
-				return 0;
-			case WM_MOUSEMOVE:
-				if (panelWindow->dragBoundary != DragBoundary::None && (wParam & MK_LBUTTON)) {
-					panelWindow->MoveBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-					return 0;
-				}
-				break;
-			case WM_LBUTTONUP:
-				if (panelWindow->dragBoundary != DragBoundary::None) {
-					panelWindow->MoveBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-					panelWindow->dragBoundary = DragBoundary::None;
-					ReleaseCapture();
-					Settings::SavePanelLayout(panelWindow->layoutSettings);
-					return 0;
-				}
-				break;
-			case WM_CAPTURECHANGED:
+			}
+			break;
+		case WM_LBUTTONUP:
+			if (panelWindow->dragBoundary != DragBoundary::None) {
+				panelWindow->MoveBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				panelWindow->dragBoundary = DragBoundary::None;
+				ReleaseCapture();
+				Settings::SavePanelLayout(panelWindow->layoutSettings);
 				return 0;
-			case WM_SETCURSOR:
-				if (LOWORD(lParam) == HTCLIENT) {
-					POINT cursor{};
-					GetCursorPos(&cursor);
-					ScreenToClient(hwnd, &cursor);
-					const DragBoundary boundary = panelWindow->HitTestBoundary(cursor.x, cursor.y);
-					if (boundary == DragBoundary::Left || boundary == DragBoundary::Right) {
-						SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(32644)));
-						return TRUE;
-					}
-					if (boundary == DragBoundary::Bottom) {
-						SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(32645)));
-						return TRUE;
-					}
+			}
+			break;
+		case WM_CAPTURECHANGED:
+			panelWindow->dragBoundary = DragBoundary::None;
+			return 0;
+		case WM_SETCURSOR:
+			if (LOWORD(lParam) == HTCLIENT) {
+				POINT cursor{};
+				GetCursorPos(&cursor);
+				ScreenToClient(hwnd, &cursor);
+				const DragBoundary boundary = panelWindow->HitTestBoundary(cursor.x, cursor.y);
+				if (boundary == DragBoundary::Left || boundary == DragBoundary::Right) {
+					SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(32644)));
+					return TRUE;
 				}
-				break;
-			case WM_CLOSE:
-				panelWindow->closeRequested = true;
-				return 0;
-			case WM_DESTROY:
-				panelWindow->window = nullptr;
-				for (auto& entry : panelWindow->panels)
-					entry.frame = nullptr;
-				return 0;
-			default:
-				break;
+				if (boundary == DragBoundary::Bottom) {
+					SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(32645)));
+					return TRUE;
+				}
+			}
+			break;
+		case WM_CLOSE:
+			panelWindow->closeRequested = true;
+			return 0;
+		case WM_DESTROY:
+			panelWindow->window = nullptr;
+			for (auto& entry : panelWindow->panels)
+				entry.frame = nullptr;
+			return 0;
+		default:
+			break;
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
-	}
-
-	void PanelWindow::Paint(const HDC deviceContext) const {
-		RECT client{};
-		GetClientRect(window, &client);
-		GuiDrawer::FillRectColor(deviceContext, client, GuiTheme::backgroundColor);
-		for (auto& entry : panels) {
-			if (!entry.visible || IsRectEmpty(&entry.bounds))
-				continue;
-			const auto& [left, top, right, bottom] = entry.bounds;
-			GuiDrawer::DrawLine(deviceContext, left, top, right - 1, top, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, right - 1, top, right - 1, bottom - 1, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, right - 1, bottom - 1, left, bottom - 1, GuiTheme::borderColor);
-			GuiDrawer::DrawLine(deviceContext, left, bottom - 1, left, top, GuiTheme::borderColor);
-		}
 	}
 
 	void PanelWindow::CreatePanelControls() {
@@ -137,6 +122,21 @@ namespace Chrivent {
 			GuiTheme::ApplyControl(entry.frame);
 			entry.panel->Create(window);
 			ShowWindow(entry.frame, entry.visible ? SW_SHOW : SW_HIDE);
+		}
+	}
+
+	void PanelWindow::Paint(const HDC deviceContext) const {
+		RECT client{};
+		GetClientRect(window, &client);
+		GuiDrawer::FillRectColor(deviceContext, client, GuiTheme::backgroundColor);
+		for (auto& entry : panels) {
+			if (!entry.visible || IsRectEmpty(&entry.bounds))
+				continue;
+			const auto& [left, top, right, bottom] = entry.bounds;
+			GuiDrawer::DrawLine(deviceContext, left, top, right - 1, top, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, right - 1, top, right - 1, bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, right - 1, bottom - 1, left, bottom - 1, GuiTheme::borderColor);
+			GuiDrawer::DrawLine(deviceContext, left, bottom - 1, left, top, GuiTheme::borderColor);
 		}
 	}
 
@@ -180,22 +180,22 @@ namespace Chrivent {
 				continue;
 			RECT area{};
 			switch (entry.area) {
-				case PanelWindowArea::Model:
-					area = { margin, margin, margin + leftWidth, margin + topHeight };
-					break;
-				case PanelWindowArea::Motion:
-					area = { motionX, margin, motionX + motionWidth, margin + topHeight };
-					break;
-				case PanelWindowArea::InterpolationCurve:
-					area = { interpolationX, margin, interpolationX + rightWidth, margin + topHeight };
-					break;
-				case PanelWindowArea::Bottom: {
-					const int panelWidth = bottomCount > 0 ? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount : 0;
-					const int x = margin + bottomIndex * (panelWidth + gap);
-					area = {x, bottomY, x + panelWidth, bottomY + bottomHeight};
-					bottomIndex++;
-					break;
-				}
+			case PanelWindowArea::Model:
+				area = { margin, margin, margin + leftWidth, margin + topHeight };
+				break;
+			case PanelWindowArea::Motion:
+				area = { motionX, margin, motionX + motionWidth, margin + topHeight };
+				break;
+			case PanelWindowArea::InterpolationCurve:
+				area = { interpolationX, margin, interpolationX + rightWidth, margin + topHeight };
+				break;
+			case PanelWindowArea::Bottom: {
+				const int panelWidth = bottomCount > 0 ? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount : 0;
+				const int x = margin + bottomIndex * (panelWidth + gap);
+				area = {x, bottomY, x + panelWidth, bottomY + bottomHeight};
+				bottomIndex++;
+				break;
+			}
 			}
 			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
 			entry.bounds = area;
@@ -233,17 +233,17 @@ namespace Chrivent {
 		GetClientRect(window, &client);
 		constexpr int margin = 10;
 		switch (dragBoundary) {
-			case DragBoundary::Left:
-				layoutSettings.leftWidth = x - margin;
-				break;
-			case DragBoundary::Right:
-				layoutSettings.rightWidth = client.right - margin - x;
-				break;
-			case DragBoundary::Bottom:
-				layoutSettings.bottomHeight = client.bottom - margin - y;
-				break;
-			case DragBoundary::None:
-				return;
+		case DragBoundary::Left:
+			layoutSettings.leftWidth = x - margin;
+			break;
+		case DragBoundary::Right:
+			layoutSettings.rightWidth = client.right - margin - x;
+			break;
+		case DragBoundary::Bottom:
+			layoutSettings.bottomHeight = client.bottom - margin - y;
+			break;
+		case DragBoundary::None:
+			return;
 		}
 		LayoutPanels();
 	}
@@ -272,19 +272,6 @@ namespace Chrivent {
 		panels.push_back({ &panel, std::move(titleKey), area, nullptr, {}, visible });
 	}
 
-	void PanelWindow::SetPanelVisible(const Panel& panel, const bool visible) {
-		for (auto& entry : panels) {
-			if (entry.panel != &panel || entry.visible == visible)
-				continue;
-			entry.visible = visible;
-			entry.bounds = {};
-			if (entry.frame)
-				ShowWindow(entry.frame, visible ? SW_SHOW : SW_HIDE);
-			LayoutPanels();
-			return;
-		}
-	}
-
 	void PanelWindow::Show() {
 		closeRequested = false;
 		layoutSettings = Settings::LoadPanelLayout();
@@ -294,7 +281,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
+		wc.hbrBackground = GuiTheme::ResolveBackgroundBrush();
 		wc.lpszClassName = L"PmxModPanelWindow";
 		RegisterClassExW(&wc);
 		window = CreateWindowExW(
@@ -314,6 +301,19 @@ namespace Chrivent {
 		LayoutPanels();
 		ShowWindow(window, SW_MAXIMIZE);
 		UpdateWindow(window);
+	}
+
+	void PanelWindow::UpdatePanelVisibility(const Panel& panel, const bool visible) {
+		for (auto& entry : panels) {
+			if (entry.panel != &panel || entry.visible == visible)
+				continue;
+			entry.visible = visible;
+			entry.bounds = {};
+			if (entry.frame)
+				ShowWindow(entry.frame, visible ? SW_SHOW : SW_HIDE);
+			LayoutPanels();
+			return;
+		}
 	}
 
 	void PanelWindow::Poll() const {

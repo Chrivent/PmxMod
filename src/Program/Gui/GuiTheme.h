@@ -11,11 +11,13 @@ namespace Chrivent {
 		static constexpr COLORREF borderColor = RGB(92, 101, 114);
 		static constexpr COLORREF textColor = RGB(229, 232, 238);
 
-		static COLORREF GetCurveColor(std::size_t channelIndex);
 		static COLORREF GetSelectedCurveKeyColor() { return RGB(246, 190, 53); }
-		static HFONT GetFont();
-		static HBRUSH GetBackgroundBrush();
-		
+		// 채널 인덱스에 대응하는 보간 곡선 색상을 선택한다.
+		static COLORREF ResolveCurveColor(std::size_t channelIndex);
+		// 현재 언어에 대응하는 UI 폰트를 선택한다.
+		static HFONT ResolveFont();
+		// GUI 배경에 공통으로 사용할 브러시를 반환한다.
+		static HBRUSH ResolveBackgroundBrush();
 		// 창과 모든 자식 컨트롤에 다크 테마와 UI 폰트를 적용한다.
 		static void ApplyWindow(HWND window);
 		// 단일 Win32 컨트롤에 다크 테마와 UI 폰트를 적용한다.

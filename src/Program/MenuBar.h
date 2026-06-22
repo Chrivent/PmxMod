@@ -32,6 +32,7 @@ namespace Chrivent {
 		bool fpsVisible = false;
 		bool languageDirty = false;
 		bool panelLayoutResetRequested = false;
+		bool playing = false;
 		HWND ownerWindow = nullptr;
 
 		// 현재 씬 설정을 지정한 파일에 저장한다.
@@ -61,6 +62,8 @@ namespace Chrivent {
 		bool IsFpsVisible() const { return fpsVisible; }
 		void SetOwnerWindow(const HWND owner) { ownerWindow = owner; }
 
+		// 재생 상태에 따라 파일과 렌더러 메뉴를 활성화한다.
+		void ApplyPlaybackState(bool isPlaying);
 		// 현재 렌더러를 변경 요청 없이 메뉴 상태에 반영한다.
 		void ApplyRenderer(RendererType renderer);
 		// 설정 창 상단 메뉴를 구성한다.
