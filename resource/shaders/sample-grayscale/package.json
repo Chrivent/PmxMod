@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "pmxmod.sample-grayscale",
+  "name": "Sample Grayscale",
+  "version": "1.0.0",
+  "author": "PmxMod",
+  "effects": [
+    "effects/grayscale/effect.json"
+  ]
+}

@@ -2,6 +2,7 @@
 
 #include "../Util.h"
 
+#include <algorithm>
 #include <fstream>
 #include <system_error>
 
@@ -28,6 +29,7 @@ namespace Chrivent {
 		}
 		if (error)
 			discovery.errors.emplace_back("Failed to scan shader packages: " + packagesDirectory.string());
+		std::ranges::sort(discovery.packages, {}, &ShaderPackage::id);
 		return discovery;
 	}
 	

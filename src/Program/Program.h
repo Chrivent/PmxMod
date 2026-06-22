@@ -76,6 +76,8 @@ namespace Chrivent {
         void Shutdown();
         // 실행 파일 리소스 폴더에서 개발용 효과 패키지를 검색한다.
         void DiscoverShaderPackages();
+        // 현재 뷰어에 기본 효과 패키지의 첫 효과를 적용한다.
+        void LoadDefaultShaderEffect() const;
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.

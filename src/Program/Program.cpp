@@ -216,6 +216,7 @@ namespace Chrivent {
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
+        LoadDefaultShaderEffect();
         saveTime = std::chrono::steady_clock::now();
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
@@ -252,9 +253,16 @@ namespace Chrivent {
             effectCount += package.effects.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
-        if (!shaderPackages.empty() && !shaderPackages.front().effects.empty() && viewer->LoadPostProcessEffect(shaderPackages.front().effects.front())) {
-            std::cout << "active_effect=" << shaderPackages.front().id << ':' << shaderPackages.front().effects.front().id << '\n';
-        }
+        LoadDefaultShaderEffect();
+    }
+
+    void Program::LoadDefaultShaderEffect() const {
+        if (!viewer || shaderPackages.empty() || shaderPackages.front().effects.empty())
+            return;
+        const auto& package = shaderPackages.front();
+        const auto& effect = package.effects.front();
+        if (viewer->LoadPostProcessEffect(effect))
+            std::cout << "active_effect=" << package.id << ':' << effect.id << '\n';
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
