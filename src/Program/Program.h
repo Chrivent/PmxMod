@@ -48,6 +48,7 @@ namespace Chrivent {
         std::vector<std::size_t> skinningTaskOffsets;
         std::vector<ModelUpdateTiming> modelUpdateTimings;
         std::vector<ShaderPackage> shaderPackages;
+        size_t selectedShaderEffectIndex = 0;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         int fpsFrame = 0;
@@ -76,8 +77,10 @@ namespace Chrivent {
         void Shutdown();
         // 실행 파일 리소스 폴더에서 개발용 효과 패키지를 검색한다.
         void DiscoverShaderPackages();
-        // 현재 뷰어에 기본 효과 패키지의 첫 효과를 적용한다.
-        void LoadDefaultShaderEffect() const;
+        // 검색된 패키지의 효과 이름을 카메라 패널에 반영한다.
+        void UpdateShaderPanel();
+        // 현재 선택된 셰이더 효과를 뷰어에 적용한다.
+        void LoadSelectedShaderEffect() const;
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.

@@ -28,6 +28,7 @@ namespace Chrivent {
 		static constexpr UINT_PTR kSoundVolumeSliderId = 2001;
 		static constexpr UINT_PTR kModelAddButtonId = 3001;
 		static constexpr UINT_PTR kModelListId = 3002;
+		static constexpr UINT_PTR kCameraShaderListId = 4001;
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
@@ -95,8 +96,14 @@ namespace Chrivent {
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }
 		// 모델 패널에서 선택한 모델 인덱스를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
+		// 카메라 패널에서 선택한 셰이더 인덱스를 반환하고 대기 요청을 초기화한다.
+		bool ConsumeSelectedShaderIndex(size_t& shaderIndex) { return cameraPanel.ConsumeSelectedShaderIndex(shaderIndex); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
+		// 검색된 셰이더 효과 이름과 현재 선택을 카메라 패널에 반영한다.
+		void ApplyShaderNames(const std::vector<std::wstring>& names, const size_t selectedIndex) {
+			cameraPanel.UpdateShaderNames(names, selectedIndex);
+		}
 		// 선택 모델의 이름과 모션 타임라인을 패널에 적용한다.
 		void ApplyMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
 			motionPanel.ApplyTimeline(std::move(modelName), std::move(groups));

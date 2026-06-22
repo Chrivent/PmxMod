@@ -216,7 +216,7 @@ namespace Chrivent {
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
-        LoadDefaultShaderEffect();
+        LoadSelectedShaderEffect();
         saveTime = std::chrono::steady_clock::now();
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
@@ -253,16 +253,35 @@ namespace Chrivent {
             effectCount += package.effects.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
-        LoadDefaultShaderEffect();
+        selectedShaderEffectIndex = effectCount == 0 ? 0 : (std::min)(selectedShaderEffectIndex, effectCount - 1);
+        UpdateShaderPanel();
+        LoadSelectedShaderEffect();
     }
 
-    void Program::LoadDefaultShaderEffect() const {
-        if (!viewer || shaderPackages.empty() || shaderPackages.front().effects.empty())
+    void Program::UpdateShaderPanel() {
+        std::vector<std::wstring> shaderNames;
+        for (const auto& package : shaderPackages) {
+            for (const auto& effect : package.effects) {
+                shaderNames.emplace_back(
+                    Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
+            }
+        }
+        panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex);
+    }
+
+    void Program::LoadSelectedShaderEffect() const {
+        if (!viewer)
             return;
-        const auto& package = shaderPackages.front();
-        const auto& effect = package.effects.front();
-        if (viewer->LoadPostProcessEffect(effect))
-            std::cout << "active_effect=" << package.id << ':' << effect.id << '\n';
+        size_t effectIndex = 0;
+        for (const auto& package : shaderPackages) {
+            for (const auto& effect : package.effects) {
+                if (effectIndex++ != selectedShaderEffectIndex)
+                    continue;
+                if (viewer->LoadPostProcessEffect(effect))
+                    std::cout << "active_effect=" << package.id << ':' << effect.id << '\n';
+                return;
+            }
+        }
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
@@ -641,6 +660,11 @@ namespace Chrivent {
         size_t selectedModelIndex = 0;
         if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
             UpdateMotionPanel(selectedModelIndex);
+        size_t selectedEffectIndex = 0;
+        if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex)) {
+            selectedShaderEffectIndex = selectedEffectIndex;
+            LoadSelectedShaderEffect();
+        }
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {

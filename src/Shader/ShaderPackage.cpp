@@ -29,7 +29,9 @@ namespace Chrivent {
 		}
 		if (error)
 			discovery.errors.emplace_back("Failed to scan shader packages: " + packagesDirectory.string());
-		std::ranges::sort(discovery.packages, {}, &ShaderPackage::id);
+		std::ranges::sort(discovery.packages, [](const ShaderPackage& left, const ShaderPackage& right) {
+			return left.id < right.id;
+		});
 		return discovery;
 	}
 	
