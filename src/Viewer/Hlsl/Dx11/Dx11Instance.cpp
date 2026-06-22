@@ -8,23 +8,31 @@
 #include "../../ViewerGeometry.h"
 #include "../../../Core/Model/Model.h"
 
+#include <limits>
+
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers(Dx11InstanceInfo& info) {
-		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(
-			sizeof(Dx11Vertex) * info.model->geometryData.positions.size());
+		const auto& geometryData = info.model->geometryData;
+		ViewerIndexData indexData;
+		if (geometryData.positions.empty() ||
+			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
+			indexData.bytes.empty())
+			return false;
+		const size_t vertexByteSize = sizeof(Dx11Vertex) * geometryData.positions.size();
+		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
+			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
+			return false;
+		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &info.vertexBuffer)))
 			return false;
-		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(
-			info.model->geometryData.indexElementSize * info.model->geometryData.indexCount);
+		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(static_cast<UINT>(indexData.bytes.size()));
 		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = info.model->geometryData.indices.data();
+		initData.pSysMem = indexData.bytes.data();
 		if (FAILED(info.viewer->GetDx11Info().deviceResources.device->CreateBuffer(&iBufDesc, &initData, &info.indexBuffer)))
 			return false;
-		if (1 == info.model->geometryData.indexElementSize)
-			info.indexBufferFormat = DXGI_FORMAT_R8_UINT;
-		else if (2 == info.model->geometryData.indexElementSize)
+		if (indexData.elementSize == sizeof(uint16_t))
 			info.indexBufferFormat = DXGI_FORMAT_R16_UINT;
-		else if (4 == info.model->geometryData.indexElementSize)
+		else if (indexData.elementSize == sizeof(uint32_t))
 			info.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;

@@ -17,7 +17,7 @@ namespace Chrivent {
         std::vector<Dx11Material>               materials;
         Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
-        DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R8_UINT;
+        DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R16_UINT;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;

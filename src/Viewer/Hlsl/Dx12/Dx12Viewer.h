@@ -38,6 +38,7 @@ namespace Chrivent {
 		Dx12Pipeline pipeline;
 		Dx12TextureCache textureCache;
 		std::shared_ptr<Dx12Texture> dummyTexture;
+		bool frameReady = false;
 
 		// 현재 back buffer를 render target 상태로 전환한다.
 		static void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer);
@@ -53,6 +54,7 @@ namespace Chrivent {
 		~Dx12Viewer() override;
 
 		Dx12ViewerInfo& GetDx12Info() { return static_cast<Dx12ViewerInfo&>(GetInfo()); }
+		bool IsFrameReady() const { return frameReady; }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureGlfwHints() override;

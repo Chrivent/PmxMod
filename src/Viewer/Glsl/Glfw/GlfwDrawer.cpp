@@ -11,14 +11,15 @@ namespace Chrivent {
 		info.pixelConstantsRing.BeginFrame(0);
 	}
 
-	void GlfwDrawer::UpdateUniformBuffer(GlfwDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
+	bool GlfwDrawer::UpdateUniformBuffer(GlfwDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
 		const auto slice = ring.Allocate(size, info.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
-			return;
+			return false;
 		glBindBuffer(GL_UNIFORM_BUFFER, ring.GetBuffer());
 		glBufferSubData(GL_UNIFORM_BUFFER, slice->offset, slice->size, data);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
+		return true;
 	}
 
 	void GlfwDrawer::DrawModel() {
@@ -39,7 +40,8 @@ namespace Chrivent {
 		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
-		UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+		if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+			return;
 		glBindVertexArray(info.vao);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
@@ -100,7 +102,8 @@ namespace Chrivent {
 				glBindTexture(GL_TEXTURE_2D, sphereTexture);
 				boundTextures[2] = sphereTexture;
 			}
-			UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+			if (!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+				continue;
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -148,8 +151,9 @@ namespace Chrivent {
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
-			UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+			if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
+				!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+				continue;
 			const size_t offset = beginIndex * info.model->geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
@@ -164,15 +168,17 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(info.scale));
 		const auto& gsShader = viewer->GetGlfwInfo().gsShader;
 		glUseProgram(gsShader->program);
-		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(-1, -1);
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->GetInfo().lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
-		UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+		if (!UpdateUniformBuffer(info.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+			return;
 		glBindVertexArray(info.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+		if (!UpdateUniformBuffer(info.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			return;
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(-1, -1);
 		if (pixelConstants.shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);

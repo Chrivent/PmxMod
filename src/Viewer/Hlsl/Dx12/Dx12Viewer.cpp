@@ -138,6 +138,7 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::BeginFrame() {
+		frameReady = false;
 		const UINT frameIndex = swapChain.GetFrameIndex();
 		if (!commandContext.BeginFrame(device->GetInfo(), frameIndex))
 			return;
@@ -152,9 +153,12 @@ namespace Chrivent {
 		SetViewportAndScissor(commandList);
 		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		frameReady = true;
 	}
 
 	bool Dx12Viewer::EndFrame() {
+		if (!frameReady)
+			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
@@ -165,6 +169,7 @@ namespace Chrivent {
 			return false;
 		if (!swapChain.Present())
 			return false;
+		frameReady = false;
 		return true;
 	}
 
@@ -181,14 +186,20 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {
+		if (!frameReady)
+			return;
 		pipeline.BindModel(commandContext.GetCommandList().Get(), bothFace);
 	}
 
 	void Dx12Viewer::BindEdgePipelineState() const {
+		if (!frameReady)
+			return;
 		pipeline.BindEdge(commandContext.GetCommandList().Get());
 	}
 
 	void Dx12Viewer::BindGroundShadowPipelineState() const {
+		if (!frameReady)
+			return;
 		pipeline.BindGroundShadow(commandContext.GetCommandList().Get());
 	}
 }
