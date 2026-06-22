@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <string>
+#include <vector>
 
 #include <windows.h>
 
@@ -16,6 +17,10 @@ namespace Chrivent {
 		static void DrawLine(HDC deviceContext, int x1, int y1, int x2, int y2, COLORREF color);
 		// 지정한 중심과 반지름으로 채워진 마름모를 그린다.
 		static void DrawDiamond(HDC deviceContext, int centerX, int centerY, int radius, COLORREF color);
+		// 고밀도 최소·최대 진폭 데이터를 화면 픽셀 범위에 맞춰 파형으로 그린다.
+		static void DrawWaveform(HDC deviceContext, const RECT& rect,
+			const std::vector<float>& minimums, const std::vector<float>& maximums,
+			int samplesPerFrame, int firstFrame, int frameWidth, COLORREF color);
 		// 펼침 상태에 따라 오른쪽 또는 아래쪽을 향하는 삼각형을 그린다.
 		static void DrawTriangle(HDC deviceContext, int centerX, int centerY, int radius, bool expanded, COLORREF color);
 		// 지정한 영역에 한 줄 텍스트를 그린다.

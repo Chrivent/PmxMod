@@ -260,6 +260,7 @@ namespace Chrivent {
         music.Stop();
         if (!sceneConfig.musicPath.empty() && music.Init(sceneConfig.musicPath, false))
             music.Pause();
+        panelManager.BindSound(music);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.SetMotionMode(MotionTimelineMode::Camera);
         viewer->GetInfo().elapsed = 0.0f;
@@ -639,7 +640,9 @@ namespace Chrivent {
             case PlaybackCommand::Play:
                 viewer->GetInfo().skipPhysics = false;
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
-                    viewer->GetInfo().animTime * 30.0f < start || viewer->GetInfo().animTime * 30.0f >= end) {
+                    panelManager.ConsumePlaybackRangeRestartRequest() ||
+                    viewer->GetInfo().animTime * 30.0f < start ||
+                    viewer->GetInfo().animTime * 30.0f >= end) {
                     cameraManager.SeekFrame(viewer->GetInfo(), music, start, saveTime);
                     ResetPhysics(start);
                 }

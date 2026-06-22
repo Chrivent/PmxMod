@@ -81,6 +81,8 @@ namespace Chrivent {
 		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
 		PlaybackCommand ConsumePlaybackCommand() { return playbackPanel.ConsumeCommand(); }
+		// 범위 밖 프레임 입력 후 재생 시 범위 시작점 복귀 요청을 반환한다.
+		bool ConsumePlaybackRangeRestartRequest() { return motionPanel.ConsumePlaybackRangeRestartRequest(); }
 		// 대기 중인 프레임 이동 요청을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return motionPanel.ConsumeSeekFrame(frame, finished); }
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
@@ -94,7 +96,7 @@ namespace Chrivent {
 			motionPanel.SetTimeline(std::move(modelName), std::move(groups));
 		}
 		// 사운드 패널이 조절할 사운드 객체를 연결한다.
-		void BindSound(Sound& sound) { soundPanel.BindSound(sound); }
+		void BindSound(Sound& sound);
 		// 메뉴와 패널의 일회성 변경 상태를 초기화한다.
 		void Reset() { menuBar.Reset(); }
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.

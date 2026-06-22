@@ -3,6 +3,8 @@
 #include "GuiTheme.h"
 
 #include <CommCtrl.h>
+#include <algorithm>
+#include <cmath>
 
 namespace Chrivent {
 	HFONT GuiDrawer::GetTextFont() {
@@ -40,6 +42,43 @@ namespace Chrivent {
 		SelectObject(deviceContext, previousBrush);
 		DeleteObject(pen);
 		DeleteObject(brush);
+	}
+
+	void GuiDrawer::DrawWaveform(const HDC deviceContext, const RECT& rect,
+		const std::vector<float>& minimums, const std::vector<float>& maximums,
+		const int samplesPerFrame, const int firstFrame, const int frameWidth, const COLORREF color) {
+		if (minimums.empty() || minimums.size() != maximums.size() ||
+			samplesPerFrame <= 0 || frameWidth <= 0 ||
+			rect.right <= rect.left || rect.bottom <= rect.top)
+			return;
+		const int centerY = rect.top + (rect.bottom - rect.top) / 2;
+		int amplitudeHeight = (rect.bottom - rect.top) / 2 - 8;
+		if (amplitudeHeight < 1)
+			amplitudeHeight = 1;
+		const HPEN pen = CreatePen(PS_SOLID, 1, color);
+		const HGDIOBJ previousPen = SelectObject(deviceContext, pen);
+		for (int x = rect.left; x < rect.right; x++) {
+			const size_t pixelOffset = x - rect.left;
+			const size_t firstSample = (firstFrame * frameWidth + pixelOffset) * samplesPerFrame / frameWidth;
+			size_t lastSample = (firstFrame * frameWidth + pixelOffset + 1) * samplesPerFrame / frameWidth;
+			if (lastSample <= firstSample)
+				lastSample = firstSample + 1;
+			if (firstSample >= minimums.size())
+				continue;
+			lastSample = (std::min)(lastSample, minimums.size());
+			float minimum = 1.0f;
+			float maximum = -1.0f;
+			for (size_t sample = firstSample; sample < lastSample; sample++) {
+				minimum = (std::min)(minimum, minimums[sample]);
+				maximum = (std::max)(maximum, maximums[sample]);
+			}
+			const int top = centerY - std::lround(maximum * amplitudeHeight);
+			const int bottom = centerY - std::lround(minimum * amplitudeHeight);
+			MoveToEx(deviceContext, x, top, nullptr);
+			LineTo(deviceContext, x, bottom + 1);
+		}
+		SelectObject(deviceContext, previousPen);
+		DeleteObject(pen);
 	}
 
 	void GuiDrawer::DrawTriangle(

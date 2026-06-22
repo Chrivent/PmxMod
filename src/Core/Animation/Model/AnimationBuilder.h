@@ -4,7 +4,7 @@
 #include "../../Parser/VmdParser.h"
 
 namespace Chrivent {
-	class Model;
+	struct Model;
 
 	class AnimationBuilder {
 		AnimationInfo info;

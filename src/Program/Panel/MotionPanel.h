@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace Chrivent {
+	struct AudioWaveform;
+
 	enum class MotionTimelineMode {
 		Model,
 		Camera
@@ -46,12 +48,14 @@ namespace Chrivent {
 		static constexpr int kCurveRowHeight = 66;
 		static constexpr int kCurveGraphHeight = kCurveRowHeight * 4;
 		static constexpr int kFrameWidth = 12;
+		static constexpr int kWaveformHeight = 88;
 
 		HWND timelineWindow = nullptr;
 		HWND frameEdit = nullptr;
 		HWND modeButton = nullptr;
 		std::wstring modelName;
 		std::vector<MotionTimelineGroup> groups;
+		const AudioWaveform* waveform = nullptr;
 		MotionTimelineMode mode = MotionTimelineMode::Camera;
 		POINT selectionStart{};
 		POINT selectionEnd{};
@@ -64,6 +68,7 @@ namespace Chrivent {
 		bool interpolationSelectionDirty = false;
 		bool updatingFrameEdit = false;
 		bool selectingKeys = false;
+		bool playbackRangeRestartRequested = false;
 		int seekFrame = 0;
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
@@ -80,8 +85,12 @@ namespace Chrivent {
 		void UpdateVerticalScrollBar() const;
 		// 마지막 프레임과 현재 프레임에 맞춰 가로 스크롤바 범위를 갱신한다.
 		void UpdateHorizontalScrollBar() const;
+		// 고정 파형 트랙을 제외한 타임라인 행 영역의 아래쪽 좌표를 반환한다.
+		int ResolveTimelineBottom() const;
 		// 펼쳐진 그룹을 포함해 현재 화면에 표시할 전체 행 수를 반환한다.
 		int GetVisibleRowCount() const;
+		// 현재 가로 프레임 범위에 맞춰 하단 단일 채널 오디오 파형을 그린다.
+		void DrawWaveform(HDC deviceContext, int top, int right, int bottom) const;
 		// 현재 스크롤 위치를 반영해 모션 타임라인을 그린다.
 		void Paint(HDC deviceContext) const;
 		// 클릭한 표시 행이 그룹이면 펼침 상태를 전환한다.
@@ -118,6 +127,8 @@ namespace Chrivent {
 
 		MotionTimelineMode GetMode() const { return mode; }
 
+		// 모션 타임라인 하단에 표시할 오디오 파형 데이터를 연결한다.
+		void SetWaveform(const AudioWaveform& audioWaveform);
 		// 모델 또는 카메라 타임라인 표시 모드를 설정한다.
 		void SetMode(MotionTimelineMode timelineMode);
 		// 부모 윈도우 아래에 모션 타임라인 컨트롤을 생성한다.
@@ -138,6 +149,8 @@ namespace Chrivent {
 		void SetCurrentFrame(int frame);
 		// 가로 스크롤바로 요청된 이동 프레임을 반환하고 내부 상태를 초기화한다.
 		bool ConsumeSeekFrame(int& frame, bool& finished);
+		// 범위 밖 프레임 입력 후 재생 시 범위 시작점으로 돌아가야 하는지 반환한다.
+		bool ConsumePlaybackRangeRestartRequest();
 		// 변경된 키 선택과 보간 곡선 정보를 반환한다.
 		bool ConsumeInterpolationSelection(InterpolationSelection& selection);
 	};

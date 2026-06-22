@@ -3,8 +3,12 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
 
+#include <algorithm>
+
 namespace Chrivent {
     void Sound::UnInit() {
+        waveform.minimums.clear();
+        waveform.maximums.clear();
         if (!hasSound)
             return;
         ma_sound_uninit(sound.get());
@@ -17,6 +21,47 @@ namespace Chrivent {
         sound.reset();
         engine = std::make_unique<ma_engine>();
         sound = std::make_unique<ma_sound>();
+    }
+
+    void Sound::BuildWaveform(const std::filesystem::path& path) {
+        constexpr ma_uint32 waveformSampleRate = 3000;
+        constexpr ma_uint32 timelineFrameRate = 30;
+        constexpr ma_uint32 waveformSamplesPerFrame = 10;
+        constexpr ma_uint64 samplesPerPeak =
+            waveformSampleRate / timelineFrameRate / waveformSamplesPerFrame;
+        constexpr ma_uint64 bufferFrameCount = 4096;
+        ma_decoder decoder{};
+        const ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 1, waveformSampleRate);
+        if (ma_decoder_init_file_w(path.c_str(), &decoderConfig, &decoder) != MA_SUCCESS)
+            return;
+        float samples[bufferFrameCount]{};
+        waveform.samplesPerFrame = waveformSamplesPerFrame;
+        ma_uint64 peakSampleCount = 0;
+        float minimum = 1.0f;
+        float maximum = -1.0f;
+        while (true) {
+            ma_uint64 framesRead = 0;
+            if (ma_decoder_read_pcm_frames(&decoder, samples, bufferFrameCount, &framesRead) != MA_SUCCESS ||
+                framesRead == 0)
+                break;
+            for (ma_uint64 index = 0; index < framesRead; index++) {
+                minimum = (std::min)(minimum, samples[index]);
+                maximum = (std::max)(maximum, samples[index]);
+                peakSampleCount++;
+                if (peakSampleCount < samplesPerPeak)
+                    continue;
+                waveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
+                waveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
+                peakSampleCount = 0;
+                minimum = 1.0f;
+                maximum = -1.0f;
+            }
+        }
+        if (peakSampleCount > 0) {
+            waveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
+            waveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
+        }
+        ma_decoder_uninit(&decoder);
     }
 
     Sound::Sound() {
@@ -56,6 +101,7 @@ namespace Chrivent {
         hasSound = true;
         playing = false;
         prevTimeSec = 0.0;
+        BuildWaveform(path);
         return true;
     }
 

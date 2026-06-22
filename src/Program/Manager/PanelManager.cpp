@@ -55,6 +55,11 @@ namespace Chrivent {
 		UpdateModelPanel();
 	}
 
+	void PanelManager::BindSound(Sound& sound) {
+		soundPanel.BindSound(sound);
+		motionPanel.SetWaveform(sound.GetWaveform());
+	}
+
 	bool PanelManager::OpenGuiWindows() {
 		panelWindow.Show();
 		return true;

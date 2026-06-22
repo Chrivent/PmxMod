@@ -2,11 +2,18 @@
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 struct ma_engine;
 struct ma_sound;
 
 namespace Chrivent {
+    struct AudioWaveform {
+        std::vector<float> minimums;
+        std::vector<float> maximums;
+        int samplesPerFrame = 10;
+    };
+
     class Sound {
         float volume = 0.5f;
         double lengthSec = 0.0;
@@ -15,9 +22,12 @@ namespace Chrivent {
         double prevTimeSec = 0.0;
         bool playing = false;
         bool hasSound = false;
+        AudioWaveform waveform;
 
         // MiniAudio 엔진과 사운드 객체를 해제한다.
         void UnInit();
+        // 오디오 파일을 30fps 타임라인용 단일 채널 피크 데이터로 변환한다.
+        void BuildWaveform(const std::filesystem::path& path);
     
     public:
         Sound();
@@ -31,6 +41,7 @@ namespace Chrivent {
         bool HasSound() const { return hasSound; }
         float GetVolume() const { return volume; }
         double GetLengthSeconds() const { return lengthSec; }
+        const AudioWaveform& GetWaveform() const { return waveform; }
         void SetVolume(float value);
 
         // 오디오 파일을 열고 필요하면 반복 재생으로 준비한다.

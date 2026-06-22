@@ -4,6 +4,7 @@
 #include "../Gui/GuiDrawer.h"
 #include "../Gui/GuiTheme.h"
 #include "../Language.h"
+#include "../Sound.h"
 
 #include <CommCtrl.h>
 #include <algorithm>
@@ -42,7 +43,7 @@ namespace Chrivent {
 			case WM_LBUTTONDOWN: {
 				const int x = GET_X_LPARAM(lParam);
 				const int y = GET_Y_LPARAM(lParam);
-				if (y >= kHeaderHeight) {
+				if (y >= kHeaderHeight && y < panel->ResolveTimelineBottom()) {
 					const int visibleRow = panel->firstRow + (y - kHeaderHeight) / kRowHeight;
 					if (x < kLabelWidth)
 						panel->ToggleGroup(visibleRow);
@@ -129,6 +130,7 @@ namespace Chrivent {
 		if (text[0] == L'\0')
 			return;
 		currentFrame = std::clamp(_wtoi(text), 0, kMaxEditableFrame);
+		playbackRangeRestartRequested = currentFrame > totalFrame;
 		seekFrame = currentFrame;
 		seekRequested = true;
 		seekFinished = true;
@@ -163,7 +165,7 @@ namespace Chrivent {
 			return;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
-		const int visibleRows = (std::max)(1, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight));
+		const int visibleRows = (std::max)(1, (ResolveTimelineBottom() - kHeaderHeight) / kRowHeight);
 		SCROLLINFO vertical{};
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
@@ -188,6 +190,14 @@ namespace Chrivent {
 		ShowScrollBar(timelineWindow, SB_HORZ, TRUE);
 	}
 
+	int MotionPanel::ResolveTimelineBottom() const {
+		if (!timelineWindow)
+			return kHeaderHeight;
+		RECT client{};
+		GetClientRect(timelineWindow, &client);
+		return (std::max)(kHeaderHeight, static_cast<int>(client.bottom) - kWaveformHeight);
+	}
+
 	int MotionPanel::GetVisibleRowCount() const {
 		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		int count = 0;
@@ -206,6 +216,28 @@ namespace Chrivent {
 			}
 		}
 		return count;
+	}
+
+	void MotionPanel::DrawWaveform(const HDC deviceContext, const int top, const int right, const int bottom) const {
+		const RECT waveformRect{0, top, right, bottom};
+		GuiDrawer::FillRectColor(deviceContext, waveformRect, RGB(21, 25, 31));
+		const RECT waveformLabelRect{0, top, kLabelWidth, bottom};
+		GuiDrawer::FillRectColor(deviceContext, waveformLabelRect, RGB(40, 45, 54));
+		GuiDrawer::DrawTextLine(deviceContext, Language::Text("panel.sound"),
+			{8, top, kLabelWidth - 4, bottom}, RGB(228, 228, 232), DT_LEFT | DT_END_ELLIPSIS);
+		for (int x = kLabelWidth; x < right; x += kFrameWidth) {
+			const int frame = firstFrame + (x - kLabelWidth) / kFrameWidth;
+			GuiDrawer::DrawLine(deviceContext, x, top, x, bottom,
+				frame % 5 == 0 ? RGB(61, 72, 86) : RGB(39, 46, 56));
+		}
+		const int centerY = top + (bottom - top) / 2;
+		GuiDrawer::DrawLine(deviceContext, kLabelWidth, centerY, right, centerY, RGB(69, 76, 88));
+		if (waveform)
+			GuiDrawer::DrawWaveform(deviceContext, {kLabelWidth, top, right, bottom},
+				waveform->minimums, waveform->maximums, waveform->samplesPerFrame,
+				firstFrame, kFrameWidth, RGB(92, 151, 255));
+		GuiDrawer::DrawLine(deviceContext, 0, top, right, top, RGB(93, 98, 108));
+		GuiDrawer::DrawLine(deviceContext, kLabelWidth, top, kLabelWidth, bottom, RGB(93, 98, 108));
 	}
 
 	void MotionPanel::DrawValueCurves(
@@ -285,6 +317,7 @@ namespace Chrivent {
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
 		GuiDrawer::FillRectColor(deviceContext, client, RGB(26, 29, 35));
+		const int timelineBottom = ResolveTimelineBottom();
 		constexpr RECT modelHeader{0, 0, kLabelWidth, kHeaderHeight};
 		GuiDrawer::FillRectColor(deviceContext, modelHeader, RGB(57, 61, 70));
 		GuiDrawer::DrawTextLine(deviceContext, modelName.empty() ? Language::Text("motion.select_model") : modelName,
@@ -296,12 +329,14 @@ namespace Chrivent {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
-			GuiDrawer::DrawLine(deviceContext, x, 0, x, client.bottom,
+			GuiDrawer::DrawLine(deviceContext, x, 0, x, timelineBottom,
 				major ? RGB(65, 77, 92) : RGB(43, 49, 59));
 		}
-		const int visibleRows = (std::max)(0, static_cast<int>((client.bottom - kHeaderHeight) / kRowHeight + 1));
+		const int visibleRows = (std::max)(0, (timelineBottom - kHeaderHeight) / kRowHeight + 1);
 		int visibleRowIndex = 0;
 		int paintedRows = 0;
+		const int rowClip = SaveDC(deviceContext);
+		IntersectClipRect(deviceContext, 0, kHeaderHeight, client.right, timelineBottom);
 		const auto DrawRow = [&](const std::wstring& name, const MotionTimelineGroup* group, const MotionTimelineRow* row,
 			const bool groupRow, const bool expanded, const bool drawKeys, const int indent, const bool curveRow, const int rowUnits) {
 			const int rowStart = visibleRowIndex;
@@ -383,6 +418,8 @@ namespace Chrivent {
 					break;
 			}
 		}
+		RestoreDC(deviceContext, rowClip);
+		DrawWaveform(deviceContext, timelineBottom, client.right, client.bottom);
 		if (selectingKeys) {
 			const int left = (std::min)(selectionStart.x, selectionEnd.x);
 			const int top = (std::min)(selectionStart.y, selectionEnd.y);
@@ -653,6 +690,12 @@ namespace Chrivent {
 			: MotionTimelineMode::Model);
 	}
 
+	void MotionPanel::SetWaveform(const AudioWaveform& audioWaveform) {
+		waveform = &audioWaveform;
+		if (timelineWindow)
+			InvalidateRect(timelineWindow, nullptr, FALSE);
+	}
+
 	void MotionPanel::SetMode(const MotionTimelineMode timelineMode) {
 		if (mode == timelineMode)
 			return;
@@ -722,6 +765,7 @@ namespace Chrivent {
 		seekFrame = currentFrame;
 		seekRequested = true;
 		seekFinished = scrollCode != SB_THUMBTRACK;
+		playbackRangeRestartRequested = false;
 		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
 		FollowCurrentFrame();
 		InvalidateRect(timelineWindow, nullptr, FALSE);
@@ -837,6 +881,7 @@ namespace Chrivent {
 		seekFinished = false;
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
+		playbackRangeRestartRequested = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
@@ -845,6 +890,7 @@ namespace Chrivent {
 		modelName = std::move(name);
 		groups = std::move(timelineGroups);
 		firstRow = 0;
+		playbackRangeRestartRequested = false;
 		interpolationSelectionDirty = true;
 		FollowCurrentFrame();
 		UpdateVerticalScrollBar();
@@ -881,6 +927,12 @@ namespace Chrivent {
 		seekRequested = false;
 		seekFinished = false;
 		return true;
+	}
+
+	bool MotionPanel::ConsumePlaybackRangeRestartRequest() {
+		const bool requested = playbackRangeRestartRequested;
+		playbackRangeRestartRequested = false;
+		return requested;
 	}
 
 	bool MotionPanel::ConsumeInterpolationSelection(InterpolationSelection& selection) {
