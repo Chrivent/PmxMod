@@ -163,6 +163,8 @@ namespace Chrivent {
 		for (Dx12Buffer& buffer : info.modelVertexConstantBuffers)
 			buffer.Destroy();
 		for (auto& buffers : info.modelPixelConstantBuffers) {
+			if (!buffers)
+				continue;
 			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
 				buffers[i].Destroy();
 		}
@@ -170,11 +172,15 @@ namespace Chrivent {
 		for (Dx12Buffer& buffer : info.edgeVertexConstantBuffers)
 			buffer.Destroy();
 		for (auto& buffers : info.edgeSizeConstantBuffers) {
+			if (!buffers)
+				continue;
 			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
 				buffers[i].Destroy();
 		}
 		info.edgeSizeConstantBuffers.clear();
 		for (auto& buffers : info.edgePixelConstantBuffers) {
+			if (!buffers)
+				continue;
 			for (size_t i = 0; i < Dx12InstanceInfo::kBufferedFrames; i++)
 				buffers[i].Destroy();
 		}

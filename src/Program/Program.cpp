@@ -831,6 +831,7 @@ namespace Chrivent {
         inputManager.Reset();
         panelManager.Reset();
         panelManager.ApplySceneConfig(cfg);
+        panelManager.SetRendererType(options.rendererType);
         if (!InitializeViewer()) {
             std::cerr << "Failed to run.\n";
             return 1;

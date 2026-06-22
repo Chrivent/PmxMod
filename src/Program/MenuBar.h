@@ -56,6 +56,8 @@ namespace Chrivent {
 		bool IsFpsVisible() const { return fpsVisible; }
 		void SetOwnerWindow(const HWND owner) { ownerWindow = owner; }
 
+		// 현재 렌더러를 변경 요청 없이 메뉴 상태에 반영한다.
+		void ApplyRenderer(RendererType renderer);
 		// 설정 창 상단 메뉴를 구성한다.
 		void AddMenu(HMENU menu) const;
 		// 메뉴 명령을 처리한다.

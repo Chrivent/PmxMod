@@ -48,8 +48,8 @@ namespace Chrivent {
 		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
-		// 모델 vertex attribute 정보를 만든다.
-		static std::unique_ptr<VkVertexInputAttributeDescription[]> MakeVertexAttributeDescriptions();
+		// 모델 vertex attribute 정보를 채운다.
+		static void FillVertexAttributeDescriptions(VkVertexInputAttributeDescription (&descriptions)[3]);
 
 	public:
 		VulkanPipeline() = default;

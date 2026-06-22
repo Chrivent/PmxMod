@@ -159,8 +159,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateSwapChainResources())
 			return false;
-		syncObject->ResetImageTracking(swapChain.GetInfo().images.size());
-		return true;
+		return syncObject->ResetImageTracking(swapChain.GetInfo().images.size());
 	}
 
 	void VulkanViewer::BeginFrame() {
@@ -220,7 +219,7 @@ namespace Chrivent {
 		const size_t frameIndex = syncInfo.currentFrame;
 		const VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[frameIndex] };
 		constexpr VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[frameIndex] };
+		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentImageIndex] };
 		const VkCommandBuffer commandBuffers[] = {
 			commandContext.GetInfo().commandBuffer.ResolveCommandBuffer(currentImageIndex)
 		};

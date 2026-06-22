@@ -130,6 +130,12 @@ namespace Chrivent {
 
 	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
 
+	void MenuBar::ApplyRenderer(const RendererType renderer) {
+		rendererType = renderer;
+		rendererDirty = false;
+		UpdateRendererMenuCheck();
+	}
+
 	void MenuBar::AddMenu(const HMENU menu) const {
 		HMENU fileMenu = CreatePopupMenu();
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, Language::Text("menu.open").c_str());

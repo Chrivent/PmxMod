@@ -53,6 +53,7 @@ namespace Chrivent {
 
 		void SetMotionMode(const MotionTimelineMode mode) { motionPanel.SetMode(mode); }
 		void SetPlaybackFrame(const int frame) { motionPanel.SetCurrentFrame((std::max)(0, frame)); }
+		void SetRendererType(const RendererType rendererType) { menuBar.ApplyRenderer(rendererType); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 

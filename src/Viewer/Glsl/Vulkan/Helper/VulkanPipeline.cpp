@@ -132,13 +132,14 @@ namespace Chrivent {
 			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule())
 		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
-		const auto values = MakeVertexAttributeDescriptions().get();
+		VkVertexInputAttributeDescription attributeDescriptions[3]{};
+		FillVertexAttributeDescriptions(attributeDescriptions);
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : 3;
-		vertexInputInfo.pVertexAttributeDescriptions = values;
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -168,7 +169,7 @@ namespace Chrivent {
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = useDepthBias ? VK_TRUE : VK_FALSE;
 		rasterizer.depthBiasConstantFactor = useDepthBias ? -1.0f : 0.0f;
-		rasterizer.depthBiasClamp = useDepthBias ? -1.0f : 0.0f;
+		rasterizer.depthBiasClamp = 0.0f;
 		rasterizer.depthBiasSlopeFactor = useDepthBias ? -1.0f : 0.0f;
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -251,8 +252,7 @@ namespace Chrivent {
 		return bindingDescription;
 	}
 
-	std::unique_ptr<VkVertexInputAttributeDescription[]> VulkanPipeline::MakeVertexAttributeDescriptions() {
-		auto descriptions = std::make_unique<VkVertexInputAttributeDescription[]>(3);
+	void VulkanPipeline::FillVertexAttributeDescriptions(VkVertexInputAttributeDescription (&descriptions)[3]) {
 		descriptions[0] = {
 			.location = 0,
 			.binding = 0,
@@ -271,7 +271,6 @@ namespace Chrivent {
 			.format = VK_FORMAT_R32G32_SFLOAT,
 			.offset = offsetof(ViewerVertex, uv)
 		};
-		return descriptions;
 	}
 
 	VulkanPipeline::~VulkanPipeline() {
