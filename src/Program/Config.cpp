@@ -1,9 +1,9 @@
-﻿#include "Config.h"
+﻿#include "Program/Config.h"
 
 #include <fstream>
 #include <string>
 
-#include "../Util.h"
+#include "Util.h"
 
 namespace Chrivent {
 	bool SceneConfig::Load(const std::filesystem::path& filepath) {

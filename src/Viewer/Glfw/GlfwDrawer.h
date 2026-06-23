@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../Drawer.h"
-#include "GlfwDynamicBufferRing.h"
+#include "Viewer/Drawer.h"
+#include "Viewer/Glfw/GlfwDynamicBufferRing.h"
 
 #include <glad/glad.h>
 

@@ -1,10 +1,10 @@
-﻿#include "Dx12Instance.h"
+﻿#include "Viewer/Dx12/Dx12Instance.h"
 
-#include "Dx12Drawer.h"
-#include "Dx12Viewer.h"
-#include "../Shader/ShaderConstants.h"
-#include "../../Core/Model/Model.h"
-#include "../ViewerGeometry.h"
+#include "Viewer/Dx12/Dx12Drawer.h"
+#include "Viewer/Dx12/Dx12Viewer.h"
+#include "Viewer/Shader/ShaderConstants.h"
+#include "Core/Model/Model.h"
+#include "Viewer/ViewerGeometry.h"
 
 #include <iostream>
 #include <limits>
@@ -24,8 +24,8 @@ namespace Chrivent {
 			: DXGI_FORMAT_R32_UINT;
 		const size_t vertexCount = geometryData.positions.size();
 		const size_t vertexByteSize = sizeof(ViewerVertex) * vertexCount;
-		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
-			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
+		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
+			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
 		for (size_t frameIndex = 0; frameIndex < kBufferedFrames; frameIndex++) {
 			Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
@@ -111,7 +111,7 @@ namespace Chrivent {
 		const auto& device = *viewer->device;
 		if (!device.device)
 			return false;
-		if (materials.size() > (std::numeric_limits<UINT>::max)() / 3)
+		if (materials.size() > std::numeric_limits<UINT>::max() / 3)
 			return false;
 		const size_t descriptorCount = materials.size() * 3;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};

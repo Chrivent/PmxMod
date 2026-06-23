@@ -1,7 +1,7 @@
-﻿#include "ModelPanel.h"
+﻿#include "Program/Panel/ModelPanel.h"
 
-#include "../Gui/GuiTheme.h"
-#include "../Language.h"
+#include "Program/Gui/GuiTheme.h"
+#include "Program/Language.h"
 
 #include <algorithm>
 
@@ -64,8 +64,8 @@ namespace Chrivent {
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
 		constexpr int gap = 8;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
-		const int listHeight = (std::max)(0, static_cast<int>(
+		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
+		const int listHeight = std::max(0, static_cast<int>(
 			clientRect.bottom - clientRect.top - margin * 2 - buttonHeight - gap));
 		MoveWindow(addButton, clientRect.right - margin - buttonWidth, clientRect.top + margin,
 			buttonWidth, buttonHeight, TRUE);

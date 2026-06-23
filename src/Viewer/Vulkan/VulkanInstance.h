@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include "../Instance.h"
-#include "../ViewerGeometry.h"
-#include "VulkanDynamicBufferRing.h"
-#include "Helper/VulkanBuffer.h"
-#include "Helper/VulkanDescriptorSet.h"
+#include "Viewer/Instance.h"
+#include "Viewer/ViewerGeometry.h"
+#include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
+#include "Viewer/Vulkan/Helper/VulkanBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
 
 #include <vector>
 

@@ -1,6 +1,6 @@
-﻿#include "VulkanRenderPass.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanRenderPass.h"
 
-#include "VulkanMsaaDepthBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h"
 
 #include <iostream>
 
@@ -9,7 +9,8 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanRenderPass::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
+	bool VulkanRenderPass::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat, const bool resolveForPostProcess) {
 		device = sourceDevice.device;
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = sourceSwapChain.imageFormat;
@@ -39,7 +40,9 @@ namespace Chrivent {
 		resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		resolveAttachment.finalLayout = resolveForPostProcess
+			? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		VkAttachmentReference colorAttachmentRef;
 		colorAttachmentRef.attachment = 0;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -55,13 +58,18 @@ namespace Chrivent {
 		subpass.pColorAttachments = &colorAttachmentRef;
 		subpass.pResolveAttachments = &resolveAttachmentRef;
 		subpass.pDepthStencilAttachment = &depthAttachmentRef;
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		VkSubpassDependency dependencies[2]{};
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		const VkAttachmentDescription attachments[] = {
 			colorAttachment,
 			depthAttachment,
@@ -73,8 +81,8 @@ namespace Chrivent {
 		createInfo.pAttachments = attachments;
 		createInfo.subpassCount = 1;
 		createInfo.pSubpasses = &subpass;
-		createInfo.dependencyCount = 1;
-		createInfo.pDependencies = &dependency;
+		createInfo.dependencyCount = resolveForPostProcess ? 2 : 1;
+		createInfo.pDependencies = dependencies;
 		if (vkCreateRenderPass(sourceDevice.device, &createInfo, nullptr, &renderPass) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan render pass.\n";
 			return false;

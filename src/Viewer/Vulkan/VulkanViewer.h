@@ -1,18 +1,19 @@
 ﻿#pragma once
 
-#include "../Viewer.h"
-#include "VulkanDynamicBufferRing.h"
-#include "Helper/VulkanCommandContext.h"
-#include "Helper/VulkanDescriptorSet.h"
-#include "Helper/VulkanDevice.h"
-#include "Helper/VulkanFrameBuffer.h"
-#include "Helper/VulkanMsaaColorBuffer.h"
-#include "Helper/VulkanMsaaDepthBuffer.h"
-#include "Helper/VulkanPipeline.h"
-#include "Helper/VulkanRenderPass.h"
-#include "Helper/VulkanSwapChain.h"
-#include "Helper/VulkanSyncObject.h"
-#include "VulkanTextureCache.h"
+#include "Viewer/Viewer.h"
+#include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
+#include "Viewer/Vulkan/Helper/VulkanCommandContext.h"
+#include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
+#include "Viewer/Vulkan/Helper/VulkanFrameBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanPipeline.h"
+#include "Viewer/Vulkan/Helper/VulkanPostProcess.h"
+#include "Viewer/Vulkan/Helper/VulkanRenderPass.h"
+#include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
+#include "Viewer/Vulkan/Helper/VulkanSyncObject.h"
+#include "Viewer/Vulkan/VulkanTextureCache.h"
 
 #include <memory>
 
@@ -35,9 +36,9 @@ namespace Chrivent {
 	struct VulkanBindStateCache {
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
-		uint32_t vertexDynamicOffset = (std::numeric_limits<uint32_t>::max)();
+		uint32_t vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		uint32_t pixelDynamicOffset = (std::numeric_limits<uint32_t>::max)();
+		uint32_t pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 	};
 
@@ -48,6 +49,7 @@ namespace Chrivent {
 		VulkanMsaaColorBuffer msaaColorBuffer;
 		VulkanMsaaDepthBuffer msaaDepthBuffer;
 		VulkanRenderPass renderPass;
+		VulkanPostProcess postProcess;
 		std::shared_ptr<VulkanPipeline> pipeline;
 		VulkanFrameBuffer frameBuffer;
 		VulkanCommandContext commandContext;
@@ -57,6 +59,7 @@ namespace Chrivent {
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		VulkanBindStateCache bindStateCache;
+		std::unique_ptr<EffectDefinition> postProcessEffect;
 
 	private:
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
@@ -94,6 +97,8 @@ namespace Chrivent {
 		bool EndFrame() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		void WaitIdle() override;
+		// 선택한 포스트 프로세스 효과에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
+		bool LoadPostProcessEffect(const EffectDefinition& effect) override;
 		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

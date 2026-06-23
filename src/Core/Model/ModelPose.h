@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Model.h"
+#include "Core/Model/Model.h"
 
 namespace Chrivent {
 	class ModelPose {

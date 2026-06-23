@@ -1,15 +1,15 @@
 ﻿#pragma once
 
-#include "../Config.h"
-#include "../MenuBar.h"
-#include "../PanelWindow.h"
-#include "../RendererType.h"
-#include "../Panel/CameraPanel.h"
-#include "../Panel/InterpolationCurvePanel.h"
-#include "../Panel/ModelPanel.h"
-#include "../Panel/MotionPanel.h"
-#include "../Panel/PlaybackPanel.h"
-#include "../Panel/SoundPanel.h"
+#include "Program/Config.h"
+#include "Program/MenuBar.h"
+#include "Program/PanelWindow.h"
+#include "Program/RendererType.h"
+#include "Program/Panel/CameraPanel.h"
+#include "Program/Panel/InterpolationCurvePanel.h"
+#include "Program/Panel/ModelPanel.h"
+#include "Program/Panel/MotionPanel.h"
+#include "Program/Panel/PlaybackPanel.h"
+#include "Program/Panel/SoundPanel.h"
 
 #include <algorithm>
 #include <utility>
@@ -61,7 +61,7 @@ namespace Chrivent {
 			motionPanel.ChangeMode(mode);
 			UpdateSidePanelVisibility();
 		}
-		void SetPlaybackFrame(const int frame) { motionPanel.UpdateCurrentFrame((std::max)(0, frame)); }
+		void SetPlaybackFrame(const int frame) { motionPanel.UpdateCurrentFrame(std::max(0, frame)); }
 		void SetRendererType(const RendererType rendererType) { menuBar.ApplyRenderer(rendererType); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }

@@ -1,7 +1,7 @@
-﻿#include "VulkanViewer.h"
+﻿#include "Viewer/Vulkan/VulkanViewer.h"
 
-#include "VulkanInstance.h"
-#include "../../Shader/ShaderPackage.h"
+#include "Viewer/Vulkan/VulkanInstance.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #include <algorithm>
 #include <iostream>
@@ -12,7 +12,9 @@ namespace Chrivent {
 			return false;
 		if (!msaaDepthBuffer.Initialize(*device, swapChain))
 			return false;
-		if (!renderPass.Initialize(*device, swapChain, msaaDepthBuffer.format))
+		if (postProcessEffect && !postProcess.Initialize(*device, swapChain, *postProcessEffect))
+			return false;
+		if (!renderPass.Initialize(*device, swapChain, msaaDepthBuffer.format, postProcessEffect != nullptr))
 			return false;
 		ShaderPackage package;
 		std::string error;
@@ -29,7 +31,11 @@ namespace Chrivent {
 			*device, swapChain, renderPass.GetRenderPass(),
 			*modelEffect, *edgeEffect, *groundShadowEffect))
 			return false;
-		if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
+		if (postProcessEffect) {
+			if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
+				msaaColorBuffer.imageView, msaaDepthBuffer.imageView, postProcess.GetSceneImageViews()))
+				return false;
+		} else if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
 			msaaColorBuffer.imageView, msaaDepthBuffer.imageView))
 			return false;
 		return commandContext.Initialize(*device, swapChain);
@@ -40,6 +46,7 @@ namespace Chrivent {
 		frameBuffer.Destroy();
 		pipeline->Destroy();
 		renderPass.Destroy();
+		postProcess.Destroy();
 		msaaColorBuffer.Destroy();
 		msaaDepthBuffer.Destroy();
 	}
@@ -196,7 +203,13 @@ namespace Chrivent {
 	bool VulkanViewer::EndFrame() {
 		if (!frameReady)
 			return true;
-		if (!commandContext.commandBuffer.EndRecord(currentImageIndex)) {
+		const bool recordEnded = postProcessEffect
+			? commandContext.commandBuffer.EndRecordWithPostProcess(
+				currentImageIndex, postProcess.GetRenderPass(), postProcess.GetFrameBuffers()[currentImageIndex],
+				postProcess.GetPipeline(), postProcess.GetPipelineLayout(),
+				postProcess.GetDescriptorSet(currentImageIndex), swapChain.extent)
+			: commandContext.commandBuffer.EndRecord(currentImageIndex);
+		if (!recordEnded) {
 			frameReady = false;
 			return false;
 		}
@@ -250,6 +263,21 @@ namespace Chrivent {
 	void VulkanViewer::WaitIdle() {
 		if (device->device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(device->device);
+	}
+
+	bool VulkanViewer::LoadPostProcessEffect(const EffectDefinition& effect) {
+		if (effect.passes.empty())
+			return false;
+		WaitIdle();
+		postProcessEffect = std::make_unique<EffectDefinition>(effect);
+		DestroySwapChainResources();
+		if (CreateSwapChainResources())
+			return true;
+		postProcessEffect.reset();
+		DestroySwapChainResources();
+		if (!CreateSwapChainResources())
+			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
+		return false;
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {

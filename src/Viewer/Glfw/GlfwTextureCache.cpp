@@ -1,6 +1,6 @@
-﻿#include "GlfwTextureCache.h"
+﻿#include "Viewer/Glfw/GlfwTextureCache.h"
 
-#include "../Viewer.h"
+#include "Viewer/Viewer.h"
 
 #include <ranges>
 #include <stb_image.h>

@@ -1,4 +1,4 @@
-﻿#include "DxcShaderCompiler.h"
+﻿#include "Viewer/Shader/DxcShaderCompiler.h"
 
 #include <Windows.h>
 #include <dxc/dxcapi.h>
@@ -16,6 +16,11 @@ namespace Chrivent {
 			outError = "Failed to initialize DXC.";
 			return false;
 		}
+		Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
+		if (FAILED(utils->CreateDefaultIncludeHandler(&includeHandler))) {
+			outError = "Failed to initialize the DXC include handler.";
+			return false;
+		}
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
 		if (FAILED(utils->LoadFile(file.c_str(), nullptr, &source))) {
 			outError = "Failed to open HLSL shader: " + file.string();
@@ -29,9 +34,10 @@ namespace Chrivent {
 		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
 			? L"-fspv-target-env=vulkan1.0"
 			: L"-fspv-target-env=vulkan1.2";
+		const std::wstring includeDirectory = file.parent_path().wstring();
 		std::vector arguments{
 			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(), L"-spirv",
-			targetEnvironment, L"-O3"
+			targetEnvironment, L"-O3", L"-I", includeDirectory.c_str()
 		};
 		if (spirvTarget == SpirvTarget::OpenGl) {
 			const wchar_t* openGlBindings[] = {
@@ -60,17 +66,21 @@ namespace Chrivent {
 		}
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
-			nullptr, IID_PPV_ARGS(&result)))) {
+			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
 			outError = "Failed to invoke DXC: " + file.string();
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
-		result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
+		const HRESULT errorsResult = result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
 		HRESULT status = E_FAIL;
-		result->GetStatus(&status);
+		const HRESULT statusResult = result->GetStatus(&status);
+		if (FAILED(statusResult)) {
+			outError = "Failed to query DXC compilation status: " + file.string();
+			return false;
+		}
 		if (FAILED(status)) {
 			outError = "Failed to compile HLSL shader: " + file.string();
-			if (errors && errors->GetStringLength() > 0) {
+			if (SUCCEEDED(errorsResult) && errors && errors->GetStringLength() > 0) {
 				outError.push_back('\n');
 				outError.append(errors->GetStringPointer(), errors->GetStringLength());
 			}

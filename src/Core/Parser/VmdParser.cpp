@@ -1,9 +1,9 @@
-﻿#include "VmdParser.h"
+﻿#include "Core/Parser/VmdParser.h"
 
 #include <fstream>
 #include <iostream>
 
-#include "BinaryReader.h"
+#include "Core/Parser/BinaryReader.h"
 
 namespace Chrivent {
 	void VmdParser::ReadHeader(std::istream& is) {

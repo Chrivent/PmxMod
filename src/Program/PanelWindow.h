@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "Panel/Panel.h"
-#include "Settings.h"
+#include "Program/Panel/Panel.h"
+#include "Program/Settings.h"
 
 #include <string>
 #include <vector>

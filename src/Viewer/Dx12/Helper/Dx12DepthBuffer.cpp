@@ -1,4 +1,4 @@
-﻿#include "Dx12DepthBuffer.h"
+﻿#include "Viewer/Dx12/Helper/Dx12DepthBuffer.h"
 
 namespace Chrivent {
 	bool Dx12DepthBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {

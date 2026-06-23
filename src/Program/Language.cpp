@@ -1,6 +1,6 @@
-﻿#include "Language.h"
+﻿#include "Program/Language.h"
 
-#include "../Util.h"
+#include "Util.h"
 
 #include <fstream>
 #include <vector>

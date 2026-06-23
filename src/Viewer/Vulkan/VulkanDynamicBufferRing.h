@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../DynamicBufferRing.h"
-#include "Helper/VulkanBuffer.h"
+#include "Viewer/DynamicBufferRing.h"
+#include "Viewer/Vulkan/Helper/VulkanBuffer.h"
 
 #include <optional>
 #include <string>

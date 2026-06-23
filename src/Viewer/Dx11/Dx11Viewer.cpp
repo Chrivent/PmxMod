@@ -1,8 +1,8 @@
-﻿#include "Dx11Viewer.h"
+﻿#include "Viewer/Dx11/Dx11Viewer.h"
 
-#include "Dx11Instance.h"
-#include "Helper/Dx11DescBuilder.h"
-#include "../../Shader/ShaderPackage.h"
+#include "Viewer/Dx11/Dx11Instance.h"
+#include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>

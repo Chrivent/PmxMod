@@ -1,6 +1,6 @@
-﻿#include "Dx12TextureCache.h"
+﻿#include "Viewer/Dx12/Dx12TextureCache.h"
 
-#include "../Viewer.h"
+#include "Viewer/Viewer.h"
 
 #include <stb_image.h>
 #include <windows.h>

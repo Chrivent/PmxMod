@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../Core/Model/Model.h"
+#include "Core/Model/Model.h"
 
 #include <vector>
 #include <glm/glm.hpp>

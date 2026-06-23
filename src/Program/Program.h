@@ -1,14 +1,14 @@
 ﻿#pragma once
 
-#include "RendererType.h"
-#include "Sound.h"
-#include "../Shader/ShaderPackage.h"
-#include "Manager/CameraManager.h"
-#include "Manager/PanelManager.h"
-#include "Manager/InputManager.h"
-#include "TaskExecutor.h"
-#include "../Core/Model/ModelUpdater.h"
-#include "../Viewer/Viewer.h"
+#include "Program/RendererType.h"
+#include "Program/Sound.h"
+#include "Viewer/Shader/ShaderPackage.h"
+#include "Program/Manager/CameraManager.h"
+#include "Program/Manager/PanelManager.h"
+#include "Program/Manager/InputManager.h"
+#include "Program/TaskExecutor.h"
+#include "Core/Model/ModelUpdater.h"
+#include "Viewer/Viewer.h"
 
 #include <chrono>
 #include <filesystem>

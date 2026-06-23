@@ -1,4 +1,4 @@
-﻿#include "Model.h"
+﻿#include "Core/Model/Model.h"
 
 namespace Chrivent {
 	Model::~Model() {

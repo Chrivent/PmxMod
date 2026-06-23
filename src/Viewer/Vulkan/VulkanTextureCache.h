@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../TextureCache.h"
-#include "Helper/VulkanDevice.h"
+#include "Viewer/TextureCache.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
 
 #include <filesystem>
 

@@ -1,6 +1,6 @@
-﻿#include "Dx11Shader.h"
+﻿#include "Viewer/Dx11/Helper/Dx11Shader.h"
 
-#include "../../Shader/ShaderCompiler.h"
+#include "Viewer/Shader/ShaderCompiler.h"
 
 #include <iostream>
 

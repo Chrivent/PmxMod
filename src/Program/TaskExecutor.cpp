@@ -1,4 +1,4 @@
-﻿#include "TaskExecutor.h"
+﻿#include "Program/TaskExecutor.h"
 
 #include <algorithm>
 
@@ -35,7 +35,7 @@ namespace Chrivent {
 	}
 
 	TaskExecutor::TaskExecutor() {
-		const unsigned int hardwareThreads = (std::max)(1u, std::thread::hardware_concurrency());
+		const unsigned int hardwareThreads = std::max(1u, std::thread::hardware_concurrency());
 		workers.reserve(hardwareThreads - 1);
 		for (unsigned int index = 1; index < hardwareThreads; index++)
 			workers.emplace_back([this] { WorkerLoop(); });

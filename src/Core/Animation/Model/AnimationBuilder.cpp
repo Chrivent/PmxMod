@@ -1,8 +1,8 @@
-﻿#include "AnimationBuilder.h"
+﻿#include "Core/Animation/Model/AnimationBuilder.h"
 
-#include "AnimationBinder.h"
-#include "AnimationTrackMap.h"
-#include "../../../Util.h"
+#include "Core/Animation/Model/AnimationBinder.h"
+#include "Core/Animation/Model/AnimationTrackMap.h"
+#include "Util.h"
 
 namespace Chrivent {
 	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {

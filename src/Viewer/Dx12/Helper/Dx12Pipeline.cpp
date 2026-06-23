@@ -1,6 +1,6 @@
-﻿#include "Dx12Pipeline.h"
+﻿#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
 
-#include "../../Shader/ShaderCompiler.h"
+#include "Viewer/Shader/ShaderCompiler.h"
 
 #include <iostream>
 #include <limits>
@@ -126,7 +126,7 @@ namespace Chrivent {
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
-		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
 		pipelineDesc.InputLayout = { inputElements, 3 };
@@ -179,7 +179,7 @@ namespace Chrivent {
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
-		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_FRONT);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
 		pipelineDesc.InputLayout = { inputElements, 2 };
@@ -228,7 +228,7 @@ namespace Chrivent {
 		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
 		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
-		pipelineDesc.SampleMask = (std::numeric_limits<UINT>::max)();
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
 		pipelineDesc.RasterizerState.DepthBias = -1;
 		pipelineDesc.RasterizerState.DepthBiasClamp = -1.0f;
@@ -249,6 +249,35 @@ namespace Chrivent {
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
 		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
+	}
+
+	bool Dx12Pipeline::CreatePostProcessRootSignature(const Dx12Device& sourceDevice) {
+		D3D12_DESCRIPTOR_RANGE srvRange{};
+		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		srvRange.NumDescriptors = 1;
+		srvRange.BaseShaderRegister = 0;
+		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+		D3D12_ROOT_PARAMETER rootParameter;
+		rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameter.DescriptorTable.NumDescriptorRanges = 1;
+		rootParameter.DescriptorTable.pDescriptorRanges = &srvRange;
+		D3D12_STATIC_SAMPLER_DESC sampler{};
+		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		sampler.MaxLOD = D3D12_FLOAT32_MAX;
+		sampler.ShaderRegister = 0;
+		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+		rootSignatureDesc.NumParameters = 1;
+		rootSignatureDesc.pParameters = &rootParameter;
+		rootSignatureDesc.NumStaticSamplers = 1;
+		rootSignatureDesc.pStaticSamplers = &sampler;
+		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		return CreateRootSignature(sourceDevice, rootSignatureDesc, postProcessRootSignature);
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
@@ -290,7 +319,51 @@ namespace Chrivent {
 		commandList->SetPipelineState(groundShadowPipelineState.Get());
 	}
 
+	bool Dx12Pipeline::LoadPostProcessEffect(const Dx12Device& sourceDevice, const EffectDefinition& effect) {
+		if (!sourceDevice.device || effect.passes.empty())
+			return false;
+		postProcessPipelineState.Reset();
+		postProcessRootSignature.Reset();
+		if (!CreatePostProcessRootSignature(sourceDevice))
+			return false;
+		const auto& pass = effect.passes.front();
+		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
+		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		std::string error;
+		if (!ShaderCompiler::CompileFile(pass.shaderPath, pass.vertexEntry.c_str(), "vs_5_1", vertexShader, error)
+			|| !ShaderCompiler::CompileFile(pass.shaderPath, pass.pixelEntry.c_str(), "ps_5_1", pixelShader, error)) {
+			std::cerr << error;
+			return false;
+		}
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+		pipelineDesc.pRootSignature = postProcessRootSignature.Get();
+		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
+		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
+		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
+		pipelineDesc.DepthStencilState.DepthEnable = FALSE;
+		pipelineDesc.DepthStencilState.StencilEnable = FALSE;
+		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		pipelineDesc.NumRenderTargets = 1;
+		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		pipelineDesc.SampleDesc.Count = 1;
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(
+			&pipelineDesc, IID_PPV_ARGS(&postProcessPipelineState)));
+	}
+
+	void Dx12Pipeline::BindPostProcess(ID3D12GraphicsCommandList* commandList,
+		const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
+		if (commandList == nullptr || !postProcessRootSignature || !postProcessPipelineState)
+			return;
+		commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
+		commandList->SetPipelineState(postProcessPipelineState.Get());
+		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
+	}
+
 	void Dx12Pipeline::Destroy() {
+		postProcessPipelineState.Reset();
+		postProcessRootSignature.Reset();
 		groundShadowPipelineState.Reset();
 		groundShadowRootSignature.Reset();
 		edgePipelineState.Reset();

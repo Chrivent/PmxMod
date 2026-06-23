@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../Viewer.h"
-#include "Dx11TextureCache.h"
-#include "Helper/Dx11Shader.h"
+#include "Viewer/Viewer.h"
+#include "Viewer/Dx11/Dx11TextureCache.h"
+#include "Viewer/Dx11/Helper/Dx11Shader.h"
 
 #include <filesystem>
 #include <memory>

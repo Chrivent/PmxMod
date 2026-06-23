@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "CameraAnimation.h"
-#include "../../Parser/VmdParser.h"
+#include "Core/Animation/Camera/CameraAnimation.h"
+#include "Core/Parser/VmdParser.h"
 
 namespace Chrivent {
 	class CameraAnimationBuilder {

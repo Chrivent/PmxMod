@@ -1,4 +1,4 @@
-﻿#include "DynamicBufferRing.h"
+﻿#include "Viewer/DynamicBufferRing.h"
 
 namespace Chrivent {
 	size_t DynamicBufferRing::AlignUp(const size_t value, const size_t alignment) {

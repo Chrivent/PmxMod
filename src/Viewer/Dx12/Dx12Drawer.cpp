@@ -1,9 +1,9 @@
-﻿#include "Dx12Drawer.h"
+﻿#include "Viewer/Dx12/Dx12Drawer.h"
 
-#include "Dx12Instance.h"
-#include "Dx12Viewer.h"
-#include "../Shader/ShaderConstants.h"
-#include "../../Core/Model/Model.h"
+#include "Viewer/Dx12/Dx12Instance.h"
+#include "Viewer/Dx12/Dx12Viewer.h"
+#include "Viewer/Shader/ShaderConstants.h"
+#include "Core/Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>

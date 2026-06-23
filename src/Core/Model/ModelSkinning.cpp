@@ -1,4 +1,4 @@
-﻿#include "ModelSkinning.h"
+﻿#include "Core/Model/ModelSkinning.h"
 
 #include <algorithm>
 #include <thread>
@@ -10,7 +10,7 @@
 namespace Chrivent {
 	void ModelSkinning::SetupParallelUpdate() const {
 		if (!model.geometryData.parallelUpdateCount)
-			model.geometryData.parallelUpdateCount = (std::max)(1u, std::thread::hardware_concurrency());
+			model.geometryData.parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
 		model.geometryData.parallelUpdateCount = std::min<size_t>(model.geometryData.parallelUpdateCount, 16);
 		model.geometryData.updateRanges.resize(model.geometryData.parallelUpdateCount);
 		const size_t totalVertexCount = model.geometryData.positions.size();
@@ -21,7 +21,7 @@ namespace Chrivent {
 				auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[i];
 				if (i < numRanges) {
 					vertexOffset = i * lowerVertexCount;
-					vertexCount  = (std::min)(lowerVertexCount, totalVertexCount - vertexOffset);
+					vertexCount  = std::min(lowerVertexCount, totalVertexCount - vertexOffset);
 				} else {
 					vertexOffset = 0;
 					vertexCount = 0;

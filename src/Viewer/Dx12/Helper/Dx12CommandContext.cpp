@@ -1,4 +1,4 @@
-﻿#include "Dx12CommandContext.h"
+﻿#include "Viewer/Dx12/Helper/Dx12CommandContext.h"
 
 namespace Chrivent {
 	bool Dx12CommandContext::Initialize(const Dx12Device& sourceDevice) {

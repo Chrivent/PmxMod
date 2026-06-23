@@ -1,4 +1,4 @@
-﻿#include "CameraAnimationBuilder.h"
+﻿#include "Core/Animation/Camera/CameraAnimationBuilder.h"
 
 #include <algorithm>
 #include <ranges>

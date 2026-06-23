@@ -1,9 +1,9 @@
-﻿#include "PanelWindow.h"
+﻿#include "Program/PanelWindow.h"
 
-#include "Gui/GuiDrawer.h"
-#include "Gui/GuiTheme.h"
-#include "Language.h"
-#include "MenuBar.h"
+#include "Program/Gui/GuiDrawer.h"
+#include "Program/Gui/GuiTheme.h"
+#include "Program/Language.h"
+#include "Program/MenuBar.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -149,25 +149,25 @@ namespace Chrivent {
 			return;
 		constexpr int margin = 10;
 		constexpr int gap = 8;
-		const int maximumBottomHeight = (std::max)(100, height - margin * 2 - gap - 120);
+		const int maximumBottomHeight = std::max(100, height - margin * 2 - gap - 120);
 		if (layoutSettings.bottomHeight <= 0)
-			layoutSettings.bottomHeight = (std::max)(120, height / 4);
+			layoutSettings.bottomHeight = std::max(120, height / 4);
 		const int bottomHeight = std::clamp(layoutSettings.bottomHeight, 100, maximumBottomHeight);
 		layoutSettings.bottomHeight = bottomHeight;
-		const int topHeight = (std::max)(0, height - bottomHeight - margin * 2 - gap);
+		const int topHeight = std::max(0, height - bottomHeight - margin * 2 - gap);
 		if (layoutSettings.leftWidth <= 0)
 			layoutSettings.leftWidth = std::clamp(width / 4, 160, 320);
 		if (layoutSettings.rightWidth <= 0)
 			layoutSettings.rightWidth = std::clamp(width / 4, 160, 320);
-		const int maximumSideWidth = (std::max)(120, width - margin * 2 - gap * 2 - 240 - 120);
+		const int maximumSideWidth = std::max(120, width - margin * 2 - gap * 2 - 240 - 120);
 		const int leftWidth = std::clamp(layoutSettings.leftWidth, 120, maximumSideWidth);
-		const int maximumRightWidth = (std::max)(120, width - margin * 2 - gap * 2 - leftWidth - 240);
+		const int maximumRightWidth = std::max(120, width - margin * 2 - gap * 2 - leftWidth - 240);
 		const int rightWidth = std::clamp(layoutSettings.rightWidth, 120, maximumRightWidth);
 		layoutSettings.leftWidth = leftWidth;
 		layoutSettings.rightWidth = rightWidth;
 		const int motionX = margin + leftWidth + gap;
 		const int interpolationX = width - margin - rightWidth;
-		const int motionWidth = (std::max)(0, interpolationX - gap - motionX);
+		const int motionWidth = std::max(0, interpolationX - gap - motionX);
 		const int bottomY = margin + topHeight + gap;
 		int bottomIndex = 0;
 		int bottomCount = 0;
@@ -197,7 +197,7 @@ namespace Chrivent {
 				break;
 			}
 			}
-			const int areaWidth = (std::max)(0, static_cast<int>(area.right - area.left));
+			const int areaWidth = std::max(0, static_cast<int>(area.right - area.left));
 			entry.bounds = area;
 			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, TRUE);
 			RECT panelRect{area.left + 4, area.top + 24, area.right - 4, area.bottom - 4};

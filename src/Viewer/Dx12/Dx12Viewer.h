@@ -1,13 +1,14 @@
 ﻿#pragma once
 
-#include "../Viewer.h"
-#include "Dx12TextureCache.h"
-#include "Helper/Dx12CommandContext.h"
-#include "Helper/Dx12DepthBuffer.h"
-#include "Helper/Dx12Device.h"
-#include "Helper/Dx12MsaaColorBuffer.h"
-#include "Helper/Dx12Pipeline.h"
-#include "Helper/Dx12SwapChain.h"
+#include "Viewer/Viewer.h"
+#include "Viewer/Dx12/Dx12TextureCache.h"
+#include "Viewer/Dx12/Helper/Dx12CommandContext.h"
+#include "Viewer/Dx12/Helper/Dx12DepthBuffer.h"
+#include "Viewer/Dx12/Helper/Dx12Device.h"
+#include "Viewer/Dx12/Helper/Dx12MsaaColorBuffer.h"
+#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
+#include "Viewer/Dx12/Helper/Dx12PostProcessTarget.h"
+#include "Viewer/Dx12/Helper/Dx12SwapChain.h"
 
 #include <filesystem>
 #include <memory>
@@ -27,6 +28,7 @@ namespace Chrivent {
 		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
+		Dx12PostProcessTarget postProcessTarget;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
@@ -45,6 +47,8 @@ namespace Chrivent {
 		void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList) const;
 		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
 		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
+		// MSAA 장면을 후처리 입력으로 resolve하고 선택된 효과로 back buffer에 그린다.
+		void DrawPostProcess(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
 
 	public:
 		Dx12Viewer();
@@ -64,6 +68,8 @@ namespace Chrivent {
 		bool EndFrame() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
 		void WaitIdle() override;
+		// 선택한 포스트 프로세스 효과를 DX12 pipeline으로 컴파일한다.
+		bool LoadPostProcessEffect(const EffectDefinition& effect) override;
 		// DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.

@@ -1,6 +1,6 @@
-﻿#include "Joint.h"
+﻿#include "Core/Model/Physics/Joint.h"
 
-#include "RigidBody.h"
+#include "Core/Model/Physics/RigidBody.h"
 
 namespace Chrivent {
 	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBody& rigidBodyA, const RigidBody& rigidBodyB) {

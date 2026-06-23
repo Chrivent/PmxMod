@@ -1,9 +1,9 @@
-﻿#include "GlfwInstance.h"
+﻿#include "Viewer/Glfw/GlfwInstance.h"
 
-#include "GlfwDrawer.h"
-#include "GlfwViewer.h"
-#include "../../Core/Model/Model.h"
-#include "../Shader/ShaderConstants.h"
+#include "Viewer/Glfw/GlfwDrawer.h"
+#include "Viewer/Glfw/GlfwViewer.h"
+#include "Core/Model/Model.h"
+#include "Viewer/Shader/ShaderConstants.h"
 
 #include <algorithm>
 #include <cstddef>

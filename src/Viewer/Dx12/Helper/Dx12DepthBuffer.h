@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Dx12Device.h"
+#include "Viewer/Dx12/Helper/Dx12Device.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>

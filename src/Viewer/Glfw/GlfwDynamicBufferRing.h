@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../DynamicBufferRing.h"
+#include "Viewer/DynamicBufferRing.h"
 
 #include <glad/glad.h>
 

@@ -1,4 +1,4 @@
-﻿#include "VulkanCommandBuffer.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanCommandBuffer.h"
 
 #include <iostream>
 
@@ -114,6 +114,33 @@ namespace Chrivent {
 		vkCmdEndRenderPass(commandBuffer);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan command buffer.\n";
+			return false;
+		}
+		return true;
+	}
+
+	bool VulkanCommandBuffer::EndRecordWithPostProcess(const uint32_t imageIndex,
+		const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const VkPipeline pipeline,
+		const VkPipelineLayout pipelineLayout, const VkDescriptorSet descriptorSet, const VkExtent2D extent) const {
+		if (imageIndex >= commandBuffers.size() || renderPass == VK_NULL_HANDLE
+			|| frameBuffer == VK_NULL_HANDLE || pipeline == VK_NULL_HANDLE
+			|| pipelineLayout == VK_NULL_HANDLE || descriptorSet == VK_NULL_HANDLE)
+			return false;
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		vkCmdEndRenderPass(commandBuffer);
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = renderPass;
+		renderPassInfo.framebuffer = frameBuffer;
+		renderPassInfo.renderArea.extent = extent;
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout, 2, 1, &descriptorSet, 0, nullptr);
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		vkCmdEndRenderPass(commandBuffer);
+		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+			std::cerr << "Failed to record Vulkan post-process command buffer.\n";
 			return false;
 		}
 		return true;

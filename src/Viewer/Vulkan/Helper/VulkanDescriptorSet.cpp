@@ -1,6 +1,6 @@
-﻿#include "VulkanDescriptorSet.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
 
-#include "../VulkanViewer.h"
+#include "Viewer/Vulkan/VulkanViewer.h"
 
 #include <iostream>
 

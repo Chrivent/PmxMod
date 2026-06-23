@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "Config.h"
-#include "Language.h"
-#include "RendererType.h"
+#include "Program/Config.h"
+#include "Program/Language.h"
+#include "Program/RendererType.h"
 
 #include <windows.h>
 

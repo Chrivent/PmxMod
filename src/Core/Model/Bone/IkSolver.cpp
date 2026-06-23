@@ -1,6 +1,6 @@
-﻿#include "IkSolver.h"
+﻿#include "Core/Model/Bone/IkSolver.h"
 
-#include "Node.h"
+#include "Core/Model/Bone/Node.h"
 
 #include <cmath>
 #include <limits>

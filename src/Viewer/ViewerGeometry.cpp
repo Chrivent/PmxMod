@@ -1,4 +1,4 @@
-﻿#include "ViewerGeometry.h"
+﻿#include "Viewer/ViewerGeometry.h"
 
 namespace Chrivent {
 	bool ViewerGeometry::WriteVertices(const ModelGeometryData& geometryData, const bool useUpdateData, ViewerVertex* destination, const size_t destinationCount) {

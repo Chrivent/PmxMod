@@ -1,12 +1,12 @@
-﻿#include "Dx11Instance.h"
+﻿#include "Viewer/Dx11/Dx11Instance.h"
 
-#include "Dx11Drawer.h"
+#include "Viewer/Dx11/Dx11Drawer.h"
 
-#include "Dx11Viewer.h"
-#include "../Shader/ShaderConstants.h"
-#include "Helper/Dx11DescBuilder.h"
-#include "../ViewerGeometry.h"
-#include "../../Core/Model/Model.h"
+#include "Viewer/Dx11/Dx11Viewer.h"
+#include "Viewer/Shader/ShaderConstants.h"
+#include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
+#include "Viewer/ViewerGeometry.h"
+#include "Core/Model/Model.h"
 
 #include <limits>
 
@@ -19,8 +19,8 @@ namespace Chrivent {
 			indexData.bytes.empty())
 			return false;
 		const size_t vertexByteSize = sizeof(ViewerVertex) * geometryData.positions.size();
-		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
-			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
+		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
+			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
 		if (FAILED(viewer->deviceResources.device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))

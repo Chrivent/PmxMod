@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "Model.h"
-#include "../Parser/PmxParser.h"
+#include "Core/Model/Model.h"
+#include "Core/Parser/PmxParser.h"
 
 namespace Chrivent {
 	class ModelLoader {

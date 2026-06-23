@@ -1,4 +1,4 @@
-﻿#include "Dx12SwapChain.h"
+﻿#include "Viewer/Dx12/Helper/Dx12SwapChain.h"
 
 namespace Chrivent {
 	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12Device& sourceDevice) {
@@ -42,6 +42,14 @@ namespace Chrivent {
 			return false;
 		frameIndex = swapChain->GetCurrentBackBufferIndex();
 		return CreateRenderTargetViews(sourceDevice);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::ResolveCurrentRtvHandle() const {
+		if (!rtvHeap)
+			return {};
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		handle.ptr += static_cast<SIZE_T>(frameIndex) * rtvDescriptorSize;
+		return handle;
 	}
 
 	bool Dx12SwapChain::Resize(const Dx12Device& sourceDevice, const int width, const int height) {

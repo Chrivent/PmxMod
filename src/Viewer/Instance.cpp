@@ -1,8 +1,8 @@
-﻿#include "Instance.h"
+﻿#include "Viewer/Instance.h"
 
-#include "Drawer.h"
-#include "Viewer.h"
-#include "../Core/Model/ModelUpdater.h"
+#include "Viewer/Drawer.h"
+#include "Viewer/Viewer.h"
+#include "Core/Model/ModelUpdater.h"
 
 namespace Chrivent {
     Instance::Instance() = default;

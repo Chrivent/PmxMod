@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "VulkanDevice.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
 
 namespace Chrivent {
 	class VulkanMemory {

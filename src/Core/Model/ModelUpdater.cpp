@@ -1,9 +1,9 @@
-﻿#include "ModelUpdater.h"
+﻿#include "Core/Model/ModelUpdater.h"
 
-#include "../Animation/Model/Animation.h"
-#include "ModelAnimator.h"
-#include "ModelPose.h"
-#include "ModelSkinning.h"
+#include "Core/Animation/Model/Animation.h"
+#include "Core/Model/ModelAnimator.h"
+#include "Core/Model/ModelPose.h"
+#include "Core/Model/ModelSkinning.h"
 
 #include <chrono>
 

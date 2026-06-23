@@ -1,10 +1,10 @@
-﻿#include "MotionPanel.h"
+﻿#include "Program/Panel/MotionPanel.h"
 
-#include "../Gui/GuiBackBuffer.h"
-#include "../Gui/GuiDrawer.h"
-#include "../Gui/GuiTheme.h"
-#include "../Language.h"
-#include "../Sound.h"
+#include "Program/Gui/GuiBackBuffer.h"
+#include "Program/Gui/GuiDrawer.h"
+#include "Program/Gui/GuiTheme.h"
+#include "Program/Language.h"
+#include "Program/Sound.h"
 
 #include <CommCtrl.h>
 #include <algorithm>
@@ -133,7 +133,7 @@ namespace Chrivent {
 		seekRequested = true;
 		seekFinished = true;
 		FollowCurrentFrame();
-		SetScrollPos(timelineWindow, SB_HORZ, (std::min)(currentFrame, totalFrame), TRUE);
+		SetScrollPos(timelineWindow, SB_HORZ, std::min(currentFrame, totalFrame), TRUE);
 		InvalidateRect(timelineWindow, nullptr, FALSE);
 	}
 
@@ -150,8 +150,8 @@ namespace Chrivent {
 		InvalidateRect(timelineWindow, nullptr, FALSE);
 	}
 
-	void MotionPanel::UpdateFrameEditText() {
-		if (!frameEdit || GetFocus() == frameEdit)
+	void MotionPanel::UpdateFrameEditText(const bool force) {
+		if (!frameEdit || (!force && GetFocus() == frameEdit))
 			return;
 		updatingFrameEdit = true;
 		SetWindowTextW(frameEdit, std::to_wstring(currentFrame).c_str());
@@ -163,12 +163,12 @@ namespace Chrivent {
 			return;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
-		const int visibleRows = (std::max)(1, (ResolveTimelineBottom() - kHeaderHeight) / kRowHeight);
+		const int visibleRows = std::max(1, (ResolveTimelineBottom() - kHeaderHeight) / kRowHeight);
 		SCROLLINFO vertical{};
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
 		vertical.nMin = 0;
-		vertical.nMax = (std::max)(0, CalculateVisibleRowCount() - 1);
+		vertical.nMax = std::max(0, CalculateVisibleRowCount() - 1);
 		vertical.nPage = visibleRows;
 		vertical.nPos = firstRow;
 		SetScrollInfo(timelineWindow, SB_VERT, &vertical, TRUE);
@@ -183,7 +183,7 @@ namespace Chrivent {
 		horizontal.nMin = 0;
 		horizontal.nMax = totalFrame;
 		horizontal.nPage = 1;
-		horizontal.nPos = (std::min)(currentFrame, totalFrame);
+		horizontal.nPos = std::min(currentFrame, totalFrame);
 		SetScrollInfo(timelineWindow, SB_HORZ, &horizontal, TRUE);
 		ShowScrollBar(timelineWindow, SB_HORZ, TRUE);
 	}
@@ -193,7 +193,7 @@ namespace Chrivent {
 			return kHeaderHeight;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
-		return (std::max)(kHeaderHeight, static_cast<int>(client.bottom) - kWaveformHeight);
+		return std::max(kHeaderHeight, static_cast<int>(client.bottom) - kWaveformHeight);
 	}
 
 	int MotionPanel::CalculateVisibleRowCount() const {
@@ -246,15 +246,15 @@ namespace Chrivent {
 		GuiDrawer::DrawTextLine(deviceContext, modelName.empty() ? Language::Text("motion.select_model") : modelName,
 			{8, 0, kLabelWidth - 4, kHeaderHeight}, RGB(235, 235, 238), DT_LEFT | DT_END_ELLIPSIS);
 		const int timelineWidth = client.right - kLabelWidth;
-		const int visibleFrames = (std::max)(0, timelineWidth / kFrameWidth + 1);
-		const int lastVisibleFrame = (std::min)(totalFrame, firstFrame + visibleFrames);
+		const int visibleFrames = std::max(0, timelineWidth / kFrameWidth + 1);
+		const int lastVisibleFrame = std::min(totalFrame, firstFrame + visibleFrames);
 		for (int offset = 0; offset < visibleFrames; offset++) {
 			const int frame = firstFrame + offset;
 			const int x = kLabelWidth + offset * kFrameWidth;
 			const bool major = frame % 5 == 0;
 			GuiDrawer::DrawLine(deviceContext, x, 0, x, timelineBottom, major ? RGB(65, 77, 92) : RGB(43, 49, 59));
 		}
-		const int visibleRows = (std::max)(0, (timelineBottom - kHeaderHeight) / kRowHeight + 1);
+		const int visibleRows = std::max(0, (timelineBottom - kHeaderHeight) / kRowHeight + 1);
 		int visibleRowIndex = 0;
 		int paintedRows = 0;
 		const int rowClip = SaveDC(deviceContext);
@@ -340,10 +340,10 @@ namespace Chrivent {
 		RestoreDC(deviceContext, rowClip);
 		DrawWaveform(deviceContext, timelineBottom, client.right, client.bottom);
 		if (selectingKeys) {
-			const int left = (std::min)(selectionStart.x, selectionEnd.x);
-			const int top = (std::min)(selectionStart.y, selectionEnd.y);
-			const int right = (std::max)(selectionStart.x, selectionEnd.x);
-			const int bottom = (std::max)(selectionStart.y, selectionEnd.y);
+			const int left = std::min(selectionStart.x, selectionEnd.x);
+			const int top = std::min(selectionStart.y, selectionEnd.y);
+			const int right = std::max(selectionStart.x, selectionEnd.x);
+			const int bottom = std::max(selectionStart.y, selectionEnd.y);
 			GuiDrawer::DrawLine(deviceContext, left, top, right, top, RGB(100, 220, 255));
 			GuiDrawer::DrawLine(deviceContext, right, top, right, bottom, RGB(100, 220, 255));
 			GuiDrawer::DrawLine(deviceContext, right, bottom, left, bottom, RGB(100, 220, 255));
@@ -427,13 +427,13 @@ namespace Chrivent {
 		const int savedDc = SaveDC(deviceContext);
 		IntersectClipRect(deviceContext, kLabelWidth, top, right, bottom);
 		for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
-			float minimum = (std::numeric_limits<float>::max)();
+			float minimum = std::numeric_limits<float>::max();
 			float maximum = std::numeric_limits<float>::lowest();
 			for (const auto& key : row.keys) {
 				if (channelIndex >= key.values.size())
 					continue;
-				minimum = (std::min)(minimum, key.values[channelIndex]);
-				maximum = (std::max)(maximum, key.values[channelIndex]);
+				minimum = std::min(minimum, key.values[channelIndex]);
+				maximum = std::max(maximum, key.values[channelIndex]);
 			}
 			if (minimum > maximum)
 				continue;
@@ -484,7 +484,7 @@ namespace Chrivent {
 			}
 		}
 		RestoreDC(deviceContext, savedDc);
-		const int legendCount = (std::min)(static_cast<int>(row.curveNames.size()), 6);
+		const int legendCount = std::min(static_cast<int>(row.curveNames.size()), 6);
 		for (int index = 0; index < legendCount; index++) {
 			const int y = top + 12 + index * 22;
 			GuiDrawer::DrawDiamond(deviceContext, 18, y, 5, GuiTheme::ResolveCurveColor(index));
@@ -560,10 +560,10 @@ namespace Chrivent {
 	void MotionPanel::SelectKeysInRectangle(const bool additive) {
 		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		const RECT selectionRect{
-			(std::min)(selectionStart.x, selectionEnd.x),
-			(std::min)(selectionStart.y, selectionEnd.y),
-			(std::max)(selectionStart.x, selectionEnd.x),
-			(std::max)(selectionStart.y, selectionEnd.y)
+			std::min(selectionStart.x, selectionEnd.x),
+			std::min(selectionStart.y, selectionEnd.y),
+			std::max(selectionStart.x, selectionEnd.x),
+			std::max(selectionStart.y, selectionEnd.y)
 		};
 		if (!additive)
 			ClearKeySelection();
@@ -697,7 +697,7 @@ namespace Chrivent {
 			case SB_THUMBTRACK: position = trackPosition; break;
 			default: return;
 		}
-		firstRow = std::clamp(position, info.nMin, (std::max)(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
+		firstRow = std::clamp(position, info.nMin, std::max(info.nMin, info.nMax - static_cast<int>(info.nPage) + 1));
 		SetScrollPos(timelineWindow, SB_VERT, firstRow, TRUE);
 		InvalidateRect(timelineWindow, nullptr, TRUE);
 	}
@@ -711,7 +711,7 @@ namespace Chrivent {
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
 		const int timelineWidth = client.right - kLabelWidth;
-		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
+		const int visibleFrames = std::max(1, timelineWidth / kFrameWidth);
 		switch (scrollCode) {
 			case SB_LINELEFT: position--; break;
 			case SB_LINERIGHT: position++; break;
@@ -732,6 +732,7 @@ namespace Chrivent {
 		seekRequested = true;
 		seekFinished = scrollCode != SB_THUMBTRACK;
 		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
+		UpdateFrameEditText(true);
 		FollowCurrentFrame();
 		InvalidateRect(timelineWindow, nullptr, FALSE);
 	}
@@ -739,10 +740,10 @@ namespace Chrivent {
 	void MotionPanel::FollowCurrentFrame() {
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
-		const int timelineWidth = (std::max)(0, static_cast<int>(client.right) - kLabelWidth);
-		const int visibleFrames = (std::max)(1, timelineWidth / kFrameWidth);
+		const int timelineWidth = std::max(0, static_cast<int>(client.right) - kLabelWidth);
+		const int visibleFrames = std::max(1, timelineWidth / kFrameWidth);
 		const int current = currentFrame;
-		const int nextFirstFrame = (std::max)(0, current - visibleFrames / 2);
+		const int nextFirstFrame = std::max(0, current - visibleFrames / 2);
 		if (firstFrame == nextFirstFrame)
 			return;
 		firstFrame = nextFirstFrame;
@@ -821,8 +822,8 @@ namespace Chrivent {
 		constexpr int buttonWidth = 84;
 		const int x = clientRect.left + margin;
 		const int y = clientRect.top + margin + toolbarHeight;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
-		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
+		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
+		const int height = std::max(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2 - toolbarHeight);
 		const int editX = clientRect.right - margin - editWidth;
 		MoveWindow(modeButton, clientRect.left + margin, clientRect.top + margin, buttonWidth, editHeight, TRUE);
 		MoveWindow(frameEdit, editX, clientRect.top + margin, editWidth, editHeight, TRUE);
@@ -902,7 +903,7 @@ namespace Chrivent {
 		currentFrame = timelineFrame;
 		if (timelineWindow) {
 			FollowCurrentFrame();
-			SetScrollPos(timelineWindow, SB_HORZ, (std::min)(currentFrame, totalFrame), TRUE);
+			SetScrollPos(timelineWindow, SB_HORZ, std::min(currentFrame, totalFrame), TRUE);
 			UpdateFrameEditText();
 			InvalidateRect(timelineWindow, nullptr, FALSE);
 		}

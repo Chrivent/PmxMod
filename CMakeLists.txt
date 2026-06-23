@@ -25,7 +25,6 @@ find_library(SPIRV_CROSS_CORE_LIBRARY spirv-cross-core HINTS "$ENV{VULKAN_SDK}/L
 find_library(SPIRV_CROSS_LIBRARY spirv-cross-glsl HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 
 add_subdirectory(src/Core)
-add_subdirectory(src/Shader)
 add_subdirectory(src/Viewer)
 
 add_executable(PmxMod
@@ -65,7 +64,6 @@ target_include_directories(PmxMod PRIVATE
 
 target_link_libraries(PmxMod PRIVATE
         PmxMod::Core
-        PmxMod::Shader
         PmxMod::Viewer
         comctl32
         dwmapi

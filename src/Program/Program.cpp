@@ -1,18 +1,18 @@
-﻿#include "Program.h"
+﻿#include "Program/Program.h"
 
-#include "../Core/Animation/Camera/CameraAnimation.h"
-#include "../Core/Animation/Model/Animation.h"
-#include "../Core/Animation/Model/AnimationBuilder.h"
-#include "../Core/Model/ModelLoader.h"
-#include "../Core/Model/ModelAnimator.h"
-#include "../Core/Model/ModelPose.h"
-#include "../Core/Parser/VmdParser.h"
-#include "../Viewer/Glfw/GlfwViewer.h"
-#include "../Viewer/Vulkan/VulkanViewer.h"
-#include "../Viewer/Dx11/Dx11Viewer.h"
-#include "../Viewer/Dx12/Dx12Viewer.h"
-#include "../Util.h"
-#include "Language.h"
+#include "Core/Animation/Camera/CameraAnimation.h"
+#include "Core/Animation/Model/Animation.h"
+#include "Core/Animation/Model/AnimationBuilder.h"
+#include "Core/Model/ModelLoader.h"
+#include "Core/Model/ModelAnimator.h"
+#include "Core/Model/ModelPose.h"
+#include "Core/Parser/VmdParser.h"
+#include "Viewer/Glfw/GlfwViewer.h"
+#include "Viewer/Vulkan/VulkanViewer.h"
+#include "Viewer/Dx11/Dx11Viewer.h"
+#include "Viewer/Dx12/Dx12Viewer.h"
+#include "Util.h"
+#include "Program/Language.h"
 
 #include <algorithm>
 #include <cwchar>
@@ -182,7 +182,7 @@ namespace Chrivent {
             glfwGetMonitorWorkarea(monitors[index], &x, &y, &width, &height);
             hasDistinctWorkArea = hasDistinctWorkArea
                 || x != firstX || y != firstY || width != firstWidth || height != firstHeight;
-            leftmostX = (std::min)(leftmostX, x);
+            leftmostX = std::min(leftmostX, x);
             if (x > rightX) {
                 rightX = x;
                 rightY = y;
@@ -195,8 +195,8 @@ namespace Chrivent {
         int windowWidth = 0;
         int windowHeight = 0;
         glfwGetWindowSize(viewer->window, &windowWidth, &windowHeight);
-        const int x = rightX + (std::max)(0, (rightWidth - windowWidth) / 2);
-        const int y = rightY + (std::max)(0, (rightHeight - windowHeight) / 2);
+        const int x = rightX + std::max(0, (rightWidth - windowWidth) / 2);
+        const int y = rightY + std::max(0, (rightHeight - windowHeight) / 2);
         glfwSetWindowPos(viewer->window, x, y);
     }
 
@@ -254,7 +254,7 @@ namespace Chrivent {
         }
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
-        selectedShaderEffectIndex = effectCount == 0 ? 0 : (std::min)(selectedShaderEffectIndex, effectCount - 1);
+        selectedShaderEffectIndex = effectCount == 0 ? 0 : std::min(selectedShaderEffectIndex, effectCount - 1);
         UpdateShaderPanel();
         LoadSelectedShaderEffect();
     }
@@ -357,9 +357,9 @@ namespace Chrivent {
         for (const auto& instance : instances) {
             if (instance && instance->anim) {
                 const uint32_t animationLastFrame = instance->anim->CalculateLastFrame();
-                const int timelineLastFrame = (std::min)(
-                    animationLastFrame, static_cast<uint32_t>((std::numeric_limits<int>::max)()));
-                lastFrame = (std::max)(lastFrame, timelineLastFrame);
+                const int timelineLastFrame = std::min(
+                    animationLastFrame, static_cast<uint32_t>(std::numeric_limits<int>::max()));
+                lastFrame = std::max(lastFrame, timelineLastFrame);
             }
         }
         return lastFrame;
@@ -368,7 +368,7 @@ namespace Chrivent {
     int Program::CalculatePlaybackLastFrame() const {
         int lastFrame = CalculateMotionLastFrame();
         if (music.HasSound())
-            lastFrame = (std::max)(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
+            lastFrame = std::max(lastFrame, static_cast<int>(std::ceil(music.GetLengthSeconds() * 30.0)));
         return lastFrame;
     }
 
@@ -421,8 +421,8 @@ namespace Chrivent {
             return frames;
         };
         const auto ToTimelineFrame = [](const uint32_t frame) {
-            constexpr uint32_t maxFrame = (std::numeric_limits<int>::max)();
-            return frame > maxFrame ? (std::numeric_limits<int>::max)() : static_cast<int>(frame);
+            constexpr uint32_t maxFrame = std::numeric_limits<int>::max();
+            return frame > maxFrame ? std::numeric_limits<int>::max() : static_cast<int>(frame);
         };
         std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
@@ -814,21 +814,18 @@ namespace Chrivent {
             total.uploadDrawMilliseconds += timing.uploadDrawMilliseconds;
             total.presentMilliseconds += timing.presentMilliseconds;
             total.totalMilliseconds += timing.totalMilliseconds;
-            maximum.animationMilliseconds = (std::max)(maximum.animationMilliseconds, timing.animationMilliseconds);
-            maximum.initializeCpuMilliseconds = (std::max)(maximum.initializeCpuMilliseconds, timing.initializeCpuMilliseconds);
-            maximum.animationEvaluateCpuMilliseconds = (std::max)(
-                maximum.animationEvaluateCpuMilliseconds, timing.animationEvaluateCpuMilliseconds);
-            maximum.morphCpuMilliseconds = (std::max)(maximum.morphCpuMilliseconds, timing.morphCpuMilliseconds);
-            maximum.beforePhysicsPoseCpuMilliseconds = (std::max)(
-                maximum.beforePhysicsPoseCpuMilliseconds, timing.beforePhysicsPoseCpuMilliseconds);
-            maximum.physicsCpuMilliseconds = (std::max)(maximum.physicsCpuMilliseconds, timing.physicsCpuMilliseconds);
-            maximum.afterPhysicsPoseCpuMilliseconds = (std::max)(
-                maximum.afterPhysicsPoseCpuMilliseconds, timing.afterPhysicsPoseCpuMilliseconds);
-            maximum.transformCpuMilliseconds = (std::max)(maximum.transformCpuMilliseconds, timing.transformCpuMilliseconds);
-            maximum.skinningMilliseconds = (std::max)(maximum.skinningMilliseconds, timing.skinningMilliseconds);
-            maximum.uploadDrawMilliseconds = (std::max)(maximum.uploadDrawMilliseconds, timing.uploadDrawMilliseconds);
-            maximum.presentMilliseconds = (std::max)(maximum.presentMilliseconds, timing.presentMilliseconds);
-            maximum.totalMilliseconds = (std::max)(maximum.totalMilliseconds, timing.totalMilliseconds);
+            maximum.animationMilliseconds = std::max(maximum.animationMilliseconds, timing.animationMilliseconds);
+            maximum.initializeCpuMilliseconds = std::max(maximum.initializeCpuMilliseconds, timing.initializeCpuMilliseconds);
+            maximum.animationEvaluateCpuMilliseconds = std::max(maximum.animationEvaluateCpuMilliseconds, timing.animationEvaluateCpuMilliseconds);
+            maximum.morphCpuMilliseconds = std::max(maximum.morphCpuMilliseconds, timing.morphCpuMilliseconds);
+            maximum.beforePhysicsPoseCpuMilliseconds = std::max(maximum.beforePhysicsPoseCpuMilliseconds, timing.beforePhysicsPoseCpuMilliseconds);
+            maximum.physicsCpuMilliseconds = std::max(maximum.physicsCpuMilliseconds, timing.physicsCpuMilliseconds);
+            maximum.afterPhysicsPoseCpuMilliseconds = std::max(maximum.afterPhysicsPoseCpuMilliseconds, timing.afterPhysicsPoseCpuMilliseconds);
+            maximum.transformCpuMilliseconds = std::max(maximum.transformCpuMilliseconds, timing.transformCpuMilliseconds);
+            maximum.skinningMilliseconds = std::max(maximum.skinningMilliseconds, timing.skinningMilliseconds);
+            maximum.uploadDrawMilliseconds = std::max(maximum.uploadDrawMilliseconds, timing.uploadDrawMilliseconds);
+            maximum.presentMilliseconds = std::max(maximum.presentMilliseconds, timing.presentMilliseconds);
+            maximum.totalMilliseconds = std::max(maximum.totalMilliseconds, timing.totalMilliseconds);
         }
         const double frameCount = benchmarkFrames;
         const auto PrintMetric = [frameCount](const char* name, const double sum, const double max) {

@@ -1,6 +1,6 @@
-﻿#include "GuiTheme.h"
+﻿#include "Program/Gui/GuiTheme.h"
 
-#include "../Language.h"
+#include "Program/Language.h"
 
 #include <CommCtrl.h>
 #include <dwmapi.h>

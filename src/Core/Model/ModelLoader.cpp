@@ -1,8 +1,8 @@
-﻿#include "ModelLoader.h"
+﻿#include "Core/Model/ModelLoader.h"
 
-#include "ModelPose.h"
-#include "../Parser/PmxParser.h"
-#include "../../Util.h"
+#include "Core/Model/ModelPose.h"
+#include "Core/Parser/PmxParser.h"
+#include "Util.h"
 
 #include <algorithm>
 #include <functional>
@@ -17,8 +17,8 @@ namespace Chrivent {
 		model.geometryData.normals.reserve(vertexCount);
 		model.geometryData.uvs.reserve(vertexCount);
 		model.geometryData.vertexBoneInfos.reserve(vertexCount);
-		model.geometryData.bboxMax = glm::vec3(-(std::numeric_limits<float>::max)());
-		model.geometryData.bboxMin = glm::vec3((std::numeric_limits<float>::max)());
+		model.geometryData.bboxMax = glm::vec3(-std::numeric_limits<float>::max());
+		model.geometryData.bboxMin = glm::vec3(std::numeric_limits<float>::max());
 		for (const auto& v : pmxData.vertices) {
 			glm::vec3 pos = v.position * invZ;
 			model.geometryData.positions.push_back(pos);

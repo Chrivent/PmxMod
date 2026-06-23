@@ -1,10 +1,10 @@
-﻿#include "Dx11Drawer.h"
+﻿#include "Viewer/Dx11/Dx11Drawer.h"
 
-#include "Dx11Instance.h"
-#include "Dx11Viewer.h"
-#include "../Shader/ShaderConstants.h"
+#include "Viewer/Dx11/Dx11Instance.h"
+#include "Viewer/Dx11/Dx11Viewer.h"
+#include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/ViewerGeometry.h"
-#include "../../Core/Model/Model.h"
+#include "Core/Model/Model.h"
 
 namespace Chrivent {
 	void Dx11Drawer::BindTexture(

@@ -1,4 +1,4 @@
-﻿#include "VulkanFrameBuffer.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanFrameBuffer.h"
 
 #include <iostream>
 
@@ -9,13 +9,22 @@ namespace Chrivent {
 
 	bool VulkanFrameBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkRenderPass renderPass, const VkImageView colorImageView, const VkImageView depthImageView) {
+		return Initialize(sourceDevice, sourceSwapChain, renderPass, colorImageView, depthImageView,
+			sourceSwapChain.imageViews);
+	}
+
+	bool VulkanFrameBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkRenderPass renderPass, const VkImageView colorImageView, const VkImageView depthImageView,
+		const std::vector<VkImageView>& resolveImageViews) {
+		if (resolveImageViews.size() != sourceSwapChain.imageViews.size())
+			return false;
 		device = sourceDevice.device;
 		frameBuffers.resize(sourceSwapChain.imageViews.size());
 		for (size_t i = 0; i < sourceSwapChain.imageViews.size(); i++) {
 			const VkImageView attachments[] = {
 				colorImageView,
 				depthImageView,
-				sourceSwapChain.imageViews[i],
+				resolveImageViews[i],
 			};
 			VkFramebufferCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

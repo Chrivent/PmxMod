@@ -1,8 +1,8 @@
-﻿#include "InterpolationCurvePanel.h"
+﻿#include "Program/Panel/InterpolationCurvePanel.h"
 
-#include "../Gui/GuiBackBuffer.h"
-#include "../Gui/GuiDrawer.h"
-#include "../Gui/GuiTheme.h"
+#include "Program/Gui/GuiBackBuffer.h"
+#include "Program/Gui/GuiDrawer.h"
+#include "Program/Gui/GuiTheme.h"
 
 #include <algorithm>
 #include <cmath>
@@ -69,8 +69,8 @@ namespace Chrivent {
 				const auto& [name, curves] = selection.channels[channelIndex];
 				const int areaTop = channelIndex * channelHeight;
 				const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
-				const int graphSize = (std::max)(0,
-					(std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
+				const int graphSize = std::max(0,
+					std::min(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
 				if (graphSize <= 0)
 					continue;
 				const int left = (width - graphSize) / 2;
@@ -127,7 +127,7 @@ namespace Chrivent {
 				continue;
 			const int areaTop = channelIndex * channelHeight;
 			const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
-			const int graphSize = (std::max)(0, (std::min)(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
+			const int graphSize = std::max(0, std::min(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
 			if (graphSize <= 0)
 				continue;
 			const int left = (width - graphSize) / 2;
@@ -220,8 +220,8 @@ namespace Chrivent {
 		if (!graphWindow)
 			return;
 		constexpr int margin = 12;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
-		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
+		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left) - margin * 2);
+		const int height = std::max(0, static_cast<int>(clientRect.bottom - clientRect.top) - margin * 2);
 		MoveWindow(graphWindow, clientRect.left + margin, clientRect.top + margin, width, height, TRUE);
 	}
 

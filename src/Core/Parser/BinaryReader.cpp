@@ -1,4 +1,4 @@
-﻿#include "BinaryReader.h"
+﻿#include "Core/Parser/BinaryReader.h"
 
 namespace Chrivent {
 	bool BinaryReader::HasMore(std::istream& is, const std::streampos& end) {

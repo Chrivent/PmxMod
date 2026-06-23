@@ -1,4 +1,4 @@
-﻿#include "ShaderCompiler.h"
+﻿#include "Viewer/Shader/ShaderCompiler.h"
 
 namespace Chrivent {
 	bool ShaderCompiler::CompileFile(const std::filesystem::path& file, const char* entry, const char* target,

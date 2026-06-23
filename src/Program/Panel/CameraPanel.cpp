@@ -1,6 +1,6 @@
-﻿#include "CameraPanel.h"
+﻿#include "Program/Panel/CameraPanel.h"
 
-#include "../Gui/GuiTheme.h"
+#include "Program/Gui/GuiTheme.h"
 
 #include <algorithm>
 
@@ -29,8 +29,8 @@ namespace Chrivent {
 		if (!shaderList)
 			return;
 		constexpr int margin = 12;
-		const int width = (std::max)(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
-		const int height = (std::max)(0, static_cast<int>(clientRect.bottom - clientRect.top - margin * 2));
+		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
+		const int height = std::max(0, static_cast<int>(clientRect.bottom - clientRect.top - margin * 2));
 		MoveWindow(shaderList, clientRect.left + margin, clientRect.top + margin, width, height, TRUE);
 	}
 
@@ -71,7 +71,7 @@ namespace Chrivent {
 			selectedShaderIndex = -1;
 			pendingSelectedShaderIndex = -1;
 		} else
-			selectedShaderIndex = (std::min)(selectedIndex, shaderNames.size() - 1);
+			selectedShaderIndex = std::min(selectedIndex, shaderNames.size() - 1);
 		RefreshShaderList();
 	}
 }

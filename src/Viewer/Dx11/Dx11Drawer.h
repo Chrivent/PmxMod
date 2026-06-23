@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../Drawer.h"
+#include "Viewer/Drawer.h"
 
 #include <d3d11.h>
 #include <glm/glm.hpp>

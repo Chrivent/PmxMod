@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../../Core/Animation/Bezier.h"
-#include "Panel.h"
+#include "Core/Animation/Bezier.h"
+#include "Program/Panel/Panel.h"
 
 #include <string>
 #include <vector>

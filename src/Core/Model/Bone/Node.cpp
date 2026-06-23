@@ -1,4 +1,4 @@
-﻿#include "Node.h"
+﻿#include "Core/Model/Bone/Node.h"
 
 namespace Chrivent {
 	void Node::AddChild(const std::shared_ptr<Node>& childNode) {

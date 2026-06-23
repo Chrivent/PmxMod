@@ -1,6 +1,6 @@
-﻿#include "PanelManager.h"
+﻿#include "Program/Manager/PanelManager.h"
 
-#include "../Sound.h"
+#include "Program/Sound.h"
 
 namespace Chrivent {
 	void PanelManager::UpdateModelPanel() {

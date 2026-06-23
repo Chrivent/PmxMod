@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "VulkanDevice.h"
-#include "VulkanSwapChain.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
+#include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 
 namespace Chrivent {
 	class VulkanMsaaColorBuffer {

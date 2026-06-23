@@ -1,8 +1,8 @@
-﻿#include "ModelAnimator.h"
+﻿#include "Core/Model/ModelAnimator.h"
 
-#include "ModelMorph.h"
-#include "ModelPose.h"
-#include "../Animation/Model/Animation.h"
+#include "Core/Model/ModelMorph.h"
+#include "Core/Model/ModelPose.h"
+#include "Core/Animation/Model/Animation.h"
 
 namespace Chrivent {
 	void ModelAnimator::InitializeAnimation() const {

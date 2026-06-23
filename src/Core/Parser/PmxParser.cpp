@@ -1,7 +1,7 @@
-﻿#include "PmxParser.h"
+﻿#include "Core/Parser/PmxParser.h"
 
-#include "BinaryReader.h"
-#include "../../Util.h"
+#include "Core/Parser/BinaryReader.h"
+#include "Util.h"
 
 #include <fstream>
 #include <iostream>

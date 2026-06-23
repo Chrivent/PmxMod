@@ -1,10 +1,10 @@
-﻿#include "CameraManager.h"
+﻿#include "Program/Manager/CameraManager.h"
 
-#include "InputManager.h"
-#include "../../Core/Animation/Camera/CameraAnimation.h"
-#include "../../Core/Animation/Camera/CameraAnimationBuilder.h"
-#include "../Sound.h"
-#include "../../Viewer/Viewer.h"
+#include "Program/Manager/InputManager.h"
+#include "Core/Animation/Camera/CameraAnimation.h"
+#include "Core/Animation/Camera/CameraAnimationBuilder.h"
+#include "Program/Sound.h"
+#include "Viewer/Viewer.h"
 
 #include <iostream>
 #include <limits>
@@ -25,7 +25,7 @@ namespace Chrivent {
 	int CameraManager::CalculateLastFrame() const {
 		if (!cameraAnim)
 			return 0;
-		return (std::min)(cameraAnim->GetLastFrame(), static_cast<uint32_t>((std::numeric_limits<int>::max)()));
+		return std::min(cameraAnim->GetLastFrame(), static_cast<uint32_t>(std::numeric_limits<int>::max()));
 	}
 
 	const std::vector<CameraAnimationKey>& CameraManager::ResolveAnimationKeys() const {

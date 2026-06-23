@@ -1,6 +1,6 @@
-﻿#include "GuiDrawer.h"
+﻿#include "Program/Gui/GuiDrawer.h"
 
-#include "GuiTheme.h"
+#include "Program/Gui/GuiTheme.h"
 
 #include <CommCtrl.h>
 #include <algorithm>
@@ -65,12 +65,12 @@ namespace Chrivent {
 				lastSample = firstSample + 1;
 			if (firstSample >= minimums.size())
 				continue;
-			lastSample = (std::min)(lastSample, minimums.size());
+			lastSample = std::min(lastSample, minimums.size());
 			float minimum = 1.0f;
 			float maximum = -1.0f;
 			for (size_t sample = firstSample; sample < lastSample; sample++) {
-				minimum = (std::min)(minimum, minimums[sample]);
-				maximum = (std::max)(maximum, maximums[sample]);
+				minimum = std::min(minimum, minimums[sample]);
+				maximum = std::max(maximum, maximums[sample]);
 			}
 			const int top = centerY - std::lround(maximum * amplitudeHeight);
 			const int bottom = centerY - std::lround(minimum * amplitudeHeight);

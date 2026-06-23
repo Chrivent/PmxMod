@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Animation.h"
+#include "Core/Animation/Model/Animation.h"
 
 #include <string>
 

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "VulkanBuffer.h"
-#include "VulkanPipeline.h"
+#include "Viewer/Vulkan/Helper/VulkanBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanPipeline.h"
 
 #include <vector>
 

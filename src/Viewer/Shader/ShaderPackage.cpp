@@ -1,6 +1,6 @@
-﻿#include "ShaderPackage.h"
+﻿#include "Viewer/Shader/ShaderPackage.h"
 
-#include "../Util.h"
+#include "Util.h"
 
 #include <algorithm>
 #include <fstream>

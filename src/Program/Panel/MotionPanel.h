@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "InterpolationCurvePanel.h"
-#include "Panel.h"
+#include "Program/Panel/InterpolationCurvePanel.h"
+#include "Program/Panel/Panel.h"
 
 #include <string>
 #include <vector>
@@ -80,7 +80,7 @@ namespace Chrivent {
 		// 상단 입력 칸이 포커스를 잃으면 스크롤 범위 안으로 복귀한다.
 		void ClampInputFrameToScrollRange();
 		// 현재 프레임을 상단 입력 칸에 표시한다.
-		void UpdateFrameEditText();
+		void UpdateFrameEditText(bool force = false);
 		// 현재 크기와 데이터 범위에 맞춰 세로 스크롤바 범위를 갱신한다.
 		void UpdateVerticalScrollBar() const;
 		// 마지막 프레임과 현재 프레임에 맞춰 가로 스크롤바 범위를 갱신한다.

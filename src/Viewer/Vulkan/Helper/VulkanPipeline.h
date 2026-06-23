@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "VulkanDevice.h"
-#include "VulkanSwapChain.h"
-#include "../../../Shader/ShaderPackage.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
+#include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #include <filesystem>
 

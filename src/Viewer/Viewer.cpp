@@ -1,4 +1,4 @@
-﻿#include "Viewer.h"
+﻿#include "Viewer/Viewer.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>

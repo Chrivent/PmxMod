@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../Instance.h"
-#include "../ViewerGeometry.h"
-#include "GlfwDynamicBufferRing.h"
+#include "Viewer/Instance.h"
+#include "Viewer/ViewerGeometry.h"
+#include "Viewer/Glfw/GlfwDynamicBufferRing.h"
 
 #include <vector>
 #include <glad/glad.h>

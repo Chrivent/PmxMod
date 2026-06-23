@@ -8,7 +8,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "Instance.h"
+#include "Viewer/Instance.h"
 
 namespace Chrivent {
     struct EffectDefinition;

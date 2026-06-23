@@ -1,4 +1,4 @@
-﻿#include "VulkanDynamicBufferRing.h"
+﻿#include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
 
 namespace Chrivent {
 	bool VulkanDynamicBufferRing::Setup(const VulkanDevice& sourceDevice, const size_t bufferSize, std::string& outError) {

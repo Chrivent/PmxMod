@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../Instance.h"
+#include "Viewer/Instance.h"
 
 #include <vector>
 #include <d3d11.h>

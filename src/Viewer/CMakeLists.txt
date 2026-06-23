@@ -11,6 +11,7 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderConstants.h
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h Shader/DxcShaderCompiler.cpp
+        Shader/ShaderPackage.h Shader/ShaderPackage.cpp
 
         Glfw/GlfwViewer.h Glfw/GlfwViewer.cpp
         Glfw/GlfwDrawer.h Glfw/GlfwDrawer.cpp
@@ -34,6 +35,7 @@ target_sources(PmxModViewer PRIVATE
         Vulkan/Helper/VulkanDevice.h Vulkan/Helper/VulkanDevice.cpp
         Vulkan/Helper/VulkanMemory.h Vulkan/Helper/VulkanMemory.cpp
         Vulkan/Helper/VulkanPipeline.h Vulkan/Helper/VulkanPipeline.cpp
+        Vulkan/Helper/VulkanPostProcess.h Vulkan/Helper/VulkanPostProcess.cpp
         Vulkan/Helper/VulkanRenderPass.h Vulkan/Helper/VulkanRenderPass.cpp
         Vulkan/Helper/VulkanShaderModule.h Vulkan/Helper/VulkanShaderModule.cpp
         Vulkan/Helper/VulkanFrameBuffer.h Vulkan/Helper/VulkanFrameBuffer.cpp
@@ -57,6 +59,7 @@ target_sources(PmxModViewer PRIVATE
         Dx12/Helper/Dx12Device.h Dx12/Helper/Dx12Device.cpp
         Dx12/Helper/Dx12MsaaColorBuffer.h Dx12/Helper/Dx12MsaaColorBuffer.cpp
         Dx12/Helper/Dx12Pipeline.h Dx12/Helper/Dx12Pipeline.cpp
+        Dx12/Helper/Dx12PostProcessTarget.h Dx12/Helper/Dx12PostProcessTarget.cpp
         Dx12/Helper/Dx12SwapChain.h Dx12/Helper/Dx12SwapChain.cpp
 )
 
@@ -70,12 +73,12 @@ target_include_directories(PmxModViewer
 target_link_libraries(PmxModViewer
         PUBLIC
         PmxModCore
-        PmxModShader
         glfw
         glad::glad
         glm::glm
         Vulkan::Vulkan
         PRIVATE
+        nlohmann_json::nlohmann_json
         d3d11
         d3d12
         dxgi

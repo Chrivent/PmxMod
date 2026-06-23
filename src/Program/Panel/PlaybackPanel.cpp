@@ -1,7 +1,7 @@
-﻿#include "PlaybackPanel.h"
+﻿#include "Program/Panel/PlaybackPanel.h"
 
-#include "../Gui/GuiTheme.h"
-#include "../Language.h"
+#include "Program/Gui/GuiTheme.h"
+#include "Program/Language.h"
 
 #include <CommCtrl.h>
 #include <algorithm>
@@ -142,10 +142,10 @@ namespace Chrivent {
 		int end = _wtoi(endText);
 		if (editedControlId == controlIds.startFrameEdit) {
 			start = std::clamp(start, 0, kMaxEditableFrame - 1);
-			end = std::clamp((std::max)(end, start + 1), start + 1, kMaxEditableFrame);
+			end = std::clamp(std::max(end, start + 1), start + 1, kMaxEditableFrame);
 		} else {
 			end = std::clamp(end, 1, kMaxEditableFrame);
-			start = std::clamp((std::min)(start, end - 1), 0, end - 1);
+			start = std::clamp(std::min(start, end - 1), 0, end - 1);
 		}
 		ApplyFrameRange({ start, end }, true);
 	}
@@ -245,7 +245,7 @@ namespace Chrivent {
 		const int clientHeight = clientRect.bottom - clientRect.top;
 		constexpr int contentHeight = buttonHeight * 3 + 20;
 		const int buttonX = clientRect.left + (clientWidth - buttonTotalWidth) / 2;
-		const int buttonY = clientRect.top + (std::max)(0, (clientHeight - contentHeight) / 2);
+		const int buttonY = clientRect.top + std::max(0, (clientHeight - contentHeight) / 2);
 		if (playButton)
 			MoveWindow(playButton, buttonX, buttonY, buttonWidth, buttonHeight, TRUE);
 		if (pauseButton)

@@ -1,4 +1,4 @@
-﻿#include "ModelPose.h"
+﻿#include "Core/Model/ModelPose.h"
 #include <ranges>
 
 namespace Chrivent {

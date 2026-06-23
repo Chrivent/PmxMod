@@ -1,4 +1,4 @@
-﻿#include "VulkanMemory.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanMemory.h"
 
 namespace Chrivent {
     bool VulkanMemory::FindMemoryType(const VulkanDevice& sourceDevice, const uint32_t typeFilter,

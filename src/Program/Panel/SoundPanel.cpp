@@ -1,9 +1,9 @@
-﻿#include "SoundPanel.h"
+﻿#include "Program/Panel/SoundPanel.h"
 
-#include "../Gui/GuiDrawer.h"
-#include "../Gui/GuiTheme.h"
-#include "../Language.h"
-#include "../Sound.h"
+#include "Program/Gui/GuiDrawer.h"
+#include "Program/Gui/GuiTheme.h"
+#include "Program/Language.h"
+#include "Program/Sound.h"
 
 #include <CommCtrl.h>
 
@@ -130,10 +130,10 @@ namespace Chrivent {
 		constexpr int gap = 4;
 		const int width = clientRect.right - clientRect.left;
 		const int height = clientRect.bottom - clientRect.top;
-		const int contentWidth = (std::max)(0, width - margin * 2);
-		const int controlWidth = (std::min)(sliderWidth, contentWidth);
-		const int sliderHeight = (std::max)(0, height - margin * 2 - valueHeight - gap);
-		const int x = clientRect.left + (std::max)(margin, (width - controlWidth) / 2);
+		const int contentWidth = std::max(0, width - margin * 2);
+		const int controlWidth = std::min(sliderWidth, contentWidth);
+		const int sliderHeight = std::max(0, height - margin * 2 - valueHeight - gap);
+		const int x = clientRect.left + std::max(margin, (width - controlWidth) / 2);
 		const int y = clientRect.top + margin;
 		if (volumeSlider)
 			MoveWindow(volumeSlider, x, y, controlWidth, sliderHeight, TRUE);

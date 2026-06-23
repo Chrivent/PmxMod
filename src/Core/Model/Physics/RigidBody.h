@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "MotionState.h"
-#include "../../Parser/PmxParser.h"
+#include "Core/Model/Physics/MotionState.h"
+#include "Core/Parser/PmxParser.h"
 
 #include <cstdint>
 #include <memory>

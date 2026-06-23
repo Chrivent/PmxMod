@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../TextureCache.h"
-#include "Helper/Dx12Device.h"
+#include "Viewer/TextureCache.h"
+#include "Viewer/Dx12/Helper/Dx12Device.h"
 
 #include <filesystem>
 #include <wrl/client.h>

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../../Parser/PmxParser.h"
+#include "Core/Parser/PmxParser.h"
 
 #include <memory>
 #include <btBulletDynamicsCommon.h>

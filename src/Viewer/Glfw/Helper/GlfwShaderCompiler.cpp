@@ -1,6 +1,6 @@
-﻿#include "GlfwShaderCompiler.h"
+﻿#include "Viewer/Glfw/Helper/GlfwShaderCompiler.h"
 
-#include "../../Shader/DxcShaderCompiler.h"
+#include "Viewer/Shader/DxcShaderCompiler.h"
 
 #include <iostream>
 #include <spirv_cross/spirv_glsl.hpp>

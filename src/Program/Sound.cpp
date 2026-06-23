@@ -1,4 +1,4 @@
-﻿#include "Sound.h"
+﻿#include "Program/Sound.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
@@ -45,8 +45,8 @@ namespace Chrivent {
                 framesRead == 0)
                 break;
             for (ma_uint64 index = 0; index < framesRead; index++) {
-                minimum = (std::min)(minimum, samples[index]);
-                maximum = (std::max)(maximum, samples[index]);
+                minimum = std::min(minimum, samples[index]);
+                maximum = std::max(maximum, samples[index]);
                 peakSampleCount++;
                 if (peakSampleCount < samplesPerPeak)
                     continue;
@@ -155,7 +155,7 @@ namespace Chrivent {
         const double seekSeconds = seconds;
         const double clampedTime = lengthSec > 0.0
             ? std::clamp(seekSeconds, 0.0, lengthSec)
-            : (std::max)(0.0f, seconds);
+            : std::max(0.0f, seconds);
         const auto frame = clampedTime * sr;
         if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
             prevTimeSec = clampedTime;

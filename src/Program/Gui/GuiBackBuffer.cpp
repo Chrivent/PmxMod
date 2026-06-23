@@ -1,12 +1,12 @@
-﻿#include "GuiBackBuffer.h"
+﻿#include "Program/Gui/GuiBackBuffer.h"
 
 #include <algorithm>
 
 namespace Chrivent {
 	GuiBackBuffer::GuiBackBuffer(const HDC target, const RECT& area)
 		: targetDc(target),
-		  width((std::max)(0L, area.right - area.left)),
-		  height((std::max)(0L, area.bottom - area.top)) {
+		  width(std::max(0L, area.right - area.left)),
+		  height(std::max(0L, area.bottom - area.top)) {
 		if (!targetDc || width == 0 || height == 0)
 			return;
 		memoryDc = CreateCompatibleDC(targetDc);

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "../Viewer.h"
-#include "GlfwTextureCache.h"
-#include "Helper/GlfwShader.h"
+#include "Viewer/Viewer.h"
+#include "Viewer/Glfw/GlfwTextureCache.h"
+#include "Viewer/Glfw/Helper/GlfwShader.h"
 
 #include <filesystem>
 #include <memory>
@@ -29,6 +29,16 @@ namespace Chrivent {
 
         const int           msaaSamples = 4;
         GlfwTextureCache    textureCache;
+        GLuint sceneFramebuffer = 0;
+        GLuint sceneColorTexture = 0;
+        GLuint sceneDepthStencil = 0;
+        GLuint postProcessVao = 0;
+        std::unique_ptr<GlfwPostProcessShader> postProcessShader;
+
+        // 화면 크기에 맞는 후처리용 장면 프레임버퍼를 생성한다.
+        bool CreatePostProcessTargets();
+        // 후처리용 장면 프레임버퍼 리소스를 해제한다.
+        void DestroyPostProcessTargets();
 
     public:
         GLuint dummyColorTex = 0;
@@ -37,7 +47,7 @@ namespace Chrivent {
         std::unique_ptr<GlfwGroundShadowShader> gsShader;
 
         GlfwViewer() = default;
-        ~GlfwViewer() override = default;
+        ~GlfwViewer() override;
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureGlfwHints() override;
@@ -51,6 +61,8 @@ namespace Chrivent {
         bool EndFrame() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.
         void WaitIdle() override;
+        // 선택한 후처리 HLSL을 OpenGL 프로그램으로 준비한다.
+        bool LoadPostProcessEffect(const EffectDefinition& effect) override;
         // OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
 

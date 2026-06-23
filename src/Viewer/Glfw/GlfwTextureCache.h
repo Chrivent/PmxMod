@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../TextureCache.h"
+#include "Viewer/TextureCache.h"
 
 #include <filesystem>
 #include <glad/glad.h>

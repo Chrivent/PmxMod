@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include "Bone/Node.h"
-#include "Bone/IkSolver.h"
-#include "Physics/Physics.h"
-#include "Physics/RigidBody.h"
-#include "Physics/Joint.h"
+#include "Core/Model/Bone/Node.h"
+#include "Core/Model/Bone/IkSolver.h"
+#include "Core/Model/Physics/Physics.h"
+#include "Core/Model/Physics/RigidBody.h"
+#include "Core/Model/Physics/Joint.h"
 
 #include <cstdint>
 #include <filesystem>

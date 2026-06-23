@@ -1,7 +1,7 @@
-﻿#include "MotionState.h"
+﻿#include "Core/Model/Physics/MotionState.h"
 
-#include "../Bone/Node.h"
-#include "../../../Util.h"
+#include "Core/Model/Bone/Node.h"
+#include "Util.h"
 
 namespace Chrivent {
 	MotionState::~MotionState() = default;

@@ -1,4 +1,4 @@
-﻿#include "Dx11DescBuilder.h"
+﻿#include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
 
 namespace Chrivent {
 	D3D11_SAMPLER_DESC Dx11DescBuilder::MakeSamplerDesc(const D3D11_FILTER f, const D3D11_TEXTURE_ADDRESS_MODE addr) {

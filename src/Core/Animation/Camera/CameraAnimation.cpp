@@ -1,6 +1,6 @@
-﻿#include "CameraAnimation.h"
+﻿#include "Core/Animation/Camera/CameraAnimation.h"
 
-#include "../AnimationKeySearch.h"
+#include "Core/Animation/AnimationKeySearch.h"
 
 namespace Chrivent {
 	const Camera& CameraAnimation::Evaluate(const float t) {

@@ -1,4 +1,4 @@
-﻿#include "VulkanSwapChain.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 
 #include <algorithm>
 #include <iostream>
@@ -49,8 +49,8 @@ namespace Chrivent {
 		int height = 0;
 		glfwGetFramebufferSize(window, &width, &height);
 		VkExtent2D extent{
-			static_cast<uint32_t>((std::max)(0, width)),
-			static_cast<uint32_t>((std::max)(0, height))
+			static_cast<uint32_t>(std::max(0, width)),
+			static_cast<uint32_t>(std::max(0, height))
 		};
 		extent.width = (std::clamp)(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		extent.height = (std::clamp)(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);

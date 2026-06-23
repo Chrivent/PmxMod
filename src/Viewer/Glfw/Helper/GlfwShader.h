@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../../../Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #include <glad/glad.h>
 
@@ -29,6 +29,11 @@ namespace Chrivent {
 
     struct GlfwGroundShadowShader : GlfwShader {
         // 지면 그림자 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
+        bool Setup(const EffectPassDefinition& pass);
+    };
+
+    struct GlfwPostProcessShader : GlfwShader {
+        // 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
         bool Setup(const EffectPassDefinition& pass);
     };
 }

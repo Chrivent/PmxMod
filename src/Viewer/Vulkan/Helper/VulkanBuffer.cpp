@@ -1,6 +1,6 @@
-﻿#include "VulkanBuffer.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanBuffer.h"
 
-#include "VulkanMemory.h"
+#include "Viewer/Vulkan/Helper/VulkanMemory.h"
 
 #include <iostream>
 

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "VulkanBuffer.h"
-#include "VulkanDevice.h"
-#include "VulkanSwapChain.h"
+#include "Viewer/Vulkan/Helper/VulkanBuffer.h"
+#include "Viewer/Vulkan/Helper/VulkanDevice.h"
+#include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 
 #include <vector>
 
@@ -40,6 +40,10 @@ namespace Chrivent {
 			const uint32_t* dynamicOffsets = nullptr, uint32_t dynamicOffsetCount = 0) const;
 		// 지정한 스왑체인 이미지에 대한 렌더 패스와 command buffer 기록을 종료한다.
 		bool EndRecord(uint32_t imageIndex) const;
+		// 장면 렌더 패스를 끝내고 선택된 후처리 패스로 풀스크린 삼각형을 그린 뒤 기록을 종료한다.
+		bool EndRecordWithPostProcess(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer,
+			VkPipeline pipeline, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet,
+			VkExtent2D extent) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Destroy();
 	};

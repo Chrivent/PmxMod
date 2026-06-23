@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../Bezier.h"
-#include "Camera.h"
+#include "Core/Animation/Bezier.h"
+#include "Core/Animation/Camera/Camera.h"
 
 #include <cstdint>
 #include <utility>

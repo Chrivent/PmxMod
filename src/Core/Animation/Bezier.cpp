@@ -1,4 +1,4 @@
-﻿#include "Bezier.h"
+﻿#include "Core/Animation/Bezier.h"
 
 #include <algorithm>
 

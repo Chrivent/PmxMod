@@ -1,22 +1,22 @@
-﻿#include "Animation.h"
+﻿#include "Core/Animation/Model/Animation.h"
 
-#include "../AnimationKeySearch.h"
-#include "../../Model/Model.h"
+#include "Core/Animation/AnimationKeySearch.h"
+#include "Core/Model/Model.h"
 
 namespace Chrivent {
 	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;
 		for (const auto& [node, keys] : nodeTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().frame);
+				lastFrame = std::max(lastFrame, keys.back().frame);
 		}
 		for (const auto& [ikSolver, keys] : ikTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().frame);
+				lastFrame = std::max(lastFrame, keys.back().frame);
 		}
 		for (const auto& [morph, keys] : morphTracks) {
 			if (!keys.empty())
-				lastFrame = (std::max)(lastFrame, keys.back().frame);
+				lastFrame = std::max(lastFrame, keys.back().frame);
 		}
 		return lastFrame;
 	}

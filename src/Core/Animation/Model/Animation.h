@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "../Bezier.h"
+#include "Core/Animation/Bezier.h"
 
 #include <cstdint>
 #include <memory>

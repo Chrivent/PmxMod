@@ -1,7 +1,7 @@
-﻿#include "Dx11TextureCache.h"
+﻿#include "Viewer/Dx11/Dx11TextureCache.h"
 
-#include "Helper/Dx11DescBuilder.h"
-#include "../Viewer.h"
+#include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
+#include "Viewer/Viewer.h"
 
 #include <stb_image.h>
 

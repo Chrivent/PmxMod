@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "../Instance.h"
-#include "Helper/Dx12Buffer.h"
+#include "Viewer/Instance.h"
+#include "Viewer/Dx12/Helper/Dx12Buffer.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>

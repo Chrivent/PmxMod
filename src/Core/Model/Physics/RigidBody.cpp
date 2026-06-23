@@ -1,9 +1,9 @@
-﻿#include "RigidBody.h"
+﻿#include "Core/Model/Physics/RigidBody.h"
 
-#include "Physics.h"
-#include "../Bone/Node.h"
-#include "../Model.h"
-#include "../../../Util.h"
+#include "Core/Model/Physics/Physics.h"
+#include "Core/Model/Bone/Node.h"
+#include "Core/Model/Model.h"
+#include "Util.h"
 
 namespace Chrivent {
 	void RigidBody::Create(const PmxParser::PmxRigidbody& pmxRigidBody, const Model* model, const std::shared_ptr<Node>& nodePtr) {

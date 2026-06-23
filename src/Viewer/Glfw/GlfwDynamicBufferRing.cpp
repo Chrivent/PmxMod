@@ -1,4 +1,4 @@
-﻿#include "GlfwDynamicBufferRing.h"
+﻿#include "Viewer/Glfw/GlfwDynamicBufferRing.h"
 
 namespace Chrivent {
 	GlfwDynamicBufferRing::~GlfwDynamicBufferRing() {

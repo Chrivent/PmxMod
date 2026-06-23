@@ -1,9 +1,9 @@
-﻿#include "VulkanDrawer.h"
+﻿#include "Viewer/Vulkan/VulkanDrawer.h"
 
-#include "VulkanInstance.h"
-#include "VulkanViewer.h"
-#include "../Shader/ShaderConstants.h"
-#include "../../Core/Model/Model.h"
+#include "Viewer/Vulkan/VulkanInstance.h"
+#include "Viewer/Vulkan/VulkanViewer.h"
+#include "Viewer/Shader/ShaderConstants.h"
+#include "Core/Model/Model.h"
 
 #include <iostream>
 

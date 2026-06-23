@@ -1,8 +1,8 @@
-﻿#include "VulkanPipeline.h"
+﻿#include "Viewer/Vulkan/Helper/VulkanPipeline.h"
 
-#include "VulkanShaderModule.h"
-#include "../VulkanInstance.h"
-#include "../../Shader/DxcShaderCompiler.h"
+#include "Viewer/Vulkan/Helper/VulkanShaderModule.h"
+#include "Viewer/Vulkan/VulkanInstance.h"
+#include "Viewer/Shader/DxcShaderCompiler.h"
 
 #include <cstddef>
 #include <iostream>

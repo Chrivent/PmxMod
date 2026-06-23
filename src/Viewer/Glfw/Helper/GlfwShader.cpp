@@ -1,6 +1,6 @@
-﻿#include "GlfwShader.h"
+﻿#include "Viewer/Glfw/Helper/GlfwShader.h"
 
-#include "GlfwShaderCompiler.h"
+#include "Viewer/Glfw/Helper/GlfwShaderCompiler.h"
 
 namespace Chrivent {
     GlfwShader::~GlfwShader() {
@@ -34,5 +34,10 @@ namespace Chrivent {
             return false;
         positionLocation = 0;
         return true;
+    }
+
+    bool GlfwPostProcessShader::Setup(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+        return program != 0;
     }
 }
