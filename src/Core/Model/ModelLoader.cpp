@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <functional>
 #include <iomanip>
+#include <iostream>
 #include <limits>
 #include <sstream>
 
@@ -340,10 +341,13 @@ namespace Chrivent {
 	}
 
 	bool ModelLoader::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) const {
-		model.Destroy();
+		model.Reset();
 		PmxParser pmx;
-		if (!pmx.ReadFile(filepath))
+		const auto parseResult = pmx.ReadFile(filepath);
+		if (!parseResult) {
+			std::cerr << "Failed to read PMX file: " << FormatParseError(parseResult.error()) << '\n';
 			return false;
+		}
 		const auto& pmxData = pmx.GetData();
 		model.infoData.modelName = pmxData.info.modelName;
 		model.infoData.englishModelName = pmxData.info.englishModelName;

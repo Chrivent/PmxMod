@@ -335,8 +335,9 @@ namespace Chrivent {
             AnimationBuilder animationBuilder(instance->model);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
-                if (!vmd.ReadFile(vmdPath.c_str())) {
-                    std::cerr << "Failed to read VMD file.\n";
+                const auto parseResult = vmd.ReadFile(vmdPath);
+                if (!parseResult) {
+                    std::cerr << "Failed to read VMD file: " << FormatParseError(parseResult.error()) << '\n';
                     return false;
                 }
                 animationBuilder.Build(vmd.GetData());

@@ -59,7 +59,12 @@ namespace Chrivent {
 			return;
 		}
 		VmdParser camVmd;
-		if (camVmd.ReadFile(cameraAnimPath.c_str()) && !camVmd.GetData().cameras.empty()) {
+		const auto parseResult = camVmd.ReadFile(cameraAnimPath);
+		if (!parseResult) {
+			std::cerr << "Failed to read camera VMD: " << FormatParseError(parseResult.error()) << '\n';
+			return;
+		}
+		if (!camVmd.GetData().cameras.empty()) {
 			auto cameraKeys = CameraAnimationBuilder::Build(camVmd.GetData());
 			if (cameraKeys.empty())
 				std::cerr << "Failed to create VMDCameraAnimation.\n";

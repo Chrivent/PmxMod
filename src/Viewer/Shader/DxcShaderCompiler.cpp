@@ -6,13 +6,13 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	bool DxcShaderCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
-		const std::wstring& target, const SpirvTarget spirvTarget,
-		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
+	bool DxcShaderCompiler::CompileObject(const std::filesystem::path& file, const std::wstring& entry,
+		const std::wstring& target, const std::span<const wchar_t* const> additionalArguments,
+		std::vector<uint8_t>& outObject, std::string& outError) {
 		Microsoft::WRL::ComPtr<IDxcUtils> utils;
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
-		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)))
-			|| FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
+		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils))) ||
+			FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
 			outError = "Failed to initialize DXC.";
 			return false;
 		}
@@ -31,14 +31,56 @@ namespace Chrivent {
 			.Size = source->GetBufferSize(),
 			.Encoding = DXC_CP_UTF8
 		};
-		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
-			? L"-fspv-target-env=vulkan1.0"
-			: L"-fspv-target-env=vulkan1.2";
 		const std::wstring includeDirectory = file.parent_path().wstring();
 		std::vector arguments{
-			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(), L"-spirv",
-			targetEnvironment, L"-O3", L"-I", includeDirectory.c_str()
+			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(),
+			L"-O3", L"-I", includeDirectory.c_str()
 		};
+		arguments.insert(arguments.end(), additionalArguments.begin(), additionalArguments.end());
+		Microsoft::WRL::ComPtr<IDxcResult> result;
+		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
+			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
+			outError = "Failed to invoke DXC: " + file.string();
+			return false;
+		}
+		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
+		result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
+		HRESULT status = E_FAIL;
+		if (FAILED(result->GetStatus(&status))) {
+			outError = "Failed to query DXC compilation status: " + file.string();
+			return false;
+		}
+		if (FAILED(status)) {
+			outError = "Failed to compile HLSL shader: " + file.string();
+			if (errors && errors->GetStringLength() > 0) {
+				outError.push_back('\n');
+				outError.append(errors->GetStringPointer(), errors->GetStringLength());
+			}
+			return false;
+		}
+		Microsoft::WRL::ComPtr<IDxcBlob> object;
+		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr)) || !object) {
+			outError = "DXC returned an invalid shader object: " + file.string();
+			return false;
+		}
+		outObject.resize(object->GetBufferSize());
+		std::memcpy(outObject.data(), object->GetBufferPointer(), outObject.size());
+		outError.clear();
+		return true;
+	}
+
+	bool DxcShaderCompiler::CompileDxil(const std::filesystem::path& file, const std::wstring& entry,
+		const std::wstring& target, std::vector<uint8_t>& outDxil, std::string& outError) {
+		return CompileObject(file, entry, target, {}, outDxil, outError);
+	}
+
+	bool DxcShaderCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
+		const std::wstring& target, const SpirvTarget spirvTarget,
+		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
+		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
+			? L"-fspv-target-env=vulkan1.0"
+			: L"-fspv-target-env=vulkan1.3";
+		std::vector arguments{ L"-spirv", targetEnvironment };
 		if (invertVertexY)
 			arguments.emplace_back(L"-fvk-invert-y");
 		if (spirvTarget == SpirvTarget::OpenGl) {
@@ -66,37 +108,15 @@ namespace Chrivent {
 			};
 			arguments.insert(arguments.end(), std::begin(vulkanBindings), std::end(vulkanBindings));
 		}
-		Microsoft::WRL::ComPtr<IDxcResult> result;
-		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
-			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
-			outError = "Failed to invoke DXC: " + file.string();
+		std::vector<uint8_t> object;
+		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;
-		}
-		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
-		const HRESULT errorsResult = result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
-		HRESULT status = E_FAIL;
-		const HRESULT statusResult = result->GetStatus(&status);
-		if (FAILED(statusResult)) {
-			outError = "Failed to query DXC compilation status: " + file.string();
-			return false;
-		}
-		if (FAILED(status)) {
-			outError = "Failed to compile HLSL shader: " + file.string();
-			if (SUCCEEDED(errorsResult) && errors && errors->GetStringLength() > 0) {
-				outError.push_back('\n');
-				outError.append(errors->GetStringPointer(), errors->GetStringLength());
-			}
-			return false;
-		}
-		Microsoft::WRL::ComPtr<IDxcBlob> object;
-		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr))
-			|| object->GetBufferSize() % sizeof(uint32_t) != 0) {
+		if (object.size() % sizeof(uint32_t) != 0) {
 			outError = "DXC returned invalid SPIR-V: " + file.string();
 			return false;
 		}
-		const auto* words = static_cast<const uint32_t*>(object->GetBufferPointer());
-		outSpirv.assign(words, words + object->GetBufferSize() / sizeof(uint32_t));
-		outError.clear();
+		outSpirv.resize(object.size() / sizeof(uint32_t));
+		std::memcpy(outSpirv.data(), object.data(), object.size());
 		return true;
 	}
 }
