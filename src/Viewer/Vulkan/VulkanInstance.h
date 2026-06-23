@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Viewer/Instance.h"
-#include "Viewer/ViewerGeometry.h"
 #include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
 #include "Viewer/Vulkan/Helper/VulkanBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
