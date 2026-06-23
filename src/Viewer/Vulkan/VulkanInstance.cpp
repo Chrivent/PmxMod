@@ -3,6 +3,7 @@
 #include "Viewer/Vulkan/VulkanDrawer.h"
 #include "Viewer/Vulkan/VulkanViewer.h"
 #include "Viewer/Shader/ShaderConstants.h"
+#include "Viewer/ViewerGeometry.h"
 #include "Core/Model/Model.h"
 
 #include <algorithm>

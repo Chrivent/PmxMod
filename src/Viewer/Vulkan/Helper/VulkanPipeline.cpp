@@ -3,6 +3,7 @@
 #include "Viewer/Vulkan/Helper/VulkanShaderModule.h"
 #include "Viewer/Vulkan/VulkanInstance.h"
 #include "Viewer/Shader/DxcShaderCompiler.h"
+#include "Viewer/ViewerGeometry.h"
 
 #include <cstddef>
 #include <iostream>
