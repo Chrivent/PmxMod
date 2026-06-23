@@ -8,60 +8,56 @@ target_sources(PmxModViewer PRIVATE
         ShaderConstants.h
         TextureCache.h
         ViewerGeometry.h ViewerGeometry.cpp
+        DynamicBufferRing.h DynamicBufferRing.cpp
+        Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h Shader/DxcShaderCompiler.cpp
 
-        Glsl/GlslShaderConstants.h
-        Glsl/GlslDynamicBufferRing.h Glsl/GlslDynamicBufferRing.cpp
+        Glfw/GlfwViewer.h Glfw/GlfwViewer.cpp
+        Glfw/GlfwDrawer.h Glfw/GlfwDrawer.cpp
+        Glfw/GlfwTextureCache.h Glfw/GlfwTextureCache.cpp
+        Glfw/GlfwInstance.h Glfw/GlfwInstance.cpp
+        Glfw/GlfwDynamicBufferRing.h Glfw/GlfwDynamicBufferRing.cpp
+        Glfw/Helper/GlfwShader.h Glfw/Helper/GlfwShader.cpp
+        Glfw/Helper/GlfwShaderCompiler.h Glfw/Helper/GlfwShaderCompiler.cpp
 
-        Glsl/Glfw/GlfwViewer.h Glsl/Glfw/GlfwViewer.cpp
-        Glsl/Glfw/GlfwDrawer.h Glsl/Glfw/GlfwDrawer.cpp
-        Glsl/Glfw/GlfwTextureCache.h Glsl/Glfw/GlfwTextureCache.cpp
-        Glsl/Glfw/GlfwInstance.h Glsl/Glfw/GlfwInstance.cpp
-        Glsl/Glfw/GlfwDynamicBufferRing.h Glsl/Glfw/GlfwDynamicBufferRing.cpp
-        Glsl/Glfw/Helper/GlfwShader.h Glsl/Glfw/Helper/GlfwShader.cpp
-        Glsl/Glfw/Helper/GlfwShaderCompiler.h Glsl/Glfw/Helper/GlfwShaderCompiler.cpp
+        Vulkan/VulkanViewer.h Vulkan/VulkanViewer.cpp
+        Vulkan/VulkanDrawer.h Vulkan/VulkanDrawer.cpp
+        Vulkan/VulkanTextureCache.h Vulkan/VulkanTextureCache.cpp
+        Vulkan/VulkanInstance.h Vulkan/VulkanInstance.cpp
+        Vulkan/VulkanDynamicBufferRing.h Vulkan/VulkanDynamicBufferRing.cpp
+        Vulkan/Helper/VulkanBuffer.h Vulkan/Helper/VulkanBuffer.cpp
+        Vulkan/Helper/VulkanMsaaColorBuffer.h Vulkan/Helper/VulkanMsaaColorBuffer.cpp
+        Vulkan/Helper/VulkanCommandBuffer.h Vulkan/Helper/VulkanCommandBuffer.cpp
+        Vulkan/Helper/VulkanCommandContext.h Vulkan/Helper/VulkanCommandContext.cpp
+        Vulkan/Helper/VulkanMsaaDepthBuffer.h Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
+        Vulkan/Helper/VulkanDescriptorSet.h Vulkan/Helper/VulkanDescriptorSet.cpp
+        Vulkan/Helper/VulkanDevice.h Vulkan/Helper/VulkanDevice.cpp
+        Vulkan/Helper/VulkanMemory.h Vulkan/Helper/VulkanMemory.cpp
+        Vulkan/Helper/VulkanPipeline.h Vulkan/Helper/VulkanPipeline.cpp
+        Vulkan/Helper/VulkanRenderPass.h Vulkan/Helper/VulkanRenderPass.cpp
+        Vulkan/Helper/VulkanShaderModule.h Vulkan/Helper/VulkanShaderModule.cpp
+        Vulkan/Helper/VulkanFrameBuffer.h Vulkan/Helper/VulkanFrameBuffer.cpp
+        Vulkan/Helper/VulkanSwapChain.h Vulkan/Helper/VulkanSwapChain.cpp
+        Vulkan/Helper/VulkanSyncObject.h Vulkan/Helper/VulkanSyncObject.cpp
 
-        Glsl/Vulkan/VulkanViewer.h Glsl/Vulkan/VulkanViewer.cpp
-        Glsl/Vulkan/VulkanDrawer.h Glsl/Vulkan/VulkanDrawer.cpp
-        Glsl/Vulkan/VulkanTextureCache.h Glsl/Vulkan/VulkanTextureCache.cpp
-        Glsl/Vulkan/VulkanInstance.h Glsl/Vulkan/VulkanInstance.cpp
-        Glsl/Vulkan/VulkanDynamicBufferRing.h Glsl/Vulkan/VulkanDynamicBufferRing.cpp
-        Glsl/Vulkan/Helper/VulkanBuffer.h Glsl/Vulkan/Helper/VulkanBuffer.cpp
-        Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.h Glsl/Vulkan/Helper/VulkanMsaaColorBuffer.cpp
-        Glsl/Vulkan/Helper/VulkanCommandBuffer.h Glsl/Vulkan/Helper/VulkanCommandBuffer.cpp
-        Glsl/Vulkan/Helper/VulkanCommandContext.h Glsl/Vulkan/Helper/VulkanCommandContext.cpp
-        Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.h Glsl/Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
-        Glsl/Vulkan/Helper/VulkanDescriptorSet.h Glsl/Vulkan/Helper/VulkanDescriptorSet.cpp
-        Glsl/Vulkan/Helper/VulkanDevice.h Glsl/Vulkan/Helper/VulkanDevice.cpp
-        Glsl/Vulkan/Helper/VulkanMemory.h Glsl/Vulkan/Helper/VulkanMemory.cpp
-        Glsl/Vulkan/Helper/VulkanPipeline.h Glsl/Vulkan/Helper/VulkanPipeline.cpp
-        Glsl/Vulkan/Helper/VulkanRenderPass.h Glsl/Vulkan/Helper/VulkanRenderPass.cpp
-        Glsl/Vulkan/Helper/VulkanShaderModule.h Glsl/Vulkan/Helper/VulkanShaderModule.cpp
-        Glsl/Vulkan/Helper/VulkanFrameBuffer.h Glsl/Vulkan/Helper/VulkanFrameBuffer.cpp
-        Glsl/Vulkan/Helper/VulkanSwapChain.h Glsl/Vulkan/Helper/VulkanSwapChain.cpp
-        Glsl/Vulkan/Helper/VulkanSyncObject.h Glsl/Vulkan/Helper/VulkanSyncObject.cpp
+        Dx11/Dx11Viewer.h Dx11/Dx11Viewer.cpp
+        Dx11/Dx11Drawer.h Dx11/Dx11Drawer.cpp
+        Dx11/Dx11TextureCache.h Dx11/Dx11TextureCache.cpp
+        Dx11/Dx11Instance.h Dx11/Dx11Instance.cpp
+        Dx11/Helper/Dx11DescBuilder.h Dx11/Helper/Dx11DescBuilder.cpp
+        Dx11/Helper/Dx11Shader.h Dx11/Helper/Dx11Shader.cpp
 
-        Hlsl/HlslShaderConstants.h
-        Hlsl/HlslShaderCompiler.h Hlsl/HlslShaderCompiler.cpp
-
-        Hlsl/Dx11/Dx11Viewer.h Hlsl/Dx11/Dx11Viewer.cpp
-        Hlsl/Dx11/Dx11Drawer.h Hlsl/Dx11/Dx11Drawer.cpp
-        Hlsl/Dx11/Dx11TextureCache.h Hlsl/Dx11/Dx11TextureCache.cpp
-        Hlsl/Dx11/Dx11Instance.h Hlsl/Dx11/Dx11Instance.cpp
-        Hlsl/Dx11/Helper/Dx11DescBuilder.h Hlsl/Dx11/Helper/Dx11DescBuilder.cpp
-        Hlsl/Dx11/Helper/Dx11Shader.h Hlsl/Dx11/Helper/Dx11Shader.cpp
-
-        Hlsl/Dx12/Dx12Viewer.h Hlsl/Dx12/Dx12Viewer.cpp
-        Hlsl/Dx12/Dx12Drawer.h Hlsl/Dx12/Dx12Drawer.cpp
-        Hlsl/Dx12/Dx12TextureCache.h Hlsl/Dx12/Dx12TextureCache.cpp
-        Hlsl/Dx12/Dx12Instance.h Hlsl/Dx12/Dx12Instance.cpp
-        Hlsl/Dx12/Helper/Dx12Buffer.h Hlsl/Dx12/Helper/Dx12Buffer.cpp
-        Hlsl/Dx12/Helper/Dx12CommandContext.h Hlsl/Dx12/Helper/Dx12CommandContext.cpp
-        Hlsl/Dx12/Helper/Dx12DepthBuffer.h Hlsl/Dx12/Helper/Dx12DepthBuffer.cpp
-        Hlsl/Dx12/Helper/Dx12Device.h Hlsl/Dx12/Helper/Dx12Device.cpp
-        Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.h Hlsl/Dx12/Helper/Dx12MsaaColorBuffer.cpp
-        Hlsl/Dx12/Helper/Dx12Pipeline.h Hlsl/Dx12/Helper/Dx12Pipeline.cpp
-        Hlsl/Dx12/Helper/Dx12SwapChain.h Hlsl/Dx12/Helper/Dx12SwapChain.cpp
+        Dx12/Dx12Viewer.h Dx12/Dx12Viewer.cpp
+        Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
+        Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
+        Dx12/Dx12Instance.h Dx12/Dx12Instance.cpp
+        Dx12/Helper/Dx12Buffer.h Dx12/Helper/Dx12Buffer.cpp
+        Dx12/Helper/Dx12CommandContext.h Dx12/Helper/Dx12CommandContext.cpp
+        Dx12/Helper/Dx12DepthBuffer.h Dx12/Helper/Dx12DepthBuffer.cpp
+        Dx12/Helper/Dx12Device.h Dx12/Helper/Dx12Device.cpp
+        Dx12/Helper/Dx12MsaaColorBuffer.h Dx12/Helper/Dx12MsaaColorBuffer.cpp
+        Dx12/Helper/Dx12Pipeline.h Dx12/Helper/Dx12Pipeline.cpp
+        Dx12/Helper/Dx12SwapChain.h Dx12/Helper/Dx12SwapChain.cpp
 )
 
 target_compile_features(PmxModViewer PUBLIC cxx_std_23)
@@ -86,7 +82,7 @@ target_link_libraries(PmxModViewer
         d3dcompiler
         ${DXCOMPILER_LIBRARY}
         ${SPIRV_CROSS_CORE_LIBRARY}
-        ${SPIRV_CROSS_GLSL_LIBRARY}
+        ${SPIRV_CROSS_LIBRARY}
 )
 
 target_include_directories(PmxModViewer PRIVATE "$ENV{VULKAN_SDK}/Include")

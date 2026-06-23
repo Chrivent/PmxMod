@@ -161,8 +161,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool ShaderPackageParser::Load(
-		const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error) {
+	bool ShaderPackageParser::Load(const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error) {
 		nlohmann::json json;
 		if (!ReadJsonObject(manifestPath, json, error))
 			return false;

@@ -31,20 +31,32 @@ namespace Chrivent {
 			: L"-fspv-target-env=vulkan1.2";
 		std::vector arguments{
 			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(), L"-spirv",
-			targetEnvironment, L"-D", L"PMX_SPIRV=1", L"-O3"
+			targetEnvironment, L"-O3"
 		};
 		if (spirvTarget == SpirvTarget::OpenGl) {
 			const wchar_t* openGlBindings[] = {
 				L"-fvk-bind-register", L"b0", L"0", L"0", L"0",
-				L"-fvk-bind-register", L"b0", L"1", L"1", L"0",
-				L"-fvk-bind-register", L"t0", L"2", L"0", L"0",
-				L"-fvk-bind-register", L"t1", L"2", L"1", L"0",
-				L"-fvk-bind-register", L"t2", L"2", L"2", L"0",
-				L"-fvk-bind-register", L"s3", L"2", L"3", L"0",
-				L"-fvk-bind-register", L"s4", L"2", L"4", L"0",
-				L"-fvk-bind-register", L"s5", L"2", L"5", L"0"
+				L"-fvk-bind-register", L"b1", L"0", L"1", L"0",
+				L"-fvk-bind-register", L"t0", L"0", L"0", L"0",
+				L"-fvk-bind-register", L"t1", L"0", L"1", L"0",
+				L"-fvk-bind-register", L"t2", L"0", L"2", L"0",
+				L"-fvk-bind-register", L"s0", L"0", L"3", L"0",
+				L"-fvk-bind-register", L"s1", L"0", L"4", L"0",
+				L"-fvk-bind-register", L"s2", L"0", L"5", L"0"
 			};
 			arguments.insert(arguments.end(), std::begin(openGlBindings), std::end(openGlBindings));
+		} else {
+			const wchar_t* vulkanBindings[] = {
+				L"-fvk-bind-register", L"b0", L"0", L"0", L"0",
+				L"-fvk-bind-register", L"b1", L"0", L"0", L"1",
+				L"-fvk-bind-register", L"t0", L"0", L"0", L"2",
+				L"-fvk-bind-register", L"t1", L"0", L"1", L"2",
+				L"-fvk-bind-register", L"t2", L"0", L"2", L"2",
+				L"-fvk-bind-register", L"s0", L"0", L"3", L"2",
+				L"-fvk-bind-register", L"s1", L"0", L"4", L"2",
+				L"-fvk-bind-register", L"s2", L"0", L"5", L"2"
+			};
+			arguments.insert(arguments.end(), std::begin(vulkanBindings), std::end(vulkanBindings));
 		}
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),

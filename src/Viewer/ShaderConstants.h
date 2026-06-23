@@ -3,12 +3,12 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct ShaderModelVertexConstants {
+	struct ModelVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 	};
 
-	struct ShaderModelPixelConstants {
+	struct ModelPixelConstants {
 		glm::vec4 texMulFactor{};
 		glm::vec4 texAddFactor{};
 		glm::vec4 toonTexMulFactor{};
@@ -16,23 +16,30 @@ namespace Chrivent {
 		glm::vec4 sphereTexMulFactor{};
 		glm::vec4 sphereTexAddFactor{};
 		glm::ivec4 textureModes{};
+		glm::vec4 diffuseAlpha{};
+		glm::vec4 ambientSpecularPower{};
+		glm::vec4 specular{};
+		glm::vec4 lightColor{};
+		glm::vec4 lightDir{};
 	};
 
-	struct ShaderEdgeVertexConstants {
+	struct EdgeVertexConstants {
 		glm::mat4 wv;
 		glm::mat4 wvp;
 		glm::vec2 screenSize{};
+		float edgeSize = 0.0f;
+		float padding = 0.0f;
 	};
 
-	struct ShaderEdgePixelConstants {
+	struct EdgePixelConstants {
 		glm::vec4 edgeColor{};
 	};
 
-	struct ShaderGroundShadowVertexConstants {
+	struct GroundShadowVertexConstants {
 		glm::mat4 wvp;
 	};
 
-	struct ShaderGroundShadowPixelConstants {
+	struct GroundShadowPixelConstants {
 		glm::vec4 shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
 	};
 }

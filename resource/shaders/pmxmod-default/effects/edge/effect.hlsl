@@ -1,35 +1,17 @@
-#ifdef PMX_SPIRV
-#define PMX_LOCATION(index) [[vk::location(index)]]
-cbuffer VSData : register(b0, space0) {
-    float4x4 wv;
-    float4x4 wvp;
-    float2 screenSize;
-    float edgeSize;
-};
-#else
-#define PMX_LOCATION(index)
 cbuffer VSData : register(b0) {
     float4x4 wv;
     float4x4 wvp;
     float2 screenSize;
-};
-
-cbuffer VSEdgeData : register(b1) {
     float edgeSize;
 };
-#endif
 
-#ifdef PMX_SPIRV
-cbuffer PSData : register(b0, space1) {
-#else
-cbuffer PSData : register(b2) {
-#endif
+cbuffer PSData : register(b1) {
     float4 edgeColor;
 };
 
 struct VSInput {
-    PMX_LOCATION(0) float3 Pos : POSITION;
-    PMX_LOCATION(1) float3 Nor : NORMAL;
+    float3 Pos : POSITION;
+    float3 Nor : NORMAL;
 };
 
 struct VSOutput {

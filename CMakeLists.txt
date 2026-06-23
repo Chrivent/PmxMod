@@ -22,7 +22,7 @@ find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRE
 find_library(DXCOMPILER_LIBRARY dxcompiler HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 find_file(DXCOMPILER_DLL dxcompiler.dll HINTS "$ENV{VULKAN_SDK}/Bin" REQUIRED)
 find_library(SPIRV_CROSS_CORE_LIBRARY spirv-cross-core HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
-find_library(SPIRV_CROSS_GLSL_LIBRARY spirv-cross-glsl HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
+find_library(SPIRV_CROSS_LIBRARY spirv-cross-glsl HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Shader)

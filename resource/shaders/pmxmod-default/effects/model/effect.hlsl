@@ -1,23 +1,9 @@
-#ifdef PMX_SPIRV
-#define PMX_VERTEX_CONSTANTS register(b0, space0)
-#define PMX_PIXEL_CONSTANTS register(b0, space1)
-#define PMX_TEXTURE(index) register(t##index, space2)
-#define PMX_SAMPLER(index) register(s##index, space2)
-#define PMX_LOCATION(index) [[vk::location(index)]]
-#else
-#define PMX_VERTEX_CONSTANTS register(b0)
-#define PMX_PIXEL_CONSTANTS register(b1)
-#define PMX_TEXTURE(index) register(t##index)
-#define PMX_SAMPLER(index) register(s##index)
-#define PMX_LOCATION(index)
-#endif
-
-cbuffer VSData : PMX_VERTEX_CONSTANTS {
+cbuffer VSData : register(b0) {
     float4x4 wv;
     float4x4 wvp;
 };
 
-cbuffer PSData : PMX_PIXEL_CONSTANTS {
+cbuffer PSData : register(b1) {
     float4  texMulFactor;
     float4  texAddFactor;
     float4  toonTexMulFactor;
@@ -32,23 +18,17 @@ cbuffer PSData : PMX_PIXEL_CONSTANTS {
     float4  lightDir;
 }
 
-Texture2D tex : PMX_TEXTURE(0);
-Texture2D toonTex : PMX_TEXTURE(1);
-Texture2D sphereTex : PMX_TEXTURE(2);
-#ifdef PMX_SPIRV
-sampler texSampler : PMX_SAMPLER(3);
-sampler toonTexSampler : PMX_SAMPLER(4);
-sampler sphereTexSampler : PMX_SAMPLER(5);
-#else
-sampler texSampler : PMX_SAMPLER(0);
-sampler toonTexSampler : PMX_SAMPLER(1);
-sampler sphereTexSampler : PMX_SAMPLER(2);
-#endif
+Texture2D tex : register(t0);
+Texture2D toonTex : register(t1);
+Texture2D sphereTex : register(t2);
+SamplerState texSampler : register(s0);
+SamplerState toonTexSampler : register(s1);
+SamplerState sphereTexSampler : register(s2);
 
 struct VSInput {
-    PMX_LOCATION(0) float3 Pos : POSITION;
-    PMX_LOCATION(1) float3 Nor : NORMAL;
-    PMX_LOCATION(2) float2 UV : UV;
+    float3 Pos : POSITION;
+    float3 Nor : NORMAL;
+    float2 UV : UV;
 };
 
 struct VSOutput {
