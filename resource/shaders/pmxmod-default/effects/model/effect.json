@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "model",
+  "name": "Default Model",
+  "type": "model",
+  "passes": [
+    {
+      "name": "main",
+      "shader": "effects/model/effect.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain"
+    }
+  ]
+}

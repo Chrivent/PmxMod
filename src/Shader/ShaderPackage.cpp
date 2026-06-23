@@ -109,6 +109,19 @@ namespace Chrivent {
 			error += " in " + manifestPath.string();
 			return false;
 		}
+		std::string type;
+		if (!ReadRequiredString(json, "type", type, error)) {
+			error += " in " + manifestPath.string();
+			return false;
+		}
+		if (type == "model")
+			effect.type = EffectType::Model;
+		else if (type == "post_process")
+			effect.type = EffectType::PostProcess;
+		else {
+			error = "Unsupported effect type: " + type + " in " + manifestPath.string();
+			return false;
+		}
 		const auto passArray = json.find("passes");
 		if (passArray == json.end() || !passArray->is_array() || passArray->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();

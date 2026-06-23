@@ -6,6 +6,11 @@
 #include <nlohmann/json.hpp>
 
 namespace Chrivent {
+	enum class EffectType {
+		Model,
+		PostProcess
+	};
+
 	struct EffectPassDefinition {
 		std::string name;
 		std::filesystem::path shaderPath;
@@ -16,6 +21,7 @@ namespace Chrivent {
 	struct EffectDefinition {
 		std::string id;
 		std::string name;
+		EffectType type = EffectType::PostProcess;
 		std::vector<EffectPassDefinition> passes;
 	};
 

@@ -51,7 +51,17 @@ namespace Chrivent {
 
 	bool Dx11Viewer::CreateShaders() {
 		ID3D11Device* device = deviceResources.device.Get();
-		return shaders.model.Initialize(device, shaderDir / "model.hlsl")
+		ShaderPackage package;
+		std::string error;
+		if (!ShaderPackageParser::Load(
+			resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
+		if (modelEffect == package.effects.end() || modelEffect->passes.empty())
+			return false;
+		return shaders.model.Initialize(device, modelEffect->passes.front().shaderPath)
 			&& shaders.edge.Initialize(device, shaderDir / "edge.hlsl")
 			&& shaders.groundShadow.Initialize(device, shaderDir / "ground_shadow.hlsl");
 	}

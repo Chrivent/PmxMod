@@ -249,8 +249,9 @@ namespace Chrivent {
         for (const auto& error : discovery.errors)
             std::cerr << "Failed to load shader package: " << error << '\n';
         std::size_t effectCount = 0;
-        for (const auto& package : shaderPackages)
-            effectCount += package.effects.size();
+        for (const auto& package : shaderPackages) {
+            effectCount += std::ranges::count(package.effects, EffectType::PostProcess, &EffectDefinition::type);
+        }
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
         selectedShaderEffectIndex = effectCount == 0 ? 0 : (std::min)(selectedShaderEffectIndex, effectCount - 1);
@@ -262,6 +263,8 @@ namespace Chrivent {
         std::vector<std::wstring> shaderNames;
         for (const auto& package : shaderPackages) {
             for (const auto& effect : package.effects) {
+                if (effect.type != EffectType::PostProcess)
+                    continue;
                 shaderNames.emplace_back(
                     Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
             }
@@ -275,6 +278,8 @@ namespace Chrivent {
         size_t effectIndex = 0;
         for (const auto& package : shaderPackages) {
             for (const auto& effect : package.effects) {
+                if (effect.type != EffectType::PostProcess)
+                    continue;
                 if (effectIndex++ != selectedShaderEffectIndex)
                     continue;
                 if (viewer->LoadPostProcessEffect(effect))

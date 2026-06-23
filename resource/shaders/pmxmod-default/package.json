@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "pmxmod.default",
+  "name": "PmxMod Default",
+  "version": "1.0.0",
+  "author": "PmxMod",
+  "effects": [
+    "effects/model/effect.json"
+  ]
+}
