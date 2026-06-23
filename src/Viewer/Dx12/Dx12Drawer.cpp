@@ -33,7 +33,7 @@ namespace Chrivent {
 		ModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewer.viewMat * world;
 		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
 		}
@@ -75,7 +75,7 @@ namespace Chrivent {
 					pixelConstants.textureModes.z = 2;
 			}
 			const Dx12Buffer& pixelConstantBuffer = instance.modelPixelConstantBuffers[materialId][frameIndex];
-			if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+			if (!pixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
 			}
@@ -113,14 +113,14 @@ namespace Chrivent {
 				continue;
 			vertexConstants.edgeSize = mat.edgeSize;
 			const Dx12Buffer& vertexConstantBuffer = instance.edgeVertexConstantBuffers[materialId][frameIndex];
-			if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+			if (!vertexConstantBuffer.Write(vertexConstants)) {
 				std::cerr << "Failed to update DX12 edge vertex constants.\n";
 				continue;
 			}
 			EdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
 			const Dx12Buffer& edgePixelConstantBuffer = instance.edgePixelConstantBuffers[materialId][frameIndex];
-			if (!edgePixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+			if (!edgePixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
 				continue;
 			}
@@ -145,12 +145,12 @@ namespace Chrivent {
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer.lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * shadow * world;
-		if (!vertexConstantBuffer.Write(&vertexConstants, sizeof(vertexConstants))) {
+		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;
 		}
 		constexpr GroundShadowPixelConstants pixelConstants{};
-		if (!pixelConstantBuffer.Write(&pixelConstants, sizeof(pixelConstants))) {
+		if (!pixelConstantBuffer.Write(pixelConstants)) {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
 			return;
 		}

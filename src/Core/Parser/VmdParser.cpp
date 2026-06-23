@@ -1,93 +1,113 @@
 ﻿#include "Core/Parser/VmdParser.h"
 
+#include <cstring>
 #include <fstream>
-#include <iostream>
-
-#include "Core/Parser/BinaryReader.h"
 
 namespace Chrivent {
-	void VmdParser::ReadHeader(std::istream& is) {
-		BinaryReader::Read(is, data.header.header, sizeof(data.header.header));
-		BinaryReader::Read(is, data.header.modelName, sizeof(data.header.modelName));
+	void VmdParser::ReadHeader(BinaryReader& reader) {
+		reader.Read(data.header.header, sizeof(data.header.header));
+		reader.Read(data.header.modelName, sizeof(data.header.modelName));
+		constexpr char signature[] = "Vocaloid Motion Data 0002";
+		if (std::memcmp(data.header.header, signature, sizeof(signature) - 1) != 0)
+			reader.Fail(ParseErrorCode::InvalidHeader, "VMD 0002 시그니처가 올바르지 않습니다.");
 	}
 
-	void VmdParser::ReadMotion(std::istream& is) {
+	void VmdParser::ReadMotion(BinaryReader& reader) {
 		uint32_t motionCount = 0;
-		BinaryReader::Read(is, &motionCount);
+		if (!reader.ReadCount(motionCount, 111))
+			return;
 		data.motions.resize(motionCount);
 		for (auto& [boneName, frame,
 			translate, quaternion,
 			interpolation] : data.motions) {
-			BinaryReader::Read(is, boneName, sizeof(boneName));
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &translate);
-			BinaryReader::Read(is, &quaternion);
-			BinaryReader::Read(is, &interpolation);
+			reader.Read(boneName, sizeof(boneName));
+			reader.Read(frame);
+			reader.Read(translate);
+			reader.Read(quaternion);
+			reader.Read(interpolation);
 		}
 	}
 
-	void VmdParser::ReadBlendShape(std::istream& is) {
+	void VmdParser::ReadBlendShape(BinaryReader& reader) {
 		uint32_t blendShapeCount = 0;
-		BinaryReader::Read(is, &blendShapeCount);
+		if (!reader.ReadCount(blendShapeCount, 23))
+			return;
 		data.morphs.resize(blendShapeCount);
 		for (auto& [blendShapeName, frame, weight] : data.morphs) {
-			BinaryReader::Read(is, blendShapeName, sizeof(blendShapeName));
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &weight);
+			reader.Read(blendShapeName, sizeof(blendShapeName));
+			reader.Read(frame);
+			reader.Read(weight);
 		}
 	}
 
-	void VmdParser::ReadCamera(std::istream& is) {
+	void VmdParser::ReadCamera(BinaryReader& reader) {
 		uint32_t cameraCount = 0;
-		BinaryReader::Read(is, &cameraCount);
+		if (!reader.ReadCount(cameraCount, 61))
+			return;
 		data.cameras.resize(cameraCount);
 		for (auto& [frame, distance, interest, rotate,
 			interpolation, viewAngle, isPerspective] : data.cameras) {
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &distance);
-			BinaryReader::Read(is, &interest);
-			BinaryReader::Read(is, &rotate);
-			BinaryReader::Read(is, &interpolation);
-			BinaryReader::Read(is, &viewAngle);
-			BinaryReader::Read(is, &isPerspective);
+			reader.Read(frame);
+			reader.Read(distance);
+			reader.Read(interest);
+			reader.Read(rotate);
+			reader.Read(interpolation);
+			reader.Read(viewAngle);
+			reader.Read(isPerspective);
+			if (isPerspective > 1) {
+				reader.Fail(ParseErrorCode::InvalidValue, "카메라 원근 플래그가 올바르지 않습니다.");
+				return;
+			}
 		}
 	}
 
-	void VmdParser::ReadLight(std::istream& is) {
+	void VmdParser::ReadLight(BinaryReader& reader) {
 		uint32_t lightCount = 0;
-		BinaryReader::Read(is, &lightCount);
+		if (!reader.ReadCount(lightCount, 28))
+			return;
 		data.lights.resize(lightCount);
 		for (auto& [frame, color, position] : data.lights) {
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &color);
-			BinaryReader::Read(is, &position);
+			reader.Read(frame);
+			reader.Read(color);
+			reader.Read(position);
 		}
 	}
 
-	void VmdParser::ReadShadow(std::istream& is) {
+	void VmdParser::ReadShadow(BinaryReader& reader) {
 		uint32_t shadowCount = 0;
-		BinaryReader::Read(is, &shadowCount);
+		if (!reader.ReadCount(shadowCount, 9))
+			return;
 		data.shadows.resize(shadowCount);
 		for (auto& [frame, shadowType, distance] : data.shadows) {
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &shadowType);
-			BinaryReader::Read(is, &distance);
+			reader.Read(frame);
+			reader.Read(shadowType);
+			reader.Read(distance);
+			if (shadowType > ShadowType::Mode2) {
+				reader.Fail(ParseErrorCode::InvalidValue, "그림자 형식 값이 올바르지 않습니다.");
+				return;
+			}
 		}
 	}
 
-	void VmdParser::ReadIk(std::istream& is) {
+	void VmdParser::ReadIk(BinaryReader& reader) {
 		uint32_t ikCount = 0;
-		BinaryReader::Read(is, &ikCount);
+		if (!reader.ReadCount(ikCount, 9))
+			return;
 		data.iks.resize(ikCount);
 		for (auto& [frame, show, ikStates] : data.iks) {
-			BinaryReader::Read(is, &frame);
-			BinaryReader::Read(is, &show);
+			reader.Read(frame);
+			reader.Read(show);
 			uint32_t ikInfoCount = 0;
-			BinaryReader::Read(is, &ikInfoCount);
+			if (show > 1 || !reader.ReadCount(ikInfoCount, 21))
+				return;
 			ikStates.resize(ikInfoCount);
 			for (auto& [name, enable]: ikStates) {
-				BinaryReader::Read(is, name, sizeof(name));
-				BinaryReader::Read(is, &enable);
+				reader.Read(name, sizeof(name));
+				reader.Read(enable);
+				if (enable > 1) {
+					reader.Fail(ParseErrorCode::InvalidValue, "IK 활성화 플래그가 올바르지 않습니다.");
+					return;
+				}
 			}
 		}
 	}
@@ -102,45 +122,37 @@ namespace Chrivent {
 		data.iks.clear();
 	}
 
-	bool VmdParser::ReadFile(const std::filesystem::path& filename) {
+	std::expected<void, ParseError> VmdParser::ReadFile(const std::filesystem::path& filename) {
 		Clear();
 		std::ifstream is(filename, std::ios::binary);
-		if (!is) {
-			std::cerr << "Failed to open VMD file: " << filename.string() << '\n';
-			return false;
-		}
-		const auto Fail = [&](const char* stage) {
-			if (is)
-				return false;
-			std::cerr << "Failed to read VMD " << stage << ": " << filename.string() << '\n';
-			Clear();
-			return true;
+		if (!is)
+			return std::unexpected(ParseError{
+				ParseErrorCode::FileOpen, "file", "VMD 파일을 열 수 없습니다: " + filename.string(), 0
+			});
+		BinaryReader reader(is);
+		const auto ReadSection = [&](const char* section, auto read) {
+			reader.SetSection(section);
+			read();
+			return reader.Result().has_value();
 		};
-		const auto end = BinaryReader::ResolveFileEnd(is);
-		ReadHeader(is);
-		if (Fail("header")) return false;
-		ReadMotion(is);
-		if (Fail("motions")) return false;
-		if (BinaryReader::HasMore(is, end)) {
-			ReadBlendShape(is);
-			if (Fail("morphs")) return false;
+		if (!ReadSection("header", [&] { ReadHeader(reader); }) ||
+			!ReadSection("motions", [&] { ReadMotion(reader); })) {
+			const auto result = reader.Result();
+			Clear();
+			return result;
 		}
-		if (BinaryReader::HasMore(is, end)) {
-			ReadCamera(is);
-			if (Fail("cameras")) return false;
+		const auto ReadOptionalSection = [&](const char* section, auto read) {
+			return !reader.HasMore() || ReadSection(section, read);
+		};
+		if (!ReadOptionalSection("morphs", [&] { ReadBlendShape(reader); }) ||
+			!ReadOptionalSection("cameras", [&] { ReadCamera(reader); }) ||
+			!ReadOptionalSection("lights", [&] { ReadLight(reader); }) ||
+			!ReadOptionalSection("shadows", [&] { ReadShadow(reader); }) ||
+			!ReadOptionalSection("IK", [&] { ReadIk(reader); })) {
+			const auto result = reader.Result();
+			Clear();
+			return result;
 		}
-		if (BinaryReader::HasMore(is, end)) {
-			ReadLight(is);
-			if (Fail("lights")) return false;
-		}
-		if (BinaryReader::HasMore(is, end)) {
-			ReadShadow(is);
-			if (Fail("shadows")) return false;
-		}
-		if (BinaryReader::HasMore(is, end)) {
-			ReadIk(is);
-			if (Fail("IK")) return false;
-		}
-		return true;
+		return reader.Result();
 	}
 }

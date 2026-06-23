@@ -32,7 +32,7 @@ namespace Chrivent {
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;
 			if (!ViewerGeometry::WriteVertices(geometryData, false,
-				static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+				{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
 				return false;
 		}
 		if (!indexBuffer.Initialize(device, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -126,17 +126,17 @@ namespace Chrivent {
 
 	void VulkanInstance::Clear() {
 		for (auto& vertexBuffer : vertexBuffers)
-			vertexBuffer.Destroy();
-		indexBuffer.Destroy();
+			vertexBuffer.Reset();
+		indexBuffer.Reset();
 		modelVertexConstantsRing.Clear();
 		edgeVertexConstantsRing.Clear();
 		groundShadowVertexConstantsRing.Clear();
 		modelPixelConstantsRing.Clear();
 		edgePixelConstantsRing.Clear();
 		groundShadowPixelConstantsRing.Clear();
-		modelDescriptorSet.Destroy();
-		edgeDescriptorSet.Destroy();
-		groundShadowDescriptorSet.Destroy();
+		modelDescriptorSet.Reset();
+		edgeDescriptorSet.Reset();
+		groundShadowDescriptorSet.Reset();
 		materials.clear();
 		uniformBufferOffsetAlignment = 1;
 		indexType = VK_INDEX_TYPE_UINT16;
@@ -172,7 +172,7 @@ namespace Chrivent {
 			return;
 		const size_t vertexCount = model->geometryData.positions.size();
 		if (!ViewerGeometry::WriteVertices(model->geometryData, true,
-			static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
 	}
 }

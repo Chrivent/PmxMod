@@ -16,8 +16,7 @@ namespace Chrivent {
 		const auto slice = ring.Allocate(size, instance.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
 			return false;
-		glBindBuffer(GL_UNIFORM_BUFFER, ring.GetBuffer());
-		glBufferSubData(GL_UNIFORM_BUFFER, slice->offset, slice->size, data);
+		glNamedBufferSubData(ring.GetBuffer(), slice->offset, slice->size, data);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
 		return true;
 	}
@@ -65,7 +64,6 @@ namespace Chrivent {
 			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
 			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
 			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			glActiveTexture(GL_TEXTURE0 + 0);
 			GLuint baseTexture = viewer->dummyColorTex;
 			if (material.texture != 0) {
 				if (!material.textureHasAlpha)
@@ -74,15 +72,13 @@ namespace Chrivent {
 					pixelConstants.textureModes.x = 2;
 				baseTexture = material.texture;
 			}
-			glBindTexture(GL_TEXTURE_2D, baseTexture);
-			glActiveTexture(GL_TEXTURE0 + 1);
+			glBindTextureUnit(0, baseTexture);
 			GLuint toonTexture = viewer->dummyColorTex;
 			if (material.toonTexture != 0) {
 				pixelConstants.textureModes.y = 1;
 				toonTexture = material.toonTexture;
 			}
-			glBindTexture(GL_TEXTURE_2D, toonTexture);
-			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTextureUnit(1, toonTexture);
 			GLuint sphereTexture = viewer->dummyColorTex;
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
@@ -91,7 +87,7 @@ namespace Chrivent {
 					pixelConstants.textureModes.z = 2;
 				sphereTexture = material.sphereTexture;
 			}
-			glBindTexture(GL_TEXTURE_2D, sphereTexture);
+			glBindTextureUnit(2, sphereTexture);
 			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
 			if (mat.bothFace) {

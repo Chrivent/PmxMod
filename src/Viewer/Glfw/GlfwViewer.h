@@ -30,15 +30,18 @@ namespace Chrivent {
         const int           msaaSamples = 4;
         GlfwTextureCache    textureCache;
         GLuint sceneFramebuffer = 0;
+        GLuint sceneColorMsaa = 0;
+        GLuint resolveFramebuffer = 0;
         GLuint sceneColorTexture = 0;
         GLuint sceneDepthStencil = 0;
         GLuint postProcessVao = 0;
+        GLsizei postProcessSampleCount = 1;
         std::unique_ptr<GlfwPostProcessShader> postProcessShader;
 
         // 화면 크기에 맞는 후처리용 장면 프레임버퍼를 생성한다.
         bool CreatePostProcessTargets();
         // 후처리용 장면 프레임버퍼 리소스를 해제한다.
-        void DestroyPostProcessTargets();
+        void ResetPostProcessTargets();
 
     public:
         GLuint dummyColorTex = 0;

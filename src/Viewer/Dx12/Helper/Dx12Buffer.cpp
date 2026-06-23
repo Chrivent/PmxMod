@@ -1,7 +1,5 @@
 ﻿#include "Viewer/Dx12/Helper/Dx12Buffer.h"
 
-#include <cstring>
-
 namespace Chrivent {
 	size_t Dx12Buffer::AlignConstantBufferSize(const size_t size) {
 		constexpr size_t alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
@@ -16,7 +14,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Buffer::InitializeUpload(const Dx12Device& sourceDevice, const size_t size) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.device || size == 0)
 			return false;
 		D3D12_HEAP_PROPERTIES heapProperties;
@@ -41,14 +39,16 @@ namespace Chrivent {
 		return SUCCEEDED(resource->Map(0, &readRange, &mappedData));
 	}
 
-	bool Dx12Buffer::Write(const void* data, const size_t size) const {
-		if (!resource || mappedData == nullptr || data == nullptr || size > byteSize)
+	bool Dx12Buffer::Write(const std::span<const std::byte> data) const {
+		if (!resource || mappedData == nullptr || data.size() > byteSize)
 			return false;
-		std::memcpy(mappedData, data, size);
+		if (data.empty())
+			return true;
+		std::memcpy(mappedData, data.data(), data.size());
 		return true;
 	}
 
-	void Dx12Buffer::Destroy() {
+	void Dx12Buffer::Reset() {
 		resource.Reset();
 		mappedData = nullptr;
 		byteSize = 0;

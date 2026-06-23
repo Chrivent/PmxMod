@@ -34,6 +34,6 @@ namespace Chrivent {
 		// swap chain의 현재 back buffer를 화면에 표시한다.
 		bool Present();
 		// 생성한 DX12 스왑체인 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

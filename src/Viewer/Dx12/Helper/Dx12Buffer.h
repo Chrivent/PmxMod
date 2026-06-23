@@ -4,6 +4,8 @@
 
 #include <cstddef>
 #include <d3d12.h>
+#include <span>
+#include <type_traits>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -24,8 +26,11 @@ namespace Chrivent {
 		// CPU에서 직접 갱신할 수 있는 upload buffer를 생성한다.
 		bool InitializeUpload(const Dx12Device& sourceDevice, size_t size);
 		// upload buffer에 데이터를 복사한다.
-		bool Write(const void* data, size_t size) const;
+		bool Write(std::span<const std::byte> data) const;
+		// trivially copyable 값 하나를 upload buffer에 복사한다.
+		template <typename T> requires std::is_trivially_copyable_v<T>
+		bool Write(const T& data) const { return Write(std::as_bytes(std::span{ &data, 1 })); }
 		// 생성한 DX12 buffer 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

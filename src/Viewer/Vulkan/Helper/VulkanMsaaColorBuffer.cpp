@@ -65,7 +65,7 @@ namespace Chrivent {
 	}
 
 	VulkanMsaaColorBuffer::~VulkanMsaaColorBuffer() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanMsaaColorBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
@@ -76,7 +76,7 @@ namespace Chrivent {
 		return CreateImageView();
 	}
 
-	void VulkanMsaaColorBuffer::Destroy() {
+	void VulkanMsaaColorBuffer::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (imageView != VK_NULL_HANDLE) {

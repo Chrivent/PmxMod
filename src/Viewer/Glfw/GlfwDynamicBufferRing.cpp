@@ -5,21 +5,18 @@ namespace Chrivent {
 		GlfwDynamicBufferRing::Clear();
 	}
 
-	bool GlfwDynamicBufferRing::Setup(const GLenum bufferTarget, const size_t bufferSize, const GLenum bufferUsage, std::string& outError) {
+	bool GlfwDynamicBufferRing::Setup(const size_t bufferSize, const GLenum bufferUsage, std::string& outError) {
 		Clear();
 		if (!DynamicBufferRing::Setup(bufferSize, outError))
 			return false;
-		target = bufferTarget;
 		usage = bufferUsage;
-		glGenBuffers(1, &buffer);
+		glCreateBuffers(1, &buffer);
 		if (buffer == 0) {
 			outError = "Failed to create OpenGL dynamic buffer ring.";
 			DynamicBufferRing::Clear();
 			return false;
 		}
-		glBindBuffer(target, buffer);
-		glBufferData(target, capacity, nullptr, usage);
-		glBindBuffer(target, 0);
+		glNamedBufferData(buffer, capacity, nullptr, usage);
 		return true;
 	}
 
@@ -35,9 +32,7 @@ namespace Chrivent {
 		DynamicBufferRing::BeginFrame(frameIndex);
 		if (buffer == 0)
 			return;
-		glBindBuffer(target, buffer);
-		glBufferData(target, capacity, nullptr, usage);
-		glBindBuffer(target, 0);
+		glNamedBufferData(buffer, capacity, nullptr, usage);
 	}
 
 	std::optional<UploadSlice> GlfwDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {

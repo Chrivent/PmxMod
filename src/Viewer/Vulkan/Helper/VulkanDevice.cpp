@@ -1,18 +1,29 @@
 ﻿#include "Viewer/Vulkan/Helper/VulkanDevice.h"
 
+#include <algorithm>
 #include <iostream>
 #include <set>
 #include <vector>
 
 namespace Chrivent {
 	bool VulkanDevice::CreateInstance() {
+		uint32_t loaderVersion = VK_API_VERSION_1_0;
+		const auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+			vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
+		if (enumerateInstanceVersion)
+			enumerateInstanceVersion(&loaderVersion);
+		if (loaderVersion < VK_API_VERSION_1_3) {
+			std::cerr << "Vulkan 1.3 or newer is required.\n";
+			return false;
+		}
+		instanceApiVersion = VK_API_VERSION_1_3;
 		VkApplicationInfo appInfo{};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "PmxMod";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "PmxMod";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_0;
+		appInfo.apiVersion = instanceApiVersion;
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 		if (!glfwExtensions || glfwExtensionCount == 0) {
@@ -67,8 +78,8 @@ namespace Chrivent {
 		}
 		queueFamilies = FindQueueFamilies(physicalDevice);
 		msaaSampleCount = ChooseMsaaSampleCount(physicalDevice);
-		std::cout << "vulkan_gpu=" << properties.deviceName << '\n';
-		std::cout << "vulkan_gpu_type=" << ResolvePhysicalDeviceTypeName(properties.deviceType) << '\n';
+		ResolveCapabilities();
+		capabilities.Print();
 		return true;
 	}
 
@@ -88,12 +99,15 @@ namespace Chrivent {
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
-		constexpr VkPhysicalDeviceFeatures deviceFeatures{};
+		VkPhysicalDeviceVulkan13Features vulkan13Features{};
+		vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+		vulkan13Features.dynamicRendering = VK_TRUE;
+		vulkan13Features.synchronization2 = VK_TRUE;
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		createInfo.pNext = &vulkan13Features;
 		createInfo.queueCreateInfoCount = queueCreateInfos.size();
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.enabledExtensionCount = std::size(kDeviceExtensions);
 		createInfo.ppEnabledExtensionNames = kDeviceExtensions;
 		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
@@ -107,7 +121,24 @@ namespace Chrivent {
 
 	bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice candidate) const {
 		const VulkanQueueFamilyIndices families = FindQueueFamilies(candidate);
-		return families.IsComplete() && CheckDeviceExtensionSupport(candidate);
+		VkPhysicalDeviceProperties candidateProperties{};
+		vkGetPhysicalDeviceProperties(candidate, &candidateProperties);
+		if (!families.IsComplete() || candidateProperties.apiVersion < VK_API_VERSION_1_3 ||
+			!CheckDeviceExtensionSupport(candidate))
+			return false;
+		VkPhysicalDeviceVulkan13Features vulkan13Features{};
+		vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+		VkPhysicalDeviceFeatures2 features{};
+		features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		features.pNext = &vulkan13Features;
+		vkGetPhysicalDeviceFeatures2(candidate, &features);
+		if (vulkan13Features.dynamicRendering != VK_TRUE || vulkan13Features.synchronization2 != VK_TRUE)
+			return false;
+		uint32_t formatCount = 0;
+		uint32_t presentModeCount = 0;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(candidate, surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(candidate, surface, &presentModeCount, nullptr);
+		return formatCount > 0 && presentModeCount > 0;
 	}
 
 	uint64_t VulkanDevice::ScorePhysicalDevice(const VkPhysicalDeviceProperties& properties) {
@@ -201,8 +232,38 @@ namespace Chrivent {
 		return requiredExtensions.empty();
 	}
 
+	std::string VulkanDevice::ResolveVersionName(const uint32_t version) {
+		return std::to_string(VK_API_VERSION_MAJOR(version)) + "." +
+			std::to_string(VK_API_VERSION_MINOR(version)) + "." +
+			std::to_string(VK_API_VERSION_PATCH(version));
+	}
+
+	void VulkanDevice::ResolveCapabilities() {
+		VkPhysicalDeviceVulkan12Features vulkan12Features{};
+		vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+		VkPhysicalDeviceVulkan13Features vulkan13Features{};
+		vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+		vulkan12Features.pNext = properties.apiVersion >= VK_API_VERSION_1_3 ? &vulkan13Features : nullptr;
+		VkPhysicalDeviceFeatures2 features{};
+		features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		features.pNext = &vulkan12Features;
+		vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
+		capabilities.apiName = "Vulkan";
+		capabilities.apiVersion = ResolveVersionName(properties.apiVersion);
+		capabilities.shaderVersion = "HLSL 6 / SPIR-V 1.6";
+		capabilities.gpuName = properties.deviceName;
+		capabilities.gpuType = ResolvePhysicalDeviceTypeName(properties.deviceType);
+		capabilities.maxSampleCount = static_cast<uint32_t>(msaaSampleCount);
+		capabilities.uniformBufferAlignment = properties.limits.minUniformBufferOffsetAlignment;
+		capabilities.maxTextureBindings = properties.limits.maxPerStageDescriptorSampledImages;
+		capabilities.shaderModelMajor = 6;
+		capabilities.supportsTimelineSynchronization = vulkan12Features.timelineSemaphore == VK_TRUE;
+		capabilities.supportsDynamicRendering = vulkan13Features.dynamicRendering == VK_TRUE;
+		capabilities.supportsEnhancedBarriers = vulkan13Features.synchronization2 == VK_TRUE;
+	}
+
 	VulkanDevice::~VulkanDevice() {
-		Destroy();
+		Shutdown();
 	}
 
 	bool VulkanDevice::Initialize(GLFWwindow* window) {
@@ -215,7 +276,7 @@ namespace Chrivent {
 		return CreateLogicalDevice();
 	}
 
-	void VulkanDevice::Destroy() {
+	void VulkanDevice::Shutdown() {
 		if (device != VK_NULL_HANDLE) {
 			vkDestroyDevice(device, nullptr);
 			device = VK_NULL_HANDLE;
@@ -233,5 +294,7 @@ namespace Chrivent {
 		graphicsQueue = VK_NULL_HANDLE;
 		presentQueue = VK_NULL_HANDLE;
 		queueFamilies = {};
+		capabilities = {};
+		instanceApiVersion = VK_API_VERSION_1_0;
 	}
 }

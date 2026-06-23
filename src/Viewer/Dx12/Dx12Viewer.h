@@ -40,7 +40,7 @@ namespace Chrivent {
 
 	private:
 		// 현재 back buffer를 render target 상태로 전환한다.
-		static void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer);
+		void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const;
 		// MSAA color/depth target을 바인딩하고 프레임 시작 clear를 수행한다.
 		void ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const;
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 명령 목록에 적용한다.

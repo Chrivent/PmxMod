@@ -8,6 +8,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include "Viewer/GraphicsCapabilities.h"
 #include "Viewer/Instance.h"
 
 namespace Chrivent {
@@ -47,6 +48,7 @@ namespace Chrivent {
         float animTime = 0.0f;
         bool skipPhysics = false;
         GLFWwindow* window = nullptr;
+        GraphicsCapabilities capabilities;
 
         Viewer() = default;
         virtual ~Viewer();

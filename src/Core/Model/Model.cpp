@@ -2,10 +2,10 @@
 
 namespace Chrivent {
 	Model::~Model() {
-		Destroy();
+		Reset();
 	}
 
-	void Model::Destroy() {
+	void Model::Reset() {
 		geometryData.updateRanges.clear();
 		geometryData.parallelUpdateCount = 0;
 		if (physicsData.physics && physicsData.physics->world) {

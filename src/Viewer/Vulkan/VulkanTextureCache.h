@@ -35,7 +35,7 @@ namespace Chrivent {
 		// shader sampler를 생성한다.
 		bool CreateSampler(VkSampler& sampler, bool clamp) const;
 		// 단일 텍스처의 Vulkan 리소스를 해제한다.
-		void DestroyTexture(VulkanTexture& texture) const;
+		void ResetTexture(VulkanTexture& texture) const;
 
 	public:
 		~VulkanTextureCache() override;

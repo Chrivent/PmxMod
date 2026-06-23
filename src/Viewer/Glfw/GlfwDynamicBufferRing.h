@@ -6,7 +6,6 @@
 
 namespace Chrivent {
 	class GlfwDynamicBufferRing : public DynamicBufferRing {
-		GLenum target = GL_UNIFORM_BUFFER;
 		GLenum usage = GL_DYNAMIC_DRAW;
 		GLuint buffer = 0;
 
@@ -16,7 +15,7 @@ namespace Chrivent {
 		GLuint GetBuffer() const { return buffer; }
 
 		// OpenGL 업로드 링 버퍼를 생성한다.
-		bool Setup(GLenum bufferTarget, size_t bufferSize, GLenum bufferUsage, std::string& outError);
+		bool Setup(size_t bufferSize, GLenum bufferUsage, std::string& outError);
 		// OpenGL 업로드 링 버퍼와 공통 상태를 정리한다.
 		void Clear() override;
 		// 새 프레임에서 사용할 OpenGL 업로드 위치를 초기화한다.

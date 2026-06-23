@@ -14,7 +14,7 @@ namespace Chrivent {
 
     class GlfwInstance : public Instance {
 		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
-		static GLuint CreateBuffer(GLenum target, size_t size, const void* data, GLenum usage);
+		static GLuint CreateBuffer(size_t size, const void* data, GLenum usage);
 		// 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
 		static GLuint CreateVao(GLuint vertexBuffer, const GLint* locations, const GLint* sizes, const size_t* offsets, int attributeCount, GLuint indexBuffer);
         // 모델 geometry 데이터를 OpenGL vertex/index buffer로 생성한다.

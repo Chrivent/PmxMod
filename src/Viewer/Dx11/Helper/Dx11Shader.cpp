@@ -14,15 +14,15 @@ namespace Chrivent {
 	}
 
 	bool Dx11Shader::CreateInputLayout(ID3D11Device* device, ID3DBlob* vertexBytecode,
-		const D3D11_INPUT_ELEMENT_DESC* inputElements, const UINT inputElementCount,
+		const std::span<const D3D11_INPUT_ELEMENT_DESC> inputElements,
 		Microsoft::WRL::ComPtr<ID3D11InputLayout>& outInputLayout) {
-		return SUCCEEDED(device->CreateInputLayout( inputElements, inputElementCount,
+		return SUCCEEDED(device->CreateInputLayout(inputElements.data(), static_cast<UINT>(inputElements.size()),
 			vertexBytecode->GetBufferPointer(), vertexBytecode->GetBufferSize(),
 			&outInputLayout));
 	}
 
 	bool Dx11Shader::Initialize(ID3D11Device* device, const std::filesystem::path& file,
-		const D3D11_INPUT_ELEMENT_DESC* inputElements, const UINT inputElementCount,
+		const std::span<const D3D11_INPUT_ELEMENT_DESC> inputElements,
 		const char* vertexEntry, const char* pixelEntry) {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBytecode;
@@ -43,7 +43,7 @@ namespace Chrivent {
 			std::cerr << "Failed to create DX11 pixel shader: " << file.string() << " entry=" << pixelEntry << '\n';
 			return false;
 		}
-		if (inputElementCount > 0 && !CreateInputLayout(device, vertexBytecode.Get(), inputElements, inputElementCount, inputLayout)) {
+		if (!inputElements.empty() && !CreateInputLayout(device, vertexBytecode.Get(), inputElements, inputLayout)) {
 			std::cerr << "Failed to create DX11 input layout: " << file.string() << '\n';
 			return false;
 		}
@@ -56,7 +56,7 @@ namespace Chrivent {
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, file, inputElements, 3);
+		return Dx11Shader::Initialize(device, file, inputElements);
 	}
 
 	bool Dx11EdgeShader::Initialize(ID3D11Device* device, const std::filesystem::path& file) {
@@ -64,17 +64,17 @@ namespace Chrivent {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, file, inputElements, 2);
+		return Dx11Shader::Initialize(device, file, inputElements);
 	}
 
 	bool Dx11GroundShadowShader::Initialize(ID3D11Device* device, const std::filesystem::path& file) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, file, inputElements, 1);
+		return Dx11Shader::Initialize(device, file, inputElements);
 	}
 
 	bool Dx11PostProcessShader::Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry) {
-		return Dx11Shader::Initialize(device, file, nullptr, 0, vertexEntry, pixelEntry);
+		return Dx11Shader::Initialize(device, file, {}, vertexEntry, pixelEntry);
 	}
 }

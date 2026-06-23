@@ -4,7 +4,7 @@
 
 namespace Chrivent {
 	VulkanCommandContext::~VulkanCommandContext() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
@@ -20,8 +20,8 @@ namespace Chrivent {
 		return commandBuffer.Initialize(sourceDevice, commandPool, sourceSwapChain);
 	}
 
-	void VulkanCommandContext::Destroy() {
-		commandBuffer.Destroy();
+	void VulkanCommandContext::Reset() {
+		commandBuffer.Reset();
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE) {
 			vkDestroyCommandPool(device, commandPool, nullptr);
 			commandPool = VK_NULL_HANDLE;

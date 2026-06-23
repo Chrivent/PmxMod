@@ -229,7 +229,7 @@ namespace Chrivent {
 	}
 
 	VulkanDescriptorSet::~VulkanDescriptorSet() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanDescriptorSet::Initialize(
@@ -241,7 +241,7 @@ namespace Chrivent {
 		const VkDeviceSize pixelConstantRange,
 		std::vector<VulkanMaterial>& materials,
 		const VulkanPassType sourcePassType) {
-		Destroy();
+		Reset();
 		device = sourceDevice.device;
 		passType = sourcePassType;
 		if (!CreateDescriptorPool(materials.size()))
@@ -254,7 +254,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanDescriptorSet::Destroy() {
+	void VulkanDescriptorSet::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (descriptorPool != VK_NULL_HANDLE) {

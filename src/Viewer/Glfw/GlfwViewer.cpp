@@ -8,44 +8,58 @@
 
 namespace Chrivent {
 	bool GlfwViewer::CreatePostProcessTargets() {
-		DestroyPostProcessTargets();
+		ResetPostProcessTargets();
 		if (screenWidth <= 0 || screenHeight <= 0)
 			return false;
-		glGenFramebuffers(1, &sceneFramebuffer);
-		glBindFramebuffer(GL_FRAMEBUFFER, sceneFramebuffer);
-		glGenTextures(1, &sceneColorTexture);
-		glBindTexture(GL_TEXTURE_2D, sceneColorTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, screenWidth, screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneColorTexture, 0);
-		glGenRenderbuffers(1, &sceneDepthStencil);
-		glBindRenderbuffer(GL_RENDERBUFFER, sceneDepthStencil);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, sceneDepthStencil);
-		const bool succeeded = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		return succeeded;
+		postProcessSampleCount = std::max<GLsizei>(
+			1, std::min<GLsizei>(msaaSamples, static_cast<GLsizei>(capabilities.maxSampleCount)));
+		glCreateFramebuffers(1, &sceneFramebuffer);
+		glCreateRenderbuffers(1, &sceneColorMsaa);
+		glCreateRenderbuffers(1, &sceneDepthStencil);
+		if (postProcessSampleCount > 1) {
+			glNamedRenderbufferStorageMultisample(sceneColorMsaa, postProcessSampleCount, GL_RGBA8, screenWidth, screenHeight);
+			glNamedRenderbufferStorageMultisample(sceneDepthStencil, postProcessSampleCount, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+		} else {
+			glNamedRenderbufferStorage(sceneColorMsaa, GL_RGBA8, screenWidth, screenHeight);
+			glNamedRenderbufferStorage(sceneDepthStencil, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+		}
+		glNamedFramebufferRenderbuffer(sceneFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, sceneColorMsaa);
+		glNamedFramebufferRenderbuffer(sceneFramebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, sceneDepthStencil);
+		glCreateFramebuffers(1, &resolveFramebuffer);
+		glCreateTextures(GL_TEXTURE_2D, 1, &sceneColorTexture);
+		glTextureStorage2D(sceneColorTexture, 1, GL_RGBA8, screenWidth, screenHeight);
+		glTextureParameteri(sceneColorTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(sceneColorTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glNamedFramebufferTexture(resolveFramebuffer, GL_COLOR_ATTACHMENT0, sceneColorTexture, 0);
+		return glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
+			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 	}
 
-	void GlfwViewer::DestroyPostProcessTargets() {
+	void GlfwViewer::ResetPostProcessTargets() {
 		if (sceneDepthStencil != 0)
 			glDeleteRenderbuffers(1, &sceneDepthStencil);
+		if (sceneColorMsaa != 0)
+			glDeleteRenderbuffers(1, &sceneColorMsaa);
 		if (sceneColorTexture != 0)
 			glDeleteTextures(1, &sceneColorTexture);
+		if (resolveFramebuffer != 0)
+			glDeleteFramebuffers(1, &resolveFramebuffer);
 		if (sceneFramebuffer != 0)
 			glDeleteFramebuffers(1, &sceneFramebuffer);
 		sceneDepthStencil = 0;
+		sceneColorMsaa = 0;
 		sceneColorTexture = 0;
+		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
+		postProcessSampleCount = 1;
 	}
 
 	GlfwViewer::~GlfwViewer() {
 		if (window)
 			glfwMakeContextCurrent(window);
-		DestroyPostProcessTargets();
+		ResetPostProcessTargets();
 		if (postProcessVao != 0)
 			glDeleteVertexArrays(1, &postProcessVao);
 	}
@@ -74,8 +88,33 @@ namespace Chrivent {
 			return false;
 		}
 		const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
-		std::cout << "opengl_gpu=" << (renderer ? renderer : "unknown") << '\n';
-		std::cout << "opengl_gpu_type=" << ResolveGpuTypeName(renderer ? renderer : "") << '\n';
+		const auto* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+		const auto* shaderVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+		GLint majorVersion = 0;
+		GLint minorVersion = 0;
+		GLint maxSamples = 1;
+		GLint uniformAlignment = 1;
+		GLint maxTextureBindings = 0;
+		glGetIntegerv(GL_MAJOR_VERSION, &majorVersion);
+		glGetIntegerv(GL_MINOR_VERSION, &minorVersion);
+		glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
+		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformAlignment);
+		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
+		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6)) {
+			std::cerr << "OpenGL 4.6 or newer is required.\n";
+			return false;
+		}
+		capabilities.apiName = "OpenGL";
+		capabilities.apiVersion = version ? version : "4.6";
+		capabilities.shaderVersion = shaderVersion ? shaderVersion : "GLSL 4.60";
+		capabilities.gpuName = renderer ? renderer : "unknown";
+		capabilities.gpuType = ResolveGpuTypeName(capabilities.gpuName);
+		capabilities.maxSampleCount = static_cast<uint32_t>(std::max(maxSamples, 1));
+		capabilities.uniformBufferAlignment = static_cast<uint64_t>(std::max(uniformAlignment, 1));
+		capabilities.maxTextureBindings = static_cast<uint32_t>(std::max(maxTextureBindings, 0));
+		capabilities.shaderModelMajor = 4;
+		capabilities.shaderModelMinor = 6;
+		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		InitDirs("shaders");
@@ -113,7 +152,7 @@ namespace Chrivent {
 		dummyColorTex = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTex == 0)
 			return false;
-		glGenVertexArrays(1, &postProcessVao);
+		glCreateVertexArrays(1, &postProcessVao);
 		return CreatePostProcessTargets();
 	}
 
@@ -130,14 +169,17 @@ namespace Chrivent {
 
 	bool GlfwViewer::EndFrame() {
 		if (postProcessShader) {
+			glBlitNamedFramebuffer(sceneFramebuffer, resolveFramebuffer,
+				0, 0, screenWidth, screenHeight,
+				0, 0, screenWidth, screenHeight,
+				GL_COLOR_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glDisable(GL_DEPTH_TEST);
 			glDisable(GL_STENCIL_TEST);
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
 			glUseProgram(postProcessShader->program);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, sceneColorTexture);
+			glBindTextureUnit(0, sceneColorTexture);
 			glBindVertexArray(postProcessVao);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}

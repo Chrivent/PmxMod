@@ -4,10 +4,10 @@
 
 namespace Chrivent {
 	VulkanShaderModule::~VulkanShaderModule() {
-		Destroy();
+		Reset();
 	}
 
-	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice, const std::vector<uint32_t>& spvBytes) {
+	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice, const std::span<const uint32_t> spvBytes) {
 		device = sourceDevice.device;
 		if (spvBytes.empty()) {
 			std::cerr << "Invalid SPIR-V shader byte size.\n";
@@ -24,7 +24,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanShaderModule::Destroy() {
+	void VulkanShaderModule::Reset() {
 		if (device != VK_NULL_HANDLE && shaderModule != VK_NULL_HANDLE) {
 			vkDestroyShaderModule(device, shaderModule, nullptr);
 			shaderModule = VK_NULL_HANDLE;

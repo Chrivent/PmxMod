@@ -15,7 +15,7 @@ namespace Chrivent {
 	}
 
 	void VulkanDynamicBufferRing::Clear() {
-		buffer.Destroy();
+		buffer.Reset();
 		DynamicBufferRing::Clear();
 	}
 

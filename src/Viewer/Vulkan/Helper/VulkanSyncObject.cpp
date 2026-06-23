@@ -10,14 +10,14 @@ namespace Chrivent {
 		for (auto& semaphore : renderFinishedSemaphores) {
 			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS) {
 				std::cerr << "Failed to create Vulkan present semaphore.\n";
-				DestroyRenderFinishedSemaphores();
+				ResetRenderFinishedSemaphores();
 				return false;
 			}
 		}
 		return true;
 	}
 
-	void VulkanSyncObject::DestroyRenderFinishedSemaphores() {
+	void VulkanSyncObject::ResetRenderFinishedSemaphores() {
 		if (device != VK_NULL_HANDLE) {
 			for (const VkSemaphore semaphore : renderFinishedSemaphores) {
 				if (semaphore != VK_NULL_HANDLE)
@@ -28,7 +28,7 @@ namespace Chrivent {
 	}
 
 	VulkanSyncObject::~VulkanSyncObject() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanSyncObject::Initialize(const VulkanDevice& sourceDevice, const size_t swapChainImageCount) {
@@ -43,17 +43,17 @@ namespace Chrivent {
 			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 				vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
 				std::cerr << "Failed to create Vulkan sync objects.\n";
-				Destroy();
+				Reset();
 				return false;
 			}
 		}
 		return ResetImageTracking(swapChainImageCount);
 	}
 
-	void VulkanSyncObject::Destroy() {
+	void VulkanSyncObject::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		DestroyRenderFinishedSemaphores();
+		ResetRenderFinishedSemaphores();
 		for (size_t i = 0; i < kMaxFramesInFlight; i++) {
 			if (imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
 				vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
@@ -70,7 +70,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
-		DestroyRenderFinishedSemaphores();
+		ResetRenderFinishedSemaphores();
 		imagesInFlight.assign(swapChainImageCount, VK_NULL_HANDLE);
 		return CreateRenderFinishedSemaphores(swapChainImageCount);
 	}

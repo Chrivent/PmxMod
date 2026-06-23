@@ -83,7 +83,7 @@ namespace Chrivent {
 	}
 
 	VulkanSwapChain::~VulkanSwapChain() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
@@ -144,11 +144,11 @@ namespace Chrivent {
 	bool VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window) {
 		if (sourceDevice.device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(sourceDevice.device);
-		Destroy();
+		Reset();
 		return Initialize(sourceDevice, window);
 	}
 
-	void VulkanSwapChain::Destroy() {
+	void VulkanSwapChain::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		for (const VkImageView imageView : imageViews)

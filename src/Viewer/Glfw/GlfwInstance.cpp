@@ -11,43 +11,36 @@
 #include <string>
 
 namespace Chrivent {
-	GLuint GlfwInstance::CreateBuffer(const GLenum target, const size_t size, const void* data, const GLenum usage) {
+	GLuint GlfwInstance::CreateBuffer(const size_t size, const void* data, const GLenum usage) {
 		GLuint b = 0;
-		glGenBuffers(1, &b);
-		glBindBuffer(target, b);
-		glBufferData(target, size, data, usage);
+		glCreateBuffers(1, &b);
+		glNamedBufferData(b, size, data, usage);
 		return b;
 	}
 
 	GLuint GlfwInstance::CreateVao(const GLuint vertexBuffer, const GLint* locations, const GLint* sizes,
 		const size_t* offsets, const int attributeCount, const GLuint indexBuffer) {
 		GLuint vao = 0;
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+		glCreateVertexArrays(1, &vao);
+		glVertexArrayVertexBuffer(vao, 0, vertexBuffer, 0, sizeof(ViewerVertex));
 		for (int index = 0; index < attributeCount; index++) {
 			if (locations[index] < 0)
 				continue;
-			glVertexAttribPointer(
-				locations[index],
-				sizes[index],
-				GL_FLOAT,
-				GL_FALSE,
-				sizeof(ViewerVertex),
-				reinterpret_cast<const void*>(offsets[index]));
-			glEnableVertexAttribArray(locations[index]);
+			glEnableVertexArrayAttrib(vao, locations[index]);
+			glVertexArrayAttribFormat(
+				vao, locations[index], sizes[index], GL_FLOAT, GL_FALSE, static_cast<GLuint>(offsets[index]));
+			glVertexArrayAttribBinding(vao, locations[index], 0);
 		}
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-		glBindVertexArray(0);
+		glVertexArrayElementBuffer(vao, indexBuffer);
 		return vao;
 	}
 
 	bool GlfwInstance::CreateGeometryBuffers() {
 		const size_t vtxCount = model->geometryData.positions.size();
-		vertexVbo = CreateBuffer(GL_ARRAY_BUFFER, sizeof(ViewerVertex) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
+		vertexVbo = CreateBuffer(sizeof(ViewerVertex) * vtxCount, nullptr, GL_DYNAMIC_DRAW);
 		const size_t idxSize = model->geometryData.indexElementSize;
 		const size_t idxCount = model->geometryData.indexCount;
-		ibo = CreateBuffer(GL_ELEMENT_ARRAY_BUFFER, idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
+		ibo = CreateBuffer(idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
 		if (idxSize == 1)
 			indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
@@ -105,16 +98,12 @@ namespace Chrivent {
 		};
 		std::string error;
 		if (!vertexConstantsRing.Setup(
-			GL_UNIFORM_BUFFER,
 			AlignedSize(vertexConstantsSize) * (drawCount + ringSlack),
-			GL_DYNAMIC_DRAW,
-			error))
+			GL_DYNAMIC_DRAW, error))
 			return false;
 		return pixelConstantsRing.Setup(
-			GL_UNIFORM_BUFFER,
 			AlignedSize(pixelConstantsSize) * (drawCount + ringSlack),
-			GL_DYNAMIC_DRAW,
-			error);
+			GL_DYNAMIC_DRAW, error);
 	}
 
 	void GlfwInstance::LoadMaterials() {
@@ -171,18 +160,15 @@ namespace Chrivent {
 
 	void GlfwInstance::Upload() const {
 		const size_t vtxCount = model->geometryData.positions.size();
-		glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
-		auto* vertices = static_cast<ViewerVertex*>(glMapBufferRange(
-			GL_ARRAY_BUFFER,
-			0,
-			sizeof(ViewerVertex) * vtxCount,
-			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+		auto* vertices = static_cast<ViewerVertex*>(glMapNamedBufferRange(
+			vertexVbo, 0, sizeof(ViewerVertex) * vtxCount, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 		if (vertices == nullptr) {
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";
 			return;
 		}
-		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true, vertices, vtxCount);
-		const bool unmapSucceeded = glUnmapBuffer(GL_ARRAY_BUFFER) == GL_TRUE;
+		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
+			{ vertices, vtxCount });
+		const bool unmapSucceeded = glUnmapNamedBuffer(vertexVbo) == GL_TRUE;
 		if (!writeSucceeded || !unmapSucceeded)
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";
 	}

@@ -2,7 +2,7 @@
 
 namespace Chrivent {
 	bool Dx12DepthBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -43,7 +43,7 @@ namespace Chrivent {
 		return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
-	void Dx12DepthBuffer::Destroy() {
+	void Dx12DepthBuffer::Reset() {
 		depthStencil.Reset();
 		dsvHeap.Reset();
 	}

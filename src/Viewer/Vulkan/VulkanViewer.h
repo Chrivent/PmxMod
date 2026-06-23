@@ -5,12 +5,10 @@
 #include "Viewer/Vulkan/Helper/VulkanCommandContext.h"
 #include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
 #include "Viewer/Vulkan/Helper/VulkanDevice.h"
-#include "Viewer/Vulkan/Helper/VulkanFrameBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanPipeline.h"
 #include "Viewer/Vulkan/Helper/VulkanPostProcess.h"
-#include "Viewer/Vulkan/Helper/VulkanRenderPass.h"
 #include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 #include "Viewer/Vulkan/Helper/VulkanSyncObject.h"
 #include "Viewer/Vulkan/VulkanTextureCache.h"
@@ -48,10 +46,8 @@ namespace Chrivent {
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
 		VulkanMsaaDepthBuffer msaaDepthBuffer;
-		VulkanRenderPass renderPass;
 		VulkanPostProcess postProcess;
 		std::shared_ptr<VulkanPipeline> pipeline;
-		VulkanFrameBuffer frameBuffer;
 		VulkanCommandContext commandContext;
 		std::shared_ptr<VulkanSyncObject> syncObject;
 		VulkanTextureCache textureCache;
@@ -65,7 +61,7 @@ namespace Chrivent {
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
 		bool CreateSwapChainResources();
 		// swapchain 재생성 전에 의존 리소스를 역순으로 해제한다.
-		void DestroySwapChainResources();
+		void ResetSwapChainResources();
 
 	public:
 		VulkanViewer();

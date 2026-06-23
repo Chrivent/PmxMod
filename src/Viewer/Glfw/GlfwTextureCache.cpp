@@ -20,14 +20,11 @@ namespace Chrivent {
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glTexImage2D(GL_TEXTURE_2D, 0,
-			GL_RGBA, 1, 1, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+		glTextureStorage2D(tex, 1, GL_RGBA8, 1, 1);
+		glTextureSubImage2D(tex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+		glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		const auto texture = std::make_shared<GlfwTexture>();
 		texture->key = key;
 		texture->texture = tex;
@@ -46,19 +43,16 @@ namespace Chrivent {
 			return {};
 		const bool hasAlpha = comp == 4;
 		GLuint tex = 0;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glTexImage2D(GL_TEXTURE_2D, 0,
-			GL_RGBA, x, y, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, image);
+		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+		glTextureStorage2D(tex, 1, GL_RGBA8, x, y);
+		glTextureSubImage2D(tex, 0, 0, 0, x, y, GL_RGBA, GL_UNSIGNED_BYTE, image);
 		stbi_image_free(image);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		if (clamp) {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
-		glBindTexture(GL_TEXTURE_2D, 0);
 		const auto texture = std::make_shared<GlfwTexture>();
 		texture->key = key;
 		texture->texture = tex;

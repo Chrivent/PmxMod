@@ -4,8 +4,6 @@
 #include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 #include "Viewer/Shader/ShaderPackage.h"
 
-#include <filesystem>
-
 namespace Chrivent {
 	class VulkanPipeline {
 		VkDevice device = VK_NULL_HANDLE;
@@ -17,11 +15,12 @@ namespace Chrivent {
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkRenderPass renderPass, const EffectDefinition& modelEffect,
+			VkFormat depthFormat, const EffectDefinition& modelEffect,
 			const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
-			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkRenderPass renderPass, const EffectPassDefinition& pass,
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+			VkFormat depthFormat, const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkPipeline& outPipeline) const;
 		// 셰이더 stage 생성 정보를 만든다.
@@ -47,10 +46,10 @@ namespace Chrivent {
 		VulkanPipeline(VulkanPipeline&&) = delete;
 		VulkanPipeline& operator=(VulkanPipeline&&) = delete;
 
-		// 렌더 패스와 스왑체인 설정에 맞는 모델 graphics pipeline을 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkRenderPass renderPass,
+		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
+		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat,
 			const EffectDefinition& modelEffect, const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect);
 		// 생성한 pipeline 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

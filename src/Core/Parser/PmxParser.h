@@ -1,6 +1,9 @@
 ﻿#pragma once
 
+#include "Core/Parser/BinaryReader.h"
+
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -401,31 +404,33 @@ namespace Chrivent {
 		PmxData data{};
 
 		// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
-		void ReadString(std::istream& is, std::string* val) const;
+		void ReadString(BinaryReader& reader, std::string* val) const;
 		// PMX 헤더와 인덱스 크기 정보를 읽는다.
-		void ReadHeader(std::istream& is);
+		void ReadHeader(BinaryReader& reader);
 		// 모델 이름과 설명 정보를 읽는다.
-		void ReadInfo(std::istream& is);
+		void ReadInfo(BinaryReader& reader);
 		// 버텍스 목록과 스키닝 정보를 읽는다.
-		void ReadVertex(std::istream& is);
+		void ReadVertex(BinaryReader& reader);
 		// 면 인덱스 목록을 읽는다.
-		void ReadFace(std::istream& is);
+		void ReadFace(BinaryReader& reader);
 		// 텍스처 경로 목록을 읽는다.
-		void ReadTexture(std::istream& is);
+		void ReadTexture(BinaryReader& reader);
 		// 재질 목록과 렌더링 속성을 읽는다.
-		void ReadMaterial(std::istream& is);
+		void ReadMaterial(BinaryReader& reader);
 		// 본 계층과 IK 정보를 읽는다.
-		void ReadBone(std::istream& is);
+		void ReadBone(BinaryReader& reader);
 		// 모프 목록과 모프별 데이터를 읽는다.
-		void ReadMorph(std::istream& is);
+		void ReadMorph(BinaryReader& reader);
 		// 표시 프레임 정보를 읽는다.
-		void ReadDisplayFrame(std::istream& is);
+		void ReadDisplayFrame(BinaryReader& reader);
 		// 강체 정보를 읽는다.
-		void ReadRigidbody(std::istream& is);
+		void ReadRigidbody(BinaryReader& reader);
 		// 조인트 제약 정보를 읽는다.
-		void ReadJoint(std::istream& is);
+		void ReadJoint(BinaryReader& reader);
 		// 소프트바디 정보를 읽는다.
-		void ReadSoftBody(std::istream& is);
+		void ReadSoftBody(BinaryReader& reader);
+		// 읽은 PMX 데이터의 인덱스와 상호 참조를 검증한다.
+		void ValidateData(BinaryReader& reader) const;
 		// 이전에 읽은 PMX 데이터를 초기화한다.
 		void Clear();
 
@@ -433,6 +438,6 @@ namespace Chrivent {
 		const PmxData& GetData() const { return data; }
 		
 		// PMX 파일 전체를 읽어 내부 데이터 구조에 저장한다.
-		bool ReadFile(const std::filesystem::path& filename);
+		std::expected<void, ParseError> ReadFile(const std::filesystem::path& filename);
 	};
 }

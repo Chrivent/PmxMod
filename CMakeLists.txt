@@ -4,25 +4,19 @@ project(PmxMod LANGUAGES CXX)
 
 add_compile_definitions(NOMINMAX)
 
-set(VCPKG_ROOT "C:/vcpkg" CACHE PATH "Path to vcpkg root")
-set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "Vcpkg target triplet")
-set(VCPKG_INSTALLED_DIR "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
-set(VCPKG_INCLUDE_DIR "${VCPKG_INSTALLED_DIR}/include")
-list(PREPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}")
-list(PREPEND CMAKE_MODULE_PATH "${VCPKG_INSTALLED_DIR}/share/stb")
-
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Bullet CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(spirv_cross_core CONFIG REQUIRED)
+find_package(spirv_cross_glsl CONFIG REQUIRED)
+find_package(spirv_cross_cpp CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
-find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
 find_library(DXCOMPILER_LIBRARY dxcompiler HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 find_file(DXCOMPILER_DLL dxcompiler.dll HINTS "$ENV{VULKAN_SDK}/Bin" REQUIRED)
-find_library(SPIRV_CROSS_CORE_LIBRARY spirv-cross-core HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
-find_library(SPIRV_CROSS_LIBRARY spirv-cross-glsl HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Viewer)
@@ -85,7 +79,7 @@ add_dependencies(PmxMod SyncResources)
 
 add_custom_command(TARGET PmxMod POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${VCPKG_INSTALLED_DIR}/bin/glfw3.dll"
+        "$<TARGET_FILE:glfw>"
         "$<TARGET_FILE_DIR:PmxMod>"
         VERBATIM
 )

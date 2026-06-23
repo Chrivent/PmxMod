@@ -1,6 +1,9 @@
 ﻿#pragma once
 
+#include "Core/Parser/BinaryReader.h"
+
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
@@ -80,19 +83,19 @@ namespace Chrivent {
 		VmdData data{};
 
 		// VMD 헤더와 대상 모델 이름을 읽는다.
-		void ReadHeader(std::istream& is);
+		void ReadHeader(BinaryReader& reader);
 		// 본 모션 키프레임 목록을 읽는다.
-		void ReadMotion(std::istream& is);
+		void ReadMotion(BinaryReader& reader);
 		// 모프 키프레임 목록을 읽는다.
-		void ReadBlendShape(std::istream& is);
+		void ReadBlendShape(BinaryReader& reader);
 		// 카메라 키프레임 목록을 읽는다.
-		void ReadCamera(std::istream& is);
+		void ReadCamera(BinaryReader& reader);
 		// 라이트 키프레임 목록을 읽는다.
-		void ReadLight(std::istream& is);
+		void ReadLight(BinaryReader& reader);
 		// 그림자 키프레임 목록을 읽는다.
-		void ReadShadow(std::istream& is);
+		void ReadShadow(BinaryReader& reader);
 		// IK 표시/활성화 키프레임 목록을 읽는다.
-		void ReadIk(std::istream& is);
+		void ReadIk(BinaryReader& reader);
 		// 이전에 읽은 VMD 데이터를 초기화한다.
 		void Clear();
 
@@ -100,6 +103,6 @@ namespace Chrivent {
 		const VmdData& GetData() const { return data; }
 		
 		// VMD 파일 전체를 읽어 모션/카메라/모프 데이터를 저장한다.
-		bool ReadFile(const std::filesystem::path& filename);
+		std::expected<void, ParseError> ReadFile(const std::filesystem::path& filename);
 	};
 }

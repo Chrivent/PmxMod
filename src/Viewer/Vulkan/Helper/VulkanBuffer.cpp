@@ -6,12 +6,12 @@
 
 namespace Chrivent {
 	VulkanBuffer::~VulkanBuffer() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanBuffer::Initialize(const VulkanDevice& sourceDevice, const VkDeviceSize bufferSize,
 		const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
-		Destroy();
+		Reset();
 		device = sourceDevice.device;
 		size = bufferSize;
 		VkBufferCreateInfo bufferInfo{};
@@ -74,7 +74,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanBuffer::Destroy() {
+	void VulkanBuffer::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (persistentlyMapped && memory != VK_NULL_HANDLE)

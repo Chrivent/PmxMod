@@ -3,18 +3,23 @@
 #include "Viewer/Dx11/Dx11Instance.h"
 #include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
 #include "Viewer/Shader/ShaderPackage.h"
+#include "Util.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 #include <iostream>
+#include <iterator>
 
 namespace Chrivent {
 	bool Dx11Viewer::CreateDevice() {
 		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
 		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory))))
 			return false;
-		constexpr D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
+		constexpr D3D_FEATURE_LEVEL featureLevels[] = {
+			D3D_FEATURE_LEVEL_11_1,
+			D3D_FEATURE_LEVEL_11_0
+		};
 		for (UINT index = 0; ; index++) {
 			Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
 			if (FAILED(factory->EnumAdapterByGpuPreference(
@@ -23,19 +28,29 @@ namespace Chrivent {
 			DXGI_ADAPTER_DESC1 description{};
 			if (FAILED(adapter->GetDesc1(&description)) || (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
 				continue;
-			if (FAILED(D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, 0,
-				&featureLevels, 1, D3D11_SDK_VERSION, &deviceResources.device, nullptr,
-				&deviceResources.context)))
+			D3D_FEATURE_LEVEL selectedFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+			HRESULT result = D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, 0,
+				featureLevels, std::size(featureLevels), D3D11_SDK_VERSION,
+				&deviceResources.device, &selectedFeatureLevel, &deviceResources.context);
+			if (result == E_INVALIDARG) {
+				result = D3D11CreateDevice(adapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, 0,
+					&featureLevels[1], 1, D3D11_SDK_VERSION, &deviceResources.device,
+					&selectedFeatureLevel, &deviceResources.context);
+			}
+			if (FAILED(result))
 				continue;
-			PrintGpuInfo(description);
+			capabilities.apiName = "Direct3D 11";
+			capabilities.apiVersion = selectedFeatureLevel == D3D_FEATURE_LEVEL_11_1
+				? "Feature Level 11.1" : "Feature Level 11.0";
+			capabilities.shaderVersion = "Shader Model 5.0";
+			capabilities.gpuName = Util::WStringToUtf8(description.Description);
+			capabilities.gpuType = description.DedicatedVideoMemory > 0 ? "discrete" : "integrated";
+			capabilities.uniformBufferAlignment = 16;
+			capabilities.maxTextureBindings = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+			capabilities.shaderModelMajor = 5;
 			return true;
 		}
 		return false;
-	}
-
-	void Dx11Viewer::PrintGpuInfo(const DXGI_ADAPTER_DESC1& description) {
-		std::wcout << L"dx11_gpu=" << description.Description << L'\n';
-		std::wcout << L"dx11_gpu_type=" << (description.DedicatedVideoMemory > 0 ? L"discrete" : L"integrated") << L'\n';
 	}
 
 	void Dx11Viewer::UpdateViewport() const {
@@ -190,6 +205,8 @@ namespace Chrivent {
 			quality = 0;
 		}
 		multiSampleQuality = quality > 0 ? quality - 1 : 0;
+		capabilities.maxSampleCount = multiSampleCount;
+		capabilities.Print();
 		auto d = Dx11DescBuilder::MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
 		if (FAILED(factory->CreateSwapChain(deviceResources.device.Get(), &d, &deviceResources.swapChain)))
 			return false;

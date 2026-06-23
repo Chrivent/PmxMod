@@ -143,6 +143,6 @@ namespace Chrivent {
 		~Model();
 
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

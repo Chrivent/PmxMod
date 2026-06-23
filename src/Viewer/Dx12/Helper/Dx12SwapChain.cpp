@@ -21,7 +21,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12SwapChain::Initialize(const Dx12Device& sourceDevice, const HWND hwnd, const int width, const int height) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.factory || !sourceDevice.device || !sourceDevice.commandQueue || !hwnd)
 			return false;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
@@ -72,7 +72,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12SwapChain::Destroy() {
+	void Dx12SwapChain::Reset() {
 		for (auto& backBuffer : backBuffers)
 			backBuffer.Reset();
 		rtvHeap.Reset();

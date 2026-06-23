@@ -18,6 +18,6 @@ namespace Chrivent {
 		// RTV heap에서 MSAA color render target view handle을 해석해 반환한다.
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolveRtvHandle() const;
 		// 생성한 DX12 MSAA color 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

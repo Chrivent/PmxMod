@@ -49,6 +49,6 @@ namespace Chrivent {
 			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange,
 			std::vector<VulkanMaterial>& materials, VulkanPassType sourcePassType);
 		// descriptor pool과 set 핸들을 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

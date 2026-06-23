@@ -3,6 +3,8 @@
 #include "Viewer/Vulkan/Helper/VulkanDevice.h"
 #include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 
+#include <span>
+
 namespace Chrivent {
 	class VulkanMsaaDepthBuffer {
 		VkImage image = VK_NULL_HANDLE;
@@ -12,8 +14,7 @@ namespace Chrivent {
 		// 물리 디바이스에서 사용할 수 있는 depth format을 찾는다.
 		static VkFormat FindDepthFormat(const VulkanDevice& sourceDevice);
 		// 후보 format 중 tiling과 feature 조건을 만족하는 format을 찾는다.
-		static VkFormat FindSupportedFormat(
-			const VulkanDevice& sourceDevice, const VkFormat* candidates, uint32_t candidateCount,
+		static VkFormat FindSupportedFormat(const VulkanDevice& sourceDevice, std::span<const VkFormat> candidates,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
 		// 멀티샘플 depth attachment로 사용할 image와 메모리를 생성한다.
 		bool CreateImage(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
@@ -23,6 +24,7 @@ namespace Chrivent {
 	public:
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_UNDEFINED;
+		VkImage GetImage() const { return image; }
 
 		VulkanMsaaDepthBuffer() = default;
 		~VulkanMsaaDepthBuffer();
@@ -40,6 +42,6 @@ namespace Chrivent {
 		// 스왑체인 크기에 맞는 멀티샘플 depth image와 image view를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 생성한 멀티샘플 depth 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

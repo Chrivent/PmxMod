@@ -1,7 +1,7 @@
 ﻿#include "Viewer/ViewerGeometry.h"
 
 namespace Chrivent {
-	bool ViewerGeometry::WriteVertices(const ModelGeometryData& geometryData, const bool useUpdateData, ViewerVertex* destination, const size_t destinationCount) {
+	bool ViewerGeometry::WriteVertices(const ModelGeometryData& geometryData, const bool useUpdateData, const std::span<ViewerVertex> destination) {
 		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
 			? geometryData.updatePositions
 			: geometryData.positions;
@@ -11,7 +11,7 @@ namespace Chrivent {
 		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
 			? geometryData.updateUVs
 			: geometryData.uvs;
-		if (destination == nullptr || destinationCount < positions.size())
+		if (destination.size() < positions.size())
 			return false;
 		for (size_t index = 0; index < positions.size(); index++) {
 			auto& [position, normal, uv] = destination[index];

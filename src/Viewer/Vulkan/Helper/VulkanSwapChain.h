@@ -45,6 +45,6 @@ namespace Chrivent {
 		// 창 크기 변경에 맞춰 스왑체인과 image view를 다시 생성한다.
 		bool Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 생성한 스왑체인 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <d3d11.h>
+#include <span>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -16,11 +17,11 @@ namespace Chrivent {
 		static bool CreatePixelShader(ID3D11Device* device, ID3DBlob* bytecode, Microsoft::WRL::ComPtr<ID3D11PixelShader>& outShader);
 		// 컴파일된 vertex bytecode와 입력 요소 정보로 DX11 input layout을 생성한다.
 		static bool CreateInputLayout(ID3D11Device* device, ID3DBlob* vertexBytecode,
-			const D3D11_INPUT_ELEMENT_DESC* inputElements, UINT inputElementCount,
+			std::span<const D3D11_INPUT_ELEMENT_DESC> inputElements,
 			Microsoft::WRL::ComPtr<ID3D11InputLayout>& outInputLayout);
 		// HLSL 파일을 컴파일하고 vertex/pixel shader와 input layout을 생성한다.
 		bool Initialize(ID3D11Device* device, const std::filesystem::path& file,
-			const D3D11_INPUT_ELEMENT_DESC* inputElements, UINT inputElementCount,
+			std::span<const D3D11_INPUT_ELEMENT_DESC> inputElements,
 			const char* vertexEntry = "VSMain", const char* pixelEntry = "PSMain");
 	};
 

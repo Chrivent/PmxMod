@@ -14,8 +14,6 @@ namespace Chrivent {
 			return false;
 		if (postProcessEffect && !postProcess.Initialize(*device, swapChain, *postProcessEffect))
 			return false;
-		if (!renderPass.Initialize(*device, swapChain, msaaDepthBuffer.format, postProcessEffect != nullptr))
-			return false;
 		ShaderPackage package;
 		std::string error;
 		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
@@ -28,27 +26,18 @@ namespace Chrivent {
 		if (modelEffect == package.effects.end() || edgeEffect == package.effects.end() || groundShadowEffect == package.effects.end())
 			return false;
 		if (!pipeline->Initialize(
-			*device, swapChain, renderPass.GetRenderPass(),
+			*device, swapChain, msaaDepthBuffer.format,
 			*modelEffect, *edgeEffect, *groundShadowEffect))
-			return false;
-		if (postProcessEffect) {
-			if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
-				msaaColorBuffer.imageView, msaaDepthBuffer.imageView, postProcess.GetSceneImageViews()))
-				return false;
-		} else if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
-			msaaColorBuffer.imageView, msaaDepthBuffer.imageView))
 			return false;
 		return commandContext.Initialize(*device, swapChain);
 	}
 
-	void VulkanViewer::DestroySwapChainResources() {
-		commandContext.Destroy();
-		frameBuffer.Destroy();
-		pipeline->Destroy();
-		renderPass.Destroy();
-		postProcess.Destroy();
-		msaaColorBuffer.Destroy();
-		msaaDepthBuffer.Destroy();
+	void VulkanViewer::ResetSwapChainResources() {
+		commandContext.Reset();
+		pipeline->Reset();
+		postProcess.Reset();
+		msaaColorBuffer.Reset();
+		msaaDepthBuffer.Reset();
 	}
 
 	VulkanViewer::VulkanViewer() {
@@ -113,8 +102,8 @@ namespace Chrivent {
 			bindStateCache.vertexDynamicOffset == dynamicOffset)
 			return;
 		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(
-			currentImageIndex, pipeline->pipelineLayout, 0, &descriptorSet.GetVertexDescriptorSet(), 1, &dynamicOffset, 1);
+		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->pipelineLayout, 0,
+			{ &descriptorSet.GetVertexDescriptorSet(), 1 }, { &dynamicOffset, 1 });
 		bindStateCache.vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
 		bindStateCache.vertexDynamicOffset = dynamicOffset;
 	}
@@ -126,7 +115,8 @@ namespace Chrivent {
 			bindStateCache.pixelDynamicOffset == dynamicOffset)
 			return;
 		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->pipelineLayout, 1, &descriptorSet, 1, &dynamicOffset, 1);
+		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->pipelineLayout, 1,
+			{ &descriptorSet, 1 }, { &dynamicOffset, 1 });
 		bindStateCache.pixelDescriptorSet = descriptorSet;
 		bindStateCache.pixelDynamicOffset = dynamicOffset;
 	}
@@ -137,7 +127,8 @@ namespace Chrivent {
 		if (bindStateCache.textureDescriptorSet == descriptorSet)
 			return;
 		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->pipelineLayout, 2, &descriptorSet, 1);
+		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline->pipelineLayout, 2,
+			{ &descriptorSet, 1 });
 		bindStateCache.textureDescriptorSet = descriptorSet;
 	}
 
@@ -149,6 +140,7 @@ namespace Chrivent {
 		InitDirs("shaders");
 		if (!device->Initialize(window))
 			return false;
+		capabilities = device->capabilities;
 		if (!swapChain.Initialize(*device, window))
 			return false;
 		if (!CreateSwapChainResources())
@@ -162,7 +154,7 @@ namespace Chrivent {
 	bool VulkanViewer::Resize() {
 		if (device->device != VK_NULL_HANDLE)
 			vkDeviceWaitIdle(device->device);
-		DestroySwapChainResources();
+		ResetSwapChainResources();
 		if (!swapChain.Recreate(*device, window))
 			return false;
 		if (!CreateSwapChainResources())
@@ -192,9 +184,17 @@ namespace Chrivent {
 		}
 		auto& commandBuffer = commandContext.commandBuffer;
 		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
-		const auto& frameBuffers = frameBuffer.GetFrameBuffers();
-		if (!commandBuffer.BeginRecord(currentImageIndex, renderPass.GetRenderPass(),
-			frameBuffers[currentImageIndex], pipeline->pipeline, swapChain.extent, clearColor))
+		const VkImage resolveImage = postProcessEffect
+			? postProcess.GetSceneImage(currentImageIndex)
+			: swapChain.images[currentImageIndex];
+		const VkImageView resolveImageView = postProcessEffect
+			? postProcess.GetSceneImageViews()[currentImageIndex]
+			: swapChain.imageViews[currentImageIndex];
+		if (!commandBuffer.BeginRecord(currentImageIndex,
+			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
+			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
+			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
+			device->msaaSampleCount, pipeline->pipeline, swapChain.extent, clearColor))
 			return;
 		bindStateCache.pipeline = pipeline->pipeline;
 		frameReady = true;
@@ -205,10 +205,11 @@ namespace Chrivent {
 			return true;
 		const bool recordEnded = postProcessEffect
 			? commandContext.commandBuffer.EndRecordWithPostProcess(
-				currentImageIndex, postProcess.GetRenderPass(), postProcess.GetFrameBuffers()[currentImageIndex],
+				currentImageIndex, postProcess.GetSceneImage(currentImageIndex),
+				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
 				postProcess.GetPipeline(), postProcess.GetPipelineLayout(),
 				postProcess.GetDescriptorSet(currentImageIndex), swapChain.extent)
-			: commandContext.commandBuffer.EndRecord(currentImageIndex);
+			: commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
 			frameReady = false;
 			return false;
@@ -217,26 +218,34 @@ namespace Chrivent {
 		const auto& renderFinishedSemaphores = syncObject->renderFinishedSemaphores;
 		const auto& inFlightFences = syncObject->inFlightFences;
 		const size_t frameIndex = syncObject->currentFrame;
-		const VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[frameIndex] };
-		constexpr VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		const VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentImageIndex] };
-		const VkCommandBuffer commandBuffers[] = {
-			commandContext.commandBuffer.ResolveCommandBuffer(currentImageIndex)
+		const VkSemaphoreSubmitInfo waitSemaphoreInfo{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = imageAvailableSemaphores[frameIndex],
+			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+		};
+		const VkSemaphoreSubmitInfo signalSemaphoreInfo{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = renderFinishedSemaphores[currentImageIndex],
+			.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+		};
+		const VkCommandBufferSubmitInfo commandBufferInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			.commandBuffer = commandContext.commandBuffer.ResolveCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
 		if (currentImageIndex < syncObject->imagesInFlight.size())
 			syncObject->imagesInFlight[currentImageIndex] = inFlightFence;
 		vkResetFences(device->device, 1, &inFlightFence);
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = commandBuffers;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-		if (vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+		const VkSubmitInfo2 submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			.waitSemaphoreInfoCount = 1,
+			.pWaitSemaphoreInfos = &waitSemaphoreInfo,
+			.commandBufferInfoCount = 1,
+			.pCommandBufferInfos = &commandBufferInfo,
+			.signalSemaphoreInfoCount = 1,
+			.pSignalSemaphoreInfos = &signalSemaphoreInfo
+		};
+		if (vkQueueSubmit2(device->graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
 			return false;
 		}
@@ -244,7 +253,7 @@ namespace Chrivent {
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = signalSemaphores;
+		presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentImageIndex];
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &currentImageIndex;
@@ -270,11 +279,11 @@ namespace Chrivent {
 			return false;
 		WaitIdle();
 		postProcessEffect = std::make_unique<EffectDefinition>(effect);
-		DestroySwapChainResources();
+		ResetSwapChainResources();
 		if (CreateSwapChainResources())
 			return true;
 		postProcessEffect.reset();
-		DestroySwapChainResources();
+		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
 		return false;

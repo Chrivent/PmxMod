@@ -11,20 +11,20 @@ namespace Chrivent {
 			VK_FORMAT_D24_UNORM_S8_UINT,
 			VK_FORMAT_D32_SFLOAT
 		};
-		return FindSupportedFormat(sourceDevice, candidates, std::size(candidates),
+		return FindSupportedFormat(sourceDevice, candidates,
 			VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 	}
 
-	VkFormat VulkanMsaaDepthBuffer::FindSupportedFormat(
-		const VulkanDevice& sourceDevice, const VkFormat* candidates, const uint32_t candidateCount,
+	VkFormat VulkanMsaaDepthBuffer::FindSupportedFormat(const VulkanDevice& sourceDevice,
+		const std::span<const VkFormat> candidates,
 		const VkImageTiling tiling, const VkFormatFeatureFlags features) {
-		for (uint32_t i = 0; i < candidateCount; i++) {
+		for (const VkFormat candidate : candidates) {
 			VkFormatProperties properties{};
-			vkGetPhysicalDeviceFormatProperties(sourceDevice.physicalDevice, candidates[i], &properties);
+			vkGetPhysicalDeviceFormatProperties(sourceDevice.physicalDevice, candidate, &properties);
 			if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
-				return candidates[i];
+				return candidate;
 			if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
-				return candidates[i];
+				return candidate;
 		}
 		return VK_FORMAT_UNDEFINED;
 	}
@@ -91,7 +91,7 @@ namespace Chrivent {
 	}
 
 	VulkanMsaaDepthBuffer::~VulkanMsaaDepthBuffer() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanMsaaDepthBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
@@ -106,7 +106,7 @@ namespace Chrivent {
 		return CreateImageView();
 	}
 
-	void VulkanMsaaDepthBuffer::Destroy() {
+	void VulkanMsaaDepthBuffer::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (imageView != VK_NULL_HANDLE) {

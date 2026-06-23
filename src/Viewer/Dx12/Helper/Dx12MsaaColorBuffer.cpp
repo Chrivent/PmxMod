@@ -2,7 +2,7 @@
 
 namespace Chrivent {
 	bool Dx12MsaaColorBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -45,7 +45,7 @@ namespace Chrivent {
 		return rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
-	void Dx12MsaaColorBuffer::Destroy() {
+	void Dx12MsaaColorBuffer::Reset() {
 		renderTarget.Reset();
 		rtvHeap.Reset();
 	}

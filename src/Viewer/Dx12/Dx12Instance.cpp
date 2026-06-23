@@ -31,7 +31,7 @@ namespace Chrivent {
 			Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
-					static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+					{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
 				return false;
 			auto& [BufferLocation, SizeInBytes, StrideInBytes] = vertexBufferViews[frameIndex];
 			BufferLocation = vertexBuffer.ResolveGpuAddress();
@@ -39,7 +39,7 @@ namespace Chrivent {
 			StrideInBytes = sizeof(ViewerVertex);
 		}
 		if (!indexBuffer.InitializeUpload(device, indexData.bytes.size()) ||
-			!indexBuffer.Write(indexData.bytes.data(), indexData.bytes.size()))
+			!indexBuffer.Write(std::as_bytes(std::span(indexData.bytes))))
 			return false;
 		indexBufferView.BufferLocation = indexBuffer.ResolveGpuAddress();
 		indexBufferView.SizeInBytes = indexData.bytes.size();
@@ -151,35 +151,35 @@ namespace Chrivent {
 
 	void Dx12Instance::Clear() {
 		for (Dx12Buffer& vertexBuffer : vertexBuffers)
-			vertexBuffer.Destroy();
-		indexBuffer.Destroy();
+			vertexBuffer.Reset();
+		indexBuffer.Reset();
 		for (Dx12Buffer& buffer : modelVertexConstantBuffers)
-			buffer.Destroy();
+			buffer.Reset();
 		for (auto& buffers : modelPixelConstantBuffers) {
 			if (!buffers)
 				continue;
 			for (size_t i = 0; i < kBufferedFrames; i++)
-				buffers[i].Destroy();
+				buffers[i].Reset();
 		}
 		modelPixelConstantBuffers.clear();
 		for (auto& buffers : edgeVertexConstantBuffers) {
 			if (!buffers)
 				continue;
 			for (size_t i = 0; i < kBufferedFrames; i++)
-				buffers[i].Destroy();
+				buffers[i].Reset();
 		}
 		edgeVertexConstantBuffers.clear();
 		for (auto& buffers : edgePixelConstantBuffers) {
 			if (!buffers)
 				continue;
 			for (size_t i = 0; i < kBufferedFrames; i++)
-				buffers[i].Destroy();
+				buffers[i].Reset();
 		}
 		edgePixelConstantBuffers.clear();
 		for (Dx12Buffer& buffer : groundShadowVertexConstantBuffers)
-			buffer.Destroy();
+			buffer.Reset();
 		for (Dx12Buffer& buffer : groundShadowPixelConstantBuffers)
-			buffer.Destroy();
+			buffer.Reset();
 		textureDescriptorHeap.Reset();
 		textureDescriptorSize = 0;
 		for (auto& vertexBufferView : vertexBufferViews)
@@ -214,7 +214,7 @@ namespace Chrivent {
 			return;
 		const size_t vertexCount = model->geometryData.positions.size();
 		if (!ViewerGeometry::WriteVertices(model->geometryData, true,
-			static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount))
+			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
 			std::cerr << "Failed to update DX12 vertex buffer.\n";
 	}
 }

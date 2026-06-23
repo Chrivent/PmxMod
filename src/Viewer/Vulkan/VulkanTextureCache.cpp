@@ -39,11 +39,16 @@ namespace Chrivent {
 			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
 			return false;
 		}
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-		if (vkQueueSubmit(sourceDevice.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		const VkCommandBufferSubmitInfo commandBufferInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			.commandBuffer = commandBuffer
+		};
+		const VkSubmitInfo2 submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			.commandBufferInfoCount = 1,
+			.pCommandBufferInfos = &commandBufferInfo
+		};
+		if (vkQueueSubmit2(sourceDevice.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 			std::cerr << "Failed to submit Vulkan texture command buffer.\n";
 			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
 			return false;
@@ -55,8 +60,8 @@ namespace Chrivent {
 
 	void VulkanTextureCache::TransitionImageLayout(const VkCommandBuffer commandBuffer, const VkImage image,
 		const VkImageLayout oldLayout, const VkImageLayout newLayout) {
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		VkImageMemoryBarrier2 barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 		barrier.oldLayout = oldLayout;
 		barrier.newLayout = newLayout;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -67,20 +72,22 @@ namespace Chrivent {
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
-		VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+		barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
 		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 		}
-		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0,
-			0, nullptr, 0, nullptr,
-			1, &barrier);
+		const VkDependencyInfo dependencyInfo{
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &barrier
+		};
+		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 	}
 
 	void VulkanTextureCache::CopyBufferToImage(const VkCommandBuffer commandBuffer, const VkBuffer buffer,
@@ -110,27 +117,27 @@ namespace Chrivent {
 		texture.width = width;
 		texture.height = height;
 		if (!CreateImage(sourceDevice, texture.width, texture.height, texture.image, texture.imageMemory)) {
-			DestroyTexture(texture);
+			ResetTexture(texture);
 			return false;
 		}
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 		if (!BeginSingleTimeCommands(sourceDevice, commandPool, commandBuffer)) {
-			DestroyTexture(texture);
+			ResetTexture(texture);
 			return false;
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		CopyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		if (!EndSingleTimeCommands(sourceDevice, commandPool, commandBuffer)) {
-			DestroyTexture(texture);
+			ResetTexture(texture);
 			return false;
 		}
 		if (!CreateImageView(texture.image, texture.imageView)) {
-			DestroyTexture(texture);
+			ResetTexture(texture);
 			return false;
 		}
 		if (!CreateSampler(texture.sampler, clamp)) {
-			DestroyTexture(texture);
+			ResetTexture(texture);
 			return false;
 		}
 		return true;
@@ -219,7 +226,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanTextureCache::DestroyTexture(VulkanTexture& texture) const {
+	void VulkanTextureCache::ResetTexture(VulkanTexture& texture) const {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (texture.sampler != VK_NULL_HANDLE) {
@@ -245,7 +252,7 @@ namespace Chrivent {
 	VulkanTextureCache::~VulkanTextureCache() {
 		for (const auto& texture : textures | std::views::values) {
 			const auto vulkanTexture = std::static_pointer_cast<VulkanTexture>(texture);
-			DestroyTexture(*vulkanTexture);
+			ResetTexture(*vulkanTexture);
 		}
 		textures.clear();
 	}

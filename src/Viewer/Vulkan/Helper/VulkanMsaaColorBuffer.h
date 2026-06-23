@@ -17,6 +17,7 @@ namespace Chrivent {
 	public:
 		VkImageView imageView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_UNDEFINED;
+		VkImage GetImage() const { return image; }
 
 		VulkanMsaaColorBuffer() = default;
 		~VulkanMsaaColorBuffer();
@@ -29,6 +30,6 @@ namespace Chrivent {
 		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 생성한 멀티샘플 color 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

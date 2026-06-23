@@ -4,6 +4,7 @@
 #include "Viewer/Vulkan/Helper/VulkanDevice.h"
 #include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 
+#include <span>
 #include <vector>
 
 namespace Chrivent {
@@ -14,6 +15,13 @@ namespace Chrivent {
 		std::vector<VkIndexType> boundIndexTypes;
 		VkDevice device = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+
+		// Synchronization2 배리어로 이미지 레이아웃과 접근 상태를 전환한다.
+		static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image,
+			VkImageLayout oldLayout, VkImageLayout newLayout,
+			VkPipelineStageFlags2 sourceStage, VkAccessFlags2 sourceAccess,
+			VkPipelineStageFlags2 destinationStage, VkAccessFlags2 destinationAccess,
+			VkImageAspectFlags aspectMask);
 
 	public:
 		VulkanCommandBuffer() = default;
@@ -28,23 +36,25 @@ namespace Chrivent {
 		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
-		// 지정한 스왑체인 이미지에 대한 렌더 패스를 시작하고 파이프라인을 바인딩한다.
-		bool BeginRecord(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer, VkPipeline pipeline, VkExtent2D extent, const float clearColor[4]);
+		// 지정한 이미지 attachment로 dynamic rendering을 시작하고 파이프라인을 바인딩한다.
+		bool BeginRecord(uint32_t imageIndex, VkImage colorImage, VkImageView colorImageView,
+			VkImage resolveImage, VkImageView resolveImageView, VkImage depthImage,
+			VkImageView depthImageView, bool depthHasStencil, VkSampleCountFlagBits sampleCount,
+			VkPipeline pipeline, VkExtent2D extent, const float clearColor[4]);
 		// 현재 command buffer에 graphics pipeline을 바인딩한다.
 		void BindPipeline(uint32_t imageIndex, VkPipeline pipeline) const;
 		// 현재 command buffer에 모델 vertex/index buffer를 바인딩하고 draw indexed 명령을 기록한다.
 		void DrawIndexed(uint32_t imageIndex, const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, uint32_t firstIndex, uint32_t indexCount);
 		// 현재 command buffer에 graphics descriptor set들을 바인딩한다.
 		void BindDescriptorSets(uint32_t imageIndex, VkPipelineLayout pipelineLayout, uint32_t firstSet,
-			const VkDescriptorSet* descriptorSets, uint32_t descriptorSetCount,
-			const uint32_t* dynamicOffsets = nullptr, uint32_t dynamicOffsetCount = 0) const;
-		// 지정한 스왑체인 이미지에 대한 렌더 패스와 command buffer 기록을 종료한다.
-		bool EndRecord(uint32_t imageIndex) const;
-		// 장면 렌더 패스를 끝내고 선택된 후처리 패스로 풀스크린 삼각형을 그린 뒤 기록을 종료한다.
-		bool EndRecordWithPostProcess(uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer frameBuffer,
-			VkPipeline pipeline, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet,
-			VkExtent2D extent) const;
+			std::span<const VkDescriptorSet> descriptorSets, std::span<const uint32_t> dynamicOffsets = {}) const;
+		// dynamic rendering을 끝내고 출력 이미지를 present 상태로 전환한다.
+		bool EndRecord(uint32_t imageIndex, VkImage outputImage) const;
+		// 장면 렌더링을 끝내고 후처리 결과를 스왑체인 이미지에 기록한다.
+		bool EndRecordWithPostProcess(uint32_t imageIndex, VkImage sceneImage,
+			VkImage swapChainImage, VkImageView swapChainImageView, VkPipeline pipeline,
+			VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, VkExtent2D extent) const;
 		// 할당한 명령 버퍼를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

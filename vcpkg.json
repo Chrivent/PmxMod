@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "pmxmod",
+  "version-string": "0.1.0",
+  "builtin-baseline": "e0b785fa42e9b3ee27f62e54f65e41358a1d2671",
+  "dependencies": [
+    "bullet3",
+    "glad",
+    "glfw3",
+    "glm",
+    "miniaudio",
+    "nlohmann-json",
+    "spirv-cross",
+    "stb"
+  ]
+}

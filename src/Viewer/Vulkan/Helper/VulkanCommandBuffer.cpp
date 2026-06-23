@@ -3,8 +3,40 @@
 #include <iostream>
 
 namespace Chrivent {
+	void VulkanCommandBuffer::TransitionImage(const VkCommandBuffer commandBuffer, const VkImage image,
+		const VkImageLayout oldLayout, const VkImageLayout newLayout,
+		const VkPipelineStageFlags2 sourceStage, const VkAccessFlags2 sourceAccess,
+		const VkPipelineStageFlags2 destinationStage, const VkAccessFlags2 destinationAccess,
+		const VkImageAspectFlags aspectMask) {
+		const VkImageMemoryBarrier2 barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = sourceStage,
+			.srcAccessMask = sourceAccess,
+			.dstStageMask = destinationStage,
+			.dstAccessMask = destinationAccess,
+			.oldLayout = oldLayout,
+			.newLayout = newLayout,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = image,
+			.subresourceRange = {
+				.aspectMask = aspectMask,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+		const VkDependencyInfo dependencyInfo{
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &barrier
+		};
+		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+	}
+
 	VulkanCommandBuffer::~VulkanCommandBuffer() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice, const VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain) {
@@ -30,8 +62,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex, const VkRenderPass renderPass,
-		const VkFramebuffer frameBuffer, const VkPipeline pipeline, const VkExtent2D extent, const float clearColor[4]) {
+	bool VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex,
+		const VkImage colorImage, const VkImageView colorImageView,
+		const VkImage resolveImage, const VkImageView resolveImageView,
+		const VkImage depthImage, const VkImageView depthImageView,
+		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount, const VkPipeline pipeline,
+		const VkExtent2D extent, const float clearColor[4]) {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to record Vulkan command buffer: image index is out of range.\n";
 			return false;
@@ -46,23 +82,57 @@ namespace Chrivent {
 			std::cerr << "Failed to begin Vulkan command buffer.\n";
 			return false;
 		}
-		VkClearValue clearValues[2]{};
-		clearValues[0].color = { {
-			clearColor[0],
-			clearColor[1],
-			clearColor[2],
-			clearColor[3]
-		} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPass;
-		renderPassInfo.framebuffer = frameBuffer;
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = extent;
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearValues;
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		const bool multisampled = sampleCount != VK_SAMPLE_COUNT_1_BIT;
+		const VkImage renderColorImage = multisampled ? colorImage : resolveImage;
+		const VkImageView renderColorView = multisampled ? colorImageView : resolveImageView;
+		TransitionImage(commandBuffer, renderColorImage, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+		if (multisampled) {
+			TransitionImage(commandBuffer, resolveImage, VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+		}
+		TransitionImage(commandBuffer, depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_ASPECT_DEPTH_BIT | (depthHasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
+		const VkClearValue colorClear{ .color = { {
+			clearColor[0], clearColor[1], clearColor[2], clearColor[3]
+		} } };
+		constexpr VkClearValue depthClear{ .depthStencil = { 1.0f, 0 } };
+		const VkRenderingAttachmentInfo colorAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = renderColorView,
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.resolveMode = multisampled ? VK_RESOLVE_MODE_AVERAGE_BIT : VK_RESOLVE_MODE_NONE,
+			.resolveImageView = multisampled ? resolveImageView : VK_NULL_HANDLE,
+			.resolveImageLayout = multisampled ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = multisampled ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = colorClear
+		};
+		const VkRenderingAttachmentInfo depthAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = depthImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.clearValue = depthClear
+		};
+		const VkRenderingInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+			.renderArea = { .extent = extent },
+			.layerCount = 1,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = &colorAttachment,
+			.pDepthAttachment = &depthAttachment,
+			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
+		};
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		if (pipeline != VK_NULL_HANDLE)
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		return true;
@@ -94,24 +164,27 @@ namespace Chrivent {
 	}
 
 	void VulkanCommandBuffer::BindDescriptorSets(const uint32_t imageIndex, const VkPipelineLayout pipelineLayout,
-		const uint32_t firstSet, const VkDescriptorSet* descriptorSets, const uint32_t descriptorSetCount,
-		const uint32_t* dynamicOffsets, const uint32_t dynamicOffsetCount) const {
+		const uint32_t firstSet, const std::span<const VkDescriptorSet> descriptorSets, const std::span<const uint32_t> dynamicOffsets) const {
 		if (imageIndex >= commandBuffers.size() ||
 			pipelineLayout == VK_NULL_HANDLE ||
-			descriptorSets == nullptr ||
-			descriptorSetCount == 0)
+			descriptorSets.empty())
 			return;
 		vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-			firstSet, descriptorSetCount, descriptorSets, dynamicOffsetCount, dynamicOffsets);
+			firstSet, static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(),
+			static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
 	}
 
-	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex) const {
+	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex, const VkImage outputImage) const {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to end Vulkan command buffer: image index is out of range.\n";
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		vkCmdEndRenderPass(commandBuffer);
+		vkCmdEndRendering(commandBuffer);
+		TransitionImage(commandBuffer, outputImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_IMAGE_ASPECT_COLOR_BIT);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan command buffer.\n";
 			return false;
@@ -120,25 +193,46 @@ namespace Chrivent {
 	}
 
 	bool VulkanCommandBuffer::EndRecordWithPostProcess(const uint32_t imageIndex,
-		const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const VkPipeline pipeline,
+		const VkImage sceneImage, const VkImage swapChainImage, const VkImageView swapChainImageView,
+		const VkPipeline pipeline,
 		const VkPipelineLayout pipelineLayout, const VkDescriptorSet descriptorSet, const VkExtent2D extent) const {
-		if (imageIndex >= commandBuffers.size() || renderPass == VK_NULL_HANDLE
-			|| frameBuffer == VK_NULL_HANDLE || pipeline == VK_NULL_HANDLE
+		if (imageIndex >= commandBuffers.size() || pipeline == VK_NULL_HANDLE
 			|| pipelineLayout == VK_NULL_HANDLE || descriptorSet == VK_NULL_HANDLE)
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		vkCmdEndRenderPass(commandBuffer);
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPass;
-		renderPassInfo.framebuffer = frameBuffer;
-		renderPassInfo.renderArea.extent = extent;
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRendering(commandBuffer);
+		TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		TransitionImage(commandBuffer, swapChainImage, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+		const VkRenderingAttachmentInfo colorAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = swapChainImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
+		};
+		const VkRenderingInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+			.renderArea = { .extent = extent },
+			.layerCount = 1,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = &colorAttachment
+		};
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 2, 1, &descriptorSet, 0, nullptr);
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-		vkCmdEndRenderPass(commandBuffer);
+		vkCmdEndRendering(commandBuffer);
+		TransitionImage(commandBuffer, swapChainImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_IMAGE_ASPECT_COLOR_BIT);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			std::cerr << "Failed to record Vulkan post-process command buffer.\n";
 			return false;
@@ -146,7 +240,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanCommandBuffer::Destroy() {
+	void VulkanCommandBuffer::Reset() {
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE && !commandBuffers.empty())
 			vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
 		commandBuffers.clear();

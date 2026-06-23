@@ -2,7 +2,7 @@
 
 #include "Viewer/Vulkan/Helper/VulkanDevice.h"
 
-#include <vector>
+#include <span>
 
 namespace Chrivent {
 	class VulkanShaderModule {
@@ -21,8 +21,8 @@ namespace Chrivent {
 		VkShaderModule GetShaderModule() const { return shaderModule; }
 
 		// SPIR-V 바이트 코드에서 Vulkan shader module을 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const std::vector<uint32_t>& spvBytes);
+		bool Initialize(const VulkanDevice& sourceDevice, std::span<const uint32_t> spvBytes);
 		// 생성한 shader module 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

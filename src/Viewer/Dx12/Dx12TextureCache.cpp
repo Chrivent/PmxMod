@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Dx12/Dx12TextureCache.h"
 
 #include "Viewer/Viewer.h"
+#include "Viewer/Dx12/Helper/Dx12Barrier.h"
 
 #include <stb_image.h>
 #include <windows.h>
@@ -77,13 +78,11 @@ namespace Chrivent {
 		sourceLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 		sourceLocation.PlacedFootprint = layout;
 		commandList->CopyTextureRegion(&destinationLocation, 0, 0, 0, &sourceLocation, nullptr);
-		D3D12_RESOURCE_BARRIER barrier{};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = texture.resource.Get();
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(1, &barrier);
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhancedCommandList;
+		if (sourceDevice.capabilities.supportsEnhancedBarriers && FAILED(commandList.As(&enhancedCommandList)))
+			return false;
+		Dx12Barrier::Transition(commandList.Get(), enhancedCommandList.Get(), texture.resource.Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		if (FAILED(commandList->Close()))
 			return false;
 		ID3D12CommandList* commandLists[] = { commandList.Get() };

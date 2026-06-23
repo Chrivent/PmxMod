@@ -108,25 +108,26 @@ namespace Chrivent {
 
 	bool VulkanPipeline::CreateGraphicsPipelines(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkRenderPass renderPass, const EffectDefinition& modelEffect,
+		const VkFormat depthFormat, const EffectDefinition& modelEffect,
 		const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
 		if (modelEffect.passes.empty() || edgeEffect.passes.empty() || groundShadowEffect.passes.empty())
 			return false;
 		const auto& modelPass = modelEffect.passes.front();
 		const auto& edgePass = edgeEffect.passes.front();
 		const auto& groundShadowPass = groundShadowEffect.passes.front();
-		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass,
+		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, edgePass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, edgePass,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, groundShadowPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, groundShadowPass,
 			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkRenderPass renderPass, const EffectPassDefinition& pass,
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
@@ -239,6 +240,16 @@ namespace Chrivent {
 		colorBlending.pAttachments = &colorBlendAttachment;
 		VkGraphicsPipelineCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		const bool depthHasStencil = depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+			depthFormat == VK_FORMAT_D24_UNORM_S8_UINT;
+		const VkPipelineRenderingCreateInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &sourceSwapChain.imageFormat,
+			.depthAttachmentFormat = depthFormat,
+			.stencilAttachmentFormat = depthHasStencil ? depthFormat : VK_FORMAT_UNDEFINED
+		};
+		createInfo.pNext = &renderingInfo;
 		createInfo.stageCount = 2;
 		createInfo.pStages = shaderStages;
 		createInfo.pVertexInputState = &vertexInputInfo;
@@ -249,8 +260,6 @@ namespace Chrivent {
 		createInfo.pDepthStencilState = &depthStencil;
 		createInfo.pColorBlendState = &colorBlending;
 		createInfo.layout = pipelineLayout;
-		createInfo.renderPass = renderPass;
-		createInfo.subpass = 0;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan graphics pipeline.\n";
 			return false;
@@ -297,10 +306,11 @@ namespace Chrivent {
 	}
 
 	VulkanPipeline::~VulkanPipeline() {
-		Destroy();
+		Reset();
 	}
 
-	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkRenderPass renderPass,
+	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat,
 		const EffectDefinition& modelEffect, const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
@@ -308,10 +318,10 @@ namespace Chrivent {
 		if (!CreatePipelineLayout())
 			return false;
 		return CreateGraphicsPipelines(
-			sourceDevice, sourceSwapChain, renderPass, modelEffect, edgeEffect, groundShadowEffect);
+			sourceDevice, sourceSwapChain, depthFormat, modelEffect, edgeEffect, groundShadowEffect);
 	}
 
-	void VulkanPipeline::Destroy() {
+	void VulkanPipeline::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
 		if (pipeline != VK_NULL_HANDLE) {

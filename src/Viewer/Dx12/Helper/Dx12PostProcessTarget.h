@@ -20,6 +20,6 @@ namespace Chrivent {
 		// 후처리 입력 SRV의 GPU descriptor handle을 반환한다.
 		D3D12_GPU_DESCRIPTOR_HANDLE ResolveGpuHandle() const;
 		// 생성한 후처리 입력 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

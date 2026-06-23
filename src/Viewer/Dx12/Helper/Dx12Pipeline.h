@@ -5,6 +5,8 @@
 
 #include <d3d12.h>
 #include <filesystem>
+#include <string>
+#include <vector>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -30,6 +32,9 @@ namespace Chrivent {
 		static void ConfigureRasterizer(D3D12_RASTERIZER_DESC& rasterizerDesc, D3D12_CULL_MODE cullMode);
 		// 일반 메시와 엣지 패스에서 쓰는 depth stencil 기본값을 채운다.
 		static void ConfigureDefaultDepthStencil(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
+		// 디바이스 shader model에 맞춰 DXC 또는 레거시 컴파일러로 셰이더를 만든다.
+		static bool CompileShader(const Dx12Device& sourceDevice, const std::filesystem::path& file,
+			const std::string& entry, bool vertexShader, std::vector<uint8_t>& bytecode, std::string& error);
 		
 		// 모델 셰이더의 리소스 배치와 맞는 root signature를 생성한다.
 		bool CreateModelRootSignature(const Dx12Device& sourceDevice);
@@ -62,6 +67,6 @@ namespace Chrivent {
 		// 선택된 후처리 pipeline이 준비됐는지 반환한다.
 		bool HasPostProcessEffect() const { return postProcessPipelineState != nullptr; }
 		// 생성한 DX12 pipeline 리소스를 해제한다.
-		void Destroy();
+		void Reset();
 	};
 }

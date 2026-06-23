@@ -2,7 +2,7 @@
 
 namespace Chrivent {
 	bool Dx12CommandContext::Initialize(const Dx12Device& sourceDevice) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.device || !sourceDevice.commandQueue)
 			return false;
 		for (auto& commandAllocator : commandAllocators) {
@@ -11,6 +11,8 @@ namespace Chrivent {
 		}
 		if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 			commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&commandList))))
+			return false;
+		if (sourceDevice.capabilities.supportsEnhancedBarriers && FAILED(commandList.As(&enhancedCommandList)))
 			return false;
 		if (FAILED(commandList->Close()))
 			return false;
@@ -73,12 +75,13 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12CommandContext::Destroy() {
+	void Dx12CommandContext::Reset() {
 		if (fenceEvent) {
 			CloseHandle(fenceEvent);
 			fenceEvent = nullptr;
 		}
 		fence.Reset();
+		enhancedCommandList.Reset();
 		commandList.Reset();
 		for (auto& commandAllocator : commandAllocators)
 			commandAllocator.Reset();

@@ -1,5 +1,6 @@
 ﻿#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
 
+#include "Viewer/Shader/DxcShaderCompiler.h"
 #include "Viewer/Shader/ShaderCompiler.h"
 
 #include <iostream>
@@ -50,6 +51,22 @@ namespace Chrivent {
 		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		depthStencilDesc.StencilEnable = FALSE;
+	}
+
+	bool Dx12Pipeline::CompileShader(const Dx12Device& sourceDevice, const std::filesystem::path& file,
+		const std::string& entry, const bool vertexShader, std::vector<uint8_t>& bytecode, std::string& error) {
+		if (sourceDevice.capabilities.shaderModelMajor >= 6) {
+			const std::wstring wideEntry(entry.begin(), entry.end());
+			return DxcShaderCompiler::CompileDxil(
+				file, wideEntry, vertexShader ? L"vs_6_0" : L"ps_6_0", bytecode, error);
+		}
+		Microsoft::WRL::ComPtr<ID3DBlob> legacyBytecode;
+		if (!ShaderCompiler::CompileFile(file, entry.c_str(), vertexShader ? "vs_5_1" : "ps_5_1",
+			legacyBytecode, error))
+			return false;
+		bytecode.resize(legacyBytecode->GetBufferSize());
+		std::memcpy(bytecode.data(), legacyBytecode->GetBufferPointer(), bytecode.size());
+		return true;
 	}
 
 	bool Dx12Pipeline::CreateModelRootSignature(const Dx12Device& sourceDevice) {
@@ -107,12 +124,12 @@ namespace Chrivent {
 	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
-		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "model/effect.hlsl";
-		if (!ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
+			!CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -123,8 +140,8 @@ namespace Chrivent {
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
-		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
@@ -161,12 +178,12 @@ namespace Chrivent {
 	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
 		if (!sourceDevice.device || !edgeRootSignature)
 			return false;
-		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "edge/effect.hlsl";
-		if (!ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
+			!CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -176,8 +193,8 @@ namespace Chrivent {
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = edgeRootSignature.Get();
-		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_FRONT);
@@ -211,12 +228,12 @@ namespace Chrivent {
 	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
 		if (!sourceDevice.device || !groundShadowRootSignature)
 			return false;
-		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
 		std::string error;
 		const auto shaderPath = shaderDir / "ground-shadow/effect.hlsl";
-		if (!ShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
-			!ShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
+		if (!CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
+			!CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -225,8 +242,8 @@ namespace Chrivent {
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = groundShadowRootSignature.Get();
-		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
@@ -281,7 +298,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
-		Destroy();
+		Reset();
 		if (!CreateModelRootSignature(sourceDevice))
 			return false;
 		if (!CreateModelPipelineStates(sourceDevice, shaderDir))
@@ -327,18 +344,18 @@ namespace Chrivent {
 		if (!CreatePostProcessRootSignature(sourceDevice))
 			return false;
 		const auto& pass = effect.passes.front();
-		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
-		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!ShaderCompiler::CompileFile(pass.shaderPath, pass.vertexEntry.c_str(), "vs_5_1", vertexShader, error)
-			|| !ShaderCompiler::CompileFile(pass.shaderPath, pass.pixelEntry.c_str(), "ps_5_1", pixelShader, error)) {
+		if (!CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
+			|| !CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = postProcessRootSignature.Get();
-		pipelineDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
-		pipelineDesc.PS = { pixelShader->GetBufferPointer(), pixelShader->GetBufferSize() };
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
@@ -361,7 +378,7 @@ namespace Chrivent {
 		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
 	}
 
-	void Dx12Pipeline::Destroy() {
+	void Dx12Pipeline::Reset() {
 		postProcessPipelineState.Reset();
 		postProcessRootSignature.Reset();
 		groundShadowPipelineState.Reset();

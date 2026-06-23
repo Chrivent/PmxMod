@@ -8,7 +8,7 @@
 
 namespace Chrivent {
 	VulkanPostProcess::~VulkanPostProcess() {
-		Destroy();
+		Reset();
 	}
 
 	bool VulkanPostProcess::CreateSceneImages(const VulkanDevice& sourceDevice,
@@ -56,40 +56,6 @@ namespace Chrivent {
 				return false;
 		}
 		return true;
-	}
-
-	bool VulkanPostProcess::CreateRenderPass(const VulkanSwapChain& sourceSwapChain) {
-		VkAttachmentDescription attachment{};
-		attachment.format = sourceSwapChain.imageFormat;
-		attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		constexpr VkAttachmentReference attachmentReference{
-			.attachment = 0,
-			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-		};
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &attachmentReference;
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		VkRenderPassCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		createInfo.attachmentCount = 1;
-		createInfo.pAttachments = &attachment;
-		createInfo.subpassCount = 1;
-		createInfo.pSubpasses = &subpass;
-		createInfo.dependencyCount = 1;
-		createInfo.pDependencies = &dependency;
-		return vkCreateRenderPass(device, &createInfo, nullptr, &renderPass) == VK_SUCCESS;
 	}
 
 	bool VulkanPostProcess::CreateDescriptors(const VulkanSwapChain& sourceSwapChain) {
@@ -256,6 +222,12 @@ namespace Chrivent {
 		blending.pAttachments = &blendAttachment;
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		const VkPipelineRenderingCreateInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &sourceSwapChain.imageFormat
+		};
+		pipelineInfo.pNext = &renderingInfo;
 		pipelineInfo.stageCount = 2;
 		pipelineInfo.pStages = stages;
 		pipelineInfo.pVertexInputState = &vertexInput;
@@ -265,43 +237,21 @@ namespace Chrivent {
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pColorBlendState = &blending;
 		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = renderPass;
 		return vkCreateGraphicsPipelines(
 			device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
 	}
 
-	bool VulkanPostProcess::CreateFrameBuffers(const VulkanSwapChain& sourceSwapChain) {
-		frameBuffers.resize(sourceSwapChain.imageViews.size());
-		for (size_t index = 0; index < frameBuffers.size(); index++) {
-			VkFramebufferCreateInfo createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			createInfo.renderPass = renderPass;
-			createInfo.attachmentCount = 1;
-			createInfo.pAttachments = &sourceSwapChain.imageViews[index];
-			createInfo.width = sourceSwapChain.extent.width;
-			createInfo.height = sourceSwapChain.extent.height;
-			createInfo.layers = 1;
-			if (vkCreateFramebuffer(device, &createInfo, nullptr, &frameBuffers[index]) != VK_SUCCESS)
-				return false;
-		}
-		return true;
-	}
-
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const EffectDefinition& effect) {
-		Destroy();
+		Reset();
 		device = sourceDevice.device;
 		return CreateSceneImages(sourceDevice, sourceSwapChain)
-			&& CreateRenderPass(sourceSwapChain)
 			&& CreateDescriptors(sourceSwapChain)
-			&& CreatePipeline(sourceDevice, sourceSwapChain, effect)
-			&& CreateFrameBuffers(sourceSwapChain);
+			&& CreatePipeline(sourceDevice, sourceSwapChain, effect);
 	}
 
-	void VulkanPostProcess::Destroy() {
+	void VulkanPostProcess::Reset() {
 		if (device != VK_NULL_HANDLE) {
-			for (const VkFramebuffer frameBuffer : frameBuffers)
-				vkDestroyFramebuffer(device, frameBuffer, nullptr);
 			if (pipeline != VK_NULL_HANDLE)
 				vkDestroyPipeline(device, pipeline, nullptr);
 			if (pipelineLayout != VK_NULL_HANDLE)
@@ -314,8 +264,6 @@ namespace Chrivent {
 			}
 			if (sampler != VK_NULL_HANDLE)
 				vkDestroySampler(device, sampler, nullptr);
-			if (renderPass != VK_NULL_HANDLE)
-				vkDestroyRenderPass(device, renderPass, nullptr);
 			for (const VkImageView view : sceneImageViews)
 				vkDestroyImageView(device, view, nullptr);
 			for (const VkImage image : sceneImages)
@@ -323,7 +271,6 @@ namespace Chrivent {
 			for (const VkDeviceMemory memory : sceneImageMemories)
 				vkFreeMemory(device, memory, nullptr);
 		}
-		frameBuffers.clear();
 		descriptorSets.clear();
 		sceneImageViews.clear();
 		sceneImages.clear();
@@ -334,7 +281,6 @@ namespace Chrivent {
 		pipelineLayout = VK_NULL_HANDLE;
 		pipeline = VK_NULL_HANDLE;
 		sampler = VK_NULL_HANDLE;
-		renderPass = VK_NULL_HANDLE;
 		device = VK_NULL_HANDLE;
 	}
 }

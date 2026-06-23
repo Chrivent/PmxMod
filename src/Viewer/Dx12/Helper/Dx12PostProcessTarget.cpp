@@ -2,7 +2,7 @@
 
 namespace Chrivent {
 	bool Dx12PostProcessTarget::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
-		Destroy();
+		Reset();
 		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_HEAP_PROPERTIES heapProperties{};
@@ -43,7 +43,7 @@ namespace Chrivent {
 		return descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	}
 
-	void Dx12PostProcessTarget::Destroy() {
+	void Dx12PostProcessTarget::Reset() {
 		descriptorHeap.Reset();
 		sceneColor.Reset();
 	}

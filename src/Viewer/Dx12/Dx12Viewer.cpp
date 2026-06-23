@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Dx12/Dx12Viewer.h"
 
 #include "Viewer/Dx12/Dx12Instance.h"
+#include "Viewer/Dx12/Helper/Dx12Barrier.h"
 
 #include <iostream>
 
@@ -8,14 +9,9 @@
 #include <GLFW/glfw3native.h>
 
 namespace Chrivent {
-	void Dx12Viewer::PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) {
-		D3D12_RESOURCE_BARRIER barrier{};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Transition.pResource = backBuffer;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(1, &barrier);
+	void Dx12Viewer::PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const {
+		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer,
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	void Dx12Viewer::ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const {
@@ -46,27 +42,19 @@ namespace Chrivent {
 		const D3D12_RESOURCE_STATES destinationState = device->msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_DEST
 			: D3D12_RESOURCE_STATE_COPY_DEST;
-		D3D12_RESOURCE_BARRIER barriers[2]{};
-		barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barriers[0].Transition.pResource = msaaColor;
-		barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barriers[0].Transition.StateAfter = sourceState;
-		barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barriers[1].Transition.pResource = backBuffer;
-		barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barriers[1].Transition.StateAfter = destinationState;
-		barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(2, barriers);
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
+			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
+			D3D12_RESOURCE_STATE_RENDER_TARGET, destinationState);
 		if (device->msaaSampleCount > 1)
 			commandList->ResolveSubresource(backBuffer, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
 			commandList->CopyResource(backBuffer, msaaColor);
-		barriers[0].Transition.StateBefore = sourceState;
-		barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barriers[1].Transition.StateBefore = destinationState;
-		barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-		commandList->ResourceBarrier(2, barriers);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
+			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
+			destinationState, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
 	void Dx12Viewer::DrawPostProcess(ID3D12GraphicsCommandList* commandList,
@@ -78,27 +66,19 @@ namespace Chrivent {
 		const D3D12_RESOURCE_STATES destinationState = device->msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_DEST
 			: D3D12_RESOURCE_STATE_COPY_DEST;
-		D3D12_RESOURCE_BARRIER barriers[2]{};
-		barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barriers[0].Transition.pResource = msaaColor;
-		barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barriers[0].Transition.StateAfter = sourceState;
-		barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barriers[1].Transition.pResource = sceneColor;
-		barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		barriers[1].Transition.StateAfter = destinationState;
-		barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(2, barriers);
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
+			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, destinationState);
 		if (device->msaaSampleCount > 1)
 			commandList->ResolveSubresource(sceneColor, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
 			commandList->CopyResource(sceneColor, msaaColor);
-		barriers[0].Transition.StateBefore = sourceState;
-		barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barriers[1].Transition.StateBefore = destinationState;
-		barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		commandList->ResourceBarrier(2, barriers);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
+			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
+			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
 		commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { postProcessTarget.ResolveDescriptorHeap() };
@@ -106,13 +86,8 @@ namespace Chrivent {
 		pipeline.BindPostProcess(commandList, postProcessTarget.ResolveGpuHandle());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0);
-		D3D12_RESOURCE_BARRIER presentBarrier{};
-		presentBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		presentBarrier.Transition.pResource = backBuffer;
-		presentBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		presentBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-		presentBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(1, &presentBarrier);
+		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
 	Dx12Viewer::Dx12Viewer() {
@@ -122,13 +97,13 @@ namespace Chrivent {
 
 	Dx12Viewer::~Dx12Viewer() {
 		commandContext.WaitForGpu(*device);
-		pipeline.Destroy();
-		commandContext.Destroy();
-		depthBuffer.Destroy();
-		postProcessTarget.Destroy();
-		msaaColorBuffer.Destroy();
-		swapChain.Destroy();
-		device->Destroy();
+		pipeline.Reset();
+		commandContext.Reset();
+		depthBuffer.Reset();
+		postProcessTarget.Reset();
+		msaaColorBuffer.Reset();
+		swapChain.Reset();
+		device->Shutdown();
 	}
 
 	void Dx12Viewer::ConfigureGlfwHints() {
@@ -141,6 +116,7 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
 		}
+		capabilities = device->capabilities;
 		if (!commandContext.Initialize(*device)) {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
