@@ -4,16 +4,11 @@
 
 namespace Chrivent {
 	struct HlslModelPixelConstants : ShaderModelPixelConstants {
-		float alpha = 0.0f;
-		glm::vec3 diffuse{};
-		glm::vec3 ambient{};
-		float dummy1 = 0.0f;
-		glm::vec3 specular{};
-		float specularPower = 0.0f;
-		glm::vec3 lightColor{};
-		float dummy2 = 0.0f;
-		glm::vec3 lightDir{};
-		float dummy3 = 0.0f;
+		glm::vec4 diffuseAlpha{};
+		glm::vec4 ambientSpecularPower{};
+		glm::vec4 specular{};
+		glm::vec4 lightColor{};
+		glm::vec4 lightDir{};
 	};
 
 	struct HlslEdgeVertexConstants : ShaderEdgeVertexConstants {

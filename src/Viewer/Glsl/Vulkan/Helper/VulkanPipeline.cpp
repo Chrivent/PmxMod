@@ -1,8 +1,8 @@
 ﻿#include "VulkanPipeline.h"
 
-#include "VulkanShaderCompiler.h"
 #include "VulkanShaderModule.h"
 #include "../VulkanInstance.h"
+#include "../../../Shader/DxcShaderCompiler.h"
 
 #include <cstddef>
 #include <iostream>
@@ -42,21 +42,42 @@ namespace Chrivent {
 		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
 				.binding = 0,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
 				.binding = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
 				.binding = 2,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.pImmutableSamplers = nullptr
+			},
+			VkDescriptorSetLayoutBinding{
+				.binding = 3,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.pImmutableSamplers = nullptr
+			},
+			VkDescriptorSetLayoutBinding{
+				.binding = 4,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.pImmutableSamplers = nullptr
+			},
+			VkDescriptorSetLayoutBinding{
+				.binding = 5,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
@@ -64,7 +85,7 @@ namespace Chrivent {
 		};
 		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = 3;
+		textureLayoutInfo.bindingCount = std::size(textureBindings);
 		textureLayoutInfo.pBindings = textureBindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan texture descriptor set layout.\n";
@@ -94,31 +115,32 @@ namespace Chrivent {
 		const auto& modelPass = modelEffect.passes.front();
 		const auto& edgePass = edgeEffect.passes.front();
 		const auto& groundShadowPass = groundShadowEffect.passes.front();
-		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass.vertexShaderPath, modelPass.fragmentShaderPath,
+		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass.vertexShaderPath, modelPass.fragmentShaderPath,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, edgePass.vertexShaderPath, edgePass.fragmentShaderPath,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, edgePass,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, groundShadowPass.vertexShaderPath, groundShadowPass.fragmentShaderPath,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, groundShadowPass,
 			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkRenderPass renderPass, const std::filesystem::path& vertexShaderPath, const std::filesystem::path& fragmentShaderPath,
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkRenderPass renderPass, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		if (!VulkanShaderCompiler::CompileFile(
-			vertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
+		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
+		if (!DxcShaderCompiler::CompileSpirv(
+			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!VulkanShaderCompiler::CompileFile(
-			fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+		if (!DxcShaderCompiler::CompileSpirv(
+			pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
@@ -129,8 +151,8 @@ namespace Chrivent {
 		if (!fragmentShader.Initialize(sourceDevice, fragmentShaderCode))
 			return false;
 		const VkPipelineShaderStageCreateInfo shaderStages[] = {
-			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule()),
-			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule())
+			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str()),
+			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule(), pass.pixelEntry.c_str())
 		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		VkVertexInputAttributeDescription attributeDescriptions[3]{};
@@ -236,12 +258,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	VkPipelineShaderStageCreateInfo VulkanPipeline::MakeShaderStageInfo(const VkShaderStageFlagBits stage, const VkShaderModule shaderModule) {
+	VkPipelineShaderStageCreateInfo VulkanPipeline::MakeShaderStageInfo(const VkShaderStageFlagBits stage, const VkShaderModule shaderModule, const char* entry) {
 		VkPipelineShaderStageCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		createInfo.stage = stage;
 		createInfo.module = shaderModule;
-		createInfo.pName = "main";
+		createInfo.pName = entry;
 		return createInfo;
 	}
 

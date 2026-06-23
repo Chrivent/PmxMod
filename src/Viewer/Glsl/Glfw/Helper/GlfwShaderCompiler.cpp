@@ -1,28 +1,11 @@
 ﻿#include "GlfwShaderCompiler.h"
 
-#include "../../GlslPreprocessor.h"
+#include "../../../Shader/DxcShaderCompiler.h"
 
 #include <iostream>
+#include <spirv_cross/spirv_glsl.hpp>
 
 namespace Chrivent {
-	std::string GlfwShaderCompiler::BuildPreamble() {
-		return R"(#version 460 core
-#define PMX_LAYOUT_UBO(setIndex, bindingIndex) layout(std140, binding = setIndex)
-#define PMX_LAYOUT_SAMPLER(setIndex, bindingIndex) layout(binding = bindingIndex)
-)";
-	}
-
-	const char* GlfwShaderCompiler::ShaderTypeName(const GLenum shaderType) {
-		switch (shaderType) {
-		case GL_VERTEX_SHADER:
-			return "vertex";
-		case GL_FRAGMENT_SHADER:
-			return "fragment";
-		default:
-			return "unknown";
-		}
-	}
-
 	std::string GlfwShaderCompiler::ReadShaderLog(const GLuint shader) {
 		GLint logLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
@@ -43,72 +26,86 @@ namespace Chrivent {
 		return log;
 	}
 
-	bool GlfwShaderCompiler::ReadShaderFile(const std::filesystem::path& file, std::string& code) {
-		std::string error;
-		if (!GlslPreprocessor::LoadSource(file, BuildPreamble(), code, error)) {
-			std::cerr << error << '\n';
-			return false;
-		}
-		return true;
-	}
-
-	GLuint GlfwShaderCompiler::CompileShader(const GLenum shaderType, const std::string& code) {
-		const GLuint shader = glCreateShader(shaderType);
-		if (!shader)
+	GLuint GlfwShaderCompiler::CreateStage(const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
+		std::string source;
+		try {
+			spirv_cross::CompilerGLSL compiler(code);
+			spirv_cross::CompilerGLSL::Options options;
+			options.version = 460;
+			options.es = false;
+			compiler.set_common_options(options);
+			compiler.build_combined_image_samplers();
+			for (const auto& sampler : compiler.get_combined_image_samplers()) {
+				if (!compiler.has_decoration(sampler.image_id, spv::DecorationBinding))
+					continue;
+				compiler.set_decoration(sampler.combined_id, spv::DecorationBinding,
+					compiler.get_decoration(sampler.image_id, spv::DecorationBinding));
+			}
+			source = compiler.compile();
+		} catch (const spirv_cross::CompilerError& error) {
+			std::cerr << "Failed to convert SPIR-V to OpenGL GLSL: " << error.what() << '\n';
 			return 0;
-		const char* codes = code.c_str();
-		const auto codesLen = static_cast<GLint>(code.size());
-		glShaderSource(shader, 1, &codes, &codesLen);
+		}
+		const GLuint shader = glCreateShader(shaderType);
+		if (shader == 0)
+			return 0;
+		const char* sourceData = source.c_str();
+		const GLint sourceSize = static_cast<GLint>(source.size());
+		glShaderSource(shader, 1, &sourceData, &sourceSize);
 		glCompileShader(shader);
 		GLint compileStatus = GL_FALSE;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
-		if (compileStatus == GL_FALSE) {
-			std::cerr << "Failed to compile GLSL " << ShaderTypeName(shaderType) << " shader.\n";
-			const std::string log = ReadShaderLog(shader);
-			if (!log.empty())
-				std::cerr << log << '\n';
-			glDeleteShader(shader);
-			return 0;
-		}
-		return shader;
+		if (compileStatus == GL_TRUE)
+			return shader;
+		std::cerr << "Failed to compile generated OpenGL GLSL for " << entry << ".\n";
+		const std::string log = ReadShaderLog(shader);
+		if (!log.empty())
+			std::cerr << log << '\n';
+		glDeleteShader(shader);
+		return 0;
 	}
 
-	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& vertexFile, const std::filesystem::path& fragmentFile) {
-		std::string vsCode;
-		std::string fsCode;
-		if (!ReadShaderFile(vertexFile, vsCode) || !ReadShaderFile(fragmentFile, fsCode))
-			return 0;
-		const GLuint vs = CompileShader(GL_VERTEX_SHADER, vsCode);
-		const GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fsCode);
-		if (!vs || !fs) {
-			if (vs)
-				glDeleteShader(vs);
-			if (fs)
-				glDeleteShader(fs);
+	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
+		const std::string& pixelEntry) {
+		std::vector<uint32_t> vertexCode;
+		std::vector<uint32_t> pixelCode;
+		std::string error;
+		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
+		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
+		if (!DxcShaderCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0", SpirvTarget::OpenGl, vertexCode, error)
+			|| !DxcShaderCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0", SpirvTarget::OpenGl, pixelCode, error)) {
+			std::cerr << error << '\n';
 			return 0;
 		}
-		const GLuint prog = glCreateProgram();
-		if (prog == 0) {
-			glDeleteShader(vs);
-			glDeleteShader(fs);
+		const GLuint vertexShader = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry);
+		const GLuint pixelShader = CreateStage(GL_FRAGMENT_SHADER, pixelCode, pixelEntry);
+		if (vertexShader == 0 || pixelShader == 0) {
+			if (vertexShader != 0)
+				glDeleteShader(vertexShader);
+			if (pixelShader != 0)
+				glDeleteShader(pixelShader);
 			return 0;
 		}
-		glAttachShader(prog, vs);
-		glAttachShader(prog, fs);
-		glLinkProgram(prog);
-		glDeleteShader(vs);
-		glDeleteShader(fs);
+		const GLuint program = glCreateProgram();
+		if (program == 0) {
+			glDeleteShader(vertexShader);
+			glDeleteShader(pixelShader);
+			return 0;
+		}
+		glAttachShader(program, vertexShader);
+		glAttachShader(program, pixelShader);
+		glLinkProgram(program);
+		glDeleteShader(vertexShader);
+		glDeleteShader(pixelShader);
 		GLint linkStatus = GL_FALSE;
-		glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
-		if (linkStatus == GL_FALSE) {
-			std::cerr << "Failed to link GLSL shader program: "
-				<< vertexFile.string() << ", " << fragmentFile.string() << '\n';
-			const std::string log = ReadProgramLog(prog);
-			if (!log.empty())
-				std::cerr << log << '\n';
-			glDeleteProgram(prog);
-			return 0;
-		}
-		return prog;
+		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+		if (linkStatus == GL_TRUE)
+			return program;
+		std::cerr << "Failed to link OpenGL SPIR-V shader program: " << shaderFile.string() << '\n';
+		const std::string log = ReadProgramLog(program);
+		if (!log.empty())
+			std::cerr << log << '\n';
+		glDeleteProgram(program);
+		return 0;
 	}
 }

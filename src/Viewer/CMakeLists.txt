@@ -8,8 +8,8 @@ target_sources(PmxModViewer PRIVATE
         ShaderConstants.h
         TextureCache.h
         ViewerGeometry.h ViewerGeometry.cpp
+        Shader/DxcShaderCompiler.h Shader/DxcShaderCompiler.cpp
 
-        Glsl/GlslPreprocessor.h Glsl/GlslPreprocessor.cpp
         Glsl/GlslShaderConstants.h
         Glsl/GlslDynamicBufferRing.h Glsl/GlslDynamicBufferRing.cpp
 
@@ -36,7 +36,6 @@ target_sources(PmxModViewer PRIVATE
         Glsl/Vulkan/Helper/VulkanMemory.h Glsl/Vulkan/Helper/VulkanMemory.cpp
         Glsl/Vulkan/Helper/VulkanPipeline.h Glsl/Vulkan/Helper/VulkanPipeline.cpp
         Glsl/Vulkan/Helper/VulkanRenderPass.h Glsl/Vulkan/Helper/VulkanRenderPass.cpp
-        Glsl/Vulkan/Helper/VulkanShaderCompiler.h Glsl/Vulkan/Helper/VulkanShaderCompiler.cpp
         Glsl/Vulkan/Helper/VulkanShaderModule.h Glsl/Vulkan/Helper/VulkanShaderModule.cpp
         Glsl/Vulkan/Helper/VulkanFrameBuffer.h Glsl/Vulkan/Helper/VulkanFrameBuffer.cpp
         Glsl/Vulkan/Helper/VulkanSwapChain.h Glsl/Vulkan/Helper/VulkanSwapChain.cpp
@@ -85,5 +84,9 @@ target_link_libraries(PmxModViewer
         d3d12
         dxgi
         d3dcompiler
-        ${SHADERC_LIBRARY}
+        ${DXCOMPILER_LIBRARY}
+        ${SPIRV_CROSS_CORE_LIBRARY}
+        ${SPIRV_CROSS_GLSL_LIBRARY}
 )
+
+target_include_directories(PmxModViewer PRIVATE "$ENV{VULKAN_SDK}/Include")

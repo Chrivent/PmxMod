@@ -18,7 +18,11 @@ namespace Chrivent {
 		};
 		if (passType == VulkanPassType::Model && materialCount > 0) {
 			poolSizes.emplace_back(VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = static_cast<uint32_t>(materialCount * 3)
+			});
+			poolSizes.emplace_back(VkDescriptorPoolSize{
+				.type = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = static_cast<uint32_t>(materialCount * 3)
 			});
 		}
@@ -166,7 +170,7 @@ namespace Chrivent {
 					.dstBinding = 0,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 					.pImageInfo = &imageInfos[0],
 					.pBufferInfo = nullptr,
 					.pTexelBufferView = nullptr
@@ -178,7 +182,7 @@ namespace Chrivent {
 					.dstBinding = 1,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 					.pImageInfo = &imageInfos[1],
 					.pBufferInfo = nullptr,
 					.pTexelBufferView = nullptr
@@ -190,10 +194,34 @@ namespace Chrivent {
 					.dstBinding = 2,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 					.pImageInfo = &imageInfos[2],
 					.pBufferInfo = nullptr,
 					.pTexelBufferView = nullptr
+				},
+				VkWriteDescriptorSet{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet = material.textureDescriptorSet,
+					.dstBinding = 3,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+					.pImageInfo = &imageInfos[0]
+				},
+				VkWriteDescriptorSet{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet = material.textureDescriptorSet,
+					.dstBinding = 4,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+					.pImageInfo = &imageInfos[1]
+				},
+				VkWriteDescriptorSet{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet = material.textureDescriptorSet,
+					.dstBinding = 5,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+					.pImageInfo = &imageInfos[2]
 				}
 			};
 			vkUpdateDescriptorSets(device, std::size(writes), writes, 0, nullptr);

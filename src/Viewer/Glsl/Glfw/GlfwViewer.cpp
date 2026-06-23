@@ -53,17 +53,17 @@ namespace Chrivent {
 		const auto& edgePass = edgeEffect->passes.front();
 		const auto& groundShadowPass = groundShadowEffect->passes.front();
 		shader = std::make_unique<GlfwModelShader>();
-		if (!shader->Setup(modelPass.vertexShaderPath, modelPass.fragmentShaderPath)) {
+		if (!shader->Setup(modelPass)) {
 			std::cerr << "Failed to set up main GLFW shader.\n";
 			return false;
 		}
 		edgeShader = std::make_unique<GlfwEdgeShader>();
-		if (!edgeShader->Setup(edgePass.vertexShaderPath, edgePass.fragmentShaderPath)) {
+		if (!edgeShader->Setup(edgePass)) {
 			std::cerr << "Failed to set up edge GLFW shader.\n";
 			return false;
 		}
 		gsShader = std::make_unique<GlfwGroundShadowShader>();
-		if (!gsShader->Setup(groundShadowPass.vertexShaderPath, groundShadowPass.fragmentShaderPath)) {
+		if (!gsShader->Setup(groundShadowPass)) {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}

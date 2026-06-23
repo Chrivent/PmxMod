@@ -56,8 +56,8 @@ namespace Chrivent {
 		const auto wv = view * world;
 		const auto wvp = ClipMatrix() * proj * view * world;
 		HlslModelPixelConstants basePsCb{};
-		basePsCb.lightColor = viewer->lightColor;
-		basePsCb.lightDir = lightDir;
+		basePsCb.lightColor = glm::vec4(viewer->lightColor, 0.0f);
+		basePsCb.lightDir = glm::vec4(lightDir, 0.0f);
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
 		constexpr UINT stride = sizeof(Dx11Vertex);
 		constexpr UINT offset = 0;
@@ -81,11 +81,9 @@ namespace Chrivent {
 			if (mat.diffuse.a == 0)
 				continue;
 			HlslModelPixelConstants psCb = basePsCb;
-			psCb.alpha         = mat.diffuse.a;
-			psCb.diffuse       = mat.diffuse;
-			psCb.ambient       = mat.ambient;
-			psCb.specular      = mat.specular;
-			psCb.specularPower = mat.specularPower;
+			psCb.diffuseAlpha = mat.diffuse;
+			psCb.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
+			psCb.specular = glm::vec4(mat.specular, 0.0f);
 			int baseMode = 0;
 			if (material.texture.texture)
 				baseMode = !material.texture.hasAlpha ? 1 : 2;

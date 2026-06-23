@@ -3,6 +3,7 @@
 #include "VulkanDrawer.h"
 #include "VulkanViewer.h"
 #include "../GlslShaderConstants.h"
+#include "../../Hlsl/HlslShaderConstants.h"
 #include "../../../Core/Model/Model.h"
 
 #include <algorithm>
@@ -63,7 +64,7 @@ namespace Chrivent {
 			return false;
 		if (!groundShadowVertexConstantsRing.Setup(device, AlignedSize(sizeof(ShaderGroundShadowVertexConstants)) * ringSlack * bufferedFrames, error))
 			return false;
-		if (!modelPixelConstantsRing.Setup(device, AlignedSize(sizeof(GlslModelPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
+		if (!modelPixelConstantsRing.Setup(device, AlignedSize(sizeof(HlslModelPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
 		if (!edgePixelConstantsRing.Setup(device, AlignedSize(sizeof(ShaderEdgePixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
 			return false;
@@ -108,7 +109,7 @@ namespace Chrivent {
 			modelVertexConstantsRing.GetBuffer(),
 			sizeof(ShaderModelVertexConstants),
 			modelPixelConstantsRing.GetBuffer(),
-			sizeof(GlslModelPixelConstants),
+			sizeof(HlslModelPixelConstants),
 			materials, VulkanPassType::Model))
 			return false;
 		if (!edgeDescriptorSet.Initialize(device, pipeline,

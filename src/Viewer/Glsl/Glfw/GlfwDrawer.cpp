@@ -4,6 +4,7 @@
 #include "GlfwViewer.h"
 #include "../../../Core/Model/Model.h"
 #include "../GlslShaderConstants.h"
+#include "../../Hlsl/HlslShaderConstants.h"
 
 namespace Chrivent {
 	void GlfwDrawer::BeginDynamicBufferFrame() const {
@@ -36,7 +37,7 @@ namespace Chrivent {
 		const auto& shader = viewer->shader;
 		const glm::vec3 lightColor = viewer->lightColor;
 		const glm::vec3 lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
-		GlslModelPixelConstants basePixelConstants{};
+		HlslModelPixelConstants basePixelConstants{};
 		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
@@ -48,7 +49,6 @@ namespace Chrivent {
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
-		GLuint boundTextures[3] = { 0, 0, 0 };
 		bool cullEnabled = true;
 		GLenum cullFaceMode = GL_BACK;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
@@ -56,8 +56,8 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			GlslModelPixelConstants pixelConstants = basePixelConstants;
-			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
+			HlslModelPixelConstants pixelConstants = basePixelConstants;
+			pixelConstants.diffuseAlpha = mat.diffuse;
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
 			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
 			pixelConstants.texMulFactor = mat.textureMulFactor;
@@ -75,20 +75,14 @@ namespace Chrivent {
 					pixelConstants.textureModes.x = 2;
 				baseTexture = material.texture;
 			}
-			if (boundTextures[0] != baseTexture) {
-				glBindTexture(GL_TEXTURE_2D, baseTexture);
-				boundTextures[0] = baseTexture;
-			}
+			glBindTexture(GL_TEXTURE_2D, baseTexture);
 			glActiveTexture(GL_TEXTURE0 + 1);
 			GLuint toonTexture = viewer->dummyColorTex;
 			if (material.toonTexture != 0) {
 				pixelConstants.textureModes.y = 1;
 				toonTexture = material.toonTexture;
 			}
-			if (boundTextures[1] != toonTexture) {
-				glBindTexture(GL_TEXTURE_2D, toonTexture);
-				boundTextures[1] = toonTexture;
-			}
+			glBindTexture(GL_TEXTURE_2D, toonTexture);
 			glActiveTexture(GL_TEXTURE0 + 2);
 			GLuint sphereTexture = viewer->dummyColorTex;
 			if (material.sphereTexture != 0) {
@@ -98,10 +92,7 @@ namespace Chrivent {
 					pixelConstants.textureModes.z = 2;
 				sphereTexture = material.sphereTexture;
 			}
-			if (boundTextures[2] != sphereTexture) {
-				glBindTexture(GL_TEXTURE_2D, sphereTexture);
-				boundTextures[2] = sphereTexture;
-			}
+			glBindTexture(GL_TEXTURE_2D, sphereTexture);
 			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
 			if (mat.bothFace) {

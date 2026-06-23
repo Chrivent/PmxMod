@@ -38,8 +38,8 @@ namespace Chrivent {
 			return;
 		}
 		HlslModelPixelConstants basePixelConstants{};
-		basePixelConstants.lightColor = viewer.lightColor;
-		basePixelConstants.lightDir = glm::mat3(viewer.viewMat) * viewer.lightDir;
+		basePixelConstants.lightColor = glm::vec4(viewer.lightColor, 0.0f);
+		basePixelConstants.lightDir = glm::vec4(glm::mat3(viewer.viewMat) * viewer.lightDir, 0.0f);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { instance.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
@@ -55,11 +55,9 @@ namespace Chrivent {
 				continue;
 			instance.viewer->BindModelPipelineState(mat.bothFace);
 			HlslModelPixelConstants pixelConstants = basePixelConstants;
-			pixelConstants.alpha = mat.diffuse.a;
-			pixelConstants.diffuse = mat.diffuse;
-			pixelConstants.ambient = mat.ambient;
-			pixelConstants.specular = mat.specular;
-			pixelConstants.specularPower = mat.specularPower;
+			pixelConstants.diffuseAlpha = mat.diffuse;
+			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
+			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
 			pixelConstants.texMulFactor = mat.textureMulFactor;
 			pixelConstants.texAddFactor = mat.textureAddFactor;
 			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;

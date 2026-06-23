@@ -9,30 +9,30 @@ namespace Chrivent {
         program = 0;
     }
 
-    bool GlfwModelShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
-        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
+    bool GlfwModelShader::Setup(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
-        positionLocation = glGetAttribLocation(program, "inPosition");
-        normalLocation = glGetAttribLocation(program, "inNormal");
-        uvLocation = glGetAttribLocation(program, "inUv");
+        positionLocation = 0;
+        normalLocation = 1;
+        uvLocation = 2;
         return true;
     }
 
-    bool GlfwEdgeShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
-        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
+    bool GlfwEdgeShader::Setup(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
-        positionLocation = glGetAttribLocation(program, "inPosition");
-        normalLocation = glGetAttribLocation(program, "inNormal");
+        positionLocation = 0;
+        normalLocation = 1;
         return true;
     }
 
-    bool GlfwGroundShadowShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
-        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
+    bool GlfwGroundShadowShader::Setup(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
-        positionLocation = glGetAttribLocation(program, "inPosition");
+        positionLocation = 0;
         return true;
     }
 }

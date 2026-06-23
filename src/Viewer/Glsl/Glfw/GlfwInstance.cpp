@@ -4,6 +4,7 @@
 #include "GlfwViewer.h"
 #include "../../../Core/Model/Model.h"
 #include "../GlslShaderConstants.h"
+#include "../../Hlsl/HlslShaderConstants.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -87,7 +88,7 @@ namespace Chrivent {
 			sizeof(ShaderGroundShadowVertexConstants)
 		});
 		constexpr size_t pixelConstantsSize = std::max({
-			sizeof(GlslModelPixelConstants),
+			sizeof(HlslModelPixelConstants),
 			sizeof(ShaderEdgePixelConstants),
 			sizeof(ShaderGroundShadowPixelConstants)
 		});

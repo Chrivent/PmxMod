@@ -1,9 +1,23 @@
-cbuffer VSData : register(b0) {
+#ifdef PMX_SPIRV
+#define PMX_VERTEX_CONSTANTS register(b0, space0)
+#define PMX_PIXEL_CONSTANTS register(b0, space1)
+#define PMX_TEXTURE(index) register(t##index, space2)
+#define PMX_SAMPLER(index) register(s##index, space2)
+#define PMX_LOCATION(index) [[vk::location(index)]]
+#else
+#define PMX_VERTEX_CONSTANTS register(b0)
+#define PMX_PIXEL_CONSTANTS register(b1)
+#define PMX_TEXTURE(index) register(t##index)
+#define PMX_SAMPLER(index) register(s##index)
+#define PMX_LOCATION(index)
+#endif
+
+cbuffer VSData : PMX_VERTEX_CONSTANTS {
     float4x4 wv;
     float4x4 wvp;
 };
 
-cbuffer PSData : register(b1) {
+cbuffer PSData : PMX_PIXEL_CONSTANTS {
     float4  texMulFactor;
     float4  texAddFactor;
     float4  toonTexMulFactor;
@@ -11,26 +25,30 @@ cbuffer PSData : register(b1) {
     float4  sphereTexMulFactor;
     float4  sphereTexAddFactor;
     int4    textureModes;
-    float   alpha;
-    float3  diffuse;
-    float3  ambient;
-    float3  specular;
-    float   specularPower;
-    float3  lightColor;
-    float3  lightDir;
+    float4  diffuseAlpha;
+    float4  ambientSpecularPower;
+    float4  specular;
+    float4  lightColor;
+    float4  lightDir;
 }
 
-Texture2D tex : register(t0);
-Texture2D toonTex : register(t1);
-Texture2D sphereTex : register(t2);
-sampler texSampler : register(s0);
-sampler toonTexSampler : register(s1);
-sampler sphereTexSampler : register(s2);
+Texture2D tex : PMX_TEXTURE(0);
+Texture2D toonTex : PMX_TEXTURE(1);
+Texture2D sphereTex : PMX_TEXTURE(2);
+#ifdef PMX_SPIRV
+sampler texSampler : PMX_SAMPLER(3);
+sampler toonTexSampler : PMX_SAMPLER(4);
+sampler sphereTexSampler : PMX_SAMPLER(5);
+#else
+sampler texSampler : PMX_SAMPLER(0);
+sampler toonTexSampler : PMX_SAMPLER(1);
+sampler sphereTexSampler : PMX_SAMPLER(2);
+#endif
 
 struct VSInput {
-    float3 Pos : POSITION;
-    float3 Nor : NORMAL;
-    float2 UV : UV;
+    PMX_LOCATION(0) float3 Pos : POSITION;
+    PMX_LOCATION(1) float3 Nor : NORMAL;
+    PMX_LOCATION(2) float2 UV : UV;
 };
 
 struct VSOutput {
@@ -62,15 +80,15 @@ float3 ComputeTexAddFactor(float3 texColor, float4 factor) {
 
 float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
     float3 eyeDir = normalize(vsOut.Pos);
-    float3 lightDirection = normalize(-lightDir);
+    float3 lightDirection = normalize(-lightDir.xyz);
     float3 nor = normalize(vsOut.Nor);
     float ln = dot(nor, lightDirection);
     ln = clamp(ln + 0.5, 0.0, 1.0);
     float3 color = float3(0.0, 0.0, 0.0);
-    float opacity = alpha;
-    float3 diffuseColor = diffuse * lightColor;
+    float opacity = diffuseAlpha.a;
+    float3 diffuseColor = diffuseAlpha.rgb * lightColor.rgb;
     color = diffuseColor;
-    color += ambient;
+    color += ambientSpecularPower.rgb;
     color = clamp(color, 0.0, 1.0);
     int texMode = textureModes.x;
     int toonTexMode = textureModes.y;
@@ -104,10 +122,10 @@ float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
         color *= toonColor;
     }
     float3 specularTerm = (float3)0.0;
-    if (specularPower > 0.0) {
+    if (ambientSpecularPower.a > 0.0) {
         float3 halfVec = normalize(eyeDir + lightDirection);
-        float3 specularColor = specular * lightColor;
-        specularTerm += pow(max(0.0, dot(halfVec, nor)), specularPower) * specularColor;
+        float3 specularColor = specular.rgb * lightColor.rgb;
+        specularTerm += pow(max(0.0, dot(halfVec, nor)), ambientSpecularPower.a) * specularColor;
     }
     color += specularTerm;
     return float4(color, opacity);

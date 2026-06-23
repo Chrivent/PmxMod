@@ -19,18 +19,10 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h HINTS "${VCPKG_INCLUDE_DIR}" REQUIRED)
-find_library(
-        SHADERC_LIBRARY
-        shaderc_shared
-        HINTS "$ENV{VULKAN_SDK}/Lib" "${VCPKG_INSTALLED_DIR}/lib"
-        REQUIRED
-)
-find_file(
-        SHADERC_DLL
-        shaderc_shared.dll
-        HINTS "$ENV{VULKAN_SDK}/Bin" "${VCPKG_INSTALLED_DIR}/bin"
-        REQUIRED
-)
+find_library(DXCOMPILER_LIBRARY dxcompiler HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
+find_file(DXCOMPILER_DLL dxcompiler.dll HINTS "$ENV{VULKAN_SDK}/Bin" REQUIRED)
+find_library(SPIRV_CROSS_CORE_LIBRARY spirv-cross-core HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
+find_library(SPIRV_CROSS_GLSL_LIBRARY spirv-cross-glsl HINTS "$ENV{VULKAN_SDK}/Lib" REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Shader)
@@ -102,7 +94,7 @@ add_custom_command(TARGET PmxMod POST_BUILD
 
 add_custom_command(TARGET PmxMod POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SHADERC_DLL}"
+        "${DXCOMPILER_DLL}"
         "$<TARGET_FILE_DIR:PmxMod>"
         VERBATIM
 )

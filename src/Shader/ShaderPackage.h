@@ -16,8 +16,6 @@ namespace Chrivent {
 	struct EffectPassDefinition {
 		std::string name;
 		std::filesystem::path shaderPath;
-		std::filesystem::path vertexShaderPath;
-		std::filesystem::path fragmentShaderPath;
 		std::string vertexEntry = "VSMain";
 		std::string pixelEntry = "PSMain";
 	};

@@ -144,22 +144,12 @@ namespace Chrivent {
 				error += " in " + manifestPath.string();
 				return false;
 			}
-			if (const auto shader = passJson.find("shader"); shader != passJson.end()) {
-				if (!shader->is_string() || !ResolvePackagePath(packageRoot, shader->get<std::string>(), pass.shaderPath, error))
-					return false;
-			}
-			if (const auto vertexShader = passJson.find("vertexShader"); vertexShader != passJson.end()) {
-				if (!vertexShader->is_string() || !ResolvePackagePath(packageRoot, vertexShader->get<std::string>(), pass.vertexShaderPath, error))
-					return false;
-			}
-			if (const auto fragmentShader = passJson.find("fragmentShader"); fragmentShader != passJson.end()) {
-				if (!fragmentShader->is_string() || !ResolvePackagePath(packageRoot, fragmentShader->get<std::string>(), pass.fragmentShaderPath, error))
-					return false;
-			}
-			if (pass.shaderPath.empty() && (pass.vertexShaderPath.empty() || pass.fragmentShaderPath.empty())) {
-				error = "Effect pass requires an HLSL shader or a GLSL vertex/fragment pair: " + manifestPath.string();
+			if (!ReadRequiredString(passJson, "shader", shaderPath, error)) {
+				error += " in " + manifestPath.string();
 				return false;
 			}
+			if (!ResolvePackagePath(packageRoot, shaderPath, pass.shaderPath, error))
+				return false;
 			pass.vertexEntry = passJson.value("vertexEntry", pass.vertexEntry);
 			pass.pixelEntry = passJson.value("pixelEntry", pass.pixelEntry);
 			if (pass.vertexEntry.empty() || pass.pixelEntry.empty()) {

@@ -1,8 +1,7 @@
 ﻿#pragma once
 
-#include "../../../Viewer.h"
+#include "../../../../Shader/ShaderPackage.h"
 
-#include <filesystem>
 #include <glad/glad.h>
 
 namespace Chrivent {
@@ -18,18 +17,18 @@ namespace Chrivent {
         GLint   uvLocation = -1;
 
         // 모델 렌더링 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
+        bool Setup(const EffectPassDefinition& pass);
     };
 
     struct GlfwEdgeShader : GlfwShader {
         GLint   normalLocation = -1;
 
         // 엣지 렌더링 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
+        bool Setup(const EffectPassDefinition& pass);
     };
 
     struct GlfwGroundShadowShader : GlfwShader {
         // 지면 그림자 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
+        bool Setup(const EffectPassDefinition& pass);
     };
 }

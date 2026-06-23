@@ -21,12 +21,11 @@ namespace Chrivent {
 			const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
-			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkRenderPass renderPass, const std::filesystem::path& vertexShaderPath, const std::filesystem::path& fragmentShaderPath,
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkRenderPass renderPass, const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkPipeline& outPipeline) const;
 		// 셰이더 stage 생성 정보를 만든다.
-		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule);
+		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entry);
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
 		// 모델 vertex attribute 정보를 채운다.

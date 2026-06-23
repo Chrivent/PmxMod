@@ -7,8 +7,6 @@
     {
       "name": "main",
       "shader": "effects/edge/effect.hlsl",
-      "vertexShader": "effects/edge/effect.vert",
-      "fragmentShader": "effects/edge/effect.frag",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain"
     }

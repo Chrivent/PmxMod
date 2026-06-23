@@ -3,6 +3,7 @@
 #include "VulkanInstance.h"
 #include "VulkanViewer.h"
 #include "../GlslShaderConstants.h"
+#include "../../Hlsl/HlslShaderConstants.h"
 #include "../../../Core/Model/Model.h"
 
 #include <iostream>
@@ -33,7 +34,7 @@ namespace Chrivent {
 		ShaderModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewer.viewMat * world;
 		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-		GlslModelPixelConstants basePixelConstants{};
+		HlslModelPixelConstants basePixelConstants{};
 		basePixelConstants.lightColor = glm::vec4(viewer.lightColor, 0.0f);
 		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		std::string error;
@@ -51,8 +52,8 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			GlslModelPixelConstants pixelConstants = basePixelConstants;
-			pixelConstants.diffuseAlpha = glm::vec4(mat.diffuse.r, mat.diffuse.g, mat.diffuse.b, mat.diffuse.a);
+			HlslModelPixelConstants pixelConstants = basePixelConstants;
+			pixelConstants.diffuseAlpha = mat.diffuse;
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
 			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
 			pixelConstants.texMulFactor = mat.textureMulFactor;

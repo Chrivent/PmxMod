@@ -7,8 +7,6 @@
     {
       "name": "main",
       "shader": "effects/ground-shadow/effect.hlsl",
-      "vertexShader": "effects/ground-shadow/effect.vert",
-      "fragmentShader": "effects/ground-shadow/effect.frag",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain"
     }
