@@ -87,28 +87,38 @@ namespace Chrivent {
 
 	bool VulkanPipeline::CreateGraphicsPipelines(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkRenderPass renderPass, const std::filesystem::path& shaderDir) {
-		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "model.vert", "model.frag", VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "edge.vert", "edge.frag", VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, shaderDir, "ground_shadow.vert", "ground_shadow.frag", VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
+		const VkRenderPass renderPass, const EffectDefinition& modelEffect,
+		const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
+		if (modelEffect.passes.empty() || edgeEffect.passes.empty() || groundShadowEffect.passes.empty())
+			return false;
+		const auto& modelPass = modelEffect.passes.front();
+		const auto& edgePass = edgeEffect.passes.front();
+		const auto& groundShadowPass = groundShadowEffect.passes.front();
+		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass.vertexShaderPath, modelPass.fragmentShaderPath,
+			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, modelPass.vertexShaderPath, modelPass.fragmentShaderPath,
+			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, edgePass.vertexShaderPath, edgePass.fragmentShaderPath,
+			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, renderPass, groundShadowPass.vertexShaderPath, groundShadowPass.fragmentShaderPath,
+			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkRenderPass renderPass, const std::filesystem::path& shaderDir,
-		const char* vertexShaderName, const char* fragmentShaderName,
-		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias,
-		const bool enableStencilTest, const bool disableDepthWrite,
+		const VkRenderPass renderPass, const std::filesystem::path& vertexShaderPath, const std::filesystem::path& fragmentShaderPath,
+		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / vertexShaderName, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(
+			vertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!VulkanShaderCompiler::CompileFile(shaderDir / fragmentShaderName, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
+		if (!VulkanShaderCompiler::CompileFile(
+			fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
@@ -268,14 +278,15 @@ namespace Chrivent {
 		Destroy();
 	}
 
-	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkRenderPass renderPass, const std::filesystem::path& shaderDir) {
+	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkRenderPass renderPass,
+		const EffectDefinition& modelEffect, const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
-		return CreateGraphicsPipelines(sourceDevice, sourceSwapChain, renderPass, shaderDir);
+		return CreateGraphicsPipelines(
+			sourceDevice, sourceSwapChain, renderPass, modelEffect, edgeEffect, groundShadowEffect);
 	}
 
 	void VulkanPipeline::Destroy() {

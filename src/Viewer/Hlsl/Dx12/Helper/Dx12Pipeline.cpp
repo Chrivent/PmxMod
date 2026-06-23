@@ -110,7 +110,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "model.hlsl";
+		const auto shaderPath = shaderDir / "model/effect.hlsl";
 		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
 			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;
@@ -167,7 +167,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "edge.hlsl";
+		const auto shaderPath = shaderDir / "edge/effect.hlsl";
 		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
 			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;
@@ -217,7 +217,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexShader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "ground_shadow.hlsl";
+		const auto shaderPath = shaderDir / "ground-shadow/effect.hlsl";
 		if (!HlslShaderCompiler::CompileFile(shaderPath, "VSMain", "vs_5_1", vertexShader, error) ||
 			!HlslShaderCompiler::CompileFile(shaderPath, "PSMain", "ps_5_1", pixelShader, error)) {
 			std::cerr << error;

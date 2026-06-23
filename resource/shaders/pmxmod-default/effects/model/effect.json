@@ -7,6 +7,8 @@
     {
       "name": "main",
       "shader": "effects/model/effect.hlsl",
+      "vertexShader": "effects/model/effect.vert",
+      "fragmentShader": "effects/model/effect.frag",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain"
     }

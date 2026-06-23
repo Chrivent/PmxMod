@@ -1,7 +1,9 @@
 ﻿#include "GlfwViewer.h"
 
 #include "GlfwInstance.h"
+#include "../../../Shader/ShaderPackage.h"
 
+#include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
@@ -33,19 +35,35 @@ namespace Chrivent {
 		std::cout << "opengl_gpu_type=" << ResolveGpuTypeName(renderer ? renderer : "") << '\n';
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		InitDirs("shader_glsl");
+		InitDirs("shaders");
+		ShaderPackage package;
+		std::string error;
+		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
+		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
+		const auto groundShadowEffect = std::ranges::find(package.effects, EffectType::GroundShadow, &EffectDefinition::type);
+		if (modelEffect == package.effects.end() || modelEffect->passes.empty()
+			|| edgeEffect == package.effects.end() || edgeEffect->passes.empty()
+			|| groundShadowEffect == package.effects.end() || groundShadowEffect->passes.empty())
+			return false;
+		const auto& modelPass = modelEffect->passes.front();
+		const auto& edgePass = edgeEffect->passes.front();
+		const auto& groundShadowPass = groundShadowEffect->passes.front();
 		shader = std::make_unique<GlfwModelShader>();
-		if (!shader->Setup(*this)) {
+		if (!shader->Setup(modelPass.vertexShaderPath, modelPass.fragmentShaderPath)) {
 			std::cerr << "Failed to set up main GLFW shader.\n";
 			return false;
 		}
 		edgeShader = std::make_unique<GlfwEdgeShader>();
-		if (!edgeShader->Setup(*this)) {
+		if (!edgeShader->Setup(edgePass.vertexShaderPath, edgePass.fragmentShaderPath)) {
 			std::cerr << "Failed to set up edge GLFW shader.\n";
 			return false;
 		}
 		gsShader = std::make_unique<GlfwGroundShadowShader>();
-		if (!gsShader->Setup(*this)) {
+		if (!gsShader->Setup(groundShadowPass.vertexShaderPath, groundShadowPass.fragmentShaderPath)) {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}

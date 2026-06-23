@@ -71,6 +71,8 @@ namespace Chrivent {
         static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
         // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
         void InitDirs(const std::filesystem::path& shaderSubDir);
+        // 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
+        std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
         // 렌더링 창 좌측 상단에 FPS 오버레이를 생성한다.
         void CreateFpsOverlay();
         // FPS 오버레이에 현재 측정값을 표시한다.

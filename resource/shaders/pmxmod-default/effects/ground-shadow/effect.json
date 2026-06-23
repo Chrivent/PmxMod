@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "ground-shadow",
+  "name": "Default Ground Shadow",
+  "type": "ground_shadow",
+  "passes": [
+    {
+      "name": "main",
+      "shader": "effects/ground-shadow/effect.hlsl",
+      "vertexShader": "effects/ground-shadow/effect.vert",
+      "fragmentShader": "effects/ground-shadow/effect.frag",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain"
+    }
+  ]
+}

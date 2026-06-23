@@ -9,8 +9,8 @@ namespace Chrivent {
         program = 0;
     }
 
-    bool GlfwModelShader::Setup(const Viewer& viewer) {
-        program = GlfwShaderCompiler::CreateShader(viewer.shaderDir / "model.vert", viewer.shaderDir / "model.frag");
+    bool GlfwModelShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
+        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");
@@ -19,8 +19,8 @@ namespace Chrivent {
         return true;
     }
 
-    bool GlfwEdgeShader::Setup(const Viewer& viewer) {
-        program = GlfwShaderCompiler::CreateShader(viewer.shaderDir / "edge.vert", viewer.shaderDir / "edge.frag");
+    bool GlfwEdgeShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
+        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");
@@ -28,8 +28,8 @@ namespace Chrivent {
         return true;
     }
 
-    bool GlfwGroundShadowShader::Setup(const Viewer& viewer) {
-        program = GlfwShaderCompiler::CreateShader(viewer.shaderDir / "ground_shadow.vert", viewer.shaderDir / "ground_shadow.frag");
+    bool GlfwGroundShadowShader::Setup(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader) {
+        program = GlfwShaderCompiler::CreateShader(vertexShader, fragmentShader);
         if (program == 0)
             return false;
         positionLocation = glGetAttribLocation(program, "inPosition");

@@ -244,9 +244,9 @@ namespace Chrivent {
         shaderPackages.clear();
         if (!viewer)
             return;
-        auto discovery = ShaderPackageLoader::Discover(viewer->shaderDir.parent_path() / "shaders");
-        shaderPackages = std::move(discovery.packages);
-        for (const auto& error : discovery.errors)
+        auto [packages, errors] = ShaderPackageLoader::Discover(viewer->ResolveShaderPackagesDirectory());
+        shaderPackages = std::move(packages);
+        for (const auto& error : errors)
             std::cerr << "Failed to load shader package: " << error << '\n';
         std::size_t effectCount = 0;
         for (const auto& package : shaderPackages) {

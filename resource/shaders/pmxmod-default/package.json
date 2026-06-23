@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "author": "PmxMod",
   "effects": [
-    "effects/model/effect.json"
+    "effects/model/effect.json",
+    "effects/edge/effect.json",
+    "effects/ground-shadow/effect.json"
   ]
 }

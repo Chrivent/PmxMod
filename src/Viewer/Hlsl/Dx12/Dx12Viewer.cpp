@@ -89,7 +89,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::Setup() {
-		InitDirs("shader_hlsl");
+		InitDirs("shaders/pmxmod-default/effects");
 		if (!device->Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;

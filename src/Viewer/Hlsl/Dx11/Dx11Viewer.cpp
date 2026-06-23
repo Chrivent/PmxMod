@@ -59,11 +59,16 @@ namespace Chrivent {
 			return false;
 		}
 		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
-		if (modelEffect == package.effects.end() || modelEffect->passes.empty())
+		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
+		const auto groundShadowEffect = std::ranges::find(
+			package.effects, EffectType::GroundShadow, &EffectDefinition::type);
+		if (modelEffect == package.effects.end() || modelEffect->passes.empty()
+			|| edgeEffect == package.effects.end() || edgeEffect->passes.empty()
+			|| groundShadowEffect == package.effects.end() || groundShadowEffect->passes.empty())
 			return false;
 		return shaders.model.Initialize(device, modelEffect->passes.front().shaderPath)
-			&& shaders.edge.Initialize(device, shaderDir / "edge.hlsl")
-			&& shaders.groundShadow.Initialize(device, shaderDir / "ground_shadow.hlsl");
+			&& shaders.edge.Initialize(device, edgeEffect->passes.front().shaderPath)
+			&& shaders.groundShadow.Initialize(device, groundShadowEffect->passes.front().shaderPath);
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {
@@ -190,7 +195,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateRenderTargets())
 			return false;
-		InitDirs("shader_hlsl");
+		InitDirs("shaders");
 		if (!CreateShaders())
 			return false;
 		if (!CreatePipelineStates())

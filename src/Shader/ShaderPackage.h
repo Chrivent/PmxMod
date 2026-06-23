@@ -8,12 +8,16 @@
 namespace Chrivent {
 	enum class EffectType {
 		Model,
+		Edge,
+		GroundShadow,
 		PostProcess
 	};
 
 	struct EffectPassDefinition {
 		std::string name;
 		std::filesystem::path shaderPath;
+		std::filesystem::path vertexShaderPath;
+		std::filesystem::path fragmentShaderPath;
 		std::string vertexEntry = "VSMain";
 		std::string pixelEntry = "PSMain";
 	};

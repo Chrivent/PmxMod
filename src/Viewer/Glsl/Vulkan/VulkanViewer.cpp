@@ -1,7 +1,9 @@
 ﻿#include "VulkanViewer.h"
 
 #include "VulkanInstance.h"
+#include "../../../Shader/ShaderPackage.h"
 
+#include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
@@ -12,7 +14,20 @@ namespace Chrivent {
 			return false;
 		if (!renderPass.Initialize(*device, swapChain, msaaDepthBuffer.format))
 			return false;
-		if (!pipeline->Initialize(*device, swapChain, renderPass.GetRenderPass(), shaderDir))
+		ShaderPackage package;
+		std::string error;
+		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
+		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
+		const auto groundShadowEffect = std::ranges::find(package.effects, EffectType::GroundShadow, &EffectDefinition::type);
+		if (modelEffect == package.effects.end() || edgeEffect == package.effects.end() || groundShadowEffect == package.effects.end())
+			return false;
+		if (!pipeline->Initialize(
+			*device, swapChain, renderPass.GetRenderPass(),
+			*modelEffect, *edgeEffect, *groundShadowEffect))
 			return false;
 		if (!frameBuffer.Initialize(*device, swapChain, renderPass.GetRenderPass(),
 			msaaColorBuffer.imageView, msaaDepthBuffer.imageView))
@@ -124,7 +139,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::Setup() {
-		InitDirs("shader_glsl");
+		InitDirs("shaders");
 		if (!device->Initialize(window))
 			return false;
 		if (!swapChain.Initialize(*device, window))
