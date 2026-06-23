@@ -1,8 +1,20 @@
 ﻿add_library(PmxModViewer STATIC)
 add_library(PmxMod::Viewer ALIAS PmxModViewer)
 
+add_library(PmxModDxcCompiler OBJECT
+        Shader/DxcShaderCompiler.cpp
+)
+
+target_compile_features(PmxModDxcCompiler PRIVATE cxx_std_23)
+
+target_include_directories(PmxModDxcCompiler PRIVATE
+        ${PROJECT_SOURCE_DIR}/src
+        "$ENV{VULKAN_SDK}/Include"
+)
+
 target_sources(PmxModViewer PRIVATE
         Viewer.h Viewer.cpp
+        GraphicsCapabilities.h GraphicsCapabilities.cpp
         Drawer.h Drawer.cpp
         Instance.h Instance.cpp
         TextureCache.h
@@ -10,7 +22,8 @@ target_sources(PmxModViewer PRIVATE
         DynamicBufferRing.h DynamicBufferRing.cpp
         Shader/ShaderConstants.h
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
-        Shader/DxcShaderCompiler.h Shader/DxcShaderCompiler.cpp
+        Shader/DxcShaderCompiler.h
+        $<TARGET_OBJECTS:PmxModDxcCompiler>
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
 
         Glfw/GlfwViewer.h Glfw/GlfwViewer.cpp
@@ -36,9 +49,7 @@ target_sources(PmxModViewer PRIVATE
         Vulkan/Helper/VulkanMemory.h Vulkan/Helper/VulkanMemory.cpp
         Vulkan/Helper/VulkanPipeline.h Vulkan/Helper/VulkanPipeline.cpp
         Vulkan/Helper/VulkanPostProcess.h Vulkan/Helper/VulkanPostProcess.cpp
-        Vulkan/Helper/VulkanRenderPass.h Vulkan/Helper/VulkanRenderPass.cpp
         Vulkan/Helper/VulkanShaderModule.h Vulkan/Helper/VulkanShaderModule.cpp
-        Vulkan/Helper/VulkanFrameBuffer.h Vulkan/Helper/VulkanFrameBuffer.cpp
         Vulkan/Helper/VulkanSwapChain.h Vulkan/Helper/VulkanSwapChain.cpp
         Vulkan/Helper/VulkanSyncObject.h Vulkan/Helper/VulkanSyncObject.cpp
 
@@ -53,6 +64,7 @@ target_sources(PmxModViewer PRIVATE
         Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
         Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
         Dx12/Dx12Instance.h Dx12/Dx12Instance.cpp
+        Dx12/Helper/Dx12Barrier.h Dx12/Helper/Dx12Barrier.cpp
         Dx12/Helper/Dx12Buffer.h Dx12/Helper/Dx12Buffer.cpp
         Dx12/Helper/Dx12CommandContext.h Dx12/Helper/Dx12CommandContext.cpp
         Dx12/Helper/Dx12DepthBuffer.h Dx12/Helper/Dx12DepthBuffer.cpp
@@ -84,8 +96,7 @@ target_link_libraries(PmxModViewer
         dxgi
         d3dcompiler
         ${DXCOMPILER_LIBRARY}
-        ${SPIRV_CROSS_CORE_LIBRARY}
-        ${SPIRV_CROSS_LIBRARY}
+        spirv-cross-core
+        spirv-cross-cpp
+        spirv-cross-glsl
 )
-
-target_include_directories(PmxModViewer PRIVATE "$ENV{VULKAN_SDK}/Include")
