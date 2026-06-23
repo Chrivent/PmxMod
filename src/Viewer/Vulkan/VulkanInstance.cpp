@@ -2,7 +2,7 @@
 
 #include "VulkanDrawer.h"
 #include "VulkanViewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 #include "../../Core/Model/Model.h"
 
 #include <algorithm>
@@ -166,7 +166,7 @@ namespace Chrivent {
 			return;
 		if (!viewer->syncObject)
 			return;
-		const size_t frameIndex = viewer->syncObject->currentFrame % VulkanInstance::kBufferedFrames;
+		const size_t frameIndex = viewer->syncObject->currentFrame % kBufferedFrames;
 		const auto& vertexBuffer = vertexBuffers[frameIndex];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)
 			return;

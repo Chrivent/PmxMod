@@ -3,7 +3,7 @@
 #include "Dx11Drawer.h"
 
 #include "Dx11Viewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 #include "Helper/Dx11DescBuilder.h"
 #include "../ViewerGeometry.h"
 #include "../../Core/Model/Model.h"
@@ -18,7 +18,7 @@ namespace Chrivent {
 			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
 			indexData.bytes.empty())
 			return false;
-		const size_t vertexByteSize = sizeof(Dx11Vertex) * geometryData.positions.size();
+		const size_t vertexByteSize = sizeof(ViewerVertex) * geometryData.positions.size();
 		if (vertexByteSize > (std::numeric_limits<UINT>::max)() ||
 			indexData.bytes.size() > (std::numeric_limits<UINT>::max)())
 			return false;
@@ -85,7 +85,7 @@ namespace Chrivent {
 		if (FAILED(viewer->deviceResources.context->Map(vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return;
-		ViewerGeometry::WriteVertices(model->geometryData, true, static_cast<Dx11Vertex*>(mapRes.pData), vtxCount);
+		ViewerGeometry::WriteVertices(model->geometryData, true, static_cast<ViewerVertex*>(mapRes.pData), vtxCount);
 		viewer->deviceResources.context->Unmap(vertexBuffer.Get(), 0);
 	}
 }

@@ -1,6 +1,29 @@
 ﻿#include "ViewerGeometry.h"
 
 namespace Chrivent {
+	bool ViewerGeometry::WriteVertices(const ModelGeometryData& geometryData, const bool useUpdateData, ViewerVertex* destination, const size_t destinationCount) {
+		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
+			? geometryData.updatePositions
+			: geometryData.positions;
+		const auto& normals = useUpdateData && geometryData.updateNormals.size() == geometryData.normals.size()
+			? geometryData.updateNormals
+			: geometryData.normals;
+		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
+			? geometryData.updateUVs
+			: geometryData.uvs;
+		if (destination == nullptr || destinationCount < positions.size())
+			return false;
+		for (size_t index = 0; index < positions.size(); index++) {
+			auto& [position, normal, uv] = destination[index];
+			position = positions[index];
+			if (index < normals.size())
+				normal = normals[index];
+			if (index < uvs.size())
+				uv = uvs[index];
+		}
+		return true;
+	}
+
 	bool ViewerGeometry::BuildIndexData(const ModelGeometryData& geometryData, ViewerIndexData& outIndexData) {
 		outIndexData = {};
 		outIndexData.indexCount = geometryData.indexCount;

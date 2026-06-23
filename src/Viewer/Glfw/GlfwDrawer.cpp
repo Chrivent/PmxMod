@@ -3,7 +3,7 @@
 #include "GlfwInstance.h"
 #include "GlfwViewer.h"
 #include "../../Core/Model/Model.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 
 namespace Chrivent {
 	void GlfwDrawer::BeginDynamicBufferFrame() const {

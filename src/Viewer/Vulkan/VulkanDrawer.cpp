@@ -2,7 +2,7 @@
 
 #include "VulkanInstance.h"
 #include "VulkanViewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 #include "../../Core/Model/Model.h"
 
 #include <iostream>

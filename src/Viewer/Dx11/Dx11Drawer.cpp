@@ -2,7 +2,8 @@
 
 #include "Dx11Instance.h"
 #include "Dx11Viewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
+#include "Viewer/ViewerGeometry.h"
 #include "../../Core/Model/Model.h"
 
 namespace Chrivent {
@@ -59,7 +60,7 @@ namespace Chrivent {
 		basePsCb.lightColor = glm::vec4(viewer->lightColor, 0.0f);
 		basePsCb.lightDir = glm::vec4(lightDir, 0.0f);
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
-		constexpr UINT stride = sizeof(Dx11Vertex);
+		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);

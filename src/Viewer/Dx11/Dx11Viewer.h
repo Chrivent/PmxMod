@@ -11,12 +11,6 @@
 namespace Chrivent {
     class Dx11Viewer;
 
-    struct Dx11Vertex {
-        glm::vec3	position;
-        glm::vec3	normal;
-        glm::vec2	uv;
-    };
-
     struct Dx11Material : ViewerMaterial {
         Dx11Texture texture{};
         Dx11Texture	spTexture{};

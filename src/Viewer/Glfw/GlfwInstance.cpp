@@ -3,7 +3,7 @@
 #include "GlfwDrawer.h"
 #include "GlfwViewer.h"
 #include "../../Core/Model/Model.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 
 #include <algorithm>
 #include <cstddef>

@@ -5,10 +5,10 @@ target_sources(PmxModViewer PRIVATE
         Viewer.h Viewer.cpp
         Drawer.h Drawer.cpp
         Instance.h Instance.cpp
-        ShaderConstants.h
         TextureCache.h
         ViewerGeometry.h ViewerGeometry.cpp
         DynamicBufferRing.h DynamicBufferRing.cpp
+        Shader/ShaderConstants.h
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h Shader/DxcShaderCompiler.cpp
 

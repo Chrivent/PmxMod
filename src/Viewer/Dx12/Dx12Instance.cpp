@@ -2,7 +2,7 @@
 
 #include "Dx12Drawer.h"
 #include "Dx12Viewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 #include "../../Core/Model/Model.h"
 #include "../ViewerGeometry.h"
 

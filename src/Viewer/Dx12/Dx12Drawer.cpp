@@ -2,7 +2,7 @@
 
 #include "Dx12Instance.h"
 #include "Dx12Viewer.h"
-#include "../ShaderConstants.h"
+#include "../Shader/ShaderConstants.h"
 #include "../../Core/Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
