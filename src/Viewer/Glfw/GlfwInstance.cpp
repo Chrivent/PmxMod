@@ -119,7 +119,7 @@ namespace Chrivent {
 
 	void GlfwInstance::LoadMaterials() {
 		for (const auto& mat : model->materialData.materials) {
-			GlfwViewerMaterial material(mat);
+			GlfwMaterial material(mat);
 			if (!mat.texture.empty()) {
 				const auto texture = viewer->LoadTexture(mat.texture);
 				material.texture = texture.texture;

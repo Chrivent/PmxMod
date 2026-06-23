@@ -10,7 +10,7 @@
 namespace Chrivent {
     class GlfwViewer;
     class GlfwDrawer;
-    struct GlfwViewerMaterial;
+    struct GlfwMaterial;
 
     class GlfwInstance : public Instance {
 		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
@@ -38,7 +38,7 @@ namespace Chrivent {
         size_t uniformBufferOffsetAlignment = 1;
         GlfwDynamicBufferRing vertexConstantsRing;
         GlfwDynamicBufferRing pixelConstantsRing;
-        std::vector<GlfwViewerMaterial> materials;
+        std::vector<GlfwMaterial> materials;
 
         GlfwInstance() = default;
         ~GlfwInstance() override;

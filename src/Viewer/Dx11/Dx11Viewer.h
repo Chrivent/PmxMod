@@ -13,7 +13,7 @@ namespace Chrivent {
 
     struct Dx11Material : ViewerMaterial {
         Dx11Texture texture{};
-        Dx11Texture	spTexture{};
+        Dx11Texture	sphereTexture{};
         Dx11Texture	toonTexture{};
 
         explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}

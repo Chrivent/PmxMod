@@ -75,10 +75,10 @@ namespace Chrivent {
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
 		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
 		// material의 양면 렌더링 여부에 맞는 DX12 model pipeline state를 바인딩한다.
-		void BindModelPipelineState(bool bothFace) const;
+		void BindModelPipeline(bool bothFace) const;
 		// DX12 엣지 렌더링용 root signature와 pipeline state를 바인딩한다.
-		void BindEdgePipelineState() const;
+		void BindEdgePipeline() const;
 		// DX12 지면 그림자 렌더링용 root signature와 pipeline state를 바인딩한다.
-		void BindGroundShadowPipelineState() const;
+		void BindGroundShadowPipeline() const;
 	};
 }

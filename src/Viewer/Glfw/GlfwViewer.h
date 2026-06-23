@@ -10,13 +10,13 @@
 namespace Chrivent {
     class GlfwViewer;
 
-    struct GlfwViewerMaterial : ViewerMaterial {
+    struct GlfwMaterial : ViewerMaterial {
         GLuint  texture = 0;
         bool    textureHasAlpha = false;
         GLuint  sphereTexture = 0;
         GLuint  toonTexture = 0;
 
-        explicit GlfwViewerMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
+        explicit GlfwMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
     class GlfwViewer : public Viewer {

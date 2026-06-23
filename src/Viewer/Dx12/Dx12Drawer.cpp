@@ -53,7 +53,7 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			instance.viewer->BindModelPipelineState(mat.bothFace);
+			instance.viewer->BindModelPipeline(mat.bothFace);
 			ModelPixelConstants pixelConstants = basePixelConstants;
 			pixelConstants.diffuseAlpha = mat.diffuse;
 			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
@@ -100,7 +100,7 @@ namespace Chrivent {
 		vertexConstants.wv = viewer.viewMat * world;
 		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
 		vertexConstants.screenSize = glm::vec2(viewer.screenWidth, viewer.screenHeight);
-		instance.viewer->BindEdgePipelineState();
+		instance.viewer->BindEdgePipeline();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
@@ -154,7 +154,7 @@ namespace Chrivent {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
 			return;
 		}
-		instance.viewer->BindGroundShadowPipelineState();
+		instance.viewer->BindGroundShadowPipeline();
 		commandList->OMSetStencilRef(0x01);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);

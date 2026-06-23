@@ -99,14 +99,14 @@ namespace Chrivent {
 				boundViews[1], boundSamplers[1]
 			);
 			int spMode = 0;
-			if (material.spTexture.texture) {
+			if (material.sphereTexture.texture) {
 				if (mat.spTextureMode == SphereMode::Mul)
 					spMode = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
 					spMode = 2;
 			}
 			BindTexture(
-				2, material.spTexture, viewer->pipelineStates.textureSampler.Get(), spMode,
+				2, material.sphereTexture, viewer->pipelineStates.textureSampler.Get(), spMode,
 				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor,
 				boundViews[2], boundSamplers[2]
 			);

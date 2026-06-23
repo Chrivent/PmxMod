@@ -9,7 +9,7 @@ namespace Chrivent {
         program = 0;
     }
 
-    bool GlfwModelShader::Setup(const EffectPassDefinition& pass) {
+    bool GlfwModelShader::Initialize(const EffectPassDefinition& pass) {
         program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
@@ -19,7 +19,7 @@ namespace Chrivent {
         return true;
     }
 
-    bool GlfwEdgeShader::Setup(const EffectPassDefinition& pass) {
+    bool GlfwEdgeShader::Initialize(const EffectPassDefinition& pass) {
         program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
@@ -28,7 +28,7 @@ namespace Chrivent {
         return true;
     }
 
-    bool GlfwGroundShadowShader::Setup(const EffectPassDefinition& pass) {
+    bool GlfwGroundShadowShader::Initialize(const EffectPassDefinition& pass) {
         program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
@@ -36,7 +36,7 @@ namespace Chrivent {
         return true;
     }
 
-    bool GlfwPostProcessShader::Setup(const EffectPassDefinition& pass) {
+    bool GlfwPostProcessShader::Initialize(const EffectPassDefinition& pass) {
         program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry, true);
         return program != 0;
     }

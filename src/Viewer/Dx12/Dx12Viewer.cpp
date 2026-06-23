@@ -242,19 +242,19 @@ namespace Chrivent {
 		return textureCache.Load(*device, texturePath);
 	}
 
-	void Dx12Viewer::BindModelPipelineState(const bool bothFace) const {
+	void Dx12Viewer::BindModelPipeline(const bool bothFace) const {
 		if (!frameReady)
 			return;
 		pipeline.BindModel(commandContext.GetCommandList().Get(), bothFace);
 	}
 
-	void Dx12Viewer::BindEdgePipelineState() const {
+	void Dx12Viewer::BindEdgePipeline() const {
 		if (!frameReady)
 			return;
 		pipeline.BindEdge(commandContext.GetCommandList().Get());
 	}
 
-	void Dx12Viewer::BindGroundShadowPipelineState() const {
+	void Dx12Viewer::BindGroundShadowPipeline() const {
 		if (!frameReady)
 			return;
 		pipeline.BindGroundShadow(commandContext.GetCommandList().Get());
