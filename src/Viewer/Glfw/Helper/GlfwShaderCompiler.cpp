@@ -66,13 +66,14 @@ namespace Chrivent {
 	}
 
 	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
-		const std::string& pixelEntry) {
+		const std::string& pixelEntry, const bool invertVertexY) {
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
 		std::string error;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		if (!DxcShaderCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0", SpirvTarget::OpenGl, vertexCode, error)
+		if (!DxcShaderCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
+			SpirvTarget::OpenGl, vertexCode, error, invertVertexY)
 			|| !DxcShaderCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0", SpirvTarget::OpenGl, pixelCode, error)) {
 			std::cerr << error << '\n';
 			return 0;

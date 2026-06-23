@@ -196,7 +196,7 @@ namespace Chrivent {
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
 		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
 		if (!DxcShaderCompiler::CompileSpirv(
-			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error)
+			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error, true)
 			|| !DxcShaderCompiler::CompileSpirv(
 				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, pixelCode, error)) {
 			std::cerr << error << '\n';

@@ -37,7 +37,7 @@ namespace Chrivent {
     }
 
     bool GlfwPostProcessShader::Setup(const EffectPassDefinition& pass) {
-        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry, true);
         return program != 0;
     }
 }

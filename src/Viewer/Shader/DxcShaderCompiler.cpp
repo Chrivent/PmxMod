@@ -8,7 +8,7 @@
 namespace Chrivent {
 	bool DxcShaderCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, const SpirvTarget spirvTarget,
-		std::vector<uint32_t>& outSpirv, std::string& outError) {
+		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
 		Microsoft::WRL::ComPtr<IDxcUtils> utils;
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
 		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)))
@@ -39,6 +39,8 @@ namespace Chrivent {
 			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(), L"-spirv",
 			targetEnvironment, L"-O3", L"-I", includeDirectory.c_str()
 		};
+		if (invertVertexY)
+			arguments.emplace_back(L"-fvk-invert-y");
 		if (spirvTarget == SpirvTarget::OpenGl) {
 			const wchar_t* openGlBindings[] = {
 				L"-fvk-bind-register", L"b0", L"0", L"0", L"0",
