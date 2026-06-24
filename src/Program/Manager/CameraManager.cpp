@@ -3,6 +3,7 @@
 #include "Program/Manager/InputManager.h"
 #include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Animation/Camera/CameraAnimationBuilder.h"
+#include "Core/Parser/BinaryReader.h"
 #include "Program/Sound.h"
 #include "Viewer/Viewer.h"
 
@@ -61,7 +62,7 @@ namespace Chrivent {
 		VmdParser camVmd;
 		const auto parseResult = camVmd.ReadFile(cameraAnimPath);
 		if (!parseResult) {
-			std::cerr << "Failed to read camera VMD: " << FormatParseError(parseResult.error()) << '\n';
+			std::cerr << "Failed to read camera VMD: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
 			return;
 		}
 		if (!camVmd.GetData().cameras.empty()) {

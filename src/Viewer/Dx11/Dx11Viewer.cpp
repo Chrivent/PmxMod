@@ -283,6 +283,12 @@ namespace Chrivent {
 			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
 	}
 
+	void Dx11Viewer::ClearPostProcessEffect() {
+		shaders.postProcess.vertexShader.Reset();
+		shaders.postProcess.pixelShader.Reset();
+		shaders.postProcess.inputLayout.Reset();
+	}
+
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {
 		return std::make_unique<Dx11Instance>();
 	}

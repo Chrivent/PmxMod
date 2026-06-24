@@ -1,4 +1,5 @@
-﻿#include "Program/Program.h"
+﻿#define GLFW_EXPOSE_NATIVE_WIN32
+#include "Program/Program.h"
 
 #include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Animation/Model/Animation.h"
@@ -6,6 +7,7 @@
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelPose.h"
+#include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Glfw/GlfwViewer.h"
 #include "Viewer/Vulkan/VulkanViewer.h"
@@ -14,6 +16,8 @@
 #include "Util.h"
 #include "Program/Language.h"
 
+#include <CommCtrl.h>
+#include <GLFW/glfw3native.h>
 #include <algorithm>
 #include <cwchar>
 #include <iomanip>
@@ -85,6 +89,44 @@ namespace Chrivent {
         return "unknown";
     }
 
+    LRESULT CALLBACK Program::ViewerWindowProc(
+        const HWND hwnd,
+        const UINT msg,
+        const WPARAM wParam,
+        const LPARAM lParam,
+        const UINT_PTR subclassId,
+        const DWORD_PTR data) {
+        auto* program = reinterpret_cast<Program*>(data);
+        if (!program || subclassId != kViewerWindowSubclassId)
+            return DefSubclassProc(hwnd, msg, wParam, lParam);
+        switch (msg) {
+            case WM_ENTERSIZEMOVE:
+            case WM_ENTERMENULOOP:
+                SetTimer(hwnd, kViewerModalFrameTimerId, 16, nullptr);
+                break;
+            case WM_EXITSIZEMOVE:
+            case WM_EXITMENULOOP:
+                KillTimer(hwnd, kViewerModalFrameTimerId);
+                break;
+            case WM_TIMER:
+                if (wParam == kViewerModalFrameTimerId) {
+                    if (!program->RenderViewerModalFrame())
+                        PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                    return 0;
+                }
+                break;
+            case WM_NCDESTROY:
+                KillTimer(hwnd, kViewerModalFrameTimerId);
+                RemoveWindowSubclass(hwnd, ViewerWindowProc, kViewerWindowSubclassId);
+                if (program->viewerNativeWindow == hwnd)
+                    program->viewerNativeWindow = nullptr;
+                break;
+            default:
+                break;
+        }
+        return DefSubclassProc(hwnd, msg, wParam, lParam);
+    }
+
     void Program::CreateViewer(const RendererType rendererType) {
         switch (rendererType) {
             case RendererType::OpenGL:
@@ -119,6 +161,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
+        InstallViewerWindowSubclass();
         inputManager.AttachWindow(viewer->window);
         PositionViewerOnRightMonitor();
         glfwMaximizeWindow(viewer->window);
@@ -126,17 +169,20 @@ namespace Chrivent {
         glfwGetFramebufferSize(viewer->window, &viewer->screenWidth, &viewer->screenHeight);
         if (viewer->screenWidth <= 0 || viewer->screenHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
+            RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
         }
         if (!viewer->Setup()) {
             std::cerr << "Failed to set up renderer.\n";
+            RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
         }
         if (!viewer->Resize()) {
+            RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
@@ -149,6 +195,7 @@ namespace Chrivent {
             viewer->screenWidth = framebufferWidth;
             viewer->screenHeight = framebufferHeight;
             if (!viewer->Resize()) {
+                RemoveViewerWindowSubclass();
                 viewer.reset();
                 glfwTerminate();
                 return false;
@@ -156,6 +203,31 @@ namespace Chrivent {
         }
         viewer->CreateFpsOverlay();
         return true;
+    }
+
+    void Program::InstallViewerWindowSubclass() {
+        if (!viewer || !viewer->window)
+            return;
+        viewerNativeWindow = glfwGetWin32Window(viewer->window);
+        if (viewerNativeWindow)
+            SetWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId, reinterpret_cast<DWORD_PTR>(this));
+    }
+
+    void Program::RemoveViewerWindowSubclass() {
+        if (!viewerNativeWindow)
+            return;
+        KillTimer(viewerNativeWindow, kViewerModalFrameTimerId);
+        RemoveWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId);
+        viewerNativeWindow = nullptr;
+    }
+
+    bool Program::RenderViewerModalFrame() {
+        if (viewerModalFrameActive)
+            return true;
+        viewerModalFrameActive = true;
+        const bool frameResult = RunFrame(nullptr, false);
+        viewerModalFrameActive = false;
+        return frameResult;
     }
 
     void Program::PositionViewerOnRightMonitor() const {
@@ -207,6 +279,7 @@ namespace Chrivent {
         GLFWwindow* previousWindow = viewer ? viewer->window : nullptr;
         if (viewer)
             viewer->WaitIdle();
+        RemoveViewerWindowSubclass();
         ClearInstances();
         viewer.reset();
         if (previousWindow) {
@@ -231,6 +304,7 @@ namespace Chrivent {
         GLFWwindow* window = viewer ? viewer->window : nullptr;
         if (viewer)
             viewer->WaitIdle();
+        RemoveViewerWindowSubclass();
         ClearInstances();
         music.Stop();
         panelManager.DestroyGui();
@@ -255,6 +329,15 @@ namespace Chrivent {
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
         selectedShaderEffectIndex = effectCount == 0 ? 0 : std::min(selectedShaderEffectIndex, effectCount - 1);
+        if (shaderEffectEnabled.size() != effectCount) {
+            std::vector newEnabled(effectCount, false);
+            const size_t copyCount = std::min(shaderEffectEnabled.size(), newEnabled.size());
+            for (size_t index = 0; index < copyCount; index++)
+                newEnabled[index] = shaderEffectEnabled[index];
+            if (effectCount > 0 && std::ranges::none_of(newEnabled, [](const bool enabled) { return enabled; }))
+                newEnabled[selectedShaderEffectIndex] = true;
+            shaderEffectEnabled = std::move(newEnabled);
+        }
         UpdateShaderPanel();
         LoadSelectedShaderEffect();
     }
@@ -269,18 +352,26 @@ namespace Chrivent {
                     Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
             }
         }
-        panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex);
+        panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
     }
 
     void Program::LoadSelectedShaderEffect() const {
         if (!viewer)
             return;
+        if (shaderEffectEnabled.empty() || std::ranges::none_of(shaderEffectEnabled, [](const bool enabled) { return enabled; })) {
+            viewer->ClearPostProcessEffect();
+            return;
+        }
+        const size_t activeShaderEffectIndex =
+            selectedShaderEffectIndex < shaderEffectEnabled.size() && shaderEffectEnabled[selectedShaderEffectIndex]
+                ? selectedShaderEffectIndex
+                : static_cast<size_t>(std::ranges::find(shaderEffectEnabled, true) - shaderEffectEnabled.begin());
         size_t effectIndex = 0;
         for (const auto& package : shaderPackages) {
             for (const auto& effect : package.effects) {
                 if (effect.type != EffectType::PostProcess)
                     continue;
-                if (effectIndex++ != selectedShaderEffectIndex)
+                if (effectIndex++ != activeShaderEffectIndex)
                     continue;
                 if (viewer->LoadPostProcessEffect(effect))
                     std::cout << "active_effect=" << package.id << ':' << effect.id << '\n';
@@ -310,6 +401,7 @@ namespace Chrivent {
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
+        panelManager.ApplyCameraMotionPath(sceneConfig.cameraAnim);
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
         if (startFrame > 0) {
             cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
@@ -337,7 +429,7 @@ namespace Chrivent {
                 VmdParser vmd;
                 const auto parseResult = vmd.ReadFile(vmdPath);
                 if (!parseResult) {
-                    std::cerr << "Failed to read VMD file: " << FormatParseError(parseResult.error()) << '\n';
+                    std::cerr << "Failed to read VMD file: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
                     return false;
                 }
                 animationBuilder.Build(vmd.GetData());
@@ -514,9 +606,7 @@ namespace Chrivent {
             cameraGroup.keyFrames = CollectFrames(cameraGroup.rows);
             groups.emplace_back(std::move(cameraGroup));
         }
-        for (const auto& [name
-            , boneIndices
-            , morphIndices] : model.skeletonData.displayFrames) {
+        for (const auto& [name, boneIndices, morphIndices] : model.skeletonData.displayFrames) {
             MotionTimelineGroup group{
                 .name = Util::Utf8ToWString(name)
             };
@@ -610,6 +700,83 @@ namespace Chrivent {
         panelManager.ApplyMotionTimeline(std::move(modelName), std::move(groups));
     }
 
+    void Program::UpdateCameraMotionPanel() {
+        const auto& cameraKeys = cameraManager.ResolveAnimationKeys();
+        std::vector<MotionTimelineGroup> groups;
+        if (!cameraKeys.empty()) {
+            MotionTimelineRow cameraRow{
+                .name = Language::Text("motion.camera"),
+                .curveNames = {
+                    Language::Text("interpolation.x"),
+                    Language::Text("interpolation.y"),
+                    Language::Text("interpolation.z"),
+                    Language::Text("interpolation.rotation"),
+                    Language::Text("interpolation.distance"),
+                    Language::Text("interpolation.fov")
+                },
+                .expandable = true
+            };
+            cameraRow.keys.reserve(cameraKeys.size());
+            for (const auto& [frame, interest, rotate, distance, fov
+                , ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier] : cameraKeys) {
+                cameraRow.keys.push_back({
+                    .frame = frame > static_cast<uint32_t>(std::numeric_limits<int>::max())
+                        ? std::numeric_limits<int>::max()
+                        : static_cast<int>(frame),
+                    .curves = {
+                        ixBezier.GetControlPoints(),
+                        iyBezier.GetControlPoints(),
+                        izBezier.GetControlPoints(),
+                        rotateBezier.GetControlPoints(),
+                        distanceBezier.GetControlPoints(),
+                        fovBezier.GetControlPoints()
+                    },
+                    .values = {
+                        interest.x,
+                        interest.y,
+                        interest.z,
+                        glm::degrees(glm::length(rotate)),
+                        distance,
+                        glm::degrees(fov)
+                    }
+                });
+            }
+            std::vector<int> keyFrames;
+            keyFrames.reserve(cameraRow.keys.size());
+            for (const auto& key : cameraRow.keys)
+                keyFrames.emplace_back(key.frame);
+            MotionTimelineGroup cameraGroup{
+                .name = Language::Text("motion.camera"),
+                .rows = {std::move(cameraRow)},
+                .keyFrames = std::move(keyFrames),
+                .mode = MotionTimelineMode::Camera,
+                .grouped = false
+            };
+            groups.emplace_back(std::move(cameraGroup));
+        }
+        std::wstring name = panelManager.GetSceneConfig().cameraAnim.empty()
+            ? Language::Text("motion.camera")
+            : panelManager.GetSceneConfig().cameraAnim.filename().wstring();
+        panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
+    }
+
+    void Program::UpdateShaderMotionPanel(const size_t effectIndex) {
+        size_t currentIndex = 0;
+        for (const auto& package : shaderPackages) {
+            for (const auto& effect : package.effects) {
+                if (effect.type != EffectType::PostProcess)
+                    continue;
+                if (currentIndex++ != effectIndex)
+                    continue;
+                const std::wstring name =
+                    Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name);
+                panelManager.ApplyMotionTimeline(name, {});
+                return;
+            }
+        }
+        panelManager.ApplyMotionTimeline(Language::Text("panel.camera"), {});
+    }
+
     void Program::ClearInstances() {
         for (const auto& instance : instances)
             instance->Clear();
@@ -637,10 +804,11 @@ namespace Chrivent {
         }
     }
 
-    bool Program::RunFrame(FrameTiming* timing) {
+    bool Program::RunFrame(FrameTiming* timing, const bool pollGuiWindows) {
         const auto frameStart = std::chrono::steady_clock::now();
         glfwPollEvents();
-        panelManager.PollGuiWindows();
+        if (pollGuiWindows)
+            panelManager.PollGuiWindows();
         if (panelManager.ConsumeLanguageDirty()) {
             panelManager.RefreshLanguage();
             return true;
@@ -663,13 +831,71 @@ namespace Chrivent {
         }
         if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig()))
             panelManager.RefreshModelList();
-        size_t selectedModelIndex = 0;
-        if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex))
-            UpdateMotionPanel(selectedModelIndex);
-        size_t selectedEffectIndex = 0;
-        if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex)) {
+        std::filesystem::path cameraMotionPath;
+        if (panelManager.ConsumeCameraMotionPath(cameraMotionPath)) {
+            SceneConfig sceneConfig = panelManager.GetSceneConfig();
+            sceneConfig.cameraAnim = std::move(cameraMotionPath);
+            if (LoadScene(sceneConfig)) {
+                panelManager.CommitSceneConfig(sceneConfig);
+                panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+                UpdateCameraMotionPanel();
+            }
+        }
+        if (panelManager.ConsumeDeleteCameraMotion()) {
+            SceneConfig sceneConfig = panelManager.GetSceneConfig();
+            sceneConfig.cameraAnim.clear();
+            if (LoadScene(sceneConfig)) {
+                panelManager.CommitSceneConfig(sceneConfig);
+                panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+                UpdateCameraMotionPanel();
+            }
+        }
+        size_t deleteModelIndex = 0;
+		if (panelManager.ConsumeDeleteModelIndex(deleteModelIndex)) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			if (deleteModelIndex < sceneConfig.modelConfigs.size()) {
+				sceneConfig.modelConfigs.erase(sceneConfig.modelConfigs.begin() + static_cast<std::ptrdiff_t>(deleteModelIndex));
+				if (LoadScene(sceneConfig)) {
+                    panelManager.CommitSceneConfig(sceneConfig);
+                    if (!sceneConfig.modelConfigs.empty())
+                        UpdateMotionPanel(std::min(deleteModelIndex, sceneConfig.modelConfigs.size() - 1));
+                    else
+                        UpdateCameraMotionPanel();
+				}
+			}
+		}
+		size_t motionModelIndex = 0;
+		std::filesystem::path modelMotionPath;
+		if (panelManager.ConsumeModelMotionPath(motionModelIndex, modelMotionPath)) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			if (motionModelIndex < sceneConfig.modelConfigs.size()) {
+				sceneConfig.modelConfigs[motionModelIndex].animPaths = {std::move(modelMotionPath)};
+				if (LoadScene(sceneConfig)) {
+					panelManager.CommitSceneConfig(sceneConfig);
+					panelManager.ApplyMotionMode(MotionTimelineMode::Model);
+					UpdateMotionPanel(motionModelIndex);
+				}
+			}
+		}
+		size_t selectedModelIndex = 0;
+		if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex)) {
+			panelManager.ApplyMotionMode(MotionTimelineMode::Model);
+			UpdateMotionPanel(selectedModelIndex);
+		}
+		if (panelManager.ConsumeCameraMotionSelected()) {
+			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+			UpdateCameraMotionPanel();
+		}
+		size_t selectedEffectIndex = 0;
+        bool selectedEffectEnabled = false;
+        if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)) {
             selectedShaderEffectIndex = selectedEffectIndex;
+            if (selectedShaderEffectIndex >= shaderEffectEnabled.size())
+                shaderEffectEnabled.resize(selectedShaderEffectIndex + 1, false);
+            shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
             LoadSelectedShaderEffect();
+            panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+            UpdateShaderMotionPanel(selectedShaderEffectIndex);
         }
         int seekFrame = 0;
         bool seekFinished = false;
@@ -888,6 +1114,9 @@ namespace Chrivent {
         DiscoverShaderPackages();
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
+        panelManager.SetModalFrameCallback([this] {
+            return RunFrame(nullptr, false);
+        });
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();

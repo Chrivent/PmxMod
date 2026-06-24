@@ -66,6 +66,8 @@ namespace Chrivent {
 		void BindPostProcess(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const;
 		// 선택된 후처리 pipeline이 준비됐는지 반환한다.
 		bool HasPostProcessEffect() const { return postProcessPipelineState != nullptr; }
+		// 선택된 후처리 pipeline 리소스만 해제한다.
+		void ClearPostProcessEffect();
 		// 생성한 DX12 pipeline 리소스를 해제한다.
 		void Reset();
 	};

@@ -1,6 +1,7 @@
 ﻿#include "Core/Model/ModelLoader.h"
 
 #include "Core/Model/ModelPose.h"
+#include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/PmxParser.h"
 #include "Util.h"
 
@@ -345,7 +346,7 @@ namespace Chrivent {
 		PmxParser pmx;
 		const auto parseResult = pmx.ReadFile(filepath);
 		if (!parseResult) {
-			std::cerr << "Failed to read PMX file: " << FormatParseError(parseResult.error()) << '\n';
+			std::cerr << "Failed to read PMX file: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
 			return false;
 		}
 		const auto& pmxData = pmx.GetData();

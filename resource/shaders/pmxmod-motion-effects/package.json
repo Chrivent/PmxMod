@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "pmxmod.motion-effects",
+  "name": "PmxMod Motion Effects",
+  "version": "0.1.0",
+  "author": "PmxMod",
+  "effects": [
+    "effects/motion-blur/effect.json",
+    "effects/depth-of-field/effect.json"
+  ]
+}

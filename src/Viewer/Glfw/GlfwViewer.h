@@ -66,6 +66,8 @@ namespace Chrivent {
         void WaitIdle() override;
         // 선택한 후처리 HLSL을 OpenGL 프로그램으로 준비한다.
         bool LoadPostProcessEffect(const EffectDefinition& effect) override;
+        // OpenGL 후처리 프로그램을 해제한다.
+        void ClearPostProcessEffect() override;
         // OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
 

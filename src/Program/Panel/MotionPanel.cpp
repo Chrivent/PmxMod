@@ -255,15 +255,15 @@ namespace Chrivent {
 			GuiDrawer::DrawLine(deviceContext, x, 0, x, timelineBottom, major ? RGB(65, 77, 92) : RGB(43, 49, 59));
 		}
 		const int visibleRows = std::max(0, (timelineBottom - kHeaderHeight) / kRowHeight + 1);
+		const int lastVisibleRow = firstRow + visibleRows;
 		int visibleRowIndex = 0;
-		int paintedRows = 0;
 		const int rowClip = SaveDC(deviceContext);
 		IntersectClipRect(deviceContext, 0, kHeaderHeight, client.right, timelineBottom);
 		const auto DrawRow = [&](const std::wstring& name, const MotionTimelineGroup* group, const MotionTimelineRow* row,
 			const bool groupRow, const bool expanded, const bool drawKeys, const int indent, const bool curveRow, const int rowUnits) {
 			const int rowStart = visibleRowIndex;
 			visibleRowIndex += rowUnits;
-			if (rowStart + rowUnits <= firstRow || paintedRows >= visibleRows)
+			if (rowStart + rowUnits <= firstRow || rowStart >= lastVisibleRow)
 				return;
 			const int top = kHeaderHeight + (rowStart - firstRow) * kRowHeight;
 			const int rowHeight = rowUnits * kRowHeight;
@@ -277,7 +277,7 @@ namespace Chrivent {
 				}
 			}
 			const RECT labelRect{0, top, kLabelWidth, top + rowHeight};
-			const COLORREF labelColor = curveRow ? RGB(37, 43, 52) : paintedRows % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55);
+			const COLORREF labelColor = curveRow ? RGB(37, 43, 52) : rowStart % 2 == 0 ? RGB(49, 53, 62) : RGB(43, 47, 55);
 			GuiDrawer::FillRectColor(deviceContext, labelRect, labelColor);
 			if (groupRow)
 				GuiDrawer::DrawTriangle(deviceContext, 12, top + rowHeight / 2, 5, expanded, RGB(228, 228, 232));
@@ -286,10 +286,8 @@ namespace Chrivent {
 			GuiDrawer::DrawLine(deviceContext, 0, top + rowHeight, client.right, top + rowHeight, RGB(64, 67, 75));
 			if (row && curveRow)
 				DrawValueCurves(deviceContext, *row, top, top + rowHeight, client.right);
-			if (!drawKeys) {
-				paintedRows += rowUnits;
+			if (!drawKeys)
 				return;
-			}
 			const auto DrawKey = [&](const int frame, const bool selected) {
 				if (frame > totalFrame || frame < firstFrame)
 					return;
@@ -298,10 +296,8 @@ namespace Chrivent {
 					return;
 				GuiDrawer::DrawDiamond(deviceContext, x, top + rowHeight / 2, 5, selected ? RGB(246, 190, 53) : RGB(242, 242, 244));
 			};
-			if (curveRow) {
-				paintedRows += rowUnits;
+			if (curveRow)
 				return;
-			}
 			if (group) {
 				auto frame = std::ranges::lower_bound(group->keyFrames, firstFrame);
 				for (; frame != group->keyFrames.end() && *frame <= lastVisibleFrame; ++frame)
@@ -311,7 +307,6 @@ namespace Chrivent {
 				for (; key != row->keys.end() && key->frame <= lastVisibleFrame; ++key)
 					DrawKey(key->frame, key->selected);
 			}
-			paintedRows += rowUnits;
 		};
 		for (const auto& group : groups) {
 			if (!IsGroupVisible(group))
@@ -325,16 +320,12 @@ namespace Chrivent {
 				continue;
 			}
 			DrawRow(group.name, &group, nullptr, true, group.expanded, !group.expanded, 24, false, 1);
-			if (paintedRows >= visibleRows)
-				break;
 			if (!group.expanded)
 				continue;
 			for (const auto& row : group.rows) {
 				DrawRow(row.name, nullptr, &row, false, row.expanded, true, 32, false, 1);
 				if (row.expanded)
 					DrawRow(L"", nullptr, &row, false, false, false, 0, true, kCurveGraphHeight / kRowHeight);
-				if (paintedRows >= visibleRows)
-					break;
 			}
 		}
 		RestoreDC(deviceContext, rowClip);
@@ -374,9 +365,7 @@ namespace Chrivent {
 			if (!group.grouped) {
 				for (auto& row : group.rows) {
 					if (currentRow == visibleRowIndex && row.expandable) {
-						const bool expand = !row.expanded;
-						CollapseCurveRows();
-						row.expanded = expand;
+						row.expanded = !row.expanded;
 						UpdateVerticalScrollBar();
 						InvalidateRect(timelineWindow, nullptr, TRUE);
 						return;
@@ -399,9 +388,7 @@ namespace Chrivent {
 				continue;
 			for (auto& row : group.rows) {
 				if (currentRow == visibleRowIndex && row.expandable) {
-					const bool expand = !row.expanded;
-					CollapseCurveRows();
-					row.expanded = expand;
+					row.expanded = !row.expanded;
 					UpdateVerticalScrollBar();
 					InvalidateRect(timelineWindow, nullptr, TRUE);
 					return;
@@ -410,13 +397,6 @@ namespace Chrivent {
 				if (row.expanded)
 					currentRow += curveRowUnits;
 			}
-		}
-	}
-
-	void MotionPanel::CollapseCurveRows() {
-		for (auto& group : groups) {
-			for (auto& row : group.rows)
-				row.expanded = false;
 		}
 	}
 
@@ -577,6 +557,38 @@ namespace Chrivent {
 					key.selected = true;
 			}
 		};
+		const auto SelectCurveKeys = [&](MotionTimelineRow& row, const int rowIndex) {
+			const int top = kHeaderHeight + (rowIndex - firstRow) * kRowHeight;
+			const int bottom = top + kCurveGraphHeight;
+			for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
+				float minimum = std::numeric_limits<float>::max();
+				float maximum = std::numeric_limits<float>::lowest();
+				for (const auto& key : row.keys) {
+					if (channelIndex >= key.values.size())
+						continue;
+					minimum = std::min(minimum, key.values[channelIndex]);
+					maximum = std::max(maximum, key.values[channelIndex]);
+				}
+				if (minimum > maximum)
+					continue;
+				if (std::abs(maximum - minimum) < 1.0e-5f) {
+					minimum -= 0.5f;
+					maximum += 0.5f;
+				}
+				const auto ValueToY = [&](const float value) {
+					return bottom - 8 - std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 16));
+				};
+				for (auto& key : row.keys) {
+					if (channelIndex >= key.values.size())
+						continue;
+					const int x = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+					const int y = ValueToY(key.values[channelIndex]);
+					if (x >= selectionRect.left && x <= selectionRect.right
+						&& y >= selectionRect.top && y <= selectionRect.bottom)
+						key.selected = true;
+				}
+			}
+		};
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
@@ -585,7 +597,7 @@ namespace Chrivent {
 					SelectRowKeys(row, visibleRow);
 					visibleRow++;
 					if (row.expanded) {
-						SelectRowKeys(row, visibleRow + curveRowUnits / 2);
+						SelectCurveKeys(row, visibleRow);
 						visibleRow += curveRowUnits;
 					}
 				}
@@ -614,7 +626,7 @@ namespace Chrivent {
 				SelectRowKeys(row, visibleRow);
 				visibleRow++;
 				if (row.expanded) {
-					SelectRowKeys(row, visibleRow + curveRowUnits / 2);
+					SelectCurveKeys(row, visibleRow);
 					visibleRow += curveRowUnits;
 				}
 			}
@@ -707,7 +719,7 @@ namespace Chrivent {
 		info.cbSize = sizeof(info);
 		info.fMask = SIF_ALL;
 		GetScrollInfo(timelineWindow, SB_HORZ, &info);
-		int position = currentFrame;
+		int position = playing ? firstFrame : currentFrame;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
 		const int timelineWidth = client.right - kLabelWidth;
@@ -722,10 +734,19 @@ namespace Chrivent {
 			case SB_LEFT: position = 0; break;
 			case SB_RIGHT: position = totalFrame; break;
 			case SB_ENDSCROLL:
+				if (playing)
+					return;
 				seekRequested = true;
 				seekFinished = true;
 				return;
 			default: return;
+		}
+		if (playing) {
+			manualFrameScroll = true;
+			firstFrame = std::clamp(position, 0, totalFrame);
+			SetScrollPos(timelineWindow, SB_HORZ, firstFrame, TRUE);
+			InvalidateRect(timelineWindow, nullptr, FALSE);
+			return;
 		}
 		currentFrame = std::clamp(position, 0, totalFrame);
 		seekFrame = currentFrame;
@@ -750,6 +771,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
+		if (!isPlaying)
+			manualFrameScroll = false;
 		playing = isPlaying;
 		if (frameEdit)
 			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
@@ -765,8 +788,8 @@ namespace Chrivent {
 		if (mode == timelineMode)
 			return;
 		mode = timelineMode;
-		CollapseCurveRows();
 		firstRow = 0;
+		manualFrameScroll = false;
 		interpolationSelectionDirty = true;
 		UpdateModeButtonText();
 		UpdateVerticalScrollBar();
@@ -873,6 +896,7 @@ namespace Chrivent {
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
 		playing = false;
+		manualFrameScroll = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
@@ -902,8 +926,9 @@ namespace Chrivent {
 			return;
 		currentFrame = timelineFrame;
 		if (timelineWindow) {
-			FollowCurrentFrame();
-			SetScrollPos(timelineWindow, SB_HORZ, std::min(currentFrame, totalFrame), TRUE);
+			if (!playing || !manualFrameScroll)
+				FollowCurrentFrame();
+			SetScrollPos(timelineWindow, SB_HORZ, playing && manualFrameScroll ? firstFrame : std::min(currentFrame, totalFrame), TRUE);
 			UpdateFrameEditText();
 			InvalidateRect(timelineWindow, nullptr, FALSE);
 		}

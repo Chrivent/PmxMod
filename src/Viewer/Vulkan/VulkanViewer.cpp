@@ -289,6 +289,16 @@ namespace Chrivent {
 		return false;
 	}
 
+	void VulkanViewer::ClearPostProcessEffect() {
+		if (!postProcessEffect)
+			return;
+		WaitIdle();
+		postProcessEffect.reset();
+		ResetSwapChainResources();
+		if (!CreateSwapChainResources())
+			std::cerr << "Failed to restore Vulkan swapchain resources after clearing post-process.\n";
+	}
+
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {
 		return std::make_unique<VulkanInstance>();
 	}

@@ -1,8 +1,8 @@
 ﻿# PmxMod
 
-**[English](./README.md)** | [한국어](./README.ko.md)
+**[English](./README.md)** | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
 
-PMX/VMD model viewer built with C++23. The project currently renders through OpenGL, DirectX 11, DirectX 12, and Vulkan.
+PmxMod is a C++23 PMX/VMD model viewer. It currently supports OpenGL, DirectX 11, DirectX 12, and Vulkan renderers.
 
 ## Requirements
 
@@ -21,17 +21,11 @@ PMX/VMD model viewer built with C++23. The project currently renders through Ope
 
 ## Dependencies
 
-Install the required packages with vcpkg:
+The project uses the `vcpkg.json` manifest in the repository root. You do not need to install each library one by one; configure CMake with the vcpkg toolchain file and vcpkg will install the manifest dependencies for the selected triplet.
+
+Install the Vulkan SDK first:
 
 ```powershell
-C:\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
-winget install --id KhronosGroup.VulkanSDK -e
-```
-
-If vcpkg is installed somewhere else, use that path instead:
-
-```powershell
-D:\dev\vcpkg\vcpkg.exe install glfw3 glad glm bullet3 stb miniaudio nlohmann-json --triplet x64-windows
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
@@ -39,17 +33,17 @@ After installing the Vulkan SDK, open a new PowerShell window so CMake can see t
 
 ## Build
 
-By default, CMake expects vcpkg at `C:/vcpkg`.
+If vcpkg is installed at `C:/vcpkg`:
 
 ```powershell
-cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build cmake-build-release --target PmxMod
 ```
 
-If vcpkg is installed in another directory, pass `VCPKG_ROOT` when configuring:
+If vcpkg is installed elsewhere, replace the toolchain path:
 
 ```powershell
-cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT=D:/dev/vcpkg
+cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build cmake-build-release --target PmxMod
 ```
 
@@ -59,22 +53,25 @@ In VS Code with CMake Tools:
 2. Select the Release configuration.
 3. Build target `PmxMod`.
 
-For a custom vcpkg location, add this to VS Code settings:
+For a custom vcpkg location, add the toolchain file to VS Code settings:
 
 ```json
 {
   "cmake.configureSettings": {
-    "VCPKG_ROOT": "D:/dev/vcpkg"
+    "CMAKE_TOOLCHAIN_FILE": "D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
   }
 }
 ```
 
+## Shader Packages
+
+Runtime shader packages are loaded from `resource/shaders/`. A package contains a `package.json` manifest and one or more HLSL effects. The default model, edge, and ground-shadow shaders live in `resource/shaders/pmxmod-default`.
+
+Post-process examples and stubs can be added as separate packages under `resource/shaders/`. Runtime resources are copied from `resource/` into the CMake build directory by the `SyncResources` target.
+
 ## Notes
 
-- `stb` is found through vcpkg's `FindStb.cmake`.
-- `miniaudio` is header-only and is found by locating `miniaudio.h`.
-- `nlohmann-json` parses the runtime GUI language files.
-- Vulkan is found through the installed Vulkan SDK.
+- Dependencies such as GLFW, GLAD, GLM, Bullet, miniaudio, nlohmann-json, SPIRV-Cross, and stb are declared in `vcpkg.json`.
+- Vulkan and DXC are found through the installed Vulkan SDK.
 - OpenGL is used as the visual reference renderer. DirectX 11, DirectX 12, and Vulkan keep matching model, edge, ground shadow, texture, depth, stencil, blend, and MSAA behavior where the APIs allow it.
 - DirectX 12 and Vulkan use explicit MSAA render targets and resolve into the swapchain image. This differs from OpenGL's default framebuffer flow, but follows the same sample-count policy and visual result.
-- Runtime resources are copied from `resource/` into the CMake build directory by the `SyncResources` target.

@@ -27,7 +27,23 @@ namespace Chrivent {
 		case WM_PAINT: {
 			PAINTSTRUCT paint{};
 			const HDC deviceContext = BeginPaint(hwnd, &paint);
-			panelWindow->Paint(deviceContext);
+			RECT client{};
+			GetClientRect(hwnd, &client);
+			const int width = std::max(0, static_cast<int>(client.right - client.left));
+			const int height = std::max(0, static_cast<int>(client.bottom - client.top));
+			const HDC memoryContext = CreateCompatibleDC(deviceContext);
+			const HBITMAP bitmap = width > 0 && height > 0 ? CreateCompatibleBitmap(deviceContext, width, height) : nullptr;
+			if (memoryContext && bitmap) {
+				const HGDIOBJ previousBitmap = SelectObject(memoryContext, bitmap);
+				panelWindow->Paint(memoryContext);
+				BitBlt(deviceContext, 0, 0, width, height, memoryContext, 0, 0, SRCCOPY);
+				SelectObject(memoryContext, previousBitmap);
+			} else
+				panelWindow->Paint(deviceContext);
+			if (bitmap)
+				DeleteObject(bitmap);
+			if (memoryContext)
+				DeleteDC(memoryContext);
 			EndPaint(hwnd, &paint);
 			return 0;
 		}
@@ -47,6 +63,17 @@ namespace Chrivent {
 					return 0;
 			}
 			break;
+		case WM_NOTIFY: {
+			const auto* notifyHeader = reinterpret_cast<NMHDR*>(lParam);
+			if (!notifyHeader)
+				break;
+			LRESULT notifyResult = 0;
+			for (const auto& entry : panelWindow->panels) {
+				if (entry.panel && entry.panel->HandleNotify(*notifyHeader, notifyResult))
+					return notifyResult;
+			}
+			break;
+		}
 		case WM_HSCROLL:
 		case WM_VSCROLL:
 			for (const auto& entry : panelWindow->panels) {
@@ -57,6 +84,21 @@ namespace Chrivent {
 		case WM_SIZE:
 			panelWindow->LayoutPanels();
 			return 0;
+		case WM_ENTERSIZEMOVE:
+		case WM_ENTERMENULOOP:
+			panelWindow->StartModalFrameTimer();
+			break;
+		case WM_EXITSIZEMOVE:
+		case WM_EXITMENULOOP:
+			panelWindow->StopModalFrameTimer();
+			break;
+		case WM_TIMER:
+			if (wParam == kModalFrameTimerId) {
+				if (panelWindow->modalFrameCallback && !panelWindow->modalFrameCallback())
+					panelWindow->closeRequested = true;
+				return 0;
+			}
+			break;
 		case WM_LBUTTONDOWN:
 			panelWindow->dragBoundary = panelWindow->HitTestBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			if (panelWindow->dragBoundary != DragBoundary::None)
@@ -108,6 +150,28 @@ namespace Chrivent {
 			break;
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	}
+
+	BOOL CALLBACK PanelWindow::SetChildRedrawProc(const HWND child, const LPARAM enable) {
+		SendMessageW(child, WM_SETREDRAW, enable, 0);
+		return TRUE;
+	}
+
+	void PanelWindow::StartModalFrameTimer() const {
+		if (window)
+			SetTimer(window, kModalFrameTimerId, 16, nullptr);
+	}
+
+	void PanelWindow::StopModalFrameTimer() const {
+		if (window)
+			KillTimer(window, kModalFrameTimerId);
+	}
+
+	void PanelWindow::SetLayoutRedraw(const bool enable) const {
+		if (!window)
+			return;
+		SendMessageW(window, WM_SETREDRAW, enable, 0);
+		EnumChildWindows(window, SetChildRedrawProc, enable ? TRUE : FALSE);
 	}
 
 	void PanelWindow::CreatePanelControls() {
@@ -199,11 +263,11 @@ namespace Chrivent {
 			}
 			const int areaWidth = std::max(0, static_cast<int>(area.right - area.left));
 			entry.bounds = area;
-			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, TRUE);
+			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, FALSE);
 			RECT panelRect{area.left + 4, area.top + 24, area.right - 4, area.bottom - 4};
 			entry.panel->Resize(panelRect);
 		}
-		InvalidateRect(window, nullptr, TRUE);
+		InvalidateRect(window, nullptr, FALSE);
 	}
 
 	PanelWindow::DragBoundary PanelWindow::HitTestBoundary(const int x, const int y) const {
@@ -245,7 +309,10 @@ namespace Chrivent {
 		case DragBoundary::None:
 			return;
 		}
+		SetLayoutRedraw(false);
 		LayoutPanels();
+		SetLayoutRedraw(true);
+		RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_NOERASE);
 	}
 
 	void PanelWindow::ResetPanelLayout() {
@@ -285,8 +352,8 @@ namespace Chrivent {
 		wc.lpszClassName = L"PmxModPanelWindow";
 		RegisterClassExW(&wc);
 		window = CreateWindowExW(
-			0, L"PmxModPanelWindow", Language::Text("window.settings").c_str(),
-			WS_OVERLAPPEDWINDOW,
+			WS_EX_COMPOSITED, L"PmxModPanelWindow", Language::Text("window.settings").c_str(),
+			WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
 			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
 			nullptr, nullptr, instance, this);
 		if (menuBar) {
@@ -347,6 +414,7 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Destroy() {
+		StopModalFrameTimer();
 		for (auto& entry : panels) {
 			if (entry.panel)
 				entry.panel->Destroy();

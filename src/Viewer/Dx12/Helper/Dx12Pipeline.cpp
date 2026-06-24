@@ -378,6 +378,11 @@ namespace Chrivent {
 		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
 	}
 
+	void Dx12Pipeline::ClearPostProcessEffect() {
+		postProcessPipelineState.Reset();
+		postProcessRootSignature.Reset();
+	}
+
 	void Dx12Pipeline::Reset() {
 		postProcessPipelineState.Reset();
 		postProcessRootSignature.Reset();

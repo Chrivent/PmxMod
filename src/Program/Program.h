@@ -48,15 +48,23 @@ namespace Chrivent {
         std::vector<std::size_t> skinningTaskOffsets;
         std::vector<ModelUpdateTiming> modelUpdateTimings;
         std::vector<ShaderPackage> shaderPackages;
+        std::vector<bool> shaderEffectEnabled;
         size_t selectedShaderEffectIndex = 0;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
+        HWND viewerNativeWindow = nullptr;
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
         bool benchmarkMode = false;
+        bool viewerModalFrameActive = false;
+
+        static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
+        static constexpr UINT_PTR kViewerModalFrameTimerId = 9102;
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
+        // 렌더러 창의 Win32 모달 루프에서도 프레임을 진행한다.
+        static LRESULT CALLBACK ViewerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR subclassId, DWORD_PTR data);
         // 렌더러 이름을 프로그램 렌더러 형식으로 변환한다.
         static bool ParseRenderer(const std::wstring& value, RendererType& rendererType);
         // 양의 정수 명령행 값을 크기 값으로 변환한다.
@@ -71,6 +79,12 @@ namespace Chrivent {
         bool InitializeViewer();
         // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
         void PositionViewerOnRightMonitor() const;
+        // 렌더러 창 이동/메뉴 루프 중에도 프레임을 돌릴 Win32 subclass를 설치한다.
+        void InstallViewerWindowSubclass();
+        // 렌더러 창에 설치한 Win32 subclass를 해제한다.
+        void RemoveViewerWindowSubclass();
+        // 렌더러 창의 modal loop timer에서 한 프레임을 안전하게 처리한다.
+        bool RenderViewerModalFrame();
         // 선택한 렌더러로 뷰어 창과 렌더 리소스를 다시 생성한다.
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.
@@ -93,6 +107,10 @@ namespace Chrivent {
         void ResetPhysics(int frame) const;
         // 선택된 모델의 본, IK, 모프 키프레임을 모션 패널에 표시한다.
         void UpdateMotionPanel(size_t modelIndex);
+        // 현재 카메라 모션 키프레임을 모션 패널에 표시한다.
+        void UpdateCameraMotionPanel();
+        // 선택한 셰이더 이름만 모션 패널에 표시한다.
+        void UpdateShaderMotionPanel(size_t effectIndex);
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영한다.
@@ -100,7 +118,7 @@ namespace Chrivent {
         // FPS 표시 시간을 갱신한다.
         void TickFps();
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.
-        bool RunFrame(FrameTiming* timing = nullptr);
+        bool RunFrame(FrameTiming* timing = nullptr, bool pollGuiWindows = true);
         // 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.
         int RunBenchmark(std::size_t warmupFrames, std::size_t benchmarkFrames);
         

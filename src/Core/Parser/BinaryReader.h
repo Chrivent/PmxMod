@@ -54,6 +54,8 @@ namespace Chrivent {
 		bool ReadCount(uint32_t& count, std::size_t minimumItemBytes = 1, std::size_t maximumCount = 10'000'000);
 		// 현재까지 기록된 오류를 expected 결과로 반환한다.
 		std::expected<void, ParseError> Result() const;
+		// 파싱 오류를 파일 로그에 사용할 문자열로 변환한다.
+		static std::string FormatParseError(const ParseError& error);
 
 		// 지정한 타입 크기만큼 바이너리 스트림에서 읽는다.
 		template <typename T>
@@ -61,7 +63,4 @@ namespace Chrivent {
 			return Read(&destination, sizeof(T));
 		}
 	};
-
-	// 파싱 오류를 파일 로그에 사용할 문자열로 변환한다.
-	std::string FormatParseError(const ParseError& error);
 }

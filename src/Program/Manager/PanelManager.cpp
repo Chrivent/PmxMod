@@ -30,8 +30,8 @@ namespace Chrivent {
 			.repeatCheck = kPlaybackRepeatCheckId
 		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
-		modelPanel.ApplyControlIds(kModelAddButtonId, kModelListId);
-		cameraPanel.SetShaderListId(kCameraShaderListId);
+		modelPanel.ApplyControlIds(kModelAddButtonId, kModelDeleteButtonId, kModelListId);
+		cameraPanel.ApplyControlIds(kCameraAddMotionButtonId, kCameraDeleteMotionButtonId, kCameraShaderListId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
 		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);
@@ -48,11 +48,14 @@ namespace Chrivent {
 
 	void PanelManager::ApplySceneConfig(const SceneConfig& cfg) {
 		menuBar.ApplySceneConfig(cfg);
+		sceneConfigStorage = cfg;
+		ApplyCameraMotionPath(sceneConfigStorage.cameraAnim);
 		UpdateModelPanel();
 	}
 
 	void PanelManager::CommitSceneConfig(const SceneConfig& cfg) {
 		sceneConfigStorage = cfg;
+		ApplyCameraMotionPath(sceneConfigStorage.cameraAnim);
 		UpdateModelPanel();
 	}
 

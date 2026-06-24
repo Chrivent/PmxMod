@@ -67,6 +67,8 @@ namespace Chrivent {
         virtual void WaitIdle() = 0;
         // 선택한 단일 포스트 프로세스 효과를 현재 렌더러에 준비한다.
         virtual bool LoadPostProcessEffect(const EffectDefinition& effect);
+        // 현재 렌더러에 적용된 포스트 프로세스 효과를 해제한다.
+        virtual void ClearPostProcessEffect() {}
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.

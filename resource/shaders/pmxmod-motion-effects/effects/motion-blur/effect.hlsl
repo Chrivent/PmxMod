@@ -14,5 +14,9 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
+    // TODO: MotionBlur3 계열처럼 이전 프레임 뷰-프로젝션 행렬과 현재 깊이로 화면 공간 속도를 계산한다.
+    // TODO: 오브젝트/카메라 이동량에 따른 샘플 개수와 셔터 강도를 패키지 파라미터로 노출한다.
+    // TODO: 깊이 불연속 영역에서 번짐이 새지 않도록 depth-aware clamp를 추가한다.
+    // TODO: 현재 포스트 프로세스 입력이 SceneColor뿐이라 depth/previous matrix 입력 바인딩을 셰이더 시스템에 추가해야 한다.
     return SceneColor.Sample(LinearClamp, input.uv);
 }

@@ -210,6 +210,11 @@ namespace Chrivent {
 		return pipeline.LoadPostProcessEffect(*device, effect);
 	}
 
+	void Dx12Viewer::ClearPostProcessEffect() {
+		WaitIdle();
+		pipeline.ClearPostProcessEffect();
+	}
+
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
 		return std::make_unique<Dx12Instance>();
 	}

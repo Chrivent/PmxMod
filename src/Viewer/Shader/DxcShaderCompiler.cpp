@@ -44,7 +44,8 @@ namespace Chrivent {
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
-		result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr);
+		if (FAILED(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)))
+			errors.Reset();
 		HRESULT status = E_FAIL;
 		if (FAILED(result->GetStatus(&status))) {
 			outError = "Failed to query DXC compilation status: " + file.string();

@@ -69,6 +69,7 @@ namespace Chrivent {
 		bool updatingFrameEdit = false;
 		bool selectingKeys = false;
 		bool playing = false;
+		bool manualFrameScroll = false;
 		int seekFrame = 0;
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
@@ -95,8 +96,6 @@ namespace Chrivent {
 		void Paint(HDC deviceContext) const;
 		// 클릭한 표시 행이 그룹이면 펼침 상태를 전환한다.
 		void ToggleGroup(int visibleRowIndex);
-		// 열려 있는 모든 본 곡선 행을 닫는다.
-		void CollapseCurveRows();
 		// 모든 채널의 키 값과 보간 데이터를 하나의 타임라인 곡선 영역에 겹쳐 그린다.
 		void DrawValueCurves(HDC deviceContext, const MotionTimelineRow& row, int top, int bottom, int right) const;
 		// 클릭한 다이아몬드를 단일 또는 다중 선택 상태로 반영한다.

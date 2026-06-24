@@ -4,30 +4,45 @@
 
 #include <filesystem>
 #include <vector>
+#include <CommCtrl.h>
 
 namespace Chrivent {
 	class ModelPanel final : public Panel {
+		static constexpr int kMotionColumn = 1;
+
 		UINT_PTR addButtonId = 0;
+		UINT_PTR deleteButtonId = 0;
 		UINT_PTR modelListId = 0;
 		int selectedModelIndex = -1;
 		int pendingSelectedModelIndex = -1;
+		int pendingDeleteModelIndex = -1;
+		int pendingModelMotionIndex = -1;
 		HWND parentWindow = nullptr;
 		HWND addButton = nullptr;
+		HWND deleteButton = nullptr;
 		HWND modelList = nullptr;
 		std::vector<std::filesystem::path> modelPaths;
 		std::filesystem::path pendingModelPath;
+		std::filesystem::path pendingModelMotionPath;
 
 		// PMX 모델 파일을 선택하는 열기 대화상자를 표시한다.
 		void ShowOpenModelDialog();
+		// 선택한 모델에 적용할 VMD 모션 파일을 고르는 열기 대화상자를 표시한다.
+		void ShowOpenModelMotionDialog(int modelIndex);
 		// 현재 모델 경로 목록을 리스트 컨트롤에 반영한다.
 		void RefreshModelList() const;
+		// 현재 선택된 모델 행을 리스트뷰에 반영한다.
+		void ApplyModelSelection() const;
+		// 모델 모션 열을 버튼처럼 직접 그린다.
+		void DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const;
 
 	public:
 		ModelPanel() = default;
 
 		// 추가 버튼과 모델 목록의 컨트롤 ID를 적용한다.
-		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR listId) {
+		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR deleteId, const UINT_PTR listId) {
 			addButtonId = addId;
+			deleteButtonId = deleteId;
 			modelListId = listId;
 		}
 
@@ -41,10 +56,16 @@ namespace Chrivent {
 		void UpdateVisibility(bool visible) const;
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
+		// 모델 리스트뷰의 행 선택과 모션 열 클릭 알림을 처리한다.
+		bool HandleNotify(const NMHDR& notifyHeader, LRESULT& result) override;
 		// 모델 패널 컨트롤 핸들을 정리한다.
 		void Destroy() override;
 		// 선택된 모델 경로를 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath);
+		// 삭제할 모델 인덱스를 반환하고 대기 중인 요청을 초기화한다.
+		bool ConsumeDeleteModelIndex(size_t& modelIndex);
+		// 선택한 모델에 적용할 모션 경로를 반환하고 대기 중인 요청을 초기화한다.
+		bool ConsumeModelMotionPath(size_t& modelIndex, std::filesystem::path& motionPath);
 		// 선택된 모델 인덱스를 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeSelectedModelIndex(size_t& modelIndex);
 		// 씬에 배치된 모델 경로 목록을 패널에 반영한다.

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "depth-of-field",
+  "name": "Depth of Field",
+  "type": "post_process",
+  "passes": [
+    {
+      "name": "main",
+      "shader": "effects/depth-of-field/effect.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain"
+    }
+  ]
+}

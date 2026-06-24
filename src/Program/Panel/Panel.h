@@ -17,6 +17,8 @@ namespace Chrivent {
 		virtual void UpdateLanguage() {}
 		// 버튼이나 메뉴에서 들어온 명령을 처리한다.
 		virtual bool HandleCommand(UINT_PTR commandId, int notificationCode) { return false; }
+		// 리스트뷰 등 공용 컨트롤에서 들어온 알림을 처리하고 필요한 반환값을 채운다.
+		virtual bool HandleNotify(const NMHDR& notifyHeader, LRESULT& result) { return false; }
 		// 슬라이더 등 스크롤 컨트롤에서 들어온 변경을 처리한다.
 		virtual bool HandleScroll(HWND control, int scrollCode) { return false; }
 		// 패널 윈도우와 보유 컨트롤을 해제한다.

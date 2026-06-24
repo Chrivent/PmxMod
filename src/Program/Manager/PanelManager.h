@@ -12,6 +12,7 @@
 #include "Program/Panel/SoundPanel.h"
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace Chrivent {
@@ -27,8 +28,11 @@ namespace Chrivent {
 		static constexpr UINT_PTR kPlaybackRepeatCheckId = 1008;
 		static constexpr UINT_PTR kSoundVolumeSliderId = 2001;
 		static constexpr UINT_PTR kModelAddButtonId = 3001;
-		static constexpr UINT_PTR kModelListId = 3002;
-		static constexpr UINT_PTR kCameraShaderListId = 4001;
+		static constexpr UINT_PTR kModelDeleteButtonId = 3002;
+		static constexpr UINT_PTR kModelListId = 3003;
+		static constexpr UINT_PTR kCameraAddMotionButtonId = 5001;
+		static constexpr UINT_PTR kCameraDeleteMotionButtonId = 5002;
+		static constexpr UINT_PTR kCameraShaderListId = 5003;
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
@@ -94,15 +98,31 @@ namespace Chrivent {
 		bool ConsumeSeekFrame(int& frame, bool& finished) { return motionPanel.ConsumeSeekFrame(frame, finished); }
 		// 모델 패널에서 선택한 PMX 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeAddModelPath(std::filesystem::path& modelPath) { return modelPanel.ConsumeAddModelPath(modelPath); }
+		// 모델 패널에서 삭제할 모델 인덱스를 반환하고 대기 요청을 초기화한다.
+		bool ConsumeDeleteModelIndex(size_t& modelIndex) { return modelPanel.ConsumeDeleteModelIndex(modelIndex); }
+		// 모델 패널에서 선택한 모델 모션 경로를 반환하고 대기 요청을 초기화한다.
+		bool ConsumeModelMotionPath(size_t& modelIndex, std::filesystem::path& motionPath) {
+			return modelPanel.ConsumeModelMotionPath(modelIndex, motionPath);
+		}
 		// 모델 패널에서 선택한 모델 인덱스를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
 		// 카메라 패널에서 선택한 셰이더 인덱스를 반환하고 대기 요청을 초기화한다.
-		bool ConsumeSelectedShaderIndex(size_t& shaderIndex) { return cameraPanel.ConsumeSelectedShaderIndex(shaderIndex); }
+		bool ConsumeSelectedShaderIndex(size_t& shaderIndex, bool& enabled) { return cameraPanel.ConsumeSelectedShaderIndex(shaderIndex, enabled); }
+		// 카메라 패널의 카메라 모션 행 선택 요청을 반환하고 대기 요청을 초기화한다.
+		bool ConsumeCameraMotionSelected() { return cameraPanel.ConsumeCameraMotionSelected(); }
+		// 카메라 패널에서 선택한 카메라 모션 경로를 반환하고 대기 요청을 초기화한다.
+		bool ConsumeCameraMotionPath(std::filesystem::path& motionPath) { return cameraPanel.ConsumeCameraMotionPath(motionPath); }
+		// 카메라 패널의 카메라 모션 삭제 요청을 반환하고 대기 요청을 초기화한다.
+		bool ConsumeDeleteCameraMotion() { return cameraPanel.ConsumeDeleteCameraMotion(); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
 		// 검색된 셰이더 효과 이름과 현재 선택을 카메라 패널에 반영한다.
-		void ApplyShaderNames(const std::vector<std::wstring>& names, const size_t selectedIndex) {
-			cameraPanel.UpdateShaderNames(names, selectedIndex);
+		void ApplyShaderNames(const std::vector<std::wstring>& names, const size_t selectedIndex, const std::vector<bool>& enabledStates) {
+			cameraPanel.UpdateShaderNames(names, selectedIndex, enabledStates);
+		}
+		// 현재 씬의 카메라 모션 경로를 카메라 패널에 반영한다.
+		void ApplyCameraMotionPath(const std::filesystem::path& motionPath) {
+			cameraPanel.UpdateCameraMotionPath(motionPath);
 		}
 		// 선택 모델의 이름과 모션 타임라인을 패널에 적용한다.
 		void ApplyMotionTimeline(std::wstring modelName, std::vector<MotionTimelineGroup> groups) {
@@ -114,6 +134,8 @@ namespace Chrivent {
 		void Reset() { menuBar.Reset(); }
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
+		// GUI 모달 루프 중 렌더 프레임을 유지할 콜백을 연결한다.
+		void SetModalFrameCallback(std::function<bool()> callback) { panelWindow.SetModalFrameCallback(std::move(callback)); }
 		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
 		void RefreshLanguage() const { panelWindow.RefreshLanguage(); }
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.

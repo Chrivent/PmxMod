@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "pass-through",
-  "name": "Pass Through",
+  "id": "motion-blur",
+  "name": "Motion Blur",
   "type": "post_process",
   "passes": [
     {
       "name": "main",
-      "shader": "effects/pass-through/effect.hlsl",
+      "shader": "effects/motion-blur/effect.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain"
     }

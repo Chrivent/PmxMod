@@ -64,7 +64,8 @@ namespace Chrivent {
 		featureLevels.NumFeatureLevels = static_cast<UINT>(std::size(requestedFeatureLevels));
 		featureLevels.pFeatureLevelsRequested = requestedFeatureLevels;
 		featureLevels.MaxSupportedFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-		device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels));
+		if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels))))
+			featureLevels.MaxSupportedFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 		constexpr D3D_SHADER_MODEL requestedShaderModels[] = {
 			D3D_SHADER_MODEL_6_8, D3D_SHADER_MODEL_6_7, D3D_SHADER_MODEL_6_6,
 			D3D_SHADER_MODEL_6_5, D3D_SHADER_MODEL_6_4, D3D_SHADER_MODEL_6_3,

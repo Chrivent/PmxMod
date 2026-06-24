@@ -202,6 +202,10 @@ namespace Chrivent {
 		return true;
 	}
 
+	void GlfwViewer::ClearPostProcessEffect() {
+		postProcessShader.reset();
+	}
+
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {
 		return std::make_unique<GlfwInstance>();
 	}
