@@ -52,7 +52,6 @@ namespace Chrivent {
         size_t selectedShaderEffectIndex = 0;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
-        std::chrono::steady_clock::time_point frameTime;
         HWND viewerNativeWindow = nullptr;
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
@@ -61,7 +60,6 @@ namespace Chrivent {
         bool menuFrameActive = false;
 
         static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
-        static constexpr double kBlockedFrameResetSeconds = 0.2;
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();

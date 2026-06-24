@@ -36,8 +36,6 @@ namespace Chrivent {
 			return 0;
 		case WM_HSCROLL:
 			panel->ScrollFrames(LOWORD(wParam), HIWORD(wParam));
-			if (panel->frameCallback && !panel->frameCallback())
-				PostMessageW(GetParent(hwnd), WM_CLOSE, 0, 0);
 			return 0;
 		case WM_MOUSEWHEEL:
 			panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
@@ -773,12 +771,26 @@ namespace Chrivent {
 			case SB_PAGELEFT: position -= visibleFrames; break;
 			case SB_PAGERIGHT: position += visibleFrames; break;
 			case SB_THUMBPOSITION:
-			case SB_THUMBTRACK: position = info.nTrackPos; break;
+				position = info.nTrackPos;
+				scrollingFrameThumb = false;
+				break;
+			case SB_THUMBTRACK:
+				scrollingFrameThumb = true;
+				scrollingFrame = std::clamp(info.nTrackPos, 0, totalFrame);
+				firstFrame = scrollingFrame;
+				SetScrollPos(timelineWindow, SB_HORZ, scrollingFrame, TRUE);
+				InvalidateRect(timelineWindow, nullptr, FALSE);
+				return;
 			case SB_LEFT: position = 0; break;
 			case SB_RIGHT: position = totalFrame; break;
 			case SB_ENDSCROLL:
-				seekRequested = true;
-				seekFinished = true;
+				if (scrollingFrameThumb) {
+					scrollingFrameThumb = false;
+					currentFrame = scrollingFrame;
+					seekFrame = currentFrame;
+					seekRequested = true;
+					seekFinished = true;
+				}
 				return;
 			default: return;
 		}
@@ -805,6 +817,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
+		if (!isPlaying)
+			scrollingFrameThumb = false;
 		playing = isPlaying;
 		if (frameEdit)
 			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
@@ -927,8 +941,10 @@ namespace Chrivent {
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
 		playing = false;
+		scrollingFrameThumb = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
+		scrollingFrame = 0;
 	}
 
 	void MotionPanel::ApplyTimeline(std::wstring name, std::vector<MotionTimelineGroup> timelineGroups) {

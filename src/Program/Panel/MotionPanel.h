@@ -3,7 +3,6 @@
 #include "Program/Panel/InterpolationCurvePanel.h"
 #include "Program/Panel/Panel.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -56,7 +55,6 @@ namespace Chrivent {
 		HWND modeButton = nullptr;
 		std::wstring modelName;
 		std::vector<MotionTimelineGroup> groups;
-		std::function<bool()> frameCallback;
 		const AudioWaveform* waveform = nullptr;
 		MotionTimelineMode mode = MotionTimelineMode::Camera;
 		POINT selectionStart{};
@@ -71,7 +69,9 @@ namespace Chrivent {
 		bool updatingFrameEdit = false;
 		bool selectingKeys = false;
 		bool playing = false;
+		bool scrollingFrameThumb = false;
 		int seekFrame = 0;
+		int scrollingFrame = 0;
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -127,8 +127,6 @@ namespace Chrivent {
 
 		MotionTimelineMode GetMode() const { return mode; }
 
-		// 스크롤바 추적 루프 중 렌더링 프레임을 유지할 콜백을 연결한다.
-		void SetFrameCallback(std::function<bool()> callback) { frameCallback = std::move(callback); }
 		// 재생 상태에 따라 독립 프레임 입력을 활성화한다.
 		void ApplyPlaybackState(bool isPlaying);
 		// 오디오 파형 데이터를 연결하고 타임라인을 다시 그린다.

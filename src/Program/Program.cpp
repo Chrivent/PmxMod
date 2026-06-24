@@ -796,12 +796,6 @@ namespace Chrivent {
 
     bool Program::RunFrame(FrameTiming* timing, const bool pollGuiWindows) {
         const auto frameStart = std::chrono::steady_clock::now();
-        if (!benchmarkMode && frameTime.time_since_epoch().count() != 0) {
-            const double blockedSeconds = std::chrono::duration<double>(frameStart - frameTime).count();
-            if (blockedSeconds > kBlockedFrameResetSeconds && cameraManager.IsPlaying())
-                RequestPhysicsReset();
-        }
-        frameTime = frameStart;
         glfwPollEvents();
         if (pollGuiWindows)
             panelManager.PollGuiWindows();
@@ -1124,13 +1118,9 @@ namespace Chrivent {
         panelManager.SetMenuFrameCallback([this] {
             return RunMenuFrame();
         });
-        panelManager.SetMotionFrameCallback([this] {
-            return RunMenuFrame();
-        });
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();
-        frameTime = saveTime;
         fpsFrame = 0;
         const auto loadStart = std::chrono::steady_clock::now();
         if (!LoadScene(cfg)) {
