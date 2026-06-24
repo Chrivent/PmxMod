@@ -29,6 +29,7 @@ namespace Chrivent {
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		bool physicsEnabled = true;
+		bool physicsDirty = false;
 		bool fpsVisible = false;
 		bool languageDirty = false;
 		bool panelLayoutResetRequested = false;
@@ -78,6 +79,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty();
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
+		// 물리 활성화 변경 플래그를 반환하고 초기화한다.
+		bool ConsumePhysicsDirty();
 		// 언어 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeLanguageDirty();
 		// 패널 경계 초기화 요청을 반환하고 내부 상태를 초기화한다.

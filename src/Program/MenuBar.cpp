@@ -228,6 +228,7 @@ namespace Chrivent {
 				return true;
 			case kPhysicsEnabledId:
 				physicsEnabled = !physicsEnabled;
+				physicsDirty = true;
 				if (ownerWindow)
 					CheckMenuItem(GetMenu(ownerWindow), kPhysicsEnabledId, MF_BYCOMMAND |
 						(physicsEnabled ? MF_CHECKED : MF_UNCHECKED));
@@ -271,6 +272,7 @@ namespace Chrivent {
 	void MenuBar::Reset() {
 		sceneConfigDirty = false;
 		rendererDirty = false;
+		physicsDirty = false;
 		languageDirty = false;
 		panelLayoutResetRequested = false;
 	}
@@ -284,6 +286,12 @@ namespace Chrivent {
 	bool MenuBar::ConsumeRendererDirty() {
 		const bool dirty = rendererDirty;
 		rendererDirty = false;
+		return dirty;
+	}
+
+	bool MenuBar::ConsumePhysicsDirty() {
+		const bool dirty = physicsDirty;
+		physicsDirty = false;
 		return dirty;
 	}
 

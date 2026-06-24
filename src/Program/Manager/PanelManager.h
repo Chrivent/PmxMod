@@ -90,6 +90,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
+		// 물리 활성화 변경 여부를 반환하고 내부 플래그를 초기화한다.
+		bool ConsumePhysicsDirty() { return menuBar.ConsumePhysicsDirty(); }
 		// 언어 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeLanguageDirty() { return menuBar.ConsumeLanguageDirty(); }
 		// 대기 중인 재생 명령을 반환하고 내부 상태를 초기화한다.
@@ -134,8 +136,10 @@ namespace Chrivent {
 		void Reset() { menuBar.Reset(); }
 		// 렌더링 창이 아닌 GUI 창들을 생성하거나 다시 표시한다.
 		bool OpenGuiWindows();
-		// GUI 모달 루프 중 렌더 프레임을 유지할 콜백을 연결한다.
-		void SetModalFrameCallback(std::function<bool()> callback) { panelWindow.SetModalFrameCallback(std::move(callback)); }
+		// 창 이동과 패널 경계 드래그 종료 콜백을 연결한다.
+		void SetInteractionFinishedCallback(std::function<void()> callback) {
+			panelWindow.SetInteractionFinishedCallback(std::move(callback));
+		}
 		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
 		void RefreshLanguage() const { panelWindow.RefreshLanguage(); }
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.

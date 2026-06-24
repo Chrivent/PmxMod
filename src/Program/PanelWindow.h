@@ -36,24 +36,16 @@ namespace Chrivent {
 
 		HWND window = nullptr;
 		MenuBar* menuBar = nullptr;
-		std::function<bool()> modalFrameCallback;
+		std::function<void()> interactionFinishedCallback;
 		std::vector<PanelEntry> panels;
 		bool closeRequested = false;
 		PanelLayoutSettings layoutSettings;
 		DragBoundary dragBoundary = DragBoundary::None;
 
-		static constexpr UINT_PTR kModalFrameTimerId = 9001;
-
 		// 패널 창의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-		// 모든 자식 컨트롤의 다시 그리기 상태를 일괄 변경한다.
-		static BOOL CALLBACK SetChildRedrawProc(HWND child, LPARAM enable);
-		// 메뉴 또는 창 이동 루프 중에도 렌더 프레임을 요청하는 타이머를 켠다.
-		void StartModalFrameTimer() const;
-		// 메뉴 또는 창 이동 루프에서 빠져나오면 렌더 프레임 타이머를 끈다.
-		void StopModalFrameTimer() const;
-		// 레이아웃 변경 중 부모와 자식 컨트롤의 즉시 다시 그리기를 제어한다.
-		void SetLayoutRedraw(bool enable) const;
+		// 창 이동이나 패널 경계 드래그가 끝났음을 외부에 알린다.
+		void NotifyInteractionFinished() const;
 		// 등록된 패널의 프레임과 내부 컨트롤을 생성한다.
 		void CreatePanelControls();
 		// 패널 영역의 배경과 경계선을 그린다.
@@ -75,8 +67,8 @@ namespace Chrivent {
 
 		// 패널 창에서 사용할 메뉴바를 연결한다.
 		void AttachMenuBar(MenuBar& menu);
-		// Win32 모달 루프 중 렌더 프레임을 유지할 콜백을 연결한다.
-		void SetModalFrameCallback(std::function<bool()> callback) { modalFrameCallback = std::move(callback); }
+		// 창 이동이나 패널 경계 드래그 종료 콜백을 연결한다.
+		void SetInteractionFinishedCallback(std::function<void()> callback) { interactionFinishedCallback = std::move(callback); }
 		// 패널과 제목, 배치 영역을 패널 창에 등록한다.
 		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area, bool visible = true);
 		// 패널 창과 등록된 패널 컨트롤을 생성해 표시한다.

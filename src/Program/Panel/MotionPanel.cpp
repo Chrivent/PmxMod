@@ -734,19 +734,10 @@ namespace Chrivent {
 			case SB_LEFT: position = 0; break;
 			case SB_RIGHT: position = totalFrame; break;
 			case SB_ENDSCROLL:
-				if (playing)
-					return;
 				seekRequested = true;
 				seekFinished = true;
 				return;
 			default: return;
-		}
-		if (playing) {
-			manualFrameScroll = true;
-			firstFrame = std::clamp(position, 0, totalFrame);
-			SetScrollPos(timelineWindow, SB_HORZ, firstFrame, TRUE);
-			InvalidateRect(timelineWindow, nullptr, FALSE);
-			return;
 		}
 		currentFrame = std::clamp(position, 0, totalFrame);
 		seekFrame = currentFrame;
@@ -771,8 +762,6 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
-		if (!isPlaying)
-			manualFrameScroll = false;
 		playing = isPlaying;
 		if (frameEdit)
 			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
@@ -789,7 +778,6 @@ namespace Chrivent {
 			return;
 		mode = timelineMode;
 		firstRow = 0;
-		manualFrameScroll = false;
 		interpolationSelectionDirty = true;
 		UpdateModeButtonText();
 		UpdateVerticalScrollBar();
@@ -896,7 +884,6 @@ namespace Chrivent {
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
 		playing = false;
-		manualFrameScroll = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
@@ -926,9 +913,8 @@ namespace Chrivent {
 			return;
 		currentFrame = timelineFrame;
 		if (timelineWindow) {
-			if (!playing || !manualFrameScroll)
-				FollowCurrentFrame();
-			SetScrollPos(timelineWindow, SB_HORZ, playing && manualFrameScroll ? firstFrame : std::min(currentFrame, totalFrame), TRUE);
+			FollowCurrentFrame();
+			SetScrollPos(timelineWindow, SB_HORZ, std::min(currentFrame, totalFrame), TRUE);
 			UpdateFrameEditText();
 			InvalidateRect(timelineWindow, nullptr, FALSE);
 		}

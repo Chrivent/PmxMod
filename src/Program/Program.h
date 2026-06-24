@@ -56,10 +56,9 @@ namespace Chrivent {
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
         bool benchmarkMode = false;
-        bool viewerModalFrameActive = false;
+        bool physicsResetRequested = false;
 
         static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
-        static constexpr UINT_PTR kViewerModalFrameTimerId = 9102;
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
@@ -83,8 +82,8 @@ namespace Chrivent {
         void InstallViewerWindowSubclass();
         // 렌더러 창에 설치한 Win32 subclass를 해제한다.
         void RemoveViewerWindowSubclass();
-        // 렌더러 창의 modal loop timer에서 한 프레임을 안전하게 처리한다.
-        bool RenderViewerModalFrame();
+        // 현재 프레임에서 물리를 다시 동기화하도록 요청한다.
+        void RequestPhysicsReset();
         // 선택한 렌더러로 뷰어 창과 렌더 리소스를 다시 생성한다.
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.

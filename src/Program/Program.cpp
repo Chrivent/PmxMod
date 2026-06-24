@@ -100,23 +100,10 @@ namespace Chrivent {
         if (!program || subclassId != kViewerWindowSubclassId)
             return DefSubclassProc(hwnd, msg, wParam, lParam);
         switch (msg) {
-            case WM_ENTERSIZEMOVE:
-            case WM_ENTERMENULOOP:
-                SetTimer(hwnd, kViewerModalFrameTimerId, 16, nullptr);
-                break;
             case WM_EXITSIZEMOVE:
-            case WM_EXITMENULOOP:
-                KillTimer(hwnd, kViewerModalFrameTimerId);
-                break;
-            case WM_TIMER:
-                if (wParam == kViewerModalFrameTimerId) {
-                    if (!program->RenderViewerModalFrame())
-                        PostMessageW(hwnd, WM_CLOSE, 0, 0);
-                    return 0;
-                }
+                program->RequestPhysicsReset();
                 break;
             case WM_NCDESTROY:
-                KillTimer(hwnd, kViewerModalFrameTimerId);
                 RemoveWindowSubclass(hwnd, ViewerWindowProc, kViewerWindowSubclassId);
                 if (program->viewerNativeWindow == hwnd)
                     program->viewerNativeWindow = nullptr;
@@ -216,18 +203,12 @@ namespace Chrivent {
     void Program::RemoveViewerWindowSubclass() {
         if (!viewerNativeWindow)
             return;
-        KillTimer(viewerNativeWindow, kViewerModalFrameTimerId);
         RemoveWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId);
         viewerNativeWindow = nullptr;
     }
 
-    bool Program::RenderViewerModalFrame() {
-        if (viewerModalFrameActive)
-            return true;
-        viewerModalFrameActive = true;
-        const bool frameResult = RunFrame(nullptr, false);
-        viewerModalFrameActive = false;
-        return frameResult;
+    void Program::RequestPhysicsReset() {
+        physicsResetRequested = true;
     }
 
     void Program::PositionViewerOnRightMonitor() const {
@@ -954,6 +935,14 @@ namespace Chrivent {
             }
             viewer->skipPhysics = false;
         }
+        bool shouldResetPhysics = physicsResetRequested;
+        physicsResetRequested = false;
+        if (panelManager.ConsumePhysicsDirty())
+            shouldResetPhysics = true;
+        if (shouldResetPhysics) {
+            ResetPhysics(viewer->animTime * 30.0f + 0.5f);
+            viewer->skipPhysics = false;
+        }
         panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
         panelManager.SetPlaybackFrame(viewer->animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(*viewer);
@@ -1114,8 +1103,8 @@ namespace Chrivent {
         DiscoverShaderPackages();
         panelManager.BindSound(music);
         panelManager.OpenGuiWindows();
-        panelManager.SetModalFrameCallback([this] {
-            return RunFrame(nullptr, false);
+        panelManager.SetInteractionFinishedCallback([this] {
+            RequestPhysicsReset();
         });
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
