@@ -144,6 +144,10 @@ namespace Chrivent {
 		void SetMenuFrameCallback(std::function<bool()> callback) {
 			panelWindow.SetMenuFrameCallback(std::move(callback));
 		}
+		// 모션 타임라인 스크롤 추적 중 렌더링을 유지할 콜백을 연결한다.
+		void SetMotionFrameCallback(std::function<bool()> callback) {
+			motionPanel.SetFrameCallback(std::move(callback));
+		}
 		// 현재 언어로 설정 창과 패널 컨트롤을 다시 생성한다.
 		void RefreshLanguage() const { panelWindow.RefreshLanguage(); }
 		// 렌더링 창이 아닌 GUI 창들의 보류 중인 Win32 메시지를 처리한다.

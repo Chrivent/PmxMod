@@ -1124,6 +1124,9 @@ namespace Chrivent {
         panelManager.SetMenuFrameCallback([this] {
             return RunMenuFrame();
         });
+        panelManager.SetMotionFrameCallback([this] {
+            return RunMenuFrame();
+        });
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame());
         fpsTime = std::chrono::steady_clock::now();
         saveTime = std::chrono::steady_clock::now();

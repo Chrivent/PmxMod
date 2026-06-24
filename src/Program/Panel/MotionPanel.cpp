@@ -36,6 +36,8 @@ namespace Chrivent {
 			return 0;
 		case WM_HSCROLL:
 			panel->ScrollFrames(LOWORD(wParam), HIWORD(wParam));
+			if (panel->frameCallback && !panel->frameCallback())
+				PostMessageW(GetParent(hwnd), WM_CLOSE, 0, 0);
 			return 0;
 		case WM_MOUSEWHEEL:
 			panel->ScrollRows(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
