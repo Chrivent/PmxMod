@@ -74,7 +74,7 @@ namespace Chrivent {
 					panel->SelectKeysInRectangle(additive);
 				else {
 					const int visibleRow = panel->firstRow + (panel->selectionStart.y - kHeaderHeight) / kRowHeight;
-					if (!panel->SelectKey(visibleRow, panel->selectionStart.x, additive)) {
+					if (!panel->SelectKey(visibleRow, panel->selectionStart.x, panel->selectionStart.y, additive)) {
 						panel->ClearKeySelection();
 						panel->interpolationSelectionDirty = true;
 					}
@@ -473,7 +473,7 @@ namespace Chrivent {
 		}
 	}
 
-	bool MotionPanel::SelectKey(const int visibleRowIndex, const int x, const bool additive) {
+	bool MotionPanel::SelectKey(const int visibleRowIndex, const int x, const int y, const bool additive) {
 		constexpr int curveRowUnits = kCurveGraphHeight / kRowHeight;
 		const auto SelectRowKey = [&](MotionTimelineRow& row) {
 			for (auto& key : row.keys) {
@@ -490,16 +490,56 @@ namespace Chrivent {
 			}
 			return false;
 		};
+		const auto SelectCurveKey = [&](MotionTimelineRow& row, const int curveRowIndex) {
+			const int top = kHeaderHeight + (curveRowIndex - firstRow) * kRowHeight;
+			const int bottom = top + kCurveGraphHeight;
+			for (size_t channelIndex = 0; channelIndex < row.curveNames.size(); channelIndex++) {
+				float minimum = std::numeric_limits<float>::max();
+				float maximum = std::numeric_limits<float>::lowest();
+				for (const auto& key : row.keys) {
+					if (channelIndex >= key.values.size())
+						continue;
+					minimum = std::min(minimum, key.values[channelIndex]);
+					maximum = std::max(maximum, key.values[channelIndex]);
+				}
+				if (minimum > maximum)
+					continue;
+				if (std::abs(maximum - minimum) < 1.0e-5f) {
+					minimum -= 0.5f;
+					maximum += 0.5f;
+				}
+				const auto ValueToY = [&](const float value) {
+					return bottom - 8 - std::lround((value - minimum) / (maximum - minimum) * (bottom - top - 16));
+				};
+				for (auto& key : row.keys) {
+					if (channelIndex >= key.values.size())
+						continue;
+					const int keyX = kLabelWidth + (key.frame - firstFrame) * kFrameWidth;
+					const int keyY = ValueToY(key.values[channelIndex]);
+					if (std::abs(keyX - x) > 6 || std::abs(keyY - y) > 6)
+						continue;
+					const bool select = !additive || !key.selected;
+					if (!additive)
+						ClearKeySelection();
+					key.selected = select;
+					interpolationSelectionDirty = true;
+					InvalidateRect(timelineWindow, nullptr, FALSE);
+					return true;
+				}
+			}
+			return false;
+		};
 		int currentRow = 0;
 		for (auto& group : groups) {
 			if (!IsGroupVisible(group))
 				continue;
 			if (!group.grouped) {
 				for (auto& row : group.rows) {
-					const int rowEnd = currentRow + (row.expanded ? curveRowUnits : 0);
-					if (visibleRowIndex >= currentRow && visibleRowIndex <= rowEnd)
+					if (visibleRowIndex == currentRow)
 						return SelectRowKey(row);
-					currentRow = rowEnd + 1;
+					if (row.expanded && visibleRowIndex > currentRow && visibleRowIndex <= currentRow + curveRowUnits)
+						return SelectCurveKey(row, currentRow + 1);
+					currentRow += 1 + (row.expanded ? curveRowUnits : 0);
 				}
 				continue;
 			}
@@ -528,10 +568,11 @@ namespace Chrivent {
 			if (!group.expanded)
 				continue;
 			for (auto& row : group.rows) {
-				const int rowEnd = currentRow + (row.expanded ? curveRowUnits : 0);
-				if (visibleRowIndex >= currentRow && visibleRowIndex <= rowEnd)
+				if (visibleRowIndex == currentRow)
 					return SelectRowKey(row);
-				currentRow = rowEnd + 1;
+				if (row.expanded && visibleRowIndex > currentRow && visibleRowIndex <= currentRow + curveRowUnits)
+					return SelectCurveKey(row, currentRow + 1);
+				currentRow += 1 + (row.expanded ? curveRowUnits : 0);
 			}
 		}
 		return false;
@@ -729,20 +770,24 @@ namespace Chrivent {
 			case SB_LINERIGHT: position++; break;
 			case SB_PAGELEFT: position -= visibleFrames; break;
 			case SB_PAGERIGHT: position += visibleFrames; break;
-			case SB_THUMBPOSITION:
+			case SB_THUMBPOSITION: position = info.nTrackPos; break;
 			case SB_THUMBTRACK: position = info.nTrackPos; break;
 			case SB_LEFT: position = 0; break;
 			case SB_RIGHT: position = totalFrame; break;
 			case SB_ENDSCROLL:
-				seekRequested = true;
-				seekFinished = true;
+				if (scrollingFrameThumb) {
+					scrollingFrameThumb = false;
+					seekRequested = true;
+					seekFinished = true;
+				}
 				return;
 			default: return;
 		}
 		currentFrame = std::clamp(position, 0, totalFrame);
 		seekFrame = currentFrame;
-		seekRequested = true;
-		seekFinished = scrollCode != SB_THUMBTRACK;
+		scrollingFrameThumb = scrollCode == SB_THUMBTRACK;
+		seekRequested = !scrollingFrameThumb;
+		seekFinished = true;
 		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
 		UpdateFrameEditText(true);
 		FollowCurrentFrame();
@@ -762,6 +807,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
+		if (!isPlaying)
+			scrollingFrameThumb = false;
 		playing = isPlaying;
 		if (frameEdit)
 			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
@@ -884,6 +931,7 @@ namespace Chrivent {
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
 		playing = false;
+		scrollingFrameThumb = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
@@ -908,6 +956,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::UpdateCurrentFrame(const int frame) {
+		if (playing && scrollingFrameThumb)
+			return;
 		const int timelineFrame = std::clamp(frame, 0, kMaxEditableFrame);
 		if (currentFrame == timelineFrame)
 			return;

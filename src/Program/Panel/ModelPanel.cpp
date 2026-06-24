@@ -116,6 +116,9 @@ namespace Chrivent {
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(modelListId), GetModuleHandleW(nullptr), nullptr);
 		ListView_SetExtendedListViewStyle(modelList, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+		ListView_SetBkColor(modelList, GuiTheme::controlColor);
+		ListView_SetTextBkColor(modelList, GuiTheme::controlColor);
+		ListView_SetTextColor(modelList, GuiTheme::textColor);
 		LVCOLUMNW modelColumn{};
 		modelColumn.mask = LVCF_WIDTH;
 		ListView_InsertColumn(modelList, 0, &modelColumn);

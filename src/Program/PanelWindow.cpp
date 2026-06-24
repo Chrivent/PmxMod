@@ -84,8 +84,21 @@ namespace Chrivent {
 		case WM_SIZE:
 			panelWindow->LayoutPanels();
 			return 0;
+		case WM_ENTERMENULOOP:
+			panelWindow->StartMenuFrameTimer();
+			break;
+		case WM_EXITMENULOOP:
+			panelWindow->StopMenuFrameTimer();
+			break;
 		case WM_EXITSIZEMOVE:
 			panelWindow->NotifyInteractionFinished();
+			break;
+		case WM_TIMER:
+			if (wParam == kMenuFrameTimerId) {
+				if (!panelWindow->RenderMenuFrame())
+					panelWindow->closeRequested = true;
+				return 0;
+			}
 			break;
 		case WM_LBUTTONDOWN:
 			panelWindow->dragBoundary = panelWindow->HitTestBoundary(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -133,6 +146,7 @@ namespace Chrivent {
 			panelWindow->closeRequested = true;
 			return 0;
 		case WM_DESTROY:
+			panelWindow->StopMenuFrameTimer();
 			panelWindow->window = nullptr;
 			for (auto& entry : panelWindow->panels)
 				entry.frame = nullptr;
@@ -141,6 +155,20 @@ namespace Chrivent {
 			break;
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
+	}
+
+	void PanelWindow::StartMenuFrameTimer() const {
+		if (window && menuFrameCallback)
+			SetTimer(window, kMenuFrameTimerId, 16, nullptr);
+	}
+
+	void PanelWindow::StopMenuFrameTimer() const {
+		if (window)
+			KillTimer(window, kMenuFrameTimerId);
+	}
+
+	bool PanelWindow::RenderMenuFrame() const {
+		return !menuFrameCallback || menuFrameCallback();
 	}
 
 	void PanelWindow::NotifyInteractionFinished() const {
@@ -291,6 +319,7 @@ namespace Chrivent {
 		layoutSettings = {};
 		Settings::ResetPanelLayout();
 		LayoutPanels();
+		RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_ERASE | RDW_UPDATENOW);
 	}
 
 	PanelWindow::~PanelWindow() {
@@ -386,6 +415,7 @@ namespace Chrivent {
 	}
 
 	void PanelWindow::Destroy() {
+		StopMenuFrameTimer();
 		for (auto& entry : panels) {
 			if (entry.panel)
 				entry.panel->Destroy();

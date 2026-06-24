@@ -52,13 +52,16 @@ namespace Chrivent {
         size_t selectedShaderEffectIndex = 0;
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
+        std::chrono::steady_clock::time_point frameTime;
         HWND viewerNativeWindow = nullptr;
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
         bool benchmarkMode = false;
         bool physicsResetRequested = false;
+        bool menuFrameActive = false;
 
         static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
+        static constexpr double kBlockedFrameResetSeconds = 0.2;
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
@@ -78,12 +81,14 @@ namespace Chrivent {
         bool InitializeViewer();
         // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
         void PositionViewerOnRightMonitor() const;
-        // 렌더러 창 이동/메뉴 루프 중에도 프레임을 돌릴 Win32 subclass를 설치한다.
+        // 렌더러 창 조작 종료를 감지할 Win32 subclass를 설치한다.
         void InstallViewerWindowSubclass();
         // 렌더러 창에 설치한 Win32 subclass를 해제한다.
         void RemoveViewerWindowSubclass();
         // 현재 프레임에서 물리를 다시 동기화하도록 요청한다.
         void RequestPhysicsReset();
+        // 메뉴바 모달 루프 중 렌더링 프레임을 한 번 처리한다.
+        bool RunMenuFrame();
         // 선택한 렌더러로 뷰어 창과 렌더 리소스를 다시 생성한다.
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.

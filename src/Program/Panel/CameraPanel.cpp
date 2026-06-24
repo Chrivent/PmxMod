@@ -119,6 +119,9 @@ namespace Chrivent {
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(shaderListId), GetModuleHandleW(nullptr), nullptr);
 		ListView_SetExtendedListViewStyle(shaderList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+		ListView_SetBkColor(shaderList, GuiTheme::controlColor);
+		ListView_SetTextBkColor(shaderList, GuiTheme::controlColor);
+		ListView_SetTextColor(shaderList, GuiTheme::textColor);
 		LVCOLUMNW column{};
 		column.mask = LVCF_WIDTH;
 		ListView_InsertColumn(shaderList, 0, &column);

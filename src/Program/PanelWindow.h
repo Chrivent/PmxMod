@@ -37,13 +37,22 @@ namespace Chrivent {
 		HWND window = nullptr;
 		MenuBar* menuBar = nullptr;
 		std::function<void()> interactionFinishedCallback;
+		std::function<bool()> menuFrameCallback;
 		std::vector<PanelEntry> panels;
 		bool closeRequested = false;
 		PanelLayoutSettings layoutSettings;
 		DragBoundary dragBoundary = DragBoundary::None;
 
+		static constexpr UINT_PTR kMenuFrameTimerId = 9001;
+
 		// 패널 창의 Win32 메시지를 처리한다.
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// 메뉴바 모달 루프 중 렌더링을 유지하는 타이머를 켠다.
+		void StartMenuFrameTimer() const;
+		// 메뉴바 모달 루프에서 빠져나오면 렌더링 타이머를 끈다.
+		void StopMenuFrameTimer() const;
+		// 메뉴바 조작 중 렌더링 프레임을 한 번 요청한다.
+		bool RenderMenuFrame() const;
 		// 창 이동이나 패널 경계 드래그가 끝났음을 외부에 알린다.
 		void NotifyInteractionFinished() const;
 		// 등록된 패널의 프레임과 내부 컨트롤을 생성한다.
@@ -69,6 +78,8 @@ namespace Chrivent {
 		void AttachMenuBar(MenuBar& menu);
 		// 창 이동이나 패널 경계 드래그 종료 콜백을 연결한다.
 		void SetInteractionFinishedCallback(std::function<void()> callback) { interactionFinishedCallback = std::move(callback); }
+		// 메뉴바 모달 루프 중 렌더링을 유지할 콜백을 연결한다.
+		void SetMenuFrameCallback(std::function<bool()> callback) { menuFrameCallback = std::move(callback); }
 		// 패널과 제목, 배치 영역을 패널 창에 등록한다.
 		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area, bool visible = true);
 		// 패널 창과 등록된 패널 컨트롤을 생성해 표시한다.
