@@ -69,7 +69,6 @@ namespace Chrivent {
 		bool updatingFrameEdit = false;
 		bool selectingKeys = false;
 		bool playing = false;
-		bool scrollingFrameThumb = false;
 		int seekFrame = 0;
 
 		// 모션 타임라인 커스텀 컨트롤의 Win32 메시지를 처리한다.

@@ -770,24 +770,20 @@ namespace Chrivent {
 			case SB_LINERIGHT: position++; break;
 			case SB_PAGELEFT: position -= visibleFrames; break;
 			case SB_PAGERIGHT: position += visibleFrames; break;
-			case SB_THUMBPOSITION: position = info.nTrackPos; break;
+			case SB_THUMBPOSITION:
 			case SB_THUMBTRACK: position = info.nTrackPos; break;
 			case SB_LEFT: position = 0; break;
 			case SB_RIGHT: position = totalFrame; break;
 			case SB_ENDSCROLL:
-				if (scrollingFrameThumb) {
-					scrollingFrameThumb = false;
-					seekRequested = true;
-					seekFinished = true;
-				}
+				seekRequested = true;
+				seekFinished = true;
 				return;
 			default: return;
 		}
 		currentFrame = std::clamp(position, 0, totalFrame);
 		seekFrame = currentFrame;
-		scrollingFrameThumb = scrollCode == SB_THUMBTRACK;
-		seekRequested = !scrollingFrameThumb;
-		seekFinished = true;
+		seekRequested = true;
+		seekFinished = scrollCode != SB_THUMBTRACK;
 		SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
 		UpdateFrameEditText(true);
 		FollowCurrentFrame();
@@ -807,8 +803,6 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::ApplyPlaybackState(const bool isPlaying) {
-		if (!isPlaying)
-			scrollingFrameThumb = false;
 		playing = isPlaying;
 		if (frameEdit)
 			EnableWindow(frameEdit, isPlaying ? FALSE : TRUE);
@@ -931,7 +925,6 @@ namespace Chrivent {
 		interpolationSelectionDirty = false;
 		selectingKeys = false;
 		playing = false;
-		scrollingFrameThumb = false;
 		mode = MotionTimelineMode::Camera;
 		seekFrame = 0;
 	}
@@ -956,8 +949,6 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::UpdateCurrentFrame(const int frame) {
-		if (playing && scrollingFrameThumb)
-			return;
 		const int timelineFrame = std::clamp(frame, 0, kMaxEditableFrame);
 		if (currentFrame == timelineFrame)
 			return;
