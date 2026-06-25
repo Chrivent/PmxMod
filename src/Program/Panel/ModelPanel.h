@@ -17,6 +17,7 @@ namespace Chrivent {
 		int pendingSelectedModelIndex = -1;
 		int pendingDeleteModelIndex = -1;
 		int pendingModelMotionIndex = -1;
+		bool updatingModelList = false;
 		HWND parentWindow = nullptr;
 		HWND addButton = nullptr;
 		HWND deleteButton = nullptr;
@@ -30,9 +31,11 @@ namespace Chrivent {
 		// 선택한 모델에 적용할 VMD 모션 파일을 고르는 열기 대화상자를 표시한다.
 		void ShowOpenModelMotionDialog(int modelIndex);
 		// 현재 모델 경로 목록을 리스트 컨트롤에 반영한다.
-		void RefreshModelList() const;
+		void RefreshModelList();
 		// 현재 선택된 모델 행을 리스트뷰에 반영한다.
-		void ApplyModelSelection() const;
+		void ApplyModelSelection();
+		// 재생 중 입력 잠금 상태에 맞춰 모델 리스트 색을 갱신한다.
+		void ApplyModelListTheme() const;
 		// 모델 모션 열을 버튼처럼 직접 그린다.
 		void DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const;
 
@@ -55,7 +58,7 @@ namespace Chrivent {
 		// 모델 패널의 버튼과 목록 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const;
 		// 재생 상태에 따라 모델 추가/삭제와 모션 선택을 잠근다.
-		void ApplyPlaybackState(bool isPlaying) const;
+		void ApplyPlaybackState(bool isPlaying);
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모델 리스트뷰의 행 선택과 모션 열 클릭 알림을 처리한다.

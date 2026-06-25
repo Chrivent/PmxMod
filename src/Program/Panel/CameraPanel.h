@@ -38,6 +38,8 @@ namespace Chrivent {
 		void RefreshShaderList();
 		// 카메라 행과 셰이더 행의 선택/체크 상태를 리스트뷰에 반영한다.
 		void ApplyListState();
+		// 재생 중 입력 잠금 상태에 맞춰 셰이더 리스트 색을 갱신한다.
+		void ApplyShaderListTheme() const;
 		// 셰이더 목록에서 선택하거나 체크한 항목을 대기 요청으로 기록한다.
 		void QueueShaderSelection(int shaderIndex, bool enabled);
 		// 카메라 모션 행 선택 요청을 기록한다.
@@ -60,7 +62,7 @@ namespace Chrivent {
 		// 카메라 패널의 컨트롤 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const;
 		// 재생 상태에 따라 카메라 모션 추가/삭제를 잠근다.
-		void ApplyPlaybackState(bool isPlaying) const;
+		void ApplyPlaybackState(bool isPlaying);
 		// 현재 언어에 맞춰 버튼 문구와 카메라 모션 표시를 갱신한다.
 		void UpdateLanguage() override;
 		// 카메라 모션 버튼과 셰이더 목록의 명령을 처리한다.

@@ -81,6 +81,18 @@ namespace Chrivent {
 		updatingShaderList = false;
 	}
 
+	void CameraPanel::ApplyShaderListTheme() const {
+		if (!shaderList)
+			return;
+		const bool locked = IsInputLocked();
+		const COLORREF backgroundColor = locked ? GuiTheme::disabledControlColor : GuiTheme::controlColor;
+		const COLORREF textColor = locked ? GuiTheme::disabledTextColor : GuiTheme::textColor;
+		ListView_SetBkColor(shaderList, backgroundColor);
+		ListView_SetTextBkColor(shaderList, backgroundColor);
+		ListView_SetTextColor(shaderList, textColor);
+		InvalidateRect(shaderList, nullptr, TRUE);
+	}
+
 	void CameraPanel::QueueShaderSelection(const int shaderIndex, const bool enabled) {
 		if (shaderIndex < 0 || shaderIndex >= static_cast<int>(shaderNames.size()))
 			return;
@@ -118,10 +130,9 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(shaderListId), GetModuleHandleW(nullptr), nullptr);
+		AttachInputLockedControl(shaderList, shaderListId);
 		ListView_SetExtendedListViewStyle(shaderList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-		ListView_SetBkColor(shaderList, GuiTheme::controlColor);
-		ListView_SetTextBkColor(shaderList, GuiTheme::controlColor);
-		ListView_SetTextColor(shaderList, GuiTheme::textColor);
+		ApplyShaderListTheme();
 		LVCOLUMNW column{};
 		column.mask = LVCF_WIDTH;
 		ListView_InsertColumn(shaderList, 0, &column);
@@ -158,13 +169,13 @@ namespace Chrivent {
 			ShowWindow(shaderList, visible ? SW_SHOW : SW_HIDE);
 	}
 
-	void CameraPanel::ApplyPlaybackState(const bool isPlaying) const {
+	void CameraPanel::ApplyPlaybackState(const bool isPlaying) {
+		ApplyInputLock(isPlaying);
 		if (addCameraButton)
 			EnableWindow(addCameraButton, isPlaying ? FALSE : TRUE);
 		if (deleteCameraButton)
 			EnableWindow(deleteCameraButton, isPlaying ? FALSE : TRUE);
-		if (shaderList)
-			EnableWindow(shaderList, isPlaying ? FALSE : TRUE);
+		ApplyShaderListTheme();
 	}
 
 	void CameraPanel::UpdateLanguage() {
@@ -234,6 +245,7 @@ namespace Chrivent {
 		pendingSelectedShaderIndex = -1;
 		pendingShaderEffectEnabled = false;
 		shaderEnabled.clear();
+		ApplyInputLock(false);
 	}
 
 	bool CameraPanel::ConsumeSelectedShaderIndex(size_t& shaderIndex, bool& enabled) {

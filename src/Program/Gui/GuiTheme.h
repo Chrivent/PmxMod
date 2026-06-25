@@ -8,8 +8,10 @@ namespace Chrivent {
 	public:
 		static constexpr COLORREF backgroundColor = RGB(24, 27, 33);
 		static constexpr COLORREF controlColor = RGB(36, 40, 48);
+		static constexpr COLORREF disabledControlColor = RGB(31, 34, 41);
 		static constexpr COLORREF borderColor = RGB(92, 101, 114);
 		static constexpr COLORREF textColor = RGB(229, 232, 238);
+		static constexpr COLORREF disabledTextColor = RGB(133, 141, 154);
 
 		static COLORREF GetSelectedCurveKeyColor() { return RGB(246, 190, 53); }
 		// 채널 인덱스에 대응하는 보간 곡선 색상을 선택한다.

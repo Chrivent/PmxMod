@@ -1,9 +1,26 @@
 ﻿#pragma once
 
 #include <windows.h>
+#include <CommCtrl.h>
 
 namespace Chrivent {
 	class Panel {
+		bool inputLocked = false;
+
+	protected:
+		// 입력 잠금 중 컨트롤에 전달하지 않을 마우스와 키보드 메시지인지 확인한다.
+		static bool IsInputLockMessage(UINT msg);
+		// 입력 잠금 대상 컨트롤의 Win32 메시지를 처리한다.
+		static LRESULT CALLBACK InputLockedControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
+			UINT_PTR subclassId, DWORD_PTR data);
+		// 입력 잠금 대상 컨트롤에 공통 subclass를 연결한다.
+		void AttachInputLockedControl(const HWND control, const UINT_PTR subclassId) {
+			SetWindowSubclass(control, InputLockedControlWindowProc, subclassId, reinterpret_cast<DWORD_PTR>(this));
+		}
+		// 패널이 소유한 입력 잠금 컨트롤들의 잠금 상태를 갱신한다.
+		void ApplyInputLock(const bool locked) { inputLocked = locked; }
+		bool IsInputLocked() const { return inputLocked; }
+
 	public:
 		virtual ~Panel() = default;
 

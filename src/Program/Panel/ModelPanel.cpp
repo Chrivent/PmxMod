@@ -56,9 +56,10 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelPanel::RefreshModelList() const {
+	void ModelPanel::RefreshModelList() {
 		if (!modelList)
 			return;
+		updatingModelList = true;
 		ListView_DeleteAllItems(modelList);
 		for (int index = 0; index < static_cast<int>(modelPaths.size()); index++) {
 			const auto& modelPath = modelPaths[index];
@@ -74,14 +75,29 @@ namespace Chrivent {
 			motionItem.pszText = const_cast<wchar_t*>(motionText.c_str());
 			SendMessageW(modelList, LVM_SETITEMTEXTW, index, reinterpret_cast<LPARAM>(&motionItem));
 		}
+		updatingModelList = false;
 		ApplyModelSelection();
 	}
 
-	void ModelPanel::ApplyModelSelection() const {
+	void ModelPanel::ApplyModelSelection() {
 		if (!modelList)
 			return;
+		updatingModelList = true;
 		for (int index = 0; index < static_cast<int>(modelPaths.size()); index++)
 			ListView_SetItemState(modelList, index, index == selectedModelIndex ? LVIS_SELECTED | LVIS_FOCUSED : 0, LVIS_SELECTED | LVIS_FOCUSED);
+		updatingModelList = false;
+	}
+
+	void ModelPanel::ApplyModelListTheme() const {
+		if (!modelList)
+			return;
+		const bool locked = IsInputLocked();
+		const COLORREF backgroundColor = locked ? GuiTheme::disabledControlColor : GuiTheme::controlColor;
+		const COLORREF textColor = locked ? GuiTheme::disabledTextColor : GuiTheme::textColor;
+		ListView_SetBkColor(modelList, backgroundColor);
+		ListView_SetTextBkColor(modelList, backgroundColor);
+		ListView_SetTextColor(modelList, textColor);
+		InvalidateRect(modelList, nullptr, TRUE);
 	}
 
 	void ModelPanel::DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const {
@@ -90,8 +106,10 @@ namespace Chrivent {
 		RECT buttonRect{};
 		ListView_GetSubItemRect(modelList, static_cast<int>(customDraw.nmcd.dwItemSpec), kMotionColumn, LVIR_BOUNDS, &buttonRect);
 		InflateRect(&buttonRect, -4, -3);
-		DrawFrameControl(customDraw.nmcd.hdc, &buttonRect, DFC_BUTTON, DFCS_BUTTONPUSH);
+		const UINT buttonState = DFCS_BUTTONPUSH | (IsInputLocked() ? DFCS_INACTIVE : 0);
+		DrawFrameControl(customDraw.nmcd.hdc, &buttonRect, DFC_BUTTON, buttonState);
 		SetBkMode(customDraw.nmcd.hdc, TRANSPARENT);
+		SetTextColor(customDraw.nmcd.hdc, IsInputLocked() ? GuiTheme::disabledTextColor : GuiTheme::textColor);
 		DrawTextW(customDraw.nmcd.hdc, Language::Text("model.motion").c_str(), -1, &buttonRect,
 			DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 	}
@@ -115,10 +133,9 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(modelListId), GetModuleHandleW(nullptr), nullptr);
+		AttachInputLockedControl(modelList, modelListId);
 		ListView_SetExtendedListViewStyle(modelList, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-		ListView_SetBkColor(modelList, GuiTheme::controlColor);
-		ListView_SetTextBkColor(modelList, GuiTheme::controlColor);
-		ListView_SetTextColor(modelList, GuiTheme::textColor);
+		ApplyModelListTheme();
 		LVCOLUMNW modelColumn{};
 		modelColumn.mask = LVCF_WIDTH;
 		ListView_InsertColumn(modelList, 0, &modelColumn);
@@ -170,13 +187,13 @@ namespace Chrivent {
 			ShowWindow(modelList, visible ? SW_SHOW : SW_HIDE);
 	}
 
-	void ModelPanel::ApplyPlaybackState(const bool isPlaying) const {
+	void ModelPanel::ApplyPlaybackState(const bool isPlaying) {
+		ApplyInputLock(isPlaying);
 		if (addButton)
 			EnableWindow(addButton, isPlaying ? FALSE : TRUE);
 		if (deleteButton)
 			EnableWindow(deleteButton, isPlaying ? FALSE : TRUE);
-		if (modelList)
-			EnableWindow(modelList, isPlaying ? FALSE : TRUE);
+		ApplyModelListTheme();
 	}
 
 	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
@@ -196,6 +213,8 @@ namespace Chrivent {
 		result = 0;
 		if (!modelList || notifyHeader.hwndFrom != modelList || notifyHeader.idFrom != modelListId)
 			return false;
+		if (updatingModelList)
+			return true;
 		if (notifyHeader.code == NM_CUSTOMDRAW) {
 			const auto& customDraw = reinterpret_cast<const NMLVCUSTOMDRAW&>(notifyHeader);
 			if (customDraw.nmcd.dwDrawStage == CDDS_PREPAINT) {
@@ -254,6 +273,7 @@ namespace Chrivent {
 		pendingSelectedModelIndex = -1;
 		pendingDeleteModelIndex = -1;
 		pendingModelMotionIndex = -1;
+		ApplyInputLock(false);
 	}
 
 	bool ModelPanel::ConsumeAddModelPath(std::filesystem::path& modelPath) {
