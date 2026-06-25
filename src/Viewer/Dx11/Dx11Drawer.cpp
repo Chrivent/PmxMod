@@ -62,6 +62,7 @@ namespace Chrivent {
 		basePsCb.lightColor = glm::vec4(viewer->lightColor, 0.0f);
 		basePsCb.lightDir = glm::vec4(lightDir, 0.0f);
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
+		viewer->deviceResources.context->OMSetBlendState(viewer->pipelineStates.blendState.Get(), nullptr, 0xffffffff);
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
@@ -154,6 +155,8 @@ namespace Chrivent {
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.edge.pixelShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
 		viewer->deviceResources.context->RSSetState(viewer->pipelineStates.edgeRs.Get());
+		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
+		viewer->deviceResources.context->OMSetBlendState(viewer->pipelineStates.blendState.Get(), nullptr, 0xffffffff);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;

@@ -45,9 +45,14 @@ namespace Chrivent {
 			return;
 		glBindVertexArray(instance.vao);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_POLYGON_OFFSET_FILL);
 		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
 		glCullFace(GL_BACK);
 		bool cullEnabled = true;
 		GLenum cullFaceMode = GL_BACK;
@@ -128,7 +133,15 @@ namespace Chrivent {
 		baseVertexConstants.screenSize = glm::vec2(viewer->screenWidth, viewer->screenHeight);
 		glUseProgram(edgeShader->program);
 		glBindVertexArray(instance.edgeVao);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_POLYGON_OFFSET_FILL);
 		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
 		glCullFace(GL_FRONT);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& material = materials[materialId];
@@ -160,6 +173,9 @@ namespace Chrivent {
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		const auto& gsShader = viewer->gsShader;
 		glUseProgram(gsShader->program);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->lightDir);
 		GroundShadowVertexConstants vertexConstants;
 		vertexConstants.wvp = proj * view * shadow * world;
