@@ -18,7 +18,7 @@ namespace Chrivent {
 			SetWindowSubclass(control, InputLockedControlWindowProc, subclassId, reinterpret_cast<DWORD_PTR>(this));
 		}
 		// 패널이 소유한 입력 잠금 컨트롤들의 잠금 상태를 갱신하고 변경 여부를 반환한다.
-		bool ApplyInputLock(const bool locked);
+		bool ApplyInputLock(bool locked);
 		bool IsInputLocked() const { return inputLocked; }
 
 	public:
