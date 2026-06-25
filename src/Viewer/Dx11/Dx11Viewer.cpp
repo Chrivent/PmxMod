@@ -119,6 +119,23 @@ namespace Chrivent {
 			return false;
 		if (FAILED(device->CreateDepthStencilView(renderTargets.depthTex.Get(), nullptr, &renderTargets.depthStencilView)))
 			return false;
+		const auto postProcessDepthDesc = Dx11DescBuilder::MakeTexture2DDesc(
+			screenWidth, screenHeight, DXGI_FORMAT_R24G8_TYPELESS, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+		if (FAILED(device->CreateTexture2D(&postProcessDepthDesc, nullptr, &renderTargets.postProcessDepth)))
+			return false;
+		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
+		depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		if (FAILED(device->CreateDepthStencilView(
+			renderTargets.postProcessDepth.Get(), &depthStencilViewDesc, &renderTargets.postProcessDepthStencilView)))
+			return false;
+		D3D11_SHADER_RESOURCE_VIEW_DESC depthViewDesc{};
+		depthViewDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		depthViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		depthViewDesc.Texture2D.MipLevels = 1;
+		if (FAILED(device->CreateShaderResourceView(
+			renderTargets.postProcessDepth.Get(), &depthViewDesc, &renderTargets.postProcessDepthView)))
+			return false;
 		return true;
 	}
 
@@ -153,14 +170,21 @@ namespace Chrivent {
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &sourceView);
+			ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
+				sourceView,
+				renderTargets.postProcessDepthView.Get()
+			};
+			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+				PostProcessInputLayout::RequiredTextureCount, views);
 			context->Draw(3, 0);
-			ID3D11ShaderResourceView* emptyView = nullptr;
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &emptyView);
+			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
+			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+				PostProcessInputLayout::RequiredTextureCount, emptyViews);
 			sourceView = renderTargets.pingPongColorResourceView[targetIndex].Get();
 		}
-		ID3D11ShaderResourceView* emptyView = nullptr;
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &emptyView);
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
+		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+			PostProcessInputLayout::RequiredTextureCount, emptyViews);
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {
@@ -261,6 +285,9 @@ namespace Chrivent {
 		}
 		renderTargets.depthStencilView.Reset();
 		renderTargets.depthTex.Reset();
+		renderTargets.postProcessDepth.Reset();
+		renderTargets.postProcessDepthStencilView.Reset();
+		renderTargets.postProcessDepthView.Reset();
 		if (FAILED(deviceResources.swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
 		if (!CreateRenderTargets())
@@ -286,6 +313,26 @@ namespace Chrivent {
 		if (FAILED(deviceResources.swapChain->Present(0, 0)))
 			return false;
 		return true;
+	}
+
+	bool Dx11Viewer::BeginPostProcessDepthPass() {
+		if (postProcessShaders.empty())
+			return false;
+		const auto& context = deviceResources.context;
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
+		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+			PostProcessInputLayout::RequiredTextureCount, emptyViews);
+		context->ClearDepthStencilView(
+			renderTargets.postProcessDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		context->OMSetRenderTargets(0, nullptr, renderTargets.postProcessDepthStencilView.Get());
+		context->OMSetDepthStencilState(pipelineStates.defaultDss.Get(), 0x00);
+		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+		UpdateViewport();
+		return true;
+	}
+
+	void Dx11Viewer::EndPostProcessDepthPass() {
+		deviceResources.context->OMSetRenderTargets(0, nullptr, nullptr);
 	}
 
 	void Dx11Viewer::WaitIdle() {

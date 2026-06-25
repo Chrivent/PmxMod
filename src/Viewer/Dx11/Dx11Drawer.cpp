@@ -217,5 +217,43 @@ namespace Chrivent {
 		}
 	}
 
+	void Dx11Drawer::DrawDepthOnly() {
+		const auto* viewer = instance.viewer;
+		const auto& vertexBuffer = instance.vertexBuffer;
+		const auto& indexBuffer = instance.indexBuffer;
+		const auto indexBufferFormat = instance.indexBufferFormat;
+		const auto& vsConstantBuffer = instance.vsConstantBuffer;
+		const auto& view = viewer->viewMat;
+		const auto& proj = viewer->projMat;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ModelVertexConstants vsCb;
+		vsCb.wv = view * world;
+		vsCb.wvp = ClipMatrix() * proj * view * world;
+		viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
+		constexpr UINT stride = sizeof(ViewerVertex);
+		constexpr UINT offset = 0;
+		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
+		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		viewer->deviceResources.context->VSSetShader(viewer->shaders.model.vertexShader.Get(), nullptr, 0);
+		viewer->deviceResources.context->PSSetShader(nullptr, nullptr, 0);
+		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		const ID3D11RasterizerState* currentRs = nullptr;
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			const auto& mat = instance.materials[materialId].mat;
+			if (mat.diffuse.a == 0)
+				continue;
+			ID3D11RasterizerState* targetRs = mat.bothFace
+				? viewer->pipelineStates.bothFaceRs.Get()
+				: viewer->pipelineStates.frontFaceRs.Get();
+			if (currentRs != targetRs) {
+				viewer->deviceResources.context->RSSetState(targetRs);
+				currentRs = targetRs;
+			}
+			viewer->deviceResources.context->DrawIndexed(indexCount, beginIndex, 0);
+		}
+	}
+
 	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance) : instance(sourceInstance) {}
 }

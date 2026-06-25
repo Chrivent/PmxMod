@@ -34,6 +34,8 @@ namespace Chrivent {
         GLuint sceneColorMsaa = 0;
         GLuint resolveFramebuffer = 0;
         GLuint sceneColorTexture = 0;
+        GLuint postProcessDepthFramebuffer = 0;
+        GLuint postProcessDepthTexture = 0;
         GLuint pingPongFramebuffers[2] = {};
         GLuint pingPongTextures[2] = {};
         GLuint sceneDepthStencil = 0;
@@ -65,6 +67,10 @@ namespace Chrivent {
         void BeginFrame() override;
         // GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
         bool EndFrame() override;
+        // OpenGL 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
+        bool BeginPostProcessDepthPass() override;
+        // OpenGL 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
+        void EndPostProcessDepthPass() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.
         void WaitIdle() override;
         // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.

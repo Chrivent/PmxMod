@@ -19,4 +19,8 @@ namespace Chrivent {
 		DrawEdge();
 		DrawGroundShadow();
 	}
+
+	void Drawer::DrawPostProcessDepth() {
+		DrawDepthOnly();
+	}
 }

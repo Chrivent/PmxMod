@@ -38,6 +38,9 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pingPongColorResourceView[2];
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         postProcessDepth;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  postProcessDepthStencilView;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> postProcessDepthView;
     };
 
     struct Dx11ShaderSet {
@@ -105,6 +108,10 @@ namespace Chrivent {
         void BeginFrame() override;
         // 장면 색상을 스왑체인으로 복사하고 화면에 표시한다.
         bool EndFrame() override;
+        // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
+        bool BeginPostProcessDepthPass() override;
+        // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
+        void EndPostProcessDepthPass() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
         void WaitIdle() override;
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.

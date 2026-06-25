@@ -35,6 +35,8 @@ namespace Chrivent {
         virtual void Upload() const = 0;
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.
         void Draw() const;
+        // 현재 인스턴스를 포스트 프로세스용 depth-only 패스에 그린다.
+        void DrawPostProcessDepth() const;
         // 뷰어 시간과 물리 설정을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
         void PrepareUpdate(const Viewer& viewer, bool physicsEnabled, ModelUpdateTiming* timing = nullptr) const;
         // 연결된 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.

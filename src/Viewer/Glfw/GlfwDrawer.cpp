@@ -213,5 +213,45 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 	}
 
+	void GlfwDrawer::DrawDepthOnly() {
+		const auto* viewer = instance.viewer;
+		const auto indexType = instance.indexType;
+		const auto& view = viewer->viewMat;
+		const auto& proj = viewer->projMat;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ModelVertexConstants vertexConstants;
+		vertexConstants.wv = view * world;
+		vertexConstants.wvp = proj * view * world;
+		glUseProgram(viewer->shader->program);
+		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+			return;
+		glBindVertexArray(instance.vao);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glFrontFace(GL_CCW);
+		glEnable(GL_CULL_FACE);
+		bool cullEnabled = true;
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			const auto& mat = instance.materials[materialId].mat;
+			if (mat.diffuse.a == 0.0f)
+				continue;
+			if (mat.bothFace) {
+				if (cullEnabled) {
+					glDisable(GL_CULL_FACE);
+					cullEnabled = false;
+				}
+			} else if (!cullEnabled) {
+				glEnable(GL_CULL_FACE);
+				cullEnabled = true;
+			}
+			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
+			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
+		}
+	}
+
 	GlfwDrawer::GlfwDrawer(GlfwInstance& sourceInstance) : instance(sourceInstance) {}
 }

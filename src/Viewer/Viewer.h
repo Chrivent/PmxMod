@@ -67,6 +67,10 @@ namespace Chrivent {
         virtual void BeginFrame() = 0;
         // 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
         virtual bool EndFrame() = 0;
+        // 포스트 프로세스용 depth-only 패스를 시작한다.
+        virtual bool BeginPostProcessDepthPass() { return false; }
+        // 포스트 프로세스용 depth-only 패스를 종료한다.
+        virtual void EndPostProcessDepthPass() {}
         // 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다린다.
         virtual void WaitIdle() = 0;
         // 체크된 포스트 프로세스 효과 목록을 렌더러에 준비한다.

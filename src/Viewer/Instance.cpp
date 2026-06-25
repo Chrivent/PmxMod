@@ -13,6 +13,11 @@ namespace Chrivent {
             drawer->Draw();
     }
 
+    void Instance::DrawPostProcessDepth() const {
+        if (drawer)
+            drawer->DrawPostProcessDepth();
+    }
+
     void Instance::PrepareUpdate(const Viewer& viewer, const bool physicsEnabled, ModelUpdateTiming* timing) const {
         const ModelUpdater updater(*model);
         updater.Prepare(anim.get(), viewer.animTime * 30.0f, viewer.elapsed,

@@ -28,6 +28,8 @@ namespace Chrivent {
 		void DrawEdge() override;
 		// 지면 그림자 패스를 DX11로 렌더링한다.
 		void DrawGroundShadow() override;
+		// 포스트 프로세스용 단일 샘플 depth에 DX11 모델 geometry를 기록한다.
+		void DrawDepthOnly() override;
 
 	public:
 		~Dx11Drawer() override = default;

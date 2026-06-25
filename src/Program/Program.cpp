@@ -1005,6 +1005,11 @@ namespace Chrivent {
             instance->Upload();
             instance->Draw();
         }
+        if (viewer->BeginPostProcessDepthPass()) {
+            for (const auto& instance : instances)
+                instance->DrawPostProcessDepth();
+            viewer->EndPostProcessDepthPass();
+        }
         const auto uploadDrawEnd = std::chrono::steady_clock::now();
         if (!viewer->EndFrame())
             return false;

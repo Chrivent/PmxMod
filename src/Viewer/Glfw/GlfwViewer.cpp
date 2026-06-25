@@ -34,6 +34,16 @@ namespace Chrivent {
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glNamedFramebufferTexture(resolveFramebuffer, GL_COLOR_ATTACHMENT0, sceneColorTexture, 0);
+		glCreateFramebuffers(1, &postProcessDepthFramebuffer);
+		glCreateTextures(GL_TEXTURE_2D, 1, &postProcessDepthTexture);
+		glTextureStorage2D(postProcessDepthTexture, 1, GL_DEPTH_COMPONENT24, screenWidth, screenHeight);
+		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
+		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_NONE);
+		glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
 		glCreateFramebuffers(2, pingPongFramebuffers);
 		glCreateTextures(GL_TEXTURE_2D, 2, pingPongTextures);
 		for (int index = 0; index < 2; index++) {
@@ -47,7 +57,8 @@ namespace Chrivent {
 				return false;
 		}
 		return glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
-			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
+			&& glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 	}
 
 	void GlfwViewer::ResetPostProcessTargets() {
@@ -59,6 +70,10 @@ namespace Chrivent {
 			glDeleteRenderbuffers(1, &sceneColorMsaa);
 		if (sceneColorTexture != 0)
 			glDeleteTextures(1, &sceneColorTexture);
+		if (postProcessDepthTexture != 0)
+			glDeleteTextures(1, &postProcessDepthTexture);
+		if (postProcessDepthFramebuffer != 0)
+			glDeleteFramebuffers(1, &postProcessDepthFramebuffer);
 		if (resolveFramebuffer != 0)
 			glDeleteFramebuffers(1, &resolveFramebuffer);
 		if (sceneFramebuffer != 0)
@@ -66,6 +81,8 @@ namespace Chrivent {
 		sceneDepthStencil = 0;
 		sceneColorMsaa = 0;
 		sceneColorTexture = 0;
+		postProcessDepthTexture = 0;
+		postProcessDepthFramebuffer = 0;
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
 		pingPongTextures[0] = 0;
@@ -205,12 +222,34 @@ namespace Chrivent {
 				glViewport(0, 0, screenWidth, screenHeight);
 				glUseProgram(postProcessShaders[index]->program);
 				glBindTextureUnit(PostProcessInputLayout::SceneColorRegister, sourceTexture);
+				glBindTextureUnit(PostProcessInputLayout::SceneDepthRegister, postProcessDepthTexture);
 				glDrawArrays(GL_TRIANGLES, 0, 3);
 				sourceTexture = pingPongTextures[targetIndex];
 			}
 		}
 		glfwSwapBuffers(window);
 		return true;
+	}
+
+	bool GlfwViewer::BeginPostProcessDepthPass() {
+		if (postProcessShaders.empty())
+			return false;
+		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
+		glViewport(0, 0, screenWidth, screenHeight);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_TRUE);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDisable(GL_BLEND);
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		return true;
+	}
+
+	void GlfwViewer::EndPostProcessDepthPass() {
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void GlfwViewer::WaitIdle() {
