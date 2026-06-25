@@ -34,4 +34,11 @@ namespace Chrivent {
 			return 0;
 		return DefSubclassProc(hwnd, msg, wParam, lParam);
 	}
+
+	bool Panel::ApplyInputLock(const bool locked) {
+		if (inputLocked == locked)
+			return false;
+		inputLocked = locked;
+		return true;
+	}
 }

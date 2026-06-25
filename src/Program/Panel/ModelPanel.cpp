@@ -106,10 +106,21 @@ namespace Chrivent {
 		RECT buttonRect{};
 		ListView_GetSubItemRect(modelList, static_cast<int>(customDraw.nmcd.dwItemSpec), kMotionColumn, LVIR_BOUNDS, &buttonRect);
 		InflateRect(&buttonRect, -4, -3);
-		const UINT buttonState = DFCS_BUTTONPUSH | (IsInputLocked() ? DFCS_INACTIVE : 0);
-		DrawFrameControl(customDraw.nmcd.hdc, &buttonRect, DFC_BUTTON, buttonState);
+		const bool locked = IsInputLocked();
+		const COLORREF fillColor = locked ? GuiTheme::disabledControlColor : RGB(47, 53, 64);
+		const COLORREF borderColor = locked ? RGB(72, 78, 90) : GuiTheme::borderColor;
+		const HBRUSH fillBrush = CreateSolidBrush(fillColor);
+		FillRect(customDraw.nmcd.hdc, &buttonRect, fillBrush);
+		DeleteObject(fillBrush);
+		const HPEN borderPen = CreatePen(PS_SOLID, 1, borderColor);
+		const HGDIOBJ previousPen = SelectObject(customDraw.nmcd.hdc, borderPen);
+		const HGDIOBJ previousBrush = SelectObject(customDraw.nmcd.hdc, GetStockObject(NULL_BRUSH));
+		Rectangle(customDraw.nmcd.hdc, buttonRect.left, buttonRect.top, buttonRect.right, buttonRect.bottom);
+		SelectObject(customDraw.nmcd.hdc, previousBrush);
+		SelectObject(customDraw.nmcd.hdc, previousPen);
+		DeleteObject(borderPen);
 		SetBkMode(customDraw.nmcd.hdc, TRANSPARENT);
-		SetTextColor(customDraw.nmcd.hdc, IsInputLocked() ? GuiTheme::disabledTextColor : GuiTheme::textColor);
+		SetTextColor(customDraw.nmcd.hdc, locked ? GuiTheme::disabledTextColor : GuiTheme::textColor);
 		DrawTextW(customDraw.nmcd.hdc, Language::Text("model.motion").c_str(), -1, &buttonRect,
 			DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 	}
@@ -188,11 +199,13 @@ namespace Chrivent {
 	}
 
 	void ModelPanel::ApplyPlaybackState(const bool isPlaying) {
-		ApplyInputLock(isPlaying);
+		if (!ApplyInputLock(isPlaying))
+			return;
+		const BOOL enabled = isPlaying ? FALSE : TRUE;
 		if (addButton)
-			EnableWindow(addButton, isPlaying ? FALSE : TRUE);
+			EnableWindow(addButton, enabled);
 		if (deleteButton)
-			EnableWindow(deleteButton, isPlaying ? FALSE : TRUE);
+			EnableWindow(deleteButton, enabled);
 		ApplyModelListTheme();
 	}
 

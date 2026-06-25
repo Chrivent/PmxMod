@@ -170,11 +170,13 @@ namespace Chrivent {
 	}
 
 	void CameraPanel::ApplyPlaybackState(const bool isPlaying) {
-		ApplyInputLock(isPlaying);
+		if (!ApplyInputLock(isPlaying))
+			return;
+		const BOOL enabled = isPlaying ? FALSE : TRUE;
 		if (addCameraButton)
-			EnableWindow(addCameraButton, isPlaying ? FALSE : TRUE);
+			EnableWindow(addCameraButton, enabled);
 		if (deleteCameraButton)
-			EnableWindow(deleteCameraButton, isPlaying ? FALSE : TRUE);
+			EnableWindow(deleteCameraButton, enabled);
 		ApplyShaderListTheme();
 	}
 
