@@ -279,7 +279,7 @@ namespace Chrivent {
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
-        LoadSelectedShaderEffect();
+        ApplyShaderEffects();
         saveTime = std::chrono::steady_clock::now();
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
@@ -306,16 +306,15 @@ namespace Chrivent {
 
     void Program::DiscoverShaderPackages() {
         shaderPackages.clear();
+        shaderEffectEntries.clear();
         if (!viewer)
             return;
         auto [packages, errors] = ShaderPackageLoader::Discover(viewer->ResolveShaderPackagesDirectory());
         shaderPackages = std::move(packages);
         for (const auto& error : errors)
             std::cerr << "Failed to load shader package: " << error << '\n';
-        std::size_t effectCount = 0;
-        for (const auto& package : shaderPackages) {
-            effectCount += std::ranges::count(package.effects, EffectType::PostProcess, &EffectDefinition::type);
-        }
+        BuildShaderEffectEntries();
+        const size_t effectCount = shaderEffectEntries.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
         selectedShaderEffectIndex = effectCount == 0 ? 0 : std::min(selectedShaderEffectIndex, effectCount - 1);
@@ -324,50 +323,78 @@ namespace Chrivent {
             const size_t copyCount = std::min(shaderEffectEnabled.size(), newEnabled.size());
             for (size_t index = 0; index < copyCount; index++)
                 newEnabled[index] = shaderEffectEnabled[index];
-            if (effectCount > 0 && std::ranges::none_of(newEnabled, [](const bool enabled) { return enabled; }))
-                newEnabled[selectedShaderEffectIndex] = true;
+            for (size_t index = copyCount; index < newEnabled.size(); index++) {
+                const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
+                const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
+                newEnabled[index] = effect.type != EffectType::PostProcess;
+            }
             shaderEffectEnabled = std::move(newEnabled);
         }
         UpdateShaderPanel();
-        LoadSelectedShaderEffect();
+        ApplyShaderEffects();
+    }
+
+    void Program::BuildShaderEffectEntries() {
+        shaderEffectEntries.clear();
+        for (size_t packageIndex = 0; packageIndex < shaderPackages.size(); packageIndex++) {
+            const auto& package = shaderPackages[packageIndex];
+            for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++)
+                shaderEffectEntries.push_back({packageIndex, effectIndex});
+        }
     }
 
     void Program::UpdateShaderPanel() {
         std::vector<std::wstring> shaderNames;
-        for (const auto& package : shaderPackages) {
-            for (const auto& effect : package.effects) {
-                if (effect.type != EffectType::PostProcess)
-                    continue;
-                shaderNames.emplace_back(
-                    Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
-            }
+        shaderNames.reserve(shaderEffectEntries.size());
+        for (const auto& [packageIndex, effectIndex] : shaderEffectEntries) {
+            const auto& package = shaderPackages[packageIndex];
+            const auto& effect = package.effects[effectIndex];
+            shaderNames.emplace_back(Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
         }
         panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
     }
 
-    void Program::LoadSelectedShaderEffect() const {
+    void Program::ApplyShaderEffects() const {
         if (!viewer)
             return;
-        if (shaderEffectEnabled.empty() || std::ranges::none_of(shaderEffectEnabled, [](const bool enabled) { return enabled; })) {
-            viewer->ClearPostProcessEffect();
-            return;
-        }
-        const size_t activeShaderEffectIndex =
-            selectedShaderEffectIndex < shaderEffectEnabled.size() && shaderEffectEnabled[selectedShaderEffectIndex]
-                ? selectedShaderEffectIndex
-                : static_cast<size_t>(std::ranges::find(shaderEffectEnabled, true) - shaderEffectEnabled.begin());
-        size_t effectIndex = 0;
-        for (const auto& package : shaderPackages) {
-            for (const auto& effect : package.effects) {
-                if (effect.type != EffectType::PostProcess)
-                    continue;
-                if (effectIndex++ != activeShaderEffectIndex)
-                    continue;
-                if (viewer->LoadPostProcessEffect(effect))
-                    std::cout << "active_effect=" << package.id << ':' << effect.id << '\n';
-                return;
+        bool hasModelEffect = false;
+        bool hasEdgeEffect = false;
+        bool hasGroundShadowEffect = false;
+        bool modelEnabled = false;
+        bool edgeEnabled = false;
+        bool groundShadowEnabled = false;
+        std::vector<const EffectDefinition*> postProcessEffects;
+        for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
+            const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
+            const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
+            const bool enabled = index < shaderEffectEnabled.size() && shaderEffectEnabled[index];
+            switch (effect.type) {
+                case EffectType::Model:
+                    hasModelEffect = true;
+                    modelEnabled = modelEnabled || enabled;
+                    break;
+                case EffectType::Edge:
+                    hasEdgeEffect = true;
+                    edgeEnabled = edgeEnabled || enabled;
+                    break;
+                case EffectType::GroundShadow:
+                    hasGroundShadowEffect = true;
+                    groundShadowEnabled = groundShadowEnabled || enabled;
+                    break;
+                case EffectType::PostProcess:
+                    if (enabled)
+                        postProcessEffects.push_back(&effect);
+                    break;
             }
         }
+        viewer->modelEffectEnabled = !hasModelEffect || modelEnabled;
+        viewer->edgeEffectEnabled = !hasEdgeEffect || edgeEnabled;
+        viewer->groundShadowEffectEnabled = !hasGroundShadowEffect || groundShadowEnabled;
+        if (viewer->LoadPostProcessEffects(postProcessEffects)) {
+            std::cout << "active_post_effects=" << postProcessEffects.size() << '\n';
+            return;
+        }
+        std::cerr << "Failed to load post-process effect chain.\n";
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
@@ -750,19 +777,14 @@ namespace Chrivent {
         panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
     }
 
-    void Program::UpdateShaderMotionPanel(const size_t effectIndex) {
-        size_t currentIndex = 0;
-        for (const auto& package : shaderPackages) {
-            for (const auto& effect : package.effects) {
-                if (effect.type != EffectType::PostProcess)
-                    continue;
-                if (currentIndex++ != effectIndex)
-                    continue;
-                const std::wstring name =
-                    Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name);
-                panelManager.ApplyMotionTimeline(name, {});
-                return;
-            }
+    void Program::UpdateShaderMotionPanel(const size_t shaderEffectIndex) {
+        if (shaderEffectIndex < shaderEffectEntries.size()) {
+            const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
+            const auto& package = shaderPackages[packageIndex];
+            const auto& effect = package.effects[effectIndex];
+            const std::wstring name = Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name);
+            panelManager.ApplyMotionTimeline(name, {});
+            return;
         }
         panelManager.ApplyMotionTimeline(Language::Text("panel.camera"), {});
     }
@@ -883,7 +905,7 @@ namespace Chrivent {
             if (selectedShaderEffectIndex >= shaderEffectEnabled.size())
                 shaderEffectEnabled.resize(selectedShaderEffectIndex + 1, false);
             shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
-            LoadSelectedShaderEffect();
+            ApplyShaderEffects();
             panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
             UpdateShaderMotionPanel(selectedShaderEffectIndex);
         }

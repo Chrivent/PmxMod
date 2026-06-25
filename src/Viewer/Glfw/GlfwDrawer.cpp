@@ -24,6 +24,8 @@ namespace Chrivent {
 	void GlfwDrawer::DrawModel() {
 		BeginDynamicBufferFrame();
 		const auto* viewer = instance.viewer;
+		if (!viewer->modelEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
@@ -112,6 +114,8 @@ namespace Chrivent {
 
 	void GlfwDrawer::DrawEdge() {
 		const auto* viewer = instance.viewer;
+		if (!viewer->edgeEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
@@ -147,6 +151,8 @@ namespace Chrivent {
 
 	void GlfwDrawer::DrawGroundShadow() {
 		const auto* viewer = instance.viewer;
+		if (!viewer->groundShadowEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;

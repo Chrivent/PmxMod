@@ -38,6 +38,11 @@ namespace Chrivent {
             double totalMilliseconds = 0.0;
         };
 
+        struct ShaderEffectEntry {
+            size_t packageIndex = 0;
+            size_t effectIndex = 0;
+        };
+
         std::unique_ptr<Viewer> viewer;
         InputManager inputManager;
         CameraManager cameraManager;
@@ -48,6 +53,7 @@ namespace Chrivent {
         std::vector<std::size_t> skinningTaskOffsets;
         std::vector<ModelUpdateTiming> modelUpdateTimings;
         std::vector<ShaderPackage> shaderPackages;
+        std::vector<ShaderEffectEntry> shaderEffectEntries;
         std::vector<bool> shaderEffectEnabled;
         size_t selectedShaderEffectIndex = 0;
         std::chrono::steady_clock::time_point fpsTime;
@@ -93,10 +99,12 @@ namespace Chrivent {
         void Shutdown();
         // 실행 파일 리소스 폴더에서 개발용 효과 패키지를 검색한다.
         void DiscoverShaderPackages();
+        // 검색된 셰이더 패키지에서 패널에 표시할 이펙트 목록을 구성한다.
+        void BuildShaderEffectEntries();
         // 검색된 패키지의 효과 이름을 카메라 패널에 반영한다.
         void UpdateShaderPanel();
-        // 현재 선택된 셰이더 효과를 뷰어에 적용한다.
-        void LoadSelectedShaderEffect() const;
+        // 체크된 셰이더 효과들을 뷰어에 적용한다.
+        void ApplyShaderEffects() const;
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
@@ -112,7 +120,7 @@ namespace Chrivent {
         // 현재 카메라 모션 키프레임을 모션 패널에 표시한다.
         void UpdateCameraMotionPanel();
         // 선택한 셰이더 이름만 모션 패널에 표시한다.
-        void UpdateShaderMotionPanel(size_t effectIndex);
+        void UpdateShaderMotionPanel(size_t shaderEffectIndex);
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영한다.

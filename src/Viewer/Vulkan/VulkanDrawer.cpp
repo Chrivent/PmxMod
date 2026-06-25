@@ -21,6 +21,8 @@ namespace Chrivent {
 	void VulkanDrawer::DrawModel() {
 		if (instance.viewer == nullptr)
 			return;
+		if (!instance.viewer->modelEffectEnabled)
+			return;
 		if (!instance.viewer->syncObject)
 			return;
 		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
@@ -87,6 +89,8 @@ namespace Chrivent {
 	void VulkanDrawer::DrawEdge() {
 		if (instance.viewer == nullptr)
 			return;
+		if (!instance.viewer->edgeEffectEnabled)
+			return;
 		if (!instance.viewer->syncObject)
 			return;
 		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
@@ -132,6 +136,8 @@ namespace Chrivent {
 
 	void VulkanDrawer::DrawGroundShadow() {
 		if (instance.viewer == nullptr)
+			return;
+		if (!instance.viewer->groundShadowEffectEnabled)
 			return;
 		if (!instance.viewer->syncObject)
 			return;

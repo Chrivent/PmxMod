@@ -44,6 +44,8 @@ namespace Chrivent {
 
 	void Dx11Drawer::DrawModel() {
 		const auto* viewer = instance.viewer;
+		if (!viewer->modelEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto& vertexBuffer = instance.vertexBuffer;
 		const auto& indexBuffer = instance.indexBuffer;
@@ -125,6 +127,8 @@ namespace Chrivent {
 
 	void Dx11Drawer::DrawEdge() {
 		const auto* viewer = instance.viewer;
+		if (!viewer->edgeEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto& edgeVsConstantBuffer = instance.edgeVsConstantBuffer;
 		const auto& edgePsConstantBuffer = instance.edgePsConstantBuffer;
@@ -161,6 +165,8 @@ namespace Chrivent {
 
 	void Dx11Drawer::DrawGroundShadow() {
 		const auto* viewer = instance.viewer;
+		if (!viewer->groundShadowEffectEnabled)
+			return;
 		const auto& materials = instance.materials;
 		const auto& gsVsConstantBuffer = instance.gsVsConstantBuffer;
 		const auto& gsPsConstantBuffer = instance.gsPsConstantBuffer;

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <filesystem>
+#include <vector>
 #include <glm/glm.hpp>
 #include <windows.h>
 
@@ -47,6 +48,9 @@ namespace Chrivent {
         float elapsed = 0.0f;
         float animTime = 0.0f;
         bool skipPhysics = false;
+        bool modelEffectEnabled = true;
+        bool edgeEffectEnabled = true;
+        bool groundShadowEffectEnabled = true;
         GLFWwindow* window = nullptr;
         GraphicsCapabilities capabilities;
 
@@ -67,6 +71,8 @@ namespace Chrivent {
         virtual void WaitIdle() = 0;
         // 선택한 단일 포스트 프로세스 효과를 현재 렌더러에 준비한다.
         virtual bool LoadPostProcessEffect(const EffectDefinition& effect);
+        // 체크된 포스트 프로세스 효과 목록을 렌더러에 준비한다.
+        virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects);
         // 현재 렌더러에 적용된 포스트 프로세스 효과를 해제한다.
         virtual void ClearPostProcessEffect() {}
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.

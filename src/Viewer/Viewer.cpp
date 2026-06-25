@@ -11,6 +11,18 @@ namespace Chrivent {
         return false;
     }
 
+    bool Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+        ClearPostProcessEffect();
+        if (effects.empty())
+            return true;
+        for (const auto* effect : effects) {
+            if (!effect)
+                continue;
+            return LoadPostProcessEffect(*effect);
+        }
+        return true;
+    }
+
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;

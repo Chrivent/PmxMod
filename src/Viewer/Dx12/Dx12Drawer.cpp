@@ -22,6 +22,8 @@ namespace Chrivent {
 	void Dx12Drawer::DrawModel() {
 		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
 			return;
+		if (!instance.viewer->modelEffectEnabled)
+			return;
 		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
 			return;
@@ -89,6 +91,8 @@ namespace Chrivent {
 	void Dx12Drawer::DrawEdge() {
 		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
 			return;
+		if (!instance.viewer->edgeEffectEnabled)
+			return;
 		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
 			return;
@@ -132,6 +136,8 @@ namespace Chrivent {
 
 	void Dx12Drawer::DrawGroundShadow() {
 		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+			return;
+		if (!instance.viewer->groundShadowEffectEnabled)
 			return;
 		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
 		if (commandList == nullptr)
