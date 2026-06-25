@@ -56,6 +56,7 @@ namespace Chrivent {
 		std::shared_ptr<VulkanTexture> dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
+		bool postProcessDepthPassReady = false;
 		VulkanBindStateCache bindStateCache;
 		std::vector<EffectDefinition> postProcessEffects;
 
@@ -73,6 +74,8 @@ namespace Chrivent {
 		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
+		// 현재 프레임 command buffer에 재질 방향성에 맞는 depth-only pipeline을 바인딩한다.
+		void BindDepthOnlyPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
 		void BindEdgePipeline();
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
@@ -93,6 +96,10 @@ namespace Chrivent {
 		void BeginFrame() override;
 		// Vulkan 프레임을 제출하고 화면에 표시한다.
 		bool EndFrame() override;
+		// Vulkan 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
+		bool BeginPostProcessDepthPass() override;
+		// Vulkan 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
+		void EndPostProcessDepthPass() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.

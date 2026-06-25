@@ -68,16 +68,16 @@ namespace Chrivent {
         // 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
         virtual bool EndFrame() = 0;
         // 포스트 프로세스용 depth-only 패스를 시작한다.
-        virtual bool BeginPostProcessDepthPass() { return false; }
+        virtual bool BeginPostProcessDepthPass() = 0;
         // 포스트 프로세스용 depth-only 패스를 종료한다.
-        virtual void EndPostProcessDepthPass() {}
+        virtual void EndPostProcessDepthPass() = 0;
         // 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다린다.
         virtual void WaitIdle() = 0;
         // 체크된 포스트 프로세스 효과 목록을 렌더러에 준비한다.
         // 포스트 프로세스 입력 규격은 SceneColor=t0, SceneDepth=t1, LinearClamp=s0으로 고정한다.
-        virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects);
+        virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) = 0;
         // 현재 렌더러에 적용된 포스트 프로세스 효과들을 해제한다.
-        virtual void ClearPostProcessEffects() {}
+        virtual void ClearPostProcessEffects() = 0;
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.

@@ -14,6 +14,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> modelRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelFrontFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelBothFacePipelineState;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> depthOnlyFrontFacePipelineState;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> depthOnlyBothFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> edgeRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> edgePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
@@ -40,6 +42,8 @@ namespace Chrivent {
 		bool CreateModelRootSignature(const Dx12Device& sourceDevice);
 		// 모델 렌더링용 graphics pipeline state를 생성한다.
 		bool CreateModelPipelineStates(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir);
+		// 포스트 프로세스용 depth-only graphics pipeline state를 생성한다.
+		bool CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir);
 		// 엣지 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
 		bool CreateEdgeRootSignature(const Dx12Device& sourceDevice);
 		// 엣지 렌더링용 graphics pipeline state를 생성한다.
@@ -56,6 +60,8 @@ namespace Chrivent {
 		bool Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir);
 		// material의 양면 렌더링 여부에 맞는 model pipeline을 command list에 바인딩한다.
 		void BindModel(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 depth-only pipeline을 command list에 바인딩한다.
+		void BindDepthOnly(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// 엣지 렌더링용 pipeline을 command list에 바인딩한다.
 		void BindEdge(ID3D12GraphicsCommandList* commandList) const;
 		// 지면 그림자 렌더링용 pipeline을 command list에 바인딩한다.

@@ -23,6 +23,11 @@ namespace Chrivent {
 			VkFormat depthFormat, const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkPipeline& outPipeline) const;
+		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
+		bool CreateDepthOnlyPipeline(
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+			VkFormat depthFormat, const EffectPassDefinition& pass,
+			VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
 		// 셰이더 stage 생성 정보를 만든다.
 		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entry);
 		// 모델 vertex buffer binding 정보를 만든다.
@@ -33,6 +38,8 @@ namespace Chrivent {
 	public:
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkPipeline bothFacePipeline = VK_NULL_HANDLE;
+		VkPipeline depthOnlyPipeline = VK_NULL_HANDLE;
+		VkPipeline depthOnlyBothFacePipeline = VK_NULL_HANDLE;
 		VkPipeline edgePipeline = VK_NULL_HANDLE;
 		VkPipeline groundShadowPipeline = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;

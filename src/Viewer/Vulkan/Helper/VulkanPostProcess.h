@@ -13,6 +13,9 @@ namespace Chrivent {
 		std::vector<VkImage> targetImages;
 		std::vector<VkDeviceMemory> targetImageMemories;
 		std::vector<VkImageView> targetImageViews;
+		std::vector<VkImage> depthImages;
+		std::vector<VkDeviceMemory> depthImageMemories;
+		std::vector<VkImageView> depthImageViews;
 		std::vector<VkDescriptorSet> descriptorSets;
 		VkDescriptorSetLayout descriptorSetLayouts[3]{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -23,6 +26,8 @@ namespace Chrivent {
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
 		bool CreateTargetImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
+		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
+		bool CreateDepthImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
 		// 장면 입력 texture/sampler용 descriptor 리소스를 생성한다.
 		bool CreateDescriptors(const VulkanSwapChain&);
 		// 선택된 HLSL 후처리 효과 목록으로 풀스크린 graphics pipeline들을 생성한다.
@@ -40,8 +45,10 @@ namespace Chrivent {
 		VulkanPostProcess(VulkanPostProcess&&) = delete;
 		VulkanPostProcess& operator=(VulkanPostProcess&&) = delete;
 
-		VkImage GetTargetImage(size_t targetIndex, uint32_t imageIndex) const { return targetImages[ResolveTargetIndex(targetIndex, imageIndex)]; }
-		VkImageView GetTargetImageView(size_t targetIndex, uint32_t imageIndex) const { return targetImageViews[ResolveTargetIndex(targetIndex, imageIndex)]; }
+		VkImage GetTargetImage(const size_t targetIndex, const uint32_t imageIndex) const { return targetImages[ResolveTargetIndex(targetIndex, imageIndex)]; }
+		VkImageView GetTargetImageView(const size_t targetIndex, const uint32_t imageIndex) const { return targetImageViews[ResolveTargetIndex(targetIndex, imageIndex)]; }
+		VkImage GetDepthImage(const uint32_t imageIndex) const { return depthImages[imageIndex]; }
+		VkImageView GetDepthImageView(const uint32_t imageIndex) const { return depthImageViews[imageIndex]; }
 		const std::vector<VkPipeline>& GetPipelines() const { return pipelines; }
 		VkPipelineLayout GetPipelineLayout() const { return pipelineLayout; }
 		VkDescriptorSet GetDescriptorSet(const size_t targetIndex, const uint32_t imageIndex) const { return descriptorSets[ResolveTargetIndex(targetIndex, imageIndex)]; }
@@ -49,7 +56,7 @@ namespace Chrivent {
 
 		// 현재 스왑체인과 선택된 효과 목록에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			const std::vector<const EffectDefinition*>& effects);
+			VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects);
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void Reset();
 	};

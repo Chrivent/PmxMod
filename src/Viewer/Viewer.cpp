@@ -7,11 +7,6 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-    bool Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-        ClearPostProcessEffects();
-        return effects.empty();
-    }
-
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;

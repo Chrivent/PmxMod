@@ -160,6 +160,41 @@ namespace Chrivent {
 		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
 	}
 
+	bool Dx12Pipeline::CreateDepthOnlyPipelineStates(
+		const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+		if (!sourceDevice.device || !modelRootSignature)
+			return false;
+		std::vector<uint8_t> vertexShader;
+		std::string error;
+		const auto shaderPath = shaderDir / "model/effect.hlsl";
+		if (!CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error)) {
+			std::cerr << error;
+			return false;
+		}
+		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		};
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+		pipelineDesc.pRootSignature = modelRootSignature.Get();
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
+		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
+		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
+		pipelineDesc.InputLayout = { inputElements, 3 };
+		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		pipelineDesc.NumRenderTargets = 0;
+		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		pipelineDesc.SampleDesc.Count = 1;
+		if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(
+			&pipelineDesc, IID_PPV_ARGS(&depthOnlyFrontFacePipelineState))))
+			return false;
+		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(
+			&pipelineDesc, IID_PPV_ARGS(&depthOnlyBothFacePipelineState)));
+	}
+
 	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& sourceDevice) {
 		if (!sourceDevice.device)
 			return false;
@@ -273,7 +308,7 @@ namespace Chrivent {
 	bool Dx12Pipeline::CreatePostProcessRootSignature(const Dx12Device& sourceDevice) {
 		D3D12_DESCRIPTOR_RANGE srvRange{};
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		srvRange.NumDescriptors = 1;
+		srvRange.NumDescriptors = PostProcessInputLayout::RequiredTextureCount;
 		srvRange.BaseShaderRegister = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameter;
@@ -305,6 +340,8 @@ namespace Chrivent {
 			return false;
 		if (!CreateModelPipelineStates(sourceDevice, shaderDir))
 			return false;
+		if (!CreateDepthOnlyPipelineStates(sourceDevice, shaderDir))
+			return false;
 		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;
 		if (!CreateEdgePipelineState(sourceDevice, shaderDir))
@@ -321,6 +358,16 @@ namespace Chrivent {
 		ID3D12PipelineState* pipelineState = bothFace
 			? modelBothFacePipelineState.Get()
 			: modelFrontFacePipelineState.Get();
+		commandList->SetPipelineState(pipelineState);
+	}
+
+	void Dx12Pipeline::BindDepthOnly(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+		if (commandList == nullptr)
+			return;
+		commandList->SetGraphicsRootSignature(modelRootSignature.Get());
+		ID3D12PipelineState* pipelineState = bothFace
+			? depthOnlyBothFacePipelineState.Get()
+			: depthOnlyFrontFacePipelineState.Get();
 		commandList->SetPipelineState(pipelineState);
 	}
 
@@ -404,6 +451,8 @@ namespace Chrivent {
 		groundShadowRootSignature.Reset();
 		edgePipelineState.Reset();
 		edgeRootSignature.Reset();
+		depthOnlyBothFacePipelineState.Reset();
+		depthOnlyFrontFacePipelineState.Reset();
 		modelBothFacePipelineState.Reset();
 		modelFrontFacePipelineState.Reset();
 		modelRootSignature.Reset();

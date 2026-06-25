@@ -113,6 +113,51 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
+	bool Dx12Viewer::CreatePostProcessDepthTarget() {
+		postProcessDepth.Reset();
+		postProcessDepthDsvHeap.Reset();
+		if (!device || !device->device || screenWidth <= 0 || screenHeight <= 0)
+			return false;
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		heapDesc.NumDescriptors = 1;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		if (FAILED(device->device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&postProcessDepthDsvHeap))))
+			return false;
+		D3D12_HEAP_PROPERTIES heapProperties{};
+		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+		heapProperties.CreationNodeMask = 1;
+		heapProperties.VisibleNodeMask = 1;
+		D3D12_RESOURCE_DESC resourceDesc{};
+		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		resourceDesc.Width = screenWidth;
+		resourceDesc.Height = screenHeight;
+		resourceDesc.DepthOrArraySize = 1;
+		resourceDesc.MipLevels = 1;
+		resourceDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		D3D12_CLEAR_VALUE clearValue{};
+		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		clearValue.DepthStencil.Depth = 1.0f;
+		if (FAILED(device->device->CreateCommittedResource(
+			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&postProcessDepth))))
+			return false;
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		device->device->CreateDepthStencilView(postProcessDepth.Get(), &dsvDesc, ResolvePostProcessDepthDsvHandle());
+		for (const auto& target : postProcessTargets)
+			target.UpdateDepthShaderResourceView(*device, postProcessDepth.Get());
+		return true;
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE Dx12Viewer::ResolvePostProcessDepthDsvHandle() const {
+		if (!postProcessDepthDsvHeap)
+			return {};
+		return postProcessDepthDsvHeap->GetCPUDescriptorHandleForHeapStart();
+	}
+
 	Dx12Viewer::Dx12Viewer() {
 		device = std::make_shared<Dx12Device>();
 		dummyTexture = std::make_shared<Dx12Texture>();
@@ -123,6 +168,8 @@ namespace Chrivent {
 		pipeline.Reset();
 		commandContext.Reset();
 		depthBuffer.Reset();
+		postProcessDepth.Reset();
+		postProcessDepthDsvHeap.Reset();
 		postProcessTargets.clear();
 		msaaColorBuffer.Reset();
 		swapChain.Reset();
@@ -165,6 +212,10 @@ namespace Chrivent {
 				return false;
 			}
 		}
+		if (!CreatePostProcessDepthTarget()) {
+			std::cerr << "Failed to initialize DX12 post-process depth target.\n";
+			return false;
+		}
 		if (!pipeline.Initialize(*device, shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
@@ -190,6 +241,8 @@ namespace Chrivent {
 			if (!target.Initialize(*device, screenWidth, screenHeight))
 				return false;
 		}
+		if (!CreatePostProcessDepthTarget())
+			return false;
 		return true;
 	}
 
@@ -232,6 +285,34 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool Dx12Viewer::BeginPostProcessDepthPass() {
+		if (!frameReady || !pipeline.HasPostProcessEffect() || !postProcessDepth)
+			return false;
+		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		if (commandList == nullptr)
+			return false;
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		Dx12Barrier::Transition(commandList, enhancedCommandList, postProcessDepth.Get(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = ResolvePostProcessDepthDsvHandle();
+		commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
+		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		ApplyViewportAndScissor(commandList);
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		return true;
+	}
+
+	void Dx12Viewer::EndPostProcessDepthPass() {
+		if (!frameReady || !postProcessDepth)
+			return;
+		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		if (commandList == nullptr)
+			return;
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		Dx12Barrier::Transition(commandList, enhancedCommandList, postProcessDepth.Get(),
+			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+
 	void Dx12Viewer::WaitIdle() {
 		commandContext.WaitForGpu(*device);
 	}
@@ -258,6 +339,12 @@ namespace Chrivent {
 		if (!frameReady)
 			return;
 		pipeline.BindModel(commandContext.GetCommandList().Get(), bothFace);
+	}
+
+	void Dx12Viewer::BindDepthOnlyPipeline(const bool bothFace) const {
+		if (!frameReady)
+			return;
+		pipeline.BindDepthOnly(commandContext.GetCommandList().Get(), bothFace);
 	}
 
 	void Dx12Viewer::BindEdgePipeline() const {

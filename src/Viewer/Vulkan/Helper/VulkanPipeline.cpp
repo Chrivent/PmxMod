@@ -120,6 +120,10 @@ namespace Chrivent {
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, edgePass,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, groundShadowPass,
@@ -268,6 +272,87 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanPipeline::CreateDepthOnlyPipeline(
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat, const EffectPassDefinition& pass,
+		const VkCullModeFlags cullMode, VkPipeline& outPipeline) const {
+		std::vector<uint32_t> vertexShaderCode;
+		std::string error;
+		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
+		if (!DxcShaderCompiler::CompileSpirv(
+			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		VulkanShaderModule vertexShader;
+		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode))
+			return false;
+		const VkPipelineShaderStageCreateInfo shaderStage =
+			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str());
+		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
+		VkVertexInputAttributeDescription attributeDescriptions[3]{};
+		FillVertexAttributeDescriptions(attributeDescriptions);
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexAttributeDescriptionCount = 3;
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		const VkViewport viewport{
+			.x = 0.0f, .y = 0.0f,
+			.width = static_cast<float>(sourceSwapChain.extent.width),
+			.height = static_cast<float>(sourceSwapChain.extent.height),
+			.minDepth = 0.0f, .maxDepth = 1.0f
+		};
+		const VkRect2D scissor{ .extent = sourceSwapChain.extent };
+		VkPipelineViewportStateCreateInfo viewportState{};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.pViewports = &viewport;
+		viewportState.scissorCount = 1;
+		viewportState.pScissors = &scissor;
+		VkPipelineRasterizationStateCreateInfo rasterizer{};
+		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.cullMode = cullMode;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterizer.lineWidth = 1.0f;
+		VkPipelineMultisampleStateCreateInfo multisampling{};
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		VkPipelineDepthStencilStateCreateInfo depthStencil{};
+		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		VkGraphicsPipelineCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		const VkPipelineRenderingCreateInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.colorAttachmentCount = 0,
+			.depthAttachmentFormat = depthFormat,
+			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
+		};
+		createInfo.pNext = &renderingInfo;
+		createInfo.stageCount = 1;
+		createInfo.pStages = &shaderStage;
+		createInfo.pVertexInputState = &vertexInputInfo;
+		createInfo.pInputAssemblyState = &inputAssembly;
+		createInfo.pViewportState = &viewportState;
+		createInfo.pRasterizationState = &rasterizer;
+		createInfo.pMultisampleState = &multisampling;
+		createInfo.pDepthStencilState = &depthStencil;
+		createInfo.layout = pipelineLayout;
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
+			std::cerr << "Failed to create Vulkan depth-only pipeline.\n";
+			return false;
+		}
+		return true;
+	}
+
 	VkPipelineShaderStageCreateInfo VulkanPipeline::MakeShaderStageInfo(const VkShaderStageFlagBits stage, const VkShaderModule shaderModule, const char* entry) {
 		VkPipelineShaderStageCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -332,6 +417,14 @@ namespace Chrivent {
 		if (bothFacePipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, bothFacePipeline, nullptr);
 			bothFacePipeline = VK_NULL_HANDLE;
+		}
+		if (depthOnlyPipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, depthOnlyPipeline, nullptr);
+			depthOnlyPipeline = VK_NULL_HANDLE;
+		}
+		if (depthOnlyBothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, depthOnlyBothFacePipeline, nullptr);
+			depthOnlyBothFacePipeline = VK_NULL_HANDLE;
 		}
 		if (edgePipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, edgePipeline, nullptr);

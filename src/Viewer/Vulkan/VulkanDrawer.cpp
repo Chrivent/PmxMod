@@ -178,5 +178,34 @@ namespace Chrivent {
 		}
 	}
 
+	void VulkanDrawer::DrawDepthOnly() {
+		if (instance.viewer == nullptr || !instance.viewer->syncObject)
+			return;
+		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
+		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
+		const auto& viewer = *instance.viewer;
+		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ModelVertexConstants vertexConstants;
+		vertexConstants.wv = viewer.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		std::string error;
+		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
+		if (!vertexSlice.has_value() ||
+			!instance.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			std::cerr << "Failed to update Vulkan depth-only vertex constants.\n";
+			return;
+		}
+		instance.viewer->BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			if (materialId >= instance.materials.size())
+				continue;
+			const auto& mat = instance.materials[materialId].mat;
+			if (mat.diffuse.a == 0.0f)
+				continue;
+			instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+		}
+	}
+
 	VulkanDrawer::VulkanDrawer(VulkanInstance& sourceInstance) : instance(sourceInstance) {}
 }

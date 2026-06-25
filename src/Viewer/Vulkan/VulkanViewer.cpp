@@ -17,7 +17,7 @@ namespace Chrivent {
 			effects.reserve(postProcessEffects.size());
 			for (const auto& effect : postProcessEffects)
 				effects.push_back(&effect);
-			if (!postProcess.Initialize(*device, swapChain, effects))
+			if (!postProcess.Initialize(*device, swapChain, msaaDepthBuffer.format, effects))
 				return false;
 		}
 		ShaderPackage package;
@@ -74,6 +74,19 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = bothFace
 			? pipeline->bothFacePipeline
 			: pipeline->pipeline;
+		if (bindStateCache.pipeline == targetPipeline)
+			return;
+		const auto& commandBuffer = commandContext.commandBuffer;
+		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
+		bindStateCache.pipeline = targetPipeline;
+	}
+
+	void VulkanViewer::BindDepthOnlyPipeline(const bool bothFace) {
+		if (!frameReady)
+			return;
+		const VkPipeline targetPipeline = bothFace
+			? pipeline->depthOnlyBothFacePipeline
+			: pipeline->depthOnlyPipeline;
 		if (bindStateCache.pipeline == targetPipeline)
 			return;
 		const auto& commandBuffer = commandContext.commandBuffer;
@@ -170,6 +183,7 @@ namespace Chrivent {
 
 	void VulkanViewer::BeginFrame() {
 		frameReady = false;
+		postProcessDepthPassReady = false;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		const size_t frameIndex = syncObject->currentFrame;
@@ -230,7 +244,7 @@ namespace Chrivent {
 				currentImageIndex, targetImages[0], swapChain.images[currentImageIndex],
 				swapChain.imageViews[currentImageIndex], targetImages, targetImageViews,
 				postProcess.GetPipelines(), postProcess.GetPipelineLayout(), descriptorSets,
-				swapChain.extent);
+				swapChain.extent, postProcessDepthPassReady);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
@@ -289,7 +303,34 @@ namespace Chrivent {
 		}
 		syncObject->AdvanceFrame();
 		frameReady = false;
+		postProcessDepthPassReady = false;
 		return true;
+	}
+
+	bool VulkanViewer::BeginPostProcessDepthPass() {
+		if (!frameReady || postProcessEffects.empty())
+			return false;
+		constexpr bool depthHasStencil = false;
+		if (!commandContext.commandBuffer.BeginPostProcessDepthPass(
+			currentImageIndex, postProcess.GetTargetImage(0, currentImageIndex),
+			postProcess.GetDepthImage(currentImageIndex), postProcess.GetDepthImageView(currentImageIndex),
+			depthHasStencil, pipeline->depthOnlyPipeline, swapChain.extent))
+			return false;
+		bindStateCache.pipeline = pipeline->depthOnlyPipeline;
+		bindStateCache.vertexDescriptorSet = VK_NULL_HANDLE;
+		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
+		bindStateCache.pixelDescriptorSet = VK_NULL_HANDLE;
+		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
+		bindStateCache.textureDescriptorSet = VK_NULL_HANDLE;
+		return true;
+	}
+
+	void VulkanViewer::EndPostProcessDepthPass() {
+		if (!frameReady || postProcessEffects.empty())
+			return;
+		constexpr bool depthHasStencil = false;
+		postProcessDepthPassReady = commandContext.commandBuffer.EndPostProcessDepthPass(
+			currentImageIndex, postProcess.GetDepthImage(currentImageIndex), depthHasStencil);
 	}
 
 	void VulkanViewer::WaitIdle() {

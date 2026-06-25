@@ -176,5 +176,37 @@ namespace Chrivent {
 		}
 	}
 
+	void Dx12Drawer::DrawDepthOnly() {
+		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+			return;
+		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
+		if (commandList == nullptr)
+			return;
+		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
+		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
+		const auto& viewer = *instance.viewer;
+		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		ModelVertexConstants vertexConstants;
+		vertexConstants.wv = viewer.viewMat * world;
+		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		if (!vertexConstantBuffer.Write(vertexConstants)) {
+			std::cerr << "Failed to update DX12 depth-only vertex constants.\n";
+			return;
+		}
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+		commandList->IASetIndexBuffer(&instance.indexBufferView);
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
+		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+			if (materialId >= instance.materials.size())
+				continue;
+			const auto& mat = instance.materials[materialId].mat;
+			if (mat.diffuse.a == 0.0f)
+				continue;
+			instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+		}
+	}
+
 	Dx12Drawer::Dx12Drawer(const Dx12Instance& sourceInstance) : instance(sourceInstance) {}
 }

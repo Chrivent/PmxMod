@@ -48,13 +48,19 @@ namespace Chrivent {
 		// 현재 command buffer에 graphics descriptor set들을 바인딩한다.
 		void BindDescriptorSets(uint32_t imageIndex, VkPipelineLayout pipelineLayout, uint32_t firstSet,
 			std::span<const VkDescriptorSet> descriptorSets, std::span<const uint32_t> dynamicOffsets = {}) const;
+		// 장면 렌더링을 끝내고 후처리용 단일 샘플 depth-only 렌더링을 시작한다.
+		bool BeginPostProcessDepthPass(uint32_t imageIndex, VkImage sceneImage, VkImage depthImage,
+			VkImageView depthImageView, bool depthHasStencil, VkPipeline pipeline, VkExtent2D extent) const;
+		// 후처리용 depth-only 렌더링을 끝내고 depth를 shader read 상태로 전환한다.
+		bool EndPostProcessDepthPass(uint32_t imageIndex, VkImage depthImage, bool depthHasStencil) const;
 		// dynamic rendering을 끝내고 출력 이미지를 present 상태로 전환한다.
 		bool EndRecord(uint32_t imageIndex, VkImage outputImage) const;
 		// 장면 렌더링을 끝내고 후처리 결과를 스왑체인 이미지에 기록한다.
 		bool EndRecordWithPostProcess(uint32_t imageIndex, VkImage sceneImage,
 			VkImage swapChainImage, VkImageView swapChainImageView, std::span<const VkImage> targetImages,
 			std::span<const VkImageView> targetImageViews, std::span<const VkPipeline> pipelines,
-			VkPipelineLayout pipelineLayout, std::span<const VkDescriptorSet> descriptorSets, VkExtent2D extent) const;
+			VkPipelineLayout pipelineLayout, std::span<const VkDescriptorSet> descriptorSets,
+			VkExtent2D extent, bool sceneRenderingEnded = false) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Reset();
 	};

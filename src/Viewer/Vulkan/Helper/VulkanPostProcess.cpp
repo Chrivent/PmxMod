@@ -65,6 +65,53 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanPostProcess::CreateDepthImages(
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
+		depthImages.resize(swapChainImageCount);
+		depthImageMemories.resize(swapChainImageCount);
+		depthImageViews.resize(swapChainImageCount);
+		for (size_t index = 0; index < swapChainImageCount; index++) {
+			VkImageCreateInfo imageInfo{};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.extent = { sourceSwapChain.extent.width, sourceSwapChain.extent.height, 1 };
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.format = depthFormat;
+			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			if (vkCreateImage(device, &imageInfo, nullptr, &depthImages[index]) != VK_SUCCESS)
+				return false;
+			VkMemoryRequirements requirements{};
+			vkGetImageMemoryRequirements(device, depthImages[index], &requirements);
+			uint32_t memoryType = 0;
+			if (!VulkanMemory::FindMemoryType(
+				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
+				return false;
+			VkMemoryAllocateInfo allocateInfo{};
+			allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			allocateInfo.allocationSize = requirements.size;
+			allocateInfo.memoryTypeIndex = memoryType;
+			if (vkAllocateMemory(device, &allocateInfo, nullptr, &depthImageMemories[index]) != VK_SUCCESS
+				|| vkBindImageMemory(device, depthImages[index], depthImageMemories[index], 0) != VK_SUCCESS)
+				return false;
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = depthImages[index];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = depthFormat;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.layerCount = 1;
+			if (vkCreateImageView(device, &viewInfo, nullptr, &depthImageViews[index]) != VK_SUCCESS)
+				return false;
+		}
+		return true;
+	}
+
 	bool VulkanPostProcess::CreateDescriptors(const VulkanSwapChain&) {
 		VkDescriptorSetLayoutCreateInfo emptyLayoutInfo{};
 		emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -79,6 +126,12 @@ namespace Chrivent {
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
+				.binding = PostProcessInputLayout::SceneDepthRegister,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			},
+			VkDescriptorSetLayoutBinding{
 				.binding = 3,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
@@ -87,7 +140,7 @@ namespace Chrivent {
 		};
 		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = 2;
+		textureLayoutInfo.bindingCount = 3;
 		textureLayoutInfo.pBindings = bindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS)
 			return false;
@@ -109,7 +162,7 @@ namespace Chrivent {
 			return false;
 		const uint32_t descriptorCount = static_cast<uint32_t>(targetImageViews.size());
 		const VkDescriptorPoolSize poolSizes[] = {
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount * 2 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, descriptorCount }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
@@ -134,6 +187,11 @@ namespace Chrivent {
 				.imageView = targetImageViews[index],
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
+			const VkDescriptorImageInfo depthInfo{
+				.sampler = VK_NULL_HANDLE,
+				.imageView = depthImageViews[index % swapChainImageCount],
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 			const VkDescriptorImageInfo samplerDescriptor{ .sampler = sampler };
 			const VkWriteDescriptorSet writes[] = {
 				VkWriteDescriptorSet{
@@ -147,13 +205,21 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = descriptorSets[index],
+					.dstBinding = PostProcessInputLayout::SceneDepthRegister,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+					.pImageInfo = &depthInfo
+				},
+				VkWriteDescriptorSet{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet = descriptorSets[index],
 					.dstBinding = 3,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &samplerDescriptor
 				}
 			};
-			vkUpdateDescriptorSets(device, 2, writes, 0, nullptr);
+			vkUpdateDescriptorSets(device, 3, writes, 0, nullptr);
 		}
 		return true;
 	}
@@ -254,10 +320,12 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const std::vector<const EffectDefinition*>& effects) {
+		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat,
+		const std::vector<const EffectDefinition*>& effects) {
 		Reset();
 		device = sourceDevice.device;
 		return CreateTargetImages(sourceDevice, sourceSwapChain)
+			&& CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)
 			&& CreateDescriptors(sourceSwapChain)
 			&& CreatePipeline(sourceDevice, sourceSwapChain, effects);
 	}
@@ -280,15 +348,24 @@ namespace Chrivent {
 				vkDestroySampler(device, sampler, nullptr);
 			for (const VkImageView view : targetImageViews)
 				vkDestroyImageView(device, view, nullptr);
+			for (const VkImageView view : depthImageViews)
+				vkDestroyImageView(device, view, nullptr);
 			for (const VkImage image : targetImages)
 				vkDestroyImage(device, image, nullptr);
+			for (const VkImage image : depthImages)
+				vkDestroyImage(device, image, nullptr);
 			for (const VkDeviceMemory memory : targetImageMemories)
+				vkFreeMemory(device, memory, nullptr);
+			for (const VkDeviceMemory memory : depthImageMemories)
 				vkFreeMemory(device, memory, nullptr);
 		}
 		descriptorSets.clear();
 		targetImageViews.clear();
 		targetImages.clear();
 		targetImageMemories.clear();
+		depthImageViews.clear();
+		depthImages.clear();
+		depthImageMemories.clear();
 		for (VkDescriptorSetLayout& layout : descriptorSetLayouts)
 			layout = VK_NULL_HANDLE;
 		descriptorPool = VK_NULL_HANDLE;

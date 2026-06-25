@@ -30,6 +30,8 @@ namespace Chrivent {
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
 		std::vector<Dx12PostProcessTarget> postProcessTargets;
+		Microsoft::WRL::ComPtr<ID3D12Resource> postProcessDepth;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> postProcessDepthDsvHeap;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
@@ -50,6 +52,10 @@ namespace Chrivent {
 		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
 		// MSAA 장면을 후처리 입력으로 resolve하고 선택된 효과로 back buffer에 그린다.
 		void DrawPostProcess(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
+		// 후처리 depth-only pass에 사용할 단일 샘플 depth target을 생성한다.
+		bool CreatePostProcessDepthTarget();
+		// 후처리 depth-only pass용 DSV handle을 반환한다.
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolvePostProcessDepthDsvHandle() const;
 
 	public:
 		Dx12Viewer();
@@ -67,6 +73,10 @@ namespace Chrivent {
 		void BeginFrame() override;
 		// DX12 프레임을 제출하고 화면에 표시한다.
 		bool EndFrame() override;
+		// DX12 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
+		bool BeginPostProcessDepthPass() override;
+		// DX12 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
+		void EndPostProcessDepthPass() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들을 DX12 ping-pong 체인으로 컴파일한다.
@@ -79,6 +89,8 @@ namespace Chrivent {
 		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
 		// material의 양면 렌더링 여부에 맞는 DX12 model pipeline state를 바인딩한다.
 		void BindModelPipeline(bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 DX12 depth-only pipeline state를 바인딩한다.
+		void BindDepthOnlyPipeline(bool bothFace) const;
 		// DX12 엣지 렌더링용 root signature와 pipeline state를 바인딩한다.
 		void BindEdgePipeline() const;
 		// DX12 지면 그림자 렌더링용 root signature와 pipeline state를 바인딩한다.

@@ -174,6 +174,60 @@ namespace Chrivent {
 			static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
 	}
 
+	bool VulkanCommandBuffer::BeginPostProcessDepthPass(
+		const uint32_t imageIndex, const VkImage sceneImage, const VkImage depthImage,
+		const VkImageView depthImageView, const bool depthHasStencil, const VkPipeline pipeline,
+		const VkExtent2D extent) const {
+		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE ||
+			depthImageView == VK_NULL_HANDLE || pipeline == VK_NULL_HANDLE)
+			return false;
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		vkCmdEndRendering(commandBuffer);
+		TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		const VkImageAspectFlags depthAspect = VK_IMAGE_ASPECT_DEPTH_BIT | (depthHasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+		TransitionImage(commandBuffer, depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, depthAspect);
+		constexpr VkClearValue depthClear{ .depthStencil = { 1.0f, 0 } };
+		const VkRenderingAttachmentInfo depthAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = depthImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = depthClear
+		};
+		const VkRenderingInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+			.renderArea = { .extent = extent },
+			.layerCount = 1,
+			.pDepthAttachment = &depthAttachment,
+			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
+		};
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		return true;
+	}
+
+	bool VulkanCommandBuffer::EndPostProcessDepthPass(
+		const uint32_t imageIndex, const VkImage depthImage, const bool depthHasStencil) const {
+		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE)
+			return false;
+		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
+		vkCmdEndRendering(commandBuffer);
+		const VkImageAspectFlags depthAspect = VK_IMAGE_ASPECT_DEPTH_BIT | (depthHasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+		TransitionImage(commandBuffer, depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, depthAspect);
+		return true;
+	}
+
 	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex, const VkImage outputImage) const {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "Failed to end Vulkan command buffer: image index is out of range.\n";
@@ -197,17 +251,19 @@ namespace Chrivent {
 		const std::span<const VkImage> targetImages, const std::span<const VkImageView> targetImageViews,
 		const std::span<const VkPipeline> pipelines,
 		const VkPipelineLayout pipelineLayout, const std::span<const VkDescriptorSet> descriptorSets,
-		const VkExtent2D extent) const {
+		const VkExtent2D extent, const bool sceneRenderingEnded) const {
 		if (imageIndex >= commandBuffers.size() || pipelines.empty()
 			|| pipelineLayout == VK_NULL_HANDLE || targetImages.size() < 3
 			|| targetImageViews.size() < 3 || descriptorSets.size() < 3)
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		vkCmdEndRendering(commandBuffer);
-		TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-			VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		if (!sceneRenderingEnded) {
+			vkCmdEndRendering(commandBuffer);
+			TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+				VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		}
 		for (size_t passIndex = 0; passIndex < pipelines.size(); passIndex++) {
 			if (pipelines[passIndex] == VK_NULL_HANDLE)
 				return false;
