@@ -136,6 +136,20 @@ namespace Chrivent {
 		if (FAILED(device->CreateShaderResourceView(
 			renderTargets.postProcessDepth.Get(), &depthViewDesc, &renderTargets.postProcessDepthView)))
 			return false;
+		const auto focusHistoryDesc = Dx11DescBuilder::MakeTexture2DDesc(
+			1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+		for (int index = 0; index < 2; index++) {
+			if (FAILED(device->CreateTexture2D(&focusHistoryDesc, nullptr, &renderTargets.focusHistory[index])))
+				return false;
+			if (FAILED(device->CreateRenderTargetView(
+				renderTargets.focusHistory[index].Get(), nullptr, &renderTargets.focusHistoryView[index])))
+				return false;
+			if (FAILED(device->CreateShaderResourceView(
+				renderTargets.focusHistory[index].Get(), nullptr, &renderTargets.focusHistoryResourceView[index])))
+				return false;
+			constexpr float clearHistory[4] = {};
+			deviceResources.context->ClearRenderTargetView(renderTargets.focusHistoryView[index].Get(), clearHistory);
+		}
 		return true;
 	}
 
@@ -152,7 +166,38 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Viewer::DrawPostProcess() const {
+	void Dx11Viewer::UpdateFocusHistory() {
+		if (!focusHistoryEnabled)
+			return;
+		const auto& context = deviceResources.context;
+		const int readIndex = focusHistoryIndex;
+		const int writeIndex = 1 - focusHistoryIndex;
+		ID3D11RenderTargetView* targetView = renderTargets.focusHistoryView[writeIndex].Get();
+		context->OMSetRenderTargets(1, &targetView, nullptr);
+		D3D11_VIEWPORT focusViewport{};
+		focusViewport.Width = 1.0f;
+		focusViewport.Height = 1.0f;
+		focusViewport.MinDepth = 0.0f;
+		focusViewport.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &focusViewport);
+		context->VSSetShader(focusHistoryShader.vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(focusHistoryShader.pixelShader.Get(), nullptr, 0);
+		ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
+			renderTargets.sceneColorView.Get(),
+			renderTargets.postProcessDepthView.Get(),
+			renderTargets.focusHistoryResourceView[readIndex].Get()
+		};
+		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+			PostProcessInputLayout::RequiredTextureCount, views);
+		context->Draw(3, 0);
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
+		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
+			PostProcessInputLayout::RequiredTextureCount, emptyViews);
+		focusHistoryIndex = writeIndex;
+		UpdateViewport();
+	}
+
+	void Dx11Viewer::DrawPostProcess() {
 		auto& context = deviceResources.context;
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		context->OMSetDepthStencilState(nullptr, 0);
@@ -160,6 +205,7 @@ namespace Chrivent {
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		context->PSSetSamplers(PostProcessInputLayout::LinearClampSamplerRegister, 1, pipelineStates.toonTextureSampler.GetAddressOf());
+		UpdateFocusHistory();
 		ID3D11ShaderResourceView* sourceView = renderTargets.sceneColorView.Get();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
 			const bool lastPass = index + 1 == postProcessShaders.size();
@@ -172,7 +218,10 @@ namespace Chrivent {
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
 			ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
 				sourceView,
-				renderTargets.postProcessDepthView.Get()
+				renderTargets.postProcessDepthView.Get(),
+				focusHistoryEnabled
+					? renderTargets.focusHistoryResourceView[focusHistoryIndex].Get()
+					: renderTargets.postProcessDepthView.Get()
 			};
 			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
 				PostProcessInputLayout::RequiredTextureCount, views);
@@ -288,6 +337,11 @@ namespace Chrivent {
 		renderTargets.postProcessDepth.Reset();
 		renderTargets.postProcessDepthStencilView.Reset();
 		renderTargets.postProcessDepthView.Reset();
+		for (int index = 0; index < 2; index++) {
+			renderTargets.focusHistory[index].Reset();
+			renderTargets.focusHistoryView[index].Reset();
+			renderTargets.focusHistoryResourceView[index].Reset();
+		}
 		if (FAILED(deviceResources.swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
 		if (!CreateRenderTargets())
@@ -363,12 +417,22 @@ namespace Chrivent {
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
+			if (effect->id == "depth-of-field") {
+				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
+				if (std::filesystem::exists(focusShaderPath)
+					&& focusHistoryShader.Initialize(deviceResources.device.Get(), focusShaderPath, "VSMain", "PSMain"))
+					focusHistoryEnabled = true;
+			}
 		}
+		focusHistoryIndex = 0;
 		return true;
 	}
 
 	void Dx11Viewer::ClearPostProcessEffects() {
 		postProcessShaders.clear();
+		focusHistoryShader = {};
+		focusHistoryEnabled = false;
+		focusHistoryIndex = 0;
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

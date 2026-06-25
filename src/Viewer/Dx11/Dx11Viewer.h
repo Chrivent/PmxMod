@@ -41,6 +41,9 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         postProcessDepth;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  postProcessDepthStencilView;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> postProcessDepthView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         focusHistory[2];
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  focusHistoryView[2];
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> focusHistoryResourceView[2];
     };
 
     struct Dx11ShaderSet {
@@ -81,8 +84,10 @@ namespace Chrivent {
         bool CreateRenderTargets();
         // 장면 색상을 셰이더 입력용 단일 샘플 텍스처로 변환한다.
         void ResolveSceneColor() const;
+        // DOF용 자동 초점 히스토리 텍스처를 갱신한다.
+        void UpdateFocusHistory();
         // 준비된 포스트 프로세스 셰이더로 장면 색상을 스왑체인에 그린다.
-        void DrawPostProcess() const;
+        void DrawPostProcess();
         // 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
         bool CreatePipelineStates();
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
@@ -94,7 +99,10 @@ namespace Chrivent {
         Dx11ShaderSet shaders;
         Dx11PipelineStates pipelineStates;
         Dx11DummyTexture dummyTexture;
+        Dx11PostProcessShader focusHistoryShader;
         std::vector<Dx11PostProcessShader> postProcessShaders;
+        int focusHistoryIndex = 0;
+        bool focusHistoryEnabled = false;
 
         Dx11Viewer() = default;
 

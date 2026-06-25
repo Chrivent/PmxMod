@@ -16,6 +16,8 @@ namespace Chrivent {
 		bool Initialize(const Dx12Device& sourceDevice, int width, int height);
 		// 후처리 depth SRV를 t1 슬롯에 갱신한다.
 		void UpdateDepthShaderResourceView(const Dx12Device& sourceDevice, ID3D12Resource* depthResource) const;
+		// 후처리 초점 히스토리 SRV를 t2 슬롯에 갱신한다.
+		void UpdateFocusHistoryShaderResourceView(const Dx12Device& sourceDevice, ID3D12Resource* historyResource) const;
 		// 후처리 색상 리소스를 반환한다.
 		ID3D12Resource* ResolveResource() const { return sceneColor.Get(); }
 		// 후처리 입력 SRV가 들어 있는 shader-visible heap을 반환한다.

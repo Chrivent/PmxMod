@@ -147,8 +147,10 @@ namespace Chrivent {
 		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		device->device->CreateDepthStencilView(postProcessDepth.Get(), &dsvDesc, ResolvePostProcessDepthDsvHandle());
-		for (const auto& target : postProcessTargets)
+		for (const auto& target : postProcessTargets) {
 			target.UpdateDepthShaderResourceView(*device, postProcessDepth.Get());
+			target.UpdateFocusHistoryShaderResourceView(*device, postProcessDepth.Get());
+		}
 		return true;
 	}
 

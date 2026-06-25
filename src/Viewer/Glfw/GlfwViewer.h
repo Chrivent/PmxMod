@@ -38,15 +38,22 @@ namespace Chrivent {
         GLuint postProcessDepthTexture = 0;
         GLuint pingPongFramebuffers[2] = {};
         GLuint pingPongTextures[2] = {};
+        GLuint focusHistoryFramebuffers[2] = {};
+        GLuint focusHistoryTextures[2] = {};
         GLuint sceneDepthStencil = 0;
         GLuint postProcessVao = 0;
         GLsizei postProcessSampleCount = 1;
+        std::unique_ptr<GlfwPostProcessShader> focusHistoryShader;
         std::vector<std::unique_ptr<GlfwPostProcessShader>> postProcessShaders;
+        int focusHistoryIndex = 0;
+        bool focusHistoryEnabled = false;
 
         // 화면 크기에 맞는 후처리용 장면 프레임버퍼를 생성한다.
         bool CreatePostProcessTargets();
         // 후처리용 장면 프레임버퍼 리소스를 해제한다.
         void ResetPostProcessTargets();
+        // DOF용 자동 초점 히스토리 텍스처를 갱신한다.
+        void UpdateFocusHistory();
 
     public:
         GLuint dummyColorTex = 0;

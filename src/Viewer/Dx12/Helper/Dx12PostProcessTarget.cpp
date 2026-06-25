@@ -45,6 +45,7 @@ namespace Chrivent {
 		sourceDevice.device->CreateShaderResourceView(
 			sceneColor.Get(), &srvDesc, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		UpdateDepthShaderResourceView(sourceDevice, nullptr);
+		UpdateFocusHistoryShaderResourceView(sourceDevice, nullptr);
 		sourceDevice.device->CreateRenderTargetView(
 			sceneColor.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		return true;
@@ -63,6 +64,21 @@ namespace Chrivent {
 		handle.ptr += sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 			* PostProcessInputLayout::SceneDepthRegister;
 		sourceDevice.device->CreateShaderResourceView(depthResource, &srvDesc, handle);
+	}
+
+	void Dx12PostProcessTarget::UpdateFocusHistoryShaderResourceView(
+		const Dx12Device& sourceDevice, ID3D12Resource* historyResource) const {
+		if (!sourceDevice.device || !srvDescriptorHeap)
+			return;
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Texture2D.MipLevels = 1;
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		handle.ptr += sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+			* PostProcessInputLayout::FocusHistoryRegister;
+		sourceDevice.device->CreateShaderResourceView(historyResource, &srvDesc, handle);
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE Dx12PostProcessTarget::ResolveGpuHandle() const {
