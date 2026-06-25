@@ -60,8 +60,6 @@ namespace Chrivent {
 		void BindEdge(ID3D12GraphicsCommandList* commandList) const;
 		// 지면 그림자 렌더링용 pipeline을 command list에 바인딩한다.
 		void BindGroundShadow(ID3D12GraphicsCommandList* commandList) const;
-		// 선택된 후처리 HLSL로 단일 샘플 graphics pipeline을 생성한다.
-		bool LoadPostProcessEffect(const Dx12Device& sourceDevice, const EffectDefinition& effect);
 		// 체크된 후처리 HLSL 목록으로 단일 샘플 graphics pipeline 체인을 생성한다.
 		bool LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
 		// 후처리 pipeline과 장면 색상 SRV를 command list에 바인딩한다.
@@ -71,7 +69,7 @@ namespace Chrivent {
 		// 선택된 후처리 pipeline 개수를 반환한다.
 		size_t GetPostProcessPassCount() const { return postProcessPipelineStates.size(); }
 		// 선택된 후처리 pipeline 리소스만 해제한다.
-		void ClearPostProcessEffect();
+		void ClearPostProcessEffects();
 		// 생성한 DX12 pipeline 리소스를 해제한다.
 		void Reset();
 	};

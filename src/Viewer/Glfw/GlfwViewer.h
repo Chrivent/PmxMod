@@ -67,12 +67,10 @@ namespace Chrivent {
         bool EndFrame() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.
         void WaitIdle() override;
-        // 선택한 후처리 HLSL을 OpenGL 프로그램으로 준비한다.
-        bool LoadPostProcessEffect(const EffectDefinition& effect) override;
         // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // OpenGL 후처리 프로그램을 해제한다.
-        void ClearPostProcessEffect() override;
+        // OpenGL 후처리 프로그램들을 해제한다.
+        void ClearPostProcessEffects() override;
         // OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
 

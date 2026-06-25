@@ -302,21 +302,8 @@ namespace Chrivent {
 			SwitchToThread();
 	}
 
-	bool Dx11Viewer::LoadPostProcessEffect(const EffectDefinition& effect) {
-		if (effect.passes.empty())
-			return false;
-		const auto& pass = effect.passes.front();
-		Dx11PostProcessShader shader;
-		if (!shader.Initialize(deviceResources.device.Get(), pass.shaderPath,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str()))
-			return false;
-		postProcessShaders.clear();
-		postProcessShaders.push_back(std::move(shader));
-		return true;
-	}
-
 	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		ClearPostProcessEffect();
+		ClearPostProcessEffects();
 		for (const auto* effect : effects) {
 			if (!effect || effect->passes.empty())
 				continue;
@@ -324,7 +311,7 @@ namespace Chrivent {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(deviceResources.device.Get(), pass.shaderPath,
 				pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
-				ClearPostProcessEffect();
+				ClearPostProcessEffects();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
@@ -332,10 +319,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11Viewer::ClearPostProcessEffect() {
-		shaders.postProcess.vertexShader.Reset();
-		shaders.postProcess.pixelShader.Reset();
-		shaders.postProcess.inputLayout.Reset();
+	void Dx11Viewer::ClearPostProcessEffects() {
 		postProcessShaders.clear();
 	}
 

@@ -253,13 +253,6 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const EffectDefinition& effect) {
-		std::vector<const EffectDefinition*> effects;
-		effects.push_back(&effect);
-		return Initialize(sourceDevice, sourceSwapChain, effects);
-	}
-
-	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const std::vector<const EffectDefinition*>& effects) {
 		Reset();
 		device = sourceDevice.device;

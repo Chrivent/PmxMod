@@ -95,12 +95,10 @@ namespace Chrivent {
 		bool EndFrame() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		void WaitIdle() override;
-		// 선택한 포스트 프로세스 효과에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
-		bool LoadPostProcessEffect(const EffectDefinition& effect) override;
 		// 체크된 포스트 프로세스 효과들에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
 		// Vulkan 후처리 스왑체인 의존 리소스를 해제하고 기본 렌더 경로로 되돌린다.
-		void ClearPostProcessEffect() override;
+		void ClearPostProcessEffects() override;
 		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

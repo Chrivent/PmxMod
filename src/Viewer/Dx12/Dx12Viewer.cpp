@@ -236,19 +236,14 @@ namespace Chrivent {
 		commandContext.WaitForGpu(*device);
 	}
 
-	bool Dx12Viewer::LoadPostProcessEffect(const EffectDefinition& effect) {
-		WaitIdle();
-		return pipeline.LoadPostProcessEffect(*device, effect);
-	}
-
 	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
 		return pipeline.LoadPostProcessEffects(*device, effects);
 	}
 
-	void Dx12Viewer::ClearPostProcessEffect() {
+	void Dx12Viewer::ClearPostProcessEffects() {
 		WaitIdle();
-		pipeline.ClearPostProcessEffect();
+		pipeline.ClearPostProcessEffects();
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

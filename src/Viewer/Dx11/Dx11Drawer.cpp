@@ -130,6 +130,9 @@ namespace Chrivent {
 		if (!viewer->edgeEffectEnabled)
 			return;
 		const auto& materials = instance.materials;
+		const auto& vertexBuffer = instance.vertexBuffer;
+		const auto& indexBuffer = instance.indexBuffer;
+		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& edgeVsConstantBuffer = instance.edgeVsConstantBuffer;
 		const auto& edgePsConstantBuffer = instance.edgePsConstantBuffer;
 		const auto& view = viewer->viewMat;
@@ -138,6 +141,11 @@ namespace Chrivent {
 		const auto wv = view * world;
 		const auto wvp = ClipMatrix() * proj * view * world;
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.edge.inputLayout.Get());
+		constexpr UINT stride = sizeof(ViewerVertex);
+		constexpr UINT offset = 0;
+		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		EdgeVertexConstants vsCb1{};
 		vsCb1.wv = wv;
 		vsCb1.wvp = wvp;
@@ -168,12 +176,20 @@ namespace Chrivent {
 		if (!viewer->groundShadowEffectEnabled)
 			return;
 		const auto& materials = instance.materials;
+		const auto& vertexBuffer = instance.vertexBuffer;
+		const auto& indexBuffer = instance.indexBuffer;
+		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& gsVsConstantBuffer = instance.gsVsConstantBuffer;
 		const auto& gsPsConstantBuffer = instance.gsPsConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.groundShadow.inputLayout.Get());
+		constexpr UINT stride = sizeof(ViewerVertex);
+		constexpr UINT offset = 0;
+		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->lightDir);
 		GroundShadowVertexConstants vsCb;
 		vsCb.wvp = ClipMatrix() * proj * view * shadow * world;

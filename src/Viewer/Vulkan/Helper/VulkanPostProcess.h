@@ -47,9 +47,6 @@ namespace Chrivent {
 		VkDescriptorSet GetDescriptorSet(const size_t targetIndex, const uint32_t imageIndex) const { return descriptorSets[ResolveTargetIndex(targetIndex, imageIndex)]; }
 		static size_t GetTargetCount() { return kTargetCount; }
 
-		// 현재 스왑체인과 선택된 효과에 맞는 Vulkan 후처리 리소스를 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			const EffectDefinition& effect);
 		// 현재 스왑체인과 선택된 효과 목록에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			const std::vector<const EffectDefinition*>& effects);

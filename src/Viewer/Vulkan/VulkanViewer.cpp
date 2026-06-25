@@ -297,14 +297,6 @@ namespace Chrivent {
 			vkDeviceWaitIdle(device->device);
 	}
 
-	bool VulkanViewer::LoadPostProcessEffect(const EffectDefinition& effect) {
-		if (effect.passes.empty())
-			return false;
-		std::vector<const EffectDefinition*> effects;
-		effects.push_back(&effect);
-		return LoadPostProcessEffects(effects);
-	}
-
 	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
 		postProcessEffects.clear();
@@ -322,7 +314,7 @@ namespace Chrivent {
 		return false;
 	}
 
-	void VulkanViewer::ClearPostProcessEffect() {
+	void VulkanViewer::ClearPostProcessEffects() {
 		if (postProcessEffects.empty())
 			return;
 		WaitIdle();

@@ -44,7 +44,6 @@ namespace Chrivent {
         Dx11ModelShader         model;
         Dx11EdgeShader          edge;
         Dx11GroundShadowShader  groundShadow;
-        Dx11PostProcessShader   postProcess;
     };
 
     struct Dx11PipelineStates {
@@ -108,12 +107,10 @@ namespace Chrivent {
         bool EndFrame() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
         void WaitIdle() override;
-        // 첫 번째 패스를 DX11 풀스크린 포스트 프로세스 셰이더로 준비한다.
-        bool LoadPostProcessEffect(const EffectDefinition& effect) override;
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // DX11 후처리 셰이더를 해제한다.
-        void ClearPostProcessEffect() override;
+        // DX11 후처리 셰이더들을 해제한다.
+        void ClearPostProcessEffects() override;
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.

@@ -217,25 +217,14 @@ namespace Chrivent {
 		glFinish();
 	}
 
-	bool GlfwViewer::LoadPostProcessEffect(const EffectDefinition& effect) {
-		if (effect.passes.empty())
-			return false;
-		auto shader = std::make_unique<GlfwPostProcessShader>();
-		if (!shader->Initialize(effect.passes.front()))
-			return false;
-		postProcessShaders.clear();
-		postProcessShaders.push_back(std::move(shader));
-		return true;
-	}
-
 	bool GlfwViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		ClearPostProcessEffect();
+		ClearPostProcessEffects();
 		for (const auto* effect : effects) {
 			if (!effect || effect->passes.empty())
 				continue;
 			auto shader = std::make_unique<GlfwPostProcessShader>();
 			if (!shader->Initialize(effect->passes.front())) {
-				ClearPostProcessEffect();
+				ClearPostProcessEffects();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
@@ -243,7 +232,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwViewer::ClearPostProcessEffect() {
+	void GlfwViewer::ClearPostProcessEffects() {
 		postProcessShaders.clear();
 	}
 

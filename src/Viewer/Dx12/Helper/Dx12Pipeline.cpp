@@ -337,12 +337,6 @@ namespace Chrivent {
 		commandList->SetPipelineState(groundShadowPipelineState.Get());
 	}
 
-	bool Dx12Pipeline::LoadPostProcessEffect(const Dx12Device& sourceDevice, const EffectDefinition& effect) {
-		std::vector<const EffectDefinition*> effects;
-		effects.push_back(&effect);
-		return LoadPostProcessEffects(sourceDevice, effects);
-	}
-
 	bool Dx12Pipeline::LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
 		if (!sourceDevice.device)
 			return false;
@@ -362,7 +356,7 @@ namespace Chrivent {
 			if (!CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
 				|| !CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
 				std::cerr << error;
-				ClearPostProcessEffect();
+				ClearPostProcessEffects();
 				return false;
 			}
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
@@ -380,7 +374,7 @@ namespace Chrivent {
 			pipelineDesc.SampleDesc.Count = 1;
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
 			if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)))) {
-				ClearPostProcessEffect();
+				ClearPostProcessEffects();
 				return false;
 			}
 			postProcessPipelineStates.push_back(std::move(pipelineState));
@@ -397,7 +391,7 @@ namespace Chrivent {
 		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
 	}
 
-	void Dx12Pipeline::ClearPostProcessEffect() {
+	void Dx12Pipeline::ClearPostProcessEffects() {
 		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 	}
