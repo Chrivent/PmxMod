@@ -19,7 +19,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> groundShadowPipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> postProcessRootSignature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> postProcessPipelineState;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> postProcessPipelineStates;
 
 		// root signature 직렬화와 생성 실패 로그 처리를 공통으로 수행한다.
 		static bool CreateRootSignature(
@@ -62,10 +62,14 @@ namespace Chrivent {
 		void BindGroundShadow(ID3D12GraphicsCommandList* commandList) const;
 		// 선택된 후처리 HLSL로 단일 샘플 graphics pipeline을 생성한다.
 		bool LoadPostProcessEffect(const Dx12Device& sourceDevice, const EffectDefinition& effect);
+		// 체크된 후처리 HLSL 목록으로 단일 샘플 graphics pipeline 체인을 생성한다.
+		bool LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
 		// 후처리 pipeline과 장면 색상 SRV를 command list에 바인딩한다.
-		void BindPostProcess(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const;
+		void BindPostProcess(ID3D12GraphicsCommandList* commandList, size_t passIndex, D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const;
 		// 선택된 후처리 pipeline이 준비됐는지 반환한다.
-		bool HasPostProcessEffect() const { return postProcessPipelineState != nullptr; }
+		bool HasPostProcessEffect() const { return !postProcessPipelineStates.empty(); }
+		// 선택된 후처리 pipeline 개수를 반환한다.
+		size_t GetPostProcessPassCount() const { return postProcessPipelineStates.size(); }
 		// 선택된 후처리 pipeline 리소스만 해제한다.
 		void ClearPostProcessEffect();
 		// 생성한 DX12 pipeline 리소스를 해제한다.

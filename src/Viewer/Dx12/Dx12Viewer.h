@@ -12,6 +12,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 namespace Chrivent {
 	struct Dx12Material : ViewerMaterial {
@@ -28,7 +29,7 @@ namespace Chrivent {
 		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
-		Dx12PostProcessTarget postProcessTarget;
+		std::vector<Dx12PostProcessTarget> postProcessTargets;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
@@ -70,6 +71,8 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 선택한 포스트 프로세스 효과를 DX12 pipeline으로 컴파일한다.
 		bool LoadPostProcessEffect(const EffectDefinition& effect) override;
+		// 체크된 포스트 프로세스 효과들을 DX12 ping-pong 체인으로 컴파일한다.
+		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
 		// DX12 후처리 pipeline을 해제한다.
 		void ClearPostProcessEffect() override;
 		// DX12 모델 인스턴스를 생성한다.

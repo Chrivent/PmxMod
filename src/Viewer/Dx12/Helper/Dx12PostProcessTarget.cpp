@@ -17,15 +17,23 @@ namespace Chrivent {
 		resourceDesc.MipLevels = 1;
 		resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		resourceDesc.SampleDesc.Count = 1;
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		D3D12_CLEAR_VALUE clearValue{};
+		clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		if (FAILED(sourceDevice.device->CreateCommittedResource(
 			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&sceneColor))))
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&sceneColor))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = 1;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&descriptorHeap))))
+		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&srvDescriptorHeap))))
+			return false;
+		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
+		rtvHeapDesc.NumDescriptors = 1;
+		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
 			return false;
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -33,18 +41,27 @@ namespace Chrivent {
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Texture2D.MipLevels = 1;
 		sourceDevice.device->CreateShaderResourceView(
-			sceneColor.Get(), &srvDesc, descriptorHeap->GetCPUDescriptorHandleForHeapStart());
+			sceneColor.Get(), &srvDesc, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+		sourceDevice.device->CreateRenderTargetView(
+			sceneColor.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		return true;
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE Dx12PostProcessTarget::ResolveGpuHandle() const {
-		if (!descriptorHeap)
+		if (!srvDescriptorHeap)
 			return {};
-		return descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		return srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE Dx12PostProcessTarget::ResolveRtvHandle() const {
+		if (!rtvDescriptorHeap)
+			return {};
+		return rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
 	void Dx12PostProcessTarget::Reset() {
-		descriptorHeap.Reset();
+		rtvDescriptorHeap.Reset();
+		srvDescriptorHeap.Reset();
 		sceneColor.Reset();
 	}
 }

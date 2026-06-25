@@ -11,12 +11,18 @@ namespace Chrivent {
 		Reset();
 	}
 
-	bool VulkanPostProcess::CreateSceneImages(const VulkanDevice& sourceDevice,
+	size_t VulkanPostProcess::ResolveTargetIndex(const size_t targetIndex, const uint32_t imageIndex) const {
+		return targetIndex * swapChainImageCount + imageIndex;
+	}
+
+	bool VulkanPostProcess::CreateTargetImages(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain) {
-		sceneImages.resize(sourceSwapChain.images.size());
-		sceneImageMemories.resize(sourceSwapChain.images.size());
-		sceneImageViews.resize(sourceSwapChain.images.size());
-		for (size_t index = 0; index < sceneImages.size(); index++) {
+		swapChainImageCount = sourceSwapChain.images.size();
+		const size_t imageCount = swapChainImageCount * kTargetCount;
+		targetImages.resize(imageCount);
+		targetImageMemories.resize(imageCount);
+		targetImageViews.resize(imageCount);
+		for (size_t index = 0; index < targetImages.size(); index++) {
 			VkImageCreateInfo imageInfo{};
 			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -29,10 +35,10 @@ namespace Chrivent {
 			imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			if (vkCreateImage(device, &imageInfo, nullptr, &sceneImages[index]) != VK_SUCCESS)
+			if (vkCreateImage(device, &imageInfo, nullptr, &targetImages[index]) != VK_SUCCESS)
 				return false;
 			VkMemoryRequirements requirements{};
-			vkGetImageMemoryRequirements(device, sceneImages[index], &requirements);
+			vkGetImageMemoryRequirements(device, targetImages[index], &requirements);
 			uint32_t memoryType = 0;
 			if (!VulkanMemory::FindMemoryType(
 				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
@@ -41,24 +47,24 @@ namespace Chrivent {
 			allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocateInfo.allocationSize = requirements.size;
 			allocateInfo.memoryTypeIndex = memoryType;
-			if (vkAllocateMemory(device, &allocateInfo, nullptr, &sceneImageMemories[index]) != VK_SUCCESS
-				|| vkBindImageMemory(device, sceneImages[index], sceneImageMemories[index], 0) != VK_SUCCESS)
+			if (vkAllocateMemory(device, &allocateInfo, nullptr, &targetImageMemories[index]) != VK_SUCCESS
+				|| vkBindImageMemory(device, targetImages[index], targetImageMemories[index], 0) != VK_SUCCESS)
 				return false;
 			VkImageViewCreateInfo viewInfo{};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = sceneImages[index];
+			viewInfo.image = targetImages[index];
 			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			viewInfo.format = sourceSwapChain.imageFormat;
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			viewInfo.subresourceRange.levelCount = 1;
 			viewInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(device, &viewInfo, nullptr, &sceneImageViews[index]) != VK_SUCCESS)
+			if (vkCreateImageView(device, &viewInfo, nullptr, &targetImageViews[index]) != VK_SUCCESS)
 				return false;
 		}
 		return true;
 	}
 
-	bool VulkanPostProcess::CreateDescriptors(const VulkanSwapChain& sourceSwapChain) {
+	bool VulkanPostProcess::CreateDescriptors(const VulkanSwapChain&) {
 		VkDescriptorSetLayoutCreateInfo emptyLayoutInfo{};
 		emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		if (vkCreateDescriptorSetLayout(device, &emptyLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS
@@ -100,7 +106,7 @@ namespace Chrivent {
 		samplerInfo.maxLod = 1.0f;
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			return false;
-		const uint32_t descriptorCount = static_cast<uint32_t>(sourceSwapChain.images.size());
+		const uint32_t descriptorCount = static_cast<uint32_t>(targetImageViews.size());
 		const VkDescriptorPoolSize poolSizes[] = {
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, descriptorCount }
@@ -124,7 +130,7 @@ namespace Chrivent {
 		for (uint32_t index = 0; index < descriptorCount; index++) {
 			const VkDescriptorImageInfo imageInfo{
 				.sampler = VK_NULL_HANDLE,
-				.imageView = sceneImageViews[index],
+				.imageView = targetImageViews[index],
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 			const VkDescriptorImageInfo samplerDescriptor{ .sampler = sampler };
@@ -152,10 +158,11 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::CreatePipeline(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const EffectDefinition& effect) {
-		if (effect.passes.empty())
-			return false;
-		const auto& pass = effect.passes.front();
+		const VulkanSwapChain& sourceSwapChain, const std::vector<const EffectDefinition*>& effects) {
+		for (const auto* effect : effects) {
+			if (!effect || effect->passes.empty())
+				continue;
+			const auto& pass = effect->passes.front();
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
 		std::string error;
@@ -237,23 +244,36 @@ namespace Chrivent {
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pColorBlendState = &blending;
 		pipelineInfo.layout = pipelineLayout;
-		return vkCreateGraphicsPipelines(
-			device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
+			VkPipeline pipeline = VK_NULL_HANDLE;
+			if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
+				return false;
+			pipelines.push_back(pipeline);
+		}
+		return true;
 	}
 
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const EffectDefinition& effect) {
+		std::vector<const EffectDefinition*> effects;
+		effects.push_back(&effect);
+		return Initialize(sourceDevice, sourceSwapChain, effects);
+	}
+
+	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
+		const VulkanSwapChain& sourceSwapChain, const std::vector<const EffectDefinition*>& effects) {
 		Reset();
 		device = sourceDevice.device;
-		return CreateSceneImages(sourceDevice, sourceSwapChain)
+		return CreateTargetImages(sourceDevice, sourceSwapChain)
 			&& CreateDescriptors(sourceSwapChain)
-			&& CreatePipeline(sourceDevice, sourceSwapChain, effect);
+			&& CreatePipeline(sourceDevice, sourceSwapChain, effects);
 	}
 
 	void VulkanPostProcess::Reset() {
 		if (device != VK_NULL_HANDLE) {
-			if (pipeline != VK_NULL_HANDLE)
-				vkDestroyPipeline(device, pipeline, nullptr);
+			for (const VkPipeline pipeline : pipelines) {
+				if (pipeline != VK_NULL_HANDLE)
+					vkDestroyPipeline(device, pipeline, nullptr);
+			}
 			if (pipelineLayout != VK_NULL_HANDLE)
 				vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 			if (descriptorPool != VK_NULL_HANDLE)
@@ -264,23 +284,24 @@ namespace Chrivent {
 			}
 			if (sampler != VK_NULL_HANDLE)
 				vkDestroySampler(device, sampler, nullptr);
-			for (const VkImageView view : sceneImageViews)
+			for (const VkImageView view : targetImageViews)
 				vkDestroyImageView(device, view, nullptr);
-			for (const VkImage image : sceneImages)
+			for (const VkImage image : targetImages)
 				vkDestroyImage(device, image, nullptr);
-			for (const VkDeviceMemory memory : sceneImageMemories)
+			for (const VkDeviceMemory memory : targetImageMemories)
 				vkFreeMemory(device, memory, nullptr);
 		}
 		descriptorSets.clear();
-		sceneImageViews.clear();
-		sceneImages.clear();
-		sceneImageMemories.clear();
+		targetImageViews.clear();
+		targetImages.clear();
+		targetImageMemories.clear();
 		for (VkDescriptorSetLayout& layout : descriptorSetLayouts)
 			layout = VK_NULL_HANDLE;
 		descriptorPool = VK_NULL_HANDLE;
 		pipelineLayout = VK_NULL_HANDLE;
-		pipeline = VK_NULL_HANDLE;
+		pipelines.clear();
 		sampler = VK_NULL_HANDLE;
+		swapChainImageCount = 0;
 		device = VK_NULL_HANDLE;
 	}
 }

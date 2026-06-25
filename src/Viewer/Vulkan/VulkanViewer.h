@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer.h"
+#include "Viewer/Shader/ShaderPackage.h"
 #include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
 #include "Viewer/Vulkan/Helper/VulkanCommandContext.h"
 #include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
@@ -14,6 +15,7 @@
 #include "Viewer/Vulkan/VulkanTextureCache.h"
 
 #include <memory>
+#include <vector>
 
 namespace Chrivent {
 	struct VulkanMaterial : ViewerMaterial {
@@ -55,7 +57,7 @@ namespace Chrivent {
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		VulkanBindStateCache bindStateCache;
-		std::unique_ptr<EffectDefinition> postProcessEffect;
+		std::vector<EffectDefinition> postProcessEffects;
 
 	private:
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
@@ -95,6 +97,8 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 선택한 포스트 프로세스 효과에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
 		bool LoadPostProcessEffect(const EffectDefinition& effect) override;
+		// 체크된 포스트 프로세스 효과들에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
+		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
 		// Vulkan 후처리 스왑체인 의존 리소스를 해제하고 기본 렌더 경로로 되돌린다.
 		void ClearPostProcessEffect() override;
 		// Vulkan 모델 인스턴스를 생성한다.

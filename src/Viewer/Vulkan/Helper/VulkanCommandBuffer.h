@@ -52,8 +52,9 @@ namespace Chrivent {
 		bool EndRecord(uint32_t imageIndex, VkImage outputImage) const;
 		// 장면 렌더링을 끝내고 후처리 결과를 스왑체인 이미지에 기록한다.
 		bool EndRecordWithPostProcess(uint32_t imageIndex, VkImage sceneImage,
-			VkImage swapChainImage, VkImageView swapChainImageView, VkPipeline pipeline,
-			VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, VkExtent2D extent) const;
+			VkImage swapChainImage, VkImageView swapChainImageView, std::span<const VkImage> targetImages,
+			std::span<const VkImageView> targetImageViews, std::span<const VkPipeline> pipelines,
+			VkPipelineLayout pipelineLayout, std::span<const VkDescriptorSet> descriptorSets, VkExtent2D extent) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Reset();
 	};

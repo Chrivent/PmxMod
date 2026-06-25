@@ -59,7 +59,11 @@ namespace Chrivent {
 
 	void Dx12Viewer::DrawPostProcess(ID3D12GraphicsCommandList* commandList,
 		ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const {
-		ID3D12Resource* sceneColor = postProcessTarget.ResolveResource();
+		if (postProcessTargets.size() < 3) {
+			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
+			return;
+		}
+		ID3D12Resource* sceneColor = postProcessTargets[0].ResolveResource();
 		const D3D12_RESOURCE_STATES sourceState = device->msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
 			: D3D12_RESOURCE_STATE_COPY_SOURCE;
@@ -79,13 +83,32 @@ namespace Chrivent {
 			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
 			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
-		commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
-		ID3D12DescriptorHeap* descriptorHeaps[] = { postProcessTarget.ResolveDescriptorHeap() };
-		commandList->SetDescriptorHeaps(1, descriptorHeaps);
-		pipeline.BindPostProcess(commandList, postProcessTarget.ResolveGpuHandle());
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		commandList->DrawInstanced(3, 1, 0, 0);
+		const size_t passCount = pipeline.GetPostProcessPassCount();
+		for (size_t passIndex = 0; passIndex < passCount; passIndex++) {
+			const bool lastPass = passIndex + 1 == passCount;
+			const size_t sourceIndex = passIndex == 0 ? 0 : (passIndex - 1) % 2 + 1;
+			const size_t targetIndex = passIndex % 2 + 1;
+			if (!lastPass) {
+				ID3D12Resource* target = postProcessTargets[targetIndex].ResolveResource();
+				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				const D3D12_CPU_DESCRIPTOR_HANDLE targetRtv = postProcessTargets[targetIndex].ResolveRtvHandle();
+				commandList->OMSetRenderTargets(1, &targetRtv, FALSE, nullptr);
+			} else {
+				const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
+				commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
+			}
+			ID3D12DescriptorHeap* descriptorHeaps[] = { postProcessTargets[sourceIndex].ResolveDescriptorHeap() };
+			commandList->SetDescriptorHeaps(1, descriptorHeaps);
+			pipeline.BindPostProcess(commandList, passIndex, postProcessTargets[sourceIndex].ResolveGpuHandle());
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			commandList->DrawInstanced(3, 1, 0, 0);
+			if (!lastPass) {
+				ID3D12Resource* target = postProcessTargets[targetIndex].ResolveResource();
+				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
+					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			}
+		}
 		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
@@ -100,7 +123,7 @@ namespace Chrivent {
 		pipeline.Reset();
 		commandContext.Reset();
 		depthBuffer.Reset();
-		postProcessTarget.Reset();
+		postProcessTargets.clear();
 		msaaColorBuffer.Reset();
 		swapChain.Reset();
 		device->Shutdown();
@@ -135,9 +158,12 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		if (!postProcessTarget.Initialize(*device, screenWidth, screenHeight)) {
-			std::cerr << "Failed to initialize DX12 post-process target.\n";
-			return false;
+		postProcessTargets.resize(3);
+		for (auto& target : postProcessTargets) {
+			if (!target.Initialize(*device, screenWidth, screenHeight)) {
+				std::cerr << "Failed to initialize DX12 post-process target.\n";
+				return false;
+			}
 		}
 		if (!pipeline.Initialize(*device, shaderDir)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
@@ -159,7 +185,12 @@ namespace Chrivent {
 			return false;
 		if (!depthBuffer.Initialize(*device, screenWidth, screenHeight))
 			return false;
-		return postProcessTarget.Initialize(*device, screenWidth, screenHeight);
+		postProcessTargets.resize(3);
+		for (auto& target : postProcessTargets) {
+			if (!target.Initialize(*device, screenWidth, screenHeight))
+				return false;
+		}
+		return true;
 	}
 
 	void Dx12Viewer::BeginFrame() {
@@ -208,6 +239,11 @@ namespace Chrivent {
 	bool Dx12Viewer::LoadPostProcessEffect(const EffectDefinition& effect) {
 		WaitIdle();
 		return pipeline.LoadPostProcessEffect(*device, effect);
+	}
+
+	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+		WaitIdle();
+		return pipeline.LoadPostProcessEffects(*device, effects);
 	}
 
 	void Dx12Viewer::ClearPostProcessEffect() {

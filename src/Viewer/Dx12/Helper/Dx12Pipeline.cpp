@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx12Pipeline::CreateRootSignature(
@@ -337,54 +338,72 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::LoadPostProcessEffect(const Dx12Device& sourceDevice, const EffectDefinition& effect) {
-		if (!sourceDevice.device || effect.passes.empty())
+		std::vector<const EffectDefinition*> effects;
+		effects.push_back(&effect);
+		return LoadPostProcessEffects(sourceDevice, effects);
+	}
+
+	bool Dx12Pipeline::LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
+		if (!sourceDevice.device)
 			return false;
-		postProcessPipelineState.Reset();
+		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
+		if (effects.empty())
+			return true;
 		if (!CreatePostProcessRootSignature(sourceDevice))
 			return false;
-		const auto& pass = effect.passes.front();
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		std::string error;
-		if (!CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
-			|| !CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
-			std::cerr << error;
-			return false;
+		for (const auto* effect : effects) {
+			if (!effect || effect->passes.empty())
+				continue;
+			const auto& pass = effect->passes.front();
+			std::vector<uint8_t> vertexShader;
+			std::vector<uint8_t> pixelShader;
+			std::string error;
+			if (!CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
+				|| !CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
+				std::cerr << error;
+				ClearPostProcessEffect();
+				return false;
+			}
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+			pipelineDesc.pRootSignature = postProcessRootSignature.Get();
+			pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+			pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
+			pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+			pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
+			ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
+			pipelineDesc.DepthStencilState.DepthEnable = FALSE;
+			pipelineDesc.DepthStencilState.StencilEnable = FALSE;
+			pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			pipelineDesc.NumRenderTargets = 1;
+			pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+			pipelineDesc.SampleDesc.Count = 1;
+			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
+			if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState)))) {
+				ClearPostProcessEffect();
+				return false;
+			}
+			postProcessPipelineStates.push_back(std::move(pipelineState));
 		}
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = postProcessRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
-		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
-		ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
-		pipelineDesc.DepthStencilState.DepthEnable = FALSE;
-		pipelineDesc.DepthStencilState.StencilEnable = FALSE;
-		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		pipelineDesc.NumRenderTargets = 1;
-		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		pipelineDesc.SampleDesc.Count = 1;
-		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(
-			&pipelineDesc, IID_PPV_ARGS(&postProcessPipelineState)));
+		return true;
 	}
 
 	void Dx12Pipeline::BindPostProcess(ID3D12GraphicsCommandList* commandList,
-		const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
-		if (commandList == nullptr || !postProcessRootSignature || !postProcessPipelineState)
+		const size_t passIndex, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
+		if (commandList == nullptr || !postProcessRootSignature || passIndex >= postProcessPipelineStates.size())
 			return;
 		commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
-		commandList->SetPipelineState(postProcessPipelineState.Get());
+		commandList->SetPipelineState(postProcessPipelineStates[passIndex].Get());
 		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
 	}
 
 	void Dx12Pipeline::ClearPostProcessEffect() {
-		postProcessPipelineState.Reset();
+		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 	}
 
 	void Dx12Pipeline::Reset() {
-		postProcessPipelineState.Reset();
+		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 		groundShadowPipelineState.Reset();
 		groundShadowRootSignature.Reset();

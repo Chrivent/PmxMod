@@ -12,8 +12,14 @@ namespace Chrivent {
 			return false;
 		if (!msaaDepthBuffer.Initialize(*device, swapChain))
 			return false;
-		if (postProcessEffect && !postProcess.Initialize(*device, swapChain, *postProcessEffect))
-			return false;
+		if (!postProcessEffects.empty()) {
+			std::vector<const EffectDefinition*> effects;
+			effects.reserve(postProcessEffects.size());
+			for (const auto& effect : postProcessEffects)
+				effects.push_back(&effect);
+			if (!postProcess.Initialize(*device, swapChain, effects))
+				return false;
+		}
 		ShaderPackage package;
 		std::string error;
 		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
@@ -184,11 +190,11 @@ namespace Chrivent {
 		}
 		auto& commandBuffer = commandContext.commandBuffer;
 		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
-		const VkImage resolveImage = postProcessEffect
-			? postProcess.GetSceneImage(currentImageIndex)
+		const VkImage resolveImage = !postProcessEffects.empty()
+			? postProcess.GetTargetImage(0, currentImageIndex)
 			: swapChain.images[currentImageIndex];
-		const VkImageView resolveImageView = postProcessEffect
-			? postProcess.GetSceneImageViews()[currentImageIndex]
+		const VkImageView resolveImageView = !postProcessEffects.empty()
+			? postProcess.GetTargetImageView(0, currentImageIndex)
 			: swapChain.imageViews[currentImageIndex];
 		if (!commandBuffer.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
@@ -203,13 +209,30 @@ namespace Chrivent {
 	bool VulkanViewer::EndFrame() {
 		if (!frameReady)
 			return true;
-		const bool recordEnded = postProcessEffect
-			? commandContext.commandBuffer.EndRecordWithPostProcess(
-				currentImageIndex, postProcess.GetSceneImage(currentImageIndex),
-				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
-				postProcess.GetPipeline(), postProcess.GetPipelineLayout(),
-				postProcess.GetDescriptorSet(currentImageIndex), swapChain.extent)
-			: commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
+		bool recordEnded;
+		if (!postProcessEffects.empty()) {
+			const VkImage targetImages[] = {
+				postProcess.GetTargetImage(0, currentImageIndex),
+				postProcess.GetTargetImage(1, currentImageIndex),
+				postProcess.GetTargetImage(2, currentImageIndex)
+			};
+			const VkImageView targetImageViews[] = {
+				postProcess.GetTargetImageView(0, currentImageIndex),
+				postProcess.GetTargetImageView(1, currentImageIndex),
+				postProcess.GetTargetImageView(2, currentImageIndex)
+			};
+			const VkDescriptorSet descriptorSets[] = {
+				postProcess.GetDescriptorSet(0, currentImageIndex),
+				postProcess.GetDescriptorSet(1, currentImageIndex),
+				postProcess.GetDescriptorSet(2, currentImageIndex)
+			};
+			recordEnded = commandContext.commandBuffer.EndRecordWithPostProcess(
+				currentImageIndex, targetImages[0], swapChain.images[currentImageIndex],
+				swapChain.imageViews[currentImageIndex], targetImages, targetImageViews,
+				postProcess.GetPipelines(), postProcess.GetPipelineLayout(), descriptorSets,
+				swapChain.extent);
+		} else
+			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
 			frameReady = false;
 			return false;
@@ -277,12 +300,22 @@ namespace Chrivent {
 	bool VulkanViewer::LoadPostProcessEffect(const EffectDefinition& effect) {
 		if (effect.passes.empty())
 			return false;
+		std::vector<const EffectDefinition*> effects;
+		effects.push_back(&effect);
+		return LoadPostProcessEffects(effects);
+	}
+
+	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		postProcessEffect = std::make_unique<EffectDefinition>(effect);
+		postProcessEffects.clear();
+		for (const auto* effect : effects) {
+			if (effect && !effect->passes.empty())
+				postProcessEffects.push_back(*effect);
+		}
 		ResetSwapChainResources();
 		if (CreateSwapChainResources())
 			return true;
-		postProcessEffect.reset();
+		postProcessEffects.clear();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
@@ -290,10 +323,10 @@ namespace Chrivent {
 	}
 
 	void VulkanViewer::ClearPostProcessEffect() {
-		if (!postProcessEffect)
+		if (postProcessEffects.empty())
 			return;
 		WaitIdle();
-		postProcessEffect.reset();
+		postProcessEffects.clear();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after clearing post-process.\n";
