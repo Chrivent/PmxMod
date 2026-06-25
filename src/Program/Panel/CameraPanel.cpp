@@ -163,6 +163,8 @@ namespace Chrivent {
 			EnableWindow(addCameraButton, isPlaying ? FALSE : TRUE);
 		if (deleteCameraButton)
 			EnableWindow(deleteCameraButton, isPlaying ? FALSE : TRUE);
+		if (shaderList)
+			EnableWindow(shaderList, isPlaying ? FALSE : TRUE);
 	}
 
 	void CameraPanel::UpdateLanguage() {
@@ -174,8 +176,6 @@ namespace Chrivent {
 	}
 
 	bool CameraPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
-		if (addCameraButton && !IsWindowEnabled(addCameraButton))
-			return false;
 		if (commandId == addCameraButtonId) {
 			ShowOpenCameraMotionDialog();
 			return true;

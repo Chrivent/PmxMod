@@ -70,10 +70,10 @@ namespace Chrivent {
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
 		bool IsPlaybackRepeatEnabled() const { return playbackPanel.IsRepeatEnabled(); }
 
-		// Auto 범위와 모션 스크롤의 마지막 프레임을 함께 갱신한다.
+		// Auto 범위와 타임라인 스크롤의 마지막 프레임을 함께 갱신한다.
 		void UpdateFrameLimits(const int autoLastFrame, const int motionLastFrame, const bool resetPlaybackRange = false) {
 			playbackPanel.UpdateLastFrame(autoLastFrame, resetPlaybackRange);
-			motionPanel.UpdateLastFrame(motionLastFrame);
+			motionPanel.UpdateLastFrame(std::max(autoLastFrame, motionLastFrame));
 		}
 		// 실제 재생 상태를 메뉴와 편집 패널의 활성화 상태에 반영한다.
 		void ApplyPlaybackState(const bool playing) {
