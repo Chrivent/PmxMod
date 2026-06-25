@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Glfw/GlfwViewer.h"
 
 #include "Viewer/Glfw/GlfwInstance.h"
+#include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderPackage.h"
 
 #include <algorithm>
@@ -203,7 +204,7 @@ namespace Chrivent {
 				glBindFramebuffer(GL_FRAMEBUFFER, lastPass ? 0 : pingPongFramebuffers[targetIndex]);
 				glViewport(0, 0, screenWidth, screenHeight);
 				glUseProgram(postProcessShaders[index]->program);
-				glBindTextureUnit(0, sourceTexture);
+				glBindTextureUnit(PostProcessInputLayout::SceneColorRegister, sourceTexture);
 				glDrawArrays(GL_TRIANGLES, 0, 3);
 				sourceTexture = pingPongTextures[targetIndex];
 			}

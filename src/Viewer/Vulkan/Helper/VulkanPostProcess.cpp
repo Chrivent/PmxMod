@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Vulkan/Helper/VulkanPostProcess.h"
 
 #include "Viewer/Shader/DxcShaderCompiler.h"
+#include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Vulkan/Helper/VulkanMemory.h"
 #include "Viewer/Vulkan/Helper/VulkanShaderModule.h"
 
@@ -72,7 +73,7 @@ namespace Chrivent {
 			return false;
 		constexpr VkDescriptorSetLayoutBinding bindings[] = {
 			VkDescriptorSetLayoutBinding{
-				.binding = 0,
+				.binding = PostProcessInputLayout::SceneColorRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -138,7 +139,7 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = descriptorSets[index],
-					.dstBinding = 0,
+					.dstBinding = PostProcessInputLayout::SceneColorRegister,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 					.pImageInfo = &imageInfo

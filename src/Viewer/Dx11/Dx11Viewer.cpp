@@ -2,6 +2,7 @@
 
 #include "Viewer/Dx11/Dx11Instance.h"
 #include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
+#include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderPackage.h"
 #include "Util.h"
 
@@ -141,7 +142,7 @@ namespace Chrivent {
 		context->RSSetState(pipelineStates.bothFaceRs.Get());
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->PSSetSamplers(0, 1, pipelineStates.toonTextureSampler.GetAddressOf());
+		context->PSSetSamplers(PostProcessInputLayout::LinearClampSamplerRegister, 1, pipelineStates.toonTextureSampler.GetAddressOf());
 		ID3D11ShaderResourceView* sourceView = renderTargets.sceneColorView.Get();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
 			const bool lastPass = index + 1 == postProcessShaders.size();
@@ -152,14 +153,14 @@ namespace Chrivent {
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			context->PSSetShaderResources(0, 1, &sourceView);
+			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &sourceView);
 			context->Draw(3, 0);
 			ID3D11ShaderResourceView* emptyView = nullptr;
-			context->PSSetShaderResources(0, 1, &emptyView);
+			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &emptyView);
 			sourceView = renderTargets.pingPongColorResourceView[targetIndex].Get();
 		}
 		ID3D11ShaderResourceView* emptyView = nullptr;
-		context->PSSetShaderResources(0, 1, &emptyView);
+		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister, 1, &emptyView);
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {

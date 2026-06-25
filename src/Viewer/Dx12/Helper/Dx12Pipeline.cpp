@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
 
 #include "Viewer/Shader/DxcShaderCompiler.h"
+#include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderCompiler.h"
 
 #include <iostream>
@@ -76,7 +77,7 @@ namespace Chrivent {
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		srvRange.NumDescriptors = 3;
-		srvRange.BaseShaderRegister = 0;
+		srvRange.BaseShaderRegister = PostProcessInputLayout::SceneColorRegister;
 		srvRange.RegisterSpace = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};
@@ -287,7 +288,7 @@ namespace Chrivent {
 		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		sampler.MaxLOD = D3D12_FLOAT32_MAX;
-		sampler.ShaderRegister = 0;
+		sampler.ShaderRegister = PostProcessInputLayout::LinearClampSamplerRegister;
 		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.NumParameters = 1;
