@@ -184,6 +184,8 @@ namespace Chrivent {
 		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		const auto& viewer = *instance.viewer;
+		if (!viewer.modelEffectEnabled)
+			instance.modelVertexConstantsRing.BeginFrame(frameIndex);
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		ModelVertexConstants vertexConstants;
 		vertexConstants.wv = viewer.viewMat * world;

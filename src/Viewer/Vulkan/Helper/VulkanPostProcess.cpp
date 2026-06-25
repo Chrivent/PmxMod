@@ -132,6 +132,12 @@ namespace Chrivent {
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
+				.binding = PostProcessInputLayout::FocusHistoryRegister,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			},
+			VkDescriptorSetLayoutBinding{
 				.binding = 3,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
@@ -140,7 +146,7 @@ namespace Chrivent {
 		};
 		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = 3;
+		textureLayoutInfo.bindingCount = 4;
 		textureLayoutInfo.pBindings = bindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS)
 			return false;
@@ -162,7 +168,7 @@ namespace Chrivent {
 			return false;
 		const uint32_t descriptorCount = static_cast<uint32_t>(targetImageViews.size());
 		const VkDescriptorPoolSize poolSizes[] = {
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount * 2 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount * 3 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, descriptorCount }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
@@ -192,6 +198,11 @@ namespace Chrivent {
 				.imageView = depthImageViews[index % swapChainImageCount],
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
+			const VkDescriptorImageInfo focusHistoryInfo{
+				.sampler = VK_NULL_HANDLE,
+				.imageView = depthImageViews[index % swapChainImageCount],
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 			const VkDescriptorImageInfo samplerDescriptor{ .sampler = sampler };
 			const VkWriteDescriptorSet writes[] = {
 				VkWriteDescriptorSet{
@@ -213,13 +224,21 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = descriptorSets[index],
+					.dstBinding = PostProcessInputLayout::FocusHistoryRegister,
+					.descriptorCount = 1,
+					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+					.pImageInfo = &focusHistoryInfo
+				},
+				VkWriteDescriptorSet{
+					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet = descriptorSets[index],
 					.dstBinding = 3,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &samplerDescriptor
 				}
 			};
-			vkUpdateDescriptorSets(device, 3, writes, 0, nullptr);
+			vkUpdateDescriptorSets(device, 4, writes, 0, nullptr);
 		}
 		return true;
 	}
