@@ -6,6 +6,7 @@
   "author": "PmxMod",
   "effects": [
     "effects/motion-blur/effect.json",
-    "effects/depth-of-field/effect.json"
+    "effects/depth-of-field/effect.json",
+    "effects/depth-debug/effect.json"
   ]
 }

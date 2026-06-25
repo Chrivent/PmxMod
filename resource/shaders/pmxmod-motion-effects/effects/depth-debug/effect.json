@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "depth-debug",
+  "name": "Depth Debug",
+  "type": "post_process",
+  "passes": [
+    {
+      "name": "main",
+      "shader": "effects/depth-debug/effect.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain"
+    }
+  ]
+}

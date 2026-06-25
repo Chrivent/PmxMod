@@ -32,6 +32,14 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+    struct GlfwDepthOnlyShader : GlfwShader {
+        GLint normalLocation = -1;
+        GLint uvLocation = -1;
+
+        // 포스트 프로세스 depth-only 패스용 버텍스 전용 프로그램을 컴파일한다.
+        bool Initialize(const EffectPassDefinition& pass);
+    };
+
     struct GlfwPostProcessShader : GlfwShader {
         // 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
         bool Initialize(const EffectPassDefinition& pass);

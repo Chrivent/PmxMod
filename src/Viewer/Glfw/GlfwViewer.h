@@ -53,6 +53,7 @@ namespace Chrivent {
         std::unique_ptr<GlfwModelShader> shader;
         std::unique_ptr<GlfwEdgeShader> edgeShader;
         std::unique_ptr<GlfwGroundShadowShader> gsShader;
+        std::unique_ptr<GlfwDepthOnlyShader> depthOnlyShader;
 
         GlfwViewer() = default;
         ~GlfwViewer() override;

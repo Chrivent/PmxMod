@@ -222,7 +222,7 @@ namespace Chrivent {
 		ModelVertexConstants vertexConstants;
 		vertexConstants.wv = view * world;
 		vertexConstants.wvp = proj * view * world;
-		glUseProgram(viewer->shader->program);
+		glUseProgram(viewer->depthOnlyShader->program);
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
 		glBindVertexArray(instance.vao);
@@ -233,6 +233,7 @@ namespace Chrivent {
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_POLYGON_OFFSET_FILL);
 		glFrontFace(GL_CCW);
+		glCullFace(GL_BACK);
 		glEnable(GL_CULL_FACE);
 		bool cullEnabled = true;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {

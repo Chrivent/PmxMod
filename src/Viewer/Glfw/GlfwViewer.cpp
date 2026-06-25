@@ -185,6 +185,11 @@ namespace Chrivent {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}
+		depthOnlyShader = std::make_unique<GlfwDepthOnlyShader>();
+		if (!depthOnlyShader->Initialize(modelPass)) {
+			std::cerr << "Failed to set up depth-only GLFW shader.\n";
+			return false;
+		}
 		dummyColorTex = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTex == 0)
 			return false;
