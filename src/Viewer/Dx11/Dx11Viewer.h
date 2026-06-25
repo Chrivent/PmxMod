@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 #include <dxgi1_6.h>
 
 namespace Chrivent {
@@ -32,6 +33,9 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  sceneColorMsaaView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         sceneColor;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>         pingPongColor[2];
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  pingPongColorView[2];
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pingPongColorResourceView[2];
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
     };
@@ -88,6 +92,7 @@ namespace Chrivent {
         Dx11ShaderSet shaders;
         Dx11PipelineStates pipelineStates;
         Dx11DummyTexture dummyTexture;
+        std::vector<Dx11PostProcessShader> postProcessShaders;
 
         Dx11Viewer() = default;
 
@@ -105,6 +110,8 @@ namespace Chrivent {
         void WaitIdle() override;
         // 첫 번째 패스를 DX11 풀스크린 포스트 프로세스 셰이더로 준비한다.
         bool LoadPostProcessEffect(const EffectDefinition& effect) override;
+        // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
+        bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // DX11 후처리 셰이더를 해제한다.
         void ClearPostProcessEffect() override;
         // DX11 모델 인스턴스를 생성한다.

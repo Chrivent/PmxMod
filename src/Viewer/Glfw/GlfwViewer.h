@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 namespace Chrivent {
     class GlfwViewer;
@@ -33,10 +34,12 @@ namespace Chrivent {
         GLuint sceneColorMsaa = 0;
         GLuint resolveFramebuffer = 0;
         GLuint sceneColorTexture = 0;
+        GLuint pingPongFramebuffers[2] = {};
+        GLuint pingPongTextures[2] = {};
         GLuint sceneDepthStencil = 0;
         GLuint postProcessVao = 0;
         GLsizei postProcessSampleCount = 1;
-        std::unique_ptr<GlfwPostProcessShader> postProcessShader;
+        std::vector<std::unique_ptr<GlfwPostProcessShader>> postProcessShaders;
 
         // 화면 크기에 맞는 후처리용 장면 프레임버퍼를 생성한다.
         bool CreatePostProcessTargets();
@@ -66,6 +69,8 @@ namespace Chrivent {
         void WaitIdle() override;
         // 선택한 후처리 HLSL을 OpenGL 프로그램으로 준비한다.
         bool LoadPostProcessEffect(const EffectDefinition& effect) override;
+        // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
+        bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // OpenGL 후처리 프로그램을 해제한다.
         void ClearPostProcessEffect() override;
         // OpenGL 모델 인스턴스를 생성한다.

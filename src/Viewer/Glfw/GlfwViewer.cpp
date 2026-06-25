@@ -33,11 +33,25 @@ namespace Chrivent {
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glNamedFramebufferTexture(resolveFramebuffer, GL_COLOR_ATTACHMENT0, sceneColorTexture, 0);
+		glCreateFramebuffers(2, pingPongFramebuffers);
+		glCreateTextures(GL_TEXTURE_2D, 2, pingPongTextures);
+		for (int index = 0; index < 2; index++) {
+			glTextureStorage2D(pingPongTextures[index], 1, GL_RGBA8, screenWidth, screenHeight);
+			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glNamedFramebufferTexture(pingPongFramebuffers[index], GL_COLOR_ATTACHMENT0, pingPongTextures[index], 0);
+			if (glCheckNamedFramebufferStatus(pingPongFramebuffers[index], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+				return false;
+		}
 		return glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
 			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 	}
 
 	void GlfwViewer::ResetPostProcessTargets() {
+		glDeleteTextures(2, pingPongTextures);
+		glDeleteFramebuffers(2, pingPongFramebuffers);
 		if (sceneDepthStencil != 0)
 			glDeleteRenderbuffers(1, &sceneDepthStencil);
 		if (sceneColorMsaa != 0)
@@ -53,6 +67,10 @@ namespace Chrivent {
 		sceneColorTexture = 0;
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
+		pingPongTextures[0] = 0;
+		pingPongTextures[1] = 0;
+		pingPongFramebuffers[0] = 0;
+		pingPongFramebuffers[1] = 0;
 		postProcessSampleCount = 1;
 	}
 
@@ -162,26 +180,33 @@ namespace Chrivent {
 	}
 
 	void GlfwViewer::BeginFrame() {
-		glBindFramebuffer(GL_FRAMEBUFFER, postProcessShader ? sceneFramebuffer : 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, postProcessShaders.empty() ? 0 : sceneFramebuffer);
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
 	bool GlfwViewer::EndFrame() {
-		if (postProcessShader) {
+		if (!postProcessShaders.empty()) {
 			glBlitNamedFramebuffer(sceneFramebuffer, resolveFramebuffer,
 				0, 0, screenWidth, screenHeight,
 				0, 0, screenWidth, screenHeight,
 				GL_COLOR_BUFFER_BIT, GL_NEAREST);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glDisable(GL_DEPTH_TEST);
 			glDisable(GL_STENCIL_TEST);
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
-			glUseProgram(postProcessShader->program);
-			glBindTextureUnit(0, sceneColorTexture);
 			glBindVertexArray(postProcessVao);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			GLuint sourceTexture = sceneColorTexture;
+			for (size_t index = 0; index < postProcessShaders.size(); index++) {
+				const bool lastPass = index + 1 == postProcessShaders.size();
+				const size_t targetIndex = index % 2;
+				glBindFramebuffer(GL_FRAMEBUFFER, lastPass ? 0 : pingPongFramebuffers[targetIndex]);
+				glViewport(0, 0, screenWidth, screenHeight);
+				glUseProgram(postProcessShaders[index]->program);
+				glBindTextureUnit(0, sourceTexture);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+				sourceTexture = pingPongTextures[targetIndex];
+			}
 		}
 		glfwSwapBuffers(window);
 		return true;
@@ -198,12 +223,28 @@ namespace Chrivent {
 		auto shader = std::make_unique<GlfwPostProcessShader>();
 		if (!shader->Initialize(effect.passes.front()))
 			return false;
-		postProcessShader = std::move(shader);
+		postProcessShaders.clear();
+		postProcessShaders.push_back(std::move(shader));
+		return true;
+	}
+
+	bool GlfwViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+		ClearPostProcessEffect();
+		for (const auto* effect : effects) {
+			if (!effect || effect->passes.empty())
+				continue;
+			auto shader = std::make_unique<GlfwPostProcessShader>();
+			if (!shader->Initialize(effect->passes.front())) {
+				ClearPostProcessEffect();
+				return false;
+			}
+			postProcessShaders.push_back(std::move(shader));
+		}
 		return true;
 	}
 
 	void GlfwViewer::ClearPostProcessEffect() {
-		postProcessShader.reset();
+		postProcessShaders.clear();
 	}
 
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {

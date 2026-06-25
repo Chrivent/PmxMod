@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <iterator>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx11Viewer::CreateDevice() {
@@ -102,6 +103,16 @@ namespace Chrivent {
 			return false;
 		if (FAILED(device->CreateShaderResourceView(renderTargets.sceneColor.Get(), nullptr, &renderTargets.sceneColorView)))
 			return false;
+		const auto pingPongDesc = Dx11DescBuilder::MakeTexture2DDesc(
+			screenWidth, screenHeight, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+		for (int index = 0; index < 2; index++) {
+			if (FAILED(device->CreateTexture2D(&pingPongDesc, nullptr, &renderTargets.pingPongColor[index])))
+				return false;
+			if (FAILED(device->CreateRenderTargetView(renderTargets.pingPongColor[index].Get(), nullptr, &renderTargets.pingPongColorView[index])))
+				return false;
+			if (FAILED(device->CreateShaderResourceView(renderTargets.pingPongColor[index].Get(), nullptr, &renderTargets.pingPongColorResourceView[index])))
+				return false;
+		}
 		const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL, multiSampleCount, multiSampleQuality);
 		if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &renderTargets.depthTex)))
 			return false;
@@ -125,17 +136,28 @@ namespace Chrivent {
 
 	void Dx11Viewer::DrawPostProcess() const {
 		auto& context = deviceResources.context;
-		context->OMSetRenderTargets(1, renderTargets.backBufferView.GetAddressOf(), nullptr);
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		context->OMSetDepthStencilState(nullptr, 0);
 		context->RSSetState(pipelineStates.bothFaceRs.Get());
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->VSSetShader(shaders.postProcess.vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(shaders.postProcess.pixelShader.Get(), nullptr, 0);
-		context->PSSetShaderResources(0, 1, renderTargets.sceneColorView.GetAddressOf());
 		context->PSSetSamplers(0, 1, pipelineStates.toonTextureSampler.GetAddressOf());
-		context->Draw(3, 0);
+		ID3D11ShaderResourceView* sourceView = renderTargets.sceneColorView.Get();
+		for (size_t index = 0; index < postProcessShaders.size(); index++) {
+			const bool lastPass = index + 1 == postProcessShaders.size();
+			const size_t targetIndex = index % 2;
+			ID3D11RenderTargetView* targetView = lastPass
+				? renderTargets.backBufferView.Get()
+				: renderTargets.pingPongColorView[targetIndex].Get();
+			context->OMSetRenderTargets(1, &targetView, nullptr);
+			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
+			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
+			context->PSSetShaderResources(0, 1, &sourceView);
+			context->Draw(3, 0);
+			ID3D11ShaderResourceView* emptyView = nullptr;
+			context->PSSetShaderResources(0, 1, &emptyView);
+			sourceView = renderTargets.pingPongColorResourceView[targetIndex].Get();
+		}
 		ID3D11ShaderResourceView* emptyView = nullptr;
 		context->PSSetShaderResources(0, 1, &emptyView);
 	}
@@ -231,6 +253,11 @@ namespace Chrivent {
 		renderTargets.sceneColorMsaaView.Reset();
 		renderTargets.sceneColor.Reset();
 		renderTargets.sceneColorView.Reset();
+		for (int index = 0; index < 2; index++) {
+			renderTargets.pingPongColor[index].Reset();
+			renderTargets.pingPongColorView[index].Reset();
+			renderTargets.pingPongColorResourceView[index].Reset();
+		}
 		renderTargets.depthStencilView.Reset();
 		renderTargets.depthTex.Reset();
 		if (FAILED(deviceResources.swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
@@ -250,7 +277,7 @@ namespace Chrivent {
 
 	bool Dx11Viewer::EndFrame() {
 		ResolveSceneColor();
-		if (shaders.postProcess.vertexShader && shaders.postProcess.pixelShader)
+		if (!postProcessShaders.empty())
 			DrawPostProcess();
 		else
 			deviceResources.context->CopyResource(
@@ -279,14 +306,37 @@ namespace Chrivent {
 		if (effect.passes.empty())
 			return false;
 		const auto& pass = effect.passes.front();
-		return shaders.postProcess.Initialize(deviceResources.device.Get(), pass.shaderPath,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		Dx11PostProcessShader shader;
+		if (!shader.Initialize(deviceResources.device.Get(), pass.shaderPath,
+			pass.vertexEntry.c_str(), pass.pixelEntry.c_str()))
+			return false;
+		postProcessShaders.clear();
+		postProcessShaders.push_back(std::move(shader));
+		return true;
+	}
+
+	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+		ClearPostProcessEffect();
+		for (const auto* effect : effects) {
+			if (!effect || effect->passes.empty())
+				continue;
+			const auto& pass = effect->passes.front();
+			Dx11PostProcessShader shader;
+			if (!shader.Initialize(deviceResources.device.Get(), pass.shaderPath,
+				pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
+				ClearPostProcessEffect();
+				return false;
+			}
+			postProcessShaders.push_back(std::move(shader));
+		}
+		return true;
 	}
 
 	void Dx11Viewer::ClearPostProcessEffect() {
 		shaders.postProcess.vertexShader.Reset();
 		shaders.postProcess.pixelShader.Reset();
 		shaders.postProcess.inputLayout.Reset();
+		postProcessShaders.clear();
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {
