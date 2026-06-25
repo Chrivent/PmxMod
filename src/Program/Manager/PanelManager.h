@@ -78,6 +78,8 @@ namespace Chrivent {
 		// 실제 재생 상태를 메뉴와 편집 패널의 활성화 상태에 반영한다.
 		void ApplyPlaybackState(const bool playing) {
 			menuBar.ApplyPlaybackState(playing);
+			modelPanel.ApplyPlaybackState(playing);
+			cameraPanel.ApplyPlaybackState(playing);
 			playbackPanel.ApplyPlaybackState(playing);
 			motionPanel.ApplyPlaybackState(playing);
 		}

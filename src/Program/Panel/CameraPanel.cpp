@@ -158,6 +158,13 @@ namespace Chrivent {
 			ShowWindow(shaderList, visible ? SW_SHOW : SW_HIDE);
 	}
 
+	void CameraPanel::ApplyPlaybackState(const bool isPlaying) const {
+		if (addCameraButton)
+			EnableWindow(addCameraButton, isPlaying ? FALSE : TRUE);
+		if (deleteCameraButton)
+			EnableWindow(deleteCameraButton, isPlaying ? FALSE : TRUE);
+	}
+
 	void CameraPanel::UpdateLanguage() {
 		if (deleteCameraButton)
 			SetWindowTextW(deleteCameraButton, Language::Text("camera.delete").c_str());
@@ -167,6 +174,8 @@ namespace Chrivent {
 	}
 
 	bool CameraPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
+		if (addCameraButton && !IsWindowEnabled(addCameraButton))
+			return false;
 		if (commandId == addCameraButtonId) {
 			ShowOpenCameraMotionDialog();
 			return true;

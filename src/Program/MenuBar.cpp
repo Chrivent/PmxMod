@@ -25,7 +25,7 @@ namespace Chrivent {
 		std::vector filename(MAX_PATH, L'\0');
 		std::wstring filter = Language::Text("scene.dialog.scene");
 		filter.append(1, L'\0');
-		filter += L"*.pms";
+		filter += L"*.pmscene";
 		filter.append(1, L'\0');
 		filter += Language::Text("dialog.all_files");
 		filter.append(1, L'\0');
@@ -38,7 +38,7 @@ namespace Chrivent {
 		ofn.lpstrFile = filename.data();
 		ofn.nMaxFile = filename.size();
 		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-		ofn.lpstrDefExt = L"pms";
+		ofn.lpstrDefExt = L"pmscene";
 		if (!GetOpenFileNameW(&ofn))
 			return;
 		if (LoadSceneConfig(filename.data()))
@@ -51,7 +51,7 @@ namespace Chrivent {
 		std::vector filename(MAX_PATH, L'\0');
 		std::wstring filter = Language::Text("scene.dialog.scene");
 		filter.append(1, L'\0');
-		filter += L"*.pms";
+		filter += L"*.pmscene";
 		filter.append(1, L'\0');
 		filter += Language::Text("dialog.all_files");
 		filter.append(1, L'\0');
@@ -68,7 +68,7 @@ namespace Chrivent {
 		ofn.lpstrFile = filename.data();
 		ofn.nMaxFile = filename.size();
 		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
-		ofn.lpstrDefExt = L"pms";
+		ofn.lpstrDefExt = L"pmscene";
 		if (!GetSaveFileNameW(&ofn))
 			return;
 		sceneFilePath = filename.data();

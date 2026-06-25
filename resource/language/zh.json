@@ -26,7 +26,7 @@
   "camera.dialog.vmd": "VMD动作 (*.vmd)",
   "model.dialog.pmx": "PMX模型 (*.pmx)",
   "dialog.all_files": "所有文件 (*.*)",
-  "scene.dialog.scene": "PmxMod场景 (*.pms)",
+  "scene.dialog.scene": "PmxMod场景 (*.pmscene)",
   "playback.play": "播放",
   "playback.pause": "暂停",
   "playback.stop": "停止",

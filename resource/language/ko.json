@@ -26,7 +26,7 @@
   "camera.dialog.vmd": "VMD 모션 (*.vmd)",
   "model.dialog.pmx": "PMX 모델 (*.pmx)",
   "dialog.all_files": "모든 파일 (*.*)",
-  "scene.dialog.scene": "PmxMod 씬 (*.pms)",
+  "scene.dialog.scene": "PmxMod 씬 (*.pmscene)",
   "playback.play": "재생",
   "playback.pause": "일시정지",
   "playback.stop": "정지",

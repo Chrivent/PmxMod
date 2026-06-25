@@ -29,7 +29,7 @@
 namespace Chrivent {
     void Program::PrintUsage() {
         std::wcout
-            << L"PmxMod [--scene <file.pms>] [--renderer <opengl|dx11|dx12|vulkan>]\n"
+            << L"PmxMod [--scene <file.pmscene>] [--renderer <opengl|dx11|dx12|vulkan>]\n"
             << L"       [--benchmark <frames>] [--warmup <frames>]\n";
     }
 

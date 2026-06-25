@@ -170,7 +170,17 @@ namespace Chrivent {
 			ShowWindow(modelList, visible ? SW_SHOW : SW_HIDE);
 	}
 
+	void ModelPanel::ApplyPlaybackState(const bool isPlaying) {
+		playbackLocked = isPlaying;
+		if (addButton)
+			EnableWindow(addButton, isPlaying ? FALSE : TRUE);
+		if (deleteButton)
+			EnableWindow(deleteButton, isPlaying ? FALSE : TRUE);
+	}
+
 	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
+		if (addButton && !IsWindowEnabled(addButton))
+			return false;
 		if (commandId == addButtonId) {
 			ShowOpenModelDialog();
 			return true;
@@ -218,6 +228,8 @@ namespace Chrivent {
 		if (notifyHeader.code == NM_CLICK) {
 			const auto& click = reinterpret_cast<const NMITEMACTIVATE&>(notifyHeader);
 			if (click.iItem >= 0 && click.iSubItem == kMotionColumn) {
+				if (playbackLocked)
+					return true;
 				selectedModelIndex = click.iItem;
 				pendingSelectedModelIndex = selectedModelIndex;
 				ApplyModelSelection();
@@ -245,6 +257,7 @@ namespace Chrivent {
 		pendingSelectedModelIndex = -1;
 		pendingDeleteModelIndex = -1;
 		pendingModelMotionIndex = -1;
+		playbackLocked = false;
 	}
 
 	bool ModelPanel::ConsumeAddModelPath(std::filesystem::path& modelPath) {

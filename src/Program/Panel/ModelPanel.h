@@ -17,6 +17,7 @@ namespace Chrivent {
 		int pendingSelectedModelIndex = -1;
 		int pendingDeleteModelIndex = -1;
 		int pendingModelMotionIndex = -1;
+		bool playbackLocked = false;
 		HWND parentWindow = nullptr;
 		HWND addButton = nullptr;
 		HWND deleteButton = nullptr;
@@ -54,6 +55,8 @@ namespace Chrivent {
 		void UpdateLanguage() override;
 		// 모델 패널의 버튼과 목록 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const;
+		// 재생 상태에 따라 모델 추가/삭제와 모션 선택을 잠근다.
+		void ApplyPlaybackState(bool isPlaying);
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
 		// 모델 리스트뷰의 행 선택과 모션 열 클릭 알림을 처리한다.

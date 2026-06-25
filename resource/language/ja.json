@@ -26,7 +26,7 @@
   "camera.dialog.vmd": "VMDモーション (*.vmd)",
   "model.dialog.pmx": "PMXモデル (*.pmx)",
   "dialog.all_files": "すべてのファイル (*.*)",
-  "scene.dialog.scene": "PmxModシーン (*.pms)",
+  "scene.dialog.scene": "PmxModシーン (*.pmscene)",
   "playback.play": "再生",
   "playback.pause": "一時停止",
   "playback.stop": "停止",

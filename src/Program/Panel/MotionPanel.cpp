@@ -777,8 +777,10 @@ namespace Chrivent {
 			case SB_THUMBTRACK:
 				scrollingFrameThumb = true;
 				scrollingFrame = std::clamp(info.nTrackPos, 0, totalFrame);
-				firstFrame = scrollingFrame;
+				currentFrame = scrollingFrame;
+				FollowCurrentFrame();
 				SetScrollPos(timelineWindow, SB_HORZ, scrollingFrame, TRUE);
+				UpdateFrameEditText(true);
 				InvalidateRect(timelineWindow, nullptr, FALSE);
 				return;
 			case SB_LEFT: position = 0; break;
@@ -790,6 +792,9 @@ namespace Chrivent {
 					seekFrame = currentFrame;
 					seekRequested = true;
 					seekFinished = true;
+					SetScrollPos(timelineWindow, SB_HORZ, currentFrame, TRUE);
+					UpdateFrameEditText(true);
+					InvalidateRect(timelineWindow, nullptr, FALSE);
 				}
 				return;
 			default: return;
@@ -967,6 +972,8 @@ namespace Chrivent {
 	}
 
 	void MotionPanel::UpdateCurrentFrame(const int frame) {
+		if (scrollingFrameThumb)
+			return;
 		const int timelineFrame = std::clamp(frame, 0, kMaxEditableFrame);
 		if (currentFrame == timelineFrame)
 			return;

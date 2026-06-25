@@ -59,6 +59,8 @@ namespace Chrivent {
 		void Resize(const RECT& clientRect) override;
 		// 카메라 패널의 컨트롤 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const;
+		// 재생 상태에 따라 카메라 모션 추가/삭제를 잠근다.
+		void ApplyPlaybackState(bool isPlaying) const;
 		// 현재 언어에 맞춰 버튼 문구와 카메라 모션 표시를 갱신한다.
 		void UpdateLanguage() override;
 		// 카메라 모션 버튼과 셰이더 목록의 명령을 처리한다.
