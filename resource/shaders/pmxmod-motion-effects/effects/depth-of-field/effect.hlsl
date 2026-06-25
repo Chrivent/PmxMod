@@ -5,15 +5,24 @@ Texture2D SceneDepth : register(t1);
 SamplerState LinearClamp : register(s0);
 
 // TODO: UI/모션 키가 생기면 아래 임시 파라미터들을 effect parameter로 이동한다.
+// 사용자가 예전에 사용하던 ikBokeh 컨트롤러 값이다.
+static const float BokehPlus = 0.15;
+static const float CoCSize = 0.7;
+static const float AutoMeasuringMode = 1.0;
+
+// ikBokeh 컨트롤러 모프의 기본값은 별도 지정이 없으면 0으로 본다.
+static const float BokehMinus = 0.0;
+static const float FrontBokehMinus = 0.0;
+static const float FocusRangeParam = 0.0;
+static const float Emphasize = 0.0;
+
+// 지금은 MMD 컨트롤러가 없으므로 측정 중심을 화면 중앙 근처로 둔다.
 static const float2 FocusUv = float2(0.5, 0.48);
 static const float NearPlane = 0.1;
 static const float FarPlane = 1000.0;
-static const float FocusRange = 0.18;
-static const float ForegroundBlurScale = 0.75;
-static const float BackgroundBlurScale = 1.0;
+static const float FocusRangeBase = 0.18;
 static const float MaxBlurPixels = 8.0;
 static const float HighlightThreshold = 0.68;
-static const float HighlightBoost = 0.65;
 
 struct FullscreenVertexOutput {
     float4 position : SV_POSITION;
@@ -31,6 +40,30 @@ float ReadDepth(float2 uv) {
     return saturate(SceneDepth.Sample(LinearClamp, uv).r);
 }
 
+float MeasuringCircleRadius() {
+    return AutoMeasuringMode > 0.75 ? 0.2 : 0.05;
+}
+
+float ReadAutoFocusDepth() {
+    if (AutoMeasuringMode < 0.25)
+        return ReadDepth(FocusUv);
+
+    float r1 = MeasuringCircleRadius();
+    float r2 = r1 * 0.714;
+    float depth0 = ReadDepth(FocusUv + float2(-r2, -r2));
+    float depth1 = ReadDepth(FocusUv + float2(-r1, 0.0));
+    float depth2 = ReadDepth(FocusUv + float2(-r2, r2));
+    float depth3 = ReadDepth(FocusUv + float2(0.0, -r1));
+    float depth4 = ReadDepth(FocusUv);
+    float depth5 = ReadDepth(FocusUv + float2(0.0, r1));
+    float depth6 = ReadDepth(FocusUv + float2(r2, -r2));
+    float depth7 = ReadDepth(FocusUv + float2(r1, 0.0));
+    float depth8 = ReadDepth(FocusUv + float2(r2, r2));
+    float4 depthMin = min(float4(depth0, depth1, depth2, depth3), float4(depth4, depth5, depth6, depth7));
+    depthMin.xy = min(depthMin.xy, depthMin.zw);
+    return min(min(depthMin.x, depthMin.y), depth8);
+}
+
 float LinearizeDepth(float depth) {
     return NearPlane * FarPlane / max(FarPlane - depth * (FarPlane - NearPlane), 0.0001);
 }
@@ -39,8 +72,11 @@ float CalculateCircleOfConfusion(float depth, float focusDepth) {
     float linearDepth = LinearizeDepth(depth);
     float linearFocusDepth = LinearizeDepth(focusDepth);
     float depthDelta = (linearDepth - linearFocusDepth) / max(linearFocusDepth, 0.0001);
-    float sideScale = depthDelta < 0.0 ? ForegroundBlurScale : BackgroundBlurScale;
-    return saturate(abs(depthDelta) / max(FocusRange, 0.0001)) * sideScale;
+    float sideScale = depthDelta < 0.0 ? 1.0 - FrontBokehMinus : 1.0;
+    float focusDeadZone = FocusRangeParam * 0.1;
+    float cocScale = (1.0 + CoCSize) * (1.0 + BokehPlus - BokehMinus);
+    float coc = max(abs(depthDelta) - focusDeadZone, 0.0) / max(FocusRangeBase, 0.0001);
+    return saturate(coc * cocScale) * sideScale;
 }
 
 float3 SampleBokeh(float2 uv, float2 texelSize, float blurPixels) {
@@ -77,7 +113,7 @@ float3 SampleBokeh(float2 uv, float2 texelSize, float blurPixels) {
         float2 sampleUv = uv + offsets[index] * texelSize * blurPixels;
         float3 color = SceneColor.Sample(LinearClamp, sampleUv).rgb;
         float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
-        float highlightWeight = 1.0 + saturate(luminance - HighlightThreshold) * HighlightBoost;
+        float highlightWeight = 1.0 + saturate(luminance - HighlightThreshold) * Emphasize;
         float centerWeight = index == 0 ? 1.5 : 1.0;
         float weight = highlightWeight * centerWeight;
         accumulatedColor += color * weight;
@@ -90,7 +126,7 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float2 texelSize = max(abs(ddx(input.uv)), abs(ddy(input.uv)));
     float4 sceneColor = SceneColor.Sample(LinearClamp, input.uv);
     float depth = ReadDepth(input.uv);
-    float focusDepth = ReadDepth(FocusUv);
+    float focusDepth = ReadAutoFocusDepth();
     float coc = CalculateCircleOfConfusion(depth, focusDepth);
     float blurPixels = coc * MaxBlurPixels;
     float3 bokehColor = SampleBokeh(input.uv, texelSize, blurPixels);
