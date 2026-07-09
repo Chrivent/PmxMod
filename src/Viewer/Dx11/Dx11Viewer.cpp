@@ -2,7 +2,6 @@
 
 #include "Viewer/Dx11/Dx11Instance.h"
 #include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
-#include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderPackage.h"
 #include "Util.h"
 
@@ -166,76 +165,6 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx11Viewer::UpdateFocusHistory() {
-		if (!focusHistoryEnabled)
-			return;
-		const auto& context = deviceResources.context;
-		const int readIndex = focusHistoryIndex;
-		const int writeIndex = 1 - focusHistoryIndex;
-		ID3D11RenderTargetView* targetView = renderTargets.focusHistoryView[writeIndex].Get();
-		context->OMSetRenderTargets(1, &targetView, nullptr);
-		D3D11_VIEWPORT focusViewport{};
-		focusViewport.Width = 1.0f;
-		focusViewport.Height = 1.0f;
-		focusViewport.MinDepth = 0.0f;
-		focusViewport.MaxDepth = 1.0f;
-		context->RSSetViewports(1, &focusViewport);
-		context->VSSetShader(focusHistoryShader.vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(focusHistoryShader.pixelShader.Get(), nullptr, 0);
-		ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
-			renderTargets.sceneColorView.Get(),
-			renderTargets.postProcessDepthView.Get(),
-			renderTargets.focusHistoryResourceView[readIndex].Get()
-		};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, views);
-		context->Draw(3, 0);
-		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, emptyViews);
-		focusHistoryIndex = writeIndex;
-		UpdateViewport();
-	}
-
-	void Dx11Viewer::DrawPostProcess() {
-		auto& context = deviceResources.context;
-		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
-		context->OMSetDepthStencilState(nullptr, 0);
-		context->RSSetState(pipelineStates.bothFaceRs.Get());
-		context->IASetInputLayout(nullptr);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->PSSetSamplers(PostProcessInputLayout::LinearClampSamplerRegister, 1, pipelineStates.toonTextureSampler.GetAddressOf());
-		UpdateFocusHistory();
-		ID3D11ShaderResourceView* sourceView = renderTargets.sceneColorView.Get();
-		for (size_t index = 0; index < postProcessShaders.size(); index++) {
-			const bool lastPass = index + 1 == postProcessShaders.size();
-			const size_t targetIndex = index % 2;
-			ID3D11RenderTargetView* targetView = lastPass
-				? renderTargets.backBufferView.Get()
-				: renderTargets.pingPongColorView[targetIndex].Get();
-			context->OMSetRenderTargets(1, &targetView, nullptr);
-			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
-			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
-				sourceView,
-				renderTargets.postProcessDepthView.Get(),
-				focusHistoryEnabled
-					? renderTargets.focusHistoryResourceView[focusHistoryIndex].Get()
-					: renderTargets.postProcessDepthView.Get()
-			};
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-				PostProcessInputLayout::RequiredTextureCount, views);
-			context->Draw(3, 0);
-			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-				PostProcessInputLayout::RequiredTextureCount, emptyViews);
-			sourceView = renderTargets.pingPongColorResourceView[targetIndex].Get();
-		}
-		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, emptyViews);
-	}
-
 	bool Dx11Viewer::CreatePipelineStates() {
 		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		if (FAILED(deviceResources.device->CreateSamplerState(&wrapLinear, &pipelineStates.textureSampler)))
@@ -359,8 +288,8 @@ namespace Chrivent {
 
 	bool Dx11Viewer::EndFrame() {
 		ResolveSceneColor();
-		if (!postProcessShaders.empty())
-			DrawPostProcess();
+		if (postProcess.HasEffects())
+			postProcess.Draw(deviceResources, renderTargets, pipelineStates, screenWidth, screenHeight);
 		else
 			deviceResources.context->CopyResource(
 				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
@@ -370,23 +299,11 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::BeginPostProcessDepthPass() {
-		if (postProcessShaders.empty())
-			return false;
-		const auto& context = deviceResources.context;
-		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, emptyViews);
-		context->ClearDepthStencilView(
-			renderTargets.postProcessDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		context->OMSetRenderTargets(0, nullptr, renderTargets.postProcessDepthStencilView.Get());
-		context->OMSetDepthStencilState(pipelineStates.defaultDss.Get(), 0x00);
-		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
-		UpdateViewport();
-		return true;
+		return postProcess.BeginDepthPass(deviceResources, renderTargets, pipelineStates, screenWidth, screenHeight);
 	}
 
 	void Dx11Viewer::EndPostProcessDepthPass() {
-		deviceResources.context->OMSetRenderTargets(0, nullptr, nullptr);
+		postProcess.EndDepthPass(deviceResources);
 	}
 
 	void Dx11Viewer::WaitIdle() {
@@ -405,34 +322,11 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		ClearPostProcessEffects();
-		for (const auto* effect : effects) {
-			if (!effect || effect->passes.empty())
-				continue;
-			const auto& pass = effect->passes.front();
-			Dx11PostProcessShader shader;
-			if (!shader.Initialize(deviceResources.device.Get(), pass.shaderPath,
-				pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
-				ClearPostProcessEffects();
-				return false;
-			}
-			postProcessShaders.push_back(std::move(shader));
-			if (effect->id == "depth-of-field") {
-				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
-				if (std::filesystem::exists(focusShaderPath)
-					&& focusHistoryShader.Initialize(deviceResources.device.Get(), focusShaderPath, "VSMain", "PSMain"))
-					focusHistoryEnabled = true;
-			}
-		}
-		focusHistoryIndex = 0;
-		return true;
+		return postProcess.Load(deviceResources.device.Get(), effects);
 	}
 
 	void Dx11Viewer::ClearPostProcessEffects() {
-		postProcessShaders.clear();
-		focusHistoryShader = {};
-		focusHistoryEnabled = false;
-		focusHistoryIndex = 0;
+		postProcess.Reset();
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

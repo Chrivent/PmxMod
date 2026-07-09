@@ -2,7 +2,6 @@
 
 #include "Viewer/Dx12/Dx12Instance.h"
 #include "Viewer/Dx12/Helper/Dx12Barrier.h"
-#include "Viewer/Shader/PostProcessInputLayout.h"
 
 #include <iostream>
 
@@ -58,236 +57,6 @@ namespace Chrivent {
 			destinationState, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
-	void Dx12Viewer::DrawPostProcess(ID3D12GraphicsCommandList* commandList,
-		ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) {
-		if (postProcessTargets.size() < 3) {
-			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
-			return;
-		}
-		ID3D12Resource* sceneColor = postProcessTargets[0].ResolveResource();
-		const D3D12_RESOURCE_STATES sourceState = device->msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
-			: D3D12_RESOURCE_STATE_COPY_SOURCE;
-		const D3D12_RESOURCE_STATES destinationState = device->msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_DEST
-			: D3D12_RESOURCE_STATE_COPY_DEST;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, destinationState);
-		if (device->msaaSampleCount > 1)
-			commandList->ResolveSubresource(sceneColor, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-		else
-			commandList->CopyResource(sceneColor, msaaColor);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
-			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		UpdateFocusHistory(commandList);
-		ID3D12Resource* focusHistoryResource = pipeline.HasFocusHistoryEffect() && focusHistoryInitialized
-			? focusHistory[focusHistoryIndex].Get() : nullptr;
-		for (const auto& target : postProcessTargets)
-			target.UpdateFocusHistoryShaderResourceView(*device, focusHistoryResource);
-		const size_t passCount = pipeline.GetPostProcessPassCount();
-		for (size_t passIndex = 0; passIndex < passCount; passIndex++) {
-			const bool lastPass = passIndex + 1 == passCount;
-			const size_t sourceIndex = passIndex == 0 ? 0 : (passIndex - 1) % 2 + 1;
-			const size_t targetIndex = passIndex % 2 + 1;
-			if (!lastPass) {
-				ID3D12Resource* target = postProcessTargets[targetIndex].ResolveResource();
-				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
-					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				const D3D12_CPU_DESCRIPTOR_HANDLE targetRtv = postProcessTargets[targetIndex].ResolveRtvHandle();
-				commandList->OMSetRenderTargets(1, &targetRtv, FALSE, nullptr);
-			} else {
-				const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
-				commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
-			}
-			ID3D12DescriptorHeap* descriptorHeaps[] = { postProcessTargets[sourceIndex].ResolveDescriptorHeap() };
-			commandList->SetDescriptorHeaps(1, descriptorHeaps);
-			pipeline.BindPostProcess(commandList, passIndex, postProcessTargets[sourceIndex].ResolveGpuHandle());
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			commandList->DrawInstanced(3, 1, 0, 0);
-			if (!lastPass) {
-				ID3D12Resource* target = postProcessTargets[targetIndex].ResolveResource();
-				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
-					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			}
-		}
-		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	}
-
-	bool Dx12Viewer::CreatePostProcessDepthTarget() {
-		postProcessDepth.Reset();
-		postProcessDepthDsvHeap.Reset();
-		focusHistory[0].Reset();
-		focusHistory[1].Reset();
-		focusHistoryRtvHeap.Reset();
-		focusHistorySrvHeap.Reset();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
-		if (!device || !device->device || screenWidth <= 0 || screenHeight <= 0)
-			return false;
-		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-		heapDesc.NumDescriptors = 1;
-		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		if (FAILED(device->device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&postProcessDepthDsvHeap))))
-			return false;
-		D3D12_HEAP_PROPERTIES heapProperties{};
-		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProperties.CreationNodeMask = 1;
-		heapProperties.VisibleNodeMask = 1;
-		D3D12_RESOURCE_DESC resourceDesc{};
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resourceDesc.Width = screenWidth;
-		resourceDesc.Height = screenHeight;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		D3D12_CLEAR_VALUE clearValue{};
-		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		clearValue.DepthStencil.Depth = 1.0f;
-		if (FAILED(device->device->CreateCommittedResource(
-			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&postProcessDepth))))
-			return false;
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
-		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		device->device->CreateDepthStencilView(postProcessDepth.Get(), &dsvDesc, ResolvePostProcessDepthDsvHandle());
-		if (!CreateFocusHistoryTargets())
-			return false;
-		for (const auto& target : postProcessTargets) {
-			target.UpdateDepthShaderResourceView(*device, postProcessDepth.Get());
-			target.UpdateFocusHistoryShaderResourceView(*device, nullptr);
-		}
-		return true;
-	}
-
-	bool Dx12Viewer::CreateFocusHistoryTargets() {
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = 2;
-		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(device->device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&focusHistoryRtvHeap))))
-			return false;
-		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-		srvHeapDesc.NumDescriptors = PostProcessInputLayout::RequiredTextureCount;
-		srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (FAILED(device->device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&focusHistorySrvHeap))))
-			return false;
-		D3D12_HEAP_PROPERTIES heapProperties{};
-		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProperties.CreationNodeMask = 1;
-		heapProperties.VisibleNodeMask = 1;
-		D3D12_RESOURCE_DESC resourceDesc{};
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resourceDesc.Width = 1;
-		resourceDesc.Height = 1;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		D3D12_CLEAR_VALUE clearValue{};
-		clearValue.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		for (int index = 0; index < 2; index++) {
-			if (FAILED(device->device->CreateCommittedResource(
-				&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&focusHistory[index]))))
-				return false;
-			device->device->CreateRenderTargetView(focusHistory[index].Get(), nullptr, ResolveFocusHistoryRtvHandle(index));
-		}
-		UpdateFocusHistoryShaderResources(0);
-		return true;
-	}
-
-	void Dx12Viewer::UpdateFocusHistoryShaderResources(const int readIndex) const {
-		if (!focusHistorySrvHeap || postProcessTargets.empty())
-			return;
-		ID3D12Device* sourceDevice = device->device.Get();
-		const UINT increment = sourceDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = focusHistorySrvHeap->GetCPUDescriptorHandleForHeapStart();
-		D3D12_SHADER_RESOURCE_VIEW_DESC colorSrvDesc{};
-		colorSrvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		colorSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		colorSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		colorSrvDesc.Texture2D.MipLevels = 1;
-		sourceDevice->CreateShaderResourceView(postProcessTargets[0].ResolveResource(), &colorSrvDesc, handle);
-		handle.ptr += increment;
-		D3D12_SHADER_RESOURCE_VIEW_DESC depthSrvDesc{};
-		depthSrvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		depthSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		depthSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		depthSrvDesc.Texture2D.MipLevels = 1;
-		sourceDevice->CreateShaderResourceView(postProcessDepth.Get(), &depthSrvDesc, handle);
-		handle.ptr += increment;
-		D3D12_SHADER_RESOURCE_VIEW_DESC focusSrvDesc{};
-		focusSrvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		focusSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		focusSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		focusSrvDesc.Texture2D.MipLevels = 1;
-		ID3D12Resource* readResource = focusHistoryInitialized ? focusHistory[readIndex].Get() : nullptr;
-		sourceDevice->CreateShaderResourceView(readResource, &focusSrvDesc, handle);
-	}
-
-	void Dx12Viewer::UpdateFocusHistory(ID3D12GraphicsCommandList* commandList) {
-		if (!pipeline.HasFocusHistoryEffect() || !focusHistory[0] || !focusHistory[1] || !focusHistorySrvHeap)
-			return;
-		const int readIndex = focusHistoryIndex;
-		const int writeIndex = 1 - focusHistoryIndex;
-		UpdateFocusHistoryShaderResources(readIndex);
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, focusHistory[writeIndex].Get(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = ResolveFocusHistoryRtvHandle(writeIndex);
-		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
-		D3D12_VIEWPORT viewport{};
-		viewport.Width = 1.0f;
-		viewport.Height = 1.0f;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		D3D12_RECT scissorRect{};
-		scissorRect.right = 1;
-		scissorRect.bottom = 1;
-		commandList->RSSetViewports(1, &viewport);
-		commandList->RSSetScissorRects(1, &scissorRect);
-		ID3D12DescriptorHeap* descriptorHeaps[] = { focusHistorySrvHeap.Get() };
-		commandList->SetDescriptorHeaps(1, descriptorHeaps);
-		pipeline.BindFocusHistory(commandList, ResolveFocusHistoryGpuHandle());
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		commandList->DrawInstanced(3, 1, 0, 0);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, focusHistory[writeIndex].Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		focusHistoryIndex = writeIndex;
-		focusHistoryInitialized = true;
-		ApplyViewportAndScissor(commandList);
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12Viewer::ResolvePostProcessDepthDsvHandle() const {
-		if (!postProcessDepthDsvHeap)
-			return {};
-		return postProcessDepthDsvHeap->GetCPUDescriptorHandleForHeapStart();
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12Viewer::ResolveFocusHistoryRtvHandle(const int index) const {
-		if (!focusHistoryRtvHeap)
-			return {};
-		D3D12_CPU_DESCRIPTOR_HANDLE handle = focusHistoryRtvHeap->GetCPUDescriptorHandleForHeapStart();
-		handle.ptr += device->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * index;
-		return handle;
-	}
-
-	D3D12_GPU_DESCRIPTOR_HANDLE Dx12Viewer::ResolveFocusHistoryGpuHandle() const {
-		if (!focusHistorySrvHeap)
-			return {};
-		return focusHistorySrvHeap->GetGPUDescriptorHandleForHeapStart();
-	}
-
 	Dx12Viewer::Dx12Viewer() {
 		device = std::make_shared<Dx12Device>();
 		dummyTexture = std::make_shared<Dx12Texture>();
@@ -298,13 +67,7 @@ namespace Chrivent {
 		pipeline.Reset();
 		commandContext.Reset();
 		depthBuffer.Reset();
-		postProcessDepth.Reset();
-		postProcessDepthDsvHeap.Reset();
-		focusHistory[0].Reset();
-		focusHistory[1].Reset();
-		focusHistoryRtvHeap.Reset();
-		focusHistorySrvHeap.Reset();
-		postProcessTargets.clear();
+		postProcess.Reset();
 		msaaColorBuffer.Reset();
 		swapChain.Reset();
 		device->Shutdown();
@@ -339,15 +102,8 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		postProcessTargets.resize(3);
-		for (auto& target : postProcessTargets) {
-			if (!target.Initialize(*device, screenWidth, screenHeight)) {
-				std::cerr << "Failed to initialize DX12 post-process target.\n";
-				return false;
-			}
-		}
-		if (!CreatePostProcessDepthTarget()) {
-			std::cerr << "Failed to initialize DX12 post-process depth target.\n";
+		if (!postProcess.InitializeTargets(*device, screenWidth, screenHeight)) {
+			std::cerr << "Failed to initialize DX12 post-process targets.\n";
 			return false;
 		}
 		if (!pipeline.Initialize(*device, shaderDir)) {
@@ -370,12 +126,7 @@ namespace Chrivent {
 			return false;
 		if (!depthBuffer.Initialize(*device, screenWidth, screenHeight))
 			return false;
-		postProcessTargets.resize(3);
-		for (auto& target : postProcessTargets) {
-			if (!target.Initialize(*device, screenWidth, screenHeight))
-				return false;
-		}
-		if (!CreatePostProcessDepthTarget())
+		if (!postProcess.InitializeTargets(*device, screenWidth, screenHeight))
 			return false;
 		return true;
 	}
@@ -407,8 +158,9 @@ namespace Chrivent {
 		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return false;
-		if (pipeline.HasPostProcessEffect())
-			DrawPostProcess(commandList, backBuffer, msaaColor);
+		if (postProcess.HasEffects())
+			postProcess.Draw(commandList, backBuffer, msaaColor,
+				*device, commandContext, swapChain, pipeline, screenWidth, screenHeight);
 		else
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
 		if (!commandContext.Execute(*device))
@@ -420,31 +172,17 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::BeginPostProcessDepthPass() {
-		if (!frameReady || !pipeline.HasPostProcessEffect() || !postProcessDepth)
+		if (!frameReady)
 			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		if (commandList == nullptr)
-			return false;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, postProcessDepth.Get(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = ResolvePostProcessDepthDsvHandle();
-		commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
-		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		ApplyViewportAndScissor(commandList);
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		return true;
+		return postProcess.BeginDepthPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
 	void Dx12Viewer::EndPostProcessDepthPass() {
-		if (!frameReady || !postProcessDepth)
+		if (!frameReady)
 			return;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		if (commandList == nullptr)
-			return;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, postProcessDepth.Get(),
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		postProcess.EndDepthPass(commandList, commandContext);
 	}
 
 	void Dx12Viewer::WaitIdle() {
@@ -453,16 +191,12 @@ namespace Chrivent {
 
 	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
-		return pipeline.LoadPostProcessEffects(*device, effects);
+		return postProcess.Load(*device, pipeline, effects);
 	}
 
 	void Dx12Viewer::ClearPostProcessEffects() {
 		WaitIdle();
-		pipeline.ClearPostProcessEffects();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
+		postProcess.ClearPipelines(pipeline);
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

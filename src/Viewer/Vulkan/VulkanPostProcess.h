@@ -71,7 +71,8 @@ namespace Chrivent {
 		size_t GetFocusHistoryWriteIndex(const uint32_t imageIndex) const { return 1 - focusHistoryIndices[imageIndex]; }
 		bool HasFocusHistoryEffect() const { return focusHistoryPipeline != VK_NULL_HANDLE; }
 		bool IsFocusHistoryInitialized(const uint32_t imageIndex) const { return focusHistoryInitialized[imageIndex]; }
-		static size_t GetTargetCount() { return TargetCount; }
+		static size_t GetTargetCount() { return targetCount; }
+		
 		// 현재 swapchain 이미지의 초점 히스토리 ping-pong 인덱스를 다음 프레임용으로 갱신한다.
 		void AdvanceFocusHistory(uint32_t imageIndex);
 

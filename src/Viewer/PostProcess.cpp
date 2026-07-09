@@ -1,4 +1,4 @@
-#include "Viewer/PostProcess.h"
+﻿#include "Viewer/PostProcess.h"
 
 namespace Chrivent {
 	std::vector<const EffectDefinition*> PostProcess::ResolveEffectPointers() const {

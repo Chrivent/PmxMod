@@ -28,7 +28,7 @@ namespace Chrivent {
 	bool VulkanPostProcess::CreateTargetImages(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain) {
 		swapChainImageCount = sourceSwapChain.images.size();
-		const size_t imageCount = swapChainImageCount * TargetCount;
+		const size_t imageCount = swapChainImageCount * targetCount;
 		targetImages.resize(imageCount);
 		targetImageMemories.resize(imageCount);
 		targetImageViews.resize(imageCount);
@@ -122,7 +122,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::CreateFocusHistoryImages(const VulkanDevice& sourceDevice) {
-		const size_t imageCount = swapChainImageCount * FocusHistoryCount;
+		const size_t imageCount = swapChainImageCount * focusHistoryCount;
 		focusHistoryImages.resize(imageCount);
 		focusHistoryImageMemories.resize(imageCount);
 		focusHistoryImageViews.resize(imageCount);
@@ -224,8 +224,8 @@ namespace Chrivent {
 		samplerInfo.maxLod = 1.0f;
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			return false;
-		const uint32_t mainDescriptorCount = static_cast<uint32_t>(targetImageViews.size() * FocusHistoryCount);
-		const uint32_t focusDescriptorCount = static_cast<uint32_t>(swapChainImageCount * FocusHistoryCount);
+		const uint32_t mainDescriptorCount = static_cast<uint32_t>(targetImageViews.size() * focusHistoryCount);
+		const uint32_t focusDescriptorCount = static_cast<uint32_t>(swapChainImageCount * focusHistoryCount);
 		const uint32_t descriptorCount = mainDescriptorCount + focusDescriptorCount;
 		const VkDescriptorPoolSize poolSizes[] = {
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount * 3 },
@@ -249,8 +249,8 @@ namespace Chrivent {
 			return false;
 		descriptorSets.assign(allocatedSets.begin(), allocatedSets.begin() + mainDescriptorCount);
 		focusHistoryDescriptorSets.assign(allocatedSets.begin() + mainDescriptorCount, allocatedSets.end());
-		for (size_t historyIndex = 0; historyIndex < FocusHistoryCount; historyIndex++) {
-			for (uint32_t targetIndex = 0; targetIndex < TargetCount; targetIndex++) {
+		for (size_t historyIndex = 0; historyIndex < focusHistoryCount; historyIndex++) {
+			for (uint32_t targetIndex = 0; targetIndex < targetCount; targetIndex++) {
 				for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
 					const size_t targetFlatIndex = ResolveTargetIndex(targetIndex, imageIndex);
 					const size_t descriptorIndex = ResolveDescriptorIndex(targetIndex, imageIndex, historyIndex);
@@ -497,7 +497,7 @@ namespace Chrivent {
 				focusViewportState.pViewports = &focusViewport;
 				focusViewportState.scissorCount = 1;
 				focusViewportState.pScissors = &focusScissor;
-				constexpr VkFormat focusFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+				static constexpr VkFormat focusFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 				constexpr VkPipelineRenderingCreateInfo focusRenderingInfo{
 					.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 					.colorAttachmentCount = 1,
@@ -594,4 +594,3 @@ namespace Chrivent {
 		device = VK_NULL_HANDLE;
 	}
 }
-

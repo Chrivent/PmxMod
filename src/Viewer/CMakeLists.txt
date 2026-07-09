@@ -28,6 +28,7 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
 
         Glfw/GlfwViewer.h Glfw/GlfwViewer.cpp
+        Glfw/GlfwPostProcess.h Glfw/GlfwPostProcess.cpp
         Glfw/GlfwDrawer.h Glfw/GlfwDrawer.cpp
         Glfw/GlfwTextureCache.h Glfw/GlfwTextureCache.cpp
         Glfw/GlfwInstance.h Glfw/GlfwInstance.cpp
@@ -55,6 +56,7 @@ target_sources(PmxModViewer PRIVATE
         Vulkan/Helper/VulkanSyncObject.h Vulkan/Helper/VulkanSyncObject.cpp
 
         Dx11/Dx11Viewer.h Dx11/Dx11Viewer.cpp
+        Dx11/Dx11PostProcess.h Dx11/Dx11PostProcess.cpp
         Dx11/Dx11Drawer.h Dx11/Dx11Drawer.cpp
         Dx11/Dx11TextureCache.h Dx11/Dx11TextureCache.cpp
         Dx11/Dx11Instance.h Dx11/Dx11Instance.cpp
@@ -62,6 +64,7 @@ target_sources(PmxModViewer PRIVATE
         Dx11/Helper/Dx11Shader.h Dx11/Helper/Dx11Shader.cpp
 
         Dx12/Dx12Viewer.h Dx12/Dx12Viewer.cpp
+        Dx12/Dx12PostProcess.h Dx12/Dx12PostProcess.cpp
         Dx12/Dx12PostProcessTarget.h Dx12/Dx12PostProcessTarget.cpp
         Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
         Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
