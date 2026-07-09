@@ -60,6 +60,9 @@ namespace Chrivent {
 			VkImage swapChainImage, VkImageView swapChainImageView, std::span<const VkImage> targetImages,
 			std::span<const VkImageView> targetImageViews, std::span<const VkPipeline> pipelines,
 			VkPipelineLayout pipelineLayout, std::span<const VkDescriptorSet> descriptorSets,
+			std::span<const VkImage> focusHistoryImages, std::span<const VkImageView> focusHistoryImageViews,
+			VkPipeline focusHistoryPipeline, VkDescriptorSet focusHistoryDescriptorSet,
+			size_t focusHistoryWriteIndex, bool focusHistoryInitialized,
 			VkExtent2D extent, bool sceneRenderingEnded = false) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Reset();

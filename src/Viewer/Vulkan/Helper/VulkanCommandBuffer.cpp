@@ -251,6 +251,9 @@ namespace Chrivent {
 		const std::span<const VkImage> targetImages, const std::span<const VkImageView> targetImageViews,
 		const std::span<const VkPipeline> pipelines,
 		const VkPipelineLayout pipelineLayout, const std::span<const VkDescriptorSet> descriptorSets,
+		const std::span<const VkImage> focusHistoryImages, const std::span<const VkImageView> focusHistoryImageViews,
+		const VkPipeline focusHistoryPipeline, const VkDescriptorSet focusHistoryDescriptorSet,
+		const size_t focusHistoryWriteIndex, const bool focusHistoryInitialized,
 		const VkExtent2D extent, const bool sceneRenderingEnded) const {
 		if (imageIndex >= commandBuffers.size() || pipelines.empty()
 			|| pipelineLayout == VK_NULL_HANDLE || targetImages.size() < 3
@@ -260,6 +263,65 @@ namespace Chrivent {
 		if (!sceneRenderingEnded) {
 			vkCmdEndRendering(commandBuffer);
 			TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+				VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		}
+		if (focusHistoryPipeline != VK_NULL_HANDLE) {
+			if (focusHistoryImages.size() < 2 || focusHistoryImageViews.size() < 2
+				|| focusHistoryWriteIndex >= focusHistoryImages.size()
+				|| focusHistoryDescriptorSet == VK_NULL_HANDLE)
+				return false;
+			constexpr VkImageSubresourceRange colorRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			};
+			if (!focusHistoryInitialized) {
+				constexpr VkClearColorValue clearColor{};
+				for (const VkImage image : focusHistoryImages) {
+					TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+						VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+						VK_IMAGE_ASPECT_COLOR_BIT);
+					vkCmdClearColorImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						&clearColor, 1, &colorRange);
+					TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+						VK_ACCESS_2_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+						VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+				}
+			}
+			const VkImage focusOutputImage = focusHistoryImages[focusHistoryWriteIndex];
+			const VkImageView focusOutputView = focusHistoryImageViews[focusHistoryWriteIndex];
+			TransitionImage(commandBuffer, focusOutputImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+				VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+			const VkRenderingAttachmentInfo focusAttachment{
+				.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+				.imageView = focusOutputView,
+				.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE
+			};
+			constexpr VkExtent2D focusExtent{ 1, 1 };
+			const VkRenderingInfo focusRenderingInfo{
+				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+				.renderArea = { .extent = focusExtent },
+				.layerCount = 1,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &focusAttachment
+			};
+			vkCmdBeginRendering(commandBuffer, &focusRenderingInfo);
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, focusHistoryPipeline);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout, 2, 1, &focusHistoryDescriptorSet, 0, nullptr);
+			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+			vkCmdEndRendering(commandBuffer);
+			TransitionImage(commandBuffer, focusOutputImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
 				VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);

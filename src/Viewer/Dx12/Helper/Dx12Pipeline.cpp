@@ -388,6 +388,7 @@ namespace Chrivent {
 	bool Dx12Pipeline::LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
 		if (!sourceDevice.device)
 			return false;
+		focusHistoryPipelineState.Reset();
 		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 		if (effects.empty())
@@ -426,8 +427,37 @@ namespace Chrivent {
 				return false;
 			}
 			postProcessPipelineStates.push_back(std::move(pipelineState));
+			if (effect->id == "depth-of-field") {
+				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
+				std::vector<uint8_t> focusVertexShader;
+				std::vector<uint8_t> focusPixelShader;
+				if (!CompileShader(sourceDevice, focusShaderPath, pass.vertexEntry, true, focusVertexShader, error)
+					|| !CompileShader(sourceDevice, focusShaderPath, pass.pixelEntry, false, focusPixelShader, error)) {
+					std::cerr << error;
+					ClearPostProcessEffects();
+					return false;
+				}
+				D3D12_GRAPHICS_PIPELINE_STATE_DESC focusPipelineDesc = pipelineDesc;
+				focusPipelineDesc.VS = { focusVertexShader.data(), focusVertexShader.size() };
+				focusPipelineDesc.PS = { focusPixelShader.data(), focusPixelShader.size() };
+				focusPipelineDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(
+					&focusPipelineDesc, IID_PPV_ARGS(&focusHistoryPipelineState)))) {
+					ClearPostProcessEffects();
+					return false;
+				}
+			}
 		}
 		return true;
+	}
+
+	void Dx12Pipeline::BindFocusHistory(
+		ID3D12GraphicsCommandList* commandList, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
+		if (commandList == nullptr || !postProcessRootSignature || !focusHistoryPipelineState)
+			return;
+		commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
+		commandList->SetPipelineState(focusHistoryPipelineState.Get());
+		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
 	}
 
 	void Dx12Pipeline::BindPostProcess(ID3D12GraphicsCommandList* commandList,
@@ -440,11 +470,13 @@ namespace Chrivent {
 	}
 
 	void Dx12Pipeline::ClearPostProcessEffects() {
+		focusHistoryPipelineState.Reset();
 		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 	}
 
 	void Dx12Pipeline::Reset() {
+		focusHistoryPipelineState.Reset();
 		postProcessPipelineStates.clear();
 		postProcessRootSignature.Reset();
 		groundShadowPipelineState.Reset();

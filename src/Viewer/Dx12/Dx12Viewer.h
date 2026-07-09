@@ -7,7 +7,7 @@
 #include "Viewer/Dx12/Helper/Dx12Device.h"
 #include "Viewer/Dx12/Helper/Dx12MsaaColorBuffer.h"
 #include "Viewer/Dx12/Helper/Dx12Pipeline.h"
-#include "Viewer/Dx12/Helper/Dx12PostProcessTarget.h"
+#include "Viewer/Dx12/Dx12PostProcessTarget.h"
 #include "Viewer/Dx12/Helper/Dx12SwapChain.h"
 
 #include <filesystem>
@@ -32,14 +32,19 @@ namespace Chrivent {
 		std::vector<Dx12PostProcessTarget> postProcessTargets;
 		Microsoft::WRL::ComPtr<ID3D12Resource> postProcessDepth;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> postProcessDepthDsvHeap;
+		Microsoft::WRL::ComPtr<ID3D12Resource> focusHistory[2];
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> focusHistoryRtvHeap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> focusHistorySrvHeap;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
 		Dx12TextureCache textureCache;
 		std::shared_ptr<Dx12Texture> dummyTexture;
 		bool frameReady = false;
+		bool focusHistoryInitialized = false;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		UINT frameIndex = 0;
+		int focusHistoryIndex = 0;
 
 	private:
 		// 현재 back buffer를 render target 상태로 전환한다.
@@ -51,11 +56,21 @@ namespace Chrivent {
 		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
 		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
 		// MSAA 장면을 후처리 입력으로 resolve하고 선택된 효과로 back buffer에 그린다.
-		void DrawPostProcess(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
+		void DrawPostProcess(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor);
 		// 후처리 depth-only pass에 사용할 단일 샘플 depth target을 생성한다.
 		bool CreatePostProcessDepthTarget();
+		// DOF용 1x1 초점 히스토리 ping-pong target을 생성한다.
+		bool CreateFocusHistoryTargets();
+		// DOF용 초점 히스토리 갱신 패스 입력 descriptor를 갱신한다.
+		void UpdateFocusHistoryShaderResources(int readIndex) const;
+		// DOF용 초점 히스토리 갱신 패스를 실행한다.
+		void UpdateFocusHistory(ID3D12GraphicsCommandList* commandList);
 		// 후처리 depth-only pass용 DSV handle을 반환한다.
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolvePostProcessDepthDsvHandle() const;
+		// DOF용 초점 히스토리 RTV handle을 반환한다.
+		D3D12_CPU_DESCRIPTOR_HANDLE ResolveFocusHistoryRtvHandle(int index) const;
+		// DOF용 초점 히스토리 입력 descriptor table handle을 반환한다.
+		D3D12_GPU_DESCRIPTOR_HANDLE ResolveFocusHistoryGpuHandle() const;
 
 	public:
 		Dx12Viewer();

@@ -58,3 +58,31 @@ static const float HighlightThreshold = 0.68;
 
 // 히스토리 텍스처가 유효한 초점 데이터인지 구분하기 위한 표식이다.
 static const float FocusHistoryMarker = 0.5;
+
+float ReadDepth(float2 uv) {
+    return saturate(SceneDepth.Sample(LinearClamp, uv).r);
+}
+
+float MeasuringCircleRadius() {
+    return AutoMeasuringMode > 0.75 ? 0.2 : 0.05;
+}
+
+float ReadAutoFocusDepth() {
+    if (AutoMeasuringMode < 0.25)
+        return ReadDepth(FocusUv);
+
+    float r1 = MeasuringCircleRadius();
+    float r2 = r1 * 0.714;
+    float depth0 = ReadDepth(FocusUv + float2(-r2, -r2));
+    float depth1 = ReadDepth(FocusUv + float2(-r1, 0.0));
+    float depth2 = ReadDepth(FocusUv + float2(-r2, r2));
+    float depth3 = ReadDepth(FocusUv + float2(0.0, -r1));
+    float depth4 = ReadDepth(FocusUv);
+    float depth5 = ReadDepth(FocusUv + float2(0.0, r1));
+    float depth6 = ReadDepth(FocusUv + float2(r2, -r2));
+    float depth7 = ReadDepth(FocusUv + float2(r1, 0.0));
+    float depth8 = ReadDepth(FocusUv + float2(r2, r2));
+    float4 depthMin = min(float4(depth0, depth1, depth2, depth3), float4(depth4, depth5, depth6, depth7));
+    depthMin.xy = min(depthMin.xy, depthMin.zw);
+    return min(min(depthMin.x, depthMin.y), depth8);
+}

@@ -18,6 +18,7 @@ target_sources(PmxModViewer PRIVATE
         Drawer.h Drawer.cpp
         Instance.h Instance.cpp
         TextureCache.h
+        PostProcess.h PostProcess.cpp
         ViewerGeometry.h ViewerGeometry.cpp
         DynamicBufferRing.h DynamicBufferRing.cpp
         Shader/ShaderConstants.h
@@ -35,6 +36,7 @@ target_sources(PmxModViewer PRIVATE
         Glfw/Helper/GlfwShaderCompiler.h Glfw/Helper/GlfwShaderCompiler.cpp
 
         Vulkan/VulkanViewer.h Vulkan/VulkanViewer.cpp
+        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp
         Vulkan/VulkanDrawer.h Vulkan/VulkanDrawer.cpp
         Vulkan/VulkanTextureCache.h Vulkan/VulkanTextureCache.cpp
         Vulkan/VulkanInstance.h Vulkan/VulkanInstance.cpp
@@ -48,7 +50,6 @@ target_sources(PmxModViewer PRIVATE
         Vulkan/Helper/VulkanDevice.h Vulkan/Helper/VulkanDevice.cpp
         Vulkan/Helper/VulkanMemory.h Vulkan/Helper/VulkanMemory.cpp
         Vulkan/Helper/VulkanPipeline.h Vulkan/Helper/VulkanPipeline.cpp
-        Vulkan/Helper/VulkanPostProcess.h Vulkan/Helper/VulkanPostProcess.cpp
         Vulkan/Helper/VulkanShaderModule.h Vulkan/Helper/VulkanShaderModule.cpp
         Vulkan/Helper/VulkanSwapChain.h Vulkan/Helper/VulkanSwapChain.cpp
         Vulkan/Helper/VulkanSyncObject.h Vulkan/Helper/VulkanSyncObject.cpp
@@ -61,6 +62,7 @@ target_sources(PmxModViewer PRIVATE
         Dx11/Helper/Dx11Shader.h Dx11/Helper/Dx11Shader.cpp
 
         Dx12/Dx12Viewer.h Dx12/Dx12Viewer.cpp
+        Dx12/Dx12PostProcessTarget.h Dx12/Dx12PostProcessTarget.cpp
         Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
         Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
         Dx12/Dx12Instance.h Dx12/Dx12Instance.cpp
@@ -71,7 +73,6 @@ target_sources(PmxModViewer PRIVATE
         Dx12/Helper/Dx12Device.h Dx12/Helper/Dx12Device.cpp
         Dx12/Helper/Dx12MsaaColorBuffer.h Dx12/Helper/Dx12MsaaColorBuffer.cpp
         Dx12/Helper/Dx12Pipeline.h Dx12/Helper/Dx12Pipeline.cpp
-        Dx12/Helper/Dx12PostProcessTarget.h Dx12/Helper/Dx12PostProcessTarget.cpp
         Dx12/Helper/Dx12SwapChain.h Dx12/Helper/Dx12SwapChain.cpp
 )
 

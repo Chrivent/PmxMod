@@ -5,7 +5,7 @@ Texture2D SceneDepth : register(t1);
 Texture2D FocusHistory : register(t2);
 SamplerState LinearClamp : register(s0);
 
-#include "dof-parameters.hlsli"
+#include "../../include/depth-of-field.hlsli"
 
 struct FullscreenVertexOutput {
     float4 position : SV_POSITION;
@@ -17,34 +17,6 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
     output.uv = float2((vertexId << 1) & 2, vertexId & 2);
     output.position = float4(output.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
     return output;
-}
-
-float ReadDepth(float2 uv) {
-    return saturate(SceneDepth.Sample(LinearClamp, uv).r);
-}
-
-float MeasuringCircleRadius() {
-    return AutoMeasuringMode > 0.75 ? 0.2 : 0.05;
-}
-
-float ReadAutoFocusDepth() {
-    if (AutoMeasuringMode < 0.25)
-        return ReadDepth(FocusUv);
-
-    float r1 = MeasuringCircleRadius();
-    float r2 = r1 * 0.714;
-    float depth0 = ReadDepth(FocusUv + float2(-r2, -r2));
-    float depth1 = ReadDepth(FocusUv + float2(-r1, 0.0));
-    float depth2 = ReadDepth(FocusUv + float2(-r2, r2));
-    float depth3 = ReadDepth(FocusUv + float2(0.0, -r1));
-    float depth4 = ReadDepth(FocusUv);
-    float depth5 = ReadDepth(FocusUv + float2(0.0, r1));
-    float depth6 = ReadDepth(FocusUv + float2(r2, -r2));
-    float depth7 = ReadDepth(FocusUv + float2(r1, 0.0));
-    float depth8 = ReadDepth(FocusUv + float2(r2, r2));
-    float4 depthMin = min(float4(depth0, depth1, depth2, depth3), float4(depth4, depth5, depth6, depth7));
-    depthMin.xy = min(depthMin.xy, depthMin.zw);
-    return min(min(depthMin.x, depthMin.y), depth8);
 }
 
 float ReadDelayedFocusDepth(float targetFocusDepth) {

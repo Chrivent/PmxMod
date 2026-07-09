@@ -12,12 +12,8 @@ namespace Chrivent {
 			return false;
 		if (!msaaDepthBuffer.Initialize(*device, swapChain))
 			return false;
-		if (!postProcessEffects.empty()) {
-			std::vector<const EffectDefinition*> effects;
-			effects.reserve(postProcessEffects.size());
-			for (const auto& effect : postProcessEffects)
-				effects.push_back(&effect);
-			if (!postProcess.Initialize(*device, swapChain, msaaDepthBuffer.format, effects))
+		if (postProcess.HasEffects()) {
+			if (!postProcess.Initialize(*device, swapChain, msaaDepthBuffer.format))
 				return false;
 		}
 		ShaderPackage package;
@@ -204,10 +200,10 @@ namespace Chrivent {
 		}
 		auto& commandBuffer = commandContext.commandBuffer;
 		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
-		const VkImage resolveImage = !postProcessEffects.empty()
+		const VkImage resolveImage = postProcess.HasEffects()
 			? postProcess.GetTargetImage(0, currentImageIndex)
 			: swapChain.images[currentImageIndex];
-		const VkImageView resolveImageView = !postProcessEffects.empty()
+		const VkImageView resolveImageView = postProcess.HasEffects()
 			? postProcess.GetTargetImageView(0, currentImageIndex)
 			: swapChain.imageViews[currentImageIndex];
 		if (!commandBuffer.BeginRecord(currentImageIndex,
@@ -224,7 +220,11 @@ namespace Chrivent {
 		if (!frameReady)
 			return true;
 		bool recordEnded;
-		if (!postProcessEffects.empty()) {
+		if (postProcess.HasEffects()) {
+			const bool focusHistoryEnabled = postProcess.HasFocusHistoryEffect();
+			const size_t focusHistoryReadIndex = postProcess.GetFocusHistoryReadIndex(currentImageIndex);
+			const size_t focusHistoryWriteIndex = postProcess.GetFocusHistoryWriteIndex(currentImageIndex);
+			const size_t postProcessFocusIndex = focusHistoryEnabled ? focusHistoryWriteIndex : focusHistoryReadIndex;
 			const VkImage targetImages[] = {
 				postProcess.GetTargetImage(0, currentImageIndex),
 				postProcess.GetTargetImage(1, currentImageIndex),
@@ -236,15 +236,28 @@ namespace Chrivent {
 				postProcess.GetTargetImageView(2, currentImageIndex)
 			};
 			const VkDescriptorSet descriptorSets[] = {
-				postProcess.GetDescriptorSet(0, currentImageIndex),
-				postProcess.GetDescriptorSet(1, currentImageIndex),
-				postProcess.GetDescriptorSet(2, currentImageIndex)
+				postProcess.GetDescriptorSet(0, currentImageIndex, postProcessFocusIndex),
+				postProcess.GetDescriptorSet(1, currentImageIndex, postProcessFocusIndex),
+				postProcess.GetDescriptorSet(2, currentImageIndex, postProcessFocusIndex)
+			};
+			const VkImage focusHistoryImages[] = {
+				postProcess.GetFocusHistoryImage(0, currentImageIndex),
+				postProcess.GetFocusHistoryImage(1, currentImageIndex)
+			};
+			const VkImageView focusHistoryImageViews[] = {
+				postProcess.GetFocusHistoryImageView(0, currentImageIndex),
+				postProcess.GetFocusHistoryImageView(1, currentImageIndex)
 			};
 			recordEnded = commandContext.commandBuffer.EndRecordWithPostProcess(
 				currentImageIndex, targetImages[0], swapChain.images[currentImageIndex],
 				swapChain.imageViews[currentImageIndex], targetImages, targetImageViews,
 				postProcess.GetPipelines(), postProcess.GetPipelineLayout(), descriptorSets,
+				focusHistoryImages, focusHistoryImageViews, postProcess.GetFocusHistoryPipeline(),
+				postProcess.GetFocusHistoryDescriptorSet(currentImageIndex, focusHistoryReadIndex),
+				focusHistoryWriteIndex, postProcess.IsFocusHistoryInitialized(currentImageIndex),
 				swapChain.extent, postProcessDepthPassReady);
+			if (recordEnded && focusHistoryEnabled)
+				postProcess.AdvanceFocusHistory(currentImageIndex);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
@@ -308,7 +321,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::BeginPostProcessDepthPass() {
-		if (!frameReady || postProcessEffects.empty())
+		if (!frameReady || !postProcess.HasEffects())
 			return false;
 		constexpr bool depthHasStencil = false;
 		if (!commandContext.commandBuffer.BeginPostProcessDepthPass(
@@ -326,7 +339,7 @@ namespace Chrivent {
 	}
 
 	void VulkanViewer::EndPostProcessDepthPass() {
-		if (!frameReady || postProcessEffects.empty())
+		if (!frameReady || !postProcess.HasEffects())
 			return;
 		constexpr bool depthHasStencil = false;
 		postProcessDepthPassReady = commandContext.commandBuffer.EndPostProcessDepthPass(
@@ -340,15 +353,11 @@ namespace Chrivent {
 
 	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		postProcessEffects.clear();
-		for (const auto* effect : effects) {
-			if (effect && !effect->passes.empty())
-				postProcessEffects.push_back(*effect);
-		}
+		postProcess.SetEffects(effects);
 		ResetSwapChainResources();
 		if (CreateSwapChainResources())
 			return true;
-		postProcessEffects.clear();
+		postProcess.ClearEffects();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
@@ -356,10 +365,10 @@ namespace Chrivent {
 	}
 
 	void VulkanViewer::ClearPostProcessEffects() {
-		if (postProcessEffects.empty())
+		if (!postProcess.HasEffects())
 			return;
 		WaitIdle();
-		postProcessEffects.clear();
+		postProcess.ClearEffects();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after clearing post-process.\n";

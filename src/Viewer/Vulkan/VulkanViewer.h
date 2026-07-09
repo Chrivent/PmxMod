@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer.h"
-#include "Viewer/Shader/ShaderPackage.h"
 #include "Viewer/Vulkan/VulkanDynamicBufferRing.h"
 #include "Viewer/Vulkan/Helper/VulkanCommandContext.h"
 #include "Viewer/Vulkan/Helper/VulkanDescriptorSet.h"
@@ -9,13 +8,12 @@
 #include "Viewer/Vulkan/Helper/VulkanMsaaColorBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanMsaaDepthBuffer.h"
 #include "Viewer/Vulkan/Helper/VulkanPipeline.h"
-#include "Viewer/Vulkan/Helper/VulkanPostProcess.h"
 #include "Viewer/Vulkan/Helper/VulkanSwapChain.h"
 #include "Viewer/Vulkan/Helper/VulkanSyncObject.h"
+#include "Viewer/Vulkan/VulkanPostProcess.h"
 #include "Viewer/Vulkan/VulkanTextureCache.h"
 
 #include <memory>
-#include <vector>
 
 namespace Chrivent {
 	struct VulkanMaterial : ViewerMaterial {
@@ -58,7 +56,6 @@ namespace Chrivent {
 		bool frameReady = false;
 		bool postProcessDepthPassReady = false;
 		VulkanBindStateCache bindStateCache;
-		std::vector<EffectDefinition> postProcessEffects;
 
 	private:
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
