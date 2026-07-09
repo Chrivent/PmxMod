@@ -7,14 +7,14 @@
 
 namespace Chrivent {
 	GlfwPostProcess::~GlfwPostProcess() {
-		Reset();
+		GlfwPostProcess::Reset();
 	}
 
 	void GlfwPostProcess::UpdateFocusHistory() {
 		if (!focusHistoryEnabled || !focusHistoryShader)
 			return;
 		const int readIndex = focusHistoryIndex;
-		const int writeIndex = 1 - focusHistoryIndex;
+		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
 		glBindFramebuffer(GL_FRAMEBUFFER, focusHistoryFramebuffers[writeIndex]);
 		glViewport(0, 0, 1, 1);
 		glUseProgram(focusHistoryShader->program);
@@ -151,9 +151,9 @@ namespace Chrivent {
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
-			if (effect->id == "depth-of-field") {
+			if (IsDepthOfFieldEffect(*effect)) {
 				EffectPassDefinition focusPass = effect->passes.front();
-				focusPass.shaderPath = focusPass.shaderPath.parent_path() / "focus-update.hlsl";
+				focusPass.shaderPath = ResolveFocusUpdateShaderPath(focusPass);
 				if (std::filesystem::exists(focusPass.shaderPath)) {
 					focusHistoryShader = std::make_unique<GlfwPostProcessShader>();
 					if (focusHistoryShader->Initialize(focusPass))
@@ -201,9 +201,8 @@ namespace Chrivent {
 		UpdateFocusHistory();
 		GLuint sourceTexture = sceneColorTexture;
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
-			const bool lastPass = index + 1 == postProcessShaders.size();
-			const size_t targetIndex = index % 2;
-			glBindFramebuffer(GL_FRAMEBUFFER, lastPass ? 0 : pingPongFramebuffers[targetIndex]);
+			const PostProcessPassRoute route = ResolvePingPongRoute(index, postProcessShaders.size());
+			glBindFramebuffer(GL_FRAMEBUFFER, route.lastPass ? 0 : pingPongFramebuffers[route.pingPongIndex]);
 			glViewport(0, 0, width, height);
 			glUseProgram(postProcessShaders[index]->program);
 			glBindTextureUnit(PostProcessInputLayout::SceneColorRegister, sourceTexture);
@@ -211,7 +210,7 @@ namespace Chrivent {
 			glBindTextureUnit(PostProcessInputLayout::FocusHistoryRegister,
 				focusHistoryEnabled ? focusHistoryTextures[focusHistoryIndex] : postProcessDepthTexture);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
-			sourceTexture = pingPongTextures[targetIndex];
+			sourceTexture = pingPongTextures[route.pingPongIndex];
 		}
 	}
 

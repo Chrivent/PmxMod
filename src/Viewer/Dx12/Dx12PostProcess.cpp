@@ -166,7 +166,7 @@ namespace Chrivent {
 		if (!pipeline.HasFocusHistoryEffect() || !focusHistory[0] || !focusHistory[1] || !focusHistorySrvHeap)
 			return;
 		const int readIndex = focusHistoryIndex;
-		const int writeIndex = 1 - focusHistoryIndex;
+		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
 		UpdateFocusHistoryShaderResources(sourceDevice, readIndex);
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		Dx12Barrier::Transition(commandList, enhancedCommandList, focusHistory[writeIndex].Get(),
@@ -293,26 +293,24 @@ namespace Chrivent {
 			target.UpdateFocusHistoryShaderResourceView(sourceDevice, focusHistoryResource);
 		const size_t passCount = pipeline.GetPostProcessPassCount();
 		for (size_t passIndex = 0; passIndex < passCount; passIndex++) {
-			const bool lastPass = passIndex + 1 == passCount;
-			const size_t sourceIndex = passIndex == 0 ? 0 : (passIndex - 1) % 2 + 1;
-			const size_t targetIndex = passIndex % 2 + 1;
-			if (!lastPass) {
-				ID3D12Resource* target = targets[targetIndex].ResolveResource();
+			const PostProcessPassRoute route = ResolvePingPongRoute(passIndex, passCount);
+			if (!route.lastPass) {
+				ID3D12Resource* target = targets[route.targetIndex].ResolveResource();
 				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				const D3D12_CPU_DESCRIPTOR_HANDLE targetRtv = targets[targetIndex].ResolveRtvHandle();
+				const D3D12_CPU_DESCRIPTOR_HANDLE targetRtv = targets[route.targetIndex].ResolveRtvHandle();
 				commandList->OMSetRenderTargets(1, &targetRtv, FALSE, nullptr);
 			} else {
 				const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
 				commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
 			}
-			ID3D12DescriptorHeap* descriptorHeaps[] = { targets[sourceIndex].ResolveDescriptorHeap() };
+			ID3D12DescriptorHeap* descriptorHeaps[] = { targets[route.sourceIndex].ResolveDescriptorHeap() };
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
-			pipeline.BindPostProcess(commandList, passIndex, targets[sourceIndex].ResolveGpuHandle());
+			pipeline.BindPostProcess(commandList, passIndex, targets[route.sourceIndex].ResolveGpuHandle());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
-			if (!lastPass) {
-				ID3D12Resource* target = targets[targetIndex].ResolveResource();
+			if (!route.lastPass) {
+				ID3D12Resource* target = targets[route.targetIndex].ResolveResource();
 				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
 					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			}

@@ -23,7 +23,7 @@ namespace Chrivent {
 			return;
 		ID3D11DeviceContext* context = resources.context.Get();
 		const int readIndex = focusHistoryIndex;
-		const int writeIndex = 1 - focusHistoryIndex;
+		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
 		ID3D11RenderTargetView* targetView = targets.focusHistoryView[writeIndex].Get();
 		context->OMSetRenderTargets(1, &targetView, nullptr);
 		ApplyViewport(context, 1, 1);
@@ -55,8 +55,8 @@ namespace Chrivent {
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
-			if (effect->id == "depth-of-field") {
-				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
+			if (IsDepthOfFieldEffect(*effect)) {
+				const auto focusShaderPath = ResolveFocusUpdateShaderPath(pass);
 				if (std::filesystem::exists(focusShaderPath)
 					&& focusHistoryShader.Initialize(device, focusShaderPath, "VSMain", "PSMain"))
 					focusHistoryEnabled = true;
@@ -101,11 +101,10 @@ namespace Chrivent {
 		UpdateFocusHistory(resources, targets, width, height);
 		ID3D11ShaderResourceView* sourceView = targets.sceneColorView.Get();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
-			const bool lastPass = index + 1 == postProcessShaders.size();
-			const size_t targetIndex = index % 2;
-			ID3D11RenderTargetView* targetView = lastPass
+			const PostProcessPassRoute route = ResolvePingPongRoute(index, postProcessShaders.size());
+			ID3D11RenderTargetView* targetView = route.lastPass
 				? targets.backBufferView.Get()
-				: targets.pingPongColorView[targetIndex].Get();
+				: targets.pingPongColorView[route.pingPongIndex].Get();
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
@@ -122,7 +121,7 @@ namespace Chrivent {
 			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
 			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
 				PostProcessInputLayout::RequiredTextureCount, emptyViews);
-			sourceView = targets.pingPongColorResourceView[targetIndex].Get();
+			sourceView = targets.pingPongColorResourceView[route.pingPongIndex].Get();
 		}
 		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
 		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,

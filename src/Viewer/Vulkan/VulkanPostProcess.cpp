@@ -456,10 +456,10 @@ namespace Chrivent {
 			if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
 				return false;
 			pipelines.push_back(pipeline);
-			if (effect->id == "depth-of-field") {
+			if (IsDepthOfFieldEffect(*effect)) {
 				std::vector<uint32_t> focusVertexCode;
 				std::vector<uint32_t> focusPixelCode;
-				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
+				const auto focusShaderPath = ResolveFocusUpdateShaderPath(pass);
 				if (!DxcShaderCompiler::CompileSpirv(
 					focusShaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, focusVertexCode, error, true)
 					|| !DxcShaderCompiler::CompileSpirv(
@@ -529,7 +529,7 @@ namespace Chrivent {
 	void VulkanPostProcess::AdvanceFocusHistory(const uint32_t imageIndex) {
 		if (imageIndex >= focusHistoryIndices.size())
 			return;
-		focusHistoryIndices[imageIndex] = 1 - focusHistoryIndices[imageIndex];
+		focusHistoryIndices[imageIndex] = ResolveNextFocusHistoryIndex(focusHistoryIndices[imageIndex]);
 		focusHistoryInitialized[imageIndex] = true;
 	}
 

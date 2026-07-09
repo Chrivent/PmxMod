@@ -1,5 +1,6 @@
 ﻿#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
 
+#include "Viewer/PostProcess.h"
 #include "Viewer/Shader/DxcShaderCompiler.h"
 #include "Viewer/Shader/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderCompiler.h"
@@ -427,8 +428,8 @@ namespace Chrivent {
 				return false;
 			}
 			postProcessPipelineStates.push_back(std::move(pipelineState));
-			if (effect->id == "depth-of-field") {
-				const auto focusShaderPath = pass.shaderPath.parent_path() / "focus-update.hlsl";
+			if (PostProcess::IsDepthOfFieldEffect(*effect)) {
+				const auto focusShaderPath = PostProcess::ResolveFocusUpdateShaderPath(pass);
 				std::vector<uint8_t> focusVertexShader;
 				std::vector<uint8_t> focusPixelShader;
 				if (!CompileShader(sourceDevice, focusShaderPath, pass.vertexEntry, true, focusVertexShader, error)
