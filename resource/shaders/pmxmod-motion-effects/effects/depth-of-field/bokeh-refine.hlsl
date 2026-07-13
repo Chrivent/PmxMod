@@ -45,43 +45,26 @@ float4 ResolveBroadBokeh(float2 uv, float centerDistance) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    static const float2 offsets[16] = {
-        float2(0.0000, 0.0000),
-        float2(0.3827, 0.9239),
-        float2(-0.7071, 0.7071),
-        float2(-0.9239, -0.3827),
-        float2(0.0000, -1.0000),
-        float2(0.9239, -0.3827),
-        float2(0.7071, 0.7071),
-        float2(-0.3827, 0.9239),
-        float2(0.7500, 0.0000),
-        float2(0.5303, 0.5303),
-        float2(0.0000, 0.7500),
-        float2(-0.5303, 0.5303),
-        float2(-0.7500, 0.0000),
-        float2(-0.5303, -0.5303),
-        float2(0.0000, -0.7500),
-        float2(0.5303, -0.5303)
-    };
-
     float focusDistance = ReadDelayedFocusDistance();
     float centerCameraDistance = ReadCameraDistance(input.uv);
+    float2 kernelRotation = CalculateBokehKernelRotation(input.position.xy);
     float3 foregroundColor = 0.0;
     float3 backgroundColor = 0.0;
     float foregroundColorWeight = 0.0;
     float backgroundColorWeight = 0.0;
     float foregroundSupport = 0.0;
     float backgroundSupport = 0.0;
-    for (int index = 0; index < 16; index++) {
-        float sampleDistance = length(offsets[index]) * MediumBlurPixels;
-        float2 sampleUv = input.uv + offsets[index] * InverseViewportSize * MediumBlurPixels;
+    for (int index = 0; index < MediumBokehSampleCount; index++) {
+        float2 sampleOffset = TransformBokehKernelOffset(MediumBokehKernel[index], kernelRotation);
+        float sampleDistance = length(sampleOffset) * MediumBlurPixels;
+        float2 sampleUv = input.uv + sampleOffset * InverseViewportSize * MediumBlurPixels;
         float3 sampleColor = PrepareBokehColor(EffectSourceColor.Sample(LinearClamp, sampleUv).rgb);
         float signedCocPixels = CalculateCircleOfConfusionPixels(ReadCameraDistance(sampleUv), focusDistance);
         float sampleRadius = min(abs(signedCocPixels), MediumBlurPixels);
         float support = saturate(sampleRadius - sampleDistance + 1.0);
         float brightnessWeight = CalculateCircleOfConfusionBrightness(sampleRadius);
         float centerWeight = index == 0 ? 1.5 : 1.0;
-        float colorWeight = support * brightnessWeight * centerWeight;
+        float colorWeight = support * brightnessWeight * centerWeight * CalculateBokehHighlightWeight(sampleColor);
         float coverageWeight = support * centerWeight;
         if (signedCocPixels < 0.0) {
             foregroundColor += sampleColor * colorWeight;

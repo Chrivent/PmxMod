@@ -21,10 +21,6 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
     return output;
 }
 
-float ResolveStrongerCircleOfConfusion(float currentCoc, float candidateCoc) {
-    return abs(candidateCoc) > abs(currentCoc) ? candidateCoc : currentCoc;
-}
-
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float2 offset = InverseViewportSize * BokehHalfResolutionScale;
     float2 uv0 = input.uv + float2(-offset.x, -offset.y);
@@ -40,20 +36,24 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float coc1 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv1), focusDistance);
     float coc2 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv2), focusDistance);
     float coc3 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv3), focusDistance);
-    float weight0 = abs(coc0);
-    float weight1 = abs(coc1);
-    float weight2 = abs(coc2);
-    float weight3 = abs(coc3);
-    float totalWeight = weight0 + weight1 + weight2 + weight3;
     float3 prepared0 = PrepareBokehColor(color0);
     float3 prepared1 = PrepareBokehColor(color1);
     float3 prepared2 = PrepareBokehColor(color2);
     float3 prepared3 = PrepareBokehColor(color3);
+    float signedCoc = ResolveDominantCircleOfConfusion(coc0, coc1, coc2, coc3);
+    float weight0 = CalculateDownsampleLayerWeight(coc0, signedCoc);
+    float weight1 = CalculateDownsampleLayerWeight(coc1, signedCoc);
+    float weight2 = CalculateDownsampleLayerWeight(coc2, signedCoc);
+    float weight3 = CalculateDownsampleLayerWeight(coc3, signedCoc);
+    if (abs(signedCoc) > BokehColorEpsilon) {
+        weight0 *= CalculateBokehHighlightWeight(prepared0);
+        weight1 *= CalculateBokehHighlightWeight(prepared1);
+        weight2 *= CalculateBokehHighlightWeight(prepared2);
+        weight3 *= CalculateBokehHighlightWeight(prepared3);
+    }
+    float totalWeight = weight0 + weight1 + weight2 + weight3;
     float3 color = totalWeight > BokehColorEpsilon
         ? (prepared0 * weight0 + prepared1 * weight1 + prepared2 * weight2 + prepared3 * weight3) / totalWeight
         : (prepared0 + prepared1 + prepared2 + prepared3) * 0.25;
-    float signedCoc = ResolveStrongerCircleOfConfusion(coc0, coc1);
-    signedCoc = ResolveStrongerCircleOfConfusion(signedCoc, coc2);
-    signedCoc = ResolveStrongerCircleOfConfusion(signedCoc, coc3);
     return float4(color, EncodeCircleOfConfusion(signedCoc));
 }

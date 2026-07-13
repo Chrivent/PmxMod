@@ -59,7 +59,85 @@ static const float MinimumCoCRadius = 1.0;
 static const float DepthEdgeFalloff = 32.0;
 
 // 광역 전경 보케의 커버리지를 0~1 범위로 정규화하는 커널 가중치다.
-static const float ForegroundCoverageNormalization = 12.0;
+static const float ForegroundCoverageNormalization = 16.0;
+
+// 축소 과정에서 전경으로 확장할 최소 CoC 반경이다.
+static const float ForegroundDilationPixels = 0.5;
+
+// 원형 보케에 8각 조리개 형태를 섞는 비율이다.
+static const float ApertureShapeStrength = 0.25;
+
+// 밝은 점광원이 축소와 블러 과정에서 사라지지 않게 유지하는 최대 가중치다.
+static const float BokehHighlightBias = 0.5;
+
+// 밝은 보케 보존 가중치가 적용되기 시작하는 선형 색상 밝기다.
+static const float BokehHighlightThreshold = 0.55;
+
+// 광역 보케의 Vogel 원판 샘플 개수다.
+static const int BroadBokehSampleCount = 32;
+
+// 중간 반경 보케의 Vogel 원판 샘플 개수다.
+static const int MediumBokehSampleCount = 20;
+
+// 동심원 띠가 생기지 않도록 원판 전체에 고르게 분산한 광역 보케 커널이다.
+static const float2 BroadBokehKernel[BroadBokehSampleCount] = {
+    float2(0.000000, 0.000000),
+    float2(0.127000, 0.000000),
+    float2(-0.162200, 0.148588),
+    float2(0.024827, -0.282894),
+    float2(0.204442, 0.266658),
+    float2(-0.375176, -0.066363),
+    float2(0.355400, -0.226076),
+    float2(-0.118874, 0.442206),
+    float2(-0.226706, -0.436509),
+    float2(0.491861, 0.179627),
+    float2(-0.511700, 0.211222),
+    float2(0.246673, -0.527126),
+    float2(0.182285, 0.581154),
+    float2(-0.549410, -0.318394),
+    float2(0.644520, -0.141696),
+    float2(-0.393341, 0.559486),
+    float2(-0.090871, -0.701244),
+    float2(0.557857, 0.470163),
+    float2(-0.750701, 0.031044),
+    float2(0.547579, -0.544914),
+    float2(-0.036635, 0.792269),
+    float2(-0.521023, -0.624360),
+    float2(0.825358, 0.111051),
+    float2(-0.699324, 0.486572),
+    float2(0.191096, -0.849439),
+    float2(0.441994, 0.771339),
+    float2(-0.864056, -0.275658),
+    float2(0.839321, -0.387788),
+    float2(-0.363615, 0.868839),
+    float2(-0.324518, -0.902243),
+    float2(0.863508, 0.453836),
+    float2(-0.959140, 0.252826)
+};
+
+// 반해상도에서 작은 보케를 균일하게 복원하는 중간 반경 커널이다.
+static const float2 MediumBokehKernel[MediumBokehSampleCount] = {
+    float2(0.000000, 0.000000),
+    float2(0.162221, 0.000000),
+    float2(-0.207183, 0.189796),
+    float2(0.031713, -0.361349),
+    float2(0.261140, 0.340611),
+    float2(-0.479225, -0.084768),
+    float2(0.453964, -0.288774),
+    float2(-0.151842, 0.564844),
+    float2(-0.289579, -0.557567),
+    float2(0.628271, 0.229443),
+    float2(-0.653611, 0.269801),
+    float2(0.315084, -0.673316),
+    float2(0.232839, 0.742327),
+    float2(-0.701779, -0.406695),
+    float2(0.823267, -0.180993),
+    float2(-0.502427, 0.714650),
+    float2(-0.116072, -0.895721),
+    float2(0.712570, 0.600554),
+    float2(-0.958895, 0.039653),
+    float2(0.699441, -0.696037)
+};
 
 // 초점 히스토리 텍스처에 유효한 데이터가 저장되었는지 판별하는 표식이다.
 static const float FocusHistoryMarker = 0.5;
@@ -193,6 +271,46 @@ float DecodeCircleOfConfusion(float encodedCoc) {
     return clamp(encodedCoc, -1.0, 1.0) * MaxBlurPixels;
 }
 
+// 2x2 축소 영역에서 전경을 먼저 확장하고, 전경이 없으면 가장 강한 후경 CoC를 선택한다.
+float ResolveDominantCircleOfConfusion(float coc0, float coc1, float coc2, float coc3) {
+    float foregroundMagnitude = max(max(-coc0, -coc1), max(-coc2, -coc3));
+    float backgroundMagnitude = max(max(coc0, coc1), max(coc2, coc3));
+    return foregroundMagnitude > ForegroundDilationPixels ? -foregroundMagnitude : max(backgroundMagnitude, 0.0);
+}
+
+// 지배적인 CoC와 같은 깊이 층의 색상만 축소 필터에 참여시킨다.
+float CalculateDownsampleLayerWeight(float coc, float dominantCoc) {
+    if (abs(dominantCoc) <= BokehColorEpsilon)
+        return 1.0;
+    if (dominantCoc < 0.0)
+        return coc < 0.0 ? abs(coc) : 0.0;
+    return coc >= 0.0 ? abs(coc) : 0.0;
+}
+
+// 픽셀에 고정된 8단계 회전값으로 샘플 무늬를 분산하면서 프레임 간 깜빡임을 막는다.
+float2 CalculateBokehKernelRotation(float2 pixelPosition) {
+    float noise = frac(52.9829189 * frac(dot(floor(pixelPosition), float2(0.06711056, 0.00583715))));
+    float angle = floor(noise * 8.0) * 0.7853981634;
+    float sine;
+    float cosine;
+    sincos(angle, sine, cosine);
+    return float2(cosine, sine);
+}
+
+// 원판 샘플에 둥근 8각 조리개 형태와 픽셀별 회전을 적용한다.
+float2 TransformBokehKernelOffset(float2 offset, float2 rotation) {
+    float radius = length(offset);
+    if (radius <= BokehColorEpsilon)
+        return 0.0;
+    float2 direction = abs(offset) / radius;
+    float octagonMetric = max(max(direction.x, direction.y), (direction.x + direction.y) * 0.7071067812);
+    float apertureScale = 0.9238795325 / max(octagonMetric, BokehColorEpsilon);
+    float2 shapedOffset = offset * lerp(1.0, apertureScale, ApertureShapeStrength);
+    float rotatedX = shapedOffset.x * rotation.x - shapedOffset.y * rotation.y;
+    float rotatedY = shapedOffset.x * rotation.y + shapedOffset.y * rotation.x;
+    return float2(rotatedX, rotatedY);
+}
+
 // 보케 색에 적용할 강조 지수를 계산한다.
 float CalculateEmphasizeRate() {
     if (Emphasize <= 0.0)
@@ -226,6 +344,13 @@ float3 ResolveBokehColor(float3 color) {
 float CalculateCircleOfConfusionBrightness(float cocPixels) {
     float radius = max(abs(cocPixels), MinimumCoCRadius);
     return saturate(1.0 / (radius * radius));
+}
+
+// 선형 색상에서 밝은 점광원을 찾아 보케 누적 시 더 오래 보존한다.
+float CalculateBokehHighlightWeight(float3 color) {
+    float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
+    float highlight = smoothstep(BokehHighlightThreshold, 1.0, luminance);
+    return 1.0 + highlight * BokehHighlightBias;
 }
 
 // 같은 표면은 유지하고 전경 보케만 깊이 경계를 넘어 후경 위로 번질 수 있게 한다.

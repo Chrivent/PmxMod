@@ -22,10 +22,6 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
     return output;
 }
 
-float ResolveStrongerCircleOfConfusion(float currentCoc, float candidateCoc) {
-    return abs(candidateCoc) > abs(currentCoc) ? candidateCoc : currentCoc;
-}
-
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float2 offset = InverseViewportSize;
     float4 sample0 = SceneColor.Sample(LinearClamp, input.uv + float2(-offset.x, -offset.y));
@@ -36,17 +32,21 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float coc1 = DecodeCircleOfConfusion(sample1.a);
     float coc2 = DecodeCircleOfConfusion(sample2.a);
     float coc3 = DecodeCircleOfConfusion(sample3.a);
-    float weight0 = abs(coc0);
-    float weight1 = abs(coc1);
-    float weight2 = abs(coc2);
-    float weight3 = abs(coc3);
+    float signedCoc = ResolveDominantCircleOfConfusion(coc0, coc1, coc2, coc3);
+    float weight0 = CalculateDownsampleLayerWeight(coc0, signedCoc);
+    float weight1 = CalculateDownsampleLayerWeight(coc1, signedCoc);
+    float weight2 = CalculateDownsampleLayerWeight(coc2, signedCoc);
+    float weight3 = CalculateDownsampleLayerWeight(coc3, signedCoc);
+    if (abs(signedCoc) > BokehColorEpsilon) {
+        weight0 *= CalculateBokehHighlightWeight(sample0.rgb);
+        weight1 *= CalculateBokehHighlightWeight(sample1.rgb);
+        weight2 *= CalculateBokehHighlightWeight(sample2.rgb);
+        weight3 *= CalculateBokehHighlightWeight(sample3.rgb);
+    }
     float totalWeight = weight0 + weight1 + weight2 + weight3;
     float3 color = totalWeight > BokehColorEpsilon
         ? (sample0.rgb * weight0 + sample1.rgb * weight1 + sample2.rgb * weight2 + sample3.rgb * weight3)
             / totalWeight
         : (sample0.rgb + sample1.rgb + sample2.rgb + sample3.rgb) * 0.25;
-    float signedCoc = ResolveStrongerCircleOfConfusion(coc0, coc1);
-    signedCoc = ResolveStrongerCircleOfConfusion(signedCoc, coc2);
-    signedCoc = ResolveStrongerCircleOfConfusion(signedCoc, coc3);
     return float4(color, EncodeCircleOfConfusion(signedCoc));
 }
