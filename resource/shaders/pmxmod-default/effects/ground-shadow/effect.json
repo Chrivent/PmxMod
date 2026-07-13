@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "id": "ground-shadow",
   "name": "Default Ground Shadow",
   "type": "ground_shadow",

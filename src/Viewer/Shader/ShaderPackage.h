@@ -85,7 +85,7 @@ namespace Chrivent {
 	};
 	
 	class ShaderPackageParser {
-		static constexpr int schemaVersion = 2;
+		static constexpr int schemaVersion = 1;
 
 		// JSON 파일을 읽고 최상위 객체인지 확인한다.
 		static bool ReadJsonObject(const std::filesystem::path& path, nlohmann::json& json, std::string& error);

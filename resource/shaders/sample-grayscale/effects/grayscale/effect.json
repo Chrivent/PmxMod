@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "id": "grayscale",
   "name": "Grayscale",
   "type": "post_process",

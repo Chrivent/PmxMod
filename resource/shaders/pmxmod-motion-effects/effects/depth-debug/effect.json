@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "id": "depth-debug",
   "name": "Depth Debug",
   "type": "post_process",

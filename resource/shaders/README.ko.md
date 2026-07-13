@@ -1,6 +1,6 @@
 # PmxMod 셰이더 패키지 계약
 
-`schemaVersion: 2`부터 포스트 프로세스는 C++ 코드가 아니라 `effect.json`이 실행 순서를 결정한다. 기존 엔진 입력과 지원 형식 안에서 효과를 추가할 때는 HLSL과 JSON만 추가하면 된다.
+`schemaVersion: 1`부터 포스트 프로세스는 C++ 코드가 아니라 `effect.json`이 실행 순서를 결정한다. 기존 엔진 입력과 지원 형식 안에서 효과를 추가할 때는 HLSL과 JSON만 추가하면 된다.
 
 ## 패키지 구조
 
@@ -19,7 +19,7 @@ my-package/
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "id": "author.my-package",
   "name": "My Package",
   "version": "1.0.0",
@@ -34,7 +34,7 @@ my-package/
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "id": "my-effect",
   "name": "My Effect",
   "type": "post_process",
