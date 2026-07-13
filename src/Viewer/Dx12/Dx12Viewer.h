@@ -73,8 +73,6 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들을 DX12 ping-pong 체인으로 컴파일한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-		// DX12 후처리 pipeline들을 해제한다.
-		void ClearPostProcessEffects() override;
 		// DX12 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
 		void ResetPostProcessHistory() override;
 		// DX12 모델 인스턴스를 생성한다.

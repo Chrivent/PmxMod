@@ -27,7 +27,7 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&sceneColor))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-		heapDesc.NumDescriptors = PostProcessInputLayout::RequiredTextureCount;
+		heapDesc.NumDescriptors = PostProcessInputLayout::requiredTextureCount;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&srvDescriptorHeap))))
@@ -62,7 +62,7 @@ namespace Chrivent {
 		srvDesc.Texture2D.MipLevels = 1;
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-			* PostProcessInputLayout::SceneDepthRegister;
+			* PostProcessInputLayout::sceneDepthRegister;
 		sourceDevice.device->CreateShaderResourceView(depthResource, &srvDesc, handle);
 	}
 
@@ -77,7 +77,7 @@ namespace Chrivent {
 		srvDesc.Texture2D.MipLevels = 1;
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-			* PostProcessInputLayout::FocusHistoryRegister;
+			* PostProcessInputLayout::focusHistoryRegister;
 		sourceDevice.device->CreateShaderResourceView(historyResource, &srvDesc, handle);
 	}
 

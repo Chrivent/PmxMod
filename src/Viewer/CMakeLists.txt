@@ -22,6 +22,7 @@ target_sources(PmxModViewer PRIVATE
         ViewerGeometry.h ViewerGeometry.cpp
         DynamicBufferRing.h DynamicBufferRing.cpp
         Shader/ShaderConstants.h
+        Shader/PostProcessInputLayout.h
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h
         $<TARGET_OBJECTS:PmxModDxcCompiler>

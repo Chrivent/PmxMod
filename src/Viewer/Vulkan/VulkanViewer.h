@@ -101,8 +101,6 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-		// Vulkan 후처리 스왑체인 의존 리소스를 해제하고 기본 렌더 경로로 되돌린다.
-		void ClearPostProcessEffects() override;
 		// Vulkan 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
 		void ResetPostProcessHistory() override;
 		// Vulkan 모델 인스턴스를 생성한다.

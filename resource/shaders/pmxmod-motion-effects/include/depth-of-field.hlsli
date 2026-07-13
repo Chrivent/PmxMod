@@ -1,3 +1,5 @@
+#include "post-process-frame.hlsli"
+
 // ikBokeh 계열 DOF에서 effect.hlsl과 focus-update.hlsl이 공유하는 임시 파라미터다.
 // 나중에 UI/모션 키 파라미터 시스템이 생기면 이 값들을 상수 버퍼나 패키지 파라미터로 옮긴다.
 
@@ -37,15 +39,6 @@ static const float FocusSlip = 0.5;
 
 // 현재는 MMD 컨트롤러가 없으므로 측정 중심을 화면 중앙 근처로 둔다.
 static const float2 FocusUv = float2(0.5, 0.48);
-
-// CPU에서 프레임 시간 상수를 넘기기 전까지 사용하는 임시 초점 갱신 간격이다.
-static const float FocusDeltaTime = 1.0 / 30.0;
-
-// depth 값을 선형화할 때 쓰는 임시 near plane 값이다.
-static const float NearPlane = 0.1;
-
-// depth 값을 선형화할 때 쓰는 임시 far plane 값이다. ikBokeh 원본의 FAR_DEPTH 기본값과 맞춘다.
-static const float FarPlane = 1000.0;
 
 // 현재 단일 패스 DOF에서 CoC를 정규화하는 기준 폭이다.
 static const float FocusRangeBase = 0.18;

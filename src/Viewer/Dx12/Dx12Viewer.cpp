@@ -160,7 +160,7 @@ namespace Chrivent {
 			return false;
 		if (postProcess.HasEffects())
 			postProcess.Draw(commandList, backBuffer, msaaColor,
-				*device, commandContext, swapChain, screenWidth, screenHeight);
+				*device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
 		else
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
 		if (!commandContext.Execute(*device))
@@ -194,13 +194,8 @@ namespace Chrivent {
 		return postProcess.Load(*device, effects);
 	}
 
-	void Dx12Viewer::ClearPostProcessEffects() {
-		WaitIdle();
-		postProcess.ClearPipelines();
-	}
-
 	void Dx12Viewer::ResetPostProcessHistory() {
-		postProcess.ResetFocusHistory();
+		postProcess.ResetHistory();
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

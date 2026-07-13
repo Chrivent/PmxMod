@@ -121,7 +121,7 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::EndFrame() {
-		postProcess.Draw(screenWidth, screenHeight);
+		postProcess.Draw(screenWidth, screenHeight, postProcessFrameData);
 		glfwSwapBuffers(window);
 		return true;
 	}
@@ -143,12 +143,8 @@ namespace Chrivent {
 		return postProcess.Load(effects);
 	}
 
-	void GlfwViewer::ClearPostProcessEffects() {
-		postProcess.ClearShaders();
-	}
-
 	void GlfwViewer::ResetPostProcessHistory() {
-		postProcess.ResetFocusHistory();
+		postProcess.ResetHistory();
 	}
 
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {

@@ -2,6 +2,7 @@
 
 #include "Viewer/Shader/DxcShaderCompiler.h"
 #include "Viewer/Shader/PostProcessInputLayout.h"
+#include "Viewer/Viewer.h"
 #include "Viewer/Vulkan/Helper/VulkanMemory.h"
 #include "Viewer/Vulkan/Helper/VulkanShaderModule.h"
 
@@ -122,7 +123,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::CreateFocusHistoryImages(const VulkanDevice& sourceDevice) {
-		const size_t imageCount = swapChainImageCount * focusHistoryCount;
+		const size_t imageCount = swapChainImageCount * historyTargetCount;
 		focusHistoryImages.resize(imageCount);
 		focusHistoryImageMemories.resize(imageCount);
 		focusHistoryImageViews.resize(imageCount);
@@ -170,27 +171,53 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanPostProcess::CreateFrameDataBuffers(const VulkanDevice& sourceDevice) {
+		frameDataBuffers.clear();
+		frameDataBuffers.reserve(swapChainImageCount);
+		for (size_t index = 0; index < swapChainImageCount; index++) {
+			auto buffer = std::make_unique<VulkanBuffer>();
+			if (!buffer->Initialize(sourceDevice, sizeof(PostProcessFrameData),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
+			frameDataBuffers.push_back(std::move(buffer));
+		}
+		return true;
+	}
+
 	bool VulkanPostProcess::CreateDescriptors(const VulkanSwapChain&) {
+		constexpr VkDescriptorSetLayoutBinding frameDataBinding{
+			.binding = PostProcessInputLayout::frameDataRegister,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		VkDescriptorSetLayoutCreateInfo frameDataLayoutInfo{};
+		frameDataLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		frameDataLayoutInfo.bindingCount = 1;
+		frameDataLayoutInfo.pBindings = &frameDataBinding;
 		VkDescriptorSetLayoutCreateInfo emptyLayoutInfo{};
 		emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		if (vkCreateDescriptorSetLayout(device, &emptyLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS
-			|| vkCreateDescriptorSetLayout(device, &emptyLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(
+			device, &frameDataLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS
+			|| vkCreateDescriptorSetLayout(
+				device, &emptyLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS)
 			return false;
 		constexpr VkDescriptorSetLayoutBinding bindings[] = {
 			VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::SceneColorRegister,
+				.binding = PostProcessInputLayout::sceneColorRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::SceneDepthRegister,
+				.binding = PostProcessInputLayout::sceneDepthRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::FocusHistoryRegister,
+				.binding = PostProcessInputLayout::focusHistoryRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -224,21 +251,26 @@ namespace Chrivent {
 		samplerInfo.maxLod = 1.0f;
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			return false;
-		const uint32_t mainDescriptorCount = static_cast<uint32_t>(targetImageViews.size() * focusHistoryCount);
-		const uint32_t focusDescriptorCount = static_cast<uint32_t>(swapChainImageCount * focusHistoryCount);
-		const uint32_t descriptorCount = mainDescriptorCount + focusDescriptorCount;
+		const uint32_t mainDescriptorCount = static_cast<uint32_t>(targetImageViews.size() * historyTargetCount);
+		const uint32_t focusDescriptorCount = static_cast<uint32_t>(swapChainImageCount * historyTargetCount);
+		const uint32_t textureDescriptorCount = mainDescriptorCount + focusDescriptorCount;
+		const uint32_t frameDescriptorCount = static_cast<uint32_t>(swapChainImageCount);
+		const uint32_t descriptorCount = frameDescriptorCount + textureDescriptorCount;
 		const VkDescriptorPoolSize poolSizes[] = {
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, descriptorCount * 3 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, descriptorCount }
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameDescriptorCount },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureDescriptorCount * 3 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureDescriptorCount }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.maxSets = descriptorCount;
-		poolInfo.poolSizeCount = 2;
+		poolInfo.poolSizeCount = 3;
 		poolInfo.pPoolSizes = poolSizes;
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 			return false;
 		std::vector<VkDescriptorSetLayout> layouts(descriptorCount, descriptorSetLayouts[2]);
+		for (uint32_t index = 0; index < frameDescriptorCount; index++)
+			layouts[index] = descriptorSetLayouts[0];
 		std::vector<VkDescriptorSet> allocatedSets(descriptorCount);
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -247,9 +279,28 @@ namespace Chrivent {
 		allocateInfo.pSetLayouts = layouts.data();
 		if (vkAllocateDescriptorSets(device, &allocateInfo, allocatedSets.data()) != VK_SUCCESS)
 			return false;
-		descriptorSets.assign(allocatedSets.begin(), allocatedSets.begin() + mainDescriptorCount);
-		focusHistoryDescriptorSets.assign(allocatedSets.begin() + mainDescriptorCount, allocatedSets.end());
-		for (size_t historyIndex = 0; historyIndex < focusHistoryCount; historyIndex++) {
+		frameDataDescriptorSets.assign(allocatedSets.begin(), allocatedSets.begin() + frameDescriptorCount);
+		descriptorSets.assign(allocatedSets.begin() + frameDescriptorCount,
+			allocatedSets.begin() + frameDescriptorCount + mainDescriptorCount);
+		focusHistoryDescriptorSets.assign(
+			allocatedSets.begin() + frameDescriptorCount + mainDescriptorCount, allocatedSets.end());
+		for (uint32_t imageIndex = 0; imageIndex < frameDescriptorCount; imageIndex++) {
+			const VkDescriptorBufferInfo bufferInfo{
+				.buffer = frameDataBuffers[imageIndex]->buffer,
+				.offset = 0,
+				.range = sizeof(PostProcessFrameData)
+			};
+			const VkWriteDescriptorSet write{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = frameDataDescriptorSets[imageIndex],
+				.dstBinding = PostProcessInputLayout::frameDataRegister,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pBufferInfo = &bufferInfo
+			};
+			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+		}
+		for (size_t historyIndex = 0; historyIndex < historyTargetCount; historyIndex++) {
 			for (uint32_t targetIndex = 0; targetIndex < targetCount; targetIndex++) {
 				for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
 					const size_t targetFlatIndex = ResolveTargetIndex(targetIndex, imageIndex);
@@ -274,7 +325,7 @@ namespace Chrivent {
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::SceneColorRegister,
+							.dstBinding = PostProcessInputLayout::sceneColorRegister,
 							.descriptorCount = 1,
 							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 							.pImageInfo = &imageInfo
@@ -282,7 +333,7 @@ namespace Chrivent {
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::SceneDepthRegister,
+							.dstBinding = PostProcessInputLayout::sceneDepthRegister,
 							.descriptorCount = 1,
 							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 							.pImageInfo = &depthInfo
@@ -290,7 +341,7 @@ namespace Chrivent {
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::FocusHistoryRegister,
+							.dstBinding = PostProcessInputLayout::focusHistoryRegister,
 							.descriptorCount = 1,
 							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 							.pImageInfo = &focusHistoryInfo
@@ -328,7 +379,7 @@ namespace Chrivent {
 					VkWriteDescriptorSet{
 						.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 						.dstSet = focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
-						.dstBinding = PostProcessInputLayout::SceneColorRegister,
+						.dstBinding = PostProcessInputLayout::sceneColorRegister,
 						.descriptorCount = 1,
 						.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 						.pImageInfo = &imageInfo
@@ -336,7 +387,7 @@ namespace Chrivent {
 					VkWriteDescriptorSet{
 						.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 						.dstSet = focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
-						.dstBinding = PostProcessInputLayout::SceneDepthRegister,
+						.dstBinding = PostProcessInputLayout::sceneDepthRegister,
 						.descriptorCount = 1,
 						.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 						.pImageInfo = &depthInfo
@@ -344,7 +395,7 @@ namespace Chrivent {
 					VkWriteDescriptorSet{
 						.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 						.dstSet = focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
-						.dstBinding = PostProcessInputLayout::FocusHistoryRegister,
+						.dstBinding = PostProcessInputLayout::focusHistoryRegister,
 						.descriptorCount = 1,
 						.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 						.pImageInfo = &focusHistoryInfo
@@ -364,161 +415,111 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanPostProcess::CreatePipeline(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain) {
-		const auto effects = ResolveEffectPointers();
-		for (const auto* effect : effects) {
-			if (!effect || effect->passes.empty())
-				continue;
-			const auto& pass = effect->passes.front();
-			std::vector<uint32_t> vertexCode;
-			std::vector<uint32_t> pixelCode;
-			std::string error;
-			const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
-			const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-			if (!DxcShaderCompiler::CompileSpirv(
-				pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error, true)
-				|| !DxcShaderCompiler::CompileSpirv(
-					pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, pixelCode, error)) {
-				std::cerr << error << '\n';
-				return false;
+	bool VulkanPostProcess::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
+		const EffectPassDefinition& pass, const VkExtent2D extent, const VkFormat format,
+		VkPipeline& pipeline) const {
+		std::vector<uint32_t> vertexCode;
+		std::vector<uint32_t> pixelCode;
+		std::string error;
+		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
+		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
+		if (!DxcShaderCompiler::CompileSpirv(
+			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error, true)
+			|| !DxcShaderCompiler::CompileSpirv(
+				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, pixelCode, error)) {
+			std::cerr << error << '\n';
+			return false;
+		}
+		VulkanShaderModule vertexShader;
+		VulkanShaderModule pixelShader;
+		if (!vertexShader.Initialize(sourceDevice, vertexCode) || !pixelShader.Initialize(sourceDevice, pixelCode))
+			return false;
+		const VkPipelineShaderStageCreateInfo stages[] = {
+			{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_VERTEX_BIT,
+				.module = vertexShader.GetShaderModule(),
+				.pName = pass.vertexEntry.c_str()
+			},
+			{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.module = pixelShader.GetShaderModule(),
+				.pName = pass.pixelEntry.c_str()
 			}
-			VulkanShaderModule vertexShader;
-			VulkanShaderModule pixelShader;
-			if (!vertexShader.Initialize(sourceDevice, vertexCode) || !pixelShader.Initialize(sourceDevice, pixelCode))
-				return false;
-			const VkPipelineShaderStageCreateInfo stages[] = {
-				VkPipelineShaderStageCreateInfo{
-					.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-					.stage = VK_SHADER_STAGE_VERTEX_BIT,
-					.module = vertexShader.GetShaderModule(),
-					.pName = pass.vertexEntry.c_str()
-				},
-				VkPipelineShaderStageCreateInfo{
-					.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-					.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-					.module = pixelShader.GetShaderModule(),
-					.pName = pass.pixelEntry.c_str()
-				}
-			};
-			VkPipelineVertexInputStateCreateInfo vertexInput{};
-			vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-			VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-			inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-			inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-			const VkViewport viewport{
-				.x = 0.0f, .y = 0.0f,
-				.width = static_cast<float>(sourceSwapChain.extent.width),
-				.height = static_cast<float>(sourceSwapChain.extent.height),
-				.minDepth = 0.0f, .maxDepth = 1.0f
-			};
-			const VkRect2D scissor{ .extent = sourceSwapChain.extent };
-			VkPipelineViewportStateCreateInfo viewportState{};
-			viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-			viewportState.viewportCount = 1;
-			viewportState.pViewports = &viewport;
-			viewportState.scissorCount = 1;
-			viewportState.pScissors = &scissor;
-			VkPipelineRasterizationStateCreateInfo rasterizer{};
-			rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-			rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-			rasterizer.cullMode = VK_CULL_MODE_NONE;
-			rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-			rasterizer.lineWidth = 1.0f;
-			VkPipelineMultisampleStateCreateInfo multisampling{};
-			multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-			multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-			VkPipelineColorBlendAttachmentState blendAttachment{};
-			blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-				| VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			VkPipelineColorBlendStateCreateInfo blending{};
-			blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-			blending.attachmentCount = 1;
-			blending.pAttachments = &blendAttachment;
-			VkGraphicsPipelineCreateInfo pipelineInfo{};
-			pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			const VkPipelineRenderingCreateInfo renderingInfo{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-				.colorAttachmentCount = 1,
-				.pColorAttachmentFormats = &sourceSwapChain.imageFormat
-			};
-			pipelineInfo.pNext = &renderingInfo;
-			pipelineInfo.stageCount = 2;
-			pipelineInfo.pStages = stages;
-			pipelineInfo.pVertexInputState = &vertexInput;
-			pipelineInfo.pInputAssemblyState = &inputAssembly;
-			pipelineInfo.pViewportState = &viewportState;
-			pipelineInfo.pRasterizationState = &rasterizer;
-			pipelineInfo.pMultisampleState = &multisampling;
-			pipelineInfo.pColorBlendState = &blending;
-			pipelineInfo.layout = pipelineLayout;
+		};
+		VkPipelineVertexInputStateCreateInfo vertexInput{};
+		vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		const VkViewport viewport{
+			.x = 0.0f, .y = 0.0f,
+			.width = static_cast<float>(extent.width), .height = static_cast<float>(extent.height),
+			.minDepth = 0.0f, .maxDepth = 1.0f
+		};
+		const VkRect2D scissor{ .extent = extent };
+		VkPipelineViewportStateCreateInfo viewportState{};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.pViewports = &viewport;
+		viewportState.scissorCount = 1;
+		viewportState.pScissors = &scissor;
+		VkPipelineRasterizationStateCreateInfo rasterizer{};
+		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.cullMode = VK_CULL_MODE_NONE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterizer.lineWidth = 1.0f;
+		VkPipelineMultisampleStateCreateInfo multisampling{};
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		VkPipelineColorBlendAttachmentState blendAttachment{};
+		blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+			| VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		VkPipelineColorBlendStateCreateInfo blending{};
+		blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		blending.attachmentCount = 1;
+		blending.pAttachments = &blendAttachment;
+		const VkPipelineRenderingCreateInfo renderingInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &format
+		};
+		VkGraphicsPipelineCreateInfo pipelineInfo{};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.pNext = &renderingInfo;
+		pipelineInfo.stageCount = 2;
+		pipelineInfo.pStages = stages;
+		pipelineInfo.pVertexInputState = &vertexInput;
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+		pipelineInfo.pViewportState = &viewportState;
+		pipelineInfo.pRasterizationState = &rasterizer;
+		pipelineInfo.pMultisampleState = &multisampling;
+		pipelineInfo.pColorBlendState = &blending;
+		pipelineInfo.layout = pipelineLayout;
+		return vkCreateGraphicsPipelines(
+			device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
+	}
+
+	bool VulkanPostProcess::CreatePipelines(
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
+		for (const auto& pass : ResolvePasses()) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
-			if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
+			if (!CreateGraphicsPipeline(
+				sourceDevice, pass, sourceSwapChain.extent, sourceSwapChain.imageFormat, pipeline))
 				return false;
 			pipelines.push_back(pipeline);
-			if (IsDepthOfFieldEffect(*effect)) {
-				std::vector<uint32_t> focusVertexCode;
-				std::vector<uint32_t> focusPixelCode;
-				const auto focusShaderPath = ResolveFocusUpdateShaderPath(pass);
-				if (!DxcShaderCompiler::CompileSpirv(
-					focusShaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, focusVertexCode, error, true)
-					|| !DxcShaderCompiler::CompileSpirv(
-						focusShaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, focusPixelCode, error)) {
-					std::cerr << error << '\n';
-					return false;
-				}
-				VulkanShaderModule focusVertexShader;
-				VulkanShaderModule focusPixelShader;
-				if (!focusVertexShader.Initialize(sourceDevice, focusVertexCode) ||
-					!focusPixelShader.Initialize(sourceDevice, focusPixelCode))
-					return false;
-				const VkPipelineShaderStageCreateInfo focusStages[] = {
-					VkPipelineShaderStageCreateInfo{
-						.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-						.stage = VK_SHADER_STAGE_VERTEX_BIT,
-						.module = focusVertexShader.GetShaderModule(),
-						.pName = pass.vertexEntry.c_str()
-					},
-					VkPipelineShaderStageCreateInfo{
-						.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-						.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-						.module = focusPixelShader.GetShaderModule(),
-						.pName = pass.pixelEntry.c_str()
-					}
-				};
-				constexpr VkViewport focusViewport{
-					.x = 0.0f, .y = 0.0f, .width = 1.0f, .height = 1.0f,
-					.minDepth = 0.0f, .maxDepth = 1.0f
-				};
-				constexpr VkRect2D focusScissor{ .extent = { 1, 1 } };
-				VkPipelineViewportStateCreateInfo focusViewportState{};
-				focusViewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-				focusViewportState.viewportCount = 1;
-				focusViewportState.pViewports = &focusViewport;
-				focusViewportState.scissorCount = 1;
-				focusViewportState.pScissors = &focusScissor;
-				static constexpr VkFormat focusFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-				constexpr VkPipelineRenderingCreateInfo focusRenderingInfo{
-					.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-					.colorAttachmentCount = 1,
-					.pColorAttachmentFormats = &focusFormat
-				};
-				VkGraphicsPipelineCreateInfo focusPipelineInfo = pipelineInfo;
-				focusPipelineInfo.pNext = &focusRenderingInfo;
-				focusPipelineInfo.pStages = focusStages;
-				focusPipelineInfo.pViewportState = &focusViewportState;
-				if (vkCreateGraphicsPipelines(
-					device, VK_NULL_HANDLE, 1, &focusPipelineInfo, nullptr, &focusHistoryPipeline) != VK_SUCCESS)
-					return false;
-			}
 		}
-		return true;
+		const auto* historyPass = ResolveHistoryPass();
+		return !historyPass || CreateGraphicsPipeline(sourceDevice, *historyPass,
+			VkExtent2D{ 1, 1 }, VK_FORMAT_R32G32B32A32_SFLOAT, focusHistoryPipeline);
 	}
 
 	void VulkanPostProcess::AdvanceFocusHistory(const uint32_t imageIndex) {
 		if (imageIndex >= focusHistoryIndices.size())
 			return;
-		focusHistoryIndices[imageIndex] = ResolveNextFocusHistoryIndex(focusHistoryIndices[imageIndex]);
+		focusHistoryIndices[imageIndex] = ResolveNextHistoryIndex(focusHistoryIndices[imageIndex]);
 		focusHistoryInitialized[imageIndex] = true;
 	}
 
@@ -529,11 +530,12 @@ namespace Chrivent {
 		return CreateTargetImages(sourceDevice, sourceSwapChain)
 			&& CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)
 			&& CreateFocusHistoryImages(sourceDevice)
+			&& CreateFrameDataBuffers(sourceDevice)
 			&& CreateDescriptors(sourceSwapChain)
-			&& CreatePipeline(sourceDevice, sourceSwapChain);
+			&& CreatePipelines(sourceDevice, sourceSwapChain);
 	}
 
-	void VulkanPostProcess::ResetFocusHistory() {
+	void VulkanPostProcess::ResetHistory() {
 		for (size_t& index : focusHistoryIndices)
 			index = 0;
 		for (size_t index = 0; index < focusHistoryInitialized.size(); index++)
@@ -579,6 +581,8 @@ namespace Chrivent {
 		}
 		descriptorSets.clear();
 		focusHistoryDescriptorSets.clear();
+		frameDataDescriptorSets.clear();
+		frameDataBuffers.clear();
 		targetImageViews.clear();
 		targetImages.clear();
 		targetImageMemories.clear();

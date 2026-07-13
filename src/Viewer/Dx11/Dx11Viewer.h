@@ -105,8 +105,6 @@ namespace Chrivent {
         void WaitIdle() override;
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // DX11 후처리 셰이더들을 해제한다.
-        void ClearPostProcessEffects() override;
         // DX11 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
         void ResetPostProcessHistory() override;
         // DX11 모델 인스턴스를 생성한다.

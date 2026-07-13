@@ -95,6 +95,29 @@ namespace Chrivent {
 		return false;
 	}
 
+	bool ShaderPackageParser::LoadPass(const std::filesystem::path& packageRoot,
+		const std::filesystem::path& manifestPath, const nlohmann::json& json,
+		EffectPassDefinition& pass, std::string& error) {
+		if (!json.is_object()) {
+			error = "Invalid effect pass: " + manifestPath.string();
+			return false;
+		}
+		std::string shaderPath;
+		if (!ReadRequiredString(json, "name", pass.name, error)
+			|| !ReadRequiredString(json, "shader", shaderPath, error)) {
+			error += " in " + manifestPath.string();
+			return false;
+		}
+		if (!ResolvePackagePath(packageRoot, shaderPath, pass.shaderPath, error))
+			return false;
+		pass.vertexEntry = json.value("vertexEntry", pass.vertexEntry);
+		pass.pixelEntry = json.value("pixelEntry", pass.pixelEntry);
+		if (!pass.vertexEntry.empty() && !pass.pixelEntry.empty())
+			return true;
+		error = "Effect pass entry points cannot be empty: " + manifestPath.string();
+		return false;
+	}
+
 	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
 		EffectDefinition& effect, std::string& error) {
 		nlohmann::json json;
@@ -126,6 +149,7 @@ namespace Chrivent {
 			error = "Unsupported effect type: " + type + " in " + manifestPath.string();
 			return false;
 		}
+		effect.requiresDepth = json.value("requiresDepth", false);
 		const auto passArray = json.find("passes");
 		if (passArray == json.end() || !passArray->is_array() || passArray->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();
@@ -134,29 +158,18 @@ namespace Chrivent {
 		effect.passes.clear();
 		effect.passes.reserve(passArray->size());
 		for (const auto& passJson : *passArray) {
-			if (!passJson.is_object()) {
-				error = "Invalid effect pass: " + manifestPath.string();
-				return false;
-			}
 			EffectPassDefinition pass;
-			std::string shaderPath;
-			if (!ReadRequiredString(passJson, "name", pass.name, error)) {
-				error += " in " + manifestPath.string();
+			if (!LoadPass(packageRoot, manifestPath, passJson, pass, error))
 				return false;
-			}
-			if (!ReadRequiredString(passJson, "shader", shaderPath, error)) {
-				error += " in " + manifestPath.string();
-				return false;
-			}
-			if (!ResolvePackagePath(packageRoot, shaderPath, pass.shaderPath, error))
-				return false;
-			pass.vertexEntry = passJson.value("vertexEntry", pass.vertexEntry);
-			pass.pixelEntry = passJson.value("pixelEntry", pass.pixelEntry);
-			if (pass.vertexEntry.empty() || pass.pixelEntry.empty()) {
-				error = "Effect pass entry points cannot be empty: " + manifestPath.string();
-				return false;
-			}
 			effect.passes.emplace_back(std::move(pass));
+		}
+		effect.historyPass.reset();
+		const auto historyPass = json.find("historyPass");
+		if (historyPass != json.end()) {
+			EffectPassDefinition pass;
+			if (!LoadPass(packageRoot, manifestPath, *historyPass, pass, error))
+				return false;
+			effect.historyPass = std::move(pass);
 		}
 		return true;
 	}

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <optional>
 #include <nlohmann/json.hpp>
 
 namespace Chrivent {
@@ -24,7 +25,9 @@ namespace Chrivent {
 		std::string id;
 		std::string name;
 		EffectType type = EffectType::PostProcess;
+		bool requiresDepth = false;
 		std::vector<EffectPassDefinition> passes;
+		std::optional<EffectPassDefinition> historyPass;
 	};
 
 	struct ShaderPackage {
@@ -57,6 +60,9 @@ namespace Chrivent {
 		// 패키지 내부의 상대 경로를 실제 파일 경로로 변환한다.
 		static bool ResolvePackagePath(const std::filesystem::path& packageRoot, const std::string& relativePath,
 			std::filesystem::path& resolvedPath, std::string& error);
+		// JSON 객체 하나를 셰이더 pass 정의로 변환한다.
+		static bool LoadPass(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
+			const nlohmann::json& json, EffectPassDefinition& pass, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
 			EffectDefinition& effect, std::string& error);

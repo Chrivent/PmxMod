@@ -218,7 +218,8 @@ namespace Chrivent {
 			postProcess.ResolveSceneColor(
 				deviceResources.context.Get(), renderTargets.sceneColorMsaa.Get(), multiSampleCount);
 			postProcess.Draw(deviceResources.context.Get(), renderTargets.backBufferView.Get(),
-				pipelineStates.bothFaceRs.Get(), pipelineStates.toonTextureSampler.Get(), screenWidth, screenHeight);
+				pipelineStates.bothFaceRs.Get(), pipelineStates.toonTextureSampler.Get(),
+				screenWidth, screenHeight, postProcessFrameData);
 		} else {
 			deviceResources.context->CopyResource(
 				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
@@ -256,12 +257,8 @@ namespace Chrivent {
 		return postProcess.Load(deviceResources.device.Get(), effects);
 	}
 
-	void Dx11Viewer::ClearPostProcessEffects() {
-		postProcess.ClearShaders();
-	}
-
 	void Dx11Viewer::ResetPostProcessHistory() {
-		postProcess.ResetFocusHistory();
+		postProcess.ResetHistory();
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

@@ -3,6 +3,7 @@
   "id": "depth-debug",
   "name": "Depth Debug",
   "type": "post_process",
+  "requiresDepth": true,
   "passes": [
     {
       "name": "main",

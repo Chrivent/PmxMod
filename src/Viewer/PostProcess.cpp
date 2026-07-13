@@ -1,14 +1,6 @@
 ﻿#include "Viewer/PostProcess.h"
 
 namespace Chrivent {
-	bool PostProcess::IsDepthOfFieldEffect(const EffectDefinition& effect) {
-		return effect.id == "depth-of-field";
-	}
-
-	std::filesystem::path PostProcess::ResolveFocusUpdateShaderPath(const EffectPassDefinition& pass) {
-		return pass.shaderPath.parent_path() / "focus-update.hlsl";
-	}
-
 	PostProcessPassRoute PostProcess::ResolvePingPongRoute(const size_t passIndex, const size_t passCount) {
 		PostProcessPassRoute route;
 		route.lastPass = passIndex + 1 == passCount;
@@ -18,32 +10,34 @@ namespace Chrivent {
 		return route;
 	}
 
-	int PostProcess::ResolveNextFocusHistoryIndex(const int currentIndex) {
+	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
 		return 1 - currentIndex;
 	}
 
-	size_t PostProcess::ResolveNextFocusHistoryIndex(const size_t currentIndex) {
-		return 1 - currentIndex;
-	}
-
-	std::vector<const EffectDefinition*> PostProcess::ResolveEffectPointers() const {
-		std::vector<const EffectDefinition*> effects;
-		effects.reserve(effectDefinitions.size());
-		for (const auto& effect : effectDefinitions)
-			effects.push_back(&effect);
-		return effects;
-	}
-
-	void PostProcess::SetEffects(const std::vector<const EffectDefinition*>& effects) {
-		effectDefinitions.clear();
-		effectDefinitions.reserve(effects.size());
+	bool PostProcess::SetEffects(const std::vector<const EffectDefinition*>& effects) {
+		std::vector<EffectPassDefinition> passes;
+		std::optional<EffectPassDefinition> historyPass;
+		bool requiresDepth = false;
 		for (const auto* effect : effects) {
-			if (effect != nullptr && !effect->passes.empty())
-				effectDefinitions.push_back(*effect);
+			if (effect == nullptr || effect->passes.empty())
+				continue;
+			passes.insert(passes.end(), effect->passes.begin(), effect->passes.end());
+			requiresDepth = requiresDepth || effect->requiresDepth;
+			if (!effect->historyPass)
+				continue;
+			if (historyPass)
+				return false;
+			historyPass = effect->historyPass;
 		}
+		passDefinitions = std::move(passes);
+		historyPassDefinition = std::move(historyPass);
+		depthRequired = requiresDepth;
+		return true;
 	}
 
 	void PostProcess::ClearEffects() {
-		effectDefinitions.clear();
+		passDefinitions.clear();
+		historyPassDefinition.reset();
+		depthRequired = false;
 	}
 }

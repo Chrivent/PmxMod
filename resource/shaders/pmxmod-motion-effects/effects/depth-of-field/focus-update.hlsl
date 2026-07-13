@@ -20,6 +20,7 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
+    float focusDeltaTime = clamp(FrameDeltaTime, 0.0, 1.0 / 15.0);
     float targetFocusDepth = ReadAutoFocusDepth();
     float4 previous = FocusHistory.Sample(LinearClamp, float2(0.5, 0.5));
     float focusDepth = targetFocusDepth;
@@ -29,9 +30,9 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         velocity = previous.g;
     }
 
-    velocity *= pow(max(0.8 * FocusSlip, 0.0001), FocusDeltaTime * 30.0);
+    velocity *= pow(max(0.8 * FocusSlip, 0.0001), focusDeltaTime * 30.0);
     float remaining = targetFocusDepth - (focusDepth + velocity);
-    float speedLimit = lerp(0.015, 0.12, saturate(1.0 - targetFocusDepth)) * FocusDeltaTime * 30.0;
+    float speedLimit = lerp(0.015, 0.12, saturate(1.0 - targetFocusDepth)) * focusDeltaTime * 30.0;
     float speed = min(abs(remaining), speedLimit);
     velocity += sign(remaining) * speed * saturate(1.0 - FocusDelay);
     focusDepth = saturate(focusDepth + velocity);

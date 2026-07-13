@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace Chrivent {
+	struct PostProcessFrameData;
+
 	class GlfwPostProcess : public PostProcess {
 		GLuint sceneFramebuffer = 0;
 		GLuint sceneColorMsaa = 0;
@@ -20,11 +22,11 @@ namespace Chrivent {
 		GLuint focusHistoryTextures[2] = {};
 		GLuint sceneDepthStencil = 0;
 		GLuint postProcessVao = 0;
+		GLuint frameDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
 		std::unique_ptr<GlfwPostProcessShader> focusHistoryShader;
 		std::vector<std::unique_ptr<GlfwPostProcessShader>> postProcessShaders;
-		int focusHistoryIndex = 0;
-		bool focusHistoryEnabled = false;
+		size_t focusHistoryIndex = 0;
 		bool focusHistoryInitialized = false;
 
 		// 초기화 요청 뒤 초점 히스토리 target들을 0으로 지운다.
@@ -37,13 +39,7 @@ namespace Chrivent {
 		void ResetShaders();
 
 	public:
-		GlfwPostProcess() = default;
 		~GlfwPostProcess() override;
-
-		GlfwPostProcess(const GlfwPostProcess&) = delete;
-		GlfwPostProcess& operator=(const GlfwPostProcess&) = delete;
-		GlfwPostProcess(GlfwPostProcess&&) = delete;
-		GlfwPostProcess& operator=(GlfwPostProcess&&) = delete;
 
 		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
@@ -58,9 +54,9 @@ namespace Chrivent {
 		// OpenGL 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
 		static void EndDepthPass();
 		// 준비된 후처리 프로그램으로 화면 색상을 기본 framebuffer에 그린다.
-		void Draw(int width, int height);
+		void Draw(int width, int height, const PostProcessFrameData& frameData);
 		// 다음 후처리 프레임에서 OpenGL 초점 히스토리를 0으로 초기화한다.
-		void ResetFocusHistory() override;
+		void ResetHistory() override;
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
 		void Reset() override;
 	};

@@ -201,10 +201,10 @@ namespace Chrivent {
 		auto& commandBuffer = commandContext.commandBuffer;
 		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
 		const VkImage resolveImage = postProcess.HasEffects()
-			? postProcess.GetTargetImage(0, currentImageIndex)
+			? postProcess.ResolveSceneImage(currentImageIndex)
 			: swapChain.images[currentImageIndex];
 		const VkImageView resolveImageView = postProcess.HasEffects()
-			? postProcess.GetTargetImageView(0, currentImageIndex)
+			? postProcess.ResolveSceneImageView(currentImageIndex)
 			: swapChain.imageViews[currentImageIndex];
 		if (!commandBuffer.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
@@ -223,7 +223,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
 				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
-				swapChain.extent, postProcessDepthPassReady);
+				swapChain.extent, postProcessFrameData, postProcessDepthPassReady);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
@@ -287,13 +287,10 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::BeginPostProcessDepthPass() {
-		if (!frameReady || !postProcess.HasEffects())
+		if (!frameReady)
 			return false;
-		constexpr bool depthHasStencil = false;
-		if (!commandContext.commandBuffer.BeginPostProcessDepthPass(
-			currentImageIndex, postProcess.GetTargetImage(0, currentImageIndex),
-			postProcess.GetDepthImage(currentImageIndex), postProcess.GetDepthImageView(currentImageIndex),
-			depthHasStencil, pipeline->depthOnlyPipeline, swapChain.extent))
+		if (!postProcess.BeginDepthPass(commandContext.commandBuffer,
+			currentImageIndex, pipeline->depthOnlyPipeline, swapChain.extent))
 			return false;
 		bindStateCache.pipeline = pipeline->depthOnlyPipeline;
 		bindStateCache.vertexDescriptorSet = VK_NULL_HANDLE;
@@ -305,11 +302,9 @@ namespace Chrivent {
 	}
 
 	void VulkanViewer::EndPostProcessDepthPass() {
-		if (!frameReady || !postProcess.HasEffects())
+		if (!frameReady)
 			return;
-		constexpr bool depthHasStencil = false;
-		postProcessDepthPassReady = commandContext.commandBuffer.EndPostProcessDepthPass(
-			currentImageIndex, postProcess.GetDepthImage(currentImageIndex), depthHasStencil);
+		postProcessDepthPassReady = postProcess.EndDepthPass(commandContext.commandBuffer, currentImageIndex);
 	}
 
 	void VulkanViewer::WaitIdle() {
@@ -319,7 +314,8 @@ namespace Chrivent {
 
 	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		postProcess.SetEffects(effects);
+		if (!postProcess.SetEffects(effects))
+			return false;
 		ResetSwapChainResources();
 		if (CreateSwapChainResources())
 			return true;
@@ -330,18 +326,8 @@ namespace Chrivent {
 		return false;
 	}
 
-	void VulkanViewer::ClearPostProcessEffects() {
-		if (!postProcess.HasEffects())
-			return;
-		WaitIdle();
-		postProcess.ClearEffects();
-		ResetSwapChainResources();
-		if (!CreateSwapChainResources())
-			std::cerr << "Failed to restore Vulkan swapchain resources after clearing post-process.\n";
-	}
-
 	void VulkanViewer::ResetPostProcessHistory() {
-		postProcess.ResetFocusHistory();
+		postProcess.ResetHistory();
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {

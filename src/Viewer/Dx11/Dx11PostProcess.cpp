@@ -2,6 +2,7 @@
 
 #include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
 #include "Viewer/Shader/PostProcessInputLayout.h"
+#include "Viewer/Viewer.h"
 
 namespace Chrivent {
 	void Dx11PostProcess::ApplyViewport(ID3D11DeviceContext* context, const int width, const int height) {
@@ -26,41 +27,45 @@ namespace Chrivent {
 	}
 
 	void Dx11PostProcess::UpdateFocusHistory(ID3D11DeviceContext* context, const int width, const int height) {
-		if (!focusHistoryEnabled || context == nullptr)
+		if (!focusHistoryShader.pixelShader || context == nullptr)
 			return;
 		InitializeFocusHistory(context);
-		const int readIndex = focusHistoryIndex;
-		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
+		const size_t readIndex = focusHistoryIndex;
+		const size_t writeIndex = ResolveNextHistoryIndex(focusHistoryIndex);
 		ID3D11RenderTargetView* targetView = focusHistoryView[writeIndex].Get();
 		context->OMSetRenderTargets(1, &targetView, nullptr);
 		ApplyViewport(context, 1, 1);
 		context->VSSetShader(focusHistoryShader.vertexShader.Get(), nullptr, 0);
 		context->PSSetShader(focusHistoryShader.pixelShader.Get(), nullptr, 0);
-		ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
+		ID3D11ShaderResourceView* views[PostProcessInputLayout::requiredTextureCount] = {
 			sceneColorView.Get(), depthView.Get(), focusHistoryResourceView[readIndex].Get()
 		};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, views);
+		context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
+			PostProcessInputLayout::requiredTextureCount, views);
 		context->Draw(3, 0);
-		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, emptyViews);
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::requiredTextureCount] = {};
+		context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
+			PostProcessInputLayout::requiredTextureCount, emptyViews);
 		focusHistoryIndex = writeIndex;
 		ApplyViewport(context, width, height);
 	}
 
 	void Dx11PostProcess::ResetShaders() {
-		ClearEffects();
 		postProcessShaders.clear();
 		focusHistoryShader = {};
-		focusHistoryEnabled = false;
-		ResetFocusHistory();
+		ResetHistory();
 	}
 
 	bool Dx11PostProcess::InitializeTargets(
 		ID3D11Device* device, ID3D11DeviceContext* context, const int width, const int height) {
 		ResetTargets();
 		if (device == nullptr || context == nullptr || width <= 0 || height <= 0)
+			return false;
+		D3D11_BUFFER_DESC frameDataDesc{};
+		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(PostProcessFrameData));
+		frameDataDesc.Usage = D3D11_USAGE_DEFAULT;
+		frameDataDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		if (FAILED(device->CreateBuffer(&frameDataDesc, nullptr, &frameDataBuffer)))
 			return false;
 		const auto sceneColorDesc = Dx11DescBuilder::MakeTexture2DDesc(
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
@@ -118,40 +123,40 @@ namespace Chrivent {
 	}
 
 	bool Dx11PostProcess::Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects) {
+		if (!SetEffects(effects))
+			return false;
 		ResetShaders();
-		SetEffects(effects);
-		for (const auto* effect : ResolveEffectPointers()) {
-			const auto& pass = effect->passes.front();
+		for (const auto& pass : ResolvePasses()) {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
-				ResetShaders();
+				ClearShaders();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
-			if (IsDepthOfFieldEffect(*effect)) {
-				const auto focusShaderPath = ResolveFocusUpdateShaderPath(pass);
-				if (!focusHistoryShader.Initialize(device, focusShaderPath, "VSMain", "PSMain")) {
-					ResetShaders();
-					return false;
-				}
-				focusHistoryEnabled = true;
+		}
+		if (const auto* historyPass = ResolveHistoryPass()) {
+			if (!focusHistoryShader.Initialize(device, historyPass->shaderPath,
+				historyPass->vertexEntry.c_str(), historyPass->pixelEntry.c_str())) {
+				ClearShaders();
+				return false;
 			}
 		}
-		ResetFocusHistory();
+		ResetHistory();
 		return true;
 	}
 
 	void Dx11PostProcess::ClearShaders() {
 		ResetShaders();
+		ClearEffects();
 	}
 
 	bool Dx11PostProcess::BeginDepthPass(ID3D11DeviceContext* context,
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
-		if (!HasEffects() || context == nullptr || !depthStencilView)
+		if (!RequiresDepth() || context == nullptr || !depthStencilView)
 			return false;
-		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-		context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-			PostProcessInputLayout::RequiredTextureCount, emptyViews);
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::requiredTextureCount] = {};
+		context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
+			PostProcessInputLayout::requiredTextureCount, emptyViews);
 		context->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		context->OMSetRenderTargets(0, nullptr, depthStencilView.Get());
 		context->OMSetDepthStencilState(depthStencilState, 0x00);
@@ -166,16 +171,20 @@ namespace Chrivent {
 	}
 
 	void Dx11PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
-		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler, const int width, const int height) {
+		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
+		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr)
 			return;
+		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
+		context->PSSetConstantBuffers(
+			PostProcessInputLayout::frameDataRegister, 1, frameDataBuffer.GetAddressOf());
 		InitializeFocusHistory(context);
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		context->OMSetDepthStencilState(nullptr, 0);
 		context->RSSetState(rasterizerState);
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->PSSetSamplers(PostProcessInputLayout::LinearClampSamplerRegister, 1, &sampler);
+		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister, 1, &sampler);
 		UpdateFocusHistory(context, width, height);
 		ID3D11ShaderResourceView* sourceView = sceneColorView.Get();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
@@ -185,20 +194,20 @@ namespace Chrivent {
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			ID3D11ShaderResourceView* views[PostProcessInputLayout::RequiredTextureCount] = {
+			ID3D11ShaderResourceView* views[PostProcessInputLayout::requiredTextureCount] = {
 				sourceView, depthView.Get(), focusHistoryResourceView[focusHistoryIndex].Get()
 			};
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-				PostProcessInputLayout::RequiredTextureCount, views);
+			context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
+				PostProcessInputLayout::requiredTextureCount, views);
 			context->Draw(3, 0);
-			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::RequiredTextureCount] = {};
-			context->PSSetShaderResources(PostProcessInputLayout::SceneColorRegister,
-				PostProcessInputLayout::RequiredTextureCount, emptyViews);
+			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::requiredTextureCount] = {};
+			context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
+				PostProcessInputLayout::requiredTextureCount, emptyViews);
 			sourceView = pingPongColorResourceView[route.pingPongIndex].Get();
 		}
 	}
 
-	void Dx11PostProcess::ResetFocusHistory() {
+	void Dx11PostProcess::ResetHistory() {
 		focusHistoryIndex = 0;
 		focusHistoryInitialized = false;
 	}
@@ -217,7 +226,8 @@ namespace Chrivent {
 		depth.Reset();
 		depthStencilView.Reset();
 		depthView.Reset();
-		ResetFocusHistory();
+		frameDataBuffer.Reset();
+		ResetHistory();
 	}
 
 	void Dx11PostProcess::Reset() {

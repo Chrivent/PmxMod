@@ -34,7 +34,7 @@ namespace Chrivent {
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		srvRange.NumDescriptors = 3;
-		srvRange.BaseShaderRegister = PostProcessInputLayout::SceneColorRegister;
+		srvRange.BaseShaderRegister = PostProcessInputLayout::sceneColorRegister;
 		srvRange.RegisterSpace = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};

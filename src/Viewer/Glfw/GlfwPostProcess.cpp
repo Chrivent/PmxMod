@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Glfw/GlfwPostProcess.h"
 
 #include "Viewer/Shader/PostProcessInputLayout.h"
+#include "Viewer/Viewer.h"
 
 #include <algorithm>
 
@@ -20,17 +21,17 @@ namespace Chrivent {
 	}
 
 	void GlfwPostProcess::UpdateFocusHistory() {
-		if (!focusHistoryEnabled || !focusHistoryShader)
+		if (!focusHistoryShader)
 			return;
 		InitializeFocusHistory();
-		const int readIndex = focusHistoryIndex;
-		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
+		const size_t readIndex = focusHistoryIndex;
+		const size_t writeIndex = ResolveNextHistoryIndex(focusHistoryIndex);
 		glBindFramebuffer(GL_FRAMEBUFFER, focusHistoryFramebuffers[writeIndex]);
 		glViewport(0, 0, 1, 1);
 		glUseProgram(focusHistoryShader->program);
-		glBindTextureUnit(PostProcessInputLayout::SceneColorRegister, sceneColorTexture);
-		glBindTextureUnit(PostProcessInputLayout::SceneDepthRegister, postProcessDepthTexture);
-		glBindTextureUnit(PostProcessInputLayout::FocusHistoryRegister, focusHistoryTextures[readIndex]);
+		glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, sceneColorTexture);
+		glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
+		glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[readIndex]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		focusHistoryIndex = writeIndex;
 	}
@@ -54,6 +55,8 @@ namespace Chrivent {
 			glDeleteFramebuffers(1, &resolveFramebuffer);
 		if (sceneFramebuffer != 0)
 			glDeleteFramebuffers(1, &sceneFramebuffer);
+		if (frameDataBuffer != 0)
+			glDeleteBuffers(1, &frameDataBuffer);
 		sceneDepthStencil = 0;
 		sceneColorMsaa = 0;
 		sceneColorTexture = 0;
@@ -61,6 +64,7 @@ namespace Chrivent {
 		postProcessDepthFramebuffer = 0;
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
+		frameDataBuffer = 0;
 		pingPongTextures[0] = 0;
 		pingPongTextures[1] = 0;
 		pingPongFramebuffers[0] = 0;
@@ -70,15 +74,13 @@ namespace Chrivent {
 		focusHistoryFramebuffers[0] = 0;
 		focusHistoryFramebuffers[1] = 0;
 		postProcessSampleCount = 1;
-		ResetFocusHistory();
+		ResetHistory();
 	}
 
 	void GlfwPostProcess::ResetShaders() {
-		ClearEffects();
 		postProcessShaders.clear();
 		focusHistoryShader.reset();
-		focusHistoryEnabled = false;
-		ResetFocusHistory();
+		ResetHistory();
 	}
 
 	bool GlfwPostProcess::InitializeTargets(
@@ -86,6 +88,10 @@ namespace Chrivent {
 		ResetTargets();
 		if (width <= 0 || height <= 0)
 			return false;
+		glCreateBuffers(1, &frameDataBuffer);
+		if (frameDataBuffer == 0)
+			return false;
+		glNamedBufferData(frameDataBuffer, sizeof(PostProcessFrameData), nullptr, GL_DYNAMIC_DRAW);
 		postProcessSampleCount = std::max<GLsizei>(
 			1, std::min<GLsizei>(msaaSamples, static_cast<GLsizei>(maxSampleCount)));
 		glCreateFramebuffers(1, &sceneFramebuffer);
@@ -153,36 +159,35 @@ namespace Chrivent {
 	}
 
 	bool GlfwPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
+		if (!SetEffects(effects))
+			return false;
 		ResetShaders();
-		SetEffects(effects);
-		for (const auto* effect : ResolveEffectPointers()) {
+		for (const auto& pass : ResolvePasses()) {
 			auto shader = std::make_unique<GlfwPostProcessShader>();
-			if (!shader->Initialize(effect->passes.front())) {
-				ResetShaders();
+			if (!shader->Initialize(pass)) {
+				ClearShaders();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
-			if (IsDepthOfFieldEffect(*effect)) {
-				EffectPassDefinition focusPass = effect->passes.front();
-				focusPass.shaderPath = ResolveFocusUpdateShaderPath(focusPass);
-				focusHistoryShader = std::make_unique<GlfwPostProcessShader>();
-				if (!focusHistoryShader->Initialize(focusPass)) {
-					ResetShaders();
-					return false;
-				}
-				focusHistoryEnabled = true;
+		}
+		if (const auto* historyPass = ResolveHistoryPass()) {
+			focusHistoryShader = std::make_unique<GlfwPostProcessShader>();
+			if (!focusHistoryShader->Initialize(*historyPass)) {
+				ClearShaders();
+				return false;
 			}
 		}
-		ResetFocusHistory();
+		ResetHistory();
 		return true;
 	}
 
 	void GlfwPostProcess::ClearShaders() {
 		ResetShaders();
+		ClearEffects();
 	}
 
 	bool GlfwPostProcess::BeginDepthPass(const int width, const int height) const {
-		if (!HasEffects())
+		if (!RequiresDepth())
 			return false;
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
 		glViewport(0, 0, width, height);
@@ -202,9 +207,12 @@ namespace Chrivent {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void GlfwPostProcess::Draw(const int width, const int height) {
+	void GlfwPostProcess::Draw(
+		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return;
+		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
+		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
 		glBlitNamedFramebuffer(sceneFramebuffer, resolveFramebuffer,
 			0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		glDisable(GL_DEPTH_TEST);
@@ -220,15 +228,15 @@ namespace Chrivent {
 			glBindFramebuffer(GL_FRAMEBUFFER, route.lastPass ? 0 : pingPongFramebuffers[route.pingPongIndex]);
 			glViewport(0, 0, width, height);
 			glUseProgram(postProcessShaders[index]->program);
-			glBindTextureUnit(PostProcessInputLayout::SceneColorRegister, sourceTexture);
-			glBindTextureUnit(PostProcessInputLayout::SceneDepthRegister, postProcessDepthTexture);
-			glBindTextureUnit(PostProcessInputLayout::FocusHistoryRegister, focusHistoryTextures[focusHistoryIndex]);
+			glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, sourceTexture);
+			glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
+			glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[focusHistoryIndex]);
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			sourceTexture = pingPongTextures[route.pingPongIndex];
 		}
 	}
 
-	void GlfwPostProcess::ResetFocusHistory() {
+	void GlfwPostProcess::ResetHistory() {
 		focusHistoryIndex = 0;
 		focusHistoryInitialized = false;
 	}

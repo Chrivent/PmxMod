@@ -27,7 +27,8 @@ float ReadDelayedFocusDepth(float targetFocusDepth) {
 }
 
 float LinearizeDepth(float depth) {
-    return NearPlane * FarPlane / max(FarPlane - depth * (FarPlane - NearPlane), 0.0001);
+    return CameraNearPlane * CameraFarPlane
+        / max(CameraFarPlane - depth * (CameraFarPlane - CameraNearPlane), 0.0001);
 }
 
 float CalculateCircleOfConfusion(float depth, float focusDepth) {
@@ -85,7 +86,7 @@ float3 SampleBokeh(float2 uv, float2 texelSize, float blurPixels) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    float2 texelSize = max(abs(ddx(input.uv)), abs(ddy(input.uv)));
+    float2 texelSize = InverseViewportSize;
     float4 sceneColor = SceneColor.Sample(LinearClamp, input.uv);
     float depth = ReadDepth(input.uv);
     float targetFocusDepth = ReadAutoFocusDepth();

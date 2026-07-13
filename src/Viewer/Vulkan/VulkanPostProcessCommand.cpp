@@ -1,26 +1,50 @@
 ﻿#include "Viewer/Vulkan/VulkanPostProcess.h"
 
+#include "Viewer/Viewer.h"
 #include "Viewer/Vulkan/Helper/VulkanCommandBuffer.h"
 
 #include <iostream>
 
 namespace Chrivent {
+	bool VulkanPostProcess::BeginDepthPass(VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
+		const VkPipeline depthPipeline, const VkExtent2D extent) const {
+		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
+			return false;
+		constexpr bool depthHasStencil = false;
+		return commandBuffers.BeginPostProcessDepthPass(imageIndex,
+			targetImages[ResolveTargetIndex(0, imageIndex)], depthImages[imageIndex], depthImageViews[imageIndex],
+			depthHasStencil, depthPipeline, extent);
+	}
+
+	bool VulkanPostProcess::EndDepthPass(VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
+		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
+			return false;
+		constexpr bool depthHasStencil = false;
+		return commandBuffers.EndPostProcessDepthPass(imageIndex, depthImages[imageIndex], depthHasStencil);
+	}
+
 	bool VulkanPostProcess::EndRecord(VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView,
-		const VkExtent2D extent, const bool sceneRenderingEnded) {
+		const VkExtent2D extent, const PostProcessFrameData& frameData, const bool sceneRenderingEnded) {
 		const size_t targetImageCount = swapChainImageCount * targetCount;
-		const size_t focusImageCount = swapChainImageCount * focusHistoryCount;
+		const size_t focusImageCount = swapChainImageCount * historyTargetCount;
 		if (imageIndex >= swapChainImageCount || imageIndex >= focusHistoryIndices.size()
 			|| imageIndex >= focusHistoryInitialized.size() || targetImages.size() < targetImageCount
 			|| targetImageViews.size() < targetImageCount || focusHistoryImages.size() < focusImageCount
 			|| focusHistoryImageViews.size() < focusImageCount
-			|| descriptorSets.size() < targetImageCount * focusHistoryCount
+			|| descriptorSets.size() < targetImageCount * historyTargetCount
 			|| focusHistoryDescriptorSets.size() < focusImageCount
+			|| imageIndex >= frameDataDescriptorSets.size() || imageIndex >= frameDataBuffers.size()
 			|| pipelines.empty() || pipelineLayout == VK_NULL_HANDLE)
+			return false;
+		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData)))
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers.ResolveCommandBuffer(imageIndex);
 		if (commandBuffer == VK_NULL_HANDLE)
 			return false;
+		const VkDescriptorSet frameDataDescriptorSet = frameDataDescriptorSets[imageIndex];
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
 		const VkImage sceneImage = targetImages[ResolveTargetIndex(0, imageIndex)];
 		if (!sceneRenderingEnded) {
 			vkCmdEndRendering(commandBuffer);
@@ -32,7 +56,7 @@ namespace Chrivent {
 		}
 
 		const size_t focusHistoryReadIndex = focusHistoryIndices[imageIndex];
-		const size_t focusHistoryWriteIndex = ResolveNextFocusHistoryIndex(focusHistoryReadIndex);
+		const size_t focusHistoryWriteIndex = ResolveNextHistoryIndex(focusHistoryReadIndex);
 		const bool focusHistoryEnabled = focusHistoryPipeline != VK_NULL_HANDLE;
 		const bool focusHistoryNeedsInitialization = !focusHistoryInitialized[imageIndex];
 		constexpr VkImageSubresourceRange colorRange{
@@ -44,7 +68,7 @@ namespace Chrivent {
 		};
 		if (focusHistoryNeedsInitialization) {
 			constexpr VkClearColorValue clearColor{};
-			for (size_t historyIndex = 0; historyIndex < focusHistoryCount; historyIndex++) {
+			for (size_t historyIndex = 0; historyIndex < historyTargetCount; historyIndex++) {
 				const VkImage image = focusHistoryImages[ResolveFocusHistoryIndex(historyIndex, imageIndex)];
 				VulkanCommandBuffer::TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,

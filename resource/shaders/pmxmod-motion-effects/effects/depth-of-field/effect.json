@@ -3,6 +3,13 @@
   "id": "depth-of-field",
   "name": "Depth of Field",
   "type": "post_process",
+  "requiresDepth": true,
+  "historyPass": {
+    "name": "focus-update",
+    "shader": "effects/depth-of-field/focus-update.hlsl",
+    "vertexEntry": "VSMain",
+    "pixelEntry": "PSMain"
+  },
   "passes": [
     {
       "name": "main",

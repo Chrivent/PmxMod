@@ -8,6 +8,8 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	struct PostProcessFrameData;
+
 	class Dx11PostProcess : public PostProcess {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> sceneColor;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
@@ -20,10 +22,10 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> focusHistory[2];
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> focusHistoryView[2];
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> focusHistoryResourceView[2];
+		Microsoft::WRL::ComPtr<ID3D11Buffer> frameDataBuffer;
 		Dx11PostProcessShader focusHistoryShader;
 		std::vector<Dx11PostProcessShader> postProcessShaders;
-		int focusHistoryIndex = 0;
-		bool focusHistoryEnabled = false;
+		size_t focusHistoryIndex = 0;
 		bool focusHistoryInitialized = false;
 
 		// 화면 크기에 맞는 DX11 viewport를 immediate context에 설정한다.
@@ -36,14 +38,6 @@ namespace Chrivent {
 		void ResetShaders();
 
 	public:
-		Dx11PostProcess() = default;
-		~Dx11PostProcess() override = default;
-
-		Dx11PostProcess(const Dx11PostProcess&) = delete;
-		Dx11PostProcess& operator=(const Dx11PostProcess&) = delete;
-		Dx11PostProcess(Dx11PostProcess&&) = delete;
-		Dx11PostProcess& operator=(Dx11PostProcess&&) = delete;
-
 		// 화면 크기에 맞는 DX11 후처리 색상/depth/focus history target을 생성한다.
 		bool InitializeTargets(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
 		// MSAA 장면 색상을 소유한 단일 샘플 입력 텍스처로 resolve한다.
@@ -59,9 +53,10 @@ namespace Chrivent {
 		static void EndDepthPass(ID3D11DeviceContext* context);
 		// 준비된 후처리 셰이더로 화면 색상을 스왑체인 back buffer에 그린다.
 		void Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
-			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler, int width, int height);
+			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
+			int width, int height, const PostProcessFrameData& frameData);
 		// 다음 후처리 프레임에서 DX11 초점 히스토리를 0으로 초기화한다.
-		void ResetFocusHistory() override;
+		void ResetHistory() override;
 		// 생성한 DX11 후처리 target을 해제한다.
 		void ResetTargets();
 		// 생성한 DX11 후처리 셰이더 상태를 해제한다.

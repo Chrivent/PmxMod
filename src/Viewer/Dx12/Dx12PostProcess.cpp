@@ -5,6 +5,7 @@
 #include "Viewer/Dx12/Helper/Dx12PipelineBuilder.h"
 #include "Viewer/Dx12/Helper/Dx12SwapChain.h"
 #include "Viewer/Shader/PostProcessInputLayout.h"
+#include "Viewer/Viewer.h"
 
 #include <iostream>
 #include <limits>
@@ -55,7 +56,7 @@ namespace Chrivent {
 		focusHistory[1].Reset();
 		focusHistoryRtvHeap.Reset();
 		focusHistorySrvHeap.Reset();
-		ResetFocusHistory();
+		ResetHistory();
 		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -103,7 +104,7 @@ namespace Chrivent {
 		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&focusHistoryRtvHeap))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-		srvHeapDesc.NumDescriptors = PostProcessInputLayout::RequiredTextureCount;
+		srvHeapDesc.NumDescriptors = PostProcessInputLayout::requiredTextureCount;
 		srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&focusHistorySrvHeap))))
@@ -123,7 +124,7 @@ namespace Chrivent {
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		for (int index = 0; index < 2; index++) {
+		for (size_t index = 0; index < 2; index++) {
 			if (FAILED(sourceDevice.device->CreateCommittedResource(
 				&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&focusHistory[index]))))
@@ -135,7 +136,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12PostProcess::UpdateFocusHistoryShaderResources(const Dx12Device& sourceDevice, const int readIndex) const {
+	void Dx12PostProcess::UpdateFocusHistoryShaderResources(
+		const Dx12Device& sourceDevice, const size_t readIndex) const {
 		if (!focusHistorySrvHeap || targets.empty())
 			return;
 		ID3D12Device* device = sourceDevice.device.Get();
@@ -165,11 +167,12 @@ namespace Chrivent {
 	}
 
 	void Dx12PostProcess::UpdateFocusHistory(ID3D12GraphicsCommandList* commandList, const Dx12Device& sourceDevice,
-		const Dx12CommandContext& commandContext, const int width, const int height) {
+		const Dx12CommandContext& commandContext, const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress,
+		const int width, const int height) {
 		if (!focusHistoryPipelineState || !focusHistory[0] || !focusHistory[1] || !focusHistorySrvHeap)
 			return;
-		const int readIndex = focusHistoryIndex;
-		const int writeIndex = ResolveNextFocusHistoryIndex(focusHistoryIndex);
+		const size_t readIndex = focusHistoryIndex;
+		const size_t writeIndex = ResolveNextHistoryIndex(focusHistoryIndex);
 		UpdateFocusHistoryShaderResources(sourceDevice, readIndex);
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		Dx12Barrier::Transition(commandList, enhancedCommandList, focusHistory[writeIndex].Get(),
@@ -179,7 +182,7 @@ namespace Chrivent {
 		ApplyViewportAndScissor(commandList, 1, 1);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { focusHistorySrvHeap.Get() };
 		commandList->SetDescriptorHeaps(1, descriptorHeaps);
-		BindFocusHistory(commandList, ResolveFocusHistoryGpuHandle());
+		BindFocusHistory(commandList, ResolveFocusHistoryGpuHandle(), frameDataAddress);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		commandList->DrawInstanced(3, 1, 0, 0);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, focusHistory[writeIndex].Get(),
@@ -196,7 +199,7 @@ namespace Chrivent {
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE Dx12PostProcess::ResolveFocusHistoryRtvHandle(
-		const Dx12Device& sourceDevice, const int index) const {
+		const Dx12Device& sourceDevice, const size_t index) const {
 		if (!focusHistoryRtvHeap)
 			return {};
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = focusHistoryRtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -213,14 +216,17 @@ namespace Chrivent {
 	bool Dx12PostProcess::CreatePostProcessRootSignature(const Dx12Device& sourceDevice) {
 		D3D12_DESCRIPTOR_RANGE srvRange{};
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		srvRange.NumDescriptors = PostProcessInputLayout::RequiredTextureCount;
-		srvRange.BaseShaderRegister = PostProcessInputLayout::SceneColorRegister;
+		srvRange.NumDescriptors = PostProcessInputLayout::requiredTextureCount;
+		srvRange.BaseShaderRegister = PostProcessInputLayout::sceneColorRegister;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		D3D12_ROOT_PARAMETER rootParameter;
-		rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameter.DescriptorTable.NumDescriptorRanges = 1;
-		rootParameter.DescriptorTable.pDescriptorRanges = &srvRange;
+		D3D12_ROOT_PARAMETER rootParameters[2]{};
+		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[0].Descriptor.ShaderRegister = PostProcessInputLayout::frameDataRegister;
+		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+		rootParameters[1].DescriptorTable.pDescriptorRanges = &srvRange;
 		D3D12_STATIC_SAMPLER_DESC sampler{};
 		sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 		sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -228,11 +234,11 @@ namespace Chrivent {
 		sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 		sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		sampler.MaxLOD = D3D12_FLOAT32_MAX;
-		sampler.ShaderRegister = PostProcessInputLayout::LinearClampSamplerRegister;
+		sampler.ShaderRegister = PostProcessInputLayout::linearClampSamplerRegister;
 		sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.NumParameters = 1;
-		rootSignatureDesc.pParameters = &rootParameter;
+		rootSignatureDesc.NumParameters = 2;
+		rootSignatureDesc.pParameters = rootParameters;
 		rootSignatureDesc.NumStaticSamplers = 1;
 		rootSignatureDesc.pStaticSamplers = &sampler;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -240,92 +246,81 @@ namespace Chrivent {
 			sourceDevice, rootSignatureDesc, postProcessRootSignature);
 	}
 
-	bool Dx12PostProcess::CreatePipelines(
-		const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
+	bool Dx12PostProcess::CreatePipelineState(const Dx12Device& sourceDevice,
+		const EffectPassDefinition& pass, const DXGI_FORMAT format,
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const {
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
+		std::string error;
+		if (!Dx12PipelineBuilder::CompileShader(
+			sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
+			|| !Dx12PipelineBuilder::CompileShader(
+				sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
+			std::cerr << error;
+			return false;
+		}
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+		pipelineDesc.pRootSignature = postProcessRootSignature.Get();
+		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
+		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
+		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
+		pipelineDesc.DepthStencilState.DepthEnable = FALSE;
+		pipelineDesc.DepthStencilState.StencilEnable = FALSE;
+		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		pipelineDesc.NumRenderTargets = 1;
+		pipelineDesc.RTVFormats[0] = format;
+		pipelineDesc.SampleDesc.Count = 1;
+		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(
+			&pipelineDesc, IID_PPV_ARGS(&pipelineState)));
+	}
+
+	bool Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
 		ResetPipelines();
 		if (!sourceDevice.device)
 			return false;
-		if (effects.empty())
+		if (ResolvePasses().empty())
 			return true;
 		if (!CreatePostProcessRootSignature(sourceDevice))
 			return false;
-		for (const auto* effect : effects) {
-			if (!effect || effect->passes.empty())
-				continue;
-			const auto& pass = effect->passes.front();
-			std::vector<uint8_t> vertexShader;
-			std::vector<uint8_t> pixelShader;
-			std::string error;
-			if (!Dx12PipelineBuilder::CompileShader(
-				sourceDevice, pass.shaderPath, pass.vertexEntry, true, vertexShader, error)
-				|| !Dx12PipelineBuilder::CompileShader(
-					sourceDevice, pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
-				std::cerr << error;
-				ResetPipelines();
-				return false;
-			}
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-			pipelineDesc.pRootSignature = postProcessRootSignature.Get();
-			pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-			pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
-			pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-			pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
-			Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
-			pipelineDesc.DepthStencilState.DepthEnable = FALSE;
-			pipelineDesc.DepthStencilState.StencilEnable = FALSE;
-			pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			pipelineDesc.NumRenderTargets = 1;
-			pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-			pipelineDesc.SampleDesc.Count = 1;
+		for (const auto& pass : ResolvePasses()) {
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-			if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(
-				&pipelineDesc, IID_PPV_ARGS(&pipelineState)))) {
+			if (!CreatePipelineState(sourceDevice, pass, DXGI_FORMAT_R8G8B8A8_UNORM, pipelineState)) {
 				ResetPipelines();
 				return false;
 			}
 			postProcessPipelineStates.push_back(std::move(pipelineState));
-			if (IsDepthOfFieldEffect(*effect)) {
-				const auto focusShaderPath = ResolveFocusUpdateShaderPath(pass);
-				std::vector<uint8_t> focusVertexShader;
-				std::vector<uint8_t> focusPixelShader;
-				if (!Dx12PipelineBuilder::CompileShader(
-					sourceDevice, focusShaderPath, pass.vertexEntry, true, focusVertexShader, error)
-					|| !Dx12PipelineBuilder::CompileShader(
-						sourceDevice, focusShaderPath, pass.pixelEntry, false, focusPixelShader, error)) {
-					std::cerr << error;
-					ResetPipelines();
-					return false;
-				}
-				D3D12_GRAPHICS_PIPELINE_STATE_DESC focusPipelineDesc = pipelineDesc;
-				focusPipelineDesc.VS = { focusVertexShader.data(), focusVertexShader.size() };
-				focusPipelineDesc.PS = { focusPixelShader.data(), focusPixelShader.size() };
-				focusPipelineDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
-				if (FAILED(sourceDevice.device->CreateGraphicsPipelineState(
-					&focusPipelineDesc, IID_PPV_ARGS(&focusHistoryPipelineState)))) {
-					ResetPipelines();
-					return false;
-				}
-			}
+		}
+		const auto* historyPass = ResolveHistoryPass();
+		if (historyPass && !CreatePipelineState(
+			sourceDevice, *historyPass, DXGI_FORMAT_R32G32B32A32_FLOAT, focusHistoryPipelineState)) {
+			ResetPipelines();
+			return false;
 		}
 		return true;
 	}
 
 	void Dx12PostProcess::BindFocusHistory(
-		ID3D12GraphicsCommandList* commandList, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
+		ID3D12GraphicsCommandList* commandList, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle,
+		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress) const {
 		if (commandList == nullptr || !postProcessRootSignature || !focusHistoryPipelineState)
 			return;
 		commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
 		commandList->SetPipelineState(focusHistoryPipelineState.Get());
-		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
+		commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);
+		commandList->SetGraphicsRootDescriptorTable(1, sceneColorHandle);
 	}
 
 	void Dx12PostProcess::BindPostProcess(ID3D12GraphicsCommandList* commandList,
-		const size_t passIndex, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const {
+		const size_t passIndex, const D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle,
+		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress) const {
 		if (commandList == nullptr || !postProcessRootSignature || passIndex >= postProcessPipelineStates.size())
 			return;
 		commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
 		commandList->SetPipelineState(postProcessPipelineStates[passIndex].Get());
-		commandList->SetGraphicsRootDescriptorTable(0, sceneColorHandle);
+		commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);
+		commandList->SetGraphicsRootDescriptorTable(1, sceneColorHandle);
 	}
 
 	void Dx12PostProcess::ResetPipelines() {
@@ -340,14 +335,22 @@ namespace Chrivent {
 			if (!target.Initialize(sourceDevice, width, height))
 				return false;
 		}
-		return CreateDepthTarget(sourceDevice, width, height);
+		if (!CreateDepthTarget(sourceDevice, width, height))
+			return false;
+		const size_t frameDataSize = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessFrameData));
+		for (auto& buffer : frameDataBuffers) {
+			if (!buffer.InitializeUpload(sourceDevice, frameDataSize))
+				return false;
+		}
+		return true;
 	}
 
 	bool Dx12PostProcess::Load(
 		const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
-		SetEffects(effects);
-		ResetFocusHistory();
-		if (!CreatePipelines(sourceDevice, ResolveEffectPointers())) {
+		if (!SetEffects(effects))
+			return false;
+		ResetHistory();
+		if (!CreatePipelines(sourceDevice)) {
 			ClearPipelines();
 			return false;
 		}
@@ -357,12 +360,12 @@ namespace Chrivent {
 	void Dx12PostProcess::ClearPipelines() {
 		ResetPipelines();
 		ClearEffects();
-		ResetFocusHistory();
+		ResetHistory();
 	}
 
 	bool Dx12PostProcess::BeginDepthPass(
 		ID3D12GraphicsCommandList* commandList, const Dx12CommandContext& commandContext, const int width, const int height) const {
-		if (!HasEffects() || !depth || commandList == nullptr)
+		if (!RequiresDepth() || !depth || commandList == nullptr)
 			return false;
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		Dx12Barrier::Transition(commandList, enhancedCommandList, depth.Get(),
@@ -386,11 +389,18 @@ namespace Chrivent {
 
 	void Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor,
 		const Dx12Device& sourceDevice, const Dx12CommandContext& commandContext,
-		const Dx12SwapChain& swapChain, const int width, const int height) {
+		const Dx12SwapChain& swapChain, const int width, const int height,
+		const PostProcessFrameData& frameData) {
 		if (targets.size() < targetCount) {
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
 			return;
 		}
+		Dx12Buffer& frameDataBuffer = frameDataBuffers[swapChain.GetFrameIndex() % frameDataBufferCount];
+		if (!frameDataBuffer.Write(frameData)) {
+			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+			return;
+		}
+		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.ResolveGpuAddress();
 		ID3D12Resource* sceneColor = targets[0].ResolveResource();
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
@@ -411,7 +421,7 @@ namespace Chrivent {
 			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor,
 			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		UpdateFocusHistory(commandList, sourceDevice, commandContext, width, height);
+		UpdateFocusHistory(commandList, sourceDevice, commandContext, frameDataAddress, width, height);
 		ID3D12Resource* focusHistoryResource = focusHistoryPipelineState && focusHistoryInitialized
 			? focusHistory[focusHistoryIndex].Get() : nullptr;
 		for (const auto& target : targets)
@@ -431,7 +441,8 @@ namespace Chrivent {
 			}
 			ID3D12DescriptorHeap* descriptorHeaps[] = { targets[route.sourceIndex].ResolveDescriptorHeap() };
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
-			BindPostProcess(commandList, passIndex, targets[route.sourceIndex].ResolveGpuHandle());
+			BindPostProcess(commandList, passIndex,
+				targets[route.sourceIndex].ResolveGpuHandle(), frameDataAddress);
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
 			if (!route.lastPass) {
@@ -444,19 +455,22 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
-	void Dx12PostProcess::ResetFocusHistory() {
+	void Dx12PostProcess::ResetHistory() {
 		focusHistoryInitialized = false;
 		focusHistoryIndex = 0;
 	}
 
 	void Dx12PostProcess::Reset() {
-		ClearPipelines();
+		ResetPipelines();
+		ResetHistory();
 		depth.Reset();
 		depthDsvHeap.Reset();
 		focusHistory[0].Reset();
 		focusHistory[1].Reset();
 		focusHistoryRtvHeap.Reset();
 		focusHistorySrvHeap.Reset();
+		for (auto& buffer : frameDataBuffers)
+			buffer.Reset();
 		targets.clear();
 	}
 }
