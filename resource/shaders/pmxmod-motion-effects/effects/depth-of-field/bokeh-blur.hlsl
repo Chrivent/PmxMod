@@ -66,10 +66,9 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         float sampleRadius = abs(signedCocPixels) * BokehDownsampleScale;
         float sampleDistance = normalizedDistance * halfResolutionMaxRadius;
         float support = saturate(sampleRadius - sampleDistance + 1.0);
-        float luminance = dot(sampleData.rgb, float3(0.2126, 0.7152, 0.0722));
-        float highlightWeight = 1.0 + saturate(luminance - HighlightThreshold) * Emphasize;
+        float brightnessWeight = CalculateCircleOfConfusionBrightness(sampleRadius);
         float centerWeight = index == 0 ? 1.5 : 1.0;
-        float colorWeight = support * highlightWeight * centerWeight;
+        float colorWeight = support * brightnessWeight * centerWeight;
         float coverageWeight = support * centerWeight;
         if (signedCocPixels < 0.0) {
             foregroundColor += sampleData.rgb * colorWeight;

@@ -30,5 +30,6 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float localBlur = smoothstep(0.0, 1.0, abs(signedCocPixels));
     float foregroundSpread = saturate(bokeh.a);
     float blendAmount = max(localBlur, foregroundSpread);
-    return float4(lerp(sourceColor.rgb, bokeh.rgb, blendAmount), sourceColor.a);
+    float3 resolvedBokehColor = ResolveBokehColor(bokeh.rgb);
+    return float4(lerp(sourceColor.rgb, resolvedBokehColor, blendAmount), sourceColor.a);
 }

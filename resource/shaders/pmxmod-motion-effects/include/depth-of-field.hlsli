@@ -37,8 +37,17 @@ static const float MaxBlurPixels = 8.0;
 // CoC와 보케를 계산하는 중간 target의 해상도 비율이다.
 static const float BokehDownsampleScale = 0.5;
 
-// 밝은 보케 강조를 시작할 휘도 기준이다.
-static const float HighlightThreshold = 0.68;
+// ikBokeh가 색 처리에 사용하는 감마다.
+static const float BokehColorGamma = 2.2;
+
+// 색 지수 연산에서 0으로 인한 불안정한 값을 방지하는 최솟값이다.
+static const float BokehColorEpsilon = 1.0e-4;
+
+// ikBokeh의 보케 색 강조 최대 배율이다.
+static const float EmphasizeRateScale = 2.0;
+
+// CoC 밝기 보정이 발산하지 않도록 보장하는 최소 반경이다.
+static const float MinimumCoCRadius = 1.0;
 
 // 초점 히스토리 텍스처에 유효한 데이터가 저장되었는지 판별하는 표식이다.
 static const float FocusHistoryMarker = 0.5;
@@ -117,16 +126,17 @@ float ReadAutoFocusDistance() {
     float depth6 = ReadCameraDistance(FocusUv + float2(r2, -r2));
     float depth7 = ReadCameraDistance(FocusUv + float2(r1, 0.0));
     float depth8 = ReadCameraDistance(FocusUv + float2(r2, r2));
-    float4 depthMin = min(float4(depth0, depth1, depth2, depth3), float4(depth4, depth5, depth6, depth7));
-    depthMin.xy = min(depthMin.xy, depthMin.zw);
-    return max(min(min(depthMin.x, depthMin.y), depth8), MinFocusDistance);
+    float depthMin0 = min(min(depth0, depth1), min(depth2, depth3));
+    float depthMin1 = min(min(depth4, depth5), min(depth6, depth7));
+    return max(min(min(depthMin0, depthMin1), depth8), MinFocusDistance);
 }
 
 float ReadDelayedFocusDistance() {
     float4 history = FocusHistory.Sample(LinearClamp, float2(0.5, 0.5));
-    if (abs(history.b - FocusHistoryMarker) >= 0.01)
-        return ReadAutoFocusDistance();
-    return max(history.r / max(GetTanHalfFov(), 0.0001), MinFocusDistance);
+    float focusDistance = ReadAutoFocusDistance();
+    if (abs(history.b - FocusHistoryMarker) < 0.01)
+        focusDistance = history.r / max(GetTanHalfFov(), 0.0001);
+    return max(focusDistance, MinFocusDistance);
 }
 
 float CalculateFNumber() {
@@ -169,4 +179,39 @@ float EncodeCircleOfConfusion(float cocPixels) {
 
 float DecodeCircleOfConfusion(float encodedCoc) {
     return clamp(encodedCoc, -1.0, 1.0) * MaxBlurPixels;
+}
+
+// 보케 색에 적용할 강조 지수를 계산한다.
+float CalculateEmphasizeRate() {
+    if (Emphasize <= 0.0)
+        return 0.0;
+    return saturate(Emphasize) * EmphasizeRateScale + 1.0;
+}
+
+// 최종 합성에서 강조 색을 원래 범위로 되돌릴 역지수를 계산한다.
+float CalculateDeemphasizeRate() {
+    float emphasizeRate = CalculateEmphasizeRate();
+    return emphasizeRate > 0.0 ? 1.0 / max(emphasizeRate, BokehColorEpsilon) : 0.0;
+}
+
+// 블러 전에 색을 선형화하고 밝은 색의 대비를 강조한다.
+float3 PrepareBokehColor(float3 color) {
+    float3 preparedColor = pow(max(color, BokehColorEpsilon), BokehColorGamma);
+    float emphasizeRate = CalculateEmphasizeRate();
+    return emphasizeRate > 0.0
+        ? pow(max(preparedColor, BokehColorEpsilon), emphasizeRate) : preparedColor;
+}
+
+// 블러된 색의 강조를 되돌리고 화면 출력 감마로 복원한다.
+float3 ResolveBokehColor(float3 color) {
+    float deemphasizeRate = CalculateDeemphasizeRate();
+    float3 resolvedColor = deemphasizeRate > 0.0
+        ? pow(max(color, BokehColorEpsilon), deemphasizeRate) : color;
+    return pow(max(resolvedColor, BokehColorEpsilon), 1.0 / BokehColorGamma);
+}
+
+// 보케가 넓어질수록 한 픽셀에 기여하는 밝기가 감소하도록 CoC 면적을 보정한다.
+float CalculateCircleOfConfusionBrightness(float cocPixels) {
+    float radius = max(abs(cocPixels), MinimumCoCRadius);
+    return saturate(1.0 / (radius * radius));
 }
