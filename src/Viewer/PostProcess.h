@@ -2,7 +2,6 @@
 
 #include "Viewer/Shader/ShaderPackage.h"
 
-#include <cstddef>
 #include <filesystem>
 #include <vector>
 
@@ -48,6 +47,8 @@ namespace Chrivent {
 		void SetEffects(const std::vector<const EffectDefinition*>& effects);
 		// 선택한 후처리 effect 목록만 비운다. GPU 리소스 해제는 API별 Reset이 담당한다.
 		void ClearEffects();
+		// 다음 후처리 프레임에서 초점 히스토리를 초기 상태로 되돌린다.
+		virtual void ResetFocusHistory() = 0;
 		// API별 후처리 GPU 리소스를 해제한다.
 		virtual void Reset() = 0;
 	};

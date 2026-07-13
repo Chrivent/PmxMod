@@ -144,8 +144,11 @@ namespace Chrivent {
 	}
 
 	void GlfwViewer::ClearPostProcessEffects() {
-		postProcess.Reset();
-		postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
+		postProcess.ClearShaders();
+	}
+
+	void GlfwViewer::ResetPostProcessHistory() {
+		postProcess.ResetFocusHistory();
 	}
 
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {

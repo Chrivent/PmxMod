@@ -942,7 +942,7 @@ namespace Chrivent {
             case PlaybackCommand::None:
                 break;
         }
-        cameraManager.ApplyMotionCameraState(panelManager.IsCameraMode());
+        cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())

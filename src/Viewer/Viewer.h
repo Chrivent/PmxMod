@@ -15,6 +15,18 @@
 namespace Chrivent {
     struct EffectDefinition;
     struct Material;
+
+    // 모든 렌더링 API가 동일하게 사용하는 프레임별 후처리 입력이다.
+    struct PostProcessFrameData {
+        float deltaTime = 0.0f;
+        float nearPlane = 1.0f;
+        float farPlane = 10000.0f;
+        float verticalFovRadians = 0.5235988f;
+        float viewportWidth = 0.0f;
+        float viewportHeight = 0.0f;
+        float inverseViewportWidth = 0.0f;
+        float inverseViewportHeight = 0.0f;
+    };
     
     struct ViewerMaterial {
         const Material& mat;
@@ -41,6 +53,7 @@ namespace Chrivent {
         std::filesystem::path pmxDir;
         glm::mat4 viewMat;
         glm::mat4 projMat;
+        PostProcessFrameData postProcessFrameData;
         int screenWidth = 0;
         int screenHeight = 0;
         glm::vec3 lightColor = glm::vec3(1, 1, 1);
@@ -78,6 +91,8 @@ namespace Chrivent {
         virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) = 0;
         // 현재 렌더러에 적용된 포스트 프로세스 효과들을 해제한다.
         virtual void ClearPostProcessEffects() = 0;
+        // 카메라 점프나 탐색 뒤 다음 프레임의 초점 히스토리를 초기화한다.
+        virtual void ResetPostProcessHistory() = 0;
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.

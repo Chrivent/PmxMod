@@ -34,6 +34,13 @@ namespace Chrivent {
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}
 
+	void CameraManager::ApplyMotionCameraState(Viewer& viewer, const bool enabled) {
+		if (useMotionCamera == enabled)
+			return;
+		useMotionCamera = enabled;
+		viewer.ResetPostProcessHistory();
+	}
+
 	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
 		viewer.elapsed = 0.0f;
@@ -42,6 +49,7 @@ namespace Chrivent {
 		if (!paused)
 			music.Resume();
 		saveTime = std::chrono::steady_clock::now();
+		viewer.ResetPostProcessHistory();
 	}
 
 	void CameraManager::Reset() {
@@ -121,6 +129,7 @@ namespace Chrivent {
 		music.SeekSeconds(0.0f);
 		music.Pause();
 		saveTime = std::chrono::steady_clock::now();
+		viewer.ResetPostProcessHistory();
 	}
 
 	void CameraManager::HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music) {
@@ -170,23 +179,36 @@ namespace Chrivent {
 	}
 
 	void CameraManager::UpdateCamera(Viewer& viewer) const {
+		constexpr float nearPlane = 1.0f;
+		constexpr float farPlane = 10000.0f;
+		float verticalFov = glm::radians(30.0f);
 		if (useMotionCamera && cameraAnim) {
 			const auto& cam = cameraAnim->Evaluate(viewer.animTime * 30.0f);
 			viewer.viewMat = cam.CalcViewMatrix();
-			viewer.projMat = glm::perspectiveFovRH(
-				cam.fov, static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
+			verticalFov = cam.fov;
+		} else {
+			glm::vec3 forward(
+				std::cos(freeCamPitch) * std::cos(freeCamYaw),
+				std::sin(freeCamPitch),
+				std::cos(freeCamPitch) * std::sin(freeCamYaw)
 			);
-			return;
+			forward = glm::normalize(forward);
+			viewer.viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
 		}
-		glm::vec3 forward(
-			std::cos(freeCamPitch) * std::cos(freeCamYaw),
-			std::sin(freeCamPitch),
-			std::cos(freeCamPitch) * std::sin(freeCamYaw)
-		);
-		forward = glm::normalize(forward);
-		viewer.viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
+		const float viewportWidth = static_cast<float>(viewer.screenWidth);
+		const float viewportHeight = static_cast<float>(viewer.screenHeight);
 		viewer.projMat = glm::perspectiveFovRH(
-			glm::radians(30.0f), static_cast<float>(viewer.screenWidth), static_cast<float>(viewer.screenHeight), 1.0f, 10000.0f
+			verticalFov, viewportWidth, viewportHeight, nearPlane, farPlane
 		);
+		viewer.postProcessFrameData = {
+			.deltaTime = std::max(viewer.elapsed, 0.0f),
+			.nearPlane = nearPlane,
+			.farPlane = farPlane,
+			.verticalFovRadians = verticalFov,
+			.viewportWidth = viewportWidth,
+			.viewportHeight = viewportHeight,
+			.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f,
+			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f
+		};
 	}
 }

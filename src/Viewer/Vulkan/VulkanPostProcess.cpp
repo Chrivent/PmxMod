@@ -533,6 +533,13 @@ namespace Chrivent {
 			&& CreatePipeline(sourceDevice, sourceSwapChain);
 	}
 
+	void VulkanPostProcess::ResetFocusHistory() {
+		for (size_t& index : focusHistoryIndices)
+			index = 0;
+		for (size_t index = 0; index < focusHistoryInitialized.size(); index++)
+			focusHistoryInitialized[index] = false;
+	}
+
 	void VulkanPostProcess::Reset() {
 		if (device != VK_NULL_HANDLE) {
 			for (const VkPipeline pipeline : pipelines) {

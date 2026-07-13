@@ -199,6 +199,10 @@ namespace Chrivent {
 		postProcess.ClearPipelines();
 	}
 
+	void Dx12Viewer::ResetPostProcessHistory() {
+		postProcess.ResetFocusHistory();
+	}
+
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
 		return std::make_unique<Dx12Instance>();
 	}

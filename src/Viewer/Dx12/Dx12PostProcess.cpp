@@ -55,8 +55,7 @@ namespace Chrivent {
 		focusHistory[1].Reset();
 		focusHistoryRtvHeap.Reset();
 		focusHistorySrvHeap.Reset();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
+		ResetFocusHistory();
 		if (!sourceDevice.device || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
@@ -347,8 +346,7 @@ namespace Chrivent {
 	bool Dx12PostProcess::Load(
 		const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
 		SetEffects(effects);
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
+		ResetFocusHistory();
 		if (!CreatePipelines(sourceDevice, ResolveEffectPointers())) {
 			ClearPipelines();
 			return false;
@@ -359,8 +357,7 @@ namespace Chrivent {
 	void Dx12PostProcess::ClearPipelines() {
 		ResetPipelines();
 		ClearEffects();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
+		ResetFocusHistory();
 	}
 
 	bool Dx12PostProcess::BeginDepthPass(
@@ -447,6 +444,11 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
+	void Dx12PostProcess::ResetFocusHistory() {
+		focusHistoryInitialized = false;
+		focusHistoryIndex = 0;
+	}
+
 	void Dx12PostProcess::Reset() {
 		ClearPipelines();
 		depth.Reset();
@@ -456,7 +458,5 @@ namespace Chrivent {
 		focusHistoryRtvHeap.Reset();
 		focusHistorySrvHeap.Reset();
 		targets.clear();
-		focusHistoryInitialized = false;
-		focusHistoryIndex = 0;
 	}
 }

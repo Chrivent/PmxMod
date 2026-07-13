@@ -31,7 +31,7 @@ namespace Chrivent {
 		// 카메라 애니메이션이 없을 때 빈 목록을 반환해 표시용 키 목록을 제공한다.
 		const std::vector<CameraAnimationKey>& ResolveAnimationKeys() const;
 		// 모션 카메라 사용 상태를 전환한다.
-		void ApplyMotionCameraState(bool enabled) { useMotionCamera = enabled; }
+		void ApplyMotionCameraState(Viewer& viewer, bool enabled);
 		// 지정한 프레임으로 재생 시간을 이동한다.
 		void SeekFrame(Viewer& viewer, Sound& music, int frame, std::chrono::steady_clock::time_point& saveTime) const;
 		// 카메라와 재생 상태를 기본값으로 초기화한다.

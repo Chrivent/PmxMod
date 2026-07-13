@@ -71,6 +71,8 @@ namespace Chrivent {
 		// 장면 렌더링을 끝내고 소유한 후처리 리소스로 최종 명령을 기록한다.
 		bool EndRecord(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, VkExtent2D extent, bool sceneRenderingEnded = false);
+		// 다음 후처리 프레임에서 Vulkan 초점 히스토리를 0으로 초기화한다.
+		void ResetFocusHistory() override;
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void Reset() override;
 	};

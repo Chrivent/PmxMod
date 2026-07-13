@@ -340,6 +340,10 @@ namespace Chrivent {
 			std::cerr << "Failed to restore Vulkan swapchain resources after clearing post-process.\n";
 	}
 
+	void VulkanViewer::ResetPostProcessHistory() {
+		postProcess.ResetFocusHistory();
+	}
+
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {
 		return std::make_unique<VulkanInstance>();
 	}

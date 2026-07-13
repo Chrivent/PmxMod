@@ -81,6 +81,8 @@ namespace Chrivent {
 		void Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor,
 			const Dx12Device& sourceDevice, const Dx12CommandContext& commandContext,
 			const Dx12SwapChain& swapChain, int width, int height);
+		// 다음 후처리 프레임에서 DX12 초점 히스토리를 0으로 초기화한다.
+		void ResetFocusHistory() override;
 		// 생성한 DX12 후처리 리소스를 해제한다.
 		void Reset() override;
 	};

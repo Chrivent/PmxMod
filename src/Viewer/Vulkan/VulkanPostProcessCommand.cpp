@@ -34,31 +34,32 @@ namespace Chrivent {
 		const size_t focusHistoryReadIndex = focusHistoryIndices[imageIndex];
 		const size_t focusHistoryWriteIndex = ResolveNextFocusHistoryIndex(focusHistoryReadIndex);
 		const bool focusHistoryEnabled = focusHistoryPipeline != VK_NULL_HANDLE;
-		if (focusHistoryEnabled) {
-			constexpr VkImageSubresourceRange colorRange{
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-			};
-			if (!focusHistoryInitialized[imageIndex]) {
-				constexpr VkClearColorValue clearColor{};
-				for (size_t historyIndex = 0; historyIndex < focusHistoryCount; historyIndex++) {
-					const VkImage image = focusHistoryImages[ResolveFocusHistoryIndex(historyIndex, imageIndex)];
-					VulkanCommandBuffer::TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
-						VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-						VK_IMAGE_ASPECT_COLOR_BIT);
-					vkCmdClearColorImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						&clearColor, 1, &colorRange);
-					VulkanCommandBuffer::TransitionImage(commandBuffer, image,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-						VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-						VK_IMAGE_ASPECT_COLOR_BIT);
-				}
+		const bool focusHistoryNeedsInitialization = !focusHistoryInitialized[imageIndex];
+		constexpr VkImageSubresourceRange colorRange{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		};
+		if (focusHistoryNeedsInitialization) {
+			constexpr VkClearColorValue clearColor{};
+			for (size_t historyIndex = 0; historyIndex < focusHistoryCount; historyIndex++) {
+				const VkImage image = focusHistoryImages[ResolveFocusHistoryIndex(historyIndex, imageIndex)];
+				VulkanCommandBuffer::TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
+					VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+					VK_IMAGE_ASPECT_COLOR_BIT);
+				vkCmdClearColorImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					&clearColor, 1, &colorRange);
+				VulkanCommandBuffer::TransitionImage(commandBuffer, image,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+					VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+					VK_IMAGE_ASPECT_COLOR_BIT);
 			}
+		}
+		if (focusHistoryEnabled) {
 			const size_t focusOutputIndex = ResolveFocusHistoryIndex(focusHistoryWriteIndex, imageIndex);
 			const VkImage focusOutputImage = focusHistoryImages[focusOutputIndex];
 			VulkanCommandBuffer::TransitionImage(commandBuffer, focusOutputImage,
@@ -153,6 +154,8 @@ namespace Chrivent {
 		}
 		if (focusHistoryEnabled)
 			AdvanceFocusHistory(imageIndex);
+		else if (focusHistoryNeedsInitialization)
+			focusHistoryInitialized[imageIndex] = true;
 		return true;
 	}
 }

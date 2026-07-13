@@ -32,19 +32,8 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  backBufferView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         sceneColorMsaa;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  sceneColorMsaaView;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         sceneColor;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         pingPongColor[2];
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  pingPongColorView[2];
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pingPongColorResourceView[2];
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         postProcessDepth;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  postProcessDepthStencilView;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> postProcessDepthView;
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>         focusHistory[2];
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  focusHistoryView[2];
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> focusHistoryResourceView[2];
     };
 
     struct Dx11ShaderSet {
@@ -83,8 +72,6 @@ namespace Chrivent {
         bool CreateShaders();
         // 스왑체인과 장면 색상, 깊이 스텐실 리소스를 생성한다.
         bool CreateRenderTargets();
-        // 장면 색상을 셰이더 입력용 단일 샘플 텍스처로 변환한다.
-        void ResolveSceneColor() const;
         // 래스터라이저, 블렌드, 샘플러, 깊이 상태를 생성한다.
         bool CreatePipelineStates();
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
@@ -120,6 +107,8 @@ namespace Chrivent {
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // DX11 후처리 셰이더들을 해제한다.
         void ClearPostProcessEffects() override;
+        // DX11 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
+        void ResetPostProcessHistory() override;
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.

@@ -10,7 +10,6 @@
 
 #include <iostream>
 #include <iterator>
-#include <utility>
 
 namespace Chrivent {
 	bool Dx11Viewer::CreateDevice() {
@@ -98,71 +97,13 @@ namespace Chrivent {
 			return false;
 		if (FAILED(device->CreateRenderTargetView(renderTargets.sceneColorMsaa.Get(), nullptr, &renderTargets.sceneColorMsaaView)))
 			return false;
-		const auto sceneColorDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
-		if (FAILED(device->CreateTexture2D(&sceneColorDesc, nullptr, &renderTargets.sceneColor)))
-			return false;
-		if (FAILED(device->CreateShaderResourceView(renderTargets.sceneColor.Get(), nullptr, &renderTargets.sceneColorView)))
-			return false;
-		const auto pingPongDesc = Dx11DescBuilder::MakeTexture2DDesc(
-			screenWidth, screenHeight, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-		for (int index = 0; index < 2; index++) {
-			if (FAILED(device->CreateTexture2D(&pingPongDesc, nullptr, &renderTargets.pingPongColor[index])))
-				return false;
-			if (FAILED(device->CreateRenderTargetView(renderTargets.pingPongColor[index].Get(), nullptr, &renderTargets.pingPongColorView[index])))
-				return false;
-			if (FAILED(device->CreateShaderResourceView(renderTargets.pingPongColor[index].Get(), nullptr, &renderTargets.pingPongColorResourceView[index])))
-				return false;
-		}
 		const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(screenWidth, screenHeight, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D11_BIND_DEPTH_STENCIL, multiSampleCount, multiSampleQuality);
 		if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &renderTargets.depthTex)))
 			return false;
 		if (FAILED(device->CreateDepthStencilView(renderTargets.depthTex.Get(), nullptr, &renderTargets.depthStencilView)))
 			return false;
-		const auto postProcessDepthDesc = Dx11DescBuilder::MakeTexture2DDesc(
-			screenWidth, screenHeight, DXGI_FORMAT_R24G8_TYPELESS, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
-		if (FAILED(device->CreateTexture2D(&postProcessDepthDesc, nullptr, &renderTargets.postProcessDepth)))
-			return false;
-		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
-		depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		if (FAILED(device->CreateDepthStencilView(
-			renderTargets.postProcessDepth.Get(), &depthStencilViewDesc, &renderTargets.postProcessDepthStencilView)))
-			return false;
-		D3D11_SHADER_RESOURCE_VIEW_DESC depthViewDesc{};
-		depthViewDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		depthViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		depthViewDesc.Texture2D.MipLevels = 1;
-		if (FAILED(device->CreateShaderResourceView(
-			renderTargets.postProcessDepth.Get(), &depthViewDesc, &renderTargets.postProcessDepthView)))
-			return false;
-		const auto focusHistoryDesc = Dx11DescBuilder::MakeTexture2DDesc(
-			1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-		for (int index = 0; index < 2; index++) {
-			if (FAILED(device->CreateTexture2D(&focusHistoryDesc, nullptr, &renderTargets.focusHistory[index])))
-				return false;
-			if (FAILED(device->CreateRenderTargetView(
-				renderTargets.focusHistory[index].Get(), nullptr, &renderTargets.focusHistoryView[index])))
-				return false;
-			if (FAILED(device->CreateShaderResourceView(
-				renderTargets.focusHistory[index].Get(), nullptr, &renderTargets.focusHistoryResourceView[index])))
-				return false;
-			constexpr float clearHistory[4] = {};
-			deviceResources.context->ClearRenderTargetView(renderTargets.focusHistoryView[index].Get(), clearHistory);
-		}
-		return true;
-	}
-
-	void Dx11Viewer::ResolveSceneColor() const {
-		auto& context = deviceResources.context;
-		context->OMSetRenderTargets(0, nullptr, nullptr);
-		if (multiSampleCount > 1) {
-			context->ResolveSubresource(
-				renderTargets.sceneColor.Get(), 0,
-				renderTargets.sceneColorMsaa.Get(), 0,
-				DXGI_FORMAT_R8G8B8A8_UNORM);
-		} else {
-			context->CopyResource(renderTargets.sceneColor.Get(), renderTargets.sceneColorMsaa.Get());
-		}
+		return postProcess.InitializeTargets(
+			deviceResources.device.Get(), deviceResources.context.Get(), screenWidth, screenHeight);
 	}
 
 	bool Dx11Viewer::CreatePipelineStates() {
@@ -254,23 +195,9 @@ namespace Chrivent {
 		renderTargets.backBufferView.Reset();
 		renderTargets.sceneColorMsaa.Reset();
 		renderTargets.sceneColorMsaaView.Reset();
-		renderTargets.sceneColor.Reset();
-		renderTargets.sceneColorView.Reset();
-		for (int index = 0; index < 2; index++) {
-			renderTargets.pingPongColor[index].Reset();
-			renderTargets.pingPongColorView[index].Reset();
-			renderTargets.pingPongColorResourceView[index].Reset();
-		}
 		renderTargets.depthStencilView.Reset();
 		renderTargets.depthTex.Reset();
-		renderTargets.postProcessDepth.Reset();
-		renderTargets.postProcessDepthStencilView.Reset();
-		renderTargets.postProcessDepthView.Reset();
-		for (int index = 0; index < 2; index++) {
-			renderTargets.focusHistory[index].Reset();
-			renderTargets.focusHistoryView[index].Reset();
-			renderTargets.focusHistoryResourceView[index].Reset();
-		}
+		postProcess.ResetTargets();
 		if (FAILED(deviceResources.swapChain->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
 		if (!CreateRenderTargets())
@@ -287,23 +214,27 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::EndFrame() {
-		ResolveSceneColor();
-		if (postProcess.HasEffects())
-			postProcess.Draw(deviceResources, renderTargets, pipelineStates, screenWidth, screenHeight);
-		else
+		if (postProcess.HasEffects()) {
+			postProcess.ResolveSceneColor(
+				deviceResources.context.Get(), renderTargets.sceneColorMsaa.Get(), multiSampleCount);
+			postProcess.Draw(deviceResources.context.Get(), renderTargets.backBufferView.Get(),
+				pipelineStates.bothFaceRs.Get(), pipelineStates.toonTextureSampler.Get(), screenWidth, screenHeight);
+		} else {
 			deviceResources.context->CopyResource(
 				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
+		}
 		if (FAILED(deviceResources.swapChain->Present(0, 0)))
 			return false;
 		return true;
 	}
 
 	bool Dx11Viewer::BeginPostProcessDepthPass() {
-		return postProcess.BeginDepthPass(deviceResources, renderTargets, pipelineStates, screenWidth, screenHeight);
+		return postProcess.BeginDepthPass(
+			deviceResources.context.Get(), pipelineStates.defaultDss.Get(), screenWidth, screenHeight);
 	}
 
 	void Dx11Viewer::EndPostProcessDepthPass() {
-		postProcess.EndDepthPass(deviceResources);
+		postProcess.EndDepthPass(deviceResources.context.Get());
 	}
 
 	void Dx11Viewer::WaitIdle() {
@@ -326,7 +257,11 @@ namespace Chrivent {
 	}
 
 	void Dx11Viewer::ClearPostProcessEffects() {
-		postProcess.Reset();
+		postProcess.ClearShaders();
+	}
+
+	void Dx11Viewer::ResetPostProcessHistory() {
+		postProcess.ResetFocusHistory();
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {
