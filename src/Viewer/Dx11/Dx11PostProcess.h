@@ -11,11 +11,12 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 
 	class Dx11PostProcess : public PostProcess {
+		static constexpr size_t intermediateColorTargetCount = targetCount - 1;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> sceneColor;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> pingPongColor[2];
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pingPongColorView[2];
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pingPongColorResourceView[2];
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> intermediateColor[intermediateColorTargetCount];
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> intermediateColorView[intermediateColorTargetCount];
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> intermediateColorResourceView[intermediateColorTargetCount];
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> depthView;
@@ -34,6 +35,8 @@ namespace Chrivent {
 		void InitializeFocusHistory(ID3D11DeviceContext* context);
 		// DOF용 자동 초점 히스토리 텍스처를 갱신한다.
 		void UpdateFocusHistory(ID3D11DeviceContext* context, int width, int height);
+		// 공통 target 인덱스에 대응하는 DX11 색상 SRV를 반환한다.
+		ID3D11ShaderResourceView* ResolveColorResourceView(size_t targetIndex) const;
 		// DX11 후처리 셰이더와 선택 effect 상태만 해제한다.
 		void ResetShaders();
 

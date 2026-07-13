@@ -112,6 +112,22 @@ namespace Chrivent {
 			return false;
 		pass.vertexEntry = json.value("vertexEntry", pass.vertexEntry);
 		pass.pixelEntry = json.value("pixelEntry", pass.pixelEntry);
+		const auto resolution = json.find("resolution");
+		if (resolution != json.end()) {
+			if (!resolution->is_string()) {
+				error = "Effect pass resolution must be a string: " + manifestPath.string();
+				return false;
+			}
+			const std::string value = resolution->get<std::string>();
+			if (value == "full")
+				pass.resolution = EffectPassResolution::Full;
+			else if (value == "half")
+				pass.resolution = EffectPassResolution::Half;
+			else {
+				error = "Unsupported effect pass resolution: " + value + " in " + manifestPath.string();
+				return false;
+			}
+		}
 		if (!pass.vertexEntry.empty() && !pass.pixelEntry.empty())
 			return true;
 		error = "Effect pass entry points cannot be empty: " + manifestPath.string();
@@ -162,6 +178,10 @@ namespace Chrivent {
 			if (!LoadPass(packageRoot, manifestPath, passJson, pass, error))
 				return false;
 			effect.passes.emplace_back(std::move(pass));
+		}
+		if (effect.passes.back().resolution != EffectPassResolution::Full) {
+			error = "The final effect pass must use full resolution: " + manifestPath.string();
+			return false;
 		}
 		effect.historyPass.reset();
 		const auto historyPass = json.find("historyPass");

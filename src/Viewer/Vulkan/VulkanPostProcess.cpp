@@ -22,8 +22,23 @@ namespace Chrivent {
 	}
 
 	size_t VulkanPostProcess::ResolveDescriptorIndex(
-		const size_t targetIndex, const uint32_t imageIndex, const size_t historyIndex) const {
-		return historyIndex * targetImages.size() + ResolveTargetIndex(targetIndex, imageIndex);
+		const size_t targetIndex, const size_t effectSourceIndex,
+		const uint32_t imageIndex, const size_t historyIndex) const {
+		return ((historyIndex * targetCount + effectSourceIndex) * targetCount + targetIndex)
+			* swapChainImageCount + imageIndex;
+	}
+
+	VkFormat VulkanPostProcess::ResolveTargetFormat(
+		const VkFormat fullResolutionFormat, const size_t targetIndex) {
+		return targetIndex >= halfTargetOffset ? VK_FORMAT_R16G16B16A16_SFLOAT : fullResolutionFormat;
+	}
+
+	VkExtent2D VulkanPostProcess::ResolveTargetExtent(
+		const VkExtent2D fullExtent, const size_t targetIndex) {
+		return {
+			static_cast<uint32_t>(PostProcess::ResolveTargetExtent(static_cast<int>(fullExtent.width), targetIndex)),
+			static_cast<uint32_t>(PostProcess::ResolveTargetExtent(static_cast<int>(fullExtent.height), targetIndex))
+		};
 	}
 
 	bool VulkanPostProcess::CreateTargetImages(const VulkanDevice& sourceDevice,
@@ -33,44 +48,49 @@ namespace Chrivent {
 		targetImages.resize(imageCount);
 		targetImageMemories.resize(imageCount);
 		targetImageViews.resize(imageCount);
-		for (size_t index = 0; index < targetImages.size(); index++) {
-			VkImageCreateInfo imageInfo{};
-			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent = { sourceSwapChain.extent.width, sourceSwapChain.extent.height, 1 };
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = sourceSwapChain.imageFormat;
-			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			if (vkCreateImage(device, &imageInfo, nullptr, &targetImages[index]) != VK_SUCCESS)
-				return false;
-			VkMemoryRequirements requirements{};
-			vkGetImageMemoryRequirements(device, targetImages[index], &requirements);
-			uint32_t memoryType = 0;
-			if (!VulkanMemory::FindMemoryType(
-				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
-				return false;
-			VkMemoryAllocateInfo allocateInfo{};
-			allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			allocateInfo.allocationSize = requirements.size;
-			allocateInfo.memoryTypeIndex = memoryType;
-			if (vkAllocateMemory(device, &allocateInfo, nullptr, &targetImageMemories[index]) != VK_SUCCESS
-				|| vkBindImageMemory(device, targetImages[index], targetImageMemories[index], 0) != VK_SUCCESS)
-				return false;
-			VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = targetImages[index];
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = sourceSwapChain.imageFormat;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(device, &viewInfo, nullptr, &targetImageViews[index]) != VK_SUCCESS)
-				return false;
+		for (size_t targetIndex = 0; targetIndex < targetCount; targetIndex++) {
+			for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
+				const size_t index = ResolveTargetIndex(targetIndex, imageIndex);
+				const VkExtent2D targetExtent = ResolveTargetExtent(sourceSwapChain.extent, targetIndex);
+				const VkFormat targetFormat = ResolveTargetFormat(sourceSwapChain.imageFormat, targetIndex);
+				VkImageCreateInfo imageInfo{};
+				imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+				imageInfo.imageType = VK_IMAGE_TYPE_2D;
+				imageInfo.extent = { targetExtent.width, targetExtent.height, 1 };
+				imageInfo.mipLevels = 1;
+				imageInfo.arrayLayers = 1;
+				imageInfo.format = targetFormat;
+				imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+				imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+				imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				if (vkCreateImage(device, &imageInfo, nullptr, &targetImages[index]) != VK_SUCCESS)
+					return false;
+				VkMemoryRequirements requirements{};
+				vkGetImageMemoryRequirements(device, targetImages[index], &requirements);
+				uint32_t memoryType = 0;
+				if (!VulkanMemory::FindMemoryType(
+					sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
+					return false;
+				VkMemoryAllocateInfo allocateInfo{};
+				allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+				allocateInfo.allocationSize = requirements.size;
+				allocateInfo.memoryTypeIndex = memoryType;
+				if (vkAllocateMemory(device, &allocateInfo, nullptr, &targetImageMemories[index]) != VK_SUCCESS
+					|| vkBindImageMemory(device, targetImages[index], targetImageMemories[index], 0) != VK_SUCCESS)
+					return false;
+				VkImageViewCreateInfo viewInfo{};
+				viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+				viewInfo.image = targetImages[index];
+				viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				viewInfo.format = targetFormat;
+				viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				viewInfo.subresourceRange.levelCount = 1;
+				viewInfo.subresourceRange.layerCount = 1;
+				if (vkCreateImageView(device, &viewInfo, nullptr, &targetImageViews[index]) != VK_SUCCESS)
+					return false;
+			}
 		}
 		return true;
 	}
@@ -223,7 +243,13 @@ namespace Chrivent {
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 3,
+				.binding = PostProcessInputLayout::effectSourceColorRegister,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			},
+			VkDescriptorSetLayoutBinding{
+				.binding = 4,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -231,7 +257,7 @@ namespace Chrivent {
 		};
 		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = 4;
+		textureLayoutInfo.bindingCount = 5;
 		textureLayoutInfo.pBindings = bindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS)
 			return false;
@@ -251,14 +277,16 @@ namespace Chrivent {
 		samplerInfo.maxLod = 1.0f;
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			return false;
-		const uint32_t mainDescriptorCount = static_cast<uint32_t>(targetImageViews.size() * historyTargetCount);
+		const uint32_t mainDescriptorCount = static_cast<uint32_t>(
+			targetImageViews.size() * targetCount * historyTargetCount);
 		const uint32_t focusDescriptorCount = static_cast<uint32_t>(swapChainImageCount * historyTargetCount);
 		const uint32_t textureDescriptorCount = mainDescriptorCount + focusDescriptorCount;
 		const uint32_t frameDescriptorCount = static_cast<uint32_t>(swapChainImageCount);
 		const uint32_t descriptorCount = frameDescriptorCount + textureDescriptorCount;
 		const VkDescriptorPoolSize poolSizes[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameDescriptorCount },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureDescriptorCount * 3 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				textureDescriptorCount * PostProcessInputLayout::requiredTextureCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureDescriptorCount }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
@@ -302,60 +330,75 @@ namespace Chrivent {
 		}
 		for (size_t historyIndex = 0; historyIndex < historyTargetCount; historyIndex++) {
 			for (uint32_t targetIndex = 0; targetIndex < targetCount; targetIndex++) {
-				for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
-					const size_t targetFlatIndex = ResolveTargetIndex(targetIndex, imageIndex);
-					const size_t descriptorIndex = ResolveDescriptorIndex(targetIndex, imageIndex, historyIndex);
-					const VkDescriptorImageInfo imageInfo{
-						.sampler = VK_NULL_HANDLE,
-						.imageView = targetImageViews[targetFlatIndex],
-						.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-					};
-					const VkDescriptorImageInfo depthInfo{
-						.sampler = VK_NULL_HANDLE,
-						.imageView = depthImageViews[imageIndex],
-						.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-					};
-					const VkDescriptorImageInfo focusHistoryInfo{
-						.sampler = VK_NULL_HANDLE,
-						.imageView = focusHistoryImageViews[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
-						.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-					};
-					const VkDescriptorImageInfo samplerDescriptor{ .sampler = sampler };
-					const VkWriteDescriptorSet writes[] = {
-						VkWriteDescriptorSet{
-							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::sceneColorRegister,
-							.descriptorCount = 1,
-							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-							.pImageInfo = &imageInfo
-						},
-						VkWriteDescriptorSet{
-							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::sceneDepthRegister,
-							.descriptorCount = 1,
-							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-							.pImageInfo = &depthInfo
-						},
-						VkWriteDescriptorSet{
-							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = PostProcessInputLayout::focusHistoryRegister,
-							.descriptorCount = 1,
-							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-							.pImageInfo = &focusHistoryInfo
-						},
-						VkWriteDescriptorSet{
-							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-							.dstSet = descriptorSets[descriptorIndex],
-							.dstBinding = 3,
-							.descriptorCount = 1,
-							.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-							.pImageInfo = &samplerDescriptor
-						}
-					};
-					vkUpdateDescriptorSets(device, 4, writes, 0, nullptr);
+				for (uint32_t effectSourceIndex = 0; effectSourceIndex < targetCount; effectSourceIndex++) {
+					for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
+						const size_t descriptorIndex = ResolveDescriptorIndex(
+							targetIndex, effectSourceIndex, imageIndex, historyIndex);
+						const VkDescriptorImageInfo imageInfo{
+							.sampler = VK_NULL_HANDLE,
+							.imageView = targetImageViews[ResolveTargetIndex(targetIndex, imageIndex)],
+							.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+						};
+						const VkDescriptorImageInfo depthInfo{
+							.sampler = VK_NULL_HANDLE,
+							.imageView = depthImageViews[imageIndex],
+							.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+						};
+						const VkDescriptorImageInfo focusHistoryInfo{
+							.sampler = VK_NULL_HANDLE,
+							.imageView = focusHistoryImageViews[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
+							.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+						};
+						const VkDescriptorImageInfo effectSourceInfo{
+							.sampler = VK_NULL_HANDLE,
+							.imageView = targetImageViews[ResolveTargetIndex(effectSourceIndex, imageIndex)],
+							.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+						};
+						const VkDescriptorImageInfo samplerDescriptor{ .sampler = sampler };
+						const VkWriteDescriptorSet writes[] = {
+							VkWriteDescriptorSet{
+								.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+								.dstSet = descriptorSets[descriptorIndex],
+								.dstBinding = PostProcessInputLayout::sceneColorRegister,
+								.descriptorCount = 1,
+								.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+								.pImageInfo = &imageInfo
+							},
+							VkWriteDescriptorSet{
+								.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+								.dstSet = descriptorSets[descriptorIndex],
+								.dstBinding = PostProcessInputLayout::sceneDepthRegister,
+								.descriptorCount = 1,
+								.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+								.pImageInfo = &depthInfo
+							},
+							VkWriteDescriptorSet{
+								.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+								.dstSet = descriptorSets[descriptorIndex],
+								.dstBinding = PostProcessInputLayout::focusHistoryRegister,
+								.descriptorCount = 1,
+								.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+								.pImageInfo = &focusHistoryInfo
+							},
+							VkWriteDescriptorSet{
+								.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+								.dstSet = descriptorSets[descriptorIndex],
+								.dstBinding = PostProcessInputLayout::effectSourceColorRegister,
+								.descriptorCount = 1,
+								.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+								.pImageInfo = &effectSourceInfo
+							},
+							VkWriteDescriptorSet{
+								.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+								.dstSet = descriptorSets[descriptorIndex],
+								.dstBinding = 4,
+								.descriptorCount = 1,
+								.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+								.pImageInfo = &samplerDescriptor
+							}
+						};
+						vkUpdateDescriptorSets(device, 5, writes, 0, nullptr);
+					}
 				}
 			}
 			for (uint32_t imageIndex = 0; imageIndex < swapChainImageCount; imageIndex++) {
@@ -403,13 +446,21 @@ namespace Chrivent {
 					VkWriteDescriptorSet{
 						.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 						.dstSet = focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
-						.dstBinding = 3,
+						.dstBinding = PostProcessInputLayout::effectSourceColorRegister,
+						.descriptorCount = 1,
+						.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+						.pImageInfo = &imageInfo
+					},
+					VkWriteDescriptorSet{
+						.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+						.dstSet = focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)],
+						.dstBinding = 4,
 						.descriptorCount = 1,
 						.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 						.pImageInfo = &samplerDescriptor
 					}
 				};
-				vkUpdateDescriptorSets(device, 4, writes, 0, nullptr);
+				vkUpdateDescriptorSets(device, 5, writes, 0, nullptr);
 			}
 		}
 		return true;
@@ -504,10 +555,17 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::CreatePipelines(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
-		for (const auto& pass : ResolvePasses()) {
+		const auto& passes = ResolvePasses();
+		const auto& routes = ResolvePassRoutes();
+		for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
+			const PostProcessPassRoute& route = routes[passIndex];
+			const VkExtent2D extent = route.lastPass
+				? sourceSwapChain.extent : ResolveTargetExtent(sourceSwapChain.extent, route.targetIndex);
+			const VkFormat format = route.lastPass
+				? sourceSwapChain.imageFormat : ResolveTargetFormat(sourceSwapChain.imageFormat, route.targetIndex);
 			if (!CreateGraphicsPipeline(
-				sourceDevice, pass, sourceSwapChain.extent, sourceSwapChain.imageFormat, pipeline))
+				sourceDevice, passes[passIndex], extent, format, pipeline))
 				return false;
 			pipelines.push_back(pipeline);
 		}

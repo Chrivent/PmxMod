@@ -9,26 +9,36 @@ namespace Chrivent {
 	struct PostProcessPassRoute {
 		bool lastPass = false;
 		size_t sourceIndex = 0;
+		size_t effectSourceIndex = 0;
 		size_t targetIndex = 0;
-		size_t pingPongIndex = 0;
+		EffectPassResolution resolution = EffectPassResolution::Full;
 	};
 
 	class PostProcess {
 	protected:
 		PostProcess() = default;
 
-		static constexpr size_t targetCount = 3;
+		static constexpr size_t sceneTargetIndex = 0;
+		static constexpr size_t fullTargetOffset = 1;
+		static constexpr size_t halfTargetOffset = 3;
+		static constexpr size_t intermediateTargetCount = 2;
+		static constexpr size_t targetCount = 5;
 		static constexpr size_t historyTargetCount = 2;
 		std::vector<EffectPassDefinition> passDefinitions;
+		std::vector<PostProcessPassRoute> passRoutes;
 		std::optional<EffectPassDefinition> historyPassDefinition;
 		bool depthRequired = false;
 
-		// 현재 pass가 읽고 쓸 ping-pong target 인덱스를 계산한다.
-		static PostProcessPassRoute ResolvePingPongRoute(size_t passIndex, size_t passCount);
+		// pass 해상도와 effect 경계를 반영한 공통 렌더링 경로를 만든다.
+		static std::vector<PostProcessPassRoute> BuildPassRoutes(
+			const std::vector<EffectPassDefinition>& passes, const std::vector<size_t>& effectIndices);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
+		// target 인덱스에 대응하는 실제 한 축의 해상도를 계산한다.
+		static int ResolveTargetExtent(int fullExtent, size_t targetIndex);
 
 		const std::vector<EffectPassDefinition>& ResolvePasses() const { return passDefinitions; }
+		const std::vector<PostProcessPassRoute>& ResolvePassRoutes() const { return passRoutes; }
 		const EffectPassDefinition* ResolveHistoryPass() const {
 			return historyPassDefinition ? &*historyPassDefinition : nullptr;
 		}

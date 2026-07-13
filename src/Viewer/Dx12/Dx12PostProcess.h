@@ -17,6 +17,7 @@ namespace Chrivent {
 	class Dx12PostProcess : public PostProcess {
 		static constexpr size_t frameDataBufferCount = 2;
 		std::vector<Dx12PostProcessTarget> targets;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> focusHistory[2];
@@ -40,6 +41,10 @@ namespace Chrivent {
 		bool CreateFocusHistoryTargets(const Dx12Device& sourceDevice);
 		// DOF용 초점 히스토리 갱신 pass 입력 descriptor를 갱신한다.
 		void UpdateFocusHistoryShaderResources(const Dx12Device& sourceDevice, size_t readIndex) const;
+		// 모든 색상 source 조합에 대응하는 후처리 입력 descriptor heap을 생성한다.
+		bool CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
+		// 공통 색상, depth, focus history 입력 descriptor를 현재 리소스로 갱신한다.
+		void UpdateInputDescriptors(const Dx12Device& sourceDevice, ID3D12Resource* historyResource) const;
 		// DOF용 초점 히스토리 갱신 pass를 실행한다.
 		void UpdateFocusHistory(ID3D12GraphicsCommandList* commandList, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress,
@@ -50,6 +55,8 @@ namespace Chrivent {
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolveFocusHistoryRtvHandle(const Dx12Device& sourceDevice, size_t index) const;
 		// DOF용 초점 히스토리 입력 descriptor table handle을 반환한다.
 		D3D12_GPU_DESCRIPTOR_HANDLE ResolveFocusHistoryGpuHandle() const;
+		// 색상 source와 effect 시작 source 조합에 대응하는 descriptor heap을 반환한다.
+		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t sourceIndex, size_t effectSourceIndex) const;
 		// 후처리 입력 SRV와 sampler를 노출하는 Root Signature를 생성한다.
 		bool CreatePostProcessRootSignature(const Dx12Device& sourceDevice);
 		// HLSL 후처리 pass 하나를 지정한 출력 형식의 pipeline state로 만든다.

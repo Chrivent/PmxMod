@@ -10,14 +10,15 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 
 	class GlfwPostProcess : public PostProcess {
+		static constexpr size_t intermediateColorTargetCount = targetCount - 1;
 		GLuint sceneFramebuffer = 0;
 		GLuint sceneColorMsaa = 0;
 		GLuint resolveFramebuffer = 0;
 		GLuint sceneColorTexture = 0;
 		GLuint postProcessDepthFramebuffer = 0;
 		GLuint postProcessDepthTexture = 0;
-		GLuint pingPongFramebuffers[2] = {};
-		GLuint pingPongTextures[2] = {};
+		GLuint intermediateFramebuffers[intermediateColorTargetCount] = {};
+		GLuint intermediateTextures[intermediateColorTargetCount] = {};
 		GLuint focusHistoryFramebuffers[2] = {};
 		GLuint focusHistoryTextures[2] = {};
 		GLuint sceneDepthStencil = 0;
@@ -33,6 +34,10 @@ namespace Chrivent {
 		void InitializeFocusHistory();
 		// DOF용 자동 초점 히스토리 텍스처를 갱신한다.
 		void UpdateFocusHistory();
+		// 공통 target 인덱스에 대응하는 OpenGL 색상 텍스처를 반환한다.
+		GLuint ResolveColorTexture(size_t targetIndex) const;
+		// 중간 target 인덱스에 대응하는 OpenGL framebuffer를 반환한다.
+		GLuint ResolveIntermediateFramebuffer(size_t targetIndex) const;
 		// 후처리용 화면 프레임버퍼 리소스를 해제한다.
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.

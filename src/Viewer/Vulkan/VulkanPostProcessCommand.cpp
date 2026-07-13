@@ -6,7 +6,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	bool VulkanPostProcess::BeginDepthPass(VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
+	bool VulkanPostProcess::BeginDepthPass(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
 		const VkPipeline depthPipeline, const VkExtent2D extent) const {
 		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
 			return false;
@@ -16,7 +16,7 @@ namespace Chrivent {
 			depthHasStencil, depthPipeline, extent);
 	}
 
-	bool VulkanPostProcess::EndDepthPass(VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
+	bool VulkanPostProcess::EndDepthPass(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
 		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
@@ -32,7 +32,7 @@ namespace Chrivent {
 			|| imageIndex >= focusHistoryInitialized.size() || targetImages.size() < targetImageCount
 			|| targetImageViews.size() < targetImageCount || focusHistoryImages.size() < focusImageCount
 			|| focusHistoryImageViews.size() < focusImageCount
-			|| descriptorSets.size() < targetImageCount * historyTargetCount
+			|| descriptorSets.size() < targetImageCount * targetCount * historyTargetCount
 			|| focusHistoryDescriptorSets.size() < focusImageCount
 			|| imageIndex >= frameDataDescriptorSets.size() || imageIndex >= frameDataBuffers.size()
 			|| pipelines.empty() || pipelineLayout == VK_NULL_HANDLE)
@@ -124,10 +124,11 @@ namespace Chrivent {
 		const size_t postProcessFocusIndex = focusHistoryEnabled
 			? focusHistoryWriteIndex
 			: focusHistoryReadIndex;
+		const auto& routes = ResolvePassRoutes();
 		for (size_t passIndex = 0; passIndex < pipelines.size(); passIndex++) {
 			if (pipelines[passIndex] == VK_NULL_HANDLE)
 				return false;
-			const PostProcessPassRoute route = ResolvePingPongRoute(passIndex, pipelines.size());
+			const PostProcessPassRoute& route = routes[passIndex];
 			const VkImage outputImage = route.lastPass
 				? swapChainImage
 				: targetImages[ResolveTargetIndex(route.targetIndex, imageIndex)];
@@ -145,15 +146,18 @@ namespace Chrivent {
 				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				.storeOp = VK_ATTACHMENT_STORE_OP_STORE
 			};
+			const VkExtent2D outputExtent = route.lastPass
+				? extent : ResolveTargetExtent(extent, route.targetIndex);
 			const VkRenderingInfo renderingInfo{
 				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-				.renderArea = { .extent = extent },
+				.renderArea = { .extent = outputExtent },
 				.layerCount = 1,
 				.colorAttachmentCount = 1,
 				.pColorAttachments = &colorAttachment
 			};
 			const VkDescriptorSet descriptorSet = descriptorSets[
-				ResolveDescriptorIndex(route.sourceIndex, imageIndex, postProcessFocusIndex)];
+				ResolveDescriptorIndex(
+					route.sourceIndex, route.effectSourceIndex, imageIndex, postProcessFocusIndex)];
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[passIndex]);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

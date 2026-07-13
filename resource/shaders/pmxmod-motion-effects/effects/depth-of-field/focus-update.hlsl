@@ -5,6 +5,7 @@ Texture2D SceneDepth : register(t1);
 Texture2D FocusHistory : register(t2);
 SamplerState LinearClamp : register(s0);
 
+#include "../../include/post-process-frame.hlsli"
 #include "../../include/depth-of-field.hlsli"
 
 struct FullscreenVertexOutput {
@@ -20,21 +21,23 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    float focusDeltaTime = clamp(FrameDeltaTime, 0.0, 1.0 / 15.0);
-    float targetFocusDepth = ReadAutoFocusDepth();
+    float focusDeltaTime = FrameDeltaTime <= 0.0 ? 0.0 : clamp(FrameDeltaTime, 1.0 / 120.0, 1.0 / 15.0);
+    float tanHalfFov = GetTanHalfFov();
+    float minFocusState = MinFocusDistance * tanHalfFov;
+    float targetFocusState = max(ReadAutoFocusDistance() * tanHalfFov, minFocusState);
     float4 previous = FocusHistory.Sample(LinearClamp, float2(0.5, 0.5));
-    float focusDepth = targetFocusDepth;
+    float focusState = targetFocusState;
     float velocity = 0.0;
     if (abs(previous.b - FocusHistoryMarker) < 0.01) {
-        focusDepth = previous.r;
+        focusState = previous.r;
         velocity = previous.g;
     }
 
     velocity *= pow(max(0.8 * FocusSlip, 0.0001), focusDeltaTime * 30.0);
-    float remaining = targetFocusDepth - (focusDepth + velocity);
-    float speedLimit = lerp(0.015, 0.12, saturate(1.0 - targetFocusDepth)) * focusDeltaTime * 30.0;
+    float remaining = targetFocusState - (focusState + velocity);
+    float speedLimit = clamp(35000.0 / max(targetFocusState, 0.0001), 50.0, 1000.0) * 30.0 * focusDeltaTime;
     float speed = min(abs(remaining), speedLimit);
     velocity += sign(remaining) * speed * saturate(1.0 - FocusDelay);
-    focusDepth = saturate(focusDepth + velocity);
-    return float4(focusDepth, velocity, FocusHistoryMarker, 1.0);
+    focusState = max(focusState + velocity, minFocusState);
+    return float4(focusState, velocity, FocusHistoryMarker, 1.0);
 }

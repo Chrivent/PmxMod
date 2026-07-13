@@ -12,10 +12,25 @@
   },
   "passes": [
     {
-      "name": "main",
+      "name": "coc-prefilter",
+      "shader": "effects/depth-of-field/coc-prefilter.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "resolution": "half"
+    },
+    {
+      "name": "bokeh-blur",
+      "shader": "effects/depth-of-field/bokeh-blur.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "resolution": "half"
+    },
+    {
+      "name": "composite",
       "shader": "effects/depth-of-field/effect.hlsl",
       "vertexEntry": "VSMain",
-      "pixelEntry": "PSMain"
+      "pixelEntry": "PSMain",
+      "resolution": "full"
     }
   ]
 }

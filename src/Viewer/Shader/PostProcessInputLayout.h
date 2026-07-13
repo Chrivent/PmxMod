@@ -12,9 +12,11 @@ namespace Chrivent {
 		static constexpr uint32_t sceneDepthRegister = 1;
 		// 포스트 프로세스 공통 초점 히스토리 입력이다. HLSL Texture2D FocusHistory : register(t2)에 대응한다.
 		static constexpr uint32_t focusHistoryRegister = 2;
+		// 현재 effect가 시작될 때의 색상 입력이다. HLSL Texture2D EffectSourceColor : register(t3)에 대응한다.
+		static constexpr uint32_t effectSourceColorRegister = 3;
 		// 포스트 프로세스 공통 clamp linear sampler다. HLSL SamplerState LinearClamp : register(s0)에 대응한다.
 		static constexpr uint32_t linearClampSamplerRegister = 0;
 		// 모든 API가 최종적으로 노출해야 하는 포스트 프로세스 SRV 개수다.
-		static constexpr uint32_t requiredTextureCount = 3;
+		static constexpr uint32_t requiredTextureCount = 4;
 	};
 }

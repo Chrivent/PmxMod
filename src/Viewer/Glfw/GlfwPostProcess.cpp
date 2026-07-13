@@ -32,15 +32,28 @@ namespace Chrivent {
 		glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, sceneColorTexture);
 		glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
 		glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[readIndex]);
+		glBindTextureUnit(PostProcessInputLayout::effectSourceColorRegister, sceneColorTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		focusHistoryIndex = writeIndex;
+	}
+
+	GLuint GlfwPostProcess::ResolveColorTexture(const size_t targetIndex) const {
+		if (targetIndex == sceneTargetIndex)
+			return sceneColorTexture;
+		return targetIndex < targetCount ? intermediateTextures[targetIndex - fullTargetOffset] : 0;
+	}
+
+	GLuint GlfwPostProcess::ResolveIntermediateFramebuffer(const size_t targetIndex) const {
+		if (targetIndex < fullTargetOffset || targetIndex >= targetCount)
+			return 0;
+		return intermediateFramebuffers[targetIndex - fullTargetOffset];
 	}
 
 	void GlfwPostProcess::ResetTargets() {
 		glDeleteTextures(2, focusHistoryTextures);
 		glDeleteFramebuffers(2, focusHistoryFramebuffers);
-		glDeleteTextures(2, pingPongTextures);
-		glDeleteFramebuffers(2, pingPongFramebuffers);
+		glDeleteTextures(static_cast<GLsizei>(intermediateColorTargetCount), intermediateTextures);
+		glDeleteFramebuffers(static_cast<GLsizei>(intermediateColorTargetCount), intermediateFramebuffers);
 		if (sceneDepthStencil != 0)
 			glDeleteRenderbuffers(1, &sceneDepthStencil);
 		if (sceneColorMsaa != 0)
@@ -65,10 +78,10 @@ namespace Chrivent {
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
 		frameDataBuffer = 0;
-		pingPongTextures[0] = 0;
-		pingPongTextures[1] = 0;
-		pingPongFramebuffers[0] = 0;
-		pingPongFramebuffers[1] = 0;
+		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
+			intermediateTextures[index] = 0;
+			intermediateFramebuffers[index] = 0;
+		}
 		focusHistoryTextures[0] = 0;
 		focusHistoryTextures[1] = 0;
 		focusHistoryFramebuffers[0] = 0;
@@ -124,16 +137,22 @@ namespace Chrivent {
 		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
 		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_NONE);
 		glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
-		glCreateFramebuffers(2, pingPongFramebuffers);
-		glCreateTextures(GL_TEXTURE_2D, 2, pingPongTextures);
-		for (int index = 0; index < 2; index++) {
-			glTextureStorage2D(pingPongTextures[index], 1, GL_RGBA8, width, height);
-			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTextureParameteri(pingPongTextures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glNamedFramebufferTexture(pingPongFramebuffers[index], GL_COLOR_ATTACHMENT0, pingPongTextures[index], 0);
-			if (glCheckNamedFramebufferStatus(pingPongFramebuffers[index], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		glCreateFramebuffers(static_cast<GLsizei>(intermediateColorTargetCount), intermediateFramebuffers);
+		glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(intermediateColorTargetCount), intermediateTextures);
+		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
+			const size_t targetIndex = index + fullTargetOffset;
+			const int targetWidth = ResolveTargetExtent(width, targetIndex);
+			const int targetHeight = ResolveTargetExtent(height, targetIndex);
+			const GLenum format = targetIndex >= halfTargetOffset ? GL_RGBA16F : GL_RGBA8;
+			glTextureStorage2D(intermediateTextures[index], 1, format, targetWidth, targetHeight);
+			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glNamedFramebufferTexture(
+				intermediateFramebuffers[index], GL_COLOR_ATTACHMENT0, intermediateTextures[index], 0);
+			if (glCheckNamedFramebufferStatus(intermediateFramebuffers[index], GL_FRAMEBUFFER)
+				!= GL_FRAMEBUFFER_COMPLETE)
 				return false;
 		}
 		glCreateFramebuffers(2, focusHistoryFramebuffers);
@@ -222,17 +241,20 @@ namespace Chrivent {
 		glBindVertexArray(postProcessVao);
 		InitializeFocusHistory();
 		UpdateFocusHistory();
-		GLuint sourceTexture = sceneColorTexture;
+		const auto& routes = ResolvePassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
-			const PostProcessPassRoute route = ResolvePingPongRoute(index, postProcessShaders.size());
-			glBindFramebuffer(GL_FRAMEBUFFER, route.lastPass ? 0 : pingPongFramebuffers[route.pingPongIndex]);
-			glViewport(0, 0, width, height);
+			const PostProcessPassRoute& route = routes[index];
+			glBindFramebuffer(GL_FRAMEBUFFER, route.lastPass ? 0 : ResolveIntermediateFramebuffer(route.targetIndex));
+			const int targetWidth = route.lastPass ? width : ResolveTargetExtent(width, route.targetIndex);
+			const int targetHeight = route.lastPass ? height : ResolveTargetExtent(height, route.targetIndex);
+			glViewport(0, 0, targetWidth, targetHeight);
 			glUseProgram(postProcessShaders[index]->program);
-			glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, sourceTexture);
+			glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, ResolveColorTexture(route.sourceIndex));
 			glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
 			glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[focusHistoryIndex]);
+			glBindTextureUnit(
+				PostProcessInputLayout::effectSourceColorRegister, ResolveColorTexture(route.effectSourceIndex));
 			glDrawArrays(GL_TRIANGLES, 0, 3);
-			sourceTexture = pingPongTextures[route.pingPongIndex];
 		}
 	}
 

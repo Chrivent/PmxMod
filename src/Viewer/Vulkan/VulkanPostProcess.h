@@ -57,7 +57,12 @@ namespace Chrivent {
 		// focus history 종류와 swapchain 이미지 인덱스로 평탄화한 리소스 인덱스를 계산한다.
 		size_t ResolveFocusHistoryIndex(size_t historyIndex, uint32_t imageIndex) const;
 		// source target, swapchain 이미지, focus history 인덱스로 descriptor set 인덱스를 계산한다.
-		size_t ResolveDescriptorIndex(size_t targetIndex, uint32_t imageIndex, size_t historyIndex) const;
+		size_t ResolveDescriptorIndex(
+			size_t targetIndex, size_t effectSourceIndex, uint32_t imageIndex, size_t historyIndex) const;
+		// 공통 target 인덱스에 대응하는 Vulkan 색상 형식을 반환한다.
+		static VkFormat ResolveTargetFormat(VkFormat fullResolutionFormat, size_t targetIndex);
+		// 공통 target 인덱스에 대응하는 Vulkan 출력 크기를 반환한다.
+		static VkExtent2D ResolveTargetExtent(VkExtent2D fullExtent, size_t targetIndex);
 		// 현재 swapchain 이미지의 초점 히스토리 ping-pong 인덱스를 다음 프레임용으로 갱신한다.
 		void AdvanceFocusHistory(uint32_t imageIndex);
 
@@ -76,10 +81,10 @@ namespace Chrivent {
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
 		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 시작한다.
-		bool BeginDepthPass(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
+		bool BeginDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
 			VkPipeline depthPipeline, VkExtent2D extent) const;
 		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
-		bool EndDepthPass(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
+		bool EndDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
 		// 장면 렌더링을 끝내고 소유한 후처리 리소스로 최종 명령을 기록한다.
 		bool EndRecord(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, VkExtent2D extent, const PostProcessFrameData& frameData,

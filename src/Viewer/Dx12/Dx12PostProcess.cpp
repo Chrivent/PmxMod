@@ -90,10 +90,6 @@ namespace Chrivent {
 		sourceDevice.device->CreateDepthStencilView(depth.Get(), &dsvDesc, ResolveDepthDsvHandle());
 		if (!CreateFocusHistoryTargets(sourceDevice))
 			return false;
-		for (const auto& target : targets) {
-			target.UpdateDepthShaderResourceView(sourceDevice, depth.Get());
-			target.UpdateFocusHistoryShaderResourceView(sourceDevice, nullptr);
-		}
 		return true;
 	}
 
@@ -164,6 +160,70 @@ namespace Chrivent {
 		focusSrvDesc.Texture2D.MipLevels = 1;
 		ID3D12Resource* readResource = focusHistoryInitialized ? focusHistory[readIndex].Get() : nullptr;
 		device->CreateShaderResourceView(readResource, &focusSrvDesc, handle);
+		handle.ptr += increment;
+		D3D12_SHADER_RESOURCE_VIEW_DESC effectSourceSrvDesc{};
+		effectSourceSrvDesc.Format = targets[sceneTargetIndex].ResolveFormat();
+		effectSourceSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		effectSourceSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		effectSourceSrvDesc.Texture2D.MipLevels = 1;
+		device->CreateShaderResourceView(targets[sceneTargetIndex].ResolveResource(), &effectSourceSrvDesc, handle);
+	}
+
+	bool Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
+		inputDescriptorHeaps.clear();
+		if (!sourceDevice.device || targets.size() < targetCount)
+			return false;
+		inputDescriptorHeaps.resize(targetCount * targetCount);
+		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+		heapDesc.NumDescriptors = PostProcessInputLayout::requiredTextureCount;
+		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		for (auto& heap : inputDescriptorHeaps) {
+			if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap))))
+				return false;
+		}
+		UpdateInputDescriptors(sourceDevice, nullptr);
+		return true;
+	}
+
+	void Dx12PostProcess::UpdateInputDescriptors(
+		const Dx12Device& sourceDevice, ID3D12Resource* historyResource) const {
+		if (!sourceDevice.device || !depth || targets.size() < targetCount
+			|| inputDescriptorHeaps.size() < targetCount * targetCount)
+			return;
+		ID3D12Device* device = sourceDevice.device.Get();
+		const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		for (size_t sourceIndex = 0; sourceIndex < targetCount; sourceIndex++) {
+			for (size_t effectSourceIndex = 0; effectSourceIndex < targetCount; effectSourceIndex++) {
+				ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(sourceIndex, effectSourceIndex);
+				D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
+				D3D12_SHADER_RESOURCE_VIEW_DESC colorDesc{};
+				colorDesc.Format = targets[sourceIndex].ResolveFormat();
+				colorDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				colorDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				colorDesc.Texture2D.MipLevels = 1;
+				device->CreateShaderResourceView(targets[sourceIndex].ResolveResource(), &colorDesc, handle);
+				handle.ptr += increment;
+				D3D12_SHADER_RESOURCE_VIEW_DESC depthDesc{};
+				depthDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+				depthDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				depthDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				depthDesc.Texture2D.MipLevels = 1;
+				device->CreateShaderResourceView(depth.Get(), &depthDesc, handle);
+				handle.ptr += increment;
+				D3D12_SHADER_RESOURCE_VIEW_DESC historyDesc{};
+				historyDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				historyDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				historyDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				historyDesc.Texture2D.MipLevels = 1;
+				device->CreateShaderResourceView(historyResource, &historyDesc, handle);
+				handle.ptr += increment;
+				D3D12_SHADER_RESOURCE_VIEW_DESC effectSourceDesc = colorDesc;
+				effectSourceDesc.Format = targets[effectSourceIndex].ResolveFormat();
+				device->CreateShaderResourceView(
+					targets[effectSourceIndex].ResolveResource(), &effectSourceDesc, handle);
+			}
+		}
 	}
 
 	void Dx12PostProcess::UpdateFocusHistory(ID3D12GraphicsCommandList* commandList, const Dx12Device& sourceDevice,
@@ -211,6 +271,12 @@ namespace Chrivent {
 		if (!focusHistorySrvHeap)
 			return {};
 		return focusHistorySrvHeap->GetGPUDescriptorHandleForHeapStart();
+	}
+
+	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(
+		const size_t sourceIndex, const size_t effectSourceIndex) const {
+		const size_t index = sourceIndex * targetCount + effectSourceIndex;
+		return index < inputDescriptorHeaps.size() ? inputDescriptorHeaps[index].Get() : nullptr;
 	}
 
 	bool Dx12PostProcess::CreatePostProcessRootSignature(const Dx12Device& sourceDevice) {
@@ -284,9 +350,14 @@ namespace Chrivent {
 			return true;
 		if (!CreatePostProcessRootSignature(sourceDevice))
 			return false;
-		for (const auto& pass : ResolvePasses()) {
+		const auto& passes = ResolvePasses();
+		const auto& routes = ResolvePassRoutes();
+		for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-			if (!CreatePipelineState(sourceDevice, pass, DXGI_FORMAT_R8G8B8A8_UNORM, pipelineState)) {
+			const DXGI_FORMAT format = routes[passIndex].lastPass
+				? DXGI_FORMAT_R8G8B8A8_UNORM
+				: targets[routes[passIndex].targetIndex].ResolveFormat();
+			if (!CreatePipelineState(sourceDevice, passes[passIndex], format, pipelineState)) {
 				ResetPipelines();
 				return false;
 			}
@@ -331,11 +402,16 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::InitializeTargets(const Dx12Device& sourceDevice, const int width, const int height) {
 		targets.resize(targetCount);
-		for (auto& target : targets) {
-			if (!target.Initialize(sourceDevice, width, height))
+		for (size_t targetIndex = 0; targetIndex < targetCount; targetIndex++) {
+			const DXGI_FORMAT format = targetIndex >= halfTargetOffset
+				? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM;
+			if (!targets[targetIndex].Initialize(sourceDevice,
+				ResolveTargetExtent(width, targetIndex), ResolveTargetExtent(height, targetIndex), format))
 				return false;
 		}
 		if (!CreateDepthTarget(sourceDevice, width, height))
+			return false;
+		if (!CreateInputDescriptorHeaps(sourceDevice))
 			return false;
 		const size_t frameDataSize = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessFrameData));
 		for (auto& buffer : frameDataBuffers) {
@@ -424,11 +500,11 @@ namespace Chrivent {
 		UpdateFocusHistory(commandList, sourceDevice, commandContext, frameDataAddress, width, height);
 		ID3D12Resource* focusHistoryResource = focusHistoryPipelineState && focusHistoryInitialized
 			? focusHistory[focusHistoryIndex].Get() : nullptr;
-		for (const auto& target : targets)
-			target.UpdateFocusHistoryShaderResourceView(sourceDevice, focusHistoryResource);
+		UpdateInputDescriptors(sourceDevice, focusHistoryResource);
 		const size_t passCount = postProcessPipelineStates.size();
+		const auto& routes = ResolvePassRoutes();
 		for (size_t passIndex = 0; passIndex < passCount; passIndex++) {
-			const PostProcessPassRoute route = ResolvePingPongRoute(passIndex, passCount);
+			const PostProcessPassRoute& route = routes[passIndex];
 			if (!route.lastPass) {
 				ID3D12Resource* target = targets[route.targetIndex].ResolveResource();
 				Dx12Barrier::Transition(commandList, enhancedCommandList, target,
@@ -439,10 +515,15 @@ namespace Chrivent {
 				const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = swapChain.ResolveCurrentRtvHandle();
 				commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
 			}
-			ID3D12DescriptorHeap* descriptorHeaps[] = { targets[route.sourceIndex].ResolveDescriptorHeap() };
+			const int targetWidth = route.lastPass ? width : ResolveTargetExtent(width, route.targetIndex);
+			const int targetHeight = route.lastPass ? height : ResolveTargetExtent(height, route.targetIndex);
+			ApplyViewportAndScissor(commandList, targetWidth, targetHeight);
+			ID3D12DescriptorHeap* inputHeap = ResolveInputDescriptorHeap(
+				route.sourceIndex, route.effectSourceIndex);
+			ID3D12DescriptorHeap* descriptorHeaps[] = { inputHeap };
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 			BindPostProcess(commandList, passIndex,
-				targets[route.sourceIndex].ResolveGpuHandle(), frameDataAddress);
+				inputHeap->GetGPUDescriptorHandleForHeapStart(), frameDataAddress);
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
 			if (!route.lastPass) {
@@ -469,6 +550,7 @@ namespace Chrivent {
 		focusHistory[1].Reset();
 		focusHistoryRtvHeap.Reset();
 		focusHistorySrvHeap.Reset();
+		inputDescriptorHeaps.clear();
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();
 		targets.clear();

@@ -14,11 +14,17 @@ namespace Chrivent {
 		PostProcess
 	};
 
+	enum class EffectPassResolution {
+		Full,
+		Half
+	};
+
 	struct EffectPassDefinition {
 		std::string name;
 		std::filesystem::path shaderPath;
 		std::string vertexEntry = "VSMain";
 		std::string pixelEntry = "PSMain";
+		EffectPassResolution resolution = EffectPassResolution::Full;
 	};
 
 	struct EffectDefinition {

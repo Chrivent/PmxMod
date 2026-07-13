@@ -91,9 +91,10 @@ namespace Chrivent {
 				L"-fvk-bind-register", L"t0", L"0", L"0", L"0",
 				L"-fvk-bind-register", L"t1", L"0", L"1", L"0",
 				L"-fvk-bind-register", L"t2", L"0", L"2", L"0",
-				L"-fvk-bind-register", L"s0", L"0", L"3", L"0",
-				L"-fvk-bind-register", L"s1", L"0", L"4", L"0",
-				L"-fvk-bind-register", L"s2", L"0", L"5", L"0"
+				L"-fvk-bind-register", L"t3", L"0", L"3", L"0",
+				L"-fvk-bind-register", L"s0", L"0", L"4", L"0",
+				L"-fvk-bind-register", L"s1", L"0", L"5", L"0",
+				L"-fvk-bind-register", L"s2", L"0", L"6", L"0"
 			};
 			arguments.insert(arguments.end(), std::begin(openGlBindings), std::end(openGlBindings));
 		} else {
@@ -103,9 +104,10 @@ namespace Chrivent {
 				L"-fvk-bind-register", L"t0", L"0", L"0", L"2",
 				L"-fvk-bind-register", L"t1", L"0", L"1", L"2",
 				L"-fvk-bind-register", L"t2", L"0", L"2", L"2",
-				L"-fvk-bind-register", L"s0", L"0", L"3", L"2",
-				L"-fvk-bind-register", L"s1", L"0", L"4", L"2",
-				L"-fvk-bind-register", L"s2", L"0", L"5", L"2"
+				L"-fvk-bind-register", L"t3", L"0", L"3", L"2",
+				L"-fvk-bind-register", L"s0", L"0", L"4", L"2",
+				L"-fvk-bind-register", L"s1", L"0", L"5", L"2",
+				L"-fvk-bind-register", L"s2", L"0", L"6", L"2"
 			};
 			arguments.insert(arguments.end(), std::begin(vulkanBindings), std::end(vulkanBindings));
 		}

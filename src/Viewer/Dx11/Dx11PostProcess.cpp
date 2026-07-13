@@ -38,7 +38,7 @@ namespace Chrivent {
 		context->VSSetShader(focusHistoryShader.vertexShader.Get(), nullptr, 0);
 		context->PSSetShader(focusHistoryShader.pixelShader.Get(), nullptr, 0);
 		ID3D11ShaderResourceView* views[PostProcessInputLayout::requiredTextureCount] = {
-			sceneColorView.Get(), depthView.Get(), focusHistoryResourceView[readIndex].Get()
+			sceneColorView.Get(), depthView.Get(), focusHistoryResourceView[readIndex].Get(), sceneColorView.Get()
 		};
 		context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
 			PostProcessInputLayout::requiredTextureCount, views);
@@ -48,6 +48,13 @@ namespace Chrivent {
 			PostProcessInputLayout::requiredTextureCount, emptyViews);
 		focusHistoryIndex = writeIndex;
 		ApplyViewport(context, width, height);
+	}
+
+	ID3D11ShaderResourceView* Dx11PostProcess::ResolveColorResourceView(const size_t targetIndex) const {
+		if (targetIndex == sceneTargetIndex)
+			return sceneColorView.Get();
+		return targetIndex < targetCount
+			? intermediateColorResourceView[targetIndex - fullTargetOffset].Get() : nullptr;
 	}
 
 	void Dx11PostProcess::ResetShaders() {
@@ -72,14 +79,18 @@ namespace Chrivent {
 		if (FAILED(device->CreateTexture2D(&sceneColorDesc, nullptr, &sceneColor))
 			|| FAILED(device->CreateShaderResourceView(sceneColor.Get(), nullptr, &sceneColorView)))
 			return false;
-		const auto pingPongDesc = Dx11DescBuilder::MakeTexture2DDesc(width, height, DXGI_FORMAT_R8G8B8A8_UNORM,
-			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-		for (int index = 0; index < 2; index++) {
-			if (FAILED(device->CreateTexture2D(&pingPongDesc, nullptr, &pingPongColor[index]))
+		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
+			const size_t targetIndex = index + fullTargetOffset;
+			const DXGI_FORMAT format = targetIndex >= halfTargetOffset
+				? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM;
+			const auto targetDesc = Dx11DescBuilder::MakeTexture2DDesc(
+				ResolveTargetExtent(width, targetIndex), ResolveTargetExtent(height, targetIndex), format,
+				D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+			if (FAILED(device->CreateTexture2D(&targetDesc, nullptr, &intermediateColor[index]))
 				|| FAILED(device->CreateRenderTargetView(
-					pingPongColor[index].Get(), nullptr, &pingPongColorView[index]))
+					intermediateColor[index].Get(), nullptr, &intermediateColorView[index]))
 				|| FAILED(device->CreateShaderResourceView(
-					pingPongColor[index].Get(), nullptr, &pingPongColorResourceView[index])))
+					intermediateColor[index].Get(), nullptr, &intermediateColorResourceView[index])))
 				return false;
 		}
 		const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(width, height, DXGI_FORMAT_R24G8_TYPELESS,
@@ -186,16 +197,20 @@ namespace Chrivent {
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister, 1, &sampler);
 		UpdateFocusHistory(context, width, height);
-		ID3D11ShaderResourceView* sourceView = sceneColorView.Get();
+		const auto& routes = ResolvePassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size(); index++) {
-			const PostProcessPassRoute route = ResolvePingPongRoute(index, postProcessShaders.size());
+			const PostProcessPassRoute& route = routes[index];
 			ID3D11RenderTargetView* targetView = route.lastPass
-				? backBufferView : pingPongColorView[route.pingPongIndex].Get();
+				? backBufferView : intermediateColorView[route.targetIndex - fullTargetOffset].Get();
 			context->OMSetRenderTargets(1, &targetView, nullptr);
+			const int targetWidth = route.lastPass ? width : ResolveTargetExtent(width, route.targetIndex);
+			const int targetHeight = route.lastPass ? height : ResolveTargetExtent(height, route.targetIndex);
+			ApplyViewport(context, targetWidth, targetHeight);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
 			ID3D11ShaderResourceView* views[PostProcessInputLayout::requiredTextureCount] = {
-				sourceView, depthView.Get(), focusHistoryResourceView[focusHistoryIndex].Get()
+				ResolveColorResourceView(route.sourceIndex), depthView.Get(),
+				focusHistoryResourceView[focusHistoryIndex].Get(), ResolveColorResourceView(route.effectSourceIndex)
 			};
 			context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
 				PostProcessInputLayout::requiredTextureCount, views);
@@ -203,7 +218,6 @@ namespace Chrivent {
 			ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::requiredTextureCount] = {};
 			context->PSSetShaderResources(PostProcessInputLayout::sceneColorRegister,
 				PostProcessInputLayout::requiredTextureCount, emptyViews);
-			sourceView = pingPongColorResourceView[route.pingPongIndex].Get();
 		}
 	}
 
@@ -215,10 +229,12 @@ namespace Chrivent {
 	void Dx11PostProcess::ResetTargets() {
 		sceneColor.Reset();
 		sceneColorView.Reset();
-		for (int index = 0; index < 2; index++) {
-			pingPongColor[index].Reset();
-			pingPongColorView[index].Reset();
-			pingPongColorResourceView[index].Reset();
+		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
+			intermediateColor[index].Reset();
+			intermediateColorView[index].Reset();
+			intermediateColorResourceView[index].Reset();
+		}
+		for (size_t index = 0; index < historyTargetCount; index++) {
 			focusHistory[index].Reset();
 			focusHistoryView[index].Reset();
 			focusHistoryResourceView[index].Reset();
