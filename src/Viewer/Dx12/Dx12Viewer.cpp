@@ -64,10 +64,10 @@ namespace Chrivent {
 
 	Dx12Viewer::~Dx12Viewer() {
 		commandContext.WaitForGpu(*device);
+		postProcess.Reset();
 		pipeline.Reset();
 		commandContext.Reset();
 		depthBuffer.Reset();
-		postProcess.Reset();
 		msaaColorBuffer.Reset();
 		swapChain.Reset();
 		device->Shutdown();
@@ -160,7 +160,7 @@ namespace Chrivent {
 			return false;
 		if (postProcess.HasEffects())
 			postProcess.Draw(commandList, backBuffer, msaaColor,
-				*device, commandContext, swapChain, pipeline, screenWidth, screenHeight);
+				*device, commandContext, swapChain, screenWidth, screenHeight);
 		else
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
 		if (!commandContext.Execute(*device))
@@ -191,12 +191,12 @@ namespace Chrivent {
 
 	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		return postProcess.Load(*device, pipeline, effects);
+		return postProcess.Load(*device, effects);
 	}
 
 	void Dx12Viewer::ClearPostProcessEffects() {
 		WaitIdle();
-		postProcess.ClearPipelines(pipeline);
+		postProcess.ClearPipelines();
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

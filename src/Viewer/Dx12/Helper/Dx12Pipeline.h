@@ -1,12 +1,8 @@
 ﻿#pragma once
 
 #include "Viewer/Dx12/Helper/Dx12Device.h"
-#include "Viewer/Shader/ShaderPackage.h"
-
 #include <d3d12.h>
 #include <filesystem>
-#include <string>
-#include <vector>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -20,25 +16,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> edgePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> groundShadowPipelineState;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> postProcessRootSignature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> focusHistoryPipelineState;
-		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> postProcessPipelineStates;
-
-		// root signature 직렬화와 생성 실패 로그 처리를 공통으로 수행한다.
-		static bool CreateRootSignature(
-			const Dx12Device& sourceDevice,
-			const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc,
-			Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature);
+		
 		// PMX 재질의 alpha blend 방식에 맞는 render target blend state를 채운다.
 		static void ConfigureAlphaBlend(D3D12_RENDER_TARGET_BLEND_DESC& blendDesc);
-		// 공통 rasterizer 기본값을 채우고 패스별 cull mode만 반영한다.
-		static void ConfigureRasterizer(D3D12_RASTERIZER_DESC& rasterizerDesc, D3D12_CULL_MODE cullMode);
 		// 일반 메시와 엣지 패스에서 쓰는 depth stencil 기본값을 채운다.
 		static void ConfigureDefaultDepthStencil(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
-		// 디바이스 shader model에 맞춰 DXC 또는 레거시 컴파일러로 셰이더를 만든다.
-		static bool CompileShader(const Dx12Device& sourceDevice, const std::filesystem::path& file,
-			const std::string& entry, bool vertexShader, std::vector<uint8_t>& bytecode, std::string& error);
-		
 		// 모델 셰이더의 리소스 배치와 맞는 root signature를 생성한다.
 		bool CreateModelRootSignature(const Dx12Device& sourceDevice);
 		// 모델 렌더링용 graphics pipeline state를 생성한다.
@@ -53,9 +35,7 @@ namespace Chrivent {
 		bool CreateGroundShadowRootSignature(const Dx12Device& sourceDevice);
 		// 지면 그림자 렌더링용 graphics pipeline state를 생성한다.
 		bool CreateGroundShadowPipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir);
-		// 후처리 입력 SRV와 sampler를 노출하는 root signature를 생성한다.
-		bool CreatePostProcessRootSignature(const Dx12Device& sourceDevice);
-
+		
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
 		bool Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir);
@@ -67,20 +47,6 @@ namespace Chrivent {
 		void BindEdge(ID3D12GraphicsCommandList* commandList) const;
 		// 지면 그림자 렌더링용 pipeline을 command list에 바인딩한다.
 		void BindGroundShadow(ID3D12GraphicsCommandList* commandList) const;
-		// 체크된 후처리 HLSL 목록으로 단일 샘플 graphics pipeline 체인을 생성한다.
-		bool LoadPostProcessEffects(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
-		// DOF용 초점 히스토리 pipeline과 입력 SRV를 command list에 바인딩한다.
-		void BindFocusHistory(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const;
-		// 후처리 pipeline과 장면 색상 SRV를 command list에 바인딩한다.
-		void BindPostProcess(ID3D12GraphicsCommandList* commandList, size_t passIndex, D3D12_GPU_DESCRIPTOR_HANDLE sceneColorHandle) const;
-		// DOF용 초점 히스토리 pipeline이 준비됐는지 반환한다.
-		bool HasFocusHistoryEffect() const { return focusHistoryPipelineState != nullptr; }
-		// 선택된 후처리 pipeline이 준비됐는지 반환한다.
-		bool HasPostProcessEffect() const { return !postProcessPipelineStates.empty(); }
-		// 선택된 후처리 pipeline 개수를 반환한다.
-		size_t GetPostProcessPassCount() const { return postProcessPipelineStates.size(); }
-		// 선택된 후처리 pipeline 리소스만 해제한다.
-		void ClearPostProcessEffects();
 		// 생성한 DX12 pipeline 리소스를 해제한다.
 		void Reset();
 	};

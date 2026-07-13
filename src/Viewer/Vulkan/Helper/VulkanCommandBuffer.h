@@ -16,13 +16,6 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 
-		// Synchronization2 배리어로 이미지 레이아웃과 접근 상태를 전환한다.
-		static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image,
-			VkImageLayout oldLayout, VkImageLayout newLayout,
-			VkPipelineStageFlags2 sourceStage, VkAccessFlags2 sourceAccess,
-			VkPipelineStageFlags2 destinationStage, VkAccessFlags2 destinationAccess,
-			VkImageAspectFlags aspectMask);
-
 	public:
 		VulkanCommandBuffer() = default;
 		~VulkanCommandBuffer();
@@ -33,7 +26,15 @@ namespace Chrivent {
 		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = delete;
 		
 		// 스왑체인 이미지 인덱스에 대응하는 command buffer를 반환한다.
-		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const { return commandBuffers[imageIndex]; }
+		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const {
+			return imageIndex < commandBuffers.size() ? commandBuffers[imageIndex] : VK_NULL_HANDLE;
+		}
+		// Synchronization2 배리어로 이미지 레이아웃과 접근 상태를 전환한다.
+		static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image,
+			VkImageLayout oldLayout, VkImageLayout newLayout,
+			VkPipelineStageFlags2 sourceStage, VkAccessFlags2 sourceAccess,
+			VkPipelineStageFlags2 destinationStage, VkAccessFlags2 destinationAccess,
+			VkImageAspectFlags aspectMask);
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
 		// 지정한 이미지 attachment로 dynamic rendering을 시작하고 파이프라인을 바인딩한다.
@@ -55,15 +56,6 @@ namespace Chrivent {
 		bool EndPostProcessDepthPass(uint32_t imageIndex, VkImage depthImage, bool depthHasStencil) const;
 		// dynamic rendering을 끝내고 출력 이미지를 present 상태로 전환한다.
 		bool EndRecord(uint32_t imageIndex, VkImage outputImage) const;
-		// 장면 렌더링을 끝내고 후처리 결과를 스왑체인 이미지에 기록한다.
-		bool EndRecordWithPostProcess(uint32_t imageIndex, VkImage sceneImage,
-			VkImage swapChainImage, VkImageView swapChainImageView, std::span<const VkImage> targetImages,
-			std::span<const VkImageView> targetImageViews, std::span<const VkPipeline> pipelines,
-			VkPipelineLayout pipelineLayout, std::span<const VkDescriptorSet> descriptorSets,
-			std::span<const VkImage> focusHistoryImages, std::span<const VkImageView> focusHistoryImageViews,
-			VkPipeline focusHistoryPipeline, VkDescriptorSet focusHistoryDescriptorSet,
-			size_t focusHistoryWriteIndex, bool focusHistoryInitialized,
-			VkExtent2D extent, bool sceneRenderingEnded = false) const;
 		// 할당한 명령 버퍼를 해제한다.
 		void Reset();
 	};

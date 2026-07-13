@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace Chrivent {
+	class VulkanCommandBuffer;
+
 	class VulkanPostProcess : public PostProcess {
 		VkDevice device = VK_NULL_HANDLE;
 		std::vector<VkImage> targetImages;
@@ -46,6 +48,8 @@ namespace Chrivent {
 		size_t ResolveFocusHistoryIndex(size_t historyIndex, uint32_t imageIndex) const;
 		// source target, swapchain 이미지, focus history 인덱스로 descriptor set 인덱스를 계산한다.
 		size_t ResolveDescriptorIndex(size_t targetIndex, uint32_t imageIndex, size_t historyIndex) const;
+		// 현재 swapchain 이미지의 초점 히스토리 ping-pong 인덱스를 다음 프레임용으로 갱신한다.
+		void AdvanceFocusHistory(uint32_t imageIndex);
 
 	public:
 		VulkanPostProcess() = default;
@@ -60,25 +64,13 @@ namespace Chrivent {
 		VkImageView GetTargetImageView(const size_t targetIndex, const uint32_t imageIndex) const { return targetImageViews[ResolveTargetIndex(targetIndex, imageIndex)]; }
 		VkImage GetDepthImage(const uint32_t imageIndex) const { return depthImages[imageIndex]; }
 		VkImageView GetDepthImageView(const uint32_t imageIndex) const { return depthImageViews[imageIndex]; }
-		VkImage GetFocusHistoryImage(const size_t historyIndex, const uint32_t imageIndex) const { return focusHistoryImages[ResolveFocusHistoryIndex(historyIndex, imageIndex)]; }
-		VkImageView GetFocusHistoryImageView(const size_t historyIndex, const uint32_t imageIndex) const { return focusHistoryImageViews[ResolveFocusHistoryIndex(historyIndex, imageIndex)]; }
-		const std::vector<VkPipeline>& GetPipelines() const { return pipelines; }
-		VkPipeline GetFocusHistoryPipeline() const { return focusHistoryPipeline; }
-		VkPipelineLayout GetPipelineLayout() const { return pipelineLayout; }
-		VkDescriptorSet GetDescriptorSet(const size_t targetIndex, const uint32_t imageIndex, const size_t historyIndex) const { return descriptorSets[ResolveDescriptorIndex(targetIndex, imageIndex, historyIndex)]; }
-		VkDescriptorSet GetFocusHistoryDescriptorSet(const uint32_t imageIndex, const size_t historyIndex) const { return focusHistoryDescriptorSets[ResolveFocusHistoryIndex(historyIndex, imageIndex)]; }
-		size_t GetFocusHistoryReadIndex(const uint32_t imageIndex) const { return focusHistoryIndices[imageIndex]; }
-		size_t GetFocusHistoryWriteIndex(const uint32_t imageIndex) const { return 1 - focusHistoryIndices[imageIndex]; }
-		bool HasFocusHistoryEffect() const { return focusHistoryPipeline != VK_NULL_HANDLE; }
-		bool IsFocusHistoryInitialized(const uint32_t imageIndex) const { return focusHistoryInitialized[imageIndex]; }
-		static size_t GetTargetCount() { return targetCount; }
-		
-		// 현재 swapchain 이미지의 초점 히스토리 ping-pong 인덱스를 다음 프레임용으로 갱신한다.
-		void AdvanceFocusHistory(uint32_t imageIndex);
 
 		// 현재 스왑체인과 선택된 효과 목록에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
+		// 장면 렌더링을 끝내고 소유한 후처리 리소스로 최종 명령을 기록한다.
+		bool EndRecord(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
+			VkImageView swapChainImageView, VkExtent2D extent, bool sceneRenderingEnded = false);
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void Reset() override;
 	};

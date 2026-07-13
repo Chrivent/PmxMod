@@ -37,7 +37,7 @@ target_sources(PmxModViewer PRIVATE
         Glfw/Helper/GlfwShaderCompiler.h Glfw/Helper/GlfwShaderCompiler.cpp
 
         Vulkan/VulkanViewer.h Vulkan/VulkanViewer.cpp
-        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp
+        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp Vulkan/VulkanPostProcessCommand.cpp
         Vulkan/VulkanDrawer.h Vulkan/VulkanDrawer.cpp
         Vulkan/VulkanTextureCache.h Vulkan/VulkanTextureCache.cpp
         Vulkan/VulkanInstance.h Vulkan/VulkanInstance.cpp
@@ -75,6 +75,7 @@ target_sources(PmxModViewer PRIVATE
         Dx12/Helper/Dx12DepthBuffer.h Dx12/Helper/Dx12DepthBuffer.cpp
         Dx12/Helper/Dx12Device.h Dx12/Helper/Dx12Device.cpp
         Dx12/Helper/Dx12MsaaColorBuffer.h Dx12/Helper/Dx12MsaaColorBuffer.cpp
+        Dx12/Helper/Dx12PipelineBuilder.h Dx12/Helper/Dx12PipelineBuilder.cpp
         Dx12/Helper/Dx12Pipeline.h Dx12/Helper/Dx12Pipeline.cpp
         Dx12/Helper/Dx12SwapChain.h Dx12/Helper/Dx12SwapChain.cpp
 )

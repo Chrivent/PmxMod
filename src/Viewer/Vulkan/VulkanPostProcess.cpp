@@ -515,6 +515,13 @@ namespace Chrivent {
 		return true;
 	}
 
+	void VulkanPostProcess::AdvanceFocusHistory(const uint32_t imageIndex) {
+		if (imageIndex >= focusHistoryIndices.size())
+			return;
+		focusHistoryIndices[imageIndex] = ResolveNextFocusHistoryIndex(focusHistoryIndices[imageIndex]);
+		focusHistoryInitialized[imageIndex] = true;
+	}
+
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
 		Reset();
@@ -524,13 +531,6 @@ namespace Chrivent {
 			&& CreateFocusHistoryImages(sourceDevice)
 			&& CreateDescriptors(sourceSwapChain)
 			&& CreatePipeline(sourceDevice, sourceSwapChain);
-	}
-
-	void VulkanPostProcess::AdvanceFocusHistory(const uint32_t imageIndex) {
-		if (imageIndex >= focusHistoryIndices.size())
-			return;
-		focusHistoryIndices[imageIndex] = ResolveNextFocusHistoryIndex(focusHistoryIndices[imageIndex]);
-		focusHistoryInitialized[imageIndex] = true;
 	}
 
 	void VulkanPostProcess::Reset() {

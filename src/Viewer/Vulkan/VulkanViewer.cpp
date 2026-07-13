@@ -221,43 +221,9 @@ namespace Chrivent {
 			return true;
 		bool recordEnded;
 		if (postProcess.HasEffects()) {
-			const bool focusHistoryEnabled = postProcess.HasFocusHistoryEffect();
-			const size_t focusHistoryReadIndex = postProcess.GetFocusHistoryReadIndex(currentImageIndex);
-			const size_t focusHistoryWriteIndex = postProcess.GetFocusHistoryWriteIndex(currentImageIndex);
-			const size_t postProcessFocusIndex = focusHistoryEnabled ? focusHistoryWriteIndex : focusHistoryReadIndex;
-			const VkImage targetImages[] = {
-				postProcess.GetTargetImage(0, currentImageIndex),
-				postProcess.GetTargetImage(1, currentImageIndex),
-				postProcess.GetTargetImage(2, currentImageIndex)
-			};
-			const VkImageView targetImageViews[] = {
-				postProcess.GetTargetImageView(0, currentImageIndex),
-				postProcess.GetTargetImageView(1, currentImageIndex),
-				postProcess.GetTargetImageView(2, currentImageIndex)
-			};
-			const VkDescriptorSet descriptorSets[] = {
-				postProcess.GetDescriptorSet(0, currentImageIndex, postProcessFocusIndex),
-				postProcess.GetDescriptorSet(1, currentImageIndex, postProcessFocusIndex),
-				postProcess.GetDescriptorSet(2, currentImageIndex, postProcessFocusIndex)
-			};
-			const VkImage focusHistoryImages[] = {
-				postProcess.GetFocusHistoryImage(0, currentImageIndex),
-				postProcess.GetFocusHistoryImage(1, currentImageIndex)
-			};
-			const VkImageView focusHistoryImageViews[] = {
-				postProcess.GetFocusHistoryImageView(0, currentImageIndex),
-				postProcess.GetFocusHistoryImageView(1, currentImageIndex)
-			};
-			recordEnded = commandContext.commandBuffer.EndRecordWithPostProcess(
-				currentImageIndex, targetImages[0], swapChain.images[currentImageIndex],
-				swapChain.imageViews[currentImageIndex], targetImages, targetImageViews,
-				postProcess.GetPipelines(), postProcess.GetPipelineLayout(), descriptorSets,
-				focusHistoryImages, focusHistoryImageViews, postProcess.GetFocusHistoryPipeline(),
-				postProcess.GetFocusHistoryDescriptorSet(currentImageIndex, focusHistoryReadIndex),
-				focusHistoryWriteIndex, postProcess.IsFocusHistoryInitialized(currentImageIndex),
+			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
+				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
 				swapChain.extent, postProcessDepthPassReady);
-			if (recordEnded && focusHistoryEnabled)
-				postProcess.AdvanceFocusHistory(currentImageIndex);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
