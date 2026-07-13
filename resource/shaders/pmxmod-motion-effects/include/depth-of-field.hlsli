@@ -31,11 +31,17 @@ static const float FocusSlip = 0.5;
 // MMD 컨트롤러가 없는 동안 자동 초점을 측정할 화면 좌표다.
 static const float2 FocusUv = float2(0.5, 0.48);
 
-// 단일 패스 보케 커널이 처리할 최대 흐림 반경이다.
-static const float MaxBlurPixels = 8.0;
+// 2단계 보케 피라미드가 처리할 최대 흐림 반경이다.
+static const float MaxBlurPixels = 16.0;
 
-// CoC와 보케를 계산하는 중간 target의 해상도 비율이다.
-static const float BokehDownsampleScale = 0.5;
+// 반해상도 보정 패스가 직접 처리할 최대 흐림 반경이다.
+static const float MediumBlurPixels = 8.0;
+
+// 첫 번째 CoC target과 중간 보케 보정 target의 해상도 비율이다.
+static const float BokehHalfResolutionScale = 0.5;
+
+// 광역 보케 target의 해상도 비율이다.
+static const float BokehQuarterResolutionScale = 0.25;
 
 // ikBokeh가 색 처리에 사용하는 감마다.
 static const float BokehColorGamma = 2.2;

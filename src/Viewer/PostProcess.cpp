@@ -11,6 +11,7 @@ namespace Chrivent {
 		size_t effectSourceIndex = sceneTargetIndex;
 		size_t fullWriteIndex = 0;
 		size_t halfWriteIndex = 0;
+		size_t quarterWriteIndex = 0;
 		for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
 			if (passIndex == 0 || effectIndices[passIndex] != effectIndices[passIndex - 1])
 				effectSourceIndex = sourceIndex;
@@ -21,16 +22,18 @@ namespace Chrivent {
 				.resolution = passes[passIndex].resolution
 			};
 			if (!route.lastPass) {
-				size_t& writeIndex = route.resolution == EffectPassResolution::Half
-					? halfWriteIndex : fullWriteIndex;
-				const size_t targetOffset = route.resolution == EffectPassResolution::Half
-					? halfTargetOffset : fullTargetOffset;
-				route.targetIndex = targetOffset + writeIndex;
+				size_t* writeIndex = &fullWriteIndex;
+				if (route.resolution == EffectPassResolution::Half)
+					writeIndex = &halfWriteIndex;
+				else if (route.resolution == EffectPassResolution::Quarter)
+					writeIndex = &quarterWriteIndex;
+				const size_t targetOffset = ResolveTargetOffset(route.resolution);
+				route.targetIndex = targetOffset + *writeIndex;
 				if (route.targetIndex == sourceIndex) {
-					writeIndex = ResolveNextHistoryIndex(writeIndex);
-					route.targetIndex = targetOffset + writeIndex;
+					*writeIndex = ResolveNextHistoryIndex(*writeIndex);
+					route.targetIndex = targetOffset + *writeIndex;
 				}
-				writeIndex = ResolveNextHistoryIndex(writeIndex);
+				*writeIndex = ResolveNextHistoryIndex(*writeIndex);
 				sourceIndex = route.targetIndex;
 			}
 			routes.emplace_back(route);
@@ -42,7 +45,17 @@ namespace Chrivent {
 		return 1 - currentIndex;
 	}
 
+	size_t PostProcess::ResolveTargetOffset(const EffectPassResolution resolution) {
+		if (resolution == EffectPassResolution::Half)
+			return halfTargetOffset;
+		if (resolution == EffectPassResolution::Quarter)
+			return quarterTargetOffset;
+		return fullTargetOffset;
+	}
+
 	int PostProcess::ResolveTargetExtent(const int fullExtent, const size_t targetIndex) {
+		if (targetIndex >= quarterTargetOffset)
+			return std::max(1, (fullExtent + 3) / 4);
 		return targetIndex >= halfTargetOffset ? std::max(1, (fullExtent + 1) / 2) : fullExtent;
 	}
 

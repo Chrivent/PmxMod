@@ -1,5 +1,5 @@
-// DOF 1/4 해상도 광역 전경/후경 보케 분리 패스 입력:
-// t0 = CoC가 포함된 1/4 해상도 색상, t1 = SceneDepth, t2 = FocusHistory,
+// DOF 반해상도 중간 보케 보정 패스 입력:
+// t0 = 1/4 해상도 광역 Bokeh, t1 = SceneDepth, t2 = FocusHistory,
 // t3 = EffectSourceColor, s0 = LinearClamp.
 Texture2D SceneColor : register(t0);
 Texture2D SceneDepth : register(t1);
@@ -23,7 +23,7 @@ FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    static const float2 offsets[24] = {
+    static const float2 offsets[16] = {
         float2(0.0000, 0.0000),
         float2(0.3827, 0.9239),
         float2(-0.7071, 0.7071),
@@ -39,56 +39,50 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         float2(-0.7500, 0.0000),
         float2(-0.5303, -0.5303),
         float2(0.0000, -0.7500),
-        float2(0.5303, -0.5303),
-        float2(1.2500, 0.0000),
-        float2(0.8839, 0.8839),
-        float2(0.0000, 1.2500),
-        float2(-0.8839, 0.8839),
-        float2(-1.2500, 0.0000),
-        float2(-0.8839, -0.8839),
-        float2(0.0000, -1.2500),
-        float2(0.8839, -0.8839)
+        float2(0.5303, -0.5303)
     };
 
-    float2 quarterResolutionTexelSize = InverseViewportSize / BokehQuarterResolutionScale;
-    float quarterResolutionMaxRadius = MaxBlurPixels * BokehQuarterResolutionScale;
+    float focusDistance = ReadDelayedFocusDistance();
     float3 foregroundColor = 0.0;
     float3 backgroundColor = 0.0;
     float foregroundColorWeight = 0.0;
     float backgroundColorWeight = 0.0;
     float foregroundSupport = 0.0;
     float backgroundSupport = 0.0;
-    for (int index = 0; index < 24; index++) {
-        float normalizedDistance = length(offsets[index]) / 1.25;
-        float2 sampleUv = input.uv
-            + offsets[index] / 1.25 * quarterResolutionTexelSize * quarterResolutionMaxRadius;
-        float4 sampleData = SceneColor.Sample(LinearClamp, sampleUv);
-        float signedCocPixels = DecodeCircleOfConfusion(sampleData.a);
-        float sampleRadius = abs(signedCocPixels) * BokehQuarterResolutionScale;
-        float sampleDistance = normalizedDistance * quarterResolutionMaxRadius;
+    for (int index = 0; index < 16; index++) {
+        float sampleDistance = length(offsets[index]) * MediumBlurPixels;
+        float2 sampleUv = input.uv + offsets[index] * InverseViewportSize * MediumBlurPixels;
+        float3 sampleColor = PrepareBokehColor(EffectSourceColor.Sample(LinearClamp, sampleUv).rgb);
+        float signedCocPixels = CalculateCircleOfConfusionPixels(ReadCameraDistance(sampleUv), focusDistance);
+        float sampleRadius = min(abs(signedCocPixels), MediumBlurPixels);
         float support = saturate(sampleRadius - sampleDistance + 1.0);
         float brightnessWeight = CalculateCircleOfConfusionBrightness(sampleRadius);
         float centerWeight = index == 0 ? 1.5 : 1.0;
         float colorWeight = support * brightnessWeight * centerWeight;
         float coverageWeight = support * centerWeight;
         if (signedCocPixels < 0.0) {
-            foregroundColor += sampleData.rgb * colorWeight;
+            foregroundColor += sampleColor * colorWeight;
             foregroundColorWeight += colorWeight;
             foregroundSupport += coverageWeight;
         } else {
-            backgroundColor += sampleData.rgb * colorWeight;
+            backgroundColor += sampleColor * colorWeight;
             backgroundColorWeight += colorWeight;
             backgroundSupport += coverageWeight;
         }
     }
 
-    float3 centerColor = SceneColor.Sample(LinearClamp, input.uv).rgb;
-    float3 resolvedBackground = backgroundColorWeight > 0.0001
+    float3 centerColor = PrepareBokehColor(EffectSourceColor.Sample(LinearClamp, input.uv).rgb);
+    float3 resolvedBackground = backgroundColorWeight > BokehColorEpsilon
         ? backgroundColor / backgroundColorWeight : centerColor;
-    float3 resolvedForeground = foregroundColorWeight > 0.0001
+    float3 resolvedForeground = foregroundColorWeight > BokehColorEpsilon
         ? foregroundColor / foregroundColorWeight : resolvedBackground;
     float foregroundCoverage = foregroundSupport
-        / max(foregroundSupport + backgroundSupport, 0.0001);
-    float3 bokehColor = lerp(resolvedBackground, resolvedForeground, saturate(foregroundCoverage));
-    return float4(bokehColor, saturate(foregroundCoverage));
+        / max(foregroundSupport + backgroundSupport, BokehColorEpsilon);
+    float3 mediumBokeh = lerp(resolvedBackground, resolvedForeground, saturate(foregroundCoverage));
+    float4 broadBokeh = SceneColor.Sample(LinearClamp, input.uv);
+    float centerCocPixels = CalculateCircleOfConfusionPixels(ReadCameraDistance(input.uv), focusDistance);
+    float broadBlurAmount = smoothstep(MediumBlurPixels - 1.0, MaxBlurPixels, abs(centerCocPixels));
+    float broadInfluence = max(broadBlurAmount, saturate(broadBokeh.a));
+    float3 bokehColor = lerp(mediumBokeh, broadBokeh.rgb, saturate(broadInfluence));
+    return float4(bokehColor, max(saturate(foregroundCoverage), saturate(broadBokeh.a)));
 }

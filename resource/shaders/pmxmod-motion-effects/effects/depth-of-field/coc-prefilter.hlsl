@@ -26,7 +26,7 @@ float ResolveStrongerCircleOfConfusion(float currentCoc, float candidateCoc) {
 }
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    float2 offset = InverseViewportSize * 0.5;
+    float2 offset = InverseViewportSize * BokehHalfResolutionScale;
     float2 uv0 = input.uv + float2(-offset.x, -offset.y);
     float2 uv1 = input.uv + float2(offset.x, -offset.y);
     float2 uv2 = input.uv + float2(-offset.x, offset.y);

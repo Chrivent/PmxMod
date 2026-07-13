@@ -123,6 +123,8 @@ namespace Chrivent {
 				pass.resolution = EffectPassResolution::Full;
 			else if (value == "half")
 				pass.resolution = EffectPassResolution::Half;
+			else if (value == "quarter")
+				pass.resolution = EffectPassResolution::Quarter;
 			else {
 				error = "Unsupported effect pass resolution: " + value + " in " + manifestPath.string();
 				return false;

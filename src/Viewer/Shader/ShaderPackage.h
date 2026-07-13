@@ -16,7 +16,8 @@ namespace Chrivent {
 
 	enum class EffectPassResolution {
 		Full,
-		Half
+		Half,
+		Quarter
 	};
 
 	struct EffectPassDefinition {

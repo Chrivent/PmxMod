@@ -21,8 +21,9 @@ namespace Chrivent {
 		static constexpr size_t sceneTargetIndex = 0;
 		static constexpr size_t fullTargetOffset = 1;
 		static constexpr size_t halfTargetOffset = 3;
+		static constexpr size_t quarterTargetOffset = 5;
 		static constexpr size_t intermediateTargetCount = 2;
-		static constexpr size_t targetCount = 5;
+		static constexpr size_t targetCount = 7;
 		static constexpr size_t historyTargetCount = 2;
 		std::vector<EffectPassDefinition> passDefinitions;
 		std::vector<PostProcessPassRoute> passRoutes;
@@ -34,6 +35,8 @@ namespace Chrivent {
 			const std::vector<EffectPassDefinition>& passes, const std::vector<size_t>& effectIndices);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
+		// pass 해상도에 대응하는 첫 번째 중간 target 인덱스를 반환한다.
+		static size_t ResolveTargetOffset(EffectPassResolution resolution);
 		// target 인덱스에 대응하는 실제 한 축의 해상도를 계산한다.
 		static int ResolveTargetExtent(int fullExtent, size_t targetIndex);
 

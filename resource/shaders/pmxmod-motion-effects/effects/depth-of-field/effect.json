@@ -19,8 +19,22 @@
       "resolution": "half"
     },
     {
-      "name": "bokeh-blur",
+      "name": "coc-downsample",
+      "shader": "effects/depth-of-field/coc-downsample.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh-blur-quarter",
       "shader": "effects/depth-of-field/bokeh-blur.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh-refine-half",
+      "shader": "effects/depth-of-field/bokeh-refine.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "resolution": "half"
