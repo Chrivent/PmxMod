@@ -1,8 +1,6 @@
 ﻿#include "Viewer/Dx12/Helper/Dx12Pipeline.h"
 
 #include "Viewer/Dx12/Helper/Dx12PipelineBuilder.h"
-#include "Viewer/Shader/PostProcessInputLayout.h"
-
 #include <iostream>
 #include <limits>
 #include <vector>
@@ -34,7 +32,7 @@ namespace Chrivent {
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		srvRange.NumDescriptors = 3;
-		srvRange.BaseShaderRegister = PostProcessInputLayout::sceneColorRegister;
+		srvRange.BaseShaderRegister = 0;
 		srvRange.RegisterSpace = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};

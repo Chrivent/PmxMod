@@ -1,14 +1,18 @@
 ﻿#include "Viewer/Shader/ShaderPackage.h"
 
 #include "Util.h"
+#include "Viewer/Shader/PostProcessInputLayout.h"
 
 #include <algorithm>
 #include <fstream>
 #include <system_error>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace Chrivent {
 	ShaderPackageDiscovery ShaderPackageLoader::Discover(const std::filesystem::path& packagesDirectory) {
 		ShaderPackageDiscovery discovery;
+		std::unordered_set<std::string> packageIds;
 		std::error_code error;
 		if (!std::filesystem::is_directory(packagesDirectory, error))
 			return discovery;
@@ -22,10 +26,12 @@ namespace Chrivent {
 				continue;
 			ShaderPackage package;
 			std::string loadError;
-			if (ShaderPackageParser::Load(manifestPath, package, loadError))
-				discovery.packages.emplace_back(std::move(package));
-			else
+			if (!ShaderPackageParser::Load(manifestPath, package, loadError))
 				discovery.errors.emplace_back(std::move(loadError));
+			else if (!packageIds.emplace(package.id).second)
+				discovery.errors.emplace_back("Duplicate shader package id: " + package.id);
+			else
+				discovery.packages.emplace_back(std::move(package));
 		}
 		if (error)
 			discovery.errors.emplace_back("Failed to scan shader packages: " + packagesDirectory.string());
@@ -34,8 +40,9 @@ namespace Chrivent {
 		});
 		return discovery;
 	}
-	
-	bool ShaderPackageParser::ReadJsonObject(const std::filesystem::path& path, nlohmann::json& json, std::string& error) {
+
+	bool ShaderPackageParser::ReadJsonObject(
+		const std::filesystem::path& path, nlohmann::json& json, std::string& error) {
 		std::ifstream stream(path, std::ios::binary);
 		if (!stream) {
 			error = "Failed to open JSON file: " + path.string();
@@ -48,7 +55,8 @@ namespace Chrivent {
 		return false;
 	}
 
-	bool ShaderPackageParser::ReadRequiredString(const nlohmann::json& json, const char* key, std::string& value, std::string& error) {
+	bool ShaderPackageParser::ReadRequiredString(
+		const nlohmann::json& json, const char* key, std::string& value, std::string& error) {
 		const auto iterator = json.find(key);
 		if (iterator != json.end() && iterator->is_string()) {
 			value = iterator->get<std::string>();
@@ -59,7 +67,8 @@ namespace Chrivent {
 		return false;
 	}
 
-	bool ShaderPackageParser::IsPathInside(const std::filesystem::path& root, const std::filesystem::path& path) {
+	bool ShaderPackageParser::IsPathInside(
+		const std::filesystem::path& root, const std::filesystem::path& path) {
 		auto rootIterator = root.begin();
 		auto pathIterator = path.begin();
 		while (rootIterator != root.end()) {
@@ -71,8 +80,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool ShaderPackageParser::ResolvePackagePath(const std::filesystem::path& packageRoot, const std::string& relativePath,
-		std::filesystem::path& resolvedPath, std::string& error) {
+	bool ShaderPackageParser::ResolvePackagePath(const std::filesystem::path& packageRoot,
+		const std::string& relativePath, std::filesystem::path& resolvedPath, std::string& error) {
 		const std::filesystem::path requestedPath = Util::PathFromUtf8(relativePath);
 		if (requestedPath.empty() || requestedPath.is_absolute()) {
 			error = "Package path must be relative: " + relativePath;
@@ -96,7 +105,7 @@ namespace Chrivent {
 	}
 
 	bool ShaderPackageParser::LoadPass(const std::filesystem::path& packageRoot,
-		const std::filesystem::path& manifestPath, const nlohmann::json& json,
+		const std::filesystem::path& manifestPath, const nlohmann::json& json, const bool postProcess,
 		EffectPassDefinition& pass, std::string& error) {
 		if (!json.is_object()) {
 			error = "Invalid effect pass: " + manifestPath.string();
@@ -112,36 +121,129 @@ namespace Chrivent {
 			return false;
 		pass.vertexEntry = json.value("vertexEntry", pass.vertexEntry);
 		pass.pixelEntry = json.value("pixelEntry", pass.pixelEntry);
-		const auto resolution = json.find("resolution");
-		if (resolution != json.end()) {
-			if (!resolution->is_string()) {
-				error = "Effect pass resolution must be a string: " + manifestPath.string();
-				return false;
-			}
-			const std::string value = resolution->get<std::string>();
-			if (value == "full")
-				pass.resolution = EffectPassResolution::Full;
-			else if (value == "half")
-				pass.resolution = EffectPassResolution::Half;
-			else if (value == "quarter")
-				pass.resolution = EffectPassResolution::Quarter;
-			else {
-				error = "Unsupported effect pass resolution: " + value + " in " + manifestPath.string();
-				return false;
-			}
+		if (pass.vertexEntry.empty() || pass.pixelEntry.empty()) {
+			error = "Effect pass entry points cannot be empty: " + manifestPath.string();
+			return false;
 		}
-		if (!pass.vertexEntry.empty() && !pass.pixelEntry.empty())
+		if (!postProcess)
 			return true;
-		error = "Effect pass entry points cannot be empty: " + manifestPath.string();
+		const auto reads = json.find("reads");
+		if (reads == json.end() || !reads->is_array()) {
+			error = "Post-process pass reads must be an array: " + manifestPath.string();
+			return false;
+		}
+		std::unordered_set<uint32_t> usedSlots;
+		for (const auto& inputJson : *reads) {
+			if (!inputJson.is_object()) {
+				error = "Invalid post-process pass input: " + manifestPath.string();
+				return false;
+			}
+			const auto slot = inputJson.find("slot");
+			EffectPassInputDefinition input;
+			if (slot == inputJson.end() || !slot->is_number_unsigned()) {
+				error = "Post-process input slot must be an unsigned integer: " + manifestPath.string();
+				return false;
+			}
+			input.slot = slot->get<uint32_t>();
+			if (input.slot >= PostProcessInputLayout::maxTextureCount || !usedSlots.emplace(input.slot).second
+				|| !ReadRequiredString(inputJson, "resource", input.resource, error)) {
+				error = "Invalid or duplicate post-process input slot: " + manifestPath.string();
+				return false;
+			}
+			pass.inputs.emplace_back(std::move(input));
+		}
+		if (ReadRequiredString(json, "output", pass.output, error))
+			return true;
+		error += " in " + manifestPath.string();
 		return false;
 	}
 
-	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
-		EffectDefinition& effect, std::string& error) {
+	bool ShaderPackageParser::LoadResources(const nlohmann::json& json,
+		const std::filesystem::path& manifestPath, std::vector<EffectResourceDefinition>& resources,
+		std::string& error) {
+		resources.clear();
+		const auto resourceArray = json.find("resources");
+		if (resourceArray == json.end())
+			return true;
+		if (!resourceArray->is_array()) {
+			error = "Effect resources must be an array: " + manifestPath.string();
+			return false;
+		}
+		std::unordered_set<std::string> names;
+		for (const auto& resourceJson : *resourceArray) {
+			EffectResourceDefinition resource;
+			std::string lifetime;
+			std::string format;
+			if (!resourceJson.is_object()
+				|| !ReadRequiredString(resourceJson, "name", resource.name, error)
+				|| !ReadRequiredString(resourceJson, "lifetime", lifetime, error)
+				|| !ReadRequiredString(resourceJson, "format", format, error)
+				|| resource.name.contains('.') || !names.emplace(resource.name).second) {
+				error = "Invalid or duplicate effect resource: " + manifestPath.string();
+				return false;
+			}
+			if (lifetime == "transient")
+				resource.lifetime = EffectResourceLifetime::Transient;
+			else if (lifetime == "history")
+				resource.lifetime = EffectResourceLifetime::History;
+			else {
+				error = "Unsupported effect resource lifetime: " + lifetime + " in " + manifestPath.string();
+				return false;
+			}
+			if (format == "rgba8_unorm")
+				resource.format = EffectTextureFormat::Rgba8Unorm;
+			else if (format == "rgba16_float")
+				resource.format = EffectTextureFormat::Rgba16Float;
+			else if (format == "rgba32_float")
+				resource.format = EffectTextureFormat::Rgba32Float;
+			else {
+				error = "Unsupported effect resource format: " + format + " in " + manifestPath.string();
+				return false;
+			}
+			const auto size = resourceJson.find("size");
+			const auto resolution = resourceJson.find("resolution");
+			if (size != resourceJson.end() && resolution != resourceJson.end()) {
+				error = "Effect resource cannot declare both size and resolution: " + manifestPath.string();
+				return false;
+			}
+			if (size != resourceJson.end()) {
+				if (!size->is_object() || !size->contains("width") || !size->contains("height")
+					|| !(*size)["width"].is_number_unsigned() || !(*size)["height"].is_number_unsigned()) {
+					error = "Invalid fixed effect resource size: " + manifestPath.string();
+					return false;
+				}
+				resource.resolution = EffectPassResolution::Fixed;
+				resource.width = (*size)["width"].get<uint32_t>();
+				resource.height = (*size)["height"].get<uint32_t>();
+				if (resource.width == 0 || resource.height == 0) {
+					error = "Fixed effect resource size cannot be zero: " + manifestPath.string();
+					return false;
+				}
+			} else {
+				const std::string value = resolution == resourceJson.end()
+					? "full" : resolution->is_string() ? resolution->get<std::string>() : std::string{};
+				if (value == "full")
+					resource.resolution = EffectPassResolution::Full;
+				else if (value == "half")
+					resource.resolution = EffectPassResolution::Half;
+				else if (value == "quarter")
+					resource.resolution = EffectPassResolution::Quarter;
+				else {
+					error = "Unsupported effect resource resolution: " + value + " in " + manifestPath.string();
+					return false;
+				}
+			}
+			resources.emplace_back(std::move(resource));
+		}
+		return true;
+	}
+
+	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot,
+		const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error) {
 		nlohmann::json json;
 		if (!ReadJsonObject(manifestPath, json, error))
 			return false;
-		if (json.value("schemaVersion", 0) != 1) {
+		if (json.value("schemaVersion", 0) != schemaVersion) {
 			error = "Unsupported effect schemaVersion: " + manifestPath.string();
 			return false;
 		}
@@ -167,40 +269,123 @@ namespace Chrivent {
 			error = "Unsupported effect type: " + type + " in " + manifestPath.string();
 			return false;
 		}
-		effect.requiresDepth = json.value("requiresDepth", false);
+		const bool postProcess = effect.type == EffectType::PostProcess;
+		effect.inputs.clear();
+		if (postProcess) {
+			const auto inputs = json.find("inputs");
+			if (inputs == json.end() || !inputs->is_array()) {
+				error = "Post-process effect inputs must be an array: " + manifestPath.string();
+				return false;
+			}
+			std::unordered_set<std::string> inputNames;
+			for (const auto& input : *inputs) {
+				if (!input.is_string()) {
+					error = "Post-process effect input must be a string: " + manifestPath.string();
+					return false;
+				}
+				const std::string value = input.get<std::string>();
+				if ((value != "scene_color" && value != "scene_depth") || !inputNames.emplace(value).second) {
+					error = "Unsupported or duplicate engine input: " + value + " in " + manifestPath.string();
+					return false;
+				}
+				effect.inputs.emplace_back(value);
+			}
+		}
+		if (postProcess) {
+			if (!LoadResources(json, manifestPath, effect.resources, error))
+				return false;
+		} else
+			effect.resources.clear();
 		const auto passArray = json.find("passes");
 		if (passArray == json.end() || !passArray->is_array() || passArray->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();
 			return false;
 		}
 		effect.passes.clear();
-		effect.passes.reserve(passArray->size());
+		std::unordered_set<std::string> passNames;
 		for (const auto& passJson : *passArray) {
 			EffectPassDefinition pass;
-			if (!LoadPass(packageRoot, manifestPath, passJson, pass, error))
+			if (!LoadPass(packageRoot, manifestPath, passJson, postProcess, pass, error))
 				return false;
+			if (!passNames.emplace(pass.name).second) {
+				error = "Duplicate effect pass name: " + pass.name + " in " + manifestPath.string();
+				return false;
+			}
 			effect.passes.emplace_back(std::move(pass));
 		}
-		if (effect.passes.back().resolution != EffectPassResolution::Full) {
-			error = "The final effect pass must use full resolution: " + manifestPath.string();
-			return false;
-		}
-		effect.historyPass.reset();
-		const auto historyPass = json.find("historyPass");
-		if (historyPass != json.end()) {
-			EffectPassDefinition pass;
-			if (!LoadPass(packageRoot, manifestPath, *historyPass, pass, error))
+		if (!postProcess)
+			return true;
+		std::unordered_map<std::string, EffectResourceLifetime> resources;
+		for (const auto& resource : effect.resources) {
+			if (resource.name == "effect_input" || resource.name == "effect_output"
+				|| resource.name == "scene_color" || resource.name == "scene_depth") {
+				error = "Effect resource uses a reserved name: " + resource.name + " in " + manifestPath.string();
 				return false;
-			effect.historyPass = std::move(pass);
+			}
+			resources.emplace(resource.name, resource.lifetime);
 		}
-		return true;
+		std::unordered_set<std::string> writtenTransientResources;
+		for (size_t passIndex = 0; passIndex < effect.passes.size(); passIndex++) {
+			const EffectPassDefinition& pass = effect.passes[passIndex];
+			for (const auto& [slot, resource] : pass.inputs) {
+				if (resource == "effect_input")
+					continue;
+				if (resource == "scene_color" || resource == "scene_depth") {
+					if (std::ranges::find(effect.inputs, resource) == effect.inputs.end()) {
+						error = "Pass uses an undeclared engine input: " + resource + " in " + manifestPath.string();
+						return false;
+					}
+					continue;
+				}
+				std::string resourceName = resource;
+				const bool historyRead = resourceName.ends_with(".read");
+				if (historyRead)
+					resourceName.resize(resourceName.size() - 5);
+				const auto findResource = resources.find(resourceName);
+				if (findResource == resources.end() || historyRead != (findResource->second == EffectResourceLifetime::History)
+					|| (!historyRead && !writtenTransientResources.contains(resourceName))) {
+					error = "Invalid or uninitialized pass input resource: " + resource + " in " + manifestPath.string();
+					return false;
+				}
+			}
+			if (pass.output == "effect_output") {
+				if (passIndex + 1 != effect.passes.size()) {
+					error = "Only the final effect pass can write effect_output: " + manifestPath.string();
+					return false;
+				}
+				continue;
+			}
+			std::string outputName = pass.output;
+			const bool historyWrite = outputName.ends_with(".write");
+			if (historyWrite)
+				outputName.resize(outputName.size() - 6);
+			const auto resource = resources.find(outputName);
+			if (resource == resources.end() || historyWrite != (resource->second == EffectResourceLifetime::History)) {
+				error = "Invalid pass output resource: " + pass.output + " in " + manifestPath.string();
+				return false;
+			}
+			if (!historyWrite && std::ranges::any_of(pass.inputs, [&outputName](const EffectPassInputDefinition& input) {
+				return input.resource == outputName;
+			})) {
+				error = "A transient resource cannot be read and written by the same pass: "
+					+ outputName + " in " + manifestPath.string();
+				return false;
+			}
+			if (!historyWrite)
+				writtenTransientResources.emplace(outputName);
+		}
+		if (effect.passes.back().output == "effect_output")
+			return true;
+		error = "The final post-process pass must write effect_output: " + manifestPath.string();
+		return false;
 	}
 
-	bool ShaderPackageParser::Load(const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error) {
+	bool ShaderPackageParser::Load(
+		const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error) {
 		nlohmann::json json;
 		if (!ReadJsonObject(manifestPath, json, error))
 			return false;
-		if (json.value("schemaVersion", 0) != 1) {
+		if (json.value("schemaVersion", 0) != schemaVersion) {
 			error = "Unsupported package schemaVersion: " + manifestPath.string();
 			return false;
 		}
@@ -219,18 +404,22 @@ namespace Chrivent {
 			return false;
 		}
 		loaded.effects.reserve(effectArray->size());
+		std::unordered_set<std::string> effectIds;
 		for (const auto& effectPathJson : *effectArray) {
 			if (!effectPathJson.is_string()) {
 				error = "Package effect path must be a string: " + manifestPath.string();
 				return false;
 			}
 			std::filesystem::path effectManifestPath;
-			if (!ResolvePackagePath(
-				loaded.rootPath, effectPathJson.get<std::string>(), effectManifestPath, error))
+			if (!ResolvePackagePath(loaded.rootPath, effectPathJson.get<std::string>(), effectManifestPath, error))
 				return false;
 			EffectDefinition effect;
 			if (!LoadEffect(loaded.rootPath, effectManifestPath, effect, error))
 				return false;
+			if (!effectIds.emplace(effect.id).second) {
+				error = "Duplicate package effect id: " + effect.id + " in " + manifestPath.string();
+				return false;
+			}
 			loaded.effects.emplace_back(std::move(effect));
 		}
 		package = std::move(loaded);

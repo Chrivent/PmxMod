@@ -1,14 +1,19 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "grayscale",
   "name": "Grayscale",
   "type": "post_process",
+  "inputs": [],
   "passes": [
     {
       "name": "main",
       "shader": "effects/grayscale/effect.hlsl",
       "vertexEntry": "VSMain",
-      "pixelEntry": "PSMain"
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "effect_input" }
+      ],
+      "output": "effect_output"
     }
   ]
 }

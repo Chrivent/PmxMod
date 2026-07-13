@@ -38,7 +38,7 @@ target_sources(PmxModViewer PRIVATE
         Glfw/Helper/GlfwShaderCompiler.h Glfw/Helper/GlfwShaderCompiler.cpp
 
         Vulkan/VulkanViewer.h Vulkan/VulkanViewer.cpp
-        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp Vulkan/VulkanPostProcessCommand.cpp
+        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp
         Vulkan/VulkanDrawer.h Vulkan/VulkanDrawer.cpp
         Vulkan/VulkanTextureCache.h Vulkan/VulkanTextureCache.cpp
         Vulkan/VulkanInstance.h Vulkan/VulkanInstance.cpp

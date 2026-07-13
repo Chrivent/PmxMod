@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include <optional>
+#include <cstdint>
 #include <nlohmann/json.hpp>
 
 namespace Chrivent {
@@ -17,7 +17,33 @@ namespace Chrivent {
 	enum class EffectPassResolution {
 		Full,
 		Half,
-		Quarter
+		Quarter,
+		Fixed
+	};
+
+	enum class EffectTextureFormat {
+		Rgba8Unorm,
+		Rgba16Float,
+		Rgba32Float
+	};
+
+	enum class EffectResourceLifetime {
+		Transient,
+		History
+	};
+
+	struct EffectResourceDefinition {
+		std::string name;
+		EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
+		EffectTextureFormat format = EffectTextureFormat::Rgba16Float;
+		EffectPassResolution resolution = EffectPassResolution::Full;
+		uint32_t width = 0;
+		uint32_t height = 0;
+	};
+
+	struct EffectPassInputDefinition {
+		uint32_t slot = 0;
+		std::string resource;
 	};
 
 	struct EffectPassDefinition {
@@ -25,16 +51,17 @@ namespace Chrivent {
 		std::filesystem::path shaderPath;
 		std::string vertexEntry = "VSMain";
 		std::string pixelEntry = "PSMain";
-		EffectPassResolution resolution = EffectPassResolution::Full;
+		std::vector<EffectPassInputDefinition> inputs;
+		std::string output;
 	};
 
 	struct EffectDefinition {
 		std::string id;
 		std::string name;
 		EffectType type = EffectType::PostProcess;
-		bool requiresDepth = false;
+		std::vector<std::string> inputs;
+		std::vector<EffectResourceDefinition> resources;
 		std::vector<EffectPassDefinition> passes;
-		std::optional<EffectPassDefinition> historyPass;
 	};
 
 	struct ShaderPackage {
@@ -58,6 +85,8 @@ namespace Chrivent {
 	};
 	
 	class ShaderPackageParser {
+		static constexpr int schemaVersion = 2;
+
 		// JSON 파일을 읽고 최상위 객체인지 확인한다.
 		static bool ReadJsonObject(const std::filesystem::path& path, nlohmann::json& json, std::string& error);
 		// 필수 문자열 필드를 읽는다.
@@ -69,7 +98,10 @@ namespace Chrivent {
 			std::filesystem::path& resolvedPath, std::string& error);
 		// JSON 객체 하나를 셰이더 pass 정의로 변환한다.
 		static bool LoadPass(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
-			const nlohmann::json& json, EffectPassDefinition& pass, std::string& error);
+			const nlohmann::json& json, bool postProcess, EffectPassDefinition& pass, std::string& error);
+		// 후처리 effect가 소유하는 범용 texture 리소스 정의를 읽는다.
+		static bool LoadResources(const nlohmann::json& json, const std::filesystem::path& manifestPath,
+			std::vector<EffectResourceDefinition>& resources, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
 			EffectDefinition& effect, std::string& error);

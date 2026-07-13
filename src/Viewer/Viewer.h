@@ -16,7 +16,6 @@ namespace Chrivent {
     struct EffectDefinition;
     struct Material;
 
-    // 모든 렌더링 API가 동일하게 사용하는 프레임별 후처리 입력이다.
     struct PostProcessFrameData {
         float deltaTime = 0.0f;
         float nearPlane = 1.0f;
@@ -86,8 +85,8 @@ namespace Chrivent {
         virtual void EndPostProcessDepthPass() = 0;
         // 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다린다.
         virtual void WaitIdle() = 0;
-        // 체크된 포스트 프로세스 효과 목록을 렌더러에 준비한다.
-        // 포스트 프로세스 입력 규격은 FrameData=b0, SceneColor=t0, SceneDepth=t1, FocusHistory=t2, LinearClamp=s0으로 고정한다.
+        // 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
+        // HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
         virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) = 0;
         // 카메라 점프나 탐색 뒤 다음 프레임의 초점 히스토리를 초기화한다.
         virtual void ResetPostProcessHistory() = 0;

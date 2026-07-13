@@ -10,50 +10,110 @@ namespace Chrivent {
 		GlfwPostProcess::Reset();
 	}
 
-	void GlfwPostProcess::InitializeFocusHistory() {
-		if (focusHistoryInitialized || focusHistoryFramebuffers[0] == 0 || focusHistoryFramebuffers[1] == 0)
-			return;
-		constexpr float clearHistory[4] = {};
-		for (const GLuint framebuffer : focusHistoryFramebuffers)
-			glClearNamedFramebufferfv(framebuffer, GL_COLOR, 0, clearHistory);
-		focusHistoryIndex = 0;
-		focusHistoryInitialized = true;
+	bool GlfwPostProcess::CreateEffectResources() {
+		ResetEffectResources();
+		const auto& plans = ResolveResourcePlans();
+		resources.resize(plans.size());
+		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
+			const PostProcessResourcePlan& plan = plans[resourceIndex];
+			GlfwPostProcessResource& resource = resources[resourceIndex];
+			const GLsizei textureCount = plan.lifetime == EffectResourceLifetime::History ? 2 : 1;
+			const int width = ResolveResourceExtent(targetWidth, plan, true);
+			const int height = ResolveResourceExtent(targetHeight, plan, false);
+			const GLenum format = plan.format == EffectTextureFormat::Rgba8Unorm
+				? GL_RGBA8 : plan.format == EffectTextureFormat::Rgba16Float ? GL_RGBA16F : GL_RGBA32F;
+			glCreateFramebuffers(textureCount, resource.framebuffers);
+			glCreateTextures(GL_TEXTURE_2D, textureCount, resource.textures);
+			for (GLsizei index = 0; index < textureCount; index++) {
+				glTextureStorage2D(resource.textures[index], 1, format, width, height);
+				glTextureParameteri(resource.textures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTextureParameteri(resource.textures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTextureParameteri(resource.textures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTextureParameteri(resource.textures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glNamedFramebufferTexture(
+					resource.framebuffers[index], GL_COLOR_ATTACHMENT0, resource.textures[index], 0);
+				if (glCheckNamedFramebufferStatus(resource.framebuffers[index], GL_FRAMEBUFFER)
+					!= GL_FRAMEBUFFER_COMPLETE)
+					return false;
+			}
+		}
+		ResetHistory();
+		return true;
 	}
 
-	void GlfwPostProcess::UpdateFocusHistory() {
-		if (!focusHistoryShader)
-			return;
-		InitializeFocusHistory();
-		const size_t readIndex = focusHistoryIndex;
-		const size_t writeIndex = ResolveNextHistoryIndex(focusHistoryIndex);
-		glBindFramebuffer(GL_FRAMEBUFFER, focusHistoryFramebuffers[writeIndex]);
-		glViewport(0, 0, 1, 1);
-		glUseProgram(focusHistoryShader->program);
-		glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, sceneColorTexture);
-		glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
-		glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[readIndex]);
-		glBindTextureUnit(PostProcessInputLayout::effectSourceColorRegister, sceneColorTexture);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		focusHistoryIndex = writeIndex;
+	void GlfwPostProcess::InitializeHistories() {
+		const auto& plans = ResolveResourcePlans();
+		constexpr float clearColor[4]{};
+		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
+			GlfwPostProcessResource& resource = resources[index];
+			if (plans[index].lifetime != EffectResourceLifetime::History || resource.historyInitialized)
+				continue;
+			glClearNamedFramebufferfv(resource.framebuffers[0], GL_COLOR, 0, clearColor);
+			glClearNamedFramebufferfv(resource.framebuffers[1], GL_COLOR, 0, clearColor);
+			resource.historyIndex = 0;
+			resource.historyInitialized = true;
+		}
 	}
 
-	GLuint GlfwPostProcess::ResolveColorTexture(const size_t targetIndex) const {
-		if (targetIndex == sceneTargetIndex)
+	GLuint GlfwPostProcess::ResolveInputTexture(const PostProcessPassInputRoute& input) const {
+		if (input.kind == PostProcessInputKind::SceneColor)
 			return sceneColorTexture;
-		return targetIndex < targetCount ? intermediateTextures[targetIndex - fullTargetOffset] : 0;
+		if (input.kind == PostProcessInputKind::SceneDepth)
+			return postProcessDepthTexture;
+		if (input.resourceIndex >= resources.size())
+			return sceneColorTexture;
+		const auto& plans = ResolveResourcePlans();
+		const GlfwPostProcessResource& resource = resources[input.resourceIndex];
+		return plans[input.resourceIndex].lifetime == EffectResourceLifetime::History
+			? resource.textures[resource.historyIndex] : resource.textures[0];
 	}
 
-	GLuint GlfwPostProcess::ResolveIntermediateFramebuffer(const size_t targetIndex) const {
-		if (targetIndex < fullTargetOffset || targetIndex >= targetCount)
+	GLuint GlfwPostProcess::ResolveOutputFramebuffer(const PostProcessPassRoute& route) const {
+		if (route.outputKind == PostProcessOutputKind::Present)
 			return 0;
-		return intermediateFramebuffers[targetIndex - fullTargetOffset];
+		if (route.outputResourceIndex >= resources.size())
+			return 0;
+		const auto& plans = ResolveResourcePlans();
+		const GlfwPostProcessResource& resource = resources[route.outputResourceIndex];
+		const size_t index = plans[route.outputResourceIndex].lifetime == EffectResourceLifetime::History
+			? ResolveNextHistoryIndex(resource.historyIndex) : 0;
+		return resource.framebuffers[index];
+	}
+
+	void GlfwPostProcess::ResolveOutputExtent(
+		const PostProcessPassRoute& route, int& width, int& height) const {
+		width = targetWidth;
+		height = targetHeight;
+		if (route.outputKind == PostProcessOutputKind::Present
+			|| route.outputResourceIndex >= ResolveResourcePlans().size())
+			return;
+		const PostProcessResourcePlan& plan = ResolveResourcePlans()[route.outputResourceIndex];
+		width = ResolveResourceExtent(targetWidth, plan, true);
+		height = ResolveResourceExtent(targetHeight, plan, false);
+	}
+
+	void GlfwPostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
+		if (route.outputKind != PostProcessOutputKind::Resource
+			|| route.outputResourceIndex >= resources.size()
+			|| ResolveResourcePlans()[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
+			return;
+		GlfwPostProcessResource& resource = resources[route.outputResourceIndex];
+		resource.historyIndex = ResolveNextHistoryIndex(resource.historyIndex);
+		resource.historyInitialized = true;
+	}
+
+	void GlfwPostProcess::ResetEffectResources() {
+		const auto& plans = ResolveResourcePlans();
+		for (size_t index = 0; index < resources.size(); index++) {
+			const GLsizei count = index < plans.size() && plans[index].lifetime == EffectResourceLifetime::History ? 2 : 1;
+			glDeleteTextures(count, resources[index].textures);
+			glDeleteFramebuffers(count, resources[index].framebuffers);
+		}
+		resources.clear();
 	}
 
 	void GlfwPostProcess::ResetTargets() {
-		glDeleteTextures(2, focusHistoryTextures);
-		glDeleteFramebuffers(2, focusHistoryFramebuffers);
-		glDeleteTextures(static_cast<GLsizei>(intermediateColorTargetCount), intermediateTextures);
-		glDeleteFramebuffers(static_cast<GLsizei>(intermediateColorTargetCount), intermediateFramebuffers);
+		ResetEffectResources();
 		if (sceneDepthStencil != 0)
 			glDeleteRenderbuffers(1, &sceneDepthStencil);
 		if (sceneColorMsaa != 0)
@@ -78,21 +138,13 @@ namespace Chrivent {
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
 		frameDataBuffer = 0;
-		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
-			intermediateTextures[index] = 0;
-			intermediateFramebuffers[index] = 0;
-		}
-		focusHistoryTextures[0] = 0;
-		focusHistoryTextures[1] = 0;
-		focusHistoryFramebuffers[0] = 0;
-		focusHistoryFramebuffers[1] = 0;
 		postProcessSampleCount = 1;
-		ResetHistory();
+		targetWidth = 0;
+		targetHeight = 0;
 	}
 
 	void GlfwPostProcess::ResetShaders() {
 		postProcessShaders.clear();
-		focusHistoryShader.reset();
 		ResetHistory();
 	}
 
@@ -101,6 +153,8 @@ namespace Chrivent {
 		ResetTargets();
 		if (width <= 0 || height <= 0)
 			return false;
+		targetWidth = width;
+		targetHeight = height;
 		glCreateBuffers(1, &frameDataBuffer);
 		if (frameDataBuffer == 0)
 			return false;
@@ -112,13 +166,15 @@ namespace Chrivent {
 		glCreateRenderbuffers(1, &sceneDepthStencil);
 		if (postProcessSampleCount > 1) {
 			glNamedRenderbufferStorageMultisample(sceneColorMsaa, postProcessSampleCount, GL_RGBA8, width, height);
-			glNamedRenderbufferStorageMultisample(sceneDepthStencil, postProcessSampleCount, GL_DEPTH24_STENCIL8, width, height);
+			glNamedRenderbufferStorageMultisample(
+				sceneDepthStencil, postProcessSampleCount, GL_DEPTH24_STENCIL8, width, height);
 		} else {
 			glNamedRenderbufferStorage(sceneColorMsaa, GL_RGBA8, width, height);
 			glNamedRenderbufferStorage(sceneDepthStencil, GL_DEPTH24_STENCIL8, width, height);
 		}
 		glNamedFramebufferRenderbuffer(sceneFramebuffer, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, sceneColorMsaa);
-		glNamedFramebufferRenderbuffer(sceneFramebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, sceneDepthStencil);
+		glNamedFramebufferRenderbuffer(
+			sceneFramebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, sceneDepthStencil);
 		glCreateFramebuffers(1, &resolveFramebuffer);
 		glCreateTextures(GL_TEXTURE_2D, 1, &sceneColorTexture);
 		glTextureStorage2D(sceneColorTexture, 1, GL_RGBA8, width, height);
@@ -137,50 +193,21 @@ namespace Chrivent {
 		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
 		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_NONE);
 		glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
-		glCreateFramebuffers(static_cast<GLsizei>(intermediateColorTargetCount), intermediateFramebuffers);
-		glCreateTextures(GL_TEXTURE_2D, static_cast<GLsizei>(intermediateColorTargetCount), intermediateTextures);
-		for (size_t index = 0; index < intermediateColorTargetCount; index++) {
-			const size_t targetIndex = index + fullTargetOffset;
-			const int targetWidth = ResolveTargetExtent(width, targetIndex);
-			const int targetHeight = ResolveTargetExtent(height, targetIndex);
-			const GLenum format = targetIndex >= halfTargetOffset ? GL_RGBA16F : GL_RGBA8;
-			glTextureStorage2D(intermediateTextures[index], 1, format, targetWidth, targetHeight);
-			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTextureParameteri(intermediateTextures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glNamedFramebufferTexture(
-				intermediateFramebuffers[index], GL_COLOR_ATTACHMENT0, intermediateTextures[index], 0);
-			if (glCheckNamedFramebufferStatus(intermediateFramebuffers[index], GL_FRAMEBUFFER)
-				!= GL_FRAMEBUFFER_COMPLETE)
-				return false;
-		}
-		glCreateFramebuffers(2, focusHistoryFramebuffers);
-		glCreateTextures(GL_TEXTURE_2D, 2, focusHistoryTextures);
-		for (int index = 0; index < 2; index++) {
-			glTextureStorage2D(focusHistoryTextures[index], 1, GL_RGBA32F, 1, 1);
-			glTextureParameteri(focusHistoryTextures[index], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTextureParameteri(focusHistoryTextures[index], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTextureParameteri(focusHistoryTextures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTextureParameteri(focusHistoryTextures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glNamedFramebufferTexture(focusHistoryFramebuffers[index], GL_COLOR_ATTACHMENT0, focusHistoryTextures[index], 0);
-			constexpr float clearHistory[4] = {};
-			glClearNamedFramebufferfv(focusHistoryFramebuffers[index], GL_COLOR, 0, clearHistory);
-			if (glCheckNamedFramebufferStatus(focusHistoryFramebuffers[index], GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-				return false;
-		}
-		focusHistoryInitialized = true;
 		if (postProcessVao == 0)
 			glCreateVertexArrays(1, &postProcessVao);
 		return glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
 			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
-			&& glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+			&& glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
+			&& CreateEffectResources();
 	}
 
 	bool GlfwPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
-		if (!SetEffects(effects))
-			return false;
 		ResetShaders();
+		ResetEffectResources();
+		if (!SetEffects(effects) || (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources())) {
+			ClearShaders();
+			return false;
+		}
 		for (const auto& pass : ResolvePasses()) {
 			auto shader = std::make_unique<GlfwPostProcessShader>();
 			if (!shader->Initialize(pass)) {
@@ -189,19 +216,13 @@ namespace Chrivent {
 			}
 			postProcessShaders.push_back(std::move(shader));
 		}
-		if (const auto* historyPass = ResolveHistoryPass()) {
-			focusHistoryShader = std::make_unique<GlfwPostProcessShader>();
-			if (!focusHistoryShader->Initialize(*historyPass)) {
-				ClearShaders();
-				return false;
-			}
-		}
 		ResetHistory();
 		return true;
 	}
 
 	void GlfwPostProcess::ClearShaders() {
 		ResetShaders();
+		ResetEffectResources();
 		ClearEffects();
 	}
 
@@ -239,33 +260,36 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 		glBindVertexArray(postProcessVao);
-		InitializeFocusHistory();
-		UpdateFocusHistory();
+		InitializeHistories();
 		const auto& routes = ResolvePassRoutes();
-		for (size_t index = 0; index < postProcessShaders.size(); index++) {
+		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
-			glBindFramebuffer(GL_FRAMEBUFFER, route.lastPass ? 0 : ResolveIntermediateFramebuffer(route.targetIndex));
-			const int targetWidth = route.lastPass ? width : ResolveTargetExtent(width, route.targetIndex);
-			const int targetHeight = route.lastPass ? height : ResolveTargetExtent(height, route.targetIndex);
-			glViewport(0, 0, targetWidth, targetHeight);
+			glBindFramebuffer(GL_FRAMEBUFFER, ResolveOutputFramebuffer(route));
+			int outputWidth = width;
+			int outputHeight = height;
+			ResolveOutputExtent(route, outputWidth, outputHeight);
+			glViewport(0, 0, outputWidth, outputHeight);
 			glUseProgram(postProcessShaders[index]->program);
-			glBindTextureUnit(PostProcessInputLayout::sceneColorRegister, ResolveColorTexture(route.sourceIndex));
-			glBindTextureUnit(PostProcessInputLayout::sceneDepthRegister, postProcessDepthTexture);
-			glBindTextureUnit(PostProcessInputLayout::focusHistoryRegister, focusHistoryTextures[focusHistoryIndex]);
-			glBindTextureUnit(
-				PostProcessInputLayout::effectSourceColorRegister, ResolveColorTexture(route.effectSourceIndex));
+			for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
+				glBindTextureUnit(PostProcessInputLayout::ResolveSpirvTextureBinding(slot), sceneColorTexture);
+			for (const auto& input : route.inputs)
+				glBindTextureUnit(PostProcessInputLayout::ResolveSpirvTextureBinding(input.slot), ResolveInputTexture(input));
 			glDrawArrays(GL_TRIANGLES, 0, 3);
+			AdvanceHistory(route);
 		}
 	}
 
 	void GlfwPostProcess::ResetHistory() {
-		focusHistoryIndex = 0;
-		focusHistoryInitialized = false;
+		for (auto& resource : resources) {
+			resource.historyIndex = 0;
+			resource.historyInitialized = false;
+		}
 	}
 
 	void GlfwPostProcess::Reset() {
 		ResetShaders();
 		ResetTargets();
+		ClearEffects();
 		if (postProcessVao != 0)
 			glDeleteVertexArrays(1, &postProcessVao);
 		postProcessVao = 0;

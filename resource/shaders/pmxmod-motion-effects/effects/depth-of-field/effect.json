@@ -1,57 +1,137 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "depth-of-field",
   "name": "Depth of Field",
   "type": "post_process",
-  "requiresDepth": true,
-  "historyPass": {
-    "name": "focus-update",
-    "shader": "effects/depth-of-field/focus-update.hlsl",
-    "vertexEntry": "VSMain",
-    "pixelEntry": "PSMain"
-  },
+  "inputs": ["scene_depth"],
+  "resources": [
+    {
+      "name": "focus",
+      "lifetime": "history",
+      "format": "rgba32_float",
+      "size": { "width": 1, "height": 1 }
+    },
+    {
+      "name": "coc_prefilter",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "half"
+    },
+    {
+      "name": "coc_downsample",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh_background",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh_foreground",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh_refine",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "half"
+    }
+  ],
   "passes": [
+    {
+      "name": "focus-update",
+      "shader": "effects/depth-of-field/focus-update.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "effect_input" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" }
+      ],
+      "output": "focus.write"
+    },
     {
       "name": "coc-prefilter",
       "shader": "effects/depth-of-field/coc-prefilter.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "half"
+      "reads": [
+        { "slot": 0, "resource": "effect_input" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "coc_prefilter"
     },
     {
       "name": "coc-downsample",
       "shader": "effects/depth-of-field/coc-downsample.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "quarter"
+      "reads": [
+        { "slot": 0, "resource": "coc_prefilter" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "coc_downsample"
     },
     {
       "name": "bokeh-background-quarter",
       "shader": "effects/depth-of-field/bokeh-blur.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "quarter"
+      "reads": [
+        { "slot": 0, "resource": "coc_downsample" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "bokeh_background"
     },
     {
       "name": "bokeh-foreground-quarter",
       "shader": "effects/depth-of-field/bokeh-foreground.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "quarter"
+      "reads": [
+        { "slot": 0, "resource": "bokeh_background" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "bokeh_foreground"
     },
     {
       "name": "bokeh-refine-half",
       "shader": "effects/depth-of-field/bokeh-refine.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "half"
+      "reads": [
+        { "slot": 0, "resource": "bokeh_foreground" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "bokeh_refine"
     },
     {
       "name": "composite",
       "shader": "effects/depth-of-field/effect.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
-      "resolution": "full"
+      "reads": [
+        { "slot": 0, "resource": "bokeh_refine" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "effect_output"
     }
   ]
 }

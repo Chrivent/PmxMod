@@ -1,15 +1,20 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "motion-blur",
   "name": "Motion Blur",
   "type": "post_process",
-  "requiresDepth": true,
+  "inputs": ["scene_depth"],
   "passes": [
     {
       "name": "main",
       "shader": "effects/motion-blur/effect.hlsl",
       "vertexEntry": "VSMain",
-      "pixelEntry": "PSMain"
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "effect_input" },
+        { "slot": 1, "resource": "scene_depth" }
+      ],
+      "output": "effect_output"
     }
   ]
 }

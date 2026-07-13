@@ -92,6 +92,10 @@ namespace Chrivent {
 				L"-fvk-bind-register", L"t1", L"0", L"1", L"0",
 				L"-fvk-bind-register", L"t2", L"0", L"2", L"0",
 				L"-fvk-bind-register", L"t3", L"0", L"3", L"0",
+				L"-fvk-bind-register", L"t4", L"0", L"7", L"0",
+				L"-fvk-bind-register", L"t5", L"0", L"8", L"0",
+				L"-fvk-bind-register", L"t6", L"0", L"9", L"0",
+				L"-fvk-bind-register", L"t7", L"0", L"10", L"0",
 				L"-fvk-bind-register", L"s0", L"0", L"4", L"0",
 				L"-fvk-bind-register", L"s1", L"0", L"5", L"0",
 				L"-fvk-bind-register", L"s2", L"0", L"6", L"0"
@@ -105,6 +109,10 @@ namespace Chrivent {
 				L"-fvk-bind-register", L"t1", L"0", L"1", L"2",
 				L"-fvk-bind-register", L"t2", L"0", L"2", L"2",
 				L"-fvk-bind-register", L"t3", L"0", L"3", L"2",
+				L"-fvk-bind-register", L"t4", L"0", L"7", L"2",
+				L"-fvk-bind-register", L"t5", L"0", L"8", L"2",
+				L"-fvk-bind-register", L"t6", L"0", L"9", L"2",
+				L"-fvk-bind-register", L"t7", L"0", L"10", L"2",
 				L"-fvk-bind-register", L"s0", L"0", L"4", L"2",
 				L"-fvk-bind-register", L"s1", L"0", L"5", L"2",
 				L"-fvk-bind-register", L"s2", L"0", L"6", L"2"

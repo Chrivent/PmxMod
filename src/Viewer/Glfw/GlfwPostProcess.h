@@ -9,36 +9,44 @@
 namespace Chrivent {
 	struct PostProcessFrameData;
 
+	struct GlfwPostProcessResource {
+		GLuint framebuffers[2]{};
+		GLuint textures[2]{};
+		size_t historyIndex = 0;
+		bool historyInitialized = false;
+	};
+
 	class GlfwPostProcess : public PostProcess {
-		static constexpr size_t intermediateColorTargetCount = targetCount - 1;
 		GLuint sceneFramebuffer = 0;
 		GLuint sceneColorMsaa = 0;
 		GLuint resolveFramebuffer = 0;
 		GLuint sceneColorTexture = 0;
 		GLuint postProcessDepthFramebuffer = 0;
 		GLuint postProcessDepthTexture = 0;
-		GLuint intermediateFramebuffers[intermediateColorTargetCount] = {};
-		GLuint intermediateTextures[intermediateColorTargetCount] = {};
-		GLuint focusHistoryFramebuffers[2] = {};
-		GLuint focusHistoryTextures[2] = {};
 		GLuint sceneDepthStencil = 0;
 		GLuint postProcessVao = 0;
 		GLuint frameDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
-		std::unique_ptr<GlfwPostProcessShader> focusHistoryShader;
+		std::vector<GlfwPostProcessResource> resources;
 		std::vector<std::unique_ptr<GlfwPostProcessShader>> postProcessShaders;
-		size_t focusHistoryIndex = 0;
-		bool focusHistoryInitialized = false;
+		int targetWidth = 0;
+		int targetHeight = 0;
 
-		// 초기화 요청 뒤 초점 히스토리 target들을 0으로 지운다.
-		void InitializeFocusHistory();
-		// DOF용 자동 초점 히스토리 텍스처를 갱신한다.
-		void UpdateFocusHistory();
-		// 공통 target 인덱스에 대응하는 OpenGL 색상 텍스처를 반환한다.
-		GLuint ResolveColorTexture(size_t targetIndex) const;
-		// 중간 target 인덱스에 대응하는 OpenGL framebuffer를 반환한다.
-		GLuint ResolveIntermediateFramebuffer(size_t targetIndex) const;
-		// 후처리용 화면 프레임버퍼 리소스를 해제한다.
+		// 패키지가 선언한 transient/history texture와 framebuffer를 생성한다.
+		bool CreateEffectResources();
+		// 초기화가 필요한 모든 history texture를 0으로 지운다.
+		void InitializeHistories();
+		// pass 입력 경로에 대응하는 OpenGL texture를 반환한다.
+		GLuint ResolveInputTexture(const PostProcessPassInputRoute& input) const;
+		// pass 출력 경로에 대응하는 OpenGL framebuffer를 반환한다.
+		GLuint ResolveOutputFramebuffer(const PostProcessPassRoute& route) const;
+		// pass 출력 크기를 계산한다.
+		void ResolveOutputExtent(const PostProcessPassRoute& route, int& width, int& height) const;
+		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
+		void AdvanceHistory(const PostProcessPassRoute& route);
+		// 패키지가 선언한 OpenGL effect texture를 해제한다.
+		void ResetEffectResources();
+		// 후처리용 화면 framebuffer 리소스를 해제한다.
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
@@ -48,9 +56,9 @@ namespace Chrivent {
 
 		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
-		// 화면 크기에 맞는 OpenGL 후처리용 화면 프레임버퍼를 생성한다.
+		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		bool InitializeTargets(int width, int height, int msaaSamples, uint32_t maxSampleCount);
-		// 체크된 후처리 effect 목록으로 OpenGL fullscreen shader chain을 생성한다.
+		// 체크된 후처리 effect 선언으로 OpenGL 실행 리소스와 shader chain을 생성한다.
 		bool Load(const std::vector<const EffectDefinition*>& effects);
 		// OpenGL 후처리 프로그램과 선택 effect 목록만 해제한다.
 		void ClearShaders();
@@ -58,9 +66,9 @@ namespace Chrivent {
 		bool BeginDepthPass(int width, int height) const;
 		// OpenGL 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
 		static void EndDepthPass();
-		// 준비된 후처리 프로그램으로 화면 색상을 기본 framebuffer에 그린다.
+		// 준비된 실행 계획으로 화면 색상을 기본 framebuffer에 그린다.
 		void Draw(int width, int height, const PostProcessFrameData& frameData);
-		// 다음 후처리 프레임에서 OpenGL 초점 히스토리를 0으로 초기화한다.
+		// 다음 후처리 프레임에서 모든 OpenGL history를 0으로 초기화한다.
 		void ResetHistory() override;
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
 		void Reset() override;

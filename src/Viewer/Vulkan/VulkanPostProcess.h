@@ -12,72 +12,87 @@ namespace Chrivent {
 	class VulkanCommandBuffer;
 	struct PostProcessFrameData;
 
+	struct VulkanPostProcessResource {
+		std::vector<VkImage> images;
+		std::vector<VkDeviceMemory> memories;
+		std::vector<VkImageView> imageViews;
+		std::vector<bool> transientInitialized;
+		size_t historyIndex = 0;
+		bool historyInitialized = false;
+	};
+
 	class VulkanPostProcess : public PostProcess {
 		VkDevice device = VK_NULL_HANDLE;
-		std::vector<VkImage> targetImages;
-		std::vector<VkDeviceMemory> targetImageMemories;
-		std::vector<VkImageView> targetImageViews;
+		VkExtent2D targetExtent{};
+		VkFormat swapChainFormat = VK_FORMAT_UNDEFINED;
+		std::vector<VkImage> sceneImages;
+		std::vector<VkDeviceMemory> sceneImageMemories;
+		std::vector<VkImageView> sceneImageViews;
 		std::vector<VkImage> depthImages;
 		std::vector<VkDeviceMemory> depthImageMemories;
 		std::vector<VkImageView> depthImageViews;
-		std::vector<VkImage> focusHistoryImages;
-		std::vector<VkDeviceMemory> focusHistoryImageMemories;
-		std::vector<VkImageView> focusHistoryImageViews;
-		std::vector<VkDescriptorSet> descriptorSets;
-		std::vector<VkDescriptorSet> focusHistoryDescriptorSets;
+		std::vector<VulkanPostProcessResource> resources;
+		std::vector<VkDescriptorSet> textureDescriptorSets;
 		std::vector<VkDescriptorSet> frameDataDescriptorSets;
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
 		VkDescriptorSetLayout descriptorSetLayouts[3]{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		VkPipeline focusHistoryPipeline = VK_NULL_HANDLE;
 		std::vector<VkPipeline> pipelines;
 		VkSampler sampler = VK_NULL_HANDLE;
-		std::vector<size_t> focusHistoryIndices;
-		std::vector<bool> focusHistoryInitialized;
 		size_t swapChainImageCount = 0;
 
+		// 지정한 색상 texture image, memory와 view를 생성한다.
+		bool CreateColorImage(const VulkanDevice& sourceDevice, VkExtent2D extent, VkFormat format,
+			VkImageUsageFlags usage, VkImage& image, VkDeviceMemory& memory, VkImageView& imageView) const;
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
-		bool CreateTargetImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
+		bool CreateSceneImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
-		bool CreateDepthImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
-		// 스왑체인 이미지마다 DOF 초점 히스토리 ping-pong 이미지를 생성한다.
-		bool CreateFocusHistoryImages(const VulkanDevice& sourceDevice);
-		// 스왑체인 이미지마다 후처리 프레임 상수 버퍼를 생성한다.
+		bool CreateDepthImages(const VulkanDevice& sourceDevice,
+			const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
+		// 패키지가 선언한 transient/history image를 생성한다.
+		bool CreateEffectResources(const VulkanDevice& sourceDevice);
+		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
 		bool CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
-		// 장면 입력 texture/sampler용 descriptor 리소스를 생성한다.
-		bool CreateDescriptors(const VulkanSwapChain&);
+		// 범용 pass texture/sampler descriptor 리소스를 생성한다.
+		bool CreateDescriptors();
+		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
+		void UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
 		// HLSL 후처리 pass 하나를 지정한 출력 크기와 형식의 pipeline으로 만든다.
 		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, const EffectPassDefinition& pass,
 			VkExtent2D extent, VkFormat format, VkPipeline& pipeline) const;
-		// 선택된 HLSL 후처리 실행 계획으로 풀스크린 graphics pipeline들을 생성한다.
-		bool CreatePipelines(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
-		// target 종류와 swapchain 이미지 인덱스로 평탄화한 리소스 인덱스를 계산한다.
-		size_t ResolveTargetIndex(size_t targetIndex, uint32_t imageIndex) const;
-		// focus history 종류와 swapchain 이미지 인덱스로 평탄화한 리소스 인덱스를 계산한다.
-		size_t ResolveFocusHistoryIndex(size_t historyIndex, uint32_t imageIndex) const;
-		// source target, swapchain 이미지, focus history 인덱스로 descriptor set 인덱스를 계산한다.
-		size_t ResolveDescriptorIndex(
-			size_t targetIndex, size_t effectSourceIndex, uint32_t imageIndex, size_t historyIndex) const;
-		// 공통 target 인덱스에 대응하는 Vulkan 색상 형식을 반환한다.
-		static VkFormat ResolveTargetFormat(VkFormat fullResolutionFormat, size_t targetIndex);
-		// 공통 target 인덱스에 대응하는 Vulkan 출력 크기를 반환한다.
-		static VkExtent2D ResolveTargetExtent(VkExtent2D fullExtent, size_t targetIndex);
-		// 현재 swapchain 이미지의 초점 히스토리 ping-pong 인덱스를 다음 프레임용으로 갱신한다.
-		void AdvanceFocusHistory(uint32_t imageIndex);
+		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
+		bool CreatePipelines(const VulkanDevice& sourceDevice);
+		// 리소스 계획의 Vulkan 색상 형식을 반환한다.
+		static VkFormat ResolveResourceFormat(const PostProcessResourcePlan& resource);
+		// 리소스 계획의 실제 Vulkan 출력 크기를 반환한다.
+		VkExtent2D ResolveResourceExtent(const PostProcessResourcePlan& resource) const;
+		// pass 입력 경로에 대응하는 Vulkan image view를 반환한다.
+		VkImageView ResolveInputImageView(const PostProcessPassInputRoute& input, uint32_t imageIndex) const;
+		// pass 출력 경로에 대응하는 Vulkan image와 view를 반환한다.
+		bool ResolveOutputImage(const PostProcessPassRoute& route, uint32_t imageIndex,
+			VkImage swapChainImage, VkImageView swapChainImageView, VkImage& image,
+			VkImageView& imageView, VkExtent2D& extent, bool& initialized);
+		// pass별 descriptor set의 평탄화 인덱스를 반환한다.
+		size_t ResolveTextureDescriptorIndex(uint32_t imageIndex, size_t passIndex) const;
+		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
+		void AdvanceHistory(const PostProcessPassRoute& route);
+		// Vulkan image 묶음을 안전한 순서로 해제한다.
+		void DestroyImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& memories,
+			std::vector<VkImageView>& imageViews) const;
 
 	public:
 		~VulkanPostProcess() override;
 
 		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve 이미지를 반환한다.
 		VkImage ResolveSceneImage(uint32_t imageIndex) const {
-			return imageIndex < swapChainImageCount ? targetImages[ResolveTargetIndex(0, imageIndex)] : VK_NULL_HANDLE;
+			return imageIndex < sceneImages.size() ? sceneImages[imageIndex] : VK_NULL_HANDLE;
 		}
-		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve 이미지 뷰를 반환한다.
+		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve image view를 반환한다.
 		VkImageView ResolveSceneImageView(uint32_t imageIndex) const {
-			return imageIndex < swapChainImageCount ? targetImageViews[ResolveTargetIndex(0, imageIndex)] : VK_NULL_HANDLE;
+			return imageIndex < sceneImageViews.size() ? sceneImageViews[imageIndex] : VK_NULL_HANDLE;
 		}
-		// 현재 스왑체인과 선택된 효과 목록에 맞는 Vulkan 후처리 리소스를 생성한다.
+		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
 		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 시작한다.
@@ -85,11 +100,11 @@ namespace Chrivent {
 			VkPipeline depthPipeline, VkExtent2D extent) const;
 		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
 		bool EndDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
-		// 장면 렌더링을 끝내고 소유한 후처리 리소스로 최종 명령을 기록한다.
-		bool EndRecord(VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
+		// 장면 렌더링을 끝내고 선언된 pass들을 실행해 최종 명령을 기록한다.
+		bool EndRecord(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, VkExtent2D extent, const PostProcessFrameData& frameData,
 			bool sceneRenderingEnded = false);
-		// 다음 후처리 프레임에서 Vulkan 초점 히스토리를 0으로 초기화한다.
+		// 다음 후처리 프레임에서 모든 Vulkan history를 0으로 초기화한다.
 		void ResetHistory() override;
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void Reset() override;
