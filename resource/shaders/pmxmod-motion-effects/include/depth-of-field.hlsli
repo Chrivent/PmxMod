@@ -55,6 +55,12 @@ static const float EmphasizeRateScale = 2.0;
 // CoC 밝기 보정이 발산하지 않도록 보장하는 최소 반경이다.
 static const float MinimumCoCRadius = 1.0;
 
+// 서로 다른 깊이의 보케가 업샘플 과정에서 섞이지 않도록 감쇠하는 강도다.
+static const float DepthEdgeFalloff = 32.0;
+
+// 광역 전경 보케의 커버리지를 0~1 범위로 정규화하는 커널 가중치다.
+static const float ForegroundCoverageNormalization = 12.0;
+
 // 초점 히스토리 텍스처에 유효한 데이터가 저장되었는지 판별하는 표식이다.
 static const float FocusHistoryMarker = 0.5;
 
@@ -220,4 +226,12 @@ float3 ResolveBokehColor(float3 color) {
 float CalculateCircleOfConfusionBrightness(float cocPixels) {
     float radius = max(abs(cocPixels), MinimumCoCRadius);
     return saturate(1.0 / (radius * radius));
+}
+
+// 같은 표면은 유지하고 전경 보케만 깊이 경계를 넘어 후경 위로 번질 수 있게 한다.
+float CalculateDepthAwareUpsampleWeight(float centerDistance, float sampleDistance, float foregroundCoverage) {
+    float minimumDistance = max(min(centerDistance, sampleDistance), MinFocusDistance);
+    float relativeDifference = abs(centerDistance - sampleDistance) / minimumDistance;
+    float depthSimilarity = exp2(-relativeDifference * DepthEdgeFalloff);
+    return max(depthSimilarity, saturate(foregroundCoverage));
 }

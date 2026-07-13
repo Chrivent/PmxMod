@@ -26,8 +26,15 @@
       "resolution": "quarter"
     },
     {
-      "name": "bokeh-blur-quarter",
+      "name": "bokeh-background-quarter",
       "shader": "effects/depth-of-field/bokeh-blur.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh-foreground-quarter",
+      "shader": "effects/depth-of-field/bokeh-foreground.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "resolution": "quarter"
