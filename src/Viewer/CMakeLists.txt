@@ -66,7 +66,6 @@ target_sources(PmxModViewer PRIVATE
 
         Dx12/Dx12Viewer.h Dx12/Dx12Viewer.cpp
         Dx12/Dx12PostProcess.h Dx12/Dx12PostProcess.cpp
-        Dx12/Dx12PostProcessTarget.h Dx12/Dx12PostProcessTarget.cpp
         Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
         Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
         Dx12/Dx12Instance.h Dx12/Dx12Instance.cpp
