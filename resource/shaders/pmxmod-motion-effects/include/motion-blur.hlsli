@@ -2,28 +2,29 @@
 #define PMXMOD_MOTION_BLUR_HLSLI
 
 #include "post-process-frame.hlsli"
+#include "post-process-parameters.hlsli"
 #include "fullscreen.hlsli"
 
 // MotionBlur3의 기본 방향 블러 강도다.
-static const float DirectionalBlurStrength = 0.5;
+#define DirectionalBlurStrength ReadEffectParameter(0)
 
 // MotionBlur3의 라인 잔상 길이다.
-static const float LineBlurLength = 1.5;
+#define LineBlurLength ReadEffectParameter(1)
 
 // MotionBlur3의 라인 잔상 합성 강도다.
-static const float LineBlurStrength = 1.0;
+#define LineBlurStrength ReadEffectParameter(2)
 
 // 비정상적으로 큰 화면 속도가 전체 화면을 덮지 않도록 제한하는 UV 길이다.
-static const float VelocityLimit = 0.12;
+#define VelocityLimit ReadEffectParameter(3)
 
 // 이 값보다 느린 화면 이동에는 블러를 적용하지 않는다.
-static const float VelocityUnderCut = 0.006;
+#define VelocityUnderCut ReadEffectParameter(4)
 
 // 카메라가 이 거리보다 크게 이동하면 MotionBlur3처럼 장면 전환으로 판정한다.
-static const float SceneChangePositionThreshold = 20.0;
+#define SceneChangePositionThreshold ReadEffectParameter(5)
 
-// 카메라 방향이 25도보다 크게 바뀌었는지 판정하는 내적 한계값이다.
-static const float SceneChangeDirectionDotThreshold = 0.9063077870;
+// 카메라 방향 변화가 이 각도를 넘으면 장면 전환으로 판정한다.
+#define SceneChangeAngleThreshold ReadEffectParameter(6)
 
 // 첫 번째 방향 블러가 사용하는 MotionBlur3의 패스 배율이다.
 static const float FirstDirectionalRate = 0.7;
@@ -57,12 +58,19 @@ static const float VelocityTileScale = 4.0;
 
 static const float MotionEpsilon = 1.0e-5;
 
+// 픽셀마다 고정된 분산값을 만들어 라인 샘플의 규칙적인 띠를 줄인다.
+float CalculateMotionJitter(float2 pixelPosition) {
+    float noise = frac(52.9829189 * frac(dot(floor(pixelPosition), float2(0.06711056, 0.00583715))));
+    return noise - 0.5;
+}
+
 // 카메라 컷이나 히스토리 초기화 프레임에서는 이전 장면의 잔상을 사용하지 않는다.
 bool IsMotionSceneChange() {
     float directionDot = dot(normalize(CameraWorldDirection.xyz), normalize(PreviousCameraWorldDirection.xyz));
     float positionDelta = distance(CameraWorldPosition.xyz, PreviousCameraWorldPosition.xyz);
+    float directionThreshold = cos(SceneChangeAngleThreshold * 0.017453292519943295);
     return FrameHistoryReset > 0.5 || positionDelta > SceneChangePositionThreshold
-        || directionDot < SceneChangeDirectionDotThreshold;
+        || directionDot < directionThreshold;
 }
 
 // 속도 입력의 비정상값과 미세 움직임을 제거하고 최대 길이를 제한한다.

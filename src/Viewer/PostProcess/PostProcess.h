@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Shader/ShaderPackage.h"
 
 #include <vector>
@@ -33,9 +34,15 @@ namespace Chrivent {
 		size_t resourceIndex = 0;
 	};
 
+	// 한 효과가 b1 상수 버퍼로 전달할 스칼라 파라미터 값을 보관한다.
+	struct PostProcessParameterData {
+		float values[PostProcessInputLayout::maxParameterCount]{};
+	};
+
 	// 후처리 패스 하나의 입력 경로와 출력 대상을 나타낸다.
 	struct PostProcessPassRoute {
 		std::vector<PostProcessPassInputRoute> inputs;
+		PostProcessParameterData parameters;
 		PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
 		size_t outputResourceIndex = 0;
 	};

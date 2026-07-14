@@ -29,14 +29,19 @@ float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
     float3 colorSum = 0.0;
     float weightSum = 0.0;
     float maximumCoverage = 0.0;
+    float sampleJitter = CalculateMotionJitter(input.position.xy);
     for (int sampleIndex = -LineSampleRadius; sampleIndex <= LineSampleRadius; sampleIndex++) {
-        float sampleRate = (float)sampleIndex / max((float)LineSampleRadius, 1.0);
+        float jitter = sampleIndex == 0 ? 0.0 : sampleJitter;
+        float sampleRate = clamp(((float)sampleIndex + jitter) / max((float)LineSampleRadius, 1.0), -1.0, 1.0);
         float2 sampleUv = saturate(input.uv - lineVelocity * LineBlurLength * sampleRate);
         float2 sampleVelocity = ReadVelocity(sampleUv);
         float sampleSpeed = length(sampleVelocity);
         float alignment = CalculateDirectionAlignment(lineVelocity, sampleVelocity);
-        float segmentCoverage = CalculateMotionSegmentCoverage(
+        float centerCoverage = CalculateMotionSegmentCoverage(
+            input.uv, sampleUv, lineVelocity, LineBlurLength);
+        float sampleCoverage = CalculateMotionSegmentCoverage(
             sampleUv, input.uv, sampleVelocity, LineBlurLength) * alignment;
+        float segmentCoverage = max(centerCoverage, sampleCoverage);
         float sampleDepth = SceneDepth.SampleLevel(LinearClamp, sampleUv, 0.0).r;
         float depthWeight = CalculateTrailDepthWeight(centerDepth, sampleDepth);
         float taper = pow(saturate(1.0 - abs(sampleRate)), 0.7);

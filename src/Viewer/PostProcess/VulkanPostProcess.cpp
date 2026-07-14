@@ -186,6 +186,20 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
+		parameterDataBuffers.clear();
+		const size_t bufferCount = swapChainImageCount * ResolvePassRoutes().size();
+		for (size_t index = 0; index < bufferCount; index++) {
+			auto buffer = std::make_unique<VulkanBuffer>();
+			if (!buffer->Initialize(sourceDevice, sizeof(PostProcessParameterData),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+				return false;
+			parameterDataBuffers.push_back(std::move(buffer));
+		}
+		return true;
+	}
+
 	bool VulkanPostProcess::CreateDescriptors() {
 		constexpr VkDescriptorSetLayoutBinding frameDataBinding{
 			.binding = PostProcessInputLayout::frameDataRegister,
@@ -197,10 +211,18 @@ namespace Chrivent {
 		frameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		frameLayoutInfo.bindingCount = 1;
 		frameLayoutInfo.pBindings = &frameDataBinding;
-		VkDescriptorSetLayoutCreateInfo emptyLayoutInfo{};
-		emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		constexpr VkDescriptorSetLayoutBinding parameterDataBinding{
+			.binding = PostProcessInputLayout::parameterDataVulkanBinding,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		VkDescriptorSetLayoutCreateInfo parameterLayoutInfo{};
+		parameterLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		parameterLayoutInfo.bindingCount = 1;
+		parameterLayoutInfo.pBindings = &parameterDataBinding;
 		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS
-			|| vkCreateDescriptorSetLayout(device, &emptyLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS)
+			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS)
 			return false;
 		std::vector<VkDescriptorSetLayoutBinding> textureBindings;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
@@ -243,21 +265,24 @@ namespace Chrivent {
 			return false;
 		const uint32_t frameSetCount = static_cast<uint32_t>(swapChainImageCount);
 		const uint32_t textureSetCount = static_cast<uint32_t>(swapChainImageCount * ResolvePassRoutes().size());
+		const uint32_t parameterSetCount = textureSetCount;
 		const VkDescriptorPoolSize poolSizes[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameSetCount },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameSetCount + parameterSetCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureSetCount * PostProcessInputLayout::maxTextureCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureSetCount * 3 }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.maxSets = frameSetCount + textureSetCount;
+		poolInfo.maxSets = frameSetCount + parameterSetCount + textureSetCount;
 		poolInfo.poolSizeCount = 3;
 		poolInfo.pPoolSizes = poolSizes;
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 			return false;
-		std::vector layouts(frameSetCount + textureSetCount, descriptorSetLayouts[2]);
+		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount, descriptorSetLayouts[2]);
 		for (uint32_t index = 0; index < frameSetCount; index++)
 			layouts[index] = descriptorSetLayouts[0];
+		for (uint32_t index = frameSetCount; index < frameSetCount + parameterSetCount; index++)
+			layouts[index] = descriptorSetLayouts[1];
 		std::vector<VkDescriptorSet> sets(layouts.size());
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -267,7 +292,9 @@ namespace Chrivent {
 		if (vkAllocateDescriptorSets(device, &allocateInfo, sets.data()) != VK_SUCCESS)
 			return false;
 		frameDataDescriptorSets.assign(sets.begin(), sets.begin() + frameSetCount);
-		textureDescriptorSets.assign(sets.begin() + frameSetCount, sets.end());
+		parameterDataDescriptorSets.assign(
+			sets.begin() + frameSetCount, sets.begin() + frameSetCount + parameterSetCount);
+		textureDescriptorSets.assign(sets.begin() + frameSetCount + parameterSetCount, sets.end());
 		for (uint32_t index = 0; index < frameSetCount; index++) {
 			const VkDescriptorBufferInfo bufferInfo{
 				.buffer = frameDataBuffers[index]->buffer,
@@ -278,6 +305,22 @@ namespace Chrivent {
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = frameDataDescriptorSets[index],
 				.dstBinding = PostProcessInputLayout::frameDataRegister,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pBufferInfo = &bufferInfo
+			};
+			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+		}
+		for (uint32_t index = 0; index < parameterSetCount; index++) {
+			const VkDescriptorBufferInfo bufferInfo{
+				.buffer = parameterDataBuffers[index]->buffer,
+				.offset = 0,
+				.range = sizeof(PostProcessParameterData)
+			};
+			const VkWriteDescriptorSet write{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = parameterDataDescriptorSets[index],
+				.dstBinding = PostProcessInputLayout::parameterDataVulkanBinding,
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.pBufferInfo = &bufferInfo
@@ -500,6 +543,7 @@ namespace Chrivent {
 			&& CreateVelocityImages(sourceDevice)
 			&& CreateEffectResources(sourceDevice)
 			&& CreateFrameDataBuffers(sourceDevice)
+			&& CreateParameterDataBuffers(sourceDevice)
 			&& CreateDescriptors()
 			&& CreatePipelines(sourceDevice);
 	}
@@ -534,6 +578,8 @@ namespace Chrivent {
 		const auto& routes = ResolvePassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneImages.size()
 			|| imageIndex >= frameDataDescriptorSets.size() || imageIndex >= frameDataBuffers.size()
+			|| parameterDataDescriptorSets.size() != swapChainImageCount * routes.size()
+			|| parameterDataBuffers.size() != swapChainImageCount * routes.size()
 			|| textureDescriptorSets.size() != swapChainImageCount * routes.size()
 			|| pipelines.size() != routes.size() || pipelineLayout == VK_NULL_HANDLE)
 			return false;
@@ -585,6 +631,9 @@ namespace Chrivent {
 			if (pipelines[passIndex] == VK_NULL_HANDLE)
 				return false;
 			const PostProcessPassRoute& route = routes[passIndex];
+			const size_t parameterIndex = ResolveTextureDescriptorIndex(imageIndex, passIndex);
+			if (!parameterDataBuffers[parameterIndex]->Write(&route.parameters, sizeof(route.parameters)))
+				return false;
 			UpdateTextureDescriptorSet(imageIndex, passIndex);
 			VkImage outputImage = VK_NULL_HANDLE;
 			VkImageView outputImageView = VK_NULL_HANDLE;
@@ -618,6 +667,9 @@ namespace Chrivent {
 			const VkDescriptorSet descriptorSet = textureDescriptorSets[descriptorIndex];
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[passIndex]);
+			const VkDescriptorSet parameterSet = parameterDataDescriptorSets[parameterIndex];
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout, 1, 1, &parameterSet, 0, nullptr);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayout, 2, 1, &descriptorSet, 0, nullptr);
 			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -683,7 +735,9 @@ namespace Chrivent {
 		velocityImageViews.clear();
 		velocityImageInitialized.clear();
 		frameDataBuffers.clear();
+		parameterDataBuffers.clear();
 		frameDataDescriptorSets.clear();
+		parameterDataDescriptorSets.clear();
 		textureDescriptorSets.clear();
 		descriptorPool = VK_NULL_HANDLE;
 		pipelineLayout = VK_NULL_HANDLE;

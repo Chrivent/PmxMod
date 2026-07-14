@@ -229,12 +229,65 @@ namespace Chrivent {
 					resource.resolution = EffectPassResolution::Half;
 				else if (value == "quarter")
 					resource.resolution = EffectPassResolution::Quarter;
+				else if (value == "eighth")
+					resource.resolution = EffectPassResolution::Eighth;
 				else {
 					error = "Unsupported effect resource resolution: " + value + " in " + manifestPath.string();
 					return false;
 				}
 			}
 			resources.emplace_back(std::move(resource));
+		}
+		return true;
+	}
+
+	bool ShaderPackageParser::LoadParameters(const nlohmann::json& json,
+		const std::filesystem::path& manifestPath, std::vector<EffectParameterDefinition>& parameters,
+		std::string& error) {
+		parameters.clear();
+		const auto parameterArray = json.find("parameters");
+		if (parameterArray == json.end())
+			return true;
+		if (!parameterArray->is_array()) {
+			error = "Effect parameters must be an array: " + manifestPath.string();
+			return false;
+		}
+		std::unordered_set<std::string> ids;
+		std::unordered_set<uint32_t> slots;
+		for (const auto& parameterJson : *parameterArray) {
+			if (!parameterJson.is_object()) {
+				error = "Invalid effect parameter: " + manifestPath.string();
+				return false;
+			}
+			EffectParameterDefinition parameter;
+			const auto slot = parameterJson.find("slot");
+			const auto defaultValue = parameterJson.find("default");
+			const auto minimumValue = parameterJson.find("min");
+			const auto maximumValue = parameterJson.find("max");
+			if (!ReadRequiredString(parameterJson, "id", parameter.id, error)
+				|| !ReadRequiredString(parameterJson, "name", parameter.name, error)
+				|| slot == parameterJson.end() || !slot->is_number_unsigned()
+				|| defaultValue == parameterJson.end() || !defaultValue->is_number()
+				|| minimumValue == parameterJson.end() || !minimumValue->is_number()
+				|| maximumValue == parameterJson.end() || !maximumValue->is_number()) {
+				error = "Invalid effect parameter: " + manifestPath.string();
+				return false;
+			}
+			parameter.slot = slot->get<uint32_t>();
+			parameter.defaultValue = defaultValue->get<float>();
+			parameter.minimumValue = minimumValue->get<float>();
+			parameter.maximumValue = maximumValue->get<float>();
+			if (parameter.slot >= PostProcessInputLayout::maxParameterCount
+				|| !ids.emplace(parameter.id).second || !slots.emplace(parameter.slot).second
+				|| !std::isfinite(parameter.defaultValue) || !std::isfinite(parameter.minimumValue)
+				|| !std::isfinite(parameter.maximumValue)
+				|| parameter.minimumValue > parameter.maximumValue
+				|| parameter.defaultValue < parameter.minimumValue
+				|| parameter.defaultValue > parameter.maximumValue) {
+				error = "Invalid or duplicate effect parameter slot: " + manifestPath.string();
+				return false;
+			}
+			parameters.emplace_back(std::move(parameter));
 		}
 		return true;
 	}
@@ -294,10 +347,13 @@ namespace Chrivent {
 			}
 		}
 		if (postProcess) {
-			if (!LoadResources(json, manifestPath, effect.resources, error))
+			if (!LoadParameters(json, manifestPath, effect.parameters, error)
+				|| !LoadResources(json, manifestPath, effect.resources, error))
 				return false;
-		} else
+		} else {
+			effect.parameters.clear();
 			effect.resources.clear();
+		}
 		const auto passArray = json.find("passes");
 		if (passArray == json.end() || !passArray->is_array() || passArray->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();

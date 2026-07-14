@@ -28,6 +28,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> velocityRenderTargetView;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> velocityView;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> frameDataBuffer;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> parameterDataBuffer;
 		std::vector<Dx11PostProcessResource> resources;
 		std::vector<Dx11PostProcessShader> postProcessShaders;
 		int targetWidth = 0;

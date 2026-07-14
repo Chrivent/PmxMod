@@ -10,6 +10,8 @@ namespace Chrivent {
 		virtual const glm::mat4& ClipMatrix() const;
 		// 지면 그림자 투영에 사용할 평면 그림자 행렬을 만든다.
 		static glm::mat4 BuildGroundShadowMatrix(const glm::vec3& lightDir);
+		// material 불투명도가 공통 후처리 장면 입력 규격을 만족하는지 확인한다.
+		static bool ShouldDrawPostProcessSurface(float opacity);
 
 		// 일반 메시 패스를 그린다.
 		virtual void DrawModel() = 0;

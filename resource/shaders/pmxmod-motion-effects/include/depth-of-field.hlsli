@@ -2,6 +2,7 @@
 #define PMXMOD_DEPTH_OF_FIELD_HLSLI
 
 #include "post-process-frame.hlsli"
+#include "post-process-parameters.hlsli"
 #include "fullscreen.hlsli"
 #include "depth-of-field-kernels.hlsli"
 
@@ -9,73 +10,76 @@
 // 나중에 UI와 모션 파라미터 시스템이 생기면 상수 버퍼나 패키지 파라미터로 교체한다.
 
 // 보케를 강하게 만드는 ikBokeh의 "Bokeh+" 값이다.
-static const float BokehPlus = 0.15;
+#define BokehPlus ReadEffectParameter(0)
 
 // 보케를 약하게 만드는 ikBokeh의 "Bokeh-" 값이다.
-static const float BokehMinus = 0.0;
+#define BokehMinus ReadEffectParameter(1)
 
 // 전경 보케를 약하게 만드는 ikBokeh의 "Front Bokeh-" 값이다.
-static const float FrontBokehMinus = 0.0;
+#define FrontBokehMinus ReadEffectParameter(2)
 
 // 계산된 CoC를 추가 확대하는 ikBokeh의 "CoC size" 값이다.
-static const float CoCSize = 0.7;
+#define CoCSize ReadEffectParameter(3)
 
 // 자동 초점 측정 영역을 정하는 값이다. 0은 한 점, 0.5는 좁은 영역, 1은 넓은 영역을 사용한다.
-static const float AutoMeasuringMode = 1.0;
+#define AutoMeasuringMode ReadEffectParameter(4)
 
 // 초점이 맞는 범위를 픽셀 단위로 넓히는 ikBokeh의 "Focus range" 값이다.
-static const float FocusRangeParam = 0.0;
+#define FocusRangeParam ReadEffectParameter(5)
 
 // 밝은 보케 색을 강조하는 ikBokeh의 "emphasize" 값이다.
-static const float Emphasize = 0.0;
+#define Emphasize ReadEffectParameter(6)
 
 // 초점 이동의 지연 강도다. 0이면 즉시 따라가고 1에 가까울수록 천천히 접근한다.
-static const float FocusDelay = 0.5;
+#define FocusDelay ReadEffectParameter(7)
 
 // 초점 이동 관성의 유지 비율이다. 0이면 속도가 빠르게 사라지고 1에 가까울수록 오래 유지된다.
-static const float FocusSlip = 0.5;
+#define FocusSlip ReadEffectParameter(8)
 
 // 수동 초점 모드의 혼합 비율이다. 0은 자동, 1은 수동 초점이다.
-static const float ManualFocusMode = 0.0;
+#define ManualFocusMode ReadEffectParameter(9)
 
 // 수동 초점 거리를 0~1 범위로 지정한다. 1은 MMD 좌표계 기준 50미터다.
-static const float ManualFocusDistance = 0.0;
+#define ManualFocusDistance ReadEffectParameter(10)
 
 // 수동 렌즈 초점거리를 0~1 범위로 지정한다. 0은 20mm, 1은 120mm다.
-static const float ManualFocalLength = 0.0;
+#define ManualFocalLength ReadEffectParameter(11)
 
 // 상대 초점 거리를 앞으로 이동하는 컨트롤러 값이다.
-static const float RelativeFocusPlus = 0.0;
+#define RelativeFocusPlus ReadEffectParameter(12)
 
 // 상대 초점 거리를 뒤로 이동하는 컨트롤러 값이다.
-static const float RelativeFocusMinus = 0.0;
+#define RelativeFocusMinus ReadEffectParameter(13)
 
 // 측정 위치 XY와 상대 초점 Z를 함께 움직이는 ikBokeh 컨트롤러 위치다.
-static const float3 FocusControllerPosition = float3(0.0, 0.0, 0.0);
+#define FocusControllerPosition float3(ReadEffectParameter(14), ReadEffectParameter(15), ReadEffectParameter(16))
 
 // 자동 초점 측정 위치의 X 양의 방향 보정값이다.
-static const float MeasuringPositionXPlus = 0.0;
+#define MeasuringPositionXPlus ReadEffectParameter(17)
 
 // 자동 초점 측정 위치의 X 음의 방향 보정값이다.
-static const float MeasuringPositionXMinus = 0.0;
+#define MeasuringPositionXMinus ReadEffectParameter(18)
 
 // 자동 초점 측정 위치의 Y 양의 방향 보정값이다.
-static const float MeasuringPositionYPlus = 0.0;
+#define MeasuringPositionYPlus ReadEffectParameter(19)
 
 // 자동 초점 측정 위치의 Y 음의 방향 보정값이다.
-static const float MeasuringPositionYMinus = 0.0;
+#define MeasuringPositionYMinus ReadEffectParameter(20)
 
 // 초점면을 피사체에 수직으로 기울이는 ikBokeh 틸트 업 값이다.
-static const float TiltFocusUp = 0.0;
+#define TiltFocusUp ReadEffectParameter(21)
 
 // 초점면을 지정 축과 평행하게 기울이는 ikBokeh 틸트 다운 값이다.
-static const float TiltFocusDown = 0.0;
+#define TiltFocusDown ReadEffectParameter(22)
 
 // 틸트 초점면의 기준 축이다. UI가 생기기 전에는 월드 위쪽을 사용한다.
-static const float3 TiltFocusDirection = float3(0.0, 1.0, 0.0);
+#define TiltFocusDirection float3(ReadEffectParameter(23), ReadEffectParameter(24), ReadEffectParameter(25))
 
 // 현재 반해상도와 1/4 해상도 피라미드가 안정적으로 처리할 최대 CoC 반경이다.
-static const float MaxBlurPixels = 16.0;
+static const float MaxBlurPixels = 64.0;
+
+// 1/4 피라미드가 담당하고 1/8 피라미드로 넘기기 시작하는 CoC 반경이다.
+static const float QuarterBlurPixels = 32.0;
 
 // 반해상도 보정 패스가 직접 처리할 최대 흐림 반경이다.
 static const float MediumBlurPixels = 8.0;
@@ -85,6 +89,9 @@ static const float BokehHalfResolutionScale = 0.5;
 
 // 광역 보케 target의 해상도 비율이다.
 static const float BokehQuarterResolutionScale = 0.25;
+
+// 가장 넓은 보케 target의 해상도 비율이다.
+static const float BokehEighthResolutionScale = 0.125;
 
 // ikBokeh가 색 처리에 사용하는 감마다.
 static const float BokehColorGamma = 2.2;

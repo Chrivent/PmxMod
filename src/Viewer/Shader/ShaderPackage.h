@@ -18,6 +18,7 @@ namespace Chrivent {
 		Full,
 		Half,
 		Quarter,
+		Eighth,
 		Fixed
 	};
 
@@ -58,12 +59,23 @@ namespace Chrivent {
 		std::string output;
 	};
 
+	// 효과가 b1 상수 버퍼에서 사용할 스칼라 파라미터 한 개를 선언한다.
+	struct EffectParameterDefinition {
+		std::string id;
+		std::string name;
+		uint32_t slot = 0;
+		float defaultValue = 0.0f;
+		float minimumValue = 0.0f;
+		float maximumValue = 1.0f;
+	};
+
 	// 사용자에게 노출할 효과 하나의 타입과 리소스 및 패스 목록을 나타낸다.
 	struct EffectDefinition {
 		std::string id;
 		std::string name;
 		EffectType type = EffectType::PostProcess;
 		std::vector<std::string> inputs;
+		std::vector<EffectParameterDefinition> parameters;
 		std::vector<EffectResourceDefinition> resources;
 		std::vector<EffectPassDefinition> passes;
 	};
@@ -110,6 +122,9 @@ namespace Chrivent {
 		// 후처리 effect가 소유하는 범용 texture 리소스 정의를 읽는다.
 		static bool LoadResources(const nlohmann::json& json, const std::filesystem::path& manifestPath,
 			std::vector<EffectResourceDefinition>& resources, std::string& error);
+		// 후처리 effect가 b1에서 사용할 스칼라 파라미터 선언을 읽는다.
+		static bool LoadParameters(const nlohmann::json& json, const std::filesystem::path& manifestPath,
+			std::vector<EffectParameterDefinition>& parameters, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot, const std::filesystem::path& manifestPath,
 			EffectDefinition& effect, std::string& error);

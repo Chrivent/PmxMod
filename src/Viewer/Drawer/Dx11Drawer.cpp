@@ -253,7 +253,7 @@ namespace Chrivent {
 		const ID3D11RasterizerState* currentRs = nullptr;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& mat = instance.materials[materialId].mat;
-			if (mat.diffuse.a == 0)
+			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
 			ID3D11RasterizerState* targetRs = mat.bothFace
 				? viewer->pipelineStates.bothFaceRs.Get()

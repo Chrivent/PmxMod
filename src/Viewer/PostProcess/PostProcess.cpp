@@ -14,6 +14,8 @@ namespace Chrivent {
 			return static_cast<int>(width ? resource.width : resource.height);
 		if (resource.resolution == EffectPassResolution::Quarter)
 			return std::max(1, (fullExtent + 3) / 4);
+		if (resource.resolution == EffectPassResolution::Eighth)
+			return std::max(1, (fullExtent + 7) / 8);
 		return resource.resolution == EffectPassResolution::Half
 			? std::max(1, (fullExtent + 1) / 2) : fullExtent;
 	}
@@ -83,8 +85,13 @@ namespace Chrivent {
 		bool requiresVelocity = false;
 		for (size_t effectIndex = 0; effectIndex < activeEffects.size(); effectIndex++) {
 			const EffectDefinition& effect = *activeEffects[effectIndex];
+			PostProcessParameterData parameterData;
+			for (const auto& parameter : effect.parameters)
+				parameterData.values[parameter.slot] = parameter.defaultValue;
 			std::unordered_map<std::string, size_t> resourceIndices;
-			for (const auto& [name, lifetime, format, resolution, width, height] : effect.resources) {
+			for (const auto& [name, lifetime
+				, format, resolution
+				, width, height] : effect.resources) {
 				const size_t index = resources.size();
 				resourceIndices.emplace(name, index);
 				resources.emplace_back(PostProcessResourcePlan{
@@ -108,6 +115,7 @@ namespace Chrivent {
 			for (size_t passIndex = 0; passIndex < effect.passes.size(); passIndex++) {
 				const EffectPassDefinition& pass = effect.passes[passIndex];
 				PostProcessPassRoute route;
+				route.parameters = parameterData;
 				for (const auto& [slot, resource] : pass.inputs) {
 					PostProcessPassInputRoute inputRoute{ .slot = slot };
 					if (resource == "effect_input")

@@ -111,6 +111,9 @@ namespace Chrivent {
 		frameDataDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		if (FAILED(device->CreateBuffer(&frameDataDesc, nullptr, &frameDataBuffer)))
 			return false;
+		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(PostProcessParameterData));
+		if (FAILED(device->CreateBuffer(&frameDataDesc, nullptr, &parameterDataBuffer)))
+			return false;
 		const auto sceneColorDesc = Dx11DescBuilder::MakeTexture2DDesc(
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		if (FAILED(device->CreateTexture2D(&sceneColorDesc, nullptr, &sceneColor))
@@ -220,6 +223,9 @@ namespace Chrivent {
 		const auto& routes = ResolvePassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
+			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &route.parameters, 0, 0);
+			context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
+				1, parameterDataBuffer.GetAddressOf());
 			ID3D11RenderTargetView* targetView = ResolveOutputView(route, backBufferView);
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			int outputWidth = width;
@@ -251,6 +257,7 @@ namespace Chrivent {
 		velocityRenderTargetView.Reset();
 		velocityView.Reset();
 		frameDataBuffer.Reset();
+		parameterDataBuffer.Reset();
 		targetWidth = 0;
 		targetHeight = 0;
 	}

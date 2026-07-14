@@ -249,7 +249,7 @@ namespace Chrivent {
 		bool cullEnabled = true;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			const auto& mat = instance.materials[materialId].mat;
-			if (mat.diffuse.a == 0.0f)
+			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
 			if (mat.bothFace) {
 				if (cullEnabled) {

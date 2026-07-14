@@ -1,5 +1,7 @@
 ﻿#include "Viewer/Drawer/Drawer.h"
 
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
+
 namespace Chrivent {
 	const glm::mat4& Drawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(1.0f);
@@ -10,6 +12,10 @@ namespace Chrivent {
 		constexpr glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
 		const glm::vec4 light(-lightDir, 0.0f);
 		return glm::dot(plane, light) * glm::mat4(1.0f) - glm::outerProduct(light, plane);
+	}
+
+	bool Drawer::ShouldDrawPostProcessSurface(const float opacity) {
+		return opacity >= PostProcessInputLayout::surfaceOpacityThreshold;
 	}
 
 	Drawer::~Drawer() = default;

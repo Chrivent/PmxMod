@@ -27,6 +27,7 @@ namespace Chrivent {
 		GLuint sceneDepthStencil = 0;
 		GLuint postProcessVao = 0;
 		GLuint frameDataBuffer = 0;
+		GLuint parameterDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
 		std::vector<OpenGlPostProcessResource> resources;
 		std::vector<std::unique_ptr<OpenGlPostProcessShader>> postProcessShaders;

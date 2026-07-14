@@ -172,6 +172,22 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
+		for (auto& buffer : parameterDataBuffers)
+			buffer.Reset();
+		if (!sourceDevice.device)
+			return false;
+		const size_t passCount = ResolvePassRoutes().size();
+		if (passCount == 0)
+			return true;
+		const size_t stride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
+		for (auto& buffer : parameterDataBuffers) {
+			if (!buffer.InitializeUpload(sourceDevice, stride * passCount))
+				return false;
+		}
+		return true;
+	}
+
 	ID3D12Resource* Dx12PostProcess::ResolveInputResource(
 		const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const {
 		if (input.kind == PostProcessInputKind::SceneColor) {
@@ -250,14 +266,17 @@ namespace Chrivent {
 		srvRange.NumDescriptors = PostProcessInputLayout::maxTextureCount;
 		srvRange.BaseShaderRegister = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		D3D12_ROOT_PARAMETER rootParameters[2]{};
+		D3D12_ROOT_PARAMETER rootParameters[3]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[0].Descriptor.ShaderRegister = PostProcessInputLayout::frameDataRegister;
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
-		rootParameters[1].DescriptorTable.pDescriptorRanges = &srvRange;
+		rootParameters[1].Descriptor.ShaderRegister = PostProcessInputLayout::parameterDataRegister;
+		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+		rootParameters[2].DescriptorTable.pDescriptorRanges = &srvRange;
 		D3D12_STATIC_SAMPLER_DESC samplers[3]{};
 		for (UINT index = 0; index < 3; index++) {
 			samplers[index].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -270,7 +289,7 @@ namespace Chrivent {
 			samplers[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		}
 		D3D12_ROOT_SIGNATURE_DESC description;
-		description.NumParameters = 2;
+		description.NumParameters = 3;
 		description.pParameters = rootParameters;
 		description.NumStaticSamplers = 3;
 		description.pStaticSamplers = samplers;
@@ -355,6 +374,8 @@ namespace Chrivent {
 	void Dx12PostProcess::ResetEffectResources() {
 		inputDescriptorHeaps.clear();
 		resources.clear();
+		for (auto& buffer : parameterDataBuffers)
+			buffer.Reset();
 	}
 
 	bool Dx12PostProcess::InitializeTargets(
@@ -374,7 +395,8 @@ namespace Chrivent {
 			|| !sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT)
 			|| !CreateDepthTarget(sourceDevice, width, height)
 			|| !CreateEffectResources(sourceDevice)
-			|| !CreateInputDescriptorHeaps(sourceDevice))
+			|| !CreateInputDescriptorHeaps(sourceDevice)
+			|| !CreateParameterDataBuffers(sourceDevice))
 			return false;
 		const size_t frameDataSize = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessFrameData));
 		for (auto& buffer : frameDataBuffers) {
@@ -391,6 +413,7 @@ namespace Chrivent {
 		if (!SetEffects(effects)
 			|| (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources(sourceDevice))
 			|| !CreateInputDescriptorHeaps(sourceDevice)
+			|| !CreateParameterDataBuffers(sourceDevice)
 			|| !CreatePipelines(sourceDevice)) {
 			ClearEffectChain();
 			return false;
@@ -451,7 +474,9 @@ namespace Chrivent {
 		}
 		const size_t frameIndex = swapChain.GetFrameIndex() % frameDataBufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
-		if (!frameDataBuffer.Write(frameData)) {
+		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
+		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
+		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
 			return;
 		}
@@ -478,6 +503,9 @@ namespace Chrivent {
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.ResolveGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
+			const size_t parameterOffset = passIndex * parameterStride;
+			if (!parameterDataBuffer.Write(route.parameters, parameterOffset))
+				return;
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->ResolveResource(),
@@ -498,7 +526,9 @@ namespace Chrivent {
 			commandList->SetGraphicsRootSignature(postProcessRootSignature.Get());
 			commandList->SetPipelineState(postProcessPipelineStates[passIndex].Get());
 			commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);
-			commandList->SetGraphicsRootDescriptorTable(1, heap->GetGPUDescriptorHandleForHeapStart());
+			commandList->SetGraphicsRootConstantBufferView(
+				1, parameterDataBuffer.ResolveGpuAddress() + parameterOffset);
+			commandList->SetGraphicsRootDescriptorTable(2, heap->GetGPUDescriptorHandleForHeapStart());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
 			if (outputTarget != nullptr)
@@ -518,6 +548,8 @@ namespace Chrivent {
 		sceneVelocity.Reset();
 		sceneColor.Reset();
 		for (auto& buffer : frameDataBuffers)
+			buffer.Reset();
+		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
 		targetWidth = 0;
 		targetHeight = 0;

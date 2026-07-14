@@ -106,6 +106,8 @@ namespace Chrivent {
 			glDeleteFramebuffers(1, &sceneFramebuffer);
 		if (frameDataBuffer != 0)
 			glDeleteBuffers(1, &frameDataBuffer);
+		if (parameterDataBuffer != 0)
+			glDeleteBuffers(1, &parameterDataBuffer);
 		sceneDepthStencil = 0;
 		sceneColorMsaa = 0;
 		sceneColorTexture = 0;
@@ -115,6 +117,7 @@ namespace Chrivent {
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
 		frameDataBuffer = 0;
+		parameterDataBuffer = 0;
 		postProcessSampleCount = 1;
 		targetWidth = 0;
 		targetHeight = 0;
@@ -133,9 +136,11 @@ namespace Chrivent {
 		targetWidth = width;
 		targetHeight = height;
 		glCreateBuffers(1, &frameDataBuffer);
-		if (frameDataBuffer == 0)
+		glCreateBuffers(1, &parameterDataBuffer);
+		if (frameDataBuffer == 0 || parameterDataBuffer == 0)
 			return false;
 		glNamedBufferData(frameDataBuffer, sizeof(PostProcessFrameData), nullptr, GL_DYNAMIC_DRAW);
+		glNamedBufferData(parameterDataBuffer, sizeof(PostProcessParameterData), nullptr, GL_DYNAMIC_DRAW);
 		postProcessSampleCount = std::max<GLsizei>(
 			1, std::min<GLsizei>(msaaSamples, static_cast<GLsizei>(maxSampleCount)));
 		glCreateFramebuffers(1, &sceneFramebuffer);
@@ -251,6 +256,9 @@ namespace Chrivent {
 		const auto& routes = ResolvePassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
+			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(route.parameters), &route.parameters);
+			glBindBufferBase(GL_UNIFORM_BUFFER,
+				PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
 			glBindFramebuffer(GL_FRAMEBUFFER, ResolveOutputFramebuffer(route));
 			int outputWidth = width;
 			int outputHeight = height;

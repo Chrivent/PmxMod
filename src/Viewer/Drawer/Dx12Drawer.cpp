@@ -212,7 +212,7 @@ namespace Chrivent {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& mat = instance.materials[materialId].mat;
-			if (mat.diffuse.a == 0.0f)
+			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
 			if (velocityRequired)
 				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);

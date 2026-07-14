@@ -76,7 +76,7 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float4 broadBokeh = ResolveBroadBokeh(input.uv, centerCameraDistance);
     float centerCocDistance = CalculateTiltedCameraDistance(input.uv, centerCameraDistance, focusDistance);
     float centerCocPixels = CalculateCircleOfConfusionPixels(centerCocDistance, focusDistance);
-    float broadBlurAmount = smoothstep(MediumBlurPixels - 1.0, MaxBlurPixels, abs(centerCocPixels));
+    float broadBlurAmount = smoothstep(MediumBlurPixels - 1.0, MediumBlurPixels + 1.0, abs(centerCocPixels));
     float broadInfluence = max(broadBlurAmount, saturate(broadBokeh.a));
     float3 bokehColor = lerp(mediumBokeh, broadBokeh.rgb, saturate(broadInfluence));
     return float4(bokehColor, max(saturate(foregroundCoverage), saturate(broadBokeh.a)));

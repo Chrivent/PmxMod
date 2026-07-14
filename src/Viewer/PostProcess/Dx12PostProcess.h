@@ -48,6 +48,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> postProcessRootSignature;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> postProcessPipelineStates;
 		Dx12Buffer frameDataBuffers[frameDataBufferCount];
+		Dx12Buffer parameterDataBuffers[frameDataBufferCount];
 		int targetWidth = 0;
 		int targetHeight = 0;
 
@@ -63,6 +64,8 @@ namespace Chrivent {
 		bool CreateEffectResources(const Dx12Device& sourceDevice);
 		// pass별 shader input descriptor heap을 frame 수만큼 생성한다.
 		bool CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
+		// frame별 모든 pass 파라미터를 보관할 b1 upload buffer를 생성한다.
+		bool CreateParameterDataBuffers(const Dx12Device& sourceDevice);
 		// 현재 frame의 pass 입력 descriptor를 실행 계획에 맞게 갱신한다.
 		void UpdateInputDescriptors(const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex) const;
 		// 모든 history target을 최초 사용 전에 0으로 지운다.

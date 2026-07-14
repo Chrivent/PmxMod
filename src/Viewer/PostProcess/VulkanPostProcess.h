@@ -38,7 +38,9 @@ namespace Chrivent {
 		std::vector<VulkanPostProcessResource> resources;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 		std::vector<VkDescriptorSet> frameDataDescriptorSets;
+		std::vector<VkDescriptorSet> parameterDataDescriptorSets;
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
+		std::vector<std::unique_ptr<VulkanBuffer>> parameterDataBuffers;
 		VkDescriptorSetLayout descriptorSetLayouts[3]{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -60,6 +62,8 @@ namespace Chrivent {
 		bool CreateEffectResources(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
 		bool CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
+		// 스왑체인 이미지와 pass마다 효과 파라미터 b1 buffer를 생성한다.
+		bool CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
 		// 범용 pass texture/sampler descriptor 리소스를 생성한다.
 		bool CreateDescriptors();
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.

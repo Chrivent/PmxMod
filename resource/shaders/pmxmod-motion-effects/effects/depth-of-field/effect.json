@@ -4,6 +4,34 @@
   "name": "Depth of Field",
   "type": "post_process",
   "inputs": ["scene_depth"],
+  "parameters": [
+    { "id": "bokeh_plus", "name": "Bokeh+", "slot": 0, "default": 0.15, "min": 0.0, "max": 1.0 },
+    { "id": "bokeh_minus", "name": "Bokeh-", "slot": 1, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "front_bokeh_minus", "name": "Front Bokeh-", "slot": 2, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "coc_size", "name": "CoC Size", "slot": 3, "default": 0.7, "min": 0.0, "max": 1.0 },
+    { "id": "auto_measuring_mode", "name": "Auto Measuring Mode", "slot": 4, "default": 1.0, "min": 0.0, "max": 1.0 },
+    { "id": "focus_range", "name": "Focus Range", "slot": 5, "default": 0.0, "min": -1.0, "max": 1.0 },
+    { "id": "emphasize", "name": "Emphasize", "slot": 6, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "focus_delay", "name": "Focus Delay", "slot": 7, "default": 0.5, "min": 0.0, "max": 1.0 },
+    { "id": "focus_slip", "name": "Focus Slip", "slot": 8, "default": 0.5, "min": 0.0, "max": 1.0 },
+    { "id": "manual_focus_mode", "name": "Manual Focus Mode", "slot": 9, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "manual_focus_distance", "name": "Manual Focus Distance", "slot": 10, "default": 0.0, "min": 0.0, "max": 10000.0 },
+    { "id": "manual_focal_length", "name": "Manual Focal Length", "slot": 11, "default": 0.0, "min": 0.0, "max": 300.0 },
+    { "id": "relative_focus_plus", "name": "Relative Focus+", "slot": 12, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "relative_focus_minus", "name": "Relative Focus-", "slot": 13, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "focus_controller_x", "name": "Focus Controller X", "slot": 14, "default": 0.0, "min": -10000.0, "max": 10000.0 },
+    { "id": "focus_controller_y", "name": "Focus Controller Y", "slot": 15, "default": 0.0, "min": -10000.0, "max": 10000.0 },
+    { "id": "focus_controller_z", "name": "Focus Controller Z", "slot": 16, "default": 0.0, "min": -10000.0, "max": 10000.0 },
+    { "id": "measuring_x_plus", "name": "Measuring X+", "slot": 17, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "measuring_x_minus", "name": "Measuring X-", "slot": 18, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "measuring_y_plus", "name": "Measuring Y+", "slot": 19, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "measuring_y_minus", "name": "Measuring Y-", "slot": 20, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "tilt_focus_up", "name": "Tilt Focus Up", "slot": 21, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "tilt_focus_down", "name": "Tilt Focus Down", "slot": 22, "default": 0.0, "min": 0.0, "max": 1.0 },
+    { "id": "tilt_focus_direction_x", "name": "Tilt Focus Direction X", "slot": 23, "default": 0.0, "min": -1.0, "max": 1.0 },
+    { "id": "tilt_focus_direction_y", "name": "Tilt Focus Direction Y", "slot": 24, "default": 1.0, "min": -1.0, "max": 1.0 },
+    { "id": "tilt_focus_direction_z", "name": "Tilt Focus Direction Z", "slot": 25, "default": 0.0, "min": -1.0, "max": 1.0 }
+  ],
   "resources": [
     {
       "name": "focus",
@@ -24,6 +52,12 @@
       "resolution": "quarter"
     },
     {
+      "name": "coc_eighth",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "eighth"
+    },
+    {
       "name": "bokeh_background",
       "lifetime": "transient",
       "format": "rgba16_float",
@@ -31,6 +65,24 @@
     },
     {
       "name": "bokeh_foreground",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh_background_eighth",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "eighth"
+    },
+    {
+      "name": "bokeh_foreground_eighth",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "eighth"
+    },
+    {
+      "name": "bokeh_broad",
       "lifetime": "transient",
       "format": "rgba16_float",
       "resolution": "quarter"
@@ -79,6 +131,18 @@
       "output": "coc_downsample"
     },
     {
+      "name": "coc-eighth",
+      "shader": "effects/depth-of-field/coc-eighth.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "coc_downsample" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" }
+      ],
+      "output": "coc_eighth"
+    },
+    {
       "name": "bokeh-background-quarter",
       "shader": "effects/depth-of-field/bokeh-blur.hlsl",
       "vertexEntry": "VSMain",
@@ -104,12 +168,50 @@
       "output": "bokeh_foreground"
     },
     {
+      "name": "bokeh-background-eighth",
+      "shader": "effects/depth-of-field/bokeh-blur-eighth.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "coc_eighth" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" }
+      ],
+      "output": "bokeh_background_eighth"
+    },
+    {
+      "name": "bokeh-foreground-eighth",
+      "shader": "effects/depth-of-field/bokeh-foreground-eighth.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "bokeh_background_eighth" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "bokeh_foreground_eighth"
+    },
+    {
+      "name": "bokeh-broad-combine",
+      "shader": "effects/depth-of-field/bokeh-broad-combine.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "bokeh_foreground_eighth" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "bokeh_foreground" }
+      ],
+      "output": "bokeh_broad"
+    },
+    {
       "name": "bokeh-refine-half",
       "shader": "effects/depth-of-field/bokeh-refine.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "bokeh_foreground" },
+        { "slot": 0, "resource": "bokeh_broad" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "effect_input" }
