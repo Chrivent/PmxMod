@@ -17,7 +17,7 @@ namespace Chrivent {
 		// 지면 그림자 패스를 그린다.
 		virtual void DrawGroundShadow() = 0;
 		// 포스트 프로세스용 단일 샘플 depth에 모델 geometry만 기록한다.
-		virtual void DrawDepthOnly() {}
+		virtual void DrawDepthOnly() = 0;
 
 	public:
 		virtual ~Drawer();

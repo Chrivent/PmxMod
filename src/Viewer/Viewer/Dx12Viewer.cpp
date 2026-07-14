@@ -64,7 +64,7 @@ namespace Chrivent {
 
 	Dx12Viewer::~Dx12Viewer() {
 		commandContext.WaitForGpu(*device);
-		postProcess.Reset();
+		postProcess.Clear();
 		pipeline.Reset();
 		commandContext.Reset();
 		depthBuffer.Reset();
@@ -73,13 +73,12 @@ namespace Chrivent {
 		device->Shutdown();
 	}
 
-	void Dx12Viewer::ConfigureGlfwHints() {
+	void Dx12Viewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
 	bool Dx12Viewer::Setup() {
-		InitDirs();
-		if (!LoadBuiltInShaderContract())
+		if (!InitializeShaderResources())
 			return false;
 		if (!device->Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
@@ -194,15 +193,7 @@ namespace Chrivent {
 
 	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		const bool loaded = postProcess.Load(*device, effects);
-		if (loaded)
-			ResetPostProcessFrameHistory();
-		return loaded;
-	}
-
-	void Dx12Viewer::ResetPostProcessHistory() {
-		postProcess.ResetHistory();
-		ResetPostProcessFrameHistory();
+		return FinishPostProcessLoad(postProcess.Load(*device, effects));
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {

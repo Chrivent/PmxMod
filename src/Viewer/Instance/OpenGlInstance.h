@@ -2,17 +2,17 @@
 
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
-#include "Viewer/Buffer/GlfwDynamicBufferRing.h"
+#include "Viewer/Buffer/OpenGlDynamicBufferRing.h"
 
 #include <vector>
 #include <glad/glad.h>
 
 namespace Chrivent {
-    class GlfwViewer;
-    class GlfwDrawer;
-    struct GlfwMaterial;
+    class OpenGlViewer;
+    class OpenGlDrawer;
+    struct OpenGlMaterial;
 
-    class GlfwInstance : public Instance {
+    class OpenGlInstance : public Instance {
 		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
 		static GLuint CreateBuffer(size_t size, const void* data, GLenum usage);
 		// 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
@@ -25,29 +25,29 @@ namespace Chrivent {
         bool SetupConstantRings();
         // 모델 material 정보를 OpenGL material 캐시와 texture handle로 변환한다.
         void LoadMaterials();
+		// OpenGL 모델 리소스를 생성하고 인스턴스를 초기화한다.
+		bool SetupRenderer(Viewer& baseViewer) override;
 
         GLuint vertexVbo = 0;
         GLuint ibo = 0;
 
     public:
-        GlfwViewer* viewer = nullptr;
+        OpenGlViewer* viewer = nullptr;
         GLenum	indexType = GL_UNSIGNED_BYTE;
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
 		GLuint velocityVao = 0;
         size_t uniformBufferOffsetAlignment = 1;
-        GlfwDynamicBufferRing vertexConstantsRing;
-        GlfwDynamicBufferRing pixelConstantsRing;
-        std::vector<GlfwMaterial> materials;
+        OpenGlDynamicBufferRing vertexConstantsRing;
+        OpenGlDynamicBufferRing pixelConstantsRing;
+        std::vector<OpenGlMaterial> materials;
 
-        GlfwInstance() = default;
-        ~GlfwInstance() override;
+		OpenGlInstance();
+        ~OpenGlInstance() override;
 
         // OpenGL 버퍼와 VAO 리소스를 해제한다.
         void Clear() override;
-        // 모델 데이터를 OpenGL 버퍼, VAO, 재질 리소스로 업로드한다.
-        bool Setup(Viewer& baseViewer) override;
         // 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
         void Upload() const override;
     };

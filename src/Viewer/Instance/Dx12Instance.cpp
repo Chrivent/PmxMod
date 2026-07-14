@@ -191,13 +191,11 @@ namespace Chrivent {
 		indexBufferView = {};
 		indexCount = 0;
 		materials.clear();
+		viewer = nullptr;
 	}
 
-	bool Dx12Instance::Setup(Viewer& baseViewer) {
-		Clear();
+	bool Dx12Instance::SetupRenderer(Viewer& baseViewer) {
 		viewer = static_cast<Dx12Viewer*>(&baseViewer);
-		if (model == nullptr)
-			return false;
 		if (!viewer->device)
 			return false;
 		const auto& device = *viewer->device;

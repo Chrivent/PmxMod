@@ -17,8 +17,6 @@ namespace Chrivent {
 		std::vector<VkDeviceMemory> memories;
 		std::vector<VkImageView> imageViews;
 		std::vector<bool> transientInitialized;
-		size_t historyIndex = 0;
-		bool historyInitialized = false;
 	};
 
 	class VulkanPostProcess : public PostProcess {
@@ -81,8 +79,6 @@ namespace Chrivent {
 			VkImageView& imageView, VkExtent2D& extent, bool& initialized);
 		// pass별 descriptor set의 평탄화 인덱스를 반환한다.
 		size_t ResolveTextureDescriptorIndex(uint32_t imageIndex, size_t passIndex) const;
-		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
-		void AdvanceHistory(const PostProcessPassRoute& route);
 		// Vulkan image 묶음을 안전한 순서로 해제한다.
 		void DestroyImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& memories,
 			std::vector<VkImageView>& imageViews) const;
@@ -110,9 +106,7 @@ namespace Chrivent {
 		bool EndRecord(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, VkExtent2D extent, const PostProcessFrameData& frameData,
 			bool sceneRenderingEnded = false);
-		// 다음 후처리 프레임에서 모든 Vulkan history를 0으로 초기화한다.
-		void ResetHistory() override;
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
-		void Reset() override;
+		void ResetResources() override;
 	};
 }

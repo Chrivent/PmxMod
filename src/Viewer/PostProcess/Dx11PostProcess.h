@@ -14,8 +14,6 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> textures[2];
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetViews[2];
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceViews[2];
-		size_t historyIndex = 0;
-		bool historyInitialized = false;
 	};
 
 	class Dx11PostProcess : public PostProcess {
@@ -44,14 +42,12 @@ namespace Chrivent {
 		// pass 출력 경로에 대응하는 DX11 RTV를 반환한다.
 		ID3D11RenderTargetView* ResolveOutputView(
 			const PostProcessPassRoute& route, ID3D11RenderTargetView* backBufferView) const;
-		// pass 출력 크기를 계산한다.
-		void ResolveOutputExtent(const PostProcessPassRoute& route, int& width, int& height) const;
-		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
-		void AdvanceHistory(const PostProcessPassRoute& route);
 		// 패키지가 선언한 DX11 effect texture를 해제한다.
 		void ResetEffectResources();
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
+		// 선택한 효과의 셰이더와 선언형 리소스를 함께 해제한다.
+		void ClearEffectChain();
 
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
@@ -60,8 +56,6 @@ namespace Chrivent {
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 체크된 후처리 effect 선언으로 DX11 실행 리소스와 shader chain을 생성한다.
 		bool Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects);
-		// DX11 후처리 셰이더와 선택 effect 목록만 해제한다.
-		void ClearShaders();
 		// 후처리용 depth-only pass를 시작한다.
 		bool BeginDepthPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
 			int width, int height) const;
@@ -71,11 +65,9 @@ namespace Chrivent {
 		void Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 			int width, int height, const PostProcessFrameData& frameData);
-		// 다음 후처리 프레임에서 모든 DX11 history를 0으로 초기화한다.
-		void ResetHistory() override;
 		// 생성한 DX11 후처리 target을 해제한다.
 		void ResetTargets();
 		// 생성한 DX11 후처리 상태를 해제한다.
-		void Reset() override;
+		void ResetResources() override;
 	};
 }

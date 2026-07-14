@@ -132,7 +132,7 @@ namespace Chrivent {
 		return dummyTexture.texture && dummyTexture.textureView;
 	}
 
-	void Dx11Viewer::ConfigureGlfwHints() {
+	void Dx11Viewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
@@ -163,8 +163,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateRenderTargets())
 			return false;
-		InitDirs();
-		if (!LoadBuiltInShaderContract() || !CreateShaders())
+		if (!InitializeShaderResources() || !CreateShaders())
 			return false;
 		if (!CreatePipelineStates())
 			return false;
@@ -239,15 +238,7 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		const bool loaded = postProcess.Load(deviceResources.device.Get(), effects);
-		if (loaded)
-			ResetPostProcessFrameHistory();
-		return loaded;
-	}
-
-	void Dx11Viewer::ResetPostProcessHistory() {
-		postProcess.ResetHistory();
-		ResetPostProcessFrameHistory();
+		return FinishPostProcessLoad(postProcess.Load(deviceResources.device.Get(), effects));
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

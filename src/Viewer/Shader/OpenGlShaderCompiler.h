@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace Chrivent {
-	class GlfwShaderCompiler {
+	class OpenGlShaderCompiler {
 		// SPIR-V를 GLSL로 변환하고 OpenGL 셰이더 객체로 만든다.
 		static GLuint CreateStage(GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry);
 		// OpenGL 셰이더 컴파일 로그를 읽는다.

@@ -5,12 +5,12 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
-	class GlfwDynamicBufferRing : public DynamicBufferRing {
+	class OpenGlDynamicBufferRing : public DynamicBufferRing {
 		GLenum usage = GL_DYNAMIC_DRAW;
 		GLuint buffer = 0;
 
 	public:
-		~GlfwDynamicBufferRing() override;
+		~OpenGlDynamicBufferRing() override;
 		
 		GLuint GetBuffer() const { return buffer; }
 

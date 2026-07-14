@@ -1,4 +1,4 @@
-﻿#include "Viewer/PostProcess/GlfwPostProcess.h"
+﻿#include "Viewer/PostProcess/OpenGlPostProcess.h"
 
 #include "Viewer/Effect/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
@@ -6,33 +6,33 @@
 #include <algorithm>
 
 namespace Chrivent {
-	GlfwPostProcess::~GlfwPostProcess() {
-		GlfwPostProcess::Reset();
+	OpenGlPostProcess::~OpenGlPostProcess() {
+		OpenGlPostProcess::ResetResources();
 	}
 
-	bool GlfwPostProcess::CreateEffectResources() {
+	bool OpenGlPostProcess::CreateEffectResources() {
 		ResetEffectResources();
 		const auto& plans = ResolveResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
-			GlfwPostProcessResource& resource = resources[resourceIndex];
+			auto& [framebuffers, textures] = resources[resourceIndex];
 			const GLsizei textureCount = plan.lifetime == EffectResourceLifetime::History ? 2 : 1;
 			const int width = ResolveResourceExtent(targetWidth, plan, true);
 			const int height = ResolveResourceExtent(targetHeight, plan, false);
 			const GLenum format = plan.format == EffectTextureFormat::Rgba8Unorm
 				? GL_RGBA8 : plan.format == EffectTextureFormat::Rgba16Float ? GL_RGBA16F : GL_RGBA32F;
-			glCreateFramebuffers(textureCount, resource.framebuffers);
-			glCreateTextures(GL_TEXTURE_2D, textureCount, resource.textures);
+			glCreateFramebuffers(textureCount, framebuffers);
+			glCreateTextures(GL_TEXTURE_2D, textureCount, textures);
 			for (GLsizei index = 0; index < textureCount; index++) {
-				glTextureStorage2D(resource.textures[index], 1, format, width, height);
-				glTextureParameteri(resource.textures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTextureParameteri(resource.textures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTextureParameteri(resource.textures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTextureParameteri(resource.textures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTextureStorage2D(textures[index], 1, format, width, height);
+				glTextureParameteri(textures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTextureParameteri(textures[index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTextureParameteri(textures[index], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTextureParameteri(textures[index], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glNamedFramebufferTexture(
-					resource.framebuffers[index], GL_COLOR_ATTACHMENT0, resource.textures[index], 0);
-				if (glCheckNamedFramebufferStatus(resource.framebuffers[index], GL_FRAMEBUFFER)
+					framebuffers[index], GL_COLOR_ATTACHMENT0, textures[index], 0);
+				if (glCheckNamedFramebufferStatus(framebuffers[index], GL_FRAMEBUFFER)
 					!= GL_FRAMEBUFFER_COMPLETE)
 					return false;
 			}
@@ -41,21 +41,20 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwPostProcess::InitializeHistories() {
+	void OpenGlPostProcess::InitializeHistories() {
 		const auto& plans = ResolveResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
-			GlfwPostProcessResource& resource = resources[index];
-			if (plans[index].lifetime != EffectResourceLifetime::History || resource.historyInitialized)
+			OpenGlPostProcessResource& resource = resources[index];
+			if (!NeedsHistoryInitialization(index))
 				continue;
 			glClearNamedFramebufferfv(resource.framebuffers[0], GL_COLOR, 0, clearColor);
 			glClearNamedFramebufferfv(resource.framebuffers[1], GL_COLOR, 0, clearColor);
-			resource.historyIndex = 0;
-			resource.historyInitialized = true;
+			MarkHistoryInitialized(index);
 		}
 	}
 
-	GLuint GlfwPostProcess::ResolveInputTexture(const PostProcessPassInputRoute& input) const {
+	GLuint OpenGlPostProcess::ResolveInputTexture(const PostProcessPassInputRoute& input) const {
 		if (input.kind == PostProcessInputKind::SceneColor)
 			return sceneColorTexture;
 		if (input.kind == PostProcessInputKind::SceneDepth)
@@ -64,47 +63,20 @@ namespace Chrivent {
 			return postProcessVelocityTexture;
 		if (input.resourceIndex >= resources.size())
 			return sceneColorTexture;
-		const auto& plans = ResolveResourcePlans();
-		const GlfwPostProcessResource& resource = resources[input.resourceIndex];
-		return plans[input.resourceIndex].lifetime == EffectResourceLifetime::History
-			? resource.textures[resource.historyIndex] : resource.textures[0];
+		const OpenGlPostProcessResource& resource = resources[input.resourceIndex];
+		return resource.textures[ResolveResourceReadIndex(input.resourceIndex)];
 	}
 
-	GLuint GlfwPostProcess::ResolveOutputFramebuffer(const PostProcessPassRoute& route) const {
+	GLuint OpenGlPostProcess::ResolveOutputFramebuffer(const PostProcessPassRoute& route) const {
 		if (route.outputKind == PostProcessOutputKind::Present)
 			return 0;
 		if (route.outputResourceIndex >= resources.size())
 			return 0;
-		const auto& plans = ResolveResourcePlans();
-		const GlfwPostProcessResource& resource = resources[route.outputResourceIndex];
-		const size_t index = plans[route.outputResourceIndex].lifetime == EffectResourceLifetime::History
-			? ResolveNextHistoryIndex(resource.historyIndex) : 0;
-		return resource.framebuffers[index];
+		const OpenGlPostProcessResource& resource = resources[route.outputResourceIndex];
+		return resource.framebuffers[ResolveResourceWriteIndex(route.outputResourceIndex)];
 	}
 
-	void GlfwPostProcess::ResolveOutputExtent(
-		const PostProcessPassRoute& route, int& width, int& height) const {
-		width = targetWidth;
-		height = targetHeight;
-		if (route.outputKind == PostProcessOutputKind::Present
-			|| route.outputResourceIndex >= ResolveResourcePlans().size())
-			return;
-		const PostProcessResourcePlan& plan = ResolveResourcePlans()[route.outputResourceIndex];
-		width = ResolveResourceExtent(targetWidth, plan, true);
-		height = ResolveResourceExtent(targetHeight, plan, false);
-	}
-
-	void GlfwPostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
-		if (route.outputKind != PostProcessOutputKind::Resource
-			|| route.outputResourceIndex >= resources.size()
-			|| ResolveResourcePlans()[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
-			return;
-		GlfwPostProcessResource& resource = resources[route.outputResourceIndex];
-		resource.historyIndex = ResolveNextHistoryIndex(resource.historyIndex);
-		resource.historyInitialized = true;
-	}
-
-	void GlfwPostProcess::ResetEffectResources() {
+	void OpenGlPostProcess::ResetEffectResources() {
 		const auto& plans = ResolveResourcePlans();
 		for (size_t index = 0; index < resources.size(); index++) {
 			const GLsizei count = index < plans.size() && plans[index].lifetime == EffectResourceLifetime::History ? 2 : 1;
@@ -114,7 +86,7 @@ namespace Chrivent {
 		resources.clear();
 	}
 
-	void GlfwPostProcess::ResetTargets() {
+	void OpenGlPostProcess::ResetTargets() {
 		ResetEffectResources();
 		if (sceneDepthStencil != 0)
 			glDeleteRenderbuffers(1, &sceneDepthStencil);
@@ -148,12 +120,12 @@ namespace Chrivent {
 		targetHeight = 0;
 	}
 
-	void GlfwPostProcess::ResetShaders() {
+	void OpenGlPostProcess::ResetShaders() {
 		postProcessShaders.clear();
 		ResetHistory();
 	}
 
-	bool GlfwPostProcess::InitializeTargets(
+	bool OpenGlPostProcess::InitializeTargets(
 		const int width, const int height, const int msaaSamples, const uint32_t maxSampleCount) {
 		ResetTargets();
 		if (width <= 0 || height <= 0)
@@ -213,17 +185,17 @@ namespace Chrivent {
 			&& CreateEffectResources();
 	}
 
-	bool GlfwPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
+	bool OpenGlPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
 		ResetShaders();
 		ResetEffectResources();
 		if (!SetEffects(effects) || (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources())) {
-			ClearShaders();
+			ClearEffectChain();
 			return false;
 		}
 		for (const auto& pass : ResolvePasses()) {
-			auto shader = std::make_unique<GlfwPostProcessShader>();
+			auto shader = std::make_unique<OpenGlPostProcessShader>();
 			if (!shader->Initialize(pass)) {
-				ClearShaders();
+				ClearEffectChain();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
@@ -232,13 +204,13 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwPostProcess::ClearShaders() {
+	void OpenGlPostProcess::ClearEffectChain() {
 		ResetShaders();
 		ResetEffectResources();
 		ClearEffects();
 	}
 
-	bool GlfwPostProcess::BeginDepthPass(const int width, const int height) const {
+	bool OpenGlPostProcess::BeginDepthPass(const int width, const int height) const {
 		if (!RequiresDepth() && !RequiresVelocity())
 			return false;
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
@@ -257,12 +229,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwPostProcess::EndDepthPass() {
+	void OpenGlPostProcess::EndDepthPass() {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void GlfwPostProcess::Draw(
+	void OpenGlPostProcess::Draw(
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return;
@@ -294,17 +266,9 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwPostProcess::ResetHistory() {
-		for (auto& resource : resources) {
-			resource.historyIndex = 0;
-			resource.historyInitialized = false;
-		}
-	}
-
-	void GlfwPostProcess::Reset() {
+	void OpenGlPostProcess::ResetResources() {
 		ResetShaders();
 		ResetTargets();
-		ClearEffects();
 		if (postProcessVao != 0)
 			glDeleteVertexArrays(1, &postProcessVao);
 		postProcessVao = 0;

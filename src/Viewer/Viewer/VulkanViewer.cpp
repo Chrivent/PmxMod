@@ -22,7 +22,7 @@ namespace Chrivent {
 	void VulkanViewer::ResetSwapChainResources() {
 		commandContext.Reset();
 		pipeline->Reset();
-		postProcess.Reset();
+		postProcess.ResetResources();
 		msaaColorBuffer.Reset();
 		msaaDepthBuffer.Reset();
 	}
@@ -143,13 +143,12 @@ namespace Chrivent {
 		bindStateCache.textureDescriptorSet = descriptorSet;
 	}
 
-	void VulkanViewer::ConfigureGlfwHints() {
+	void VulkanViewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
 	bool VulkanViewer::Setup() {
-		InitDirs();
-		if (!LoadBuiltInShaderContract())
+		if (!InitializeShaderResources())
 			return false;
 		if (!device->Initialize(window))
 			return false;
@@ -317,20 +316,13 @@ namespace Chrivent {
 		if (!postProcess.SetEffects(effects))
 			return false;
 		ResetSwapChainResources();
-		if (CreateSwapChainResources()) {
-			ResetPostProcessFrameHistory();
-			return true;
-		}
+		if (CreateSwapChainResources())
+			return FinishPostProcessLoad(true);
 		postProcess.ClearEffects();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
 			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
 		return false;
-	}
-
-	void VulkanViewer::ResetPostProcessHistory() {
-		postProcess.ResetHistory();
-		ResetPostProcessFrameHistory();
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {

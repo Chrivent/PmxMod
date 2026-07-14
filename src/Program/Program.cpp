@@ -9,7 +9,7 @@
 #include "Core/Model/ModelPose.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
-#include "Viewer/Viewer/GlfwViewer.h"
+#include "Viewer/Viewer/OpenGlViewer.h"
 #include "Viewer/Viewer/VulkanViewer.h"
 #include "Viewer/Viewer/Dx11Viewer.h"
 #include "Viewer/Viewer/Dx12Viewer.h"
@@ -117,7 +117,7 @@ namespace Chrivent {
     void Program::CreateViewer(const RendererType rendererType) {
         switch (rendererType) {
             case RendererType::OpenGL:
-                viewer = std::make_unique<GlfwViewer>();
+                viewer = std::make_unique<OpenGlViewer>();
                 break;
             case RendererType::DirectX11:
                 viewer = std::make_unique<Dx11Viewer>();
@@ -140,7 +140,7 @@ namespace Chrivent {
             return false;
         }
         glfwDefaultWindowHints();
-        viewer->ConfigureGlfwHints();
+        viewer->ConfigureWindowHints();
         viewer->window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
         if (!viewer->window) {
             std::cerr << "Failed to create viewer window.\n";

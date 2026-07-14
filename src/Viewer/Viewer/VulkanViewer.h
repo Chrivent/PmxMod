@@ -46,11 +46,9 @@ namespace Chrivent {
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
 		VulkanMsaaDepthBuffer msaaDepthBuffer;
-		VulkanPostProcess postProcess;
 		std::shared_ptr<VulkanPipeline> pipeline;
 		VulkanCommandContext commandContext;
 		std::shared_ptr<VulkanSyncObject> syncObject;
-		VulkanTextureCache textureCache;
 		std::shared_ptr<VulkanTexture> dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
@@ -58,10 +56,17 @@ namespace Chrivent {
 		VulkanBindStateCache bindStateCache;
 
 	private:
+		VulkanPostProcess postProcess;
+		VulkanTextureCache textureCache;
+
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
 		bool CreateSwapChainResources();
 		// swapchain 재생성 전에 의존 리소스를 역순으로 해제한다.
 		void ResetSwapChainResources();
+
+	protected:
+		PostProcess& ResolvePostProcess() override { return postProcess; }
+		const PostProcess& ResolvePostProcess() const override { return postProcess; }
 
 	public:
 		VulkanViewer();
@@ -75,7 +80,6 @@ namespace Chrivent {
 		void BindDepthOnlyPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 장면 속도 pipeline을 바인딩한다.
 		void BindSceneVelocityPipeline(bool bothFace);
-		bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
 		void BindEdgePipeline();
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
@@ -87,7 +91,7 @@ namespace Chrivent {
 		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
 		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-		void ConfigureGlfwHints() override;
+		void ConfigureWindowHints() override;
 		// Vulkan 렌더러 리소스를 초기화한다.
 		bool Setup() override;
 		// 창 크기에 맞춰 Vulkan 스왑체인과 렌더 타깃을 재생성한다.
@@ -104,8 +108,6 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들에 맞춰 Vulkan 스왑체인 의존 리소스를 다시 구성한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-		// Vulkan 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
-		void ResetPostProcessHistory() override;
 		// Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

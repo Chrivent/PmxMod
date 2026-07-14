@@ -2,11 +2,9 @@
 
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Memory/VulkanMemory.h"
-#include "Viewer/Viewer/Viewer.h"
 
 #include <iostream>
 #include <ranges>
-#include <stb_image.h>
 
 namespace Chrivent {
 	bool VulkanTextureCache::BeginSingleTimeCommands(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
@@ -267,19 +265,15 @@ namespace Chrivent {
 		};
 		if (const auto texture = FindCachedTexture<VulkanTexture>(cacheKey))
 			return *texture;
-		int x = 0, y = 0, comp = 0;
-		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
-		if (!image)
+		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		if (!pixels)
 			return {};
-		const bool textureHasAlpha = comp == 4;
 		const auto texture = std::make_shared<VulkanTexture>();
 		texture->key = cacheKey;
-		texture->hasAlpha = textureHasAlpha;
-		if (!UploadRgbaPixels(sourceDevice, commandPool, image, x, y, *texture, clamp)) {
-			stbi_image_free(image);
+		texture->hasAlpha = components == 4;
+		if (!UploadRgbaPixels(sourceDevice, commandPool, pixels.get(),
+			width, height, *texture, clamp))
 			return {};
-		}
-		stbi_image_free(image);
 		textures[cacheKey] = texture;
 		return *texture;
 	}

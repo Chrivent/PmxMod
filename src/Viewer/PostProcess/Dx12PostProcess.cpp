@@ -190,11 +190,10 @@ namespace Chrivent {
 			format = sceneColor.ResolveFormat();
 			return sceneColor.ResolveResource();
 		}
-		const Dx12PostProcessResource& resource = resources[input.resourceIndex];
-		const size_t index = ResolveResourcePlans()[input.resourceIndex].lifetime
-			== EffectResourceLifetime::History ? resource.historyIndex : 0;
-		format = resource.targets[index].ResolveFormat();
-		return resource.targets[index].ResolveResource();
+		const auto& [targets] = resources[input.resourceIndex];
+		const size_t index = ResolveResourceReadIndex(input.resourceIndex);
+		format = targets[index].ResolveFormat();
+		return targets[index].ResolveResource();
 	}
 
 	void Dx12PostProcess::UpdateInputDescriptors(
@@ -231,8 +230,8 @@ namespace Chrivent {
 		constexpr float clearColor[4]{};
 		const auto& plans = ResolveResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
-			auto& [targets, historyIndex, historyInitialized] = resources[index];
-			if (plans[index].lifetime != EffectResourceLifetime::History || historyInitialized)
+			auto& targets = resources[index].targets;
+			if (!NeedsHistoryInitialization(index))
 				continue;
 			for (auto& target : targets) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, target.ResolveResource(),
@@ -241,8 +240,7 @@ namespace Chrivent {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, target.ResolveResource(),
 					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			}
-			historyIndex = 0;
-			historyInitialized = true;
+			MarkHistoryInitialized(index);
 		}
 	}
 
@@ -345,32 +343,8 @@ namespace Chrivent {
 	Dx12PostProcessTarget* Dx12PostProcess::ResolveOutputTarget(const PostProcessPassRoute& route) {
 		if (route.outputKind != PostProcessOutputKind::Resource || route.outputResourceIndex >= resources.size())
 			return nullptr;
-		Dx12PostProcessResource& resource = resources[route.outputResourceIndex];
-		const size_t index = ResolveResourcePlans()[route.outputResourceIndex].lifetime
-			== EffectResourceLifetime::History ? ResolveNextHistoryIndex(resource.historyIndex) : 0;
-		return &resource.targets[index];
-	}
-
-	void Dx12PostProcess::ResolveOutputExtent(
-		const PostProcessPassRoute& route, int& width, int& height) const {
-		width = targetWidth;
-		height = targetHeight;
-		if (route.outputKind == PostProcessOutputKind::Present
-			|| route.outputResourceIndex >= ResolveResourcePlans().size())
-			return;
-		const PostProcessResourcePlan& plan = ResolveResourcePlans()[route.outputResourceIndex];
-		width = ResolveResourceExtent(targetWidth, plan, true);
-		height = ResolveResourceExtent(targetHeight, plan, false);
-	}
-
-	void Dx12PostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
-		if (route.outputKind != PostProcessOutputKind::Resource
-			|| route.outputResourceIndex >= resources.size()
-			|| ResolveResourcePlans()[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
-			return;
-		Dx12PostProcessResource& resource = resources[route.outputResourceIndex];
-		resource.historyIndex = ResolveNextHistoryIndex(resource.historyIndex);
-		resource.historyInitialized = true;
+		auto& [targets] = resources[route.outputResourceIndex];
+		return &targets[ResolveResourceWriteIndex(route.outputResourceIndex)];
 	}
 
 	void Dx12PostProcess::ResetPipelines() {
@@ -418,14 +392,14 @@ namespace Chrivent {
 			|| (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources(sourceDevice))
 			|| !CreateInputDescriptorHeaps(sourceDevice)
 			|| !CreatePipelines(sourceDevice)) {
-			ClearPipelines();
+			ClearEffectChain();
 			return false;
 		}
 		ResetHistory();
 		return true;
 	}
 
-	void Dx12PostProcess::ClearPipelines() {
+	void Dx12PostProcess::ClearEffectChain() {
 		ResetPipelines();
 		ResetEffectResources();
 		ClearEffects();
@@ -536,14 +510,7 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	}
 
-	void Dx12PostProcess::ResetHistory() {
-		for (auto& resource : resources) {
-			resource.historyIndex = 0;
-			resource.historyInitialized = false;
-		}
-	}
-
-	void Dx12PostProcess::Reset() {
+	void Dx12PostProcess::ResetResources() {
 		ResetPipelines();
 		ResetEffectResources();
 		depth.Reset();
@@ -554,6 +521,5 @@ namespace Chrivent {
 			buffer.Reset();
 		targetWidth = 0;
 		targetHeight = 0;
-		ClearEffects();
 	}
 }

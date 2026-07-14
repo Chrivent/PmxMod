@@ -26,7 +26,9 @@ namespace Chrivent {
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
-			Dx11PostProcessResource& resource = resources[resourceIndex];
+			auto& [textures
+				, renderTargetViews
+				, shaderResourceViews] = resources[resourceIndex];
 			const size_t textureCount = plan.lifetime == EffectResourceLifetime::History ? 2 : 1;
 			const DXGI_FORMAT format = plan.format == EffectTextureFormat::Rgba8Unorm
 				? DXGI_FORMAT_R8G8B8A8_UNORM
@@ -36,11 +38,11 @@ namespace Chrivent {
 				ResolveResourceExtent(targetWidth, plan, true), ResolveResourceExtent(targetHeight, plan, false),
 				format, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 			for (size_t index = 0; index < textureCount; index++) {
-				if (FAILED(device->CreateTexture2D(&description, nullptr, &resource.textures[index]))
+				if (FAILED(device->CreateTexture2D(&description, nullptr, &textures[index]))
 					|| FAILED(device->CreateRenderTargetView(
-						resource.textures[index].Get(), nullptr, &resource.renderTargetViews[index]))
+						textures[index].Get(), nullptr, &renderTargetViews[index]))
 					|| FAILED(device->CreateShaderResourceView(
-						resource.textures[index].Get(), nullptr, &resource.shaderResourceViews[index])))
+						textures[index].Get(), nullptr, &shaderResourceViews[index])))
 					return false;
 			}
 		}
@@ -54,13 +56,12 @@ namespace Chrivent {
 		const auto& plans = ResolveResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
-			Dx11PostProcessResource& resource = resources[index];
-			if (plans[index].lifetime != EffectResourceLifetime::History || resource.historyInitialized)
+			const Dx11PostProcessResource& resource = resources[index];
+			if (!NeedsHistoryInitialization(index))
 				continue;
 			context->ClearRenderTargetView(resource.renderTargetViews[0].Get(), clearColor);
 			context->ClearRenderTargetView(resource.renderTargetViews[1].Get(), clearColor);
-			resource.historyIndex = 0;
-			resource.historyInitialized = true;
+			MarkHistoryInitialized(index);
 		}
 	}
 
@@ -75,8 +76,7 @@ namespace Chrivent {
 		if (input.resourceIndex >= resources.size())
 			return sceneColorView.Get();
 		const Dx11PostProcessResource& resource = resources[input.resourceIndex];
-		return ResolveResourcePlans()[input.resourceIndex].lifetime == EffectResourceLifetime::History
-			? resource.shaderResourceViews[resource.historyIndex].Get() : resource.shaderResourceViews[0].Get();
+		return resource.shaderResourceViews[ResolveResourceReadIndex(input.resourceIndex)].Get();
 	}
 
 	ID3D11RenderTargetView* Dx11PostProcess::ResolveOutputView(
@@ -86,31 +86,7 @@ namespace Chrivent {
 		if (route.outputResourceIndex >= resources.size())
 			return nullptr;
 		const Dx11PostProcessResource& resource = resources[route.outputResourceIndex];
-		const size_t index = ResolveResourcePlans()[route.outputResourceIndex].lifetime
-			== EffectResourceLifetime::History ? ResolveNextHistoryIndex(resource.historyIndex) : 0;
-		return resource.renderTargetViews[index].Get();
-	}
-
-	void Dx11PostProcess::ResolveOutputExtent(
-		const PostProcessPassRoute& route, int& width, int& height) const {
-		width = targetWidth;
-		height = targetHeight;
-		if (route.outputKind == PostProcessOutputKind::Present
-			|| route.outputResourceIndex >= ResolveResourcePlans().size())
-			return;
-		const PostProcessResourcePlan& plan = ResolveResourcePlans()[route.outputResourceIndex];
-		width = ResolveResourceExtent(targetWidth, plan, true);
-		height = ResolveResourceExtent(targetHeight, plan, false);
-	}
-
-	void Dx11PostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
-		if (route.outputKind != PostProcessOutputKind::Resource
-			|| route.outputResourceIndex >= resources.size()
-			|| ResolveResourcePlans()[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
-			return;
-		Dx11PostProcessResource& resource = resources[route.outputResourceIndex];
-		resource.historyIndex = ResolveNextHistoryIndex(resource.historyIndex);
-		resource.historyInitialized = true;
+		return resource.renderTargetViews[ResolveResourceWriteIndex(route.outputResourceIndex)].Get();
 	}
 
 	void Dx11PostProcess::ResetEffectResources() {
@@ -179,13 +155,13 @@ namespace Chrivent {
 		ResetShaders();
 		ResetEffectResources();
 		if (!SetEffects(effects) || (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources(device))) {
-			ClearShaders();
+			ClearEffectChain();
 			return false;
 		}
 		for (const auto& pass : ResolvePasses()) {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
-				ClearShaders();
+				ClearEffectChain();
 				return false;
 			}
 			postProcessShaders.push_back(std::move(shader));
@@ -194,7 +170,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11PostProcess::ClearShaders() {
+	void Dx11PostProcess::ClearEffectChain() {
 		ResetShaders();
 		ResetEffectResources();
 		ClearEffects();
@@ -252,7 +228,7 @@ namespace Chrivent {
 			ApplyViewport(context, outputWidth, outputHeight);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			std::vector<ID3D11ShaderResourceView*> views(
+			std::vector views(
 				PostProcessInputLayout::maxTextureCount, sceneColorView.Get());
 			for (const auto& input : route.inputs)
 				views[input.slot] = ResolveInputView(input);
@@ -261,13 +237,6 @@ namespace Chrivent {
 			std::ranges::fill(views, nullptr);
 			context->PSSetShaderResources(0, views.size(), views.data());
 			AdvanceHistory(route);
-		}
-	}
-
-	void Dx11PostProcess::ResetHistory() {
-		for (auto& resource : resources) {
-			resource.historyIndex = 0;
-			resource.historyInitialized = false;
 		}
 	}
 
@@ -286,9 +255,8 @@ namespace Chrivent {
 		targetHeight = 0;
 	}
 
-	void Dx11PostProcess::Reset() {
+	void Dx11PostProcess::ResetResources() {
 		ResetShaders();
 		ResetTargets();
-		ClearEffects();
 	}
 }

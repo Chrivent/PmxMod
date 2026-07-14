@@ -1,17 +1,17 @@
-﻿#include "Viewer/Viewer/GlfwViewer.h"
+﻿#include "Viewer/Viewer/OpenGlViewer.h"
 
-#include "Viewer/Instance/GlfwInstance.h"
+#include "Viewer/Instance/OpenGlInstance.h"
 #include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
-	GlfwViewer::~GlfwViewer() {
+	OpenGlViewer::~OpenGlViewer() {
 		if (window)
 			glfwMakeContextCurrent(window);
-		postProcess.Reset();
+		postProcess.Clear();
 	}
 
-	const char* GlfwViewer::ResolveGpuTypeName(const std::string& renderer) {
+	const char* OpenGlViewer::ResolveGpuTypeName(const std::string& renderer) {
 		if (renderer.contains("NVIDIA") || renderer.contains("Radeon RX") || renderer.contains("Radeon Pro"))
 			return "discrete";
 		if (renderer.contains("Intel") || renderer.contains("Radeon(TM) Graphics"))
@@ -19,7 +19,7 @@ namespace Chrivent {
 		return "other";
 	}
 
-	void GlfwViewer::ConfigureGlfwHints() {
+	void OpenGlViewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -28,7 +28,7 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 	}
 
-	bool GlfwViewer::Setup() {
+	bool OpenGlViewer::Setup() {
 		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
 			std::cerr << "Failed to load OpenGL functions.\n";
@@ -64,35 +64,34 @@ namespace Chrivent {
 		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		InitDirs();
-		if (!LoadBuiltInShaderContract())
+		if (!InitializeShaderResources())
 			return false;
-		shader = std::make_unique<GlfwModelShader>();
+		shader = std::make_unique<OpenGlModelShader>();
 		if (!shader->Initialize(builtInShaderPasses.model)) {
-			std::cerr << "Failed to set up main GLFW shader.\n";
+			std::cerr << "Failed to set up main OpenGL shader.\n";
 			return false;
 		}
-		edgeShader = std::make_unique<GlfwEdgeShader>();
+		edgeShader = std::make_unique<OpenGlEdgeShader>();
 		if (!edgeShader->Initialize(builtInShaderPasses.edge)) {
-			std::cerr << "Failed to set up edge GLFW shader.\n";
+			std::cerr << "Failed to set up edge OpenGL shader.\n";
 			return false;
 		}
-		gsShader = std::make_unique<GlfwGroundShadowShader>();
+		gsShader = std::make_unique<OpenGlGroundShadowShader>();
 		if (!gsShader->Initialize(builtInShaderPasses.groundShadow)) {
-			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
+			std::cerr << "Failed to set up ground shadow OpenGL shader.\n";
 			return false;
 		}
-		depthOnlyShader = std::make_unique<GlfwDepthOnlyShader>();
+		depthOnlyShader = std::make_unique<OpenGlDepthOnlyShader>();
 		if (!depthOnlyShader->Initialize(builtInShaderPasses.model)) {
-			std::cerr << "Failed to set up depth-only GLFW shader.\n";
+			std::cerr << "Failed to set up depth-only OpenGL shader.\n";
 			return false;
 		}
 		EffectPassDefinition sceneVelocityPass{
 			.shaderPath = ResolveInternalShaderPath("scene-velocity.hlsl")
 		};
-		sceneVelocityShader = std::make_unique<GlfwSceneVelocityShader>();
+		sceneVelocityShader = std::make_unique<OpenGlSceneVelocityShader>();
 		if (!sceneVelocityShader->Initialize(sceneVelocityPass)) {
-			std::cerr << "Failed to set up scene velocity GLFW shader.\n";
+			std::cerr << "Failed to set up scene velocity OpenGL shader.\n";
 			return false;
 		}
 		dummyColorTex = textureCache.CreateWhiteTexture().texture;
@@ -101,50 +100,42 @@ namespace Chrivent {
 		return postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
 	}
 
-	bool GlfwViewer::Resize() {
+	bool OpenGlViewer::Resize() {
 		glViewport(0, 0, screenWidth, screenHeight);
 		return postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
 	}
 
-	void GlfwViewer::BeginFrame() {
+	void OpenGlViewer::BeginFrame() {
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.ResolveSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
-	bool GlfwViewer::EndFrame() {
+	bool OpenGlViewer::EndFrame() {
 		postProcess.Draw(screenWidth, screenHeight, postProcessFrameData);
 		glfwSwapBuffers(window);
 		return true;
 	}
 
-	bool GlfwViewer::BeginPostProcessDepthPass() {
+	bool OpenGlViewer::BeginPostProcessDepthPass() {
 		return postProcess.BeginDepthPass(screenWidth, screenHeight);
 	}
 
-	void GlfwViewer::EndPostProcessDepthPass() {
+	void OpenGlViewer::EndPostProcessDepthPass() {
 		postProcess.EndDepthPass();
 	}
 
-	void GlfwViewer::WaitIdle() {
+	void OpenGlViewer::WaitIdle() {
 		glfwMakeContextCurrent(window);
 		glFinish();
 	}
 
-	bool GlfwViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		const bool loaded = postProcess.Load(effects);
-		if (loaded)
-			ResetPostProcessFrameHistory();
-		return loaded;
+	bool OpenGlViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+		return FinishPostProcessLoad(postProcess.Load(effects));
 	}
 
-	void GlfwViewer::ResetPostProcessHistory() {
-		postProcess.ResetHistory();
-		ResetPostProcessFrameHistory();
-	}
-
-	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {
-		return std::make_unique<GlfwInstance>();
+	std::unique_ptr<Instance> OpenGlViewer::CreateInstance() const {
+		return std::make_unique<OpenGlInstance>();
 	}
 
 }

@@ -25,19 +25,9 @@ namespace Chrivent {
 			outError = "Vulkan dynamic buffer ring frame capacity is zero.";
 			return std::nullopt;
 		}
-		const size_t alignedOffset = AlignUp(writeOffset, alignment);
-		if (alignedOffset + size > frameCapacity) {
-			outError = "Vulkan dynamic buffer ring is out of space for this frame.";
-			return std::nullopt;
-		}
-		writeOffset = alignedOffset + size;
-		outError.clear();
 		const size_t frameBaseOffset = currentFrameIndex * frameCapacity;
-		return UploadSlice{
-			.offset = frameBaseOffset + alignedOffset,
-			.size = size,
-			.cpuAddress = nullptr
-		};
+		return AllocateSlice(size, alignment, frameCapacity, frameBaseOffset,
+			"Vulkan dynamic buffer ring is out of space for this frame.", outError);
 	}
 
 	bool VulkanDynamicBufferRing::Write(const UploadSlice& slice, const void* data, std::string& outError) const {

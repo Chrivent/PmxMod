@@ -1,9 +1,6 @@
 ﻿#include "Viewer/Texture/Dx11TextureCache.h"
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
-#include "Viewer/Viewer/Viewer.h"
-
-#include <stb_image.h>
 
 namespace Chrivent {
 	Dx11Texture Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
@@ -34,18 +31,17 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture<Dx11Texture>(key))
 			return *texture;
-		int x = 0, y = 0, comp = 0;
-		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
-		if (!image)
+		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		if (!pixels)
 			return {};
-		const bool textureHasAlpha = comp == 4;
-		const auto d = Dx11DescBuilder::MakeTexture2DDesc(x, y, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+		const bool textureHasAlpha = components == 4;
+		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
+			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
-		initData.pSysMem = image;
-		initData.SysMemPitch = 4 * x;
+		initData.pSysMem = pixels.get();
+		initData.SysMemPitch = 4 * width;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
 		const HRESULT hr = device->CreateTexture2D(&d, &initData, &tex2D);
-		stbi_image_free(image);
 		if (FAILED(hr))
 			return {};
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;

@@ -64,6 +64,7 @@ namespace Chrivent {
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;
         Dx11TextureCache    textureCache;
+		Dx11PostProcess    postProcess;
 
         // DX11을 지원하는 고성능 DXGI 어댑터를 선택해 디바이스를 생성한다.
         bool CreateDevice();
@@ -77,6 +78,10 @@ namespace Chrivent {
         bool CreatePipelineStates();
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
         bool CreateDummyResources();
+
+	protected:
+		PostProcess& ResolvePostProcess() override { return postProcess; }
+		const PostProcess& ResolvePostProcess() const override { return postProcess; }
     
     public:
         Dx11DeviceResources deviceResources;
@@ -84,12 +89,11 @@ namespace Chrivent {
         Dx11ShaderSet shaders;
         Dx11PipelineStates pipelineStates;
         Dx11DummyTexture dummyTexture;
-        Dx11PostProcess postProcess;
 
         Dx11Viewer() = default;
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-        void ConfigureGlfwHints() override;
+        void ConfigureWindowHints() override;
         // DX11 디바이스, 스왑체인, 파이프라인 리소스를 초기화한다.
         bool Setup() override;
         // 창 크기에 맞춰 DX11 렌더 타깃과 깊이 버퍼를 재생성한다.
@@ -106,9 +110,6 @@ namespace Chrivent {
         void WaitIdle() override;
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // DX11 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
-        void ResetPostProcessHistory() override;
-        bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.

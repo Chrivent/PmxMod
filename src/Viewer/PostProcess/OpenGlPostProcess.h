@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/Shader/GlfwShader.h"
+#include "Viewer/Shader/OpenGlShader.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
 #include <memory>
@@ -9,14 +9,12 @@
 namespace Chrivent {
 	struct PostProcessFrameData;
 
-	struct GlfwPostProcessResource {
+	struct OpenGlPostProcessResource {
 		GLuint framebuffers[2]{};
 		GLuint textures[2]{};
-		size_t historyIndex = 0;
-		bool historyInitialized = false;
 	};
 
-	class GlfwPostProcess : public PostProcess {
+	class OpenGlPostProcess : public PostProcess {
 		GLuint sceneFramebuffer = 0;
 		GLuint sceneColorMsaa = 0;
 		GLuint resolveFramebuffer = 0;
@@ -28,8 +26,8 @@ namespace Chrivent {
 		GLuint postProcessVao = 0;
 		GLuint frameDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
-		std::vector<GlfwPostProcessResource> resources;
-		std::vector<std::unique_ptr<GlfwPostProcessShader>> postProcessShaders;
+		std::vector<OpenGlPostProcessResource> resources;
+		std::vector<std::unique_ptr<OpenGlPostProcessShader>> postProcessShaders;
 		int targetWidth = 0;
 		int targetHeight = 0;
 
@@ -41,19 +39,17 @@ namespace Chrivent {
 		GLuint ResolveInputTexture(const PostProcessPassInputRoute& input) const;
 		// pass 출력 경로에 대응하는 OpenGL framebuffer를 반환한다.
 		GLuint ResolveOutputFramebuffer(const PostProcessPassRoute& route) const;
-		// pass 출력 크기를 계산한다.
-		void ResolveOutputExtent(const PostProcessPassRoute& route, int& width, int& height) const;
-		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
-		void AdvanceHistory(const PostProcessPassRoute& route);
 		// 패키지가 선언한 OpenGL effect texture를 해제한다.
 		void ResetEffectResources();
 		// 후처리용 화면 framebuffer 리소스를 해제한다.
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
+		// 선택한 효과의 셰이더와 선언형 리소스를 함께 해제한다.
+		void ClearEffectChain();
 
 	public:
-		~GlfwPostProcess() override;
+		~OpenGlPostProcess() override;
 
 		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
@@ -61,17 +57,13 @@ namespace Chrivent {
 		bool InitializeTargets(int width, int height, int msaaSamples, uint32_t maxSampleCount);
 		// 체크된 후처리 effect 선언으로 OpenGL 실행 리소스와 shader chain을 생성한다.
 		bool Load(const std::vector<const EffectDefinition*>& effects);
-		// OpenGL 후처리 프로그램과 선택 effect 목록만 해제한다.
-		void ClearShaders();
 		// OpenGL 포스트 프로세스용 단일 샘플 depth-only pass를 시작한다.
 		bool BeginDepthPass(int width, int height) const;
 		// OpenGL 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
 		static void EndDepthPass();
 		// 준비된 실행 계획으로 화면 색상을 기본 framebuffer에 그린다.
 		void Draw(int width, int height, const PostProcessFrameData& frameData);
-		// 다음 후처리 프레임에서 모든 OpenGL history를 0으로 초기화한다.
-		void ResetHistory() override;
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
-		void Reset() override;
+		void ResetResources() override;
 	};
 }

@@ -1,4 +1,4 @@
-﻿#include "Viewer/Shader/GlfwShaderCompiler.h"
+﻿#include "Viewer/Shader/OpenGlShaderCompiler.h"
 
 #include "Viewer/Shader/DxcShaderCompiler.h"
 
@@ -6,7 +6,7 @@
 #include <spirv_cross/spirv_glsl.hpp>
 
 namespace Chrivent {
-	std::string GlfwShaderCompiler::ReadShaderLog(const GLuint shader) {
+	std::string OpenGlShaderCompiler::ReadShaderLog(const GLuint shader) {
 		GLint logLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
@@ -16,7 +16,7 @@ namespace Chrivent {
 		return log;
 	}
 
-	std::string GlfwShaderCompiler::ReadProgramLog(const GLuint program) {
+	std::string OpenGlShaderCompiler::ReadProgramLog(const GLuint program) {
 		GLint logLength = 0;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
@@ -26,7 +26,7 @@ namespace Chrivent {
 		return log;
 	}
 
-	GLuint GlfwShaderCompiler::CreateStage(const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
+	GLuint OpenGlShaderCompiler::CreateStage(const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
 		std::string source;
 		try {
 			spirv_cross::CompilerGLSL compiler(code);
@@ -65,7 +65,7 @@ namespace Chrivent {
 		return 0;
 	}
 
-	GLuint GlfwShaderCompiler::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
+	GLuint OpenGlShaderCompiler::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
 		const std::string& pixelEntry, const bool invertVertexY) {
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
@@ -110,7 +110,7 @@ namespace Chrivent {
 		return 0;
 	}
 
-	GLuint GlfwShaderCompiler::CreateVertexOnlyShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry) {
+	GLuint OpenGlShaderCompiler::CreateVertexOnlyShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry) {
 		std::vector<uint32_t> vertexCode;
 		std::string error;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());

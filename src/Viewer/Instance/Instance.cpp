@@ -8,6 +8,16 @@ namespace Chrivent {
     Instance::Instance() = default;
     Instance::~Instance() = default;
 
+	bool Instance::Setup(Viewer& baseViewer) {
+		Clear();
+		if (model == nullptr)
+			return false;
+		if (SetupRenderer(baseViewer))
+			return true;
+		Clear();
+		return false;
+	}
+
     void Instance::Draw() const {
         if (drawer)
             drawer->Draw();

@@ -29,17 +29,18 @@ namespace Chrivent {
 		std::shared_ptr<Dx12Device> device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
-		Dx12PostProcess postProcess;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
-		Dx12TextureCache textureCache;
 		std::shared_ptr<Dx12Texture> dummyTexture;
 		bool frameReady = false;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		UINT frameIndex = 0;
 
 	private:
+		Dx12PostProcess postProcess;
+		Dx12TextureCache textureCache;
+
 		// 현재 back buffer를 render target 상태로 전환한다.
 		void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const;
 		// MSAA color/depth target을 바인딩하고 프레임 시작 clear를 수행한다.
@@ -49,6 +50,10 @@ namespace Chrivent {
 		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
 		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
 
+	protected:
+		PostProcess& ResolvePostProcess() override { return postProcess; }
+		const PostProcess& ResolvePostProcess() const override { return postProcess; }
+
 	public:
 		Dx12Viewer();
 		~Dx12Viewer() override;
@@ -56,7 +61,7 @@ namespace Chrivent {
 		bool IsFrameReady() const { return frameReady; }
 
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-		void ConfigureGlfwHints() override;
+		void ConfigureWindowHints() override;
 		// DX12 렌더러 리소스를 초기화한다.
 		bool Setup() override;
 		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
@@ -73,8 +78,6 @@ namespace Chrivent {
 		void WaitIdle() override;
 		// 체크된 포스트 프로세스 효과들을 DX12 ping-pong 체인으로 컴파일한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-		// DX12 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
-		void ResetPostProcessHistory() override;
 		// DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance() const override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
@@ -85,7 +88,6 @@ namespace Chrivent {
 		void BindDepthOnlyPipeline(bool bothFace) const;
 		// material의 양면 렌더링 여부에 맞는 DX12 장면 속도 pipeline state를 바인딩한다.
 		void BindSceneVelocityPipeline(bool bothFace) const;
-		bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
 		// DX12 엣지 렌더링용 root signature와 pipeline state를 바인딩한다.
 		void BindEdgePipeline() const;
 		// DX12 지면 그림자 렌더링용 root signature와 pipeline state를 바인딩한다.

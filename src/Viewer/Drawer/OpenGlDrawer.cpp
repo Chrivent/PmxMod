@@ -1,17 +1,17 @@
-﻿#include "Viewer/Drawer/GlfwDrawer.h"
+﻿#include "Viewer/Drawer/OpenGlDrawer.h"
 
-#include "Viewer/Instance/GlfwInstance.h"
-#include "Viewer/Viewer/GlfwViewer.h"
+#include "Viewer/Instance/OpenGlInstance.h"
+#include "Viewer/Viewer/OpenGlViewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
 namespace Chrivent {
-	void GlfwDrawer::BeginDynamicBufferFrame() const {
+	void OpenGlDrawer::BeginDynamicBufferFrame() const {
 		instance.vertexConstantsRing.BeginFrame(0);
 		instance.pixelConstantsRing.BeginFrame(0);
 	}
 
-	bool GlfwDrawer::UpdateUniformBuffer(GlfwDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
+	bool OpenGlDrawer::UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
 		const auto slice = ring.Allocate(size, instance.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
@@ -21,7 +21,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void GlfwDrawer::DrawModel() {
+	void OpenGlDrawer::DrawModel() {
 		BeginDynamicBufferFrame();
 		const auto* viewer = instance.viewer;
 		if (!viewer->modelEffectEnabled)
@@ -117,7 +117,7 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwDrawer::DrawEdge() {
+	void OpenGlDrawer::DrawEdge() {
 		const auto* viewer = instance.viewer;
 		if (!viewer->edgeEffectEnabled)
 			return;
@@ -162,7 +162,7 @@ namespace Chrivent {
 		}
 	}
 
-	void GlfwDrawer::DrawGroundShadow() {
+	void OpenGlDrawer::DrawGroundShadow() {
 		const auto* viewer = instance.viewer;
 		if (!viewer->groundShadowEffectEnabled)
 			return;
@@ -213,7 +213,7 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 	}
 
-	void GlfwDrawer::DrawDepthOnly() {
+	void OpenGlDrawer::DrawDepthOnly() {
 		const auto* viewer = instance.viewer;
 		const auto indexType = instance.indexType;
 		const auto& view = viewer->viewMat;
@@ -265,5 +265,5 @@ namespace Chrivent {
 		}
 	}
 
-	GlfwDrawer::GlfwDrawer(GlfwInstance& sourceInstance) : instance(sourceInstance) {}
+	OpenGlDrawer::OpenGlDrawer(OpenGlInstance& sourceInstance) : instance(sourceInstance) {}
 }

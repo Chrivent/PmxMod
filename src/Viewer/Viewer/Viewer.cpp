@@ -1,10 +1,9 @@
 ﻿#include "Viewer/Viewer/Viewer.h"
 
+#include "Viewer/PostProcess/PostProcess.h"
+
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-
-#define	STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 #include <iostream>
 
@@ -19,6 +18,26 @@ namespace Chrivent {
 		previousProjMat = projMat;
 		postProcessHistoryResetPending = false;
 		postProcessFrameData.historyReset = 0.0f;
+	}
+
+	bool Viewer::InitializeShaderResources() {
+		InitializeDirectories();
+		return LoadBuiltInShaderContract();
+	}
+
+	bool Viewer::FinishPostProcessLoad(const bool loaded) {
+		if (loaded)
+			ResetPostProcessFrameHistory();
+		return loaded;
+	}
+
+	void Viewer::ResetPostProcessHistory() {
+		ResolvePostProcess().ResetHistory();
+		ResetPostProcessFrameHistory();
+	}
+
+	bool Viewer::RequiresPostProcessVelocity() const {
+		return ResolvePostProcess().RequiresVelocity();
 	}
 
 	bool Viewer::LoadBuiltInShaderContract() {
@@ -72,17 +91,7 @@ namespace Chrivent {
             DeleteObject(fpsFont);
     }
 
-    unsigned char* Viewer::LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp) {
-        x = y = comp = 0;
-        FILE* imageFile = nullptr;
-        if (_wfopen_s(&imageFile, texturePath.c_str(), L"rb") != 0 || !imageFile)
-            return nullptr;
-        stbi_uc* image = stbi_load_from_file(imageFile, &x, &y, &comp, STBI_rgb_alpha);
-        std::fclose(imageFile);
-        return image;
-    }
-
-    void Viewer::InitDirs() {
+	void Viewer::InitializeDirectories() {
         std::vector<wchar_t> buf(MAX_PATH);
         while (true) {
             const DWORD n = GetModuleFileNameW(nullptr, buf.data(), buf.size());

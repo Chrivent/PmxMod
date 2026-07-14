@@ -26,6 +26,8 @@ namespace Chrivent {
             const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
             return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
         }
+		// DX11 모델 리소스를 생성하고 인스턴스를 초기화한다.
+		bool SetupRenderer(Viewer& baseViewer) override;
 
     public:
         Dx11Viewer*                             viewer = nullptr;
@@ -40,10 +42,10 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
 
-        Dx11Instance() = default;
+		Dx11Instance();
         
-        // 모델 데이터를 DX11 버퍼와 재질 리소스로 업로드한다.
-        bool Setup(Viewer& baseViewer) override;
+		// DX11 모델 리소스를 해제한다.
+		void Clear() override;
         // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
         void Upload() const override;
     };

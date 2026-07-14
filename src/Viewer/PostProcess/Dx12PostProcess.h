@@ -32,8 +32,6 @@ namespace Chrivent {
 
 	struct Dx12PostProcessResource {
 		Dx12PostProcessTarget targets[2];
-		size_t historyIndex = 0;
-		bool historyInitialized = false;
 	};
 
 	class Dx12PostProcess : public PostProcess {
@@ -80,22 +78,18 @@ namespace Chrivent {
 		ID3D12Resource* ResolveInputResource(const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const;
 		// 출력 경로에 대응하는 DX12 target을 반환한다.
 		Dx12PostProcessTarget* ResolveOutputTarget(const PostProcessPassRoute& route);
-		// pass 출력 크기를 계산한다.
-		void ResolveOutputExtent(const PostProcessPassRoute& route, int& width, int& height) const;
-		// history 출력 pass가 끝난 뒤 read/write 인덱스를 전환한다.
-		void AdvanceHistory(const PostProcessPassRoute& route);
 		// pass pipeline과 root signature를 해제한다.
 		void ResetPipelines();
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
+		// 선택한 효과의 pipeline과 선언형 리소스를 함께 해제한다.
+		void ClearEffectChain();
 
 	public:
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 체크된 후처리 effect 선언으로 DX12 실행 리소스와 pipeline을 생성한다.
 		bool Load(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
-		// DX12 후처리 pipeline과 선택 effect 목록만 해제한다.
-		void ClearPipelines();
 		// 후처리 depth-only pass를 시작한다.
 		bool BeginDepthPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;
@@ -107,9 +101,7 @@ namespace Chrivent {
 			ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 			int width, int height, const PostProcessFrameData& frameData);
-		// 다음 후처리 프레임에서 모든 DX12 history를 0으로 초기화한다.
-		void ResetHistory() override;
 		// 생성한 DX12 후처리 리소스를 해제한다.
-		void Reset() override;
+		void ResetResources() override;
 	};
 }

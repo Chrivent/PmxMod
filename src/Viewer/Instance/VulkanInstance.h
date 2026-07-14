@@ -23,6 +23,8 @@ namespace Chrivent {
 		void LoadMaterials(const VulkanTexture& dummyTexture);
 		// 패스별 descriptor set을 생성한다.
 		bool CreateDescriptorSets(const VulkanDevice& device, const VulkanPipeline& pipeline);
+		// Vulkan 모델 리소스를 생성하고 인스턴스를 초기화한다.
+		bool SetupRenderer(Viewer& baseViewer) override;
 
 	public:
 		static constexpr size_t kBufferedFrames = 2;
@@ -48,8 +50,6 @@ namespace Chrivent {
 
 		// Vulkan 모델 리소스를 해제한다.
 		void Clear() override;
-		// 모델 데이터를 Vulkan 리소스로 업로드한다.
-		bool Setup(Viewer& baseViewer) override;
 		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
 		void Upload() const override;
 	};

@@ -1,9 +1,7 @@
 ﻿#include "Viewer/Texture/Dx12TextureCache.h"
 
-#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Synchronization/Dx12Barrier.h"
 
-#include <stb_image.h>
 #include <windows.h>
 
 namespace Chrivent {
@@ -116,19 +114,14 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
 			return *texture;
-		int x = 0;
-		int y = 0;
-		int comp = 0;
-		stbi_uc* image = Viewer::LoadImageRgba(texturePath, x, y, comp);
-		if (image == nullptr || x <= 0 || y <= 0) {
-			stbi_image_free(image);
+		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		if (!pixels)
 			return {};
-		}
 		const auto texture = std::make_shared<Dx12Texture>();
 		texture->key = key;
-		texture->hasAlpha = comp == 4;
-		const bool uploaded = UploadRgbaPixels(sourceDevice, image, x, y, *texture);
-		stbi_image_free(image);
+		texture->hasAlpha = components == 4;
+		const bool uploaded = UploadRgbaPixels(
+			sourceDevice, pixels.get(), width, height, *texture);
 		if (!uploaded)
 			return {};
 		textures[key] = texture;

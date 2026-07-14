@@ -33,7 +33,22 @@ namespace Chrivent {
 
 	class TextureCache {
 	protected:
+		struct ImageDeleter {
+			// stb_image가 할당한 픽셀 메모리를 해제한다.
+			void operator()(unsigned char* pixels) const;
+		};
+
+		struct LoadedImage {
+			std::unique_ptr<unsigned char, ImageDeleter> pixels;
+			int width = 0;
+			int height = 0;
+			int components = 0;
+		};
+
 		std::map<TextureKey, std::shared_ptr<Texture>> textures;
+
+		// 이미지 파일을 자동 해제되는 RGBA 픽셀 데이터로 읽는다.
+		static LoadedImage LoadImageRgba(const std::filesystem::path& texturePath);
 
 		// 캐시에 저장된 렌더러별 텍스처를 찾는다.
 		template <typename TextureType>

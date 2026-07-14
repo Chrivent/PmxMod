@@ -31,4 +31,21 @@ namespace Chrivent {
 		currentFrameIndex = frameIndex;
 		writeOffset = 0;
 	}
+
+	std::optional<UploadSlice> DynamicBufferRing::AllocateSlice(const size_t size, const size_t alignment,
+		const size_t availableCapacity, const size_t baseOffset, const char* capacityError,
+		std::string& outError) {
+		const size_t alignedOffset = AlignUp(writeOffset, alignment);
+		if (size > availableCapacity || alignedOffset > availableCapacity - size) {
+			outError = capacityError;
+			return std::nullopt;
+		}
+		writeOffset = alignedOffset + size;
+		outError.clear();
+		return UploadSlice{
+			.offset = baseOffset + alignedOffset,
+			.size = size,
+			.cpuAddress = nullptr
+		};
+	}
 }

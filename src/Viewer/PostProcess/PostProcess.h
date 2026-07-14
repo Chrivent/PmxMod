@@ -38,22 +38,40 @@ namespace Chrivent {
 	};
 
 	class PostProcess {
+		struct ResourceHistoryState {
+			size_t readIndex = 0;
+			bool initialized = false;
+		};
+
 		std::vector<EffectPassDefinition> passDefinitions;
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
+		std::vector<ResourceHistoryState> resourceHistoryStates;
 		bool depthRequired = false;
 		bool velocityRequired = false;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
 		bool BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects);
+		// history ping-pong 인덱스를 다음 write target으로 전환한다.
+		static size_t ResolveNextHistoryIndex(size_t currentIndex);
 
 	protected:
 		PostProcess() = default;
 
-		// history ping-pong 인덱스를 다음 write target으로 전환한다.
-		static size_t ResolveNextHistoryIndex(size_t currentIndex);
 		// 리소스 정의에 대응하는 실제 한 축의 해상도를 계산한다.
 		static int ResolveResourceExtent(int fullExtent, const PostProcessResourcePlan& resource, bool width);
+		// 출력 경로와 전체 화면 크기를 기준으로 패스 출력 크기를 계산한다.
+		void ResolveOutputExtent(const PostProcessPassRoute& route, int& width, int& height) const;
+		// 리소스의 현재 read texture 인덱스를 반환한다.
+		size_t ResolveResourceReadIndex(size_t resourceIndex, size_t transientIndex = 0) const;
+		// 리소스의 다음 write texture 인덱스를 반환한다.
+		size_t ResolveResourceWriteIndex(size_t resourceIndex, size_t transientIndex = 0) const;
+		// history 리소스를 GPU에서 초기화해야 하는지 반환한다.
+		bool NeedsHistoryInitialization(size_t resourceIndex) const;
+		// history 리소스가 초기화된 상태임을 기록한다.
+		void MarkHistoryInitialized(size_t resourceIndex);
+		// 출력 경로가 history 리소스이면 read/write 인덱스를 전환한다.
+		void AdvanceHistory(const PostProcessPassRoute& route);
 
 		const std::vector<EffectPassDefinition>& ResolvePasses() const { return passDefinitions; }
 		const std::vector<PostProcessPassRoute>& ResolvePassRoutes() const { return passRoutes; }
@@ -73,11 +91,13 @@ namespace Chrivent {
 
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectDefinition*>& effects);
-		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 Reset이 담당한다.
+		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.
 		void ClearEffects();
 		// 다음 후처리 프레임에서 모든 temporal history를 초기 상태로 되돌린다.
-		virtual void ResetHistory() = 0;
-		// API별 후처리 GPU 리소스를 해제한다.
-		virtual void Reset() = 0;
+		void ResetHistory();
+		// API별 GPU 리소스와 선택한 실행 계획을 함께 해제한다.
+		void Clear();
+		// 선택한 실행 계획은 유지하고 API별 GPU 리소스만 해제한다.
+		virtual void ResetResources() = 0;
 	};
 }

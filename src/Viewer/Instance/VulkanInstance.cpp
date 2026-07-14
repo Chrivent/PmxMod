@@ -49,26 +49,30 @@ namespace Chrivent {
 		uniformBufferOffsetAlignment = std::max<size_t>(1, device.properties.limits.minUniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
-		const auto AlignedSize = [&](const size_t size) {
-			const size_t alignment = uniformBufferOffsetAlignment;
-			const size_t remainder = size % alignment;
-			if (remainder == 0)
-				return size;
-			return size + (alignment - remainder);
-		};
-		constexpr size_t bufferedFrames = 2;
 		std::string error;
-		if (!modelVertexConstantsRing.Setup(device, AlignedSize(sizeof(ModelVertexConstants)) * ringSlack * bufferedFrames, error))
+		if (!modelVertexConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(ModelVertexConstants), uniformBufferOffsetAlignment)
+				* ringSlack * kBufferedFrames, error))
 			return false;
-		if (!edgeVertexConstantsRing.Setup(device, AlignedSize(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
+		if (!edgeVertexConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(EdgeVertexConstants), uniformBufferOffsetAlignment)
+				* (drawCount + ringSlack) * kBufferedFrames, error))
 			return false;
-		if (!groundShadowVertexConstantsRing.Setup(device, AlignedSize(sizeof(GroundShadowVertexConstants)) * ringSlack * bufferedFrames, error))
+		if (!groundShadowVertexConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(GroundShadowVertexConstants), uniformBufferOffsetAlignment)
+				* ringSlack * kBufferedFrames, error))
 			return false;
-		if (!modelPixelConstantsRing.Setup(device, AlignedSize(sizeof(ModelPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
+		if (!modelPixelConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(ModelPixelConstants), uniformBufferOffsetAlignment)
+				* (drawCount + ringSlack) * kBufferedFrames, error))
 			return false;
-		if (!edgePixelConstantsRing.Setup(device, AlignedSize(sizeof(EdgePixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
+		if (!edgePixelConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(EdgePixelConstants), uniformBufferOffsetAlignment)
+				* (drawCount + ringSlack) * kBufferedFrames, error))
 			return false;
-		if (!groundShadowPixelConstantsRing.Setup(device, AlignedSize(sizeof(GroundShadowPixelConstants)) * (drawCount + ringSlack) * bufferedFrames, error))
+		if (!groundShadowPixelConstantsRing.Setup(device,
+			DynamicBufferRing::AlignUp(sizeof(GroundShadowPixelConstants), uniformBufferOffsetAlignment)
+				* (drawCount + ringSlack) * kBufferedFrames, error))
 			return false;
 		return true;
 	}
@@ -142,13 +146,11 @@ namespace Chrivent {
 		uniformBufferOffsetAlignment = 1;
 		indexType = VK_INDEX_TYPE_UINT16;
 		indexCount = 0;
+		viewer = nullptr;
 	}
 
-	bool VulkanInstance::Setup(Viewer& baseViewer) {
-		Clear();
+	bool VulkanInstance::SetupRenderer(Viewer& baseViewer) {
 		viewer = static_cast<VulkanViewer*>(&baseViewer);
-		if (model == nullptr)
-			return false;
 		if (!viewer->device || !viewer->pipeline || !viewer->dummyTexture)
 			return false;
 		const auto& device = *viewer->device;

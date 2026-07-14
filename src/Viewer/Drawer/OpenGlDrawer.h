@@ -1,20 +1,20 @@
 ﻿#pragma once
 
 #include "Viewer/Drawer/Drawer.h"
-#include "Viewer/Buffer/GlfwDynamicBufferRing.h"
+#include "Viewer/Buffer/OpenGlDynamicBufferRing.h"
 
 #include <glad/glad.h>
 
 namespace Chrivent {
-	class GlfwInstance;
+	class OpenGlInstance;
 
-	class GlfwDrawer : public Drawer {
-		GlfwInstance& instance;
+	class OpenGlDrawer : public Drawer {
+		OpenGlInstance& instance;
 
 		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.
 		void BeginDynamicBufferFrame() const;
 		// uniform buffer ring에 상수 데이터를 기록하고 지정한 binding에 연결한다.
-		bool UpdateUniformBuffer(GlfwDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
+		bool UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
 
 	protected:
 		// 일반 메시 패스를 OpenGL로 렌더링한다.
@@ -27,8 +27,8 @@ namespace Chrivent {
 		void DrawDepthOnly() override;
 
 	public:
-		~GlfwDrawer() override = default;
+		~OpenGlDrawer() override = default;
 
-		explicit GlfwDrawer(GlfwInstance& sourceInstance);
+		explicit OpenGlDrawer(OpenGlInstance& sourceInstance);
 	};
 }

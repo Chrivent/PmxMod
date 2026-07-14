@@ -14,7 +14,7 @@ target_include_directories(PmxModDxcCompiler PRIVATE
 
 target_sources(PmxModViewer PRIVATE
         Buffer/DynamicBufferRing.h Buffer/DynamicBufferRing.cpp
-        Buffer/GlfwDynamicBufferRing.h Buffer/GlfwDynamicBufferRing.cpp
+        Buffer/OpenGlDynamicBufferRing.h Buffer/OpenGlDynamicBufferRing.cpp
         Buffer/Dx12Buffer.h Buffer/Dx12Buffer.cpp
         Buffer/VulkanBuffer.h Buffer/VulkanBuffer.cpp
         Buffer/VulkanDynamicBufferRing.h Buffer/VulkanDynamicBufferRing.cpp
@@ -31,7 +31,7 @@ target_sources(PmxModViewer PRIVATE
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
         Drawer/Drawer.h Drawer/Drawer.cpp
-        Drawer/GlfwDrawer.h Drawer/GlfwDrawer.cpp
+        Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
         Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp
         Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
         Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
@@ -42,7 +42,7 @@ target_sources(PmxModViewer PRIVATE
         Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
 
         Instance/Instance.h Instance/Instance.cpp
-        Instance/GlfwInstance.h Instance/GlfwInstance.cpp
+        Instance/OpenGlInstance.h Instance/OpenGlInstance.cpp
         Instance/Dx11Instance.h Instance/Dx11Instance.cpp
         Instance/Dx12Instance.h Instance/Dx12Instance.cpp
         Instance/VulkanInstance.h Instance/VulkanInstance.cpp
@@ -54,7 +54,7 @@ target_sources(PmxModViewer PRIVATE
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
-        PostProcess/GlfwPostProcess.h PostProcess/GlfwPostProcess.cpp
+        PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
         PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
         PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
         PostProcess/VulkanPostProcess.h PostProcess/VulkanPostProcess.cpp
@@ -68,8 +68,8 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h
         $<TARGET_OBJECTS:PmxModDxcCompiler>
-        Shader/GlfwShader.h Shader/GlfwShader.cpp
-        Shader/GlfwShaderCompiler.h Shader/GlfwShaderCompiler.cpp
+        Shader/OpenGlShader.h Shader/OpenGlShader.cpp
+        Shader/OpenGlShaderCompiler.h Shader/OpenGlShaderCompiler.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
         Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp
 
@@ -79,14 +79,14 @@ target_sources(PmxModViewer PRIVATE
         Synchronization/Dx12Barrier.h Synchronization/Dx12Barrier.cpp
         Synchronization/VulkanSyncObject.h Synchronization/VulkanSyncObject.cpp
 
-        Texture/TextureCache.h
-        Texture/GlfwTextureCache.h Texture/GlfwTextureCache.cpp
+        Texture/TextureCache.h Texture/TextureCache.cpp
+        Texture/OpenGlTextureCache.h Texture/OpenGlTextureCache.cpp
         Texture/Dx11TextureCache.h Texture/Dx11TextureCache.cpp
         Texture/Dx12TextureCache.h Texture/Dx12TextureCache.cpp
         Texture/VulkanTextureCache.h Texture/VulkanTextureCache.cpp
 
         Viewer/Viewer.h Viewer/Viewer.cpp
-        Viewer/GlfwViewer.h Viewer/GlfwViewer.cpp
+        Viewer/OpenGlViewer.h Viewer/OpenGlViewer.cpp
         Viewer/Dx11Viewer.h Viewer/Dx11Viewer.cpp
         Viewer/Dx12Viewer.h Viewer/Dx12Viewer.cpp
         Viewer/VulkanViewer.h Viewer/VulkanViewer.cpp
