@@ -15,6 +15,7 @@
 #include <vector>
 
 namespace Chrivent {
+	// 공통 PMX 재질에 D3D12 texture와 descriptor handle을 결합한다.
 	struct Dx12Material : ViewerMaterial {
 		Dx12Texture texture{};
 		Dx12Texture sphereTexture{};
@@ -24,6 +25,7 @@ namespace Chrivent {
 		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 
+	// 공통 Viewer 계약을 D3D12 명령 목록과 스왑체인 흐름으로 구현한다.
 	class Dx12Viewer : public Viewer {
 	public:
 		std::shared_ptr<Dx12Device> device;

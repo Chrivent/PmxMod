@@ -3,6 +3,7 @@
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
 namespace Chrivent {
+	// Vulkan 명령 풀과 프레임별 명령 버퍼를 관리한다.
 	class VulkanCommandContext {
 		VkDevice device = VK_NULL_HANDLE;
 

@@ -7,6 +7,7 @@
 namespace Chrivent {
 	class Dx12Instance;
 
+	// D3D12 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class Dx12Drawer : public Drawer {
 		const Dx12Instance& instance;
 

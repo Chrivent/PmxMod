@@ -6,6 +6,7 @@
 #include <span>
 
 namespace Chrivent {
+	// Vulkan 장면 렌더링용 MSAA depth image와 view를 관리한다.
 	class VulkanMsaaDepthBuffer {
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;

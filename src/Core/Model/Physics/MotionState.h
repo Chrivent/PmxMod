@@ -7,6 +7,7 @@
 namespace Chrivent {
 	class Node;
 
+	// 모델 본과 Bullet 강체 사이의 변환 동기화 규약을 정의한다.
 	class MotionState : public btMotionState {
 	public:
 		~MotionState() override;
@@ -17,6 +18,7 @@ namespace Chrivent {
 		virtual void ReflectGlobalTransform() {}
 	};
 
+	// 본 변환을 그대로 따르는 기본 강체 동기화를 구현한다.
 	class DefaultMotionState final : public MotionState {
 		btTransform	initialTransform;
 		btTransform	transform;
@@ -33,6 +35,7 @@ namespace Chrivent {
 		void Reset() override { transform = initialTransform; }
 	};
 
+	// 물리 강체의 결과를 모델 본에 반영하는 동적 동기화를 구현한다.
 	class DynamicMotionState : public MotionState {
 		glm::mat4	offset;
 		glm::mat4	invOffset = glm::mat4(1);
@@ -56,6 +59,7 @@ namespace Chrivent {
 		void ReflectGlobalTransform() override;
 	};
 
+	// 물리 결과와 본 애니메이션을 함께 반영하는 동기화를 구현한다.
 	class DynamicAndBoneMergeMotionState final : public DynamicMotionState {
 	protected:
 		// 물리 변환과 본 변환을 병합하기 위한 후처리를 수행한다.
@@ -65,6 +69,7 @@ namespace Chrivent {
 		using DynamicMotionState::DynamicMotionState;
 	};
 
+	// 모델 본의 변환으로 키네마틱 강체를 구동한다.
 	class KinematicMotionState final : public MotionState {
 		std::weak_ptr<Node>	node;
 		glm::mat4			offset;

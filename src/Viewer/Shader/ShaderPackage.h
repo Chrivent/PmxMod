@@ -32,6 +32,7 @@ namespace Chrivent {
 		History
 	};
 
+	// 효과 패키지가 생성할 중간 또는 history texture의 선언을 나타낸다.
 	struct EffectResourceDefinition {
 		std::string name;
 		EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
@@ -41,11 +42,13 @@ namespace Chrivent {
 		uint32_t height = 0;
 	};
 
+	// 효과 패스의 texture 슬롯과 참조할 리소스 이름을 연결한다.
 	struct EffectPassInputDefinition {
 		uint32_t slot = 0;
 		std::string resource;
 	};
 
+	// 셰이더 파일과 진입점 및 입출력으로 구성된 렌더링 패스를 나타낸다.
 	struct EffectPassDefinition {
 		std::string name;
 		std::filesystem::path shaderPath;
@@ -55,6 +58,7 @@ namespace Chrivent {
 		std::string output;
 	};
 
+	// 사용자에게 노출할 효과 하나의 타입과 리소스 및 패스 목록을 나타낸다.
 	struct EffectDefinition {
 		std::string id;
 		std::string name;
@@ -74,17 +78,20 @@ namespace Chrivent {
 		std::vector<EffectDefinition> effects;
 	};
 
+	// 패키지 검색 결과와 패키지별 진단 메시지를 함께 반환한다.
 	struct ShaderPackageDiscovery {
 		std::vector<ShaderPackage> packages;
 		std::vector<std::string> errors;
 	};
 
+	// 셰이더 패키지 디렉터리를 탐색하고 유효한 패키지를 수집한다.
 	class ShaderPackageLoader {
 	public:
 		// 지정한 디렉터리 바로 아래에서 셰이더 패키지를 검색한다.
 		static ShaderPackageDiscovery Discover(const std::filesystem::path& packagesDirectory);
 	};
 	
+	// 패키지 manifest와 효과 JSON을 검증해 실행 가능한 선언으로 변환한다.
 	class ShaderPackageParser {
 		static constexpr int schemaVersion = 1;
 
@@ -112,12 +119,14 @@ namespace Chrivent {
 		static bool Load(const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error);
 	};
 
+	// 내장 모델 렌더링이 요구하는 표면·외곽선·지면 그림자 패스를 보관한다.
 	struct BuiltInShaderPasses {
 		EffectPassDefinition model;
 		EffectPassDefinition edge;
 		EffectPassDefinition groundShadow;
 	};
 
+	// 내장 셰이더 패키지가 필수 렌더링 역할 계약을 충족하는지 검증한다.
 	class BuiltInShaderContract {
 	public:
 		// 내장 패키지를 읽고 모델, 엣지, 지면 그림자 단일 패스 계약을 검증한다.

@@ -7,6 +7,7 @@ struct GLFWwindow;
 namespace Chrivent {
 	class Viewer;
 
+	// 현재 키보드와 마우스 입력 상태를 보관한다.
 	struct InputState {
 		bool togglePause = false;
 		bool moveForward = false;
@@ -20,6 +21,7 @@ namespace Chrivent {
 		float wheelDelta = 0.0f;
 	};
 
+	// 렌더러 창의 입력 이벤트를 수집하고 프레임별 상태로 변환한다.
 	class InputManager {
 		inline static InputManager* activeManager = nullptr;
 

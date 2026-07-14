@@ -8,6 +8,7 @@
 namespace Chrivent {
 	class Node;
 
+	// IK 체인 본과 각도 제한 상태를 보관한다.
 	struct IkChain {
 		std::weak_ptr<Node>	node;
 		bool				enableAxisLimit;
@@ -18,6 +19,7 @@ namespace Chrivent {
 		float				planeModeAngle;
 	};
 
+	// 반복 역기구학으로 목표 본을 향하도록 IK 체인을 계산한다.
 	class IkSolver {
 		// 단일 반복 단계에서 일반 IK 체인을 계산한다.
 		void SolveCore(uint32_t iteration);

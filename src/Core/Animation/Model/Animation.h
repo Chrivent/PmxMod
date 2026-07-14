@@ -13,6 +13,7 @@ namespace Chrivent {
 	class Node;
 	class IkSolver;
 
+	// 한 프레임의 본 변환과 보간 곡선을 보관한다.
 	struct NodeAnimationKey {
 		uint32_t	frame = 0;
 		glm::vec3	translate;
@@ -23,31 +24,37 @@ namespace Chrivent {
 		Bezier		rotBezier;
 	};
 
+	// 한 프레임의 모프 가중치를 보관한다.
 	struct MorphAnimationKey {
 		uint32_t	frame = 0;
 		float	morphWeight;
 	};
 
+	// 한 프레임의 IK 표시와 활성 상태를 보관한다.
 	struct IkAnimationKey {
 		uint32_t	frame = 0;
 		bool	ikEnable;
 	};
 
+	// 본 하나에 적용할 변환 키 목록을 보관한다.
 	struct NodeAnimationTrack {
 		std::shared_ptr<Node> node;
 		std::vector<NodeAnimationKey> keys;
 	};
 
+	// IK 대상 하나에 적용할 활성 키 목록을 보관한다.
 	struct IkAnimationTrack {
 		std::shared_ptr<IkSolver> ikSolver;
 		std::vector<IkAnimationKey> keys;
 	};
 
+	// 모프 하나에 적용할 가중치 키 목록을 보관한다.
 	struct MorphAnimationTrack {
 		std::shared_ptr<Morph> morph;
 		std::vector<MorphAnimationKey> keys;
 	};
 
+	// 모델의 본, 모프와 IK 트랙을 시간에 따라 평가한다.
 	class Animation {
 		// 지정 시간의 노드 애니메이션을 평가한다.
 		void EvaluateNodes(float t, float animWeight) const;

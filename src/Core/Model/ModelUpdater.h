@@ -5,6 +5,7 @@
 namespace Chrivent {
 	class Animation;
 
+	// 모델 갱신 단계별 CPU 소요 시간을 보관한다.
 	struct ModelUpdateTiming {
 		double initializeMilliseconds = 0.0;
 		double animationEvaluateMilliseconds = 0.0;
@@ -15,6 +16,7 @@ namespace Chrivent {
 		double transformMilliseconds = 0.0;
 	};
 
+	// 애니메이션, 물리, 포즈와 스키닝 갱신 순서를 조정한다.
 	class ModelUpdater {
 		Model& model;
 

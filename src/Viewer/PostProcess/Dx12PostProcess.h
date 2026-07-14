@@ -12,6 +12,7 @@ namespace Chrivent {
 	class Dx12SwapChain;
 	struct PostProcessFrameData;
 	
+	// D3D12 후처리 출력 texture와 RTV descriptor를 함께 관리한다.
 	class Dx12PostProcessTarget {
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;
@@ -30,10 +31,12 @@ namespace Chrivent {
 		void Reset();
 	};
 
+	// D3D12 후처리 리소스의 ping-pong 출력 타깃을 보관한다.
 	struct Dx12PostProcessResource {
 		Dx12PostProcessTarget targets[2];
 	};
 
+	// 공통 실행 계획을 D3D12 파이프라인과 명령 목록으로 실행한다.
 	class Dx12PostProcess : public PostProcess {
 		static constexpr size_t frameDataBufferCount = 2;
 		Dx12PostProcessTarget sceneColor;

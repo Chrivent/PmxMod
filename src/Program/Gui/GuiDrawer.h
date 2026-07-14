@@ -6,6 +6,7 @@
 #include <windows.h>
 
 namespace Chrivent {
+	// Win32 GDI를 사용해 패널의 공통 컨트롤과 장식을 그린다.
 	class GuiDrawer {
 		static HFONT GetTextFont();
 

@@ -13,6 +13,7 @@
 namespace Chrivent {
     class Dx11Viewer;
 
+    // 공통 PMX 재질에 D3D11 texture 리소스를 결합한다.
     struct Dx11Material : ViewerMaterial {
         Dx11Texture texture{};
         Dx11Texture	sphereTexture{};
@@ -21,12 +22,14 @@ namespace Chrivent {
         explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
+    // D3D11 device, immediate context와 swapchain을 한 단위로 보관한다.
     struct Dx11DeviceResources {
         Microsoft::WRL::ComPtr<ID3D11Device>        device;
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
         Microsoft::WRL::ComPtr<IDXGISwapChain>      swapChain;
     };
 
+    // D3D11 장면 렌더링에 사용하는 색상 및 depth target들을 보관한다.
     struct Dx11RenderTargets {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         backBuffer;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  backBufferView;
@@ -36,6 +39,7 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
     };
 
+    // D3D11 기본 렌더링 패스별 셰이더 프로그램을 보관한다.
     struct Dx11ShaderSet {
         Dx11ModelShader         model;
         Dx11EdgeShader          edge;
@@ -43,6 +47,7 @@ namespace Chrivent {
 		Dx11SceneVelocityShader sceneVelocity;
     };
 
+    // D3D11 기본 렌더링에 사용하는 sampler와 고정 파이프라인 상태를 보관한다.
     struct Dx11PipelineStates {
         Microsoft::WRL::ComPtr<ID3D11SamplerState>      textureSampler;
         Microsoft::WRL::ComPtr<ID3D11SamplerState>      toonTextureSampler;
@@ -55,11 +60,13 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> defaultDss;
     };
 
+    // texture가 없는 D3D11 재질에 바인딩할 기본 흰색 texture를 보관한다.
     struct Dx11DummyTexture {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>             texture;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;
     };
 
+    // 공통 Viewer 계약을 D3D11 렌더링 흐름으로 구현한다.
     class Dx11Viewer : public Viewer {
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;

@@ -8,6 +8,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// D3D12 스왑체인과 프레임별 back buffer 및 RTV를 관리한다.
 	class Dx12SwapChain {
 		static constexpr UINT kFrameCount = 2;
 

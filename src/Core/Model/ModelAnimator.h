@@ -5,6 +5,7 @@
 namespace Chrivent {
 	class Animation;
 
+	// 모델 애니메이션을 평가하고 본과 모프 상태에 반영한다.
 	class ModelAnimator {
 		Model& model;
 

@@ -7,6 +7,7 @@
 #include <CommCtrl.h>
 
 namespace Chrivent {
+	// 씬의 모델 목록과 모델별 모션 선택 상태를 표시한다.
 	class ModelPanel final : public Panel {
 		static constexpr int kMotionColumn = 1;
 

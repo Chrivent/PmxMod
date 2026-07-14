@@ -15,19 +15,23 @@ namespace Chrivent {
 		Mode2
 	};
 
+	// VMD 바이너리를 본, 모프, 카메라, 조명과 IK 키로 해석한다.
 	class VmdParser {
 	public:
+		// VMD 서명과 대상 모델 이름을 보관한다.
 		struct VmdHeader {
 			char header[30];
 			char modelName[20];
 		};
 
+		// 한 프레임의 VMD 모프 가중치를 보관한다.
 		struct VmdMorph {
 			char			blendShapeName[15]{};
 			uint32_t		frame{};
 			float			weight{};
 		};
 
+		// 한 프레임의 VMD 카메라 값과 보간 데이터를 보관한다.
 		struct VmdCamera {
 			uint32_t		frame;
 			float			distance;
@@ -38,29 +42,34 @@ namespace Chrivent {
 			uint8_t			isPerspective;
 		};
 
+		// 한 프레임의 VMD 조명 색상과 위치를 보관한다.
 		struct VmdLight {
 			uint32_t	frame;
 			glm::vec3	color;
 			glm::vec3	position;
 		};
 
+		// 한 프레임의 VMD 그림자 모드와 거리를 보관한다.
 		struct VmdShadow {
 			uint32_t	frame;
 			ShadowType	shadowType;
 			float		distance;
 		};
 
+		// IK 이름과 활성 상태를 보관한다.
 		struct VmdIkState {
 			char			name[20]{};
 			uint8_t			enable{};
 		};
 
+		// 한 프레임의 모델 표시 여부와 IK 상태 목록을 보관한다.
 		struct VmdIk {
 			uint32_t	frame;
 			uint8_t		show;
 			std::vector<VmdIkState>	ikStates;
 		};
 
+		// 한 프레임의 VMD 본 변환과 보간 데이터를 보관한다.
 		struct VmdMotion {
 			char			boneName[15];
 			uint32_t		frame;
@@ -69,6 +78,7 @@ namespace Chrivent {
 			uint8_t			interpolation[64];
 		};
 
+		// 한 VMD 파일에서 읽은 모든 키프레임 섹션을 묶어 보관한다.
 		struct VmdData {
 			VmdHeader					header;
 			std::vector<VmdMotion>		motions;

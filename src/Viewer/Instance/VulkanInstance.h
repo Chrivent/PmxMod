@@ -14,6 +14,7 @@ namespace Chrivent {
 	class VulkanPipeline;
 	struct VulkanTexture;
 
+	// 한 모델의 Vulkan 버퍼, 재질과 descriptor 상태를 관리한다.
 	class VulkanInstance : public Instance {
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
 		bool CreateGeometryBuffers(const VulkanDevice& device);

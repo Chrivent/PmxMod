@@ -8,6 +8,7 @@
 #include <string>
 
 namespace Chrivent {
+	// 애니메이션 트랙 이름과 런타임 인덱스의 대응 관계를 관리한다.
 	class AnimationTrackMap {
 		// 노드 애니메이션 트랙이 모델 노드에 연결되어 있는지 확인한다.
 		static bool IsTrackBound(const NodeAnimationTrack& track) { return track.node != nullptr; }

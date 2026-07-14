@@ -74,8 +74,8 @@ static const float TiltFocusDown = 0.0;
 // 틸트 초점면의 기준 축이다. UI가 생기기 전에는 월드 위쪽을 사용한다.
 static const float3 TiltFocusDirection = float3(0.0, 1.0, 0.0);
 
-// ikBokeh의 BULR_SIZE 8과 동일하게 최대 64픽셀 CoC를 처리한다.
-static const float MaxBlurPixels = 64.0;
+// 현재 반해상도와 1/4 해상도 피라미드가 안정적으로 처리할 최대 CoC 반경이다.
+static const float MaxBlurPixels = 16.0;
 
 // 반해상도 보정 패스가 직접 처리할 최대 흐림 반경이다.
 static const float MediumBlurPixels = 8.0;

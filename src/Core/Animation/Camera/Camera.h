@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
+	// 카메라의 시선 위치, 회전, 거리와 시야각 상태를 보관한다.
 	struct Camera {
 		glm::vec3 interest = glm::vec3(0, 10, 0);
 		glm::vec3 rotate = glm::vec3(0, 0, 0);

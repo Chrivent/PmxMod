@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace Chrivent {
+	// Vulkan 프레임 명령 버퍼의 할당, 기록과 해제를 관리한다.
 	class VulkanCommandBuffer {
 		std::vector<VkCommandBuffer> commandBuffers;
 		std::vector<VkBuffer> boundVertexBuffers;

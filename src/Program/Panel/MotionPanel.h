@@ -14,6 +14,7 @@ namespace Chrivent {
 		Camera
 	};
 
+	// 타임라인에 표시할 한 모션 키의 프레임과 선택 상태를 보관한다.
 	struct MotionTimelineKey {
 		int frame = 0;
 		std::vector<BezierControlPoints> curves;
@@ -21,6 +22,7 @@ namespace Chrivent {
 		bool selected = false;
 	};
 
+	// 타임라인 한 행의 이름과 키 목록을 보관한다.
 	struct MotionTimelineRow {
 		std::wstring name;
 		std::vector<std::wstring> curveNames;
@@ -29,6 +31,7 @@ namespace Chrivent {
 		bool expanded = false;
 	};
 
+	// 접을 수 있는 타임라인 행 그룹을 보관한다.
 	struct MotionTimelineGroup {
 		std::wstring name;
 		std::vector<MotionTimelineRow> rows;
@@ -38,6 +41,7 @@ namespace Chrivent {
 		bool expanded = false;
 	};
 
+	// 본, 모프와 카메라 키를 타임라인으로 표시하고 선택을 관리한다.
 	class MotionPanel final : public Panel {
 		static constexpr UINT_PTR kFrameEditId = 4001;
 		static constexpr UINT_PTR kModeButtonId = 4002;

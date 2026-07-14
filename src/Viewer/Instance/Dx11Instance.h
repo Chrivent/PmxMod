@@ -12,6 +12,7 @@ namespace Chrivent {
     class Dx11Drawer;
     class Dx11Viewer;
 
+    // 한 모델의 D3D11 버퍼, 재질과 descriptor 상태를 관리한다.
     class Dx11Instance : public Instance {
         // 모델 geometry 데이터를 DX11 vertex/index buffer로 생성한다.
         bool CreateGeometryBuffers();

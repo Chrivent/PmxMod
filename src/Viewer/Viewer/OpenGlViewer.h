@@ -11,6 +11,7 @@
 namespace Chrivent {
     class OpenGlViewer;
 
+    // 공통 PMX 재질에 OpenGL texture 객체와 alpha 정보를 결합한다.
     struct OpenGlMaterial : ViewerMaterial {
         GLuint  texture = 0;
         bool    textureHasAlpha = false;
@@ -20,6 +21,7 @@ namespace Chrivent {
         explicit OpenGlMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
     };
 
+    // 공통 Viewer 계약을 OpenGL 컨텍스트와 framebuffer 흐름으로 구현한다.
     class OpenGlViewer : public Viewer {
         // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
         static void* LoadGlProc(const char* name) {

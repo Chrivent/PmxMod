@@ -7,6 +7,7 @@
 namespace Chrivent {
 	class Model;
 
+	// 애니메이션 트랙을 모델의 본, 모프와 IK 대상에 연결한다.
 	class AnimationBinder {
 		std::shared_ptr<Model> model;
 

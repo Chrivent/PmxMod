@@ -5,6 +5,7 @@
 namespace Chrivent {
 	class Sound;
 
+	// 음악 파일 선택과 오디오 파형을 표시한다.
 	class SoundPanel final : public Panel {
 		UINT_PTR volumeSliderId = 0;
 		Sound* sound = nullptr;

@@ -7,6 +7,7 @@
 namespace Chrivent {
 	class VulkanInstance;
 
+	// Vulkan 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class VulkanDrawer : public Drawer {
 		VulkanInstance& instance;
 

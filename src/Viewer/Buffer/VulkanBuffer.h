@@ -3,6 +3,7 @@
 #include "Viewer/Device/VulkanDevice.h"
 
 namespace Chrivent {
+	// Vulkan 버퍼, 메모리와 선택적인 매핑 주소를 소유한다.
 	class VulkanBuffer {
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;

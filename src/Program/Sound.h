@@ -8,12 +8,14 @@ struct ma_engine;
 struct ma_sound;
 
 namespace Chrivent {
+    // 오디오 파형 표시용 최소·최대 샘플과 재생 시간을 보관한다.
     struct AudioWaveform {
         std::vector<float> minimums;
         std::vector<float> maximums;
         int samplesPerFrame = 10;
     };
 
+    // 음악 파일의 디코딩, 재생, 탐색과 파형 생성을 관리한다.
     class Sound {
         float volume = 0.5f;
         double lengthSec = 0.0;

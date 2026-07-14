@@ -4,6 +4,7 @@
 #include "Core/Parser/PmxParser.h"
 
 namespace Chrivent {
+	// 파싱된 PMX 데이터를 런타임 모델 객체로 구성한다.
 	class ModelLoader {
 		Model& model;
 

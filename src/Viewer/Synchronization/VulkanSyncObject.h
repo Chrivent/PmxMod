@@ -5,6 +5,7 @@
 #include <vector>
 
 namespace Chrivent {
+	// Vulkan 프레임 진행에 필요한 세마포어와 펜스의 수명을 관리한다.
 	class VulkanSyncObject {
 		VkDevice device = VK_NULL_HANDLE;
 

@@ -3,12 +3,14 @@
 #include <filesystem>
 
 namespace Chrivent {
+	// 패널 경계와 창 배치에 필요한 사용자 설정을 보관한다.
 	struct PanelLayoutSettings {
 		int leftWidth = 0;
 		int rightWidth = 0;
 		int bottomHeight = 0;
 	};
 
+	// 프로그램 설정 파일을 읽고 저장한다.
 	class Settings {
 		static std::filesystem::path ResolveFilePath();
 

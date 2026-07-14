@@ -16,12 +16,14 @@
 namespace Chrivent {
 	class Animation;
 
+	// 한 재질이 그릴 인덱스 범위와 재질 번호를 보관한다.
 	struct SubMesh {
 		size_t	beginIndex = 0;
 		size_t	indexCount = 0;
 		size_t	materialId = 0;
 	};
 
+	// PMX 버텍스의 본 인덱스, 가중치와 SDEF 보조 데이터를 보관한다.
 	struct Vertex {
 		WeightType	weightType;
 		int32_t		boneIndices[4];
@@ -31,6 +33,7 @@ namespace Chrivent {
 		glm::vec3	sphericalDeformR1;
 	};
 
+	// 모프의 이름, 형식과 형식별 데이터 인덱스를 보관한다.
 	struct Morph {
 		std::string	name;
 		float		weight = 0;
@@ -39,6 +42,7 @@ namespace Chrivent {
 		size_t		dataIndex = 0;
 	};
 
+	// 모델 재질의 색상, 텍스처와 렌더링 플래그를 보관한다.
 	struct Material {
 		glm::vec4				diffuse = glm::vec4(1);
 		glm::vec3				specular = glm::vec3(0);
@@ -63,17 +67,20 @@ namespace Chrivent {
 		bool					shadowReceiver = true;
 	};
 
+	// 병렬 버텍스 갱신 작업이 처리할 연속 범위를 보관한다.
 	struct UpdateRange {
 		size_t vertexOffset;
 		size_t vertexCount;
 	};
 	
+	// 모델 패널에 표시할 본과 모프 그룹을 보관한다.
 	struct ModelDisplayFrame {
 		std::string				name;
 		std::vector<uint32_t>	boneIndices;
 		std::vector<uint32_t>	morphIndices;
 	};
 
+	// 모델 이름과 설명 같은 메타데이터를 보관한다.
 	struct ModelInfoData {
 		std::string									modelName;
 		std::string									englishModelName;
@@ -81,6 +88,7 @@ namespace Chrivent {
 		std::string									englishComment;
 	};
 
+	// 원본 및 변형된 버텍스와 인덱스 데이터를 관리한다.
 	struct ModelGeometryData {
 		std::vector<glm::vec3>						positions;
 		std::vector<glm::vec3>						normals;
@@ -99,6 +107,7 @@ namespace Chrivent {
 		std::vector<UpdateRange>					updateRanges;
 	};
 
+	// 모델 재질, 서브메시와 모프용 재질 상태를 관리한다.
 	struct ModelMaterialData {
 		std::vector<Material>						materials;
 		std::vector<SubMesh>						subMeshes;
@@ -107,6 +116,7 @@ namespace Chrivent {
 		std::vector<MaterialMorph>					addMaterialFactors;
 	};
 
+	// 본 계층, IK와 스키닝 변환 행렬을 관리한다.
 	struct ModelSkeletonData {
 		std::vector<std::shared_ptr<Node>>			nodes;
 		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
@@ -115,6 +125,7 @@ namespace Chrivent {
 		std::vector<ModelDisplayFrame>				displayFrames;
 	};
 
+	// 형식별 모프 정의와 현재 누적 변형값을 관리한다.
 	struct ModelMorphData {
 		std::vector<std::unique_ptr<Morph>>			morphs;
 		std::vector<std::vector<PositionMorph>>		positionMorphs;
@@ -126,12 +137,14 @@ namespace Chrivent {
 		std::vector<glm::vec4>						morphUVs;
 	};
 
+	// 모델에 연결된 강체와 조인트를 관리한다.
 	struct ModelPhysicsData {
 		std::unique_ptr<Physics>					physics;
 		std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
 		std::vector<std::unique_ptr<Joint>>			joints;
 	};
 
+	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
 	class Model {
 	public:
 		ModelInfoData		infoData;

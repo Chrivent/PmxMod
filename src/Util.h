@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
+	// 문자열, 경로와 플래그 변환에 사용하는 공통 유틸리티를 제공한다.
     class Util {
     public:
         // enum 플래그에 지정한 비트가 포함되어 있는지 확인한다.

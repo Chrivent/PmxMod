@@ -18,6 +18,7 @@
 namespace Chrivent {
 	class Sound;
 
+	// 프로그램 패널과 보조 창을 생성하고 상호 상태를 동기화한다.
 	class PanelManager {
 		static constexpr UINT_PTR kPlaybackPlayButtonId = 1002;
 		static constexpr UINT_PTR kPlaybackPauseButtonId = 1003;

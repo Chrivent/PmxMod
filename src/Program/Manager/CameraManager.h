@@ -9,6 +9,7 @@ namespace Chrivent {
 	class Sound;
 	class Viewer;
 
+	// 카메라 모션 평가, 재생 위치와 포스트 프로세스 카메라 입력을 관리한다.
 	class CameraManager {
 		bool paused = true;
 		bool useMotionCamera = true;

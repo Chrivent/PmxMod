@@ -4,12 +4,14 @@
 #include <string>
 
 namespace Chrivent {
+	// 동적 업로드 버퍼에서 할당된 바이트 범위를 나타낸다.
 	struct UploadSlice {
 		size_t offset = 0;
 		size_t size = 0;
 		void* cpuAddress = nullptr;
 	};
 	
+	// 프레임 중 순차적으로 사용할 정렬된 동적 버퍼 범위를 할당한다.
 	class DynamicBufferRing {
 	protected:
 		size_t capacity = 0;

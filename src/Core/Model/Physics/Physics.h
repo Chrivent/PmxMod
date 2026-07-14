@@ -5,6 +5,7 @@
 #include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
+	// 같은 충돌 그룹 내부의 필터 규칙을 Bullet broadphase에 적용한다.
 	class OverlapFilterCallback final : public btOverlapFilterCallback {
 		std::vector<btBroadphaseProxy*> nonFilterProxy;
 
@@ -16,6 +17,7 @@ namespace Chrivent {
 		bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
 	};
 	
+	// Bullet 물리 월드와 등록된 강체 및 조인트를 관리한다.
 	class Physics {
 		std::unique_ptr<btBroadphaseInterface>					broadPhase;
 		std::unique_ptr<btDefaultCollisionConfiguration>		collisionConfig;

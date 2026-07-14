@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// D3D12 모델 렌더링에 필요한 루트 서명과 그래픽 파이프라인 상태를 관리한다.
 	class Dx12Pipeline {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> modelRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelFrontFacePipelineState;

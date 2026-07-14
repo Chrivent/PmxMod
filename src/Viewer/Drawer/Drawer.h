@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 namespace Chrivent {
+	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
 	protected:
 		// 렌더러별 clip space 보정 행렬을 반환한다.

@@ -3,6 +3,7 @@
 #include <d3d11.h>
 
 namespace Chrivent {
+	// 반복해서 사용하는 D3D11 리소스 설명 구조체를 생성한다.
 	class Dx11DescBuilder {
 	public:
 		// 지정한 필터와 주소 모드로 샘플러 설명자를 만든다.

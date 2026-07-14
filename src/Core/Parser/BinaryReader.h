@@ -17,6 +17,7 @@ namespace Chrivent {
 		InvalidIndex
 	};
 
+	// 바이너리 파싱 실패의 종류, 구간, 메시지와 파일 위치를 보관한다.
 	struct ParseError {
 		ParseErrorCode code = ParseErrorCode::InvalidValue;
 		std::string section;
@@ -24,6 +25,7 @@ namespace Chrivent {
 		std::streamoff offset = 0;
 	};
 
+	// 바이너리 스트림을 범위 검사하며 읽고 첫 번째 오류를 기록한다.
 	class BinaryReader {
 		std::istream& stream;
 		std::streampos end;

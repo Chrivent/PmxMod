@@ -4,6 +4,7 @@
 #include "Viewer/SwapChain/VulkanSwapChain.h"
 
 namespace Chrivent {
+	// Vulkan 장면 렌더링용 MSAA 색상 image와 view를 관리한다.
 	class VulkanMsaaColorBuffer {
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;

@@ -3,6 +3,7 @@
 #include "Core/Model/Model.h"
 
 namespace Chrivent {
+	// 본 변환과 모프를 적용해 렌더링용 버텍스를 계산한다.
 	class ModelSkinning {
 		Model& model;
 

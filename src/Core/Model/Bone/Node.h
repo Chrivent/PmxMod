@@ -9,6 +9,7 @@ namespace Chrivent {
 	class Node;
 	class IkSolver;
 
+	// 모델 본의 계층, 변환, 부가 변형과 IK 상태를 관리한다.
 	class Node : public std::enable_shared_from_this<Node> {
 		std::weak_ptr<Node>		child;
 		std::weak_ptr<Node>		next;

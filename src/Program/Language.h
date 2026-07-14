@@ -12,6 +12,7 @@ namespace Chrivent {
 		Chinese
 	};
 
+	// 선택한 언어의 문자열 리소스를 읽고 프로그램 전역에 제공한다.
 	class Language {
 		static inline std::unordered_map<std::string, std::wstring> fallbackTexts;
 		static inline std::unordered_map<std::string, std::wstring> currentTexts;

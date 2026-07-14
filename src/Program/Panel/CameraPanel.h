@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace Chrivent {
+	// 카메라 모션과 셰이더 이펙트 목록을 표시하고 선택을 전달한다.
 	class CameraPanel final : public Panel {
 		static constexpr int kCameraMotionRow = 0;
 		static constexpr int kShaderRowOffset = 1;

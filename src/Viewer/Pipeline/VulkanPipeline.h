@@ -5,6 +5,7 @@
 #include "Viewer/Shader/ShaderPackage.h"
 
 namespace Chrivent {
+	// Vulkan 모델 렌더링에 필요한 descriptor layout과 그래픽 파이프라인을 관리한다.
 	class VulkanPipeline {
 		VkDevice device = VK_NULL_HANDLE;
 

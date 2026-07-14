@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// DX12 버퍼 리소스와 매핑된 CPU 주소를 소유한다.
 	class Dx12Buffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 		void* mappedData = nullptr;

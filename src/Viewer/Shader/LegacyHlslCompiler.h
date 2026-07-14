@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// 레거시 D3DCompiler로 Shader Model 5 HLSL 바이트 코드를 생성한다.
 	class LegacyHlslCompiler {
 	public:
 		// HLSL 파일을 Shader Model 5 계열 바이트 코드로 컴파일한다.

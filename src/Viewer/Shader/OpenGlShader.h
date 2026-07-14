@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
+    // HLSL을 SPIR-V와 GLSL로 변환해 OpenGL 프로그램을 생성한다.
     class OpenGlShaderBuilder {
         // SPIR-V를 GLSL로 변환하고 OpenGL 셰이더 객체로 만든다.
         static GLuint CreateStage(GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry);
@@ -21,6 +22,7 @@ namespace Chrivent {
         static GLuint CreateVertexOnlyShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry);
     };
     
+    // OpenGL 프로그램과 공통 position attribute 위치를 보관한다.
     struct OpenGlShader {
         GLuint  program = 0;
         GLint   positionLocation = -1;
@@ -28,6 +30,7 @@ namespace Chrivent {
         virtual ~OpenGlShader();
     };
 
+    // PMX 모델 표면 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.
     struct OpenGlModelShader : OpenGlShader {
         GLint   normalLocation = -1;
         GLint   uvLocation = -1;
@@ -36,6 +39,7 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+    // PMX 외곽선 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.
     struct OpenGlEdgeShader : OpenGlShader {
         GLint   normalLocation = -1;
 
@@ -43,11 +47,13 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+    // PMX 지면 그림자 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.
     struct OpenGlGroundShadowShader : OpenGlShader {
         // 지면 그림자 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+    // 후처리 depth 입력을 생성하는 OpenGL vertex-only 프로그램을 나타낸다.
     struct OpenGlDepthOnlyShader : OpenGlShader {
         GLint normalLocation = -1;
         GLint uvLocation = -1;
@@ -56,6 +62,7 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+	// 모션 블러 입력인 장면 속도를 기록하는 OpenGL 프로그램을 나타낸다.
 	struct OpenGlSceneVelocityShader : OpenGlShader {
 		GLint previousPositionLocation = -1;
 
@@ -63,6 +70,7 @@ namespace Chrivent {
 		bool Initialize(const EffectPassDefinition& pass);
 	};
 
+    // 풀스크린 후처리 패스를 실행하는 OpenGL 프로그램을 나타낸다.
     struct OpenGlPostProcessShader : OpenGlShader {
         // 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
         bool Initialize(const EffectPassDefinition& pass);

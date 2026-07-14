@@ -17,6 +17,7 @@ namespace Chrivent {
 		Bottom
 	};
 
+	// 여러 패널을 담는 Win32 창의 생성, 배치와 메시지 처리를 담당한다.
 	class PanelWindow {
 		enum class DragBoundary {
 			None,
@@ -25,6 +26,7 @@ namespace Chrivent {
 			Bottom
 		};
 
+		// 패널 객체와 창 내부 배치 정보를 함께 보관한다.
 		struct PanelEntry {
 			Panel* panel = nullptr;
 			std::string titleKey;

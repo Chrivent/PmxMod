@@ -5,6 +5,7 @@
 #include <span>
 
 namespace Chrivent {
+	// SPIR-V 바이트 코드를 Vulkan shader module 수명으로 감싼다.
 	class VulkanShaderModule {
 		VkShaderModule shaderModule = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;

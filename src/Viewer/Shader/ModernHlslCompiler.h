@@ -11,6 +11,7 @@ namespace Chrivent {
 		OpenGl
 	};
 
+	// DXC를 통해 HLSL을 DXIL 또는 API별 SPIR-V로 컴파일한다.
 	class ModernHlslCompiler {
 		// 최신 HLSL 컴파일러를 호출하고 컴파일된 객체 바이트를 반환한다.
 		static bool CompileObject(const std::filesystem::path& file, const std::wstring& entry,

@@ -13,6 +13,7 @@ namespace Chrivent {
 	class Dx12Viewer;
 	struct Dx12Material;
 
+	// 한 모델의 D3D12 버퍼, 재질과 descriptor 상태를 관리한다.
 	class Dx12Instance : public Instance {
 		// 모델 geometry 데이터를 DX12 vertex/index buffer로 업로드한다.
 		bool CreateGeometryBuffers(const Dx12Device& device);

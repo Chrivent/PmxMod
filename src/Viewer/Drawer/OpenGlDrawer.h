@@ -8,6 +8,7 @@
 namespace Chrivent {
 	class OpenGlInstance;
 
+	// OpenGL 명령으로 모델의 각 렌더링 패스를 실행한다.
 	class OpenGlDrawer : public Drawer {
 		OpenGlInstance& instance;
 

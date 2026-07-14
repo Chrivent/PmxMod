@@ -13,6 +13,7 @@ namespace Chrivent {
 		GroundShadow
 	};
 
+	// 모델 패스의 Vulkan uniform 및 텍스처 descriptor set을 관리한다.
 	class VulkanDescriptorSet {
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;

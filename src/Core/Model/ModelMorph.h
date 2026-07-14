@@ -3,6 +3,7 @@
 #include "Core/Model/Model.h"
 
 namespace Chrivent {
+	// 현재 모프 가중치를 모델의 형상, 재질과 본에 누적한다.
 	class ModelMorph {
 		Model& model;
 

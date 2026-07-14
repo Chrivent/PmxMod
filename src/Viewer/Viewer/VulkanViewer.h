@@ -16,6 +16,7 @@
 #include <memory>
 
 namespace Chrivent {
+	// 공통 PMX 재질에 Vulkan texture와 descriptor set을 결합한다.
 	struct VulkanMaterial : ViewerMaterial {
 		VulkanTexture texture{};
 		VulkanTexture sphereTexture{};
@@ -31,6 +32,7 @@ namespace Chrivent {
 		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
 	};
 	
+	// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
 	struct VulkanBindStateCache {
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
@@ -40,6 +42,7 @@ namespace Chrivent {
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 	};
 
+	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.
 	class VulkanViewer : public Viewer {
 	public:
 		std::shared_ptr<VulkanDevice> device;

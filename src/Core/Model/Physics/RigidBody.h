@@ -12,6 +12,7 @@ namespace Chrivent {
 	class Physics;
 	class Model;
 
+	// PMX 강체 설정을 Bullet 충돌체와 운동 상태로 구성한다.
 	class RigidBody {
 		std::unique_ptr<btCollisionShape>	shape;
 		std::unique_ptr<MotionState>		activeMotionState;

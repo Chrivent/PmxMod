@@ -10,6 +10,7 @@ namespace Chrivent {
     class Drawer;
     class Viewer;
     
+    // 한 모델의 API별 GPU 리소스와 그리기 객체를 소유하는 공통 규약을 정의한다.
     class Instance {
     protected:
         std::unique_ptr<Drawer> drawer;

@@ -4,6 +4,7 @@
 #include <CommCtrl.h>
 
 namespace Chrivent {
+	// 프로그램 패널의 공통 생성, 입력 차단과 그리기 동작을 정의한다.
 	class Panel {
 		bool inputLocked = false;
 

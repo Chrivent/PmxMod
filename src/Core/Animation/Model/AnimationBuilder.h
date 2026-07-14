@@ -6,6 +6,7 @@
 namespace Chrivent {
 	class Model;
 
+	// VMD 모션 데이터를 모델용 애니메이션 트랙으로 변환한다.
 	class AnimationBuilder {
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;

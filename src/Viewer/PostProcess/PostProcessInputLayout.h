@@ -3,6 +3,7 @@
 #include <cstdint>
 
 namespace Chrivent {
+	// 모든 렌더링 API가 공유하는 후처리 HLSL 입력 슬롯 계약을 정의한다.
 	struct PostProcessInputLayout {
 		// 포스트 프로세스 공통 프레임 상수 입력이다. HLSL cbuffer register(b0)에 대응한다.
 		static constexpr uint32_t frameDataRegister = 0;

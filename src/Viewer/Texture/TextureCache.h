@@ -10,6 +10,7 @@ namespace Chrivent {
 		White
 	};
 
+	// texture 종류와 파일 경로 및 sampler 방식으로 캐시 항목을 식별한다.
 	struct TextureKey {
 		TextureKind kind = TextureKind::File;
 		std::filesystem::path path;
@@ -24,6 +25,7 @@ namespace Chrivent {
 		}
 	};
 
+	// 렌더링 API별 texture가 공유하는 캐시 키와 alpha 정보를 보관한다.
 	struct Texture {
 		TextureKey key;
 		bool hasAlpha = false;
@@ -31,13 +33,16 @@ namespace Chrivent {
 		virtual ~Texture() = default;
 	};
 
+	// 이미지 디코딩과 렌더링 API별 texture 캐시 저장소를 제공한다.
 	class TextureCache {
 	protected:
+		// stb_image가 할당한 픽셀 메모리를 unique_ptr에서 해제한다.
 		struct ImageDeleter {
 			// stb_image가 할당한 픽셀 메모리를 해제한다.
 			void operator()(unsigned char* pixels) const;
 		};
 
+		// 디코딩된 RGBA 픽셀과 원본 이미지 정보를 함께 보관한다.
 		struct LoadedImage {
 			std::unique_ptr<unsigned char, ImageDeleter> pixels;
 			int width = 0;

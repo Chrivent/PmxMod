@@ -12,6 +12,7 @@ namespace Chrivent {
     class OpenGlDrawer;
     struct OpenGlMaterial;
 
+    // 한 모델의 OpenGL 버퍼, VAO와 재질 상태를 관리한다.
     class OpenGlInstance : public Instance {
 		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
 		static GLuint CreateBuffer(size_t size, const void* data, GLenum usage);

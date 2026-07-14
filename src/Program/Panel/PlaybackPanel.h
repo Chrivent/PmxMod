@@ -10,11 +10,13 @@ namespace Chrivent {
 		Stop
 	};
 
+	// 재생 구간의 시작 프레임과 끝 프레임을 보관한다.
 	struct PlaybackFrameRange {
 		int start = 0;
 		int end = 0;
 	};
 
+	// 재생 패널에서 사용하는 Win32 컨트롤 식별자를 보관한다.
 	struct PlaybackControlIds {
 		UINT_PTR playButton = 0;
 		UINT_PTR pauseButton = 0;
@@ -25,6 +27,7 @@ namespace Chrivent {
 		UINT_PTR repeatCheck = 0;
 	};
 
+	// 재생, 일시정지, 프레임 탐색과 재생 범위를 제어한다.
 	class PlaybackPanel final : public Panel {
 		static constexpr int kMaxEditableFrame = 65535;
 

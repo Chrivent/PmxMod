@@ -6,6 +6,7 @@
 #include <filesystem>
 
 namespace Chrivent {
+	// 공통 texture 정보에 Vulkan image, memory, view와 sampler를 결합한다.
 	struct VulkanTexture : Texture {
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
@@ -15,6 +16,7 @@ namespace Chrivent {
 		uint32_t height = 0;
 	};
 
+	// 이미지 파일을 Vulkan texture로 업로드하고 공통 키로 재사용한다.
 	class VulkanTextureCache : public TextureCache {
 		VkDevice device = VK_NULL_HANDLE;
 

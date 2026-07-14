@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// 공통 texture 정보에 D3D12 resource와 크기 및 형식을 결합한다.
 	struct Dx12Texture : Texture {
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 		UINT width = 0;
@@ -14,6 +15,7 @@ namespace Chrivent {
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	};
 
+	// 이미지 파일을 D3D12 texture로 업로드하고 공통 키로 재사용한다.
 	class Dx12TextureCache : public TextureCache {
 		// RGBA 픽셀을 DX12 texture resource로 업로드한다.
 		static bool UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,

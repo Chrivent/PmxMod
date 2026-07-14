@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// D3D12 장면 렌더링용 MSAA 색상 타깃과 view를 관리한다.
 	class Dx12MsaaColorBuffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> renderTarget;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;

@@ -17,6 +17,7 @@ namespace Chrivent {
     struct Material;
 	class PostProcess;
 
+    // 시간 기반 후처리 패스가 공유하는 현재 프레임과 카메라 입력을 보관한다.
     struct PostProcessFrameData {
         float deltaTime = 0.0f;
         float nearPlane = 1.0f;
@@ -38,6 +39,7 @@ namespace Chrivent {
         glm::vec4 cameraWorldUp{};
     };
     
+    // 렌더링 API별 material이 공유하는 원본 PMX 재질 참조를 보관한다.
     struct ViewerMaterial {
         const Material& mat;
 
@@ -46,6 +48,7 @@ namespace Chrivent {
         virtual ~ViewerMaterial() = default;
     };
     
+	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		std::filesystem::path resourceDir;
 		HWND fpsOverlay = nullptr;

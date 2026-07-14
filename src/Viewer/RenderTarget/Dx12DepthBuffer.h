@@ -6,6 +6,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// D3D12 장면 렌더링용 depth stencil 리소스와 view를 관리한다.
 	class Dx12DepthBuffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> depthStencil;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsvHeap;

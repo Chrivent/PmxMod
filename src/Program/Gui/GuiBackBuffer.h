@@ -3,6 +3,7 @@
 #include <windows.h>
 
 namespace Chrivent {
+	// GUI 창의 깜빡임을 줄이는 메모리 백버퍼를 관리한다.
 	class GuiBackBuffer {
 		HDC targetDc = nullptr;
 		HDC memoryDc = nullptr;

@@ -5,12 +5,14 @@
 #include <vector>
 
 namespace Chrivent {
+	// Vulkan surface가 지원하는 스왑체인 형식과 표시 모드를 보관한다.
 	struct VulkanSwapChainSupport {
 		VkSurfaceCapabilitiesKHR capabilities{};
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
+	// Vulkan 스왑체인과 화면 image 및 image view를 관리한다.
 	class VulkanSwapChain {
 		VkDevice device = VK_NULL_HANDLE;
 

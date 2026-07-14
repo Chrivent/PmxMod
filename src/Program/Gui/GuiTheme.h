@@ -4,6 +4,7 @@
 #include <windows.h>
 
 namespace Chrivent {
+	// 다크 모드 색상과 Win32 컨트롤 테마 적용을 관리한다.
 	class GuiTheme {
 	public:
 		static constexpr COLORREF backgroundColor = RGB(24, 27, 33);

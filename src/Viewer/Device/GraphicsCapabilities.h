@@ -4,6 +4,7 @@
 #include <string>
 
 namespace Chrivent {
+	// 선택한 그래픽 API와 GPU가 지원하는 렌더링 기능을 보관한다.
 	struct GraphicsCapabilities {
 		std::string apiName;
 		std::string apiVersion;

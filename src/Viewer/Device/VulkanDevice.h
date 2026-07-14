@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 namespace Chrivent {
+	// 그래픽과 표시 작업에 사용할 Vulkan 큐 패밀리 인덱스를 보관한다.
 	struct VulkanQueueFamilyIndices {
 		uint32_t graphicsFamily = 0;
 		uint32_t presentFamily = 0;
@@ -17,6 +18,7 @@ namespace Chrivent {
 		bool IsComplete() const { return hasGraphicsFamily && hasPresentFamily; }
 	};
 
+	// Vulkan 물리·논리 디바이스와 그래픽 및 표시 큐를 관리한다.
 	class VulkanDevice {
 		static constexpr const char* kDeviceExtensions[] = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME

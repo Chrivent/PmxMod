@@ -7,6 +7,7 @@
 #include <windows.h>
 
 namespace Chrivent {
+	// 메인 메뉴의 명령과 렌더러 및 물리 설정 상태를 관리한다.
 	class MenuBar {
 		static constexpr int kNewButtonId = 999;
 		static constexpr int kOpenButtonId = 1000;

@@ -4,6 +4,7 @@
 #include "Core/Parser/VmdParser.h"
 
 namespace Chrivent {
+	// VMD 카메라 키를 런타임 카메라 애니메이션으로 변환한다.
 	class CameraAnimationBuilder {
 		// VMD 카메라 키를 런타임 카메라 애니메이션 키로 변환한다.
 		static CameraAnimationKey CreateCameraKey(const VmdParser::VmdCamera& camera);

@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// DX12 디바이스, 명령 큐와 지원 기능 정보를 관리한다.
 	class Dx12Device {
 		// 디바이스가 지원하는 MSAA sample count를 선택한다.
 		static UINT ChooseMsaaSampleCount(ID3D12Device* device);

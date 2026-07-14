@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// D3D12 파이프라인 생성에 필요한 공통 설정과 셰이더 컴파일을 제공한다.
 	class Dx12PipelineBuilder {
 	public:
 		// Root Signature를 직렬화하고 DX12 리소스로 생성한다.

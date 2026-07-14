@@ -3,6 +3,7 @@
 #include "Core/Model/Model.h"
 
 namespace Chrivent {
+	// 본 계층의 전역 변환과 스키닝 행렬을 갱신한다.
 	class ModelPose {
 		Model& model;
 

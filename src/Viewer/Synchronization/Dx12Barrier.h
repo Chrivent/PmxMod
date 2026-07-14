@@ -3,6 +3,7 @@
 #include <d3d12.h>
 
 namespace Chrivent {
+	// D3D12 리소스 상태 전환을 Enhanced Barrier와 기존 barrier로 추상화한다.
 	class Dx12Barrier {
 		// 기존 resource state에 대응하는 Enhanced Barrier 동기화 범위를 반환한다.
 		static D3D12_BARRIER_SYNC ResolveSync(D3D12_RESOURCE_STATES state);

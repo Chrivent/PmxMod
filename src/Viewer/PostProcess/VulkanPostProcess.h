@@ -12,6 +12,7 @@ namespace Chrivent {
 	class VulkanCommandBuffer;
 	struct PostProcessFrameData;
 
+	// Vulkan 후처리 리소스의 image, memory, view와 초기화 상태를 보관한다.
 	struct VulkanPostProcessResource {
 		std::vector<VkImage> images;
 		std::vector<VkDeviceMemory> memories;
@@ -19,6 +20,7 @@ namespace Chrivent {
 		std::vector<bool> transientInitialized;
 	};
 
+	// 공통 실행 계획을 Vulkan image와 그래픽 파이프라인으로 기록한다.
 	class VulkanPostProcess : public PostProcess {
 		VkDevice device = VK_NULL_HANDLE;
 		VkExtent2D targetExtent{};

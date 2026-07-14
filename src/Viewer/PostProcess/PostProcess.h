@@ -17,6 +17,7 @@ namespace Chrivent {
 		Resource
 	};
 
+	// 효과 리소스 하나의 수명과 형식 및 실제 출력 크기를 나타낸다.
 	struct PostProcessResourcePlan {
 		EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
 		EffectTextureFormat format = EffectTextureFormat::Rgba16Float;
@@ -25,19 +26,23 @@ namespace Chrivent {
 		uint32_t height = 0;
 	};
 
+	// 패스의 texture 슬롯이 참조할 장면 또는 효과 리소스를 나타낸다.
 	struct PostProcessPassInputRoute {
 		uint32_t slot = 0;
 		PostProcessInputKind kind = PostProcessInputKind::SceneColor;
 		size_t resourceIndex = 0;
 	};
 
+	// 후처리 패스 하나의 입력 경로와 출력 대상을 나타낸다.
 	struct PostProcessPassRoute {
 		std::vector<PostProcessPassInputRoute> inputs;
 		PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
 		size_t outputResourceIndex = 0;
 	};
 
+	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
+		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
 		struct ResourceHistoryState {
 			size_t readIndex = 0;
 			bool initialized = false;

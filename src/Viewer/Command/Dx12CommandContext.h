@@ -8,6 +8,7 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
+	// DX12 명령 할당자와 그래픽 명령 목록의 기록 상태를 관리한다.
 	class Dx12CommandContext {
 		static constexpr UINT kFrameCount = 2;
 

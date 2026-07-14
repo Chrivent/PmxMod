@@ -9,7 +9,9 @@
 #include <vector>
 
 namespace Chrivent {
+	// 모델 갱신 작업을 작업 스레드에 분배하고 완료를 동기화한다.
 	class TaskExecutor {
+		// 한 번에 실행할 작업 함수와 남은 작업 수를 보관한다.
 		struct TaskBatch {
 			explicit TaskBatch(const std::size_t count, const std::size_t workerCount, std::function<void(std::size_t)> task)
 				: work(std::move(task)), workCount(count), remainingOperationCount(count + workerCount) {}

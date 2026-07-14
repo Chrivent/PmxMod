@@ -138,11 +138,13 @@ namespace Chrivent {
 		Hinge,
 	};
 
+	// 다른 모프를 지정한 가중치로 활성화하는 플립 모프 항목을 보관한다.
 	struct FlipMorph {
 		int32_t	morphIndex;
 		float	weight;
 	};
 
+	// 강체에 적용할 이동 속도와 회전 토크를 보관한다.
 	struct ImpulseMorph {
 		int32_t		rigidbodyIndex;
 		uint8_t		localFlag;
@@ -150,33 +152,39 @@ namespace Chrivent {
 		glm::vec3	rotateTorque;
 	};
 
+	// 표시 프레임이 참조하는 본 또는 모프 대상을 보관한다.
 	struct Target {
 		TargetType	type;
 		int32_t		index;
 	};
 
+	// 소프트바디 버텍스와 강체 사이의 앵커 연결을 보관한다.
 	struct AnchorRigidbody {
 		int32_t		rigidBodyIndex;
 		int32_t		vertexIndex;
 		uint8_t		nearMode;
 	};
 	
+	// 버텍스 하나의 위치 모프 오프셋을 보관한다.
 	struct PositionMorph {
 		int32_t		vertexIndex;
 		glm::vec3	position;
 	};
 
+	// 버텍스 하나의 UV 모프 오프셋을 보관한다.
 	struct UvMorph {
 		int32_t		vertexIndex;
 		glm::vec4	uv;
 	};
 
+	// 본 하나의 이동 및 회전 모프 값을 보관한다.
 	struct BoneMorph {
 		int32_t		boneIndex;
 		glm::vec3	position;
 		glm::quat	quaternion;
 	};
 
+	// 재질 하나에 적용할 색상 및 텍스처 계수 모프를 보관한다.
 	struct MaterialMorph {
 		int32_t		materialIndex;
 		OpType		opType;
@@ -191,13 +199,16 @@ namespace Chrivent {
 		glm::vec4	toonTextureFactor;
 	};
 
+	// 그룹이 참조하는 하위 모프와 가중치를 보관한다.
 	struct GroupMorph {
 		int32_t	morphIndex;
 		float	weight;
 	};
 
+	// PMX 바이너리를 형상, 재질, 본, 모프와 물리 데이터로 해석한다.
 	class PmxParser {
 	public:
+		// PMX 버전, 인코딩과 각 인덱스의 바이트 크기를 보관한다.
 		struct PmxHeader {
 			char		magic[4];
 			float		version;
@@ -212,6 +223,7 @@ namespace Chrivent {
 			uint8_t		rigidbodyIndexSize;
 		};
 
+		// PMX 모델 이름과 설명 문자열을 보관한다.
 		struct PmxInfo {
 			std::string	modelName;
 			std::string	englishModelName;
@@ -219,6 +231,7 @@ namespace Chrivent {
 			std::string	englishComment;
 		};
 
+		// 파일에서 읽은 PMX 버텍스와 스키닝 정보를 보관한다.
 		struct PmxVertex {
 			glm::vec3		position;
 			glm::vec3		normal;
@@ -233,14 +246,17 @@ namespace Chrivent {
 			float			edgeMag;
 		};
 
+		// 삼각형 하나를 구성하는 세 버텍스 인덱스를 보관한다.
 		struct PmxFace {
 			uint32_t	vertices[3];
 		};
 
+		// PMX 텍스처 테이블의 상대 경로를 보관한다.
 		struct PmxTexture {
 			std::filesystem::path textureName;
 		};
 
+		// 파일에서 읽은 PMX 재질과 서브메시 범위를 보관한다.
 		struct PmxMaterial {
 			std::string		name;
 			std::string		englishName;
@@ -260,6 +276,7 @@ namespace Chrivent {
 			int32_t			numFaceVertices;
 		};
 
+		// IK 체인 본과 선택적인 회전 제한을 보관한다.
 		struct PmxIkLink {
 			int32_t		ikBoneIndex;
 			uint8_t		enableLimit;
@@ -267,6 +284,7 @@ namespace Chrivent {
 			glm::vec3	limitMax;
 		};
 
+		// PMX 본의 계층, 변형 옵션과 IK 설정을 보관한다.
 		struct PmxBone {
 			std::string				name;
 			std::string				englishName;
@@ -288,6 +306,7 @@ namespace Chrivent {
 			std::vector<PmxIkLink>	ikLinks;
 		};
 
+		// PMX 모프의 형식과 형식별 항목 목록을 보관한다.
 		struct PmxMorph {
 			std::string					name;
 			std::string					englishName;
@@ -302,6 +321,7 @@ namespace Chrivent {
 			std::vector<ImpulseMorph>	impulseMorph;
 		};
 
+		// PMX 표시 프레임 이름과 대상 목록을 보관한다.
 		struct PmxDisplayFrame {
 			std::string			name;
 			std::string			englishName;
@@ -309,6 +329,7 @@ namespace Chrivent {
 			std::vector<Target>	targets;
 		};
 
+		// PMX 강체의 충돌 형상과 물리 속성을 보관한다.
 		struct PmxRigidbody {
 			std::string	name;
 			std::string	englishName;
@@ -327,6 +348,7 @@ namespace Chrivent {
 			Operation	op;
 		};
 
+		// PMX 조인트의 연결 강체, 제한과 스프링 계수를 보관한다.
 		struct PmxJoint {
 			std::string	name;
 			std::string	englishName;
@@ -343,6 +365,7 @@ namespace Chrivent {
 			glm::vec3	springRotateFactor;
 		};
 
+		// PMX 소프트바디의 재질, 물리 계수와 앵커를 보관한다.
 		struct PmxSoftBody {
 			std::string						name;
 			std::string						englishName;
@@ -385,6 +408,7 @@ namespace Chrivent {
 			std::vector<int32_t>			pinVertexIndices;
 		};
 
+		// 한 PMX 파일에서 읽은 모든 섹션 데이터를 묶어 보관한다.
 		struct PmxData {
 			PmxHeader						header;
 			PmxInfo							info;

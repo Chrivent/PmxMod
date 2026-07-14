@@ -15,7 +15,9 @@
 #include <vector>
 
 namespace Chrivent {
+    // 애플리케이션 수명 주기, 씬, 렌더러, 재생과 GUI를 총괄한다.
     class Program {
+        // 명령행에서 받은 씬, 렌더러와 벤치마크 옵션을 보관한다.
         struct ProgramOptions {
             std::filesystem::path scenePath;
             RendererType rendererType = RendererType::OpenGL;
@@ -23,6 +25,7 @@ namespace Chrivent {
             std::size_t warmupFrames = 60;
         };
 
+        // 한 프레임의 갱신 및 렌더링 단계별 시간을 보관한다.
         struct FrameTiming {
             double animationMilliseconds = 0.0;
             double initializeCpuMilliseconds = 0.0;
@@ -38,6 +41,7 @@ namespace Chrivent {
             double totalMilliseconds = 0.0;
         };
 
+        // 패널 항목이 참조하는 패키지와 이펙트 인덱스를 보관한다.
         struct ShaderEffectEntry {
             size_t packageIndex = 0;
             size_t effectIndex = 0;
