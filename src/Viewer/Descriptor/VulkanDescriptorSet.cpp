@@ -202,7 +202,7 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 3,
+					.dstBinding = 4,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[0]
@@ -210,7 +210,7 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 4,
+					.dstBinding = 5,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[1]
@@ -218,7 +218,7 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 5,
+					.dstBinding = 6,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[2]

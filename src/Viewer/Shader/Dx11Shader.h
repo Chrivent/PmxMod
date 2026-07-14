@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/Effect/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #include <filesystem>
 #include <d3d11.h>

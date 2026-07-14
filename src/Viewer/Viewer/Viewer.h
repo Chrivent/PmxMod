@@ -11,7 +11,7 @@
 
 #include "Viewer/Device/GraphicsCapabilities.h"
 #include "Viewer/Instance/Instance.h"
-#include "Viewer/Effect/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 namespace Chrivent {
     struct Material;
@@ -30,6 +30,12 @@ namespace Chrivent {
         float padding0 = 0.0f;
         float padding1 = 0.0f;
         float padding2 = 0.0f;
+        glm::vec4 cameraWorldPosition{};
+        glm::vec4 previousCameraWorldPosition{};
+        glm::vec4 cameraWorldDirection{};
+        glm::vec4 previousCameraWorldDirection{};
+        glm::vec4 cameraWorldRight{};
+        glm::vec4 cameraWorldUp{};
     };
     
     struct ViewerMaterial {

@@ -1,13 +1,13 @@
 ﻿add_library(PmxModViewer STATIC)
 add_library(PmxMod::Viewer ALIAS PmxModViewer)
 
-add_library(PmxModDxcCompiler OBJECT
-        Shader/DxcShaderCompiler.cpp
+add_library(PmxModModernHlslCompiler OBJECT
+        Shader/ModernHlslCompiler.cpp
 )
 
-target_compile_features(PmxModDxcCompiler PRIVATE cxx_std_23)
+target_compile_features(PmxModModernHlslCompiler PRIVATE cxx_std_23)
 
-target_include_directories(PmxModDxcCompiler PRIVATE
+target_include_directories(PmxModModernHlslCompiler PRIVATE
         ${PROJECT_SOURCE_DIR}/src
         "$ENV{VULKAN_SDK}/Include"
 )
@@ -36,9 +36,6 @@ target_sources(PmxModViewer PRIVATE
         Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
         Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
 
-        Effect/PostProcessInputLayout.h
-        Effect/ShaderPackage.h Effect/ShaderPackage.cpp
-
         Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
 
         Instance/Instance.h Instance/Instance.cpp
@@ -54,6 +51,7 @@ target_sources(PmxModViewer PRIVATE
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
+        PostProcess/PostProcessInputLayout.h
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
         PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
         PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
@@ -65,11 +63,11 @@ target_sources(PmxModViewer PRIVATE
         RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
 
         Shader/ShaderConstants.h
-        Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
-        Shader/DxcShaderCompiler.h
-        $<TARGET_OBJECTS:PmxModDxcCompiler>
+        Shader/ShaderPackage.h Shader/ShaderPackage.cpp
+        Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
+        Shader/ModernHlslCompiler.h
+        $<TARGET_OBJECTS:PmxModModernHlslCompiler>
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
-        Shader/OpenGlShaderCompiler.h Shader/OpenGlShaderCompiler.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
         Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp
 

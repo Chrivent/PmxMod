@@ -64,6 +64,7 @@ namespace Chrivent {
 		std::vector<EffectPassDefinition> passes;
 	};
 
+	// 렌더러가 소비하는 이펙트와 패스 정의를 하나의 설치 단위로 묶는다.
 	struct ShaderPackage {
 		std::string id;
 		std::string name;

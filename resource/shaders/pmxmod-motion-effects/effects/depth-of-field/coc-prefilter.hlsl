@@ -1,25 +1,11 @@
 // DOF CoC 축소 패스 입력:
-// t0 = SceneColor, t1 = SceneDepth, t2 = FocusHistory, t3 = EffectSourceColor, s0 = LinearClamp.
+// t0 = SceneColor, t1 = SceneDepth, t2 = FocusHistory, s0 = LinearClamp.
 Texture2D SceneColor : register(t0);
 Texture2D SceneDepth : register(t1);
 Texture2D FocusHistory : register(t2);
-Texture2D EffectSourceColor : register(t3);
 SamplerState LinearClamp : register(s0);
 
-#include "../../include/post-process-frame.hlsli"
 #include "../../include/depth-of-field.hlsli"
-
-struct FullscreenVertexOutput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD0;
-};
-
-FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
-    FullscreenVertexOutput output;
-    output.uv = float2((vertexId << 1) & 2, vertexId & 2);
-    output.position = float4(output.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    return output;
-}
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float2 offset = InverseViewportSize * BokehHalfResolutionScale;
@@ -32,10 +18,14 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float3 color2 = SceneColor.Sample(LinearClamp, uv2).rgb;
     float3 color3 = SceneColor.Sample(LinearClamp, uv3).rgb;
     float focusDistance = ReadDelayedFocusDistance();
-    float coc0 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv0), focusDistance);
-    float coc1 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv1), focusDistance);
-    float coc2 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv2), focusDistance);
-    float coc3 = CalculateCircleOfConfusionPixels(ReadCameraDistance(uv3), focusDistance);
+    float cocDistance0 = ReadCircleOfConfusionCameraDistance(uv0, focusDistance);
+    float cocDistance1 = ReadCircleOfConfusionCameraDistance(uv1, focusDistance);
+    float cocDistance2 = ReadCircleOfConfusionCameraDistance(uv2, focusDistance);
+    float cocDistance3 = ReadCircleOfConfusionCameraDistance(uv3, focusDistance);
+    float coc0 = CalculateCircleOfConfusionPixels(cocDistance0, focusDistance);
+    float coc1 = CalculateCircleOfConfusionPixels(cocDistance1, focusDistance);
+    float coc2 = CalculateCircleOfConfusionPixels(cocDistance2, focusDistance);
+    float coc3 = CalculateCircleOfConfusionPixels(cocDistance3, focusDistance);
     float3 prepared0 = PrepareBokehColor(color0);
     float3 prepared1 = PrepareBokehColor(color1);
     float3 prepared2 = PrepareBokehColor(color2);

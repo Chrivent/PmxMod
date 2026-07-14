@@ -204,6 +204,14 @@ namespace Chrivent {
 			viewer.previousViewMat = viewer.viewMat;
 			viewer.previousProjMat = viewer.projMat;
 		}
+		const glm::mat4 inverseView = glm::inverse(viewer.viewMat);
+		const glm::mat4 previousInverseView = glm::inverse(viewer.previousViewMat);
+		const glm::vec3 cameraPosition = glm::vec3(inverseView[3]);
+		const glm::vec3 previousCameraPosition = glm::vec3(previousInverseView[3]);
+		const glm::vec3 cameraDirection = glm::normalize(-glm::vec3(inverseView[2]));
+		const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
+		const glm::vec3 cameraRight = glm::normalize(glm::vec3(inverseView[0]));
+		const glm::vec3 cameraUp = glm::normalize(glm::vec3(inverseView[1]));
 		viewer.postProcessFrameData = {
 			.deltaTime = std::max(viewer.elapsed, 0.0f),
 			.nearPlane = nearPlane,
@@ -213,7 +221,13 @@ namespace Chrivent {
 			.viewportHeight = viewportHeight,
 			.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f,
 			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f,
-			.historyReset = viewer.postProcessHistoryResetPending ? 1.0f : 0.0f
+			.historyReset = viewer.postProcessHistoryResetPending ? 1.0f : 0.0f,
+			.cameraWorldPosition = glm::vec4(cameraPosition, 0.0f),
+			.previousCameraWorldPosition = glm::vec4(previousCameraPosition, 0.0f),
+			.cameraWorldDirection = glm::vec4(cameraDirection, 0.0f),
+			.previousCameraWorldDirection = glm::vec4(previousCameraDirection, 0.0f),
+			.cameraWorldRight = glm::vec4(cameraRight, 0.0f),
+			.cameraWorldUp = glm::vec4(cameraUp, 0.0f)
 		};
 	}
 }

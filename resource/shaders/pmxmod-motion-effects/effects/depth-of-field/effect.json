@@ -49,7 +49,6 @@
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "effect_input" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" }
       ],
@@ -63,8 +62,7 @@
       "reads": [
         { "slot": 0, "resource": "effect_input" },
         { "slot": 1, "resource": "scene_depth" },
-        { "slot": 2, "resource": "focus.read" },
-        { "slot": 3, "resource": "effect_input" }
+        { "slot": 2, "resource": "focus.read" }
       ],
       "output": "coc_prefilter"
     },
@@ -76,8 +74,7 @@
       "reads": [
         { "slot": 0, "resource": "coc_prefilter" },
         { "slot": 1, "resource": "scene_depth" },
-        { "slot": 2, "resource": "focus.read" },
-        { "slot": 3, "resource": "effect_input" }
+        { "slot": 2, "resource": "focus.read" }
       ],
       "output": "coc_downsample"
     },
@@ -89,8 +86,7 @@
       "reads": [
         { "slot": 0, "resource": "coc_downsample" },
         { "slot": 1, "resource": "scene_depth" },
-        { "slot": 2, "resource": "focus.read" },
-        { "slot": 3, "resource": "effect_input" }
+        { "slot": 2, "resource": "focus.read" }
       ],
       "output": "bokeh_background"
     },

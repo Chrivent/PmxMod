@@ -1,4 +1,8 @@
+#ifndef PMXMOD_MOTION_BLUR_HLSLI
+#define PMXMOD_MOTION_BLUR_HLSLI
+
 #include "post-process-frame.hlsli"
+#include "fullscreen.hlsli"
 
 // MotionBlur3의 기본 방향 블러 강도다.
 static const float DirectionalBlurStrength = 0.5;
@@ -14,6 +18,12 @@ static const float VelocityLimit = 0.12;
 
 // 이 값보다 느린 화면 이동에는 블러를 적용하지 않는다.
 static const float VelocityUnderCut = 0.006;
+
+// 카메라가 이 거리보다 크게 이동하면 MotionBlur3처럼 장면 전환으로 판정한다.
+static const float SceneChangePositionThreshold = 20.0;
+
+// 카메라 방향이 25도보다 크게 바뀌었는지 판정하는 내적 한계값이다.
+static const float SceneChangeDirectionDotThreshold = 0.9063077870;
 
 // 첫 번째 방향 블러가 사용하는 MotionBlur3의 패스 배율이다.
 static const float FirstDirectionalRate = 0.7;
@@ -47,20 +57,17 @@ static const float VelocityTileScale = 4.0;
 
 static const float MotionEpsilon = 1.0e-5;
 
-struct FullscreenVertexOutput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD0;
-};
-
-FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
-    FullscreenVertexOutput output;
-    output.uv = float2((vertexId << 1) & 2, vertexId & 2);
-    output.position = float4(output.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    return output;
+// 카메라 컷이나 히스토리 초기화 프레임에서는 이전 장면의 잔상을 사용하지 않는다.
+bool IsMotionSceneChange() {
+    float directionDot = dot(normalize(CameraWorldDirection.xyz), normalize(PreviousCameraWorldDirection.xyz));
+    float positionDelta = distance(CameraWorldPosition.xyz, PreviousCameraWorldPosition.xyz);
+    return FrameHistoryReset > 0.5 || positionDelta > SceneChangePositionThreshold
+        || directionDot < SceneChangeDirectionDotThreshold;
 }
 
+// 속도 입력의 비정상값과 미세 움직임을 제거하고 최대 길이를 제한한다.
 float2 PrepareVelocity(float2 velocity) {
-    if (any(isnan(velocity)) || any(isinf(velocity)))
+    if (!all(abs(velocity) < 1.0e8))
         return 0.0;
     float speed = length(velocity);
     if (speed <= VelocityUnderCut)
@@ -69,16 +76,19 @@ float2 PrepareVelocity(float2 velocity) {
     return velocity / max(speed, MotionEpsilon) * limitedSpeed;
 }
 
+// 하드웨어 깊이를 모션 경계 판정에 사용할 뷰 공간 거리로 변환한다.
 float LinearizeMotionDepth(float depth) {
     return CameraNearPlane * CameraFarPlane
         / max(CameraFarPlane - saturate(depth) * (CameraFarPlane - CameraNearPlane), 0.0001);
 }
 
+// 정규화된 속도, 깊이, 속력 정보를 하나의 값으로 묶는다.
 float4 PackMotion(float2 velocity, float depth) {
     float2 preparedVelocity = PrepareVelocity(velocity);
     return float4(preparedVelocity, saturate(depth), length(preparedVelocity));
 }
 
+// 속력이 크고 깊이가 가까운 모션 후보를 선택한다.
 float4 SelectDominantMotion(float4 currentMotion, float4 candidateMotion) {
     float maximumSpeed = max(currentMotion.w, candidateMotion.w);
     float speedDifference = candidateMotion.w - currentMotion.w;
@@ -90,11 +100,13 @@ float4 SelectDominantMotion(float4 currentMotion, float4 candidateMotion) {
     return currentMotion;
 }
 
+// 모션 샘플에 적용할 가우시안 가중치를 계산한다.
 float GaussianMotionWeight(float sampleRate, float sigma) {
     float normalizedRate = sampleRate / max(sigma, MotionEpsilon);
     return exp(-0.5 * normalizedRate * normalizedRate);
 }
 
+// 두 속도 벡터가 같은 방향으로 움직이는 정도를 계산한다.
 float CalculateDirectionAlignment(float2 referenceVelocity, float2 sampleVelocity) {
     float referenceSpeed = length(referenceVelocity);
     float sampleSpeed = length(sampleVelocity);
@@ -104,6 +116,7 @@ float CalculateDirectionAlignment(float2 referenceVelocity, float2 sampleVelocit
     return smoothstep(0.2, 0.9, alignment);
 }
 
+// 한 픽셀의 이동 선분이 대상 화면 위치를 덮는 비율을 계산한다.
 float CalculateMotionSegmentCoverage(float2 sourceUv, float2 targetUv, float2 velocity, float lengthScale) {
     float speed = length(velocity);
     if (speed <= MotionEpsilon)
@@ -120,6 +133,7 @@ float CalculateMotionSegmentCoverage(float2 sourceUv, float2 targetUv, float2 ve
     return alongCoverage * acrossCoverage;
 }
 
+// 두 깊이가 같은 표면에 속할 가능성을 계산한다.
 float CalculateDepthSimilarity(float firstDepth, float secondDepth) {
     float firstDistance = LinearizeMotionDepth(firstDepth);
     float secondDistance = LinearizeMotionDepth(secondDepth);
@@ -127,6 +141,7 @@ float CalculateDepthSimilarity(float firstDepth, float secondDepth) {
     return exp2(-abs(firstDistance - secondDistance) / tolerance * MotionDepthFalloff);
 }
 
+// 방향 블러에서 전경과 후경의 잘못된 색 혼합을 억제한다.
 float CalculateDirectionalDepthWeight(float centerDepth, float sampleDepth,
     float centerCoverage, float sampleCoverage) {
     float centerDistance = LinearizeMotionDepth(centerDepth);
@@ -140,6 +155,7 @@ float CalculateDirectionalDepthWeight(float centerDepth, float sampleDepth,
     return 1.0;
 }
 
+// 라인 잔상에서 뒤쪽 표면이 앞쪽으로 번지는 현상을 억제한다.
 float CalculateTrailDepthWeight(float centerDepth, float sampleDepth) {
     float centerDistance = LinearizeMotionDepth(centerDepth);
     float sampleDistance = LinearizeMotionDepth(sampleDepth);
@@ -148,3 +164,5 @@ float CalculateTrailDepthWeight(float centerDepth, float sampleDepth) {
         return 1.0;
     return CalculateDepthSimilarity(centerDepth, sampleDepth);
 }
+
+#endif

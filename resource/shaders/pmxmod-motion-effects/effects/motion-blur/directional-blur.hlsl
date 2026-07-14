@@ -29,7 +29,7 @@ float2 ReadDominantVelocity(float2 uv) {
 
 float4 ResolveDirectionalBlur(float2 uv, float passRate, int sampleRadius) {
     float4 centerColor = PassColor.SampleLevel(LinearClamp, uv, 0.0);
-    if (FrameHistoryReset > 0.5)
+    if (IsMotionSceneChange())
         return centerColor;
     float2 centerVelocity = ReadVelocity(uv);
     float2 dominantVelocity = ReadDominantVelocity(uv);

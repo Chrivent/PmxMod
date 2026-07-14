@@ -2,7 +2,7 @@
 
 #include "Viewer/Shader/VulkanShaderModule.h"
 #include "Viewer/Instance/VulkanInstance.h"
-#include "Viewer/Shader/DxcShaderCompiler.h"
+#include "Viewer/Shader/ModernHlslCompiler.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <cstddef>
@@ -63,13 +63,6 @@ namespace Chrivent {
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 3,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-				.pImmutableSamplers = nullptr
-			},
-			VkDescriptorSetLayoutBinding{
 				.binding = 4,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
@@ -78,6 +71,13 @@ namespace Chrivent {
 			},
 			VkDescriptorSetLayoutBinding{
 				.binding = 5,
+				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+				.descriptorCount = 1,
+				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+				.pImmutableSamplers = nullptr
+			},
+			VkDescriptorSetLayoutBinding{
+				.binding = 6,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -149,12 +149,12 @@ namespace Chrivent {
 		std::string error;
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
 		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!DxcShaderCompiler::CompileSpirv(
+		if (!ModernHlslCompiler::CompileSpirv(
 			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!DxcShaderCompiler::CompileSpirv(
+		if (!ModernHlslCompiler::CompileSpirv(
 			pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
@@ -296,7 +296,7 @@ namespace Chrivent {
 		std::vector<uint32_t> vertexShaderCode;
 		std::string error;
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
-		if (!DxcShaderCompiler::CompileSpirv(
+		if (!ModernHlslCompiler::CompileSpirv(
 			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;

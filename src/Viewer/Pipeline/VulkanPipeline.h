@@ -2,7 +2,7 @@
 
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/SwapChain/VulkanSwapChain.h"
-#include "Viewer/Effect/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 namespace Chrivent {
 	class VulkanPipeline {

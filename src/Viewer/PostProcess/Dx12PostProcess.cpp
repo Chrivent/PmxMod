@@ -3,7 +3,7 @@
 #include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/Pipeline/Dx12PipelineBuilder.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
-#include "Viewer/Effect/PostProcessInputLayout.h"
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <iostream>

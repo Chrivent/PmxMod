@@ -1,7 +1,7 @@
-﻿#include "Viewer/Effect/ShaderPackage.h"
+﻿#include "Viewer/Shader/ShaderPackage.h"
 
 #include "Util.h"
-#include "Viewer/Effect/PostProcessInputLayout.h"
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <algorithm>
 #include <fstream>

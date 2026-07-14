@@ -1,7 +1,7 @@
 ﻿#include "Viewer/PostProcess/VulkanPostProcess.h"
 
-#include "Viewer/Shader/DxcShaderCompiler.h"
-#include "Viewer/Effect/PostProcessInputLayout.h"
+#include "Viewer/Shader/ModernHlslCompiler.h"
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
 #include "Viewer/Memory/VulkanMemory.h"
@@ -359,9 +359,9 @@ namespace Chrivent {
 		std::string error;
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
 		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!DxcShaderCompiler::CompileSpirv(
+		if (!ModernHlslCompiler::CompileSpirv(
 			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error, true)
-			|| !DxcShaderCompiler::CompileSpirv(
+			|| !ModernHlslCompiler::CompileSpirv(
 				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, pixelCode, error)) {
 			std::cerr << error << '\n';
 			return false;

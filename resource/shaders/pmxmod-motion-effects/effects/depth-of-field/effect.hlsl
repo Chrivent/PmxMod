@@ -6,20 +6,7 @@ Texture2D FocusHistory : register(t2);
 Texture2D EffectSourceColor : register(t3);
 SamplerState LinearClamp : register(s0);
 
-#include "../../include/post-process-frame.hlsli"
 #include "../../include/depth-of-field.hlsli"
-
-struct FullscreenVertexOutput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD0;
-};
-
-FullscreenVertexOutput VSMain(uint vertexId : SV_VertexID) {
-    FullscreenVertexOutput output;
-    output.uv = float2((vertexId << 1) & 2, vertexId & 2);
-    output.position = float4(output.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    return output;
-}
 
 // 반해상도 보케를 3x3 깊이 인식 필터로 원해상도에 복원한다.
 float4 ResolveDepthAwareBokeh(float2 uv, float centerDistance) {
@@ -55,7 +42,8 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float focusDistance = ReadDelayedFocusDistance();
     float cameraDistance = ReadCameraDistance(input.uv);
     float4 bokeh = ResolveDepthAwareBokeh(input.uv, cameraDistance);
-    float signedCocPixels = CalculateCircleOfConfusionPixels(cameraDistance, focusDistance);
+    float cocCameraDistance = CalculateTiltedCameraDistance(input.uv, cameraDistance, focusDistance);
+    float signedCocPixels = CalculateCircleOfConfusionPixels(cocCameraDistance, focusDistance);
     float localBlur = smoothstep(0.0, 1.0, abs(signedCocPixels));
     float foregroundSpread = saturate(bokeh.a);
     float blendAmount = max(localBlur, foregroundSpread);

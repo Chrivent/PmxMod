@@ -19,7 +19,7 @@ float2 ReadLineVelocity(float2 uv) {
 }
 
 float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
-    if (FrameHistoryReset > 0.5)
+    if (IsMotionSceneChange())
         return 0.0;
     float2 lineVelocity = ReadLineVelocity(input.uv);
     float lineSpeed = length(lineVelocity);

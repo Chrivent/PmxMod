@@ -1,24 +1,25 @@
-﻿#include "Viewer/Shader/DxcShaderCompiler.h"
+﻿#include "Viewer/Shader/ModernHlslCompiler.h"
 
 #include <Windows.h>
+#include <cstring>
 #include <dxc/dxcapi.h>
 #include <iterator>
 #include <wrl/client.h>
 
 namespace Chrivent {
-	bool DxcShaderCompiler::CompileObject(const std::filesystem::path& file, const std::wstring& entry,
+	bool ModernHlslCompiler::CompileObject(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, const std::span<const wchar_t* const> additionalArguments,
 		std::vector<uint8_t>& outObject, std::string& outError) {
 		Microsoft::WRL::ComPtr<IDxcUtils> utils;
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
 		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils))) ||
 			FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
-			outError = "Failed to initialize DXC.";
+			outError = "Failed to initialize the modern HLSL compiler.";
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
 		if (FAILED(utils->CreateDefaultIncludeHandler(&includeHandler))) {
-			outError = "Failed to initialize the DXC include handler.";
+			outError = "Failed to initialize the HLSL include handler.";
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
@@ -40,7 +41,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
 			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
-			outError = "Failed to invoke DXC: " + file.string();
+			outError = "Failed to invoke the modern HLSL compiler: " + file.string();
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
@@ -48,7 +49,7 @@ namespace Chrivent {
 			errors.Reset();
 		HRESULT status = E_FAIL;
 		if (FAILED(result->GetStatus(&status))) {
-			outError = "Failed to query DXC compilation status: " + file.string();
+			outError = "Failed to query HLSL compilation status: " + file.string();
 			return false;
 		}
 		if (FAILED(status)) {
@@ -61,7 +62,7 @@ namespace Chrivent {
 		}
 		Microsoft::WRL::ComPtr<IDxcBlob> object;
 		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr)) || !object) {
-			outError = "DXC returned an invalid shader object: " + file.string();
+			outError = "The modern HLSL compiler returned an invalid shader object: " + file.string();
 			return false;
 		}
 		outObject.resize(object->GetBufferSize());
@@ -70,12 +71,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool DxcShaderCompiler::CompileDxil(const std::filesystem::path& file, const std::wstring& entry,
+	bool ModernHlslCompiler::CompileDxil(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, std::vector<uint8_t>& outDxil, std::string& outError) {
 		return CompileObject(file, entry, target, {}, outDxil, outError);
 	}
 
-	bool DxcShaderCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
+	bool ModernHlslCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, const SpirvTarget spirvTarget,
 		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
 		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
@@ -123,7 +124,7 @@ namespace Chrivent {
 		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;
 		if (object.size() % sizeof(uint32_t) != 0) {
-			outError = "DXC returned invalid SPIR-V: " + file.string();
+			outError = "The HLSL compiler returned invalid SPIR-V: " + file.string();
 			return false;
 		}
 		outSpirv.resize(object.size() / sizeof(uint32_t));

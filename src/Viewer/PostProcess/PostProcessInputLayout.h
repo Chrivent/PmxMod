@@ -10,7 +10,7 @@ namespace Chrivent {
 		static constexpr uint32_t maxTextureCount = 8;
 		// 포스트 프로세스 공통 clamp linear sampler다. HLSL SamplerState LinearClamp : register(s0)에 대응한다.
 		static constexpr uint32_t linearClampSamplerRegister = 0;
-		// DXC SPIR-V binding에서 t4 이후가 공통 sampler binding을 건너뛰도록 실제 binding을 계산한다.
+		// SPIR-V binding에서 t4 이후가 공통 sampler binding을 건너뛰도록 실제 binding을 계산한다.
 		static constexpr uint32_t ResolveSpirvTextureBinding(const uint32_t slot) {
 			return slot < 4 ? slot : slot + 3;
 		}

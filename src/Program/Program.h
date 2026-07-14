@@ -2,7 +2,7 @@
 
 #include "Program/RendererType.h"
 #include "Program/Sound.h"
-#include "Viewer/Effect/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 #include "Program/Manager/CameraManager.h"
 #include "Program/Manager/PanelManager.h"
 #include "Program/Manager/InputManager.h"

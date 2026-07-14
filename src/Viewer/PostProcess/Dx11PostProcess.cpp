@@ -1,7 +1,7 @@
 ﻿#include "Viewer/PostProcess/Dx11PostProcess.h"
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
-#include "Viewer/Effect/PostProcessInputLayout.h"
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>

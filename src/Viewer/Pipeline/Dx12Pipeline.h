@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
-#include "Viewer/Effect/ShaderPackage.h"
+#include "Viewer/Shader/ShaderPackage.h"
 #include <d3d12.h>
 #include <filesystem>
 #include <wrl/client.h>

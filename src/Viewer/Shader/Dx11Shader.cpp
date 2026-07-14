@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Shader/Dx11Shader.h"
 
-#include "Viewer/Shader/ShaderCompiler.h"
+#include "Viewer/Shader/LegacyHlslCompiler.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <cstddef>
@@ -29,11 +29,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBytecode;
 		std::string error;
-		if (!ShaderCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error)) {
+		if (!LegacyHlslCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
-		if (!ShaderCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error)) {
+		if (!LegacyHlslCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}

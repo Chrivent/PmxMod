@@ -1,6 +1,6 @@
 ﻿#include "Viewer/PostProcess/OpenGlPostProcess.h"
 
-#include "Viewer/Effect/PostProcessInputLayout.h"
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
