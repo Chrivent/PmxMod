@@ -40,6 +40,7 @@ namespace Chrivent {
         Dx11ModelShader         model;
         Dx11EdgeShader          edge;
         Dx11GroundShadowShader  groundShadow;
+		Dx11SceneVelocityShader sceneVelocity;
     };
 
     struct Dx11PipelineStates {
@@ -107,6 +108,7 @@ namespace Chrivent {
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // DX11 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
         void ResetPostProcessHistory() override;
+        bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
         // DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.

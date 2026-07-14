@@ -21,7 +21,7 @@ namespace Chrivent {
     void Instance::PrepareUpdate(const Viewer& viewer, const bool physicsEnabled, ModelUpdateTiming* timing) const {
         const ModelUpdater updater(*model);
         updater.Prepare(anim.get(), viewer.animTime * 30.0f, viewer.elapsed,
-            physicsEnabled && !viewer.skipPhysics, timing);
+            viewer.RequiresPostProcessVelocity(), physicsEnabled && !viewer.skipPhysics, timing);
     }
 
     std::size_t Instance::CalculateSkinningTaskCount() const {

@@ -7,6 +7,18 @@
 #include <stb_image.h>
 
 namespace Chrivent {
+	void Viewer::ResetPostProcessFrameHistory() {
+		postProcessHistoryResetPending = true;
+		postProcessFrameData.historyReset = 1.0f;
+	}
+
+	void Viewer::CommitPostProcessFrameHistory() {
+		previousViewMat = viewMat;
+		previousProjMat = projMat;
+		postProcessHistoryResetPending = false;
+		postProcessFrameData.historyReset = 0.0f;
+	}
+
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
         if (msg == WM_ERASEBKGND)
             return 1;

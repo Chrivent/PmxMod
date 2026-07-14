@@ -23,6 +23,7 @@ namespace Chrivent {
 		GLuint sceneColorTexture = 0;
 		GLuint postProcessDepthFramebuffer = 0;
 		GLuint postProcessDepthTexture = 0;
+		GLuint postProcessVelocityTexture = 0;
 		GLuint sceneDepthStencil = 0;
 		GLuint postProcessVao = 0;
 		GLuint frameDataBuffer = 0;

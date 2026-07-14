@@ -46,6 +46,15 @@ namespace Chrivent {
         return true;
     }
 
+	bool GlfwSceneVelocityShader::Initialize(const EffectPassDefinition& pass) {
+		program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		if (program == 0)
+			return false;
+		positionLocation = 0;
+		previousPositionLocation = 1;
+		return true;
+	}
+
     bool GlfwPostProcessShader::Initialize(const EffectPassDefinition& pass) {
         program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry, true);
         return program != 0;

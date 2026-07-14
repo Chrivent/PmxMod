@@ -187,13 +187,24 @@ namespace Chrivent {
 		if (!viewer.modelEffectEnabled)
 			instance.modelVertexConstantsRing.BeginFrame(frameIndex);
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vertexConstants;
-		vertexConstants.wv = viewer.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		SceneVelocityVertexConstants velocityConstants;
+		ModelVertexConstants depthConstants;
+		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
+		if (velocityRequired) {
+			velocityConstants.currentWvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+			velocityConstants.previousWvp = viewer.postProcessHistoryResetPending ? velocityConstants.currentWvp
+				: ClipMatrix() * viewer.previousProjMat * viewer.previousViewMat * world;
+		} else {
+			depthConstants.wv = viewer.viewMat * world;
+			depthConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		}
 		std::string error;
-		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
+		const size_t constantSize = velocityRequired ? sizeof(velocityConstants) : sizeof(depthConstants);
+		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(
+			constantSize, instance.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!instance.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			!instance.modelVertexConstantsRing.Write(*vertexSlice,
+				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, error)) {
 			std::cerr << "Failed to update Vulkan depth-only vertex constants.\n";
 			return;
 		}
@@ -204,7 +215,10 @@ namespace Chrivent {
 			const auto& mat = instance.materials[materialId].mat;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			if (velocityRequired)
+				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);
+			else
+				instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
 			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}

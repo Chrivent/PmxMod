@@ -31,6 +31,10 @@ namespace Chrivent {
 		std::vector<VkImage> depthImages;
 		std::vector<VkDeviceMemory> depthImageMemories;
 		std::vector<VkImageView> depthImageViews;
+		std::vector<VkImage> velocityImages;
+		std::vector<VkDeviceMemory> velocityImageMemories;
+		std::vector<VkImageView> velocityImageViews;
+		std::vector<bool> velocityImageInitialized;
 		std::vector<VulkanPostProcessResource> resources;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 		std::vector<VkDescriptorSet> frameDataDescriptorSets;
@@ -50,6 +54,8 @@ namespace Chrivent {
 		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
 		bool CreateDepthImages(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
+		// 스왑체인 이미지마다 장면 속도 기록과 sampling에 사용할 RG16F 이미지를 생성한다.
+		bool CreateVelocityImages(const VulkanDevice& sourceDevice);
 		// 패키지가 선언한 transient/history image를 생성한다.
 		bool CreateEffectResources(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
@@ -95,10 +101,10 @@ namespace Chrivent {
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
-		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 시작한다.
+		// Vulkan 포스트 프로세스용 단일 샘플 geometry pass를 시작한다.
 		bool BeginDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
-			VkPipeline depthPipeline, VkExtent2D extent) const;
-		// Vulkan 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
+			VkPipeline geometryPipeline, VkExtent2D extent);
+		// Vulkan 포스트 프로세스용 단일 샘플 geometry pass를 종료한다.
 		bool EndDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
 		// 장면 렌더링을 끝내고 선언된 pass들을 실행해 최종 명령을 기록한다.
 		bool EndRecord(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,

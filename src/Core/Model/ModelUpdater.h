@@ -22,7 +22,7 @@ namespace Chrivent {
 		explicit ModelUpdater(Model& targetModel) : model(targetModel) {}
 
 		// 지정한 애니메이션 시간으로 모델 상태를 평가하고 스키닝 작업 범위를 준비한다.
-		void Prepare(const Animation* animation, float frame, float physicsElapsed,
+		void Prepare(const Animation* animation, float frame, float physicsElapsed, bool preservePreviousPositions,
 			bool updatePhysics = true, ModelUpdateTiming* timing = nullptr) const;
 		// 현재 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.
 		std::size_t CalculateSkinningTaskCount() const;

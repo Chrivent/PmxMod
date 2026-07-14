@@ -40,6 +40,13 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
+	struct GlfwSceneVelocityShader : GlfwShader {
+		GLint previousPositionLocation = -1;
+
+		// 포스트 프로세스용 장면 속도 프로그램을 컴파일하고 이전 위치 attribute를 설정한다.
+		bool Initialize(const EffectPassDefinition& pass);
+	};
+
     struct GlfwPostProcessShader : GlfwShader {
         // 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
         bool Initialize(const EffectPassDefinition& pass);

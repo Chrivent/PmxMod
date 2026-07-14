@@ -83,7 +83,9 @@ namespace Chrivent {
 			return false;
 		return shaders.model.Initialize(device, modelEffect->passes.front().shaderPath)
 			&& shaders.edge.Initialize(device, edgeEffect->passes.front().shaderPath)
-			&& shaders.groundShadow.Initialize(device, groundShadowEffect->passes.front().shaderPath);
+			&& shaders.groundShadow.Initialize(device, groundShadowEffect->passes.front().shaderPath)
+			&& shaders.sceneVelocity.Initialize(device,
+				resourceDir / "shaders" / "pmxmod-default" / "internal" / "scene-velocity.hlsl");
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {
@@ -254,11 +256,15 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		return postProcess.Load(deviceResources.device.Get(), effects);
+		const bool loaded = postProcess.Load(deviceResources.device.Get(), effects);
+		if (loaded)
+			ResetPostProcessFrameHistory();
+		return loaded;
 	}
 
 	void Dx11Viewer::ResetPostProcessHistory() {
 		postProcess.ResetHistory();
+		ResetPostProcessFrameHistory();
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {

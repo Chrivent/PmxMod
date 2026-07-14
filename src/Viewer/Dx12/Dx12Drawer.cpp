@@ -185,25 +185,39 @@ namespace Chrivent {
 		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
+		const size_t constantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
 		const auto& viewer = *instance.viewer;
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vertexConstants;
-		vertexConstants.wv = viewer.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-		if (!vertexConstantBuffer.Write(vertexConstants)) {
+		SceneVelocityVertexConstants velocityConstants;
+		ModelVertexConstants depthConstants;
+		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
+		if (velocityRequired) {
+			velocityConstants.currentWvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+			velocityConstants.previousWvp = viewer.postProcessHistoryResetPending ? velocityConstants.currentWvp
+				: ClipMatrix() * viewer.previousProjMat * viewer.previousViewMat * world;
+		} else {
+			depthConstants.wv = viewer.viewMat * world;
+			depthConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		}
+		if (!(velocityRequired ? vertexConstantBuffer.Write(velocityConstants, constantOffset)
+			: vertexConstantBuffer.Write(depthConstants, constantOffset))) {
 			std::cerr << "Failed to update DX12 depth-only vertex constants.\n";
 			return;
 		}
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(
+			0, vertexConstantBuffer.ResolveGpuAddress() + constantOffset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& mat = instance.materials[materialId].mat;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			if (velocityRequired)
+				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);
+			else
+				instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
 	}

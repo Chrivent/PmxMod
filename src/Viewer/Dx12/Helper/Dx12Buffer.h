@@ -25,8 +25,15 @@ namespace Chrivent {
 		D3D12_GPU_VIRTUAL_ADDRESS ResolveGpuAddress() const;
 		// CPU에서 직접 갱신할 수 있는 upload buffer를 생성한다.
 		bool InitializeUpload(const Dx12Device& sourceDevice, size_t size);
+		// upload buffer의 지정한 byte offset에 데이터를 복사한다.
+		bool Write(std::span<const std::byte> data, size_t offset) const;
 		// upload buffer에 데이터를 복사한다.
-		bool Write(std::span<const std::byte> data) const;
+		bool Write(std::span<const std::byte> data) const { return Write(data, 0); }
+		// trivially copyable 값 하나를 upload buffer의 지정한 byte offset에 복사한다.
+		template <typename T> requires std::is_trivially_copyable_v<T>
+		bool Write(const T& data, const size_t offset) const {
+			return Write(std::as_bytes(std::span{ &data, 1 }), offset);
+		}
 		// trivially copyable 값 하나를 upload buffer에 복사한다.
 		template <typename T> requires std::is_trivially_copyable_v<T>
 		bool Write(const T& data) const { return Write(std::as_bytes(std::span{ &data, 1 })); }

@@ -35,6 +35,7 @@ namespace Chrivent {
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
+		GLuint velocityVao = 0;
         size_t uniformBufferOffsetAlignment = 1;
         GlfwDynamicBufferRing vertexConstantsRing;
         GlfwDynamicBufferRing pixelConstantsRing;

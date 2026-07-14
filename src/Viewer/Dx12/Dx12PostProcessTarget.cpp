@@ -24,7 +24,7 @@ namespace Chrivent {
 		clearValue.Format = format;
 		if (FAILED(sourceDevice.device->CreateCommittedResource(
 			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&sceneColor))))
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 		rtvHeapDesc.NumDescriptors = 1;
@@ -32,7 +32,7 @@ namespace Chrivent {
 		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
 			return false;
 		sourceDevice.device->CreateRenderTargetView(
-			sceneColor.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+			resource.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		return true;
 	}
 
@@ -44,7 +44,7 @@ namespace Chrivent {
 
 	void Dx12PostProcessTarget::Reset() {
 		rtvDescriptorHeap.Reset();
-		sceneColor.Reset();
+		resource.Reset();
 		format = DXGI_FORMAT_UNKNOWN;
 	}
 }

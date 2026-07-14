@@ -25,6 +25,10 @@ namespace Chrivent {
         float viewportHeight = 0.0f;
         float inverseViewportWidth = 0.0f;
         float inverseViewportHeight = 0.0f;
+        float historyReset = 1.0f;
+        float padding0 = 0.0f;
+        float padding1 = 0.0f;
+        float padding2 = 0.0f;
     };
     
     struct ViewerMaterial {
@@ -52,6 +56,8 @@ namespace Chrivent {
         std::filesystem::path pmxDir;
         glm::mat4 viewMat;
         glm::mat4 projMat;
+        glm::mat4 previousViewMat{1.0f};
+        glm::mat4 previousProjMat{1.0f};
         PostProcessFrameData postProcessFrameData;
         int screenWidth = 0;
         int screenHeight = 0;
@@ -63,6 +69,7 @@ namespace Chrivent {
         bool modelEffectEnabled = true;
         bool edgeEffectEnabled = true;
         bool groundShadowEffectEnabled = true;
+        bool postProcessHistoryResetPending = true;
         GLFWwindow* window = nullptr;
         GraphicsCapabilities capabilities;
 
@@ -90,6 +97,8 @@ namespace Chrivent {
         virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) = 0;
         // 카메라 점프나 탐색 뒤 다음 프레임의 초점 히스토리를 초기화한다.
         virtual void ResetPostProcessHistory() = 0;
+        // 활성 후처리 효과가 장면 속도 입력을 요구하는지 반환한다.
+        virtual bool RequiresPostProcessVelocity() const = 0;
         // 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.
@@ -98,6 +107,10 @@ namespace Chrivent {
         void InitDirs(const std::filesystem::path& shaderSubDir);
         // 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
         std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
+        // 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.
+        void ResetPostProcessFrameHistory();
+        // 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
+        void CommitPostProcessFrameHistory();
         // 렌더링 창 좌측 상단에 FPS 오버레이를 생성한다.
         void CreateFpsOverlay();
         // FPS 오버레이에 현재 측정값을 표시한다.

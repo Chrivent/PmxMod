@@ -94,6 +94,7 @@ namespace Chrivent {
 		std::vector<glm::vec3>						updatePositions;
 		std::vector<glm::vec3>						updateNormals;
 		std::vector<glm::vec2>						updateUVs;
+		std::vector<glm::vec3>						previousPositions;
 		uint32_t									parallelUpdateCount = 0;
 		std::vector<UpdateRange>					updateRanges;
 	};

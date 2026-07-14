@@ -6,6 +6,7 @@
 #include "Core/Model/Model.h"
 #include "Viewer/ViewerGeometry.h"
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 
@@ -49,7 +50,10 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::CreateConstantBuffers(const Dx12Device& device) {
-		const size_t vertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
+		const size_t modelVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
+		const size_t postProcessVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(
+			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)));
+		const size_t vertexConstantSize = modelVertexConstantSize + postProcessVertexConstantSize;
 		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
 		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgeVertexConstants));
 		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgePixelConstants));

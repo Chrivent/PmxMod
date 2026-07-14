@@ -9,7 +9,7 @@
 
 namespace Chrivent {
 	void ModelUpdater::Prepare(const Animation* animation, const float frame, const float physicsElapsed,
-		const bool updatePhysics, ModelUpdateTiming* timing) const {
+		const bool preservePreviousPositions, const bool updatePhysics, ModelUpdateTiming* timing) const {
 		const ModelAnimator animator(model);
 		const ModelPose pose(model);
 		if (!timing) {
@@ -23,7 +23,7 @@ namespace Chrivent {
 			pose.UpdateNodeAnimation(true);
 			pose.UpdateTransforms();
 			const ModelSkinning skinning(model);
-			skinning.PrepareUpdate();
+			skinning.PrepareUpdate(preservePreviousPositions);
 			return;
 		}
 		const auto Measure = [](const auto& task) {
@@ -39,7 +39,7 @@ namespace Chrivent {
 		timing->afterPhysicsPoseMilliseconds = Measure([&] { pose.UpdateNodeAnimation(true); });
 		timing->transformMilliseconds = Measure([&] { pose.UpdateTransforms(); });
 		const ModelSkinning skinning(model);
-		skinning.PrepareUpdate();
+		skinning.PrepareUpdate(preservePreviousPositions);
 	}
 
 	std::size_t ModelUpdater::CalculateSkinningTaskCount() const {

@@ -226,18 +226,29 @@ namespace Chrivent {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vsCb;
-		vsCb.wv = view * world;
-		vsCb.wvp = ClipMatrix() * proj * view * world;
-		viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
-		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
+		if (viewer->RequiresPostProcessVelocity()) {
+			SceneVelocityVertexConstants vsCb;
+			vsCb.currentWvp = ClipMatrix() * proj * view * world;
+			vsCb.previousWvp = viewer->postProcessHistoryResetPending ? vsCb.currentWvp
+				: ClipMatrix() * viewer->previousProjMat * viewer->previousViewMat * world;
+			viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
+			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.sceneVelocity.inputLayout.Get());
+			viewer->deviceResources.context->VSSetShader(viewer->shaders.sceneVelocity.vertexShader.Get(), nullptr, 0);
+			viewer->deviceResources.context->PSSetShader(viewer->shaders.sceneVelocity.pixelShader.Get(), nullptr, 0);
+		} else {
+			ModelVertexConstants vsCb;
+			vsCb.wv = view * world;
+			vsCb.wvp = ClipMatrix() * proj * view * world;
+			viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
+			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
+			viewer->deviceResources.context->VSSetShader(viewer->shaders.model.vertexShader.Get(), nullptr, 0);
+			viewer->deviceResources.context->PSSetShader(nullptr, nullptr, 0);
+		}
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		viewer->deviceResources.context->VSSetShader(viewer->shaders.model.vertexShader.Get(), nullptr, 0);
-		viewer->deviceResources.context->PSSetShader(nullptr, nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
 		const ID3D11RasterizerState* currentRs = nullptr;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {

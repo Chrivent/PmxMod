@@ -60,6 +60,8 @@ namespace Chrivent {
 			return sceneColorTexture;
 		if (input.kind == PostProcessInputKind::SceneDepth)
 			return postProcessDepthTexture;
+		if (input.kind == PostProcessInputKind::SceneVelocity)
+			return postProcessVelocityTexture;
 		if (input.resourceIndex >= resources.size())
 			return sceneColorTexture;
 		const auto& plans = ResolveResourcePlans();
@@ -122,6 +124,8 @@ namespace Chrivent {
 			glDeleteTextures(1, &sceneColorTexture);
 		if (postProcessDepthTexture != 0)
 			glDeleteTextures(1, &postProcessDepthTexture);
+		if (postProcessVelocityTexture != 0)
+			glDeleteTextures(1, &postProcessVelocityTexture);
 		if (postProcessDepthFramebuffer != 0)
 			glDeleteFramebuffers(1, &postProcessDepthFramebuffer);
 		if (resolveFramebuffer != 0)
@@ -134,6 +138,7 @@ namespace Chrivent {
 		sceneColorMsaa = 0;
 		sceneColorTexture = 0;
 		postProcessDepthTexture = 0;
+		postProcessVelocityTexture = 0;
 		postProcessDepthFramebuffer = 0;
 		resolveFramebuffer = 0;
 		sceneFramebuffer = 0;
@@ -191,7 +196,14 @@ namespace Chrivent {
 		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
-		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_NONE);
+		glCreateTextures(GL_TEXTURE_2D, 1, &postProcessVelocityTexture);
+		glTextureStorage2D(postProcessVelocityTexture, 1, GL_RG16F, width, height);
+		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_COLOR_ATTACHMENT0, postProcessVelocityTexture, 0);
+		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_COLOR_ATTACHMENT0);
 		glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
 		if (postProcessVao == 0)
 			glCreateVertexArrays(1, &postProcessVao);
@@ -227,12 +239,15 @@ namespace Chrivent {
 	}
 
 	bool GlfwPostProcess::BeginDepthPass(const int width, const int height) const {
-		if (!RequiresDepth())
+		if (!RequiresDepth() && !RequiresVelocity())
 			return false;
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
 		glViewport(0, 0, width, height);
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glColorMask(RequiresVelocity(), RequiresVelocity(), GL_FALSE, GL_FALSE);
 		glDepthMask(GL_TRUE);
+		constexpr float velocityClear[4]{};
+		if (RequiresVelocity())
+			glClearBufferfv(GL_COLOR, 0, velocityClear);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);

@@ -284,7 +284,8 @@ namespace Chrivent {
 					return false;
 				}
 				const std::string value = input.get<std::string>();
-				if ((value != "scene_color" && value != "scene_depth") || !inputNames.emplace(value).second) {
+				if ((value != "scene_color" && value != "scene_depth" && value != "scene_velocity")
+					|| !inputNames.emplace(value).second) {
 					error = "Unsupported or duplicate engine input: " + value + " in " + manifestPath.string();
 					return false;
 				}
@@ -318,7 +319,8 @@ namespace Chrivent {
 		std::unordered_map<std::string, EffectResourceLifetime> resources;
 		for (const auto& resource : effect.resources) {
 			if (resource.name == "effect_input" || resource.name == "effect_output"
-				|| resource.name == "scene_color" || resource.name == "scene_depth") {
+				|| resource.name == "scene_color" || resource.name == "scene_depth"
+				|| resource.name == "scene_velocity") {
 				error = "Effect resource uses a reserved name: " + resource.name + " in " + manifestPath.string();
 				return false;
 			}
@@ -330,7 +332,7 @@ namespace Chrivent {
 			for (const auto& [slot, resource] : pass.inputs) {
 				if (resource == "effect_input")
 					continue;
-				if (resource == "scene_color" || resource == "scene_depth") {
+				if (resource == "scene_color" || resource == "scene_depth" || resource == "scene_velocity") {
 					if (std::ranges::find(effect.inputs, resource) == effect.inputs.end()) {
 						error = "Pass uses an undeclared engine input: " + resource + " in " + manifestPath.string();
 						return false;

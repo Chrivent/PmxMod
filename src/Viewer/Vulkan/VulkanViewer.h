@@ -73,6 +73,9 @@ namespace Chrivent {
 		void BindModelPipeline(bool bothFace);
 		// 현재 프레임 command buffer에 재질 방향성에 맞는 depth-only pipeline을 바인딩한다.
 		void BindDepthOnlyPipeline(bool bothFace);
+		// 현재 프레임 command buffer에 재질 방향성에 맞는 장면 속도 pipeline을 바인딩한다.
+		void BindSceneVelocityPipeline(bool bothFace);
+		bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
 		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
 		void BindEdgePipeline();
 		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.

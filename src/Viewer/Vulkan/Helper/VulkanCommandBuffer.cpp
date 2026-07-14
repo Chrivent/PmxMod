@@ -176,8 +176,8 @@ namespace Chrivent {
 
 	bool VulkanCommandBuffer::BeginPostProcessDepthPass(
 		const uint32_t imageIndex, const VkImage sceneImage, const VkImage depthImage,
-		const VkImageView depthImageView, const bool depthHasStencil, const VkPipeline pipeline,
-		const VkExtent2D extent) const {
+		const VkImageView depthImageView, const VkImage velocityImage, const VkImageView velocityImageView,
+		const bool velocityInitialized, const bool depthHasStencil, const VkPipeline pipeline, const VkExtent2D extent) const {
 		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE ||
 			depthImageView == VK_NULL_HANDLE || pipeline == VK_NULL_HANDLE)
 			return false;
@@ -192,6 +192,15 @@ namespace Chrivent {
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, depthAspect);
+		if (velocityImage != VK_NULL_HANDLE) {
+			TransitionImage(commandBuffer, velocityImage,
+				velocityInitialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				velocityInitialized ? VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_2_NONE,
+				velocityInitialized ? VK_ACCESS_2_SHADER_SAMPLED_READ_BIT : VK_ACCESS_2_NONE,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+		}
 		constexpr VkClearValue depthClear{ .depthStencil = { 1.0f, 0 } };
 		const VkRenderingAttachmentInfo depthAttachment{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -201,10 +210,21 @@ namespace Chrivent {
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.clearValue = depthClear
 		};
+		constexpr VkClearValue velocityClear{};
+		const VkRenderingAttachmentInfo velocityAttachment{
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.imageView = velocityImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.clearValue = velocityClear
+		};
 		const VkRenderingInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 			.renderArea = { .extent = extent },
 			.layerCount = 1,
+			.colorAttachmentCount = velocityImageView != VK_NULL_HANDLE ? 1u : 0u,
+			.pColorAttachments = velocityImageView != VK_NULL_HANDLE ? &velocityAttachment : nullptr,
 			.pDepthAttachment = &depthAttachment,
 			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
 		};
@@ -214,7 +234,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanCommandBuffer::EndPostProcessDepthPass(
-		const uint32_t imageIndex, const VkImage depthImage, const bool depthHasStencil) const {
+		const uint32_t imageIndex, const VkImage depthImage,
+		const VkImage velocityImage, const bool depthHasStencil) const {
 		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE)
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
@@ -225,6 +246,13 @@ namespace Chrivent {
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, depthAspect);
+		if (velocityImage != VK_NULL_HANDLE) {
+			TransitionImage(commandBuffer, velocityImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+		}
 		return true;
 	}
 

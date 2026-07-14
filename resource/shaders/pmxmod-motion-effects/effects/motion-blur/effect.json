@@ -3,16 +3,38 @@
   "id": "motion-blur",
   "name": "Motion Blur",
   "type": "post_process",
-  "inputs": ["scene_depth"],
+  "inputs": ["scene_depth", "scene_velocity"],
+  "resources": [
+    {
+      "name": "directional_blur",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "full"
+    }
+  ],
   "passes": [
     {
-      "name": "main",
+      "name": "directional-blur",
       "shader": "effects/motion-blur/effect.hlsl",
       "vertexEntry": "VSMain",
-      "pixelEntry": "PSMain",
+      "pixelEntry": "PSDirectional",
       "reads": [
         { "slot": 0, "resource": "effect_input" },
-        { "slot": 1, "resource": "scene_depth" }
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "scene_velocity" }
+      ],
+      "output": "directional_blur"
+    },
+    {
+      "name": "line-refine",
+      "shader": "effects/motion-blur/effect.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSLineRefine",
+      "reads": [
+        { "slot": 0, "resource": "directional_blur" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "scene_velocity" },
+        { "slot": 3, "resource": "effect_input" }
       ],
       "output": "effect_output"
     }

@@ -103,6 +103,14 @@ namespace Chrivent {
 			std::cerr << "Failed to set up depth-only GLFW shader.\n";
 			return false;
 		}
+		EffectPassDefinition sceneVelocityPass{
+			.shaderPath = resourceDir / "shaders" / "pmxmod-default" / "internal" / "scene-velocity.hlsl"
+		};
+		sceneVelocityShader = std::make_unique<GlfwSceneVelocityShader>();
+		if (!sceneVelocityShader->Initialize(sceneVelocityPass)) {
+			std::cerr << "Failed to set up scene velocity GLFW shader.\n";
+			return false;
+		}
 		dummyColorTex = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTex == 0)
 			return false;
@@ -140,11 +148,15 @@ namespace Chrivent {
 	}
 
 	bool GlfwViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		return postProcess.Load(effects);
+		const bool loaded = postProcess.Load(effects);
+		if (loaded)
+			ResetPostProcessFrameHistory();
+		return loaded;
 	}
 
 	void GlfwViewer::ResetPostProcessHistory() {
 		postProcess.ResetHistory();
+		ResetPostProcessFrameHistory();
 	}
 
 	std::unique_ptr<Instance> GlfwViewer::CreateInstance() const {

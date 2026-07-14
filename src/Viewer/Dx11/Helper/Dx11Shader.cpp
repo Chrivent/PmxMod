@@ -1,7 +1,9 @@
 ﻿#include "Viewer/Dx11/Helper/Dx11Shader.h"
 
 #include "Viewer/Shader/ShaderCompiler.h"
+#include "Viewer/ViewerGeometry.h"
 
+#include <cstddef>
 #include <iostream>
 
 namespace Chrivent {
@@ -72,6 +74,14 @@ namespace Chrivent {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 		return Dx11Shader::Initialize(device, file, inputElements);
+	}
+
+	bool Dx11SceneVelocityShader::Initialize(ID3D11Device* device, const std::filesystem::path& file) {
+		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		return Dx11Shader::Initialize(device, file, inputElements, "VSMain", "PSMainInvertedY");
 	}
 
 	bool Dx11PostProcessShader::Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry) {

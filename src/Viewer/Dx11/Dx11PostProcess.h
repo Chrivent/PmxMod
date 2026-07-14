@@ -24,6 +24,9 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> depthView;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> velocity;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> velocityRenderTargetView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> velocityView;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> frameDataBuffer;
 		std::vector<Dx11PostProcessResource> resources;
 		std::vector<Dx11PostProcessShader> postProcessShaders;

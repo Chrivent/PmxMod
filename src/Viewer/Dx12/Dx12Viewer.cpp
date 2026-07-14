@@ -191,11 +191,15 @@ namespace Chrivent {
 
 	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		return postProcess.Load(*device, effects);
+		const bool loaded = postProcess.Load(*device, effects);
+		if (loaded)
+			ResetPostProcessFrameHistory();
+		return loaded;
 	}
 
 	void Dx12Viewer::ResetPostProcessHistory() {
 		postProcess.ResetHistory();
+		ResetPostProcessFrameHistory();
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
@@ -216,6 +220,12 @@ namespace Chrivent {
 		if (!frameReady)
 			return;
 		pipeline.BindDepthOnly(commandContext.GetCommandList().Get(), bothFace);
+	}
+
+	void Dx12Viewer::BindSceneVelocityPipeline(const bool bothFace) const {
+		if (!frameReady)
+			return;
+		pipeline.BindSceneVelocity(commandContext.GetCommandList().Get(), bothFace);
 	}
 
 	void Dx12Viewer::BindEdgePipeline() const {

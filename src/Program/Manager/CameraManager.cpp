@@ -200,6 +200,10 @@ namespace Chrivent {
 		viewer.projMat = glm::perspectiveFovRH(
 			verticalFov, viewportWidth, viewportHeight, nearPlane, farPlane
 		);
+		if (viewer.postProcessHistoryResetPending) {
+			viewer.previousViewMat = viewer.viewMat;
+			viewer.previousProjMat = viewer.projMat;
+		}
 		viewer.postProcessFrameData = {
 			.deltaTime = std::max(viewer.elapsed, 0.0f),
 			.nearPlane = nearPlane,
@@ -208,7 +212,8 @@ namespace Chrivent {
 			.viewportWidth = viewportWidth,
 			.viewportHeight = viewportHeight,
 			.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f,
-			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f
+			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f,
+			.historyReset = viewer.postProcessHistoryResetPending ? 1.0f : 0.0f
 		};
 	}
 }

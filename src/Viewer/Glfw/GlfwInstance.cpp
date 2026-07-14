@@ -56,21 +56,25 @@ namespace Chrivent {
 		const GLint locs[][3] = {
 			{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
 			{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
-			{ viewer->gsShader->positionLocation }
+			{ viewer->gsShader->positionLocation },
+			{ viewer->sceneVelocityShader->positionLocation, viewer->sceneVelocityShader->previousPositionLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
 			{ 3, 3 },
-			{ 3 }
+			{ 3 },
+			{ 3, 3 }
 		};
 		constexpr size_t offsets[][3] = {
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal), offsetof(ViewerVertex, uv) },
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal) },
-			{ offsetof(ViewerVertex, position) }
+			{ offsetof(ViewerVertex, position) },
+			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, previousPosition) }
 		};
 		vao = CreateVao(vertexVbo, locs[0], sizes[0], offsets[0], 3, ibo);
 		edgeVao = CreateVao(vertexVbo, locs[1], sizes[1], offsets[1], 2, ibo);
 		gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
+		velocityVao = CreateVao(vertexVbo, locs[3], sizes[3], offsets[3], 2, ibo);
 	}
 
 	bool GlfwInstance::SetupConstantRings() {
@@ -140,7 +144,9 @@ namespace Chrivent {
 			glDeleteVertexArrays(1, &edgeVao);
 		if (gsVao != 0)
 			glDeleteVertexArrays(1, &gsVao);
-		vao = edgeVao = gsVao = 0;
+		if (velocityVao != 0)
+			glDeleteVertexArrays(1, &velocityVao);
+		vao = edgeVao = gsVao = velocityVao = 0;
 		uniformBufferOffsetAlignment = 1;
 	}
 

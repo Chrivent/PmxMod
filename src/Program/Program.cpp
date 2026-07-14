@@ -496,6 +496,7 @@ namespace Chrivent {
             pose.ResetPhysics();
             animator.SyncPhysics(*instance->anim, frame);
         }
+        viewer->ResetPostProcessHistory();
     }
 
     void Program::UpdateMotionPanel(const size_t modelIndex) {
@@ -803,7 +804,10 @@ namespace Chrivent {
             return true;
         viewer->screenWidth = newW;
         viewer->screenHeight = newH;
-        return viewer->Resize();
+        if (!viewer->Resize())
+            return false;
+        viewer->ResetPostProcessHistory();
+        return true;
     }
 
     void Program::TickFps() {
@@ -1013,6 +1017,7 @@ namespace Chrivent {
         const auto uploadDrawEnd = std::chrono::steady_clock::now();
         if (!viewer->EndFrame())
             return false;
+        viewer->CommitPostProcessFrameHistory();
         const auto frameEnd = std::chrono::steady_clock::now();
         if (timing) {
             const auto Milliseconds = [](const auto start, const auto end) {

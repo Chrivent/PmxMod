@@ -90,6 +90,17 @@ namespace Chrivent {
 		bindStateCache.pipeline = targetPipeline;
 	}
 
+	void VulkanViewer::BindSceneVelocityPipeline(const bool bothFace) {
+		if (!frameReady)
+			return;
+		const VkPipeline targetPipeline = bothFace
+			? pipeline->sceneVelocityBothFacePipeline : pipeline->sceneVelocityPipeline;
+		if (bindStateCache.pipeline == targetPipeline)
+			return;
+		commandContext.commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
+		bindStateCache.pipeline = targetPipeline;
+	}
+
 	void VulkanViewer::BindEdgePipeline() {
 		if (!frameReady)
 			return;
@@ -289,10 +300,12 @@ namespace Chrivent {
 	bool VulkanViewer::BeginPostProcessDepthPass() {
 		if (!frameReady)
 			return false;
+		const VkPipeline geometryPipeline = postProcess.RequiresVelocity()
+			? pipeline->sceneVelocityPipeline : pipeline->depthOnlyPipeline;
 		if (!postProcess.BeginDepthPass(commandContext.commandBuffer,
-			currentImageIndex, pipeline->depthOnlyPipeline, swapChain.extent))
+			currentImageIndex, geometryPipeline, swapChain.extent))
 			return false;
-		bindStateCache.pipeline = pipeline->depthOnlyPipeline;
+		bindStateCache.pipeline = geometryPipeline;
 		bindStateCache.vertexDescriptorSet = VK_NULL_HANDLE;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDescriptorSet = VK_NULL_HANDLE;
@@ -317,8 +330,10 @@ namespace Chrivent {
 		if (!postProcess.SetEffects(effects))
 			return false;
 		ResetSwapChainResources();
-		if (CreateSwapChainResources())
+		if (CreateSwapChainResources()) {
+			ResetPostProcessFrameHistory();
 			return true;
+		}
 		postProcess.ClearEffects();
 		ResetSwapChainResources();
 		if (!CreateSwapChainResources())
@@ -328,6 +343,7 @@ namespace Chrivent {
 
 	void VulkanViewer::ResetPostProcessHistory() {
 		postProcess.ResetHistory();
+		ResetPostProcessFrameHistory();
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {

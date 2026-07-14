@@ -120,7 +120,10 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelSkinning::PrepareUpdate() const {
+	void ModelSkinning::PrepareUpdate(const bool preservePreviousPositions) const {
+		if (preservePreviousPositions &&
+			model.geometryData.updatePositions.size() == model.geometryData.positions.size())
+			model.geometryData.previousPositions = model.geometryData.updatePositions;
 		if (model.geometryData.updateRanges.empty() ||
 			model.geometryData.parallelUpdateCount != model.geometryData.updateRanges.size())
 			SetupParallelUpdate();

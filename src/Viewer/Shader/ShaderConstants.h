@@ -8,6 +8,11 @@ namespace Chrivent {
 		glm::mat4 wvp;
 	};
 
+	struct SceneVelocityVertexConstants {
+		glm::mat4 currentWvp;
+		glm::mat4 previousWvp;
+	};
+
 	struct ModelPixelConstants {
 		glm::vec4 texMulFactor{};
 		glm::vec4 texAddFactor{};

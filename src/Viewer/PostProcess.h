@@ -8,6 +8,7 @@ namespace Chrivent {
 	enum class PostProcessInputKind {
 		SceneColor,
 		SceneDepth,
+		SceneVelocity,
 		Resource
 	};
 
@@ -41,6 +42,7 @@ namespace Chrivent {
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
 		bool depthRequired = false;
+		bool velocityRequired = false;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
 		bool BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects);
@@ -67,6 +69,7 @@ namespace Chrivent {
 
 		bool HasEffects() const { return !passDefinitions.empty(); }
 		bool RequiresDepth() const { return depthRequired; }
+		bool RequiresVelocity() const { return velocityRequired; }
 
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectDefinition*>& effects);

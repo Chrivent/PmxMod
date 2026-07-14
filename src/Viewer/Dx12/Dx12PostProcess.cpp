@@ -135,6 +135,10 @@ namespace Chrivent {
 			format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 			return depth.Get();
 		}
+		if (input.kind == PostProcessInputKind::SceneVelocity) {
+			format = sceneVelocity.ResolveFormat();
+			return sceneVelocity.ResolveResource();
+		}
 		if (input.resourceIndex >= resources.size()) {
 			format = sceneColor.ResolveFormat();
 			return sceneColor.ResolveResource();
@@ -339,12 +343,14 @@ namespace Chrivent {
 		targetWidth = width;
 		targetHeight = height;
 		sceneColor.Reset();
+		sceneVelocity.Reset();
 		ResetEffectResources();
 		depth.Reset();
 		depthDsvHeap.Reset();
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();
 		if (!sceneColor.Initialize(sourceDevice, width, height, DXGI_FORMAT_R8G8B8A8_UNORM)
+			|| !sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT)
 			|| !CreateDepthTarget(sourceDevice, width, height)
 			|| !CreateEffectResources(sourceDevice)
 			|| !CreateInputDescriptorHeaps(sourceDevice))
@@ -380,14 +386,23 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::BeginDepthPass(ID3D12GraphicsCommandList* commandList,
 		const Dx12CommandContext& commandContext, const int width, const int height) const {
-		if (!RequiresDepth() || !depth || commandList == nullptr)
+		if ((!RequiresDepth() && !RequiresVelocity()) || !depth || commandList == nullptr)
 			return false;
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		Dx12Barrier::Transition(commandList, enhancedCommandList, depth.Get(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		if (RequiresVelocity())
+			Dx12Barrier::Transition(commandList, enhancedCommandList, sceneVelocity.ResolveResource(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthDsvHeap->GetCPUDescriptorHandleForHeapStart();
-		commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
+		const D3D12_CPU_DESCRIPTOR_HANDLE velocityHandle = sceneVelocity.ResolveRtvHandle();
+		commandList->OMSetRenderTargets(RequiresVelocity() ? 1 : 0,
+			RequiresVelocity() ? &velocityHandle : nullptr, FALSE, &dsvHandle);
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		if (RequiresVelocity()) {
+			constexpr float velocityClear[4]{};
+			commandList->ClearRenderTargetView(velocityHandle, velocityClear, 0, nullptr);
+		}
 		ApplyViewportAndScissor(commandList, width, height);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		return true;
@@ -399,6 +414,10 @@ namespace Chrivent {
 			return;
 		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), depth.Get(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		if (RequiresVelocity())
+			Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
+				sceneVelocity.ResolveResource(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	void Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
@@ -482,6 +501,7 @@ namespace Chrivent {
 		ResetEffectResources();
 		depth.Reset();
 		depthDsvHeap.Reset();
+		sceneVelocity.Reset();
 		sceneColor.Reset();
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();

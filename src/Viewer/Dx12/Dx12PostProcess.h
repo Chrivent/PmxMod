@@ -22,6 +22,7 @@ namespace Chrivent {
 	class Dx12PostProcess : public PostProcess {
 		static constexpr size_t frameDataBufferCount = 2;
 		Dx12PostProcessTarget sceneColor;
+		Dx12PostProcessTarget sceneVelocity;
 		std::vector<Dx12PostProcessResource> resources;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth;

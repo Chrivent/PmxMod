@@ -39,12 +39,12 @@ namespace Chrivent {
 		return SUCCEEDED(resource->Map(0, &readRange, &mappedData));
 	}
 
-	bool Dx12Buffer::Write(const std::span<const std::byte> data) const {
-		if (!resource || mappedData == nullptr || data.size() > byteSize)
+	bool Dx12Buffer::Write(const std::span<const std::byte> data, const size_t offset) const {
+		if (!resource || mappedData == nullptr || offset > byteSize || data.size() > byteSize - offset)
 			return false;
 		if (data.empty())
 			return true;
-		std::memcpy(mappedData, data.data(), data.size());
+		std::memcpy(static_cast<std::byte*>(mappedData) + offset, data.data(), data.size());
 		return true;
 	}
 

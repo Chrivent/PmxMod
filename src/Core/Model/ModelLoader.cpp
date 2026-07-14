@@ -70,9 +70,10 @@ namespace Chrivent {
 		}
 		model.morphData.morphPositions.resize(model.geometryData.positions.size());
 		model.morphData.morphUVs.resize(model.geometryData.positions.size());
-		model.geometryData.updatePositions.resize(model.geometryData.positions.size());
-		model.geometryData.updateNormals.resize(model.geometryData.normals.size());
-		model.geometryData.updateUVs.resize(model.geometryData.uvs.size());
+		model.geometryData.updatePositions = model.geometryData.positions;
+		model.geometryData.updateNormals = model.geometryData.normals;
+		model.geometryData.updateUVs = model.geometryData.uvs;
+		model.geometryData.previousPositions = model.geometryData.positions;
 	}
 
 	bool ModelLoader::LoadFaces(const PmxParser::PmxData& pmxData) const {

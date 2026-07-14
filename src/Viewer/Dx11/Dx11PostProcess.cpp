@@ -70,6 +70,8 @@ namespace Chrivent {
 			return sceneColorView.Get();
 		if (input.kind == PostProcessInputKind::SceneDepth)
 			return depthView.Get();
+		if (input.kind == PostProcessInputKind::SceneVelocity)
+			return velocityView.Get();
 		if (input.resourceIndex >= resources.size())
 			return sceneColorView.Get();
 		const Dx11PostProcessResource& resource = resources[input.resourceIndex];
@@ -153,6 +155,12 @@ namespace Chrivent {
 		depthResourceDesc.Texture2D.MipLevels = 1;
 		if (FAILED(device->CreateShaderResourceView(depth.Get(), &depthResourceDesc, &depthView)))
 			return false;
+		const auto velocityDesc = Dx11DescBuilder::MakeTexture2DDesc(width, height, DXGI_FORMAT_R16G16_FLOAT,
+			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+		if (FAILED(device->CreateTexture2D(&velocityDesc, nullptr, &velocity))
+			|| FAILED(device->CreateRenderTargetView(velocity.Get(), nullptr, &velocityRenderTargetView))
+			|| FAILED(device->CreateShaderResourceView(velocity.Get(), nullptr, &velocityView)))
+			return false;
 		return CreateEffectResources(device);
 	}
 
@@ -194,13 +202,19 @@ namespace Chrivent {
 
 	bool Dx11PostProcess::BeginDepthPass(ID3D11DeviceContext* context,
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
-		if (!RequiresDepth() || context == nullptr || !depthStencilView)
+		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView)
 			return false;
-		std::vector<ID3D11ShaderResourceView*> emptyViews(PostProcessInputLayout::maxTextureCount);
+		constexpr std::vector<ID3D11ShaderResourceView*> emptyViews(PostProcessInputLayout::maxTextureCount);
 		context->PSSetShaderResources(0, emptyViews.size(), emptyViews.data());
 		context->ClearDepthStencilView(
 			depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		context->OMSetRenderTargets(0, nullptr, depthStencilView.Get());
+		ID3D11RenderTargetView* velocityTarget = RequiresVelocity() ? velocityRenderTargetView.Get() : nullptr;
+		if (velocityTarget != nullptr) {
+			constexpr float velocityClear[4]{};
+			context->ClearRenderTargetView(velocityTarget, velocityClear);
+		}
+		context->OMSetRenderTargets(velocityTarget != nullptr ? 1 : 0,
+			velocityTarget != nullptr ? &velocityTarget : nullptr, depthStencilView.Get());
 		context->OMSetDepthStencilState(depthStencilState, 0x00);
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		ApplyViewport(context, width, height);
@@ -264,6 +278,9 @@ namespace Chrivent {
 		depth.Reset();
 		depthStencilView.Reset();
 		depthView.Reset();
+		velocity.Reset();
+		velocityRenderTargetView.Reset();
+		velocityView.Reset();
 		frameDataBuffer.Reset();
 		targetWidth = 0;
 		targetHeight = 0;

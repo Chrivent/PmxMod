@@ -219,13 +219,24 @@ namespace Chrivent {
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vertexConstants;
-		vertexConstants.wv = view * world;
-		vertexConstants.wvp = proj * view * world;
-		glUseProgram(viewer->depthOnlyShader->program);
-		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-			return;
-		glBindVertexArray(instance.vao);
+		if (viewer->RequiresPostProcessVelocity()) {
+			SceneVelocityVertexConstants vertexConstants;
+			vertexConstants.currentWvp = proj * view * world;
+			vertexConstants.previousWvp = viewer->postProcessHistoryResetPending
+				? vertexConstants.currentWvp : viewer->previousProjMat * viewer->previousViewMat * world;
+			glUseProgram(viewer->sceneVelocityShader->program);
+			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+				return;
+			glBindVertexArray(instance.velocityVao);
+		} else {
+			ModelVertexConstants vertexConstants;
+			vertexConstants.wv = view * world;
+			vertexConstants.wvp = proj * view * world;
+			glUseProgram(viewer->depthOnlyShader->program);
+			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+				return;
+			glBindVertexArray(instance.vao);
+		}
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);

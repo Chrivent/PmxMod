@@ -83,6 +83,9 @@ namespace Chrivent {
 		void BindModelPipeline(bool bothFace) const;
 		// material의 양면 렌더링 여부에 맞는 DX12 depth-only pipeline state를 바인딩한다.
 		void BindDepthOnlyPipeline(bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 DX12 장면 속도 pipeline state를 바인딩한다.
+		void BindSceneVelocityPipeline(bool bothFace) const;
+		bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
 		// DX12 엣지 렌더링용 root signature와 pipeline state를 바인딩한다.
 		void BindEdgePipeline() const;
 		// DX12 지면 그림자 렌더링용 root signature와 pipeline state를 바인딩한다.

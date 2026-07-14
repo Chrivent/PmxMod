@@ -29,6 +29,7 @@ namespace Chrivent {
 		std::vector<PostProcessResourcePlan> resources;
 		PostProcessPassInputRoute effectInput{ .kind = PostProcessInputKind::SceneColor };
 		bool requiresDepth = false;
+		bool requiresVelocity = false;
 		for (size_t effectIndex = 0; effectIndex < activeEffects.size(); effectIndex++) {
 			const EffectDefinition& effect = *activeEffects[effectIndex];
 			std::unordered_map<std::string, size_t> resourceIndices;
@@ -67,6 +68,9 @@ namespace Chrivent {
 					else if (resource == "scene_depth") {
 						inputRoute.kind = PostProcessInputKind::SceneDepth;
 						requiresDepth = true;
+					} else if (resource == "scene_velocity") {
+						inputRoute.kind = PostProcessInputKind::SceneVelocity;
+						requiresVelocity = true;
 					} else {
 						std::string resourceName = resource;
 						if (resourceName.ends_with(".read"))
@@ -106,6 +110,7 @@ namespace Chrivent {
 		passRoutes = std::move(routes);
 		resourcePlans = std::move(resources);
 		depthRequired = requiresDepth;
+		velocityRequired = requiresVelocity;
 		return true;
 	}
 
@@ -118,5 +123,6 @@ namespace Chrivent {
 		passRoutes.clear();
 		resourcePlans.clear();
 		depthRequired = false;
+		velocityRequired = false;
 	}
 }

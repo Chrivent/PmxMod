@@ -40,6 +40,11 @@ namespace Chrivent {
 		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
 	};
 
+	struct Dx11SceneVelocityShader : Dx11Shader {
+		// 현재/이전 스키닝 위치를 입력받는 DX11 장면 속도 셰이더를 생성한다.
+		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
+	};
+
 	struct Dx11PostProcessShader : Dx11Shader {
 		// 입력 레이아웃이 없는 풀스크린 포스트 프로세스 셰이더를 생성한다.
 		bool Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry);

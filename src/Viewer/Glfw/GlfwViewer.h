@@ -38,6 +38,7 @@ namespace Chrivent {
         std::unique_ptr<GlfwEdgeShader> edgeShader;
         std::unique_ptr<GlfwGroundShadowShader> gsShader;
         std::unique_ptr<GlfwDepthOnlyShader> depthOnlyShader;
+		std::unique_ptr<GlfwSceneVelocityShader> sceneVelocityShader;
 
         GlfwViewer() = default;
         ~GlfwViewer() override;
@@ -62,6 +63,7 @@ namespace Chrivent {
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // OpenGL 초점 히스토리를 다음 후처리 프레임에서 초기화한다.
         void ResetPostProcessHistory() override;
+        bool RequiresPostProcessVelocity() const override { return postProcess.RequiresVelocity(); }
         // OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstance() const override;
 

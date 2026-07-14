@@ -11,15 +11,19 @@ namespace Chrivent {
 		const auto& uvs = useUpdateData && geometryData.updateUVs.size() == geometryData.uvs.size()
 			? geometryData.updateUVs
 			: geometryData.uvs;
+		const auto& previousPositions = useUpdateData && geometryData.previousPositions.size() == geometryData.positions.size()
+			? geometryData.previousPositions
+			: positions;
 		if (destination.size() < positions.size())
 			return false;
 		for (size_t index = 0; index < positions.size(); index++) {
-			auto& [position, normal, uv] = destination[index];
+			auto& [position, normal, uv, previousPosition] = destination[index];
 			position = positions[index];
 			if (index < normals.size())
 				normal = normals[index];
 			if (index < uvs.size())
 				uv = uvs[index];
+			previousPosition = previousPositions[index];
 		}
 		return true;
 	}

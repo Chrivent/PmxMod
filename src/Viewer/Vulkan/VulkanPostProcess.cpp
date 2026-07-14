@@ -119,6 +119,20 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanPostProcess::CreateVelocityImages(const VulkanDevice& sourceDevice) {
+		velocityImages.resize(swapChainImageCount);
+		velocityImageMemories.resize(swapChainImageCount);
+		velocityImageViews.resize(swapChainImageCount);
+		velocityImageInitialized.assign(swapChainImageCount, false);
+		for (size_t index = 0; index < swapChainImageCount; index++) {
+			if (!CreateColorImage(sourceDevice, targetExtent, VK_FORMAT_R16G16_SFLOAT,
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				velocityImages[index], velocityImageMemories[index], velocityImageViews[index]))
+				return false;
+		}
+		return true;
+	}
+
 	VkFormat VulkanPostProcess::ResolveResourceFormat(const PostProcessResourcePlan& resource) {
 		if (resource.format == EffectTextureFormat::Rgba8Unorm)
 			return VK_FORMAT_R8G8B8A8_UNORM;
@@ -284,6 +298,8 @@ namespace Chrivent {
 			return imageIndex < sceneImageViews.size() ? sceneImageViews[imageIndex] : VK_NULL_HANDLE;
 		if (input.kind == PostProcessInputKind::SceneDepth)
 			return imageIndex < depthImageViews.size() ? depthImageViews[imageIndex] : VK_NULL_HANDLE;
+		if (input.kind == PostProcessInputKind::SceneVelocity)
+			return imageIndex < velocityImageViews.size() ? velocityImageViews[imageIndex] : VK_NULL_HANDLE;
 		if (input.resourceIndex >= resources.size())
 			return VK_NULL_HANDLE;
 		const VulkanPostProcessResource& resource = resources[input.resourceIndex];
@@ -493,6 +509,7 @@ namespace Chrivent {
 		device = sourceDevice.device;
 		return CreateSceneImages(sourceDevice, sourceSwapChain)
 			&& CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)
+			&& CreateVelocityImages(sourceDevice)
 			&& CreateEffectResources(sourceDevice)
 			&& CreateFrameDataBuffers(sourceDevice)
 			&& CreateDescriptors()
@@ -500,21 +517,27 @@ namespace Chrivent {
 	}
 	
 	bool VulkanPostProcess::BeginDepthPass(const VulkanCommandBuffer& commandBuffers,
-		const uint32_t imageIndex, const VkPipeline depthPipeline, const VkExtent2D extent) const {
-		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
+		const uint32_t imageIndex, const VkPipeline geometryPipeline, const VkExtent2D extent) {
+		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
-		return commandBuffers.BeginPostProcessDepthPass(imageIndex,
+		const bool began = commandBuffers.BeginPostProcessDepthPass(imageIndex,
 			sceneImages[imageIndex], depthImages[imageIndex], depthImageViews[imageIndex],
-			depthHasStencil, depthPipeline, extent);
+			RequiresVelocity() ? velocityImages[imageIndex] : VK_NULL_HANDLE,
+			RequiresVelocity() ? velocityImageViews[imageIndex] : VK_NULL_HANDLE,
+			RequiresVelocity() && velocityImageInitialized[imageIndex], depthHasStencil, geometryPipeline, extent);
+		if (began && RequiresVelocity())
+			velocityImageInitialized[imageIndex] = true;
+		return began;
 	}
 
 	bool VulkanPostProcess::EndDepthPass(
 		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
-		if (!RequiresDepth() || imageIndex >= swapChainImageCount)
+		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
-		return commandBuffers.EndPostProcessDepthPass(imageIndex, depthImages[imageIndex], depthHasStencil);
+		return commandBuffers.EndPostProcessDepthPass(imageIndex, depthImages[imageIndex],
+			RequiresVelocity() ? velocityImages[imageIndex] : VK_NULL_HANDLE, depthHasStencil);
 	}
 
 	bool VulkanPostProcess::EndRecord(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
@@ -662,6 +685,8 @@ namespace Chrivent {
 		resources.clear();
 		DestroyImages(sceneImages, sceneImageMemories, sceneImageViews);
 		DestroyImages(depthImages, depthImageMemories, depthImageViews);
+		DestroyImages(velocityImages, velocityImageMemories, velocityImageViews);
+		velocityImageInitialized.clear();
 		frameDataBuffers.clear();
 		frameDataDescriptorSets.clear();
 		textureDescriptorSets.clear();

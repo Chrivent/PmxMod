@@ -116,25 +116,40 @@ namespace Chrivent {
 		const auto& modelPass = modelEffect.passes.front();
 		const auto& edgePass = edgeEffect.passes.front();
 		const auto& groundShadowPass = groundShadowEffect.passes.front();
+		const EffectPassDefinition velocityPass{
+			.shaderPath = modelPass.shaderPath.parent_path().parent_path().parent_path()
+				/ "internal" / "scene-velocity.hlsl"
+		};
 		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
-			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS, pipeline)
+			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, pipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
-			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS, bothFacePipeline)
+			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, bothFacePipeline)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
 			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
 			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
+			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, sceneVelocityPipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
+			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, sceneVelocityBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, edgePass,
-			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS, edgePipeline)
+			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, edgePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, groundShadowPass,
-			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS, groundShadowPipeline);
+			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS,
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
-		const VkCompareOp depthCompareOp, VkPipeline& outPipeline) const {
+		const VkCompareOp depthCompareOp, const VkFormat colorFormat, const VkSampleCountFlagBits sampleCount,
+		const bool useVelocityInput, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
 		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
@@ -163,11 +178,19 @@ namespace Chrivent {
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		VkVertexInputAttributeDescription attributeDescriptions[3]{};
 		FillVertexAttributeDescriptions(attributeDescriptions);
+		if (useVelocityInput) {
+			attributeDescriptions[1] = {
+				.location = 1,
+				.binding = 0,
+				.format = VK_FORMAT_R32G32B32_SFLOAT,
+				.offset = offsetof(ViewerVertex, previousPosition)
+			};
+		}
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : 3;
+		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : useVelocityInput ? 2 : 3;
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -203,7 +226,7 @@ namespace Chrivent {
 		rasterizer.lineWidth = 1.0f;
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.rasterizationSamples = sourceDevice.msaaSampleCount;
+		multisampling.rasterizationSamples = sampleCount;
 		multisampling.sampleShadingEnable = VK_FALSE;
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -226,7 +249,7 @@ namespace Chrivent {
 			depthStencil.back = stencilState;
 		}
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-		colorBlendAttachment.blendEnable = VK_TRUE;
+		colorBlendAttachment.blendEnable = useVelocityInput ? VK_FALSE : VK_TRUE;
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
@@ -250,7 +273,7 @@ namespace Chrivent {
 		const VkPipelineRenderingCreateInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 			.colorAttachmentCount = 1,
-			.pColorAttachmentFormats = &sourceSwapChain.imageFormat,
+			.pColorAttachmentFormats = &colorFormat,
 			.depthAttachmentFormat = depthFormat,
 			.stencilAttachmentFormat = depthHasStencil ? depthFormat : VK_FORMAT_UNDEFINED
 		};
@@ -425,6 +448,14 @@ namespace Chrivent {
 		if (depthOnlyBothFacePipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, depthOnlyBothFacePipeline, nullptr);
 			depthOnlyBothFacePipeline = VK_NULL_HANDLE;
+		}
+		if (sceneVelocityPipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, sceneVelocityPipeline, nullptr);
+			sceneVelocityPipeline = VK_NULL_HANDLE;
+		}
+		if (sceneVelocityBothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, sceneVelocityBothFacePipeline, nullptr);
+			sceneVelocityBothFacePipeline = VK_NULL_HANDLE;
 		}
 		if (edgePipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, edgePipeline, nullptr);
