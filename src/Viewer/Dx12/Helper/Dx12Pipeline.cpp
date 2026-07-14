@@ -81,15 +81,17 @@ namespace Chrivent {
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, rootSignatureDesc, modelRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice,
+		const EffectPassDefinition& pass) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "model/effect.hlsl";
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
-			!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+			true, vertexShader, error)
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -119,13 +121,13 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateDepthOnlyPipelineStates(
-		const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+		const Dx12Device& sourceDevice, const EffectPassDefinition& pass) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "model/effect.hlsl";
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error)) {
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+			true, vertexShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -153,14 +155,13 @@ namespace Chrivent {
 			&pipelineDesc, IID_PPV_ARGS(&depthOnlyBothFacePipelineState)));
 	}
 
-	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(
-		const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
+		const std::filesystem::path& shaderPath) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir.parent_path() / "internal" / "scene-velocity.hlsl";
 		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error)
 			|| !Dx12PipelineBuilder::CompileShader(
 				sourceDevice, shaderPath, "PSMainInvertedY", false, pixelShader, error)) {
@@ -210,15 +211,17 @@ namespace Chrivent {
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, rootSignatureDesc, edgeRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice,
+		const EffectPassDefinition& pass) {
 		if (!sourceDevice.device || !edgeRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "edge/effect.hlsl";
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
-			!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+			true, vertexShader, error)
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -260,15 +263,17 @@ namespace Chrivent {
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, rootSignatureDesc, groundShadowRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
+		const EffectPassDefinition& pass) {
 		if (!sourceDevice.device || !groundShadowRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		const auto shaderPath = shaderDir / "ground-shadow/effect.hlsl";
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error) ||
-			!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "PSMain", false, pixelShader, error)) {
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+			true, vertexShader, error)
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -303,23 +308,24 @@ namespace Chrivent {
 		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
-	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const std::filesystem::path& shaderDir) {
+	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
+		const std::filesystem::path& sceneVelocityShaderPath) {
 		Reset();
 		if (!CreateModelRootSignature(sourceDevice))
 			return false;
-		if (!CreateModelPipelineStates(sourceDevice, shaderDir))
+		if (!CreateModelPipelineStates(sourceDevice, passes.model))
 			return false;
-		if (!CreateDepthOnlyPipelineStates(sourceDevice, shaderDir))
+		if (!CreateDepthOnlyPipelineStates(sourceDevice, passes.model))
 			return false;
-		if (!CreateSceneVelocityPipelineStates(sourceDevice, shaderDir))
+		if (!CreateSceneVelocityPipelineStates(sourceDevice, sceneVelocityShaderPath))
 			return false;
 		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;
-		if (!CreateEdgePipelineState(sourceDevice, shaderDir))
+		if (!CreateEdgePipelineState(sourceDevice, passes.edge))
 			return false;
 		if (!CreateGroundShadowRootSignature(sourceDevice))
 			return false;
-		return CreateGroundShadowPipelineState(sourceDevice, shaderDir);
+		return CreateGroundShadowPipelineState(sourceDevice, passes.groundShadow);
 	}
 
 	void Dx12Pipeline::BindModel(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {

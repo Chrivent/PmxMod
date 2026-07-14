@@ -30,6 +30,13 @@ my-package/
 }
 ```
 
+`resource/shaders` 아래에는 설치 가능한 패키지만 둔다. `pmxmod-default`도 같은 패키지 형식을 사용하며,
+`model`, `edge`, `ground_shadow` 역할은 각각 정확히 하나의 패스를 선언해야 한다. 네 렌더링 API는 이 JSON의
+HLSL 경로와 엔트리 포인트를 공통으로 사용한다.
+
+장면 속도 생성처럼 패키지가 직접 선택할 수 없는 엔진 구현 셰이더는
+`resource/internal/shaders`에 두며 패키지 검색 대상에서 제외한다.
+
 ## 단일 패스 예제
 
 ```json

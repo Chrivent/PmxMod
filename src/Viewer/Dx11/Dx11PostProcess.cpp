@@ -204,8 +204,8 @@ namespace Chrivent {
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView)
 			return false;
-		constexpr std::vector<ID3D11ShaderResourceView*> emptyViews(PostProcessInputLayout::maxTextureCount);
-		context->PSSetShaderResources(0, emptyViews.size(), emptyViews.data());
+		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::maxTextureCount]{};
+		context->PSSetShaderResources(0, std::size(emptyViews), emptyViews);
 		context->ClearDepthStencilView(
 			depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		ID3D11RenderTargetView* velocityTarget = RequiresVelocity() ? velocityRenderTargetView.Get() : nullptr;

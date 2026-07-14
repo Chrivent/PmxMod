@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <system_error>
 #include <unordered_map>
 #include <unordered_set>
@@ -425,6 +426,44 @@ namespace Chrivent {
 			loaded.effects.emplace_back(std::move(effect));
 		}
 		package = std::move(loaded);
+		return true;
+	}
+
+	bool BuiltInShaderContract::Load(const std::filesystem::path& manifestPath,
+		BuiltInShaderPasses& passes, std::string& error) {
+		ShaderPackage package;
+		if (!ShaderPackageParser::Load(manifestPath, package, error))
+			return false;
+		BuiltInShaderPasses loaded;
+		if (!ResolvePass(package, EffectType::Model, "model", loaded.model, error)
+			|| !ResolvePass(package, EffectType::Edge, "edge", loaded.edge, error)
+			|| !ResolvePass(package, EffectType::GroundShadow, "ground shadow", loaded.groundShadow, error))
+			return false;
+		passes = std::move(loaded);
+		return true;
+	}
+
+	bool BuiltInShaderContract::ResolvePass(const ShaderPackage& package, const EffectType type,
+		const char* role, EffectPassDefinition& pass, std::string& error) {
+		const EffectDefinition* match = nullptr;
+		for (const auto& effect : package.effects) {
+			if (effect.type != type)
+				continue;
+			if (match != nullptr) {
+				error = "Built-in shader role must be unique: " + std::string(role);
+				return false;
+			}
+			match = &effect;
+		}
+		if (match == nullptr) {
+			error = "Built-in shader role is missing: " + std::string(role);
+			return false;
+		}
+		if (match->passes.size() != 1) {
+			error = "Built-in shader role requires exactly one pass: " + std::string(role);
+			return false;
+		}
+		pass = match->passes.front();
 		return true;
 	}
 }

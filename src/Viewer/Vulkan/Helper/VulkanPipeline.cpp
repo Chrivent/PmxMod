@@ -107,28 +107,22 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanPipeline::CreateGraphicsPipelines(
-		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const EffectDefinition& modelEffect,
-		const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
-		if (modelEffect.passes.empty() || edgeEffect.passes.empty() || groundShadowEffect.passes.empty())
-			return false;
-		const auto& modelPass = modelEffect.passes.front();
-		const auto& edgePass = edgeEffect.passes.front();
-		const auto& groundShadowPass = groundShadowEffect.passes.front();
+	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
+		const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
+		const std::filesystem::path& sceneVelocityShaderPath) {
 		const EffectPassDefinition velocityPass{
-			.shaderPath = modelPass.shaderPath.parent_path().parent_path().parent_path()
-				/ "internal" / "scene-velocity.hlsl"
+			.shaderPath = sceneVelocityShaderPath
 		};
-		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, pipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, bothFacePipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, modelPass,
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
@@ -136,10 +130,10 @@ namespace Chrivent {
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
 			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, sceneVelocityBothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, edgePass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.edge,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, edgePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, groundShadowPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.groundShadow,
 			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, groundShadowPipeline);
 	}
@@ -419,15 +413,15 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat,
-		const EffectDefinition& modelEffect, const EffectDefinition& edgeEffect, const EffectDefinition& groundShadowEffect) {
+		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
+		const std::filesystem::path& sceneVelocityShaderPath) {
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
 		return CreateGraphicsPipelines(
-			sourceDevice, sourceSwapChain, depthFormat, modelEffect, edgeEffect, groundShadowEffect);
+			sourceDevice, sourceSwapChain, depthFormat, passes, sceneVelocityShaderPath);
 	}
 
 	void VulkanPipeline::Reset() {

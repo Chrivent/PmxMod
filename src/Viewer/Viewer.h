@@ -11,9 +11,9 @@
 
 #include "Viewer/GraphicsCapabilities.h"
 #include "Viewer/Instance.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 namespace Chrivent {
-    struct EffectDefinition;
     struct Material;
 
     struct PostProcessFrameData {
@@ -42,6 +42,8 @@ namespace Chrivent {
     class Viewer {
     protected:
         std::filesystem::path	resourceDir;
+		std::filesystem::path internalShaderDir;
+		BuiltInShaderPasses builtInShaderPasses;
         float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
         HWND fpsOverlay = nullptr;
         HFONT fpsFont = nullptr;
@@ -50,9 +52,14 @@ namespace Chrivent {
         static LRESULT CALLBACK FpsOverlayWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         // 렌더링 창 클라이언트 좌측 상단에 FPS 오버레이를 배치한다.
         void PositionFpsOverlay() const;
+		// 기본 패키지에서 모델, 엣지, 지면 그림자 패스 계약을 읽는다.
+		bool LoadBuiltInShaderContract();
+		// 패키지 검색 대상이 아닌 엔진 전용 셰이더 파일 경로를 반환한다.
+		std::filesystem::path ResolveInternalShaderPath(const std::filesystem::path& fileName) const {
+			return internalShaderDir / fileName;
+		}
     
     public:
-        std::filesystem::path shaderDir;
         std::filesystem::path pmxDir;
         glm::mat4 viewMat;
         glm::mat4 projMat;
@@ -103,8 +110,8 @@ namespace Chrivent {
         virtual std::unique_ptr<Instance> CreateInstance() const = 0;
         // 이미지 파일을 RGBA 픽셀 데이터로 로드한다.
         static unsigned char* LoadImageRgba(const std::filesystem::path& texturePath, int& x, int& y, int& comp);
-        // 실행 파일 기준 리소스, 셰이더, PMX 디렉터리를 초기화한다.
-        void InitDirs(const std::filesystem::path& shaderSubDir);
+        // 실행 파일 기준 리소스, 엔진 전용 셰이더, PMX 디렉터리를 초기화한다.
+        void InitDirs();
         // 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
         std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
         // 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.

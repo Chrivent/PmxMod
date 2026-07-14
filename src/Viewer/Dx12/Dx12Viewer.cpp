@@ -78,7 +78,9 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::Setup() {
-		InitDirs("shaders/pmxmod-default/effects");
+		InitDirs();
+		if (!LoadBuiltInShaderContract())
+			return false;
 		if (!device->Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
@@ -106,7 +108,8 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 post-process targets.\n";
 			return false;
 		}
-		if (!pipeline.Initialize(*device, shaderDir)) {
+		if (!pipeline.Initialize(*device, builtInShaderPasses,
+			ResolveInternalShaderPath("scene-velocity.hlsl"))) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}

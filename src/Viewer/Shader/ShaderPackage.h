@@ -4,7 +4,7 @@
 #include <vector>
 #include <filesystem>
 #include <cstdint>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace Chrivent {
 	enum class EffectType {
@@ -109,5 +109,22 @@ namespace Chrivent {
 	public:
 		// 패키지 정의 파일과 포함된 이펙트를 읽는다.
 		static bool Load(const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error);
+	};
+
+	struct BuiltInShaderPasses {
+		EffectPassDefinition model;
+		EffectPassDefinition edge;
+		EffectPassDefinition groundShadow;
+	};
+
+	class BuiltInShaderContract {
+	public:
+		// 내장 패키지를 읽고 모델, 엣지, 지면 그림자 단일 패스 계약을 검증한다.
+		static bool Load(const std::filesystem::path& manifestPath, BuiltInShaderPasses& passes, std::string& error);
+
+	private:
+		// 지정한 역할의 이펙트가 하나의 패스로 유일하게 선언됐는지 확인한다.
+		static bool ResolvePass(const ShaderPackage& package, EffectType type, const char* role,
+			EffectPassDefinition& pass, std::string& error);
 	};
 }

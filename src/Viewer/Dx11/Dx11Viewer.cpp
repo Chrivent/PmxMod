@@ -2,7 +2,6 @@
 
 #include "Viewer/Dx11/Dx11Instance.h"
 #include "Viewer/Dx11/Helper/Dx11DescBuilder.h"
-#include "Viewer/Shader/ShaderPackage.h"
 #include "Util.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -66,26 +65,10 @@ namespace Chrivent {
 
 	bool Dx11Viewer::CreateShaders() {
 		ID3D11Device* device = deviceResources.device.Get();
-		ShaderPackage package;
-		std::string error;
-		if (!ShaderPackageParser::Load(
-			resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
-			std::cerr << error << '\n';
-			return false;
-		}
-		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
-		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
-		const auto groundShadowEffect = std::ranges::find(
-			package.effects, EffectType::GroundShadow, &EffectDefinition::type);
-		if (modelEffect == package.effects.end() || modelEffect->passes.empty()
-			|| edgeEffect == package.effects.end() || edgeEffect->passes.empty()
-			|| groundShadowEffect == package.effects.end() || groundShadowEffect->passes.empty())
-			return false;
-		return shaders.model.Initialize(device, modelEffect->passes.front().shaderPath)
-			&& shaders.edge.Initialize(device, edgeEffect->passes.front().shaderPath)
-			&& shaders.groundShadow.Initialize(device, groundShadowEffect->passes.front().shaderPath)
-			&& shaders.sceneVelocity.Initialize(device,
-				resourceDir / "shaders" / "pmxmod-default" / "internal" / "scene-velocity.hlsl");
+		return shaders.model.Initialize(device, builtInShaderPasses.model)
+			&& shaders.edge.Initialize(device, builtInShaderPasses.edge)
+			&& shaders.groundShadow.Initialize(device, builtInShaderPasses.groundShadow)
+			&& shaders.sceneVelocity.Initialize(device, ResolveInternalShaderPath("scene-velocity.hlsl"));
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {
@@ -180,8 +163,8 @@ namespace Chrivent {
 			return false;
 		if (!CreateRenderTargets())
 			return false;
-		InitDirs("shaders");
-		if (!CreateShaders())
+		InitDirs();
+		if (!LoadBuiltInShaderContract() || !CreateShaders())
 			return false;
 		if (!CreatePipelineStates())
 			return false;

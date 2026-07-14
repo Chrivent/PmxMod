@@ -1,8 +1,6 @@
 ﻿#include "Viewer/Glfw/GlfwViewer.h"
 
 #include "Viewer/Glfw/GlfwInstance.h"
-#include "Viewer/Shader/ShaderPackage.h"
-
 #include <algorithm>
 #include <iostream>
 
@@ -66,45 +64,31 @@ namespace Chrivent {
 		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		InitDirs("shaders");
-		ShaderPackage package;
-		std::string error;
-		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
-			std::cerr << error << '\n';
+		InitDirs();
+		if (!LoadBuiltInShaderContract())
 			return false;
-		}
-		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
-		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
-		const auto groundShadowEffect = std::ranges::find(package.effects, EffectType::GroundShadow, &EffectDefinition::type);
-		if (modelEffect == package.effects.end() || modelEffect->passes.empty()
-			|| edgeEffect == package.effects.end() || edgeEffect->passes.empty()
-			|| groundShadowEffect == package.effects.end() || groundShadowEffect->passes.empty())
-			return false;
-		const auto& modelPass = modelEffect->passes.front();
-		const auto& edgePass = edgeEffect->passes.front();
-		const auto& groundShadowPass = groundShadowEffect->passes.front();
 		shader = std::make_unique<GlfwModelShader>();
-		if (!shader->Initialize(modelPass)) {
+		if (!shader->Initialize(builtInShaderPasses.model)) {
 			std::cerr << "Failed to set up main GLFW shader.\n";
 			return false;
 		}
 		edgeShader = std::make_unique<GlfwEdgeShader>();
-		if (!edgeShader->Initialize(edgePass)) {
+		if (!edgeShader->Initialize(builtInShaderPasses.edge)) {
 			std::cerr << "Failed to set up edge GLFW shader.\n";
 			return false;
 		}
 		gsShader = std::make_unique<GlfwGroundShadowShader>();
-		if (!gsShader->Initialize(groundShadowPass)) {
+		if (!gsShader->Initialize(builtInShaderPasses.groundShadow)) {
 			std::cerr << "Failed to set up ground shadow GLFW shader.\n";
 			return false;
 		}
 		depthOnlyShader = std::make_unique<GlfwDepthOnlyShader>();
-		if (!depthOnlyShader->Initialize(modelPass)) {
+		if (!depthOnlyShader->Initialize(builtInShaderPasses.model)) {
 			std::cerr << "Failed to set up depth-only GLFW shader.\n";
 			return false;
 		}
 		EffectPassDefinition sceneVelocityPass{
-			.shaderPath = resourceDir / "shaders" / "pmxmod-default" / "internal" / "scene-velocity.hlsl"
+			.shaderPath = ResolveInternalShaderPath("scene-velocity.hlsl")
 		};
 		sceneVelocityShader = std::make_unique<GlfwSceneVelocityShader>();
 		if (!sceneVelocityShader->Initialize(sceneVelocityPass)) {

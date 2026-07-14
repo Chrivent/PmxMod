@@ -1,9 +1,6 @@
 ﻿#include "Viewer/Vulkan/VulkanViewer.h"
 
 #include "Viewer/Vulkan/VulkanInstance.h"
-#include "Viewer/Shader/ShaderPackage.h"
-
-#include <algorithm>
 #include <iostream>
 
 namespace Chrivent {
@@ -16,20 +13,8 @@ namespace Chrivent {
 			if (!postProcess.Initialize(*device, swapChain, msaaDepthBuffer.format))
 				return false;
 		}
-		ShaderPackage package;
-		std::string error;
-		if (!ShaderPackageParser::Load(resourceDir / "shaders" / "pmxmod-default" / "package.json", package, error)) {
-			std::cerr << error << '\n';
-			return false;
-		}
-		const auto modelEffect = std::ranges::find(package.effects, EffectType::Model, &EffectDefinition::type);
-		const auto edgeEffect = std::ranges::find(package.effects, EffectType::Edge, &EffectDefinition::type);
-		const auto groundShadowEffect = std::ranges::find(package.effects, EffectType::GroundShadow, &EffectDefinition::type);
-		if (modelEffect == package.effects.end() || edgeEffect == package.effects.end() || groundShadowEffect == package.effects.end())
-			return false;
-		if (!pipeline->Initialize(
-			*device, swapChain, msaaDepthBuffer.format,
-			*modelEffect, *edgeEffect, *groundShadowEffect))
+		if (!pipeline->Initialize(*device, swapChain, msaaDepthBuffer.format, builtInShaderPasses,
+			ResolveInternalShaderPath("scene-velocity.hlsl")))
 			return false;
 		return commandContext.Initialize(*device, swapChain);
 	}
@@ -163,7 +148,9 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::Setup() {
-		InitDirs("shaders");
+		InitDirs();
+		if (!LoadBuiltInShaderContract())
+			return false;
 		if (!device->Initialize(window))
 			return false;
 		capabilities = device->capabilities;

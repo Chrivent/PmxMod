@@ -6,6 +6,8 @@
 #define	STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <iostream>
+
 namespace Chrivent {
 	void Viewer::ResetPostProcessFrameHistory() {
 		postProcessHistoryResetPending = true;
@@ -17,6 +19,15 @@ namespace Chrivent {
 		previousProjMat = projMat;
 		postProcessHistoryResetPending = false;
 		postProcessFrameData.historyReset = 0.0f;
+	}
+
+	bool Viewer::LoadBuiltInShaderContract() {
+		std::string error;
+		if (BuiltInShaderContract::Load(ResolveShaderPackagesDirectory() / "pmxmod-default" / "package.json",
+			builtInShaderPasses, error))
+			return true;
+		std::cerr << error << '\n';
+		return false;
 	}
 
     LRESULT CALLBACK Viewer::FpsOverlayWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -71,7 +82,7 @@ namespace Chrivent {
         return image;
     }
 
-    void Viewer::InitDirs(const std::filesystem::path& shaderSubDir) {
+    void Viewer::InitDirs() {
         std::vector<wchar_t> buf(MAX_PATH);
         while (true) {
             const DWORD n = GetModuleFileNameW(nullptr, buf.data(), buf.size());
@@ -82,7 +93,7 @@ namespace Chrivent {
             buf.resize(buf.size() * 2);
         }
         resourceDir = resourceDir.parent_path() / "resource";
-        shaderDir = resourceDir / shaderSubDir;
+		internalShaderDir = resourceDir / "internal" / "shaders";
         pmxDir = resourceDir / "mmd";
     }
 

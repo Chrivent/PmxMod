@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Viewer/Shader/ShaderPackage.h"
+
 #include <filesystem>
 #include <d3d11.h>
 #include <span>
@@ -27,17 +29,17 @@ namespace Chrivent {
 
 	struct Dx11ModelShader : Dx11Shader {
 		// 모델 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
+		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
 	};
 
 	struct Dx11EdgeShader : Dx11Shader {
 		// 엣지 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
+		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
 	};
 
 	struct Dx11GroundShadowShader : Dx11Shader {
 		// 지면 그림자 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const std::filesystem::path& file);
+		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
 	};
 
 	struct Dx11SceneVelocityShader : Dx11Shader {
