@@ -1,6 +1,6 @@
 ﻿#include "Program/Manager/InputManager.h"
 
-#include "Viewer/Viewer.h"
+#include "Viewer/Viewer/Viewer.h"
 
 namespace Chrivent {
 	void InputManager::ScrollCallback(GLFWwindow*, const double, const double yOffset) {

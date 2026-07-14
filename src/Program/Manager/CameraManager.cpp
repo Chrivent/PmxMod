@@ -5,7 +5,7 @@
 #include "Core/Animation/Camera/CameraAnimationBuilder.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Program/Sound.h"
-#include "Viewer/Viewer.h"
+#include "Viewer/Viewer/Viewer.h"
 
 #include <iostream>
 #include <limits>

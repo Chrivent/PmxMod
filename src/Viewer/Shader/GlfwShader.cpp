@@ -1,0 +1,62 @@
+﻿#include "Viewer/Shader/GlfwShader.h"
+
+#include "Viewer/Shader/GlfwShaderCompiler.h"
+
+namespace Chrivent {
+    GlfwShader::~GlfwShader() {
+        if (program != 0)
+            glDeleteProgram(program);
+        program = 0;
+    }
+
+    bool GlfwModelShader::Initialize(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+        if (program == 0)
+            return false;
+        positionLocation = 0;
+        normalLocation = 1;
+        uvLocation = 2;
+        return true;
+    }
+
+    bool GlfwEdgeShader::Initialize(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+        if (program == 0)
+            return false;
+        positionLocation = 0;
+        normalLocation = 1;
+        return true;
+    }
+
+    bool GlfwGroundShadowShader::Initialize(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+        if (program == 0)
+            return false;
+        positionLocation = 0;
+        return true;
+    }
+
+    bool GlfwDepthOnlyShader::Initialize(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateVertexOnlyShader(pass.shaderPath, pass.vertexEntry);
+        if (program == 0)
+            return false;
+        positionLocation = 0;
+        normalLocation = 1;
+        uvLocation = 2;
+        return true;
+    }
+
+	bool GlfwSceneVelocityShader::Initialize(const EffectPassDefinition& pass) {
+		program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		if (program == 0)
+			return false;
+		positionLocation = 0;
+		previousPositionLocation = 1;
+		return true;
+	}
+
+    bool GlfwPostProcessShader::Initialize(const EffectPassDefinition& pass) {
+        program = GlfwShaderCompiler::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry, true);
+        return program != 0;
+    }
+}

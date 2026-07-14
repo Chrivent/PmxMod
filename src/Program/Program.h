@@ -2,13 +2,13 @@
 
 #include "Program/RendererType.h"
 #include "Program/Sound.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Effect/ShaderPackage.h"
 #include "Program/Manager/CameraManager.h"
 #include "Program/Manager/PanelManager.h"
 #include "Program/Manager/InputManager.h"
 #include "Program/TaskExecutor.h"
 #include "Core/Model/ModelUpdater.h"
-#include "Viewer/Viewer.h"
+#include "Viewer/Viewer/Viewer.h"
 
 #include <chrono>
 #include <filesystem>

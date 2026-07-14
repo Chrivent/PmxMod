@@ -13,71 +13,83 @@ target_include_directories(PmxModDxcCompiler PRIVATE
 )
 
 target_sources(PmxModViewer PRIVATE
-        Viewer.h Viewer.cpp
-        GraphicsCapabilities.h GraphicsCapabilities.cpp
-        Drawer.h Drawer.cpp
-        Instance.h Instance.cpp
-        TextureCache.h
-        PostProcess.h PostProcess.cpp
-        ViewerGeometry.h ViewerGeometry.cpp
-        DynamicBufferRing.h DynamicBufferRing.cpp
+        Buffer/DynamicBufferRing.h Buffer/DynamicBufferRing.cpp
+        Buffer/GlfwDynamicBufferRing.h Buffer/GlfwDynamicBufferRing.cpp
+        Buffer/Dx12Buffer.h Buffer/Dx12Buffer.cpp
+        Buffer/VulkanBuffer.h Buffer/VulkanBuffer.cpp
+        Buffer/VulkanDynamicBufferRing.h Buffer/VulkanDynamicBufferRing.cpp
+
+        Command/Dx12CommandContext.h Command/Dx12CommandContext.cpp
+        Command/VulkanCommandBuffer.h Command/VulkanCommandBuffer.cpp
+        Command/VulkanCommandContext.h Command/VulkanCommandContext.cpp
+
+        Descriptor/Dx11DescBuilder.h Descriptor/Dx11DescBuilder.cpp
+        Descriptor/VulkanDescriptorSet.h Descriptor/VulkanDescriptorSet.cpp
+
+        Device/GraphicsCapabilities.h Device/GraphicsCapabilities.cpp
+        Device/Dx12Device.h Device/Dx12Device.cpp
+        Device/VulkanDevice.h Device/VulkanDevice.cpp
+
+        Drawer/Drawer.h Drawer/Drawer.cpp
+        Drawer/GlfwDrawer.h Drawer/GlfwDrawer.cpp
+        Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp
+        Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
+        Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
+
+        Effect/PostProcessInputLayout.h
+        Effect/ShaderPackage.h Effect/ShaderPackage.cpp
+
+        Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
+
+        Instance/Instance.h Instance/Instance.cpp
+        Instance/GlfwInstance.h Instance/GlfwInstance.cpp
+        Instance/Dx11Instance.h Instance/Dx11Instance.cpp
+        Instance/Dx12Instance.h Instance/Dx12Instance.cpp
+        Instance/VulkanInstance.h Instance/VulkanInstance.cpp
+
+        Memory/VulkanMemory.h Memory/VulkanMemory.cpp
+
+        Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
+        Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
+        Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
+
+        PostProcess/PostProcess.h PostProcess/PostProcess.cpp
+        PostProcess/GlfwPostProcess.h PostProcess/GlfwPostProcess.cpp
+        PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
+        PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
+        PostProcess/VulkanPostProcess.h PostProcess/VulkanPostProcess.cpp
+
+        RenderTarget/Dx12DepthBuffer.h RenderTarget/Dx12DepthBuffer.cpp
+        RenderTarget/Dx12MsaaColorBuffer.h RenderTarget/Dx12MsaaColorBuffer.cpp
+        RenderTarget/VulkanMsaaColorBuffer.h RenderTarget/VulkanMsaaColorBuffer.cpp
+        RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
+
         Shader/ShaderConstants.h
-        Shader/PostProcessInputLayout.h
         Shader/ShaderCompiler.h Shader/ShaderCompiler.cpp
         Shader/DxcShaderCompiler.h
         $<TARGET_OBJECTS:PmxModDxcCompiler>
-        Shader/ShaderPackage.h Shader/ShaderPackage.cpp
+        Shader/GlfwShader.h Shader/GlfwShader.cpp
+        Shader/GlfwShaderCompiler.h Shader/GlfwShaderCompiler.cpp
+        Shader/Dx11Shader.h Shader/Dx11Shader.cpp
+        Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp
 
-        Glfw/GlfwViewer.h Glfw/GlfwViewer.cpp
-        Glfw/GlfwPostProcess.h Glfw/GlfwPostProcess.cpp
-        Glfw/GlfwDrawer.h Glfw/GlfwDrawer.cpp
-        Glfw/GlfwTextureCache.h Glfw/GlfwTextureCache.cpp
-        Glfw/GlfwInstance.h Glfw/GlfwInstance.cpp
-        Glfw/GlfwDynamicBufferRing.h Glfw/GlfwDynamicBufferRing.cpp
-        Glfw/Helper/GlfwShader.h Glfw/Helper/GlfwShader.cpp
-        Glfw/Helper/GlfwShaderCompiler.h Glfw/Helper/GlfwShaderCompiler.cpp
+        SwapChain/Dx12SwapChain.h SwapChain/Dx12SwapChain.cpp
+        SwapChain/VulkanSwapChain.h SwapChain/VulkanSwapChain.cpp
 
-        Vulkan/VulkanViewer.h Vulkan/VulkanViewer.cpp
-        Vulkan/VulkanPostProcess.h Vulkan/VulkanPostProcess.cpp
-        Vulkan/VulkanDrawer.h Vulkan/VulkanDrawer.cpp
-        Vulkan/VulkanTextureCache.h Vulkan/VulkanTextureCache.cpp
-        Vulkan/VulkanInstance.h Vulkan/VulkanInstance.cpp
-        Vulkan/VulkanDynamicBufferRing.h Vulkan/VulkanDynamicBufferRing.cpp
-        Vulkan/Helper/VulkanBuffer.h Vulkan/Helper/VulkanBuffer.cpp
-        Vulkan/Helper/VulkanMsaaColorBuffer.h Vulkan/Helper/VulkanMsaaColorBuffer.cpp
-        Vulkan/Helper/VulkanCommandBuffer.h Vulkan/Helper/VulkanCommandBuffer.cpp
-        Vulkan/Helper/VulkanCommandContext.h Vulkan/Helper/VulkanCommandContext.cpp
-        Vulkan/Helper/VulkanMsaaDepthBuffer.h Vulkan/Helper/VulkanMsaaDepthBuffer.cpp
-        Vulkan/Helper/VulkanDescriptorSet.h Vulkan/Helper/VulkanDescriptorSet.cpp
-        Vulkan/Helper/VulkanDevice.h Vulkan/Helper/VulkanDevice.cpp
-        Vulkan/Helper/VulkanMemory.h Vulkan/Helper/VulkanMemory.cpp
-        Vulkan/Helper/VulkanPipeline.h Vulkan/Helper/VulkanPipeline.cpp
-        Vulkan/Helper/VulkanShaderModule.h Vulkan/Helper/VulkanShaderModule.cpp
-        Vulkan/Helper/VulkanSwapChain.h Vulkan/Helper/VulkanSwapChain.cpp
-        Vulkan/Helper/VulkanSyncObject.h Vulkan/Helper/VulkanSyncObject.cpp
+        Synchronization/Dx12Barrier.h Synchronization/Dx12Barrier.cpp
+        Synchronization/VulkanSyncObject.h Synchronization/VulkanSyncObject.cpp
 
-        Dx11/Dx11Viewer.h Dx11/Dx11Viewer.cpp
-        Dx11/Dx11PostProcess.h Dx11/Dx11PostProcess.cpp
-        Dx11/Dx11Drawer.h Dx11/Dx11Drawer.cpp
-        Dx11/Dx11TextureCache.h Dx11/Dx11TextureCache.cpp
-        Dx11/Dx11Instance.h Dx11/Dx11Instance.cpp
-        Dx11/Helper/Dx11DescBuilder.h Dx11/Helper/Dx11DescBuilder.cpp
-        Dx11/Helper/Dx11Shader.h Dx11/Helper/Dx11Shader.cpp
+        Texture/TextureCache.h
+        Texture/GlfwTextureCache.h Texture/GlfwTextureCache.cpp
+        Texture/Dx11TextureCache.h Texture/Dx11TextureCache.cpp
+        Texture/Dx12TextureCache.h Texture/Dx12TextureCache.cpp
+        Texture/VulkanTextureCache.h Texture/VulkanTextureCache.cpp
 
-        Dx12/Dx12Viewer.h Dx12/Dx12Viewer.cpp
-        Dx12/Dx12PostProcess.h Dx12/Dx12PostProcess.cpp
-        Dx12/Dx12Drawer.h Dx12/Dx12Drawer.cpp
-        Dx12/Dx12TextureCache.h Dx12/Dx12TextureCache.cpp
-        Dx12/Dx12Instance.h Dx12/Dx12Instance.cpp
-        Dx12/Helper/Dx12Barrier.h Dx12/Helper/Dx12Barrier.cpp
-        Dx12/Helper/Dx12Buffer.h Dx12/Helper/Dx12Buffer.cpp
-        Dx12/Helper/Dx12CommandContext.h Dx12/Helper/Dx12CommandContext.cpp
-        Dx12/Helper/Dx12DepthBuffer.h Dx12/Helper/Dx12DepthBuffer.cpp
-        Dx12/Helper/Dx12Device.h Dx12/Helper/Dx12Device.cpp
-        Dx12/Helper/Dx12MsaaColorBuffer.h Dx12/Helper/Dx12MsaaColorBuffer.cpp
-        Dx12/Helper/Dx12PipelineBuilder.h Dx12/Helper/Dx12PipelineBuilder.cpp
-        Dx12/Helper/Dx12Pipeline.h Dx12/Helper/Dx12Pipeline.cpp
-        Dx12/Helper/Dx12SwapChain.h Dx12/Helper/Dx12SwapChain.cpp
+        Viewer/Viewer.h Viewer/Viewer.cpp
+        Viewer/GlfwViewer.h Viewer/GlfwViewer.cpp
+        Viewer/Dx11Viewer.h Viewer/Dx11Viewer.cpp
+        Viewer/Dx12Viewer.h Viewer/Dx12Viewer.cpp
+        Viewer/VulkanViewer.h Viewer/VulkanViewer.cpp
 )
 
 target_compile_features(PmxModViewer PUBLIC cxx_std_23)
