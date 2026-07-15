@@ -59,7 +59,7 @@ namespace Chrivent {
 		}
 
 		// 컴파일러가 사용을 끝낸 include 파일 내용을 해제한다.
-		HRESULT STDMETHODCALLTYPE Close(LPCVOID data) override {
+		HRESULT STDMETHODCALLTYPE Close(const LPCVOID data) override {
 			return sources.erase(data) == 1 ? S_OK : E_INVALIDARG;
 		}
 	};
