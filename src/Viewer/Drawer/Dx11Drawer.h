@@ -7,11 +7,13 @@
 
 namespace Chrivent {
 	class Dx11Instance;
+	class Dx11Viewer;
 	struct Dx11Texture;
 
 	// D3D11 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class Dx11Drawer : public Drawer {
 		const Dx11Instance& instance;
+		Dx11Viewer& renderer;
 
 		// 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
 		void BindTexture(
@@ -31,8 +33,6 @@ namespace Chrivent {
 		void DrawSceneInputs() override;
 
 	public:
-		~Dx11Drawer() override = default;
-
-		explicit Dx11Drawer(const Dx11Instance& sourceInstance);
+		Dx11Drawer(const Dx11Instance& sourceInstance, Dx11Viewer& sourceViewer);
 	};
 }

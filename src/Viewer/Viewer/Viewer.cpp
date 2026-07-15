@@ -31,6 +31,14 @@ namespace Chrivent {
 		return true;
 	}
 
+	PostProcessSceneInputBeginResult Viewer::BeginPostProcessSceneInputPass() {
+		const PostProcess& postProcess = ResolvePostProcess();
+		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+			return PostProcessSceneInputBeginResult::NotRequired;
+		return BeginPostProcessSceneInputPassCore()
+			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+	}
+
 	std::unique_ptr<Instance> Viewer::CreateInstance(std::shared_ptr<Model> model,
 		std::unique_ptr<Animation> animation, const float scale) {
 		auto instance = CreateInstanceCore();

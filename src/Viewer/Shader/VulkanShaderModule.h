@@ -16,8 +16,6 @@ namespace Chrivent {
 
 		VulkanShaderModule(const VulkanShaderModule&) = delete;
 		VulkanShaderModule& operator=(const VulkanShaderModule&) = delete;
-		VulkanShaderModule(VulkanShaderModule&&) = delete;
-		VulkanShaderModule& operator=(VulkanShaderModule&&) = delete;
 		
 		VkShaderModule GetShaderModule() const { return shaderModule; }
 

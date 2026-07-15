@@ -89,9 +89,13 @@ namespace Chrivent {
 	Drawer::~Drawer() = default;
 
 	void Drawer::Draw() {
-		DrawModel();
-		DrawEdge();
-		DrawGroundShadow();
+		BeginDrawFrame();
+		if (viewer.modelEffectEnabled)
+			DrawModel();
+		if (viewer.edgeEffectEnabled)
+			DrawEdge();
+		if (viewer.groundShadowEffectEnabled)
+			DrawGroundShadow();
 	}
 
 	void Drawer::DrawPostProcessSceneInputs() {

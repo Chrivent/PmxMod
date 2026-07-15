@@ -6,12 +6,16 @@
 
 namespace Chrivent {
 	class VulkanInstance;
+	class VulkanViewer;
 
 	// Vulkan 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class VulkanDrawer : public Drawer {
 		VulkanInstance& instance;
+		VulkanViewer& renderer;
 
 	protected:
+		// 새 프레임용 Vulkan 동적 uniform buffer ring 상태를 초기화한다.
+		void BeginDrawFrame() override;
 		// GL/DX와 같은 화면 좌표 및 깊이 범위로 맞추는 Vulkan clip 보정 행렬을 반환한다.
 		const glm::mat4& ClipMatrix() const override;
 		// 일반 메시 패스를 Vulkan으로 렌더링한다.
@@ -24,8 +28,6 @@ namespace Chrivent {
 		void DrawSceneInputs() override;
 
 	public:
-		~VulkanDrawer() override = default;
-
-		explicit VulkanDrawer(VulkanInstance& sourceInstance);
+		VulkanDrawer(VulkanInstance& sourceInstance, VulkanViewer& sourceViewer);
 	};
 }

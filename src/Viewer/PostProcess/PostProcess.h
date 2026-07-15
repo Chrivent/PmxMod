@@ -109,8 +109,6 @@ namespace Chrivent {
 
 		PostProcess(const PostProcess&) = delete;
 		PostProcess& operator=(const PostProcess&) = delete;
-		PostProcess(PostProcess&&) = delete;
-		PostProcess& operator=(PostProcess&&) = delete;
 
 		bool HasEffects() const { return !passDefinitions.empty(); }
 		bool RequiresDepth() const { return depthRequired; }

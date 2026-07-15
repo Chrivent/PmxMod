@@ -14,7 +14,7 @@ namespace Chrivent {
 	// 이미지 파일을 OpenGL texture로 변환하고 공통 키로 재사용한다.
 	class OpenGlTextureCache : public TextureCache {
 	public:
-		~OpenGlTextureCache() override;
+		~OpenGlTextureCache();
 
 		// 텍스처가 없는 재질에 사용할 1x1 흰색 OpenGL 텍스처를 생성한다.
 		OpenGlTexture CreateWhiteTexture();

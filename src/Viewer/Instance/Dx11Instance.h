@@ -1,19 +1,29 @@
 ﻿#pragma once
 
 #include "Viewer/Instance/Instance.h"
+#include "Viewer/Texture/Dx11TextureCache.h"
 
 #include <vector>
 #include <d3d11.h>
 #include <wrl/client.h>
 
 namespace Chrivent {
-    struct Dx11Texture;
-    struct Dx11Material;
     class Dx11Drawer;
     class Dx11Viewer;
 
+	// 공통 PMX 재질에 D3D11 texture 리소스를 결합한다.
+	struct Dx11Material : ViewerMaterial {
+		Dx11Texture texture{};
+		Dx11Texture sphereTexture{};
+		Dx11Texture toonTexture{};
+
+		explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
+	};
+
     // 한 모델의 D3D11 버퍼, 재질과 descriptor 상태를 관리한다.
     class Dx11Instance : public Instance {
+		Dx11Viewer& viewer;
+
         // 모델 geometry 데이터를 DX11 vertex/index buffer로 생성한다.
         bool CreateGeometryBuffers();
         // 패스별 constant buffer를 생성한다.
@@ -35,7 +45,6 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
     public:
-        Dx11Viewer*                             viewer = nullptr;
         std::vector<Dx11Material>               materials;
         Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
@@ -51,6 +60,6 @@ namespace Chrivent {
 		explicit Dx11Instance(Dx11Viewer& sourceViewer);
         
 		// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
-        void Upload() const override;
+		bool Upload() const override;
     };
 }

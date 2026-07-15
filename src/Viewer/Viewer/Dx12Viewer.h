@@ -15,29 +15,18 @@
 #include <vector>
 
 namespace Chrivent {
-	// 공통 PMX 재질에 D3D12 texture와 descriptor handle을 결합한다.
-	struct Dx12Material : ViewerMaterial {
-		Dx12Texture texture{};
-		Dx12Texture sphereTexture{};
-		Dx12Texture toonTexture{};
-		D3D12_GPU_DESCRIPTOR_HANDLE textureDescriptorHandle{};
-
-		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-	};
-
 	// 공통 Viewer 계약을 D3D12 명령 목록과 스왑체인 흐름으로 구현한다.
 	class Dx12Viewer : public Viewer {
 		Dx12PostProcess postProcess;
 		Dx12TextureCache textureCache;
-		std::unique_ptr<Dx12Device> device;
+		Dx12Device device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
-		std::unique_ptr<Dx12Texture> dummyTexture;
+		Dx12Texture dummyTexture;
 		bool frameReady = false;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		UINT frameIndex = 0;
 
 		// 현재 back buffer를 render target 상태로 전환한다.
@@ -46,28 +35,28 @@ namespace Chrivent {
 		void ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const;
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 명령 목록에 적용한다.
 		void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList) const;
-		// MSAA color buffer의 결과를 현재 back buffer로 옮기고 present 상태로 되돌린다.
-		void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const;
-
 	protected:
 		PostProcess& ResolvePostProcess() override { return postProcess; }
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
 		
 		// 체크된 후처리 효과들을 DX12 ping-pong 체인으로 컴파일한다.
 		bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		// DX12 후처리 장면 입력 패스 기록을 시작한다.
+		bool BeginPostProcessSceneInputPassCore() override;
 		// 초기 상태의 DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		Dx12Viewer();
 		~Dx12Viewer() override;
 
-		const Dx12Device* GetDevice() const { return device.get(); }
-		const Dx12Texture* GetDummyTexture() const { return dummyTexture.get(); }
+		const Dx12Device& GetDevice() const { return device; }
+		const Dx12Texture& GetDummyTexture() const { return dummyTexture; }
 		UINT GetFrameIndex() const { return frameIndex; }
 		
 		// 기록 가능한 현재 프레임 명령 목록을 반환한다.
-		ID3D12GraphicsCommandList* ResolveCommandList() const { return frameReady ? commandList.Get() : nullptr; }
+		ID3D12GraphicsCommandList* ResolveCommandList() const {
+			return frameReady ? commandContext.GetCommandList().Get() : nullptr;
+		}
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureWindowHints() override;
 		// DX12 렌더러 리소스를 초기화한다.
@@ -78,8 +67,6 @@ namespace Chrivent {
 		FrameBeginResult BeginFrame() override;
 		// DX12 프레임을 제출하고 화면에 표시한다.
 		FrameEndResult EndFrame() override;
-		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
 		// DX12 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPass() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.

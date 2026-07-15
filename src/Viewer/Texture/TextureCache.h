@@ -29,8 +29,6 @@ namespace Chrivent {
 	struct Texture {
 		TextureKey key;
 		bool hasAlpha = false;
-
-		virtual ~Texture() = default;
 	};
 
 	// 이미지 디코딩과 렌더링 API별 texture 캐시 저장소를 제공한다.
@@ -64,7 +62,5 @@ namespace Chrivent {
 			return std::static_pointer_cast<TextureType>(it->second);
 		}
 
-	public:
-		virtual ~TextureCache() = default;
 	};
 }

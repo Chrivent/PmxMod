@@ -6,7 +6,7 @@
 #include "Viewer/Shader/ShaderConstants.h"
 
 namespace Chrivent {
-	void OpenGlDrawer::BeginDynamicBufferFrame() const {
+	void OpenGlDrawer::BeginDrawFrame() {
 		instance.vertexConstantsRing.BeginFrame(0);
 		instance.pixelConstantsRing.BeginFrame(0);
 	}
@@ -22,15 +22,12 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawModel() {
-		BeginDynamicBufferFrame();
-		const auto* viewer = instance.viewer;
-		if (!viewer->modelEffectEnabled)
-			return;
+		const auto& viewer = renderer;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
-		const auto* shader = viewer->GetModelShader();
+		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
+		const auto* shader = viewer.GetModelShader();
 		glUseProgram(shader->program);
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
@@ -62,16 +59,16 @@ namespace Chrivent {
 					sphereTextureMode = 2;
 			}
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
-				*viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
-			GLuint baseTexture = viewer->GetDummyColorTexture();
+				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
+			GLuint baseTexture = viewer.GetDummyColorTexture();
 			if (material.texture != 0)
 				baseTexture = material.texture;
 			glBindTextureUnit(0, baseTexture);
-			GLuint toonTexture = viewer->GetDummyColorTexture();
+			GLuint toonTexture = viewer.GetDummyColorTexture();
 			if (material.toonTexture != 0)
 				toonTexture = material.toonTexture;
 			glBindTextureUnit(1, toonTexture);
-			GLuint sphereTexture = viewer->GetDummyColorTexture();
+			GLuint sphereTexture = viewer.GetDummyColorTexture();
 			if (material.sphereTexture != 0)
 				sphereTexture = material.sphereTexture;
 			glBindTextureUnit(2, sphereTexture);
@@ -98,15 +95,13 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawEdge() {
-		const auto* viewer = instance.viewer;
-		if (!viewer->edgeEffectEnabled)
-			return;
+		const auto& viewer = renderer;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto* edgeShader = viewer->GetEdgeShader();
+		const auto* edgeShader = viewer.GetEdgeShader();
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
-			*viewer, world, ClipMatrix(), glm::vec2(viewer->screenWidth, viewer->screenHeight));
+			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
 		glUseProgram(edgeShader->program);
 		glBindVertexArray(instance.edgeVao);
 		glEnable(GL_DEPTH_TEST);
@@ -139,19 +134,17 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawGroundShadow() {
-		const auto* viewer = instance.viewer;
-		if (!viewer->groundShadowEffectEnabled)
-			return;
+		const auto& viewer = renderer;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto* gsShader = viewer->GetGroundShadowShader();
+		const auto* gsShader = viewer.GetGroundShadowShader();
 		glUseProgram(gsShader->program);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
-			*viewer, world, ClipMatrix());
+			viewer, world, ClipMatrix());
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
 		glBindVertexArray(instance.gsVao);
@@ -187,19 +180,19 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawSceneInputs() {
-		const auto* viewer = instance.viewer;
+		const auto& viewer = renderer;
 		const auto indexType = instance.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		if (viewer->RequiresPostProcessVelocity()) {
+		if (viewer.RequiresPostProcessVelocity()) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
-				*viewer, world, ClipMatrix());
-			glUseProgram(viewer->GetSceneVelocityShader()->program);
+				viewer, world, ClipMatrix());
+			glUseProgram(viewer.GetSceneVelocityShader()->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
 			glBindVertexArray(instance.velocityVao);
 		} else {
-			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
-			glUseProgram(viewer->GetDepthOnlyShader()->program);
+			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
+			glUseProgram(viewer.GetDepthOnlyShader()->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
 			glBindVertexArray(instance.depthVao);
@@ -223,7 +216,7 @@ namespace Chrivent {
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
 			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
-			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer->GetDummyColorTexture());
+			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer.GetDummyColorTexture());
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -238,5 +231,6 @@ namespace Chrivent {
 		}
 	}
 
-	OpenGlDrawer::OpenGlDrawer(OpenGlInstance& sourceInstance) : instance(sourceInstance) {}
+	OpenGlDrawer::OpenGlDrawer(OpenGlInstance& sourceInstance, OpenGlViewer& sourceViewer)
+		: Drawer(sourceViewer), instance(sourceInstance), renderer(sourceViewer) {}
 }

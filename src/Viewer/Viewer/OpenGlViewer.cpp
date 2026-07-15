@@ -116,11 +116,8 @@ namespace Chrivent {
 		return FrameEndResult::Presented;
 	}
 
-	PostProcessSceneInputBeginResult OpenGlViewer::BeginPostProcessSceneInputPass() {
-		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
-			return PostProcessSceneInputBeginResult::NotRequired;
-		return postProcess.BeginSceneInputPass(screenWidth, screenHeight)
-			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+	bool OpenGlViewer::BeginPostProcessSceneInputPassCore() {
+		return postProcess.BeginSceneInputPass(screenWidth, screenHeight);
 	}
 
 	bool OpenGlViewer::EndPostProcessSceneInputPass() {

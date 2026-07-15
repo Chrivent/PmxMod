@@ -10,6 +10,7 @@ namespace Chrivent {
 	class Dx12MsaaColorBuffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> renderTarget;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
+		UINT sampleCount = 1;
 
 	public:
 		// 화면 크기에 맞는 DX12 MSAA color render target과 RTV를 생성한다.
@@ -18,6 +19,9 @@ namespace Chrivent {
 		ID3D12Resource* ResolveResource() const { return renderTarget.Get(); }
 		// RTV heap에서 MSAA color render target view handle을 해석해 반환한다.
 		D3D12_CPU_DESCRIPTOR_HANDLE ResolveRtvHandle() const;
+		// 장면 색상을 back buffer로 resolve 또는 copy하고 두 리소스 상태를 복원한다.
+		bool ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
+			ID3D12GraphicsCommandList7* enhancedCommandList, ID3D12Resource* backBuffer) const;
 		// 생성한 DX12 MSAA color 리소스를 해제한다.
 		void Reset();
 	};

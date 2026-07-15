@@ -39,8 +39,6 @@ namespace Chrivent {
 
 		VulkanDescriptorSet(const VulkanDescriptorSet&) = delete;
 		VulkanDescriptorSet& operator=(const VulkanDescriptorSet&) = delete;
-		VulkanDescriptorSet(VulkanDescriptorSet&&) = delete;
-		VulkanDescriptorSet& operator=(VulkanDescriptorSet&&) = delete;
 
 		const VkDescriptorSet& GetVertexDescriptorSet() const { return vertexDescriptorSet; }
 

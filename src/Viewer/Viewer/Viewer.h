@@ -59,15 +59,6 @@ namespace Chrivent {
         glm::vec4 cameraWorldUp{};
     };
     
-    // 렌더링 API별 material이 공유하는 원본 PMX 재질 참조를 보관한다.
-    struct ViewerMaterial {
-        const Material& mat;
-
-        explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
-
-        virtual ~ViewerMaterial() = default;
-    };
-    
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		std::filesystem::path resourceDir;
@@ -91,6 +82,8 @@ namespace Chrivent {
 		virtual const PostProcess& ResolvePostProcess() const = 0;
 		// API별 리소스로 검증된 후처리 실행 체인을 생성한다.
 		virtual bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) = 0;
+		// API별 후처리 장면 입력 패스 기록을 시작한다.
+		virtual bool BeginPostProcessSceneInputPassCore() = 0;
 		// 현재 렌더러에 맞는 초기 상태의 모델 인스턴스를 생성한다.
 		virtual std::unique_ptr<Instance> CreateInstanceCore() = 0;
 		// 리소스 디렉터리와 기본 셰이더 계약을 초기화한다.
@@ -133,8 +126,8 @@ namespace Chrivent {
 		virtual FrameBeginResult BeginFrame() = 0;
 		// 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
 		virtual FrameEndResult EndFrame() = 0;
-		// 후처리가 요구하는 장면 depth와 velocity 입력 패스를 시작한다.
-		virtual PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() = 0;
+		// 후처리 요구 입력을 확인하고 장면 depth와 velocity 입력 패스를 시작한다.
+		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass();
 		// 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
 		virtual bool EndPostProcessSceneInputPass() = 0;
 		// 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다리고 성공 여부를 반환한다.

@@ -32,8 +32,6 @@ namespace Chrivent {
 
 		VulkanMsaaDepthBuffer(const VulkanMsaaDepthBuffer&) = delete;
 		VulkanMsaaDepthBuffer& operator=(const VulkanMsaaDepthBuffer&) = delete;
-		VulkanMsaaDepthBuffer(VulkanMsaaDepthBuffer&&) = delete;
-		VulkanMsaaDepthBuffer& operator=(VulkanMsaaDepthBuffer&&) = delete;
 		
 		// depth format에 stencil 성분이 포함되어 있는지 확인한다.
 		static bool HasStencilComponent(const VkFormat format) {

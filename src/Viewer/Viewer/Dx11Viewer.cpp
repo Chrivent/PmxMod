@@ -216,12 +216,9 @@ namespace Chrivent {
 		return FrameEndResult::Presented;
 	}
 
-	PostProcessSceneInputBeginResult Dx11Viewer::BeginPostProcessSceneInputPass() {
-		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
-			return PostProcessSceneInputBeginResult::NotRequired;
+	bool Dx11Viewer::BeginPostProcessSceneInputPassCore() {
 		return postProcess.BeginSceneInputPass(
-			deviceResources.context.Get(), pipelineStates.defaultDss.Get(), screenWidth, screenHeight)
-			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+			deviceResources.context.Get(), pipelineStates.defaultDss.Get(), screenWidth, screenHeight);
 	}
 
 	bool Dx11Viewer::EndPostProcessSceneInputPass() {

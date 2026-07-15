@@ -9,18 +9,6 @@
 #include <memory>
 
 namespace Chrivent {
-    class OpenGlViewer;
-
-    // 공통 PMX 재질에 OpenGL texture 객체와 alpha 정보를 결합한다.
-    struct OpenGlMaterial : ViewerMaterial {
-        GLuint  texture = 0;
-        bool    textureHasAlpha = false;
-        GLuint  sphereTexture = 0;
-        GLuint  toonTexture = 0;
-
-        explicit OpenGlMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-    };
-
     // 공통 Viewer 계약을 OpenGL 컨텍스트와 framebuffer 흐름으로 구현한다.
     class OpenGlViewer : public Viewer {
         // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
@@ -46,11 +34,12 @@ namespace Chrivent {
         
         // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		// OpenGL 후처리 장면 입력 패스 기록을 시작한다.
+		bool BeginPostProcessSceneInputPassCore() override;
         // 초기 상태의 OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstanceCore() override;
 
     public:
-        OpenGlViewer() = default;
         ~OpenGlViewer() override;
 
         GLuint GetDummyColorTexture() const { return dummyColorTex; }
@@ -70,8 +59,6 @@ namespace Chrivent {
         FrameBeginResult BeginFrame() override;
         // GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
         FrameEndResult EndFrame() override;
-        // OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-        PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
         // OpenGL 후처리 장면 입력 패스를 종료한다.
         bool EndPostProcessSceneInputPass() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.

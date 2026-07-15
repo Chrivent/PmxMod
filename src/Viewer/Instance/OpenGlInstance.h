@@ -10,10 +10,20 @@
 namespace Chrivent {
     class OpenGlViewer;
     class OpenGlDrawer;
-    struct OpenGlMaterial;
+
+	// 공통 PMX 재질에 OpenGL texture 객체와 alpha 정보를 결합한다.
+	struct OpenGlMaterial : ViewerMaterial {
+		GLuint texture = 0;
+		bool textureHasAlpha = false;
+		GLuint sphereTexture = 0;
+		GLuint toonTexture = 0;
+
+		explicit OpenGlMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
+	};
 
     // 한 모델의 OpenGL 버퍼, VAO와 재질 상태를 관리한다.
     class OpenGlInstance : public Instance {
+		OpenGlViewer& viewer;
     	GLuint vertexVbo = 0;
     	GLuint ibo = 0;
     	
@@ -37,7 +47,6 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
     public:
-        OpenGlViewer* viewer = nullptr;
         GLenum	indexType = GL_UNSIGNED_BYTE;
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
@@ -53,6 +62,6 @@ namespace Chrivent {
         ~OpenGlInstance() override;
 
 		// 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
-        void Upload() const override;
+		bool Upload() const override;
     };
 }

@@ -16,8 +16,6 @@ namespace Chrivent {
 
 		VulkanCommandContext(const VulkanCommandContext&) = delete;
 		VulkanCommandContext& operator=(const VulkanCommandContext&) = delete;
-		VulkanCommandContext(VulkanCommandContext&&) = delete;
-		VulkanCommandContext& operator=(VulkanCommandContext&&) = delete;
 		
 		// 그래픽스 큐 패밀리에 맞는 command pool과 command buffer를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);

@@ -81,7 +81,7 @@ namespace Chrivent {
 		for (const auto& mat : model->materialData.materials) {
 			VulkanMaterial material(mat);
 			if (!mat.texture.empty()) {
-				material.texture = viewer->LoadTexture(mat.texture);
+				material.texture = viewer.LoadTexture(mat.texture);
 				if (material.texture.image == VK_NULL_HANDLE)
 					material.texture = dummyTexture;
 				else
@@ -89,7 +89,7 @@ namespace Chrivent {
 			} else
 				material.texture = dummyTexture;
 			if (!mat.spTexture.empty()) {
-				material.sphereTexture = viewer->LoadTexture(mat.spTexture);
+				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
 				if (material.sphereTexture.image == VK_NULL_HANDLE)
 					material.sphereTexture = dummyTexture;
 				else
@@ -97,7 +97,7 @@ namespace Chrivent {
 			} else
 				material.sphereTexture = dummyTexture;
 			if (!mat.toonTexture.empty()) {
-				material.toonTexture = viewer->LoadTexture(mat.toonTexture, true);
+				material.toonTexture = viewer.LoadTexture(mat.toonTexture, true);
 				if (material.toonTexture.image == VK_NULL_HANDLE)
 					material.toonTexture = dummyTexture;
 				else
@@ -127,8 +127,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanInstance::VulkanInstance(VulkanViewer& sourceViewer) : viewer(&sourceViewer) {
-		drawer = std::make_unique<VulkanDrawer>(*this);
+	VulkanInstance::VulkanInstance(VulkanViewer& sourceViewer) : viewer(sourceViewer) {
+		drawer = std::make_unique<VulkanDrawer>(*this, viewer);
 	}
 
 	void VulkanInstance::ResetRendererResources() {
@@ -151,14 +151,9 @@ namespace Chrivent {
 	}
 
 	bool VulkanInstance::SetupRenderer() {
-		const auto* devicePointer = viewer->GetDevice();
-		const auto* pipelinePointer = viewer->GetPipeline();
-		const auto* dummyTexturePointer = viewer->GetDummyTexture();
-		if (devicePointer == nullptr || pipelinePointer == nullptr || dummyTexturePointer == nullptr)
-			return false;
-		const auto& device = *devicePointer;
-		const auto& pipeline = *pipelinePointer;
-		const auto& dummyTexture = *dummyTexturePointer;
+		const VulkanDevice& device = viewer.GetDevice();
+		const VulkanPipeline& pipeline = viewer.GetPipeline();
+		const VulkanTexture& dummyTexture = viewer.GetDummyTexture();
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!SetupConstantRings(device))
@@ -167,18 +162,18 @@ namespace Chrivent {
 		return CreateDescriptorSets(device, pipeline);
 	}
 
-	void VulkanInstance::Upload() const {
-		if (model == nullptr || viewer == nullptr)
-			return;
-		size_t frameIndex = 0;
-		if (!viewer->ResolveFrameIndex(frameIndex))
-			return;
+	bool VulkanInstance::Upload() const {
+		if (model == nullptr)
+			return false;
+		const size_t frameIndex = viewer.GetFrameIndex();
 		const auto& vertexBuffer = vertexBuffers[frameIndex % kBufferedFrames];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)
-			return;
+			return false;
 		const size_t vertexCount = model->geometryData.positions.size();
-		if (!ViewerGeometry::WriteVertices(model->geometryData, true,
-			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
+		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
+			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount });
+		if (!writeSucceeded)
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
+		return writeSucceeded;
 	}
 }

@@ -429,6 +429,12 @@ namespace Chrivent {
 		Reset();
 	}
 
+	VkPipeline VulkanPipeline::ResolveSceneInputPipeline(const bool velocity, const bool bothFace) const {
+		if (velocity)
+			return bothFace ? sceneVelocityBothFacePipeline : sceneVelocityPipeline;
+		return bothFace ? depthOnlyBothFacePipeline : depthOnlyPipeline;
+	}
+
 	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
 		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {

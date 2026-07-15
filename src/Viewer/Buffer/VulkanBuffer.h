@@ -19,8 +19,6 @@ namespace Chrivent {
 
 		VulkanBuffer(const VulkanBuffer&) = delete;
 		VulkanBuffer& operator=(const VulkanBuffer&) = delete;
-		VulkanBuffer(VulkanBuffer&&) = delete;
-		VulkanBuffer& operator=(VulkanBuffer&&) = delete;
 
 		void* ResolveMappedData() const { return mappedData; }
 

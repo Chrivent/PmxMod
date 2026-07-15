@@ -27,8 +27,6 @@ namespace Chrivent {
 
 		VulkanSyncObject(const VulkanSyncObject&) = delete;
 		VulkanSyncObject& operator=(const VulkanSyncObject&) = delete;
-		VulkanSyncObject(VulkanSyncObject&&) = delete;
-		VulkanSyncObject& operator=(VulkanSyncObject&&) = delete;
 		
 		// 더블버퍼링에 사용할 세마포어와 펜스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, size_t swapChainImageCount);

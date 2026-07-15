@@ -39,8 +39,6 @@ namespace Chrivent {
 
 		VulkanSwapChain(const VulkanSwapChain&) = delete;
 		VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
-		VulkanSwapChain(VulkanSwapChain&&) = delete;
-		VulkanSwapChain& operator=(VulkanSwapChain&&) = delete;
 		
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);

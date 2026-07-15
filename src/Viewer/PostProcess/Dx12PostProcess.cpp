@@ -10,31 +10,6 @@
 #include <limits>
 
 namespace Chrivent {
-	bool Dx12PostProcess::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
-		ID3D12Resource* backBuffer, ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
-		const Dx12CommandContext& commandContext) {
-		if (commandList == nullptr || backBuffer == nullptr || msaaColor == nullptr)
-			return false;
-		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
-		const D3D12_RESOURCE_STATES destinationState = sourceDevice.msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_DEST : D3D12_RESOURCE_STATE_COPY_DEST;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, destinationState);
-		if (sourceDevice.msaaSampleCount > 1)
-			commandList->ResolveSubresource(backBuffer, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-		else
-			commandList->CopyResource(backBuffer, msaaColor);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
-			destinationState, D3D12_RESOURCE_STATE_PRESENT);
-		return true;
-	}
-
 	void Dx12PostProcess::ApplyViewportAndScissor(
 		ID3D12GraphicsCommandList* commandList, const int width, const int height) {
 		if (commandList == nullptr)
@@ -421,18 +396,21 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
-		ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
+		const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 		const int width, const int height, const PostProcessFrameData& frameData) {
+		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!HasEffects() || commandList == nullptr || !sceneColor.ResolveResource()) {
-			return ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+			return msaaColorBuffer.ResolveToBackBuffer(
+				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
 		}
 		const size_t frameIndex = swapChain.GetFrameIndex() % frameDataBufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
-			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+			msaaColorBuffer.ResolveToBackBuffer(
+				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
 			return false;
 		}
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
@@ -461,7 +439,8 @@ namespace Chrivent {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
 			if (!parameterDataBuffer.Write(route.parameters, parameterOffset)) {
-				ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+				msaaColorBuffer.ResolveToBackBuffer(
+					commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
 				DiscardHistoryFrame();
 				return false;
 			}

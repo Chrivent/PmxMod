@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Descriptor/VulkanDescriptorSet.h"
 
-#include "Viewer/Viewer/VulkanViewer.h"
+#include "Viewer/Instance/VulkanInstance.h"
 
 #include <iostream>
 
@@ -45,14 +45,15 @@ namespace Chrivent {
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = descriptorPool;
 		allocateInfo.descriptorSetCount = 1;
-		allocateInfo.pSetLayouts = &sourcePipeline.descriptorSetLayouts[0];
+		const VkDescriptorSetLayout vertexLayout = sourcePipeline.GetVertexDescriptorSetLayout();
+		allocateInfo.pSetLayouts = &vertexLayout;
 		if (vkAllocateDescriptorSets(device, &allocateInfo, &vertexDescriptorSet) != VK_SUCCESS) {
 			std::cerr << "Failed to allocate Vulkan vertex descriptor set.\n";
 			return false;
 		}
 		pixelDescriptorSets.resize(materialCount);
 		if (!pixelDescriptorSets.empty()) {
-			const std::vector pixelLayouts(materialCount, sourcePipeline.descriptorSetLayouts[1]);
+			const std::vector pixelLayouts(materialCount, sourcePipeline.GetPixelDescriptorSetLayout());
 			VkDescriptorSetAllocateInfo pixelAllocateInfo{};
 			pixelAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			pixelAllocateInfo.descriptorPool = descriptorPool;
@@ -68,7 +69,7 @@ namespace Chrivent {
 		textureDescriptorSets.resize(materialCount);
 		if (textureDescriptorSets.empty())
 			return true;
-		const std::vector textureLayouts(materialCount, sourcePipeline.descriptorSetLayouts[2]);
+		const std::vector textureLayouts(materialCount, sourcePipeline.GetTextureDescriptorSetLayout());
 		VkDescriptorSetAllocateInfo textureAllocateInfo{};
 		textureAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		textureAllocateInfo.descriptorPool = descriptorPool;

@@ -69,8 +69,6 @@ namespace Chrivent {
 
 		VulkanDevice(const VulkanDevice&) = delete;
 		VulkanDevice& operator=(const VulkanDevice&) = delete;
-		VulkanDevice(VulkanDevice&&) = delete;
-		VulkanDevice& operator=(VulkanDevice&&) = delete;
 		
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
 		bool Initialize(GLFWwindow* window);

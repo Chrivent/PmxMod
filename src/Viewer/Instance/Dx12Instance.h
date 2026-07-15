@@ -2,6 +2,7 @@
 
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/Buffer/Dx12Buffer.h"
+#include "Viewer/Texture/Dx12TextureCache.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>
@@ -11,10 +12,21 @@
 namespace Chrivent {
 	class Dx12Drawer;
 	class Dx12Viewer;
-	struct Dx12Material;
+
+	// 공통 PMX 재질에 D3D12 texture와 descriptor handle을 결합한다.
+	struct Dx12Material : ViewerMaterial {
+		Dx12Texture texture{};
+		Dx12Texture sphereTexture{};
+		Dx12Texture toonTexture{};
+		D3D12_GPU_DESCRIPTOR_HANDLE textureDescriptorHandle{};
+
+		explicit Dx12Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
+	};
 
 	// 한 모델의 D3D12 버퍼, 재질과 descriptor 상태를 관리한다.
 	class Dx12Instance : public Instance {
+		Dx12Viewer& viewer;
+
 		// 모델 geometry 데이터를 DX12 vertex/index buffer로 업로드한다.
 		bool CreateGeometryBuffers(const Dx12Device& device);
 		// 패스별 constant buffer를 material 개수에 맞춰 생성한다.
@@ -33,7 +45,6 @@ namespace Chrivent {
 	public:
 		static constexpr size_t kBufferedFrames = 2;
 
-		Dx12Viewer* viewer = nullptr;
 		Dx12Buffer vertexBuffers[kBufferedFrames];
 		Dx12Buffer indexBuffer;
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[kBufferedFrames]{};
@@ -50,9 +61,8 @@ namespace Chrivent {
 		std::vector<Dx12Material> materials;
 
 		explicit Dx12Instance(Dx12Viewer& sourceViewer);
-		~Dx12Instance() override = default;
 
 		// 모델의 갱신된 버텍스 데이터를 DX12 리소스에 반영한다.
-		void Upload() const override;
+		bool Upload() const override;
 	};
 }

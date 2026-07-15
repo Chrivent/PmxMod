@@ -10,13 +10,23 @@ namespace Chrivent {
     Instance::Instance() = default;
     Instance::~Instance() = default;
 
+	bool Instance::ValidateModel(const Model& sourceModel) {
+		const size_t indexCount = sourceModel.geometryData.indexCount;
+		const size_t materialCount = sourceModel.materialData.materials.size();
+		for (const auto& [beginIndex, subMeshIndexCount, materialId] : sourceModel.materialData.subMeshes) {
+			if (materialId >= materialCount || beginIndex > indexCount || subMeshIndexCount > indexCount - beginIndex)
+				return false;
+		}
+		return true;
+	}
+
     bool Instance::Initialize(std::shared_ptr<Model> sourceModel,
         std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
         ResetRendererResources();
         model.reset();
         animation.reset();
         scale = 1.0f;
-        if (!sourceModel)
+        if (!sourceModel || !ValidateModel(*sourceModel))
             return false;
         model = std::move(sourceModel);
         animation = std::move(sourceAnimation);

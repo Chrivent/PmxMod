@@ -8,6 +8,16 @@
 #include <iostream>
 
 namespace Chrivent {
+	void VulkanDrawer::BeginDrawFrame() {
+		const size_t frameIndex = renderer.GetFrameIndex();
+		instance.modelVertexConstantsRing.BeginFrame(frameIndex);
+		instance.edgeVertexConstantsRing.BeginFrame(frameIndex);
+		instance.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
+		instance.modelPixelConstantsRing.BeginFrame(frameIndex);
+		instance.edgePixelConstantsRing.BeginFrame(frameIndex);
+		instance.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
+	}
+
 	const glm::mat4& VulkanDrawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -19,17 +29,9 @@ namespace Chrivent {
 	}
 
 	void VulkanDrawer::DrawModel() {
-		if (instance.viewer == nullptr)
-			return;
-		if (!instance.viewer->modelEffectEnabled)
-			return;
-		size_t frameIndex = 0;
-		if (!instance.viewer->ResolveFrameIndex(frameIndex))
-			return;
+		const size_t frameIndex = renderer.GetFrameIndex();
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		instance.modelVertexConstantsRing.BeginFrame(frameIndex);
-		instance.modelPixelConstantsRing.BeginFrame(frameIndex);
-		const auto& viewer = *instance.viewer;
+		const auto& viewer = renderer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		std::string error;
@@ -39,10 +41,8 @@ namespace Chrivent {
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
 			return;
 		}
-		instance.viewer->BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
+		renderer.BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			if (materialId >= instance.materials.size())
-				continue;
 			const auto& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
@@ -64,33 +64,23 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
 				continue;
 			}
-			instance.viewer->BindModelPipeline(mat.bothFace);
-			instance.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
-			instance.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
-			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			renderer.BindModelPipeline(mat.bothFace);
+			renderer.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			renderer.BindTextureDescriptorSet(material.textureDescriptorSet);
+			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawEdge() {
-		if (instance.viewer == nullptr)
-			return;
-		if (!instance.viewer->edgeEffectEnabled)
-			return;
-		size_t frameIndex = 0;
-		if (!instance.viewer->ResolveFrameIndex(frameIndex))
-			return;
+		const size_t frameIndex = renderer.GetFrameIndex();
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		instance.edgeVertexConstantsRing.BeginFrame(frameIndex);
-		instance.edgePixelConstantsRing.BeginFrame(frameIndex);
-		const auto& viewer = *instance.viewer;
+		const auto& viewer = renderer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, -viewer.screenHeight));
-		instance.viewer->BindEdgePipeline();
+		renderer.BindEdgePipeline();
 		std::string error;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			if (materialId >= instance.materials.size())
-				continue;
 			const auto& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
@@ -103,7 +93,7 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
 				continue;
 			}
-			instance.viewer->BindModelDescriptorSets(instance.edgeDescriptorSet, vertexSlice->offset);
+			renderer.BindModelDescriptorSets(instance.edgeDescriptorSet, vertexSlice->offset);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			const auto pixelSlice = instance.edgePixelConstantsRing.Allocate(sizeof(pixelConstants), instance.uniformBufferOffsetAlignment, error);
@@ -112,23 +102,15 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 				continue;
 			}
-			instance.viewer->BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
-			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			renderer.BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
+			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawGroundShadow() {
-		if (instance.viewer == nullptr)
-			return;
-		if (!instance.viewer->groundShadowEffectEnabled)
-			return;
-		size_t frameIndex = 0;
-		if (!instance.viewer->ResolveFrameIndex(frameIndex))
-			return;
+		const size_t frameIndex = renderer.GetFrameIndex();
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		instance.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
-		instance.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
-		const auto& viewer = *instance.viewer;
+		const auto& viewer = renderer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
@@ -146,32 +128,22 @@ namespace Chrivent {
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
 			return;
 		}
-		instance.viewer->BindGroundShadowPipeline();
-		instance.viewer->BindModelDescriptorSets(instance.groundShadowDescriptorSet, vertexSlice->offset);
+		renderer.BindGroundShadowPipeline();
+		renderer.BindModelDescriptorSets(instance.groundShadowDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			if (materialId >= instance.materials.size())
-				continue;
 			const auto& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
-			instance.viewer->BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
-			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			renderer.BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
+			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawSceneInputs() {
-		if (instance.viewer == nullptr)
-			return;
-		size_t frameIndex = 0;
-		if (!instance.viewer->ResolveFrameIndex(frameIndex))
-			return;
+		const size_t frameIndex = renderer.GetFrameIndex();
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		const auto& viewer = *instance.viewer;
-		if (!viewer.modelEffectEnabled) {
-			instance.modelVertexConstantsRing.BeginFrame(frameIndex);
-			instance.modelPixelConstantsRing.BeginFrame(frameIndex);
-		}
+		const auto& viewer = renderer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
 			viewer, world, ClipMatrix());
@@ -187,10 +159,8 @@ namespace Chrivent {
 			std::cerr << "Failed to update Vulkan scene input vertex constants.\n";
 			return;
 		}
-		instance.viewer->BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
+		renderer.BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			if (materialId >= instance.materials.size())
-				continue;
 			const auto& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
@@ -205,14 +175,15 @@ namespace Chrivent {
 				continue;
 			}
 			if (velocityRequired)
-				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);
+				renderer.BindSceneVelocityPipeline(mat.bothFace);
 			else
-				instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
-			instance.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
-			instance.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
-			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+				renderer.BindDepthOnlyPipeline(mat.bothFace);
+			renderer.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			renderer.BindTextureDescriptorSet(material.textureDescriptorSet);
+			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}
 
-	VulkanDrawer::VulkanDrawer(VulkanInstance& sourceInstance) : instance(sourceInstance) {}
+	VulkanDrawer::VulkanDrawer(VulkanInstance& sourceInstance, VulkanViewer& sourceViewer)
+		: Drawer(sourceViewer), instance(sourceInstance), renderer(sourceViewer) {}
 }

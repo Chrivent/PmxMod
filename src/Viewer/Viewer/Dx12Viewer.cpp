@@ -35,35 +35,8 @@ namespace Chrivent {
 		commandList->RSSetScissorRects(1, &scissorRect);
 	}
 
-	void Dx12Viewer::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer, ID3D12Resource* msaaColor) const {
-		const D3D12_RESOURCE_STATES sourceState = device->msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE
-			: D3D12_RESOURCE_STATE_COPY_SOURCE;
-		const D3D12_RESOURCE_STATES destinationState = device->msaaSampleCount > 1
-			? D3D12_RESOURCE_STATE_RESOLVE_DEST
-			: D3D12_RESOURCE_STATE_COPY_DEST;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
-			D3D12_RESOURCE_STATE_RENDER_TARGET, destinationState);
-		if (device->msaaSampleCount > 1)
-			commandList->ResolveSubresource(backBuffer, 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-		else
-			commandList->CopyResource(backBuffer, msaaColor);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
-			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
-			destinationState, D3D12_RESOURCE_STATE_PRESENT);
-	}
-
-	Dx12Viewer::Dx12Viewer() {
-		device = std::make_unique<Dx12Device>();
-		dummyTexture = std::make_unique<Dx12Texture>();
-	}
-
 	Dx12Viewer::~Dx12Viewer() {
-		if (device && !commandContext.WaitForGpu(*device))
+		if (device.device && !commandContext.WaitForGpu(device))
 			std::cerr << "Failed to wait for DX12 GPU resources during shutdown.\n";
 		postProcess.Clear();
 		pipeline.Reset();
@@ -71,7 +44,7 @@ namespace Chrivent {
 		depthBuffer.Reset();
 		msaaColorBuffer.Reset();
 		swapChain.Reset();
-		device->Shutdown();
+		device.Shutdown();
 	}
 
 	void Dx12Viewer::ConfigureWindowHints() {
@@ -81,40 +54,39 @@ namespace Chrivent {
 	bool Dx12Viewer::Setup() {
 		if (!InitializeShaderResources())
 			return false;
-		if (!device->Initialize()) {
+		if (!device.Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
 		}
-		capabilities = device->capabilities;
-		if (!commandContext.Initialize(*device)) {
+		capabilities = device.capabilities;
+		if (!commandContext.Initialize(device)) {
 			std::cerr << "Failed to initialize DX12 command context.\n";
 			return false;
 		}
-		commandList = commandContext.GetCommandList();
 		HWND__* hwnd = glfwGetWin32Window(window);
-		if (!swapChain.Initialize(*device, hwnd, screenWidth, screenHeight)) {
+		if (!swapChain.Initialize(device, hwnd, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 swap chain.\n";
 			return false;
 		}
-		if (!msaaColorBuffer.Initialize(*device, screenWidth, screenHeight)) {
+		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 MSAA color buffer.\n";
 			return false;
 		}
-		if (!depthBuffer.Initialize(*device, screenWidth, screenHeight)) {
+		if (!depthBuffer.Initialize(device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		if (!postProcess.InitializeTargets(*device, screenWidth, screenHeight)) {
+		if (!postProcess.InitializeTargets(device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 post-process targets.\n";
 			return false;
 		}
-		if (!pipeline.Initialize(*device, builtInShaderPasses,
+		if (!pipeline.Initialize(device, builtInShaderPasses,
 			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocityInvertedY)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}
-		*dummyTexture = textureCache.CreateWhiteTexture(*device);
-		if (!dummyTexture->resource) {
+		dummyTexture = textureCache.CreateWhiteTexture(device);
+		if (!dummyTexture.resource) {
 			std::cerr << "Failed to initialize DX12 dummy texture.\n";
 			return false;
 		}
@@ -124,13 +96,13 @@ namespace Chrivent {
 	bool Dx12Viewer::Resize() {
 		if (!WaitIdle())
 			return false;
-		if (!swapChain.Resize(*device, screenWidth, screenHeight))
+		if (!swapChain.Resize(device, screenWidth, screenHeight))
 			return false;
-		if (!msaaColorBuffer.Initialize(*device, screenWidth, screenHeight))
+		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
 			return false;
-		if (!depthBuffer.Initialize(*device, screenWidth, screenHeight))
+		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return false;
-		if (!postProcess.InitializeTargets(*device, screenWidth, screenHeight))
+		if (!postProcess.InitializeTargets(device, screenWidth, screenHeight))
 			return false;
 		return true;
 	}
@@ -138,7 +110,7 @@ namespace Chrivent {
 	FrameBeginResult Dx12Viewer::BeginFrame() {
 		frameReady = false;
 		const UINT frameIndex = swapChain.GetFrameIndex();
-		if (!commandContext.BeginFrame(*device, frameIndex))
+		if (!commandContext.BeginFrame(device, frameIndex))
 			return FrameBeginResult::Failed;
 		this->frameIndex = frameIndex;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
@@ -160,16 +132,17 @@ namespace Chrivent {
 			return FrameEndResult::Failed;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
-		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
+		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return FrameEndResult::Failed;
-		bool drawSucceeded = true;
+		bool drawSucceeded;
 		if (postProcess.HasEffects())
-			drawSucceeded = postProcess.Draw(commandList, backBuffer, msaaColor,
-				*device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
+			drawSucceeded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
+				device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
 		else
-			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
-		if (!commandContext.Execute(*device)) {
+			drawSucceeded = msaaColorBuffer.ResolveToBackBuffer(
+				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
+		if (!commandContext.Execute(device)) {
 			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
 		}
@@ -180,14 +153,11 @@ namespace Chrivent {
 		return drawSucceeded ? FrameEndResult::Presented : FrameEndResult::Failed;
 	}
 
-	PostProcessSceneInputBeginResult Dx12Viewer::BeginPostProcessSceneInputPass() {
-		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
-			return PostProcessSceneInputBeginResult::NotRequired;
+	bool Dx12Viewer::BeginPostProcessSceneInputPassCore() {
 		if (!frameReady)
-			return PostProcessSceneInputBeginResult::Failed;
+			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight)
-			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
 	bool Dx12Viewer::EndPostProcessSceneInputPass() {
@@ -198,11 +168,11 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::WaitIdle() {
-		return device && commandContext.WaitForGpu(*device);
+		return device.device && commandContext.WaitForGpu(device);
 	}
 
 	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
-		return device && postProcess.Load(*device, effects);
+		return device.device && postProcess.Load(device, effects);
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {
@@ -210,7 +180,7 @@ namespace Chrivent {
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(*device, texturePath);
+		return textureCache.Load(device, texturePath);
 	}
 
 	void Dx12Viewer::BindModelPipeline(const bool bothFace) const {

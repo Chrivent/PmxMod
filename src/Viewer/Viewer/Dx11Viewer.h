@@ -11,17 +11,6 @@
 #include <dxgi1_6.h>
 
 namespace Chrivent {
-    class Dx11Viewer;
-
-    // 공통 PMX 재질에 D3D11 texture 리소스를 결합한다.
-    struct Dx11Material : ViewerMaterial {
-        Dx11Texture texture{};
-        Dx11Texture	sphereTexture{};
-        Dx11Texture	toonTexture{};
-
-        explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-    };
-
     // D3D11 device, immediate context와 swapchain을 한 단위로 보관한다.
     struct Dx11DeviceResources {
         Microsoft::WRL::ComPtr<ID3D11Device>        device;
@@ -98,12 +87,12 @@ namespace Chrivent {
         
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		// DX11 후처리 장면 입력 패스 기록을 시작한다.
+		bool BeginPostProcessSceneInputPassCore() override;
         // 초기 상태의 DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
-        Dx11Viewer() = default;
-
         const Dx11DeviceResources& GetDeviceResources() const { return deviceResources; }
         const Dx11ShaderSet& GetShaders() const { return shaders; }
         const Dx11PipelineStates& GetPipelineStates() const { return pipelineStates; }
@@ -119,8 +108,6 @@ namespace Chrivent {
         FrameBeginResult BeginFrame() override;
         // 장면 색상을 스왑체인으로 복사하고 화면에 표시한다.
         FrameEndResult EndFrame() override;
-        // DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-        PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
         // DX11 후처리 장면 입력 패스를 종료한다.
         bool EndPostProcessSceneInputPass() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.

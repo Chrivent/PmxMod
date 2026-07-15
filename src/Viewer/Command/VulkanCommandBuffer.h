@@ -23,8 +23,6 @@ namespace Chrivent {
 
 		VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
 		VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
-		VulkanCommandBuffer(VulkanCommandBuffer&&) = delete;
-		VulkanCommandBuffer& operator=(VulkanCommandBuffer&&) = delete;
 		
 		// 스왑체인 이미지 인덱스에 대응하는 command buffer를 반환한다.
 		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const {

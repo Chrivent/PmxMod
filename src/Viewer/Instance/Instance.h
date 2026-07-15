@@ -6,12 +6,23 @@
 
 namespace Chrivent {
     struct ModelUpdateTiming;
+    struct Material;
     class Model;
     class Drawer;
     class Viewer;
+
+    // 렌더링 API별 material이 공유하는 원본 PMX 재질 참조를 보관한다.
+    struct ViewerMaterial {
+        const Material& mat;
+
+        explicit ViewerMaterial(const Material& sourceMat) : mat(sourceMat) {}
+    };
     
     // 한 모델의 API별 GPU 리소스와 그리기 객체를 소유하는 공통 규약을 정의한다.
     class Instance {
+        // 렌더러가 신뢰할 모델 geometry와 material 범위 불변식을 검증한다.
+        static bool ValidateModel(const Model& sourceModel);
+
     protected:
         std::unique_ptr<Drawer> drawer;
         std::shared_ptr<Model> model;
@@ -29,8 +40,6 @@ namespace Chrivent {
         
         Instance(const Instance&) = delete;
         Instance& operator=(const Instance&) = delete;
-        Instance(Instance&&) = delete;
-        Instance& operator=(Instance&&) = delete;
 
         Model& GetModel() { return *model; }
         const Model& GetModel() const { return *model; }
@@ -42,7 +51,7 @@ namespace Chrivent {
         bool Initialize(std::shared_ptr<Model> sourceModel, std::unique_ptr<Animation> sourceAnimation,
             float sourceScale);
         // 모델의 동적 버텍스/상태를 렌더러 리소스에 반영한다.
-        virtual void Upload() const = 0;
+        virtual bool Upload() const = 0;
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.
         void Draw() const;
         // 현재 인스턴스를 후처리 장면 depth와 velocity 입력 패스에 그린다.

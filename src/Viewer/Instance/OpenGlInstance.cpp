@@ -53,11 +53,11 @@ namespace Chrivent {
 	}
 
 	void OpenGlInstance::CreateVertexArrays() {
-		const auto* modelShader = viewer->GetModelShader();
-		const auto* edgeShader = viewer->GetEdgeShader();
-		const auto* groundShadowShader = viewer->GetGroundShadowShader();
-		const auto* depthOnlyShader = viewer->GetDepthOnlyShader();
-		const auto* sceneVelocityShader = viewer->GetSceneVelocityShader();
+		const auto* modelShader = viewer.GetModelShader();
+		const auto* edgeShader = viewer.GetEdgeShader();
+		const auto* groundShadowShader = viewer.GetGroundShadowShader();
+		const auto* depthOnlyShader = viewer.GetDepthOnlyShader();
+		const auto* sceneVelocityShader = viewer.GetSceneVelocityShader();
 		const GLint locs[][3] = {
 			{ modelShader->positionLocation, modelShader->normalLocation, modelShader->uvLocation },
 			{ edgeShader->positionLocation, edgeShader->normalLocation },
@@ -119,20 +119,20 @@ namespace Chrivent {
 		for (const auto& mat : model->materialData.materials) {
 			OpenGlMaterial material(mat);
 			if (!mat.texture.empty()) {
-				const auto texture = viewer->LoadTexture(mat.texture);
+				const auto texture = viewer.LoadTexture(mat.texture);
 				material.texture = texture.texture;
 				material.textureHasAlpha = texture.hasAlpha;
 			}
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer->LoadTexture(mat.spTexture).texture;
+				material.sphereTexture = viewer.LoadTexture(mat.spTexture).texture;
 			if (!mat.toonTexture.empty())
-				material.toonTexture = viewer->LoadTexture(mat.toonTexture, true).texture;
+				material.toonTexture = viewer.LoadTexture(mat.toonTexture, true).texture;
 			materials.emplace_back(material);
 		}
 	}
 
-	OpenGlInstance::OpenGlInstance(OpenGlViewer& sourceViewer) : viewer(&sourceViewer) {
-		drawer = std::make_unique<OpenGlDrawer>(*this);
+	OpenGlInstance::OpenGlInstance(OpenGlViewer& sourceViewer) : viewer(sourceViewer) {
+		drawer = std::make_unique<OpenGlDrawer>(*this, viewer);
 	}
 
 	OpenGlInstance::~OpenGlInstance() {
@@ -172,18 +172,19 @@ namespace Chrivent {
 		return true;
 	}
 
-	void OpenGlInstance::Upload() const {
+	bool OpenGlInstance::Upload() const {
 		const size_t vtxCount = model->geometryData.positions.size();
 		auto* vertices = static_cast<ViewerVertex*>(glMapNamedBufferRange(
 			vertexVbo, 0, sizeof(ViewerVertex) * vtxCount, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 		if (vertices == nullptr) {
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";
-			return;
+			return false;
 		}
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ vertices, vtxCount });
 		const bool unmapSucceeded = glUnmapNamedBuffer(vertexVbo) == GL_TRUE;
 		if (!writeSucceeded || !unmapSucceeded)
 			std::cerr << "Failed to update OpenGL vertex buffers.\n";
+		return writeSucceeded && unmapSucceeded;
 	}
 }

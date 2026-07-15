@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
-#include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 #include "Viewer/Command/VulkanCommandContext.h"
 #include "Viewer/Descriptor/VulkanDescriptorSet.h"
 #include "Viewer/Device/VulkanDevice.h"
@@ -13,25 +12,12 @@
 #include "Viewer/PostProcess/VulkanPostProcess.h"
 #include "Viewer/Texture/VulkanTextureCache.h"
 
+#include <filesystem>
+#include <limits>
 #include <memory>
+#include <vector>
 
 namespace Chrivent {
-	// 공통 PMX 재질에 Vulkan texture와 descriptor set을 결합한다.
-	struct VulkanMaterial : ViewerMaterial {
-		VulkanTexture texture{};
-		VulkanTexture sphereTexture{};
-		VulkanTexture toonTexture{};
-		bool textureEnabled = false;
-		bool sphereTextureEnabled = false;
-		bool toonTextureEnabled = false;
-		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-
-		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-	};
-	
 	// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
 	struct VulkanBindStateCache {
 		VkPipeline pipeline = VK_NULL_HANDLE;
@@ -44,14 +30,14 @@ namespace Chrivent {
 
 	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.
 	class VulkanViewer : public Viewer {
-		std::unique_ptr<VulkanDevice> device;
+		VulkanDevice device;
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
 		VulkanMsaaDepthBuffer msaaDepthBuffer;
-		std::unique_ptr<VulkanPipeline> pipeline;
+		VulkanPipeline pipeline;
 		VulkanCommandContext commandContext;
-		std::unique_ptr<VulkanSyncObject> syncObject;
-		std::unique_ptr<VulkanTexture> dummyTexture;
+		VulkanSyncObject syncObject;
+		VulkanTexture dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		bool postProcessSceneInputPassReady = false;
@@ -71,22 +57,16 @@ namespace Chrivent {
 		
 		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
 		bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		// Vulkan 후처리 장면 입력 패스 기록을 시작한다.
+		bool BeginPostProcessSceneInputPassCore() override;
 		// 초기 상태의 Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		VulkanViewer();
-		~VulkanViewer() override = default;
-
-		const VulkanDevice* GetDevice() const { return device.get(); }
-		const VulkanPipeline* GetPipeline() const { return pipeline.get(); }
-		const VulkanTexture* GetDummyTexture() const { return dummyTexture.get(); }
-		bool ResolveFrameIndex(size_t& result) const {
-			if (!syncObject)
-				return false;
-			result = syncObject->currentFrame;
-			return true;
-		}
+		const VulkanDevice& GetDevice() const { return device; }
+		const VulkanPipeline& GetPipeline() const { return pipeline; }
+		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
+		size_t GetFrameIndex() const { return syncObject.currentFrame; }
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
@@ -116,8 +96,6 @@ namespace Chrivent {
 		FrameBeginResult BeginFrame() override;
 		// Vulkan 프레임을 제출하고 화면에 표시한다.
 		FrameEndResult EndFrame() override;
-		// Vulkan 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
 		// Vulkan 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPass() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.

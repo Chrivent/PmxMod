@@ -4,18 +4,35 @@
 #include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Descriptor/VulkanDescriptorSet.h"
+#include "Viewer/Texture/VulkanTextureCache.h"
 
 #include <vector>
 
 namespace Chrivent {
 	class VulkanViewer;
 	class VulkanDevice;
-	struct VulkanMaterial;
 	class VulkanPipeline;
-	struct VulkanTexture;
+
+	// 공통 PMX 재질에 Vulkan texture와 descriptor set을 결합한다.
+	struct VulkanMaterial : ViewerMaterial {
+		VulkanTexture texture{};
+		VulkanTexture sphereTexture{};
+		VulkanTexture toonTexture{};
+		bool textureEnabled = false;
+		bool sphereTextureEnabled = false;
+		bool toonTextureEnabled = false;
+		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+
+		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
+	};
 
 	// 한 모델의 Vulkan 버퍼, 재질과 descriptor 상태를 관리한다.
 	class VulkanInstance : public Instance {
+		VulkanViewer& viewer;
+
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
 		bool CreateGeometryBuffers(const VulkanDevice& device);
 		// 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
@@ -33,7 +50,6 @@ namespace Chrivent {
 
 	public:
 		static constexpr size_t kBufferedFrames = 2;
-		VulkanViewer* viewer = nullptr;
 		std::vector<VulkanMaterial> materials;
 		VulkanBuffer vertexBuffers[kBufferedFrames];
 		VulkanBuffer indexBuffer;
@@ -51,9 +67,8 @@ namespace Chrivent {
 		size_t indexCount = 0;
 
 		explicit VulkanInstance(VulkanViewer& sourceViewer);
-		~VulkanInstance() override = default;
 
 		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
-		void Upload() const override;
+		bool Upload() const override;
 	};
 }

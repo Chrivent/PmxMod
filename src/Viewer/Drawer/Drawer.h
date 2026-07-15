@@ -11,6 +11,10 @@ namespace Chrivent {
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
 	protected:
+		Viewer& viewer;
+
+		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 초기화한다.
+		virtual void BeginDrawFrame() {}
 		// 렌더러별 clip space 보정 행렬을 반환한다.
 		virtual const glm::mat4& ClipMatrix() const;
 		// 지면 그림자 투영에 사용할 평면 그림자 행렬을 만든다.
@@ -47,6 +51,7 @@ namespace Chrivent {
 		virtual void DrawSceneInputs() = 0;
 
 	public:
+		explicit Drawer(Viewer& sourceViewer) : viewer(sourceViewer) {}
 		virtual ~Drawer();
 
 		// 현재 드로어가 가진 패스 순서대로 화면에 그린다.

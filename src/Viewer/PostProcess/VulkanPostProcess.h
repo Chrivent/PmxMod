@@ -3,6 +3,7 @@
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/RenderTarget/VulkanPostProcessTarget.h"
 #include "Viewer/SwapChain/VulkanSwapChain.h"
 
 #include <memory>
@@ -12,30 +13,17 @@ namespace Chrivent {
 	class VulkanCommandBuffer;
 	struct PostProcessFrameData;
 
-	// Vulkan 후처리 리소스의 image, memory, view와 초기화 상태를 보관한다.
-	struct VulkanPostProcessResource {
-		std::vector<VkImage> images;
-		std::vector<VkDeviceMemory> memories;
-		std::vector<VkImageView> imageViews;
-		std::vector<bool> transientInitialized;
-	};
-
 	// 공통 실행 계획을 Vulkan image와 그래픽 파이프라인으로 기록한다.
 	class VulkanPostProcess : public PostProcess {
 		VkDevice device = VK_NULL_HANDLE;
 		VkExtent2D targetExtent{};
 		VkFormat swapChainFormat = VK_FORMAT_UNDEFINED;
-		std::vector<VkImage> sceneImages;
-		std::vector<VkDeviceMemory> sceneImageMemories;
-		std::vector<VkImageView> sceneImageViews;
+		VulkanPostProcessTarget sceneTarget;
 		std::vector<VkImage> depthImages;
 		std::vector<VkDeviceMemory> depthImageMemories;
 		std::vector<VkImageView> depthImageViews;
-		std::vector<VkImage> velocityImages;
-		std::vector<VkDeviceMemory> velocityImageMemories;
-		std::vector<VkImageView> velocityImageViews;
-		std::vector<bool> velocityImageInitialized;
-		std::vector<VulkanPostProcessResource> resources;
+		VulkanPostProcessTarget velocityTarget;
+		std::vector<VulkanPostProcessTarget> resources;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 		std::vector<VkDescriptorSet> frameDataDescriptorSets;
 		std::vector<VkDescriptorSet> parameterDataDescriptorSets;
@@ -48,9 +36,6 @@ namespace Chrivent {
 		VkSampler sampler = VK_NULL_HANDLE;
 		size_t swapChainImageCount = 0;
 
-		// 지정한 색상 texture image, memory와 view를 생성한다.
-		bool CreateColorImage(const VulkanDevice& sourceDevice, VkExtent2D extent, VkFormat format,
-			VkImageUsageFlags usage, VkImage& image, VkDeviceMemory& memory, VkImageView& imageView) const;
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
 		bool CreateSceneImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
@@ -96,11 +81,11 @@ namespace Chrivent {
 
 		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve 이미지를 반환한다.
 		VkImage ResolveSceneImage(uint32_t imageIndex) const {
-			return imageIndex < sceneImages.size() ? sceneImages[imageIndex] : VK_NULL_HANDLE;
+			return sceneTarget.ResolveImage(imageIndex);
 		}
 		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve image view를 반환한다.
 		VkImageView ResolveSceneImageView(uint32_t imageIndex) const {
-			return imageIndex < sceneImageViews.size() ? sceneImageViews[imageIndex] : VK_NULL_HANDLE;
+			return sceneTarget.ResolveImageView(imageIndex);
 		}
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,

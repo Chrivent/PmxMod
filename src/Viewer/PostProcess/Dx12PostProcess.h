@@ -3,6 +3,7 @@
 #include "Viewer/Buffer/Dx12Buffer.h"
 #include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/PostProcess/PostProcess.h"
+#include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
 #include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
 #include <d3d12.h>
@@ -29,10 +30,6 @@ namespace Chrivent {
 		int targetWidth = 0;
 		int targetHeight = 0;
 
-		// MSAA 화면 색상을 단일 샘플 back buffer로 복사한다.
-		static bool ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
-			ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
-			const Dx12CommandContext& commandContext);
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 command list에 적용한다.
 		static void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList, int width, int height);
 		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
@@ -79,7 +76,7 @@ namespace Chrivent {
 			const Dx12CommandContext& commandContext) const;
 		// 준비된 실행 계획으로 장면 색상을 swapchain back buffer에 그린다.
 		bool Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
-			ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
+			const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 			int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 DX12 후처리 리소스를 해제한다.

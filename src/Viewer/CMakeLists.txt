@@ -60,8 +60,9 @@ target_sources(PmxModViewer PRIVATE
         RenderTarget/Dx12DepthBuffer.h RenderTarget/Dx12DepthBuffer.cpp
         RenderTarget/Dx12MsaaColorBuffer.h RenderTarget/Dx12MsaaColorBuffer.cpp
         RenderTarget/Dx12PostProcessTarget.h RenderTarget/Dx12PostProcessTarget.cpp
-        RenderTarget/VulkanMsaaColorBuffer.h RenderTarget/VulkanMsaaColorBuffer.cpp
-        RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
+		RenderTarget/VulkanMsaaColorBuffer.h RenderTarget/VulkanMsaaColorBuffer.cpp
+		RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
+		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
         Shader/ShaderConstants.h
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp

@@ -25,8 +25,6 @@ namespace Chrivent {
 
 		VulkanMsaaColorBuffer(const VulkanMsaaColorBuffer&) = delete;
 		VulkanMsaaColorBuffer& operator=(const VulkanMsaaColorBuffer&) = delete;
-		VulkanMsaaColorBuffer(VulkanMsaaColorBuffer&&) = delete;
-		VulkanMsaaColorBuffer& operator=(VulkanMsaaColorBuffer&&) = delete;
 
 		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);

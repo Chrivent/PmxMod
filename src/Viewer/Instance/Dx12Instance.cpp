@@ -100,23 +100,20 @@ namespace Chrivent {
 		for (const auto& mat : model->materialData.materials) {
 			Dx12Material material(mat);
 			if (!mat.texture.empty())
-				material.texture = viewer->LoadTexture(mat.texture);
+				material.texture = viewer.LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer->LoadTexture(mat.spTexture);
+				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
 			if (!mat.toonTexture.empty())
-				material.toonTexture = viewer->LoadTexture(mat.toonTexture);
+				material.toonTexture = viewer.LoadTexture(mat.toonTexture);
 			materials.emplace_back(material);
 		}
 	}
 
 	bool Dx12Instance::CreateTextureDescriptors() {
-		if (viewer == nullptr || materials.empty())
+		if (materials.empty())
 			return true;
-		const auto* devicePointer = viewer->GetDevice();
-		const auto* dummyTexture = viewer->GetDummyTexture();
-		if (devicePointer == nullptr || dummyTexture == nullptr)
-			return false;
-		const auto& device = *devicePointer;
+		const Dx12Device& device = viewer.GetDevice();
+		const Dx12Texture& dummyTexture = viewer.GetDummyTexture();
 		if (!device.device)
 			return false;
 		if (materials.size() > std::numeric_limits<UINT>::max() / 3)
@@ -141,9 +138,9 @@ namespace Chrivent {
 		};
 		for (Dx12Material& material : materials) {
 			material.textureDescriptorHandle = gpuHandle;
-			const Dx12Texture& texture = material.texture.resource ? material.texture : *dummyTexture;
-			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : *dummyTexture;
-			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : *dummyTexture;
+			const Dx12Texture& texture = material.texture.resource ? material.texture : dummyTexture;
+			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : dummyTexture;
+			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : dummyTexture;
 			CreateSrv(texture, cpuHandle);
 			cpuHandle.ptr += textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
@@ -155,8 +152,8 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Instance::Dx12Instance(Dx12Viewer& sourceViewer) : viewer(&sourceViewer) {
-		drawer = std::make_unique<Dx12Drawer>(*this);
+	Dx12Instance::Dx12Instance(Dx12Viewer& sourceViewer) : viewer(sourceViewer) {
+		drawer = std::make_unique<Dx12Drawer>(*this, viewer);
 	}
 
 	void Dx12Instance::ResetRendererResources() {
@@ -200,10 +197,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::SetupRenderer() {
-		const auto* devicePointer = viewer->GetDevice();
-		if (devicePointer == nullptr)
-			return false;
-		const auto& device = *devicePointer;
+		const Dx12Device& device = viewer.GetDevice();
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!CreateConstantBuffers(device))
@@ -212,16 +206,18 @@ namespace Chrivent {
 		return CreateTextureDescriptors();
 	}
 
-	void Dx12Instance::Upload() const {
-		if (model == nullptr || viewer == nullptr)
-			return;
-		const size_t frameIndex = viewer->GetFrameIndex() % kBufferedFrames;
+	bool Dx12Instance::Upload() const {
+		if (model == nullptr)
+			return false;
+		const size_t frameIndex = viewer.GetFrameIndex() % kBufferedFrames;
 		const Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
-			return;
+			return false;
 		const size_t vertexCount = model->geometryData.positions.size();
-		if (!ViewerGeometry::WriteVertices(model->geometryData, true,
-			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
+		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
+			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount });
+		if (!writeSucceeded)
 			std::cerr << "Failed to update DX12 vertex buffer.\n";
+		return writeSucceeded;
 	}
 }
