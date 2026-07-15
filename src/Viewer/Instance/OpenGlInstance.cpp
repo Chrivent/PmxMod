@@ -104,16 +104,17 @@ namespace Chrivent {
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferOffsetAlignment);
 		modelResources.uniformBufferOffsetAlignment = std::max(1, uniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
-		constexpr size_t ringSlack = 2;
+		const size_t vertexUploadCount = drawCount + 3;
+		const size_t pixelUploadCount = drawCount * 3 + 1;
 		std::string error;
 		if (!modelResources.vertexConstantsRing.Setup(
 			DynamicBufferRing::AlignUp(vertexConstantsSize, modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack),
+				* vertexUploadCount,
 			GL_DYNAMIC_DRAW, error))
 			return false;
 		return modelResources.pixelConstantsRing.Setup(
 			DynamicBufferRing::AlignUp(pixelConstantsSize, modelResources.uniformBufferOffsetAlignment)
-				* (drawCount * 2 + ringSlack),
+				* pixelUploadCount,
 			GL_DYNAMIC_DRAW, error);
 	}
 

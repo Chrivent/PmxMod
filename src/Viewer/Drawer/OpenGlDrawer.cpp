@@ -6,6 +6,8 @@
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
+#include <iostream>
+
 namespace Chrivent {
 	void OpenGlDrawer::BeginDrawFrame() {
 		resources.vertexConstantsRing.BeginFrame(0);
@@ -15,8 +17,10 @@ namespace Chrivent {
 	bool OpenGlDrawer::UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
 		const auto slice = ring.Allocate(size, resources.uniformBufferOffsetAlignment, error);
-		if (!slice.has_value())
+		if (!slice.has_value()) {
+			std::cerr << error << '\n';
 			return false;
+		}
 		glNamedBufferSubData(ring.GetBuffer(), slice->offset, slice->size, data);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
 		return true;
