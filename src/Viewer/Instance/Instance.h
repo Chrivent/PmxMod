@@ -16,7 +16,7 @@ namespace Chrivent {
         std::unique_ptr<Drawer> drawer;
 
 		// 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		virtual bool SetupRenderer(Viewer& baseViewer) = 0;
+		virtual bool SetupRenderer() = 0;
     
 	public:
         std::shared_ptr<Model> model;
@@ -34,7 +34,7 @@ namespace Chrivent {
         // 렌더러별 인스턴스 리소스를 해제한다.
 		virtual void Clear() = 0;
 		// 공통 상태를 검증한 뒤 렌더러별 모델 리소스를 초기화한다.
-		bool Setup(Viewer& baseViewer);
+		bool Setup();
         // 모델의 동적 버텍스/상태를 렌더러 리소스에 반영한다.
         virtual void Upload() const = 0;
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.

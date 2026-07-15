@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <unordered_map>
+#include <utility>
 
 namespace Chrivent {
 	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
@@ -69,6 +70,15 @@ namespace Chrivent {
 		auto& state = resourceHistoryStates[route.outputResourceIndex];
 		state.readIndex = ResolveNextHistoryIndex(state.readIndex);
 		state.initialized = true;
+	}
+
+	void PostProcess::SwapExecutionPlan(PostProcess& other) noexcept {
+		passDefinitions.swap(other.passDefinitions);
+		passRoutes.swap(other.passRoutes);
+		resourcePlans.swap(other.resourcePlans);
+		resourceHistoryStates.swap(other.resourceHistoryStates);
+		std::swap(depthRequired, other.depthRequired);
+		std::swap(velocityRequired, other.velocityRequired);
 	}
 
 	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects) {

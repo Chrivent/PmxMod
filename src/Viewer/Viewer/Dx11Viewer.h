@@ -107,9 +107,9 @@ namespace Chrivent {
         // 창 크기에 맞춰 DX11 렌더 타깃과 깊이 버퍼를 재생성한다.
         bool Resize() override;
         // 장면 색상과 깊이 타깃을 지우고 프레임 렌더링을 시작한다.
-        void BeginFrame() override;
+        FrameBeginResult BeginFrame() override;
         // 장면 색상을 스왑체인으로 복사하고 화면에 표시한다.
-        bool EndFrame() override;
+        FrameEndResult EndFrame() override;
         // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
         bool BeginPostProcessDepthPass() override;
         // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
@@ -119,7 +119,7 @@ namespace Chrivent {
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
         // DX11 모델 인스턴스를 생성한다.
-        std::unique_ptr<Instance> CreateInstance() const override;
+        std::unique_ptr<Instance> CreateInstance() override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
         Dx11Texture LoadTexture(const std::filesystem::path& texturePath) {
             return textureCache.Load(deviceResources.device.Get(), texturePath);

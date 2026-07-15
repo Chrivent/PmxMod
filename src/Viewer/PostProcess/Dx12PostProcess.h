@@ -53,7 +53,7 @@ namespace Chrivent {
 		int targetHeight = 0;
 
 		// MSAA 화면 색상을 단일 샘플 back buffer로 복사한다.
-		static void ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
+		static bool ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 			ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext);
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 command list에 적용한다.
@@ -88,9 +88,7 @@ namespace Chrivent {
 		void ResetPipelines();
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
-		// 선택한 효과의 pipeline과 선언형 리소스를 함께 해제한다.
-		void ClearEffectChain();
-
+		
 	public:
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
@@ -103,7 +101,7 @@ namespace Chrivent {
 		void EndDepthPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext) const;
 		// 준비된 실행 계획으로 장면 색상을 swapchain back buffer에 그린다.
-		void Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
+		bool Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 			ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 			int width, int height, const PostProcessFrameData& frameData);

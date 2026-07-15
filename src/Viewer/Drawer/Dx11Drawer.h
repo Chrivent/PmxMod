@@ -16,8 +16,6 @@ namespace Chrivent {
 		// 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
 		void BindTexture(
 			UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
-			int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
-			const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor,
 			ID3D11ShaderResourceView*& lastView, ID3D11SamplerState*& lastSampler) const;
 
 	protected:

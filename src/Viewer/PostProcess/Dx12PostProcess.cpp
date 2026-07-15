@@ -56,11 +56,11 @@ namespace Chrivent {
 		format = DXGI_FORMAT_UNKNOWN;
 	}
 	
-	void Dx12PostProcess::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
+	bool Dx12PostProcess::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
 		ID3D12Resource* backBuffer, ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext) {
 		if (commandList == nullptr || backBuffer == nullptr || msaaColor == nullptr)
-			return;
+			return false;
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
 		const D3D12_RESOURCE_STATES destinationState = sourceDevice.msaaSampleCount > 1
@@ -78,6 +78,7 @@ namespace Chrivent {
 			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
 			destinationState, D3D12_RESOURCE_STATE_PRESENT);
+		return true;
 	}
 
 	void Dx12PostProcess::ApplyViewportAndScissor(
@@ -277,8 +278,8 @@ namespace Chrivent {
 		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
 		rootParameters[2].DescriptorTable.pDescriptorRanges = &srvRange;
-		D3D12_STATIC_SAMPLER_DESC samplers[3]{};
-		for (UINT index = 0; index < 3; index++) {
+		D3D12_STATIC_SAMPLER_DESC samplers[PostProcessInputLayout::samplerCount]{};
+		for (UINT index = 0; index < PostProcessInputLayout::samplerCount; index++) {
 			samplers[index].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 			samplers[index].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 			samplers[index].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -291,7 +292,7 @@ namespace Chrivent {
 		D3D12_ROOT_SIGNATURE_DESC description;
 		description.NumParameters = 3;
 		description.pParameters = rootParameters;
-		description.NumStaticSamplers = 3;
+		description.NumStaticSamplers = PostProcessInputLayout::samplerCount;
 		description.pStaticSamplers = samplers;
 		description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, description, postProcessRootSignature);
@@ -408,24 +409,24 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::Load(
 		const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
-		ResetPipelines();
-		ResetEffectResources();
-		if (!SetEffects(effects)
-			|| (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources(sourceDevice))
-			|| !CreateInputDescriptorHeaps(sourceDevice)
-			|| !CreateParameterDataBuffers(sourceDevice)
-			|| !CreatePipelines(sourceDevice)) {
-			ClearEffectChain();
+		Dx12PostProcess candidate;
+		candidate.targetWidth = targetWidth;
+		candidate.targetHeight = targetHeight;
+		if (!candidate.SetEffects(effects)
+			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources(sourceDevice))
+			|| !candidate.CreateInputDescriptorHeaps(sourceDevice)
+			|| !candidate.CreateParameterDataBuffers(sourceDevice)
+			|| !candidate.CreatePipelines(sourceDevice))
 			return false;
-		}
+		SwapExecutionPlan(candidate);
+		resources.swap(candidate.resources);
+		inputDescriptorHeaps.swap(candidate.inputDescriptorHeaps);
+		postProcessRootSignature.Swap(candidate.postProcessRootSignature);
+		postProcessPipelineStates.swap(candidate.postProcessPipelineStates);
+		for (size_t index = 0; index < frameDataBufferCount; index++)
+			parameterDataBuffers[index].Swap(candidate.parameterDataBuffers[index]);
 		ResetHistory();
 		return true;
-	}
-
-	void Dx12PostProcess::ClearEffectChain() {
-		ResetPipelines();
-		ResetEffectResources();
-		ClearEffects();
 	}
 
 	bool Dx12PostProcess::BeginDepthPass(ID3D12GraphicsCommandList* commandList,
@@ -464,13 +465,12 @@ namespace Chrivent {
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
-	void Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
+	bool Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 		ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects() || commandList == nullptr || !sceneColor.ResolveResource()) {
-			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
-			return;
+			return ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
 		}
 		const size_t frameIndex = swapChain.GetFrameIndex() % frameDataBufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
@@ -478,7 +478,7 @@ namespace Chrivent {
 		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
-			return;
+			return false;
 		}
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
@@ -504,8 +504,10 @@ namespace Chrivent {
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
-			if (!parameterDataBuffer.Write(route.parameters, parameterOffset))
-				return;
+			if (!parameterDataBuffer.Write(route.parameters, parameterOffset)) {
+				ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+				return false;
+			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->ResolveResource(),
@@ -538,6 +540,7 @@ namespace Chrivent {
 		}
 		Dx12Barrier::Transition(commandList, enhancedCommandList, backBuffer,
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+		return true;
 	}
 
 	void Dx12PostProcess::ResetResources() {

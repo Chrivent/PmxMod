@@ -58,8 +58,8 @@ namespace Chrivent {
 	}
 
 	Dx12Viewer::Dx12Viewer() {
-		device = std::make_shared<Dx12Device>();
-		dummyTexture = std::make_shared<Dx12Texture>();
+		device = std::make_unique<Dx12Device>();
+		dummyTexture = std::make_unique<Dx12Texture>();
 	}
 
 	Dx12Viewer::~Dx12Viewer() {
@@ -133,44 +133,46 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12Viewer::BeginFrame() {
+	FrameBeginResult Dx12Viewer::BeginFrame() {
 		frameReady = false;
 		const UINT frameIndex = swapChain.GetFrameIndex();
 		if (!commandContext.BeginFrame(*device, frameIndex))
-			return;
+			return FrameBeginResult::Failed;
 		this->frameIndex = frameIndex;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
-			return;
+			return FrameBeginResult::Failed;
 		PrepareBackBufferForRendering(commandList, backBuffer);
 		ClearRenderTargets(commandList);
 		ApplyViewportAndScissor(commandList);
 		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		frameReady = true;
+		return FrameBeginResult::Ready;
 	}
 
-	bool Dx12Viewer::EndFrame() {
+	FrameEndResult Dx12Viewer::EndFrame() {
 		if (!frameReady)
-			return false;
+			return FrameEndResult::Failed;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
 		if (!commandList || !backBuffer || !msaaColor)
-			return false;
+			return FrameEndResult::Failed;
+		bool drawSucceeded = true;
 		if (postProcess.HasEffects())
-			postProcess.Draw(commandList, backBuffer, msaaColor,
+			drawSucceeded = postProcess.Draw(commandList, backBuffer, msaaColor,
 				*device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
 		else
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
 		if (!commandContext.Execute(*device))
-			return false;
+			return FrameEndResult::Failed;
 		if (!swapChain.Present())
-			return false;
+			return FrameEndResult::Failed;
 		frameReady = false;
-		return true;
+		return drawSucceeded ? FrameEndResult::Presented : FrameEndResult::Failed;
 	}
 
 	bool Dx12Viewer::BeginPostProcessDepthPass() {
@@ -196,8 +198,8 @@ namespace Chrivent {
 		return FinishPostProcessLoad(postProcess.Load(*device, effects));
 	}
 
-	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() const {
-		return std::make_unique<Dx12Instance>();
+	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() {
+		return std::make_unique<Dx12Instance>(*this);
 	}
 
 	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {

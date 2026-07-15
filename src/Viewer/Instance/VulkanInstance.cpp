@@ -127,7 +127,9 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanInstance::VulkanInstance() { drawer = std::make_unique<VulkanDrawer>(*this); }
+	VulkanInstance::VulkanInstance(VulkanViewer& sourceViewer) : viewer(&sourceViewer) {
+		drawer = std::make_unique<VulkanDrawer>(*this);
+	}
 
 	void VulkanInstance::Clear() {
 		for (auto& vertexBuffer : vertexBuffers)
@@ -146,11 +148,9 @@ namespace Chrivent {
 		uniformBufferOffsetAlignment = 1;
 		indexType = VK_INDEX_TYPE_UINT16;
 		indexCount = 0;
-		viewer = nullptr;
 	}
 
-	bool VulkanInstance::SetupRenderer(Viewer& baseViewer) {
-		viewer = static_cast<VulkanViewer*>(&baseViewer);
+	bool VulkanInstance::SetupRenderer() {
 		if (!viewer->device || !viewer->pipeline || !viewer->dummyTexture)
 			return false;
 		const auto& device = *viewer->device;

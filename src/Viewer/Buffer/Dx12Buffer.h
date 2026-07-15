@@ -16,6 +16,12 @@ namespace Chrivent {
 		size_t byteSize = 0;
 
 	public:
+		Dx12Buffer() = default;
+		~Dx12Buffer() { Reset(); }
+
+		Dx12Buffer(const Dx12Buffer&) = delete;
+		Dx12Buffer& operator=(const Dx12Buffer&) = delete;
+
 		// DX12 buffer resource가 생성되어 있는지 확인한다.
 		bool IsInitialized() const { return resource != nullptr; }
 		void* ResolveMappedData() const { return mappedData; }
@@ -40,5 +46,7 @@ namespace Chrivent {
 		bool Write(const T& data) const { return Write(std::as_bytes(std::span{ &data, 1 })); }
 		// 생성한 DX12 buffer 리소스를 해제한다.
 		void Reset();
+		// 두 버퍼의 소유 리소스와 매핑 상태를 교환한다.
+		void Swap(Dx12Buffer& other) noexcept;
 	};
 }

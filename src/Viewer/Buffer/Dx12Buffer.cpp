@@ -49,8 +49,16 @@ namespace Chrivent {
 	}
 
 	void Dx12Buffer::Reset() {
+		if (resource && mappedData != nullptr)
+			resource->Unmap(0, nullptr);
 		resource.Reset();
 		mappedData = nullptr;
 		byteSize = 0;
+	}
+
+	void Dx12Buffer::Swap(Dx12Buffer& other) noexcept {
+		resource.Swap(other.resource);
+		std::swap(mappedData, other.mappedData);
+		std::swap(byteSize, other.byteSize);
 	}
 }

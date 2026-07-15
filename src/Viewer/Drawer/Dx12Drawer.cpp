@@ -5,7 +5,6 @@
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Core/Model/Model.h"
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace Chrivent {
@@ -31,17 +30,12 @@ namespace Chrivent {
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vertexConstants;
-		vertexConstants.wv = viewer.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
+		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
 			return;
 		}
-		ModelPixelConstants basePixelConstants{};
-		basePixelConstants.lightColor = glm::vec4(viewer.lightColor, 0.0f);
-		basePixelConstants.lightDir = glm::vec4(glm::mat3(viewer.viewMat) * viewer.lightDir, 0.0f);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { instance.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
@@ -56,26 +50,17 @@ namespace Chrivent {
 			if (mat.diffuse.a == 0.0f)
 				continue;
 			instance.viewer->BindModelPipeline(mat.bothFace);
-			ModelPixelConstants pixelConstants = basePixelConstants;
-			pixelConstants.diffuseAlpha = mat.diffuse;
-			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
-			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
-			pixelConstants.texMulFactor = mat.textureMulFactor;
-			pixelConstants.texAddFactor = mat.textureAddFactor;
-			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;
-			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
-			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
-			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			if (material.texture.resource)
-				pixelConstants.textureModes.x = material.texture.hasAlpha ? 2 : 1;
-			if (material.toonTexture.resource)
-				pixelConstants.textureModes.y = 1;
+			const int textureMode = material.texture.resource ? material.texture.hasAlpha ? 2 : 1 : 0;
+			const int toonTextureMode = material.toonTexture.resource ? 1 : 0;
+			int sphereTextureMode = 0;
 			if (material.sphereTexture.resource) {
 				if (mat.spTextureMode == SphereMode::Mul)
-					pixelConstants.textureModes.z = 1;
+					sphereTextureMode = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
-					pixelConstants.textureModes.z = 2;
+					sphereTextureMode = 2;
 			}
+			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
+				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
 			const Dx12Buffer& pixelConstantBuffer = instance.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
@@ -99,11 +84,9 @@ namespace Chrivent {
 		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		EdgeVertexConstants vertexConstants{};
-		vertexConstants.wv = viewer.viewMat * world;
-		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-		vertexConstants.screenSize = glm::vec2(viewer.screenWidth, viewer.screenHeight);
+		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		EdgeVertexConstants vertexConstants = BuildEdgeVertexConstants(
+			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
 		instance.viewer->BindEdgePipeline();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
@@ -147,10 +130,9 @@ namespace Chrivent {
 		const Dx12Buffer& vertexConstantBuffer = instance.groundShadowVertexConstantBuffers[frameIndex];
 		const Dx12Buffer& pixelConstantBuffer = instance.groundShadowPixelConstantBuffers[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer.lightDir);
-		GroundShadowVertexConstants vertexConstants;
-		vertexConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * shadow * world;
+		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
+			viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
 			return;
@@ -188,18 +170,11 @@ namespace Chrivent {
 		const size_t constantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
 		const size_t sceneSurfaceConstantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		SceneVelocityVertexConstants velocityConstants;
-		ModelVertexConstants depthConstants;
+		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
+			viewer, world, ClipMatrix());
+		const ModelVertexConstants depthConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
-		if (velocityRequired) {
-			velocityConstants.currentWvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-			velocityConstants.previousWvp = viewer.postProcessHistoryResetPending ? velocityConstants.currentWvp
-				: ClipMatrix() * viewer.previousProjMat * viewer.previousViewMat * world;
-		} else {
-			depthConstants.wv = viewer.viewMat * world;
-			depthConstants.wvp = ClipMatrix() * viewer.projMat * viewer.viewMat * world;
-		}
 		if (!(velocityRequired ? vertexConstantBuffer.Write(velocityConstants, constantOffset)
 			: vertexConstantBuffer.Write(depthConstants, constantOffset))) {
 			std::cerr << "Failed to update DX12 depth-only vertex constants.\n";

@@ -49,9 +49,7 @@ namespace Chrivent {
 		void ResetEffectResources();
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
-		// 선택한 효과의 셰이더와 선언형 리소스를 함께 해제한다.
-		void ClearEffectChain();
-
+		
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
 		bool InitializeTargets(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
@@ -65,7 +63,7 @@ namespace Chrivent {
 		// 후처리용 depth-only pass를 종료한다.
 		static void EndDepthPass(ID3D11DeviceContext* context);
 		// 준비된 실행 계획으로 화면 색상을 swapchain back buffer에 그린다.
-		void Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
+		bool Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 			int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 DX11 후처리 target을 해제한다.

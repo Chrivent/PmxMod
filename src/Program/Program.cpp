@@ -456,7 +456,7 @@ namespace Chrivent {
             animator.SyncPhysics(*vmdAnim, 0.0f);
             instance->anim = std::move(vmdAnim);
             instance->scale = scale;
-            if (!instance->Setup(*viewer))
+			if (!instance->Setup())
                 return false;
             loadedInstances.emplace_back(std::move(instance));
         }
@@ -1006,7 +1006,13 @@ namespace Chrivent {
             instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
         });
         const auto skinningEnd = std::chrono::steady_clock::now();
-        viewer->BeginFrame();
+        const FrameBeginResult frameBeginResult = viewer->BeginFrame();
+        if (frameBeginResult == FrameBeginResult::Failed)
+            return false;
+        if (frameBeginResult == FrameBeginResult::Skipped) {
+            TickFps();
+            return true;
+        }
         for (const auto& instance : instances) {
             instance->Upload();
             instance->Draw();
@@ -1017,9 +1023,11 @@ namespace Chrivent {
             viewer->EndPostProcessDepthPass();
         }
         const auto uploadDrawEnd = std::chrono::steady_clock::now();
-        if (!viewer->EndFrame())
+        const FrameEndResult frameEndResult = viewer->EndFrame();
+        if (frameEndResult == FrameEndResult::Failed)
             return false;
-        viewer->CommitPostProcessFrameHistory();
+        if (frameEndResult == FrameEndResult::Presented)
+            viewer->CommitPostProcessFrameHistory();
         const auto frameEnd = std::chrono::steady_clock::now();
         if (timing) {
             const auto Milliseconds = [](const auto start, const auto end) {

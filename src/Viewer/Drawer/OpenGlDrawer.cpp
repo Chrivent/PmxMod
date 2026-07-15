@@ -28,18 +28,9 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		ModelVertexConstants vertexConstants;
-		vertexConstants.wv = view * world;
-		vertexConstants.wvp = proj * view * world;
+		const auto world = BuildWorldMatrix(instance.scale);
+		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
 		const auto& shader = viewer->shader;
-		const glm::vec3 lightColor = viewer->lightColor;
-		const glm::vec3 lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
-		ModelPixelConstants basePixelConstants{};
-		basePixelConstants.lightColor = glm::vec4(lightColor, 0.0f);
-		basePixelConstants.lightDir = glm::vec4(lightDir, 0.0f);
 		glUseProgram(shader->program);
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
@@ -61,39 +52,28 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			ModelPixelConstants pixelConstants = basePixelConstants;
-			pixelConstants.diffuseAlpha = mat.diffuse;
-			pixelConstants.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
-			pixelConstants.specular = glm::vec4(mat.specular, 0.0f);
-			pixelConstants.texMulFactor = mat.textureMulFactor;
-			pixelConstants.texAddFactor = mat.textureAddFactor;
-			pixelConstants.toonTexMulFactor = mat.toonTextureMulFactor;
-			pixelConstants.toonTexAddFactor = mat.toonTextureAddFactor;
-			pixelConstants.sphereTexMulFactor = mat.sphereTextureMulFactor;
-			pixelConstants.sphereTexAddFactor = mat.sphereTextureAddFactor;
-			GLuint baseTexture = viewer->dummyColorTex;
-			if (material.texture != 0) {
-				if (!material.textureHasAlpha)
-					pixelConstants.textureModes.x = 1;
-				else
-					pixelConstants.textureModes.x = 2;
-				baseTexture = material.texture;
-			}
-			glBindTextureUnit(0, baseTexture);
-			GLuint toonTexture = viewer->dummyColorTex;
-			if (material.toonTexture != 0) {
-				pixelConstants.textureModes.y = 1;
-				toonTexture = material.toonTexture;
-			}
-			glBindTextureUnit(1, toonTexture);
-			GLuint sphereTexture = viewer->dummyColorTex;
+			const int textureMode = material.texture == 0 ? 0 : material.textureHasAlpha ? 2 : 1;
+			const int toonTextureMode = material.toonTexture != 0 ? 1 : 0;
+			int sphereTextureMode = 0;
 			if (material.sphereTexture != 0) {
 				if (mat.spTextureMode == SphereMode::Mul)
-					pixelConstants.textureModes.z = 1;
+					sphereTextureMode = 1;
 				else if (mat.spTextureMode == SphereMode::Add)
-					pixelConstants.textureModes.z = 2;
-				sphereTexture = material.sphereTexture;
+					sphereTextureMode = 2;
 			}
+			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
+				*viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
+			GLuint baseTexture = viewer->dummyColorTex;
+			if (material.texture != 0)
+				baseTexture = material.texture;
+			glBindTextureUnit(0, baseTexture);
+			GLuint toonTexture = viewer->dummyColorTex;
+			if (material.toonTexture != 0)
+				toonTexture = material.toonTexture;
+			glBindTextureUnit(1, toonTexture);
+			GLuint sphereTexture = viewer->dummyColorTex;
+			if (material.sphereTexture != 0)
+				sphereTexture = material.sphereTexture;
 			glBindTextureUnit(2, sphereTexture);
 			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
@@ -123,14 +103,10 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto world = BuildWorldMatrix(instance.scale);
 		const auto& edgeShader = viewer->edgeShader;
-		EdgeVertexConstants baseVertexConstants{};
-		baseVertexConstants.wv = view * world;
-		baseVertexConstants.wvp = proj * view * world;
-		baseVertexConstants.screenSize = glm::vec2(viewer->screenWidth, viewer->screenHeight);
+		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
+			*viewer, world, ClipMatrix(), glm::vec2(viewer->screenWidth, viewer->screenHeight));
 		glUseProgram(edgeShader->program);
 		glBindVertexArray(instance.edgeVao);
 		glEnable(GL_DEPTH_TEST);
@@ -168,17 +144,14 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto world = BuildWorldMatrix(instance.scale);
 		const auto& gsShader = viewer->gsShader;
 		glUseProgram(gsShader->program);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
-		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->lightDir);
-		GroundShadowVertexConstants vertexConstants;
-		vertexConstants.wvp = proj * view * shadow * world;
+		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
+			*viewer, world, ClipMatrix());
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
 		glBindVertexArray(instance.gsVao);
@@ -216,22 +189,16 @@ namespace Chrivent {
 	void OpenGlDrawer::DrawDepthOnly() {
 		const auto* viewer = instance.viewer;
 		const auto indexType = instance.indexType;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto world = BuildWorldMatrix(instance.scale);
 		if (viewer->RequiresPostProcessVelocity()) {
-			SceneVelocityVertexConstants vertexConstants;
-			vertexConstants.currentWvp = proj * view * world;
-			vertexConstants.previousWvp = viewer->postProcessHistoryResetPending
-				? vertexConstants.currentWvp : viewer->previousProjMat * viewer->previousViewMat * world;
+			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
+				*viewer, world, ClipMatrix());
 			glUseProgram(viewer->sceneVelocityShader->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
 			glBindVertexArray(instance.velocityVao);
 		} else {
-			ModelVertexConstants vertexConstants;
-			vertexConstants.wv = view * world;
-			vertexConstants.wvp = proj * view * world;
+			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
 			glUseProgram(viewer->depthOnlyShader->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;

@@ -126,7 +126,9 @@ namespace Chrivent {
 		}
 	}
 
-	OpenGlInstance::OpenGlInstance() { drawer = std::make_unique<OpenGlDrawer>(*this); }
+	OpenGlInstance::OpenGlInstance(OpenGlViewer& sourceViewer) : viewer(&sourceViewer) {
+		drawer = std::make_unique<OpenGlDrawer>(*this);
+	}
 
 	OpenGlInstance::~OpenGlInstance() {
 		OpenGlInstance::Clear();
@@ -153,11 +155,9 @@ namespace Chrivent {
 		vao = edgeVao = gsVao = depthVao = velocityVao = 0;
 		uniformBufferOffsetAlignment = 1;
 		materials.clear();
-		viewer = nullptr;
 	}
 
-	bool OpenGlInstance::SetupRenderer(Viewer& baseViewer) {
-		viewer = &static_cast<OpenGlViewer&>(baseViewer);
+	bool OpenGlInstance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
 			return false;
 		CreateVertexArrays();

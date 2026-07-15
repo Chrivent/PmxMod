@@ -41,7 +41,7 @@ namespace Chrivent {
 		std::vector<VkDescriptorSet> parameterDataDescriptorSets;
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
 		std::vector<std::unique_ptr<VulkanBuffer>> parameterDataBuffers;
-		VkDescriptorSetLayout descriptorSetLayouts[3]{};
+		VkDescriptorSetLayout descriptorSetLayouts[PostProcessInputLayout::vulkanSetCount]{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 		std::vector<VkPipeline> pipelines;
@@ -88,6 +88,8 @@ namespace Chrivent {
 		// Vulkan image 묶음을 안전한 순서로 해제한다.
 		void DestroyImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& memories,
 			std::vector<VkImageView>& imageViews) const;
+		// 검증을 마친 다른 Vulkan 후처리 객체와 GPU 리소스를 교환한다.
+		void SwapResources(VulkanPostProcess& other) noexcept;
 
 	public:
 		~VulkanPostProcess() override;
@@ -103,6 +105,9 @@ namespace Chrivent {
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
+		// 새 효과 체인을 완성한 뒤 현재 Vulkan 후처리 상태와 원자적으로 교체한다.
+		bool Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+			VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects);
 		// Vulkan 포스트 프로세스용 단일 샘플 geometry pass를 시작한다.
 		bool BeginDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
 			VkPipeline geometryPipeline, VkExtent2D extent);

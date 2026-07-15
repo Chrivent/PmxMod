@@ -28,10 +28,10 @@ namespace Chrivent {
 	}
 
 	VulkanViewer::VulkanViewer() {
-		device = std::make_shared<VulkanDevice>();
-		pipeline = std::make_shared<VulkanPipeline>();
-		syncObject = std::make_shared<VulkanSyncObject>();
-		dummyTexture = std::make_shared<VulkanTexture>();
+		device = std::make_unique<VulkanDevice>();
+		pipeline = std::make_unique<VulkanPipeline>();
+		syncObject = std::make_unique<VulkanSyncObject>();
+		dummyTexture = std::make_unique<VulkanTexture>();
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
@@ -174,29 +174,36 @@ namespace Chrivent {
 		return syncObject->ResetImageTracking(swapChain.images.size());
 	}
 
-	void VulkanViewer::BeginFrame() {
+	FrameBeginResult VulkanViewer::BeginFrame() {
 		frameReady = false;
 		postProcessDepthPassReady = false;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		const size_t frameIndex = syncObject->currentFrame;
-		vkWaitForFences(device->device, 1, &syncObject->inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
+		if (vkWaitForFences(device->device, 1, &syncObject->inFlightFences[frameIndex], VK_TRUE, UINT64_MAX)
+			!= VK_SUCCESS)
+			return FrameBeginResult::Failed;
 		const VkResult acquireResult = vkAcquireNextImageKHR(device->device, swapChain.swapChain, UINT64_MAX,
 			syncObject->imageAvailableSemaphores[frameIndex], VK_NULL_HANDLE, &currentImageIndex);
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-			Resize();
-			return;
+			if (!Resize())
+				return FrameBeginResult::Failed;
+			ResetPostProcessHistory();
+			return FrameBeginResult::Skipped;
 		}
 		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
 			std::cerr << "Failed to acquire Vulkan swapchain image.\n";
-			return;
+			return FrameBeginResult::Failed;
 		}
 		if (currentImageIndex < syncObject->imagesInFlight.size() &&
 			syncObject->imagesInFlight[currentImageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(device->device, 1, &syncObject->imagesInFlight[currentImageIndex], VK_TRUE, UINT64_MAX);
+			if (vkWaitForFences(device->device, 1, &syncObject->imagesInFlight[currentImageIndex],
+				VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+				return FrameBeginResult::Failed;
 		}
 		auto& commandBuffer = commandContext.commandBuffer;
-		vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0);
+		if (vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0) != VK_SUCCESS)
+			return FrameBeginResult::Failed;
 		const VkImage resolveImage = postProcess.HasEffects()
 			? postProcess.ResolveSceneImage(currentImageIndex)
 			: swapChain.images[currentImageIndex];
@@ -208,14 +215,15 @@ namespace Chrivent {
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
 			device->msaaSampleCount, pipeline->pipeline, swapChain.extent, clearColor))
-			return;
+			return FrameBeginResult::Failed;
 		bindStateCache.pipeline = pipeline->pipeline;
 		frameReady = true;
+		return FrameBeginResult::Ready;
 	}
 
-	bool VulkanViewer::EndFrame() {
+	FrameEndResult VulkanViewer::EndFrame() {
 		if (!frameReady)
-			return true;
+			return FrameEndResult::Failed;
 		bool recordEnded;
 		if (postProcess.HasEffects()) {
 			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
@@ -225,7 +233,7 @@ namespace Chrivent {
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
 			frameReady = false;
-			return false;
+			return FrameEndResult::Failed;
 		}
 		const auto& imageAvailableSemaphores = syncObject->imageAvailableSemaphores;
 		const auto& renderFinishedSemaphores = syncObject->renderFinishedSemaphores;
@@ -260,7 +268,7 @@ namespace Chrivent {
 		};
 		if (vkQueueSubmit2(device->graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
-			return false;
+			return FrameEndResult::Failed;
 		}
 		const VkSwapchainKHR swapChains[] = { swapChain.swapChain };
 		VkPresentInfoKHR presentInfo{};
@@ -272,15 +280,21 @@ namespace Chrivent {
 		presentInfo.pImageIndices = &currentImageIndex;
 		const VkResult presentResult = vkQueuePresentKHR(device->presentQueue, &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-			Resize();
-		} else if (presentResult != VK_SUCCESS) {
+			frameReady = false;
+			postProcessDepthPassReady = false;
+			if (!Resize())
+				return FrameEndResult::Failed;
+			ResetPostProcessHistory();
+			return FrameEndResult::Skipped;
+		}
+		if (presentResult != VK_SUCCESS) {
 			std::cerr << "Failed to present Vulkan swapchain image.\n";
-			return false;
+			return FrameEndResult::Failed;
 		}
 		syncObject->AdvanceFrame();
 		frameReady = false;
 		postProcessDepthPassReady = false;
-		return true;
+		return FrameEndResult::Presented;
 	}
 
 	bool VulkanViewer::BeginPostProcessDepthPass() {
@@ -313,20 +327,11 @@ namespace Chrivent {
 
 	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
 		WaitIdle();
-		if (!postProcess.SetEffects(effects))
-			return false;
-		ResetSwapChainResources();
-		if (CreateSwapChainResources())
-			return FinishPostProcessLoad(true);
-		postProcess.ClearEffects();
-		ResetSwapChainResources();
-		if (!CreateSwapChainResources())
-			std::cerr << "Failed to restore Vulkan swapchain resources after a post-process error.\n";
-		return false;
+		return FinishPostProcessLoad(postProcess.Load(*device, swapChain, msaaDepthBuffer.format, effects));
 	}
 
-	std::unique_ptr<Instance> VulkanViewer::CreateInstance() const {
-		return std::make_unique<VulkanInstance>();
+	std::unique_ptr<Instance> VulkanViewer::CreateInstance() {
+		return std::make_unique<VulkanInstance>(*this);
 	}
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {

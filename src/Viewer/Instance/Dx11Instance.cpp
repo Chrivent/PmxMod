@@ -71,7 +71,9 @@ namespace Chrivent {
 		}
 	}
 
-	Dx11Instance::Dx11Instance() { drawer = std::make_unique<Dx11Drawer>(*this); }
+	Dx11Instance::Dx11Instance(Dx11Viewer& sourceViewer) : viewer(&sourceViewer) {
+		drawer = std::make_unique<Dx11Drawer>(*this);
+	}
 
 	void Dx11Instance::Clear() {
 		materials.clear();
@@ -85,11 +87,9 @@ namespace Chrivent {
 		gsVsConstantBuffer.Reset();
 		gsPsConstantBuffer.Reset();
 		indexBufferFormat = DXGI_FORMAT_R16_UINT;
-		viewer = nullptr;
 	}
 
-	bool Dx11Instance::SetupRenderer(Viewer& baseViewer) {
-		viewer = &static_cast<Dx11Viewer&>(baseViewer);
+	bool Dx11Instance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
 			return false;
 		if (!CreateConstantBuffers())

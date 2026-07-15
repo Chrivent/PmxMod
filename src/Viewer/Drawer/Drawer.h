@@ -1,9 +1,12 @@
 ﻿#pragma once
 
+#include "Viewer/Shader/ShaderConstants.h"
+
 #include <glm/glm.hpp>
 
 namespace Chrivent {
-	struct SceneSurfacePixelConstants;
+	struct Material;
+	class Viewer;
 
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
@@ -12,6 +15,23 @@ namespace Chrivent {
 		virtual const glm::mat4& ClipMatrix() const;
 		// 지면 그림자 투영에 사용할 평면 그림자 행렬을 만든다.
 		static glm::mat4 BuildGroundShadowMatrix(const glm::vec3& lightDir);
+		// 모델 배율을 적용한 공통 월드 행렬을 만든다.
+		static glm::mat4 BuildWorldMatrix(float scale);
+		// 모델 패스의 공통 vertex 상수를 만든다.
+		static ModelVertexConstants BuildModelVertexConstants(
+			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
+		// 모델 패스의 공통 material 및 조명 상수를 만든다.
+		static ModelPixelConstants BuildModelPixelConstants(const Viewer& viewer, const Material& material,
+			int textureMode, int toonTextureMode, int sphereTextureMode);
+		// 엣지 패스의 공통 vertex 상수를 만든다.
+		static EdgeVertexConstants BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
+			const glm::mat4& clipMatrix, const glm::vec2& screenSize);
+		// 지면 그림자 패스의 공통 vertex 상수를 만든다.
+		static GroundShadowVertexConstants BuildGroundShadowVertexConstants(
+			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
+		// 시간 기반 후처리 장면 입력의 현재 및 이전 프레임 행렬을 만든다.
+		static SceneVelocityVertexConstants BuildSceneVelocityVertexConstants(
+			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
 		// material 불투명도가 공통 후처리 장면 입력 규격을 만족하는지 확인한다.
 		static bool ShouldDrawPostProcessSurface(float opacity);
 		// 공통 장면 입력에 사용할 material과 texture alpha 판정 값을 만든다.

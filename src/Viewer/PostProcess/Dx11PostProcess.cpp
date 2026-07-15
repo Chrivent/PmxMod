@@ -155,28 +155,23 @@ namespace Chrivent {
 	}
 
 	bool Dx11PostProcess::Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects) {
-		ResetShaders();
-		ResetEffectResources();
-		if (!SetEffects(effects) || (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources(device))) {
-			ClearEffectChain();
+		Dx11PostProcess candidate;
+		candidate.targetWidth = targetWidth;
+		candidate.targetHeight = targetHeight;
+		if (!candidate.SetEffects(effects)
+			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources(device)))
 			return false;
-		}
-		for (const auto& pass : ResolvePasses()) {
+		for (const auto& pass : candidate.ResolvePasses()) {
 			Dx11PostProcessShader shader;
-			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str())) {
-				ClearEffectChain();
+			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str()))
 				return false;
-			}
-			postProcessShaders.push_back(std::move(shader));
+			candidate.postProcessShaders.push_back(std::move(shader));
 		}
+		SwapExecutionPlan(candidate);
+		resources.swap(candidate.resources);
+		postProcessShaders.swap(candidate.postProcessShaders);
 		ResetHistory();
 		return true;
-	}
-
-	void Dx11PostProcess::ClearEffectChain() {
-		ResetShaders();
-		ResetEffectResources();
-		ClearEffects();
 	}
 
 	bool Dx11PostProcess::BeginDepthPass(ID3D11DeviceContext* context,
@@ -205,11 +200,11 @@ namespace Chrivent {
 			context->OMSetRenderTargets(0, nullptr, nullptr);
 	}
 
-	void Dx11PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
+	bool Dx11PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr)
-			return;
+			return false;
 		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
 		context->PSSetConstantBuffers(0, 1, frameDataBuffer.GetAddressOf());
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
@@ -217,8 +212,11 @@ namespace Chrivent {
 		context->RSSetState(rasterizerState);
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		ID3D11SamplerState* samplers[3] = { sampler, sampler, sampler };
-		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister, 3, samplers);
+		ID3D11SamplerState* samplers[PostProcessInputLayout::samplerCount]{};
+		for (auto& currentSampler : samplers)
+			currentSampler = sampler;
+		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister,
+			PostProcessInputLayout::samplerCount, samplers);
 		InitializeHistories(context);
 		const auto& routes = ResolvePassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
@@ -244,6 +242,7 @@ namespace Chrivent {
 			context->PSSetShaderResources(0, views.size(), views.data());
 			AdvanceHistory(route);
 		}
+		return true;
 	}
 
 	void Dx11PostProcess::ResetTargets() {

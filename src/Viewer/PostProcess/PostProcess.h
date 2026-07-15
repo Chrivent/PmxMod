@@ -46,15 +46,15 @@ namespace Chrivent {
 		PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
 		size_t outputResourceIndex = 0;
 	};
+	
+	// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
+	struct ResourceHistoryState {
+		size_t readIndex = 0;
+		bool initialized = false;
+	};
 
 	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
-		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
-		struct ResourceHistoryState {
-			size_t readIndex = 0;
-			bool initialized = false;
-		};
-
 		std::vector<EffectPassDefinition> passDefinitions;
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
@@ -84,10 +84,17 @@ namespace Chrivent {
 		void MarkHistoryInitialized(size_t resourceIndex);
 		// 출력 경로가 history 리소스이면 read/write 인덱스를 전환한다.
 		void AdvanceHistory(const PostProcessPassRoute& route);
+		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
+		void SwapExecutionPlan(PostProcess& other) noexcept;
 
 		const std::vector<EffectPassDefinition>& ResolvePasses() const { return passDefinitions; }
 		const std::vector<PostProcessPassRoute>& ResolvePassRoutes() const { return passRoutes; }
 		const std::vector<PostProcessResourcePlan>& ResolveResourcePlans() const { return resourcePlans; }
+
+		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
+		bool SetEffects(const std::vector<const EffectDefinition*>& effects);
+		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.
+		void ClearEffects();
 
 	public:
 		virtual ~PostProcess() = default;
@@ -101,10 +108,6 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
-		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
-		bool SetEffects(const std::vector<const EffectDefinition*>& effects);
-		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.
-		void ClearEffects();
 		// 다음 후처리 프레임에서 모든 temporal history를 초기 상태로 되돌린다.
 		void ResetHistory();
 		// API별 GPU 리소스와 선택한 실행 계획을 함께 해제한다.

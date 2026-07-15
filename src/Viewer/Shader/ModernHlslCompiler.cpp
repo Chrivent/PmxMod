@@ -1,9 +1,9 @@
 ﻿#include "Viewer/Shader/ModernHlslCompiler.h"
 
+#include "Viewer/PostProcess/PostProcessInputLayout.h"
+
 #include <Windows.h>
-#include <cstring>
 #include <dxc/dxcapi.h>
-#include <iterator>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -85,41 +85,34 @@ namespace Chrivent {
 		std::vector arguments{ L"-spirv", targetEnvironment };
 		if (invertVertexY)
 			arguments.emplace_back(L"-fvk-invert-y");
-		if (spirvTarget == SpirvTarget::OpenGl) {
-			const wchar_t* openGlBindings[] = {
-				L"-fvk-bind-register", L"b0", L"0", L"0", L"0",
-				L"-fvk-bind-register", L"b1", L"0", L"1", L"0",
-				L"-fvk-bind-register", L"t0", L"0", L"0", L"0",
-				L"-fvk-bind-register", L"t1", L"0", L"1", L"0",
-				L"-fvk-bind-register", L"t2", L"0", L"2", L"0",
-				L"-fvk-bind-register", L"t3", L"0", L"3", L"0",
-				L"-fvk-bind-register", L"t4", L"0", L"7", L"0",
-				L"-fvk-bind-register", L"t5", L"0", L"8", L"0",
-				L"-fvk-bind-register", L"t6", L"0", L"9", L"0",
-				L"-fvk-bind-register", L"t7", L"0", L"10", L"0",
-				L"-fvk-bind-register", L"s0", L"0", L"4", L"0",
-				L"-fvk-bind-register", L"s1", L"0", L"5", L"0",
-				L"-fvk-bind-register", L"s2", L"0", L"6", L"0"
-			};
-			arguments.insert(arguments.end(), std::begin(openGlBindings), std::end(openGlBindings));
-		} else {
-			const wchar_t* vulkanBindings[] = {
-				L"-fvk-bind-register", L"b0", L"0", L"0", L"0",
-				L"-fvk-bind-register", L"b1", L"0", L"0", L"1",
-				L"-fvk-bind-register", L"t0", L"0", L"0", L"2",
-				L"-fvk-bind-register", L"t1", L"0", L"1", L"2",
-				L"-fvk-bind-register", L"t2", L"0", L"2", L"2",
-				L"-fvk-bind-register", L"t3", L"0", L"3", L"2",
-				L"-fvk-bind-register", L"t4", L"0", L"7", L"2",
-				L"-fvk-bind-register", L"t5", L"0", L"8", L"2",
-				L"-fvk-bind-register", L"t6", L"0", L"9", L"2",
-				L"-fvk-bind-register", L"t7", L"0", L"10", L"2",
-				L"-fvk-bind-register", L"s0", L"0", L"4", L"2",
-				L"-fvk-bind-register", L"s1", L"0", L"5", L"2",
-				L"-fvk-bind-register", L"s2", L"0", L"6", L"2"
-			};
-			arguments.insert(arguments.end(), std::begin(vulkanBindings), std::end(vulkanBindings));
-		}
+		std::vector<std::wstring> argumentStorage;
+		argumentStorage.reserve((2 + PostProcessInputLayout::maxTextureCount
+			+ PostProcessInputLayout::samplerCount) * 3);
+		const auto AppendBinding = [&arguments, &argumentStorage](const wchar_t type, const uint32_t slot,
+			const uint32_t binding, const uint32_t set) {
+			argumentStorage.emplace_back(std::wstring(1, type) + std::to_wstring(slot));
+			argumentStorage.emplace_back(std::to_wstring(binding));
+			argumentStorage.emplace_back(std::to_wstring(set));
+			const size_t index = argumentStorage.size() - 3;
+			arguments.emplace_back(L"-fvk-bind-register");
+			arguments.emplace_back(argumentStorage[index].c_str());
+			arguments.emplace_back(L"0");
+			arguments.emplace_back(argumentStorage[index + 1].c_str());
+			arguments.emplace_back(argumentStorage[index + 2].c_str());
+		};
+		const bool openGl = spirvTarget == SpirvTarget::OpenGl;
+		AppendBinding(L'b', PostProcessInputLayout::frameDataRegister,
+			PostProcessInputLayout::frameDataVulkanBinding,
+			openGl ? 0 : PostProcessInputLayout::frameDataVulkanSet);
+		AppendBinding(L'b', PostProcessInputLayout::parameterDataRegister,
+			openGl ? PostProcessInputLayout::parameterDataRegister : PostProcessInputLayout::parameterDataVulkanBinding,
+			openGl ? 0 : PostProcessInputLayout::parameterDataVulkanSet);
+		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
+			AppendBinding(L't', slot, PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
+				openGl ? 0 : PostProcessInputLayout::textureVulkanSet);
+		for (uint32_t slot = 0; slot < PostProcessInputLayout::samplerCount; slot++)
+			AppendBinding(L's', slot, PostProcessInputLayout::ResolveSpirvSamplerBinding(slot),
+				openGl ? 0 : PostProcessInputLayout::textureVulkanSet);
 		std::vector<uint8_t> object;
 		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;

@@ -27,19 +27,6 @@ namespace Chrivent {
 
 	// 공통 Viewer 계약을 D3D12 명령 목록과 스왑체인 흐름으로 구현한다.
 	class Dx12Viewer : public Viewer {
-	public:
-		std::shared_ptr<Dx12Device> device;
-		Dx12SwapChain swapChain;
-		Dx12MsaaColorBuffer msaaColorBuffer;
-		Dx12DepthBuffer depthBuffer;
-		Dx12CommandContext commandContext;
-		Dx12Pipeline pipeline;
-		std::shared_ptr<Dx12Texture> dummyTexture;
-		bool frameReady = false;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-		UINT frameIndex = 0;
-
-	private:
 		Dx12PostProcess postProcess;
 		Dx12TextureCache textureCache;
 
@@ -57,6 +44,17 @@ namespace Chrivent {
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
 
 	public:
+		std::unique_ptr<Dx12Device> device;
+		Dx12SwapChain swapChain;
+		Dx12MsaaColorBuffer msaaColorBuffer;
+		Dx12DepthBuffer depthBuffer;
+		Dx12CommandContext commandContext;
+		Dx12Pipeline pipeline;
+		std::unique_ptr<Dx12Texture> dummyTexture;
+		bool frameReady = false;
+		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+		UINT frameIndex = 0;
+		
 		Dx12Viewer();
 		~Dx12Viewer() override;
 
@@ -69,9 +67,9 @@ namespace Chrivent {
 		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
 		bool Resize() override;
 		// DX12 프레임 렌더링을 시작한다.
-		void BeginFrame() override;
+		FrameBeginResult BeginFrame() override;
 		// DX12 프레임을 제출하고 화면에 표시한다.
-		bool EndFrame() override;
+		FrameEndResult EndFrame() override;
 		// DX12 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
 		bool BeginPostProcessDepthPass() override;
 		// DX12 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
@@ -81,7 +79,7 @@ namespace Chrivent {
 		// 체크된 포스트 프로세스 효과들을 DX12 ping-pong 체인으로 컴파일한다.
 		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
 		// DX12 모델 인스턴스를 생성한다.
-		std::unique_ptr<Instance> CreateInstance() const override;
+		std::unique_ptr<Instance> CreateInstance() override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
 		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
 		// material의 양면 렌더링 여부에 맞는 DX12 model pipeline state를 바인딩한다.

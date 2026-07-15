@@ -30,7 +30,7 @@ namespace Chrivent {
         
     protected:
 		// DX11 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		bool SetupRenderer(Viewer& baseViewer) override;
+		bool SetupRenderer() override;
 
     public:
         Dx11Viewer*                             viewer = nullptr;
@@ -46,7 +46,7 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
 
-		Dx11Instance();
+		explicit Dx11Instance(Dx11Viewer& sourceViewer);
         
 		// DX11 모델 리소스를 해제한다.
 		void Clear() override;

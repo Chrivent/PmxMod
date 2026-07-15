@@ -17,6 +17,20 @@ namespace Chrivent {
     struct Material;
 	class PostProcess;
 
+	// 프레임 기록 시작 결과를 준비 완료, 일시적 건너뜀과 치명적 실패로 구분한다.
+	enum class FrameBeginResult {
+		Ready,
+		Skipped,
+		Failed
+	};
+
+	// 프레임 표시 결과를 표시 완료, 일시적 건너뜀과 치명적 실패로 구분한다.
+	enum class FrameEndResult {
+		Presented,
+		Skipped,
+		Failed
+	};
+
     // 시간 기반 후처리 패스가 공유하는 현재 프레임과 카메라 입력을 보관한다.
     struct PostProcessFrameData {
         float deltaTime = 0.0f;
@@ -113,10 +127,10 @@ namespace Chrivent {
 		virtual bool Setup() = 0;
 		// 창 크기에 맞춰 렌더 타깃과 투영 행렬을 갱신한다.
 		virtual bool Resize() = 0;
-		// 한 프레임의 렌더링 시작 상태를 준비한다.
-		virtual void BeginFrame() = 0;
+		// 한 프레임의 렌더링 시작 상태를 준비하고 기록 가능 여부를 반환한다.
+		virtual FrameBeginResult BeginFrame() = 0;
 		// 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
-		virtual bool EndFrame() = 0;
+		virtual FrameEndResult EndFrame() = 0;
 		// 포스트 프로세스용 depth-only 패스를 시작한다.
 		virtual bool BeginPostProcessDepthPass() = 0;
 		// 포스트 프로세스용 depth-only 패스를 종료한다.
@@ -127,7 +141,7 @@ namespace Chrivent {
 		// HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
 		virtual bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) = 0;
 		// 현재 렌더러에 맞는 모델 인스턴스를 생성한다.
-		virtual std::unique_ptr<Instance> CreateInstance() const = 0;
+		virtual std::unique_ptr<Instance> CreateInstance() = 0;
 		// 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
 		std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
 		// 카메라 점프나 탐색 뒤 다음 프레임의 temporal history를 초기화한다.

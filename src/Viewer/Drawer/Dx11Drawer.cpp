@@ -9,15 +9,7 @@
 namespace Chrivent {
 	void Dx11Drawer::BindTexture(
 		const UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
-		const int modeIfPresent, int& mode, glm::vec4& mulFactor, glm::vec4& addFactor,
-		const glm::vec4& sourceMulFactor, const glm::vec4& sourceAddFactor,
 		ID3D11ShaderResourceView*& lastView, ID3D11SamplerState*& lastSampler) const {
-		if (texture.texture) {
-			mode = modeIfPresent;
-			mulFactor  = sourceMulFactor;
-			addFactor  = sourceAddFactor;
-		} else
-			mode = 0;
 		ID3D11ShaderResourceView* views = texture.texture
 		? texture.textureView.Get() : instance.viewer->dummyTexture.textureView.Get();
 		ID3D11SamplerState* samplers = texture.texture
@@ -52,15 +44,7 @@ namespace Chrivent {
 		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& vsConstantBuffer = instance.vsConstantBuffer;
 		const auto& psConstantBuffer = instance.psConstantBuffer;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		const auto lightDir = glm::mat3(viewer->viewMat) * viewer->lightDir;
-		const auto wv = view * world;
-		const auto wvp = ClipMatrix() * proj * view * world;
-		ModelPixelConstants basePsCb{};
-		basePsCb.lightColor = glm::vec4(viewer->lightColor, 0.0f);
-		basePsCb.lightDir = glm::vec4(lightDir, 0.0f);
+		const auto world = BuildWorldMatrix(instance.scale);
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.defaultDss.Get(), 0x00);
 		viewer->deviceResources.context->OMSetBlendState(viewer->pipelineStates.blendState.Get(), nullptr, 0xffffffff);
 		constexpr UINT stride = sizeof(ViewerVertex);
@@ -69,9 +53,7 @@ namespace Chrivent {
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		ModelVertexConstants vsCb;
-		vsCb.wv = wv;
-		vsCb.wvp = wvp;
+		const ModelVertexConstants vsCb = BuildModelVertexConstants(*viewer, world, ClipMatrix());
 		viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.model.vertexShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.model.pixelShader.Get(), nullptr, 0);
@@ -84,23 +66,8 @@ namespace Chrivent {
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
 				continue;
-			ModelPixelConstants psCb = basePsCb;
-			psCb.diffuseAlpha = mat.diffuse;
-			psCb.ambientSpecularPower = glm::vec4(mat.ambient, mat.specularPower);
-			psCb.specular = glm::vec4(mat.specular, 0.0f);
-			int baseMode = 0;
-			if (material.texture.texture)
-				baseMode = !material.texture.hasAlpha ? 1 : 2;
-			BindTexture(
-				0, material.texture, viewer->pipelineStates.textureSampler.Get(), baseMode,
-				psCb.textureModes.x, psCb.texMulFactor, psCb.texAddFactor, mat.textureMulFactor, mat.textureAddFactor,
-				boundViews[0], boundSamplers[0]
-			);
-			BindTexture(
-				1, material.toonTexture, viewer->pipelineStates.toonTextureSampler.Get(), 1,
-				psCb.textureModes.y, psCb.toonTexMulFactor, psCb.toonTexAddFactor, mat.toonTextureMulFactor, mat.toonTextureAddFactor,
-				boundViews[1], boundSamplers[1]
-			);
+			const int textureMode = material.texture.texture ? material.texture.hasAlpha ? 2 : 1 : 0;
+			const int toonTextureMode = material.toonTexture.texture ? 1 : 0;
 			int spMode = 0;
 			if (material.sphereTexture.texture) {
 				if (mat.spTextureMode == SphereMode::Mul)
@@ -108,11 +75,14 @@ namespace Chrivent {
 				else if (mat.spTextureMode == SphereMode::Add)
 					spMode = 2;
 			}
-			BindTexture(
-				2, material.sphereTexture, viewer->pipelineStates.textureSampler.Get(), spMode,
-				psCb.textureModes.z, psCb.sphereTexMulFactor, psCb.sphereTexAddFactor, mat.sphereTextureMulFactor, mat.sphereTextureAddFactor,
-				boundViews[2], boundSamplers[2]
-			);
+			const ModelPixelConstants psCb = BuildModelPixelConstants(
+				*viewer, mat, textureMode, toonTextureMode, spMode);
+			BindTexture(0, material.texture, viewer->pipelineStates.textureSampler.Get(),
+				boundViews[0], boundSamplers[0]);
+			BindTexture(1, material.toonTexture, viewer->pipelineStates.toonTextureSampler.Get(),
+				boundViews[1], boundSamplers[1]);
+			BindTexture(2, material.sphereTexture, viewer->pipelineStates.textureSampler.Get(),
+				boundViews[2], boundSamplers[2]);
 			viewer->deviceResources.context->UpdateSubresource(psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 			viewer->deviceResources.context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 			ID3D11RasterizerState* targetRs = mat.bothFace
@@ -136,21 +106,15 @@ namespace Chrivent {
 		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& edgeVsConstantBuffer = instance.edgeVsConstantBuffer;
 		const auto& edgePsConstantBuffer = instance.edgePsConstantBuffer;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
-		const auto wv = view * world;
-		const auto wvp = ClipMatrix() * proj * view * world;
+		const auto world = BuildWorldMatrix(instance.scale);
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.edge.inputLayout.Get());
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		EdgeVertexConstants vsCb1{};
-		vsCb1.wv = wv;
-		vsCb1.wvp = wvp;
-		vsCb1.screenSize = glm::vec2(viewer->screenWidth, viewer->screenHeight);
+		EdgeVertexConstants vsCb1 = BuildEdgeVertexConstants(
+			*viewer, world, ClipMatrix(), glm::vec2(viewer->screenWidth, viewer->screenHeight));
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.edge.vertexShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.edge.pixelShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
@@ -184,26 +148,22 @@ namespace Chrivent {
 		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& gsVsConstantBuffer = instance.gsVsConstantBuffer;
 		const auto& gsPsConstantBuffer = instance.gsPsConstantBuffer;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto world = BuildWorldMatrix(instance.scale);
 		viewer->deviceResources.context->IASetInputLayout(viewer->shaders.groundShadow.inputLayout.Get());
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		const glm::mat4 shadow = BuildGroundShadowMatrix(viewer->lightDir);
-		GroundShadowVertexConstants vsCb;
-		vsCb.wvp = ClipMatrix() * proj * view * shadow * world;
+		const GroundShadowVertexConstants vsCb = BuildGroundShadowVertexConstants(
+			*viewer, world, ClipMatrix());
 		viewer->deviceResources.context->UpdateSubresource(gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		viewer->deviceResources.context->VSSetShader(viewer->shaders.groundShadow.vertexShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->PSSetShader(viewer->shaders.groundShadow.pixelShader.Get(), nullptr, 0);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
 		viewer->deviceResources.context->RSSetState(viewer->pipelineStates.gsRs.Get());
 		viewer->deviceResources.context->OMSetDepthStencilState(viewer->pipelineStates.gsDss.Get(), 0x01);
-		GroundShadowPixelConstants psCb;
-		psCb.shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+		constexpr GroundShadowPixelConstants psCb;
 		viewer->deviceResources.context->UpdateSubresource(gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
 		viewer->deviceResources.context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
@@ -224,24 +184,18 @@ namespace Chrivent {
 		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& vsConstantBuffer = instance.vsConstantBuffer;
 		const auto& sceneSurfaceConstantBuffer = instance.sceneSurfaceConstantBuffer;
-		const auto& view = viewer->viewMat;
-		const auto& proj = viewer->projMat;
-		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
+		const auto world = BuildWorldMatrix(instance.scale);
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		if (viewer->RequiresPostProcessVelocity()) {
-			SceneVelocityVertexConstants vsCb;
-			vsCb.currentWvp = ClipMatrix() * proj * view * world;
-			vsCb.previousWvp = viewer->postProcessHistoryResetPending ? vsCb.currentWvp
-				: ClipMatrix() * viewer->previousProjMat * viewer->previousViewMat * world;
+			const SceneVelocityVertexConstants vsCb = BuildSceneVelocityVertexConstants(
+				*viewer, world, ClipMatrix());
 			viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.sceneVelocity.inputLayout.Get());
 			viewer->deviceResources.context->VSSetShader(viewer->shaders.sceneVelocity.vertexShader.Get(), nullptr, 0);
 			viewer->deviceResources.context->PSSetShader(viewer->shaders.sceneVelocity.pixelShader.Get(), nullptr, 0);
 		} else {
-			ModelVertexConstants vsCb;
-			vsCb.wv = view * world;
-			vsCb.wvp = ClipMatrix() * proj * view * world;
+			const ModelVertexConstants vsCb = BuildModelVertexConstants(*viewer, world, ClipMatrix());
 			viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.sceneDepth.inputLayout.Get());
 			viewer->deviceResources.context->VSSetShader(viewer->shaders.sceneDepth.vertexShader.Get(), nullptr, 0);

@@ -153,7 +153,9 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Instance::Dx12Instance() { drawer = std::make_unique<Dx12Drawer>(*this); }
+	Dx12Instance::Dx12Instance(Dx12Viewer& sourceViewer) : viewer(&sourceViewer) {
+		drawer = std::make_unique<Dx12Drawer>(*this);
+	}
 
 	void Dx12Instance::Clear() {
 		for (Dx12Buffer& vertexBuffer : vertexBuffers)
@@ -193,11 +195,9 @@ namespace Chrivent {
 		indexBufferView = {};
 		indexCount = 0;
 		materials.clear();
-		viewer = nullptr;
 	}
 
-	bool Dx12Instance::SetupRenderer(Viewer& baseViewer) {
-		viewer = static_cast<Dx12Viewer*>(&baseViewer);
+	bool Dx12Instance::SetupRenderer() {
 		if (!viewer->device)
 			return false;
 		const auto& device = *viewer->device;

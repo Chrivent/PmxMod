@@ -48,9 +48,7 @@ namespace Chrivent {
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
-		// 선택한 효과의 셰이더와 선언형 리소스를 함께 해제한다.
-		void ClearEffectChain();
-
+		
 	public:
 		~OpenGlPostProcess() override;
 
@@ -65,7 +63,7 @@ namespace Chrivent {
 		// OpenGL 포스트 프로세스용 단일 샘플 depth-only pass를 종료한다.
 		static void EndDepthPass();
 		// 준비된 실행 계획으로 화면 색상을 기본 framebuffer에 그린다.
-		void Draw(int width, int height, const PostProcessFrameData& frameData);
+		bool Draw(int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};

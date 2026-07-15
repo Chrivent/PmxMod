@@ -8,6 +8,7 @@
 #include "Viewer/Shader/VulkanShaderModule.h"
 
 #include <iostream>
+#include <utility>
 
 namespace Chrivent {
 	VulkanPostProcess::~VulkanPostProcess() {
@@ -203,7 +204,7 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::CreateDescriptors() {
 		constexpr VkDescriptorSetLayoutBinding frameDataBinding{
-			.binding = PostProcessInputLayout::frameDataRegister,
+			.binding = PostProcessInputLayout::frameDataVulkanBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -222,8 +223,10 @@ namespace Chrivent {
 		parameterLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		parameterLayoutInfo.bindingCount = 1;
 		parameterLayoutInfo.pBindings = &parameterDataBinding;
-		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS
-			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
+			&descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet]) != VK_SUCCESS
+			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr,
+				&descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet]) != VK_SUCCESS)
 			return false;
 		std::vector<VkDescriptorSetLayoutBinding> textureBindings;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
@@ -234,9 +237,9 @@ namespace Chrivent {
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			});
 		}
-		for (uint32_t samplerSlot = 0; samplerSlot < 3; samplerSlot++) {
+		for (uint32_t samplerSlot = 0; samplerSlot < PostProcessInputLayout::samplerCount; samplerSlot++) {
 			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = 4 + samplerSlot,
+				.binding = PostProcessInputLayout::ResolveSpirvSamplerBinding(samplerSlot),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -246,11 +249,12 @@ namespace Chrivent {
 		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		textureLayoutInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
 		textureLayoutInfo.pBindings = textureBindings.data();
-		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
+			&descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]) != VK_SUCCESS)
 			return false;
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 3;
+		pipelineLayoutInfo.setLayoutCount = PostProcessInputLayout::vulkanSetCount;
 		pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
 		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 			return false;
@@ -270,7 +274,7 @@ namespace Chrivent {
 		const VkDescriptorPoolSize poolSizes[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameSetCount + parameterSetCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureSetCount * PostProcessInputLayout::maxTextureCount },
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureSetCount * 3 }
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureSetCount * PostProcessInputLayout::samplerCount }
 		};
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -279,11 +283,12 @@ namespace Chrivent {
 		poolInfo.pPoolSizes = poolSizes;
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 			return false;
-		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount, descriptorSetLayouts[2]);
+		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount,
+			descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]);
 		for (uint32_t index = 0; index < frameSetCount; index++)
-			layouts[index] = descriptorSetLayouts[0];
+			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet];
 		for (uint32_t index = frameSetCount; index < frameSetCount + parameterSetCount; index++)
-			layouts[index] = descriptorSetLayouts[1];
+			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet];
 		std::vector<VkDescriptorSet> sets(layouts.size());
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -305,7 +310,7 @@ namespace Chrivent {
 			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = frameDataDescriptorSets[index],
-				.dstBinding = PostProcessInputLayout::frameDataRegister,
+				.dstBinding = PostProcessInputLayout::frameDataVulkanBinding,
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.pBufferInfo = &bufferInfo
@@ -359,7 +364,8 @@ namespace Chrivent {
 		std::vector<const PostProcessPassInputRoute*> slots(PostProcessInputLayout::maxTextureCount);
 		for (const auto& input : ResolvePassRoutes()[passIndex].inputs)
 			slots[input.slot] = &input;
-		std::vector<VkDescriptorImageInfo> imageInfos(PostProcessInputLayout::maxTextureCount + 3);
+		std::vector<VkDescriptorImageInfo> imageInfos(
+			PostProcessInputLayout::maxTextureCount + PostProcessInputLayout::samplerCount);
 		std::vector<VkWriteDescriptorSet> writes;
 		writes.reserve(imageInfos.size());
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
@@ -380,13 +386,13 @@ namespace Chrivent {
 				.pImageInfo = &imageInfos[slot]
 			});
 		}
-		for (uint32_t samplerSlot = 0; samplerSlot < 3; samplerSlot++) {
+		for (uint32_t samplerSlot = 0; samplerSlot < PostProcessInputLayout::samplerCount; samplerSlot++) {
 			const size_t infoIndex = PostProcessInputLayout::maxTextureCount + samplerSlot;
 			imageInfos[infoIndex] = { .sampler = sampler };
 			writes.emplace_back(VkWriteDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = textureDescriptorSets[descriptorIndex],
-				.dstBinding = 4 + samplerSlot,
+				.dstBinding = PostProcessInputLayout::ResolveSpirvSamplerBinding(samplerSlot),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.pImageInfo = &imageInfos[infoIndex]
@@ -535,6 +541,35 @@ namespace Chrivent {
 		memories.clear();
 	}
 
+	void VulkanPostProcess::SwapResources(VulkanPostProcess& other) noexcept {
+		std::swap(device, other.device);
+		std::swap(targetExtent, other.targetExtent);
+		std::swap(swapChainFormat, other.swapChainFormat);
+		sceneImages.swap(other.sceneImages);
+		sceneImageMemories.swap(other.sceneImageMemories);
+		sceneImageViews.swap(other.sceneImageViews);
+		depthImages.swap(other.depthImages);
+		depthImageMemories.swap(other.depthImageMemories);
+		depthImageViews.swap(other.depthImageViews);
+		velocityImages.swap(other.velocityImages);
+		velocityImageMemories.swap(other.velocityImageMemories);
+		velocityImageViews.swap(other.velocityImageViews);
+		velocityImageInitialized.swap(other.velocityImageInitialized);
+		resources.swap(other.resources);
+		textureDescriptorSets.swap(other.textureDescriptorSets);
+		frameDataDescriptorSets.swap(other.frameDataDescriptorSets);
+		parameterDataDescriptorSets.swap(other.parameterDataDescriptorSets);
+		frameDataBuffers.swap(other.frameDataBuffers);
+		parameterDataBuffers.swap(other.parameterDataBuffers);
+		for (size_t index = 0; index < PostProcessInputLayout::vulkanSetCount; index++)
+			std::swap(descriptorSetLayouts[index], other.descriptorSetLayouts[index]);
+		std::swap(descriptorPool, other.descriptorPool);
+		std::swap(pipelineLayout, other.pipelineLayout);
+		pipelines.swap(other.pipelines);
+		std::swap(sampler, other.sampler);
+		std::swap(swapChainImageCount, other.swapChainImageCount);
+	}
+
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
 		ResetResources();
@@ -547,6 +582,18 @@ namespace Chrivent {
 			&& CreateParameterDataBuffers(sourceDevice)
 			&& CreateDescriptors()
 			&& CreatePipelines(sourceDevice);
+	}
+
+	bool VulkanPostProcess::Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects) {
+		VulkanPostProcess candidate;
+		if (!candidate.SetEffects(effects)
+			|| (candidate.HasEffects() && !candidate.Initialize(sourceDevice, sourceSwapChain, depthFormat)))
+			return false;
+		SwapExecutionPlan(candidate);
+		SwapResources(candidate);
+		ResetHistory();
+		return true;
 	}
 	
 	bool VulkanPostProcess::BeginDepthPass(const VulkanCommandBuffer& commandBuffers,

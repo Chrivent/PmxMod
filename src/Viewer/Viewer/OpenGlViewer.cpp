@@ -102,16 +102,18 @@ namespace Chrivent {
 		return postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
 	}
 
-	void OpenGlViewer::BeginFrame() {
+	FrameBeginResult OpenGlViewer::BeginFrame() {
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.ResolveSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		return FrameBeginResult::Ready;
 	}
 
-	bool OpenGlViewer::EndFrame() {
-		postProcess.Draw(screenWidth, screenHeight, postProcessFrameData);
+	FrameEndResult OpenGlViewer::EndFrame() {
+		if (!postProcess.Draw(screenWidth, screenHeight, postProcessFrameData))
+			return FrameEndResult::Failed;
 		glfwSwapBuffers(window);
-		return true;
+		return FrameEndResult::Presented;
 	}
 
 	bool OpenGlViewer::BeginPostProcessDepthPass() {
@@ -131,8 +133,8 @@ namespace Chrivent {
 		return FinishPostProcessLoad(postProcess.Load(effects));
 	}
 
-	std::unique_ptr<Instance> OpenGlViewer::CreateInstance() const {
-		return std::make_unique<OpenGlInstance>();
+	std::unique_ptr<Instance> OpenGlViewer::CreateInstance() {
+		return std::make_unique<OpenGlInstance>(*this);
 	}
 
 }

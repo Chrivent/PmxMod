@@ -191,28 +191,23 @@ namespace Chrivent {
 	}
 
 	bool OpenGlPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
-		ResetShaders();
-		ResetEffectResources();
-		if (!SetEffects(effects) || (targetWidth > 0 && targetHeight > 0 && !CreateEffectResources())) {
-			ClearEffectChain();
+		OpenGlPostProcess candidate;
+		candidate.targetWidth = targetWidth;
+		candidate.targetHeight = targetHeight;
+		if (!candidate.SetEffects(effects)
+			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources()))
 			return false;
-		}
-		for (const auto& pass : ResolvePasses()) {
+		for (const auto& pass : candidate.ResolvePasses()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			if (!shader->Initialize(pass)) {
-				ClearEffectChain();
+			if (!shader->Initialize(pass))
 				return false;
-			}
-			postProcessShaders.push_back(std::move(shader));
+			candidate.postProcessShaders.push_back(std::move(shader));
 		}
+		SwapExecutionPlan(candidate);
+		resources.swap(candidate.resources);
+		postProcessShaders.swap(candidate.postProcessShaders);
 		ResetHistory();
 		return true;
-	}
-
-	void OpenGlPostProcess::ClearEffectChain() {
-		ResetShaders();
-		ResetEffectResources();
-		ClearEffects();
 	}
 
 	bool OpenGlPostProcess::BeginDepthPass(const int width, const int height) const {
@@ -239,10 +234,10 @@ namespace Chrivent {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGlPostProcess::Draw(
+	bool OpenGlPostProcess::Draw(
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
-			return;
+			return true;
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
 		glBlitNamedFramebuffer(sceneFramebuffer, resolveFramebuffer,
@@ -272,6 +267,7 @@ namespace Chrivent {
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}
+		return true;
 	}
 
 	void OpenGlPostProcess::ResetResources() {

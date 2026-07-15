@@ -23,8 +23,10 @@ namespace Chrivent {
 		void LoadMaterials();
 		// material별 텍스처 SRV descriptor를 생성한다.
 		bool CreateTextureDescriptors();
+		
+	protected:
 		// DX12 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		bool SetupRenderer(Viewer& baseViewer) override;
+		bool SetupRenderer() override;
 
 	public:
 		static constexpr size_t kBufferedFrames = 2;
@@ -45,7 +47,7 @@ namespace Chrivent {
 		UINT textureDescriptorSize = 0;
 		std::vector<Dx12Material> materials;
 
-		Dx12Instance();
+		explicit Dx12Instance(Dx12Viewer& sourceViewer);
 		~Dx12Instance() override = default;
 
 		// DX12 모델 리소스를 해제한다.

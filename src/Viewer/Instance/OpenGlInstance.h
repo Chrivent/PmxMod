@@ -32,7 +32,7 @@ namespace Chrivent {
     	
     protected:
 		// OpenGL 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		bool SetupRenderer(Viewer& baseViewer) override;
+		bool SetupRenderer() override;
 
     public:
         OpenGlViewer* viewer = nullptr;
@@ -47,7 +47,7 @@ namespace Chrivent {
         OpenGlDynamicBufferRing pixelConstantsRing;
         std::vector<OpenGlMaterial> materials;
 
-		OpenGlInstance();
+		explicit OpenGlInstance(OpenGlViewer& sourceViewer);
         ~OpenGlInstance() override;
 
         // OpenGL 버퍼와 VAO 리소스를 해제한다.

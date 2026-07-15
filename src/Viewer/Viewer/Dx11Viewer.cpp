@@ -191,27 +191,29 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11Viewer::BeginFrame() {
+	FrameBeginResult Dx11Viewer::BeginFrame() {
 		deviceResources.context->ClearRenderTargetView(renderTargets.sceneColorMsaaView.Get(), clearColor);
 		deviceResources.context->ClearDepthStencilView(renderTargets.depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		deviceResources.context->OMSetRenderTargets(1, renderTargets.sceneColorMsaaView.GetAddressOf(), renderTargets.depthStencilView.Get());
 		deviceResources.context->OMSetBlendState(pipelineStates.blendState.Get(), nullptr, 0xffffffff);
+		return FrameBeginResult::Ready;
 	}
 
-	bool Dx11Viewer::EndFrame() {
+	FrameEndResult Dx11Viewer::EndFrame() {
 		if (postProcess.HasEffects()) {
 			postProcess.ResolveSceneColor(
 				deviceResources.context.Get(), renderTargets.sceneColorMsaa.Get(), multiSampleCount);
-			postProcess.Draw(deviceResources.context.Get(), renderTargets.backBufferView.Get(),
+			if (!postProcess.Draw(deviceResources.context.Get(), renderTargets.backBufferView.Get(),
 				pipelineStates.bothFaceRs.Get(), pipelineStates.toonTextureSampler.Get(),
-				screenWidth, screenHeight, postProcessFrameData);
+				screenWidth, screenHeight, postProcessFrameData))
+				return FrameEndResult::Failed;
 		} else {
 			deviceResources.context->CopyResource(
 				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
 		}
 		if (FAILED(deviceResources.swapChain->Present(0, 0)))
-			return false;
-		return true;
+			return FrameEndResult::Failed;
+		return FrameEndResult::Presented;
 	}
 
 	bool Dx11Viewer::BeginPostProcessDepthPass() {
@@ -242,7 +244,7 @@ namespace Chrivent {
 		return FinishPostProcessLoad(postProcess.Load(deviceResources.device.Get(), effects));
 	}
 
-	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() const {
-		return std::make_unique<Dx11Instance>();
+	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() {
+		return std::make_unique<Dx11Instance>(*this);
 	}
 }
