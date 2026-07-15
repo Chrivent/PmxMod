@@ -72,8 +72,8 @@ namespace Chrivent {
 			return 0;
 		if (route.outputResourceIndex >= resources.size())
 			return 0;
-		const OpenGlPostProcessResource& resource = resources[route.outputResourceIndex];
-		return resource.framebuffers[ResolveResourceWriteIndex(route.outputResourceIndex)];
+		const auto& [framebuffers, textures] = resources[route.outputResourceIndex];
+		return framebuffers[ResolveResourceWriteIndex(route.outputResourceIndex)];
 	}
 
 	void OpenGlPostProcess::ResetEffectResources() {

@@ -154,18 +154,19 @@ namespace Chrivent {
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
-			VulkanPostProcessResource& resource = resources[resourceIndex];
+			auto& [images, memories
+				, imageViews, transientInitialized] = resources[resourceIndex];
 			const size_t imageCount = plan.lifetime == EffectResourceLifetime::History ? 2 : swapChainImageCount;
-			resource.images.resize(imageCount);
-			resource.memories.resize(imageCount);
-			resource.imageViews.resize(imageCount);
-			resource.transientInitialized.assign(
+			images.resize(imageCount);
+			memories.resize(imageCount);
+			imageViews.resize(imageCount);
+			transientInitialized.assign(
 				plan.lifetime == EffectResourceLifetime::Transient ? imageCount : 0, false);
 			const VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 				| (plan.lifetime == EffectResourceLifetime::History ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0);
 			for (size_t index = 0; index < imageCount; index++) {
 				if (!CreateColorImage(sourceDevice, ResolveResourceExtent(plan), ResolveResourceFormat(plan), usage,
-					resource.images[index], resource.memories[index], resource.imageViews[index]))
+					images[index], memories[index], imageViews[index]))
 					return false;
 			}
 		}
