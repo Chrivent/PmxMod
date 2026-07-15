@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
+#include "Viewer/DrawContext/VulkanDrawContext.h"
 #include "Viewer/Command/VulkanCommandContext.h"
-#include "Viewer/Descriptor/VulkanDescriptorSet.h"
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/RenderTarget/VulkanMsaaColorBuffer.h"
 #include "Viewer/RenderTarget/VulkanMsaaDepthBuffer.h"
@@ -13,21 +13,10 @@
 #include "Viewer/Texture/VulkanTextureCache.h"
 
 #include <filesystem>
-#include <limits>
 #include <memory>
 #include <vector>
 
 namespace Chrivent {
-	// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
-	struct VulkanBindStateCache {
-		VkPipeline pipeline = VK_NULL_HANDLE;
-		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
-		uint32_t vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		uint32_t pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-	};
-
 	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.
 	class VulkanViewer : public Viewer {
 		VulkanDevice device;
@@ -41,8 +30,7 @@ namespace Chrivent {
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		bool postProcessSceneInputPassReady = false;
-		VulkanBindStateCache bindStateCache;
-
+		VulkanDrawContext drawContext{ pipeline, commandContext, currentImageIndex, frameReady, syncObject.currentFrame };
 		VulkanPostProcess postProcess;
 		VulkanTextureCache textureCache;
 
@@ -67,25 +55,8 @@ namespace Chrivent {
 		const VulkanPipeline& GetPipeline() const { return pipeline; }
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
 		size_t GetFrameIndex() const { return syncObject.currentFrame; }
+		VulkanDrawContext& GetDrawContext() { return drawContext; }
 		
-		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
-		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
-		// 현재 프레임 command buffer에 재질 방향성에 맞는 모델 pipeline을 바인딩한다.
-		void BindModelPipeline(bool bothFace);
-		// 현재 프레임 command buffer에 재질 방향성에 맞는 depth-only pipeline을 바인딩한다.
-		void BindDepthOnlyPipeline(bool bothFace);
-		// 현재 프레임 command buffer에 재질 방향성에 맞는 장면 속도 pipeline을 바인딩한다.
-		void BindSceneVelocityPipeline(bool bothFace);
-		// 현재 프레임 command buffer에 엣지 pipeline을 바인딩한다.
-		void BindEdgePipeline();
-		// 현재 프레임 command buffer에 지면 그림자 pipeline을 바인딩한다.
-		void BindGroundShadowPipeline();
-		// 현재 프레임 command buffer에 모델 공통 vertex descriptor set을 바인딩한다.
-		void BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, uint32_t dynamicOffset);
-		// 현재 프레임 command buffer에 재질 pixel descriptor set을 바인딩한다.
-		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
-		// 현재 프레임 command buffer에 재질 텍스처 descriptor set을 바인딩한다.
-		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureWindowHints() override;
 		// Vulkan 렌더러 리소스를 초기화한다.

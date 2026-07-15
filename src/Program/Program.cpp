@@ -795,18 +795,25 @@ namespace Chrivent {
         instances.clear();
     }
 
-    bool Program::UpdateFramebufferSize() const {
+    Program::FramebufferUpdateResult Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
         glfwGetFramebufferSize(viewer->window, &newW, &newH);
+        if (newW <= 0 || newH <= 0)
+            return FramebufferUpdateResult::Skipped;
         if (newW == viewer->screenWidth && newH == viewer->screenHeight)
-            return true;
+            return FramebufferUpdateResult::Ready;
+        const int previousWidth = viewer->screenWidth;
+        const int previousHeight = viewer->screenHeight;
         viewer->screenWidth = newW;
         viewer->screenHeight = newH;
-        if (!viewer->Resize())
-            return false;
+        if (!viewer->Resize()) {
+            viewer->screenWidth = previousWidth;
+            viewer->screenHeight = previousHeight;
+            return FramebufferUpdateResult::Failed;
+        }
         viewer->ResetPostProcessHistory();
-        return true;
+        return FramebufferUpdateResult::Ready;
     }
 
     void Program::TickFps() {
@@ -948,9 +955,16 @@ namespace Chrivent {
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, *viewer, music);
-        if (!UpdateFramebufferSize())
-            return false;
-		if (benchmarkMode) {
+        switch (UpdateFramebufferSize()) {
+            case FramebufferUpdateResult::Failed:
+                return false;
+            case FramebufferUpdateResult::Skipped:
+                TickFps();
+                return true;
+            case FramebufferUpdateResult::Ready:
+                break;
+        }
+        if (benchmarkMode) {
 			viewer->elapsed = 1.0f / 30.0f;
 			viewer->renderDeltaTime = viewer->elapsed;
 			viewer->animTime += viewer->elapsed;

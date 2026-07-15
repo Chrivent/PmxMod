@@ -38,13 +38,6 @@ namespace Chrivent {
 	Dx12Viewer::~Dx12Viewer() {
 		if (device.device && !commandContext.WaitForGpu(device))
 			std::cerr << "Failed to wait for DX12 GPU resources during shutdown.\n";
-		postProcess.Clear();
-		pipeline.Reset();
-		commandContext.Reset();
-		depthBuffer.Reset();
-		msaaColorBuffer.Reset();
-		swapChain.Reset();
-		device.Shutdown();
 	}
 
 	void Dx12Viewer::ConfigureWindowHints() {
@@ -183,33 +176,4 @@ namespace Chrivent {
 		return textureCache.Load(device, texturePath);
 	}
 
-	void Dx12Viewer::BindModelPipeline(const bool bothFace) const {
-		if (!frameReady)
-			return;
-		pipeline.BindModel(commandContext.GetCommandList().Get(), bothFace);
-	}
-
-	void Dx12Viewer::BindDepthOnlyPipeline(const bool bothFace) const {
-		if (!frameReady)
-			return;
-		pipeline.BindDepthOnly(commandContext.GetCommandList().Get(), bothFace);
-	}
-
-	void Dx12Viewer::BindSceneVelocityPipeline(const bool bothFace) const {
-		if (!frameReady)
-			return;
-		pipeline.BindSceneVelocity(commandContext.GetCommandList().Get(), bothFace);
-	}
-
-	void Dx12Viewer::BindEdgePipeline() const {
-		if (!frameReady)
-			return;
-		pipeline.BindEdge(commandContext.GetCommandList().Get());
-	}
-
-	void Dx12Viewer::BindGroundShadowPipeline() const {
-		if (!frameReady)
-			return;
-		pipeline.BindGroundShadow(commandContext.GetCommandList().Get());
-	}
 }

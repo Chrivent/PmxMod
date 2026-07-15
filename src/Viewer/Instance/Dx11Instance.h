@@ -1,9 +1,8 @@
 ﻿#pragma once
 
+#include "Viewer/DrawResource/Dx11ModelResources.h"
 #include "Viewer/Instance/Instance.h"
-#include "Viewer/Texture/Dx11TextureCache.h"
 
-#include <vector>
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -11,18 +10,10 @@ namespace Chrivent {
     class Dx11Drawer;
     class Dx11Viewer;
 
-	// 공통 PMX 재질에 D3D11 texture 리소스를 결합한다.
-	struct Dx11Material : ViewerMaterial {
-		Dx11Texture texture{};
-		Dx11Texture sphereTexture{};
-		Dx11Texture toonTexture{};
-
-		explicit Dx11Material(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-	};
-
     // 한 모델의 D3D11 버퍼, 재질과 descriptor 상태를 관리한다.
     class Dx11Instance : public Instance {
 		Dx11Viewer& viewer;
+		Dx11ModelResources modelResources;
 
         // 모델 geometry 데이터를 DX11 vertex/index buffer로 생성한다.
         bool CreateGeometryBuffers();
@@ -45,21 +36,9 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
     public:
-        std::vector<Dx11Material>               materials;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>    vertexBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	indexBuffer;
-        DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R16_UINT;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
-		Microsoft::WRL::ComPtr<ID3D11Buffer>	sceneSurfaceConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;
-        Microsoft::WRL::ComPtr<ID3D11Buffer>	gsPsConstantBuffer;
-
 		explicit Dx11Instance(Dx11Viewer& sourceViewer);
         
 		// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
-		bool Upload() const override;
+		bool Upload() override;
     };
 }

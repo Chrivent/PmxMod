@@ -6,12 +6,14 @@
 
 namespace Chrivent {
 	class VulkanInstance;
-	class VulkanViewer;
+	class VulkanDrawContext;
+	struct VulkanModelResources;
 
 	// Vulkan 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class VulkanDrawer : public Drawer {
-		VulkanInstance& instance;
-		VulkanViewer& renderer;
+		const VulkanInstance& instance;
+		VulkanModelResources& resources;
+		VulkanDrawContext& drawContext;
 
 	protected:
 		// 새 프레임용 Vulkan 동적 uniform buffer ring 상태를 초기화한다.
@@ -28,6 +30,7 @@ namespace Chrivent {
 		void DrawSceneInputs() override;
 
 	public:
-		VulkanDrawer(VulkanInstance& sourceInstance, VulkanViewer& sourceViewer);
+		VulkanDrawer(const VulkanInstance& sourceInstance, VulkanModelResources& sourceResources,
+			VulkanDrawContext& sourceDrawContext, Viewer& sourceViewer);
 	};
 }

@@ -42,6 +42,8 @@ namespace Chrivent {
 		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
 		// 물리 디바이스가 지원하는 샘플 수 중 현재 렌더러에서 사용할 값을 고른다.
 		static VkSampleCountFlagBits ChooseMsaaSampleCount(VkPhysicalDevice candidate);
+		// 색상과 depth 타깃이 함께 지원하는 최대 MSAA sample count를 반환한다.
+		static uint32_t ResolveMaximumMsaaSampleCount(VkPhysicalDevice candidate);
 		// 물리 디바이스가 필수 디바이스 확장을 지원하는지 확인한다.
 		static bool CheckDeviceExtensionSupport(VkPhysicalDevice candidate);
 		// Vulkan 버전 정수를 로그용 문자열로 변환한다.

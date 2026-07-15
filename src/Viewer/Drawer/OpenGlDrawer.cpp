@@ -1,19 +1,20 @@
 ﻿#include "Viewer/Drawer/OpenGlDrawer.h"
 
+#include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/Instance/OpenGlInstance.h"
-#include "Viewer/Viewer/OpenGlViewer.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
 namespace Chrivent {
 	void OpenGlDrawer::BeginDrawFrame() {
-		instance.vertexConstantsRing.BeginFrame(0);
-		instance.pixelConstantsRing.BeginFrame(0);
+		resources.vertexConstantsRing.BeginFrame(0);
+		resources.pixelConstantsRing.BeginFrame(0);
 	}
 
 	bool OpenGlDrawer::UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
-		const auto slice = ring.Allocate(size, instance.uniformBufferOffsetAlignment, error);
+		const auto slice = ring.Allocate(size, resources.uniformBufferOffsetAlignment, error);
 		if (!slice.has_value())
 			return false;
 		glNamedBufferSubData(ring.GetBuffer(), slice->offset, slice->size, data);
@@ -22,16 +23,16 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawModel() {
-		const auto& viewer = renderer;
-		const auto& materials = instance.materials;
-		const auto indexType = instance.indexType;
+		const auto& viewer = this->viewer;
+		const auto& materials = resources.materials;
+		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
-		const auto* shader = viewer.GetModelShader();
+		const auto* shader = drawContext.GetModelShader();
 		glUseProgram(shader->program);
-		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
-		glBindVertexArray(instance.vao);
+		glBindVertexArray(resources.vao);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
@@ -46,7 +47,7 @@ namespace Chrivent {
 		GLenum cullFaceMode = GL_BACK;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
-			const auto& mat = material.mat;
+			const auto& mat = material.material;
 			if (mat.diffuse.a == 0)
 				continue;
 			const int textureMode = material.texture == 0 ? 0 : material.textureHasAlpha ? 2 : 1;
@@ -60,19 +61,19 @@ namespace Chrivent {
 			}
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
 				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
-			GLuint baseTexture = viewer.GetDummyColorTexture();
+			GLuint baseTexture = drawContext.GetDummyColorTexture();
 			if (material.texture != 0)
 				baseTexture = material.texture;
 			glBindTextureUnit(0, baseTexture);
-			GLuint toonTexture = viewer.GetDummyColorTexture();
+			GLuint toonTexture = drawContext.GetDummyColorTexture();
 			if (material.toonTexture != 0)
 				toonTexture = material.toonTexture;
 			glBindTextureUnit(1, toonTexture);
-			GLuint sphereTexture = viewer.GetDummyColorTexture();
+			GLuint sphereTexture = drawContext.GetDummyColorTexture();
 			if (material.sphereTexture != 0)
 				sphereTexture = material.sphereTexture;
 			glBindTextureUnit(2, sphereTexture);
-			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
 			if (mat.bothFace) {
 				if (cullEnabled) {
@@ -95,15 +96,15 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawEdge() {
-		const auto& viewer = renderer;
-		const auto& materials = instance.materials;
-		const auto indexType = instance.indexType;
+		const auto& viewer = this->viewer;
+		const auto& materials = resources.materials;
+		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto* edgeShader = viewer.GetEdgeShader();
+		const auto* edgeShader = drawContext.GetEdgeShader();
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
 		glUseProgram(edgeShader->program);
-		glBindVertexArray(instance.edgeVao);
+		glBindVertexArray(resources.edgeVao);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
@@ -116,7 +117,7 @@ namespace Chrivent {
 		glCullFace(GL_FRONT);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
-			const auto& mat = material.mat;
+			const auto& mat = material.material;
 			if (!mat.edgeFlag)
 				continue;
 			if (mat.diffuse.a == 0.0f)
@@ -125,8 +126,8 @@ namespace Chrivent {
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
-				!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
+				!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
@@ -134,22 +135,22 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawGroundShadow() {
-		const auto& viewer = renderer;
-		const auto& materials = instance.materials;
-		const auto indexType = instance.indexType;
+		const auto& viewer = this->viewer;
+		const auto& materials = resources.materials;
+		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto* gsShader = viewer.GetGroundShadowShader();
+		const auto* gsShader = drawContext.GetGroundShadowShader();
 		glUseProgram(gsShader->program);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
-		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
-		glBindVertexArray(instance.gsVao);
+		glBindVertexArray(resources.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 			return;
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
@@ -166,7 +167,7 @@ namespace Chrivent {
 		glDisable(GL_CULL_FACE);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
-			const auto& mat = material.mat;
+			const auto& mat = material.material;
 			if (!mat.groundShadow)
 				continue;
 			if (mat.diffuse.a == 0.0f)
@@ -180,22 +181,22 @@ namespace Chrivent {
 	}
 
 	void OpenGlDrawer::DrawSceneInputs() {
-		const auto& viewer = renderer;
-		const auto indexType = instance.indexType;
+		const auto& viewer = this->viewer;
+		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		if (viewer.RequiresPostProcessVelocity()) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
 				viewer, world, ClipMatrix());
-			glUseProgram(viewer.GetSceneVelocityShader()->program);
-			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+			glUseProgram(drawContext.GetSceneVelocityShader()->program);
+			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
-			glBindVertexArray(instance.velocityVao);
+			glBindVertexArray(resources.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
-			glUseProgram(viewer.GetDepthOnlyShader()->program);
-			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
+			glUseProgram(drawContext.GetDepthOnlyShader()->program);
+			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
-			glBindVertexArray(instance.depthVao);
+			glBindVertexArray(resources.depthVao);
 		}
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -208,15 +209,16 @@ namespace Chrivent {
 		glEnable(GL_CULL_FACE);
 		bool cullEnabled = true;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			const auto& material = instance.materials[materialId];
-			const auto& mat = material.mat;
+			const auto& material = resources.materials[materialId];
+			const auto& mat = material.material;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
-			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
-			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer.GetDummyColorTexture());
+			glBindTextureUnit(0, material.texture != 0
+				? material.texture : drawContext.GetDummyColorTexture());
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -231,6 +233,8 @@ namespace Chrivent {
 		}
 	}
 
-	OpenGlDrawer::OpenGlDrawer(OpenGlInstance& sourceInstance, OpenGlViewer& sourceViewer)
-		: Drawer(sourceViewer), instance(sourceInstance), renderer(sourceViewer) {}
+	OpenGlDrawer::OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,
+		const OpenGlDrawContext& sourceDrawContext, Viewer& sourceViewer)
+		: Drawer(sourceViewer), instance(sourceInstance), resources(sourceResources),
+		drawContext(sourceDrawContext) {}
 }

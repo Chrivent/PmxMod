@@ -10,8 +10,8 @@ namespace Chrivent {
 		uint32_t loaderVersion = VK_API_VERSION_1_0;
 		const auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
 			vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
-		if (enumerateInstanceVersion)
-			enumerateInstanceVersion(&loaderVersion);
+		if (enumerateInstanceVersion && enumerateInstanceVersion(&loaderVersion) != VK_SUCCESS)
+			return false;
 		if (loaderVersion < VK_API_VERSION_1_3) {
 			std::cerr << "Vulkan 1.3 or newer is required.\n";
 			return false;
@@ -52,13 +52,16 @@ namespace Chrivent {
 
 	bool VulkanDevice::PickPhysicalDevice() {
 		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr);
+		if (vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr) != VK_SUCCESS)
+			return false;
 		if (deviceCount == 0) {
 			std::cerr << "Failed to find a Vulkan physical device.\n";
 			return false;
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data());
+		if (vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data()) != VK_SUCCESS)
+			return false;
+		devices.resize(deviceCount);
 		uint64_t highestScore = 0;
 		for (const auto candidate : devices) {
 			if (!IsDeviceSuitable(candidate))
@@ -136,8 +139,10 @@ namespace Chrivent {
 			return false;
 		uint32_t formatCount = 0;
 		uint32_t presentModeCount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(candidate, surface, &formatCount, nullptr);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(candidate, surface, &presentModeCount, nullptr);
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(candidate, surface, &formatCount, nullptr) != VK_SUCCESS
+			|| vkGetPhysicalDeviceSurfacePresentModesKHR(
+				candidate, surface, &presentModeCount, nullptr) != VK_SUCCESS)
+			return false;
 		return formatCount > 0 && presentModeCount > 0;
 	}
 
@@ -185,7 +190,8 @@ namespace Chrivent {
 		vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, families.data());
 		for (uint32_t i = 0; i < queueFamilyCount; i++) {
 			VkBool32 presentSupport = VK_FALSE;
-			vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, surface, &presentSupport);
+			if (vkGetPhysicalDeviceSurfaceSupportKHR(candidate, i, surface, &presentSupport) != VK_SUCCESS)
+				continue;
 			const bool supportsGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
 			if (supportsGraphics && presentSupport) {
 				indices.graphicsFamily = i;
@@ -221,11 +227,36 @@ namespace Chrivent {
 		return VK_SAMPLE_COUNT_1_BIT;
 	}
 
+	uint32_t VulkanDevice::ResolveMaximumMsaaSampleCount(const VkPhysicalDevice candidate) {
+		VkPhysicalDeviceProperties candidateProperties{};
+		vkGetPhysicalDeviceProperties(candidate, &candidateProperties);
+		const VkSampleCountFlags supportedSamples = candidateProperties.limits.framebufferColorSampleCounts
+			& candidateProperties.limits.framebufferDepthSampleCounts;
+		constexpr VkSampleCountFlagBits sampleCounts[] = {
+			VK_SAMPLE_COUNT_64_BIT,
+			VK_SAMPLE_COUNT_32_BIT,
+			VK_SAMPLE_COUNT_16_BIT,
+			VK_SAMPLE_COUNT_8_BIT,
+			VK_SAMPLE_COUNT_4_BIT,
+			VK_SAMPLE_COUNT_2_BIT
+		};
+		for (const VkSampleCountFlagBits sampleCount : sampleCounts) {
+			if ((supportedSamples & sampleCount) != 0)
+				return static_cast<uint32_t>(sampleCount);
+		}
+		return 1;
+	}
+
 	bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice candidate) {
 		uint32_t extensionCount = 0;
-		vkEnumerateDeviceExtensionProperties(candidate, nullptr, &extensionCount, nullptr);
+		if (vkEnumerateDeviceExtensionProperties(
+			candidate, nullptr, &extensionCount, nullptr) != VK_SUCCESS)
+			return false;
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-		vkEnumerateDeviceExtensionProperties(candidate, nullptr, &extensionCount, availableExtensions.data());
+		if (vkEnumerateDeviceExtensionProperties(
+			candidate, nullptr, &extensionCount, availableExtensions.data()) != VK_SUCCESS)
+			return false;
+		availableExtensions.resize(extensionCount);
 		std::set<std::string> requiredExtensions(std::begin(kDeviceExtensions), std::end(kDeviceExtensions));
 		for (const auto& [extensionName, specVersion] : availableExtensions)
 			requiredExtensions.erase(extensionName);
@@ -253,7 +284,8 @@ namespace Chrivent {
 		capabilities.shaderVersion = "HLSL 6 / SPIR-V 1.6";
 		capabilities.gpuName = properties.deviceName;
 		capabilities.gpuType = ResolvePhysicalDeviceTypeName(properties.deviceType);
-		capabilities.maxSampleCount = static_cast<uint32_t>(msaaSampleCount);
+		capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount(physicalDevice);
+		capabilities.activeSampleCount = static_cast<uint32_t>(msaaSampleCount);
 		capabilities.uniformBufferAlignment = properties.limits.minUniformBufferOffsetAlignment;
 		capabilities.maxTextureBindings = properties.limits.maxPerStageDescriptorSampledImages;
 		capabilities.shaderModelMajor = 6;
@@ -267,6 +299,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanDevice::Initialize(GLFWwindow* window) {
+		Shutdown();
 		if (!CreateInstance())
 			return false;
 		if (!CreateSurface(window))

@@ -17,7 +17,7 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
-		static VulkanSwapChainSupport QuerySupport(const VulkanDevice& sourceDevice);
+		static bool QuerySupport(const VulkanDevice& sourceDevice, VulkanSwapChainSupport& support);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		// 사용할 present mode를 선택한다.

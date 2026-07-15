@@ -28,24 +28,24 @@ namespace Chrivent {
 		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
 			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
-		for (size_t frameIndex = 0; frameIndex < kBufferedFrames; frameIndex++) {
-			Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
+		for (size_t frameIndex = 0; frameIndex < Dx12ModelResources::kBufferedFrames; frameIndex++) {
+			Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
 					{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
 				return false;
-			auto& [BufferLocation, SizeInBytes, StrideInBytes] = vertexBufferViews[frameIndex];
+			auto& [BufferLocation, SizeInBytes, StrideInBytes] = modelResources.vertexBufferViews[frameIndex];
 			BufferLocation = vertexBuffer.ResolveGpuAddress();
 			SizeInBytes = vertexByteSize;
 			StrideInBytes = sizeof(ViewerVertex);
 		}
-		if (!indexBuffer.InitializeUpload(device, indexData.bytes.size()) ||
-			!indexBuffer.Write(std::as_bytes(std::span(indexData.bytes))))
+		if (!modelResources.indexBuffer.InitializeUpload(device, indexData.bytes.size()) ||
+			!modelResources.indexBuffer.Write(std::as_bytes(std::span(indexData.bytes))))
 			return false;
-		indexBufferView.BufferLocation = indexBuffer.ResolveGpuAddress();
-		indexBufferView.SizeInBytes = indexData.bytes.size();
-		indexBufferView.Format = indexFormat;
-		indexCount = indexData.indexCount;
+		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.ResolveGpuAddress();
+		modelResources.indexBufferView.SizeInBytes = indexData.bytes.size();
+		modelResources.indexBufferView.Format = indexFormat;
+		modelResources.indexCount = indexData.indexCount;
 		return true;
 	}
 
@@ -61,33 +61,35 @@ namespace Chrivent {
 		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgePixelConstants));
 		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowVertexConstants));
 		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowPixelConstants));
-		for (size_t frameIndex = 0; frameIndex < kBufferedFrames; frameIndex++) {
-			if (!modelVertexConstantBuffers[frameIndex].InitializeUpload(device, vertexConstantSize) ||
-				!groundShadowVertexConstantBuffers[frameIndex].InitializeUpload(device, groundShadowVertexConstantSize) ||
-				!groundShadowPixelConstantBuffers[frameIndex].InitializeUpload(device, groundShadowPixelConstantSize))
+		for (size_t frameIndex = 0; frameIndex < Dx12ModelResources::kBufferedFrames; frameIndex++) {
+			if (!modelResources.modelVertexConstantBuffers[frameIndex].InitializeUpload(device, vertexConstantSize) ||
+				!modelResources.groundShadowVertexConstantBuffers[frameIndex].InitializeUpload(
+					device, groundShadowVertexConstantSize) ||
+				!modelResources.groundShadowPixelConstantBuffers[frameIndex].InitializeUpload(
+					device, groundShadowPixelConstantSize))
 				return false;
 		}
 		const size_t materialCount = model->materialData.materials.size();
-		modelPixelConstantBuffers.resize(materialCount);
-		for (auto& buffers : modelPixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(kBufferedFrames);
-			for (size_t i = 0; i < kBufferedFrames; i++) {
+		modelResources.modelPixelConstantBuffers.resize(materialCount);
+		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
 				if (!buffers[i].InitializeUpload(device, materialPixelBufferSize))
 					return false;
 			}
 		}
-		edgeVertexConstantBuffers.resize(materialCount);
-		for (auto& buffers : edgeVertexConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(kBufferedFrames);
-			for (size_t i = 0; i < kBufferedFrames; i++) {
+		modelResources.edgeVertexConstantBuffers.resize(materialCount);
+		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
 				if (!buffers[i].InitializeUpload(device, edgeVertexConstantSize))
 					return false;
 			}
 		}
-		edgePixelConstantBuffers.resize(materialCount);
-		for (auto& buffers : edgePixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(kBufferedFrames);
-			for (size_t i = 0; i < kBufferedFrames; i++) {
+		modelResources.edgePixelConstantBuffers.resize(materialCount);
+		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
+			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
 				if (!buffers[i].InitializeUpload(device, edgePixelConstantSize))
 					return false;
 			}
@@ -96,38 +98,42 @@ namespace Chrivent {
 	}
 
 	void Dx12Instance::LoadMaterials() {
-		materials.reserve(model->materialData.materials.size());
+		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
-			Dx12Material material(mat);
+			Dx12ModelMaterial material(mat);
 			if (!mat.texture.empty())
 				material.texture = viewer.LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
 				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
 			if (!mat.toonTexture.empty())
 				material.toonTexture = viewer.LoadTexture(mat.toonTexture);
-			materials.emplace_back(material);
+			modelResources.materials.emplace_back(material);
 		}
 	}
 
 	bool Dx12Instance::CreateTextureDescriptors() {
-		if (materials.empty())
+		if (modelResources.materials.empty())
 			return true;
 		const Dx12Device& device = viewer.GetDevice();
 		const Dx12Texture& dummyTexture = viewer.GetDummyTexture();
 		if (!device.device)
 			return false;
-		if (materials.size() > std::numeric_limits<UINT>::max() / 3)
+		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3)
 			return false;
-		const size_t descriptorCount = materials.size() * 3;
+		const size_t descriptorCount = modelResources.materials.size() * 3;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = descriptorCount;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (FAILED(device.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&textureDescriptorHeap))))
+		if (FAILED(device.device->CreateDescriptorHeap(
+			&heapDesc, IID_PPV_ARGS(&modelResources.textureDescriptorHeap))))
 			return false;
-		textureDescriptorSize = device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = textureDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = textureDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		modelResources.textureDescriptorSize = device.device->GetDescriptorHandleIncrementSize(
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
+			modelResources.textureDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle =
+			modelResources.textureDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 		const auto CreateSrv = [&](const Dx12Texture& texture, D3D12_CPU_DESCRIPTOR_HANDLE targetHandle) {
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 			srvDesc.Format = texture.format;
@@ -136,64 +142,64 @@ namespace Chrivent {
 			srvDesc.Texture2D.MipLevels = 1;
 			device.device->CreateShaderResourceView(texture.resource.Get(), &srvDesc, targetHandle);
 		};
-		for (Dx12Material& material : materials) {
+		for (Dx12ModelMaterial& material : modelResources.materials) {
 			material.textureDescriptorHandle = gpuHandle;
 			const Dx12Texture& texture = material.texture.resource ? material.texture : dummyTexture;
 			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : dummyTexture;
 			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : dummyTexture;
 			CreateSrv(texture, cpuHandle);
-			cpuHandle.ptr += textureDescriptorSize;
+			cpuHandle.ptr += modelResources.textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
-			cpuHandle.ptr += textureDescriptorSize;
+			cpuHandle.ptr += modelResources.textureDescriptorSize;
 			CreateSrv(sphereTexture, cpuHandle);
-			cpuHandle.ptr += textureDescriptorSize;
-			gpuHandle.ptr += textureDescriptorSize * 3;
+			cpuHandle.ptr += modelResources.textureDescriptorSize;
+			gpuHandle.ptr += modelResources.textureDescriptorSize * 3;
 		}
 		return true;
 	}
 
 	Dx12Instance::Dx12Instance(Dx12Viewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<Dx12Drawer>(*this, viewer);
+		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
 	}
 
 	void Dx12Instance::ResetRendererResources() {
-		for (Dx12Buffer& vertexBuffer : vertexBuffers)
+		for (Dx12Buffer& vertexBuffer : modelResources.vertexBuffers)
 			vertexBuffer.Reset();
-		indexBuffer.Reset();
-		for (Dx12Buffer& buffer : modelVertexConstantBuffers)
+		modelResources.indexBuffer.Reset();
+		for (Dx12Buffer& buffer : modelResources.modelVertexConstantBuffers)
 			buffer.Reset();
-		for (auto& buffers : modelPixelConstantBuffers) {
+		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < kBufferedFrames; i++)
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
 				buffers[i].Reset();
 		}
-		modelPixelConstantBuffers.clear();
-		for (auto& buffers : edgeVertexConstantBuffers) {
+		modelResources.modelPixelConstantBuffers.clear();
+		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < kBufferedFrames; i++)
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
 				buffers[i].Reset();
 		}
-		edgeVertexConstantBuffers.clear();
-		for (auto& buffers : edgePixelConstantBuffers) {
+		modelResources.edgeVertexConstantBuffers.clear();
+		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < kBufferedFrames; i++)
+			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
 				buffers[i].Reset();
 		}
-		edgePixelConstantBuffers.clear();
-		for (Dx12Buffer& buffer : groundShadowVertexConstantBuffers)
+		modelResources.edgePixelConstantBuffers.clear();
+		for (Dx12Buffer& buffer : modelResources.groundShadowVertexConstantBuffers)
 			buffer.Reset();
-		for (Dx12Buffer& buffer : groundShadowPixelConstantBuffers)
+		for (Dx12Buffer& buffer : modelResources.groundShadowPixelConstantBuffers)
 			buffer.Reset();
-		textureDescriptorHeap.Reset();
-		textureDescriptorSize = 0;
-		for (auto& vertexBufferView : vertexBufferViews)
+		modelResources.textureDescriptorHeap.Reset();
+		modelResources.textureDescriptorSize = 0;
+		for (auto& vertexBufferView : modelResources.vertexBufferViews)
 			vertexBufferView = {};
-		indexBufferView = {};
-		indexCount = 0;
-		materials.clear();
+		modelResources.indexBufferView = {};
+		modelResources.indexCount = 0;
+		modelResources.materials.clear();
 	}
 
 	bool Dx12Instance::SetupRenderer() {
@@ -206,11 +212,11 @@ namespace Chrivent {
 		return CreateTextureDescriptors();
 	}
 
-	bool Dx12Instance::Upload() const {
+	bool Dx12Instance::Upload() {
 		if (model == nullptr)
 			return false;
-		const size_t frameIndex = viewer.GetFrameIndex() % kBufferedFrames;
-		const Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
+		const size_t frameIndex = viewer.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
 			return false;
 		const size_t vertexCount = model->geometryData.positions.size();

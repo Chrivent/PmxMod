@@ -57,6 +57,7 @@ namespace Chrivent {
 		capabilities.gpuName = renderer ? renderer : "unknown";
 		capabilities.gpuType = ResolveGpuTypeName(capabilities.gpuName);
 		capabilities.maxSampleCount = static_cast<uint32_t>(std::max(maxSamples, 1));
+		capabilities.activeSampleCount = std::min<uint32_t>(msaaSamples, capabilities.maxSampleCount);
 		capabilities.uniformBufferAlignment = static_cast<uint64_t>(std::max(uniformAlignment, 1));
 		capabilities.maxTextureBindings = static_cast<uint32_t>(std::max(maxTextureBindings, 0));
 		capabilities.shaderModelMajor = 4;
@@ -94,12 +95,12 @@ namespace Chrivent {
 		dummyColorTex = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTex == 0)
 			return false;
-		return postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
+		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
 	bool OpenGlViewer::Resize() {
 		glViewport(0, 0, screenWidth, screenHeight);
-		return postProcess.InitializeTargets(screenWidth, screenHeight, msaaSamples, capabilities.maxSampleCount);
+		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
 	FrameBeginResult OpenGlViewer::BeginFrame() {

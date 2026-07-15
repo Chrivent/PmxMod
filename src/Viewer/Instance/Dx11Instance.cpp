@@ -12,6 +12,7 @@
 
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers() {
+		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (geometryData.positions.empty() ||
@@ -23,70 +24,79 @@ namespace Chrivent {
 			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
-		if (FAILED(viewer.GetDeviceResources().device->CreateBuffer(&vBufDesc, nullptr, &vertexBuffer)))
+		if (FAILED(deviceResources.device->CreateBuffer(
+			&vBufDesc, nullptr, &modelResources.vertexBuffer)))
 			return false;
 		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(static_cast<UINT>(indexData.bytes.size()));
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = indexData.bytes.data();
-		if (FAILED(viewer.GetDeviceResources().device->CreateBuffer(&iBufDesc, &initData, &indexBuffer)))
+		if (FAILED(deviceResources.device->CreateBuffer(
+			&iBufDesc, &initData, &modelResources.indexBuffer)))
 			return false;
 		if (indexData.elementSize == sizeof(uint16_t))
-			indexBufferFormat = DXGI_FORMAT_R16_UINT;
+			modelResources.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 		else if (indexData.elementSize == sizeof(uint32_t))
-			indexBufferFormat = DXGI_FORMAT_R32_UINT;
+			modelResources.indexBufferFormat = DXGI_FORMAT_R32_UINT;
 		else
 			return false;
 		return true;
 	}
 
 	bool Dx11Instance::CreateConstantBuffers() {
-		if (FAILED(CreateBuffer<ModelVertexConstants>(viewer.GetDeviceResources().device.Get(), vsConstantBuffer)))
+		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
+		if (FAILED(CreateBuffer<ModelVertexConstants>(
+			deviceResources.device.Get(), modelResources.vsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<ModelPixelConstants>(viewer.GetDeviceResources().device.Get(), psConstantBuffer)))
+		if (FAILED(CreateBuffer<ModelPixelConstants>(
+			deviceResources.device.Get(), modelResources.psConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<SceneSurfacePixelConstants>(
-			viewer.GetDeviceResources().device.Get(), sceneSurfaceConstantBuffer)))
+			deviceResources.device.Get(), modelResources.sceneSurfaceConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<EdgeVertexConstants>(viewer.GetDeviceResources().device.Get(), edgeVsConstantBuffer)))
+		if (FAILED(CreateBuffer<EdgeVertexConstants>(
+			deviceResources.device.Get(), modelResources.edgeVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<EdgePixelConstants>(viewer.GetDeviceResources().device.Get(), edgePsConstantBuffer)))
+		if (FAILED(CreateBuffer<EdgePixelConstants>(
+			deviceResources.device.Get(), modelResources.edgePsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<GroundShadowVertexConstants>(viewer.GetDeviceResources().device.Get(), gsVsConstantBuffer)))
+		if (FAILED(CreateBuffer<GroundShadowVertexConstants>(
+			deviceResources.device.Get(), modelResources.gsVsConstantBuffer)))
 			return false;
-		if (FAILED(CreateBuffer<GroundShadowPixelConstants>(viewer.GetDeviceResources().device.Get(), gsPsConstantBuffer)))
+		if (FAILED(CreateBuffer<GroundShadowPixelConstants>(
+			deviceResources.device.Get(), modelResources.gsPsConstantBuffer)))
 			return false;
 		return true;
 	}
 
 	void Dx11Instance::LoadMaterials() {
 		for (const auto& mat : model->materialData.materials) {
-			Dx11Material material(mat);
+			Dx11ModelMaterial material(mat);
 			if (!mat.texture.empty())
 				material.texture = viewer.LoadTexture(mat.texture);
 			if (!mat.spTexture.empty())
 				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
 			if (!mat.toonTexture.empty())
 				material.toonTexture = viewer.LoadTexture(mat.toonTexture);
-			materials.emplace_back(std::move(material));
+			modelResources.materials.emplace_back(std::move(material));
 		}
 	}
 
 	Dx11Instance::Dx11Instance(Dx11Viewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<Dx11Drawer>(*this, viewer);
+		drawer = std::make_unique<Dx11Drawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
 	}
 
 	void Dx11Instance::ResetRendererResources() {
-		materials.clear();
-		vertexBuffer.Reset();
-		indexBuffer.Reset();
-		vsConstantBuffer.Reset();
-		psConstantBuffer.Reset();
-		sceneSurfaceConstantBuffer.Reset();
-		edgeVsConstantBuffer.Reset();
-		edgePsConstantBuffer.Reset();
-		gsVsConstantBuffer.Reset();
-		gsPsConstantBuffer.Reset();
-		indexBufferFormat = DXGI_FORMAT_R16_UINT;
+		modelResources.materials.clear();
+		modelResources.vertexBuffer.Reset();
+		modelResources.indexBuffer.Reset();
+		modelResources.vsConstantBuffer.Reset();
+		modelResources.psConstantBuffer.Reset();
+		modelResources.sceneSurfaceConstantBuffer.Reset();
+		modelResources.edgeVsConstantBuffer.Reset();
+		modelResources.edgePsConstantBuffer.Reset();
+		modelResources.gsVsConstantBuffer.Reset();
+		modelResources.gsPsConstantBuffer.Reset();
+		modelResources.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 	}
 
 	bool Dx11Instance::SetupRenderer() {
@@ -98,15 +108,16 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx11Instance::Upload() const {
+	bool Dx11Instance::Upload() {
+		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(viewer.GetDeviceResources().context->Map(vertexBuffer.Get(), 0,
+		if (FAILED(deviceResources.context->Map(modelResources.vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return false;
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(mapRes.pData), vtxCount });
-		viewer.GetDeviceResources().context->Unmap(vertexBuffer.Get(), 0);
+		deviceResources.context->Unmap(modelResources.vertexBuffer.Get(), 0);
 		return writeSucceeded;
 	}
 }

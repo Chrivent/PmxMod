@@ -1,23 +1,15 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
+#include "Viewer/DrawContext/Dx11DrawContext.h"
 #include "Viewer/PostProcess/Dx11PostProcess.h"
 #include "Viewer/Texture/Dx11TextureCache.h"
-#include "Viewer/Shader/Dx11Shader.h"
 
 #include <filesystem>
 #include <memory>
 #include <vector>
-#include <dxgi1_6.h>
 
 namespace Chrivent {
-    // D3D11 device, immediate context와 swapchain을 한 단위로 보관한다.
-    struct Dx11DeviceResources {
-        Microsoft::WRL::ComPtr<ID3D11Device>        device;
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-        Microsoft::WRL::ComPtr<IDXGISwapChain>      swapChain;
-    };
-
     // D3D11 장면 렌더링에 사용하는 색상 및 depth target들을 보관한다.
     struct Dx11RenderTargets {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         backBuffer;
@@ -26,34 +18,6 @@ namespace Chrivent {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView>  sceneColorMsaaView;
         Microsoft::WRL::ComPtr<ID3D11DepthStencilView>  depthStencilView;
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         depthTex;
-    };
-
-    // D3D11 기본 렌더링 패스별 셰이더 프로그램을 보관한다.
-    struct Dx11ShaderSet {
-        Dx11ModelShader         model;
-        Dx11EdgeShader          edge;
-        Dx11GroundShadowShader  groundShadow;
-		Dx11SceneDepthShader sceneDepth;
-		Dx11SceneVelocityShader sceneVelocity;
-    };
-
-    // D3D11 기본 렌더링에 사용하는 sampler와 고정 파이프라인 상태를 보관한다.
-    struct Dx11PipelineStates {
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>      textureSampler;
-        Microsoft::WRL::ComPtr<ID3D11SamplerState>      toonTextureSampler;
-        Microsoft::WRL::ComPtr<ID3D11BlendState>        blendState;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   frontFaceRs;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   bothFaceRs;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   edgeRs;
-        Microsoft::WRL::ComPtr<ID3D11RasterizerState>   gsRs;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> gsDss;
-        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> defaultDss;
-    };
-
-    // texture가 없는 D3D11 재질에 바인딩할 기본 흰색 texture를 보관한다.
-    struct Dx11DummyTexture {
-        Microsoft::WRL::ComPtr<ID3D11Texture2D>             texture;
-        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>    textureView;
     };
 
     // 공통 Viewer 계약을 D3D11 렌더링 흐름으로 구현한다.
@@ -67,7 +31,14 @@ namespace Chrivent {
         Dx11ShaderSet shaders;
         Dx11PipelineStates pipelineStates;
         Dx11DummyTexture dummyTexture;
+		Dx11DrawContext drawContext{ deviceResources, shaders, pipelineStates, dummyTexture };
 
+		// 지정한 sample count를 색상과 depth 타깃이 함께 지원하는지 확인한다.
+		static bool ResolveMsaaQuality(ID3D11Device* device, UINT sampleCount, UINT& quality);
+		// 현재 디바이스와 렌더 타깃 형식이 지원하는 최대 MSAA sample count를 반환한다.
+		static UINT ResolveMaximumMsaaSampleCount(ID3D11Device* device);
+		// 공통 4→2→1 정책으로 실제 사용할 MSAA sample count와 quality를 선택한다.
+		void ChooseMsaaSettings();
         // DX11을 지원하는 고성능 DXGI 어댑터를 선택해 디바이스를 생성한다.
         bool CreateDevice();
         // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
@@ -93,10 +64,7 @@ namespace Chrivent {
         std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
-        const Dx11DeviceResources& GetDeviceResources() const { return deviceResources; }
-        const Dx11ShaderSet& GetShaders() const { return shaders; }
-        const Dx11PipelineStates& GetPipelineStates() const { return pipelineStates; }
-        const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }
+		const Dx11DrawContext& GetDrawContext() const { return drawContext; }
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;

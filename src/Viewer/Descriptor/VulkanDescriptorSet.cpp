@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Descriptor/VulkanDescriptorSet.h"
 
-#include "Viewer/Instance/VulkanInstance.h"
+#include "Viewer/DrawResource/VulkanModelResources.h"
 
 #include <iostream>
 
@@ -104,11 +104,11 @@ namespace Chrivent {
 	}
 
 	void VulkanDescriptorSet::UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, const VkDeviceSize pixelConstantRange,
-		std::vector<VulkanMaterial>& materials) const {
+		std::vector<VulkanModelMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
 			if (i >= pixelDescriptorSets.size())
 				return;
-			VulkanMaterial& material = materials[i];
+			VulkanModelMaterial& material = materials[i];
 			VkDescriptorSet* descriptorSet = nullptr;
 			if (passType == VulkanPassType::Model)
 				descriptorSet = &material.pixelDescriptorSet;
@@ -140,11 +140,11 @@ namespace Chrivent {
 		}
 	}
 
-	void VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const {
+	void VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const {
 		for (size_t i = 0; i < materials.size(); i++) {
 			if (i >= textureDescriptorSets.size())
 				return;
-			VulkanMaterial& material = materials[i];
+			VulkanModelMaterial& material = materials[i];
 			material.textureDescriptorSet = textureDescriptorSets[i];
 			const VkDescriptorImageInfo imageInfos[] = {
 				VkDescriptorImageInfo{
@@ -240,7 +240,7 @@ namespace Chrivent {
 		const VkDeviceSize vertexConstantRange,
 		const VulkanBuffer& pixelConstantBuffer,
 		const VkDeviceSize pixelConstantRange,
-		std::vector<VulkanMaterial>& materials,
+		std::vector<VulkanModelMaterial>& materials,
 		const VulkanPassType sourcePassType) {
 		Reset();
 		device = sourceDevice.device;

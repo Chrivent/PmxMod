@@ -12,6 +12,7 @@ namespace Chrivent {
 		std::string gpuName;
 		std::string gpuType;
 		uint32_t maxSampleCount = 1;
+		uint32_t activeSampleCount = 1;
 		uint64_t uniformBufferAlignment = 1;
 		uint32_t maxTextureBindings = 0;
 		uint32_t shaderModelMajor = 0;

@@ -30,11 +30,21 @@ target_sources(PmxModViewer PRIVATE
         Device/Dx12Device.h Device/Dx12Device.cpp
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
-        Drawer/Drawer.h Drawer/Drawer.cpp
-        Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
-        Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp
-        Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
-        Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
+		Drawer/Drawer.h Drawer/Drawer.cpp
+		Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
+		Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp
+		Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
+		Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
+
+		DrawContext/OpenGlDrawContext.h
+		DrawContext/Dx11DrawContext.h
+		DrawContext/Dx12DrawContext.h DrawContext/Dx12DrawContext.cpp
+		DrawContext/VulkanDrawContext.h DrawContext/VulkanDrawContext.cpp
+
+		DrawResource/OpenGlModelResources.h
+		DrawResource/Dx11ModelResources.h
+		DrawResource/Dx12ModelResources.h
+		DrawResource/VulkanModelResources.h
 
         Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
 

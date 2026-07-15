@@ -1,9 +1,9 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
+#include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/PostProcess/OpenGlPostProcess.h"
 #include "Viewer/Texture/OpenGlTextureCache.h"
-#include "Viewer/Shader/OpenGlShader.h"
 
 #include <filesystem>
 #include <memory>
@@ -27,6 +27,8 @@ namespace Chrivent {
         std::unique_ptr<OpenGlGroundShadowShader> gsShader;
         std::unique_ptr<OpenGlDepthOnlyShader> depthOnlyShader;
         std::unique_ptr<OpenGlSceneVelocityShader> sceneVelocityShader;
+		OpenGlDrawContext drawContext{ dummyColorTex, shader, edgeShader, gsShader,
+			depthOnlyShader, sceneVelocityShader };
 
     protected:
         PostProcess& ResolvePostProcess() override { return postProcess; }
@@ -42,12 +44,7 @@ namespace Chrivent {
     public:
         ~OpenGlViewer() override;
 
-        GLuint GetDummyColorTexture() const { return dummyColorTex; }
-        const OpenGlModelShader* GetModelShader() const { return shader.get(); }
-        const OpenGlEdgeShader* GetEdgeShader() const { return edgeShader.get(); }
-        const OpenGlGroundShadowShader* GetGroundShadowShader() const { return gsShader.get(); }
-        const OpenGlDepthOnlyShader* GetDepthOnlyShader() const { return depthOnlyShader.get(); }
-        const OpenGlSceneVelocityShader* GetSceneVelocityShader() const { return sceneVelocityShader.get(); }
+		const OpenGlDrawContext& GetDrawContext() const { return drawContext; }
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;

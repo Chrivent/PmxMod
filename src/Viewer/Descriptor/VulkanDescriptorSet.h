@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace Chrivent {
-	struct VulkanMaterial;
+	struct VulkanModelMaterial;
 	enum class VulkanPassType {
 		Model,
 		Edge,
@@ -29,9 +29,9 @@ namespace Chrivent {
 		// vertex uniform buffer 정보를 descriptor set에 기록한다.
 		void UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
 		// 재질별 pixel uniform buffer 정보를 descriptor set에 기록한다.
-		void UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange, std::vector<VulkanMaterial>& materials) const;
+		void UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange, std::vector<VulkanModelMaterial>& materials) const;
 		// 재질별 텍스처 정보를 descriptor set에 기록한다.
-		void UpdateTextureDescriptorSets(std::vector<VulkanMaterial>& materials) const;
+		void UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const;
 
 	public:
 		VulkanDescriptorSet() = default;
@@ -46,7 +46,7 @@ namespace Chrivent {
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanPipeline& sourcePipeline,
 			const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange,
 			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange,
-			std::vector<VulkanMaterial>& materials, VulkanPassType sourcePassType);
+			std::vector<VulkanModelMaterial>& materials, VulkanPassType sourcePassType);
 		// descriptor pool과 set 핸들을 해제한다.
 		void Reset();
 	};

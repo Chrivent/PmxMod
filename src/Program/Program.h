@@ -18,6 +18,13 @@
 namespace Chrivent {
     // 애플리케이션 수명 주기, 씬, 렌더러, 재생과 GUI를 총괄한다.
     class Program {
+        // 프레임버퍼 크기 반영 결과를 렌더 가능, 일시 중단과 실패로 구분한다.
+        enum class FramebufferUpdateResult {
+            Ready,
+            Skipped,
+            Failed
+        };
+
         // 명령행에서 받은 씬, 렌더러와 벤치마크 옵션을 보관한다.
         struct ProgramOptions {
             std::filesystem::path scenePath;
@@ -129,8 +136,8 @@ namespace Chrivent {
         void UpdateShaderMotionPanel(size_t shaderEffectIndex);
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
-        // 창 크기 변경을 렌더러에 반영한다.
-        bool UpdateFramebufferSize() const;
+        // 창 크기 변경을 렌더러에 반영하고 최소화 상태를 일시 중단으로 구분한다.
+        FramebufferUpdateResult UpdateFramebufferSize() const;
         // FPS 표시 시간을 갱신한다.
         void TickFps();
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
+#include "Viewer/DrawContext/Dx12DrawContext.h"
 #include "Viewer/Texture/Dx12TextureCache.h"
 #include "Viewer/PostProcess/Dx12PostProcess.h"
 #include "Viewer/Command/Dx12CommandContext.h"
@@ -17,17 +18,18 @@
 namespace Chrivent {
 	// 공통 Viewer 계약을 D3D12 명령 목록과 스왑체인 흐름으로 구현한다.
 	class Dx12Viewer : public Viewer {
-		Dx12PostProcess postProcess;
-		Dx12TextureCache textureCache;
 		Dx12Device device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
+		Dx12TextureCache textureCache;
+		Dx12PostProcess postProcess;
 		Dx12Texture dummyTexture;
 		bool frameReady = false;
 		UINT frameIndex = 0;
+		Dx12DrawContext drawContext{ commandContext, pipeline, frameReady, frameIndex };
 
 		// 현재 back buffer를 render target 상태로 전환한다.
 		void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const;
@@ -35,6 +37,7 @@ namespace Chrivent {
 		void ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const;
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 명령 목록에 적용한다.
 		void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList) const;
+		
 	protected:
 		PostProcess& ResolvePostProcess() override { return postProcess; }
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
@@ -52,11 +55,8 @@ namespace Chrivent {
 		const Dx12Device& GetDevice() const { return device; }
 		const Dx12Texture& GetDummyTexture() const { return dummyTexture; }
 		UINT GetFrameIndex() const { return frameIndex; }
+		const Dx12DrawContext& GetDrawContext() const { return drawContext; }
 		
-		// 기록 가능한 현재 프레임 명령 목록을 반환한다.
-		ID3D12GraphicsCommandList* ResolveCommandList() const {
-			return frameReady ? commandContext.GetCommandList().Get() : nullptr;
-		}
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureWindowHints() override;
 		// DX12 렌더러 리소스를 초기화한다.
@@ -73,15 +73,5 @@ namespace Chrivent {
 		bool WaitIdle() override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
 		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
-		// material의 양면 렌더링 여부에 맞는 DX12 model pipeline state를 바인딩한다.
-		void BindModelPipeline(bool bothFace) const;
-		// material의 양면 렌더링 여부에 맞는 DX12 depth-only pipeline state를 바인딩한다.
-		void BindDepthOnlyPipeline(bool bothFace) const;
-		// material의 양면 렌더링 여부에 맞는 DX12 장면 속도 pipeline state를 바인딩한다.
-		void BindSceneVelocityPipeline(bool bothFace) const;
-		// DX12 엣지 렌더링용 root signature와 pipeline state를 바인딩한다.
-		void BindEdgePipeline() const;
-		// DX12 지면 그림자 렌더링용 root signature와 pipeline state를 바인딩한다.
-		void BindGroundShadowPipeline() const;
 	};
 }

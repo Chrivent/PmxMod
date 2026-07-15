@@ -7,10 +7,50 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <algorithm>
 #include <iostream>
 #include <iterator>
 
 namespace Chrivent {
+	bool Dx11Viewer::ResolveMsaaQuality(ID3D11Device* device, const UINT sampleCount, UINT& quality) {
+		quality = 0;
+		if (device == nullptr || sampleCount <= 1)
+			return sampleCount == 1;
+		UINT colorQuality = 0;
+		UINT depthQuality = 0;
+		if (FAILED(device->CheckMultisampleQualityLevels(
+			DXGI_FORMAT_R8G8B8A8_UNORM, sampleCount, &colorQuality)) || colorQuality == 0
+			|| FAILED(device->CheckMultisampleQualityLevels(
+				DXGI_FORMAT_D24_UNORM_S8_UINT, sampleCount, &depthQuality)) || depthQuality == 0)
+			return false;
+		quality = std::min(colorQuality, depthQuality) - 1;
+		return true;
+	}
+
+	UINT Dx11Viewer::ResolveMaximumMsaaSampleCount(ID3D11Device* device) {
+		constexpr UINT sampleCounts[] = { 32u, 16u, 8u, 4u, 2u };
+		for (const UINT sampleCount : sampleCounts) {
+			UINT quality = 0;
+			if (ResolveMsaaQuality(device, sampleCount, quality))
+				return sampleCount;
+		}
+		return 1;
+	}
+
+	void Dx11Viewer::ChooseMsaaSettings() {
+		constexpr UINT sampleCounts[] = { 4u, 2u };
+		for (const UINT sampleCount : sampleCounts) {
+			UINT quality = 0;
+			if (!ResolveMsaaQuality(deviceResources.device.Get(), sampleCount, quality))
+				continue;
+			multiSampleCount = sampleCount;
+			multiSampleQuality = quality;
+			return;
+		}
+		multiSampleCount = 1;
+		multiSampleQuality = 0;
+	}
+
 	bool Dx11Viewer::CreateDevice() {
 		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
 		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory))))
@@ -150,14 +190,9 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 		if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
 			return false;
-		multiSampleCount = 4;
-		UINT quality = 0;
-		if (FAILED(deviceResources.device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, multiSampleCount, &quality)) || quality == 0) {
-			multiSampleCount = 1;
-			quality = 0;
-		}
-		multiSampleQuality = quality > 0 ? quality - 1 : 0;
-		capabilities.maxSampleCount = multiSampleCount;
+		ChooseMsaaSettings();
+		capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount(deviceResources.device.Get());
+		capabilities.activeSampleCount = multiSampleCount;
 		capabilities.Print();
 		auto d = Dx11DescBuilder::MakeSwapChainDesc(hwnd, multiSampleCount, multiSampleQuality);
 		if (FAILED(factory->CreateSwapChain(deviceResources.device.Get(), &d, &deviceResources.swapChain)))

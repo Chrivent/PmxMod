@@ -55,7 +55,7 @@ namespace Chrivent {
 		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
-		bool InitializeTargets(int width, int height, int msaaSamples, uint32_t maxSampleCount);
+		bool InitializeTargets(int width, int height, int sampleCount);
 		// 체크된 후처리 effect 선언으로 OpenGL 실행 리소스와 shader chain을 생성한다.
 		bool Load(const std::vector<const EffectDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.

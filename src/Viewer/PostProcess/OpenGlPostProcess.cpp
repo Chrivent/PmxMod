@@ -128,8 +128,7 @@ namespace Chrivent {
 		ResetHistory();
 	}
 
-	bool OpenGlPostProcess::InitializeTargets(
-		const int width, const int height, const int msaaSamples, const uint32_t maxSampleCount) {
+	bool OpenGlPostProcess::InitializeTargets(const int width, const int height, const int sampleCount) {
 		ResetTargets();
 		if (width <= 0 || height <= 0)
 			return false;
@@ -141,8 +140,7 @@ namespace Chrivent {
 			return false;
 		glNamedBufferData(frameDataBuffer, sizeof(PostProcessFrameData), nullptr, GL_DYNAMIC_DRAW);
 		glNamedBufferData(parameterDataBuffer, sizeof(PostProcessParameterData), nullptr, GL_DYNAMIC_DRAW);
-		postProcessSampleCount = std::max<GLsizei>(
-			1, std::min<GLsizei>(msaaSamples, static_cast<GLsizei>(maxSampleCount)));
+		postProcessSampleCount = std::max<GLsizei>(1, sampleCount);
 		glCreateFramebuffers(1, &sceneFramebuffer);
 		glCreateRenderbuffers(1, &sceneColorMsaa);
 		glCreateRenderbuffers(1, &sceneDepthStencil);

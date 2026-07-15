@@ -4,22 +4,34 @@
 #include <iostream>
 
 namespace Chrivent {
-	VulkanSwapChainSupport VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice) {
-		VulkanSwapChainSupport support;
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &support.capabilities);
+	bool VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice, VulkanSwapChainSupport& support) {
+		support = {};
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+			sourceDevice.physicalDevice, sourceDevice.surface, &support.capabilities) != VK_SUCCESS)
+			return false;
 		uint32_t formatCount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, nullptr);
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(
+			sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, nullptr) != VK_SUCCESS)
+			return false;
 		if (formatCount > 0) {
 			support.formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, support.formats.data());
+			if (vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface,
+				&formatCount, support.formats.data()) != VK_SUCCESS)
+				return false;
+			support.formats.resize(formatCount);
 		}
 		uint32_t presentModeCount = 0;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, nullptr);
+		if (vkGetPhysicalDeviceSurfacePresentModesKHR(
+			sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, nullptr) != VK_SUCCESS)
+			return false;
 		if (presentModeCount > 0) {
 			support.presentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, support.presentModes.data());
+			if (vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface,
+				&presentModeCount, support.presentModes.data()) != VK_SUCCESS)
+				return false;
+			support.presentModes.resize(presentModeCount);
 		}
-		return support;
+		return true;
 	}
 
 	VkSurfaceFormatKHR VulkanSwapChain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
@@ -88,9 +100,12 @@ namespace Chrivent {
 
 	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
 		device = sourceDevice.device;
-		const auto [capabilities,
-			formats,
-			presentModes] = QuerySupport(sourceDevice);
+		VulkanSwapChainSupport support;
+		if (!QuerySupport(sourceDevice, support)) {
+			std::cerr << "Failed to query Vulkan swapchain surface support.\n";
+			return false;
+		}
+		const auto& [capabilities, formats, presentModes] = support;
 		if (formats.empty() || presentModes.empty()) {
 			std::cerr << "Failed to find Vulkan swapchain surface support.\n";
 			return false;
@@ -133,9 +148,12 @@ namespace Chrivent {
 			std::cerr << "Failed to create Vulkan swapchain.\n";
 			return false;
 		}
-		vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, nullptr);
+		if (vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, nullptr) != VK_SUCCESS)
+			return false;
 		images.resize(imageCount);
-		vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, images.data());
+		if (vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, images.data()) != VK_SUCCESS)
+			return false;
+		images.resize(imageCount);
 		imageFormat = format;
 		extent = selectedExtent;
 		return CreateImageViews();

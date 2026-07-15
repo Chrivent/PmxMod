@@ -1,7 +1,8 @@
 ﻿#include "Viewer/Drawer/VulkanDrawer.h"
 
+#include "Viewer/DrawContext/VulkanDrawContext.h"
 #include "Viewer/Instance/VulkanInstance.h"
-#include "Viewer/Viewer/VulkanViewer.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Core/Model/Model.h"
 
@@ -9,13 +10,13 @@
 
 namespace Chrivent {
 	void VulkanDrawer::BeginDrawFrame() {
-		const size_t frameIndex = renderer.GetFrameIndex();
-		instance.modelVertexConstantsRing.BeginFrame(frameIndex);
-		instance.edgeVertexConstantsRing.BeginFrame(frameIndex);
-		instance.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
-		instance.modelPixelConstantsRing.BeginFrame(frameIndex);
-		instance.edgePixelConstantsRing.BeginFrame(frameIndex);
-		instance.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
+		const size_t frameIndex = drawContext.GetFrameIndex();
+		resources.modelVertexConstantsRing.BeginFrame(frameIndex);
+		resources.edgeVertexConstantsRing.BeginFrame(frameIndex);
+		resources.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
+		resources.modelPixelConstantsRing.BeginFrame(frameIndex);
+		resources.edgePixelConstantsRing.BeginFrame(frameIndex);
+		resources.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 	}
 
 	const glm::mat4& VulkanDrawer::ClipMatrix() const {
@@ -29,22 +30,23 @@ namespace Chrivent {
 	}
 
 	void VulkanDrawer::DrawModel() {
-		const size_t frameIndex = renderer.GetFrameIndex();
-		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		const auto& viewer = renderer;
+		const size_t frameIndex = drawContext.GetFrameIndex();
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		std::string error;
-		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
+		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
+			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!instance.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
 			return;
 		}
-		renderer.BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
+		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			const auto& material = instance.materials[materialId];
-			const auto& mat = material.mat;
+			const auto& material = resources.materials[materialId];
+			const auto& mat = material.material;
 			if (mat.diffuse.a == 0)
 				continue;
 			const int textureMode = material.textureEnabled ? material.texture.hasAlpha ? 2 : 1 : 0;
@@ -58,92 +60,97 @@ namespace Chrivent {
 			}
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
 				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
-			const auto pixelSlice = instance.modelPixelConstantsRing.Allocate(sizeof(pixelConstants), instance.uniformBufferOffsetAlignment, error);
+			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
+				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!instance.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
 				continue;
 			}
-			renderer.BindModelPipeline(mat.bothFace);
-			renderer.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
-			renderer.BindTextureDescriptorSet(material.textureDescriptorSet);
-			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			drawContext.BindModelPipeline(mat.bothFace);
+			drawContext.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
+			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawEdge() {
-		const size_t frameIndex = renderer.GetFrameIndex();
-		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		const auto& viewer = renderer;
+		const size_t frameIndex = drawContext.GetFrameIndex();
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, -viewer.screenHeight));
-		renderer.BindEdgePipeline();
+		drawContext.BindEdgePipeline();
 		std::string error;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			const auto& material = instance.materials[materialId];
-			const auto& mat = material.mat;
+			const auto& material = resources.materials[materialId];
+			const auto& mat = material.material;
 			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
 				continue;
 			EdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
-			const auto vertexSlice = instance.edgeVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
+			const auto vertexSlice = resources.edgeVertexConstantsRing.Allocate(
+				sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!vertexSlice.has_value() ||
-				!instance.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
 				continue;
 			}
-			renderer.BindModelDescriptorSets(instance.edgeDescriptorSet, vertexSlice->offset);
+			drawContext.BindModelDescriptorSets(resources.edgeDescriptorSet, vertexSlice->offset);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			const auto pixelSlice = instance.edgePixelConstantsRing.Allocate(sizeof(pixelConstants), instance.uniformBufferOffsetAlignment, error);
+			const auto pixelSlice = resources.edgePixelConstantsRing.Allocate(
+				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!instance.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 				continue;
 			}
-			renderer.BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
-			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			drawContext.BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
+			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawGroundShadow() {
-		const size_t frameIndex = renderer.GetFrameIndex();
-		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		const auto& viewer = renderer;
+		const size_t frameIndex = drawContext.GetFrameIndex();
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
 		constexpr GroundShadowPixelConstants pixelConstants{};
 		std::string error;
-		const auto vertexSlice = instance.groundShadowVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
+		const auto vertexSlice = resources.groundShadowVertexConstantsRing.Allocate(
+			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!instance.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
 			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
 			return;
 		}
-		const auto pixelSlice = instance.groundShadowPixelConstantsRing.Allocate(sizeof(pixelConstants), instance.uniformBufferOffsetAlignment, error);
+		const auto pixelSlice = resources.groundShadowPixelConstantsRing.Allocate(
+			sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!pixelSlice.has_value() ||
-			!instance.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
 			return;
 		}
-		renderer.BindGroundShadowPipeline();
-		renderer.BindModelDescriptorSets(instance.groundShadowDescriptorSet, vertexSlice->offset);
+		drawContext.BindGroundShadowPipeline();
+		drawContext.BindModelDescriptorSets(resources.groundShadowDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			const auto& material = instance.materials[materialId];
-			const auto& mat = material.mat;
+			const auto& material = resources.materials[materialId];
+			const auto& mat = material.material;
 			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
 				continue;
-			renderer.BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
-			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+			drawContext.BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
+			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 	}
 
 	void VulkanDrawer::DrawSceneInputs() {
-		const size_t frameIndex = renderer.GetFrameIndex();
-		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
-		const auto& viewer = renderer;
+		const size_t frameIndex = drawContext.GetFrameIndex();
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
 			viewer, world, ClipMatrix());
@@ -151,39 +158,41 @@ namespace Chrivent {
 		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
 		std::string error;
 		const size_t constantSize = velocityRequired ? sizeof(velocityConstants) : sizeof(depthConstants);
-		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(
-			constantSize, instance.uniformBufferOffsetAlignment, error);
+		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
+			constantSize, resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!instance.modelVertexConstantsRing.Write(*vertexSlice,
+			!resources.modelVertexConstantsRing.Write(*vertexSlice,
 				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, error)) {
 			std::cerr << "Failed to update Vulkan scene input vertex constants.\n";
 			return;
 		}
-		renderer.BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
+		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
-			const auto& material = instance.materials[materialId];
-			const auto& mat = material.mat;
+			const auto& material = resources.materials[materialId];
+			const auto& mat = material.material;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.textureEnabled && material.texture.hasAlpha);
-			const auto pixelSlice = instance.modelPixelConstantsRing.Allocate(
-				sizeof(ModelPixelConstants), instance.uniformBufferOffsetAlignment, error);
+			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
+				sizeof(ModelPixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value()
-				|| !instance.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
 				std::cerr << "Failed to update Vulkan scene surface constants.\n";
 				continue;
 			}
 			if (velocityRequired)
-				renderer.BindSceneVelocityPipeline(mat.bothFace);
+				drawContext.BindSceneVelocityPipeline(mat.bothFace);
 			else
-				renderer.BindDepthOnlyPipeline(mat.bothFace);
-			renderer.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
-			renderer.BindTextureDescriptorSet(material.textureDescriptorSet);
-			renderer.DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
+				drawContext.BindDepthOnlyPipeline(mat.bothFace);
+			drawContext.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
+			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 	}
 
-	VulkanDrawer::VulkanDrawer(VulkanInstance& sourceInstance, VulkanViewer& sourceViewer)
-		: Drawer(sourceViewer), instance(sourceInstance), renderer(sourceViewer) {}
+	VulkanDrawer::VulkanDrawer(const VulkanInstance& sourceInstance, VulkanModelResources& sourceResources,
+		VulkanDrawContext& sourceDrawContext, Viewer& sourceViewer)
+		: Drawer(sourceViewer), instance(sourceInstance), resources(sourceResources),
+		drawContext(sourceDrawContext) {}
 }

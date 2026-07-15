@@ -27,110 +27,6 @@ namespace Chrivent {
 		msaaDepthBuffer.Reset();
 	}
 
-	void VulkanViewer::DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
-		const VkIndexType indexType, const size_t firstIndex, const size_t indexCount) {
-		if (!frameReady)
-			return;
-		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
-			indexCount > std::numeric_limits<uint32_t>::max()) {
-			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
-			return;
-		}
-		auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.DrawIndexed(currentImageIndex, vertexBuffer, indexBuffer, indexType, firstIndex, indexCount);
-	}
-
-	void VulkanViewer::BindModelPipeline(const bool bothFace) {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = pipeline.ResolveModelPipeline(bothFace);
-		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
-		bindStateCache.pipeline = targetPipeline;
-	}
-
-	void VulkanViewer::BindDepthOnlyPipeline(const bool bothFace) {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(false, bothFace);
-		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
-		bindStateCache.pipeline = targetPipeline;
-	}
-
-	void VulkanViewer::BindSceneVelocityPipeline(const bool bothFace) {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(true, bothFace);
-		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
-		bindStateCache.pipeline = targetPipeline;
-	}
-
-	void VulkanViewer::BindEdgePipeline() {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = pipeline.GetEdgePipeline();
-		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
-		bindStateCache.pipeline = targetPipeline;
-	}
-
-	void VulkanViewer::BindGroundShadowPipeline() {
-		if (!frameReady)
-			return;
-		const VkPipeline targetPipeline = pipeline.GetGroundShadowPipeline();
-		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindPipeline(currentImageIndex, targetPipeline);
-		bindStateCache.pipeline = targetPipeline;
-	}
-
-	void VulkanViewer::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, const uint32_t dynamicOffset) {
-		if (!frameReady)
-			return;
-		if (bindStateCache.vertexDescriptorSet == descriptorSet.GetVertexDescriptorSet() &&
-			bindStateCache.vertexDynamicOffset == dynamicOffset)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 0,
-			{ &descriptorSet.GetVertexDescriptorSet(), 1 }, { &dynamicOffset, 1 });
-		bindStateCache.vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
-		bindStateCache.vertexDynamicOffset = dynamicOffset;
-	}
-
-	void VulkanViewer::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet, const uint32_t dynamicOffset) {
-		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
-			return;
-		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
-			bindStateCache.pixelDynamicOffset == dynamicOffset)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 1,
-			{ &descriptorSet, 1 }, { &dynamicOffset, 1 });
-		bindStateCache.pixelDescriptorSet = descriptorSet;
-		bindStateCache.pixelDynamicOffset = dynamicOffset;
-	}
-
-	void VulkanViewer::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) {
-		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
-			return;
-		if (bindStateCache.textureDescriptorSet == descriptorSet)
-			return;
-		const auto& commandBuffer = commandContext.commandBuffer;
-		commandBuffer.BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 2,
-			{ &descriptorSet, 1 });
-		bindStateCache.textureDescriptorSet = descriptorSet;
-	}
-
 	void VulkanViewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
@@ -165,8 +61,7 @@ namespace Chrivent {
 	FrameBeginResult VulkanViewer::BeginFrame() {
 		frameReady = false;
 		postProcessSceneInputPassReady = false;
-		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
+		drawContext.ResetFrameState();
 		const size_t frameIndex = syncObject.currentFrame;
 		if (vkWaitForFences(device.device, 1, &syncObject.inFlightFences[frameIndex], VK_TRUE, UINT64_MAX)
 			!= VK_SUCCESS)
@@ -204,7 +99,7 @@ namespace Chrivent {
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
 			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.extent, clearColor))
 			return FrameBeginResult::Failed;
-		bindStateCache.pipeline = pipeline.ResolveModelPipeline(false);
+		drawContext.SetPipelineState(pipeline.ResolveModelPipeline(false));
 		frameReady = true;
 		return FrameBeginResult::Ready;
 	}
@@ -242,9 +137,11 @@ namespace Chrivent {
 			.commandBuffer = commandContext.commandBuffer.ResolveCommandBuffer(currentImageIndex)
 		};
 		const VkFence inFlightFence = inFlightFences[frameIndex];
-		if (currentImageIndex < syncObject.imagesInFlight.size())
-			syncObject.imagesInFlight[currentImageIndex] = inFlightFence;
-		vkResetFences(device.device, 1, &inFlightFence);
+		if (vkResetFences(device.device, 1, &inFlightFence) != VK_SUCCESS) {
+			postProcess.DiscardHistoryFrame();
+			std::cerr << "Failed to reset Vulkan in-flight fence.\n";
+			return FrameEndResult::Failed;
+		}
 		const VkSubmitInfo2 submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
 			.waitSemaphoreInfoCount = 1,
@@ -259,6 +156,8 @@ namespace Chrivent {
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
 			return FrameEndResult::Failed;
 		}
+		if (currentImageIndex < syncObject.imagesInFlight.size())
+			syncObject.imagesInFlight[currentImageIndex] = inFlightFence;
 		postProcess.CommitHistoryFrame();
 		const VkSwapchainKHR swapChains[] = { swapChain.swapChain };
 		VkPresentInfoKHR presentInfo{};
@@ -295,12 +194,8 @@ namespace Chrivent {
 		if (!postProcess.BeginSceneInputPass(commandContext.commandBuffer,
 			currentImageIndex, geometryPipeline, swapChain.extent))
 			return false;
-		bindStateCache.pipeline = geometryPipeline;
-		bindStateCache.vertexDescriptorSet = VK_NULL_HANDLE;
-		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		bindStateCache.pixelDescriptorSet = VK_NULL_HANDLE;
-		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
-		bindStateCache.textureDescriptorSet = VK_NULL_HANDLE;
+		drawContext.SetPipelineState(geometryPipeline);
+		drawContext.ResetDescriptorBindings();
 		return true;
 	}
 

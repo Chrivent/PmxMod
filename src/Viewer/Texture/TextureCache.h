@@ -61,6 +61,5 @@ namespace Chrivent {
 				return nullptr;
 			return std::static_pointer_cast<TextureType>(it->second);
 		}
-
 	};
 }

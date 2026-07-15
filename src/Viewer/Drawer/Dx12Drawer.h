@@ -6,12 +6,14 @@
 
 namespace Chrivent {
 	class Dx12Instance;
-	class Dx12Viewer;
+	class Dx12DrawContext;
+	struct Dx12ModelResources;
 
 	// D3D12 명령으로 모델의 각 렌더링 패스를 기록한다.
 	class Dx12Drawer : public Drawer {
 		const Dx12Instance& instance;
-		Dx12Viewer& renderer;
+		Dx12ModelResources& resources;
+		const Dx12DrawContext& drawContext;
 
 	protected:
 		// DirectX depth range로 맞추는 clip 보정 행렬을 반환한다.
@@ -26,6 +28,7 @@ namespace Chrivent {
 		void DrawSceneInputs() override;
 
 	public:
-		Dx12Drawer(const Dx12Instance& sourceInstance, Dx12Viewer& sourceViewer);
+		Dx12Drawer(const Dx12Instance& sourceInstance, Dx12ModelResources& sourceResources,
+			const Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer);
 	};
 }

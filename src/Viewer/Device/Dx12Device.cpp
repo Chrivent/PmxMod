@@ -5,26 +5,34 @@
 #include <iterator>
 
 namespace Chrivent {
-	UINT Dx12Device::ChooseMsaaSampleCount(ID3D12Device* device) {
+	bool Dx12Device::SupportsMsaaSampleCount(ID3D12Device* device, const UINT sampleCount) {
 		if (device == nullptr)
-			return 1;
+			return false;
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS colorQualityLevels{};
+		colorQualityLevels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		colorQualityLevels.SampleCount = sampleCount;
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS depthQualityLevels{};
+		depthQualityLevels.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthQualityLevels.SampleCount = sampleCount;
+		return SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+			&colorQualityLevels, sizeof(colorQualityLevels))) && colorQualityLevels.NumQualityLevels > 0
+			&& SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+				&depthQualityLevels, sizeof(depthQualityLevels))) && depthQualityLevels.NumQualityLevels > 0;
+	}
+
+	UINT Dx12Device::ChooseMsaaSampleCount(ID3D12Device* device) {
 		constexpr UINT sampleCounts[] = { 4u, 2u };
 		for (const UINT sampleCount : sampleCounts) {
-			D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS colorQualityLevels{};
-			colorQualityLevels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			colorQualityLevels.SampleCount = sampleCount;
-			D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS depthQualityLevels{};
-			depthQualityLevels.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-			depthQualityLevels.SampleCount = sampleCount;
-			const bool supportsColor = SUCCEEDED(device->CheckFeatureSupport(
-				D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-				&colorQualityLevels,
-				sizeof(colorQualityLevels))) && colorQualityLevels.NumQualityLevels > 0;
-			const bool supportsDepth = SUCCEEDED(device->CheckFeatureSupport(
-				D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-				&depthQualityLevels,
-				sizeof(depthQualityLevels))) && depthQualityLevels.NumQualityLevels > 0;
-			if (supportsColor && supportsDepth)
+			if (SupportsMsaaSampleCount(device, sampleCount))
+				return sampleCount;
+		}
+		return 1;
+	}
+
+	UINT Dx12Device::ResolveMaximumMsaaSampleCount(ID3D12Device* device) {
+		constexpr UINT sampleCounts[] = { 32u, 16u, 8u, 4u, 2u };
+		for (const UINT sampleCount : sampleCounts) {
+			if (SupportsMsaaSampleCount(device, sampleCount))
 				return sampleCount;
 		}
 		return 1;
@@ -90,7 +98,8 @@ namespace Chrivent {
 		capabilities.shaderVersion = std::string("Shader Model ") + ResolveShaderModelName(maximumShaderModel);
 		capabilities.gpuName = Util::WStringToUtf8(description.Description);
 		capabilities.gpuType = description.DedicatedVideoMemory > 0 ? "discrete" : "integrated";
-		capabilities.maxSampleCount = msaaSampleCount;
+		capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount(device.Get());
+		capabilities.activeSampleCount = msaaSampleCount;
 		capabilities.uniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 		capabilities.maxTextureBindings = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
 		capabilities.shaderModelMajor = static_cast<uint32_t>(maximumShaderModel) >> 4;

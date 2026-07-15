@@ -1,37 +1,17 @@
 ﻿#pragma once
 
+#include "Viewer/DrawResource/VulkanModelResources.h"
 #include "Viewer/Instance/Instance.h"
-#include "Viewer/Buffer/VulkanDynamicBufferRing.h"
-#include "Viewer/Buffer/VulkanBuffer.h"
-#include "Viewer/Descriptor/VulkanDescriptorSet.h"
-#include "Viewer/Texture/VulkanTextureCache.h"
-
-#include <vector>
 
 namespace Chrivent {
 	class VulkanViewer;
 	class VulkanDevice;
 	class VulkanPipeline;
 
-	// 공통 PMX 재질에 Vulkan texture와 descriptor set을 결합한다.
-	struct VulkanMaterial : ViewerMaterial {
-		VulkanTexture texture{};
-		VulkanTexture sphereTexture{};
-		VulkanTexture toonTexture{};
-		bool textureEnabled = false;
-		bool sphereTextureEnabled = false;
-		bool toonTextureEnabled = false;
-		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-
-		explicit VulkanMaterial(const Material& sourceMat) : ViewerMaterial(sourceMat) {}
-	};
-
 	// 한 모델의 Vulkan 버퍼, 재질과 descriptor 상태를 관리한다.
 	class VulkanInstance : public Instance {
 		VulkanViewer& viewer;
+		VulkanModelResources modelResources;
 
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
 		bool CreateGeometryBuffers(const VulkanDevice& device);
@@ -49,26 +29,9 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
 	public:
-		static constexpr size_t kBufferedFrames = 2;
-		std::vector<VulkanMaterial> materials;
-		VulkanBuffer vertexBuffers[kBufferedFrames];
-		VulkanBuffer indexBuffer;
-		size_t uniformBufferOffsetAlignment = 1;
-		VulkanDynamicBufferRing modelVertexConstantsRing;
-		VulkanDynamicBufferRing edgeVertexConstantsRing;
-		VulkanDynamicBufferRing groundShadowVertexConstantsRing;
-		VulkanDynamicBufferRing modelPixelConstantsRing;
-		VulkanDynamicBufferRing edgePixelConstantsRing;
-		VulkanDynamicBufferRing groundShadowPixelConstantsRing;
-		VulkanDescriptorSet modelDescriptorSet;
-		VulkanDescriptorSet edgeDescriptorSet;
-		VulkanDescriptorSet groundShadowDescriptorSet;
-		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
-		size_t indexCount = 0;
-
 		explicit VulkanInstance(VulkanViewer& sourceViewer);
 
 		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
-		bool Upload() const override;
+		bool Upload() override;
 	};
 }
