@@ -184,8 +184,10 @@ namespace Chrivent {
 		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		const auto& viewer = *instance.viewer;
-		if (!viewer.modelEffectEnabled)
+		if (!viewer.modelEffectEnabled) {
 			instance.modelVertexConstantsRing.BeginFrame(frameIndex);
+			instance.modelPixelConstantsRing.BeginFrame(frameIndex);
+		}
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		SceneVelocityVertexConstants velocityConstants;
 		ModelVertexConstants depthConstants;
@@ -212,13 +214,25 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
-			const auto& mat = instance.materials[materialId].mat;
+			const auto& material = instance.materials[materialId];
+			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
+			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
+				mat.diffuse.a, material.textureEnabled && material.texture.hasAlpha);
+			const auto pixelSlice = instance.modelPixelConstantsRing.Allocate(
+				sizeof(ModelPixelConstants), instance.uniformBufferOffsetAlignment, error);
+			if (!pixelSlice.has_value()
+				|| !instance.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				std::cerr << "Failed to update Vulkan scene surface constants.\n";
+				continue;
+			}
 			if (velocityRequired)
 				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);
 			else
 				instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			instance.viewer->BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			instance.viewer->BindTextureDescriptorSet(material.textureDescriptorSet);
 			instance.viewer->DrawIndexed(vertexBuffer, instance.indexBuffer, instance.indexType, beginIndex, indexCount);
 		}
 	}

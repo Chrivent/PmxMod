@@ -110,19 +110,16 @@ namespace Chrivent {
 	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
-		const std::filesystem::path& sceneVelocityShaderPath) {
-		const EffectPassDefinition velocityPass{
-			.shaderPath = sceneVelocityShaderPath
-		};
+		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
 		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, pipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
 			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, bothFacePipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
 			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
 			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
@@ -184,7 +181,7 @@ namespace Chrivent {
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : useVelocityInput ? 2 : 3;
+		vertexInputInfo.vertexAttributeDescriptionCount = usePositionOnly ? 1 : 3;
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -294,26 +291,46 @@ namespace Chrivent {
 		const VkFormat depthFormat, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, VkPipeline& outPipeline) const {
 		std::vector<uint32_t> vertexShaderCode;
+		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
+		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
 		if (!ModernHlslCompiler::CompileSpirv(
-			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)) {
+			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexShaderCode, error)
+			|| !ModernHlslCompiler::CompileSpirv(
+				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, fragmentShaderCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
 		VulkanShaderModule vertexShader;
-		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode))
+		VulkanShaderModule fragmentShader;
+		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode)
+			|| !fragmentShader.Initialize(sourceDevice, fragmentShaderCode))
 			return false;
-		const VkPipelineShaderStageCreateInfo shaderStage =
-			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str());
+		const VkPipelineShaderStageCreateInfo shaderStages[] = {
+			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str()),
+			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule(), pass.pixelEntry.c_str())
+		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
-		VkVertexInputAttributeDescription attributeDescriptions[3]{};
-		FillVertexAttributeDescriptions(attributeDescriptions);
+		constexpr VkVertexInputAttributeDescription attributeDescriptions[] = {
+			VkVertexInputAttributeDescription{
+				.location = 0,
+				.binding = 0,
+				.format = VK_FORMAT_R32G32B32_SFLOAT,
+				.offset = offsetof(ViewerVertex, position)
+			},
+			VkVertexInputAttributeDescription{
+				.location = 1,
+				.binding = 0,
+				.format = VK_FORMAT_R32G32_SFLOAT,
+				.offset = offsetof(ViewerVertex, uv)
+			}
+		};
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = 3;
+		vertexInputInfo.vertexAttributeDescriptionCount = std::size(attributeDescriptions);
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -354,8 +371,8 @@ namespace Chrivent {
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
 		};
 		createInfo.pNext = &renderingInfo;
-		createInfo.stageCount = 1;
-		createInfo.pStages = &shaderStage;
+		createInfo.stageCount = std::size(shaderStages);
+		createInfo.pStages = shaderStages;
 		createInfo.pVertexInputState = &vertexInputInfo;
 		createInfo.pInputAssemblyState = &inputAssembly;
 		createInfo.pViewportState = &viewportState;
@@ -414,14 +431,14 @@ namespace Chrivent {
 
 	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
-		const std::filesystem::path& sceneVelocityShaderPath) {
+		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
-		return CreateGraphicsPipelines(
-			sourceDevice, sourceSwapChain, depthFormat, passes, sceneVelocityShaderPath);
+		return CreateGraphicsPipelines(sourceDevice, sourceSwapChain, depthFormat,
+			passes, depthPass, velocityPass);
 	}
 
 	void VulkanPipeline::Reset() {

@@ -22,7 +22,7 @@ namespace Chrivent {
 
 	bool Viewer::InitializeShaderResources() {
 		InitializeDirectories();
-		return LoadBuiltInShaderContract();
+		return LoadSceneInputShaderContract() && LoadBuiltInShaderContract();
 	}
 
 	bool Viewer::FinishPostProcessLoad(const bool loaded) {
@@ -38,6 +38,24 @@ namespace Chrivent {
 
 	bool Viewer::RequiresPostProcessVelocity() const {
 		return ResolvePostProcess().RequiresVelocity();
+	}
+
+	bool Viewer::LoadSceneInputShaderContract() {
+		const std::filesystem::path shaderPath = internalShaderDir / "scene-input.hlsl";
+		if (!std::filesystem::is_regular_file(shaderPath)) {
+			std::cerr << "Failed to find the internal scene input shader: " << shaderPath << '\n';
+			return false;
+		}
+		sceneInputShaderPasses = {};
+		sceneInputShaderPasses.depth.shaderPath = shaderPath;
+		sceneInputShaderPasses.depth.vertexEntry = "VSDepth";
+		sceneInputShaderPasses.depth.pixelEntry = "PSDepth";
+		sceneInputShaderPasses.velocity.shaderPath = shaderPath;
+		sceneInputShaderPasses.velocity.vertexEntry = "VSVelocity";
+		sceneInputShaderPasses.velocity.pixelEntry = "PSVelocity";
+		sceneInputShaderPasses.velocityInvertedY = sceneInputShaderPasses.velocity;
+		sceneInputShaderPasses.velocityInvertedY.pixelEntry = "PSVelocityInvertedY";
+		return true;
 	}
 
 	bool Viewer::LoadBuiltInShaderContract() {

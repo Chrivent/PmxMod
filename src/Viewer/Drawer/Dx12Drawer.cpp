@@ -186,6 +186,7 @@ namespace Chrivent {
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
 		const size_t constantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
+		const size_t sceneSurfaceConstantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
 		const auto& viewer = *instance.viewer;
 		const glm::mat4 world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
 		SceneVelocityVertexConstants velocityConstants;
@@ -208,16 +209,31 @@ namespace Chrivent {
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(
 			0, vertexConstantBuffer.ResolveGpuAddress() + constantOffset);
+		ID3D12DescriptorHeap* descriptorHeaps[] = { instance.textureDescriptorHeap.Get() };
+		if (descriptorHeaps[0] != nullptr)
+			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
-			if (materialId >= instance.materials.size())
+			if (materialId >= instance.materials.size() || materialId >= instance.modelPixelConstantBuffers.size())
 				continue;
-			const auto& mat = instance.materials[materialId].mat;
+			const auto& material = instance.materials[materialId];
+			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
+			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
+				mat.diffuse.a, material.texture.resource && material.texture.hasAlpha);
+			const Dx12Buffer& pixelConstantBuffer = instance.modelPixelConstantBuffers[materialId][frameIndex];
+			if (!pixelConstantBuffer.Write(pixelConstants, sceneSurfaceConstantOffset)) {
+				std::cerr << "Failed to update DX12 scene surface constants.\n";
+				continue;
+			}
 			if (velocityRequired)
 				instance.viewer->BindSceneVelocityPipeline(mat.bothFace);
 			else
 				instance.viewer->BindDepthOnlyPipeline(mat.bothFace);
+			commandList->SetGraphicsRootConstantBufferView(
+				1, pixelConstantBuffer.ResolveGpuAddress() + sceneSurfaceConstantOffset);
+			if (material.textureDescriptorHandle.ptr != 0)
+				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
 	}

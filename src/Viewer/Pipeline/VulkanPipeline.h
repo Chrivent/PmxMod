@@ -16,7 +16,7 @@ namespace Chrivent {
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const BuiltInShaderPasses& passes,
-			const std::filesystem::path& sceneVelocityShaderPath);
+			const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
@@ -58,7 +58,8 @@ namespace Chrivent {
 
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat,
-			const BuiltInShaderPasses& passes, const std::filesystem::path& sceneVelocityShaderPath);
+			const BuiltInShaderPasses& passes, const EffectPassDefinition& depthPass,
+			const EffectPassDefinition& velocityPass);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Reset();
 	};

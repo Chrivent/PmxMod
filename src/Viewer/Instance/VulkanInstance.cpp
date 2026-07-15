@@ -64,7 +64,7 @@ namespace Chrivent {
 			return false;
 		if (!modelPixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(ModelPixelConstants), uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * kBufferedFrames, error))
+				* (drawCount * 2 + ringSlack) * kBufferedFrames, error))
 			return false;
 		if (!edgePixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(EdgePixelConstants), uniformBufferOffsetAlignment)

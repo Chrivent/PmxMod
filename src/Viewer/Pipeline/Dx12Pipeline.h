@@ -29,11 +29,10 @@ namespace Chrivent {
 		bool CreateModelRootSignature(const Dx12Device& sourceDevice);
 		// 모델 렌더링용 graphics pipeline state를 생성한다.
 		bool CreateModelPipelineStates(const Dx12Device& sourceDevice, const EffectPassDefinition& pass);
-		// 포스트 프로세스용 depth-only graphics pipeline state를 생성한다.
+		// 공통 장면 depth 입력용 graphics pipeline state를 생성한다.
 		bool CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice, const EffectPassDefinition& pass);
-		// 현재/이전 정점 위치를 RG16F 속도 타깃에 기록하는 pipeline state를 생성한다.
-		bool CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
-			const std::filesystem::path& shaderPath);
+		// 현재/이전 정점 위치를 RG16F velocity 타깃에 기록하는 pipeline state를 생성한다.
+		bool CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice, const EffectPassDefinition& pass);
 		// 엣지 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
 		bool CreateEdgeRootSignature(const Dx12Device& sourceDevice);
 		// 엣지 렌더링용 graphics pipeline state를 생성한다.
@@ -46,7 +45,7 @@ namespace Chrivent {
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
 		bool Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
-			const std::filesystem::path& sceneVelocityShaderPath);
+			const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass);
 		// material의 양면 렌더링 여부에 맞는 model pipeline을 command list에 바인딩한다.
 		void BindModel(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// material의 양면 렌더링 여부에 맞는 depth-only pipeline을 command list에 바인딩한다.

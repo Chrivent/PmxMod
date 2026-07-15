@@ -179,12 +179,11 @@ namespace Chrivent {
     }
 
     bool OpenGlDepthOnlyShader::Initialize(const EffectPassDefinition& pass) {
-        program = OpenGlShaderBuilder::CreateVertexOnlyShader(pass.shaderPath, pass.vertexEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
         if (program == 0)
             return false;
         positionLocation = 0;
-        normalLocation = 1;
-        uvLocation = 2;
+		uvLocation = 1;
         return true;
     }
 
@@ -194,6 +193,7 @@ namespace Chrivent {
 			return false;
 		positionLocation = 0;
 		previousPositionLocation = 1;
+		uvLocation = 2;
 		return true;
 	}
 

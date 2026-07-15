@@ -51,6 +51,7 @@ namespace Chrivent {
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		std::filesystem::path resourceDir;
+		std::filesystem::path internalShaderDir;
 		HWND fpsOverlay = nullptr;
 		HFONT fpsFont = nullptr;
 
@@ -58,14 +59,16 @@ namespace Chrivent {
 		static LRESULT CALLBACK FpsOverlayWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 		// 실행 파일을 기준으로 리소스 디렉터리를 초기화한다.
 		void InitializeDirectories();
+		// 엔진 장면 입력 HLSL의 파일명과 진입점을 공통 역할 계약으로 구성한다.
+		bool LoadSceneInputShaderContract();
 		// 기본 패키지에서 모델, 엣지, 지면 그림자 패스 계약을 읽는다.
 		bool LoadBuiltInShaderContract();
 		// 렌더링 창 클라이언트 좌측 상단에 FPS 오버레이를 배치한다.
 		void PositionFpsOverlay() const;
 
 	protected:
-		std::filesystem::path internalShaderDir;
 		BuiltInShaderPasses builtInShaderPasses;
+		SceneInputShaderPasses sceneInputShaderPasses;
 		float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 
 		// API 구현이 소유한 포스트 프로세서를 반환한다.
@@ -76,10 +79,6 @@ namespace Chrivent {
 		bool InitializeShaderResources();
 		// 후처리 로드 성공 시 공통 프레임 히스토리를 초기화한다.
 		bool FinishPostProcessLoad(bool loaded);
-		// 패키지 검색 대상이 아닌 엔진 전용 셰이더 파일 경로를 반환한다.
-		std::filesystem::path ResolveInternalShaderPath(const std::filesystem::path& fileName) const {
-			return internalShaderDir / fileName;
-		}
 		// 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.
 		void ResetPostProcessFrameHistory();
 
@@ -95,6 +94,7 @@ namespace Chrivent {
 		glm::vec3 lightColor = glm::vec3(1, 1, 1);
 		glm::vec3 lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
 		float elapsed = 0.0f;
+		float renderDeltaTime = 0.0f;
 		float animTime = 0.0f;
 		bool skipPhysics = false;
 		bool modelEffectEnabled = true;
@@ -130,7 +130,7 @@ namespace Chrivent {
 		virtual std::unique_ptr<Instance> CreateInstance() const = 0;
 		// 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
 		std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
-		// 카메라 점프나 탐색 뒤 다음 프레임의 초점 히스토리를 초기화한다.
+		// 카메라 점프나 탐색 뒤 다음 프레임의 temporal history를 초기화한다.
 		void ResetPostProcessHistory();
 		// 활성 후처리 효과가 장면 속도 입력을 요구하는지 반환한다.
 		bool RequiresPostProcessVelocity() const;

@@ -53,20 +53,20 @@ namespace Chrivent {
         bool Initialize(const EffectPassDefinition& pass);
     };
 
-    // 후처리 depth 입력을 생성하는 OpenGL vertex-only 프로그램을 나타낸다.
+    // 공통 장면 depth 입력과 texture alpha cutout을 처리하는 OpenGL 프로그램을 나타낸다.
     struct OpenGlDepthOnlyShader : OpenGlShader {
-        GLint normalLocation = -1;
         GLint uvLocation = -1;
 
-        // 포스트 프로세스 depth-only 패스용 버텍스 전용 프로그램을 컴파일한다.
-        bool Initialize(const EffectPassDefinition& pass);
+		// 공통 장면 depth 프로그램을 컴파일한다.
+		bool Initialize(const EffectPassDefinition& pass);
     };
 
-	// 모션 블러 입력인 장면 속도를 기록하는 OpenGL 프로그램을 나타낸다.
+	// 공통 장면 velocity 입력을 기록하는 OpenGL 프로그램을 나타낸다.
 	struct OpenGlSceneVelocityShader : OpenGlShader {
 		GLint previousPositionLocation = -1;
+		GLint uvLocation = -1;
 
-		// 포스트 프로세스용 장면 속도 프로그램을 컴파일하고 이전 위치 attribute를 설정한다.
+		// 공통 장면 velocity 프로그램을 컴파일하고 이전 위치와 UV attribute를 설정한다.
 		bool Initialize(const EffectPassDefinition& pass);
 	};
 

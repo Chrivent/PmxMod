@@ -56,6 +56,9 @@ static const float LineGaussianSigma = 2.75;
 // 1/4 해상도 속도 타일의 원본 화면 배율이다.
 static const float VelocityTileScale = 4.0;
 
+// 모션 벡터를 30fps 기준의 고정 셔터 시간으로 정규화할 때 사용하는 초 단위 기준값이다.
+static const float ReferenceShutterTime = 1.0 / 30.0;
+
 static const float MotionEpsilon = 1.0e-5;
 
 // 픽셀마다 고정된 분산값을 만들어 라인 샘플의 규칙적인 띠를 줄인다.
@@ -75,6 +78,11 @@ bool IsMotionSceneChange() {
 
 // 속도 입력의 비정상값과 미세 움직임을 제거하고 최대 길이를 제한한다.
 float2 PrepareVelocity(float2 velocity) {
+    if (FrameHistoryReset > 0.5 || FrameDeltaTime <= 0.0)
+        return 0.0;
+    float frameDuration = clamp(FrameDeltaTime, 1.0 / 240.0, 1.0 / 15.0);
+    float shutterScale = clamp(ReferenceShutterTime / frameDuration, 0.5, 4.0);
+    velocity *= shutterScale;
     if (!all(abs(velocity) < 1.0e8))
         return 0.0;
     float speed = length(velocity);

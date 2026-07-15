@@ -7,7 +7,7 @@ SamplerState LinearClamp : register(s0);
 #include "../../include/depth-of-field.hlsli"
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
-    float focusDeltaTime = FrameDeltaTime <= 0.0 ? 0.0 : clamp(FrameDeltaTime, 1.0 / 120.0, 1.0 / 15.0);
+    float focusDeltaTime = clamp(FrameDeltaTime, 0.0, 1.0 / 15.0);
     float tanHalfFov = GetTanHalfFov();
     float minFocusState = MinFocusDistance * tanHalfFov;
     float targetFocusState = max(ReadTargetFocusDistance() * tanHalfFov, minFocusState);
@@ -19,11 +19,18 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         velocity = previous.g;
     }
 
-    velocity *= pow(max(0.8 * FocusSlip, 0.0001), focusDeltaTime * 30.0);
-    float remaining = targetFocusState - (focusState + velocity);
-    float speedLimit = clamp(35000.0 / max(targetFocusState, 0.0001), 50.0, 1000.0) * 30.0 * focusDeltaTime;
-    float speed = min(abs(remaining), speedLimit);
-    velocity += sign(remaining) * speed * saturate(1.0 - FocusDelay);
-    focusState = max(focusState + velocity, minFocusState);
+    if (focusDeltaTime > 0.0) {
+        velocity *= pow(max(0.8 * FocusSlip, 0.0001), focusDeltaTime * 30.0);
+        float remaining = targetFocusState - (focusState + velocity * focusDeltaTime);
+        float response = saturate(1.0 - FocusDelay);
+        float acceleration = remaining * 900.0 * response;
+        float speedLimit = clamp(35000.0 / max(targetFocusState, 0.0001), 50.0, 1000.0) * 30.0;
+        velocity = clamp(velocity + acceleration * focusDeltaTime, -speedLimit, speedLimit);
+        focusState += velocity * focusDeltaTime;
+        if (focusState < minFocusState) {
+            focusState = minFocusState;
+            velocity = max(velocity, 0.0);
+        }
+    }
     return float4(focusState, velocity, FocusHistoryMarker, 1.0);
 }

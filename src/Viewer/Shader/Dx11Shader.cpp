@@ -79,12 +79,23 @@ namespace Chrivent {
 			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
 	}
 
-	bool Dx11SceneVelocityShader::Initialize(ID3D11Device* device, const std::filesystem::path& file) {
+	bool Dx11SceneDepthShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
-		return Dx11Shader::Initialize(device, file, inputElements, "VSMain", "PSMainInvertedY");
+		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
+			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+	}
+
+	bool Dx11SceneVelocityShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
+			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
 	}
 
 	bool Dx11PostProcessShader::Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry) {

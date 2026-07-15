@@ -44,6 +44,9 @@ namespace Chrivent {
 			return false;
 		if (FAILED(CreateBuffer<ModelPixelConstants>(viewer->deviceResources.device.Get(), psConstantBuffer)))
 			return false;
+		if (FAILED(CreateBuffer<SceneSurfacePixelConstants>(
+			viewer->deviceResources.device.Get(), sceneSurfaceConstantBuffer)))
+			return false;
 		if (FAILED(CreateBuffer<EdgeVertexConstants>(viewer->deviceResources.device.Get(), edgeVsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<EdgePixelConstants>(viewer->deviceResources.device.Get(), edgePsConstantBuffer)))
@@ -76,6 +79,7 @@ namespace Chrivent {
 		indexBuffer.Reset();
 		vsConstantBuffer.Reset();
 		psConstantBuffer.Reset();
+		sceneSurfaceConstantBuffer.Reset();
 		edgeVsConstantBuffer.Reset();
 		edgePsConstantBuffer.Reset();
 		gsVsConstantBuffer.Reset();

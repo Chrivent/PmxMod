@@ -14,7 +14,7 @@ namespace Chrivent {
 				return false;
 		}
 		if (!pipeline->Initialize(*device, swapChain, msaaDepthBuffer.format, builtInShaderPasses,
-			ResolveInternalShaderPath("scene-velocity.hlsl")))
+			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocity))
 			return false;
 		return commandContext.Initialize(*device, swapChain);
 	}

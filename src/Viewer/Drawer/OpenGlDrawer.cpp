@@ -235,7 +235,7 @@ namespace Chrivent {
 			glUseProgram(viewer->depthOnlyShader->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
-			glBindVertexArray(instance.vao);
+			glBindVertexArray(instance.depthVao);
 		}
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -248,9 +248,15 @@ namespace Chrivent {
 		glEnable(GL_CULL_FACE);
 		bool cullEnabled = true;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
-			const auto& mat = instance.materials[materialId].mat;
+			const auto& material = instance.materials[materialId];
+			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
+			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
+				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
+			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
+				continue;
+			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer->dummyColorTex);
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);

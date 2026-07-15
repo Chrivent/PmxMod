@@ -68,7 +68,8 @@ namespace Chrivent {
 		return shaders.model.Initialize(device, builtInShaderPasses.model)
 			&& shaders.edge.Initialize(device, builtInShaderPasses.edge)
 			&& shaders.groundShadow.Initialize(device, builtInShaderPasses.groundShadow)
-			&& shaders.sceneVelocity.Initialize(device, ResolveInternalShaderPath("scene-velocity.hlsl"));
+			&& shaders.sceneDepth.Initialize(device, sceneInputShaderPasses.depth)
+			&& shaders.sceneVelocity.Initialize(device, sceneInputShaderPasses.velocityInvertedY);
 	}
 
 	bool Dx11Viewer::CreateRenderTargets() {

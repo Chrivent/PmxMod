@@ -420,11 +420,12 @@ namespace Chrivent {
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
         panelManager.ApplyCameraMotionPath(sceneConfig.cameraAnim);
         const int startFrame = panelManager.GetPlaybackFrameRange().start;
-        if (startFrame > 0) {
-            cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
-            ResetPhysics(startFrame);
-        }
-        return true;
+		if (startFrame > 0) {
+			cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
+			ResetPhysics(startFrame);
+		}
+		viewer->ResetPostProcessHistory();
+		return true;
     }
 
     bool Program::LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const {
@@ -951,9 +952,10 @@ namespace Chrivent {
         cameraManager.HandleInput(inputManager, *viewer, music);
         if (!UpdateFramebufferSize())
             return false;
-        if (benchmarkMode) {
-            viewer->elapsed = 1.0f / 30.0f;
-            viewer->animTime += viewer->elapsed;
+		if (benchmarkMode) {
+			viewer->elapsed = 1.0f / 30.0f;
+			viewer->renderDeltaTime = viewer->elapsed;
+			viewer->animTime += viewer->elapsed;
         } else
             cameraManager.StepTime(*viewer, music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;

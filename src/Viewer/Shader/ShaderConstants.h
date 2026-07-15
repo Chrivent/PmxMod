@@ -15,6 +15,14 @@ namespace Chrivent {
 		glm::mat4 previousWvp;
 	};
 
+	// 공통 장면 depth와 velocity 입력에서 표면의 alpha 판정에 사용할 값을 보관한다.
+	struct SceneSurfacePixelConstants {
+		float materialOpacity = 1.0f;
+		float textureAlphaEnabled = 0.0f;
+		float alphaCutoff = 0.5f;
+		float padding = 0.0f;
+	};
+
 	// 모델 pixel shader에 전달할 재질과 조명 상수를 보관한다.
 	struct ModelPixelConstants {
 		glm::vec4 texMulFactor{};

@@ -82,15 +82,12 @@ namespace Chrivent {
 			return false;
 		}
 		depthOnlyShader = std::make_unique<OpenGlDepthOnlyShader>();
-		if (!depthOnlyShader->Initialize(builtInShaderPasses.model)) {
+		if (!depthOnlyShader->Initialize(sceneInputShaderPasses.depth)) {
 			std::cerr << "Failed to set up depth-only OpenGL shader.\n";
 			return false;
 		}
-		EffectPassDefinition sceneVelocityPass{
-			.shaderPath = ResolveInternalShaderPath("scene-velocity.hlsl")
-		};
 		sceneVelocityShader = std::make_unique<OpenGlSceneVelocityShader>();
-		if (!sceneVelocityShader->Initialize(sceneVelocityPass)) {
+		if (!sceneVelocityShader->Initialize(sceneInputShaderPasses.velocity)) {
 			std::cerr << "Failed to set up scene velocity OpenGL shader.\n";
 			return false;
 		}

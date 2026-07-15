@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Drawer/Drawer.h"
 
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/ShaderConstants.h"
 
 namespace Chrivent {
 	const glm::mat4& Drawer::ClipMatrix() const {
@@ -16,6 +17,15 @@ namespace Chrivent {
 
 	bool Drawer::ShouldDrawPostProcessSurface(const float opacity) {
 		return opacity >= PostProcessInputLayout::surfaceOpacityThreshold;
+	}
+
+	SceneSurfacePixelConstants Drawer::BuildSceneSurfacePixelConstants(
+		const float opacity, const bool textureHasAlpha) {
+		return {
+			.materialOpacity = opacity,
+			.textureAlphaEnabled = textureHasAlpha ? 1.0f : 0.0f,
+			.alphaCutoff = PostProcessInputLayout::surfaceOpacityThreshold
+		};
 	}
 
 	Drawer::~Drawer() = default;

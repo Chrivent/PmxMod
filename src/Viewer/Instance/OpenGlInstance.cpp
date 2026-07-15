@@ -57,24 +57,29 @@ namespace Chrivent {
 			{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
 			{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
 			{ viewer->gsShader->positionLocation },
-			{ viewer->sceneVelocityShader->positionLocation, viewer->sceneVelocityShader->previousPositionLocation }
+			{ viewer->depthOnlyShader->positionLocation, viewer->depthOnlyShader->uvLocation },
+			{ viewer->sceneVelocityShader->positionLocation, viewer->sceneVelocityShader->previousPositionLocation,
+				viewer->sceneVelocityShader->uvLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
 			{ 3, 3 },
 			{ 3 },
-			{ 3, 3 }
+			{ 3, 2 },
+			{ 3, 3, 2 }
 		};
 		constexpr size_t offsets[][3] = {
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal), offsetof(ViewerVertex, uv) },
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal) },
 			{ offsetof(ViewerVertex, position) },
-			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, previousPosition) }
+			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, uv) },
+			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, previousPosition), offsetof(ViewerVertex, uv) }
 		};
 		vao = CreateVao(vertexVbo, locs[0], sizes[0], offsets[0], 3, ibo);
 		edgeVao = CreateVao(vertexVbo, locs[1], sizes[1], offsets[1], 2, ibo);
 		gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
-		velocityVao = CreateVao(vertexVbo, locs[3], sizes[3], offsets[3], 2, ibo);
+		depthVao = CreateVao(vertexVbo, locs[3], sizes[3], offsets[3], 2, ibo);
+		velocityVao = CreateVao(vertexVbo, locs[4], sizes[4], offsets[4], 3, ibo);
 	}
 
 	bool OpenGlInstance::SetupConstantRings() {
@@ -101,7 +106,7 @@ namespace Chrivent {
 			return false;
 		return pixelConstantsRing.Setup(
 			DynamicBufferRing::AlignUp(pixelConstantsSize, this->uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack),
+				* (drawCount * 2 + ringSlack),
 			GL_DYNAMIC_DRAW, error);
 	}
 
@@ -141,9 +146,11 @@ namespace Chrivent {
 			glDeleteVertexArrays(1, &edgeVao);
 		if (gsVao != 0)
 			glDeleteVertexArrays(1, &gsVao);
+		if (depthVao != 0)
+			glDeleteVertexArrays(1, &depthVao);
 		if (velocityVao != 0)
 			glDeleteVertexArrays(1, &velocityVao);
-		vao = edgeVao = gsVao = velocityVao = 0;
+		vao = edgeVao = gsVao = depthVao = velocityVao = 0;
 		uniformBufferOffsetAlignment = 1;
 		materials.clear();
 		viewer = nullptr;

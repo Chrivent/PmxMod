@@ -17,6 +17,18 @@ namespace Chrivent {
 		freeCamPitch = 0.0f;
 	}
 
+	bool CameraManager::IsCameraCut(
+		const glm::vec3& currentPosition, const glm::vec3& previousPosition,
+		const glm::vec3& currentDirection, const glm::vec3& previousDirection,
+		const float currentFov, const float previousFov) {
+		constexpr float positionThreshold = 20.0f;
+		constexpr float directionThreshold = 0.9063078f;
+		constexpr float fovThreshold = 0.1745329f;
+		return glm::distance(currentPosition, previousPosition) > positionThreshold
+			|| glm::dot(currentDirection, previousDirection) < directionThreshold
+			|| std::abs(currentFov - previousFov) > fovThreshold;
+	}
+
 	CameraManager::CameraManager() {
 		Reset();
 	}
@@ -44,6 +56,7 @@ namespace Chrivent {
 	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
 		const float seconds = std::max(0, frame) / 30.0f;
 		viewer.elapsed = 0.0f;
+		viewer.renderDeltaTime = 0.0f;
 		viewer.animTime = seconds;
 		music.SeekSeconds(seconds);
 		if (!paused)
@@ -83,7 +96,9 @@ namespace Chrivent {
 
 	void CameraManager::StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
 		const auto now = std::chrono::steady_clock::now();
-		double elapsedSeconds = std::chrono::duration<double>(now - saveTime).count();
+		const float frameSeconds = std::max(0.0f, std::chrono::duration<float>(now - saveTime).count());
+		viewer.renderDeltaTime = std::min(frameSeconds, 1.0f / 15.0f);
+		double elapsedSeconds = frameSeconds;
 		if (elapsedSeconds > 1.0 / 30.0)
 			elapsedSeconds = 1.0 / 30.0;
 		saveTime = now;
@@ -125,6 +140,7 @@ namespace Chrivent {
 	void CameraManager::Stop(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) {
 		paused = true;
 		viewer.elapsed = 0.0f;
+		viewer.renderDeltaTime = 0.0f;
 		viewer.animTime = 0.0f;
 		music.SeekSeconds(0.0f);
 		music.Pause();
@@ -200,20 +216,28 @@ namespace Chrivent {
 		viewer.projMat = glm::perspectiveFovRH(
 			verticalFov, viewportWidth, viewportHeight, nearPlane, farPlane
 		);
+		const glm::mat4 inverseView = glm::inverse(viewer.viewMat);
+		const auto cameraPosition = glm::vec3(inverseView[3]);
+		const glm::vec3 cameraDirection = glm::normalize(-glm::vec3(inverseView[2]));
+		if (useMotionCamera && cameraAnim && !viewer.postProcessHistoryResetPending) {
+			const glm::mat4 previousInverseView = glm::inverse(viewer.previousViewMat);
+			const auto previousCameraPosition = glm::vec3(previousInverseView[3]);
+			const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
+			if (IsCameraCut(cameraPosition, previousCameraPosition, cameraDirection, previousCameraDirection,
+				verticalFov, viewer.postProcessFrameData.verticalFovRadians))
+				viewer.ResetPostProcessHistory();
+		}
 		if (viewer.postProcessHistoryResetPending) {
 			viewer.previousViewMat = viewer.viewMat;
 			viewer.previousProjMat = viewer.projMat;
 		}
-		const glm::mat4 inverseView = glm::inverse(viewer.viewMat);
 		const glm::mat4 previousInverseView = glm::inverse(viewer.previousViewMat);
-		const glm::vec3 cameraPosition = glm::vec3(inverseView[3]);
-		const glm::vec3 previousCameraPosition = glm::vec3(previousInverseView[3]);
-		const glm::vec3 cameraDirection = glm::normalize(-glm::vec3(inverseView[2]));
+		const auto previousCameraPosition = glm::vec3(previousInverseView[3]);
 		const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
 		const glm::vec3 cameraRight = glm::normalize(glm::vec3(inverseView[0]));
 		const glm::vec3 cameraUp = glm::normalize(glm::vec3(inverseView[1]));
 		viewer.postProcessFrameData = {
-			.deltaTime = std::max(viewer.elapsed, 0.0f),
+			.deltaTime = viewer.renderDeltaTime,
 			.nearPlane = nearPlane,
 			.farPlane = farPlane,
 			.verticalFovRadians = verticalFov,

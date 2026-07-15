@@ -141,6 +141,13 @@ namespace Chrivent {
 		EffectPassDefinition groundShadow;
 	};
 
+	// API 구현에서 파일명과 진입점을 알지 않도록 엔진 장면 입력 패스를 역할별로 보관한다.
+	struct SceneInputShaderPasses {
+		EffectPassDefinition depth;
+		EffectPassDefinition velocity;
+		EffectPassDefinition velocityInvertedY;
+	};
+
 	// 내장 셰이더 패키지가 필수 렌더링 역할 계약을 충족하는지 검증한다.
 	class BuiltInShaderContract {
 	public:

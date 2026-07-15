@@ -14,6 +14,9 @@ namespace Chrivent {
 
     // 한 모델의 OpenGL 버퍼, VAO와 재질 상태를 관리한다.
     class OpenGlInstance : public Instance {
+    	GLuint vertexVbo = 0;
+    	GLuint ibo = 0;
+    	
 		// OpenGL 버퍼를 생성하고 초기 데이터를 업로드한다.
 		static GLuint CreateBuffer(size_t size, const void* data, GLenum usage);
 		// 지정한 버퍼와 attribute 정보를 묶은 VAO를 생성한다.
@@ -26,11 +29,10 @@ namespace Chrivent {
         bool SetupConstantRings();
         // 모델 material 정보를 OpenGL material 캐시와 texture handle로 변환한다.
         void LoadMaterials();
+    	
+    protected:
 		// OpenGL 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer(Viewer& baseViewer) override;
-
-        GLuint vertexVbo = 0;
-        GLuint ibo = 0;
 
     public:
         OpenGlViewer* viewer = nullptr;
@@ -38,6 +40,7 @@ namespace Chrivent {
         GLuint	vao = 0;
         GLuint	edgeVao = 0;
         GLuint	gsVao = 0;
+		GLuint depthVao = 0;
 		GLuint velocityVao = 0;
         size_t uniformBufferOffsetAlignment = 1;
         OpenGlDynamicBufferRing vertexConstantsRing;

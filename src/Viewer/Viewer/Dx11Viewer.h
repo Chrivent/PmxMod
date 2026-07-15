@@ -44,6 +44,7 @@ namespace Chrivent {
         Dx11ModelShader         model;
         Dx11EdgeShader          edge;
         Dx11GroundShadowShader  groundShadow;
+		Dx11SceneDepthShader sceneDepth;
 		Dx11SceneVelocityShader sceneVelocity;
     };
 

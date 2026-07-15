@@ -27,6 +27,8 @@ namespace Chrivent {
             const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
             return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
         }
+        
+    protected:
 		// DX11 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer(Viewer& baseViewer) override;
 
@@ -38,6 +40,7 @@ namespace Chrivent {
         DXGI_FORMAT                             indexBufferFormat = DXGI_FORMAT_R16_UINT;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	vsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	psConstantBuffer;
+		Microsoft::WRL::ComPtr<ID3D11Buffer>	sceneSurfaceConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	edgeVsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	edgePsConstantBuffer;
         Microsoft::WRL::ComPtr<ID3D11Buffer>	gsVsConstantBuffer;

@@ -223,6 +223,7 @@ namespace Chrivent {
 		const auto& indexBuffer = instance.indexBuffer;
 		const auto indexBufferFormat = instance.indexBufferFormat;
 		const auto& vsConstantBuffer = instance.vsConstantBuffer;
+		const auto& sceneSurfaceConstantBuffer = instance.sceneSurfaceConstantBuffer;
 		const auto& view = viewer->viewMat;
 		const auto& proj = viewer->projMat;
 		const auto world = glm::scale(glm::mat4(1.0f), glm::vec3(instance.scale));
@@ -242,19 +243,30 @@ namespace Chrivent {
 			vsCb.wv = view * world;
 			vsCb.wvp = ClipMatrix() * proj * view * world;
 			viewer->deviceResources.context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.model.inputLayout.Get());
-			viewer->deviceResources.context->VSSetShader(viewer->shaders.model.vertexShader.Get(), nullptr, 0);
-			viewer->deviceResources.context->PSSetShader(nullptr, nullptr, 0);
+			viewer->deviceResources.context->IASetInputLayout(viewer->shaders.sceneDepth.inputLayout.Get());
+			viewer->deviceResources.context->VSSetShader(viewer->shaders.sceneDepth.vertexShader.Get(), nullptr, 0);
+			viewer->deviceResources.context->PSSetShader(viewer->shaders.sceneDepth.pixelShader.Get(), nullptr, 0);
 		}
 		viewer->deviceResources.context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		viewer->deviceResources.context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		viewer->deviceResources.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		viewer->deviceResources.context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		viewer->deviceResources.context->PSSetConstantBuffers(1, 1, sceneSurfaceConstantBuffer.GetAddressOf());
 		const ID3D11RasterizerState* currentRs = nullptr;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
-			const auto& mat = instance.materials[materialId].mat;
+			const auto& material = instance.materials[materialId];
+			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
 				continue;
+			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
+				mat.diffuse.a, material.texture.texture && material.texture.hasAlpha);
+			viewer->deviceResources.context->UpdateSubresource(
+				sceneSurfaceConstantBuffer.Get(), 0, nullptr, &pixelConstants, 0, 0);
+			ID3D11ShaderResourceView* baseTexture = material.texture.texture
+				? material.texture.textureView.Get() : viewer->dummyTexture.textureView.Get();
+			ID3D11SamplerState* baseSampler = viewer->pipelineStates.textureSampler.Get();
+			viewer->deviceResources.context->PSSetShaderResources(0, 1, &baseTexture);
+			viewer->deviceResources.context->PSSetSamplers(0, 1, &baseSampler);
 			ID3D11RasterizerState* targetRs = mat.bothFace
 				? viewer->pipelineStates.bothFaceRs.Get()
 				: viewer->pipelineStates.frontFaceRs.Get();

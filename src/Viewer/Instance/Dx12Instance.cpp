@@ -55,6 +55,8 @@ namespace Chrivent {
 			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)));
 		const size_t vertexConstantSize = modelVertexConstantSize + postProcessVertexConstantSize;
 		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
+		const size_t sceneSurfaceConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(SceneSurfacePixelConstants));
+		const size_t materialPixelBufferSize = pixelConstantSize + sceneSurfaceConstantSize;
 		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgeVertexConstants));
 		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgePixelConstants));
 		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowVertexConstants));
@@ -70,7 +72,7 @@ namespace Chrivent {
 		for (auto& buffers : modelPixelConstantBuffers) {
 			buffers = std::make_unique<Dx12Buffer[]>(kBufferedFrames);
 			for (size_t i = 0; i < kBufferedFrames; i++) {
-				if (!buffers[i].InitializeUpload(device, pixelConstantSize))
+				if (!buffers[i].InitializeUpload(device, materialPixelBufferSize))
 					return false;
 			}
 		}

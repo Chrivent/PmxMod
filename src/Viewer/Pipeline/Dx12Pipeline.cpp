@@ -125,24 +125,26 @@ namespace Chrivent {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
 		std::string error;
 		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
-			true, vertexShader, error)) {
+			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
+			pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
 		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
+		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
-		pipelineDesc.InputLayout = { inputElements, 3 };
+		pipelineDesc.InputLayout = { inputElements, 2 };
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineDesc.NumRenderTargets = 0;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -156,21 +158,22 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
-		const std::filesystem::path& shaderPath) {
+		const EffectPassDefinition& pass) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, shaderPath, "VSMain", true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(
-				sourceDevice, shaderPath, "PSMainInvertedY", false, pixelShader, error)) {
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
+			pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
@@ -180,7 +183,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
-		pipelineDesc.InputLayout = { inputElements, 2 };
+		pipelineDesc.InputLayout = { inputElements, 3 };
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R16G16_FLOAT;
@@ -309,15 +312,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
-		const std::filesystem::path& sceneVelocityShaderPath) {
+		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
 		Reset();
 		if (!CreateModelRootSignature(sourceDevice))
 			return false;
 		if (!CreateModelPipelineStates(sourceDevice, passes.model))
 			return false;
-		if (!CreateDepthOnlyPipelineStates(sourceDevice, passes.model))
+		if (!CreateDepthOnlyPipelineStates(sourceDevice, depthPass))
 			return false;
-		if (!CreateSceneVelocityPipelineStates(sourceDevice, sceneVelocityShaderPath))
+		if (!CreateSceneVelocityPipelineStates(sourceDevice, velocityPass))
 			return false;
 		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;
