@@ -164,8 +164,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::Resize() {
-		if (device->device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(device->device);
+		if (!WaitIdle())
+			return false;
 		ResetSwapChainResources();
 		if (!swapChain.Recreate(*device, window))
 			return false;
@@ -176,7 +176,7 @@ namespace Chrivent {
 
 	FrameBeginResult VulkanViewer::BeginFrame() {
 		frameReady = false;
-		postProcessDepthPassReady = false;
+		postProcessSceneInputPassReady = false;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		const size_t frameIndex = syncObject->currentFrame;
@@ -228,7 +228,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
 				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
-				swapChain.extent, postProcessFrameData, postProcessDepthPassReady);
+				swapChain.extent, postProcessFrameData, postProcessSceneInputPassReady);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded) {
@@ -267,9 +267,11 @@ namespace Chrivent {
 			.pSignalSemaphoreInfos = &signalSemaphoreInfo
 		};
 		if (vkQueueSubmit2(device->graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+			postProcess.DiscardHistoryFrame();
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
 			return FrameEndResult::Failed;
 		}
+		postProcess.CommitHistoryFrame();
 		const VkSwapchainKHR swapChains[] = { swapChain.swapChain };
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -281,7 +283,7 @@ namespace Chrivent {
 		const VkResult presentResult = vkQueuePresentKHR(device->presentQueue, &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
 			frameReady = false;
-			postProcessDepthPassReady = false;
+			postProcessSceneInputPassReady = false;
 			if (!Resize())
 				return FrameEndResult::Failed;
 			ResetPostProcessHistory();
@@ -293,44 +295,46 @@ namespace Chrivent {
 		}
 		syncObject->AdvanceFrame();
 		frameReady = false;
-		postProcessDepthPassReady = false;
+		postProcessSceneInputPassReady = false;
 		return FrameEndResult::Presented;
 	}
 
-	bool VulkanViewer::BeginPostProcessDepthPass() {
+	PostProcessSceneInputBeginResult VulkanViewer::BeginPostProcessSceneInputPass() {
+		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+			return PostProcessSceneInputBeginResult::NotRequired;
 		if (!frameReady)
-			return false;
+			return PostProcessSceneInputBeginResult::Failed;
 		const VkPipeline geometryPipeline = postProcess.RequiresVelocity()
 			? pipeline->sceneVelocityPipeline : pipeline->depthOnlyPipeline;
-		if (!postProcess.BeginDepthPass(commandContext.commandBuffer,
+		if (!postProcess.BeginSceneInputPass(commandContext.commandBuffer,
 			currentImageIndex, geometryPipeline, swapChain.extent))
-			return false;
+			return PostProcessSceneInputBeginResult::Failed;
 		bindStateCache.pipeline = geometryPipeline;
 		bindStateCache.vertexDescriptorSet = VK_NULL_HANDLE;
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDescriptorSet = VK_NULL_HANDLE;
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.textureDescriptorSet = VK_NULL_HANDLE;
-		return true;
+		return PostProcessSceneInputBeginResult::Ready;
 	}
 
-	void VulkanViewer::EndPostProcessDepthPass() {
+	bool VulkanViewer::EndPostProcessSceneInputPass() {
 		if (!frameReady)
-			return;
-		postProcessDepthPassReady = postProcess.EndDepthPass(commandContext.commandBuffer, currentImageIndex);
+			return false;
+		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.commandBuffer,
+			currentImageIndex);
+		return postProcessSceneInputPassReady;
 	}
 
-	void VulkanViewer::WaitIdle() {
-		if (device->device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(device->device);
+	bool VulkanViewer::WaitIdle() {
+		return device && device->device != VK_NULL_HANDLE && vkDeviceWaitIdle(device->device) == VK_SUCCESS;
 	}
 
-	bool VulkanViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		WaitIdle();
-		return FinishPostProcessLoad(postProcess.Load(*device, swapChain, msaaDepthBuffer.format, effects));
+	bool VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+		return device && postProcess.Load(*device, swapChain, msaaDepthBuffer.format, effects);
 	}
 
-	std::unique_ptr<Instance> VulkanViewer::CreateInstance() {
+	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {
 		return std::make_unique<VulkanInstance>(*this);
 	}
 

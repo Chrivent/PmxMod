@@ -112,9 +112,11 @@ namespace Chrivent {
 	bool Dx12Instance::CreateTextureDescriptors() {
 		if (viewer == nullptr || materials.empty())
 			return true;
-		if (!viewer->device || !viewer->dummyTexture)
+		const auto* devicePointer = viewer->GetDevice();
+		const auto* dummyTexture = viewer->GetDummyTexture();
+		if (devicePointer == nullptr || dummyTexture == nullptr)
 			return false;
-		const auto& device = *viewer->device;
+		const auto& device = *devicePointer;
 		if (!device.device)
 			return false;
 		if (materials.size() > std::numeric_limits<UINT>::max() / 3)
@@ -139,9 +141,9 @@ namespace Chrivent {
 		};
 		for (Dx12Material& material : materials) {
 			material.textureDescriptorHandle = gpuHandle;
-			const Dx12Texture& texture = material.texture.resource ? material.texture : *viewer->dummyTexture;
-			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : *viewer->dummyTexture;
-			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : *viewer->dummyTexture;
+			const Dx12Texture& texture = material.texture.resource ? material.texture : *dummyTexture;
+			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : *dummyTexture;
+			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : *dummyTexture;
 			CreateSrv(texture, cpuHandle);
 			cpuHandle.ptr += textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
@@ -157,7 +159,7 @@ namespace Chrivent {
 		drawer = std::make_unique<Dx12Drawer>(*this);
 	}
 
-	void Dx12Instance::Clear() {
+	void Dx12Instance::ResetRendererResources() {
 		for (Dx12Buffer& vertexBuffer : vertexBuffers)
 			vertexBuffer.Reset();
 		indexBuffer.Reset();
@@ -198,9 +200,10 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::SetupRenderer() {
-		if (!viewer->device)
+		const auto* devicePointer = viewer->GetDevice();
+		if (devicePointer == nullptr)
 			return false;
-		const auto& device = *viewer->device;
+		const auto& device = *devicePointer;
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!CreateConstantBuffers(device))
@@ -212,7 +215,7 @@ namespace Chrivent {
 	void Dx12Instance::Upload() const {
 		if (model == nullptr || viewer == nullptr)
 			return;
-		const size_t frameIndex = viewer->frameIndex % kBufferedFrames;
+		const size_t frameIndex = viewer->GetFrameIndex() % kBufferedFrames;
 		const Dx12Buffer& vertexBuffer = vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
 			return;

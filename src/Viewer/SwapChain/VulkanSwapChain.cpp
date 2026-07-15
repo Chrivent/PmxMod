@@ -142,8 +142,6 @@ namespace Chrivent {
 	}
 
 	bool VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window) {
-		if (sourceDevice.device != VK_NULL_HANDLE)
-			vkDeviceWaitIdle(sourceDevice.device);
 		Reset();
 		return Initialize(sourceDevice, window);
 	}

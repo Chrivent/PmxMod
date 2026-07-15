@@ -1,11 +1,11 @@
 ﻿#include "Viewer/PostProcess/VulkanPostProcess.h"
 
-#include "Viewer/Shader/ModernHlslCompiler.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Memory/VulkanMemory.h"
+#include "Viewer/Shader/ModernHlslCompiler.h"
+#include "Viewer/Shader/VulkanShaderModule.h"
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
-#include "Viewer/Memory/VulkanMemory.h"
-#include "Viewer/Shader/VulkanShaderModule.h"
 
 #include <iostream>
 #include <utility>
@@ -409,10 +409,10 @@ namespace Chrivent {
 		std::string error;
 		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
 		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(
-			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, vertexCode, error, true)
-			|| !ModernHlslCompiler::CompileSpirv(
-				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, pixelCode, error)) {
+		if (!ModernHlslCompiler::CompileSpirv(pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
+			SpirvBindingProfile::PostProcess, vertexCode, error, true)
+			|| !ModernHlslCompiler::CompileSpirv(pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
+				SpirvBindingProfile::PostProcess, pixelCode, error)) {
 			std::cerr << error << '\n';
 			return false;
 		}
@@ -596,12 +596,12 @@ namespace Chrivent {
 		return true;
 	}
 	
-	bool VulkanPostProcess::BeginDepthPass(const VulkanCommandBuffer& commandBuffers,
+	bool VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
 		const uint32_t imageIndex, const VkPipeline geometryPipeline, const VkExtent2D extent) {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
-		const bool began = commandBuffers.BeginPostProcessDepthPass(imageIndex,
+		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
 			sceneImages[imageIndex], depthImages[imageIndex], depthImageViews[imageIndex],
 			RequiresVelocity() ? velocityImages[imageIndex] : VK_NULL_HANDLE,
 			RequiresVelocity() ? velocityImageViews[imageIndex] : VK_NULL_HANDLE,
@@ -611,12 +611,12 @@ namespace Chrivent {
 		return began;
 	}
 
-	bool VulkanPostProcess::EndDepthPass(
+	bool VulkanPostProcess::EndSceneInputPass(
 		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
-		return commandBuffers.EndPostProcessDepthPass(imageIndex, depthImages[imageIndex],
+		return commandBuffers.EndPostProcessSceneInputPass(imageIndex, depthImages[imageIndex],
 			RequiresVelocity() ? velocityImages[imageIndex] : VK_NULL_HANDLE, depthHasStencil);
 	}
 
@@ -639,6 +639,7 @@ namespace Chrivent {
 		const VkDescriptorSet frameDataDescriptorSet = frameDataDescriptorSets[imageIndex];
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
+		BeginHistoryFrame();
 		if (!sceneRenderingEnded) {
 			vkCmdEndRendering(commandBuffer);
 			VulkanCommandBuffer::TransitionImage(commandBuffer, sceneImages[imageIndex],
@@ -676,20 +677,26 @@ namespace Chrivent {
 			MarkHistoryInitialized(index);
 		}
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
-			if (pipelines[passIndex] == VK_NULL_HANDLE)
+			if (pipelines[passIndex] == VK_NULL_HANDLE) {
+				DiscardHistoryFrame();
 				return false;
+			}
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterIndex = ResolveTextureDescriptorIndex(imageIndex, passIndex);
-			if (!parameterDataBuffers[parameterIndex]->Write(&route.parameters, sizeof(route.parameters)))
+			if (!parameterDataBuffers[parameterIndex]->Write(&route.parameters, sizeof(route.parameters))) {
+				DiscardHistoryFrame();
 				return false;
+			}
 			UpdateTextureDescriptorSet(imageIndex, passIndex);
 			VkImage outputImage = VK_NULL_HANDLE;
 			VkImageView outputImageView = VK_NULL_HANDLE;
 			VkExtent2D outputExtent{};
 			bool outputInitialized = false;
 			if (!ResolveOutputImage(route, imageIndex, swapChainImage, swapChainImageView,
-				outputImage, outputImageView, outputExtent, outputInitialized))
+				outputImage, outputImageView, outputExtent, outputInitialized)) {
+				DiscardHistoryFrame();
 				return false;
+			}
 			VulkanCommandBuffer::TransitionImage(commandBuffer, outputImage,
 				outputInitialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -737,6 +744,7 @@ namespace Chrivent {
 			VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE, VK_IMAGE_ASPECT_COLOR_BIT);
 		if (vkEndCommandBuffer(commandBuffer) == VK_SUCCESS)
 			return true;
+		DiscardHistoryFrame();
 		std::cerr << "Failed to record Vulkan post-process command buffer.\n";
 		return false;
 	}

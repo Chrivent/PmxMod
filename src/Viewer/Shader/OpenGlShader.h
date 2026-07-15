@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <glad/glad.h>
 
@@ -17,7 +18,7 @@ namespace Chrivent {
     public:
         // HLSL의 버텍스와 픽셀 진입점을 SPIR-V로 컴파일하고 프로그램으로 링크한다.
         static GLuint CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
-            const std::string& pixelEntry, bool invertVertexY = false);
+			const std::string& pixelEntry, SpirvBindingProfile bindingProfile, bool invertVertexY = false);
         // HLSL의 버텍스 진입점만 SPIR-V로 컴파일하고 depth-only 프로그램으로 링크한다.
         static GLuint CreateVertexOnlyShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry);
     };

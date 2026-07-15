@@ -14,33 +14,39 @@ namespace Chrivent {
     class Instance {
     protected:
         std::unique_ptr<Drawer> drawer;
-
-		// 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		virtual bool SetupRenderer() = 0;
-    
-	public:
         std::shared_ptr<Model> model;
-        std::unique_ptr<Animation> anim;
+        std::unique_ptr<Animation> animation;
         float scale = 1.0f;
 
+        // 렌더러별 모델 GPU 리소스를 초기 상태로 되돌린다.
+        virtual void ResetRendererResources() = 0;
+        // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
+        virtual bool SetupRenderer() = 0;
+
+    public:
         Instance();
-		virtual ~Instance();
+        virtual ~Instance();
         
         Instance(const Instance&) = delete;
         Instance& operator=(const Instance&) = delete;
         Instance(Instance&&) = delete;
         Instance& operator=(Instance&&) = delete;
 
-        // 렌더러별 인스턴스 리소스를 해제한다.
-		virtual void Clear() = 0;
-		// 공통 상태를 검증한 뒤 렌더러별 모델 리소스를 초기화한다.
-		bool Setup();
+        Model& GetModel() { return *model; }
+        const Model& GetModel() const { return *model; }
+        Animation* GetAnimation() { return animation.get(); }
+        const Animation* GetAnimation() const { return animation.get(); }
+        float GetScale() const { return scale; }
+
+        // 모델, 애니메이션과 배율을 확정한 뒤 렌더러별 리소스를 원자적으로 초기화한다.
+        bool Initialize(std::shared_ptr<Model> sourceModel, std::unique_ptr<Animation> sourceAnimation,
+            float sourceScale);
         // 모델의 동적 버텍스/상태를 렌더러 리소스에 반영한다.
         virtual void Upload() const = 0;
         // 현재 인스턴스를 드로어가 가진 패스 순서대로 화면에 그린다.
         void Draw() const;
-        // 현재 인스턴스를 포스트 프로세스용 depth-only 패스에 그린다.
-        void DrawPostProcessDepth() const;
+        // 현재 인스턴스를 후처리 장면 depth와 velocity 입력 패스에 그린다.
+        void DrawPostProcessSceneInputs() const;
         // 뷰어 시간과 물리 설정을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
         void PrepareUpdate(const Viewer& viewer, bool physicsEnabled, ModelUpdateTiming* timing = nullptr) const;
         // 연결된 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.

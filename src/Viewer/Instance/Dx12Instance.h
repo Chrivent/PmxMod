@@ -25,6 +25,8 @@ namespace Chrivent {
 		bool CreateTextureDescriptors();
 		
 	protected:
+		// DX12 모델 GPU 리소스를 초기 상태로 되돌린다.
+		void ResetRendererResources() override;
 		// DX12 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer() override;
 
@@ -50,8 +52,6 @@ namespace Chrivent {
 		explicit Dx12Instance(Dx12Viewer& sourceViewer);
 		~Dx12Instance() override = default;
 
-		// DX12 모델 리소스를 해제한다.
-		void Clear() override;
 		// 모델의 갱신된 버텍스 데이터를 DX12 리소스에 반영한다.
 		void Upload() const override;
 	};

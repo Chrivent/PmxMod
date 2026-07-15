@@ -174,7 +174,7 @@ namespace Chrivent {
 			static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
 	}
 
-	bool VulkanCommandBuffer::BeginPostProcessDepthPass(
+	bool VulkanCommandBuffer::BeginPostProcessSceneInputPass(
 		const uint32_t imageIndex, const VkImage sceneImage, const VkImage depthImage,
 		const VkImageView depthImageView, const VkImage velocityImage, const VkImageView velocityImageView,
 		const bool velocityInitialized, const bool depthHasStencil, const VkPipeline pipeline, const VkExtent2D extent) const {
@@ -233,7 +233,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanCommandBuffer::EndPostProcessDepthPass(
+	bool VulkanCommandBuffer::EndPostProcessSceneInputPass(
 		const uint32_t imageIndex, const VkImage depthImage,
 		const VkImage velocityImage, const bool depthHasStencil) const {
 		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE)

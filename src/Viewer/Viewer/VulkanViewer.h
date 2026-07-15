@@ -44,7 +44,6 @@ namespace Chrivent {
 
 	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.
 	class VulkanViewer : public Viewer {
-	public:
 		std::unique_ptr<VulkanDevice> device;
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;
@@ -55,10 +54,9 @@ namespace Chrivent {
 		std::unique_ptr<VulkanTexture> dummyTexture;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
-		bool postProcessDepthPassReady = false;
+		bool postProcessSceneInputPassReady = false;
 		VulkanBindStateCache bindStateCache;
 
-	private:
 		VulkanPostProcess postProcess;
 		VulkanTextureCache textureCache;
 
@@ -70,10 +68,25 @@ namespace Chrivent {
 	protected:
 		PostProcess& ResolvePostProcess() override { return postProcess; }
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
+		
+		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
+		bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		// 초기 상태의 Vulkan 모델 인스턴스를 생성한다.
+		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
 		VulkanViewer();
 		~VulkanViewer() override = default;
+
+		const VulkanDevice* GetDevice() const { return device.get(); }
+		const VulkanPipeline* GetPipeline() const { return pipeline.get(); }
+		const VulkanTexture* GetDummyTexture() const { return dummyTexture.get(); }
+		bool ResolveFrameIndex(size_t& result) const {
+			if (!syncObject)
+				return false;
+			result = syncObject->currentFrame;
+			return true;
+		}
 		
 		// 현재 프레임 command buffer에 모델 draw indexed 명령을 기록한다.
 		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, size_t firstIndex, size_t indexCount);
@@ -103,16 +116,12 @@ namespace Chrivent {
 		FrameBeginResult BeginFrame() override;
 		// Vulkan 프레임을 제출하고 화면에 표시한다.
 		FrameEndResult EndFrame() override;
-		// Vulkan 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
-		bool BeginPostProcessDepthPass() override;
-		// Vulkan 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
-		void EndPostProcessDepthPass() override;
+		// Vulkan 후처리 장면 depth와 velocity 입력 패스를 시작한다.
+		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
+		// Vulkan 후처리 장면 입력 패스를 종료한다.
+		bool EndPostProcessSceneInputPass() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
-		void WaitIdle() override;
-		// 체크된 포스트 프로세스 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
-		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-		// Vulkan 모델 인스턴스를 생성한다.
-		std::unique_ptr<Instance> CreateInstance() override;
+		bool WaitIdle() override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
 		VulkanTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 	};

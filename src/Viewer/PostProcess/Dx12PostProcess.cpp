@@ -1,61 +1,15 @@
 ﻿#include "Viewer/PostProcess/Dx12PostProcess.h"
 
-#include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/Pipeline/Dx12PipelineBuilder.h"
+#include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <iostream>
+#include <limits>
 
 namespace Chrivent {
-	bool Dx12PostProcessTarget::Initialize(
-		const Dx12Device& sourceDevice, const int width, const int height, const DXGI_FORMAT targetFormat) {
-		Reset();
-		if (!sourceDevice.device || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN)
-			return false;
-		format = targetFormat;
-		D3D12_HEAP_PROPERTIES heapProperties{};
-		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProperties.CreationNodeMask = 1;
-		heapProperties.VisibleNodeMask = 1;
-		D3D12_RESOURCE_DESC resourceDesc{};
-		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		resourceDesc.Width = width;
-		resourceDesc.Height = height;
-		resourceDesc.DepthOrArraySize = 1;
-		resourceDesc.MipLevels = 1;
-		resourceDesc.Format = format;
-		resourceDesc.SampleDesc.Count = 1;
-		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		D3D12_CLEAR_VALUE clearValue{};
-		clearValue.Format = format;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(
-			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource))))
-			return false;
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = 1;
-		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
-			return false;
-		sourceDevice.device->CreateRenderTargetView(
-			resource.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-		return true;
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12PostProcessTarget::ResolveRtvHandle() const {
-		if (!rtvDescriptorHeap)
-			return {};
-		return rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	}
-
-	void Dx12PostProcessTarget::Reset() {
-		rtvDescriptorHeap.Reset();
-		resource.Reset();
-		format = DXGI_FORMAT_UNKNOWN;
-	}
-	
 	bool Dx12PostProcess::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
 		ID3D12Resource* backBuffer, ID3D12Resource* msaaColor, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext) {
@@ -429,7 +383,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12PostProcess::BeginDepthPass(ID3D12GraphicsCommandList* commandList,
+	bool Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 		const Dx12CommandContext& commandContext, const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || !depth || commandList == nullptr)
 			return false;
@@ -453,16 +407,17 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12PostProcess::EndDepthPass(
+	bool Dx12PostProcess::EndSceneInputPass(
 		ID3D12GraphicsCommandList* commandList, const Dx12CommandContext& commandContext) const {
 		if (!depth || commandList == nullptr)
-			return;
+			return false;
 		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), depth.Get(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		if (RequiresVelocity())
 			Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
 				sceneVelocity.ResolveResource(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		return true;
 	}
 
 	bool Dx12PostProcess::Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
@@ -498,6 +453,7 @@ namespace Chrivent {
 			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.ResolveResource(),
 			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		BeginHistoryFrame();
 		InitializeHistories(commandList, commandContext);
 		const auto& routes = ResolvePassRoutes();
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.ResolveGpuAddress();
@@ -506,6 +462,7 @@ namespace Chrivent {
 			const size_t parameterOffset = passIndex * parameterStride;
 			if (!parameterDataBuffer.Write(route.parameters, parameterOffset)) {
 				ResolveToBackBuffer(commandList, backBuffer, msaaColor, sourceDevice, commandContext);
+				DiscardHistoryFrame();
 				return false;
 			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);

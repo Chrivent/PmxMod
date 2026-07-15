@@ -9,6 +9,14 @@ namespace Chrivent {
 		return 1 - currentIndex;
 	}
 
+	const std::vector<ResourceHistoryState>& PostProcess::ResolveHistoryStates() const {
+		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
+	}
+
+	std::vector<ResourceHistoryState>& PostProcess::ResolveHistoryStates() {
+		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
+	}
+
 	int PostProcess::ResolveResourceExtent(
 		const int fullExtent, const PostProcessResourcePlan& resource, const bool width) {
 		if (resource.resolution == EffectPassResolution::Fixed)
@@ -33,43 +41,66 @@ namespace Chrivent {
 
 	size_t PostProcess::ResolveResourceReadIndex(
 		const size_t resourceIndex, const size_t transientIndex) const {
-		if (resourceIndex >= resourcePlans.size() || resourceIndex >= resourceHistoryStates.size()
+		const auto& historyStates = ResolveHistoryStates();
+		if (resourceIndex >= resourcePlans.size() || resourceIndex >= historyStates.size()
 			|| resourcePlans[resourceIndex].lifetime != EffectResourceLifetime::History)
 			return transientIndex;
-		return resourceHistoryStates[resourceIndex].readIndex;
+		return historyStates[resourceIndex].readIndex;
 	}
 
 	size_t PostProcess::ResolveResourceWriteIndex(
 		const size_t resourceIndex, const size_t transientIndex) const {
-		if (resourceIndex >= resourcePlans.size() || resourceIndex >= resourceHistoryStates.size()
+		const auto& historyStates = ResolveHistoryStates();
+		if (resourceIndex >= resourcePlans.size() || resourceIndex >= historyStates.size()
 			|| resourcePlans[resourceIndex].lifetime != EffectResourceLifetime::History)
 			return transientIndex;
-		return ResolveNextHistoryIndex(resourceHistoryStates[resourceIndex].readIndex);
+		return ResolveNextHistoryIndex(historyStates[resourceIndex].readIndex);
 	}
 
 	bool PostProcess::NeedsHistoryInitialization(const size_t resourceIndex) const {
-		return resourceIndex < resourcePlans.size() && resourceIndex < resourceHistoryStates.size()
+		const auto& historyStates = ResolveHistoryStates();
+		return resourceIndex < resourcePlans.size() && resourceIndex < historyStates.size()
 			&& resourcePlans[resourceIndex].lifetime == EffectResourceLifetime::History
-			&& !resourceHistoryStates[resourceIndex].initialized;
+			&& !historyStates[resourceIndex].initialized;
 	}
 
 	void PostProcess::MarkHistoryInitialized(const size_t resourceIndex) {
-		if (resourceIndex >= resourcePlans.size() || resourceIndex >= resourceHistoryStates.size()
+		auto& historyStates = ResolveHistoryStates();
+		if (resourceIndex >= resourcePlans.size() || resourceIndex >= historyStates.size()
 			|| resourcePlans[resourceIndex].lifetime != EffectResourceLifetime::History)
 			return;
-		resourceHistoryStates[resourceIndex].readIndex = 0;
-		resourceHistoryStates[resourceIndex].initialized = true;
+		historyStates[resourceIndex].readIndex = 0;
+		historyStates[resourceIndex].initialized = true;
 	}
 
 	void PostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
+		auto& historyStates = ResolveHistoryStates();
 		if (route.outputKind != PostProcessOutputKind::Resource
 			|| route.outputResourceIndex >= resourcePlans.size()
-			|| route.outputResourceIndex >= resourceHistoryStates.size()
+			|| route.outputResourceIndex >= historyStates.size()
 			|| resourcePlans[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
 			return;
-		auto& state = resourceHistoryStates[route.outputResourceIndex];
+		auto& state = historyStates[route.outputResourceIndex];
 		state.readIndex = ResolveNextHistoryIndex(state.readIndex);
 		state.initialized = true;
+	}
+
+	void PostProcess::BeginHistoryFrame() {
+		pendingResourceHistoryStates = resourceHistoryStates;
+		historyFramePending = true;
+	}
+
+	void PostProcess::CommitHistoryFrame() {
+		if (!historyFramePending)
+			return;
+		resourceHistoryStates.swap(pendingResourceHistoryStates);
+		pendingResourceHistoryStates.clear();
+		historyFramePending = false;
+	}
+
+	void PostProcess::DiscardHistoryFrame() {
+		pendingResourceHistoryStates.clear();
+		historyFramePending = false;
 	}
 
 	void PostProcess::SwapExecutionPlan(PostProcess& other) noexcept {
@@ -77,8 +108,10 @@ namespace Chrivent {
 		passRoutes.swap(other.passRoutes);
 		resourcePlans.swap(other.resourcePlans);
 		resourceHistoryStates.swap(other.resourceHistoryStates);
+		pendingResourceHistoryStates.swap(other.pendingResourceHistoryStates);
 		std::swap(depthRequired, other.depthRequired);
 		std::swap(velocityRequired, other.velocityRequired);
+		std::swap(historyFramePending, other.historyFramePending);
 	}
 
 	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects) {
@@ -177,6 +210,8 @@ namespace Chrivent {
 		passRoutes = std::move(routes);
 		resourcePlans = std::move(resources);
 		resourceHistoryStates.assign(resourcePlans.size(), {});
+		pendingResourceHistoryStates.clear();
+		historyFramePending = false;
 		depthRequired = requiresDepth;
 		velocityRequired = requiresVelocity;
 		return true;
@@ -191,13 +226,17 @@ namespace Chrivent {
 		passRoutes.clear();
 		resourcePlans.clear();
 		resourceHistoryStates.clear();
+		pendingResourceHistoryStates.clear();
 		depthRequired = false;
 		velocityRequired = false;
+		historyFramePending = false;
 	}
 
 	void PostProcess::ResetHistory() {
 		for (auto& state : resourceHistoryStates)
 			state = {};
+		pendingResourceHistoryStates.clear();
+		historyFramePending = false;
 	}
 
 	void PostProcess::Clear() {

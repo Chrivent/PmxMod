@@ -131,7 +131,7 @@ namespace Chrivent {
 		drawer = std::make_unique<VulkanDrawer>(*this);
 	}
 
-	void VulkanInstance::Clear() {
+	void VulkanInstance::ResetRendererResources() {
 		for (auto& vertexBuffer : vertexBuffers)
 			vertexBuffer.Reset();
 		indexBuffer.Reset();
@@ -151,11 +151,14 @@ namespace Chrivent {
 	}
 
 	bool VulkanInstance::SetupRenderer() {
-		if (!viewer->device || !viewer->pipeline || !viewer->dummyTexture)
+		const auto* devicePointer = viewer->GetDevice();
+		const auto* pipelinePointer = viewer->GetPipeline();
+		const auto* dummyTexturePointer = viewer->GetDummyTexture();
+		if (devicePointer == nullptr || pipelinePointer == nullptr || dummyTexturePointer == nullptr)
 			return false;
-		const auto& device = *viewer->device;
-		const auto& pipeline = *viewer->pipeline;
-		const auto& dummyTexture = *viewer->dummyTexture;
+		const auto& device = *devicePointer;
+		const auto& pipeline = *pipelinePointer;
+		const auto& dummyTexture = *dummyTexturePointer;
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!SetupConstantRings(device))
@@ -167,10 +170,10 @@ namespace Chrivent {
 	void VulkanInstance::Upload() const {
 		if (model == nullptr || viewer == nullptr)
 			return;
-		if (!viewer->syncObject)
+		size_t frameIndex = 0;
+		if (!viewer->ResolveFrameIndex(frameIndex))
 			return;
-		const size_t frameIndex = viewer->syncObject->currentFrame % kBufferedFrames;
-		const auto& vertexBuffer = vertexBuffers[frameIndex];
+		const auto& vertexBuffer = vertexBuffers[frameIndex % kBufferedFrames];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)
 			return;
 		const size_t vertexCount = model->geometryData.positions.size();

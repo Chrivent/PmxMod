@@ -57,11 +57,11 @@ namespace Chrivent {
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 체크된 후처리 effect 선언으로 DX11 실행 리소스와 shader chain을 생성한다.
 		bool Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects);
-		// 후처리용 depth-only pass를 시작한다.
-		bool BeginDepthPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
+		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
+		bool BeginSceneInputPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
 			int width, int height) const;
-		// 후처리용 depth-only pass를 종료한다.
-		static void EndDepthPass(ID3D11DeviceContext* context);
+		// DX11 후처리 장면 입력 패스를 종료한다.
+		static void EndSceneInputPass(ID3D11DeviceContext* context);
 		// 준비된 실행 계획으로 화면 색상을 swapchain back buffer에 그린다.
 		bool Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,

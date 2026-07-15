@@ -4,33 +4,45 @@
 #include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/ModelUpdater.h"
 
+#include <utility>
+
 namespace Chrivent {
     Instance::Instance() = default;
     Instance::~Instance() = default;
 
-	bool Instance::Setup() {
-		Clear();
-		if (model == nullptr)
-			return false;
-		if (SetupRenderer())
-			return true;
-		Clear();
-		return false;
-	}
+    bool Instance::Initialize(std::shared_ptr<Model> sourceModel,
+        std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
+        ResetRendererResources();
+        model.reset();
+        animation.reset();
+        scale = 1.0f;
+        if (!sourceModel)
+            return false;
+        model = std::move(sourceModel);
+        animation = std::move(sourceAnimation);
+        scale = sourceScale;
+        if (SetupRenderer())
+            return true;
+        ResetRendererResources();
+        model.reset();
+        animation.reset();
+        scale = 1.0f;
+        return false;
+    }
 
     void Instance::Draw() const {
         if (drawer)
             drawer->Draw();
     }
 
-    void Instance::DrawPostProcessDepth() const {
+    void Instance::DrawPostProcessSceneInputs() const {
         if (drawer)
-            drawer->DrawPostProcessDepth();
+            drawer->DrawPostProcessSceneInputs();
     }
 
     void Instance::PrepareUpdate(const Viewer& viewer, const bool physicsEnabled, ModelUpdateTiming* timing) const {
         const ModelUpdater updater(*model);
-        updater.Prepare(anim.get(), viewer.animTime * 30.0f, viewer.elapsed,
+        updater.Prepare(animation.get(), viewer.animTime * 30.0f, viewer.elapsed,
             viewer.RequiresPostProcessVelocity(), physicsEnabled && !viewer.skipPhysics, timing);
     }
 

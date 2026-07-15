@@ -59,13 +59,19 @@ namespace Chrivent {
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
 		std::vector<ResourceHistoryState> resourceHistoryStates;
+		std::vector<ResourceHistoryState> pendingResourceHistoryStates;
 		bool depthRequired = false;
 		bool velocityRequired = false;
+		bool historyFramePending = false;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
 		bool BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
+		// 현재 패스 기록에서 사용할 committed 또는 pending history 상태를 반환한다.
+		const std::vector<ResourceHistoryState>& ResolveHistoryStates() const;
+		// 현재 패스 기록에서 수정할 committed 또는 pending history 상태를 반환한다.
+		std::vector<ResourceHistoryState>& ResolveHistoryStates();
 
 	protected:
 		PostProcess() = default;
@@ -84,6 +90,8 @@ namespace Chrivent {
 		void MarkHistoryInitialized(size_t resourceIndex);
 		// 출력 경로가 history 리소스이면 read/write 인덱스를 전환한다.
 		void AdvanceHistory(const PostProcessPassRoute& route);
+		// 새 후처리 프레임의 history 변경을 pending 상태에서 시작한다.
+		void BeginHistoryFrame();
 		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 
@@ -108,6 +116,10 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
+		// GPU 실행이 확정된 프레임의 pending history를 committed 상태로 반영한다.
+		void CommitHistoryFrame();
+		// 실행되지 않은 프레임의 pending history 변경을 폐기한다.
+		void DiscardHistoryFrame();
 		// 다음 후처리 프레임에서 모든 temporal history를 초기 상태로 되돌린다.
 		void ResetHistory();
 		// API별 GPU 리소스와 선택한 실행 계획을 함께 해제한다.

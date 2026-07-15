@@ -53,13 +53,18 @@ namespace Chrivent {
 	}
 
 	void OpenGlInstance::CreateVertexArrays() {
+		const auto* modelShader = viewer->GetModelShader();
+		const auto* edgeShader = viewer->GetEdgeShader();
+		const auto* groundShadowShader = viewer->GetGroundShadowShader();
+		const auto* depthOnlyShader = viewer->GetDepthOnlyShader();
+		const auto* sceneVelocityShader = viewer->GetSceneVelocityShader();
 		const GLint locs[][3] = {
-			{ viewer->shader->positionLocation, viewer->shader->normalLocation, viewer->shader->uvLocation },
-			{ viewer->edgeShader->positionLocation, viewer->edgeShader->normalLocation },
-			{ viewer->gsShader->positionLocation },
-			{ viewer->depthOnlyShader->positionLocation, viewer->depthOnlyShader->uvLocation },
-			{ viewer->sceneVelocityShader->positionLocation, viewer->sceneVelocityShader->previousPositionLocation,
-				viewer->sceneVelocityShader->uvLocation }
+			{ modelShader->positionLocation, modelShader->normalLocation, modelShader->uvLocation },
+			{ edgeShader->positionLocation, edgeShader->normalLocation },
+			{ groundShadowShader->positionLocation },
+			{ depthOnlyShader->positionLocation, depthOnlyShader->uvLocation },
+			{ sceneVelocityShader->positionLocation, sceneVelocityShader->previousPositionLocation,
+				sceneVelocityShader->uvLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
@@ -131,10 +136,10 @@ namespace Chrivent {
 	}
 
 	OpenGlInstance::~OpenGlInstance() {
-		OpenGlInstance::Clear();
+		OpenGlInstance::ResetRendererResources();
 	}
-	
-	void OpenGlInstance::Clear() {
+
+	void OpenGlInstance::ResetRendererResources() {
 		if (vertexVbo != 0)
 			glDeleteBuffers(1, &vertexVbo);
 		if (ibo != 0)

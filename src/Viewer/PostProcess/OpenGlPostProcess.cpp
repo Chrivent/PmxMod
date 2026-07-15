@@ -63,8 +63,8 @@ namespace Chrivent {
 			return postProcessVelocityTexture;
 		if (input.resourceIndex >= resources.size())
 			return sceneColorTexture;
-		const OpenGlPostProcessResource& resource = resources[input.resourceIndex];
-		return resource.textures[ResolveResourceReadIndex(input.resourceIndex)];
+		const auto& [framebuffers, textures] = resources[input.resourceIndex];
+		return textures[ResolveResourceReadIndex(input.resourceIndex)];
 	}
 
 	GLuint OpenGlPostProcess::ResolveOutputFramebuffer(const PostProcessPassRoute& route) const {
@@ -210,7 +210,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool OpenGlPostProcess::BeginDepthPass(const int width, const int height) const {
+	bool OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
 		if (!RequiresDepth() && !RequiresVelocity())
 			return false;
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
@@ -229,7 +229,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void OpenGlPostProcess::EndDepthPass() {
+	void OpenGlPostProcess::EndSceneInputPass() {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -238,6 +238,7 @@ namespace Chrivent {
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return true;
+		BeginHistoryFrame();
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
 		glBlitNamedFramebuffer(sceneFramebuffer, resolveFramebuffer,
@@ -267,6 +268,7 @@ namespace Chrivent {
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}
+		CommitHistoryFrame();
 		return true;
 	}
 

@@ -174,7 +174,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx11PostProcess::BeginDepthPass(ID3D11DeviceContext* context,
+	bool Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView)
 			return false;
@@ -195,7 +195,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11PostProcess::EndDepthPass(ID3D11DeviceContext* context) {
+	void Dx11PostProcess::EndSceneInputPass(ID3D11DeviceContext* context) {
 		if (context != nullptr)
 			context->OMSetRenderTargets(0, nullptr, nullptr);
 	}
@@ -205,6 +205,7 @@ namespace Chrivent {
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr)
 			return false;
+		BeginHistoryFrame();
 		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
 		context->PSSetConstantBuffers(0, 1, frameDataBuffer.GetAddressOf());
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
@@ -242,6 +243,7 @@ namespace Chrivent {
 			context->PSSetShaderResources(0, views.size(), views.data());
 			AdvanceHistory(route);
 		}
+		CommitHistoryFrame();
 		return true;
 	}
 

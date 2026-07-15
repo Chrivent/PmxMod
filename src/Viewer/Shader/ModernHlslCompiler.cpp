@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Shader/ModernHlslCompiler.h"
 
-#include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <Windows.h>
 #include <dxc/dxcapi.h>
@@ -77,7 +77,7 @@ namespace Chrivent {
 	}
 
 	bool ModernHlslCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
-		const std::wstring& target, const SpirvTarget spirvTarget,
+		const std::wstring& target, const SpirvTarget spirvTarget, const SpirvBindingProfile bindingProfile,
 		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
 		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
 			? L"-fspv-target-env=vulkan1.0"
@@ -86,8 +86,8 @@ namespace Chrivent {
 		if (invertVertexY)
 			arguments.emplace_back(L"-fvk-invert-y");
 		std::vector<std::wstring> argumentStorage;
-		argumentStorage.reserve((2 + PostProcessInputLayout::maxTextureCount
-			+ PostProcessInputLayout::samplerCount) * 3);
+		const uint32_t textureCount = SpirvBindingLayout::ResolveTextureCount(bindingProfile);
+		argumentStorage.reserve((2 + textureCount + SpirvBindingLayout::samplerCount) * 3);
 		const auto AppendBinding = [&arguments, &argumentStorage](const wchar_t type, const uint32_t slot,
 			const uint32_t binding, const uint32_t set) {
 			argumentStorage.emplace_back(std::wstring(1, type) + std::to_wstring(slot));
@@ -101,18 +101,17 @@ namespace Chrivent {
 			arguments.emplace_back(argumentStorage[index + 2].c_str());
 		};
 		const bool openGl = spirvTarget == SpirvTarget::OpenGl;
-		AppendBinding(L'b', PostProcessInputLayout::frameDataRegister,
-			PostProcessInputLayout::frameDataVulkanBinding,
-			openGl ? 0 : PostProcessInputLayout::frameDataVulkanSet);
-		AppendBinding(L'b', PostProcessInputLayout::parameterDataRegister,
-			openGl ? PostProcessInputLayout::parameterDataRegister : PostProcessInputLayout::parameterDataVulkanBinding,
-			openGl ? 0 : PostProcessInputLayout::parameterDataVulkanSet);
-		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
-			AppendBinding(L't', slot, PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
-				openGl ? 0 : PostProcessInputLayout::textureVulkanSet);
-		for (uint32_t slot = 0; slot < PostProcessInputLayout::samplerCount; slot++)
-			AppendBinding(L's', slot, PostProcessInputLayout::ResolveSpirvSamplerBinding(slot),
-				openGl ? 0 : PostProcessInputLayout::textureVulkanSet);
+		AppendBinding(L'b', SpirvBindingLayout::frameDataRegister, SpirvBindingLayout::frameDataBinding,
+			openGl ? 0 : SpirvBindingLayout::frameDataSet);
+		AppendBinding(L'b', SpirvBindingLayout::parameterDataRegister,
+			openGl ? SpirvBindingLayout::parameterDataRegister : SpirvBindingLayout::parameterDataBinding,
+			openGl ? 0 : SpirvBindingLayout::parameterDataSet);
+		for (uint32_t slot = 0; slot < textureCount; slot++)
+			AppendBinding(L't', slot, SpirvBindingLayout::ResolveTextureBinding(slot),
+				openGl ? 0 : SpirvBindingLayout::textureSet);
+		for (uint32_t slot = 0; slot < SpirvBindingLayout::samplerCount; slot++)
+			AppendBinding(L's', slot, SpirvBindingLayout::ResolveSamplerBinding(slot),
+				openGl ? 0 : SpirvBindingLayout::textureSet);
 		std::vector<uint8_t> object;
 		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;

@@ -63,7 +63,8 @@ namespace Chrivent {
 	}
 
 	Dx12Viewer::~Dx12Viewer() {
-		commandContext.WaitForGpu(*device);
+		if (device && !commandContext.WaitForGpu(*device))
+			std::cerr << "Failed to wait for DX12 GPU resources during shutdown.\n";
 		postProcess.Clear();
 		pipeline.Reset();
 		commandContext.Reset();
@@ -121,7 +122,8 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::Resize() {
-		commandContext.WaitForGpu(*device);
+		if (!WaitIdle())
+			return false;
 		if (!swapChain.Resize(*device, screenWidth, screenHeight))
 			return false;
 		if (!msaaColorBuffer.Initialize(*device, screenWidth, screenHeight))
@@ -167,38 +169,43 @@ namespace Chrivent {
 				*device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
 		else
 			ResolveToBackBuffer(commandList, backBuffer, msaaColor);
-		if (!commandContext.Execute(*device))
+		if (!commandContext.Execute(*device)) {
+			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
+		}
+		postProcess.CommitHistoryFrame();
 		if (!swapChain.Present())
 			return FrameEndResult::Failed;
 		frameReady = false;
 		return drawSucceeded ? FrameEndResult::Presented : FrameEndResult::Failed;
 	}
 
-	bool Dx12Viewer::BeginPostProcessDepthPass() {
+	PostProcessSceneInputBeginResult Dx12Viewer::BeginPostProcessSceneInputPass() {
+		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+			return PostProcessSceneInputBeginResult::NotRequired;
+		if (!frameReady)
+			return PostProcessSceneInputBeginResult::Failed;
+		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight)
+			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+	}
+
+	bool Dx12Viewer::EndPostProcessSceneInputPass() {
 		if (!frameReady)
 			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		return postProcess.BeginDepthPass(commandList, commandContext, screenWidth, screenHeight);
+		return postProcess.EndSceneInputPass(commandList, commandContext);
 	}
 
-	void Dx12Viewer::EndPostProcessDepthPass() {
-		if (!frameReady)
-			return;
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		postProcess.EndDepthPass(commandList, commandContext);
+	bool Dx12Viewer::WaitIdle() {
+		return device && commandContext.WaitForGpu(*device);
 	}
 
-	void Dx12Viewer::WaitIdle() {
-		commandContext.WaitForGpu(*device);
+	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+		return device && postProcess.Load(*device, effects);
 	}
 
-	bool Dx12Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		WaitIdle();
-		return FinishPostProcessLoad(postProcess.Load(*device, effects));
-	}
-
-	std::unique_ptr<Instance> Dx12Viewer::CreateInstance() {
+	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {
 		return std::make_unique<Dx12Instance>(*this);
 	}
 

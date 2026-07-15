@@ -3,6 +3,7 @@
 #include "Viewer/Buffer/Dx12Buffer.h"
 #include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/PostProcess/PostProcess.h"
+#include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
 #include <d3d12.h>
 #include <vector>
@@ -12,30 +13,6 @@ namespace Chrivent {
 	class Dx12SwapChain;
 	struct PostProcessFrameData;
 	
-	// D3D12 후처리 출력 texture와 RTV descriptor를 함께 관리한다.
-	class Dx12PostProcessTarget {
-		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;
-		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
-
-	public:
-		// 화면 크기에 맞는 단일 샘플 후처리 렌더 타깃과 RTV를 생성한다.
-		bool Initialize(const Dx12Device& sourceDevice, int width, int height, DXGI_FORMAT targetFormat);
-		// 후처리 렌더 타깃 리소스를 반환한다.
-		ID3D12Resource* ResolveResource() const { return resource.Get(); }
-		// 후처리 렌더 타깃 형식을 반환한다.
-		DXGI_FORMAT ResolveFormat() const { return format; }
-		// 후처리 렌더 타깃 RTV의 CPU descriptor handle을 반환한다.
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolveRtvHandle() const;
-		// 생성한 후처리 입력 리소스를 해제한다.
-		void Reset();
-	};
-
-	// D3D12 후처리 리소스의 ping-pong 출력 타깃을 보관한다.
-	struct Dx12PostProcessResource {
-		Dx12PostProcessTarget targets[2];
-	};
-
 	// 공통 실행 계획을 D3D12 파이프라인과 명령 목록으로 실행한다.
 	class Dx12PostProcess : public PostProcess {
 		static constexpr size_t frameDataBufferCount = 2;
@@ -58,7 +35,7 @@ namespace Chrivent {
 			const Dx12CommandContext& commandContext);
 		// 현재 화면 크기에 맞는 viewport와 scissor rect를 command list에 적용한다.
 		static void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList, int width, int height);
-		// 후처리 depth-only pass에 사용할 단일 샘플 depth target을 생성한다.
+		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
 		bool CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
 		// 패키지가 선언한 transient/history target을 생성한다.
 		bool CreateEffectResources(const Dx12Device& sourceDevice);
@@ -94,11 +71,11 @@ namespace Chrivent {
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 체크된 후처리 effect 선언으로 DX12 실행 리소스와 pipeline을 생성한다.
 		bool Load(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
-		// 후처리 depth-only pass를 시작한다.
-		bool BeginDepthPass(ID3D12GraphicsCommandList* commandList,
+		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
+		bool BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;
-		// 후처리 depth-only pass를 종료한다.
-		void EndDepthPass(ID3D12GraphicsCommandList* commandList,
+		// DX12 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
+		bool EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext) const;
 		// 준비된 실행 계획으로 장면 색상을 swapchain back buffer에 그린다.
 		bool Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,

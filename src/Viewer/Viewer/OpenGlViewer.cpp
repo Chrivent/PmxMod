@@ -116,24 +116,31 @@ namespace Chrivent {
 		return FrameEndResult::Presented;
 	}
 
-	bool OpenGlViewer::BeginPostProcessDepthPass() {
-		return postProcess.BeginDepthPass(screenWidth, screenHeight);
+	PostProcessSceneInputBeginResult OpenGlViewer::BeginPostProcessSceneInputPass() {
+		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+			return PostProcessSceneInputBeginResult::NotRequired;
+		return postProcess.BeginSceneInputPass(screenWidth, screenHeight)
+			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
 	}
 
-	void OpenGlViewer::EndPostProcessDepthPass() {
-		postProcess.EndDepthPass();
+	bool OpenGlViewer::EndPostProcessSceneInputPass() {
+		postProcess.EndSceneInputPass();
+		return true;
 	}
 
-	void OpenGlViewer::WaitIdle() {
+	bool OpenGlViewer::WaitIdle() {
+		if (window == nullptr)
+			return false;
 		glfwMakeContextCurrent(window);
 		glFinish();
+		return true;
 	}
 
-	bool OpenGlViewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		return FinishPostProcessLoad(postProcess.Load(effects));
+	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+		return postProcess.Load(effects);
 	}
 
-	std::unique_ptr<Instance> OpenGlViewer::CreateInstance() {
+	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {
 		return std::make_unique<OpenGlInstance>(*this);
 	}
 

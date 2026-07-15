@@ -19,18 +19,18 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawModel() {
-		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+		if (instance.viewer == nullptr || instance.indexCount == 0)
 			return;
 		if (!instance.viewer->modelEffectEnabled)
 			return;
-		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const size_t frameIndex = instance.viewer->GetFrameIndex() % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
@@ -42,7 +42,7 @@ namespace Chrivent {
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size() || materialId >= instance.modelPixelConstantBuffers.size())
 				continue;
 			const Dx12Material& material = instance.materials[materialId];
@@ -74,23 +74,23 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawEdge() {
-		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+		if (instance.viewer == nullptr || instance.indexCount == 0)
 			return;
 		if (!instance.viewer->edgeEffectEnabled)
 			return;
-		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const size_t frameIndex = instance.viewer->GetFrameIndex() % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
 		EdgeVertexConstants vertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
 		instance.viewer->BindEdgePipeline();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size() ||
 				materialId >= instance.edgeVertexConstantBuffers.size() ||
 				materialId >= instance.edgePixelConstantBuffers.size())
@@ -118,19 +118,19 @@ namespace Chrivent {
 	}
 
 	void Dx12Drawer::DrawGroundShadow() {
-		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+		if (instance.viewer == nullptr || instance.indexCount == 0)
 			return;
 		if (!instance.viewer->groundShadowEffectEnabled)
 			return;
-		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const size_t frameIndex = instance.viewer->GetFrameIndex() % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.groundShadowVertexConstantBuffers[frameIndex];
 		const Dx12Buffer& pixelConstantBuffer = instance.groundShadowPixelConstantBuffers[frameIndex];
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
@@ -148,7 +148,7 @@ namespace Chrivent {
 		commandList->IASetIndexBuffer(&instance.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
 		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& mat = instance.materials[materialId].mat;
@@ -158,26 +158,26 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx12Drawer::DrawDepthOnly() {
-		if (instance.viewer == nullptr || !instance.viewer->IsFrameReady() || instance.model == nullptr || instance.indexCount == 0)
+	void Dx12Drawer::DrawSceneInputs() {
+		if (instance.viewer == nullptr || instance.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = instance.viewer->commandList.Get();
+		ID3D12GraphicsCommandList* commandList = instance.viewer->ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = instance.viewer->frameIndex % Dx12Instance::kBufferedFrames;
+		const size_t frameIndex = instance.viewer->GetFrameIndex() % Dx12Instance::kBufferedFrames;
 		const auto& vertexBufferView = instance.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = instance.modelVertexConstantBuffers[frameIndex];
 		const size_t constantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
 		const size_t sceneSurfaceConstantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
 		const auto& viewer = *instance.viewer;
-		const glm::mat4 world = BuildWorldMatrix(instance.scale);
+		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
 		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
 			viewer, world, ClipMatrix());
 		const ModelVertexConstants depthConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
 		if (!(velocityRequired ? vertexConstantBuffer.Write(velocityConstants, constantOffset)
 			: vertexConstantBuffer.Write(depthConstants, constantOffset))) {
-			std::cerr << "Failed to update DX12 depth-only vertex constants.\n";
+			std::cerr << "Failed to update DX12 scene input vertex constants.\n";
 			return;
 		}
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
@@ -187,7 +187,7 @@ namespace Chrivent {
 		ID3D12DescriptorHeap* descriptorHeaps[] = { instance.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size() || materialId >= instance.modelPixelConstantBuffers.size())
 				continue;
 			const auto& material = instance.materials[materialId];

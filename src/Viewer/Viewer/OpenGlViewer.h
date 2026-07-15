@@ -33,21 +33,32 @@ namespace Chrivent {
         const int           msaaSamples = 4;
         OpenGlTextureCache    textureCache;
         OpenGlPostProcess postProcess;
-
-	protected:
-		PostProcess& ResolvePostProcess() override { return postProcess; }
-		const PostProcess& ResolvePostProcess() const override { return postProcess; }
-
-    public:
         GLuint dummyColorTex = 0;
         std::unique_ptr<OpenGlModelShader> shader;
         std::unique_ptr<OpenGlEdgeShader> edgeShader;
         std::unique_ptr<OpenGlGroundShadowShader> gsShader;
         std::unique_ptr<OpenGlDepthOnlyShader> depthOnlyShader;
-		std::unique_ptr<OpenGlSceneVelocityShader> sceneVelocityShader;
+        std::unique_ptr<OpenGlSceneVelocityShader> sceneVelocityShader;
 
+    protected:
+        PostProcess& ResolvePostProcess() override { return postProcess; }
+        const PostProcess& ResolvePostProcess() const override { return postProcess; }
+        
+        // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
+        bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+        // 초기 상태의 OpenGL 모델 인스턴스를 생성한다.
+        std::unique_ptr<Instance> CreateInstanceCore() override;
+
+    public:
         OpenGlViewer() = default;
         ~OpenGlViewer() override;
+
+        GLuint GetDummyColorTexture() const { return dummyColorTex; }
+        const OpenGlModelShader* GetModelShader() const { return shader.get(); }
+        const OpenGlEdgeShader* GetEdgeShader() const { return edgeShader.get(); }
+        const OpenGlGroundShadowShader* GetGroundShadowShader() const { return gsShader.get(); }
+        const OpenGlDepthOnlyShader* GetDepthOnlyShader() const { return depthOnlyShader.get(); }
+        const OpenGlSceneVelocityShader* GetSceneVelocityShader() const { return sceneVelocityShader.get(); }
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;
@@ -59,17 +70,12 @@ namespace Chrivent {
         FrameBeginResult BeginFrame() override;
         // GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
         FrameEndResult EndFrame() override;
-        // OpenGL 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
-        bool BeginPostProcessDepthPass() override;
-        // OpenGL 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
-        void EndPostProcessDepthPass() override;
+        // OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
+        PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
+        // OpenGL 후처리 장면 입력 패스를 종료한다.
+        bool EndPostProcessSceneInputPass() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.
-        void WaitIdle() override;
-        // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
-        bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // OpenGL 모델 인스턴스를 생성한다.
-        std::unique_ptr<Instance> CreateInstance() override;
-
+        bool WaitIdle() override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
         OpenGlTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false) {
             return textureCache.Load(texturePath, clamp);

@@ -188,7 +188,7 @@ namespace Chrivent {
                 return false;
             }
         }
-        viewer->CreateFpsOverlay();
+        fpsOverlay.Create(viewer->window);
         return true;
     }
 
@@ -267,8 +267,9 @@ namespace Chrivent {
             return true;
         const int playbackFrame = viewer ? viewer->animTime * 30.0f + 0.5f : 0;
         GLFWwindow* previousWindow = viewer ? viewer->window : nullptr;
-        if (viewer)
-            viewer->WaitIdle();
+        if (viewer && !viewer->WaitIdle())
+            return false;
+        fpsOverlay.Reset();
         RemoveViewerWindowSubclass();
         ClearInstances();
         viewer.reset();
@@ -292,8 +293,9 @@ namespace Chrivent {
 
     void Program::Shutdown() {
         GLFWwindow* window = viewer ? viewer->window : nullptr;
-        if (viewer)
-            viewer->WaitIdle();
+        if (viewer && !viewer->WaitIdle())
+            std::cerr << "Failed to wait for the renderer during shutdown.\n";
+        fpsOverlay.Reset();
         RemoveViewerWindowSubclass();
         ClearInstances();
         music.Stop();
@@ -432,17 +434,15 @@ namespace Chrivent {
         loadedInstances.clear();
         loadedInstances.reserve(sceneConfig.modelConfigs.size());
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
-            auto instance = viewer->CreateInstance();
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
             if (!loader.Load(modelPath, viewer->pmxDir)) {
                 std::cerr << "Failed to load pmx file.\n";
                 return false;
             }
-            instance->model = pmxModel;
-            const ModelAnimator animator(*instance->model);
+            const ModelAnimator animator(*pmxModel);
             animator.InitializeAnimation();
-            AnimationBuilder animationBuilder(instance->model);
+            AnimationBuilder animationBuilder(pmxModel);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
                 const auto parseResult = vmd.ReadFile(vmdPath);
@@ -454,9 +454,8 @@ namespace Chrivent {
             }
             auto vmdAnim = animationBuilder.TakeAnimation();
             animator.SyncPhysics(*vmdAnim, 0.0f);
-            instance->anim = std::move(vmdAnim);
-            instance->scale = scale;
-			if (!instance->Setup())
+            auto instance = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
+            if (!instance)
                 return false;
             loadedInstances.emplace_back(std::move(instance));
         }
@@ -466,8 +465,8 @@ namespace Chrivent {
     int Program::CalculateMotionLastFrame() const {
         int lastFrame = cameraManager.CalculateLastFrame();
         for (const auto& instance : instances) {
-            if (instance && instance->anim) {
-                const uint32_t animationLastFrame = instance->anim->CalculateLastFrame();
+            if (instance && instance->GetAnimation()) {
+                const uint32_t animationLastFrame = instance->GetAnimation()->CalculateLastFrame();
                 const int timelineLastFrame = std::min(
                     animationLastFrame, static_cast<uint32_t>(std::numeric_limits<int>::max()));
                 lastFrame = std::max(lastFrame, timelineLastFrame);
@@ -485,26 +484,27 @@ namespace Chrivent {
 
     void Program::ResetPhysics(const int frame) const {
         for (const auto& instance : instances) {
-            if (!instance || !instance->model || !instance->anim)
+            if (!instance || !instance->GetAnimation())
                 continue;
-            const ModelAnimator animator(*instance->model);
-            const ModelPose pose(*instance->model);
+            const ModelAnimator animator(instance->GetModel());
+            const ModelPose pose(instance->GetModel());
             animator.BeginAnimation();
-            instance->anim->Evaluate(frame);
+            instance->GetAnimation()->Evaluate(frame);
             animator.UpdateMorphAnimation();
             pose.UpdateNodeAnimation(false);
             pose.UpdateNodeAnimation(true);
             pose.ResetPhysics();
-            animator.SyncPhysics(*instance->anim, frame);
+            animator.SyncPhysics(*instance->GetAnimation(), frame);
         }
         viewer->ResetPostProcessHistory();
     }
 
     void Program::UpdateMotionPanel(const size_t modelIndex) {
-        if (modelIndex >= instances.size() || !instances[modelIndex] || !instances[modelIndex]->model)
+        if (modelIndex >= instances.size() || !instances[modelIndex])
             return;
         const auto& instance = *instances[modelIndex];
-        const auto& model = *instance.model;
+        const auto& model = instance.GetModel();
+        const auto* animation = instance.GetAnimation();
         const auto NormalizeKeys = [](std::vector<MotionTimelineKey>& keys) {
             std::ranges::sort(keys, {}, &MotionTimelineKey::frame);
             std::vector<MotionTimelineKey> normalized;
@@ -539,8 +539,8 @@ namespace Chrivent {
         std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
         std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
-        if (instance.anim) {
-            for (const auto& [node, keys] : instance.anim->nodeTracks) {
+        if (animation) {
+            for (const auto& [node, keys] : animation->nodeTracks) {
                 auto& timelineKeys = nodeKeys[node.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
@@ -564,13 +564,13 @@ namespace Chrivent {
                     });
                 }
             }
-            for (const auto& [ikSolver, keys] : instance.anim->ikTracks) {
+            for (const auto& [ikSolver, keys] : animation->ikTracks) {
                 auto& timelineKeys = ikKeys[ikSolver.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
-            for (const auto& [morph, keys] : instance.anim->morphTracks) {
+            for (const auto& [morph, keys] : animation->morphTracks) {
                 auto& timelineKeys = morphKeys[morph.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)
@@ -792,8 +792,6 @@ namespace Chrivent {
     }
 
     void Program::ClearInstances() {
-        for (const auto& instance : instances)
-            instance->Clear();
         instances.clear();
     }
 
@@ -815,7 +813,7 @@ namespace Chrivent {
         fpsFrame++;
         const double sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - fpsTime).count();
         if (sec > 1.0) {
-            viewer->UpdateFps(fpsFrame / sec);
+            fpsOverlay.Update(fpsFrame / sec);
             fpsFrame = 0;
             fpsTime = std::chrono::steady_clock::now();
         }
@@ -983,7 +981,7 @@ namespace Chrivent {
         panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
         panelManager.SetPlaybackFrame(viewer->animTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(*viewer);
-        viewer->UpdateFpsVisibility(panelManager.IsFpsVisible());
+        fpsOverlay.SetVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
         if (timing) {
             modelUpdateTimings.clear();
@@ -1017,10 +1015,14 @@ namespace Chrivent {
             instance->Upload();
             instance->Draw();
         }
-        if (viewer->BeginPostProcessDepthPass()) {
+        const PostProcessSceneInputBeginResult sceneInputResult = viewer->BeginPostProcessSceneInputPass();
+        if (sceneInputResult == PostProcessSceneInputBeginResult::Failed)
+            return false;
+        if (sceneInputResult == PostProcessSceneInputBeginResult::Ready) {
             for (const auto& instance : instances)
-                instance->DrawPostProcessDepth();
-            viewer->EndPostProcessDepthPass();
+                instance->DrawPostProcessSceneInputs();
+            if (!viewer->EndPostProcessSceneInputPass())
+                return false;
         }
         const auto uploadDrawEnd = std::chrono::steady_clock::now();
         const FrameEndResult frameEndResult = viewer->EndFrame();
@@ -1101,7 +1103,7 @@ namespace Chrivent {
         };
         std::cout << std::fixed << std::setprecision(3);
         const auto physicsModelCount = std::ranges::count_if(instances, [](const auto& instance) {
-            return instance->model->physicsData.physics != nullptr;
+            return instance->GetModel().physicsData.physics != nullptr;
         });
         std::cout << "benchmark_renderer=" << ResolveRendererName(currentRendererType) << '\n';
         std::cout << "benchmark_models=" << instances.size() << '\n';

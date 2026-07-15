@@ -108,11 +108,11 @@ namespace Chrivent {
 		// 새 효과 체인을 완성한 뒤 현재 Vulkan 후처리 상태와 원자적으로 교체한다.
 		bool Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects);
-		// Vulkan 포스트 프로세스용 단일 샘플 geometry pass를 시작한다.
-		bool BeginDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
+		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
+		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
 			VkPipeline geometryPipeline, VkExtent2D extent);
-		// Vulkan 포스트 프로세스용 단일 샘플 geometry pass를 종료한다.
-		bool EndDepthPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
+		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
+		bool EndSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
 		// 장면 렌더링을 끝내고 선언된 pass들을 실행해 최종 명령을 기록한다.
 		bool EndRecord(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, VkExtent2D extent, const PostProcessFrameData& frameData,

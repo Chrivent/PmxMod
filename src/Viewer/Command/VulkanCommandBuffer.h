@@ -51,11 +51,11 @@ namespace Chrivent {
 		void BindDescriptorSets(uint32_t imageIndex, VkPipelineLayout pipelineLayout, uint32_t firstSet,
 			std::span<const VkDescriptorSet> descriptorSets, std::span<const uint32_t> dynamicOffsets = {}) const;
 		// 장면 렌더링을 끝내고 후처리용 단일 샘플 geometry 렌더링을 시작한다.
-		bool BeginPostProcessDepthPass(uint32_t imageIndex, VkImage sceneImage, VkImage depthImage,
+		bool BeginPostProcessSceneInputPass(uint32_t imageIndex, VkImage sceneImage, VkImage depthImage,
 			VkImageView depthImageView, VkImage velocityImage, VkImageView velocityImageView,
 			bool velocityInitialized, bool depthHasStencil, VkPipeline pipeline, VkExtent2D extent) const;
 		// 후처리용 geometry 렌더링을 끝내고 depth/속도를 shader read 상태로 전환한다.
-		bool EndPostProcessDepthPass(uint32_t imageIndex, VkImage depthImage,
+		bool EndPostProcessSceneInputPass(uint32_t imageIndex, VkImage depthImage,
 			VkImage velocityImage, bool depthHasStencil) const;
 		// dynamic rendering을 끝내고 출력 이미지를 present 상태로 전환한다.
 		bool EndRecord(uint32_t imageIndex, VkImage outputImage) const;

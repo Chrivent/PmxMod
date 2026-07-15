@@ -28,6 +28,7 @@ add_executable(PmxMod
         src/Program/Config.h src/Program/Config.cpp
         src/Program/Gui/GuiBackBuffer.h src/Program/Gui/GuiBackBuffer.cpp
         src/Program/Gui/GuiDrawer.h src/Program/Gui/GuiDrawer.cpp
+        src/Program/Gui/FpsOverlay.h src/Program/Gui/FpsOverlay.cpp
         src/Program/Gui/GuiTheme.h src/Program/Gui/GuiTheme.cpp
         src/Program/Language.h src/Program/Language.cpp
         src/Program/MenuBar.h src/Program/MenuBar.cpp

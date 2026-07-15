@@ -94,7 +94,7 @@ namespace Chrivent {
 		DrawGroundShadow();
 	}
 
-	void Drawer::DrawPostProcessDepth() {
-		DrawDepthOnly();
+	void Drawer::DrawPostProcessSceneInputs() {
+		DrawSceneInputs();
 	}
 }

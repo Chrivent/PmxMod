@@ -216,35 +216,47 @@ namespace Chrivent {
 		return FrameEndResult::Presented;
 	}
 
-	bool Dx11Viewer::BeginPostProcessDepthPass() {
-		return postProcess.BeginDepthPass(
-			deviceResources.context.Get(), pipelineStates.defaultDss.Get(), screenWidth, screenHeight);
+	PostProcessSceneInputBeginResult Dx11Viewer::BeginPostProcessSceneInputPass() {
+		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+			return PostProcessSceneInputBeginResult::NotRequired;
+		return postProcess.BeginSceneInputPass(
+			deviceResources.context.Get(), pipelineStates.defaultDss.Get(), screenWidth, screenHeight)
+			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
 	}
 
-	void Dx11Viewer::EndPostProcessDepthPass() {
-		postProcess.EndDepthPass(deviceResources.context.Get());
+	bool Dx11Viewer::EndPostProcessSceneInputPass() {
+		if (!deviceResources.context)
+			return false;
+		postProcess.EndSceneInputPass(deviceResources.context.Get());
+		return true;
 	}
 
-	void Dx11Viewer::WaitIdle() {
+	bool Dx11Viewer::WaitIdle() {
 		const auto& resources = deviceResources;
 		if (!resources.device || !resources.context)
-			return;
+			return false;
 		D3D11_QUERY_DESC queryDesc{};
 		queryDesc.Query = D3D11_QUERY_EVENT;
 		Microsoft::WRL::ComPtr<ID3D11Query> query;
 		if (FAILED(resources.device->CreateQuery(&queryDesc, &query)))
-			return;
+			return false;
 		resources.context->End(query.Get());
 		resources.context->Flush();
-		while (resources.context->GetData(query.Get(), nullptr, 0, 0) == S_FALSE)
+		while (true) {
+			const HRESULT result = resources.context->GetData(query.Get(), nullptr, 0, 0);
+			if (result == S_OK)
+				return true;
+			if (result != S_FALSE)
+				return false;
 			SwitchToThread();
+		}
 	}
 
-	bool Dx11Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
-		return FinishPostProcessLoad(postProcess.Load(deviceResources.device.Get(), effects));
+	bool Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+		return postProcess.Load(deviceResources.device.Get(), effects);
 	}
 
-	std::unique_ptr<Instance> Dx11Viewer::CreateInstance() {
+	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {
 		return std::make_unique<Dx11Instance>(*this);
 	}
 }

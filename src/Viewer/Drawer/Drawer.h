@@ -43,15 +43,15 @@ namespace Chrivent {
 		virtual void DrawEdge() = 0;
 		// 지면 그림자 패스를 그린다.
 		virtual void DrawGroundShadow() = 0;
-		// 포스트 프로세스용 단일 샘플 depth에 모델 geometry만 기록한다.
-		virtual void DrawDepthOnly() = 0;
+		// 후처리가 요구하는 장면 depth와 velocity 입력에 모델 geometry를 기록한다.
+		virtual void DrawSceneInputs() = 0;
 
 	public:
 		virtual ~Drawer();
 
 		// 현재 드로어가 가진 패스 순서대로 화면에 그린다.
 		void Draw();
-		// 포스트 프로세스용 depth-only 패스를 그린다.
-		void DrawPostProcessDepth();
+		// 후처리 장면 depth와 velocity 입력 패스를 그린다.
+		void DrawPostProcessSceneInputs();
 	};
 }

@@ -28,9 +28,9 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
-		const auto& shader = viewer->shader;
+		const auto* shader = viewer->GetModelShader();
 		glUseProgram(shader->program);
 		if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return;
@@ -47,7 +47,7 @@ namespace Chrivent {
 		glCullFace(GL_BACK);
 		bool cullEnabled = true;
 		GLenum cullFaceMode = GL_BACK;
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (mat.diffuse.a == 0)
@@ -63,15 +63,15 @@ namespace Chrivent {
 			}
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
 				*viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
-			GLuint baseTexture = viewer->dummyColorTex;
+			GLuint baseTexture = viewer->GetDummyColorTexture();
 			if (material.texture != 0)
 				baseTexture = material.texture;
 			glBindTextureUnit(0, baseTexture);
-			GLuint toonTexture = viewer->dummyColorTex;
+			GLuint toonTexture = viewer->GetDummyColorTexture();
 			if (material.toonTexture != 0)
 				toonTexture = material.toonTexture;
 			glBindTextureUnit(1, toonTexture);
-			GLuint sphereTexture = viewer->dummyColorTex;
+			GLuint sphereTexture = viewer->GetDummyColorTexture();
 			if (material.sphereTexture != 0)
 				sphereTexture = material.sphereTexture;
 			glBindTextureUnit(2, sphereTexture);
@@ -92,7 +92,7 @@ namespace Chrivent {
 					cullFaceMode = GL_BACK;
 				}
 			}
-			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -103,8 +103,8 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto world = BuildWorldMatrix(instance.scale);
-		const auto& edgeShader = viewer->edgeShader;
+		const auto world = BuildWorldMatrix(instance.GetScale());
+		const auto* edgeShader = viewer->GetEdgeShader();
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			*viewer, world, ClipMatrix(), glm::vec2(viewer->screenWidth, viewer->screenHeight));
 		glUseProgram(edgeShader->program);
@@ -119,7 +119,7 @@ namespace Chrivent {
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
 		glCullFace(GL_FRONT);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.edgeFlag)
@@ -133,7 +133,7 @@ namespace Chrivent {
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
 				!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
-			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}
@@ -144,8 +144,8 @@ namespace Chrivent {
 			return;
 		const auto& materials = instance.materials;
 		const auto indexType = instance.indexType;
-		const auto world = BuildWorldMatrix(instance.scale);
-		const auto& gsShader = viewer->gsShader;
+		const auto world = BuildWorldMatrix(instance.GetScale());
+		const auto* gsShader = viewer->GetGroundShadowShader();
 		glUseProgram(gsShader->program);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -171,14 +171,14 @@ namespace Chrivent {
 			glDisable(GL_STENCIL_TEST);
 		}
 		glDisable(GL_CULL_FACE);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.mat;
 			if (!mat.groundShadow)
 				continue;
 			if (mat.diffuse.a == 0.0f)
 				continue;
-			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 		glDisable(GL_POLYGON_OFFSET_FILL);
@@ -186,20 +186,20 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 	}
 
-	void OpenGlDrawer::DrawDepthOnly() {
+	void OpenGlDrawer::DrawSceneInputs() {
 		const auto* viewer = instance.viewer;
 		const auto indexType = instance.indexType;
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		if (viewer->RequiresPostProcessVelocity()) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
 				*viewer, world, ClipMatrix());
-			glUseProgram(viewer->sceneVelocityShader->program);
+			glUseProgram(viewer->GetSceneVelocityShader()->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
 			glBindVertexArray(instance.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(*viewer, world, ClipMatrix());
-			glUseProgram(viewer->depthOnlyShader->program);
+			glUseProgram(viewer->GetDepthOnlyShader()->program);
 			if (!UpdateUniformBuffer(instance.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return;
 			glBindVertexArray(instance.depthVao);
@@ -214,7 +214,7 @@ namespace Chrivent {
 		glCullFace(GL_BACK);
 		glEnable(GL_CULL_FACE);
 		bool cullEnabled = true;
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = instance.materials[materialId];
 			const auto& mat = material.mat;
 			if (!ShouldDrawPostProcessSurface(mat.diffuse.a))
@@ -223,7 +223,7 @@ namespace Chrivent {
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
 			if (!UpdateUniformBuffer(instance.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 				continue;
-			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer->dummyColorTex);
+			glBindTextureUnit(0, material.texture != 0 ? material.texture : viewer->GetDummyColorTexture());
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -233,7 +233,7 @@ namespace Chrivent {
 				glEnable(GL_CULL_FACE);
 				cullEnabled = true;
 			}
-			const size_t offset = beginIndex * instance.model->geometryData.indexElementSize;
+			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
 	}

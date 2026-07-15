@@ -51,7 +51,10 @@ namespace Chrivent {
 			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
 			return false;
 		}
-		vkQueueWaitIdle(sourceDevice.graphicsQueue);
+		if (vkQueueWaitIdle(sourceDevice.graphicsQueue) != VK_SUCCESS) {
+			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
+			return false;
+		}
 		vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
 		return true;
 	}

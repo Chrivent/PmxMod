@@ -23,14 +23,14 @@ namespace Chrivent {
 			return;
 		if (!instance.viewer->modelEffectEnabled)
 			return;
-		if (!instance.viewer->syncObject)
+		size_t frameIndex = 0;
+		if (!instance.viewer->ResolveFrameIndex(frameIndex))
 			return;
-		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		instance.modelVertexConstantsRing.BeginFrame(frameIndex);
 		instance.modelPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewer = *instance.viewer;
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		std::string error;
 		const auto vertexSlice = instance.modelVertexConstantsRing.Allocate(sizeof(vertexConstants), instance.uniformBufferOffsetAlignment, error);
@@ -40,7 +40,7 @@ namespace Chrivent {
 			return;
 		}
 		instance.viewer->BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& material = instance.materials[materialId];
@@ -76,19 +76,19 @@ namespace Chrivent {
 			return;
 		if (!instance.viewer->edgeEffectEnabled)
 			return;
-		if (!instance.viewer->syncObject)
+		size_t frameIndex = 0;
+		if (!instance.viewer->ResolveFrameIndex(frameIndex))
 			return;
-		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		instance.edgeVertexConstantsRing.BeginFrame(frameIndex);
 		instance.edgePixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewer = *instance.viewer;
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, -viewer.screenHeight));
 		instance.viewer->BindEdgePipeline();
 		std::string error;
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& material = instance.materials[materialId];
@@ -122,14 +122,14 @@ namespace Chrivent {
 			return;
 		if (!instance.viewer->groundShadowEffectEnabled)
 			return;
-		if (!instance.viewer->syncObject)
+		size_t frameIndex = 0;
+		if (!instance.viewer->ResolveFrameIndex(frameIndex))
 			return;
-		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		instance.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
 		instance.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
 		const auto& viewer = *instance.viewer;
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
 		constexpr GroundShadowPixelConstants pixelConstants{};
@@ -148,7 +148,7 @@ namespace Chrivent {
 		}
 		instance.viewer->BindGroundShadowPipeline();
 		instance.viewer->BindModelDescriptorSets(instance.groundShadowDescriptorSet, vertexSlice->offset);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& material = instance.materials[materialId];
@@ -160,17 +160,19 @@ namespace Chrivent {
 		}
 	}
 
-	void VulkanDrawer::DrawDepthOnly() {
-		if (instance.viewer == nullptr || !instance.viewer->syncObject)
+	void VulkanDrawer::DrawSceneInputs() {
+		if (instance.viewer == nullptr)
 			return;
-		const size_t frameIndex = instance.viewer->syncObject->currentFrame;
+		size_t frameIndex = 0;
+		if (!instance.viewer->ResolveFrameIndex(frameIndex))
+			return;
 		const auto& vertexBuffer = instance.vertexBuffers[frameIndex % VulkanInstance::kBufferedFrames];
 		const auto& viewer = *instance.viewer;
 		if (!viewer.modelEffectEnabled) {
 			instance.modelVertexConstantsRing.BeginFrame(frameIndex);
 			instance.modelPixelConstantsRing.BeginFrame(frameIndex);
 		}
-		const auto world = BuildWorldMatrix(instance.scale);
+		const auto world = BuildWorldMatrix(instance.GetScale());
 		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
 			viewer, world, ClipMatrix());
 		const ModelVertexConstants depthConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
@@ -182,11 +184,11 @@ namespace Chrivent {
 		if (!vertexSlice.has_value() ||
 			!instance.modelVertexConstantsRing.Write(*vertexSlice,
 				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, error)) {
-			std::cerr << "Failed to update Vulkan depth-only vertex constants.\n";
+			std::cerr << "Failed to update Vulkan scene input vertex constants.\n";
 			return;
 		}
 		instance.viewer->BindModelDescriptorSets(instance.modelDescriptorSet, vertexSlice->offset);
-		for (const auto& [beginIndex, indexCount, materialId] : instance.model->materialData.subMeshes) {
+		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			if (materialId >= instance.materials.size())
 				continue;
 			const auto& material = instance.materials[materialId];

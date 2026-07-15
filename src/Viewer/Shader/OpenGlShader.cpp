@@ -67,16 +67,16 @@ namespace Chrivent {
 	}
 
 	GLuint OpenGlShaderBuilder::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
-		const std::string& pixelEntry, const bool invertVertexY) {
+		const std::string& pixelEntry, const SpirvBindingProfile bindingProfile, const bool invertVertexY) {
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
 		std::string error;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
 		if (!ModernHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
-			SpirvTarget::OpenGl, vertexCode, error, invertVertexY)
+			SpirvTarget::OpenGl, bindingProfile, vertexCode, error, invertVertexY)
 			|| !ModernHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
-				SpirvTarget::OpenGl, pixelCode, error)) {
+				SpirvTarget::OpenGl, bindingProfile, pixelCode, error)) {
 			std::cerr << error << '\n';
 			return 0;
 		}
@@ -118,7 +118,7 @@ namespace Chrivent {
 		std::string error;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		if (!ModernHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
-			SpirvTarget::OpenGl, vertexCode, error)) {
+			SpirvTarget::OpenGl, SpirvBindingProfile::Scene, vertexCode, error)) {
 			std::cerr << error << '\n';
 			return 0;
 		}
@@ -152,7 +152,8 @@ namespace Chrivent {
     }
 
     bool OpenGlModelShader::Initialize(const EffectPassDefinition& pass) {
-        program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry,
+			SpirvBindingProfile::Scene);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -162,7 +163,8 @@ namespace Chrivent {
     }
 
     bool OpenGlEdgeShader::Initialize(const EffectPassDefinition& pass) {
-        program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry,
+			SpirvBindingProfile::Scene);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -171,7 +173,8 @@ namespace Chrivent {
     }
 
     bool OpenGlGroundShadowShader::Initialize(const EffectPassDefinition& pass) {
-        program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry,
+			SpirvBindingProfile::Scene);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -179,7 +182,8 @@ namespace Chrivent {
     }
 
     bool OpenGlDepthOnlyShader::Initialize(const EffectPassDefinition& pass) {
-		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry,
+			SpirvBindingProfile::Scene);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -188,7 +192,8 @@ namespace Chrivent {
     }
 
 	bool OpenGlSceneVelocityShader::Initialize(const EffectPassDefinition& pass) {
-		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry);
+		program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry, pass.pixelEntry,
+			SpirvBindingProfile::Scene);
 		if (program == 0)
 			return false;
 		positionLocation = 0;
@@ -199,7 +204,7 @@ namespace Chrivent {
 
     bool OpenGlPostProcessShader::Initialize(const EffectPassDefinition& pass) {
         program = OpenGlShaderBuilder::CreateShader(pass.shaderPath, pass.vertexEntry,
-            pass.pixelEntry, true);
+			pass.pixelEntry, SpirvBindingProfile::PostProcess, true);
         return program != 0;
     }
 }

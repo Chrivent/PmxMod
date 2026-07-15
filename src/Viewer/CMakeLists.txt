@@ -59,6 +59,7 @@ target_sources(PmxModViewer PRIVATE
 
         RenderTarget/Dx12DepthBuffer.h RenderTarget/Dx12DepthBuffer.cpp
         RenderTarget/Dx12MsaaColorBuffer.h RenderTarget/Dx12MsaaColorBuffer.cpp
+        RenderTarget/Dx12PostProcessTarget.h RenderTarget/Dx12PostProcessTarget.cpp
         RenderTarget/VulkanMsaaColorBuffer.h RenderTarget/VulkanMsaaColorBuffer.cpp
         RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
 
@@ -66,6 +67,7 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
         Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
         Shader/ModernHlslCompiler.h
+        Shader/SpirvBindingLayout.h
         $<TARGET_OBJECTS:PmxModModernHlslCompiler>
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp

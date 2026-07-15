@@ -72,7 +72,12 @@ namespace Chrivent {
         UINT                multiSampleCount = 4;
         UINT	            multiSampleQuality = 0;
         Dx11TextureCache    textureCache;
-		Dx11PostProcess    postProcess;
+        Dx11PostProcess postProcess;
+        Dx11DeviceResources deviceResources;
+        Dx11RenderTargets renderTargets;
+        Dx11ShaderSet shaders;
+        Dx11PipelineStates pipelineStates;
+        Dx11DummyTexture dummyTexture;
 
         // DX11을 지원하는 고성능 DXGI 어댑터를 선택해 디바이스를 생성한다.
         bool CreateDevice();
@@ -87,18 +92,22 @@ namespace Chrivent {
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
         bool CreateDummyResources();
 
-	protected:
-		PostProcess& ResolvePostProcess() override { return postProcess; }
-		const PostProcess& ResolvePostProcess() const override { return postProcess; }
+    protected:
+        PostProcess& ResolvePostProcess() override { return postProcess; }
+        const PostProcess& ResolvePostProcess() const override { return postProcess; }
+        
+        // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
+        bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+        // 초기 상태의 DX11 모델 인스턴스를 생성한다.
+        std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
-        Dx11DeviceResources deviceResources;
-        Dx11RenderTargets renderTargets;
-        Dx11ShaderSet shaders;
-        Dx11PipelineStates pipelineStates;
-        Dx11DummyTexture dummyTexture;
-
         Dx11Viewer() = default;
+
+        const Dx11DeviceResources& GetDeviceResources() const { return deviceResources; }
+        const Dx11ShaderSet& GetShaders() const { return shaders; }
+        const Dx11PipelineStates& GetPipelineStates() const { return pipelineStates; }
+        const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }
 
         // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;
@@ -110,16 +119,12 @@ namespace Chrivent {
         FrameBeginResult BeginFrame() override;
         // 장면 색상을 스왑체인으로 복사하고 화면에 표시한다.
         FrameEndResult EndFrame() override;
-        // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 시작한다.
-        bool BeginPostProcessDepthPass() override;
-        // DX11 포스트 프로세스용 단일 샘플 depth-only 패스를 종료한다.
-        void EndPostProcessDepthPass() override;
+        // DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
+        PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass() override;
+        // DX11 후처리 장면 입력 패스를 종료한다.
+        bool EndPostProcessSceneInputPass() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
-        void WaitIdle() override;
-        // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
-        bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) override;
-        // DX11 모델 인스턴스를 생성한다.
-        std::unique_ptr<Instance> CreateInstance() override;
+        bool WaitIdle() override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
         Dx11Texture LoadTexture(const std::filesystem::path& texturePath) {
             return textureCache.Load(deviceResources.device.Get(), texturePath);

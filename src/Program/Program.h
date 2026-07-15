@@ -2,6 +2,7 @@
 
 #include "Program/RendererType.h"
 #include "Program/Sound.h"
+#include "Program/Gui/FpsOverlay.h"
 #include "Viewer/Shader/ShaderPackage.h"
 #include "Program/Manager/CameraManager.h"
 #include "Program/Manager/PanelManager.h"
@@ -51,6 +52,7 @@ namespace Chrivent {
         InputManager inputManager;
         CameraManager cameraManager;
         PanelManager panelManager;
+        FpsOverlay fpsOverlay;
         TaskExecutor taskExecutor;
         Sound music;
         std::vector<std::unique_ptr<Instance>> instances;

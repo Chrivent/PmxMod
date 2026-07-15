@@ -28,7 +28,9 @@ namespace Chrivent {
             return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
         }
         
-    protected:
+	protected:
+		// DX11 모델 GPU 리소스를 초기 상태로 되돌린다.
+		void ResetRendererResources() override;
 		// DX11 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer() override;
 
@@ -48,9 +50,7 @@ namespace Chrivent {
 
 		explicit Dx11Instance(Dx11Viewer& sourceViewer);
         
-		// DX11 모델 리소스를 해제한다.
-		void Clear() override;
-        // 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
+		// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
         void Upload() const override;
     };
 }
