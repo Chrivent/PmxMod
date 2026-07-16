@@ -113,26 +113,26 @@ namespace Chrivent {
 		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
 		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, pipeline)
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, pipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, bothFacePipeline)
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, bothFacePipeline)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
 			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
 			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, sceneVelocityPipeline)
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityPipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
-			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, sceneVelocityBothFacePipeline)
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityBothFacePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.edge,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, edgePipeline)
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, edgePipeline)
 			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.groundShadow,
-			VK_CULL_MODE_NONE, true, true, true, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, groundShadowPipeline);
+			VK_CULL_MODE_NONE, true, true, true, true, VK_COMPARE_OP_LESS,
+			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, true, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
@@ -140,7 +140,7 @@ namespace Chrivent {
 		const VkFormat depthFormat, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, const VkFormat colorFormat, const VkSampleCountFlagBits sampleCount,
-		const bool useVelocityInput, VkPipeline& outPipeline) const {
+		const bool useVelocityInput, const bool preserveDestinationAlpha, VkPipeline& outPipeline) const {
 		std::string error;
 		VulkanShaderStageBuilder shaderStages;
 		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::Scene, error)) {
@@ -226,8 +226,10 @@ namespace Chrivent {
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colorBlendAttachment.srcAlphaBlendFactor = preserveDestinationAlpha
+			? VK_BLEND_FACTOR_ZERO : VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.dstAlphaBlendFactor = preserveDestinationAlpha
+			? VK_BLEND_FACTOR_ONE : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 		colorBlendAttachment.colorWriteMask =
 			VK_COLOR_COMPONENT_R_BIT |

@@ -289,12 +289,15 @@ namespace Chrivent {
 		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
 		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
+		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ZERO;
+		pipelineDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ONE;
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_NONE);
 		pipelineDesc.RasterizerState.DepthBias = -1;
 		pipelineDesc.RasterizerState.DepthBiasClamp = -1.0f;
 		pipelineDesc.RasterizerState.SlopeScaledDepthBias = -1.0f;
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
+		pipelineDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		pipelineDesc.DepthStencilState.StencilEnable = TRUE;
 		pipelineDesc.DepthStencilState.StencilReadMask = 0x01;
 		pipelineDesc.DepthStencilState.StencilWriteMask = 0xFF;

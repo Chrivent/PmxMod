@@ -12,6 +12,8 @@ namespace Chrivent {
 		static D3D11_RASTERIZER_DESC MakeRasterizerDesc(D3D11_CULL_MODE cull, bool frontCcw);
 		// 일반 알파 블렌딩용 블렌드 설명자를 만든다.
 		static D3D11_BLEND_DESC MakeAlphaBlendDesc();
+		// 지면 그림자가 기존 render target alpha를 보존하는 블렌드 설명자를 만든다.
+		static D3D11_BLEND_DESC MakeGroundShadowBlendDesc();
 		// GLFW 윈도우와 MSAA 설정으로 스왑체인 설명자를 만든다.
 		static DXGI_SWAP_CHAIN_DESC MakeSwapChainDesc(HWND__* hwnd, UINT sampleCount, UINT sampleQuality);
 		// 2D 텍스처의 기본 설명자를 만든다.

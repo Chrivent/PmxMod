@@ -33,7 +33,7 @@ namespace Chrivent {
 			VkFormat depthFormat, const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkFormat colorFormat, VkSampleCountFlagBits sampleCount,
-			bool useVelocityInput, VkPipeline& outPipeline) const;
+			bool useVelocityInput, bool preserveDestinationAlpha, VkPipeline& outPipeline) const;
 		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
 		bool CreateDepthOnlyPipeline(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,

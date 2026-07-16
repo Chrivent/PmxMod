@@ -170,6 +170,8 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->RSSetState(drawContext.GetPipelineStates().gsRs.Get());
 		drawContext.GetDeviceContext()->OMSetDepthStencilState(
 			drawContext.GetPipelineStates().gsDss.Get(), 0x01);
+		drawContext.GetDeviceContext()->OMSetBlendState(
+			drawContext.GetPipelineStates().groundShadowBlendState.Get(), nullptr, 0xffffffff);
 		constexpr GroundShadowPixelConstants psCb;
 		drawContext.GetDeviceContext()->UpdateSubresource(
 			gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);

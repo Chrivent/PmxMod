@@ -120,14 +120,22 @@ namespace Chrivent {
 
 	Drawer::~Drawer() = default;
 
-	void Drawer::Draw() {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+	void Drawer::BeginDraw() {
 		BeginDrawFrame();
-		if (scene.modelEnabled)
+	}
+
+	void Drawer::DrawModelPass() {
+		if (viewer.GetSceneRenderState().modelEnabled)
 			DrawModel();
-		if (scene.edgeEnabled)
+	}
+
+	void Drawer::DrawEdgePass() {
+		if (viewer.GetSceneRenderState().edgeEnabled)
 			DrawEdge();
-		if (scene.groundShadowEnabled)
+	}
+
+	void Drawer::DrawGroundShadowPass() {
+		if (viewer.GetSceneRenderState().groundShadowEnabled)
 			DrawGroundShadow();
 	}
 

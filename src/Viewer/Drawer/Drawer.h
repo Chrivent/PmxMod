@@ -70,8 +70,14 @@ namespace Chrivent {
 		explicit Drawer(Viewer& sourceViewer) : viewer(sourceViewer) {}
 		virtual ~Drawer();
 
-		// 현재 드로어가 가진 패스 순서대로 화면에 그린다.
-		void Draw();
+		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 준비한다.
+		void BeginDraw();
+		// 현재 인스턴스의 모델 본체 패스를 그린다.
+		void DrawModelPass();
+		// 현재 인스턴스의 엣지 패스를 그린다.
+		void DrawEdgePass();
+		// 현재 인스턴스의 지면 그림자 패스를 그린다.
+		void DrawGroundShadowPass();
 		// 후처리 장면 depth와 velocity 입력 패스를 그린다.
 		void DrawPostProcessSceneInputs();
 	};

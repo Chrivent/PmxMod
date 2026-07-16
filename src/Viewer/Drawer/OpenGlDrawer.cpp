@@ -139,7 +139,6 @@ namespace Chrivent {
 		glUseProgram(groundShadowShader.program);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
@@ -148,12 +147,13 @@ namespace Chrivent {
 		constexpr GroundShadowPixelConstants pixelConstants;
 		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
 			return;
+		glDepthMask(GL_FALSE);
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
 		if (pixelConstants.shadowColor.a < 1.0f) {
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
 			glStencilFuncSeparate(GL_FRONT_AND_BACK, GL_NOTEQUAL, 1, 1);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		} else {
@@ -172,6 +172,7 @@ namespace Chrivent {
 		glDisable(GL_POLYGON_OFFSET_FILL);
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
 	}
 
 	void OpenGlDrawer::DrawSceneInputs() {

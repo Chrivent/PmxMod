@@ -21,6 +21,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> textureSampler;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> toonTextureSampler;
 		Microsoft::WRL::ComPtr<ID3D11BlendState> blendState;
+		Microsoft::WRL::ComPtr<ID3D11BlendState> groundShadowBlendState;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> frontFaceRs;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> bothFaceRs;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> edgeRs;

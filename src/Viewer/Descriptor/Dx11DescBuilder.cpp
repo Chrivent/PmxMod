@@ -29,6 +29,13 @@ namespace Chrivent {
 		return d;
 	}
 
+	D3D11_BLEND_DESC Dx11DescBuilder::MakeGroundShadowBlendDesc() {
+		D3D11_BLEND_DESC d = MakeAlphaBlendDesc();
+		d.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+		d.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		return d;
+	}
+
 	DXGI_SWAP_CHAIN_DESC Dx11DescBuilder::MakeSwapChainDesc(HWND__* hwnd, const UINT sampleCount, const UINT sampleQuality) {
 		DXGI_SWAP_CHAIN_DESC d{};
 		d.BufferCount = 2;
@@ -86,7 +93,7 @@ namespace Chrivent {
 	D3D11_DEPTH_STENCIL_DESC Dx11DescBuilder::MakeGroundShadowDepthStencilDesc() {
 		CD3D11_DEPTH_STENCIL_DESC d(CD3D11_DEFAULT{});
 		d.DepthEnable = TRUE;
-		d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		d.DepthFunc = D3D11_COMPARISON_LESS;
 		d.StencilEnable = TRUE;
 		d.StencilReadMask = 0x01;

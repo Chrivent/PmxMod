@@ -24,6 +24,9 @@ namespace Chrivent {
 		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
 		if (FAILED(device->CreateBlendState(&blend, &states.blendState)))
 			return false;
+		auto groundShadowBlend = Dx11DescBuilder::MakeGroundShadowBlendDesc();
+		if (FAILED(device->CreateBlendState(&groundShadowBlend, &states.groundShadowBlendState)))
+			return false;
 		auto frontDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
 		if (FAILED(device->CreateRasterizerState(&frontDescription, &states.frontFaceRs)))
 			return false;

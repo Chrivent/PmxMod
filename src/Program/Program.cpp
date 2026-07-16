@@ -1013,8 +1013,14 @@ namespace Chrivent {
         for (const auto& instance : instances) {
             if (!instance->Upload())
                 return false;
-            instance->Draw();
+            instance->BeginDraw();
         }
+        for (const auto& instance : instances)
+            instance->DrawModelPass();
+        for (const auto& instance : instances)
+            instance->DrawEdgePass();
+        for (const auto& instance : instances)
+            instance->DrawGroundShadowPass();
         const PostProcessSceneInputBeginResult sceneInputResult = viewer->BeginPostProcessSceneInputPass();
         if (sceneInputResult == PostProcessSceneInputBeginResult::Failed)
             return false;

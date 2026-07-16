@@ -42,10 +42,25 @@ namespace Chrivent {
         return false;
     }
 
-    void Instance::Draw() const {
-        if (drawer)
-            drawer->Draw();
-    }
+	void Instance::BeginDraw() const {
+		if (drawer)
+			drawer->BeginDraw();
+	}
+
+	void Instance::DrawModelPass() const {
+		if (drawer)
+			drawer->DrawModelPass();
+	}
+
+	void Instance::DrawEdgePass() const {
+		if (drawer)
+			drawer->DrawEdgePass();
+	}
+
+	void Instance::DrawGroundShadowPass() const {
+		if (drawer)
+			drawer->DrawGroundShadowPass();
+	}
 
     void Instance::DrawPostProcessSceneInputs() const {
         if (drawer)
