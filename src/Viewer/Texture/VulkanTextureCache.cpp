@@ -54,8 +54,8 @@ namespace Chrivent {
 		vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 	}
 
-	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
-		const unsigned char* pixels, const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
+	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& sourceDevice, const unsigned char* pixels,
+		const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
 		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(sourceDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -70,7 +70,7 @@ namespace Chrivent {
 			return false;
 		}
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-		if (!uploadContext.Begin(sourceDevice, commandPool, commandBuffer)) {
+		if (!uploadContext.Begin(sourceDevice, commandBuffer)) {
 			ResetTexture(texture);
 			return false;
 		}
@@ -204,7 +204,7 @@ namespace Chrivent {
 		textures.clear();
 	}
 
-	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
+	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
 		const std::filesystem::path& texturePath, const bool clamp) {
 		device = sourceDevice.device;
 		const TextureKey cacheKey{
@@ -220,14 +220,14 @@ namespace Chrivent {
 		const auto texture = std::make_shared<VulkanTexture>();
 		texture->key = cacheKey;
 		texture->hasAlpha = components == 4;
-		if (!UploadRgbaPixels(sourceDevice, commandPool, pixels.get(),
+		if (!UploadRgbaPixels(sourceDevice, pixels.get(),
 			width, height, *texture, clamp))
 			return {};
 		textures[cacheKey] = texture;
 		return *texture;
 	}
 
-	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice, const VkCommandPool commandPool) {
+	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice) {
 		device = sourceDevice.device;
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
@@ -236,7 +236,7 @@ namespace Chrivent {
 		const auto texture = std::make_shared<VulkanTexture>();
 		texture->key = key;
 		texture->hasAlpha = false;
-		if (!UploadRgbaPixels(sourceDevice, commandPool, pixels, 1, 1, *texture, false))
+		if (!UploadRgbaPixels(sourceDevice, pixels, 1, 1, *texture, false))
 			return {};
 		textures[key] = texture;
 		return *texture;

@@ -5,24 +5,31 @@
 
 namespace Chrivent {
 	void VulkanTextureUploadContext::Reset() {
-		if (device != VK_NULL_HANDLE && commandBuffer != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE)
-			vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 		if (device != VK_NULL_HANDLE && fence != VK_NULL_HANDLE)
 			vkDestroyFence(device, fence, nullptr);
+		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE)
+			vkDestroyCommandPool(device, commandPool, nullptr);
 		device = VK_NULL_HANDLE;
 		commandPool = VK_NULL_HANDLE;
 		commandBuffer = VK_NULL_HANDLE;
 		fence = VK_NULL_HANDLE;
 	}
 
-	bool VulkanTextureUploadContext::Initialize(const VulkanDevice& sourceDevice,
-		const VkCommandPool sourceCommandPool) {
-		if (device == sourceDevice.device && commandPool == sourceCommandPool
+	bool VulkanTextureUploadContext::Initialize(const VulkanDevice& sourceDevice) {
+		if (device == sourceDevice.device && commandPool != VK_NULL_HANDLE
 			&& commandBuffer != VK_NULL_HANDLE && fence != VK_NULL_HANDLE)
 			return true;
 		Reset();
 		device = sourceDevice.device;
-		commandPool = sourceCommandPool;
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
+		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+			std::cerr << "Failed to create Vulkan texture upload command pool.\n";
+			Reset();
+			return false;
+		}
 		VkCommandBufferAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -48,8 +55,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanTextureUploadContext::Begin(const VulkanDevice& sourceDevice,
-		const VkCommandPool sourceCommandPool, VkCommandBuffer& targetCommandBuffer) {
-		if (!Initialize(sourceDevice, sourceCommandPool)
+		VkCommandBuffer& targetCommandBuffer) {
+		if (!Initialize(sourceDevice)
 			|| vkResetCommandBuffer(commandBuffer, 0) != VK_SUCCESS)
 			return false;
 		VkCommandBufferBeginInfo beginInfo{};

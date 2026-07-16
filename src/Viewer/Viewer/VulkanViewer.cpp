@@ -41,7 +41,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateSwapChainResources())
 			return false;
-		dummyTexture = textureCache.CreateWhiteTexture(device, commandContext.commandPool);
+		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (dummyTexture.image == VK_NULL_HANDLE)
 			return false;
 		return syncObject.Initialize(device, swapChain.images.size());
@@ -178,6 +178,6 @@ namespace Chrivent {
 	}
 
 	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		return textureCache.Load(device, commandContext.commandPool, texturePath, clamp);
+		return textureCache.Load(device, texturePath, clamp);
 	}
 }
