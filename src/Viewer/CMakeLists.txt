@@ -25,6 +25,7 @@ target_sources(PmxModViewer PRIVATE
 
         Descriptor/Dx11DescBuilder.h Descriptor/Dx11DescBuilder.cpp
         Descriptor/VulkanDescriptorSet.h Descriptor/VulkanDescriptorSet.cpp
+        Descriptor/VulkanPostProcessDescriptors.h Descriptor/VulkanPostProcessDescriptors.cpp
 
         Device/GraphicsCapabilities.h Device/GraphicsCapabilities.cpp
         Device/Dx12Device.h Device/Dx12Device.cpp
@@ -76,6 +77,7 @@ target_sources(PmxModViewer PRIVATE
 		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
         Shader/ShaderConstants.h
+        Shader/ShaderRuntimeContract.h
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
         Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
         Shader/ModernHlslCompiler.h

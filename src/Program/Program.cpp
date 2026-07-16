@@ -9,6 +9,7 @@
 #include "Core/Model/ModelPose.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
+#include "Viewer/Instance/Instance.h"
 #include "Viewer/Viewer/OpenGlViewer.h"
 #include "Viewer/Viewer/VulkanViewer.h"
 #include "Viewer/Viewer/Dx11Viewer.h"
@@ -328,7 +329,7 @@ namespace Chrivent {
             for (size_t index = copyCount; index < newEnabled.size(); index++) {
                 const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
                 const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
-                newEnabled[index] = effect.type != EffectType::PostProcess;
+                newEnabled[index] = effect.runtime.type != EffectType::PostProcess;
             }
             shaderEffectEnabled = std::move(newEnabled);
         }
@@ -365,12 +366,12 @@ namespace Chrivent {
         bool modelEnabled = false;
         bool edgeEnabled = false;
         bool groundShadowEnabled = false;
-        std::vector<const EffectDefinition*> postProcessEffects;
+        std::vector<const EffectRuntimeDefinition*> postProcessEffects;
         for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
             const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
             const bool enabled = index < shaderEffectEnabled.size() && shaderEffectEnabled[index];
-            switch (effect.type) {
+            switch (effect.runtime.type) {
                 case EffectType::Model:
                     hasModelEffect = true;
                     modelEnabled = modelEnabled || enabled;
@@ -385,7 +386,7 @@ namespace Chrivent {
                     break;
                 case EffectType::PostProcess:
                     if (enabled)
-                        postProcessEffects.push_back(&effect);
+                        postProcessEffects.push_back(&effect.runtime);
                     break;
             }
         }
@@ -1140,6 +1141,9 @@ namespace Chrivent {
         std::cout << "benchmark_fps=" << 1000.0 / (total.totalMilliseconds / frameCount) << '\n';
         return 0;
     }
+
+    Program::Program() = default;
+    Program::~Program() = default;
 
     int Program::Run(const int argumentCount, wchar_t* arguments[]) {
         if (argumentCount == 2 && std::wstring(arguments[1]) == L"--help") {

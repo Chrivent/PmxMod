@@ -119,7 +119,7 @@ namespace Chrivent {
 		bool drawSucceeded;
 		if (postProcess.HasEffects())
 			drawSucceeded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
-				device, commandContext, swapChain, screenWidth, screenHeight, postProcessFrameData);
+				device, commandContext, swapChain, screenWidth, screenHeight, GetPostProcessFrameData());
 		else
 			drawSucceeded = msaaColorBuffer.ResolveToBackBuffer(
 				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
@@ -127,10 +127,16 @@ namespace Chrivent {
 			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
 		}
-		postProcess.CommitHistoryFrame();
-		if (!swapChain.Present())
+		if (!swapChain.Present()) {
+			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
-		return drawSucceeded ? FrameEndResult::Presented : FrameEndResult::Failed;
+		}
+		if (!drawSucceeded) {
+			postProcess.DiscardHistoryFrame();
+			return FrameEndResult::Failed;
+		}
+		postProcess.CommitHistoryFrame();
+		return FrameEndResult::Presented;
 	}
 
 	bool Dx12Viewer::BeginPostProcessSceneInputPassCore() {
@@ -151,7 +157,7 @@ namespace Chrivent {
 		return device.device && commandContext.WaitForGpu(device);
 	}
 
-	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return device.device && postProcess.Load(device, effects);
 	}
 

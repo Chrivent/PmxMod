@@ -114,8 +114,8 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects) {
-		std::vector<const EffectDefinition*> activeEffects;
+	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects) {
+		std::vector<const EffectRuntimeDefinition*> activeEffects;
 		for (const auto* effect : effects) {
 			if (effect != nullptr && effect->type == EffectType::PostProcess && !effect->passes.empty())
 				activeEffects.push_back(effect);
@@ -127,7 +127,7 @@ namespace Chrivent {
 		bool requiresDepth = false;
 		bool requiresVelocity = false;
 		for (size_t effectIndex = 0; effectIndex < activeEffects.size(); effectIndex++) {
-			const EffectDefinition& effect = *activeEffects[effectIndex];
+			const EffectRuntimeDefinition& effect = *activeEffects[effectIndex];
 			PostProcessParameterData parameterData;
 			for (const auto& parameter : effect.parameters)
 				parameterData.values[parameter.slot] = parameter.defaultValue;
@@ -217,7 +217,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool PostProcess::SetEffects(const std::vector<const EffectDefinition*>& effects) {
+	bool PostProcess::SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return BuildExecutionPlan(effects);
 	}
 

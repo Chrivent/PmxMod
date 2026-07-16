@@ -321,7 +321,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcess::Load(
-		const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects) {
+		const Dx12Device& sourceDevice, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx12PostProcess candidate;
 		candidate.targetWidth = targetWidth;
 		candidate.targetHeight = targetHeight;

@@ -10,6 +10,13 @@
 #include <vector>
 
 namespace Chrivent {
+	// D3D11 Viewer가 소유하는 device, immediate context와 swapchain을 보관한다.
+	struct Dx11DeviceResources {
+		Microsoft::WRL::ComPtr<ID3D11Device> device;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
+	};
+
     // D3D11 장면 렌더링에 사용하는 색상 및 depth target들을 보관한다.
     struct Dx11RenderTargets {
         Microsoft::WRL::ComPtr<ID3D11Texture2D>         backBuffer;
@@ -31,7 +38,8 @@ namespace Chrivent {
         Dx11ShaderSet shaders;
         Dx11PipelineStates pipelineStates;
         Dx11DummyTexture dummyTexture;
-		Dx11DrawContext drawContext{ deviceResources, shaders, pipelineStates, dummyTexture };
+		Dx11DrawContext drawContext{ deviceResources.device, deviceResources.context,
+			shaders, pipelineStates, dummyTexture };
 
 		// 지정한 sample count를 색상과 depth 타깃이 함께 지원하는지 확인한다.
 		static bool ResolveMsaaQuality(ID3D11Device* device, UINT sampleCount, UINT& quality);
@@ -55,7 +63,7 @@ namespace Chrivent {
         const PostProcess& ResolvePostProcess() const override { return postProcess; }
         
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
-        bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+        bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX11 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
         // 초기 상태의 DX11 모델 인스턴스를 생성한다.

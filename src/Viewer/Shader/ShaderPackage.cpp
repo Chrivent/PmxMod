@@ -294,146 +294,151 @@ namespace Chrivent {
 
 	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot,
 		const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error) {
-		nlohmann::json json;
-		if (!ReadJsonObject(manifestPath, json, error))
+		nlohmann::json effectJson;
+		if (!ReadJsonObject(manifestPath, effectJson, error))
 			return false;
-		if (json.value("schemaVersion", 0) != schemaVersion) {
+		if (effectJson.value("schemaVersion", 0) != schemaVersion) {
 			error = "Unsupported effect schemaVersion: " + manifestPath.string();
 			return false;
 		}
-		if (!ReadRequiredString(json, "id", effect.id, error)
-			|| !ReadRequiredString(json, "name", effect.name, error)) {
+		if (!ReadRequiredString(effectJson, "id", effect.id, error)
+			|| !ReadRequiredString(effectJson, "name", effect.name, error)) {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		std::string type;
-		if (!ReadRequiredString(json, "type", type, error)) {
+		auto& [type, inputs, parameters, resources, passes] = effect.runtime;
+		std::string typeName;
+		if (!ReadRequiredString(effectJson, "type", typeName, error)) {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		if (type == "model")
-			effect.type = EffectType::Model;
-		else if (type == "edge")
-			effect.type = EffectType::Edge;
-		else if (type == "ground_shadow")
-			effect.type = EffectType::GroundShadow;
-		else if (type == "post_process")
-			effect.type = EffectType::PostProcess;
+		if (typeName == "model")
+			type = EffectType::Model;
+		else if (typeName == "edge")
+			type = EffectType::Edge;
+		else if (typeName == "ground_shadow")
+			type = EffectType::GroundShadow;
+		else if (typeName == "post_process")
+			type = EffectType::PostProcess;
 		else {
-			error = "Unsupported effect type: " + type + " in " + manifestPath.string();
+			error = "Unsupported effect type: " + typeName + " in " + manifestPath.string();
 			return false;
 		}
-		const bool postProcess = effect.type == EffectType::PostProcess;
-		effect.inputs.clear();
-		if (postProcess) {
-			const auto inputs = json.find("inputs");
-			if (inputs == json.end() || !inputs->is_array()) {
+		const bool isPostProcess = type == EffectType::PostProcess;
+		inputs.clear();
+		if (isPostProcess) {
+			const auto inputValues = effectJson.find("inputs");
+			if (inputValues == effectJson.end() || !inputValues->is_array()) {
 				error = "Post-process effect inputs must be an array: " + manifestPath.string();
 				return false;
 			}
-			std::unordered_set<std::string> inputNames;
-			for (const auto& input : *inputs) {
-				if (!input.is_string()) {
+			std::unordered_set<std::string> uniqueInputNames;
+			for (const auto& inputJson : *inputValues) {
+				if (!inputJson.is_string()) {
 					error = "Post-process effect input must be a string: " + manifestPath.string();
 					return false;
 				}
-				const std::string value = input.get<std::string>();
-				if ((value != "scene_color" && value != "scene_depth" && value != "scene_velocity")
-					|| !inputNames.emplace(value).second) {
-					error = "Unsupported or duplicate engine input: " + value + " in " + manifestPath.string();
+				const std::string inputName = inputJson.get<std::string>();
+				if ((inputName != "scene_color" && inputName != "scene_depth" && inputName != "scene_velocity")
+					|| !uniqueInputNames.emplace(inputName).second) {
+					error = "Unsupported or duplicate engine input: " + inputName + " in " + manifestPath.string();
 					return false;
 				}
-				effect.inputs.emplace_back(value);
+				inputs.emplace_back(inputName);
 			}
 		}
-		if (postProcess) {
-			if (!LoadParameters(json, manifestPath, effect.parameters, error)
-				|| !LoadResources(json, manifestPath, effect.resources, error))
+		if (isPostProcess) {
+			if (!LoadParameters(effectJson, manifestPath, parameters, error)
+				|| !LoadResources(effectJson, manifestPath, resources, error))
 				return false;
 		} else {
-			effect.parameters.clear();
-			effect.resources.clear();
+			parameters.clear();
+			resources.clear();
 		}
-		const auto passArray = json.find("passes");
-		if (passArray == json.end() || !passArray->is_array() || passArray->empty()) {
+		const auto passValues = effectJson.find("passes");
+		if (passValues == effectJson.end() || !passValues->is_array() || passValues->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();
 			return false;
 		}
-		effect.passes.clear();
-		std::unordered_set<std::string> passNames;
-		for (const auto& passJson : *passArray) {
+		passes.clear();
+		std::unordered_set<std::string> uniquePassNames;
+		for (const auto& passJson : *passValues) {
 			EffectPassDefinition pass;
-			if (!LoadPass(packageRoot, manifestPath, passJson, postProcess, pass, error))
+			if (!LoadPass(packageRoot, manifestPath, passJson, isPostProcess, pass, error))
 				return false;
-			if (!passNames.emplace(pass.name).second) {
+			if (!uniquePassNames.emplace(pass.name).second) {
 				error = "Duplicate effect pass name: " + pass.name + " in " + manifestPath.string();
 				return false;
 			}
-			effect.passes.emplace_back(std::move(pass));
+			passes.emplace_back(std::move(pass));
 		}
-		if (!postProcess)
+		if (!isPostProcess)
 			return true;
-		std::unordered_map<std::string, EffectResourceLifetime> resources;
-		for (const auto& resource : effect.resources) {
-			if (resource.name == "effect_input" || resource.name == "effect_output"
-				|| resource.name == "scene_color" || resource.name == "scene_depth"
-				|| resource.name == "scene_velocity") {
-				error = "Effect resource uses a reserved name: " + resource.name + " in " + manifestPath.string();
+		std::unordered_map<std::string, EffectResourceLifetime> resourceLifetimes;
+		for (const auto& resourceDefinition : resources) {
+			if (resourceDefinition.name == "effect_input" || resourceDefinition.name == "effect_output"
+				|| resourceDefinition.name == "scene_color" || resourceDefinition.name == "scene_depth"
+				|| resourceDefinition.name == "scene_velocity") {
+				error = "Effect resource uses a reserved name: "
+					+ resourceDefinition.name + " in " + manifestPath.string();
 				return false;
 			}
-			resources.emplace(resource.name, resource.lifetime);
+			resourceLifetimes.emplace(resourceDefinition.name, resourceDefinition.lifetime);
 		}
-		std::unordered_set<std::string> writtenTransientResources;
-		for (size_t passIndex = 0; passIndex < effect.passes.size(); passIndex++) {
-			const EffectPassDefinition& pass = effect.passes[passIndex];
+		std::unordered_set<std::string> initializedTransientResources;
+		for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
+			const EffectPassDefinition& pass = passes[passIndex];
 			for (const auto& [slot, resource] : pass.inputs) {
 				if (resource == "effect_input")
 					continue;
 				if (resource == "scene_color" || resource == "scene_depth" || resource == "scene_velocity") {
-					if (std::ranges::find(effect.inputs, resource) == effect.inputs.end()) {
+					if (std::ranges::find(inputs, resource) == inputs.end()) {
 						error = "Pass uses an undeclared engine input: " + resource + " in " + manifestPath.string();
 						return false;
 					}
 					continue;
 				}
-				std::string resourceName = resource;
-				const bool historyRead = resourceName.ends_with(".read");
-				if (historyRead)
-					resourceName.resize(resourceName.size() - 5);
-				const auto findResource = resources.find(resourceName);
-				if (findResource == resources.end() || historyRead != (findResource->second == EffectResourceLifetime::History)
-					|| (!historyRead && !writtenTransientResources.contains(resourceName))) {
+				std::string inputResourceName = resource;
+				const bool readsHistoryResource = inputResourceName.ends_with(".read");
+				if (readsHistoryResource)
+					inputResourceName.resize(inputResourceName.size() - 5);
+				const auto resourceLifetime = resourceLifetimes.find(inputResourceName);
+				if (resourceLifetime == resourceLifetimes.end()
+					|| readsHistoryResource != (resourceLifetime->second == EffectResourceLifetime::History)
+					|| (!readsHistoryResource && !initializedTransientResources.contains(inputResourceName))) {
 					error = "Invalid or uninitialized pass input resource: " + resource + " in " + manifestPath.string();
 					return false;
 				}
 			}
 			if (pass.output == "effect_output") {
-				if (passIndex + 1 != effect.passes.size()) {
+				if (passIndex + 1 != passes.size()) {
 					error = "Only the final effect pass can write effect_output: " + manifestPath.string();
 					return false;
 				}
 				continue;
 			}
-			std::string outputName = pass.output;
-			const bool historyWrite = outputName.ends_with(".write");
-			if (historyWrite)
-				outputName.resize(outputName.size() - 6);
-			const auto resource = resources.find(outputName);
-			if (resource == resources.end() || historyWrite != (resource->second == EffectResourceLifetime::History)) {
+			std::string outputResourceName = pass.output;
+			const bool writesHistoryResource = outputResourceName.ends_with(".write");
+			if (writesHistoryResource)
+				outputResourceName.resize(outputResourceName.size() - 6);
+			const auto outputResourceLifetime = resourceLifetimes.find(outputResourceName);
+			if (outputResourceLifetime == resourceLifetimes.end()
+				|| writesHistoryResource != (outputResourceLifetime->second == EffectResourceLifetime::History)) {
 				error = "Invalid pass output resource: " + pass.output + " in " + manifestPath.string();
 				return false;
 			}
-			if (!historyWrite && std::ranges::any_of(pass.inputs, [&outputName](const EffectPassInputDefinition& input) {
-				return input.resource == outputName;
+			if (!writesHistoryResource && std::ranges::any_of(pass.inputs,
+				[&outputResourceName](const EffectPassInputDefinition& input) {
+				return input.resource == outputResourceName;
 			})) {
 				error = "A transient resource cannot be read and written by the same pass: "
-					+ outputName + " in " + manifestPath.string();
+					+ outputResourceName + " in " + manifestPath.string();
 				return false;
 			}
-			if (!historyWrite)
-				writtenTransientResources.emplace(outputName);
+			if (!writesHistoryResource)
+				initializedTransientResources.emplace(outputResourceName);
 		}
-		if (effect.passes.back().output == "effect_output")
+		if (passes.back().output == "effect_output")
 			return true;
 		error = "The final post-process pass must write effect_output: " + manifestPath.string();
 		return false;
@@ -503,7 +508,7 @@ namespace Chrivent {
 		const char* role, EffectPassDefinition& pass, std::string& error) {
 		const EffectDefinition* match = nullptr;
 		for (const auto& effect : package.effects) {
-			if (effect.type != type)
+			if (effect.runtime.type != type)
 				continue;
 			if (match != nullptr) {
 				error = "Built-in shader role must be unique: " + std::string(role);
@@ -515,11 +520,11 @@ namespace Chrivent {
 			error = "Built-in shader role is missing: " + std::string(role);
 			return false;
 		}
-		if (match->passes.size() != 1) {
+		if (match->runtime.passes.size() != 1) {
 			error = "Built-in shader role requires exactly one pass: " + std::string(role);
 			return false;
 		}
-		pass = match->passes.front();
+		pass = match->runtime.passes.front();
 		return true;
 	}
 }

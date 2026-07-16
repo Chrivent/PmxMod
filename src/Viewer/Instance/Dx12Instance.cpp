@@ -14,9 +14,7 @@ namespace Chrivent {
 	bool Dx12Instance::CreateGeometryBuffers(const Dx12Device& device) {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (geometryData.positions.empty() ||
-			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
-			indexData.bytes.empty()) {
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
 			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
 			return false;
 		}

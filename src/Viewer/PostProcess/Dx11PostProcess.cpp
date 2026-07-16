@@ -144,7 +144,7 @@ namespace Chrivent {
 			context->CopyResource(sceneColor.Get(), source);
 	}
 
-	bool Dx11PostProcess::Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects) {
+	bool Dx11PostProcess::Load(ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx11PostProcess candidate;
 		candidate.targetWidth = targetWidth;
 		candidate.targetHeight = targetHeight;
@@ -232,7 +232,6 @@ namespace Chrivent {
 			context->PSSetShaderResources(0, views.size(), views.data());
 			AdvanceHistory(route);
 		}
-		CommitHistoryFrame();
 		return true;
 	}
 

@@ -64,7 +64,7 @@ namespace Chrivent {
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 체크된 후처리 effect 선언으로 DX12 실행 리소스와 pipeline을 생성한다.
-		bool Load(const Dx12Device& sourceDevice, const std::vector<const EffectDefinition*>& effects);
+		bool Load(const Dx12Device& sourceDevice, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;

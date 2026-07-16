@@ -35,7 +35,7 @@ namespace Chrivent {
         const PostProcess& ResolvePostProcess() const override { return postProcess; }
         
         // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
-        bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+        bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// OpenGL 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
         // 초기 상태의 OpenGL 모델 인스턴스를 생성한다.

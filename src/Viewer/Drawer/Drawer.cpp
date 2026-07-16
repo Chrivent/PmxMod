@@ -68,8 +68,8 @@ namespace Chrivent {
 		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
 		SceneVelocityVertexConstants constants;
 		constants.currentWvp = clipMatrix * viewer.projMat * viewer.viewMat * world;
-		constants.previousWvp = viewer.postProcessHistoryResetPending ? constants.currentWvp
-			: clipMatrix * viewer.previousProjMat * viewer.previousViewMat * world;
+		constants.previousWvp = viewer.IsPostProcessHistoryResetPending() ? constants.currentWvp
+			: clipMatrix * viewer.GetPreviousProjectionMatrix() * viewer.GetPreviousViewMatrix() * world;
 		return constants;
 	}
 

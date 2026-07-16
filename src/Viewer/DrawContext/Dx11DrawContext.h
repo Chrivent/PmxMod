@@ -6,13 +6,6 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	// D3D11 device, immediate context와 swapchain을 한 단위로 보관한다.
-	struct Dx11DeviceResources {
-		Microsoft::WRL::ComPtr<ID3D11Device> device;
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
-		Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
-	};
-
 	// D3D11 기본 렌더링 패스별 셰이더 프로그램을 보관한다.
 	struct Dx11ShaderSet {
 		Dx11ModelShader model;
@@ -43,18 +36,22 @@ namespace Chrivent {
 
 	// D3D11 Drawer와 Instance에 장면 그리기에 필요한 API 리소스만 노출한다.
 	class Dx11DrawContext {
-		const Dx11DeviceResources& deviceResources;
+		const Microsoft::WRL::ComPtr<ID3D11Device>& device;
+		const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& deviceContext;
 		const Dx11ShaderSet& shaders;
 		const Dx11PipelineStates& pipelineStates;
 		const Dx11DummyTexture& dummyTexture;
 
 	public:
-		Dx11DrawContext(const Dx11DeviceResources& sourceDeviceResources, const Dx11ShaderSet& sourceShaders,
+		Dx11DrawContext(const Microsoft::WRL::ComPtr<ID3D11Device>& sourceDevice,
+			const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& sourceDeviceContext,
+			const Dx11ShaderSet& sourceShaders,
 			const Dx11PipelineStates& sourcePipelineStates, const Dx11DummyTexture& sourceDummyTexture)
-			: deviceResources(sourceDeviceResources), shaders(sourceShaders),
+			: device(sourceDevice), deviceContext(sourceDeviceContext), shaders(sourceShaders),
 			pipelineStates(sourcePipelineStates), dummyTexture(sourceDummyTexture) {}
 
-		const Dx11DeviceResources& GetDeviceResources() const { return deviceResources; }
+		ID3D11Device* GetDevice() const { return device.Get(); }
+		ID3D11DeviceContext* GetDeviceContext() const { return deviceContext.Get(); }
 		const Dx11ShaderSet& GetShaders() const { return shaders; }
 		const Dx11PipelineStates& GetPipelineStates() const { return pipelineStates; }
 		const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }

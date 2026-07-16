@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderRuntimeContract.h"
 
 #include <vector>
 
@@ -65,7 +65,7 @@ namespace Chrivent {
 		bool historyFramePending = false;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
-		bool BuildExecutionPlan(const std::vector<const EffectDefinition*>& effects);
+		bool BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
 		// 현재 패스 기록에서 사용할 committed 또는 pending history 상태를 반환한다.
@@ -100,7 +100,7 @@ namespace Chrivent {
 		const std::vector<PostProcessResourcePlan>& ResolveResourcePlans() const { return resourcePlans; }
 
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
-		bool SetEffects(const std::vector<const EffectDefinition*>& effects);
+		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.
 		void ClearEffects();
 

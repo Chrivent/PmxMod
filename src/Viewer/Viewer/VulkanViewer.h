@@ -28,9 +28,10 @@ namespace Chrivent {
 		VulkanSyncObject syncObject;
 		VulkanTexture dummyTexture;
 		uint32_t currentImageIndex = 0;
+		size_t frameIndex = 0;
 		bool frameReady = false;
 		bool postProcessSceneInputPassReady = false;
-		VulkanDrawContext drawContext{ pipeline, commandContext, currentImageIndex, frameReady, syncObject.currentFrame };
+		VulkanDrawContext drawContext{ pipeline, commandContext, currentImageIndex, frameReady, frameIndex };
 		VulkanPostProcess postProcess;
 		VulkanTextureCache textureCache;
 
@@ -44,7 +45,7 @@ namespace Chrivent {
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
 		
 		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
-		bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// Vulkan 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
 		// 초기 상태의 Vulkan 모델 인스턴스를 생성한다.
@@ -54,7 +55,7 @@ namespace Chrivent {
 		const VulkanDevice& GetDevice() const { return device; }
 		const VulkanPipeline& GetPipeline() const { return pipeline; }
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
-		size_t GetFrameIndex() const { return syncObject.currentFrame; }
+		size_t GetFrameIndex() const { return frameIndex; }
 		VulkanDrawContext& GetDrawContext() { return drawContext; }
 		
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.

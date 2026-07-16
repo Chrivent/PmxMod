@@ -9,10 +9,12 @@
 #include <GLFW/glfw3.h>
 
 #include "Viewer/Device/GraphicsCapabilities.h"
-#include "Viewer/Instance/Instance.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderRuntimeContract.h"
 
 namespace Chrivent {
+	class Animation;
+	class Instance;
+	class Model;
     struct Material;
 	class PostProcess;
 
@@ -58,11 +60,20 @@ namespace Chrivent {
         glm::vec4 cameraWorldRight{};
         glm::vec4 cameraWorldUp{};
     };
-    
+
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
+		// 시간 기반 후처리의 이전 카메라 상태와 현재 프레임 입력을 한 단위로 보관한다.
+		struct PostProcessTemporalState {
+			glm::mat4 previousViewMatrix{1.0f};
+			glm::mat4 previousProjectionMatrix{1.0f};
+			PostProcessFrameData frameData;
+			bool historyResetPending = true;
+		};
+
 		std::filesystem::path resourceDir;
 		std::filesystem::path internalShaderDir;
+		PostProcessTemporalState postProcessTemporalState;
 		
 		// 실행 파일을 기준으로 리소스 디렉터리를 초기화한다.
 		void InitializeDirectories();
@@ -81,7 +92,7 @@ namespace Chrivent {
 		// API 구현이 소유한 읽기 전용 포스트 프로세서를 반환한다.
 		virtual const PostProcess& ResolvePostProcess() const = 0;
 		// API별 리소스로 검증된 후처리 실행 체인을 생성한다.
-		virtual bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) = 0;
+		virtual bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) = 0;
 		// API별 후처리 장면 입력 패스 기록을 시작한다.
 		virtual bool BeginPostProcessSceneInputPassCore() = 0;
 		// 현재 렌더러에 맞는 초기 상태의 모델 인스턴스를 생성한다.
@@ -95,13 +106,10 @@ namespace Chrivent {
 		std::filesystem::path pmxDir;
 		glm::mat4 viewMat;
 		glm::mat4 projMat;
-		glm::mat4 previousViewMat{1.0f};
-		glm::mat4 previousProjMat{1.0f};
-		PostProcessFrameData postProcessFrameData;
 		int screenWidth = 0;
 		int screenHeight = 0;
 		glm::vec3 lightColor = glm::vec3(1, 1, 1);
-		glm::vec3 lightDir = glm::vec3(-0.5f, -1.0f, -0.5f);
+		glm::vec3 lightDir = glm::vec3(-0.5f, -1.0f, 0.5f);
 		float elapsed = 0.0f;
 		float renderDeltaTime = 0.0f;
 		float animTime = 0.0f;
@@ -109,7 +117,6 @@ namespace Chrivent {
 		bool modelEffectEnabled = true;
 		bool edgeEffectEnabled = true;
 		bool groundShadowEffectEnabled = true;
-		bool postProcessHistoryResetPending = true;
 		GLFWwindow* window = nullptr;
 		GraphicsCapabilities capabilities;
 
@@ -134,12 +141,26 @@ namespace Chrivent {
 		virtual bool WaitIdle() = 0;
 		// 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
 		// HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
-		bool LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects);
+		bool LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 모델 데이터가 완전히 초기화된 현재 렌더러용 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance(std::shared_ptr<Model> model,
 			std::unique_ptr<Animation> animation, float scale);
 		// 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
 		std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
+		const glm::mat4& GetPreviousViewMatrix() const {
+			return postProcessTemporalState.previousViewMatrix;
+		}
+		const glm::mat4& GetPreviousProjectionMatrix() const {
+			return postProcessTemporalState.previousProjectionMatrix;
+		}
+		const PostProcessFrameData& GetPostProcessFrameData() const {
+			return postProcessTemporalState.frameData;
+		}
+		bool IsPostProcessHistoryResetPending() const {
+			return postProcessTemporalState.historyResetPending;
+		}
+		// 카메라 관리자가 계산한 현재 프레임 후처리 입력을 저장한다.
+		void UpdatePostProcessFrameData(PostProcessFrameData frameData);
 		// 카메라 점프나 탐색 뒤 다음 프레임의 temporal history를 초기화한다.
 		void ResetPostProcessHistory();
 		// 활성 후처리 효과가 장면 속도 입력을 요구하는지 반환한다.

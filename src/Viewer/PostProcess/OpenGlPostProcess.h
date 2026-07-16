@@ -57,7 +57,7 @@ namespace Chrivent {
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		bool InitializeTargets(int width, int height, int sampleCount);
 		// 체크된 후처리 effect 선언으로 OpenGL 실행 리소스와 shader chain을 생성한다.
-		bool Load(const std::vector<const EffectDefinition*>& effects);
+		bool Load(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.

@@ -54,7 +54,7 @@ namespace Chrivent {
 		// MSAA 장면 색상을 소유한 단일 샘플 입력 texture로 resolve한다.
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 체크된 후처리 effect 선언으로 DX11 실행 리소스와 shader chain을 생성한다.
-		bool Load(ID3D11Device* device, const std::vector<const EffectDefinition*>& effects);
+		bool Load(ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
 			int width, int height) const;

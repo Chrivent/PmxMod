@@ -16,11 +16,11 @@ namespace Chrivent {
 		ID3D11SamplerState* samplers = texture.texture
 		? sampler : drawContext.GetPipelineStates().textureSampler.Get();
 		if (lastView != views) {
-			drawContext.GetDeviceResources().context->PSSetShaderResources(slot, 1, &views);
+			drawContext.GetDeviceContext()->PSSetShaderResources(slot, 1, &views);
 			lastView = views;
 		}
 		if (lastSampler != samplers) {
-			drawContext.GetDeviceResources().context->PSSetSamplers(slot, 1, &samplers);
+			drawContext.GetDeviceContext()->PSSetSamplers(slot, 1, &samplers);
 			lastSampler = samplers;
 		}
 	}
@@ -44,24 +44,24 @@ namespace Chrivent {
 		const auto& vsConstantBuffer = resources.vsConstantBuffer;
 		const auto& psConstantBuffer = resources.psConstantBuffer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		drawContext.GetDeviceResources().context->OMSetDepthStencilState(
+		drawContext.GetDeviceContext()->OMSetDepthStencilState(
 			drawContext.GetPipelineStates().defaultDss.Get(), 0x00);
-		drawContext.GetDeviceResources().context->OMSetBlendState(
+		drawContext.GetDeviceContext()->OMSetBlendState(
 			drawContext.GetPipelineStates().blendState.Get(), nullptr, 0xffffffff);
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
-		drawContext.GetDeviceResources().context->IASetInputLayout(drawContext.GetShaders().model.inputLayout.Get());
-		drawContext.GetDeviceResources().context->IASetVertexBuffers(
+		drawContext.GetDeviceContext()->IASetInputLayout(drawContext.GetShaders().model.inputLayout.Get());
+		drawContext.GetDeviceContext()->IASetVertexBuffers(
 			0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		drawContext.GetDeviceResources().context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
-		drawContext.GetDeviceResources().context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const ModelVertexConstants vsCb = BuildModelVertexConstants(viewer, world, ClipMatrix());
-		drawContext.GetDeviceResources().context->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-		drawContext.GetDeviceResources().context->VSSetShader(
+		drawContext.GetDeviceContext()->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
+		drawContext.GetDeviceContext()->VSSetShader(
 			drawContext.GetShaders().model.vertexShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->PSSetShader(
+		drawContext.GetDeviceContext()->PSSetShader(
 			drawContext.GetShaders().model.pixelShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
 		ID3D11ShaderResourceView* boundViews[3] = { nullptr, nullptr, nullptr };
 		ID3D11SamplerState* boundSamplers[3] = { nullptr, nullptr, nullptr };
 		const ID3D11RasterizerState* currentRs = nullptr;
@@ -87,17 +87,17 @@ namespace Chrivent {
 				boundViews[1], boundSamplers[1]);
 			BindTexture(2, material.sphereTexture, drawContext.GetPipelineStates().textureSampler.Get(),
 				boundViews[2], boundSamplers[2]);
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			drawContext.GetDeviceResources().context->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
+			drawContext.GetDeviceContext()->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 			ID3D11RasterizerState* targetRs = mat.bothFace
 				? drawContext.GetPipelineStates().bothFaceRs.Get()
 				: drawContext.GetPipelineStates().frontFaceRs.Get();
 			if (currentRs != targetRs) {
-				drawContext.GetDeviceResources().context->RSSetState(targetRs);
+				drawContext.GetDeviceContext()->RSSetState(targetRs);
 				currentRs = targetRs;
 			}
-			drawContext.GetDeviceResources().context->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -110,24 +110,24 @@ namespace Chrivent {
 		const auto& edgeVsConstantBuffer = resources.edgeVsConstantBuffer;
 		const auto& edgePsConstantBuffer = resources.edgePsConstantBuffer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		drawContext.GetDeviceResources().context->IASetInputLayout(drawContext.GetShaders().edge.inputLayout.Get());
+		drawContext.GetDeviceContext()->IASetInputLayout(drawContext.GetShaders().edge.inputLayout.Get());
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
-		drawContext.GetDeviceResources().context->IASetVertexBuffers(
+		drawContext.GetDeviceContext()->IASetVertexBuffers(
 			0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		drawContext.GetDeviceResources().context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
-		drawContext.GetDeviceResources().context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		EdgeVertexConstants vsCb1 = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
-		drawContext.GetDeviceResources().context->VSSetShader(
+		drawContext.GetDeviceContext()->VSSetShader(
 			drawContext.GetShaders().edge.vertexShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->PSSetShader(
+		drawContext.GetDeviceContext()->PSSetShader(
 			drawContext.GetShaders().edge.pixelShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
-		drawContext.GetDeviceResources().context->RSSetState(drawContext.GetPipelineStates().edgeRs.Get());
-		drawContext.GetDeviceResources().context->OMSetDepthStencilState(
+		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->RSSetState(drawContext.GetPipelineStates().edgeRs.Get());
+		drawContext.GetDeviceContext()->OMSetDepthStencilState(
 			drawContext.GetPipelineStates().defaultDss.Get(), 0x00);
-		drawContext.GetDeviceResources().context->OMSetBlendState(
+		drawContext.GetDeviceContext()->OMSetBlendState(
 			drawContext.GetPipelineStates().blendState.Get(), nullptr, 0xffffffff);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
@@ -137,15 +137,15 @@ namespace Chrivent {
 			if (mat.diffuse.a == 0)
 				continue;
 			vsCb1.edgeSize = mat.edgeSize;
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				edgeVsConstantBuffer.Get(), 0, nullptr, &vsCb1, 0, 0);
 			EdgePixelConstants psCb{};
 			psCb.edgeColor = mat.edgeColor;
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				edgePsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			drawContext.GetDeviceResources().context->PSSetConstantBuffers(
+			drawContext.GetDeviceContext()->PSSetConstantBuffers(
 				1, 1, edgePsConstantBuffer.GetAddressOf());
-			drawContext.GetDeviceResources().context->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -158,30 +158,30 @@ namespace Chrivent {
 		const auto& gsVsConstantBuffer = resources.gsVsConstantBuffer;
 		const auto& gsPsConstantBuffer = resources.gsPsConstantBuffer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		drawContext.GetDeviceResources().context->IASetInputLayout(
+		drawContext.GetDeviceContext()->IASetInputLayout(
 			drawContext.GetShaders().groundShadow.inputLayout.Get());
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
-		drawContext.GetDeviceResources().context->IASetVertexBuffers(
+		drawContext.GetDeviceContext()->IASetVertexBuffers(
 			0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		drawContext.GetDeviceResources().context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
-		drawContext.GetDeviceResources().context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const GroundShadowVertexConstants vsCb = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
-		drawContext.GetDeviceResources().context->UpdateSubresource(
+		drawContext.GetDeviceContext()->UpdateSubresource(
 			gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-		drawContext.GetDeviceResources().context->VSSetShader(
+		drawContext.GetDeviceContext()->VSSetShader(
 			drawContext.GetShaders().groundShadow.vertexShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->PSSetShader(
+		drawContext.GetDeviceContext()->PSSetShader(
 			drawContext.GetShaders().groundShadow.pixelShader.Get(), nullptr, 0);
-		drawContext.GetDeviceResources().context->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
-		drawContext.GetDeviceResources().context->RSSetState(drawContext.GetPipelineStates().gsRs.Get());
-		drawContext.GetDeviceResources().context->OMSetDepthStencilState(
+		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->RSSetState(drawContext.GetPipelineStates().gsRs.Get());
+		drawContext.GetDeviceContext()->OMSetDepthStencilState(
 			drawContext.GetPipelineStates().gsDss.Get(), 0x01);
 		constexpr GroundShadowPixelConstants psCb;
-		drawContext.GetDeviceResources().context->UpdateSubresource(
+		drawContext.GetDeviceContext()->UpdateSubresource(
 			gsPsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-		drawContext.GetDeviceResources().context->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->PSSetConstantBuffers(1, 1, gsPsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
@@ -189,7 +189,7 @@ namespace Chrivent {
 				continue;
 			if (mat.diffuse.a == 0)
 				continue;
-			drawContext.GetDeviceResources().context->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 
@@ -206,31 +206,31 @@ namespace Chrivent {
 		if (viewer.RequiresPostProcessVelocity()) {
 			const SceneVelocityVertexConstants vsCb = BuildSceneVelocityVertexConstants(
 				viewer, world, ClipMatrix());
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-			drawContext.GetDeviceResources().context->IASetInputLayout(
+			drawContext.GetDeviceContext()->IASetInputLayout(
 				drawContext.GetShaders().sceneVelocity.inputLayout.Get());
-			drawContext.GetDeviceResources().context->VSSetShader(
+			drawContext.GetDeviceContext()->VSSetShader(
 				drawContext.GetShaders().sceneVelocity.vertexShader.Get(), nullptr, 0);
-			drawContext.GetDeviceResources().context->PSSetShader(
+			drawContext.GetDeviceContext()->PSSetShader(
 				drawContext.GetShaders().sceneVelocity.pixelShader.Get(), nullptr, 0);
 		} else {
 			const ModelVertexConstants vsCb = BuildModelVertexConstants(viewer, world, ClipMatrix());
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
-			drawContext.GetDeviceResources().context->IASetInputLayout(
+			drawContext.GetDeviceContext()->IASetInputLayout(
 				drawContext.GetShaders().sceneDepth.inputLayout.Get());
-			drawContext.GetDeviceResources().context->VSSetShader(
+			drawContext.GetDeviceContext()->VSSetShader(
 				drawContext.GetShaders().sceneDepth.vertexShader.Get(), nullptr, 0);
-			drawContext.GetDeviceResources().context->PSSetShader(
+			drawContext.GetDeviceContext()->PSSetShader(
 				drawContext.GetShaders().sceneDepth.pixelShader.Get(), nullptr, 0);
 		}
-		drawContext.GetDeviceResources().context->IASetVertexBuffers(
+		drawContext.GetDeviceContext()->IASetVertexBuffers(
 			0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		drawContext.GetDeviceResources().context->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
-		drawContext.GetDeviceResources().context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		drawContext.GetDeviceResources().context->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
-		drawContext.GetDeviceResources().context->PSSetConstantBuffers(
+		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
+		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->PSSetConstantBuffers(
 			1, 1, sceneSurfaceConstantBuffer.GetAddressOf());
 		const ID3D11RasterizerState* currentRs = nullptr;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -240,21 +240,21 @@ namespace Chrivent {
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture.texture && material.texture.hasAlpha);
-			drawContext.GetDeviceResources().context->UpdateSubresource(
+			drawContext.GetDeviceContext()->UpdateSubresource(
 				sceneSurfaceConstantBuffer.Get(), 0, nullptr, &pixelConstants, 0, 0);
 			ID3D11ShaderResourceView* baseTexture = material.texture.texture
 				? material.texture.textureView.Get() : drawContext.GetDummyTexture().textureView.Get();
 			ID3D11SamplerState* baseSampler = drawContext.GetPipelineStates().textureSampler.Get();
-			drawContext.GetDeviceResources().context->PSSetShaderResources(0, 1, &baseTexture);
-			drawContext.GetDeviceResources().context->PSSetSamplers(0, 1, &baseSampler);
+			drawContext.GetDeviceContext()->PSSetShaderResources(0, 1, &baseTexture);
+			drawContext.GetDeviceContext()->PSSetSamplers(0, 1, &baseSampler);
 			ID3D11RasterizerState* targetRs = mat.bothFace
 				? drawContext.GetPipelineStates().bothFaceRs.Get()
 				: drawContext.GetPipelineStates().frontFaceRs.Get();
 			if (currentRs != targetRs) {
-				drawContext.GetDeviceResources().context->RSSetState(targetRs);
+				drawContext.GetDeviceContext()->RSSetState(targetRs);
 				currentRs = targetRs;
 			}
-			drawContext.GetDeviceResources().context->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
 	}
 

@@ -188,7 +188,7 @@ namespace Chrivent {
 			&& CreateEffectResources();
 	}
 
-	bool OpenGlPostProcess::Load(const std::vector<const EffectDefinition*>& effects) {
+	bool OpenGlPostProcess::Load(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		OpenGlPostProcess candidate;
 		candidate.targetWidth = targetWidth;
 		candidate.targetHeight = targetHeight;
@@ -265,7 +265,6 @@ namespace Chrivent {
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}
-		CommitHistoryFrame();
 		return true;
 	}
 

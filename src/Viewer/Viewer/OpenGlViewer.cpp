@@ -120,9 +120,12 @@ namespace Chrivent {
 	}
 
 	FrameEndResult OpenGlViewer::EndFrame() {
-		if (!postProcess.Draw(screenWidth, screenHeight, postProcessFrameData))
+		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData())) {
+			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
+		}
 		glfwSwapBuffers(window);
+		postProcess.CommitHistoryFrame();
 		return FrameEndResult::Presented;
 	}
 
@@ -143,7 +146,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return postProcess.Load(effects);
 	}
 

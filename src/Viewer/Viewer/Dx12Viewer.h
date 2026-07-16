@@ -41,7 +41,7 @@ namespace Chrivent {
 		const PostProcess& ResolvePostProcess() const override { return postProcess; }
 		
 		// 체크된 후처리 효과들을 DX12 ping-pong 체인으로 컴파일한다.
-		bool LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) override;
+		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX12 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
 		// 초기 상태의 DX12 모델 인스턴스를 생성한다.

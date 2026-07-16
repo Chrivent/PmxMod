@@ -1,6 +1,8 @@
 ﻿#include "Viewer/Viewer/Viewer.h"
 
+#include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
+#include "Viewer/Shader/ShaderPackage.h"
 
 #include <Windows.h>
 #include <iostream>
@@ -8,15 +10,19 @@
 
 namespace Chrivent {
 	void Viewer::ResetPostProcessFrameHistory() {
-		postProcessHistoryResetPending = true;
-		postProcessFrameData.historyReset = 1.0f;
+		postProcessTemporalState.historyResetPending = true;
+		postProcessTemporalState.frameData.historyReset = 1.0f;
 	}
 
 	void Viewer::CommitPostProcessFrameHistory() {
-		previousViewMat = viewMat;
-		previousProjMat = projMat;
-		postProcessHistoryResetPending = false;
-		postProcessFrameData.historyReset = 0.0f;
+		postProcessTemporalState.previousViewMatrix = viewMat;
+		postProcessTemporalState.previousProjectionMatrix = projMat;
+		postProcessTemporalState.historyResetPending = false;
+		postProcessTemporalState.frameData.historyReset = 0.0f;
+	}
+
+	void Viewer::UpdatePostProcessFrameData(PostProcessFrameData frameData) {
+		postProcessTemporalState.frameData = std::move(frameData);
 	}
 
 	bool Viewer::InitializeShaderResources() {
@@ -24,7 +30,7 @@ namespace Chrivent {
 		return LoadSceneInputShaderContract() && LoadBuiltInShaderContract();
 	}
 
-	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectDefinition*>& effects) {
+	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!WaitIdle() || !LoadPostProcessEffectsCore(effects))
 			return false;
 		ResetPostProcessFrameHistory();

@@ -146,6 +146,9 @@ namespace Chrivent {
         int RunBenchmark(std::size_t warmupFrames, std::size_t benchmarkFrames);
         
     public:
+        Program();
+        ~Program();
+        
         // 명령행 옵션으로 씬과 렌더러를 구성하고 프로그램을 실행한다.
         int Run(int argumentCount, wchar_t* arguments[]);
     };

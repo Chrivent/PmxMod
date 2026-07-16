@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderRuntimeContract.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <glad/glad.h>

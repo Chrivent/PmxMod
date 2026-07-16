@@ -8,6 +8,7 @@
 #include <GLFW/glfw3native.h>
 
 #include <algorithm>
+#include <dxgi1_6.h>
 #include <iostream>
 #include <iterator>
 
@@ -229,14 +230,19 @@ namespace Chrivent {
 				deviceResources.context.Get(), renderTargets.sceneColorMsaa.Get(), multiSampleCount);
 			if (!postProcess.Draw(deviceResources.context.Get(), renderTargets.backBufferView.Get(),
 				pipelineStates.bothFaceRs.Get(), pipelineStates.toonTextureSampler.Get(),
-				screenWidth, screenHeight, postProcessFrameData))
+				screenWidth, screenHeight, GetPostProcessFrameData())) {
+				postProcess.DiscardHistoryFrame();
 				return FrameEndResult::Failed;
+			}
 		} else {
 			deviceResources.context->CopyResource(
 				renderTargets.backBuffer.Get(), renderTargets.sceneColorMsaa.Get());
 		}
-		if (FAILED(deviceResources.swapChain->Present(0, 0)))
+		if (FAILED(deviceResources.swapChain->Present(0, 0))) {
+			postProcess.DiscardHistoryFrame();
 			return FrameEndResult::Failed;
+		}
+		postProcess.CommitHistoryFrame();
 		return FrameEndResult::Presented;
 	}
 
@@ -273,7 +279,7 @@ namespace Chrivent {
 		}
 	}
 
-	bool Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectDefinition*>& effects) {
+	bool Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return postProcess.Load(deviceResources.device.Get(), effects);
 	}
 

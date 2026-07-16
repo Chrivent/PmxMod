@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderRuntimeContract.h"
 #include <d3d12.h>
-#include <filesystem>
 #include <wrl/client.h>
 
 namespace Chrivent {

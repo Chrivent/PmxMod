@@ -134,145 +134,6 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanPostProcess::CreateDescriptors() {
-		constexpr VkDescriptorSetLayoutBinding frameDataBinding{
-			.binding = PostProcessInputLayout::frameDataVulkanBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-		};
-		VkDescriptorSetLayoutCreateInfo frameLayoutInfo{};
-		frameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		frameLayoutInfo.bindingCount = 1;
-		frameLayoutInfo.pBindings = &frameDataBinding;
-		constexpr VkDescriptorSetLayoutBinding parameterDataBinding{
-			.binding = PostProcessInputLayout::parameterDataVulkanBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-		};
-		VkDescriptorSetLayoutCreateInfo parameterLayoutInfo{};
-		parameterLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		parameterLayoutInfo.bindingCount = 1;
-		parameterLayoutInfo.pBindings = &parameterDataBinding;
-		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
-			&descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet]) != VK_SUCCESS
-			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr,
-				&descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet]) != VK_SUCCESS)
-			return false;
-		std::vector<VkDescriptorSetLayoutBinding> textureBindings;
-		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
-			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-			});
-		}
-		for (uint32_t samplerSlot = 0; samplerSlot < PostProcessInputLayout::samplerCount; samplerSlot++) {
-			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::ResolveSpirvSamplerBinding(samplerSlot),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-			});
-		}
-		VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
-		textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		textureLayoutInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
-		textureLayoutInfo.pBindings = textureBindings.data();
-		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
-			&descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]) != VK_SUCCESS)
-			return false;
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = PostProcessInputLayout::vulkanSetCount;
-		pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-			return false;
-		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		samplerInfo.maxLod = 1.0f;
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
-			return false;
-		const uint32_t frameSetCount = static_cast<uint32_t>(swapChainImageCount);
-		const uint32_t textureSetCount = static_cast<uint32_t>(swapChainImageCount * ResolvePassRoutes().size());
-		const uint32_t parameterSetCount = textureSetCount;
-		const VkDescriptorPoolSize poolSizes[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameSetCount + parameterSetCount },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureSetCount * PostProcessInputLayout::maxTextureCount },
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureSetCount * PostProcessInputLayout::samplerCount }
-		};
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.maxSets = frameSetCount + parameterSetCount + textureSetCount;
-		poolInfo.poolSizeCount = 3;
-		poolInfo.pPoolSizes = poolSizes;
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-			return false;
-		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount,
-			descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]);
-		for (uint32_t index = 0; index < frameSetCount; index++)
-			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet];
-		for (uint32_t index = frameSetCount; index < frameSetCount + parameterSetCount; index++)
-			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet];
-		std::vector<VkDescriptorSet> sets(layouts.size());
-		VkDescriptorSetAllocateInfo allocateInfo{};
-		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocateInfo.descriptorPool = descriptorPool;
-		allocateInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
-		allocateInfo.pSetLayouts = layouts.data();
-		if (vkAllocateDescriptorSets(device, &allocateInfo, sets.data()) != VK_SUCCESS)
-			return false;
-		frameDataDescriptorSets.assign(sets.begin(), sets.begin() + frameSetCount);
-		parameterDataDescriptorSets.assign(
-			sets.begin() + frameSetCount, sets.begin() + frameSetCount + parameterSetCount);
-		textureDescriptorSets.assign(sets.begin() + frameSetCount + parameterSetCount, sets.end());
-		for (uint32_t index = 0; index < frameSetCount; index++) {
-			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = frameDataBuffers[index]->buffer,
-				.offset = 0,
-				.range = sizeof(PostProcessFrameData)
-			};
-			const VkWriteDescriptorSet write{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = frameDataDescriptorSets[index],
-				.dstBinding = PostProcessInputLayout::frameDataVulkanBinding,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.pBufferInfo = &bufferInfo
-			};
-			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-		}
-		for (uint32_t index = 0; index < parameterSetCount; index++) {
-			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = parameterDataBuffers[index]->buffer,
-				.offset = 0,
-				.range = sizeof(PostProcessParameterData)
-			};
-			const VkWriteDescriptorSet write{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = parameterDataDescriptorSets[index],
-				.dstBinding = PostProcessInputLayout::parameterDataVulkanBinding,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.pBufferInfo = &bufferInfo
-			};
-			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-		}
-		return true;
-	}
-
-	size_t VulkanPostProcess::ResolveTextureDescriptorIndex(
-		const uint32_t imageIndex, const size_t passIndex) const {
-		return imageIndex * ResolvePassRoutes().size() + passIndex;
-	}
-
 	VkImageView VulkanPostProcess::ResolveInputImageView(
 		const PostProcessPassInputRoute& input, const uint32_t imageIndex) const {
 		if (input.kind == PostProcessInputKind::SceneColor)
@@ -288,49 +149,16 @@ namespace Chrivent {
 		return resource.ResolveImageView(index);
 	}
 
-	void VulkanPostProcess::UpdateTextureDescriptorSet(
+	bool VulkanPostProcess::UpdateTextureDescriptorSet(
 		const uint32_t imageIndex, const size_t passIndex) const {
-		const size_t descriptorIndex = ResolveTextureDescriptorIndex(imageIndex, passIndex);
-		if (descriptorIndex >= textureDescriptorSets.size() || passIndex >= ResolvePassRoutes().size())
-			return;
-		std::vector<const PostProcessPassInputRoute*> slots(PostProcessInputLayout::maxTextureCount);
-		for (const auto& input : ResolvePassRoutes()[passIndex].inputs)
-			slots[input.slot] = &input;
-		std::vector<VkDescriptorImageInfo> imageInfos(
-			PostProcessInputLayout::maxTextureCount + PostProcessInputLayout::samplerCount);
-		std::vector<VkWriteDescriptorSet> writes;
-		writes.reserve(imageInfos.size());
-		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
-			VkImageView imageView = sceneTarget.ResolveImageView(imageIndex);
-			if (slots[slot] != nullptr)
-				imageView = ResolveInputImageView(*slots[slot], imageIndex);
-			imageInfos[slot] = {
-				.sampler = VK_NULL_HANDLE,
-				.imageView = imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-			writes.emplace_back(VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = textureDescriptorSets[descriptorIndex],
-				.dstBinding = PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.pImageInfo = &imageInfos[slot]
-			});
-		}
-		for (uint32_t samplerSlot = 0; samplerSlot < PostProcessInputLayout::samplerCount; samplerSlot++) {
-			const size_t infoIndex = PostProcessInputLayout::maxTextureCount + samplerSlot;
-			imageInfos[infoIndex] = { .sampler = sampler };
-			writes.emplace_back(VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = textureDescriptorSets[descriptorIndex],
-				.dstBinding = PostProcessInputLayout::ResolveSpirvSamplerBinding(samplerSlot),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.pImageInfo = &imageInfos[infoIndex]
-			});
-		}
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+		const auto& routes = ResolvePassRoutes();
+		if (passIndex >= routes.size())
+			return false;
+		std::vector imageViews(
+			PostProcessInputLayout::maxTextureCount, sceneTarget.ResolveImageView(imageIndex));
+		for (const auto& input : routes[passIndex].inputs)
+			imageViews[input.slot] = ResolveInputImageView(input, imageIndex);
+		return descriptors.UpdateTextures(imageIndex, passIndex, imageViews);
 	}
 
 	bool VulkanPostProcess::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
@@ -386,7 +214,7 @@ namespace Chrivent {
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pColorBlendState = &blending;
-		pipelineInfo.layout = pipelineLayout;
+		pipelineInfo.layout = descriptors.GetPipelineLayout();
 		return vkCreateGraphicsPipelines(
 			device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
 	}
@@ -466,17 +294,10 @@ namespace Chrivent {
 		depthImageViews.swap(other.depthImageViews);
 		std::swap(velocityTarget, other.velocityTarget);
 		resources.swap(other.resources);
-		textureDescriptorSets.swap(other.textureDescriptorSets);
-		frameDataDescriptorSets.swap(other.frameDataDescriptorSets);
-		parameterDataDescriptorSets.swap(other.parameterDataDescriptorSets);
 		frameDataBuffers.swap(other.frameDataBuffers);
 		parameterDataBuffers.swap(other.parameterDataBuffers);
-		for (size_t index = 0; index < PostProcessInputLayout::vulkanSetCount; index++)
-			std::swap(descriptorSetLayouts[index], other.descriptorSetLayouts[index]);
-		std::swap(descriptorPool, other.descriptorPool);
-		std::swap(pipelineLayout, other.pipelineLayout);
+		descriptors.Swap(other.descriptors);
 		pipelines.swap(other.pipelines);
-		std::swap(sampler, other.sampler);
 		std::swap(swapChainImageCount, other.swapChainImageCount);
 	}
 
@@ -490,12 +311,14 @@ namespace Chrivent {
 			&& CreateEffectResources(sourceDevice)
 			&& CreateFrameDataBuffers(sourceDevice)
 			&& CreateParameterDataBuffers(sourceDevice)
-			&& CreateDescriptors()
+			&& descriptors.Initialize(device, swapChainImageCount, ResolvePassRoutes().size(),
+				frameDataBuffers, parameterDataBuffers,
+				sizeof(PostProcessFrameData), sizeof(PostProcessParameterData))
 			&& CreatePipelines(sourceDevice);
 	}
 
 	bool VulkanPostProcess::Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects) {
+		const VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		VulkanPostProcess candidate;
 		if (!candidate.SetEffects(effects)
 			|| (candidate.HasEffects() && !candidate.Initialize(sourceDevice, sourceSwapChain, depthFormat)))
@@ -534,18 +357,18 @@ namespace Chrivent {
 		const PostProcessFrameData& frameData, const bool sceneRenderingEnded) {
 		const auto& routes = ResolvePassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
-			|| imageIndex >= frameDataDescriptorSets.size() || imageIndex >= frameDataBuffers.size()
-			|| parameterDataDescriptorSets.size() != swapChainImageCount * routes.size()
+			|| imageIndex >= frameDataBuffers.size()
 			|| parameterDataBuffers.size() != swapChainImageCount * routes.size()
-			|| textureDescriptorSets.size() != swapChainImageCount * routes.size()
-			|| pipelines.size() != routes.size() || pipelineLayout == VK_NULL_HANDLE)
+			|| pipelines.size() != routes.size()
+			|| !descriptors.IsCompatible(swapChainImageCount, routes.size()))
 			return false;
 		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData)))
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers.ResolveCommandBuffer(imageIndex);
 		if (commandBuffer == VK_NULL_HANDLE)
 			return false;
-		const VkDescriptorSet frameDataDescriptorSet = frameDataDescriptorSets[imageIndex];
+		const VkPipelineLayout pipelineLayout = descriptors.GetPipelineLayout();
+		const VkDescriptorSet frameDataDescriptorSet = descriptors.GetFrameDataDescriptorSet(imageIndex);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
 		BeginHistoryFrame();
@@ -591,12 +414,15 @@ namespace Chrivent {
 				return false;
 			}
 			const PostProcessPassRoute& route = routes[passIndex];
-			const size_t parameterIndex = ResolveTextureDescriptorIndex(imageIndex, passIndex);
+			const size_t parameterIndex = imageIndex * routes.size() + passIndex;
 			if (!parameterDataBuffers[parameterIndex]->Write(&route.parameters, sizeof(route.parameters))) {
 				DiscardHistoryFrame();
 				return false;
 			}
-			UpdateTextureDescriptorSet(imageIndex, passIndex);
+			if (!UpdateTextureDescriptorSet(imageIndex, passIndex)) {
+				DiscardHistoryFrame();
+				return false;
+			}
 			VkImage outputImage = VK_NULL_HANDLE;
 			VkImageView outputImageView = VK_NULL_HANDLE;
 			VkExtent2D outputExtent{};
@@ -627,11 +453,10 @@ namespace Chrivent {
 				.colorAttachmentCount = 1,
 				.pColorAttachments = &colorAttachment
 			};
-			const size_t descriptorIndex = ResolveTextureDescriptorIndex(imageIndex, passIndex);
-			const VkDescriptorSet descriptorSet = textureDescriptorSets[descriptorIndex];
+			const VkDescriptorSet descriptorSet = descriptors.GetTextureDescriptorSet(imageIndex, passIndex);
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[passIndex]);
-			const VkDescriptorSet parameterSet = parameterDataDescriptorSets[parameterIndex];
+			const VkDescriptorSet parameterSet = descriptors.GetParameterDataDescriptorSet(imageIndex, passIndex);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayout, 1, 1, &parameterSet, 0, nullptr);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -664,19 +489,10 @@ namespace Chrivent {
 				if (pipeline != VK_NULL_HANDLE)
 					vkDestroyPipeline(device, pipeline, nullptr);
 			}
-			if (pipelineLayout != VK_NULL_HANDLE)
-				vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-			if (descriptorPool != VK_NULL_HANDLE)
-				vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-			if (sampler != VK_NULL_HANDLE)
-				vkDestroySampler(device, sampler, nullptr);
-			for (const VkDescriptorSetLayout& layout : descriptorSetLayouts) {
-				if (layout != VK_NULL_HANDLE)
-					vkDestroyDescriptorSetLayout(device, layout, nullptr);
-			}
 			DestroyImages(depthImages, depthImageMemories, depthImageViews);
 		}
 		pipelines.clear();
+		descriptors.Reset();
 		sceneTarget.Reset();
 		velocityTarget.Reset();
 		resources.clear();
@@ -685,14 +501,6 @@ namespace Chrivent {
 		depthImageViews.clear();
 		frameDataBuffers.clear();
 		parameterDataBuffers.clear();
-		frameDataDescriptorSets.clear();
-		parameterDataDescriptorSets.clear();
-		textureDescriptorSets.clear();
-		descriptorPool = VK_NULL_HANDLE;
-		pipelineLayout = VK_NULL_HANDLE;
-		sampler = VK_NULL_HANDLE;
-		for (VkDescriptorSetLayout& layout : descriptorSetLayouts)
-			layout = VK_NULL_HANDLE;
 		swapChainImageCount = 0;
 		targetExtent = {};
 		swapChainFormat = VK_FORMAT_UNDEFINED;

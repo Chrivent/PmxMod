@@ -2,6 +2,7 @@
 
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/Buffer/VulkanBuffer.h"
+#include "Viewer/Descriptor/VulkanPostProcessDescriptors.h"
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/RenderTarget/VulkanPostProcessTarget.h"
 #include "Viewer/SwapChain/VulkanSwapChain.h"
@@ -24,16 +25,10 @@ namespace Chrivent {
 		std::vector<VkImageView> depthImageViews;
 		VulkanPostProcessTarget velocityTarget;
 		std::vector<VulkanPostProcessTarget> resources;
-		std::vector<VkDescriptorSet> textureDescriptorSets;
-		std::vector<VkDescriptorSet> frameDataDescriptorSets;
-		std::vector<VkDescriptorSet> parameterDataDescriptorSets;
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
 		std::vector<std::unique_ptr<VulkanBuffer>> parameterDataBuffers;
-		VkDescriptorSetLayout descriptorSetLayouts[PostProcessInputLayout::vulkanSetCount]{};
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+		VulkanPostProcessDescriptors descriptors;
 		std::vector<VkPipeline> pipelines;
-		VkSampler sampler = VK_NULL_HANDLE;
 		size_t swapChainImageCount = 0;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
@@ -49,10 +44,8 @@ namespace Chrivent {
 		bool CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지와 pass마다 효과 파라미터 b1 buffer를 생성한다.
 		bool CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
-		// 범용 pass texture/sampler descriptor 리소스를 생성한다.
-		bool CreateDescriptors();
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
-		void UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
+		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
 		// HLSL 후처리 pass 하나를 지정한 출력 크기와 형식의 pipeline으로 만든다.
 		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, const EffectPassDefinition& pass,
 			VkExtent2D extent, VkFormat format, VkPipeline& pipeline) const;
@@ -68,8 +61,6 @@ namespace Chrivent {
 		bool ResolveOutputImage(const PostProcessPassRoute& route, uint32_t imageIndex,
 			VkImage swapChainImage, VkImageView swapChainImageView, VkImage& image,
 			VkImageView& imageView, VkExtent2D& extent, bool& initialized);
-		// pass별 descriptor set의 평탄화 인덱스를 반환한다.
-		size_t ResolveTextureDescriptorIndex(uint32_t imageIndex, size_t passIndex) const;
 		// Vulkan image 묶음을 안전한 순서로 해제한다.
 		void DestroyImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& memories,
 			std::vector<VkImageView>& imageViews) const;
@@ -92,7 +83,7 @@ namespace Chrivent {
 			VkFormat depthFormat);
 		// 새 효과 체인을 완성한 뒤 현재 Vulkan 후처리 상태와 원자적으로 교체한다.
 		bool Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, const std::vector<const EffectDefinition*>& effects);
+			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
 		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
 			VkPipeline geometryPipeline, VkExtent2D extent);

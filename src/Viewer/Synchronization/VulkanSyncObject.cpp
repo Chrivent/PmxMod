@@ -27,6 +27,23 @@ namespace Chrivent {
 		renderFinishedSemaphores.clear();
 	}
 
+	bool VulkanSyncObject::RestoreCurrentFence() {
+		VkFence& currentFence = inFlightFences[currentFrame];
+		const VkFence discardedFence = currentFence;
+		for (VkFence& imageFence : imagesInFlight) {
+			if (imageFence == discardedFence)
+				imageFence = VK_NULL_HANDLE;
+		}
+		if (discardedFence != VK_NULL_HANDLE)
+			vkDestroyFence(device, discardedFence, nullptr);
+		currentFence = VK_NULL_HANDLE;
+		constexpr VkFenceCreateInfo fenceInfo{
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			.flags = VK_FENCE_CREATE_SIGNALED_BIT
+		};
+		return vkCreateFence(device, &fenceInfo, nullptr, &currentFence) == VK_SUCCESS;
+	}
+
 	VulkanSyncObject::~VulkanSyncObject() {
 		Reset();
 	}
@@ -73,5 +90,64 @@ namespace Chrivent {
 		ResetRenderFinishedSemaphores();
 		imagesInFlight.assign(swapChainImageCount, VK_NULL_HANDLE);
 		return CreateRenderFinishedSemaphores(swapChainImageCount);
+	}
+
+	bool VulkanSyncObject::WaitForCurrentFrame() const {
+		if (device == VK_NULL_HANDLE)
+			return false;
+		return vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+	}
+
+	bool VulkanSyncObject::WaitForImage(const uint32_t imageIndex) const {
+		if (device == VK_NULL_HANDLE || imageIndex >= imagesInFlight.size())
+			return false;
+		const VkFence imageFence = imagesInFlight[imageIndex];
+		return imageFence == VK_NULL_HANDLE
+			|| vkWaitForFences(device, 1, &imageFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+	}
+
+	bool VulkanSyncObject::Submit(const VkQueue graphicsQueue, const VkCommandBuffer commandBuffer,
+		const uint32_t imageIndex) {
+		if (device == VK_NULL_HANDLE || graphicsQueue == VK_NULL_HANDLE || commandBuffer == VK_NULL_HANDLE
+			|| imageIndex >= renderFinishedSemaphores.size() || imageIndex >= imagesInFlight.size())
+			return false;
+		const VkSemaphoreSubmitInfo waitSemaphoreInfo{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = imageAvailableSemaphores[currentFrame],
+			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+		};
+		const VkSemaphoreSubmitInfo signalSemaphoreInfo{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = renderFinishedSemaphores[imageIndex],
+			.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+		};
+		const VkCommandBufferSubmitInfo commandBufferInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			.commandBuffer = commandBuffer
+		};
+		const VkFence& inFlightFence = inFlightFences[currentFrame];
+		if (vkResetFences(device, 1, &inFlightFence) != VK_SUCCESS)
+			return false;
+		const VkSubmitInfo2 submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			.waitSemaphoreInfoCount = 1,
+			.pWaitSemaphoreInfos = &waitSemaphoreInfo,
+			.commandBufferInfoCount = 1,
+			.pCommandBufferInfos = &commandBufferInfo,
+			.signalSemaphoreInfoCount = 1,
+			.pSignalSemaphoreInfos = &signalSemaphoreInfo
+		};
+		if (vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+			if (!RestoreCurrentFence())
+				std::cerr << "Failed to restore Vulkan in-flight fence.\n";
+			return false;
+		}
+		imagesInFlight[imageIndex] = inFlightFence;
+		return true;
+	}
+
+	VkSemaphore VulkanSyncObject::GetRenderFinishedSemaphore(const uint32_t imageIndex) const {
+		return imageIndex < renderFinishedSemaphores.size()
+			? renderFinishedSemaphores[imageIndex] : VK_NULL_HANDLE;
 	}
 }

@@ -1,7 +1,7 @@
 ﻿#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
 #include "Viewer/Shader/ModernHlslCompiler.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/ShaderRuntimeContract.h"
 
 #include <vector>
 

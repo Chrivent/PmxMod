@@ -12,25 +12,23 @@
 
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers() {
-		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
+		ID3D11Device* device = viewer.GetDrawContext().GetDevice();
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (geometryData.positions.empty() ||
-			!ViewerGeometry::BuildIndexData(geometryData, indexData) ||
-			indexData.bytes.empty())
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
 			return false;
 		const size_t vertexByteSize = sizeof(ViewerVertex) * geometryData.positions.size();
 		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
 			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
-		if (FAILED(deviceResources.device->CreateBuffer(
+		if (FAILED(device->CreateBuffer(
 			&vBufDesc, nullptr, &modelResources.vertexBuffer)))
 			return false;
 		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(static_cast<UINT>(indexData.bytes.size()));
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = indexData.bytes.data();
-		if (FAILED(deviceResources.device->CreateBuffer(
+		if (FAILED(device->CreateBuffer(
 			&iBufDesc, &initData, &modelResources.indexBuffer)))
 			return false;
 		if (indexData.elementSize == sizeof(uint16_t))
@@ -43,27 +41,27 @@ namespace Chrivent {
 	}
 
 	bool Dx11Instance::CreateConstantBuffers() {
-		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
+		ID3D11Device* device = viewer.GetDrawContext().GetDevice();
 		if (FAILED(CreateBuffer<ModelVertexConstants>(
-			deviceResources.device.Get(), modelResources.vsConstantBuffer)))
+			device, modelResources.vsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<ModelPixelConstants>(
-			deviceResources.device.Get(), modelResources.psConstantBuffer)))
+			device, modelResources.psConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<SceneSurfacePixelConstants>(
-			deviceResources.device.Get(), modelResources.sceneSurfaceConstantBuffer)))
+			device, modelResources.sceneSurfaceConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<EdgeVertexConstants>(
-			deviceResources.device.Get(), modelResources.edgeVsConstantBuffer)))
+			device, modelResources.edgeVsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<EdgePixelConstants>(
-			deviceResources.device.Get(), modelResources.edgePsConstantBuffer)))
+			device, modelResources.edgePsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<GroundShadowVertexConstants>(
-			deviceResources.device.Get(), modelResources.gsVsConstantBuffer)))
+			device, modelResources.gsVsConstantBuffer)))
 			return false;
 		if (FAILED(CreateBuffer<GroundShadowPixelConstants>(
-			deviceResources.device.Get(), modelResources.gsPsConstantBuffer)))
+			device, modelResources.gsPsConstantBuffer)))
 			return false;
 		return true;
 	}
@@ -109,15 +107,15 @@ namespace Chrivent {
 	}
 
 	bool Dx11Instance::Upload() {
-		const auto& deviceResources = viewer.GetDrawContext().GetDeviceResources();
+		ID3D11DeviceContext* deviceContext = viewer.GetDrawContext().GetDeviceContext();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(deviceResources.context->Map(modelResources.vertexBuffer.Get(), 0,
+		if (FAILED(deviceContext->Map(modelResources.vertexBuffer.Get(), 0,
 			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
 			return false;
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(mapRes.pData), vtxCount });
-		deviceResources.context->Unmap(modelResources.vertexBuffer.Get(), 0);
+		deviceContext->Unmap(modelResources.vertexBuffer.Get(), 0);
 		return writeSucceeded;
 	}
 }
