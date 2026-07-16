@@ -12,7 +12,7 @@ namespace Chrivent {
 
 	bool OpenGlPostProcess::CreateEffectResources() {
 		ResetEffectResources();
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
@@ -42,10 +42,10 @@ namespace Chrivent {
 	}
 
 	void OpenGlPostProcess::InitializeHistories() {
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
-			OpenGlPostProcessResource& resource = resources[index];
+			Resource& resource = resources[index];
 			if (!NeedsHistoryInitialization(index))
 				continue;
 			glClearNamedFramebufferfv(resource.framebuffers[0], GL_COLOR, 0, clearColor);
@@ -77,7 +77,7 @@ namespace Chrivent {
 	}
 
 	void OpenGlPostProcess::ResetEffectResources() {
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size(); index++) {
 			const GLsizei count = index < plans.size() && plans[index].lifetime == EffectResourceLifetime::History ? 2 : 1;
 			glDeleteTextures(count, resources[index].textures);
@@ -195,7 +195,7 @@ namespace Chrivent {
 		if (!candidate.SetEffects(effects)
 			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources()))
 			return false;
-		for (const auto& pass : candidate.ResolvePasses()) {
+		for (const auto& pass : candidate.GetPasses()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
 			if (!shader->Initialize(pass))
 				return false;
@@ -246,7 +246,7 @@ namespace Chrivent {
 		glDisable(GL_CULL_FACE);
 		glBindVertexArray(postProcessVao);
 		InitializeHistories();
-		const auto& routes = ResolvePassRoutes();
+		const auto& routes = GetPassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
 			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(route.parameters), &route.parameters);

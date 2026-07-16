@@ -37,15 +37,9 @@ namespace Chrivent {
 			&resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
 			&clearValue, IID_PPV_ARGS(&renderTarget))))
 			return false;
-		sourceDevice.device->CreateRenderTargetView(renderTarget.Get(), nullptr, ResolveRtvHandle());
+		sourceDevice.device->CreateRenderTargetView(renderTarget.Get(), nullptr, GetRtvHandle());
 		sampleCount = sourceDevice.msaaSampleCount;
 		return true;
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12MsaaColorBuffer::ResolveRtvHandle() const {
-		if (!rtvHeap)
-			return {};
-		return rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
 	bool Dx12MsaaColorBuffer::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,

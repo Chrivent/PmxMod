@@ -16,7 +16,7 @@ namespace Chrivent {
 		frameReady = false;
 	}
 
-	ID3D12GraphicsCommandList* Dx12DrawContext::ResolveCommandList() const {
+	ID3D12GraphicsCommandList* Dx12DrawContext::TryGetCommandList() const {
 		return frameReady ? commandContext.GetCommandList().Get() : nullptr;
 	}
 

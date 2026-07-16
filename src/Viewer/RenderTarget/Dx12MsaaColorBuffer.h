@@ -13,12 +13,13 @@ namespace Chrivent {
 		UINT sampleCount = 1;
 
 	public:
+		ID3D12Resource* GetResource() const { return renderTarget.Get(); }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetRtvHandle() const {
+			return rtvHeap ? rtvHeap->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{};
+		}
+
 		// 화면 크기에 맞는 DX12 MSAA color render target과 RTV를 생성한다.
 		bool Initialize(const Dx12Device& sourceDevice, int width, int height);
-		// MSAA color render target resource를 반환한다.
-		ID3D12Resource* ResolveResource() const { return renderTarget.Get(); }
-		// RTV heap에서 MSAA color render target view handle을 해석해 반환한다.
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolveRtvHandle() const;
 		// 장면 색상을 back buffer로 resolve 또는 copy하고 두 리소스 상태를 복원한다.
 		bool ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
 			ID3D12GraphicsCommandList7* enhancedCommandList, ID3D12Resource* backBuffer) const;

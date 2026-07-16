@@ -8,7 +8,7 @@
 #include <iterator>
 
 namespace Chrivent {
-	bool Dx11Device::ResolveMsaaQuality(const UINT sampleCount, UINT& quality) const {
+	bool Dx11Device::TryGetMsaaQuality(const UINT sampleCount, UINT& quality) const {
 		quality = 0;
 		if (!device || sampleCount <= 1)
 			return sampleCount == 1;
@@ -27,7 +27,7 @@ namespace Chrivent {
 		constexpr UINT sampleCounts[] = { 32u, 16u, 8u, 4u, 2u };
 		for (const UINT sampleCount : sampleCounts) {
 			UINT quality = 0;
-			if (ResolveMsaaQuality(sampleCount, quality))
+			if (TryGetMsaaQuality(sampleCount, quality))
 				return sampleCount;
 		}
 		return 1;
@@ -74,11 +74,11 @@ namespace Chrivent {
 		return false;
 	}
 
-	void Dx11Device::ResolveMsaaSettings(UINT& sampleCount, UINT& quality,
+	void Dx11Device::SelectMsaaSettings(UINT& sampleCount, UINT& quality,
 		GraphicsCapabilities& capabilities) const {
 		constexpr UINT preferredSampleCounts[] = { 4u, 2u };
 		for (const UINT candidate : preferredSampleCounts) {
-			if (!ResolveMsaaQuality(candidate, quality))
+			if (!TryGetMsaaQuality(candidate, quality))
 				continue;
 			sampleCount = candidate;
 			capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount();

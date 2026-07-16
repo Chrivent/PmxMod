@@ -35,12 +35,6 @@ namespace Chrivent {
 		return true;
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12PostProcessTarget::ResolveRtvHandle() const {
-		if (!rtvDescriptorHeap)
-			return {};
-		return rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	}
-
 	void Dx12PostProcessTarget::Reset() {
 		rtvDescriptorHeap.Reset();
 		resource.Reset();

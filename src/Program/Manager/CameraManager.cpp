@@ -41,7 +41,7 @@ namespace Chrivent {
 		return std::min(cameraAnim->GetLastFrame(), static_cast<uint32_t>(std::numeric_limits<int>::max()));
 	}
 
-	const std::vector<CameraAnimationKey>& CameraManager::ResolveAnimationKeys() const {
+	const std::vector<CameraAnimationKey>& CameraManager::GetAnimationKeys() const {
 		static constexpr std::vector<CameraAnimationKey> emptyKeys;
 		return cameraAnim ? cameraAnim->GetKeys() : emptyKeys;
 	}

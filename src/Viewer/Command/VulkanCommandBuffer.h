@@ -24,10 +24,10 @@ namespace Chrivent {
 		VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
 		VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
 		
-		// 스왑체인 이미지 인덱스에 대응하는 command buffer를 반환한다.
-		VkCommandBuffer ResolveCommandBuffer(const uint32_t imageIndex) const {
+		VkCommandBuffer TryGetCommandBuffer(const uint32_t imageIndex) const {
 			return imageIndex < commandBuffers.size() ? commandBuffers[imageIndex] : VK_NULL_HANDLE;
 		}
+		
 		// Synchronization2 배리어로 이미지 레이아웃과 접근 상태를 전환한다.
 		static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image,
 			VkImageLayout oldLayout, VkImageLayout newLayout,

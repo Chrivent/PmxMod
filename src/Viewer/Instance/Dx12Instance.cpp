@@ -30,17 +30,17 @@ namespace Chrivent {
 			Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
-					{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
+					{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount }))
 				return false;
 			auto& [BufferLocation, SizeInBytes, StrideInBytes] = modelResources.vertexBufferViews[frameIndex];
-			BufferLocation = vertexBuffer.ResolveGpuAddress();
+			BufferLocation = vertexBuffer.GetGpuAddress();
 			SizeInBytes = vertexByteSize;
 			StrideInBytes = sizeof(ViewerVertex);
 		}
 		if (!modelResources.indexBuffer.InitializeUpload(device, indexData.bytes.size()) ||
 			!modelResources.indexBuffer.Write(std::as_bytes(std::span(indexData.bytes))))
 			return false;
-		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.ResolveGpuAddress();
+		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.GetGpuAddress();
 		modelResources.indexBufferView.SizeInBytes = indexData.bytes.size();
 		modelResources.indexBufferView.Format = indexFormat;
 		modelResources.indexCount = indexData.indexCount;
@@ -218,7 +218,7 @@ namespace Chrivent {
 			return false;
 		const size_t vertexCount = model->geometryData.positions.size();
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
-			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount });
+			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
 			std::cerr << "Failed to update DX12 vertex buffer.\n";
 		return writeSucceeded;

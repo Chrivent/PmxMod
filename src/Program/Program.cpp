@@ -548,7 +548,7 @@ namespace Chrivent {
         }
         std::vector<MotionTimelineGroup> groups;
         groups.reserve(model.skeletonData.displayFrames.size() + 1);
-        const auto& cameraKeys = cameraManager.ResolveAnimationKeys();
+		const auto& cameraKeys = cameraManager.GetAnimationKeys();
         if (!cameraKeys.empty()) {
             MotionTimelineRow cameraRow{
                 .name = Language::Text("motion.camera"),
@@ -689,7 +689,7 @@ namespace Chrivent {
     }
 
     void Program::UpdateCameraMotionPanel() {
-        const auto& cameraKeys = cameraManager.ResolveAnimationKeys();
+		const auto& cameraKeys = cameraManager.GetAnimationKeys();
         std::vector<MotionTimelineGroup> groups;
         if (!cameraKeys.empty()) {
             MotionTimelineRow cameraRow{

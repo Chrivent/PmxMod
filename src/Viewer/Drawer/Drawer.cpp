@@ -51,7 +51,7 @@ namespace Chrivent {
 		};
 	}
 
-	MaterialTextureModes Drawer::ResolveMaterialTextureModes(const Material& material,
+	Drawer::MaterialTextureModes Drawer::ResolveMaterialTextureModes(const Material& material,
 		const bool baseAvailable, const bool baseHasAlpha, const bool toonAvailable,
 		const bool sphereAvailable) {
 		MaterialTextureModes modes;

@@ -7,7 +7,7 @@
 
 namespace Chrivent {
 	bool Dx11Viewer::CreateDummyResources() {
-		const Dx11Texture texture = textureCache.CreateWhiteTexture(device.ResolveDevice());
+		const Dx11Texture texture = textureCache.CreateWhiteTexture(device.GetDevice());
 		dummyTexture.texture = texture.texture;
 		dummyTexture.textureView = texture.textureView;
 		return dummyTexture.texture && dummyTexture.textureView;
@@ -22,72 +22,72 @@ namespace Chrivent {
 		HWND__* hwnd = glfwGetWin32Window(window);
 		if (!device.Initialize(capabilities))
 			return false;
-		device.ResolveMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
+		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
 		capabilities.Print();
 		if (!device.CreateSwapChain(hwnd, multiSampleCount, multiSampleQuality))
 			return false;
-		if (!renderTargets.Initialize(device.ResolveDevice(), device.ResolveContext(),
-			device.ResolveSwapChain(), postProcess, screenWidth, screenHeight,
+		if (!renderTargets.Initialize(device.GetDevice(), device.GetContext(),
+			device.GetSwapChain(), postProcess, screenWidth, screenHeight,
 			multiSampleCount, multiSampleQuality))
 			return false;
-		if (!pipeline.Initialize(device.ResolveDevice(), builtInShaderPasses, sceneInputShaderPasses))
+		if (!pipeline.Initialize(device.GetDevice(), builtInShaderPasses, sceneInputShaderPasses))
 			return false;
 		if (!CreateDummyResources())
 			return false;
-		Dx11DrawContext::ApplyViewport(device.ResolveContext(), screenWidth, screenHeight);
+		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return true;
 	}
 
 	bool Dx11Viewer::ResizeCore() {
-		renderTargets.Reset(device.ResolveContext(), postProcess);
-		if (FAILED(device.ResolveSwapChain()->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
+		renderTargets.Reset(device.GetContext(), postProcess);
+		if (FAILED(device.GetSwapChain()->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
-		if (!renderTargets.Initialize(device.ResolveDevice(), device.ResolveContext(),
-			device.ResolveSwapChain(), postProcess, screenWidth, screenHeight,
+		if (!renderTargets.Initialize(device.GetDevice(), device.GetContext(),
+			device.GetSwapChain(), postProcess, screenWidth, screenHeight,
 			multiSampleCount, multiSampleQuality))
 			return false;
-		Dx11DrawContext::ApplyViewport(device.ResolveContext(), screenWidth, screenHeight);
+		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return true;
 	}
 
 	FrameBeginResult Dx11Viewer::BeginFrameCore() {
-		ID3D11RenderTargetView* sceneColorView = renderTargets.ResolveSceneColorView();
-		device.ResolveContext()->ClearRenderTargetView(sceneColorView, clearColor);
-		device.ResolveContext()->ClearDepthStencilView(renderTargets.ResolveDepthStencilView(),
+		ID3D11RenderTargetView* sceneColorView = renderTargets.GetSceneColorView();
+		device.GetContext()->ClearRenderTargetView(sceneColorView, clearColor);
+		device.GetContext()->ClearDepthStencilView(renderTargets.GetDepthStencilView(),
 			D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		device.ResolveContext()->OMSetRenderTargets(1, &sceneColorView,
-			renderTargets.ResolveDepthStencilView());
-		device.ResolveContext()->OMSetBlendState(pipeline.GetStates().blendState.Get(), nullptr, 0xffffffff);
+		device.GetContext()->OMSetRenderTargets(1, &sceneColorView,
+			renderTargets.GetDepthStencilView());
+		device.GetContext()->OMSetBlendState(pipeline.GetStates().blendState.Get(), nullptr, 0xffffffff);
 		return FrameBeginResult::Ready;
 	}
 
 	FrameEndResult Dx11Viewer::EndFrameCore() {
 		if (postProcess.HasEffects()) {
 			postProcess.ResolveSceneColor(
-				device.ResolveContext(), renderTargets.ResolveSceneColor(), multiSampleCount);
-			if (!postProcess.Draw(device.ResolveContext(), renderTargets.ResolveBackBufferView(),
+				device.GetContext(), renderTargets.GetSceneColor(), multiSampleCount);
+			if (!postProcess.Draw(device.GetContext(), renderTargets.GetBackBufferView(),
 				pipeline.GetStates().bothFaceRs.Get(), pipeline.GetStates().toonTextureSampler.Get(),
 				screenWidth, screenHeight, GetPostProcessFrameData())) {
 				return FrameEndResult::Failed;
 			}
 		} else {
-			device.ResolveContext()->CopyResource(renderTargets.ResolveBackBuffer(),
-				renderTargets.ResolveSceneColor());
+			device.GetContext()->CopyResource(renderTargets.GetBackBuffer(),
+				renderTargets.GetSceneColor());
 		}
-		if (FAILED(device.ResolveSwapChain()->Present(0, 0)))
+		if (FAILED(device.GetSwapChain()->Present(0, 0)))
 			return FrameEndResult::Failed;
 		return FrameEndResult::Presented;
 	}
 
 	bool Dx11Viewer::BeginPostProcessSceneInputPassCore() {
 		return postProcess.BeginSceneInputPass(
-			device.ResolveContext(), pipeline.GetStates().defaultDss.Get(), screenWidth, screenHeight);
+			device.GetContext(), pipeline.GetStates().defaultDss.Get(), screenWidth, screenHeight);
 	}
 
 	bool Dx11Viewer::EndPostProcessSceneInputPassCore() {
-		if (device.ResolveContext() == nullptr)
+		if (device.GetContext() == nullptr)
 			return false;
-		postProcess.EndSceneInputPass(device.ResolveContext());
+		postProcess.EndSceneInputPass(device.GetContext());
 		return true;
 	}
 
@@ -96,7 +96,7 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return postProcess.Load(device.ResolveDevice(), effects);
+		return postProcess.Load(device.GetDevice(), effects);
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {

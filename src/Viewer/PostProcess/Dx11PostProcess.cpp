@@ -12,7 +12,7 @@ namespace Chrivent {
 		ResetEffectResources();
 		if (device == nullptr)
 			return false;
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
@@ -43,10 +43,10 @@ namespace Chrivent {
 	void Dx11PostProcess::InitializeHistories(ID3D11DeviceContext* context) {
 		if (context == nullptr)
 			return;
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
-			const Dx11PostProcessResource& resource = resources[index];
+			const Resource& resource = resources[index];
 			if (!NeedsHistoryInitialization(index))
 				continue;
 			context->ClearRenderTargetView(resource.renderTargetViews[0].Get(), clearColor);
@@ -65,7 +65,7 @@ namespace Chrivent {
 			return velocityView.Get();
 		if (input.resourceIndex >= resources.size())
 			return sceneColorView.Get();
-		const Dx11PostProcessResource& resource = resources[input.resourceIndex];
+		const Resource& resource = resources[input.resourceIndex];
 		return resource.shaderResourceViews[ResolveResourceReadIndex(input.resourceIndex)].Get();
 	}
 
@@ -75,7 +75,7 @@ namespace Chrivent {
 			return backBufferView;
 		if (route.outputResourceIndex >= resources.size())
 			return nullptr;
-		const Dx11PostProcessResource& resource = resources[route.outputResourceIndex];
+		const Resource& resource = resources[route.outputResourceIndex];
 		return resource.renderTargetViews[ResolveResourceWriteIndex(route.outputResourceIndex)].Get();
 	}
 
@@ -151,7 +151,7 @@ namespace Chrivent {
 		if (!candidate.SetEffects(effects)
 			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources(device)))
 			return false;
-		for (const auto& pass : candidate.ResolvePasses()) {
+		for (const auto& pass : candidate.GetPasses()) {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str()))
 				return false;
@@ -208,7 +208,7 @@ namespace Chrivent {
 		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister,
 			PostProcessInputLayout::samplerCount, samplers);
 		InitializeHistories(context);
-		const auto& routes = ResolvePassRoutes();
+		const auto& routes = GetPassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
 			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &route.parameters, 0, 0);

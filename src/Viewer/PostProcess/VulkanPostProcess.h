@@ -68,14 +68,13 @@ namespace Chrivent {
 	public:
 		~VulkanPostProcess() override;
 
-		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve 이미지를 반환한다.
-		VkImage ResolveSceneImage(uint32_t imageIndex) const {
-			return sceneTarget.ResolveImage(imageIndex);
+		VkImage TryGetSceneImage(const uint32_t imageIndex) const {
+			return sceneTarget.TryGetImage(imageIndex);
 		}
-		// 현재 스왑체인 이미지에 대응하는 장면 색상 resolve image view를 반환한다.
-		VkImageView ResolveSceneImageView(uint32_t imageIndex) const {
-			return sceneTarget.ResolveImageView(imageIndex);
+		VkImageView TryGetSceneImageView(const uint32_t imageIndex) const {
+			return sceneTarget.TryGetImageView(imageIndex);
 		}
+		
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);

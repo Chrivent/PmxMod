@@ -30,7 +30,7 @@ namespace Chrivent {
 			pendingCameraMotionPath = filename.data();
 	}
 
-	std::wstring CameraPanel::ResolveCameraMotionText() const {
+	std::wstring CameraPanel::BuildCameraMotionText() const {
 		return cameraMotionPath.empty()
 			? Language::Text("camera.motion.none")
 			: cameraMotionPath.filename().wstring();
@@ -41,7 +41,7 @@ namespace Chrivent {
 			return;
 		updatingShaderList = true;
 		ListView_DeleteAllItems(shaderList);
-		std::wstring cameraMotionText = ResolveCameraMotionText();
+		std::wstring cameraMotionText = BuildCameraMotionText();
 		LVITEMW cameraItem{};
 		cameraItem.mask = LVIF_TEXT;
 		cameraItem.iItem = kCameraMotionRow;

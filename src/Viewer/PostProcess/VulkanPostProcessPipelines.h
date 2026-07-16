@@ -24,18 +24,20 @@ namespace Chrivent {
 
 	public:
 		VulkanPostProcessPipelines() = default;
+		~VulkanPostProcessPipelines();
+		
 		VulkanPostProcessPipelines(const VulkanPostProcessPipelines&) = delete;
 		VulkanPostProcessPipelines& operator=(const VulkanPostProcessPipelines&) = delete;
-		~VulkanPostProcessPipelines();
+
+		VkPipeline TryGetPipeline(const size_t index) const {
+			return index < pipelines.size() ? pipelines[index] : VK_NULL_HANDLE;
+		}
+		size_t GetCount() const { return pipelines.size(); }
 
 		// 패스와 출력 정보 목록을 검증한 뒤 모든 Vulkan 후처리 파이프라인을 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkPipelineLayout pipelineLayout,
 			std::span<const EffectPassDefinition> passes,
 			std::span<const VulkanPostProcessPipelineTarget> targets);
-		VkPipeline Resolve(size_t index) const {
-			return index < pipelines.size() ? pipelines[index] : VK_NULL_HANDLE;
-		}
-		size_t GetCount() const { return pipelines.size(); }
 		// 다른 파이프라인 묶음과 소유권을 교환한다.
 		void Swap(VulkanPostProcessPipelines& other) noexcept;
 		// 생성한 Vulkan 파이프라인을 해제한다.

@@ -16,11 +16,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depthTexture;
 
 	public:
-		ID3D11Texture2D* ResolveBackBuffer() const { return backBuffer.Get(); }
-		ID3D11RenderTargetView* ResolveBackBufferView() const { return backBufferView.Get(); }
-		ID3D11Texture2D* ResolveSceneColor() const { return sceneColorMsaa.Get(); }
-		ID3D11RenderTargetView* ResolveSceneColorView() const { return sceneColorMsaaView.Get(); }
-		ID3D11DepthStencilView* ResolveDepthStencilView() const { return depthStencilView.Get(); }
+		ID3D11Texture2D* GetBackBuffer() const { return backBuffer.Get(); }
+		ID3D11RenderTargetView* GetBackBufferView() const { return backBufferView.Get(); }
+		ID3D11Texture2D* GetSceneColor() const { return sceneColorMsaa.Get(); }
+		ID3D11RenderTargetView* GetSceneColorView() const { return sceneColorMsaaView.Get(); }
+		ID3D11DepthStencilView* GetDepthStencilView() const { return depthStencilView.Get(); }
 
 		// 현재 출력 크기와 MSAA 설정으로 장면 및 후처리 target을 생성한다.
 		bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context, IDXGISwapChain* swapChain,

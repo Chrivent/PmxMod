@@ -33,7 +33,7 @@ namespace Chrivent {
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;
 			if (!ViewerGeometry::WriteVertices(geometryData, false,
-				{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount }))
+				{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount }))
 				return false;
 		}
 		if (!modelResources.indexBuffer.Initialize(device, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -173,7 +173,7 @@ namespace Chrivent {
 			return false;
 		const size_t vertexCount = model->geometryData.positions.size();
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
-			{ static_cast<ViewerVertex*>(vertexBuffer.ResolveMappedData()), vertexCount });
+			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
 			std::cerr << "Failed to update Vulkan vertex buffer.\n";
 		return writeSucceeded;

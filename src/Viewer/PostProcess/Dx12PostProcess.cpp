@@ -48,7 +48,7 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
 		ResetEffectResources();
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
@@ -72,7 +72,7 @@ namespace Chrivent {
 		inputDescriptorHeaps.clear();
 		if (!sourceDevice.device)
 			return false;
-		inputDescriptorHeaps.resize(ResolvePassRoutes().size() * FrameBuffering::dx12BufferCount);
+		inputDescriptorHeaps.resize(GetPassRoutes().size() * FrameBuffering::dx12BufferCount);
 		D3D12_DESCRIPTOR_HEAP_DESC description{};
 		description.NumDescriptors = PostProcessInputLayout::maxTextureCount;
 		description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -89,7 +89,7 @@ namespace Chrivent {
 			buffer.Reset();
 		if (!sourceDevice.device)
 			return false;
-		const size_t passCount = ResolvePassRoutes().size();
+		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
 			return true;
 		const size_t stride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
@@ -103,41 +103,41 @@ namespace Chrivent {
 	ID3D12Resource* Dx12PostProcess::ResolveInputResource(
 		const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const {
 		if (input.kind == PostProcessInputKind::SceneColor) {
-			format = sceneColor.ResolveFormat();
-			return sceneColor.ResolveResource();
+			format = sceneColor.GetFormat();
+			return sceneColor.GetResource();
 		}
 		if (input.kind == PostProcessInputKind::SceneDepth) {
 			format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 			return depth.Get();
 		}
 		if (input.kind == PostProcessInputKind::SceneVelocity) {
-			format = sceneVelocity.ResolveFormat();
-			return sceneVelocity.ResolveResource();
+			format = sceneVelocity.GetFormat();
+			return sceneVelocity.GetResource();
 		}
 		if (input.resourceIndex >= resources.size()) {
-			format = sceneColor.ResolveFormat();
-			return sceneColor.ResolveResource();
+			format = sceneColor.GetFormat();
+			return sceneColor.GetResource();
 		}
 		const auto& [targets] = resources[input.resourceIndex];
 		const size_t index = ResolveResourceReadIndex(input.resourceIndex);
-		format = targets[index].ResolveFormat();
-		return targets[index].ResolveResource();
+		format = targets[index].GetFormat();
+		return targets[index].GetResource();
 	}
 
 	void Dx12PostProcess::UpdateInputDescriptors(
 		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) const {
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex, passIndex);
-		if (!sourceDevice.device || heap == nullptr || passIndex >= ResolvePassRoutes().size())
+		if (!sourceDevice.device || heap == nullptr || passIndex >= GetPassRoutes().size())
 			return;
 		ID3D12Device* device = sourceDevice.device.Get();
 		const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
 		std::vector<const PostProcessPassInputRoute*> slots(PostProcessInputLayout::maxTextureCount);
-		for (const auto& input : ResolvePassRoutes()[passIndex].inputs)
+		for (const auto& input : GetPassRoutes()[passIndex].inputs)
 			slots[input.slot] = &input;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
-			DXGI_FORMAT format = sceneColor.ResolveFormat();
-			ID3D12Resource* resource = sceneColor.ResolveResource();
+			DXGI_FORMAT format = sceneColor.GetFormat();
+			ID3D12Resource* resource = sceneColor.GetResource();
 			if (slots[slot] != nullptr)
 				resource = ResolveInputResource(*slots[slot], format);
 			D3D12_SHADER_RESOURCE_VIEW_DESC description{};
@@ -156,16 +156,16 @@ namespace Chrivent {
 			return;
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		constexpr float clearColor[4]{};
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
 			auto& targets = resources[index].targets;
 			if (!NeedsHistoryInitialization(index))
 				continue;
 			for (auto& target : targets) {
-				Dx12Barrier::Transition(commandList, enhancedCommandList, target.ResolveResource(),
+				Dx12Barrier::Transition(commandList, enhancedCommandList, target.GetResource(),
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				commandList->ClearRenderTargetView(target.ResolveRtvHandle(), clearColor, 0, nullptr);
-				Dx12Barrier::Transition(commandList, enhancedCommandList, target.ResolveResource(),
+				commandList->ClearRenderTargetView(target.GetRtvHandle(), clearColor, 0, nullptr);
+				Dx12Barrier::Transition(commandList, enhancedCommandList, target.GetResource(),
 					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			}
 			MarkHistoryInitialized(index);
@@ -173,8 +173,8 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
-		const auto& passes = ResolvePasses();
-		const auto& routes = ResolvePassRoutes();
+		const auto& passes = GetPasses();
+		const auto& routes = GetPassRoutes();
 		std::vector<DXGI_FORMAT> formats;
 		formats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
@@ -183,7 +183,7 @@ namespace Chrivent {
 				const Dx12PostProcessTarget* target = ResolveOutputTarget(routes[index]);
 				if (target == nullptr)
 					return false;
-				format = target->ResolveFormat();
+				format = target->GetFormat();
 			}
 			formats.emplace_back(format);
 		}
@@ -192,7 +192,7 @@ namespace Chrivent {
 
 	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(
 		const size_t frameIndex, const size_t passIndex) const {
-		const size_t index = frameIndex % FrameBuffering::dx12BufferCount * ResolvePassRoutes().size() + passIndex;
+		const size_t index = frameIndex % FrameBuffering::dx12BufferCount * GetPassRoutes().size() + passIndex;
 		return index < inputDescriptorHeaps.size() ? inputDescriptorHeaps[index].Get() : nullptr;
 	}
 
@@ -266,10 +266,10 @@ namespace Chrivent {
 		Dx12Barrier::Transition(commandList, enhancedCommandList, depth.Get(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		if (RequiresVelocity())
-			Dx12Barrier::Transition(commandList, enhancedCommandList, sceneVelocity.ResolveResource(),
+			Dx12Barrier::Transition(commandList, enhancedCommandList, sceneVelocity.GetResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthDsvHeap->GetCPUDescriptorHandleForHeapStart();
-		const D3D12_CPU_DESCRIPTOR_HANDLE velocityHandle = sceneVelocity.ResolveRtvHandle();
+		const D3D12_CPU_DESCRIPTOR_HANDLE velocityHandle = sceneVelocity.GetRtvHandle();
 		commandList->OMSetRenderTargets(RequiresVelocity() ? 1 : 0,
 			RequiresVelocity() ? &velocityHandle : nullptr, FALSE, &dsvHandle);
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -290,7 +290,7 @@ namespace Chrivent {
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		if (RequiresVelocity())
 			Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
-				sceneVelocity.ResolveResource(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+				sceneVelocity.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		return true;
 	}
@@ -299,8 +299,8 @@ namespace Chrivent {
 		const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 		const int width, const int height, const PostProcessFrameData& frameData) {
-		ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
-		if (!HasEffects() || commandList == nullptr || !sceneColor.ResolveResource()) {
+		ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
+		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource()) {
 			return msaaColorBuffer.ResolveToBackBuffer(
 				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
 		}
@@ -320,21 +320,21 @@ namespace Chrivent {
 			? D3D12_RESOURCE_STATE_RESOLVE_DEST : D3D12_RESOURCE_STATE_COPY_DEST;
 		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
 			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.ResolveResource(),
+		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.GetResource(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, destinationState);
 		if (sourceDevice.msaaSampleCount > 1)
 			commandList->ResolveSubresource(
-				sceneColor.ResolveResource(), 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+				sceneColor.GetResource(), 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
-			commandList->CopyResource(sceneColor.ResolveResource(), msaaColor);
+			commandList->CopyResource(sceneColor.GetResource(), msaaColor);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
 			sourceState, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.ResolveResource(),
+		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.GetResource(),
 			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		BeginHistoryFrame();
 		InitializeHistories(commandList, commandContext);
-		const auto& routes = ResolvePassRoutes();
-		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.ResolveGpuAddress();
+		const auto& routes = GetPassRoutes();
+		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
@@ -346,12 +346,12 @@ namespace Chrivent {
 			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {
-				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->ResolveResource(),
+				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->GetResource(),
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-				const D3D12_CPU_DESCRIPTOR_HANDLE rtv = outputTarget->ResolveRtvHandle();
+				const D3D12_CPU_DESCRIPTOR_HANDLE rtv = outputTarget->GetRtvHandle();
 				commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 			} else {
-				const D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain.ResolveCurrentRtvHandle();
+				const D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain.GetCurrentRtvHandle();
 				commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 			}
 			int outputWidth = width;
@@ -361,16 +361,16 @@ namespace Chrivent {
 			UpdateInputDescriptors(sourceDevice, frameIndex, passIndex);
 			ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex, passIndex);
 			commandList->SetDescriptorHeaps(1, &heap);
-			commandList->SetGraphicsRootSignature(pipelines.ResolveRootSignature());
-			commandList->SetPipelineState(pipelines.ResolvePipelineState(passIndex));
+			commandList->SetGraphicsRootSignature(pipelines.GetRootSignature());
+			commandList->SetPipelineState(pipelines.TryGetPipelineState(passIndex));
 			commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);
 			commandList->SetGraphicsRootConstantBufferView(
-				1, parameterDataBuffer.ResolveGpuAddress() + parameterOffset);
+				1, parameterDataBuffer.GetGpuAddress() + parameterOffset);
 			commandList->SetGraphicsRootDescriptorTable(2, heap->GetGPUDescriptorHandleForHeapStart());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
 			if (outputTarget != nullptr)
-				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->ResolveResource(),
+				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->GetResource(),
 					D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			AdvanceHistory(route);
 		}

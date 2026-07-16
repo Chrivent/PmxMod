@@ -33,14 +33,8 @@ namespace Chrivent {
 			&resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
 			&clearValue, IID_PPV_ARGS(&depthStencil))))
 			return false;
-		sourceDevice.device->CreateDepthStencilView(depthStencil.Get(), nullptr, ResolveDsvHandle());
+		sourceDevice.device->CreateDepthStencilView(depthStencil.Get(), nullptr, GetDsvHandle());
 		return true;
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12DepthBuffer::ResolveDsvHandle() const {
-		if (!dsvHeap)
-			return {};
-		return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	}
 
 	void Dx12DepthBuffer::Reset() {

@@ -43,7 +43,7 @@ namespace Chrivent {
 		case WM_LBUTTONDOWN: {
 			const int x = GET_X_LPARAM(lParam);
 			const int y = GET_Y_LPARAM(lParam);
-			if (y >= kHeaderHeight && y < panel->ResolveTimelineBottom()) {
+			if (y >= kHeaderHeight && y < panel->CalculateTimelineBottom()) {
 				const int visibleRow = panel->firstRow + (y - kHeaderHeight) / kRowHeight;
 				if (x < kLabelWidth)
 					panel->ToggleGroup(visibleRow);
@@ -163,7 +163,7 @@ namespace Chrivent {
 			return;
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
-		const int visibleRows = std::max(1, (ResolveTimelineBottom() - kHeaderHeight) / kRowHeight);
+		const int visibleRows = std::max(1, (CalculateTimelineBottom() - kHeaderHeight) / kRowHeight);
 		SCROLLINFO vertical{};
 		vertical.cbSize = sizeof(vertical);
 		vertical.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
@@ -188,7 +188,7 @@ namespace Chrivent {
 		ShowScrollBar(timelineWindow, SB_HORZ, TRUE);
 	}
 
-	int MotionPanel::ResolveTimelineBottom() const {
+	int MotionPanel::CalculateTimelineBottom() const {
 		if (!timelineWindow)
 			return kHeaderHeight;
 		RECT client{};
@@ -240,7 +240,7 @@ namespace Chrivent {
 		RECT client{};
 		GetClientRect(timelineWindow, &client);
 		GuiDrawer::FillRectColor(deviceContext, client, RGB(26, 29, 35));
-		const int timelineBottom = ResolveTimelineBottom();
+		const int timelineBottom = CalculateTimelineBottom();
 		constexpr RECT modelHeader{0, 0, kLabelWidth, kHeaderHeight};
 		GuiDrawer::FillRectColor(deviceContext, modelHeader, RGB(57, 61, 70));
 		GuiDrawer::DrawTextLine(deviceContext, modelName.empty() ? Language::Text("motion.select_model") : modelName,

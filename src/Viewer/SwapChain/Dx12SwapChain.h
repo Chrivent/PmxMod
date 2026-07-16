@@ -22,13 +22,11 @@ namespace Chrivent {
 
 	public:
 		UINT GetFrameIndex() const { return frameIndex; }
+		ID3D12Resource* GetCurrentBackBuffer() const { return backBuffers[frameIndex].Get(); }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRtvHandle() const;
 
 		// DX12 스왑체인과 back buffer RTV를 생성한다.
 		bool Initialize(const Dx12Device& sourceDevice, HWND hwnd, int width, int height);
-		// 현재 frame index에 해당하는 back buffer를 선택한다.
-		ID3D12Resource* ResolveCurrentBackBuffer() const { return backBuffers[frameIndex].Get(); }
-		// 현재 frame index에 해당하는 back buffer RTV handle을 반환한다.
-		D3D12_CPU_DESCRIPTOR_HANDLE ResolveCurrentRtvHandle() const;
 		// 창 크기에 맞춰 스왑체인을 다시 생성한다.
 		bool Resize(const Dx12Device& sourceDevice, int width, int height);
 		// swap chain의 현재 back buffer를 화면에 표시한다.

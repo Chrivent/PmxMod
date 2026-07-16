@@ -5,19 +5,19 @@
 #include <vector>
 
 namespace Chrivent {
-	// Vulkan surface가 지원하는 스왑체인 형식과 표시 모드를 보관한다.
-	struct VulkanSwapChainSupport {
-		VkSurfaceCapabilitiesKHR capabilities{};
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
 	// Vulkan 스왑체인과 화면 image 및 image view를 관리한다.
 	class VulkanSwapChain {
+		// Vulkan surface가 지원하는 스왑체인 형식과 표시 모드를 보관한다.
+		struct Support {
+			VkSurfaceCapabilitiesKHR capabilities{};
+			std::vector<VkSurfaceFormatKHR> formats;
+			std::vector<VkPresentModeKHR> presentModes;
+		};
+
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
-		static bool QuerySupport(const VulkanDevice& sourceDevice, VulkanSwapChainSupport& support);
+		static bool QuerySupport(const VulkanDevice& sourceDevice, Support& support);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		// 사용할 present mode를 선택한다.

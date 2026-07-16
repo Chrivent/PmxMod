@@ -20,7 +20,7 @@ namespace Chrivent {
 		// DX12 shader model을 로그용 문자열로 변환한다.
 		static const char* ResolveShaderModelName(D3D_SHADER_MODEL shaderModel);
 		// 생성된 디바이스가 지원하는 기능과 한도를 기록한다.
-		void ResolveCapabilities(const DXGI_ADAPTER_DESC1& description);
+		void UpdateCapabilities(const DXGI_ADAPTER_DESC1& description);
 
 	public:
 		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;

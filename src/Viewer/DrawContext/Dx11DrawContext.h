@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Device/Dx11Device.h"
 #include "Viewer/Pipeline/Dx11Pipeline.h"
 
 #include <d3d11.h>
@@ -14,20 +15,18 @@ namespace Chrivent {
 
 	// D3D11 Drawer와 Instance에 장면 그리기에 필요한 API 리소스만 노출한다.
 	class Dx11DrawContext {
-		const Microsoft::WRL::ComPtr<ID3D11Device>& device;
-		const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& deviceContext;
+		const Dx11Device& device;
 		const Dx11Pipeline& pipeline;
 		const Dx11DummyTexture& dummyTexture;
 
 	public:
-		Dx11DrawContext(const Microsoft::WRL::ComPtr<ID3D11Device>& sourceDevice,
-			const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& sourceDeviceContext,
-			const Dx11Pipeline& sourcePipeline, const Dx11DummyTexture& sourceDummyTexture)
-			: device(sourceDevice), deviceContext(sourceDeviceContext), pipeline(sourcePipeline),
+		Dx11DrawContext(const Dx11Device& sourceDevice, const Dx11Pipeline& sourcePipeline,
+			const Dx11DummyTexture& sourceDummyTexture)
+			: device(sourceDevice), pipeline(sourcePipeline),
 			dummyTexture(sourceDummyTexture) {}
 
-		ID3D11Device* GetDevice() const { return device.Get(); }
-		ID3D11DeviceContext* GetDeviceContext() const { return deviceContext.Get(); }
+		ID3D11Device* GetDevice() const { return device.GetDevice(); }
+		ID3D11DeviceContext* GetDeviceContext() const { return device.GetContext(); }
 		const Dx11ShaderSet& GetShaders() const { return pipeline.GetShaders(); }
 		const Dx11PipelineStates& GetPipelineStates() const { return pipeline.GetStates(); }
 		const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }

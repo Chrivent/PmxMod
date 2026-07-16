@@ -15,8 +15,8 @@ namespace Chrivent {
 	}
 
 	void Dx12Viewer::ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const {
-		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = msaaColorBuffer.ResolveRtvHandle();
-		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthBuffer.ResolveDsvHandle();
+		const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = msaaColorBuffer.GetRtvHandle();
+		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthBuffer.GetDsvHandle();
 		commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -92,8 +92,8 @@ namespace Chrivent {
 		if (!commandContext.BeginFrame(device, frameIndex))
 			return FrameBeginResult::Failed;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
-		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
+		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
+		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return FrameBeginResult::Failed;
 		PrepareBackBufferForRendering(commandList, backBuffer);
@@ -110,8 +110,8 @@ namespace Chrivent {
 			return FrameEndResult::Failed;
 		drawContext.EndFrame();
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
-		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
+		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
+		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return FrameEndResult::Failed;
 		bool drawSucceeded;

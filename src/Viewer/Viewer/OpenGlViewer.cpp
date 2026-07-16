@@ -81,6 +81,7 @@ namespace Chrivent {
 		if (dummyColorTexture == 0)
 			return false;
 		drawContext.SetDummyColorTexture(dummyColorTexture);
+		glViewport(0, 0, screenWidth, screenHeight);
 		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
@@ -90,7 +91,7 @@ namespace Chrivent {
 	}
 
 	FrameBeginResult OpenGlViewer::BeginFrameCore() {
-		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.ResolveSceneFramebuffer());
+		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.GetSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		return FrameBeginResult::Ready;

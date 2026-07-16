@@ -22,7 +22,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawModel() {
 		if (resources.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
+		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
 			return;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
@@ -40,7 +40,7 @@ namespace Chrivent {
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.GetGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const Dx12ModelMaterial& material = resources.materials[materialId];
 			const auto& mat = material.material;
@@ -57,7 +57,7 @@ namespace Chrivent {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
 				continue;
 			}
-			commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
+			commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.GetGpuAddress());
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
@@ -67,7 +67,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawEdge() {
 		if (resources.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
+		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
 			return;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
@@ -96,8 +96,8 @@ namespace Chrivent {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
 				continue;
 			}
-			commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
-			commandList->SetGraphicsRootConstantBufferView(1, edgePixelConstantBuffer.ResolveGpuAddress());
+			commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.GetGpuAddress());
+			commandList->SetGraphicsRootConstantBufferView(1, edgePixelConstantBuffer.GetGpuAddress());
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
 	}
@@ -105,7 +105,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawGroundShadow() {
 		if (resources.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
+		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
 			return;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
@@ -129,8 +129,8 @@ namespace Chrivent {
 		commandList->OMSetStencilRef(0x01);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
-		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.ResolveGpuAddress());
-		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.GetGpuAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.GetGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& mat = resources.materials[materialId].material;
 			if (!ShouldDrawGroundShadowMaterial(mat))
@@ -142,7 +142,7 @@ namespace Chrivent {
 	void Dx12Drawer::DrawSceneInputs() {
 		if (resources.indexCount == 0)
 			return;
-		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
+		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
 			return;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
@@ -164,7 +164,7 @@ namespace Chrivent {
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
 		commandList->SetGraphicsRootConstantBufferView(
-			0, vertexConstantBuffer.ResolveGpuAddress() + constantOffset);
+			0, vertexConstantBuffer.GetGpuAddress() + constantOffset);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { resources.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
@@ -185,7 +185,7 @@ namespace Chrivent {
 			else
 				drawContext.BindDepthOnlyPipeline(mat.bothFace);
 			commandList->SetGraphicsRootConstantBufferView(
-				1, pixelConstantBuffer.ResolveGpuAddress() + sceneSurfaceConstantOffset);
+				1, pixelConstantBuffer.GetGpuAddress() + sceneSurfaceConstantOffset);
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);

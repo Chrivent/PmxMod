@@ -23,7 +23,7 @@ namespace Chrivent {
         Dx11RenderTargets renderTargets;
 		Dx11Pipeline pipeline;
         Dx11DummyTexture dummyTexture;
-		Dx11DrawContext drawContext{ device.GetDeviceHandle(), device.GetContextHandle(), pipeline, dummyTexture };
+		Dx11DrawContext drawContext{ device, pipeline, dummyTexture };
 
         // 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
         bool CreateDummyResources();
@@ -55,7 +55,7 @@ namespace Chrivent {
         bool WaitIdle() override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
         Dx11Texture LoadTexture(const std::filesystem::path& texturePath) {
-            return textureCache.Load(device.ResolveDevice(), texturePath);
+			return textureCache.Load(device.GetDevice(), texturePath);
         }
     };
 }

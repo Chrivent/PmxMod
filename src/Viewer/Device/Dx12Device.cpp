@@ -63,7 +63,7 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx12Device::ResolveCapabilities(const DXGI_ADAPTER_DESC1& description) {
+	void Dx12Device::UpdateCapabilities(const DXGI_ADAPTER_DESC1& description) {
 		constexpr D3D_FEATURE_LEVEL requestedFeatureLevels[] = {
 			D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 			D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0
@@ -132,7 +132,7 @@ namespace Chrivent {
 		DXGI_ADAPTER_DESC1 description{};
 		msaaSampleCount = ChooseMsaaSampleCount(device.Get());
 		if (SUCCEEDED(adapter->GetDesc1(&description))) {
-			ResolveCapabilities(description);
+			UpdateCapabilities(description);
 			capabilities.Print();
 		}
 		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};

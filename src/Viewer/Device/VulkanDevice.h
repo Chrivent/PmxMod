@@ -49,7 +49,7 @@ namespace Chrivent {
 		// Vulkan 버전 정수를 로그용 문자열로 변환한다.
 		static std::string ResolveVersionName(uint32_t version);
 		// 선택한 물리 디바이스의 지원 기능과 한도를 기록한다.
-		void ResolveCapabilities();
+		void UpdateCapabilities();
 		// 생성한 Vulkan 디바이스 전체 수명주기를 종료한다.
 		void Shutdown();
 

@@ -6,55 +6,57 @@
 #include <vector>
 
 namespace Chrivent {
-	enum class PostProcessInputKind {
-		SceneColor,
-		SceneDepth,
-		SceneVelocity,
-		Resource
-	};
-
-	enum class PostProcessOutputKind {
-		Present,
-		Resource
-	};
-
-	// 효과 리소스 하나의 수명과 형식 및 실제 출력 크기를 나타낸다.
-	struct PostProcessResourcePlan {
-		EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
-		EffectTextureFormat format = EffectTextureFormat::Rgba16Float;
-		EffectPassResolution resolution = EffectPassResolution::Full;
-		uint32_t width = 0;
-		uint32_t height = 0;
-	};
-
-	// 패스의 texture 슬롯이 참조할 장면 또는 효과 리소스를 나타낸다.
-	struct PostProcessPassInputRoute {
-		uint32_t slot = 0;
-		PostProcessInputKind kind = PostProcessInputKind::SceneColor;
-		size_t resourceIndex = 0;
-	};
-
-	// 한 효과가 b1 상수 버퍼로 전달할 스칼라 파라미터 값을 보관한다.
-	struct PostProcessParameterData {
-		float values[PostProcessInputLayout::maxParameterCount]{};
-	};
-
-	// 후처리 패스 하나의 입력 경로와 출력 대상을 나타낸다.
-	struct PostProcessPassRoute {
-		std::vector<PostProcessPassInputRoute> inputs;
-		PostProcessParameterData parameters;
-		PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
-		size_t outputResourceIndex = 0;
-	};
-	
-	// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
-	struct ResourceHistoryState {
-		size_t readIndex = 0;
-		bool initialized = false;
-	};
-
 	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
+	protected:
+		enum class PostProcessInputKind {
+			SceneColor,
+			SceneDepth,
+			SceneVelocity,
+			Resource
+		};
+
+		enum class PostProcessOutputKind {
+			Present,
+			Resource
+		};
+
+		// 효과 리소스 하나의 수명과 형식 및 실제 출력 크기를 나타낸다.
+		struct PostProcessResourcePlan {
+			EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
+			EffectTextureFormat format = EffectTextureFormat::Rgba16Float;
+			EffectPassResolution resolution = EffectPassResolution::Full;
+			uint32_t width = 0;
+			uint32_t height = 0;
+		};
+
+		// 패스의 texture 슬롯이 참조할 장면 또는 효과 리소스를 나타낸다.
+		struct PostProcessPassInputRoute {
+			uint32_t slot = 0;
+			PostProcessInputKind kind = PostProcessInputKind::SceneColor;
+			size_t resourceIndex = 0;
+		};
+
+		// 한 효과가 b1 상수 버퍼로 전달할 스칼라 파라미터 값을 보관한다.
+		struct PostProcessParameterData {
+			float values[PostProcessInputLayout::maxParameterCount]{};
+		};
+
+		// 후처리 패스 하나의 입력 경로와 출력 대상을 나타낸다.
+		struct PostProcessPassRoute {
+			std::vector<PostProcessPassInputRoute> inputs;
+			PostProcessParameterData parameters;
+			PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
+			size_t outputResourceIndex = 0;
+		};
+
+	private:
+		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
+		struct ResourceHistoryState {
+			size_t readIndex = 0;
+			bool initialized = false;
+		};
+
 		std::vector<EffectPassDefinition> passDefinitions;
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
@@ -75,6 +77,10 @@ namespace Chrivent {
 
 	protected:
 		PostProcess() = default;
+		
+		const std::vector<EffectPassDefinition>& GetPasses() const { return passDefinitions; }
+		const std::vector<PostProcessPassRoute>& GetPassRoutes() const { return passRoutes; }
+		const std::vector<PostProcessResourcePlan>& GetResourcePlans() const { return resourcePlans; }
 
 		// 리소스 정의에 대응하는 실제 한 축의 해상도를 계산한다.
 		static int ResolveResourceExtent(int fullExtent, const PostProcessResourcePlan& resource, bool width);
@@ -94,11 +100,6 @@ namespace Chrivent {
 		void BeginHistoryFrame();
 		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
 		void SwapExecutionPlan(PostProcess& other) noexcept;
-
-		const std::vector<EffectPassDefinition>& ResolvePasses() const { return passDefinitions; }
-		const std::vector<PostProcessPassRoute>& ResolvePassRoutes() const { return passRoutes; }
-		const std::vector<PostProcessResourcePlan>& ResolveResourcePlans() const { return resourcePlans; }
-
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.

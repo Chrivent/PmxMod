@@ -10,15 +10,15 @@
 namespace Chrivent {
 	struct PostProcessFrameData;
 
-	// D3D11 후처리 리소스의 ping-pong texture와 view를 보관한다.
-	struct Dx11PostProcessResource {
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> textures[2];
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetViews[2];
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceViews[2];
-	};
-
 	// 공통 실행 계획을 D3D11 렌더 타깃과 셰이더 패스로 실행한다.
 	class Dx11PostProcess : public PostProcess {
+		// D3D11 후처리 리소스의 ping-pong texture와 view를 보관한다.
+		struct Resource {
+			Microsoft::WRL::ComPtr<ID3D11Texture2D> textures[2];
+			Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetViews[2];
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shaderResourceViews[2];
+		};
+
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> sceneColor;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorView;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth;
@@ -29,7 +29,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> velocityView;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> frameDataBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> parameterDataBuffer;
-		std::vector<Dx11PostProcessResource> resources;
+		std::vector<Resource> resources;
 		std::vector<Dx11PostProcessShader> postProcessShaders;
 		int targetWidth = 0;
 		int targetHeight = 0;

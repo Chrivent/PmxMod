@@ -206,7 +206,7 @@ namespace Chrivent {
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = instance;
 		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = GuiTheme::ResolveBackgroundBrush();
+		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
 		wc.lpszClassName = L"PmxModPlaybackPanel";
 		RegisterClassExW(&wc);
 		panelWindow = CreateWindowExW(

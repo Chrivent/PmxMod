@@ -81,7 +81,7 @@ namespace Chrivent {
 		}
 		queueFamilies = FindQueueFamilies(physicalDevice);
 		msaaSampleCount = ChooseMsaaSampleCount(physicalDevice);
-		ResolveCapabilities();
+		UpdateCapabilities();
 		capabilities.Print();
 		return true;
 	}
@@ -269,7 +269,7 @@ namespace Chrivent {
 			std::to_string(VK_API_VERSION_PATCH(version));
 	}
 
-	void VulkanDevice::ResolveCapabilities() {
+	void VulkanDevice::UpdateCapabilities() {
 		VkPhysicalDeviceVulkan12Features vulkan12Features{};
 		vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 		VkPhysicalDeviceVulkan13Features vulkan13Features{};

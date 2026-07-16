@@ -22,14 +22,14 @@ namespace Chrivent {
 		Dx12Buffer(const Dx12Buffer&) = delete;
 		Dx12Buffer& operator=(const Dx12Buffer&) = delete;
 
-		// DX12 buffer resource가 생성되어 있는지 확인한다.
 		bool IsInitialized() const { return resource != nullptr; }
-		void* ResolveMappedData() const { return mappedData; }
+		void* GetMappedData() const { return mappedData; }
+		D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress() const {
+			return resource ? resource->GetGPUVirtualAddress() : 0;
+		}
 
 		// DX12 constant buffer 규칙에 맞게 256바이트 단위로 정렬한다.
 		static size_t AlignConstantBufferSize(size_t size);
-		// DX12 resource의 GPU virtual address를 해석해 반환한다.
-		D3D12_GPU_VIRTUAL_ADDRESS ResolveGpuAddress() const;
 		// CPU에서 직접 갱신할 수 있는 upload buffer를 생성한다.
 		bool InitializeUpload(const Dx12Device& sourceDevice, size_t size);
 		// upload buffer의 지정한 byte offset에 데이터를 복사한다.

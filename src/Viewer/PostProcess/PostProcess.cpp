@@ -9,11 +9,11 @@ namespace Chrivent {
 		return 1 - currentIndex;
 	}
 
-	const std::vector<ResourceHistoryState>& PostProcess::ResolveHistoryStates() const {
+	const std::vector<PostProcess::ResourceHistoryState>& PostProcess::ResolveHistoryStates() const {
 		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
 	}
 
-	std::vector<ResourceHistoryState>& PostProcess::ResolveHistoryStates() {
+	std::vector<PostProcess::ResourceHistoryState>& PostProcess::ResolveHistoryStates() {
 		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
 	}
 

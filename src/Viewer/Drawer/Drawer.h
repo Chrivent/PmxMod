@@ -8,16 +8,16 @@ namespace Chrivent {
 	struct Material;
 	class Viewer;
 
-	// 모델 셰이더에 전달할 기본, 툰, 스피어 텍스처 사용 방식을 보관한다.
-	struct MaterialTextureModes {
-		int base = 0;
-		int toon = 0;
-		int sphere = 0;
-	};
-
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
 	protected:
+		// 모델 셰이더에 전달할 기본, 툰, 스피어 텍스처 사용 방식을 보관한다.
+		struct MaterialTextureModes {
+			int base = 0;
+			int toon = 0;
+			int sphere = 0;
+		};
+
 		Viewer& viewer;
 
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 초기화한다.

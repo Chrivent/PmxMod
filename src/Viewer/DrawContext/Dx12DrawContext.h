@@ -23,8 +23,8 @@ namespace Chrivent {
 		void BeginFrame(UINT sourceFrameIndex);
 		// 현재 프레임의 Drawer 명령 기록을 막는다.
 		void EndFrame();
-		// 현재 프레임에서 기록 가능한 명령 목록을 반환한다.
-		ID3D12GraphicsCommandList* ResolveCommandList() const;
+		// 현재 프레임에서 기록 가능한 명령 목록이 있으면 반환한다.
+		ID3D12GraphicsCommandList* TryGetCommandList() const;
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace) const;
 		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.

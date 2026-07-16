@@ -52,8 +52,8 @@ namespace Chrivent {
 
 		// 카메라 VMD 파일을 선택하는 열기 대화상자를 표시한다.
 		void ShowOpenCameraMotionDialog();
-		// 현재 카메라 모션 파일 이름을 목록 표시용 문자열로 반환한다.
-		std::wstring ResolveCameraMotionText() const;
+		// 현재 카메라 모션 파일 이름으로 목록 표시용 문자열을 만든다.
+		std::wstring BuildCameraMotionText() const;
 		// 현재 셰이더 이름 목록을 리스트 컨트롤에 반영한다.
 		void RefreshShaderList();
 		// 카메라 행과 셰이더 행의 선택/체크 상태를 리스트뷰에 반영한다.

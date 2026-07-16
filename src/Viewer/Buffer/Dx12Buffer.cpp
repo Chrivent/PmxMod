@@ -7,12 +7,6 @@ namespace Chrivent {
 		return blockCount * alignment;
 	}
 
-	D3D12_GPU_VIRTUAL_ADDRESS Dx12Buffer::ResolveGpuAddress() const {
-		if (!resource)
-			return 0;
-		return resource->GetGPUVirtualAddress();
-	}
-
 	bool Dx12Buffer::InitializeUpload(const Dx12Device& sourceDevice, const size_t size) {
 		Reset();
 		if (!sourceDevice.device || size == 0)

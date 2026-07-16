@@ -79,13 +79,13 @@ namespace Chrivent {
 		if (!syncObject.WaitForImage(currentImageIndex))
 			return FrameBeginResult::Failed;
 		auto& commandBuffer = commandContext.commandBuffer;
-		if (vkResetCommandBuffer(commandBuffer.ResolveCommandBuffer(currentImageIndex), 0) != VK_SUCCESS)
+		if (vkResetCommandBuffer(commandBuffer.TryGetCommandBuffer(currentImageIndex), 0) != VK_SUCCESS)
 			return FrameBeginResult::Failed;
 		const VkImage resolveImage = postProcess.HasEffects()
-			? postProcess.ResolveSceneImage(currentImageIndex)
+			? postProcess.TryGetSceneImage(currentImageIndex)
 			: swapChain.images[currentImageIndex];
 		const VkImageView resolveImageView = postProcess.HasEffects()
-			? postProcess.ResolveSceneImageView(currentImageIndex)
+			? postProcess.TryGetSceneImageView(currentImageIndex)
 			: swapChain.imageViews[currentImageIndex];
 		if (!commandBuffer.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
@@ -114,7 +114,7 @@ namespace Chrivent {
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded)
 			return FrameEndResult::Failed;
-		const VkCommandBuffer commandBuffer = commandContext.commandBuffer.ResolveCommandBuffer(currentImageIndex);
+		const VkCommandBuffer commandBuffer = commandContext.commandBuffer.TryGetCommandBuffer(currentImageIndex);
 		if (!syncObject.Submit(device.graphicsQueue, commandBuffer, currentImageIndex)) {
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
 			return FrameEndResult::Failed;

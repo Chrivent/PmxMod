@@ -44,7 +44,7 @@ namespace Chrivent {
 		return CreateRenderTargetViews(sourceDevice);
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::ResolveCurrentRtvHandle() const {
+	D3D12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::GetCurrentRtvHandle() const {
 		if (!rtvHeap)
 			return {};
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeap->GetCPUDescriptorHandleForHeapStart();

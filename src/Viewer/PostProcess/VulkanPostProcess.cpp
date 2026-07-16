@@ -91,7 +91,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::CreateEffectResources(const VulkanDevice& sourceDevice) {
-		const auto& plans = ResolveResourcePlans();
+		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const PostProcessResourcePlan& plan = plans[resourceIndex];
@@ -121,7 +121,7 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
 		parameterDataBuffers.clear();
-		const size_t bufferCount = swapChainImageCount * ResolvePassRoutes().size();
+		const size_t bufferCount = swapChainImageCount * GetPassRoutes().size();
 		for (size_t index = 0; index < bufferCount; index++) {
 			auto buffer = std::make_unique<VulkanBuffer>();
 			if (!buffer->Initialize(sourceDevice, sizeof(PostProcessParameterData),
@@ -136,40 +136,40 @@ namespace Chrivent {
 	VkImageView VulkanPostProcess::ResolveInputImageView(
 		const PostProcessPassInputRoute& input, const uint32_t imageIndex) const {
 		if (input.kind == PostProcessInputKind::SceneColor)
-			return sceneTarget.ResolveImageView(imageIndex);
+			return sceneTarget.TryGetImageView(imageIndex);
 		if (input.kind == PostProcessInputKind::SceneDepth)
 			return imageIndex < depthImageViews.size() ? depthImageViews[imageIndex] : VK_NULL_HANDLE;
 		if (input.kind == PostProcessInputKind::SceneVelocity)
-			return velocityTarget.ResolveImageView(imageIndex);
+			return velocityTarget.TryGetImageView(imageIndex);
 		if (input.resourceIndex >= resources.size())
 			return VK_NULL_HANDLE;
 		const VulkanPostProcessTarget& resource = resources[input.resourceIndex];
 		const size_t index = ResolveResourceReadIndex(input.resourceIndex, imageIndex);
-		return resource.ResolveImageView(index);
+		return resource.TryGetImageView(index);
 	}
 
 	bool VulkanPostProcess::UpdateTextureDescriptorSet(
 		const uint32_t imageIndex, const size_t passIndex) const {
-		const auto& routes = ResolvePassRoutes();
+		const auto& routes = GetPassRoutes();
 		if (passIndex >= routes.size())
 			return false;
 		std::vector imageViews(
-			PostProcessInputLayout::maxTextureCount, sceneTarget.ResolveImageView(imageIndex));
+			PostProcessInputLayout::maxTextureCount, sceneTarget.TryGetImageView(imageIndex));
 		for (const auto& input : routes[passIndex].inputs)
 			imageViews[input.slot] = ResolveInputImageView(input, imageIndex);
 		return descriptors.UpdateTextures(imageIndex, passIndex, imageViews);
 	}
 
 	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
-		const auto& passes = ResolvePasses();
-		const auto& routes = ResolvePassRoutes();
+		const auto& passes = GetPasses();
+		const auto& routes = GetPassRoutes();
 		std::vector<VulkanPostProcessPipelineTarget> targets;
 		targets.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
 			VkExtent2D extent = targetExtent;
 			VkFormat format = swapChainFormat;
 			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
-				const PostProcessResourcePlan& resource = ResolveResourcePlans()[routes[index].outputResourceIndex];
+				const PostProcessResourcePlan& resource = GetResourcePlans()[routes[index].outputResourceIndex];
 				extent = ResolveResourceExtent(resource);
 				format = ResolveResourceFormat(resource);
 			}
@@ -191,12 +191,12 @@ namespace Chrivent {
 		if (route.outputResourceIndex >= resources.size())
 			return false;
 		VulkanPostProcessTarget& resource = resources[route.outputResourceIndex];
-		const PostProcessResourcePlan& plan = ResolveResourcePlans()[route.outputResourceIndex];
+		const PostProcessResourcePlan& plan = GetResourcePlans()[route.outputResourceIndex];
 		const size_t index = ResolveResourceWriteIndex(route.outputResourceIndex, imageIndex);
 		if (index >= resource.GetImageCount())
 			return false;
-		image = resource.ResolveImage(index);
-		imageView = resource.ResolveImageView(index);
+		image = resource.TryGetImage(index);
+		imageView = resource.TryGetImageView(index);
 		extent = ResolveResourceExtent(plan);
 		initialized = plan.lifetime == EffectResourceLifetime::History
 			? !NeedsHistoryInitialization(route.outputResourceIndex) : resource.IsInitialized(index);
@@ -251,7 +251,7 @@ namespace Chrivent {
 			&& CreateEffectResources(sourceDevice)
 			&& CreateFrameDataBuffers(sourceDevice)
 			&& CreateParameterDataBuffers(sourceDevice)
-			&& descriptors.Initialize(device, swapChainImageCount, ResolvePassRoutes().size(),
+			&& descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
 				frameDataBuffers, parameterDataBuffers,
 				sizeof(PostProcessFrameData), sizeof(PostProcessParameterData))
 			&& CreatePipelines(sourceDevice);
@@ -274,9 +274,9 @@ namespace Chrivent {
 			return false;
 		constexpr bool depthHasStencil = false;
 		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
-			sceneTarget.ResolveImage(imageIndex), depthImages[imageIndex], depthImageViews[imageIndex],
-			RequiresVelocity() ? velocityTarget.ResolveImage(imageIndex) : VK_NULL_HANDLE,
-			RequiresVelocity() ? velocityTarget.ResolveImageView(imageIndex) : VK_NULL_HANDLE,
+			sceneTarget.TryGetImage(imageIndex), depthImages[imageIndex], depthImageViews[imageIndex],
+			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE,
+			RequiresVelocity() ? velocityTarget.TryGetImageView(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, geometryPipeline, extent);
 		if (began && RequiresVelocity())
 			velocityTarget.MarkInitialized(imageIndex);
@@ -289,13 +289,13 @@ namespace Chrivent {
 			return false;
 		constexpr bool depthHasStencil = false;
 		return commandBuffers.EndPostProcessSceneInputPass(imageIndex, depthImages[imageIndex],
-			RequiresVelocity() ? velocityTarget.ResolveImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil);
+			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil);
 	}
 
 	bool VulkanPostProcess::EndRecord(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView, const VkExtent2D extent,
 		const PostProcessFrameData& frameData, const bool sceneRenderingEnded) {
-		const auto& routes = ResolvePassRoutes();
+		const auto& routes = GetPassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
 			|| imageIndex >= frameDataBuffers.size()
 			|| parameterDataBuffers.size() != swapChainImageCount * routes.size()
@@ -304,7 +304,7 @@ namespace Chrivent {
 			return false;
 		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData)))
 			return false;
-		const VkCommandBuffer commandBuffer = commandBuffers.ResolveCommandBuffer(imageIndex);
+		const VkCommandBuffer commandBuffer = commandBuffers.TryGetCommandBuffer(imageIndex);
 		if (commandBuffer == VK_NULL_HANDLE)
 			return false;
 		const VkPipelineLayout pipelineLayout = descriptors.GetPipelineLayout();
@@ -314,7 +314,7 @@ namespace Chrivent {
 		BeginHistoryFrame();
 		if (!sceneRenderingEnded) {
 			vkCmdEndRendering(commandBuffer);
-			VulkanCommandBuffer::TransitionImage(commandBuffer, sceneTarget.ResolveImage(imageIndex),
+			VulkanCommandBuffer::TransitionImage(commandBuffer, sceneTarget.TryGetImage(imageIndex),
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
@@ -328,7 +328,7 @@ namespace Chrivent {
 			.layerCount = 1
 		};
 		constexpr VkClearColorValue clearColor{};
-		const auto& resourcePlans = ResolveResourcePlans();
+		const auto& resourcePlans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < resourcePlans.size(); index++) {
 			const VulkanPostProcessTarget& resource = resources[index];
 			if (!NeedsHistoryInitialization(index))
@@ -349,7 +349,7 @@ namespace Chrivent {
 			MarkHistoryInitialized(index);
 		}
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
-			if (pipelines.Resolve(passIndex) == VK_NULL_HANDLE) {
+			if (pipelines.TryGetPipeline(passIndex) == VK_NULL_HANDLE) {
 				DiscardHistoryFrame();
 				return false;
 			}
@@ -395,7 +395,7 @@ namespace Chrivent {
 			};
 			const VkDescriptorSet descriptorSet = descriptors.GetTextureDescriptorSet(imageIndex, passIndex);
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.Resolve(passIndex));
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.TryGetPipeline(passIndex));
 			const VkDescriptorSet parameterSet = descriptors.GetParameterDataDescriptorSet(imageIndex, passIndex);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayout, 1, 1, &parameterSet, 0, nullptr);

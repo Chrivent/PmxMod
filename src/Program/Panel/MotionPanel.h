@@ -91,8 +91,8 @@ namespace Chrivent {
 		void UpdateVerticalScrollBar() const;
 		// 마지막 프레임과 현재 프레임에 맞춰 가로 스크롤바 범위를 갱신한다.
 		void UpdateHorizontalScrollBar() const;
-		// 고정 파형 트랙을 제외한 타임라인 행 영역의 아래쪽 좌표를 반환한다.
-		int ResolveTimelineBottom() const;
+		// 고정 파형 트랙을 제외한 타임라인 행 영역의 아래쪽 좌표를 계산한다.
+		int CalculateTimelineBottom() const;
 		// 펼쳐진 곡선 행을 포함해 현재 모드에서 표시할 전체 행 수를 계산한다.
 		int CalculateVisibleRowCount() const;
 		// 현재 가로 프레임 범위에 맞춰 하단 단일 채널 오디오 파형을 그린다.

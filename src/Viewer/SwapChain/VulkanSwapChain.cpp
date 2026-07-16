@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace Chrivent {
-	bool VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice, VulkanSwapChainSupport& support) {
+	bool VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice, Support& support) {
 		support = {};
 		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
 			sourceDevice.physicalDevice, sourceDevice.surface, &support.capabilities) != VK_SUCCESS)
@@ -100,7 +100,7 @@ namespace Chrivent {
 
 	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
 		device = sourceDevice.device;
-		VulkanSwapChainSupport support;
+		Support support;
 		if (!QuerySupport(sourceDevice, support)) {
 			std::cerr << "Failed to query Vulkan swapchain surface support.\n";
 			return false;

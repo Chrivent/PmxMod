@@ -10,24 +10,24 @@ namespace Chrivent {
 	class VulkanDescriptorSet;
 	class VulkanPipeline;
 
-	// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
-	struct VulkanBindStateCache {
-		VkPipeline pipeline = VK_NULL_HANDLE;
-		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
-		uint32_t vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		uint32_t pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
-		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-	};
-
 	// Vulkan Drawer에 현재 command buffer와 장면 pipeline/descriptor 바인딩을 제공한다.
 	class VulkanDrawContext {
+		// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
+		struct BindStateCache {
+			VkPipeline pipeline = VK_NULL_HANDLE;
+			VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
+			uint32_t vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
+			VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
+			uint32_t pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
+			VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+		};
+
 		VulkanPipeline& pipeline;
 		VulkanCommandContext& commandContext;
 		uint32_t currentImageIndex = 0;
 		bool frameReady = false;
 		size_t frameIndex = 0;
-		VulkanBindStateCache bindStateCache;
+		BindStateCache bindStateCache;
 
 	public:
 		VulkanDrawContext(VulkanPipeline& sourcePipeline, VulkanCommandContext& sourceCommandContext);

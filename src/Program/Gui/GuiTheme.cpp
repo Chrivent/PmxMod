@@ -50,7 +50,7 @@ namespace Chrivent {
 		}
 	}
 
-	HBRUSH GuiTheme::ResolveBackgroundBrush() {
+	HBRUSH GuiTheme::GetBackgroundBrush() {
 		static const HBRUSH brush = CreateSolidBrush(backgroundColor);
 		return brush;
 	}
@@ -94,6 +94,6 @@ namespace Chrivent {
 		}
 		SetBkColor(deviceContext, backgroundColor);
 		SetBkMode(deviceContext, TRANSPARENT);
-		return reinterpret_cast<LRESULT>(ResolveBackgroundBrush());
+		return reinterpret_cast<LRESULT>(GetBackgroundBrush());
 	}
 }

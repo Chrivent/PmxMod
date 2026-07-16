@@ -13,21 +13,19 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 
 		// 지정한 sample count를 색상과 depth 형식이 함께 지원하는지 확인한다.
-		bool ResolveMsaaQuality(UINT sampleCount, UINT& quality) const;
+		bool TryGetMsaaQuality(UINT sampleCount, UINT& quality) const;
 		// 현재 device가 지원하는 최대 MSAA sample count를 반환한다.
 		UINT ResolveMaximumMsaaSampleCount() const;
 
 	public:
-		const Microsoft::WRL::ComPtr<ID3D11Device>& GetDeviceHandle() const { return device; }
-		const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& GetContextHandle() const { return context; }
-		ID3D11Device* ResolveDevice() const { return device.Get(); }
-		ID3D11DeviceContext* ResolveContext() const { return context.Get(); }
-		IDXGISwapChain* ResolveSwapChain() const { return swapChain.Get(); }
+		ID3D11Device* GetDevice() const { return device.Get(); }
+		ID3D11DeviceContext* GetContext() const { return context.Get(); }
+		IDXGISwapChain* GetSwapChain() const { return swapChain.Get(); }
 
 		// 고성능 DXGI 어댑터를 선택해 D3D11 device와 immediate context를 생성한다.
 		bool Initialize(GraphicsCapabilities& capabilities);
 		// 현재 device의 4→2→1 정책으로 MSAA 설정과 capability 값을 확정한다.
-		void ResolveMsaaSettings(UINT& sampleCount, UINT& quality,
+		void SelectMsaaSettings(UINT& sampleCount, UINT& quality,
 			GraphicsCapabilities& capabilities) const;
 		// 지정한 Win32 창과 MSAA 설정으로 swapchain을 생성한다.
 		bool CreateSwapChain(HWND__* window, UINT sampleCount, UINT sampleQuality);

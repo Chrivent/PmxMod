@@ -17,9 +17,14 @@ namespace Chrivent {
 	
 	// 공통 실행 계획을 D3D12 파이프라인과 명령 목록으로 실행한다.
 	class Dx12PostProcess : public PostProcess {
+		// D3D12 후처리 리소스의 ping-pong 출력 타깃을 보관한다.
+		struct Resource {
+			Dx12PostProcessTarget targets[2];
+		};
+
 		Dx12PostProcessTarget sceneColor;
 		Dx12PostProcessTarget sceneVelocity;
-		std::vector<Dx12PostProcessResource> resources;
+		std::vector<Resource> resources;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;

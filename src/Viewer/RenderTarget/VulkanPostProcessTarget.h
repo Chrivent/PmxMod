@@ -22,6 +22,7 @@ namespace Chrivent {
 	public:
 		VulkanPostProcessTarget() = default;
 		~VulkanPostProcessTarget();
+		
 		VulkanPostProcessTarget(const VulkanPostProcessTarget&) = delete;
 		VulkanPostProcessTarget& operator=(const VulkanPostProcessTarget&) = delete;
 		VulkanPostProcessTarget(VulkanPostProcessTarget&& other) noexcept;
@@ -29,13 +30,13 @@ namespace Chrivent {
 
 		size_t GetImageCount() const { return images.size(); }
 		const std::vector<VkImage>& GetImages() const { return images; }
-		VkImage ResolveImage(size_t index) const {
+		VkImage TryGetImage(const size_t index) const {
 			return index < images.size() ? images[index] : VK_NULL_HANDLE;
 		}
-		VkImageView ResolveImageView(size_t index) const {
+		VkImageView TryGetImageView(const size_t index) const {
 			return index < imageViews.size() ? imageViews[index] : VK_NULL_HANDLE;
 		}
-		bool IsInitialized(size_t index) const {
+		bool IsInitialized(const size_t index) const {
 			return index < initialized.size() && initialized[index];
 		}
 

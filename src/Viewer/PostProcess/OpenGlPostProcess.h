@@ -9,14 +9,14 @@
 namespace Chrivent {
 	struct PostProcessFrameData;
 
-	// OpenGL 후처리 리소스의 ping-pong framebuffer와 texture를 보관한다.
-	struct OpenGlPostProcessResource {
-		GLuint framebuffers[2]{};
-		GLuint textures[2]{};
-	};
-
 	// 공통 실행 계획을 OpenGL framebuffer와 셰이더 프로그램으로 실행한다.
 	class OpenGlPostProcess : public PostProcess {
+		// OpenGL 후처리 리소스의 ping-pong framebuffer와 texture를 보관한다.
+		struct Resource {
+			GLuint framebuffers[2]{};
+			GLuint textures[2]{};
+		};
+
 		GLuint sceneFramebuffer = 0;
 		GLuint sceneColorMsaa = 0;
 		GLuint resolveFramebuffer = 0;
@@ -29,7 +29,7 @@ namespace Chrivent {
 		GLuint frameDataBuffer = 0;
 		GLuint parameterDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
-		std::vector<OpenGlPostProcessResource> resources;
+		std::vector<Resource> resources;
 		std::vector<std::unique_ptr<OpenGlPostProcessShader>> postProcessShaders;
 		int targetWidth = 0;
 		int targetHeight = 0;
@@ -52,7 +52,7 @@ namespace Chrivent {
 	public:
 		~OpenGlPostProcess() override;
 
-		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
+		GLuint GetSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		bool InitializeTargets(int width, int height, int sampleCount);
