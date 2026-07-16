@@ -37,7 +37,7 @@ target_sources(PmxModViewer PRIVATE
 		Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
 
 		DrawContext/OpenGlDrawContext.h
-		DrawContext/Dx11DrawContext.h
+		DrawContext/Dx11DrawContext.h DrawContext/Dx11DrawContext.cpp
 		DrawContext/Dx12DrawContext.h DrawContext/Dx12DrawContext.cpp
 		DrawContext/VulkanDrawContext.h DrawContext/VulkanDrawContext.cpp
 
@@ -59,6 +59,7 @@ target_sources(PmxModViewer PRIVATE
         Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
         Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
+		Pipeline/VulkanShaderStageBuilder.h Pipeline/VulkanShaderStageBuilder.cpp
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
         PostProcess/PostProcessInputLayout.h
@@ -88,6 +89,7 @@ target_sources(PmxModViewer PRIVATE
         SwapChain/VulkanSwapChain.h SwapChain/VulkanSwapChain.cpp
 
         Synchronization/Dx12Barrier.h Synchronization/Dx12Barrier.cpp
+		Synchronization/FrameBuffering.h
         Synchronization/VulkanSyncObject.h Synchronization/VulkanSyncObject.cpp
 
         Texture/TextureCache.h Texture/TextureCache.cpp

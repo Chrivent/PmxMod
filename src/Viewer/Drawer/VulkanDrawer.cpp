@@ -31,7 +31,7 @@ namespace Chrivent {
 
 	void VulkanDrawer::DrawModel() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
-		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
@@ -39,7 +39,7 @@ namespace Chrivent {
 		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
 			return;
 		}
@@ -63,7 +63,7 @@ namespace Chrivent {
 			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
 				continue;
 			}
@@ -76,7 +76,7 @@ namespace Chrivent {
 
 	void VulkanDrawer::DrawEdge() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
-		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
@@ -93,7 +93,7 @@ namespace Chrivent {
 			const auto vertexSlice = resources.edgeVertexConstantsRing.Allocate(
 				sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!vertexSlice.has_value() ||
-				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
 				continue;
 			}
@@ -103,7 +103,7 @@ namespace Chrivent {
 			const auto pixelSlice = resources.edgePixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 				continue;
 			}
@@ -114,7 +114,7 @@ namespace Chrivent {
 
 	void VulkanDrawer::DrawGroundShadow() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
-		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
@@ -124,14 +124,16 @@ namespace Chrivent {
 		const auto vertexSlice = resources.groundShadowVertexConstantsRing.Allocate(
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants, error)) {
+			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants,
+				sizeof(vertexConstants), error)) {
 			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
 			return;
 		}
 		const auto pixelSlice = resources.groundShadowPixelConstantsRing.Allocate(
 			sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!pixelSlice.has_value() ||
-			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
+				sizeof(pixelConstants), error)) {
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
 			return;
 		}
@@ -149,7 +151,7 @@ namespace Chrivent {
 
 	void VulkanDrawer::DrawSceneInputs() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
-		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % VulkanModelResources::kBufferedFrames];
+		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const SceneVelocityVertexConstants velocityConstants = BuildSceneVelocityVertexConstants(
@@ -162,7 +164,7 @@ namespace Chrivent {
 			constantSize, resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
 			!resources.modelVertexConstantsRing.Write(*vertexSlice,
-				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, error)) {
+				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error)) {
 			std::cerr << "Failed to update Vulkan scene input vertex constants.\n";
 			return;
 		}
@@ -177,7 +179,8 @@ namespace Chrivent {
 			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
 				sizeof(ModelPixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value()
-				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, error)) {
+				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
+					sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan scene surface constants.\n";
 				continue;
 			}

@@ -16,7 +16,6 @@ namespace Chrivent {
 	
 	// 공통 실행 계획을 D3D12 파이프라인과 명령 목록으로 실행한다.
 	class Dx12PostProcess : public PostProcess {
-		static constexpr size_t frameDataBufferCount = 2;
 		Dx12PostProcessTarget sceneColor;
 		Dx12PostProcessTarget sceneVelocity;
 		std::vector<Dx12PostProcessResource> resources;
@@ -25,13 +24,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> postProcessRootSignature;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> postProcessPipelineStates;
-		Dx12Buffer frameDataBuffers[frameDataBufferCount];
-		Dx12Buffer parameterDataBuffers[frameDataBufferCount];
+		Dx12Buffer frameDataBuffers[FrameBuffering::dx12BufferCount];
+		Dx12Buffer parameterDataBuffers[FrameBuffering::dx12BufferCount];
 		int targetWidth = 0;
 		int targetHeight = 0;
 
-		// 현재 화면 크기에 맞는 viewport와 scissor rect를 command list에 적용한다.
-		static void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList, int width, int height);
 		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
 		bool CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
 		// 패키지가 선언한 transient/history target을 생성한다.

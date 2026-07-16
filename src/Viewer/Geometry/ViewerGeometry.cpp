@@ -1,6 +1,13 @@
 ﻿#include "Viewer/Geometry/ViewerGeometry.h"
 
 namespace Chrivent {
+	bool ViewerGeometry::ValidateIndexData(const ModelGeometryData& geometryData) {
+		const size_t elementSize = geometryData.indexElementSize;
+		if (geometryData.indexCount == 0 || (elementSize != 1 && elementSize != 2 && elementSize != 4))
+			return false;
+		return geometryData.indexCount <= geometryData.indices.size() / elementSize;
+	}
+
 	bool ViewerGeometry::WriteVertices(const ModelGeometryData& geometryData, const bool useUpdateData, const std::span<ViewerVertex> destination) {
 		const auto& positions = useUpdateData && geometryData.updatePositions.size() == geometryData.positions.size()
 			? geometryData.updatePositions
@@ -30,6 +37,8 @@ namespace Chrivent {
 
 	bool ViewerGeometry::BuildIndexData(const ModelGeometryData& geometryData, ViewerIndexData& outIndexData) {
 		outIndexData = {};
+		if (!ValidateIndexData(geometryData))
+			return false;
 		outIndexData.indexCount = geometryData.indexCount;
 		if (geometryData.indexElementSize == 1) {
 			std::vector<uint16_t> convertedIndices(geometryData.indexCount);

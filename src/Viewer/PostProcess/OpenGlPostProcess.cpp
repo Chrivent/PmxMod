@@ -204,7 +204,6 @@ namespace Chrivent {
 		SwapExecutionPlan(candidate);
 		resources.swap(candidate.resources);
 		postProcessShaders.swap(candidate.postProcessShaders);
-		ResetHistory();
 		return true;
 	}
 

@@ -25,6 +25,8 @@ namespace Chrivent {
 	// 모델 형상을 공통 렌더링 버텍스와 인덱스 형식으로 변환한다.
 	class ViewerGeometry {
 	public:
+		// 모델 index 정보가 지원 형식이고 원본 byte 범위 안에 있는지 검증한다.
+		static bool ValidateIndexData(const ModelGeometryData& geometryData);
 		// 모델 geometry를 렌더러가 제공한 vertex 메모리에 직접 기록한다.
 		static bool WriteVertices(const ModelGeometryData& geometryData, bool useUpdateData, std::span<ViewerVertex> destination);
 		// PMX index element 크기에 맞춰 렌더러가 사용할 수 있는 index bytes를 만든다.

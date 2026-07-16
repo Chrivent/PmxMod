@@ -1,6 +1,22 @@
 ﻿#include "Viewer/Command/Dx12CommandContext.h"
 
 namespace Chrivent {
+	void Dx12CommandContext::ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList,
+		const int width, const int height) {
+		if (commandList == nullptr)
+			return;
+		D3D12_VIEWPORT viewport{};
+		viewport.Width = static_cast<float>(width);
+		viewport.Height = static_cast<float>(height);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		commandList->RSSetViewports(1, &viewport);
+		D3D12_RECT scissor{};
+		scissor.right = width;
+		scissor.bottom = height;
+		commandList->RSSetScissorRects(1, &scissor);
+	}
+
 	bool Dx12CommandContext::Initialize(const Dx12Device& sourceDevice) {
 		Reset();
 		if (!sourceDevice.device || !sourceDevice.commandQueue)
@@ -28,7 +44,7 @@ namespace Chrivent {
 	bool Dx12CommandContext::BeginFrame(const Dx12Device& sourceDevice, const UINT frameIndex) {
 		if (!sourceDevice.device || !commandList || !fence || !fenceEvent)
 			return false;
-		this->frameIndex = frameIndex % kFrameCount;
+		this->frameIndex = frameIndex % FrameBuffering::dx12BufferCount;
 		const uint64_t frameFenceValue = frameFenceValues[this->frameIndex];
 		if (frameFenceValue != 0 && fence->GetCompletedValue() < frameFenceValue) {
 			if (FAILED(fence->SetEventOnCompletion(frameFenceValue, fenceEvent)))

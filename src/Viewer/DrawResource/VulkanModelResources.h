@@ -3,6 +3,7 @@
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 #include "Viewer/Descriptor/VulkanDescriptorSet.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 #include "Viewer/Texture/VulkanTextureCache.h"
 
 #include <vector>
@@ -29,10 +30,8 @@ namespace Chrivent {
 
 	// Vulkan이 한 모델을 그릴 때 사용하는 GPU 리소스를 보관한다.
 	struct VulkanModelResources {
-		static constexpr size_t kBufferedFrames = 2;
-
 		std::vector<VulkanModelMaterial> materials;
-		VulkanBuffer vertexBuffers[kBufferedFrames];
+		VulkanBuffer vertexBuffers[FrameBuffering::vulkanFramesInFlight];
 		VulkanBuffer indexBuffer;
 		size_t uniformBufferOffsetAlignment = 1;
 		VulkanDynamicBufferRing modelVertexConstantsRing;
@@ -45,6 +44,5 @@ namespace Chrivent {
 		VulkanDescriptorSet edgeDescriptorSet;
 		VulkanDescriptorSet groundShadowDescriptorSet;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
-		size_t indexCount = 0;
 	};
 }

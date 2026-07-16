@@ -39,7 +39,7 @@ namespace Chrivent {
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		for (size_t i = 0; i < kMaxFramesInFlight; i++) {
+		for (size_t i = 0; i < FrameBuffering::vulkanFramesInFlight; i++) {
 			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 				vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
 				std::cerr << "Failed to create Vulkan sync objects.\n";
@@ -54,7 +54,7 @@ namespace Chrivent {
 		if (device == VK_NULL_HANDLE)
 			return;
 		ResetRenderFinishedSemaphores();
-		for (size_t i = 0; i < kMaxFramesInFlight; i++) {
+		for (size_t i = 0; i < FrameBuffering::vulkanFramesInFlight; i++) {
 			if (imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
 				vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 				imageAvailableSemaphores[i] = VK_NULL_HANDLE;

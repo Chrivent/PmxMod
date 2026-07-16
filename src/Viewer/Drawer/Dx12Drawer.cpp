@@ -25,7 +25,7 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = drawContext.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.modelVertexConstantBuffers[frameIndex];
 		const auto& viewer = this->viewer;
@@ -76,7 +76,7 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = drawContext.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const auto& viewer = this->viewer;
 		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
@@ -114,7 +114,7 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = drawContext.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.groundShadowVertexConstantBuffers[frameIndex];
 		const Dx12Buffer& pixelConstantBuffer = resources.groundShadowPixelConstantBuffers[frameIndex];
@@ -151,7 +151,7 @@ namespace Chrivent {
 		ID3D12GraphicsCommandList* commandList = drawContext.ResolveCommandList();
 		if (commandList == nullptr)
 			return;
-		const size_t frameIndex = drawContext.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.modelVertexConstantBuffers[frameIndex];
 		const size_t constantOffset = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));

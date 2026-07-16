@@ -34,8 +34,6 @@ namespace Chrivent {
 		int targetWidth = 0;
 		int targetHeight = 0;
 
-		// 화면 크기에 맞는 DX11 viewport를 immediate context에 설정한다.
-		static void ApplyViewport(ID3D11DeviceContext* context, int width, int height);
 		// 패키지가 선언한 transient/history texture view를 생성한다.
 		bool CreateEffectResources(ID3D11Device* device);
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.

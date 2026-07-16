@@ -107,17 +107,18 @@ namespace Chrivent {
 	FrameEndResult VulkanViewer::EndFrame() {
 		if (!frameReady)
 			return FrameEndResult::Failed;
+		const bool sceneInputPassReady = postProcessSceneInputPassReady;
+		frameReady = false;
+		postProcessSceneInputPassReady = false;
 		bool recordEnded;
 		if (postProcess.HasEffects()) {
 			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
 				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
-				swapChain.extent, postProcessFrameData, postProcessSceneInputPassReady);
+				swapChain.extent, postProcessFrameData, sceneInputPassReady);
 		} else
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
-		if (!recordEnded) {
-			frameReady = false;
+		if (!recordEnded)
 			return FrameEndResult::Failed;
-		}
 		const auto& imageAvailableSemaphores = syncObject.imageAvailableSemaphores;
 		const auto& renderFinishedSemaphores = syncObject.renderFinishedSemaphores;
 		const auto& inFlightFences = syncObject.inFlightFences;
@@ -169,8 +170,6 @@ namespace Chrivent {
 		presentInfo.pImageIndices = &currentImageIndex;
 		const VkResult presentResult = vkQueuePresentKHR(device.presentQueue, &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-			frameReady = false;
-			postProcessSceneInputPassReady = false;
 			if (!Resize())
 				return FrameEndResult::Failed;
 			ResetPostProcessHistory();
@@ -181,8 +180,6 @@ namespace Chrivent {
 			return FrameEndResult::Failed;
 		}
 		syncObject.AdvanceFrame();
-		frameReady = false;
-		postProcessSceneInputPassReady = false;
 		return FrameEndResult::Presented;
 	}
 

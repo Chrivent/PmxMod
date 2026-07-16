@@ -1,23 +1,13 @@
 ﻿#include "Viewer/PostProcess/Dx11PostProcess.h"
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
+#include "Viewer/DrawContext/Dx11DrawContext.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
 
 namespace Chrivent {
-	void Dx11PostProcess::ApplyViewport(ID3D11DeviceContext* context, const int width, const int height) {
-		if (context == nullptr)
-			return;
-		D3D11_VIEWPORT viewport{};
-		viewport.Width = static_cast<float>(width);
-		viewport.Height = static_cast<float>(height);
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		context->RSSetViewports(1, &viewport);
-	}
-
 	bool Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
 		ResetEffectResources();
 		if (device == nullptr)
@@ -170,7 +160,6 @@ namespace Chrivent {
 		SwapExecutionPlan(candidate);
 		resources.swap(candidate.resources);
 		postProcessShaders.swap(candidate.postProcessShaders);
-		ResetHistory();
 		return true;
 	}
 
@@ -191,7 +180,7 @@ namespace Chrivent {
 			velocityTarget != nullptr ? &velocityTarget : nullptr, depthStencilView.Get());
 		context->OMSetDepthStencilState(depthStencilState, 0x00);
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
-		ApplyViewport(context, width, height);
+		Dx11DrawContext::ApplyViewport(context, width, height);
 		return true;
 	}
 
@@ -230,7 +219,7 @@ namespace Chrivent {
 			int outputWidth = width;
 			int outputHeight = height;
 			ResolveOutputExtent(route, outputWidth, outputHeight);
-			ApplyViewport(context, outputWidth, outputHeight);
+			Dx11DrawContext::ApplyViewport(context, outputWidth, outputHeight);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
 			std::vector views(

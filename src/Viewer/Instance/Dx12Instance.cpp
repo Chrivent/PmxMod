@@ -28,7 +28,7 @@ namespace Chrivent {
 		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
 			indexData.bytes.size() > std::numeric_limits<UINT>::max())
 			return false;
-		for (size_t frameIndex = 0; frameIndex < Dx12ModelResources::kBufferedFrames; frameIndex++) {
+		for (size_t frameIndex = 0; frameIndex < FrameBuffering::dx12BufferCount; frameIndex++) {
 			Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
@@ -61,7 +61,7 @@ namespace Chrivent {
 		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgePixelConstants));
 		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowVertexConstants));
 		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowPixelConstants));
-		for (size_t frameIndex = 0; frameIndex < Dx12ModelResources::kBufferedFrames; frameIndex++) {
+		for (size_t frameIndex = 0; frameIndex < FrameBuffering::dx12BufferCount; frameIndex++) {
 			if (!modelResources.modelVertexConstantBuffers[frameIndex].InitializeUpload(device, vertexConstantSize) ||
 				!modelResources.groundShadowVertexConstantBuffers[frameIndex].InitializeUpload(
 					device, groundShadowVertexConstantSize) ||
@@ -72,24 +72,24 @@ namespace Chrivent {
 		const size_t materialCount = model->materialData.materials.size();
 		modelResources.modelPixelConstantBuffers.resize(materialCount);
 		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
+			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
 				if (!buffers[i].InitializeUpload(device, materialPixelBufferSize))
 					return false;
 			}
 		}
 		modelResources.edgeVertexConstantBuffers.resize(materialCount);
 		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
+			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
 				if (!buffers[i].InitializeUpload(device, edgeVertexConstantSize))
 					return false;
 			}
 		}
 		modelResources.edgePixelConstantBuffers.resize(materialCount);
 		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(Dx12ModelResources::kBufferedFrames);
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++) {
+			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
 				if (!buffers[i].InitializeUpload(device, edgePixelConstantSize))
 					return false;
 			}
@@ -128,7 +128,7 @@ namespace Chrivent {
 		if (FAILED(device.device->CreateDescriptorHeap(
 			&heapDesc, IID_PPV_ARGS(&modelResources.textureDescriptorHeap))))
 			return false;
-		modelResources.textureDescriptorSize = device.device->GetDescriptorHandleIncrementSize(
+		const UINT textureDescriptorSize = device.device->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
 			modelResources.textureDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -148,12 +148,12 @@ namespace Chrivent {
 			const Dx12Texture& toonTexture = material.toonTexture.resource ? material.toonTexture : dummyTexture;
 			const Dx12Texture& sphereTexture = material.sphereTexture.resource ? material.sphereTexture : dummyTexture;
 			CreateSrv(texture, cpuHandle);
-			cpuHandle.ptr += modelResources.textureDescriptorSize;
+			cpuHandle.ptr += textureDescriptorSize;
 			CreateSrv(toonTexture, cpuHandle);
-			cpuHandle.ptr += modelResources.textureDescriptorSize;
+			cpuHandle.ptr += textureDescriptorSize;
 			CreateSrv(sphereTexture, cpuHandle);
-			cpuHandle.ptr += modelResources.textureDescriptorSize;
-			gpuHandle.ptr += modelResources.textureDescriptorSize * 3;
+			cpuHandle.ptr += textureDescriptorSize;
+			gpuHandle.ptr += textureDescriptorSize * 3;
 		}
 		return true;
 	}
@@ -171,21 +171,21 @@ namespace Chrivent {
 		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
 				buffers[i].Reset();
 		}
 		modelResources.modelPixelConstantBuffers.clear();
 		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
 				buffers[i].Reset();
 		}
 		modelResources.edgeVertexConstantBuffers.clear();
 		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
 			if (!buffers)
 				continue;
-			for (size_t i = 0; i < Dx12ModelResources::kBufferedFrames; i++)
+			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
 				buffers[i].Reset();
 		}
 		modelResources.edgePixelConstantBuffers.clear();
@@ -194,7 +194,6 @@ namespace Chrivent {
 		for (Dx12Buffer& buffer : modelResources.groundShadowPixelConstantBuffers)
 			buffer.Reset();
 		modelResources.textureDescriptorHeap.Reset();
-		modelResources.textureDescriptorSize = 0;
 		for (auto& vertexBufferView : modelResources.vertexBufferViews)
 			vertexBufferView = {};
 		modelResources.indexBufferView = {};
@@ -215,7 +214,7 @@ namespace Chrivent {
 	bool Dx12Instance::Upload() {
 		if (model == nullptr)
 			return false;
-		const size_t frameIndex = viewer.GetFrameIndex() % Dx12ModelResources::kBufferedFrames;
+		const size_t frameIndex = viewer.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
 			return false;

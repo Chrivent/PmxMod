@@ -5,13 +5,13 @@ namespace Chrivent {
 		if (!sourceDevice.device || !swapChain)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = kFrameCount;
+		rtvHeapDesc.NumDescriptors = FrameBuffering::dx12BufferCount;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap))))
 			return false;
 		rtvDescriptorSize = sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		for (UINT index = 0; index < kFrameCount; index++) {
+		for (UINT index = 0; index < FrameBuffering::dx12BufferCount; index++) {
 			if (FAILED(swapChain->GetBuffer(index, IID_PPV_ARGS(&backBuffers[index]))))
 				return false;
 			sourceDevice.device->CreateRenderTargetView(backBuffers[index].Get(), nullptr, rtvHandle);
@@ -25,7 +25,7 @@ namespace Chrivent {
 		if (!sourceDevice.factory || !sourceDevice.device || !sourceDevice.commandQueue || !hwnd)
 			return false;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
-		swapChainDesc.BufferCount = kFrameCount;
+		swapChainDesc.BufferCount = FrameBuffering::dx12BufferCount;
 		swapChainDesc.Width = width;
 		swapChainDesc.Height = height;
 		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -57,7 +57,8 @@ namespace Chrivent {
 			return false;
 		for (auto& backBuffer : backBuffers)
 			backBuffer.Reset();
-		if (FAILED(swapChain->ResizeBuffers(kFrameCount, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
+		if (FAILED(swapChain->ResizeBuffers(
+			FrameBuffering::dx12BufferCount, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0)))
 			return false;
 		frameIndex = swapChain->GetCurrentBackBufferIndex();
 		return CreateRenderTargetViews(sourceDevice);

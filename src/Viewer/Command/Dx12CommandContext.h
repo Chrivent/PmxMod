@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 
 #include <cstdint>
 #include <d3d12.h>
@@ -10,14 +11,12 @@
 namespace Chrivent {
 	// DX12 명령 할당자와 그래픽 명령 목록의 기록 상태를 관리한다.
 	class Dx12CommandContext {
-		static constexpr UINT kFrameCount = 2;
-
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocators[kFrameCount]{};
+		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocators[FrameBuffering::dx12BufferCount]{};
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhancedCommandList;
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
 		HANDLE fenceEvent = nullptr;
-		uint64_t frameFenceValues[kFrameCount]{};
+		uint64_t frameFenceValues[FrameBuffering::dx12BufferCount]{};
 		uint64_t nextFenceValue = 1;
 		UINT frameIndex = 0;
 
@@ -25,6 +24,8 @@ namespace Chrivent {
 		const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& GetCommandList() const { return commandList; }
 		const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7>& GetEnhancedCommandList() const { return enhancedCommandList; }
 
+		// 현재 출력 크기에 맞는 viewport와 scissor rect를 명령 목록에 적용한다.
+		static void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList, int width, int height);
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.
 		bool Initialize(const Dx12Device& sourceDevice);
 		// 한 프레임의 명령 기록을 시작할 수 있도록 allocator와 list를 초기화한다.

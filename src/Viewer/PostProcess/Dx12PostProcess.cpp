@@ -10,22 +10,6 @@
 #include <limits>
 
 namespace Chrivent {
-	void Dx12PostProcess::ApplyViewportAndScissor(
-		ID3D12GraphicsCommandList* commandList, const int width, const int height) {
-		if (commandList == nullptr)
-			return;
-		D3D12_VIEWPORT viewport{};
-		viewport.Width = static_cast<float>(width);
-		viewport.Height = static_cast<float>(height);
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		commandList->RSSetViewports(1, &viewport);
-		D3D12_RECT scissor{};
-		scissor.right = width;
-		scissor.bottom = height;
-		commandList->RSSetScissorRects(1, &scissor);
-	}
-
 	bool Dx12PostProcess::CreateDepthTarget(
 		const Dx12Device& sourceDevice, const int width, const int height) {
 		depth.Reset();
@@ -90,7 +74,7 @@ namespace Chrivent {
 		inputDescriptorHeaps.clear();
 		if (!sourceDevice.device)
 			return false;
-		inputDescriptorHeaps.resize(ResolvePassRoutes().size() * frameDataBufferCount);
+		inputDescriptorHeaps.resize(ResolvePassRoutes().size() * FrameBuffering::dx12BufferCount);
 		D3D12_DESCRIPTOR_HEAP_DESC description{};
 		description.NumDescriptors = PostProcessInputLayout::maxTextureCount;
 		description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -285,7 +269,7 @@ namespace Chrivent {
 
 	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(
 		const size_t frameIndex, const size_t passIndex) const {
-		const size_t index = frameIndex % frameDataBufferCount * ResolvePassRoutes().size() + passIndex;
+		const size_t index = frameIndex % FrameBuffering::dx12BufferCount * ResolvePassRoutes().size() + passIndex;
 		return index < inputDescriptorHeaps.size() ? inputDescriptorHeaps[index].Get() : nullptr;
 	}
 
@@ -352,9 +336,8 @@ namespace Chrivent {
 		inputDescriptorHeaps.swap(candidate.inputDescriptorHeaps);
 		postProcessRootSignature.Swap(candidate.postProcessRootSignature);
 		postProcessPipelineStates.swap(candidate.postProcessPipelineStates);
-		for (size_t index = 0; index < frameDataBufferCount; index++)
+		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++)
 			parameterDataBuffers[index].Swap(candidate.parameterDataBuffers[index]);
-		ResetHistory();
 		return true;
 	}
 
@@ -377,7 +360,7 @@ namespace Chrivent {
 			constexpr float velocityClear[4]{};
 			commandList->ClearRenderTargetView(velocityHandle, velocityClear, 0, nullptr);
 		}
-		ApplyViewportAndScissor(commandList, width, height);
+		Dx12CommandContext::ApplyViewportAndScissor(commandList, width, height);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		return true;
 	}
@@ -404,7 +387,7 @@ namespace Chrivent {
 			return msaaColorBuffer.ResolveToBackBuffer(
 				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
 		}
-		const size_t frameIndex = swapChain.GetFrameIndex() % frameDataBufferCount;
+		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
@@ -457,7 +440,7 @@ namespace Chrivent {
 			int outputWidth = width;
 			int outputHeight = height;
 			ResolveOutputExtent(route, outputWidth, outputHeight);
-			ApplyViewportAndScissor(commandList, outputWidth, outputHeight);
+			Dx12CommandContext::ApplyViewportAndScissor(commandList, outputWidth, outputHeight);
 			UpdateInputDescriptors(sourceDevice, frameIndex, passIndex);
 			ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex, passIndex);
 			commandList->SetDescriptorHeaps(1, &heap);

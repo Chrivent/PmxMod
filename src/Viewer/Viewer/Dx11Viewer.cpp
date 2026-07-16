@@ -92,17 +92,6 @@ namespace Chrivent {
 		return false;
 	}
 
-	void Dx11Viewer::UpdateViewport() const {
-		D3D11_VIEWPORT vp;
-		vp.Width = screenWidth;
-		vp.Height = screenHeight;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		deviceResources.context->RSSetViewports(1, &vp);
-	}
-
 	bool Dx11Viewer::CreateShaders() {
 		ID3D11Device* device = deviceResources.device.Get();
 		return shaders.model.Initialize(device, builtInShaderPasses.model)
@@ -205,7 +194,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateDummyResources())
 			return false;
-		UpdateViewport();
+		Dx11DrawContext::ApplyViewport(deviceResources.context.Get(), screenWidth, screenHeight);
 		return true;
 	}
 
@@ -222,7 +211,7 @@ namespace Chrivent {
 			return false;
 		if (!CreateRenderTargets())
 			return false;
-		UpdateViewport();
+		Dx11DrawContext::ApplyViewport(deviceResources.context.Get(), screenWidth, screenHeight);
 		return true;
 	}
 

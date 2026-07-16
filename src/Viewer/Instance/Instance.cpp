@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Instance/Instance.h"
 
 #include "Viewer/Drawer/Drawer.h"
+#include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/ModelUpdater.h"
 
@@ -11,6 +12,8 @@ namespace Chrivent {
     Instance::~Instance() = default;
 
 	bool Instance::ValidateModel(const Model& sourceModel) {
+		if (sourceModel.geometryData.positions.empty() || !ViewerGeometry::ValidateIndexData(sourceModel.geometryData))
+			return false;
 		const size_t indexCount = sourceModel.geometryData.indexCount;
 		const size_t materialCount = sourceModel.materialData.materials.size();
 		for (const auto& [beginIndex, subMeshIndexCount, materialId] : sourceModel.materialData.subMeshes) {

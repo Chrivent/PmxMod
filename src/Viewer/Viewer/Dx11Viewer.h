@@ -41,8 +41,6 @@ namespace Chrivent {
 		void ChooseMsaaSettings();
         // DX11을 지원하는 고성능 DXGI 어댑터를 선택해 디바이스를 생성한다.
         bool CreateDevice();
-        // 현재 화면 크기에 맞춰 DX11 뷰포트를 설정한다.
-        void UpdateViewport() const;
         // 모델, 엣지, 그림자 렌더링용 셰이더를 생성한다.
         bool CreateShaders();
         // 스왑체인과 장면 색상, 깊이 스텐실 리소스를 생성한다.

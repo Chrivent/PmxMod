@@ -39,8 +39,6 @@ namespace Chrivent {
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
-		// 셰이더 stage 생성 정보를 만든다.
-		static VkPipelineShaderStageCreateInfo MakeShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char* entry);
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
 		// 모델 vertex attribute 정보를 채운다.

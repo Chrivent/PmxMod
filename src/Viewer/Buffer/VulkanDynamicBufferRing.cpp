@@ -20,7 +20,7 @@ namespace Chrivent {
 	}
 
 	std::optional<UploadSlice> VulkanDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
-		const size_t frameCapacity = capacity / kBufferedFrames;
+		const size_t frameCapacity = capacity / FrameBuffering::vulkanFramesInFlight;
 		if (frameCapacity == 0) {
 			outError = "Vulkan dynamic buffer ring frame capacity is zero.";
 			return std::nullopt;
@@ -30,12 +30,17 @@ namespace Chrivent {
 			"Vulkan dynamic buffer ring is out of space for this frame.", outError);
 	}
 
-	bool VulkanDynamicBufferRing::Write(const UploadSlice& slice, const void* data, std::string& outError) const {
+	bool VulkanDynamicBufferRing::Write(const UploadSlice& slice, const void* data,
+		const size_t dataSize, std::string& outError) const {
 		if (data == nullptr) {
 			outError = "Failed to write Vulkan dynamic buffer ring: source data is null.";
 			return false;
 		}
-		if (!buffer.Write(data, slice.size, slice.offset)) {
+		if (dataSize > slice.size) {
+			outError = "Failed to write Vulkan dynamic buffer ring: source data exceeds the reserved slice.";
+			return false;
+		}
+		if (!buffer.Write(data, dataSize, slice.offset)) {
 			outError = "Failed to write Vulkan dynamic buffer ring slice.";
 			return false;
 		}

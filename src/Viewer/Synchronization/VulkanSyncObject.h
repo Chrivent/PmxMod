@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 
 #include <vector>
 
@@ -15,9 +16,8 @@ namespace Chrivent {
 		void ResetRenderFinishedSemaphores();
 
 	public:
-		static constexpr size_t kMaxFramesInFlight = 2;
-		VkSemaphore imageAvailableSemaphores[kMaxFramesInFlight]{};
-		VkFence inFlightFences[kMaxFramesInFlight]{};
+		VkSemaphore imageAvailableSemaphores[FrameBuffering::vulkanFramesInFlight]{};
+		VkFence inFlightFences[FrameBuffering::vulkanFramesInFlight]{};
 		std::vector<VkSemaphore> renderFinishedSemaphores;
 		std::vector<VkFence> imagesInFlight;
 		size_t currentFrame = 0;
@@ -35,6 +35,6 @@ namespace Chrivent {
 		// 스왑체인 이미지별 fence 추적과 present 완료 세마포어를 초기화한다.
 		bool ResetImageTracking(size_t swapChainImageCount);
 		// 다음 프레임의 동기화 객체를 사용하도록 인덱스를 넘긴다.
-		void AdvanceFrame() { currentFrame = (currentFrame + 1) % kMaxFramesInFlight; }
+		void AdvanceFrame() { currentFrame = (currentFrame + 1) % FrameBuffering::vulkanFramesInFlight; }
 	};
 }

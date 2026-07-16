@@ -1,9 +1,8 @@
 ﻿#include "Viewer/PostProcess/VulkanPostProcess.h"
 
+#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Memory/VulkanMemory.h"
-#include "Viewer/Shader/ModernHlslCompiler.h"
-#include "Viewer/Shader/VulkanShaderModule.h"
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
@@ -337,30 +336,13 @@ namespace Chrivent {
 	bool VulkanPostProcess::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
 		const EffectPassDefinition& pass, const VkExtent2D extent, const VkFormat format,
 		VkPipeline& pipeline) const {
-		std::vector<uint32_t> vertexCode;
-		std::vector<uint32_t> pixelCode;
 		std::string error;
-		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
-		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
-			SpirvBindingProfile::PostProcess, vertexCode, error, true)
-			|| !ModernHlslCompiler::CompileSpirv(pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
-				SpirvBindingProfile::PostProcess, pixelCode, error)) {
-			std::cerr << error << '\n';
+		VulkanShaderStageBuilder shaderStages;
+		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::PostProcess, error, true)) {
+			if (!error.empty())
+				std::cerr << error << '\n';
 			return false;
 		}
-		VulkanShaderModule vertexShader;
-		VulkanShaderModule pixelShader;
-		if (!vertexShader.Initialize(sourceDevice, vertexCode) || !pixelShader.Initialize(sourceDevice, pixelCode))
-			return false;
-		const VkPipelineShaderStageCreateInfo stages[] = {
-			{ .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertexShader.GetShaderModule(),
-				.pName = pass.vertexEntry.c_str() },
-			{ .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = pixelShader.GetShaderModule(),
-				.pName = pass.pixelEntry.c_str() }
-		};
 		VkPipelineVertexInputStateCreateInfo vertexInput{ .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -396,8 +378,8 @@ namespace Chrivent {
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.pNext = &renderingInfo;
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = stages;
+		pipelineInfo.stageCount = VulkanShaderStageBuilder::stageCount;
+		pipelineInfo.pStages = shaderStages.GetStages();
 		pipelineInfo.pVertexInputState = &vertexInput;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
 		pipelineInfo.pViewportState = &viewportState;
@@ -520,7 +502,6 @@ namespace Chrivent {
 			return false;
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
-		ResetHistory();
 		return true;
 	}
 	

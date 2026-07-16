@@ -3,7 +3,6 @@
 #include "Viewer/Shader/Dx11Shader.h"
 
 #include <d3d11.h>
-#include <dxgi1_6.h>
 #include <wrl/client.h>
 
 namespace Chrivent {
@@ -59,5 +58,8 @@ namespace Chrivent {
 		const Dx11ShaderSet& GetShaders() const { return shaders; }
 		const Dx11PipelineStates& GetPipelineStates() const { return pipelineStates; }
 		const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }
+
+		// 현재 출력 크기에 맞는 viewport를 immediate context에 적용한다.
+		static void ApplyViewport(ID3D11DeviceContext* context, int width, int height);
 	};
 }

@@ -1,12 +1,11 @@
 ﻿#pragma once
 
 #include "Viewer/Buffer/Dx12Buffer.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 #include "Viewer/Texture/Dx12TextureCache.h"
 
 #include <d3d12.h>
 #include <wrl/client.h>
-
-#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -26,21 +25,18 @@ namespace Chrivent {
 
 	// DX12가 한 모델을 그릴 때 사용하는 GPU 리소스를 보관한다.
 	struct Dx12ModelResources {
-		static constexpr size_t kBufferedFrames = 2;
-
-		Dx12Buffer vertexBuffers[kBufferedFrames];
+		Dx12Buffer vertexBuffers[FrameBuffering::dx12BufferCount];
 		Dx12Buffer indexBuffer;
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[kBufferedFrames]{};
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[FrameBuffering::dx12BufferCount]{};
 		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 		UINT indexCount = 0;
-		Dx12Buffer modelVertexConstantBuffers[kBufferedFrames];
+		Dx12Buffer modelVertexConstantBuffers[FrameBuffering::dx12BufferCount];
 		std::vector<std::unique_ptr<Dx12Buffer[]>> modelPixelConstantBuffers;
 		std::vector<std::unique_ptr<Dx12Buffer[]>> edgeVertexConstantBuffers;
 		std::vector<std::unique_ptr<Dx12Buffer[]>> edgePixelConstantBuffers;
-		Dx12Buffer groundShadowVertexConstantBuffers[kBufferedFrames];
-		Dx12Buffer groundShadowPixelConstantBuffers[kBufferedFrames];
+		Dx12Buffer groundShadowVertexConstantBuffers[FrameBuffering::dx12BufferCount];
+		Dx12Buffer groundShadowPixelConstantBuffers[FrameBuffering::dx12BufferCount];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> textureDescriptorHeap;
-		UINT textureDescriptorSize = 0;
 		std::vector<Dx12ModelMaterial> materials;
 	};
 }

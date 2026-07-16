@@ -1,8 +1,6 @@
 ﻿#include "Viewer/Pipeline/VulkanPipeline.h"
 
-#include "Viewer/Shader/VulkanShaderModule.h"
-#include "Viewer/Instance/VulkanInstance.h"
-#include "Viewer/Shader/ModernHlslCompiler.h"
+#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <cstddef>
@@ -141,31 +139,13 @@ namespace Chrivent {
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, const VkFormat colorFormat, const VkSampleCountFlagBits sampleCount,
 		const bool useVelocityInput, VkPipeline& outPipeline) const {
-		std::vector<uint32_t> vertexShaderCode;
-		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
-		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(
-			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, SpirvBindingProfile::Scene, vertexShaderCode, error)) {
-			std::cerr << error << '\n';
+		VulkanShaderStageBuilder shaderStages;
+		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::Scene, error)) {
+			if (!error.empty())
+				std::cerr << error << '\n';
 			return false;
 		}
-		if (!ModernHlslCompiler::CompileSpirv(
-			pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, SpirvBindingProfile::Scene, fragmentShaderCode, error)) {
-			std::cerr << error << '\n';
-			return false;
-		}
-		VulkanShaderModule vertexShader;
-		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode))
-			return false;
-		if (!fragmentShader.Initialize(sourceDevice, fragmentShaderCode))
-			return false;
-		const VkPipelineShaderStageCreateInfo shaderStages[] = {
-			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str()),
-			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule(), pass.pixelEntry.c_str())
-		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		VkVertexInputAttributeDescription attributeDescriptions[3]{};
 		FillVertexAttributeDescriptions(attributeDescriptions);
@@ -269,8 +249,8 @@ namespace Chrivent {
 			.stencilAttachmentFormat = depthHasStencil ? depthFormat : VK_FORMAT_UNDEFINED
 		};
 		createInfo.pNext = &renderingInfo;
-		createInfo.stageCount = 2;
-		createInfo.pStages = shaderStages;
+		createInfo.stageCount = VulkanShaderStageBuilder::stageCount;
+		createInfo.pStages = shaderStages.GetStages();
 		createInfo.pVertexInputState = &vertexInputInfo;
 		createInfo.pInputAssemblyState = &inputAssembly;
 		createInfo.pViewportState = &viewportState;
@@ -290,27 +270,13 @@ namespace Chrivent {
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, VkPipeline& outPipeline) const {
-		std::vector<uint32_t> vertexShaderCode;
-		std::vector<uint32_t> fragmentShaderCode;
 		std::string error;
-		const std::wstring vertexEntry(pass.vertexEntry.begin(), pass.vertexEntry.end());
-		const std::wstring pixelEntry(pass.pixelEntry.begin(), pass.pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(
-			pass.shaderPath, vertexEntry, L"vs_6_0", SpirvTarget::Vulkan, SpirvBindingProfile::Scene, vertexShaderCode, error)
-			|| !ModernHlslCompiler::CompileSpirv(
-				pass.shaderPath, pixelEntry, L"ps_6_0", SpirvTarget::Vulkan, SpirvBindingProfile::Scene, fragmentShaderCode, error)) {
-			std::cerr << error << '\n';
+		VulkanShaderStageBuilder shaderStages;
+		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::Scene, error)) {
+			if (!error.empty())
+				std::cerr << error << '\n';
 			return false;
 		}
-		VulkanShaderModule vertexShader;
-		VulkanShaderModule fragmentShader;
-		if (!vertexShader.Initialize(sourceDevice, vertexShaderCode)
-			|| !fragmentShader.Initialize(sourceDevice, fragmentShaderCode))
-			return false;
-		const VkPipelineShaderStageCreateInfo shaderStages[] = {
-			MakeShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader.GetShaderModule(), pass.vertexEntry.c_str()),
-			MakeShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader.GetShaderModule(), pass.pixelEntry.c_str())
-		};
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		constexpr VkVertexInputAttributeDescription attributeDescriptions[] = {
 			VkVertexInputAttributeDescription{
@@ -371,8 +337,8 @@ namespace Chrivent {
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
 		};
 		createInfo.pNext = &renderingInfo;
-		createInfo.stageCount = std::size(shaderStages);
-		createInfo.pStages = shaderStages;
+		createInfo.stageCount = VulkanShaderStageBuilder::stageCount;
+		createInfo.pStages = shaderStages.GetStages();
 		createInfo.pVertexInputState = &vertexInputInfo;
 		createInfo.pInputAssemblyState = &inputAssembly;
 		createInfo.pViewportState = &viewportState;
@@ -385,15 +351,6 @@ namespace Chrivent {
 			return false;
 		}
 		return true;
-	}
-
-	VkPipelineShaderStageCreateInfo VulkanPipeline::MakeShaderStageInfo(const VkShaderStageFlagBits stage, const VkShaderModule shaderModule, const char* entry) {
-		VkPipelineShaderStageCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		createInfo.stage = stage;
-		createInfo.module = shaderModule;
-		createInfo.pName = entry;
-		return createInfo;
 	}
 
 	VkVertexInputBindingDescription VulkanPipeline::MakeVertexBindingDescription() {

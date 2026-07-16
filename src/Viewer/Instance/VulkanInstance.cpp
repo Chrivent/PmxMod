@@ -41,7 +41,6 @@ namespace Chrivent {
 			return false;
 		if (!modelResources.indexBuffer.Write(indexData.bytes.data(), indexBufferSize))
 			return false;
-		modelResources.indexCount = indexData.indexCount;
 		return true;
 	}
 
@@ -53,29 +52,29 @@ namespace Chrivent {
 		std::string error;
 		if (!modelResources.modelVertexConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(ModelVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* ringSlack * VulkanModelResources::kBufferedFrames, error))
+				* ringSlack * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		if (!modelResources.edgeVertexConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(EdgeVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * VulkanModelResources::kBufferedFrames, error))
+				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		if (!modelResources.groundShadowVertexConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(
 				sizeof(GroundShadowVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* ringSlack * VulkanModelResources::kBufferedFrames, error))
+				* ringSlack * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		if (!modelResources.modelPixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(ModelPixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount * 2 + ringSlack) * VulkanModelResources::kBufferedFrames, error))
+				* (drawCount * 2 + ringSlack) * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		if (!modelResources.edgePixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(sizeof(EdgePixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * VulkanModelResources::kBufferedFrames, error))
+				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		if (!modelResources.groundShadowPixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(
 				sizeof(GroundShadowPixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * VulkanModelResources::kBufferedFrames, error))
+				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		return true;
 	}
@@ -150,7 +149,6 @@ namespace Chrivent {
 		modelResources.materials.clear();
 		modelResources.uniformBufferOffsetAlignment = 1;
 		modelResources.indexType = VK_INDEX_TYPE_UINT16;
-		modelResources.indexCount = 0;
 	}
 
 	bool VulkanInstance::SetupRenderer() {
@@ -170,7 +168,7 @@ namespace Chrivent {
 			return false;
 		const size_t frameIndex = viewer.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
-			frameIndex % VulkanModelResources::kBufferedFrames];
+			frameIndex % FrameBuffering::vulkanFramesInFlight];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)
 			return false;
 		const size_t vertexCount = model->geometryData.positions.size();

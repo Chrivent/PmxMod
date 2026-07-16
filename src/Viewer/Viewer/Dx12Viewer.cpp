@@ -22,19 +22,6 @@ namespace Chrivent {
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	void Dx12Viewer::ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList) const {
-		D3D12_VIEWPORT viewport{};
-		viewport.Width = screenWidth;
-		viewport.Height = screenHeight;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		commandList->RSSetViewports(1, &viewport);
-		D3D12_RECT scissorRect{};
-		scissorRect.right = screenWidth;
-		scissorRect.bottom = screenHeight;
-		commandList->RSSetScissorRects(1, &scissorRect);
-	}
-
 	Dx12Viewer::~Dx12Viewer() {
 		if (device.device && !commandContext.WaitForGpu(device))
 			std::cerr << "Failed to wait for DX12 GPU resources during shutdown.\n";
@@ -113,7 +100,7 @@ namespace Chrivent {
 			return FrameBeginResult::Failed;
 		PrepareBackBufferForRendering(commandList, backBuffer);
 		ClearRenderTargets(commandList);
-		ApplyViewportAndScissor(commandList);
+		Dx12CommandContext::ApplyViewportAndScissor(commandList, screenWidth, screenHeight);
 		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		frameReady = true;
@@ -123,6 +110,7 @@ namespace Chrivent {
 	FrameEndResult Dx12Viewer::EndFrame() {
 		if (!frameReady)
 			return FrameEndResult::Failed;
+		frameReady = false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
@@ -142,7 +130,6 @@ namespace Chrivent {
 		postProcess.CommitHistoryFrame();
 		if (!swapChain.Present())
 			return FrameEndResult::Failed;
-		frameReady = false;
 		return drawSucceeded ? FrameEndResult::Presented : FrameEndResult::Failed;
 	}
 

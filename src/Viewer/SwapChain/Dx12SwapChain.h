@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -10,11 +11,9 @@
 namespace Chrivent {
 	// D3D12 스왑체인과 프레임별 back buffer 및 RTV를 관리한다.
 	class Dx12SwapChain {
-		static constexpr UINT kFrameCount = 2;
-
 		Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffers[kFrameCount]{};
+		Microsoft::WRL::ComPtr<ID3D12Resource> backBuffers[FrameBuffering::dx12BufferCount]{};
 		UINT rtvDescriptorSize = 0;
 		UINT frameIndex = 0;
 
