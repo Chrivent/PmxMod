@@ -4,11 +4,11 @@
 #include <stb_image.h>
 
 namespace Chrivent {
-	void TextureCache::ImageDeleter::operator()(unsigned char* pixels) const {
+	void TextureImageLoader::ImageDeleter::operator()(unsigned char* pixels) const {
 		stbi_image_free(pixels);
 	}
 
-	TextureCache::LoadedImage TextureCache::LoadImageRgba(const std::filesystem::path& texturePath) {
+	TextureImageLoader::LoadedImage TextureImageLoader::LoadImageRgba(const std::filesystem::path& texturePath) {
 		LoadedImage image;
 		FILE* imageFile = nullptr;
 		if (_wfopen_s(&imageFile, texturePath.c_str(), L"rb") != 0 || imageFile == nullptr)

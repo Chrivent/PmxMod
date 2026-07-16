@@ -25,14 +25,8 @@ namespace Chrivent {
 		}
 	};
 
-	// 렌더링 API별 texture가 공유하는 캐시 키와 alpha 정보를 보관한다.
-	struct Texture {
-		TextureKey key;
-		bool hasAlpha = false;
-	};
-
-	// 이미지 디코딩과 렌더링 API별 texture 캐시 저장소를 제공한다.
-	class TextureCache {
+	// API별 texture cache가 공유하는 RGBA 이미지 디코딩을 제공한다.
+	class TextureImageLoader {
 	protected:
 		// stb_image가 할당한 픽셀 메모리를 unique_ptr에서 해제한다.
 		struct ImageDeleter {
@@ -48,18 +42,22 @@ namespace Chrivent {
 			int components = 0;
 		};
 
-		std::map<TextureKey, std::shared_ptr<Texture>> textures;
-
 		// 이미지 파일을 자동 해제되는 RGBA 픽셀 데이터로 읽는다.
 		static LoadedImage LoadImageRgba(const std::filesystem::path& texturePath);
+	};
+
+	// 한 API의 texture 타입만 저장하는 공통 cache 구현을 제공한다.
+	template <typename TextureType>
+	class TextureCache : protected TextureImageLoader {
+	protected:
+		std::map<TextureKey, std::shared_ptr<TextureType>> textures;
 
 		// 캐시에 저장된 렌더러별 텍스처를 찾는다.
-		template <typename TextureType>
 		std::shared_ptr<TextureType> FindCachedTexture(const TextureKey& key) const {
 			const auto it = textures.find(key);
 			if (it == textures.end())
 				return nullptr;
-			return std::static_pointer_cast<TextureType>(it->second);
+			return it->second;
 		}
 	};
 }

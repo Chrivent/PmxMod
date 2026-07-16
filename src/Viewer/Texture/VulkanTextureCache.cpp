@@ -251,10 +251,8 @@ namespace Chrivent {
 	}
 
 	VulkanTextureCache::~VulkanTextureCache() {
-		for (const auto& texture : textures | std::views::values) {
-			const auto vulkanTexture = std::static_pointer_cast<VulkanTexture>(texture);
-			ResetTexture(*vulkanTexture);
-		}
+		for (const auto& texture : textures | std::views::values)
+			ResetTexture(*texture);
 		textures.clear();
 	}
 
@@ -266,7 +264,7 @@ namespace Chrivent {
 			texturePath,
 			clamp
 		};
-		if (const auto texture = FindCachedTexture<VulkanTexture>(cacheKey))
+		if (const auto texture = FindCachedTexture(cacheKey))
 			return *texture;
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
@@ -284,7 +282,7 @@ namespace Chrivent {
 	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice, const VkCommandPool commandPool) {
 		device = sourceDevice.device;
 		const TextureKey key{ TextureKind::White };
-		if (const auto texture = FindCachedTexture<VulkanTexture>(key))
+		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<VulkanTexture>();

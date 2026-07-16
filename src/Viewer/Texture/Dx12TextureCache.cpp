@@ -112,7 +112,7 @@ namespace Chrivent {
 
 	Dx12Texture Dx12TextureCache::Load(const Dx12Device& sourceDevice, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
-		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
+		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
@@ -130,7 +130,7 @@ namespace Chrivent {
 
 	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12Device& sourceDevice) {
 		const TextureKey key{ TextureKind::White };
-		if (const auto texture = FindCachedTexture<Dx12Texture>(key))
+		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char white[] = { 255, 255, 255, 255 };
 		const auto texture = std::make_shared<Dx12Texture>();

@@ -5,15 +5,14 @@
 namespace Chrivent {
 	OpenGlTextureCache::~OpenGlTextureCache() {
 		for (const auto& texture : textures | std::views::values) {
-			const auto openGlTexture = std::static_pointer_cast<OpenGlTexture>(texture);
-			const GLuint textureId = openGlTexture->texture;
+			const GLuint textureId = texture->texture;
 			glDeleteTextures(1, &textureId);
 		}
 	}
 
 	OpenGlTexture OpenGlTextureCache::CreateWhiteTexture() {
 		const TextureKey key{ TextureKind::White };
-		if (const auto texture = FindCachedTexture<OpenGlTexture>(key))
+		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
@@ -32,7 +31,7 @@ namespace Chrivent {
 
 	OpenGlTexture OpenGlTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
-		if (const auto texture = FindCachedTexture<OpenGlTexture>(key))
+		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
