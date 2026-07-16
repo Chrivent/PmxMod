@@ -19,7 +19,7 @@ namespace Chrivent {
 		}
 		const std::filesystem::path resourceDirectory = executablePath.parent_path() / "resource";
 		internalShaderDirectory = resourceDirectory / "internal" / "shaders";
-		defaultToonTextureDirectory = resourceDirectory / "internal" / "textures" / "toon";
+		defaultToonTextureDirectory = resourceDirectory / "internal" / "toon";
 		shaderPackagesDirectory = resourceDirectory / "shaders";
 		return true;
 	}
