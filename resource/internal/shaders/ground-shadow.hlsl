@@ -1,6 +1,3 @@
-#ifndef PMXMOD_DEFAULT_GROUND_SHADOW_HLSLI
-#define PMXMOD_DEFAULT_GROUND_SHADOW_HLSLI
-
 cbuffer VSData : register(b0) {
     float4x4 wvp;
 };
@@ -17,4 +14,12 @@ struct VSOutput {
     float4 Position : SV_POSITION;
 };
 
-#endif
+VSOutput VSMain(VSInput input) {
+    VSOutput vsOut;
+    vsOut.Position = mul(wvp, float4(input.Pos, 1.0));
+    return vsOut;
+}
+
+float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
+    return shadowColor;
+}

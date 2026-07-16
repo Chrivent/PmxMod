@@ -30,7 +30,7 @@ my-package/
 }
 ```
 
-`resource/shaders` 아래에는 설치 가능한 패키지만 둔다. `pmxmod-default` 같은 모델 셰이더 패키지는 `model`, `edge`, `ground_shadow` 역할을 각각 정확히 한 패스로 선언한다. 렌더러 구현에만 필요한 셰이더는 `resource/internal/shaders`에 두며 패키지 검색 대상에서 제외한다.
+`resource/shaders` 아래에는 설치 가능한 패키지만 둔다. 내장 모델, 엣지, 지면 그림자와 렌더러 구현에만 필요한 셰이더는 `resource/internal/shaders`에 단독 HLSL로 두며 패키지 검색 대상에서 제외한다.
 
 ## 포스트 프로세스 효과
 

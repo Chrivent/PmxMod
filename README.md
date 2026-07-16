@@ -65,7 +65,7 @@ For a custom vcpkg location, add the toolchain file to VS Code settings:
 
 ## Shader Packages
 
-Runtime shader packages are loaded from `resource/shaders/`. A package contains a `package.json` manifest and one or more HLSL effects. The default model, edge, and ground-shadow shaders live in `resource/shaders/pmxmod-default`.
+Runtime shader packages are loaded from `resource/shaders/`. A package contains a `package.json` manifest and one or more HLSL effects. The built-in model, edge, and ground-shadow shaders are standalone engine resources under `resource/internal/shaders` and are not packages.
 
 Post-process examples and stubs can be added as separate packages under `resource/shaders/`. Runtime resources are copied from `resource/` into the CMake build directory by the `SyncResources` target.
 

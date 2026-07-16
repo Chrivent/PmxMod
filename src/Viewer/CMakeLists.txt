@@ -82,6 +82,7 @@ target_sources(PmxModViewer PRIVATE
 		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
         Shader/ShaderConstants.h
+        Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp
         Shader/SceneShaderInputLayout.h
         Shader/ShaderRuntimeContract.h
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp

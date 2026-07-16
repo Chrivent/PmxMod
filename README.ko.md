@@ -65,7 +65,7 @@ vcpkg 경로가 기본값과 다르면 VS Code 설정에 toolchain 파일을 추
 
 ## 셰이더 패키지
 
-실행 중 셰이더 패키지는 `resource/shaders/`에서 로드됩니다. 패키지는 `package.json` manifest와 하나 이상의 HLSL 효과로 구성됩니다. 기본 모델, 엣지, 지면 그림자 셰이더는 `resource/shaders/pmxmod-default`에 있습니다.
+실행 중 셰이더 패키지는 `resource/shaders/`에서 로드됩니다. 패키지는 `package.json` manifest와 하나 이상의 HLSL 효과로 구성됩니다. 내장 모델, 엣지, 지면 그림자 셰이더는 패키지가 아닌 단독 엔진 자원으로 `resource/internal/shaders`에 있습니다.
 
 후처리 예제나 틀은 `resource/shaders/` 아래의 별도 패키지로 추가할 수 있습니다. 실행 리소스는 `SyncResources` 타깃이 `resource/`에서 CMake 빌드 디렉터리로 복사합니다.
 

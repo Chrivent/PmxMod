@@ -65,7 +65,7 @@ cmake --build cmake-build-release --target PmxMod
 
 ## 着色器包
 
-运行时着色器包从 `resource/shaders/` 加载。一个包由 `package.json` manifest 和一个或多个 HLSL effect 组成。默认的 model、edge 和 ground-shadow 着色器位于 `resource/shaders/pmxmod-default`。
+运行时着色器包从 `resource/shaders/` 加载。一个包由 `package.json` manifest 和一个或多个 HLSL effect 组成。内置的 model、edge 和 ground-shadow 着色器不是包，而是位于 `resource/internal/shaders` 的独立引擎资源。
 
 后处理示例或模板可以作为单独的包放在 `resource/shaders/` 下。运行时资源由 `SyncResources` 目标从 `resource/` 复制到 CMake 构建目录。
 

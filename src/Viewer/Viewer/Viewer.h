@@ -77,10 +77,6 @@ namespace Chrivent {
 		
 		// 실행 파일을 기준으로 리소스 디렉터리를 초기화한다.
 		void InitializeDirectories();
-		// 엔진 장면 입력 HLSL의 파일명과 진입점을 공통 역할 계약으로 구성한다.
-		bool LoadSceneInputShaderContract();
-		// 기본 패키지에서 모델, 엣지, 지면 그림자 패스 계약을 읽는다.
-		bool LoadBuiltInShaderContract();
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
 
@@ -101,7 +97,7 @@ namespace Chrivent {
 		virtual FrameEndResult EndFrameCore() = 0;
 		// 현재 렌더러에 맞는 초기 상태의 모델 인스턴스를 생성한다.
 		virtual std::unique_ptr<Instance> CreateInstanceCore() = 0;
-		// 리소스 디렉터리와 기본 셰이더 계약을 초기화한다.
+		// 리소스 디렉터리와 엔진 내부 셰이더 계약을 초기화한다.
 		bool InitializeShaderResources();
 		// 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.
 		void ResetPostProcessFrameHistory();

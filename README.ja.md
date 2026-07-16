@@ -65,7 +65,7 @@ vcpkg の場所が標準と異なる場合は、VS Code 設定に toolchain フ�
 
 ## シェーダーパッケージ
 
-実行時のシェーダーパッケージは `resource/shaders/` から読み込まれます。パッケージは `package.json` manifest と 1 つ以上の HLSL effect で構成されます。標準の model、edge、ground-shadow シェーダーは `resource/shaders/pmxmod-default` にあります。
+実行時のシェーダーパッケージは `resource/shaders/` から読み込まれます。パッケージは `package.json` manifest と 1 つ以上の HLSL effect で構成されます。内蔵の model、edge、ground-shadow シェーダーはパッケージではなく、単独のエンジンリソースとして `resource/internal/shaders` にあります。
 
 ポストプロセスのサンプルや雛形は、`resource/shaders/` 以下に別パッケージとして追加できます。実行時リソースは `SyncResources` ターゲットによって `resource/` から CMake のビルドディレクトリへコピーされます。
 

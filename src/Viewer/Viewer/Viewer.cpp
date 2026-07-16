@@ -2,7 +2,7 @@
 
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
-#include "Viewer/Shader/ShaderPackage.h"
+#include "Viewer/Shader/InternalShaderCatalog.h"
 
 #include <Windows.h>
 #include <iostream>
@@ -38,7 +38,12 @@ namespace Chrivent {
 
 	bool Viewer::InitializeShaderResources() {
 		InitializeDirectories();
-		return LoadSceneInputShaderContract() && LoadBuiltInShaderContract();
+		std::string error;
+		if (InternalShaderCatalog::Load(internalShaderDir,
+			builtInShaderPasses, sceneInputShaderPasses, error))
+			return true;
+		std::cerr << error << '\n';
+		return false;
 	}
 
 	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
@@ -71,33 +76,6 @@ namespace Chrivent {
 
 	bool Viewer::RequiresPostProcessVelocity() const {
 		return ResolvePostProcess().RequiresVelocity();
-	}
-
-	bool Viewer::LoadSceneInputShaderContract() {
-		const std::filesystem::path shaderPath = internalShaderDir / "scene-input.hlsl";
-		if (!std::filesystem::is_regular_file(shaderPath)) {
-			std::cerr << "Failed to find the internal scene input shader: " << shaderPath << '\n';
-			return false;
-		}
-		sceneInputShaderPasses = {};
-		sceneInputShaderPasses.depth.shaderPath = shaderPath;
-		sceneInputShaderPasses.depth.vertexEntry = "VSDepth";
-		sceneInputShaderPasses.depth.pixelEntry = "PSDepth";
-		sceneInputShaderPasses.velocity.shaderPath = shaderPath;
-		sceneInputShaderPasses.velocity.vertexEntry = "VSVelocity";
-		sceneInputShaderPasses.velocity.pixelEntry = "PSVelocity";
-		sceneInputShaderPasses.velocityInvertedY = sceneInputShaderPasses.velocity;
-		sceneInputShaderPasses.velocityInvertedY.pixelEntry = "PSVelocityInvertedY";
-		return true;
-	}
-
-	bool Viewer::LoadBuiltInShaderContract() {
-		std::string error;
-		if (BuiltInShaderContract::Load(ResolveShaderPackagesDirectory() / "pmxmod-default" / "package.json",
-			builtInShaderPasses, error))
-			return true;
-		std::cerr << error << '\n';
-		return false;
 	}
 
 	void Viewer::InitializeDirectories() {

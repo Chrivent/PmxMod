@@ -523,47 +523,4 @@ namespace Chrivent {
 		package = std::move(loaded);
 		return true;
 	}
-
-	bool BuiltInShaderContract::Load(const std::filesystem::path& manifestPath,
-		BuiltInShaderPasses& passes, std::string& error) {
-		ShaderPackage package;
-		if (!ShaderPackageParser::Load(manifestPath, package, error))
-			return false;
-		BuiltInShaderPasses loaded;
-		if (!ResolvePass(package, EffectType::Model, SceneShaderAbi::ModelV1, "model", loaded.model, error)
-			|| !ResolvePass(package, EffectType::Edge, SceneShaderAbi::EdgeV1, "edge", loaded.edge, error)
-			|| !ResolvePass(package, EffectType::GroundShadow, SceneShaderAbi::GroundShadowV1,
-				"ground shadow", loaded.groundShadow, error))
-			return false;
-		passes = std::move(loaded);
-		return true;
-	}
-
-	bool BuiltInShaderContract::ResolvePass(const ShaderPackage& package, const EffectType type,
-		const SceneShaderAbi abi, const char* role, EffectPassDefinition& pass, std::string& error) {
-		const EffectDefinition* match = nullptr;
-		for (const auto& effect : package.effects) {
-			if (effect.runtime.type != type)
-				continue;
-			if (match != nullptr) {
-				error = "Built-in shader role must be unique: " + std::string(role);
-				return false;
-			}
-			match = &effect;
-		}
-		if (match == nullptr) {
-			error = "Built-in shader role is missing: " + std::string(role);
-			return false;
-		}
-		if (match->runtime.passes.size() != 1) {
-			error = "Built-in shader role requires exactly one pass: " + std::string(role);
-			return false;
-		}
-		if (match->runtime.sceneShaderAbi != abi) {
-			error = "Built-in shader role uses an incompatible ABI: " + std::string(role);
-			return false;
-		}
-		pass = match->runtime.passes.front();
-		return true;
-	}
 }
