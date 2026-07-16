@@ -3,6 +3,7 @@
   "id": "ground-shadow",
   "name": "Default Ground Shadow",
   "type": "ground_shadow",
+  "abi": "pmxmod.scene.ground_shadow.v1",
   "passes": [
     {
       "name": "main",

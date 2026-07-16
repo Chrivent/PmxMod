@@ -8,6 +8,13 @@ namespace Chrivent {
 	struct Material;
 	class Viewer;
 
+	// 모델 셰이더에 전달할 기본, 툰, 스피어 텍스처 사용 방식을 보관한다.
+	struct MaterialTextureModes {
+		int base = 0;
+		int toon = 0;
+		int sphere = 0;
+	};
+
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
 	protected:
@@ -27,6 +34,15 @@ namespace Chrivent {
 		// 모델 패스의 공통 material 및 조명 상수를 만든다.
 		static ModelPixelConstants BuildModelPixelConstants(const Viewer& viewer, const Material& material,
 			int textureMode, int toonTextureMode, int sphereTextureMode);
+		// 재질과 실제 GPU 텍스처 보유 여부로 모델 셰이더의 텍스처 모드를 결정한다.
+		static MaterialTextureModes ResolveMaterialTextureModes(const Material& material,
+			bool baseAvailable, bool baseHasAlpha, bool toonAvailable, bool sphereAvailable);
+		// 모델 본체 패스에서 재질을 그려야 하는지 반환한다.
+		static bool ShouldDrawModelMaterial(const Material& material);
+		// 엣지 패스에서 재질을 그려야 하는지 반환한다.
+		static bool ShouldDrawEdgeMaterial(const Material& material);
+		// 지면 그림자 패스에서 재질을 그려야 하는지 반환한다.
+		static bool ShouldDrawGroundShadowMaterial(const Material& material);
 		// 엣지 패스의 공통 vertex 상수를 만든다.
 		static EdgeVertexConstants BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
 			const glm::mat4& clipMatrix, const glm::vec2& screenSize);

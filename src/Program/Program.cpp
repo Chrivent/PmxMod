@@ -326,11 +326,6 @@ namespace Chrivent {
             const size_t copyCount = std::min(shaderEffectEnabled.size(), newEnabled.size());
             for (size_t index = 0; index < copyCount; index++)
                 newEnabled[index] = shaderEffectEnabled[index];
-            for (size_t index = copyCount; index < newEnabled.size(); index++) {
-                const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
-                const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
-                newEnabled[index] = effect.runtime.type != EffectType::PostProcess;
-            }
             shaderEffectEnabled = std::move(newEnabled);
         }
         UpdateShaderPanel();
@@ -341,8 +336,10 @@ namespace Chrivent {
         shaderEffectEntries.clear();
         for (size_t packageIndex = 0; packageIndex < shaderPackages.size(); packageIndex++) {
             const auto& package = shaderPackages[packageIndex];
-            for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++)
-                shaderEffectEntries.push_back({packageIndex, effectIndex});
+            for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++) {
+                if (package.effects[effectIndex].runtime.type == EffectType::PostProcess)
+                    shaderEffectEntries.push_back({packageIndex, effectIndex});
+            }
         }
     }
 
@@ -355,44 +352,21 @@ namespace Chrivent {
             shaderNames.emplace_back(Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
         }
         panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
+        panelManager.ApplyBuiltInShaderStates(viewer->modelEffectEnabled,
+            viewer->edgeEffectEnabled, viewer->groundShadowEffectEnabled);
     }
 
     void Program::ApplyShaderEffects() const {
         if (!viewer)
             return;
-        bool hasModelEffect = false;
-        bool hasEdgeEffect = false;
-        bool hasGroundShadowEffect = false;
-        bool modelEnabled = false;
-        bool edgeEnabled = false;
-        bool groundShadowEnabled = false;
         std::vector<const EffectRuntimeDefinition*> postProcessEffects;
         for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
             const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
             const bool enabled = index < shaderEffectEnabled.size() && shaderEffectEnabled[index];
-            switch (effect.runtime.type) {
-                case EffectType::Model:
-                    hasModelEffect = true;
-                    modelEnabled = modelEnabled || enabled;
-                    break;
-                case EffectType::Edge:
-                    hasEdgeEffect = true;
-                    edgeEnabled = edgeEnabled || enabled;
-                    break;
-                case EffectType::GroundShadow:
-                    hasGroundShadowEffect = true;
-                    groundShadowEnabled = groundShadowEnabled || enabled;
-                    break;
-                case EffectType::PostProcess:
-                    if (enabled)
-                        postProcessEffects.push_back(&effect.runtime);
-                    break;
-            }
+            if (enabled && effect.runtime.type == EffectType::PostProcess)
+                postProcessEffects.push_back(&effect.runtime);
         }
-        viewer->modelEffectEnabled = !hasModelEffect || modelEnabled;
-        viewer->edgeEffectEnabled = !hasEdgeEffect || edgeEnabled;
-        viewer->groundShadowEffectEnabled = !hasGroundShadowEffect || groundShadowEnabled;
         if (viewer->LoadPostProcessEffects(postProcessEffects)) {
             std::cout << "active_post_effects=" << postProcessEffects.size() << '\n';
             return;
@@ -920,6 +894,21 @@ namespace Chrivent {
             panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
             UpdateShaderMotionPanel(selectedShaderEffectIndex);
         }
+        BuiltInShaderToggle builtInShader;
+        bool builtInShaderEnabled = false;
+        if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
+            switch (builtInShader) {
+                case BuiltInShaderToggle::Model:
+                    viewer->modelEffectEnabled = builtInShaderEnabled;
+                    break;
+                case BuiltInShaderToggle::Edge:
+                    viewer->edgeEffectEnabled = builtInShaderEnabled;
+                    break;
+                case BuiltInShaderToggle::GroundShadow:
+                    viewer->groundShadowEffectEnabled = builtInShaderEnabled;
+                    break;
+            }
+        }
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
@@ -1044,8 +1033,6 @@ namespace Chrivent {
         const FrameEndResult frameEndResult = viewer->EndFrame();
         if (frameEndResult == FrameEndResult::Failed)
             return false;
-        if (frameEndResult == FrameEndResult::Presented)
-            viewer->CommitPostProcessFrameHistory();
         const auto frameEnd = std::chrono::steady_clock::now();
         if (timing) {
             const auto Milliseconds = [](const auto start, const auto end) {

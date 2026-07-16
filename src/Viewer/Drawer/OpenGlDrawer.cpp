@@ -52,19 +52,13 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (mat.diffuse.a == 0)
+			if (!ShouldDrawModelMaterial(mat))
 				continue;
-			const int textureMode = material.texture == 0 ? 0 : material.textureHasAlpha ? 2 : 1;
-			const int toonTextureMode = material.toonTexture != 0 ? 1 : 0;
-			int sphereTextureMode = 0;
-			if (material.sphereTexture != 0) {
-				if (mat.spTextureMode == SphereMode::Mul)
-					sphereTextureMode = 1;
-				else if (mat.spTextureMode == SphereMode::Add)
-					sphereTextureMode = 2;
-			}
+			const auto [base, toon, sphere] = ResolveMaterialTextureModes(mat,
+				material.texture != 0, material.textureHasAlpha,
+				material.toonTexture != 0, material.sphereTexture != 0);
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
-				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
+				viewer, mat, base, toon, sphere);
 			GLuint baseTexture = drawContext.GetDummyColorTexture();
 			if (material.texture != 0)
 				baseTexture = material.texture;
@@ -122,9 +116,7 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (!mat.edgeFlag)
-				continue;
-			if (mat.diffuse.a == 0.0f)
+			if (!ShouldDrawEdgeMaterial(mat))
 				continue;
 			EdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
@@ -172,9 +164,7 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (!mat.groundShadow)
-				continue;
-			if (mat.diffuse.a == 0.0f)
+			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));

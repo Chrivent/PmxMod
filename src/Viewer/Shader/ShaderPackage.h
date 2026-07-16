@@ -62,6 +62,9 @@ namespace Chrivent {
 		// 후처리 effect가 b1에서 사용할 스칼라 파라미터 선언을 읽는다.
 		static bool LoadParameters(const nlohmann::json& json, const std::filesystem::path& manifestPath,
 			std::vector<EffectParameterDefinition>& parameters, std::string& error);
+		// 장면 셰이더 역할에 맞는 고정 ABI 이름을 읽고 검증한다.
+		static bool LoadSceneShaderAbi(const nlohmann::json& json, const std::filesystem::path& manifestPath,
+			EffectType type, SceneShaderAbi& abi, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error);
@@ -80,7 +83,7 @@ namespace Chrivent {
 
 	private:
 		// 지정한 역할의 이펙트가 하나의 패스로 유일하게 선언됐는지 확인한다.
-		static bool ResolvePass(const ShaderPackage& package, EffectType type, const char* role,
+		static bool ResolvePass(const ShaderPackage& package, EffectType type, SceneShaderAbi abi, const char* role,
 			EffectPassDefinition& pass, std::string& error);
 	};
 }

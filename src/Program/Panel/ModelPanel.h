@@ -57,7 +57,7 @@ namespace Chrivent {
 		// 현재 언어에 맞춰 Add 버튼 문구를 갱신한다.
 		void UpdateLanguage() override;
 		// 모델 패널의 버튼과 목록 표시 상태를 갱신한다.
-		void UpdateVisibility(bool visible) const;
+		void UpdateVisibility(bool visible) const override;
 		// 재생 상태에 따라 모델 추가/삭제와 모션 선택을 잠근다.
 		void ApplyPlaybackState(bool isPlaying);
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.

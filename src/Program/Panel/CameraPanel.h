@@ -3,10 +3,18 @@
 #include "Program/Panel/Panel.h"
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace Chrivent {
+	// 카메라 패널에서 직접 켜고 끌 수 있는 내장 장면 셰이더를 구분한다.
+	enum class BuiltInShaderToggle {
+		Model,
+		Edge,
+		GroundShadow
+	};
+
 	// 카메라 모션과 셰이더 이펙트 목록을 표시하고 선택을 전달한다.
 	class CameraPanel final : public Panel {
 		static constexpr int kCameraMotionRow = 0;
@@ -15,16 +23,27 @@ namespace Chrivent {
 		UINT_PTR addCameraButtonId = 0;
 		UINT_PTR deleteCameraButtonId = 0;
 		UINT_PTR shaderListId = 0;
+		UINT_PTR modelShaderCheckId = 0;
+		UINT_PTR edgeShaderCheckId = 0;
+		UINT_PTR groundShadowShaderCheckId = 0;
 		int selectedListIndex = kCameraMotionRow;
 		int selectedShaderIndex = -1;
 		int pendingSelectedShaderIndex = -1;
+		std::optional<BuiltInShaderToggle> pendingBuiltInShaderToggle;
 		bool pendingShaderEffectEnabled = true;
+		bool pendingBuiltInShaderEnabled = true;
+		bool modelShaderEnabled = true;
+		bool edgeShaderEnabled = true;
+		bool groundShadowShaderEnabled = true;
 		bool updatingShaderList = false;
 		bool pendingDeleteCameraMotion = false;
 		bool pendingCameraMotionSelected = false;
 		HWND parentWindow = nullptr;
 		HWND addCameraButton = nullptr;
 		HWND deleteCameraButton = nullptr;
+		HWND modelShaderCheck = nullptr;
+		HWND edgeShaderCheck = nullptr;
+		HWND groundShadowShaderCheck = nullptr;
 		HWND shaderList = nullptr;
 		std::filesystem::path cameraMotionPath;
 		std::filesystem::path pendingCameraMotionPath;
@@ -43,6 +62,8 @@ namespace Chrivent {
 		void ApplyShaderListTheme() const;
 		// 셰이더 목록에서 선택하거나 체크한 항목을 대기 요청으로 기록한다.
 		void QueueShaderSelection(int shaderIndex, bool enabled);
+		// 내장 장면 셰이더 체크 상태를 대기 요청으로 기록한다.
+		void QueueBuiltInShaderToggle(BuiltInShaderToggle shader, bool enabled);
 		// 카메라 모션 행 선택 요청을 기록한다.
 		void QueueCameraMotionSelection();
 
@@ -50,10 +71,14 @@ namespace Chrivent {
 		CameraPanel() = default;
 
 		// 카메라 모션 버튼과 셰이더 목록의 컨트롤 ID를 적용한다.
-		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR deleteId, const UINT_PTR listId) {
+		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR deleteId, const UINT_PTR listId,
+			const UINT_PTR modelCheckId, const UINT_PTR edgeCheckId, const UINT_PTR groundShadowCheckId) {
 			addCameraButtonId = addId;
 			deleteCameraButtonId = deleteId;
 			shaderListId = listId;
+			modelShaderCheckId = modelCheckId;
+			edgeShaderCheckId = edgeCheckId;
+			groundShadowShaderCheckId = groundShadowCheckId;
 		}
 
 		// 부모 윈도우 아래에 카메라 패널 컨트롤을 생성한다.
@@ -61,7 +86,7 @@ namespace Chrivent {
 		// 패널 크기에 맞춰 카메라 모션과 셰이더 목록 배치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
 		// 카메라 패널의 컨트롤 표시 상태를 갱신한다.
-		void UpdateVisibility(bool visible) const;
+		void UpdateVisibility(bool visible) const override;
 		// 재생 상태에 따라 카메라 모션 추가/삭제를 잠근다.
 		void ApplyPlaybackState(bool isPlaying);
 		// 현재 언어에 맞춰 버튼 문구와 카메라 모션 표시를 갱신한다.
@@ -74,6 +99,8 @@ namespace Chrivent {
 		void Destroy() override;
 		// 선택된 셰이더 인덱스를 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeSelectedShaderIndex(size_t& shaderIndex, bool& enabled);
+		// 변경된 내장 장면 셰이더와 체크 상태를 반환한다.
+		bool ConsumeBuiltInShaderToggle(BuiltInShaderToggle& shader, bool& enabled);
 		// 카메라 모션 행 선택 요청을 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeCameraMotionSelected();
 		// 추가한 카메라 모션 경로를 반환하고 대기 중인 요청을 초기화한다.
@@ -84,5 +111,7 @@ namespace Chrivent {
 		void UpdateCameraMotionPath(const std::filesystem::path& motionPath);
 		// 검색된 셰이더 이름과 현재 선택을 패널에 반영한다.
 		void UpdateShaderNames(const std::vector<std::wstring>& names, size_t selectedIndex, const std::vector<bool>& enabledStates);
+		// 내장 모델·엣지·지면 그림자 셰이더의 체크 상태를 반영한다.
+		void UpdateBuiltInShaderStates(bool modelEnabled, bool edgeEnabled, bool groundShadowEnabled);
 	};
 }

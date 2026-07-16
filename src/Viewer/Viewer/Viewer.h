@@ -81,6 +81,8 @@ namespace Chrivent {
 		bool LoadSceneInputShaderContract();
 		// 기본 패키지에서 모델, 엣지, 지면 그림자 패스 계약을 읽는다.
 		bool LoadBuiltInShaderContract();
+		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
+		void CommitPostProcessFrameHistory();
 
 	protected:
 		BuiltInShaderPasses builtInShaderPasses;
@@ -95,6 +97,8 @@ namespace Chrivent {
 		virtual bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) = 0;
 		// API별 후처리 장면 입력 패스 기록을 시작한다.
 		virtual bool BeginPostProcessSceneInputPassCore() = 0;
+		// API별 프레임 제출과 화면 표시 결과를 반환한다.
+		virtual FrameEndResult EndFrameCore() = 0;
 		// 현재 렌더러에 맞는 초기 상태의 모델 인스턴스를 생성한다.
 		virtual std::unique_ptr<Instance> CreateInstanceCore() = 0;
 		// 리소스 디렉터리와 기본 셰이더 계약을 초기화한다.
@@ -131,8 +135,8 @@ namespace Chrivent {
 		virtual bool Resize() = 0;
 		// 한 프레임의 렌더링 시작 상태를 준비하고 기록 가능 여부를 반환한다.
 		virtual FrameBeginResult BeginFrame() = 0;
-		// 한 프레임의 렌더링을 종료하고 표시 결과를 제출한다.
-		virtual FrameEndResult EndFrame() = 0;
+		// 한 프레임을 제출하고 표시 결과에 맞춰 시간 기반 히스토리를 확정한다.
+		FrameEndResult EndFrame();
 		// 후처리 요구 입력을 확인하고 장면 depth와 velocity 입력 패스를 시작한다.
 		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass();
 		// 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
@@ -165,7 +169,5 @@ namespace Chrivent {
 		void ResetPostProcessHistory();
 		// 활성 후처리 효과가 장면 속도 입력을 요구하는지 반환한다.
 		bool RequiresPostProcessVelocity() const;
-		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
-		void CommitPostProcessFrameHistory();
 	};
 }

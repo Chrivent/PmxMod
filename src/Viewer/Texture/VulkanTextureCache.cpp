@@ -7,58 +7,6 @@
 #include <ranges>
 
 namespace Chrivent {
-	bool VulkanTextureCache::BeginSingleTimeCommands(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
-		VkCommandBuffer& commandBuffer) {
-		VkCommandBufferAllocateInfo allocateInfo{};
-		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocateInfo.commandPool = commandPool;
-		allocateInfo.commandBufferCount = 1;
-		if (vkAllocateCommandBuffers(sourceDevice.device, &allocateInfo, &commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan texture command buffer.\n";
-			return false;
-		}
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-			std::cerr << "Failed to begin Vulkan texture command buffer.\n";
-			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
-			commandBuffer = VK_NULL_HANDLE;
-			return false;
-		}
-		return true;
-	}
-
-	bool VulkanTextureCache::EndSingleTimeCommands(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
-		const VkCommandBuffer commandBuffer) {
-		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Failed to record Vulkan texture command buffer.\n";
-			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
-			return false;
-		}
-		const VkCommandBufferSubmitInfo commandBufferInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-			.commandBuffer = commandBuffer
-		};
-		const VkSubmitInfo2 submitInfo{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-			.commandBufferInfoCount = 1,
-			.pCommandBufferInfos = &commandBufferInfo
-		};
-		if (vkQueueSubmit2(sourceDevice.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-			std::cerr << "Failed to submit Vulkan texture command buffer.\n";
-			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
-			return false;
-		}
-		if (vkQueueWaitIdle(sourceDevice.graphicsQueue) != VK_SUCCESS) {
-			vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
-			return false;
-		}
-		vkFreeCommandBuffers(sourceDevice.device, commandPool, 1, &commandBuffer);
-		return true;
-	}
-
 	void VulkanTextureCache::TransitionImageLayout(const VkCommandBuffer commandBuffer, const VkImage image,
 		const VkImageLayout oldLayout, const VkImageLayout newLayout) {
 		VkImageMemoryBarrier2 barrier{};
@@ -107,7 +55,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& sourceDevice, const VkCommandPool commandPool,
-		const unsigned char* pixels, const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) const {
+		const unsigned char* pixels, const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
 		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(sourceDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -122,14 +70,14 @@ namespace Chrivent {
 			return false;
 		}
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-		if (!BeginSingleTimeCommands(sourceDevice, commandPool, commandBuffer)) {
+		if (!uploadContext.Begin(sourceDevice, commandPool, commandBuffer)) {
 			ResetTexture(texture);
 			return false;
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		CopyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		if (!EndSingleTimeCommands(sourceDevice, commandPool, commandBuffer)) {
+		if (!uploadContext.SubmitAndWait(sourceDevice)) {
 			ResetTexture(texture);
 			return false;
 		}

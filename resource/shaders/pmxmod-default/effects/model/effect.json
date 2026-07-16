@@ -3,6 +3,7 @@
   "id": "model",
   "name": "Default Model",
   "type": "model",
+  "abi": "pmxmod.scene.model.v1",
   "passes": [
     {
       "name": "main",

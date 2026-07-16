@@ -2,6 +2,7 @@
 
 #include "Viewer/Pipeline/Dx12PipelineBuilder.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
+#include "Viewer/Shader/SceneShaderInputLayout.h"
 
 #include <cstddef>
 #include <iostream>
@@ -34,23 +35,23 @@ namespace Chrivent {
 			return false;
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		srvRange.NumDescriptors = 3;
-		srvRange.BaseShaderRegister = 0;
+		srvRange.NumDescriptors = SceneShaderInputLayout::textureCount;
+		srvRange.BaseShaderRegister = SceneShaderInputLayout::baseTextureRegister;
 		srvRange.RegisterSpace = 0;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Descriptor.ShaderRegister = 0;
+		rootParameters[0].Descriptor.ShaderRegister = SceneShaderInputLayout::vertexConstantRegister;
 		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[1].Descriptor.ShaderRegister = 1;
+		rootParameters[1].Descriptor.ShaderRegister = SceneShaderInputLayout::pixelConstantRegister;
 		rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
 		rootParameters[2].DescriptorTable.pDescriptorRanges = &srvRange;
-		D3D12_STATIC_SAMPLER_DESC samplers[3]{};
-		for (UINT index = 0; index < 3; index++) {
+		D3D12_STATIC_SAMPLER_DESC samplers[SceneShaderInputLayout::samplerCount]{};
+		for (UINT index = 0; index < SceneShaderInputLayout::samplerCount; index++) {
 			auto& [Filter, AddressU, AddressV, AddressW,
 				MipLODBias, MaxAnisotropy, ComparisonFunc, BorderColor,
 				MinLOD, MaxLOD, ShaderRegister, RegisterSpace,
@@ -75,7 +76,7 @@ namespace Chrivent {
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.NumParameters = 3;
 		rootSignatureDesc.pParameters = rootParameters;
-		rootSignatureDesc.NumStaticSamplers = 3;
+		rootSignatureDesc.NumStaticSamplers = SceneShaderInputLayout::samplerCount;
 		rootSignatureDesc.pStaticSamplers = samplers;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, rootSignatureDesc, modelRootSignature);
@@ -203,10 +204,10 @@ namespace Chrivent {
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Descriptor.ShaderRegister = 0;
+		rootParameters[0].Descriptor.ShaderRegister = SceneShaderInputLayout::vertexConstantRegister;
 		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[1].Descriptor.ShaderRegister = 1;
+		rootParameters[1].Descriptor.ShaderRegister = SceneShaderInputLayout::pixelConstantRegister;
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.NumParameters = 2;
 		rootSignatureDesc.pParameters = rootParameters;
@@ -255,10 +256,10 @@ namespace Chrivent {
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Descriptor.ShaderRegister = 0;
+		rootParameters[0].Descriptor.ShaderRegister = SceneShaderInputLayout::vertexConstantRegister;
 		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[1].Descriptor.ShaderRegister = 1;
+		rootParameters[1].Descriptor.ShaderRegister = SceneShaderInputLayout::pixelConstantRegister;
 		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.NumParameters = 2;
 		rootSignatureDesc.pParameters = rootParameters;

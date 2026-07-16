@@ -13,10 +13,13 @@ namespace Chrivent {
 
 	void PanelManager::UpdateSidePanelVisibility() {
 		const bool cameraMode = IsCameraMode();
-		modelPanel.UpdateVisibility(!cameraMode);
-		cameraPanel.UpdateVisibility(cameraMode);
-		panelWindow.UpdatePanelVisibility(modelPanel, !cameraMode);
-		panelWindow.UpdatePanelVisibility(cameraPanel, cameraMode);
+		if (cameraMode) {
+			panelWindow.UpdatePanelVisibility(modelPanel, false);
+			panelWindow.UpdatePanelVisibility(cameraPanel, true);
+		} else {
+			panelWindow.UpdatePanelVisibility(cameraPanel, false);
+			panelWindow.UpdatePanelVisibility(modelPanel, true);
+		}
 	}
 
 	PanelManager::PanelManager() : menuBar(sceneConfigStorage) {
@@ -31,7 +34,8 @@ namespace Chrivent {
 		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.ApplyControlIds(kModelAddButtonId, kModelDeleteButtonId, kModelListId);
-		cameraPanel.ApplyControlIds(kCameraAddMotionButtonId, kCameraDeleteMotionButtonId, kCameraShaderListId);
+		cameraPanel.ApplyControlIds(kCameraAddMotionButtonId, kCameraDeleteMotionButtonId, kCameraShaderListId,
+			kCameraModelShaderCheckId, kCameraEdgeShaderCheckId, kCameraGroundShadowShaderCheckId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
 		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);

@@ -68,19 +68,13 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (mat.diffuse.a == 0)
+			if (!ShouldDrawModelMaterial(mat))
 				continue;
-			const int textureMode = material.texture.texture ? material.texture.hasAlpha ? 2 : 1 : 0;
-			const int toonTextureMode = material.toonTexture.texture ? 1 : 0;
-			int spMode = 0;
-			if (material.sphereTexture.texture) {
-				if (mat.spTextureMode == SphereMode::Mul)
-					spMode = 1;
-				else if (mat.spTextureMode == SphereMode::Add)
-					spMode = 2;
-			}
+			const auto [base, toon, sphere] = ResolveMaterialTextureModes(mat,
+				material.texture.texture != nullptr, material.texture.hasAlpha,
+				material.toonTexture.texture != nullptr, material.sphereTexture.texture != nullptr);
 			const ModelPixelConstants psCb = BuildModelPixelConstants(
-				viewer, mat, textureMode, toonTextureMode, spMode);
+				viewer, mat, base, toon, sphere);
 			BindTexture(0, material.texture, drawContext.GetPipelineStates().textureSampler.Get(),
 				boundViews[0], boundSamplers[0]);
 			BindTexture(1, material.toonTexture, drawContext.GetPipelineStates().toonTextureSampler.Get(),
@@ -132,9 +126,7 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (!mat.edgeFlag)
-				continue;
-			if (mat.diffuse.a == 0)
+			if (!ShouldDrawEdgeMaterial(mat))
 				continue;
 			vsCb1.edgeSize = mat.edgeSize;
 			drawContext.GetDeviceContext()->UpdateSubresource(
@@ -185,9 +177,7 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
-			if (!mat.groundShadow)
-				continue;
-			if (mat.diffuse.a == 0)
+			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}

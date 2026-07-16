@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Viewer/Shader/SceneShaderInputLayout.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -75,6 +77,7 @@ namespace Chrivent {
 	// API가 소비하는 효과 역할과 리소스 및 패스 실행 계약을 나타낸다.
 	struct EffectRuntimeDefinition {
 		EffectType type = EffectType::PostProcess;
+		SceneShaderAbi sceneShaderAbi = SceneShaderAbi::None;
 		std::vector<std::string> inputs;
 		std::vector<EffectParameterDefinition> parameters;
 		std::vector<EffectResourceDefinition> resources;

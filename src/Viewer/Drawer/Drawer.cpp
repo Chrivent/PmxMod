@@ -49,6 +49,33 @@ namespace Chrivent {
 		};
 	}
 
+	MaterialTextureModes Drawer::ResolveMaterialTextureModes(const Material& material,
+		const bool baseAvailable, const bool baseHasAlpha, const bool toonAvailable,
+		const bool sphereAvailable) {
+		MaterialTextureModes modes;
+		modes.base = baseAvailable ? baseHasAlpha ? 2 : 1 : 0;
+		modes.toon = toonAvailable ? 1 : 0;
+		if (sphereAvailable) {
+			if (material.spTextureMode == SphereMode::Mul)
+				modes.sphere = 1;
+			else if (material.spTextureMode == SphereMode::Add)
+				modes.sphere = 2;
+		}
+		return modes;
+	}
+
+	bool Drawer::ShouldDrawModelMaterial(const Material& material) {
+		return material.diffuse.a != 0.0f;
+	}
+
+	bool Drawer::ShouldDrawEdgeMaterial(const Material& material) {
+		return material.edgeFlag && ShouldDrawModelMaterial(material);
+	}
+
+	bool Drawer::ShouldDrawGroundShadowMaterial(const Material& material) {
+		return material.groundShadow && ShouldDrawModelMaterial(material);
+	}
+
 	EdgeVertexConstants Drawer::BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
 		const glm::mat4& clipMatrix, const glm::vec2& screenSize) {
 		return {

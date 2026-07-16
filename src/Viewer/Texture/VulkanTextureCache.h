@@ -2,6 +2,7 @@
 
 #include "Viewer/Texture/TextureCache.h"
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/Texture/VulkanTextureUploadContext.h"
 
 #include <filesystem>
 
@@ -21,17 +22,14 @@ namespace Chrivent {
 	// 이미지 파일을 Vulkan texture로 업로드하고 공통 키로 재사용한다.
 	class VulkanTextureCache : public TextureCache<VulkanTexture> {
 		VkDevice device = VK_NULL_HANDLE;
+		VulkanTextureUploadContext uploadContext;
 
-		// 일회성 복사/레이아웃 전환용 command buffer 기록을 시작한다.
-		static bool BeginSingleTimeCommands(const VulkanDevice& sourceDevice, VkCommandPool commandPool, VkCommandBuffer& commandBuffer);
-		// 일회성 command buffer를 제출하고 해제한다.
-		static bool EndSingleTimeCommands(const VulkanDevice& sourceDevice, VkCommandPool commandPool, VkCommandBuffer commandBuffer);
 		// 이미지 레이아웃 전환 명령을 기록한다.
 		static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
 		// staging buffer에서 Vulkan image로 픽셀 데이터를 복사한다.
 		static void CopyBufferToImage(VkCommandBuffer commandBuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 		// RGBA 픽셀 데이터를 Vulkan texture로 업로드한다.
-		bool UploadRgbaPixels(const VulkanDevice& sourceDevice, VkCommandPool commandPool, const unsigned char* pixels, uint32_t width, uint32_t height, VulkanTexture& texture, bool clamp) const;
+		bool UploadRgbaPixels(const VulkanDevice& sourceDevice, VkCommandPool commandPool, const unsigned char* pixels, uint32_t width, uint32_t height, VulkanTexture& texture, bool clamp);
 		// Vulkan image와 전용 메모리를 생성한다.
 		static bool CreateImage(const VulkanDevice& sourceDevice, uint32_t width, uint32_t height, VkImage& image, VkDeviceMemory& imageMemory);
 		// shader resource로 사용할 image view를 생성한다.

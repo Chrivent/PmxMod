@@ -28,6 +28,7 @@ target_sources(PmxModViewer PRIVATE
         Descriptor/VulkanPostProcessDescriptors.h Descriptor/VulkanPostProcessDescriptors.cpp
 
         Device/GraphicsCapabilities.h Device/GraphicsCapabilities.cpp
+        Device/Dx11Device.h Device/Dx11Device.cpp
         Device/Dx12Device.h Device/Dx12Device.cpp
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
@@ -57,6 +58,7 @@ target_sources(PmxModViewer PRIVATE
 
         Memory/VulkanMemory.h Memory/VulkanMemory.cpp
 
+        Pipeline/Dx11Pipeline.h Pipeline/Dx11Pipeline.cpp
         Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
         Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
@@ -67,8 +69,11 @@ target_sources(PmxModViewer PRIVATE
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
         PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
         PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
+        PostProcess/Dx12PostProcessPipelines.h PostProcess/Dx12PostProcessPipelines.cpp
         PostProcess/VulkanPostProcess.h PostProcess/VulkanPostProcess.cpp
+        PostProcess/VulkanPostProcessPipelines.h PostProcess/VulkanPostProcessPipelines.cpp
 
+        RenderTarget/Dx11RenderTargets.h RenderTarget/Dx11RenderTargets.cpp
         RenderTarget/Dx12DepthBuffer.h RenderTarget/Dx12DepthBuffer.cpp
         RenderTarget/Dx12MsaaColorBuffer.h RenderTarget/Dx12MsaaColorBuffer.cpp
         RenderTarget/Dx12PostProcessTarget.h RenderTarget/Dx12PostProcessTarget.cpp
@@ -77,6 +82,7 @@ target_sources(PmxModViewer PRIVATE
 		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
         Shader/ShaderConstants.h
+        Shader/SceneShaderInputLayout.h
         Shader/ShaderRuntimeContract.h
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
         Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
@@ -98,7 +104,9 @@ target_sources(PmxModViewer PRIVATE
         Texture/OpenGlTextureCache.h Texture/OpenGlTextureCache.cpp
         Texture/Dx11TextureCache.h Texture/Dx11TextureCache.cpp
         Texture/Dx12TextureCache.h Texture/Dx12TextureCache.cpp
+        Texture/Dx12TextureUploadContext.h Texture/Dx12TextureUploadContext.cpp
         Texture/VulkanTextureCache.h Texture/VulkanTextureCache.cpp
+        Texture/VulkanTextureUploadContext.h Texture/VulkanTextureUploadContext.cpp
 
         Viewer/Viewer.h Viewer/Viewer.cpp
         Viewer/OpenGlViewer.h Viewer/OpenGlViewer.cpp

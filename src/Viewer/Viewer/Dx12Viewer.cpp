@@ -107,7 +107,7 @@ namespace Chrivent {
 		return FrameBeginResult::Ready;
 	}
 
-	FrameEndResult Dx12Viewer::EndFrame() {
+	FrameEndResult Dx12Viewer::EndFrameCore() {
 		if (!frameReady)
 			return FrameEndResult::Failed;
 		frameReady = false;
@@ -123,19 +123,12 @@ namespace Chrivent {
 		else
 			drawSucceeded = msaaColorBuffer.ResolveToBackBuffer(
 				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
-		if (!commandContext.Execute(device)) {
-			postProcess.DiscardHistoryFrame();
+		if (!commandContext.Execute(device))
 			return FrameEndResult::Failed;
-		}
-		if (!swapChain.Present()) {
-			postProcess.DiscardHistoryFrame();
+		if (!swapChain.Present())
 			return FrameEndResult::Failed;
-		}
-		if (!drawSucceeded) {
-			postProcess.DiscardHistoryFrame();
+		if (!drawSucceeded)
 			return FrameEndResult::Failed;
-		}
-		postProcess.CommitHistoryFrame();
 		return FrameEndResult::Presented;
 	}
 

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Viewer/Shader/SceneShaderInputLayout.h"
+
 #include <cstdint>
 
 namespace Chrivent {
@@ -18,9 +20,9 @@ namespace Chrivent {
 		static constexpr uint32_t parameterDataSet = 1;
 		static constexpr uint32_t parameterDataBinding = 0;
 		static constexpr uint32_t textureSet = 2;
-		static constexpr uint32_t sceneTextureCount = 3;
+		static constexpr uint32_t sceneTextureCount = SceneShaderInputLayout::textureCount;
 		static constexpr uint32_t postProcessTextureCount = 8;
-		static constexpr uint32_t samplerCount = 3;
+		static constexpr uint32_t samplerCount = SceneShaderInputLayout::samplerCount;
 
 		// 선택한 입력 계약이 허용하는 texture register 수를 반환한다.
 		static constexpr uint32_t ResolveTextureCount(const SpirvBindingProfile profile) {

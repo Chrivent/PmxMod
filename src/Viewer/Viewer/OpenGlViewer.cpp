@@ -119,13 +119,10 @@ namespace Chrivent {
 		return FrameBeginResult::Ready;
 	}
 
-	FrameEndResult OpenGlViewer::EndFrame() {
-		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData())) {
-			postProcess.DiscardHistoryFrame();
+	FrameEndResult OpenGlViewer::EndFrameCore() {
+		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData()))
 			return FrameEndResult::Failed;
-		}
 		glfwSwapBuffers(window);
-		postProcess.CommitHistoryFrame();
 		return FrameEndResult::Presented;
 	}
 

@@ -44,6 +44,8 @@ namespace Chrivent {
 		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX12 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
+		// DX12 command list 제출과 Present 결과를 반환한다.
+		FrameEndResult EndFrameCore() override;
 		// 초기 상태의 DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
@@ -63,8 +65,6 @@ namespace Chrivent {
 		bool Resize() override;
 		// DX12 프레임 렌더링을 시작한다.
 		FrameBeginResult BeginFrame() override;
-		// DX12 프레임을 제출하고 화면에 표시한다.
-		FrameEndResult EndFrame() override;
 		// DX12 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPass() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.

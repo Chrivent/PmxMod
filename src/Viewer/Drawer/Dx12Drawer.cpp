@@ -44,20 +44,14 @@ namespace Chrivent {
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const Dx12ModelMaterial& material = resources.materials[materialId];
 			const auto& mat = material.material;
-			if (mat.diffuse.a == 0.0f)
+			if (!ShouldDrawModelMaterial(mat))
 				continue;
 			drawContext.BindModelPipeline(mat.bothFace);
-			const int textureMode = material.texture.resource ? material.texture.hasAlpha ? 2 : 1 : 0;
-			const int toonTextureMode = material.toonTexture.resource ? 1 : 0;
-			int sphereTextureMode = 0;
-			if (material.sphereTexture.resource) {
-				if (mat.spTextureMode == SphereMode::Mul)
-					sphereTextureMode = 1;
-				else if (mat.spTextureMode == SphereMode::Add)
-					sphereTextureMode = 2;
-			}
+			const auto [base, toon, sphere] = ResolveMaterialTextureModes(mat,
+				material.texture.resource != nullptr, material.texture.hasAlpha,
+				material.toonTexture.resource != nullptr, material.sphereTexture.resource != nullptr);
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
-				viewer, mat, textureMode, toonTextureMode, sphereTextureMode);
+				viewer, mat, base, toon, sphere);
 			const Dx12Buffer& pixelConstantBuffer = resources.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
@@ -87,7 +81,7 @@ namespace Chrivent {
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& mat = resources.materials[materialId].material;
-			if (!mat.edgeFlag || mat.diffuse.a == 0.0f)
+			if (!ShouldDrawEdgeMaterial(mat))
 				continue;
 			vertexConstants.edgeSize = mat.edgeSize;
 			const Dx12Buffer& vertexConstantBuffer = resources.edgeVertexConstantBuffers[materialId][frameIndex];
@@ -139,7 +133,7 @@ namespace Chrivent {
 		commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.ResolveGpuAddress());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& mat = resources.materials[materialId].material;
-			if (!mat.groundShadow || mat.diffuse.a == 0.0f)
+			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}

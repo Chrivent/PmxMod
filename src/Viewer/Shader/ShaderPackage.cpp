@@ -292,6 +292,37 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool ShaderPackageParser::LoadSceneShaderAbi(const nlohmann::json& json,
+		const std::filesystem::path& manifestPath, const EffectType type,
+		SceneShaderAbi& abi, std::string& error) {
+		std::string abiName;
+		if (!ReadRequiredString(json, "abi", abiName, error)) {
+			error += " in " + manifestPath.string();
+			return false;
+		}
+		const char* expectedName = nullptr;
+		switch (type) {
+			case EffectType::Model:
+				abi = SceneShaderAbi::ModelV1;
+				expectedName = SceneShaderInputLayout::modelAbi;
+				break;
+			case EffectType::Edge:
+				abi = SceneShaderAbi::EdgeV1;
+				expectedName = SceneShaderInputLayout::edgeAbi;
+				break;
+			case EffectType::GroundShadow:
+				abi = SceneShaderAbi::GroundShadowV1;
+				expectedName = SceneShaderInputLayout::groundShadowAbi;
+				break;
+			case EffectType::PostProcess:
+				return false;
+		}
+		if (abiName == expectedName)
+			return true;
+		error = "Scene shader ABI does not match its effect type: " + abiName + " in " + manifestPath.string();
+		return false;
+	}
+
 	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot,
 		const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error) {
 		nlohmann::json effectJson;
@@ -306,7 +337,7 @@ namespace Chrivent {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		auto& [type, inputs, parameters, resources, passes] = effect.runtime;
+		auto& [type, sceneShaderAbi, inputs, parameters, resources, passes] = effect.runtime;
 		std::string typeName;
 		if (!ReadRequiredString(effectJson, "type", typeName, error)) {
 			error += " in " + manifestPath.string();
@@ -325,6 +356,9 @@ namespace Chrivent {
 			return false;
 		}
 		const bool isPostProcess = type == EffectType::PostProcess;
+		sceneShaderAbi = SceneShaderAbi::None;
+		if (!isPostProcess && !LoadSceneShaderAbi(effectJson, manifestPath, type, sceneShaderAbi, error))
+			return false;
 		inputs.clear();
 		if (isPostProcess) {
 			const auto inputValues = effectJson.find("inputs");
@@ -496,16 +530,17 @@ namespace Chrivent {
 		if (!ShaderPackageParser::Load(manifestPath, package, error))
 			return false;
 		BuiltInShaderPasses loaded;
-		if (!ResolvePass(package, EffectType::Model, "model", loaded.model, error)
-			|| !ResolvePass(package, EffectType::Edge, "edge", loaded.edge, error)
-			|| !ResolvePass(package, EffectType::GroundShadow, "ground shadow", loaded.groundShadow, error))
+		if (!ResolvePass(package, EffectType::Model, SceneShaderAbi::ModelV1, "model", loaded.model, error)
+			|| !ResolvePass(package, EffectType::Edge, SceneShaderAbi::EdgeV1, "edge", loaded.edge, error)
+			|| !ResolvePass(package, EffectType::GroundShadow, SceneShaderAbi::GroundShadowV1,
+				"ground shadow", loaded.groundShadow, error))
 			return false;
 		passes = std::move(loaded);
 		return true;
 	}
 
 	bool BuiltInShaderContract::ResolvePass(const ShaderPackage& package, const EffectType type,
-		const char* role, EffectPassDefinition& pass, std::string& error) {
+		const SceneShaderAbi abi, const char* role, EffectPassDefinition& pass, std::string& error) {
 		const EffectDefinition* match = nullptr;
 		for (const auto& effect : package.effects) {
 			if (effect.runtime.type != type)
@@ -522,6 +557,10 @@ namespace Chrivent {
 		}
 		if (match->runtime.passes.size() != 1) {
 			error = "Built-in shader role requires exactly one pass: " + std::string(role);
+			return false;
+		}
+		if (match->runtime.sceneShaderAbi != abi) {
+			error = "Built-in shader role uses an incompatible ABI: " + std::string(role);
 			return false;
 		}
 		pass = match->runtime.passes.front();

@@ -2,6 +2,7 @@
 
 #include "Viewer/Texture/TextureCache.h"
 #include "Viewer/Device/Dx12Device.h"
+#include "Viewer/Texture/Dx12TextureUploadContext.h"
 
 #include <filesystem>
 #include <wrl/client.h>
@@ -19,8 +20,10 @@ namespace Chrivent {
 
 	// 이미지 파일을 D3D12 texture로 업로드하고 공통 키로 재사용한다.
 	class Dx12TextureCache : public TextureCache<Dx12Texture> {
+		Dx12TextureUploadContext uploadContext;
+
 		// RGBA 픽셀을 DX12 texture resource로 업로드한다.
-		static bool UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
+		bool UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
 			UINT width, UINT height, Dx12Texture& texture);
 
 	public:

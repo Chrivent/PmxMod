@@ -188,6 +188,7 @@ namespace Chrivent {
 			GuiTheme::ApplyControl(entry.frame);
 			entry.panel->Create(window);
 			ShowWindow(entry.frame, entry.visible ? SW_SHOW : SW_HIDE);
+			entry.panel->UpdateVisibility(entry.visible);
 		}
 	}
 
@@ -379,7 +380,10 @@ namespace Chrivent {
 			entry.bounds = {};
 			if (entry.frame)
 				ShowWindow(entry.frame, visible ? SW_SHOW : SW_HIDE);
+			entry.panel->UpdateVisibility(visible);
 			LayoutPanels();
+			RedrawWindow(window, nullptr, nullptr,
+				RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 			return;
 		}
 	}

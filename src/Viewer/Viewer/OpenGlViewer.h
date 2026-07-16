@@ -38,6 +38,8 @@ namespace Chrivent {
         bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// OpenGL 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
+        // OpenGL 버퍼 교체 결과를 반환한다.
+        FrameEndResult EndFrameCore() override;
         // 초기 상태의 OpenGL 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstanceCore() override;
 
@@ -54,8 +56,6 @@ namespace Chrivent {
         bool Resize() override;
         // 컬러/깊이 버퍼를 지우고 프레임 렌더링을 시작한다.
         FrameBeginResult BeginFrame() override;
-        // GLFW 버퍼를 교체하고 이벤트 처리를 진행한다.
-        FrameEndResult EndFrame() override;
         // OpenGL 후처리 장면 입력 패스를 종료한다.
         bool EndPostProcessSceneInputPass() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.

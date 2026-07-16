@@ -99,7 +99,7 @@ namespace Chrivent {
 		return FrameBeginResult::Ready;
 	}
 
-	FrameEndResult VulkanViewer::EndFrame() {
+	FrameEndResult VulkanViewer::EndFrameCore() {
 		if (!frameReady)
 			return FrameEndResult::Failed;
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
@@ -116,7 +116,6 @@ namespace Chrivent {
 			return FrameEndResult::Failed;
 		const VkCommandBuffer commandBuffer = commandContext.commandBuffer.ResolveCommandBuffer(currentImageIndex);
 		if (!syncObject.Submit(device.graphicsQueue, commandBuffer, currentImageIndex)) {
-			postProcess.DiscardHistoryFrame();
 			std::cerr << "Failed to submit Vulkan command buffer.\n";
 			return FrameEndResult::Failed;
 		}
@@ -137,11 +136,9 @@ namespace Chrivent {
 			return FrameEndResult::Skipped;
 		}
 		if (presentResult != VK_SUCCESS) {
-			postProcess.DiscardHistoryFrame();
 			std::cerr << "Failed to present Vulkan swapchain image.\n";
 			return FrameEndResult::Failed;
 		}
-		postProcess.CommitHistoryFrame();
 		syncObject.AdvanceFrame();
 		return FrameEndResult::Presented;
 	}

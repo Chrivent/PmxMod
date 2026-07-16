@@ -1,9 +1,5 @@
 ﻿#include "Viewer/Texture/Dx12TextureCache.h"
 
-#include "Viewer/Synchronization/Dx12Barrier.h"
-
-#include <windows.h>
-
 namespace Chrivent {
 	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
 		const UINT width, const UINT height, Dx12Texture& texture) {
@@ -61,49 +57,8 @@ namespace Chrivent {
 		for (UINT row = 0; row < rowCount; row++)
 			std::memcpy(destination + layout.Footprint.RowPitch * row, pixels + sourcePitch * row, sourcePitch);
 		uploadBuffer->Unmap(0, nullptr);
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-		if (FAILED(sourceDevice.device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
+		if (!uploadContext.Upload(sourceDevice, texture.resource.Get(), uploadBuffer.Get(), layout))
 			return false;
-		if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
-			commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList))))
-			return false;
-		D3D12_TEXTURE_COPY_LOCATION destinationLocation{};
-		destinationLocation.pResource = texture.resource.Get();
-		destinationLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		D3D12_TEXTURE_COPY_LOCATION sourceLocation{};
-		sourceLocation.pResource = uploadBuffer.Get();
-		sourceLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		sourceLocation.PlacedFootprint = layout;
-		commandList->CopyTextureRegion(&destinationLocation, 0, 0, 0, &sourceLocation, nullptr);
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhancedCommandList;
-		if (sourceDevice.capabilities.supportsEnhancedBarriers && FAILED(commandList.As(&enhancedCommandList)))
-			return false;
-		Dx12Barrier::Transition(commandList.Get(), enhancedCommandList.Get(), texture.resource.Get(),
-			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		if (FAILED(commandList->Close()))
-			return false;
-		ID3D12CommandList* commandLists[] = { commandList.Get() };
-		sourceDevice.commandQueue->ExecuteCommandLists(1, commandLists);
-		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		if (FAILED(sourceDevice.device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
-			return false;
-		HANDLE fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		if (fenceEvent == nullptr)
-			return false;
-		constexpr UINT64 fenceValue = 1;
-		if (FAILED(sourceDevice.commandQueue->Signal(fence.Get(), fenceValue))) {
-			CloseHandle(fenceEvent);
-			return false;
-		}
-		if (fence->GetCompletedValue() < fenceValue) {
-			if (FAILED(fence->SetEventOnCompletion(fenceValue, fenceEvent))) {
-				CloseHandle(fenceEvent);
-				return false;
-			}
-			WaitForSingleObject(fenceEvent, INFINITE);
-		}
-		CloseHandle(fenceEvent);
 		texture.width = width;
 		texture.height = height;
 		texture.format = DXGI_FORMAT_R8G8B8A8_UNORM;

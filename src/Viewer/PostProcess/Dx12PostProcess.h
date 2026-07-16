@@ -3,6 +3,7 @@
 #include "Viewer/Buffer/Dx12Buffer.h"
 #include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/PostProcess/PostProcess.h"
+#include "Viewer/PostProcess/Dx12PostProcessPipelines.h"
 #include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
 #include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
@@ -22,8 +23,7 @@ namespace Chrivent {
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> postProcessRootSignature;
-		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> postProcessPipelineStates;
+		Dx12PostProcessPipelines pipelines;
 		Dx12Buffer frameDataBuffers[FrameBuffering::dx12BufferCount];
 		Dx12Buffer parameterDataBuffers[FrameBuffering::dx12BufferCount];
 		int targetWidth = 0;
@@ -42,11 +42,6 @@ namespace Chrivent {
 		// 모든 history target을 최초 사용 전에 0으로 지운다.
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);
-		// 후처리 공통 root signature를 생성한다.
-		bool CreatePostProcessRootSignature(const Dx12Device& sourceDevice);
-		// HLSL pass 하나를 지정한 출력 형식의 pipeline state로 생성한다.
-		bool CreatePipelineState(const Dx12Device& sourceDevice, const EffectPassDefinition& pass,
-			DXGI_FORMAT format, Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const;
 		// 공통 실행 계획의 모든 DX12 pipeline state를 생성한다.
 		bool CreatePipelines(const Dx12Device& sourceDevice);
 		// pass에 대응하는 shader-visible descriptor heap을 반환한다.
@@ -55,8 +50,6 @@ namespace Chrivent {
 		ID3D12Resource* ResolveInputResource(const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const;
 		// 출력 경로에 대응하는 DX12 target을 반환한다.
 		Dx12PostProcessTarget* ResolveOutputTarget(const PostProcessPassRoute& route);
-		// pass pipeline과 root signature를 해제한다.
-		void ResetPipelines();
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
 		

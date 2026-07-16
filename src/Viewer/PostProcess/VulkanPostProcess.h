@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/PostProcess/PostProcess.h"
+#include "Viewer/PostProcess/VulkanPostProcessPipelines.h"
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Descriptor/VulkanPostProcessDescriptors.h"
 #include "Viewer/Device/VulkanDevice.h"
@@ -28,7 +29,7 @@ namespace Chrivent {
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
 		std::vector<std::unique_ptr<VulkanBuffer>> parameterDataBuffers;
 		VulkanPostProcessDescriptors descriptors;
-		std::vector<VkPipeline> pipelines;
+		VulkanPostProcessPipelines pipelines;
 		size_t swapChainImageCount = 0;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
@@ -46,9 +47,6 @@ namespace Chrivent {
 		bool CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
 		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
-		// HLSL 후처리 pass 하나를 지정한 출력 크기와 형식의 pipeline으로 만든다.
-		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, const EffectPassDefinition& pass,
-			VkExtent2D extent, VkFormat format, VkPipeline& pipeline) const;
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
 		bool CreatePipelines(const VulkanDevice& sourceDevice);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.

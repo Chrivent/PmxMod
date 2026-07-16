@@ -2,6 +2,8 @@
 
 #include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
+#include "Viewer/Shader/SceneShaderInputLayout.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <cstddef>
 #include <iostream>
@@ -40,42 +42,42 @@ namespace Chrivent {
 		}
 		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
-				.binding = 0,
+				.binding = SceneShaderInputLayout::baseTextureRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 1,
+				.binding = SceneShaderInputLayout::toonTextureRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 2,
+				.binding = SceneShaderInputLayout::sphereTextureRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 4,
+				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::baseSamplerRegister),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 5,
+				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::toonSamplerRegister),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 				.pImmutableSamplers = nullptr
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = 6,
+				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::sphereSamplerRegister),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,

@@ -34,6 +34,9 @@ namespace Chrivent {
 		static constexpr UINT_PTR kCameraAddMotionButtonId = 5001;
 		static constexpr UINT_PTR kCameraDeleteMotionButtonId = 5002;
 		static constexpr UINT_PTR kCameraShaderListId = 5003;
+		static constexpr UINT_PTR kCameraModelShaderCheckId = 5004;
+		static constexpr UINT_PTR kCameraEdgeShaderCheckId = 5005;
+		static constexpr UINT_PTR kCameraGroundShadowShaderCheckId = 5006;
 
 		SceneConfig sceneConfigStorage;
 		MenuBar menuBar;
@@ -113,6 +116,10 @@ namespace Chrivent {
 		bool ConsumeSelectedModelIndex(size_t& modelIndex) { return modelPanel.ConsumeSelectedModelIndex(modelIndex); }
 		// 카메라 패널에서 선택한 셰이더 인덱스를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeSelectedShaderIndex(size_t& shaderIndex, bool& enabled) { return cameraPanel.ConsumeSelectedShaderIndex(shaderIndex, enabled); }
+		// 카메라 패널에서 변경한 내장 장면 셰이더 체크 상태를 반환한다.
+		bool ConsumeBuiltInShaderToggle(BuiltInShaderToggle& shader, bool& enabled) {
+			return cameraPanel.ConsumeBuiltInShaderToggle(shader, enabled);
+		}
 		// 카메라 패널의 카메라 모션 행 선택 요청을 반환하고 대기 요청을 초기화한다.
 		bool ConsumeCameraMotionSelected() { return cameraPanel.ConsumeCameraMotionSelected(); }
 		// 카메라 패널에서 선택한 카메라 모션 경로를 반환하고 대기 요청을 초기화한다.
@@ -124,6 +131,10 @@ namespace Chrivent {
 		// 검색된 셰이더 효과 이름과 현재 선택을 카메라 패널에 반영한다.
 		void ApplyShaderNames(const std::vector<std::wstring>& names, const size_t selectedIndex, const std::vector<bool>& enabledStates) {
 			cameraPanel.UpdateShaderNames(names, selectedIndex, enabledStates);
+		}
+		// 내장 모델·엣지·지면 그림자 셰이더의 체크 상태를 카메라 패널에 반영한다.
+		void ApplyBuiltInShaderStates(const bool modelEnabled, const bool edgeEnabled, const bool groundShadowEnabled) {
+			cameraPanel.UpdateBuiltInShaderStates(modelEnabled, edgeEnabled, groundShadowEnabled);
 		}
 		// 현재 씬의 카메라 모션 경로를 카메라 패널에 반영한다.
 		void ApplyCameraMotionPath(const std::filesystem::path& motionPath) {

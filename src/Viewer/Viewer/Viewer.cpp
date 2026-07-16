@@ -21,6 +21,17 @@ namespace Chrivent {
 		postProcessTemporalState.frameData.historyReset = 0.0f;
 	}
 
+	FrameEndResult Viewer::EndFrame() {
+		const FrameEndResult result = EndFrameCore();
+		PostProcess& postProcess = ResolvePostProcess();
+		if (result == FrameEndResult::Presented) {
+			postProcess.CommitHistoryFrame();
+			CommitPostProcessFrameHistory();
+		} else
+			postProcess.DiscardHistoryFrame();
+		return result;
+	}
+
 	void Viewer::UpdatePostProcessFrameData(PostProcessFrameData frameData) {
 		postProcessTemporalState.frameData = std::move(frameData);
 	}

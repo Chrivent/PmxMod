@@ -106,6 +106,22 @@ namespace Chrivent {
 		ApplyListState();
 	}
 
+	void CameraPanel::QueueBuiltInShaderToggle(const BuiltInShaderToggle shader, const bool enabled) {
+		pendingBuiltInShaderToggle = shader;
+		pendingBuiltInShaderEnabled = enabled;
+		switch (shader) {
+			case BuiltInShaderToggle::Model:
+				modelShaderEnabled = enabled;
+				break;
+			case BuiltInShaderToggle::Edge:
+				edgeShaderEnabled = enabled;
+				break;
+			case BuiltInShaderToggle::GroundShadow:
+				groundShadowShaderEnabled = enabled;
+				break;
+		}
+	}
+
 	void CameraPanel::QueueCameraMotionSelection() {
 		selectedListIndex = kCameraMotionRow;
 		pendingCameraMotionSelected = true;
@@ -126,6 +142,16 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(addCameraButtonId), GetModuleHandleW(nullptr), nullptr);
+		modelShaderCheck = CreateWindowExW(0, L"BUTTON", Language::Text("camera.shader.model").c_str(),
+			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 0, 0, parent,
+			reinterpret_cast<HMENU>(modelShaderCheckId), GetModuleHandleW(nullptr), nullptr);
+		edgeShaderCheck = CreateWindowExW(0, L"BUTTON", Language::Text("camera.shader.edge").c_str(),
+			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 0, 0, parent,
+			reinterpret_cast<HMENU>(edgeShaderCheckId), GetModuleHandleW(nullptr), nullptr);
+		groundShadowShaderCheck = CreateWindowExW(0, L"BUTTON",
+			Language::Text("camera.shader.ground_shadow").c_str(),
+			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 0, 0, parent,
+			reinterpret_cast<HMENU>(groundShadowShaderCheckId), GetModuleHandleW(nullptr), nullptr);
 		shaderList = CreateWindowExW(WS_EX_CLIENTEDGE, WC_LISTVIEWW, L"",
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER,
 			0, 0, 0, 0,
@@ -138,7 +164,11 @@ namespace Chrivent {
 		ListView_InsertColumn(shaderList, 0, &column);
 		GuiTheme::ApplyControl(deleteCameraButton);
 		GuiTheme::ApplyControl(addCameraButton);
+		GuiTheme::ApplyControl(modelShaderCheck);
+		GuiTheme::ApplyControl(edgeShaderCheck);
+		GuiTheme::ApplyControl(groundShadowShaderCheck);
 		GuiTheme::ApplyControl(shaderList);
+		UpdateBuiltInShaderStates(modelShaderEnabled, edgeShaderEnabled, groundShadowShaderEnabled);
 		RefreshShaderList();
 	}
 
@@ -148,14 +178,21 @@ namespace Chrivent {
 		constexpr int margin = 12;
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
+		constexpr int checkHeight = 22;
 		constexpr int gap = 8;
 		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
 		const int deleteX = clientRect.right - margin - buttonWidth * 2 - gap;
 		const int addX = clientRect.right - margin - buttonWidth;
-		const int listTop = clientRect.top + margin + buttonHeight + gap;
+		const int shaderTop = clientRect.top + margin + buttonHeight + gap;
+		const int listTop = shaderTop + checkHeight + gap;
 		const int listHeight = std::max(0, static_cast<int>(clientRect.bottom - listTop - margin));
 		MoveWindow(deleteCameraButton, deleteX, clientRect.top + margin, buttonWidth, buttonHeight, TRUE);
 		MoveWindow(addCameraButton, addX, clientRect.top + margin, buttonWidth, buttonHeight, TRUE);
+		const int checkWidth = std::max(0, width / 3);
+		MoveWindow(modelShaderCheck, clientRect.left + margin, shaderTop, checkWidth, checkHeight, TRUE);
+		MoveWindow(edgeShaderCheck, clientRect.left + margin + checkWidth, shaderTop, checkWidth, checkHeight, TRUE);
+		MoveWindow(groundShadowShaderCheck, clientRect.left + margin + checkWidth * 2,
+			shaderTop, width - checkWidth * 2, checkHeight, TRUE);
 		MoveWindow(shaderList, clientRect.left + margin, listTop, width, listHeight, TRUE);
 		ListView_SetColumnWidth(shaderList, 0, width - 4);
 	}
@@ -165,6 +202,12 @@ namespace Chrivent {
 			ShowWindow(deleteCameraButton, visible ? SW_SHOW : SW_HIDE);
 		if (addCameraButton)
 			ShowWindow(addCameraButton, visible ? SW_SHOW : SW_HIDE);
+		if (modelShaderCheck)
+			ShowWindow(modelShaderCheck, visible ? SW_SHOW : SW_HIDE);
+		if (edgeShaderCheck)
+			ShowWindow(edgeShaderCheck, visible ? SW_SHOW : SW_HIDE);
+		if (groundShadowShaderCheck)
+			ShowWindow(groundShadowShaderCheck, visible ? SW_SHOW : SW_HIDE);
 		if (shaderList)
 			ShowWindow(shaderList, visible ? SW_SHOW : SW_HIDE);
 	}
@@ -177,6 +220,12 @@ namespace Chrivent {
 			EnableWindow(addCameraButton, enabled);
 		if (deleteCameraButton)
 			EnableWindow(deleteCameraButton, enabled);
+		if (modelShaderCheck)
+			EnableWindow(modelShaderCheck, enabled);
+		if (edgeShaderCheck)
+			EnableWindow(edgeShaderCheck, enabled);
+		if (groundShadowShaderCheck)
+			EnableWindow(groundShadowShaderCheck, enabled);
 		ApplyShaderListTheme();
 	}
 
@@ -185,6 +234,12 @@ namespace Chrivent {
 			SetWindowTextW(deleteCameraButton, Language::Text("camera.delete").c_str());
 		if (addCameraButton)
 			SetWindowTextW(addCameraButton, Language::Text("camera.add").c_str());
+		if (modelShaderCheck)
+			SetWindowTextW(modelShaderCheck, Language::Text("camera.shader.model").c_str());
+		if (edgeShaderCheck)
+			SetWindowTextW(edgeShaderCheck, Language::Text("camera.shader.edge").c_str());
+		if (groundShadowShaderCheck)
+			SetWindowTextW(groundShadowShaderCheck, Language::Text("camera.shader.ground_shadow").c_str());
 		RefreshShaderList();
 	}
 
@@ -195,6 +250,21 @@ namespace Chrivent {
 		}
 		if (commandId == deleteCameraButtonId) {
 			pendingDeleteCameraMotion = true;
+			return true;
+		}
+		if (notificationCode == BN_CLICKED && commandId == modelShaderCheckId) {
+			QueueBuiltInShaderToggle(BuiltInShaderToggle::Model,
+				SendMessageW(modelShaderCheck, BM_GETCHECK, 0, 0) == BST_CHECKED);
+			return true;
+		}
+		if (notificationCode == BN_CLICKED && commandId == edgeShaderCheckId) {
+			QueueBuiltInShaderToggle(BuiltInShaderToggle::Edge,
+				SendMessageW(edgeShaderCheck, BM_GETCHECK, 0, 0) == BST_CHECKED);
+			return true;
+		}
+		if (notificationCode == BN_CLICKED && commandId == groundShadowShaderCheckId) {
+			QueueBuiltInShaderToggle(BuiltInShaderToggle::GroundShadow,
+				SendMessageW(groundShadowShaderCheck, BM_GETCHECK, 0, 0) == BST_CHECKED);
 			return true;
 		}
 		return false;
@@ -235,19 +305,38 @@ namespace Chrivent {
 			DestroyWindow(deleteCameraButton);
 		if (addCameraButton)
 			DestroyWindow(addCameraButton);
+		if (groundShadowShaderCheck)
+			DestroyWindow(groundShadowShaderCheck);
+		if (edgeShaderCheck)
+			DestroyWindow(edgeShaderCheck);
+		if (modelShaderCheck)
+			DestroyWindow(modelShaderCheck);
 		if (shaderList)
 			DestroyWindow(shaderList);
 		parentWindow = nullptr;
 		deleteCameraButton = nullptr;
 		addCameraButton = nullptr;
+		modelShaderCheck = nullptr;
+		edgeShaderCheck = nullptr;
+		groundShadowShaderCheck = nullptr;
 		shaderList = nullptr;
 		pendingCameraMotionPath.clear();
 		pendingDeleteCameraMotion = false;
 		pendingCameraMotionSelected = false;
 		pendingSelectedShaderIndex = -1;
+		pendingBuiltInShaderToggle.reset();
 		pendingShaderEffectEnabled = false;
 		shaderEnabled.clear();
 		ApplyInputLock(false);
+	}
+
+	bool CameraPanel::ConsumeBuiltInShaderToggle(BuiltInShaderToggle& shader, bool& enabled) {
+		if (!pendingBuiltInShaderToggle.has_value())
+			return false;
+		shader = *pendingBuiltInShaderToggle;
+		enabled = pendingBuiltInShaderEnabled;
+		pendingBuiltInShaderToggle.reset();
+		return true;
 	}
 
 	bool CameraPanel::ConsumeSelectedShaderIndex(size_t& shaderIndex, bool& enabled) {
@@ -299,5 +388,20 @@ namespace Chrivent {
 		if (selectedListIndex >= static_cast<int>(shaderNames.size()) + kShaderRowOffset)
 			selectedListIndex = kCameraMotionRow;
 		RefreshShaderList();
+	}
+
+	void CameraPanel::UpdateBuiltInShaderStates(const bool modelEnabled, const bool edgeEnabled,
+		const bool groundShadowEnabled) {
+		modelShaderEnabled = modelEnabled;
+		edgeShaderEnabled = edgeEnabled;
+		groundShadowShaderEnabled = groundShadowEnabled;
+		if (modelShaderCheck)
+			SendMessageW(modelShaderCheck, BM_SETCHECK, modelShaderEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
+		if (edgeShaderCheck)
+			SendMessageW(edgeShaderCheck, BM_SETCHECK, edgeShaderEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
+		if (groundShadowShaderCheck) {
+			SendMessageW(groundShadowShaderCheck, BM_SETCHECK,
+				groundShadowShaderEnabled ? BST_CHECKED : BST_UNCHECKED, 0);
+		}
 	}
 }
