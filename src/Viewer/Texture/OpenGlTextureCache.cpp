@@ -5,7 +5,7 @@
 namespace Chrivent {
 	OpenGlTextureCache::~OpenGlTextureCache() {
 		for (const auto& texture : textures | std::views::values) {
-			const GLuint textureId = texture->texture;
+			const GLuint textureId = texture.texture;
 			glDeleteTextures(1, &textureId);
 		}
 	}
@@ -21,12 +21,9 @@ namespace Chrivent {
 		glTextureSubImage2D(tex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		const auto texture = std::make_shared<OpenGlTexture>();
-		texture->key = key;
-		texture->texture = tex;
-		texture->hasAlpha = false;
-		textures[key] = texture;
-		return *texture;
+		const OpenGlTexture texture{ .hasAlpha = false, .texture = tex };
+		textures.emplace(key, texture);
+		return texture;
 	}
 
 	OpenGlTexture OpenGlTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
@@ -48,11 +45,8 @@ namespace Chrivent {
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
-		const auto texture = std::make_shared<OpenGlTexture>();
-		texture->key = key;
-		texture->texture = tex;
-		texture->hasAlpha = hasAlpha;
-		textures[key] = texture;
-		return *texture;
+		const OpenGlTexture texture{ .hasAlpha = hasAlpha, .texture = tex };
+		textures.emplace(key, texture);
+		return texture;
 	}
 }

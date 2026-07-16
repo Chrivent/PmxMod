@@ -28,7 +28,11 @@ namespace Chrivent {
         GLuint  program = 0;
         GLint   positionLocation = -1;
 
+		OpenGlShader() = default;
 		~OpenGlShader();
+
+		OpenGlShader(const OpenGlShader&) = delete;
+		OpenGlShader& operator=(const OpenGlShader&) = delete;
     };
 
     // PMX 모델 표면 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.

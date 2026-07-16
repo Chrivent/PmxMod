@@ -106,7 +106,7 @@ namespace Chrivent {
 	}
 
 	bool ShaderPackageParser::LoadPass(const std::filesystem::path& packageRoot,
-		const std::filesystem::path& manifestPath, const nlohmann::json& json, const bool postProcess,
+		const std::filesystem::path& manifestPath, const nlohmann::json& json,
 		EffectPassDefinition& pass, std::string& error) {
 		if (!json.is_object()) {
 			error = "Invalid effect pass: " + manifestPath.string();
@@ -126,8 +126,6 @@ namespace Chrivent {
 			error = "Effect pass entry points cannot be empty: " + manifestPath.string();
 			return false;
 		}
-		if (!postProcess)
-			return true;
 		const auto reads = json.find("reads");
 		if (reads == json.end() || !reads->is_array()) {
 			error = "Post-process pass reads must be an array: " + manifestPath.string();
@@ -292,37 +290,6 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool ShaderPackageParser::LoadSceneShaderAbi(const nlohmann::json& json,
-		const std::filesystem::path& manifestPath, const EffectType type,
-		SceneShaderAbi& abi, std::string& error) {
-		std::string abiName;
-		if (!ReadRequiredString(json, "abi", abiName, error)) {
-			error += " in " + manifestPath.string();
-			return false;
-		}
-		const char* expectedName = nullptr;
-		switch (type) {
-			case EffectType::Model:
-				abi = SceneShaderAbi::ModelV1;
-				expectedName = SceneShaderInputLayout::modelAbi;
-				break;
-			case EffectType::Edge:
-				abi = SceneShaderAbi::EdgeV1;
-				expectedName = SceneShaderInputLayout::edgeAbi;
-				break;
-			case EffectType::GroundShadow:
-				abi = SceneShaderAbi::GroundShadowV1;
-				expectedName = SceneShaderInputLayout::groundShadowAbi;
-				break;
-			case EffectType::PostProcess:
-				return false;
-		}
-		if (abiName == expectedName)
-			return true;
-		error = "Scene shader ABI does not match its effect type: " + abiName + " in " + manifestPath.string();
-		return false;
-	}
-
 	bool ShaderPackageParser::LoadEffect(const std::filesystem::path& packageRoot,
 		const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error) {
 		nlohmann::json effectJson;
@@ -337,58 +304,39 @@ namespace Chrivent {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		auto& [type, sceneShaderAbi, inputs, parameters, resources, passes] = effect.runtime;
+		auto& [inputs, parameters, resources, passes] = effect.runtime;
 		std::string typeName;
 		if (!ReadRequiredString(effectJson, "type", typeName, error)) {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		if (typeName == "model")
-			type = EffectType::Model;
-		else if (typeName == "edge")
-			type = EffectType::Edge;
-		else if (typeName == "ground_shadow")
-			type = EffectType::GroundShadow;
-		else if (typeName == "post_process")
-			type = EffectType::PostProcess;
-		else {
+		if (typeName != "post_process") {
 			error = "Unsupported effect type: " + typeName + " in " + manifestPath.string();
 			return false;
 		}
-		const bool isPostProcess = type == EffectType::PostProcess;
-		sceneShaderAbi = SceneShaderAbi::None;
-		if (!isPostProcess && !LoadSceneShaderAbi(effectJson, manifestPath, type, sceneShaderAbi, error))
-			return false;
 		inputs.clear();
-		if (isPostProcess) {
-			const auto inputValues = effectJson.find("inputs");
-			if (inputValues == effectJson.end() || !inputValues->is_array()) {
-				error = "Post-process effect inputs must be an array: " + manifestPath.string();
+		const auto inputValues = effectJson.find("inputs");
+		if (inputValues == effectJson.end() || !inputValues->is_array()) {
+			error = "Post-process effect inputs must be an array: " + manifestPath.string();
+			return false;
+		}
+		std::unordered_set<std::string> uniqueInputNames;
+		for (const auto& inputJson : *inputValues) {
+			if (!inputJson.is_string()) {
+				error = "Post-process effect input must be a string: " + manifestPath.string();
 				return false;
 			}
-			std::unordered_set<std::string> uniqueInputNames;
-			for (const auto& inputJson : *inputValues) {
-				if (!inputJson.is_string()) {
-					error = "Post-process effect input must be a string: " + manifestPath.string();
-					return false;
-				}
-				const std::string inputName = inputJson.get<std::string>();
-				if ((inputName != "scene_color" && inputName != "scene_depth" && inputName != "scene_velocity")
-					|| !uniqueInputNames.emplace(inputName).second) {
-					error = "Unsupported or duplicate engine input: " + inputName + " in " + manifestPath.string();
-					return false;
-				}
-				inputs.emplace_back(inputName);
-			}
-		}
-		if (isPostProcess) {
-			if (!LoadParameters(effectJson, manifestPath, parameters, error)
-				|| !LoadResources(effectJson, manifestPath, resources, error))
+			const std::string inputName = inputJson.get<std::string>();
+			if ((inputName != "scene_color" && inputName != "scene_depth" && inputName != "scene_velocity")
+				|| !uniqueInputNames.emplace(inputName).second) {
+				error = "Unsupported or duplicate engine input: " + inputName + " in " + manifestPath.string();
 				return false;
-		} else {
-			parameters.clear();
-			resources.clear();
+			}
+			inputs.emplace_back(inputName);
 		}
+		if (!LoadParameters(effectJson, manifestPath, parameters, error)
+			|| !LoadResources(effectJson, manifestPath, resources, error))
+			return false;
 		const auto passValues = effectJson.find("passes");
 		if (passValues == effectJson.end() || !passValues->is_array() || passValues->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();
@@ -398,7 +346,7 @@ namespace Chrivent {
 		std::unordered_set<std::string> uniquePassNames;
 		for (const auto& passJson : *passValues) {
 			EffectPassDefinition pass;
-			if (!LoadPass(packageRoot, manifestPath, passJson, isPostProcess, pass, error))
+			if (!LoadPass(packageRoot, manifestPath, passJson, pass, error))
 				return false;
 			if (!uniquePassNames.emplace(pass.name).second) {
 				error = "Duplicate effect pass name: " + pass.name + " in " + manifestPath.string();
@@ -406,8 +354,6 @@ namespace Chrivent {
 			}
 			passes.emplace_back(std::move(pass));
 		}
-		if (!isPostProcess)
-			return true;
 		std::unordered_map<std::string, EffectResourceLifetime> resourceLifetimes;
 		for (const auto& resourceDefinition : resources) {
 			if (resourceDefinition.name == "effect_input" || resourceDefinition.name == "effect_output"

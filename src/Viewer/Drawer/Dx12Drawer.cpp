@@ -75,7 +75,7 @@ namespace Chrivent {
 		const auto& viewer = this->viewer;
 		const glm::mat4 world = BuildWorldMatrix(instance.GetScale());
 		EdgeVertexConstants vertexConstants = BuildEdgeVertexConstants(
-			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
+			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), viewer.GetScreenHeight()));
 		drawContext.BindEdgePipeline();
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);

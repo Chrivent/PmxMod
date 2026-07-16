@@ -10,7 +10,6 @@
 namespace Chrivent {
 	// 캐시 정보와 D3D12 resource 및 크기와 형식을 보관한다.
 	struct Dx12Texture {
-		TextureKey key;
 		bool hasAlpha = false;
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 		UINT width = 0;

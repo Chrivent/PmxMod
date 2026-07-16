@@ -8,7 +8,14 @@ namespace Chrivent {
     struct ModelUpdateTiming;
     class Model;
     class Drawer;
-    class Viewer;
+
+	// 모델 애니메이션과 물리 갱신에 필요한 프레임 입력만 전달한다.
+	struct InstanceUpdateState {
+		float animationFrame = 0.0f;
+		float elapsed = 0.0f;
+		bool velocityRequired = false;
+		bool physicsEnabled = false;
+	};
 
     // 한 모델의 API별 GPU 리소스와 그리기 객체를 소유하는 공통 규약을 정의한다.
     class Instance {
@@ -48,8 +55,8 @@ namespace Chrivent {
         void Draw() const;
         // 현재 인스턴스를 후처리 장면 depth와 velocity 입력 패스에 그린다.
         void DrawPostProcessSceneInputs() const;
-        // 뷰어 시간과 물리 설정을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
-        void PrepareUpdate(const Viewer& viewer, bool physicsEnabled, ModelUpdateTiming* timing = nullptr) const;
+		// 프레임 입력을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
+		void PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing = nullptr) const;
         // 연결된 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.
         std::size_t CalculateSkinningTaskCount() const;
         // 지정된 범위의 CPU 스키닝을 수행한다.

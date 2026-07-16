@@ -17,7 +17,8 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
-	bool Dx11Viewer::Setup() {
+	bool Dx11Viewer::SetupCore() {
+		BindPostProcess(postProcess);
 		HWND__* hwnd = glfwGetWin32Window(window);
 		if (!device.Initialize(capabilities))
 			return false;
@@ -29,8 +30,7 @@ namespace Chrivent {
 			device.ResolveSwapChain(), postProcess, screenWidth, screenHeight,
 			multiSampleCount, multiSampleQuality))
 			return false;
-		if (!InitializeShaderResources()
-			|| !pipeline.Initialize(device.ResolveDevice(), builtInShaderPasses, sceneInputShaderPasses))
+		if (!pipeline.Initialize(device.ResolveDevice(), builtInShaderPasses, sceneInputShaderPasses))
 			return false;
 		if (!CreateDummyResources())
 			return false;
@@ -38,7 +38,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx11Viewer::Resize() {
+	bool Dx11Viewer::ResizeCore() {
 		renderTargets.Reset(device.ResolveContext(), postProcess);
 		if (FAILED(device.ResolveSwapChain()->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
@@ -50,7 +50,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	FrameBeginResult Dx11Viewer::BeginFrame() {
+	FrameBeginResult Dx11Viewer::BeginFrameCore() {
 		ID3D11RenderTargetView* sceneColorView = renderTargets.ResolveSceneColorView();
 		device.ResolveContext()->ClearRenderTargetView(sceneColorView, clearColor);
 		device.ResolveContext()->ClearDepthStencilView(renderTargets.ResolveDepthStencilView(),
@@ -84,7 +84,7 @@ namespace Chrivent {
 			device.ResolveContext(), pipeline.GetStates().defaultDss.Get(), screenWidth, screenHeight);
 	}
 
-	bool Dx11Viewer::EndPostProcessSceneInputPass() {
+	bool Dx11Viewer::EndPostProcessSceneInputPassCore() {
 		if (device.ResolveContext() == nullptr)
 			return false;
 		postProcess.EndSceneInputPass(device.ResolveContext());

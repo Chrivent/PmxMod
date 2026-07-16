@@ -11,8 +11,12 @@ namespace Chrivent {
 		GLuint buffer = 0;
 
 	public:
+		OpenGlDynamicBufferRing() = default;
 		~OpenGlDynamicBufferRing();
-		
+
+		OpenGlDynamicBufferRing(const OpenGlDynamicBufferRing&) = delete;
+		OpenGlDynamicBufferRing& operator=(const OpenGlDynamicBufferRing&) = delete;
+
 		GLuint GetBuffer() const { return buffer; }
 
 		// OpenGL 업로드 링 버퍼를 생성한다.

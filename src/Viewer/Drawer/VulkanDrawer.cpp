@@ -74,7 +74,7 @@ namespace Chrivent {
 		const auto& viewer = this->viewer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
-			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, -viewer.screenHeight));
+			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), -viewer.GetScreenHeight()));
 		drawContext.BindEdgePipeline();
 		std::string error;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {

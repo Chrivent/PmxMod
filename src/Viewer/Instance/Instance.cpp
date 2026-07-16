@@ -2,7 +2,6 @@
 
 #include "Viewer/Drawer/Drawer.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/ModelUpdater.h"
 
 #include <utility>
@@ -53,10 +52,10 @@ namespace Chrivent {
             drawer->DrawPostProcessSceneInputs();
     }
 
-    void Instance::PrepareUpdate(const Viewer& viewer, const bool physicsEnabled, ModelUpdateTiming* timing) const {
+	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {
         const ModelUpdater updater(*model);
-        updater.Prepare(animation.get(), viewer.animTime * 30.0f, viewer.elapsed,
-            viewer.RequiresPostProcessVelocity(), physicsEnabled && !viewer.skipPhysics, timing);
+		updater.Prepare(animation.get(), state.animationFrame, state.elapsed,
+			state.velocityRequired, state.physicsEnabled, timing);
     }
 
     std::size_t Instance::CalculateSkinningTaskCount() const {

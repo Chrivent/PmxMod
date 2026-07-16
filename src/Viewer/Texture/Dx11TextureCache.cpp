@@ -18,13 +18,12 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
 		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
 			return {};
-		const auto texture = std::make_shared<Dx11Texture>();
-		texture->key = key;
-		texture->texture = tex2D;
-		texture->textureView = tex2DRv;
-		texture->hasAlpha = false;
-		textures[key] = texture;
-		return *texture;
+		Dx11Texture texture;
+		texture.texture = tex2D;
+		texture.textureView = tex2DRv;
+		texture.hasAlpha = false;
+		textures.emplace(key, texture);
+		return texture;
 	}
 
 	Dx11Texture Dx11TextureCache::Load(ID3D11Device* device, const std::filesystem::path& texturePath) {
@@ -47,12 +46,11 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
 		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
 			return {};
-		const auto tex = std::make_shared<Dx11Texture>();
-		tex->key = key;
-		tex->texture = tex2D;
-		tex->textureView = tex2DRv;
-		tex->hasAlpha = textureHasAlpha;
-		textures[key] = tex;
-		return *tex;
+		Dx11Texture texture;
+		texture.texture = tex2D;
+		texture.textureView = tex2DRv;
+		texture.hasAlpha = textureHasAlpha;
+		textures.emplace(key, texture);
+		return texture;
 	}
 }

@@ -27,11 +27,8 @@ namespace Chrivent {
 		VulkanCommandContext commandContext;
 		VulkanSyncObject syncObject;
 		VulkanTexture dummyTexture;
-		uint32_t currentImageIndex = 0;
-		size_t frameIndex = 0;
-		bool frameReady = false;
 		bool postProcessSceneInputPassReady = false;
-		VulkanDrawContext drawContext{ pipeline, commandContext, currentImageIndex, frameReady, frameIndex };
+		VulkanDrawContext drawContext{ pipeline, commandContext };
 		VulkanPostProcess postProcess;
 		VulkanTextureCache textureCache;
 
@@ -41,13 +38,18 @@ namespace Chrivent {
 		void ResetSwapChainResources();
 
 	protected:
-		PostProcess& ResolvePostProcess() override { return postProcess; }
-		const PostProcess& ResolvePostProcess() const override { return postProcess; }
-		
 		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
 		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// Vulkan 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
+		// Vulkan 후처리 장면 입력 패스를 종료한다.
+		bool EndPostProcessSceneInputPassCore() override;
+		// Vulkan 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
+		bool SetupCore() override;
+		// Vulkan 스왑체인과 크기 의존 리소스를 재생성한다.
+		bool ResizeCore() override;
+		// Vulkan 프레임 명령 기록을 시작한다.
+		FrameBeginResult BeginFrameCore() override;
 		// Vulkan command buffer 제출과 Present 결과를 반환한다.
 		FrameEndResult EndFrameCore() override;
 		// 초기 상태의 Vulkan 모델 인스턴스를 생성한다.
@@ -57,19 +59,11 @@ namespace Chrivent {
 		const VulkanDevice& GetDevice() const { return device; }
 		const VulkanPipeline& GetPipeline() const { return pipeline; }
 		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
-		size_t GetFrameIndex() const { return frameIndex; }
+		size_t GetFrameIndex() const { return syncObject.GetCurrentFrameIndex(); }
 		VulkanDrawContext& GetDrawContext() { return drawContext; }
 		
 		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureWindowHints() override;
-		// Vulkan 렌더러 리소스를 초기화한다.
-		bool Setup() override;
-		// 창 크기에 맞춰 Vulkan 스왑체인과 렌더 타깃을 재생성한다.
-		bool Resize() override;
-		// Vulkan 프레임 렌더링을 시작한다.
-		FrameBeginResult BeginFrame() override;
-		// Vulkan 후처리 장면 입력 패스를 종료한다.
-		bool EndPostProcessSceneInputPass() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

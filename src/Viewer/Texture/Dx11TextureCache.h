@@ -9,7 +9,6 @@
 namespace Chrivent {
 	// 캐시 정보와 D3D11 texture 및 shader resource view를 보관한다.
 	struct Dx11Texture {
-		TextureKey key;
 		bool hasAlpha = false;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D>             texture;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>   textureView;

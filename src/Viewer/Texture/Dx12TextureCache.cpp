@@ -72,15 +72,14 @@ namespace Chrivent {
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return {};
-		const auto texture = std::make_shared<Dx12Texture>();
-		texture->key = key;
-		texture->hasAlpha = components == 4;
+		Dx12Texture texture;
+		texture.hasAlpha = components == 4;
 		const bool uploaded = UploadRgbaPixels(
-			sourceDevice, pixels.get(), width, height, *texture);
+			sourceDevice, pixels.get(), width, height, texture);
 		if (!uploaded)
 			return {};
-		textures[key] = texture;
-		return *texture;
+		textures.emplace(key, texture);
+		return texture;
 	}
 
 	Dx12Texture Dx12TextureCache::CreateWhiteTexture(const Dx12Device& sourceDevice) {
@@ -88,12 +87,11 @@ namespace Chrivent {
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char white[] = { 255, 255, 255, 255 };
-		const auto texture = std::make_shared<Dx12Texture>();
-		texture->key = key;
-		texture->hasAlpha = false;
-		if (!UploadRgbaPixels(sourceDevice, white, 1, 1, *texture))
+		Dx12Texture texture;
+		texture.hasAlpha = false;
+		if (!UploadRgbaPixels(sourceDevice, white, 1, 1, texture))
 			return {};
-		textures[key] = texture;
-		return *texture;
+		textures.emplace(key, texture);
+		return texture;
 	}
 }

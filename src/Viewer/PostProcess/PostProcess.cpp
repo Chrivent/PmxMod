@@ -117,7 +117,7 @@ namespace Chrivent {
 	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<const EffectRuntimeDefinition*> activeEffects;
 		for (const auto* effect : effects) {
-			if (effect != nullptr && effect->type == EffectType::PostProcess && !effect->passes.empty())
+			if (effect != nullptr && !effect->passes.empty())
 				activeEffects.push_back(effect);
 		}
 		std::vector<EffectPassDefinition> passes;

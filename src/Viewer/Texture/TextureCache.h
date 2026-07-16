@@ -50,14 +50,14 @@ namespace Chrivent {
 	template <typename TextureType>
 	class TextureCache : protected TextureImageLoader {
 	protected:
-		std::map<TextureKey, std::shared_ptr<TextureType>> textures;
+		std::map<TextureKey, TextureType> textures;
 
 		// 캐시에 저장된 렌더러별 텍스처를 찾는다.
-		std::shared_ptr<TextureType> FindCachedTexture(const TextureKey& key) const {
+		const TextureType* FindCachedTexture(const TextureKey& key) const {
 			const auto it = textures.find(key);
 			if (it == textures.end())
 				return nullptr;
-			return it->second;
+			return &it->second;
 		}
 	};
 }

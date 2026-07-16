@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Program/RendererType.h"
+#include "Program/ResourceDirectories.h"
 #include "Program/Sound.h"
 #include "Program/Gui/FpsOverlay.h"
 #include "Viewer/Shader/ShaderPackage.h"
@@ -56,6 +57,7 @@ namespace Chrivent {
         };
 
         std::unique_ptr<Viewer> viewer;
+		ResourceDirectories resourceDirectories;
         InputManager inputManager;
         CameraManager cameraManager;
         PanelManager panelManager;
@@ -97,9 +99,9 @@ namespace Chrivent {
         // GLFW 윈도우와 렌더러별 리소스를 초기화한다.
         bool InitializeViewer();
         // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
-        void PositionViewerOnRightMonitor() const;
+        static void PositionViewerOnRightMonitor(GLFWwindow* window);
         // 렌더러 창 조작 종료를 감지할 Win32 subclass를 설치한다.
-        void InstallViewerWindowSubclass();
+		void InstallViewerWindowSubclass(GLFWwindow* window);
         // 렌더러 창에 설치한 Win32 subclass를 해제한다.
         void RemoveViewerWindowSubclass();
         // 현재 프레임에서 물리를 다시 동기화하도록 요청한다.

@@ -8,15 +8,20 @@
 
 namespace Chrivent {
 	VulkanDrawContext::VulkanDrawContext(VulkanPipeline& sourcePipeline,
-		VulkanCommandContext& sourceCommandContext, uint32_t& sourceCurrentImageIndex,
-		const bool& sourceFrameReady, const size_t& sourceFrameIndex)
-		: pipeline(sourcePipeline), commandContext(sourceCommandContext),
-		currentImageIndex(sourceCurrentImageIndex), frameReady(sourceFrameReady), frameIndex(sourceFrameIndex) {}
+		VulkanCommandContext& sourceCommandContext)
+		: pipeline(sourcePipeline), commandContext(sourceCommandContext) {}
 
-	void VulkanDrawContext::ResetFrameState() {
+	void VulkanDrawContext::BeginFrame(const uint32_t sourceCurrentImageIndex, const size_t sourceFrameIndex) {
+		currentImageIndex = sourceCurrentImageIndex;
+		frameIndex = sourceFrameIndex;
+		frameReady = true;
 		bindStateCache = {};
 		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
+	}
+
+	void VulkanDrawContext::EndFrame() {
+		frameReady = false;
 	}
 
 	void VulkanDrawContext::SetPipelineState(const VkPipeline sourcePipeline) {

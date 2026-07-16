@@ -142,61 +142,54 @@ namespace Chrivent {
         }
         glfwDefaultWindowHints();
         viewer->ConfigureWindowHints();
-        viewer->window = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
-        if (!viewer->window) {
+		GLFWwindow* viewerWindow = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
+		if (!viewerWindow) {
             std::cerr << "Failed to create viewer window.\n";
             viewer.reset();
             glfwTerminate();
             return false;
         }
-        InstallViewerWindowSubclass();
-        inputManager.AttachWindow(viewer->window);
-        PositionViewerOnRightMonitor();
-        glfwMaximizeWindow(viewer->window);
+		InstallViewerWindowSubclass(viewerWindow);
+		inputManager.AttachWindow(viewerWindow);
+		PositionViewerOnRightMonitor(viewerWindow);
+		glfwMaximizeWindow(viewerWindow);
         glfwPollEvents();
-        glfwGetFramebufferSize(viewer->window, &viewer->screenWidth, &viewer->screenHeight);
-        if (viewer->screenWidth <= 0 || viewer->screenHeight <= 0) {
+		int framebufferWidth = 0;
+		int framebufferHeight = 0;
+		glfwGetFramebufferSize(viewerWindow, &framebufferWidth, &framebufferHeight);
+		if (framebufferWidth <= 0 || framebufferHeight <= 0) {
             std::cerr << "Invalid framebuffer size.\n";
             RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
         }
-        if (!viewer->Setup()) {
+		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight,
+			resourceDirectories.GetInternalShaderDirectory())) {
             std::cerr << "Failed to set up renderer.\n";
             RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
         }
-        if (!viewer->Resize()) {
-            RemoveViewerWindowSubclass();
-            viewer.reset();
-            glfwTerminate();
-            return false;
-        }
         glfwPollEvents();
-        int framebufferWidth = 0;
-        int framebufferHeight = 0;
-        glfwGetFramebufferSize(viewer->window, &framebufferWidth, &framebufferHeight);
-        if (framebufferWidth != viewer->screenWidth || framebufferHeight != viewer->screenHeight) {
-            viewer->screenWidth = framebufferWidth;
-            viewer->screenHeight = framebufferHeight;
-            if (!viewer->Resize()) {
+		glfwGetFramebufferSize(viewerWindow, &framebufferWidth, &framebufferHeight);
+		if (framebufferWidth != viewer->GetScreenWidth() || framebufferHeight != viewer->GetScreenHeight()) {
+			if (!viewer->Resize(framebufferWidth, framebufferHeight)) {
                 RemoveViewerWindowSubclass();
                 viewer.reset();
                 glfwTerminate();
                 return false;
             }
         }
-        fpsOverlay.Create(viewer->window);
+		fpsOverlay.Create(viewerWindow);
         return true;
     }
 
-    void Program::InstallViewerWindowSubclass() {
-        if (!viewer || !viewer->window)
+	void Program::InstallViewerWindowSubclass(GLFWwindow* window) {
+		if (!window)
             return;
-        viewerNativeWindow = glfwGetWin32Window(viewer->window);
+		viewerNativeWindow = glfwGetWin32Window(window);
         if (viewerNativeWindow)
             SetWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId, reinterpret_cast<DWORD_PTR>(this));
     }
@@ -221,7 +214,9 @@ namespace Chrivent {
         return result;
     }
 
-    void Program::PositionViewerOnRightMonitor() const {
+	void Program::PositionViewerOnRightMonitor(GLFWwindow* window) {
+		if (!window)
+			return;
         int monitorCount = 0;
         GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
         if (!monitors || monitorCount < 2)
@@ -257,17 +252,18 @@ namespace Chrivent {
             return;
         int windowWidth = 0;
         int windowHeight = 0;
-        glfwGetWindowSize(viewer->window, &windowWidth, &windowHeight);
+		glfwGetWindowSize(window, &windowWidth, &windowHeight);
         const int x = rightX + std::max(0, (rightWidth - windowWidth) / 2);
         const int y = rightY + std::max(0, (rightHeight - windowHeight) / 2);
-        glfwSetWindowPos(viewer->window, x, y);
+		glfwSetWindowPos(window, x, y);
     }
 
     bool Program::ChangeRenderer(const RendererType rendererType) {
         if (rendererType == currentRendererType)
             return true;
-        const int playbackFrame = viewer ? viewer->animTime * 30.0f + 0.5f : 0;
-        GLFWwindow* previousWindow = viewer ? viewer->window : nullptr;
+		const int playbackFrame = viewer
+			? viewer->GetPlaybackState().animationTime * 30.0f + 0.5f : 0;
+		GLFWwindow* previousWindow = viewer ? viewer->GetWindow() : nullptr;
         if (viewer && !viewer->WaitIdle())
             return false;
         fpsOverlay.Reset();
@@ -293,7 +289,7 @@ namespace Chrivent {
     }
 
     void Program::Shutdown() {
-        GLFWwindow* window = viewer ? viewer->window : nullptr;
+		GLFWwindow* window = viewer ? viewer->GetWindow() : nullptr;
         if (viewer && !viewer->WaitIdle())
             std::cerr << "Failed to wait for the renderer during shutdown.\n";
         fpsOverlay.Reset();
@@ -312,7 +308,7 @@ namespace Chrivent {
         shaderEffectEntries.clear();
         if (!viewer)
             return;
-        auto [packages, errors] = ShaderPackageLoader::Discover(viewer->ResolveShaderPackagesDirectory());
+		auto [packages, errors] = ShaderPackageLoader::Discover(resourceDirectories.GetShaderPackagesDirectory());
         shaderPackages = std::move(packages);
         for (const auto& error : errors)
             std::cerr << "Failed to load shader package: " << error << '\n';
@@ -336,10 +332,8 @@ namespace Chrivent {
         shaderEffectEntries.clear();
         for (size_t packageIndex = 0; packageIndex < shaderPackages.size(); packageIndex++) {
             const auto& package = shaderPackages[packageIndex];
-            for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++) {
-                if (package.effects[effectIndex].runtime.type == EffectType::PostProcess)
-                    shaderEffectEntries.push_back({packageIndex, effectIndex});
-            }
+			for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++)
+				shaderEffectEntries.push_back({packageIndex, effectIndex});
         }
     }
 
@@ -352,8 +346,8 @@ namespace Chrivent {
             shaderNames.emplace_back(Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
         }
         panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
-        panelManager.ApplyBuiltInShaderStates(viewer->modelEffectEnabled,
-            viewer->edgeEffectEnabled, viewer->groundShadowEffectEnabled);
+		const SceneRenderState& scene = viewer->GetSceneRenderState();
+		panelManager.ApplyBuiltInShaderStates(scene.modelEnabled, scene.edgeEnabled, scene.groundShadowEnabled);
     }
 
     void Program::ApplyShaderEffects() const {
@@ -363,8 +357,7 @@ namespace Chrivent {
         for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
             const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
-            const bool enabled = index < shaderEffectEnabled.size() && shaderEffectEnabled[index];
-            if (enabled && effect.runtime.type == EffectType::PostProcess)
+            if (index < shaderEffectEnabled.size() && shaderEffectEnabled[index])
                 postProcessEffects.push_back(&effect.runtime);
         }
         if (viewer->LoadPostProcessEffects(postProcessEffects)) {
@@ -389,9 +382,10 @@ namespace Chrivent {
         panelManager.BindSound(music);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-        viewer->elapsed = 0.0f;
-        viewer->animTime = 0.0f;
-        viewer->skipPhysics = false;
+		PlaybackState& playback = viewer->GetPlaybackState();
+		playback.elapsed = 0.0f;
+		playback.animationTime = 0.0f;
+		playback.skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
@@ -411,7 +405,7 @@ namespace Chrivent {
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
-			if (!loader.Load(modelPath, viewer->defaultToonTextureDir)) {
+			if (!loader.Load(modelPath, resourceDirectories.GetDefaultToonTextureDirectory())) {
                 std::cerr << "Failed to load pmx file.\n";
                 return false;
             }
@@ -773,21 +767,14 @@ namespace Chrivent {
     Program::FramebufferUpdateResult Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
-        glfwGetFramebufferSize(viewer->window, &newW, &newH);
+		glfwGetFramebufferSize(viewer->GetWindow(), &newW, &newH);
         if (newW <= 0 || newH <= 0)
             return FramebufferUpdateResult::Skipped;
-        if (newW == viewer->screenWidth && newH == viewer->screenHeight)
+		if (newW == viewer->GetScreenWidth() && newH == viewer->GetScreenHeight())
             return FramebufferUpdateResult::Ready;
-        const int previousWidth = viewer->screenWidth;
-        const int previousHeight = viewer->screenHeight;
-        viewer->screenWidth = newW;
-        viewer->screenHeight = newH;
-        if (!viewer->Resize()) {
-            viewer->screenWidth = previousWidth;
-            viewer->screenHeight = previousHeight;
+		if (!viewer->Resize(newW, newH)) {
             return FramebufferUpdateResult::Failed;
         }
-        viewer->ResetPostProcessHistory();
         return FramebufferUpdateResult::Ready;
     }
 
@@ -896,35 +883,37 @@ namespace Chrivent {
         }
         BuiltInShaderToggle builtInShader;
         bool builtInShaderEnabled = false;
+		SceneRenderState& scene = viewer->GetSceneRenderState();
+		auto& [elapsed, renderDeltaTime, animationTime, skipPhysics] = viewer->GetPlaybackState();
         if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
             switch (builtInShader) {
                 case BuiltInShaderToggle::Model:
-                    viewer->modelEffectEnabled = builtInShaderEnabled;
+					scene.modelEnabled = builtInShaderEnabled;
                     break;
                 case BuiltInShaderToggle::Edge:
-                    viewer->edgeEffectEnabled = builtInShaderEnabled;
+					scene.edgeEnabled = builtInShaderEnabled;
                     break;
                 case BuiltInShaderToggle::GroundShadow:
-                    viewer->groundShadowEffectEnabled = builtInShaderEnabled;
+					scene.groundShadowEnabled = builtInShaderEnabled;
                     break;
             }
         }
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-            viewer->skipPhysics = !seekFinished;
+			skipPhysics = !seekFinished;
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
             if (seekFinished) {
                 ResetPhysics(seekFrame);
-                viewer->skipPhysics = false;
+				skipPhysics = false;
             }
         }
         switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
-                viewer->skipPhysics = false;
+				skipPhysics = false;
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
-                    viewer->animTime * 30.0f < start ||
-                    viewer->animTime * 30.0f >= end) {
+					animationTime * 30.0f < start ||
+					animationTime * 30.0f >= end) {
                     cameraManager.SeekFrame(*viewer, music, start, saveTime);
                     ResetPhysics(start);
                 }
@@ -934,7 +923,7 @@ namespace Chrivent {
                 cameraManager.Pause(music);
                 break;
             case PlaybackCommand::Stop:
-                viewer->skipPhysics = false;
+				skipPhysics = false;
                 cameraManager.Stop(*viewer, music, saveTime);
                 cameraManager.SeekFrame(*viewer, music, 0, saveTime);
                 ResetPhysics(0);
@@ -955,13 +944,13 @@ namespace Chrivent {
                 break;
         }
         if (benchmarkMode) {
-			viewer->elapsed = 1.0f / 30.0f;
-			viewer->renderDeltaTime = viewer->elapsed;
-			viewer->animTime += viewer->elapsed;
+			elapsed = 1.0f / 30.0f;
+			renderDeltaTime = elapsed;
+			animationTime += elapsed;
         } else
             cameraManager.StepTime(*viewer, music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
-        const float playbackFrame = viewer->animTime * 30.0f;
+		const float playbackFrame = animationTime * 30.0f;
         if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
             if (panelManager.IsPlaybackRepeatEnabled()) {
                 const int startFrame = panelManager.GetPlaybackFrameRange().start;
@@ -972,18 +961,18 @@ namespace Chrivent {
                 cameraManager.Pause(music);
                 ResetPhysics(endFrame);
             }
-            viewer->skipPhysics = false;
+			skipPhysics = false;
         }
         bool shouldResetPhysics = physicsResetRequested;
         physicsResetRequested = false;
         if (panelManager.ConsumePhysicsDirty())
             shouldResetPhysics = true;
         if (shouldResetPhysics) {
-            ResetPhysics(viewer->animTime * 30.0f + 0.5f);
-            viewer->skipPhysics = false;
+			ResetPhysics(animationTime * 30.0f + 0.5f);
+			skipPhysics = false;
         }
         panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
-        panelManager.SetPlaybackFrame(viewer->animTime * 30.0f + 0.5f);
+		panelManager.SetPlaybackFrame(animationTime * 30.0f + 0.5f);
         cameraManager.UpdateCamera(*viewer);
         fpsOverlay.SetVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
@@ -992,8 +981,14 @@ namespace Chrivent {
             modelUpdateTimings.resize(instances.size());
         }
         const bool physicsEnabled = panelManager.IsPhysicsEnabled();
+		const InstanceUpdateState instanceUpdateState{
+			.animationFrame = animationTime * 30.0f,
+			.elapsed = elapsed,
+			.velocityRequired = viewer->RequiresPostProcessVelocity(),
+			.physicsEnabled = physicsEnabled && !skipPhysics
+		};
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-            instances[index]->PrepareUpdate(*viewer, physicsEnabled, timing ? &modelUpdateTimings[index] : nullptr);
+			instances[index]->PrepareUpdate(instanceUpdateState, timing ? &modelUpdateTimings[index] : nullptr);
         });
         const auto animationEnd = std::chrono::steady_clock::now();
         skinningTaskOffsets.resize(instances.size() + 1);
@@ -1143,6 +1138,10 @@ namespace Chrivent {
             return 1;
         }
         Language::Initialize();
+		if (!resourceDirectories.Initialize()) {
+			std::cerr << "Failed to resolve resource directories.\n";
+			return 1;
+		}
         CreateViewer(options.rendererType);
         SceneConfig cfg;
         if (!options.scenePath.empty() && !cfg.Load(options.scenePath)) {
@@ -1190,7 +1189,7 @@ namespace Chrivent {
             Shutdown();
             return result;
         }
-        while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->window)) {
+		while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->GetWindow())) {
             if (!RunFrame()) {
                 Shutdown();
                 return 1;

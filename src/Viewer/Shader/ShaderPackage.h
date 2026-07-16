@@ -55,16 +55,13 @@ namespace Chrivent {
 		// JSON 객체 하나를 셰이더 pass 정의로 변환한다.
 		static bool LoadPass(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, const nlohmann::json& json,
-			bool postProcess, EffectPassDefinition& pass, std::string& error);
+			EffectPassDefinition& pass, std::string& error);
 		// 후처리 effect가 소유하는 범용 texture 리소스 정의를 읽는다.
 		static bool LoadResources(const nlohmann::json& json, const std::filesystem::path& manifestPath,
 			std::vector<EffectResourceDefinition>& resources, std::string& error);
 		// 후처리 effect가 b1에서 사용할 스칼라 파라미터 선언을 읽는다.
 		static bool LoadParameters(const nlohmann::json& json, const std::filesystem::path& manifestPath,
 			std::vector<EffectParameterDefinition>& parameters, std::string& error);
-		// 장면 셰이더 역할에 맞는 고정 ABI 이름을 읽고 검증한다.
-		static bool LoadSceneShaderAbi(const nlohmann::json& json, const std::filesystem::path& manifestPath,
-			EffectType type, SceneShaderAbi& abi, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error);

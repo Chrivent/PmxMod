@@ -27,9 +27,7 @@ namespace Chrivent {
 		Dx12TextureCache textureCache;
 		Dx12PostProcess postProcess;
 		Dx12Texture dummyTexture;
-		bool frameReady = false;
-		UINT frameIndex = 0;
-		Dx12DrawContext drawContext{ commandContext, pipeline, frameReady, frameIndex };
+		Dx12DrawContext drawContext{ commandContext, pipeline };
 
 		// 현재 back buffer를 render target 상태로 전환한다.
 		void PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const;
@@ -37,13 +35,18 @@ namespace Chrivent {
 		void ClearRenderTargets(ID3D12GraphicsCommandList* commandList) const;
 		
 	protected:
-		PostProcess& ResolvePostProcess() override { return postProcess; }
-		const PostProcess& ResolvePostProcess() const override { return postProcess; }
-		
 		// 체크된 후처리 효과들을 DX12 ping-pong 체인으로 컴파일한다.
 		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX12 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
+		// DX12 후처리 장면 입력 패스를 종료한다.
+		bool EndPostProcessSceneInputPassCore() override;
+		// DX12 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
+		bool SetupCore() override;
+		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
+		bool ResizeCore() override;
+		// DX12 프레임 명령 기록을 시작한다.
+		FrameBeginResult BeginFrameCore() override;
 		// DX12 command list 제출과 Present 결과를 반환한다.
 		FrameEndResult EndFrameCore() override;
 		// 초기 상태의 DX12 모델 인스턴스를 생성한다.
@@ -54,19 +57,11 @@ namespace Chrivent {
 
 		const Dx12Device& GetDevice() const { return device; }
 		const Dx12Texture& GetDummyTexture() const { return dummyTexture; }
-		UINT GetFrameIndex() const { return frameIndex; }
+		UINT GetFrameIndex() const { return drawContext.GetFrameIndex(); }
 		const Dx12DrawContext& GetDrawContext() const { return drawContext; }
 		
 		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
 		void ConfigureWindowHints() override;
-		// DX12 렌더러 리소스를 초기화한다.
-		bool Setup() override;
-		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
-		bool Resize() override;
-		// DX12 프레임 렌더링을 시작한다.
-		FrameBeginResult BeginFrame() override;
-		// DX12 후처리 장면 입력 패스를 종료한다.
-		bool EndPostProcessSceneInputPass() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.

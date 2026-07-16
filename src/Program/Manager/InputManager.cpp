@@ -27,19 +27,20 @@ namespace Chrivent {
 
 	void InputManager::Update(const Viewer& viewer) {
 		state = {};
-		const bool spaceDown = glfwGetKey(viewer.window, GLFW_KEY_SPACE) == GLFW_PRESS;
+		GLFWwindow* window = viewer.GetWindow();
+		const bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
 		state.togglePause = spaceDown && !prevSpaceDown;
 		prevSpaceDown = spaceDown;
-		state.moveForward = glfwGetKey(viewer.window, GLFW_KEY_W) == GLFW_PRESS;
-		state.moveBackward = glfwGetKey(viewer.window, GLFW_KEY_S) == GLFW_PRESS;
-		state.moveLeft = glfwGetKey(viewer.window, GLFW_KEY_A) == GLFW_PRESS;
-		state.moveRight = glfwGetKey(viewer.window, GLFW_KEY_D) == GLFW_PRESS;
-		state.moveDown = glfwGetKey(viewer.window, GLFW_KEY_Q) == GLFW_PRESS;
-		state.moveUp = glfwGetKey(viewer.window, GLFW_KEY_E) == GLFW_PRESS;
-		state.rotateCamera = glfwGetMouseButton(viewer.window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+		state.moveForward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+		state.moveBackward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+		state.moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+		state.moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+		state.moveDown = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+		state.moveUp = glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS;
+		state.rotateCamera = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 		double cursorX = 0.0;
 		double cursorY = 0.0;
-		glfwGetCursorPos(viewer.window, &cursorX, &cursorY);
+		glfwGetCursorPos(window, &cursorX, &cursorY);
 		if (state.rotateCamera && prevRightMouseDown)
 			state.mouseDelta = glm::vec2(cursorX - prevCursorX, cursorY - prevCursorY);
 		prevCursorX = cursorX;

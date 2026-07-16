@@ -4,10 +4,17 @@
 #include "Viewer/Pipeline/Dx12Pipeline.h"
 
 namespace Chrivent {
-	Dx12DrawContext::Dx12DrawContext(Dx12CommandContext& sourceCommandContext,
-		Dx12Pipeline& sourcePipeline, const bool& sourceFrameReady, const UINT& sourceFrameIndex)
-		: commandContext(sourceCommandContext), pipeline(sourcePipeline), frameReady(sourceFrameReady),
-		frameIndex(sourceFrameIndex) {}
+	Dx12DrawContext::Dx12DrawContext(Dx12CommandContext& sourceCommandContext, Dx12Pipeline& sourcePipeline)
+		: commandContext(sourceCommandContext), pipeline(sourcePipeline) {}
+
+	void Dx12DrawContext::BeginFrame(const UINT sourceFrameIndex) {
+		frameIndex = sourceFrameIndex;
+		frameReady = true;
+	}
+
+	void Dx12DrawContext::EndFrame() {
+		frameReady = false;
+	}
 
 	ID3D12GraphicsCommandList* Dx12DrawContext::ResolveCommandList() const {
 		return frameReady ? commandContext.GetCommandList().Get() : nullptr;

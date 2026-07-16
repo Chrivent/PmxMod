@@ -54,10 +54,11 @@ namespace Chrivent {
 	}
 
 	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
+		PlaybackState& playback = viewer.GetPlaybackState();
 		const float seconds = std::max(0, frame) / 30.0f;
-		viewer.elapsed = 0.0f;
-		viewer.renderDeltaTime = 0.0f;
-		viewer.animTime = seconds;
+		playback.elapsed = 0.0f;
+		playback.renderDeltaTime = 0.0f;
+		playback.animationTime = seconds;
 		music.SeekSeconds(seconds);
 		if (!paused)
 			music.Resume();
@@ -95,36 +96,37 @@ namespace Chrivent {
 	}
 
 	void CameraManager::StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
+		PlaybackState& playback = viewer.GetPlaybackState();
 		const auto now = std::chrono::steady_clock::now();
 		const float frameSeconds = std::max(0.0f, std::chrono::duration<float>(now - saveTime).count());
-		viewer.renderDeltaTime = std::min(frameSeconds, 1.0f / 15.0f);
+		playback.renderDeltaTime = std::min(frameSeconds, 1.0f / 15.0f);
 		double elapsedSeconds = frameSeconds;
 		if (elapsedSeconds > 1.0 / 30.0)
 			elapsedSeconds = 1.0 / 30.0;
 		saveTime = now;
 		if (paused) {
-			viewer.elapsed = 0.0f;
+			playback.elapsed = 0.0f;
 			return;
 		}
 		const float clockDt = elapsedSeconds;
 		float dt = clockDt;
-		float t = viewer.animTime + dt;
+		float t = playback.animationTime + dt;
 		if (music.HasSound()) {
 			float audioDt = 0.0f;
 			float audioTime = 0.0f;
 			music.PullTimes(audioDt, audioTime);
 			if (audioDt < 0.0f)
 				audioDt = 0.0f;
-			if (audioTime > viewer.animTime) {
+			if (audioTime > playback.animationTime) {
 				dt = audioDt;
 				t = audioTime;
 			} else {
 				dt = clockDt;
-				t = viewer.animTime + clockDt;
+				t = playback.animationTime + clockDt;
 			}
 		}
-		viewer.elapsed = dt;
-		viewer.animTime = t;
+		playback.elapsed = dt;
+		playback.animationTime = t;
 	}
 
 	void CameraManager::Play(Sound& music) {
@@ -138,10 +140,11 @@ namespace Chrivent {
 	}
 
 	void CameraManager::Stop(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) {
+		PlaybackState& playback = viewer.GetPlaybackState();
 		paused = true;
-		viewer.elapsed = 0.0f;
-		viewer.renderDeltaTime = 0.0f;
-		viewer.animTime = 0.0f;
+		playback.elapsed = 0.0f;
+		playback.renderDeltaTime = 0.0f;
+		playback.animationTime = 0.0f;
 		music.SeekSeconds(0.0f);
 		music.Pause();
 		saveTime = std::chrono::steady_clock::now();
@@ -149,6 +152,7 @@ namespace Chrivent {
 	}
 
 	void CameraManager::HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music) {
+		const PlaybackState& playback = viewer.GetPlaybackState();
 		const auto& [togglePause,
 			moveForward, moveBackward,
 			moveLeft, moveRight,
@@ -163,7 +167,7 @@ namespace Chrivent {
 		}
 		if (useMotionCamera)
 			return;
-		const float moveSpeed = 100.0f * std::max(viewer.elapsed, 1.0f / 120.0f);
+		const float moveSpeed = 100.0f * std::max(playback.elapsed, 1.0f / 120.0f);
 		glm::vec3 forward(
 			std::cos(freeCamPitch) * std::cos(freeCamYaw),
 			std::sin(freeCamPitch),
@@ -195,12 +199,14 @@ namespace Chrivent {
 	}
 
 	void CameraManager::UpdateCamera(Viewer& viewer) const {
+		SceneRenderState& scene = viewer.GetSceneRenderState();
+		const PlaybackState& playback = viewer.GetPlaybackState();
 		constexpr float nearPlane = 1.0f;
 		constexpr float farPlane = 10000.0f;
 		float verticalFov = glm::radians(30.0f);
 		if (useMotionCamera && cameraAnim) {
-			const auto& cam = cameraAnim->Evaluate(viewer.animTime * 30.0f);
-			viewer.viewMat = cam.CalcViewMatrix();
+			const auto& cam = cameraAnim->Evaluate(playback.animationTime * 30.0f);
+			scene.viewMatrix = cam.CalcViewMatrix();
 			verticalFov = cam.fov;
 		} else {
 			glm::vec3 forward(
@@ -209,14 +215,14 @@ namespace Chrivent {
 				std::cos(freeCamPitch) * std::sin(freeCamYaw)
 			);
 			forward = glm::normalize(forward);
-			viewer.viewMat = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
+			scene.viewMatrix = glm::lookAt(freeCamPosition, freeCamPosition + forward, glm::vec3(0, 1, 0));
 		}
-		const float viewportWidth = static_cast<float>(viewer.screenWidth);
-		const float viewportHeight = static_cast<float>(viewer.screenHeight);
-		viewer.projMat = glm::perspectiveFovRH(
+		const float viewportWidth = static_cast<float>(viewer.GetScreenWidth());
+		const float viewportHeight = static_cast<float>(viewer.GetScreenHeight());
+		scene.projectionMatrix = glm::perspectiveFovRH(
 			verticalFov, viewportWidth, viewportHeight, nearPlane, farPlane
 		);
-		const glm::mat4 inverseView = glm::inverse(viewer.viewMat);
+		const glm::mat4 inverseView = glm::inverse(scene.viewMatrix);
 		const auto cameraPosition = glm::vec3(inverseView[3]);
 		const glm::vec3 cameraDirection = glm::normalize(-glm::vec3(inverseView[2]));
 		if (useMotionCamera && cameraAnim && !viewer.IsPostProcessHistoryResetPending()) {
@@ -228,14 +234,14 @@ namespace Chrivent {
 				viewer.ResetPostProcessHistory();
 		}
 		const bool historyResetPending = viewer.IsPostProcessHistoryResetPending();
-		const glm::mat4& previousViewMatrix = historyResetPending ? viewer.viewMat : viewer.GetPreviousViewMatrix();
+		const glm::mat4& previousViewMatrix = historyResetPending ? scene.viewMatrix : viewer.GetPreviousViewMatrix();
 		const glm::mat4 previousInverseView = glm::inverse(previousViewMatrix);
 		const auto previousCameraPosition = glm::vec3(previousInverseView[3]);
 		const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
 		const glm::vec3 cameraRight = glm::normalize(glm::vec3(inverseView[0]));
 		const glm::vec3 cameraUp = glm::normalize(glm::vec3(inverseView[1]));
 		viewer.UpdatePostProcessFrameData({
-			.deltaTime = viewer.renderDeltaTime,
+			.deltaTime = playback.renderDeltaTime,
 			.nearPlane = nearPlane,
 			.farPlane = farPlane,
 			.verticalFovRadians = verticalFov,

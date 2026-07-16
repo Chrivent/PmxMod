@@ -31,9 +31,8 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
-	bool Dx12Viewer::Setup() {
-		if (!InitializeShaderResources())
-			return false;
+	bool Dx12Viewer::SetupCore() {
+		BindPostProcess(postProcess);
 		if (!device.Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
 			return false;
@@ -73,7 +72,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12Viewer::Resize() {
+	bool Dx12Viewer::ResizeCore() {
 		if (!WaitIdle())
 			return false;
 		if (!swapChain.Resize(device, screenWidth, screenHeight))
@@ -87,12 +86,11 @@ namespace Chrivent {
 		return true;
 	}
 
-	FrameBeginResult Dx12Viewer::BeginFrame() {
-		frameReady = false;
+	FrameBeginResult Dx12Viewer::BeginFrameCore() {
+		drawContext.EndFrame();
 		const UINT frameIndex = swapChain.GetFrameIndex();
 		if (!commandContext.BeginFrame(device, frameIndex))
 			return FrameBeginResult::Failed;
-		this->frameIndex = frameIndex;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
@@ -103,14 +101,14 @@ namespace Chrivent {
 		Dx12CommandContext::ApplyViewportAndScissor(commandList, screenWidth, screenHeight);
 		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		frameReady = true;
+		drawContext.BeginFrame(frameIndex);
 		return FrameBeginResult::Ready;
 	}
 
 	FrameEndResult Dx12Viewer::EndFrameCore() {
-		if (!frameReady)
+		if (!drawContext.IsFrameReady())
 			return FrameEndResult::Failed;
-		frameReady = false;
+		drawContext.EndFrame();
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.ResolveCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.ResolveResource();
@@ -133,14 +131,14 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::BeginPostProcessSceneInputPassCore() {
-		if (!frameReady)
+		if (!drawContext.IsFrameReady())
 			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
-	bool Dx12Viewer::EndPostProcessSceneInputPass() {
-		if (!frameReady)
+	bool Dx12Viewer::EndPostProcessSceneInputPassCore() {
+		if (!drawContext.IsFrameReady())
 			return false;
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		return postProcess.EndSceneInputPass(commandList, commandContext);

@@ -2,6 +2,7 @@
 
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
+#include "Viewer/Pipeline/OpenGlPipeline.h"
 #include "Viewer/PostProcess/OpenGlPostProcess.h"
 #include "Viewer/Texture/OpenGlTextureCache.h"
 
@@ -21,23 +22,22 @@ namespace Chrivent {
         const int           msaaSamples = 4;
         OpenGlTextureCache    textureCache;
         OpenGlPostProcess postProcess;
-        GLuint dummyColorTex = 0;
-        std::unique_ptr<OpenGlModelShader> shader;
-        std::unique_ptr<OpenGlEdgeShader> edgeShader;
-        std::unique_ptr<OpenGlGroundShadowShader> gsShader;
-        std::unique_ptr<OpenGlDepthOnlyShader> depthOnlyShader;
-        std::unique_ptr<OpenGlSceneVelocityShader> sceneVelocityShader;
-		OpenGlDrawContext drawContext{ dummyColorTex, shader, edgeShader, gsShader,
-			depthOnlyShader, sceneVelocityShader };
+		OpenGlPipeline pipeline;
+		OpenGlDrawContext drawContext{ pipeline };
 
     protected:
-        PostProcess& ResolvePostProcess() override { return postProcess; }
-        const PostProcess& ResolvePostProcess() const override { return postProcess; }
-        
         // 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
         bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// OpenGL 후처리 장면 입력 패스 기록을 시작한다.
 		bool BeginPostProcessSceneInputPassCore() override;
+		// OpenGL 후처리 장면 입력 패스를 종료한다.
+		bool EndPostProcessSceneInputPassCore() override;
+		// OpenGL 컨텍스트와 셰이더, 기본 텍스처를 초기화한다.
+		bool SetupCore() override;
+		// 창 크기에 맞춰 OpenGL 뷰포트와 렌더 타깃을 갱신한다.
+		bool ResizeCore() override;
+		// 컬러와 깊이 버퍼를 지우고 OpenGL 프레임을 시작한다.
+		FrameBeginResult BeginFrameCore() override;
         // OpenGL 버퍼 교체 결과를 반환한다.
         FrameEndResult EndFrameCore() override;
         // 초기 상태의 OpenGL 모델 인스턴스를 생성한다.
@@ -50,14 +50,6 @@ namespace Chrivent {
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;
-        // OpenGL 컨텍스트와 셰이더, 기본 텍스처를 초기화한다.
-        bool Setup() override;
-        // 창 크기에 맞춰 OpenGL 뷰포트와 투영 행렬을 갱신한다.
-        bool Resize() override;
-        // 컬러/깊이 버퍼를 지우고 프레임 렌더링을 시작한다.
-        FrameBeginResult BeginFrame() override;
-        // OpenGL 후처리 장면 입력 패스를 종료한다.
-        bool EndPostProcessSceneInputPass() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.
         bool WaitIdle() override;
         // 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.

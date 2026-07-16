@@ -9,7 +9,6 @@
 namespace Chrivent {
 	// 캐시 정보와 Vulkan image, memory, view 및 sampler를 보관한다.
 	struct VulkanTexture {
-		TextureKey key;
 		bool hasAlpha = false;
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;

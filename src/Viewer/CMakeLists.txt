@@ -59,6 +59,7 @@ target_sources(PmxModViewer PRIVATE
         Memory/VulkanMemory.h Memory/VulkanMemory.cpp
 
         Pipeline/Dx11Pipeline.h Pipeline/Dx11Pipeline.cpp
+		Pipeline/OpenGlPipeline.h Pipeline/OpenGlPipeline.cpp
         Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
         Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp

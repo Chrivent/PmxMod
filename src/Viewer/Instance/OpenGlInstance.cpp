@@ -55,18 +55,18 @@ namespace Chrivent {
 
 	void OpenGlInstance::CreateVertexArrays() {
 		const OpenGlDrawContext& drawContext = viewer.GetDrawContext();
-		const auto* modelShader = drawContext.GetModelShader();
-		const auto* edgeShader = drawContext.GetEdgeShader();
-		const auto* groundShadowShader = drawContext.GetGroundShadowShader();
-		const auto* depthOnlyShader = drawContext.GetDepthOnlyShader();
-		const auto* sceneVelocityShader = drawContext.GetSceneVelocityShader();
+		const auto& modelShader = drawContext.GetModelShader();
+		const auto& edgeShader = drawContext.GetEdgeShader();
+		const auto& groundShadowShader = drawContext.GetGroundShadowShader();
+		const auto& depthOnlyShader = drawContext.GetDepthOnlyShader();
+		const auto& sceneVelocityShader = drawContext.GetSceneVelocityShader();
 		const GLint locs[][3] = {
-			{ modelShader->positionLocation, modelShader->normalLocation, modelShader->uvLocation },
-			{ edgeShader->positionLocation, edgeShader->normalLocation },
-			{ groundShadowShader->positionLocation },
-			{ depthOnlyShader->positionLocation, depthOnlyShader->uvLocation },
-			{ sceneVelocityShader->positionLocation, sceneVelocityShader->previousPositionLocation,
-				sceneVelocityShader->uvLocation }
+			{ modelShader.positionLocation, modelShader.normalLocation, modelShader.uvLocation },
+			{ edgeShader.positionLocation, edgeShader.normalLocation },
+			{ groundShadowShader.positionLocation },
+			{ depthOnlyShader.positionLocation, depthOnlyShader.uvLocation },
+			{ sceneVelocityShader.positionLocation, sceneVelocityShader.previousPositionLocation,
+				sceneVelocityShader.uvLocation }
 		};
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },

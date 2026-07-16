@@ -25,14 +25,16 @@ namespace Chrivent {
 
 	ModelVertexConstants Drawer::BuildModelVertexConstants(
 		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
 		return {
-			.wv = viewer.viewMat * world,
-			.wvp = clipMatrix * viewer.projMat * viewer.viewMat * world
+			.wv = scene.viewMatrix * world,
+			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world
 		};
 	}
 
 	ModelPixelConstants Drawer::BuildModelPixelConstants(const Viewer& viewer, const Material& material,
 		const int textureMode, const int toonTextureMode, const int sphereTextureMode) {
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
 		return {
 			.texMulFactor = material.textureMulFactor,
 			.texAddFactor = material.textureAddFactor,
@@ -44,8 +46,8 @@ namespace Chrivent {
 			.diffuseAlpha = material.diffuse,
 			.ambientSpecularPower = glm::vec4(material.ambient, material.specularPower),
 			.specular = glm::vec4(material.specular, 0.0f),
-			.lightColor = glm::vec4(viewer.lightColor, 0.0f),
-			.lightDir = glm::vec4(glm::mat3(viewer.viewMat) * viewer.lightDir, 0.0f)
+			.lightColor = glm::vec4(scene.lightColor, 0.0f),
+			.lightDir = glm::vec4(glm::mat3(scene.viewMatrix) * scene.lightDirection, 0.0f)
 		};
 	}
 
@@ -78,23 +80,26 @@ namespace Chrivent {
 
 	EdgeVertexConstants Drawer::BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
 		const glm::mat4& clipMatrix, const glm::vec2& screenSize) {
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
 		return {
-			.wv = viewer.viewMat * world,
-			.wvp = clipMatrix * viewer.projMat * viewer.viewMat * world,
+			.wv = scene.viewMatrix * world,
+			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world,
 			.screenSize = screenSize
 		};
 	}
 
 	GroundShadowVertexConstants Drawer::BuildGroundShadowVertexConstants(
 		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
-		return { .wvp = clipMatrix * viewer.projMat * viewer.viewMat
-			* BuildGroundShadowMatrix(viewer.lightDir) * world };
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		return { .wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix
+			* BuildGroundShadowMatrix(scene.lightDirection) * world };
 	}
 
 	SceneVelocityVertexConstants Drawer::BuildSceneVelocityVertexConstants(
 		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
 		SceneVelocityVertexConstants constants;
-		constants.currentWvp = clipMatrix * viewer.projMat * viewer.viewMat * world;
+		constants.currentWvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world;
 		constants.previousWvp = viewer.IsPostProcessHistoryResetPending() ? constants.currentWvp
 			: clipMatrix * viewer.GetPreviousProjectionMatrix() * viewer.GetPreviousViewMatrix() * world;
 		return constants;
@@ -116,12 +121,13 @@ namespace Chrivent {
 	Drawer::~Drawer() = default;
 
 	void Drawer::Draw() {
+		const SceneRenderState& scene = viewer.GetSceneRenderState();
 		BeginDrawFrame();
-		if (viewer.modelEffectEnabled)
+		if (scene.modelEnabled)
 			DrawModel();
-		if (viewer.edgeEffectEnabled)
+		if (scene.edgeEnabled)
 			DrawEdge();
-		if (viewer.groundShadowEffectEnabled)
+		if (scene.groundShadowEnabled)
 			DrawGroundShadow();
 	}
 

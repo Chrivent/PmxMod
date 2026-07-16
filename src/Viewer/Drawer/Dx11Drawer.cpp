@@ -112,7 +112,7 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		EdgeVertexConstants vsCb1 = BuildEdgeVertexConstants(
-			viewer, world, ClipMatrix(), glm::vec2(viewer.screenWidth, viewer.screenHeight));
+			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), viewer.GetScreenHeight()));
 		drawContext.GetDeviceContext()->VSSetShader(
 			drawContext.GetShaders().edge.vertexShader.Get(), nullptr, 0);
 		drawContext.GetDeviceContext()->PSSetShader(

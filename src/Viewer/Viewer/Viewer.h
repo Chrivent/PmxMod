@@ -61,6 +61,25 @@ namespace Chrivent {
         glm::vec4 cameraWorldUp{};
     };
 
+	// 카메라, 조명과 내장 패스 활성 상태를 한 프레임의 장면 입력으로 묶는다.
+	struct SceneRenderState {
+		glm::mat4 viewMatrix{1.0f};
+		glm::mat4 projectionMatrix{1.0f};
+		glm::vec3 lightColor{1.0f, 1.0f, 1.0f};
+		glm::vec3 lightDirection{-0.5f, -1.0f, 0.5f};
+		bool modelEnabled = true;
+		bool edgeEnabled = true;
+		bool groundShadowEnabled = true;
+	};
+
+	// 애니메이션 진행과 물리 갱신에 필요한 현재 재생 상태를 묶는다.
+	struct PlaybackState {
+		float elapsed = 0.0f;
+		float renderDeltaTime = 0.0f;
+		float animationTime = 0.0f;
+		bool skipPhysics = false;
+	};
+
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		// 시간 기반 후처리의 이전 카메라 상태와 현재 프레임 입력을 한 단위로 보관한다.
@@ -70,73 +89,80 @@ namespace Chrivent {
 			PostProcessFrameData frameData;
 			bool historyResetPending = true;
 		};
-
-		std::filesystem::path resourceDir;
-		std::filesystem::path internalShaderDir;
-		PostProcessTemporalState postProcessTemporalState;
 		
-		// 실행 파일을 기준으로 리소스 디렉터리를 초기화한다.
-		void InitializeDirectories();
+		PostProcessTemporalState postProcessTemporalState;
+		SceneRenderState sceneRenderState;
+		PlaybackState playbackState;
+		PostProcess* activePostProcess = nullptr;
+		bool initialized = false;
+		bool frameActive = false;
+		bool sceneInputPassActive = false;
+		
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
+		// 엔진 내부 셰이더 계약을 지정한 리소스 디렉터리에서 읽는다.
+		bool InitializeShaderResources(const std::filesystem::path& internalShaderDirectory);
 
 	protected:
 		BuiltInShaderPasses builtInShaderPasses;
 		SceneInputShaderPasses sceneInputShaderPasses;
 		float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
+		int screenWidth = 0;
+		int screenHeight = 0;
+		GLFWwindow* window = nullptr;
+		GraphicsCapabilities capabilities;
 
-		// API 구현이 소유한 포스트 프로세서를 반환한다.
-		virtual PostProcess& ResolvePostProcess() = 0;
-		// API 구현이 소유한 읽기 전용 포스트 프로세서를 반환한다.
-		virtual const PostProcess& ResolvePostProcess() const = 0;
 		// API별 리소스로 검증된 후처리 실행 체인을 생성한다.
 		virtual bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) = 0;
 		// API별 후처리 장면 입력 패스 기록을 시작한다.
 		virtual bool BeginPostProcessSceneInputPassCore() = 0;
+		// API별 후처리 장면 입력 패스 기록을 종료한다.
+		virtual bool EndPostProcessSceneInputPassCore() = 0;
+		// API별 렌더러 리소스를 초기화한다.
+		virtual bool SetupCore() = 0;
+		// API별 크기 의존 렌더링 리소스를 갱신한다.
+		virtual bool ResizeCore() = 0;
+		// API별 한 프레임 기록을 시작한다.
+		virtual FrameBeginResult BeginFrameCore() = 0;
 		// API별 프레임 제출과 화면 표시 결과를 반환한다.
 		virtual FrameEndResult EndFrameCore() = 0;
 		// 현재 렌더러에 맞는 초기 상태의 모델 인스턴스를 생성한다.
 		virtual std::unique_ptr<Instance> CreateInstanceCore() = 0;
-		// 리소스 디렉터리와 엔진 내부 셰이더 계약을 초기화한다.
-		bool InitializeShaderResources();
+		// API 구현이 소유한 포스트 프로세서를 공통 프레임 계약에 연결한다.
+		void BindPostProcess(PostProcess& postProcess) { activePostProcess = &postProcess; }
 		// 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.
 		void ResetPostProcessFrameHistory();
 
 	public:
-		std::filesystem::path defaultToonTextureDir;
-		glm::mat4 viewMat;
-		glm::mat4 projMat;
-		int screenWidth = 0;
-		int screenHeight = 0;
-		glm::vec3 lightColor = glm::vec3(1, 1, 1);
-		glm::vec3 lightDir = glm::vec3(-0.5f, -1.0f, 0.5f);
-		float elapsed = 0.0f;
-		float renderDeltaTime = 0.0f;
-		float animTime = 0.0f;
-		bool skipPhysics = false;
-		bool modelEffectEnabled = true;
-		bool edgeEffectEnabled = true;
-		bool groundShadowEffectEnabled = true;
-		GLFWwindow* window = nullptr;
-		GraphicsCapabilities capabilities;
-
 		Viewer() = default;
 		virtual ~Viewer() = default;
 
+		Viewer(const Viewer&) = delete;
+		Viewer& operator=(const Viewer&) = delete;
+
+		GLFWwindow* GetWindow() const { return window; }
+		int GetScreenWidth() const { return screenWidth; }
+		int GetScreenHeight() const { return screenHeight; }
+		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
+		const SceneRenderState& GetSceneRenderState() const { return sceneRenderState; }
+		PlaybackState& GetPlaybackState() { return playbackState; }
+		const PlaybackState& GetPlaybackState() const { return playbackState; }
+
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
 		virtual void ConfigureWindowHints() = 0;
-		// 렌더러와 공통 뷰어 리소스를 초기화한다.
-		virtual bool Setup() = 0;
+		// 윈도우, 크기와 내부 셰이더 계약을 받은 뒤 렌더러 리소스를 한 번 초기화한다.
+		bool Setup(GLFWwindow* sourceWindow, int width, int height,
+			const std::filesystem::path& internalShaderDirectory);
 		// 창 크기에 맞춰 렌더 타깃과 투영 행렬을 갱신한다.
-		virtual bool Resize() = 0;
+		bool Resize(int width, int height);
 		// 한 프레임의 렌더링 시작 상태를 준비하고 기록 가능 여부를 반환한다.
-		virtual FrameBeginResult BeginFrame() = 0;
+		FrameBeginResult BeginFrame();
 		// 한 프레임을 제출하고 표시 결과에 맞춰 시간 기반 히스토리를 확정한다.
 		FrameEndResult EndFrame();
 		// 후처리 요구 입력을 확인하고 장면 depth와 velocity 입력 패스를 시작한다.
 		PostProcessSceneInputBeginResult BeginPostProcessSceneInputPass();
 		// 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
-		virtual bool EndPostProcessSceneInputPass() = 0;
+		bool EndPostProcessSceneInputPass();
 		// 렌더러가 제출한 GPU 작업이 모두 끝날 때까지 기다리고 성공 여부를 반환한다.
 		virtual bool WaitIdle() = 0;
 		// 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
@@ -145,8 +171,6 @@ namespace Chrivent {
 		// 모델 데이터가 완전히 초기화된 현재 렌더러용 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstance(std::shared_ptr<Model> model,
 			std::unique_ptr<Animation> animation, float scale);
-		// 실행 파일 리소스 아래의 셰이더 패키지 디렉터리를 반환한다.
-		std::filesystem::path ResolveShaderPackagesDirectory() const { return resourceDir / "shaders"; }
 		const glm::mat4& GetPreviousViewMatrix() const {
 			return postProcessTemporalState.previousViewMatrix;
 		}

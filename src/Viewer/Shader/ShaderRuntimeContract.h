@@ -1,21 +1,11 @@
 ﻿#pragma once
 
-#include "Viewer/Shader/SceneShaderInputLayout.h"
-
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
 
 namespace Chrivent {
-	// 렌더러가 실행할 효과 역할을 구분한다.
-	enum class EffectType {
-		Model,
-		Edge,
-		GroundShadow,
-		PostProcess
-	};
-
 	// 후처리 리소스의 화면 대비 해상도 규칙을 구분한다.
 	enum class EffectPassResolution {
 		Full,
@@ -74,10 +64,8 @@ namespace Chrivent {
 		float maximumValue = 1.0f;
 	};
 
-	// API가 소비하는 효과 역할과 리소스 및 패스 실행 계약을 나타낸다.
+	// API가 소비하는 후처리 리소스와 패스 실행 계약을 나타낸다.
 	struct EffectRuntimeDefinition {
-		EffectType type = EffectType::PostProcess;
-		SceneShaderAbi sceneShaderAbi = SceneShaderAbi::None;
 		std::vector<std::string> inputs;
 		std::vector<EffectParameterDefinition> parameters;
 		std::vector<EffectResourceDefinition> resources;

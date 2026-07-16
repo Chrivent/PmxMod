@@ -4,7 +4,6 @@
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/Shader/InternalShaderCatalog.h"
 
-#include <Windows.h>
 #include <iostream>
 #include <utility>
 
@@ -15,15 +14,52 @@ namespace Chrivent {
 	}
 
 	void Viewer::CommitPostProcessFrameHistory() {
-		postProcessTemporalState.previousViewMatrix = viewMat;
-		postProcessTemporalState.previousProjectionMatrix = projMat;
+		postProcessTemporalState.previousViewMatrix = sceneRenderState.viewMatrix;
+		postProcessTemporalState.previousProjectionMatrix = sceneRenderState.projectionMatrix;
 		postProcessTemporalState.historyResetPending = false;
 		postProcessTemporalState.frameData.historyReset = 0.0f;
 	}
 
+	bool Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
+		const std::filesystem::path& internalShaderDirectory) {
+		if (initialized || sourceWindow == nullptr || width <= 0 || height <= 0)
+			return false;
+		window = sourceWindow;
+		screenWidth = width;
+		screenHeight = height;
+		if (!InitializeShaderResources(internalShaderDirectory) || !SetupCore() || activePostProcess == nullptr)
+			return false;
+		initialized = true;
+		return true;
+	}
+
+	bool Viewer::Resize(const int width, const int height) {
+		if (!initialized || frameActive || width <= 0 || height <= 0)
+			return false;
+		if (screenWidth == width && screenHeight == height)
+			return true;
+		screenWidth = width;
+		screenHeight = height;
+		if (!ResizeCore())
+			return false;
+		ResetPostProcessHistory();
+		return true;
+	}
+
+	FrameBeginResult Viewer::BeginFrame() {
+		if (!initialized || frameActive)
+			return FrameBeginResult::Failed;
+		const FrameBeginResult result = BeginFrameCore();
+		frameActive = result == FrameBeginResult::Ready;
+		return result;
+	}
+
 	FrameEndResult Viewer::EndFrame() {
+		if (!frameActive || sceneInputPassActive)
+			return FrameEndResult::Failed;
 		const FrameEndResult result = EndFrameCore();
-		PostProcess& postProcess = ResolvePostProcess();
+		frameActive = false;
+		PostProcess& postProcess = *activePostProcess;
 		if (result == FrameEndResult::Presented) {
 			postProcess.CommitHistoryFrame();
 			CommitPostProcessFrameHistory();
@@ -36,10 +72,9 @@ namespace Chrivent {
 		postProcessTemporalState.frameData = std::move(frameData);
 	}
 
-	bool Viewer::InitializeShaderResources() {
-		InitializeDirectories();
+	bool Viewer::InitializeShaderResources(const std::filesystem::path& internalShaderDirectory) {
 		std::string error;
-		if (InternalShaderCatalog::Load(internalShaderDir,
+		if (InternalShaderCatalog::Load(internalShaderDirectory,
 			builtInShaderPasses, sceneInputShaderPasses, error))
 			return true;
 		std::cerr << error << '\n';
@@ -47,18 +82,30 @@ namespace Chrivent {
 	}
 
 	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!WaitIdle() || !LoadPostProcessEffectsCore(effects))
+		if (!initialized || frameActive || !WaitIdle() || !LoadPostProcessEffectsCore(effects))
 			return false;
 		ResetPostProcessFrameHistory();
 		return true;
 	}
 
 	PostProcessSceneInputBeginResult Viewer::BeginPostProcessSceneInputPass() {
-		const PostProcess& postProcess = ResolvePostProcess();
+		if (!frameActive || sceneInputPassActive)
+			return PostProcessSceneInputBeginResult::Failed;
+		const PostProcess& postProcess = *activePostProcess;
 		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
 			return PostProcessSceneInputBeginResult::NotRequired;
-		return BeginPostProcessSceneInputPassCore()
-			? PostProcessSceneInputBeginResult::Ready : PostProcessSceneInputBeginResult::Failed;
+		if (!BeginPostProcessSceneInputPassCore())
+			return PostProcessSceneInputBeginResult::Failed;
+		sceneInputPassActive = true;
+		return PostProcessSceneInputBeginResult::Ready;
+	}
+
+	bool Viewer::EndPostProcessSceneInputPass() {
+		if (!sceneInputPassActive)
+			return false;
+		const bool result = EndPostProcessSceneInputPassCore();
+		sceneInputPassActive = false;
+		return result;
 	}
 
 	std::unique_ptr<Instance> Viewer::CreateInstance(std::shared_ptr<Model> model,
@@ -70,27 +117,12 @@ namespace Chrivent {
 	}
 
 	void Viewer::ResetPostProcessHistory() {
-		ResolvePostProcess().ResetHistory();
+		activePostProcess->ResetHistory();
 		ResetPostProcessFrameHistory();
 	}
 
 	bool Viewer::RequiresPostProcessVelocity() const {
-		return ResolvePostProcess().RequiresVelocity();
+		return activePostProcess->RequiresVelocity();
 	}
-
-	void Viewer::InitializeDirectories() {
-        std::vector<wchar_t> buf(MAX_PATH);
-        while (true) {
-            const DWORD n = GetModuleFileNameW(nullptr, buf.data(), buf.size());
-            if (n < buf.size() - 1) {
-                resourceDir = std::filesystem::path(std::wstring(buf.data(), n));
-                break;
-            }
-            buf.resize(buf.size() * 2);
-        }
-		resourceDir = resourceDir.parent_path() / "resource";
-		internalShaderDir = resourceDir / "internal" / "shaders";
-		defaultToonTextureDir = resourceDir / "internal" / "textures" / "toon";
-    }
 
 }

@@ -24,19 +24,22 @@ namespace Chrivent {
 	class VulkanDrawContext {
 		VulkanPipeline& pipeline;
 		VulkanCommandContext& commandContext;
-		uint32_t& currentImageIndex;
-		const bool& frameReady;
-		const size_t& frameIndex;
+		uint32_t currentImageIndex = 0;
+		bool frameReady = false;
+		size_t frameIndex = 0;
 		VulkanBindStateCache bindStateCache;
 
 	public:
-		VulkanDrawContext(VulkanPipeline& sourcePipeline, VulkanCommandContext& sourceCommandContext,
-			uint32_t& sourceCurrentImageIndex, const bool& sourceFrameReady, const size_t& sourceFrameIndex);
+		VulkanDrawContext(VulkanPipeline& sourcePipeline, VulkanCommandContext& sourceCommandContext);
 
 		size_t GetFrameIndex() const { return frameIndex; }
+		uint32_t GetCurrentImageIndex() const { return currentImageIndex; }
+		bool IsFrameReady() const { return frameReady; }
 
-		// 새 프레임에서 pipeline 및 descriptor 바인딩 캐시를 초기화한다.
-		void ResetFrameState();
+		// 새 프레임 상태를 저장하고 pipeline 및 descriptor 바인딩 캐시를 초기화한다.
+		void BeginFrame(uint32_t sourceCurrentImageIndex, size_t sourceFrameIndex);
+		// 현재 프레임의 Drawer 명령 기록을 막는다.
+		void EndFrame();
 		// 외부 패스가 먼저 바인딩한 pipeline을 현재 캐시에 반영한다.
 		void SetPipelineState(VkPipeline sourcePipeline);
 		// 장면 입력 패스 전환 뒤 descriptor 바인딩 캐시를 초기화한다.

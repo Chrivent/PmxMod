@@ -199,8 +199,8 @@ namespace Chrivent {
 	}
 
 	VulkanTextureCache::~VulkanTextureCache() {
-		for (const auto& texture : textures | std::views::values)
-			ResetTexture(*texture);
+		for (auto& texture : textures | std::views::values)
+			ResetTexture(texture);
 		textures.clear();
 	}
 
@@ -217,14 +217,13 @@ namespace Chrivent {
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return {};
-		const auto texture = std::make_shared<VulkanTexture>();
-		texture->key = cacheKey;
-		texture->hasAlpha = components == 4;
+		VulkanTexture texture;
+		texture.hasAlpha = components == 4;
 		if (!UploadRgbaPixels(sourceDevice, pixels.get(),
-			width, height, *texture, clamp))
+			width, height, texture, clamp))
 			return {};
-		textures[cacheKey] = texture;
-		return *texture;
+		textures.emplace(cacheKey, texture);
+		return texture;
 	}
 
 	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice) {
@@ -233,12 +232,11 @@ namespace Chrivent {
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
-		const auto texture = std::make_shared<VulkanTexture>();
-		texture->key = key;
-		texture->hasAlpha = false;
-		if (!UploadRgbaPixels(sourceDevice, pixels, 1, 1, *texture, false))
+		VulkanTexture texture;
+		texture.hasAlpha = false;
+		if (!UploadRgbaPixels(sourceDevice, pixels, 1, 1, texture, false))
 			return {};
-		textures[key] = texture;
-		return *texture;
+		textures.emplace(key, texture);
+		return texture;
 	}
 }

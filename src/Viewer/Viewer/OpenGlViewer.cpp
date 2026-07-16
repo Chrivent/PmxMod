@@ -37,7 +37,8 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 	}
 
-	bool OpenGlViewer::Setup() {
+	bool OpenGlViewer::SetupCore() {
+		BindPostProcess(postProcess);
 		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
 			std::cerr << "Failed to load OpenGL functions.\n";
@@ -74,45 +75,21 @@ namespace Chrivent {
 		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		if (!InitializeShaderResources())
+		if (!pipeline.Initialize(builtInShaderPasses, sceneInputShaderPasses))
 			return false;
-		shader = std::make_unique<OpenGlModelShader>();
-		if (!shader->Initialize(builtInShaderPasses.model)) {
-			std::cerr << "Failed to set up main OpenGL shader.\n";
+		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
+		if (dummyColorTexture == 0)
 			return false;
-		}
-		edgeShader = std::make_unique<OpenGlEdgeShader>();
-		if (!edgeShader->Initialize(builtInShaderPasses.edge)) {
-			std::cerr << "Failed to set up edge OpenGL shader.\n";
-			return false;
-		}
-		gsShader = std::make_unique<OpenGlGroundShadowShader>();
-		if (!gsShader->Initialize(builtInShaderPasses.groundShadow)) {
-			std::cerr << "Failed to set up ground shadow OpenGL shader.\n";
-			return false;
-		}
-		depthOnlyShader = std::make_unique<OpenGlDepthOnlyShader>();
-		if (!depthOnlyShader->Initialize(sceneInputShaderPasses.depth)) {
-			std::cerr << "Failed to set up depth-only OpenGL shader.\n";
-			return false;
-		}
-		sceneVelocityShader = std::make_unique<OpenGlSceneVelocityShader>();
-		if (!sceneVelocityShader->Initialize(sceneInputShaderPasses.velocity)) {
-			std::cerr << "Failed to set up scene velocity OpenGL shader.\n";
-			return false;
-		}
-		dummyColorTex = textureCache.CreateWhiteTexture().texture;
-		if (dummyColorTex == 0)
-			return false;
+		drawContext.SetDummyColorTexture(dummyColorTexture);
 		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
-	bool OpenGlViewer::Resize() {
+	bool OpenGlViewer::ResizeCore() {
 		glViewport(0, 0, screenWidth, screenHeight);
 		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
-	FrameBeginResult OpenGlViewer::BeginFrame() {
+	FrameBeginResult OpenGlViewer::BeginFrameCore() {
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.ResolveSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -130,7 +107,7 @@ namespace Chrivent {
 		return postProcess.BeginSceneInputPass(screenWidth, screenHeight);
 	}
 
-	bool OpenGlViewer::EndPostProcessSceneInputPass() {
+	bool OpenGlViewer::EndPostProcessSceneInputPassCore() {
 		postProcess.EndSceneInputPass();
 		return true;
 	}

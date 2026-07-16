@@ -31,9 +31,8 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	}
 
-	bool VulkanViewer::Setup() {
-		if (!InitializeShaderResources())
-			return false;
+	bool VulkanViewer::SetupCore() {
+		BindPostProcess(postProcess);
 		if (!device.Initialize(window))
 			return false;
 		capabilities = device.capabilities;
@@ -47,7 +46,7 @@ namespace Chrivent {
 		return syncObject.Initialize(device, swapChain.images.size());
 	}
 
-	bool VulkanViewer::Resize() {
+	bool VulkanViewer::ResizeCore() {
 		if (!WaitIdle())
 			return false;
 		ResetSwapChainResources();
@@ -58,17 +57,17 @@ namespace Chrivent {
 		return syncObject.ResetImageTracking(swapChain.images.size());
 	}
 
-	FrameBeginResult VulkanViewer::BeginFrame() {
-		frameReady = false;
+	FrameBeginResult VulkanViewer::BeginFrameCore() {
+		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
-		drawContext.ResetFrameState();
-		frameIndex = syncObject.GetCurrentFrameIndex();
+		const size_t frameIndex = syncObject.GetCurrentFrameIndex();
 		if (!syncObject.WaitForCurrentFrame())
 			return FrameBeginResult::Failed;
+		uint32_t currentImageIndex = 0;
 		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.swapChain, UINT64_MAX,
 			syncObject.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &currentImageIndex);
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-			if (!Resize())
+			if (!ResizeCore())
 				return FrameBeginResult::Failed;
 			ResetPostProcessHistory();
 			return FrameBeginResult::Skipped;
@@ -94,16 +93,17 @@ namespace Chrivent {
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
 			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.extent, clearColor))
 			return FrameBeginResult::Failed;
+		drawContext.BeginFrame(currentImageIndex, frameIndex);
 		drawContext.SetPipelineState(pipeline.ResolveModelPipeline(false));
-		frameReady = true;
 		return FrameBeginResult::Ready;
 	}
 
 	FrameEndResult VulkanViewer::EndFrameCore() {
-		if (!frameReady)
+		if (!drawContext.IsFrameReady())
 			return FrameEndResult::Failed;
+		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
-		frameReady = false;
+		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
 		bool recordEnded;
 		if (postProcess.HasEffects()) {
@@ -130,7 +130,7 @@ namespace Chrivent {
 		presentInfo.pImageIndices = &currentImageIndex;
 		const VkResult presentResult = vkQueuePresentKHR(device.presentQueue, &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-			if (!Resize())
+			if (!ResizeCore())
 				return FrameEndResult::Failed;
 			ResetPostProcessHistory();
 			return FrameEndResult::Skipped;
@@ -144,8 +144,9 @@ namespace Chrivent {
 	}
 
 	bool VulkanViewer::BeginPostProcessSceneInputPassCore() {
-		if (!frameReady)
+		if (!drawContext.IsFrameReady())
 			return false;
+		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const VkPipeline geometryPipeline = pipeline.ResolveSceneInputPipeline(
 			postProcess.RequiresVelocity(), false);
 		if (!postProcess.BeginSceneInputPass(commandContext.commandBuffer,
@@ -156,9 +157,10 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanViewer::EndPostProcessSceneInputPass() {
-		if (!frameReady)
+	bool VulkanViewer::EndPostProcessSceneInputPassCore() {
+		if (!drawContext.IsFrameReady())
 			return false;
+		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.commandBuffer,
 			currentImageIndex);
 		return postProcessSceneInputPassReady;
