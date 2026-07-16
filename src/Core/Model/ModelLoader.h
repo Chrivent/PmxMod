@@ -16,7 +16,7 @@ namespace Chrivent {
 		void LoadMaterials(
 			const PmxParser::PmxData& pmxData,
 			const std::filesystem::path& modelDir,
-			const std::filesystem::path& dataDir) const;
+			const std::filesystem::path& defaultToonTextureDir) const;
 		// PMX 본과 표시 프레임 정보를 노드 계층, 변형 순서, IK 솔버로 변환한다.
 		void LoadNodes(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const;
 		// PMX 모프 정보를 타입별 모프 데이터로 변환한다.
@@ -29,7 +29,8 @@ namespace Chrivent {
 	public:
 		explicit ModelLoader(Model& model) : model(model) {}
 
-		// PMX 모델과 관련 리소스를 파일에서 로드한다.
-		bool Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) const;
+		// PMX 모델과 내장 공용 툰 텍스처를 파일에서 로드한다.
+		bool Load(const std::filesystem::path& filepath,
+			const std::filesystem::path& defaultToonTextureDir) const;
 	};
 }

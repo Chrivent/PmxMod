@@ -88,9 +88,9 @@ namespace Chrivent {
             }
             buf.resize(buf.size() * 2);
         }
-        resourceDir = resourceDir.parent_path() / "resource";
+		resourceDir = resourceDir.parent_path() / "resource";
 		internalShaderDir = resourceDir / "internal" / "shaders";
-        pmxDir = resourceDir / "mmd";
+		defaultToonTextureDir = resourceDir / "internal" / "textures" / "toon";
     }
 
 }

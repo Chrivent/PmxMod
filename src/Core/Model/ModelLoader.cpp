@@ -100,7 +100,7 @@ namespace Chrivent {
 	void ModelLoader::LoadMaterials(
 		const PmxParser::PmxData& pmxData,
 		const std::filesystem::path& modelDir,
-		const std::filesystem::path& dataDir) const {
+		const std::filesystem::path& defaultToonTextureDir) const {
 		std::vector<std::filesystem::path> texturePaths;
 		texturePaths.reserve(pmxData.textures.size());
 		for (const auto& [textureName] : pmxData.textures) {
@@ -130,7 +130,7 @@ namespace Chrivent {
 				if (mat.toonTextureIndex != -1) {
 					std::stringstream ss;
 					ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
-					m.toonTexture = dataDir / ss.str();
+					m.toonTexture = defaultToonTextureDir / ss.str();
 				}
 			} else if (mat.toonMode == ToonMode::Separate) {
 				if (mat.toonTextureIndex != -1)
@@ -342,7 +342,8 @@ namespace Chrivent {
 		}
 	}
 
-	bool ModelLoader::Load(const std::filesystem::path& filepath, const std::filesystem::path& dataDir) const {
+	bool ModelLoader::Load(const std::filesystem::path& filepath,
+		const std::filesystem::path& defaultToonTextureDir) const {
 		model.Reset();
 		PmxParser pmx;
 		const auto parseResult = pmx.ReadFile(filepath);
@@ -360,7 +361,7 @@ namespace Chrivent {
 		LoadVertices(pmxData, invZ);
 		if (!LoadFaces(pmxData))
 			return false;
-		LoadMaterials(pmxData, modelDir, dataDir);
+		LoadMaterials(pmxData, modelDir, defaultToonTextureDir);
 		LoadNodes(pmxData, invZ);
 		LoadMorphs(pmxData, invZ);
 		FixInfiniteGroupMorphs();

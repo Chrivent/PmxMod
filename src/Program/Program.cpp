@@ -411,7 +411,7 @@ namespace Chrivent {
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
-            if (!loader.Load(modelPath, viewer->pmxDir)) {
+			if (!loader.Load(modelPath, viewer->defaultToonTextureDir)) {
                 std::cerr << "Failed to load pmx file.\n";
                 return false;
             }

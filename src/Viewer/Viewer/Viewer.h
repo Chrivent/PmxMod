@@ -103,7 +103,7 @@ namespace Chrivent {
 		void ResetPostProcessFrameHistory();
 
 	public:
-		std::filesystem::path pmxDir;
+		std::filesystem::path defaultToonTextureDir;
 		glm::mat4 viewMat;
 		glm::mat4 projMat;
 		int screenWidth = 0;
