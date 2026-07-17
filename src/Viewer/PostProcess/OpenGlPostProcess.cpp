@@ -1,6 +1,7 @@
 ﻿#include "Viewer/PostProcess/OpenGlPostProcess.h"
 
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
@@ -188,7 +189,7 @@ namespace Chrivent {
 			&& CreateEffectResources();
 	}
 
-	bool OpenGlPostProcess::Load(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	bool OpenGlPostProcess::LoadEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		OpenGlPostProcess candidate;
 		candidate.targetWidth = targetWidth;
 		candidate.targetHeight = targetHeight;
@@ -205,6 +206,14 @@ namespace Chrivent {
 		resources.swap(candidate.resources);
 		postProcessShaders.swap(candidate.postProcessShaders);
 		return true;
+	}
+
+	bool OpenGlPostProcess::Configure(const int width, const int height, const int sampleCount,
+		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		return ApplyEffectConfiguration(!effects.empty(),
+			[this, width, height, sampleCount] { return InitializeTargets(width, height, sampleCount); },
+			[this, &effects] { return LoadEffects(effects); },
+			[this] { ResetResources(); });
 	}
 
 	bool OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
@@ -259,9 +268,9 @@ namespace Chrivent {
 			glViewport(0, 0, outputWidth, outputHeight);
 			glUseProgram(postProcessShaders[index]->program);
 			for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
-				glBindTextureUnit(PostProcessInputLayout::ResolveSpirvTextureBinding(slot), sceneColorTexture);
+				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(slot), sceneColorTexture);
 			for (const auto& input : route.inputs)
-				glBindTextureUnit(PostProcessInputLayout::ResolveSpirvTextureBinding(input.slot), ResolveInputTexture(input));
+				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(input.slot), ResolveInputTexture(input));
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}

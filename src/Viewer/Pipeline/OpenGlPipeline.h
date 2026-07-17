@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Shader/OpenGlShader.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
 	// OpenGL 장면 렌더링에 사용하는 패스별 셰이더 프로그램을 생성하고 소유한다.

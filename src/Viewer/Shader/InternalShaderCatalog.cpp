@@ -24,8 +24,7 @@ namespace Chrivent {
 	}
 
 	bool InternalShaderCatalog::Load(const std::filesystem::path& shaderDirectory,
-		BuiltInShaderPasses& builtInPasses, SceneInputShaderPasses& sceneInputPasses,
-		std::string& error) {
+		SceneShaderRuntimeContract& contract, std::string& error) {
 		std::filesystem::path modelShaderPath;
 		std::filesystem::path edgeShaderPath;
 		std::filesystem::path groundShadowShaderPath;
@@ -48,8 +47,8 @@ namespace Chrivent {
 		loadedSceneInputPasses.velocityInvertedY = CreatePass(
 			"scene_velocity_inverted_y", std::move(sceneInputShaderPath),
 			"VSVelocity", "PSVelocityInvertedY");
-		builtInPasses = std::move(loadedBuiltInPasses);
-		sceneInputPasses = std::move(loadedSceneInputPasses);
+		contract.builtIn = std::move(loadedBuiltInPasses);
+		contract.sceneInput = std::move(loadedSceneInputPasses);
 		error.clear();
 		return true;
 	}

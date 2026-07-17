@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
 #include <span>
 #include <vector>

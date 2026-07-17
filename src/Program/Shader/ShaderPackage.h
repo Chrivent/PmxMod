@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
 #include <filesystem>
 #include <nlohmann/json_fwd.hpp>
@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace Chrivent {
-	// 사용자에게 노출할 효과 메타데이터와 렌더러 실행 계약을 묶는다.
+	// 프로그램에 노출할 효과 메타데이터와 렌더러 실행 계약을 묶는다.
 	struct EffectDefinition {
 		std::string id;
 		std::string name;

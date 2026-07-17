@@ -48,6 +48,8 @@ namespace Chrivent {
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
+		// 검증된 효과 선언으로 OpenGL 실행 계획과 프로그램을 원자적으로 교체한다.
+		bool LoadEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
 		
 	public:
 		~OpenGlPostProcess() override;
@@ -56,8 +58,9 @@ namespace Chrivent {
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		bool InitializeTargets(int width, int height, int sampleCount);
-		// 체크된 후처리 effect 선언으로 OpenGL 실행 리소스와 shader chain을 생성한다.
-		bool Load(const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
+		bool Configure(int width, int height, int sampleCount,
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.

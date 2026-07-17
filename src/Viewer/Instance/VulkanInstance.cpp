@@ -13,7 +13,7 @@
 #include <string>
 
 namespace Chrivent {
-	bool VulkanInstance::CreateGeometryBuffers(const VulkanDevice& device) {
+	bool VulkanInstance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
@@ -46,7 +46,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanInstance::SetupConstantRings(const VulkanDevice& device) {
+	bool VulkanInstance::SetupConstantRings() {
 		modelResources.uniformBufferOffsetAlignment = std::max<size_t>(
 			1, device.properties.limits.minUniformBufferOffsetAlignment);
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
@@ -81,7 +81,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanInstance::LoadMaterials(const VulkanTexture& dummyTexture) {
+	void VulkanInstance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			VulkanModelMaterial material(mat);
@@ -113,7 +113,7 @@ namespace Chrivent {
 		}
 	}
 
-	bool VulkanInstance::CreateDescriptorSets(const VulkanDevice& device, const VulkanPipeline& pipeline) {
+	bool VulkanInstance::CreateDescriptorSets() {
 		if (!modelResources.modelDescriptorSet.Initialize(device, pipeline,
 			modelResources.modelVertexConstantsRing.GetBuffer(), sizeof(ModelVertexConstants),
 			modelResources.modelPixelConstantsRing.GetBuffer(), sizeof(ModelPixelConstants),
@@ -159,12 +159,12 @@ namespace Chrivent {
 	}
 
 	bool VulkanInstance::SetupRenderer() {
-		if (!CreateGeometryBuffers(device))
+		if (!CreateGeometryBuffers())
 			return false;
-		if (!SetupConstantRings(device))
+		if (!SetupConstantRings())
 			return false;
-		LoadMaterials(dummyTexture);
-		return CreateDescriptorSets(device, pipeline);
+		LoadMaterials();
+		return CreateDescriptorSets();
 	}
 
 	bool VulkanInstance::Upload() {

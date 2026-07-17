@@ -2,9 +2,7 @@
 
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
-#include "Viewer/Shader/InternalShaderCatalog.h"
 
-#include <iostream>
 #include <utility>
 
 namespace Chrivent {
@@ -25,13 +23,15 @@ namespace Chrivent {
 	}
 
 	bool Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
-		const std::filesystem::path& internalShaderDirectory) {
+		SceneShaderRuntimeContract shaderContract) {
 		if (initialized || sourceWindow == nullptr || width <= 0 || height <= 0)
 			return false;
 		window = sourceWindow;
 		screenWidth = width;
 		screenHeight = height;
-		if (!InitializeShaderResources(internalShaderDirectory) || !SetupCore() || activePostProcess == nullptr)
+		builtInShaderPasses = std::move(shaderContract.builtIn);
+		sceneInputShaderPasses = std::move(shaderContract.sceneInput);
+		if (!SetupCore() || activePostProcess == nullptr)
 			return false;
 		initialized = true;
 		return true;
@@ -74,15 +74,6 @@ namespace Chrivent {
 
 	void Viewer::UpdatePostProcessFrameData(PostProcessFrameData frameData) {
 		postProcessTemporalState.frameData = std::move(frameData);
-	}
-
-	bool Viewer::InitializeShaderResources(const std::filesystem::path& internalShaderDirectory) {
-		std::string error;
-		if (InternalShaderCatalog::Load(internalShaderDirectory,
-			builtInShaderPasses, sceneInputShaderPasses, error))
-			return true;
-		std::cerr << error << '\n';
-		return false;
 	}
 
 	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {

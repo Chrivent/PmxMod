@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
 #include <vector>
 
@@ -102,6 +102,24 @@ namespace Chrivent {
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 효과 활성 상태 변경에 맞춰 타깃 준비, 실행 계약 교체와 실패 복구 순서를 통일한다.
+		template<typename InitializeTargets, typename LoadEffects, typename ResetTargets>
+		bool ApplyEffectConfiguration(const bool effectsRequested, InitializeTargets initializeTargets,
+			LoadEffects loadEffects, ResetTargets resetTargets) {
+			const bool hadEffects = HasEffects();
+			if (!hadEffects && effectsRequested && !initializeTargets()) {
+				resetTargets();
+				return false;
+			}
+			if (!loadEffects()) {
+				if (!hadEffects)
+					resetTargets();
+				return false;
+			}
+			if (!HasEffects())
+				resetTargets();
+			return true;
+		}
 		
 	public:
 		virtual ~PostProcess() = default;

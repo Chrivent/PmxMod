@@ -65,19 +65,7 @@ namespace Chrivent {
 	}
 
 	bool OpenGlInstance::CreateVertexArrays() {
-		const auto& modelShader = drawContext.GetModelShader();
-		const auto& edgeShader = drawContext.GetEdgeShader();
-		const auto& groundShadowShader = drawContext.GetGroundShadowShader();
-		const auto& depthOnlyShader = drawContext.GetDepthOnlyShader();
-		const auto& sceneVelocityShader = drawContext.GetSceneVelocityShader();
-		const GLint locs[][3] = {
-			{ modelShader.positionLocation, modelShader.normalLocation, modelShader.uvLocation },
-			{ edgeShader.positionLocation, edgeShader.normalLocation },
-			{ groundShadowShader.positionLocation },
-			{ depthOnlyShader.positionLocation, depthOnlyShader.uvLocation },
-			{ sceneVelocityShader.positionLocation, sceneVelocityShader.previousPositionLocation,
-				sceneVelocityShader.uvLocation }
-		};
+		const OpenGlSceneAttributeLocations locations = drawContext.ResolveSceneAttributeLocations();
 		constexpr GLint sizes[][3] = {
 			{ 3, 3, 2 },
 			{ 3, 3 },
@@ -92,11 +80,11 @@ namespace Chrivent {
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, uv) },
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, previousPosition), offsetof(ViewerVertex, uv) }
 		};
-		modelResources.vao = CreateVao(vertexVbo, locs[0], sizes[0], offsets[0], 3, ibo);
-		modelResources.edgeVao = CreateVao(vertexVbo, locs[1], sizes[1], offsets[1], 2, ibo);
-		modelResources.gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
-		modelResources.depthVao = CreateVao(vertexVbo, locs[3], sizes[3], offsets[3], 2, ibo);
-		modelResources.velocityVao = CreateVao(vertexVbo, locs[4], sizes[4], offsets[4], 3, ibo);
+		modelResources.vao = CreateVao(vertexVbo, locations.model, sizes[0], offsets[0], 3, ibo);
+		modelResources.edgeVao = CreateVao(vertexVbo, locations.edge, sizes[1], offsets[1], 2, ibo);
+		modelResources.gsVao = CreateVao(vertexVbo, locations.groundShadow, sizes[2], offsets[2], 1, ibo);
+		modelResources.depthVao = CreateVao(vertexVbo, locations.depth, sizes[3], offsets[3], 2, ibo);
+		modelResources.velocityVao = CreateVao(vertexVbo, locations.velocity, sizes[4], offsets[4], 3, ibo);
 		return modelResources.vao != 0 && modelResources.edgeVao != 0 && modelResources.gsVao != 0
 			&& modelResources.depthVao != 0 && modelResources.velocityVao != 0;
 	}

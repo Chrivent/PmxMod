@@ -143,20 +143,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!device.device)
-			return false;
-		const bool hadEffects = postProcess.HasEffects();
-		if (!hadEffects && !effects.empty()
-			&& !postProcess.InitializeTargets(device, screenWidth, screenHeight))
-			return false;
-		if (!postProcess.Load(device, effects)) {
-			if (!hadEffects)
-				postProcess.ResetResources();
-			return false;
-		}
-		if (!postProcess.HasEffects())
-			postProcess.ResetResources();
-		return true;
+		return device.device && postProcess.Configure(device, screenWidth, screenHeight, effects);
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {

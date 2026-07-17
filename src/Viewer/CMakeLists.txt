@@ -38,7 +38,7 @@ target_sources(PmxModViewer PRIVATE
 		Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
 		Drawer/VulkanDrawer.h Drawer/VulkanDrawer.cpp
 
-		DrawContext/OpenGlDrawContext.h
+		DrawContext/OpenGlDrawContext.h DrawContext/OpenGlDrawContext.cpp
 		DrawContext/Dx11DrawContext.h DrawContext/Dx11DrawContext.cpp
 		DrawContext/Dx12DrawContext.h DrawContext/Dx12DrawContext.cpp
 		DrawContext/VulkanDrawContext.h DrawContext/VulkanDrawContext.cpp
@@ -67,6 +67,7 @@ target_sources(PmxModViewer PRIVATE
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
         PostProcess/PostProcessInputLayout.h
+        PostProcess/PostProcessRuntimeContract.h
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
         PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
         PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
@@ -85,8 +86,7 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderConstants.h
         Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp
         Shader/SceneShaderInputLayout.h
-        Shader/ShaderRuntimeContract.h
-        Shader/ShaderPackage.h Shader/ShaderPackage.cpp
+        Shader/SceneShaderRuntimeContract.h
         Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
         Shader/ModernHlslCompiler.h
         Shader/SpirvBindingLayout.h
@@ -132,7 +132,6 @@ target_link_libraries(PmxModViewer
         glm::glm
         Vulkan::Vulkan
         PRIVATE
-        nlohmann_json::nlohmann_json
         d3d11
         d3d12
         dxgi

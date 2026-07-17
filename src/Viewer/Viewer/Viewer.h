@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <memory>
-#include <filesystem>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -9,7 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Viewer/Device/GraphicsCapabilities.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
 	class Animation;
@@ -91,8 +90,6 @@ namespace Chrivent {
 		
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
-		// 엔진 내부 셰이더 계약을 지정한 리소스 디렉터리에서 읽는다.
-		bool InitializeShaderResources(const std::filesystem::path& internalShaderDirectory);
 
 	protected:
 		BuiltInShaderPasses builtInShaderPasses;
@@ -139,9 +136,9 @@ namespace Chrivent {
 
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
 		virtual void ConfigureWindowHints();
-		// 윈도우, 크기와 내부 셰이더 계약을 받은 뒤 렌더러 리소스를 한 번 초기화한다.
+		// 윈도우, 크기와 검증된 장면 셰이더 계약을 받은 뒤 렌더러 리소스를 한 번 초기화한다.
 		bool Setup(GLFWwindow* sourceWindow, int width, int height,
-			const std::filesystem::path& internalShaderDirectory);
+			SceneShaderRuntimeContract shaderContract);
 		// 창 크기에 맞춰 렌더 타깃과 투영 행렬을 갱신한다.
 		bool Resize(int width, int height);
 		// 한 프레임의 렌더링 시작 상태를 준비하고 기록 가능 여부를 반환한다.

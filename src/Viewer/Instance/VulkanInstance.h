@@ -21,13 +21,13 @@ namespace Chrivent {
 		VulkanModelResources modelResources;
 
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
-		bool CreateGeometryBuffers(const VulkanDevice& device);
+		bool CreateGeometryBuffers();
 		// 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
-		bool SetupConstantRings(const VulkanDevice& device);
+		bool SetupConstantRings();
 		// 모델 material 정보를 Vulkan material 캐시와 descriptor 준비 데이터로 변환한다.
-		void LoadMaterials(const VulkanTexture& dummyTexture);
+		void LoadMaterials();
 		// 패스별 descriptor set을 생성한다.
-		bool CreateDescriptorSets(const VulkanDevice& device, const VulkanPipeline& pipeline);
+		bool CreateDescriptorSets();
 		
 	protected:
 		// Vulkan 모델 GPU 리소스를 초기 상태로 되돌린다.

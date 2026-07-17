@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Drawer/Drawer.h"
 
-#include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/SceneShaderInputLayout.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
@@ -106,7 +106,7 @@ namespace Chrivent {
 	}
 
 	bool Drawer::ShouldDrawPostProcessSurface(const float opacity) {
-		return opacity >= PostProcessInputLayout::surfaceOpacityThreshold;
+		return opacity >= SceneShaderInputLayout::surfaceOpacityThreshold;
 	}
 
 	SceneSurfacePixelConstants Drawer::BuildSceneSurfacePixelConstants(
@@ -114,7 +114,7 @@ namespace Chrivent {
 		return {
 			.materialOpacity = opacity,
 			.textureAlphaEnabled = textureHasAlpha ? 1.0f : 0.0f,
-			.alphaCutoff = PostProcessInputLayout::surfaceOpacityThreshold
+			.alphaCutoff = SceneShaderInputLayout::surfaceOpacityThreshold
 		};
 	}
 

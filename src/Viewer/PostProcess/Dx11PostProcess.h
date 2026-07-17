@@ -47,14 +47,18 @@ namespace Chrivent {
 		void ResetEffectResources();
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
+		// 검증된 효과 선언으로 DX11 실행 계획과 셰이더를 원자적으로 교체한다.
+		bool LoadEffects(ID3D11Device* device,
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
 		bool InitializeTargets(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
 		// MSAA 장면 색상을 소유한 단일 샘플 입력 texture로 resolve한다.
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
-		// 체크된 후처리 effect 선언으로 DX11 실행 리소스와 shader chain을 생성한다.
-		bool Load(ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.
+		bool Configure(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height,
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
 			int width, int height) const;

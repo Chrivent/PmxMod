@@ -7,7 +7,7 @@
 namespace Chrivent {
 	bool VulkanPostProcessDescriptors::CreateLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding frameDataBinding{
-			.binding = PostProcessInputLayout::frameDataVulkanBinding,
+			.binding = SpirvBindingLayout::frameDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -18,7 +18,7 @@ namespace Chrivent {
 			.pBindings = &frameDataBinding
 		};
 		static constexpr VkDescriptorSetLayoutBinding parameterDataBinding{
-			.binding = PostProcessInputLayout::parameterDataVulkanBinding,
+			.binding = SpirvBindingLayout::parameterDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -29,15 +29,15 @@ namespace Chrivent {
 			.pBindings = &parameterDataBinding
 		};
 		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
-			&descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet]) != VK_SUCCESS
+			&descriptorSetLayouts[SpirvBindingLayout::frameDataSet]) != VK_SUCCESS
 			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr,
-				&descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet]) != VK_SUCCESS)
+				&descriptorSetLayouts[SpirvBindingLayout::parameterDataSet]) != VK_SUCCESS)
 			return false;
 		std::vector<VkDescriptorSetLayoutBinding> textureBindings;
 		textureBindings.reserve(PostProcessInputLayout::maxTextureCount + PostProcessInputLayout::samplerCount);
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
 			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
+				.binding = SpirvBindingLayout::ResolveTextureBinding(slot),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -45,7 +45,7 @@ namespace Chrivent {
 		}
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::samplerCount; slot++) {
 			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = PostProcessInputLayout::ResolveSpirvSamplerBinding(slot),
+				.binding = SpirvBindingLayout::ResolveSamplerBinding(slot),
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.descriptorCount = 1,
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -57,11 +57,11 @@ namespace Chrivent {
 			.pBindings = textureBindings.data()
 		};
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
-			&descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]) != VK_SUCCESS)
+			&descriptorSetLayouts[SpirvBindingLayout::textureSet]) != VK_SUCCESS)
 			return false;
 		const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = PostProcessInputLayout::vulkanSetCount,
+			.setLayoutCount = SpirvBindingLayout::setCount,
 			.pSetLayouts = descriptorSetLayouts
 		};
 		return vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS;
@@ -106,11 +106,11 @@ namespace Chrivent {
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 			return false;
 		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount,
-			descriptorSetLayouts[PostProcessInputLayout::textureVulkanSet]);
+			descriptorSetLayouts[SpirvBindingLayout::textureSet]);
 		for (uint32_t index = 0; index < frameSetCount; index++)
-			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::frameDataVulkanSet];
+			layouts[index] = descriptorSetLayouts[SpirvBindingLayout::frameDataSet];
 		for (uint32_t index = frameSetCount; index < frameSetCount + parameterSetCount; index++)
-			layouts[index] = descriptorSetLayouts[PostProcessInputLayout::parameterDataVulkanSet];
+			layouts[index] = descriptorSetLayouts[SpirvBindingLayout::parameterDataSet];
 		std::vector<VkDescriptorSet> sets(layouts.size());
 		const VkDescriptorSetAllocateInfo allocateInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -144,7 +144,7 @@ namespace Chrivent {
 			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = frameDataDescriptorSets[index],
-				.dstBinding = PostProcessInputLayout::frameDataVulkanBinding,
+				.dstBinding = SpirvBindingLayout::frameDataBinding,
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.pBufferInfo = &bufferInfo
@@ -161,7 +161,7 @@ namespace Chrivent {
 			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = parameterDataDescriptorSets[index],
-				.dstBinding = PostProcessInputLayout::parameterDataVulkanBinding,
+				.dstBinding = SpirvBindingLayout::parameterDataBinding,
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.pBufferInfo = &bufferInfo
@@ -245,7 +245,7 @@ namespace Chrivent {
 			writes.emplace_back(VkWriteDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = descriptorSet,
-				.dstBinding = PostProcessInputLayout::ResolveSpirvTextureBinding(slot),
+				.dstBinding = SpirvBindingLayout::ResolveTextureBinding(slot),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 				.pImageInfo = &imageInfos[slot]
@@ -257,7 +257,7 @@ namespace Chrivent {
 			writes.emplace_back(VkWriteDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = descriptorSet,
-				.dstBinding = PostProcessInputLayout::ResolveSpirvSamplerBinding(slot),
+				.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(slot),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 				.pImageInfo = &imageInfos[infoIndex]
@@ -295,7 +295,7 @@ namespace Chrivent {
 
 	void VulkanPostProcessDescriptors::Swap(VulkanPostProcessDescriptors& other) noexcept {
 		std::swap(device, other.device);
-		for (size_t index = 0; index < PostProcessInputLayout::vulkanSetCount; index++)
+		for (size_t index = 0; index < SpirvBindingLayout::setCount; index++)
 			std::swap(descriptorSetLayouts[index], other.descriptorSetLayouts[index]);
 		std::swap(descriptorPool, other.descriptorPool);
 		std::swap(pipelineLayout, other.pipelineLayout);

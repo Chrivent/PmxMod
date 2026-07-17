@@ -10,6 +10,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Instance/Instance.h"
+#include "Viewer/Shader/InternalShaderCatalog.h"
 #include "Viewer/Viewer/OpenGlViewer.h"
 #include "Viewer/Viewer/VulkanViewer.h"
 #include "Viewer/Viewer/Dx11Viewer.h"
@@ -26,6 +27,7 @@
 #include <limits>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace Chrivent {
     void Program::PrintUsage() {
@@ -136,6 +138,13 @@ namespace Chrivent {
     bool Program::InitializeViewer() {
         if (!viewer)
             return false;
+		SceneShaderRuntimeContract shaderContract;
+		std::string shaderError;
+		if (!InternalShaderCatalog::Load(resourceDirectories.GetInternalShaderDirectory(),
+			shaderContract, shaderError)) {
+			std::cerr << shaderError << '\n';
+			return false;
+		}
         if (!glfwInit()) {
             std::cerr << "Failed to initialize GLFW.\n";
             return false;
@@ -164,8 +173,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
-		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight,
-			resourceDirectories.GetInternalShaderDirectory())) {
+		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight, std::move(shaderContract))) {
             std::cerr << "Failed to set up renderer.\n";
             RemoveViewerWindowSubclass();
             viewer.reset();

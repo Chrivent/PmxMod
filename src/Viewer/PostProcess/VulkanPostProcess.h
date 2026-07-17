@@ -78,8 +78,8 @@ namespace Chrivent {
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
-		// 새 효과 체인을 완성한 뒤 현재 Vulkan 후처리 상태와 원자적으로 교체한다.
-		bool Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
+		bool Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
 		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,

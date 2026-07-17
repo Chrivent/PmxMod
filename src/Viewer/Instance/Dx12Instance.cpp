@@ -14,7 +14,7 @@
 #include <utility>
 
 namespace Chrivent {
-	bool Dx12Instance::CreateGeometryBuffers(const Dx12Device& device) {
+	bool Dx12Instance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
@@ -50,7 +50,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12Instance::CreateConstantBuffers(const Dx12Device& device) {
+	bool Dx12Instance::CreateConstantBuffers() {
 		const size_t modelVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
 		const size_t postProcessVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(
 			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)));
@@ -205,9 +205,9 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::SetupRenderer() {
-		if (!CreateGeometryBuffers(device))
+		if (!CreateGeometryBuffers())
 			return false;
-		if (!CreateConstantBuffers(device))
+		if (!CreateConstantBuffers())
 			return false;
 		LoadMaterials();
 		return CreateTextureDescriptors();

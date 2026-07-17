@@ -2,9 +2,9 @@
 
 #include "Program/RendererType.h"
 #include "Program/ResourceDirectories.h"
+#include "Program/Shader/ShaderPackage.h"
 #include "Program/Sound.h"
 #include "Program/Gui/FpsOverlay.h"
-#include "Viewer/Shader/ShaderPackage.h"
 #include "Program/Manager/CameraManager.h"
 #include "Program/Manager/PanelManager.h"
 #include "Program/Manager/InputManager.h"

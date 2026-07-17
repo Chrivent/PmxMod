@@ -57,12 +57,16 @@ namespace Chrivent {
 		Dx12PostProcessTarget* ResolveOutputTarget(const PostProcessPassRoute& route);
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
+		// 검증된 효과 선언으로 DX12 실행 계획과 pipeline을 원자적으로 교체한다.
+		bool LoadEffects(const Dx12Device& sourceDevice,
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		
 	public:
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
-		// 체크된 후처리 effect 선언으로 DX12 실행 리소스와 pipeline을 생성한다.
-		bool Load(const Dx12Device& sourceDevice, const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
+		bool Configure(const Dx12Device& sourceDevice, int width, int height,
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;

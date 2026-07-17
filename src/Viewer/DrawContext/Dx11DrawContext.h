@@ -25,12 +25,21 @@ namespace Chrivent {
 			: device(sourceDevice), pipeline(sourcePipeline),
 			dummyTexture(sourceDummyTexture) {}
 
-		ID3D11Device* GetDevice() const { return device.GetDevice(); }
 		ID3D11DeviceContext* GetDeviceContext() const { return device.GetContext(); }
-		const Dx11ShaderSet& GetShaders() const { return pipeline.GetShaders(); }
-		const Dx11PipelineStates& GetPipelineStates() const { return pipeline.GetStates(); }
-		const Dx11DummyTexture& GetDummyTexture() const { return dummyTexture; }
+		ID3D11ShaderResourceView* GetDummyTextureView() const { return dummyTexture.textureView.Get(); }
+		ID3D11SamplerState* GetTextureSampler() const { return pipeline.GetStates().textureSampler.Get(); }
+		ID3D11SamplerState* GetToonTextureSampler() const { return pipeline.GetStates().toonTextureSampler.Get(); }
 
+		// 재질의 양면 여부에 맞는 rasterizer state를 반환한다.
+		ID3D11RasterizerState* ResolveModelRasterizerState(bool bothFace) const;
+		// 모델 표면 셰이더와 고정 pipeline state를 바인딩한다.
+		void BindModelPipeline() const;
+		// 엣지 셰이더와 고정 pipeline state를 바인딩한다.
+		void BindEdgePipeline() const;
+		// 지면 그림자 셰이더와 고정 pipeline state를 바인딩한다.
+		void BindGroundShadowPipeline() const;
+		// depth 또는 velocity 장면 입력 셰이더를 바인딩한다.
+		void BindSceneInputPipeline(bool velocity) const;
 		// 현재 출력 크기에 맞는 viewport를 immediate context에 적용한다.
 		static void ApplyViewport(ID3D11DeviceContext* context, int width, int height);
 	};

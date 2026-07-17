@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
 #include <filesystem>
 #include <d3d11.h>

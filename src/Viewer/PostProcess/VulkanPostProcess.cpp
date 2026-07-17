@@ -257,7 +257,7 @@ namespace Chrivent {
 			&& CreatePipelines(sourceDevice);
 	}
 
-	bool VulkanPostProcess::Load(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+	bool VulkanPostProcess::Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		VulkanPostProcess candidate;
 		if (!candidate.SetEffects(effects)

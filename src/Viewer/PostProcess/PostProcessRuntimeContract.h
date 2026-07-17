@@ -72,17 +72,4 @@ namespace Chrivent {
 		std::vector<EffectPassDefinition> passes;
 	};
 
-	// 내장 모델 렌더링이 요구하는 표면·외곽선·지면 그림자 패스를 보관한다.
-	struct BuiltInShaderPasses {
-		EffectPassDefinition model;
-		EffectPassDefinition edge;
-		EffectPassDefinition groundShadow;
-	};
-
-	// API 구현에서 파일명과 진입점을 알지 않도록 엔진 장면 입력 패스를 역할별로 보관한다.
-	struct SceneInputShaderPasses {
-		EffectPassDefinition depth;
-		EffectPassDefinition velocity;
-		EffectPassDefinition velocityInvertedY;
-	};
 }

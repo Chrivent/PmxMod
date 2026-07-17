@@ -144,7 +144,8 @@ namespace Chrivent {
 			context->CopyResource(sceneColor.Get(), source);
 	}
 
-	bool Dx11PostProcess::Load(ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects) {
+	bool Dx11PostProcess::LoadEffects(
+		ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx11PostProcess candidate;
 		candidate.targetWidth = targetWidth;
 		candidate.targetHeight = targetHeight;
@@ -161,6 +162,14 @@ namespace Chrivent {
 		resources.swap(candidate.resources);
 		postProcessShaders.swap(candidate.postProcessShaders);
 		return true;
+	}
+
+	bool Dx11PostProcess::Configure(ID3D11Device* device, ID3D11DeviceContext* context,
+		const int width, const int height, const std::vector<const EffectRuntimeDefinition*>& effects) {
+		return ApplyEffectConfiguration(!effects.empty(),
+			[this, device, context, width, height] { return InitializeTargets(device, context, width, height); },
+			[this, device, &effects] { return LoadEffects(device, effects); },
+			[this] { ResetTargets(); });
 	}
 
 	bool Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,

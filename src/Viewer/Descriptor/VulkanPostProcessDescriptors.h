@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <memory>
 #include <span>
@@ -13,7 +14,7 @@ namespace Chrivent {
 	// Vulkan 후처리의 descriptor layout, pool, set과 공통 sampler를 소유한다.
 	class VulkanPostProcessDescriptors {
 		VkDevice device = VK_NULL_HANDLE;
-		VkDescriptorSetLayout descriptorSetLayouts[PostProcessInputLayout::vulkanSetCount]{};
+		VkDescriptorSetLayout descriptorSetLayouts[SpirvBindingLayout::setCount]{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 		VkSampler sampler = VK_NULL_HANDLE;

@@ -238,7 +238,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12PostProcess::Load(
+	bool Dx12PostProcess::LoadEffects(
 		const Dx12Device& sourceDevice, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx12PostProcess candidate;
 		candidate.targetWidth = targetWidth;
@@ -256,6 +256,14 @@ namespace Chrivent {
 		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++)
 			parameterDataBuffers[index].Swap(candidate.parameterDataBuffers[index]);
 		return true;
+	}
+
+	bool Dx12PostProcess::Configure(const Dx12Device& sourceDevice, const int width, const int height,
+		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		return ApplyEffectConfiguration(!effects.empty(),
+			[this, &sourceDevice, width, height] { return InitializeTargets(sourceDevice, width, height); },
+			[this, &sourceDevice, &effects] { return LoadEffects(sourceDevice, effects); },
+			[this] { ResetResources(); });
 	}
 
 	bool Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,

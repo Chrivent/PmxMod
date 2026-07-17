@@ -32,8 +32,7 @@ namespace Chrivent {
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
-		const auto& shader = drawContext.GetModelShader();
-		glUseProgram(shader.program);
+		drawContext.BindModelPipeline();
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return false;
 		glBindVertexArray(resources.vao);
@@ -99,10 +98,9 @@ namespace Chrivent {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto& edgeShader = drawContext.GetEdgeShader();
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), viewer.GetScreenHeight()));
-		glUseProgram(edgeShader.program);
+		drawContext.BindEdgePipeline();
 		glBindVertexArray(resources.edgeVao);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -137,8 +135,7 @@ namespace Chrivent {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const auto& groundShadowShader = drawContext.GetGroundShadowShader();
-		glUseProgram(groundShadowShader.program);
+		drawContext.BindGroundShadowPipeline();
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
@@ -185,13 +182,13 @@ namespace Chrivent {
 		if (viewer.RequiresPostProcessVelocity()) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
 				viewer, world, ClipMatrix());
-			glUseProgram(drawContext.GetSceneVelocityShader().program);
+			drawContext.BindSceneVelocityPipeline();
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return false;
 			glBindVertexArray(resources.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
-			glUseProgram(drawContext.GetDepthOnlyShader().program);
+			drawContext.BindDepthOnlyPipeline();
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return false;
 			glBindVertexArray(resources.depthVao);

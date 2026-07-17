@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Shader/Dx11Shader.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>

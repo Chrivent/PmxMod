@@ -127,19 +127,8 @@ namespace Chrivent {
 	}
 
 	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		const bool hadEffects = postProcess.HasEffects();
-		if (!hadEffects && !effects.empty()
-			&& !postProcess.InitializeTargets(
-				screenWidth, screenHeight, capabilities.activeSampleCount))
-			return false;
-		if (!postProcess.Load(effects)) {
-			if (!hadEffects)
-				postProcess.ResetResources();
-			return false;
-		}
-		if (!postProcess.HasEffects())
-			postProcess.ResetResources();
-		return true;
+		return postProcess.Configure(
+			screenWidth, screenHeight, capabilities.activeSampleCount, effects);
 	}
 
 	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {

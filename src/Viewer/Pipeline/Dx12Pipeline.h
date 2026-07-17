@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
 #include <d3d12.h>
 #include <wrl/client.h>
 

@@ -2,7 +2,7 @@
 
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/SwapChain/VulkanSwapChain.h"
-#include "Viewer/Shader/ShaderRuntimeContract.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
 	// Vulkan 모델 렌더링에 필요한 descriptor layout과 그래픽 파이프라인을 관리한다.

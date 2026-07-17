@@ -15,5 +15,6 @@ namespace Chrivent {
 		static constexpr uint32_t toonSamplerRegister = 1;
 		static constexpr uint32_t sphereSamplerRegister = 2;
 		static constexpr uint32_t samplerCount = 3;
+		static constexpr float surfaceOpacityThreshold = 0.5f;
 	};
 }

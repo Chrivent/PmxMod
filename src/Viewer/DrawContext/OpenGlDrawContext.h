@@ -5,7 +5,16 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
-	// OpenGL Drawer와 Instance에 장면 그리기용 셰이더 및 기본 텍스처만 노출한다.
+	// OpenGL 장면 패스의 vertex attribute 위치를 API 리소스 생성에 필요한 값으로 묶는다.
+	struct OpenGlSceneAttributeLocations {
+		GLint model[3]{};
+		GLint edge[2]{};
+		GLint groundShadow[1]{};
+		GLint depth[2]{};
+		GLint velocity[3]{};
+	};
+
+	// OpenGL Drawer와 Instance에 장면 패스 동작 및 입력 위치만 노출한다.
 	class OpenGlDrawContext {
 		GLuint dummyColorTexture = 0;
 		const OpenGlPipeline& pipeline;
@@ -14,13 +23,20 @@ namespace Chrivent {
 		explicit OpenGlDrawContext(const OpenGlPipeline& sourcePipeline) : pipeline(sourcePipeline) {}
 
 		GLuint GetDummyColorTexture() const { return dummyColorTexture; }
-		const OpenGlModelShader& GetModelShader() const { return pipeline.GetModelShader(); }
-		const OpenGlEdgeShader& GetEdgeShader() const { return pipeline.GetEdgeShader(); }
-		const OpenGlGroundShadowShader& GetGroundShadowShader() const { return pipeline.GetGroundShadowShader(); }
-		const OpenGlDepthOnlyShader& GetDepthOnlyShader() const { return pipeline.GetDepthOnlyShader(); }
-		const OpenGlSceneVelocityShader& GetSceneVelocityShader() const { return pipeline.GetSceneVelocityShader(); }
 
 		// 초기화된 기본 색상 텍스처를 Drawer에 제공하도록 저장한다.
 		void SetDummyColorTexture(const GLuint texture) { dummyColorTexture = texture; }
+		// 장면 패스별 vertex attribute 위치를 모델 VAO 생성용 값으로 반환한다.
+		OpenGlSceneAttributeLocations ResolveSceneAttributeLocations() const;
+		// 모델 표면 프로그램을 바인딩한다.
+		void BindModelPipeline() const;
+		// 엣지 프로그램을 바인딩한다.
+		void BindEdgePipeline() const;
+		// 지면 그림자 프로그램을 바인딩한다.
+		void BindGroundShadowPipeline() const;
+		// 장면 depth 프로그램을 바인딩한다.
+		void BindDepthOnlyPipeline() const;
+		// 장면 velocity 프로그램을 바인딩한다.
+		void BindSceneVelocityPipeline() const;
 	};
 }

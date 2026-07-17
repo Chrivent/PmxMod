@@ -168,7 +168,7 @@ namespace Chrivent {
 
 	bool VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return device.device != VK_NULL_HANDLE
-			&& postProcess.Load(device, swapChain, msaaDepthBuffer.format, effects);
+			&& postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects);
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {

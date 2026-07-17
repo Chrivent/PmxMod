@@ -87,7 +87,8 @@ namespace Chrivent {
 			arguments.emplace_back(L"-fvk-invert-y");
 		std::vector<std::wstring> argumentStorage;
 		const uint32_t textureCount = SpirvBindingLayout::ResolveTextureCount(bindingProfile);
-		argumentStorage.reserve((2 + textureCount + SpirvBindingLayout::samplerCount) * 3);
+		const uint32_t samplerCount = SpirvBindingLayout::ResolveSamplerCount(bindingProfile);
+		argumentStorage.reserve((2 + textureCount + samplerCount) * 3);
 		const auto AppendBinding = [&arguments, &argumentStorage](const wchar_t type, const uint32_t slot,
 			const uint32_t binding, const uint32_t set) {
 			argumentStorage.emplace_back(std::wstring(1, type) + std::to_wstring(slot));
@@ -101,15 +102,16 @@ namespace Chrivent {
 			arguments.emplace_back(argumentStorage[index + 2].c_str());
 		};
 		const bool openGl = spirvTarget == SpirvTarget::OpenGl;
-		AppendBinding(L'b', SpirvBindingLayout::frameDataRegister, SpirvBindingLayout::frameDataBinding,
-			openGl ? 0 : SpirvBindingLayout::frameDataSet);
-		AppendBinding(L'b', SpirvBindingLayout::parameterDataRegister,
-			openGl ? SpirvBindingLayout::parameterDataRegister : SpirvBindingLayout::parameterDataBinding,
+		AppendBinding(L'b', SpirvBindingLayout::ResolveFrameDataRegister(bindingProfile),
+			SpirvBindingLayout::frameDataBinding, openGl ? 0 : SpirvBindingLayout::frameDataSet);
+		const uint32_t parameterDataRegister = SpirvBindingLayout::ResolveParameterDataRegister(bindingProfile);
+		AppendBinding(L'b', parameterDataRegister,
+			openGl ? parameterDataRegister : SpirvBindingLayout::parameterDataBinding,
 			openGl ? 0 : SpirvBindingLayout::parameterDataSet);
 		for (uint32_t slot = 0; slot < textureCount; slot++)
 			AppendBinding(L't', slot, SpirvBindingLayout::ResolveTextureBinding(slot),
 				openGl ? 0 : SpirvBindingLayout::textureSet);
-		for (uint32_t slot = 0; slot < SpirvBindingLayout::samplerCount; slot++)
+		for (uint32_t slot = 0; slot < samplerCount; slot++)
 			AppendBinding(L's', slot, SpirvBindingLayout::ResolveSamplerBinding(slot),
 				openGl ? 0 : SpirvBindingLayout::textureSet);
 		std::vector<uint8_t> object;
