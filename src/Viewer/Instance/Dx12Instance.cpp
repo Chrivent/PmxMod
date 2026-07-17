@@ -1,14 +1,17 @@
 ﻿#include "Viewer/Instance/Dx12Instance.h"
 
 #include "Viewer/Drawer/Dx12Drawer.h"
-#include "Viewer/Viewer/Dx12Viewer.h"
+#include "Viewer/DrawContext/Dx12DrawContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
+#include "Viewer/Texture/Dx12TextureCache.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx12Instance::CreateGeometryBuffers(const Dx12Device& device) {
@@ -100,20 +103,18 @@ namespace Chrivent {
 		for (const auto& mat : model->materialData.materials) {
 			Dx12ModelMaterial material(mat);
 			if (!mat.texture.empty())
-				material.texture = viewer.LoadTexture(mat.texture);
+				material.texture = textureCache.Load(device, mat.texture);
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
+				material.sphereTexture = textureCache.Load(device, mat.spTexture);
 			if (!mat.toonTexture.empty())
-				material.toonTexture = viewer.LoadTexture(mat.toonTexture);
-			modelResources.materials.emplace_back(material);
+				material.toonTexture = textureCache.Load(device, mat.toonTexture);
+			modelResources.materials.emplace_back(std::move(material));
 		}
 	}
 
 	bool Dx12Instance::CreateTextureDescriptors() {
 		if (modelResources.materials.empty())
 			return true;
-		const Dx12Device& device = viewer.GetDevice();
-		const Dx12Texture& dummyTexture = viewer.GetDummyTexture();
 		if (!device.device)
 			return false;
 		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3)
@@ -156,8 +157,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Instance::Dx12Instance(Dx12Viewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
+	Dx12Instance::Dx12Instance(Viewer& sourceViewer, const Dx12Device& sourceDevice,
+		Dx12TextureCache& sourceTextureCache, const Dx12Texture& sourceDummyTexture,
+		const Dx12DrawContext& sourceDrawContext)
+		: device(sourceDevice), textureCache(sourceTextureCache), dummyTexture(sourceDummyTexture),
+		drawContext(sourceDrawContext) {
+		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 
 	void Dx12Instance::ResetRendererResources() {
@@ -200,7 +205,6 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::SetupRenderer() {
-		const Dx12Device& device = viewer.GetDevice();
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!CreateConstantBuffers(device))
@@ -210,9 +214,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::Upload() {
-		if (model == nullptr)
-			return false;
-		const size_t frameIndex = viewer.GetFrameIndex() % FrameBuffering::dx12BufferCount;
+		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
 			return false;

@@ -72,14 +72,6 @@ namespace Chrivent {
 		bool groundShadowEnabled = true;
 	};
 
-	// 애니메이션 진행과 물리 갱신에 필요한 현재 재생 상태를 묶는다.
-	struct PlaybackState {
-		float elapsed = 0.0f;
-		float renderDeltaTime = 0.0f;
-		float animationTime = 0.0f;
-		bool skipPhysics = false;
-	};
-
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		// 시간 기반 후처리의 이전 카메라 상태와 현재 프레임 입력을 한 단위로 보관한다.
@@ -92,7 +84,6 @@ namespace Chrivent {
 		
 		PostProcessTemporalState postProcessTemporalState;
 		SceneRenderState sceneRenderState;
-		PlaybackState playbackState;
 		PostProcess* activePostProcess = nullptr;
 		bool initialized = false;
 		bool frameActive = false;
@@ -145,11 +136,9 @@ namespace Chrivent {
 		int GetScreenHeight() const { return screenHeight; }
 		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
 		const SceneRenderState& GetSceneRenderState() const { return sceneRenderState; }
-		PlaybackState& GetPlaybackState() { return playbackState; }
-		const PlaybackState& GetPlaybackState() const { return playbackState; }
 
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
-		virtual void ConfigureWindowHints() = 0;
+		virtual void ConfigureWindowHints();
 		// 윈도우, 크기와 내부 셰이더 계약을 받은 뒤 렌더러 리소스를 한 번 초기화한다.
 		bool Setup(GLFWwindow* sourceWindow, int width, int height,
 			const std::filesystem::path& internalShaderDirectory);

@@ -124,22 +124,19 @@ namespace Chrivent {
 		BeginDrawFrame();
 	}
 
-	void Drawer::DrawModelPass() {
-		if (viewer.GetSceneRenderState().modelEnabled)
-			DrawModel();
+	bool Drawer::DrawModelPass() {
+		return !viewer.GetSceneRenderState().modelEnabled || DrawModel();
 	}
 
-	void Drawer::DrawEdgePass() {
-		if (viewer.GetSceneRenderState().edgeEnabled)
-			DrawEdge();
+	bool Drawer::DrawEdgePass() {
+		return !viewer.GetSceneRenderState().edgeEnabled || DrawEdge();
 	}
 
-	void Drawer::DrawGroundShadowPass() {
-		if (viewer.GetSceneRenderState().groundShadowEnabled)
-			DrawGroundShadow();
+	bool Drawer::DrawGroundShadowPass() {
+		return !viewer.GetSceneRenderState().groundShadowEnabled || DrawGroundShadow();
 	}
 
-	void Drawer::DrawPostProcessSceneInputs() {
-		DrawSceneInputs();
+	bool Drawer::DrawPostProcessSceneInputs() {
+		return DrawSceneInputs();
 	}
 }

@@ -2,7 +2,9 @@
 
 #include "Viewer/Drawer/OpenGlDrawer.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
-#include "Viewer/Viewer/OpenGlViewer.h"
+#include "Viewer/DrawContext/OpenGlDrawContext.h"
+#include "Viewer/Texture/OpenGlTextureCache.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
@@ -10,19 +12,26 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <utility>
 
 namespace Chrivent {
 	GLuint OpenGlInstance::CreateBuffer(const size_t size, const void* data, const GLenum usage) {
 		GLuint b = 0;
 		glCreateBuffers(1, &b);
+		if (b == 0)
+			return 0;
 		glNamedBufferData(b, size, data, usage);
 		return b;
 	}
 
 	GLuint OpenGlInstance::CreateVao(const GLuint vertexBuffer, const GLint* locations, const GLint* sizes,
 		const size_t* offsets, const int attributeCount, const GLuint indexBuffer) {
+		if (vertexBuffer == 0 || indexBuffer == 0)
+			return 0;
 		GLuint vao = 0;
 		glCreateVertexArrays(1, &vao);
+		if (vao == 0)
+			return 0;
 		glVertexArrayVertexBuffer(vao, 0, vertexBuffer, 0, sizeof(ViewerVertex));
 		for (int index = 0; index < attributeCount; index++) {
 			if (locations[index] < 0)
@@ -42,6 +51,8 @@ namespace Chrivent {
 		const size_t idxSize = model->geometryData.indexElementSize;
 		const size_t idxCount = model->geometryData.indexCount;
 		ibo = CreateBuffer(idxSize * idxCount, model->geometryData.indices.data(), GL_STATIC_DRAW);
+		if (vertexVbo == 0 || ibo == 0)
+			return false;
 		if (idxSize == 1)
 			modelResources.indexType = GL_UNSIGNED_BYTE;
 		else if (idxSize == 2)
@@ -53,8 +64,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void OpenGlInstance::CreateVertexArrays() {
-		const OpenGlDrawContext& drawContext = viewer.GetDrawContext();
+	bool OpenGlInstance::CreateVertexArrays() {
 		const auto& modelShader = drawContext.GetModelShader();
 		const auto& edgeShader = drawContext.GetEdgeShader();
 		const auto& groundShadowShader = drawContext.GetGroundShadowShader();
@@ -87,6 +97,8 @@ namespace Chrivent {
 		modelResources.gsVao = CreateVao(vertexVbo, locs[2], sizes[2], offsets[2], 1, ibo);
 		modelResources.depthVao = CreateVao(vertexVbo, locs[3], sizes[3], offsets[3], 2, ibo);
 		modelResources.velocityVao = CreateVao(vertexVbo, locs[4], sizes[4], offsets[4], 3, ibo);
+		return modelResources.vao != 0 && modelResources.edgeVao != 0 && modelResources.gsVao != 0
+			&& modelResources.depthVao != 0 && modelResources.velocityVao != 0;
 	}
 
 	bool OpenGlInstance::SetupConstantRings() {
@@ -119,23 +131,26 @@ namespace Chrivent {
 	}
 
 	void OpenGlInstance::LoadMaterials() {
+		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			OpenGlModelMaterial material(mat);
 			if (!mat.texture.empty()) {
-				const auto texture = viewer.LoadTexture(mat.texture);
-				material.texture = texture.texture;
-				material.textureHasAlpha = texture.hasAlpha;
+				const auto [hasAlpha, texture] = textureCache.Load(mat.texture);
+				material.texture = texture;
+				material.textureHasAlpha = hasAlpha;
 			}
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer.LoadTexture(mat.spTexture).texture;
+				material.sphereTexture = textureCache.Load(mat.spTexture).texture;
 			if (!mat.toonTexture.empty())
-				material.toonTexture = viewer.LoadTexture(mat.toonTexture, true).texture;
-			modelResources.materials.emplace_back(material);
+				material.toonTexture = textureCache.Load(mat.toonTexture, true).texture;
+			modelResources.materials.emplace_back(std::move(material));
 		}
 	}
 
-	OpenGlInstance::OpenGlInstance(OpenGlViewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<OpenGlDrawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
+	OpenGlInstance::OpenGlInstance(Viewer& sourceViewer, OpenGlTextureCache& sourceTextureCache,
+		const OpenGlDrawContext& sourceDrawContext)
+		: textureCache(sourceTextureCache), drawContext(sourceDrawContext) {
+		drawer = std::make_unique<OpenGlDrawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 
 	OpenGlInstance::~OpenGlInstance() {
@@ -169,7 +184,8 @@ namespace Chrivent {
 	bool OpenGlInstance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
 			return false;
-		CreateVertexArrays();
+		if (!CreateVertexArrays())
+			return false;
 		if (!SetupConstantRings())
 			return false;
 		LoadMaterials();

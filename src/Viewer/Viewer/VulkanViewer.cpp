@@ -27,10 +27,6 @@ namespace Chrivent {
 		msaaDepthBuffer.Reset();
 	}
 
-	void VulkanViewer::ConfigureWindowHints() {
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	}
-
 	bool VulkanViewer::SetupCore() {
 		BindPostProcess(postProcess);
 		if (!device.Initialize(window))
@@ -176,10 +172,7 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {
-		return std::make_unique<VulkanInstance>(*this);
-	}
-
-	VulkanTexture VulkanViewer::LoadTexture(const std::filesystem::path& texturePath, const bool clamp) {
-		return textureCache.Load(device, texturePath, clamp);
+		return std::make_unique<VulkanInstance>(
+			*this, device, pipeline, textureCache, dummyTexture, drawContext);
 	}
 }

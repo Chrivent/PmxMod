@@ -8,6 +8,10 @@
 #include <utility>
 
 namespace Chrivent {
+	void Viewer::ConfigureWindowHints() {
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	}
+
 	void Viewer::ResetPostProcessFrameHistory() {
 		postProcessTemporalState.historyResetPending = true;
 		postProcessTemporalState.frameData.historyReset = 1.0f;

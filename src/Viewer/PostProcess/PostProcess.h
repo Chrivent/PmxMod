@@ -102,9 +102,7 @@ namespace Chrivent {
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
-		// 선택한 후처리 실행 계획만 비운다. GPU 리소스 해제는 API별 ResetResources가 담당한다.
-		void ClearEffects();
-
+		
 	public:
 		virtual ~PostProcess() = default;
 
@@ -121,8 +119,6 @@ namespace Chrivent {
 		void DiscardHistoryFrame();
 		// 다음 후처리 프레임에서 모든 temporal history를 초기 상태로 되돌린다.
 		void ResetHistory();
-		// API별 GPU 리소스와 선택한 실행 계획을 함께 해제한다.
-		void Clear();
 		// 선택한 실행 계획은 유지하고 API별 GPU 리소스만 해제한다.
 		virtual void ResetResources() = 0;
 	};

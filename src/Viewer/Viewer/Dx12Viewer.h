@@ -11,7 +11,6 @@
 #include "Viewer/Pipeline/Dx12Pipeline.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
 
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -53,18 +52,7 @@ namespace Chrivent {
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		~Dx12Viewer() override;
-
-		const Dx12Device& GetDevice() const { return device; }
-		const Dx12Texture& GetDummyTexture() const { return dummyTexture; }
-		UINT GetFrameIndex() const { return drawContext.GetFrameIndex(); }
-		const Dx12DrawContext& GetDrawContext() const { return drawContext; }
-		
-		// DX12 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-		void ConfigureWindowHints() override;
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
-		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 텍스처로 반환한다.
-		Dx12Texture LoadTexture(const std::filesystem::path& texturePath);
 	};
 }

@@ -12,7 +12,6 @@
 #include "Viewer/PostProcess/VulkanPostProcess.h"
 #include "Viewer/Texture/VulkanTextureCache.h"
 
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -56,17 +55,7 @@ namespace Chrivent {
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		const VulkanDevice& GetDevice() const { return device; }
-		const VulkanPipeline& GetPipeline() const { return pipeline; }
-		const VulkanTexture& GetDummyTexture() const { return dummyTexture; }
-		size_t GetFrameIndex() const { return syncObject.GetCurrentFrameIndex(); }
-		VulkanDrawContext& GetDrawContext() { return drawContext; }
-		
-		// Vulkan 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-		void ConfigureWindowHints() override;
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
-		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
-		VulkanTexture LoadTexture(const std::filesystem::path& texturePath, bool clamp = false);
 	};
 }

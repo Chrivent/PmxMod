@@ -2,17 +2,20 @@
 
 #include "Viewer/Drawer/Dx11Drawer.h"
 
-#include "Viewer/Viewer/Dx11Viewer.h"
+#include "Viewer/DrawContext/Dx11DrawContext.h"
+#include "Viewer/Texture/Dx11TextureCache.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Core/Model/Model.h"
 
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx11Instance::CreateGeometryBuffers() {
-		ID3D11Device* device = viewer.GetDrawContext().GetDevice();
+		ID3D11Device* device = drawContext.GetDevice();
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
@@ -41,7 +44,7 @@ namespace Chrivent {
 	}
 
 	bool Dx11Instance::CreateConstantBuffers() {
-		ID3D11Device* device = viewer.GetDrawContext().GetDevice();
+		ID3D11Device* device = drawContext.GetDevice();
 		if (FAILED(CreateBuffer<ModelVertexConstants>(
 			device, modelResources.vsConstantBuffer)))
 			return false;
@@ -67,20 +70,23 @@ namespace Chrivent {
 	}
 
 	void Dx11Instance::LoadMaterials() {
+		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			Dx11ModelMaterial material(mat);
 			if (!mat.texture.empty())
-				material.texture = viewer.LoadTexture(mat.texture);
+				material.texture = textureCache.Load(drawContext.GetDevice(), mat.texture);
 			if (!mat.spTexture.empty())
-				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
+				material.sphereTexture = textureCache.Load(drawContext.GetDevice(), mat.spTexture);
 			if (!mat.toonTexture.empty())
-				material.toonTexture = viewer.LoadTexture(mat.toonTexture);
+				material.toonTexture = textureCache.Load(drawContext.GetDevice(), mat.toonTexture);
 			modelResources.materials.emplace_back(std::move(material));
 		}
 	}
 
-	Dx11Instance::Dx11Instance(Dx11Viewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<Dx11Drawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
+	Dx11Instance::Dx11Instance(Viewer& sourceViewer, Dx11TextureCache& sourceTextureCache,
+		const Dx11DrawContext& sourceDrawContext)
+		: textureCache(sourceTextureCache), drawContext(sourceDrawContext) {
+		drawer = std::make_unique<Dx11Drawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 
 	void Dx11Instance::ResetRendererResources() {
@@ -107,7 +113,7 @@ namespace Chrivent {
 	}
 
 	bool Dx11Instance::Upload() {
-		ID3D11DeviceContext* deviceContext = viewer.GetDrawContext().GetDeviceContext();
+		ID3D11DeviceContext* deviceContext = drawContext.GetDeviceContext();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
 		if (FAILED(deviceContext->Map(modelResources.vertexBuffer.Get(), 0,

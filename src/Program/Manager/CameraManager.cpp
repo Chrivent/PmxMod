@@ -53,8 +53,9 @@ namespace Chrivent {
 		viewer.ResetPostProcessHistory();
 	}
 
-	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame, std::chrono::steady_clock::time_point& saveTime) const {
-		PlaybackState& playback = viewer.GetPlaybackState();
+	void CameraManager::SeekFrame(Viewer& viewer, Sound& music, const int frame,
+		std::chrono::steady_clock::time_point& saveTime) {
+		PlaybackState& playback = playbackState;
 		const float seconds = std::max(0, frame) / 30.0f;
 		playback.elapsed = 0.0f;
 		playback.renderDeltaTime = 0.0f;
@@ -67,6 +68,7 @@ namespace Chrivent {
 	}
 
 	void CameraManager::Reset() {
+		playbackState = {};
 		paused = true;
 		useMotionCamera = true;
 		ResetFreeCamera();
@@ -95,8 +97,8 @@ namespace Chrivent {
 		}
 	}
 
-	void CameraManager::StepTime(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) const {
-		PlaybackState& playback = viewer.GetPlaybackState();
+	void CameraManager::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime) {
+		PlaybackState& playback = playbackState;
 		const auto now = std::chrono::steady_clock::now();
 		const float frameSeconds = std::max(0.0f, std::chrono::duration<float>(now - saveTime).count());
 		playback.renderDeltaTime = std::min(frameSeconds, 1.0f / 15.0f);
@@ -129,6 +131,12 @@ namespace Chrivent {
 		playback.animationTime = t;
 	}
 
+	void CameraManager::StepFixedTime(const float seconds) {
+		playbackState.elapsed = seconds;
+		playbackState.renderDeltaTime = seconds;
+		playbackState.animationTime += seconds;
+	}
+
 	void CameraManager::Play(Sound& music) {
 		paused = false;
 		music.Resume();
@@ -140,19 +148,20 @@ namespace Chrivent {
 	}
 
 	void CameraManager::Stop(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime) {
-		PlaybackState& playback = viewer.GetPlaybackState();
+		PlaybackState& playback = playbackState;
 		paused = true;
 		playback.elapsed = 0.0f;
 		playback.renderDeltaTime = 0.0f;
 		playback.animationTime = 0.0f;
+		playback.skipPhysics = false;
 		music.SeekSeconds(0.0f);
 		music.Pause();
 		saveTime = std::chrono::steady_clock::now();
 		viewer.ResetPostProcessHistory();
 	}
 
-	void CameraManager::HandleInput(const InputManager& inputManager, const Viewer& viewer, Sound& music) {
-		const PlaybackState& playback = viewer.GetPlaybackState();
+	void CameraManager::HandleInput(const InputManager& inputManager, Sound& music) {
+		const PlaybackState& playback = playbackState;
 		const auto& [togglePause,
 			moveForward, moveBackward,
 			moveLeft, moveRight,
@@ -200,7 +209,7 @@ namespace Chrivent {
 
 	void CameraManager::UpdateCamera(Viewer& viewer) const {
 		SceneRenderState& scene = viewer.GetSceneRenderState();
-		const PlaybackState& playback = viewer.GetPlaybackState();
+		const PlaybackState& playback = playbackState;
 		constexpr float nearPlane = 1.0f;
 		constexpr float farPlane = 10000.0f;
 		float verticalFov = glm::radians(30.0f);

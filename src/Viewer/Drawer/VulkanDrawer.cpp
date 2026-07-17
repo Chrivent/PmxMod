@@ -29,7 +29,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	void VulkanDrawer::DrawModel() {
+	bool VulkanDrawer::DrawModel() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
@@ -41,7 +41,7 @@ namespace Chrivent {
 		if (!vertexSlice.has_value() ||
 			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
 			std::cerr << "Failed to update Vulkan model vertex constants.\n";
-			return;
+			return false;
 		}
 		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -59,16 +59,17 @@ namespace Chrivent {
 			if (!pixelSlice.has_value() ||
 				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan model pixel constants.\n";
-				continue;
+				return false;
 			}
 			drawContext.BindModelPipeline(mat.bothFace);
 			drawContext.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
+		return true;
 	}
 
-	void VulkanDrawer::DrawEdge() {
+	bool VulkanDrawer::DrawEdge() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
@@ -89,7 +90,7 @@ namespace Chrivent {
 			if (!vertexSlice.has_value() ||
 				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
 				std::cerr << "Failed to update Vulkan edge vertex constants.\n";
-				continue;
+				return false;
 			}
 			drawContext.BindModelDescriptorSets(resources.edgeDescriptorSet, vertexSlice->offset);
 			EdgePixelConstants pixelConstants;
@@ -99,14 +100,15 @@ namespace Chrivent {
 			if (!pixelSlice.has_value() ||
 				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
-				continue;
+				return false;
 			}
 			drawContext.BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
+		return true;
 	}
 
-	void VulkanDrawer::DrawGroundShadow() {
+	bool VulkanDrawer::DrawGroundShadow() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
@@ -121,7 +123,7 @@ namespace Chrivent {
 			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants,
 				sizeof(vertexConstants), error)) {
 			std::cerr << "Failed to update Vulkan ground shadow vertex constants.\n";
-			return;
+			return false;
 		}
 		const auto pixelSlice = resources.groundShadowPixelConstantsRing.Allocate(
 			sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
@@ -129,7 +131,7 @@ namespace Chrivent {
 			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
 				sizeof(pixelConstants), error)) {
 			std::cerr << "Failed to update Vulkan ground shadow pixel constants.\n";
-			return;
+			return false;
 		}
 		drawContext.BindGroundShadowPipeline();
 		drawContext.BindModelDescriptorSets(resources.groundShadowDescriptorSet, vertexSlice->offset);
@@ -141,9 +143,10 @@ namespace Chrivent {
 			drawContext.BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
+		return true;
 	}
 
-	void VulkanDrawer::DrawSceneInputs() {
+	bool VulkanDrawer::DrawSceneInputs() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto& viewer = this->viewer;
@@ -160,7 +163,7 @@ namespace Chrivent {
 			!resources.modelVertexConstantsRing.Write(*vertexSlice,
 				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error)) {
 			std::cerr << "Failed to update Vulkan scene input vertex constants.\n";
-			return;
+			return false;
 		}
 		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -176,7 +179,7 @@ namespace Chrivent {
 				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
 					sizeof(pixelConstants), error)) {
 				std::cerr << "Failed to update Vulkan scene surface constants.\n";
-				continue;
+				return false;
 			}
 			if (velocityRequired)
 				drawContext.BindSceneVelocityPipeline(mat.bothFace);
@@ -186,6 +189,7 @@ namespace Chrivent {
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
+		return true;
 	}
 
 	VulkanDrawer::VulkanDrawer(const VulkanInstance& sourceInstance, VulkanModelResources& sourceResources,

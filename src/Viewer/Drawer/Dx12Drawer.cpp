@@ -19,12 +19,10 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	void Dx12Drawer::DrawModel() {
-		if (resources.indexCount == 0)
-			return;
+	bool Dx12Drawer::DrawModel() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
-			return;
+			return false;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.modelVertexConstantBuffers[frameIndex];
@@ -33,7 +31,7 @@ namespace Chrivent {
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 model vertex constants.\n";
-			return;
+			return false;
 		}
 		ID3D12DescriptorHeap* descriptorHeaps[] = { resources.textureDescriptorHeap.Get() };
 		if (descriptorHeaps[0] != nullptr)
@@ -55,21 +53,20 @@ namespace Chrivent {
 			const Dx12Buffer& pixelConstantBuffer = resources.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 model pixel constants.\n";
-				continue;
+				return false;
 			}
 			commandList->SetGraphicsRootConstantBufferView(1, pixelConstantBuffer.GetGpuAddress());
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
+		return true;
 	}
 
-	void Dx12Drawer::DrawEdge() {
-		if (resources.indexCount == 0)
-			return;
+	bool Dx12Drawer::DrawEdge() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
-			return;
+			return false;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const auto& viewer = this->viewer;
@@ -87,27 +84,26 @@ namespace Chrivent {
 			const Dx12Buffer& vertexConstantBuffer = resources.edgeVertexConstantBuffers[materialId][frameIndex];
 			if (!vertexConstantBuffer.Write(vertexConstants)) {
 				std::cerr << "Failed to update DX12 edge vertex constants.\n";
-				continue;
+				return false;
 			}
 			EdgePixelConstants pixelConstants{};
 			pixelConstants.edgeColor = mat.edgeColor;
 			const Dx12Buffer& edgePixelConstantBuffer = resources.edgePixelConstantBuffers[materialId][frameIndex];
 			if (!edgePixelConstantBuffer.Write(pixelConstants)) {
 				std::cerr << "Failed to update DX12 edge pixel constants.\n";
-				continue;
+				return false;
 			}
 			commandList->SetGraphicsRootConstantBufferView(0, vertexConstantBuffer.GetGpuAddress());
 			commandList->SetGraphicsRootConstantBufferView(1, edgePixelConstantBuffer.GetGpuAddress());
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
+		return true;
 	}
 
-	void Dx12Drawer::DrawGroundShadow() {
-		if (resources.indexCount == 0)
-			return;
+	bool Dx12Drawer::DrawGroundShadow() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
-			return;
+			return false;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.groundShadowVertexConstantBuffers[frameIndex];
@@ -118,12 +114,12 @@ namespace Chrivent {
 			viewer, world, ClipMatrix());
 		if (!vertexConstantBuffer.Write(vertexConstants)) {
 			std::cerr << "Failed to update DX12 ground shadow vertex constants.\n";
-			return;
+			return false;
 		}
 		constexpr GroundShadowPixelConstants pixelConstants{};
 		if (!pixelConstantBuffer.Write(pixelConstants)) {
 			std::cerr << "Failed to update DX12 ground shadow pixel constants.\n";
-			return;
+			return false;
 		}
 		drawContext.BindGroundShadowPipeline();
 		commandList->OMSetStencilRef(0x01);
@@ -137,14 +133,13 @@ namespace Chrivent {
 				continue;
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
+		return true;
 	}
 
-	void Dx12Drawer::DrawSceneInputs() {
-		if (resources.indexCount == 0)
-			return;
+	bool Dx12Drawer::DrawSceneInputs() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr)
-			return;
+			return false;
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const auto& vertexBufferView = resources.vertexBufferViews[frameIndex];
 		const Dx12Buffer& vertexConstantBuffer = resources.modelVertexConstantBuffers[frameIndex];
@@ -159,7 +154,7 @@ namespace Chrivent {
 		if (!(velocityRequired ? vertexConstantBuffer.Write(velocityConstants, constantOffset)
 			: vertexConstantBuffer.Write(depthConstants, constantOffset))) {
 			std::cerr << "Failed to update DX12 scene input vertex constants.\n";
-			return;
+			return false;
 		}
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
@@ -178,7 +173,7 @@ namespace Chrivent {
 			const Dx12Buffer& pixelConstantBuffer = resources.modelPixelConstantBuffers[materialId][frameIndex];
 			if (!pixelConstantBuffer.Write(pixelConstants, sceneSurfaceConstantOffset)) {
 				std::cerr << "Failed to update DX12 scene surface constants.\n";
-				continue;
+				return false;
 			}
 			if (velocityRequired)
 				drawContext.BindSceneVelocityPipeline(mat.bothFace);
@@ -190,6 +185,7 @@ namespace Chrivent {
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
 			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
 		}
+		return true;
 	}
 
 	Dx12Drawer::Dx12Drawer(const Dx12Instance& sourceInstance, Dx12ModelResources& sourceResources,

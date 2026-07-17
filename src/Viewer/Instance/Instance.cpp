@@ -28,7 +28,7 @@ namespace Chrivent {
         model.reset();
         animation.reset();
         scale = 1.0f;
-        if (!sourceModel || !ValidateModel(*sourceModel))
+        if (!drawer || !sourceModel || !ValidateModel(*sourceModel))
             return false;
         model = std::move(sourceModel);
         animation = std::move(sourceAnimation);
@@ -43,28 +43,23 @@ namespace Chrivent {
     }
 
 	void Instance::BeginDraw() const {
-		if (drawer)
-			drawer->BeginDraw();
+		drawer->BeginDraw();
 	}
 
-	void Instance::DrawModelPass() const {
-		if (drawer)
-			drawer->DrawModelPass();
+	bool Instance::DrawModelPass() const {
+		return drawer->DrawModelPass();
 	}
 
-	void Instance::DrawEdgePass() const {
-		if (drawer)
-			drawer->DrawEdgePass();
+	bool Instance::DrawEdgePass() const {
+		return drawer->DrawEdgePass();
 	}
 
-	void Instance::DrawGroundShadowPass() const {
-		if (drawer)
-			drawer->DrawGroundShadowPass();
+	bool Instance::DrawGroundShadowPass() const {
+		return drawer->DrawGroundShadowPass();
 	}
 
-    void Instance::DrawPostProcessSceneInputs() const {
-        if (drawer)
-            drawer->DrawPostProcessSceneInputs();
+    bool Instance::DrawPostProcessSceneInputs() const {
+        return drawer->DrawPostProcessSceneInputs();
     }
 
 	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {

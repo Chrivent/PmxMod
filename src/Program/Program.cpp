@@ -259,10 +259,10 @@ namespace Chrivent {
     }
 
     bool Program::ChangeRenderer(const RendererType rendererType) {
-        if (rendererType == currentRendererType)
-            return true;
+		if (rendererType == currentRendererType)
+			return true;
 		const int playbackFrame = viewer
-			? viewer->GetPlaybackState().animationTime * 30.0f + 0.5f : 0;
+			? cameraManager.GetAnimationFrame() + 0.5f : 0;
 		GLFWwindow* previousWindow = viewer ? viewer->GetWindow() : nullptr;
         if (viewer && !viewer->WaitIdle())
             return false;
@@ -382,10 +382,6 @@ namespace Chrivent {
         panelManager.BindSound(music);
         cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-		PlaybackState& playback = viewer->GetPlaybackState();
-		playback.elapsed = 0.0f;
-		playback.animationTime = 0.0f;
-		playback.skipPhysics = false;
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
@@ -866,10 +862,10 @@ namespace Chrivent {
 			panelManager.ApplyMotionMode(MotionTimelineMode::Model);
 			UpdateMotionPanel(selectedModelIndex);
 		}
-		if (panelManager.ConsumeCameraMotionSelected()) {
-			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-			UpdateCameraMotionPanel();
-		}
+        if (panelManager.ConsumeCameraMotionSelected()) {
+            panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+            UpdateCameraMotionPanel();
+        }
 		size_t selectedEffectIndex = 0;
         bool selectedEffectEnabled = false;
         if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)) {
@@ -884,7 +880,6 @@ namespace Chrivent {
         BuiltInShaderToggle builtInShader;
         bool builtInShaderEnabled = false;
 		SceneRenderState& scene = viewer->GetSceneRenderState();
-		auto& [elapsed, renderDeltaTime, animationTime, skipPhysics] = viewer->GetPlaybackState();
         if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
             switch (builtInShader) {
                 case BuiltInShaderToggle::Model:
@@ -901,19 +896,19 @@ namespace Chrivent {
         int seekFrame = 0;
         bool seekFinished = false;
         if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-			skipPhysics = !seekFinished;
+			cameraManager.SetPhysicsSkipped(!seekFinished);
             cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
             if (seekFinished) {
                 ResetPhysics(seekFrame);
-				skipPhysics = false;
+				cameraManager.SetPhysicsSkipped(false);
             }
         }
         switch (panelManager.ConsumePlaybackCommand()) {
             case PlaybackCommand::Play:
-				skipPhysics = false;
+				cameraManager.SetPhysicsSkipped(false);
                 if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
-					animationTime * 30.0f < start ||
-					animationTime * 30.0f >= end) {
+					cameraManager.GetAnimationFrame() < start ||
+					cameraManager.GetAnimationFrame() >= end) {
                     cameraManager.SeekFrame(*viewer, music, start, saveTime);
                     ResetPhysics(start);
                 }
@@ -923,7 +918,7 @@ namespace Chrivent {
                 cameraManager.Pause(music);
                 break;
             case PlaybackCommand::Stop:
-				skipPhysics = false;
+				cameraManager.SetPhysicsSkipped(false);
                 cameraManager.Stop(*viewer, music, saveTime);
                 cameraManager.SeekFrame(*viewer, music, 0, saveTime);
                 ResetPhysics(0);
@@ -933,7 +928,7 @@ namespace Chrivent {
         }
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
-        cameraManager.HandleInput(inputManager, *viewer, music);
+        cameraManager.HandleInput(inputManager, music);
         switch (UpdateFramebufferSize()) {
             case FramebufferUpdateResult::Failed:
                 return false;
@@ -944,13 +939,11 @@ namespace Chrivent {
                 break;
         }
         if (benchmarkMode) {
-			elapsed = 1.0f / 30.0f;
-			renderDeltaTime = elapsed;
-			animationTime += elapsed;
+			cameraManager.StepFixedTime(1.0f / 30.0f);
         } else
-            cameraManager.StepTime(*viewer, music, saveTime);
+            cameraManager.StepTime(music, saveTime);
         const int endFrame = panelManager.GetPlaybackFrameRange().end;
-		const float playbackFrame = animationTime * 30.0f;
+		const float playbackFrame = cameraManager.GetAnimationFrame();
         if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
             if (panelManager.IsPlaybackRepeatEnabled()) {
                 const int startFrame = panelManager.GetPlaybackFrameRange().start;
@@ -961,18 +954,18 @@ namespace Chrivent {
                 cameraManager.Pause(music);
                 ResetPhysics(endFrame);
             }
-			skipPhysics = false;
+			cameraManager.SetPhysicsSkipped(false);
         }
         bool shouldResetPhysics = physicsResetRequested;
         physicsResetRequested = false;
         if (panelManager.ConsumePhysicsDirty())
             shouldResetPhysics = true;
         if (shouldResetPhysics) {
-			ResetPhysics(animationTime * 30.0f + 0.5f);
-			skipPhysics = false;
+			ResetPhysics(cameraManager.GetAnimationFrame() + 0.5f);
+			cameraManager.SetPhysicsSkipped(false);
         }
         panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
-		panelManager.SetPlaybackFrame(animationTime * 30.0f + 0.5f);
+		panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrame() + 0.5f);
         cameraManager.UpdateCamera(*viewer);
         fpsOverlay.SetVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
@@ -982,10 +975,10 @@ namespace Chrivent {
         }
         const bool physicsEnabled = panelManager.IsPhysicsEnabled();
 		const InstanceUpdateState instanceUpdateState{
-			.animationFrame = animationTime * 30.0f,
-			.elapsed = elapsed,
+			.animationFrame = cameraManager.GetAnimationFrame(),
+			.elapsed = cameraManager.GetElapsed(),
 			.velocityRequired = viewer->RequiresPostProcessVelocity(),
-			.physicsEnabled = physicsEnabled && !skipPhysics
+			.physicsEnabled = physicsEnabled && !cameraManager.IsPhysicsSkipped()
 		};
         taskExecutor.Run(instances.size(), [&](const std::size_t index) {
 			instances[index]->PrepareUpdate(instanceUpdateState, timing ? &modelUpdateTimings[index] : nullptr);
@@ -1015,18 +1008,26 @@ namespace Chrivent {
                 return false;
             instance->BeginDraw();
         }
-        for (const auto& instance : instances)
-            instance->DrawModelPass();
-        for (const auto& instance : instances)
-            instance->DrawEdgePass();
-        for (const auto& instance : instances)
-            instance->DrawGroundShadowPass();
+        for (const auto& instance : instances) {
+            if (!instance->DrawModelPass())
+                return false;
+        }
+        for (const auto& instance : instances) {
+            if (!instance->DrawEdgePass())
+                return false;
+        }
+        for (const auto& instance : instances) {
+            if (!instance->DrawGroundShadowPass())
+                return false;
+        }
         const PostProcessSceneInputBeginResult sceneInputResult = viewer->BeginPostProcessSceneInputPass();
         if (sceneInputResult == PostProcessSceneInputBeginResult::Failed)
             return false;
         if (sceneInputResult == PostProcessSceneInputBeginResult::Ready) {
-            for (const auto& instance : instances)
-                instance->DrawPostProcessSceneInputs();
+            for (const auto& instance : instances) {
+                if (!instance->DrawPostProcessSceneInputs())
+                    return false;
+            }
             if (!viewer->EndPostProcessSceneInputPass())
                 return false;
         }

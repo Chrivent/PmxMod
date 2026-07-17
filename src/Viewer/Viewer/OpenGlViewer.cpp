@@ -17,7 +17,7 @@ namespace Chrivent {
 	OpenGlViewer::~OpenGlViewer() {
 		if (window)
 			glfwMakeContextCurrent(window);
-		postProcess.Clear();
+		postProcess.ResetResources();
 	}
 
 	const char* OpenGlViewer::ResolveGpuTypeName(const std::string& renderer) {
@@ -82,12 +82,17 @@ namespace Chrivent {
 			return false;
 		drawContext.SetDummyColorTexture(dummyColorTexture);
 		glViewport(0, 0, screenWidth, screenHeight);
-		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
+		return !postProcess.HasEffects()
+			|| postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
 	}
 
 	bool OpenGlViewer::ResizeCore() {
 		glViewport(0, 0, screenWidth, screenHeight);
-		return postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
+		if (postProcess.HasEffects())
+			return postProcess.InitializeTargets(
+				screenWidth, screenHeight, capabilities.activeSampleCount);
+		postProcess.ResetResources();
+		return true;
 	}
 
 	FrameBeginResult OpenGlViewer::BeginFrameCore() {
@@ -122,11 +127,23 @@ namespace Chrivent {
 	}
 
 	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return postProcess.Load(effects);
+		const bool hadEffects = postProcess.HasEffects();
+		if (!hadEffects && !effects.empty()
+			&& !postProcess.InitializeTargets(
+				screenWidth, screenHeight, capabilities.activeSampleCount))
+			return false;
+		if (!postProcess.Load(effects)) {
+			if (!hadEffects)
+				postProcess.ResetResources();
+			return false;
+		}
+		if (!postProcess.HasEffects())
+			postProcess.ResetResources();
+		return true;
 	}
 
 	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {
-		return std::make_unique<OpenGlInstance>(*this);
+		return std::make_unique<OpenGlInstance>(*this, textureCache, drawContext);
 	}
 
 }

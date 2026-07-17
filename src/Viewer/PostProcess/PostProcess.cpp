@@ -221,26 +221,10 @@ namespace Chrivent {
 		return BuildExecutionPlan(effects);
 	}
 
-	void PostProcess::ClearEffects() {
-		passDefinitions.clear();
-		passRoutes.clear();
-		resourcePlans.clear();
-		resourceHistoryStates.clear();
-		pendingResourceHistoryStates.clear();
-		depthRequired = false;
-		velocityRequired = false;
-		historyFramePending = false;
-	}
-
 	void PostProcess::ResetHistory() {
 		for (auto& state : resourceHistoryStates)
 			state = {};
 		pendingResourceHistoryStates.clear();
 		historyFramePending = false;
-	}
-
-	void PostProcess::Clear() {
-		ResetResources();
-		ClearEffects();
 	}
 }

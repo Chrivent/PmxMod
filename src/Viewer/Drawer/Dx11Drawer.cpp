@@ -35,7 +35,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	void Dx11Drawer::DrawModel() {
+	bool Dx11Drawer::DrawModel() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
@@ -93,9 +93,10 @@ namespace Chrivent {
 			}
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
+		return true;
 	}
 
-	void Dx11Drawer::DrawEdge() {
+	bool Dx11Drawer::DrawEdge() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
@@ -139,9 +140,10 @@ namespace Chrivent {
 				1, 1, edgePsConstantBuffer.GetAddressOf());
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
+		return true;
 	}
 
-	void Dx11Drawer::DrawGroundShadow() {
+	bool Dx11Drawer::DrawGroundShadow() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
@@ -183,9 +185,10 @@ namespace Chrivent {
 				continue;
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
+		return true;
 	}
 
-	void Dx11Drawer::DrawSceneInputs() {
+	bool Dx11Drawer::DrawSceneInputs() {
 		const auto& viewer = this->viewer;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -248,6 +251,7 @@ namespace Chrivent {
 			}
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
+		return true;
 	}
 
 	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance, Dx11ModelResources& sourceResources,

@@ -8,7 +8,6 @@
 #include "Viewer/Pipeline/Dx11Pipeline.h"
 #include "Viewer/RenderTarget/Dx11RenderTargets.h"
 
-#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -47,15 +46,7 @@ namespace Chrivent {
         std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
-		const Dx11DrawContext& GetDrawContext() const { return drawContext; }
-
-        // DX11 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
-        void ConfigureWindowHints() override;
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
         bool WaitIdle() override;
-        // 텍스처를 캐시에서 찾거나 파일에서 로드해 DX11 리소스로 반환한다.
-        Dx11Texture LoadTexture(const std::filesystem::path& texturePath) {
-			return textureCache.Load(device.GetDevice(), texturePath);
-        }
     };
 }

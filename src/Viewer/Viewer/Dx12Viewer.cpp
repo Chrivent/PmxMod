@@ -22,15 +22,6 @@ namespace Chrivent {
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	Dx12Viewer::~Dx12Viewer() {
-		if (device.device && !commandContext.WaitForGpu(device))
-			std::cerr << "Failed to wait for DX12 GPU resources during shutdown.\n";
-	}
-
-	void Dx12Viewer::ConfigureWindowHints() {
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	}
-
 	bool Dx12Viewer::SetupCore() {
 		BindPostProcess(postProcess);
 		if (!device.Initialize()) {
@@ -55,7 +46,7 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 depth buffer.\n";
 			return false;
 		}
-		if (!postProcess.InitializeTargets(device, screenWidth, screenHeight)) {
+		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device, screenWidth, screenHeight)) {
 			std::cerr << "Failed to initialize DX12 post-process targets.\n";
 			return false;
 		}
@@ -81,8 +72,11 @@ namespace Chrivent {
 			return false;
 		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return false;
-		if (!postProcess.InitializeTargets(device, screenWidth, screenHeight))
-			return false;
+		if (postProcess.HasEffects()) {
+			if (!postProcess.InitializeTargets(device, screenWidth, screenHeight))
+				return false;
+		} else
+			postProcess.ResetResources();
 		return true;
 	}
 
@@ -149,15 +143,24 @@ namespace Chrivent {
 	}
 
 	bool Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return device.device && postProcess.Load(device, effects);
+		if (!device.device)
+			return false;
+		const bool hadEffects = postProcess.HasEffects();
+		if (!hadEffects && !effects.empty()
+			&& !postProcess.InitializeTargets(device, screenWidth, screenHeight))
+			return false;
+		if (!postProcess.Load(device, effects)) {
+			if (!hadEffects)
+				postProcess.ResetResources();
+			return false;
+		}
+		if (!postProcess.HasEffects())
+			postProcess.ResetResources();
+		return true;
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {
-		return std::make_unique<Dx12Instance>(*this);
-	}
-
-	Dx12Texture Dx12Viewer::LoadTexture(const std::filesystem::path& texturePath) {
-		return textureCache.Load(device, texturePath);
+		return std::make_unique<Dx12Instance>(*this, device, textureCache, dummyTexture, drawContext);
 	}
 
 }

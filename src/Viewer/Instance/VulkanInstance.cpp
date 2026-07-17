@@ -1,9 +1,11 @@
 ﻿#include "Viewer/Instance/VulkanInstance.h"
 
 #include "Viewer/Drawer/VulkanDrawer.h"
-#include "Viewer/Viewer/VulkanViewer.h"
+#include "Viewer/DrawContext/VulkanDrawContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
+#include "Viewer/Texture/VulkanTextureCache.h"
+#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 
 #include <algorithm>
@@ -80,10 +82,11 @@ namespace Chrivent {
 	}
 
 	void VulkanInstance::LoadMaterials(const VulkanTexture& dummyTexture) {
+		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			VulkanModelMaterial material(mat);
 			if (!mat.texture.empty()) {
-				material.texture = viewer.LoadTexture(mat.texture);
+				material.texture = textureCache.Load(device, mat.texture);
 				if (material.texture.image == VK_NULL_HANDLE)
 					material.texture = dummyTexture;
 				else
@@ -91,7 +94,7 @@ namespace Chrivent {
 			} else
 				material.texture = dummyTexture;
 			if (!mat.spTexture.empty()) {
-				material.sphereTexture = viewer.LoadTexture(mat.spTexture);
+				material.sphereTexture = textureCache.Load(device, mat.spTexture);
 				if (material.sphereTexture.image == VK_NULL_HANDLE)
 					material.sphereTexture = dummyTexture;
 				else
@@ -99,7 +102,7 @@ namespace Chrivent {
 			} else
 				material.sphereTexture = dummyTexture;
 			if (!mat.toonTexture.empty()) {
-				material.toonTexture = viewer.LoadTexture(mat.toonTexture, true);
+				material.toonTexture = textureCache.Load(device, mat.toonTexture, true);
 				if (material.toonTexture.image == VK_NULL_HANDLE)
 					material.toonTexture = dummyTexture;
 				else
@@ -129,8 +132,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanInstance::VulkanInstance(VulkanViewer& sourceViewer) : viewer(sourceViewer) {
-		drawer = std::make_unique<VulkanDrawer>(*this, modelResources, viewer.GetDrawContext(), viewer);
+	VulkanInstance::VulkanInstance(Viewer& sourceViewer, const VulkanDevice& sourceDevice,
+		const VulkanPipeline& sourcePipeline, VulkanTextureCache& sourceTextureCache,
+		const VulkanTexture& sourceDummyTexture, VulkanDrawContext& sourceDrawContext)
+		: device(sourceDevice), pipeline(sourcePipeline), textureCache(sourceTextureCache),
+		dummyTexture(sourceDummyTexture), drawContext(sourceDrawContext) {
+		drawer = std::make_unique<VulkanDrawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 
 	void VulkanInstance::ResetRendererResources() {
@@ -152,9 +159,6 @@ namespace Chrivent {
 	}
 
 	bool VulkanInstance::SetupRenderer() {
-		const VulkanDevice& device = viewer.GetDevice();
-		const VulkanPipeline& pipeline = viewer.GetPipeline();
-		const VulkanTexture& dummyTexture = viewer.GetDummyTexture();
 		if (!CreateGeometryBuffers(device))
 			return false;
 		if (!SetupConstantRings(device))
@@ -164,9 +168,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanInstance::Upload() {
-		if (model == nullptr)
-			return false;
-		const size_t frameIndex = viewer.GetFrameIndex();
+		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
 			frameIndex % FrameBuffering::vulkanFramesInFlight];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)

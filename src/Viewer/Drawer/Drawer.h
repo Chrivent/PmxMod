@@ -58,13 +58,13 @@ namespace Chrivent {
 		static SceneSurfacePixelConstants BuildSceneSurfacePixelConstants(float opacity, bool textureHasAlpha);
 
 		// 일반 메시 패스를 그린다.
-		virtual void DrawModel() = 0;
+		virtual bool DrawModel() = 0;
 		// 엣지 패스를 그린다.
-		virtual void DrawEdge() = 0;
+		virtual bool DrawEdge() = 0;
 		// 지면 그림자 패스를 그린다.
-		virtual void DrawGroundShadow() = 0;
+		virtual bool DrawGroundShadow() = 0;
 		// 후처리가 요구하는 장면 depth와 velocity 입력에 모델 geometry를 기록한다.
-		virtual void DrawSceneInputs() = 0;
+		virtual bool DrawSceneInputs() = 0;
 
 	public:
 		explicit Drawer(Viewer& sourceViewer) : viewer(sourceViewer) {}
@@ -73,12 +73,12 @@ namespace Chrivent {
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 준비한다.
 		void BeginDraw();
 		// 현재 인스턴스의 모델 본체 패스를 그린다.
-		void DrawModelPass();
+		bool DrawModelPass();
 		// 현재 인스턴스의 엣지 패스를 그린다.
-		void DrawEdgePass();
+		bool DrawEdgePass();
 		// 현재 인스턴스의 지면 그림자 패스를 그린다.
-		void DrawGroundShadowPass();
+		bool DrawGroundShadowPass();
 		// 후처리 장면 depth와 velocity 입력 패스를 그린다.
-		void DrawPostProcessSceneInputs();
+		bool DrawPostProcessSceneInputs();
 	};
 }

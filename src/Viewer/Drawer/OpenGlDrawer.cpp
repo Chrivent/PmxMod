@@ -26,7 +26,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	void OpenGlDrawer::DrawModel() {
+	bool OpenGlDrawer::DrawModel() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
@@ -35,7 +35,7 @@ namespace Chrivent {
 		const auto& shader = drawContext.GetModelShader();
 		glUseProgram(shader.program);
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-			return;
+			return false;
 		glBindVertexArray(resources.vao);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -72,7 +72,7 @@ namespace Chrivent {
 				sphereTexture = material.sphereTexture;
 			glBindTextureUnit(2, sphereTexture);
 			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				continue;
+				return false;
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -91,9 +91,10 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
+		return true;
 	}
 
-	void OpenGlDrawer::DrawEdge() {
+	bool OpenGlDrawer::DrawEdge() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
@@ -124,13 +125,14 @@ namespace Chrivent {
 			pixelConstants.edgeColor = mat.edgeColor;
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
 				!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				continue;
+				return false;
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
+		return true;
 	}
 
-	void OpenGlDrawer::DrawGroundShadow() {
+	bool OpenGlDrawer::DrawGroundShadow() {
 		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
@@ -142,11 +144,11 @@ namespace Chrivent {
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			viewer, world, ClipMatrix());
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-			return;
+			return false;
 		glBindVertexArray(resources.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
 		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-			return;
+			return false;
 		glDepthMask(GL_FALSE);
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
@@ -173,9 +175,10 @@ namespace Chrivent {
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
+		return true;
 	}
 
-	void OpenGlDrawer::DrawSceneInputs() {
+	bool OpenGlDrawer::DrawSceneInputs() {
 		const auto& viewer = this->viewer;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -184,13 +187,13 @@ namespace Chrivent {
 				viewer, world, ClipMatrix());
 			glUseProgram(drawContext.GetSceneVelocityShader().program);
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-				return;
+				return false;
 			glBindVertexArray(resources.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
 			glUseProgram(drawContext.GetDepthOnlyShader().program);
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-				return;
+				return false;
 			glBindVertexArray(resources.depthVao);
 		}
 		glEnable(GL_DEPTH_TEST);
@@ -211,7 +214,7 @@ namespace Chrivent {
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
 			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				continue;
+				return false;
 			glBindTextureUnit(0, material.texture != 0
 				? material.texture : drawContext.GetDummyColorTexture());
 			if (mat.bothFace) {
@@ -226,6 +229,7 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
+		return true;
 	}
 
 	OpenGlDrawer::OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,

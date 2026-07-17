@@ -8,11 +8,14 @@
 
 namespace Chrivent {
     class Dx11Drawer;
-    class Dx11Viewer;
+	class Dx11DrawContext;
+	class Dx11TextureCache;
+	class Viewer;
 
     // 한 모델의 D3D11 버퍼, 재질과 descriptor 상태를 관리한다.
     class Dx11Instance : public Instance {
-		Dx11Viewer& viewer;
+		Dx11TextureCache& textureCache;
+		const Dx11DrawContext& drawContext;
 		Dx11ModelResources modelResources;
 
         // 모델 geometry 데이터를 DX11 vertex/index buffer로 생성한다.
@@ -36,7 +39,8 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
     public:
-		explicit Dx11Instance(Dx11Viewer& sourceViewer);
+		Dx11Instance(Viewer& sourceViewer, Dx11TextureCache& sourceTextureCache,
+			const Dx11DrawContext& sourceDrawContext);
         
 		// 모델의 갱신된 버텍스 데이터를 DX11 버퍼에 반영한다.
 		bool Upload() override;

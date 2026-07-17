@@ -13,10 +13,6 @@ namespace Chrivent {
 		return dummyTexture.texture && dummyTexture.textureView;
 	}
 
-	void Dx11Viewer::ConfigureWindowHints() {
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	}
-
 	bool Dx11Viewer::SetupCore() {
 		BindPostProcess(postProcess);
 		HWND__* hwnd = glfwGetWin32Window(window);
@@ -26,9 +22,11 @@ namespace Chrivent {
 		capabilities.Print();
 		if (!device.CreateSwapChain(hwnd, multiSampleCount, multiSampleQuality))
 			return false;
-		if (!renderTargets.Initialize(device.GetDevice(), device.GetContext(),
-			device.GetSwapChain(), postProcess, screenWidth, screenHeight,
-			multiSampleCount, multiSampleQuality))
+		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
+			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
+			return false;
+		if (postProcess.HasEffects() && !postProcess.InitializeTargets(
+			device.GetDevice(), device.GetContext(), screenWidth, screenHeight))
 			return false;
 		if (!pipeline.Initialize(device.GetDevice(), builtInShaderPasses, sceneInputShaderPasses))
 			return false;
@@ -39,12 +37,15 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::ResizeCore() {
-		renderTargets.Reset(device.GetContext(), postProcess);
+		renderTargets.Reset(device.GetContext());
+		postProcess.ResetTargets();
 		if (FAILED(device.GetSwapChain()->ResizeBuffers(0, screenWidth, screenHeight, DXGI_FORMAT_UNKNOWN, 0)))
 			return false;
-		if (!renderTargets.Initialize(device.GetDevice(), device.GetContext(),
-			device.GetSwapChain(), postProcess, screenWidth, screenHeight,
-			multiSampleCount, multiSampleQuality))
+		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
+			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
+			return false;
+		if (postProcess.HasEffects() && !postProcess.InitializeTargets(
+			device.GetDevice(), device.GetContext(), screenWidth, screenHeight))
 			return false;
 		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return true;
@@ -71,8 +72,12 @@ namespace Chrivent {
 				return FrameEndResult::Failed;
 			}
 		} else {
-			device.GetContext()->CopyResource(renderTargets.GetBackBuffer(),
-				renderTargets.GetSceneColor());
+			if (multiSampleCount > 1)
+				device.GetContext()->ResolveSubresource(renderTargets.GetBackBuffer(), 0,
+					renderTargets.GetSceneColor(), 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+			else
+				device.GetContext()->CopyResource(renderTargets.GetBackBuffer(),
+					renderTargets.GetSceneColor());
 		}
 		if (FAILED(device.GetSwapChain()->Present(0, 0)))
 			return FrameEndResult::Failed;
@@ -96,10 +101,22 @@ namespace Chrivent {
 	}
 
 	bool Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return postProcess.Load(device.GetDevice(), effects);
+		const bool hadEffects = postProcess.HasEffects();
+		if (!hadEffects && !effects.empty()
+			&& !postProcess.InitializeTargets(
+				device.GetDevice(), device.GetContext(), screenWidth, screenHeight))
+			return false;
+		if (!postProcess.Load(device.GetDevice(), effects)) {
+			if (!hadEffects)
+				postProcess.ResetTargets();
+			return false;
+		}
+		if (!postProcess.HasEffects())
+			postProcess.ResetTargets();
+		return true;
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {
-		return std::make_unique<Dx11Instance>(*this);
+		return std::make_unique<Dx11Instance>(*this, textureCache, drawContext);
 	}
 }

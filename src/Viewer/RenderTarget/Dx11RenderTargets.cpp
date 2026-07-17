@@ -1,13 +1,11 @@
 ﻿#include "Viewer/RenderTarget/Dx11RenderTargets.h"
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
-#include "Viewer/PostProcess/Dx11PostProcess.h"
 
 namespace Chrivent {
-	bool Dx11RenderTargets::Initialize(ID3D11Device* device, ID3D11DeviceContext* context,
-		IDXGISwapChain* swapChain, Dx11PostProcess& postProcess, const int width, const int height,
-		const UINT sampleCount, const UINT sampleQuality) {
-		if (device == nullptr || context == nullptr || swapChain == nullptr || width <= 0 || height <= 0)
+	bool Dx11RenderTargets::Initialize(ID3D11Device* device, IDXGISwapChain* swapChain,
+		const int width, const int height, const UINT sampleCount, const UINT sampleQuality) {
+		if (device == nullptr || swapChain == nullptr || width <= 0 || height <= 0)
 			return false;
 		if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
 			return false;
@@ -23,10 +21,10 @@ namespace Chrivent {
 		if (FAILED(device->CreateTexture2D(&depthDescription, nullptr, &depthTexture))
 			|| FAILED(device->CreateDepthStencilView(depthTexture.Get(), nullptr, &depthStencilView)))
 			return false;
-		return postProcess.InitializeTargets(device, context, width, height);
+		return true;
 	}
 
-	void Dx11RenderTargets::Reset(ID3D11DeviceContext* context, Dx11PostProcess& postProcess) {
+	void Dx11RenderTargets::Reset(ID3D11DeviceContext* context) {
 		if (context != nullptr)
 			context->OMSetRenderTargets(0, nullptr, nullptr);
 		backBuffer.Reset();
@@ -35,6 +33,5 @@ namespace Chrivent {
 		sceneColorMsaaView.Reset();
 		depthStencilView.Reset();
 		depthTexture.Reset();
-		postProcess.ResetTargets();
 	}
 }

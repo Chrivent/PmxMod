@@ -4,13 +4,20 @@
 #include "Viewer/Instance/Instance.h"
 
 namespace Chrivent {
-	class VulkanViewer;
+	class Viewer;
+	class VulkanDrawContext;
 	class VulkanDevice;
 	class VulkanPipeline;
+	class VulkanTextureCache;
+	struct VulkanTexture;
 
 	// 한 모델의 Vulkan 버퍼, 재질과 descriptor 상태를 관리한다.
 	class VulkanInstance : public Instance {
-		VulkanViewer& viewer;
+		const VulkanDevice& device;
+		const VulkanPipeline& pipeline;
+		VulkanTextureCache& textureCache;
+		const VulkanTexture& dummyTexture;
+		VulkanDrawContext& drawContext;
 		VulkanModelResources modelResources;
 
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
@@ -29,7 +36,9 @@ namespace Chrivent {
 		bool SetupRenderer() override;
 
 	public:
-		explicit VulkanInstance(VulkanViewer& sourceViewer);
+		VulkanInstance(Viewer& sourceViewer, const VulkanDevice& sourceDevice,
+			const VulkanPipeline& sourcePipeline, VulkanTextureCache& sourceTextureCache,
+			const VulkanTexture& sourceDummyTexture, VulkanDrawContext& sourceDrawContext);
 
 		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
 		bool Upload() override;
