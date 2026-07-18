@@ -1,8 +1,6 @@
 ﻿#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
 #include "Viewer/Shader/ModernHlslCompiler.h"
-#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
-
 #include <vector>
 
 namespace Chrivent {
@@ -21,20 +19,20 @@ namespace Chrivent {
 		};
 	}
 
-	bool VulkanShaderStageBuilder::Build(const VulkanDevice& sourceDevice, const EffectPassDefinition& pass,
+	bool VulkanShaderStageBuilder::Build(const VulkanDevice& sourceDevice, const ShaderProgramDefinition& program,
 		const SpirvBindingProfile bindingProfile, std::string& outError, const bool invertVertexY) {
 		outError.clear();
 		vertexShader.Reset();
 		pixelShader.Reset();
-		vertexEntry = pass.vertexEntry;
-		pixelEntry = pass.pixelEntry;
+		vertexEntry = program.vertexEntry;
+		pixelEntry = program.pixelEntry;
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(pass.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
+		if (!ModernHlslCompiler::CompileSpirv(program.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
 			bindingProfile, vertexCode, outError, invertVertexY)
-			|| !ModernHlslCompiler::CompileSpirv(pass.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
+			|| !ModernHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
 				bindingProfile, pixelCode, outError))
 			return false;
 		if (!vertexShader.Initialize(sourceDevice, vertexCode) || !pixelShader.Initialize(sourceDevice, pixelCode))

@@ -57,7 +57,7 @@ namespace Chrivent {
 			bool initialized = false;
 		};
 
-		std::vector<EffectPassDefinition> passDefinitions;
+		std::vector<ShaderProgramDefinition> shaderPrograms;
 		std::vector<PostProcessPassRoute> passRoutes;
 		std::vector<PostProcessResourcePlan> resourcePlans;
 		std::vector<ResourceHistoryState> resourceHistoryStates;
@@ -78,7 +78,7 @@ namespace Chrivent {
 	protected:
 		PostProcess() = default;
 		
-		const std::vector<EffectPassDefinition>& GetPasses() const { return passDefinitions; }
+		const std::vector<ShaderProgramDefinition>& GetShaderPrograms() const { return shaderPrograms; }
 		const std::vector<PostProcessPassRoute>& GetPassRoutes() const { return passRoutes; }
 		const std::vector<PostProcessResourcePlan>& GetResourcePlans() const { return resourcePlans; }
 
@@ -102,32 +102,14 @@ namespace Chrivent {
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
 		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
-		// 효과 활성 상태 변경에 맞춰 타깃 준비, 실행 계약 교체와 실패 복구 순서를 통일한다.
-		template<typename InitializeTargets, typename LoadEffects, typename ResetTargets>
-		bool ApplyEffectConfiguration(const bool effectsRequested, InitializeTargets initializeTargets,
-			LoadEffects loadEffects, ResetTargets resetTargets) {
-			const bool hadEffects = HasEffects();
-			if (!hadEffects && effectsRequested && !initializeTargets()) {
-				resetTargets();
-				return false;
-			}
-			if (!loadEffects()) {
-				if (!hadEffects)
-					resetTargets();
-				return false;
-			}
-			if (!HasEffects())
-				resetTargets();
-			return true;
-		}
-		
+
 	public:
 		virtual ~PostProcess() = default;
 
 		PostProcess(const PostProcess&) = delete;
 		PostProcess& operator=(const PostProcess&) = delete;
 
-		bool HasEffects() const { return !passDefinitions.empty(); }
+		bool HasEffects() const { return !shaderPrograms.empty(); }
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 

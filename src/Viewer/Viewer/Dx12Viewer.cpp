@@ -107,18 +107,18 @@ namespace Chrivent {
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return FrameEndResult::Failed;
-		bool drawSucceeded;
+		bool frameRecorded;
 		if (postProcess.HasEffects())
-			drawSucceeded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
+			frameRecorded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
 				device, commandContext, swapChain, screenWidth, screenHeight, GetPostProcessFrameData());
 		else
-			drawSucceeded = msaaColorBuffer.ResolveToBackBuffer(
+			frameRecorded = msaaColorBuffer.ResolveToBackBuffer(
 				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
+		if (!frameRecorded)
+			return FrameEndResult::Failed;
 		if (!commandContext.Execute(device))
 			return FrameEndResult::Failed;
 		if (!swapChain.Present())
-			return FrameEndResult::Failed;
-		if (!drawSucceeded)
 			return FrameEndResult::Failed;
 		return FrameEndResult::Presented;
 	}

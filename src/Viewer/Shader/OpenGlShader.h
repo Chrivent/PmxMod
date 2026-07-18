@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
+#include "Viewer/Shader/ShaderProgramDefinition.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <glad/glad.h>
@@ -39,7 +39,7 @@ namespace Chrivent {
         GLint   uvLocation = -1;
 
         // 모델 렌더링 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Initialize(const EffectPassDefinition& pass);
+        bool Initialize(const ShaderProgramDefinition& shaderProgram);
     };
 
     // PMX 외곽선 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.
@@ -47,13 +47,13 @@ namespace Chrivent {
         GLint   normalLocation = -1;
 
         // 엣지 렌더링 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Initialize(const EffectPassDefinition& pass);
+        bool Initialize(const ShaderProgramDefinition& shaderProgram);
     };
 
     // PMX 지면 그림자 렌더링용 OpenGL 셰이더 프로그램을 나타낸다.
     struct OpenGlGroundShadowShader : OpenGlShader {
         // 지면 그림자 셰이더 프로그램을 컴파일하고 attribute 위치를 조회한다.
-        bool Initialize(const EffectPassDefinition& pass);
+        bool Initialize(const ShaderProgramDefinition& shaderProgram);
     };
 
     // 공통 장면 depth 입력과 texture alpha cutout을 처리하는 OpenGL 프로그램을 나타낸다.
@@ -61,7 +61,7 @@ namespace Chrivent {
         GLint uvLocation = -1;
 
 		// 공통 장면 depth 프로그램을 컴파일한다.
-		bool Initialize(const EffectPassDefinition& pass);
+		bool Initialize(const ShaderProgramDefinition& shaderProgram);
     };
 
 	// 공통 장면 velocity 입력을 기록하는 OpenGL 프로그램을 나타낸다.
@@ -70,12 +70,12 @@ namespace Chrivent {
 		GLint uvLocation = -1;
 
 		// 공통 장면 velocity 프로그램을 컴파일하고 이전 위치와 UV attribute를 설정한다.
-		bool Initialize(const EffectPassDefinition& pass);
+		bool Initialize(const ShaderProgramDefinition& shaderProgram);
 	};
 
     // 풀스크린 후처리 패스를 실행하는 OpenGL 프로그램을 나타낸다.
     struct OpenGlPostProcessShader : OpenGlShader {
         // 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
-        bool Initialize(const EffectPassDefinition& pass);
+        bool Initialize(const ShaderProgramDefinition& shaderProgram);
     };
 }

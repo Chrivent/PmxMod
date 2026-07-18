@@ -1,7 +1,6 @@
 ﻿#include "Viewer/PostProcess/PostProcess.h"
 
 #include <algorithm>
-#include <unordered_map>
 #include <utility>
 
 namespace Chrivent {
@@ -104,7 +103,7 @@ namespace Chrivent {
 	}
 
 	void PostProcess::SwapExecutionPlan(PostProcess& other) noexcept {
-		passDefinitions.swap(other.passDefinitions);
+		shaderPrograms.swap(other.shaderPrograms);
 		passRoutes.swap(other.passRoutes);
 		resourcePlans.swap(other.resourcePlans);
 		resourceHistoryStates.swap(other.resourceHistoryStates);
@@ -120,7 +119,7 @@ namespace Chrivent {
 			if (effect != nullptr && !effect->passes.empty())
 				activeEffects.push_back(effect);
 		}
-		std::vector<EffectPassDefinition> passes;
+		std::vector<ShaderProgramDefinition> programs;
 		std::vector<PostProcessPassRoute> routes;
 		std::vector<PostProcessResourcePlan> resources;
 		PostProcessPassInputRoute effectInput{ .kind = PostProcessInputKind::SceneColor };
@@ -129,13 +128,13 @@ namespace Chrivent {
 		for (size_t effectIndex = 0; effectIndex < activeEffects.size(); effectIndex++) {
 			const EffectRuntimeDefinition& effect = *activeEffects[effectIndex];
 			PostProcessParameterData parameterData;
-			for (const auto& parameter : effect.parameters)
+			for (const auto& parameter : effect.parameters) {
+				if (parameter.slot >= PostProcessInputLayout::maxParameterCount)
+					return false;
 				parameterData.values[parameter.slot] = parameter.defaultValue;
-			std::unordered_map<std::string, size_t> resourceIndices;
-			for (const auto& [name, lifetime, format
-				, resolution, width, height] : effect.resources) {
-				const size_t index = resources.size();
-				resourceIndices.emplace(name, index);
+			}
+			const size_t resourceBaseIndex = resources.size();
+			for (const auto& [lifetime, format, resolution, width, height] : effect.resources) {
 				resources.emplace_back(PostProcessResourcePlan{
 					.lifetime = lifetime,
 					.format = format,
@@ -155,51 +154,48 @@ namespace Chrivent {
 				});
 			}
 			for (size_t passIndex = 0; passIndex < effect.passes.size(); passIndex++) {
-				const EffectPassDefinition& pass = effect.passes[passIndex];
+				const auto& [program, inputs, output] = effect.passes[passIndex];
 				PostProcessPassRoute route;
 				route.parameters = parameterData;
-				for (const auto& [slot, resource] : pass.inputs) {
+				bool usedSlots[PostProcessInputLayout::maxTextureCount]{};
+				for (const auto& [slot, kind, resourceIndex] : inputs) {
+					if (slot >= PostProcessInputLayout::maxTextureCount || usedSlots[slot])
+						return false;
+					usedSlots[slot] = true;
 					PostProcessPassInputRoute inputRoute{ .slot = slot };
-					if (resource == "effect_input") {
+					if (kind == EffectPassInputKind::EffectInput) {
 						inputRoute = effectInput;
 						inputRoute.slot = slot;
 					}
-					else if (resource == "scene_color")
+					else if (kind == EffectPassInputKind::SceneColor)
 						inputRoute.kind = PostProcessInputKind::SceneColor;
-					else if (resource == "scene_depth") {
+					else if (kind == EffectPassInputKind::SceneDepth) {
 						inputRoute.kind = PostProcessInputKind::SceneDepth;
 						requiresDepth = true;
-					} else if (resource == "scene_velocity") {
+					} else if (kind == EffectPassInputKind::SceneVelocity) {
 						inputRoute.kind = PostProcessInputKind::SceneVelocity;
 						requiresVelocity = true;
 					} else {
-						std::string resourceName = resource;
-						if (resourceName.ends_with(".read"))
-							resourceName.resize(resourceName.size() - 5);
-						const auto findResource = resourceIndices.find(resourceName);
-						if (findResource == resourceIndices.end())
+						if (kind != EffectPassInputKind::Resource || resourceIndex >= effect.resources.size())
 							return false;
 						inputRoute.kind = PostProcessInputKind::Resource;
-						inputRoute.resourceIndex = findResource->second;
+						inputRoute.resourceIndex = resourceBaseIndex + resourceIndex;
 					}
 					route.inputs.emplace_back(inputRoute);
 				}
-				if (pass.output == "effect_output") {
+				if (output.kind == EffectPassOutputKind::EffectOutput) {
 					if (passIndex + 1 != effect.passes.size())
 						return false;
 					route.outputKind = lastEffect ? PostProcessOutputKind::Present : PostProcessOutputKind::Resource;
 					route.outputResourceIndex = effectOutputIndex;
 				} else {
-					std::string resourceName = pass.output;
-					if (resourceName.ends_with(".write"))
-						resourceName.resize(resourceName.size() - 6);
-					const auto resource = resourceIndices.find(resourceName);
-					if (resource == resourceIndices.end())
+					if (output.kind != EffectPassOutputKind::Resource
+						|| output.resourceIndex >= effect.resources.size())
 						return false;
 					route.outputKind = PostProcessOutputKind::Resource;
-					route.outputResourceIndex = resource->second;
+					route.outputResourceIndex = resourceBaseIndex + output.resourceIndex;
 				}
-				passes.emplace_back(pass);
+				programs.emplace_back(program);
 				routes.emplace_back(std::move(route));
 			}
 			if (!lastEffect) {
@@ -207,7 +203,7 @@ namespace Chrivent {
 				effectInput.resourceIndex = effectOutputIndex;
 			}
 		}
-		passDefinitions = std::move(passes);
+		shaderPrograms = std::move(programs);
 		passRoutes = std::move(routes);
 		resourcePlans = std::move(resources);
 		resourceHistoryStates.assign(resourcePlans.size(), {});

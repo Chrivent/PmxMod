@@ -6,11 +6,11 @@
 
 namespace Chrivent {
 	bool VulkanPostProcessPipelines::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
-		const VkPipelineLayout pipelineLayout, const EffectPassDefinition& pass,
+		const VkPipelineLayout pipelineLayout, const ShaderProgramDefinition& program,
 		const VkFormat targetFormat, VkPipeline& pipeline) const {
 		std::string error;
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::PostProcess, error, true)) {
+		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::PostProcess, error, true)) {
 			if (!error.empty())
 				std::cerr << error << '\n';
 			return false;
@@ -78,19 +78,19 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcessPipelines::Initialize(const VulkanDevice& sourceDevice,
-		const VkPipelineLayout pipelineLayout, const std::span<const EffectPassDefinition> passes,
+		const VkPipelineLayout pipelineLayout, const std::span<const ShaderProgramDefinition> programs,
 		const std::span<const VkFormat> targetFormats) {
 		Reset();
 		device = sourceDevice.device;
-		if (passes.empty())
+		if (programs.empty())
 			return true;
 		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE
-			|| passes.size() != targetFormats.size())
+			|| programs.size() != targetFormats.size())
 			return false;
-		for (size_t index = 0; index < passes.size(); index++) {
+		for (size_t index = 0; index < programs.size(); index++) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
 			if (!CreateGraphicsPipeline(sourceDevice, pipelineLayout,
-				passes[index], targetFormats[index], pipeline)) {
+				programs[index], targetFormats[index], pipeline)) {
 				Reset();
 				return false;
 			}

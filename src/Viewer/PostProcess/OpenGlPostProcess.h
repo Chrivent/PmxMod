@@ -48,8 +48,10 @@ namespace Chrivent {
 		void ResetTargets();
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
-		// 검증된 효과 선언으로 OpenGL 실행 계획과 프로그램을 원자적으로 교체한다.
-		bool LoadEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 현재 실행 계획의 OpenGL 후처리 프로그램을 생성한다.
+		bool CreateShaders();
+		// 검증을 마친 다른 OpenGL 후처리 객체와 GPU 리소스를 교환한다.
+		void SwapResources(OpenGlPostProcess& other) noexcept;
 		
 	public:
 		~OpenGlPostProcess() override;

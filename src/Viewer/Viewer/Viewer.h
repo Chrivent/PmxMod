@@ -15,6 +15,7 @@ namespace Chrivent {
 	class Instance;
 	class Model;
     struct Material;
+	struct EffectRuntimeDefinition;
 	class PostProcess;
 
 	// 프레임 기록 시작 결과를 준비 완료, 일시적 건너뜀과 치명적 실패로 구분한다.

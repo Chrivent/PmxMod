@@ -83,15 +83,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice,
-		const EffectPassDefinition& pass) {
+		const ShaderProgramDefinition& program) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
 				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
@@ -122,15 +122,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateDepthOnlyPipelineStates(
-		const Dx12Device& sourceDevice, const EffectPassDefinition& pass) {
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
-			pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
+			program.shaderPath, program.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -159,15 +159,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
-		const EffectPassDefinition& pass) {
+		const ShaderProgramDefinition& program) {
 		if (!sourceDevice.device || !modelRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
-			pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
+			program.shaderPath, program.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -216,15 +216,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice,
-		const EffectPassDefinition& pass) {
+		const ShaderProgramDefinition& program) {
 		if (!sourceDevice.device || !edgeRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
 				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
@@ -268,15 +268,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
-		const EffectPassDefinition& pass) {
+		const ShaderProgramDefinition& program) {
 		if (!sourceDevice.device || !groundShadowRootSignature)
 			return false;
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.pixelEntry,
+			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
 				false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
@@ -316,15 +316,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
-		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
+		const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram) {
 		Reset();
 		if (!CreateModelRootSignature(sourceDevice))
 			return false;
 		if (!CreateModelPipelineStates(sourceDevice, passes.model))
 			return false;
-		if (!CreateDepthOnlyPipelineStates(sourceDevice, depthPass))
+		if (!CreateDepthOnlyPipelineStates(sourceDevice, depthProgram))
 			return false;
-		if (!CreateSceneVelocityPipelineStates(sourceDevice, velocityPass))
+		if (!CreateSceneVelocityPipelineStates(sourceDevice, velocityProgram))
 			return false;
 		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;

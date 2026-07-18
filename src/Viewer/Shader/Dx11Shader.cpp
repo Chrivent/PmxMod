@@ -52,50 +52,50 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx11ModelShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+	bool Dx11ModelShader::Initialize(ID3D11Device* device, const ShaderProgramDefinition& program) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		return Dx11Shader::Initialize(device, program.shaderPath, inputElements,
+			program.vertexEntry.c_str(), program.pixelEntry.c_str());
 	}
 
-	bool Dx11EdgeShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+	bool Dx11EdgeShader::Initialize(ID3D11Device* device, const ShaderProgramDefinition& program) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		return Dx11Shader::Initialize(device, program.shaderPath, inputElements,
+			program.vertexEntry.c_str(), program.pixelEntry.c_str());
 	}
 
-	bool Dx11GroundShadowShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+	bool Dx11GroundShadowShader::Initialize(ID3D11Device* device, const ShaderProgramDefinition& program) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
-		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		return Dx11Shader::Initialize(device, program.shaderPath, inputElements,
+			program.vertexEntry.c_str(), program.pixelEntry.c_str());
 	}
 
-	bool Dx11SceneDepthShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+	bool Dx11SceneDepthShader::Initialize(ID3D11Device* device, const ShaderProgramDefinition& program) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
-		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		return Dx11Shader::Initialize(device, program.shaderPath, inputElements,
+			program.vertexEntry.c_str(), program.pixelEntry.c_str());
 	}
 
-	bool Dx11SceneVelocityShader::Initialize(ID3D11Device* device, const EffectPassDefinition& pass) {
+	bool Dx11SceneVelocityShader::Initialize(ID3D11Device* device, const ShaderProgramDefinition& program) {
 		constexpr D3D11_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
-		return Dx11Shader::Initialize(device, pass.shaderPath, inputElements,
-			pass.vertexEntry.c_str(), pass.pixelEntry.c_str());
+		return Dx11Shader::Initialize(device, program.shaderPath, inputElements,
+			program.vertexEntry.c_str(), program.pixelEntry.c_str());
 	}
 
 	bool Dx11PostProcessShader::Initialize(ID3D11Device* device, const std::filesystem::path& file, const char* vertexEntry, const char* pixelEntry) {

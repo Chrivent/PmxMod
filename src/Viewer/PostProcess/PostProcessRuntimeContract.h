@@ -1,7 +1,8 @@
 ﻿#pragma once
 
+#include "Viewer/Shader/ShaderProgramDefinition.h"
+
 #include <cstdint>
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -30,7 +31,6 @@ namespace Chrivent {
 
 	// 효과가 생성할 중간 또는 history texture의 실행 계약을 나타낸다.
 	struct EffectResourceDefinition {
-		std::string name;
 		EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
 		EffectTextureFormat format = EffectTextureFormat::Rgba16Float;
 		EffectPassResolution resolution = EffectPassResolution::Full;
@@ -38,20 +38,39 @@ namespace Chrivent {
 		uint32_t height = 0;
 	};
 
-	// 효과 패스의 texture 슬롯과 참조할 리소스 이름을 연결한다.
-	struct EffectPassInputDefinition {
-		uint32_t slot = 0;
-		std::string resource;
+	// 후처리 패스 입력이 참조하는 장면 또는 효과 리소스 종류를 구분한다.
+	enum class EffectPassInputKind {
+		EffectInput,
+		SceneColor,
+		SceneDepth,
+		SceneVelocity,
+		Resource
 	};
 
-	// 셰이더 파일과 진입점 및 입출력으로 구성된 렌더링 패스를 나타낸다.
+	// 효과 패스의 texture 슬롯과 정규화된 입력 리소스를 연결한다.
+	struct EffectPassInputDefinition {
+		uint32_t slot = 0;
+		EffectPassInputKind kind = EffectPassInputKind::EffectInput;
+		size_t resourceIndex = 0;
+	};
+
+	// 후처리 패스가 최종 화면과 효과 리소스 중 어디에 출력할지 구분한다.
+	enum class EffectPassOutputKind {
+		EffectOutput,
+		Resource
+	};
+
+	// 효과 패스의 정규화된 출력 리소스를 나타낸다.
+	struct EffectPassOutputDefinition {
+		EffectPassOutputKind kind = EffectPassOutputKind::EffectOutput;
+		size_t resourceIndex = 0;
+	};
+
+	// 셰이더 프로그램과 정규화된 입출력으로 구성된 후처리 패스를 나타낸다.
 	struct EffectPassDefinition {
-		std::string name;
-		std::filesystem::path shaderPath;
-		std::string vertexEntry = "VSMain";
-		std::string pixelEntry = "PSMain";
+		ShaderProgramDefinition program;
 		std::vector<EffectPassInputDefinition> inputs;
-		std::string output;
+		EffectPassOutputDefinition output;
 	};
 
 	// 효과가 b1 상수 버퍼에서 사용할 스칼라 파라미터 한 개를 선언한다.
@@ -66,7 +85,6 @@ namespace Chrivent {
 
 	// API가 소비하는 후처리 리소스와 패스 실행 계약을 나타낸다.
 	struct EffectRuntimeDefinition {
-		std::vector<std::string> inputs;
 		std::vector<EffectParameterDefinition> parameters;
 		std::vector<EffectResourceDefinition> resources;
 		std::vector<EffectPassDefinition> passes;

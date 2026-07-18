@@ -13,14 +13,13 @@ namespace Chrivent {
 		return false;
 	}
 
-	EffectPassDefinition InternalShaderCatalog::CreatePass(std::string name,
+	ShaderProgramDefinition InternalShaderCatalog::CreateProgram(
 		std::filesystem::path shaderPath, const char* vertexEntry, const char* pixelEntry) {
-		EffectPassDefinition pass;
-		pass.name = std::move(name);
-		pass.shaderPath = std::move(shaderPath);
-		pass.vertexEntry = vertexEntry;
-		pass.pixelEntry = pixelEntry;
-		return pass;
+		return {
+			.shaderPath = std::move(shaderPath),
+			.vertexEntry = vertexEntry,
+			.pixelEntry = pixelEntry
+		};
 	}
 
 	bool InternalShaderCatalog::Load(const std::filesystem::path& shaderDirectory,
@@ -36,15 +35,14 @@ namespace Chrivent {
 			|| !ResolveShaderPath(shaderDirectory, "scene-input.hlsl", sceneInputShaderPath, error))
 			return false;
 		BuiltInShaderPasses loadedBuiltInPasses;
-		loadedBuiltInPasses.model = CreatePass("model", std::move(modelShaderPath), "VSMain", "PSMain");
-		loadedBuiltInPasses.edge = CreatePass("edge", std::move(edgeShaderPath), "VSMain", "PSMain");
-		loadedBuiltInPasses.groundShadow = CreatePass(
-			"ground_shadow", std::move(groundShadowShaderPath), "VSMain", "PSMain");
+		loadedBuiltInPasses.model = CreateProgram(std::move(modelShaderPath), "VSMain", "PSMain");
+		loadedBuiltInPasses.edge = CreateProgram(std::move(edgeShaderPath), "VSMain", "PSMain");
+		loadedBuiltInPasses.groundShadow = CreateProgram(
+			std::move(groundShadowShaderPath), "VSMain", "PSMain");
 		SceneInputShaderPasses loadedSceneInputPasses;
-		loadedSceneInputPasses.depth = CreatePass(
-			"scene_depth", sceneInputShaderPath, "VSDepth", "PSDepth");
-		loadedSceneInputPasses.velocity = CreatePass(
-			"scene_velocity", std::move(sceneInputShaderPath), "VSVelocity",
+		loadedSceneInputPasses.depth = CreateProgram(sceneInputShaderPath, "VSDepth", "PSDepth");
+		loadedSceneInputPasses.velocity = CreateProgram(
+			std::move(sceneInputShaderPath), "VSVelocity",
 			invertNdcYForTextureCoordinates ? "PSVelocityInvertedY" : "PSVelocity");
 		contract.builtIn = std::move(loadedBuiltInPasses);
 		contract.sceneInput = std::move(loadedSceneInputPasses);

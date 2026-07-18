@@ -47,9 +47,10 @@ namespace Chrivent {
 		void ResetEffectResources();
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
-		// 검증된 효과 선언으로 DX11 실행 계획과 셰이더를 원자적으로 교체한다.
-		bool LoadEffects(ID3D11Device* device,
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 현재 실행 계획의 DX11 후처리 셰이더를 생성한다.
+		bool CreateShaders(ID3D11Device* device);
+		// 검증을 마친 다른 DX11 후처리 객체와 GPU 리소스를 교환한다.
+		void SwapResources(Dx11PostProcess& other) noexcept;
 		
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.

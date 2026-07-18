@@ -40,6 +40,32 @@ namespace Chrivent {
 
 	// 패키지 manifest와 효과 JSON을 검증해 실행 가능한 선언으로 변환한다.
 	class ShaderPackageParser {
+		// JSON에서 읽은 효과 리소스 이름과 실행 속성을 함께 보관한다.
+		struct ParsedEffectResource {
+			std::string name;
+			EffectResourceDefinition definition;
+		};
+
+		// 정규화된 리소스 색인과 수명을 파서 내부 이름 조회 결과로 보관한다.
+		struct ParsedResourceReference {
+			size_t index = 0;
+			EffectResourceLifetime lifetime = EffectResourceLifetime::Transient;
+		};
+
+		// JSON에서 읽은 후처리 패스 texture 입력을 보관한다.
+		struct ParsedEffectPassInput {
+			uint32_t slot = 0;
+			std::string resource;
+		};
+
+		// JSON에서 읽은 후처리 패스 메타데이터와 문자열 입출력을 보관한다.
+		struct ParsedEffectPass {
+			std::string name;
+			ShaderProgramDefinition program;
+			std::vector<ParsedEffectPassInput> inputs;
+			std::string output;
+		};
+
 		static constexpr int schemaVersion = 1;
 
 		// JSON 파일을 읽고 최상위 객체인지 확인한다.
@@ -55,10 +81,10 @@ namespace Chrivent {
 		// JSON 객체 하나를 셰이더 pass 정의로 변환한다.
 		static bool LoadPass(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, const nlohmann::json& json,
-			EffectPassDefinition& pass, std::string& error);
+			ParsedEffectPass& pass, std::string& error);
 		// 후처리 effect가 소유하는 범용 texture 리소스 정의를 읽는다.
 		static bool LoadResources(const nlohmann::json& json, const std::filesystem::path& manifestPath,
-			std::vector<EffectResourceDefinition>& resources, std::string& error);
+			std::vector<ParsedEffectResource>& resources, std::string& error);
 		// 후처리 effect가 b1에서 사용할 스칼라 파라미터 선언을 읽는다.
 		static bool LoadParameters(const nlohmann::json& json, const std::filesystem::path& manifestPath,
 			std::vector<EffectParameterDefinition>& parameters, std::string& error);

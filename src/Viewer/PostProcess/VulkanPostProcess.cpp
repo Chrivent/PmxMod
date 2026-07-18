@@ -171,7 +171,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
-		const auto& passes = GetPasses();
+		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<VkFormat> targetFormats;
 		targetFormats.reserve(passes.size());
@@ -256,8 +256,9 @@ namespace Chrivent {
 		ResetResources();
 		device = sourceDevice.device;
 		return CreateSceneImages(sourceDevice, sourceSwapChain)
-			&& CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)
-			&& CreateVelocityImages(sourceDevice)
+			&& (!(RequiresDepth() || RequiresVelocity())
+				|| CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat))
+			&& (!RequiresVelocity() || CreateVelocityImages(sourceDevice))
 			&& CreateEffectResources(sourceDevice)
 			&& CreateFrameDataBuffers(sourceDevice)
 			&& CreateParameterDataBuffers(sourceDevice)

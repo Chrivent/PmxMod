@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
-#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
+#include "Viewer/Shader/ShaderProgramDefinition.h"
 
 #include <span>
 #include <vector>
@@ -14,7 +14,7 @@ namespace Chrivent {
 
 		// HLSL 후처리 패스 하나를 지정한 출력 형식의 파이프라인으로 만든다.
 		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, VkPipelineLayout pipelineLayout,
-			const EffectPassDefinition& pass, VkFormat targetFormat, VkPipeline& pipeline) const;
+			const ShaderProgramDefinition& program, VkFormat targetFormat, VkPipeline& pipeline) const;
 
 	public:
 		VulkanPostProcessPipelines() = default;
@@ -30,7 +30,7 @@ namespace Chrivent {
 
 		// 패스와 출력 정보 목록을 검증한 뒤 모든 Vulkan 후처리 파이프라인을 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkPipelineLayout pipelineLayout,
-			std::span<const EffectPassDefinition> passes,
+			std::span<const ShaderProgramDefinition> programs,
 			std::span<const VkFormat> targetFormats);
 		// 다른 파이프라인 묶음과 소유권을 교환한다.
 		void Swap(VulkanPostProcessPipelines& other) noexcept;

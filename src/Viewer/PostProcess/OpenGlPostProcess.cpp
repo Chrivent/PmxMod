@@ -5,6 +5,7 @@
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace Chrivent {
 	OpenGlPostProcess::~OpenGlPostProcess() {
@@ -164,56 +165,81 @@ namespace Chrivent {
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(sceneColorTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glNamedFramebufferTexture(resolveFramebuffer, GL_COLOR_ATTACHMENT0, sceneColorTexture, 0);
-		glCreateFramebuffers(1, &postProcessDepthFramebuffer);
-		glCreateTextures(GL_TEXTURE_2D, 1, &postProcessDepthTexture);
-		glTextureStorage2D(postProcessDepthTexture, 1, GL_DEPTH_COMPONENT24, width, height);
-		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
-		glCreateTextures(GL_TEXTURE_2D, 1, &postProcessVelocityTexture);
-		glTextureStorage2D(postProcessVelocityTexture, 1, GL_RG16F, width, height);
-		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glNamedFramebufferTexture(postProcessDepthFramebuffer, GL_COLOR_ATTACHMENT0, postProcessVelocityTexture, 0);
-		glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer, GL_COLOR_ATTACHMENT0);
-		glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
+		if (RequiresDepth() || RequiresVelocity()) {
+			glCreateFramebuffers(1, &postProcessDepthFramebuffer);
+			glCreateTextures(GL_TEXTURE_2D, 1, &postProcessDepthTexture);
+			glTextureStorage2D(postProcessDepthTexture, 1, GL_DEPTH_COMPONENT24, width, height);
+			glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTextureParameteri(postProcessDepthTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glNamedFramebufferTexture(
+				postProcessDepthFramebuffer, GL_DEPTH_ATTACHMENT, postProcessDepthTexture, 0);
+			if (RequiresVelocity()) {
+				glCreateTextures(GL_TEXTURE_2D, 1, &postProcessVelocityTexture);
+				glTextureStorage2D(postProcessVelocityTexture, 1, GL_RG16F, width, height);
+				glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTextureParameteri(postProcessVelocityTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glNamedFramebufferTexture(postProcessDepthFramebuffer,
+					GL_COLOR_ATTACHMENT0, postProcessVelocityTexture, 0);
+			}
+			glNamedFramebufferDrawBuffer(postProcessDepthFramebuffer,
+				RequiresVelocity() ? GL_COLOR_ATTACHMENT0 : GL_NONE);
+			glNamedFramebufferReadBuffer(postProcessDepthFramebuffer, GL_NONE);
+		}
 		if (postProcessVao == 0)
 			glCreateVertexArrays(1, &postProcessVao);
 		return glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
 			&& glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
-			&& glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
+			&& (postProcessDepthFramebuffer == 0
+				|| glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER)
+					== GL_FRAMEBUFFER_COMPLETE)
 			&& CreateEffectResources();
 	}
 
-	bool OpenGlPostProcess::LoadEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		OpenGlPostProcess candidate;
-		candidate.targetWidth = targetWidth;
-		candidate.targetHeight = targetHeight;
-		if (!candidate.SetEffects(effects)
-			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources()))
-			return false;
-		for (const auto& pass : candidate.GetPasses()) {
+	bool OpenGlPostProcess::CreateShaders() {
+		ResetShaders();
+		for (const auto& program : GetShaderPrograms()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			if (!shader->Initialize(pass))
+			if (!shader->Initialize(program))
 				return false;
-			candidate.postProcessShaders.push_back(std::move(shader));
+			postProcessShaders.push_back(std::move(shader));
 		}
-		SwapExecutionPlan(candidate);
-		resources.swap(candidate.resources);
-		postProcessShaders.swap(candidate.postProcessShaders);
 		return true;
+	}
+
+	void OpenGlPostProcess::SwapResources(OpenGlPostProcess& other) noexcept {
+		std::swap(sceneFramebuffer, other.sceneFramebuffer);
+		std::swap(sceneColorMsaa, other.sceneColorMsaa);
+		std::swap(resolveFramebuffer, other.resolveFramebuffer);
+		std::swap(sceneColorTexture, other.sceneColorTexture);
+		std::swap(postProcessDepthFramebuffer, other.postProcessDepthFramebuffer);
+		std::swap(postProcessDepthTexture, other.postProcessDepthTexture);
+		std::swap(postProcessVelocityTexture, other.postProcessVelocityTexture);
+		std::swap(sceneDepthStencil, other.sceneDepthStencil);
+		std::swap(postProcessVao, other.postProcessVao);
+		std::swap(frameDataBuffer, other.frameDataBuffer);
+		std::swap(parameterDataBuffer, other.parameterDataBuffer);
+		std::swap(postProcessSampleCount, other.postProcessSampleCount);
+		resources.swap(other.resources);
+		postProcessShaders.swap(other.postProcessShaders);
+		std::swap(targetWidth, other.targetWidth);
+		std::swap(targetHeight, other.targetHeight);
 	}
 
 	bool OpenGlPostProcess::Configure(const int width, const int height, const int sampleCount,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return ApplyEffectConfiguration(!effects.empty(),
-			[this, width, height, sampleCount] { return InitializeTargets(width, height, sampleCount); },
-			[this, &effects] { return LoadEffects(effects); },
-			[this] { ResetResources(); });
+		OpenGlPostProcess candidate;
+		if (!candidate.SetEffects(effects)
+			|| (candidate.HasEffects()
+				&& (!candidate.InitializeTargets(width, height, sampleCount)
+					|| !candidate.CreateShaders())))
+			return false;
+		SwapExecutionPlan(candidate);
+		SwapResources(candidate);
+		return true;
 	}
 
 	bool OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {

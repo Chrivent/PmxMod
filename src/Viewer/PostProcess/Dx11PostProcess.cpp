@@ -6,6 +6,7 @@
 #include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
@@ -109,27 +110,34 @@ namespace Chrivent {
 		if (FAILED(device->CreateTexture2D(&sceneColorDesc, nullptr, &sceneColor))
 			|| FAILED(device->CreateShaderResourceView(sceneColor.Get(), nullptr, &sceneColorView)))
 			return false;
-		const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(width, height, DXGI_FORMAT_R24G8_TYPELESS,
-			D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
-		if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &depth)))
-			return false;
-		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc{};
-		depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		if (FAILED(device->CreateDepthStencilView(depth.Get(), &depthStencilDesc, &depthStencilView)))
-			return false;
-		D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
-		depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		depthResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		depthResourceDesc.Texture2D.MipLevels = 1;
-		if (FAILED(device->CreateShaderResourceView(depth.Get(), &depthResourceDesc, &depthView)))
-			return false;
-		const auto velocityDesc = Dx11DescBuilder::MakeTexture2DDesc(width, height, DXGI_FORMAT_R16G16_FLOAT,
-			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-		if (FAILED(device->CreateTexture2D(&velocityDesc, nullptr, &velocity))
-			|| FAILED(device->CreateRenderTargetView(velocity.Get(), nullptr, &velocityRenderTargetView))
-			|| FAILED(device->CreateShaderResourceView(velocity.Get(), nullptr, &velocityView)))
-			return false;
+		if (RequiresDepth() || RequiresVelocity()) {
+			const auto depthDesc = Dx11DescBuilder::MakeTexture2DDesc(
+				width, height, DXGI_FORMAT_R24G8_TYPELESS,
+				D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
+			if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &depth)))
+				return false;
+			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilDesc{};
+			depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+			depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+			if (FAILED(device->CreateDepthStencilView(depth.Get(), &depthStencilDesc, &depthStencilView)))
+				return false;
+			D3D11_SHADER_RESOURCE_VIEW_DESC depthResourceDesc{};
+			depthResourceDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+			depthResourceDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			depthResourceDesc.Texture2D.MipLevels = 1;
+			if (FAILED(device->CreateShaderResourceView(depth.Get(), &depthResourceDesc, &depthView)))
+				return false;
+		}
+		if (RequiresVelocity()) {
+			const auto velocityDesc = Dx11DescBuilder::MakeTexture2DDesc(
+				width, height, DXGI_FORMAT_R16G16_FLOAT,
+				D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
+			if (FAILED(device->CreateTexture2D(&velocityDesc, nullptr, &velocity))
+				|| FAILED(device->CreateRenderTargetView(
+					velocity.Get(), nullptr, &velocityRenderTargetView))
+				|| FAILED(device->CreateShaderResourceView(velocity.Get(), nullptr, &velocityView)))
+				return false;
+		}
 		return CreateEffectResources(device);
 	}
 
@@ -144,32 +152,46 @@ namespace Chrivent {
 			context->CopyResource(sceneColor.Get(), source);
 	}
 
-	bool Dx11PostProcess::LoadEffects(
-		ID3D11Device* device, const std::vector<const EffectRuntimeDefinition*>& effects) {
-		Dx11PostProcess candidate;
-		candidate.targetWidth = targetWidth;
-		candidate.targetHeight = targetHeight;
-		if (!candidate.SetEffects(effects)
-			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources(device)))
-			return false;
-		for (const auto& pass : candidate.GetPasses()) {
+	bool Dx11PostProcess::CreateShaders(ID3D11Device* device) {
+		ResetShaders();
+		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
 			Dx11PostProcessShader shader;
-			if (!shader.Initialize(device, pass.shaderPath, pass.vertexEntry.c_str(), pass.pixelEntry.c_str()))
+			if (!shader.Initialize(device, shaderPath,
+				vertexEntry.c_str(), pixelEntry.c_str()))
 				return false;
-			candidate.postProcessShaders.push_back(std::move(shader));
+			postProcessShaders.push_back(std::move(shader));
 		}
-		SwapExecutionPlan(candidate);
-		resources.swap(candidate.resources);
-		postProcessShaders.swap(candidate.postProcessShaders);
 		return true;
+	}
+
+	void Dx11PostProcess::SwapResources(Dx11PostProcess& other) noexcept {
+		sceneColor.Swap(other.sceneColor);
+		sceneColorView.Swap(other.sceneColorView);
+		depth.Swap(other.depth);
+		depthStencilView.Swap(other.depthStencilView);
+		depthView.Swap(other.depthView);
+		velocity.Swap(other.velocity);
+		velocityRenderTargetView.Swap(other.velocityRenderTargetView);
+		velocityView.Swap(other.velocityView);
+		frameDataBuffer.Swap(other.frameDataBuffer);
+		parameterDataBuffer.Swap(other.parameterDataBuffer);
+		resources.swap(other.resources);
+		postProcessShaders.swap(other.postProcessShaders);
+		std::swap(targetWidth, other.targetWidth);
+		std::swap(targetHeight, other.targetHeight);
 	}
 
 	bool Dx11PostProcess::Configure(ID3D11Device* device, ID3D11DeviceContext* context,
 		const int width, const int height, const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return ApplyEffectConfiguration(!effects.empty(),
-			[this, device, context, width, height] { return InitializeTargets(device, context, width, height); },
-			[this, device, &effects] { return LoadEffects(device, effects); },
-			[this] { ResetTargets(); });
+		Dx11PostProcess candidate;
+		if (!candidate.SetEffects(effects)
+			|| (candidate.HasEffects()
+				&& (!candidate.InitializeTargets(device, context, width, height)
+					|| !candidate.CreateShaders(device))))
+			return false;
+		SwapExecutionPlan(candidate);
+		SwapResources(candidate);
+		return true;
 	}
 
 	bool Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,

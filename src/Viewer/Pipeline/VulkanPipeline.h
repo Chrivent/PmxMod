@@ -28,18 +28,18 @@ namespace Chrivent {
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
-			const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass);
+			const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
 			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
-			const EffectPassDefinition& pass,
+			const ShaderProgramDefinition& program,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkFormat colorFormat, VkSampleCountFlagBits sampleCount,
 			bool useVelocityInput, bool preserveDestinationAlpha, VkPipeline& outPipeline) const;
 		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
 		bool CreateDepthOnlyPipeline(
 			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
-			const EffectPassDefinition& pass,
+			const ShaderProgramDefinition& program,
 			VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
@@ -81,8 +81,8 @@ namespace Chrivent {
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat,
-			const BuiltInShaderPasses& passes, const EffectPassDefinition& depthPass,
-			const EffectPassDefinition& velocityPass);
+			const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
+			const ShaderProgramDefinition& velocityProgram);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Reset();
 	};

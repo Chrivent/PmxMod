@@ -45,14 +45,14 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcessPipelines::CreatePipelineState(const Dx12Device& sourceDevice,
-		const EffectPassDefinition& pass, const DXGI_FORMAT format,
+		const ShaderProgramDefinition& program, const DXGI_FORMAT format,
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const {
 		std::vector<uint8_t> vertexShader;
 		std::vector<uint8_t> pixelShader;
 		std::string error;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, pass.shaderPath, pass.vertexEntry,
+		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
 			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
-			pass.shaderPath, pass.pixelEntry, false, pixelShader, error)) {
+			program.shaderPath, program.pixelEntry, false, pixelShader, error)) {
 			std::cerr << error;
 			return false;
 		}
@@ -74,15 +74,15 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcessPipelines::Initialize(const Dx12Device& sourceDevice,
-		const std::span<const EffectPassDefinition> passes, const std::span<const DXGI_FORMAT> formats) {
+		const std::span<const ShaderProgramDefinition> programs, const std::span<const DXGI_FORMAT> formats) {
 		Reset();
-		if (passes.empty())
+		if (programs.empty())
 			return true;
-		if (!sourceDevice.device || passes.size() != formats.size() || !CreateRootSignature(sourceDevice))
+		if (!sourceDevice.device || programs.size() != formats.size() || !CreateRootSignature(sourceDevice))
 			return false;
-		for (size_t index = 0; index < passes.size(); index++) {
+		for (size_t index = 0; index < programs.size(); index++) {
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-			if (!CreatePipelineState(sourceDevice, passes[index], formats[index], pipelineState)) {
+			if (!CreatePipelineState(sourceDevice, programs[index], formats[index], pipelineState)) {
 				Reset();
 				return false;
 			}

@@ -9,6 +9,7 @@
 #include <system_error>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace Chrivent {
 	ShaderPackageDiscovery ShaderPackageLoader::Discover(const std::filesystem::path& packagesDirectory) {
@@ -107,7 +108,7 @@ namespace Chrivent {
 
 	bool ShaderPackageParser::LoadPass(const std::filesystem::path& packageRoot,
 		const std::filesystem::path& manifestPath, const nlohmann::json& json,
-		EffectPassDefinition& pass, std::string& error) {
+		ParsedEffectPass& pass, std::string& error) {
 		if (!json.is_object()) {
 			error = "Invalid effect pass: " + manifestPath.string();
 			return false;
@@ -118,11 +119,11 @@ namespace Chrivent {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		if (!ResolvePackagePath(packageRoot, shaderPath, pass.shaderPath, error))
+		if (!ResolvePackagePath(packageRoot, shaderPath, pass.program.shaderPath, error))
 			return false;
-		pass.vertexEntry = json.value("vertexEntry", pass.vertexEntry);
-		pass.pixelEntry = json.value("pixelEntry", pass.pixelEntry);
-		if (pass.vertexEntry.empty() || pass.pixelEntry.empty()) {
+		pass.program.vertexEntry = json.value("vertexEntry", pass.program.vertexEntry);
+		pass.program.pixelEntry = json.value("pixelEntry", pass.program.pixelEntry);
+		if (pass.program.vertexEntry.empty() || pass.program.pixelEntry.empty()) {
 			error = "Effect pass entry points cannot be empty: " + manifestPath.string();
 			return false;
 		}
@@ -138,7 +139,7 @@ namespace Chrivent {
 				return false;
 			}
 			const auto slot = inputJson.find("slot");
-			EffectPassInputDefinition input;
+			ParsedEffectPassInput input;
 			if (slot == inputJson.end() || !slot->is_number_unsigned()) {
 				error = "Post-process input slot must be an unsigned integer: " + manifestPath.string();
 				return false;
@@ -158,7 +159,7 @@ namespace Chrivent {
 	}
 
 	bool ShaderPackageParser::LoadResources(const nlohmann::json& json,
-		const std::filesystem::path& manifestPath, std::vector<EffectResourceDefinition>& resources,
+		const std::filesystem::path& manifestPath, std::vector<ParsedEffectResource>& resources,
 		std::string& error) {
 		resources.clear();
 		const auto resourceArray = json.find("resources");
@@ -170,7 +171,7 @@ namespace Chrivent {
 		}
 		std::unordered_set<std::string> names;
 		for (const auto& resourceJson : *resourceArray) {
-			EffectResourceDefinition resource;
+			ParsedEffectResource resource;
 			std::string lifetime;
 			std::string format;
 			if (!resourceJson.is_object()
@@ -182,19 +183,19 @@ namespace Chrivent {
 				return false;
 			}
 			if (lifetime == "transient")
-				resource.lifetime = EffectResourceLifetime::Transient;
+				resource.definition.lifetime = EffectResourceLifetime::Transient;
 			else if (lifetime == "history")
-				resource.lifetime = EffectResourceLifetime::History;
+				resource.definition.lifetime = EffectResourceLifetime::History;
 			else {
 				error = "Unsupported effect resource lifetime: " + lifetime + " in " + manifestPath.string();
 				return false;
 			}
 			if (format == "rgba8_unorm")
-				resource.format = EffectTextureFormat::Rgba8Unorm;
+				resource.definition.format = EffectTextureFormat::Rgba8Unorm;
 			else if (format == "rgba16_float")
-				resource.format = EffectTextureFormat::Rgba16Float;
+				resource.definition.format = EffectTextureFormat::Rgba16Float;
 			else if (format == "rgba32_float")
-				resource.format = EffectTextureFormat::Rgba32Float;
+				resource.definition.format = EffectTextureFormat::Rgba32Float;
 			else {
 				error = "Unsupported effect resource format: " + format + " in " + manifestPath.string();
 				return false;
@@ -211,10 +212,10 @@ namespace Chrivent {
 					error = "Invalid fixed effect resource size: " + manifestPath.string();
 					return false;
 				}
-				resource.resolution = EffectPassResolution::Fixed;
-				resource.width = (*size)["width"].get<uint32_t>();
-				resource.height = (*size)["height"].get<uint32_t>();
-				if (resource.width == 0 || resource.height == 0) {
+				resource.definition.resolution = EffectPassResolution::Fixed;
+				resource.definition.width = (*size)["width"].get<uint32_t>();
+				resource.definition.height = (*size)["height"].get<uint32_t>();
+				if (resource.definition.width == 0 || resource.definition.height == 0) {
 					error = "Fixed effect resource size cannot be zero: " + manifestPath.string();
 					return false;
 				}
@@ -222,13 +223,13 @@ namespace Chrivent {
 				const std::string value = resolution == resourceJson.end()
 					? "full" : resolution->is_string() ? resolution->get<std::string>() : std::string{};
 				if (value == "full")
-					resource.resolution = EffectPassResolution::Full;
+					resource.definition.resolution = EffectPassResolution::Full;
 				else if (value == "half")
-					resource.resolution = EffectPassResolution::Half;
+					resource.definition.resolution = EffectPassResolution::Half;
 				else if (value == "quarter")
-					resource.resolution = EffectPassResolution::Quarter;
+					resource.definition.resolution = EffectPassResolution::Quarter;
 				else if (value == "eighth")
-					resource.resolution = EffectPassResolution::Eighth;
+					resource.definition.resolution = EffectPassResolution::Eighth;
 				else {
 					error = "Unsupported effect resource resolution: " + value + " in " + manifestPath.string();
 					return false;
@@ -304,7 +305,7 @@ namespace Chrivent {
 			error += " in " + manifestPath.string();
 			return false;
 		}
-		auto& [inputs, parameters, resources, passes] = effect.runtime;
+		auto& [parameters, resources, passes] = effect.runtime;
 		std::string typeName;
 		if (!ReadRequiredString(effectJson, "type", typeName, error)) {
 			error += " in " + manifestPath.string();
@@ -314,7 +315,6 @@ namespace Chrivent {
 			error = "Unsupported effect type: " + typeName + " in " + manifestPath.string();
 			return false;
 		}
-		inputs.clear();
 		const auto inputValues = effectJson.find("inputs");
 		if (inputValues == effectJson.end() || !inputValues->is_array()) {
 			error = "Post-process effect inputs must be an array: " + manifestPath.string();
@@ -332,93 +332,124 @@ namespace Chrivent {
 				error = "Unsupported or duplicate engine input: " + inputName + " in " + manifestPath.string();
 				return false;
 			}
-			inputs.emplace_back(inputName);
 		}
+		std::vector<ParsedEffectResource> parsedResources;
 		if (!LoadParameters(effectJson, manifestPath, parameters, error)
-			|| !LoadResources(effectJson, manifestPath, resources, error))
+			|| !LoadResources(effectJson, manifestPath, parsedResources, error))
 			return false;
 		const auto passValues = effectJson.find("passes");
 		if (passValues == effectJson.end() || !passValues->is_array() || passValues->empty()) {
 			error = "Effect requires at least one pass: " + manifestPath.string();
 			return false;
 		}
-		passes.clear();
+		std::vector<ParsedEffectPass> parsedPasses;
 		std::unordered_set<std::string> uniquePassNames;
 		for (const auto& passJson : *passValues) {
-			EffectPassDefinition pass;
+			ParsedEffectPass pass;
 			if (!LoadPass(packageRoot, manifestPath, passJson, pass, error))
 				return false;
 			if (!uniquePassNames.emplace(pass.name).second) {
 				error = "Duplicate effect pass name: " + pass.name + " in " + manifestPath.string();
 				return false;
 			}
-			passes.emplace_back(std::move(pass));
+			parsedPasses.emplace_back(std::move(pass));
 		}
-		std::unordered_map<std::string, EffectResourceLifetime> resourceLifetimes;
-		for (const auto& resourceDefinition : resources) {
-			if (resourceDefinition.name == "effect_input" || resourceDefinition.name == "effect_output"
-				|| resourceDefinition.name == "scene_color" || resourceDefinition.name == "scene_depth"
-				|| resourceDefinition.name == "scene_velocity") {
+		std::unordered_map<std::string, ParsedResourceReference> resourceDefinitions;
+		resources.clear();
+		resources.reserve(parsedResources.size());
+		for (auto& resource : parsedResources) {
+			if (resource.name == "effect_input" || resource.name == "effect_output"
+				|| resource.name == "scene_color" || resource.name == "scene_depth"
+				|| resource.name == "scene_velocity") {
 				error = "Effect resource uses a reserved name: "
-					+ resourceDefinition.name + " in " + manifestPath.string();
+					+ resource.name + " in " + manifestPath.string();
 				return false;
 			}
-			resourceLifetimes.emplace(resourceDefinition.name, resourceDefinition.lifetime);
+			const size_t resourceIndex = resources.size();
+			resourceDefinitions.emplace(resource.name, ParsedResourceReference{
+				.index = resourceIndex,
+				.lifetime = resource.definition.lifetime
+			});
+			resources.emplace_back(std::move(resource.definition));
 		}
+		passes.clear();
+		passes.reserve(parsedPasses.size());
 		std::unordered_set<std::string> initializedTransientResources;
-		for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
-			const EffectPassDefinition& pass = passes[passIndex];
-			for (const auto& [slot, resource] : pass.inputs) {
-				if (resource == "effect_input")
+		for (size_t passIndex = 0; passIndex < parsedPasses.size(); passIndex++) {
+			ParsedEffectPass& parsedPass = parsedPasses[passIndex];
+			EffectPassDefinition pass{ .program = std::move(parsedPass.program) };
+			pass.inputs.reserve(parsedPass.inputs.size());
+			for (const auto& [slot, resource] : parsedPass.inputs) {
+				EffectPassInputDefinition input{ .slot = slot };
+				if (resource == "effect_input") {
+					input.kind = EffectPassInputKind::EffectInput;
+					pass.inputs.emplace_back(input);
 					continue;
+				}
 				if (resource == "scene_color" || resource == "scene_depth" || resource == "scene_velocity") {
-					if (std::ranges::find(inputs, resource) == inputs.end()) {
+					if (!uniqueInputNames.contains(resource)) {
 						error = "Pass uses an undeclared engine input: " + resource + " in " + manifestPath.string();
 						return false;
 					}
+					if (resource == "scene_color")
+						input.kind = EffectPassInputKind::SceneColor;
+					else if (resource == "scene_depth")
+						input.kind = EffectPassInputKind::SceneDepth;
+					else
+						input.kind = EffectPassInputKind::SceneVelocity;
+					pass.inputs.emplace_back(input);
 					continue;
 				}
 				std::string inputResourceName = resource;
 				const bool readsHistoryResource = inputResourceName.ends_with(".read");
 				if (readsHistoryResource)
 					inputResourceName.resize(inputResourceName.size() - 5);
-				const auto resourceLifetime = resourceLifetimes.find(inputResourceName);
-				if (resourceLifetime == resourceLifetimes.end()
-					|| readsHistoryResource != (resourceLifetime->second == EffectResourceLifetime::History)
+				const auto resourceDefinition = resourceDefinitions.find(inputResourceName);
+				if (resourceDefinition == resourceDefinitions.end()
+					|| readsHistoryResource !=
+						(resourceDefinition->second.lifetime == EffectResourceLifetime::History)
 					|| (!readsHistoryResource && !initializedTransientResources.contains(inputResourceName))) {
 					error = "Invalid or uninitialized pass input resource: " + resource + " in " + manifestPath.string();
 					return false;
 				}
+				input.kind = EffectPassInputKind::Resource;
+				input.resourceIndex = resourceDefinition->second.index;
+				pass.inputs.emplace_back(input);
 			}
-			if (pass.output == "effect_output") {
-				if (passIndex + 1 != passes.size()) {
+			if (parsedPass.output == "effect_output") {
+				if (passIndex + 1 != parsedPasses.size()) {
 					error = "Only the final effect pass can write effect_output: " + manifestPath.string();
 					return false;
 				}
+				passes.emplace_back(std::move(pass));
 				continue;
 			}
-			std::string outputResourceName = pass.output;
+			std::string outputResourceName = parsedPass.output;
 			const bool writesHistoryResource = outputResourceName.ends_with(".write");
 			if (writesHistoryResource)
 				outputResourceName.resize(outputResourceName.size() - 6);
-			const auto outputResourceLifetime = resourceLifetimes.find(outputResourceName);
-			if (outputResourceLifetime == resourceLifetimes.end()
-				|| writesHistoryResource != (outputResourceLifetime->second == EffectResourceLifetime::History)) {
-				error = "Invalid pass output resource: " + pass.output + " in " + manifestPath.string();
+			const auto outputResourceDefinition = resourceDefinitions.find(outputResourceName);
+			if (outputResourceDefinition == resourceDefinitions.end()
+				|| writesHistoryResource !=
+					(outputResourceDefinition->second.lifetime == EffectResourceLifetime::History)) {
+				error = "Invalid pass output resource: " + parsedPass.output + " in " + manifestPath.string();
 				return false;
 			}
-			if (!writesHistoryResource && std::ranges::any_of(pass.inputs,
-				[&outputResourceName](const EffectPassInputDefinition& input) {
-				return input.resource == outputResourceName;
-			})) {
+			if (!writesHistoryResource && std::ranges::any_of(parsedPass.inputs,
+				[&outputResourceName](const ParsedEffectPassInput& input) {
+					return input.resource == outputResourceName;
+				})) {
 				error = "A transient resource cannot be read and written by the same pass: "
 					+ outputResourceName + " in " + manifestPath.string();
 				return false;
 			}
 			if (!writesHistoryResource)
 				initializedTransientResources.emplace(outputResourceName);
+			pass.output.kind = EffectPassOutputKind::Resource;
+			pass.output.resourceIndex = outputResourceDefinition->second.index;
+			passes.emplace_back(std::move(pass));
 		}
-		if (passes.back().output == "effect_output")
+		if (parsedPasses.back().output == "effect_output")
 			return true;
 		error = "The final post-process pass must write effect_output: " + manifestPath.string();
 		return false;

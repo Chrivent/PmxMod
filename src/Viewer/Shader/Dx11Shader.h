@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
+#include "Viewer/Shader/ShaderProgramDefinition.h"
 
 #include <filesystem>
 #include <d3d11.h>
@@ -31,31 +31,31 @@ namespace Chrivent {
 	// PMX 모델 표면 렌더링용 D3D11 셰이더 프로그램을 나타낸다.
 	struct Dx11ModelShader : Dx11Shader {
 		// 모델 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
+		bool Initialize(ID3D11Device* device, const ShaderProgramDefinition& program);
 	};
 
 	// PMX 외곽선 렌더링용 D3D11 셰이더 프로그램을 나타낸다.
 	struct Dx11EdgeShader : Dx11Shader {
 		// 엣지 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
+		bool Initialize(ID3D11Device* device, const ShaderProgramDefinition& program);
 	};
 
 	// PMX 지면 그림자 렌더링용 D3D11 셰이더 프로그램을 나타낸다.
 	struct Dx11GroundShadowShader : Dx11Shader {
 		// 지면 그림자 렌더링용 HLSL shader 묶음을 생성한다.
-		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
+		bool Initialize(ID3D11Device* device, const ShaderProgramDefinition& program);
 	};
 
 	// 공통 장면 depth 입력에서 texture alpha cutout을 처리하는 D3D11 프로그램을 나타낸다.
 	struct Dx11SceneDepthShader : Dx11Shader {
 		// 위치와 UV를 입력받는 DX11 장면 depth 셰이더를 생성한다.
-		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
+		bool Initialize(ID3D11Device* device, const ShaderProgramDefinition& program);
 	};
 
 	// 공통 장면 velocity 입력을 기록하는 D3D11 셰이더 프로그램을 나타낸다.
 	struct Dx11SceneVelocityShader : Dx11Shader {
 		// 현재/이전 스키닝 위치와 UV를 입력받는 DX11 장면 velocity 셰이더를 생성한다.
-		bool Initialize(ID3D11Device* device, const EffectPassDefinition& pass);
+		bool Initialize(ID3D11Device* device, const ShaderProgramDefinition& program);
 	};
 
 	// 풀스크린 후처리 패스를 실행하는 D3D11 셰이더 프로그램을 나타낸다.

@@ -192,7 +192,7 @@ namespace Chrivent {
 	}
 
 	bool Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
-		const auto& passes = GetPasses();
+		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<DXGI_FORMAT> formats;
 		formats.reserve(passes.size());
@@ -221,6 +221,14 @@ namespace Chrivent {
 		return &targets[ResolveResourceWriteIndex(route.outputResourceIndex)];
 	}
 
+	bool Dx12PostProcess::ResolveSceneFallback(ID3D12GraphicsCommandList* commandList,
+		ID3D12Resource* backBuffer, const Dx12MsaaColorBuffer& msaaColorBuffer,
+		const Dx12CommandContext& commandContext) {
+		DiscardHistoryFrame();
+		return msaaColorBuffer.ResolveToBackBuffer(
+			commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
+	}
+
 	void Dx12PostProcess::ResetEffectResources() {
 		inputDescriptorHeaps.clear();
 		inputDescriptorStates.clear();
@@ -243,8 +251,9 @@ namespace Chrivent {
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();
 		if (!sceneColor.Initialize(sourceDevice, width, height, DXGI_FORMAT_R8G8B8A8_UNORM)
-			|| !sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT)
-			|| !CreateDepthTarget(sourceDevice, width, height)
+			|| (RequiresVelocity()
+				&& !sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT))
+			|| ((RequiresDepth() || RequiresVelocity()) && !CreateDepthTarget(sourceDevice, width, height))
 			|| !CreateEffectResources(sourceDevice)
 			|| !CreateInputDescriptorHeaps(sourceDevice)
 			|| !CreateParameterDataBuffers(sourceDevice))
@@ -257,33 +266,34 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx12PostProcess::LoadEffects(
-		const Dx12Device& sourceDevice, const std::vector<const EffectRuntimeDefinition*>& effects) {
-		Dx12PostProcess candidate;
-		candidate.targetWidth = targetWidth;
-		candidate.targetHeight = targetHeight;
-		if (!candidate.SetEffects(effects)
-			|| (targetWidth > 0 && targetHeight > 0 && !candidate.CreateEffectResources(sourceDevice))
-			|| !candidate.CreateInputDescriptorHeaps(sourceDevice)
-			|| !candidate.CreateParameterDataBuffers(sourceDevice)
-			|| !candidate.CreatePipelines(sourceDevice))
-			return false;
-		SwapExecutionPlan(candidate);
-		resources.swap(candidate.resources);
-		inputDescriptorHeaps.swap(candidate.inputDescriptorHeaps);
-		inputDescriptorStates.swap(candidate.inputDescriptorStates);
-		pipelines.Swap(candidate.pipelines);
-		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++)
-			parameterDataBuffers[index].Swap(candidate.parameterDataBuffers[index]);
-		return true;
+	void Dx12PostProcess::SwapResources(Dx12PostProcess& other) noexcept {
+		std::swap(sceneColor, other.sceneColor);
+		std::swap(sceneVelocity, other.sceneVelocity);
+		resources.swap(other.resources);
+		inputDescriptorHeaps.swap(other.inputDescriptorHeaps);
+		inputDescriptorStates.swap(other.inputDescriptorStates);
+		depth.Swap(other.depth);
+		depthDsvHeap.Swap(other.depthDsvHeap);
+		pipelines.Swap(other.pipelines);
+		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++) {
+			frameDataBuffers[index].Swap(other.frameDataBuffers[index]);
+			parameterDataBuffers[index].Swap(other.parameterDataBuffers[index]);
+		}
+		std::swap(targetWidth, other.targetWidth);
+		std::swap(targetHeight, other.targetHeight);
 	}
 
 	bool Dx12PostProcess::Configure(const Dx12Device& sourceDevice, const int width, const int height,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return ApplyEffectConfiguration(!effects.empty(),
-			[this, &sourceDevice, width, height] { return InitializeTargets(sourceDevice, width, height); },
-			[this, &sourceDevice, &effects] { return LoadEffects(sourceDevice, effects); },
-			[this] { ResetResources(); });
+		Dx12PostProcess candidate;
+		if (!candidate.SetEffects(effects)
+			|| (candidate.HasEffects()
+				&& (!candidate.InitializeTargets(sourceDevice, width, height)
+					|| !candidate.CreatePipelines(sourceDevice))))
+			return false;
+		SwapExecutionPlan(candidate);
+		SwapResources(candidate);
+		return true;
 	}
 
 	bool Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
@@ -328,19 +338,14 @@ namespace Chrivent {
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
-		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource()) {
-			return msaaColorBuffer.ResolveToBackBuffer(
-				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
-		}
+		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource())
+			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
-		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
-			msaaColorBuffer.ResolveToBackBuffer(
-				commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
-			return false;
-		}
+		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized())
+			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
@@ -363,10 +368,8 @@ namespace Chrivent {
 		InitializeHistories(commandList, commandContext);
 		const auto& routes = GetPassRoutes();
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
-		if (heap == nullptr) {
-			DiscardHistoryFrame();
-			return false;
-		}
+		if (heap == nullptr)
+			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		commandList->SetDescriptorHeaps(1, &heap);
 		const UINT descriptorIncrement = sourceDevice.device->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -374,12 +377,8 @@ namespace Chrivent {
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
-			if (!parameterDataBuffer.Write(route.parameters, parameterOffset)) {
-				msaaColorBuffer.ResolveToBackBuffer(
-					commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
-				DiscardHistoryFrame();
-				return false;
-			}
+			if (!parameterDataBuffer.Write(route.parameters, parameterOffset))
+				return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->GetResource(),
