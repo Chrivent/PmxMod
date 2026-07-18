@@ -17,7 +17,7 @@ namespace Chrivent {
 		return SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
 			&colorQualityLevels, sizeof(colorQualityLevels))) && colorQualityLevels.NumQualityLevels > 0
 			&& SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
-				&depthQualityLevels, sizeof(depthQualityLevels))) && depthQualityLevels.NumQualityLevels > 0;
+			&depthQualityLevels, sizeof(depthQualityLevels))) && depthQualityLevels.NumQualityLevels > 0;
 	}
 
 	UINT Dx12Device::ChooseMsaaSampleCount(ID3D12Device* device) {
