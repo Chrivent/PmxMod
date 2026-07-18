@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <memory>
@@ -25,13 +26,13 @@ namespace Chrivent {
 		size_t passCount = 0;
 
 		// 프레임, 파라미터와 텍스처 descriptor set layout을 생성한다.
-		bool CreateLayouts();
+		GraphicsResult<void> CreateLayouts();
 		// 후처리 공통 sampler를 생성한다.
-		bool CreateSampler();
+		GraphicsResult<void> CreateSampler();
 		// 필요한 descriptor pool과 set을 생성한다.
-		bool CreateDescriptorSets();
+		GraphicsResult<void> CreateDescriptorSets();
 		// 프레임 및 파라미터 uniform buffer를 descriptor set에 연결한다.
-		bool BindBuffers(std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
+		GraphicsResult<void> BindBuffers(std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 			std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
 			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize,
 			VkDeviceSize parameterDataStride) const;
@@ -51,7 +52,7 @@ namespace Chrivent {
 		// 현재 이미지와 패스 수에 맞는 descriptor 리소스인지 확인한다.
 		bool IsCompatible(size_t sourceImageCount, size_t sourcePassCount) const;
 		// 버퍼와 패스 수에 맞는 Vulkan 후처리 descriptor 리소스를 생성한다.
-		bool Initialize(VkDevice sourceDevice, size_t sourceImageCount, size_t sourcePassCount,
+		GraphicsResult<void> Initialize(VkDevice sourceDevice, size_t sourceImageCount, size_t sourcePassCount,
 			std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 			std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
 			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize,

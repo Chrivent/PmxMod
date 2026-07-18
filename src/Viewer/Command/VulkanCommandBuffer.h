@@ -35,6 +35,8 @@ namespace Chrivent {
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice,
 			VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
+		// 지정한 이미지의 command buffer를 새 프레임 기록에 사용할 수 있도록 초기화한다.
+		GraphicsResult<void> ResetRecord(uint32_t imageIndex) const;
 		// 지정한 이미지 attachment로 dynamic rendering을 시작한다.
 		GraphicsResult<void> BeginRecord(uint32_t imageIndex, VkImage colorImage,
 			VkImageView colorImageView,

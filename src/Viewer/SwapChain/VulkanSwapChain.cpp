@@ -219,19 +219,68 @@ namespace Chrivent {
 		return Initialize(sourceDevice, window);
 	}
 
+	GraphicsResult<VulkanSwapChainState> VulkanSwapChain::AcquireNextImage(
+		const VkSemaphore imageAvailableSemaphore, uint32_t& imageIndex) const {
+		if (device == VK_NULL_HANDLE || swapChain == VK_NULL_HANDLE
+			|| imageAvailableSemaphore == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "swap chain 이미지 획득",
+				"Vulkan 스왑체인 또는 이미지 획득 세마포어를 사용할 수 없습니다"));
+		}
+		const VkResult result = vkAcquireNextImageKHR(device, swapChain,
+			std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore,
+			VK_NULL_HANDLE, &imageIndex);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+			return VulkanSwapChainState::RecreateRequired;
+		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::PresentationFailed, "swap chain 이미지 획득",
+				"Vulkan이 다음 스왑체인 이미지를 획득하지 못했습니다", result, true));
+		}
+		return VulkanSwapChainState::Ready;
+	}
+
+	GraphicsResult<VulkanSwapChainState> VulkanSwapChain::Present(
+		const VkQueue presentQueue, const VkSemaphore renderFinishedSemaphore,
+		const uint32_t imageIndex) const {
+		if (swapChain == VK_NULL_HANDLE || presentQueue == VK_NULL_HANDLE
+			|| renderFinishedSemaphore == VK_NULL_HANDLE || imageIndex >= images.size()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "swap chain present",
+				"Vulkan present에 필요한 스왑체인, 큐 또는 세마포어를 사용할 수 없습니다"));
+		}
+		const VkSwapchainKHR swapChains[] = { swapChain };
+		const VkPresentInfoKHR presentInfo{
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &renderFinishedSemaphore,
+			.swapchainCount = 1,
+			.pSwapchains = swapChains,
+			.pImageIndices = &imageIndex
+		};
+		const VkResult result = vkQueuePresentKHR(presentQueue, &presentInfo);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+			return VulkanSwapChainState::RecreateRequired;
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::PresentationFailed, "swap chain present",
+				"Vulkan 프레임을 표시하지 못했습니다", result, true));
+		}
+		return VulkanSwapChainState::Ready;
+	}
+
 	void VulkanSwapChain::Reset() {
-		if (device == VK_NULL_HANDLE)
-			return;
-		for (const VkImageView imageView : imageViews) {
-			if (imageView != VK_NULL_HANDLE)
-				vkDestroyImageView(device, imageView, nullptr);
+		if (device != VK_NULL_HANDLE) {
+			for (const VkImageView imageView : imageViews) {
+				if (imageView != VK_NULL_HANDLE)
+					vkDestroyImageView(device, imageView, nullptr);
+			}
+			if (swapChain != VK_NULL_HANDLE)
+				vkDestroySwapchainKHR(device, swapChain, nullptr);
 		}
 		imageViews.clear();
 		images.clear();
-		if (swapChain != VK_NULL_HANDLE) {
-			vkDestroySwapchainKHR(device, swapChain, nullptr);
-			swapChain = VK_NULL_HANDLE;
-		}
+		swapChain = VK_NULL_HANDLE;
 		imageFormat = VK_FORMAT_UNDEFINED;
 		extent = {};
 		device = VK_NULL_HANDLE;

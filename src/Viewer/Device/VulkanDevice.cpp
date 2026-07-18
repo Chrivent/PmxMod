@@ -351,6 +351,21 @@ namespace Chrivent {
 		return {};
 	}
 
+	GraphicsResult<void> VulkanDevice::WaitIdle() const {
+		if (device == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "GPU 대기",
+				"Vulkan device를 사용할 수 없습니다"));
+		}
+		const VkResult result = vkDeviceWaitIdle(device);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::SynchronizationFailed, "GPU 대기",
+				"Vulkan device가 idle 상태가 되지 않았습니다", result, true));
+		}
+		return {};
+	}
+
 	void VulkanDevice::Shutdown() {
 		if (device != VK_NULL_HANDLE) {
 			vkDestroyDevice(device, nullptr);

@@ -6,6 +6,12 @@
 #include <vector>
 
 namespace Chrivent {
+	// Vulkan 스왑체인 작업이 정상 진행되었는지 재생성이 필요한지 구분한다.
+	enum class VulkanSwapChainState {
+		Ready,
+		RecreateRequired
+	};
+
 	// Vulkan 스왑체인과 화면 image 및 image view를 관리한다.
 	class VulkanSwapChain {
 		// Vulkan surface가 지원하는 스왑체인 형식과 표시 모드를 보관한다.
@@ -52,6 +58,12 @@ namespace Chrivent {
 		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 창 크기 변경에 맞춰 스왑체인과 image view를 다시 생성한다.
 		GraphicsResult<void> Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window);
+		// 다음 렌더링 대상 이미지를 획득하고 스왑체인 재생성 필요 여부를 반환한다.
+		GraphicsResult<VulkanSwapChainState> AcquireNextImage(
+			VkSemaphore imageAvailableSemaphore, uint32_t& imageIndex) const;
+		// 렌더링이 끝난 이미지를 표시하고 스왑체인 재생성 필요 여부를 반환한다.
+		GraphicsResult<VulkanSwapChainState> Present(
+			VkQueue presentQueue, VkSemaphore renderFinishedSemaphore, uint32_t imageIndex) const;
 		// 생성한 스왑체인 리소스를 해제한다.
 		void Reset();
 	};

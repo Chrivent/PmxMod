@@ -85,6 +85,21 @@ namespace Chrivent {
 		return {};
 	}
 
+	GraphicsResult<void> VulkanCommandBuffer::ResetRecord(const uint32_t imageIndex) const {
+		if (imageIndex >= commandBuffers.size()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "command buffer 초기화",
+				"swap chain 이미지 색인이 Vulkan command buffer 범위를 벗어났습니다"));
+		}
+		const VkResult result = vkResetCommandBuffer(commandBuffers[imageIndex], 0);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "command buffer 초기화",
+				"Vulkan command buffer를 초기화하지 못했습니다", result, true));
+		}
+		return {};
+	}
+
 	GraphicsResult<void> VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex,
 		const VkImage colorImage, const VkImageView colorImageView,
 		const VkImage resolveImage, const VkImageView resolveImageView,

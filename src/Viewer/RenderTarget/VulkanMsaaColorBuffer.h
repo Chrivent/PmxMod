@@ -11,9 +11,10 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 
 		// 멀티샘플 color attachment image와 메모리를 생성한다.
-		bool CreateImage(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
+		GraphicsResult<void> CreateImage(
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 멀티샘플 color image용 image view를 생성한다.
-		bool CreateImageView();
+		GraphicsResult<void> CreateImageView();
 
 	public:
 		VkImageView imageView = VK_NULL_HANDLE;
@@ -27,7 +28,8 @@ namespace Chrivent {
 		VulkanMsaaColorBuffer& operator=(const VulkanMsaaColorBuffer&) = delete;
 
 		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
+		GraphicsResult<void> Initialize(
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 생성한 멀티샘플 color 리소스를 해제한다.
 		void Reset();
 	};

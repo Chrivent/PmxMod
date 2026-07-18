@@ -84,5 +84,7 @@ namespace Chrivent {
 
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
 		GraphicsResult<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
+		// Vulkan device에 제출된 모든 작업이 끝날 때까지 기다린다.
+		GraphicsResult<void> WaitIdle() const;
 	};
 }

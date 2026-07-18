@@ -5,7 +5,7 @@
 #include <limits>
 
 namespace Chrivent {
-	bool VulkanPostProcessDescriptors::CreateLayouts() {
+	GraphicsResult<void> VulkanPostProcessDescriptors::CreateLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding frameDataBinding{
 			.binding = SpirvBindingLayout::frameDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -28,11 +28,20 @@ namespace Chrivent {
 			.bindingCount = 1,
 			.pBindings = &parameterDataBinding
 		};
-		if (vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
-			&descriptorSetLayouts[SpirvBindingLayout::frameDataSet]) != VK_SUCCESS
-			|| vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr,
-				&descriptorSetLayouts[SpirvBindingLayout::parameterDataSet]) != VK_SUCCESS)
-			return false;
+		VkResult result = vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
+			&descriptorSetLayouts[SpirvBindingLayout::frameDataSet]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "frame descriptor layout 생성",
+				"Vulkan frame descriptor set layout을 만들지 못했습니다", result, true));
+		}
+		result = vkCreateDescriptorSetLayout(device, &parameterLayoutInfo, nullptr,
+			&descriptorSetLayouts[SpirvBindingLayout::parameterDataSet]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "parameter descriptor layout 생성",
+				"Vulkan parameter descriptor set layout을 만들지 못했습니다", result, true));
+		}
 		std::vector<VkDescriptorSetLayoutBinding> textureBindings;
 		textureBindings.reserve(PostProcessInputLayout::maxTextureCount + PostProcessInputLayout::samplerCount);
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
@@ -56,18 +65,28 @@ namespace Chrivent {
 			.bindingCount = static_cast<uint32_t>(textureBindings.size()),
 			.pBindings = textureBindings.data()
 		};
-		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
-			&descriptorSetLayouts[SpirvBindingLayout::textureSet]) != VK_SUCCESS)
-			return false;
+		result = vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
+			&descriptorSetLayouts[SpirvBindingLayout::textureSet]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture descriptor layout 생성",
+				"Vulkan texture descriptor set layout을 만들지 못했습니다", result, true));
+		}
 		const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = SpirvBindingLayout::setCount,
 			.pSetLayouts = descriptorSetLayouts
 		};
-		return vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS;
+		result = vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 pipeline layout 생성",
+				"Vulkan 후처리 pipeline layout을 만들지 못했습니다", result, true));
+		}
+		return {};
 	}
 
-	bool VulkanPostProcessDescriptors::CreateSampler() {
+	GraphicsResult<void> VulkanPostProcessDescriptors::CreateSampler() {
 		constexpr VkSamplerCreateInfo samplerInfo{
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 			.magFilter = VK_FILTER_LINEAR,
@@ -77,19 +96,31 @@ namespace Chrivent {
 			.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 			.maxLod = 1.0f
 		};
-		return vkCreateSampler(device, &samplerInfo, nullptr, &sampler) == VK_SUCCESS;
+		const VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 sampler 생성",
+				"Vulkan 후처리 sampler를 만들지 못했습니다", result, true));
+		}
+		return {};
 	}
 
-	bool VulkanPostProcessDescriptors::CreateDescriptorSets() {
+	GraphicsResult<void> VulkanPostProcessDescriptors::CreateDescriptorSets() {
 		constexpr size_t maximum = std::numeric_limits<uint32_t>::max();
-		if (imageCount > maximum || passCount == 0 || passCount > maximum / imageCount)
-			return false;
+		if (imageCount > maximum || passCount == 0 || passCount > maximum / imageCount) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 descriptor 개수 계산",
+				"Vulkan 후처리 이미지 또는 패스 수가 descriptor 한도를 넘습니다"));
+		}
 		const uint32_t frameSetCount = static_cast<uint32_t>(imageCount);
 		const uint32_t textureSetCount = static_cast<uint32_t>(imageCount * passCount);
 		if (textureSetCount > (maximum - frameSetCount) / 2
 			|| textureSetCount > maximum / PostProcessInputLayout::maxTextureCount
-			|| textureSetCount > maximum / PostProcessInputLayout::samplerCount)
-			return false;
+			|| textureSetCount > maximum / PostProcessInputLayout::samplerCount) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 descriptor 개수 계산",
+				"Vulkan 후처리 texture 또는 sampler descriptor 수가 한도를 넘습니다"));
+		}
 		const uint32_t parameterSetCount = textureSetCount;
 		const VkDescriptorPoolSize poolSizes[] = {
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frameSetCount + parameterSetCount },
@@ -103,8 +134,12 @@ namespace Chrivent {
 			.poolSizeCount = 3,
 			.pPoolSizes = poolSizes
 		};
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-			return false;
+		VkResult result = vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 descriptor pool 생성",
+				"Vulkan 후처리 descriptor pool을 만들지 못했습니다", result, true));
+		}
 		std::vector layouts(frameSetCount + parameterSetCount + textureSetCount,
 			descriptorSetLayouts[SpirvBindingLayout::textureSet]);
 		for (uint32_t index = 0; index < frameSetCount; index++)
@@ -118,29 +153,39 @@ namespace Chrivent {
 			.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
 			.pSetLayouts = layouts.data()
 		};
-		if (vkAllocateDescriptorSets(device, &allocateInfo, sets.data()) != VK_SUCCESS)
-			return false;
+		result = vkAllocateDescriptorSets(device, &allocateInfo, sets.data());
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 descriptor set 할당",
+				"Vulkan 후처리 descriptor set을 할당하지 못했습니다", result, true));
+		}
 		frameDataDescriptorSets.assign(sets.begin(), sets.begin() + frameSetCount);
 		parameterDataDescriptorSets.assign(
 			sets.begin() + frameSetCount, sets.begin() + frameSetCount + parameterSetCount);
 		textureDescriptorSets.assign(sets.begin() + frameSetCount + parameterSetCount, sets.end());
 		textureImageViewCache.resize(
 			textureDescriptorSets.size() * PostProcessInputLayout::maxTextureCount);
-		return true;
+		return {};
 	}
 
-	bool VulkanPostProcessDescriptors::BindBuffers(
+	GraphicsResult<void> VulkanPostProcessDescriptors::BindBuffers(
 		const std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 		const std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
 		const VkDeviceSize frameDataSize, const VkDeviceSize parameterDataSize,
 		const VkDeviceSize parameterDataStride) const {
 		if (frameDataBuffers.size() != frameDataDescriptorSets.size()
 			|| parameterDataBuffers.size() != imageCount
-			|| parameterDataDescriptorSets.size() != imageCount * passCount)
-			return false;
+			|| parameterDataDescriptorSets.size() != imageCount * passCount) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 buffer descriptor 연결",
+				"Vulkan 후처리 버퍼와 descriptor set 수가 일치하지 않습니다"));
+		}
 		for (size_t index = 0; index < frameDataBuffers.size(); index++) {
-			if (!frameDataBuffers[index] || frameDataBuffers[index]->buffer == VK_NULL_HANDLE)
-				return false;
+			if (!frameDataBuffers[index] || frameDataBuffers[index]->buffer == VK_NULL_HANDLE) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InvalidState, "frame buffer descriptor 연결",
+					"Vulkan 후처리 frame buffer를 사용할 수 없습니다"));
+			}
 			const VkDescriptorBufferInfo bufferInfo{
 				.buffer = frameDataBuffers[index]->buffer,
 				.range = frameDataSize
@@ -159,8 +204,11 @@ namespace Chrivent {
 			const size_t imageIndex = index / passCount;
 			const size_t passIndex = index % passCount;
 			if (!parameterDataBuffers[imageIndex]
-				|| parameterDataBuffers[imageIndex]->buffer == VK_NULL_HANDLE)
-				return false;
+				|| parameterDataBuffers[imageIndex]->buffer == VK_NULL_HANDLE) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InvalidState, "parameter buffer descriptor 연결",
+					"Vulkan 후처리 parameter buffer를 사용할 수 없습니다"));
+			}
 			const VkDescriptorBufferInfo bufferInfo{
 				.buffer = parameterDataBuffers[imageIndex]->buffer,
 				.offset = passIndex * parameterDataStride,
@@ -176,7 +224,7 @@ namespace Chrivent {
 			};
 			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 		}
-		return true;
+		return {};
 	}
 
 	VulkanPostProcessDescriptors::~VulkanPostProcessDescriptors() {
@@ -214,24 +262,35 @@ namespace Chrivent {
 			&& textureDescriptorSets.size() == imageCount * passCount;
 	}
 
-	bool VulkanPostProcessDescriptors::Initialize(const VkDevice sourceDevice,
+	GraphicsResult<void> VulkanPostProcessDescriptors::Initialize(const VkDevice sourceDevice,
 		const size_t sourceImageCount, const size_t sourcePassCount,
 		const std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 		const std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
 		const VkDeviceSize frameDataSize, const VkDeviceSize parameterDataSize,
 		const VkDeviceSize parameterDataStride) {
 		Reset();
-		if (sourceDevice == VK_NULL_HANDLE || sourceImageCount == 0 || sourcePassCount == 0)
-			return false;
+		if (sourceDevice == VK_NULL_HANDLE || sourceImageCount == 0 || sourcePassCount == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "후처리 descriptor 초기화",
+				"Vulkan device, 이미지 수 또는 패스 수가 올바르지 않습니다"));
+		}
 		device = sourceDevice;
 		imageCount = sourceImageCount;
 		passCount = sourcePassCount;
-		if (CreateLayouts() && CreateSampler() && CreateDescriptorSets()
-			&& BindBuffers(frameDataBuffers, parameterDataBuffers,
-				frameDataSize, parameterDataSize, parameterDataStride))
-			return true;
+		auto result = CreateLayouts();
+		if (result)
+			result = CreateSampler();
+		if (result)
+			result = CreateDescriptorSets();
+		if (result) {
+			result = BindBuffers(frameDataBuffers, parameterDataBuffers,
+				frameDataSize, parameterDataSize, parameterDataStride);
+		}
+		if (result)
+			return {};
+		const GraphicsError error = result.error();
 		Reset();
-		return false;
+		return std::unexpected(error);
 	}
 
 	bool VulkanPostProcessDescriptors::UpdateTextures(const uint32_t imageIndex, const size_t passIndex,

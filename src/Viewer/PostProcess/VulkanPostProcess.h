@@ -35,22 +35,25 @@ namespace Chrivent {
 		VkDeviceSize parameterDataStride = 0;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
-		bool CreateSceneImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
+		GraphicsResult<void> CreateSceneImages(
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
-		bool CreateDepthImages(const VulkanDevice& sourceDevice,
+		GraphicsResult<void> CreateDepthImages(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
 		// 스왑체인 이미지마다 장면 속도 기록과 sampling에 사용할 RG16F 이미지를 생성한다.
-		bool CreateVelocityImages(const VulkanDevice& sourceDevice);
+		GraphicsResult<void> CreateVelocityImages(const VulkanDevice& sourceDevice);
 		// 패키지가 선언한 transient/history image를 생성한다.
-		bool CreateEffectResources(const VulkanDevice& sourceDevice);
+		GraphicsResult<void> CreateEffectResources(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
-		bool CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
+		GraphicsResult<void> CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 모든 pass 파라미터를 보관할 b1 buffer를 생성한다.
-		bool CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
+		GraphicsResult<void> CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
 		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex);
+		// 새 프레임의 Vulkan 이미지 상태 변경을 제출 전 임시 상태로 기록한다.
+		void BeginImageStateFrame();
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
-		bool CreatePipelines(const VulkanDevice& sourceDevice, std::string& error);
+		GraphicsResult<void> CreatePipelines(const VulkanDevice& sourceDevice);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.
 		static VkFormat ResolveResourceFormat(const PostProcessResourcePlan& resource);
 		// 리소스 계획의 실제 Vulkan 출력 크기를 반환한다.
@@ -78,8 +81,8 @@ namespace Chrivent {
 		}
 		
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 target을 생성한다.
-		bool InitializeTargets(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, std::string& error);
+		GraphicsResult<void> InitializeTargets(
+			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
 		GraphicsResult<void> Configure(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain,
@@ -92,6 +95,10 @@ namespace Chrivent {
 		// 선언된 pass들을 실행해 swapchain 출력까지 기록한다.
 		bool Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
 			VkImageView swapChainImageView, const PostProcessFrameData& frameData);
+		// 제출된 프레임의 Vulkan 이미지 상태 변경을 확정한다.
+		void CommitImageStateFrame();
+		// 제출되지 않은 프레임의 Vulkan 이미지 상태 변경을 버린다.
+		void DiscardImageStateFrame();
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};

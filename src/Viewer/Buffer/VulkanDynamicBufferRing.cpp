@@ -5,9 +5,11 @@ namespace Chrivent {
 		Clear();
 		if (!DynamicBufferRing::Setup(bufferSize, outError))
 			return false;
-		if (!buffer.Initialize(sourceDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-			outError = "Vulkan dynamic buffer ring을 만들지 못했습니다.";
+		const auto bufferResult = buffer.Initialize(sourceDevice, bufferSize,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		if (!bufferResult) {
+			outError = bufferResult.error().Format();
 			DynamicBufferRing::Clear();
 			return false;
 		}

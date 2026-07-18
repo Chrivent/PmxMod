@@ -14,7 +14,7 @@ namespace Chrivent {
 		VulkanPostProcess::ResetResources();
 	}
 
-	bool VulkanPostProcess::CreateSceneImages(
+	GraphicsResult<void> VulkanPostProcess::CreateSceneImages(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		swapChainImageCount = sourceSwapChain.GetImageCount();
 		targetExtent = sourceSwapChain.GetExtent();
@@ -23,7 +23,7 @@ namespace Chrivent {
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, false);
 	}
 
-	bool VulkanPostProcess::CreateDepthImages(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanPostProcess::CreateDepthImages(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
 		depthImages.resize(swapChainImageCount);
 		depthImageMemories.resize(swapChainImageCount);
@@ -45,21 +45,37 @@ namespace Chrivent {
 			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			if (vkCreateImage(device, &imageInfo, nullptr, &depthImages[index]) != VK_SUCCESS)
-				return false;
+			VkResult result = vkCreateImage(device, &imageInfo, nullptr, &depthImages[index]);
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth image 생성",
+					"Vulkan 후처리 depth image를 만들지 못했습니다", result, true));
+			}
 			VkMemoryRequirements requirements{};
 			vkGetImageMemoryRequirements(device, depthImages[index], &requirements);
 			uint32_t memoryType = 0;
 			if (!VulkanMemory::FindMemoryType(
-				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
-				return false;
+				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::UnsupportedFeature, "후처리 depth memory type 선택",
+					"Vulkan 후처리 depth image에 사용할 memory type을 찾지 못했습니다"));
+			}
 			VkMemoryAllocateInfo allocateInfo{};
 			allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocateInfo.allocationSize = requirements.size;
 			allocateInfo.memoryTypeIndex = memoryType;
-			if (vkAllocateMemory(device, &allocateInfo, nullptr, &depthImageMemories[index]) != VK_SUCCESS
-				|| vkBindImageMemory(device, depthImages[index], depthImageMemories[index], 0) != VK_SUCCESS)
-				return false;
+			result = vkAllocateMemory(device, &allocateInfo, nullptr, &depthImageMemories[index]);
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth memory 할당",
+					"Vulkan 후처리 depth image memory를 할당하지 못했습니다", result, true));
+			}
+			result = vkBindImageMemory(device, depthImages[index], depthImageMemories[index], 0);
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth memory 연결",
+					"Vulkan 후처리 depth image memory를 연결하지 못했습니다", result, true));
+			}
 			VkImageViewCreateInfo viewInfo{};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			viewInfo.image = depthImages[index];
@@ -68,13 +84,17 @@ namespace Chrivent {
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 			viewInfo.subresourceRange.levelCount = 1;
 			viewInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(device, &viewInfo, nullptr, &depthImageViews[index]) != VK_SUCCESS)
-				return false;
+			result = vkCreateImageView(device, &viewInfo, nullptr, &depthImageViews[index]);
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth image view 생성",
+					"Vulkan 후처리 depth image view를 만들지 못했습니다", result, true));
+			}
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanPostProcess::CreateVelocityImages(const VulkanDevice& sourceDevice) {
+	GraphicsResult<void> VulkanPostProcess::CreateVelocityImages(const VulkanDevice& sourceDevice) {
 		return velocityTarget.Initialize(sourceDevice, swapChainImageCount, targetExtent,
 			VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, true);
 	}
@@ -95,7 +115,7 @@ namespace Chrivent {
 		};
 	}
 
-	bool VulkanPostProcess::CreateEffectResources(const VulkanDevice& sourceDevice) {
+	GraphicsResult<void> VulkanPostProcess::CreateEffectResources(const VulkanDevice& sourceDevice) {
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
@@ -103,46 +123,53 @@ namespace Chrivent {
 			const size_t imageCount = plan.lifetime == EffectResourceLifetime::History ? 2 : swapChainImageCount;
 			const VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 				| (plan.lifetime == EffectResourceLifetime::History ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0);
-			if (!resources[resourceIndex].Initialize(sourceDevice, imageCount, ResolveResourceExtent(plan),
-				ResolveResourceFormat(plan), usage, plan.lifetime == EffectResourceLifetime::Transient))
-				return false;
+			const auto result = resources[resourceIndex].Initialize(sourceDevice, imageCount,
+				ResolveResourceExtent(plan), ResolveResourceFormat(plan), usage,
+				plan.lifetime == EffectResourceLifetime::Transient);
+			if (!result)
+				return std::unexpected(result.error());
 		}
 		ResetHistory();
-		return true;
+		return {};
 	}
 
-	bool VulkanPostProcess::CreateFrameDataBuffers(const VulkanDevice& sourceDevice) {
+	GraphicsResult<void> VulkanPostProcess::CreateFrameDataBuffers(const VulkanDevice& sourceDevice) {
 		frameDataBuffers.clear();
 		for (size_t index = 0; index < swapChainImageCount; index++) {
 			auto buffer = std::make_unique<VulkanBuffer>();
-			if (!buffer->Initialize(sourceDevice, sizeof(PostProcessFrameData),
+			const auto result = buffer->Initialize(sourceDevice, sizeof(PostProcessFrameData),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				return false;
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			if (!result)
+				return std::unexpected(result.error());
 			frameDataBuffers.push_back(std::move(buffer));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
+	GraphicsResult<void> VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
 		parameterDataBuffers.clear();
 		const size_t passCount = GetPassRoutes().size();
 		const VkDeviceSize alignment = std::max<VkDeviceSize>(
 			1, sourceDevice.GetUniformBufferAlignment());
 		constexpr VkDeviceSize parameterSize = sizeof(PostProcessParameterData);
 		parameterDataStride = (parameterSize + alignment - 1) / alignment * alignment;
-		if (passCount == 0 || passCount > std::numeric_limits<VkDeviceSize>::max() / parameterDataStride)
-			return false;
+		if (passCount == 0 || passCount > std::numeric_limits<VkDeviceSize>::max() / parameterDataStride) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
+				"Vulkan 후처리 패스 수가 parameter buffer 크기 한도를 넘습니다"));
+		}
 		const VkDeviceSize bufferSize = passCount * parameterDataStride;
 		for (size_t index = 0; index < swapChainImageCount; index++) {
 			auto buffer = std::make_unique<VulkanBuffer>();
-			if (!buffer->Initialize(sourceDevice, bufferSize,
+			const auto result = buffer->Initialize(sourceDevice, bufferSize,
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				return false;
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			if (!result)
+				return std::unexpected(result.error());
 			parameterDataBuffers.push_back(std::move(buffer));
 		}
-		return true;
+		return {};
 	}
 
 	VkImageView VulkanPostProcess::ResolveInputImageView(
@@ -173,7 +200,13 @@ namespace Chrivent {
 		return descriptors.UpdateTextures(imageIndex, passIndex, imageViews);
 	}
 
-	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice, std::string& error) {
+	void VulkanPostProcess::BeginImageStateFrame() {
+		velocityTarget.BeginInitializationFrame();
+		for (auto& resource : resources)
+			resource.BeginInitializationFrame();
+	}
+
+	GraphicsResult<void> VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
 		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<VkFormat> targetFormats;
@@ -186,8 +219,14 @@ namespace Chrivent {
 			}
 			targetFormats.push_back(format);
 		}
-		return pipelines.Initialize(sourceDevice,
-			descriptors.GetPipelineLayout(), passes, targetFormats, error);
+		std::string error;
+		if (!pipelines.Initialize(sourceDevice,
+			descriptors.GetPipelineLayout(), passes, targetFormats, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::EffectConfigurationFailed, "후처리 pipeline 생성",
+				error.empty() ? "Vulkan 후처리 pipeline을 만들지 못했습니다" : std::move(error)));
+		}
+		return {};
 	}
 
 	bool VulkanPostProcess::ResolveOutputImage(const PostProcessPassRoute& route, const uint32_t imageIndex,
@@ -254,40 +293,34 @@ namespace Chrivent {
 		std::swap(parameterDataStride, other.parameterDataStride);
 	}
 
-	bool VulkanPostProcess::InitializeTargets(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat, std::string& error) {
+	GraphicsResult<void> VulkanPostProcess::InitializeTargets(
+		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		const VkFormat depthFormat) {
 		ResetResources();
-		error.clear();
 		device = sourceDevice.GetDevice();
-		if (!CreateSceneImages(sourceDevice, sourceSwapChain)) {
-			error = "Vulkan 후처리 장면 이미지를 만들지 못했습니다";
-			return false;
+		auto result = CreateSceneImages(sourceDevice, sourceSwapChain);
+		if (result && (RequiresDepth() || RequiresVelocity()))
+			result = CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat);
+		if (result && RequiresVelocity())
+			result = CreateVelocityImages(sourceDevice);
+		if (result)
+			result = CreateEffectResources(sourceDevice);
+		if (result)
+			result = CreateFrameDataBuffers(sourceDevice);
+		if (result)
+			result = CreateParameterDataBuffers(sourceDevice);
+		if (result) {
+			result = descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
+				frameDataBuffers, parameterDataBuffers, sizeof(PostProcessFrameData),
+				sizeof(PostProcessParameterData), parameterDataStride);
 		}
-		if ((RequiresDepth() || RequiresVelocity())
-			&& !CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)) {
-			error = "Vulkan 후처리 depth 이미지를 만들지 못했습니다";
-			return false;
-		}
-		if (RequiresVelocity() && !CreateVelocityImages(sourceDevice)) {
-			error = "Vulkan 후처리 velocity 이미지를 만들지 못했습니다";
-			return false;
-		}
-		if (!CreateEffectResources(sourceDevice)) {
-			error = "Vulkan 후처리 effect 이미지를 만들지 못했습니다";
-			return false;
-		}
-		if (!CreateFrameDataBuffers(sourceDevice)
-			|| !CreateParameterDataBuffers(sourceDevice)) {
-			error = "Vulkan 후처리 상수 버퍼를 만들지 못했습니다";
-			return false;
-		}
-		if (!descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
-			frameDataBuffers, parameterDataBuffers, sizeof(PostProcessFrameData),
-			sizeof(PostProcessParameterData), parameterDataStride)) {
-			error = "Vulkan 후처리 descriptor를 만들지 못했습니다";
-			return false;
-		}
-		return CreatePipelines(sourceDevice, error);
+		if (result)
+			result = CreatePipelines(sourceDevice);
+		if (result)
+			return {};
+		const GraphicsError error = result.error();
+		ResetResources();
+		return std::unexpected(error);
 	}
 
 	GraphicsResult<void> VulkanPostProcess::Configure(const VulkanDevice& sourceDevice,
@@ -299,12 +332,11 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
 		}
-		std::string error;
-		if (candidate.HasEffects()
-			&& !candidate.InitializeTargets(sourceDevice, sourceSwapChain, depthFormat, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::EffectConfigurationFailed, "후처리 리소스 구성",
-				error.empty() ? "Vulkan 후처리 리소스를 만들지 못했습니다" : std::move(error)));
+		if (candidate.HasEffects()) {
+			const auto initializeResult = candidate.InitializeTargets(
+				sourceDevice, sourceSwapChain, depthFormat);
+			if (!initializeResult)
+				return std::unexpected(initializeResult.error());
 		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
@@ -315,15 +347,20 @@ namespace Chrivent {
 		const uint32_t imageIndex, const VkExtent2D extent) {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
+		BeginImageStateFrame();
 		constexpr bool depthHasStencil = false;
 		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
 			sceneTarget.TryGetImage(imageIndex), depthImages[imageIndex], depthImageViews[imageIndex],
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() ? velocityTarget.TryGetImageView(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, extent);
-		if (began && RequiresVelocity())
+		if (!began) {
+			DiscardImageStateFrame();
+			return false;
+		}
+		if (RequiresVelocity())
 			velocityTarget.MarkInitialized(imageIndex);
-		return began;
+		return true;
 	}
 
 	bool VulkanPostProcess::EndSceneInputPass(
@@ -345,11 +382,14 @@ namespace Chrivent {
 			|| !IsPassCountCompatible(pipelines.GetCount())
 			|| !descriptors.IsCompatible(swapChainImageCount, routes.size()))
 			return false;
-		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData)))
-			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers.TryGetCommandBuffer(imageIndex);
 		if (commandBuffer == VK_NULL_HANDLE)
 			return false;
+		BeginImageStateFrame();
+		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData))) {
+			DiscardImageStateFrame();
+			return false;
+		}
 		const VkPipelineLayout pipelineLayout = descriptors.GetPipelineLayout();
 		const VkDescriptorSet frameDataDescriptorSet = descriptors.GetFrameDataDescriptorSet(imageIndex);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -386,6 +426,7 @@ namespace Chrivent {
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			if (pipelines.TryGetPipeline(passIndex) == VK_NULL_HANDLE) {
 				DiscardHistoryFrame();
+				DiscardImageStateFrame();
 				return false;
 			}
 			const PostProcessPassRoute& route = routes[passIndex];
@@ -393,10 +434,12 @@ namespace Chrivent {
 			if (!parameterDataBuffers[imageIndex]->Write(
 				&parameterData, sizeof(parameterData), passIndex * parameterDataStride)) {
 				DiscardHistoryFrame();
+				DiscardImageStateFrame();
 				return false;
 			}
 			if (!UpdateTextureDescriptorSet(imageIndex, passIndex)) {
 				DiscardHistoryFrame();
+				DiscardImageStateFrame();
 				return false;
 			}
 			VkImage outputImage = VK_NULL_HANDLE;
@@ -406,6 +449,7 @@ namespace Chrivent {
 			if (!ResolveOutputImage(route, imageIndex, swapChainImage, swapChainImageView,
 				outputImage, outputImageView, outputExtent, outputInitialized)) {
 				DiscardHistoryFrame();
+				DiscardImageStateFrame();
 				return false;
 			}
 			VulkanCommandBuffer::TransitionImage(commandBuffer, outputImage,
@@ -450,6 +494,18 @@ namespace Chrivent {
 			AdvanceHistory(route);
 		}
 		return true;
+	}
+
+	void VulkanPostProcess::CommitImageStateFrame() {
+		velocityTarget.CommitInitializationFrame();
+		for (auto& resource : resources)
+			resource.CommitInitializationFrame();
+	}
+
+	void VulkanPostProcess::DiscardImageStateFrame() {
+		velocityTarget.DiscardInitializationFrame();
+		for (auto& resource : resources)
+			resource.DiscardInitializationFrame();
 	}
 
 	void VulkanPostProcess::ResetResources() {

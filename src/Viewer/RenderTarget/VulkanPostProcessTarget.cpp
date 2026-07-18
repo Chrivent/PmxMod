@@ -19,7 +19,8 @@ namespace Chrivent {
 		return *this;
 	}
 
-	bool VulkanPostProcessTarget::CreateImage(const VulkanDevice& sourceDevice, const VkExtent2D extent,
+	GraphicsResult<void> VulkanPostProcessTarget::CreateImage(
+		const VulkanDevice& sourceDevice, const VkExtent2D extent,
 		const VkFormat format, const VkImageUsageFlags usage, const size_t index) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -33,21 +34,37 @@ namespace Chrivent {
 		imageInfo.usage = usage;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateImage(device, &imageInfo, nullptr, &images[index]) != VK_SUCCESS)
-			return false;
+		VkResult result = vkCreateImage(device, &imageInfo, nullptr, &images[index]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 image 생성",
+				"Vulkan 후처리 image를 만들지 못했습니다", result, true));
+		}
 		VkMemoryRequirements requirements{};
 		vkGetImageMemoryRequirements(device, images[index], &requirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(
-			sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType))
-			return false;
+			sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "후처리 image memory type 선택",
+				"Vulkan 후처리 image에 사용할 memory type을 찾지 못했습니다"));
+		}
 		VkMemoryAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = requirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(device, &allocateInfo, nullptr, &memories[index]) != VK_SUCCESS
-			|| vkBindImageMemory(device, images[index], memories[index], 0) != VK_SUCCESS)
-			return false;
+		result = vkAllocateMemory(device, &allocateInfo, nullptr, &memories[index]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 image memory 할당",
+				"Vulkan 후처리 image memory를 할당하지 못했습니다", result, true));
+		}
+		result = vkBindImageMemory(device, images[index], memories[index], 0);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 image memory 연결",
+				"Vulkan 후처리 image memory를 연결하지 못했습니다", result, true));
+		}
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = images[index];
@@ -56,7 +73,13 @@ namespace Chrivent {
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
-		return vkCreateImageView(device, &viewInfo, nullptr, &imageViews[index]) == VK_SUCCESS;
+		result = vkCreateImageView(device, &viewInfo, nullptr, &imageViews[index]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 image view 생성",
+				"Vulkan 후처리 image view를 만들지 못했습니다", result, true));
+		}
+		return {};
 	}
 
 	void VulkanPostProcessTarget::Swap(VulkanPostProcessTarget& other) noexcept {
@@ -65,30 +88,61 @@ namespace Chrivent {
 		memories.swap(other.memories);
 		imageViews.swap(other.imageViews);
 		initialized.swap(other.initialized);
+		pendingInitialized.swap(other.pendingInitialized);
+		std::swap(initializationFramePending, other.initializationFramePending);
 	}
 
-	bool VulkanPostProcessTarget::Initialize(const VulkanDevice& sourceDevice, const size_t imageCount,
+	GraphicsResult<void> VulkanPostProcessTarget::Initialize(
+		const VulkanDevice& sourceDevice, const size_t imageCount,
 		const VkExtent2D extent, const VkFormat format, const VkImageUsageFlags usage,
 		const bool trackInitialization) {
 		Reset();
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || imageCount == 0 || extent.width == 0 || extent.height == 0
-			|| format == VK_FORMAT_UNDEFINED)
-			return false;
+			|| format == VK_FORMAT_UNDEFINED) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "후처리 target 초기화",
+				"Vulkan device, image 수, format 또는 extent가 올바르지 않습니다"));
+		}
 		device = sourceDevice.GetDevice();
 		images.resize(imageCount);
 		memories.resize(imageCount);
 		imageViews.resize(imageCount);
 		initialized.assign(trackInitialization ? imageCount : 0, false);
 		for (size_t index = 0; index < imageCount; index++) {
-			if (!CreateImage(sourceDevice, extent, format, usage, index))
-				return false;
+			const auto result = CreateImage(sourceDevice, extent, format, usage, index);
+			if (!result) {
+				const GraphicsError error = result.error();
+				Reset();
+				return std::unexpected(error);
+			}
 		}
-		return true;
+		return {};
+	}
+
+	void VulkanPostProcessTarget::BeginInitializationFrame() {
+		if (initializationFramePending || initialized.empty())
+			return;
+		pendingInitialized = initialized;
+		initializationFramePending = true;
 	}
 
 	void VulkanPostProcessTarget::MarkInitialized(const size_t index) {
-		if (index < initialized.size())
-			initialized[index] = true;
+		auto& states = initializationFramePending ? pendingInitialized : initialized;
+		if (index < states.size())
+			states[index] = true;
+	}
+
+	void VulkanPostProcessTarget::CommitInitializationFrame() {
+		if (!initializationFramePending)
+			return;
+		initialized.swap(pendingInitialized);
+		pendingInitialized.clear();
+		initializationFramePending = false;
+	}
+
+	void VulkanPostProcessTarget::DiscardInitializationFrame() {
+		pendingInitialized.clear();
+		initializationFramePending = false;
 	}
 
 	void VulkanPostProcessTarget::Reset() {
@@ -110,6 +164,8 @@ namespace Chrivent {
 		images.clear();
 		memories.clear();
 		initialized.clear();
+		pendingInitialized.clear();
+		initializationFramePending = false;
 		device = VK_NULL_HANDLE;
 	}
 }
