@@ -10,6 +10,18 @@ namespace Chrivent {
     Instance::Instance(const GraphicsApi sourceGraphicsApi) : graphicsApi(sourceGraphicsApi) {}
     Instance::~Instance() = default;
 
+	GraphicsError Instance::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
+		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
+		return {
+			.api = graphicsApi,
+			.code = code,
+			.operation = std::move(operation),
+			.message = std::move(message),
+			.nativeCode = nativeCode,
+			.hasNativeCode = hasNativeCode
+		};
+	}
+
 	bool Instance::ValidateModel(const Model& sourceModel) {
 		if (sourceModel.geometryData.positions.empty() || !ViewerGeometry::ValidateIndexData(sourceModel.geometryData))
 			return false;
@@ -29,39 +41,24 @@ namespace Chrivent {
         animation.reset();
         scale = 1.0f;
         if (!drawer || !sourceModel || !ValidateModel(*sourceModel)) {
-			return std::unexpected(GraphicsError{
-				.api = graphicsApi,
-				.code = GraphicsErrorCode::InvalidArgument,
-				.operation = "모델 인스턴스 초기화",
-				.message = "모델 geometry 또는 material 범위가 올바르지 않습니다"
-			});
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"모델 인스턴스 초기화", "모델 geometry 또는 material 범위가 올바르지 않습니다"));
 		}
         model = std::move(sourceModel);
         animation = std::move(sourceAnimation);
         scale = sourceScale;
-        if (SetupRenderer())
+        const auto setupResult = SetupRenderer();
+		if (setupResult)
             return {};
         ResetRendererResources();
         model.reset();
         animation.reset();
         scale = 1.0f;
-        return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::ResourceCreationFailed,
-			.operation = "모델 인스턴스 초기화",
-			.message = "모델 GPU 리소스를 만들지 못했습니다"
-		});
+        return std::unexpected(setupResult.error());
     }
 
 	GraphicsResult<void> Instance::Upload() {
-		if (UploadCore())
-			return {};
-		return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::CommandRecordingFailed,
-			.operation = "모델 정점 업로드",
-			.message = "갱신된 정점 데이터를 GPU 리소스에 반영하지 못했습니다"
-		});
+		return UploadCore();
 	}
 
 	void Instance::BeginDraw(const SceneDrawState& state) const {
@@ -69,47 +66,19 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Instance::DrawModelPass() const {
-		if (drawer->DrawModelPass())
-			return {};
-		return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::CommandRecordingFailed,
-			.operation = "모델 패스 기록",
-			.message = "모델 draw 명령을 기록하지 못했습니다"
-		});
+		return drawer->DrawModelPass();
 	}
 
 	GraphicsResult<void> Instance::DrawEdgePass() const {
-		if (drawer->DrawEdgePass())
-			return {};
-		return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::CommandRecordingFailed,
-			.operation = "엣지 패스 기록",
-			.message = "엣지 draw 명령을 기록하지 못했습니다"
-		});
+		return drawer->DrawEdgePass();
 	}
 
 	GraphicsResult<void> Instance::DrawGroundShadowPass() const {
-		if (drawer->DrawGroundShadowPass())
-			return {};
-		return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::CommandRecordingFailed,
-			.operation = "지면 그림자 패스 기록",
-			.message = "지면 그림자 draw 명령을 기록하지 못했습니다"
-		});
+		return drawer->DrawGroundShadowPass();
 	}
 
     GraphicsResult<void> Instance::DrawPostProcessSceneInputs() const {
-		if (drawer->DrawPostProcessSceneInputs())
-			return {};
-		return std::unexpected(GraphicsError{
-			.api = graphicsApi,
-			.code = GraphicsErrorCode::CommandRecordingFailed,
-			.operation = "후처리 장면 입력 패스 기록",
-			.message = "depth 또는 velocity draw 명령을 기록하지 못했습니다"
-		});
+		return drawer->DrawPostProcessSceneInputs();
     }
 
 	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {

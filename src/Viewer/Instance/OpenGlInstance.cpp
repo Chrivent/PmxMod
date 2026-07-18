@@ -4,13 +4,11 @@
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/Texture/OpenGlTextureCache.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
 #include <algorithm>
 #include <cstddef>
-#include <iostream>
 #include <string>
 #include <utility>
 
@@ -170,30 +168,33 @@ namespace Chrivent {
 		modelResources.materials.clear();
 	}
 
-	bool OpenGlInstance::SetupRenderer() {
+	GraphicsResult<void> OpenGlInstance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"OpenGL 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
 		if (!CreateVertexArrays())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"OpenGL 모델 인스턴스 초기화", "모델 패스용 VAO를 만들지 못했습니다"));
 		if (!SetupConstantRings())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"OpenGL 모델 인스턴스 초기화", "uniform buffer ring을 만들지 못했습니다"));
 		LoadMaterials();
-		return true;
+		return {};
 	}
 
-	bool OpenGlInstance::UploadCore() {
+	GraphicsResult<void> OpenGlInstance::UploadCore() {
 		const size_t vtxCount = model->geometryData.positions.size();
 		auto* vertices = static_cast<ViewerVertex*>(glMapNamedBufferRange(
 			vertexVbo, 0, sizeof(ViewerVertex) * vtxCount, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-		if (vertices == nullptr) {
-			std::cerr << "OpenGL vertex buffer를 갱신하지 못했습니다.\n";
-			return false;
-		}
+		if (vertices == nullptr)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"OpenGL 모델 정점 업로드", "vertex buffer를 매핑하지 못했습니다"));
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ vertices, vtxCount });
 		const bool unmapSucceeded = glUnmapNamedBuffer(vertexVbo) == GL_TRUE;
 		if (!writeSucceeded || !unmapSucceeded)
-			std::cerr << "OpenGL vertex buffer를 갱신하지 못했습니다.\n";
-		return writeSucceeded && unmapSucceeded;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"OpenGL 모델 정점 업로드", "vertex 데이터를 기록하거나 buffer 매핑을 해제하지 못했습니다"));
+		return {};
 	}
 }

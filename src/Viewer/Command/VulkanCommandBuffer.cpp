@@ -55,7 +55,7 @@ namespace Chrivent {
 	bool VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice, const VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain) {
 		device = sourceDevice.device;
 		commandPool = sourceCommandPool;
-		commandBuffers.resize(sourceSwapChain.imageViews.size());
+		commandBuffers.resize(sourceSwapChain.GetImageCount());
 		boundVertexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
 		boundIndexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
 		boundIndexTypes.assign(commandBuffers.size(), VK_INDEX_TYPE_MAX_ENUM);

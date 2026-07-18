@@ -5,8 +5,24 @@
 #include "Core/Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <utility>
 
 namespace Chrivent {
+	Drawer::Drawer(const GraphicsApi sourceGraphicsApi) : graphicsApi(sourceGraphicsApi) {}
+	Drawer::~Drawer() = default;
+
+	GraphicsError Drawer::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
+		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
+		return {
+			.api = graphicsApi,
+			.code = code,
+			.operation = std::move(operation),
+			.message = std::move(message),
+			.nativeCode = nativeCode,
+			.hasNativeCode = hasNativeCode
+		};
+	}
+
 	const glm::mat4& Drawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(1.0f);
 		return clipMatrix;
@@ -117,26 +133,24 @@ namespace Chrivent {
 		};
 	}
 
-	Drawer::~Drawer() = default;
-
 	void Drawer::BeginDraw(const SceneDrawState& state) {
 		drawState = state;
 		BeginDrawFrame();
 	}
 
-	bool Drawer::DrawModelPass() {
-		return !drawState.scene.modelEnabled || DrawModel();
+	GraphicsResult<void> Drawer::DrawModelPass() {
+		return drawState.scene.modelEnabled ? DrawModel() : GraphicsResult<void>{};
 	}
 
-	bool Drawer::DrawEdgePass() {
-		return !drawState.scene.edgeEnabled || DrawEdge();
+	GraphicsResult<void> Drawer::DrawEdgePass() {
+		return drawState.scene.edgeEnabled ? DrawEdge() : GraphicsResult<void>{};
 	}
 
-	bool Drawer::DrawGroundShadowPass() {
-		return !drawState.scene.groundShadowEnabled || DrawGroundShadow();
+	GraphicsResult<void> Drawer::DrawGroundShadowPass() {
+		return drawState.scene.groundShadowEnabled ? DrawGroundShadow() : GraphicsResult<void>{};
 	}
 
-	bool Drawer::DrawPostProcessSceneInputs() {
+	GraphicsResult<void> Drawer::DrawPostProcessSceneInputs() {
 		return DrawSceneInputs();
 	}
 }

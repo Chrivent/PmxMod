@@ -73,7 +73,7 @@ namespace Chrivent {
 		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		if (!pipeline.Initialize(shaderContract.builtIn, shaderContract.sceneInput))
+		if (!pipeline.Initialize(shaderContract))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"rendering pipeline 초기화", "OpenGL pipeline을 만들지 못했습니다"));
 		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;

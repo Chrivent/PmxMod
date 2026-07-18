@@ -2,8 +2,8 @@
 
 #include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
+#include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
-#include "Viewer/Viewer/Viewer.h"
 
 #include <limits>
 
@@ -377,7 +377,7 @@ namespace Chrivent {
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
-			if (!parameterDataBuffer.Write(route.parameters, parameterOffset))
+			if (!parameterDataBuffer.Write(GetParameterData(route), parameterOffset))
 				return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {

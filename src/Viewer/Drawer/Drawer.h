@@ -2,6 +2,7 @@
 
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Drawer/SceneDrawState.h"
+#include "Viewer/Error/GraphicsError.h"
 
 #include <glm/glm.hpp>
 
@@ -10,6 +11,8 @@ namespace Chrivent {
 
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
+		GraphicsApi graphicsApi = GraphicsApi::Unknown;
+
 	protected:
 		// 모델 셰이더에 전달할 기본, 툰, 스피어 텍스처 사용 방식을 보관한다.
 		struct MaterialTextureModes {
@@ -20,6 +23,9 @@ namespace Chrivent {
 
 		SceneDrawState drawState;
 
+		// 현재 API와 작업 문맥을 포함한 구조화된 그래픽 오류를 생성한다.
+		GraphicsError CreateGraphicsError(GraphicsErrorCode code, std::string operation,
+			std::string message, int64_t nativeCode = 0, bool hasNativeCode = false) const;
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 초기화한다.
 		virtual void BeginDrawFrame() {}
 		// 렌더러별 clip space 보정 행렬을 반환한다.
@@ -58,27 +64,27 @@ namespace Chrivent {
 		static SceneSurfacePixelConstants BuildSceneSurfacePixelConstants(float opacity, bool textureHasAlpha);
 
 		// 일반 메시 패스를 그린다.
-		virtual bool DrawModel() = 0;
+		virtual GraphicsResult<void> DrawModel() = 0;
 		// 엣지 패스를 그린다.
-		virtual bool DrawEdge() = 0;
+		virtual GraphicsResult<void> DrawEdge() = 0;
 		// 지면 그림자 패스를 그린다.
-		virtual bool DrawGroundShadow() = 0;
+		virtual GraphicsResult<void> DrawGroundShadow() = 0;
 		// 후처리가 요구하는 장면 depth와 velocity 입력에 모델 geometry를 기록한다.
-		virtual bool DrawSceneInputs() = 0;
+		virtual GraphicsResult<void> DrawSceneInputs() = 0;
 
 	public:
-		Drawer() = default;
+		explicit Drawer(GraphicsApi sourceGraphicsApi);
 		virtual ~Drawer();
 
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 준비한다.
 		void BeginDraw(const SceneDrawState& state);
 		// 현재 인스턴스의 모델 본체 패스를 그린다.
-		bool DrawModelPass();
+		GraphicsResult<void> DrawModelPass();
 		// 현재 인스턴스의 엣지 패스를 그린다.
-		bool DrawEdgePass();
+		GraphicsResult<void> DrawEdgePass();
 		// 현재 인스턴스의 지면 그림자 패스를 그린다.
-		bool DrawGroundShadowPass();
+		GraphicsResult<void> DrawGroundShadowPass();
 		// 후처리 장면 depth와 velocity 입력 패스를 그린다.
-		bool DrawPostProcessSceneInputs();
+		GraphicsResult<void> DrawPostProcessSceneInputs();
 	};
 }

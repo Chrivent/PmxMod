@@ -5,8 +5,6 @@
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
-#include <iostream>
-
 namespace Chrivent {
 	void OpenGlDrawer::BeginDrawFrame() {
 		resources.vertexConstantsRing.BeginFrame(0);
@@ -16,23 +14,23 @@ namespace Chrivent {
 	bool OpenGlDrawer::UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
 		std::string error;
 		const auto slice = ring.Allocate(size, resources.uniformBufferOffsetAlignment, error);
-		if (!slice.has_value()) {
-			std::cerr << error << '\n';
+		if (!slice.has_value())
 			return false;
-		}
 		glNamedBufferSubData(ring.GetBuffer(), slice->offset, slice->size, data);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
 		return true;
 	}
 
-	bool OpenGlDrawer::DrawModel() {
+	GraphicsResult<void> OpenGlDrawer::DrawModel() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		drawContext.BindModelPipeline();
-		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-			return false;
+		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"OpenGL 모델 패스 기록", "모델 vertex 상수를 업로드하지 못했습니다"));
+		}
 		glBindVertexArray(resources.vao);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -44,6 +42,8 @@ namespace Chrivent {
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
 		glCullFace(GL_BACK);
+		const GLuint dummyColorTexture = drawContext.GetDummyColorTexture();
+		GLuint boundTextures[3]{};
 		bool cullEnabled = true;
 		GLenum cullFaceMode = GL_BACK;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -56,20 +56,31 @@ namespace Chrivent {
 				material.toonTexture != 0, material.sphereTexture != 0);
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
 				drawState, mat, base, toon, sphere);
-			GLuint baseTexture = drawContext.GetDummyColorTexture();
+			GLuint baseTexture = dummyColorTexture;
 			if (material.texture != 0)
 				baseTexture = material.texture;
-			glBindTextureUnit(0, baseTexture);
-			GLuint toonTexture = drawContext.GetDummyColorTexture();
+			if (boundTextures[0] != baseTexture) {
+				glBindTextureUnit(0, baseTexture);
+				boundTextures[0] = baseTexture;
+			}
+			GLuint toonTexture = dummyColorTexture;
 			if (material.toonTexture != 0)
 				toonTexture = material.toonTexture;
-			glBindTextureUnit(1, toonTexture);
-			GLuint sphereTexture = drawContext.GetDummyColorTexture();
+			if (boundTextures[1] != toonTexture) {
+				glBindTextureUnit(1, toonTexture);
+				boundTextures[1] = toonTexture;
+			}
+			GLuint sphereTexture = dummyColorTexture;
 			if (material.sphereTexture != 0)
 				sphereTexture = material.sphereTexture;
-			glBindTextureUnit(2, sphereTexture);
-			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				return false;
+			if (boundTextures[2] != sphereTexture) {
+				glBindTextureUnit(2, sphereTexture);
+				boundTextures[2] = sphereTexture;
+			}
+			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 모델 패스 기록", "모델 pixel 상수를 업로드하지 못했습니다"));
+			}
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -88,10 +99,10 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return true;
+		return {};
 	}
 
-	bool OpenGlDrawer::DrawEdge() {
+	GraphicsResult<void> OpenGlDrawer::DrawEdge() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -119,15 +130,17 @@ namespace Chrivent {
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
-				!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				return false;
+				!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 엣지 패스 기록", "엣지 상수를 업로드하지 못했습니다"));
+			}
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return true;
+		return {};
 	}
 
-	bool OpenGlDrawer::DrawGroundShadow() {
+	GraphicsResult<void> OpenGlDrawer::DrawGroundShadow() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -136,12 +149,16 @@ namespace Chrivent {
 		glDepthFunc(GL_LESS);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			drawState, world, ClipMatrix());
-		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-			return false;
+		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"OpenGL 지면 그림자 패스 기록", "지면 그림자 vertex 상수를 업로드하지 못했습니다"));
+		}
 		glBindVertexArray(resources.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-			return false;
+		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"OpenGL 지면 그림자 패스 기록", "지면 그림자 pixel 상수를 업로드하지 못했습니다"));
+		}
 		glDepthMask(GL_FALSE);
 		glEnable(GL_POLYGON_OFFSET_FILL);
 		glPolygonOffset(-1, -1);
@@ -168,25 +185,29 @@ namespace Chrivent {
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-		return true;
+		return {};
 	}
 
-	bool OpenGlDrawer::DrawSceneInputs() {
+	GraphicsResult<void> OpenGlDrawer::DrawSceneInputs() {
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		if (drawState.velocityRequired) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
 				drawState, world, ClipMatrix());
 			drawContext.BindSceneVelocityPipeline();
-			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-				return false;
+			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 후처리 장면 입력 기록", "velocity vertex 상수를 업로드하지 못했습니다"));
+			}
 			glBindVertexArray(resources.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(
 				drawState, world, ClipMatrix());
 			drawContext.BindDepthOnlyPipeline();
-			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
-				return false;
+			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 후처리 장면 입력 기록", "depth vertex 상수를 업로드하지 못했습니다"));
+			}
 			glBindVertexArray(resources.depthVao);
 		}
 		glEnable(GL_DEPTH_TEST);
@@ -198,6 +219,8 @@ namespace Chrivent {
 		glFrontFace(GL_CCW);
 		glCullFace(GL_BACK);
 		glEnable(GL_CULL_FACE);
+		const GLuint dummyColorTexture = drawContext.GetDummyColorTexture();
+		GLuint boundTexture = 0;
 		bool cullEnabled = true;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
@@ -206,10 +229,15 @@ namespace Chrivent {
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
-			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants)))
-				return false;
-			glBindTextureUnit(0, material.texture != 0
-				? material.texture : drawContext.GetDummyColorTexture());
+			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));
+			}
+			const GLuint texture = material.texture != 0 ? material.texture : dummyColorTexture;
+			if (boundTexture != texture) {
+				glBindTextureUnit(0, texture);
+				boundTexture = texture;
+			}
 			if (mat.bothFace) {
 				if (cullEnabled) {
 					glDisable(GL_CULL_FACE);
@@ -222,10 +250,11 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return true;
+		return {};
 	}
 
 	OpenGlDrawer::OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,
 		OpenGlDrawContext& sourceDrawContext)
-		: instance(sourceInstance), resources(sourceResources), drawContext(sourceDrawContext) {}
+		: Drawer(GraphicsApi::OpenGl), instance(sourceInstance),
+		resources(sourceResources), drawContext(sourceDrawContext) {}
 }

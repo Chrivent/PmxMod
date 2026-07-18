@@ -396,8 +396,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VkFormat sourceColorFormat,
-		const VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
-		const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram) {
+		const VkFormat sourceDepthFormat, const SceneShaderRuntimeContract& shaderContract) {
 		Reset();
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
@@ -405,7 +404,7 @@ namespace Chrivent {
 		if (!CreatePipelineLayout())
 			return false;
 		if (!CreateGraphicsPipelines(sourceDevice, sourceColorFormat, sourceDepthFormat,
-			passes, depthProgram, velocityProgram))
+			shaderContract.builtIn, shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity))
 			return false;
 		colorFormat = sourceColorFormat;
 		depthFormat = sourceDepthFormat;

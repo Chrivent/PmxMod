@@ -27,23 +27,21 @@ namespace Chrivent {
 		if (!device.Initialize(window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"device 초기화", "Vulkan device를 만들지 못했습니다"));
-		capabilities = device.capabilities;
 		if (!swapChain.Initialize(device, window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 초기화", "Vulkan swap chain을 만들지 못했습니다"));
 		if (!CreateSwapChainResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 리소스 초기화", "Vulkan 프레임 리소스를 만들지 못했습니다"));
-		if (!pipeline.Initialize(device, swapChain.imageFormat, msaaDepthBuffer.format,
-			shaderContract.builtIn,
-			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity))
+		if (!pipeline.Initialize(device, swapChain.GetImageFormat(),
+			msaaDepthBuffer.format, shaderContract))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"rendering pipeline 초기화", "Vulkan pipeline을 만들지 못했습니다"));
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (dummyTexture.image == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
-		if (!syncObject.Initialize(device, swapChain.images.size()))
+		if (!syncObject.Initialize(device, swapChain.GetImageCount()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"프레임 동기화 초기화", "Vulkan 동기화 객체를 만들지 못했습니다"));
 		return {};
@@ -60,11 +58,11 @@ namespace Chrivent {
 		if (!CreateSwapChainResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 리소스 크기 변경", "Vulkan 프레임 리소스를 다시 만들지 못했습니다"));
-		if (!pipeline.IsCompatible(swapChain.imageFormat,
+		if (!pipeline.IsCompatible(swapChain.GetImageFormat(),
 			msaaDepthBuffer.format, device.msaaSampleCount))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
 				"크기 변경 후 pipeline 검증", "Vulkan pipeline이 새 swap chain과 호환되지 않습니다"));
-		if (!syncObject.ResetImageTracking(swapChain.images.size()))
+		if (!syncObject.ResetImageTracking(swapChain.GetImageCount()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
 				"프레임 동기화 크기 변경", "Vulkan 이미지 추적 상태를 초기화하지 못했습니다"));
 		return {};
@@ -78,7 +76,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
 				"현재 프레임 대기", "Vulkan 프레임 fence 대기에 실패했습니다"));
 		uint32_t currentImageIndex = 0;
-		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.swapChain, UINT64_MAX,
+		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.GetSwapChain(), UINT64_MAX,
 			syncObject.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &currentImageIndex);
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
 			const auto recreateResult = RecreateFromFramebuffer();
@@ -92,22 +90,22 @@ namespace Chrivent {
 		if (!syncObject.WaitForImage(currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
 				"swap chain 이미지 대기", "Vulkan 이미지 fence 대기에 실패했습니다"));
-		auto& commandBuffer = commandContext.commandBuffer;
+		auto& commandBuffer = commandContext.GetCommandBuffer();
 		const VkResult resetResult = vkResetCommandBuffer(commandBuffer.TryGetCommandBuffer(currentImageIndex), 0);
 		if (resetResult != VK_SUCCESS)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 초기화", "Vulkan command buffer를 초기화하지 못했습니다", resetResult, true));
 		const VkImage resolveImage = postProcess.HasEffects()
 			? postProcess.TryGetSceneImage(currentImageIndex)
-			: swapChain.images[currentImageIndex];
+			: swapChain.GetImage(currentImageIndex);
 		const VkImageView resolveImageView = postProcess.HasEffects()
 			? postProcess.TryGetSceneImageView(currentImageIndex)
-			: swapChain.imageViews[currentImageIndex];
+			: swapChain.GetImageView(currentImageIndex);
 		if (!commandBuffer.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
-			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.extent, clearColor))
+			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.GetExtent(), clearColor))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 시작", "Vulkan 프레임 command buffer가 기록을 시작하지 못했습니다"));
 		drawContext.BeginFrame(currentImageIndex, frameIndex);
@@ -123,22 +121,23 @@ namespace Chrivent {
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
 		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
+		auto& commandBuffer = commandContext.GetCommandBuffer();
 		bool recordEnded;
 		if (postProcess.HasEffects()) {
-			recordEnded = postProcess.EndRecord(commandContext.commandBuffer, currentImageIndex,
-				swapChain.images[currentImageIndex], swapChain.imageViews[currentImageIndex],
-				swapChain.extent, GetPostProcessFrameData(), sceneInputPassReady);
+			recordEnded = postProcess.EndRecord(commandBuffer, currentImageIndex,
+				swapChain.GetImage(currentImageIndex), swapChain.GetImageView(currentImageIndex),
+				swapChain.GetExtent(), GetPostProcessFrameData(), sceneInputPassReady);
 		} else
-			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
+			recordEnded = commandBuffer.EndRecord(currentImageIndex, swapChain.GetImage(currentImageIndex));
 		if (!recordEnded)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 종료", "Vulkan 출력 패스 기록을 끝내지 못했습니다"));
-		const VkCommandBuffer commandBuffer = commandContext.commandBuffer.TryGetCommandBuffer(currentImageIndex);
-		if (!syncObject.Submit(device.graphicsQueue, commandBuffer, currentImageIndex))
+		const VkCommandBuffer nativeCommandBuffer = commandBuffer.TryGetCommandBuffer(currentImageIndex);
+		if (!syncObject.Submit(device.graphicsQueue, nativeCommandBuffer, currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
 				"프레임 제출", "Vulkan command buffer를 제출하지 못했습니다"));
 		const VkSemaphore renderFinishedSemaphore = syncObject.GetRenderFinishedSemaphore(currentImageIndex);
-		const VkSwapchainKHR swapChains[] = { swapChain.swapChain };
+		const VkSwapchainKHR swapChains[] = { swapChain.GetSwapChain() };
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
@@ -167,8 +166,8 @@ namespace Chrivent {
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const VkPipeline geometryPipeline = pipeline.ResolveSceneInputPipeline(
 			postProcess.RequiresVelocity(), false);
-		if (!postProcess.BeginSceneInputPass(commandContext.commandBuffer,
-			currentImageIndex, geometryPipeline, swapChain.extent))
+		if (!postProcess.BeginSceneInputPass(commandContext.GetCommandBuffer(),
+			currentImageIndex, geometryPipeline, swapChain.GetExtent()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"후처리 장면 입력 패스 시작", "Vulkan 장면 입력 패스를 시작하지 못했습니다"));
 		drawContext.SetPipelineState(geometryPipeline);
@@ -181,7 +180,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
-		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.commandBuffer,
+		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.GetCommandBuffer(),
 			currentImageIndex);
 		if (!postProcessSceneInputPassReady)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,

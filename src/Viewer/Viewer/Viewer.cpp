@@ -3,6 +3,7 @@
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace Chrivent {
@@ -90,6 +91,9 @@ namespace Chrivent {
 		if (!initialized || rendererLost || frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 시작", "렌더러를 사용할 수 없거나 이미 프레임 기록 중입니다"));
+		const auto updateResult = ApplyPendingPostProcessParameterUpdates();
+		if (!updateResult)
+			return std::unexpected(updateResult.error());
 		const auto result = BeginFrameCore();
 		if (!result)
 			return std::unexpected(result.error());
@@ -130,18 +134,41 @@ namespace Chrivent {
 		const auto loadResult = LoadPostProcessEffectsCore(effects);
 		if (!loadResult)
 			return std::unexpected(loadResult.error());
+		pendingPostProcessParameterUpdates.clear();
 		ResetPostProcessFrameHistory();
 		return {};
 	}
 
 	GraphicsResult<void> Viewer::UpdatePostProcessParameters(
-		const std::span<const EffectParameterUpdate> updates) const {
-		if (!initialized || rendererLost || frameActive)
+		const std::span<const EffectParameterUpdate> updates) {
+		if (!initialized || rendererLost)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"후처리 파라미터 갱신", "렌더러를 사용할 수 없거나 프레임 기록 중입니다"));
-		if (activePostProcess == nullptr || !activePostProcess->UpdateParameters(updates))
+				"후처리 파라미터 갱신", "렌더러를 사용할 수 없습니다"));
+		if (activePostProcess == nullptr || !activePostProcess->ValidateParameterUpdates(updates))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
 				"후처리 파라미터 갱신", "효과 색인, 슬롯 또는 값이 올바르지 않습니다"));
+		for (const auto& update : updates) {
+			const auto existing = std::ranges::find_if(pendingPostProcessParameterUpdates,
+				[&update](const EffectParameterUpdate& pending) {
+					return pending.effectIndex == update.effectIndex && pending.slot == update.slot;
+				});
+			if (existing == pendingPostProcessParameterUpdates.end())
+				pendingPostProcessParameterUpdates.emplace_back(update);
+			else
+				existing->value = update.value;
+		}
+		return {};
+	}
+
+	GraphicsResult<void> Viewer::ApplyPendingPostProcessParameterUpdates() {
+		if (pendingPostProcessParameterUpdates.empty())
+			return {};
+		if (activePostProcess == nullptr
+			|| !activePostProcess->UpdateParameters(pendingPostProcessParameterUpdates)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
+				"후처리 파라미터 적용", "예약된 파라미터와 현재 효과 구성이 일치하지 않습니다"));
+		}
+		pendingPostProcessParameterUpdates.clear();
 		return {};
 	}
 

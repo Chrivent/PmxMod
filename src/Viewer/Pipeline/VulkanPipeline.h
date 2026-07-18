@@ -80,9 +80,7 @@ namespace Chrivent {
 
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
-			VkFormat sourceDepthFormat,
-			const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
-			const ShaderProgramDefinition& velocityProgram);
+			VkFormat sourceDepthFormat, const SceneShaderRuntimeContract& shaderContract);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Reset();
 	};

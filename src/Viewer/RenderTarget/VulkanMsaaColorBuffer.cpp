@@ -9,8 +9,8 @@ namespace Chrivent {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = sourceSwapChain.extent.width;
-		imageInfo.extent.height = sourceSwapChain.extent.height;
+		imageInfo.extent.width = sourceSwapChain.GetExtent().width;
+		imageInfo.extent.height = sourceSwapChain.GetExtent().height;
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = 1;
 		imageInfo.arrayLayers = 1;
@@ -70,7 +70,7 @@ namespace Chrivent {
 
 	bool VulkanMsaaColorBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		device = sourceDevice.device;
-		format = sourceSwapChain.imageFormat;
+		format = sourceSwapChain.GetImageFormat();
 		if (!CreateImage(sourceDevice, sourceSwapChain))
 			return false;
 		return CreateImageView();

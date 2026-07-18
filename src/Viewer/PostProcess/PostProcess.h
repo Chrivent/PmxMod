@@ -46,7 +46,6 @@ namespace Chrivent {
 		// 후처리 패스 하나의 입력 경로와 출력 대상을 나타낸다.
 		struct PostProcessPassRoute {
 			std::vector<PostProcessPassInputRoute> inputs;
-			PostProcessParameterData parameters;
 			PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
 			size_t outputResourceIndex = 0;
 			size_t effectIndex = 0;
@@ -61,13 +60,13 @@ namespace Chrivent {
 
 		std::vector<ShaderProgramDefinition> shaderPrograms;
 		std::vector<PostProcessPassRoute> passRoutes;
+		std::vector<PostProcessParameterData> effectParameters;
 		std::vector<PostProcessResourcePlan> resourcePlans;
 		std::vector<ResourceHistoryState> resourceHistoryStates;
 		std::vector<ResourceHistoryState> pendingResourceHistoryStates;
 		bool depthRequired = false;
 		bool velocityRequired = false;
 		bool historyFramePending = false;
-		size_t effectCount = 0;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
 		bool BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
@@ -84,6 +83,9 @@ namespace Chrivent {
 		const std::vector<ShaderProgramDefinition>& GetShaderPrograms() const { return shaderPrograms; }
 		const std::vector<PostProcessPassRoute>& GetPassRoutes() const { return passRoutes; }
 		const std::vector<PostProcessResourcePlan>& GetResourcePlans() const { return resourcePlans; }
+		const PostProcessParameterData& GetParameterData(const PostProcessPassRoute& route) const {
+			return effectParameters[route.effectIndex];
+		}
 
 		// 리소스 정의에 대응하는 실제 한 축의 해상도를 계산한다.
 		static int ResolveResourceExtent(int fullExtent, const PostProcessResourcePlan& resource, bool width);
@@ -116,6 +118,8 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
+		// 활성 효과에 적용할 파라미터 갱신의 색인, 슬롯과 값 범위를 검증한다.
+		bool ValidateParameterUpdates(std::span<const EffectParameterUpdate> updates) const;
 		// 실행 계획을 다시 만들지 않고 활성 효과의 스칼라 파라미터 값을 갱신한다.
 		bool UpdateParameters(std::span<const EffectParameterUpdate> updates);
 		// GPU 실행이 확정된 프레임의 pending history를 committed 상태로 반영한다.

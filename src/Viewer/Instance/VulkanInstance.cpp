@@ -6,31 +6,25 @@
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/Texture/VulkanTextureCache.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 
 namespace Chrivent {
 	bool VulkanInstance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
-			std::cerr << "Vulkan index 데이터를 만들지 못했습니다.\n";
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
 			return false;
-		}
 		modelResources.indexType = indexData.elementSize == sizeof(uint16_t)
 			? VK_INDEX_TYPE_UINT16
 			: VK_INDEX_TYPE_UINT32;
 		const size_t vertexCount = geometryData.positions.size();
 		const VkDeviceSize vertexBufferSize = sizeof(ViewerVertex) * vertexCount;
 		const VkDeviceSize indexBufferSize = indexData.bytes.size();
-		if (vertexBufferSize == 0 || indexBufferSize == 0) {
-			std::cerr << "모델에 geometry 데이터가 없어 Vulkan 모델 buffer를 만들 수 없습니다.\n";
+		if (vertexBufferSize == 0 || indexBufferSize == 0)
 			return false;
-		}
 		for (auto& vertexBuffer : modelResources.vertexBuffers) {
 			if (!vertexBuffer.Initialize(device, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
@@ -170,26 +164,33 @@ namespace Chrivent {
 		modelResources.indexType = VK_INDEX_TYPE_UINT16;
 	}
 
-	bool VulkanInstance::SetupRenderer() {
+	GraphicsResult<void> VulkanInstance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"Vulkan 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
 		if (!SetupConstantRings())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"Vulkan 모델 인스턴스 초기화", "uniform buffer ring을 만들지 못했습니다"));
 		LoadMaterials();
-		return CreateDescriptorSets();
+		if (!CreateDescriptorSets())
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"Vulkan 모델 인스턴스 초기화", "descriptor set을 만들지 못했습니다"));
+		return {};
 	}
 
-	bool VulkanInstance::UploadCore() {
+	GraphicsResult<void> VulkanInstance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
 			frameIndex % FrameBuffering::vulkanFramesInFlight];
 		if (vertexBuffer.buffer == VK_NULL_HANDLE)
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"Vulkan 모델 정점 업로드", "현재 프레임의 vertex buffer가 초기화되지 않았습니다"));
 		const size_t vertexCount = model->geometryData.positions.size();
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
-			std::cerr << "Vulkan vertex buffer를 갱신하지 못했습니다.\n";
-		return writeSucceeded;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 모델 정점 업로드", "vertex 데이터를 기록하지 못했습니다"));
+		return {};
 	}
 }

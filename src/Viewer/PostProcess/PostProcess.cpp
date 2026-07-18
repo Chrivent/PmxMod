@@ -105,13 +105,13 @@ namespace Chrivent {
 	void PostProcess::SwapExecutionPlan(PostProcess& other) noexcept {
 		shaderPrograms.swap(other.shaderPrograms);
 		passRoutes.swap(other.passRoutes);
+		effectParameters.swap(other.effectParameters);
 		resourcePlans.swap(other.resourcePlans);
 		resourceHistoryStates.swap(other.resourceHistoryStates);
 		pendingResourceHistoryStates.swap(other.pendingResourceHistoryStates);
 		std::swap(depthRequired, other.depthRequired);
 		std::swap(velocityRequired, other.velocityRequired);
 		std::swap(historyFramePending, other.historyFramePending);
-		std::swap(effectCount, other.effectCount);
 	}
 
 	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects) {
@@ -122,6 +122,7 @@ namespace Chrivent {
 		}
 		std::vector<ShaderProgramDefinition> programs;
 		std::vector<PostProcessPassRoute> routes;
+		std::vector<PostProcessParameterData> parameters;
 		std::vector<PostProcessResourcePlan> resources;
 		PostProcessPassInputRoute effectInput{ .kind = PostProcessInputKind::SceneColor };
 		bool requiresDepth = false;
@@ -134,6 +135,7 @@ namespace Chrivent {
 					return false;
 				parameterData.values[parameter.slot] = parameter.value;
 			}
+			parameters.emplace_back(parameterData);
 			const size_t resourceBaseIndex = resources.size();
 			for (const auto& [lifetime, format, resolution, width, height] : effect.resources) {
 				resources.emplace_back(PostProcessResourcePlan{
@@ -157,7 +159,6 @@ namespace Chrivent {
 			for (size_t passIndex = 0; passIndex < effect.passes.size(); passIndex++) {
 				const auto& [program, inputs, output] = effect.passes[passIndex];
 				PostProcessPassRoute route;
-				route.parameters = parameterData;
 				route.effectIndex = effectIndex;
 				bool usedSlots[PostProcessInputLayout::maxTextureCount]{};
 				for (const auto& [slot, kind, resourceIndex] : inputs) {
@@ -207,13 +208,13 @@ namespace Chrivent {
 		}
 		shaderPrograms = std::move(programs);
 		passRoutes = std::move(routes);
+		effectParameters = std::move(parameters);
 		resourcePlans = std::move(resources);
 		resourceHistoryStates.assign(resourcePlans.size(), {});
 		pendingResourceHistoryStates.clear();
 		historyFramePending = false;
 		depthRequired = requiresDepth;
 		velocityRequired = requiresVelocity;
-		effectCount = activeEffects.size();
 		return true;
 	}
 
@@ -221,17 +222,20 @@ namespace Chrivent {
 		return BuildExecutionPlan(effects);
 	}
 
-	bool PostProcess::UpdateParameters(const std::span<const EffectParameterUpdate> updates) {
+	bool PostProcess::ValidateParameterUpdates(const std::span<const EffectParameterUpdate> updates) const {
 		for (const auto& [effectIndex, slot, value] : updates) {
-			if (effectIndex >= effectCount || slot >= PostProcessInputLayout::maxParameterCount
+			if (effectIndex >= effectParameters.size() || slot >= PostProcessInputLayout::maxParameterCount
 				|| !std::isfinite(value))
 				return false;
 		}
+		return true;
+	}
+
+	bool PostProcess::UpdateParameters(const std::span<const EffectParameterUpdate> updates) {
+		if (!ValidateParameterUpdates(updates))
+			return false;
 		for (const auto& [effectIndex, slot, value] : updates) {
-			for (auto& route : passRoutes) {
-				if (route.effectIndex == effectIndex)
-					route.parameters.values[slot] = value;
-			}
+			effectParameters[effectIndex].values[slot] = value;
 		}
 		return true;
 	}

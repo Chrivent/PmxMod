@@ -315,24 +315,24 @@ namespace Chrivent {
 		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
 	}
 
-	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
-		const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram) {
+	bool Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
+		const SceneShaderRuntimeContract& shaderContract) {
 		Reset();
 		if (!CreateModelRootSignature(sourceDevice))
 			return false;
-		if (!CreateModelPipelineStates(sourceDevice, passes.model))
+		if (!CreateModelPipelineStates(sourceDevice, shaderContract.builtIn.model))
 			return false;
-		if (!CreateDepthOnlyPipelineStates(sourceDevice, depthProgram))
+		if (!CreateDepthOnlyPipelineStates(sourceDevice, shaderContract.sceneInput.depth))
 			return false;
-		if (!CreateSceneVelocityPipelineStates(sourceDevice, velocityProgram))
+		if (!CreateSceneVelocityPipelineStates(sourceDevice, shaderContract.sceneInput.velocity))
 			return false;
 		if (!CreateEdgeRootSignature(sourceDevice))
 			return false;
-		if (!CreateEdgePipelineState(sourceDevice, passes.edge))
+		if (!CreateEdgePipelineState(sourceDevice, shaderContract.builtIn.edge))
 			return false;
 		if (!CreateGroundShadowRootSignature(sourceDevice))
 			return false;
-		return CreateGroundShadowPipelineState(sourceDevice, passes.groundShadow);
+		return CreateGroundShadowPipelineState(sourceDevice, shaderContract.builtIn.groundShadow);
 	}
 
 	void Dx12Pipeline::BindModel(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {

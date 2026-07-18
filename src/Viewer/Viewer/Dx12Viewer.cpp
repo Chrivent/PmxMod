@@ -25,7 +25,6 @@ namespace Chrivent {
 		if (!device.Initialize())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"device 초기화", "DirectX 12 device를 만들지 못했습니다"));
-		capabilities = device.capabilities;
 		if (!commandContext.Initialize(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));
@@ -42,8 +41,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"후처리 target 초기화", "DirectX 12 후처리 target을 만들지 못했습니다"));
-		if (!pipeline.Initialize(device, shaderContract.builtIn,
-			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity)) {
+		if (!pipeline.Initialize(device, shaderContract)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"rendering pipeline 초기화", "DirectX 12 pipeline을 만들지 못했습니다"));
 		}

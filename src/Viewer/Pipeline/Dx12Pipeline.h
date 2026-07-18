@@ -43,8 +43,7 @@ namespace Chrivent {
 		
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
-		bool Initialize(const Dx12Device& sourceDevice, const BuiltInShaderPasses& passes,
-			const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram);
+		bool Initialize(const Dx12Device& sourceDevice, const SceneShaderRuntimeContract& shaderContract);
 		// material의 양면 렌더링 여부에 맞는 model pipeline을 command list에 바인딩한다.
 		void BindModel(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// material의 양면 렌더링 여부에 맞는 depth-only pipeline을 command list에 바인딩한다.

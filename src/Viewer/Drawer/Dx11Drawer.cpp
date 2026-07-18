@@ -34,7 +34,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	bool Dx11Drawer::DrawModel() {
+	GraphicsResult<void> Dx11Drawer::DrawModel() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -52,6 +52,7 @@ namespace Chrivent {
 		const ModelVertexConstants vsCb = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		drawContext.GetDeviceContext()->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 		ID3D11ShaderResourceView* boundViews[3] = { nullptr, nullptr, nullptr };
 		ID3D11SamplerState* boundSamplers[3] = { nullptr, nullptr, nullptr };
 		const ID3D11RasterizerState* currentRs = nullptr;
@@ -73,7 +74,6 @@ namespace Chrivent {
 				boundViews[2], boundSamplers[2]);
 			drawContext.GetDeviceContext()->UpdateSubresource(
 				psConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			drawContext.GetDeviceContext()->PSSetConstantBuffers(1, 1, psConstantBuffer.GetAddressOf());
 			ID3D11RasterizerState* targetRs = drawContext.ResolveModelRasterizerState(mat.bothFace);
 			if (currentRs != targetRs) {
 				drawContext.GetDeviceContext()->RSSetState(targetRs);
@@ -81,10 +81,10 @@ namespace Chrivent {
 			}
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
-		return true;
+		return {};
 	}
 
-	bool Dx11Drawer::DrawEdge() {
+	GraphicsResult<void> Dx11Drawer::DrawEdge() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -102,6 +102,7 @@ namespace Chrivent {
 		EdgeVertexConstants vsCb1 = BuildEdgeVertexConstants(
 			drawState, world, ClipMatrix(), drawState.screenSize);
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
+		drawContext.GetDeviceContext()->PSSetConstantBuffers(1, 1, edgePsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
 			const auto& mat = material.material;
@@ -114,14 +115,12 @@ namespace Chrivent {
 			psCb.edgeColor = mat.edgeColor;
 			drawContext.GetDeviceContext()->UpdateSubresource(
 				edgePsConstantBuffer.Get(), 0, nullptr, &psCb, 0, 0);
-			drawContext.GetDeviceContext()->PSSetConstantBuffers(
-				1, 1, edgePsConstantBuffer.GetAddressOf());
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
-		return true;
+		return {};
 	}
 
-	bool Dx11Drawer::DrawGroundShadow() {
+	GraphicsResult<void> Dx11Drawer::DrawGroundShadow() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -152,10 +151,10 @@ namespace Chrivent {
 				continue;
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
-		return true;
+		return {};
 	}
 
-	bool Dx11Drawer::DrawSceneInputs() {
+	GraphicsResult<void> Dx11Drawer::DrawSceneInputs() {
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
 		const auto indexBufferFormat = resources.indexBufferFormat;
@@ -205,10 +204,11 @@ namespace Chrivent {
 			}
 			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
 		}
-		return true;
+		return {};
 	}
 
 	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance, Dx11ModelResources& sourceResources,
 		Dx11DrawContext& sourceDrawContext)
-		: instance(sourceInstance), resources(sourceResources), drawContext(sourceDrawContext) {}
+		: Drawer(GraphicsApi::DirectX11), instance(sourceInstance),
+		resources(sourceResources), drawContext(sourceDrawContext) {}
 }

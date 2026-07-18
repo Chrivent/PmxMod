@@ -5,12 +5,10 @@
 #include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Texture/Dx12TextureCache.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <algorithm>
-#include <iostream>
 #include <limits>
 #include <utility>
 
@@ -18,10 +16,8 @@ namespace Chrivent {
 	bool Dx12Instance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
-			std::cerr << "모델에 geometry 데이터가 없어 DX12 모델 buffer를 만들 수 없습니다.\n";
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
 			return false;
-		}
 		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
 			? DXGI_FORMAT_R16_UINT
 			: DXGI_FORMAT_R32_UINT;
@@ -177,25 +173,32 @@ namespace Chrivent {
 		modelResources.materials.clear();
 	}
 
-	bool Dx12Instance::SetupRenderer() {
+	GraphicsResult<void> Dx12Instance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
 		if (!CreateConstantBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
 		LoadMaterials();
-		return CreateTextureDescriptors();
+		if (!CreateTextureDescriptors())
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 모델 인스턴스 초기화", "texture descriptor를 만들지 못했습니다"));
+		return {};
 	}
 
-	bool Dx12Instance::UploadCore() {
+	GraphicsResult<void> Dx12Instance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"DX12 모델 정점 업로드", "현재 프레임의 vertex buffer가 초기화되지 않았습니다"));
 		const size_t vertexCount = model->geometryData.positions.size();
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
-			std::cerr << "DX12 vertex buffer를 갱신하지 못했습니다.\n";
-		return writeSucceeded;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"DX12 모델 정점 업로드", "vertex 데이터를 기록하지 못했습니다"));
+		return {};
 	}
 }

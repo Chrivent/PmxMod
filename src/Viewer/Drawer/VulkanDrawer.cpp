@@ -5,8 +5,6 @@
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Core/Model/Model.h"
 
-#include <iostream>
-
 namespace Chrivent {
 	void VulkanDrawer::BeginDrawFrame() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
@@ -28,7 +26,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	bool VulkanDrawer::DrawModel() {
+	GraphicsResult<void> VulkanDrawer::DrawModel() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -37,10 +35,9 @@ namespace Chrivent {
 		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
-			std::cerr << "Vulkan 모델 vertex 상수를 갱신하지 못했습니다.\n";
-			return false;
-		}
+			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 모델 패스 기록", "모델 vertex 상수를 업로드하지 못했습니다"));
 		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
@@ -55,24 +52,22 @@ namespace Chrivent {
 			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
-				std::cerr << "Vulkan 모델 pixel 상수를 갱신하지 못했습니다.\n";
-				return false;
-			}
+				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 모델 패스 기록", "모델 pixel 상수를 업로드하지 못했습니다"));
 			drawContext.BindModelPipeline(mat.bothFace);
 			drawContext.BindPixelDescriptorSet(
 				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			if (!drawContext.DrawIndexed(
-				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount)) {
-				std::cerr << "Vulkan 모델 indexed draw 명령을 기록하지 못했습니다.\n";
-				return false;
-			}
+				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 모델 패스 기록", "indexed draw 명령을 기록하지 못했습니다"));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanDrawer::DrawEdge() {
+	GraphicsResult<void> VulkanDrawer::DrawEdge() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -90,32 +85,29 @@ namespace Chrivent {
 			const auto vertexSlice = resources.edgeVertexConstantsRing.Allocate(
 				sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!vertexSlice.has_value() ||
-				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error)) {
-				std::cerr << "Vulkan 엣지 vertex 상수를 갱신하지 못했습니다.\n";
-				return false;
-			}
+				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 엣지 패스 기록", "엣지 vertex 상수를 업로드하지 못했습니다"));
 			drawContext.BindModelDescriptorSets(resources.edgeDescriptorSet, vertexSlice->offset);
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			const auto pixelSlice = resources.edgePixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error)) {
-				std::cerr << "Vulkan 엣지 pixel 상수를 갱신하지 못했습니다.\n";
-				return false;
-			}
+				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 엣지 패스 기록", "엣지 pixel 상수를 업로드하지 못했습니다"));
 			drawContext.BindPixelDescriptorSet(
 				resources.edgeDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			if (!drawContext.DrawIndexed(
-				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount)) {
-				std::cerr << "Vulkan 엣지 indexed draw 명령을 기록하지 못했습니다.\n";
-				return false;
-			}
+				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 엣지 패스 기록", "indexed draw 명령을 기록하지 못했습니다"));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanDrawer::DrawGroundShadow() {
+	GraphicsResult<void> VulkanDrawer::DrawGroundShadow() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -127,18 +119,16 @@ namespace Chrivent {
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
 			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants,
-				sizeof(vertexConstants), error)) {
-			std::cerr << "Vulkan 지면 그림자 vertex 상수를 갱신하지 못했습니다.\n";
-			return false;
-		}
+				sizeof(vertexConstants), error))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 지면 그림자 패스 기록", "지면 그림자 vertex 상수를 업로드하지 못했습니다"));
 		const auto pixelSlice = resources.groundShadowPixelConstantsRing.Allocate(
 			sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!pixelSlice.has_value() ||
 			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
-				sizeof(pixelConstants), error)) {
-			std::cerr << "Vulkan 지면 그림자 pixel 상수를 갱신하지 못했습니다.\n";
-			return false;
-		}
+				sizeof(pixelConstants), error))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 지면 그림자 패스 기록", "지면 그림자 pixel 상수를 업로드하지 못했습니다"));
 		drawContext.BindGroundShadowPipeline();
 		drawContext.BindModelDescriptorSets(resources.groundShadowDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -149,15 +139,14 @@ namespace Chrivent {
 			drawContext.BindPixelDescriptorSet(
 				resources.groundShadowDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			if (!drawContext.DrawIndexed(
-				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount)) {
-				std::cerr << "Vulkan 지면 그림자 indexed draw 명령을 기록하지 못했습니다.\n";
-				return false;
-			}
+				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 지면 그림자 패스 기록", "indexed draw 명령을 기록하지 못했습니다"));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanDrawer::DrawSceneInputs() {
+	GraphicsResult<void> VulkanDrawer::DrawSceneInputs() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -171,10 +160,9 @@ namespace Chrivent {
 			constantSize, resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
 			!resources.modelVertexConstantsRing.Write(*vertexSlice,
-				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error)) {
-			std::cerr << "Vulkan 장면 입력 vertex 상수를 갱신하지 못했습니다.\n";
-			return false;
-		}
+				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 후처리 장면 입력 기록", "장면 입력 vertex 상수를 업로드하지 못했습니다"));
 		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
@@ -187,10 +175,9 @@ namespace Chrivent {
 				sizeof(ModelPixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value()
 				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
-					sizeof(pixelConstants), error)) {
-				std::cerr << "Vulkan 장면 표면 상수를 갱신하지 못했습니다.\n";
-				return false;
-			}
+					sizeof(pixelConstants), error))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));
 			if (velocityRequired)
 				drawContext.BindSceneVelocityPipeline(mat.bothFace);
 			else
@@ -199,15 +186,15 @@ namespace Chrivent {
 				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			if (!drawContext.DrawIndexed(
-				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount)) {
-				std::cerr << "Vulkan 후처리 장면 입력 indexed draw 명령을 기록하지 못했습니다.\n";
-				return false;
-			}
+				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 후처리 장면 입력 기록", "indexed draw 명령을 기록하지 못했습니다"));
 		}
-		return true;
+		return {};
 	}
 
 	VulkanDrawer::VulkanDrawer(const VulkanInstance& sourceInstance, VulkanModelResources& sourceResources,
 		VulkanDrawContext& sourceDrawContext)
-		: instance(sourceInstance), resources(sourceResources), drawContext(sourceDrawContext) {}
+		: Drawer(GraphicsApi::Vulkan), instance(sourceInstance),
+		resources(sourceResources), drawContext(sourceDrawContext) {}
 }

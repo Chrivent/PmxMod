@@ -1,8 +1,8 @@
 ﻿#include "Viewer/PostProcess/OpenGlPostProcess.h"
 
+#include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
-#include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
 #include <utility>
@@ -284,7 +284,8 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
-			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(route.parameters), &route.parameters);
+			const PostProcessParameterData& parameterData = GetParameterData(route);
+			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);
 			glBindBufferBase(GL_UNIFORM_BUFFER,
 				PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
 			glBindFramebuffer(GL_FRAMEBUFFER, ResolveOutputFramebuffer(route));

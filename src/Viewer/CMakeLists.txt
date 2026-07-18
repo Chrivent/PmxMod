@@ -71,6 +71,7 @@ target_sources(PmxModViewer PRIVATE
 		Pipeline/VulkanShaderStageBuilder.h Pipeline/VulkanShaderStageBuilder.cpp
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
+        PostProcess/PostProcessFrameData.h
         PostProcess/PostProcessInputLayout.h
         PostProcess/PostProcessRuntimeContract.h
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp

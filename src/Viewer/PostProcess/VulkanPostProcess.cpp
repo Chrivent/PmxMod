@@ -1,8 +1,8 @@
 ﻿#include "Viewer/PostProcess/VulkanPostProcess.h"
 
+#include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Memory/VulkanMemory.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
 #include <algorithm>
@@ -17,9 +17,9 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::CreateSceneImages(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
-		swapChainImageCount = sourceSwapChain.images.size();
-		targetExtent = sourceSwapChain.extent;
-		swapChainFormat = sourceSwapChain.imageFormat;
+		swapChainImageCount = sourceSwapChain.GetImageCount();
+		targetExtent = sourceSwapChain.GetExtent();
+		swapChainFormat = sourceSwapChain.GetImageFormat();
 		return sceneTarget.Initialize(sourceDevice, swapChainImageCount, targetExtent, swapChainFormat,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, false);
 	}
@@ -33,7 +33,11 @@ namespace Chrivent {
 			VkImageCreateInfo imageInfo{};
 			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent = { sourceSwapChain.extent.width, sourceSwapChain.extent.height, 1 };
+			imageInfo.extent = {
+				sourceSwapChain.GetExtent().width,
+				sourceSwapChain.GetExtent().height,
+				1
+			};
 			imageInfo.mipLevels = 1;
 			imageInfo.arrayLayers = 1;
 			imageInfo.format = depthFormat;
@@ -365,8 +369,9 @@ namespace Chrivent {
 				return false;
 			}
 			const PostProcessPassRoute& route = routes[passIndex];
+			const PostProcessParameterData& parameterData = GetParameterData(route);
 			if (!parameterDataBuffers[imageIndex]->Write(
-				&route.parameters, sizeof(route.parameters), passIndex * parameterDataStride)) {
+				&parameterData, sizeof(parameterData), passIndex * parameterDataStride)) {
 				DiscardHistoryFrame();
 				return false;
 			}

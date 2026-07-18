@@ -49,9 +49,8 @@ namespace Chrivent {
 		return SUCCEEDED(device->CreateDepthStencilState(&defaultDepthDescription, &states.defaultDss));
 	}
 
-	bool Dx11Pipeline::Initialize(ID3D11Device* device, const BuiltInShaderPasses& builtInPasses,
-		const SceneInputShaderPasses& sceneInputPasses) {
-		return device != nullptr && CreateShaders(device, builtInPasses, sceneInputPasses)
+	bool Dx11Pipeline::Initialize(ID3D11Device* device, const SceneShaderRuntimeContract& shaderContract) {
+		return device != nullptr && CreateShaders(device, shaderContract.builtIn, shaderContract.sceneInput)
 			&& CreateStates(device);
 	}
 

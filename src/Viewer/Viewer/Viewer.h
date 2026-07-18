@@ -11,15 +11,14 @@
 #include "Viewer/Device/GraphicsCapabilities.h"
 #include "Viewer/Drawer/SceneDrawState.h"
 #include "Viewer/Error/GraphicsError.h"
+#include "Viewer/PostProcess/PostProcessFrameData.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
 	class Animation;
 	class Instance;
 	class Model;
-    struct Material;
-	struct EffectParameterUpdate;
-	struct EffectRuntimeDefinition;
 	class PostProcess;
 
 	// 프레임 기록 시작의 정상 상태를 준비 완료와 일시적 건너뜀으로 구분한다.
@@ -40,28 +39,6 @@ namespace Chrivent {
 		NotRequired
 	};
 
-    // 시간 기반 후처리 패스가 공유하는 현재 프레임과 카메라 입력을 보관한다.
-    struct PostProcessFrameData {
-        float deltaTime = 0.0f;
-        float nearPlane = 1.0f;
-        float farPlane = 10000.0f;
-        float verticalFovRadians = 0.5235988f;
-        float viewportWidth = 0.0f;
-        float viewportHeight = 0.0f;
-        float inverseViewportWidth = 0.0f;
-        float inverseViewportHeight = 0.0f;
-        float historyReset = 1.0f;
-        float padding0 = 0.0f;
-        float padding1 = 0.0f;
-        float padding2 = 0.0f;
-        glm::vec4 cameraWorldPosition{};
-        glm::vec4 previousCameraWorldPosition{};
-        glm::vec4 cameraWorldDirection{};
-        glm::vec4 previousCameraWorldDirection{};
-        glm::vec4 cameraWorldRight{};
-        glm::vec4 cameraWorldUp{};
-    };
-
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
 		// 시간 기반 후처리의 이전 카메라 상태와 현재 프레임 입력을 한 단위로 보관한다.
@@ -74,6 +51,7 @@ namespace Chrivent {
 		
 		PostProcessTemporalState postProcessTemporalState;
 		SceneRenderState sceneRenderState;
+		std::vector<EffectParameterUpdate> pendingPostProcessParameterUpdates;
 		PostProcess* activePostProcess = nullptr;
 		bool initialized = false;
 		bool rendererLost = false;
@@ -84,6 +62,8 @@ namespace Chrivent {
 		
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
+		// UI에서 예약한 후처리 파라미터 변경을 새 프레임 경계에서 적용한다.
+		GraphicsResult<void> ApplyPendingPostProcessParameterUpdates();
 		// 새 크기로 API별 리소스를 재생성하고 실패하면 렌더러를 사용 불가 상태로 전환한다.
 		GraphicsResult<void> RecreateSizeDependentResources(int width, int height, bool force);
 
@@ -133,9 +113,20 @@ namespace Chrivent {
 		int GetScreenWidth() const { return screenWidth; }
 		int GetScreenHeight() const { return screenHeight; }
 		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
-		const SceneRenderState& GetSceneRenderState() const { return sceneRenderState; }
 		bool IsNdcYInvertedForTextureCoordinates() const {
 			return invertNdcYForTextureCoordinates;
+		}
+		const glm::mat4& GetPreviousViewMatrix() const {
+			return postProcessTemporalState.previousViewMatrix;
+		}
+		const glm::mat4& GetPreviousProjectionMatrix() const {
+			return postProcessTemporalState.previousProjectionMatrix;
+		}
+		const PostProcessFrameData& GetPostProcessFrameData() const {
+			return postProcessTemporalState.frameData;
+		}
+		bool IsPostProcessHistoryResetPending() const {
+			return postProcessTemporalState.historyResetPending;
 		}
 
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
@@ -158,25 +149,13 @@ namespace Chrivent {
 		// 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
 		// HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
 		GraphicsResult<void> LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
-		// GPU 리소스를 재생성하지 않고 활성 후처리 효과의 스칼라 파라미터를 갱신한다.
-		GraphicsResult<void> UpdatePostProcessParameters(std::span<const EffectParameterUpdate> updates) const;
+		// 활성 후처리 효과의 스칼라 파라미터 변경을 다음 프레임에 적용하도록 예약한다.
+		GraphicsResult<void> UpdatePostProcessParameters(std::span<const EffectParameterUpdate> updates);
 		// 현재 프레임의 Drawer 입력을 API 객체 수명과 분리된 값으로 조립한다.
 		SceneDrawState ResolveSceneDrawState() const;
 		// 모델 데이터가 완전히 초기화된 현재 렌더러용 인스턴스를 생성한다.
 		GraphicsResult<std::unique_ptr<Instance>> CreateInstance(std::shared_ptr<Model> model,
 			std::unique_ptr<Animation> animation, float scale);
-		const glm::mat4& GetPreviousViewMatrix() const {
-			return postProcessTemporalState.previousViewMatrix;
-		}
-		const glm::mat4& GetPreviousProjectionMatrix() const {
-			return postProcessTemporalState.previousProjectionMatrix;
-		}
-		const PostProcessFrameData& GetPostProcessFrameData() const {
-			return postProcessTemporalState.frameData;
-		}
-		bool IsPostProcessHistoryResetPending() const {
-			return postProcessTemporalState.historyResetPending;
-		}
 		// 카메라 관리자가 계산한 현재 프레임 후처리 입력을 저장한다.
 		void UpdatePostProcessFrameData(PostProcessFrameData frameData);
 		// 카메라 점프나 탐색 뒤 다음 프레임의 temporal history를 초기화한다.

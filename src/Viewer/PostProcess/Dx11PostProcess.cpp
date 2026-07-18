@@ -2,8 +2,8 @@
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 #include "Viewer/DrawContext/Dx11DrawContext.h"
+#include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
-#include "Viewer/Viewer/Viewer.h"
 
 #include <algorithm>
 #include <utility>
@@ -242,7 +242,8 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
-			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &route.parameters, 0, 0);
+			const PostProcessParameterData& parameterData = GetParameterData(route);
+			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &parameterData, 0, 0);
 			context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
 				1, parameterDataBuffer.GetAddressOf());
 			ID3D11RenderTargetView* targetView = ResolveOutputView(route, backBufferView);

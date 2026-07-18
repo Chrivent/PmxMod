@@ -23,20 +23,24 @@ namespace Chrivent {
     class Instance {
         // 렌더러가 신뢰할 모델 geometry와 material 범위 불변식을 검증한다.
         static bool ValidateModel(const Model& sourceModel);
+		GraphicsApi graphicsApi = GraphicsApi::Unknown;
 
     protected:
         std::unique_ptr<Drawer> drawer;
         std::shared_ptr<Model> model;
         std::unique_ptr<Animation> animation;
         float scale = 1.0f;
-		GraphicsApi graphicsApi = GraphicsApi::Unknown;
+    	
+		// 현재 API와 작업 문맥을 포함한 구조화된 그래픽 오류를 생성한다.
+		GraphicsError CreateGraphicsError(GraphicsErrorCode code, std::string operation,
+			std::string message, int64_t nativeCode = 0, bool hasNativeCode = false) const;
 
         // 렌더러별 모델 GPU 리소스를 초기 상태로 되돌린다.
         virtual void ResetRendererResources() = 0;
         // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
-        virtual bool SetupRenderer() = 0;
+        virtual GraphicsResult<void> SetupRenderer() = 0;
 		// 모델의 동적 버텍스 데이터를 렌더러 리소스에 반영한다.
-		virtual bool UploadCore() = 0;
+		virtual GraphicsResult<void> UploadCore() = 0;
 
     public:
         explicit Instance(GraphicsApi sourceGraphicsApi);

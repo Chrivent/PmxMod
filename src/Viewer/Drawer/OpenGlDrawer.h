@@ -23,13 +23,13 @@ namespace Chrivent {
 		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.
 		void BeginDrawFrame() override;
 		// 일반 메시 패스를 OpenGL로 렌더링한다.
-		bool DrawModel() override;
+		GraphicsResult<void> DrawModel() override;
 		// 엣지 패스를 OpenGL로 렌더링한다.
-		bool DrawEdge() override;
+		GraphicsResult<void> DrawEdge() override;
 		// 지면 그림자 패스를 OpenGL로 렌더링한다.
-		bool DrawGroundShadow() override;
+		GraphicsResult<void> DrawGroundShadow() override;
 		// 포스트 프로세스용 단일 샘플 depth에 OpenGL 모델 geometry를 기록한다.
-		bool DrawSceneInputs() override;
+		GraphicsResult<void> DrawSceneInputs() override;
 
 	public:
 		OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,

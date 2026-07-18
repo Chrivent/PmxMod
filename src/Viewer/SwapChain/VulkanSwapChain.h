@@ -15,6 +15,11 @@ namespace Chrivent {
 		};
 
 		VkDevice device = VK_NULL_HANDLE;
+		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+		std::vector<VkImage> images;
+		std::vector<VkImageView> imageViews;
+		VkFormat imageFormat = VK_FORMAT_UNDEFINED;
+		VkExtent2D extent{};
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
 		static bool QuerySupport(const VulkanDevice& sourceDevice, Support& support);
@@ -28,17 +33,18 @@ namespace Chrivent {
 		bool CreateImageViews();
 
 	public:
-		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-		std::vector<VkImage> images;
-		std::vector<VkImageView> imageViews;
-		VkFormat imageFormat = VK_FORMAT_UNDEFINED;
-		VkExtent2D extent{};
-
 		VulkanSwapChain() = default;
 		~VulkanSwapChain();
 
 		VulkanSwapChain(const VulkanSwapChain&) = delete;
 		VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
+
+		VkSwapchainKHR GetSwapChain() const { return swapChain; }
+		size_t GetImageCount() const { return images.size(); }
+		VkImage GetImage(const size_t imageIndex) const { return images[imageIndex]; }
+		VkImageView GetImageView(const size_t imageIndex) const { return imageViews[imageIndex]; }
+		VkFormat GetImageFormat() const { return imageFormat; }
+		VkExtent2D GetExtent() const { return extent; }
 		
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.
 		bool Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);

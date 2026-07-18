@@ -5,7 +5,6 @@
 #include "Viewer/Device/Dx11Device.h"
 #include "Viewer/DrawContext/Dx11DrawContext.h"
 #include "Viewer/Texture/Dx11TextureCache.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
@@ -105,26 +104,34 @@ namespace Chrivent {
 		modelResources.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 	}
 
-	bool Dx11Instance::SetupRenderer() {
+	GraphicsResult<void> Dx11Instance::SetupRenderer() {
 		if (!CreateGeometryBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX11 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
 		if (!CreateConstantBuffers())
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX11 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
 		LoadMaterials();
-		return true;
+		return {};
 	}
 
-	bool Dx11Instance::UploadCore() {
+	GraphicsResult<void> Dx11Instance::UploadCore() {
 		ID3D11DeviceContext* deviceContext = device.GetContext();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;
-		if (FAILED(deviceContext->Map(modelResources.vertexBuffer.Get(), 0,
-			D3D11_MAP_WRITE_DISCARD, 0, &mapRes)))
-			return false;
+		const HRESULT mapResult = deviceContext->Map(
+			modelResources.vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapRes);
+		if (FAILED(mapResult))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"DX11 모델 정점 업로드", "vertex buffer를 매핑하지 못했습니다",
+				mapResult, true));
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(mapRes.pData), vtxCount });
 		deviceContext->Unmap(modelResources.vertexBuffer.Get(), 0);
-		return writeSucceeded;
+		if (!writeSucceeded)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"DX11 모델 정점 업로드", "vertex 데이터를 기록하지 못했습니다"));
+		return {};
 	}
 }
 
