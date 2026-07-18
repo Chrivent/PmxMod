@@ -88,7 +88,7 @@ namespace Chrivent {
 		GraphicsResult<void> RecreateSizeDependentResources(int width, int height, bool force);
 
 	protected:
-		explicit Viewer(const GraphicsApi sourceGraphicsApi, bool invertNdcY) :
+		explicit Viewer(const GraphicsApi sourceGraphicsApi, const bool invertNdcY) :
 			invertNdcYForTextureCoordinates(invertNdcY), graphicsApi(sourceGraphicsApi) {}
 
 		float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
