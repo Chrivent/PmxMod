@@ -91,7 +91,7 @@ namespace Chrivent {
 		capabilities.activeSampleCount = sampleCount;
 	}
 
-	bool Dx11Device::CreateSwapChain(HWND__* window, const UINT sampleCount, const UINT sampleQuality) {
+	bool Dx11Device::CreateSwapChain(HWND__* window) {
 		if (!device || window == nullptr)
 			return false;
 		Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
@@ -103,7 +103,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 		if (FAILED(adapter->GetParent(__uuidof(IDXGIFactory), &factory)))
 			return false;
-		auto description = Dx11DescBuilder::MakeSwapChainDesc(window, sampleCount, sampleQuality);
+		auto description = Dx11DescBuilder::MakeSwapChainDesc(window);
 		return SUCCEEDED(factory->CreateSwapChain(device.Get(), &description, &swapChain));
 	}
 

@@ -27,8 +27,8 @@ namespace Chrivent {
 		// 현재 device의 4→2→1 정책으로 MSAA 설정과 capability 값을 확정한다.
 		void SelectMsaaSettings(UINT& sampleCount, UINT& quality,
 			GraphicsCapabilities& capabilities) const;
-		// 지정한 Win32 창과 MSAA 설정으로 swapchain을 생성한다.
-		bool CreateSwapChain(HWND__* window, UINT sampleCount, UINT sampleQuality);
+		// 지정한 Win32 창에 단일 샘플 back buffer를 사용하는 swapchain을 생성한다.
+		bool CreateSwapChain(HWND__* window);
 		// immediate context에 제출한 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() const;
 	};

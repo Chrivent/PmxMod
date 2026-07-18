@@ -21,7 +21,7 @@ namespace Chrivent {
 				"device 초기화", "DirectX 11 device를 만들지 못했습니다"));
 		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
 		capabilities.Print();
-		if (!device.CreateSwapChain(hwnd, multiSampleCount, multiSampleQuality))
+		if (!device.CreateSwapChain(hwnd))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 생성", "DirectX 11 swap chain을 만들지 못했습니다"));
 		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
