@@ -49,8 +49,10 @@ namespace Chrivent {
 				.location = 1,
 				.binding = 0,
 				.format = VK_FORMAT_R32G32B32_SFLOAT,
-				.offset = configuration.vertexLayout == VertexLayout::Velocity
-					? offsetof(ViewerVertex, previousPosition) : offsetof(ViewerVertex, normal)
+				.offset = static_cast<uint32_t>(
+					configuration.vertexLayout == VertexLayout::Velocity
+						? offsetof(ViewerVertex, previousPosition)
+						: offsetof(ViewerVertex, normal))
 			};
 			attributeDescriptions[2] = {
 				.location = 2,

@@ -9,13 +9,13 @@
 namespace Chrivent {
 	bool VulkanPipeline::CreateDescriptorSetLayouts(std::string& error) {
 		error.clear();
-		constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
+		static constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT
 		};
-		static VkDescriptorSetLayoutCreateInfo vertexLayoutInfo{
+		static constexpr VkDescriptorSetLayoutCreateInfo vertexLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 			.bindingCount = 1,
 			.pBindings = &vertexConstantBinding
@@ -25,13 +25,13 @@ namespace Chrivent {
 			error = "Vulkan vertex descriptor set layout을 만들지 못했습니다";
 			return false;
 		}
-		constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
+		static constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 		};
-		static VkDescriptorSetLayoutCreateInfo pixelLayoutInfo{
+		static constexpr VkDescriptorSetLayoutCreateInfo pixelLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 			.bindingCount = 1,
 			.pBindings = &pixelConstantBinding
@@ -41,7 +41,7 @@ namespace Chrivent {
 			error = "Vulkan pixel descriptor set layout을 만들지 못했습니다";
 			return false;
 		}
-		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
+		static constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
 				.binding = SceneShaderInputLayout::baseTextureRegister,
 				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -79,7 +79,7 @@ namespace Chrivent {
 				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
 			}
 		};
-		static VkDescriptorSetLayoutCreateInfo textureLayoutInfo{
+		static constexpr VkDescriptorSetLayoutCreateInfo textureLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 			.bindingCount = std::size(textureBindings),
 			.pBindings = textureBindings
