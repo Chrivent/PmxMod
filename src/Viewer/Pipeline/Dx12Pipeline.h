@@ -44,12 +44,14 @@ namespace Chrivent {
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
 		bool Initialize(const Dx12Device& sourceDevice, const SceneShaderRuntimeContract& shaderContract);
-		// material의 양면 렌더링 여부에 맞는 model pipeline을 command list에 바인딩한다.
-		void BindModel(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
-		// material의 양면 렌더링 여부에 맞는 depth-only pipeline을 command list에 바인딩한다.
-		void BindDepthOnly(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
-		// material의 양면 렌더링 여부에 맞는 장면 속도 pipeline을 바인딩한다.
-		void BindSceneVelocity(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
+		// 모델 계열 pipeline에서 공유하는 root signature를 command list에 바인딩한다.
+		void BindModelRootSignature(ID3D12GraphicsCommandList* commandList) const;
+		// material의 양면 렌더링 여부에 맞는 model pipeline state를 command list에 바인딩한다.
+		void BindModelPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 depth-only pipeline state를 command list에 바인딩한다.
+		void BindDepthOnlyPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 장면 속도 pipeline state를 바인딩한다.
+		void BindSceneVelocityPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// 엣지 렌더링용 pipeline을 command list에 바인딩한다.
 		void BindEdge(ID3D12GraphicsCommandList* commandList) const;
 		// 지면 그림자 렌더링용 pipeline을 command list에 바인딩한다.

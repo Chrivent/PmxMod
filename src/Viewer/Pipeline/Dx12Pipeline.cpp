@@ -335,30 +335,33 @@ namespace Chrivent {
 		return CreateGroundShadowPipelineState(sourceDevice, shaderContract.builtIn.groundShadow);
 	}
 
-	void Dx12Pipeline::BindModel(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+	void Dx12Pipeline::BindModelRootSignature(ID3D12GraphicsCommandList* commandList) const {
 		if (commandList == nullptr)
 			return;
 		commandList->SetGraphicsRootSignature(modelRootSignature.Get());
+	}
+
+	void Dx12Pipeline::BindModelPipelineState(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+		if (commandList == nullptr)
+			return;
 		ID3D12PipelineState* pipelineState = bothFace
 			? modelBothFacePipelineState.Get()
 			: modelFrontFacePipelineState.Get();
 		commandList->SetPipelineState(pipelineState);
 	}
 
-	void Dx12Pipeline::BindDepthOnly(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+	void Dx12Pipeline::BindDepthOnlyPipelineState(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(modelRootSignature.Get());
 		ID3D12PipelineState* pipelineState = bothFace
 			? depthOnlyBothFacePipelineState.Get()
 			: depthOnlyFrontFacePipelineState.Get();
 		commandList->SetPipelineState(pipelineState);
 	}
 
-	void Dx12Pipeline::BindSceneVelocity(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+	void Dx12Pipeline::BindSceneVelocityPipelineState(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(modelRootSignature.Get());
 		commandList->SetPipelineState(bothFace
 			? sceneVelocityBothFacePipelineState.Get() : sceneVelocityFrontFacePipelineState.Get());
 	}

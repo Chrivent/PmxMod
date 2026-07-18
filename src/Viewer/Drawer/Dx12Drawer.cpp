@@ -36,6 +36,7 @@ namespace Chrivent {
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
+		drawContext.BindModelRootSignature();
 		commandList->SetGraphicsRootConstantBufferView(
 			0, constantBuffer.GetGpuAddress() + layout.modelVertex);
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
@@ -159,6 +160,7 @@ namespace Chrivent {
 				"DX12 후처리 장면 입력 기록", "장면 입력 vertex 상수를 업로드하지 못했습니다"));
 		commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 		commandList->IASetIndexBuffer(&resources.indexBufferView);
+		drawContext.BindModelRootSignature();
 		commandList->SetGraphicsRootConstantBufferView(
 			0, constantBuffer.GetGpuAddress() + layout.sceneInputVertex);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { resources.textureDescriptorHeap.Get() };

@@ -8,6 +8,13 @@ namespace Chrivent {
 
 	// DX12 Drawer에 현재 명령 목록과 장면 pipeline 바인딩을 제공한다.
 	class Dx12DrawContext {
+		enum class RootSignatureBinding {
+			None,
+			Model,
+			Edge,
+			GroundShadow
+		};
+
 		enum class PipelineBinding {
 			None,
 			ModelFrontFace,
@@ -24,6 +31,7 @@ namespace Chrivent {
 		Dx12Pipeline& pipeline;
 		bool frameReady = false;
 		UINT frameIndex = 0;
+		RootSignatureBinding rootSignatureBinding = RootSignatureBinding::None;
 		PipelineBinding pipelineBinding = PipelineBinding::None;
 
 	public:
@@ -38,6 +46,8 @@ namespace Chrivent {
 		void EndFrame();
 		// 현재 프레임에서 기록 가능한 명령 목록이 있으면 반환한다.
 		ID3D12GraphicsCommandList* TryGetCommandList() const;
+		// 모델·depth·velocity pipeline이 공유하는 root signature를 바인딩한다.
+		void BindModelRootSignature();
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.
