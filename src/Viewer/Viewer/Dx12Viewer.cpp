@@ -51,7 +51,7 @@ namespace Chrivent {
 			return false;
 		}
 		if (!pipeline.Initialize(device, builtInShaderPasses,
-			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocityInvertedY)) {
+			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocity)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}

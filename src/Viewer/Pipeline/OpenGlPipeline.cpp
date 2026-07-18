@@ -27,4 +27,38 @@ namespace Chrivent {
 		}
 		return true;
 	}
+
+	OpenGlSceneAttributeLocations OpenGlPipeline::ResolveSceneAttributeLocations() const {
+		return {
+			.model = { modelShader.positionLocation, modelShader.normalLocation, modelShader.uvLocation },
+			.edge = { edgeShader.positionLocation, edgeShader.normalLocation },
+			.groundShadow = { groundShadowShader.positionLocation },
+			.depth = { depthOnlyShader.positionLocation, depthOnlyShader.uvLocation },
+			.velocity = {
+				sceneVelocityShader.positionLocation,
+				sceneVelocityShader.previousPositionLocation,
+				sceneVelocityShader.uvLocation
+			}
+		};
+	}
+
+	void OpenGlPipeline::BindModel() const {
+		glUseProgram(modelShader.program);
+	}
+
+	void OpenGlPipeline::BindEdge() const {
+		glUseProgram(edgeShader.program);
+	}
+
+	void OpenGlPipeline::BindGroundShadow() const {
+		glUseProgram(groundShadowShader.program);
+	}
+
+	void OpenGlPipeline::BindDepthOnly() const {
+		glUseProgram(depthOnlyShader.program);
+	}
+
+	void OpenGlPipeline::BindSceneVelocity() const {
+		glUseProgram(sceneVelocityShader.program);
+	}
 }

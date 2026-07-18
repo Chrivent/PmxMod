@@ -22,36 +22,46 @@ namespace Chrivent {
 		postProcessTemporalState.frameData.historyReset = 0.0f;
 	}
 
+	bool Viewer::RecreateSizeDependentResources(const int width, const int height, const bool force) {
+		if (!initialized || rendererLost || width <= 0 || height <= 0)
+			return false;
+		if (!force && screenWidth == width && screenHeight == height)
+			return true;
+		screenWidth = width;
+		screenHeight = height;
+		if (!ResizeCore()) {
+			rendererLost = true;
+			return false;
+		}
+		ResetPostProcessHistory();
+		return true;
+	}
+
 	bool Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
 		SceneShaderRuntimeContract shaderContract) {
-		if (initialized || sourceWindow == nullptr || width <= 0 || height <= 0)
+		if (initialized || rendererLost || sourceWindow == nullptr || width <= 0 || height <= 0)
 			return false;
 		window = sourceWindow;
 		screenWidth = width;
 		screenHeight = height;
 		builtInShaderPasses = std::move(shaderContract.builtIn);
 		sceneInputShaderPasses = std::move(shaderContract.sceneInput);
-		if (!SetupCore() || activePostProcess == nullptr)
+		if (!SetupCore() || activePostProcess == nullptr) {
+			rendererLost = true;
 			return false;
+		}
 		initialized = true;
 		return true;
 	}
 
 	bool Viewer::Resize(const int width, const int height) {
-		if (!initialized || frameActive || width <= 0 || height <= 0)
+		if (frameActive)
 			return false;
-		if (screenWidth == width && screenHeight == height)
-			return true;
-		screenWidth = width;
-		screenHeight = height;
-		if (!ResizeCore())
-			return false;
-		ResetPostProcessHistory();
-		return true;
+		return RecreateSizeDependentResources(width, height, false);
 	}
 
 	FrameBeginResult Viewer::BeginFrame() {
-		if (!initialized || frameActive)
+		if (!initialized || rendererLost || frameActive)
 			return FrameBeginResult::Failed;
 		const FrameBeginResult result = BeginFrameCore();
 		frameActive = result == FrameBeginResult::Ready;
@@ -59,7 +69,7 @@ namespace Chrivent {
 	}
 
 	FrameEndResult Viewer::EndFrame() {
-		if (!frameActive || sceneInputPassActive)
+		if (rendererLost || !frameActive || sceneInputPassActive)
 			return FrameEndResult::Failed;
 		const FrameEndResult result = EndFrameCore();
 		frameActive = false;
@@ -77,7 +87,7 @@ namespace Chrivent {
 	}
 
 	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!initialized || frameActive || !WaitIdle() || !LoadPostProcessEffectsCore(effects))
+		if (!initialized || rendererLost || frameActive || !WaitIdle() || !LoadPostProcessEffectsCore(effects))
 			return false;
 		ResetPostProcessFrameHistory();
 		return true;
@@ -105,6 +115,8 @@ namespace Chrivent {
 
 	std::unique_ptr<Instance> Viewer::CreateInstance(std::shared_ptr<Model> model,
 		std::unique_ptr<Animation> animation, const float scale) {
+		if (!initialized || rendererLost)
+			return nullptr;
 		auto instance = CreateInstanceCore();
 		if (!instance || !instance->Initialize(std::move(model), std::move(animation), scale))
 			return nullptr;
@@ -118,6 +130,17 @@ namespace Chrivent {
 
 	bool Viewer::RequiresPostProcessVelocity() const {
 		return activePostProcess->RequiresVelocity();
+	}
+
+	bool Viewer::RecreateFromFramebuffer() {
+		if (window == nullptr)
+			return false;
+		int width = 0;
+		int height = 0;
+		glfwGetFramebufferSize(window, &width, &height);
+		if (width <= 0 || height <= 0)
+			return true;
+		return RecreateSizeDependentResources(width, height, true);
 	}
 
 }

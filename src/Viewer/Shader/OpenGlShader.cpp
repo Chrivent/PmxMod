@@ -112,39 +112,6 @@ namespace Chrivent {
 		return 0;
 	}
 
-	GLuint OpenGlShaderBuilder::CreateVertexOnlyShader(const std::filesystem::path& shaderFile,
-		const std::string& vertexEntry) {
-		std::vector<uint32_t> vertexCode;
-		std::string error;
-		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
-			SpirvTarget::OpenGl, SpirvBindingProfile::Scene, vertexCode, error)) {
-			std::cerr << error << '\n';
-			return 0;
-		}
-		const GLuint vertexShader = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry);
-		if (vertexShader == 0)
-			return 0;
-		const GLuint program = glCreateProgram();
-		if (program == 0) {
-			glDeleteShader(vertexShader);
-			return 0;
-		}
-		glAttachShader(program, vertexShader);
-		glLinkProgram(program);
-		glDeleteShader(vertexShader);
-		GLint linkStatus = GL_FALSE;
-		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-		if (linkStatus == GL_TRUE)
-			return program;
-		std::cerr << "Failed to link OpenGL vertex-only shader program: " << shaderFile.string() << '\n';
-		const std::string log = ReadProgramLog(program);
-		if (!log.empty())
-			std::cerr << log << '\n';
-		glDeleteProgram(program);
-		return 0;
-	}
-	
     OpenGlShader::~OpenGlShader() {
         if (program != 0)
             glDeleteProgram(program);

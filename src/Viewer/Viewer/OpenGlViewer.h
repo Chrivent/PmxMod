@@ -45,6 +45,8 @@ namespace Chrivent {
     public:
         ~OpenGlViewer() override;
 
+		bool IsVelocityYInverted() const override { return false; }
+
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;
         // OpenGL 명령이 모두 처리될 때까지 기다린다.

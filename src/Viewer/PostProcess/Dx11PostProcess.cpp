@@ -231,14 +231,16 @@ namespace Chrivent {
 			Dx11DrawContext::ApplyViewport(context, outputWidth, outputHeight);
 			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
 			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
-			std::vector views(
-				PostProcessInputLayout::maxTextureCount, sceneColorView.Get());
+			ID3D11ShaderResourceView* views[PostProcessInputLayout::maxTextureCount]{};
+			for (auto& view : views)
+				view = sceneColorView.Get();
 			for (const auto& input : route.inputs)
 				views[input.slot] = ResolveInputView(input);
-			context->PSSetShaderResources(0, views.size(), views.data());
+			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
 			context->Draw(3, 0);
-			std::ranges::fill(views, nullptr);
-			context->PSSetShaderResources(0, views.size(), views.data());
+			for (auto& view : views)
+				view = nullptr;
+			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
 			AdvanceHistory(route);
 		}
 		return true;

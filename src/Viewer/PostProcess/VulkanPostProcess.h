@@ -31,6 +31,7 @@ namespace Chrivent {
 		VulkanPostProcessDescriptors descriptors;
 		VulkanPostProcessPipelines pipelines;
 		size_t swapChainImageCount = 0;
+		VkDeviceSize parameterDataStride = 0;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
 		bool CreateSceneImages(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
@@ -43,10 +44,10 @@ namespace Chrivent {
 		bool CreateEffectResources(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
 		bool CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
-		// 스왑체인 이미지와 pass마다 효과 파라미터 b1 buffer를 생성한다.
+		// 스왑체인 이미지마다 모든 pass 파라미터를 보관할 b1 buffer를 생성한다.
 		bool CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
-		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
+		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex);
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
 		bool CreatePipelines(const VulkanDevice& sourceDevice);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.

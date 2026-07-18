@@ -46,6 +46,8 @@ namespace Chrivent {
         std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
+		bool IsVelocityYInverted() const override { return true; }
+
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
         bool WaitIdle() override;
     };

@@ -27,8 +27,8 @@ namespace Chrivent {
 
 		ID3D11DeviceContext* GetDeviceContext() const { return device.GetContext(); }
 		ID3D11ShaderResourceView* GetDummyTextureView() const { return dummyTexture.textureView.Get(); }
-		ID3D11SamplerState* GetTextureSampler() const { return pipeline.GetStates().textureSampler.Get(); }
-		ID3D11SamplerState* GetToonTextureSampler() const { return pipeline.GetStates().toonTextureSampler.Get(); }
+		ID3D11SamplerState* GetTextureSampler() const { return pipeline.GetTextureSampler(); }
+		ID3D11SamplerState* GetToonTextureSampler() const { return pipeline.GetToonTextureSampler(); }
 
 		// 재질의 양면 여부에 맞는 rasterizer state를 반환한다.
 		ID3D11RasterizerState* ResolveModelRasterizerState(bool bothFace) const;

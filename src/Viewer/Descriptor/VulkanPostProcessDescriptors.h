@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <memory>
@@ -21,6 +20,7 @@ namespace Chrivent {
 		std::vector<VkDescriptorSet> frameDataDescriptorSets;
 		std::vector<VkDescriptorSet> parameterDataDescriptorSets;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
+		std::vector<VkImageView> textureImageViewCache;
 		size_t imageCount = 0;
 		size_t passCount = 0;
 
@@ -33,7 +33,8 @@ namespace Chrivent {
 		// 프레임 및 파라미터 uniform buffer를 descriptor set에 연결한다.
 		bool BindBuffers(std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 			std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
-			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize) const;
+			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize,
+			VkDeviceSize parameterDataStride) const;
 
 	public:
 		VulkanPostProcessDescriptors() = default;
@@ -53,10 +54,11 @@ namespace Chrivent {
 		bool Initialize(VkDevice sourceDevice, size_t sourceImageCount, size_t sourcePassCount,
 			std::span<const std::unique_ptr<VulkanBuffer>> frameDataBuffers,
 			std::span<const std::unique_ptr<VulkanBuffer>> parameterDataBuffers,
-			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize);
+			VkDeviceSize frameDataSize, VkDeviceSize parameterDataSize,
+			VkDeviceSize parameterDataStride);
 		// 현재 이미지와 패스의 texture 및 sampler descriptor를 갱신한다.
 		bool UpdateTextures(uint32_t imageIndex, size_t passIndex,
-			std::span<const VkImageView> imageViews) const;
+			std::span<const VkImageView> imageViews);
 		// 생성한 descriptor 리소스를 해제한다.
 		void Reset();
 		// 검증된 다른 descriptor 소유자와 리소스를 교환한다.

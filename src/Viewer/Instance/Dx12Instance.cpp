@@ -51,49 +51,39 @@ namespace Chrivent {
 	}
 
 	bool Dx12Instance::CreateConstantBuffers() {
-		const size_t modelVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelVertexConstants));
-		const size_t postProcessVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(
+		auto& [modelVertex, sceneInputVertex, groundShadowVertex, groundShadowPixel
+			, materialBase, materialStride, modelPixel, sceneSurfacePixel
+			, edgeVertex, edgePixel, totalByteSize] = modelResources.constantBufferLayout;
+		size_t frameOffset = 0;
+		const auto ReserveFrameConstants = [&frameOffset](const size_t size) {
+			const size_t offset = frameOffset;
+			frameOffset += Dx12Buffer::AlignConstantBufferSize(size);
+			return offset;
+		};
+		modelVertex = ReserveFrameConstants(sizeof(ModelVertexConstants));
+		sceneInputVertex = ReserveFrameConstants(
 			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)));
-		const size_t vertexConstantSize = modelVertexConstantSize + postProcessVertexConstantSize;
-		const size_t pixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(ModelPixelConstants));
-		const size_t sceneSurfaceConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(SceneSurfacePixelConstants));
-		const size_t materialPixelBufferSize = pixelConstantSize + sceneSurfaceConstantSize;
-		const size_t edgeVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgeVertexConstants));
-		const size_t edgePixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(EdgePixelConstants));
-		const size_t groundShadowVertexConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowVertexConstants));
-		const size_t groundShadowPixelConstantSize = Dx12Buffer::AlignConstantBufferSize(sizeof(GroundShadowPixelConstants));
-		for (size_t frameIndex = 0; frameIndex < FrameBuffering::dx12BufferCount; frameIndex++) {
-			if (!modelResources.modelVertexConstantBuffers[frameIndex].InitializeUpload(device, vertexConstantSize) ||
-				!modelResources.groundShadowVertexConstantBuffers[frameIndex].InitializeUpload(
-					device, groundShadowVertexConstantSize) ||
-				!modelResources.groundShadowPixelConstantBuffers[frameIndex].InitializeUpload(
-					device, groundShadowPixelConstantSize))
-				return false;
-		}
+		groundShadowVertex = ReserveFrameConstants(sizeof(GroundShadowVertexConstants));
+		groundShadowPixel = ReserveFrameConstants(sizeof(GroundShadowPixelConstants));
+		materialBase = frameOffset;
+		size_t materialOffset = 0;
+		const auto ReserveMaterialConstants = [&materialOffset](const size_t size) {
+			const size_t offset = materialOffset;
+			materialOffset += Dx12Buffer::AlignConstantBufferSize(size);
+			return offset;
+		};
+		modelPixel = ReserveMaterialConstants(sizeof(ModelPixelConstants));
+		sceneSurfacePixel = ReserveMaterialConstants(sizeof(SceneSurfacePixelConstants));
+		edgeVertex = ReserveMaterialConstants(sizeof(EdgeVertexConstants));
+		edgePixel = ReserveMaterialConstants(sizeof(EdgePixelConstants));
+		materialStride = materialOffset;
 		const size_t materialCount = model->materialData.materials.size();
-		modelResources.modelPixelConstantBuffers.resize(materialCount);
-		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
-				if (!buffers[i].InitializeUpload(device, materialPixelBufferSize))
-					return false;
-			}
-		}
-		modelResources.edgeVertexConstantBuffers.resize(materialCount);
-		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
-				if (!buffers[i].InitializeUpload(device, edgeVertexConstantSize))
-					return false;
-			}
-		}
-		modelResources.edgePixelConstantBuffers.resize(materialCount);
-		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
-			buffers = std::make_unique<Dx12Buffer[]>(FrameBuffering::dx12BufferCount);
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++) {
-				if (!buffers[i].InitializeUpload(device, edgePixelConstantSize))
-					return false;
-			}
+		if (materialCount > (std::numeric_limits<size_t>::max() - frameOffset) / materialStride)
+			return false;
+		totalByteSize = frameOffset + materialCount * materialStride;
+		for (Dx12Buffer& buffer : modelResources.constantBuffers) {
+			if (!buffer.InitializeUpload(device, totalByteSize))
+				return false;
 		}
 		return true;
 	}
@@ -169,33 +159,9 @@ namespace Chrivent {
 		for (Dx12Buffer& vertexBuffer : modelResources.vertexBuffers)
 			vertexBuffer.Reset();
 		modelResources.indexBuffer.Reset();
-		for (Dx12Buffer& buffer : modelResources.modelVertexConstantBuffers)
+		for (Dx12Buffer& buffer : modelResources.constantBuffers)
 			buffer.Reset();
-		for (auto& buffers : modelResources.modelPixelConstantBuffers) {
-			if (!buffers)
-				continue;
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
-				buffers[i].Reset();
-		}
-		modelResources.modelPixelConstantBuffers.clear();
-		for (auto& buffers : modelResources.edgeVertexConstantBuffers) {
-			if (!buffers)
-				continue;
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
-				buffers[i].Reset();
-		}
-		modelResources.edgeVertexConstantBuffers.clear();
-		for (auto& buffers : modelResources.edgePixelConstantBuffers) {
-			if (!buffers)
-				continue;
-			for (size_t i = 0; i < FrameBuffering::dx12BufferCount; i++)
-				buffers[i].Reset();
-		}
-		modelResources.edgePixelConstantBuffers.clear();
-		for (Dx12Buffer& buffer : modelResources.groundShadowVertexConstantBuffers)
-			buffer.Reset();
-		for (Dx12Buffer& buffer : modelResources.groundShadowPixelConstantBuffers)
-			buffer.Reset();
+		modelResources.constantBufferLayout = {};
 		modelResources.textureDescriptorHeap.Reset();
 		for (auto& vertexBufferView : modelResources.vertexBufferViews)
 			vertexBufferView = {};

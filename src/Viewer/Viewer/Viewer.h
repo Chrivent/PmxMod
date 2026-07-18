@@ -85,11 +85,14 @@ namespace Chrivent {
 		SceneRenderState sceneRenderState;
 		PostProcess* activePostProcess = nullptr;
 		bool initialized = false;
+		bool rendererLost = false;
 		bool frameActive = false;
 		bool sceneInputPassActive = false;
 		
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
+		// 새 크기로 API별 리소스를 재생성하고 실패하면 렌더러를 사용 불가 상태로 전환한다.
+		bool RecreateSizeDependentResources(int width, int height, bool force);
 
 	protected:
 		BuiltInShaderPasses builtInShaderPasses;
@@ -120,6 +123,8 @@ namespace Chrivent {
 		void BindPostProcess(PostProcess& postProcess) { activePostProcess = &postProcess; }
 		// 다음 프레임에서 시간 기반 후처리 입력을 현재 상태로 초기화한다.
 		void ResetPostProcessFrameHistory();
+		// 현재 GLFW framebuffer 크기로 API별 리소스를 재생성하며 최소화 상태에서는 다음 프레임으로 미룬다.
+		bool RecreateFromFramebuffer();
 
 	public:
 		Viewer() = default;
@@ -133,6 +138,8 @@ namespace Chrivent {
 		int GetScreenHeight() const { return screenHeight; }
 		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
 		const SceneRenderState& GetSceneRenderState() const { return sceneRenderState; }
+		
+		virtual bool IsVelocityYInverted() const = 0;
 
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
 		virtual void ConfigureWindowHints();

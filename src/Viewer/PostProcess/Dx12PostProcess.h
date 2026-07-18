@@ -22,10 +22,17 @@ namespace Chrivent {
 			Dx12PostProcessTarget targets[2];
 		};
 
+		// shader-visible heap 슬롯에 마지막으로 기록한 SRV 리소스와 형식을 보관한다.
+		struct InputDescriptorState {
+			ID3D12Resource* resource = nullptr;
+			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+		};
+
 		Dx12PostProcessTarget sceneColor;
 		Dx12PostProcessTarget sceneVelocity;
 		std::vector<Resource> resources;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
+		std::vector<InputDescriptorState> inputDescriptorStates;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;
 		Dx12PostProcessPipelines pipelines;
@@ -38,19 +45,19 @@ namespace Chrivent {
 		bool CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
 		// 패키지가 선언한 transient/history target을 생성한다.
 		bool CreateEffectResources(const Dx12Device& sourceDevice);
-		// pass별 shader input descriptor heap을 frame 수만큼 생성한다.
+		// frame별 모든 pass 입력을 보관하는 shader-visible descriptor heap을 생성한다.
 		bool CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 파라미터를 보관할 b1 upload buffer를 생성한다.
 		bool CreateParameterDataBuffers(const Dx12Device& sourceDevice);
 		// 현재 frame의 pass 입력 descriptor를 실행 계획에 맞게 갱신한다.
-		void UpdateInputDescriptors(const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex) const;
+		void UpdateInputDescriptors(const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex);
 		// 모든 history target을 최초 사용 전에 0으로 지운다.
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);
 		// 공통 실행 계획의 모든 DX12 pipeline state를 생성한다.
 		bool CreatePipelines(const Dx12Device& sourceDevice);
-		// pass에 대응하는 shader-visible descriptor heap을 반환한다.
-		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex, size_t passIndex) const;
+		// frame에 대응하는 shader-visible descriptor heap을 반환한다.
+		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex) const;
 		// 입력 경로에 대응하는 DX12 resource와 SRV 형식을 반환한다.
 		ID3D12Resource* ResolveInputResource(const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const;
 		// 출력 경로에 대응하는 DX12 target을 반환한다.

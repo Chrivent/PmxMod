@@ -141,7 +141,7 @@ namespace Chrivent {
 		SceneShaderRuntimeContract shaderContract;
 		std::string shaderError;
 		if (!InternalShaderCatalog::Load(resourceDirectories.GetInternalShaderDirectory(),
-			shaderContract, shaderError)) {
+			viewer->IsVelocityYInverted(), shaderContract, shaderError)) {
 			std::cerr << shaderError << '\n';
 			return false;
 		}

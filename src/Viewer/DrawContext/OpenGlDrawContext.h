@@ -5,15 +5,6 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
-	// OpenGL 장면 패스의 vertex attribute 위치를 API 리소스 생성에 필요한 값으로 묶는다.
-	struct OpenGlSceneAttributeLocations {
-		GLint model[3]{};
-		GLint edge[2]{};
-		GLint groundShadow[1]{};
-		GLint depth[2]{};
-		GLint velocity[3]{};
-	};
-
 	// OpenGL Drawer와 Instance에 장면 패스 동작 및 입력 위치만 노출한다.
 	class OpenGlDrawContext {
 		GLuint dummyColorTexture = 0;

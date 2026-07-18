@@ -2,37 +2,26 @@
 
 namespace Chrivent {
 	OpenGlSceneAttributeLocations OpenGlDrawContext::ResolveSceneAttributeLocations() const {
-		const OpenGlModelShader& model = pipeline.GetModelShader();
-		const OpenGlEdgeShader& edge = pipeline.GetEdgeShader();
-		const OpenGlGroundShadowShader& groundShadow = pipeline.GetGroundShadowShader();
-		const OpenGlDepthOnlyShader& depth = pipeline.GetDepthOnlyShader();
-		const OpenGlSceneVelocityShader& velocity = pipeline.GetSceneVelocityShader();
-		return {
-			.model = { model.positionLocation, model.normalLocation, model.uvLocation },
-			.edge = { edge.positionLocation, edge.normalLocation },
-			.groundShadow = { groundShadow.positionLocation },
-			.depth = { depth.positionLocation, depth.uvLocation },
-			.velocity = { velocity.positionLocation, velocity.previousPositionLocation, velocity.uvLocation }
-		};
+		return pipeline.ResolveSceneAttributeLocations();
 	}
 
 	void OpenGlDrawContext::BindModelPipeline() const {
-		glUseProgram(pipeline.GetModelShader().program);
+		pipeline.BindModel();
 	}
 
 	void OpenGlDrawContext::BindEdgePipeline() const {
-		glUseProgram(pipeline.GetEdgeShader().program);
+		pipeline.BindEdge();
 	}
 
 	void OpenGlDrawContext::BindGroundShadowPipeline() const {
-		glUseProgram(pipeline.GetGroundShadowShader().program);
+		pipeline.BindGroundShadow();
 	}
 
 	void OpenGlDrawContext::BindDepthOnlyPipeline() const {
-		glUseProgram(pipeline.GetDepthOnlyShader().program);
+		pipeline.BindDepthOnly();
 	}
 
 	void OpenGlDrawContext::BindSceneVelocityPipeline() const {
-		glUseProgram(pipeline.GetSceneVelocityShader().program);
+		pipeline.BindSceneVelocity();
 	}
 }

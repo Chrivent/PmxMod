@@ -132,9 +132,8 @@ namespace Chrivent {
 			for (const auto& parameter : effect.parameters)
 				parameterData.values[parameter.slot] = parameter.defaultValue;
 			std::unordered_map<std::string, size_t> resourceIndices;
-			for (const auto& [name, lifetime
-				, format, resolution
-				, width, height] : effect.resources) {
+			for (const auto& [name, lifetime, format
+				, resolution, width, height] : effect.resources) {
 				const size_t index = resources.size();
 				resourceIndices.emplace(name, index);
 				resources.emplace_back(PostProcessResourcePlan{
@@ -161,8 +160,10 @@ namespace Chrivent {
 				route.parameters = parameterData;
 				for (const auto& [slot, resource] : pass.inputs) {
 					PostProcessPassInputRoute inputRoute{ .slot = slot };
-					if (resource == "effect_input")
-						inputRoute = effectInput, inputRoute.slot = slot;
+					if (resource == "effect_input") {
+						inputRoute = effectInput;
+						inputRoute.slot = slot;
+					}
 					else if (resource == "scene_color")
 						inputRoute.kind = PostProcessInputKind::SceneColor;
 					else if (resource == "scene_depth") {

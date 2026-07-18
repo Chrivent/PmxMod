@@ -14,7 +14,6 @@ namespace Chrivent {
 	struct SceneInputShaderPasses {
 		EffectPassDefinition depth;
 		EffectPassDefinition velocity;
-		EffectPassDefinition velocityInvertedY;
 	};
 
 	// 엔진 장면 렌더링에 필요한 내장 패스와 보조 입력 패스를 하나의 주입 계약으로 묶는다.

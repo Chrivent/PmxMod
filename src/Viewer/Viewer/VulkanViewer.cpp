@@ -63,9 +63,8 @@ namespace Chrivent {
 		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.swapChain, UINT64_MAX,
 			syncObject.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &currentImageIndex);
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-			if (!ResizeCore())
+			if (!RecreateFromFramebuffer())
 				return FrameBeginResult::Failed;
-			ResetPostProcessHistory();
 			return FrameBeginResult::Skipped;
 		}
 		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
@@ -126,9 +125,8 @@ namespace Chrivent {
 		presentInfo.pImageIndices = &currentImageIndex;
 		const VkResult presentResult = vkQueuePresentKHR(device.presentQueue, &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-			if (!ResizeCore())
+			if (!RecreateFromFramebuffer())
 				return FrameEndResult::Failed;
-			ResetPostProcessHistory();
 			return FrameEndResult::Skipped;
 		}
 		if (presentResult != VK_SUCCESS) {

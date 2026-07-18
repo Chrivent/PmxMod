@@ -9,7 +9,7 @@ namespace Chrivent {
 			&& shaders.edge.Initialize(device, builtInPasses.edge)
 			&& shaders.groundShadow.Initialize(device, builtInPasses.groundShadow)
 			&& shaders.sceneDepth.Initialize(device, sceneInputPasses.depth)
-			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocityInvertedY);
+			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity);
 	}
 
 	bool Dx11Pipeline::CreateStates(ID3D11Device* device) {
@@ -53,5 +53,57 @@ namespace Chrivent {
 		const SceneInputShaderPasses& sceneInputPasses) {
 		return device != nullptr && CreateShaders(device, builtInPasses, sceneInputPasses)
 			&& CreateStates(device);
+	}
+
+	void Dx11Pipeline::BindDefaultBlendState(ID3D11DeviceContext* context) const {
+		if (context != nullptr)
+			context->OMSetBlendState(states.blendState.Get(), nullptr, 0xffffffff);
+	}
+
+	ID3D11RasterizerState* Dx11Pipeline::ResolveModelRasterizerState(const bool bothFace) const {
+		return bothFace ? states.bothFaceRs.Get() : states.frontFaceRs.Get();
+	}
+
+	void Dx11Pipeline::BindModel(ID3D11DeviceContext* context) const {
+		if (context == nullptr)
+			return;
+		context->OMSetDepthStencilState(states.defaultDss.Get(), 0x00);
+		context->OMSetBlendState(states.blendState.Get(), nullptr, 0xffffffff);
+		context->IASetInputLayout(shaders.model.inputLayout.Get());
+		context->VSSetShader(shaders.model.vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(shaders.model.pixelShader.Get(), nullptr, 0);
+	}
+
+	void Dx11Pipeline::BindEdge(ID3D11DeviceContext* context) const {
+		if (context == nullptr)
+			return;
+		context->IASetInputLayout(shaders.edge.inputLayout.Get());
+		context->VSSetShader(shaders.edge.vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(shaders.edge.pixelShader.Get(), nullptr, 0);
+		context->RSSetState(states.edgeRs.Get());
+		context->OMSetDepthStencilState(states.defaultDss.Get(), 0x00);
+		context->OMSetBlendState(states.blendState.Get(), nullptr, 0xffffffff);
+	}
+
+	void Dx11Pipeline::BindGroundShadow(ID3D11DeviceContext* context) const {
+		if (context == nullptr)
+			return;
+		context->IASetInputLayout(shaders.groundShadow.inputLayout.Get());
+		context->VSSetShader(shaders.groundShadow.vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(shaders.groundShadow.pixelShader.Get(), nullptr, 0);
+		context->RSSetState(states.gsRs.Get());
+		context->OMSetDepthStencilState(states.gsDss.Get(), 0x01);
+		context->OMSetBlendState(states.groundShadowBlendState.Get(), nullptr, 0xffffffff);
+	}
+
+	void Dx11Pipeline::BindSceneInput(ID3D11DeviceContext* context, const bool velocity) const {
+		if (context == nullptr)
+			return;
+		const auto& [vertexShader, pixelShader, inputLayout] = velocity
+			? static_cast<const Dx11Shader&>(shaders.sceneVelocity)
+			: static_cast<const Dx11Shader&>(shaders.sceneDepth);
+		context->IASetInputLayout(inputLayout.Get());
+		context->VSSetShader(vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(pixelShader.Get(), nullptr, 0);
 	}
 }

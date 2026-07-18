@@ -55,6 +55,8 @@ namespace Chrivent {
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
+		bool IsVelocityYInverted() const override { return false; }
+
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
 	};

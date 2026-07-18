@@ -5,7 +5,9 @@
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
+#include <algorithm>
 #include <iostream>
+#include <limits>
 #include <utility>
 
 namespace Chrivent {
@@ -121,10 +123,17 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
 		parameterDataBuffers.clear();
-		const size_t bufferCount = swapChainImageCount * GetPassRoutes().size();
-		for (size_t index = 0; index < bufferCount; index++) {
+		const size_t passCount = GetPassRoutes().size();
+		const VkDeviceSize alignment = std::max<VkDeviceSize>(
+			1, sourceDevice.properties.limits.minUniformBufferOffsetAlignment);
+		constexpr VkDeviceSize parameterSize = sizeof(PostProcessParameterData);
+		parameterDataStride = (parameterSize + alignment - 1) / alignment * alignment;
+		if (passCount == 0 || passCount > std::numeric_limits<VkDeviceSize>::max() / parameterDataStride)
+			return false;
+		const VkDeviceSize bufferSize = passCount * parameterDataStride;
+		for (size_t index = 0; index < swapChainImageCount; index++) {
 			auto buffer = std::make_unique<VulkanBuffer>();
-			if (!buffer->Initialize(sourceDevice, sizeof(PostProcessParameterData),
+			if (!buffer->Initialize(sourceDevice, bufferSize,
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 				return false;
@@ -149,12 +158,13 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::UpdateTextureDescriptorSet(
-		const uint32_t imageIndex, const size_t passIndex) const {
+		const uint32_t imageIndex, const size_t passIndex) {
 		const auto& routes = GetPassRoutes();
 		if (passIndex >= routes.size())
 			return false;
-		std::vector imageViews(
-			PostProcessInputLayout::maxTextureCount, sceneTarget.TryGetImageView(imageIndex));
+		VkImageView imageViews[PostProcessInputLayout::maxTextureCount]{};
+		for (VkImageView& imageView : imageViews)
+			imageView = sceneTarget.TryGetImageView(imageIndex);
 		for (const auto& input : routes[passIndex].inputs)
 			imageViews[input.slot] = ResolveInputImageView(input, imageIndex);
 		return descriptors.UpdateTextures(imageIndex, passIndex, imageViews);
@@ -239,6 +249,7 @@ namespace Chrivent {
 		descriptors.Swap(other.descriptors);
 		pipelines.Swap(other.pipelines);
 		std::swap(swapChainImageCount, other.swapChainImageCount);
+		std::swap(parameterDataStride, other.parameterDataStride);
 	}
 
 	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
@@ -253,7 +264,7 @@ namespace Chrivent {
 			&& CreateParameterDataBuffers(sourceDevice)
 			&& descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
 				frameDataBuffers, parameterDataBuffers,
-				sizeof(PostProcessFrameData), sizeof(PostProcessParameterData))
+				sizeof(PostProcessFrameData), sizeof(PostProcessParameterData), parameterDataStride)
 			&& CreatePipelines(sourceDevice);
 	}
 
@@ -298,7 +309,7 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
 			|| imageIndex >= frameDataBuffers.size()
-			|| parameterDataBuffers.size() != swapChainImageCount * routes.size()
+			|| parameterDataBuffers.size() != swapChainImageCount
 			|| pipelines.GetCount() != routes.size()
 			|| !descriptors.IsCompatible(swapChainImageCount, routes.size()))
 			return false;
@@ -354,8 +365,8 @@ namespace Chrivent {
 				return false;
 			}
 			const PostProcessPassRoute& route = routes[passIndex];
-			const size_t parameterIndex = imageIndex * routes.size() + passIndex;
-			if (!parameterDataBuffers[parameterIndex]->Write(&route.parameters, sizeof(route.parameters))) {
+			if (!parameterDataBuffers[imageIndex]->Write(
+				&route.parameters, sizeof(route.parameters), passIndex * parameterDataStride)) {
 				DiscardHistoryFrame();
 				return false;
 			}
@@ -437,6 +448,7 @@ namespace Chrivent {
 		frameDataBuffers.clear();
 		parameterDataBuffers.clear();
 		swapChainImageCount = 0;
+		parameterDataStride = 0;
 		targetExtent = {};
 		swapChainFormat = VK_FORMAT_UNDEFINED;
 		device = VK_NULL_HANDLE;

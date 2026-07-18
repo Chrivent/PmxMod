@@ -58,7 +58,7 @@ namespace Chrivent {
 			D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		device.GetContext()->OMSetRenderTargets(1, &sceneColorView,
 			renderTargets.GetDepthStencilView());
-		device.GetContext()->OMSetBlendState(pipeline.GetStates().blendState.Get(), nullptr, 0xffffffff);
+		pipeline.BindDefaultBlendState(device.GetContext());
 		return FrameBeginResult::Ready;
 	}
 
@@ -67,7 +67,7 @@ namespace Chrivent {
 			postProcess.ResolveSceneColor(
 				device.GetContext(), renderTargets.GetSceneColor(), multiSampleCount);
 			if (!postProcess.Draw(device.GetContext(), renderTargets.GetBackBufferView(),
-				pipeline.GetStates().bothFaceRs.Get(), pipeline.GetStates().toonTextureSampler.Get(),
+				pipeline.GetPostProcessRasterizerState(), pipeline.GetToonTextureSampler(),
 				screenWidth, screenHeight, GetPostProcessFrameData())) {
 				return FrameEndResult::Failed;
 			}
@@ -86,7 +86,7 @@ namespace Chrivent {
 
 	bool Dx11Viewer::BeginPostProcessSceneInputPassCore() {
 		return postProcess.BeginSceneInputPass(
-			device.GetContext(), pipeline.GetStates().defaultDss.Get(), screenWidth, screenHeight);
+			device.GetContext(), pipeline.GetDefaultDepthStencilState(), screenWidth, screenHeight);
 	}
 
 	bool Dx11Viewer::EndPostProcessSceneInputPassCore() {

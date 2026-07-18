@@ -5,7 +5,7 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Viewer/Viewer.h"
 
-#include <iostream>
+#include <limits>
 
 namespace Chrivent {
 	bool Dx12PostProcess::CreateDepthTarget(
@@ -72,9 +72,17 @@ namespace Chrivent {
 		inputDescriptorHeaps.clear();
 		if (!sourceDevice.device)
 			return false;
-		inputDescriptorHeaps.resize(GetPassRoutes().size() * FrameBuffering::dx12BufferCount);
+		const size_t passCount = GetPassRoutes().size();
+		if (passCount == 0)
+			return true;
+		if (passCount > std::numeric_limits<UINT>::max() / PostProcessInputLayout::maxTextureCount)
+			return false;
+		inputDescriptorHeaps.resize(FrameBuffering::dx12BufferCount);
+		inputDescriptorStates.resize(
+			FrameBuffering::dx12BufferCount * passCount * PostProcessInputLayout::maxTextureCount);
 		D3D12_DESCRIPTOR_HEAP_DESC description{};
-		description.NumDescriptors = PostProcessInputLayout::maxTextureCount;
+		description.NumDescriptors = static_cast<UINT>(
+			passCount * PostProcessInputLayout::maxTextureCount);
 		description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		for (auto& heap : inputDescriptorHeaps) {
@@ -125,27 +133,38 @@ namespace Chrivent {
 	}
 
 	void Dx12PostProcess::UpdateInputDescriptors(
-		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) const {
-		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex, passIndex);
+		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) {
+		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
 		if (!sourceDevice.device || heap == nullptr || passIndex >= GetPassRoutes().size())
 			return;
 		ID3D12Device* device = sourceDevice.device.Get();
 		const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
-		std::vector<const PostProcessPassInputRoute*> slots(PostProcessInputLayout::maxTextureCount);
+		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * increment;
+		const PostProcessPassInputRoute* slots[PostProcessInputLayout::maxTextureCount]{};
 		for (const auto& input : GetPassRoutes()[passIndex].inputs)
 			slots[input.slot] = &input;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
-			DXGI_FORMAT format = sceneColor.GetFormat();
-			ID3D12Resource* resource = sceneColor.GetResource();
+			DXGI_FORMAT colFormat = sceneColor.GetFormat();
+			ID3D12Resource* colResource = sceneColor.GetResource();
 			if (slots[slot] != nullptr)
-				resource = ResolveInputResource(*slots[slot], format);
+				colResource = ResolveInputResource(*slots[slot], colFormat);
+			const size_t stateIndex =
+				(frameIndex % FrameBuffering::dx12BufferCount * GetPassRoutes().size() + passIndex)
+				* PostProcessInputLayout::maxTextureCount + slot;
+			auto& [resource, format] = inputDescriptorStates[stateIndex];
+			if (resource == colResource && format == colFormat) {
+				handle.ptr += increment;
+				continue;
+			}
 			D3D12_SHADER_RESOURCE_VIEW_DESC description{};
-			description.Format = format;
+			description.Format = colFormat;
 			description.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			description.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			description.Texture2D.MipLevels = 1;
-			device->CreateShaderResourceView(resource, &description, handle);
+			device->CreateShaderResourceView(colResource, &description, handle);
+			resource = colResource;
+			format = colFormat;
 			handle.ptr += increment;
 		}
 	}
@@ -190,9 +209,8 @@ namespace Chrivent {
 		return pipelines.Initialize(sourceDevice, passes, formats);
 	}
 
-	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(
-		const size_t frameIndex, const size_t passIndex) const {
-		const size_t index = frameIndex % FrameBuffering::dx12BufferCount * GetPassRoutes().size() + passIndex;
+	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(const size_t frameIndex) const {
+		const size_t index = frameIndex % FrameBuffering::dx12BufferCount;
 		return index < inputDescriptorHeaps.size() ? inputDescriptorHeaps[index].Get() : nullptr;
 	}
 
@@ -205,6 +223,7 @@ namespace Chrivent {
 
 	void Dx12PostProcess::ResetEffectResources() {
 		inputDescriptorHeaps.clear();
+		inputDescriptorStates.clear();
 		resources.clear();
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
@@ -252,6 +271,7 @@ namespace Chrivent {
 		SwapExecutionPlan(candidate);
 		resources.swap(candidate.resources);
 		inputDescriptorHeaps.swap(candidate.inputDescriptorHeaps);
+		inputDescriptorStates.swap(candidate.inputDescriptorStates);
 		pipelines.Swap(candidate.pipelines);
 		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++)
 			parameterDataBuffers[index].Swap(candidate.parameterDataBuffers[index]);
@@ -342,6 +362,14 @@ namespace Chrivent {
 		BeginHistoryFrame();
 		InitializeHistories(commandList, commandContext);
 		const auto& routes = GetPassRoutes();
+		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
+		if (heap == nullptr) {
+			DiscardHistoryFrame();
+			return false;
+		}
+		commandList->SetDescriptorHeaps(1, &heap);
+		const UINT descriptorIncrement = sourceDevice.device->GetDescriptorHandleIncrementSize(
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
@@ -367,14 +395,14 @@ namespace Chrivent {
 			ResolveOutputExtent(route, outputWidth, outputHeight);
 			Dx12CommandContext::ApplyViewportAndScissor(commandList, outputWidth, outputHeight);
 			UpdateInputDescriptors(sourceDevice, frameIndex, passIndex);
-			ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex, passIndex);
-			commandList->SetDescriptorHeaps(1, &heap);
 			commandList->SetGraphicsRootSignature(pipelines.GetRootSignature());
 			commandList->SetPipelineState(pipelines.TryGetPipelineState(passIndex));
 			commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);
 			commandList->SetGraphicsRootConstantBufferView(
 				1, parameterDataBuffer.GetGpuAddress() + parameterOffset);
-			commandList->SetGraphicsRootDescriptorTable(2, heap->GetGPUDescriptorHandleForHeapStart());
+			D3D12_GPU_DESCRIPTOR_HANDLE inputHandle = heap->GetGPUDescriptorHandleForHeapStart();
+			inputHandle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * descriptorIncrement;
+			commandList->SetGraphicsRootDescriptorTable(2, inputHandle);
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
 			if (outputTarget != nullptr)
