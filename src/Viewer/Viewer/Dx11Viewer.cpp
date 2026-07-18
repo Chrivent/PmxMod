@@ -20,7 +20,6 @@ namespace Chrivent {
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
 		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
-		capabilities.Print();
 		const auto swapChainResult = device.CreateSwapChain(hwnd);
 		if (!swapChainResult)
 			return std::unexpected(swapChainResult.error());
@@ -28,9 +27,9 @@ namespace Chrivent {
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"render target 초기화", "DirectX 11 render target을 만들지 못했습니다"));
-		if (!pipeline.Initialize(device.GetDevice(), shaderContract))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"rendering pipeline 초기화", "DirectX 11 pipeline을 만들지 못했습니다"));
+		const auto pipelineResult = pipeline.Initialize(device.GetDevice(), shaderContract);
+		if (!pipelineResult)
+			return std::unexpected(pipelineResult.error());
 		if (!CreateDummyResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));

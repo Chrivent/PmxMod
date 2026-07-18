@@ -4,19 +4,19 @@
 
 namespace Chrivent {
 	bool Dx12UploadContext::Begin(const Dx12Device& sourceDevice) {
-		if (!sourceDevice.device || !sourceDevice.commandQueue)
+		if (!sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue())
 			return false;
 		if (!commandAllocator) {
-			if (FAILED(sourceDevice.device->CreateCommandAllocator(
+			if (FAILED(sourceDevice.GetDevice()->CreateCommandAllocator(
 				D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator))))
 				return false;
-			if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+			if (FAILED(sourceDevice.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 				commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList))))
 				return false;
 			if (sourceDevice.SupportsEnhancedBarriers()
 				&& FAILED(commandList.As(&enhancedCommandList)))
 				return false;
-			if (FAILED(sourceDevice.device->CreateFence(
+			if (FAILED(sourceDevice.GetDevice()->CreateFence(
 				0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
 				return false;
 			fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
@@ -30,9 +30,9 @@ namespace Chrivent {
 		if (FAILED(commandList->Close()))
 			return false;
 		ID3D12CommandList* commandLists[] = { commandList.Get() };
-		sourceDevice.commandQueue->ExecuteCommandLists(1, commandLists);
+		sourceDevice.GetCommandQueue()->ExecuteCommandLists(1, commandLists);
 		fenceValue++;
-		if (FAILED(sourceDevice.commandQueue->Signal(fence.Get(), fenceValue)))
+		if (FAILED(sourceDevice.GetCommandQueue()->Signal(fence.Get(), fenceValue)))
 			return false;
 		if (fence->GetCompletedValue() >= fenceValue)
 			return true;

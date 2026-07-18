@@ -12,19 +12,19 @@ namespace Chrivent {
 	bool VulkanBuffer::Initialize(const VulkanDevice& sourceDevice, const VkDeviceSize bufferSize,
 		const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
 		Reset();
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		size = bufferSize;
 		VkBufferCreateInfo bufferInfo{};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = bufferSize;
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateBuffer(sourceDevice.device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+		if (vkCreateBuffer(sourceDevice.GetDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 			std::cerr << "Vulkan buffer를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
-		vkGetBufferMemoryRequirements(sourceDevice.device, buffer, &memoryRequirements);
+		vkGetBufferMemoryRequirements(sourceDevice.GetDevice(), buffer, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, properties, memoryType)) {
 			std::cerr << "Vulkan buffer memory type을 찾지 못했습니다.\n";
@@ -34,16 +34,16 @@ namespace Chrivent {
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &memory) != VK_SUCCESS) {
+		if (vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &memory) != VK_SUCCESS) {
 			std::cerr << "Vulkan buffer memory를 할당하지 못했습니다.\n";
 			return false;
 		}
-		if (vkBindBufferMemory(sourceDevice.device, buffer, memory, 0) != VK_SUCCESS) {
+		if (vkBindBufferMemory(sourceDevice.GetDevice(), buffer, memory, 0) != VK_SUCCESS) {
 			std::cerr << "Vulkan buffer memory를 연결하지 못했습니다.\n";
 			return false;
 		}
 		if ((properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
-			if (vkMapMemory(sourceDevice.device, memory, 0, bufferSize, 0, &mappedData) != VK_SUCCESS) {
+			if (vkMapMemory(sourceDevice.GetDevice(), memory, 0, bufferSize, 0, &mappedData) != VK_SUCCESS) {
 				std::cerr << "Vulkan buffer memory를 persistent map하지 못했습니다.\n";
 				return false;
 			}

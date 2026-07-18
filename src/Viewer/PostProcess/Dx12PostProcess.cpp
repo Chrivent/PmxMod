@@ -12,7 +12,7 @@ namespace Chrivent {
 		const Dx12Device& sourceDevice, const int width, const int height) {
 		depth.Reset();
 		depthDsvHeap.Reset();
-		if (!sourceDevice.device || width <= 0 || height <= 0)
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
 			return false;
 		D3D12_HEAP_PROPERTIES heapProperties{};
 		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -30,18 +30,18 @@ namespace Chrivent {
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		clearValue.DepthStencil.Depth = 1.0f;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
 			&description, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&depth))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDescription{};
 		heapDescription.NumDescriptors = 1;
 		heapDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDescription, IID_PPV_ARGS(&depthDsvHeap))))
+		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDescription, IID_PPV_ARGS(&depthDsvHeap))))
 			return false;
 		D3D12_DEPTH_STENCIL_VIEW_DESC viewDescription{};
 		viewDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		viewDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		sourceDevice.device->CreateDepthStencilView(
+		sourceDevice.GetDevice()->CreateDepthStencilView(
 			depth.Get(), &viewDescription, depthDsvHeap->GetCPUDescriptorHandleForHeapStart());
 		return true;
 	}
@@ -70,7 +70,7 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
 		inputDescriptorHeaps.clear();
-		if (!sourceDevice.device)
+		if (!sourceDevice.GetDevice())
 			return false;
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
@@ -86,7 +86,7 @@ namespace Chrivent {
 		description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		for (auto& heap : inputDescriptorHeaps) {
-			if (FAILED(sourceDevice.device->CreateDescriptorHeap(&description, IID_PPV_ARGS(&heap))))
+			if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&description, IID_PPV_ARGS(&heap))))
 				return false;
 		}
 		return true;
@@ -95,7 +95,7 @@ namespace Chrivent {
 	bool Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
-		if (!sourceDevice.device)
+		if (!sourceDevice.GetDevice())
 			return false;
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
@@ -135,9 +135,9 @@ namespace Chrivent {
 	void Dx12PostProcess::UpdateInputDescriptors(
 		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) {
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
-		if (!sourceDevice.device || heap == nullptr || passIndex >= GetPassRoutes().size())
+		if (!sourceDevice.GetDevice() || heap == nullptr || passIndex >= GetPassRoutes().size())
 			return;
-		ID3D12Device* device = sourceDevice.device.Get();
+		ID3D12Device* device = sourceDevice.GetDevice();
 		const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * increment;
@@ -239,7 +239,7 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::InitializeTargets(
 		const Dx12Device& sourceDevice, const int width, const int height) {
-		if (!sourceDevice.device || width <= 0 || height <= 0)
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
 			return false;
 		targetWidth = width;
 		targetHeight = height;
@@ -348,15 +348,15 @@ namespace Chrivent {
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized())
 			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		const D3D12_RESOURCE_STATES sourceState = sourceDevice.msaaSampleCount > 1
+		const D3D12_RESOURCE_STATES sourceState = sourceDevice.GetMsaaSampleCount() > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
-		const D3D12_RESOURCE_STATES destinationState = sourceDevice.msaaSampleCount > 1
+		const D3D12_RESOURCE_STATES destinationState = sourceDevice.GetMsaaSampleCount() > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_DEST : D3D12_RESOURCE_STATE_COPY_DEST;
 		Dx12Barrier::Transition(commandList, enhancedCommandList, msaaColor,
 			D3D12_RESOURCE_STATE_RENDER_TARGET, sourceState);
 		Dx12Barrier::Transition(commandList, enhancedCommandList, sceneColor.GetResource(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, destinationState);
-		if (sourceDevice.msaaSampleCount > 1)
+		if (sourceDevice.GetMsaaSampleCount() > 1)
 			commandList->ResolveSubresource(
 				sceneColor.GetResource(), 0, msaaColor, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
@@ -372,7 +372,7 @@ namespace Chrivent {
 		if (heap == nullptr)
 			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		commandList->SetDescriptorHeaps(1, &heap);
-		const UINT descriptorIncrement = sourceDevice.device->GetDescriptorHandleIncrementSize(
+		const UINT descriptorIncrement = sourceDevice.GetDevice()->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {

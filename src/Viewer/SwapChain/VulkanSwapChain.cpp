@@ -7,26 +7,26 @@ namespace Chrivent {
 	bool VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice, Support& support) {
 		support = {};
 		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-			sourceDevice.physicalDevice, sourceDevice.surface, &support.capabilities) != VK_SUCCESS)
+			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &support.capabilities) != VK_SUCCESS)
 			return false;
 		uint32_t formatCount = 0;
 		if (vkGetPhysicalDeviceSurfaceFormatsKHR(
-			sourceDevice.physicalDevice, sourceDevice.surface, &formatCount, nullptr) != VK_SUCCESS)
+			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &formatCount, nullptr) != VK_SUCCESS)
 			return false;
 		if (formatCount > 0) {
 			support.formats.resize(formatCount);
-			if (vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.physicalDevice, sourceDevice.surface,
+			if (vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(),
 				&formatCount, support.formats.data()) != VK_SUCCESS)
 				return false;
 			support.formats.resize(formatCount);
 		}
 		uint32_t presentModeCount = 0;
 		if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-			sourceDevice.physicalDevice, sourceDevice.surface, &presentModeCount, nullptr) != VK_SUCCESS)
+			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &presentModeCount, nullptr) != VK_SUCCESS)
 			return false;
 		if (presentModeCount > 0) {
 			support.presentModes.resize(presentModeCount);
-			if (vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.physicalDevice, sourceDevice.surface,
+			if (vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(),
 				&presentModeCount, support.presentModes.data()) != VK_SUCCESS)
 				return false;
 			support.presentModes.resize(presentModeCount);
@@ -99,7 +99,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		Support support;
 		if (!QuerySupport(sourceDevice, support)) {
 			std::cerr << "Vulkan swap chain surface 지원 정보를 조회하지 못했습니다.\n";
@@ -122,7 +122,7 @@ namespace Chrivent {
 			imageCount = capabilities.maxImageCount;
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = sourceDevice.surface;
+		createInfo.surface = sourceDevice.GetSurface();
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = format;
 		createInfo.imageColorSpace = colorSpace;
@@ -130,10 +130,10 @@ namespace Chrivent {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
-			sourceDevice.queueFamilies.graphicsFamily,
-			sourceDevice.queueFamilies.presentFamily
+			sourceDevice.GetGraphicsQueueFamily(),
+			sourceDevice.GetPresentQueueFamily()
 		};
-		if (sourceDevice.queueFamilies.graphicsFamily != sourceDevice.queueFamilies.presentFamily) {
+		if (sourceDevice.GetGraphicsQueueFamily() != sourceDevice.GetPresentQueueFamily()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -144,14 +144,14 @@ namespace Chrivent {
 		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
-		if (vkCreateSwapchainKHR(sourceDevice.device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+		if (vkCreateSwapchainKHR(sourceDevice.GetDevice(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
 			std::cerr << "Vulkan swap chain을 만들지 못했습니다.\n";
 			return false;
 		}
-		if (vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, nullptr) != VK_SUCCESS)
+		if (vkGetSwapchainImagesKHR(sourceDevice.GetDevice(), swapChain, &imageCount, nullptr) != VK_SUCCESS)
 			return false;
 		images.resize(imageCount);
-		if (vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, images.data()) != VK_SUCCESS)
+		if (vkGetSwapchainImagesKHR(sourceDevice.GetDevice(), swapChain, &imageCount, images.data()) != VK_SUCCESS)
 			return false;
 		images.resize(imageCount);
 		imageFormat = format;

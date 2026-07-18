@@ -41,7 +41,11 @@ namespace Chrivent {
 		description.NumStaticSamplers = PostProcessInputLayout::samplerCount;
 		description.pStaticSamplers = samplers;
 		description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice, description, rootSignature);
+		std::string error;
+		if (Dx12PipelineBuilder::CreateRootSignature(sourceDevice, description, rootSignature, error))
+			return true;
+		std::cerr << error << '\n';
+		return false;
 	}
 
 	bool Dx12PostProcessPipelines::CreatePipelineState(const Dx12Device& sourceDevice,
@@ -69,7 +73,7 @@ namespace Chrivent {
 		description.NumRenderTargets = 1;
 		description.RTVFormats[0] = format;
 		description.SampleDesc.Count = 1;
-		return SUCCEEDED(sourceDevice.device->CreateGraphicsPipelineState(&description,
+		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(&description,
 			IID_PPV_ARGS(&pipelineState)));
 	}
 
@@ -78,7 +82,7 @@ namespace Chrivent {
 		Reset();
 		if (programs.empty())
 			return true;
-		if (!sourceDevice.device || programs.size() != formats.size() || !CreateRootSignature(sourceDevice))
+		if (!sourceDevice.GetDevice() || programs.size() != formats.size() || !CreateRootSignature(sourceDevice))
 			return false;
 		for (size_t index = 0; index < programs.size(); index++) {
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;

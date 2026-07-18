@@ -2,19 +2,19 @@
 
 namespace Chrivent {
 	bool Dx12SwapChain::CreateRenderTargetViews(const Dx12Device& sourceDevice) {
-		if (!sourceDevice.device || !swapChain)
+		if (!sourceDevice.GetDevice() || !swapChain)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 		rtvHeapDesc.NumDescriptors = FrameBuffering::dx12BufferCount;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap))))
+		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap))))
 			return false;
-		rtvDescriptorSize = sourceDevice.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		rtvDescriptorSize = sourceDevice.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		for (UINT index = 0; index < FrameBuffering::dx12BufferCount; index++) {
 			if (FAILED(swapChain->GetBuffer(index, IID_PPV_ARGS(&backBuffers[index]))))
 				return false;
-			sourceDevice.device->CreateRenderTargetView(backBuffers[index].Get(), nullptr, rtvHandle);
+			sourceDevice.GetDevice()->CreateRenderTargetView(backBuffers[index].Get(), nullptr, rtvHandle);
 			rtvHandle.ptr += rtvDescriptorSize;
 		}
 		return true;
@@ -22,7 +22,7 @@ namespace Chrivent {
 
 	bool Dx12SwapChain::Initialize(const Dx12Device& sourceDevice, const HWND hwnd, const int width, const int height) {
 		Reset();
-		if (!sourceDevice.factory || !sourceDevice.device || !sourceDevice.commandQueue || !hwnd)
+		if (!sourceDevice.GetFactory() || !sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue() || !hwnd)
 			return false;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
 		swapChainDesc.BufferCount = FrameBuffering::dx12BufferCount;
@@ -33,10 +33,10 @@ namespace Chrivent {
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.SampleDesc.Count = 1;
 		Microsoft::WRL::ComPtr<IDXGISwapChain1> baseSwapChain;
-		if (FAILED(sourceDevice.factory->CreateSwapChainForHwnd(
-			sourceDevice.commandQueue.Get(), hwnd, &swapChainDesc, nullptr, nullptr, &baseSwapChain)))
+		if (FAILED(sourceDevice.GetFactory()->CreateSwapChainForHwnd(
+			sourceDevice.GetCommandQueue(), hwnd, &swapChainDesc, nullptr, nullptr, &baseSwapChain)))
 			return false;
-		if (FAILED(sourceDevice.factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)))
+		if (FAILED(sourceDevice.GetFactory()->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)))
 			return false;
 		if (FAILED(baseSwapChain.As(&swapChain)))
 			return false;

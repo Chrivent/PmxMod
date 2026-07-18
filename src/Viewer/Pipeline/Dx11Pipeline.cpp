@@ -4,12 +4,12 @@
 
 namespace Chrivent {
 	bool Dx11Pipeline::CreateShaders(ID3D11Device* device, const BuiltInShaderPasses& builtInPasses,
-		const SceneInputShaderPasses& sceneInputPasses) {
-		return shaders.model.Initialize(device, builtInPasses.model)
-			&& shaders.edge.Initialize(device, builtInPasses.edge)
-			&& shaders.groundShadow.Initialize(device, builtInPasses.groundShadow)
-			&& shaders.sceneDepth.Initialize(device, sceneInputPasses.depth)
-			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity);
+		const SceneInputShaderPasses& sceneInputPasses, std::string& error) {
+		return shaders.model.Initialize(device, builtInPasses.model, error)
+			&& shaders.edge.Initialize(device, builtInPasses.edge, error)
+			&& shaders.groundShadow.Initialize(device, builtInPasses.groundShadow, error)
+			&& shaders.sceneDepth.Initialize(device, sceneInputPasses.depth, error)
+			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity, error);
 	}
 
 	bool Dx11Pipeline::CreateStates(ID3D11Device* device) {
@@ -49,9 +49,22 @@ namespace Chrivent {
 		return SUCCEEDED(device->CreateDepthStencilState(&defaultDepthDescription, &states.defaultDss));
 	}
 
-	bool Dx11Pipeline::Initialize(ID3D11Device* device, const SceneShaderRuntimeContract& shaderContract) {
-		return device != nullptr && CreateShaders(device, shaderContract.builtIn, shaderContract.sceneInput)
-			&& CreateStates(device);
+	GraphicsResult<void> Dx11Pipeline::Initialize(ID3D11Device* device,
+		const SceneShaderRuntimeContract& shaderContract) {
+		if (device == nullptr)
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidArgument, "rendering pipeline 초기화",
+				"DirectX 11 device가 올바르지 않습니다"));
+		std::string error;
+		if (!CreateShaders(device, shaderContract.builtIn, shaderContract.sceneInput, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "장면 셰이더 생성",
+				error.empty() ? "DirectX 11 장면 셰이더를 만들지 못했습니다" : error));
+		if (!CreateStates(device))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "고정 pipeline state 생성",
+				"DirectX 11 sampler, blend, rasterizer 또는 depth state를 만들지 못했습니다"));
+		return {};
 	}
 
 	void Dx11Pipeline::BindDefaultBlendState(ID3D11DeviceContext* context) const {

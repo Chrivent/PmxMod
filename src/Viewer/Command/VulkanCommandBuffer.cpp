@@ -53,7 +53,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice, const VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		commandPool = sourceCommandPool;
 		commandBuffers.resize(sourceSwapChain.GetImageCount());
 		if (commandBuffers.empty()) {

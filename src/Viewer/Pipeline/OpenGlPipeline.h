@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/OpenGlShader.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
@@ -23,7 +24,7 @@ namespace Chrivent {
 
 	public:
 		// 내부 장면 패스 계약으로 OpenGL 셰이더 프로그램들을 초기화한다.
-		bool Initialize(const SceneShaderRuntimeContract& shaderContract);
+		GraphicsResult<void> Initialize(const SceneShaderRuntimeContract& shaderContract);
 		// 장면 패스별 vertex attribute 위치를 모델 VAO 생성용 값으로 반환한다.
 		OpenGlSceneAttributeLocations ResolveSceneAttributeLocations() const;
 		// 모델 표면 프로그램을 바인딩한다.

@@ -3,7 +3,7 @@
 namespace Chrivent {
 	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
 		const UINT width, const UINT height, Dx12Texture& texture) const {
-		if (!sourceDevice.device || !sourceDevice.commandQueue || pixels == nullptr || width == 0 || height == 0)
+		if (!sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue() || pixels == nullptr || width == 0 || height == 0)
 			return false;
 		D3D12_RESOURCE_DESC textureDesc{};
 		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -18,7 +18,7 @@ namespace Chrivent {
 		defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
 		defaultHeap.CreationNodeMask = 1;
 		defaultHeap.VisibleNodeMask = 1;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(
 			&defaultHeap,
 			D3D12_HEAP_FLAG_NONE,
 			&textureDesc,
@@ -29,7 +29,7 @@ namespace Chrivent {
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
 		UINT rowCount = 0;
 		UINT64 uploadByteSize = 0;
-		sourceDevice.device->GetCopyableFootprints(&textureDesc, 0, 1, 0,
+		sourceDevice.GetDevice()->GetCopyableFootprints(&textureDesc, 0, 1, 0,
 			&layout, &rowCount, nullptr, &uploadByteSize);
 		D3D12_HEAP_PROPERTIES uploadHeap{};
 		uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -44,7 +44,7 @@ namespace Chrivent {
 		uploadDesc.SampleDesc.Count = 1;
 		uploadDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(
 			&uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr, IID_PPV_ARGS(&uploadBuffer))))
 			return false;

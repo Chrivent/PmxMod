@@ -11,7 +11,7 @@ namespace Chrivent {
 		const D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_STATES initialState,
 		const bool map) {
 		Reset();
-		if (!sourceDevice.device || size == 0)
+		if (!sourceDevice.GetDevice() || size == 0)
 			return false;
 		D3D12_HEAP_PROPERTIES heapProperties;
 		heapProperties.Type = heapType;
@@ -27,7 +27,7 @@ namespace Chrivent {
 		resourceDesc.MipLevels = 1;
 		resourceDesc.SampleDesc.Count = 1;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
 			&resourceDesc, initialState, nullptr, IID_PPV_ARGS(&resource))))
 			return false;
 		byteSize = size;

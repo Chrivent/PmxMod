@@ -6,6 +6,7 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <algorithm>
+#include <iostream>
 #include <utility>
 
 namespace Chrivent {
@@ -154,11 +155,15 @@ namespace Chrivent {
 
 	bool Dx11PostProcess::CreateShaders(ID3D11Device* device) {
 		ResetShaders();
+		std::string error;
 		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(device, shaderPath,
-				vertexEntry.c_str(), pixelEntry.c_str()))
+				vertexEntry.c_str(), pixelEntry.c_str(), error)) {
+				if (!error.empty())
+					std::cerr << error << '\n';
 				return false;
+			}
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return true;

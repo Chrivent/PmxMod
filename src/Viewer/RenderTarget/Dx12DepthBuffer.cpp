@@ -3,12 +3,12 @@
 namespace Chrivent {
 	bool Dx12DepthBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
 		Reset();
-		if (!sourceDevice.device || width <= 0 || height <= 0)
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = 1;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&dsvHeap))))
+		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&dsvHeap))))
 			return false;
 		D3D12_CLEAR_VALUE clearValue;
 		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -25,15 +25,15 @@ namespace Chrivent {
 		resourceDesc.DepthOrArraySize = 1;
 		resourceDesc.MipLevels = 1;
 		resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		resourceDesc.SampleDesc.Count = sourceDevice.msaaSampleCount;
+		resourceDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
 		resourceDesc.SampleDesc.Quality = 0;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(
 			&heapProperties, D3D12_HEAP_FLAG_NONE,
 			&resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
 			&clearValue, IID_PPV_ARGS(&depthStencil))))
 			return false;
-		sourceDevice.device->CreateDepthStencilView(depthStencil.Get(), nullptr, GetDsvHandle());
+		sourceDevice.GetDevice()->CreateDepthStencilView(depthStencil.Get(), nullptr, GetDsvHandle());
 		return true;
 	}
 

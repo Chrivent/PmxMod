@@ -144,7 +144,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice candidate) const {
-		const VulkanQueueFamilyIndices families = FindQueueFamilies(candidate);
+		const QueueFamilyIndices families = FindQueueFamilies(candidate);
 		VkPhysicalDeviceProperties candidateProperties{};
 		vkGetPhysicalDeviceProperties(candidate, &candidateProperties);
 		if (!families.IsComplete() || candidateProperties.apiVersion < VK_API_VERSION_1_3 ||
@@ -203,8 +203,8 @@ namespace Chrivent {
 		}
 	}
 
-	VulkanQueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice candidate) const {
-		VulkanQueueFamilyIndices indices;
+	VulkanDevice::QueueFamilyIndices VulkanDevice::FindQueueFamilies(const VkPhysicalDevice candidate) const {
+		QueueFamilyIndices indices;
 		uint32_t queueFamilyCount = 0;
 		vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, nullptr);
 		std::vector<VkQueueFamilyProperties> families(queueFamilyCount);

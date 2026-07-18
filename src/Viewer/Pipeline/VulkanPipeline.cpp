@@ -6,10 +6,10 @@
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <cstddef>
-#include <iostream>
 
 namespace Chrivent {
-	bool VulkanPipeline::CreateDescriptorSetLayouts() {
+	bool VulkanPipeline::CreateDescriptorSetLayouts(std::string& error) {
+		error.clear();
 		constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -22,7 +22,7 @@ namespace Chrivent {
 		vertexLayoutInfo.bindingCount = 1;
 		vertexLayoutInfo.pBindings = &vertexConstantBinding;
 		if (vkCreateDescriptorSetLayout(device, &vertexLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS) {
-			std::cerr << "Vulkan vertex descriptor set layout을 만들지 못했습니다.\n";
+			error = "Vulkan vertex descriptor set layout을 만들지 못했습니다";
 			return false;
 		}
 		constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
@@ -37,7 +37,7 @@ namespace Chrivent {
 		pixelLayoutInfo.bindingCount = 1;
 		pixelLayoutInfo.pBindings = &pixelConstantBinding;
 		if (vkCreateDescriptorSetLayout(device, &pixelLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS) {
-			std::cerr << "Vulkan pixel descriptor set layout을 만들지 못했습니다.\n";
+			error = "Vulkan pixel descriptor set layout을 만들지 못했습니다";
 			return false;
 		}
 		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
@@ -89,19 +89,20 @@ namespace Chrivent {
 		textureLayoutInfo.bindingCount = std::size(textureBindings);
 		textureLayoutInfo.pBindings = textureBindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture descriptor set layout을 만들지 못했습니다.\n";
+			error = "Vulkan texture descriptor set layout을 만들지 못했습니다";
 			return false;
 		}
 		return true;
 	}
 
-	bool VulkanPipeline::CreatePipelineLayout() {
+	bool VulkanPipeline::CreatePipelineLayout(std::string& error) {
+		error.clear();
 		VkPipelineLayoutCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		createInfo.setLayoutCount = 3;
 		createInfo.pSetLayouts = descriptorSetLayouts;
 		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			std::cerr << "Vulkan pipeline layout을 만들지 못했습니다.\n";
+			error = "Vulkan pipeline layout을 만들지 못했습니다";
 			return false;
 		}
 		return true;
@@ -110,44 +111,44 @@ namespace Chrivent {
 	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
 		const BuiltInShaderPasses& passes,
-		const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram) {
+		const ShaderProgramDefinition& depthProgram,
+		const ShaderProgramDefinition& velocityProgram, std::string& error) {
+		error.clear();
 		return CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, pipeline)
+			sourceColorFormat, sourceDevice.GetMsaaSampleCount(), false, false, pipeline, error)
 			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.model,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, bothFacePipeline)
+			sourceColorFormat, sourceDevice.GetMsaaSampleCount(), false, false, bothFacePipeline, error)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceDepthFormat, depthProgram,
-			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
+			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline, error)
 			&& CreateDepthOnlyPipeline(sourceDevice, sourceDepthFormat, depthProgram,
-			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
+			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline, error)
 			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, velocityProgram,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityPipeline)
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityPipeline, error)
 			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, velocityProgram,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
-			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityBothFacePipeline)
+			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityBothFacePipeline, error)
 			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.edge,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, edgePipeline)
+			sourceColorFormat, sourceDevice.GetMsaaSampleCount(), false, false, edgePipeline, error)
 			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.groundShadow,
 			VK_CULL_MODE_NONE, true, true, true, true, VK_COMPARE_OP_LESS,
-			sourceColorFormat, sourceDevice.msaaSampleCount, false, true, groundShadowPipeline);
+			sourceColorFormat, sourceDevice.GetMsaaSampleCount(), false, true, groundShadowPipeline, error);
 	}
 
-	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDevice& sourceDevice, const VkFormat sourceDepthFormat,
+	bool VulkanPipeline::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
+		const VkFormat sourceDepthFormat,
 		const ShaderProgramDefinition& program,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, const VkFormat colorFormat, const VkSampleCountFlagBits sampleCount,
-		const bool useVelocityInput, const bool preserveDestinationAlpha, VkPipeline& outPipeline) const {
-		std::string error;
+		const bool useVelocityInput, const bool preserveDestinationAlpha,
+		VkPipeline& outPipeline, std::string& error) const {
+		error.clear();
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::Scene, error)) {
-			if (!error.empty())
-				std::cerr << error << '\n';
+		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::Scene, error))
 			return false;
-		}
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		VkVertexInputAttributeDescription attributeDescriptions[3]{};
 		FillVertexAttributeDescriptions(attributeDescriptions);
@@ -262,23 +263,20 @@ namespace Chrivent {
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
-			std::cerr << "Vulkan graphics pipeline을 만들지 못했습니다.\n";
+			error = "Vulkan graphics pipeline을 만들지 못했습니다";
 			return false;
 		}
 		return true;
 	}
 
-	bool VulkanPipeline::CreateDepthOnlyPipeline(
-		const VulkanDevice& sourceDevice, const VkFormat sourceDepthFormat,
+	bool VulkanPipeline::CreateDepthOnlyPipeline(const VulkanDevice& sourceDevice,
+		const VkFormat sourceDepthFormat,
 		const ShaderProgramDefinition& program,
-		const VkCullModeFlags cullMode, VkPipeline& outPipeline) const {
-		std::string error;
+		const VkCullModeFlags cullMode, VkPipeline& outPipeline, std::string& error) const {
+		error.clear();
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::Scene, error)) {
-			if (!error.empty())
-				std::cerr << error << '\n';
+		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::Scene, error))
 			return false;
-		}
 		const VkVertexInputBindingDescription bindingDescription = MakeVertexBindingDescription();
 		constexpr VkVertexInputAttributeDescription attributeDescriptions[] = {
 			VkVertexInputAttributeDescription{
@@ -350,7 +348,7 @@ namespace Chrivent {
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
-			std::cerr << "Vulkan depth-only pipeline을 만들지 못했습니다.\n";
+			error = "Vulkan depth-only pipeline을 만들지 못했습니다";
 			return false;
 		}
 		return true;
@@ -395,21 +393,30 @@ namespace Chrivent {
 		return bothFace ? depthOnlyBothFacePipeline : depthOnlyPipeline;
 	}
 
-	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VkFormat sourceColorFormat,
+	GraphicsResult<void> VulkanPipeline::Initialize(const VulkanDevice& sourceDevice,
+		const VkFormat sourceColorFormat,
 		const VkFormat sourceDepthFormat, const SceneShaderRuntimeContract& shaderContract) {
 		Reset();
-		device = sourceDevice.device;
-		if (!CreateDescriptorSetLayouts())
-			return false;
-		if (!CreatePipelineLayout())
-			return false;
+		device = sourceDevice.GetDevice();
+		std::string error;
+		if (!CreateDescriptorSetLayouts(error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "descriptor set layout 생성",
+				error));
+		if (!CreatePipelineLayout(error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "pipeline layout 생성",
+				error));
 		if (!CreateGraphicsPipelines(sourceDevice, sourceColorFormat, sourceDepthFormat,
-			shaderContract.builtIn, shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity))
-			return false;
+			shaderContract.builtIn, shaderContract.sceneInput.depth,
+			shaderContract.sceneInput.velocity, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "graphics pipeline 생성",
+				error.empty() ? "Vulkan 장면 graphics pipeline을 만들지 못했습니다" : error));
 		colorFormat = sourceColorFormat;
 		depthFormat = sourceDepthFormat;
-		sampleCount = sourceDevice.msaaSampleCount;
-		return true;
+		sampleCount = sourceDevice.GetMsaaSampleCount();
+		return {};
 	}
 
 	void VulkanPipeline::Reset() {

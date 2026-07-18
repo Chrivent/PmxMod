@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/Dx11Shader.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
@@ -37,7 +38,7 @@ namespace Chrivent {
 
 		// 장면 ABI 패스에 대응하는 D3D11 셰이더를 생성한다.
 		bool CreateShaders(ID3D11Device* device, const BuiltInShaderPasses& builtInPasses,
-			const SceneInputShaderPasses& sceneInputPasses);
+			const SceneInputShaderPasses& sceneInputPasses, std::string& error);
 		// sampler, blend, rasterizer와 depth-stencil 상태를 생성한다.
 		bool CreateStates(ID3D11Device* device);
 
@@ -48,7 +49,8 @@ namespace Chrivent {
 		ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return states.defaultDss.Get(); }
 
 		// 장면 ABI 계약으로 D3D11 셰이더와 고정 pipeline state를 생성한다.
-		bool Initialize(ID3D11Device* device, const SceneShaderRuntimeContract& shaderContract);
+		GraphicsResult<void> Initialize(ID3D11Device* device,
+			const SceneShaderRuntimeContract& shaderContract);
 		// 기본 장면 alpha blend 상태를 immediate context에 적용한다.
 		void BindDefaultBlendState(ID3D11DeviceContext* context) const;
 		// 재질의 양면 여부에 맞는 rasterizer state를 반환한다.

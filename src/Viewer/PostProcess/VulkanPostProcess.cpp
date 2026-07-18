@@ -128,7 +128,7 @@ namespace Chrivent {
 		parameterDataBuffers.clear();
 		const size_t passCount = GetPassRoutes().size();
 		const VkDeviceSize alignment = std::max<VkDeviceSize>(
-			1, sourceDevice.properties.limits.minUniformBufferOffsetAlignment);
+			1, sourceDevice.GetUniformBufferAlignment());
 		constexpr VkDeviceSize parameterSize = sizeof(PostProcessParameterData);
 		parameterDataStride = (parameterSize + alignment - 1) / alignment * alignment;
 		if (passCount == 0 || passCount > std::numeric_limits<VkDeviceSize>::max() / parameterDataStride)
@@ -257,7 +257,7 @@ namespace Chrivent {
 	bool VulkanPostProcess::InitializeTargets(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
 		ResetResources();
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		return CreateSceneImages(sourceDevice, sourceSwapChain)
 			&& (!(RequiresDepth() || RequiresVelocity())
 				|| CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat))

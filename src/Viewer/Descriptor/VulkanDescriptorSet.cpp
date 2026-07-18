@@ -222,7 +222,7 @@ namespace Chrivent {
 		std::vector<VulkanModelMaterial>& materials,
 		const VulkanPassType sourcePassType) {
 		Reset();
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		passType = sourcePassType;
 		if (!CreateDescriptorPool(materials.size()))
 			return false;

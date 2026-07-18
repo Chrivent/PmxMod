@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/Dx12Device.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 #include <d3d12.h>
 #include <wrl/client.h>
@@ -25,25 +26,31 @@ namespace Chrivent {
 		// 일반 메시와 엣지 패스에서 쓰는 depth stencil 기본값을 채운다.
 		static void ConfigureDefaultDepthStencil(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 		// 모델 셰이더의 리소스 배치와 맞는 root signature를 생성한다.
-		bool CreateModelRootSignature(const Dx12Device& sourceDevice);
+		bool CreateModelRootSignature(const Dx12Device& sourceDevice, std::string& error);
 		// 모델 렌더링용 graphics pipeline state를 생성한다.
-		bool CreateModelPipelineStates(const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		bool CreateModelPipelineStates(const Dx12Device& sourceDevice,
+			const ShaderProgramDefinition& program, std::string& error);
 		// 공통 장면 depth 입력용 graphics pipeline state를 생성한다.
-		bool CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		bool CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice,
+			const ShaderProgramDefinition& program, std::string& error);
 		// 현재/이전 정점 위치를 RG16F velocity 타깃에 기록하는 pipeline state를 생성한다.
-		bool CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		bool CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
+			const ShaderProgramDefinition& program, std::string& error);
 		// 엣지 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
-		bool CreateEdgeRootSignature(const Dx12Device& sourceDevice);
+		bool CreateEdgeRootSignature(const Dx12Device& sourceDevice, std::string& error);
 		// 엣지 렌더링용 graphics pipeline state를 생성한다.
-		bool CreateEdgePipelineState(const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		bool CreateEdgePipelineState(const Dx12Device& sourceDevice,
+			const ShaderProgramDefinition& program, std::string& error);
 		// 지면 그림자 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
-		bool CreateGroundShadowRootSignature(const Dx12Device& sourceDevice);
+		bool CreateGroundShadowRootSignature(const Dx12Device& sourceDevice, std::string& error);
 		// 지면 그림자 렌더링용 graphics pipeline state를 생성한다.
-		bool CreateGroundShadowPipelineState(const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		bool CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
+			const ShaderProgramDefinition& program, std::string& error);
 		
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
-		bool Initialize(const Dx12Device& sourceDevice, const SceneShaderRuntimeContract& shaderContract);
+		GraphicsResult<void> Initialize(const Dx12Device& sourceDevice,
+			const SceneShaderRuntimeContract& shaderContract);
 		// 모델 계열 pipeline에서 공유하는 root signature를 command list에 바인딩한다.
 		void BindModelRootSignature(ID3D12GraphicsCommandList* commandList) const;
 		// material의 양면 렌더링 여부에 맞는 model pipeline state를 command list에 바인딩한다.

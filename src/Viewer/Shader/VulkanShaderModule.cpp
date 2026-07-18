@@ -1,16 +1,16 @@
 ﻿#include "Viewer/Shader/VulkanShaderModule.h"
 
-#include <iostream>
-
 namespace Chrivent {
 	VulkanShaderModule::~VulkanShaderModule() {
 		Reset();
 	}
 
-	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice, const std::span<const uint32_t> spvBytes) {
-		device = sourceDevice.device;
+	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice,
+		const std::span<const uint32_t> spvBytes, std::string& error) {
+		error.clear();
+		device = sourceDevice.GetDevice();
 		if (spvBytes.empty()) {
-			std::cerr << "SPIR-V 셰이더 byte 크기가 올바르지 않습니다.\n";
+			error = "SPIR-V 셰이더 byte 크기가 올바르지 않습니다";
 			return false;
 		}
 		VkShaderModuleCreateInfo createInfo{};
@@ -18,7 +18,7 @@ namespace Chrivent {
 		createInfo.codeSize = spvBytes.size() * sizeof(uint32_t);
 		createInfo.pCode = spvBytes.data();
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			std::cerr << "Vulkan shader module을 만들지 못했습니다.\n";
+			error = "Vulkan shader module을 만들지 못했습니다";
 			return false;
 		}
 		return true;
@@ -31,5 +31,4 @@ namespace Chrivent {
 		}
 		device = VK_NULL_HANDLE;
 	}
-
 }

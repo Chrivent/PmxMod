@@ -49,7 +49,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanSyncObject::Initialize(const VulkanDevice& sourceDevice, const size_t swapChainImageCount) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		currentFrame = 0;
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

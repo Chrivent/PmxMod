@@ -71,10 +71,10 @@ namespace Chrivent {
 		const VkExtent2D extent, const VkFormat format, const VkImageUsageFlags usage,
 		const bool trackInitialization) {
 		Reset();
-		if (sourceDevice.device == VK_NULL_HANDLE || imageCount == 0 || extent.width == 0 || extent.height == 0
+		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || imageCount == 0 || extent.width == 0 || extent.height == 0
 			|| format == VK_FORMAT_UNDEFINED)
 			return false;
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		images.resize(imageCount);
 		memories.resize(imageCount);
 		imageViews.resize(imageCount);

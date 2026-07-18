@@ -5,6 +5,7 @@
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <algorithm>
+#include <iostream>
 #include <utility>
 
 namespace Chrivent {
@@ -201,10 +202,14 @@ namespace Chrivent {
 
 	bool OpenGlPostProcess::CreateShaders() {
 		ResetShaders();
+		std::string error;
 		for (const auto& program : GetShaderPrograms()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			if (!shader->Initialize(program))
+			if (!shader->Initialize(program, error)) {
+				if (!error.empty())
+					std::cerr << error << '\n';
 				return false;
+			}
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return true;

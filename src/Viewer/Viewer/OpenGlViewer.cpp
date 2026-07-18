@@ -70,12 +70,11 @@ namespace Chrivent {
 		capabilities.maxTextureBindings = static_cast<uint32_t>(std::max(maxTextureBindings, 0));
 		capabilities.shaderModelMajor = 4;
 		capabilities.shaderModelMinor = 6;
-		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		if (!pipeline.Initialize(shaderContract))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"rendering pipeline 초기화", "OpenGL pipeline을 만들지 못했습니다"));
+		const auto pipelineResult = pipeline.Initialize(shaderContract);
+		if (!pipelineResult)
+			return std::unexpected(pipelineResult.error());
 		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTexture == 0)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,

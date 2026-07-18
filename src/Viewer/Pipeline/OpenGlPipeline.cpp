@@ -1,32 +1,31 @@
 ﻿#include "Viewer/Pipeline/OpenGlPipeline.h"
 
-#include <iostream>
-
 namespace Chrivent {
-	bool OpenGlPipeline::Initialize(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsResult<void> OpenGlPipeline::Initialize(const SceneShaderRuntimeContract& shaderContract) {
 		const auto& [model, edge, groundShadow] = shaderContract.builtIn;
 		const auto& [depth, velocity] = shaderContract.sceneInput;
-		if (!modelShader.Initialize(model)) {
-			std::cerr << "기본 OpenGL 셰이더를 설정하지 못했습니다.\n";
-			return false;
-		}
-		if (!edgeShader.Initialize(edge)) {
-			std::cerr << "엣지 OpenGL 셰이더를 설정하지 못했습니다.\n";
-			return false;
-		}
-		if (!groundShadowShader.Initialize(groundShadow)) {
-			std::cerr << "지면 그림자 OpenGL 셰이더를 설정하지 못했습니다.\n";
-			return false;
-		}
-		if (!depthOnlyShader.Initialize(depth)) {
-			std::cerr << "depth-only OpenGL 셰이더를 설정하지 못했습니다.\n";
-			return false;
-		}
-		if (!sceneVelocityShader.Initialize(velocity)) {
-			std::cerr << "장면 velocity OpenGL 셰이더를 설정하지 못했습니다.\n";
-			return false;
-		}
-		return true;
+		std::string error;
+		if (!modelShader.Initialize(model, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "모델 셰이더 생성",
+				error.empty() ? "기본 OpenGL 셰이더를 설정하지 못했습니다" : error));
+		if (!edgeShader.Initialize(edge, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "엣지 셰이더 생성",
+				error.empty() ? "엣지 OpenGL 셰이더를 설정하지 못했습니다" : error));
+		if (!groundShadowShader.Initialize(groundShadow, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 셰이더 생성",
+				error.empty() ? "지면 그림자 OpenGL 셰이더를 설정하지 못했습니다" : error));
+		if (!depthOnlyShader.Initialize(depth, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "장면 depth 셰이더 생성",
+				error.empty() ? "depth-only OpenGL 셰이더를 설정하지 못했습니다" : error));
+		if (!sceneVelocityShader.Initialize(velocity, error))
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "장면 velocity 셰이더 생성",
+				error.empty() ? "장면 velocity OpenGL 셰이더를 설정하지 못했습니다" : error));
+		return {};
 	}
 
 	OpenGlSceneAttributeLocations OpenGlPipeline::ResolveSceneAttributeLocations() const {

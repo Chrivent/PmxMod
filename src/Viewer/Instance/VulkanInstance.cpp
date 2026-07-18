@@ -51,7 +51,7 @@ namespace Chrivent {
 
 	bool VulkanInstance::SetupConstantRings() {
 		modelResources.uniformBufferOffsetAlignment = std::max<size_t>(
-			1, device.properties.limits.minUniformBufferOffsetAlignment);
+			1, device.GetUniformBufferAlignment());
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
 		std::string error;

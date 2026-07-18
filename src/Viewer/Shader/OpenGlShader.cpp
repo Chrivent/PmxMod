@@ -2,7 +2,6 @@
 
 #include "Viewer/Shader/ModernHlslCompiler.h"
 
-#include <iostream>
 #include <spirv_cross/spirv_glsl.hpp>
 
 namespace Chrivent {
@@ -27,7 +26,7 @@ namespace Chrivent {
 	}
 
 	GLuint OpenGlShaderBuilder::CreateStage(const GLenum shaderType, const std::vector<uint32_t>& code,
-		const std::string& entry) {
+		const std::string& entry, std::string& error) {
 		std::string source;
 		try {
 			spirv_cross::CompilerGLSL compiler(code);
@@ -43,13 +42,16 @@ namespace Chrivent {
 					compiler.get_decoration(sampler.image_id, spv::DecorationBinding));
 			}
 			source = compiler.compile();
-		} catch (const spirv_cross::CompilerError& error) {
-			std::cerr << "SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " << error.what() << '\n';
+		} catch (const spirv_cross::CompilerError& compilerError) {
+			error = "SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: ";
+			error += compilerError.what();
 			return 0;
 		}
 		const GLuint shader = glCreateShader(shaderType);
-		if (shader == 0)
+		if (shader == 0) {
+			error = "OpenGL shader 객체를 만들지 못했습니다";
 			return 0;
+		}
 		const char* sourceData = source.c_str();
 		const GLint sourceSize = static_cast<GLint>(source.size());
 		glShaderSource(shader, 1, &sourceData, &sourceSize);
@@ -58,39 +60,42 @@ namespace Chrivent {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 		if (compileStatus == GL_TRUE)
 			return shader;
-		std::cerr << "생성된 OpenGL GLSL을 컴파일하지 못했습니다: entry=" << entry << '\n';
+		error = "생성된 OpenGL GLSL을 컴파일하지 못했습니다: entry=";
+		error += entry;
 		const std::string log = ReadShaderLog(shader);
-		if (!log.empty())
-			std::cerr << log << '\n';
+		if (!log.empty()) {
+			error += '\n';
+			error += log;
+		}
 		glDeleteShader(shader);
 		return 0;
 	}
 
 	GLuint OpenGlShaderBuilder::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
-		const std::string& pixelEntry, const SpirvBindingProfile bindingProfile, const bool invertVertexY) {
+		const std::string& pixelEntry, const SpirvBindingProfile bindingProfile,
+		std::string& error, const bool invertVertexY) {
+		error.clear();
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
-		std::string error;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
 		if (!ModernHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
 			SpirvTarget::OpenGl, bindingProfile, vertexCode, error, invertVertexY)
 			|| !ModernHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
 				SpirvTarget::OpenGl, bindingProfile, pixelCode, error)) {
-			std::cerr << error << '\n';
 			return 0;
 		}
-		const GLuint vertexShader = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry);
-		const GLuint pixelShader = CreateStage(GL_FRAGMENT_SHADER, pixelCode, pixelEntry);
-		if (vertexShader == 0 || pixelShader == 0) {
-			if (vertexShader != 0)
-				glDeleteShader(vertexShader);
-			if (pixelShader != 0)
-				glDeleteShader(pixelShader);
+		const GLuint vertexShader = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry, error);
+		if (vertexShader == 0)
+			return 0;
+		const GLuint pixelShader = CreateStage(GL_FRAGMENT_SHADER, pixelCode, pixelEntry, error);
+		if (pixelShader == 0) {
+			glDeleteShader(vertexShader);
 			return 0;
 		}
 		const GLuint program = glCreateProgram();
 		if (program == 0) {
+			error = "OpenGL shader program을 만들지 못했습니다";
 			glDeleteShader(vertexShader);
 			glDeleteShader(pixelShader);
 			return 0;
@@ -104,11 +109,13 @@ namespace Chrivent {
 		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 		if (linkStatus == GL_TRUE)
 			return program;
-		std::cerr << "OpenGL SPIR-V shader program을 link하지 못했습니다: "
-			<< shaderFile.string() << '\n';
+		error = "OpenGL SPIR-V shader program을 link하지 못했습니다: ";
+		error += shaderFile.string();
 		const std::string log = ReadProgramLog(program);
-		if (!log.empty())
-			std::cerr << log << '\n';
+		if (!log.empty()) {
+			error += '\n';
+			error += log;
+		}
 		glDeleteProgram(program);
 		return 0;
 	}
@@ -119,10 +126,11 @@ namespace Chrivent {
         program = 0;
     }
 
-    bool OpenGlModelShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+    bool OpenGlModelShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
 		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene);
+			SpirvBindingProfile::Scene, error);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -131,10 +139,11 @@ namespace Chrivent {
         return true;
     }
 
-    bool OpenGlEdgeShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+    bool OpenGlEdgeShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
 		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene);
+			SpirvBindingProfile::Scene, error);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -142,20 +151,22 @@ namespace Chrivent {
         return true;
     }
 
-    bool OpenGlGroundShadowShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+    bool OpenGlGroundShadowShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
 		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene);
+			SpirvBindingProfile::Scene, error);
         if (program == 0)
             return false;
         positionLocation = 0;
         return true;
     }
 
-    bool OpenGlDepthOnlyShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+    bool OpenGlDepthOnlyShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
 		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene);
+			SpirvBindingProfile::Scene, error);
         if (program == 0)
             return false;
         positionLocation = 0;
@@ -163,10 +174,11 @@ namespace Chrivent {
         return true;
     }
 
-	bool OpenGlSceneVelocityShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+	bool OpenGlSceneVelocityShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
 		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene);
+			SpirvBindingProfile::Scene, error);
 		if (program == 0)
 			return false;
 		positionLocation = 0;
@@ -175,10 +187,11 @@ namespace Chrivent {
 		return true;
 	}
 
-    bool OpenGlPostProcessShader::Initialize(const ShaderProgramDefinition& shaderProgram) {
+    bool OpenGlPostProcessShader::Initialize(const ShaderProgramDefinition& shaderProgram,
+		std::string& error) {
         program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::PostProcess, true);
+			SpirvBindingProfile::PostProcess, error, true);
         return program != 0;
     }
 }

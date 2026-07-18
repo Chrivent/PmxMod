@@ -8,11 +8,11 @@ namespace Chrivent {
 	}
 
 	bool VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		VkCommandPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		createInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
+		createInfo.queueFamilyIndex = sourceDevice.GetGraphicsQueueFamily();
 		if (vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			std::cerr << "Vulkan command pool을 만들지 못했습니다.\n";
 			return false;

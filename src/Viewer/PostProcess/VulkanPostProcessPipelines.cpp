@@ -81,7 +81,7 @@ namespace Chrivent {
 		const VkPipelineLayout pipelineLayout, const std::span<const ShaderProgramDefinition> programs,
 		const std::span<const VkFormat> targetFormats) {
 		Reset();
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		if (programs.empty())
 			return true;
 		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE

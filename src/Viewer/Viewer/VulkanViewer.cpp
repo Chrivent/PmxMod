@@ -27,17 +27,16 @@ namespace Chrivent {
 		const auto deviceResult = device.Initialize(window, capabilities);
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
-		capabilities.Print();
 		if (!swapChain.Initialize(device, window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 초기화", "Vulkan swap chain을 만들지 못했습니다"));
 		if (!CreateSwapChainResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 리소스 초기화", "Vulkan 프레임 리소스를 만들지 못했습니다"));
-		if (!pipeline.Initialize(device, swapChain.GetImageFormat(),
-			msaaDepthBuffer.format, shaderContract))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"rendering pipeline 초기화", "Vulkan pipeline을 만들지 못했습니다"));
+		const auto pipelineResult = pipeline.Initialize(device,
+			swapChain.GetImageFormat(), msaaDepthBuffer.format, shaderContract);
+		if (!pipelineResult)
+			return std::unexpected(pipelineResult.error());
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (dummyTexture.image == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
@@ -60,7 +59,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 리소스 크기 변경", "Vulkan 프레임 리소스를 다시 만들지 못했습니다"));
 		if (!pipeline.IsCompatible(swapChain.GetImageFormat(),
-			msaaDepthBuffer.format, device.msaaSampleCount))
+			msaaDepthBuffer.format, device.GetMsaaSampleCount()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
 				"크기 변경 후 pipeline 검증", "Vulkan pipeline이 새 swap chain과 호환되지 않습니다"));
 		if (!syncObject.ResetImageTracking(swapChain.GetImageCount()))
@@ -77,7 +76,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
 				"현재 프레임 대기", "Vulkan 프레임 fence 대기에 실패했습니다"));
 		uint32_t currentImageIndex = 0;
-		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.GetSwapChain(), UINT64_MAX,
+		const VkResult acquireResult = vkAcquireNextImageKHR(device.GetDevice(), swapChain.GetSwapChain(), UINT64_MAX,
 			syncObject.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &currentImageIndex);
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
 			const auto recreateResult = RecreateFromFramebuffer();
@@ -106,7 +105,7 @@ namespace Chrivent {
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
-			device.msaaSampleCount, swapChain.GetExtent(), clearColor))
+			device.GetMsaaSampleCount(), swapChain.GetExtent(), clearColor))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 시작", "Vulkan 프레임 command buffer가 기록을 시작하지 못했습니다"));
 		drawContext.BeginFrame(currentImageIndex, frameIndex);
@@ -142,7 +141,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 종료", "Vulkan 출력 패스 기록을 끝내지 못했습니다"));
 		const VkCommandBuffer nativeCommandBuffer = commandBuffer.TryGetCommandBuffer(currentImageIndex);
-		if (!syncObject.Submit(device.graphicsQueue, nativeCommandBuffer, currentImageIndex))
+		if (!syncObject.Submit(device.GetGraphicsQueue(), nativeCommandBuffer, currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
 				"프레임 제출", "Vulkan command buffer를 제출하지 못했습니다"));
 		const VkSemaphore renderFinishedSemaphore = syncObject.GetRenderFinishedSemaphore(currentImageIndex);
@@ -154,7 +153,7 @@ namespace Chrivent {
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &currentImageIndex;
-		const VkResult presentResult = vkQueuePresentKHR(device.presentQueue, &presentInfo);
+		const VkResult presentResult = vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
 			const auto recreateResult = RecreateFromFramebuffer();
 			if (!recreateResult)
@@ -195,10 +194,10 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> VulkanViewer::WaitIdle() {
-		if (device.device == VK_NULL_HANDLE)
+		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"GPU 대기", "Vulkan device를 사용할 수 없습니다"));
-		const VkResult waitResult = vkDeviceWaitIdle(device.device);
+		const VkResult waitResult = vkDeviceWaitIdle(device.GetDevice());
 		if (waitResult != VK_SUCCESS)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
 				"GPU 대기", "Vulkan device가 idle 상태가 되지 않았습니다", waitResult, true));
@@ -206,7 +205,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (device.device == VK_NULL_HANDLE)
+		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));
 		if (!postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects))

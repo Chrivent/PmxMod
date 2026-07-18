@@ -4,7 +4,7 @@ namespace Chrivent {
 	bool Dx12PostProcessTarget::Initialize(
 		const Dx12Device& sourceDevice, const int width, const int height, const DXGI_FORMAT targetFormat) {
 		Reset();
-		if (!sourceDevice.device || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN)
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN)
 			return false;
 		format = targetFormat;
 		D3D12_HEAP_PROPERTIES heapProperties{};
@@ -22,15 +22,15 @@ namespace Chrivent {
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = format;
-		if (FAILED(sourceDevice.device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
+		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
 			&resourceDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource))))
 			return false;
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 		rtvHeapDesc.NumDescriptors = 1;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(sourceDevice.device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
+		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
 			return false;
-		sourceDevice.device->CreateRenderTargetView(
+		sourceDevice.GetDevice()->CreateRenderTargetView(
 			resource.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 		return true;
 	}

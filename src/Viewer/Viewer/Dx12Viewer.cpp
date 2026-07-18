@@ -25,7 +25,6 @@ namespace Chrivent {
 		const auto deviceResult = device.Initialize(capabilities);
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
-		capabilities.Print();
 		if (!commandContext.Initialize(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));
@@ -39,10 +38,9 @@ namespace Chrivent {
 		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"depth buffer 초기화", "DirectX 12 depth buffer를 만들지 못했습니다"));
-		if (!pipeline.Initialize(device, shaderContract)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"rendering pipeline 초기화", "DirectX 12 pipeline을 만들지 못했습니다"));
-		}
+		const auto pipelineResult = pipeline.Initialize(device, shaderContract);
+		if (!pipelineResult)
+			return std::unexpected(pipelineResult.error());
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (!dummyTexture.resource)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
@@ -145,7 +143,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx12Viewer::WaitIdle() {
-		if (!device.device)
+		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"GPU 대기", "DirectX 12 device를 사용할 수 없습니다"));
 		if (!commandContext.WaitForGpu(device))
@@ -155,7 +153,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!device.device)
+		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "DirectX 12 device를 사용할 수 없습니다"));
 		if (!postProcess.Configure(device, screenWidth, screenHeight, effects))

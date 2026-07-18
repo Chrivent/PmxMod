@@ -107,12 +107,12 @@ namespace Chrivent {
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		if (vkCreateImage(sourceDevice.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		if (vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			std::cerr << "Vulkan texture image를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
-		vkGetImageMemoryRequirements(sourceDevice.device, image, &memoryRequirements);
+		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			std::cerr << "Vulkan texture image memory type을 찾지 못했습니다.\n";
@@ -122,11 +122,11 @@ namespace Chrivent {
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
 			std::cerr << "Vulkan texture image memory를 할당하지 못했습니다.\n";
 			return false;
 		}
-		if (vkBindImageMemory(sourceDevice.device, image, imageMemory, 0) != VK_SUCCESS) {
+		if (vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0) != VK_SUCCESS) {
 			std::cerr << "Vulkan texture image memory를 연결하지 못했습니다.\n";
 			return false;
 		}
@@ -226,7 +226,7 @@ namespace Chrivent {
 
 	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
 		const std::filesystem::path& texturePath, const bool clamp) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		const TextureKey cacheKey{
 			TextureKind::File,
 			texturePath,
@@ -247,7 +247,7 @@ namespace Chrivent {
 	}
 
 	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;

@@ -10,6 +10,14 @@
 namespace Chrivent {
 	// DX12 디바이스, 명령 큐와 지원 기능 정보를 관리한다.
 	class Dx12Device {
+		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
+		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+		Microsoft::WRL::ComPtr<ID3D12Device> device;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
+		UINT msaaSampleCount = 1;
+		D3D_SHADER_MODEL maximumShaderModel = D3D_SHADER_MODEL_5_1;
+		bool enhancedBarriersSupported = false;
+
 		// 지정한 sample count를 색상과 depth 타깃이 함께 지원하는지 확인한다.
 		static bool SupportsMsaaSampleCount(ID3D12Device* device, UINT sampleCount);
 		// 디바이스가 지원하는 MSAA sample count를 선택한다.
@@ -23,24 +31,20 @@ namespace Chrivent {
 		// 생성된 디바이스가 지원하는 기능과 한도를 기록한다.
 		void UpdateCapabilities(GraphicsCapabilities& capabilities,
 			const DXGI_ADAPTER_DESC1& description);
-		D3D_SHADER_MODEL maximumShaderModel = D3D_SHADER_MODEL_5_1;
-		bool enhancedBarriersSupported = false;
+		// 생성한 DX12 디바이스 리소스를 해제한다.
+		void Shutdown();
 
 	public:
-		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-		Microsoft::WRL::ComPtr<ID3D12Device> device;
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
-		UINT msaaSampleCount = 1;
-
 		~Dx12Device();
 
+		IDXGIFactory6* GetFactory() const { return factory.Get(); }
+		ID3D12Device* GetDevice() const { return device.Get(); }
+		ID3D12CommandQueue* GetCommandQueue() const { return commandQueue.Get(); }
+		UINT GetMsaaSampleCount() const { return msaaSampleCount; }
 		D3D_SHADER_MODEL GetMaximumShaderModel() const { return maximumShaderModel; }
 		bool SupportsEnhancedBarriers() const { return enhancedBarriersSupported; }
 
 		// DX12 디바이스와 command queue를 생성한다.
 		GraphicsResult<void> Initialize(GraphicsCapabilities& capabilities);
-		// 생성한 DX12 디바이스 리소스를 해제한다.
-		void Shutdown();
 	};
 }

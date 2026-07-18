@@ -9,21 +9,32 @@
 #include <GLFW/glfw3.h>
 
 namespace Chrivent {
-	// 그래픽과 표시 작업에 사용할 Vulkan 큐 패밀리 인덱스를 보관한다.
-	struct VulkanQueueFamilyIndices {
-		uint32_t graphicsFamily = 0;
-		uint32_t presentFamily = 0;
-		bool hasGraphicsFamily = false;
-		bool hasPresentFamily = false;
-
-		bool IsComplete() const { return hasGraphicsFamily && hasPresentFamily; }
-	};
-
 	// Vulkan 물리·논리 디바이스와 그래픽 및 표시 큐를 관리한다.
 	class VulkanDevice {
+		// 그래픽과 표시 작업에 사용할 Vulkan 큐 패밀리 인덱스를 보관한다.
+		struct QueueFamilyIndices {
+			uint32_t graphicsFamily = 0;
+			uint32_t presentFamily = 0;
+			bool hasGraphicsFamily = false;
+			bool hasPresentFamily = false;
+
+			bool IsComplete() const { return hasGraphicsFamily && hasPresentFamily; }
+		};
+
 		static constexpr const char* kDeviceExtensions[] = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
+
+		VkInstance vkInstance = VK_NULL_HANDLE;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		VkPhysicalDeviceProperties properties{};
+		VkDevice device = VK_NULL_HANDLE;
+		VkQueue graphicsQueue = VK_NULL_HANDLE;
+		VkQueue presentQueue = VK_NULL_HANDLE;
+		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
+		QueueFamilyIndices queueFamilies;
+		uint32_t instanceApiVersion = VK_API_VERSION_1_0;
 
 		// Vulkan 인스턴스를 생성한다.
 		GraphicsResult<void> CreateInstance();
@@ -40,7 +51,7 @@ namespace Chrivent {
 		// Vulkan 물리 디바이스 종류를 로그용 이름으로 변환한다.
 		static const char* ResolvePhysicalDeviceTypeName(VkPhysicalDeviceType type);
 		// 물리 디바이스에서 그래픽/표시 큐 패밀리를 찾는다.
-		VulkanQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
+		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice candidate) const;
 		// 물리 디바이스가 지원하는 샘플 수 중 현재 렌더러에서 사용할 값을 고른다.
 		static VkSampleCountFlagBits ChooseMsaaSampleCount(VkPhysicalDevice candidate);
 		// 색상과 depth 타깃이 함께 지원하는 최대 MSAA sample count를 반환한다.
@@ -55,23 +66,22 @@ namespace Chrivent {
 		void Shutdown();
 
 	public:
-		VkInstance vkInstance = VK_NULL_HANDLE;
-		VkSurfaceKHR surface = VK_NULL_HANDLE;
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		VkPhysicalDeviceProperties properties{};
-		VkDevice device = VK_NULL_HANDLE;
-		VkQueue graphicsQueue = VK_NULL_HANDLE;
-		VkQueue presentQueue = VK_NULL_HANDLE;
-		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
-		VulkanQueueFamilyIndices queueFamilies;
-		uint32_t instanceApiVersion = VK_API_VERSION_1_0;
-
 		VulkanDevice() = default;
 		~VulkanDevice();
 
 		VulkanDevice(const VulkanDevice&) = delete;
 		VulkanDevice& operator=(const VulkanDevice&) = delete;
-		
+
+		VkSurfaceKHR GetSurface() const { return surface; }
+		VkPhysicalDevice GetPhysicalDevice() const { return physicalDevice; }
+		VkDevice GetDevice() const { return device; }
+		VkQueue GetGraphicsQueue() const { return graphicsQueue; }
+		VkQueue GetPresentQueue() const { return presentQueue; }
+		VkSampleCountFlagBits GetMsaaSampleCount() const { return msaaSampleCount; }
+		uint32_t GetGraphicsQueueFamily() const { return queueFamilies.graphicsFamily; }
+		uint32_t GetPresentQueueFamily() const { return queueFamilies.presentFamily; }
+		VkDeviceSize GetUniformBufferAlignment() const { return properties.limits.minUniformBufferOffsetAlignment; }
+
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
 		GraphicsResult<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
 	};

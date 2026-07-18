@@ -20,7 +20,7 @@ namespace Chrivent {
 		const VkImageTiling tiling, const VkFormatFeatureFlags features) {
 		for (const VkFormat candidate : candidates) {
 			VkFormatProperties properties{};
-			vkGetPhysicalDeviceFormatProperties(sourceDevice.physicalDevice, candidate, &properties);
+			vkGetPhysicalDeviceFormatProperties(sourceDevice.GetPhysicalDevice(), candidate, &properties);
 			if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
 				return candidate;
 			if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
@@ -42,14 +42,14 @@ namespace Chrivent {
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.samples = sourceDevice.msaaSampleCount;
+		imageInfo.samples = sourceDevice.GetMsaaSampleCount();
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateImage(sourceDevice.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		if (vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			std::cerr << "Vulkan depth image를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
-		vkGetImageMemoryRequirements(sourceDevice.device, image, &memoryRequirements);
+		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			std::cerr << "Vulkan depth image memory type을 찾지 못했습니다.\n";
@@ -59,11 +59,11 @@ namespace Chrivent {
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
 			std::cerr << "Vulkan depth image memory를 할당하지 못했습니다.\n";
 			return false;
 		}
-		if (vkBindImageMemory(sourceDevice.device, image, imageMemory, 0) != VK_SUCCESS) {
+		if (vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0) != VK_SUCCESS) {
 			std::cerr << "Vulkan depth image memory를 연결하지 못했습니다.\n";
 			return false;
 		}
@@ -95,7 +95,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanMsaaDepthBuffer::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		format = FindDepthFormat(sourceDevice);
 		if (format == VK_FORMAT_UNDEFINED) {
 			std::cerr << "지원되는 Vulkan depth format을 찾지 못했습니다.\n";

@@ -16,16 +16,16 @@ namespace Chrivent {
 	}
 
 	bool VulkanUploadContext::Initialize(const VulkanDevice& sourceDevice) {
-		if (device == sourceDevice.device && commandPool != VK_NULL_HANDLE
+		if (device == sourceDevice.GetDevice() && commandPool != VK_NULL_HANDLE
 			&& commandBuffer != VK_NULL_HANDLE && fence != VK_NULL_HANDLE)
 			return true;
 		Reset();
-		device = sourceDevice.device;
+		device = sourceDevice.GetDevice();
 		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
 			| VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
+		poolInfo.queueFamilyIndex = sourceDevice.GetGraphicsQueueFamily();
 		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 			std::cerr << "Vulkan upload command pool을 만들지 못했습니다.\n";
 			Reset();
@@ -87,7 +87,7 @@ namespace Chrivent {
 			.commandBufferInfoCount = 1,
 			.pCommandBufferInfos = &commandBufferInfo
 		};
-		if (vkQueueSubmit2(sourceDevice.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS) {
+		if (vkQueueSubmit2(sourceDevice.GetGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS) {
 			std::cerr << "Vulkan upload command buffer를 제출하지 못했습니다.\n";
 			return false;
 		}

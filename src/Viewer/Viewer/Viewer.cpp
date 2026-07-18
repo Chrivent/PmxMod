@@ -70,6 +70,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
 				"렌더러 설정", "API 구현이 post processor를 연결하지 않았습니다"));
 		}
+		capabilities.Print();
 		initialized = true;
 		return {};
 	}

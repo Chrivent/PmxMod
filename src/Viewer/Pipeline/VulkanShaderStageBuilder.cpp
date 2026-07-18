@@ -35,7 +35,8 @@ namespace Chrivent {
 			|| !ModernHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
 				bindingProfile, pixelCode, outError))
 			return false;
-		if (!vertexShader.Initialize(sourceDevice, vertexCode) || !pixelShader.Initialize(sourceDevice, pixelCode))
+		if (!vertexShader.Initialize(sourceDevice, vertexCode, outError)
+			|| !pixelShader.Initialize(sourceDevice, pixelCode, outError))
 			return false;
 		BuildStageDescriptions();
 		return true;

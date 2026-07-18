@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
@@ -22,25 +23,25 @@ namespace Chrivent {
 		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 		// 모델 데이터에서 사용할 descriptor set layout들을 생성한다.
-		bool CreateDescriptorSetLayouts();
+		bool CreateDescriptorSetLayouts(std::string& error);
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
-		bool CreatePipelineLayout();
+		bool CreatePipelineLayout(std::string& error);
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
-			const ShaderProgramDefinition& depthProgram, const ShaderProgramDefinition& velocityProgram);
+			const ShaderProgramDefinition& depthProgram,
+			const ShaderProgramDefinition& velocityProgram, std::string& error);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
-		bool CreateGraphicsPipeline(
-			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
+		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
 			const ShaderProgramDefinition& program,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkFormat colorFormat, VkSampleCountFlagBits sampleCount,
-			bool useVelocityInput, bool preserveDestinationAlpha, VkPipeline& outPipeline) const;
+			bool useVelocityInput, bool preserveDestinationAlpha,
+			VkPipeline& outPipeline, std::string& error) const;
 		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
-		bool CreateDepthOnlyPipeline(
-			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
+		bool CreateDepthOnlyPipeline(const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
 			const ShaderProgramDefinition& program,
-			VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
+			VkCullModeFlags cullMode, VkPipeline& outPipeline, std::string& error) const;
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
 		// 모델 vertex attribute 정보를 채운다.
@@ -79,7 +80,7 @@ namespace Chrivent {
 		}
 
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
+		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const SceneShaderRuntimeContract& shaderContract);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Reset();

@@ -107,7 +107,7 @@ namespace Chrivent {
 	bool Dx12Instance::CreateTextureDescriptors() {
 		if (modelResources.materials.empty())
 			return true;
-		if (!device.device)
+		if (!device.GetDevice())
 			return false;
 		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3)
 			return false;
@@ -116,10 +116,10 @@ namespace Chrivent {
 		heapDesc.NumDescriptors = descriptorCount;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (FAILED(device.device->CreateDescriptorHeap(
+		if (FAILED(device.GetDevice()->CreateDescriptorHeap(
 			&heapDesc, IID_PPV_ARGS(&modelResources.textureDescriptorHeap))))
 			return false;
-		const UINT textureDescriptorSize = device.device->GetDescriptorHandleIncrementSize(
+		const UINT textureDescriptorSize = device.GetDevice()->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
 			modelResources.textureDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -131,7 +131,7 @@ namespace Chrivent {
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Texture2D.MipLevels = 1;
-			device.device->CreateShaderResourceView(texture.resource.Get(), &srvDesc, targetHandle);
+			device.GetDevice()->CreateShaderResourceView(texture.resource.Get(), &srvDesc, targetHandle);
 		};
 		for (Dx12ModelMaterial& material : modelResources.materials) {
 			material.textureDescriptorHandle = gpuHandle;
