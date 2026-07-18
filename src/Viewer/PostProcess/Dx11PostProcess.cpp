@@ -6,7 +6,6 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <algorithm>
-#include <iostream>
 #include <utility>
 
 namespace Chrivent {
@@ -153,17 +152,14 @@ namespace Chrivent {
 			context->CopyResource(sceneColor.Get(), source);
 	}
 
-	bool Dx11PostProcess::CreateShaders(ID3D11Device* device) {
+	bool Dx11PostProcess::CreateShaders(ID3D11Device* device, std::string& error) {
 		ResetShaders();
-		std::string error;
+		error.clear();
 		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
 			Dx11PostProcessShader shader;
 			if (!shader.Initialize(device, shaderPath,
-				vertexEntry.c_str(), pixelEntry.c_str(), error)) {
-				if (!error.empty())
-					std::cerr << error << '\n';
+				vertexEntry.c_str(), pixelEntry.c_str(), error))
 				return false;
-			}
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return true;
@@ -186,17 +182,30 @@ namespace Chrivent {
 		std::swap(targetHeight, other.targetHeight);
 	}
 
-	bool Dx11PostProcess::Configure(ID3D11Device* device, ID3D11DeviceContext* context,
+	GraphicsResult<void> Dx11PostProcess::Configure(ID3D11Device* device,
+		ID3D11DeviceContext* context,
 		const int width, const int height, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx11PostProcess candidate;
-		if (!candidate.SetEffects(effects)
-			|| (candidate.HasEffects()
-				&& (!candidate.InitializeTargets(device, context, width, height)
-					|| !candidate.CreateShaders(device))))
-			return false;
+		const auto planResult = candidate.SetEffects(effects);
+		if (!planResult) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+		}
+		if (candidate.HasEffects()
+			&& !candidate.InitializeTargets(device, context, width, height)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
+				"DirectX 11 후처리 texture와 view를 만들지 못했습니다"));
+		}
+		std::string error;
+		if (candidate.HasEffects() && !candidate.CreateShaders(device, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
+				error.empty() ? "DirectX 11 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
-		return true;
+		return {};
 	}
 
 	bool Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,

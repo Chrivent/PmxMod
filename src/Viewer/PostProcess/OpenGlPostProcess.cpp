@@ -5,7 +5,6 @@
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <algorithm>
-#include <iostream>
 #include <utility>
 
 namespace Chrivent {
@@ -200,16 +199,13 @@ namespace Chrivent {
 			&& CreateEffectResources();
 	}
 
-	bool OpenGlPostProcess::CreateShaders() {
+	bool OpenGlPostProcess::CreateShaders(std::string& error) {
 		ResetShaders();
-		std::string error;
+		error.clear();
 		for (const auto& program : GetShaderPrograms()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			if (!shader->Initialize(program, error)) {
-				if (!error.empty())
-					std::cerr << error << '\n';
+			if (!shader->Initialize(program, error))
 				return false;
-			}
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return true;
@@ -234,17 +230,29 @@ namespace Chrivent {
 		std::swap(targetHeight, other.targetHeight);
 	}
 
-	bool OpenGlPostProcess::Configure(const int width, const int height, const int sampleCount,
+	GraphicsResult<void> OpenGlPostProcess::Configure(const int width, const int height,
+		const int sampleCount,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		OpenGlPostProcess candidate;
-		if (!candidate.SetEffects(effects)
-			|| (candidate.HasEffects()
-				&& (!candidate.InitializeTargets(width, height, sampleCount)
-					|| !candidate.CreateShaders())))
-			return false;
+		const auto planResult = candidate.SetEffects(effects);
+		if (!planResult) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+		}
+		if (candidate.HasEffects() && !candidate.InitializeTargets(width, height, sampleCount)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
+				"OpenGL 후처리 framebuffer와 texture를 만들지 못했습니다"));
+		}
+		std::string error;
+		if (candidate.HasEffects() && !candidate.CreateShaders(error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
+				error.empty() ? "OpenGL 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
-		return true;
+		return {};
 	}
 
 	bool OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {

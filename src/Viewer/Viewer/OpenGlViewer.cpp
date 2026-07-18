@@ -134,10 +134,8 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!postProcess.Configure(screenWidth, screenHeight, capabilities.activeSampleCount, effects))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"후처리 효과 구성", "OpenGL 효과 chain을 만들지 못했습니다"));
-		return {};
+		return postProcess.Configure(screenWidth, screenHeight,
+			capabilities.activeSampleCount, effects);
 	}
 
 	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {

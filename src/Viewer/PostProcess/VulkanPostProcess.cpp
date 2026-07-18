@@ -173,7 +173,7 @@ namespace Chrivent {
 		return descriptors.UpdateTextures(imageIndex, passIndex, imageViews);
 	}
 
-	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
+	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice, std::string& error) {
 		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<VkFormat> targetFormats;
@@ -187,7 +187,7 @@ namespace Chrivent {
 			targetFormats.push_back(format);
 		}
 		return pipelines.Initialize(sourceDevice,
-			descriptors.GetPipelineLayout(), passes, targetFormats);
+			descriptors.GetPipelineLayout(), passes, targetFormats, error);
 	}
 
 	bool VulkanPostProcess::ResolveOutputImage(const PostProcessPassRoute& route, const uint32_t imageIndex,
@@ -255,31 +255,60 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcess::InitializeTargets(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
+		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat, std::string& error) {
 		ResetResources();
+		error.clear();
 		device = sourceDevice.GetDevice();
-		return CreateSceneImages(sourceDevice, sourceSwapChain)
-			&& (!(RequiresDepth() || RequiresVelocity())
-				|| CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat))
-			&& (!RequiresVelocity() || CreateVelocityImages(sourceDevice))
-			&& CreateEffectResources(sourceDevice)
-			&& CreateFrameDataBuffers(sourceDevice)
-			&& CreateParameterDataBuffers(sourceDevice)
-			&& descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
-				frameDataBuffers, parameterDataBuffers,
-				sizeof(PostProcessFrameData), sizeof(PostProcessParameterData), parameterDataStride)
-			&& CreatePipelines(sourceDevice);
+		if (!CreateSceneImages(sourceDevice, sourceSwapChain)) {
+			error = "Vulkan 후처리 장면 이미지를 만들지 못했습니다";
+			return false;
+		}
+		if ((RequiresDepth() || RequiresVelocity())
+			&& !CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat)) {
+			error = "Vulkan 후처리 depth 이미지를 만들지 못했습니다";
+			return false;
+		}
+		if (RequiresVelocity() && !CreateVelocityImages(sourceDevice)) {
+			error = "Vulkan 후처리 velocity 이미지를 만들지 못했습니다";
+			return false;
+		}
+		if (!CreateEffectResources(sourceDevice)) {
+			error = "Vulkan 후처리 effect 이미지를 만들지 못했습니다";
+			return false;
+		}
+		if (!CreateFrameDataBuffers(sourceDevice)
+			|| !CreateParameterDataBuffers(sourceDevice)) {
+			error = "Vulkan 후처리 상수 버퍼를 만들지 못했습니다";
+			return false;
+		}
+		if (!descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
+			frameDataBuffers, parameterDataBuffers, sizeof(PostProcessFrameData),
+			sizeof(PostProcessParameterData), parameterDataStride)) {
+			error = "Vulkan 후처리 descriptor를 만들지 못했습니다";
+			return false;
+		}
+		return CreatePipelines(sourceDevice, error);
 	}
 
-	bool VulkanPostProcess::Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+	GraphicsResult<void> VulkanPostProcess::Configure(const VulkanDevice& sourceDevice,
+		const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		VulkanPostProcess candidate;
-		if (!candidate.SetEffects(effects)
-			|| (candidate.HasEffects() && !candidate.InitializeTargets(sourceDevice, sourceSwapChain, depthFormat)))
-			return false;
+		const auto planResult = candidate.SetEffects(effects);
+		if (!planResult) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+		}
+		std::string error;
+		if (candidate.HasEffects()
+			&& !candidate.InitializeTargets(sourceDevice, sourceSwapChain, depthFormat, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::EffectConfigurationFailed, "후처리 리소스 구성",
+				error.empty() ? "Vulkan 후처리 리소스를 만들지 못했습니다" : std::move(error)));
+		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
-		return true;
+		return {};
 	}
 	
 	bool VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,

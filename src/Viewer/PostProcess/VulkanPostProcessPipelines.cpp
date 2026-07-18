@@ -2,19 +2,17 @@
 
 #include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
-#include <iostream>
+#include <string>
 
 namespace Chrivent {
 	bool VulkanPostProcessPipelines::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const ShaderProgramDefinition& program,
-		const VkFormat targetFormat, VkPipeline& pipeline) const {
-		std::string error;
+		const VkFormat targetFormat, VkPipeline& pipeline, std::string& error) const {
+		error.clear();
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::PostProcess, error, true)) {
-			if (!error.empty())
-				std::cerr << error << '\n';
+		if (!shaderStages.Build(sourceDevice, program,
+			SpirvBindingProfile::PostProcess, error, true))
 			return false;
-		}
 		VkPipelineVertexInputStateCreateInfo vertexInput{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
 		};
@@ -69,8 +67,13 @@ namespace Chrivent {
 		pipelineInfo.pColorBlendState = &blending;
 		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.layout = pipelineLayout;
-		return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
-			&pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
+		const VkResult result = vkCreateGraphicsPipelines(device,
+			VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
+		if (result == VK_SUCCESS)
+			return true;
+		error = "Vulkan 후처리 graphics pipeline을 만들지 못했습니다 (네이티브 코드: "
+			+ std::to_string(result) + ')';
+		return false;
 	}
 
 	VulkanPostProcessPipelines::~VulkanPostProcessPipelines() {
@@ -79,18 +82,24 @@ namespace Chrivent {
 
 	bool VulkanPostProcessPipelines::Initialize(const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const std::span<const ShaderProgramDefinition> programs,
-		const std::span<const VkFormat> targetFormats) {
+		const std::span<const VkFormat> targetFormats, std::string& error) {
 		Reset();
+		error.clear();
 		device = sourceDevice.GetDevice();
 		if (programs.empty())
 			return true;
-		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE
-			|| programs.size() != targetFormats.size())
+		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE) {
+			error = "Vulkan device 또는 후처리 pipeline layout을 사용할 수 없습니다";
 			return false;
+		}
+		if (programs.size() != targetFormats.size()) {
+			error = "후처리 프로그램과 출력 형식 개수가 일치하지 않습니다";
+			return false;
+		}
 		for (size_t index = 0; index < programs.size(); index++) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
 			if (!CreateGraphicsPipeline(sourceDevice, pipelineLayout,
-				programs[index], targetFormats[index], pipeline)) {
+				programs[index], targetFormats[index], pipeline, error)) {
 				Reset();
 				return false;
 			}

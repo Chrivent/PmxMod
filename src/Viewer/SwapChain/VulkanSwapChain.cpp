@@ -1,46 +1,69 @@
 ﻿#include "Viewer/SwapChain/VulkanSwapChain.h"
 
 #include <algorithm>
-#include <iostream>
+#include <limits>
 
 namespace Chrivent {
-	bool VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice, Support& support) {
+	GraphicsResult<void> VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice,
+		Support& support) {
 		support = {};
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &support.capabilities) != VK_SUCCESS)
-			return false;
+		VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(sourceDevice.GetPhysicalDevice(),
+			sourceDevice.GetSurface(), &support.capabilities);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "surface capability 조회",
+				"Vulkan surface capability를 조회하지 못했습니다", result, true));
+		}
 		uint32_t formatCount = 0;
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(
-			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &formatCount, nullptr) != VK_SUCCESS)
-			return false;
+		result = vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(),
+			sourceDevice.GetSurface(), &formatCount, nullptr);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "surface format 조회",
+				"Vulkan surface format 개수를 조회하지 못했습니다", result, true));
+		}
 		if (formatCount > 0) {
 			support.formats.resize(formatCount);
-			if (vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(),
-				&formatCount, support.formats.data()) != VK_SUCCESS)
-				return false;
+			result = vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(),
+				sourceDevice.GetSurface(), &formatCount, support.formats.data());
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InitializationFailed, "surface format 조회",
+					"Vulkan surface format을 조회하지 못했습니다", result, true));
+			}
 			support.formats.resize(formatCount);
 		}
 		uint32_t presentModeCount = 0;
-		if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-			sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(), &presentModeCount, nullptr) != VK_SUCCESS)
-			return false;
+		result = vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(),
+			sourceDevice.GetSurface(), &presentModeCount, nullptr);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "present mode 조회",
+				"Vulkan present mode 개수를 조회하지 못했습니다", result, true));
+		}
 		if (presentModeCount > 0) {
 			support.presentModes.resize(presentModeCount);
-			if (vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(), sourceDevice.GetSurface(),
-				&presentModeCount, support.presentModes.data()) != VK_SUCCESS)
-				return false;
+			result = vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(),
+				sourceDevice.GetSurface(), &presentModeCount, support.presentModes.data());
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InitializationFailed, "present mode 조회",
+					"Vulkan present mode를 조회하지 못했습니다", result, true));
+			}
 			support.presentModes.resize(presentModeCount);
 		}
-		return true;
+		return {};
 	}
 
 	VkSurfaceFormatKHR VulkanSwapChain::ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
 		for (const auto& format : formats) {
-			if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (format.format == VK_FORMAT_B8G8R8A8_UNORM
+				&& format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 				return format;
 		}
 		for (const auto& format : formats) {
-			if (format.format == VK_FORMAT_R8G8B8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (format.format == VK_FORMAT_R8G8B8A8_UNORM
+				&& format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 				return format;
 		}
 		return formats.front();
@@ -54,84 +77,108 @@ namespace Chrivent {
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
-	VkExtent2D VulkanSwapChain::ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) {
+	VkExtent2D VulkanSwapChain::ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities,
+		GLFWwindow* window) {
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 			return capabilities.currentExtent;
 		int width = 0;
 		int height = 0;
 		glfwGetFramebufferSize(window, &width, &height);
-		VkExtent2D extent{
+		VkExtent2D selectedExtent{
 			static_cast<uint32_t>(std::max(0, width)),
 			static_cast<uint32_t>(std::max(0, height))
 		};
-		extent.width = (std::clamp)(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-		extent.height = (std::clamp)(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-		return extent;
+		selectedExtent.width = (std::clamp)(
+			selectedExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		selectedExtent.height = (std::clamp)(
+			selectedExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+		return selectedExtent;
 	}
 
-	bool VulkanSwapChain::CreateImageViews() {
+	GraphicsResult<void> VulkanSwapChain::CreateImageViews() {
 		imageViews.resize(images.size());
-		for (size_t i = 0; i < images.size(); i++) {
-			VkImageViewCreateInfo createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			createInfo.image = images[i];
-			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = imageFormat;
-			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			createInfo.subresourceRange.baseMipLevel = 0;
-			createInfo.subresourceRange.levelCount = 1;
-			createInfo.subresourceRange.baseArrayLayer = 0;
-			createInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(device, &createInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
-				std::cerr << "Vulkan swap chain image view를 만들지 못했습니다.\n";
-				return false;
+		for (size_t index = 0; index < images.size(); index++) {
+			VkImageViewCreateInfo createInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image = images[index],
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = imageFormat,
+				.components = {
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY,
+					VK_COMPONENT_SWIZZLE_IDENTITY
+				},
+				.subresourceRange = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+			const VkResult result = vkCreateImageView(device, &createInfo,
+				nullptr, &imageViews[index]);
+			if (result != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ResourceCreationFailed, "swap chain image view 생성",
+					"Vulkan 스왑체인 image view를 만들지 못했습니다", result, true));
 			}
 		}
-		return true;
+		return {};
 	}
 
 	VulkanSwapChain::~VulkanSwapChain() {
 		Reset();
 	}
 
-	bool VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window) {
+	GraphicsResult<void> VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice,
+		GLFWwindow* window) {
+		Reset();
+		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || window == nullptr) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "swap chain 생성",
+				"Vulkan device 또는 출력 창을 사용할 수 없습니다"));
+		}
 		device = sourceDevice.GetDevice();
 		Support support;
-		if (!QuerySupport(sourceDevice, support)) {
-			std::cerr << "Vulkan swap chain surface 지원 정보를 조회하지 못했습니다.\n";
-			return false;
-		}
+		const auto supportResult = QuerySupport(sourceDevice, support);
+		if (!supportResult)
+			return std::unexpected(supportResult.error());
 		const auto& [capabilities, formats, presentModes] = support;
 		if (formats.empty() || presentModes.empty()) {
-			std::cerr << "지원되는 Vulkan swap chain surface를 찾지 못했습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "swap chain surface 선택",
+				"지원되는 Vulkan surface format 또는 present mode가 없습니다"));
 		}
 		const auto [format, colorSpace] = ChooseSurfaceFormat(formats);
 		const VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
 		const VkExtent2D selectedExtent = ChooseExtent(capabilities, window);
 		if (selectedExtent.width == 0 || selectedExtent.height == 0) {
-			std::cerr << "Vulkan swap chain extent가 올바르지 않습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "swap chain extent 선택",
+				"Vulkan 스왑체인 extent가 올바르지 않습니다"));
 		}
 		uint32_t imageCount = capabilities.minImageCount + 1;
 		if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount)
 			imageCount = capabilities.maxImageCount;
-		VkSwapchainCreateInfoKHR createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = sourceDevice.GetSurface();
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = format;
-		createInfo.imageColorSpace = colorSpace;
-		createInfo.imageExtent = selectedExtent;
-		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		const uint32_t queueFamilyIndices[] = {
 			sourceDevice.GetGraphicsQueueFamily(),
 			sourceDevice.GetPresentQueueFamily()
+		};
+		VkSwapchainCreateInfoKHR createInfo{
+			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+			.surface = sourceDevice.GetSurface(),
+			.minImageCount = imageCount,
+			.imageFormat = format,
+			.imageColorSpace = colorSpace,
+			.imageExtent = selectedExtent,
+			.imageArrayLayers = 1,
+			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			.preTransform = capabilities.currentTransform,
+			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			.presentMode = presentMode,
+			.clipped = VK_TRUE
 		};
 		if (sourceDevice.GetGraphicsQueueFamily() != sourceDevice.GetPresentQueueFamily()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -139,36 +186,46 @@ namespace Chrivent {
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
 		} else
 			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		createInfo.preTransform = capabilities.currentTransform;
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = presentMode;
-		createInfo.clipped = VK_TRUE;
-		createInfo.oldSwapchain = VK_NULL_HANDLE;
-		if (vkCreateSwapchainKHR(sourceDevice.GetDevice(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-			std::cerr << "Vulkan swap chain을 만들지 못했습니다.\n";
-			return false;
+		VkResult result = vkCreateSwapchainKHR(sourceDevice.GetDevice(),
+			&createInfo, nullptr, &swapChain);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
+				"Vulkan 스왑체인을 만들지 못했습니다", result, true));
 		}
-		if (vkGetSwapchainImagesKHR(sourceDevice.GetDevice(), swapChain, &imageCount, nullptr) != VK_SUCCESS)
-			return false;
+		result = vkGetSwapchainImagesKHR(sourceDevice.GetDevice(),
+			swapChain, &imageCount, nullptr);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "swap chain image 조회",
+				"Vulkan 스왑체인 image 개수를 조회하지 못했습니다", result, true));
+		}
 		images.resize(imageCount);
-		if (vkGetSwapchainImagesKHR(sourceDevice.GetDevice(), swapChain, &imageCount, images.data()) != VK_SUCCESS)
-			return false;
+		result = vkGetSwapchainImagesKHR(sourceDevice.GetDevice(),
+			swapChain, &imageCount, images.data());
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "swap chain image 조회",
+				"Vulkan 스왑체인 image를 조회하지 못했습니다", result, true));
+		}
 		images.resize(imageCount);
 		imageFormat = format;
 		extent = selectedExtent;
 		return CreateImageViews();
 	}
 
-	bool VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window) {
-		Reset();
+	GraphicsResult<void> VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice,
+		GLFWwindow* window) {
 		return Initialize(sourceDevice, window);
 	}
 
 	void VulkanSwapChain::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		for (const VkImageView imageView : imageViews)
-			vkDestroyImageView(device, imageView, nullptr);
+		for (const VkImageView imageView : imageViews) {
+			if (imageView != VK_NULL_HANDLE)
+				vkDestroyImageView(device, imageView, nullptr);
+		}
 		imageViews.clear();
 		images.clear();
 		if (swapChain != VK_NULL_HANDLE) {

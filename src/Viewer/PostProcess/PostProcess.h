@@ -3,7 +3,9 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
+#include <expected>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace Chrivent {
@@ -69,7 +71,7 @@ namespace Chrivent {
 		bool historyFramePending = false;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
-		bool BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
+		std::expected<void, std::string> BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
 		// 현재 패스 기록에서 사용할 committed 또는 pending history 상태를 반환한다.
@@ -108,7 +110,7 @@ namespace Chrivent {
 		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
-		bool SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		std::expected<void, std::string> SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
 
 	public:
 		virtual ~PostProcess() = default;

@@ -31,21 +31,6 @@ namespace Chrivent {
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
 			const ShaderProgramDefinition& depthProgram,
 			const ShaderProgramDefinition& velocityProgram, std::string& error);
-		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
-		bool CreateGraphicsPipeline(const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
-			const ShaderProgramDefinition& program,
-			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
-			VkCompareOp depthCompareOp, VkFormat colorFormat, VkSampleCountFlagBits sampleCount,
-			bool useVelocityInput, bool preserveDestinationAlpha,
-			VkPipeline& outPipeline, std::string& error) const;
-		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
-		bool CreateDepthOnlyPipeline(const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
-			const ShaderProgramDefinition& program,
-			VkCullModeFlags cullMode, VkPipeline& outPipeline, std::string& error) const;
-		// 모델 vertex buffer binding 정보를 만든다.
-		static VkVertexInputBindingDescription MakeVertexBindingDescription();
-		// 모델 vertex attribute 정보를 채운다.
-		static void FillVertexAttributeDescriptions(VkVertexInputAttributeDescription (&descriptions)[3]);
 
 	public:
 		VulkanPipeline() = default;

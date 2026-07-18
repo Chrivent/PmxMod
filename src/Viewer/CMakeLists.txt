@@ -68,6 +68,7 @@ target_sources(PmxModViewer PRIVATE
         Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
         Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
+        Pipeline/VulkanGraphicsPipelineBuilder.h Pipeline/VulkanGraphicsPipelineBuilder.cpp
 		Pipeline/VulkanShaderStageBuilder.h Pipeline/VulkanShaderStageBuilder.cpp
 
         PostProcess/PostProcess.h PostProcess/PostProcess.cpp
@@ -102,6 +103,7 @@ target_sources(PmxModViewer PRIVATE
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
         Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp
 
+        SwapChain/Dx11SwapChain.h SwapChain/Dx11SwapChain.cpp
         SwapChain/Dx12SwapChain.h SwapChain/Dx12SwapChain.cpp
         SwapChain/VulkanSwapChain.h SwapChain/VulkanSwapChain.cpp
 

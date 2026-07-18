@@ -34,7 +34,7 @@ namespace Chrivent {
 		VulkanTextureCache textureCache{ uploadContext };
 
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
-		bool CreateSwapChainResources();
+		GraphicsResult<void> CreateSwapChainResources();
 		// swapchain 재생성 전에 의존 리소스를 역순으로 해제한다.
 		void ResetSwapChainResources();
 

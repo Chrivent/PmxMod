@@ -29,9 +29,9 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));
 		HWND__* hwnd = glfwGetWin32Window(window);
-		if (!swapChain.Initialize(device, hwnd, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 초기화", "DirectX 12 swap chain을 만들지 못했습니다"));
+		const auto swapChainResult = swapChain.Initialize(device, hwnd, screenWidth, screenHeight);
+		if (!swapChainResult)
+			return std::unexpected(swapChainResult.error());
 		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"MSAA color buffer 초기화", "DirectX 12 color buffer를 만들지 못했습니다"));
@@ -52,9 +52,9 @@ namespace Chrivent {
 		const auto waitResult = WaitIdle();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
-		if (!swapChain.Resize(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 크기 변경", "DirectX 12 swap chain 크기를 바꾸지 못했습니다"));
+		const auto resizeResult = swapChain.Resize(device, screenWidth, screenHeight);
+		if (!resizeResult)
+			return std::unexpected(resizeResult.error());
 		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"MSAA color buffer 크기 변경", "DirectX 12 color buffer를 다시 만들지 못했습니다"));
@@ -114,9 +114,9 @@ namespace Chrivent {
 		if (!commandContext.Execute(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
 				"프레임 제출", "DirectX 12 command list를 제출하지 못했습니다"));
-		if (!swapChain.Present())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"swap chain present", "DirectX 12 프레임을 표시하지 못했습니다"));
+		const auto presentResult = swapChain.Present();
+		if (!presentResult)
+			return std::unexpected(presentResult.error());
 		return FrameEndState::Presented;
 	}
 
@@ -156,10 +156,7 @@ namespace Chrivent {
 		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "DirectX 12 device를 사용할 수 없습니다"));
-		if (!postProcess.Configure(device, screenWidth, screenHeight, effects))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"후처리 효과 구성", "DirectX 12 효과 chain을 만들지 못했습니다"));
-		return {};
+		return postProcess.Configure(device, screenWidth, screenHeight, effects);
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {

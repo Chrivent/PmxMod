@@ -5,6 +5,7 @@
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Descriptor/VulkanPostProcessDescriptors.h"
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/RenderTarget/VulkanPostProcessTarget.h"
 #include "Viewer/SwapChain/VulkanSwapChain.h"
 
@@ -49,7 +50,7 @@ namespace Chrivent {
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
 		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex);
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
-		bool CreatePipelines(const VulkanDevice& sourceDevice);
+		bool CreatePipelines(const VulkanDevice& sourceDevice, std::string& error);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.
 		static VkFormat ResolveResourceFormat(const PostProcessResourcePlan& resource);
 		// 리소스 계획의 실제 Vulkan 출력 크기를 반환한다.
@@ -78,9 +79,10 @@ namespace Chrivent {
 		
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 target을 생성한다.
 		bool InitializeTargets(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat);
+			VkFormat depthFormat, std::string& error);
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
-		bool Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		GraphicsResult<void> Configure(const VulkanDevice& sourceDevice,
+			const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
 		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,

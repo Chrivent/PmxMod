@@ -6,6 +6,7 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
 	bool Dx12PostProcess::CreateDepthTarget(
@@ -70,6 +71,7 @@ namespace Chrivent {
 
 	bool Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
 		inputDescriptorHeaps.clear();
+		inputDescriptorSize = 0;
 		if (!sourceDevice.GetDevice())
 			return false;
 		const size_t passCount = GetPassRoutes().size();
@@ -89,6 +91,7 @@ namespace Chrivent {
 			if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&description, IID_PPV_ARGS(&heap))))
 				return false;
 		}
+		inputDescriptorSize = sourceDevice.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		return true;
 	}
 
@@ -138,9 +141,8 @@ namespace Chrivent {
 		if (!sourceDevice.GetDevice() || heap == nullptr || passIndex >= GetPassRoutes().size())
 			return;
 		ID3D12Device* device = sourceDevice.GetDevice();
-		const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
-		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * increment;
+		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * inputDescriptorSize;
 		const PostProcessPassInputRoute* slots[PostProcessInputLayout::maxTextureCount]{};
 		for (const auto& input : GetPassRoutes()[passIndex].inputs)
 			slots[input.slot] = &input;
@@ -154,7 +156,7 @@ namespace Chrivent {
 				* PostProcessInputLayout::maxTextureCount + slot;
 			auto& [resource, format] = inputDescriptorStates[stateIndex];
 			if (resource == colResource && format == colFormat) {
-				handle.ptr += increment;
+				handle.ptr += inputDescriptorSize;
 				continue;
 			}
 			D3D12_SHADER_RESOURCE_VIEW_DESC description{};
@@ -165,7 +167,7 @@ namespace Chrivent {
 			device->CreateShaderResourceView(colResource, &description, handle);
 			resource = colResource;
 			format = colFormat;
-			handle.ptr += increment;
+			handle.ptr += inputDescriptorSize;
 		}
 	}
 
@@ -191,7 +193,7 @@ namespace Chrivent {
 		}
 	}
 
-	bool Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
+	bool Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice, std::string& error) {
 		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<DXGI_FORMAT> formats;
@@ -200,13 +202,15 @@ namespace Chrivent {
 			DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
 				const Dx12PostProcessTarget* target = ResolveOutputTarget(routes[index]);
-				if (target == nullptr)
+				if (target == nullptr) {
+					error = "후처리 패스의 DirectX 12 출력 target을 찾지 못했습니다";
 					return false;
+				}
 				format = target->GetFormat();
 			}
 			formats.emplace_back(format);
 		}
-		return pipelines.Initialize(sourceDevice, passes, formats);
+		return pipelines.Initialize(sourceDevice, passes, formats, error);
 	}
 
 	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(const size_t frameIndex) const {
@@ -232,6 +236,7 @@ namespace Chrivent {
 	void Dx12PostProcess::ResetEffectResources() {
 		inputDescriptorHeaps.clear();
 		inputDescriptorStates.clear();
+		inputDescriptorSize = 0;
 		resources.clear();
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
@@ -281,19 +286,33 @@ namespace Chrivent {
 		}
 		std::swap(targetWidth, other.targetWidth);
 		std::swap(targetHeight, other.targetHeight);
+		std::swap(inputDescriptorSize, other.inputDescriptorSize);
 	}
 
-	bool Dx12PostProcess::Configure(const Dx12Device& sourceDevice, const int width, const int height,
+	GraphicsResult<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
+		const int width, const int height,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx12PostProcess candidate;
-		if (!candidate.SetEffects(effects)
-			|| (candidate.HasEffects()
-				&& (!candidate.InitializeTargets(sourceDevice, width, height)
-					|| !candidate.CreatePipelines(sourceDevice))))
-			return false;
+		const auto planResult = candidate.SetEffects(effects);
+		if (!planResult) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+		}
+		if (candidate.HasEffects()
+			&& !candidate.InitializeTargets(sourceDevice, width, height)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
+				"DirectX 12 후처리 target과 descriptor를 만들지 못했습니다"));
+		}
+		std::string error;
+		if (candidate.HasEffects() && !candidate.CreatePipelines(sourceDevice, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::EffectConfigurationFailed, "후처리 pipeline 생성",
+				error.empty() ? "DirectX 12 후처리 pipeline을 만들지 못했습니다" : std::move(error)));
+		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
-		return true;
+		return {};
 	}
 
 	bool Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
@@ -372,8 +391,6 @@ namespace Chrivent {
 		if (heap == nullptr)
 			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		commandList->SetDescriptorHeaps(1, &heap);
-		const UINT descriptorIncrement = sourceDevice.GetDevice()->GetDescriptorHandleIncrementSize(
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
@@ -401,7 +418,7 @@ namespace Chrivent {
 			commandList->SetGraphicsRootConstantBufferView(
 				1, parameterDataBuffer.GetGpuAddress() + parameterOffset);
 			D3D12_GPU_DESCRIPTOR_HANDLE inputHandle = heap->GetGPUDescriptorHandleForHeapStart();
-			inputHandle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * descriptorIncrement;
+			inputHandle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * inputDescriptorSize;
 			commandList->SetGraphicsRootDescriptorTable(2, inputHandle);
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			commandList->DrawInstanced(3, 1, 0, 0);
@@ -428,5 +445,6 @@ namespace Chrivent {
 			buffer.Reset();
 		targetWidth = 0;
 		targetHeight = 0;
+		inputDescriptorSize = 0;
 	}
 }

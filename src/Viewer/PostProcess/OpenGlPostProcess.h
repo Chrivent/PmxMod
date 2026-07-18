@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/OpenGlShader.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
@@ -49,7 +50,7 @@ namespace Chrivent {
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
 		// 현재 실행 계획의 OpenGL 후처리 프로그램을 생성한다.
-		bool CreateShaders();
+		bool CreateShaders(std::string& error);
 		// 검증을 마친 다른 OpenGL 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(OpenGlPostProcess& other) noexcept;
 		
@@ -61,7 +62,7 @@ namespace Chrivent {
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		bool InitializeTargets(int width, int height, int sampleCount);
 		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
-		bool Configure(int width, int height, int sampleCount,
+		GraphicsResult<void> Configure(int width, int height, int sampleCount,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(int width, int height) const;

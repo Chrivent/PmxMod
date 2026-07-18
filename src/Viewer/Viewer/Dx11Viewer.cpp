@@ -20,10 +20,10 @@ namespace Chrivent {
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
 		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
-		const auto swapChainResult = device.CreateSwapChain(hwnd);
+		const auto swapChainResult = swapChain.Initialize(device.GetDevice(), hwnd);
 		if (!swapChainResult)
 			return std::unexpected(swapChainResult.error());
-		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
+		if (!renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"render target 초기화", "DirectX 11 render target을 만들지 못했습니다"));
@@ -40,12 +40,10 @@ namespace Chrivent {
 	GraphicsResult<void> Dx11Viewer::ResizeCore() {
 		renderTargets.Reset(device.GetContext());
 		postProcess.ResetTargets();
-		const HRESULT resizeResult = device.GetSwapChain()->ResizeBuffers(0, screenWidth,
-			screenHeight, DXGI_FORMAT_UNKNOWN, 0);
-		if (FAILED(resizeResult))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 크기 변경", "DirectX 11 buffer 크기를 바꾸지 못했습니다", resizeResult, true));
-		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
+		const auto resizeResult = swapChain.Resize(screenWidth, screenHeight);
+		if (!resizeResult)
+			return std::unexpected(resizeResult.error());
+		if (!renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"render target 크기 변경", "DirectX 11 render target을 다시 만들지 못했습니다"));
@@ -87,10 +85,9 @@ namespace Chrivent {
 				device.GetContext()->CopyResource(renderTargets.GetBackBuffer(),
 					renderTargets.GetSceneColor());
 		}
-		const HRESULT presentResult = device.GetSwapChain()->Present(0, 0);
-		if (FAILED(presentResult))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"swap chain present", "DirectX 11 프레임을 표시하지 못했습니다", presentResult, true));
+		const auto presentResult = swapChain.Present();
+		if (!presentResult)
+			return std::unexpected(presentResult.error());
 		return FrameEndState::Presented;
 	}
 
@@ -116,10 +113,8 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!postProcess.Configure(device.GetDevice(), device.GetContext(), screenWidth, screenHeight, effects))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"후처리 효과 구성", "DirectX 11 효과 chain을 만들지 못했습니다"));
-		return {};
+		return postProcess.Configure(device.GetDevice(), device.GetContext(),
+			screenWidth, screenHeight, effects);
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {

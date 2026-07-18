@@ -2,6 +2,7 @@
 
 #include "Viewer/Buffer/Dx12Buffer.h"
 #include "Viewer/Command/Dx12CommandContext.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/PostProcess/Dx12PostProcessPipelines.h"
 #include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
@@ -40,6 +41,7 @@ namespace Chrivent {
 		Dx12Buffer parameterDataBuffers[FrameBuffering::dx12BufferCount];
 		int targetWidth = 0;
 		int targetHeight = 0;
+		UINT inputDescriptorSize = 0;
 
 		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
 		bool CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
@@ -55,7 +57,7 @@ namespace Chrivent {
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);
 		// 공통 실행 계획의 모든 DX12 pipeline state를 생성한다.
-		bool CreatePipelines(const Dx12Device& sourceDevice);
+		bool CreatePipelines(const Dx12Device& sourceDevice, std::string& error);
 		// frame에 대응하는 shader-visible descriptor heap을 반환한다.
 		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex) const;
 		// 입력 경로에 대응하는 DX12 resource와 SRV 형식을 반환한다.
@@ -74,7 +76,7 @@ namespace Chrivent {
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
 		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
-		bool Configure(const Dx12Device& sourceDevice, int width, int height,
+		GraphicsResult<void> Configure(const Dx12Device& sourceDevice, int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,

@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/Dx11Shader.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
@@ -48,7 +49,7 @@ namespace Chrivent {
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
 		// 현재 실행 계획의 DX11 후처리 셰이더를 생성한다.
-		bool CreateShaders(ID3D11Device* device);
+		bool CreateShaders(ID3D11Device* device, std::string& error);
 		// 검증을 마친 다른 DX11 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(Dx11PostProcess& other) noexcept;
 		
@@ -58,7 +59,8 @@ namespace Chrivent {
 		// MSAA 장면 색상을 소유한 단일 샘플 입력 texture로 resolve한다.
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.
-		bool Configure(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height,
+		GraphicsResult<void> Configure(ID3D11Device* device, ID3D11DeviceContext* context,
+			int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		bool BeginSceneInputPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,

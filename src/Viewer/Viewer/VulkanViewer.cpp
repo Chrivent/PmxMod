@@ -2,17 +2,28 @@
 
 #include "Viewer/Instance/VulkanInstance.h"
 
+#include <utility>
+
 namespace Chrivent {
-	bool VulkanViewer::CreateSwapChainResources() {
+	GraphicsResult<void> VulkanViewer::CreateSwapChainResources() {
 		if (!msaaColorBuffer.Initialize(device, swapChain))
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"MSAA color buffer 생성", "Vulkan MSAA color buffer를 만들지 못했습니다"));
 		if (!msaaDepthBuffer.Initialize(device, swapChain))
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"MSAA depth buffer 생성", "Vulkan MSAA depth buffer를 만들지 못했습니다"));
 		if (postProcess.HasEffects()) {
-			if (!postProcess.InitializeTargets(device, swapChain, msaaDepthBuffer.format))
-				return false;
+			std::string error;
+			if (!postProcess.InitializeTargets(device, swapChain,
+				msaaDepthBuffer.format, error)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+					"후처리 target 생성", std::move(error)));
+			}
 		}
-		return commandContext.Initialize(device, swapChain);
+		if (!commandContext.Initialize(device, swapChain))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
+				"command context 생성", "Vulkan command context를 만들지 못했습니다"));
+		return {};
 	}
 
 	void VulkanViewer::ResetSwapChainResources() {
@@ -27,12 +38,12 @@ namespace Chrivent {
 		const auto deviceResult = device.Initialize(window, capabilities);
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
-		if (!swapChain.Initialize(device, window))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 초기화", "Vulkan swap chain을 만들지 못했습니다"));
-		if (!CreateSwapChainResources())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 리소스 초기화", "Vulkan 프레임 리소스를 만들지 못했습니다"));
+		const auto swapChainResult = swapChain.Initialize(device, window);
+		if (!swapChainResult)
+			return std::unexpected(swapChainResult.error());
+		const auto resourceResult = CreateSwapChainResources();
+		if (!resourceResult)
+			return std::unexpected(resourceResult.error());
 		const auto pipelineResult = pipeline.Initialize(device,
 			swapChain.GetImageFormat(), msaaDepthBuffer.format, shaderContract);
 		if (!pipelineResult)
@@ -52,12 +63,12 @@ namespace Chrivent {
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
 		ResetSwapChainResources();
-		if (!swapChain.Recreate(device, window))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 크기 변경", "Vulkan swap chain을 다시 만들지 못했습니다"));
-		if (!CreateSwapChainResources())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 리소스 크기 변경", "Vulkan 프레임 리소스를 다시 만들지 못했습니다"));
+		const auto recreateResult = swapChain.Recreate(device, window);
+		if (!recreateResult)
+			return std::unexpected(recreateResult.error());
+		const auto resourceResult = CreateSwapChainResources();
+		if (!resourceResult)
+			return std::unexpected(resourceResult.error());
 		if (!pipeline.IsCompatible(swapChain.GetImageFormat(),
 			msaaDepthBuffer.format, device.GetMsaaSampleCount()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
@@ -208,10 +219,7 @@ namespace Chrivent {
 		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));
-		if (!postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"후처리 효과 구성", "Vulkan 효과 chain을 만들지 못했습니다"));
-		return {};
+		return postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects);
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {

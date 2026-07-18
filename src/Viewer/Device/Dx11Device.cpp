@@ -1,6 +1,5 @@
 ﻿#include "Viewer/Device/Dx11Device.h"
 
-#include "Viewer/Descriptor/Dx11DescBuilder.h"
 #include "Util.h"
 
 #include <algorithm>
@@ -34,7 +33,6 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Device::Initialize(GraphicsCapabilities& capabilities) {
-		swapChain.Reset();
 		context.Reset();
 		device.Reset();
 		capabilities = {};
@@ -100,51 +98,6 @@ namespace Chrivent {
 		quality = 0;
 		capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount();
 		capabilities.activeSampleCount = sampleCount;
-	}
-
-	GraphicsResult<void> Dx11Device::CreateSwapChain(HWND__* window) {
-		if (!device || window == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::InvalidState, "swap chain 생성",
-				"DirectX 11 device 또는 출력 창을 사용할 수 없습니다"));
-		}
-		Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-		HRESULT result = device.As(&dxgiDevice);
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
-				"DirectX 11 device에서 DXGI device를 가져오지 못했습니다", result, true));
-		}
-		Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
-		result = dxgiDevice->GetAdapter(&adapter);
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
-				"DirectX 11 device의 DXGI adapter를 가져오지 못했습니다", result, true));
-		}
-		Microsoft::WRL::ComPtr<IDXGIFactory2> factory;
-		result = adapter->GetParent(IID_PPV_ARGS(&factory));
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
-				"flip-model swap chain을 지원하는 DXGI factory를 가져오지 못했습니다", result, true));
-		}
-		const auto description = Dx11DescBuilder::MakeSwapChainDesc();
-		Microsoft::WRL::ComPtr<IDXGISwapChain1> newSwapChain;
-		result = factory->CreateSwapChainForHwnd(device.Get(), window, &description,
-			nullptr, nullptr, &newSwapChain);
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
-				"DirectX 11 flip-model swap chain을 만들지 못했습니다", result, true));
-		}
-		result = newSwapChain.As(&swapChain);
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
-				"생성한 DXGI swap chain 인터페이스를 가져오지 못했습니다", result, true));
-		}
-		return {};
 	}
 
 	GraphicsResult<void> Dx11Device::WaitIdle() const {
