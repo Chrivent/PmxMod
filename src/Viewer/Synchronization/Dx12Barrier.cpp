@@ -12,6 +12,8 @@ namespace Chrivent {
 			return D3D12_BARRIER_SYNC_COPY;
 		if (state == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 			return D3D12_BARRIER_SYNC_PIXEL_SHADING;
+		if (state == D3D12_RESOURCE_STATE_INDEX_BUFFER)
+			return D3D12_BARRIER_SYNC_INDEX_INPUT;
 		return D3D12_BARRIER_SYNC_NONE;
 	}
 
@@ -30,6 +32,8 @@ namespace Chrivent {
 			return D3D12_BARRIER_ACCESS_COPY_DEST;
 		if (state == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 			return D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+		if (state == D3D12_RESOURCE_STATE_INDEX_BUFFER)
+			return D3D12_BARRIER_ACCESS_INDEX_BUFFER;
 		return D3D12_BARRIER_ACCESS_NO_ACCESS;
 	}
 
@@ -49,6 +53,18 @@ namespace Chrivent {
 		if (state == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 			return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
 		return D3D12_BARRIER_LAYOUT_PRESENT;
+	}
+
+	void Dx12Barrier::TransitionLegacy(ID3D12GraphicsCommandList* commandList,
+		ID3D12Resource* resource, const D3D12_RESOURCE_STATES before,
+		const D3D12_RESOURCE_STATES after) {
+		D3D12_RESOURCE_BARRIER resourceBarrier{};
+		resourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		resourceBarrier.Transition.pResource = resource;
+		resourceBarrier.Transition.StateBefore = before;
+		resourceBarrier.Transition.StateAfter = after;
+		resourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		commandList->ResourceBarrier(1, &resourceBarrier);
 	}
 
 	void Dx12Barrier::Transition(ID3D12GraphicsCommandList* commandList,
@@ -71,12 +87,30 @@ namespace Chrivent {
 			enhancedCommandList->Barrier(1, &barrierGroup);
 			return;
 		}
-		D3D12_RESOURCE_BARRIER resourceBarrier{};
-		resourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		resourceBarrier.Transition.pResource = resource;
-		resourceBarrier.Transition.StateBefore = before;
-		resourceBarrier.Transition.StateAfter = after;
-		resourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		commandList->ResourceBarrier(1, &resourceBarrier);
+		TransitionLegacy(commandList, resource, before, after);
+	}
+
+	void Dx12Barrier::TransitionBuffer(ID3D12GraphicsCommandList* commandList,
+		ID3D12GraphicsCommandList7* enhancedCommandList, ID3D12Resource* resource,
+		const D3D12_RESOURCE_STATES before, const D3D12_RESOURCE_STATES after) {
+		if (enhancedCommandList != nullptr) {
+			const D3D12_BUFFER_BARRIER bufferBarrier{
+				.SyncBefore = ResolveSync(before),
+				.SyncAfter = ResolveSync(after),
+				.AccessBefore = ResolveAccess(before),
+				.AccessAfter = ResolveAccess(after),
+				.pResource = resource,
+				.Offset = 0,
+				.Size = resource->GetDesc().Width
+			};
+			const D3D12_BARRIER_GROUP barrierGroup{
+				.Type = D3D12_BARRIER_TYPE_BUFFER,
+				.NumBarriers = 1,
+				.pBufferBarriers = &bufferBarrier
+			};
+			enhancedCommandList->Barrier(1, &barrierGroup);
+			return;
+		}
+		TransitionLegacy(commandList, resource, before, after);
 	}
 }

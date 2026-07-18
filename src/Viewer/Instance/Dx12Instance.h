@@ -7,6 +7,7 @@ namespace Chrivent {
 	class Dx12Drawer;
 	class Dx12DrawContext;
 	class Dx12Device;
+	class Dx12UploadContext;
 	class Dx12TextureCache;
 	struct Dx12Texture;
 	class Viewer;
@@ -14,9 +15,10 @@ namespace Chrivent {
 	// 한 모델의 D3D12 버퍼, 재질과 descriptor 상태를 관리한다.
 	class Dx12Instance : public Instance {
 		const Dx12Device& device;
+		Dx12UploadContext& uploadContext;
 		Dx12TextureCache& textureCache;
 		const Dx12Texture& dummyTexture;
-		const Dx12DrawContext& drawContext;
+		Dx12DrawContext& drawContext;
 		Dx12ModelResources modelResources;
 
 		// 모델 geometry 데이터를 DX12 vertex/index buffer로 업로드한다.
@@ -36,8 +38,8 @@ namespace Chrivent {
 
 	public:
 		Dx12Instance(Viewer& sourceViewer, const Dx12Device& sourceDevice,
-			Dx12TextureCache& sourceTextureCache, const Dx12Texture& sourceDummyTexture,
-			const Dx12DrawContext& sourceDrawContext);
+			Dx12UploadContext& sourceUploadContext, Dx12TextureCache& sourceTextureCache,
+			const Dx12Texture& sourceDummyTexture, Dx12DrawContext& sourceDrawContext);
 
 		// 모델의 갱신된 버텍스 데이터를 DX12 리소스에 반영한다.
 		bool Upload() override;

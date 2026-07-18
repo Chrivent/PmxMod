@@ -141,7 +141,7 @@ namespace Chrivent {
 		SceneShaderRuntimeContract shaderContract;
 		std::string shaderError;
 		if (!InternalShaderCatalog::Load(resourceDirectories.GetInternalShaderDirectory(),
-			viewer->IsVelocityYInverted(), shaderContract, shaderError)) {
+			viewer->IsNdcYInvertedForTextureCoordinates(), shaderContract, shaderError)) {
 			std::cerr << shaderError << '\n';
 			return false;
 		}
@@ -173,7 +173,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
-		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight, std::move(shaderContract))) {
+		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight, shaderContract)) {
             std::cerr << "Failed to set up renderer.\n";
             RemoveViewerWindowSubclass();
             viewer.reset();

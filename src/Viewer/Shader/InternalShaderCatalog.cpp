@@ -24,7 +24,8 @@ namespace Chrivent {
 	}
 
 	bool InternalShaderCatalog::Load(const std::filesystem::path& shaderDirectory,
-		const bool invertVelocityY, SceneShaderRuntimeContract& contract, std::string& error) {
+		const bool invertNdcYForTextureCoordinates,
+		SceneShaderRuntimeContract& contract, std::string& error) {
 		std::filesystem::path modelShaderPath;
 		std::filesystem::path edgeShaderPath;
 		std::filesystem::path groundShadowShaderPath;
@@ -44,7 +45,7 @@ namespace Chrivent {
 			"scene_depth", sceneInputShaderPath, "VSDepth", "PSDepth");
 		loadedSceneInputPasses.velocity = CreatePass(
 			"scene_velocity", std::move(sceneInputShaderPath), "VSVelocity",
-			invertVelocityY ? "PSVelocityInvertedY" : "PSVelocity");
+			invertNdcYForTextureCoordinates ? "PSVelocityInvertedY" : "PSVelocity");
 		contract.builtIn = std::move(loadedBuiltInPasses);
 		contract.sceneInput = std::move(loadedSceneInputPasses);
 		error.clear();

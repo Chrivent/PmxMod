@@ -1,13 +1,13 @@
 ﻿#pragma once
 
+#include "Viewer/Command/VulkanUploadContext.h"
 #include "Viewer/Texture/TextureCache.h"
 #include "Viewer/Device/VulkanDevice.h"
-#include "Viewer/Texture/VulkanTextureUploadContext.h"
 
 #include <filesystem>
 
 namespace Chrivent {
-	// 캐시 정보와 Vulkan image, memory, view 및 sampler를 보관한다.
+	// 캐시 정보와 Vulkan image, memory, view 및 공유 sampler 참조를 보관한다.
 	struct VulkanTexture {
 		bool hasAlpha = false;
 		VkImage image = VK_NULL_HANDLE;
@@ -21,7 +21,9 @@ namespace Chrivent {
 	// 이미지 파일을 Vulkan texture로 업로드하고 공통 키로 재사용한다.
 	class VulkanTextureCache : public TextureCache<VulkanTexture> {
 		VkDevice device = VK_NULL_HANDLE;
-		VulkanTextureUploadContext uploadContext;
+		VkSampler wrapSampler = VK_NULL_HANDLE;
+		VkSampler clampSampler = VK_NULL_HANDLE;
+		VulkanUploadContext& uploadContext;
 
 		// 이미지 레이아웃 전환 명령을 기록한다.
 		static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -36,10 +38,16 @@ namespace Chrivent {
 		bool CreateImageView(VkImage image, VkImageView& imageView) const;
 		// shader sampler를 생성한다.
 		bool CreateSampler(VkSampler& sampler, bool clamp) const;
+		// 텍스처들이 공유하는 wrap 및 clamp sampler를 준비한다.
+		bool CreateSamplers();
 		// 단일 텍스처의 Vulkan 리소스를 해제한다.
 		void ResetTexture(VulkanTexture& texture) const;
+		// 캐시가 공유하는 sampler들을 해제한다.
+		void ResetSamplers();
 
 	public:
+		explicit VulkanTextureCache(VulkanUploadContext& sourceUploadContext) :
+			uploadContext(sourceUploadContext) {}
 		~VulkanTextureCache();
 
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.

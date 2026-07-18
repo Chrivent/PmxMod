@@ -2,6 +2,7 @@
 
 #include "Viewer/Drawer/VulkanDrawer.h"
 #include "Viewer/DrawContext/VulkanDrawContext.h"
+#include "Viewer/Command/VulkanUploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/Texture/VulkanTextureCache.h"
@@ -38,10 +39,18 @@ namespace Chrivent {
 				{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount }))
 				return false;
 		}
-		if (!modelResources.indexBuffer.Initialize(device, indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VulkanBuffer indexUploadBuffer;
+		if (!indexUploadBuffer.Initialize(device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 			return false;
-		if (!modelResources.indexBuffer.Write(indexData.bytes.data(), indexBufferSize))
+		if (!indexUploadBuffer.Write(indexData.bytes.data(), indexBufferSize))
+			return false;
+		if (!modelResources.indexBuffer.Initialize(device, indexBufferSize,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+			return false;
+		if (!uploadContext.UploadIndexBuffer(device, modelResources.indexBuffer.buffer,
+			indexUploadBuffer.buffer, indexBufferSize))
 			return false;
 		return true;
 	}
@@ -76,7 +85,7 @@ namespace Chrivent {
 		if (!modelResources.groundShadowPixelConstantsRing.Setup(device,
 			DynamicBufferRing::AlignUp(
 				sizeof(GroundShadowPixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error))
+				* ringSlack * FrameBuffering::vulkanFramesInFlight, error))
 			return false;
 		return true;
 	}
@@ -133,10 +142,12 @@ namespace Chrivent {
 	}
 
 	VulkanInstance::VulkanInstance(Viewer& sourceViewer, const VulkanDevice& sourceDevice,
-		const VulkanPipeline& sourcePipeline, VulkanTextureCache& sourceTextureCache,
-		const VulkanTexture& sourceDummyTexture, VulkanDrawContext& sourceDrawContext)
-		: device(sourceDevice), pipeline(sourcePipeline), textureCache(sourceTextureCache),
-		dummyTexture(sourceDummyTexture), drawContext(sourceDrawContext) {
+		const VulkanPipeline& sourcePipeline, VulkanUploadContext& sourceUploadContext,
+		VulkanTextureCache& sourceTextureCache, const VulkanTexture& sourceDummyTexture,
+		VulkanDrawContext& sourceDrawContext)
+		: device(sourceDevice), pipeline(sourcePipeline), uploadContext(sourceUploadContext),
+		textureCache(sourceTextureCache), dummyTexture(sourceDummyTexture),
+		drawContext(sourceDrawContext) {
 		drawer = std::make_unique<VulkanDrawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 

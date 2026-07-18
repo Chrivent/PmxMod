@@ -13,7 +13,7 @@ namespace Chrivent {
 		return dummyTexture.texture && dummyTexture.textureView;
 	}
 
-	bool Dx11Viewer::SetupCore() {
+	bool Dx11Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		HWND__* hwnd = glfwGetWin32Window(window);
 		if (!device.Initialize(capabilities))
@@ -28,7 +28,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects() && !postProcess.InitializeTargets(
 			device.GetDevice(), device.GetContext(), screenWidth, screenHeight))
 			return false;
-		if (!pipeline.Initialize(device.GetDevice(), builtInShaderPasses, sceneInputShaderPasses))
+		if (!pipeline.Initialize(device.GetDevice(), shaderContract.builtIn, shaderContract.sceneInput))
 			return false;
 		if (!CreateDummyResources())
 			return false;

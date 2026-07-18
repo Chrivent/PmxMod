@@ -13,7 +13,7 @@ namespace Chrivent {
 	class Dx12Drawer : public Drawer {
 		const Dx12Instance& instance;
 		Dx12ModelResources& resources;
-		const Dx12DrawContext& drawContext;
+		Dx12DrawContext& drawContext;
 
 	protected:
 		// DirectX depth range로 맞추는 clip 보정 행렬을 반환한다.
@@ -29,6 +29,6 @@ namespace Chrivent {
 
 	public:
 		Dx12Drawer(const Dx12Instance& sourceInstance, Dx12ModelResources& sourceResources,
-			const Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer);
+			Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer);
 	};
 }

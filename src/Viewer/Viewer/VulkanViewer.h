@@ -3,6 +3,7 @@
 #include "Viewer/Viewer/Viewer.h"
 #include "Viewer/DrawContext/VulkanDrawContext.h"
 #include "Viewer/Command/VulkanCommandContext.h"
+#include "Viewer/Command/VulkanUploadContext.h"
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/RenderTarget/VulkanMsaaColorBuffer.h"
 #include "Viewer/RenderTarget/VulkanMsaaDepthBuffer.h"
@@ -29,7 +30,8 @@ namespace Chrivent {
 		bool postProcessSceneInputPassReady = false;
 		VulkanDrawContext drawContext{ pipeline, commandContext };
 		VulkanPostProcess postProcess;
-		VulkanTextureCache textureCache;
+		VulkanUploadContext uploadContext;
+		VulkanTextureCache textureCache{ uploadContext };
 
 		// swapchain 크기와 포맷에 의존하는 렌더링 리소스를 생성한다.
 		bool CreateSwapChainResources();
@@ -44,7 +46,7 @@ namespace Chrivent {
 		// Vulkan 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPassCore() override;
 		// Vulkan 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
-		bool SetupCore() override;
+		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// Vulkan 스왑체인과 크기 의존 리소스를 재생성한다.
 		bool ResizeCore() override;
 		// Vulkan 프레임 명령 기록을 시작한다.
@@ -55,8 +57,6 @@ namespace Chrivent {
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		bool IsVelocityYInverted() const override { return false; }
-
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;
 	};

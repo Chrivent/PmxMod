@@ -60,6 +60,6 @@ namespace Chrivent {
 
 	// 지면 그림자 pixel shader에 전달할 그림자 색상을 보관한다.
 	struct GroundShadowPixelConstants {
-		glm::vec4 shadowColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.7f);
+		glm::vec4 shadowColor = glm::vec4(0.2f, 0.2f, 0.2f, 0.7f);
 	};
 }

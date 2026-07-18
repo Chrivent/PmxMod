@@ -2,6 +2,7 @@
 
 #include "Viewer/Drawer/Dx12Drawer.h"
 #include "Viewer/DrawContext/Dx12DrawContext.h"
+#include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Texture/Dx12TextureCache.h"
 #include "Viewer/Viewer/Viewer.h"
@@ -40,8 +41,13 @@ namespace Chrivent {
 			SizeInBytes = vertexByteSize;
 			StrideInBytes = sizeof(ViewerVertex);
 		}
-		if (!modelResources.indexBuffer.InitializeUpload(device, indexData.bytes.size()) ||
-			!modelResources.indexBuffer.Write(std::as_bytes(std::span(indexData.bytes))))
+		Dx12Buffer indexUploadBuffer;
+		if (!indexUploadBuffer.InitializeUpload(device, indexData.bytes.size())
+			|| !indexUploadBuffer.Write(std::as_bytes(std::span(indexData.bytes)))
+			|| !modelResources.indexBuffer.InitializeDefault(
+				device, indexData.bytes.size(), D3D12_RESOURCE_STATE_COPY_DEST)
+			|| !uploadContext.UploadIndexBuffer(device, modelResources.indexBuffer.GetResource(),
+				indexUploadBuffer.GetResource(), indexData.bytes.size()))
 			return false;
 		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.GetGpuAddress();
 		modelResources.indexBufferView.SizeInBytes = indexData.bytes.size();
@@ -148,10 +154,10 @@ namespace Chrivent {
 	}
 
 	Dx12Instance::Dx12Instance(Viewer& sourceViewer, const Dx12Device& sourceDevice,
-		Dx12TextureCache& sourceTextureCache, const Dx12Texture& sourceDummyTexture,
-		const Dx12DrawContext& sourceDrawContext)
-		: device(sourceDevice), textureCache(sourceTextureCache), dummyTexture(sourceDummyTexture),
-		drawContext(sourceDrawContext) {
+		Dx12UploadContext& sourceUploadContext, Dx12TextureCache& sourceTextureCache,
+		const Dx12Texture& sourceDummyTexture, Dx12DrawContext& sourceDrawContext)
+		: device(sourceDevice), uploadContext(sourceUploadContext), textureCache(sourceTextureCache),
+		dummyTexture(sourceDummyTexture), drawContext(sourceDrawContext) {
 		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, drawContext, sourceViewer);
 	}
 

@@ -20,9 +20,6 @@ namespace Chrivent {
 		bool textureEnabled = false;
 		bool sphereTextureEnabled = false;
 		bool toonTextureEnabled = false;
-		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet edgePixelDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet groundShadowPixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 
 		explicit VulkanModelMaterial(const Material& sourceMaterial) : material(sourceMaterial) {}

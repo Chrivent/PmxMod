@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
-#include "Viewer/SwapChain/VulkanSwapChain.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
@@ -18,26 +17,29 @@ namespace Chrivent {
 		VkPipeline groundShadowPipeline = VK_NULL_HANDLE;
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 		VkDescriptorSetLayout descriptorSetLayouts[3]{};
+		VkFormat colorFormat = VK_FORMAT_UNDEFINED;
+		VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 		// 모델 데이터에서 사용할 descriptor set layout들을 생성한다.
 		bool CreateDescriptorSetLayouts();
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
 		bool CreatePipelineLayout();
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
-		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, const BuiltInShaderPasses& passes,
+		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
+			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
 			const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass);
 		// 지정한 cull mode로 모델 렌더링용 graphics pipeline을 생성한다.
 		bool CreateGraphicsPipeline(
-			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, const EffectPassDefinition& pass,
+			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
+			const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, bool usePositionOnly, bool useDepthBias, bool enableStencilTest, bool disableDepthWrite,
 			VkCompareOp depthCompareOp, VkFormat colorFormat, VkSampleCountFlagBits sampleCount,
 			bool useVelocityInput, bool preserveDestinationAlpha, VkPipeline& outPipeline) const;
 		// 지정한 cull mode로 후처리 depth-only graphics pipeline을 생성한다.
 		bool CreateDepthOnlyPipeline(
-			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, const EffectPassDefinition& pass,
+			const VulkanDevice& sourceDevice, VkFormat sourceDepthFormat,
+			const EffectPassDefinition& pass,
 			VkCullModeFlags cullMode, VkPipeline& outPipeline) const;
 		// 모델 vertex buffer binding 정보를 만든다.
 		static VkVertexInputBindingDescription MakeVertexBindingDescription();
@@ -69,9 +71,16 @@ namespace Chrivent {
 		VkDescriptorSetLayout GetPixelDescriptorSetLayout() const { return descriptorSetLayouts[1]; }
 		// 재질 texture용 descriptor set layout을 반환한다.
 		VkDescriptorSetLayout GetTextureDescriptorSetLayout() const { return descriptorSetLayouts[2]; }
+		// 현재 파이프라인이 새 렌더 타깃 형식과 샘플 수에도 재사용 가능한지 반환한다.
+		bool IsCompatible(const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
+			const VkSampleCountFlagBits sourceSampleCount) const {
+			return pipeline != VK_NULL_HANDLE && colorFormat == sourceColorFormat
+				&& depthFormat == sourceDepthFormat && sampleCount == sourceSampleCount;
+		}
 
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat,
+		bool Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
+			VkFormat sourceDepthFormat,
 			const BuiltInShaderPasses& passes, const EffectPassDefinition& depthPass,
 			const EffectPassDefinition& velocityPass);
 		// 생성한 pipeline 리소스를 해제한다.

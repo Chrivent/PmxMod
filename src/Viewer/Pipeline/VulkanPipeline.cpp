@@ -108,36 +108,36 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
+		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
+		const BuiltInShaderPasses& passes,
 		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
-		return CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
+		return CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.model,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, pipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.model,
+			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, pipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.model,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, bothFacePipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
+			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, bothFacePipeline)
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceDepthFormat, depthPass,
 			VK_CULL_MODE_BACK_BIT, depthOnlyPipeline)
-			&& CreateDepthOnlyPipeline(sourceDevice, sourceSwapChain, depthFormat, depthPass,
+			&& CreateDepthOnlyPipeline(sourceDevice, sourceDepthFormat, depthPass,
 			VK_CULL_MODE_NONE, depthOnlyBothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, velocityPass,
 			VK_CULL_MODE_BACK_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
 			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityPipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, velocityPass,
+			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, velocityPass,
 			VK_CULL_MODE_NONE, false, false, false, false, VK_COMPARE_OP_LESS,
 			VK_FORMAT_R16G16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, true, false, sceneVelocityBothFacePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.edge,
+			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.edge,
 			VK_CULL_MODE_FRONT_BIT, false, false, false, false, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, false, edgePipeline)
-			&& CreateGraphicsPipeline(sourceDevice, sourceSwapChain, depthFormat, passes.groundShadow,
+			sourceColorFormat, sourceDevice.msaaSampleCount, false, false, edgePipeline)
+			&& CreateGraphicsPipeline(sourceDevice, sourceDepthFormat, passes.groundShadow,
 			VK_CULL_MODE_NONE, true, true, true, true, VK_COMPARE_OP_LESS,
-			sourceSwapChain.imageFormat, sourceDevice.msaaSampleCount, false, true, groundShadowPipeline);
+			sourceColorFormat, sourceDevice.msaaSampleCount, false, true, groundShadowPipeline);
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipeline(
-		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const EffectPassDefinition& pass,
+		const VulkanDevice& sourceDevice, const VkFormat sourceDepthFormat,
+		const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, const bool usePositionOnly, const bool useDepthBias, const bool enableStencilTest, const bool disableDepthWrite,
 		const VkCompareOp depthCompareOp, const VkFormat colorFormat, const VkSampleCountFlagBits sampleCount,
 		const bool useVelocityInput, const bool preserveDestinationAlpha, VkPipeline& outPipeline) const {
@@ -169,22 +169,19 @@ namespace Chrivent {
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = sourceSwapChain.extent.width;
-		viewport.height = sourceSwapChain.extent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = sourceSwapChain.extent;
 		VkPipelineViewportStateCreateInfo viewportState{};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
-		viewportState.pViewports = &viewport;
 		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissor;
+		static constexpr VkDynamicState dynamicStates[] = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		const VkPipelineDynamicStateCreateInfo dynamicState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = std::size(dynamicStates),
+			.pDynamicStates = dynamicStates
+		};
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
@@ -243,14 +240,14 @@ namespace Chrivent {
 		colorBlending.pAttachments = &colorBlendAttachment;
 		VkGraphicsPipelineCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		const bool depthHasStencil = depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-			depthFormat == VK_FORMAT_D24_UNORM_S8_UINT;
+		const bool depthHasStencil = sourceDepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+			sourceDepthFormat == VK_FORMAT_D24_UNORM_S8_UINT;
 		const VkPipelineRenderingCreateInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 			.colorAttachmentCount = 1,
 			.pColorAttachmentFormats = &colorFormat,
-			.depthAttachmentFormat = depthFormat,
-			.stencilAttachmentFormat = depthHasStencil ? depthFormat : VK_FORMAT_UNDEFINED
+			.depthAttachmentFormat = sourceDepthFormat,
+			.stencilAttachmentFormat = depthHasStencil ? sourceDepthFormat : VK_FORMAT_UNDEFINED
 		};
 		createInfo.pNext = &renderingInfo;
 		createInfo.stageCount = VulkanShaderStageBuilder::stageCount;
@@ -262,6 +259,7 @@ namespace Chrivent {
 		createInfo.pMultisampleState = &multisampling;
 		createInfo.pDepthStencilState = &depthStencil;
 		createInfo.pColorBlendState = &colorBlending;
+		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan graphics pipeline.\n";
@@ -271,8 +269,8 @@ namespace Chrivent {
 	}
 
 	bool VulkanPipeline::CreateDepthOnlyPipeline(
-		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const EffectPassDefinition& pass,
+		const VulkanDevice& sourceDevice, const VkFormat sourceDepthFormat,
+		const EffectPassDefinition& pass,
 		const VkCullModeFlags cullMode, VkPipeline& outPipeline) const {
 		std::string error;
 		VulkanShaderStageBuilder shaderStages;
@@ -305,19 +303,19 @@ namespace Chrivent {
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		const VkViewport viewport{
-			.x = 0.0f, .y = 0.0f,
-			.width = static_cast<float>(sourceSwapChain.extent.width),
-			.height = static_cast<float>(sourceSwapChain.extent.height),
-			.minDepth = 0.0f, .maxDepth = 1.0f
-		};
-		const VkRect2D scissor{ .extent = sourceSwapChain.extent };
 		VkPipelineViewportStateCreateInfo viewportState{};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
-		viewportState.pViewports = &viewport;
 		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissor;
+		static constexpr VkDynamicState dynamicStates[] = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		const VkPipelineDynamicStateCreateInfo dynamicState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = std::size(dynamicStates),
+			.pDynamicStates = dynamicStates
+		};
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
@@ -337,7 +335,7 @@ namespace Chrivent {
 		const VkPipelineRenderingCreateInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 			.colorAttachmentCount = 0,
-			.depthAttachmentFormat = depthFormat,
+			.depthAttachmentFormat = sourceDepthFormat,
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
 		};
 		createInfo.pNext = &renderingInfo;
@@ -349,6 +347,7 @@ namespace Chrivent {
 		createInfo.pRasterizationState = &rasterizer;
 		createInfo.pMultisampleState = &multisampling;
 		createInfo.pDepthStencilState = &depthStencil;
+		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
 			std::cerr << "Failed to create Vulkan depth-only pipeline.\n";
@@ -396,16 +395,22 @@ namespace Chrivent {
 		return bothFace ? depthOnlyBothFacePipeline : depthOnlyPipeline;
 	}
 
-	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const BuiltInShaderPasses& passes,
+	bool VulkanPipeline::Initialize(const VulkanDevice& sourceDevice, const VkFormat sourceColorFormat,
+		const VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
 		const EffectPassDefinition& depthPass, const EffectPassDefinition& velocityPass) {
+		Reset();
 		device = sourceDevice.device;
 		if (!CreateDescriptorSetLayouts())
 			return false;
 		if (!CreatePipelineLayout())
 			return false;
-		return CreateGraphicsPipelines(sourceDevice, sourceSwapChain, depthFormat,
-			passes, depthPass, velocityPass);
+		if (!CreateGraphicsPipelines(sourceDevice, sourceColorFormat, sourceDepthFormat,
+			passes, depthPass, velocityPass))
+			return false;
+		colorFormat = sourceColorFormat;
+		depthFormat = sourceDepthFormat;
+		sampleCount = sourceDevice.msaaSampleCount;
+		return true;
 	}
 
 	void VulkanPipeline::Reset() {
@@ -453,6 +458,9 @@ namespace Chrivent {
 				descriptorSetLayout = VK_NULL_HANDLE;
 			}
 		}
+		colorFormat = VK_FORMAT_UNDEFINED;
+		depthFormat = VK_FORMAT_UNDEFINED;
+		sampleCount = VK_SAMPLE_COUNT_1_BIT;
 		device = VK_NULL_HANDLE;
 	}
 }

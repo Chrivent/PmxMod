@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Viewer/Texture/TextureCache.h"
+#include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/Device/Dx12Device.h"
-#include "Viewer/Texture/Dx12TextureUploadContext.h"
 
 #include <filesystem>
 #include <wrl/client.h>
@@ -19,13 +19,16 @@ namespace Chrivent {
 
 	// 이미지 파일을 D3D12 texture로 업로드하고 공통 키로 재사용한다.
 	class Dx12TextureCache : public TextureCache<Dx12Texture> {
-		Dx12TextureUploadContext uploadContext;
+		Dx12UploadContext& uploadContext;
 
 		// RGBA 픽셀을 DX12 texture resource로 업로드한다.
 		bool UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
-			UINT width, UINT height, Dx12Texture& texture);
+			UINT width, UINT height, Dx12Texture& texture) const;
 
 	public:
+		explicit Dx12TextureCache(Dx12UploadContext& sourceUploadContext) :
+			uploadContext(sourceUploadContext) {}
+
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 리소스로 반환한다.
 		Dx12Texture Load(const Dx12Device& sourceDevice, const std::filesystem::path& texturePath);
 		// 텍스처가 없는 material에 바인딩할 흰색 DX12 텍스처를 생성한다.

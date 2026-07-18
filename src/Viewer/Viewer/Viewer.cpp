@@ -38,15 +38,13 @@ namespace Chrivent {
 	}
 
 	bool Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
-		SceneShaderRuntimeContract shaderContract) {
+		const SceneShaderRuntimeContract& shaderContract) {
 		if (initialized || rendererLost || sourceWindow == nullptr || width <= 0 || height <= 0)
 			return false;
 		window = sourceWindow;
 		screenWidth = width;
 		screenHeight = height;
-		builtInShaderPasses = std::move(shaderContract.builtIn);
-		sceneInputShaderPasses = std::move(shaderContract.sceneInput);
-		if (!SetupCore() || activePostProcess == nullptr) {
+		if (!SetupCore(shaderContract) || activePostProcess == nullptr) {
 			rendererLost = true;
 			return false;
 		}
@@ -124,12 +122,13 @@ namespace Chrivent {
 	}
 
 	void Viewer::ResetPostProcessHistory() {
-		activePostProcess->ResetHistory();
+		if (activePostProcess != nullptr)
+			activePostProcess->ResetHistory();
 		ResetPostProcessFrameHistory();
 	}
 
 	bool Viewer::RequiresPostProcessVelocity() const {
-		return activePostProcess->RequiresVelocity();
+		return activePostProcess != nullptr && activePostProcess->RequiresVelocity();
 	}
 
 	bool Viewer::RecreateFromFramebuffer() {

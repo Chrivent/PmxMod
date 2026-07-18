@@ -34,6 +34,8 @@ namespace Chrivent {
 			VkPipelineStageFlags2 sourceStage, VkAccessFlags2 sourceAccess,
 			VkPipelineStageFlags2 destinationStage, VkAccessFlags2 destinationAccess,
 			VkImageAspectFlags aspectMask);
+		// 현재 렌더링 영역에 맞는 동적 viewport와 scissor를 적용한다.
+		static void ApplyViewportAndScissor(VkCommandBuffer commandBuffer, VkExtent2D extent);
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
 		// 지정한 이미지 attachment로 dynamic rendering을 시작하고 파이프라인을 바인딩한다.

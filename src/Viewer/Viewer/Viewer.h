@@ -88,6 +88,7 @@ namespace Chrivent {
 		bool rendererLost = false;
 		bool frameActive = false;
 		bool sceneInputPassActive = false;
+		bool invertNdcYForTextureCoordinates = false;
 		
 		// 표시가 끝난 카메라 행렬을 다음 프레임의 이전 상태로 확정한다.
 		void CommitPostProcessFrameHistory();
@@ -95,8 +96,9 @@ namespace Chrivent {
 		bool RecreateSizeDependentResources(int width, int height, bool force);
 
 	protected:
-		BuiltInShaderPasses builtInShaderPasses;
-		SceneInputShaderPasses sceneInputShaderPasses;
+		explicit Viewer(const bool invertNdcY) :
+			invertNdcYForTextureCoordinates(invertNdcY) {}
+
 		float clearColor[4] = { 0.839f, 0.902f, 0.961f, 1.0f };
 		int screenWidth = 0;
 		int screenHeight = 0;
@@ -110,7 +112,7 @@ namespace Chrivent {
 		// API별 후처리 장면 입력 패스 기록을 종료한다.
 		virtual bool EndPostProcessSceneInputPassCore() = 0;
 		// API별 렌더러 리소스를 초기화한다.
-		virtual bool SetupCore() = 0;
+		virtual bool SetupCore(const SceneShaderRuntimeContract& shaderContract) = 0;
 		// API별 크기 의존 렌더링 리소스를 갱신한다.
 		virtual bool ResizeCore() = 0;
 		// API별 한 프레임 기록을 시작한다.
@@ -138,14 +140,15 @@ namespace Chrivent {
 		int GetScreenHeight() const { return screenHeight; }
 		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
 		const SceneRenderState& GetSceneRenderState() const { return sceneRenderState; }
-		
-		virtual bool IsVelocityYInverted() const = 0;
+		bool IsNdcYInvertedForTextureCoordinates() const {
+			return invertNdcYForTextureCoordinates;
+		}
 
 		// 렌더러별 GLFW 윈도우 힌트를 설정한다.
 		virtual void ConfigureWindowHints();
 		// 윈도우, 크기와 검증된 장면 셰이더 계약을 받은 뒤 렌더러 리소스를 한 번 초기화한다.
 		bool Setup(GLFWwindow* sourceWindow, int width, int height,
-			SceneShaderRuntimeContract shaderContract);
+			const SceneShaderRuntimeContract& shaderContract);
 		// 창 크기에 맞춰 렌더 타깃과 투영 행렬을 갱신한다.
 		bool Resize(int width, int height);
 		// 한 프레임의 렌더링 시작 상태를 준비하고 기록 가능 여부를 반환한다.

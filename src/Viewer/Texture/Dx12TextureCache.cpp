@@ -2,7 +2,7 @@
 
 namespace Chrivent {
 	bool Dx12TextureCache::UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
-		const UINT width, const UINT height, Dx12Texture& texture) {
+		const UINT width, const UINT height, Dx12Texture& texture) const {
 		if (!sourceDevice.device || !sourceDevice.commandQueue || pixels == nullptr || width == 0 || height == 0)
 			return false;
 		D3D12_RESOURCE_DESC textureDesc{};
@@ -57,7 +57,8 @@ namespace Chrivent {
 		for (UINT row = 0; row < rowCount; row++)
 			std::memcpy(destination + layout.Footprint.RowPitch * row, pixels + sourcePitch * row, sourcePitch);
 		uploadBuffer->Unmap(0, nullptr);
-		if (!uploadContext.Upload(sourceDevice, texture.resource.Get(), uploadBuffer.Get(), layout))
+		if (!uploadContext.UploadTexture(
+			sourceDevice, texture.resource.Get(), uploadBuffer.Get(), layout))
 			return false;
 		texture.width = width;
 		texture.height = height;

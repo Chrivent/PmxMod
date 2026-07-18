@@ -196,7 +196,7 @@ namespace Chrivent {
 	}
 
 	Dx12Drawer::Dx12Drawer(const Dx12Instance& sourceInstance, Dx12ModelResources& sourceResources,
-		const Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer)
+		Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer)
 		: Drawer(sourceViewer), instance(sourceInstance), resources(sourceResources),
 		drawContext(sourceDrawContext) {}
 }

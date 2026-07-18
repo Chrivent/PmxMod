@@ -7,12 +7,14 @@ namespace Chrivent {
 		return blockCount * alignment;
 	}
 
-	bool Dx12Buffer::InitializeUpload(const Dx12Device& sourceDevice, const size_t size) {
+	bool Dx12Buffer::InitializeResource(const Dx12Device& sourceDevice, const size_t size,
+		const D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_STATES initialState,
+		const bool map) {
 		Reset();
 		if (!sourceDevice.device || size == 0)
 			return false;
 		D3D12_HEAP_PROPERTIES heapProperties;
-		heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+		heapProperties.Type = heapType;
 		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		heapProperties.CreationNodeMask = 1;
@@ -26,11 +28,24 @@ namespace Chrivent {
 		resourceDesc.SampleDesc.Count = 1;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		if (FAILED(sourceDevice.device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
-			&resourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&resource))))
+			&resourceDesc, initialState, nullptr, IID_PPV_ARGS(&resource))))
 			return false;
 		byteSize = size;
+		if (!map)
+			return true;
 		constexpr D3D12_RANGE readRange{ 0, 0 };
 		return SUCCEEDED(resource->Map(0, &readRange, &mappedData));
+	}
+
+	bool Dx12Buffer::InitializeUpload(const Dx12Device& sourceDevice, const size_t size) {
+		return InitializeResource(sourceDevice, size, D3D12_HEAP_TYPE_UPLOAD,
+			D3D12_RESOURCE_STATE_GENERIC_READ, true);
+	}
+
+	bool Dx12Buffer::InitializeDefault(const Dx12Device& sourceDevice, const size_t size,
+		const D3D12_RESOURCE_STATES initialState) {
+		return InitializeResource(
+			sourceDevice, size, D3D12_HEAP_TYPE_DEFAULT, initialState, false);
 	}
 
 	bool Dx12Buffer::Write(const std::span<const std::byte> data, const size_t offset) const {

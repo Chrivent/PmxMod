@@ -6,8 +6,8 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	// DX12 텍스처 복사에 사용하는 command list와 동기화 객체를 재사용한다.
-	class Dx12TextureUploadContext {
+	// DX12 정적 GPU 리소스 복사에 사용하는 command list와 동기화 객체를 재사용한다.
+	class Dx12UploadContext {
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhancedCommandList;
@@ -21,13 +21,17 @@ namespace Chrivent {
 		bool SubmitAndWait(const Dx12Device& sourceDevice);
 
 	public:
-		Dx12TextureUploadContext() = default;
-		Dx12TextureUploadContext(const Dx12TextureUploadContext&) = delete;
-		Dx12TextureUploadContext& operator=(const Dx12TextureUploadContext&) = delete;
-		~Dx12TextureUploadContext();
+		Dx12UploadContext() = default;
+		~Dx12UploadContext();
+
+		Dx12UploadContext(const Dx12UploadContext&) = delete;
+		Dx12UploadContext& operator=(const Dx12UploadContext&) = delete;
 
 		// upload buffer의 배치 정보를 texture에 복사하고 셰이더 읽기 상태로 전환한다.
-		bool Upload(const Dx12Device& sourceDevice, ID3D12Resource* destination,
+		bool UploadTexture(const Dx12Device& sourceDevice, ID3D12Resource* destination,
 			ID3D12Resource* source, const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& layout);
+		// upload buffer를 정적 GPU buffer에 복사하고 index 입력 상태로 전환한다.
+		bool UploadIndexBuffer(const Dx12Device& sourceDevice, ID3D12Resource* destination,
+			ID3D12Resource* source, UINT64 size);
 	};
 }

@@ -32,7 +32,7 @@ namespace Chrivent {
 		// OpenGL 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPassCore() override;
 		// OpenGL 컨텍스트와 셰이더, 기본 텍스처를 초기화한다.
-		bool SetupCore() override;
+		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// 창 크기에 맞춰 OpenGL 뷰포트와 렌더 타깃을 갱신한다.
 		bool ResizeCore() override;
 		// 컬러와 깊이 버퍼를 지우고 OpenGL 프레임을 시작한다.
@@ -44,8 +44,6 @@ namespace Chrivent {
 
     public:
         ~OpenGlViewer() override;
-
-		bool IsVelocityYInverted() const override { return false; }
 
         // OpenGL 렌더링에 필요한 GLFW 윈도우 힌트를 설정한다.
         void ConfigureWindowHints() override;

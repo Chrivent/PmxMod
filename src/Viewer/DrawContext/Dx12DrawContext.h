@@ -8,10 +8,23 @@ namespace Chrivent {
 
 	// DX12 Drawer에 현재 명령 목록과 장면 pipeline 바인딩을 제공한다.
 	class Dx12DrawContext {
+		enum class PipelineBinding {
+			None,
+			ModelFrontFace,
+			ModelBothFace,
+			DepthFrontFace,
+			DepthBothFace,
+			VelocityFrontFace,
+			VelocityBothFace,
+			Edge,
+			GroundShadow
+		};
+
 		Dx12CommandContext& commandContext;
 		Dx12Pipeline& pipeline;
 		bool frameReady = false;
 		UINT frameIndex = 0;
+		PipelineBinding pipelineBinding = PipelineBinding::None;
 
 	public:
 		Dx12DrawContext(Dx12CommandContext& sourceCommandContext, Dx12Pipeline& sourcePipeline);
@@ -26,14 +39,14 @@ namespace Chrivent {
 		// 현재 프레임에서 기록 가능한 명령 목록이 있으면 반환한다.
 		ID3D12GraphicsCommandList* TryGetCommandList() const;
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
-		void BindModelPipeline(bool bothFace) const;
+		void BindModelPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.
-		void BindDepthOnlyPipeline(bool bothFace) const;
+		void BindDepthOnlyPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 scene velocity pipeline을 바인딩한다.
-		void BindSceneVelocityPipeline(bool bothFace) const;
+		void BindSceneVelocityPipeline(bool bothFace);
 		// 엣지 pipeline을 바인딩한다.
-		void BindEdgePipeline() const;
+		void BindEdgePipeline();
 		// 지면 그림자 pipeline을 바인딩한다.
-		void BindGroundShadowPipeline() const;
+		void BindGroundShadowPipeline();
 	};
 }

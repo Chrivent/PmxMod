@@ -20,8 +20,10 @@ target_sources(PmxModViewer PRIVATE
         Buffer/VulkanDynamicBufferRing.h Buffer/VulkanDynamicBufferRing.cpp
 
         Command/Dx12CommandContext.h Command/Dx12CommandContext.cpp
+        Command/Dx12UploadContext.h Command/Dx12UploadContext.cpp
         Command/VulkanCommandBuffer.h Command/VulkanCommandBuffer.cpp
         Command/VulkanCommandContext.h Command/VulkanCommandContext.cpp
+        Command/VulkanUploadContext.h Command/VulkanUploadContext.cpp
 
         Descriptor/Dx11DescBuilder.h Descriptor/Dx11DescBuilder.cpp
         Descriptor/VulkanDescriptorSet.h Descriptor/VulkanDescriptorSet.cpp
@@ -106,9 +108,7 @@ target_sources(PmxModViewer PRIVATE
         Texture/OpenGlTextureCache.h Texture/OpenGlTextureCache.cpp
         Texture/Dx11TextureCache.h Texture/Dx11TextureCache.cpp
         Texture/Dx12TextureCache.h Texture/Dx12TextureCache.cpp
-        Texture/Dx12TextureUploadContext.h Texture/Dx12TextureUploadContext.cpp
         Texture/VulkanTextureCache.h Texture/VulkanTextureCache.cpp
-        Texture/VulkanTextureUploadContext.h Texture/VulkanTextureUploadContext.cpp
 
         Viewer/Viewer.h Viewer/Viewer.cpp
         Viewer/OpenGlViewer.h Viewer/OpenGlViewer.cpp

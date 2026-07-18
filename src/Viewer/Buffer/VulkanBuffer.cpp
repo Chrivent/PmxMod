@@ -55,7 +55,7 @@ namespace Chrivent {
 	bool VulkanBuffer::Write(const void* sourceData, const VkDeviceSize dataSize, const VkDeviceSize offset) const {
 		if (device == VK_NULL_HANDLE || memory == VK_NULL_HANDLE || sourceData == nullptr)
 			return false;
-		if (offset + dataSize > size) {
+		if (offset > size || dataSize > size - offset) {
 			std::cerr << "Failed to write Vulkan buffer: source data is larger than buffer.\n";
 			return false;
 		}

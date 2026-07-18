@@ -22,7 +22,7 @@ namespace Chrivent {
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	bool Dx12Viewer::SetupCore() {
+	bool Dx12Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		if (!device.Initialize()) {
 			std::cerr << "Failed to initialize DX12 device.\n";
@@ -50,8 +50,8 @@ namespace Chrivent {
 			std::cerr << "Failed to initialize DX12 post-process targets.\n";
 			return false;
 		}
-		if (!pipeline.Initialize(device, builtInShaderPasses,
-			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocity)) {
+		if (!pipeline.Initialize(device, shaderContract.builtIn,
+			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity)) {
 			std::cerr << "Failed to initialize DX12 pipeline.\n";
 			return false;
 		}
@@ -93,7 +93,6 @@ namespace Chrivent {
 		PrepareBackBufferForRendering(commandList, backBuffer);
 		ClearRenderTargets(commandList);
 		Dx12CommandContext::ApplyViewportAndScissor(commandList, screenWidth, screenHeight);
-		pipeline.BindModel(commandList, false);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		drawContext.BeginFrame(frameIndex);
 		return FrameBeginResult::Ready;
@@ -147,7 +146,8 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {
-		return std::make_unique<Dx12Instance>(*this, device, textureCache, dummyTexture, drawContext);
+		return std::make_unique<Dx12Instance>(
+			*this, device, uploadContext, textureCache, dummyTexture, drawContext);
 	}
 
 }

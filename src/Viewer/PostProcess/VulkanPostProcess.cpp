@@ -173,19 +173,18 @@ namespace Chrivent {
 	bool VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
 		const auto& passes = GetPasses();
 		const auto& routes = GetPassRoutes();
-		std::vector<VulkanPostProcessPipelineTarget> targets;
-		targets.reserve(passes.size());
+		std::vector<VkFormat> targetFormats;
+		targetFormats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
-			VkExtent2D extent = targetExtent;
 			VkFormat format = swapChainFormat;
 			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
 				const PostProcessResourcePlan& resource = GetResourcePlans()[routes[index].outputResourceIndex];
-				extent = ResolveResourceExtent(resource);
 				format = ResolveResourceFormat(resource);
 			}
-			targets.push_back({ .extent = extent, .format = format });
+			targetFormats.push_back(format);
 		}
-		return pipelines.Initialize(sourceDevice, descriptors.GetPipelineLayout(), passes, targets);
+		return pipelines.Initialize(sourceDevice,
+			descriptors.GetPipelineLayout(), passes, targetFormats);
 	}
 
 	bool VulkanPostProcess::ResolveOutputImage(const PostProcessPassRoute& route, const uint32_t imageIndex,
@@ -406,6 +405,7 @@ namespace Chrivent {
 			};
 			const VkDescriptorSet descriptorSet = descriptors.GetTextureDescriptorSet(imageIndex, passIndex);
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
+			VulkanCommandBuffer::ApplyViewportAndScissor(commandBuffer, outputExtent);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.TryGetPipeline(passIndex));
 			const VkDescriptorSet parameterSet = descriptors.GetParameterDataDescriptorSet(imageIndex, passIndex);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

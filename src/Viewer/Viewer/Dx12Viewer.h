@@ -5,6 +5,7 @@
 #include "Viewer/Texture/Dx12TextureCache.h"
 #include "Viewer/PostProcess/Dx12PostProcess.h"
 #include "Viewer/Command/Dx12CommandContext.h"
+#include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/RenderTarget/Dx12DepthBuffer.h"
 #include "Viewer/Device/Dx12Device.h"
 #include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
@@ -23,7 +24,8 @@ namespace Chrivent {
 		Dx12DepthBuffer depthBuffer;
 		Dx12CommandContext commandContext;
 		Dx12Pipeline pipeline;
-		Dx12TextureCache textureCache;
+		Dx12UploadContext uploadContext;
+		Dx12TextureCache textureCache{ uploadContext };
 		Dx12PostProcess postProcess;
 		Dx12Texture dummyTexture;
 		Dx12DrawContext drawContext{ commandContext, pipeline };
@@ -41,7 +43,7 @@ namespace Chrivent {
 		// DX12 후처리 장면 입력 패스를 종료한다.
 		bool EndPostProcessSceneInputPassCore() override;
 		// DX12 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
-		bool SetupCore() override;
+		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
 		bool ResizeCore() override;
 		// DX12 프레임 명령 기록을 시작한다.
@@ -52,7 +54,7 @@ namespace Chrivent {
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		bool IsVelocityYInverted() const override { return true; }
+		Dx12Viewer() : Viewer(true) {}
 
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
 		bool WaitIdle() override;

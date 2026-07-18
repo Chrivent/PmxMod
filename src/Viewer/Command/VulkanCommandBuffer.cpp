@@ -35,6 +35,19 @@ namespace Chrivent {
 		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 	}
 
+	void VulkanCommandBuffer::ApplyViewportAndScissor(
+		const VkCommandBuffer commandBuffer, const VkExtent2D extent) {
+		const VkViewport viewport{
+			.width = static_cast<float>(extent.width),
+			.height = static_cast<float>(extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+		const VkRect2D scissor{ .extent = extent };
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	}
+
 	VulkanCommandBuffer::~VulkanCommandBuffer() {
 		Reset();
 	}
@@ -133,6 +146,7 @@ namespace Chrivent {
 			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
 		};
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
+		ApplyViewportAndScissor(commandBuffer, extent);
 		if (pipeline != VK_NULL_HANDLE)
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		return true;
@@ -229,6 +243,7 @@ namespace Chrivent {
 			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
 		};
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
+		ApplyViewportAndScissor(commandBuffer, extent);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		return true;
 	}

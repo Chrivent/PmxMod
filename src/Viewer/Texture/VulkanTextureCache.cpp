@@ -56,6 +56,8 @@ namespace Chrivent {
 
 	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& sourceDevice, const unsigned char* pixels,
 		const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
+		if (!CreateSamplers())
+			return false;
 		const VkDeviceSize imageSize = width * height * 4;
 		VulkanBuffer stagingBuffer;
 		if (!stagingBuffer.Initialize(sourceDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -85,10 +87,7 @@ namespace Chrivent {
 			ResetTexture(texture);
 			return false;
 		}
-		if (!CreateSampler(texture.sampler, clamp)) {
-			ResetTexture(texture);
-			return false;
-		}
+		texture.sampler = clamp ? clampSampler : wrapSampler;
 		return true;
 	}
 
@@ -175,13 +174,24 @@ namespace Chrivent {
 		return true;
 	}
 
+	bool VulkanTextureCache::CreateSamplers() {
+		if (device == VK_NULL_HANDLE)
+			return false;
+		if (wrapSampler != VK_NULL_HANDLE && clampSampler != VK_NULL_HANDLE)
+			return true;
+		ResetSamplers();
+		if (!CreateSampler(wrapSampler, false))
+			return false;
+		if (CreateSampler(clampSampler, true))
+			return true;
+		ResetSamplers();
+		return false;
+	}
+
 	void VulkanTextureCache::ResetTexture(VulkanTexture& texture) const {
 		if (device == VK_NULL_HANDLE)
 			return;
-		if (texture.sampler != VK_NULL_HANDLE) {
-			vkDestroySampler(device, texture.sampler, nullptr);
-			texture.sampler = VK_NULL_HANDLE;
-		}
+		texture.sampler = VK_NULL_HANDLE;
 		if (texture.imageView != VK_NULL_HANDLE) {
 			vkDestroyImageView(device, texture.imageView, nullptr);
 			texture.imageView = VK_NULL_HANDLE;
@@ -198,10 +208,20 @@ namespace Chrivent {
 		texture.height = 0;
 	}
 
+	void VulkanTextureCache::ResetSamplers() {
+		if (device != VK_NULL_HANDLE && clampSampler != VK_NULL_HANDLE)
+			vkDestroySampler(device, clampSampler, nullptr);
+		if (device != VK_NULL_HANDLE && wrapSampler != VK_NULL_HANDLE)
+			vkDestroySampler(device, wrapSampler, nullptr);
+		clampSampler = VK_NULL_HANDLE;
+		wrapSampler = VK_NULL_HANDLE;
+	}
+
 	VulkanTextureCache::~VulkanTextureCache() {
 		for (auto& texture : textures | std::views::values)
 			ResetTexture(texture);
 		textures.clear();
+		ResetSamplers();
 	}
 
 	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& sourceDevice,

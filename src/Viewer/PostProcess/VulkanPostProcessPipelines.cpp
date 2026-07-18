@@ -7,7 +7,7 @@
 namespace Chrivent {
 	bool VulkanPostProcessPipelines::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const EffectPassDefinition& pass,
-		const VulkanPostProcessPipelineTarget target, VkPipeline& pipeline) const {
+		const VkFormat targetFormat, VkPipeline& pipeline) const {
 		std::string error;
 		VulkanShaderStageBuilder shaderStages;
 		if (!shaderStages.Build(sourceDevice, pass, SpirvBindingProfile::PostProcess, error, true)) {
@@ -22,12 +22,19 @@ namespace Chrivent {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
 		};
-		const VkViewport viewport{ .width = static_cast<float>(target.extent.width),
-			.height = static_cast<float>(target.extent.height), .minDepth = 0.0f, .maxDepth = 1.0f };
-		const VkRect2D scissor{ .extent = target.extent };
 		VkPipelineViewportStateCreateInfo viewportState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 1, .pViewports = &viewport, .scissorCount = 1, .pScissors = &scissor
+			.viewportCount = 1,
+			.scissorCount = 1
+		};
+		static constexpr VkDynamicState dynamicStates[] = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+		constexpr VkPipelineDynamicStateCreateInfo dynamicState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = std::size(dynamicStates),
+			.pDynamicStates = dynamicStates
 		};
 		VkPipelineRasterizationStateCreateInfo rasterizer{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -47,7 +54,7 @@ namespace Chrivent {
 		};
 		const VkPipelineRenderingCreateInfo renderingInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-			.colorAttachmentCount = 1, .pColorAttachmentFormats = &target.format
+			.colorAttachmentCount = 1, .pColorAttachmentFormats = &targetFormat
 		};
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -60,6 +67,7 @@ namespace Chrivent {
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pColorBlendState = &blending;
+		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.layout = pipelineLayout;
 		return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
 			&pipelineInfo, nullptr, &pipeline) == VK_SUCCESS;
@@ -71,16 +79,18 @@ namespace Chrivent {
 
 	bool VulkanPostProcessPipelines::Initialize(const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const std::span<const EffectPassDefinition> passes,
-		const std::span<const VulkanPostProcessPipelineTarget> targets) {
+		const std::span<const VkFormat> targetFormats) {
 		Reset();
 		device = sourceDevice.device;
 		if (passes.empty())
 			return true;
-		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE || passes.size() != targets.size())
+		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE
+			|| passes.size() != targetFormats.size())
 			return false;
 		for (size_t index = 0; index < passes.size(); index++) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
-			if (!CreateGraphicsPipeline(sourceDevice, pipelineLayout, passes[index], targets[index], pipeline)) {
+			if (!CreateGraphicsPipeline(sourceDevice, pipelineLayout,
+				passes[index], targetFormats[index], pipeline)) {
 				Reset();
 				return false;
 			}

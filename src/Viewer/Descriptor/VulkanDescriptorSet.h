@@ -16,8 +16,8 @@ namespace Chrivent {
 	// 모델 패스의 Vulkan uniform 및 텍스처 descriptor set을 관리한다.
 	class VulkanDescriptorSet {
 		VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		std::vector<VkDescriptorSet> pixelDescriptorSets;
 		std::vector<VkDescriptorSet> textureDescriptorSets;
 		VkDevice device = VK_NULL_HANDLE;
 		VulkanPassType passType = VulkanPassType::Model;
@@ -28,8 +28,9 @@ namespace Chrivent {
 		bool AllocateDescriptorSets(const VulkanPipeline& sourcePipeline, size_t materialCount);
 		// vertex uniform buffer 정보를 descriptor set에 기록한다.
 		void UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
-		// 재질별 pixel uniform buffer 정보를 descriptor set에 기록한다.
-		void UpdatePixelDescriptorSets(const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange, std::vector<VulkanModelMaterial>& materials) const;
+		// 패스 공통 pixel uniform buffer 정보를 descriptor set에 기록한다.
+		void UpdatePixelDescriptorSet(
+			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange) const;
 		// 재질별 텍스처 정보를 descriptor set에 기록한다.
 		void UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const;
 
@@ -40,7 +41,8 @@ namespace Chrivent {
 		VulkanDescriptorSet(const VulkanDescriptorSet&) = delete;
 		VulkanDescriptorSet& operator=(const VulkanDescriptorSet&) = delete;
 
-		const VkDescriptorSet& GetVertexDescriptorSet() const { return vertexDescriptorSet; }
+		VkDescriptorSet GetVertexDescriptorSet() const { return vertexDescriptorSet; }
+		VkDescriptorSet GetPixelDescriptorSet() const { return pixelDescriptorSet; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
 		bool Initialize(const VulkanDevice& sourceDevice, const VulkanPipeline& sourcePipeline,

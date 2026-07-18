@@ -62,7 +62,8 @@ namespace Chrivent {
 				return false;
 			}
 			drawContext.BindModelPipeline(mat.bothFace);
-			drawContext.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindPixelDescriptorSet(
+				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
@@ -102,7 +103,8 @@ namespace Chrivent {
 				std::cerr << "Failed to update Vulkan edge pixel constants.\n";
 				return false;
 			}
-			drawContext.BindPixelDescriptorSet(material.edgePixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindPixelDescriptorSet(
+				resources.edgeDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 		return true;
@@ -140,7 +142,8 @@ namespace Chrivent {
 			const auto& mat = material.material;
 			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
-			drawContext.BindPixelDescriptorSet(material.groundShadowPixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindPixelDescriptorSet(
+				resources.groundShadowDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}
 		return true;
@@ -185,7 +188,8 @@ namespace Chrivent {
 				drawContext.BindSceneVelocityPipeline(mat.bothFace);
 			else
 				drawContext.BindDepthOnlyPipeline(mat.bothFace);
-			drawContext.BindPixelDescriptorSet(material.pixelDescriptorSet, pixelSlice->offset);
+			drawContext.BindPixelDescriptorSet(
+				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
 			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
 			drawContext.DrawIndexed(vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount);
 		}

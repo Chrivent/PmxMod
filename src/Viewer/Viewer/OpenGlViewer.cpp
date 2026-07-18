@@ -37,7 +37,7 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 	}
 
-	bool OpenGlViewer::SetupCore() {
+	bool OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
@@ -75,7 +75,7 @@ namespace Chrivent {
 		capabilities.Print();
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		if (!pipeline.Initialize(builtInShaderPasses, sceneInputShaderPasses))
+		if (!pipeline.Initialize(shaderContract.builtIn, shaderContract.sceneInput))
 			return false;
 		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTexture == 0)

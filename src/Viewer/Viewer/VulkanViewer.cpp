@@ -13,21 +13,17 @@ namespace Chrivent {
 			if (!postProcess.Initialize(device, swapChain, msaaDepthBuffer.format))
 				return false;
 		}
-		if (!pipeline.Initialize(device, swapChain, msaaDepthBuffer.format, builtInShaderPasses,
-			sceneInputShaderPasses.depth, sceneInputShaderPasses.velocity))
-			return false;
 		return commandContext.Initialize(device, swapChain);
 	}
 
 	void VulkanViewer::ResetSwapChainResources() {
 		commandContext.Reset();
-		pipeline.Reset();
 		postProcess.ResetResources();
 		msaaColorBuffer.Reset();
 		msaaDepthBuffer.Reset();
 	}
 
-	bool VulkanViewer::SetupCore() {
+	bool VulkanViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		if (!device.Initialize(window))
 			return false;
@@ -35,6 +31,10 @@ namespace Chrivent {
 		if (!swapChain.Initialize(device, window))
 			return false;
 		if (!CreateSwapChainResources())
+			return false;
+		if (!pipeline.Initialize(device, swapChain.imageFormat, msaaDepthBuffer.format,
+			shaderContract.builtIn,
+			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity))
 			return false;
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (dummyTexture.image == VK_NULL_HANDLE)
@@ -49,6 +49,9 @@ namespace Chrivent {
 		if (!swapChain.Recreate(device, window))
 			return false;
 		if (!CreateSwapChainResources())
+			return false;
+		if (!pipeline.IsCompatible(
+			swapChain.imageFormat, msaaDepthBuffer.format, device.msaaSampleCount))
 			return false;
 		return syncObject.ResetImageTracking(swapChain.images.size());
 	}
@@ -171,6 +174,6 @@ namespace Chrivent {
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {
 		return std::make_unique<VulkanInstance>(
-			*this, device, pipeline, textureCache, dummyTexture, drawContext);
+			*this, device, pipeline, uploadContext, textureCache, dummyTexture, drawContext);
 	}
 }
