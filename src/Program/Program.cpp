@@ -36,6 +36,10 @@ namespace Chrivent {
             << L"       [--benchmark <frames>] [--warmup <frames>]\n";
     }
 
+    void Program::PrintGraphicsError(const GraphicsError& error) {
+        std::cerr << error.Format() << '\n';
+    }
+
     bool Program::ParseRenderer(const std::wstring& value, RendererType& rendererType) {
         if (value == L"opengl")
             rendererType = RendererType::OpenGL;
@@ -173,8 +177,10 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
-		if (!viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight, shaderContract)) {
-            std::cerr << "Failed to set up renderer.\n";
+		const auto setupResult = viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight,
+			shaderContract);
+		if (!setupResult) {
+            PrintGraphicsError(setupResult.error());
             RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
@@ -183,7 +189,9 @@ namespace Chrivent {
         glfwPollEvents();
 		glfwGetFramebufferSize(viewerWindow, &framebufferWidth, &framebufferHeight);
 		if (framebufferWidth != viewer->GetScreenWidth() || framebufferHeight != viewer->GetScreenHeight()) {
-			if (!viewer->Resize(framebufferWidth, framebufferHeight)) {
+			const auto resizeResult = viewer->Resize(framebufferWidth, framebufferHeight);
+			if (!resizeResult) {
+				PrintGraphicsError(resizeResult.error());
                 RemoveViewerWindowSubclass();
                 viewer.reset();
                 glfwTerminate();
@@ -272,8 +280,13 @@ namespace Chrivent {
 		const int playbackFrame = viewer
 			? cameraManager.GetAnimationFrame() + 0.5f : 0;
 		GLFWwindow* previousWindow = viewer ? viewer->GetWindow() : nullptr;
-        if (viewer && !viewer->WaitIdle())
-            return false;
+        if (viewer) {
+			const auto waitResult = viewer->WaitIdle();
+			if (!waitResult) {
+				PrintGraphicsError(waitResult.error());
+				return false;
+			}
+		}
         fpsOverlay.Reset();
         RemoveViewerWindowSubclass();
         ClearInstances();
@@ -298,8 +311,11 @@ namespace Chrivent {
 
     void Program::Shutdown() {
 		GLFWwindow* window = viewer ? viewer->GetWindow() : nullptr;
-        if (viewer && !viewer->WaitIdle())
-            std::cerr << "Failed to wait for the renderer during shutdown.\n";
+        if (viewer) {
+			const auto waitResult = viewer->WaitIdle();
+			if (!waitResult)
+				PrintGraphicsError(waitResult.error());
+		}
         fpsOverlay.Reset();
         RemoveViewerWindowSubclass();
         ClearInstances();
@@ -319,7 +335,7 @@ namespace Chrivent {
 		auto [packages, errors] = ShaderPackageLoader::Discover(resourceDirectories.GetShaderPackagesDirectory());
         shaderPackages = std::move(packages);
         for (const auto& error : errors)
-            std::cerr << "Failed to load shader package: " << error << '\n';
+            std::cerr << "Failed to load shader package: " << error.Format() << '\n';
         BuildShaderEffectEntries();
         const size_t effectCount = shaderEffectEntries.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
@@ -368,11 +384,12 @@ namespace Chrivent {
             if (index < shaderEffectEnabled.size() && shaderEffectEnabled[index])
                 postProcessEffects.push_back(&effect.runtime);
         }
-        if (viewer->LoadPostProcessEffects(postProcessEffects)) {
+        const auto loadResult = viewer->LoadPostProcessEffects(postProcessEffects);
+        if (loadResult) {
             std::cout << "active_post_effects=" << postProcessEffects.size() << '\n';
             return;
         }
-        std::cerr << "Failed to load post-process effect chain.\n";
+        PrintGraphicsError(loadResult.error());
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
@@ -768,18 +785,18 @@ namespace Chrivent {
         instances.clear();
     }
 
-    Program::FramebufferUpdateResult Program::UpdateFramebufferSize() const {
+    GraphicsResult<Program::FramebufferUpdateState> Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
-		glfwGetFramebufferSize(viewer->GetWindow(), &newW, &newH);
+        glfwGetFramebufferSize(viewer->GetWindow(), &newW, &newH);
         if (newW <= 0 || newH <= 0)
-            return FramebufferUpdateResult::Skipped;
-		if (newW == viewer->GetScreenWidth() && newH == viewer->GetScreenHeight())
-            return FramebufferUpdateResult::Ready;
-		if (!viewer->Resize(newW, newH)) {
-            return FramebufferUpdateResult::Failed;
-        }
-        return FramebufferUpdateResult::Ready;
+            return FramebufferUpdateState::Skipped;
+        if (newW == viewer->GetScreenWidth() && newH == viewer->GetScreenHeight())
+            return FramebufferUpdateState::Ready;
+		const auto resizeResult = viewer->Resize(newW, newH);
+		if (!resizeResult)
+			return std::unexpected(resizeResult.error());
+        return FramebufferUpdateState::Ready;
     }
 
     void Program::TickFps() {
@@ -937,13 +954,16 @@ namespace Chrivent {
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, music);
-        switch (UpdateFramebufferSize()) {
-            case FramebufferUpdateResult::Failed:
-                return false;
-            case FramebufferUpdateResult::Skipped:
+        const auto framebufferResult = UpdateFramebufferSize();
+		if (!framebufferResult) {
+			PrintGraphicsError(framebufferResult.error());
+			return false;
+		}
+        switch (*framebufferResult) {
+            case FramebufferUpdateState::Skipped:
                 TickFps();
                 return true;
-            case FramebufferUpdateResult::Ready:
+            case FramebufferUpdateState::Ready:
                 break;
         }
         if (benchmarkMode) {
@@ -1004,10 +1024,12 @@ namespace Chrivent {
             instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
         });
         const auto skinningEnd = std::chrono::steady_clock::now();
-        const FrameBeginResult frameBeginResult = viewer->BeginFrame();
-        if (frameBeginResult == FrameBeginResult::Failed)
+        const auto frameBeginResult = viewer->BeginFrame();
+        if (!frameBeginResult) {
+			PrintGraphicsError(frameBeginResult.error());
             return false;
-        if (frameBeginResult == FrameBeginResult::Skipped) {
+		}
+        if (*frameBeginResult == FrameBeginState::Skipped) {
             TickFps();
             return true;
         }
@@ -1028,21 +1050,28 @@ namespace Chrivent {
             if (!instance->DrawGroundShadowPass())
                 return false;
         }
-        const PostProcessSceneInputBeginResult sceneInputResult = viewer->BeginPostProcessSceneInputPass();
-        if (sceneInputResult == PostProcessSceneInputBeginResult::Failed)
+        const auto sceneInputResult = viewer->BeginPostProcessSceneInputPass();
+        if (!sceneInputResult) {
+			PrintGraphicsError(sceneInputResult.error());
             return false;
-        if (sceneInputResult == PostProcessSceneInputBeginResult::Ready) {
+		}
+        if (*sceneInputResult == PostProcessSceneInputState::Ready) {
             for (const auto& instance : instances) {
                 if (!instance->DrawPostProcessSceneInputs())
                     return false;
             }
-            if (!viewer->EndPostProcessSceneInputPass())
+            const auto sceneInputEndResult = viewer->EndPostProcessSceneInputPass();
+            if (!sceneInputEndResult) {
+				PrintGraphicsError(sceneInputEndResult.error());
                 return false;
+			}
         }
         const auto uploadDrawEnd = std::chrono::steady_clock::now();
-        const FrameEndResult frameEndResult = viewer->EndFrame();
-        if (frameEndResult == FrameEndResult::Failed)
+        const auto frameEndResult = viewer->EndFrame();
+        if (!frameEndResult) {
+			PrintGraphicsError(frameEndResult.error());
             return false;
+		}
         const auto frameEnd = std::chrono::steady_clock::now();
         if (timing) {
             const auto Milliseconds = [](const auto start, const auto end) {

@@ -40,24 +40,26 @@ namespace Chrivent {
 
 	protected:
 		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
-		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
+		GraphicsResult<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// Vulkan 후처리 장면 입력 패스 기록을 시작한다.
-		bool BeginPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> BeginPostProcessSceneInputPassCore() override;
 		// Vulkan 후처리 장면 입력 패스를 종료한다.
-		bool EndPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> EndPostProcessSceneInputPassCore() override;
 		// Vulkan 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
-		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
+		GraphicsResult<void> SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// Vulkan 스왑체인과 크기 의존 리소스를 재생성한다.
-		bool ResizeCore() override;
+		GraphicsResult<void> ResizeCore() override;
 		// Vulkan 프레임 명령 기록을 시작한다.
-		FrameBeginResult BeginFrameCore() override;
+		GraphicsResult<FrameBeginState> BeginFrameCore() override;
 		// Vulkan command buffer 제출과 Present 결과를 반환한다.
-		FrameEndResult EndFrameCore() override;
+		GraphicsResult<FrameEndState> EndFrameCore() override;
 		// 초기 상태의 Vulkan 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
+		VulkanViewer() : Viewer(GraphicsApi::Vulkan, false) {}
+
 		// Vulkan device에 제출된 작업이 끝날 때까지 기다린다.
-		bool WaitIdle() override;
+		GraphicsResult<void> WaitIdle() override;
 	};
 }

@@ -22,57 +22,93 @@ namespace Chrivent {
 		postProcessTemporalState.frameData.historyReset = 0.0f;
 	}
 
-	bool Viewer::RecreateSizeDependentResources(const int width, const int height, const bool force) {
-		if (!initialized || rendererLost || width <= 0 || height <= 0)
-			return false;
-		if (!force && screenWidth == width && screenHeight == height)
-			return true;
-		screenWidth = width;
-		screenHeight = height;
-		if (!ResizeCore()) {
-			rendererLost = true;
-			return false;
-		}
-		ResetPostProcessHistory();
-		return true;
+	GraphicsError Viewer::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
+		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
+		return GraphicsError{
+			.api = graphicsApi,
+			.code = code,
+			.operation = std::move(operation),
+			.message = std::move(message),
+			.nativeCode = nativeCode,
+			.hasNativeCode = hasNativeCode
+		};
 	}
 
-	bool Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
+	GraphicsResult<void> Viewer::RecreateSizeDependentResources(const int width, const int height, const bool force) {
+		if (!initialized || rendererLost)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"resize renderer", "the renderer is not available"));
+		if (width <= 0 || height <= 0)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"resize renderer", "the framebuffer size must be positive"));
+		if (!force && screenWidth == width && screenHeight == height)
+			return {};
+		screenWidth = width;
+		screenHeight = height;
+		const auto resizeResult = ResizeCore();
+		if (!resizeResult) {
+			rendererLost = true;
+			return std::unexpected(resizeResult.error());
+		}
+		ResetPostProcessHistory();
+		return {};
+	}
+
+	GraphicsResult<void> Viewer::Setup(GLFWwindow* sourceWindow, const int width, const int height,
 		const SceneShaderRuntimeContract& shaderContract) {
-		if (initialized || rendererLost || sourceWindow == nullptr || width <= 0 || height <= 0)
-			return false;
+		if (initialized || rendererLost)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"set up renderer", "the renderer has already been initialized or lost"));
+		if (sourceWindow == nullptr || width <= 0 || height <= 0)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"set up renderer", "the window and framebuffer size are invalid"));
 		window = sourceWindow;
 		screenWidth = width;
 		screenHeight = height;
-		if (!SetupCore(shaderContract) || activePostProcess == nullptr) {
+		const auto setupResult = SetupCore(shaderContract);
+		if (!setupResult) {
 			rendererLost = true;
-			return false;
+			return std::unexpected(setupResult.error());
+		}
+		if (activePostProcess == nullptr) {
+			rendererLost = true;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
+				"set up renderer", "the API implementation did not bind a post processor"));
 		}
 		initialized = true;
-		return true;
+		return {};
 	}
 
-	bool Viewer::Resize(const int width, const int height) {
+	GraphicsResult<void> Viewer::Resize(const int width, const int height) {
 		if (frameActive)
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"resize renderer", "a frame is currently being recorded"));
 		return RecreateSizeDependentResources(width, height, false);
 	}
 
-	FrameBeginResult Viewer::BeginFrame() {
+	GraphicsResult<FrameBeginState> Viewer::BeginFrame() {
 		if (!initialized || rendererLost || frameActive)
-			return FrameBeginResult::Failed;
-		const FrameBeginResult result = BeginFrameCore();
-		frameActive = result == FrameBeginResult::Ready;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"begin frame", "the renderer is unavailable or a frame is already active"));
+		const auto result = BeginFrameCore();
+		if (!result)
+			return std::unexpected(result.error());
+		frameActive = *result == FrameBeginState::Ready;
 		return result;
 	}
 
-	FrameEndResult Viewer::EndFrame() {
+	GraphicsResult<FrameEndState> Viewer::EndFrame() {
 		if (rendererLost || !frameActive || sceneInputPassActive)
-			return FrameEndResult::Failed;
-		const FrameEndResult result = EndFrameCore();
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"end frame", "no complete frame is ready for submission"));
+		const auto result = EndFrameCore();
 		frameActive = false;
 		PostProcess& postProcess = *activePostProcess;
-		if (result == FrameEndResult::Presented) {
+		if (!result) {
+			postProcess.DiscardHistoryFrame();
+			return std::unexpected(result.error());
+		}
+		if (*result == FrameEndState::Presented) {
 			postProcess.CommitHistoryFrame();
 			CommitPostProcessFrameHistory();
 		} else
@@ -84,29 +120,39 @@ namespace Chrivent {
 		postProcessTemporalState.frameData = std::move(frameData);
 	}
 
-	bool Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		if (!initialized || rendererLost || frameActive || !WaitIdle() || !LoadPostProcessEffectsCore(effects))
-			return false;
+	GraphicsResult<void> Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
+		if (!initialized || rendererLost || frameActive)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"configure post-process effects", "the renderer is unavailable or a frame is active"));
+		const auto waitResult = WaitIdle();
+		if (!waitResult)
+			return std::unexpected(waitResult.error());
+		const auto loadResult = LoadPostProcessEffectsCore(effects);
+		if (!loadResult)
+			return std::unexpected(loadResult.error());
 		ResetPostProcessFrameHistory();
-		return true;
+		return {};
 	}
 
-	PostProcessSceneInputBeginResult Viewer::BeginPostProcessSceneInputPass() {
+	GraphicsResult<PostProcessSceneInputState> Viewer::BeginPostProcessSceneInputPass() {
 		if (!frameActive || sceneInputPassActive)
-			return PostProcessSceneInputBeginResult::Failed;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"begin post-process scene input pass", "the frame or scene input state is invalid"));
 		const PostProcess& postProcess = *activePostProcess;
 		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
-			return PostProcessSceneInputBeginResult::NotRequired;
-		if (!BeginPostProcessSceneInputPassCore())
-			return PostProcessSceneInputBeginResult::Failed;
+			return PostProcessSceneInputState::NotRequired;
+		const auto beginResult = BeginPostProcessSceneInputPassCore();
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
 		sceneInputPassActive = true;
-		return PostProcessSceneInputBeginResult::Ready;
+		return PostProcessSceneInputState::Ready;
 	}
 
-	bool Viewer::EndPostProcessSceneInputPass() {
+	GraphicsResult<void> Viewer::EndPostProcessSceneInputPass() {
 		if (!sceneInputPassActive)
-			return false;
-		const bool result = EndPostProcessSceneInputPassCore();
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"end post-process scene input pass", "the scene input pass is not active"));
+		const auto result = EndPostProcessSceneInputPassCore();
 		sceneInputPassActive = false;
 		return result;
 	}
@@ -131,14 +177,15 @@ namespace Chrivent {
 		return activePostProcess != nullptr && activePostProcess->RequiresVelocity();
 	}
 
-	bool Viewer::RecreateFromFramebuffer() {
+	GraphicsResult<void> Viewer::RecreateFromFramebuffer() {
 		if (window == nullptr)
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"recreate framebuffer resources", "the renderer window is unavailable"));
 		int width = 0;
 		int height = 0;
 		glfwGetFramebufferSize(window, &width, &height);
 		if (width <= 0 || height <= 0)
-			return true;
+			return {};
 		return RecreateSizeDependentResources(width, height, true);
 	}
 

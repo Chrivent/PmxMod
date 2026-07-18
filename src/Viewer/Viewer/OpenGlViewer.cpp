@@ -1,8 +1,8 @@
 ﻿#include "Viewer/Viewer/OpenGlViewer.h"
 
 #include "Viewer/Instance/OpenGlInstance.h"
+
 #include <algorithm>
-#include <iostream>
 
 // NVIDIA Optimus가 OpenGL 프로세스에 고성능 GPU를 우선 배정하도록 요청한다.
 // ReSharper disable once CppInconsistentNaming
@@ -37,13 +37,12 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 	}
 
-	bool OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsResult<void> OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		glfwMakeContextCurrent(window);
-		if (!gladLoadGLLoader(LoadGlProc)) {
-			std::cerr << "Failed to load OpenGL functions.\n";
-			return false;
-		}
+		if (!gladLoadGLLoader(LoadGlProc))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
+				"load OpenGL functions", "GLAD could not resolve the required functions"));
 		const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 		const auto* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
 		const auto* shaderVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -57,10 +56,9 @@ namespace Chrivent {
 		glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformAlignment);
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
-		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6)) {
-			std::cerr << "OpenGL 4.6 or newer is required.\n";
-			return false;
-		}
+		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::UnsupportedFeature,
+				"check OpenGL version", "OpenGL 4.6 or newer is required"));
 		capabilities.apiName = "OpenGL";
 		capabilities.apiVersion = version ? version : "4.6";
 		capabilities.shaderVersion = shaderVersion ? shaderVersion : "GLSL 4.60";
@@ -76,59 +74,75 @@ namespace Chrivent {
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
 		if (!pipeline.Initialize(shaderContract.builtIn, shaderContract.sceneInput))
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"initialize rendering pipeline", "the OpenGL pipeline could not be created"));
 		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTexture == 0)
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"create dummy texture", "the fallback texture could not be created"));
 		drawContext.SetDummyColorTexture(dummyColorTexture);
 		glViewport(0, 0, screenWidth, screenHeight);
-		return !postProcess.HasEffects()
-			|| postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount);
+		if (postProcess.HasEffects()
+			&& !postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"initialize post-process targets", "the OpenGL post-process targets could not be created"));
+		}
+		return {};
 	}
 
-	bool OpenGlViewer::ResizeCore() {
+	GraphicsResult<void> OpenGlViewer::ResizeCore() {
 		glViewport(0, 0, screenWidth, screenHeight);
-		if (postProcess.HasEffects())
-			return postProcess.InitializeTargets(
-				screenWidth, screenHeight, capabilities.activeSampleCount);
+		if (postProcess.HasEffects()) {
+			if (!postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount))
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+					"resize post-process targets", "the OpenGL post-process targets could not be recreated"));
+			return {};
+		}
 		postProcess.ResetResources();
-		return true;
+		return {};
 	}
 
-	FrameBeginResult OpenGlViewer::BeginFrameCore() {
+	GraphicsResult<FrameBeginState> OpenGlViewer::BeginFrameCore() {
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.GetSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		return FrameBeginResult::Ready;
+		return FrameBeginState::Ready;
 	}
 
-	FrameEndResult OpenGlViewer::EndFrameCore() {
+	GraphicsResult<FrameEndState> OpenGlViewer::EndFrameCore() {
 		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData()))
-			return FrameEndResult::Failed;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"draw post-process effects", "the OpenGL post-process chain failed"));
 		glfwSwapBuffers(window);
-		return FrameEndResult::Presented;
+		return FrameEndState::Presented;
 	}
 
-	bool OpenGlViewer::BeginPostProcessSceneInputPassCore() {
-		return postProcess.BeginSceneInputPass(screenWidth, screenHeight);
+	GraphicsResult<void> OpenGlViewer::BeginPostProcessSceneInputPassCore() {
+		if (!postProcess.BeginSceneInputPass(screenWidth, screenHeight))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"begin post-process scene input pass", "the OpenGL scene input pass could not begin"));
+		return {};
 	}
 
-	bool OpenGlViewer::EndPostProcessSceneInputPassCore() {
+	GraphicsResult<void> OpenGlViewer::EndPostProcessSceneInputPassCore() {
 		postProcess.EndSceneInputPass();
-		return true;
+		return {};
 	}
 
-	bool OpenGlViewer::WaitIdle() {
+	GraphicsResult<void> OpenGlViewer::WaitIdle() {
 		if (window == nullptr)
-			return false;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"wait for GPU", "the OpenGL window is unavailable"));
 		glfwMakeContextCurrent(window);
 		glFinish();
-		return true;
+		return {};
 	}
 
-	bool OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return postProcess.Configure(
-			screenWidth, screenHeight, capabilities.activeSampleCount, effects);
+	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+		if (!postProcess.Configure(screenWidth, screenHeight, capabilities.activeSampleCount, effects))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
+				"configure post-process effects", "the OpenGL effect chain could not be created"));
+		return {};
 	}
 
 	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {

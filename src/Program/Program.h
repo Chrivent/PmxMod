@@ -19,11 +19,10 @@
 namespace Chrivent {
     // 애플리케이션 수명 주기, 씬, 렌더러, 재생과 GUI를 총괄한다.
     class Program {
-        // 프레임버퍼 크기 반영 결과를 렌더 가능, 일시 중단과 실패로 구분한다.
-        enum class FramebufferUpdateResult {
+        // 프레임버퍼 크기 반영의 정상 상태를 렌더 가능과 일시 중단으로 구분한다.
+        enum class FramebufferUpdateState {
             Ready,
-            Skipped,
-            Failed
+            Skipped
         };
 
         // 명령행에서 받은 씬, 렌더러와 벤치마크 옵션을 보관한다.
@@ -84,6 +83,8 @@ namespace Chrivent {
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
+        // 렌더러에서 전파된 구조화된 오류를 프로그램 경계에서 한 번 출력한다.
+        static void PrintGraphicsError(const GraphicsError& error);
         // 렌더러 창의 Win32 모달 루프에서도 프레임을 진행한다.
         static LRESULT CALLBACK ViewerWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR subclassId, DWORD_PTR data);
         // 렌더러 이름을 프로그램 렌더러 형식으로 변환한다.
@@ -139,7 +140,7 @@ namespace Chrivent {
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영하고 최소화 상태를 일시 중단으로 구분한다.
-        FramebufferUpdateResult UpdateFramebufferSize() const;
+        GraphicsResult<FramebufferUpdateState> UpdateFramebufferSize() const;
         // FPS 표시 시간을 갱신한다.
         void TickFps();
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.

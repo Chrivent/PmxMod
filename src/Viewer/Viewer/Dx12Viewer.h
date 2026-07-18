@@ -37,26 +37,26 @@ namespace Chrivent {
 		
 	protected:
 		// 체크된 후처리 효과들을 DX12 ping-pong 체인으로 컴파일한다.
-		bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
+		GraphicsResult<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX12 후처리 장면 입력 패스 기록을 시작한다.
-		bool BeginPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> BeginPostProcessSceneInputPassCore() override;
 		// DX12 후처리 장면 입력 패스를 종료한다.
-		bool EndPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> EndPostProcessSceneInputPassCore() override;
 		// DX12 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
-		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
+		GraphicsResult<void> SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// 창 크기에 맞춰 DX12 스왑체인과 렌더 타깃을 재생성한다.
-		bool ResizeCore() override;
+		GraphicsResult<void> ResizeCore() override;
 		// DX12 프레임 명령 기록을 시작한다.
-		FrameBeginResult BeginFrameCore() override;
+		GraphicsResult<FrameBeginState> BeginFrameCore() override;
 		// DX12 command list 제출과 Present 결과를 반환한다.
-		FrameEndResult EndFrameCore() override;
+		GraphicsResult<FrameEndState> EndFrameCore() override;
 		// 초기 상태의 DX12 모델 인스턴스를 생성한다.
 		std::unique_ptr<Instance> CreateInstanceCore() override;
 
 	public:
-		Dx12Viewer() : Viewer(true) {}
+		Dx12Viewer() : Viewer(GraphicsApi::DirectX12, true) {}
 
 		// DX12 command queue에 제출된 작업이 끝날 때까지 기다린다.
-		bool WaitIdle() override;
+		GraphicsResult<void> WaitIdle() override;
 	};
 }

@@ -2,12 +2,30 @@
 
 #include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
+#include <expected>
 #include <filesystem>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 
 namespace Chrivent {
+	// 셰이더 패키지 검색과 검증 실패의 성격을 구분한다.
+	enum class ShaderPackageErrorCode {
+		ScanFailed,
+		InvalidPackage,
+		DuplicatePackageId
+	};
+
+	// 셰이더 패키지 실패 원인과 관련 manifest 경로를 보관한다.
+	struct ShaderPackageError {
+		ShaderPackageErrorCode code = ShaderPackageErrorCode::InvalidPackage;
+		std::filesystem::path manifestPath;
+		std::string message;
+
+		// 프로그램 경계에서 한 번 출력할 진단 문자열을 생성한다.
+		std::string Format() const;
+	};
+
 	// 프로그램에 노출할 효과 메타데이터와 렌더러 실행 계약을 묶는다.
 	struct EffectDefinition {
 		std::string id;
@@ -28,7 +46,7 @@ namespace Chrivent {
 	// 패키지 검색 결과와 패키지별 진단 메시지를 함께 반환한다.
 	struct ShaderPackageDiscovery {
 		std::vector<ShaderPackage> packages;
-		std::vector<std::string> errors;
+		std::vector<ShaderPackageError> errors;
 	};
 
 	// 셰이더 패키지 디렉터리를 탐색하고 유효한 패키지를 수집한다.
@@ -91,9 +109,12 @@ namespace Chrivent {
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error);
+		// 패키지 manifest를 기존 파서 단계에 전달하고 출력 객체를 완성한다.
+		static bool LoadPackage(const std::filesystem::path& manifestPath,
+			ShaderPackage& package, std::string& error);
 
 	public:
 		// 패키지 정의 파일과 포함된 이펙트를 읽는다.
-		static bool Load(const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error);
+		static std::expected<ShaderPackage, ShaderPackageError> Load(const std::filesystem::path& manifestPath);
 	};
 }

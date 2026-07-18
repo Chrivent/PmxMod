@@ -34,6 +34,8 @@ target_sources(PmxModViewer PRIVATE
         Device/Dx12Device.h Device/Dx12Device.cpp
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
+        Error/GraphicsError.h Error/GraphicsError.cpp
+
 		Drawer/Drawer.h Drawer/Drawer.cpp
 		Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
 		Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp

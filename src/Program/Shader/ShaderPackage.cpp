@@ -12,6 +12,10 @@
 #include <utility>
 
 namespace Chrivent {
+	std::string ShaderPackageError::Format() const {
+		return message;
+	}
+
 	ShaderPackageDiscovery ShaderPackageLoader::Discover(const std::filesystem::path& packagesDirectory) {
 		ShaderPackageDiscovery discovery;
 		std::unordered_set<std::string> packageIds;
@@ -26,17 +30,28 @@ namespace Chrivent {
 			const auto manifestPath = entry.path() / "package.json";
 			if (!std::filesystem::is_regular_file(manifestPath))
 				continue;
-			ShaderPackage package;
-			std::string loadError;
-			if (!ShaderPackageParser::Load(manifestPath, package, loadError))
-				discovery.errors.emplace_back(std::move(loadError));
-			else if (!packageIds.emplace(package.id).second)
-				discovery.errors.emplace_back("Duplicate shader package id: " + package.id);
-			else
-				discovery.packages.emplace_back(std::move(package));
+			auto loadResult = ShaderPackageParser::Load(manifestPath);
+			if (!loadResult) {
+				discovery.errors.emplace_back(std::move(loadResult.error()));
+				continue;
+			}
+			ShaderPackage package = std::move(*loadResult);
+			if (!packageIds.emplace(package.id).second) {
+				discovery.errors.emplace_back(ShaderPackageError{
+					.code = ShaderPackageErrorCode::DuplicatePackageId,
+					.manifestPath = manifestPath,
+					.message = "Duplicate shader package id: " + package.id
+				});
+				continue;
+			}
+			discovery.packages.emplace_back(std::move(package));
 		}
 		if (error)
-			discovery.errors.emplace_back("Failed to scan shader packages: " + packagesDirectory.string());
+			discovery.errors.emplace_back(ShaderPackageError{
+				.code = ShaderPackageErrorCode::ScanFailed,
+				.manifestPath = packagesDirectory,
+				.message = "Failed to scan shader packages: " + packagesDirectory.string()
+			});
 		std::ranges::sort(discovery.packages, [](const ShaderPackage& left, const ShaderPackage& right) {
 			return left.id < right.id;
 		});
@@ -455,8 +470,8 @@ namespace Chrivent {
 		return false;
 	}
 
-	bool ShaderPackageParser::Load(
-		const std::filesystem::path& manifestPath, ShaderPackage& package, std::string& error) {
+	bool ShaderPackageParser::LoadPackage(const std::filesystem::path& manifestPath,
+		ShaderPackage& package, std::string& error) {
 		nlohmann::json json;
 		if (!ReadJsonObject(manifestPath, json, error))
 			return false;
@@ -499,5 +514,18 @@ namespace Chrivent {
 		}
 		package = std::move(loaded);
 		return true;
+	}
+
+	std::expected<ShaderPackage, ShaderPackageError> ShaderPackageParser::Load(const std::filesystem::path& manifestPath) {
+		ShaderPackage package;
+		std::string error;
+		if (!LoadPackage(manifestPath, package, error)) {
+			return std::unexpected(ShaderPackageError{
+				.code = ShaderPackageErrorCode::InvalidPackage,
+				.manifestPath = manifestPath,
+				.message = std::move(error)
+			});
+		}
+		return package;
 	}
 }

@@ -29,26 +29,26 @@ namespace Chrivent {
 
     protected:
         // 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
-        bool LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
+        GraphicsResult<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
 		// DX11 후처리 장면 입력 패스 기록을 시작한다.
-		bool BeginPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> BeginPostProcessSceneInputPassCore() override;
 		// DX11 후처리 장면 입력 패스를 종료한다.
-		bool EndPostProcessSceneInputPassCore() override;
+		GraphicsResult<void> EndPostProcessSceneInputPassCore() override;
 		// DX11 디바이스, 스왑체인과 파이프라인 리소스를 초기화한다.
-		bool SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
+		GraphicsResult<void> SetupCore(const SceneShaderRuntimeContract& shaderContract) override;
 		// 창 크기에 맞춰 DX11 렌더 타깃과 깊이 버퍼를 재생성한다.
-		bool ResizeCore() override;
+		GraphicsResult<void> ResizeCore() override;
 		// 장면 색상과 깊이 타깃을 지우고 DX11 프레임을 시작한다.
-		FrameBeginResult BeginFrameCore() override;
+		GraphicsResult<FrameBeginState> BeginFrameCore() override;
         // 장면 색상을 스왑체인으로 복사하고 표시 결과를 반환한다.
-        FrameEndResult EndFrameCore() override;
+        GraphicsResult<FrameEndState> EndFrameCore() override;
         // 초기 상태의 DX11 모델 인스턴스를 생성한다.
         std::unique_ptr<Instance> CreateInstanceCore() override;
     
     public:
-		Dx11Viewer() : Viewer(true) {}
+		Dx11Viewer() : Viewer(GraphicsApi::DirectX11, true) {}
 
         // DX11 immediate context에 제출된 명령이 끝날 때까지 기다린다.
-        bool WaitIdle() override;
+        GraphicsResult<void> WaitIdle() override;
     };
 }
