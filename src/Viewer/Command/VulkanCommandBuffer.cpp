@@ -56,9 +56,6 @@ namespace Chrivent {
 		device = sourceDevice.device;
 		commandPool = sourceCommandPool;
 		commandBuffers.resize(sourceSwapChain.GetImageCount());
-		boundVertexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
-		boundIndexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
-		boundIndexTypes.assign(commandBuffers.size(), VK_INDEX_TYPE_MAX_ENUM);
 		if (commandBuffers.empty()) {
 			std::cerr << "swap chain image view가 없어 Vulkan command buffer를 할당할 수 없습니다.\n";
 			return false;
@@ -80,15 +77,12 @@ namespace Chrivent {
 		const VkImage resolveImage, const VkImageView resolveImageView,
 		const VkImage depthImage, const VkImageView depthImageView,
 		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount,
-		const VkExtent2D extent, const float clearColor[4]) {
+		const VkExtent2D extent, const float clearColor[4]) const {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "이미지 색인이 범위를 벗어나 Vulkan command buffer를 기록할 수 없습니다.\n";
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		boundVertexBuffers[imageIndex] = VK_NULL_HANDLE;
-		boundIndexBuffers[imageIndex] = VK_NULL_HANDLE;
-		boundIndexTypes[imageIndex] = VK_INDEX_TYPE_MAX_ENUM;
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
@@ -156,26 +150,28 @@ namespace Chrivent {
 		vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
 
-	bool VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
-		const VulkanBuffer& indexBuffer, const VkIndexType indexType, const uint32_t firstIndex, const uint32_t indexCount) {
-		if (imageIndex >= commandBuffers.size() || vertexBuffer.buffer == VK_NULL_HANDLE
-			|| indexBuffer.buffer == VK_NULL_HANDLE)
+	bool VulkanCommandBuffer::BindVertexBuffer(const uint32_t imageIndex, const VkBuffer vertexBuffer) const {
+		if (imageIndex >= commandBuffers.size() || vertexBuffer == VK_NULL_HANDLE)
 			return false;
-		if (indexCount == 0)
-			return true;
-		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		if (boundVertexBuffers[imageIndex] != vertexBuffer.buffer) {
-			constexpr VkDeviceSize offsets[] = { 0 };
-			const VkBuffer vertexBuffers[] = { vertexBuffer.buffer };
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			boundVertexBuffers[imageIndex] = vertexBuffer.buffer;
-		}
-		if (boundIndexBuffers[imageIndex] != indexBuffer.buffer || boundIndexTypes[imageIndex] != indexType) {
-			vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, indexType);
-			boundIndexBuffers[imageIndex] = indexBuffer.buffer;
-			boundIndexTypes[imageIndex] = indexType;
-		}
-		vkCmdDrawIndexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
+		constexpr VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, &vertexBuffer, &offset);
+		return true;
+	}
+
+	bool VulkanCommandBuffer::BindIndexBuffer(const uint32_t imageIndex,
+		const VkBuffer indexBuffer, const VkIndexType indexType) const {
+		if (imageIndex >= commandBuffers.size() || indexBuffer == VK_NULL_HANDLE)
+			return false;
+		vkCmdBindIndexBuffer(commandBuffers[imageIndex], indexBuffer, 0, indexType);
+		return true;
+	}
+
+	bool VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex,
+		const uint32_t firstIndex, const uint32_t indexCount) const {
+		if (imageIndex >= commandBuffers.size())
+			return false;
+		if (indexCount != 0)
+			vkCmdDrawIndexed(commandBuffers[imageIndex], indexCount, 1, firstIndex, 0, 0);
 		return true;
 	}
 
@@ -190,19 +186,32 @@ namespace Chrivent {
 			static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
 	}
 
+	bool VulkanCommandBuffer::EndRendering(const uint32_t imageIndex) const {
+		if (imageIndex >= commandBuffers.size())
+			return false;
+		vkCmdEndRendering(commandBuffers[imageIndex]);
+		return true;
+	}
+
+	bool VulkanCommandBuffer::EndSceneColorPass(const uint32_t imageIndex, const VkImage sceneImage) const {
+		if (sceneImage == VK_NULL_HANDLE || !EndRendering(imageIndex))
+			return false;
+		TransitionImage(commandBuffers[imageIndex], sceneImage,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+		return true;
+	}
+
 	bool VulkanCommandBuffer::BeginPostProcessSceneInputPass(
 		const uint32_t imageIndex, const VkImage sceneImage, const VkImage depthImage,
 		const VkImageView depthImageView, const VkImage velocityImage, const VkImageView velocityImageView,
 		const bool velocityInitialized, const bool depthHasStencil, const VkExtent2D extent) const {
 		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE ||
-			depthImageView == VK_NULL_HANDLE)
+			depthImageView == VK_NULL_HANDLE || !EndSceneColorPass(imageIndex, sceneImage))
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		vkCmdEndRendering(commandBuffer);
-		TransitionImage(commandBuffer, sceneImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-			VK_ACCESS_2_SHADER_SAMPLED_READ_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		const VkImageAspectFlags depthAspect = VK_IMAGE_ASPECT_DEPTH_BIT | (depthHasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 		TransitionImage(commandBuffer, depthImage, VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
@@ -278,7 +287,6 @@ namespace Chrivent {
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
-		vkCmdEndRendering(commandBuffer);
 		TransitionImage(commandBuffer, outputImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
@@ -294,9 +302,6 @@ namespace Chrivent {
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE && !commandBuffers.empty())
 			vkFreeCommandBuffers(device, commandPool, commandBuffers.size(), commandBuffers.data());
 		commandBuffers.clear();
-		boundVertexBuffers.clear();
-		boundIndexBuffers.clear();
-		boundIndexTypes.clear();
 		device = VK_NULL_HANDLE;
 		commandPool = VK_NULL_HANDLE;
 	}

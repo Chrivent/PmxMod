@@ -38,9 +38,6 @@ namespace Chrivent {
 		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"depth buffer 초기화", "DirectX 12 depth buffer를 만들지 못했습니다"));
-		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"후처리 target 초기화", "DirectX 12 후처리 target을 만들지 못했습니다"));
 		if (!pipeline.Initialize(device, shaderContract)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"rendering pipeline 초기화", "DirectX 12 pipeline을 만들지 못했습니다"));

@@ -12,9 +12,12 @@ namespace Chrivent {
 
 	// Vulkan Drawer에 현재 command buffer와 장면 pipeline/descriptor 바인딩을 제공한다.
 	class VulkanDrawContext {
-		// 중복 Vulkan pipeline 및 descriptor 바인딩을 생략하기 위한 현재 상태를 기록한다.
+		// 중복 Vulkan pipeline, geometry buffer와 descriptor 바인딩을 생략할 현재 상태를 기록한다.
 		struct BindStateCache {
 			VkPipeline pipeline = VK_NULL_HANDLE;
+			VkBuffer vertexBuffer = VK_NULL_HANDLE;
+			VkBuffer indexBuffer = VK_NULL_HANDLE;
+			VkIndexType indexType = VK_INDEX_TYPE_MAX_ENUM;
 			VkDescriptorSet vertexDescriptorSet = VK_NULL_HANDLE;
 			uint32_t vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
 			VkDescriptorSet pixelDescriptorSet = VK_NULL_HANDLE;
@@ -44,7 +47,7 @@ namespace Chrivent {
 		void ResetDescriptorBindings();
 		// 현재 command buffer에 indexed draw 명령을 기록한다.
 		bool DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
-			VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
+			VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.

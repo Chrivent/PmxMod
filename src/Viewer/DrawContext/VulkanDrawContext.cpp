@@ -1,5 +1,6 @@
 ﻿#include "Viewer/DrawContext/VulkanDrawContext.h"
 
+#include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Command/VulkanCommandContext.h"
 #include "Viewer/Descriptor/VulkanDescriptorSet.h"
 #include "Viewer/Pipeline/VulkanPipeline.h"
@@ -29,14 +30,26 @@ namespace Chrivent {
 	}
 
 	bool VulkanDrawContext::DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
-		const VkIndexType indexType, const size_t firstIndex, const size_t indexCount) const {
-		if (!frameReady)
+		const VkIndexType indexType, const size_t firstIndex, const size_t indexCount) {
+		if (!frameReady || vertexBuffer.buffer == VK_NULL_HANDLE || indexBuffer.buffer == VK_NULL_HANDLE)
 			return false;
 		if (firstIndex > std::numeric_limits<uint32_t>::max()
 			|| indexCount > std::numeric_limits<uint32_t>::max())
 			return false;
-		return commandContext.GetCommandBuffer().DrawIndexed(
-			currentImageIndex, vertexBuffer, indexBuffer, indexType, firstIndex, indexCount);
+		auto& commandBuffer = commandContext.GetCommandBuffer();
+		if (bindStateCache.vertexBuffer != vertexBuffer.buffer) {
+			if (!commandBuffer.BindVertexBuffer(currentImageIndex, vertexBuffer.buffer))
+				return false;
+			bindStateCache.vertexBuffer = vertexBuffer.buffer;
+		}
+		if (bindStateCache.indexBuffer != indexBuffer.buffer || bindStateCache.indexType != indexType) {
+			if (!commandBuffer.BindIndexBuffer(currentImageIndex, indexBuffer.buffer, indexType))
+				return false;
+			bindStateCache.indexBuffer = indexBuffer.buffer;
+			bindStateCache.indexType = indexType;
+		}
+		return commandBuffer.DrawIndexed(currentImageIndex,
+			static_cast<uint32_t>(firstIndex), static_cast<uint32_t>(indexCount));
 	}
 
 	void VulkanDrawContext::BindModelPipeline(const bool bothFace) {

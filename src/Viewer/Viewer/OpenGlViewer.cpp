@@ -82,11 +82,6 @@ namespace Chrivent {
 				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
 		drawContext.SetDummyColorTexture(dummyColorTexture);
 		glViewport(0, 0, screenWidth, screenHeight);
-		if (postProcess.HasEffects()
-			&& !postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"후처리 target 초기화", "OpenGL 후처리 target을 만들지 못했습니다"));
-		}
 		return {};
 	}
 

@@ -6,7 +6,6 @@
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
 #include <algorithm>
-#include <iostream>
 #include <limits>
 #include <utility>
 
@@ -255,7 +254,7 @@ namespace Chrivent {
 		std::swap(parameterDataStride, other.parameterDataStride);
 	}
 
-	bool VulkanPostProcess::Initialize(const VulkanDevice& sourceDevice,
+	bool VulkanPostProcess::InitializeTargets(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
 		ResetResources();
 		device = sourceDevice.device;
@@ -276,7 +275,7 @@ namespace Chrivent {
 		const VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		VulkanPostProcess candidate;
 		if (!candidate.SetEffects(effects)
-			|| (candidate.HasEffects() && !candidate.Initialize(sourceDevice, sourceSwapChain, depthFormat)))
+			|| (candidate.HasEffects() && !candidate.InitializeTargets(sourceDevice, sourceSwapChain, depthFormat)))
 			return false;
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
@@ -307,9 +306,9 @@ namespace Chrivent {
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil);
 	}
 
-	bool VulkanPostProcess::EndRecord(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
-		const VkImage swapChainImage, const VkImageView swapChainImageView, const VkExtent2D extent,
-		const PostProcessFrameData& frameData, const bool sceneRenderingEnded) {
+	bool VulkanPostProcess::Draw(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
+		const VkImage swapChainImage, const VkImageView swapChainImageView,
+		const PostProcessFrameData& frameData) {
 		const auto& routes = GetPassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
 			|| imageIndex >= frameDataBuffers.size()
@@ -327,14 +326,6 @@ namespace Chrivent {
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
 		BeginHistoryFrame();
-		if (!sceneRenderingEnded) {
-			vkCmdEndRendering(commandBuffer);
-			VulkanCommandBuffer::TransitionImage(commandBuffer, sceneTarget.TryGetImage(imageIndex),
-				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-				VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-				VK_IMAGE_ASPECT_COLOR_BIT);
-		}
 		constexpr VkImageSubresourceRange colorRange{
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.baseMipLevel = 0,
@@ -429,15 +420,7 @@ namespace Chrivent {
 			}
 			AdvanceHistory(route);
 		}
-		VulkanCommandBuffer::TransitionImage(commandBuffer, swapChainImage,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE, VK_IMAGE_ASPECT_COLOR_BIT);
-		if (vkEndCommandBuffer(commandBuffer) == VK_SUCCESS)
-			return true;
-		DiscardHistoryFrame();
-		std::cerr << "Vulkan 후처리 command buffer를 기록하지 못했습니다.\n";
-		return false;
+		return true;
 	}
 
 	void VulkanPostProcess::ResetResources() {

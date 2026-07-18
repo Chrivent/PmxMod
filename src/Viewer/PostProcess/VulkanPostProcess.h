@@ -76,8 +76,8 @@ namespace Chrivent {
 			return sceneTarget.TryGetImageView(imageIndex);
 		}
 		
-		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 리소스를 생성한다.
-		bool Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
+		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 target을 생성한다.
+		bool InitializeTargets(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat);
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
 		bool Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
@@ -87,10 +87,9 @@ namespace Chrivent {
 			uint32_t imageIndex, VkExtent2D extent);
 		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
 		bool EndSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
-		// 장면 렌더링을 끝내고 선언된 pass들을 실행해 최종 명령을 기록한다.
-		bool EndRecord(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
-			VkImageView swapChainImageView, VkExtent2D extent, const PostProcessFrameData& frameData,
-			bool sceneRenderingEnded = false);
+		// 선언된 pass들을 실행해 swapchain 출력까지 기록한다.
+		bool Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
+			VkImageView swapChainImageView, const PostProcessFrameData& frameData);
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};

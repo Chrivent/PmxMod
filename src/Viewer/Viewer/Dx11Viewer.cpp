@@ -28,10 +28,6 @@ namespace Chrivent {
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"render target 초기화", "DirectX 11 render target을 만들지 못했습니다"));
-		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device.GetDevice(),
-			device.GetContext(), screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"후처리 target 초기화", "DirectX 11 후처리 target을 만들지 못했습니다"));
 		if (!pipeline.Initialize(device.GetDevice(), shaderContract))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"rendering pipeline 초기화", "DirectX 11 pipeline을 만들지 못했습니다"));

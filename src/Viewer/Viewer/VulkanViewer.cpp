@@ -9,7 +9,7 @@ namespace Chrivent {
 		if (!msaaDepthBuffer.Initialize(device, swapChain))
 			return false;
 		if (postProcess.HasEffects()) {
-			if (!postProcess.Initialize(device, swapChain, msaaDepthBuffer.format))
+			if (!postProcess.InitializeTargets(device, swapChain, msaaDepthBuffer.format))
 				return false;
 		}
 		return commandContext.Initialize(device, swapChain);
@@ -120,15 +120,24 @@ namespace Chrivent {
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
 		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
-		auto& commandBuffer = commandContext.GetCommandBuffer();
-		bool recordEnded;
+		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		if (postProcess.HasEffects()) {
-			recordEnded = postProcess.EndRecord(commandBuffer, currentImageIndex,
+			const VkImage sceneImage = postProcess.TryGetSceneImage(currentImageIndex);
+			if (!sceneInputPassReady && !commandBuffer.EndSceneColorPass(currentImageIndex, sceneImage)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"장면 색상 패스 종료", "Vulkan 장면 색상을 후처리 입력 상태로 전환하지 못했습니다"));
+			}
+			if (!postProcess.Draw(commandBuffer, currentImageIndex,
 				swapChain.GetImage(currentImageIndex), swapChain.GetImageView(currentImageIndex),
-				swapChain.GetExtent(), GetPostProcessFrameData(), sceneInputPassReady);
-		} else
-			recordEnded = commandBuffer.EndRecord(currentImageIndex, swapChain.GetImage(currentImageIndex));
-		if (!recordEnded)
+				GetPostProcessFrameData())) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"후처리 효과 draw", "Vulkan 후처리 chain 실행에 실패했습니다"));
+			}
+		} else if (!commandBuffer.EndRendering(currentImageIndex)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"장면 패스 종료", "Vulkan 장면 렌더링을 끝내지 못했습니다"));
+		}
+		if (!commandBuffer.EndRecord(currentImageIndex, swapChain.GetImage(currentImageIndex)))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 종료", "Vulkan 출력 패스 기록을 끝내지 못했습니다"));
 		const VkCommandBuffer nativeCommandBuffer = commandBuffer.TryGetCommandBuffer(currentImageIndex);
