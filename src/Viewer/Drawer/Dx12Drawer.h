@@ -29,6 +29,6 @@ namespace Chrivent {
 
 	public:
 		Dx12Drawer(const Dx12Instance& sourceInstance, Dx12ModelResources& sourceResources,
-			Dx12DrawContext& sourceDrawContext, Viewer& sourceViewer);
+			Dx12DrawContext& sourceDrawContext);
 	};
 }

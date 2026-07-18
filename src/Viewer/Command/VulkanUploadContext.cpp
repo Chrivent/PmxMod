@@ -27,7 +27,7 @@ namespace Chrivent {
 			| VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		poolInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
 		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan upload command pool.\n";
+			std::cerr << "Vulkan upload command pool을 만들지 못했습니다.\n";
 			Reset();
 			return false;
 		}
@@ -37,14 +37,14 @@ namespace Chrivent {
 		allocateInfo.commandPool = commandPool;
 		allocateInfo.commandBufferCount = 1;
 		if (vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan upload command buffer.\n";
+			std::cerr << "Vulkan upload command buffer를 할당하지 못했습니다.\n";
 			Reset();
 			return false;
 		}
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		if (vkCreateFence(device, &fenceInfo, nullptr, &fence) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan upload fence.\n";
+			std::cerr << "Vulkan upload fence를 만들지 못했습니다.\n";
 			Reset();
 			return false;
 		}
@@ -64,7 +64,7 @@ namespace Chrivent {
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-			std::cerr << "Failed to begin Vulkan upload command buffer.\n";
+			std::cerr << "Vulkan upload command buffer 기록을 시작하지 못했습니다.\n";
 			return false;
 		}
 		targetCommandBuffer = commandBuffer;
@@ -73,7 +73,7 @@ namespace Chrivent {
 
 	bool VulkanUploadContext::SubmitAndWait(const VulkanDevice& sourceDevice) const {
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Failed to record Vulkan upload command buffer.\n";
+			std::cerr << "Vulkan upload command buffer를 기록하지 못했습니다.\n";
 			return false;
 		}
 		if (vkResetFences(device, 1, &fence) != VK_SUCCESS)
@@ -88,7 +88,7 @@ namespace Chrivent {
 			.pCommandBufferInfos = &commandBufferInfo
 		};
 		if (vkQueueSubmit2(sourceDevice.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS) {
-			std::cerr << "Failed to submit Vulkan upload command buffer.\n";
+			std::cerr << "Vulkan upload command buffer를 제출하지 못했습니다.\n";
 			return false;
 		}
 		return vkWaitForFences(device, 1, &fence, VK_TRUE,

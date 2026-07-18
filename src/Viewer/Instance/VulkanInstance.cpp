@@ -18,7 +18,7 @@ namespace Chrivent {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
-			std::cerr << "Failed to build Vulkan index data.\n";
+			std::cerr << "Vulkan index 데이터를 만들지 못했습니다.\n";
 			return false;
 		}
 		modelResources.indexType = indexData.elementSize == sizeof(uint16_t)
@@ -28,7 +28,7 @@ namespace Chrivent {
 		const VkDeviceSize vertexBufferSize = sizeof(ViewerVertex) * vertexCount;
 		const VkDeviceSize indexBufferSize = indexData.bytes.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
-			std::cerr << "Failed to create Vulkan model buffers: model has no geometry data.\n";
+			std::cerr << "모델에 geometry 데이터가 없어 Vulkan 모델 buffer를 만들 수 없습니다.\n";
 			return false;
 		}
 		for (auto& vertexBuffer : modelResources.vertexBuffers) {
@@ -141,14 +141,15 @@ namespace Chrivent {
 		return true;
 	}
 
-	VulkanInstance::VulkanInstance(Viewer& sourceViewer, const VulkanDevice& sourceDevice,
+	VulkanInstance::VulkanInstance(const VulkanDevice& sourceDevice,
 		const VulkanPipeline& sourcePipeline, VulkanUploadContext& sourceUploadContext,
 		VulkanTextureCache& sourceTextureCache, const VulkanTexture& sourceDummyTexture,
 		VulkanDrawContext& sourceDrawContext)
-		: device(sourceDevice), pipeline(sourcePipeline), uploadContext(sourceUploadContext),
+		: Instance(GraphicsApi::Vulkan), device(sourceDevice), pipeline(sourcePipeline),
+		uploadContext(sourceUploadContext),
 		textureCache(sourceTextureCache), dummyTexture(sourceDummyTexture),
 		drawContext(sourceDrawContext) {
-		drawer = std::make_unique<VulkanDrawer>(*this, modelResources, drawContext, sourceViewer);
+		drawer = std::make_unique<VulkanDrawer>(*this, modelResources, drawContext);
 	}
 
 	void VulkanInstance::ResetRendererResources() {
@@ -178,7 +179,7 @@ namespace Chrivent {
 		return CreateDescriptorSets();
 	}
 
-	bool VulkanInstance::Upload() {
+	bool VulkanInstance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
 			frameIndex % FrameBuffering::vulkanFramesInFlight];
@@ -188,7 +189,7 @@ namespace Chrivent {
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
-			std::cerr << "Failed to update Vulkan vertex buffer.\n";
+			std::cerr << "Vulkan vertex buffer를 갱신하지 못했습니다.\n";
 		return writeSucceeded;
 	}
 }

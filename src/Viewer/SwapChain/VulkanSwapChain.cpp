@@ -87,7 +87,7 @@ namespace Chrivent {
 			createInfo.subresourceRange.baseArrayLayer = 0;
 			createInfo.subresourceRange.layerCount = 1;
 			if (vkCreateImageView(device, &createInfo, nullptr, &imageViews[i]) != VK_SUCCESS) {
-				std::cerr << "Failed to create Vulkan swapchain image view.\n";
+				std::cerr << "Vulkan swap chain image view를 만들지 못했습니다.\n";
 				return false;
 			}
 		}
@@ -102,19 +102,19 @@ namespace Chrivent {
 		device = sourceDevice.device;
 		Support support;
 		if (!QuerySupport(sourceDevice, support)) {
-			std::cerr << "Failed to query Vulkan swapchain surface support.\n";
+			std::cerr << "Vulkan swap chain surface 지원 정보를 조회하지 못했습니다.\n";
 			return false;
 		}
 		const auto& [capabilities, formats, presentModes] = support;
 		if (formats.empty() || presentModes.empty()) {
-			std::cerr << "Failed to find Vulkan swapchain surface support.\n";
+			std::cerr << "지원되는 Vulkan swap chain surface를 찾지 못했습니다.\n";
 			return false;
 		}
 		const auto [format, colorSpace] = ChooseSurfaceFormat(formats);
 		const VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
 		const VkExtent2D selectedExtent = ChooseExtent(capabilities, window);
 		if (selectedExtent.width == 0 || selectedExtent.height == 0) {
-			std::cerr << "Invalid Vulkan swapchain extent.\n";
+			std::cerr << "Vulkan swap chain extent가 올바르지 않습니다.\n";
 			return false;
 		}
 		uint32_t imageCount = capabilities.minImageCount + 1;
@@ -145,7 +145,7 @@ namespace Chrivent {
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 		if (vkCreateSwapchainKHR(sourceDevice.device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan swapchain.\n";
+			std::cerr << "Vulkan swap chain을 만들지 못했습니다.\n";
 			return false;
 		}
 		if (vkGetSwapchainImagesKHR(sourceDevice.device, swapChain, &imageCount, nullptr) != VK_SUCCESS)

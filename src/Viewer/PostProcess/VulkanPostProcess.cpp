@@ -431,7 +431,7 @@ namespace Chrivent {
 		if (vkEndCommandBuffer(commandBuffer) == VK_SUCCESS)
 			return true;
 		DiscardHistoryFrame();
-		std::cerr << "Failed to record Vulkan post-process command buffer.\n";
+		std::cerr << "Vulkan 후처리 command buffer를 기록하지 못했습니다.\n";
 		return false;
 	}
 

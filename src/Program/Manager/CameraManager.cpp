@@ -86,13 +86,14 @@ namespace Chrivent {
 		VmdParser camVmd;
 		const auto parseResult = camVmd.ReadFile(cameraAnimPath);
 		if (!parseResult) {
-			std::cerr << "Failed to read camera VMD: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
+			std::cerr << "카메라 VMD를 읽지 못했습니다: "
+				<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
 			return;
 		}
 		if (!camVmd.GetData().cameras.empty()) {
 			auto cameraKeys = CameraAnimationBuilder::Build(camVmd.GetData());
 			if (cameraKeys.empty())
-				std::cerr << "Failed to create VMDCameraAnimation.\n";
+				std::cerr << "VMDCameraAnimation을 만들지 못했습니다.\n";
 			cameraAnim = std::make_unique<CameraAnimation>(std::move(cameraKeys));
 		}
 	}

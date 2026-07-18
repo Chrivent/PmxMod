@@ -62,7 +62,8 @@ namespace Chrivent {
 		constexpr DWORD immersiveDarkModeAttribute = 20;
 		const HRESULT result = DwmSetWindowAttribute(window, immersiveDarkModeAttribute, &enabled, sizeof(enabled));
 		if (FAILED(result))
-			std::cerr << "Failed to apply dark window frame: 0x" << std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
+			std::cerr << "어두운 윈도우 프레임을 적용하지 못했습니다: 0x"
+				<< std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
 		ApplyControl(window);
 		EnumChildWindows(window, [](const HWND child, const LPARAM) {
 			ApplyControl(child);
@@ -81,7 +82,8 @@ namespace Chrivent {
 			? SetWindowTheme(control, L"", L"")
 			: SetWindowTheme(control, L"DarkMode_Explorer", nullptr);
 		if (FAILED(result))
-			std::cerr << "Failed to apply Win32 control theme: 0x" << std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
+			std::cerr << "Win32 control theme을 적용하지 못했습니다: 0x"
+				<< std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
 	}
 
 	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam) {

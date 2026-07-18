@@ -4,8 +4,6 @@
 #include "Viewer/Descriptor/VulkanDescriptorSet.h"
 #include "Viewer/Pipeline/VulkanPipeline.h"
 
-#include <iostream>
-
 namespace Chrivent {
 	VulkanDrawContext::VulkanDrawContext(VulkanPipeline& sourcePipeline,
 		VulkanCommandContext& sourceCommandContext)
@@ -36,16 +34,14 @@ namespace Chrivent {
 		bindStateCache.textureDescriptorSet = VK_NULL_HANDLE;
 	}
 
-	void VulkanDrawContext::DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
+	bool VulkanDrawContext::DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
 		const VkIndexType indexType, const size_t firstIndex, const size_t indexCount) const {
 		if (!frameReady)
-			return;
-		if (firstIndex > std::numeric_limits<uint32_t>::max() ||
-			indexCount > std::numeric_limits<uint32_t>::max()) {
-			std::cerr << "Failed to draw Vulkan model: index range is too large.\n";
-			return;
-		}
-		commandContext.commandBuffer.DrawIndexed(
+			return false;
+		if (firstIndex > std::numeric_limits<uint32_t>::max()
+			|| indexCount > std::numeric_limits<uint32_t>::max())
+			return false;
+		return commandContext.commandBuffer.DrawIndexed(
 			currentImageIndex, vertexBuffer, indexBuffer, indexType, firstIndex, indexCount);
 	}
 

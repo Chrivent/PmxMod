@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <memory>
+#include <span>
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -8,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Viewer/Device/GraphicsCapabilities.h"
+#include "Viewer/Drawer/SceneDrawState.h"
 #include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
@@ -16,6 +18,7 @@ namespace Chrivent {
 	class Instance;
 	class Model;
     struct Material;
+	struct EffectParameterUpdate;
 	struct EffectRuntimeDefinition;
 	class PostProcess;
 
@@ -58,17 +61,6 @@ namespace Chrivent {
         glm::vec4 cameraWorldRight{};
         glm::vec4 cameraWorldUp{};
     };
-
-	// 카메라, 조명과 내장 패스 활성 상태를 한 프레임의 장면 입력으로 묶는다.
-	struct SceneRenderState {
-		glm::mat4 viewMatrix{1.0f};
-		glm::mat4 projectionMatrix{1.0f};
-		glm::vec3 lightColor{1.0f, 1.0f, 1.0f};
-		glm::vec3 lightDirection{-0.5f, -1.0f, 0.5f};
-		bool modelEnabled = true;
-		bool edgeEnabled = true;
-		bool groundShadowEnabled = true;
-	};
 
 	// 렌더링 API 구현이 따라야 할 장면 렌더링과 후처리 공통 계약을 정의한다.
 	class Viewer {
@@ -166,8 +158,12 @@ namespace Chrivent {
 		// 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
 		// HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
 		GraphicsResult<void> LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		// GPU 리소스를 재생성하지 않고 활성 후처리 효과의 스칼라 파라미터를 갱신한다.
+		GraphicsResult<void> UpdatePostProcessParameters(std::span<const EffectParameterUpdate> updates) const;
+		// 현재 프레임의 Drawer 입력을 API 객체 수명과 분리된 값으로 조립한다.
+		SceneDrawState ResolveSceneDrawState() const;
 		// 모델 데이터가 완전히 초기화된 현재 렌더러용 인스턴스를 생성한다.
-		std::unique_ptr<Instance> CreateInstance(std::shared_ptr<Model> model,
+		GraphicsResult<std::unique_ptr<Instance>> CreateInstance(std::shared_ptr<Model> model,
 			std::unique_ptr<Animation> animation, float scale);
 		const glm::mat4& GetPreviousViewMatrix() const {
 			return postProcessTemporalState.previousViewMatrix;

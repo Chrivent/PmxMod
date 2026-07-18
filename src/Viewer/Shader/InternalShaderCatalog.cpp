@@ -9,7 +9,7 @@ namespace Chrivent {
 		shaderPath = shaderDirectory / relativePath;
 		if (std::filesystem::is_regular_file(shaderPath))
 			return true;
-		error = "Failed to find the internal shader: " + shaderPath.string();
+		error = "내장 셰이더를 찾지 못했습니다: " + shaderPath.string();
 		return false;
 	}
 
@@ -22,9 +22,10 @@ namespace Chrivent {
 		};
 	}
 
-	bool InternalShaderCatalog::Load(const std::filesystem::path& shaderDirectory,
-		const bool invertNdcYForTextureCoordinates,
-		SceneShaderRuntimeContract& contract, std::string& error) {
+	std::expected<SceneShaderRuntimeContract, std::string> InternalShaderCatalog::Load(
+		const std::filesystem::path& shaderDirectory,
+		const bool invertNdcYForTextureCoordinates) {
+		std::string error;
 		std::filesystem::path modelShaderPath;
 		std::filesystem::path edgeShaderPath;
 		std::filesystem::path groundShadowShaderPath;
@@ -33,7 +34,7 @@ namespace Chrivent {
 			|| !ResolveShaderPath(shaderDirectory, "edge.hlsl", edgeShaderPath, error)
 			|| !ResolveShaderPath(shaderDirectory, "ground-shadow.hlsl", groundShadowShaderPath, error)
 			|| !ResolveShaderPath(shaderDirectory, "scene-input.hlsl", sceneInputShaderPath, error))
-			return false;
+			return std::unexpected(std::move(error));
 		BuiltInShaderPasses loadedBuiltInPasses;
 		loadedBuiltInPasses.model = CreateProgram(std::move(modelShaderPath), "VSMain", "PSMain");
 		loadedBuiltInPasses.edge = CreateProgram(std::move(edgeShaderPath), "VSMain", "PSMain");
@@ -44,9 +45,9 @@ namespace Chrivent {
 		loadedSceneInputPasses.velocity = CreateProgram(
 			std::move(sceneInputShaderPath), "VSVelocity",
 			invertNdcYForTextureCoordinates ? "PSVelocityInvertedY" : "PSVelocity");
-		contract.builtIn = std::move(loadedBuiltInPasses);
-		contract.sceneInput = std::move(loadedSceneInputPasses);
-		error.clear();
-		return true;
+		return SceneShaderRuntimeContract{
+			.builtIn = std::move(loadedBuiltInPasses),
+			.sceneInput = std::move(loadedSceneInputPasses)
+		};
 	}
 }

@@ -31,6 +31,6 @@ namespace Chrivent {
 
 	public:
 		VulkanDrawer(const VulkanInstance& sourceInstance, VulkanModelResources& sourceResources,
-			VulkanDrawContext& sourceDrawContext, Viewer& sourceViewer);
+			VulkanDrawContext& sourceDrawContext);
 	};
 }

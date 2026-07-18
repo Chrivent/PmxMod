@@ -26,26 +26,26 @@ namespace Chrivent {
 		BindPostProcess(postProcess);
 		if (!device.Initialize(window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"initialize device", "the Vulkan device could not be created"));
+				"device 초기화", "Vulkan device를 만들지 못했습니다"));
 		capabilities = device.capabilities;
 		if (!swapChain.Initialize(device, window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize swap chain", "the Vulkan swap chain could not be created"));
+				"swap chain 초기화", "Vulkan swap chain을 만들지 못했습니다"));
 		if (!CreateSwapChainResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize swap chain resources", "the Vulkan frame resources could not be created"));
+				"swap chain 리소스 초기화", "Vulkan 프레임 리소스를 만들지 못했습니다"));
 		if (!pipeline.Initialize(device, swapChain.imageFormat, msaaDepthBuffer.format,
 			shaderContract.builtIn,
 			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize rendering pipeline", "the Vulkan pipeline could not be created"));
+				"rendering pipeline 초기화", "Vulkan pipeline을 만들지 못했습니다"));
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (dummyTexture.image == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"create dummy texture", "the fallback texture could not be created"));
+				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
 		if (!syncObject.Initialize(device, swapChain.images.size()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize frame synchronization", "the Vulkan synchronization objects could not be created"));
+				"프레임 동기화 초기화", "Vulkan 동기화 객체를 만들지 못했습니다"));
 		return {};
 	}
 
@@ -56,17 +56,17 @@ namespace Chrivent {
 		ResetSwapChainResources();
 		if (!swapChain.Recreate(device, window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize swap chain", "the Vulkan swap chain could not be recreated"));
+				"swap chain 크기 변경", "Vulkan swap chain을 다시 만들지 못했습니다"));
 		if (!CreateSwapChainResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize swap chain resources", "the Vulkan frame resources could not be recreated"));
+				"swap chain 리소스 크기 변경", "Vulkan 프레임 리소스를 다시 만들지 못했습니다"));
 		if (!pipeline.IsCompatible(swapChain.imageFormat,
 			msaaDepthBuffer.format, device.msaaSampleCount))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
-				"validate resized pipeline", "the Vulkan pipeline is incompatible with the new swap chain"));
+				"크기 변경 후 pipeline 검증", "Vulkan pipeline이 새 swap chain과 호환되지 않습니다"));
 		if (!syncObject.ResetImageTracking(swapChain.images.size()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"resize frame synchronization", "Vulkan image tracking could not be reset"));
+				"프레임 동기화 크기 변경", "Vulkan 이미지 추적 상태를 초기화하지 못했습니다"));
 		return {};
 	}
 
@@ -76,7 +76,7 @@ namespace Chrivent {
 		const size_t frameIndex = syncObject.GetCurrentFrameIndex();
 		if (!syncObject.WaitForCurrentFrame())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"wait for current frame", "the Vulkan frame fence wait failed"));
+				"현재 프레임 대기", "Vulkan 프레임 fence 대기에 실패했습니다"));
 		uint32_t currentImageIndex = 0;
 		const VkResult acquireResult = vkAcquireNextImageKHR(device.device, swapChain.swapChain, UINT64_MAX,
 			syncObject.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &currentImageIndex);
@@ -88,15 +88,15 @@ namespace Chrivent {
 		}
 		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"acquire swap chain image", "Vulkan could not acquire the next image", acquireResult, true));
+				"swap chain 이미지 획득", "Vulkan이 다음 이미지를 획득하지 못했습니다", acquireResult, true));
 		if (!syncObject.WaitForImage(currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"wait for swap chain image", "the Vulkan image fence wait failed"));
+				"swap chain 이미지 대기", "Vulkan 이미지 fence 대기에 실패했습니다"));
 		auto& commandBuffer = commandContext.commandBuffer;
 		const VkResult resetResult = vkResetCommandBuffer(commandBuffer.TryGetCommandBuffer(currentImageIndex), 0);
 		if (resetResult != VK_SUCCESS)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"reset command buffer", "the Vulkan command buffer could not be reset", resetResult, true));
+				"command buffer 초기화", "Vulkan command buffer를 초기화하지 못했습니다", resetResult, true));
 		const VkImage resolveImage = postProcess.HasEffects()
 			? postProcess.TryGetSceneImage(currentImageIndex)
 			: swapChain.images[currentImageIndex];
@@ -109,7 +109,7 @@ namespace Chrivent {
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
 			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.extent, clearColor))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin command buffer", "the Vulkan frame command buffer could not begin recording"));
+				"command buffer 시작", "Vulkan 프레임 command buffer가 기록을 시작하지 못했습니다"));
 		drawContext.BeginFrame(currentImageIndex, frameIndex);
 		drawContext.SetPipelineState(pipeline.ResolveModelPipeline(false));
 		return FrameBeginState::Ready;
@@ -118,7 +118,7 @@ namespace Chrivent {
 	GraphicsResult<FrameEndState> VulkanViewer::EndFrameCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end frame", "the Vulkan draw context is not ready"));
+				"프레임 종료", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
 		drawContext.EndFrame();
@@ -132,11 +132,11 @@ namespace Chrivent {
 			recordEnded = commandContext.commandBuffer.EndRecord(currentImageIndex, swapChain.images[currentImageIndex]);
 		if (!recordEnded)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"end command buffer", "the Vulkan output pass could not finish recording"));
+				"command buffer 종료", "Vulkan 출력 패스 기록을 끝내지 못했습니다"));
 		const VkCommandBuffer commandBuffer = commandContext.commandBuffer.TryGetCommandBuffer(currentImageIndex);
 		if (!syncObject.Submit(device.graphicsQueue, commandBuffer, currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
-				"submit frame", "the Vulkan command buffer could not be submitted"));
+				"프레임 제출", "Vulkan command buffer를 제출하지 못했습니다"));
 		const VkSemaphore renderFinishedSemaphore = syncObject.GetRenderFinishedSemaphore(currentImageIndex);
 		const VkSwapchainKHR swapChains[] = { swapChain.swapChain };
 		VkPresentInfoKHR presentInfo{};
@@ -155,7 +155,7 @@ namespace Chrivent {
 		}
 		if (presentResult != VK_SUCCESS)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"present swap chain", "the Vulkan frame could not be presented", presentResult, true));
+				"swap chain present", "Vulkan 프레임을 표시하지 못했습니다", presentResult, true));
 		syncObject.AdvanceFrame();
 		return FrameEndState::Presented;
 	}
@@ -163,14 +163,14 @@ namespace Chrivent {
 	GraphicsResult<void> VulkanViewer::BeginPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"begin post-process scene input pass", "the Vulkan draw context is not ready"));
+				"후처리 장면 입력 패스 시작", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const VkPipeline geometryPipeline = pipeline.ResolveSceneInputPipeline(
 			postProcess.RequiresVelocity(), false);
 		if (!postProcess.BeginSceneInputPass(commandContext.commandBuffer,
 			currentImageIndex, geometryPipeline, swapChain.extent))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin post-process scene input pass", "the Vulkan scene input pass could not begin"));
+				"후처리 장면 입력 패스 시작", "Vulkan 장면 입력 패스를 시작하지 못했습니다"));
 		drawContext.SetPipelineState(geometryPipeline);
 		drawContext.ResetDescriptorBindings();
 		return {};
@@ -179,39 +179,39 @@ namespace Chrivent {
 	GraphicsResult<void> VulkanViewer::EndPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end post-process scene input pass", "the Vulkan draw context is not ready"));
+				"후처리 장면 입력 패스 종료", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.commandBuffer,
 			currentImageIndex);
 		if (!postProcessSceneInputPassReady)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"end post-process scene input pass", "the Vulkan scene input pass could not end"));
+				"후처리 장면 입력 패스 종료", "Vulkan 장면 입력 패스를 끝내지 못했습니다"));
 		return {};
 	}
 
 	GraphicsResult<void> VulkanViewer::WaitIdle() {
 		if (device.device == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"wait for GPU", "the Vulkan device is unavailable"));
+				"GPU 대기", "Vulkan device를 사용할 수 없습니다"));
 		const VkResult waitResult = vkDeviceWaitIdle(device.device);
 		if (waitResult != VK_SUCCESS)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"wait for GPU", "the Vulkan device did not become idle", waitResult, true));
+				"GPU 대기", "Vulkan device가 idle 상태가 되지 않았습니다", waitResult, true));
 		return {};
 	}
 
 	GraphicsResult<void> VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (device.device == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"configure post-process effects", "the Vulkan device is unavailable"));
+				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));
 		if (!postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"configure post-process effects", "the Vulkan effect chain could not be created"));
+				"후처리 효과 구성", "Vulkan 효과 chain을 만들지 못했습니다"));
 		return {};
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {
 		return std::make_unique<VulkanInstance>(
-			*this, device, pipeline, uploadContext, textureCache, dummyTexture, drawContext);
+			device, pipeline, uploadContext, textureCache, dummyTexture, drawContext);
 	}
 }

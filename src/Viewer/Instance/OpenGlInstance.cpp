@@ -135,10 +135,11 @@ namespace Chrivent {
 		}
 	}
 
-	OpenGlInstance::OpenGlInstance(Viewer& sourceViewer, OpenGlTextureCache& sourceTextureCache,
-		const OpenGlDrawContext& sourceDrawContext)
-		: textureCache(sourceTextureCache), drawContext(sourceDrawContext) {
-		drawer = std::make_unique<OpenGlDrawer>(*this, modelResources, drawContext, sourceViewer);
+	OpenGlInstance::OpenGlInstance(OpenGlTextureCache& sourceTextureCache,
+		OpenGlDrawContext& sourceDrawContext)
+		: Instance(GraphicsApi::OpenGl), textureCache(sourceTextureCache),
+		drawContext(sourceDrawContext) {
+		drawer = std::make_unique<OpenGlDrawer>(*this, modelResources, drawContext);
 	}
 
 	OpenGlInstance::~OpenGlInstance() {
@@ -180,19 +181,19 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool OpenGlInstance::Upload() {
+	bool OpenGlInstance::UploadCore() {
 		const size_t vtxCount = model->geometryData.positions.size();
 		auto* vertices = static_cast<ViewerVertex*>(glMapNamedBufferRange(
 			vertexVbo, 0, sizeof(ViewerVertex) * vtxCount, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 		if (vertices == nullptr) {
-			std::cerr << "Failed to update OpenGL vertex buffers.\n";
+			std::cerr << "OpenGL vertex buffer를 갱신하지 못했습니다.\n";
 			return false;
 		}
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ vertices, vtxCount });
 		const bool unmapSucceeded = glUnmapNamedBuffer(vertexVbo) == GL_TRUE;
 		if (!writeSucceeded || !unmapSucceeded)
-			std::cerr << "Failed to update OpenGL vertex buffers.\n";
+			std::cerr << "OpenGL vertex buffer를 갱신하지 못했습니다.\n";
 		return writeSucceeded && unmapSucceeded;
 	}
 }

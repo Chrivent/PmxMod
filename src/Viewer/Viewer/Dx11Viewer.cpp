@@ -18,26 +18,26 @@ namespace Chrivent {
 		HWND__* hwnd = glfwGetWin32Window(window);
 		if (!device.Initialize(capabilities))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"initialize device", "the DirectX 11 device could not be created"));
+				"device 초기화", "DirectX 11 device를 만들지 못했습니다"));
 		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
 		capabilities.Print();
 		if (!device.CreateSwapChain(hwnd, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"create swap chain", "the DirectX 11 swap chain could not be created"));
+				"swap chain 생성", "DirectX 11 swap chain을 만들지 못했습니다"));
 		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize render targets", "the DirectX 11 render targets could not be created"));
+				"render target 초기화", "DirectX 11 render target을 만들지 못했습니다"));
 		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device.GetDevice(),
 			device.GetContext(), screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize post-process targets", "the DirectX 11 post-process targets could not be created"));
+				"후처리 target 초기화", "DirectX 11 후처리 target을 만들지 못했습니다"));
 		if (!pipeline.Initialize(device.GetDevice(), shaderContract.builtIn, shaderContract.sceneInput))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize rendering pipeline", "the DirectX 11 pipeline could not be created"));
+				"rendering pipeline 초기화", "DirectX 11 pipeline을 만들지 못했습니다"));
 		if (!CreateDummyResources())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"create dummy texture", "the fallback texture could not be created"));
+				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
 		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return {};
 	}
@@ -49,20 +49,21 @@ namespace Chrivent {
 			screenHeight, DXGI_FORMAT_UNKNOWN, 0);
 		if (FAILED(resizeResult))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize swap chain", "the DirectX 11 buffers could not be resized", resizeResult, true));
+				"swap chain 크기 변경", "DirectX 11 buffer 크기를 바꾸지 못했습니다", resizeResult, true));
 		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize render targets", "the DirectX 11 render targets could not be recreated"));
+				"render target 크기 변경", "DirectX 11 render target을 다시 만들지 못했습니다"));
 		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device.GetDevice(),
 			device.GetContext(), screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize post-process targets", "the DirectX 11 post-process targets could not be recreated"));
+				"후처리 target 크기 변경", "DirectX 11 후처리 target을 다시 만들지 못했습니다"));
 		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return {};
 	}
 
 	GraphicsResult<FrameBeginState> Dx11Viewer::BeginFrameCore() {
+		drawContext.BeginFrame();
 		ID3D11RenderTargetView* sceneColorView = renderTargets.GetSceneColorView();
 		device.GetContext()->ClearRenderTargetView(sceneColorView, clearColor);
 		device.GetContext()->ClearDepthStencilView(renderTargets.GetDepthStencilView(),
@@ -81,7 +82,7 @@ namespace Chrivent {
 				pipeline.GetPostProcessRasterizerState(), pipeline.GetToonTextureSampler(),
 				screenWidth, screenHeight, GetPostProcessFrameData())) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"draw post-process effects", "the DirectX 11 post-process chain failed"));
+					"후처리 효과 draw", "DirectX 11 후처리 chain 실행에 실패했습니다"));
 			}
 		} else {
 			if (multiSampleCount > 1)
@@ -94,7 +95,7 @@ namespace Chrivent {
 		const HRESULT presentResult = device.GetSwapChain()->Present(0, 0);
 		if (FAILED(presentResult))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"present swap chain", "the DirectX 11 frame could not be presented", presentResult, true));
+				"swap chain present", "DirectX 11 프레임을 표시하지 못했습니다", presentResult, true));
 		return FrameEndState::Presented;
 	}
 
@@ -102,7 +103,7 @@ namespace Chrivent {
 		if (!postProcess.BeginSceneInputPass(device.GetContext(),
 			pipeline.GetDefaultDepthStencilState(), screenWidth, screenHeight)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin post-process scene input pass", "the DirectX 11 scene input pass could not begin"));
+				"후처리 장면 입력 패스 시작", "DirectX 11 장면 입력 패스를 시작하지 못했습니다"));
 		}
 		return {};
 	}
@@ -110,7 +111,7 @@ namespace Chrivent {
 	GraphicsResult<void> Dx11Viewer::EndPostProcessSceneInputPassCore() {
 		if (device.GetContext() == nullptr)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end post-process scene input pass", "the DirectX 11 context is unavailable"));
+				"후처리 장면 입력 패스 종료", "DirectX 11 context를 사용할 수 없습니다"));
 		postProcess.EndSceneInputPass(device.GetContext());
 		return {};
 	}
@@ -118,18 +119,18 @@ namespace Chrivent {
 	GraphicsResult<void> Dx11Viewer::WaitIdle() {
 		if (!device.WaitIdle())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"wait for GPU", "the DirectX 11 immediate context did not finish"));
+				"GPU 대기", "DirectX 11 immediate context 작업이 끝나지 않았습니다"));
 		return {};
 	}
 
 	GraphicsResult<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!postProcess.Configure(device.GetDevice(), device.GetContext(), screenWidth, screenHeight, effects))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"configure post-process effects", "the DirectX 11 effect chain could not be created"));
+				"후처리 효과 구성", "DirectX 11 효과 chain을 만들지 못했습니다"));
 		return {};
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {
-		return std::make_unique<Dx11Instance>(*this, device, textureCache, drawContext);
+		return std::make_unique<Dx11Instance>(device, textureCache, drawContext);
 	}
 }

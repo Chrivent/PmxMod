@@ -22,7 +22,7 @@ namespace Chrivent {
 		vertexLayoutInfo.bindingCount = 1;
 		vertexLayoutInfo.pBindings = &vertexConstantBinding;
 		if (vkCreateDescriptorSetLayout(device, &vertexLayoutInfo, nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan vertex descriptor set layout.\n";
+			std::cerr << "Vulkan vertex descriptor set layout을 만들지 못했습니다.\n";
 			return false;
 		}
 		constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
@@ -37,7 +37,7 @@ namespace Chrivent {
 		pixelLayoutInfo.bindingCount = 1;
 		pixelLayoutInfo.pBindings = &pixelConstantBinding;
 		if (vkCreateDescriptorSetLayout(device, &pixelLayoutInfo, nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan pixel descriptor set layout.\n";
+			std::cerr << "Vulkan pixel descriptor set layout을 만들지 못했습니다.\n";
 			return false;
 		}
 		constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
@@ -89,7 +89,7 @@ namespace Chrivent {
 		textureLayoutInfo.bindingCount = std::size(textureBindings);
 		textureLayoutInfo.pBindings = textureBindings;
 		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan texture descriptor set layout.\n";
+			std::cerr << "Vulkan texture descriptor set layout을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -101,7 +101,7 @@ namespace Chrivent {
 		createInfo.setLayoutCount = 3;
 		createInfo.pSetLayouts = descriptorSetLayouts;
 		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan pipeline layout.\n";
+			std::cerr << "Vulkan pipeline layout을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -262,7 +262,7 @@ namespace Chrivent {
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan graphics pipeline.\n";
+			std::cerr << "Vulkan graphics pipeline을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -350,7 +350,7 @@ namespace Chrivent {
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipelineLayout;
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &outPipeline) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan depth-only pipeline.\n";
+			std::cerr << "Vulkan depth-only pipeline을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;

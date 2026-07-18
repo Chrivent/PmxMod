@@ -113,7 +113,7 @@ namespace Chrivent {
 
 	std::string BinaryReader::FormatParseError(const ParseError& error) {
 		std::ostringstream message;
-		message << error.section << " (offset " << error.offset << "): " << error.message;
+		message << error.section << " (오프셋 " << error.offset << "): " << error.message;
 		return message.str();
 	}
 }

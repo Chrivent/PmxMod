@@ -3,7 +3,6 @@
 #include "Viewer/Shader/ShaderProgramDefinition.h"
 
 #include <cstdint>
-#include <string>
 #include <vector>
 
 namespace Chrivent {
@@ -73,19 +72,22 @@ namespace Chrivent {
 		EffectPassOutputDefinition output;
 	};
 
-	// 효과가 b1 상수 버퍼에서 사용할 스칼라 파라미터 한 개를 선언한다.
-	struct EffectParameterDefinition {
-		std::string id;
-		std::string name;
+	// API가 b1 상수 버퍼에 전달할 스칼라 파라미터의 슬롯과 현재 값을 나타낸다.
+	struct EffectParameterValue {
 		uint32_t slot = 0;
-		float defaultValue = 0.0f;
-		float minimumValue = 0.0f;
-		float maximumValue = 1.0f;
+		float value = 0.0f;
+	};
+
+	// 활성 효과 색인과 슬롯으로 실행 중 갱신할 파라미터 값을 식별한다.
+	struct EffectParameterUpdate {
+		size_t effectIndex = 0;
+		uint32_t slot = 0;
+		float value = 0.0f;
 	};
 
 	// API가 소비하는 후처리 리소스와 패스 실행 계약을 나타낸다.
 	struct EffectRuntimeDefinition {
-		std::vector<EffectParameterDefinition> parameters;
+		std::vector<EffectParameterValue> parameters;
 		std::vector<EffectResourceDefinition> resources;
 		std::vector<EffectPassDefinition> passes;
 	};

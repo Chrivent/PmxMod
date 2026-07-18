@@ -10,7 +10,7 @@ namespace Chrivent {
 	bool VulkanShaderModule::Initialize(const VulkanDevice& sourceDevice, const std::span<const uint32_t> spvBytes) {
 		device = sourceDevice.device;
 		if (spvBytes.empty()) {
-			std::cerr << "Invalid SPIR-V shader byte size.\n";
+			std::cerr << "SPIR-V 셰이더 byte 크기가 올바르지 않습니다.\n";
 			return false;
 		}
 		VkShaderModuleCreateInfo createInfo{};
@@ -18,7 +18,7 @@ namespace Chrivent {
 		createInfo.codeSize = spvBytes.size() * sizeof(uint32_t);
 		createInfo.pCode = spvBytes.data();
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan shader module.\n";
+			std::cerr << "Vulkan shader module을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;

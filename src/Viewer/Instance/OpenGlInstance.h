@@ -9,12 +9,11 @@ namespace Chrivent {
     class OpenGlDrawer;
 	class OpenGlDrawContext;
 	class OpenGlTextureCache;
-	class Viewer;
 
     // 한 모델의 OpenGL 버퍼, VAO와 재질 상태를 관리한다.
     class OpenGlInstance : public Instance {
 		OpenGlTextureCache& textureCache;
-		const OpenGlDrawContext& drawContext;
+		OpenGlDrawContext& drawContext;
 		OpenGlModelResources modelResources;
     	GLuint vertexVbo = 0;
     	GLuint ibo = 0;
@@ -38,13 +37,11 @@ namespace Chrivent {
 		void ResetRendererResources() override;
 		// OpenGL 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer() override;
-
-    public:
-		OpenGlInstance(Viewer& sourceViewer, OpenGlTextureCache& sourceTextureCache,
-			const OpenGlDrawContext& sourceDrawContext);
-        ~OpenGlInstance() override;
-
 		// 모델의 갱신된 버텍스 데이터를 OpenGL 버퍼에 반영한다.
-		bool Upload() override;
+		bool UploadCore() override;
+
+	public:
+		OpenGlInstance(OpenGlTextureCache& sourceTextureCache, OpenGlDrawContext& sourceDrawContext);
+        ~OpenGlInstance() override;
     };
 }

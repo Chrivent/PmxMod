@@ -36,6 +36,7 @@ target_sources(PmxModViewer PRIVATE
 
         Error/GraphicsError.h Error/GraphicsError.cpp
 
+		Drawer/SceneDrawState.h
 		Drawer/Drawer.h Drawer/Drawer.cpp
 		Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
 		Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp

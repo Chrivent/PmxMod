@@ -2,7 +2,6 @@
 
 #include "Viewer/DrawContext/Dx11DrawContext.h"
 #include "Viewer/Instance/Dx11Instance.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Core/Model/Model.h"
@@ -36,7 +35,6 @@ namespace Chrivent {
 	}
 
 	bool Dx11Drawer::DrawModel() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -51,7 +49,7 @@ namespace Chrivent {
 			0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		const ModelVertexConstants vsCb = BuildModelVertexConstants(viewer, world, ClipMatrix());
+		const ModelVertexConstants vsCb = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		drawContext.GetDeviceContext()->UpdateSubresource(vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, vsConstantBuffer.GetAddressOf());
 		ID3D11ShaderResourceView* boundViews[3] = { nullptr, nullptr, nullptr };
@@ -66,7 +64,7 @@ namespace Chrivent {
 				material.texture.texture != nullptr, material.texture.hasAlpha,
 				material.toonTexture.texture != nullptr, material.sphereTexture.texture != nullptr);
 			const ModelPixelConstants psCb = BuildModelPixelConstants(
-				viewer, mat, base, toon, sphere);
+				drawState, mat, base, toon, sphere);
 			BindTexture(0, material.texture, drawContext.GetTextureSampler(),
 				boundViews[0], boundSamplers[0]);
 			BindTexture(1, material.toonTexture, drawContext.GetToonTextureSampler(),
@@ -87,7 +85,6 @@ namespace Chrivent {
 	}
 
 	bool Dx11Drawer::DrawEdge() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -103,7 +100,7 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		EdgeVertexConstants vsCb1 = BuildEdgeVertexConstants(
-			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), viewer.GetScreenHeight()));
+			drawState, world, ClipMatrix(), drawState.screenSize);
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, edgeVsConstantBuffer.GetAddressOf());
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = materials[materialId];
@@ -125,7 +122,6 @@ namespace Chrivent {
 	}
 
 	bool Dx11Drawer::DrawGroundShadow() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -141,7 +137,7 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const GroundShadowVertexConstants vsCb = BuildGroundShadowVertexConstants(
-			viewer, world, ClipMatrix());
+			drawState, world, ClipMatrix());
 		drawContext.GetDeviceContext()->UpdateSubresource(
 			gsVsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(0, 1, gsVsConstantBuffer.GetAddressOf());
@@ -160,23 +156,22 @@ namespace Chrivent {
 	}
 
 	bool Dx11Drawer::DrawSceneInputs() {
-		const auto& viewer = this->viewer;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
 		const auto indexBufferFormat = resources.indexBufferFormat;
 		const auto& vsConstantBuffer = resources.vsConstantBuffer;
 		const auto& sceneSurfaceConstantBuffer = resources.sceneSurfaceConstantBuffer;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const bool velocityRequired = viewer.RequiresPostProcessVelocity();
+		const bool velocityRequired = drawState.velocityRequired;
 		constexpr UINT stride = sizeof(ViewerVertex);
 		constexpr UINT offset = 0;
 		if (velocityRequired) {
 			const SceneVelocityVertexConstants vsCb = BuildSceneVelocityVertexConstants(
-				viewer, world, ClipMatrix());
+				drawState, world, ClipMatrix());
 			drawContext.GetDeviceContext()->UpdateSubresource(
 				vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		} else {
-			const ModelVertexConstants vsCb = BuildModelVertexConstants(viewer, world, ClipMatrix());
+			const ModelVertexConstants vsCb = BuildModelVertexConstants(drawState, world, ClipMatrix());
 			drawContext.GetDeviceContext()->UpdateSubresource(
 				vsConstantBuffer.Get(), 0, nullptr, &vsCb, 0, 0);
 		}
@@ -214,7 +209,6 @@ namespace Chrivent {
 	}
 
 	Dx11Drawer::Dx11Drawer(const Dx11Instance& sourceInstance, Dx11ModelResources& sourceResources,
-		const Dx11DrawContext& sourceDrawContext, Viewer& sourceViewer)
-		: Drawer(sourceViewer), instance(sourceInstance), resources(sourceResources),
-		drawContext(sourceDrawContext) {}
+		Dx11DrawContext& sourceDrawContext)
+		: instance(sourceInstance), resources(sourceResources), drawContext(sourceDrawContext) {}
 }

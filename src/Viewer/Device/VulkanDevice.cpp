@@ -13,7 +13,7 @@ namespace Chrivent {
 		if (enumerateInstanceVersion && enumerateInstanceVersion(&loaderVersion) != VK_SUCCESS)
 			return false;
 		if (loaderVersion < VK_API_VERSION_1_3) {
-			std::cerr << "Vulkan 1.3 or newer is required.\n";
+			std::cerr << "Vulkan 1.3 이상이 필요합니다.\n";
 			return false;
 		}
 		instanceApiVersion = VK_API_VERSION_1_3;
@@ -27,7 +27,7 @@ namespace Chrivent {
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 		if (!glfwExtensions || glfwExtensionCount == 0) {
-			std::cerr << "Failed to get required Vulkan GLFW extensions.\n";
+			std::cerr << "필요한 Vulkan GLFW extension을 가져오지 못했습니다.\n";
 			return false;
 		}
 		VkInstanceCreateInfo createInfo{};
@@ -36,7 +36,7 @@ namespace Chrivent {
 		createInfo.enabledExtensionCount = glfwExtensionCount;
 		createInfo.ppEnabledExtensionNames = glfwExtensions;
 		if (vkCreateInstance(&createInfo, nullptr, &vkInstance) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan instance.\n";
+			std::cerr << "Vulkan instance를 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -44,7 +44,7 @@ namespace Chrivent {
 
 	bool VulkanDevice::CreateSurface(GLFWwindow* window) {
 		if (glfwCreateWindowSurface(vkInstance, window, nullptr, &surface) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan surface.\n";
+			std::cerr << "Vulkan surface를 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -55,7 +55,7 @@ namespace Chrivent {
 		if (vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr) != VK_SUCCESS)
 			return false;
 		if (deviceCount == 0) {
-			std::cerr << "Failed to find a Vulkan physical device.\n";
+			std::cerr << "Vulkan physical device를 찾지 못했습니다.\n";
 			return false;
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -76,7 +76,7 @@ namespace Chrivent {
 			properties = newProperties;
 		}
 		if (physicalDevice == VK_NULL_HANDLE) {
-			std::cerr << "Failed to find a suitable Vulkan physical device.\n";
+			std::cerr << "요구 조건을 만족하는 Vulkan physical device를 찾지 못했습니다.\n";
 			return false;
 		}
 		queueFamilies = FindQueueFamilies(physicalDevice);
@@ -114,7 +114,7 @@ namespace Chrivent {
 		createInfo.enabledExtensionCount = std::size(kDeviceExtensions);
 		createInfo.ppEnabledExtensionNames = kDeviceExtensions;
 		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan logical device.\n";
+			std::cerr << "Vulkan logical device를 만들지 못했습니다.\n";
 			return false;
 		}
 		vkGetDeviceQueue(device, queueFamilies.graphicsFamily, 0, &graphicsQueue);

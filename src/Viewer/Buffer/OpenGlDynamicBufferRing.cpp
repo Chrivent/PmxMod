@@ -12,7 +12,7 @@ namespace Chrivent {
 		usage = bufferUsage;
 		glCreateBuffers(1, &buffer);
 		if (buffer == 0) {
-			outError = "Failed to create OpenGL dynamic buffer ring.";
+			outError = "OpenGL dynamic buffer ring을 만들지 못했습니다.";
 			DynamicBufferRing::Clear();
 			return false;
 		}

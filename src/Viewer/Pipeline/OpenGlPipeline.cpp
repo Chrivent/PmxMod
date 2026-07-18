@@ -6,23 +6,23 @@ namespace Chrivent {
 	bool OpenGlPipeline::Initialize(const BuiltInShaderPasses& builtInPasses,
 		const SceneInputShaderPasses& sceneInputPasses) {
 		if (!modelShader.Initialize(builtInPasses.model)) {
-			std::cerr << "Failed to set up main OpenGL shader.\n";
+			std::cerr << "기본 OpenGL 셰이더를 설정하지 못했습니다.\n";
 			return false;
 		}
 		if (!edgeShader.Initialize(builtInPasses.edge)) {
-			std::cerr << "Failed to set up edge OpenGL shader.\n";
+			std::cerr << "엣지 OpenGL 셰이더를 설정하지 못했습니다.\n";
 			return false;
 		}
 		if (!groundShadowShader.Initialize(builtInPasses.groundShadow)) {
-			std::cerr << "Failed to set up ground shadow OpenGL shader.\n";
+			std::cerr << "지면 그림자 OpenGL 셰이더를 설정하지 못했습니다.\n";
 			return false;
 		}
 		if (!depthOnlyShader.Initialize(sceneInputPasses.depth)) {
-			std::cerr << "Failed to set up depth-only OpenGL shader.\n";
+			std::cerr << "depth-only OpenGL 셰이더를 설정하지 못했습니다.\n";
 			return false;
 		}
 		if (!sceneVelocityShader.Initialize(sceneInputPasses.velocity)) {
-			std::cerr << "Failed to set up scene velocity OpenGL shader.\n";
+			std::cerr << "장면 velocity OpenGL 셰이더를 설정하지 못했습니다.\n";
 			return false;
 		}
 		return true;

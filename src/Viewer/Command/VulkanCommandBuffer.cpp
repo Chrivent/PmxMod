@@ -60,7 +60,7 @@ namespace Chrivent {
 		boundIndexBuffers.assign(commandBuffers.size(), VK_NULL_HANDLE);
 		boundIndexTypes.assign(commandBuffers.size(), VK_INDEX_TYPE_MAX_ENUM);
 		if (commandBuffers.empty()) {
-			std::cerr << "Failed to allocate Vulkan command buffers: swapchain image view is empty.\n";
+			std::cerr << "swap chain image view가 없어 Vulkan command buffer를 할당할 수 없습니다.\n";
 			return false;
 		}
 		VkCommandBufferAllocateInfo allocateInfo{};
@@ -69,7 +69,7 @@ namespace Chrivent {
 		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocateInfo.commandBufferCount = commandBuffers.size();
 		if (vkAllocateCommandBuffers(device, &allocateInfo, commandBuffers.data()) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan command buffers.\n";
+			std::cerr << "Vulkan command buffer를 할당하지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -82,7 +82,7 @@ namespace Chrivent {
 		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount, const VkPipeline pipeline,
 		const VkExtent2D extent, const float clearColor[4]) {
 		if (imageIndex >= commandBuffers.size()) {
-			std::cerr << "Failed to record Vulkan command buffer: image index is out of range.\n";
+			std::cerr << "이미지 색인이 범위를 벗어나 Vulkan command buffer를 기록할 수 없습니다.\n";
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
@@ -92,7 +92,7 @@ namespace Chrivent {
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-			std::cerr << "Failed to begin Vulkan command buffer.\n";
+			std::cerr << "Vulkan command buffer 기록을 시작하지 못했습니다.\n";
 			return false;
 		}
 		const bool multisampled = sampleCount != VK_SAMPLE_COUNT_1_BIT;
@@ -158,10 +158,13 @@ namespace Chrivent {
 		vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
 
-	void VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
+	bool VulkanCommandBuffer::DrawIndexed(const uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
 		const VulkanBuffer& indexBuffer, const VkIndexType indexType, const uint32_t firstIndex, const uint32_t indexCount) {
-		if (imageIndex >= commandBuffers.size() || vertexBuffer.buffer == VK_NULL_HANDLE || indexBuffer.buffer == VK_NULL_HANDLE || indexCount == 0)
-			return;
+		if (imageIndex >= commandBuffers.size() || vertexBuffer.buffer == VK_NULL_HANDLE
+			|| indexBuffer.buffer == VK_NULL_HANDLE)
+			return false;
+		if (indexCount == 0)
+			return true;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
 		if (boundVertexBuffers[imageIndex] != vertexBuffer.buffer) {
 			constexpr VkDeviceSize offsets[] = { 0 };
@@ -175,6 +178,7 @@ namespace Chrivent {
 			boundIndexTypes[imageIndex] = indexType;
 		}
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
+		return true;
 	}
 
 	void VulkanCommandBuffer::BindDescriptorSets(const uint32_t imageIndex, const VkPipelineLayout pipelineLayout,
@@ -273,7 +277,7 @@ namespace Chrivent {
 
 	bool VulkanCommandBuffer::EndRecord(const uint32_t imageIndex, const VkImage outputImage) const {
 		if (imageIndex >= commandBuffers.size()) {
-			std::cerr << "Failed to end Vulkan command buffer: image index is out of range.\n";
+			std::cerr << "이미지 색인이 범위를 벗어나 Vulkan command buffer를 끝낼 수 없습니다.\n";
 			return false;
 		}
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
@@ -283,7 +287,7 @@ namespace Chrivent {
 			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
 			VK_IMAGE_ASPECT_COLOR_BIT);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Failed to record Vulkan command buffer.\n";
+			std::cerr << "Vulkan command buffer를 기록하지 못했습니다.\n";
 			return false;
 		}
 		return true;

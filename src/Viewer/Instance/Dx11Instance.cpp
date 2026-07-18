@@ -84,10 +84,11 @@ namespace Chrivent {
 		}
 	}
 
-	Dx11Instance::Dx11Instance(Viewer& sourceViewer, const Dx11Device& sourceDevice,
-		Dx11TextureCache& sourceTextureCache, const Dx11DrawContext& sourceDrawContext)
-		: device(sourceDevice), textureCache(sourceTextureCache), drawContext(sourceDrawContext) {
-		drawer = std::make_unique<Dx11Drawer>(*this, modelResources, drawContext, sourceViewer);
+	Dx11Instance::Dx11Instance(const Dx11Device& sourceDevice,
+		Dx11TextureCache& sourceTextureCache, Dx11DrawContext& sourceDrawContext)
+		: Instance(GraphicsApi::DirectX11), device(sourceDevice),
+		textureCache(sourceTextureCache), drawContext(sourceDrawContext) {
+		drawer = std::make_unique<Dx11Drawer>(*this, modelResources, drawContext);
 	}
 
 	void Dx11Instance::ResetRendererResources() {
@@ -113,7 +114,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool Dx11Instance::Upload() {
+	bool Dx11Instance::UploadCore() {
 		ID3D11DeviceContext* deviceContext = device.GetContext();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;

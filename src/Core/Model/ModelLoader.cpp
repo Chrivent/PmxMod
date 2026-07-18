@@ -348,7 +348,8 @@ namespace Chrivent {
 		PmxParser pmx;
 		const auto parseResult = pmx.ReadFile(filepath);
 		if (!parseResult) {
-			std::cerr << "Failed to read PMX file: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
+			std::cerr << "PMX 파일을 읽지 못했습니다: "
+				<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
 			return false;
 		}
 		const auto& pmxData = pmx.GetData();

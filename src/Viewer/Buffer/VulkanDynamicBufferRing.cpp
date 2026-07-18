@@ -7,7 +7,7 @@ namespace Chrivent {
 			return false;
 		if (!buffer.Initialize(sourceDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-			outError = "Failed to create Vulkan dynamic buffer ring.";
+			outError = "Vulkan dynamic buffer ring을 만들지 못했습니다.";
 			DynamicBufferRing::Clear();
 			return false;
 		}
@@ -33,15 +33,15 @@ namespace Chrivent {
 	bool VulkanDynamicBufferRing::Write(const UploadSlice& slice, const void* data,
 		const size_t dataSize, std::string& outError) const {
 		if (data == nullptr) {
-			outError = "Failed to write Vulkan dynamic buffer ring: source data is null.";
+			outError = "Vulkan dynamic buffer ring에 쓸 원본 데이터가 null입니다.";
 			return false;
 		}
 		if (dataSize > slice.size) {
-			outError = "Failed to write Vulkan dynamic buffer ring: source data exceeds the reserved slice.";
+			outError = "Vulkan dynamic buffer ring 원본 데이터가 예약된 slice보다 큽니다.";
 			return false;
 		}
 		if (!buffer.Write(data, dataSize, slice.offset)) {
-			outError = "Failed to write Vulkan dynamic buffer ring slice.";
+			outError = "Vulkan dynamic buffer ring slice에 쓰지 못했습니다.";
 			return false;
 		}
 		outError.clear();

@@ -46,7 +46,9 @@ namespace Chrivent {
 		// 현재 command buffer에 graphics pipeline을 바인딩한다.
 		void BindPipeline(uint32_t imageIndex, VkPipeline pipeline) const;
 		// 현재 command buffer에 모델 vertex/index buffer를 바인딩하고 draw indexed 명령을 기록한다.
-		void DrawIndexed(uint32_t imageIndex, const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer, VkIndexType indexType, uint32_t firstIndex, uint32_t indexCount);
+		bool DrawIndexed(uint32_t imageIndex, const VulkanBuffer& vertexBuffer,
+			const VulkanBuffer& indexBuffer, VkIndexType indexType,
+			uint32_t firstIndex, uint32_t indexCount);
 		// 현재 command buffer에 graphics descriptor set들을 바인딩한다.
 		void BindDescriptorSets(uint32_t imageIndex, VkPipelineLayout pipelineLayout, uint32_t firstSet,
 			std::span<const VkDescriptorSet> descriptorSets, std::span<const uint32_t> dynamicOffsets = {}) const;

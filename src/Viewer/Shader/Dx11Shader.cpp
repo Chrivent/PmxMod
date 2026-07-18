@@ -38,15 +38,17 @@ namespace Chrivent {
 			return false;
 		}
 		if (!CreateVertexShader(device, vertexBytecode.Get(), vertexShader)) {
-			std::cerr << "Failed to create DX11 vertex shader: " << file.string() << " entry=" << vertexEntry << '\n';
+			std::cerr << "DX11 vertex shader를 만들지 못했습니다: "
+				<< file.string() << " entry=" << vertexEntry << '\n';
 			return false;
 		}
 		if (!CreatePixelShader(device, pixelBytecode.Get(), pixelShader)) {
-			std::cerr << "Failed to create DX11 pixel shader: " << file.string() << " entry=" << pixelEntry << '\n';
+			std::cerr << "DX11 pixel shader를 만들지 못했습니다: "
+				<< file.string() << " entry=" << pixelEntry << '\n';
 			return false;
 		}
 		if (!inputElements.empty() && !CreateInputLayout(device, vertexBytecode.Get(), inputElements, inputLayout)) {
-			std::cerr << "Failed to create DX11 input layout: " << file.string() << '\n';
+			std::cerr << "DX11 input layout을 만들지 못했습니다: " << file.string() << '\n';
 			return false;
 		}
 		return true;

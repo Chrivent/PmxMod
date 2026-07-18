@@ -142,22 +142,22 @@ namespace Chrivent {
     bool Program::InitializeViewer() {
         if (!viewer)
             return false;
-		SceneShaderRuntimeContract shaderContract;
-		std::string shaderError;
-		if (!InternalShaderCatalog::Load(resourceDirectories.GetInternalShaderDirectory(),
-			viewer->IsNdcYInvertedForTextureCoordinates(), shaderContract, shaderError)) {
-			std::cerr << shaderError << '\n';
+		auto shaderContractResult = InternalShaderCatalog::Load(
+			resourceDirectories.GetInternalShaderDirectory(),
+			viewer->IsNdcYInvertedForTextureCoordinates());
+		if (!shaderContractResult) {
+			std::cerr << shaderContractResult.error() << '\n';
 			return false;
 		}
         if (!glfwInit()) {
-            std::cerr << "Failed to initialize GLFW.\n";
+            std::cerr << "GLFW를 초기화하지 못했습니다.\n";
             return false;
         }
         glfwDefaultWindowHints();
         viewer->ConfigureWindowHints();
 		GLFWwindow* viewerWindow = glfwCreateWindow(1280, 720, "Pmx Mod", nullptr, nullptr);
 		if (!viewerWindow) {
-            std::cerr << "Failed to create viewer window.\n";
+            std::cerr << "렌더러 윈도우를 만들지 못했습니다.\n";
             viewer.reset();
             glfwTerminate();
             return false;
@@ -171,14 +171,14 @@ namespace Chrivent {
 		int framebufferHeight = 0;
 		glfwGetFramebufferSize(viewerWindow, &framebufferWidth, &framebufferHeight);
 		if (framebufferWidth <= 0 || framebufferHeight <= 0) {
-            std::cerr << "Invalid framebuffer size.\n";
+            std::cerr << "framebuffer 크기가 올바르지 않습니다.\n";
             RemoveViewerWindowSubclass();
             viewer.reset();
             glfwTerminate();
             return false;
         }
 		const auto setupResult = viewer->Setup(viewerWindow, framebufferWidth, framebufferHeight,
-			shaderContract);
+			*shaderContractResult);
 		if (!setupResult) {
             PrintGraphicsError(setupResult.error());
             RemoveViewerWindowSubclass();
@@ -335,7 +335,7 @@ namespace Chrivent {
 		auto [packages, errors] = ShaderPackageLoader::Discover(resourceDirectories.GetShaderPackagesDirectory());
         shaderPackages = std::move(packages);
         for (const auto& error : errors)
-            std::cerr << "Failed to load shader package: " << error.Format() << '\n';
+            std::cerr << "셰이더 패키지를 불러오지 못했습니다: " << error.Format() << '\n';
         BuildShaderEffectEntries();
         const size_t effectCount = shaderEffectEntries.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
@@ -396,7 +396,7 @@ namespace Chrivent {
         music.Pause();
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
-            std::cerr << "Failed to load scene instances.\n";
+            std::cerr << "장면 인스턴스를 불러오지 못했습니다.\n";
             return false;
         }
         ClearInstances();
@@ -427,7 +427,7 @@ namespace Chrivent {
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
 			if (!loader.Load(modelPath, resourceDirectories.GetDefaultToonTextureDirectory())) {
-                std::cerr << "Failed to load pmx file.\n";
+                std::cerr << "PMX 파일을 불러오지 못했습니다.\n";
                 return false;
             }
             const ModelAnimator animator(*pmxModel);
@@ -437,17 +437,20 @@ namespace Chrivent {
                 VmdParser vmd;
                 const auto parseResult = vmd.ReadFile(vmdPath);
                 if (!parseResult) {
-                    std::cerr << "Failed to read VMD file: " << BinaryReader::FormatParseError(parseResult.error()) << '\n';
+                    std::cerr << "VMD 파일을 읽지 못했습니다: "
+						<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
                     return false;
                 }
                 animationBuilder.Build(vmd.GetData());
             }
             auto vmdAnim = animationBuilder.TakeAnimation();
             animator.SyncPhysics(*vmdAnim, 0.0f);
-            auto instance = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
-            if (!instance)
+            auto instanceResult = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
+            if (!instanceResult) {
+				PrintGraphicsError(instanceResult.error());
                 return false;
-            loadedInstances.emplace_back(std::move(instance));
+			}
+            loadedInstances.emplace_back(std::move(*instanceResult));
         }
         return true;
     }
@@ -1033,22 +1036,35 @@ namespace Chrivent {
             TickFps();
             return true;
         }
+        const SceneDrawState drawState = viewer->ResolveSceneDrawState();
         for (const auto& instance : instances) {
-            if (!instance->Upload())
+			const auto uploadResult = instance->Upload();
+            if (!uploadResult) {
+				PrintGraphicsError(uploadResult.error());
                 return false;
-            instance->BeginDraw();
+			}
+            instance->BeginDraw(drawState);
         }
         for (const auto& instance : instances) {
-            if (!instance->DrawModelPass())
+			const auto drawResult = instance->DrawModelPass();
+            if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
                 return false;
+			}
         }
         for (const auto& instance : instances) {
-            if (!instance->DrawEdgePass())
+			const auto drawResult = instance->DrawEdgePass();
+            if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
                 return false;
+			}
         }
         for (const auto& instance : instances) {
-            if (!instance->DrawGroundShadowPass())
+			const auto drawResult = instance->DrawGroundShadowPass();
+            if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
                 return false;
+			}
         }
         const auto sceneInputResult = viewer->BeginPostProcessSceneInputPass();
         if (!sceneInputResult) {
@@ -1057,8 +1073,11 @@ namespace Chrivent {
 		}
         if (*sceneInputResult == PostProcessSceneInputState::Ready) {
             for (const auto& instance : instances) {
-                if (!instance->DrawPostProcessSceneInputs())
+				const auto drawResult = instance->DrawPostProcessSceneInputs();
+                if (!drawResult) {
+					PrintGraphicsError(drawResult.error());
                     return false;
+				}
             }
             const auto sceneInputEndResult = viewer->EndPostProcessSceneInputPass();
             if (!sceneInputEndResult) {
@@ -1183,13 +1202,13 @@ namespace Chrivent {
         }
         Language::Initialize();
 		if (!resourceDirectories.Initialize()) {
-			std::cerr << "Failed to resolve resource directories.\n";
+			std::cerr << "리소스 디렉터리 경로를 확인하지 못했습니다.\n";
 			return 1;
 		}
         CreateViewer(options.rendererType);
         SceneConfig cfg;
         if (!options.scenePath.empty() && !cfg.Load(options.scenePath)) {
-            std::cerr << "Failed to load scene config.\n";
+            std::cerr << "장면 설정을 불러오지 못했습니다.\n";
             return 1;
         }
         benchmarkMode = options.benchmarkFrames > 0;
@@ -1199,7 +1218,7 @@ namespace Chrivent {
         panelManager.ApplySceneConfig(cfg);
         panelManager.SetRendererType(options.rendererType);
         if (!InitializeViewer()) {
-            std::cerr << "Failed to run.\n";
+            std::cerr << "프로그램 실행 중 오류가 발생했습니다.\n";
             return 1;
         }
         DiscoverShaderPackages();

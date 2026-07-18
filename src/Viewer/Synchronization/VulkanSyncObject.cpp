@@ -9,7 +9,7 @@ namespace Chrivent {
 		renderFinishedSemaphores.assign(swapChainImageCount, VK_NULL_HANDLE);
 		for (auto& semaphore : renderFinishedSemaphores) {
 			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS) {
-				std::cerr << "Failed to create Vulkan present semaphore.\n";
+				std::cerr << "Vulkan present semaphore를 만들지 못했습니다.\n";
 				ResetRenderFinishedSemaphores();
 				return false;
 			}
@@ -59,7 +59,7 @@ namespace Chrivent {
 		for (size_t i = 0; i < FrameBuffering::vulkanFramesInFlight; i++) {
 			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 				vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
-				std::cerr << "Failed to create Vulkan sync objects.\n";
+				std::cerr << "Vulkan 동기화 객체를 만들지 못했습니다.\n";
 				Reset();
 				return false;
 			}
@@ -139,7 +139,7 @@ namespace Chrivent {
 		};
 		if (vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
 			if (!RestoreCurrentFence())
-				std::cerr << "Failed to restore Vulkan in-flight fence.\n";
+				std::cerr << "Vulkan in-flight fence를 복구하지 못했습니다.\n";
 			return false;
 		}
 		imagesInFlight[imageIndex] = inFlightFence;

@@ -26,10 +26,21 @@ namespace Chrivent {
 		std::string Format() const;
 	};
 
+	// UI와 모션 키에 노출할 효과 파라미터의 이름, 범위와 기본값을 보관한다.
+	struct EffectParameterMetadata {
+		std::string id;
+		std::string name;
+		uint32_t slot = 0;
+		float defaultValue = 0.0f;
+		float minimumValue = 0.0f;
+		float maximumValue = 1.0f;
+	};
+
 	// 프로그램에 노출할 효과 메타데이터와 렌더러 실행 계약을 묶는다.
 	struct EffectDefinition {
 		std::string id;
 		std::string name;
+		std::vector<EffectParameterMetadata> parameters;
 		EffectRuntimeDefinition runtime;
 	};
 
@@ -105,7 +116,8 @@ namespace Chrivent {
 			std::vector<ParsedEffectResource>& resources, std::string& error);
 		// 후처리 effect가 b1에서 사용할 스칼라 파라미터 선언을 읽는다.
 		static bool LoadParameters(const nlohmann::json& json, const std::filesystem::path& manifestPath,
-			std::vector<EffectParameterDefinition>& parameters, std::string& error);
+			std::vector<EffectParameterMetadata>& metadata,
+			std::vector<EffectParameterValue>& values, std::string& error);
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error);

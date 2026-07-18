@@ -2,7 +2,6 @@
 
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/Instance/OpenGlInstance.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
 
@@ -27,11 +26,10 @@ namespace Chrivent {
 	}
 
 	bool OpenGlDrawer::DrawModel() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
+		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		drawContext.BindModelPipeline();
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return false;
@@ -57,7 +55,7 @@ namespace Chrivent {
 				material.texture != 0, material.textureHasAlpha,
 				material.toonTexture != 0, material.sphereTexture != 0);
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
-				viewer, mat, base, toon, sphere);
+				drawState, mat, base, toon, sphere);
 			GLuint baseTexture = drawContext.GetDummyColorTexture();
 			if (material.texture != 0)
 				baseTexture = material.texture;
@@ -94,12 +92,11 @@ namespace Chrivent {
 	}
 
 	bool OpenGlDrawer::DrawEdge() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
-			viewer, world, ClipMatrix(), glm::vec2(viewer.GetScreenWidth(), viewer.GetScreenHeight()));
+			drawState, world, ClipMatrix(), drawState.screenSize);
 		drawContext.BindEdgePipeline();
 		glBindVertexArray(resources.edgeVao);
 		glEnable(GL_DEPTH_TEST);
@@ -131,7 +128,6 @@ namespace Chrivent {
 	}
 
 	bool OpenGlDrawer::DrawGroundShadow() {
-		const auto& viewer = this->viewer;
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -139,7 +135,7 @@ namespace Chrivent {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
-			viewer, world, ClipMatrix());
+			drawState, world, ClipMatrix());
 		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 			return false;
 		glBindVertexArray(resources.gsVao);
@@ -176,18 +172,18 @@ namespace Chrivent {
 	}
 
 	bool OpenGlDrawer::DrawSceneInputs() {
-		const auto& viewer = this->viewer;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
-		if (viewer.RequiresPostProcessVelocity()) {
+		if (drawState.velocityRequired) {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
-				viewer, world, ClipMatrix());
+				drawState, world, ClipMatrix());
 			drawContext.BindSceneVelocityPipeline();
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return false;
 			glBindVertexArray(resources.velocityVao);
 		} else {
-			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(viewer, world, ClipMatrix());
+			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(
+				drawState, world, ClipMatrix());
 			drawContext.BindDepthOnlyPipeline();
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)))
 				return false;
@@ -230,7 +226,6 @@ namespace Chrivent {
 	}
 
 	OpenGlDrawer::OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,
-		const OpenGlDrawContext& sourceDrawContext, Viewer& sourceViewer)
-		: Drawer(sourceViewer), instance(sourceInstance), resources(sourceResources),
-		drawContext(sourceDrawContext) {}
+		OpenGlDrawContext& sourceDrawContext)
+		: instance(sourceInstance), resources(sourceResources), drawContext(sourceDrawContext) {}
 }

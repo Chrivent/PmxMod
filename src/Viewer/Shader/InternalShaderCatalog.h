@@ -2,6 +2,7 @@
 
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
+#include <expected>
 #include <filesystem>
 #include <string>
 
@@ -18,8 +19,8 @@ namespace Chrivent {
 
 	public:
 		// 모델·엣지·지면 그림자와 후처리 장면 입력용 내부 패스를 모두 불러온다.
-		static bool Load(const std::filesystem::path& shaderDirectory,
-			bool invertNdcYForTextureCoordinates,
-			SceneShaderRuntimeContract& contract, std::string& error);
+		static std::expected<SceneShaderRuntimeContract, std::string> Load(
+			const std::filesystem::path& shaderDirectory,
+			bool invertNdcYForTextureCoordinates);
 	};
 }

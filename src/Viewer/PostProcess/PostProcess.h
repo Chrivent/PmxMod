@@ -3,6 +3,7 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
+#include <span>
 #include <vector>
 
 namespace Chrivent {
@@ -48,6 +49,7 @@ namespace Chrivent {
 			PostProcessParameterData parameters;
 			PostProcessOutputKind outputKind = PostProcessOutputKind::Present;
 			size_t outputResourceIndex = 0;
+			size_t effectIndex = 0;
 		};
 
 	private:
@@ -65,6 +67,7 @@ namespace Chrivent {
 		bool depthRequired = false;
 		bool velocityRequired = false;
 		bool historyFramePending = false;
+		size_t effectCount = 0;
 
 		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
 		bool BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
@@ -113,6 +116,8 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
+		// 실행 계획을 다시 만들지 않고 활성 효과의 스칼라 파라미터 값을 갱신한다.
+		bool UpdateParameters(std::span<const EffectParameterUpdate> updates);
 		// GPU 실행이 확정된 프레임의 pending history를 committed 상태로 반영한다.
 		void CommitHistoryFrame();
 		// 실행되지 않은 프레임의 pending history 변경을 폐기한다.

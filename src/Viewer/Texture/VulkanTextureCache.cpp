@@ -108,14 +108,14 @@ namespace Chrivent {
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		if (vkCreateImage(sourceDevice.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan texture image.\n";
+			std::cerr << "Vulkan texture image를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.device, image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			std::cerr << "Failed to find Vulkan texture image memory type.\n";
+			std::cerr << "Vulkan texture image memory type을 찾지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryAllocateInfo allocateInfo{};
@@ -123,11 +123,11 @@ namespace Chrivent {
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
 		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan texture image memory.\n";
+			std::cerr << "Vulkan texture image memory를 할당하지 못했습니다.\n";
 			return false;
 		}
 		if (vkBindImageMemory(sourceDevice.device, image, imageMemory, 0) != VK_SUCCESS) {
-			std::cerr << "Failed to bind Vulkan texture image memory.\n";
+			std::cerr << "Vulkan texture image memory를 연결하지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -145,7 +145,7 @@ namespace Chrivent {
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan texture image view.\n";
+			std::cerr << "Vulkan texture image view를 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -168,7 +168,7 @@ namespace Chrivent {
 		samplerInfo.compareEnable = VK_FALSE;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan texture sampler.\n";
+			std::cerr << "Vulkan texture sampler를 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;

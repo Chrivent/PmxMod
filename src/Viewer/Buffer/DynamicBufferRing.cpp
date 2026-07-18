@@ -13,7 +13,7 @@ namespace Chrivent {
 	bool DynamicBufferRing::Setup(const size_t bufferSize, std::string& outError) {
 		Clear();
 		if (bufferSize == 0) {
-			outError = "Dynamic buffer ring size must be greater than zero.";
+			outError = "Dynamic buffer ring 크기는 0보다 커야 합니다.";
 			return false;
 		}
 		capacity = bufferSize;

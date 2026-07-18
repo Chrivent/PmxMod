@@ -44,7 +44,7 @@ namespace Chrivent {
 		if (LoadSceneConfig(filename.data()))
 			std::cout << "Scene config loaded.\n";
 		else
-			std::cerr << "Failed to load scene config.\n";
+			std::cerr << "장면 설정을 불러오지 못했습니다.\n";
 	}
 
 	void MenuBar::ShowSaveSceneDialog() {
@@ -75,7 +75,7 @@ namespace Chrivent {
 		if (SaveSceneConfig(sceneFilePath))
 			std::cout << "Current scene config saved.\n";
 		else
-			std::cerr << "Failed to save scene config.\n";
+			std::cerr << "현재 장면 설정을 저장하지 못했습니다.\n";
 	}
 
 	void MenuBar::SelectRenderer(const RendererType renderer) {

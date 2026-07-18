@@ -5,23 +5,38 @@ namespace Chrivent {
 		return pipeline.ResolveSceneAttributeLocations();
 	}
 
-	void OpenGlDrawContext::BindModelPipeline() const {
+	void OpenGlDrawContext::BindModelPipeline() {
+		if (boundPipeline == BoundPipeline::Model)
+			return;
 		pipeline.BindModel();
+		boundPipeline = BoundPipeline::Model;
 	}
 
-	void OpenGlDrawContext::BindEdgePipeline() const {
+	void OpenGlDrawContext::BindEdgePipeline() {
+		if (boundPipeline == BoundPipeline::Edge)
+			return;
 		pipeline.BindEdge();
+		boundPipeline = BoundPipeline::Edge;
 	}
 
-	void OpenGlDrawContext::BindGroundShadowPipeline() const {
+	void OpenGlDrawContext::BindGroundShadowPipeline() {
+		if (boundPipeline == BoundPipeline::GroundShadow)
+			return;
 		pipeline.BindGroundShadow();
+		boundPipeline = BoundPipeline::GroundShadow;
 	}
 
-	void OpenGlDrawContext::BindDepthOnlyPipeline() const {
+	void OpenGlDrawContext::BindDepthOnlyPipeline() {
+		if (boundPipeline == BoundPipeline::DepthOnly)
+			return;
 		pipeline.BindDepthOnly();
+		boundPipeline = BoundPipeline::DepthOnly;
 	}
 
-	void OpenGlDrawContext::BindSceneVelocityPipeline() const {
+	void OpenGlDrawContext::BindSceneVelocityPipeline() {
+		if (boundPipeline == BoundPipeline::SceneVelocity)
+			return;
 		pipeline.BindSceneVelocity();
+		boundPipeline = BoundPipeline::SceneVelocity;
 	}
 }

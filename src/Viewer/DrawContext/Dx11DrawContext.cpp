@@ -5,20 +5,33 @@ namespace Chrivent {
 		return pipeline.ResolveModelRasterizerState(bothFace);
 	}
 
-	void Dx11DrawContext::BindModelPipeline() const {
+	void Dx11DrawContext::BindModelPipeline() {
+		if (boundPipeline == BoundPipeline::Model)
+			return;
 		pipeline.BindModel(device.GetContext());
+		boundPipeline = BoundPipeline::Model;
 	}
 
-	void Dx11DrawContext::BindEdgePipeline() const {
+	void Dx11DrawContext::BindEdgePipeline() {
+		if (boundPipeline == BoundPipeline::Edge)
+			return;
 		pipeline.BindEdge(device.GetContext());
+		boundPipeline = BoundPipeline::Edge;
 	}
 
-	void Dx11DrawContext::BindGroundShadowPipeline() const {
+	void Dx11DrawContext::BindGroundShadowPipeline() {
+		if (boundPipeline == BoundPipeline::GroundShadow)
+			return;
 		pipeline.BindGroundShadow(device.GetContext());
+		boundPipeline = BoundPipeline::GroundShadow;
 	}
 
-	void Dx11DrawContext::BindSceneInputPipeline(const bool velocity) const {
+	void Dx11DrawContext::BindSceneInputPipeline(const bool velocity) {
+		const BoundPipeline target = velocity ? BoundPipeline::SceneVelocity : BoundPipeline::DepthOnly;
+		if (boundPipeline == target)
+			return;
 		pipeline.BindSceneInput(device.GetContext(), velocity);
+		boundPipeline = target;
 	}
 
 	void Dx11DrawContext::ApplyViewport(ID3D11DeviceContext* context, const int width, const int height) {

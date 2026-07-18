@@ -37,10 +37,10 @@ namespace Chrivent {
 	GraphicsResult<void> Viewer::RecreateSizeDependentResources(const int width, const int height, const bool force) {
 		if (!initialized || rendererLost)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"resize renderer", "the renderer is not available"));
+				"렌더러 크기 변경", "렌더러를 사용할 수 없습니다"));
 		if (width <= 0 || height <= 0)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
-				"resize renderer", "the framebuffer size must be positive"));
+				"렌더러 크기 변경", "framebuffer 크기는 양수여야 합니다"));
 		if (!force && screenWidth == width && screenHeight == height)
 			return {};
 		screenWidth = width;
@@ -58,10 +58,10 @@ namespace Chrivent {
 		const SceneShaderRuntimeContract& shaderContract) {
 		if (initialized || rendererLost)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"set up renderer", "the renderer has already been initialized or lost"));
+				"렌더러 설정", "렌더러가 이미 초기화되었거나 사용 불가 상태입니다"));
 		if (sourceWindow == nullptr || width <= 0 || height <= 0)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
-				"set up renderer", "the window and framebuffer size are invalid"));
+				"렌더러 설정", "윈도우 또는 framebuffer 크기가 올바르지 않습니다"));
 		window = sourceWindow;
 		screenWidth = width;
 		screenHeight = height;
@@ -73,7 +73,7 @@ namespace Chrivent {
 		if (activePostProcess == nullptr) {
 			rendererLost = true;
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
-				"set up renderer", "the API implementation did not bind a post processor"));
+				"렌더러 설정", "API 구현이 post processor를 연결하지 않았습니다"));
 		}
 		initialized = true;
 		return {};
@@ -82,14 +82,14 @@ namespace Chrivent {
 	GraphicsResult<void> Viewer::Resize(const int width, const int height) {
 		if (frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"resize renderer", "a frame is currently being recorded"));
+				"렌더러 크기 변경", "프레임을 기록하는 중에는 크기를 바꿀 수 없습니다"));
 		return RecreateSizeDependentResources(width, height, false);
 	}
 
 	GraphicsResult<FrameBeginState> Viewer::BeginFrame() {
 		if (!initialized || rendererLost || frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"begin frame", "the renderer is unavailable or a frame is already active"));
+				"프레임 시작", "렌더러를 사용할 수 없거나 이미 프레임 기록 중입니다"));
 		const auto result = BeginFrameCore();
 		if (!result)
 			return std::unexpected(result.error());
@@ -100,7 +100,7 @@ namespace Chrivent {
 	GraphicsResult<FrameEndState> Viewer::EndFrame() {
 		if (rendererLost || !frameActive || sceneInputPassActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end frame", "no complete frame is ready for submission"));
+				"프레임 종료", "제출할 완성된 프레임이 없습니다"));
 		const auto result = EndFrameCore();
 		frameActive = false;
 		PostProcess& postProcess = *activePostProcess;
@@ -123,7 +123,7 @@ namespace Chrivent {
 	GraphicsResult<void> Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!initialized || rendererLost || frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"configure post-process effects", "the renderer is unavailable or a frame is active"));
+				"후처리 효과 구성", "렌더러를 사용할 수 없거나 프레임 기록 중입니다"));
 		const auto waitResult = WaitIdle();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
@@ -134,10 +134,32 @@ namespace Chrivent {
 		return {};
 	}
 
+	GraphicsResult<void> Viewer::UpdatePostProcessParameters(
+		const std::span<const EffectParameterUpdate> updates) const {
+		if (!initialized || rendererLost || frameActive)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"후처리 파라미터 갱신", "렌더러를 사용할 수 없거나 프레임 기록 중입니다"));
+		if (activePostProcess == nullptr || !activePostProcess->UpdateParameters(updates))
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"후처리 파라미터 갱신", "효과 색인, 슬롯 또는 값이 올바르지 않습니다"));
+		return {};
+	}
+
+	SceneDrawState Viewer::ResolveSceneDrawState() const {
+		return {
+			.scene = sceneRenderState,
+			.previousViewMatrix = postProcessTemporalState.previousViewMatrix,
+			.previousProjectionMatrix = postProcessTemporalState.previousProjectionMatrix,
+			.screenSize = glm::vec2(screenWidth, screenHeight),
+			.historyReset = postProcessTemporalState.historyResetPending,
+			.velocityRequired = RequiresPostProcessVelocity()
+		};
+	}
+
 	GraphicsResult<PostProcessSceneInputState> Viewer::BeginPostProcessSceneInputPass() {
 		if (!frameActive || sceneInputPassActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"begin post-process scene input pass", "the frame or scene input state is invalid"));
+				"후처리 장면 입력 패스 시작", "프레임 또는 장면 입력 상태가 올바르지 않습니다"));
 		const PostProcess& postProcess = *activePostProcess;
 		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
 			return PostProcessSceneInputState::NotRequired;
@@ -151,19 +173,25 @@ namespace Chrivent {
 	GraphicsResult<void> Viewer::EndPostProcessSceneInputPass() {
 		if (!sceneInputPassActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end post-process scene input pass", "the scene input pass is not active"));
+				"후처리 장면 입력 패스 종료", "장면 입력 패스가 활성화되지 않았습니다"));
 		const auto result = EndPostProcessSceneInputPassCore();
 		sceneInputPassActive = false;
 		return result;
 	}
 
-	std::unique_ptr<Instance> Viewer::CreateInstance(std::shared_ptr<Model> model,
+	GraphicsResult<std::unique_ptr<Instance>> Viewer::CreateInstance(std::shared_ptr<Model> model,
 		std::unique_ptr<Animation> animation, const float scale) {
 		if (!initialized || rendererLost)
-			return nullptr;
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"모델 인스턴스 생성", "렌더러를 사용할 수 없습니다"));
 		auto instance = CreateInstanceCore();
-		if (!instance || !instance->Initialize(std::move(model), std::move(animation), scale))
-			return nullptr;
+		if (!instance)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"모델 인스턴스 생성", "API별 인스턴스 객체를 만들지 못했습니다"));
+		const auto initializeResult = instance->Initialize(
+			std::move(model), std::move(animation), scale);
+		if (!initializeResult)
+			return std::unexpected(initializeResult.error());
 		return instance;
 	}
 
@@ -180,7 +208,7 @@ namespace Chrivent {
 	GraphicsResult<void> Viewer::RecreateFromFramebuffer() {
 		if (window == nullptr)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"recreate framebuffer resources", "the renderer window is unavailable"));
+				"framebuffer 리소스 재생성", "렌더러 윈도우를 사용할 수 없습니다"));
 		int width = 0;
 		int height = 0;
 		glfwGetFramebufferSize(window, &width, &height);

@@ -19,7 +19,7 @@ namespace Chrivent {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
-			std::cerr << "Failed to create DX12 model buffers: model has no geometry data.\n";
+			std::cerr << "모델에 geometry 데이터가 없어 DX12 모델 buffer를 만들 수 없습니다.\n";
 			return false;
 		}
 		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
@@ -153,12 +153,13 @@ namespace Chrivent {
 		return true;
 	}
 
-	Dx12Instance::Dx12Instance(Viewer& sourceViewer, const Dx12Device& sourceDevice,
+	Dx12Instance::Dx12Instance(const Dx12Device& sourceDevice,
 		Dx12UploadContext& sourceUploadContext, Dx12TextureCache& sourceTextureCache,
 		const Dx12Texture& sourceDummyTexture, Dx12DrawContext& sourceDrawContext)
-		: device(sourceDevice), uploadContext(sourceUploadContext), textureCache(sourceTextureCache),
+		: Instance(GraphicsApi::DirectX12), device(sourceDevice),
+		uploadContext(sourceUploadContext), textureCache(sourceTextureCache),
 		dummyTexture(sourceDummyTexture), drawContext(sourceDrawContext) {
-		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, drawContext, sourceViewer);
+		drawer = std::make_unique<Dx12Drawer>(*this, modelResources, drawContext);
 	}
 
 	void Dx12Instance::ResetRendererResources() {
@@ -185,7 +186,7 @@ namespace Chrivent {
 		return CreateTextureDescriptors();
 	}
 
-	bool Dx12Instance::Upload() {
+	bool Dx12Instance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())
@@ -194,7 +195,7 @@ namespace Chrivent {
 		const bool writeSucceeded = ViewerGeometry::WriteVertices(model->geometryData, true,
 			{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount });
 		if (!writeSucceeded)
-			std::cerr << "Failed to update DX12 vertex buffer.\n";
+			std::cerr << "DX12 vertex buffer를 갱신하지 못했습니다.\n";
 		return writeSucceeded;
 	}
 }

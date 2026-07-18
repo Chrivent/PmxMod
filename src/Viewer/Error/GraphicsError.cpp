@@ -28,7 +28,7 @@ namespace Chrivent {
 			formatted += message;
 		}
 		if (hasNativeCode) {
-			formatted += " (native code: ";
+			formatted += " (네이티브 코드: ";
 			formatted += std::to_string(nativeCode);
 			formatted += ')';
 		}

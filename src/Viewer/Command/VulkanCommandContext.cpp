@@ -14,7 +14,7 @@ namespace Chrivent {
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		createInfo.queueFamilyIndex = sourceDevice.queueFamilies.graphicsFamily;
 		if (vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan command pool.\n";
+			std::cerr << "Vulkan command pool을 만들지 못했습니다.\n";
 			return false;
 		}
 		return commandBuffer.Initialize(sourceDevice, commandPool, sourceSwapChain);

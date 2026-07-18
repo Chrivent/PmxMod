@@ -42,7 +42,7 @@ namespace Chrivent {
 		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"load OpenGL functions", "GLAD could not resolve the required functions"));
+				"OpenGL 함수 로드", "GLAD가 필요한 함수를 찾지 못했습니다"));
 		const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 		const auto* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
 		const auto* shaderVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -58,7 +58,7 @@ namespace Chrivent {
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
 		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::UnsupportedFeature,
-				"check OpenGL version", "OpenGL 4.6 or newer is required"));
+				"OpenGL 버전 확인", "OpenGL 4.6 이상이 필요합니다"));
 		capabilities.apiName = "OpenGL";
 		capabilities.apiVersion = version ? version : "4.6";
 		capabilities.shaderVersion = shaderVersion ? shaderVersion : "GLSL 4.60";
@@ -75,17 +75,17 @@ namespace Chrivent {
 		glEnable(GL_MULTISAMPLE);
 		if (!pipeline.Initialize(shaderContract.builtIn, shaderContract.sceneInput))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize rendering pipeline", "the OpenGL pipeline could not be created"));
+				"rendering pipeline 초기화", "OpenGL pipeline을 만들지 못했습니다"));
 		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
 		if (dummyColorTexture == 0)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"create dummy texture", "the fallback texture could not be created"));
+				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
 		drawContext.SetDummyColorTexture(dummyColorTexture);
 		glViewport(0, 0, screenWidth, screenHeight);
 		if (postProcess.HasEffects()
 			&& !postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize post-process targets", "the OpenGL post-process targets could not be created"));
+				"후처리 target 초기화", "OpenGL 후처리 target을 만들지 못했습니다"));
 		}
 		return {};
 	}
@@ -95,7 +95,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			if (!postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"resize post-process targets", "the OpenGL post-process targets could not be recreated"));
+					"후처리 target 크기 변경", "OpenGL 후처리 target을 다시 만들지 못했습니다"));
 			return {};
 		}
 		postProcess.ResetResources();
@@ -103,6 +103,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<FrameBeginState> OpenGlViewer::BeginFrameCore() {
+		drawContext.BeginFrame();
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.GetSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -112,7 +113,7 @@ namespace Chrivent {
 	GraphicsResult<FrameEndState> OpenGlViewer::EndFrameCore() {
 		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"draw post-process effects", "the OpenGL post-process chain failed"));
+				"후처리 효과 draw", "OpenGL 후처리 chain 실행에 실패했습니다"));
 		glfwSwapBuffers(window);
 		return FrameEndState::Presented;
 	}
@@ -120,7 +121,7 @@ namespace Chrivent {
 	GraphicsResult<void> OpenGlViewer::BeginPostProcessSceneInputPassCore() {
 		if (!postProcess.BeginSceneInputPass(screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin post-process scene input pass", "the OpenGL scene input pass could not begin"));
+				"후처리 장면 입력 패스 시작", "OpenGL 장면 입력 패스를 시작하지 못했습니다"));
 		return {};
 	}
 
@@ -132,7 +133,7 @@ namespace Chrivent {
 	GraphicsResult<void> OpenGlViewer::WaitIdle() {
 		if (window == nullptr)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"wait for GPU", "the OpenGL window is unavailable"));
+				"GPU 대기", "OpenGL 윈도우를 사용할 수 없습니다"));
 		glfwMakeContextCurrent(window);
 		glFinish();
 		return {};
@@ -141,12 +142,12 @@ namespace Chrivent {
 	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!postProcess.Configure(screenWidth, screenHeight, capabilities.activeSampleCount, effects))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"configure post-process effects", "the OpenGL effect chain could not be created"));
+				"후처리 효과 구성", "OpenGL 효과 chain을 만들지 못했습니다"));
 		return {};
 	}
 
 	std::unique_ptr<Instance> OpenGlViewer::CreateInstanceCore() {
-		return std::make_unique<OpenGlInstance>(*this, textureCache, drawContext);
+		return std::make_unique<OpenGlInstance>(textureCache, drawContext);
 	}
 
 }

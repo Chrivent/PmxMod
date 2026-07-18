@@ -14,7 +14,7 @@ namespace Chrivent {
 	class OpenGlDrawer : public Drawer {
 		const OpenGlInstance& instance;
 		OpenGlModelResources& resources;
-		const OpenGlDrawContext& drawContext;
+		OpenGlDrawContext& drawContext;
 
 		// uniform buffer ring에 상수 데이터를 기록하고 지정한 binding에 연결한다.
 		bool UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
@@ -33,6 +33,6 @@ namespace Chrivent {
 
 	public:
 		OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,
-			const OpenGlDrawContext& sourceDrawContext, Viewer& sourceViewer);
+			OpenGlDrawContext& sourceDrawContext);
 	};
 }

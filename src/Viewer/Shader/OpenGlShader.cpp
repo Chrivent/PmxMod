@@ -44,7 +44,7 @@ namespace Chrivent {
 			}
 			source = compiler.compile();
 		} catch (const spirv_cross::CompilerError& error) {
-			std::cerr << "Failed to convert SPIR-V to OpenGL GLSL: " << error.what() << '\n';
+			std::cerr << "SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " << error.what() << '\n';
 			return 0;
 		}
 		const GLuint shader = glCreateShader(shaderType);
@@ -58,7 +58,7 @@ namespace Chrivent {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 		if (compileStatus == GL_TRUE)
 			return shader;
-		std::cerr << "Failed to compile generated OpenGL GLSL for " << entry << ".\n";
+		std::cerr << "생성된 OpenGL GLSL을 컴파일하지 못했습니다: entry=" << entry << '\n';
 		const std::string log = ReadShaderLog(shader);
 		if (!log.empty())
 			std::cerr << log << '\n';
@@ -104,7 +104,8 @@ namespace Chrivent {
 		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 		if (linkStatus == GL_TRUE)
 			return program;
-		std::cerr << "Failed to link OpenGL SPIR-V shader program: " << shaderFile.string() << '\n';
+		std::cerr << "OpenGL SPIR-V shader program을 link하지 못했습니다: "
+			<< shaderFile.string() << '\n';
 		const std::string log = ReadProgramLog(program);
 		if (!log.empty())
 			std::cerr << log << '\n';

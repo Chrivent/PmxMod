@@ -1,12 +1,12 @@
 ﻿#pragma once
 
 #include "Viewer/Shader/ShaderConstants.h"
+#include "Viewer/Drawer/SceneDrawState.h"
 
 #include <glm/glm.hpp>
 
 namespace Chrivent {
 	struct Material;
-	class Viewer;
 
 	// 모델의 기본, 엣지, 그림자와 보조 패스를 그리는 공통 규약을 정의한다.
 	class Drawer {
@@ -18,7 +18,7 @@ namespace Chrivent {
 			int sphere = 0;
 		};
 
-		Viewer& viewer;
+		SceneDrawState drawState;
 
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 초기화한다.
 		virtual void BeginDrawFrame() {}
@@ -30,9 +30,9 @@ namespace Chrivent {
 		static glm::mat4 BuildWorldMatrix(float scale);
 		// 모델 패스의 공통 vertex 상수를 만든다.
 		static ModelVertexConstants BuildModelVertexConstants(
-			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
+			const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix);
 		// 모델 패스의 공통 material 및 조명 상수를 만든다.
-		static ModelPixelConstants BuildModelPixelConstants(const Viewer& viewer, const Material& material,
+		static ModelPixelConstants BuildModelPixelConstants(const SceneDrawState& state, const Material& material,
 			int textureMode, int toonTextureMode, int sphereTextureMode);
 		// 재질과 실제 GPU 텍스처 보유 여부로 모델 셰이더의 텍스처 모드를 결정한다.
 		static MaterialTextureModes ResolveMaterialTextureModes(const Material& material,
@@ -44,14 +44,14 @@ namespace Chrivent {
 		// 지면 그림자 패스에서 재질을 그려야 하는지 반환한다.
 		static bool ShouldDrawGroundShadowMaterial(const Material& material);
 		// 엣지 패스의 공통 vertex 상수를 만든다.
-		static EdgeVertexConstants BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
+		static EdgeVertexConstants BuildEdgeVertexConstants(const SceneDrawState& state, const glm::mat4& world,
 			const glm::mat4& clipMatrix, const glm::vec2& screenSize);
 		// 지면 그림자 패스의 공통 vertex 상수를 만든다.
 		static GroundShadowVertexConstants BuildGroundShadowVertexConstants(
-			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
+			const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix);
 		// 시간 기반 후처리 장면 입력의 현재 및 이전 프레임 행렬을 만든다.
 		static SceneVelocityVertexConstants BuildSceneVelocityVertexConstants(
-			const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix);
+			const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix);
 		// material 불투명도가 공통 후처리 장면 입력 규격을 만족하는지 확인한다.
 		static bool ShouldDrawPostProcessSurface(float opacity);
 		// 공통 장면 입력에 사용할 material과 texture alpha 판정 값을 만든다.
@@ -67,11 +67,11 @@ namespace Chrivent {
 		virtual bool DrawSceneInputs() = 0;
 
 	public:
-		explicit Drawer(Viewer& sourceViewer) : viewer(sourceViewer) {}
+		Drawer() = default;
 		virtual ~Drawer();
 
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 준비한다.
-		void BeginDraw();
+		void BeginDraw(const SceneDrawState& state);
 		// 현재 인스턴스의 모델 본체 패스를 그린다.
 		bool DrawModelPass();
 		// 현재 인스턴스의 엣지 패스를 그린다.

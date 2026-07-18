@@ -20,14 +20,14 @@ namespace Chrivent {
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateBuffer(sourceDevice.device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan buffer.\n";
+			std::cerr << "Vulkan buffer를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
 		vkGetBufferMemoryRequirements(sourceDevice.device, buffer, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, properties, memoryType)) {
-			std::cerr << "Failed to find Vulkan buffer memory type.\n";
+			std::cerr << "Vulkan buffer memory type을 찾지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryAllocateInfo allocateInfo{};
@@ -35,16 +35,16 @@ namespace Chrivent {
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
 		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &memory) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan buffer memory.\n";
+			std::cerr << "Vulkan buffer memory를 할당하지 못했습니다.\n";
 			return false;
 		}
 		if (vkBindBufferMemory(sourceDevice.device, buffer, memory, 0) != VK_SUCCESS) {
-			std::cerr << "Failed to bind Vulkan buffer memory.\n";
+			std::cerr << "Vulkan buffer memory를 연결하지 못했습니다.\n";
 			return false;
 		}
 		if ((properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0) {
 			if (vkMapMemory(sourceDevice.device, memory, 0, bufferSize, 0, &mappedData) != VK_SUCCESS) {
-				std::cerr << "Failed to persistently map Vulkan buffer memory.\n";
+				std::cerr << "Vulkan buffer memory를 persistent map하지 못했습니다.\n";
 				return false;
 			}
 			persistentlyMapped = true;
@@ -56,7 +56,7 @@ namespace Chrivent {
 		if (device == VK_NULL_HANDLE || memory == VK_NULL_HANDLE || sourceData == nullptr)
 			return false;
 		if (offset > size || dataSize > size - offset) {
-			std::cerr << "Failed to write Vulkan buffer: source data is larger than buffer.\n";
+			std::cerr << "Vulkan buffer에 쓸 원본 데이터가 buffer보다 큽니다.\n";
 			return false;
 		}
 		if (persistentlyMapped) {
@@ -66,7 +66,7 @@ namespace Chrivent {
 		}
 		void* writeTarget = nullptr;
 		if (vkMapMemory(device, memory, offset, dataSize, 0, &writeTarget) != VK_SUCCESS) {
-			std::cerr << "Failed to map Vulkan buffer memory.\n";
+			std::cerr << "Vulkan buffer memory를 map하지 못했습니다.\n";
 			return false;
 		}
 		std::memcpy(writeTarget, sourceData, dataSize);

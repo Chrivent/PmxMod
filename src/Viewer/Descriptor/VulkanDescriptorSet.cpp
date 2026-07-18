@@ -9,7 +9,7 @@ namespace Chrivent {
 		constexpr size_t maximumDescriptorCount = std::numeric_limits<uint32_t>::max();
 		if (materialCount > maximumDescriptorCount
 			|| (passType == VulkanPassType::Model && materialCount > maximumDescriptorCount / 3)) {
-			std::cerr << "Failed to create Vulkan descriptor pool: material count is too large.\n";
+			std::cerr << "material 개수가 너무 많아 Vulkan descriptor pool을 만들 수 없습니다.\n";
 			return false;
 		}
 		std::vector poolSizes{
@@ -35,7 +35,7 @@ namespace Chrivent {
 		createInfo.maxSets = static_cast<uint32_t>(
 			passType == VulkanPassType::Model ? 2 + materialCount : 2);
 		if (vkCreateDescriptorPool(device, &createInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan descriptor pool.\n";
+			std::cerr << "Vulkan descriptor pool을 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -49,13 +49,13 @@ namespace Chrivent {
 		const VkDescriptorSetLayout vertexLayout = sourcePipeline.GetVertexDescriptorSetLayout();
 		allocateInfo.pSetLayouts = &vertexLayout;
 		if (vkAllocateDescriptorSets(device, &allocateInfo, &vertexDescriptorSet) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan vertex descriptor set.\n";
+			std::cerr << "Vulkan vertex descriptor set을 할당하지 못했습니다.\n";
 			return false;
 		}
 		const VkDescriptorSetLayout pixelLayout = sourcePipeline.GetPixelDescriptorSetLayout();
 		allocateInfo.pSetLayouts = &pixelLayout;
 		if (vkAllocateDescriptorSets(device, &allocateInfo, &pixelDescriptorSet) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan pixel descriptor set.\n";
+			std::cerr << "Vulkan pixel descriptor set을 할당하지 못했습니다.\n";
 			return false;
 		}
 		if (passType != VulkanPassType::Model)
@@ -70,7 +70,7 @@ namespace Chrivent {
 		textureAllocateInfo.descriptorSetCount = textureLayouts.size();
 		textureAllocateInfo.pSetLayouts = textureLayouts.data();
 		if (vkAllocateDescriptorSets(device, &textureAllocateInfo, textureDescriptorSets.data()) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan texture descriptor sets.\n";
+			std::cerr << "Vulkan texture descriptor set을 할당하지 못했습니다.\n";
 			return false;
 		}
 		return true;

@@ -4,7 +4,6 @@
 #include "Viewer/Instance/Instance.h"
 
 namespace Chrivent {
-	class Viewer;
 	class VulkanDrawContext;
 	class VulkanDevice;
 	class VulkanPipeline;
@@ -36,14 +35,13 @@ namespace Chrivent {
 		void ResetRendererResources() override;
 		// Vulkan 모델 리소스를 생성하고 인스턴스를 초기화한다.
 		bool SetupRenderer() override;
+		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
+		bool UploadCore() override;
 
 	public:
-		VulkanInstance(Viewer& sourceViewer, const VulkanDevice& sourceDevice,
+		VulkanInstance(const VulkanDevice& sourceDevice,
 			const VulkanPipeline& sourcePipeline, VulkanUploadContext& sourceUploadContext,
 			VulkanTextureCache& sourceTextureCache, const VulkanTexture& sourceDummyTexture,
 			VulkanDrawContext& sourceDrawContext);
-
-		// 모델의 갱신된 버텍스 데이터를 Vulkan 리소스에 반영한다.
-		bool Upload() override;
 	};
 }

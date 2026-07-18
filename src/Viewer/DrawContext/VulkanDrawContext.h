@@ -45,7 +45,7 @@ namespace Chrivent {
 		// 장면 입력 패스 전환 뒤 descriptor 바인딩 캐시를 초기화한다.
 		void ResetDescriptorBindings();
 		// 현재 command buffer에 indexed draw 명령을 기록한다.
-		void DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
+		bool DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
 			VkIndexType indexType, size_t firstIndex, size_t indexCount) const;
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);

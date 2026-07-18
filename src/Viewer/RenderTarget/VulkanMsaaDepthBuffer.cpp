@@ -45,14 +45,14 @@ namespace Chrivent {
 		imageInfo.samples = sourceDevice.msaaSampleCount;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateImage(sourceDevice.device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan depth image.\n";
+			std::cerr << "Vulkan depth image를 만들지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.device, image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			std::cerr << "Failed to find Vulkan depth image memory type.\n";
+			std::cerr << "Vulkan depth image memory type을 찾지 못했습니다.\n";
 			return false;
 		}
 		VkMemoryAllocateInfo allocateInfo{};
@@ -60,11 +60,11 @@ namespace Chrivent {
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
 		if (vkAllocateMemory(sourceDevice.device, &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-			std::cerr << "Failed to allocate Vulkan depth image memory.\n";
+			std::cerr << "Vulkan depth image memory를 할당하지 못했습니다.\n";
 			return false;
 		}
 		if (vkBindImageMemory(sourceDevice.device, image, imageMemory, 0) != VK_SUCCESS) {
-			std::cerr << "Failed to bind Vulkan depth image memory.\n";
+			std::cerr << "Vulkan depth image memory를 연결하지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -84,7 +84,7 @@ namespace Chrivent {
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-			std::cerr << "Failed to create Vulkan depth image view.\n";
+			std::cerr << "Vulkan depth image view를 만들지 못했습니다.\n";
 			return false;
 		}
 		return true;
@@ -98,7 +98,7 @@ namespace Chrivent {
 		device = sourceDevice.device;
 		format = FindDepthFormat(sourceDevice);
 		if (format == VK_FORMAT_UNDEFINED) {
-			std::cerr << "Failed to find a supported Vulkan depth format.\n";
+			std::cerr << "지원되는 Vulkan depth format을 찾지 못했습니다.\n";
 			return false;
 		}
 		if (!CreateImage(sourceDevice, sourceSwapChain))

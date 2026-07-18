@@ -15,7 +15,7 @@ namespace Chrivent {
 	class Dx11Drawer : public Drawer {
 		const Dx11Instance& instance;
 		Dx11ModelResources& resources;
-		const Dx11DrawContext& drawContext;
+		Dx11DrawContext& drawContext;
 
 		// 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
 		void BindTexture(
@@ -36,6 +36,6 @@ namespace Chrivent {
 
 	public:
 		Dx11Drawer(const Dx11Instance& sourceInstance, Dx11ModelResources& sourceResources,
-			const Dx11DrawContext& sourceDrawContext, Viewer& sourceViewer);
+			Dx11DrawContext& sourceDrawContext);
 	};
 }

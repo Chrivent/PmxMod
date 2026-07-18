@@ -72,7 +72,8 @@ namespace Chrivent {
 			target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBytecode, &errorBlob);
 		if (SUCCEEDED(result))
 			return true;
-		outError = "Failed to compile shader: " + file.string() + " entry=" + entry + " target=" + target + '\n';
+		outError = "셰이더를 컴파일하지 못했습니다: " + file.string()
+			+ " entry=" + entry + " target=" + target + '\n';
 		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
 			outError += static_cast<const char*>(errorBlob->GetBufferPointer());
 		return false;

@@ -111,6 +111,7 @@ namespace Chrivent {
 		std::swap(depthRequired, other.depthRequired);
 		std::swap(velocityRequired, other.velocityRequired);
 		std::swap(historyFramePending, other.historyFramePending);
+		std::swap(effectCount, other.effectCount);
 	}
 
 	bool PostProcess::BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects) {
@@ -131,7 +132,7 @@ namespace Chrivent {
 			for (const auto& parameter : effect.parameters) {
 				if (parameter.slot >= PostProcessInputLayout::maxParameterCount)
 					return false;
-				parameterData.values[parameter.slot] = parameter.defaultValue;
+				parameterData.values[parameter.slot] = parameter.value;
 			}
 			const size_t resourceBaseIndex = resources.size();
 			for (const auto& [lifetime, format, resolution, width, height] : effect.resources) {
@@ -157,6 +158,7 @@ namespace Chrivent {
 				const auto& [program, inputs, output] = effect.passes[passIndex];
 				PostProcessPassRoute route;
 				route.parameters = parameterData;
+				route.effectIndex = effectIndex;
 				bool usedSlots[PostProcessInputLayout::maxTextureCount]{};
 				for (const auto& [slot, kind, resourceIndex] : inputs) {
 					if (slot >= PostProcessInputLayout::maxTextureCount || usedSlots[slot])
@@ -211,11 +213,27 @@ namespace Chrivent {
 		historyFramePending = false;
 		depthRequired = requiresDepth;
 		velocityRequired = requiresVelocity;
+		effectCount = activeEffects.size();
 		return true;
 	}
 
 	bool PostProcess::SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return BuildExecutionPlan(effects);
+	}
+
+	bool PostProcess::UpdateParameters(const std::span<const EffectParameterUpdate> updates) {
+		for (const auto& [effectIndex, slot, value] : updates) {
+			if (effectIndex >= effectCount || slot >= PostProcessInputLayout::maxParameterCount
+				|| !std::isfinite(value))
+				return false;
+		}
+		for (const auto& [effectIndex, slot, value] : updates) {
+			for (auto& route : passRoutes) {
+				if (route.effectIndex == effectIndex)
+					route.parameters.values[slot] = value;
+			}
+		}
+		return true;
 	}
 
 	void PostProcess::ResetHistory() {

@@ -24,33 +24,33 @@ namespace Chrivent {
 		BindPostProcess(postProcess);
 		if (!device.Initialize())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"initialize device", "the DirectX 12 device could not be created"));
+				"device 초기화", "DirectX 12 device를 만들지 못했습니다"));
 		capabilities = device.capabilities;
 		if (!commandContext.Initialize(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"initialize command context", "the DirectX 12 command context could not be created"));
+				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));
 		HWND__* hwnd = glfwGetWin32Window(window);
 		if (!swapChain.Initialize(device, hwnd, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize swap chain", "the DirectX 12 swap chain could not be created"));
+				"swap chain 초기화", "DirectX 12 swap chain을 만들지 못했습니다"));
 		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize MSAA color buffer", "the DirectX 12 color buffer could not be created"));
+				"MSAA color buffer 초기화", "DirectX 12 color buffer를 만들지 못했습니다"));
 		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize depth buffer", "the DirectX 12 depth buffer could not be created"));
+				"depth buffer 초기화", "DirectX 12 depth buffer를 만들지 못했습니다"));
 		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize post-process targets", "the DirectX 12 post-process targets could not be created"));
+				"후처리 target 초기화", "DirectX 12 후처리 target을 만들지 못했습니다"));
 		if (!pipeline.Initialize(device, shaderContract.builtIn,
 			shaderContract.sceneInput.depth, shaderContract.sceneInput.velocity)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"initialize rendering pipeline", "the DirectX 12 pipeline could not be created"));
+				"rendering pipeline 초기화", "DirectX 12 pipeline을 만들지 못했습니다"));
 		}
 		dummyTexture = textureCache.CreateWhiteTexture(device);
 		if (!dummyTexture.resource)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"create dummy texture", "the fallback texture could not be created"));
+				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
 		return {};
 	}
 
@@ -60,17 +60,17 @@ namespace Chrivent {
 			return std::unexpected(waitResult.error());
 		if (!swapChain.Resize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize swap chain", "the DirectX 12 swap chain could not be resized"));
+				"swap chain 크기 변경", "DirectX 12 swap chain 크기를 바꾸지 못했습니다"));
 		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize MSAA color buffer", "the DirectX 12 color buffer could not be recreated"));
+				"MSAA color buffer 크기 변경", "DirectX 12 color buffer를 다시 만들지 못했습니다"));
 		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"resize depth buffer", "the DirectX 12 depth buffer could not be recreated"));
+				"depth buffer 크기 변경", "DirectX 12 depth buffer를 다시 만들지 못했습니다"));
 		if (postProcess.HasEffects()) {
 			if (!postProcess.InitializeTargets(device, screenWidth, screenHeight))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"resize post-process targets", "the DirectX 12 post-process targets could not be recreated"));
+					"후처리 target 크기 변경", "DirectX 12 후처리 target을 다시 만들지 못했습니다"));
 		} else
 			postProcess.ResetResources();
 		return {};
@@ -81,13 +81,13 @@ namespace Chrivent {
 		const UINT frameIndex = swapChain.GetFrameIndex();
 		if (!commandContext.BeginFrame(device, frameIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin frame", "the DirectX 12 command context could not begin recording"));
+				"프레임 시작", "DirectX 12 command context가 기록을 시작하지 못했습니다"));
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"begin frame", "required DirectX 12 frame resources are unavailable"));
+				"프레임 시작", "필요한 DirectX 12 프레임 리소스를 사용할 수 없습니다"));
 		PrepareBackBufferForRendering(commandList, backBuffer);
 		ClearRenderTargets(commandList);
 		Dx12CommandContext::ApplyViewportAndScissor(commandList, screenWidth, screenHeight);
@@ -99,14 +99,14 @@ namespace Chrivent {
 	GraphicsResult<FrameEndState> Dx12Viewer::EndFrameCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end frame", "the DirectX 12 draw context is not ready"));
+				"프레임 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
 		drawContext.EndFrame();
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end frame", "required DirectX 12 frame resources are unavailable"));
+				"프레임 종료", "필요한 DirectX 12 프레임 리소스를 사용할 수 없습니다"));
 		bool frameRecorded;
 		if (postProcess.HasEffects())
 			frameRecorded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
@@ -116,61 +116,61 @@ namespace Chrivent {
 				commandContext.GetEnhancedCommandList().Get(), backBuffer);
 		if (!frameRecorded)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"record frame", "the DirectX 12 output pass could not be recorded"));
+				"프레임 기록", "DirectX 12 출력 패스를 기록하지 못했습니다"));
 		if (!commandContext.Execute(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
-				"submit frame", "the DirectX 12 command list could not be submitted"));
+				"프레임 제출", "DirectX 12 command list를 제출하지 못했습니다"));
 		if (!swapChain.Present())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::PresentationFailed,
-				"present swap chain", "the DirectX 12 frame could not be presented"));
+				"swap chain present", "DirectX 12 프레임을 표시하지 못했습니다"));
 		return FrameEndState::Presented;
 	}
 
 	GraphicsResult<void> Dx12Viewer::BeginPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"begin post-process scene input pass", "the DirectX 12 draw context is not ready"));
+				"후처리 장면 입력 패스 시작", "DirectX 12 draw context가 준비되지 않았습니다"));
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		if (!postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"begin post-process scene input pass", "the DirectX 12 scene input pass could not begin"));
+				"후처리 장면 입력 패스 시작", "DirectX 12 장면 입력 패스를 시작하지 못했습니다"));
 		return {};
 	}
 
 	GraphicsResult<void> Dx12Viewer::EndPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"end post-process scene input pass", "the DirectX 12 draw context is not ready"));
+				"후처리 장면 입력 패스 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		if (!postProcess.EndSceneInputPass(commandList, commandContext))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"end post-process scene input pass", "the DirectX 12 scene input pass could not end"));
+				"후처리 장면 입력 패스 종료", "DirectX 12 장면 입력 패스를 끝내지 못했습니다"));
 		return {};
 	}
 
 	GraphicsResult<void> Dx12Viewer::WaitIdle() {
 		if (!device.device)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"wait for GPU", "the DirectX 12 device is unavailable"));
+				"GPU 대기", "DirectX 12 device를 사용할 수 없습니다"));
 		if (!commandContext.WaitForGpu(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"wait for GPU", "the DirectX 12 command queue did not finish"));
+				"GPU 대기", "DirectX 12 command queue 작업이 끝나지 않았습니다"));
 		return {};
 	}
 
 	GraphicsResult<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!device.device)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"configure post-process effects", "the DirectX 12 device is unavailable"));
+				"후처리 효과 구성", "DirectX 12 device를 사용할 수 없습니다"));
 		if (!postProcess.Configure(device, screenWidth, screenHeight, effects))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::EffectConfigurationFailed,
-				"configure post-process effects", "the DirectX 12 effect chain could not be created"));
+				"후처리 효과 구성", "DirectX 12 효과 chain을 만들지 못했습니다"));
 		return {};
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {
 		return std::make_unique<Dx12Instance>(
-			*this, device, uploadContext, textureCache, dummyTexture, drawContext);
+			device, uploadContext, textureCache, dummyTexture, drawContext);
 	}
 
 }

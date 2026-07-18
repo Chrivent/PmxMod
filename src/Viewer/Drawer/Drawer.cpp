@@ -2,7 +2,6 @@
 
 #include "Viewer/Shader/SceneShaderInputLayout.h"
 #include "Viewer/Shader/ShaderConstants.h"
-#include "Viewer/Viewer/Viewer.h"
 #include "Core/Model/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -24,17 +23,17 @@ namespace Chrivent {
 	}
 
 	ModelVertexConstants Drawer::BuildModelVertexConstants(
-		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
+		const SceneRenderState& scene = state.scene;
 		return {
 			.wv = scene.viewMatrix * world,
 			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world
 		};
 	}
 
-	ModelPixelConstants Drawer::BuildModelPixelConstants(const Viewer& viewer, const Material& material,
+	ModelPixelConstants Drawer::BuildModelPixelConstants(const SceneDrawState& state, const Material& material,
 		const int textureMode, const int toonTextureMode, const int sphereTextureMode) {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		const SceneRenderState& scene = state.scene;
 		return {
 			.texMulFactor = material.textureMulFactor,
 			.texAddFactor = material.textureAddFactor,
@@ -78,9 +77,9 @@ namespace Chrivent {
 		return material.groundShadow && ShouldDrawModelMaterial(material);
 	}
 
-	EdgeVertexConstants Drawer::BuildEdgeVertexConstants(const Viewer& viewer, const glm::mat4& world,
+	EdgeVertexConstants Drawer::BuildEdgeVertexConstants(const SceneDrawState& state, const glm::mat4& world,
 		const glm::mat4& clipMatrix, const glm::vec2& screenSize) {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		const SceneRenderState& scene = state.scene;
 		return {
 			.wv = scene.viewMatrix * world,
 			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world,
@@ -89,19 +88,19 @@ namespace Chrivent {
 	}
 
 	GroundShadowVertexConstants Drawer::BuildGroundShadowVertexConstants(
-		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
+		const SceneRenderState& scene = state.scene;
 		return { .wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix
 			* BuildGroundShadowMatrix(scene.lightDirection) * world };
 	}
 
 	SceneVelocityVertexConstants Drawer::BuildSceneVelocityVertexConstants(
-		const Viewer& viewer, const glm::mat4& world, const glm::mat4& clipMatrix) {
-		const SceneRenderState& scene = viewer.GetSceneRenderState();
+		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
+		const SceneRenderState& scene = state.scene;
 		SceneVelocityVertexConstants constants;
 		constants.currentWvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world;
-		constants.previousWvp = viewer.IsPostProcessHistoryResetPending() ? constants.currentWvp
-			: clipMatrix * viewer.GetPreviousProjectionMatrix() * viewer.GetPreviousViewMatrix() * world;
+		constants.previousWvp = state.historyReset ? constants.currentWvp
+			: clipMatrix * state.previousProjectionMatrix * state.previousViewMatrix * world;
 		return constants;
 	}
 
@@ -120,20 +119,21 @@ namespace Chrivent {
 
 	Drawer::~Drawer() = default;
 
-	void Drawer::BeginDraw() {
+	void Drawer::BeginDraw(const SceneDrawState& state) {
+		drawState = state;
 		BeginDrawFrame();
 	}
 
 	bool Drawer::DrawModelPass() {
-		return !viewer.GetSceneRenderState().modelEnabled || DrawModel();
+		return !drawState.scene.modelEnabled || DrawModel();
 	}
 
 	bool Drawer::DrawEdgePass() {
-		return !viewer.GetSceneRenderState().edgeEnabled || DrawEdge();
+		return !drawState.scene.edgeEnabled || DrawEdge();
 	}
 
 	bool Drawer::DrawGroundShadowPass() {
-		return !viewer.GetSceneRenderState().groundShadowEnabled || DrawGroundShadow();
+		return !drawState.scene.groundShadowEnabled || DrawGroundShadow();
 	}
 
 	bool Drawer::DrawPostProcessSceneInputs() {

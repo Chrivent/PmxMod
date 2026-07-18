@@ -14,17 +14,17 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
 		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils))) ||
 			FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
-			outError = "Failed to initialize the modern HLSL compiler.";
+			outError = "modern HLSL compiler를 초기화하지 못했습니다.";
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
 		if (FAILED(utils->CreateDefaultIncludeHandler(&includeHandler))) {
-			outError = "Failed to initialize the HLSL include handler.";
+			outError = "HLSL include handler를 초기화하지 못했습니다.";
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
 		if (FAILED(utils->LoadFile(file.c_str(), nullptr, &source))) {
-			outError = "Failed to open HLSL shader: " + file.string();
+			outError = "HLSL 셰이더를 열지 못했습니다: " + file.string();
 			return false;
 		}
 		const DxcBuffer sourceBuffer{
@@ -41,7 +41,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
 			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
-			outError = "Failed to invoke the modern HLSL compiler: " + file.string();
+			outError = "modern HLSL compiler를 실행하지 못했습니다: " + file.string();
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
@@ -49,11 +49,11 @@ namespace Chrivent {
 			errors.Reset();
 		HRESULT status = E_FAIL;
 		if (FAILED(result->GetStatus(&status))) {
-			outError = "Failed to query HLSL compilation status: " + file.string();
+			outError = "HLSL 컴파일 상태를 확인하지 못했습니다: " + file.string();
 			return false;
 		}
 		if (FAILED(status)) {
-			outError = "Failed to compile HLSL shader: " + file.string();
+			outError = "HLSL 셰이더를 컴파일하지 못했습니다: " + file.string();
 			if (errors && errors->GetStringLength() > 0) {
 				outError.push_back('\n');
 				outError.append(errors->GetStringPointer(), errors->GetStringLength());
@@ -62,7 +62,8 @@ namespace Chrivent {
 		}
 		Microsoft::WRL::ComPtr<IDxcBlob> object;
 		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr)) || !object) {
-			outError = "The modern HLSL compiler returned an invalid shader object: " + file.string();
+			outError = "modern HLSL compiler가 올바르지 않은 셰이더 객체를 반환했습니다: "
+				+ file.string();
 			return false;
 		}
 		outObject.resize(object->GetBufferSize());
@@ -118,7 +119,7 @@ namespace Chrivent {
 		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;
 		if (object.size() % sizeof(uint32_t) != 0) {
-			outError = "The HLSL compiler returned invalid SPIR-V: " + file.string();
+			outError = "HLSL compiler가 올바르지 않은 SPIR-V를 반환했습니다: " + file.string();
 			return false;
 		}
 		outSpirv.resize(object.size() / sizeof(uint32_t));
