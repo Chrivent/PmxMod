@@ -45,4 +45,9 @@ namespace Chrivent {
 	// 성공값 또는 구조화된 그래픽 오류를 반환하는 공통 결과 형식이다.
 	template <typename T>
 	using GraphicsResult = std::expected<T, GraphicsError>;
+
+	// API 식별자와 작업 문맥으로 구조화된 그래픽 오류를 생성한다.
+	GraphicsError MakeGraphicsError(GraphicsApi api, GraphicsErrorCode code,
+		std::string operation, std::string message,
+		int64_t nativeCode = 0, bool hasNativeCode = false);
 }

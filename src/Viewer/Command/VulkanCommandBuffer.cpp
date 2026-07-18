@@ -79,7 +79,7 @@ namespace Chrivent {
 		const VkImage colorImage, const VkImageView colorImageView,
 		const VkImage resolveImage, const VkImageView resolveImageView,
 		const VkImage depthImage, const VkImageView depthImageView,
-		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount, const VkPipeline pipeline,
+		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount,
 		const VkExtent2D extent, const float clearColor[4]) {
 		if (imageIndex >= commandBuffers.size()) {
 			std::cerr << "이미지 색인이 범위를 벗어나 Vulkan command buffer를 기록할 수 없습니다.\n";
@@ -147,8 +147,6 @@ namespace Chrivent {
 		};
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		ApplyViewportAndScissor(commandBuffer, extent);
-		if (pipeline != VK_NULL_HANDLE)
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		return true;
 	}
 
@@ -195,9 +193,9 @@ namespace Chrivent {
 	bool VulkanCommandBuffer::BeginPostProcessSceneInputPass(
 		const uint32_t imageIndex, const VkImage sceneImage, const VkImage depthImage,
 		const VkImageView depthImageView, const VkImage velocityImage, const VkImageView velocityImageView,
-		const bool velocityInitialized, const bool depthHasStencil, const VkPipeline pipeline, const VkExtent2D extent) const {
+		const bool velocityInitialized, const bool depthHasStencil, const VkExtent2D extent) const {
 		if (imageIndex >= commandBuffers.size() || depthImage == VK_NULL_HANDLE ||
-			depthImageView == VK_NULL_HANDLE || pipeline == VK_NULL_HANDLE)
+			depthImageView == VK_NULL_HANDLE)
 			return false;
 		const VkCommandBuffer commandBuffer = commandBuffers[imageIndex];
 		vkCmdEndRendering(commandBuffer);
@@ -248,7 +246,6 @@ namespace Chrivent {
 		};
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		ApplyViewportAndScissor(commandBuffer, extent);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		return true;
 	}
 

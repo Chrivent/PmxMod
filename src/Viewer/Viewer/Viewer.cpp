@@ -25,14 +25,8 @@ namespace Chrivent {
 
 	GraphicsError Viewer::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
-		return GraphicsError{
-			.api = graphicsApi,
-			.code = code,
-			.operation = std::move(operation),
-			.message = std::move(message),
-			.nativeCode = nativeCode,
-			.hasNativeCode = hasNativeCode
-		};
+		return MakeGraphicsError(graphicsApi, code, std::move(operation),
+			std::move(message), nativeCode, hasNativeCode);
 	}
 
 	GraphicsResult<void> Viewer::RecreateSizeDependentResources(const int width, const int height, const bool force) {

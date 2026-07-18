@@ -83,8 +83,8 @@ namespace Chrivent {
 		bool Configure(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
-		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
-			VkPipeline geometryPipeline, VkExtent2D extent);
+		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+			uint32_t imageIndex, VkExtent2D extent);
 		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
 		bool EndSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
 		// 장면 렌더링을 끝내고 선언된 pass들을 실행해 최종 명령을 기록한다.

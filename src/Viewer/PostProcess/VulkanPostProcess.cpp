@@ -284,7 +284,7 @@ namespace Chrivent {
 	}
 	
 	bool VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
-		const uint32_t imageIndex, const VkPipeline geometryPipeline, const VkExtent2D extent) {
+		const uint32_t imageIndex, const VkExtent2D extent) {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
 			return false;
 		constexpr bool depthHasStencil = false;
@@ -292,7 +292,7 @@ namespace Chrivent {
 			sceneTarget.TryGetImage(imageIndex), depthImages[imageIndex], depthImageViews[imageIndex],
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() ? velocityTarget.TryGetImageView(imageIndex) : VK_NULL_HANDLE,
-			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, geometryPipeline, extent);
+			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, extent);
 		if (began && RequiresVelocity())
 			velocityTarget.MarkInitialized(imageIndex);
 		return began;

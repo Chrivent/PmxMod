@@ -105,11 +105,10 @@ namespace Chrivent {
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
-			device.msaaSampleCount, pipeline.ResolveModelPipeline(false), swapChain.GetExtent(), clearColor))
+			device.msaaSampleCount, swapChain.GetExtent(), clearColor))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"command buffer 시작", "Vulkan 프레임 command buffer가 기록을 시작하지 못했습니다"));
 		drawContext.BeginFrame(currentImageIndex, frameIndex);
-		drawContext.SetPipelineState(pipeline.ResolveModelPipeline(false));
 		return FrameBeginState::Ready;
 	}
 
@@ -164,13 +163,10 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
-		const VkPipeline geometryPipeline = pipeline.ResolveSceneInputPipeline(
-			postProcess.RequiresVelocity(), false);
 		if (!postProcess.BeginSceneInputPass(commandContext.GetCommandBuffer(),
-			currentImageIndex, geometryPipeline, swapChain.GetExtent()))
+			currentImageIndex, swapChain.GetExtent()))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"후처리 장면 입력 패스 시작", "Vulkan 장면 입력 패스를 시작하지 못했습니다"));
-		drawContext.SetPipelineState(geometryPipeline);
 		drawContext.ResetDescriptorBindings();
 		return {};
 	}

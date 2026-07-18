@@ -14,16 +14,10 @@ namespace Chrivent {
 		frameIndex = sourceFrameIndex;
 		frameReady = true;
 		bindStateCache = {};
-		bindStateCache.vertexDynamicOffset = std::numeric_limits<uint32_t>::max();
-		bindStateCache.pixelDynamicOffset = std::numeric_limits<uint32_t>::max();
 	}
 
 	void VulkanDrawContext::EndFrame() {
 		frameReady = false;
-	}
-
-	void VulkanDrawContext::SetPipelineState(const VkPipeline sourcePipeline) {
-		bindStateCache.pipeline = sourcePipeline;
 	}
 
 	void VulkanDrawContext::ResetDescriptorBindings() {

@@ -13,14 +13,8 @@ namespace Chrivent {
 
 	GraphicsError Drawer::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
-		return {
-			.api = graphicsApi,
-			.code = code,
-			.operation = std::move(operation),
-			.message = std::move(message),
-			.nativeCode = nativeCode,
-			.hasNativeCode = hasNativeCode
-		};
+		return MakeGraphicsError(graphicsApi, code, std::move(operation),
+			std::move(message), nativeCode, hasNativeCode);
 	}
 
 	const glm::mat4& Drawer::ClipMatrix() const {

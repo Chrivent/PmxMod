@@ -38,11 +38,11 @@ namespace Chrivent {
 		static void ApplyViewportAndScissor(VkCommandBuffer commandBuffer, VkExtent2D extent);
 		// 스왑체인 이미지 수에 맞춰 렌더링 명령 버퍼를 할당한다.
 		bool Initialize(const VulkanDevice& sourceDevice, VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain);
-		// 지정한 이미지 attachment로 dynamic rendering을 시작하고 파이프라인을 바인딩한다.
+		// 지정한 이미지 attachment로 dynamic rendering을 시작한다.
 		bool BeginRecord(uint32_t imageIndex, VkImage colorImage, VkImageView colorImageView,
 			VkImage resolveImage, VkImageView resolveImageView, VkImage depthImage,
 			VkImageView depthImageView, bool depthHasStencil, VkSampleCountFlagBits sampleCount,
-			VkPipeline pipeline, VkExtent2D extent, const float clearColor[4]);
+			VkExtent2D extent, const float clearColor[4]);
 		// 현재 command buffer에 graphics pipeline을 바인딩한다.
 		void BindPipeline(uint32_t imageIndex, VkPipeline pipeline) const;
 		// 현재 command buffer에 모델 vertex/index buffer를 바인딩하고 draw indexed 명령을 기록한다.
@@ -55,7 +55,7 @@ namespace Chrivent {
 		// 장면 렌더링을 끝내고 후처리용 단일 샘플 geometry 렌더링을 시작한다.
 		bool BeginPostProcessSceneInputPass(uint32_t imageIndex, VkImage sceneImage, VkImage depthImage,
 			VkImageView depthImageView, VkImage velocityImage, VkImageView velocityImageView,
-			bool velocityInitialized, bool depthHasStencil, VkPipeline pipeline, VkExtent2D extent) const;
+			bool velocityInitialized, bool depthHasStencil, VkExtent2D extent) const;
 		// 후처리용 geometry 렌더링을 끝내고 depth/속도를 shader read 상태로 전환한다.
 		bool EndPostProcessSceneInputPass(uint32_t imageIndex, VkImage depthImage,
 			VkImage velocityImage, bool depthHasStencil) const;

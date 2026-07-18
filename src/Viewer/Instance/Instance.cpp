@@ -12,14 +12,8 @@ namespace Chrivent {
 
 	GraphicsError Instance::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
-		return {
-			.api = graphicsApi,
-			.code = code,
-			.operation = std::move(operation),
-			.message = std::move(message),
-			.nativeCode = nativeCode,
-			.hasNativeCode = hasNativeCode
-		};
+		return MakeGraphicsError(graphicsApi, code, std::move(operation),
+			std::move(message), nativeCode, hasNativeCode);
 	}
 
 	bool Instance::ValidateModel(const Model& sourceModel) {

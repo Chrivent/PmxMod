@@ -40,8 +40,6 @@ namespace Chrivent {
 		void BeginFrame(uint32_t sourceCurrentImageIndex, size_t sourceFrameIndex);
 		// 현재 프레임의 Drawer 명령 기록을 막는다.
 		void EndFrame();
-		// 외부 패스가 먼저 바인딩한 pipeline을 현재 캐시에 반영한다.
-		void SetPipelineState(VkPipeline sourcePipeline);
 		// 장면 입력 패스 전환 뒤 descriptor 바인딩 캐시를 초기화한다.
 		void ResetDescriptorBindings();
 		// 현재 command buffer에 indexed draw 명령을 기록한다.
