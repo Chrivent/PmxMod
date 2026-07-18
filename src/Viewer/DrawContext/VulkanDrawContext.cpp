@@ -52,89 +52,105 @@ namespace Chrivent {
 			static_cast<uint32_t>(firstIndex), static_cast<uint32_t>(indexCount));
 	}
 
-	void VulkanDrawContext::BindModelPipeline(const bool bothFace) {
+	bool VulkanDrawContext::BindModelPipeline(const bool bothFace) {
 		if (!frameReady)
-			return;
+			return false;
 		const VkPipeline targetPipeline = pipeline.ResolveModelPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+			return true;
+		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+			return false;
 		bindStateCache.pipeline = targetPipeline;
+		return true;
 	}
 
-	void VulkanDrawContext::BindDepthOnlyPipeline(const bool bothFace) {
+	bool VulkanDrawContext::BindDepthOnlyPipeline(const bool bothFace) {
 		if (!frameReady)
-			return;
+			return false;
 		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(false, bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+			return true;
+		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+			return false;
 		bindStateCache.pipeline = targetPipeline;
+		return true;
 	}
 
-	void VulkanDrawContext::BindSceneVelocityPipeline(const bool bothFace) {
+	bool VulkanDrawContext::BindSceneVelocityPipeline(const bool bothFace) {
 		if (!frameReady)
-			return;
+			return false;
 		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(true, bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+			return true;
+		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+			return false;
 		bindStateCache.pipeline = targetPipeline;
+		return true;
 	}
 
-	void VulkanDrawContext::BindEdgePipeline() {
+	bool VulkanDrawContext::BindEdgePipeline() {
 		if (!frameReady)
-			return;
+			return false;
 		const VkPipeline targetPipeline = pipeline.GetEdgePipeline();
 		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+			return true;
+		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+			return false;
 		bindStateCache.pipeline = targetPipeline;
+		return true;
 	}
 
-	void VulkanDrawContext::BindGroundShadowPipeline() {
+	bool VulkanDrawContext::BindGroundShadowPipeline() {
 		if (!frameReady)
-			return;
+			return false;
 		const VkPipeline targetPipeline = pipeline.GetGroundShadowPipeline();
 		if (bindStateCache.pipeline == targetPipeline)
-			return;
-		commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline);
+			return true;
+		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+			return false;
 		bindStateCache.pipeline = targetPipeline;
+		return true;
 	}
 
-	void VulkanDrawContext::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet,
+	bool VulkanDrawContext::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet,
 		const uint32_t dynamicOffset) {
 		if (!frameReady)
-			return;
+			return false;
 		if (bindStateCache.vertexDescriptorSet == descriptorSet.GetVertexDescriptorSet() &&
 			bindStateCache.vertexDynamicOffset == dynamicOffset)
-			return;
+			return true;
 		const VkDescriptorSet vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
-		commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 0,
-			{ &vertexDescriptorSet, 1 }, { &dynamicOffset, 1 });
+		if (!commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex,
+			pipeline.GetPipelineLayout(), 0, { &vertexDescriptorSet, 1 }, { &dynamicOffset, 1 }))
+			return false;
 		bindStateCache.vertexDescriptorSet = vertexDescriptorSet;
 		bindStateCache.vertexDynamicOffset = dynamicOffset;
+		return true;
 	}
 
-	void VulkanDrawContext::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet,
+	bool VulkanDrawContext::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet,
 		const uint32_t dynamicOffset) {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
-			return;
+			return false;
 		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
 			bindStateCache.pixelDynamicOffset == dynamicOffset)
-			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 1,
-			{ &descriptorSet, 1 }, { &dynamicOffset, 1 });
+			return true;
+		if (!commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex,
+			pipeline.GetPipelineLayout(), 1, { &descriptorSet, 1 }, { &dynamicOffset, 1 }))
+			return false;
 		bindStateCache.pixelDescriptorSet = descriptorSet;
 		bindStateCache.pixelDynamicOffset = dynamicOffset;
+		return true;
 	}
 
-	void VulkanDrawContext::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) {
+	bool VulkanDrawContext::BindTextureDescriptorSet(const VkDescriptorSet descriptorSet) {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE ||
 			bindStateCache.textureDescriptorSet == descriptorSet)
-			return;
-		commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex, pipeline.GetPipelineLayout(), 2,
-			{ &descriptorSet, 1 });
+			return frameReady && descriptorSet != VK_NULL_HANDLE;
+		if (!commandContext.GetCommandBuffer().BindDescriptorSets(
+			currentImageIndex, pipeline.GetPipelineLayout(), 2, { &descriptorSet, 1 }))
+			return false;
 		bindStateCache.textureDescriptorSet = descriptorSet;
+		return true;
 	}
 }

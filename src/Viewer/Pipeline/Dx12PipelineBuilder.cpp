@@ -51,4 +51,33 @@ namespace Chrivent {
 		std::memcpy(bytecode.data(), legacyBytecode->GetBufferPointer(), bytecode.size());
 		return true;
 	}
+
+	bool Dx12PipelineBuilder::CreateGraphicsPipelineState(const Dx12Device& sourceDevice,
+		const ShaderProgramDefinition& program,
+		const D3D12_GRAPHICS_PIPELINE_STATE_DESC& description,
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState, std::string& error) {
+		error.clear();
+		pipelineState.Reset();
+		if (!sourceDevice.GetDevice() || description.pRootSignature == nullptr) {
+			error = "DirectX 12 graphics pipeline 생성 설정이 올바르지 않습니다";
+			return false;
+		}
+		std::vector<uint8_t> vertexShader;
+		std::vector<uint8_t> pixelShader;
+		if (!CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
+			true, vertexShader, error)
+			|| !CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
+				false, pixelShader, error))
+			return false;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC completedDescription = description;
+		completedDescription.VS = { vertexShader.data(), vertexShader.size() };
+		completedDescription.PS = { pixelShader.data(), pixelShader.size() };
+		const HRESULT result = sourceDevice.GetDevice()->CreateGraphicsPipelineState(
+			&completedDescription, IID_PPV_ARGS(&pipelineState));
+		if (SUCCEEDED(result))
+			return true;
+		error = "DirectX 12 graphics pipeline state를 만들지 못했습니다 (네이티브 코드: "
+			+ std::to_string(result) + ')';
+		return false;
+	}
 }

@@ -15,10 +15,12 @@ namespace Chrivent {
 		HANDLE fenceEvent = nullptr;
 		UINT64 fenceValue = 0;
 
+		// 부분 생성된 업로드 명령 객체와 동기화 핸들을 초기 상태로 되돌린다.
+		void Reset();
 		// 현재 디바이스에서 재사용할 업로드 명령 객체를 처음 생성하거나 초기화한다.
-		bool Begin(const Dx12Device& sourceDevice);
+		GraphicsResult<void> Begin(const Dx12Device& sourceDevice);
 		// 제출한 업로드 명령이 끝날 때까지 전용 fence로 기다린다.
-		bool SubmitAndWait(const Dx12Device& sourceDevice);
+		GraphicsResult<void> SubmitAndWait(const Dx12Device& sourceDevice);
 
 	public:
 		Dx12UploadContext() = default;
@@ -28,10 +30,10 @@ namespace Chrivent {
 		Dx12UploadContext& operator=(const Dx12UploadContext&) = delete;
 
 		// upload buffer의 배치 정보를 texture에 복사하고 셰이더 읽기 상태로 전환한다.
-		bool UploadTexture(const Dx12Device& sourceDevice, ID3D12Resource* destination,
+		GraphicsResult<void> UploadTexture(const Dx12Device& sourceDevice, ID3D12Resource* destination,
 			ID3D12Resource* source, const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& layout);
 		// upload buffer를 정적 GPU buffer에 복사하고 index 입력 상태로 전환한다.
-		bool UploadIndexBuffer(const Dx12Device& sourceDevice, ID3D12Resource* destination,
+		GraphicsResult<void> UploadIndexBuffer(const Dx12Device& sourceDevice, ID3D12Resource* destination,
 			ID3D12Resource* source, UINT64 size);
 	};
 }

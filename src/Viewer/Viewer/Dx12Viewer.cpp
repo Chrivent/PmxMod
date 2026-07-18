@@ -25,9 +25,9 @@ namespace Chrivent {
 		const auto deviceResult = device.Initialize(capabilities);
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
-		if (!commandContext.Initialize(device))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));
+		const auto commandContextResult = commandContext.Initialize(device);
+		if (!commandContextResult)
+			return std::unexpected(commandContextResult.error());
 		HWND__* hwnd = glfwGetWin32Window(window);
 		const auto swapChainResult = swapChain.Initialize(device, hwnd, screenWidth, screenHeight);
 		if (!swapChainResult)
@@ -73,9 +73,9 @@ namespace Chrivent {
 	GraphicsResult<FrameBeginState> Dx12Viewer::BeginFrameCore() {
 		drawContext.EndFrame();
 		const UINT frameIndex = swapChain.GetFrameIndex();
-		if (!commandContext.BeginFrame(device, frameIndex))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"프레임 시작", "DirectX 12 command context가 기록을 시작하지 못했습니다"));
+		const auto beginResult = commandContext.BeginFrame(device, frameIndex);
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
@@ -111,9 +111,9 @@ namespace Chrivent {
 		if (!frameRecorded)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"프레임 기록", "DirectX 12 출력 패스를 기록하지 못했습니다"));
-		if (!commandContext.Execute(device))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,
-				"프레임 제출", "DirectX 12 command list를 제출하지 못했습니다"));
+		const auto executeResult = commandContext.Execute(device);
+		if (!executeResult)
+			return std::unexpected(executeResult.error());
 		const auto presentResult = swapChain.Present();
 		if (!presentResult)
 			return std::unexpected(presentResult.error());
@@ -146,10 +146,7 @@ namespace Chrivent {
 		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"GPU 대기", "DirectX 12 device를 사용할 수 없습니다"));
-		if (!commandContext.WaitForGpu(device))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"GPU 대기", "DirectX 12 command queue 작업이 끝나지 않았습니다"));
-		return {};
+		return commandContext.WaitForGpu(device);
 	}
 
 	GraphicsResult<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {

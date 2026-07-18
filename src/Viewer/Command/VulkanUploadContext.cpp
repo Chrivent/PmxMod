@@ -1,6 +1,5 @@
 ﻿#include "Viewer/Command/VulkanUploadContext.h"
 
-#include <iostream>
 #include <limits>
 
 namespace Chrivent {
@@ -15,69 +14,100 @@ namespace Chrivent {
 		fence = VK_NULL_HANDLE;
 	}
 
-	bool VulkanUploadContext::Initialize(const VulkanDevice& sourceDevice) {
+	GraphicsResult<void> VulkanUploadContext::Initialize(const VulkanDevice& sourceDevice) {
 		if (device == sourceDevice.GetDevice() && commandPool != VK_NULL_HANDLE
 			&& commandBuffer != VK_NULL_HANDLE && fence != VK_NULL_HANDLE)
-			return true;
+			return {};
 		Reset();
 		device = sourceDevice.GetDevice();
+		if (device == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "업로드 context 초기화",
+				"Vulkan device를 사용할 수 없습니다"));
+		}
 		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
 			| VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		poolInfo.queueFamilyIndex = sourceDevice.GetGraphicsQueueFamily();
-		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload command pool을 만들지 못했습니다.\n";
+		VkResult result = vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool);
+		if (result != VK_SUCCESS) {
 			Reset();
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "업로드 command pool 생성",
+				"Vulkan 업로드 command pool을 만들지 못했습니다", result, true));
 		}
 		VkCommandBufferAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocateInfo.commandPool = commandPool;
 		allocateInfo.commandBufferCount = 1;
-		if (vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload command buffer를 할당하지 못했습니다.\n";
+		result = vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer);
+		if (result != VK_SUCCESS) {
 			Reset();
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "업로드 command buffer 할당",
+				"Vulkan 업로드 command buffer를 할당하지 못했습니다", result, true));
 		}
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		if (vkCreateFence(device, &fenceInfo, nullptr, &fence) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload fence를 만들지 못했습니다.\n";
+		result = vkCreateFence(device, &fenceInfo, nullptr, &fence);
+		if (result != VK_SUCCESS) {
 			Reset();
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "업로드 fence 생성",
+				"Vulkan 업로드 fence를 만들지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
 	VulkanUploadContext::~VulkanUploadContext() {
 		Reset();
 	}
 
-	bool VulkanUploadContext::Begin(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanUploadContext::Begin(const VulkanDevice& sourceDevice,
 		VkCommandBuffer& targetCommandBuffer) {
-		if (!Initialize(sourceDevice)
-			|| vkResetCommandBuffer(commandBuffer, 0) != VK_SUCCESS)
-			return false;
+		const auto initializeResult = Initialize(sourceDevice);
+		if (!initializeResult)
+			return std::unexpected(initializeResult.error());
+		VkResult result = vkResetCommandBuffer(commandBuffer, 0);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "업로드 command buffer 초기화",
+				"Vulkan 업로드 command buffer를 초기화하지 못했습니다", result, true));
+		}
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload command buffer 기록을 시작하지 못했습니다.\n";
-			return false;
+		result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "업로드 command buffer 시작",
+				"Vulkan 업로드 command buffer 기록을 시작하지 못했습니다", result, true));
 		}
 		targetCommandBuffer = commandBuffer;
-		return true;
+		return {};
 	}
 
-	bool VulkanUploadContext::SubmitAndWait(const VulkanDevice& sourceDevice) const {
-		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload command buffer를 기록하지 못했습니다.\n";
-			return false;
+	GraphicsResult<void> VulkanUploadContext::SubmitAndWait(const VulkanDevice& sourceDevice) const {
+		if (device == VK_NULL_HANDLE || commandBuffer == VK_NULL_HANDLE
+			|| fence == VK_NULL_HANDLE || sourceDevice.GetGraphicsQueue() == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "업로드 command 제출",
+				"Vulkan 업로드 context를 사용할 수 없습니다"));
 		}
-		if (vkResetFences(device, 1, &fence) != VK_SUCCESS)
-			return false;
+		VkResult result = vkEndCommandBuffer(commandBuffer);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "업로드 command buffer 종료",
+				"Vulkan 업로드 command buffer 기록을 끝내지 못했습니다", result, true));
+		}
+		result = vkResetFences(device, 1, &fence);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::SynchronizationFailed, "업로드 fence 초기화",
+				"Vulkan 업로드 fence를 초기화하지 못했습니다", result, true));
+		}
 		const VkCommandBufferSubmitInfo commandBufferInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 			.commandBuffer = commandBuffer
@@ -87,20 +117,32 @@ namespace Chrivent {
 			.commandBufferInfoCount = 1,
 			.pCommandBufferInfos = &commandBufferInfo
 		};
-		if (vkQueueSubmit2(sourceDevice.GetGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS) {
-			std::cerr << "Vulkan upload command buffer를 제출하지 못했습니다.\n";
-			return false;
+		result = vkQueueSubmit2(sourceDevice.GetGraphicsQueue(), 1, &submitInfo, fence);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandSubmissionFailed, "업로드 command buffer 제출",
+				"Vulkan 업로드 command buffer를 제출하지 못했습니다", result, true));
 		}
-		return vkWaitForFences(device, 1, &fence, VK_TRUE,
-			std::numeric_limits<uint64_t>::max()) == VK_SUCCESS;
+		result = vkWaitForFences(device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::SynchronizationFailed, "업로드 fence 대기",
+				"Vulkan 업로드 fence를 기다리지 못했습니다", result, true));
+		}
+		return {};
 	}
 
-	bool VulkanUploadContext::UploadIndexBuffer(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanUploadContext::UploadIndexBuffer(const VulkanDevice& sourceDevice,
 		const VkBuffer destination, const VkBuffer source, const VkDeviceSize size) {
+		if (destination == VK_NULL_HANDLE || source == VK_NULL_HANDLE || size == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "index buffer 업로드",
+				"복사할 Vulkan index buffer 또는 크기가 올바르지 않습니다"));
+		}
 		VkCommandBuffer targetCommandBuffer = VK_NULL_HANDLE;
-		if (destination == VK_NULL_HANDLE || source == VK_NULL_HANDLE || size == 0
-			|| !Begin(sourceDevice, targetCommandBuffer))
-			return false;
+		const auto beginResult = Begin(sourceDevice, targetCommandBuffer);
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
 		const VkBufferCopy copyRegion{ .size = size };
 		vkCmdCopyBuffer(targetCommandBuffer, source, destination, 1, &copyRegion);
 		const VkBufferMemoryBarrier2 barrier{

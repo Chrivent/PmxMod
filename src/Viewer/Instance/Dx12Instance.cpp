@@ -13,25 +13,31 @@
 #include <utility>
 
 namespace Chrivent {
-	bool Dx12Instance::CreateGeometryBuffers() {
+	GraphicsResult<void> Dx12Instance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
-			return false;
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 geometry 생성", "모델 index 데이터를 만들지 못했습니다"));
+		}
 		const DXGI_FORMAT indexFormat = indexData.elementSize == sizeof(uint16_t)
 			? DXGI_FORMAT_R16_UINT
 			: DXGI_FORMAT_R32_UINT;
 		const size_t vertexCount = geometryData.positions.size();
 		const size_t vertexByteSize = sizeof(ViewerVertex) * vertexCount;
 		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
-			indexData.bytes.size() > std::numeric_limits<UINT>::max())
-			return false;
+			indexData.bytes.size() > std::numeric_limits<UINT>::max()) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 geometry 생성", "vertex 또는 index 데이터가 DirectX 12 크기 범위를 벗어났습니다"));
+		}
 		for (size_t frameIndex = 0; frameIndex < FrameBuffering::dx12BufferCount; frameIndex++) {
 			Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
 				!ViewerGeometry::WriteVertices(geometryData, false,
-					{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount }))
-				return false;
+					{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount })) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+					"DX12 vertex buffer 생성", "동적 vertex buffer를 만들거나 기록하지 못했습니다"));
+			}
 			auto& [BufferLocation, SizeInBytes, StrideInBytes] = modelResources.vertexBufferViews[frameIndex];
 			BufferLocation = vertexBuffer.GetGpuAddress();
 			SizeInBytes = vertexByteSize;
@@ -41,15 +47,20 @@ namespace Chrivent {
 		if (!indexUploadBuffer.InitializeUpload(device, indexData.bytes.size())
 			|| !indexUploadBuffer.Write(std::as_bytes(std::span(indexData.bytes)))
 			|| !modelResources.indexBuffer.InitializeDefault(
-				device, indexData.bytes.size(), D3D12_RESOURCE_STATE_COPY_DEST)
-			|| !uploadContext.UploadIndexBuffer(device, modelResources.indexBuffer.GetResource(),
-				indexUploadBuffer.GetResource(), indexData.bytes.size()))
-			return false;
+				device, indexData.bytes.size(), D3D12_RESOURCE_STATE_COPY_DEST)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 index buffer 생성", "index upload 또는 GPU buffer를 만들지 못했습니다"));
+		}
+		const auto uploadResult = uploadContext.UploadIndexBuffer(
+			device, modelResources.indexBuffer.GetResource(),
+			indexUploadBuffer.GetResource(), indexData.bytes.size());
+		if (!uploadResult)
+			return std::unexpected(uploadResult.error());
 		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.GetGpuAddress();
 		modelResources.indexBufferView.SizeInBytes = indexData.bytes.size();
 		modelResources.indexBufferView.Format = indexFormat;
 		modelResources.indexCount = indexData.indexCount;
-		return true;
+		return {};
 	}
 
 	bool Dx12Instance::CreateConstantBuffers() {
@@ -174,9 +185,9 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx12Instance::SetupRenderer() {
-		if (!CreateGeometryBuffers())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX12 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
+		const auto geometryResult = CreateGeometryBuffers();
+		if (!geometryResult)
+			return std::unexpected(geometryResult.error());
 		if (!CreateConstantBuffers())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));

@@ -38,7 +38,11 @@ namespace Chrivent {
 			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 모델 패스 기록", "모델 vertex 상수를 업로드하지 못했습니다"));
-		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
+		if (!drawContext.BindModelDescriptorSets(
+			resources.modelDescriptorSet, vertexSlice->offset)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 모델 패스 기록", "모델 vertex descriptor set을 바인딩하지 못했습니다"));
+		}
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
 			const auto& mat = material.material;
@@ -55,10 +59,13 @@ namespace Chrivent {
 				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 모델 패스 기록", "모델 pixel 상수를 업로드하지 못했습니다"));
-			drawContext.BindModelPipeline(mat.bothFace);
-			drawContext.BindPixelDescriptorSet(
-				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
-			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
+			if (!drawContext.BindModelPipeline(mat.bothFace)
+				|| !drawContext.BindPixelDescriptorSet(
+					resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset)
+				|| !drawContext.BindTextureDescriptorSet(material.textureDescriptorSet)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 모델 패스 기록", "모델 pipeline 또는 descriptor set을 바인딩하지 못했습니다"));
+			}
 			if (!drawContext.DrawIndexed(
 				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
@@ -73,7 +80,10 @@ namespace Chrivent {
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const EdgeVertexConstants baseVertexConstants = BuildEdgeVertexConstants(
 			drawState, world, ClipMatrix(), glm::vec2(drawState.screenSize.x, -drawState.screenSize.y));
-		drawContext.BindEdgePipeline();
+		if (!drawContext.BindEdgePipeline()) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 엣지 패스 기록", "엣지 pipeline을 바인딩하지 못했습니다"));
+		}
 		std::string error;
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
@@ -88,7 +98,11 @@ namespace Chrivent {
 				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 엣지 패스 기록", "엣지 vertex 상수를 업로드하지 못했습니다"));
-			drawContext.BindModelDescriptorSets(resources.edgeDescriptorSet, vertexSlice->offset);
+			if (!drawContext.BindModelDescriptorSets(
+				resources.edgeDescriptorSet, vertexSlice->offset)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 엣지 패스 기록", "엣지 vertex descriptor set을 바인딩하지 못했습니다"));
+			}
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
 			const auto pixelSlice = resources.edgePixelConstantsRing.Allocate(
@@ -97,8 +111,11 @@ namespace Chrivent {
 				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 엣지 패스 기록", "엣지 pixel 상수를 업로드하지 못했습니다"));
-			drawContext.BindPixelDescriptorSet(
-				resources.edgeDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
+			if (!drawContext.BindPixelDescriptorSet(
+				resources.edgeDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 엣지 패스 기록", "엣지 pixel descriptor set을 바인딩하지 못했습니다"));
+			}
 			if (!drawContext.DrawIndexed(
 				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
@@ -129,15 +146,24 @@ namespace Chrivent {
 				sizeof(pixelConstants), error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 지면 그림자 패스 기록", "지면 그림자 pixel 상수를 업로드하지 못했습니다"));
-		drawContext.BindGroundShadowPipeline();
-		drawContext.BindModelDescriptorSets(resources.groundShadowDescriptorSet, vertexSlice->offset);
+		if (!drawContext.BindGroundShadowPipeline()
+			|| !drawContext.BindModelDescriptorSets(
+				resources.groundShadowDescriptorSet, vertexSlice->offset)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 지면 그림자 패스 기록",
+				"지면 그림자 pipeline 또는 vertex descriptor set을 바인딩하지 못했습니다"));
+		}
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
 			const auto& mat = material.material;
 			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
-			drawContext.BindPixelDescriptorSet(
-				resources.groundShadowDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
+			if (!drawContext.BindPixelDescriptorSet(
+				resources.groundShadowDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 지면 그림자 패스 기록",
+					"지면 그림자 pixel descriptor set을 바인딩하지 못했습니다"));
+			}
 			if (!drawContext.DrawIndexed(
 				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
@@ -163,7 +189,12 @@ namespace Chrivent {
 				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 후처리 장면 입력 기록", "장면 입력 vertex 상수를 업로드하지 못했습니다"));
-		drawContext.BindModelDescriptorSets(resources.modelDescriptorSet, vertexSlice->offset);
+		if (!drawContext.BindModelDescriptorSets(
+			resources.modelDescriptorSet, vertexSlice->offset)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"Vulkan 후처리 장면 입력 기록",
+				"장면 입력 vertex descriptor set을 바인딩하지 못했습니다"));
+		}
 		for (const auto& [beginIndex, indexCount, materialId] : instance.GetModel().materialData.subMeshes) {
 			const auto& material = resources.materials[materialId];
 			const auto& mat = material.material;
@@ -178,13 +209,16 @@ namespace Chrivent {
 					sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));
-			if (velocityRequired)
-				drawContext.BindSceneVelocityPipeline(mat.bothFace);
-			else
-				drawContext.BindDepthOnlyPipeline(mat.bothFace);
-			drawContext.BindPixelDescriptorSet(
-				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset);
-			drawContext.BindTextureDescriptorSet(material.textureDescriptorSet);
+			const bool pipelineBound = velocityRequired
+				? drawContext.BindSceneVelocityPipeline(mat.bothFace)
+				: drawContext.BindDepthOnlyPipeline(mat.bothFace);
+			if (!pipelineBound || !drawContext.BindPixelDescriptorSet(
+				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset)
+				|| !drawContext.BindTextureDescriptorSet(material.textureDescriptorSet)) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"Vulkan 후처리 장면 입력 기록",
+					"장면 입력 pipeline 또는 descriptor set을 바인딩하지 못했습니다"));
+			}
 			if (!drawContext.DrawIndexed(
 				vertexBuffer, resources.indexBuffer, resources.indexType, beginIndex, indexCount))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,

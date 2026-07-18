@@ -1,23 +1,37 @@
 ﻿#include "Viewer/Command/VulkanCommandContext.h"
 
-#include <iostream>
-
 namespace Chrivent {
 	VulkanCommandContext::~VulkanCommandContext() {
 		Reset();
 	}
 
-	bool VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
+	GraphicsResult<void> VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice,
+		const VulkanSwapChain& sourceSwapChain) {
+		Reset();
 		device = sourceDevice.GetDevice();
+		if (device == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "command context 초기화",
+				"Vulkan device를 사용할 수 없습니다"));
+		}
 		VkCommandPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		createInfo.queueFamilyIndex = sourceDevice.GetGraphicsQueueFamily();
-		if (vkCreateCommandPool(device, &createInfo, nullptr, &commandPool) != VK_SUCCESS) {
-			std::cerr << "Vulkan command pool을 만들지 못했습니다.\n";
-			return false;
+		const VkResult result = vkCreateCommandPool(device, &createInfo, nullptr, &commandPool);
+		if (result != VK_SUCCESS) {
+			Reset();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "command pool 생성",
+				"Vulkan command pool을 만들지 못했습니다", result, true));
 		}
-		return commandBuffer.Initialize(sourceDevice, commandPool, sourceSwapChain);
+		const auto commandBufferResult = commandBuffer.Initialize(
+			sourceDevice, commandPool, sourceSwapChain);
+		if (commandBufferResult)
+			return {};
+		const GraphicsError error = commandBufferResult.error();
+		Reset();
+		return std::unexpected(error);
 	}
 
 	void VulkanCommandContext::Reset() {

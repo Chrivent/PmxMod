@@ -21,7 +21,7 @@ namespace Chrivent {
 		Dx12ModelResources modelResources;
 
 		// 모델 geometry 데이터를 DX12 vertex/index buffer로 업로드한다.
-		bool CreateGeometryBuffers();
+		GraphicsResult<void> CreateGeometryBuffers();
 		// 패스별 constant buffer를 material 개수에 맞춰 생성한다.
 		bool CreateConstantBuffers();
 		// 모델 material 정보를 DX12 material 캐시와 texture descriptor 준비 데이터로 변환한다.

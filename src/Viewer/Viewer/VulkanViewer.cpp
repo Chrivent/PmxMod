@@ -20,10 +20,7 @@ namespace Chrivent {
 					"후처리 target 생성", std::move(error)));
 			}
 		}
-		if (!commandContext.Initialize(device, swapChain))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"command context 생성", "Vulkan command context를 만들지 못했습니다"));
-		return {};
+		return commandContext.Initialize(device, swapChain);
 	}
 
 	void VulkanViewer::ResetSwapChainResources() {
@@ -112,13 +109,13 @@ namespace Chrivent {
 		const VkImageView resolveImageView = postProcess.HasEffects()
 			? postProcess.TryGetSceneImageView(currentImageIndex)
 			: swapChain.GetImageView(currentImageIndex);
-		if (!commandBuffer.BeginRecord(currentImageIndex,
+		const auto recordResult = commandBuffer.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
-			device.GetMsaaSampleCount(), swapChain.GetExtent(), clearColor))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"command buffer 시작", "Vulkan 프레임 command buffer가 기록을 시작하지 못했습니다"));
+			device.GetMsaaSampleCount(), swapChain.GetExtent(), clearColor);
+		if (!recordResult)
+			return std::unexpected(recordResult.error());
 		drawContext.BeginFrame(currentImageIndex, frameIndex);
 		return FrameBeginState::Ready;
 	}
@@ -148,9 +145,10 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"장면 패스 종료", "Vulkan 장면 렌더링을 끝내지 못했습니다"));
 		}
-		if (!commandBuffer.EndRecord(currentImageIndex, swapChain.GetImage(currentImageIndex)))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"command buffer 종료", "Vulkan 출력 패스 기록을 끝내지 못했습니다"));
+		const auto endRecordResult = commandBuffer.EndRecord(
+			currentImageIndex, swapChain.GetImage(currentImageIndex));
+		if (!endRecordResult)
+			return std::unexpected(endRecordResult.error());
 		const VkCommandBuffer nativeCommandBuffer = commandBuffer.TryGetCommandBuffer(currentImageIndex);
 		if (!syncObject.Submit(device.GetGraphicsQueue(), nativeCommandBuffer, currentImageIndex))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandSubmissionFailed,

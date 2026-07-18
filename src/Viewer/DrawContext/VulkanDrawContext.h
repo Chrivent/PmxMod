@@ -49,20 +49,21 @@ namespace Chrivent {
 		bool DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
 			VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
-		void BindModelPipeline(bool bothFace);
+		bool BindModelPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.
-		void BindDepthOnlyPipeline(bool bothFace);
+		bool BindDepthOnlyPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 scene velocity pipeline을 바인딩한다.
-		void BindSceneVelocityPipeline(bool bothFace);
+		bool BindSceneVelocityPipeline(bool bothFace);
 		// 엣지 pipeline을 바인딩한다.
-		void BindEdgePipeline();
+		bool BindEdgePipeline();
 		// 지면 그림자 pipeline을 바인딩한다.
-		void BindGroundShadowPipeline();
+		bool BindGroundShadowPipeline();
 		// 모델 공통 vertex descriptor set을 바인딩한다.
-		void BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet, uint32_t dynamicOffset);
+		bool BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet,
+			uint32_t dynamicOffset);
 		// 재질 pixel descriptor set을 바인딩한다.
-		void BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
+		bool BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
 		// 재질 texture descriptor set을 바인딩한다.
-		void BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
+		bool BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
 	};
 }

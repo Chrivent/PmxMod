@@ -6,7 +6,6 @@
 
 #include <cstddef>
 #include <limits>
-#include <vector>
 
 namespace Chrivent {
 	void Dx12Pipeline::ConfigureAlphaBlend(D3D12_RENDER_TARGET_BLEND_DESC& blendDesc) {
@@ -86,16 +85,6 @@ namespace Chrivent {
 
 	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
-		error.clear();
-		if (!sourceDevice.GetDevice() || !modelRootSignature)
-			return false;
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
-			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
-				false, pixelShader, error))
-			return false;
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -103,8 +92,6 @@ namespace Chrivent {
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
@@ -115,31 +102,22 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
-		if (FAILED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelFrontFacePipelineState))))
+		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, modelFrontFacePipelineState, error))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&modelBothFacePipelineState)));
+		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, modelBothFacePipelineState, error);
 	}
 
 	bool Dx12Pipeline::CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
-		error.clear();
-		if (!sourceDevice.GetDevice() || !modelRootSignature)
-			return false;
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
-			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
-			program.shaderPath, program.pixelEntry, false, pixelShader, error))
-			return false;
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
@@ -148,25 +126,16 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 0;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = 1;
-		if (FAILED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(
-			&pipelineDesc, IID_PPV_ARGS(&depthOnlyFrontFacePipelineState))))
+		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, depthOnlyFrontFacePipelineState, error))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(
-			&pipelineDesc, IID_PPV_ARGS(&depthOnlyBothFacePipelineState)));
+		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, depthOnlyBothFacePipelineState, error);
 	}
 
 	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
-		error.clear();
-		if (!sourceDevice.GetDevice() || !modelRootSignature)
-			return false;
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
-			true, vertexShader, error) || !Dx12PipelineBuilder::CompileShader(sourceDevice,
-			program.shaderPath, program.pixelEntry, false, pixelShader, error))
-			return false;
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -174,8 +143,6 @@ namespace Chrivent {
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_RED | D3D12_COLOR_WRITE_ENABLE_GREEN;
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
@@ -186,12 +153,12 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R16G16_FLOAT;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = 1;
-		if (FAILED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(
-			&pipelineDesc, IID_PPV_ARGS(&sceneVelocityFrontFacePipelineState))))
+		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, sceneVelocityFrontFacePipelineState, error))
 			return false;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(
-			&pipelineDesc, IID_PPV_ARGS(&sceneVelocityBothFacePipelineState)));
+		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, sceneVelocityBothFacePipelineState, error);
 	}
 
 	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& sourceDevice, std::string& error) {
@@ -216,24 +183,12 @@ namespace Chrivent {
 
 	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
-		error.clear();
-		if (!sourceDevice.GetDevice() || !edgeRootSignature)
-			return false;
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
-			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
-				false, pixelShader, error))
-			return false;
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = edgeRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_FRONT);
@@ -244,7 +199,8 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
-		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&edgePipelineState)));
+		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, edgePipelineState, error);
 	}
 
 	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12Device& sourceDevice, std::string& error) {
@@ -269,23 +225,11 @@ namespace Chrivent {
 
 	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
-		error.clear();
-		if (!sourceDevice.GetDevice() || !groundShadowRootSignature)
-			return false;
-		std::vector<uint8_t> vertexShader;
-		std::vector<uint8_t> pixelShader;
-		if (!Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.vertexEntry,
-			true, vertexShader, error)
-			|| !Dx12PipelineBuilder::CompileShader(sourceDevice, program.shaderPath, program.pixelEntry,
-				false, pixelShader, error))
-			return false;
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = groundShadowRootSignature.Get();
-		pipelineDesc.VS = { vertexShader.data(), vertexShader.size() };
-		pipelineDesc.PS = { pixelShader.data(), pixelShader.size() };
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ZERO;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ONE;
@@ -310,7 +254,8 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
-		return SUCCEEDED(sourceDevice.GetDevice()->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&groundShadowPipelineState)));
+		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, groundShadowPipelineState, error);
 	}
 
 	GraphicsResult<void> Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
