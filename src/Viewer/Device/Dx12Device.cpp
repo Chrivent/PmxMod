@@ -63,7 +63,8 @@ namespace Chrivent {
 		}
 	}
 
-	void Dx12Device::UpdateCapabilities(const DXGI_ADAPTER_DESC1& description) {
+	void Dx12Device::UpdateCapabilities(GraphicsCapabilities& capabilities,
+		const DXGI_ADAPTER_DESC1& description) {
 		constexpr D3D_FEATURE_LEVEL requestedFeatureLevels[] = {
 			D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 			D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0
@@ -80,7 +81,7 @@ namespace Chrivent {
 			D3D_SHADER_MODEL_6_2, D3D_SHADER_MODEL_6_1, D3D_SHADER_MODEL_6_0,
 			D3D_SHADER_MODEL_5_1
 		};
-		D3D_SHADER_MODEL maximumShaderModel = D3D_SHADER_MODEL_5_1;
+		maximumShaderModel = D3D_SHADER_MODEL_5_1;
 		for (const D3D_SHADER_MODEL shaderModel : requestedShaderModels) {
 			D3D12_FEATURE_DATA_SHADER_MODEL shaderModelData{ shaderModel };
 			if (SUCCEEDED(device->CheckFeatureSupport(
@@ -90,7 +91,7 @@ namespace Chrivent {
 			}
 		}
 		D3D12_FEATURE_DATA_D3D12_OPTIONS12 options12{};
-		const bool supportsEnhancedBarriers = SUCCEEDED(device->CheckFeatureSupport(
+		enhancedBarriersSupported = SUCCEEDED(device->CheckFeatureSupport(
 			D3D12_FEATURE_D3D12_OPTIONS12, &options12, sizeof(options12))) && options12.EnhancedBarriersSupported;
 		capabilities.apiName = "Direct3D 12";
 		capabilities.apiVersion = std::string("Feature Level ") +
@@ -104,17 +105,23 @@ namespace Chrivent {
 		capabilities.maxTextureBindings = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
 		capabilities.shaderModelMajor = static_cast<uint32_t>(maximumShaderModel) >> 4;
 		capabilities.shaderModelMinor = static_cast<uint32_t>(maximumShaderModel) & 0xF;
-		capabilities.supportsEnhancedBarriers = supportsEnhancedBarriers;
+		capabilities.supportsEnhancedBarriers = enhancedBarriersSupported;
 	}
 
 	Dx12Device::~Dx12Device() {
 		Shutdown();
 	}
 
-	bool Dx12Device::Initialize() {
+	GraphicsResult<void> Dx12Device::Initialize(GraphicsCapabilities& capabilities) {
 		Shutdown();
-		if (FAILED(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory))))
-			return false;
+		capabilities = {};
+		HRESULT result = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InitializationFailed, "DXGI factory 생성",
+				"DirectX 12 어댑터 검색용 factory를 만들지 못했습니다", result, true));
+		}
+		HRESULT lastDeviceResult = E_FAIL;
 		for (UINT index = 0; ; index++) {
 			Microsoft::WRL::ComPtr<IDXGIAdapter1> newAdapter;
 			if (FAILED(factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&newAdapter))))
@@ -122,24 +129,36 @@ namespace Chrivent {
 			DXGI_ADAPTER_DESC1 desc{};
 			if (FAILED(newAdapter->GetDesc1(&desc)) || (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
 				continue;
-			if (SUCCEEDED(D3D12CreateDevice(newAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)))) {
+			lastDeviceResult = D3D12CreateDevice(newAdapter.Get(),
+				D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+			if (SUCCEEDED(lastDeviceResult)) {
 				adapter = newAdapter;
 				break;
 			}
 		}
-		if (!device)
-			return false;
-		DXGI_ADAPTER_DESC1 description{};
-		msaaSampleCount = ChooseMsaaSampleCount(device.Get());
-		if (SUCCEEDED(adapter->GetDesc1(&description))) {
-			UpdateCapabilities(description);
-			capabilities.Print();
+		if (!device) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InitializationFailed, "device 초기화",
+				"DirectX 12를 지원하는 고성능 그래픽 어댑터를 찾지 못했습니다", lastDeviceResult, true));
 		}
+		msaaSampleCount = ChooseMsaaSampleCount(device.Get());
 		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		if (FAILED(device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue))))
-			return false;
-		return true;
+		result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InitializationFailed, "command queue 생성",
+				"DirectX 12 direct command queue를 만들지 못했습니다", result, true));
+		}
+		DXGI_ADAPTER_DESC1 description{};
+		result = adapter->GetDesc1(&description);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InitializationFailed, "그래픽 어댑터 정보 조회",
+				"DirectX 12 그래픽 어댑터 정보를 가져오지 못했습니다", result, true));
+		}
+		UpdateCapabilities(capabilities, description);
+		return {};
 	}
 
 	void Dx12Device::Shutdown() {
@@ -148,6 +167,7 @@ namespace Chrivent {
 		adapter.Reset();
 		factory.Reset();
 		msaaSampleCount = 1;
-		capabilities = {};
+		maximumShaderModel = D3D_SHADER_MODEL_5_1;
+		enhancedBarriersSupported = false;
 	}
 }

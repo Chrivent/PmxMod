@@ -399,6 +399,11 @@ namespace Chrivent {
             std::cerr << "장면 인스턴스를 불러오지 못했습니다.\n";
             return false;
         }
+        const auto waitResult = viewer->WaitIdle();
+        if (!waitResult) {
+            PrintGraphicsError(waitResult.error());
+            return false;
+        }
         ClearInstances();
         instances = std::move(loadedInstances);
         music.Stop();

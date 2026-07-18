@@ -22,9 +22,10 @@ namespace Chrivent {
 
 	GraphicsResult<void> Dx12Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
-		if (!device.Initialize())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"device 초기화", "DirectX 12 device를 만들지 못했습니다"));
+		const auto deviceResult = device.Initialize(capabilities);
+		if (!deviceResult)
+			return std::unexpected(deviceResult.error());
+		capabilities.Print();
 		if (!commandContext.Initialize(device))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"command context 초기화", "DirectX 12 command context를 만들지 못했습니다"));

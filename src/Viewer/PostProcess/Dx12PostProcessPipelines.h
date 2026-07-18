@@ -24,6 +24,7 @@ namespace Chrivent {
 		ID3D12PipelineState* TryGetPipelineState(const size_t index) const {
 			return index < pipelineStates.size() ? pipelineStates[index].Get() : nullptr;
 		}
+		size_t GetCount() const { return pipelineStates.size(); }
 
 		// 패스와 출력 형식 목록을 검증한 뒤 모든 DX12 후처리 파이프라인을 생성한다.
 		bool Initialize(const Dx12Device& sourceDevice, std::span<const ShaderProgramDefinition> programs,

@@ -338,7 +338,8 @@ namespace Chrivent {
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
-		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource())
+		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource()
+			|| !IsPassCountCompatible(pipelines.GetCount()))
 			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
 		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];

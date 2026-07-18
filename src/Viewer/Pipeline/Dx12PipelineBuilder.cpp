@@ -34,7 +34,7 @@ namespace Chrivent {
 
 	bool Dx12PipelineBuilder::CompileShader(const Dx12Device& sourceDevice, const std::filesystem::path& file,
 		const std::string& entry, const bool vertexShader, std::vector<uint8_t>& bytecode, std::string& error) {
-		if (sourceDevice.capabilities.shaderModelMajor >= 6) {
+		if (sourceDevice.GetMaximumShaderModel() >= D3D_SHADER_MODEL_6_0) {
 			const std::wstring wideEntry(entry.begin(), entry.end());
 			return ModernHlslCompiler::CompileDxil(
 				file, wideEntry, vertexShader ? L"vs_6_0" : L"ps_6_0", bytecode, error);

@@ -313,7 +313,7 @@ namespace Chrivent {
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
 			|| imageIndex >= frameDataBuffers.size()
 			|| parameterDataBuffers.size() != swapChainImageCount
-			|| pipelines.GetCount() != routes.size()
+			|| !IsPassCountCompatible(pipelines.GetCount())
 			|| !descriptors.IsCompatible(swapChainImageCount, routes.size()))
 			return false;
 		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData)))

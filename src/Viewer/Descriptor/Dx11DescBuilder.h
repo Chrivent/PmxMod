@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <d3d11.h>
+#include <dxgi1_2.h>
 
 namespace Chrivent {
 	// 반복해서 사용하는 D3D11 리소스 설명 구조체를 생성한다.
@@ -14,8 +15,8 @@ namespace Chrivent {
 		static D3D11_BLEND_DESC MakeAlphaBlendDesc();
 		// 지면 그림자가 기존 render target alpha를 보존하는 블렌드 설명자를 만든다.
 		static D3D11_BLEND_DESC MakeGroundShadowBlendDesc();
-		// GLFW 윈도우와 단일 샘플 back buffer를 사용하는 스왑체인 설명자를 만든다.
-		static DXGI_SWAP_CHAIN_DESC MakeSwapChainDesc(HWND__* hwnd);
+		// 단일 샘플 flip-model back buffer를 사용하는 스왑체인 설명자를 만든다.
+		static DXGI_SWAP_CHAIN_DESC1 MakeSwapChainDesc();
 		// 2D 텍스처의 기본 설명자를 만든다.
 		static D3D11_TEXTURE2D_DESC MakeTexture2DDesc(UINT width, UINT height, DXGI_FORMAT format,
 			UINT bindFlags, UINT sampleCount = 1, UINT sampleQuality = 0);

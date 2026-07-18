@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/GraphicsCapabilities.h"
+#include "Viewer/Error/GraphicsError.h"
 
 #include <d3d11.h>
 #include <wrl/client.h>
@@ -23,13 +24,13 @@ namespace Chrivent {
 		IDXGISwapChain* GetSwapChain() const { return swapChain.Get(); }
 
 		// 고성능 DXGI 어댑터를 선택해 D3D11 device와 immediate context를 생성한다.
-		bool Initialize(GraphicsCapabilities& capabilities);
+		GraphicsResult<void> Initialize(GraphicsCapabilities& capabilities);
 		// 현재 device의 4→2→1 정책으로 MSAA 설정과 capability 값을 확정한다.
 		void SelectMsaaSettings(UINT& sampleCount, UINT& quality,
 			GraphicsCapabilities& capabilities) const;
 		// 지정한 Win32 창에 단일 샘플 back buffer를 사용하는 swapchain을 생성한다.
-		bool CreateSwapChain(HWND__* window);
+		GraphicsResult<void> CreateSwapChain(HWND__* window);
 		// immediate context에 제출한 작업이 끝날 때까지 기다린다.
-		bool WaitIdle() const;
+		GraphicsResult<void> WaitIdle() const;
 	};
 }

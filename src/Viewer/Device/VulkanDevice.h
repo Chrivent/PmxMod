@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/GraphicsCapabilities.h"
+#include "Viewer/Error/GraphicsError.h"
 
 #include <vulkan/vulkan.h>
 
@@ -25,13 +26,13 @@ namespace Chrivent {
 		};
 
 		// Vulkan 인스턴스를 생성한다.
-		bool CreateInstance();
+		GraphicsResult<void> CreateInstance();
 		// GLFW 윈도우에서 Vulkan surface를 생성한다.
-		bool CreateSurface(GLFWwindow* window);
+		GraphicsResult<void> CreateSurface(GLFWwindow* window);
 		// 렌더링에 사용할 물리 디바이스를 선택한다.
-		bool PickPhysicalDevice();
+		GraphicsResult<void> PickPhysicalDevice();
 		// 선택한 물리 디바이스에서 논리 디바이스와 큐를 생성한다.
-		bool CreateLogicalDevice();
+		GraphicsResult<void> CreateLogicalDevice();
 		// 물리 디바이스가 필요한 큐와 확장을 지원하는지 확인한다.
 		bool IsDeviceSuitable(VkPhysicalDevice candidate) const;
 		// 물리 디바이스 종류와 성능 한도를 기준으로 선택 우선순위를 계산한다.
@@ -49,7 +50,7 @@ namespace Chrivent {
 		// Vulkan 버전 정수를 로그용 문자열로 변환한다.
 		static std::string ResolveVersionName(uint32_t version);
 		// 선택한 물리 디바이스의 지원 기능과 한도를 기록한다.
-		void UpdateCapabilities();
+		void UpdateCapabilities(GraphicsCapabilities& capabilities) const;
 		// 생성한 Vulkan 디바이스 전체 수명주기를 종료한다.
 		void Shutdown();
 
@@ -63,7 +64,6 @@ namespace Chrivent {
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkSampleCountFlagBits msaaSampleCount = VK_SAMPLE_COUNT_1_BIT;
 		VulkanQueueFamilyIndices queueFamilies;
-		GraphicsCapabilities capabilities;
 		uint32_t instanceApiVersion = VK_API_VERSION_1_0;
 
 		VulkanDevice() = default;
@@ -73,6 +73,6 @@ namespace Chrivent {
 		VulkanDevice& operator=(const VulkanDevice&) = delete;
 		
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
-		bool Initialize(GLFWwindow* window);
+		GraphicsResult<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
 	};
 }

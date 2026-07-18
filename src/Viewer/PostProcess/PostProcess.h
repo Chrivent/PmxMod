@@ -87,6 +87,8 @@ namespace Chrivent {
 			return effectParameters[route.effectIndex];
 		}
 
+		// API별로 생성된 실행 리소스 수가 공통 패스 계획과 정확히 일치하는지 확인한다.
+		bool IsPassCountCompatible(size_t passCount) const { return passCount == passRoutes.size(); }
 		// 리소스 정의에 대응하는 실제 한 축의 해상도를 계산한다.
 		static int ResolveResourceExtent(int fullExtent, const PostProcessResourcePlan& resource, bool width);
 		// 출력 경로와 전체 화면 크기를 기준으로 패스 출력 크기를 계산한다.

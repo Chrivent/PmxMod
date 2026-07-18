@@ -16,14 +16,14 @@ namespace Chrivent {
 	GraphicsResult<void> Dx11Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		HWND__* hwnd = glfwGetWin32Window(window);
-		if (!device.Initialize(capabilities))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"device 초기화", "DirectX 11 device를 만들지 못했습니다"));
+		const auto deviceResult = device.Initialize(capabilities);
+		if (!deviceResult)
+			return std::unexpected(deviceResult.error());
 		device.SelectMsaaSettings(multiSampleCount, multiSampleQuality, capabilities);
 		capabilities.Print();
-		if (!device.CreateSwapChain(hwnd))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"swap chain 생성", "DirectX 11 swap chain을 만들지 못했습니다"));
+		const auto swapChainResult = device.CreateSwapChain(hwnd);
+		if (!swapChainResult)
+			return std::unexpected(swapChainResult.error());
 		if (!renderTargets.Initialize(device.GetDevice(), device.GetSwapChain(),
 			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
@@ -113,10 +113,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Viewer::WaitIdle() {
-		if (!device.WaitIdle())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::SynchronizationFailed,
-				"GPU 대기", "DirectX 11 immediate context 작업이 끝나지 않았습니다"));
-		return {};
+		return device.WaitIdle();
 	}
 
 	GraphicsResult<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {

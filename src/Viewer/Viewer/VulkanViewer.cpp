@@ -24,9 +24,10 @@ namespace Chrivent {
 
 	GraphicsResult<void> VulkanViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
-		if (!device.Initialize(window))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"device 초기화", "Vulkan device를 만들지 못했습니다"));
+		const auto deviceResult = device.Initialize(window, capabilities);
+		if (!deviceResult)
+			return std::unexpected(deviceResult.error());
+		capabilities.Print();
 		if (!swapChain.Initialize(device, window))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"swap chain 초기화", "Vulkan swap chain을 만들지 못했습니다"));

@@ -13,7 +13,7 @@ namespace Chrivent {
 			if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 				commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList))))
 				return false;
-			if (sourceDevice.capabilities.supportsEnhancedBarriers
+			if (sourceDevice.SupportsEnhancedBarriers()
 				&& FAILED(commandList.As(&enhancedCommandList)))
 				return false;
 			if (FAILED(sourceDevice.device->CreateFence(

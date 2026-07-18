@@ -1,20 +1,26 @@
 ﻿#include "Viewer/Device/VulkanDevice.h"
 
 #include <algorithm>
-#include <iostream>
 #include <set>
 #include <vector>
 
 namespace Chrivent {
-	bool VulkanDevice::CreateInstance() {
+	GraphicsResult<void> VulkanDevice::CreateInstance() {
 		uint32_t loaderVersion = VK_API_VERSION_1_0;
 		const auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
 			vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
-		if (enumerateInstanceVersion && enumerateInstanceVersion(&loaderVersion) != VK_SUCCESS)
-			return false;
+		if (enumerateInstanceVersion) {
+			const VkResult versionResult = enumerateInstanceVersion(&loaderVersion);
+			if (versionResult != VK_SUCCESS) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InitializationFailed, "Vulkan loader 버전 확인",
+					"Vulkan loader 버전을 가져오지 못했습니다", versionResult, true));
+			}
+		}
 		if (loaderVersion < VK_API_VERSION_1_3) {
-			std::cerr << "Vulkan 1.3 이상이 필요합니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "Vulkan loader 버전 확인",
+				"Vulkan 1.3 이상이 필요합니다"));
 		}
 		instanceApiVersion = VK_API_VERSION_1_3;
 		VkApplicationInfo appInfo{};
@@ -27,40 +33,54 @@ namespace Chrivent {
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 		if (!glfwExtensions || glfwExtensionCount == 0) {
-			std::cerr << "필요한 Vulkan GLFW extension을 가져오지 못했습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan instance extension 조회",
+				"필요한 GLFW Vulkan extension을 가져오지 못했습니다"));
 		}
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 		createInfo.enabledExtensionCount = glfwExtensionCount;
 		createInfo.ppEnabledExtensionNames = glfwExtensions;
-		if (vkCreateInstance(&createInfo, nullptr, &vkInstance) != VK_SUCCESS) {
-			std::cerr << "Vulkan instance를 만들지 못했습니다.\n";
-			return false;
+		const VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
+		if (instanceResult != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan instance 생성",
+				"Vulkan instance를 만들지 못했습니다", instanceResult, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanDevice::CreateSurface(GLFWwindow* window) {
-		if (glfwCreateWindowSurface(vkInstance, window, nullptr, &surface) != VK_SUCCESS) {
-			std::cerr << "Vulkan surface를 만들지 못했습니다.\n";
-			return false;
+	GraphicsResult<void> VulkanDevice::CreateSurface(GLFWwindow* window) {
+		const VkResult surfaceResult = glfwCreateWindowSurface(vkInstance, window, nullptr, &surface);
+		if (surfaceResult != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan surface 생성",
+				"GLFW 윈도우의 Vulkan surface를 만들지 못했습니다", surfaceResult, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanDevice::PickPhysicalDevice() {
+	GraphicsResult<void> VulkanDevice::PickPhysicalDevice() {
 		uint32_t deviceCount = 0;
-		if (vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr) != VK_SUCCESS)
-			return false;
+		VkResult enumerateResult = vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr);
+		if (enumerateResult != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan physical device 조회",
+				"Vulkan physical device 개수를 가져오지 못했습니다", enumerateResult, true));
+		}
 		if (deviceCount == 0) {
-			std::cerr << "Vulkan physical device를 찾지 못했습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "Vulkan physical device 선택",
+				"사용할 수 있는 Vulkan physical device가 없습니다"));
 		}
 		std::vector<VkPhysicalDevice> devices(deviceCount);
-		if (vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data()) != VK_SUCCESS)
-			return false;
+		enumerateResult = vkEnumeratePhysicalDevices(vkInstance, &deviceCount, devices.data());
+		if (enumerateResult != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan physical device 조회",
+				"Vulkan physical device 목록을 가져오지 못했습니다", enumerateResult, true));
+		}
 		devices.resize(deviceCount);
 		uint64_t highestScore = 0;
 		for (const auto candidate : devices) {
@@ -76,17 +96,16 @@ namespace Chrivent {
 			properties = newProperties;
 		}
 		if (physicalDevice == VK_NULL_HANDLE) {
-			std::cerr << "요구 조건을 만족하는 Vulkan physical device를 찾지 못했습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "Vulkan physical device 선택",
+				"Vulkan 1.3과 필수 기능을 지원하는 physical device를 찾지 못했습니다"));
 		}
 		queueFamilies = FindQueueFamilies(physicalDevice);
 		msaaSampleCount = ChooseMsaaSampleCount(physicalDevice);
-		UpdateCapabilities();
-		capabilities.Print();
-		return true;
+		return {};
 	}
 
-	bool VulkanDevice::CreateLogicalDevice() {
+	GraphicsResult<void> VulkanDevice::CreateLogicalDevice() {
 		const std::set uniqueQueueFamilies = {
 			queueFamilies.graphicsFamily,
 			queueFamilies.presentFamily
@@ -113,13 +132,15 @@ namespace Chrivent {
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 		createInfo.enabledExtensionCount = std::size(kDeviceExtensions);
 		createInfo.ppEnabledExtensionNames = kDeviceExtensions;
-		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-			std::cerr << "Vulkan logical device를 만들지 못했습니다.\n";
-			return false;
+		const VkResult deviceResult = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
+		if (deviceResult != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InitializationFailed, "Vulkan logical device 생성",
+				"Vulkan logical device를 만들지 못했습니다", deviceResult, true));
 		}
 		vkGetDeviceQueue(device, queueFamilies.graphicsFamily, 0, &graphicsQueue);
 		vkGetDeviceQueue(device, queueFamilies.presentFamily, 0, &presentQueue);
-		return true;
+		return {};
 	}
 
 	bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice candidate) const {
@@ -269,7 +290,7 @@ namespace Chrivent {
 			std::to_string(VK_API_VERSION_PATCH(version));
 	}
 
-	void VulkanDevice::UpdateCapabilities() {
+	void VulkanDevice::UpdateCapabilities(GraphicsCapabilities& capabilities) const {
 		VkPhysicalDeviceVulkan12Features vulkan12Features{};
 		vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 		VkPhysicalDeviceVulkan13Features vulkan13Features{};
@@ -298,15 +319,36 @@ namespace Chrivent {
 		Shutdown();
 	}
 
-	bool VulkanDevice::Initialize(GLFWwindow* window) {
+	GraphicsResult<void> VulkanDevice::Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities) {
 		Shutdown();
-		if (!CreateInstance())
-			return false;
-		if (!CreateSurface(window))
-			return false;
-		if (!PickPhysicalDevice())
-			return false;
-		return CreateLogicalDevice();
+		capabilities = {};
+		if (window == nullptr) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "Vulkan device 초기화",
+				"Vulkan surface를 만들 GLFW 윈도우가 없습니다"));
+		}
+		auto result = CreateInstance();
+		if (!result) {
+			Shutdown();
+			return std::unexpected(result.error());
+		}
+		result = CreateSurface(window);
+		if (!result) {
+			Shutdown();
+			return std::unexpected(result.error());
+		}
+		result = PickPhysicalDevice();
+		if (!result) {
+			Shutdown();
+			return std::unexpected(result.error());
+		}
+		result = CreateLogicalDevice();
+		if (!result) {
+			Shutdown();
+			return std::unexpected(result.error());
+		}
+		UpdateCapabilities(capabilities);
+		return {};
 	}
 
 	void VulkanDevice::Shutdown() {
@@ -327,7 +369,6 @@ namespace Chrivent {
 		graphicsQueue = VK_NULL_HANDLE;
 		presentQueue = VK_NULL_HANDLE;
 		queueFamilies = {};
-		capabilities = {};
 		instanceApiVersion = VK_API_VERSION_1_0;
 	}
 }

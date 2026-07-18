@@ -223,7 +223,8 @@ namespace Chrivent {
 	bool Dx11PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 		const int width, const int height, const PostProcessFrameData& frameData) {
-		if (!HasEffects() || context == nullptr || backBufferView == nullptr)
+		if (!HasEffects() || context == nullptr || backBufferView == nullptr
+			|| !IsPassCountCompatible(postProcessShaders.size()))
 			return false;
 		BeginHistoryFrame();
 		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
@@ -240,7 +241,7 @@ namespace Chrivent {
 			PostProcessInputLayout::samplerCount, samplers);
 		InitializeHistories(context);
 		const auto& routes = GetPassRoutes();
-		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
+		for (size_t index = 0; index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
 			const PostProcessParameterData& parameterData = GetParameterData(route);
 			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &parameterData, 0, 0);

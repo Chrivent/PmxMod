@@ -270,6 +270,8 @@ namespace Chrivent {
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return true;
+		if (!IsPassCountCompatible(postProcessShaders.size()))
+			return false;
 		BeginHistoryFrame();
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
@@ -282,7 +284,7 @@ namespace Chrivent {
 		glBindVertexArray(postProcessVao);
 		InitializeHistories();
 		const auto& routes = GetPassRoutes();
-		for (size_t index = 0; index < postProcessShaders.size() && index < routes.size(); index++) {
+		for (size_t index = 0; index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
 			const PostProcessParameterData& parameterData = GetParameterData(route);
 			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);

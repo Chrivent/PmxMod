@@ -36,15 +36,16 @@ namespace Chrivent {
 		return d;
 	}
 
-	DXGI_SWAP_CHAIN_DESC Dx11DescBuilder::MakeSwapChainDesc(HWND__* hwnd) {
-		DXGI_SWAP_CHAIN_DESC d{};
+	DXGI_SWAP_CHAIN_DESC1 Dx11DescBuilder::MakeSwapChainDesc() {
+		DXGI_SWAP_CHAIN_DESC1 d{};
 		d.BufferCount = 2;
-		d.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		d.OutputWindow = hwnd;
 		d.SampleDesc.Count = 1;
 		d.SampleDesc.Quality = 0;
-		d.Windowed = TRUE;
+		d.Scaling = DXGI_SCALING_STRETCH;
+		d.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		d.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 		return d;
 	}
 

@@ -28,7 +28,7 @@ namespace Chrivent {
 		if (FAILED(sourceDevice.device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
 			commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&commandList))))
 			return false;
-		if (sourceDevice.capabilities.supportsEnhancedBarriers && FAILED(commandList.As(&enhancedCommandList)))
+		if (sourceDevice.SupportsEnhancedBarriers() && FAILED(commandList.As(&enhancedCommandList)))
 			return false;
 		if (FAILED(commandList->Close()))
 			return false;

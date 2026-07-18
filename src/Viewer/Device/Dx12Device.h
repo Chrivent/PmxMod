@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/GraphicsCapabilities.h"
+#include "Viewer/Error/GraphicsError.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -20,7 +21,10 @@ namespace Chrivent {
 		// DX12 shader model을 로그용 문자열로 변환한다.
 		static const char* ResolveShaderModelName(D3D_SHADER_MODEL shaderModel);
 		// 생성된 디바이스가 지원하는 기능과 한도를 기록한다.
-		void UpdateCapabilities(const DXGI_ADAPTER_DESC1& description);
+		void UpdateCapabilities(GraphicsCapabilities& capabilities,
+			const DXGI_ADAPTER_DESC1& description);
+		D3D_SHADER_MODEL maximumShaderModel = D3D_SHADER_MODEL_5_1;
+		bool enhancedBarriersSupported = false;
 
 	public:
 		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
@@ -28,12 +32,14 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12Device> device;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
 		UINT msaaSampleCount = 1;
-		GraphicsCapabilities capabilities;
 
 		~Dx12Device();
 
+		D3D_SHADER_MODEL GetMaximumShaderModel() const { return maximumShaderModel; }
+		bool SupportsEnhancedBarriers() const { return enhancedBarriersSupported; }
+
 		// DX12 디바이스와 command queue를 생성한다.
-		bool Initialize();
+		GraphicsResult<void> Initialize(GraphicsCapabilities& capabilities);
 		// 생성한 DX12 디바이스 리소스를 해제한다.
 		void Shutdown();
 	};
