@@ -54,7 +54,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanViewer::ResizeCore() {
-		const auto waitResult = WaitIdle();
+		const auto waitResult = WaitIdleCore();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
 		ResetSwapChainResources();

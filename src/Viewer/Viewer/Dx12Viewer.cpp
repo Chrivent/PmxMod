@@ -51,7 +51,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx12Viewer::ResizeCore() {
-		const auto waitResult = WaitIdle();
+		const auto waitResult = WaitIdleCore();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
 		const auto resizeResult = swapChain.Resize(device, screenWidth, screenHeight);
