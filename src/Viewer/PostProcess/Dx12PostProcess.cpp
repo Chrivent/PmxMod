@@ -294,14 +294,9 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
-		const int width, const int height,
-		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const int width, const int height, PreparedEffects preparedEffects) {
 		Dx12PostProcess candidate;
-		const auto planResult = candidate.SetEffects(effects);
-		if (!planResult) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
-		}
+		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
 			const auto targetResult = candidate.InitializeTargets(sourceDevice, width, height);
 			if (!targetResult)

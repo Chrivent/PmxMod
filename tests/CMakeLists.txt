@@ -14,3 +14,30 @@ target_link_libraries(PmxModViewerTests PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(PmxModViewerTests)
+
+add_executable(PmxModViewerApiTests
+        Viewer/ApiDescriptorTest.cpp
+        Viewer/GraphicsContractTest.cpp
+        Viewer/ShaderCompilerTest.cpp
+)
+
+target_compile_features(PmxModViewerApiTests PRIVATE cxx_std_23)
+
+target_compile_definitions(PmxModViewerApiTests PRIVATE
+        PMXMOD_RESOURCE_SOURCE_DIR="${PROJECT_SOURCE_DIR}/resource"
+)
+
+target_link_libraries(PmxModViewerApiTests PRIVATE
+        PmxMod::ProjectWarnings
+        PmxMod::Viewer
+        GTest::gtest_main
+)
+
+add_custom_command(TARGET PmxModViewerApiTests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DXCOMPILER_DLL}"
+        "$<TARGET_FILE_DIR:PmxModViewerApiTests>"
+        VERBATIM
+)
+
+gtest_discover_tests(PmxModViewerApiTests)

@@ -88,6 +88,19 @@ namespace Chrivent {
 			bool velocityRequired = false;
 		};
 
+	public:
+		// 한 번 검증하고 생성한 API 독립 후처리 실행 계획을 API 후보 객체까지 운반한다.
+		class PreparedEffects {
+			ExecutionPlan executionPlan;
+
+		public:
+			// 검증을 마친 실행 계획의 소유권을 받는다.
+			explicit PreparedEffects(ExecutionPlan sourceExecutionPlan);
+			// 보관한 실행 계획을 지정한 후처리 객체로 이동한다.
+			void ApplyTo(PostProcess& postProcess) &&;
+		};
+
+	private:
 		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
 		struct ResourceHistoryState {
 			size_t readIndex = 0;
@@ -148,9 +161,8 @@ namespace Chrivent {
 		void BeginHistoryFrame();
 		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
 		void SwapExecutionPlan(PostProcess& other) noexcept;
-		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
-		std::expected<void, PostProcessPlanError> SetEffects(
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+		// 준비된 실행 계획을 API별 후보 후처리 객체에 적용한다.
+		void AdoptPreparedEffects(PreparedEffects preparedEffects);
 
 	public:
 		virtual ~PostProcess() = default;
@@ -162,8 +174,8 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
-		// GPU 대기나 API 리소스 생성 전에 효과 선언과 패스 그래프를 검증한다.
-		static std::expected<void, PostProcessPlanError> ValidateEffects(
+		// GPU 대기나 API 리소스 생성 전에 효과 선언을 검증하고 실행 계획을 한 번 생성한다.
+		static std::expected<PreparedEffects, PostProcessPlanError> PrepareEffects(
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 활성 효과에 적용할 파라미터 갱신의 색인, 슬롯과 값 범위를 검증한다.
 		bool ValidateParameterUpdates(std::span<const EffectParameterUpdate> updates) const;

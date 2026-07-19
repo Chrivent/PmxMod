@@ -73,7 +73,7 @@ namespace Chrivent {
 		GraphicsError::Result<void> InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
 		GraphicsError::Result<void> Configure(const Dx12Device& sourceDevice, int width, int height,
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+			PreparedEffects preparedEffects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;

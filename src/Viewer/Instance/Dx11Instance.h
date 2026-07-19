@@ -25,14 +25,9 @@ namespace Chrivent {
 		GraphicsError::Result<void> CreateConstantBuffers();
 		// 모델 material 정보를 DX11 material 캐시와 texture 리소스로 변환한다.
 		GraphicsError::Result<void> LoadMaterials();
-		// DX11 상수 버퍼 크기 규칙에 맞춰 16바이트 정렬 버퍼를 생성한다.
-		template<typename T>
-		static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
-			constexpr UINT bytes = (sizeof(T) + 15u) / 16u * 16u;
-			const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER,
-				D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
-			return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
-		}
+		// DX11 상수 버퍼 크기 규칙에 맞춰 요청한 크기의 16바이트 정렬 버퍼를 생성한다.
+		static HRESULT CreateConstantBuffer(ID3D11Device* device, size_t size,
+			Microsoft::WRL::ComPtr<ID3D11Buffer>& out);
 
 	protected:
 		// DX11 모델 GPU 리소스를 초기 상태로 되돌린다.

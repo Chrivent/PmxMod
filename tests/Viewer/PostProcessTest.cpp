@@ -36,7 +36,11 @@ namespace Chrivent {
 		// 테스트 효과 정의를 API 독립 실행 계획으로 변환한다.
 		std::expected<void, PostProcessPlanError> Configure(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
-			return SetEffects(effects);
+			auto preparedEffectsResult = PrepareEffects(effects);
+			if (!preparedEffectsResult)
+				return std::unexpected(preparedEffectsResult.error());
+			AdoptPreparedEffects(std::move(*preparedEffectsResult));
+			return {};
 		}
 
 		// 지정한 패스의 출력 해상도를 계산한다.

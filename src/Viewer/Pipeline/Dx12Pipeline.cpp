@@ -88,9 +88,12 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12Pipeline::CreateModelPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
@@ -191,8 +194,10 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12Pipeline::CreateEdgePipelineState(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = simplePassRootSignature.Get();
@@ -213,7 +218,8 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12Pipeline::CreateGroundShadowPipelineState(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = simplePassRootSignature.Get();

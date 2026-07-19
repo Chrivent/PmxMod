@@ -62,7 +62,7 @@ namespace Chrivent {
 		GraphicsError::Result<void> InitializeTargets(int width, int height, int sampleCount);
 		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
 		GraphicsError::Result<void> Configure(int width, int height, int sampleCount,
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+			PreparedEffects preparedEffects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.

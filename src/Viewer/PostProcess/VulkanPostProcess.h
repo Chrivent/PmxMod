@@ -78,7 +78,7 @@ namespace Chrivent {
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
 		GraphicsError::Result<void> Configure(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
+			VkFormat depthFormat, PreparedEffects preparedEffects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
 			uint32_t imageIndex, VkExtent2D extent);

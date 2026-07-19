@@ -32,7 +32,7 @@ namespace Chrivent {
 	protected:
 		// 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
 		GraphicsError::Result<void> LoadPostProcessEffectsCore(
-			const std::vector<const EffectRuntimeDefinition*>& effects) override;
+			PostProcess::PreparedEffects preparedEffects) override;
 		// DX11 후처리 장면 입력 패스 기록을 시작한다.
 		GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() override;
 		// DX11 후처리 장면 입력 패스를 종료한다.

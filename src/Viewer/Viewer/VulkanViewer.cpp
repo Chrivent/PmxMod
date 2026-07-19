@@ -2,6 +2,8 @@
 
 #include "Viewer/Instance/VulkanInstance.h"
 
+#include <utility>
+
 namespace Chrivent {
 	GraphicsError::Result<void> VulkanViewer::CreateSwapChainResources() {
 		const auto colorResult = msaaColorBuffer.Initialize(device, swapChain);
@@ -198,11 +200,13 @@ namespace Chrivent {
 		return device.WaitIdle();
 	}
 
-	GraphicsError::Result<void> VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> VulkanViewer::LoadPostProcessEffectsCore(
+		PostProcess::PreparedEffects preparedEffects) {
 		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));
-		return postProcess.Configure(device, swapChain, msaaDepthBuffer.GetFormat(), effects);
+		return postProcess.Configure(
+			device, swapChain, msaaDepthBuffer.GetFormat(), std::move(preparedEffects));
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {

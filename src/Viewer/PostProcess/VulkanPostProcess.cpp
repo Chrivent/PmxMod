@@ -241,13 +241,9 @@ namespace Chrivent {
 
 	GraphicsError::Result<void> VulkanPostProcess::Configure(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const VkFormat depthFormat, PreparedEffects preparedEffects) {
 		VulkanPostProcess candidate;
-		const auto planResult = candidate.SetEffects(effects);
-		if (!planResult) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
-		}
+		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
 			const auto initializeResult = candidate.InitializeTargets(
 				sourceDevice, sourceSwapChain, depthFormat);

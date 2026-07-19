@@ -11,15 +11,14 @@
 #include "Viewer/Device/GraphicsCapabilities.h"
 #include "Viewer/Drawer/SceneDrawState.h"
 #include "Viewer/Error/GraphicsError.h"
+#include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/PostProcess/PostProcessFrameData.h"
-#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 #include "Viewer/Shader/SceneShaderRuntimeContract.h"
 
 namespace Chrivent {
 	class Animation;
 	class Instance;
 	class Model;
-	class PostProcess;
 
 	// 프레임 기록 시작의 정상 상태를 준비 완료와 일시적 건너뜀으로 구분한다.
 	enum class FrameBeginState {
@@ -80,7 +79,8 @@ namespace Chrivent {
 		GraphicsCapabilities capabilities;
 
 		// API별 리소스로 검증된 후처리 실행 체인을 생성한다.
-		virtual GraphicsError::Result<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) = 0;
+		virtual GraphicsError::Result<void> LoadPostProcessEffectsCore(
+			PostProcess::PreparedEffects preparedEffects) = 0;
 		// API별 후처리 장면 입력 패스 기록을 시작한다.
 		virtual GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() = 0;
 		// API별 후처리 장면 입력 패스 기록을 종료한다.

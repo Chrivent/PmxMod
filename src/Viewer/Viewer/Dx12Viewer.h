@@ -37,7 +37,8 @@ namespace Chrivent {
 		
 	protected:
 		// 체크된 후처리 효과들을 DX12 ping-pong 체인으로 컴파일한다.
-		GraphicsError::Result<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
+		GraphicsError::Result<void> LoadPostProcessEffectsCore(
+			PostProcess::PreparedEffects preparedEffects) override;
 		// DX12 후처리 장면 입력 패스 기록을 시작한다.
 		GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() override;
 		// DX12 후처리 장면 입력 패스를 종료한다.

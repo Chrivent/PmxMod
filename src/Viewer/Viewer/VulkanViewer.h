@@ -40,7 +40,8 @@ namespace Chrivent {
 
 	protected:
 		// 체크된 후처리 효과들을 검증한 뒤 현재 Vulkan 실행 체인과 교체한다.
-		GraphicsError::Result<void> LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) override;
+		GraphicsError::Result<void> LoadPostProcessEffectsCore(
+			PostProcess::PreparedEffects preparedEffects) override;
 		// Vulkan 후처리 장면 입력 패스 기록을 시작한다.
 		GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() override;
 		// Vulkan 후처리 장면 입력 패스를 종료한다.

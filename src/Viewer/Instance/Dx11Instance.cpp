@@ -11,10 +11,22 @@
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Core/Model/Model.h"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
 
 namespace Chrivent {
+	HRESULT Dx11Instance::CreateConstantBuffer(ID3D11Device* device, const size_t size,
+		Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
+		size_t alignedSize = 0;
+		if (device == nullptr || !BufferSize::TryAlignUp(size, 16, alignedSize)
+			|| alignedSize > std::numeric_limits<UINT>::max())
+			return E_INVALIDARG;
+		const CD3D11_BUFFER_DESC desc(static_cast<UINT>(alignedSize),
+			D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+		return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
+	}
+
 	GraphicsError::Result<void> Dx11Instance::CreateGeometryBuffers() {
 		ID3D11Device* targetDevice = device.GetDevice();
 		if (targetDevice == nullptr) {
@@ -71,26 +83,27 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"DX11 constant buffer 생성", "DirectX 11 device를 사용할 수 없습니다"));
 		}
-		HRESULT result = CreateBuffer<ModelVertexConstants>(
-			targetDevice, modelResources.vsConstantBuffer);
+		HRESULT result = CreateConstantBuffer(targetDevice,
+			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)),
+			modelResources.vsConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<ModelPixelConstants>(
-				targetDevice, modelResources.psConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(ModelPixelConstants), modelResources.psConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<SceneSurfacePixelConstants>(
-				targetDevice, modelResources.sceneSurfaceConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(SceneSurfacePixelConstants), modelResources.sceneSurfaceConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<EdgeVertexConstants>(
-				targetDevice, modelResources.edgeVsConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(EdgeVertexConstants), modelResources.edgeVsConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<EdgePixelConstants>(
-				targetDevice, modelResources.edgePsConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(EdgePixelConstants), modelResources.edgePsConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<GroundShadowVertexConstants>(
-				targetDevice, modelResources.gsVsConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(GroundShadowVertexConstants), modelResources.gsVsConstantBuffer);
 		if (SUCCEEDED(result))
-			result = CreateBuffer<GroundShadowPixelConstants>(
-				targetDevice, modelResources.gsPsConstantBuffer);
+			result = CreateConstantBuffer(targetDevice,
+				sizeof(GroundShadowPixelConstants), modelResources.gsPsConstantBuffer);
 		if (FAILED(result)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX11 constant buffer 생성", "패스별 constant buffer를 만들지 못했습니다", result, true));

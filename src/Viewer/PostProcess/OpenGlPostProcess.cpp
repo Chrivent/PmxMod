@@ -287,14 +287,9 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> OpenGlPostProcess::Configure(const int width, const int height,
-		const int sampleCount,
-		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const int sampleCount, PreparedEffects preparedEffects) {
 		OpenGlPostProcess candidate;
-		const auto planResult = candidate.SetEffects(effects);
-		if (!planResult) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
-		}
+		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
 			const auto targetResult = candidate.InitializeTargets(width, height, sampleCount);
 			if (!targetResult)

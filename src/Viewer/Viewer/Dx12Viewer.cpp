@@ -6,6 +6,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <utility>
+
 namespace Chrivent {
 	void Dx12Viewer::PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const {
 		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer,
@@ -144,11 +146,13 @@ namespace Chrivent {
 		return commandContext.WaitForGpu(device);
 	}
 
-	GraphicsError::Result<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> Dx12Viewer::LoadPostProcessEffectsCore(
+		PostProcess::PreparedEffects preparedEffects) {
 		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "DirectX 12 device를 사용할 수 없습니다"));
-		return postProcess.Configure(device, screenWidth, screenHeight, effects);
+		return postProcess.Configure(
+			device, screenWidth, screenHeight, std::move(preparedEffects));
 	}
 
 	std::unique_ptr<Instance> Dx12Viewer::CreateInstanceCore() {

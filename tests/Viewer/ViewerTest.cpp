@@ -4,6 +4,7 @@
 #include "Viewer/PostProcess/PostProcess.h"
 
 #include <gtest/gtest.h>
+#include <utility>
 
 namespace Chrivent {
 	// GPU 리소스 없이 Viewer 상태 전이를 검증하는 후처리 구현이다.
@@ -16,7 +17,16 @@ namespace Chrivent {
 		// depth 입력이 필요한 최소 실행 계획을 구성한다.
 		std::expected<void, PostProcessPlanError> ConfigureDepthEffect(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
-			return SetEffects(effects);
+			auto preparedEffectsResult = PrepareEffects(effects);
+			if (!preparedEffectsResult)
+				return std::unexpected(preparedEffectsResult.error());
+			AdoptPreparedEffects(std::move(*preparedEffectsResult));
+			return {};
+		}
+
+		// 이미 검증한 테스트 실행 계획을 현재 상태로 적용한다.
+		void ConfigurePreparedEffects(PreparedEffects preparedEffects) {
+			AdoptPreparedEffects(std::move(preparedEffects));
 		}
 
 		// 테스트 구현에는 해제할 API 리소스가 없다.
@@ -49,13 +59,10 @@ namespace Chrivent {
 	protected:
 		// 테스트 효과 구성은 API 리소스를 만들지 않는다.
 		GraphicsError::Result<void> LoadPostProcessEffectsCore(
-			const std::vector<const EffectRuntimeDefinition*>& effects) override {
+			PostProcess::PreparedEffects preparedEffects) override {
 			loadEffectCallCount++;
-			const auto result = postProcess.ConfigureDepthEffect(effects);
-			if (result)
-				return {};
-			return std::unexpected(GraphicsError::Create(GraphicsApi::Unknown,
-				GraphicsErrorCode::ContractViolation, "테스트 후처리 구성", result.error().Format()));
+			postProcess.ConfigurePreparedEffects(std::move(preparedEffects));
+			return {};
 		}
 
 		// 테스트 장면 입력 시작 결과를 반환한다.

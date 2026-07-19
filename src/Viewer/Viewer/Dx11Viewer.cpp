@@ -5,6 +5,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <utility>
+
 namespace Chrivent {
 	GraphicsError::Result<void> Dx11Viewer::CreateDummyResources() {
 		const auto textureResult = textureCache.CreateWhiteTexture(device.GetDevice());
@@ -105,9 +107,10 @@ namespace Chrivent {
 		return device.WaitIdle();
 	}
 
-	GraphicsError::Result<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> Dx11Viewer::LoadPostProcessEffectsCore(
+		PostProcess::PreparedEffects preparedEffects) {
 		return postProcess.Configure(
-			device.GetDevice(), screenWidth, screenHeight, effects);
+			device.GetDevice(), screenWidth, screenHeight, std::move(preparedEffects));
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {
