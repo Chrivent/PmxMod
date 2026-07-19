@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Texture/OpenGlTextureCache.h"
 
-#include "Viewer/Error/OpenGlError.h"
+#include "Viewer/Error/OpenGlErrorState.h"
 
 #include <ranges>
 
@@ -18,10 +18,10 @@ namespace Chrivent {
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
-		OpenGlError::Clear();
+		OpenGlErrorState::Clear();
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
 		if (tex == 0) {
-			const GLenum result = OpenGlError::Take();
+			const GLenum result = OpenGlErrorState::Take();
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
 				"OpenGL texture 객체를 만들지 못했습니다",
@@ -31,7 +31,7 @@ namespace Chrivent {
 		glTextureSubImage2D(tex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		const GLenum result = OpenGlError::Take();
+		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
 			glDeleteTextures(1, &tex);
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
@@ -53,10 +53,10 @@ namespace Chrivent {
 			return std::optional<OpenGlTexture>{};
 		const bool hasAlpha = components == 4;
 		GLuint tex = 0;
-		OpenGlError::Clear();
+		OpenGlErrorState::Clear();
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
 		if (tex == 0) {
-			const GLenum result = OpenGlError::Take();
+			const GLenum result = OpenGlErrorState::Take();
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"OpenGL texture 객체를 만들지 못했습니다",
@@ -71,7 +71,7 @@ namespace Chrivent {
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
-		const GLenum result = OpenGlError::Take();
+		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
 			glDeleteTextures(1, &tex);
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,

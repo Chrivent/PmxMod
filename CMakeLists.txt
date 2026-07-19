@@ -2,6 +2,8 @@
 
 project(PmxMod LANGUAGES CXX)
 
+option(PMXMOD_BUILD_TESTS "PmxMod 테스트를 빌드합니다" OFF)
+
 add_compile_definitions(NOMINMAX)
 
 find_package(glfw3 CONFIG REQUIRED)
@@ -20,6 +22,12 @@ find_file(DXCOMPILER_DLL dxcompiler.dll HINTS "$ENV{VULKAN_SDK}/Bin" REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Viewer)
+
+if(PMXMOD_BUILD_TESTS)
+    enable_testing()
+    find_package(GTest CONFIG REQUIRED)
+    add_subdirectory(tests)
+endif()
 
 add_executable(PmxMod
         main.cpp

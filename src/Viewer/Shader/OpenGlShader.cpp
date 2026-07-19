@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Shader/OpenGlShader.h"
 
-#include "Viewer/Error/OpenGlError.h"
+#include "Viewer/Error/OpenGlErrorState.h"
 #include "Viewer/Shader/DxcHlslCompiler.h"
 
 #include <spirv_cross/spirv_glsl.hpp>
@@ -49,9 +49,9 @@ namespace Chrivent {
 				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V를 GLSL로 변환",
 				"SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " + std::string(compilerError.what())));
 		}
-		OpenGlError::Clear();
+		OpenGlErrorState::Clear();
 		const GLuint shader = glCreateShader(shaderType);
-		const GLenum result = OpenGlError::Take();
+		const GLenum result = OpenGlErrorState::Take();
 		if (shader == 0 || result != GL_NO_ERROR) {
 			if (shader != 0)
 				glDeleteShader(shader);
@@ -105,9 +105,9 @@ namespace Chrivent {
 			return std::unexpected(pixelShaderResult.error());
 		}
 		const GLuint pixelShader = *pixelShaderResult;
-		OpenGlError::Clear();
+		OpenGlErrorState::Clear();
 		const GLuint program = glCreateProgram();
-		const GLenum result = OpenGlError::Take();
+		const GLenum result = OpenGlErrorState::Take();
 		if (program == 0 || result != GL_NO_ERROR) {
 			if (program != 0)
 				glDeleteProgram(program);

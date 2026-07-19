@@ -1,11 +1,11 @@
-﻿#include "Viewer/Error/OpenGlError.h"
+﻿#include "Viewer/Error/OpenGlErrorState.h"
 
 namespace Chrivent {
-	void OpenGlError::Clear() {
+	void OpenGlErrorState::Clear() {
 		while (glGetError() != GL_NO_ERROR) {}
 	}
 
-	GLenum OpenGlError::Take() {
+	GLenum OpenGlErrorState::Take() {
 		const GLenum firstError = glGetError();
 		while (glGetError() != GL_NO_ERROR) {}
 		return firstError;

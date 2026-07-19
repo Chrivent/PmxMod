@@ -4,7 +4,7 @@
 
 namespace Chrivent {
 	// OpenGL의 누적 오류 상태를 작업 경계별로 비우고 수집한다.
-	class OpenGlError {
+	class OpenGlErrorState {
 	public:
 		// 이전 OpenGL 작업에서 남은 오류를 모두 비운다.
 		static void Clear();

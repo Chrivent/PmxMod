@@ -37,7 +37,7 @@ target_sources(PmxModViewer PRIVATE
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
         Error/GraphicsError.h Error/GraphicsError.cpp
-        Error/OpenGlError.h Error/OpenGlError.cpp
+        Error/OpenGlErrorState.h Error/OpenGlErrorState.cpp
 
 		Drawer/SceneDrawState.h
 		Drawer/Drawer.h Drawer/Drawer.cpp
