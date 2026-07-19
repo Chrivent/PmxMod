@@ -27,7 +27,7 @@ namespace Chrivent {
 		Dx11DrawContext drawContext{ device, pipeline, dummyTexture };
 
 		// 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
-		bool CreateDummyResources();
+		GraphicsResult<void> CreateDummyResources();
 
 	protected:
 		// 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.

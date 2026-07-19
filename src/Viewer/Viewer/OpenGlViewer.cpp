@@ -75,11 +75,10 @@ namespace Chrivent {
 		const auto pipelineResult = pipeline.Initialize(shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
-		const GLuint dummyColorTexture = textureCache.CreateWhiteTexture().texture;
-		if (dummyColorTexture == 0)
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
-		drawContext.SetDummyColorTexture(dummyColorTexture);
+		const auto dummyTextureResult = textureCache.CreateWhiteTexture();
+		if (!dummyTextureResult)
+			return std::unexpected(dummyTextureResult.error());
+		drawContext.SetDummyColorTexture(dummyTextureResult->texture);
 		glViewport(0, 0, screenWidth, screenHeight);
 		return {};
 	}
@@ -87,9 +86,10 @@ namespace Chrivent {
 	GraphicsResult<void> OpenGlViewer::ResizeCore() {
 		glViewport(0, 0, screenWidth, screenHeight);
 		if (postProcess.HasEffects()) {
-			if (!postProcess.InitializeTargets(screenWidth, screenHeight, capabilities.activeSampleCount))
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"후처리 target 크기 변경", "OpenGL 후처리 target을 다시 만들지 못했습니다"));
+			const auto postProcessResult = postProcess.InitializeTargets(
+				screenWidth, screenHeight, capabilities.activeSampleCount);
+			if (!postProcessResult)
+				return std::unexpected(postProcessResult.error());
 			return {};
 		}
 		postProcess.ResetResources();

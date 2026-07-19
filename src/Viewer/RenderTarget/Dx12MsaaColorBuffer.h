@@ -19,7 +19,7 @@ namespace Chrivent {
 		}
 
 		// 화면 크기에 맞는 DX12 MSAA color render target과 RTV를 생성한다.
-		bool Initialize(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsResult<void> Initialize(const Dx12Device& sourceDevice, int width, int height);
 		// 장면 색상을 back buffer로 resolve 또는 copy하고 두 리소스 상태를 복원한다.
 		bool ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,
 			ID3D12GraphicsCommandList7* enhancedCommandList, ID3D12Resource* backBuffer) const;

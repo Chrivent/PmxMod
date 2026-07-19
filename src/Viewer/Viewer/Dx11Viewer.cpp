@@ -6,11 +6,13 @@
 #include <GLFW/glfw3native.h>
 
 namespace Chrivent {
-	bool Dx11Viewer::CreateDummyResources() {
-		const Dx11Texture texture = textureCache.CreateWhiteTexture(device.GetDevice());
-		dummyTexture.texture = texture.texture;
-		dummyTexture.textureView = texture.textureView;
-		return dummyTexture.texture && dummyTexture.textureView;
+	GraphicsResult<void> Dx11Viewer::CreateDummyResources() {
+		const auto textureResult = textureCache.CreateWhiteTexture(device.GetDevice());
+		if (!textureResult)
+			return std::unexpected(textureResult.error());
+		dummyTexture.texture = textureResult->texture;
+		dummyTexture.textureView = textureResult->textureView;
+		return {};
 	}
 
 	GraphicsResult<void> Dx11Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
@@ -23,16 +25,16 @@ namespace Chrivent {
 		const auto swapChainResult = swapChain.Initialize(device.GetDevice(), hwnd);
 		if (!swapChainResult)
 			return std::unexpected(swapChainResult.error());
-		if (!renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
-			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"render target 초기화", "DirectX 11 render target을 만들지 못했습니다"));
+		const auto targetResult = renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
+			screenWidth, screenHeight, multiSampleCount, multiSampleQuality);
+		if (!targetResult)
+			return std::unexpected(targetResult.error());
 		const auto pipelineResult = pipeline.Initialize(device.GetDevice(), shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
-		if (!CreateDummyResources())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
+		const auto dummyResult = CreateDummyResources();
+		if (!dummyResult)
+			return std::unexpected(dummyResult.error());
 		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return {};
 	}
@@ -43,14 +45,16 @@ namespace Chrivent {
 		const auto resizeResult = swapChain.Resize(screenWidth, screenHeight);
 		if (!resizeResult)
 			return std::unexpected(resizeResult.error());
-		if (!renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
-			screenWidth, screenHeight, multiSampleCount, multiSampleQuality))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"render target 크기 변경", "DirectX 11 render target을 다시 만들지 못했습니다"));
-		if (postProcess.HasEffects() && !postProcess.InitializeTargets(device.GetDevice(),
-			device.GetContext(), screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"후처리 target 크기 변경", "DirectX 11 후처리 target을 다시 만들지 못했습니다"));
+		const auto targetResult = renderTargets.Initialize(device.GetDevice(), swapChain.GetSwapChain(),
+			screenWidth, screenHeight, multiSampleCount, multiSampleQuality);
+		if (!targetResult)
+			return std::unexpected(targetResult.error());
+		if (postProcess.HasEffects()) {
+			const auto postProcessResult = postProcess.InitializeTargets(
+				device.GetDevice(), device.GetContext(), screenWidth, screenHeight);
+			if (!postProcessResult)
+				return std::unexpected(postProcessResult.error());
+		}
 		Dx11DrawContext::ApplyViewport(device.GetContext(), screenWidth, screenHeight);
 		return {};
 	}

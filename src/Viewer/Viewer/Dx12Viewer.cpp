@@ -32,19 +32,19 @@ namespace Chrivent {
 		const auto swapChainResult = swapChain.Initialize(device, hwnd, screenWidth, screenHeight);
 		if (!swapChainResult)
 			return std::unexpected(swapChainResult.error());
-		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"MSAA color buffer 초기화", "DirectX 12 color buffer를 만들지 못했습니다"));
-		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"depth buffer 초기화", "DirectX 12 depth buffer를 만들지 못했습니다"));
+		const auto colorResult = msaaColorBuffer.Initialize(device, screenWidth, screenHeight);
+		if (!colorResult)
+			return std::unexpected(colorResult.error());
+		const auto depthResult = depthBuffer.Initialize(device, screenWidth, screenHeight);
+		if (!depthResult)
+			return std::unexpected(depthResult.error());
 		const auto pipelineResult = pipeline.Initialize(device, shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
-		dummyTexture = textureCache.CreateWhiteTexture(device);
-		if (!dummyTexture.resource)
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
+		const auto dummyResult = textureCache.CreateWhiteTexture(device);
+		if (!dummyResult)
+			return std::unexpected(dummyResult.error());
+		dummyTexture = *dummyResult;
 		return {};
 	}
 
@@ -55,16 +55,17 @@ namespace Chrivent {
 		const auto resizeResult = swapChain.Resize(device, screenWidth, screenHeight);
 		if (!resizeResult)
 			return std::unexpected(resizeResult.error());
-		if (!msaaColorBuffer.Initialize(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"MSAA color buffer 크기 변경", "DirectX 12 color buffer를 다시 만들지 못했습니다"));
-		if (!depthBuffer.Initialize(device, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"depth buffer 크기 변경", "DirectX 12 depth buffer를 다시 만들지 못했습니다"));
+		const auto colorResult = msaaColorBuffer.Initialize(device, screenWidth, screenHeight);
+		if (!colorResult)
+			return std::unexpected(colorResult.error());
+		const auto depthResult = depthBuffer.Initialize(device, screenWidth, screenHeight);
+		if (!depthResult)
+			return std::unexpected(depthResult.error());
 		if (postProcess.HasEffects()) {
-			if (!postProcess.InitializeTargets(device, screenWidth, screenHeight))
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"후처리 target 크기 변경", "DirectX 12 후처리 target을 다시 만들지 못했습니다"));
+			const auto postProcessResult = postProcess.InitializeTargets(
+				device, screenWidth, screenHeight);
+			if (!postProcessResult)
+				return std::unexpected(postProcessResult.error());
 		} else
 			postProcess.ResetResources();
 		return {};

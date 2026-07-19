@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Shader/OpenGlShader.h"
 
-#include "Viewer/Shader/ModernHlslCompiler.h"
+#include "Viewer/Shader/DxcHlslCompiler.h"
 
 #include <spirv_cross/spirv_glsl.hpp>
 
@@ -79,9 +79,9 @@ namespace Chrivent {
 		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
+		if (!DxcHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
 			SpirvTarget::OpenGl, bindingProfile, vertexCode, error, invertVertexY)
-			|| !ModernHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
+			|| !DxcHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
 				SpirvTarget::OpenGl, bindingProfile, pixelCode, error)) {
 			return 0;
 		}

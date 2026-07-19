@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
-#include "Viewer/Shader/ModernHlslCompiler.h"
+#include "Viewer/Shader/DxcHlslCompiler.h"
 #include <vector>
 
 namespace Chrivent {
@@ -30,9 +30,9 @@ namespace Chrivent {
 		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		if (!ModernHlslCompiler::CompileSpirv(program.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
+		if (!DxcHlslCompiler::CompileSpirv(program.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
 			bindingProfile, vertexCode, outError, invertVertexY)
-			|| !ModernHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
+			|| !DxcHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
 				bindingProfile, pixelCode, outError))
 			return false;
 		if (!vertexShader.Initialize(sourceDevice, vertexCode, outError)

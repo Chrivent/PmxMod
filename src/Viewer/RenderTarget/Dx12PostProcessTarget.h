@@ -21,7 +21,8 @@ namespace Chrivent {
 		}
 
 		// 화면 크기에 맞는 단일 샘플 후처리 렌더 타깃과 RTV를 생성한다.
-		bool Initialize(const Dx12Device& sourceDevice, int width, int height, DXGI_FORMAT targetFormat);
+		GraphicsResult<void> Initialize(
+			const Dx12Device& sourceDevice, int width, int height, DXGI_FORMAT targetFormat);
 		// 생성한 후처리 입력 리소스를 해제한다.
 		void Reset();
 	};

@@ -36,7 +36,7 @@ namespace Chrivent {
 		int targetHeight = 0;
 
 		// 패키지가 선언한 transient/history texture와 framebuffer를 생성한다.
-		bool CreateEffectResources();
+		GraphicsResult<void> CreateEffectResources();
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories();
 		// pass 입력 경로에 대응하는 OpenGL texture를 반환한다.
@@ -60,7 +60,7 @@ namespace Chrivent {
 		GLuint GetSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
-		bool InitializeTargets(int width, int height, int sampleCount);
+		GraphicsResult<void> InitializeTargets(int width, int height, int sampleCount);
 		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
 		GraphicsResult<void> Configure(int width, int height, int sampleCount,
 			const std::vector<const EffectRuntimeDefinition*>& effects);

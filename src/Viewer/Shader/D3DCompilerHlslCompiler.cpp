@@ -1,4 +1,4 @@
-﻿#include "Viewer/Shader/LegacyHlslCompiler.h"
+﻿#include "Viewer/Shader/D3DCompilerHlslCompiler.h"
 
 #include <fstream>
 #include <limits>
@@ -8,19 +8,19 @@
 
 namespace Chrivent {
 	// 열어 둔 include 파일의 내용과 다음 상대 경로 기준을 함께 보관한다.
-	struct LegacyIncludeSource {
+	struct D3DCompilerIncludeSource {
 		std::vector<char> bytes;
 		std::filesystem::path directory;
 	};
 
 	// 중첩 HLSL include를 현재 include 파일의 디렉터리 기준으로 해석한다.
-	class LegacyIncludeHandler final : public ID3DInclude {
+	class D3DCompilerIncludeHandler final : public ID3DInclude {
 		std::filesystem::path rootDirectory;
-		std::unordered_map<const void*, std::unique_ptr<LegacyIncludeSource>> sources;
+		std::unordered_map<const void*, std::unique_ptr<D3DCompilerIncludeSource>> sources;
 
 	public:
 		// 최상위 셰이더 파일의 디렉터리를 첫 include 탐색 기준으로 설정한다.
-		explicit LegacyIncludeHandler(const std::filesystem::path& shaderFile)
+		explicit D3DCompilerIncludeHandler(const std::filesystem::path& shaderFile)
 			: rootDirectory(shaderFile.parent_path()) {}
 
 		// include 파일을 열고 컴파일러가 Close를 호출할 때까지 내용을 유지한다.
@@ -45,7 +45,7 @@ namespace Chrivent {
 			if (endPosition < 0 || static_cast<uint64_t>(endPosition) > std::numeric_limits<UINT>::max())
 				return E_FAIL;
 			const size_t size = endPosition;
-			auto source = std::make_unique<LegacyIncludeSource>();
+			auto source = std::make_unique<D3DCompilerIncludeSource>();
 			source->bytes.resize(size + 1);
 			source->directory = includePath.parent_path();
 			stream.seekg(0);
@@ -64,9 +64,9 @@ namespace Chrivent {
 		}
 	};
 
-	bool LegacyHlslCompiler::CompileFile(const std::filesystem::path& file, const char* entry, const char* target,
+	bool D3DCompilerHlslCompiler::CompileFile(const std::filesystem::path& file, const char* entry, const char* target,
 		Microsoft::WRL::ComPtr<ID3DBlob>& outBytecode, std::string& outError) {
-		LegacyIncludeHandler includeHandler(file);
+		D3DCompilerIncludeHandler includeHandler(file);
 		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 		const HRESULT result = D3DCompileFromFile(file.c_str(), nullptr, &includeHandler, entry,
 			target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBytecode, &errorBlob);

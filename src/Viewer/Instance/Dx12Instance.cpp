@@ -101,18 +101,34 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx12Instance::LoadMaterials() {
+	GraphicsResult<void> Dx12Instance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			Dx12ModelMaterial material(mat);
-			if (!mat.texture.empty())
-				material.texture = textureCache.Load(device, mat.texture);
-			if (!mat.spTexture.empty())
-				material.sphereTexture = textureCache.Load(device, mat.spTexture);
-			if (!mat.toonTexture.empty())
-				material.toonTexture = textureCache.Load(device, mat.toonTexture);
+			if (!mat.texture.empty()) {
+				const auto textureResult = textureCache.Load(device, mat.texture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.texture = **textureResult;
+			}
+			if (!mat.spTexture.empty()) {
+				const auto textureResult = textureCache.Load(device, mat.spTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.sphereTexture = **textureResult;
+			}
+			if (!mat.toonTexture.empty()) {
+				const auto textureResult = textureCache.Load(device, mat.toonTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.toonTexture = **textureResult;
+			}
 			modelResources.materials.emplace_back(std::move(material));
 		}
+		return {};
 	}
 
 	bool Dx12Instance::CreateTextureDescriptors() {
@@ -191,7 +207,9 @@ namespace Chrivent {
 		if (!CreateConstantBuffers())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
-		LoadMaterials();
+		const auto materialResult = LoadMaterials();
+		if (!materialResult)
+			return std::unexpected(materialResult.error());
 		if (!CreateTextureDescriptors())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 모델 인스턴스 초기화", "texture descriptor를 만들지 못했습니다"));

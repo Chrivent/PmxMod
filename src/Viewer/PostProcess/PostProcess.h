@@ -11,6 +11,10 @@
 namespace Chrivent {
 	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
+		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
+		std::expected<void, std::string> BuildExecutionPlan(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
+
 	protected:
 		enum class PostProcessInputKind {
 			SceneColor,
@@ -70,8 +74,6 @@ namespace Chrivent {
 		bool velocityRequired = false;
 		bool historyFramePending = false;
 
-		// 선택한 effect들을 하나의 API 독립적인 실행 계획으로 변환한다.
-		std::expected<void, std::string> BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects);
 		// history ping-pong 인덱스를 다음 write target으로 전환한다.
 		static size_t ResolveNextHistoryIndex(size_t currentIndex);
 		// 현재 패스 기록에서 사용할 committed 또는 pending history 상태를 반환한다.

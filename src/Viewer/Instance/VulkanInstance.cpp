@@ -108,36 +108,46 @@ namespace Chrivent {
 		return {};
 	}
 
-	void VulkanInstance::LoadMaterials() {
+	GraphicsResult<void> VulkanInstance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			VulkanModelMaterial material(mat);
 			if (!mat.texture.empty()) {
-				material.texture = textureCache.Load(device, mat.texture);
-				if (material.texture.image == VK_NULL_HANDLE)
-					material.texture = dummyTexture;
-				else
+				const auto textureResult = textureCache.Load(device, mat.texture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult) {
+					material.texture = **textureResult;
 					material.textureEnabled = true;
+				} else
+					material.texture = dummyTexture;
 			} else
 				material.texture = dummyTexture;
 			if (!mat.spTexture.empty()) {
-				material.sphereTexture = textureCache.Load(device, mat.spTexture);
-				if (material.sphereTexture.image == VK_NULL_HANDLE)
-					material.sphereTexture = dummyTexture;
-				else
+				const auto textureResult = textureCache.Load(device, mat.spTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult) {
+					material.sphereTexture = **textureResult;
 					material.sphereTextureEnabled = true;
+				} else
+					material.sphereTexture = dummyTexture;
 			} else
 				material.sphereTexture = dummyTexture;
 			if (!mat.toonTexture.empty()) {
-				material.toonTexture = textureCache.Load(device, mat.toonTexture, true);
-				if (material.toonTexture.image == VK_NULL_HANDLE)
-					material.toonTexture = dummyTexture;
-				else
+				const auto textureResult = textureCache.Load(device, mat.toonTexture, true);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult) {
+					material.toonTexture = **textureResult;
 					material.toonTextureEnabled = true;
+				} else
+					material.toonTexture = dummyTexture;
 			} else
 				material.toonTexture = dummyTexture;
 			modelResources.materials.emplace_back(std::move(material));
 		}
+		return {};
 	}
 
 	GraphicsResult<void> VulkanInstance::CreateDescriptorSets() {
@@ -198,7 +208,9 @@ namespace Chrivent {
 		const auto constantRingResult = SetupConstantRings();
 		if (!constantRingResult)
 			return std::unexpected(constantRingResult.error());
-		LoadMaterials();
+		const auto materialResult = LoadMaterials();
+		if (!materialResult)
+			return std::unexpected(materialResult.error());
 		return CreateDescriptorSets();
 	}
 

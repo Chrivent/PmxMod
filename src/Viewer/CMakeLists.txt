@@ -1,13 +1,13 @@
 ﻿add_library(PmxModViewer STATIC)
 add_library(PmxMod::Viewer ALIAS PmxModViewer)
 
-add_library(PmxModModernHlslCompiler OBJECT
-        Shader/ModernHlslCompiler.cpp
+add_library(PmxModDxcHlslCompiler OBJECT
+        Shader/DxcHlslCompiler.cpp
 )
 
-target_compile_features(PmxModModernHlslCompiler PRIVATE cxx_std_23)
+target_compile_features(PmxModDxcHlslCompiler PRIVATE cxx_std_23)
 
-target_include_directories(PmxModModernHlslCompiler PRIVATE
+target_include_directories(PmxModDxcHlslCompiler PRIVATE
         ${PROJECT_SOURCE_DIR}/src
         "$ENV{VULKAN_SDK}/Include"
 )
@@ -95,10 +95,10 @@ target_sources(PmxModViewer PRIVATE
         Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp
         Shader/SceneShaderInputLayout.h
         Shader/SceneShaderRuntimeContract.h
-        Shader/LegacyHlslCompiler.h Shader/LegacyHlslCompiler.cpp
-        Shader/ModernHlslCompiler.h
+        Shader/D3DCompilerHlslCompiler.h Shader/D3DCompilerHlslCompiler.cpp
+        Shader/DxcHlslCompiler.h
         Shader/SpirvBindingLayout.h
-        $<TARGET_OBJECTS:PmxModModernHlslCompiler>
+        $<TARGET_OBJECTS:PmxModDxcHlslCompiler>
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
         Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp

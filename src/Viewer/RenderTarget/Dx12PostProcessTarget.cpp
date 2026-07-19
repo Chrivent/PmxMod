@@ -1,11 +1,14 @@
 ﻿#include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
 namespace Chrivent {
-	bool Dx12PostProcessTarget::Initialize(
+	GraphicsResult<void> Dx12PostProcessTarget::Initialize(
 		const Dx12Device& sourceDevice, const int width, const int height, const DXGI_FORMAT targetFormat) {
 		Reset();
-		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN)
-			return false;
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
+				"DirectX 12 device, target 크기 또는 형식이 올바르지 않습니다"));
+		}
 		format = targetFormat;
 		D3D12_HEAP_PROPERTIES heapProperties{};
 		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -22,17 +25,28 @@ namespace Chrivent {
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = format;
-		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
-			&resourceDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource))))
-			return false;
+		HRESULT result = sourceDevice.GetDevice()->CreateCommittedResource(
+			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
+				"DirectX 12 후처리 target을 만들지 못했습니다", result, true));
+		}
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 		rtvHeapDesc.NumDescriptors = 1;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap))))
-			return false;
+		result = sourceDevice.GetDevice()->CreateDescriptorHeap(
+			&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
+		if (FAILED(result)) {
+			Reset();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 RTV heap 생성",
+				"DirectX 12 후처리 RTV heap을 만들지 못했습니다", result, true));
+		}
 		sourceDevice.GetDevice()->CreateRenderTargetView(
 			resource.Get(), nullptr, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-		return true;
+		return {};
 	}
 
 	void Dx12PostProcessTarget::Reset() {

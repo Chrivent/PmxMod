@@ -26,7 +26,7 @@ namespace Chrivent {
 		// 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
 		GraphicsResult<void> SetupConstantRings();
 		// 모델 material 정보를 Vulkan material 캐시와 descriptor 준비 데이터로 변환한다.
-		void LoadMaterials();
+		GraphicsResult<void> LoadMaterials();
 		// 패스별 descriptor set을 생성한다.
 		GraphicsResult<void> CreateDescriptorSets();
 		

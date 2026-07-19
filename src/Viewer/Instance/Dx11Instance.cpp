@@ -69,18 +69,34 @@ namespace Chrivent {
 		return true;
 	}
 
-	void Dx11Instance::LoadMaterials() {
+	GraphicsResult<void> Dx11Instance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			Dx11ModelMaterial material(mat);
-			if (!mat.texture.empty())
-				material.texture = textureCache.Load(device.GetDevice(), mat.texture);
-			if (!mat.spTexture.empty())
-				material.sphereTexture = textureCache.Load(device.GetDevice(), mat.spTexture);
-			if (!mat.toonTexture.empty())
-				material.toonTexture = textureCache.Load(device.GetDevice(), mat.toonTexture);
+			if (!mat.texture.empty()) {
+				const auto textureResult = textureCache.Load(device.GetDevice(), mat.texture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.texture = **textureResult;
+			}
+			if (!mat.spTexture.empty()) {
+				const auto textureResult = textureCache.Load(device.GetDevice(), mat.spTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.sphereTexture = **textureResult;
+			}
+			if (!mat.toonTexture.empty()) {
+				const auto textureResult = textureCache.Load(device.GetDevice(), mat.toonTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.toonTexture = **textureResult;
+			}
 			modelResources.materials.emplace_back(std::move(material));
 		}
+		return {};
 	}
 
 	Dx11Instance::Dx11Instance(const Dx11Device& sourceDevice,
@@ -111,8 +127,7 @@ namespace Chrivent {
 		if (!CreateConstantBuffers())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX11 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
-		LoadMaterials();
-		return {};
+		return LoadMaterials();
 	}
 
 	GraphicsResult<void> Dx11Instance::UploadCore() {

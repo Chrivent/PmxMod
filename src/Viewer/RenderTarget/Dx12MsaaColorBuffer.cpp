@@ -3,15 +3,23 @@
 #include "Viewer/Synchronization/Dx12Barrier.h"
 
 namespace Chrivent {
-	bool Dx12MsaaColorBuffer::Initialize(const Dx12Device& sourceDevice, const int width, const int height) {
+	GraphicsResult<void> Dx12MsaaColorBuffer::Initialize(
+		const Dx12Device& sourceDevice, const int width, const int height) {
 		Reset();
-		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
-			return false;
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "MSAA color target 생성",
+				"DirectX 12 device 또는 color target 크기가 올바르지 않습니다"));
+		}
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = 1;
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeap))))
-			return false;
+		HRESULT result = sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeap));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "MSAA color descriptor heap 생성",
+				"DirectX 12 MSAA color descriptor heap을 만들지 못했습니다", result, true));
+		}
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		clearValue.Color[0] = 0.0f;
@@ -32,14 +40,19 @@ namespace Chrivent {
 		resourceDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
 		resourceDesc.SampleDesc.Quality = 0;
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(
+		result = sourceDevice.GetDevice()->CreateCommittedResource(
 			&heapProperties, D3D12_HEAP_FLAG_NONE,
 			&resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
-			&clearValue, IID_PPV_ARGS(&renderTarget))))
-			return false;
+			&clearValue, IID_PPV_ARGS(&renderTarget));
+		if (FAILED(result)) {
+			Reset();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "MSAA color target 생성",
+				"DirectX 12 MSAA color target을 만들지 못했습니다", result, true));
+		}
 		sourceDevice.GetDevice()->CreateRenderTargetView(renderTarget.Get(), nullptr, GetRtvHandle());
 		sampleCount = sourceDevice.GetMsaaSampleCount();
-		return true;
+		return {};
 	}
 
 	bool Dx12MsaaColorBuffer::ResolveToBackBuffer(ID3D12GraphicsCommandList* commandList,

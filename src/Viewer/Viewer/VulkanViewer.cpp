@@ -41,10 +41,10 @@ namespace Chrivent {
 			swapChain.GetImageFormat(), msaaDepthBuffer.format, shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
-		dummyTexture = textureCache.CreateWhiteTexture(device);
-		if (dummyTexture.image == VK_NULL_HANDLE)
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"dummy texture 생성", "fallback texture를 만들지 못했습니다"));
+		const auto dummyResult = textureCache.CreateWhiteTexture(device);
+		if (!dummyResult)
+			return std::unexpected(dummyResult.error());
+		dummyTexture = *dummyResult;
 		const auto syncResult = syncObject.Initialize(device, swapChain.GetImageCount());
 		if (!syncResult)
 			return std::unexpected(syncResult.error());

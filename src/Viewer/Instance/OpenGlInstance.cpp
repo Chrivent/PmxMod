@@ -116,21 +116,36 @@ namespace Chrivent {
 			GL_DYNAMIC_DRAW, error);
 	}
 
-	void OpenGlInstance::LoadMaterials() {
+	GraphicsResult<void> OpenGlInstance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			OpenGlModelMaterial material(mat);
 			if (!mat.texture.empty()) {
-				const auto [hasAlpha, texture] = textureCache.Load(mat.texture);
-				material.texture = texture;
-				material.textureHasAlpha = hasAlpha;
+				const auto textureResult = textureCache.Load(mat.texture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult) {
+					material.texture = (*textureResult)->texture;
+					material.textureHasAlpha = (*textureResult)->hasAlpha;
+				}
 			}
-			if (!mat.spTexture.empty())
-				material.sphereTexture = textureCache.Load(mat.spTexture).texture;
-			if (!mat.toonTexture.empty())
-				material.toonTexture = textureCache.Load(mat.toonTexture, true).texture;
+			if (!mat.spTexture.empty()) {
+				const auto textureResult = textureCache.Load(mat.spTexture);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.sphereTexture = (*textureResult)->texture;
+			}
+			if (!mat.toonTexture.empty()) {
+				const auto textureResult = textureCache.Load(mat.toonTexture, true);
+				if (!textureResult)
+					return std::unexpected(textureResult.error());
+				if (*textureResult)
+					material.toonTexture = (*textureResult)->texture;
+			}
 			modelResources.materials.emplace_back(std::move(material));
 		}
+		return {};
 	}
 
 	OpenGlInstance::OpenGlInstance(OpenGlTextureCache& sourceTextureCache,
@@ -178,8 +193,7 @@ namespace Chrivent {
 		if (!SetupConstantRings())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"OpenGL 모델 인스턴스 초기화", "uniform buffer ring을 만들지 못했습니다"));
-		LoadMaterials();
-		return {};
+		return LoadMaterials();
 	}
 
 	GraphicsResult<void> OpenGlInstance::UploadCore() {

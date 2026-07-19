@@ -1,7 +1,7 @@
 ﻿#include "Viewer/Pipeline/Dx12PipelineBuilder.h"
 
-#include "Viewer/Shader/ModernHlslCompiler.h"
-#include "Viewer/Shader/LegacyHlslCompiler.h"
+#include "Viewer/Shader/DxcHlslCompiler.h"
+#include "Viewer/Shader/D3DCompilerHlslCompiler.h"
 
 namespace Chrivent {
 	bool Dx12PipelineBuilder::CreateRootSignature(const Dx12Device& sourceDevice,
@@ -40,11 +40,11 @@ namespace Chrivent {
 		const std::string& entry, const bool vertexShader, std::vector<uint8_t>& bytecode, std::string& error) {
 		if (sourceDevice.GetMaximumShaderModel() >= D3D_SHADER_MODEL_6_0) {
 			const std::wstring wideEntry(entry.begin(), entry.end());
-			return ModernHlslCompiler::CompileDxil(
+			return DxcHlslCompiler::CompileDxil(
 				file, wideEntry, vertexShader ? L"vs_6_0" : L"ps_6_0", bytecode, error);
 		}
 		Microsoft::WRL::ComPtr<ID3DBlob> legacyBytecode;
-		if (!LegacyHlslCompiler::CompileFile(file, entry.c_str(), vertexShader ? "vs_5_1" : "ps_5_1",
+		if (!D3DCompilerHlslCompiler::CompileFile(file, entry.c_str(), vertexShader ? "vs_5_1" : "ps_5_1",
 			legacyBytecode, error))
 			return false;
 		bytecode.resize(legacyBytecode->GetBufferSize());

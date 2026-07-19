@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Shader/Dx11Shader.h"
 
-#include "Viewer/Shader/LegacyHlslCompiler.h"
+#include "Viewer/Shader/D3DCompilerHlslCompiler.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 
 #include <cstddef>
@@ -28,9 +28,9 @@ namespace Chrivent {
 		error.clear();
 		Microsoft::WRL::ComPtr<ID3DBlob> vertexBytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixelBytecode;
-		if (!LegacyHlslCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error))
+		if (!D3DCompilerHlslCompiler::CompileFile(file, vertexEntry, "vs_5_0", vertexBytecode, error))
 			return false;
-		if (!LegacyHlslCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error))
+		if (!D3DCompilerHlslCompiler::CompileFile(file, pixelEntry, "ps_5_0", pixelBytecode, error))
 			return false;
 		if (!CreateVertexShader(device, vertexBytecode.Get(), vertexShader)) {
 			error = "DX11 vertex shader를 만들지 못했습니다: ";

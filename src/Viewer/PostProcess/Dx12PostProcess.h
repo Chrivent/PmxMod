@@ -44,13 +44,13 @@ namespace Chrivent {
 		UINT inputDescriptorSize = 0;
 
 		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
-		bool CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsResult<void> CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
 		// 패키지가 선언한 transient/history target을 생성한다.
-		bool CreateEffectResources(const Dx12Device& sourceDevice);
+		GraphicsResult<void> CreateEffectResources(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 입력을 보관하는 shader-visible descriptor heap을 생성한다.
-		bool CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
+		GraphicsResult<void> CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 파라미터를 보관할 b1 upload buffer를 생성한다.
-		bool CreateParameterDataBuffers(const Dx12Device& sourceDevice);
+		GraphicsResult<void> CreateParameterDataBuffers(const Dx12Device& sourceDevice);
 		// 현재 frame의 pass 입력 descriptor를 실행 계획에 맞게 갱신한다.
 		void UpdateInputDescriptors(const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex);
 		// 모든 history target을 최초 사용 전에 0으로 지운다.
@@ -74,7 +74,7 @@ namespace Chrivent {
 		
 	public:
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
-		bool InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsResult<void> InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
 		GraphicsResult<void> Configure(const Dx12Device& sourceDevice, int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);

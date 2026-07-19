@@ -3,7 +3,7 @@
 #include "Viewer/Buffer/VulkanBuffer.h"
 #include "Viewer/Memory/VulkanMemory.h"
 
-#include <iostream>
+#include <limits>
 #include <ranges>
 
 namespace Chrivent {
@@ -54,44 +54,64 @@ namespace Chrivent {
 		vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 	}
 
-	bool VulkanTextureCache::UploadRgbaPixels(const VulkanDevice& sourceDevice, const unsigned char* pixels,
+	GraphicsResult<void> VulkanTextureCache::UploadRgbaPixels(
+		const VulkanDevice& sourceDevice, const unsigned char* pixels,
 		const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
-		if (!CreateSamplers())
-			return false;
-		const VkDeviceSize imageSize = width * height * 4;
+		const auto samplerResult = CreateSamplers();
+		if (!samplerResult)
+			return std::unexpected(samplerResult.error());
+		if (pixels == nullptr || width == 0 || height == 0
+			|| static_cast<VkDeviceSize>(width) > std::numeric_limits<VkDeviceSize>::max()
+				/ 4 / static_cast<VkDeviceSize>(height)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "texture 업로드",
+				"Vulkan texture 픽셀 데이터 또는 크기가 올바르지 않습니다"));
+		}
+		const VkDeviceSize imageSize = static_cast<VkDeviceSize>(width) * height * 4;
 		VulkanBuffer stagingBuffer;
-		if (!stagingBuffer.Initialize(sourceDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-			return false;
-		if (!stagingBuffer.Write(pixels, imageSize))
-			return false;
+		const auto stagingResult = stagingBuffer.Initialize(sourceDevice, imageSize,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		if (!stagingResult)
+			return std::unexpected(stagingResult.error());
+		if (!stagingBuffer.Write(pixels, imageSize)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture staging buffer 기록",
+				"Vulkan texture 픽셀을 staging buffer에 기록하지 못했습니다"));
+		}
 		texture.width = width;
 		texture.height = height;
-		if (!CreateImage(sourceDevice, texture.width, texture.height, texture.image, texture.imageMemory)) {
+		const auto imageResult = CreateImage(
+			sourceDevice, texture.width, texture.height, texture.image, texture.imageMemory);
+		if (!imageResult) {
 			ResetTexture(texture);
-			return false;
+			return std::unexpected(imageResult.error());
 		}
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-		if (!uploadContext.Begin(sourceDevice, commandBuffer)) {
+		const auto beginResult = uploadContext.Begin(sourceDevice, commandBuffer);
+		if (!beginResult) {
 			ResetTexture(texture);
-			return false;
+			return std::unexpected(beginResult.error());
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		CopyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		if (!uploadContext.SubmitAndWait(sourceDevice)) {
+		const auto submitResult = uploadContext.SubmitAndWait(sourceDevice);
+		if (!submitResult) {
 			ResetTexture(texture);
-			return false;
+			return std::unexpected(submitResult.error());
 		}
-		if (!CreateImageView(texture.image, texture.imageView)) {
+		const auto viewResult = CreateImageView(texture.image, texture.imageView);
+		if (!viewResult) {
 			ResetTexture(texture);
-			return false;
+			return std::unexpected(viewResult.error());
 		}
 		texture.sampler = clamp ? clampSampler : wrapSampler;
-		return true;
+		return {};
 	}
 
-	bool VulkanTextureCache::CreateImage(const VulkanDevice& sourceDevice, const uint32_t width, const uint32_t height,
+	GraphicsResult<void> VulkanTextureCache::CreateImage(
+		const VulkanDevice& sourceDevice, const uint32_t width, const uint32_t height,
 		VkImage& image, VkDeviceMemory& imageMemory) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -107,33 +127,41 @@ namespace Chrivent {
 		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		if (vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture image를 만들지 못했습니다.\n";
-			return false;
+		VkResult result = vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture image 생성",
+				"Vulkan texture image를 만들지 못했습니다", result, true));
 		}
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			std::cerr << "Vulkan texture image memory type을 찾지 못했습니다.\n";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::UnsupportedFeature, "texture image memory type 선택",
+				"Vulkan texture image memory type을 찾지 못했습니다"));
 		}
 		VkMemoryAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.allocationSize = memoryRequirements.size;
 		allocateInfo.memoryTypeIndex = memoryType;
-		if (vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture image memory를 할당하지 못했습니다.\n";
-			return false;
+		result = vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture image memory 할당",
+				"Vulkan texture image memory를 할당하지 못했습니다", result, true));
 		}
-		if (vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture image memory를 연결하지 못했습니다.\n";
-			return false;
+		result = vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture image memory 연결",
+				"Vulkan texture image memory를 연결하지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanTextureCache::CreateImageView(const VkImage image, VkImageView& imageView) const {
+	GraphicsResult<void> VulkanTextureCache::CreateImageView(
+		const VkImage image, VkImageView& imageView) const {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -144,14 +172,17 @@ namespace Chrivent {
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
-		if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture image view를 만들지 못했습니다.\n";
-			return false;
+		const VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture image view 생성",
+				"Vulkan texture image view를 만들지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanTextureCache::CreateSampler(VkSampler& sampler, const bool clamp) const {
+	GraphicsResult<void> VulkanTextureCache::CreateSampler(
+		VkSampler& sampler, const bool clamp) const {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -167,25 +198,32 @@ namespace Chrivent {
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;
 		samplerInfo.compareEnable = VK_FALSE;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
-			std::cerr << "Vulkan texture sampler를 만들지 못했습니다.\n";
-			return false;
+		const VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture sampler 생성",
+				"Vulkan texture sampler를 만들지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanTextureCache::CreateSamplers() {
-		if (device == VK_NULL_HANDLE)
-			return false;
+	GraphicsResult<void> VulkanTextureCache::CreateSamplers() {
+		if (device == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "texture sampler 생성",
+				"Vulkan device를 사용할 수 없습니다"));
+		}
 		if (wrapSampler != VK_NULL_HANDLE && clampSampler != VK_NULL_HANDLE)
-			return true;
+			return {};
 		ResetSamplers();
-		if (!CreateSampler(wrapSampler, false))
-			return false;
-		if (CreateSampler(clampSampler, true))
-			return true;
+		const auto wrapResult = CreateSampler(wrapSampler, false);
+		if (!wrapResult)
+			return std::unexpected(wrapResult.error());
+		const auto clampResult = CreateSampler(clampSampler, true);
+		if (clampResult)
+			return {};
 		ResetSamplers();
-		return false;
+		return std::unexpected(clampResult.error());
 	}
 
 	void VulkanTextureCache::ResetTexture(VulkanTexture& texture) const {
@@ -224,7 +262,7 @@ namespace Chrivent {
 		ResetSamplers();
 	}
 
-	VulkanTexture VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
+	GraphicsResult<std::optional<VulkanTexture>> VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
 		const std::filesystem::path& texturePath, const bool clamp) {
 		device = sourceDevice.GetDevice();
 		const TextureKey cacheKey{
@@ -233,20 +271,22 @@ namespace Chrivent {
 			clamp
 		};
 		if (const auto texture = FindCachedTexture(cacheKey))
-			return *texture;
+			return std::optional{ *texture };
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
-			return {};
+			return std::optional<VulkanTexture>{};
 		VulkanTexture texture;
 		texture.hasAlpha = components == 4;
-		if (!UploadRgbaPixels(sourceDevice, pixels.get(),
-			width, height, texture, clamp))
-			return {};
+		const auto uploadResult = UploadRgbaPixels(
+			sourceDevice, pixels.get(), width, height, texture, clamp);
+		if (!uploadResult)
+			return std::unexpected(uploadResult.error());
 		textures.emplace(cacheKey, texture);
-		return texture;
+		return std::optional{ texture };
 	}
 
-	VulkanTexture VulkanTextureCache::CreateWhiteTexture(const VulkanDevice& sourceDevice) {
+	GraphicsResult<VulkanTexture> VulkanTextureCache::CreateWhiteTexture(
+		const VulkanDevice& sourceDevice) {
 		device = sourceDevice.GetDevice();
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
@@ -254,8 +294,9 @@ namespace Chrivent {
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		VulkanTexture texture;
 		texture.hasAlpha = false;
-		if (!UploadRgbaPixels(sourceDevice, pixels, 1, 1, texture, false))
-			return {};
+		const auto uploadResult = UploadRgbaPixels(sourceDevice, pixels, 1, 1, texture, false);
+		if (!uploadResult)
+			return std::unexpected(uploadResult.error());
 		textures.emplace(key, texture);
 		return texture;
 	}

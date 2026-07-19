@@ -1,4 +1,4 @@
-﻿#include "Viewer/Shader/ModernHlslCompiler.h"
+﻿#include "Viewer/Shader/DxcHlslCompiler.h"
 
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
@@ -7,14 +7,14 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	bool ModernHlslCompiler::CompileObject(const std::filesystem::path& file, const std::wstring& entry,
+	bool DxcHlslCompiler::CompileObject(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, const std::span<const wchar_t* const> additionalArguments,
 		std::vector<uint8_t>& outObject, std::string& outError) {
 		Microsoft::WRL::ComPtr<IDxcUtils> utils;
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
 		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils))) ||
 			FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
-			outError = "modern HLSL compiler를 초기화하지 못했습니다.";
+			outError = "DXC를 초기화하지 못했습니다.";
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
@@ -41,7 +41,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
 			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
-			outError = "modern HLSL compiler를 실행하지 못했습니다: " + file.string();
+			outError = "DXC를 실행하지 못했습니다: " + file.string();
 			return false;
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
@@ -62,7 +62,7 @@ namespace Chrivent {
 		}
 		Microsoft::WRL::ComPtr<IDxcBlob> object;
 		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr)) || !object) {
-			outError = "modern HLSL compiler가 올바르지 않은 셰이더 객체를 반환했습니다: "
+			outError = "DXC가 올바르지 않은 셰이더 객체를 반환했습니다: "
 				+ file.string();
 			return false;
 		}
@@ -72,12 +72,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool ModernHlslCompiler::CompileDxil(const std::filesystem::path& file, const std::wstring& entry,
+	bool DxcHlslCompiler::CompileDxil(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, std::vector<uint8_t>& outDxil, std::string& outError) {
 		return CompileObject(file, entry, target, {}, outDxil, outError);
 	}
 
-	bool ModernHlslCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
+	bool DxcHlslCompiler::CompileSpirv(const std::filesystem::path& file, const std::wstring& entry,
 		const std::wstring& target, const SpirvTarget spirvTarget, const SpirvBindingProfile bindingProfile,
 		std::vector<uint32_t>& outSpirv, std::string& outError, const bool invertVertexY) {
 		const wchar_t* targetEnvironment = spirvTarget == SpirvTarget::OpenGl
@@ -119,7 +119,7 @@ namespace Chrivent {
 		if (!CompileObject(file, entry, target, arguments, object, outError))
 			return false;
 		if (object.size() % sizeof(uint32_t) != 0) {
-			outError = "HLSL compiler가 올바르지 않은 SPIR-V를 반환했습니다: " + file.string();
+			outError = "DXC가 올바르지 않은 SPIR-V를 반환했습니다: " + file.string();
 			return false;
 		}
 		outSpirv.resize(object.size() / sizeof(uint32_t));

@@ -10,32 +10,50 @@ namespace Chrivent {
 		}
 	}
 
-	OpenGlTexture OpenGlTextureCache::CreateWhiteTexture() {
+	GraphicsResult<OpenGlTexture> OpenGlTextureCache::CreateWhiteTexture() {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
 		constexpr unsigned char pixels[] = { 255, 255, 255, 255 };
 		GLuint tex = 0;
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+		if (tex == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
+				"OpenGL texture 객체를 만들지 못했습니다"));
+		}
 		glTextureStorage2D(tex, 1, GL_RGBA8, 1, 1);
 		glTextureSubImage2D(tex, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 		glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		const GLenum result = glGetError();
+		if (result != GL_NO_ERROR) {
+			glDeleteTextures(1, &tex);
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
+				"OpenGL fallback texture를 초기화하지 못했습니다", result, true));
+		}
 		const OpenGlTexture texture{ .hasAlpha = false, .texture = tex };
 		textures.emplace(key, texture);
 		return texture;
 	}
 
-	OpenGlTexture OpenGlTextureCache::Load(const std::filesystem::path& texturePath, const bool clamp) {
+	GraphicsResult<std::optional<OpenGlTexture>> OpenGlTextureCache::Load(
+		const std::filesystem::path& texturePath, const bool clamp) {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
 		if (const auto texture = FindCachedTexture(key))
-			return *texture;
+			return std::optional{ *texture };
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
-			return {};
+			return std::optional<OpenGlTexture>{};
 		const bool hasAlpha = components == 4;
 		GLuint tex = 0;
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
+		if (tex == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
+				"OpenGL texture 객체를 만들지 못했습니다"));
+		}
 		glTextureStorage2D(tex, 1, GL_RGBA8, width, height);
 		glTextureSubImage2D(tex, 0, 0, 0, width, height,
 			GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
@@ -45,8 +63,15 @@ namespace Chrivent {
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
+		const GLenum result = glGetError();
+		if (result != GL_NO_ERROR) {
+			glDeleteTextures(1, &tex);
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
+				"OpenGL texture 데이터를 업로드하지 못했습니다", result, true));
+		}
 		const OpenGlTexture texture{ .hasAlpha = hasAlpha, .texture = tex };
 		textures.emplace(key, texture);
-		return texture;
+		return std::optional{ texture };
 	}
 }

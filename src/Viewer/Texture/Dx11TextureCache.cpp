@@ -3,7 +3,12 @@
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 
 namespace Chrivent {
-	Dx11Texture Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
+	GraphicsResult<Dx11Texture> Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
+		if (device == nullptr) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidState, "dummy texture 생성",
+				"DirectX 11 device를 사용할 수 없습니다"));
+		}
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
@@ -13,11 +18,19 @@ namespace Chrivent {
 		initData.pSysMem = white;
 		initData.SysMemPitch = 4;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
-		if (FAILED(device->CreateTexture2D(&d, &initData, &tex2D)))
-			return {};
+		HRESULT result = device->CreateTexture2D(&d, &initData, &tex2D);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
+				"DirectX 11 fallback texture를 만들지 못했습니다", result, true));
+		}
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
-		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
-			return {};
+		result = device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "dummy texture view 생성",
+				"DirectX 11 fallback texture view를 만들지 못했습니다", result, true));
+		}
 		Dx11Texture texture;
 		texture.texture = tex2D;
 		texture.textureView = tex2DRv;
@@ -26,13 +39,19 @@ namespace Chrivent {
 		return texture;
 	}
 
-	Dx11Texture Dx11TextureCache::Load(ID3D11Device* device, const std::filesystem::path& texturePath) {
+	GraphicsResult<std::optional<Dx11Texture>> Dx11TextureCache::Load(
+		ID3D11Device* device, const std::filesystem::path& texturePath) {
+		if (device == nullptr) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidState, "texture 생성",
+				"DirectX 11 device를 사용할 수 없습니다"));
+		}
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture(key))
-			return *texture;
+			return std::optional{ *texture };
 		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
 		if (!pixels)
-			return {};
+			return std::optional<Dx11Texture>{};
 		const bool textureHasAlpha = components == 4;
 		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
@@ -40,17 +59,24 @@ namespace Chrivent {
 		initData.pSysMem = pixels.get();
 		initData.SysMemPitch = 4 * width;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
-		const HRESULT hr = device->CreateTexture2D(&d, &initData, &tex2D);
-		if (FAILED(hr))
-			return {};
+		HRESULT result = device->CreateTexture2D(&d, &initData, &tex2D);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
+				"DirectX 11 texture를 만들지 못했습니다", result, true));
+		}
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
-		if (FAILED(device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv)))
-			return {};
+		result = device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "texture view 생성",
+				"DirectX 11 texture view를 만들지 못했습니다", result, true));
+		}
 		Dx11Texture texture;
 		texture.texture = tex2D;
 		texture.textureView = tex2DRv;
 		texture.hasAlpha = textureHasAlpha;
 		textures.emplace(key, texture);
-		return texture;
+		return std::optional{ texture };
 	}
 }

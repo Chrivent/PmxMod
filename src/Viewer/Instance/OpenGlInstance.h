@@ -30,7 +30,7 @@ namespace Chrivent {
         // 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
         bool SetupConstantRings();
         // 모델 material 정보를 OpenGL material 캐시와 texture handle로 변환한다.
-        void LoadMaterials();
+        GraphicsResult<void> LoadMaterials();
     	
 	protected:
 		// OpenGL 버퍼와 VAO 리소스를 초기 상태로 되돌린다.

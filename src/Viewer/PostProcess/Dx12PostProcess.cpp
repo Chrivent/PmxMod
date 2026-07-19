@@ -9,12 +9,15 @@
 #include <utility>
 
 namespace Chrivent {
-	bool Dx12PostProcess::CreateDepthTarget(
+	GraphicsResult<void> Dx12PostProcess::CreateDepthTarget(
 		const Dx12Device& sourceDevice, const int width, const int height) {
 		depth.Reset();
 		depthDsvHeap.Reset();
-		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
-			return false;
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "후처리 depth target 생성",
+				"DirectX 12 device 또는 depth target 크기가 올바르지 않습니다"));
+		}
 		D3D12_HEAP_PROPERTIES heapProperties{};
 		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
 		heapProperties.CreationNodeMask = 1;
@@ -31,23 +34,33 @@ namespace Chrivent {
 		D3D12_CLEAR_VALUE clearValue{};
 		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		clearValue.DepthStencil.Depth = 1.0f;
-		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
-			&description, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&depth))))
-			return false;
+		HRESULT result = sourceDevice.GetDevice()->CreateCommittedResource(
+			&heapProperties, D3D12_HEAP_FLAG_NONE, &description,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&depth));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth target 생성",
+				"DirectX 12 후처리 depth target을 만들지 못했습니다", result, true));
+		}
 		D3D12_DESCRIPTOR_HEAP_DESC heapDescription{};
 		heapDescription.NumDescriptors = 1;
 		heapDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDescription, IID_PPV_ARGS(&depthDsvHeap))))
-			return false;
+		result = sourceDevice.GetDevice()->CreateDescriptorHeap(
+			&heapDescription, IID_PPV_ARGS(&depthDsvHeap));
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth descriptor heap 생성",
+				"DirectX 12 후처리 depth descriptor heap을 만들지 못했습니다", result, true));
+		}
 		D3D12_DEPTH_STENCIL_VIEW_DESC viewDescription{};
 		viewDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		viewDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		sourceDevice.GetDevice()->CreateDepthStencilView(
 			depth.Get(), &viewDescription, depthDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		return true;
+		return {};
 	}
 
-	bool Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
+	GraphicsResult<void> Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
 		ResetEffectResources();
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
@@ -59,26 +72,33 @@ namespace Chrivent {
 				: plan.format == EffectTextureFormat::Rgba16Float
 					? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R32G32B32A32_FLOAT;
 			for (size_t index = 0; index < targetCount; index++) {
-				if (!resources[resourceIndex].targets[index].Initialize(sourceDevice,
+				const auto result = resources[resourceIndex].targets[index].Initialize(sourceDevice,
 					ResolveResourceExtent(targetWidth, plan, true),
-					ResolveResourceExtent(targetHeight, plan, false), format))
-					return false;
+					ResolveResourceExtent(targetHeight, plan, false), format);
+				if (!result)
+					return std::unexpected(result.error());
 			}
 		}
 		ResetHistory();
-		return true;
+		return {};
 	}
 
-	bool Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
+	GraphicsResult<void> Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
 		inputDescriptorHeaps.clear();
 		inputDescriptorSize = 0;
-		if (!sourceDevice.GetDevice())
-			return false;
+		if (!sourceDevice.GetDevice()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "후처리 input descriptor heap 생성",
+				"DirectX 12 device를 사용할 수 없습니다"));
+		}
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
-			return true;
-		if (passCount > std::numeric_limits<UINT>::max() / PostProcessInputLayout::maxTextureCount)
-			return false;
+			return {};
+		if (passCount > std::numeric_limits<UINT>::max() / PostProcessInputLayout::maxTextureCount) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 input descriptor heap 생성",
+				"후처리 패스 수가 DirectX 12 descriptor 개수 범위를 벗어났습니다"));
+		}
 		inputDescriptorHeaps.resize(FrameBuffering::dx12BufferCount);
 		inputDescriptorStates.resize(
 			FrameBuffering::dx12BufferCount * passCount * PostProcessInputLayout::maxTextureCount);
@@ -88,27 +108,38 @@ namespace Chrivent {
 		description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		description.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		for (auto& heap : inputDescriptorHeaps) {
-			if (FAILED(sourceDevice.GetDevice()->CreateDescriptorHeap(&description, IID_PPV_ARGS(&heap))))
-				return false;
+			const HRESULT result = sourceDevice.GetDevice()->CreateDescriptorHeap(
+				&description, IID_PPV_ARGS(&heap));
+			if (FAILED(result)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 input descriptor heap 생성",
+					"DirectX 12 후처리 input descriptor heap을 만들지 못했습니다", result, true));
+			}
 		}
 		inputDescriptorSize = sourceDevice.GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		return true;
+		return {};
 	}
 
-	bool Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
+	GraphicsResult<void> Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
-		if (!sourceDevice.GetDevice())
-			return false;
+		if (!sourceDevice.GetDevice()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "후처리 parameter buffer 생성",
+				"DirectX 12 device를 사용할 수 없습니다"));
+		}
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
-			return true;
+			return {};
 		const size_t stride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
 		for (auto& buffer : parameterDataBuffers) {
-			if (!buffer.InitializeUpload(sourceDevice, stride * passCount))
-				return false;
+			if (!buffer.InitializeUpload(sourceDevice, stride * passCount)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 parameter buffer 생성",
+					"DirectX 12 후처리 parameter upload buffer를 만들지 못했습니다"));
+			}
 		}
-		return true;
+		return {};
 	}
 
 	ID3D12Resource* Dx12PostProcess::ResolveInputResource(
@@ -242,10 +273,13 @@ namespace Chrivent {
 			buffer.Reset();
 	}
 
-	bool Dx12PostProcess::InitializeTargets(
+	GraphicsResult<void> Dx12PostProcess::InitializeTargets(
 		const Dx12Device& sourceDevice, const int width, const int height) {
-		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0)
-			return false;
+		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
+				"DirectX 12 device 또는 후처리 target 크기가 올바르지 않습니다"));
+		}
 		targetWidth = width;
 		targetHeight = height;
 		sceneColor.Reset();
@@ -255,20 +289,28 @@ namespace Chrivent {
 		depthDsvHeap.Reset();
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();
-		if (!sceneColor.Initialize(sourceDevice, width, height, DXGI_FORMAT_R8G8B8A8_UNORM)
-			|| (RequiresVelocity()
-				&& !sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT))
-			|| ((RequiresDepth() || RequiresVelocity()) && !CreateDepthTarget(sourceDevice, width, height))
-			|| !CreateEffectResources(sourceDevice)
-			|| !CreateInputDescriptorHeaps(sourceDevice)
-			|| !CreateParameterDataBuffers(sourceDevice))
-			return false;
+		auto result = sceneColor.Initialize(sourceDevice, width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
+		if (result && RequiresVelocity())
+			result = sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT);
+		if (result && (RequiresDepth() || RequiresVelocity()))
+			result = CreateDepthTarget(sourceDevice, width, height);
+		if (result)
+			result = CreateEffectResources(sourceDevice);
+		if (result)
+			result = CreateInputDescriptorHeaps(sourceDevice);
+		if (result)
+			result = CreateParameterDataBuffers(sourceDevice);
+		if (!result)
+			return std::unexpected(result.error());
 		const size_t frameDataSize = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessFrameData));
 		for (auto& buffer : frameDataBuffers) {
-			if (!buffer.InitializeUpload(sourceDevice, frameDataSize))
-				return false;
+			if (!buffer.InitializeUpload(sourceDevice, frameDataSize)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::ResourceCreationFailed, "후처리 frame buffer 생성",
+					"DirectX 12 후처리 frame upload buffer를 만들지 못했습니다"));
+			}
 		}
-		return true;
+		return {};
 	}
 
 	void Dx12PostProcess::SwapResources(Dx12PostProcess& other) noexcept {
@@ -298,11 +340,10 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
 		}
-		if (candidate.HasEffects()
-			&& !candidate.InitializeTargets(sourceDevice, width, height)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
-				"DirectX 12 후처리 target과 descriptor를 만들지 못했습니다"));
+		if (candidate.HasEffects()) {
+			const auto targetResult = candidate.InitializeTargets(sourceDevice, width, height);
+			if (!targetResult)
+				return std::unexpected(targetResult.error());
 		}
 		std::string error;
 		if (candidate.HasEffects() && !candidate.CreatePipelines(sourceDevice, error)) {

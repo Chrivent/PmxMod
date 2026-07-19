@@ -36,7 +36,7 @@ namespace Chrivent {
 		int targetHeight = 0;
 
 		// 패키지가 선언한 transient/history texture view를 생성한다.
-		bool CreateEffectResources(ID3D11Device* device);
+		GraphicsResult<void> CreateEffectResources(ID3D11Device* device);
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories(ID3D11DeviceContext* context);
 		// pass 입력 경로에 대응하는 DX11 SRV를 반환한다.
@@ -55,7 +55,8 @@ namespace Chrivent {
 		
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
-		bool InitializeTargets(ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
+		GraphicsResult<void> InitializeTargets(
+			ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
 		// MSAA 장면 색상을 소유한 단일 샘플 입력 texture로 resolve한다.
 		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.

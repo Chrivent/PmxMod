@@ -1,9 +1,11 @@
 ﻿#pragma once
 
 #include "Viewer/Texture/TextureCache.h"
+#include "Viewer/Error/GraphicsError.h"
 
 #include <filesystem>
 #include <glad/glad.h>
+#include <optional>
 
 namespace Chrivent {
 	// 캐시 정보와 OpenGL texture 객체를 보관한다.
@@ -22,8 +24,9 @@ namespace Chrivent {
 		~OpenGlTextureCache();
 
 		// 텍스처가 없는 재질에 사용할 1x1 흰색 OpenGL 텍스처를 생성한다.
-		OpenGlTexture CreateWhiteTexture();
+		GraphicsResult<OpenGlTexture> CreateWhiteTexture();
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 OpenGL 텍스처로 반환한다.
-		OpenGlTexture Load(const std::filesystem::path& texturePath, bool clamp = false);
+		GraphicsResult<std::optional<OpenGlTexture>> Load(
+			const std::filesystem::path& texturePath, bool clamp = false);
 	};
 }
