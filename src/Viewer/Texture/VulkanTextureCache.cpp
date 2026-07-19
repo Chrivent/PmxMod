@@ -4,6 +4,7 @@
 #include "Viewer/Memory/VulkanMemory.h"
 
 #include <limits>
+#include <memory>
 #include <ranges>
 
 namespace Chrivent {
@@ -68,13 +69,13 @@ namespace Chrivent {
 				"Vulkan texture 픽셀 데이터 또는 크기가 올바르지 않습니다"));
 		}
 		const VkDeviceSize imageSize = static_cast<VkDeviceSize>(width) * height * 4;
-		VulkanBuffer stagingBuffer;
-		const auto stagingResult = stagingBuffer.Initialize(sourceDevice, imageSize,
+		auto stagingBuffer = std::make_unique<VulkanBuffer>();
+		const auto stagingResult = stagingBuffer->Initialize(sourceDevice, imageSize,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		if (!stagingResult)
 			return std::unexpected(stagingResult.error());
-		if (!stagingBuffer.Write(pixels, imageSize)) {
+		if (!stagingBuffer->Write(pixels, imageSize)) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture staging buffer 기록",
 				"Vulkan texture 픽셀을 staging buffer에 기록하지 못했습니다"));
@@ -87,27 +88,95 @@ namespace Chrivent {
 			ResetTexture(texture);
 			return std::unexpected(imageResult.error());
 		}
-		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-		const auto beginResult = uploadContext.Begin(sourceDevice, commandBuffer);
-		if (!beginResult) {
-			ResetTexture(texture);
-			return std::unexpected(beginResult.error());
+		const bool standaloneUpload = !uploadBatchActive;
+		VkCommandBuffer commandBuffer = uploadCommandBuffer;
+		if (standaloneUpload) {
+			const auto beginResult = uploadContext.BeginBatch(sourceDevice, commandBuffer);
+			if (!beginResult) {
+				ResetTexture(texture);
+				return std::unexpected(beginResult.error());
+			}
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		CopyBufferToImage(commandBuffer, stagingBuffer.buffer, texture.image, texture.width, texture.height);
+		CopyBufferToImage(commandBuffer, stagingBuffer->buffer, texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		const auto submitResult = uploadContext.SubmitAndWait(sourceDevice);
-		if (!submitResult) {
+		const auto retainResult = uploadContext.RetainStagingBuffer(std::move(stagingBuffer));
+		if (!retainResult) {
+			if (standaloneUpload)
+				uploadContext.CancelBatch();
+			else
+				CancelUploadBatch();
 			ResetTexture(texture);
-			return std::unexpected(submitResult.error());
+			return std::unexpected(retainResult.error());
+		}
+		if (standaloneUpload) {
+			const auto submitResult = uploadContext.SubmitBatch(sourceDevice);
+			if (!submitResult) {
+				ResetTexture(texture);
+				return std::unexpected(submitResult.error());
+			}
 		}
 		const auto viewResult = CreateImageView(texture.image, texture.imageView);
 		if (!viewResult) {
+			if (uploadBatchActive)
+				CancelUploadBatch();
 			ResetTexture(texture);
 			return std::unexpected(viewResult.error());
 		}
 		texture.sampler = clamp ? clampSampler : wrapSampler;
 		return {};
+	}
+
+	void VulkanTextureCache::RollbackUploadBatch() {
+		for (const TextureKey& key : pendingTextureKeys) {
+			const auto texture = textures.find(key);
+			if (texture == textures.end())
+				continue;
+			ResetTexture(texture->second);
+			textures.erase(texture);
+		}
+		pendingTextureKeys.clear();
+	}
+
+	GraphicsResult<void> VulkanTextureCache::BeginUploadBatch(const VulkanDevice& sourceDevice) {
+		if (uploadBatchActive) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "texture upload batch 시작",
+				"Vulkan texture upload batch가 이미 활성화되어 있습니다"));
+		}
+		device = sourceDevice.GetDevice();
+		const auto beginResult = uploadContext.BeginBatch(sourceDevice, uploadCommandBuffer);
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
+		pendingTextureKeys.clear();
+		uploadBatchActive = true;
+		return {};
+	}
+
+	GraphicsResult<void> VulkanTextureCache::SubmitUploadBatch(const VulkanDevice& sourceDevice) {
+		if (!uploadBatchActive) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "texture upload batch 제출",
+				"제출할 Vulkan texture upload batch가 없습니다"));
+		}
+		uploadBatchActive = false;
+		uploadCommandBuffer = VK_NULL_HANDLE;
+		const auto submitResult = uploadContext.SubmitBatch(sourceDevice);
+		if (!submitResult) {
+			RollbackUploadBatch();
+			return std::unexpected(submitResult.error());
+		}
+		pendingTextureKeys.clear();
+		return {};
+	}
+
+	void VulkanTextureCache::CancelUploadBatch() {
+		if (!uploadBatchActive)
+			return;
+		uploadContext.CancelBatch();
+		uploadBatchActive = false;
+		uploadCommandBuffer = VK_NULL_HANDLE;
+		RollbackUploadBatch();
 	}
 
 	GraphicsResult<void> VulkanTextureCache::CreateImage(
@@ -256,6 +325,7 @@ namespace Chrivent {
 	}
 
 	VulkanTextureCache::~VulkanTextureCache() {
+		CancelUploadBatch();
 		for (auto& texture : textures | std::views::values)
 			ResetTexture(texture);
 		textures.clear();
@@ -282,6 +352,8 @@ namespace Chrivent {
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		textures.emplace(cacheKey, texture);
+		if (uploadBatchActive)
+			pendingTextureKeys.emplace_back(cacheKey);
 		return std::optional{ texture };
 	}
 
@@ -298,6 +370,8 @@ namespace Chrivent {
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		textures.emplace(key, texture);
+		if (uploadBatchActive)
+			pendingTextureKeys.emplace_back(key);
 		return texture;
 	}
 }

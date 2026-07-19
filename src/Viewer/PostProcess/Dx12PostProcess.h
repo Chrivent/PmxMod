@@ -64,9 +64,6 @@ namespace Chrivent {
 		ID3D12Resource* ResolveInputResource(const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const;
 		// 출력 경로에 대응하는 DX12 target을 반환한다.
 		Dx12PostProcessTarget* ResolveOutputTarget(const PostProcessPassRoute& route);
-		// 후처리 기록 실패 시 원본 장면을 back buffer에 resolve하고 history 변경을 폐기한다.
-		bool ResolveSceneFallback(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
-			const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12CommandContext& commandContext);
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
 		// 검증을 마친 다른 DX12 후처리 객체와 GPU 리소스를 교환한다.
@@ -84,7 +81,7 @@ namespace Chrivent {
 		// DX12 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
 		bool EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext) const;
-		// 후처리 또는 원본 장면 fallback 중 유효한 최종 프레임 명령을 기록한다.
+		// 선언된 후처리 패스를 실행해 최종 프레임 명령을 기록한다.
 		bool Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 			const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,

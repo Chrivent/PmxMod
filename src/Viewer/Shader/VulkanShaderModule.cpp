@@ -17,8 +17,10 @@ namespace Chrivent {
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		createInfo.codeSize = spvBytes.size() * sizeof(uint32_t);
 		createInfo.pCode = spvBytes.data();
-		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			error = "Vulkan shader module을 만들지 못했습니다";
+		const VkResult result = vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
+		if (result != VK_SUCCESS) {
+			error = "Vulkan shader module을 만들지 못했습니다 (네이티브 코드: "
+				+ std::to_string(result) + ')';
 			return false;
 		}
 		return true;

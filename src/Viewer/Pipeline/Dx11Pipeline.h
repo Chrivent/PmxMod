@@ -40,7 +40,7 @@ namespace Chrivent {
 		bool CreateShaders(ID3D11Device* device, const BuiltInShaderPasses& builtInPasses,
 			const SceneInputShaderPasses& sceneInputPasses, std::string& error);
 		// sampler, blend, rasterizer와 depth-stencil 상태를 생성한다.
-		bool CreateStates(ID3D11Device* device);
+		GraphicsResult<void> CreateStates(ID3D11Device* device);
 
 	public:
 		ID3D11SamplerState* GetTextureSampler() const { return states.textureSampler.Get(); }

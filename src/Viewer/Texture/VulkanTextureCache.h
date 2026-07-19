@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <vector>
 
 namespace Chrivent {
 	// 캐시 정보와 Vulkan image, memory, view 및 공유 sampler 참조를 보관한다.
@@ -25,6 +26,9 @@ namespace Chrivent {
 		VkSampler wrapSampler = VK_NULL_HANDLE;
 		VkSampler clampSampler = VK_NULL_HANDLE;
 		VulkanUploadContext& uploadContext;
+		VkCommandBuffer uploadCommandBuffer = VK_NULL_HANDLE;
+		std::vector<TextureKey> pendingTextureKeys;
+		bool uploadBatchActive = false;
 
 		// 이미지 레이아웃 전환 명령을 기록한다.
 		static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -46,12 +50,20 @@ namespace Chrivent {
 		void ResetTexture(VulkanTexture& texture) const;
 		// 캐시가 공유하는 sampler들을 해제한다.
 		void ResetSamplers();
+		// 제출하지 못한 batch에서 추가한 texture 리소스와 cache 항목을 제거한다.
+		void RollbackUploadBatch();
 
 	public:
 		explicit VulkanTextureCache(VulkanUploadContext& sourceUploadContext) :
 			uploadContext(sourceUploadContext) {}
 		~VulkanTextureCache();
 
+		// 여러 texture 업로드를 한 command buffer로 기록할 batch를 시작한다.
+		GraphicsResult<void> BeginUploadBatch(const VulkanDevice& sourceDevice);
+		// 기록한 texture upload batch를 한 번 제출한다.
+		GraphicsResult<void> SubmitUploadBatch(const VulkanDevice& sourceDevice);
+		// 제출하지 않은 texture upload batch와 새 cache 항목을 폐기한다.
+		void CancelUploadBatch();
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 Vulkan 텍스처로 반환한다.
 		GraphicsResult<std::optional<VulkanTexture>> Load(const VulkanDevice& sourceDevice,
 			const std::filesystem::path& texturePath, bool clamp = false);

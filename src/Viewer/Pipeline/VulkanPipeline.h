@@ -23,9 +23,9 @@ namespace Chrivent {
 		VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
 		// 모델 데이터에서 사용할 descriptor set layout들을 생성한다.
-		bool CreateDescriptorSetLayouts(std::string& error);
+		GraphicsResult<void> CreateDescriptorSetLayouts();
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
-		bool CreatePipelineLayout(std::string& error);
+		GraphicsResult<void> CreatePipelineLayout();
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
 		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,

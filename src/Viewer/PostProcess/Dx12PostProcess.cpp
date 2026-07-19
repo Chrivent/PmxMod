@@ -256,14 +256,6 @@ namespace Chrivent {
 		return &targets[ResolveResourceWriteIndex(route.outputResourceIndex)];
 	}
 
-	bool Dx12PostProcess::ResolveSceneFallback(ID3D12GraphicsCommandList* commandList,
-		ID3D12Resource* backBuffer, const Dx12MsaaColorBuffer& msaaColorBuffer,
-		const Dx12CommandContext& commandContext) {
-		DiscardHistoryFrame();
-		return msaaColorBuffer.ResolveToBackBuffer(
-			commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer);
-	}
-
 	void Dx12PostProcess::ResetEffectResources() {
 		inputDescriptorHeaps.clear();
 		inputDescriptorStates.clear();
@@ -400,13 +392,13 @@ namespace Chrivent {
 		ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource()
 			|| !IsPassCountCompatible(pipelines.GetCount()))
-			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
+			return false;
 		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized())
-			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
+			return false;
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.GetMsaaSampleCount() > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
@@ -430,14 +422,14 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
 		if (heap == nullptr)
-			return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
+			return false;
 		commandList->SetDescriptorHeaps(1, &heap);
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
 			if (!parameterDataBuffer.Write(GetParameterData(route), parameterOffset))
-				return ResolveSceneFallback(commandList, backBuffer, msaaColorBuffer, commandContext);
+				return false;
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (outputTarget != nullptr) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->GetResource(),

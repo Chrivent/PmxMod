@@ -1,9 +1,12 @@
 ﻿#include "Viewer/Command/VulkanUploadContext.h"
 
+#include "Viewer/Buffer/VulkanBuffer.h"
+
 #include <limits>
 
 namespace Chrivent {
 	void VulkanUploadContext::Reset() {
+		retainedBuffers.clear();
 		if (device != VK_NULL_HANDLE && fence != VK_NULL_HANDLE)
 			vkDestroyFence(device, fence, nullptr);
 		if (device != VK_NULL_HANDLE && commandPool != VK_NULL_HANDLE)
@@ -12,6 +15,7 @@ namespace Chrivent {
 		commandPool = VK_NULL_HANDLE;
 		commandBuffer = VK_NULL_HANDLE;
 		fence = VK_NULL_HANDLE;
+		batchRecording = false;
 	}
 
 	GraphicsResult<void> VulkanUploadContext::Initialize(const VulkanDevice& sourceDevice) {
@@ -65,8 +69,13 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanUploadContext::Begin(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanUploadContext::BeginBatch(const VulkanDevice& sourceDevice,
 		VkCommandBuffer& targetCommandBuffer) {
+		if (batchRecording) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "업로드 batch 시작",
+				"Vulkan 업로드 batch가 이미 기록 중입니다"));
+		}
 		const auto initializeResult = Initialize(sourceDevice);
 		if (!initializeResult)
 			return std::unexpected(initializeResult.error());
@@ -85,6 +94,8 @@ namespace Chrivent {
 				GraphicsErrorCode::CommandRecordingFailed, "업로드 command buffer 시작",
 				"Vulkan 업로드 command buffer 기록을 시작하지 못했습니다", result, true));
 		}
+		retainedBuffers.clear();
+		batchRecording = true;
 		targetCommandBuffer = commandBuffer;
 		return {};
 	}
@@ -132,6 +143,40 @@ namespace Chrivent {
 		return {};
 	}
 
+	GraphicsResult<void> VulkanUploadContext::SubmitBatch(const VulkanDevice& sourceDevice) {
+		if (!batchRecording) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "업로드 batch 제출",
+				"제출할 Vulkan 업로드 batch가 없습니다"));
+		}
+		batchRecording = false;
+		const auto submitResult = SubmitAndWait(sourceDevice);
+		if (!submitResult)
+			return std::unexpected(submitResult.error());
+		retainedBuffers.clear();
+		return {};
+	}
+
+	GraphicsResult<void> VulkanUploadContext::RetainStagingBuffer(
+		std::unique_ptr<VulkanBuffer> stagingBuffer) {
+		if (!batchRecording || !stagingBuffer) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "업로드 staging buffer 보관",
+				"Vulkan 업로드 batch 또는 staging buffer가 올바르지 않습니다"));
+		}
+		retainedBuffers.emplace_back(std::move(stagingBuffer));
+		return {};
+	}
+
+	void VulkanUploadContext::CancelBatch() {
+		if (!batchRecording)
+			return;
+		if (commandBuffer != VK_NULL_HANDLE)
+			vkEndCommandBuffer(commandBuffer);
+		batchRecording = false;
+		retainedBuffers.clear();
+	}
+
 	GraphicsResult<void> VulkanUploadContext::UploadIndexBuffer(const VulkanDevice& sourceDevice,
 		const VkBuffer destination, const VkBuffer source, const VkDeviceSize size) {
 		if (destination == VK_NULL_HANDLE || source == VK_NULL_HANDLE || size == 0) {
@@ -140,7 +185,7 @@ namespace Chrivent {
 				"복사할 Vulkan index buffer 또는 크기가 올바르지 않습니다"));
 		}
 		VkCommandBuffer targetCommandBuffer = VK_NULL_HANDLE;
-		const auto beginResult = Begin(sourceDevice, targetCommandBuffer);
+		const auto beginResult = BeginBatch(sourceDevice, targetCommandBuffer);
 		if (!beginResult)
 			return std::unexpected(beginResult.error());
 		const VkBufferCopy copyRegion{ .size = size };
@@ -163,6 +208,6 @@ namespace Chrivent {
 			.pBufferMemoryBarriers = &barrier
 		};
 		vkCmdPipelineBarrier2(targetCommandBuffer, &dependencyInfo);
-		return SubmitAndWait(sourceDevice);
+		return SubmitBatch(sourceDevice);
 	}
 }

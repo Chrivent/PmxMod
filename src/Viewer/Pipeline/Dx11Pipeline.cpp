@@ -12,41 +12,83 @@ namespace Chrivent {
 			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity, error);
 	}
 
-	bool Dx11Pipeline::CreateStates(ID3D11Device* device) {
+	GraphicsResult<void> Dx11Pipeline::CreateStates(ID3D11Device* device) {
 		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 			D3D11_TEXTURE_ADDRESS_WRAP);
-		if (FAILED(device->CreateSamplerState(&wrapLinear, &states.textureSampler)))
-			return false;
+		HRESULT result = device->CreateSamplerState(&wrapLinear, &states.textureSampler);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "일반 texture sampler 생성",
+				"DirectX 11 일반 texture sampler를 만들지 못했습니다", result, true));
+		}
 		auto clampLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 			D3D11_TEXTURE_ADDRESS_CLAMP);
-		if (FAILED(device->CreateSamplerState(&clampLinear, &states.toonTextureSampler)))
-			return false;
+		result = device->CreateSamplerState(&clampLinear, &states.toonTextureSampler);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "툰 texture sampler 생성",
+				"DirectX 11 툰 texture sampler를 만들지 못했습니다", result, true));
+		}
 		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
-		if (FAILED(device->CreateBlendState(&blend, &states.blendState)))
-			return false;
+		result = device->CreateBlendState(&blend, &states.blendState);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "alpha blend state 생성",
+				"DirectX 11 alpha blend state를 만들지 못했습니다", result, true));
+		}
 		auto groundShadowBlend = Dx11DescBuilder::MakeGroundShadowBlendDesc();
-		if (FAILED(device->CreateBlendState(&groundShadowBlend, &states.groundShadowBlendState)))
-			return false;
+		result = device->CreateBlendState(&groundShadowBlend, &states.groundShadowBlendState);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 blend state 생성",
+				"DirectX 11 지면 그림자 blend state를 만들지 못했습니다", result, true));
+		}
 		auto frontDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
-		if (FAILED(device->CreateRasterizerState(&frontDescription, &states.frontFaceRs)))
-			return false;
+		result = device->CreateRasterizerState(&frontDescription, &states.frontFaceRs);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "단면 rasterizer state 생성",
+				"DirectX 11 단면 rasterizer state를 만들지 못했습니다", result, true));
+		}
 		auto bothDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
-		if (FAILED(device->CreateRasterizerState(&bothDescription, &states.bothFaceRs)))
-			return false;
+		result = device->CreateRasterizerState(&bothDescription, &states.bothFaceRs);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "양면 rasterizer state 생성",
+				"DirectX 11 양면 rasterizer state를 만들지 못했습니다", result, true));
+		}
 		auto edgeDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
-		if (FAILED(device->CreateRasterizerState(&edgeDescription, &states.edgeRs)))
-			return false;
+		result = device->CreateRasterizerState(&edgeDescription, &states.edgeRs);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "엣지 rasterizer state 생성",
+				"DirectX 11 엣지 rasterizer state를 만들지 못했습니다", result, true));
+		}
 		auto shadowDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		shadowDescription.DepthBias = -1;
 		shadowDescription.SlopeScaledDepthBias = -1.0f;
 		shadowDescription.DepthBiasClamp = -1.0f;
-		if (FAILED(device->CreateRasterizerState(&shadowDescription, &states.gsRs)))
-			return false;
+		result = device->CreateRasterizerState(&shadowDescription, &states.gsRs);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 rasterizer state 생성",
+				"DirectX 11 지면 그림자 rasterizer state를 만들지 못했습니다", result, true));
+		}
 		auto shadowDepthDescription = Dx11DescBuilder::MakeGroundShadowDepthStencilDesc();
-		if (FAILED(device->CreateDepthStencilState(&shadowDepthDescription, &states.gsDss)))
-			return false;
+		result = device->CreateDepthStencilState(&shadowDepthDescription, &states.gsDss);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 depth state 생성",
+				"DirectX 11 지면 그림자 depth state를 만들지 못했습니다", result, true));
+		}
 		auto defaultDepthDescription = Dx11DescBuilder::MakeDefaultDepthStencilDesc();
-		return SUCCEEDED(device->CreateDepthStencilState(&defaultDepthDescription, &states.defaultDss));
+		result = device->CreateDepthStencilState(&defaultDepthDescription, &states.defaultDss);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "기본 depth state 생성",
+				"DirectX 11 기본 depth state를 만들지 못했습니다", result, true));
+		}
+		return {};
 	}
 
 	GraphicsResult<void> Dx11Pipeline::Initialize(ID3D11Device* device,
@@ -60,10 +102,9 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "장면 셰이더 생성",
 				error.empty() ? "DirectX 11 장면 셰이더를 만들지 못했습니다" : error));
-		if (!CreateStates(device))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "고정 pipeline state 생성",
-				"DirectX 11 sampler, blend, rasterizer 또는 depth state를 만들지 못했습니다"));
+		const auto stateResult = CreateStates(device);
+		if (!stateResult)
+			return std::unexpected(stateResult.error());
 		return {};
 	}
 

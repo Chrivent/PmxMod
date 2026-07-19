@@ -3,7 +3,7 @@
 namespace Chrivent {
 	GraphicsResult<void> Dx12TextureCache::UploadRgbaPixels(
 		const Dx12Device& sourceDevice, const unsigned char* pixels,
-		const UINT width, const UINT height, Dx12Texture& texture) const {
+		const UINT width, const UINT height, Dx12Texture& texture) {
 		if (!sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue()
 			|| pixels == nullptr || width == 0 || height == 0) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
@@ -74,14 +74,74 @@ namespace Chrivent {
 		for (UINT row = 0; row < rowCount; row++)
 			std::memcpy(destination + layout.Footprint.RowPitch * row, pixels + sourcePitch * row, sourcePitch);
 		uploadBuffer->Unmap(0, nullptr);
-		const auto uploadResult = uploadContext.UploadTexture(
-			sourceDevice, texture.resource.Get(), uploadBuffer.Get(), layout);
-		if (!uploadResult)
-			return std::unexpected(uploadResult.error());
+		const bool standaloneUpload = !uploadBatchActive;
+		if (standaloneUpload) {
+			const auto beginResult = uploadContext.BeginBatch(sourceDevice);
+			if (!beginResult)
+				return std::unexpected(beginResult.error());
+		}
+		const auto recordResult = uploadContext.RecordTextureUpload(
+			texture.resource.Get(), uploadBuffer.Get(), layout);
+		if (!recordResult) {
+			if (standaloneUpload)
+				uploadContext.CancelBatch();
+			else
+				CancelUploadBatch();
+			return std::unexpected(recordResult.error());
+		}
+		if (standaloneUpload) {
+			const auto submitResult = uploadContext.SubmitBatch(sourceDevice);
+			if (!submitResult)
+				return std::unexpected(submitResult.error());
+		}
 		texture.width = width;
 		texture.height = height;
 		texture.format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		return {};
+	}
+
+	void Dx12TextureCache::RollbackUploadBatch() {
+		for (const TextureKey& key : pendingTextureKeys)
+			textures.erase(key);
+		pendingTextureKeys.clear();
+	}
+
+	GraphicsResult<void> Dx12TextureCache::BeginUploadBatch(const Dx12Device& sourceDevice) {
+		if (uploadBatchActive) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "texture upload batch 시작",
+				"DirectX 12 texture upload batch가 이미 활성화되어 있습니다"));
+		}
+		const auto beginResult = uploadContext.BeginBatch(sourceDevice);
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
+		pendingTextureKeys.clear();
+		uploadBatchActive = true;
+		return {};
+	}
+
+	GraphicsResult<void> Dx12TextureCache::SubmitUploadBatch(const Dx12Device& sourceDevice) {
+		if (!uploadBatchActive) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "texture upload batch 제출",
+				"제출할 DirectX 12 texture upload batch가 없습니다"));
+		}
+		uploadBatchActive = false;
+		const auto submitResult = uploadContext.SubmitBatch(sourceDevice);
+		if (!submitResult) {
+			RollbackUploadBatch();
+			return std::unexpected(submitResult.error());
+		}
+		pendingTextureKeys.clear();
+		return {};
+	}
+
+	void Dx12TextureCache::CancelUploadBatch() {
+		if (!uploadBatchActive)
+			return;
+		uploadContext.CancelBatch();
+		uploadBatchActive = false;
+		RollbackUploadBatch();
 	}
 
 	GraphicsResult<std::optional<Dx12Texture>> Dx12TextureCache::Load(
@@ -99,6 +159,8 @@ namespace Chrivent {
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		textures.emplace(key, texture);
+		if (uploadBatchActive)
+			pendingTextureKeys.emplace_back(key);
 		return std::optional{ texture };
 	}
 
@@ -113,6 +175,8 @@ namespace Chrivent {
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		textures.emplace(key, texture);
+		if (uploadBatchActive)
+			pendingTextureKeys.emplace_back(key);
 		return texture;
 	}
 }

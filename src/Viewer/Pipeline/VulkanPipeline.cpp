@@ -7,8 +7,7 @@
 #include <iterator>
 
 namespace Chrivent {
-	bool VulkanPipeline::CreateDescriptorSetLayouts(std::string& error) {
-		error.clear();
+	GraphicsResult<void> VulkanPipeline::CreateDescriptorSetLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -20,10 +19,12 @@ namespace Chrivent {
 			.bindingCount = 1,
 			.pBindings = &vertexConstantBinding
 		};
-		if (vkCreateDescriptorSetLayout(device, &vertexLayoutInfo,
-			nullptr, &descriptorSetLayouts[0]) != VK_SUCCESS) {
-			error = "Vulkan vertex descriptor set layout을 만들지 못했습니다";
-			return false;
+		VkResult result = vkCreateDescriptorSetLayout(device, &vertexLayoutInfo,
+			nullptr, &descriptorSetLayouts[0]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "vertex descriptor set layout 생성",
+				"Vulkan vertex descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		static constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
 			.binding = 0,
@@ -36,10 +37,12 @@ namespace Chrivent {
 			.bindingCount = 1,
 			.pBindings = &pixelConstantBinding
 		};
-		if (vkCreateDescriptorSetLayout(device, &pixelLayoutInfo,
-			nullptr, &descriptorSetLayouts[1]) != VK_SUCCESS) {
-			error = "Vulkan pixel descriptor set layout을 만들지 못했습니다";
-			return false;
+		result = vkCreateDescriptorSetLayout(device, &pixelLayoutInfo,
+			nullptr, &descriptorSetLayouts[1]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "pixel descriptor set layout 생성",
+				"Vulkan pixel descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		static constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
@@ -84,26 +87,29 @@ namespace Chrivent {
 			.bindingCount = std::size(textureBindings),
 			.pBindings = textureBindings
 		};
-		if (vkCreateDescriptorSetLayout(device, &textureLayoutInfo,
-			nullptr, &descriptorSetLayouts[2]) != VK_SUCCESS) {
-			error = "Vulkan texture descriptor set layout을 만들지 못했습니다";
-			return false;
+		result = vkCreateDescriptorSetLayout(device, &textureLayoutInfo,
+			nullptr, &descriptorSetLayouts[2]);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "texture descriptor set layout 생성",
+				"Vulkan texture descriptor set layout을 만들지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
-	bool VulkanPipeline::CreatePipelineLayout(std::string& error) {
-		error.clear();
+	GraphicsResult<void> VulkanPipeline::CreatePipelineLayout() {
 		const VkPipelineLayoutCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = 3,
 			.pSetLayouts = descriptorSetLayouts
 		};
-		if (vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			error = "Vulkan pipeline layout을 만들지 못했습니다";
-			return false;
+		const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout);
+		if (result != VK_SUCCESS) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ResourceCreationFailed, "pipeline layout 생성",
+				"Vulkan pipeline layout을 만들지 못했습니다", result, true));
 		}
-		return true;
+		return {};
 	}
 
 	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
@@ -175,14 +181,12 @@ namespace Chrivent {
 		Reset();
 		device = sourceDevice.GetDevice();
 		std::string error;
-		if (!CreateDescriptorSetLayouts(error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::ResourceCreationFailed, "descriptor set layout 생성", error));
-		}
-		if (!CreatePipelineLayout(error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::ResourceCreationFailed, "pipeline layout 생성", error));
-		}
+		const auto descriptorLayoutResult = CreateDescriptorSetLayouts();
+		if (!descriptorLayoutResult)
+			return std::unexpected(descriptorLayoutResult.error());
+		const auto pipelineLayoutResult = CreatePipelineLayout();
+		if (!pipelineLayoutResult)
+			return std::unexpected(pipelineLayoutResult.error());
 		if (!CreateGraphicsPipelines(sourceDevice, sourceColorFormat, sourceDepthFormat,
 			shaderContract.builtIn, shaderContract.sceneInput.depth,
 			shaderContract.sceneInput.velocity, error)) {

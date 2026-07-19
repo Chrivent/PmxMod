@@ -208,9 +208,17 @@ namespace Chrivent {
 		const auto constantRingResult = SetupConstantRings();
 		if (!constantRingResult)
 			return std::unexpected(constantRingResult.error());
+		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
+		if (!beginUploadResult)
+			return std::unexpected(beginUploadResult.error());
 		const auto materialResult = LoadMaterials();
-		if (!materialResult)
+		if (!materialResult) {
+			textureCache.CancelUploadBatch();
 			return std::unexpected(materialResult.error());
+		}
+		const auto uploadResult = textureCache.SubmitUploadBatch(device);
+		if (!uploadResult)
+			return std::unexpected(uploadResult.error());
 		return CreateDescriptorSets();
 	}
 

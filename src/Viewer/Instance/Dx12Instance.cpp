@@ -207,9 +207,17 @@ namespace Chrivent {
 		if (!CreateConstantBuffers())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
+		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
+		if (!beginUploadResult)
+			return std::unexpected(beginUploadResult.error());
 		const auto materialResult = LoadMaterials();
-		if (!materialResult)
+		if (!materialResult) {
+			textureCache.CancelUploadBatch();
 			return std::unexpected(materialResult.error());
+		}
+		const auto uploadResult = textureCache.SubmitUploadBatch(device);
+		if (!uploadResult)
+			return std::unexpected(uploadResult.error());
 		if (!CreateTextureDescriptors())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 모델 인스턴스 초기화", "texture descriptor를 만들지 못했습니다"));
