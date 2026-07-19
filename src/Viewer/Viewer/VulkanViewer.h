@@ -14,7 +14,6 @@
 #include "Viewer/Texture/VulkanTextureCache.h"
 
 #include <memory>
-#include <vector>
 
 namespace Chrivent {
 	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.

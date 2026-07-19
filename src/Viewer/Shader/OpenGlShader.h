@@ -18,6 +18,8 @@ namespace Chrivent {
 		static std::string ReadProgramLog(GLuint program);
 
 	public:
+		// SPIR-V image와 sampler를 결합하고 OpenGL 4.6 GLSL 소스를 생성한다.
+		static GraphicsError::Result<std::string> ConvertSpirvToGlsl(const std::vector<uint32_t>& code);
 		// HLSL의 버텍스와 픽셀 진입점을 SPIR-V로 컴파일하고 프로그램으로 링크한다.
 		static GraphicsError::Result<GLuint> CreateProgram(
 			const std::filesystem::path& shaderFile, const std::string& vertexEntry,

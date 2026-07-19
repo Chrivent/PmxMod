@@ -96,6 +96,12 @@ namespace Chrivent {
 		public:
 			// 검증을 마친 실행 계획의 소유권을 받는다.
 			explicit PreparedEffects(ExecutionPlan sourceExecutionPlan);
+			
+			PreparedEffects(const PreparedEffects&) = delete;
+			PreparedEffects& operator=(const PreparedEffects&) = delete;
+			PreparedEffects(PreparedEffects&&) = default;
+			PreparedEffects& operator=(PreparedEffects&&) = default;
+
 			// 보관한 실행 계획을 지정한 후처리 객체로 이동한다.
 			void ApplyTo(PostProcess& postProcess) &&;
 		};

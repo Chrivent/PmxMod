@@ -2,11 +2,33 @@
 
 #include "Viewer/Error/OpenGlErrorState.h"
 #include "Viewer/Shader/DxcHlslCompiler.h"
-
 #include <spirv_cross/spirv_glsl.hpp>
 #include <utility>
 
 namespace Chrivent {
+	GraphicsError::Result<std::string> OpenGlProgramBuilder::ConvertSpirvToGlsl(
+		const std::vector<uint32_t>& code) {
+		try {
+			spirv_cross::CompilerGLSL compiler(code);
+			spirv_cross::CompilerGLSL::Options options;
+			options.version = 460;
+			options.es = false;
+			compiler.set_common_options(options);
+			compiler.build_combined_image_samplers();
+			for (const auto& sampler : compiler.get_combined_image_samplers()) {
+				if (!compiler.has_decoration(sampler.image_id, spv::DecorationBinding))
+					continue;
+				compiler.set_decoration(sampler.combined_id, spv::DecorationBinding,
+					compiler.get_decoration(sampler.image_id, spv::DecorationBinding));
+			}
+			return compiler.compile();
+		} catch (const spirv_cross::CompilerError& compilerError) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V를 GLSL로 변환",
+				"SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " + std::string(compilerError.what())));
+		}
+	}
+
 	std::string OpenGlProgramBuilder::ReadShaderLog(const GLuint shader) {
 		GLint logLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
@@ -29,26 +51,10 @@ namespace Chrivent {
 
 	GraphicsError::Result<GLuint> OpenGlProgramBuilder::CreateStage(
 		const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
-		std::string source;
-		try {
-			spirv_cross::CompilerGLSL compiler(code);
-			spirv_cross::CompilerGLSL::Options options;
-			options.version = 460;
-			options.es = false;
-			compiler.set_common_options(options);
-			compiler.build_combined_image_samplers();
-			for (const auto& sampler : compiler.get_combined_image_samplers()) {
-				if (!compiler.has_decoration(sampler.image_id, spv::DecorationBinding))
-					continue;
-				compiler.set_decoration(sampler.combined_id, spv::DecorationBinding,
-					compiler.get_decoration(sampler.image_id, spv::DecorationBinding));
-			}
-			source = compiler.compile();
-		} catch (const spirv_cross::CompilerError& compilerError) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
-				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V를 GLSL로 변환",
-				"SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " + std::string(compilerError.what())));
-		}
+		auto sourceResult = ConvertSpirvToGlsl(code);
+		if (!sourceResult)
+			return std::unexpected(sourceResult.error());
+		const std::string& source = *sourceResult;
 		OpenGlErrorState::Clear();
 		const GLuint shader = glCreateShader(shaderType);
 		const GLenum result = OpenGlErrorState::Take();

@@ -19,6 +19,10 @@ add_executable(PmxModViewerApiTests
         Viewer/ApiDescriptorTest.cpp
         Viewer/GraphicsContractTest.cpp
         Viewer/ShaderCompilerTest.cpp
+        ${PROJECT_SOURCE_DIR}/src/Program/Shader/InternalShaderCatalog.h
+        ${PROJECT_SOURCE_DIR}/src/Program/Shader/InternalShaderCatalog.cpp
+        ${PROJECT_SOURCE_DIR}/src/Program/Shader/ShaderPackage.h
+        ${PROJECT_SOURCE_DIR}/src/Program/Shader/ShaderPackage.cpp
 )
 
 target_compile_features(PmxModViewerApiTests PRIVATE cxx_std_23)
@@ -31,6 +35,7 @@ target_link_libraries(PmxModViewerApiTests PRIVATE
         PmxMod::ProjectWarnings
         PmxMod::Viewer
         GTest::gtest_main
+        nlohmann_json::nlohmann_json
 )
 
 add_custom_command(TARGET PmxModViewerApiTests POST_BUILD

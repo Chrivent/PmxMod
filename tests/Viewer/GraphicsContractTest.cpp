@@ -43,5 +43,6 @@ namespace Chrivent {
 		EXPECT_EQ(SpirvBindingLayout::ResolveTextureBinding(7), 10);
 		EXPECT_EQ(SpirvBindingLayout::ResolveSamplerBinding(0), 4);
 		EXPECT_EQ(SpirvBindingLayout::ResolveSamplerBinding(2), 6);
+		EXPECT_EQ(PostProcessInputLayout::samplerCount, 1);
 	}
 }
