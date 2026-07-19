@@ -1,7 +1,6 @@
 ﻿#include "Viewer/PostProcess/PostProcess.h"
 
 #include <gtest/gtest.h>
-
 #include <limits>
 #include <utility>
 
