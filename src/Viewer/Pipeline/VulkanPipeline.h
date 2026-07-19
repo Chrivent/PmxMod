@@ -27,10 +27,11 @@ namespace Chrivent {
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
 		GraphicsResult<void> CreatePipelineLayout();
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
-		bool CreateGraphicsPipelines(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
+		GraphicsResult<void> CreateGraphicsPipelines(
+			const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
 			const ShaderProgramDefinition& depthProgram,
-			const ShaderProgramDefinition& velocityProgram, std::string& error);
+			const ShaderProgramDefinition& velocityProgram);
 
 	public:
 		VulkanPipeline() = default;

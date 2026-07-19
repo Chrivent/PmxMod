@@ -1,10 +1,6 @@
 ﻿#include "Viewer/DrawContext/OpenGlDrawContext.h"
 
 namespace Chrivent {
-	OpenGlSceneAttributeLocations OpenGlDrawContext::ResolveSceneAttributeLocations() const {
-		return pipeline.ResolveSceneAttributeLocations();
-	}
-
 	void OpenGlDrawContext::BindModelPipeline() {
 		if (boundPipeline == BoundPipeline::Model)
 			return;

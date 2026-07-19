@@ -3,13 +3,19 @@
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 
 namespace Chrivent {
-	bool Dx11Pipeline::CreateShaders(ID3D11Device* device, const BuiltInShaderPasses& builtInPasses,
-		const SceneInputShaderPasses& sceneInputPasses, std::string& error) {
-		return shaders.model.Initialize(device, builtInPasses.model, error)
-			&& shaders.edge.Initialize(device, builtInPasses.edge, error)
-			&& shaders.groundShadow.Initialize(device, builtInPasses.groundShadow, error)
-			&& shaders.sceneDepth.Initialize(device, sceneInputPasses.depth, error)
-			&& shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity, error);
+	GraphicsResult<void> Dx11Pipeline::CreateShaders(ID3D11Device* device,
+		const BuiltInShaderPasses& builtInPasses,
+		const SceneInputShaderPasses& sceneInputPasses) {
+		auto result = shaders.model.Initialize(device, builtInPasses.model);
+		if (result)
+			result = shaders.edge.Initialize(device, builtInPasses.edge);
+		if (result)
+			result = shaders.groundShadow.Initialize(device, builtInPasses.groundShadow);
+		if (result)
+			result = shaders.sceneDepth.Initialize(device, sceneInputPasses.depth);
+		if (result)
+			result = shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity);
+		return result;
 	}
 
 	GraphicsResult<void> Dx11Pipeline::CreateStates(ID3D11Device* device) {
@@ -97,11 +103,10 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "rendering pipeline 초기화",
 				"DirectX 11 device가 올바르지 않습니다"));
-		std::string error;
-		if (!CreateShaders(device, shaderContract.builtIn, shaderContract.sceneInput, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ResourceCreationFailed, "장면 셰이더 생성",
-				error.empty() ? "DirectX 11 장면 셰이더를 만들지 못했습니다" : error));
+		const auto shaderResult = CreateShaders(
+			device, shaderContract.builtIn, shaderContract.sceneInput);
+		if (!shaderResult)
+			return std::unexpected(shaderResult.error());
 		const auto stateResult = CreateStates(device);
 		if (!stateResult)
 			return std::unexpected(stateResult.error());

@@ -52,7 +52,8 @@ namespace Chrivent {
 		// frame별 모든 pass 파라미터를 보관할 b1 upload buffer를 생성한다.
 		GraphicsResult<void> CreateParameterDataBuffers(const Dx12Device& sourceDevice);
 		// 현재 frame의 pass 입력 descriptor를 실행 계획에 맞게 갱신한다.
-		void UpdateInputDescriptors(const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex);
+		GraphicsResult<void> UpdateInputDescriptors(
+			const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex);
 		// 모든 history target을 최초 사용 전에 0으로 지운다.
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);

@@ -115,17 +115,8 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	std::expected<void, std::string> PostProcess::BuildExecutionPlan(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		std::vector<const EffectRuntimeDefinition*> activeEffects;
-		activeEffects.reserve(effects.size());
-		for (size_t effectIndex = 0; effectIndex < effects.size(); effectIndex++) {
-			const EffectRuntimeDefinition* effect = effects[effectIndex];
-			if (effect == nullptr || effect->passes.empty()) {
-				return std::unexpected("효과 " + std::to_string(effectIndex)
-					+ "의 런타임 정의 또는 패스가 비어 있습니다");
-			}
-			activeEffects.push_back(effect);
-		}
+	std::expected<void, std::string> PostProcess::SetEffects(
+		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
 		std::vector<PostProcessPassRoute> plannedRoutes;
 		std::vector<PostProcessParameterData> plannedParameters;
@@ -133,8 +124,13 @@ namespace Chrivent {
 		PostProcessPassInputRoute effectInput{ .kind = PostProcessInputKind::SceneColor };
 		bool requiresDepth = false;
 		bool requiresVelocity = false;
-		for (size_t effectIndex = 0; effectIndex < activeEffects.size(); effectIndex++) {
-			const auto& [parameters, resources, passes] = *activeEffects[effectIndex];
+		for (size_t effectIndex = 0; effectIndex < effects.size(); effectIndex++) {
+			const EffectRuntimeDefinition* effect = effects[effectIndex];
+			if (effect == nullptr || effect->passes.empty()) {
+				return std::unexpected("효과 " + std::to_string(effectIndex)
+					+ "의 런타임 정의 또는 패스가 비어 있습니다");
+			}
+			const auto& [parameters, resources, passes] = *effect;
 			PostProcessParameterData parameterData;
 			bool usedParameterSlots[PostProcessInputLayout::maxParameterCount]{};
 			for (const auto& [slot, value] : parameters) {
@@ -184,7 +180,7 @@ namespace Chrivent {
 				});
 			}
 			std::vector<uint8_t> initializedTransientResources(resources.size(), 0);
-			const bool lastEffect = effectIndex + 1 == activeEffects.size();
+			const bool lastEffect = effectIndex + 1 == effects.size();
 			size_t effectOutputIndex = 0;
 			if (!lastEffect) {
 				effectOutputIndex = plannedResources.size();
@@ -298,10 +294,6 @@ namespace Chrivent {
 		depthRequired = requiresDepth;
 		velocityRequired = requiresVelocity;
 		return {};
-	}
-
-	std::expected<void, std::string> PostProcess::SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return BuildExecutionPlan(effects);
 	}
 
 	bool PostProcess::ValidateParameterUpdates(const std::span<const EffectParameterUpdate> updates) const {

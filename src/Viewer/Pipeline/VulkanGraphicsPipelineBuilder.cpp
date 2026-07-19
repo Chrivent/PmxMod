@@ -8,20 +8,22 @@
 #include <string>
 
 namespace Chrivent {
-	bool VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,
 		const ShaderProgramDefinition& program, const Configuration& configuration,
-		VkPipeline& pipeline, std::string& error) {
-		error.clear();
+		VkPipeline& pipeline) {
 		pipeline = VK_NULL_HANDLE;
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE
 			|| configuration.pipelineLayout == VK_NULL_HANDLE
 			|| configuration.depthFormat == VK_FORMAT_UNDEFINED) {
-			error = "Vulkan graphics pipeline 생성 설정이 올바르지 않습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "graphics pipeline 생성",
+				"Vulkan graphics pipeline 생성 설정이 올바르지 않습니다"));
 		}
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, program, SpirvBindingProfile::Scene, error))
-			return false;
+		const auto shaderResult = shaderStages.Build(
+			sourceDevice, program, SpirvBindingProfile::Scene);
+		if (!shaderResult)
+			return std::unexpected(shaderResult.error());
 		constexpr VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
 			.stride = sizeof(ViewerVertex),
@@ -169,9 +171,9 @@ namespace Chrivent {
 		const VkResult result = vkCreateGraphicsPipelines(sourceDevice.GetDevice(),
 			VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline);
 		if (result == VK_SUCCESS)
-			return true;
-		error = "Vulkan graphics pipeline을 만들지 못했습니다 (네이티브 코드: "
-			+ std::to_string(result) + ')';
-		return false;
+			return {};
+		return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			GraphicsErrorCode::ResourceCreationFailed, "graphics pipeline 생성",
+			"Vulkan graphics pipeline을 만들지 못했습니다", result, true));
 	}
 }

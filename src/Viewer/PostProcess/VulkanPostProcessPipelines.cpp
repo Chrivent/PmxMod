@@ -2,17 +2,18 @@
 
 #include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
-#include <string>
+#include <algorithm>
 
 namespace Chrivent {
-	bool VulkanPostProcessPipelines::CreateGraphicsPipeline(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanPostProcessPipelines::CreateGraphicsPipeline(
+		const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const ShaderProgramDefinition& program,
-		const VkFormat targetFormat, VkPipeline& pipeline, std::string& error) const {
-		error.clear();
+		const VkFormat targetFormat, VkPipeline& pipeline) const {
 		VulkanShaderStageBuilder shaderStages;
-		if (!shaderStages.Build(sourceDevice, program,
-			SpirvBindingProfile::PostProcess, error, true))
-			return false;
+		const auto shaderResult = shaderStages.Build(
+			sourceDevice, program, SpirvBindingProfile::PostProcess, true);
+		if (!shaderResult)
+			return std::unexpected(shaderResult.error());
 		VkPipelineVertexInputStateCreateInfo vertexInput{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
 		};
@@ -70,47 +71,58 @@ namespace Chrivent {
 		const VkResult result = vkCreateGraphicsPipelines(device,
 			VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
 		if (result == VK_SUCCESS)
-			return true;
-		error = "Vulkan 후처리 graphics pipeline을 만들지 못했습니다 (네이티브 코드: "
-			+ std::to_string(result) + ')';
-		return false;
+			return {};
+		return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			GraphicsErrorCode::ResourceCreationFailed, "후처리 graphics pipeline 생성",
+			"Vulkan 후처리 graphics pipeline을 만들지 못했습니다", result, true));
 	}
 
 	VulkanPostProcessPipelines::~VulkanPostProcessPipelines() {
 		Reset();
 	}
 
-	bool VulkanPostProcessPipelines::Initialize(const VulkanDevice& sourceDevice,
+	bool VulkanPostProcessPipelines::IsCompatible(const std::span<const VkFormat> formats) const {
+		return pipelines.size() == formats.size()
+			&& std::equal(targetFormats.begin(), targetFormats.end(), formats.begin(), formats.end());
+	}
+
+	GraphicsResult<void> VulkanPostProcessPipelines::Initialize(
+		const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const std::span<const ShaderProgramDefinition> programs,
-		const std::span<const VkFormat> targetFormats, std::string& error) {
+		const std::span<const VkFormat> formats) {
 		Reset();
-		error.clear();
 		device = sourceDevice.GetDevice();
 		if (programs.empty())
-			return true;
+			return {};
 		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE) {
-			error = "Vulkan device 또는 후처리 pipeline layout을 사용할 수 없습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "후처리 pipeline 초기화",
+				"Vulkan device 또는 후처리 pipeline layout을 사용할 수 없습니다"));
 		}
-		if (programs.size() != targetFormats.size()) {
-			error = "후처리 프로그램과 출력 형식 개수가 일치하지 않습니다";
-			return false;
+		if (programs.size() != formats.size()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 pipeline 초기화",
+				"후처리 프로그램과 출력 형식 개수가 일치하지 않습니다"));
 		}
 		for (size_t index = 0; index < programs.size(); index++) {
 			VkPipeline pipeline = VK_NULL_HANDLE;
-			if (!CreateGraphicsPipeline(sourceDevice, pipelineLayout,
-				programs[index], targetFormats[index], pipeline, error)) {
+			const auto result = CreateGraphicsPipeline(sourceDevice, pipelineLayout,
+				programs[index], formats[index], pipeline);
+			if (!result) {
+				const GraphicsError error = result.error();
 				Reset();
-				return false;
+				return std::unexpected(error);
 			}
 			pipelines.emplace_back(pipeline);
 		}
-		return true;
+		targetFormats.assign(formats.begin(), formats.end());
+		return {};
 	}
 
 	void VulkanPostProcessPipelines::Swap(VulkanPostProcessPipelines& other) noexcept {
 		std::swap(device, other.device);
 		pipelines.swap(other.pipelines);
+		targetFormats.swap(other.targetFormats);
 	}
 
 	void VulkanPostProcessPipelines::Reset() {
@@ -121,6 +133,7 @@ namespace Chrivent {
 			}
 		}
 		pipelines.clear();
+		targetFormats.clear();
 		device = VK_NULL_HANDLE;
 	}
 }

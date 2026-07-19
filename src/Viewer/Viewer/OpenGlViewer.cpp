@@ -29,7 +29,7 @@ namespace Chrivent {
 
 	GraphicsResult<void> OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
-		const auto deviceResult = device.Initialize(window, msaaSamples, capabilities);
+		const auto deviceResult = OpenGlDevice::Initialize(window, msaaSamples, capabilities);
 		if (!deviceResult)
 			return std::unexpected(deviceResult.error());
 		const auto pipelineResult = pipeline.Initialize(shaderContract);
@@ -58,7 +58,7 @@ namespace Chrivent {
 
 	GraphicsResult<FrameBeginState> OpenGlViewer::BeginFrameCore() {
 		drawContext.BeginFrame();
-		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.GetSceneFramebuffer());
+		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.TryGetSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		return FrameBeginState::Ready;
@@ -81,7 +81,7 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> OpenGlViewer::WaitIdle() {
-		return device.WaitIdle(window);
+		return OpenGlDevice::WaitIdle(window);
 	}
 
 	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {

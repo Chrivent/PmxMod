@@ -219,14 +219,10 @@ namespace Chrivent {
 			}
 			targetFormats.push_back(format);
 		}
-		std::string error;
-		if (!pipelines.Initialize(sourceDevice,
-			descriptors.GetPipelineLayout(), passes, targetFormats, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::EffectConfigurationFailed, "후처리 pipeline 생성",
-				error.empty() ? "Vulkan 후처리 pipeline을 만들지 못했습니다" : std::move(error)));
-		}
-		return {};
+		if (pipelines.IsCompatible(targetFormats))
+			return {};
+		return pipelines.Initialize(
+			sourceDevice, descriptors.GetPipelineLayout(), passes, targetFormats);
 	}
 
 	bool VulkanPostProcess::ResolveOutputImage(const PostProcessPassRoute& route, const uint32_t imageIndex,
@@ -296,7 +292,7 @@ namespace Chrivent {
 	GraphicsResult<void> VulkanPostProcess::InitializeTargets(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat) {
-		ResetResources();
+		ResetTargets();
 		device = sourceDevice.GetDevice();
 		auto result = CreateSceneImages(sourceDevice, sourceSwapChain);
 		if (result && (RequiresDepth() || RequiresVelocity()))
@@ -319,7 +315,7 @@ namespace Chrivent {
 		if (result)
 			return {};
 		const GraphicsError error = result.error();
-		ResetResources();
+		ResetTargets();
 		return std::unexpected(error);
 	}
 
@@ -415,7 +411,14 @@ namespace Chrivent {
 				"Vulkan 후처리 frame buffer를 기록하지 못했습니다"));
 		}
 		const VkPipelineLayout pipelineLayout = descriptors.GetPipelineLayout();
-		const VkDescriptorSet frameDataDescriptorSet = descriptors.GetFrameDataDescriptorSet(imageIndex);
+		const VkDescriptorSet frameDataDescriptorSet =
+			descriptors.TryGetFrameDataDescriptorSet(imageIndex);
+		if (pipelineLayout == VK_NULL_HANDLE || frameDataDescriptorSet == VK_NULL_HANDLE) {
+			DiscardImageStateFrame();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "후처리 frame descriptor binding",
+				"Vulkan 후처리 pipeline layout 또는 frame descriptor set을 사용할 수 없습니다"));
+		}
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
 		BeginHistoryFrame();
@@ -505,11 +508,20 @@ namespace Chrivent {
 				.colorAttachmentCount = 1,
 				.pColorAttachments = &colorAttachment
 			};
-			const VkDescriptorSet descriptorSet = descriptors.GetTextureDescriptorSet(imageIndex, passIndex);
+			const VkDescriptorSet descriptorSet =
+				descriptors.TryGetTextureDescriptorSet(imageIndex, passIndex);
+			const VkDescriptorSet parameterSet =
+				descriptors.TryGetParameterDataDescriptorSet(imageIndex, passIndex);
+			if (descriptorSet == VK_NULL_HANDLE || parameterSet == VK_NULL_HANDLE) {
+				DiscardHistoryFrame();
+				DiscardImageStateFrame();
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::InvalidState, "후처리 pass descriptor binding",
+					"Vulkan 후처리 texture 또는 parameter descriptor set을 사용할 수 없습니다"));
+			}
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
 			VulkanCommandBuffer::ApplyViewportAndScissor(commandBuffer, outputExtent);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.TryGetPipeline(passIndex));
-			const VkDescriptorSet parameterSet = descriptors.GetParameterDataDescriptorSet(imageIndex, passIndex);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayout, 1, 1, &parameterSet, 0, nullptr);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -540,10 +552,9 @@ namespace Chrivent {
 			resource.DiscardInitializationFrame();
 	}
 
-	void VulkanPostProcess::ResetResources() {
+	void VulkanPostProcess::ResetTargets() {
 		if (device != VK_NULL_HANDLE)
 			DestroyImages(depthImages, depthImageMemories, depthImageViews);
-		pipelines.Reset();
 		descriptors.Reset();
 		sceneTarget.Reset();
 		velocityTarget.Reset();
@@ -558,5 +569,10 @@ namespace Chrivent {
 		targetExtent = {};
 		swapChainFormat = VK_FORMAT_UNDEFINED;
 		device = VK_NULL_HANDLE;
+	}
+
+	void VulkanPostProcess::ResetResources() {
+		pipelines.Reset();
+		ResetTargets();
 	}
 }

@@ -1,6 +1,8 @@
 ﻿#include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
 
 #include "Viewer/Shader/DxcHlslCompiler.h"
+
+#include <utility>
 #include <vector>
 
 namespace Chrivent {
@@ -19,9 +21,9 @@ namespace Chrivent {
 		};
 	}
 
-	bool VulkanShaderStageBuilder::Build(const VulkanDevice& sourceDevice, const ShaderProgramDefinition& program,
-		const SpirvBindingProfile bindingProfile, std::string& outError, const bool invertVertexY) {
-		outError.clear();
+	GraphicsResult<void> VulkanShaderStageBuilder::Build(
+		const VulkanDevice& sourceDevice, const ShaderProgramDefinition& program,
+		const SpirvBindingProfile bindingProfile, const bool invertVertexY) {
 		vertexShader.Reset();
 		pixelShader.Reset();
 		vertexEntry = program.vertexEntry;
@@ -30,15 +32,22 @@ namespace Chrivent {
 		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
+		std::string error;
 		if (!DxcHlslCompiler::CompileSpirv(program.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
-			bindingProfile, vertexCode, outError, invertVertexY)
+			bindingProfile, vertexCode, error, invertVertexY)
 			|| !DxcHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
-				bindingProfile, pixelCode, outError))
-			return false;
-		if (!vertexShader.Initialize(sourceDevice, vertexCode, outError)
-			|| !pixelShader.Initialize(sourceDevice, pixelCode, outError))
-			return false;
+				bindingProfile, pixelCode, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V 셰이더 컴파일",
+				error.empty() ? "Vulkan용 SPIR-V 셰이더를 컴파일하지 못했습니다" : std::move(error)));
+		}
+		auto result = vertexShader.Initialize(sourceDevice, vertexCode);
+		if (!result)
+			return result;
+		result = pixelShader.Initialize(sourceDevice, pixelCode);
+		if (!result)
+			return result;
 		BuildStageDescriptions();
-		return true;
+		return {};
 	}
 }

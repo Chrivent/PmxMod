@@ -13,8 +13,7 @@ namespace Chrivent {
     // 공통 Viewer 계약을 OpenGL 컨텍스트와 framebuffer 흐름으로 구현한다.
     class OpenGlViewer : public Viewer {
         const uint32_t msaaSamples = 4;
-        OpenGlDevice device;
-        OpenGlTextureCache    textureCache;
+        OpenGlTextureCache textureCache;
         OpenGlPostProcess postProcess;
 		OpenGlPipeline pipeline;
 		OpenGlDrawContext drawContext{ pipeline };

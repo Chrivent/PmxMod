@@ -31,12 +31,8 @@ namespace Chrivent {
 		VulkanBuffer vertexBuffers[FrameBuffering::vulkanFramesInFlight];
 		VulkanBuffer indexBuffer;
 		size_t uniformBufferOffsetAlignment = 1;
-		VulkanDynamicBufferRing modelVertexConstantsRing;
-		VulkanDynamicBufferRing edgeVertexConstantsRing;
-		VulkanDynamicBufferRing groundShadowVertexConstantsRing;
-		VulkanDynamicBufferRing modelPixelConstantsRing;
-		VulkanDynamicBufferRing edgePixelConstantsRing;
-		VulkanDynamicBufferRing groundShadowPixelConstantsRing;
+		VulkanDynamicBufferRing vertexConstantsRing;
+		VulkanDynamicBufferRing pixelConstantsRing;
 		VulkanDescriptorSet modelDescriptorSet;
 		VulkanDescriptorSet edgeDescriptorSet;
 		VulkanDescriptorSet groundShadowDescriptorSet;

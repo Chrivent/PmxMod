@@ -57,8 +57,6 @@ namespace Chrivent {
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
 		GraphicsResult<void> InitializeTargets(
 			ID3D11Device* device, ID3D11DeviceContext* context, int width, int height);
-		// MSAA 장면 색상을 소유한 단일 샘플 입력 texture로 resolve한다.
-		void ResolveSceneColor(ID3D11DeviceContext* context, ID3D11Texture2D* source, UINT sampleCount) const;
 		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.
 		GraphicsResult<void> Configure(ID3D11Device* device, ID3D11DeviceContext* context,
 			int width, int height,
@@ -69,9 +67,10 @@ namespace Chrivent {
 		// DX11 후처리 장면 입력 패스를 종료한다.
 		static GraphicsResult<void> EndSceneInputPass(ID3D11DeviceContext* context);
 		// 준비된 실행 계획으로 화면 색상을 swapchain back buffer에 그린다.
-		GraphicsResult<void> Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
-			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
-			int width, int height, const PostProcessFrameData& frameData);
+		GraphicsResult<void> Draw(ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource,
+			UINT sampleCount, ID3D11RenderTargetView* backBufferView,
+			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler, int width,
+			int height, const PostProcessFrameData& frameData);
 		// 생성한 DX11 후처리 target을 해제한다.
 		void ResetTargets();
 		// 생성한 DX11 후처리 상태를 해제한다.

@@ -7,9 +7,8 @@
 #include <string>
 
 namespace Chrivent {
-	bool Dx12PostProcessPipelines::CreateRootSignature(const Dx12Device& sourceDevice,
-		std::string& error) {
-		error.clear();
+	GraphicsResult<void> Dx12PostProcessPipelines::CreateRootSignature(
+		const Dx12Device& sourceDevice) {
 		D3D12_DESCRIPTOR_RANGE srvRange{};
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		srvRange.NumDescriptors = PostProcessInputLayout::maxTextureCount;
@@ -43,13 +42,14 @@ namespace Chrivent {
 		description.NumStaticSamplers = PostProcessInputLayout::samplerCount;
 		description.pStaticSamplers = samplers;
 		description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice,
-			description, rootSignature, error);
+		return Dx12PipelineBuilder::CreateRootSignature(
+			sourceDevice, description, rootSignature);
 	}
 
-	bool Dx12PostProcessPipelines::CreatePipelineState(const Dx12Device& sourceDevice,
+	GraphicsResult<void> Dx12PostProcessPipelines::CreatePipelineState(
+		const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, const DXGI_FORMAT format,
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState, std::string& error) const {
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC description{};
 		description.pRootSignature = rootSignature.Get();
 		description.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -62,36 +62,41 @@ namespace Chrivent {
 		description.RTVFormats[0] = format;
 		description.SampleDesc.Count = 1;
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, description, pipelineState, error);
+			sourceDevice, program, description, pipelineState);
 	}
 
-	bool Dx12PostProcessPipelines::Initialize(const Dx12Device& sourceDevice,
+	GraphicsResult<void> Dx12PostProcessPipelines::Initialize(
+		const Dx12Device& sourceDevice,
 		const std::span<const ShaderProgramDefinition> programs,
-		const std::span<const DXGI_FORMAT> formats, std::string& error) {
+		const std::span<const DXGI_FORMAT> formats) {
 		Reset();
-		error.clear();
 		if (programs.empty())
-			return true;
+			return {};
 		if (!sourceDevice.GetDevice()) {
-			error = "DirectX 12 device를 사용할 수 없습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "후처리 pipeline 초기화",
+				"DirectX 12 device를 사용할 수 없습니다"));
 		}
 		if (programs.size() != formats.size()) {
-			error = "후처리 프로그램과 출력 형식 개수가 일치하지 않습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 pipeline 초기화",
+				"후처리 프로그램과 출력 형식 개수가 일치하지 않습니다"));
 		}
-		if (!CreateRootSignature(sourceDevice, error))
-			return false;
+		const auto rootSignatureResult = CreateRootSignature(sourceDevice);
+		if (!rootSignatureResult)
+			return std::unexpected(rootSignatureResult.error());
 		for (size_t index = 0; index < programs.size(); index++) {
 			Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-			if (!CreatePipelineState(sourceDevice, programs[index],
-				formats[index], pipelineState, error)) {
+			const auto result = CreatePipelineState(
+				sourceDevice, programs[index], formats[index], pipelineState);
+			if (!result) {
+				const GraphicsError error = result.error();
 				Reset();
-				return false;
+				return std::unexpected(error);
 			}
 			pipelineStates.emplace_back(std::move(pipelineState));
 		}
-		return true;
+		return {};
 	}
 
 	void Dx12PostProcessPipelines::Swap(Dx12PostProcessPipelines& other) noexcept {

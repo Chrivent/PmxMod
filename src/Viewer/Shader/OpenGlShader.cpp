@@ -3,9 +3,10 @@
 #include "Viewer/Shader/DxcHlslCompiler.h"
 
 #include <spirv_cross/spirv_glsl.hpp>
+#include <utility>
 
 namespace Chrivent {
-    std::string OpenGlShaderBuilder::ReadShaderLog(const GLuint shader) {
+	std::string OpenGlShaderBuilder::ReadShaderLog(const GLuint shader) {
 		GLint logLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 		if (logLength <= 1)
@@ -25,8 +26,8 @@ namespace Chrivent {
 		return log;
 	}
 
-	GLuint OpenGlShaderBuilder::CreateStage(const GLenum shaderType, const std::vector<uint32_t>& code,
-		const std::string& entry, std::string& error) {
+	GraphicsResult<GLuint> OpenGlShaderBuilder::CreateStage(
+		const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
 		std::string source;
 		try {
 			spirv_cross::CompilerGLSL compiler(code);
@@ -43,14 +44,16 @@ namespace Chrivent {
 			}
 			source = compiler.compile();
 		} catch (const spirv_cross::CompilerError& compilerError) {
-			error = "SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: ";
-			error += compilerError.what();
-			return 0;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V를 GLSL로 변환",
+				"SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " + std::string(compilerError.what())));
 		}
 		const GLuint shader = glCreateShader(shaderType);
 		if (shader == 0) {
-			error = "OpenGL shader 객체를 만들지 못했습니다";
-			return 0;
+			const GLenum result = glGetError();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "shader 객체 생성",
+				"OpenGL shader 객체를 만들지 못했습니다", result, result != GL_NO_ERROR));
 		}
 		const char* sourceData = source.c_str();
 		const GLint sourceSize = static_cast<GLint>(source.size());
@@ -60,45 +63,52 @@ namespace Chrivent {
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 		if (compileStatus == GL_TRUE)
 			return shader;
-		error = "생성된 OpenGL GLSL을 컴파일하지 못했습니다: entry=";
-		error += entry;
+		std::string message = "생성된 OpenGL GLSL을 컴파일하지 못했습니다: entry=" + entry;
 		const std::string log = ReadShaderLog(shader);
 		if (!log.empty()) {
-			error += '\n';
-			error += log;
+			message += '\n';
+			message += log;
 		}
 		glDeleteShader(shader);
-		return 0;
+		return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			GraphicsErrorCode::EffectConfigurationFailed, "GLSL 셰이더 컴파일", std::move(message)));
 	}
 
-	GLuint OpenGlShaderBuilder::CreateShader(const std::filesystem::path& shaderFile, const std::string& vertexEntry,
+	GraphicsResult<GLuint> OpenGlShaderBuilder::CreateShader(
+		const std::filesystem::path& shaderFile, const std::string& vertexEntry,
 		const std::string& pixelEntry, const SpirvBindingProfile bindingProfile,
-		std::string& error, const bool invertVertexY) {
-		error.clear();
+		const bool invertVertexY) {
 		std::vector<uint32_t> vertexCode;
 		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
+		std::string error;
 		if (!DxcHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
 			SpirvTarget::OpenGl, bindingProfile, vertexCode, error, invertVertexY)
 			|| !DxcHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
 				SpirvTarget::OpenGl, bindingProfile, pixelCode, error)) {
-			return 0;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V 셰이더 컴파일",
+				error.empty() ? "OpenGL용 SPIR-V 셰이더를 컴파일하지 못했습니다" : std::move(error)));
 		}
-		const GLuint vertexShader = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry, error);
-		if (vertexShader == 0)
-			return 0;
-		const GLuint pixelShader = CreateStage(GL_FRAGMENT_SHADER, pixelCode, pixelEntry, error);
-		if (pixelShader == 0) {
+		const auto vertexShaderResult = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry);
+		if (!vertexShaderResult)
+			return std::unexpected(vertexShaderResult.error());
+		const GLuint vertexShader = *vertexShaderResult;
+		const auto pixelShaderResult = CreateStage(GL_FRAGMENT_SHADER, pixelCode, pixelEntry);
+		if (!pixelShaderResult) {
 			glDeleteShader(vertexShader);
-			return 0;
+			return std::unexpected(pixelShaderResult.error());
 		}
+		const GLuint pixelShader = *pixelShaderResult;
 		const GLuint program = glCreateProgram();
 		if (program == 0) {
-			error = "OpenGL shader program을 만들지 못했습니다";
+			const GLenum result = glGetError();
 			glDeleteShader(vertexShader);
 			glDeleteShader(pixelShader);
-			return 0;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "shader program 생성",
+				"OpenGL shader program을 만들지 못했습니다", result, result != GL_NO_ERROR));
 		}
 		glAttachShader(program, vertexShader);
 		glAttachShader(program, pixelShader);
@@ -109,89 +119,82 @@ namespace Chrivent {
 		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 		if (linkStatus == GL_TRUE)
 			return program;
-		error = "OpenGL SPIR-V shader program을 link하지 못했습니다: ";
-		error += shaderFile.string();
+		std::string message = "OpenGL SPIR-V shader program을 link하지 못했습니다: "
+			+ shaderFile.string();
 		const std::string log = ReadProgramLog(program);
 		if (!log.empty()) {
-			error += '\n';
-			error += log;
+			message += '\n';
+			message += log;
 		}
 		glDeleteProgram(program);
-		return 0;
+		return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			GraphicsErrorCode::EffectConfigurationFailed, "shader program 링크", std::move(message)));
 	}
 
-    OpenGlShader::~OpenGlShader() {
-        if (program != 0)
-            glDeleteProgram(program);
-        program = 0;
-    }
-
-    bool OpenGlModelShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
-			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene, error);
-        if (program == 0)
-            return false;
-        positionLocation = 0;
-        normalLocation = 1;
-        uvLocation = 2;
-        return true;
-    }
-
-    bool OpenGlEdgeShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
-			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene, error);
-        if (program == 0)
-            return false;
-        positionLocation = 0;
-        normalLocation = 1;
-        return true;
-    }
-
-    bool OpenGlGroundShadowShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
-			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene, error);
-        if (program == 0)
-            return false;
-        positionLocation = 0;
-        return true;
-    }
-
-    bool OpenGlDepthOnlyShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
-			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene, error);
-        if (program == 0)
-            return false;
-        positionLocation = 0;
-		uvLocation = 1;
-        return true;
-    }
-
-	bool OpenGlSceneVelocityShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-		program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
-			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::Scene, error);
-		if (program == 0)
-			return false;
-		positionLocation = 0;
-		previousPositionLocation = 1;
-		uvLocation = 2;
-		return true;
+	OpenGlShader::~OpenGlShader() {
+		if (program != 0)
+			glDeleteProgram(program);
+		program = 0;
 	}
 
-    bool OpenGlPostProcessShader::Initialize(const ShaderProgramDefinition& shaderProgram,
-		std::string& error) {
-        program = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+	GraphicsResult<void> OpenGlModelShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+			shaderProgram.vertexEntry, shaderProgram.pixelEntry, SpirvBindingProfile::Scene);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
+
+	GraphicsResult<void> OpenGlEdgeShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+			shaderProgram.vertexEntry, shaderProgram.pixelEntry, SpirvBindingProfile::Scene);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
+
+	GraphicsResult<void> OpenGlGroundShadowShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+			shaderProgram.vertexEntry, shaderProgram.pixelEntry, SpirvBindingProfile::Scene);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
+
+	GraphicsResult<void> OpenGlDepthOnlyShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+			shaderProgram.vertexEntry, shaderProgram.pixelEntry, SpirvBindingProfile::Scene);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
+
+	GraphicsResult<void> OpenGlSceneVelocityShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
+			shaderProgram.vertexEntry, shaderProgram.pixelEntry, SpirvBindingProfile::Scene);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
+
+	GraphicsResult<void> OpenGlPostProcessShader::Initialize(
+		const ShaderProgramDefinition& shaderProgram) {
+		const auto result = OpenGlShaderBuilder::CreateShader(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry,
-			SpirvBindingProfile::PostProcess, error, true);
-        return program != 0;
-    }
+			SpirvBindingProfile::PostProcess, true);
+		if (!result)
+			return std::unexpected(result.error());
+		program = *result;
+		return {};
+	}
 }

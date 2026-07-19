@@ -1,19 +1,25 @@
 ﻿#include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 
+#include <utility>
+
 namespace Chrivent {
-	bool VulkanDynamicBufferRing::Setup(const VulkanDevice& sourceDevice, const size_t bufferSize, std::string& outError) {
+	GraphicsResult<void> VulkanDynamicBufferRing::Setup(
+		const VulkanDevice& sourceDevice, const size_t bufferSize) {
 		Clear();
-		if (!DynamicBufferRing::Setup(bufferSize, outError))
-			return false;
+		std::string error;
+		if (!DynamicBufferRing::Setup(bufferSize, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "동적 uniform buffer ring 생성",
+				std::move(error)));
+		}
 		const auto bufferResult = buffer.Initialize(sourceDevice, bufferSize,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		if (!bufferResult) {
-			outError = bufferResult.error().Format();
 			DynamicBufferRing::Clear();
-			return false;
+			return std::unexpected(bufferResult.error());
 		}
-		return true;
+		return {};
 	}
 
 	void VulkanDynamicBufferRing::Clear() {
@@ -24,12 +30,12 @@ namespace Chrivent {
 	std::optional<UploadSlice> VulkanDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
 		const size_t frameCapacity = capacity / FrameBuffering::vulkanFramesInFlight;
 		if (frameCapacity == 0) {
-			outError = "Vulkan dynamic buffer ring frame capacity is zero.";
+			outError = "Vulkan 동적 버퍼 링의 프레임 용량이 0입니다.";
 			return std::nullopt;
 		}
 		const size_t frameBaseOffset = currentFrameIndex * frameCapacity;
 		return AllocateSlice(size, alignment, frameCapacity, frameBaseOffset,
-			"Vulkan dynamic buffer ring is out of space for this frame.", outError);
+			"현재 프레임에서 Vulkan 동적 버퍼 링의 남은 공간이 부족합니다.", outError);
 	}
 
 	bool VulkanDynamicBufferRing::Write(const UploadSlice& slice, const void* data,

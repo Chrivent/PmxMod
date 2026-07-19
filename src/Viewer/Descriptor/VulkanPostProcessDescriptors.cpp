@@ -231,12 +231,13 @@ namespace Chrivent {
 		Reset();
 	}
 
-	VkDescriptorSet VulkanPostProcessDescriptors::GetFrameDataDescriptorSet(const uint32_t imageIndex) const {
+	VkDescriptorSet VulkanPostProcessDescriptors::TryGetFrameDataDescriptorSet(
+		const uint32_t imageIndex) const {
 		return imageIndex < frameDataDescriptorSets.size()
 			? frameDataDescriptorSets[imageIndex] : VK_NULL_HANDLE;
 	}
 
-	VkDescriptorSet VulkanPostProcessDescriptors::GetParameterDataDescriptorSet(
+	VkDescriptorSet VulkanPostProcessDescriptors::TryGetParameterDataDescriptorSet(
 		const uint32_t imageIndex, const size_t passIndex) const {
 		if (imageIndex >= imageCount || passIndex >= passCount)
 			return VK_NULL_HANDLE;
@@ -245,7 +246,7 @@ namespace Chrivent {
 			? parameterDataDescriptorSets[index] : VK_NULL_HANDLE;
 	}
 
-	VkDescriptorSet VulkanPostProcessDescriptors::GetTextureDescriptorSet(
+	VkDescriptorSet VulkanPostProcessDescriptors::TryGetTextureDescriptorSet(
 		const uint32_t imageIndex, const size_t passIndex) const {
 		if (imageIndex >= imageCount || passIndex >= passCount)
 			return VK_NULL_HANDLE;
@@ -295,7 +296,7 @@ namespace Chrivent {
 
 	bool VulkanPostProcessDescriptors::UpdateTextures(const uint32_t imageIndex, const size_t passIndex,
 		const std::span<const VkImageView> imageViews) {
-		const VkDescriptorSet descriptorSet = GetTextureDescriptorSet(imageIndex, passIndex);
+		const VkDescriptorSet descriptorSet = TryGetTextureDescriptorSet(imageIndex, passIndex);
 		if (descriptorSet == VK_NULL_HANDLE || imageViews.size() != PostProcessInputLayout::maxTextureCount)
 			return false;
 		for (const VkImageView imageView : imageViews) {

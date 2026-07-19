@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/ShaderProgramDefinition.h"
 
 namespace Chrivent {
@@ -31,8 +32,8 @@ namespace Chrivent {
 		};
 
 		// 셰이더 프로그램과 고정 기능 설정으로 Vulkan graphics pipeline을 생성한다.
-		static bool Create(const VulkanDevice& sourceDevice,
+		static GraphicsResult<void> Create(const VulkanDevice& sourceDevice,
 			const ShaderProgramDefinition& program, const Configuration& configuration,
-			VkPipeline& pipeline, std::string& error);
+			VkPipeline& pipeline);
 	};
 }

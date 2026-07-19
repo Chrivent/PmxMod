@@ -157,8 +157,8 @@ namespace Chrivent {
 			return sceneVelocity.GetResource();
 		}
 		if (input.resourceIndex >= resources.size()) {
-			format = sceneColor.GetFormat();
-			return sceneColor.GetResource();
+			format = DXGI_FORMAT_UNKNOWN;
+			return nullptr;
 		}
 		const auto& [targets] = resources[input.resourceIndex];
 		const size_t index = ResolveResourceReadIndex(input.resourceIndex);
@@ -166,11 +166,14 @@ namespace Chrivent {
 		return targets[index].GetResource();
 	}
 
-	void Dx12PostProcess::UpdateInputDescriptors(
+	GraphicsResult<void> Dx12PostProcess::UpdateInputDescriptors(
 		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) {
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
-		if (!sourceDevice.GetDevice() || heap == nullptr || passIndex >= GetPassRoutes().size())
-			return;
+		if (!sourceDevice.GetDevice() || heap == nullptr || passIndex >= GetPassRoutes().size()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "후처리 입력 descriptor 갱신",
+				"DirectX 12 device, descriptor heap 또는 pass index가 올바르지 않습니다"));
+		}
 		ID3D12Device* device = sourceDevice.GetDevice();
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * inputDescriptorSize;
@@ -182,9 +185,19 @@ namespace Chrivent {
 			ID3D12Resource* colResource = sceneColor.GetResource();
 			if (slots[slot] != nullptr)
 				colResource = ResolveInputResource(*slots[slot], colFormat);
+			if (colResource == nullptr || colFormat == DXGI_FORMAT_UNKNOWN) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
+					"DirectX 12 후처리 pass의 입력 texture를 찾지 못했습니다"));
+			}
 			const size_t stateIndex =
 				(frameIndex % FrameBuffering::dx12BufferCount * GetPassRoutes().size() + passIndex)
 				* PostProcessInputLayout::maxTextureCount + slot;
+			if (stateIndex >= inputDescriptorStates.size()) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::InvalidState, "후처리 입력 descriptor 갱신",
+					"DirectX 12 후처리 descriptor 상태 색인이 올바르지 않습니다"));
+			}
 			auto& [resource, format] = inputDescriptorStates[stateIndex];
 			if (resource == colResource && format == colFormat) {
 				handle.ptr += inputDescriptorSize;
@@ -200,6 +213,7 @@ namespace Chrivent {
 			format = colFormat;
 			handle.ptr += inputDescriptorSize;
 		}
+		return {};
 	}
 
 	void Dx12PostProcess::InitializeHistories(ID3D12GraphicsCommandList* commandList,
@@ -242,13 +256,7 @@ namespace Chrivent {
 			}
 			formats.emplace_back(format);
 		}
-		std::string error;
-		if (!pipelines.Initialize(sourceDevice, passes, formats, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::EffectConfigurationFailed, "후처리 pipeline 생성",
-				error.empty() ? "DirectX 12 후처리 pipeline을 만들지 못했습니다" : std::move(error)));
-		}
-		return {};
+		return pipelines.Initialize(sourceDevice, passes, formats);
 	}
 
 	ID3D12DescriptorHeap* Dx12PostProcess::ResolveInputDescriptorHeap(const size_t frameIndex) const {
@@ -457,6 +465,12 @@ namespace Chrivent {
 					"DirectX 12 후처리 pass parameter를 기록하지 못했습니다"));
 			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
+			if (route.outputKind == PostProcessOutputKind::Resource && outputTarget == nullptr) {
+				DiscardHistoryFrame();
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
+					"DirectX 12 후처리 pass의 출력 target을 찾지 못했습니다"));
+			}
 			if (outputTarget != nullptr) {
 				Dx12Barrier::Transition(commandList, enhancedCommandList, outputTarget->GetResource(),
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -470,7 +484,18 @@ namespace Chrivent {
 			int outputHeight = height;
 			ResolveOutputExtent(route, outputWidth, outputHeight);
 			Dx12CommandContext::ApplyViewportAndScissor(commandList, outputWidth, outputHeight);
-			UpdateInputDescriptors(sourceDevice, frameIndex, passIndex);
+			const auto descriptorResult = UpdateInputDescriptors(sourceDevice, frameIndex, passIndex);
+			if (!descriptorResult) {
+				DiscardHistoryFrame();
+				return std::unexpected(descriptorResult.error());
+			}
+			if (pipelines.GetRootSignature() == nullptr
+				|| pipelines.TryGetPipelineState(passIndex) == nullptr) {
+				DiscardHistoryFrame();
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					GraphicsErrorCode::InvalidState, "후처리 pipeline binding",
+					"DirectX 12 후처리 root signature 또는 pipeline state를 사용할 수 없습니다"));
+			}
 			commandList->SetGraphicsRootSignature(pipelines.GetRootSignature());
 			commandList->SetPipelineState(pipelines.TryGetPipelineState(passIndex));
 			commandList->SetGraphicsRootConstantBufferView(0, frameDataAddress);

@@ -73,9 +73,8 @@ namespace Chrivent {
 
 	GraphicsResult<FrameEndState> Dx11Viewer::EndFrameCore() {
 		if (postProcess.HasEffects()) {
-			postProcess.ResolveSceneColor(
-				device.GetContext(), renderTargets.GetSceneColor(), multiSampleCount);
-			const auto drawResult = postProcess.Draw(device.GetContext(), renderTargets.GetBackBufferView(),
+			const auto drawResult = postProcess.Draw(device.GetContext(),
+				renderTargets.GetSceneColor(), multiSampleCount, renderTargets.GetBackBufferView(),
 				pipeline.GetPostProcessRasterizerState(), pipeline.GetToonTextureSampler(),
 				screenWidth, screenHeight, GetPostProcessFrameData());
 			if (!drawResult)

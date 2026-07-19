@@ -82,7 +82,7 @@ namespace Chrivent {
 		if (input.kind == PostProcessInputKind::SceneVelocity)
 			return velocityView.Get();
 		if (input.resourceIndex >= resources.size())
-			return sceneColorView.Get();
+			return nullptr;
 		const Resource& resource = resources[input.resourceIndex];
 		return resource.shaderResourceViews[ResolveResourceReadIndex(input.resourceIndex)].Get();
 	}
@@ -204,28 +204,14 @@ namespace Chrivent {
 		return CreateEffectResources(device);
 	}
 
-	void Dx11PostProcess::ResolveSceneColor(
-		ID3D11DeviceContext* context, ID3D11Texture2D* source, const UINT sampleCount) const {
-		if (context == nullptr || source == nullptr || !sceneColor)
-			return;
-		context->OMSetRenderTargets(0, nullptr, nullptr);
-		if (sampleCount > 1)
-			context->ResolveSubresource(sceneColor.Get(), 0, source, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
-		else
-			context->CopyResource(sceneColor.Get(), source);
-	}
-
 	GraphicsResult<void> Dx11PostProcess::CreateShaders(ID3D11Device* device) {
 		ResetShaders();
 		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
 			Dx11PostProcessShader shader;
-			std::string error;
-			if (!shader.Initialize(device, shaderPath,
-				vertexEntry.c_str(), pixelEntry.c_str(), error)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-					GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
-					error.empty() ? "DirectX 11 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
-			}
+			const auto result = shader.Initialize(
+				device, shaderPath, vertexEntry.c_str(), pixelEntry.c_str());
+			if (!result)
+				return std::unexpected(result.error());
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return {};
@@ -307,15 +293,23 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11PostProcess::Draw(
-		ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
-		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
-		const int width, const int height, const PostProcessFrameData& frameData) {
+		ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource, const UINT sampleCount,
+		ID3D11RenderTargetView* backBufferView, ID3D11RasterizerState* rasterizerState,
+		ID3D11SamplerState* sampler, const int width, const int height,
+		const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr
+			|| sceneSource == nullptr || !sceneColor || !sceneColorView
+			|| !frameDataBuffer || !parameterDataBuffer
 			|| !IsPassCountCompatible(postProcessShaders.size())) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"DirectX 11 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
+		context->OMSetRenderTargets(0, nullptr, nullptr);
+		if (sampleCount > 1)
+			context->ResolveSubresource(sceneColor.Get(), 0, sceneSource, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+		else
+			context->CopyResource(sceneColor.Get(), sceneSource);
 		BeginHistoryFrame();
 		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
 		context->PSSetConstantBuffers(0, 1, frameDataBuffer.GetAddressOf());
@@ -338,6 +332,12 @@ namespace Chrivent {
 			context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
 				1, parameterDataBuffer.GetAddressOf());
 			ID3D11RenderTargetView* targetView = ResolveOutputView(route, backBufferView);
+			if (targetView == nullptr) {
+				DiscardHistoryFrame();
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
+					"DirectX 11 후처리 pass의 출력 target을 찾지 못했습니다"));
+			}
 			context->OMSetRenderTargets(1, &targetView, nullptr);
 			int outputWidth = width;
 			int outputHeight = height;
@@ -348,8 +348,15 @@ namespace Chrivent {
 			ID3D11ShaderResourceView* views[PostProcessInputLayout::maxTextureCount]{};
 			for (auto& view : views)
 				view = sceneColorView.Get();
-			for (const auto& input : route.inputs)
+			for (const auto& input : route.inputs) {
 				views[input.slot] = ResolveInputView(input);
+				if (views[input.slot] == nullptr) {
+					DiscardHistoryFrame();
+					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+						GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
+						"DirectX 11 후처리 pass의 입력 texture를 찾지 못했습니다"));
+				}
+			}
 			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
 			context->Draw(3, 0);
 			for (auto& view : views)

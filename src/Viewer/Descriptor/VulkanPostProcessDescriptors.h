@@ -45,9 +45,9 @@ namespace Chrivent {
 		VulkanPostProcessDescriptors& operator=(const VulkanPostProcessDescriptors&) = delete;
 
 		VkPipelineLayout GetPipelineLayout() const { return pipelineLayout; }
-		VkDescriptorSet GetFrameDataDescriptorSet(uint32_t imageIndex) const;
-		VkDescriptorSet GetParameterDataDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
-		VkDescriptorSet GetTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
+		VkDescriptorSet TryGetFrameDataDescriptorSet(uint32_t imageIndex) const;
+		VkDescriptorSet TryGetParameterDataDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
+		VkDescriptorSet TryGetTextureDescriptorSet(uint32_t imageIndex, size_t passIndex) const;
 
 		// 현재 이미지와 패스 수에 맞는 descriptor 리소스인지 확인한다.
 		bool IsCompatible(size_t sourceImageCount, size_t sourcePassCount) const;

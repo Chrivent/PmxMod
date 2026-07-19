@@ -8,12 +8,8 @@
 namespace Chrivent {
 	void VulkanDrawer::BeginDrawFrame() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
-		resources.modelVertexConstantsRing.BeginFrame(frameIndex);
-		resources.edgeVertexConstantsRing.BeginFrame(frameIndex);
-		resources.groundShadowVertexConstantsRing.BeginFrame(frameIndex);
-		resources.modelPixelConstantsRing.BeginFrame(frameIndex);
-		resources.edgePixelConstantsRing.BeginFrame(frameIndex);
-		resources.groundShadowPixelConstantsRing.BeginFrame(frameIndex);
+		resources.vertexConstantsRing.BeginFrame(frameIndex);
+		resources.pixelConstantsRing.BeginFrame(frameIndex);
 	}
 
 	const glm::mat4& VulkanDrawer::ClipMatrix() const {
@@ -32,10 +28,11 @@ namespace Chrivent {
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		std::string error;
-		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
+		const auto vertexSlice = resources.vertexConstantsRing.Allocate(
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.modelVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
+			!resources.vertexConstantsRing.Write(
+				*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 모델 패스 기록", "모델 vertex 상수를 업로드하지 못했습니다"));
 		if (!drawContext.BindModelDescriptorSets(
@@ -53,10 +50,11 @@ namespace Chrivent {
 				material.toonTextureEnabled, material.sphereTextureEnabled);
 			const ModelPixelConstants pixelConstants = BuildModelPixelConstants(
 				drawState, mat, base, toon, sphere);
-			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
+			const auto pixelSlice = resources.pixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
+				!resources.pixelConstantsRing.Write(
+					*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 모델 패스 기록", "모델 pixel 상수를 업로드하지 못했습니다"));
 			if (!drawContext.BindModelPipeline(mat.bothFace)
@@ -92,10 +90,11 @@ namespace Chrivent {
 				continue;
 			EdgeVertexConstants vertexConstants = baseVertexConstants;
 			vertexConstants.edgeSize = mat.edgeSize;
-			const auto vertexSlice = resources.edgeVertexConstantsRing.Allocate(
+			const auto vertexSlice = resources.vertexConstantsRing.Allocate(
 				sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!vertexSlice.has_value() ||
-				!resources.edgeVertexConstantsRing.Write(*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
+				!resources.vertexConstantsRing.Write(
+					*vertexSlice, &vertexConstants, sizeof(vertexConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 엣지 패스 기록", "엣지 vertex 상수를 업로드하지 못했습니다"));
 			if (!drawContext.BindModelDescriptorSets(
@@ -105,10 +104,11 @@ namespace Chrivent {
 			}
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			const auto pixelSlice = resources.edgePixelConstantsRing.Allocate(
+			const auto pixelSlice = resources.pixelConstantsRing.Allocate(
 				sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value() ||
-				!resources.edgePixelConstantsRing.Write(*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
+				!resources.pixelConstantsRing.Write(
+					*pixelSlice, &pixelConstants, sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 엣지 패스 기록", "엣지 pixel 상수를 업로드하지 못했습니다"));
 			if (!drawContext.BindPixelDescriptorSet(
@@ -132,17 +132,17 @@ namespace Chrivent {
 			drawState, world, ClipMatrix());
 		constexpr GroundShadowPixelConstants pixelConstants{};
 		std::string error;
-		const auto vertexSlice = resources.groundShadowVertexConstantsRing.Allocate(
+		const auto vertexSlice = resources.vertexConstantsRing.Allocate(
 			sizeof(vertexConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.groundShadowVertexConstantsRing.Write(*vertexSlice, &vertexConstants,
+			!resources.vertexConstantsRing.Write(*vertexSlice, &vertexConstants,
 				sizeof(vertexConstants), error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 지면 그림자 패스 기록", "지면 그림자 vertex 상수를 업로드하지 못했습니다"));
-		const auto pixelSlice = resources.groundShadowPixelConstantsRing.Allocate(
+		const auto pixelSlice = resources.pixelConstantsRing.Allocate(
 			sizeof(pixelConstants), resources.uniformBufferOffsetAlignment, error);
 		if (!pixelSlice.has_value() ||
-			!resources.groundShadowPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
+			!resources.pixelConstantsRing.Write(*pixelSlice, &pixelConstants,
 				sizeof(pixelConstants), error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 지면 그림자 패스 기록", "지면 그림자 pixel 상수를 업로드하지 못했습니다"));
@@ -182,10 +182,10 @@ namespace Chrivent {
 		const bool velocityRequired = drawState.velocityRequired;
 		std::string error;
 		const size_t constantSize = velocityRequired ? sizeof(velocityConstants) : sizeof(depthConstants);
-		const auto vertexSlice = resources.modelVertexConstantsRing.Allocate(
+		const auto vertexSlice = resources.vertexConstantsRing.Allocate(
 			constantSize, resources.uniformBufferOffsetAlignment, error);
 		if (!vertexSlice.has_value() ||
-			!resources.modelVertexConstantsRing.Write(*vertexSlice,
+			!resources.vertexConstantsRing.Write(*vertexSlice,
 				velocityRequired ? static_cast<const void*>(&velocityConstants) : &depthConstants, constantSize, error))
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan 후처리 장면 입력 기록", "장면 입력 vertex 상수를 업로드하지 못했습니다"));
@@ -202,10 +202,10 @@ namespace Chrivent {
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.textureEnabled && material.texture.hasAlpha);
-			const auto pixelSlice = resources.modelPixelConstantsRing.Allocate(
+			const auto pixelSlice = resources.pixelConstantsRing.Allocate(
 				sizeof(ModelPixelConstants), resources.uniformBufferOffsetAlignment, error);
 			if (!pixelSlice.has_value()
-				|| !resources.modelPixelConstantsRing.Write(*pixelSlice, &pixelConstants,
+				|| !resources.pixelConstantsRing.Write(*pixelSlice, &pixelConstants,
 					sizeof(pixelConstants), error))
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"Vulkan 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));

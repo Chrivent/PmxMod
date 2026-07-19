@@ -23,11 +23,11 @@ namespace Chrivent {
 
 		// 모델 geometry 데이터를 Vulkan vertex/index buffer로 업로드한다.
 		GraphicsResult<void> CreateGeometryBuffers();
-		// 패스별 uniform buffer ring을 material 개수에 맞춰 생성한다.
+		// vertex/pixel uniform buffer ring을 material 개수에 맞춰 생성한다.
 		GraphicsResult<void> SetupConstantRings();
 		// 모델 material 정보를 Vulkan material 캐시와 descriptor 준비 데이터로 변환한다.
 		GraphicsResult<void> LoadMaterials();
-		// 패스별 descriptor set을 생성한다.
+		// 렌더 패스별 descriptor set을 공용 uniform buffer ring에 연결한다.
 		GraphicsResult<void> CreateDescriptorSets();
 		
 	protected:

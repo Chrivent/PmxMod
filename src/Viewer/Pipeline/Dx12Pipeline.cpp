@@ -28,10 +28,12 @@ namespace Chrivent {
 		depthStencilDesc.StencilEnable = FALSE;
 	}
 
-	bool Dx12Pipeline::CreateModelRootSignature(const Dx12Device& sourceDevice, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateModelRootSignature(
+		const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetDevice()) {
-			error = "DirectX 12 device가 없어 모델 root signature를 만들 수 없습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "모델 root signature 생성",
+				"DirectX 12 device가 없어 모델 root signature를 만들 수 없습니다"));
 		}
 		D3D12_DESCRIPTOR_RANGE srvRange;
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -79,12 +81,12 @@ namespace Chrivent {
 		rootSignatureDesc.NumStaticSamplers = SceneShaderInputLayout::samplerCount;
 		rootSignatureDesc.pStaticSamplers = samplers;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice,
-			rootSignatureDesc, modelRootSignature, error);
+		return Dx12PipelineBuilder::CreateRootSignature(
+			sourceDevice, rootSignatureDesc, modelRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateModelPipelineStates(const Dx12Device& sourceDevice,
-		const ShaderProgramDefinition& program, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateModelPipelineStates(
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -102,16 +104,17 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
-		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, modelFrontFacePipelineState, error))
-			return false;
+		auto result = Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, modelFrontFacePipelineState);
+		if (!result)
+			return result;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, modelBothFacePipelineState, error);
+			sourceDevice, program, pipelineDesc, modelBothFacePipelineState);
 	}
 
-	bool Dx12Pipeline::CreateDepthOnlyPipelineStates(const Dx12Device& sourceDevice,
-		const ShaderProgramDefinition& program, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateDepthOnlyPipelineStates(
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
@@ -126,16 +129,17 @@ namespace Chrivent {
 		pipelineDesc.NumRenderTargets = 0;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = 1;
-		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, depthOnlyFrontFacePipelineState, error))
-			return false;
+		auto result = Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, depthOnlyFrontFacePipelineState);
+		if (!result)
+			return result;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, depthOnlyBothFacePipelineState, error);
+			sourceDevice, program, pipelineDesc, depthOnlyBothFacePipelineState);
 	}
 
-	bool Dx12Pipeline::CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
-		const ShaderProgramDefinition& program, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateSceneVelocityPipelineStates(
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, previousPosition), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -153,18 +157,21 @@ namespace Chrivent {
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R16G16_FLOAT;
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = 1;
-		if (!Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, sceneVelocityFrontFacePipelineState, error))
-			return false;
+		auto result = Dx12PipelineBuilder::CreateGraphicsPipelineState(
+			sourceDevice, program, pipelineDesc, sceneVelocityFrontFacePipelineState);
+		if (!result)
+			return result;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, sceneVelocityBothFacePipelineState, error);
+			sourceDevice, program, pipelineDesc, sceneVelocityBothFacePipelineState);
 	}
 
-	bool Dx12Pipeline::CreateSimplePassRootSignature(const Dx12Device& sourceDevice, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateSimplePassRootSignature(
+		const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetDevice()) {
-			error = "DirectX 12 device가 없어 단순 패스 root signature를 만들 수 없습니다";
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "단순 패스 root signature 생성",
+				"DirectX 12 device가 없어 단순 패스 root signature를 만들 수 없습니다"));
 		}
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -177,12 +184,12 @@ namespace Chrivent {
 		rootSignatureDesc.NumParameters = 2;
 		rootSignatureDesc.pParameters = rootParameters;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice,
-			rootSignatureDesc, simplePassRootSignature, error);
+		return Dx12PipelineBuilder::CreateRootSignature(
+			sourceDevice, rootSignatureDesc, simplePassRootSignature);
 	}
 
-	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice,
-		const ShaderProgramDefinition& program, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateEdgePipelineState(
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -200,11 +207,11 @@ namespace Chrivent {
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, edgePipelineState, error);
+			sourceDevice, program, pipelineDesc, edgePipelineState);
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
-		const ShaderProgramDefinition& program, std::string& error) {
+	GraphicsResult<void> Dx12Pipeline::CreateGroundShadowPipelineState(
+		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
@@ -235,42 +242,28 @@ namespace Chrivent {
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = sourceDevice.GetMsaaSampleCount();
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, groundShadowPipelineState, error);
+			sourceDevice, program, pipelineDesc, groundShadowPipelineState);
 	}
 
 	GraphicsResult<void> Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
 		const SceneShaderRuntimeContract& shaderContract) {
 		Reset();
-		std::string error;
-		if (!CreateModelRootSignature(sourceDevice, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "모델 root signature 생성",
-				error.empty() ? "DirectX 12 모델 root signature를 만들지 못했습니다" : error));
-		if (!CreateModelPipelineStates(sourceDevice, shaderContract.builtIn.model, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "모델 pipeline 생성",
-				error.empty() ? "DirectX 12 모델 pipeline state를 만들지 못했습니다" : error));
-		if (!CreateDepthOnlyPipelineStates(sourceDevice, shaderContract.sceneInput.depth, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "장면 depth pipeline 생성",
-				error.empty() ? "DirectX 12 depth-only pipeline state를 만들지 못했습니다" : error));
-		if (!CreateSceneVelocityPipelineStates(sourceDevice, shaderContract.sceneInput.velocity, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "장면 velocity pipeline 생성",
-				error.empty() ? "DirectX 12 velocity pipeline state를 만들지 못했습니다" : error));
-		if (!CreateSimplePassRootSignature(sourceDevice, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "단순 패스 root signature 생성",
-				error.empty() ? "DirectX 12 단순 패스 root signature를 만들지 못했습니다" : error));
-		if (!CreateEdgePipelineState(sourceDevice, shaderContract.builtIn.edge, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "엣지 pipeline 생성",
-				error.empty() ? "DirectX 12 엣지 pipeline state를 만들지 못했습니다" : error));
-		if (!CreateGroundShadowPipelineState(sourceDevice, shaderContract.builtIn.groundShadow, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 pipeline 생성",
-				error.empty() ? "DirectX 12 지면 그림자 pipeline state를 만들지 못했습니다" : error));
-		return {};
+		auto result = CreateModelRootSignature(sourceDevice);
+		if (result)
+			result = CreateModelPipelineStates(sourceDevice, shaderContract.builtIn.model);
+		if (result)
+			result = CreateDepthOnlyPipelineStates(sourceDevice, shaderContract.sceneInput.depth);
+		if (result)
+			result = CreateSceneVelocityPipelineStates(
+				sourceDevice, shaderContract.sceneInput.velocity);
+		if (result)
+			result = CreateSimplePassRootSignature(sourceDevice);
+		if (result)
+			result = CreateEdgePipelineState(sourceDevice, shaderContract.builtIn.edge);
+		if (result)
+			result = CreateGroundShadowPipelineState(
+				sourceDevice, shaderContract.builtIn.groundShadow);
+		return result;
 	}
 
 	void Dx12Pipeline::BindModelRootSignature(ID3D12GraphicsCommandList* commandList) const {

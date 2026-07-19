@@ -29,8 +29,6 @@ namespace Chrivent {
 		void BeginFrame() { boundPipeline = BoundPipeline::None; }
 		// 초기화된 기본 색상 텍스처를 Drawer에 제공하도록 저장한다.
 		void SetDummyColorTexture(const GLuint texture) { dummyColorTexture = texture; }
-		// 장면 패스별 vertex attribute 위치를 모델 VAO 생성용 값으로 반환한다.
-		OpenGlSceneAttributeLocations ResolveSceneAttributeLocations() const;
 		// 모델 표면 프로그램을 바인딩한다.
 		void BindModelPipeline();
 		// 엣지 프로그램을 바인딩한다.

@@ -78,7 +78,7 @@ namespace Chrivent {
 		if (input.kind == PostProcessInputKind::SceneVelocity)
 			return postProcessVelocityTexture;
 		if (input.resourceIndex >= resources.size())
-			return sceneColorTexture;
+			return 0;
 		const auto& [framebuffers, textures] = resources[input.resourceIndex];
 		return textures[ResolveResourceReadIndex(input.resourceIndex)];
 	}
@@ -251,12 +251,9 @@ namespace Chrivent {
 		ResetShaders();
 		for (const auto& program : GetShaderPrograms()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			std::string error;
-			if (!shader->Initialize(program, error)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
-					GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
-					error.empty() ? "OpenGL 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
-			}
+			const auto result = shader->Initialize(program);
+			if (!result)
+				return std::unexpected(result.error());
 			postProcessShaders.push_back(std::move(shader));
 		}
 		return {};
@@ -337,10 +334,12 @@ namespace Chrivent {
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return {};
-		if (!IsPassCountCompatible(postProcessShaders.size())) {
+		if (sceneFramebuffer == 0 || resolveFramebuffer == 0 || sceneColorTexture == 0
+			|| frameDataBuffer == 0 || parameterDataBuffer == 0 || postProcessVao == 0
+			|| !IsPassCountCompatible(postProcessShaders.size())) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
-				GraphicsErrorCode::ContractViolation, "후처리 효과 draw",
-				"OpenGL 후처리 pass 수와 셰이더 수가 일치하지 않습니다"));
+				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
+				"OpenGL 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
 		BeginHistoryFrame();
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
@@ -356,6 +355,13 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		for (size_t index = 0; index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
+			if (route.outputKind == PostProcessOutputKind::Resource
+				&& route.outputResourceIndex >= resources.size()) {
+				DiscardHistoryFrame();
+				return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+					GraphicsErrorCode::ContractViolation, "후처리 출력 framebuffer 조회",
+					"OpenGL 후처리 pass의 출력 framebuffer를 찾지 못했습니다"));
+			}
 			const PostProcessParameterData& parameterData = GetParameterData(route);
 			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);
 			glBindBufferBase(GL_UNIFORM_BUFFER,
@@ -368,8 +374,16 @@ namespace Chrivent {
 			glUseProgram(postProcessShaders[index]->program);
 			for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
 				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(slot), sceneColorTexture);
-			for (const auto& input : route.inputs)
-				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(input.slot), ResolveInputTexture(input));
+			for (const auto& input : route.inputs) {
+				const GLuint texture = ResolveInputTexture(input);
+				if (texture == 0) {
+					DiscardHistoryFrame();
+					return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+						GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
+						"OpenGL 후처리 pass의 입력 texture를 찾지 못했습니다"));
+				}
+				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(input.slot), texture);
+			}
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}

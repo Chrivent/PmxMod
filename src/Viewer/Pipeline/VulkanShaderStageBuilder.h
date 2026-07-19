@@ -4,8 +4,6 @@
 #include "Viewer/Shader/ShaderProgramDefinition.h"
 #include "Viewer/Shader/VulkanShaderModule.h"
 
-#include <string>
-
 namespace Chrivent {
 	// HLSL pass를 Vulkan shader module과 graphics pipeline stage 정보로 구성한다.
 	class VulkanShaderStageBuilder {
@@ -24,7 +22,8 @@ namespace Chrivent {
 		const VkPipelineShaderStageCreateInfo* GetStages() const { return stages; }
 
 		// 패키지 pass를 Vulkan용 SPIR-V로 컴파일하고 stage 정보를 생성한다.
-		bool Build(const VulkanDevice& sourceDevice, const ShaderProgramDefinition& program,
-			SpirvBindingProfile bindingProfile, std::string& outError, bool invertVertexY = false);
+		GraphicsResult<void> Build(const VulkanDevice& sourceDevice,
+			const ShaderProgramDefinition& program, SpirvBindingProfile bindingProfile,
+			bool invertVertexY = false);
 	};
 }

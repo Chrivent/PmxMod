@@ -112,10 +112,10 @@ namespace Chrivent {
 		return {};
 	}
 
-	bool VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
+	GraphicsResult<void> VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
 		const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
-		const ShaderProgramDefinition& velocityProgram, std::string& error) {
+		const ShaderProgramDefinition& velocityProgram) {
 		using Builder = VulkanGraphicsPipelineBuilder;
 		Builder::Configuration configuration{
 			.pipelineLayout = pipelineLayout,
@@ -123,45 +123,52 @@ namespace Chrivent {
 			.depthFormat = sourceDepthFormat,
 			.sampleCount = sourceDevice.GetMsaaSampleCount()
 		};
-		if (!Builder::Create(sourceDevice, passes.model, configuration, pipeline, error))
-			return false;
+		auto result = Builder::Create(sourceDevice, passes.model, configuration, pipeline);
+		if (!result)
+			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
-		if (!Builder::Create(sourceDevice, passes.model, configuration, bothFacePipeline, error))
-			return false;
+		result = Builder::Create(sourceDevice, passes.model, configuration, bothFacePipeline);
+		if (!result)
+			return result;
 		configuration.colorFormat = VK_FORMAT_UNDEFINED;
 		configuration.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
 		configuration.vertexLayout = Builder::VertexLayout::PositionUv;
-		if (!Builder::Create(sourceDevice, depthProgram, configuration, depthOnlyPipeline, error))
-			return false;
+		result = Builder::Create(sourceDevice, depthProgram, configuration, depthOnlyPipeline);
+		if (!result)
+			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
-		if (!Builder::Create(sourceDevice, depthProgram,
-			configuration, depthOnlyBothFacePipeline, error))
-			return false;
+		result = Builder::Create(
+			sourceDevice, depthProgram, configuration, depthOnlyBothFacePipeline);
+		if (!result)
+			return result;
 		configuration.colorFormat = VK_FORMAT_R16G16_SFLOAT;
 		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
 		configuration.vertexLayout = Builder::VertexLayout::Velocity;
-		if (!Builder::Create(sourceDevice, velocityProgram,
-			configuration, sceneVelocityPipeline, error))
-			return false;
+		result = Builder::Create(
+			sourceDevice, velocityProgram, configuration, sceneVelocityPipeline);
+		if (!result)
+			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
-		if (!Builder::Create(sourceDevice, velocityProgram,
-			configuration, sceneVelocityBothFacePipeline, error))
-			return false;
+		result = Builder::Create(
+			sourceDevice, velocityProgram, configuration, sceneVelocityBothFacePipeline);
+		if (!result)
+			return result;
 		configuration.colorFormat = sourceColorFormat;
 		configuration.sampleCount = sourceDevice.GetMsaaSampleCount();
 		configuration.cullMode = VK_CULL_MODE_FRONT_BIT;
 		configuration.vertexLayout = Builder::VertexLayout::Model;
-		if (!Builder::Create(sourceDevice, passes.edge, configuration, edgePipeline, error))
-			return false;
+		result = Builder::Create(sourceDevice, passes.edge, configuration, edgePipeline);
+		if (!result)
+			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
 		configuration.vertexLayout = Builder::VertexLayout::PositionOnly;
 		configuration.depthBiasEnabled = true;
 		configuration.stencilTestEnabled = true;
 		configuration.depthWriteDisabled = true;
 		configuration.preserveDestinationAlpha = true;
-		return Builder::Create(sourceDevice, passes.groundShadow,
-			configuration, groundShadowPipeline, error);
+		return Builder::Create(
+			sourceDevice, passes.groundShadow, configuration, groundShadowPipeline);
 	}
 
 	VulkanPipeline::~VulkanPipeline() {
@@ -180,20 +187,18 @@ namespace Chrivent {
 		const SceneShaderRuntimeContract& shaderContract) {
 		Reset();
 		device = sourceDevice.GetDevice();
-		std::string error;
 		const auto descriptorLayoutResult = CreateDescriptorSetLayouts();
 		if (!descriptorLayoutResult)
 			return std::unexpected(descriptorLayoutResult.error());
 		const auto pipelineLayoutResult = CreatePipelineLayout();
 		if (!pipelineLayoutResult)
 			return std::unexpected(pipelineLayoutResult.error());
-		if (!CreateGraphicsPipelines(sourceDevice, sourceColorFormat, sourceDepthFormat,
+		const auto graphicsPipelineResult = CreateGraphicsPipelines(
+			sourceDevice, sourceColorFormat, sourceDepthFormat,
 			shaderContract.builtIn, shaderContract.sceneInput.depth,
-			shaderContract.sceneInput.velocity, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::ResourceCreationFailed, "graphics pipeline 생성",
-				error.empty() ? "Vulkan 장면 graphics pipeline을 만들지 못했습니다" : error));
-		}
+			shaderContract.sceneInput.velocity);
+		if (!graphicsPipelineResult)
+			return std::unexpected(graphicsPipelineResult.error());
 		colorFormat = sourceColorFormat;
 		depthFormat = sourceDepthFormat;
 		sampleCount = sourceDevice.GetMsaaSampleCount();

@@ -67,45 +67,26 @@ namespace Chrivent {
 			1, device.GetUniformBufferAlignment());
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
-		std::string error;
-		if (!modelResources.modelVertexConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(sizeof(ModelVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* ringSlack * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan model vertex constant ring 생성", std::move(error)));
-		}
-		if (!modelResources.edgeVertexConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(sizeof(EdgeVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan edge vertex constant ring 생성", std::move(error)));
-		}
-		if (!modelResources.groundShadowVertexConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(
-				sizeof(GroundShadowVertexConstants), modelResources.uniformBufferOffsetAlignment)
-				* ringSlack * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan ground shadow vertex constant ring 생성", std::move(error)));
-		}
-		if (!modelResources.modelPixelConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(sizeof(ModelPixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount * 2 + ringSlack) * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan model pixel constant ring 생성", std::move(error)));
-		}
-		if (!modelResources.edgePixelConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(sizeof(EdgePixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* (drawCount + ringSlack) * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan edge pixel constant ring 생성", std::move(error)));
-		}
-		if (!modelResources.groundShadowPixelConstantsRing.Setup(device,
-			DynamicBufferRing::AlignUp(
-				sizeof(GroundShadowPixelConstants), modelResources.uniformBufferOffsetAlignment)
-				* ringSlack * FrameBuffering::vulkanFramesInFlight, error)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan ground shadow pixel constant ring 생성", std::move(error)));
-		}
+		const auto align = [this](const size_t size) {
+			return DynamicBufferRing::AlignUp(
+				size, modelResources.uniformBufferOffsetAlignment);
+		};
+		const size_t vertexFrameCapacity =
+			align(sizeof(ModelVertexConstants)) * ringSlack
+			+ align(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack)
+			+ align(sizeof(GroundShadowVertexConstants)) * ringSlack;
+		const size_t pixelFrameCapacity =
+			align(sizeof(ModelPixelConstants)) * (drawCount * 2 + ringSlack)
+			+ align(sizeof(EdgePixelConstants)) * (drawCount + ringSlack)
+			+ align(sizeof(GroundShadowPixelConstants)) * ringSlack;
+		auto result = modelResources.vertexConstantsRing.Setup(
+			device, vertexFrameCapacity * FrameBuffering::vulkanFramesInFlight);
+		if (!result)
+			return std::unexpected(result.error());
+		result = modelResources.pixelConstantsRing.Setup(
+			device, pixelFrameCapacity * FrameBuffering::vulkanFramesInFlight);
+		if (!result)
+			return std::unexpected(result.error());
 		return {};
 	}
 
@@ -153,20 +134,20 @@ namespace Chrivent {
 
 	GraphicsResult<void> VulkanInstance::CreateDescriptorSets() {
 		const auto modelResult = modelResources.modelDescriptorSet.Initialize(device, pipeline,
-			modelResources.modelVertexConstantsRing.GetBuffer(), sizeof(ModelVertexConstants),
-			modelResources.modelPixelConstantsRing.GetBuffer(), sizeof(ModelPixelConstants),
+			modelResources.vertexConstantsRing.GetBuffer(), sizeof(ModelVertexConstants),
+			modelResources.pixelConstantsRing.GetBuffer(), sizeof(ModelPixelConstants),
 			modelResources.materials, true);
 		if (!modelResult)
 			return std::unexpected(modelResult.error());
 		const auto edgeResult = modelResources.edgeDescriptorSet.Initialize(device, pipeline,
-			modelResources.edgeVertexConstantsRing.GetBuffer(), sizeof(EdgeVertexConstants),
-			modelResources.edgePixelConstantsRing.GetBuffer(), sizeof(EdgePixelConstants),
+			modelResources.vertexConstantsRing.GetBuffer(), sizeof(EdgeVertexConstants),
+			modelResources.pixelConstantsRing.GetBuffer(), sizeof(EdgePixelConstants),
 			modelResources.materials, false);
 		if (!edgeResult)
 			return std::unexpected(edgeResult.error());
 		const auto groundShadowResult = modelResources.groundShadowDescriptorSet.Initialize(device, pipeline,
-			modelResources.groundShadowVertexConstantsRing.GetBuffer(), sizeof(GroundShadowVertexConstants),
-			modelResources.groundShadowPixelConstantsRing.GetBuffer(), sizeof(GroundShadowPixelConstants),
+			modelResources.vertexConstantsRing.GetBuffer(), sizeof(GroundShadowVertexConstants),
+			modelResources.pixelConstantsRing.GetBuffer(), sizeof(GroundShadowPixelConstants),
 			modelResources.materials, false);
 		if (!groundShadowResult)
 			return std::unexpected(groundShadowResult.error());
@@ -188,12 +169,8 @@ namespace Chrivent {
 		for (auto& vertexBuffer : modelResources.vertexBuffers)
 			vertexBuffer.Reset();
 		modelResources.indexBuffer.Reset();
-		modelResources.modelVertexConstantsRing.Clear();
-		modelResources.edgeVertexConstantsRing.Clear();
-		modelResources.groundShadowVertexConstantsRing.Clear();
-		modelResources.modelPixelConstantsRing.Clear();
-		modelResources.edgePixelConstantsRing.Clear();
-		modelResources.groundShadowPixelConstantsRing.Clear();
+		modelResources.vertexConstantsRing.Clear();
+		modelResources.pixelConstantsRing.Clear();
 		modelResources.modelDescriptorSet.Reset();
 		modelResources.edgeDescriptorSet.Reset();
 		modelResources.groundShadowDescriptorSet.Reset();

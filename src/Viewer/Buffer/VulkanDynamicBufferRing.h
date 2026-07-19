@@ -2,6 +2,7 @@
 
 #include "Viewer/Buffer/DynamicBufferRing.h"
 #include "Viewer/Buffer/VulkanBuffer.h"
+#include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Synchronization/FrameBuffering.h"
 
 #include <optional>
@@ -16,7 +17,7 @@ namespace Chrivent {
 		const VulkanBuffer& GetBuffer() const { return buffer; }
 
 		// Vulkan 업로드 링 버퍼를 생성한다.
-		bool Setup(const VulkanDevice& sourceDevice, size_t bufferSize, std::string& outError);
+		GraphicsResult<void> Setup(const VulkanDevice& sourceDevice, size_t bufferSize);
 		// Vulkan 업로드 링 버퍼 리소스와 공통 상태를 정리한다.
 		void Clear();
 		// 프레임별 링 버퍼 위치를 새 프레임에 맞춰 초기화한다.

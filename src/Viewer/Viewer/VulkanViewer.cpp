@@ -21,7 +21,7 @@ namespace Chrivent {
 
 	void VulkanViewer::ResetSwapChainResources() {
 		commandContext.Reset();
-		postProcess.ResetResources();
+		postProcess.ResetTargets();
 		msaaColorBuffer.Reset();
 		msaaDepthBuffer.Reset();
 	}
