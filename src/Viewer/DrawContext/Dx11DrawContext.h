@@ -20,7 +20,7 @@ namespace Chrivent {
 			Model,
 			Edge,
 			GroundShadow,
-			DepthOnly,
+			SceneDepth,
 			SceneVelocity
 		};
 
@@ -50,8 +50,10 @@ namespace Chrivent {
 		void BindEdgePipeline();
 		// 지면 그림자 셰이더와 고정 pipeline state를 바인딩한다.
 		void BindGroundShadowPipeline();
-		// depth 또는 velocity 장면 입력 셰이더를 바인딩한다.
-		void BindSceneInputPipeline(bool velocity);
+		// 장면 depth 입력 셰이더를 바인딩한다.
+		void BindSceneDepthPipeline();
+		// 장면 velocity 입력 셰이더를 바인딩한다.
+		void BindSceneVelocityPipeline();
 		// 현재 출력 크기에 맞는 viewport를 immediate context에 적용한다.
 		static void ApplyViewport(ID3D11DeviceContext* context, int width, int height);
 	};

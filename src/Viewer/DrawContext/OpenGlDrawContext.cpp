@@ -22,11 +22,11 @@ namespace Chrivent {
 		boundPipeline = BoundPipeline::GroundShadow;
 	}
 
-	void OpenGlDrawContext::BindDepthOnlyPipeline() {
-		if (boundPipeline == BoundPipeline::DepthOnly)
+	void OpenGlDrawContext::BindSceneDepthPipeline() {
+		if (boundPipeline == BoundPipeline::SceneDepth)
 			return;
-		pipeline.BindDepthOnly();
-		boundPipeline = BoundPipeline::DepthOnly;
+		pipeline.BindSceneDepth();
+		boundPipeline = BoundPipeline::SceneDepth;
 	}
 
 	void OpenGlDrawContext::BindSceneVelocityPipeline() {

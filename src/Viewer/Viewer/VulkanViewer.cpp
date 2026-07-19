@@ -12,7 +12,7 @@ namespace Chrivent {
 			return std::unexpected(depthResult.error());
 		if (postProcess.HasEffects()) {
 			const auto postProcessResult = postProcess.InitializeTargets(
-				device, swapChain, msaaDepthBuffer.format);
+				device, swapChain, msaaDepthBuffer.GetFormat());
 			if (!postProcessResult)
 				return std::unexpected(postProcessResult.error());
 		}
@@ -38,7 +38,7 @@ namespace Chrivent {
 		if (!resourceResult)
 			return std::unexpected(resourceResult.error());
 		const auto pipelineResult = pipeline.Initialize(device,
-			swapChain.GetImageFormat(), msaaDepthBuffer.format, shaderContract);
+			swapChain.GetImageFormat(), msaaDepthBuffer.GetFormat(), shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
 		const auto dummyResult = textureCache.CreateWhiteTexture(device);
@@ -62,10 +62,10 @@ namespace Chrivent {
 		const auto resourceResult = CreateSwapChainResources();
 		if (!resourceResult)
 			return std::unexpected(resourceResult.error());
-		if (!pipeline.IsCompatible(swapChain.GetImageFormat(),
-			msaaDepthBuffer.format, device.GetMsaaSampleCount()))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
-				"크기 변경 후 pipeline 검증", "Vulkan pipeline이 새 swap chain과 호환되지 않습니다"));
+		const auto pipelineResult = pipeline.RecreateIfIncompatible(
+			device, swapChain.GetImageFormat(), msaaDepthBuffer.GetFormat());
+		if (!pipelineResult)
+			return std::unexpected(pipelineResult.error());
 		const auto syncResult = syncObject.ResetImageTracking(swapChain.GetImageCount());
 		if (!syncResult)
 			return std::unexpected(syncResult.error());
@@ -104,9 +104,9 @@ namespace Chrivent {
 			? postProcess.TryGetSceneImageView(currentImageIndex)
 			: swapChain.GetImageView(currentImageIndex);
 		const auto recordResult = commandBuffer.BeginRecord(currentImageIndex,
-			msaaColorBuffer.GetImage(), msaaColorBuffer.imageView, resolveImage, resolveImageView,
-			msaaDepthBuffer.GetImage(), msaaDepthBuffer.imageView,
-			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.format),
+			msaaColorBuffer.GetImage(), msaaColorBuffer.GetImageView(), resolveImage, resolveImageView,
+			msaaDepthBuffer.GetImage(), msaaDepthBuffer.GetImageView(),
+			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.GetFormat()),
 			device.GetMsaaSampleCount(), swapChain.GetExtent(), clearColor);
 		if (!recordResult)
 			return std::unexpected(recordResult.error());
@@ -202,7 +202,7 @@ namespace Chrivent {
 		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));
-		return postProcess.Configure(device, swapChain, msaaDepthBuffer.format, effects);
+		return postProcess.Configure(device, swapChain, msaaDepthBuffer.GetFormat(), effects);
 	}
 
 	std::unique_ptr<Instance> VulkanViewer::CreateInstanceCore() {

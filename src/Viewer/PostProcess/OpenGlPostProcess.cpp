@@ -1,5 +1,6 @@
 ﻿#include "Viewer/PostProcess/OpenGlPostProcess.h"
 
+#include "Viewer/Error/OpenGlError.h"
 #include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
@@ -14,6 +15,7 @@ namespace Chrivent {
 
 	GraphicsResult<void> OpenGlPostProcess::CreateEffectResources() {
 		ResetEffectResources();
+		OpenGlError::Clear();
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
@@ -28,9 +30,11 @@ namespace Chrivent {
 			glCreateTextures(GL_TEXTURE_2D, textureCount, textures);
 			for (GLsizei index = 0; index < textureCount; index++) {
 				if (framebuffers[index] == 0 || textures[index] == 0) {
+					const GLenum result = OpenGlError::Take();
 					return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect resource 생성",
-						"OpenGL 후처리 effect framebuffer 또는 texture 객체를 만들지 못했습니다"));
+						"OpenGL 후처리 effect framebuffer 또는 texture 객체를 만들지 못했습니다",
+						result, result != GL_NO_ERROR));
 				}
 				glTextureStorage2D(textures[index], 1, format, width, height);
 				glTextureParameteri(textures[index], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -47,7 +51,7 @@ namespace Chrivent {
 				}
 			}
 		}
-		const GLenum result = glGetError();
+		const GLenum result = OpenGlError::Take();
 		if (result != GL_NO_ERROR) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 effect resource 생성",
@@ -139,8 +143,8 @@ namespace Chrivent {
 		targetHeight = 0;
 	}
 
-	void OpenGlPostProcess::ResetShaders() {
-		postProcessShaders.clear();
+	void OpenGlPostProcess::ResetPrograms() {
+		postProcessPrograms.clear();
 		ResetHistory();
 	}
 
@@ -154,13 +158,17 @@ namespace Chrivent {
 		}
 		targetWidth = width;
 		targetHeight = height;
+		OpenGlError::Clear();
 		glCreateBuffers(1, &frameDataBuffer);
 		glCreateBuffers(1, &parameterDataBuffer);
-		if (frameDataBuffer == 0 || parameterDataBuffer == 0) {
+		const GLenum bufferResult = OpenGlError::Take();
+		if (frameDataBuffer == 0 || parameterDataBuffer == 0 || bufferResult != GL_NO_ERROR) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 constant buffer 생성",
-				"OpenGL 후처리 constant buffer 객체를 만들지 못했습니다"));
+				"OpenGL 후처리 constant buffer 객체를 만들지 못했습니다",
+				bufferResult, bufferResult != GL_NO_ERROR));
 		}
+		OpenGlError::Clear();
 		glNamedBufferData(frameDataBuffer, sizeof(PostProcessFrameData), nullptr, GL_DYNAMIC_DRAW);
 		glNamedBufferData(parameterDataBuffer, sizeof(PostProcessParameterData), nullptr, GL_DYNAMIC_DRAW);
 		postProcessSampleCount = std::max<GLsizei>(1, sampleCount);
@@ -238,7 +246,7 @@ namespace Chrivent {
 					"OpenGL 후처리 depth framebuffer가 완전하지 않습니다", status, true));
 			}
 		}
-		const GLenum result = glGetError();
+		const GLenum result = OpenGlError::Take();
 		if (result != GL_NO_ERROR) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
@@ -247,14 +255,14 @@ namespace Chrivent {
 		return CreateEffectResources();
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::CreateShaders() {
-		ResetShaders();
+	GraphicsResult<void> OpenGlPostProcess::CreatePrograms() {
+		ResetPrograms();
 		for (const auto& program : GetShaderPrograms()) {
-			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			const auto result = shader->Initialize(program);
+			OpenGlPostProcessShaderProgram postProcessProgram;
+			const auto result = postProcessProgram.Initialize(program);
 			if (!result)
 				return std::unexpected(result.error());
-			postProcessShaders.push_back(std::move(shader));
+			postProcessPrograms.push_back(std::move(postProcessProgram));
 		}
 		return {};
 	}
@@ -273,7 +281,7 @@ namespace Chrivent {
 		std::swap(parameterDataBuffer, other.parameterDataBuffer);
 		std::swap(postProcessSampleCount, other.postProcessSampleCount);
 		resources.swap(other.resources);
-		postProcessShaders.swap(other.postProcessShaders);
+		postProcessPrograms.swap(other.postProcessPrograms);
 		std::swap(targetWidth, other.targetWidth);
 		std::swap(targetHeight, other.targetHeight);
 	}
@@ -291,11 +299,9 @@ namespace Chrivent {
 			const auto targetResult = candidate.InitializeTargets(width, height, sampleCount);
 			if (!targetResult)
 				return std::unexpected(targetResult.error());
-		}
-		if (candidate.HasEffects()) {
-			const auto shaderResult = candidate.CreateShaders();
-			if (!shaderResult)
-				return std::unexpected(shaderResult.error());
+			const auto programResult = candidate.CreatePrograms();
+			if (!programResult)
+				return std::unexpected(programResult.error());
 		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
@@ -336,7 +342,7 @@ namespace Chrivent {
 			return {};
 		if (sceneFramebuffer == 0 || resolveFramebuffer == 0 || sceneColorTexture == 0
 			|| frameDataBuffer == 0 || parameterDataBuffer == 0 || postProcessVao == 0
-			|| !IsPassCountCompatible(postProcessShaders.size())) {
+			|| !IsPassCountCompatible(postProcessPrograms.size())) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"OpenGL 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
@@ -353,6 +359,9 @@ namespace Chrivent {
 		glBindVertexArray(postProcessVao);
 		InitializeHistories();
 		const auto& routes = GetPassRoutes();
+		glBindBufferBase(GL_UNIFORM_BUFFER,
+			PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
+		size_t parameterEffectIndex = routes.size();
 		for (size_t index = 0; index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
 			if (route.outputKind == PostProcessOutputKind::Resource
@@ -362,16 +371,17 @@ namespace Chrivent {
 					GraphicsErrorCode::ContractViolation, "후처리 출력 framebuffer 조회",
 					"OpenGL 후처리 pass의 출력 framebuffer를 찾지 못했습니다"));
 			}
-			const PostProcessParameterData& parameterData = GetParameterData(route);
-			glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);
-			glBindBufferBase(GL_UNIFORM_BUFFER,
-				PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
+			if (parameterEffectIndex != route.effectIndex) {
+				const PostProcessParameterData& parameterData = GetParameterData(route);
+				glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);
+				parameterEffectIndex = route.effectIndex;
+			}
 			glBindFramebuffer(GL_FRAMEBUFFER, ResolveOutputFramebuffer(route));
 			int outputWidth = width;
 			int outputHeight = height;
 			ResolveOutputExtent(route, outputWidth, outputHeight);
 			glViewport(0, 0, outputWidth, outputHeight);
-			glUseProgram(postProcessShaders[index]->program);
+			glUseProgram(postProcessPrograms[index].GetProgram());
 			for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++)
 				glBindTextureUnit(SpirvBindingLayout::ResolveTextureBinding(slot), sceneColorTexture);
 			for (const auto& input : route.inputs) {
@@ -391,7 +401,7 @@ namespace Chrivent {
 	}
 
 	void OpenGlPostProcess::ResetResources() {
-		ResetShaders();
+		ResetPrograms();
 		ResetTargets();
 		if (postProcessVao != 0)
 			glDeleteVertexArrays(1, &postProcessVao);

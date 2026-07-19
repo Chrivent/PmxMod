@@ -26,12 +26,18 @@ namespace Chrivent {
 		boundPipeline = BoundPipeline::GroundShadow;
 	}
 
-	void Dx11DrawContext::BindSceneInputPipeline(const bool velocity) {
-		const BoundPipeline target = velocity ? BoundPipeline::SceneVelocity : BoundPipeline::DepthOnly;
-		if (boundPipeline == target)
+	void Dx11DrawContext::BindSceneDepthPipeline() {
+		if (boundPipeline == BoundPipeline::SceneDepth)
 			return;
-		pipeline.BindSceneInput(device.GetContext(), velocity);
-		boundPipeline = target;
+		pipeline.BindSceneDepth(device.GetContext());
+		boundPipeline = BoundPipeline::SceneDepth;
+	}
+
+	void Dx11DrawContext::BindSceneVelocityPipeline() {
+		if (boundPipeline == BoundPipeline::SceneVelocity)
+			return;
+		pipeline.BindSceneVelocity(device.GetContext());
+		boundPipeline = BoundPipeline::SceneVelocity;
 	}
 
 	void Dx11DrawContext::ApplyViewport(ID3D11DeviceContext* context, const int width, const int height) {

@@ -12,8 +12,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> modelRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelFrontFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> modelBothFacePipelineState;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> depthOnlyFrontFacePipelineState;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> depthOnlyBothFacePipelineState;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneDepthFrontFacePipelineState;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneDepthBothFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneVelocityFrontFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneVelocityBothFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> simplePassRootSignature;
@@ -30,7 +30,7 @@ namespace Chrivent {
 		GraphicsResult<void> CreateModelPipelineStates(
 			const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
 		// 공통 장면 depth 입력용 graphics pipeline state를 생성한다.
-		GraphicsResult<void> CreateDepthOnlyPipelineStates(
+		GraphicsResult<void> CreateSceneDepthPipelineStates(
 			const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
 		// 현재/이전 정점 위치를 RG16F velocity 타깃에 기록하는 pipeline state를 생성한다.
 		GraphicsResult<void> CreateSceneVelocityPipelineStates(
@@ -43,6 +43,8 @@ namespace Chrivent {
 		// 지면 그림자 렌더링용 graphics pipeline state를 생성한다.
 		GraphicsResult<void> CreateGroundShadowPipelineState(
 			const Dx12Device& sourceDevice, const ShaderProgramDefinition& program);
+		// 검증된 다른 DX12 파이프라인과 GPU 리소스를 교환한다.
+		void SwapResources(Dx12Pipeline& other) noexcept;
 		
 	public:
 		// DX12 모델 렌더링에 필요한 root signature와 pipeline state를 초기화한다.
@@ -52,8 +54,8 @@ namespace Chrivent {
 		void BindModelRootSignature(ID3D12GraphicsCommandList* commandList) const;
 		// material의 양면 렌더링 여부에 맞는 model pipeline state를 command list에 바인딩한다.
 		void BindModelPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
-		// material의 양면 렌더링 여부에 맞는 depth-only pipeline state를 command list에 바인딩한다.
-		void BindDepthOnlyPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
+		// material의 양면 렌더링 여부에 맞는 장면 depth pipeline state를 command list에 바인딩한다.
+		void BindSceneDepthPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// material의 양면 렌더링 여부에 맞는 장면 속도 pipeline state를 바인딩한다.
 		void BindSceneVelocityPipelineState(ID3D12GraphicsCommandList* commandList, bool bothFace) const;
 		// 엣지 렌더링용 pipeline을 command list에 바인딩한다.

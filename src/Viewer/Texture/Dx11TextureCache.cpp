@@ -12,13 +12,14 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
-		const auto d = Dx11DescBuilder::MakeTexture2DDesc(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
+		const auto textureDescription = Dx11DescBuilder::MakeTexture2DDesc(
+			1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		constexpr uint8_t white[] = { 255, 255, 255, 255 };
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = white;
 		initData.SysMemPitch = 4;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
-		HRESULT result = device->CreateTexture2D(&d, &initData, &tex2D);
+		HRESULT result = device->CreateTexture2D(&textureDescription, &initData, &tex2D);
 		if (FAILED(result)) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
@@ -53,13 +54,13 @@ namespace Chrivent {
 		if (!pixels)
 			return std::optional<Dx11Texture>{};
 		const bool textureHasAlpha = components == 4;
-		const auto d = Dx11DescBuilder::MakeTexture2DDesc(
+		const auto textureDescription = Dx11DescBuilder::MakeTexture2DDesc(
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = pixels.get();
 		initData.SysMemPitch = 4 * width;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
-		HRESULT result = device->CreateTexture2D(&d, &initData, &tex2D);
+		HRESULT result = device->CreateTexture2D(&textureDescription, &initData, &tex2D);
 		if (FAILED(result)) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",

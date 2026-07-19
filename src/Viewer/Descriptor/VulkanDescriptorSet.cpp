@@ -1,6 +1,8 @@
 ﻿#include "Viewer/Descriptor/VulkanDescriptorSet.h"
 
 #include "Viewer/DrawResource/VulkanModelResources.h"
+#include "Viewer/Shader/SceneShaderInputLayout.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 namespace Chrivent {
 	GraphicsResult<void> VulkanDescriptorSet::CreateDescriptorPool(const size_t textureDescriptorCount) {
@@ -93,7 +95,7 @@ namespace Chrivent {
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.pNext = nullptr,
 			.dstSet = vertexDescriptorSet,
-			.dstBinding = 0,
+			.dstBinding = SpirvBindingLayout::frameDataBinding,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -115,7 +117,7 @@ namespace Chrivent {
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.pNext = nullptr,
 			.dstSet = pixelDescriptorSet,
-			.dstBinding = 0,
+			.dstBinding = SpirvBindingLayout::parameterDataBinding,
 			.dstArrayElement = 0,
 			.descriptorCount = 1,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -157,7 +159,8 @@ namespace Chrivent {
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 0,
+					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
+						SceneShaderInputLayout::baseTextureRegister),
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -169,7 +172,8 @@ namespace Chrivent {
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 1,
+					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
+						SceneShaderInputLayout::toonTextureRegister),
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -181,7 +185,8 @@ namespace Chrivent {
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 2,
+					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
+						SceneShaderInputLayout::sphereTextureRegister),
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -192,7 +197,8 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 4,
+					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
+						SceneShaderInputLayout::baseSamplerRegister),
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[0]
@@ -200,7 +206,8 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 5,
+					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
+						SceneShaderInputLayout::toonSamplerRegister),
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[1]
@@ -208,7 +215,8 @@ namespace Chrivent {
 				VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.dstSet = material.textureDescriptorSet,
-					.dstBinding = 6,
+					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
+						SceneShaderInputLayout::sphereSamplerRegister),
 					.descriptorCount = 1,
 					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
 					.pImageInfo = &imageInfos[2]

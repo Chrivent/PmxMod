@@ -1,5 +1,7 @@
 ﻿#include "Viewer/Buffer/OpenGlDynamicBufferRing.h"
 
+#include "Viewer/Error/OpenGlError.h"
+
 #include <utility>
 
 namespace Chrivent {
@@ -17,8 +19,9 @@ namespace Chrivent {
 				std::move(error)));
 		}
 		usage = bufferUsage;
+		OpenGlError::Clear();
 		glCreateBuffers(1, &buffer);
-		const GLenum createResult = glGetError();
+		const GLenum createResult = OpenGlError::Take();
 		if (buffer == 0 || createResult != GL_NO_ERROR) {
 			Clear();
 			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
@@ -26,8 +29,9 @@ namespace Chrivent {
 				"OpenGL buffer를 만들지 못했습니다",
 				createResult, createResult != GL_NO_ERROR));
 		}
+		OpenGlError::Clear();
 		glNamedBufferData(buffer, capacity, nullptr, usage);
-		const GLenum result = glGetError();
+		const GLenum result = OpenGlError::Take();
 		if (result == GL_NO_ERROR)
 			return {};
 		Clear();

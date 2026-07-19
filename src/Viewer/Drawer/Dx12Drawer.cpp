@@ -180,7 +180,7 @@ namespace Chrivent {
 			if (velocityRequired)
 				drawContext.BindSceneVelocityPipeline(mat.bothFace);
 			else
-				drawContext.BindDepthOnlyPipeline(mat.bothFace);
+				drawContext.BindSceneDepthPipeline(mat.bothFace);
 			commandList->SetGraphicsRootConstantBufferView(
 				1, constantBuffer.GetGpuAddress() + materialOffset + layout.sceneSurfacePixel);
 			if (material.textureDescriptorHandle.ptr != 0)

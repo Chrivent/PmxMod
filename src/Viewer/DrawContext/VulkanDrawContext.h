@@ -50,8 +50,8 @@ namespace Chrivent {
 			VkIndexType indexType, size_t firstIndex, size_t indexCount);
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		bool BindModelPipeline(bool bothFace);
-		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.
-		bool BindDepthOnlyPipeline(bool bothFace);
+		// 재질 양면 여부에 맞는 scene depth pipeline을 바인딩한다.
+		bool BindSceneDepthPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 scene velocity pipeline을 바인딩한다.
 		bool BindSceneVelocityPipeline(bool bothFace);
 		// 엣지 pipeline을 바인딩한다.

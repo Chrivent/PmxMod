@@ -12,7 +12,7 @@ namespace Chrivent {
 			Model,
 			Edge,
 			GroundShadow,
-			DepthOnly,
+			SceneDepth,
 			SceneVelocity
 		};
 
@@ -36,7 +36,7 @@ namespace Chrivent {
 		// 지면 그림자 프로그램을 바인딩한다.
 		void BindGroundShadowPipeline();
 		// 장면 depth 프로그램을 바인딩한다.
-		void BindDepthOnlyPipeline();
+		void BindSceneDepthPipeline();
 		// 장면 velocity 프로그램을 바인딩한다.
 		void BindSceneVelocityPipeline();
 	};

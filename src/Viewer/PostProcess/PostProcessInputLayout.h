@@ -13,6 +13,8 @@ namespace Chrivent {
 		static constexpr uint32_t maxParameterCount = 64;
 		// 패키지 pass 하나가 사용할 수 있는 HLSL Texture2D 입력 슬롯 수다.
 		static constexpr uint32_t maxTextureCount = 8;
+		// 후처리 texture 입력이 시작되는 HLSL register 번호다.
+		static constexpr uint32_t firstTextureRegister = 0;
 		// 포스트 프로세스가 모든 API에서 제공하는 공통 sampler 개수다.
 		static constexpr uint32_t samplerCount = 3;
 		// 포스트 프로세스 공통 clamp linear sampler다. HLSL SamplerState LinearClamp : register(s0)에 대응한다.

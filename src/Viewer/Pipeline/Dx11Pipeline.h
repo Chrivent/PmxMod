@@ -12,11 +12,11 @@ namespace Chrivent {
 	class Dx11Pipeline {
 		// D3D11 기본 렌더링 패스별 셰이더 프로그램을 보관한다.
 		struct ShaderSet {
-			Dx11ModelShader model;
-			Dx11EdgeShader edge;
-			Dx11GroundShadowShader groundShadow;
-			Dx11SceneDepthShader sceneDepth;
-			Dx11SceneVelocityShader sceneVelocity;
+			Dx11ShaderProgram model;
+			Dx11ShaderProgram edge;
+			Dx11ShaderProgram groundShadow;
+			Dx11ShaderProgram sceneDepth;
+			Dx11ShaderProgram sceneVelocity;
 		};
 
 		// D3D11 기본 렌더링에 사용하는 sampler와 고정 파이프라인 상태를 보관한다.
@@ -46,7 +46,6 @@ namespace Chrivent {
 	public:
 		ID3D11SamplerState* GetTextureSampler() const { return states.textureSampler.Get(); }
 		ID3D11SamplerState* GetToonTextureSampler() const { return states.toonTextureSampler.Get(); }
-		ID3D11RasterizerState* GetBothFaceRasterizerState() const { return states.bothFaceRs.Get(); }
 		ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return states.defaultDss.Get(); }
 
 		// 장면 ABI 계약으로 D3D11 셰이더와 고정 pipeline state를 생성한다.
@@ -62,7 +61,9 @@ namespace Chrivent {
 		void BindEdge(ID3D11DeviceContext* context) const;
 		// 지면 그림자 셰이더와 고정 pipeline state를 바인딩한다.
 		void BindGroundShadow(ID3D11DeviceContext* context) const;
-		// depth 또는 velocity 장면 입력 셰이더를 바인딩한다.
-		void BindSceneInput(ID3D11DeviceContext* context, bool velocity) const;
+		// 장면 depth 입력 셰이더를 바인딩한다.
+		void BindSceneDepth(ID3D11DeviceContext* context) const;
+		// 장면 velocity 입력 셰이더를 바인딩한다.
+		void BindSceneVelocity(ID3D11DeviceContext* context) const;
 	};
 }

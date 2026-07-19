@@ -29,7 +29,8 @@ namespace Chrivent {
 		template<typename T>
 		static HRESULT CreateBuffer(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Buffer>& out) {
 			constexpr UINT bytes = (sizeof(T) + 15u) / 16u * 16u;
-			const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER);
+			const CD3D11_BUFFER_DESC desc(bytes, D3D11_BIND_CONSTANT_BUFFER,
+				D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 			return device->CreateBuffer(&desc, nullptr, out.GetAddressOf());
 		}
 

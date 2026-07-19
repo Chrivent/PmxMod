@@ -113,7 +113,7 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, modelBothFacePipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateDepthOnlyPipelineStates(
+	GraphicsResult<void> Dx12Pipeline::CreateSceneDepthPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -130,12 +130,12 @@ namespace Chrivent {
 		pipelineDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		pipelineDesc.SampleDesc.Count = 1;
 		auto result = Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, depthOnlyFrontFacePipelineState);
+			sourceDevice, program, pipelineDesc, sceneDepthFrontFacePipelineState);
 		if (!result)
 			return result;
 		pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 		return Dx12PipelineBuilder::CreateGraphicsPipelineState(
-			sourceDevice, program, pipelineDesc, depthOnlyBothFacePipelineState);
+			sourceDevice, program, pipelineDesc, sceneDepthBothFacePipelineState);
 	}
 
 	GraphicsResult<void> Dx12Pipeline::CreateSceneVelocityPipelineStates(
@@ -245,24 +245,42 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, groundShadowPipelineState);
 	}
 
+	void Dx12Pipeline::SwapResources(Dx12Pipeline& other) noexcept {
+		modelRootSignature.Swap(other.modelRootSignature);
+		modelFrontFacePipelineState.Swap(other.modelFrontFacePipelineState);
+		modelBothFacePipelineState.Swap(other.modelBothFacePipelineState);
+		sceneDepthFrontFacePipelineState.Swap(other.sceneDepthFrontFacePipelineState);
+		sceneDepthBothFacePipelineState.Swap(other.sceneDepthBothFacePipelineState);
+		sceneVelocityFrontFacePipelineState.Swap(other.sceneVelocityFrontFacePipelineState);
+		sceneVelocityBothFacePipelineState.Swap(other.sceneVelocityBothFacePipelineState);
+		simplePassRootSignature.Swap(other.simplePassRootSignature);
+		edgePipelineState.Swap(other.edgePipelineState);
+		groundShadowPipelineState.Swap(other.groundShadowPipelineState);
+	}
+
 	GraphicsResult<void> Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
 		const SceneShaderRuntimeContract& shaderContract) {
-		Reset();
-		auto result = CreateModelRootSignature(sourceDevice);
+		Dx12Pipeline candidate;
+		auto result = candidate.CreateModelRootSignature(sourceDevice);
 		if (result)
-			result = CreateModelPipelineStates(sourceDevice, shaderContract.builtIn.model);
+			result = candidate.CreateModelPipelineStates(
+				sourceDevice, shaderContract.builtIn.model);
 		if (result)
-			result = CreateDepthOnlyPipelineStates(sourceDevice, shaderContract.sceneInput.depth);
+			result = candidate.CreateSceneDepthPipelineStates(
+				sourceDevice, shaderContract.sceneInput.depth);
 		if (result)
-			result = CreateSceneVelocityPipelineStates(
+			result = candidate.CreateSceneVelocityPipelineStates(
 				sourceDevice, shaderContract.sceneInput.velocity);
 		if (result)
-			result = CreateSimplePassRootSignature(sourceDevice);
+			result = candidate.CreateSimplePassRootSignature(sourceDevice);
 		if (result)
-			result = CreateEdgePipelineState(sourceDevice, shaderContract.builtIn.edge);
+			result = candidate.CreateEdgePipelineState(
+				sourceDevice, shaderContract.builtIn.edge);
 		if (result)
-			result = CreateGroundShadowPipelineState(
+			result = candidate.CreateGroundShadowPipelineState(
 				sourceDevice, shaderContract.builtIn.groundShadow);
+		if (result)
+			SwapResources(candidate);
 		return result;
 	}
 
@@ -281,12 +299,13 @@ namespace Chrivent {
 		commandList->SetPipelineState(pipelineState);
 	}
 
-	void Dx12Pipeline::BindDepthOnlyPipelineState(ID3D12GraphicsCommandList* commandList, const bool bothFace) const {
+	void Dx12Pipeline::BindSceneDepthPipelineState(ID3D12GraphicsCommandList* commandList,
+		const bool bothFace) const {
 		if (commandList == nullptr)
 			return;
 		ID3D12PipelineState* pipelineState = bothFace
-			? depthOnlyBothFacePipelineState.Get()
-			: depthOnlyFrontFacePipelineState.Get();
+			? sceneDepthBothFacePipelineState.Get()
+			: sceneDepthFrontFacePipelineState.Get();
 		commandList->SetPipelineState(pipelineState);
 	}
 
@@ -315,8 +334,8 @@ namespace Chrivent {
 		groundShadowPipelineState.Reset();
 		edgePipelineState.Reset();
 		simplePassRootSignature.Reset();
-		depthOnlyBothFacePipelineState.Reset();
-		depthOnlyFrontFacePipelineState.Reset();
+		sceneDepthBothFacePipelineState.Reset();
+		sceneDepthFrontFacePipelineState.Reset();
 		sceneVelocityBothFacePipelineState.Reset();
 		sceneVelocityFrontFacePipelineState.Reset();
 		modelBothFacePipelineState.Reset();

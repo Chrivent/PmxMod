@@ -1,4 +1,4 @@
-#include "Program/Panel/Panel.h"
+﻿#include "Program/Panel/Panel.h"
 
 namespace Chrivent {
 	bool Panel::IsInputLockMessage(const UINT msg) {

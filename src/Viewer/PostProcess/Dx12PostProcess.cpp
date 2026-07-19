@@ -306,8 +306,6 @@ namespace Chrivent {
 			const auto targetResult = candidate.InitializeTargets(sourceDevice, width, height);
 			if (!targetResult)
 				return std::unexpected(targetResult.error());
-		}
-		if (candidate.HasEffects()) {
 			const auto pipelineResult = candidate.CreatePipelines(sourceDevice);
 			if (!pipelineResult)
 				return std::unexpected(pipelineResult.error());

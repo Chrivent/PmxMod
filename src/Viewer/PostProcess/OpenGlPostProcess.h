@@ -4,7 +4,6 @@
 #include "Viewer/Shader/OpenGlShader.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
-#include <memory>
 #include <vector>
 
 namespace Chrivent {
@@ -31,7 +30,7 @@ namespace Chrivent {
 		GLuint parameterDataBuffer = 0;
 		GLsizei postProcessSampleCount = 1;
 		std::vector<Resource> resources;
-		std::vector<std::unique_ptr<OpenGlPostProcessShader>> postProcessShaders;
+		std::vector<OpenGlPostProcessShaderProgram> postProcessPrograms;
 		int targetWidth = 0;
 		int targetHeight = 0;
 
@@ -47,10 +46,10 @@ namespace Chrivent {
 		void ResetEffectResources();
 		// 후처리용 화면 framebuffer 리소스를 해제한다.
 		void ResetTargets();
-		// 후처리 셰이더 프로그램만 해제한다.
-		void ResetShaders();
+		// 후처리 프로그램만 해제한다.
+		void ResetPrograms();
 		// 현재 실행 계획의 OpenGL 후처리 프로그램을 생성한다.
-		GraphicsResult<void> CreateShaders();
+		GraphicsResult<void> CreatePrograms();
 		// 검증을 마친 다른 OpenGL 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(OpenGlPostProcess& other) noexcept;
 		

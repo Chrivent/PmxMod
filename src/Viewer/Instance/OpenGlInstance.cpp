@@ -2,6 +2,7 @@
 
 #include "Viewer/Drawer/OpenGlDrawer.h"
 #include "Viewer/Buffer/BufferSize.h"
+#include "Viewer/Error/OpenGlError.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/Texture/OpenGlTextureCache.h"
@@ -21,21 +22,23 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
 				"OpenGL buffer 생성", "buffer 크기가 OpenGL 범위를 벗어났습니다"));
 		}
-		GLuint b = 0;
-		glCreateBuffers(1, &b);
-		GLenum result = glGetError();
-		if (b == 0 || result != GL_NO_ERROR) {
-			if (b != 0)
-				glDeleteBuffers(1, &b);
+		GLuint buffer = 0;
+		OpenGlError::Clear();
+		glCreateBuffers(1, &buffer);
+		GLenum result = OpenGlError::Take();
+		if (buffer == 0 || result != GL_NO_ERROR) {
+			if (buffer != 0)
+				glDeleteBuffers(1, &buffer);
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"OpenGL buffer 생성", "buffer object를 만들지 못했습니다",
 				result, result != GL_NO_ERROR));
 		}
-		glNamedBufferData(b, size, data, usage);
-		result = glGetError();
+		OpenGlError::Clear();
+		glNamedBufferData(buffer, size, data, usage);
+		result = OpenGlError::Take();
 		if (result == GL_NO_ERROR)
-			return b;
-		glDeleteBuffers(1, &b);
+			return buffer;
+		glDeleteBuffers(1, &buffer);
 		return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 			"OpenGL buffer storage 생성", "buffer storage를 할당하지 못했습니다", result, true));
 	}
@@ -49,8 +52,9 @@ namespace Chrivent {
 				"OpenGL VAO 생성", "buffer 또는 attribute 정보가 올바르지 않습니다"));
 		}
 		GLuint vao = 0;
+		OpenGlError::Clear();
 		glCreateVertexArrays(1, &vao);
-		GLenum result = glGetError();
+		GLenum result = OpenGlError::Take();
 		if (vao == 0 || result != GL_NO_ERROR) {
 			if (vao != 0)
 				glDeleteVertexArrays(1, &vao);
@@ -58,6 +62,7 @@ namespace Chrivent {
 				"OpenGL VAO 생성", "vertex array object를 만들지 못했습니다",
 				result, result != GL_NO_ERROR));
 		}
+		OpenGlError::Clear();
 		glVertexArrayVertexBuffer(vao, 0, vertexBuffer, 0, sizeof(ViewerVertex));
 		for (int index = 0; index < attributeCount; index++) {
 			if (locations[index] < 0)
@@ -68,7 +73,7 @@ namespace Chrivent {
 			glVertexArrayAttribBinding(vao, locations[index], 0);
 		}
 		glVertexArrayElementBuffer(vao, indexBuffer);
-		result = glGetError();
+		result = OpenGlError::Take();
 		if (result == GL_NO_ERROR)
 			return vao;
 		glDeleteVertexArrays(1, &vao);
@@ -161,8 +166,9 @@ namespace Chrivent {
 			sizeof(GroundShadowPixelConstants)
 		});
 		GLint uniformBufferOffsetAlignment = 1;
+		OpenGlError::Clear();
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferOffsetAlignment);
-		const GLenum alignmentResult = glGetError();
+		const GLenum alignmentResult = OpenGlError::Take();
 		if (alignmentResult != GL_NO_ERROR) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
 				"OpenGL uniform buffer 정렬 조회",

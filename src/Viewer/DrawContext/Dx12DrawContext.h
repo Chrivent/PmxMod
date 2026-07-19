@@ -19,8 +19,8 @@ namespace Chrivent {
 			None,
 			ModelFrontFace,
 			ModelBothFace,
-			DepthFrontFace,
-			DepthBothFace,
+			SceneDepthFrontFace,
+			SceneDepthBothFace,
 			VelocityFrontFace,
 			VelocityBothFace,
 			Edge,
@@ -50,8 +50,8 @@ namespace Chrivent {
 		void BindModelRootSignature();
 		// 재질 양면 여부에 맞는 model pipeline을 바인딩한다.
 		void BindModelPipeline(bool bothFace);
-		// 재질 양면 여부에 맞는 depth-only pipeline을 바인딩한다.
-		void BindDepthOnlyPipeline(bool bothFace);
+		// 재질 양면 여부에 맞는 scene depth pipeline을 바인딩한다.
+		void BindSceneDepthPipeline(bool bothFace);
 		// 재질 양면 여부에 맞는 scene velocity pipeline을 바인딩한다.
 		void BindSceneVelocityPipeline(bool bothFace);
 		// 엣지 pipeline을 바인딩한다.

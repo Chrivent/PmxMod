@@ -18,9 +18,12 @@ namespace Chrivent {
 		Dx11DrawContext& drawContext;
 
 		// 텍스처 유무에 따라 실제 SRV 또는 더미 SRV를 픽셀 셰이더 슬롯에 바인딩한다.
-		void BindTexture(
-			UINT slot, const Dx11Texture& texture, ID3D11SamplerState* sampler,
+		void BindTexture(UINT textureSlot, UINT samplerSlot,
+			const Dx11Texture& texture, ID3D11SamplerState* sampler,
 			ID3D11ShaderResourceView*& lastView, ID3D11SamplerState*& lastSampler) const;
+		// 동적 상수 버퍼를 새 저장소로 매핑하고 한 패스의 상수 데이터를 기록한다.
+		GraphicsResult<void> WriteConstantBuffer(ID3D11Buffer* buffer,
+			const void* data, size_t size, const char* operation) const;
 
 	protected:
 		// DirectX depth range로 맞추는 clip 보정 행렬을 반환한다.

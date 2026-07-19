@@ -9,8 +9,10 @@ namespace Chrivent {
 	// Vulkan 장면 렌더링용 MSAA depth image와 view를 관리한다.
 	class VulkanMsaaDepthBuffer {
 		VkImage image = VK_NULL_HANDLE;
+		VkImageView imageView = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
+		VkFormat format = VK_FORMAT_UNDEFINED;
 
 		// 물리 디바이스에서 사용할 수 있는 depth format을 찾는다.
 		static VkFormat FindDepthFormat(const VulkanDevice& sourceDevice);
@@ -24,16 +26,16 @@ namespace Chrivent {
 		GraphicsResult<void> CreateImageView();
 
 	public:
-		VkImageView imageView = VK_NULL_HANDLE;
-		VkFormat format = VK_FORMAT_UNDEFINED;
-		VkImage GetImage() const { return image; }
-
 		VulkanMsaaDepthBuffer() = default;
 		~VulkanMsaaDepthBuffer();
 
 		VulkanMsaaDepthBuffer(const VulkanMsaaDepthBuffer&) = delete;
 		VulkanMsaaDepthBuffer& operator=(const VulkanMsaaDepthBuffer&) = delete;
-		
+
+		VkImage GetImage() const { return image; }
+		VkImageView GetImageView() const { return imageView; }
+		VkFormat GetFormat() const { return format; }
+
 		// depth format에 stencil 성분이 포함되어 있는지 확인한다.
 		static bool HasStencilComponent(const VkFormat format) {
 			return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;

@@ -11,7 +11,7 @@ namespace Chrivent {
 		D3D12_DESCRIPTOR_RANGE srvRange{};
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		srvRange.NumDescriptors = PostProcessInputLayout::maxTextureCount;
-		srvRange.BaseShaderRegister = 0;
+		srvRange.BaseShaderRegister = PostProcessInputLayout::firstTextureRegister;
 		srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		D3D12_ROOT_PARAMETER rootParameters[3]{};
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;

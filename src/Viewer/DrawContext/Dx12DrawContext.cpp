@@ -42,13 +42,13 @@ namespace Chrivent {
 		pipelineBinding = targetBinding;
 	}
 
-	void Dx12DrawContext::BindDepthOnlyPipeline(const bool bothFace) {
+	void Dx12DrawContext::BindSceneDepthPipeline(const bool bothFace) {
 		BindModelRootSignature();
 		const PipelineBinding targetBinding = bothFace
-			? PipelineBinding::DepthBothFace : PipelineBinding::DepthFrontFace;
+			? PipelineBinding::SceneDepthBothFace : PipelineBinding::SceneDepthFrontFace;
 		if (!frameReady || pipelineBinding == targetBinding)
 			return;
-		pipeline.BindDepthOnlyPipelineState(commandContext.GetCommandList().Get(), bothFace);
+		pipeline.BindSceneDepthPipelineState(commandContext.GetCommandList().Get(), bothFace);
 		pipelineBinding = targetBinding;
 	}
 

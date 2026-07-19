@@ -64,10 +64,10 @@ namespace Chrivent {
 		return true;
 	}
 
-	bool VulkanDrawContext::BindDepthOnlyPipeline(const bool bothFace) {
+	bool VulkanDrawContext::BindSceneDepthPipeline(const bool bothFace) {
 		if (!frameReady)
 			return false;
-		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(false, bothFace);
+		const VkPipeline targetPipeline = pipeline.ResolveSceneDepthPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
 		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
@@ -79,7 +79,7 @@ namespace Chrivent {
 	bool VulkanDrawContext::BindSceneVelocityPipeline(const bool bothFace) {
 		if (!frameReady)
 			return false;
-		const VkPipeline targetPipeline = pipeline.ResolveSceneInputPipeline(true, bothFace);
+		const VkPipeline targetPipeline = pipeline.ResolveSceneVelocityPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
 		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))

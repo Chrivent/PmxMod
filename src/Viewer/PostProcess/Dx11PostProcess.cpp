@@ -9,6 +9,26 @@
 #include <utility>
 
 namespace Chrivent {
+	GraphicsResult<void> Dx11PostProcess::WriteConstantBuffer(ID3D11DeviceContext* context,
+		ID3D11Buffer* buffer, const void* data, const size_t size, const char* operation) {
+		if (context == nullptr || buffer == nullptr || data == nullptr || size == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidArgument, operation,
+				"DirectX 11 후처리 상수 버퍼 입력이 올바르지 않습니다"));
+		}
+		D3D11_MAPPED_SUBRESOURCE mappedResource{};
+		const HRESULT result = context->Map(
+			buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::CommandRecordingFailed, operation,
+				"DirectX 11 후처리 상수 버퍼를 매핑하지 못했습니다", result, true));
+		}
+		std::memcpy(mappedResource.pData, data, size);
+		context->Unmap(buffer, 0);
+		return {};
+	}
+
 	GraphicsResult<void> Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
 		ResetEffectResources();
 		if (device == nullptr) {
@@ -101,25 +121,26 @@ namespace Chrivent {
 		resources.clear();
 	}
 
-	void Dx11PostProcess::ResetShaders() {
-		postProcessShaders.clear();
+	void Dx11PostProcess::ResetPrograms() {
+		postProcessPrograms.clear();
 		ResetHistory();
 	}
 
 	GraphicsResult<void> Dx11PostProcess::InitializeTargets(
-		ID3D11Device* device, ID3D11DeviceContext* context, const int width, const int height) {
+		ID3D11Device* device, const int width, const int height) {
 		ResetTargets();
-		if (device == nullptr || context == nullptr || width <= 0 || height <= 0) {
+		if (device == nullptr || width <= 0 || height <= 0) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
-				"DirectX 11 device, context 또는 후처리 target 크기가 올바르지 않습니다"));
+				"DirectX 11 device 또는 후처리 target 크기가 올바르지 않습니다"));
 		}
 		targetWidth = width;
 		targetHeight = height;
 		D3D11_BUFFER_DESC frameDataDesc{};
 		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(PostProcessFrameData));
-		frameDataDesc.Usage = D3D11_USAGE_DEFAULT;
+		frameDataDesc.Usage = D3D11_USAGE_DYNAMIC;
 		frameDataDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		frameDataDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		HRESULT result = device->CreateBuffer(&frameDataDesc, nullptr, &frameDataBuffer);
 		if (FAILED(result)) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
@@ -204,15 +225,34 @@ namespace Chrivent {
 		return CreateEffectResources(device);
 	}
 
-	GraphicsResult<void> Dx11PostProcess::CreateShaders(ID3D11Device* device) {
-		ResetShaders();
-		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
-			Dx11PostProcessShader shader;
-			const auto result = shader.Initialize(
-				device, shaderPath, vertexEntry.c_str(), pixelEntry.c_str());
+	GraphicsResult<void> Dx11PostProcess::CreatePrograms(ID3D11Device* device) {
+		ResetPrograms();
+		for (const auto& program : GetShaderPrograms()) {
+			Dx11ShaderProgram postProcessProgram;
+			const auto result = postProcessProgram.Initialize(device, program);
 			if (!result)
 				return std::unexpected(result.error());
-			postProcessShaders.push_back(std::move(shader));
+			postProcessPrograms.push_back(std::move(postProcessProgram));
+		}
+		return {};
+	}
+
+	GraphicsResult<void> Dx11PostProcess::CreateStates(ID3D11Device* device) {
+		auto rasterizerDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
+		HRESULT result = device->CreateRasterizerState(
+			&rasterizerDescription, &fullscreenRasterizerState);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 rasterizer state 생성",
+				"DirectX 11 후처리 rasterizer state를 만들지 못했습니다", result, true));
+		}
+		const auto samplerDescription = Dx11DescBuilder::MakeSamplerDesc(
+			D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		result = device->CreateSamplerState(&samplerDescription, &linearClampSampler);
+		if (FAILED(result)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ResourceCreationFailed, "후처리 sampler state 생성",
+				"DirectX 11 후처리 linear clamp sampler를 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
@@ -228,14 +268,15 @@ namespace Chrivent {
 		velocityView.Swap(other.velocityView);
 		frameDataBuffer.Swap(other.frameDataBuffer);
 		parameterDataBuffer.Swap(other.parameterDataBuffer);
+		fullscreenRasterizerState.Swap(other.fullscreenRasterizerState);
+		linearClampSampler.Swap(other.linearClampSampler);
 		resources.swap(other.resources);
-		postProcessShaders.swap(other.postProcessShaders);
+		postProcessPrograms.swap(other.postProcessPrograms);
 		std::swap(targetWidth, other.targetWidth);
 		std::swap(targetHeight, other.targetHeight);
 	}
 
 	GraphicsResult<void> Dx11PostProcess::Configure(ID3D11Device* device,
-		ID3D11DeviceContext* context,
 		const int width, const int height, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx11PostProcess candidate;
 		const auto planResult = candidate.SetEffects(effects);
@@ -244,14 +285,15 @@ namespace Chrivent {
 				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
 		}
 		if (candidate.HasEffects()) {
-			const auto targetResult = candidate.InitializeTargets(device, context, width, height);
+			const auto targetResult = candidate.InitializeTargets(device, width, height);
 			if (!targetResult)
 				return std::unexpected(targetResult.error());
-		}
-		if (candidate.HasEffects()) {
-			const auto shaderResult = candidate.CreateShaders(device);
-			if (!shaderResult)
-				return std::unexpected(shaderResult.error());
+			const auto programResult = candidate.CreatePrograms(device);
+			if (!programResult)
+				return std::unexpected(programResult.error());
+			const auto stateResult = candidate.CreateStates(device);
+			if (!stateResult)
+				return std::unexpected(stateResult.error());
 		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
@@ -266,7 +308,8 @@ namespace Chrivent {
 				"DirectX 11 context 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
 		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::maxTextureCount]{};
-		context->PSSetShaderResources(0, std::size(emptyViews), emptyViews);
+		context->PSSetShaderResources(
+			PostProcessInputLayout::firstTextureRegister, std::size(emptyViews), emptyViews);
 		context->ClearDepthStencilView(
 			depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		ID3D11RenderTargetView* velocityTarget = RequiresVelocity() ? velocityRenderTargetView.Get() : nullptr;
@@ -294,13 +337,13 @@ namespace Chrivent {
 
 	GraphicsResult<void> Dx11PostProcess::Draw(
 		ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource, const UINT sampleCount,
-		ID3D11RenderTargetView* backBufferView, ID3D11RasterizerState* rasterizerState,
-		ID3D11SamplerState* sampler, const int width, const int height,
+		ID3D11RenderTargetView* backBufferView, const int width, const int height,
 		const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr
 			|| sceneSource == nullptr || !sceneColor || !sceneColorView
-			|| !frameDataBuffer || !parameterDataBuffer
-			|| !IsPassCountCompatible(postProcessShaders.size())) {
+			|| !frameDataBuffer || !parameterDataBuffer || !fullscreenRasterizerState
+			|| !linearClampSampler
+			|| !IsPassCountCompatible(postProcessPrograms.size())) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"DirectX 11 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
@@ -310,27 +353,41 @@ namespace Chrivent {
 			context->ResolveSubresource(sceneColor.Get(), 0, sceneSource, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
 			context->CopyResource(sceneColor.Get(), sceneSource);
+		const auto frameWriteResult = WriteConstantBuffer(context, frameDataBuffer.Get(),
+			&frameData, sizeof(frameData), "후처리 frame 상수 기록");
+		if (!frameWriteResult)
+			return std::unexpected(frameWriteResult.error());
 		BeginHistoryFrame();
-		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
-		context->PSSetConstantBuffers(0, 1, frameDataBuffer.GetAddressOf());
+		context->PSSetConstantBuffers(
+			PostProcessInputLayout::frameDataRegister, 1, frameDataBuffer.GetAddressOf());
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		context->OMSetDepthStencilState(nullptr, 0);
-		context->RSSetState(rasterizerState);
+		context->RSSetState(fullscreenRasterizerState.Get());
 		context->IASetInputLayout(nullptr);
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		ID3D11SamplerState* samplers[PostProcessInputLayout::samplerCount]{};
 		for (auto& currentSampler : samplers)
-			currentSampler = sampler;
+			currentSampler = linearClampSampler.Get();
 		context->PSSetSamplers(PostProcessInputLayout::linearClampSamplerRegister,
 			PostProcessInputLayout::samplerCount, samplers);
+		context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
+			1, parameterDataBuffer.GetAddressOf());
 		InitializeHistories(context);
 		const auto& routes = GetPassRoutes();
+		size_t parameterEffectIndex = routes.size();
 		for (size_t index = 0; index < routes.size(); index++) {
 			const PostProcessPassRoute& route = routes[index];
-			const PostProcessParameterData& parameterData = GetParameterData(route);
-			context->UpdateSubresource(parameterDataBuffer.Get(), 0, nullptr, &parameterData, 0, 0);
-			context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
-				1, parameterDataBuffer.GetAddressOf());
+			if (parameterEffectIndex != route.effectIndex) {
+				const PostProcessParameterData& parameterData = GetParameterData(route);
+				const auto parameterWriteResult = WriteConstantBuffer(context,
+					parameterDataBuffer.Get(), &parameterData, sizeof(parameterData),
+					"후처리 parameter 상수 기록");
+				if (!parameterWriteResult) {
+					DiscardHistoryFrame();
+					return std::unexpected(parameterWriteResult.error());
+				}
+				parameterEffectIndex = route.effectIndex;
+			}
 			ID3D11RenderTargetView* targetView = ResolveOutputView(route, backBufferView);
 			if (targetView == nullptr) {
 				DiscardHistoryFrame();
@@ -343,8 +400,8 @@ namespace Chrivent {
 			int outputHeight = height;
 			ResolveOutputExtent(route, outputWidth, outputHeight);
 			Dx11DrawContext::ApplyViewport(context, outputWidth, outputHeight);
-			context->VSSetShader(postProcessShaders[index].vertexShader.Get(), nullptr, 0);
-			context->PSSetShader(postProcessShaders[index].pixelShader.Get(), nullptr, 0);
+			context->VSSetShader(postProcessPrograms[index].GetVertexShader(), nullptr, 0);
+			context->PSSetShader(postProcessPrograms[index].GetPixelShader(), nullptr, 0);
 			ID3D11ShaderResourceView* views[PostProcessInputLayout::maxTextureCount]{};
 			for (auto& view : views)
 				view = sceneColorView.Get();
@@ -357,11 +414,13 @@ namespace Chrivent {
 						"DirectX 11 후처리 pass의 입력 texture를 찾지 못했습니다"));
 				}
 			}
-			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
+			context->PSSetShaderResources(PostProcessInputLayout::firstTextureRegister,
+				PostProcessInputLayout::maxTextureCount, views);
 			context->Draw(3, 0);
 			for (auto& view : views)
 				view = nullptr;
-			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
+			context->PSSetShaderResources(PostProcessInputLayout::firstTextureRegister,
+				PostProcessInputLayout::maxTextureCount, views);
 			AdvanceHistory(route);
 		}
 		return {};
@@ -384,7 +443,9 @@ namespace Chrivent {
 	}
 
 	void Dx11PostProcess::ResetResources() {
-		ResetShaders();
+		ResetPrograms();
 		ResetTargets();
+		fullscreenRasterizerState.Reset();
+		linearClampSampler.Reset();
 	}
 }

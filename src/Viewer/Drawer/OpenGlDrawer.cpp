@@ -203,7 +203,7 @@ namespace Chrivent {
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(
 				drawState, world, ClipMatrix());
-			drawContext.BindDepthOnlyPipeline();
+			drawContext.BindSceneDepthPipeline();
 			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"OpenGL 후처리 장면 입력 기록", "depth vertex 상수를 업로드하지 못했습니다"));

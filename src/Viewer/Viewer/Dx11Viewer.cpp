@@ -51,7 +51,7 @@ namespace Chrivent {
 			return std::unexpected(targetResult.error());
 		if (postProcess.HasEffects()) {
 			const auto postProcessResult = postProcess.InitializeTargets(
-				device.GetDevice(), device.GetContext(), screenWidth, screenHeight);
+				device.GetDevice(), screenWidth, screenHeight);
 			if (!postProcessResult)
 				return std::unexpected(postProcessResult.error());
 		}
@@ -75,7 +75,6 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			const auto drawResult = postProcess.Draw(device.GetContext(),
 				renderTargets.GetSceneColor(), multiSampleCount, renderTargets.GetBackBufferView(),
-				pipeline.GetBothFaceRasterizerState(), pipeline.GetToonTextureSampler(),
 				screenWidth, screenHeight, GetPostProcessFrameData());
 			if (!drawResult)
 				return std::unexpected(drawResult.error());
@@ -107,8 +106,8 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
-		return postProcess.Configure(device.GetDevice(), device.GetContext(),
-			screenWidth, screenHeight, effects);
+		return postProcess.Configure(
+			device.GetDevice(), screenWidth, screenHeight, effects);
 	}
 
 	std::unique_ptr<Instance> Dx11Viewer::CreateInstanceCore() {

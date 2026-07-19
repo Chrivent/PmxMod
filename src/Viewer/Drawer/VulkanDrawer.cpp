@@ -211,7 +211,7 @@ namespace Chrivent {
 					"Vulkan 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));
 			const bool pipelineBound = velocityRequired
 				? drawContext.BindSceneVelocityPipeline(mat.bothFace)
-				: drawContext.BindDepthOnlyPipeline(mat.bothFace);
+				: drawContext.BindSceneDepthPipeline(mat.bothFace);
 			if (!pipelineBound || !drawContext.BindPixelDescriptorSet(
 				resources.modelDescriptorSet.GetPixelDescriptorSet(), pixelSlice->offset)
 				|| !drawContext.BindTextureDescriptorSet(material.textureDescriptorSet)) {

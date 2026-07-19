@@ -1,20 +1,61 @@
 ﻿#include "Viewer/Pipeline/Dx11Pipeline.h"
 
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
+#include "Viewer/Geometry/ViewerGeometry.h"
+
+#include <cstddef>
+#include <utility>
 
 namespace Chrivent {
 	GraphicsResult<void> Dx11Pipeline::CreateShaders(ID3D11Device* device,
 		const BuiltInShaderPasses& builtInPasses,
 		const SceneInputShaderPasses& sceneInputPasses) {
-		auto result = shaders.model.Initialize(device, builtInPasses.model);
+		constexpr D3D11_INPUT_ELEMENT_DESC modelInputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		constexpr D3D11_INPUT_ELEMENT_DESC edgeInputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		constexpr D3D11_INPUT_ELEMENT_DESC groundShadowInputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		constexpr D3D11_INPUT_ELEMENT_DESC sceneDepthInputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		constexpr D3D11_INPUT_ELEMENT_DESC sceneVelocityInputElements[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+		auto result = shaders.model.Initialize(
+			device, builtInPasses.model, modelInputElements);
 		if (result)
-			result = shaders.edge.Initialize(device, builtInPasses.edge);
+			result = shaders.edge.Initialize(
+				device, builtInPasses.edge, edgeInputElements);
 		if (result)
-			result = shaders.groundShadow.Initialize(device, builtInPasses.groundShadow);
+			result = shaders.groundShadow.Initialize(
+				device, builtInPasses.groundShadow, groundShadowInputElements);
 		if (result)
-			result = shaders.sceneDepth.Initialize(device, sceneInputPasses.depth);
+			result = shaders.sceneDepth.Initialize(
+				device, sceneInputPasses.depth, sceneDepthInputElements);
 		if (result)
-			result = shaders.sceneVelocity.Initialize(device, sceneInputPasses.velocity);
+			result = shaders.sceneVelocity.Initialize(
+				device, sceneInputPasses.velocity, sceneVelocityInputElements);
 		return result;
 	}
 
@@ -103,13 +144,16 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "rendering pipeline 초기화",
 				"DirectX 11 device가 올바르지 않습니다"));
-		const auto shaderResult = CreateShaders(
+		Dx11Pipeline candidate;
+		const auto shaderResult = candidate.CreateShaders(
 			device, shaderContract.builtIn, shaderContract.sceneInput);
 		if (!shaderResult)
 			return std::unexpected(shaderResult.error());
-		const auto stateResult = CreateStates(device);
+		const auto stateResult = candidate.CreateStates(device);
 		if (!stateResult)
 			return std::unexpected(stateResult.error());
+		shaders = std::move(candidate.shaders);
+		states = std::move(candidate.states);
 		return {};
 	}
 
@@ -127,17 +171,17 @@ namespace Chrivent {
 			return;
 		context->OMSetDepthStencilState(states.defaultDss.Get(), 0x00);
 		context->OMSetBlendState(states.blendState.Get(), nullptr, 0xffffffff);
-		context->IASetInputLayout(shaders.model.inputLayout.Get());
-		context->VSSetShader(shaders.model.vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(shaders.model.pixelShader.Get(), nullptr, 0);
+		context->IASetInputLayout(shaders.model.GetInputLayout());
+		context->VSSetShader(shaders.model.GetVertexShader(), nullptr, 0);
+		context->PSSetShader(shaders.model.GetPixelShader(), nullptr, 0);
 	}
 
 	void Dx11Pipeline::BindEdge(ID3D11DeviceContext* context) const {
 		if (context == nullptr)
 			return;
-		context->IASetInputLayout(shaders.edge.inputLayout.Get());
-		context->VSSetShader(shaders.edge.vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(shaders.edge.pixelShader.Get(), nullptr, 0);
+		context->IASetInputLayout(shaders.edge.GetInputLayout());
+		context->VSSetShader(shaders.edge.GetVertexShader(), nullptr, 0);
+		context->PSSetShader(shaders.edge.GetPixelShader(), nullptr, 0);
 		context->RSSetState(states.edgeRs.Get());
 		context->OMSetDepthStencilState(states.defaultDss.Get(), 0x00);
 		context->OMSetBlendState(states.blendState.Get(), nullptr, 0xffffffff);
@@ -146,22 +190,27 @@ namespace Chrivent {
 	void Dx11Pipeline::BindGroundShadow(ID3D11DeviceContext* context) const {
 		if (context == nullptr)
 			return;
-		context->IASetInputLayout(shaders.groundShadow.inputLayout.Get());
-		context->VSSetShader(shaders.groundShadow.vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(shaders.groundShadow.pixelShader.Get(), nullptr, 0);
+		context->IASetInputLayout(shaders.groundShadow.GetInputLayout());
+		context->VSSetShader(shaders.groundShadow.GetVertexShader(), nullptr, 0);
+		context->PSSetShader(shaders.groundShadow.GetPixelShader(), nullptr, 0);
 		context->RSSetState(states.gsRs.Get());
 		context->OMSetDepthStencilState(states.gsDss.Get(), 0x01);
 		context->OMSetBlendState(states.groundShadowBlendState.Get(), nullptr, 0xffffffff);
 	}
 
-	void Dx11Pipeline::BindSceneInput(ID3D11DeviceContext* context, const bool velocity) const {
+	void Dx11Pipeline::BindSceneDepth(ID3D11DeviceContext* context) const {
 		if (context == nullptr)
 			return;
-		const auto& [vertexShader, pixelShader, inputLayout] = velocity
-			? static_cast<const Dx11Shader&>(shaders.sceneVelocity)
-			: static_cast<const Dx11Shader&>(shaders.sceneDepth);
-		context->IASetInputLayout(inputLayout.Get());
-		context->VSSetShader(vertexShader.Get(), nullptr, 0);
-		context->PSSetShader(pixelShader.Get(), nullptr, 0);
+		context->IASetInputLayout(shaders.sceneDepth.GetInputLayout());
+		context->VSSetShader(shaders.sceneDepth.GetVertexShader(), nullptr, 0);
+		context->PSSetShader(shaders.sceneDepth.GetPixelShader(), nullptr, 0);
+	}
+
+	void Dx11Pipeline::BindSceneVelocity(ID3D11DeviceContext* context) const {
+		if (context == nullptr)
+			return;
+		context->IASetInputLayout(shaders.sceneVelocity.GetInputLayout());
+		context->VSSetShader(shaders.sceneVelocity.GetVertexShader(), nullptr, 0);
+		context->PSSetShader(shaders.sceneVelocity.GetPixelShader(), nullptr, 0);
 	}
 }

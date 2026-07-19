@@ -9,7 +9,7 @@
 namespace Chrivent {
 	GraphicsResult<void> VulkanPipeline::CreateDescriptorSetLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
-			.binding = 0,
+			.binding = SpirvBindingLayout::frameDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT
@@ -27,7 +27,7 @@ namespace Chrivent {
 				"Vulkan vertex descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		static constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
-			.binding = 0,
+			.binding = SpirvBindingLayout::parameterDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
@@ -123,30 +123,33 @@ namespace Chrivent {
 			.depthFormat = sourceDepthFormat,
 			.sampleCount = sourceDevice.GetMsaaSampleCount()
 		};
-		auto result = Builder::Create(sourceDevice, passes.model, configuration, pipeline);
+		auto result = Builder::Create(
+			sourceDevice, passes.model, configuration, modelFrontFacePipeline);
 		if (!result)
 			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
-		result = Builder::Create(sourceDevice, passes.model, configuration, bothFacePipeline);
+		result = Builder::Create(
+			sourceDevice, passes.model, configuration, modelBothFacePipeline);
 		if (!result)
 			return result;
 		configuration.colorFormat = VK_FORMAT_UNDEFINED;
 		configuration.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
 		configuration.vertexLayout = Builder::VertexLayout::PositionUv;
-		result = Builder::Create(sourceDevice, depthProgram, configuration, depthOnlyPipeline);
+		result = Builder::Create(
+			sourceDevice, depthProgram, configuration, sceneDepthFrontFacePipeline);
 		if (!result)
 			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
 		result = Builder::Create(
-			sourceDevice, depthProgram, configuration, depthOnlyBothFacePipeline);
+			sourceDevice, depthProgram, configuration, sceneDepthBothFacePipeline);
 		if (!result)
 			return result;
 		configuration.colorFormat = VK_FORMAT_R16G16_SFLOAT;
 		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
 		configuration.vertexLayout = Builder::VertexLayout::Velocity;
 		result = Builder::Create(
-			sourceDevice, velocityProgram, configuration, sceneVelocityPipeline);
+			sourceDevice, velocityProgram, configuration, sceneVelocityFrontFacePipeline);
 		if (!result)
 			return result;
 		configuration.cullMode = VK_CULL_MODE_NONE;
@@ -175,58 +178,95 @@ namespace Chrivent {
 		Reset();
 	}
 
-	VkPipeline VulkanPipeline::ResolveSceneInputPipeline(const bool velocity,
-		const bool bothFace) const {
-		if (velocity)
-			return bothFace ? sceneVelocityBothFacePipeline : sceneVelocityPipeline;
-		return bothFace ? depthOnlyBothFacePipeline : depthOnlyPipeline;
+	bool VulkanPipeline::IsCompatible(const VkFormat sourceColorFormat,
+		const VkFormat sourceDepthFormat, const VkSampleCountFlagBits sourceSampleCount) const {
+		return modelFrontFacePipeline != VK_NULL_HANDLE && colorFormat == sourceColorFormat
+			&& depthFormat == sourceDepthFormat && sampleCount == sourceSampleCount;
+	}
+
+	void VulkanPipeline::SwapResources(VulkanPipeline& other) noexcept {
+		std::swap(device, other.device);
+		std::swap(modelFrontFacePipeline, other.modelFrontFacePipeline);
+		std::swap(modelBothFacePipeline, other.modelBothFacePipeline);
+		std::swap(sceneDepthFrontFacePipeline, other.sceneDepthFrontFacePipeline);
+		std::swap(sceneDepthBothFacePipeline, other.sceneDepthBothFacePipeline);
+		std::swap(sceneVelocityFrontFacePipeline, other.sceneVelocityFrontFacePipeline);
+		std::swap(sceneVelocityBothFacePipeline, other.sceneVelocityBothFacePipeline);
+		std::swap(edgePipeline, other.edgePipeline);
+		std::swap(groundShadowPipeline, other.groundShadowPipeline);
+		std::swap(pipelineLayout, other.pipelineLayout);
+		for (size_t index = 0; index < std::size(descriptorSetLayouts); index++)
+			std::swap(descriptorSetLayouts[index], other.descriptorSetLayouts[index]);
+		std::swap(colorFormat, other.colorFormat);
+		std::swap(depthFormat, other.depthFormat);
+		std::swap(sampleCount, other.sampleCount);
+		std::swap(shaderContract, other.shaderContract);
 	}
 
 	GraphicsResult<void> VulkanPipeline::Initialize(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
-		const SceneShaderRuntimeContract& shaderContract) {
-		Reset();
-		device = sourceDevice.GetDevice();
-		const auto descriptorLayoutResult = CreateDescriptorSetLayouts();
+		const SceneShaderRuntimeContract& sourceShaderContract) {
+		if (sourceDevice.GetDevice() == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidArgument, "graphics pipeline 초기화",
+				"Vulkan device를 사용할 수 없습니다"));
+		}
+		VulkanPipeline candidate;
+		candidate.device = sourceDevice.GetDevice();
+		const auto descriptorLayoutResult = candidate.CreateDescriptorSetLayouts();
 		if (!descriptorLayoutResult)
 			return std::unexpected(descriptorLayoutResult.error());
-		const auto pipelineLayoutResult = CreatePipelineLayout();
+		const auto pipelineLayoutResult = candidate.CreatePipelineLayout();
 		if (!pipelineLayoutResult)
 			return std::unexpected(pipelineLayoutResult.error());
-		const auto graphicsPipelineResult = CreateGraphicsPipelines(
+		const auto graphicsPipelineResult = candidate.CreateGraphicsPipelines(
 			sourceDevice, sourceColorFormat, sourceDepthFormat,
-			shaderContract.builtIn, shaderContract.sceneInput.depth,
-			shaderContract.sceneInput.velocity);
+			sourceShaderContract.builtIn, sourceShaderContract.sceneInput.depth,
+			sourceShaderContract.sceneInput.velocity);
 		if (!graphicsPipelineResult)
 			return std::unexpected(graphicsPipelineResult.error());
-		colorFormat = sourceColorFormat;
-		depthFormat = sourceDepthFormat;
-		sampleCount = sourceDevice.GetMsaaSampleCount();
+		candidate.colorFormat = sourceColorFormat;
+		candidate.depthFormat = sourceDepthFormat;
+		candidate.sampleCount = sourceDevice.GetMsaaSampleCount();
+		candidate.shaderContract = sourceShaderContract;
+		SwapResources(candidate);
 		return {};
+	}
+
+	GraphicsResult<void> VulkanPipeline::RecreateIfIncompatible(const VulkanDevice& sourceDevice,
+		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat) {
+		if (IsCompatible(sourceColorFormat, sourceDepthFormat, sourceDevice.GetMsaaSampleCount()))
+			return {};
+		if (shaderContract.builtIn.model.shaderPath.empty()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "graphics pipeline 재생성",
+				"Vulkan 장면 셰이더 계약이 저장되지 않았습니다"));
+		}
+		return Initialize(sourceDevice, sourceColorFormat, sourceDepthFormat, shaderContract);
 	}
 
 	void VulkanPipeline::Reset() {
 		if (device == VK_NULL_HANDLE)
 			return;
-		if (pipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, pipeline, nullptr);
-			pipeline = VK_NULL_HANDLE;
+		if (modelFrontFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, modelFrontFacePipeline, nullptr);
+			modelFrontFacePipeline = VK_NULL_HANDLE;
 		}
-		if (bothFacePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, bothFacePipeline, nullptr);
-			bothFacePipeline = VK_NULL_HANDLE;
+		if (modelBothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, modelBothFacePipeline, nullptr);
+			modelBothFacePipeline = VK_NULL_HANDLE;
 		}
-		if (depthOnlyPipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, depthOnlyPipeline, nullptr);
-			depthOnlyPipeline = VK_NULL_HANDLE;
+		if (sceneDepthFrontFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, sceneDepthFrontFacePipeline, nullptr);
+			sceneDepthFrontFacePipeline = VK_NULL_HANDLE;
 		}
-		if (depthOnlyBothFacePipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, depthOnlyBothFacePipeline, nullptr);
-			depthOnlyBothFacePipeline = VK_NULL_HANDLE;
+		if (sceneDepthBothFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, sceneDepthBothFacePipeline, nullptr);
+			sceneDepthBothFacePipeline = VK_NULL_HANDLE;
 		}
-		if (sceneVelocityPipeline != VK_NULL_HANDLE) {
-			vkDestroyPipeline(device, sceneVelocityPipeline, nullptr);
-			sceneVelocityPipeline = VK_NULL_HANDLE;
+		if (sceneVelocityFrontFacePipeline != VK_NULL_HANDLE) {
+			vkDestroyPipeline(device, sceneVelocityFrontFacePipeline, nullptr);
+			sceneVelocityFrontFacePipeline = VK_NULL_HANDLE;
 		}
 		if (sceneVelocityBothFacePipeline != VK_NULL_HANDLE) {
 			vkDestroyPipeline(device, sceneVelocityBothFacePipeline, nullptr);
@@ -253,6 +293,7 @@ namespace Chrivent {
 		colorFormat = VK_FORMAT_UNDEFINED;
 		depthFormat = VK_FORMAT_UNDEFINED;
 		sampleCount = VK_SAMPLE_COUNT_1_BIT;
+		shaderContract = {};
 		device = VK_NULL_HANDLE;
 	}
 }
