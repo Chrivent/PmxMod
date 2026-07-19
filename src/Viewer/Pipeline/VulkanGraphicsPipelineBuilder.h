@@ -32,7 +32,7 @@ namespace Chrivent {
 		};
 
 		// 셰이더 프로그램과 고정 기능 설정으로 Vulkan graphics pipeline을 생성한다.
-		static GraphicsResult<void> Create(const VulkanDevice& sourceDevice,
+		static GraphicsError::Result<void> Create(const VulkanDevice& sourceDevice,
 			const ShaderProgramDefinition& program, const Configuration& configuration,
 			VkPipeline& pipeline);
 	};

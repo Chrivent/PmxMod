@@ -9,10 +9,10 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx11PostProcess::WriteConstantBuffer(ID3D11DeviceContext* context,
+	GraphicsError::Result<void> Dx11PostProcess::WriteConstantBuffer(ID3D11DeviceContext* context,
 		ID3D11Buffer* buffer, const void* data, const size_t size, const char* operation) {
 		if (context == nullptr || buffer == nullptr || data == nullptr || size == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, operation,
 				"DirectX 11 후처리 상수 버퍼 입력이 올바르지 않습니다"));
 		}
@@ -20,7 +20,7 @@ namespace Chrivent {
 		const HRESULT result = context->Map(
 			buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::CommandRecordingFailed, operation,
 				"DirectX 11 후처리 상수 버퍼를 매핑하지 못했습니다", result, true));
 		}
@@ -29,10 +29,10 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
+	GraphicsError::Result<void> Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
 		ResetEffectResources();
 		if (device == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "후처리 effect target 생성",
 				"DirectX 11 device를 사용할 수 없습니다"));
 		}
@@ -54,21 +54,21 @@ namespace Chrivent {
 			for (size_t index = 0; index < textureCount; index++) {
 				HRESULT result = device->CreateTexture2D(&description, nullptr, &textures[index]);
 				if (FAILED(result)) {
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect texture 생성",
 						"DirectX 11 후처리 effect texture를 만들지 못했습니다", result, true));
 				}
 				result = device->CreateRenderTargetView(
 					textures[index].Get(), nullptr, &renderTargetViews[index]);
 				if (FAILED(result)) {
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect render target view 생성",
 						"DirectX 11 후처리 effect render target view를 만들지 못했습니다", result, true));
 				}
 				result = device->CreateShaderResourceView(
 					textures[index].Get(), nullptr, &shaderResourceViews[index]);
 				if (FAILED(result)) {
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect shader resource view 생성",
 						"DirectX 11 후처리 effect shader resource view를 만들지 못했습니다", result, true));
 				}
@@ -126,11 +126,11 @@ namespace Chrivent {
 		ResetHistory();
 	}
 
-	GraphicsResult<void> Dx11PostProcess::InitializeTargets(
+	GraphicsError::Result<void> Dx11PostProcess::InitializeTargets(
 		ID3D11Device* device, const int width, const int height) {
 		ResetTargets();
 		if (device == nullptr || width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
 				"DirectX 11 device 또는 후처리 target 크기가 올바르지 않습니다"));
 		}
@@ -143,14 +143,14 @@ namespace Chrivent {
 		frameDataDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		HRESULT result = device->CreateBuffer(&frameDataDesc, nullptr, &frameDataBuffer);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 frame buffer 생성",
 				"DirectX 11 후처리 frame constant buffer를 만들지 못했습니다", result, true));
 		}
 		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(PostProcessParameterData));
 		result = device->CreateBuffer(&frameDataDesc, nullptr, &parameterDataBuffer);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 parameter buffer 생성",
 				"DirectX 11 후처리 parameter constant buffer를 만들지 못했습니다", result, true));
 		}
@@ -158,13 +158,13 @@ namespace Chrivent {
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		result = device->CreateTexture2D(&sceneColorDesc, nullptr, &sceneColor);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 scene color 생성",
 				"DirectX 11 후처리 scene color texture를 만들지 못했습니다", result, true));
 		}
 		result = device->CreateShaderResourceView(sceneColor.Get(), nullptr, &sceneColorView);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 scene color view 생성",
 				"DirectX 11 후처리 scene color view를 만들지 못했습니다", result, true));
 		}
@@ -174,7 +174,7 @@ namespace Chrivent {
 				D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE);
 			result = device->CreateTexture2D(&depthDesc, nullptr, &depth);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth texture 생성",
 					"DirectX 11 후처리 depth texture를 만들지 못했습니다", result, true));
 			}
@@ -183,7 +183,7 @@ namespace Chrivent {
 			depthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 			result = device->CreateDepthStencilView(depth.Get(), &depthStencilDesc, &depthStencilView);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth stencil view 생성",
 					"DirectX 11 후처리 depth stencil view를 만들지 못했습니다", result, true));
 			}
@@ -193,7 +193,7 @@ namespace Chrivent {
 			depthResourceDesc.Texture2D.MipLevels = 1;
 			result = device->CreateShaderResourceView(depth.Get(), &depthResourceDesc, &depthView);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth view 생성",
 					"DirectX 11 후처리 depth shader resource view를 만들지 못했습니다", result, true));
 			}
@@ -204,20 +204,20 @@ namespace Chrivent {
 				D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 			result = device->CreateTexture2D(&velocityDesc, nullptr, &velocity);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 velocity texture 생성",
 					"DirectX 11 후처리 velocity texture를 만들지 못했습니다", result, true));
 			}
 			result = device->CreateRenderTargetView(
 				velocity.Get(), nullptr, &velocityRenderTargetView);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 velocity render target view 생성",
 					"DirectX 11 후처리 velocity render target view를 만들지 못했습니다", result, true));
 			}
 			result = device->CreateShaderResourceView(velocity.Get(), nullptr, &velocityView);
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 velocity shader resource view 생성",
 					"DirectX 11 후처리 velocity shader resource view를 만들지 못했습니다", result, true));
 			}
@@ -225,7 +225,7 @@ namespace Chrivent {
 		return CreateEffectResources(device);
 	}
 
-	GraphicsResult<void> Dx11PostProcess::CreatePrograms(ID3D11Device* device) {
+	GraphicsError::Result<void> Dx11PostProcess::CreatePrograms(ID3D11Device* device) {
 		ResetPrograms();
 		for (const auto& program : GetShaderPrograms()) {
 			Dx11ShaderProgram postProcessProgram;
@@ -237,12 +237,12 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11PostProcess::CreateStates(ID3D11Device* device) {
+	GraphicsError::Result<void> Dx11PostProcess::CreateStates(ID3D11Device* device) {
 		auto rasterizerDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		HRESULT result = device->CreateRasterizerState(
 			&rasterizerDescription, &fullscreenRasterizerState);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 rasterizer state 생성",
 				"DirectX 11 후처리 rasterizer state를 만들지 못했습니다", result, true));
 		}
@@ -250,7 +250,7 @@ namespace Chrivent {
 			D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 		result = device->CreateSamplerState(&samplerDescription, &linearClampSampler);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 sampler state 생성",
 				"DirectX 11 후처리 linear clamp sampler를 만들지 못했습니다", result, true));
 		}
@@ -276,13 +276,13 @@ namespace Chrivent {
 		std::swap(targetHeight, other.targetHeight);
 	}
 
-	GraphicsResult<void> Dx11PostProcess::Configure(ID3D11Device* device,
+	GraphicsError::Result<void> Dx11PostProcess::Configure(ID3D11Device* device,
 		const int width, const int height, const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx11PostProcess candidate;
 		const auto planResult = candidate.SetEffects(effects);
 		if (!planResult) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
 		}
 		if (candidate.HasEffects()) {
 			const auto targetResult = candidate.InitializeTargets(device, width, height);
@@ -300,10 +300,10 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,
+	GraphicsError::Result<void> Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"DirectX 11 context 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
@@ -325,9 +325,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11PostProcess::EndSceneInputPass(ID3D11DeviceContext* context) {
+	GraphicsError::Result<void> Dx11PostProcess::EndSceneInputPass(ID3D11DeviceContext* context) {
 		if (context == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
 				"DirectX 11 context를 사용할 수 없습니다"));
 		}
@@ -335,7 +335,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11PostProcess::Draw(
+	GraphicsError::Result<void> Dx11PostProcess::Draw(
 		ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource, const UINT sampleCount,
 		ID3D11RenderTargetView* backBufferView, const int width, const int height,
 		const PostProcessFrameData& frameData) {
@@ -344,7 +344,7 @@ namespace Chrivent {
 			|| !frameDataBuffer || !parameterDataBuffer || !fullscreenRasterizerState
 			|| !linearClampSampler
 			|| !IsPassCountCompatible(postProcessPrograms.size())) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"DirectX 11 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
@@ -391,7 +391,7 @@ namespace Chrivent {
 			ID3D11RenderTargetView* targetView = ResolveOutputView(route, backBufferView);
 			if (targetView == nullptr) {
 				DiscardHistoryFrame();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
 					"DirectX 11 후처리 pass의 출력 target을 찾지 못했습니다"));
 			}
@@ -409,7 +409,7 @@ namespace Chrivent {
 				views[input.slot] = ResolveInputView(input);
 				if (views[input.slot] == nullptr) {
 					DiscardHistoryFrame();
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 						GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
 						"DirectX 11 후처리 pass의 입력 texture를 찾지 못했습니다"));
 				}

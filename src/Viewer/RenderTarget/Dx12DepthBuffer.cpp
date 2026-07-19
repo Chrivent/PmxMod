@@ -1,11 +1,11 @@
 ﻿#include "Viewer/RenderTarget/Dx12DepthBuffer.h"
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12DepthBuffer::Initialize(
+	GraphicsError::Result<void> Dx12DepthBuffer::Initialize(
 		const Dx12Device& sourceDevice, const int width, const int height) {
 		Reset();
 		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "depth buffer 생성",
 				"DirectX 12 device 또는 depth buffer 크기가 올바르지 않습니다"));
 		}
@@ -14,7 +14,7 @@ namespace Chrivent {
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		HRESULT result = sourceDevice.GetDevice()->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&dsvHeap));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "depth descriptor heap 생성",
 				"DirectX 12 depth descriptor heap을 만들지 못했습니다", result, true));
 		}
@@ -42,7 +42,7 @@ namespace Chrivent {
 			&clearValue, IID_PPV_ARGS(&depthStencil));
 		if (FAILED(result)) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "depth buffer 생성",
 				"DirectX 12 depth buffer를 만들지 못했습니다", result, true));
 		}

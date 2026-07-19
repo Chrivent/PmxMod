@@ -142,7 +142,7 @@ namespace Chrivent {
         // 현재 렌더 인스턴스들의 GPU 리소스를 해제하고 목록을 비운다.
         void ClearInstances();
         // 창 크기 변경을 렌더러에 반영하고 최소화 상태를 일시 중단으로 구분한다.
-        GraphicsResult<FramebufferUpdateState> UpdateFramebufferSize() const;
+        GraphicsError::Result<FramebufferUpdateState> UpdateFramebufferSize() const;
         // FPS 표시 시간을 갱신한다.
         void TickFps();
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.

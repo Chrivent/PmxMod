@@ -28,10 +28,10 @@ namespace Chrivent {
 		depthStencilDesc.StencilEnable = FALSE;
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateModelRootSignature(
+	GraphicsError::Result<void> Dx12Pipeline::CreateModelRootSignature(
 		const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetDevice()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "모델 root signature 생성",
 				"DirectX 12 device가 없어 모델 root signature를 만들 수 없습니다"));
 		}
@@ -85,7 +85,7 @@ namespace Chrivent {
 			sourceDevice, rootSignatureDesc, modelRootSignature);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateModelPipelineStates(
+	GraphicsError::Result<void> Dx12Pipeline::CreateModelPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -113,7 +113,7 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, modelBothFacePipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateSceneDepthPipelineStates(
+	GraphicsError::Result<void> Dx12Pipeline::CreateSceneDepthPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -138,7 +138,7 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, sceneDepthBothFacePipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateSceneVelocityPipelineStates(
+	GraphicsError::Result<void> Dx12Pipeline::CreateSceneVelocityPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -166,10 +166,10 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, sceneVelocityBothFacePipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateSimplePassRootSignature(
+	GraphicsError::Result<void> Dx12Pipeline::CreateSimplePassRootSignature(
 		const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetDevice()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "단순 패스 root signature 생성",
 				"DirectX 12 device가 없어 단순 패스 root signature를 만들 수 없습니다"));
 		}
@@ -188,7 +188,7 @@ namespace Chrivent {
 			sourceDevice, rootSignatureDesc, simplePassRootSignature);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateEdgePipelineState(
+	GraphicsError::Result<void> Dx12Pipeline::CreateEdgePipelineState(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -210,7 +210,7 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, edgePipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::CreateGroundShadowPipelineState(
+	GraphicsError::Result<void> Dx12Pipeline::CreateGroundShadowPipelineState(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -258,7 +258,7 @@ namespace Chrivent {
 		groundShadowPipelineState.Swap(other.groundShadowPipelineState);
 	}
 
-	GraphicsResult<void> Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
+	GraphicsError::Result<void> Dx12Pipeline::Initialize(const Dx12Device& sourceDevice,
 		const SceneShaderRuntimeContract& shaderContract) {
 		Dx12Pipeline candidate;
 		auto result = candidate.CreateModelRootSignature(sourceDevice);

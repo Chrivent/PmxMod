@@ -21,21 +21,21 @@ namespace Chrivent {
 		Dx12ModelResources modelResources;
 
 		// 모델 geometry 데이터를 DX12 vertex/index buffer로 업로드한다.
-		GraphicsResult<void> CreateGeometryBuffers();
+		GraphicsError::Result<void> CreateGeometryBuffers();
 		// 패스별 constant buffer를 material 개수에 맞춰 생성한다.
-		GraphicsResult<void> CreateConstantBuffers();
+		GraphicsError::Result<void> CreateConstantBuffers();
 		// 모델 material 정보를 DX12 material 캐시와 texture descriptor 준비 데이터로 변환한다.
-		GraphicsResult<void> LoadMaterials();
+		GraphicsError::Result<void> LoadMaterials();
 		// material별 텍스처 SRV descriptor를 생성한다.
-		GraphicsResult<void> CreateTextureDescriptors();
+		GraphicsError::Result<void> CreateTextureDescriptors();
 		
 	protected:
 		// DX12 모델 GPU 리소스를 초기 상태로 되돌린다.
 		void ResetRendererResources() override;
 		// DX12 모델 리소스를 생성하고 인스턴스를 초기화한다.
-		GraphicsResult<void> SetupRenderer() override;
+		GraphicsError::Result<void> SetupRenderer() override;
 		// 모델의 갱신된 버텍스 데이터를 DX12 리소스에 반영한다.
-		GraphicsResult<void> UploadCore() override;
+		GraphicsError::Result<void> UploadCore() override;
 
 	public:
 		Dx12Instance(const Dx12Device& sourceDevice,

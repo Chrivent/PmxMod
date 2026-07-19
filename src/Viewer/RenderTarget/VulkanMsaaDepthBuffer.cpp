@@ -27,7 +27,7 @@ namespace Chrivent {
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	GraphicsResult<void> VulkanMsaaDepthBuffer::CreateImage(
+	GraphicsError::Result<void> VulkanMsaaDepthBuffer::CreateImage(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -45,7 +45,7 @@ namespace Chrivent {
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VkResult result = vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA depth image 생성",
 				"Vulkan depth image를 만들지 못했습니다", result, true));
 		}
@@ -54,7 +54,7 @@ namespace Chrivent {
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "MSAA depth memory type 선택",
 				"Vulkan depth image에 사용할 memory type을 찾지 못했습니다"));
 		}
@@ -64,20 +64,20 @@ namespace Chrivent {
 		allocateInfo.memoryTypeIndex = memoryType;
 		result = vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA depth memory 할당",
 				"Vulkan depth image memory를 할당하지 못했습니다", result, true));
 		}
 		result = vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA depth memory 연결",
 				"Vulkan depth image memory를 연결하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanMsaaDepthBuffer::CreateImageView() {
+	GraphicsError::Result<void> VulkanMsaaDepthBuffer::CreateImageView() {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -92,7 +92,7 @@ namespace Chrivent {
 		viewInfo.subresourceRange.layerCount = 1;
 		const VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA depth image view 생성",
 				"Vulkan depth image view를 만들지 못했습니다", result, true));
 		}
@@ -103,14 +103,14 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanMsaaDepthBuffer::Initialize(
+	GraphicsError::Result<void> VulkanMsaaDepthBuffer::Initialize(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		Reset();
 		device = sourceDevice.GetDevice();
 		format = FindDepthFormat(sourceDevice);
 		if (format == VK_FORMAT_UNDEFINED) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "MSAA depth format 선택",
 				"지원되는 Vulkan depth format을 찾지 못했습니다"));
 		}

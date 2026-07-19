@@ -1,13 +1,13 @@
 ﻿#include "Viewer/Buffer/Dx12Buffer.h"
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12Buffer::InitializeResource(
+	GraphicsError::Result<void> Dx12Buffer::InitializeResource(
 		const Dx12Device& sourceDevice, const size_t size,
 		const D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_STATES initialState,
 		const bool map) {
 		Reset();
 		if (!sourceDevice.GetDevice() || size == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "buffer 생성",
 				"DirectX 12 device 또는 buffer 크기가 올바르지 않습니다"));
 		}
@@ -30,7 +30,7 @@ namespace Chrivent {
 			initialState, nullptr, IID_PPV_ARGS(&resource));
 		if (FAILED(result)) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "buffer 생성",
 				"DirectX 12 buffer를 만들지 못했습니다", result, true));
 		}
@@ -42,18 +42,18 @@ namespace Chrivent {
 		if (SUCCEEDED(result))
 			return {};
 		Reset();
-		return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 			GraphicsErrorCode::ResourceCreationFailed, "buffer 매핑",
 			"DirectX 12 upload buffer를 영구 매핑하지 못했습니다", result, true));
 	}
 
-	GraphicsResult<void> Dx12Buffer::InitializeUpload(
+	GraphicsError::Result<void> Dx12Buffer::InitializeUpload(
 		const Dx12Device& sourceDevice, const size_t size) {
 		return InitializeResource(sourceDevice, size, D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ, true);
 	}
 
-	GraphicsResult<void> Dx12Buffer::InitializeDefault(
+	GraphicsError::Result<void> Dx12Buffer::InitializeDefault(
 		const Dx12Device& sourceDevice, const size_t size,
 		const D3D12_RESOURCE_STATES initialState) {
 		return InitializeResource(

@@ -38,10 +38,10 @@ namespace Chrivent {
 		int targetHeight = 0;
 
 		// 동적 상수 버퍼를 새 저장소로 매핑하고 후처리 입력 데이터를 기록한다.
-		static GraphicsResult<void> WriteConstantBuffer(ID3D11DeviceContext* context,
+		static GraphicsError::Result<void> WriteConstantBuffer(ID3D11DeviceContext* context,
 			ID3D11Buffer* buffer, const void* data, size_t size, const char* operation);
 		// 패키지가 선언한 transient/history texture view를 생성한다.
-		GraphicsResult<void> CreateEffectResources(ID3D11Device* device);
+		GraphicsError::Result<void> CreateEffectResources(ID3D11Device* device);
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories(ID3D11DeviceContext* context);
 		// pass 입력 경로에 대응하는 DX11 SRV를 반환한다.
@@ -54,25 +54,25 @@ namespace Chrivent {
 		// DX11 후처리 프로그램만 해제한다.
 		void ResetPrograms();
 		// 현재 실행 계획의 DX11 후처리 프로그램을 생성한다.
-		GraphicsResult<void> CreatePrograms(ID3D11Device* device);
+		GraphicsError::Result<void> CreatePrograms(ID3D11Device* device);
 		// 풀스크린 후처리 전용 rasterizer와 sampler state를 생성한다.
-		GraphicsResult<void> CreateStates(ID3D11Device* device);
+		GraphicsError::Result<void> CreateStates(ID3D11Device* device);
 		// 검증을 마친 다른 DX11 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(Dx11PostProcess& other) noexcept;
 		
 	public:
 		// 화면 크기에 맞는 DX11 후처리 장면 색상/depth와 선언된 effect target을 생성한다.
-		GraphicsResult<void> InitializeTargets(ID3D11Device* device, int width, int height);
+		GraphicsError::Result<void> InitializeTargets(ID3D11Device* device, int width, int height);
 		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.
-		GraphicsResult<void> Configure(ID3D11Device* device, int width, int height,
+		GraphicsError::Result<void> Configure(ID3D11Device* device, int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		GraphicsResult<void> BeginSceneInputPass(ID3D11DeviceContext* context,
+		GraphicsError::Result<void> BeginSceneInputPass(ID3D11DeviceContext* context,
 			ID3D11DepthStencilState* depthStencilState, int width, int height) const;
 		// DX11 후처리 장면 입력 패스를 종료한다.
-		static GraphicsResult<void> EndSceneInputPass(ID3D11DeviceContext* context);
+		static GraphicsError::Result<void> EndSceneInputPass(ID3D11DeviceContext* context);
 		// 준비된 실행 계획으로 화면 색상을 swapchain back buffer에 그린다.
-		GraphicsResult<void> Draw(ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource,
+		GraphicsError::Result<void> Draw(ID3D11DeviceContext* context, ID3D11Texture2D* sceneSource,
 			UINT sampleCount, ID3D11RenderTargetView* backBufferView, int width, int height,
 			const PostProcessFrameData& frameData);
 		// 생성한 DX11 후처리 target을 해제한다.

@@ -12,7 +12,7 @@ namespace Chrivent {
 
 	GraphicsError Instance::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
-		return MakeGraphicsError(graphicsApi, code, std::move(operation),
+		return GraphicsError::Create(graphicsApi, code, std::move(operation),
 			std::move(message), nativeCode, hasNativeCode);
 	}
 
@@ -28,7 +28,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	GraphicsResult<void> Instance::Initialize(std::shared_ptr<Model> sourceModel,
+	GraphicsError::Result<void> Instance::Initialize(std::shared_ptr<Model> sourceModel,
 		std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
 		ResetRendererResources();
 		model.reset();
@@ -53,7 +53,7 @@ namespace Chrivent {
 		return std::unexpected(setupResult.error());
 	}
 
-	GraphicsResult<void> Instance::Upload() {
+	GraphicsError::Result<void> Instance::Upload() {
 		return UploadCore();
 	}
 
@@ -61,19 +61,19 @@ namespace Chrivent {
 		drawer->BeginDraw(state);
 	}
 
-	GraphicsResult<void> Instance::DrawModelPass() const {
+	GraphicsError::Result<void> Instance::DrawModelPass() const {
 		return drawer->DrawModelPass();
 	}
 
-	GraphicsResult<void> Instance::DrawEdgePass() const {
+	GraphicsError::Result<void> Instance::DrawEdgePass() const {
 		return drawer->DrawEdgePass();
 	}
 
-	GraphicsResult<void> Instance::DrawGroundShadowPass() const {
+	GraphicsError::Result<void> Instance::DrawGroundShadowPass() const {
 		return drawer->DrawGroundShadowPass();
 	}
 
-	GraphicsResult<void> Instance::DrawPostProcessSceneInputs() const {
+	GraphicsError::Result<void> Instance::DrawPostProcessSceneInputs() const {
 		return drawer->DrawPostProcessSceneInputs();
 	}
 

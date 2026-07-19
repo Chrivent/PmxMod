@@ -20,17 +20,17 @@ namespace Chrivent {
 		return "other";
 	}
 
-	GraphicsResult<void> OpenGlDevice::Initialize(GLFWwindow* window,
+	GraphicsError::Result<void> OpenGlDevice::Initialize(GLFWwindow* window,
 		const uint32_t preferredSampleCount, GraphicsCapabilities& capabilities) {
 		capabilities = {};
 		if (window == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidArgument, "OpenGL device 초기화",
 				"OpenGL 컨텍스트를 만들 GLFW 윈도우가 없습니다"));
 		}
 		glfwMakeContextCurrent(window);
 		if (!gladLoadGLLoader(LoadGlProc)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InitializationFailed, "OpenGL 함수 로드",
 				"GLAD가 필요한 함수를 찾지 못했습니다"));
 		}
@@ -45,7 +45,7 @@ namespace Chrivent {
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformAlignment);
 		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
 		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::UnsupportedFeature, "OpenGL 버전 확인",
 				"OpenGL 4.6 이상이 필요합니다"));
 		}
@@ -67,9 +67,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlDevice::WaitIdle(GLFWwindow* window) {
+	GraphicsError::Result<void> OpenGlDevice::WaitIdle(GLFWwindow* window) {
 		if (window == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidState, "GPU 대기",
 				"OpenGL 윈도우를 사용할 수 없습니다"));
 		}

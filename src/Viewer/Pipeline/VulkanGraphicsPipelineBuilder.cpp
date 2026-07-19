@@ -7,14 +7,14 @@
 #include <iterator>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,
 		const ShaderProgramDefinition& program, const Configuration& configuration,
 		VkPipeline& pipeline) {
 		pipeline = VK_NULL_HANDLE;
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE
 			|| configuration.pipelineLayout == VK_NULL_HANDLE
 			|| configuration.depthFormat == VK_FORMAT_UNDEFINED) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "graphics pipeline 생성",
 				"Vulkan graphics pipeline 생성 설정이 올바르지 않습니다"));
 		}
@@ -171,7 +171,7 @@ namespace Chrivent {
 			VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline);
 		if (result == VK_SUCCESS)
 			return {};
-		return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 			GraphicsErrorCode::ResourceCreationFailed, "graphics pipeline 생성",
 			"Vulkan graphics pipeline을 만들지 못했습니다", result, true));
 	}

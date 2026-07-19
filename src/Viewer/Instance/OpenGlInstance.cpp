@@ -16,7 +16,7 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<GLuint> OpenGlInstance::CreateBuffer(
+	GraphicsError::Result<GLuint> OpenGlInstance::CreateBuffer(
 		const size_t size, const void* data, const GLenum usage) const {
 		if (size == 0 || size > static_cast<size_t>(std::numeric_limits<GLsizeiptr>::max())) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
@@ -43,7 +43,7 @@ namespace Chrivent {
 			"OpenGL buffer storage 생성", "buffer storage를 할당하지 못했습니다", result, true));
 	}
 
-	GraphicsResult<GLuint> OpenGlInstance::CreateVao(
+	GraphicsError::Result<GLuint> OpenGlInstance::CreateVao(
 		const GLuint vertexBuffer, const GLint* locations, const GLint* sizes,
 		const size_t* offsets, const int attributeCount, const GLuint indexBuffer) const {
 		if (vertexBuffer == 0 || indexBuffer == 0 || locations == nullptr
@@ -81,7 +81,7 @@ namespace Chrivent {
 			"OpenGL VAO 구성", "vertex attribute 또는 index buffer를 연결하지 못했습니다", result, true));
 	}
 
-	GraphicsResult<void> OpenGlInstance::CreateGeometryBuffers() {
+	GraphicsError::Result<void> OpenGlInstance::CreateGeometryBuffers() {
 		const size_t vtxCount = model->geometryData.positions.size();
 		const size_t idxSize = model->geometryData.indexElementSize;
 		const size_t idxCount = model->geometryData.indexCount;
@@ -114,7 +114,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlInstance::CreateVertexArrays() {
+	GraphicsError::Result<void> OpenGlInstance::CreateVertexArrays() {
 		constexpr GLint locations[][3] = {
 			{ 0, 1, 2 },
 			{ 0, 1, -1 },
@@ -154,7 +154,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlInstance::SetupConstantRings() {
+	GraphicsError::Result<void> OpenGlInstance::SetupConstantRings() {
 		constexpr size_t vertexConstantsSize = std::max({
 			sizeof(ModelVertexConstants),
 			sizeof(EdgeVertexConstants),
@@ -204,7 +204,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlInstance::LoadMaterials() {
+	GraphicsError::Result<void> OpenGlInstance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			OpenGlModelMaterial material(mat);
@@ -271,7 +271,7 @@ namespace Chrivent {
 		modelResources.materials.clear();
 	}
 
-	GraphicsResult<void> OpenGlInstance::SetupRenderer() {
+	GraphicsError::Result<void> OpenGlInstance::SetupRenderer() {
 		auto result = CreateGeometryBuffers();
 		if (!result)
 			return std::unexpected(result.error());
@@ -284,7 +284,7 @@ namespace Chrivent {
 		return LoadMaterials();
 	}
 
-	GraphicsResult<void> OpenGlInstance::UploadCore() {
+	GraphicsError::Result<void> OpenGlInstance::UploadCore() {
 		const size_t vtxCount = model->geometryData.positions.size();
 		size_t vertexByteSize = 0;
 		if (!BufferSize::TryMultiply(sizeof(ViewerVertex), vtxCount, vertexByteSize)) {

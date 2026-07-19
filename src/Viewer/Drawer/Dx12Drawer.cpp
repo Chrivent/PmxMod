@@ -16,7 +16,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	GraphicsResult<void> Dx12Drawer::DrawModel() {
+	GraphicsError::Result<void> Dx12Drawer::DrawModel() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
@@ -63,7 +63,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Drawer::DrawEdge() {
+	GraphicsError::Result<void> Dx12Drawer::DrawEdge() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
@@ -102,7 +102,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Drawer::DrawGroundShadow() {
+	GraphicsError::Result<void> Dx12Drawer::DrawGroundShadow() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
@@ -139,7 +139,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Drawer::DrawSceneInputs() {
+	GraphicsError::Result<void> Dx12Drawer::DrawSceneInputs() {
 		ID3D12GraphicsCommandList* commandList = drawContext.TryGetCommandList();
 		if (commandList == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,

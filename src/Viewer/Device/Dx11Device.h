@@ -22,11 +22,11 @@ namespace Chrivent {
 		ID3D11DeviceContext* GetContext() const { return context.Get(); }
 
 		// 고성능 DXGI 어댑터를 선택해 D3D11 device와 immediate context를 생성한다.
-		GraphicsResult<void> Initialize(GraphicsCapabilities& capabilities);
+		GraphicsError::Result<void> Initialize(GraphicsCapabilities& capabilities);
 		// 현재 device의 4→2→1 정책으로 MSAA 설정과 capability 값을 확정한다.
 		void SelectMsaaSettings(UINT& sampleCount, UINT& quality,
 			GraphicsCapabilities& capabilities) const;
 		// immediate context에 제출한 작업이 끝날 때까지 기다린다.
-		GraphicsResult<void> WaitIdle() const;
+		GraphicsError::Result<void> WaitIdle() const;
 	};
 }

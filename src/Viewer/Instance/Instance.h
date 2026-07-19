@@ -38,9 +38,9 @@ namespace Chrivent {
         // 렌더러별 모델 GPU 리소스를 초기 상태로 되돌린다.
         virtual void ResetRendererResources() = 0;
         // 렌더러별 모델 리소스를 생성하고 인스턴스를 초기화한다.
-        virtual GraphicsResult<void> SetupRenderer() = 0;
+        virtual GraphicsError::Result<void> SetupRenderer() = 0;
 		// 모델의 동적 버텍스 데이터를 렌더러 리소스에 반영한다.
-		virtual GraphicsResult<void> UploadCore() = 0;
+		virtual GraphicsError::Result<void> UploadCore() = 0;
 
     public:
         explicit Instance(GraphicsApi sourceGraphicsApi);
@@ -56,20 +56,20 @@ namespace Chrivent {
         float GetScale() const { return scale; }
 
         // 모델, 애니메이션과 배율을 확정한 뒤 렌더러별 리소스를 원자적으로 초기화한다.
-        GraphicsResult<void> Initialize(std::shared_ptr<Model> sourceModel,
+        GraphicsError::Result<void> Initialize(std::shared_ptr<Model> sourceModel,
 			std::unique_ptr<Animation> sourceAnimation, float sourceScale);
         // 모델의 동적 버텍스/상태를 렌더러 리소스에 반영한다.
-        GraphicsResult<void> Upload();
+        GraphicsError::Result<void> Upload();
 		// 현재 프레임에서 사용할 드로어의 임시 리소스를 준비한다.
 		void BeginDraw(const SceneDrawState& state) const;
 		// 현재 인스턴스의 모델 본체 패스를 그린다.
-		GraphicsResult<void> DrawModelPass() const;
+		GraphicsError::Result<void> DrawModelPass() const;
 		// 현재 인스턴스의 엣지 패스를 그린다.
-		GraphicsResult<void> DrawEdgePass() const;
+		GraphicsError::Result<void> DrawEdgePass() const;
 		// 현재 인스턴스의 지면 그림자 패스를 그린다.
-		GraphicsResult<void> DrawGroundShadowPass() const;
+		GraphicsError::Result<void> DrawGroundShadowPass() const;
 		// 현재 인스턴스를 후처리 장면 depth와 velocity 입력 패스에 그린다.
-		GraphicsResult<void> DrawPostProcessSceneInputs() const;
+		GraphicsError::Result<void> DrawPostProcessSceneInputs() const;
 		// 프레임 입력을 기준으로 애니메이션, 본 행렬과 스키닝 범위를 준비한다.
 		void PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing = nullptr) const;
         // 연결된 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.

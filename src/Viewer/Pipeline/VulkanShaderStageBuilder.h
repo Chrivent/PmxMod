@@ -22,7 +22,7 @@ namespace Chrivent {
 		const VkPipelineShaderStageCreateInfo* GetStages() const { return stages; }
 
 		// 패키지 pass를 Vulkan용 SPIR-V로 컴파일하고 stage 정보를 생성한다.
-		GraphicsResult<void> Build(const VulkanDevice& sourceDevice,
+		GraphicsError::Result<void> Build(const VulkanDevice& sourceDevice,
 			const ShaderProgramDefinition& program, SpirvBindingProfile bindingProfile,
 			bool invertVertexY = false);
 	};

@@ -37,11 +37,11 @@ namespace Chrivent {
 		PipelineStates states;
 
 		// 장면 ABI 패스에 대응하는 D3D11 셰이더를 생성한다.
-		GraphicsResult<void> CreateShaders(ID3D11Device* device,
+		GraphicsError::Result<void> CreateShaders(ID3D11Device* device,
 			const BuiltInShaderPasses& builtInPasses,
 			const SceneInputShaderPasses& sceneInputPasses);
 		// sampler, blend, rasterizer와 depth-stencil 상태를 생성한다.
-		GraphicsResult<void> CreateStates(ID3D11Device* device);
+		GraphicsError::Result<void> CreateStates(ID3D11Device* device);
 
 	public:
 		ID3D11SamplerState* GetTextureSampler() const { return states.textureSampler.Get(); }
@@ -49,7 +49,7 @@ namespace Chrivent {
 		ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return states.defaultDss.Get(); }
 
 		// 장면 ABI 계약으로 D3D11 셰이더와 고정 pipeline state를 생성한다.
-		GraphicsResult<void> Initialize(ID3D11Device* device,
+		GraphicsError::Result<void> Initialize(ID3D11Device* device,
 			const SceneShaderRuntimeContract& shaderContract);
 		// 기본 장면 alpha blend 상태를 immediate context에 적용한다.
 		void BindDefaultBlendState(ID3D11DeviceContext* context) const;

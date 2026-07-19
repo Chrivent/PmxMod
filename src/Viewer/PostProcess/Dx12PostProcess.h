@@ -44,19 +44,19 @@ namespace Chrivent {
 		UINT inputDescriptorSize = 0;
 
 		// 패키지가 선언한 transient/history target을 생성한다.
-		GraphicsResult<void> CreateEffectResources(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> CreateEffectResources(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 입력을 보관하는 shader-visible descriptor heap을 생성한다.
-		GraphicsResult<void> CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> CreateInputDescriptorHeaps(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 파라미터를 보관할 b1 upload buffer를 생성한다.
-		GraphicsResult<void> CreateParameterDataBuffers(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> CreateParameterDataBuffers(const Dx12Device& sourceDevice);
 		// 현재 frame의 pass 입력 descriptor를 실행 계획에 맞게 갱신한다.
-		GraphicsResult<void> UpdateInputDescriptors(
+		GraphicsError::Result<void> UpdateInputDescriptors(
 			const Dx12Device& sourceDevice, size_t frameIndex, size_t passIndex);
 		// 모든 history target을 최초 사용 전에 0으로 지운다.
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);
 		// 공통 실행 계획의 모든 DX12 pipeline state를 생성한다.
-		GraphicsResult<void> CreatePipelines(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> CreatePipelines(const Dx12Device& sourceDevice);
 		// frame에 대응하는 shader-visible descriptor heap을 반환한다.
 		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex) const;
 		// 입력 경로에 대응하는 DX12 resource와 SRV 형식을 반환한다.
@@ -70,18 +70,18 @@ namespace Chrivent {
 		
 	public:
 		// 현재 크기와 선택된 effect 선언에 맞는 DX12 후처리 target을 생성한다.
-		GraphicsResult<void> InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsError::Result<void> InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
-		GraphicsResult<void> Configure(const Dx12Device& sourceDevice, int width, int height,
+		GraphicsError::Result<void> Configure(const Dx12Device& sourceDevice, int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		GraphicsResult<void> BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
+		GraphicsError::Result<void> BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;
 		// DX12 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
-		GraphicsResult<void> EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
+		GraphicsError::Result<void> EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext) const;
 		// 선언된 후처리 패스를 실행해 최종 프레임 명령을 기록한다.
-		GraphicsResult<void> Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
+		GraphicsError::Result<void> Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 			const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 			int width, int height, const PostProcessFrameData& frameData);

@@ -5,6 +5,15 @@
 #include <utility>
 
 namespace Chrivent {
+	std::string PostProcessPlanError::Format() const {
+		std::string formatted = "효과 " + std::to_string(effectIndex);
+		if (passIndex != noPassIndex)
+			formatted += "의 패스 " + std::to_string(passIndex);
+		formatted += ": ";
+		formatted += message;
+		return formatted;
+	}
+
 	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
 		return 1 - currentIndex;
 	}
@@ -15,6 +24,16 @@ namespace Chrivent {
 
 	std::vector<PostProcess::ResourceHistoryState>& PostProcess::ResolveHistoryStates() {
 		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
+	}
+
+	PostProcessPlanError PostProcess::CreatePlanError(const PostProcessPlanErrorCode code,
+		const size_t effectIndex, std::string message, const size_t passIndex) {
+		return {
+			.code = code,
+			.effectIndex = effectIndex,
+			.passIndex = passIndex,
+			.message = std::move(message)
+		};
 	}
 
 	int PostProcess::ResolveResourceExtent(
@@ -115,7 +134,7 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	std::expected<void, std::string> PostProcess::SetEffects(
+	std::expected<void, PostProcessPlanError> PostProcess::SetEffects(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
 		std::vector<PostProcessPassRoute> plannedRoutes;
@@ -127,8 +146,8 @@ namespace Chrivent {
 		for (size_t effectIndex = 0; effectIndex < effects.size(); effectIndex++) {
 			const EffectRuntimeDefinition* effect = effects[effectIndex];
 			if (effect == nullptr || effect->passes.empty()) {
-				return std::unexpected("효과 " + std::to_string(effectIndex)
-					+ "의 런타임 정의 또는 패스가 비어 있습니다");
+				return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidEffect,
+					effectIndex, "효과의 런타임 정의 또는 패스가 비어 있습니다"));
 			}
 			const auto& [parameters, resources, passes] = *effect;
 			PostProcessParameterData parameterData;
@@ -136,8 +155,8 @@ namespace Chrivent {
 			for (const auto& [slot, value] : parameters) {
 				if (slot >= PostProcessInputLayout::maxParameterCount
 					|| usedParameterSlots[slot] || !std::isfinite(value)) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 파라미터 슬롯 또는 값이 올바르지 않습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidParameter,
+						effectIndex, "파라미터 슬롯 또는 값이 올바르지 않습니다"));
 				}
 				usedParameterSlots[slot] = true;
 				parameterData.values[slot] = value;
@@ -147,29 +166,29 @@ namespace Chrivent {
 			for (const auto& [lifetime, format, resolution, width, height] : resources) {
 				if (lifetime != EffectResourceLifetime::Transient
 					&& lifetime != EffectResourceLifetime::History) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 리소스 lifetime이 올바르지 않습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
+						effectIndex, "리소스 lifetime이 올바르지 않습니다"));
 				}
 				if (format != EffectTextureFormat::Rgba8Unorm
 					&& format != EffectTextureFormat::Rgba16Float
 					&& format != EffectTextureFormat::Rgba32Float) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 리소스 format이 올바르지 않습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
+						effectIndex, "리소스 format이 올바르지 않습니다"));
 				}
 				if (resolution != EffectPassResolution::Full
 					&& resolution != EffectPassResolution::Half
 					&& resolution != EffectPassResolution::Quarter
 					&& resolution != EffectPassResolution::Eighth
 					&& resolution != EffectPassResolution::Fixed) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 리소스 resolution이 올바르지 않습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
+						effectIndex, "리소스 resolution이 올바르지 않습니다"));
 				}
 				if (resolution == EffectPassResolution::Fixed
 					&& (width == 0 || height == 0
 						|| width > static_cast<uint32_t>(std::numeric_limits<int>::max())
 						|| height > static_cast<uint32_t>(std::numeric_limits<int>::max()))) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 고정 리소스 크기가 렌더러 범위를 벗어났습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
+						effectIndex, "고정 리소스 크기가 렌더러 범위를 벗어났습니다"));
 				}
 				plannedResources.emplace_back(PostProcessResourcePlan{
 					.lifetime = lifetime,
@@ -193,23 +212,20 @@ namespace Chrivent {
 			for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
 				const auto& [program, inputs, output] = passes[passIndex];
 				if (program.shaderPath.empty() || program.vertexEntry.empty() || program.pixelEntry.empty()) {
-					return std::unexpected("효과 " + std::to_string(effectIndex)
-						+ "의 패스 " + std::to_string(passIndex)
-						+ "에 셰이더 경로 또는 진입점이 없습니다");
+					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidProgram,
+						effectIndex, "셰이더 경로 또는 진입점이 없습니다", passIndex));
 				}
 				PostProcessPassRoute route;
 				route.effectIndex = effectIndex;
 				bool usedSlots[PostProcessInputLayout::maxTextureCount]{};
 				for (const auto& [slot, kind, resourceIndex] : inputs) {
 					if (slot >= PostProcessInputLayout::maxTextureCount) {
-						return std::unexpected("효과 " + std::to_string(effectIndex)
-							+ "의 패스 " + std::to_string(passIndex)
-							+ "에 허용 범위를 벗어난 texture 슬롯이 있습니다");
+						return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidInput,
+							effectIndex, "허용 범위를 벗어난 texture 슬롯이 있습니다", passIndex));
 					}
 					if (usedSlots[slot]) {
-						return std::unexpected("효과 " + std::to_string(effectIndex)
-							+ "의 패스 " + std::to_string(passIndex)
-							+ "에 중복된 texture 슬롯이 있습니다");
+						return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidInput,
+							effectIndex, "중복된 texture 슬롯이 있습니다", passIndex));
 					}
 					usedSlots[slot] = true;
 					PostProcessPassInputRoute inputRoute{ .slot = slot };
@@ -228,15 +244,13 @@ namespace Chrivent {
 					} else {
 						if (kind != EffectPassInputKind::Resource
 							|| resourceIndex >= resources.size()) {
-							return std::unexpected("효과 " + std::to_string(effectIndex)
-								+ "의 패스 " + std::to_string(passIndex)
-								+ "가 존재하지 않는 입력 리소스를 참조합니다");
+							return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidInput,
+								effectIndex, "존재하지 않는 입력 리소스를 참조합니다", passIndex));
 						}
 						if (resources[resourceIndex].lifetime == EffectResourceLifetime::Transient
 							&& initializedTransientResources[resourceIndex] == 0) {
-							return std::unexpected("효과 " + std::to_string(effectIndex)
-								+ "의 패스 " + std::to_string(passIndex)
-								+ "가 초기화되지 않은 transient 리소스를 읽습니다");
+							return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidInput,
+								effectIndex, "초기화되지 않은 transient 리소스를 읽습니다", passIndex));
 						}
 						inputRoute.kind = PostProcessInputKind::Resource;
 						inputRoute.resourceIndex = resourceBaseIndex + resourceIndex;
@@ -245,26 +259,24 @@ namespace Chrivent {
 				}
 				if (output.kind == EffectPassOutputKind::EffectOutput) {
 					if (passIndex + 1 != passes.size()) {
-						return std::unexpected("효과 " + std::to_string(effectIndex)
-							+ "의 최종 출력은 마지막 패스에서만 사용할 수 있습니다");
+						return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidOutput,
+							effectIndex, "최종 출력은 마지막 패스에서만 사용할 수 있습니다", passIndex));
 					}
 					route.outputKind = lastEffect ? PostProcessOutputKind::Present : PostProcessOutputKind::Resource;
 					route.outputResourceIndex = effectOutputIndex;
 				} else {
 					if (output.kind != EffectPassOutputKind::Resource
 						|| output.resourceIndex >= resources.size()) {
-						return std::unexpected("효과 " + std::to_string(effectIndex)
-							+ "의 패스 " + std::to_string(passIndex)
-							+ "가 존재하지 않는 출력 리소스를 참조합니다");
+						return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidOutput,
+							effectIndex, "존재하지 않는 출력 리소스를 참조합니다", passIndex));
 					}
 					const EffectResourceDefinition& outputResource = resources[output.resourceIndex];
 					if (outputResource.lifetime == EffectResourceLifetime::Transient) {
 						for (const auto& input : inputs) {
 							if (input.kind == EffectPassInputKind::Resource
 								&& input.resourceIndex == output.resourceIndex) {
-								return std::unexpected("효과 " + std::to_string(effectIndex)
-									+ "의 패스 " + std::to_string(passIndex)
-									+ "가 같은 transient 리소스를 동시에 읽고 씁니다");
+								return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidOutput,
+									effectIndex, "같은 transient 리소스를 동시에 읽고 씁니다", passIndex));
 							}
 						}
 						initializedTransientResources[output.resourceIndex] = 1;
@@ -276,8 +288,8 @@ namespace Chrivent {
 				plannedRoutes.emplace_back(std::move(route));
 			}
 			if (passes.back().output.kind != EffectPassOutputKind::EffectOutput) {
-				return std::unexpected("효과 " + std::to_string(effectIndex)
-					+ "의 마지막 패스가 effect output에 쓰지 않습니다");
+				return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidOutput,
+					effectIndex, "마지막 패스가 effect output에 쓰지 않습니다", passes.size() - 1));
 			}
 			if (!lastEffect) {
 				effectInput.kind = PostProcessInputKind::Resource;

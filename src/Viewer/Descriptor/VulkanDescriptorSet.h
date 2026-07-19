@@ -18,16 +18,16 @@ namespace Chrivent {
 		VkDevice device = VK_NULL_HANDLE;
 
 		// uniform buffer와 texture sampler용 descriptor pool을 생성한다.
-		GraphicsResult<void> CreateDescriptorPool(size_t textureDescriptorCount);
+		GraphicsError::Result<void> CreateDescriptorPool(size_t textureDescriptorCount);
 		// pipeline layout에 맞춰 vertex/pixel/texture descriptor set을 할당한다.
-		GraphicsResult<void> AllocateDescriptorSets(const VulkanPipeline& sourcePipeline,
+		GraphicsError::Result<void> AllocateDescriptorSets(const VulkanPipeline& sourcePipeline,
 			size_t textureDescriptorCount);
 		// vertex uniform buffer 정보를 descriptor set에 기록한다.
 		void UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange) const;
 		// 패스 공통 pixel uniform buffer 정보를 descriptor set에 기록한다.
 		void UpdatePixelDescriptorSet(const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange) const;
 		// 재질별 텍스처 정보를 descriptor set에 기록한다.
-		GraphicsResult<void> UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const;
+		GraphicsError::Result<void> UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const;
 
 	public:
 		VulkanDescriptorSet() = default;
@@ -40,7 +40,7 @@ namespace Chrivent {
 		VkDescriptorSet GetPixelDescriptorSet() const { return pixelDescriptorSet; }
 
 		// 모델 uniform buffer를 참조하는 descriptor set을 생성하고 갱신한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice,
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice,
 			const VulkanPipeline& sourcePipeline,
 			const VulkanBuffer& vertexConstantBuffer, VkDeviceSize vertexConstantRange,
 			const VulkanBuffer& pixelConstantBuffer, VkDeviceSize pixelConstantRange,

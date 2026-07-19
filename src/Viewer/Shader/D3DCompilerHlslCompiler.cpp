@@ -4,6 +4,7 @@
 #include <limits>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Chrivent {
@@ -64,18 +65,22 @@ namespace Chrivent {
 		}
 	};
 
-	bool D3DCompilerHlslCompiler::CompileFile(const std::filesystem::path& file, const char* entry, const char* target,
-		Microsoft::WRL::ComPtr<ID3DBlob>& outBytecode, std::string& outError) {
+	ShaderCompileError::Result<Microsoft::WRL::ComPtr<ID3DBlob>> D3DCompilerHlslCompiler::CompileFile(
+		const std::filesystem::path& file, const char* entry, const char* target) {
 		D3DCompilerIncludeHandler includeHandler(file);
+		Microsoft::WRL::ComPtr<ID3DBlob> bytecode;
 		Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 		const HRESULT result = D3DCompileFromFile(file.c_str(), nullptr, &includeHandler, entry,
-			target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &outBytecode, &errorBlob);
+			target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &bytecode, &errorBlob);
 		if (SUCCEEDED(result))
-			return true;
-		outError = "셰이더를 컴파일하지 못했습니다: " + file.string()
+			return bytecode;
+		std::string message = "셰이더를 컴파일하지 못했습니다: " + file.string()
 			+ " entry=" + entry + " target=" + target + '\n';
 		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
-			outError += static_cast<const char*>(errorBlob->GetBufferPointer());
-		return false;
+			message += static_cast<const char*>(errorBlob->GetBufferPointer());
+		return std::unexpected(ShaderCompileError{
+			.shaderPath = file,
+			.message = std::move(message)
+		});
 	}
 }

@@ -13,10 +13,10 @@ namespace Chrivent {
 		VkFormat format = VK_FORMAT_UNDEFINED;
 
 		// 멀티샘플 color attachment image와 메모리를 생성한다.
-		GraphicsResult<void> CreateImage(
+		GraphicsError::Result<void> CreateImage(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 멀티샘플 color image용 image view를 생성한다.
-		GraphicsResult<void> CreateImageView();
+		GraphicsError::Result<void> CreateImageView();
 
 	public:
 		VulkanMsaaColorBuffer() = default;
@@ -29,7 +29,7 @@ namespace Chrivent {
 		VkImageView GetImageView() const { return imageView; }
 
 		// 스왑체인 크기에 맞는 멀티샘플 color image와 image view를 생성한다.
-		GraphicsResult<void> Initialize(
+		GraphicsError::Result<void> Initialize(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 생성한 멀티샘플 color 리소스를 해제한다.
 		void Reset();

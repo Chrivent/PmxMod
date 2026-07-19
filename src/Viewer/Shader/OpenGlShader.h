@@ -10,7 +10,7 @@ namespace Chrivent {
 	// HLSL을 SPIR-V와 GLSL로 변환해 OpenGL 프로그램을 생성한다.
 	class OpenGlProgramBuilder {
 		// SPIR-V를 GLSL로 변환하고 OpenGL 셰이더 객체로 만든다.
-		static GraphicsResult<GLuint> CreateStage(
+		static GraphicsError::Result<GLuint> CreateStage(
 			GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry);
 		// OpenGL 셰이더 컴파일 로그를 읽는다.
 		static std::string ReadShaderLog(GLuint shader);
@@ -19,7 +19,7 @@ namespace Chrivent {
 
 	public:
 		// HLSL의 버텍스와 픽셀 진입점을 SPIR-V로 컴파일하고 프로그램으로 링크한다.
-		static GraphicsResult<GLuint> CreateProgram(
+		static GraphicsError::Result<GLuint> CreateProgram(
 			const std::filesystem::path& shaderFile, const std::string& vertexEntry,
 			const std::string& pixelEntry, SpirvBindingProfile bindingProfile,
 			bool invertVertexY = false);
@@ -36,7 +36,7 @@ namespace Chrivent {
 		~OpenGlShaderProgram();
 
 		// 지정한 바인딩 규격으로 OpenGL 프로그램을 생성하고 기존 프로그램과 교체한다.
-		GraphicsResult<void> InitializeProgram(const ShaderProgramDefinition& shaderProgram,
+		GraphicsError::Result<void> InitializeProgram(const ShaderProgramDefinition& shaderProgram,
 			SpirvBindingProfile bindingProfile, bool invertVertexY = false);
 
 	public:
@@ -54,13 +54,13 @@ namespace Chrivent {
 	class OpenGlSceneShaderProgram final : public OpenGlShaderProgram {
 	public:
 		// 장면 렌더링용 HLSL 프로그램을 컴파일한다.
-		GraphicsResult<void> Initialize(const ShaderProgramDefinition& shaderProgram);
+		GraphicsError::Result<void> Initialize(const ShaderProgramDefinition& shaderProgram);
 	};
 
 	// 풀스크린 후처리 패스를 실행하는 OpenGL 프로그램을 나타낸다.
 	class OpenGlPostProcessShaderProgram final : public OpenGlShaderProgram {
 	public:
 		// 후처리 HLSL을 OpenGL 프로그램으로 컴파일한다.
-		GraphicsResult<void> Initialize(const ShaderProgramDefinition& shaderProgram);
+		GraphicsError::Result<void> Initialize(const ShaderProgramDefinition& shaderProgram);
 	};
 }

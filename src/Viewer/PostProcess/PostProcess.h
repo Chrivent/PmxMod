@@ -4,11 +4,35 @@
 #include "Viewer/PostProcess/PostProcessRuntimeContract.h"
 
 #include <expected>
+#include <limits>
 #include <span>
 #include <string>
 #include <vector>
 
 namespace Chrivent {
+	// 후처리 실행 계획을 만들지 못한 원인을 안정된 범주로 구분한다.
+	enum class PostProcessPlanErrorCode {
+		InvalidEffect,
+		InvalidParameter,
+		InvalidResource,
+		InvalidProgram,
+		InvalidInput,
+		InvalidOutput
+	};
+
+	// 잘못된 효과와 패스 위치 및 사용자 진단 메시지를 함께 보관한다.
+	struct PostProcessPlanError {
+		static constexpr size_t noPassIndex = std::numeric_limits<size_t>::max();
+
+		PostProcessPlanErrorCode code = PostProcessPlanErrorCode::InvalidEffect;
+		size_t effectIndex = 0;
+		size_t passIndex = noPassIndex;
+		std::string message;
+
+		// 효과와 선택적 패스 위치를 포함한 사용자 진단 문자열을 생성한다.
+		std::string Format() const;
+	};
+
 	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
 	protected:
@@ -76,6 +100,10 @@ namespace Chrivent {
 		const std::vector<ResourceHistoryState>& ResolveHistoryStates() const;
 		// 현재 패스 기록에서 수정할 committed 또는 pending history 상태를 반환한다.
 		std::vector<ResourceHistoryState>& ResolveHistoryStates();
+		// 실행 계획 검증 위치와 원인을 구조화된 오류로 조립한다.
+		static PostProcessPlanError CreatePlanError(PostProcessPlanErrorCode code,
+			size_t effectIndex, std::string message,
+			size_t passIndex = PostProcessPlanError::noPassIndex);
 
 	protected:
 		PostProcess() = default;
@@ -108,7 +136,8 @@ namespace Chrivent {
 		// 검증을 마친 다른 후처리 객체와 API 독립 실행 계획을 교환한다.
 		void SwapExecutionPlan(PostProcess& other) noexcept;
 		// 선택한 후처리 effect의 선언만으로 공통 실행 계획을 만든다.
-		std::expected<void, std::string> SetEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		std::expected<void, PostProcessPlanError> SetEffects(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 
 	public:
 		virtual ~PostProcess() = default;

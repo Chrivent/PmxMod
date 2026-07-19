@@ -10,7 +10,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Instance/Instance.h"
-#include "Viewer/Shader/InternalShaderCatalog.h"
+#include "Program/Shader/InternalShaderCatalog.h"
 #include "Viewer/Viewer/OpenGlViewer.h"
 #include "Viewer/Viewer/VulkanViewer.h"
 #include "Viewer/Viewer/Dx11Viewer.h"
@@ -809,7 +809,7 @@ namespace Chrivent {
         instances.clear();
     }
 
-    GraphicsResult<Program::FramebufferUpdateState> Program::UpdateFramebufferSize() const {
+    GraphicsError::Result<Program::FramebufferUpdateState> Program::UpdateFramebufferSize() const {
         int newW = 0;
         int newH = 0;
         glfwGetFramebufferSize(viewer->GetWindow(), &newW, &newH);

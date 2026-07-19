@@ -110,12 +110,12 @@ namespace Chrivent {
 		Shutdown();
 	}
 
-	GraphicsResult<void> Dx12Device::Initialize(GraphicsCapabilities& capabilities) {
+	GraphicsError::Result<void> Dx12Device::Initialize(GraphicsCapabilities& capabilities) {
 		Shutdown();
 		capabilities = {};
 		HRESULT result = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InitializationFailed, "DXGI factory 생성",
 				"DirectX 12 어댑터 검색용 factory를 만들지 못했습니다", result, true));
 		}
@@ -135,7 +135,7 @@ namespace Chrivent {
 			}
 		}
 		if (!device) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InitializationFailed, "device 초기화",
 				"DirectX 12를 지원하는 고성능 그래픽 어댑터를 찾지 못했습니다", lastDeviceResult, true));
 		}
@@ -144,14 +144,14 @@ namespace Chrivent {
 		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 		result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InitializationFailed, "command queue 생성",
 				"DirectX 12 direct command queue를 만들지 못했습니다", result, true));
 		}
 		DXGI_ADAPTER_DESC1 description{};
 		result = adapter->GetDesc1(&description);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InitializationFailed, "그래픽 어댑터 정보 조회",
 				"DirectX 12 그래픽 어댑터 정보를 가져오지 못했습니다", result, true));
 		}

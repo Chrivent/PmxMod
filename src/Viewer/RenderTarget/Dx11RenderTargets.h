@@ -23,7 +23,7 @@ namespace Chrivent {
 		ID3D11DepthStencilView* GetDepthStencilView() const { return depthStencilView.Get(); }
 
 		// 현재 출력 크기와 MSAA 설정으로 장면 target을 생성한다.
-		GraphicsResult<void> Initialize(ID3D11Device* device, IDXGISwapChain* swapChain,
+		GraphicsError::Result<void> Initialize(ID3D11Device* device, IDXGISwapChain* swapChain,
 			int width, int height, UINT sampleCount, UINT sampleQuality);
 		// swapchain 크기 변경 전에 장면 target을 해제한다.
 		void Reset(ID3D11DeviceContext* context);

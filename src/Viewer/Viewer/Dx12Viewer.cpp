@@ -20,7 +20,7 @@ namespace Chrivent {
 		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
-	GraphicsResult<void> Dx12Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsError::Result<void> Dx12Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		const auto deviceResult = device.Initialize(capabilities);
 		if (!deviceResult)
@@ -48,7 +48,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Viewer::ResizeCore() {
+	GraphicsError::Result<void> Dx12Viewer::ResizeCore() {
 		const auto waitResult = WaitIdle();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
@@ -71,7 +71,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<FrameBeginState> Dx12Viewer::BeginFrameCore() {
+	GraphicsError::Result<FrameBeginState> Dx12Viewer::BeginFrameCore() {
 		drawContext.EndFrame();
 		const UINT frameIndex = swapChain.GetFrameIndex();
 		const auto beginResult = commandContext.BeginFrame(device, frameIndex);
@@ -91,7 +91,7 @@ namespace Chrivent {
 		return FrameBeginState::Ready;
 	}
 
-	GraphicsResult<FrameEndState> Dx12Viewer::EndFrameCore() {
+	GraphicsError::Result<FrameEndState> Dx12Viewer::EndFrameCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
@@ -121,7 +121,7 @@ namespace Chrivent {
 		return FrameEndState::Presented;
 	}
 
-	GraphicsResult<void> Dx12Viewer::BeginPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> Dx12Viewer::BeginPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "DirectX 12 draw context가 준비되지 않았습니다"));
@@ -129,7 +129,7 @@ namespace Chrivent {
 		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
-	GraphicsResult<void> Dx12Viewer::EndPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> Dx12Viewer::EndPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
@@ -137,14 +137,14 @@ namespace Chrivent {
 		return postProcess.EndSceneInputPass(commandList, commandContext);
 	}
 
-	GraphicsResult<void> Dx12Viewer::WaitIdle() {
+	GraphicsError::Result<void> Dx12Viewer::WaitIdleCore() {
 		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"GPU 대기", "DirectX 12 device를 사용할 수 없습니다"));
 		return commandContext.WaitForGpu(device);
 	}
 
-	GraphicsResult<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> Dx12Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (!device.GetDevice())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "DirectX 12 device를 사용할 수 없습니다"));

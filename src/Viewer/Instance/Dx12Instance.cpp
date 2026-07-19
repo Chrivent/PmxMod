@@ -14,7 +14,7 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12Instance::CreateGeometryBuffers() {
+	GraphicsError::Result<void> Dx12Instance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
@@ -70,7 +70,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Instance::CreateConstantBuffers() {
+	GraphicsError::Result<void> Dx12Instance::CreateConstantBuffers() {
 		auto& [modelVertex, sceneInputVertex, groundShadowVertex, groundShadowPixel
 			, materialBase, materialStride, modelPixel, sceneSurfacePixel
 			, edgeVertex, edgePixel, totalByteSize] = modelResources.constantBufferLayout;
@@ -120,7 +120,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Instance::LoadMaterials() {
+	GraphicsError::Result<void> Dx12Instance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			Dx12ModelMaterial material(mat);
@@ -150,7 +150,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Instance::CreateTextureDescriptors() {
+	GraphicsError::Result<void> Dx12Instance::CreateTextureDescriptors() {
 		if (modelResources.materials.empty())
 			return {};
 		if (!device.GetDevice()) {
@@ -227,7 +227,7 @@ namespace Chrivent {
 		modelResources.materials.clear();
 	}
 
-	GraphicsResult<void> Dx12Instance::SetupRenderer() {
+	GraphicsError::Result<void> Dx12Instance::SetupRenderer() {
 		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
 		if (!beginUploadResult)
 			return std::unexpected(beginUploadResult.error());
@@ -255,7 +255,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12Instance::UploadCore() {
+	GraphicsError::Result<void> Dx12Instance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
 		if (!vertexBuffer.IsInitialized())

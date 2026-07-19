@@ -5,12 +5,12 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanDynamicBufferRing::Setup(
+	GraphicsError::Result<void> VulkanDynamicBufferRing::Setup(
 		const VulkanDevice& sourceDevice, const size_t bufferSize) {
 		Clear();
 		std::string error;
 		if (!DynamicBufferRing::Setup(bufferSize, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "동적 uniform buffer ring 생성",
 				std::move(error)));
 		}

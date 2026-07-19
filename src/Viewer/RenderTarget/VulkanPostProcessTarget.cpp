@@ -19,7 +19,7 @@ namespace Chrivent {
 		return *this;
 	}
 
-	GraphicsResult<void> VulkanPostProcessTarget::CreateImage(
+	GraphicsError::Result<void> VulkanPostProcessTarget::CreateImage(
 		const VulkanDevice& sourceDevice, const VkExtent2D extent,
 		const VkFormat format, const VkImageUsageFlags usage,
 		const VkImageAspectFlags aspectMask, const size_t index) {
@@ -37,7 +37,7 @@ namespace Chrivent {
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VkResult result = vkCreateImage(device, &imageInfo, nullptr, &images[index]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 image 생성",
 				"Vulkan 후처리 image를 만들지 못했습니다", result, true));
 		}
@@ -46,7 +46,7 @@ namespace Chrivent {
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(
 			sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "후처리 image memory type 선택",
 				"Vulkan 후처리 image에 사용할 memory type을 찾지 못했습니다"));
 		}
@@ -56,13 +56,13 @@ namespace Chrivent {
 		allocateInfo.memoryTypeIndex = memoryType;
 		result = vkAllocateMemory(device, &allocateInfo, nullptr, &memories[index]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 image memory 할당",
 				"Vulkan 후처리 image memory를 할당하지 못했습니다", result, true));
 		}
 		result = vkBindImageMemory(device, images[index], memories[index], 0);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 image memory 연결",
 				"Vulkan 후처리 image memory를 연결하지 못했습니다", result, true));
 		}
@@ -76,7 +76,7 @@ namespace Chrivent {
 		viewInfo.subresourceRange.layerCount = 1;
 		result = vkCreateImageView(device, &viewInfo, nullptr, &imageViews[index]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 image view 생성",
 				"Vulkan 후처리 image view를 만들지 못했습니다", result, true));
 		}
@@ -93,14 +93,14 @@ namespace Chrivent {
 		std::swap(initializationFramePending, other.initializationFramePending);
 	}
 
-	GraphicsResult<void> VulkanPostProcessTarget::Initialize(
+	GraphicsError::Result<void> VulkanPostProcessTarget::Initialize(
 		const VulkanDevice& sourceDevice, const size_t imageCount,
 		const VkExtent2D extent, const VkFormat format, const VkImageUsageFlags usage,
 		const bool trackInitialization, const VkImageAspectFlags aspectMask) {
 		Reset();
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || imageCount == 0 || extent.width == 0 || extent.height == 0
 			|| format == VK_FORMAT_UNDEFINED || aspectMask == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 초기화",
 				"Vulkan device, image 수, format, extent 또는 aspect가 올바르지 않습니다"));
 		}

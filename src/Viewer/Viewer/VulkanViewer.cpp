@@ -3,7 +3,7 @@
 #include "Viewer/Instance/VulkanInstance.h"
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanViewer::CreateSwapChainResources() {
+	GraphicsError::Result<void> VulkanViewer::CreateSwapChainResources() {
 		const auto colorResult = msaaColorBuffer.Initialize(device, swapChain);
 		if (!colorResult)
 			return std::unexpected(colorResult.error());
@@ -26,7 +26,7 @@ namespace Chrivent {
 		msaaDepthBuffer.Reset();
 	}
 
-	GraphicsResult<void> VulkanViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsError::Result<void> VulkanViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		const auto deviceResult = device.Initialize(window, capabilities);
 		if (!deviceResult)
@@ -51,7 +51,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanViewer::ResizeCore() {
+	GraphicsError::Result<void> VulkanViewer::ResizeCore() {
 		const auto waitResult = WaitIdle();
 		if (!waitResult)
 			return std::unexpected(waitResult.error());
@@ -72,7 +72,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<FrameBeginState> VulkanViewer::BeginFrameCore() {
+	GraphicsError::Result<FrameBeginState> VulkanViewer::BeginFrameCore() {
 		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
 		const size_t frameIndex = syncObject.GetCurrentFrameIndex();
@@ -114,7 +114,7 @@ namespace Chrivent {
 		return FrameBeginState::Ready;
 	}
 
-	GraphicsResult<FrameEndState> VulkanViewer::EndFrameCore() {
+	GraphicsError::Result<FrameEndState> VulkanViewer::EndFrameCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 종료", "Vulkan draw context가 준비되지 않았습니다"));
@@ -168,7 +168,7 @@ namespace Chrivent {
 		return FrameEndState::Presented;
 	}
 
-	GraphicsResult<void> VulkanViewer::BeginPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> VulkanViewer::BeginPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "Vulkan draw context가 준비되지 않았습니다"));
@@ -181,7 +181,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanViewer::EndPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> VulkanViewer::EndPostProcessSceneInputPassCore() {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "Vulkan draw context가 준비되지 않았습니다"));
@@ -194,11 +194,11 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanViewer::WaitIdle() {
+	GraphicsError::Result<void> VulkanViewer::WaitIdleCore() {
 		return device.WaitIdle();
 	}
 
-	GraphicsResult<void> VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> VulkanViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));

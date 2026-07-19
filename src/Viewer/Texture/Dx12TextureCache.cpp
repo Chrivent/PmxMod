@@ -1,12 +1,12 @@
 ﻿#include "Viewer/Texture/Dx12TextureCache.h"
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12TextureCache::UploadRgbaPixels(
+	GraphicsError::Result<void> Dx12TextureCache::UploadRgbaPixels(
 		const Dx12Device& sourceDevice, const unsigned char* pixels,
 		const UINT width, const UINT height, Dx12Texture& texture) {
 		if (!sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue()
 			|| pixels == nullptr || width == 0 || height == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "texture 업로드",
 				"DirectX 12 device, 픽셀 데이터 또는 texture 크기가 올바르지 않습니다"));
 		}
@@ -31,7 +31,7 @@ namespace Chrivent {
 			nullptr,
 			IID_PPV_ARGS(&texture.resource));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"DirectX 12 texture 리소스를 만들지 못했습니다", result, true));
 		}
@@ -57,7 +57,7 @@ namespace Chrivent {
 			&uploadHeap, D3D12_HEAP_FLAG_NONE, &uploadDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr, IID_PPV_ARGS(&uploadBuffer));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "texture upload buffer 생성",
 				"DirectX 12 texture upload buffer를 만들지 못했습니다", result, true));
 		}
@@ -65,7 +65,7 @@ namespace Chrivent {
 		constexpr D3D12_RANGE readRange{ 0, 0 };
 		result = uploadBuffer->Map(0, &readRange, &mappedData);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "texture upload buffer 매핑",
 				"DirectX 12 texture upload buffer를 매핑하지 못했습니다", result, true));
 		}
@@ -106,9 +106,9 @@ namespace Chrivent {
 		pendingTextureKeys.clear();
 	}
 
-	GraphicsResult<void> Dx12TextureCache::BeginUploadBatch(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12TextureCache::BeginUploadBatch(const Dx12Device& sourceDevice) {
 		if (uploadBatchActive) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "texture upload batch 시작",
 				"DirectX 12 texture upload batch가 이미 활성화되어 있습니다"));
 		}
@@ -120,9 +120,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12TextureCache::SubmitUploadBatch(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12TextureCache::SubmitUploadBatch(const Dx12Device& sourceDevice) {
 		if (!uploadBatchActive) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "texture upload batch 제출",
 				"제출할 DirectX 12 texture upload batch가 없습니다"));
 		}
@@ -144,7 +144,7 @@ namespace Chrivent {
 		RollbackUploadBatch();
 	}
 
-	GraphicsResult<std::optional<Dx12Texture>> Dx12TextureCache::Load(
+	GraphicsError::Result<std::optional<Dx12Texture>> Dx12TextureCache::Load(
 		const Dx12Device& sourceDevice, const std::filesystem::path& texturePath) {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture(key))
@@ -164,7 +164,7 @@ namespace Chrivent {
 		return std::optional{ texture };
 	}
 
-	GraphicsResult<Dx12Texture> Dx12TextureCache::CreateWhiteTexture(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<Dx12Texture> Dx12TextureCache::CreateWhiteTexture(const Dx12Device& sourceDevice) {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;

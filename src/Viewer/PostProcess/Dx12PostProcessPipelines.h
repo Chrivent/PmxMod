@@ -15,9 +15,9 @@ namespace Chrivent {
 		std::vector<Microsoft::WRL::ComPtr<ID3D12PipelineState>> pipelineStates;
 
 		// 후처리 입력 계약에 맞는 공통 root signature를 생성한다.
-		GraphicsResult<void> CreateRootSignature(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> CreateRootSignature(const Dx12Device& sourceDevice);
 		// HLSL 패스 하나를 지정한 출력 형식의 pipeline state로 생성한다.
-		GraphicsResult<void> CreatePipelineState(
+		GraphicsError::Result<void> CreatePipelineState(
 			const Dx12Device& sourceDevice, const ShaderProgramDefinition& program,
 			DXGI_FORMAT format,
 			Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const;
@@ -30,7 +30,7 @@ namespace Chrivent {
 		size_t GetCount() const { return pipelineStates.size(); }
 
 		// 패스와 출력 형식 목록을 검증한 뒤 모든 DX12 후처리 파이프라인을 생성한다.
-		GraphicsResult<void> Initialize(
+		GraphicsError::Result<void> Initialize(
 			const Dx12Device& sourceDevice,
 			std::span<const ShaderProgramDefinition> programs,
 			std::span<const DXGI_FORMAT> formats);

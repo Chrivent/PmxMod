@@ -3,9 +3,9 @@
 #include "Viewer/Descriptor/Dx11DescBuilder.h"
 
 namespace Chrivent {
-	GraphicsResult<Dx11Texture> Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
+	GraphicsError::Result<Dx11Texture> Dx11TextureCache::CreateWhiteTexture(ID3D11Device* device) {
 		if (device == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "dummy texture 생성",
 				"DirectX 11 device를 사용할 수 없습니다"));
 		}
@@ -21,14 +21,14 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
 		HRESULT result = device->CreateTexture2D(&textureDescription, &initData, &tex2D);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
 				"DirectX 11 fallback texture를 만들지 못했습니다", result, true));
 		}
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
 		result = device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture view 생성",
 				"DirectX 11 fallback texture view를 만들지 못했습니다", result, true));
 		}
@@ -40,10 +40,10 @@ namespace Chrivent {
 		return texture;
 	}
 
-	GraphicsResult<std::optional<Dx11Texture>> Dx11TextureCache::Load(
+	GraphicsError::Result<std::optional<Dx11Texture>> Dx11TextureCache::Load(
 		ID3D11Device* device, const std::filesystem::path& texturePath) {
 		if (device == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "texture 생성",
 				"DirectX 11 device를 사용할 수 없습니다"));
 		}
@@ -62,14 +62,14 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2D;
 		HRESULT result = device->CreateTexture2D(&textureDescription, &initData, &tex2D);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"DirectX 11 texture를 만들지 못했습니다", result, true));
 		}
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tex2DRv;
 		result = device->CreateShaderResourceView(tex2D.Get(), nullptr, &tex2DRv);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "texture view 생성",
 				"DirectX 11 texture view를 만들지 못했습니다", result, true));
 		}

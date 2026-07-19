@@ -9,7 +9,7 @@
 #include <limits>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
 		ResetEffectResources();
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
@@ -32,11 +32,11 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12PostProcess::CreateInputDescriptorHeaps(const Dx12Device& sourceDevice) {
 		inputDescriptorHeaps.clear();
 		inputDescriptorSize = 0;
 		if (!sourceDevice.GetDevice()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 input descriptor heap 생성",
 				"DirectX 12 device를 사용할 수 없습니다"));
 		}
@@ -44,7 +44,7 @@ namespace Chrivent {
 		if (passCount == 0)
 			return {};
 		if (passCount > std::numeric_limits<UINT>::max() / PostProcessInputLayout::maxTextureCount) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 input descriptor heap 생성",
 				"후처리 패스 수가 DirectX 12 descriptor 개수 범위를 벗어났습니다"));
 		}
@@ -60,7 +60,7 @@ namespace Chrivent {
 			const HRESULT result = sourceDevice.GetDevice()->CreateDescriptorHeap(
 				&description, IID_PPV_ARGS(&heap));
 			if (FAILED(result)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 input descriptor heap 생성",
 					"DirectX 12 후처리 input descriptor heap을 만들지 못했습니다", result, true));
 			}
@@ -69,11 +69,11 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
 		if (!sourceDevice.GetDevice()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 parameter buffer 생성",
 				"DirectX 12 device를 사용할 수 없습니다"));
 		}
@@ -84,7 +84,7 @@ namespace Chrivent {
 		size_t bufferSize = 0;
 		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), stride)
 			|| !BufferSize::TryMultiply(stride, passCount, bufferSize)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
 				"DirectX 12 후처리 패스 수가 parameter buffer 크기 한도를 넘습니다"));
 		}
@@ -120,11 +120,11 @@ namespace Chrivent {
 		return targets[index].GetResource();
 	}
 
-	GraphicsResult<void> Dx12PostProcess::UpdateInputDescriptors(
+	GraphicsError::Result<void> Dx12PostProcess::UpdateInputDescriptors(
 		const Dx12Device& sourceDevice, const size_t frameIndex, const size_t passIndex) {
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
 		if (!sourceDevice.GetDevice() || heap == nullptr || passIndex >= GetPassRoutes().size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 입력 descriptor 갱신",
 				"DirectX 12 device, descriptor heap 또는 pass index가 올바르지 않습니다"));
 		}
@@ -140,7 +140,7 @@ namespace Chrivent {
 			if (slots[slot] != nullptr)
 				colResource = ResolveInputResource(*slots[slot], colFormat);
 			if (colResource == nullptr || colFormat == DXGI_FORMAT_UNKNOWN) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
 					"DirectX 12 후처리 pass의 입력 texture를 찾지 못했습니다"));
 			}
@@ -148,7 +148,7 @@ namespace Chrivent {
 				(frameIndex % FrameBuffering::dx12BufferCount * GetPassRoutes().size() + passIndex)
 				* PostProcessInputLayout::maxTextureCount + slot;
 			if (stateIndex >= inputDescriptorStates.size()) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::InvalidState, "후처리 입력 descriptor 갱신",
 					"DirectX 12 후처리 descriptor 상태 색인이 올바르지 않습니다"));
 			}
@@ -192,7 +192,7 @@ namespace Chrivent {
 		}
 	}
 
-	GraphicsResult<void> Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
 		const auto& passes = GetShaderPrograms();
 		const auto& routes = GetPassRoutes();
 		std::vector<DXGI_FORMAT> formats;
@@ -202,7 +202,7 @@ namespace Chrivent {
 			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
 				const Dx12PostProcessTarget* target = ResolveOutputTarget(routes[index]);
 				if (target == nullptr) {
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 						GraphicsErrorCode::ContractViolation, "후처리 pipeline 생성",
 						"후처리 패스의 DirectX 12 출력 target을 찾지 못했습니다"));
 				}
@@ -234,10 +234,10 @@ namespace Chrivent {
 			buffer.Reset();
 	}
 
-	GraphicsResult<void> Dx12PostProcess::InitializeTargets(
+	GraphicsError::Result<void> Dx12PostProcess::InitializeTargets(
 		const Dx12Device& sourceDevice, const int width, const int height) {
 		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
 				"DirectX 12 device 또는 후처리 target 크기가 올바르지 않습니다"));
 		}
@@ -264,7 +264,7 @@ namespace Chrivent {
 			return std::unexpected(result.error());
 		size_t frameDataSize = 0;
 		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessFrameData), frameDataSize)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 frame buffer 크기 계산",
 				"DirectX 12 후처리 frame buffer 크기가 한도를 넘습니다"));
 		}
@@ -293,14 +293,14 @@ namespace Chrivent {
 		std::swap(inputDescriptorSize, other.inputDescriptorSize);
 	}
 
-	GraphicsResult<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
+	GraphicsError::Result<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
 		const int width, const int height,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		Dx12PostProcess candidate;
 		const auto planResult = candidate.SetEffects(effects);
 		if (!planResult) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
 		}
 		if (candidate.HasEffects()) {
 			const auto targetResult = candidate.InitializeTargets(sourceDevice, width, height);
@@ -315,11 +315,11 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
+	GraphicsError::Result<void> Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 		const Dx12CommandContext& commandContext, const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity())
 			|| depthTarget.GetResource() == nullptr || commandList == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"DirectX 12 command list 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
@@ -343,10 +343,10 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12PostProcess::EndSceneInputPass(
+	GraphicsError::Result<void> Dx12PostProcess::EndSceneInputPass(
 		ID3D12GraphicsCommandList* commandList, const Dx12CommandContext& commandContext) const {
 		if (depthTarget.GetResource() == nullptr || commandList == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
 				"DirectX 12 command list 또는 후처리 depth target을 사용할 수 없습니다"));
 		}
@@ -360,7 +360,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12PostProcess::Draw(
+	GraphicsError::Result<void> Dx12PostProcess::Draw(
 		ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 		const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 		const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
@@ -369,7 +369,7 @@ namespace Chrivent {
 		if (!HasEffects() || commandList == nullptr || !sceneColor.GetResource()
 			|| backBuffer == nullptr || msaaColor == nullptr
 			|| !IsPassCountCompatible(pipelines.GetCount())) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"DirectX 12 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
@@ -378,12 +378,12 @@ namespace Chrivent {
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		size_t parameterStride = 0;
 		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), parameterStride)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter stride 계산",
 				"DirectX 12 후처리 parameter stride가 크기 한도를 넘습니다"));
 		}
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "후처리 frame data 기록",
 				"DirectX 12 후처리 frame 또는 parameter buffer를 기록하지 못했습니다"));
 		}
@@ -410,7 +410,7 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
 		if (heap == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 descriptor binding",
 				"DirectX 12 후처리 입력 descriptor heap을 사용할 수 없습니다"));
 		}
@@ -420,14 +420,14 @@ namespace Chrivent {
 			const PostProcessPassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
 			if (!parameterDataBuffer.Write(GetParameterData(route), parameterOffset)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::CommandRecordingFailed, "후처리 parameter 기록",
 					"DirectX 12 후처리 pass parameter를 기록하지 못했습니다"));
 			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
 			if (route.outputKind == PostProcessOutputKind::Resource && outputTarget == nullptr) {
 				DiscardHistoryFrame();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
 					"DirectX 12 후처리 pass의 출력 target을 찾지 못했습니다"));
 			}
@@ -452,7 +452,7 @@ namespace Chrivent {
 			if (pipelines.GetRootSignature() == nullptr
 				|| pipelines.TryGetPipelineState(passIndex) == nullptr) {
 				DiscardHistoryFrame();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::InvalidState, "후처리 pipeline binding",
 					"DirectX 12 후처리 root signature 또는 pipeline state를 사용할 수 없습니다"));
 			}

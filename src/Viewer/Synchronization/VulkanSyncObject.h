@@ -16,11 +16,11 @@ namespace Chrivent {
 		size_t currentFrame = 0;
 
 		// swapchain 이미지별 present 완료 세마포어를 생성한다.
-		GraphicsResult<void> CreateRenderFinishedSemaphores(size_t swapChainImageCount);
+		GraphicsError::Result<void> CreateRenderFinishedSemaphores(size_t swapChainImageCount);
 		// swapchain 이미지별 present 완료 세마포어를 해제한다.
 		void ResetRenderFinishedSemaphores();
 		// 제출 실패 뒤 현재 프레임 fence를 신호 상태의 새 객체로 교체한다.
-		GraphicsResult<void> RestoreCurrentFence();
+		GraphicsError::Result<void> RestoreCurrentFence();
 
 	public:
 		VulkanSyncObject() = default;
@@ -30,17 +30,17 @@ namespace Chrivent {
 		VulkanSyncObject& operator=(const VulkanSyncObject&) = delete;
 		
 		// 더블버퍼링에 사용할 세마포어와 펜스를 생성한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, size_t swapChainImageCount);
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice, size_t swapChainImageCount);
 		// 생성한 세마포어와 펜스를 해제한다.
 		void Reset();
 		// 스왑체인 이미지별 fence 추적과 present 완료 세마포어를 초기화한다.
-		GraphicsResult<void> ResetImageTracking(size_t swapChainImageCount);
+		GraphicsError::Result<void> ResetImageTracking(size_t swapChainImageCount);
 		// 현재 프레임 슬롯의 이전 제출이 끝날 때까지 기다린다.
-		GraphicsResult<void> WaitForCurrentFrame() const;
+		GraphicsError::Result<void> WaitForCurrentFrame() const;
 		// 지정한 스왑체인 이미지를 사용한 이전 제출이 끝날 때까지 기다린다.
-		GraphicsResult<void> WaitForImage(uint32_t imageIndex) const;
+		GraphicsError::Result<void> WaitForImage(uint32_t imageIndex) const;
 		// 현재 command buffer를 제출하고 이미지별 fence 추적을 갱신한다.
-		GraphicsResult<void> Submit(
+		GraphicsError::Result<void> Submit(
 			VkQueue graphicsQueue, VkCommandBuffer commandBuffer, uint32_t imageIndex);
 		// 현재 프레임의 이미지 획득 세마포어를 반환한다.
 		VkSemaphore GetImageAvailableSemaphore() const { return imageAvailableSemaphores[currentFrame]; }

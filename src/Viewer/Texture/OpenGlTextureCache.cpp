@@ -12,7 +12,7 @@ namespace Chrivent {
 		}
 	}
 
-	GraphicsResult<OpenGlTexture> OpenGlTextureCache::CreateWhiteTexture() {
+	GraphicsError::Result<OpenGlTexture> OpenGlTextureCache::CreateWhiteTexture() {
 		const TextureKey key{ TextureKind::White };
 		if (const auto texture = FindCachedTexture(key))
 			return *texture;
@@ -22,7 +22,7 @@ namespace Chrivent {
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
 		if (tex == 0) {
 			const GLenum result = OpenGlErrorState::Take();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
 				"OpenGL texture 객체를 만들지 못했습니다",
 				result, result != GL_NO_ERROR));
@@ -34,7 +34,7 @@ namespace Chrivent {
 		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
 			glDeleteTextures(1, &tex);
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
 				"OpenGL fallback texture를 초기화하지 못했습니다", result, true));
 		}
@@ -43,7 +43,7 @@ namespace Chrivent {
 		return texture;
 	}
 
-	GraphicsResult<std::optional<OpenGlTexture>> OpenGlTextureCache::Load(
+	GraphicsError::Result<std::optional<OpenGlTexture>> OpenGlTextureCache::Load(
 		const std::filesystem::path& texturePath, const bool clamp) {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
 		if (const auto texture = FindCachedTexture(key))
@@ -57,7 +57,7 @@ namespace Chrivent {
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);
 		if (tex == 0) {
 			const GLenum result = OpenGlErrorState::Take();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"OpenGL texture 객체를 만들지 못했습니다",
 				result, result != GL_NO_ERROR));
@@ -74,7 +74,7 @@ namespace Chrivent {
 		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
 			glDeleteTextures(1, &tex);
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"OpenGL texture 데이터를 업로드하지 못했습니다", result, true));
 		}

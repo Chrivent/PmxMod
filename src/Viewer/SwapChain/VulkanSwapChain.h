@@ -29,7 +29,7 @@ namespace Chrivent {
 		VkExtent2D extent{};
 
 		// 물리 디바이스와 surface의 스왑체인 지원 정보를 조회한다.
-		static GraphicsResult<void> QuerySupport(const VulkanDevice& sourceDevice,
+		static GraphicsError::Result<void> QuerySupport(const VulkanDevice& sourceDevice,
 			Support& support);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -38,7 +38,7 @@ namespace Chrivent {
 		// 현재 윈도우 크기에 맞는 swap extent를 선택한다.
 		static VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 		// 스왑체인 이미지를 렌더 타깃으로 쓰기 위한 image view를 생성한다.
-		GraphicsResult<void> CreateImageViews();
+		GraphicsError::Result<void> CreateImageViews();
 
 	public:
 		VulkanSwapChain() = default;
@@ -55,14 +55,14 @@ namespace Chrivent {
 		VkExtent2D GetExtent() const { return extent; }
 		
 		// Vulkan surface에 연결된 스왑체인과 image view를 생성한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 창 크기 변경에 맞춰 스왑체인과 image view를 다시 생성한다.
-		GraphicsResult<void> Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window);
+		GraphicsError::Result<void> Recreate(const VulkanDevice& sourceDevice, GLFWwindow* window);
 		// 다음 렌더링 대상 이미지를 획득하고 스왑체인 재생성 필요 여부를 반환한다.
-		GraphicsResult<VulkanSwapChainState> AcquireNextImage(
+		GraphicsError::Result<VulkanSwapChainState> AcquireNextImage(
 			VkSemaphore imageAvailableSemaphore, uint32_t& imageIndex) const;
 		// 렌더링이 끝난 이미지를 표시하고 스왑체인 재생성 필요 여부를 반환한다.
-		GraphicsResult<VulkanSwapChainState> Present(
+		GraphicsError::Result<VulkanSwapChainState> Present(
 			VkQueue presentQueue, VkSemaphore renderFinishedSemaphore, uint32_t imageIndex) const;
 		// 생성한 스왑체인 리소스를 해제한다.
 		void Reset();

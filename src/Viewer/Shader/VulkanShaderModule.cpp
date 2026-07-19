@@ -5,11 +5,11 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanShaderModule::Initialize(
+	GraphicsError::Result<void> VulkanShaderModule::Initialize(
 		const VulkanDevice& sourceDevice, const std::span<const uint32_t> spvBytes) {
 		device = sourceDevice.GetDevice();
 		if (device == VK_NULL_HANDLE || spvBytes.empty()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "shader module 생성",
 				"Vulkan device 또는 SPIR-V 셰이더 byte 크기가 올바르지 않습니다"));
 		}
@@ -20,7 +20,7 @@ namespace Chrivent {
 		const VkResult result = vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule);
 		if (result == VK_SUCCESS)
 			return {};
-		return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 			GraphicsErrorCode::ResourceCreationFailed, "shader module 생성",
 			"Vulkan shader module을 만들지 못했습니다", result, true));
 	}

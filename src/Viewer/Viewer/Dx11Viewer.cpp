@@ -6,7 +6,7 @@
 #include <GLFW/glfw3native.h>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx11Viewer::CreateDummyResources() {
+	GraphicsError::Result<void> Dx11Viewer::CreateDummyResources() {
 		const auto textureResult = textureCache.CreateWhiteTexture(device.GetDevice());
 		if (!textureResult)
 			return std::unexpected(textureResult.error());
@@ -15,7 +15,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsError::Result<void> Dx11Viewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		HWND__* hwnd = glfwGetWin32Window(window);
 		const auto deviceResult = device.Initialize(capabilities);
@@ -39,7 +39,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Viewer::ResizeCore() {
+	GraphicsError::Result<void> Dx11Viewer::ResizeCore() {
 		renderTargets.Reset(device.GetContext());
 		postProcess.ResetTargets();
 		const auto resizeResult = swapChain.Resize(screenWidth, screenHeight);
@@ -59,7 +59,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<FrameBeginState> Dx11Viewer::BeginFrameCore() {
+	GraphicsError::Result<FrameBeginState> Dx11Viewer::BeginFrameCore() {
 		drawContext.BeginFrame();
 		ID3D11RenderTargetView* sceneColorView = renderTargets.GetSceneColorView();
 		device.GetContext()->ClearRenderTargetView(sceneColorView, clearColor);
@@ -71,7 +71,7 @@ namespace Chrivent {
 		return FrameBeginState::Ready;
 	}
 
-	GraphicsResult<FrameEndState> Dx11Viewer::EndFrameCore() {
+	GraphicsError::Result<FrameEndState> Dx11Viewer::EndFrameCore() {
 		if (postProcess.HasEffects()) {
 			const auto drawResult = postProcess.Draw(device.GetContext(),
 				renderTargets.GetSceneColor(), multiSampleCount, renderTargets.GetBackBufferView(),
@@ -92,20 +92,20 @@ namespace Chrivent {
 		return FrameEndState::Presented;
 	}
 
-	GraphicsResult<void> Dx11Viewer::BeginPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> Dx11Viewer::BeginPostProcessSceneInputPassCore() {
 		return postProcess.BeginSceneInputPass(device.GetContext(),
 			pipeline.GetDefaultDepthStencilState(), screenWidth, screenHeight);
 	}
 
-	GraphicsResult<void> Dx11Viewer::EndPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> Dx11Viewer::EndPostProcessSceneInputPassCore() {
 		return postProcess.EndSceneInputPass(device.GetContext());
 	}
 
-	GraphicsResult<void> Dx11Viewer::WaitIdle() {
+	GraphicsError::Result<void> Dx11Viewer::WaitIdleCore() {
 		return device.WaitIdle();
 	}
 
-	GraphicsResult<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> Dx11Viewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return postProcess.Configure(
 			device.GetDevice(), screenWidth, screenHeight, effects);
 	}

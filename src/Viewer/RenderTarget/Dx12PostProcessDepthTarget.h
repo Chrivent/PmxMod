@@ -19,7 +19,7 @@ namespace Chrivent {
 		}
 
 		// 화면 크기에 맞는 shader-readable depth target과 DSV를 생성한다.
-		GraphicsResult<void> Initialize(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsError::Result<void> Initialize(const Dx12Device& sourceDevice, int width, int height);
 		// 생성한 depth target 리소스를 해제한다.
 		void Reset();
 		// 두 depth target의 소유 리소스를 교환한다.

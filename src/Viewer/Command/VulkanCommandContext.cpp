@@ -5,12 +5,12 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain) {
 		Reset();
 		device = sourceDevice.GetDevice();
 		if (device == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "command context 초기화",
 				"Vulkan device를 사용할 수 없습니다"));
 		}
@@ -21,7 +21,7 @@ namespace Chrivent {
 		const VkResult result = vkCreateCommandPool(device, &createInfo, nullptr, &commandPool);
 		if (result != VK_SUCCESS) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "command pool 생성",
 				"Vulkan command pool을 만들지 못했습니다", result, true));
 		}

@@ -27,7 +27,7 @@ namespace Chrivent {
 		return log;
 	}
 
-	GraphicsResult<GLuint> OpenGlProgramBuilder::CreateStage(
+	GraphicsError::Result<GLuint> OpenGlProgramBuilder::CreateStage(
 		const GLenum shaderType, const std::vector<uint32_t>& code, const std::string& entry) {
 		std::string source;
 		try {
@@ -45,7 +45,7 @@ namespace Chrivent {
 			}
 			source = compiler.compile();
 		} catch (const spirv_cross::CompilerError& compilerError) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V를 GLSL로 변환",
 				"SPIR-V를 OpenGL GLSL로 변환하지 못했습니다: " + std::string(compilerError.what())));
 		}
@@ -55,7 +55,7 @@ namespace Chrivent {
 		if (shader == 0 || result != GL_NO_ERROR) {
 			if (shader != 0)
 				glDeleteShader(shader);
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "shader 객체 생성",
 				"OpenGL shader 객체를 만들지 못했습니다", result, result != GL_NO_ERROR));
 		}
@@ -74,27 +74,34 @@ namespace Chrivent {
 			message += log;
 		}
 		glDeleteShader(shader);
-		return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 			GraphicsErrorCode::EffectConfigurationFailed, "GLSL 셰이더 컴파일", std::move(message)));
 	}
 
-	GraphicsResult<GLuint> OpenGlProgramBuilder::CreateProgram(
+	GraphicsError::Result<GLuint> OpenGlProgramBuilder::CreateProgram(
 		const std::filesystem::path& shaderFile, const std::string& vertexEntry,
 		const std::string& pixelEntry, const SpirvBindingProfile bindingProfile,
 		const bool invertVertexY) {
-		std::vector<uint32_t> vertexCode;
-		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		std::string error;
-		if (!DxcHlslCompiler::CompileSpirv(shaderFile, wideVertexEntry, L"vs_6_0",
-			SpirvTarget::OpenGl, bindingProfile, vertexCode, error, invertVertexY)
-			|| !DxcHlslCompiler::CompileSpirv(shaderFile, widePixelEntry, L"ps_6_0",
-				SpirvTarget::OpenGl, bindingProfile, pixelCode, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
-				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V 셰이더 컴파일",
-				error.empty() ? "OpenGL용 SPIR-V 셰이더를 컴파일하지 못했습니다" : std::move(error)));
+		auto vertexCodeResult = DxcHlslCompiler::CompileSpirv(
+			shaderFile, wideVertexEntry, L"vs_6_0",
+			SpirvTarget::OpenGl, bindingProfile, invertVertexY);
+		if (!vertexCodeResult) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "vertex SPIR-V 셰이더 컴파일",
+				std::move(vertexCodeResult.error().message)));
 		}
+		auto pixelCodeResult = DxcHlslCompiler::CompileSpirv(
+			shaderFile, widePixelEntry, L"ps_6_0",
+			SpirvTarget::OpenGl, bindingProfile);
+		if (!pixelCodeResult) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
+				GraphicsErrorCode::EffectConfigurationFailed, "pixel SPIR-V 셰이더 컴파일",
+				std::move(pixelCodeResult.error().message)));
+		}
+		const std::vector<uint32_t>& vertexCode = *vertexCodeResult;
+		const std::vector<uint32_t>& pixelCode = *pixelCodeResult;
 		const auto vertexShaderResult = CreateStage(GL_VERTEX_SHADER, vertexCode, vertexEntry);
 		if (!vertexShaderResult)
 			return std::unexpected(vertexShaderResult.error());
@@ -113,7 +120,7 @@ namespace Chrivent {
 				glDeleteProgram(program);
 			glDeleteShader(vertexShader);
 			glDeleteShader(pixelShader);
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "shader program 생성",
 				"OpenGL shader program을 만들지 못했습니다", result, result != GL_NO_ERROR));
 		}
@@ -134,7 +141,7 @@ namespace Chrivent {
 			message += log;
 		}
 		glDeleteProgram(program);
-		return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 			GraphicsErrorCode::EffectConfigurationFailed, "shader program 링크", std::move(message)));
 	}
 
@@ -159,7 +166,7 @@ namespace Chrivent {
 		program = 0;
 	}
 
-	GraphicsResult<void> OpenGlShaderProgram::InitializeProgram(const ShaderProgramDefinition& shaderProgram,
+	GraphicsError::Result<void> OpenGlShaderProgram::InitializeProgram(const ShaderProgramDefinition& shaderProgram,
 		const SpirvBindingProfile bindingProfile, const bool invertVertexY) {
 		const auto result = OpenGlProgramBuilder::CreateProgram(shaderProgram.shaderPath,
 			shaderProgram.vertexEntry, shaderProgram.pixelEntry, bindingProfile, invertVertexY);
@@ -170,12 +177,12 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlSceneShaderProgram::Initialize(
+	GraphicsError::Result<void> OpenGlSceneShaderProgram::Initialize(
 		const ShaderProgramDefinition& shaderProgram) {
 		return InitializeProgram(shaderProgram, SpirvBindingProfile::Scene);
 	}
 
-	GraphicsResult<void> OpenGlPostProcessShaderProgram::Initialize(
+	GraphicsError::Result<void> OpenGlPostProcessShaderProgram::Initialize(
 		const ShaderProgramDefinition& shaderProgram) {
 		return InitializeProgram(shaderProgram, SpirvBindingProfile::PostProcess, true);
 	}

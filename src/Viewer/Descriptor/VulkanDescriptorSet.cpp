@@ -5,10 +5,10 @@
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanDescriptorSet::CreateDescriptorPool(const size_t textureDescriptorCount) {
+	GraphicsError::Result<void> VulkanDescriptorSet::CreateDescriptorPool(const size_t textureDescriptorCount) {
 		constexpr size_t maximumDescriptorCount = std::numeric_limits<uint32_t>::max();
 		if (textureDescriptorCount > maximumDescriptorCount / 3) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "descriptor pool 생성",
 				"texture descriptor 개수가 Vulkan 범위를 벗어났습니다"));
 		}
@@ -36,14 +36,14 @@ namespace Chrivent {
 		const VkResult result = vkCreateDescriptorPool(
 			device, &createInfo, nullptr, &descriptorPool);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "descriptor pool 생성",
 				"Vulkan descriptor pool을 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipeline& sourcePipeline,
+	GraphicsError::Result<void> VulkanDescriptorSet::AllocateDescriptorSets(const VulkanPipeline& sourcePipeline,
 		const size_t textureDescriptorCount) {
 		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -53,7 +53,7 @@ namespace Chrivent {
 		allocateInfo.pSetLayouts = &vertexLayout;
 		VkResult result = vkAllocateDescriptorSets(device, &allocateInfo, &vertexDescriptorSet);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "vertex descriptor set 할당",
 				"Vulkan vertex descriptor set을 할당하지 못했습니다", result, true));
 		}
@@ -61,7 +61,7 @@ namespace Chrivent {
 		allocateInfo.pSetLayouts = &pixelLayout;
 		result = vkAllocateDescriptorSets(device, &allocateInfo, &pixelDescriptorSet);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "pixel descriptor set 할당",
 				"Vulkan pixel descriptor set을 할당하지 못했습니다", result, true));
 		}
@@ -78,7 +78,7 @@ namespace Chrivent {
 		result = vkAllocateDescriptorSets(
 			device, &textureAllocateInfo, textureDescriptorSets.data());
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture descriptor set 할당",
 				"Vulkan texture descriptor set을 할당하지 못했습니다", result, true));
 		}
@@ -128,9 +128,9 @@ namespace Chrivent {
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
-	GraphicsResult<void> VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const {
+	GraphicsError::Result<void> VulkanDescriptorSet::UpdateTextureDescriptorSets(std::vector<VulkanModelMaterial>& materials) const {
 		if (materials.size() != textureDescriptorSets.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ContractViolation, "texture descriptor set 갱신",
 				"material 수와 Vulkan texture descriptor set 수가 일치하지 않습니다"));
 		}
@@ -231,7 +231,7 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanDescriptorSet::Initialize(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanDescriptorSet::Initialize(const VulkanDevice& sourceDevice,
 		const VulkanPipeline& sourcePipeline,
 		const VulkanBuffer& vertexConstantBuffer,
 		const VkDeviceSize vertexConstantRange,
@@ -242,7 +242,7 @@ namespace Chrivent {
 		Reset();
 		device = sourceDevice.GetDevice();
 		if (device == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "descriptor set 초기화",
 				"Vulkan device를 사용할 수 없습니다"));
 		}

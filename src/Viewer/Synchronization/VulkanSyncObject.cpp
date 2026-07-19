@@ -1,7 +1,7 @@
 ﻿#include "Viewer/Synchronization/VulkanSyncObject.h"
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanSyncObject::CreateRenderFinishedSemaphores(
+	GraphicsError::Result<void> VulkanSyncObject::CreateRenderFinishedSemaphores(
 		const size_t swapChainImageCount) {
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -10,7 +10,7 @@ namespace Chrivent {
 			const VkResult result = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore);
 			if (result != VK_SUCCESS) {
 				ResetRenderFinishedSemaphores();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::ResourceCreationFailed, "present semaphore 생성",
 					"Vulkan present semaphore를 만들지 못했습니다", result, true));
 			}
@@ -28,7 +28,7 @@ namespace Chrivent {
 		renderFinishedSemaphores.clear();
 	}
 
-	GraphicsResult<void> VulkanSyncObject::RestoreCurrentFence() {
+	GraphicsError::Result<void> VulkanSyncObject::RestoreCurrentFence() {
 		VkFence& currentFence = inFlightFences[currentFrame];
 		const VkFence discardedFence = currentFence;
 		for (VkFence& imageFence : imagesInFlight) {
@@ -44,7 +44,7 @@ namespace Chrivent {
 		};
 		const VkResult result = vkCreateFence(device, &fenceInfo, nullptr, &currentFence);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "in-flight fence 복구",
 				"제출 실패 후 Vulkan in-flight fence를 복구하지 못했습니다", result, true));
 		}
@@ -55,12 +55,12 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanSyncObject::Initialize(
+	GraphicsError::Result<void> VulkanSyncObject::Initialize(
 		const VulkanDevice& sourceDevice, const size_t swapChainImageCount) {
 		Reset();
 		device = sourceDevice.GetDevice();
 		if (device == VK_NULL_HANDLE || swapChainImageCount == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "프레임 동기화 초기화",
 				"Vulkan device 또는 스왑체인 이미지 수가 올바르지 않습니다"));
 		}
@@ -77,7 +77,7 @@ namespace Chrivent {
 				result = vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]);
 			if (result != VK_SUCCESS) {
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::ResourceCreationFailed, "프레임 동기화 객체 생성",
 					"Vulkan 프레임 세마포어 또는 fence를 만들지 못했습니다", result, true));
 			}
@@ -107,9 +107,9 @@ namespace Chrivent {
 		device = VK_NULL_HANDLE;
 	}
 
-	GraphicsResult<void> VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
+	GraphicsError::Result<void> VulkanSyncObject::ResetImageTracking(const size_t swapChainImageCount) {
 		if (device == VK_NULL_HANDLE || swapChainImageCount == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "스왑체인 이미지 동기화 초기화",
 				"Vulkan device 또는 스왑체인 이미지 수가 올바르지 않습니다"));
 		}
@@ -121,25 +121,25 @@ namespace Chrivent {
 		return result;
 	}
 
-	GraphicsResult<void> VulkanSyncObject::WaitForCurrentFrame() const {
+	GraphicsError::Result<void> VulkanSyncObject::WaitForCurrentFrame() const {
 		if (device == VK_NULL_HANDLE || inFlightFences[currentFrame] == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "현재 프레임 대기",
 				"Vulkan 현재 프레임 fence를 사용할 수 없습니다"));
 		}
 		const VkResult result = vkWaitForFences(
 			device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::SynchronizationFailed, "현재 프레임 대기",
 				"Vulkan 프레임 fence를 기다리지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanSyncObject::WaitForImage(const uint32_t imageIndex) const {
+	GraphicsError::Result<void> VulkanSyncObject::WaitForImage(const uint32_t imageIndex) const {
 		if (device == VK_NULL_HANDLE || imageIndex >= imagesInFlight.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "스왑체인 이미지 대기",
 				"Vulkan 스왑체인 이미지 색인이 동기화 범위를 벗어났습니다"));
 		}
@@ -148,19 +148,19 @@ namespace Chrivent {
 			return {};
 		const VkResult result = vkWaitForFences(device, 1, &imageFence, VK_TRUE, UINT64_MAX);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::SynchronizationFailed, "스왑체인 이미지 대기",
 				"Vulkan 이미지 fence를 기다리지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanSyncObject::Submit(
+	GraphicsError::Result<void> VulkanSyncObject::Submit(
 		const VkQueue graphicsQueue, const VkCommandBuffer commandBuffer, const uint32_t imageIndex) {
 		if (device == VK_NULL_HANDLE || graphicsQueue == VK_NULL_HANDLE
 			|| commandBuffer == VK_NULL_HANDLE || imageIndex >= renderFinishedSemaphores.size()
 			|| imageIndex >= imagesInFlight.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "프레임 제출",
 				"Vulkan 프레임 제출에 필요한 큐, command buffer 또는 이미지 색인이 올바르지 않습니다"));
 		}
@@ -181,7 +181,7 @@ namespace Chrivent {
 		const VkFence& inFlightFence = inFlightFences[currentFrame];
 		VkResult result = vkResetFences(device, 1, &inFlightFence);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::SynchronizationFailed, "프레임 fence 초기화",
 				"Vulkan in-flight fence를 초기화하지 못했습니다", result, true));
 		}
@@ -199,7 +199,7 @@ namespace Chrivent {
 			const auto restoreResult = RestoreCurrentFence();
 			if (!restoreResult)
 				return std::unexpected(restoreResult.error());
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::CommandSubmissionFailed, "프레임 제출",
 				"Vulkan command buffer를 제출하지 못했습니다", result, true));
 		}

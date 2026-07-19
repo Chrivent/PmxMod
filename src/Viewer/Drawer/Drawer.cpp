@@ -13,7 +13,7 @@ namespace Chrivent {
 
 	GraphicsError Drawer::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
-		return MakeGraphicsError(graphicsApi, code, std::move(operation),
+		return GraphicsError::Create(graphicsApi, code, std::move(operation),
 			std::move(message), nativeCode, hasNativeCode);
 	}
 
@@ -132,19 +132,19 @@ namespace Chrivent {
 		BeginDrawFrame();
 	}
 
-	GraphicsResult<void> Drawer::DrawModelPass() {
-		return drawState.scene.modelEnabled ? DrawModel() : GraphicsResult<void>{};
+	GraphicsError::Result<void> Drawer::DrawModelPass() {
+		return drawState.scene.modelEnabled ? DrawModel() : GraphicsError::Result<void>{};
 	}
 
-	GraphicsResult<void> Drawer::DrawEdgePass() {
-		return drawState.scene.edgeEnabled ? DrawEdge() : GraphicsResult<void>{};
+	GraphicsError::Result<void> Drawer::DrawEdgePass() {
+		return drawState.scene.edgeEnabled ? DrawEdge() : GraphicsError::Result<void>{};
 	}
 
-	GraphicsResult<void> Drawer::DrawGroundShadowPass() {
-		return drawState.scene.groundShadowEnabled ? DrawGroundShadow() : GraphicsResult<void>{};
+	GraphicsError::Result<void> Drawer::DrawGroundShadowPass() {
+		return drawState.scene.groundShadowEnabled ? DrawGroundShadow() : GraphicsError::Result<void>{};
 	}
 
-	GraphicsResult<void> Drawer::DrawPostProcessSceneInputs() {
+	GraphicsError::Result<void> Drawer::DrawPostProcessSceneInputs() {
 		return DrawSceneInputs();
 	}
 }

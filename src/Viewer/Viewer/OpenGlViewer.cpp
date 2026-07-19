@@ -27,7 +27,7 @@ namespace Chrivent {
 		glfwWindowHint(GLFW_SAMPLES, msaaSamples);
 	}
 
-	GraphicsResult<void> OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsError::Result<void> OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
 		const auto deviceResult = OpenGlDevice::Initialize(window, msaaSamples, capabilities);
 		if (!deviceResult)
@@ -43,7 +43,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlViewer::ResizeCore() {
+	GraphicsError::Result<void> OpenGlViewer::ResizeCore() {
 		glViewport(0, 0, screenWidth, screenHeight);
 		if (postProcess.HasEffects()) {
 			const auto postProcessResult = postProcess.InitializeTargets(
@@ -56,7 +56,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<FrameBeginState> OpenGlViewer::BeginFrameCore() {
+	GraphicsError::Result<FrameBeginState> OpenGlViewer::BeginFrameCore() {
 		drawContext.BeginFrame();
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcess.TryGetSceneFramebuffer());
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
@@ -64,7 +64,7 @@ namespace Chrivent {
 		return FrameBeginState::Ready;
 	}
 
-	GraphicsResult<FrameEndState> OpenGlViewer::EndFrameCore() {
+	GraphicsError::Result<FrameEndState> OpenGlViewer::EndFrameCore() {
 		const auto drawResult = postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData());
 		if (!drawResult)
 			return std::unexpected(drawResult.error());
@@ -72,19 +72,19 @@ namespace Chrivent {
 		return FrameEndState::Presented;
 	}
 
-	GraphicsResult<void> OpenGlViewer::BeginPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> OpenGlViewer::BeginPostProcessSceneInputPassCore() {
 		return postProcess.BeginSceneInputPass(screenWidth, screenHeight);
 	}
 
-	GraphicsResult<void> OpenGlViewer::EndPostProcessSceneInputPassCore() {
+	GraphicsError::Result<void> OpenGlViewer::EndPostProcessSceneInputPassCore() {
 		return postProcess.EndSceneInputPass();
 	}
 
-	GraphicsResult<void> OpenGlViewer::WaitIdle() {
+	GraphicsError::Result<void> OpenGlViewer::WaitIdleCore() {
 		return OpenGlDevice::WaitIdle(window);
 	}
 
-	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {
 		return postProcess.Configure(screenWidth, screenHeight,
 			capabilities.activeSampleCount, effects);
 	}

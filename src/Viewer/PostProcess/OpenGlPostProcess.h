@@ -35,7 +35,7 @@ namespace Chrivent {
 		int targetHeight = 0;
 
 		// 패키지가 선언한 transient/history texture와 framebuffer를 생성한다.
-		GraphicsResult<void> CreateEffectResources();
+		GraphicsError::Result<void> CreateEffectResources();
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories();
 		// pass 입력 경로에 대응하는 OpenGL texture를 반환한다.
@@ -49,7 +49,7 @@ namespace Chrivent {
 		// 후처리 프로그램만 해제한다.
 		void ResetPrograms();
 		// 현재 실행 계획의 OpenGL 후처리 프로그램을 생성한다.
-		GraphicsResult<void> CreatePrograms();
+		GraphicsError::Result<void> CreatePrograms();
 		// 검증을 마친 다른 OpenGL 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(OpenGlPostProcess& other) noexcept;
 		
@@ -59,16 +59,16 @@ namespace Chrivent {
 		GLuint TryGetSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
-		GraphicsResult<void> InitializeTargets(int width, int height, int sampleCount);
+		GraphicsError::Result<void> InitializeTargets(int width, int height, int sampleCount);
 		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
-		GraphicsResult<void> Configure(int width, int height, int sampleCount,
+		GraphicsError::Result<void> Configure(int width, int height, int sampleCount,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		GraphicsResult<void> BeginSceneInputPass(int width, int height) const;
+		GraphicsError::Result<void> BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.
-		static GraphicsResult<void> EndSceneInputPass();
+		static GraphicsError::Result<void> EndSceneInputPass();
 		// 준비된 실행 계획으로 화면 색상을 기본 framebuffer에 그린다.
-		GraphicsResult<void> Draw(int width, int height, const PostProcessFrameData& frameData);
+		GraphicsError::Result<void> Draw(int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};

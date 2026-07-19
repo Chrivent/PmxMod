@@ -7,7 +7,7 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx11Pipeline::CreateShaders(ID3D11Device* device,
+	GraphicsError::Result<void> Dx11Pipeline::CreateShaders(ID3D11Device* device,
 		const BuiltInShaderPasses& builtInPasses,
 		const SceneInputShaderPasses& sceneInputPasses) {
 		constexpr D3D11_INPUT_ELEMENT_DESC modelInputElements[] = {
@@ -59,12 +59,12 @@ namespace Chrivent {
 		return result;
 	}
 
-	GraphicsResult<void> Dx11Pipeline::CreateStates(ID3D11Device* device) {
+	GraphicsError::Result<void> Dx11Pipeline::CreateStates(ID3D11Device* device) {
 		auto wrapLinear = Dx11DescBuilder::MakeSamplerDesc(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 			D3D11_TEXTURE_ADDRESS_WRAP);
 		HRESULT result = device->CreateSamplerState(&wrapLinear, &states.textureSampler);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "일반 texture sampler 생성",
 				"DirectX 11 일반 texture sampler를 만들지 못했습니다", result, true));
 		}
@@ -72,42 +72,42 @@ namespace Chrivent {
 			D3D11_TEXTURE_ADDRESS_CLAMP);
 		result = device->CreateSamplerState(&clampLinear, &states.toonTextureSampler);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "툰 texture sampler 생성",
 				"DirectX 11 툰 texture sampler를 만들지 못했습니다", result, true));
 		}
 		auto blend = Dx11DescBuilder::MakeAlphaBlendDesc();
 		result = device->CreateBlendState(&blend, &states.blendState);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "alpha blend state 생성",
 				"DirectX 11 alpha blend state를 만들지 못했습니다", result, true));
 		}
 		auto groundShadowBlend = Dx11DescBuilder::MakeGroundShadowBlendDesc();
 		result = device->CreateBlendState(&groundShadowBlend, &states.groundShadowBlendState);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 blend state 생성",
 				"DirectX 11 지면 그림자 blend state를 만들지 못했습니다", result, true));
 		}
 		auto frontDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_BACK, true);
 		result = device->CreateRasterizerState(&frontDescription, &states.frontFaceRs);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "단면 rasterizer state 생성",
 				"DirectX 11 단면 rasterizer state를 만들지 못했습니다", result, true));
 		}
 		auto bothDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_NONE, true);
 		result = device->CreateRasterizerState(&bothDescription, &states.bothFaceRs);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "양면 rasterizer state 생성",
 				"DirectX 11 양면 rasterizer state를 만들지 못했습니다", result, true));
 		}
 		auto edgeDescription = Dx11DescBuilder::MakeRasterizerDesc(D3D11_CULL_FRONT, true);
 		result = device->CreateRasterizerState(&edgeDescription, &states.edgeRs);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "엣지 rasterizer state 생성",
 				"DirectX 11 엣지 rasterizer state를 만들지 못했습니다", result, true));
 		}
@@ -117,31 +117,31 @@ namespace Chrivent {
 		shadowDescription.DepthBiasClamp = -1.0f;
 		result = device->CreateRasterizerState(&shadowDescription, &states.gsRs);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 rasterizer state 생성",
 				"DirectX 11 지면 그림자 rasterizer state를 만들지 못했습니다", result, true));
 		}
 		auto shadowDepthDescription = Dx11DescBuilder::MakeGroundShadowDepthStencilDesc();
 		result = device->CreateDepthStencilState(&shadowDepthDescription, &states.gsDss);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 depth state 생성",
 				"DirectX 11 지면 그림자 depth state를 만들지 못했습니다", result, true));
 		}
 		auto defaultDepthDescription = Dx11DescBuilder::MakeDefaultDepthStencilDesc();
 		result = device->CreateDepthStencilState(&defaultDepthDescription, &states.defaultDss);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::ResourceCreationFailed, "기본 depth state 생성",
 				"DirectX 11 기본 depth state를 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Pipeline::Initialize(ID3D11Device* device,
+	GraphicsError::Result<void> Dx11Pipeline::Initialize(ID3D11Device* device,
 		const SceneShaderRuntimeContract& shaderContract) {
 		if (device == nullptr)
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidArgument, "rendering pipeline 초기화",
 				"DirectX 11 device가 올바르지 않습니다"));
 		Dx11Pipeline candidate;

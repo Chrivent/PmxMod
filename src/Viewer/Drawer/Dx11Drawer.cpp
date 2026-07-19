@@ -25,7 +25,7 @@ namespace Chrivent {
 		}
 	}
 
-	GraphicsResult<void> Dx11Drawer::WriteConstantBuffer(ID3D11Buffer* buffer,
+	GraphicsError::Result<void> Dx11Drawer::WriteConstantBuffer(ID3D11Buffer* buffer,
 		const void* data, const size_t size, const char* operation) const {
 		if (buffer == nullptr || data == nullptr || size == 0) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
@@ -53,7 +53,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	GraphicsResult<void> Dx11Drawer::DrawModel() {
+	GraphicsError::Result<void> Dx11Drawer::DrawModel() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -119,7 +119,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Drawer::DrawEdge() {
+	GraphicsError::Result<void> Dx11Drawer::DrawEdge() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -161,7 +161,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Drawer::DrawGroundShadow() {
+	GraphicsError::Result<void> Dx11Drawer::DrawGroundShadow() {
 		const auto& materials = resources.materials;
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
@@ -201,7 +201,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Drawer::DrawSceneInputs() {
+	GraphicsError::Result<void> Dx11Drawer::DrawSceneInputs() {
 		const auto& vertexBuffer = resources.vertexBuffer;
 		const auto& indexBuffer = resources.indexBuffer;
 		const auto indexBufferFormat = resources.indexBufferFormat;

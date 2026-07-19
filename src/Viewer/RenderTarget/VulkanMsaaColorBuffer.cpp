@@ -3,7 +3,7 @@
 #include "Viewer/Memory/VulkanMemory.h"
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanMsaaColorBuffer::CreateImage(
+	GraphicsError::Result<void> VulkanMsaaColorBuffer::CreateImage(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -21,7 +21,7 @@ namespace Chrivent {
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VkResult result = vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA color image 생성",
 				"Vulkan MSAA color image를 만들지 못했습니다", result, true));
 		}
@@ -30,7 +30,7 @@ namespace Chrivent {
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "MSAA color memory type 선택",
 				"Vulkan MSAA color image에 사용할 memory type을 찾지 못했습니다"));
 		}
@@ -40,20 +40,20 @@ namespace Chrivent {
 		allocateInfo.memoryTypeIndex = memoryType;
 		result = vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA color memory 할당",
 				"Vulkan MSAA color image memory를 할당하지 못했습니다", result, true));
 		}
 		result = vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA color memory 연결",
 				"Vulkan MSAA color image memory를 연결하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanMsaaColorBuffer::CreateImageView() {
+	GraphicsError::Result<void> VulkanMsaaColorBuffer::CreateImageView() {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -66,7 +66,7 @@ namespace Chrivent {
 		viewInfo.subresourceRange.layerCount = 1;
 		const VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "MSAA color image view 생성",
 				"Vulkan MSAA color image view를 만들지 못했습니다", result, true));
 		}
@@ -77,7 +77,7 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanMsaaColorBuffer::Initialize(
+	GraphicsError::Result<void> VulkanMsaaColorBuffer::Initialize(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
 		Reset();
 		device = sourceDevice.GetDevice();
@@ -85,7 +85,7 @@ namespace Chrivent {
 		if (device == VK_NULL_HANDLE || format == VK_FORMAT_UNDEFINED
 			|| sourceSwapChain.GetExtent().width == 0 || sourceSwapChain.GetExtent().height == 0) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "MSAA color buffer 초기화",
 				"Vulkan device, color format 또는 출력 크기가 올바르지 않습니다"));
 		}

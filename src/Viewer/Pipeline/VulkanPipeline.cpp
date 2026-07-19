@@ -7,7 +7,7 @@
 #include <iterator>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanPipeline::CreateDescriptorSetLayouts() {
+	GraphicsError::Result<void> VulkanPipeline::CreateDescriptorSetLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
 			.binding = SpirvBindingLayout::frameDataBinding,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -22,7 +22,7 @@ namespace Chrivent {
 		VkResult result = vkCreateDescriptorSetLayout(device, &vertexLayoutInfo,
 			nullptr, &descriptorSetLayouts[0]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "vertex descriptor set layout 생성",
 				"Vulkan vertex descriptor set layout을 만들지 못했습니다", result, true));
 		}
@@ -40,7 +40,7 @@ namespace Chrivent {
 		result = vkCreateDescriptorSetLayout(device, &pixelLayoutInfo,
 			nullptr, &descriptorSetLayouts[1]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "pixel descriptor set layout 생성",
 				"Vulkan pixel descriptor set layout을 만들지 못했습니다", result, true));
 		}
@@ -90,14 +90,14 @@ namespace Chrivent {
 		result = vkCreateDescriptorSetLayout(device, &textureLayoutInfo,
 			nullptr, &descriptorSetLayouts[2]);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture descriptor set layout 생성",
 				"Vulkan texture descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanPipeline::CreatePipelineLayout() {
+	GraphicsError::Result<void> VulkanPipeline::CreatePipelineLayout() {
 		const VkPipelineLayoutCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = 3,
@@ -105,14 +105,14 @@ namespace Chrivent {
 		};
 		const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "pipeline layout 생성",
 				"Vulkan pipeline layout을 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanPipeline::CreateGraphicsPipelines(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
 		const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
 		const ShaderProgramDefinition& velocityProgram) {
@@ -203,11 +203,11 @@ namespace Chrivent {
 		std::swap(shaderContract, other.shaderContract);
 	}
 
-	GraphicsResult<void> VulkanPipeline::Initialize(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanPipeline::Initialize(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
 		const SceneShaderRuntimeContract& sourceShaderContract) {
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "graphics pipeline 초기화",
 				"Vulkan device를 사용할 수 없습니다"));
 		}
@@ -233,12 +233,12 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanPipeline::RecreateIfIncompatible(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanPipeline::RecreateIfIncompatible(const VulkanDevice& sourceDevice,
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat) {
 		if (IsCompatible(sourceColorFormat, sourceDepthFormat, sourceDevice.GetMsaaSampleCount()))
 			return {};
 		if (shaderContract.builtIn.model.shaderPath.empty()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "graphics pipeline 재생성",
 				"Vulkan 장면 셰이더 계약이 저장되지 않았습니다"));
 		}

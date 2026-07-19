@@ -21,7 +21,7 @@ namespace Chrivent {
 		return true;
 	}
 
-	GraphicsResult<void> OpenGlDrawer::DrawModel() {
+	GraphicsError::Result<void> OpenGlDrawer::DrawModel() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -102,7 +102,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlDrawer::DrawEdge() {
+	GraphicsError::Result<void> OpenGlDrawer::DrawEdge() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -140,7 +140,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlDrawer::DrawGroundShadow() {
+	GraphicsError::Result<void> OpenGlDrawer::DrawGroundShadow() {
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -188,7 +188,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlDrawer::DrawSceneInputs() {
+	GraphicsError::Result<void> OpenGlDrawer::DrawSceneInputs() {
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		if (drawState.velocityRequired) {

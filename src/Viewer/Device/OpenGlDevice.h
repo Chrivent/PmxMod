@@ -18,9 +18,9 @@ namespace Chrivent {
 
 	public:
 		// 현재 윈도우의 OpenGL 컨텍스트를 초기화하고 지원 기능을 기록한다.
-		static GraphicsResult<void> Initialize(GLFWwindow* window, uint32_t preferredSampleCount,
+		static GraphicsError::Result<void> Initialize(GLFWwindow* window, uint32_t preferredSampleCount,
 			GraphicsCapabilities& capabilities);
 		// 현재 OpenGL 컨텍스트의 명령이 모두 처리될 때까지 기다린다.
-		static GraphicsResult<void> WaitIdle(GLFWwindow* window);
+		static GraphicsError::Result<void> WaitIdle(GLFWwindow* window);
 	};
 }

@@ -55,7 +55,7 @@ namespace Chrivent {
 		vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 	}
 
-	GraphicsResult<void> VulkanTextureCache::UploadRgbaPixels(
+	GraphicsError::Result<void> VulkanTextureCache::UploadRgbaPixels(
 		const VulkanDevice& sourceDevice, const unsigned char* pixels,
 		const uint32_t width, const uint32_t height, VulkanTexture& texture, const bool clamp) {
 		const auto samplerResult = CreateSamplers();
@@ -64,7 +64,7 @@ namespace Chrivent {
 		if (pixels == nullptr || width == 0 || height == 0
 			|| static_cast<VkDeviceSize>(width) > std::numeric_limits<VkDeviceSize>::max()
 				/ 4 / static_cast<VkDeviceSize>(height)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "texture 업로드",
 				"Vulkan texture 픽셀 데이터 또는 크기가 올바르지 않습니다"));
 		}
@@ -76,7 +76,7 @@ namespace Chrivent {
 		if (!stagingResult)
 			return std::unexpected(stagingResult.error());
 		if (!stagingBuffer->Write(pixels, imageSize)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture staging buffer 기록",
 				"Vulkan texture 픽셀을 staging buffer에 기록하지 못했습니다"));
 		}
@@ -138,9 +138,9 @@ namespace Chrivent {
 		pendingTextureKeys.clear();
 	}
 
-	GraphicsResult<void> VulkanTextureCache::BeginUploadBatch(const VulkanDevice& sourceDevice) {
+	GraphicsError::Result<void> VulkanTextureCache::BeginUploadBatch(const VulkanDevice& sourceDevice) {
 		if (uploadBatchActive) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "texture upload batch 시작",
 				"Vulkan texture upload batch가 이미 활성화되어 있습니다"));
 		}
@@ -153,9 +153,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanTextureCache::SubmitUploadBatch(const VulkanDevice& sourceDevice) {
+	GraphicsError::Result<void> VulkanTextureCache::SubmitUploadBatch(const VulkanDevice& sourceDevice) {
 		if (!uploadBatchActive) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "texture upload batch 제출",
 				"제출할 Vulkan texture upload batch가 없습니다"));
 		}
@@ -179,7 +179,7 @@ namespace Chrivent {
 		RollbackUploadBatch();
 	}
 
-	GraphicsResult<void> VulkanTextureCache::CreateImage(
+	GraphicsError::Result<void> VulkanTextureCache::CreateImage(
 		const VulkanDevice& sourceDevice, const uint32_t width, const uint32_t height,
 		VkImage& image, VkDeviceMemory& imageMemory) {
 		VkImageCreateInfo imageInfo{};
@@ -198,7 +198,7 @@ namespace Chrivent {
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		VkResult result = vkCreateImage(sourceDevice.GetDevice(), &imageInfo, nullptr, &image);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture image 생성",
 				"Vulkan texture image를 만들지 못했습니다", result, true));
 		}
@@ -206,7 +206,7 @@ namespace Chrivent {
 		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "texture image memory type 선택",
 				"Vulkan texture image memory type을 찾지 못했습니다"));
 		}
@@ -216,20 +216,20 @@ namespace Chrivent {
 		allocateInfo.memoryTypeIndex = memoryType;
 		result = vkAllocateMemory(sourceDevice.GetDevice(), &allocateInfo, nullptr, &imageMemory);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture image memory 할당",
 				"Vulkan texture image memory를 할당하지 못했습니다", result, true));
 		}
 		result = vkBindImageMemory(sourceDevice.GetDevice(), image, imageMemory, 0);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture image memory 연결",
 				"Vulkan texture image memory를 연결하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanTextureCache::CreateImageView(
+	GraphicsError::Result<void> VulkanTextureCache::CreateImageView(
 		const VkImage image, VkImageView& imageView) const {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -243,14 +243,14 @@ namespace Chrivent {
 		viewInfo.subresourceRange.layerCount = 1;
 		const VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture image view 생성",
 				"Vulkan texture image view를 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanTextureCache::CreateSampler(
+	GraphicsError::Result<void> VulkanTextureCache::CreateSampler(
 		VkSampler& sampler, const bool clamp) const {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -269,16 +269,16 @@ namespace Chrivent {
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		const VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "texture sampler 생성",
 				"Vulkan texture sampler를 만들지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanTextureCache::CreateSamplers() {
+	GraphicsError::Result<void> VulkanTextureCache::CreateSamplers() {
 		if (device == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "texture sampler 생성",
 				"Vulkan device를 사용할 수 없습니다"));
 		}
@@ -332,7 +332,7 @@ namespace Chrivent {
 		ResetSamplers();
 	}
 
-	GraphicsResult<std::optional<VulkanTexture>> VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<std::optional<VulkanTexture>> VulkanTextureCache::Load(const VulkanDevice& sourceDevice,
 		const std::filesystem::path& texturePath, const bool clamp) {
 		device = sourceDevice.GetDevice();
 		const TextureKey cacheKey{
@@ -357,7 +357,7 @@ namespace Chrivent {
 		return std::optional{ texture };
 	}
 
-	GraphicsResult<VulkanTexture> VulkanTextureCache::CreateWhiteTexture(
+	GraphicsError::Result<VulkanTexture> VulkanTextureCache::CreateWhiteTexture(
 		const VulkanDevice& sourceDevice) {
 		device = sourceDevice.GetDevice();
 		const TextureKey key{ TextureKind::White };

@@ -13,7 +13,7 @@
 #include <memory>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanInstance::CreateGeometryBuffers() {
+	GraphicsError::Result<void> VulkanInstance::CreateGeometryBuffers() {
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
 		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
@@ -65,7 +65,7 @@ namespace Chrivent {
 			modelResources.indexBuffer.buffer, std::move(indexUploadBuffer), indexBufferSize);
 	}
 
-	GraphicsResult<void> VulkanInstance::SetupConstantRings() {
+	GraphicsError::Result<void> VulkanInstance::SetupConstantRings() {
 		modelResources.uniformBufferOffsetAlignment = std::max<size_t>(
 			1, device.GetUniformBufferAlignment());
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
@@ -129,7 +129,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanInstance::LoadMaterials() {
+	GraphicsError::Result<void> VulkanInstance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			VulkanModelMaterial material(mat);
@@ -171,7 +171,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanInstance::CreateDescriptorSets() {
+	GraphicsError::Result<void> VulkanInstance::CreateDescriptorSets() {
 		const auto modelResult = modelResources.modelDescriptorSet.Initialize(device, pipeline,
 			modelResources.vertexConstantsRing.GetBuffer(), sizeof(ModelVertexConstants),
 			modelResources.pixelConstantsRing.GetBuffer(), sizeof(ModelPixelConstants),
@@ -218,7 +218,7 @@ namespace Chrivent {
 		modelResources.indexType = VK_INDEX_TYPE_UINT16;
 	}
 
-	GraphicsResult<void> VulkanInstance::SetupRenderer() {
+	GraphicsError::Result<void> VulkanInstance::SetupRenderer() {
 		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
 		if (!beginUploadResult)
 			return std::unexpected(beginUploadResult.error());
@@ -243,7 +243,7 @@ namespace Chrivent {
 		return CreateDescriptorSets();
 	}
 
-	GraphicsResult<void> VulkanInstance::UploadCore() {
+	GraphicsError::Result<void> VulkanInstance::UploadCore() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
 			frameIndex % FrameBuffering::vulkanFramesInFlight];

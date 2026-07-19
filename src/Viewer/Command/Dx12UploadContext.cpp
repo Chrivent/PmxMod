@@ -17,9 +17,9 @@ namespace Chrivent {
 		batchRecording = false;
 	}
 
-	GraphicsResult<void> Dx12UploadContext::Begin(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12UploadContext::Begin(const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetDevice() || !sourceDevice.GetCommandQueue()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "업로드 command 기록 시작",
 				"DirectX 12 device 또는 command queue를 사용할 수 없습니다"));
 		}
@@ -28,7 +28,7 @@ namespace Chrivent {
 				D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 			if (FAILED(result)) {
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ResourceCreationFailed, "업로드 command allocator 생성",
 					"DirectX 12 업로드 command allocator를 만들지 못했습니다", result, true));
 			}
@@ -36,7 +36,7 @@ namespace Chrivent {
 				commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
 			if (FAILED(result)) {
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ResourceCreationFailed, "업로드 command list 생성",
 					"DirectX 12 업로드 command list를 만들지 못했습니다", result, true));
 			}
@@ -44,7 +44,7 @@ namespace Chrivent {
 				result = commandList.As(&enhancedCommandList);
 				if (FAILED(result)) {
 					Reset();
-					return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 						GraphicsErrorCode::UnsupportedFeature, "업로드 향상된 command list 조회",
 						"DirectX 12 향상된 업로드 command list를 가져오지 못했습니다", result, true));
 				}
@@ -53,7 +53,7 @@ namespace Chrivent {
 				0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 			if (FAILED(result)) {
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ResourceCreationFailed, "업로드 fence 생성",
 					"DirectX 12 업로드 fence를 만들지 못했습니다", result, true));
 			}
@@ -61,7 +61,7 @@ namespace Chrivent {
 			if (fenceEvent == nullptr) {
 				const DWORD error = GetLastError();
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ResourceCreationFailed, "업로드 fence event 생성",
 					"DirectX 12 업로드 fence event를 만들지 못했습니다", error, true));
 			}
@@ -69,34 +69,34 @@ namespace Chrivent {
 		}
 		if (!commandList || !fence || !fenceEvent) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "업로드 command context 재사용",
 				"DirectX 12 업로드 command context가 부분 초기화 상태입니다"));
 		}
 		HRESULT result = commandAllocator->Reset();
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "업로드 command allocator 초기화",
 				"DirectX 12 업로드 command allocator를 초기화하지 못했습니다", result, true));
 		}
 		result = commandList->Reset(commandAllocator.Get(), nullptr);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "업로드 command list 초기화",
 				"DirectX 12 업로드 command list를 초기화하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> Dx12UploadContext::SubmitAndWait(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12UploadContext::SubmitAndWait(const Dx12Device& sourceDevice) {
 		if (!sourceDevice.GetCommandQueue() || !commandList || !fence || !fenceEvent) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "업로드 command 제출",
 				"DirectX 12 업로드 command context를 사용할 수 없습니다"));
 		}
 		HRESULT result = commandList->Close();
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "업로드 command list 종료",
 				"DirectX 12 업로드 command list 기록을 끝내지 못했습니다", result, true));
 		}
@@ -105,7 +105,7 @@ namespace Chrivent {
 		fenceValue++;
 		result = sourceDevice.GetCommandQueue()->Signal(fence.Get(), fenceValue);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandSubmissionFailed, "업로드 fence signal",
 				"DirectX 12 업로드 fence 값을 기록하지 못했습니다", result, true));
 		}
@@ -113,13 +113,13 @@ namespace Chrivent {
 			return {};
 		result = fence->SetEventOnCompletion(fenceValue, fenceEvent);
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::SynchronizationFailed, "업로드 fence event 설정",
 				"DirectX 12 업로드 fence 완료 event를 설정하지 못했습니다", result, true));
 		}
 		const DWORD waitResult = WaitForSingleObject(fenceEvent, INFINITE);
 		if (waitResult != WAIT_OBJECT_0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::SynchronizationFailed, "업로드 fence 대기",
 				"DirectX 12 업로드 fence를 기다리지 못했습니다", waitResult, true));
 		}
@@ -130,9 +130,9 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> Dx12UploadContext::BeginBatch(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12UploadContext::BeginBatch(const Dx12Device& sourceDevice) {
 		if (batchRecording) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "업로드 batch 시작",
 				"DirectX 12 업로드 batch가 이미 기록 중입니다"));
 		}
@@ -144,11 +144,11 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12UploadContext::RecordTextureUpload(
+	GraphicsError::Result<void> Dx12UploadContext::RecordTextureUpload(
 		ID3D12Resource* destination, ID3D12Resource* source,
 		const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& layout) {
 		if (!batchRecording || !commandList || destination == nullptr || source == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "texture 업로드 기록",
 				"DirectX 12 업로드 batch 또는 texture 리소스가 올바르지 않습니다"));
 		}
@@ -166,10 +166,10 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12UploadContext::RecordIndexBufferUpload(
+	GraphicsError::Result<void> Dx12UploadContext::RecordIndexBufferUpload(
 		ID3D12Resource* destination, ID3D12Resource* source, const UINT64 size) {
 		if (!batchRecording || !commandList || destination == nullptr || source == nullptr || size == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "index buffer 업로드 기록",
 				"DirectX 12 업로드 batch 또는 index buffer가 올바르지 않습니다"));
 		}
@@ -180,9 +180,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx12UploadContext::SubmitBatch(const Dx12Device& sourceDevice) {
+	GraphicsError::Result<void> Dx12UploadContext::SubmitBatch(const Dx12Device& sourceDevice) {
 		if (!batchRecording) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "업로드 batch 제출",
 				"제출할 DirectX 12 업로드 batch가 없습니다"));
 		}

@@ -1,11 +1,11 @@
 ﻿#include "Viewer/RenderTarget/Dx12PostProcessDepthTarget.h"
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12PostProcessDepthTarget::Initialize(const Dx12Device& sourceDevice,
+	GraphicsError::Result<void> Dx12PostProcessDepthTarget::Initialize(const Dx12Device& sourceDevice,
 		const int width, const int height) {
 		Reset();
 		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "후처리 depth target 생성",
 				"DirectX 12 device 또는 depth target 크기가 올바르지 않습니다"));
 		}
@@ -29,7 +29,7 @@ namespace Chrivent {
 			&heapProperties, D3D12_HEAP_FLAG_NONE, &description,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth target 생성",
 				"DirectX 12 후처리 depth target을 만들지 못했습니다", result, true));
 		}
@@ -40,7 +40,7 @@ namespace Chrivent {
 			&heapDescription, IID_PPV_ARGS(&dsvHeap));
 		if (FAILED(result)) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth descriptor heap 생성",
 				"DirectX 12 후처리 depth descriptor heap을 만들지 못했습니다", result, true));
 		}

@@ -50,20 +50,20 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanCommandBuffer::Initialize(const VulkanDevice& sourceDevice,
 		const VkCommandPool sourceCommandPool, const VulkanSwapChain& sourceSwapChain) {
 		Reset();
 		device = sourceDevice.GetDevice();
 		commandPool = sourceCommandPool;
 		if (device == VK_NULL_HANDLE || commandPool == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "command buffer 할당",
 				"Vulkan device 또는 command pool을 사용할 수 없습니다"));
 		}
 		commandBuffers.resize(sourceSwapChain.GetImageCount());
 		if (commandBuffers.empty()) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "command buffer 할당",
 				"swap chain 이미지가 없어 Vulkan command buffer를 할당할 수 없습니다"));
 		}
@@ -78,36 +78,36 @@ namespace Chrivent {
 			commandBuffers.clear();
 			device = VK_NULL_HANDLE;
 			commandPool = VK_NULL_HANDLE;
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "command buffer 할당",
 				"Vulkan command buffer를 할당하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanCommandBuffer::ResetRecord(const uint32_t imageIndex) const {
+	GraphicsError::Result<void> VulkanCommandBuffer::ResetRecord(const uint32_t imageIndex) const {
 		if (imageIndex >= commandBuffers.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "command buffer 초기화",
 				"swap chain 이미지 색인이 Vulkan command buffer 범위를 벗어났습니다"));
 		}
 		const VkResult result = vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::CommandRecordingFailed, "command buffer 초기화",
 				"Vulkan command buffer를 초기화하지 못했습니다", result, true));
 		}
 		return {};
 	}
 
-	GraphicsResult<void> VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex,
+	GraphicsError::Result<void> VulkanCommandBuffer::BeginRecord(const uint32_t imageIndex,
 		const VkImage colorImage, const VkImageView colorImageView,
 		const VkImage resolveImage, const VkImageView resolveImageView,
 		const VkImage depthImage, const VkImageView depthImageView,
 		const bool depthHasStencil, const VkSampleCountFlagBits sampleCount,
 		const VkExtent2D extent, const float clearColor[4]) const {
 		if (imageIndex >= commandBuffers.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "command buffer 기록 시작",
 				"swap chain 이미지 색인이 Vulkan command buffer 범위를 벗어났습니다"));
 		}
@@ -115,7 +115,7 @@ namespace Chrivent {
 			|| resolveImage == VK_NULL_HANDLE || resolveImageView == VK_NULL_HANDLE
 			|| depthImage == VK_NULL_HANDLE || depthImageView == VK_NULL_HANDLE
 			|| extent.width == 0 || extent.height == 0 || clearColor == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "command buffer 기록 시작",
 				"Vulkan 렌더링 attachment 또는 출력 크기가 올바르지 않습니다"));
 		}
@@ -124,7 +124,7 @@ namespace Chrivent {
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		const VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::CommandRecordingFailed, "command buffer 기록 시작",
 				"Vulkan command buffer 기록을 시작하지 못했습니다", result, true));
 		}
@@ -327,15 +327,15 @@ namespace Chrivent {
 		return true;
 	}
 
-	GraphicsResult<void> VulkanCommandBuffer::EndRecord(const uint32_t imageIndex,
+	GraphicsError::Result<void> VulkanCommandBuffer::EndRecord(const uint32_t imageIndex,
 		const VkImage outputImage) const {
 		if (imageIndex >= commandBuffers.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "command buffer 기록 종료",
 				"swap chain 이미지 색인이 Vulkan command buffer 범위를 벗어났습니다"));
 		}
 		if (outputImage == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "command buffer 기록 종료",
 				"present 상태로 전환할 Vulkan 출력 이미지가 없습니다"));
 		}
@@ -346,7 +346,7 @@ namespace Chrivent {
 			VK_IMAGE_ASPECT_COLOR_BIT);
 		const VkResult result = vkEndCommandBuffer(commandBuffer);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::CommandRecordingFailed, "command buffer 기록 종료",
 				"Vulkan command buffer 기록을 끝내지 못했습니다", result, true));
 		}

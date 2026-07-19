@@ -5,7 +5,7 @@
 #include <algorithm>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanPostProcessPipelines::CreateGraphicsPipeline(
+	GraphicsError::Result<void> VulkanPostProcessPipelines::CreateGraphicsPipeline(
 		const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const ShaderProgramDefinition& program,
 		const VkFormat targetFormat, VkPipeline& pipeline) const {
@@ -72,7 +72,7 @@ namespace Chrivent {
 			VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
 		if (result == VK_SUCCESS)
 			return {};
-		return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 			GraphicsErrorCode::ResourceCreationFailed, "후처리 graphics pipeline 생성",
 			"Vulkan 후처리 graphics pipeline을 만들지 못했습니다", result, true));
 	}
@@ -85,7 +85,7 @@ namespace Chrivent {
 		return pipelines.size() == formats.size() && std::ranges::equal(targetFormats, formats);
 	}
 
-	GraphicsResult<void> VulkanPostProcessPipelines::Initialize(
+	GraphicsError::Result<void> VulkanPostProcessPipelines::Initialize(
 		const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const std::span<const ShaderProgramDefinition> programs,
 		const std::span<const VkFormat> formats) {
@@ -94,12 +94,12 @@ namespace Chrivent {
 		if (programs.empty())
 			return {};
 		if (device == VK_NULL_HANDLE || pipelineLayout == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "후처리 pipeline 초기화",
 				"Vulkan device 또는 후처리 pipeline layout을 사용할 수 없습니다"));
 		}
 		if (programs.size() != formats.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ContractViolation, "후처리 pipeline 초기화",
 				"후처리 프로그램과 출력 형식 개수가 일치하지 않습니다"));
 		}

@@ -23,7 +23,7 @@ namespace Chrivent {
 		void* GetMappedData() const { return mappedData; }
 
 		// 지정한 크기와 용도에 맞는 Vulkan buffer와 메모리를 생성한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, VkDeviceSize bufferSize,
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice, VkDeviceSize bufferSize,
 			VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 		// host visible 메모리에 데이터를 복사한다.
 		bool Write(const void* sourceData, VkDeviceSize dataSize, VkDeviceSize offset = 0) const;

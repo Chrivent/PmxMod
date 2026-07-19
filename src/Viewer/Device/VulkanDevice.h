@@ -37,13 +37,13 @@ namespace Chrivent {
 		uint32_t instanceApiVersion = VK_API_VERSION_1_0;
 
 		// Vulkan 인스턴스를 생성한다.
-		GraphicsResult<void> CreateInstance();
+		GraphicsError::Result<void> CreateInstance();
 		// GLFW 윈도우에서 Vulkan surface를 생성한다.
-		GraphicsResult<void> CreateSurface(GLFWwindow* window);
+		GraphicsError::Result<void> CreateSurface(GLFWwindow* window);
 		// 렌더링에 사용할 물리 디바이스를 선택한다.
-		GraphicsResult<void> PickPhysicalDevice();
+		GraphicsError::Result<void> PickPhysicalDevice();
 		// 선택한 물리 디바이스에서 논리 디바이스와 큐를 생성한다.
-		GraphicsResult<void> CreateLogicalDevice();
+		GraphicsError::Result<void> CreateLogicalDevice();
 		// 물리 디바이스가 필요한 큐와 확장을 지원하는지 확인한다.
 		bool IsDeviceSuitable(VkPhysicalDevice candidate) const;
 		// 물리 디바이스 종류와 성능 한도를 기준으로 선택 우선순위를 계산한다.
@@ -83,8 +83,8 @@ namespace Chrivent {
 		VkDeviceSize GetUniformBufferAlignment() const { return properties.limits.minUniformBufferOffsetAlignment; }
 
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
-		GraphicsResult<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
+		GraphicsError::Result<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
 		// Vulkan device에 제출된 모든 작업이 끝날 때까지 기다린다.
-		GraphicsResult<void> WaitIdle() const;
+		GraphicsError::Result<void> WaitIdle() const;
 	};
 }

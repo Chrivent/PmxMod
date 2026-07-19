@@ -21,26 +21,33 @@ namespace Chrivent {
 		};
 	}
 
-	GraphicsResult<void> VulkanShaderStageBuilder::Build(
+	GraphicsError::Result<void> VulkanShaderStageBuilder::Build(
 		const VulkanDevice& sourceDevice, const ShaderProgramDefinition& program,
 		const SpirvBindingProfile bindingProfile, const bool invertVertexY) {
 		vertexShader.Reset();
 		pixelShader.Reset();
 		vertexEntry = program.vertexEntry;
 		pixelEntry = program.pixelEntry;
-		std::vector<uint32_t> vertexCode;
-		std::vector<uint32_t> pixelCode;
 		const std::wstring wideVertexEntry(vertexEntry.begin(), vertexEntry.end());
 		const std::wstring widePixelEntry(pixelEntry.begin(), pixelEntry.end());
-		std::string error;
-		if (!DxcHlslCompiler::CompileSpirv(program.shaderPath, wideVertexEntry, L"vs_6_0", SpirvTarget::Vulkan,
-			bindingProfile, vertexCode, error, invertVertexY)
-			|| !DxcHlslCompiler::CompileSpirv(program.shaderPath, widePixelEntry, L"ps_6_0", SpirvTarget::Vulkan,
-				bindingProfile, pixelCode, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::EffectConfigurationFailed, "SPIR-V 셰이더 컴파일",
-				error.empty() ? "Vulkan용 SPIR-V 셰이더를 컴파일하지 못했습니다" : std::move(error)));
+		auto vertexCodeResult = DxcHlslCompiler::CompileSpirv(
+			program.shaderPath, wideVertexEntry, L"vs_6_0",
+			SpirvTarget::Vulkan, bindingProfile, invertVertexY);
+		if (!vertexCodeResult) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
+				GraphicsErrorCode::EffectConfigurationFailed, "vertex SPIR-V 셰이더 컴파일",
+				std::move(vertexCodeResult.error().message)));
 		}
+		auto pixelCodeResult = DxcHlslCompiler::CompileSpirv(
+			program.shaderPath, widePixelEntry, L"ps_6_0",
+			SpirvTarget::Vulkan, bindingProfile);
+		if (!pixelCodeResult) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
+				GraphicsErrorCode::EffectConfigurationFailed, "pixel SPIR-V 셰이더 컴파일",
+				std::move(pixelCodeResult.error().message)));
+		}
+		const std::vector<uint32_t>& vertexCode = *vertexCodeResult;
+		const std::vector<uint32_t>& pixelCode = *pixelCodeResult;
 		auto result = vertexShader.Initialize(sourceDevice, vertexCode);
 		if (!result)
 			return result;

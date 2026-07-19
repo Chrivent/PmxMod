@@ -38,16 +38,15 @@ namespace Chrivent {
 		int64_t nativeCode = 0;
 		bool hasNativeCode = false;
 
+		// 그래픽 작업의 성공값 또는 현재 구조화된 오류를 반환하는 형식이다.
+		template <typename T>
+		using Result = std::expected<T, GraphicsError>;
+
+		// API 식별자와 작업 문맥으로 구조화된 그래픽 오류를 생성한다.
+		static GraphicsError Create(GraphicsApi api, GraphicsErrorCode code,
+			std::string operation, std::string message,
+			int64_t nativeCode = 0, bool hasNativeCode = false);
 		// 프로그램 경계에서 한 번 출력할 진단 문자열을 생성한다.
 		std::string Format() const;
 	};
-
-	// 성공값 또는 구조화된 그래픽 오류를 반환하는 공통 결과 형식이다.
-	template <typename T>
-	using GraphicsResult = std::expected<T, GraphicsError>;
-
-	// API 식별자와 작업 문맥으로 구조화된 그래픽 오류를 생성한다.
-	GraphicsError MakeGraphicsError(GraphicsApi api, GraphicsErrorCode code,
-		std::string operation, std::string message,
-		int64_t nativeCode = 0, bool hasNativeCode = false);
 }

@@ -22,7 +22,7 @@ namespace Chrivent {
 		return clipMatrix;
 	}
 
-	GraphicsResult<void> VulkanDrawer::DrawModel() {
+	GraphicsError::Result<void> VulkanDrawer::DrawModel() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -72,7 +72,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanDrawer::DrawEdge() {
+	GraphicsError::Result<void> VulkanDrawer::DrawEdge() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -124,7 +124,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanDrawer::DrawGroundShadow() {
+	GraphicsError::Result<void> VulkanDrawer::DrawGroundShadow() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -172,7 +172,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> VulkanDrawer::DrawSceneInputs() {
+	GraphicsError::Result<void> VulkanDrawer::DrawSceneInputs() {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = resources.vertexBuffers[frameIndex % FrameBuffering::vulkanFramesInFlight];
 		const auto world = BuildWorldMatrix(instance.GetScale());

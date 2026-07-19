@@ -1,7 +1,7 @@
 ﻿#include "Viewer/Pipeline/OpenGlPipeline.h"
 
 namespace Chrivent {
-	GraphicsResult<void> OpenGlPipeline::Initialize(const SceneShaderRuntimeContract& shaderContract) {
+	GraphicsError::Result<void> OpenGlPipeline::Initialize(const SceneShaderRuntimeContract& shaderContract) {
 		const auto& [model, edge, groundShadow] = shaderContract.builtIn;
 		const auto& [depth, velocity] = shaderContract.sceneInput;
 		OpenGlPipeline candidate;

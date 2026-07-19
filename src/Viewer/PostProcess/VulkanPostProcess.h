@@ -33,22 +33,22 @@ namespace Chrivent {
 		VkDeviceSize parameterDataStride = 0;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
-		GraphicsResult<void> CreateSceneImages(
+		GraphicsError::Result<void> CreateSceneImages(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 스왑체인 이미지마다 장면 속도 기록과 sampling에 사용할 RG16F 이미지를 생성한다.
-		GraphicsResult<void> CreateVelocityImages(const VulkanDevice& sourceDevice);
+		GraphicsError::Result<void> CreateVelocityImages(const VulkanDevice& sourceDevice);
 		// 패키지가 선언한 transient/history image를 생성한다.
-		GraphicsResult<void> CreateEffectResources(const VulkanDevice& sourceDevice);
+		GraphicsError::Result<void> CreateEffectResources(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 후처리 frame constant buffer를 생성한다.
-		GraphicsResult<void> CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
+		GraphicsError::Result<void> CreateFrameDataBuffers(const VulkanDevice& sourceDevice);
 		// 스왑체인 이미지마다 모든 pass 파라미터를 보관할 b1 buffer를 생성한다.
-		GraphicsResult<void> CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
+		GraphicsError::Result<void> CreateParameterDataBuffers(const VulkanDevice& sourceDevice);
 		// 현재 pass와 스왑체인 이미지에 대응하는 texture descriptor를 갱신한다.
 		bool UpdateTextureDescriptorSet(uint32_t imageIndex, size_t passIndex);
 		// 새 프레임의 Vulkan 이미지 상태 변경을 제출 전 임시 상태로 기록한다.
 		void BeginImageStateFrame();
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
-		GraphicsResult<void> CreatePipelines(const VulkanDevice& sourceDevice);
+		GraphicsError::Result<void> CreatePipelines(const VulkanDevice& sourceDevice);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.
 		static VkFormat ResolveResourceFormat(const PostProcessResourcePlan& resource);
 		// 리소스 계획의 실제 Vulkan 출력 크기를 반환한다.
@@ -73,20 +73,20 @@ namespace Chrivent {
 		}
 		
 		// 현재 swapchain과 선택된 효과 선언에 맞는 Vulkan 후처리 target을 생성한다.
-		GraphicsResult<void> InitializeTargets(
+		GraphicsError::Result<void> InitializeTargets(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
-		GraphicsResult<void> Configure(const VulkanDevice& sourceDevice,
+		GraphicsError::Result<void> Configure(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
-		GraphicsResult<void> BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+		GraphicsError::Result<void> BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
 			uint32_t imageIndex, VkExtent2D extent);
 		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
-		GraphicsResult<void> EndSceneInputPass(
+		GraphicsError::Result<void> EndSceneInputPass(
 			const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex);
 		// 선언된 pass들을 실행해 swapchain 출력까지 기록한다.
-		GraphicsResult<void> Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
+		GraphicsError::Result<void> Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
 			VkImage swapChainImage, VkImageView swapChainImageView, const PostProcessFrameData& frameData);
 		// 제출된 프레임의 Vulkan 이미지 상태 변경을 확정한다.
 		void CommitImageStateFrame();

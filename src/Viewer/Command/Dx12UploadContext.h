@@ -21,9 +21,9 @@ namespace Chrivent {
 		// 부분 생성된 업로드 명령 객체와 동기화 핸들을 초기 상태로 되돌린다.
 		void Reset();
 		// 현재 디바이스에서 재사용할 업로드 명령 객체를 처음 생성하거나 초기화한다.
-		GraphicsResult<void> Begin(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> Begin(const Dx12Device& sourceDevice);
 		// 제출한 업로드 명령이 끝날 때까지 전용 fence로 기다린다.
-		GraphicsResult<void> SubmitAndWait(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> SubmitAndWait(const Dx12Device& sourceDevice);
 
 	public:
 		Dx12UploadContext() = default;
@@ -33,15 +33,15 @@ namespace Chrivent {
 		Dx12UploadContext& operator=(const Dx12UploadContext&) = delete;
 
 		// 여러 정적 리소스 복사를 한 command list에 기록할 batch를 시작한다.
-		GraphicsResult<void> BeginBatch(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> BeginBatch(const Dx12Device& sourceDevice);
 		// 현재 batch에 texture 복사와 셰이더 읽기 상태 전환을 기록한다.
-		GraphicsResult<void> RecordTextureUpload(ID3D12Resource* destination,
+		GraphicsError::Result<void> RecordTextureUpload(ID3D12Resource* destination,
 			ID3D12Resource* source, const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& layout);
 		// 현재 batch에 index buffer 복사와 index 입력 상태 전환을 기록한다.
-		GraphicsResult<void> RecordIndexBufferUpload(
+		GraphicsError::Result<void> RecordIndexBufferUpload(
 			ID3D12Resource* destination, ID3D12Resource* source, UINT64 size);
 		// 현재 batch를 한 번 제출하고 GPU 완료까지 기다린다.
-		GraphicsResult<void> SubmitBatch(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> SubmitBatch(const Dx12Device& sourceDevice);
 		// 제출하지 않은 현재 batch와 staging resource를 폐기한다.
 		void CancelBatch();
 	};

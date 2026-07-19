@@ -32,14 +32,14 @@ namespace Chrivent {
 		return 1;
 	}
 
-	GraphicsResult<void> Dx11Device::Initialize(GraphicsCapabilities& capabilities) {
+	GraphicsError::Result<void> Dx11Device::Initialize(GraphicsCapabilities& capabilities) {
 		context.Reset();
 		device.Reset();
 		capabilities = {};
 		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
 		const HRESULT factoryResult = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
 		if (FAILED(factoryResult)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InitializationFailed, "DXGI factory 생성",
 				"DirectX 11 어댑터 검색용 factory를 만들지 못했습니다", factoryResult, true));
 		}
@@ -77,7 +77,7 @@ namespace Chrivent {
 			capabilities.maxTextureBindings = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
 			return {};
 		}
-		return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+		return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 			GraphicsErrorCode::InitializationFailed, "device 초기화",
 			"DirectX 11을 지원하는 고성능 그래픽 어댑터를 찾지 못했습니다", lastDeviceResult, true));
 	}
@@ -99,9 +99,9 @@ namespace Chrivent {
 		capabilities.activeSampleCount = sampleCount;
 	}
 
-	GraphicsResult<void> Dx11Device::WaitIdle() const {
+	GraphicsError::Result<void> Dx11Device::WaitIdle() const {
 		if (!device || !context) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::InvalidState, "GPU 대기",
 				"DirectX 11 device 또는 immediate context를 사용할 수 없습니다"));
 		}
@@ -110,7 +110,7 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D11Query> query;
 		const HRESULT queryResult = device->CreateQuery(&queryDescription, &query);
 		if (FAILED(queryResult)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 				GraphicsErrorCode::SynchronizationFailed, "GPU 대기",
 				"DirectX 11 완료 확인 query를 만들지 못했습니다", queryResult, true));
 		}
@@ -121,7 +121,7 @@ namespace Chrivent {
 			if (result == S_OK)
 				return {};
 			if (result != S_FALSE) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
 					GraphicsErrorCode::SynchronizationFailed, "GPU 대기",
 					"DirectX 11 GPU 완료 상태를 가져오지 못했습니다", result, true));
 			}

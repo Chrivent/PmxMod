@@ -26,7 +26,7 @@ namespace Chrivent {
 		bool uploadBatchActive = false;
 
 		// RGBA 픽셀을 DX12 texture resource로 업로드한다.
-		GraphicsResult<void> UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
+		GraphicsError::Result<void> UploadRgbaPixels(const Dx12Device& sourceDevice, const unsigned char* pixels,
 			UINT width, UINT height, Dx12Texture& texture);
 		// 제출하지 못한 batch에서 추가한 texture cache 항목을 제거한다.
 		void RollbackUploadBatch();
@@ -36,15 +36,15 @@ namespace Chrivent {
 			uploadContext(sourceUploadContext) {}
 
 		// 여러 texture 업로드를 한 command list로 기록할 batch를 시작한다.
-		GraphicsResult<void> BeginUploadBatch(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> BeginUploadBatch(const Dx12Device& sourceDevice);
 		// 기록한 texture upload batch를 한 번 제출한다.
-		GraphicsResult<void> SubmitUploadBatch(const Dx12Device& sourceDevice);
+		GraphicsError::Result<void> SubmitUploadBatch(const Dx12Device& sourceDevice);
 		// 제출하지 않은 texture upload batch와 새 cache 항목을 폐기한다.
 		void CancelUploadBatch();
 		// 텍스처를 캐시에서 찾거나 파일에서 로드해 DX12 리소스로 반환한다.
-		GraphicsResult<std::optional<Dx12Texture>> Load(
+		GraphicsError::Result<std::optional<Dx12Texture>> Load(
 			const Dx12Device& sourceDevice, const std::filesystem::path& texturePath);
 		// 텍스처가 없는 material에 바인딩할 흰색 DX12 텍스처를 생성한다.
-		GraphicsResult<Dx12Texture> CreateWhiteTexture(const Dx12Device& sourceDevice);
+		GraphicsError::Result<Dx12Texture> CreateWhiteTexture(const Dx12Device& sourceDevice);
 	};
 }

@@ -24,11 +24,11 @@ namespace Chrivent {
 		SceneShaderRuntimeContract shaderContract;
 
 		// 모델 데이터에서 사용할 descriptor set layout들을 생성한다.
-		GraphicsResult<void> CreateDescriptorSetLayouts();
+		GraphicsError::Result<void> CreateDescriptorSetLayouts();
 		// descriptor set layout들을 묶은 pipeline layout을 생성한다.
-		GraphicsResult<void> CreatePipelineLayout();
+		GraphicsError::Result<void> CreatePipelineLayout();
 		// 모델 렌더링용 graphics pipeline들을 생성한다.
-		GraphicsResult<void> CreateGraphicsPipelines(
+		GraphicsError::Result<void> CreateGraphicsPipelines(
 			const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const BuiltInShaderPasses& passes,
 			const ShaderProgramDefinition& depthProgram,
@@ -71,10 +71,10 @@ namespace Chrivent {
 		// 재질 texture용 descriptor set layout을 반환한다.
 		VkDescriptorSetLayout GetTextureDescriptorSetLayout() const { return descriptorSetLayouts[2]; }
 		// 스왑체인 attachment format에 맞는 모델 graphics pipeline을 생성한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice, VkFormat sourceColorFormat,
 			VkFormat sourceDepthFormat, const SceneShaderRuntimeContract& shaderContract);
 		// 저장된 셰이더 계약으로 호환되지 않는 Vulkan graphics pipeline만 다시 생성한다.
-		GraphicsResult<void> RecreateIfIncompatible(const VulkanDevice& sourceDevice,
+		GraphicsError::Result<void> RecreateIfIncompatible(const VulkanDevice& sourceDevice,
 			VkFormat sourceColorFormat, VkFormat sourceDepthFormat);
 		// 생성한 pipeline 리소스를 해제한다.
 		void Reset();

@@ -15,7 +15,7 @@ namespace Chrivent {
 		std::vector<VkFormat> targetFormats;
 
 		// HLSL 후처리 패스 하나를 지정한 출력 형식의 파이프라인으로 만든다.
-		GraphicsResult<void> CreateGraphicsPipeline(
+		GraphicsError::Result<void> CreateGraphicsPipeline(
 			const VulkanDevice& sourceDevice, VkPipelineLayout pipelineLayout,
 			const ShaderProgramDefinition& program, VkFormat targetFormat, VkPipeline& pipeline) const;
 
@@ -34,7 +34,7 @@ namespace Chrivent {
 		// 현재 파이프라인들이 지정한 출력 형식 목록과 호환되는지 확인한다.
 		bool IsCompatible(std::span<const VkFormat> formats) const;
 		// 패스와 출력 정보 목록을 검증한 뒤 모든 Vulkan 후처리 파이프라인을 생성한다.
-		GraphicsResult<void> Initialize(
+		GraphicsError::Result<void> Initialize(
 			const VulkanDevice& sourceDevice, VkPipelineLayout pipelineLayout,
 			std::span<const ShaderProgramDefinition> programs,
 			std::span<const VkFormat> formats);

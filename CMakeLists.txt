@@ -35,6 +35,7 @@ add_executable(PmxMod
         src/Program/Program.h src/Program/Program.cpp
 		src/Program/ResourceDirectories.h src/Program/ResourceDirectories.cpp
 		src/Program/Shader/ShaderPackage.h src/Program/Shader/ShaderPackage.cpp
+		src/Program/Shader/InternalShaderCatalog.h src/Program/Shader/InternalShaderCatalog.cpp
         src/Program/Config.h src/Program/Config.cpp
         src/Program/Gui/GuiBackBuffer.h src/Program/Gui/GuiBackBuffer.cpp
         src/Program/Gui/GuiDrawer.h src/Program/Gui/GuiDrawer.cpp

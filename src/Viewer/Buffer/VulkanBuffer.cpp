@@ -7,7 +7,7 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanBuffer::Initialize(
+	GraphicsError::Result<void> VulkanBuffer::Initialize(
 		const VulkanDevice& sourceDevice, const VkDeviceSize bufferSize,
 		const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties) {
 		Reset();
@@ -15,7 +15,7 @@ namespace Chrivent {
 		size = bufferSize;
 		if (device == VK_NULL_HANDLE || bufferSize == 0) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "buffer 생성",
 				"Vulkan device 또는 buffer 크기가 올바르지 않습니다"));
 		}
@@ -27,7 +27,7 @@ namespace Chrivent {
 		VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
 		if (result != VK_SUCCESS) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "buffer 생성",
 				"Vulkan buffer를 만들지 못했습니다", result, true));
 		}
@@ -36,7 +36,7 @@ namespace Chrivent {
 		uint32_t memoryType = 0;
 		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, properties, memoryType)) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "buffer memory type 선택",
 				"Vulkan buffer에 사용할 memory type을 찾지 못했습니다"));
 		}
@@ -47,14 +47,14 @@ namespace Chrivent {
 		result = vkAllocateMemory(device, &allocateInfo, nullptr, &memory);
 		if (result != VK_SUCCESS) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "buffer memory 할당",
 				"Vulkan buffer memory를 할당하지 못했습니다", result, true));
 		}
 		result = vkBindBufferMemory(device, buffer, memory, 0);
 		if (result != VK_SUCCESS) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "buffer memory 연결",
 				"Vulkan buffer memory를 연결하지 못했습니다", result, true));
 		}
@@ -62,7 +62,7 @@ namespace Chrivent {
 			result = vkMapMemory(device, memory, 0, bufferSize, 0, &mappedData);
 			if (result != VK_SUCCESS) {
 				Reset();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::ResourceCreationFailed, "buffer memory 매핑",
 					"Vulkan buffer memory를 persistent map하지 못했습니다", result, true));
 			}

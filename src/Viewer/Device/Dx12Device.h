@@ -45,6 +45,6 @@ namespace Chrivent {
 		bool SupportsEnhancedBarriers() const { return enhancedBarriersSupported; }
 
 		// DX12 디바이스와 command queue를 생성한다.
-		GraphicsResult<void> Initialize(GraphicsCapabilities& capabilities);
+		GraphicsError::Result<void> Initialize(GraphicsCapabilities& capabilities);
 	};
 }

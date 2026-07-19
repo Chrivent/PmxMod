@@ -20,10 +20,10 @@ namespace Chrivent {
 		static VkFormat FindSupportedFormat(const VulkanDevice& sourceDevice, std::span<const VkFormat> candidates,
 			VkImageTiling tiling, VkFormatFeatureFlags features);
 		// 멀티샘플 depth attachment로 사용할 image와 메모리를 생성한다.
-		GraphicsResult<void> CreateImage(
+		GraphicsError::Result<void> CreateImage(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 멀티샘플 depth image를 framebuffer에 연결하기 위한 image view를 생성한다.
-		GraphicsResult<void> CreateImageView();
+		GraphicsError::Result<void> CreateImageView();
 
 	public:
 		VulkanMsaaDepthBuffer() = default;
@@ -42,7 +42,7 @@ namespace Chrivent {
 		}
 
 		// 스왑체인 크기에 맞는 멀티샘플 depth image와 image view를 생성한다.
-		GraphicsResult<void> Initialize(
+		GraphicsError::Result<void> Initialize(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
 		// 생성한 멀티샘플 depth 리소스를 해제한다.
 		void Reset();

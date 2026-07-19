@@ -1,11 +1,11 @@
 ﻿#include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12PostProcessTarget::Initialize(
+	GraphicsError::Result<void> Dx12PostProcessTarget::Initialize(
 		const Dx12Device& sourceDevice, const int width, const int height, const DXGI_FORMAT targetFormat) {
 		Reset();
 		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0 || targetFormat == DXGI_FORMAT_UNKNOWN) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
 				"DirectX 12 device, target 크기 또는 형식이 올바르지 않습니다"));
 		}
@@ -29,7 +29,7 @@ namespace Chrivent {
 			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&resource));
 		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
 				"DirectX 12 후처리 target을 만들지 못했습니다", result, true));
 		}
@@ -40,7 +40,7 @@ namespace Chrivent {
 			&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
 		if (FAILED(result)) {
 			Reset();
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 RTV heap 생성",
 				"DirectX 12 후처리 RTV heap을 만들지 못했습니다", result, true));
 		}

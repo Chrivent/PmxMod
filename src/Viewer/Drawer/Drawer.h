@@ -64,13 +64,13 @@ namespace Chrivent {
 		static SceneSurfacePixelConstants BuildSceneSurfacePixelConstants(float opacity, bool textureHasAlpha);
 
 		// 일반 메시 패스를 그린다.
-		virtual GraphicsResult<void> DrawModel() = 0;
+		virtual GraphicsError::Result<void> DrawModel() = 0;
 		// 엣지 패스를 그린다.
-		virtual GraphicsResult<void> DrawEdge() = 0;
+		virtual GraphicsError::Result<void> DrawEdge() = 0;
 		// 지면 그림자 패스를 그린다.
-		virtual GraphicsResult<void> DrawGroundShadow() = 0;
+		virtual GraphicsError::Result<void> DrawGroundShadow() = 0;
 		// 후처리가 요구하는 장면 depth와 velocity 입력에 모델 geometry를 기록한다.
-		virtual GraphicsResult<void> DrawSceneInputs() = 0;
+		virtual GraphicsError::Result<void> DrawSceneInputs() = 0;
 
 	public:
 		explicit Drawer(GraphicsApi sourceGraphicsApi);
@@ -79,12 +79,12 @@ namespace Chrivent {
 		// 현재 프레임에서 사용할 렌더러별 임시 리소스를 준비한다.
 		void BeginDraw(const SceneDrawState& state);
 		// 현재 인스턴스의 모델 본체 패스를 그린다.
-		GraphicsResult<void> DrawModelPass();
+		GraphicsError::Result<void> DrawModelPass();
 		// 현재 인스턴스의 엣지 패스를 그린다.
-		GraphicsResult<void> DrawEdgePass();
+		GraphicsError::Result<void> DrawEdgePass();
 		// 현재 인스턴스의 지면 그림자 패스를 그린다.
-		GraphicsResult<void> DrawGroundShadowPass();
+		GraphicsError::Result<void> DrawGroundShadowPass();
 		// 후처리 장면 depth와 velocity 입력 패스를 그린다.
-		GraphicsResult<void> DrawPostProcessSceneInputs();
+		GraphicsError::Result<void> DrawPostProcessSceneInputs();
 	};
 }

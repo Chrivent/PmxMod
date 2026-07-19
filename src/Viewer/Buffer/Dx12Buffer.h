@@ -17,7 +17,7 @@ namespace Chrivent {
 		size_t byteSize = 0;
 
 		// 지정한 heap과 초기 상태로 DX12 buffer를 생성하고 필요하면 영구 매핑한다.
-		GraphicsResult<void> InitializeResource(const Dx12Device& sourceDevice, size_t size,
+		GraphicsError::Result<void> InitializeResource(const Dx12Device& sourceDevice, size_t size,
 			D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_STATES initialState, bool map);
 
 	public:
@@ -40,9 +40,9 @@ namespace Chrivent {
 				size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, result);
 		}
 		// CPU에서 직접 갱신할 수 있는 upload buffer를 생성한다.
-		GraphicsResult<void> InitializeUpload(const Dx12Device& sourceDevice, size_t size);
+		GraphicsError::Result<void> InitializeUpload(const Dx12Device& sourceDevice, size_t size);
 		// GPU 전용 default buffer를 지정한 초기 상태로 생성한다.
-		GraphicsResult<void> InitializeDefault(const Dx12Device& sourceDevice, size_t size,
+		GraphicsError::Result<void> InitializeDefault(const Dx12Device& sourceDevice, size_t size,
 			D3D12_RESOURCE_STATES initialState);
 		// upload buffer의 지정한 byte offset에 데이터를 복사한다.
 		bool Write(std::span<const std::byte> data, size_t offset) const;

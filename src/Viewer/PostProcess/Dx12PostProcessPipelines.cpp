@@ -6,7 +6,7 @@
 #include <limits>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12PostProcessPipelines::CreateRootSignature(
+	GraphicsError::Result<void> Dx12PostProcessPipelines::CreateRootSignature(
 		const Dx12Device& sourceDevice) {
 		D3D12_DESCRIPTOR_RANGE srvRange{};
 		srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -45,7 +45,7 @@ namespace Chrivent {
 			sourceDevice, description, rootSignature);
 	}
 
-	GraphicsResult<void> Dx12PostProcessPipelines::CreatePipelineState(
+	GraphicsError::Result<void> Dx12PostProcessPipelines::CreatePipelineState(
 		const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, const DXGI_FORMAT format,
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) const {
@@ -64,7 +64,7 @@ namespace Chrivent {
 			sourceDevice, program, description, pipelineState);
 	}
 
-	GraphicsResult<void> Dx12PostProcessPipelines::Initialize(
+	GraphicsError::Result<void> Dx12PostProcessPipelines::Initialize(
 		const Dx12Device& sourceDevice,
 		const std::span<const ShaderProgramDefinition> programs,
 		const std::span<const DXGI_FORMAT> formats) {
@@ -72,12 +72,12 @@ namespace Chrivent {
 		if (programs.empty())
 			return {};
 		if (!sourceDevice.GetDevice()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidArgument, "후처리 pipeline 초기화",
 				"DirectX 12 device를 사용할 수 없습니다"));
 		}
 		if (programs.size() != formats.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 pipeline 초기화",
 				"후처리 프로그램과 출력 형식 개수가 일치하지 않습니다"));
 		}

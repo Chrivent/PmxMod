@@ -1,6 +1,36 @@
 ﻿add_library(PmxModViewer STATIC)
 add_library(PmxMod::Viewer ALIAS PmxModViewer)
 
+add_library(PmxModViewerCommon STATIC)
+add_library(PmxMod::ViewerCommon ALIAS PmxModViewerCommon)
+
+target_sources(PmxModViewerCommon PRIVATE
+        Drawer/SceneDrawState.h
+        Drawer/Drawer.h Drawer/Drawer.cpp
+        Error/GraphicsError.h Error/GraphicsError.cpp
+        Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
+        Instance/Instance.h Instance/Instance.cpp
+        PostProcess/PostProcess.h PostProcess/PostProcess.cpp
+        PostProcess/PostProcessFrameData.h
+        PostProcess/PostProcessInputLayout.h
+        PostProcess/PostProcessRuntimeContract.h
+        Shader/SceneShaderRuntimeContract.h
+        Shader/ShaderProgramDefinition.h
+        Viewer/Viewer.h Viewer/Viewer.cpp
+)
+
+target_compile_features(PmxModViewerCommon PUBLIC cxx_std_23)
+
+target_include_directories(PmxModViewerCommon PUBLIC
+        ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(PmxModViewerCommon PUBLIC
+        PmxModCore
+        glfw
+        glm::glm
+)
+
 add_library(PmxModDxcHlslCompiler OBJECT
         Shader/DxcHlslCompiler.cpp
 )
@@ -36,11 +66,8 @@ target_sources(PmxModViewer PRIVATE
         Device/Dx12Device.h Device/Dx12Device.cpp
         Device/VulkanDevice.h Device/VulkanDevice.cpp
 
-        Error/GraphicsError.h Error/GraphicsError.cpp
         Error/OpenGlErrorState.h Error/OpenGlErrorState.cpp
 
-		Drawer/SceneDrawState.h
-		Drawer/Drawer.h Drawer/Drawer.cpp
 		Drawer/OpenGlDrawer.h Drawer/OpenGlDrawer.cpp
 		Drawer/Dx11Drawer.h Drawer/Dx11Drawer.cpp
 		Drawer/Dx12Drawer.h Drawer/Dx12Drawer.cpp
@@ -56,9 +83,6 @@ target_sources(PmxModViewer PRIVATE
 		DrawResource/Dx12ModelResources.h
 		DrawResource/VulkanModelResources.h
 
-        Geometry/ViewerGeometry.h Geometry/ViewerGeometry.cpp
-
-        Instance/Instance.h Instance/Instance.cpp
         Instance/OpenGlInstance.h Instance/OpenGlInstance.cpp
         Instance/Dx11Instance.h Instance/Dx11Instance.cpp
         Instance/Dx12Instance.h Instance/Dx12Instance.cpp
@@ -74,10 +98,6 @@ target_sources(PmxModViewer PRIVATE
         Pipeline/VulkanGraphicsPipelineBuilder.h Pipeline/VulkanGraphicsPipelineBuilder.cpp
 		Pipeline/VulkanShaderStageBuilder.h Pipeline/VulkanShaderStageBuilder.cpp
 
-        PostProcess/PostProcess.h PostProcess/PostProcess.cpp
-        PostProcess/PostProcessFrameData.h
-        PostProcess/PostProcessInputLayout.h
-        PostProcess/PostProcessRuntimeContract.h
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
         PostProcess/Dx11PostProcess.h PostProcess/Dx11PostProcess.cpp
         PostProcess/Dx12PostProcess.h PostProcess/Dx12PostProcess.cpp
@@ -95,12 +115,10 @@ target_sources(PmxModViewer PRIVATE
 		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
         Shader/ShaderConstants.h
-        Shader/ShaderProgramDefinition.h
-        Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp
         Shader/SceneShaderInputLayout.h
-        Shader/SceneShaderRuntimeContract.h
         Shader/D3DCompilerHlslCompiler.h Shader/D3DCompilerHlslCompiler.cpp
         Shader/DxcHlslCompiler.h
+        Shader/ShaderCompileError.h
         Shader/SpirvBindingLayout.h
         $<TARGET_OBJECTS:PmxModDxcHlslCompiler>
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
@@ -121,7 +139,6 @@ target_sources(PmxModViewer PRIVATE
         Texture/Dx12TextureCache.h Texture/Dx12TextureCache.cpp
         Texture/VulkanTextureCache.h Texture/VulkanTextureCache.cpp
 
-        Viewer/Viewer.h Viewer/Viewer.cpp
         Viewer/OpenGlViewer.h Viewer/OpenGlViewer.cpp
         Viewer/Dx11Viewer.h Viewer/Dx11Viewer.cpp
         Viewer/Dx12Viewer.h Viewer/Dx12Viewer.cpp
@@ -138,6 +155,7 @@ target_include_directories(PmxModViewer
 target_link_libraries(PmxModViewer
         PUBLIC
         PmxModCore
+        PmxModViewerCommon
         glfw
         glad::glad
         glm::glm

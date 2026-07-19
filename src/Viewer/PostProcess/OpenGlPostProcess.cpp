@@ -13,7 +13,7 @@ namespace Chrivent {
 		OpenGlPostProcess::ResetResources();
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::CreateEffectResources() {
+	GraphicsError::Result<void> OpenGlPostProcess::CreateEffectResources() {
 		ResetEffectResources();
 		OpenGlErrorState::Clear();
 		const auto& plans = GetResourcePlans();
@@ -31,7 +31,7 @@ namespace Chrivent {
 			for (GLsizei index = 0; index < textureCount; index++) {
 				if (framebuffers[index] == 0 || textures[index] == 0) {
 					const GLenum result = OpenGlErrorState::Take();
-					return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect resource 생성",
 						"OpenGL 후처리 effect framebuffer 또는 texture 객체를 만들지 못했습니다",
 						result, result != GL_NO_ERROR));
@@ -45,7 +45,7 @@ namespace Chrivent {
 					framebuffers[index], GL_COLOR_ATTACHMENT0, textures[index], 0);
 				const GLenum status = glCheckNamedFramebufferStatus(framebuffers[index], GL_FRAMEBUFFER);
 				if (status != GL_FRAMEBUFFER_COMPLETE) {
-					return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 						GraphicsErrorCode::ResourceCreationFailed, "후처리 effect framebuffer 생성",
 						"OpenGL 후처리 effect framebuffer가 완전하지 않습니다", status, true));
 				}
@@ -53,7 +53,7 @@ namespace Chrivent {
 		}
 		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 effect resource 생성",
 				"OpenGL 후처리 effect resource를 초기화하지 못했습니다", result, true));
 		}
@@ -148,11 +148,11 @@ namespace Chrivent {
 		ResetHistory();
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::InitializeTargets(
+	GraphicsError::Result<void> OpenGlPostProcess::InitializeTargets(
 		const int width, const int height, const int sampleCount) {
 		ResetTargets();
 		if (width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 생성",
 				"OpenGL 후처리 target 크기가 올바르지 않습니다"));
 		}
@@ -163,7 +163,7 @@ namespace Chrivent {
 		glCreateBuffers(1, &parameterDataBuffer);
 		const GLenum bufferResult = OpenGlErrorState::Take();
 		if (frameDataBuffer == 0 || parameterDataBuffer == 0 || bufferResult != GL_NO_ERROR) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 constant buffer 생성",
 				"OpenGL 후처리 constant buffer 객체를 만들지 못했습니다",
 				bufferResult, bufferResult != GL_NO_ERROR));
@@ -222,40 +222,40 @@ namespace Chrivent {
 			glCreateVertexArrays(1, &postProcessVao);
 		if (sceneFramebuffer == 0 || sceneColorMsaa == 0 || sceneDepthStencil == 0
 			|| resolveFramebuffer == 0 || sceneColorTexture == 0 || postProcessVao == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
 				"OpenGL 후처리 framebuffer, texture 또는 vertex array 객체를 만들지 못했습니다"));
 		}
 		GLenum status = glCheckNamedFramebufferStatus(sceneFramebuffer, GL_FRAMEBUFFER);
 		if (status != GL_FRAMEBUFFER_COMPLETE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 scene framebuffer 생성",
 				"OpenGL 후처리 scene framebuffer가 완전하지 않습니다", status, true));
 		}
 		status = glCheckNamedFramebufferStatus(resolveFramebuffer, GL_FRAMEBUFFER);
 		if (status != GL_FRAMEBUFFER_COMPLETE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 resolve framebuffer 생성",
 				"OpenGL 후처리 resolve framebuffer가 완전하지 않습니다", status, true));
 		}
 		if (postProcessDepthFramebuffer != 0) {
 			status = glCheckNamedFramebufferStatus(postProcessDepthFramebuffer, GL_FRAMEBUFFER);
 			if (status != GL_FRAMEBUFFER_COMPLETE) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth framebuffer 생성",
 					"OpenGL 후처리 depth framebuffer가 완전하지 않습니다", status, true));
 			}
 		}
 		const GLenum result = OpenGlErrorState::Take();
 		if (result != GL_NO_ERROR) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 target 생성",
 				"OpenGL 후처리 target을 초기화하지 못했습니다", result, true));
 		}
 		return CreateEffectResources();
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::CreatePrograms() {
+	GraphicsError::Result<void> OpenGlPostProcess::CreatePrograms() {
 		ResetPrograms();
 		for (const auto& program : GetShaderPrograms()) {
 			OpenGlPostProcessShaderProgram postProcessProgram;
@@ -286,14 +286,14 @@ namespace Chrivent {
 		std::swap(targetHeight, other.targetHeight);
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::Configure(const int width, const int height,
+	GraphicsError::Result<void> OpenGlPostProcess::Configure(const int width, const int height,
 		const int sampleCount,
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		OpenGlPostProcess candidate;
 		const auto planResult = candidate.SetEffects(effects);
 		if (!planResult) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
-				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error()));
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ContractViolation, "후처리 실행 계획 생성", planResult.error().Format()));
 		}
 		if (candidate.HasEffects()) {
 			const auto targetResult = candidate.InitializeTargets(width, height, sampleCount);
@@ -308,9 +308,9 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
+	GraphicsError::Result<void> OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
 		if ((!RequiresDepth() && !RequiresVelocity()) || postProcessDepthFramebuffer == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"OpenGL 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
@@ -330,20 +330,20 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::EndSceneInputPass() {
+	GraphicsError::Result<void> OpenGlPostProcess::EndSceneInputPass() {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return {};
 	}
 
-	GraphicsResult<void> OpenGlPostProcess::Draw(
+	GraphicsError::Result<void> OpenGlPostProcess::Draw(
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
 			return {};
 		if (sceneFramebuffer == 0 || resolveFramebuffer == 0 || sceneColorTexture == 0
 			|| frameDataBuffer == 0 || parameterDataBuffer == 0 || postProcessVao == 0
 			|| !IsPassCountCompatible(postProcessPrograms.size())) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"OpenGL 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
@@ -367,7 +367,7 @@ namespace Chrivent {
 			if (route.outputKind == PostProcessOutputKind::Resource
 				&& route.outputResourceIndex >= resources.size()) {
 				DiscardHistoryFrame();
-				return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 					GraphicsErrorCode::ContractViolation, "후처리 출력 framebuffer 조회",
 					"OpenGL 후처리 pass의 출력 framebuffer를 찾지 못했습니다"));
 			}
@@ -388,7 +388,7 @@ namespace Chrivent {
 				const GLuint texture = ResolveInputTexture(input);
 				if (texture == 0) {
 					DiscardHistoryFrame();
-					return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+					return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 						GraphicsErrorCode::ContractViolation, "후처리 입력 texture 조회",
 						"OpenGL 후처리 pass의 입력 texture를 찾지 못했습니다"));
 				}

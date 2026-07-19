@@ -17,7 +17,7 @@ namespace Chrivent {
 		}
 
 		// 화면 크기에 맞는 DX12 depth stencil buffer와 DSV를 생성한다.
-		GraphicsResult<void> Initialize(const Dx12Device& sourceDevice, int width, int height);
+		GraphicsError::Result<void> Initialize(const Dx12Device& sourceDevice, int width, int height);
 		// 생성한 DX12 depth stencil 리소스를 해제한다.
 		void Reset();
 	};

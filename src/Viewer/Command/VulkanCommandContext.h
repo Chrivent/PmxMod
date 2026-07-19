@@ -20,7 +20,7 @@ namespace Chrivent {
 		const VulkanCommandBuffer& GetCommandBuffer() const { return commandBuffer; }
 		
 		// 그래픽스 큐 패밀리에 맞는 command pool과 command buffer를 생성한다.
-		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice,
+		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain);
 		// 생성한 command pool과 command buffer를 해제한다.
 		void Reset();

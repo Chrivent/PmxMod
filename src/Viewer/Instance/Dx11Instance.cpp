@@ -15,7 +15,7 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx11Instance::CreateGeometryBuffers() {
+	GraphicsError::Result<void> Dx11Instance::CreateGeometryBuffers() {
 		ID3D11Device* targetDevice = device.GetDevice();
 		if (targetDevice == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
@@ -65,7 +65,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Instance::CreateConstantBuffers() {
+	GraphicsError::Result<void> Dx11Instance::CreateConstantBuffers() {
 		ID3D11Device* targetDevice = device.GetDevice();
 		if (targetDevice == nullptr) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
@@ -98,7 +98,7 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsResult<void> Dx11Instance::LoadMaterials() {
+	GraphicsError::Result<void> Dx11Instance::LoadMaterials() {
 		modelResources.materials.reserve(model->materialData.materials.size());
 		for (const auto& mat : model->materialData.materials) {
 			Dx11ModelMaterial material(mat);
@@ -149,7 +149,7 @@ namespace Chrivent {
 		modelResources.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 	}
 
-	GraphicsResult<void> Dx11Instance::SetupRenderer() {
+	GraphicsError::Result<void> Dx11Instance::SetupRenderer() {
 		auto result = CreateGeometryBuffers();
 		if (!result)
 			return std::unexpected(result.error());
@@ -159,7 +159,7 @@ namespace Chrivent {
 		return LoadMaterials();
 	}
 
-	GraphicsResult<void> Dx11Instance::UploadCore() {
+	GraphicsError::Result<void> Dx11Instance::UploadCore() {
 		ID3D11DeviceContext* deviceContext = device.GetContext();
 		const size_t vtxCount = model->geometryData.positions.size();
 		D3D11_MAPPED_SUBRESOURCE mapRes;

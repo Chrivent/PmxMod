@@ -4,13 +4,13 @@
 #include <limits>
 
 namespace Chrivent {
-	GraphicsResult<void> VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanSwapChain::QuerySupport(const VulkanDevice& sourceDevice,
 		Support& support) {
 		support = {};
 		VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(sourceDevice.GetPhysicalDevice(),
 			sourceDevice.GetSurface(), &support.capabilities);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InitializationFailed, "surface capability 조회",
 				"Vulkan surface capability를 조회하지 못했습니다", result, true));
 		}
@@ -18,7 +18,7 @@ namespace Chrivent {
 		result = vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(),
 			sourceDevice.GetSurface(), &formatCount, nullptr);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InitializationFailed, "surface format 조회",
 				"Vulkan surface format 개수를 조회하지 못했습니다", result, true));
 		}
@@ -27,7 +27,7 @@ namespace Chrivent {
 			result = vkGetPhysicalDeviceSurfaceFormatsKHR(sourceDevice.GetPhysicalDevice(),
 				sourceDevice.GetSurface(), &formatCount, support.formats.data());
 			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::InitializationFailed, "surface format 조회",
 					"Vulkan surface format을 조회하지 못했습니다", result, true));
 			}
@@ -37,7 +37,7 @@ namespace Chrivent {
 		result = vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(),
 			sourceDevice.GetSurface(), &presentModeCount, nullptr);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InitializationFailed, "present mode 조회",
 				"Vulkan present mode 개수를 조회하지 못했습니다", result, true));
 		}
@@ -46,7 +46,7 @@ namespace Chrivent {
 			result = vkGetPhysicalDeviceSurfacePresentModesKHR(sourceDevice.GetPhysicalDevice(),
 				sourceDevice.GetSurface(), &presentModeCount, support.presentModes.data());
 			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::InitializationFailed, "present mode 조회",
 					"Vulkan present mode를 조회하지 못했습니다", result, true));
 			}
@@ -95,7 +95,7 @@ namespace Chrivent {
 		return selectedExtent;
 	}
 
-	GraphicsResult<void> VulkanSwapChain::CreateImageViews() {
+	GraphicsError::Result<void> VulkanSwapChain::CreateImageViews() {
 		imageViews.resize(images.size());
 		for (size_t index = 0; index < images.size(); index++) {
 			VkImageViewCreateInfo createInfo{
@@ -120,7 +120,7 @@ namespace Chrivent {
 			const VkResult result = vkCreateImageView(device, &createInfo,
 				nullptr, &imageViews[index]);
 			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::ResourceCreationFailed, "swap chain image view 생성",
 					"Vulkan 스왑체인 image view를 만들지 못했습니다", result, true));
 			}
@@ -132,11 +132,11 @@ namespace Chrivent {
 		Reset();
 	}
 
-	GraphicsResult<void> VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanSwapChain::Initialize(const VulkanDevice& sourceDevice,
 		GLFWwindow* window) {
 		Reset();
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || window == nullptr) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "swap chain 생성",
 				"Vulkan device 또는 출력 창을 사용할 수 없습니다"));
 		}
@@ -147,7 +147,7 @@ namespace Chrivent {
 			return std::unexpected(supportResult.error());
 		const auto& [capabilities, formats, presentModes] = support;
 		if (formats.empty() || presentModes.empty()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "swap chain surface 선택",
 				"지원되는 Vulkan surface format 또는 present mode가 없습니다"));
 		}
@@ -155,7 +155,7 @@ namespace Chrivent {
 		const VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
 		const VkExtent2D selectedExtent = ChooseExtent(capabilities, window);
 		if (selectedExtent.width == 0 || selectedExtent.height == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "swap chain extent 선택",
 				"Vulkan 스왑체인 extent가 올바르지 않습니다"));
 		}
@@ -189,14 +189,14 @@ namespace Chrivent {
 		VkResult result = vkCreateSwapchainKHR(sourceDevice.GetDevice(),
 			&createInfo, nullptr, &swapChain);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "swap chain 생성",
 				"Vulkan 스왑체인을 만들지 못했습니다", result, true));
 		}
 		result = vkGetSwapchainImagesKHR(sourceDevice.GetDevice(),
 			swapChain, &imageCount, nullptr);
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "swap chain image 조회",
 				"Vulkan 스왑체인 image 개수를 조회하지 못했습니다", result, true));
 		}
@@ -204,7 +204,7 @@ namespace Chrivent {
 		result = vkGetSwapchainImagesKHR(sourceDevice.GetDevice(),
 			swapChain, &imageCount, images.data());
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ResourceCreationFailed, "swap chain image 조회",
 				"Vulkan 스왑체인 image를 조회하지 못했습니다", result, true));
 		}
@@ -214,16 +214,16 @@ namespace Chrivent {
 		return CreateImageViews();
 	}
 
-	GraphicsResult<void> VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanSwapChain::Recreate(const VulkanDevice& sourceDevice,
 		GLFWwindow* window) {
 		return Initialize(sourceDevice, window);
 	}
 
-	GraphicsResult<VulkanSwapChainState> VulkanSwapChain::AcquireNextImage(
+	GraphicsError::Result<VulkanSwapChainState> VulkanSwapChain::AcquireNextImage(
 		const VkSemaphore imageAvailableSemaphore, uint32_t& imageIndex) const {
 		if (device == VK_NULL_HANDLE || swapChain == VK_NULL_HANDLE
 			|| imageAvailableSemaphore == VK_NULL_HANDLE) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "swap chain 이미지 획득",
 				"Vulkan 스왑체인 또는 이미지 획득 세마포어를 사용할 수 없습니다"));
 		}
@@ -233,19 +233,19 @@ namespace Chrivent {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 			return VulkanSwapChainState::RecreateRequired;
 		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::PresentationFailed, "swap chain 이미지 획득",
 				"Vulkan이 다음 스왑체인 이미지를 획득하지 못했습니다", result, true));
 		}
 		return VulkanSwapChainState::Ready;
 	}
 
-	GraphicsResult<VulkanSwapChainState> VulkanSwapChain::Present(
+	GraphicsError::Result<VulkanSwapChainState> VulkanSwapChain::Present(
 		const VkQueue presentQueue, const VkSemaphore renderFinishedSemaphore,
 		const uint32_t imageIndex) const {
 		if (swapChain == VK_NULL_HANDLE || presentQueue == VK_NULL_HANDLE
 			|| renderFinishedSemaphore == VK_NULL_HANDLE || imageIndex >= images.size()) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "swap chain present",
 				"Vulkan present에 필요한 스왑체인, 큐 또는 세마포어를 사용할 수 없습니다"));
 		}
@@ -262,7 +262,7 @@ namespace Chrivent {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 			return VulkanSwapChainState::RecreateRequired;
 		if (result != VK_SUCCESS) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::PresentationFailed, "swap chain present",
 				"Vulkan 프레임을 표시하지 못했습니다", result, true));
 		}

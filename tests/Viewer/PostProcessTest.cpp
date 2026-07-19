@@ -34,7 +34,7 @@ namespace Chrivent {
 		}
 
 		// 테스트 효과 정의를 API 독립 실행 계획으로 변환한다.
-		std::expected<void, std::string> Configure(
+		std::expected<void, PostProcessPlanError> Configure(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
 			return SetEffects(effects);
 		}
@@ -101,7 +101,7 @@ namespace Chrivent {
 			EffectPassInputDefinition{ .slot = 2, .kind = EffectPassInputKind::SceneVelocity });
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		const auto result = postProcess.Configure(effects);
-		ASSERT_TRUE(result.has_value()) << result.error();
+		ASSERT_TRUE(result.has_value()) << result.error().Format();
 		EXPECT_TRUE(postProcess.HasEffects());
 		EXPECT_TRUE(postProcess.RequiresDepth());
 		EXPECT_TRUE(postProcess.RequiresVelocity());
@@ -123,7 +123,11 @@ namespace Chrivent {
 			{ .slot = 1, .value = 0.5f }
 		};
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-		EXPECT_FALSE(postProcess.Configure(effects).has_value());
+		const auto declarationResult = postProcess.Configure(effects);
+		ASSERT_FALSE(declarationResult.has_value());
+		EXPECT_EQ(declarationResult.error().code, PostProcessPlanErrorCode::InvalidParameter);
+		EXPECT_EQ(declarationResult.error().effectIndex, 0);
+		EXPECT_EQ(declarationResult.error().passIndex, PostProcessPlanError::noPassIndex);
 		effect.parameters = { { .slot = 1, .value = 0.25f } };
 		ASSERT_TRUE(postProcess.Configure(effects).has_value());
 		constexpr EffectParameterUpdate invalidEffect[]{
@@ -183,7 +187,7 @@ namespace Chrivent {
 			{ .kind = EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		const auto result = postProcess.Configure(effects);
-		ASSERT_TRUE(result.has_value()) << result.error();
+		ASSERT_TRUE(result.has_value()) << result.error().Format();
 		EXPECT_EQ(postProcess.GetPassCount(), 2);
 		EXPECT_EQ(postProcess.GetResourceCount(), 1);
 		int width = 1921;
@@ -239,7 +243,7 @@ namespace Chrivent {
 		EffectRuntimeDefinition secondEffect = MakeSinglePassEffect();
 		const std::vector<const EffectRuntimeDefinition*> effects{ &firstEffect, &secondEffect };
 		const auto result = postProcess.Configure(effects);
-		ASSERT_TRUE(result.has_value()) << result.error();
+		ASSERT_TRUE(result.has_value()) << result.error().Format();
 		ASSERT_EQ(postProcess.GetPassCount(), 2);
 		ASSERT_EQ(postProcess.GetResourceCount(), 1);
 		EXPECT_TRUE(postProcess.IsResourceInput(1, 0));
