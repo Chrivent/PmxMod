@@ -17,7 +17,8 @@ namespace Chrivent {
 		OpenGlDrawContext& drawContext;
 
 		// uniform buffer ring에 상수 데이터를 기록하고 지정한 binding에 연결한다.
-		bool UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
+		DynamicBufferError::Result<void> UpdateUniformBuffer(
+			OpenGlDynamicBufferRing& ring, GLuint binding, const void* data, size_t size) const;
 
 	protected:
 		// 새 프레임용 OpenGL 업로드 링 버퍼 상태를 초기화한다.

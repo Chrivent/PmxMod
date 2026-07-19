@@ -134,7 +134,7 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	std::expected<void, PostProcessPlanError> PostProcess::SetEffects(
+	std::expected<PostProcess::ExecutionPlan, PostProcessPlanError> PostProcess::BuildExecutionPlan(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
 		std::vector<PostProcessPassRoute> plannedRoutes;
@@ -296,15 +296,41 @@ namespace Chrivent {
 				effectInput.resourceIndex = effectOutputIndex;
 			}
 		}
-		shaderPrograms = std::move(plannedPrograms);
-		passRoutes = std::move(plannedRoutes);
-		effectParameters = std::move(plannedParameters);
-		resourcePlans = std::move(plannedResources);
+		return ExecutionPlan{
+			.shaderPrograms = std::move(plannedPrograms),
+			.passRoutes = std::move(plannedRoutes),
+			.effectParameters = std::move(plannedParameters),
+			.resourcePlans = std::move(plannedResources),
+			.depthRequired = requiresDepth,
+			.velocityRequired = requiresVelocity
+		};
+	}
+
+	std::expected<void, PostProcessPlanError> PostProcess::SetEffects(
+		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		auto planResult = BuildExecutionPlan(effects);
+		if (!planResult)
+			return std::unexpected(planResult.error());
+		auto [plannedShaderPrograms, plannedPassRoutes
+			, plannedEffectParameters, plannedResourcePlans
+			, plannedDepthRequired, plannedVelocityRequired] = std::move(*planResult);
+		shaderPrograms = std::move(plannedShaderPrograms);
+		passRoutes = std::move(plannedPassRoutes);
+		effectParameters = std::move(plannedEffectParameters);
+		resourcePlans = std::move(plannedResourcePlans);
 		resourceHistoryStates.assign(resourcePlans.size(), {});
 		pendingResourceHistoryStates.clear();
 		historyFramePending = false;
-		depthRequired = requiresDepth;
-		velocityRequired = requiresVelocity;
+		depthRequired = plannedDepthRequired;
+		velocityRequired = plannedVelocityRequired;
+		return {};
+	}
+
+	std::expected<void, PostProcessPlanError> PostProcess::ValidateEffects(
+		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const auto planResult = BuildExecutionPlan(effects);
+		if (!planResult)
+			return std::unexpected(planResult.error());
 		return {};
 	}
 

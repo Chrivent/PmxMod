@@ -9,6 +9,10 @@ namespace Chrivent {
 	// GPU 리소스 없이 Viewer 상태 전이를 검증하는 후처리 구현이다.
 	class ViewerTestPostProcess final : public PostProcess {
 	public:
+		float GetParameterValue(const size_t slot) const {
+			return GetParameterData(GetPassRoutes().front()).values[slot];
+		}
+
 		// depth 입력이 필요한 최소 실행 계획을 구성한다.
 		std::expected<void, PostProcessPlanError> ConfigureDepthEffect(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
@@ -31,6 +35,8 @@ namespace Chrivent {
 		bool failWait = false;
 		bool skipBegin = false;
 		size_t beginCallCount = 0;
+		size_t loadEffectCallCount = 0;
+		size_t waitCallCount = 0;
 
 		// 테스트에서 요청한 실패를 구조화된 그래픽 오류로 생성한다.
 		static GraphicsError::Result<void> ResolveTestResult(const bool fail, const std::string& operation) {
@@ -44,6 +50,7 @@ namespace Chrivent {
 		// 테스트 효과 구성은 API 리소스를 만들지 않는다.
 		GraphicsError::Result<void> LoadPostProcessEffectsCore(
 			const std::vector<const EffectRuntimeDefinition*>& effects) override {
+			loadEffectCallCount++;
 			const auto result = postProcess.ConfigureDepthEffect(effects);
 			if (result)
 				return {};
@@ -108,6 +115,7 @@ namespace Chrivent {
 
 		// 주입한 테스트 상태에 따라 GPU 대기 결과를 반환한다.
 		GraphicsError::Result<void> WaitIdleCore() override {
+			waitCallCount++;
 			return ResolveTestResult(failWait, "테스트 GPU 대기");
 		}
 
@@ -118,6 +126,9 @@ namespace Chrivent {
 		ViewerTestAdapter() : Viewer(GraphicsApi::Unknown, false) {}
 
 		size_t GetBeginCallCount() const { return beginCallCount; }
+		size_t GetLoadEffectCallCount() const { return loadEffectCallCount; }
+		float GetParameterValue(const size_t slot) const { return postProcess.GetParameterValue(slot); }
+		size_t GetWaitCallCount() const { return waitCallCount; }
 		void SetBeginFailure(const bool fail) { failBegin = fail; }
 		void SetBeginSceneInputFailure(const bool fail) { failBeginSceneInput = fail; }
 		void SetEndFailure(const bool fail) { failEnd = fail; }
@@ -200,12 +211,42 @@ namespace Chrivent {
 		ViewerTestAdapter viewer;
 		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
 		EXPECT_FALSE(viewer.LoadPostProcessEffects({ nullptr }).has_value());
+		EXPECT_EQ(viewer.GetWaitCallCount(), 0);
+		EXPECT_EQ(viewer.GetLoadEffectCallCount(), 0);
 		const auto beginResult = viewer.BeginFrame();
 		ASSERT_TRUE(beginResult.has_value());
 		EXPECT_EQ(*beginResult, FrameBeginState::Ready);
 		const auto endResult = viewer.EndFrame();
 		ASSERT_TRUE(endResult.has_value());
 		EXPECT_EQ(*endResult, FrameEndState::Presented);
+	}
+
+	TEST(ViewerContract, ValidEffectReloadWaitsBeforeCreatingApiResources) {
+		ViewerTestAdapter viewer;
+		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
+
+		ASSERT_TRUE(viewer.LoadPostProcessEffects({}).has_value());
+
+		EXPECT_EQ(viewer.GetWaitCallCount(), 1);
+		EXPECT_EQ(viewer.GetLoadEffectCallCount(), 1);
+	}
+
+	TEST(ViewerContract, ParameterUpdatesAreCoalescedAndAppliedAtFrameBoundary) {
+		ViewerTestAdapter viewer;
+		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
+		constexpr EffectParameterUpdate updates[]{
+			{ .effectIndex = 0, .slot = 2, .value = 0.25f },
+			{ .effectIndex = 0, .slot = 2, .value = 0.75f }
+		};
+
+		ASSERT_TRUE(viewer.UpdatePostProcessParameters(updates).has_value());
+		EXPECT_FLOAT_EQ(viewer.GetParameterValue(2), 0.0f);
+		const auto beginResult = viewer.BeginFrame();
+
+		ASSERT_TRUE(beginResult.has_value());
+		ASSERT_EQ(*beginResult, FrameBeginState::Ready);
+		EXPECT_FLOAT_EQ(viewer.GetParameterValue(2), 0.75f);
+		ASSERT_TRUE(viewer.EndFrame().has_value());
 	}
 
 	TEST(ViewerContract, SkippedFrameKeepsRendererUsable) {

@@ -2,8 +2,6 @@
 
 #include "Viewer/Error/OpenGlErrorState.h"
 
-#include <utility>
-
 namespace Chrivent {
 	OpenGlDynamicBufferRing::~OpenGlDynamicBufferRing() {
 		Clear();
@@ -12,11 +10,11 @@ namespace Chrivent {
 	GraphicsError::Result<void> OpenGlDynamicBufferRing::Setup(
 		const size_t bufferSize, const GLenum bufferUsage) {
 		Clear();
-		std::string error;
-		if (!DynamicBufferRing::Setup(bufferSize, error)) {
+		const auto setupResult = DynamicBufferRing::Setup(bufferSize);
+		if (!setupResult) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
 				GraphicsErrorCode::InvalidArgument, "동적 uniform buffer ring 생성",
-				std::move(error)));
+				setupResult.error().message));
 		}
 		usage = bufferUsage;
 		OpenGlErrorState::Clear();
@@ -55,8 +53,9 @@ namespace Chrivent {
 		glNamedBufferData(buffer, capacity, nullptr, usage);
 	}
 
-	std::optional<UploadSlice> OpenGlDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
+	DynamicBufferError::Result<UploadSlice> OpenGlDynamicBufferRing::Allocate(
+		const size_t size, const size_t alignment) {
 		return AllocateSlice(size, alignment, capacity, 0,
-			"현재 프레임에서 OpenGL 동적 버퍼 링의 남은 공간이 부족합니다.", outError);
+			"현재 프레임에서 OpenGL 동적 버퍼 링의 남은 공간이 부족합니다.");
 	}
 }

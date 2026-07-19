@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 #include "Viewer/Drawer/Drawer.h"
 
 #include <glm/glm.hpp>
@@ -14,6 +15,10 @@ namespace Chrivent {
 		const VulkanInstance& instance;
 		VulkanModelResources& resources;
 		VulkanDrawContext& drawContext;
+
+		// Vulkan 동적 버퍼에서 상수 범위를 예약하고 데이터를 기록한다.
+		static DynamicBufferError::Result<UploadSlice> UploadConstants(
+			VulkanDynamicBufferRing& ring, size_t alignment, const void* data, size_t size);
 
 	protected:
 		// 새 프레임용 Vulkan 동적 uniform buffer ring 상태를 초기화한다.

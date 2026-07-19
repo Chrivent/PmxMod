@@ -11,14 +11,15 @@ namespace Chrivent {
 		resources.pixelConstantsRing.BeginFrame(0);
 	}
 
-	bool OpenGlDrawer::UpdateUniformBuffer(OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
-		std::string error;
-		const auto slice = ring.Allocate(size, resources.uniformBufferOffsetAlignment, error);
-		if (!slice.has_value())
-			return false;
-		glNamedBufferSubData(ring.GetBuffer(), slice->offset, slice->size, data);
-		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice->offset, slice->size);
-		return true;
+	DynamicBufferError::Result<void> OpenGlDrawer::UpdateUniformBuffer(
+		OpenGlDynamicBufferRing& ring, const GLuint binding, const void* data, const size_t size) const {
+		const auto sliceResult = ring.Allocate(size, resources.uniformBufferOffsetAlignment);
+		if (!sliceResult)
+			return std::unexpected(sliceResult.error());
+		const UploadSlice& slice = *sliceResult;
+		glNamedBufferSubData(ring.GetBuffer(), slice.offset, slice.size, data);
+		glBindBufferRange(GL_UNIFORM_BUFFER, binding, ring.GetBuffer(), slice.offset, slice.size);
+		return {};
 	}
 
 	GraphicsError::Result<void> OpenGlDrawer::DrawModel() {
@@ -27,9 +28,11 @@ namespace Chrivent {
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		const ModelVertexConstants vertexConstants = BuildModelVertexConstants(drawState, world, ClipMatrix());
 		drawContext.BindModelPipeline();
-		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+		const auto vertexUploadResult = UpdateUniformBuffer(
+			resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+		if (!vertexUploadResult) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"OpenGL 모델 패스 기록", "모델 vertex 상수를 업로드하지 못했습니다"));
+				"OpenGL 모델 패스 기록", vertexUploadResult.error().message));
 		}
 		glBindVertexArray(resources.vao);
 		glEnable(GL_DEPTH_TEST);
@@ -77,9 +80,11 @@ namespace Chrivent {
 				glBindTextureUnit(2, sphereTexture);
 				boundTextures[2] = sphereTexture;
 			}
-			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+			const auto pixelUploadResult = UpdateUniformBuffer(
+				resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+			if (!pixelUploadResult) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"OpenGL 모델 패스 기록", "모델 pixel 상수를 업로드하지 못했습니다"));
+					"OpenGL 모델 패스 기록", pixelUploadResult.error().message));
 			}
 			if (mat.bothFace) {
 				if (cullEnabled) {
@@ -129,10 +134,17 @@ namespace Chrivent {
 			vertexConstants.edgeSize = mat.edgeSize;
 			EdgePixelConstants pixelConstants;
 			pixelConstants.edgeColor = mat.edgeColor;
-			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants)) ||
-				!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+			const auto vertexUploadResult = UpdateUniformBuffer(
+				resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+			if (!vertexUploadResult) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"OpenGL 엣지 패스 기록", "엣지 상수를 업로드하지 못했습니다"));
+					"OpenGL 엣지 패스 기록", vertexUploadResult.error().message));
+			}
+			const auto pixelUploadResult = UpdateUniformBuffer(
+				resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+			if (!pixelUploadResult) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"OpenGL 엣지 패스 기록", pixelUploadResult.error().message));
 			}
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
@@ -149,15 +161,19 @@ namespace Chrivent {
 		glDepthFunc(GL_LESS);
 		const GroundShadowVertexConstants vertexConstants = BuildGroundShadowVertexConstants(
 			drawState, world, ClipMatrix());
-		if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+		const auto vertexUploadResult = UpdateUniformBuffer(
+			resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+		if (!vertexUploadResult) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"OpenGL 지면 그림자 패스 기록", "지면 그림자 vertex 상수를 업로드하지 못했습니다"));
+				"OpenGL 지면 그림자 패스 기록", vertexUploadResult.error().message));
 		}
 		glBindVertexArray(resources.gsVao);
 		constexpr GroundShadowPixelConstants pixelConstants;
-		if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+		const auto pixelUploadResult = UpdateUniformBuffer(
+			resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+		if (!pixelUploadResult) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"OpenGL 지면 그림자 패스 기록", "지면 그림자 pixel 상수를 업로드하지 못했습니다"));
+				"OpenGL 지면 그림자 패스 기록", pixelUploadResult.error().message));
 		}
 		glDepthMask(GL_FALSE);
 		glEnable(GL_POLYGON_OFFSET_FILL);
@@ -195,18 +211,22 @@ namespace Chrivent {
 			const SceneVelocityVertexConstants vertexConstants = BuildSceneVelocityVertexConstants(
 				drawState, world, ClipMatrix());
 			drawContext.BindSceneVelocityPipeline();
-			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+			const auto uploadResult = UpdateUniformBuffer(
+				resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+			if (!uploadResult) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"OpenGL 후처리 장면 입력 기록", "velocity vertex 상수를 업로드하지 못했습니다"));
+					"OpenGL 후처리 장면 입력 기록", uploadResult.error().message));
 			}
 			glBindVertexArray(resources.velocityVao);
 		} else {
 			const ModelVertexConstants vertexConstants = BuildModelVertexConstants(
 				drawState, world, ClipMatrix());
 			drawContext.BindSceneDepthPipeline();
-			if (!UpdateUniformBuffer(resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants))) {
+			const auto uploadResult = UpdateUniformBuffer(
+				resources.vertexConstantsRing, 0, &vertexConstants, sizeof(vertexConstants));
+			if (!uploadResult) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"OpenGL 후처리 장면 입력 기록", "depth vertex 상수를 업로드하지 못했습니다"));
+					"OpenGL 후처리 장면 입력 기록", uploadResult.error().message));
 			}
 			glBindVertexArray(resources.depthVao);
 		}
@@ -229,9 +249,11 @@ namespace Chrivent {
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture != 0 && material.textureHasAlpha);
-			if (!UpdateUniformBuffer(resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants))) {
+			const auto uploadResult = UpdateUniformBuffer(
+				resources.pixelConstantsRing, 1, &pixelConstants, sizeof(pixelConstants));
+			if (!uploadResult) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"OpenGL 후처리 장면 입력 기록", "장면 표면 상수를 업로드하지 못했습니다"));
+					"OpenGL 후처리 장면 입력 기록", uploadResult.error().message));
 			}
 			const GLuint texture = material.texture != 0 ? material.texture : dummyColorTexture;
 			if (boundTexture != texture) {

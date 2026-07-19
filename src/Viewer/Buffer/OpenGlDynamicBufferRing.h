@@ -28,6 +28,6 @@ namespace Chrivent {
 		// 새 프레임에서 사용할 OpenGL 업로드 위치를 초기화한다.
 		void BeginFrame(size_t frameIndex);
 		// 지정한 크기와 정렬 조건에 맞는 OpenGL 업로드 구간을 예약한다.
-		std::optional<UploadSlice> Allocate(size_t size, size_t alignment, std::string& outError);
+		DynamicBufferError::Result<UploadSlice> Allocate(size_t size, size_t alignment);
 	};
 }

@@ -48,4 +48,6 @@ target_link_libraries(PmxModCore PUBLIC
         BulletDynamics
         BulletCollision
         LinearMath
+        PRIVATE
+        PmxMod::ProjectWarnings
 )

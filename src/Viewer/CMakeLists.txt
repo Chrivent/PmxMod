@@ -5,6 +5,8 @@ add_library(PmxModViewerCommon STATIC)
 add_library(PmxMod::ViewerCommon ALIAS PmxModViewerCommon)
 
 target_sources(PmxModViewerCommon PRIVATE
+        Buffer/BufferSize.h
+        Buffer/DynamicBufferRing.h Buffer/DynamicBufferRing.cpp
         Drawer/SceneDrawState.h
         Drawer/Drawer.h Drawer/Drawer.cpp
         Error/GraphicsError.h Error/GraphicsError.cpp
@@ -29,6 +31,8 @@ target_link_libraries(PmxModViewerCommon PUBLIC
         PmxModCore
         glfw
         glm::glm
+        PRIVATE
+        PmxMod::ProjectWarnings
 )
 
 add_library(PmxModDxcHlslCompiler OBJECT
@@ -39,12 +43,17 @@ target_compile_features(PmxModDxcHlslCompiler PRIVATE cxx_std_23)
 
 target_include_directories(PmxModDxcHlslCompiler PRIVATE
         ${PROJECT_SOURCE_DIR}/src
+)
+
+target_include_directories(PmxModDxcHlslCompiler SYSTEM PRIVATE
         "$ENV{VULKAN_SDK}/Include"
 )
 
+target_link_libraries(PmxModDxcHlslCompiler PRIVATE
+        PmxMod::ProjectWarnings
+)
+
 target_sources(PmxModViewer PRIVATE
-        Buffer/BufferSize.h
-        Buffer/DynamicBufferRing.h Buffer/DynamicBufferRing.cpp
         Buffer/OpenGlDynamicBufferRing.h Buffer/OpenGlDynamicBufferRing.cpp
         Buffer/Dx12Buffer.h Buffer/Dx12Buffer.cpp
         Buffer/VulkanBuffer.h Buffer/VulkanBuffer.cpp
@@ -169,4 +178,5 @@ target_link_libraries(PmxModViewer
         spirv-cross-core
         spirv-cross-cpp
         spirv-cross-glsl
+        PmxMod::ProjectWarnings
 )

@@ -78,6 +78,16 @@ namespace Chrivent {
 		};
 
 	private:
+		// 검증된 효과 선언에서 생성한 API 독립 실행 계획 전체를 보관한다.
+		struct ExecutionPlan {
+			std::vector<ShaderProgramDefinition> shaderPrograms;
+			std::vector<PostProcessPassRoute> passRoutes;
+			std::vector<PostProcessParameterData> effectParameters;
+			std::vector<PostProcessResourcePlan> resourcePlans;
+			bool depthRequired = false;
+			bool velocityRequired = false;
+		};
+
 		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
 		struct ResourceHistoryState {
 			size_t readIndex = 0;
@@ -104,6 +114,9 @@ namespace Chrivent {
 		static PostProcessPlanError CreatePlanError(PostProcessPlanErrorCode code,
 			size_t effectIndex, std::string message,
 			size_t passIndex = PostProcessPlanError::noPassIndex);
+		// 효과 선언을 검증하고 API 독립 실행 계획을 생성한다.
+		static std::expected<ExecutionPlan, PostProcessPlanError> BuildExecutionPlan(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 
 	protected:
 		PostProcess() = default;
@@ -149,6 +162,9 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
+		// GPU 대기나 API 리소스 생성 전에 효과 선언과 패스 그래프를 검증한다.
+		static std::expected<void, PostProcessPlanError> ValidateEffects(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 활성 효과에 적용할 파라미터 갱신의 색인, 슬롯과 값 범위를 검증한다.
 		bool ValidateParameterUpdates(std::span<const EffectParameterUpdate> updates) const;
 		// 실행 계획을 다시 만들지 않고 활성 효과의 스칼라 파라미터 값을 갱신한다.

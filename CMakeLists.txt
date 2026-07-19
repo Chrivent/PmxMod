@@ -6,6 +6,14 @@ option(PMXMOD_BUILD_TESTS "PmxMod 테스트를 빌드합니다" OFF)
 
 add_compile_definitions(NOMINMAX)
 
+add_library(PmxModProjectWarnings INTERFACE)
+add_library(PmxMod::ProjectWarnings ALIAS PmxModProjectWarnings)
+
+target_compile_options(PmxModProjectWarnings INTERFACE
+        $<$<CXX_COMPILER_ID:MSVC>:/W4>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic>
+)
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -70,6 +78,7 @@ target_include_directories(PmxMod PRIVATE
 
 target_link_libraries(PmxMod PRIVATE
         PmxMod::Core
+        PmxMod::ProjectWarnings
         PmxMod::Viewer
         comctl32
         dwmapi
