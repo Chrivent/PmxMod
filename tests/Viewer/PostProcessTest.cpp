@@ -100,9 +100,7 @@ namespace Chrivent {
 		effect.passes[0].inputs.emplace_back(
 			EffectPassInputDefinition{ .slot = 2, .kind = EffectPassInputKind::SceneVelocity });
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-
 		const auto result = postProcess.Configure(effects);
-
 		ASSERT_TRUE(result.has_value()) << result.error();
 		EXPECT_TRUE(postProcess.HasEffects());
 		EXPECT_TRUE(postProcess.RequiresDepth());
@@ -125,9 +123,7 @@ namespace Chrivent {
 			{ .slot = 1, .value = 0.5f }
 		};
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-
 		EXPECT_FALSE(postProcess.Configure(effects).has_value());
-
 		effect.parameters = { { .slot = 1, .value = 0.25f } };
 		ASSERT_TRUE(postProcess.Configure(effects).has_value());
 		constexpr EffectParameterUpdate invalidEffect[]{
@@ -153,7 +149,6 @@ namespace Chrivent {
 			{ .slot = 0, .kind = EffectPassInputKind::SceneDepth }
 		}, { .kind = EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-
 		EXPECT_FALSE(postProcess.Configure(effects).has_value());
 	}
 
@@ -169,7 +164,6 @@ namespace Chrivent {
 			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
 			{ .kind = EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-
 		EXPECT_FALSE(postProcess.Configure(effects).has_value());
 	}
 
@@ -188,9 +182,7 @@ namespace Chrivent {
 			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
 			{ .kind = EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
-
 		const auto result = postProcess.Configure(effects);
-
 		ASSERT_TRUE(result.has_value()) << result.error();
 		EXPECT_EQ(postProcess.GetPassCount(), 2);
 		EXPECT_EQ(postProcess.GetResourceCount(), 1);
@@ -227,18 +219,15 @@ namespace Chrivent {
 		EXPECT_FALSE(postProcess.IsHistoryInitializationNeeded(0));
 		EXPECT_EQ(postProcess.GetResourceReadIndex(0), 0);
 		EXPECT_EQ(postProcess.GetResourceWriteIndex(0), 1);
-
 		postProcess.BeginTestHistoryFrame();
 		postProcess.AdvanceTestHistory(0);
 		EXPECT_EQ(postProcess.GetResourceReadIndex(0), 1);
 		postProcess.DiscardHistoryFrame();
 		EXPECT_EQ(postProcess.GetResourceReadIndex(0), 0);
-
 		postProcess.BeginTestHistoryFrame();
 		postProcess.AdvanceTestHistory(0);
 		postProcess.CommitHistoryFrame();
 		EXPECT_EQ(postProcess.GetResourceReadIndex(0), 1);
-
 		postProcess.ResetHistory();
 		EXPECT_TRUE(postProcess.IsHistoryInitializationNeeded(0));
 		EXPECT_EQ(postProcess.GetResourceReadIndex(0), 0);
@@ -249,9 +238,7 @@ namespace Chrivent {
 		EffectRuntimeDefinition firstEffect = MakeSinglePassEffect();
 		EffectRuntimeDefinition secondEffect = MakeSinglePassEffect();
 		const std::vector<const EffectRuntimeDefinition*> effects{ &firstEffect, &secondEffect };
-
 		const auto result = postProcess.Configure(effects);
-
 		ASSERT_TRUE(result.has_value()) << result.error();
 		ASSERT_EQ(postProcess.GetPassCount(), 2);
 		ASSERT_EQ(postProcess.GetResourceCount(), 1);
