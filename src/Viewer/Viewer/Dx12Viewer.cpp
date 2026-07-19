@@ -102,16 +102,16 @@ namespace Chrivent {
 		if (!commandList || !backBuffer || !msaaColor)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 종료", "필요한 DirectX 12 프레임 리소스를 사용할 수 없습니다"));
-		bool frameRecorded;
-		if (postProcess.HasEffects())
-			frameRecorded = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
+		if (postProcess.HasEffects()) {
+			const auto drawResult = postProcess.Draw(commandList, backBuffer, msaaColorBuffer,
 				device, commandContext, swapChain, screenWidth, screenHeight, GetPostProcessFrameData());
-		else
-			frameRecorded = msaaColorBuffer.ResolveToBackBuffer(commandList,
-				commandContext.GetEnhancedCommandList().Get(), backBuffer);
-		if (!frameRecorded)
+			if (!drawResult)
+				return std::unexpected(drawResult.error());
+		} else if (!msaaColorBuffer.ResolveToBackBuffer(
+			commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"프레임 기록", "DirectX 12 출력 패스를 기록하지 못했습니다"));
+		}
 		const auto executeResult = commandContext.Execute(device);
 		if (!executeResult)
 			return std::unexpected(executeResult.error());
@@ -126,10 +126,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "DirectX 12 draw context가 준비되지 않았습니다"));
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		if (!postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 시작", "DirectX 12 장면 입력 패스를 시작하지 못했습니다"));
-		return {};
+		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
 	GraphicsResult<void> Dx12Viewer::EndPostProcessSceneInputPassCore() {
@@ -137,10 +134,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
 		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
-		if (!postProcess.EndSceneInputPass(commandList, commandContext))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 종료", "DirectX 12 장면 입력 패스를 끝내지 못했습니다"));
-		return {};
+		return postProcess.EndSceneInputPass(commandList, commandContext);
 	}
 
 	GraphicsResult<void> Dx12Viewer::WaitIdle() {

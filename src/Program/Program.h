@@ -83,6 +83,8 @@ namespace Chrivent {
 
         // 명령행에서 사용할 수 있는 실행 옵션을 출력한다.
         static void PrintUsage();
+        // 감지된 그래픽 API와 GPU 기능을 프로그램 로그에 출력한다.
+        static void PrintGraphicsCapabilities(const GraphicsCapabilities& capabilities);
         // 렌더러에서 전파된 구조화된 오류를 프로그램 경계에서 한 번 출력한다.
         static void PrintGraphicsError(const GraphicsError& error);
         // 렌더러 창의 Win32 모달 루프에서도 프레임을 진행한다.

@@ -75,12 +75,11 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			postProcess.ResolveSceneColor(
 				device.GetContext(), renderTargets.GetSceneColor(), multiSampleCount);
-			if (!postProcess.Draw(device.GetContext(), renderTargets.GetBackBufferView(),
+			const auto drawResult = postProcess.Draw(device.GetContext(), renderTargets.GetBackBufferView(),
 				pipeline.GetPostProcessRasterizerState(), pipeline.GetToonTextureSampler(),
-				screenWidth, screenHeight, GetPostProcessFrameData())) {
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"후처리 효과 draw", "DirectX 11 후처리 chain 실행에 실패했습니다"));
-			}
+				screenWidth, screenHeight, GetPostProcessFrameData());
+			if (!drawResult)
+				return std::unexpected(drawResult.error());
 		} else {
 			if (multiSampleCount > 1)
 				device.GetContext()->ResolveSubresource(renderTargets.GetBackBuffer(), 0,
@@ -96,20 +95,12 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Viewer::BeginPostProcessSceneInputPassCore() {
-		if (!postProcess.BeginSceneInputPass(device.GetContext(),
-			pipeline.GetDefaultDepthStencilState(), screenWidth, screenHeight)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 시작", "DirectX 11 장면 입력 패스를 시작하지 못했습니다"));
-		}
-		return {};
+		return postProcess.BeginSceneInputPass(device.GetContext(),
+			pipeline.GetDefaultDepthStencilState(), screenWidth, screenHeight);
 	}
 
 	GraphicsResult<void> Dx11Viewer::EndPostProcessSceneInputPassCore() {
-		if (device.GetContext() == nullptr)
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"후처리 장면 입력 패스 종료", "DirectX 11 context를 사용할 수 없습니다"));
-		postProcess.EndSceneInputPass(device.GetContext());
-		return {};
+		return postProcess.EndSceneInputPass(device.GetContext());
 	}
 
 	GraphicsResult<void> Dx11Viewer::WaitIdle() {

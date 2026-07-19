@@ -51,9 +51,8 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"DX12 index buffer 생성", "index upload 또는 GPU buffer를 만들지 못했습니다"));
 		}
-		const auto uploadResult = uploadContext.UploadIndexBuffer(
-			device, modelResources.indexBuffer.GetResource(),
-			indexUploadBuffer.GetResource(), indexData.bytes.size());
+		const auto uploadResult = uploadContext.RecordIndexBufferUpload(
+			modelResources.indexBuffer.GetResource(), indexUploadBuffer.GetResource(), indexData.bytes.size());
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.GetGpuAddress();
@@ -201,15 +200,19 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx12Instance::SetupRenderer() {
-		const auto geometryResult = CreateGeometryBuffers();
-		if (!geometryResult)
-			return std::unexpected(geometryResult.error());
-		if (!CreateConstantBuffers())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
 		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
 		if (!beginUploadResult)
 			return std::unexpected(beginUploadResult.error());
+		const auto geometryResult = CreateGeometryBuffers();
+		if (!geometryResult) {
+			textureCache.CancelUploadBatch();
+			return std::unexpected(geometryResult.error());
+		}
+		if (!CreateConstantBuffers()) {
+			textureCache.CancelUploadBatch();
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
+		}
 		const auto materialResult = LoadMaterials();
 		if (!materialResult) {
 			textureCache.CancelUploadBatch();

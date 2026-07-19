@@ -57,7 +57,7 @@ namespace Chrivent {
 		void InitializeHistories(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext);
 		// 공통 실행 계획의 모든 DX12 pipeline state를 생성한다.
-		bool CreatePipelines(const Dx12Device& sourceDevice, std::string& error);
+		GraphicsResult<void> CreatePipelines(const Dx12Device& sourceDevice);
 		// frame에 대응하는 shader-visible descriptor heap을 반환한다.
 		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex) const;
 		// 입력 경로에 대응하는 DX12 resource와 SRV 형식을 반환한다.
@@ -76,13 +76,13 @@ namespace Chrivent {
 		GraphicsResult<void> Configure(const Dx12Device& sourceDevice, int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		bool BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
+		GraphicsResult<void> BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;
 		// DX12 후처리 장면 입력 패스를 종료하고 기록 성공 여부를 반환한다.
-		bool EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
+		GraphicsResult<void> EndSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext) const;
 		// 선언된 후처리 패스를 실행해 최종 프레임 명령을 기록한다.
-		bool Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
+		GraphicsResult<void> Draw(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer,
 			const Dx12MsaaColorBuffer& msaaColorBuffer, const Dx12Device& sourceDevice,
 			const Dx12CommandContext& commandContext, const Dx12SwapChain& swapChain,
 			int width, int height, const PostProcessFrameData& frameData);

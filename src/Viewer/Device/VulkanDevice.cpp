@@ -309,7 +309,6 @@ namespace Chrivent {
 		capabilities.activeSampleCount = static_cast<uint32_t>(msaaSampleCount);
 		capabilities.uniformBufferAlignment = properties.limits.minUniformBufferOffsetAlignment;
 		capabilities.maxTextureBindings = properties.limits.maxPerStageDescriptorSampledImages;
-		capabilities.shaderModelMajor = 6;
 		capabilities.supportsTimelineSynchronization = vulkan12Features.timelineSemaphore == VK_TRUE;
 		capabilities.supportsDynamicRendering = vulkan13Features.dynamicRendering == VK_TRUE;
 		capabilities.supportsEnhancedBarriers = vulkan13Features.synchronization2 == VK_TRUE;

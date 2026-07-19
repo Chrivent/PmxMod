@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 
+// ReSharper disable once CppInconsistentNaming
 struct GLFWwindow;
 
 namespace Chrivent {

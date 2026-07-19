@@ -37,12 +37,12 @@ namespace Chrivent {
 		// 현재 batch에 texture 복사와 셰이더 읽기 상태 전환을 기록한다.
 		GraphicsResult<void> RecordTextureUpload(ID3D12Resource* destination,
 			ID3D12Resource* source, const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& layout);
+		// 현재 batch에 index buffer 복사와 index 입력 상태 전환을 기록한다.
+		GraphicsResult<void> RecordIndexBufferUpload(
+			ID3D12Resource* destination, ID3D12Resource* source, UINT64 size);
 		// 현재 batch를 한 번 제출하고 GPU 완료까지 기다린다.
 		GraphicsResult<void> SubmitBatch(const Dx12Device& sourceDevice);
 		// 제출하지 않은 현재 batch와 staging resource를 폐기한다.
 		void CancelBatch();
-		// upload buffer를 정적 GPU buffer에 복사하고 index 입력 상태로 전환한다.
-		GraphicsResult<void> UploadIndexBuffer(const Dx12Device& sourceDevice, ID3D12Resource* destination,
-			ID3D12Resource* source, UINT64 size);
 	};
 }

@@ -168,28 +168,16 @@ namespace Chrivent {
 		return {};
 	}
 
-	void VulkanUploadContext::CancelBatch() {
-		if (!batchRecording)
-			return;
-		if (commandBuffer != VK_NULL_HANDLE)
-			vkEndCommandBuffer(commandBuffer);
-		batchRecording = false;
-		retainedBuffers.clear();
-	}
-
-	GraphicsResult<void> VulkanUploadContext::UploadIndexBuffer(const VulkanDevice& sourceDevice,
-		const VkBuffer destination, const VkBuffer source, const VkDeviceSize size) {
-		if (destination == VK_NULL_HANDLE || source == VK_NULL_HANDLE || size == 0) {
+	GraphicsResult<void> VulkanUploadContext::RecordIndexBufferUpload(
+		const VkBuffer destination, std::unique_ptr<VulkanBuffer> source, const VkDeviceSize size) {
+		if (!batchRecording || commandBuffer == VK_NULL_HANDLE || destination == VK_NULL_HANDLE
+			|| !source || source->buffer == VK_NULL_HANDLE || size == 0) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-				GraphicsErrorCode::InvalidArgument, "index buffer 업로드",
-				"복사할 Vulkan index buffer 또는 크기가 올바르지 않습니다"));
+				GraphicsErrorCode::InvalidState, "index buffer 업로드 기록",
+				"Vulkan 업로드 batch 또는 index buffer가 올바르지 않습니다"));
 		}
-		VkCommandBuffer targetCommandBuffer = VK_NULL_HANDLE;
-		const auto beginResult = BeginBatch(sourceDevice, targetCommandBuffer);
-		if (!beginResult)
-			return std::unexpected(beginResult.error());
 		const VkBufferCopy copyRegion{ .size = size };
-		vkCmdCopyBuffer(targetCommandBuffer, source, destination, 1, &copyRegion);
+		vkCmdCopyBuffer(commandBuffer, source->buffer, destination, 1, &copyRegion);
 		const VkBufferMemoryBarrier2 barrier{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -207,7 +195,17 @@ namespace Chrivent {
 			.bufferMemoryBarrierCount = 1,
 			.pBufferMemoryBarriers = &barrier
 		};
-		vkCmdPipelineBarrier2(targetCommandBuffer, &dependencyInfo);
-		return SubmitBatch(sourceDevice);
+		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+		retainedBuffers.emplace_back(std::move(source));
+		return {};
+	}
+
+	void VulkanUploadContext::CancelBatch() {
+		if (!batchRecording)
+			return;
+		if (commandBuffer != VK_NULL_HANDLE)
+			vkEndCommandBuffer(commandBuffer);
+		batchRecording = false;
+		retainedBuffers.clear();
 	}
 }

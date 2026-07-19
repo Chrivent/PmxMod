@@ -9,6 +9,7 @@
 #include "Core/Model/Model.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
 
 namespace Chrivent {
@@ -41,13 +42,13 @@ namespace Chrivent {
 					"Vulkan vertex buffer 기록", "초기 vertex 데이터를 기록하지 못했습니다"));
 			}
 		}
-		VulkanBuffer indexUploadBuffer;
-		if (!indexUploadBuffer.Initialize(device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		auto indexUploadBuffer = std::make_unique<VulkanBuffer>();
+		if (!indexUploadBuffer->Initialize(device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"Vulkan index upload buffer 생성", "index upload buffer를 만들지 못했습니다"));
 		}
-		if (!indexUploadBuffer.Write(indexData.bytes.data(), indexBufferSize)) {
+		if (!indexUploadBuffer->Write(indexData.bytes.data(), indexBufferSize)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan index upload buffer 기록", "index 데이터를 upload buffer에 기록하지 못했습니다"));
 		}
@@ -57,8 +58,8 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
 				"Vulkan index buffer 생성", "GPU index buffer를 만들지 못했습니다"));
 		}
-		return uploadContext.UploadIndexBuffer(device, modelResources.indexBuffer.buffer,
-			indexUploadBuffer.buffer, indexBufferSize);
+		return uploadContext.RecordIndexBufferUpload(
+			modelResources.indexBuffer.buffer, std::move(indexUploadBuffer), indexBufferSize);
 	}
 
 	GraphicsResult<void> VulkanInstance::SetupConstantRings() {
@@ -202,15 +203,19 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> VulkanInstance::SetupRenderer() {
-		const auto geometryResult = CreateGeometryBuffers();
-		if (!geometryResult)
-			return std::unexpected(geometryResult.error());
-		const auto constantRingResult = SetupConstantRings();
-		if (!constantRingResult)
-			return std::unexpected(constantRingResult.error());
 		const auto beginUploadResult = textureCache.BeginUploadBatch(device);
 		if (!beginUploadResult)
 			return std::unexpected(beginUploadResult.error());
+		const auto geometryResult = CreateGeometryBuffers();
+		if (!geometryResult) {
+			textureCache.CancelUploadBatch();
+			return std::unexpected(geometryResult.error());
+		}
+		const auto constantRingResult = SetupConstantRings();
+		if (!constantRingResult) {
+			textureCache.CancelUploadBatch();
+			return std::unexpected(constantRingResult.error());
+		}
 		const auto materialResult = LoadMaterials();
 		if (!materialResult) {
 			textureCache.CancelUploadBatch();

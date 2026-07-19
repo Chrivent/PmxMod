@@ -38,10 +38,10 @@ namespace Chrivent {
 		GraphicsResult<void> SubmitBatch(const VulkanDevice& sourceDevice);
 		// 현재 batch가 참조하는 staging buffer의 수명을 제출 완료까지 유지한다.
 		GraphicsResult<void> RetainStagingBuffer(std::unique_ptr<VulkanBuffer> stagingBuffer);
+		// 현재 batch에 index buffer 복사와 index 입력 동기화를 기록한다.
+		GraphicsResult<void> RecordIndexBufferUpload(
+			VkBuffer destination, std::unique_ptr<VulkanBuffer> source, VkDeviceSize size);
 		// 제출하지 않은 현재 batch와 staging buffer를 폐기한다.
 		void CancelBatch();
-		// staging buffer를 정적 GPU index buffer에 복사한다.
-		GraphicsResult<void> UploadIndexBuffer(const VulkanDevice& sourceDevice,
-			VkBuffer destination, VkBuffer source, VkDeviceSize size);
 	};
 }

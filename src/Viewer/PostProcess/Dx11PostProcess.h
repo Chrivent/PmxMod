@@ -49,7 +49,7 @@ namespace Chrivent {
 		// DX11 후처리 셰이더만 해제한다.
 		void ResetShaders();
 		// 현재 실행 계획의 DX11 후처리 셰이더를 생성한다.
-		bool CreateShaders(ID3D11Device* device, std::string& error);
+		GraphicsResult<void> CreateShaders(ID3D11Device* device);
 		// 검증을 마친 다른 DX11 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(Dx11PostProcess& other) noexcept;
 		
@@ -64,12 +64,12 @@ namespace Chrivent {
 			int width, int height,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		bool BeginSceneInputPass(ID3D11DeviceContext* context, ID3D11DepthStencilState* depthStencilState,
-			int width, int height) const;
+		GraphicsResult<void> BeginSceneInputPass(ID3D11DeviceContext* context,
+			ID3D11DepthStencilState* depthStencilState, int width, int height) const;
 		// DX11 후처리 장면 입력 패스를 종료한다.
-		static void EndSceneInputPass(ID3D11DeviceContext* context);
+		static GraphicsResult<void> EndSceneInputPass(ID3D11DeviceContext* context);
 		// 준비된 실행 계획으로 화면 색상을 swapchain back buffer에 그린다.
-		bool Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
+		GraphicsResult<void> Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 			ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 			int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 DX11 후처리 target을 해제한다.

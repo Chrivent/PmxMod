@@ -2,8 +2,6 @@
 
 #include "Viewer/Instance/OpenGlInstance.h"
 
-#include <algorithm>
-
 // NVIDIA Optimus가 OpenGL 프로세스에 고성능 GPU를 우선 배정하도록 요청한다.
 // ReSharper disable once CppInconsistentNaming
 extern "C" __declspec(dllexport) unsigned long NvOptimusEnablement = 1;
@@ -20,14 +18,6 @@ namespace Chrivent {
 		postProcess.ResetResources();
 	}
 
-	const char* OpenGlViewer::ResolveGpuTypeName(const std::string& renderer) {
-		if (renderer.contains("NVIDIA") || renderer.contains("Radeon RX") || renderer.contains("Radeon Pro"))
-			return "discrete";
-		if (renderer.contains("Intel") || renderer.contains("Radeon(TM) Graphics"))
-			return "integrated";
-		return "other";
-	}
-
 	void OpenGlViewer::ConfigureWindowHints() {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -39,39 +29,9 @@ namespace Chrivent {
 
 	GraphicsResult<void> OpenGlViewer::SetupCore(const SceneShaderRuntimeContract& shaderContract) {
 		BindPostProcess(postProcess);
-		glfwMakeContextCurrent(window);
-		if (!gladLoadGLLoader(LoadGlProc))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InitializationFailed,
-				"OpenGL 함수 로드", "GLAD가 필요한 함수를 찾지 못했습니다"));
-		const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
-		const auto* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-		const auto* shaderVersion = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
-		GLint majorVersion = 0;
-		GLint minorVersion = 0;
-		GLint maxSamples = 1;
-		GLint uniformAlignment = 1;
-		GLint maxTextureBindings = 0;
-		glGetIntegerv(GL_MAJOR_VERSION, &majorVersion);
-		glGetIntegerv(GL_MINOR_VERSION, &minorVersion);
-		glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
-		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformAlignment);
-		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureBindings);
-		if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 6))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::UnsupportedFeature,
-				"OpenGL 버전 확인", "OpenGL 4.6 이상이 필요합니다"));
-		capabilities.apiName = "OpenGL";
-		capabilities.apiVersion = version ? version : "4.6";
-		capabilities.shaderVersion = shaderVersion ? shaderVersion : "GLSL 4.60";
-		capabilities.gpuName = renderer ? renderer : "unknown";
-		capabilities.gpuType = ResolveGpuTypeName(capabilities.gpuName);
-		capabilities.maxSampleCount = static_cast<uint32_t>(std::max(maxSamples, 1));
-		capabilities.activeSampleCount = std::min<uint32_t>(msaaSamples, capabilities.maxSampleCount);
-		capabilities.uniformBufferAlignment = static_cast<uint64_t>(std::max(uniformAlignment, 1));
-		capabilities.maxTextureBindings = static_cast<uint32_t>(std::max(maxTextureBindings, 0));
-		capabilities.shaderModelMajor = 4;
-		capabilities.shaderModelMinor = 6;
-		glfwSwapInterval(0);
-		glEnable(GL_MULTISAMPLE);
+		const auto deviceResult = device.Initialize(window, msaaSamples, capabilities);
+		if (!deviceResult)
+			return std::unexpected(deviceResult.error());
 		const auto pipelineResult = pipeline.Initialize(shaderContract);
 		if (!pipelineResult)
 			return std::unexpected(pipelineResult.error());
@@ -105,32 +65,23 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<FrameEndState> OpenGlViewer::EndFrameCore() {
-		if (!postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData()))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 효과 draw", "OpenGL 후처리 chain 실행에 실패했습니다"));
+		const auto drawResult = postProcess.Draw(screenWidth, screenHeight, GetPostProcessFrameData());
+		if (!drawResult)
+			return std::unexpected(drawResult.error());
 		glfwSwapBuffers(window);
 		return FrameEndState::Presented;
 	}
 
 	GraphicsResult<void> OpenGlViewer::BeginPostProcessSceneInputPassCore() {
-		if (!postProcess.BeginSceneInputPass(screenWidth, screenHeight))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 시작", "OpenGL 장면 입력 패스를 시작하지 못했습니다"));
-		return {};
+		return postProcess.BeginSceneInputPass(screenWidth, screenHeight);
 	}
 
 	GraphicsResult<void> OpenGlViewer::EndPostProcessSceneInputPassCore() {
-		postProcess.EndSceneInputPass();
-		return {};
+		return postProcess.EndSceneInputPass();
 	}
 
 	GraphicsResult<void> OpenGlViewer::WaitIdle() {
-		if (window == nullptr)
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
-				"GPU 대기", "OpenGL 윈도우를 사용할 수 없습니다"));
-		glfwMakeContextCurrent(window);
-		glFinish();
-		return {};
+		return device.WaitIdle(window);
 	}
 
 	GraphicsResult<void> OpenGlViewer::LoadPostProcessEffectsCore(const std::vector<const EffectRuntimeDefinition*>& effects) {

@@ -166,6 +166,20 @@ namespace Chrivent {
 		return {};
 	}
 
+	GraphicsResult<void> Dx12UploadContext::RecordIndexBufferUpload(
+		ID3D12Resource* destination, ID3D12Resource* source, const UINT64 size) {
+		if (!batchRecording || !commandList || destination == nullptr || source == nullptr || size == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidState, "index buffer 업로드 기록",
+				"DirectX 12 업로드 batch 또는 index buffer가 올바르지 않습니다"));
+		}
+		commandList->CopyBufferRegion(destination, 0, source, 0, size);
+		Dx12Barrier::TransitionBuffer(commandList.Get(), enhancedCommandList.Get(), destination,
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+		retainedResources.emplace_back(source);
+		return {};
+	}
+
 	GraphicsResult<void> Dx12UploadContext::SubmitBatch(const Dx12Device& sourceDevice) {
 		if (!batchRecording) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
@@ -187,22 +201,5 @@ namespace Chrivent {
 			commandList->Close();
 		batchRecording = false;
 		retainedResources.clear();
-	}
-
-	GraphicsResult<void> Dx12UploadContext::UploadIndexBuffer(const Dx12Device& sourceDevice,
-		ID3D12Resource* destination, ID3D12Resource* source, const UINT64 size) {
-		if (destination == nullptr || source == nullptr || size == 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::InvalidArgument, "index buffer 업로드",
-				"복사할 DirectX 12 index buffer 또는 크기가 올바르지 않습니다"));
-		}
-		const auto beginResult = BeginBatch(sourceDevice);
-		if (!beginResult)
-			return std::unexpected(beginResult.error());
-		commandList->CopyBufferRegion(destination, 0, source, 0, size);
-		Dx12Barrier::TransitionBuffer(commandList.Get(), enhancedCommandList.Get(), destination,
-			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-		retainedResources.emplace_back(source);
-		return SubmitBatch(sourceDevice);
 	}
 }

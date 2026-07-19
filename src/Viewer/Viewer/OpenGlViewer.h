@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Viewer/Viewer/Viewer.h"
+#include "Viewer/Device/OpenGlDevice.h"
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
 #include "Viewer/Pipeline/OpenGlPipeline.h"
 #include "Viewer/PostProcess/OpenGlPostProcess.h"
@@ -11,14 +12,8 @@
 namespace Chrivent {
     // 공통 Viewer 계약을 OpenGL 컨텍스트와 framebuffer 흐름으로 구현한다.
     class OpenGlViewer : public Viewer {
-        // GLAD가 사용할 OpenGL 함수 포인터를 GLFW에서 조회한다.
-        static void* LoadGlProc(const char* name) {
-            return reinterpret_cast<void*>(glfwGetProcAddress(name));
-        }
-        // OpenGL renderer 이름을 GPU 종류 이름으로 분류한다.
-        static const char* ResolveGpuTypeName(const std::string& renderer);
-
-        const int           msaaSamples = 4;
+        const uint32_t msaaSamples = 4;
+        OpenGlDevice device;
         OpenGlTextureCache    textureCache;
         OpenGlPostProcess postProcess;
 		OpenGlPipeline pipeline;

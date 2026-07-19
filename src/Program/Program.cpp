@@ -36,6 +36,21 @@ namespace Chrivent {
             << L"       [--benchmark <frames>] [--warmup <frames>]\n";
     }
 
+    void Program::PrintGraphicsCapabilities(const GraphicsCapabilities& capabilities) {
+        std::cout << "graphics_api=" << capabilities.apiName << '\n';
+        std::cout << "graphics_api_version=" << capabilities.apiVersion << '\n';
+        std::cout << "graphics_shader_version=" << capabilities.shaderVersion << '\n';
+        std::cout << "graphics_gpu=" << capabilities.gpuName << '\n';
+        std::cout << "graphics_gpu_type=" << capabilities.gpuType << '\n';
+        std::cout << "graphics_max_samples=" << capabilities.maxSampleCount << '\n';
+        std::cout << "graphics_active_samples=" << capabilities.activeSampleCount << '\n';
+        std::cout << "graphics_uniform_alignment=" << capabilities.uniformBufferAlignment << '\n';
+        std::cout << "graphics_max_texture_bindings=" << capabilities.maxTextureBindings << '\n';
+        std::cout << "graphics_timeline_sync=" << capabilities.supportsTimelineSynchronization << '\n';
+        std::cout << "graphics_dynamic_rendering=" << capabilities.supportsDynamicRendering << '\n';
+        std::cout << "graphics_enhanced_barriers=" << capabilities.supportsEnhancedBarriers << '\n';
+    }
+
     void Program::PrintGraphicsError(const GraphicsError& error) {
         std::cerr << error.Format() << '\n';
     }
@@ -186,6 +201,7 @@ namespace Chrivent {
             glfwTerminate();
             return false;
         }
+        PrintGraphicsCapabilities(viewer->GetGraphicsCapabilities());
         glfwPollEvents();
 		glfwGetFramebufferSize(viewerWindow, &framebufferWidth, &framebufferHeight);
 		if (framebufferWidth != viewer->GetScreenWidth() || framebufferHeight != viewer->GetScreenHeight()) {

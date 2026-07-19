@@ -130,13 +130,11 @@ namespace Chrivent {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"장면 색상 패스 종료", "Vulkan 장면 색상을 후처리 입력 상태로 전환하지 못했습니다"));
 			}
-			if (!postProcess.Draw(commandBuffer, currentImageIndex,
+			const auto drawResult = postProcess.Draw(commandBuffer, currentImageIndex,
 				swapChain.GetImage(currentImageIndex), swapChain.GetImageView(currentImageIndex),
-				GetPostProcessFrameData())) {
-				postProcess.DiscardImageStateFrame();
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-					"후처리 효과 draw", "Vulkan 후처리 chain 실행에 실패했습니다"));
-			}
+				GetPostProcessFrameData());
+			if (!drawResult)
+				return std::unexpected(drawResult.error());
 		} else if (!commandBuffer.EndRendering(currentImageIndex)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"장면 패스 종료", "Vulkan 장면 렌더링을 끝내지 못했습니다"));
@@ -175,10 +173,10 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
-		if (!postProcess.BeginSceneInputPass(commandContext.GetCommandBuffer(),
-			currentImageIndex, swapChain.GetExtent()))
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 시작", "Vulkan 장면 입력 패스를 시작하지 못했습니다"));
+		const auto beginResult = postProcess.BeginSceneInputPass(
+			commandContext.GetCommandBuffer(), currentImageIndex, swapChain.GetExtent());
+		if (!beginResult)
+			return std::unexpected(beginResult.error());
 		drawContext.ResetDescriptorBindings();
 		return {};
 	}
@@ -188,13 +186,11 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
-		postProcessSceneInputPassReady = postProcess.EndSceneInputPass(commandContext.GetCommandBuffer(),
-			currentImageIndex);
-		if (!postProcessSceneInputPassReady) {
-			postProcess.DiscardImageStateFrame();
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				"후처리 장면 입력 패스 종료", "Vulkan 장면 입력 패스를 끝내지 못했습니다"));
-		}
+		const auto endResult = postProcess.EndSceneInputPass(
+			commandContext.GetCommandBuffer(), currentImageIndex);
+		if (!endResult)
+			return std::unexpected(endResult.error());
+		postProcessSceneInputPassReady = true;
 		return {};
 	}
 

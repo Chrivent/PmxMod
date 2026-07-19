@@ -247,16 +247,19 @@ namespace Chrivent {
 		return CreateEffectResources();
 	}
 
-	bool OpenGlPostProcess::CreateShaders(std::string& error) {
+	GraphicsResult<void> OpenGlPostProcess::CreateShaders() {
 		ResetShaders();
-		error.clear();
 		for (const auto& program : GetShaderPrograms()) {
 			auto shader = std::make_unique<OpenGlPostProcessShader>();
-			if (!shader->Initialize(program, error))
-				return false;
+			std::string error;
+			if (!shader->Initialize(program, error)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+					GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
+					error.empty() ? "OpenGL 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+			}
 			postProcessShaders.push_back(std::move(shader));
 		}
-		return true;
+		return {};
 	}
 
 	void OpenGlPostProcess::SwapResources(OpenGlPostProcess& other) noexcept {
@@ -292,20 +295,22 @@ namespace Chrivent {
 			if (!targetResult)
 				return std::unexpected(targetResult.error());
 		}
-		std::string error;
-		if (candidate.HasEffects() && !candidate.CreateShaders(error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
-				GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
-				error.empty() ? "OpenGL 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+		if (candidate.HasEffects()) {
+			const auto shaderResult = candidate.CreateShaders();
+			if (!shaderResult)
+				return std::unexpected(shaderResult.error());
 		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
 		return {};
 	}
 
-	bool OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
-		if (!RequiresDepth() && !RequiresVelocity())
-			return false;
+	GraphicsResult<void> OpenGlPostProcess::BeginSceneInputPass(const int width, const int height) const {
+		if ((!RequiresDepth() && !RequiresVelocity()) || postProcessDepthFramebuffer == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
+				"OpenGL 후처리 장면 입력 target이 준비되지 않았습니다"));
+		}
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
 		glViewport(0, 0, width, height);
 		glColorMask(RequiresVelocity(), RequiresVelocity(), GL_FALSE, GL_FALSE);
@@ -319,20 +324,24 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_POLYGON_OFFSET_FILL);
-		return true;
+		return {};
 	}
 
-	void OpenGlPostProcess::EndSceneInputPass() {
+	GraphicsResult<void> OpenGlPostProcess::EndSceneInputPass() {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return {};
 	}
 
-	bool OpenGlPostProcess::Draw(
+	GraphicsResult<void> OpenGlPostProcess::Draw(
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects())
-			return true;
-		if (!IsPassCountCompatible(postProcessShaders.size()))
-			return false;
+			return {};
+		if (!IsPassCountCompatible(postProcessShaders.size())) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ContractViolation, "후처리 효과 draw",
+				"OpenGL 후처리 pass 수와 셰이더 수가 일치하지 않습니다"));
+		}
 		BeginHistoryFrame();
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
@@ -364,7 +373,7 @@ namespace Chrivent {
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}
-		return true;
+		return {};
 	}
 
 	void OpenGlPostProcess::ResetResources() {

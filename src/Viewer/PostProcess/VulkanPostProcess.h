@@ -88,13 +88,14 @@ namespace Chrivent {
 			const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, const std::vector<const EffectRuntimeDefinition*>& effects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
-		bool BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+		GraphicsResult<void> BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
 			uint32_t imageIndex, VkExtent2D extent);
 		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
-		bool EndSceneInputPass(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex) const;
+		GraphicsResult<void> EndSceneInputPass(
+			const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex);
 		// 선언된 pass들을 실행해 swapchain 출력까지 기록한다.
-		bool Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex, VkImage swapChainImage,
-			VkImageView swapChainImageView, const PostProcessFrameData& frameData);
+		GraphicsResult<void> Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
+			VkImage swapChainImage, VkImageView swapChainImageView, const PostProcessFrameData& frameData);
 		// 제출된 프레임의 Vulkan 이미지 상태 변경을 확정한다.
 		void CommitImageStateFrame();
 		// 제출되지 않은 프레임의 Vulkan 이미지 상태 변경을 버린다.

@@ -215,17 +215,20 @@ namespace Chrivent {
 			context->CopyResource(sceneColor.Get(), source);
 	}
 
-	bool Dx11PostProcess::CreateShaders(ID3D11Device* device, std::string& error) {
+	GraphicsResult<void> Dx11PostProcess::CreateShaders(ID3D11Device* device) {
 		ResetShaders();
-		error.clear();
 		for (const auto& [shaderPath, vertexEntry, pixelEntry] : GetShaderPrograms()) {
 			Dx11PostProcessShader shader;
+			std::string error;
 			if (!shader.Initialize(device, shaderPath,
-				vertexEntry.c_str(), pixelEntry.c_str(), error))
-				return false;
+				vertexEntry.c_str(), pixelEntry.c_str(), error)) {
+				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+					GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
+					error.empty() ? "DirectX 11 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+			}
 			postProcessShaders.push_back(std::move(shader));
 		}
-		return true;
+		return {};
 	}
 
 	void Dx11PostProcess::SwapResources(Dx11PostProcess& other) noexcept {
@@ -259,21 +262,23 @@ namespace Chrivent {
 			if (!targetResult)
 				return std::unexpected(targetResult.error());
 		}
-		std::string error;
-		if (candidate.HasEffects() && !candidate.CreateShaders(device, error)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
-				GraphicsErrorCode::EffectConfigurationFailed, "후처리 셰이더 생성",
-				error.empty() ? "DirectX 11 후처리 셰이더를 만들지 못했습니다" : std::move(error)));
+		if (candidate.HasEffects()) {
+			const auto shaderResult = candidate.CreateShaders(device);
+			if (!shaderResult)
+				return std::unexpected(shaderResult.error());
 		}
 		SwapExecutionPlan(candidate);
 		SwapResources(candidate);
 		return {};
 	}
 
-	bool Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,
+	GraphicsResult<void> Dx11PostProcess::BeginSceneInputPass(ID3D11DeviceContext* context,
 		ID3D11DepthStencilState* depthStencilState, const int width, const int height) const {
-		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView)
-			return false;
+		if ((!RequiresDepth() && !RequiresVelocity()) || context == nullptr || !depthStencilView) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
+				"DirectX 11 context 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
+		}
 		ID3D11ShaderResourceView* emptyViews[PostProcessInputLayout::maxTextureCount]{};
 		context->PSSetShaderResources(0, std::size(emptyViews), emptyViews);
 		context->ClearDepthStencilView(
@@ -288,20 +293,29 @@ namespace Chrivent {
 		context->OMSetDepthStencilState(depthStencilState, 0x00);
 		context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 		Dx11DrawContext::ApplyViewport(context, width, height);
-		return true;
+		return {};
 	}
 
-	void Dx11PostProcess::EndSceneInputPass(ID3D11DeviceContext* context) {
-		if (context != nullptr)
-			context->OMSetRenderTargets(0, nullptr, nullptr);
+	GraphicsResult<void> Dx11PostProcess::EndSceneInputPass(ID3D11DeviceContext* context) {
+		if (context == nullptr) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
+				"DirectX 11 context를 사용할 수 없습니다"));
+		}
+		context->OMSetRenderTargets(0, nullptr, nullptr);
+		return {};
 	}
 
-	bool Dx11PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
+	GraphicsResult<void> Dx11PostProcess::Draw(
+		ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferView,
 		ID3D11RasterizerState* rasterizerState, ID3D11SamplerState* sampler,
 		const int width, const int height, const PostProcessFrameData& frameData) {
 		if (!HasEffects() || context == nullptr || backBufferView == nullptr
-			|| !IsPassCountCompatible(postProcessShaders.size()))
-			return false;
+			|| !IsPassCountCompatible(postProcessShaders.size())) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
+				"DirectX 11 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
+		}
 		BeginHistoryFrame();
 		context->UpdateSubresource(frameDataBuffer.Get(), 0, nullptr, &frameData, 0, 0);
 		context->PSSetConstantBuffers(0, 1, frameDataBuffer.GetAddressOf());
@@ -343,7 +357,7 @@ namespace Chrivent {
 			context->PSSetShaderResources(0, PostProcessInputLayout::maxTextureCount, views);
 			AdvanceHistory(route);
 		}
-		return true;
+		return {};
 	}
 
 	void Dx11PostProcess::ResetTargets() {

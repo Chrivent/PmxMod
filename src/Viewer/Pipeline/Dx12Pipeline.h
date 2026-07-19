@@ -16,9 +16,8 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> depthOnlyBothFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneVelocityFrontFacePipelineState;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> sceneVelocityBothFacePipelineState;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> edgeRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> simplePassRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> edgePipelineState;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> groundShadowRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> groundShadowPipelineState;
 		
 		// PMX 재질의 alpha blend 방식에 맞는 render target blend state를 채운다.
@@ -36,13 +35,11 @@ namespace Chrivent {
 		// 현재/이전 정점 위치를 RG16F velocity 타깃에 기록하는 pipeline state를 생성한다.
 		bool CreateSceneVelocityPipelineStates(const Dx12Device& sourceDevice,
 			const ShaderProgramDefinition& program, std::string& error);
-		// 엣지 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
-		bool CreateEdgeRootSignature(const Dx12Device& sourceDevice, std::string& error);
+		// 엣지와 지면 그림자가 공유하는 상수 버퍼 전용 root signature를 생성한다.
+		bool CreateSimplePassRootSignature(const Dx12Device& sourceDevice, std::string& error);
 		// 엣지 렌더링용 graphics pipeline state를 생성한다.
 		bool CreateEdgePipelineState(const Dx12Device& sourceDevice,
 			const ShaderProgramDefinition& program, std::string& error);
-		// 지면 그림자 셰이더의 상수 버퍼 배치와 맞는 root signature를 생성한다.
-		bool CreateGroundShadowRootSignature(const Dx12Device& sourceDevice, std::string& error);
 		// 지면 그림자 렌더링용 graphics pipeline state를 생성한다.
 		bool CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
 			const ShaderProgramDefinition& program, std::string& error);

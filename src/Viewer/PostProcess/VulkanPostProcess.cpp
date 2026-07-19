@@ -343,10 +343,13 @@ namespace Chrivent {
 		return {};
 	}
 	
-	bool VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+	GraphicsResult<void> VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
 		const uint32_t imageIndex, const VkExtent2D extent) {
-		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
-			return false;
+		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
+				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
+		}
 		BeginImageStateFrame();
 		constexpr bool depthHasStencil = false;
 		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
@@ -356,23 +359,36 @@ namespace Chrivent {
 			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, extent);
 		if (!began) {
 			DiscardImageStateFrame();
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "후처리 장면 입력 패스 시작",
+				"Vulkan 장면 입력 패스를 시작하지 못했습니다"));
 		}
 		if (RequiresVelocity())
 			velocityTarget.MarkInitialized(imageIndex);
-		return true;
+		return {};
 	}
 
-	bool VulkanPostProcess::EndSceneInputPass(
-		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) const {
-		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount)
-			return false;
+	GraphicsResult<void> VulkanPostProcess::EndSceneInputPass(
+		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) {
+		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount) {
+			DiscardImageStateFrame();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
+				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
+		}
 		constexpr bool depthHasStencil = false;
-		return commandBuffers.EndPostProcessSceneInputPass(imageIndex, depthImages[imageIndex],
-			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil);
+		if (!commandBuffers.EndPostProcessSceneInputPass(imageIndex, depthImages[imageIndex],
+			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil)) {
+			DiscardImageStateFrame();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "후처리 장면 입력 패스 종료",
+				"Vulkan 장면 입력 패스를 끝내지 못했습니다"));
+		}
+		return {};
 	}
 
-	bool VulkanPostProcess::Draw(const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
+	GraphicsResult<void> VulkanPostProcess::Draw(
+		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView,
 		const PostProcessFrameData& frameData) {
 		const auto& routes = GetPassRoutes();
@@ -380,15 +396,23 @@ namespace Chrivent {
 			|| imageIndex >= frameDataBuffers.size()
 			|| parameterDataBuffers.size() != swapChainImageCount
 			|| !IsPassCountCompatible(pipelines.GetCount())
-			|| !descriptors.IsCompatible(swapChainImageCount, routes.size()))
-			return false;
+			|| !descriptors.IsCompatible(swapChainImageCount, routes.size())) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
+				"Vulkan 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
+		}
 		const VkCommandBuffer commandBuffer = commandBuffers.TryGetCommandBuffer(imageIndex);
-		if (commandBuffer == VK_NULL_HANDLE)
-			return false;
+		if (commandBuffer == VK_NULL_HANDLE) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
+				"Vulkan command buffer를 사용할 수 없습니다"));
+		}
 		BeginImageStateFrame();
 		if (!frameDataBuffers[imageIndex]->Write(&frameData, sizeof(frameData))) {
 			DiscardImageStateFrame();
-			return false;
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::CommandRecordingFailed, "후처리 frame data 기록",
+				"Vulkan 후처리 frame buffer를 기록하지 못했습니다"));
 		}
 		const VkPipelineLayout pipelineLayout = descriptors.GetPipelineLayout();
 		const VkDescriptorSet frameDataDescriptorSet = descriptors.GetFrameDataDescriptorSet(imageIndex);
@@ -427,7 +451,9 @@ namespace Chrivent {
 			if (pipelines.TryGetPipeline(passIndex) == VK_NULL_HANDLE) {
 				DiscardHistoryFrame();
 				DiscardImageStateFrame();
-				return false;
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ContractViolation, "후처리 pipeline binding",
+					"Vulkan 후처리 pass에 대응하는 pipeline이 없습니다"));
 			}
 			const PostProcessPassRoute& route = routes[passIndex];
 			const PostProcessParameterData& parameterData = GetParameterData(route);
@@ -435,12 +461,16 @@ namespace Chrivent {
 				&parameterData, sizeof(parameterData), passIndex * parameterDataStride)) {
 				DiscardHistoryFrame();
 				DiscardImageStateFrame();
-				return false;
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::CommandRecordingFailed, "후처리 parameter 기록",
+					"Vulkan 후처리 pass parameter를 기록하지 못했습니다"));
 			}
 			if (!UpdateTextureDescriptorSet(imageIndex, passIndex)) {
 				DiscardHistoryFrame();
 				DiscardImageStateFrame();
-				return false;
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::CommandRecordingFailed, "후처리 descriptor 갱신",
+					"Vulkan 후처리 texture descriptor를 갱신하지 못했습니다"));
 			}
 			VkImage outputImage = VK_NULL_HANDLE;
 			VkImageView outputImageView = VK_NULL_HANDLE;
@@ -450,7 +480,9 @@ namespace Chrivent {
 				outputImage, outputImageView, outputExtent, outputInitialized)) {
 				DiscardHistoryFrame();
 				DiscardImageStateFrame();
-				return false;
+				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
+					"Vulkan 후처리 pass의 출력 image를 찾지 못했습니다"));
 			}
 			VulkanCommandBuffer::TransitionImage(commandBuffer, outputImage,
 				outputInitialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
@@ -493,7 +525,7 @@ namespace Chrivent {
 			}
 			AdvanceHistory(route);
 		}
-		return true;
+		return {};
 	}
 
 	void VulkanPostProcess::CommitImageStateFrame() {

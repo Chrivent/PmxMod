@@ -29,7 +29,8 @@ target_sources(PmxModViewer PRIVATE
         Descriptor/VulkanDescriptorSet.h Descriptor/VulkanDescriptorSet.cpp
         Descriptor/VulkanPostProcessDescriptors.h Descriptor/VulkanPostProcessDescriptors.cpp
 
-        Device/GraphicsCapabilities.h Device/GraphicsCapabilities.cpp
+        Device/GraphicsCapabilities.h
+        Device/OpenGlDevice.h Device/OpenGlDevice.cpp
         Device/Dx11Device.h Device/Dx11Device.cpp
         Device/Dx12Device.h Device/Dx12Device.cpp
         Device/VulkanDevice.h Device/VulkanDevice.cpp

@@ -50,7 +50,7 @@ namespace Chrivent {
 		// 후처리 셰이더 프로그램만 해제한다.
 		void ResetShaders();
 		// 현재 실행 계획의 OpenGL 후처리 프로그램을 생성한다.
-		bool CreateShaders(std::string& error);
+		GraphicsResult<void> CreateShaders();
 		// 검증을 마친 다른 OpenGL 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(OpenGlPostProcess& other) noexcept;
 		
@@ -65,11 +65,11 @@ namespace Chrivent {
 		GraphicsResult<void> Configure(int width, int height, int sampleCount,
 			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
-		bool BeginSceneInputPass(int width, int height) const;
+		GraphicsResult<void> BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.
-		static void EndSceneInputPass();
+		static GraphicsResult<void> EndSceneInputPass();
 		// 준비된 실행 계획으로 화면 색상을 기본 framebuffer에 그린다.
-		bool Draw(int width, int height, const PostProcessFrameData& frameData);
+		GraphicsResult<void> Draw(int width, int height, const PostProcessFrameData& frameData);
 		// 생성한 OpenGL 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};

@@ -161,9 +161,9 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, sceneVelocityBothFacePipelineState, error);
 	}
 
-	bool Dx12Pipeline::CreateEdgeRootSignature(const Dx12Device& sourceDevice, std::string& error) {
+	bool Dx12Pipeline::CreateSimplePassRootSignature(const Dx12Device& sourceDevice, std::string& error) {
 		if (!sourceDevice.GetDevice()) {
-			error = "DirectX 12 device가 없어 엣지 root signature를 만들 수 없습니다";
+			error = "DirectX 12 device가 없어 단순 패스 root signature를 만들 수 없습니다";
 			return false;
 		}
 		D3D12_ROOT_PARAMETER rootParameters[2]{};
@@ -178,7 +178,7 @@ namespace Chrivent {
 		rootSignatureDesc.pParameters = rootParameters;
 		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice,
-			rootSignatureDesc, edgeRootSignature, error);
+			rootSignatureDesc, simplePassRootSignature, error);
 	}
 
 	bool Dx12Pipeline::CreateEdgePipelineState(const Dx12Device& sourceDevice,
@@ -188,7 +188,7 @@ namespace Chrivent {
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = edgeRootSignature.Get();
+		pipelineDesc.pRootSignature = simplePassRootSignature.Get();
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_FRONT);
@@ -203,33 +203,13 @@ namespace Chrivent {
 			sourceDevice, program, pipelineDesc, edgePipelineState, error);
 	}
 
-	bool Dx12Pipeline::CreateGroundShadowRootSignature(const Dx12Device& sourceDevice, std::string& error) {
-		if (!sourceDevice.GetDevice()) {
-			error = "DirectX 12 device가 없어 지면 그림자 root signature를 만들 수 없습니다";
-			return false;
-		}
-		D3D12_ROOT_PARAMETER rootParameters[2]{};
-		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		rootParameters[0].Descriptor.ShaderRegister = SceneShaderInputLayout::vertexConstantRegister;
-		rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-		rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		rootParameters[1].Descriptor.ShaderRegister = SceneShaderInputLayout::pixelConstantRegister;
-		D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
-		rootSignatureDesc.NumParameters = 2;
-		rootSignatureDesc.pParameters = rootParameters;
-		rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		return Dx12PipelineBuilder::CreateRootSignature(sourceDevice,
-			rootSignatureDesc, groundShadowRootSignature, error);
-	}
-
 	bool Dx12Pipeline::CreateGroundShadowPipelineState(const Dx12Device& sourceDevice,
 		const ShaderProgramDefinition& program, std::string& error) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
-		pipelineDesc.pRootSignature = groundShadowRootSignature.Get();
+		pipelineDesc.pRootSignature = simplePassRootSignature.Get();
 		ConfigureAlphaBlend(pipelineDesc.BlendState.RenderTarget[0]);
 		pipelineDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ZERO;
 		pipelineDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ONE;
@@ -278,18 +258,14 @@ namespace Chrivent {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "장면 velocity pipeline 생성",
 				error.empty() ? "DirectX 12 velocity pipeline state를 만들지 못했습니다" : error));
-		if (!CreateEdgeRootSignature(sourceDevice, error))
+		if (!CreateSimplePassRootSignature(sourceDevice, error))
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "엣지 root signature 생성",
-				error.empty() ? "DirectX 12 엣지 root signature를 만들지 못했습니다" : error));
+				GraphicsErrorCode::ResourceCreationFailed, "단순 패스 root signature 생성",
+				error.empty() ? "DirectX 12 단순 패스 root signature를 만들지 못했습니다" : error));
 		if (!CreateEdgePipelineState(sourceDevice, shaderContract.builtIn.edge, error))
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "엣지 pipeline 생성",
 				error.empty() ? "DirectX 12 엣지 pipeline state를 만들지 못했습니다" : error));
-		if (!CreateGroundShadowRootSignature(sourceDevice, error))
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 root signature 생성",
-				error.empty() ? "DirectX 12 지면 그림자 root signature를 만들지 못했습니다" : error));
 		if (!CreateGroundShadowPipelineState(sourceDevice, shaderContract.builtIn.groundShadow, error))
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ResourceCreationFailed, "지면 그림자 pipeline 생성",
@@ -331,22 +307,21 @@ namespace Chrivent {
 	void Dx12Pipeline::BindEdge(ID3D12GraphicsCommandList* commandList) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(edgeRootSignature.Get());
+		commandList->SetGraphicsRootSignature(simplePassRootSignature.Get());
 		commandList->SetPipelineState(edgePipelineState.Get());
 	}
 
 	void Dx12Pipeline::BindGroundShadow(ID3D12GraphicsCommandList* commandList) const {
 		if (commandList == nullptr)
 			return;
-		commandList->SetGraphicsRootSignature(groundShadowRootSignature.Get());
+		commandList->SetGraphicsRootSignature(simplePassRootSignature.Get());
 		commandList->SetPipelineState(groundShadowPipelineState.Get());
 	}
 
 	void Dx12Pipeline::Reset() {
 		groundShadowPipelineState.Reset();
-		groundShadowRootSignature.Reset();
 		edgePipelineState.Reset();
-		edgeRootSignature.Reset();
+		simplePassRootSignature.Reset();
 		depthOnlyBothFacePipelineState.Reset();
 		depthOnlyFrontFacePipelineState.Reset();
 		sceneVelocityBothFacePipelineState.Reset();

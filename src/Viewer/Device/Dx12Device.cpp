@@ -103,8 +103,6 @@ namespace Chrivent {
 		capabilities.activeSampleCount = msaaSampleCount;
 		capabilities.uniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 		capabilities.maxTextureBindings = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
-		capabilities.shaderModelMajor = static_cast<uint32_t>(maximumShaderModel) >> 4;
-		capabilities.shaderModelMinor = static_cast<uint32_t>(maximumShaderModel) & 0xF;
 		capabilities.supportsEnhancedBarriers = enhancedBarriersSupported;
 	}
 

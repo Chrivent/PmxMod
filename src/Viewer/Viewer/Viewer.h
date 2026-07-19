@@ -113,14 +113,12 @@ namespace Chrivent {
 		int GetScreenWidth() const { return screenWidth; }
 		int GetScreenHeight() const { return screenHeight; }
 		SceneRenderState& GetSceneRenderState() { return sceneRenderState; }
+		const GraphicsCapabilities& GetGraphicsCapabilities() const { return capabilities; }
 		bool IsNdcYInvertedForTextureCoordinates() const {
 			return invertNdcYForTextureCoordinates;
 		}
 		const glm::mat4& GetPreviousViewMatrix() const {
 			return postProcessTemporalState.previousViewMatrix;
-		}
-		const glm::mat4& GetPreviousProjectionMatrix() const {
-			return postProcessTemporalState.previousProjectionMatrix;
 		}
 		const PostProcessFrameData& GetPostProcessFrameData() const {
 			return postProcessTemporalState.frameData;

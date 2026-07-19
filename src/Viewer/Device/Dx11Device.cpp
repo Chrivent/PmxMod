@@ -75,7 +75,6 @@ namespace Chrivent {
 			capabilities.gpuType = description.DedicatedVideoMemory > 0 ? "discrete" : "integrated";
 			capabilities.uniformBufferAlignment = 16;
 			capabilities.maxTextureBindings = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
-			capabilities.shaderModelMajor = 5;
 			return {};
 		}
 		return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX11,
