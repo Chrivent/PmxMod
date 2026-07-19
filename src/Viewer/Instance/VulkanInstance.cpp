@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Instance/VulkanInstance.h"
 
 #include "Viewer/Drawer/VulkanDrawer.h"
+#include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/DrawContext/VulkanDrawContext.h"
 #include "Viewer/Command/VulkanUploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
@@ -10,7 +11,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <string>
 
 namespace Chrivent {
 	GraphicsResult<void> VulkanInstance::CreateGeometryBuffers() {
@@ -24,18 +24,22 @@ namespace Chrivent {
 			? VK_INDEX_TYPE_UINT16
 			: VK_INDEX_TYPE_UINT32;
 		const size_t vertexCount = geometryData.positions.size();
-		const VkDeviceSize vertexBufferSize = sizeof(ViewerVertex) * vertexCount;
+		size_t vertexBufferSize = 0;
+		if (!BufferSize::TryMultiply(sizeof(ViewerVertex), vertexCount, vertexBufferSize)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"Vulkan geometry 생성", "vertex buffer 크기가 한도를 넘습니다"));
+		}
 		const VkDeviceSize indexBufferSize = indexData.bytes.size();
 		if (vertexBufferSize == 0 || indexBufferSize == 0) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
 				"Vulkan geometry 생성", "vertex 또는 index 데이터가 비어 있습니다"));
 		}
 		for (auto& vertexBuffer : modelResources.vertexBuffers) {
-			if (!vertexBuffer.Initialize(device, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"Vulkan vertex buffer 생성", "동적 vertex buffer를 만들지 못했습니다"));
-			}
+			const auto bufferResult = vertexBuffer.Initialize(
+				device, vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			if (!bufferResult)
+				return std::unexpected(bufferResult.error());
 			if (!ViewerGeometry::WriteVertices(geometryData, false,
 				{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount })) {
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
@@ -43,21 +47,20 @@ namespace Chrivent {
 			}
 		}
 		auto indexUploadBuffer = std::make_unique<VulkanBuffer>();
-		if (!indexUploadBuffer->Initialize(device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan index upload buffer 생성", "index upload buffer를 만들지 못했습니다"));
-		}
+		auto bufferResult = indexUploadBuffer->Initialize(
+			device, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		if (!bufferResult)
+			return std::unexpected(bufferResult.error());
 		if (!indexUploadBuffer->Write(indexData.bytes.data(), indexBufferSize)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"Vulkan index upload buffer 기록", "index 데이터를 upload buffer에 기록하지 못했습니다"));
 		}
-		if (!modelResources.indexBuffer.Initialize(device, indexBufferSize,
+		bufferResult = modelResources.indexBuffer.Initialize(device, indexBufferSize,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"Vulkan index buffer 생성", "GPU index buffer를 만들지 못했습니다"));
-		}
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		if (!bufferResult)
+			return std::unexpected(bufferResult.error());
 		return uploadContext.RecordIndexBufferUpload(
 			modelResources.indexBuffer.buffer, std::move(indexUploadBuffer), indexBufferSize);
 	}
@@ -67,24 +70,60 @@ namespace Chrivent {
 			1, device.GetUniformBufferAlignment());
 		const size_t drawCount = std::max<size_t>(1, model->materialData.subMeshes.size());
 		constexpr size_t ringSlack = 2;
-		const auto align = [this](const size_t size) {
-			return DynamicBufferRing::AlignUp(
-				size, modelResources.uniformBufferOffsetAlignment);
+		const auto Align = [this](const size_t size, size_t& result) {
+			return BufferSize::TryAlignUp(
+				size, modelResources.uniformBufferOffsetAlignment, result);
 		};
-		const size_t vertexFrameCapacity =
-			align(sizeof(ModelVertexConstants)) * ringSlack
-			+ align(sizeof(EdgeVertexConstants)) * (drawCount + ringSlack)
-			+ align(sizeof(GroundShadowVertexConstants)) * ringSlack;
-		const size_t pixelFrameCapacity =
-			align(sizeof(ModelPixelConstants)) * (drawCount * 2 + ringSlack)
-			+ align(sizeof(EdgePixelConstants)) * (drawCount + ringSlack)
-			+ align(sizeof(GroundShadowPixelConstants)) * ringSlack;
+		const auto AddCapacity = [](const size_t unitSize, const size_t count, size_t& capacity) {
+			size_t byteSize = 0;
+			return BufferSize::TryMultiply(unitSize, count, byteSize)
+				&& BufferSize::TryAdd(capacity, byteSize, capacity);
+		};
+		size_t alignedModelVertex = 0;
+		size_t alignedEdgeVertex = 0;
+		size_t alignedGroundShadowVertex = 0;
+		size_t alignedModelPixel = 0;
+		size_t alignedEdgePixel = 0;
+		size_t alignedGroundShadowPixel = 0;
+		size_t drawCountWithSlack = 0;
+		size_t doubledDrawCountWithSlack = 0;
+		size_t vertexFrameCapacity = 0;
+		size_t pixelFrameCapacity = 0;
+		if (!Align(sizeof(ModelVertexConstants), alignedModelVertex)
+			|| !Align(sizeof(EdgeVertexConstants), alignedEdgeVertex)
+			|| !Align(sizeof(GroundShadowVertexConstants), alignedGroundShadowVertex)
+			|| !Align(sizeof(ModelPixelConstants), alignedModelPixel)
+			|| !Align(sizeof(EdgePixelConstants), alignedEdgePixel)
+			|| !Align(sizeof(GroundShadowPixelConstants), alignedGroundShadowPixel)
+			|| !BufferSize::TryAdd(drawCount, ringSlack, drawCountWithSlack)
+			|| !BufferSize::TryMultiply(drawCount, 2, doubledDrawCountWithSlack)
+			|| !BufferSize::TryAdd(doubledDrawCountWithSlack, ringSlack, doubledDrawCountWithSlack)
+			|| !AddCapacity(alignedModelVertex, ringSlack, vertexFrameCapacity)
+			|| !AddCapacity(alignedEdgeVertex, drawCountWithSlack, vertexFrameCapacity)
+			|| !AddCapacity(alignedGroundShadowVertex, ringSlack, vertexFrameCapacity)
+			|| !AddCapacity(alignedModelPixel, doubledDrawCountWithSlack, pixelFrameCapacity)
+			|| !AddCapacity(alignedEdgePixel, drawCountWithSlack, pixelFrameCapacity)
+			|| !AddCapacity(alignedGroundShadowPixel, ringSlack, pixelFrameCapacity)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"Vulkan uniform buffer ring 크기 계산",
+				"material 수에 따른 uniform buffer ring 크기가 한도를 넘습니다"));
+		}
+		size_t vertexCapacity = 0;
+		size_t pixelCapacity = 0;
+		if (!BufferSize::TryMultiply(
+			vertexFrameCapacity, FrameBuffering::vulkanFramesInFlight, vertexCapacity)
+			|| !BufferSize::TryMultiply(
+				pixelFrameCapacity, FrameBuffering::vulkanFramesInFlight, pixelCapacity)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"Vulkan uniform buffer ring 크기 계산",
+				"프레임 수에 따른 uniform buffer ring 크기가 한도를 넘습니다"));
+		}
 		auto result = modelResources.vertexConstantsRing.Setup(
-			device, vertexFrameCapacity * FrameBuffering::vulkanFramesInFlight);
+			device, vertexCapacity);
 		if (!result)
 			return std::unexpected(result.error());
 		result = modelResources.pixelConstantsRing.Setup(
-			device, pixelFrameCapacity * FrameBuffering::vulkanFramesInFlight);
+			device, pixelCapacity);
 		if (!result)
 			return std::unexpected(result.error());
 		return {};

@@ -1,18 +1,16 @@
 ﻿#include "Viewer/Buffer/Dx12Buffer.h"
 
 namespace Chrivent {
-	size_t Dx12Buffer::AlignConstantBufferSize(const size_t size) {
-		constexpr size_t alignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-		const size_t blockCount = (size + alignment - 1) / alignment;
-		return blockCount * alignment;
-	}
-
-	bool Dx12Buffer::InitializeResource(const Dx12Device& sourceDevice, const size_t size,
+	GraphicsResult<void> Dx12Buffer::InitializeResource(
+		const Dx12Device& sourceDevice, const size_t size,
 		const D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_STATES initialState,
 		const bool map) {
 		Reset();
-		if (!sourceDevice.GetDevice() || size == 0)
-			return false;
+		if (!sourceDevice.GetDevice() || size == 0) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::InvalidArgument, "buffer 생성",
+				"DirectX 12 device 또는 buffer 크기가 올바르지 않습니다"));
+		}
 		D3D12_HEAP_PROPERTIES heapProperties;
 		heapProperties.Type = heapType;
 		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -27,22 +25,36 @@ namespace Chrivent {
 		resourceDesc.MipLevels = 1;
 		resourceDesc.SampleDesc.Count = 1;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		if (FAILED(sourceDevice.GetDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE,
-			&resourceDesc, initialState, nullptr, IID_PPV_ARGS(&resource))))
-			return false;
+		HRESULT result = sourceDevice.GetDevice()->CreateCommittedResource(
+			&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+			initialState, nullptr, IID_PPV_ARGS(&resource));
+		if (FAILED(result)) {
+			Reset();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ResourceCreationFailed, "buffer 생성",
+				"DirectX 12 buffer를 만들지 못했습니다", result, true));
+		}
 		byteSize = size;
 		if (!map)
-			return true;
+			return {};
 		constexpr D3D12_RANGE readRange{ 0, 0 };
-		return SUCCEEDED(resource->Map(0, &readRange, &mappedData));
+		result = resource->Map(0, &readRange, &mappedData);
+		if (SUCCEEDED(result))
+			return {};
+		Reset();
+		return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+			GraphicsErrorCode::ResourceCreationFailed, "buffer 매핑",
+			"DirectX 12 upload buffer를 영구 매핑하지 못했습니다", result, true));
 	}
 
-	bool Dx12Buffer::InitializeUpload(const Dx12Device& sourceDevice, const size_t size) {
+	GraphicsResult<void> Dx12Buffer::InitializeUpload(
+		const Dx12Device& sourceDevice, const size_t size) {
 		return InitializeResource(sourceDevice, size, D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ, true);
 	}
 
-	bool Dx12Buffer::InitializeDefault(const Dx12Device& sourceDevice, const size_t size,
+	GraphicsResult<void> Dx12Buffer::InitializeDefault(
+		const Dx12Device& sourceDevice, const size_t size,
 		const D3D12_RESOURCE_STATES initialState) {
 		return InitializeResource(
 			sourceDevice, size, D3D12_HEAP_TYPE_DEFAULT, initialState, false);

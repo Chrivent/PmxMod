@@ -22,9 +22,7 @@ namespace Chrivent {
 		VkExtent2D targetExtent{};
 		VkFormat swapChainFormat = VK_FORMAT_UNDEFINED;
 		VulkanPostProcessTarget sceneTarget;
-		std::vector<VkImage> depthImages;
-		std::vector<VkDeviceMemory> depthImageMemories;
-		std::vector<VkImageView> depthImageViews;
+		VulkanPostProcessTarget depthTarget;
 		VulkanPostProcessTarget velocityTarget;
 		std::vector<VulkanPostProcessTarget> resources;
 		std::vector<std::unique_ptr<VulkanBuffer>> frameDataBuffers;
@@ -37,9 +35,6 @@ namespace Chrivent {
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
 		GraphicsResult<void> CreateSceneImages(
 			const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain);
-		// 스왑체인 이미지마다 후처리용 단일 샘플 depth 이미지를 생성한다.
-		GraphicsResult<void> CreateDepthImages(const VulkanDevice& sourceDevice,
-			const VulkanSwapChain& sourceSwapChain, VkFormat depthFormat);
 		// 스왑체인 이미지마다 장면 속도 기록과 sampling에 사용할 RG16F 이미지를 생성한다.
 		GraphicsResult<void> CreateVelocityImages(const VulkanDevice& sourceDevice);
 		// 패키지가 선언한 transient/history image를 생성한다.
@@ -64,9 +59,6 @@ namespace Chrivent {
 		bool ResolveOutputImage(const PostProcessPassRoute& route, uint32_t imageIndex,
 			VkImage swapChainImage, VkImageView swapChainImageView, VkImage& image,
 			VkImageView& imageView, VkExtent2D& extent, bool& initialized);
-		// Vulkan image 묶음을 안전한 순서로 해제한다.
-		void DestroyImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& memories,
-			std::vector<VkImageView>& imageViews) const;
 		// 검증을 마친 다른 Vulkan 후처리 객체와 GPU 리소스를 교환한다.
 		void SwapResources(VulkanPostProcess& other) noexcept;
 

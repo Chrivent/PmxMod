@@ -3,7 +3,6 @@
 #include "Viewer/Shader/DxcHlslCompiler.h"
 #include "Viewer/Shader/D3DCompilerHlslCompiler.h"
 
-#include <cstring>
 #include <utility>
 
 namespace Chrivent {

@@ -2,6 +2,7 @@
 
 #include "Viewer/Drawer/Dx11Drawer.h"
 
+#include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/Device/Dx11Device.h"
 #include "Viewer/DrawContext/Dx11DrawContext.h"
 #include "Viewer/Texture/Dx11TextureCache.h"
@@ -14,59 +15,87 @@
 #include <utility>
 
 namespace Chrivent {
-	bool Dx11Instance::CreateGeometryBuffers() {
+	GraphicsResult<void> Dx11Instance::CreateGeometryBuffers() {
 		ID3D11Device* targetDevice = device.GetDevice();
+		if (targetDevice == nullptr) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"DX11 geometry 생성", "DirectX 11 device를 사용할 수 없습니다"));
+		}
 		const auto& geometryData = model->geometryData;
 		ViewerIndexData indexData;
-		if (!ViewerGeometry::BuildIndexData(geometryData, indexData))
-			return false;
-		const size_t vertexByteSize = sizeof(ViewerVertex) * geometryData.positions.size();
+		if (!ViewerGeometry::BuildIndexData(geometryData, indexData)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX11 geometry 생성", "모델 index 데이터를 만들지 못했습니다"));
+		}
+		size_t vertexByteSize = 0;
+		if (!BufferSize::TryMultiply(
+			sizeof(ViewerVertex), geometryData.positions.size(), vertexByteSize)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX11 geometry 생성", "vertex buffer 크기가 한도를 넘습니다"));
+		}
 		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
-			indexData.bytes.size() > std::numeric_limits<UINT>::max())
-			return false;
+			indexData.bytes.size() > std::numeric_limits<UINT>::max()) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX11 geometry 생성", "vertex 또는 index 데이터가 DirectX 11 크기 범위를 벗어났습니다"));
+		}
 		const auto vBufDesc = Dx11DescBuilder::MakeDynamicVertexBufferDesc(static_cast<UINT>(vertexByteSize));
-		if (FAILED(targetDevice->CreateBuffer(
-			&vBufDesc, nullptr, &modelResources.vertexBuffer)))
-			return false;
+		HRESULT result = targetDevice->CreateBuffer(
+			&vBufDesc, nullptr, &modelResources.vertexBuffer);
+		if (FAILED(result)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX11 vertex buffer 생성", "동적 vertex buffer를 만들지 못했습니다", result, true));
+		}
 		const auto iBufDesc = Dx11DescBuilder::MakeImmutableIndexBufferDesc(static_cast<UINT>(indexData.bytes.size()));
 		D3D11_SUBRESOURCE_DATA initData = {};
 		initData.pSysMem = indexData.bytes.data();
-		if (FAILED(targetDevice->CreateBuffer(
-			&iBufDesc, &initData, &modelResources.indexBuffer)))
-			return false;
+		result = targetDevice->CreateBuffer(
+			&iBufDesc, &initData, &modelResources.indexBuffer);
+		if (FAILED(result)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX11 index buffer 생성", "index buffer를 만들지 못했습니다", result, true));
+		}
 		if (indexData.elementSize == sizeof(uint16_t))
 			modelResources.indexBufferFormat = DXGI_FORMAT_R16_UINT;
 		else if (indexData.elementSize == sizeof(uint32_t))
 			modelResources.indexBufferFormat = DXGI_FORMAT_R32_UINT;
-		else
-			return false;
-		return true;
+		else {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX11 geometry 생성", "index element 크기가 올바르지 않습니다"));
+		}
+		return {};
 	}
 
-	bool Dx11Instance::CreateConstantBuffers() {
+	GraphicsResult<void> Dx11Instance::CreateConstantBuffers() {
 		ID3D11Device* targetDevice = device.GetDevice();
-		if (FAILED(CreateBuffer<ModelVertexConstants>(
-			targetDevice, modelResources.vsConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<ModelPixelConstants>(
-			targetDevice, modelResources.psConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<SceneSurfacePixelConstants>(
-			targetDevice, modelResources.sceneSurfaceConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<EdgeVertexConstants>(
-			targetDevice, modelResources.edgeVsConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<EdgePixelConstants>(
-			targetDevice, modelResources.edgePsConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<GroundShadowVertexConstants>(
-			targetDevice, modelResources.gsVsConstantBuffer)))
-			return false;
-		if (FAILED(CreateBuffer<GroundShadowPixelConstants>(
-			targetDevice, modelResources.gsPsConstantBuffer)))
-			return false;
-		return true;
+		if (targetDevice == nullptr) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"DX11 constant buffer 생성", "DirectX 11 device를 사용할 수 없습니다"));
+		}
+		HRESULT result = CreateBuffer<ModelVertexConstants>(
+			targetDevice, modelResources.vsConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<ModelPixelConstants>(
+				targetDevice, modelResources.psConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<SceneSurfacePixelConstants>(
+				targetDevice, modelResources.sceneSurfaceConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<EdgeVertexConstants>(
+				targetDevice, modelResources.edgeVsConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<EdgePixelConstants>(
+				targetDevice, modelResources.edgePsConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<GroundShadowVertexConstants>(
+				targetDevice, modelResources.gsVsConstantBuffer);
+		if (SUCCEEDED(result))
+			result = CreateBuffer<GroundShadowPixelConstants>(
+				targetDevice, modelResources.gsPsConstantBuffer);
+		if (FAILED(result)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX11 constant buffer 생성", "패스별 constant buffer를 만들지 못했습니다", result, true));
+		}
+		return {};
 	}
 
 	GraphicsResult<void> Dx11Instance::LoadMaterials() {
@@ -121,12 +150,12 @@ namespace Chrivent {
 	}
 
 	GraphicsResult<void> Dx11Instance::SetupRenderer() {
-		if (!CreateGeometryBuffers())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX11 모델 인스턴스 초기화", "vertex 또는 index buffer를 만들지 못했습니다"));
-		if (!CreateConstantBuffers())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX11 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
+		auto result = CreateGeometryBuffers();
+		if (!result)
+			return std::unexpected(result.error());
+		result = CreateConstantBuffers();
+		if (!result)
+			return std::unexpected(result.error());
 		return LoadMaterials();
 	}
 

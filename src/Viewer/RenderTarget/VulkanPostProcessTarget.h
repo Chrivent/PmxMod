@@ -15,9 +15,9 @@ namespace Chrivent {
 		std::vector<bool> pendingInitialized;
 		bool initializationFramePending = false;
 
-		// 지정한 형식과 용도의 색상 image 하나를 생성한다.
+		// 지정한 형식, 용도와 aspect의 image 하나를 생성한다.
 		GraphicsResult<void> CreateImage(const VulkanDevice& sourceDevice, VkExtent2D extent, VkFormat format,
-			VkImageUsageFlags usage, size_t index);
+			VkImageUsageFlags usage, VkImageAspectFlags aspectMask, size_t index);
 		// 다른 타깃과 Vulkan 리소스 소유권을 교환한다.
 		void Swap(VulkanPostProcessTarget& other) noexcept;
 
@@ -43,9 +43,10 @@ namespace Chrivent {
 			return index < states.size() && states[index];
 		}
 
-		// 지정한 개수의 후처리 색상 타깃을 생성한다.
+		// 지정한 개수와 aspect의 후처리 타깃을 생성한다.
 		GraphicsResult<void> Initialize(const VulkanDevice& sourceDevice, size_t imageCount, VkExtent2D extent,
-			VkFormat format, VkImageUsageFlags usage, bool trackInitialization);
+			VkFormat format, VkImageUsageFlags usage, bool trackInitialization,
+			VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
 		// 새 프레임의 이미지 상태 변경을 제출 전 임시 상태에 기록한다.
 		void BeginInitializationFrame();
 		// 지정한 타깃을 shader-read 가능한 상태로 사용한 이력이 있음을 기록한다.

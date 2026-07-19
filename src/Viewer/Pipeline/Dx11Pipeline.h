@@ -46,7 +46,7 @@ namespace Chrivent {
 	public:
 		ID3D11SamplerState* GetTextureSampler() const { return states.textureSampler.Get(); }
 		ID3D11SamplerState* GetToonTextureSampler() const { return states.toonTextureSampler.Get(); }
-		ID3D11RasterizerState* GetPostProcessRasterizerState() const { return states.bothFaceRs.Get(); }
+		ID3D11RasterizerState* GetBothFaceRasterizerState() const { return states.bothFaceRs.Get(); }
 		ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return states.defaultDss.Get(); }
 
 		// 장면 ABI 계약으로 D3D11 셰이더와 고정 pipeline state를 생성한다.

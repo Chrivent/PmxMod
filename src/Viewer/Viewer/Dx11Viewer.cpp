@@ -75,7 +75,7 @@ namespace Chrivent {
 		if (postProcess.HasEffects()) {
 			const auto drawResult = postProcess.Draw(device.GetContext(),
 				renderTargets.GetSceneColor(), multiSampleCount, renderTargets.GetBackBufferView(),
-				pipeline.GetPostProcessRasterizerState(), pipeline.GetToonTextureSampler(),
+				pipeline.GetBothFaceRasterizerState(), pipeline.GetToonTextureSampler(),
 				screenWidth, screenHeight, GetPostProcessFrameData());
 			if (!drawResult)
 				return std::unexpected(drawResult.error());

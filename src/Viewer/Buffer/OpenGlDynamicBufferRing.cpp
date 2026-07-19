@@ -1,23 +1,39 @@
 ﻿#include "Viewer/Buffer/OpenGlDynamicBufferRing.h"
 
+#include <utility>
+
 namespace Chrivent {
 	OpenGlDynamicBufferRing::~OpenGlDynamicBufferRing() {
-		OpenGlDynamicBufferRing::Clear();
+		Clear();
 	}
 
-	bool OpenGlDynamicBufferRing::Setup(const size_t bufferSize, const GLenum bufferUsage, std::string& outError) {
+	GraphicsResult<void> OpenGlDynamicBufferRing::Setup(
+		const size_t bufferSize, const GLenum bufferUsage) {
 		Clear();
-		if (!DynamicBufferRing::Setup(bufferSize, outError))
-			return false;
+		std::string error;
+		if (!DynamicBufferRing::Setup(bufferSize, error)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::InvalidArgument, "동적 uniform buffer ring 생성",
+				std::move(error)));
+		}
 		usage = bufferUsage;
 		glCreateBuffers(1, &buffer);
-		if (buffer == 0) {
-			outError = "OpenGL dynamic buffer ring을 만들지 못했습니다.";
-			DynamicBufferRing::Clear();
-			return false;
+		const GLenum createResult = glGetError();
+		if (buffer == 0 || createResult != GL_NO_ERROR) {
+			Clear();
+			return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+				GraphicsErrorCode::ResourceCreationFailed, "동적 uniform buffer ring 생성",
+				"OpenGL buffer를 만들지 못했습니다",
+				createResult, createResult != GL_NO_ERROR));
 		}
 		glNamedBufferData(buffer, capacity, nullptr, usage);
-		return true;
+		const GLenum result = glGetError();
+		if (result == GL_NO_ERROR)
+			return {};
+		Clear();
+		return std::unexpected(MakeGraphicsError(GraphicsApi::OpenGl,
+			GraphicsErrorCode::ResourceCreationFailed, "동적 uniform buffer storage 생성",
+			"OpenGL uniform buffer storage를 할당하지 못했습니다", result, true));
 	}
 
 	void OpenGlDynamicBufferRing::Clear() {
@@ -37,6 +53,6 @@ namespace Chrivent {
 
 	std::optional<UploadSlice> OpenGlDynamicBufferRing::Allocate(const size_t size, const size_t alignment, std::string& outError) {
 		return AllocateSlice(size, alignment, capacity, 0,
-			"OpenGL dynamic buffer ring is out of space for this frame.", outError);
+			"현재 프레임에서 OpenGL 동적 버퍼 링의 남은 공간이 부족합니다.", outError);
 	}
 }

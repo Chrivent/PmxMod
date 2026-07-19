@@ -21,7 +21,8 @@ namespace Chrivent {
 
 	GraphicsResult<void> VulkanPostProcessTarget::CreateImage(
 		const VulkanDevice& sourceDevice, const VkExtent2D extent,
-		const VkFormat format, const VkImageUsageFlags usage, const size_t index) {
+		const VkFormat format, const VkImageUsageFlags usage,
+		const VkImageAspectFlags aspectMask, const size_t index) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -70,7 +71,7 @@ namespace Chrivent {
 		viewInfo.image = images[index];
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = format;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.aspectMask = aspectMask;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
 		result = vkCreateImageView(device, &viewInfo, nullptr, &imageViews[index]);
@@ -95,13 +96,13 @@ namespace Chrivent {
 	GraphicsResult<void> VulkanPostProcessTarget::Initialize(
 		const VulkanDevice& sourceDevice, const size_t imageCount,
 		const VkExtent2D extent, const VkFormat format, const VkImageUsageFlags usage,
-		const bool trackInitialization) {
+		const bool trackInitialization, const VkImageAspectFlags aspectMask) {
 		Reset();
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE || imageCount == 0 || extent.width == 0 || extent.height == 0
-			|| format == VK_FORMAT_UNDEFINED) {
+			|| format == VK_FORMAT_UNDEFINED || aspectMask == 0) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "후처리 target 초기화",
-				"Vulkan device, image 수, format 또는 extent가 올바르지 않습니다"));
+				"Vulkan device, image 수, format, extent 또는 aspect가 올바르지 않습니다"));
 		}
 		device = sourceDevice.GetDevice();
 		images.resize(imageCount);
@@ -109,7 +110,7 @@ namespace Chrivent {
 		imageViews.resize(imageCount);
 		initialized.assign(trackInitialization ? imageCount : 0, false);
 		for (size_t index = 0; index < imageCount; index++) {
-			const auto result = CreateImage(sourceDevice, extent, format, usage, index);
+			const auto result = CreateImage(sourceDevice, extent, format, usage, aspectMask, index);
 			if (!result) {
 				const GraphicsError error = result.error();
 				Reset();

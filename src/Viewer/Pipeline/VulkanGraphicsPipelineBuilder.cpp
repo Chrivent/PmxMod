@@ -5,7 +5,6 @@
 
 #include <cstddef>
 #include <iterator>
-#include <string>
 
 namespace Chrivent {
 	GraphicsResult<void> VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,

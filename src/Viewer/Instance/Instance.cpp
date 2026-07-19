@@ -7,8 +7,8 @@
 #include <utility>
 
 namespace Chrivent {
-    Instance::Instance(const GraphicsApi sourceGraphicsApi) : graphicsApi(sourceGraphicsApi) {}
-    Instance::~Instance() = default;
+	Instance::Instance(const GraphicsApi sourceGraphicsApi) : graphicsApi(sourceGraphicsApi) {}
+	Instance::~Instance() = default;
 
 	GraphicsError Instance::CreateGraphicsError(const GraphicsErrorCode code, std::string operation,
 		std::string message, const int64_t nativeCode, const bool hasNativeCode) const {
@@ -28,28 +28,30 @@ namespace Chrivent {
 		return true;
 	}
 
-    GraphicsResult<void> Instance::Initialize(std::shared_ptr<Model> sourceModel,
-        std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
-        ResetRendererResources();
-        model.reset();
-        animation.reset();
-        scale = 1.0f;
-        if (!drawer || !sourceModel || !ValidateModel(*sourceModel)) {
+	GraphicsResult<void> Instance::Initialize(std::shared_ptr<Model> sourceModel,
+		std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
+		ResetRendererResources();
+		model.reset();
+		animation.reset();
+		scale = 1.0f;
+		if (!drawer || !sourceModel || !ValidateModel(*sourceModel)
+			|| !std::isfinite(sourceScale)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
-				"모델 인스턴스 초기화", "모델 geometry 또는 material 범위가 올바르지 않습니다"));
+				"모델 인스턴스 초기화",
+				"모델 geometry, material 범위 또는 배율이 올바르지 않습니다"));
 		}
-        model = std::move(sourceModel);
-        animation = std::move(sourceAnimation);
-        scale = sourceScale;
-        const auto setupResult = SetupRenderer();
+		model = std::move(sourceModel);
+		animation = std::move(sourceAnimation);
+		scale = sourceScale;
+		const auto setupResult = SetupRenderer();
 		if (setupResult)
-            return {};
-        ResetRendererResources();
-        model.reset();
-        animation.reset();
-        scale = 1.0f;
-        return std::unexpected(setupResult.error());
-    }
+			return {};
+		ResetRendererResources();
+		model.reset();
+		animation.reset();
+		scale = 1.0f;
+		return std::unexpected(setupResult.error());
+	}
 
 	GraphicsResult<void> Instance::Upload() {
 		return UploadCore();
@@ -71,23 +73,23 @@ namespace Chrivent {
 		return drawer->DrawGroundShadowPass();
 	}
 
-    GraphicsResult<void> Instance::DrawPostProcessSceneInputs() const {
+	GraphicsResult<void> Instance::DrawPostProcessSceneInputs() const {
 		return drawer->DrawPostProcessSceneInputs();
-    }
+	}
 
 	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {
-        const ModelUpdater updater(*model);
+		const ModelUpdater updater(*model);
 		updater.Prepare(animation.get(), state.animationFrame, state.elapsed,
 			state.velocityRequired, state.physicsEnabled, timing);
-    }
+	}
 
-    std::size_t Instance::CalculateSkinningTaskCount() const {
-        const ModelUpdater updater(*model);
-        return updater.CalculateSkinningTaskCount();
-    }
+	std::size_t Instance::CalculateSkinningTaskCount() const {
+		const ModelUpdater updater(*model);
+		return updater.CalculateSkinningTaskCount();
+	}
 
-    void Instance::UpdateSkinning(const std::size_t taskIndex) const {
-        const ModelUpdater updater(*model);
-        updater.UpdateSkinning(taskIndex);
-    }
+	void Instance::UpdateSkinning(const std::size_t taskIndex) const {
+		const ModelUpdater updater(*model);
+		updater.UpdateSkinning(taskIndex);
+	}
 }

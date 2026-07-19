@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Instance/Dx12Instance.h"
 
 #include "Viewer/Drawer/Dx12Drawer.h"
+#include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/DrawContext/Dx12DrawContext.h"
 #include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
@@ -24,19 +25,22 @@ namespace Chrivent {
 			? DXGI_FORMAT_R16_UINT
 			: DXGI_FORMAT_R32_UINT;
 		const size_t vertexCount = geometryData.positions.size();
-		const size_t vertexByteSize = sizeof(ViewerVertex) * vertexCount;
-		if (vertexByteSize > std::numeric_limits<UINT>::max() ||
+		size_t vertexByteSize = 0;
+		if (!BufferSize::TryMultiply(sizeof(ViewerVertex), vertexCount, vertexByteSize)
+			|| vertexByteSize > std::numeric_limits<UINT>::max() ||
 			indexData.bytes.size() > std::numeric_limits<UINT>::max()) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
 				"DX12 geometry 생성", "vertex 또는 index 데이터가 DirectX 12 크기 범위를 벗어났습니다"));
 		}
 		for (size_t frameIndex = 0; frameIndex < FrameBuffering::dx12BufferCount; frameIndex++) {
 			Dx12Buffer& vertexBuffer = modelResources.vertexBuffers[frameIndex];
-			if (!vertexBuffer.InitializeUpload(device, vertexByteSize) ||
-				!ViewerGeometry::WriteVertices(geometryData, false,
-					{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount })) {
-				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-					"DX12 vertex buffer 생성", "동적 vertex buffer를 만들거나 기록하지 못했습니다"));
+			const auto bufferResult = vertexBuffer.InitializeUpload(device, vertexByteSize);
+			if (!bufferResult)
+				return std::unexpected(bufferResult.error());
+			if (!ViewerGeometry::WriteVertices(geometryData, false,
+				{ static_cast<ViewerVertex*>(vertexBuffer.GetMappedData()), vertexCount })) {
+				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+					"DX12 vertex buffer 기록", "초기 vertex 데이터를 기록하지 못했습니다"));
 			}
 			auto& [BufferLocation, SizeInBytes, StrideInBytes] = modelResources.vertexBufferViews[frameIndex];
 			BufferLocation = vertexBuffer.GetGpuAddress();
@@ -44,13 +48,17 @@ namespace Chrivent {
 			StrideInBytes = sizeof(ViewerVertex);
 		}
 		Dx12Buffer indexUploadBuffer;
-		if (!indexUploadBuffer.InitializeUpload(device, indexData.bytes.size())
-			|| !indexUploadBuffer.Write(std::as_bytes(std::span(indexData.bytes)))
-			|| !modelResources.indexBuffer.InitializeDefault(
-				device, indexData.bytes.size(), D3D12_RESOURCE_STATE_COPY_DEST)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX12 index buffer 생성", "index upload 또는 GPU buffer를 만들지 못했습니다"));
+		auto bufferResult = indexUploadBuffer.InitializeUpload(device, indexData.bytes.size());
+		if (!bufferResult)
+			return std::unexpected(bufferResult.error());
+		if (!indexUploadBuffer.Write(std::as_bytes(std::span(indexData.bytes)))) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
+				"DX12 index upload buffer 기록", "index 데이터를 기록하지 못했습니다"));
 		}
+		bufferResult = modelResources.indexBuffer.InitializeDefault(
+			device, indexData.bytes.size(), D3D12_RESOURCE_STATE_COPY_DEST);
+		if (!bufferResult)
+			return std::unexpected(bufferResult.error());
 		const auto uploadResult = uploadContext.RecordIndexBufferUpload(
 			modelResources.indexBuffer.GetResource(), indexUploadBuffer.GetResource(), indexData.bytes.size());
 		if (!uploadResult)
@@ -62,42 +70,54 @@ namespace Chrivent {
 		return {};
 	}
 
-	bool Dx12Instance::CreateConstantBuffers() {
+	GraphicsResult<void> Dx12Instance::CreateConstantBuffers() {
 		auto& [modelVertex, sceneInputVertex, groundShadowVertex, groundShadowPixel
 			, materialBase, materialStride, modelPixel, sceneSurfacePixel
 			, edgeVertex, edgePixel, totalByteSize] = modelResources.constantBufferLayout;
 		size_t frameOffset = 0;
-		const auto ReserveFrameConstants = [&frameOffset](const size_t size) {
-			const size_t offset = frameOffset;
-			frameOffset += Dx12Buffer::AlignConstantBufferSize(size);
-			return offset;
+		const auto ReserveFrameConstants = [&frameOffset](const size_t size, size_t& offset) {
+			offset = frameOffset;
+			size_t alignedSize = 0;
+			return Dx12Buffer::TryAlignConstantBufferSize(size, alignedSize)
+				&& BufferSize::TryAdd(frameOffset, alignedSize, frameOffset);
 		};
-		modelVertex = ReserveFrameConstants(sizeof(ModelVertexConstants));
-		sceneInputVertex = ReserveFrameConstants(
-			std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)));
-		groundShadowVertex = ReserveFrameConstants(sizeof(GroundShadowVertexConstants));
-		groundShadowPixel = ReserveFrameConstants(sizeof(GroundShadowPixelConstants));
+		if (!ReserveFrameConstants(sizeof(ModelVertexConstants), modelVertex)
+			|| !ReserveFrameConstants(
+				std::max(sizeof(ModelVertexConstants), sizeof(SceneVelocityVertexConstants)), sceneInputVertex)
+			|| !ReserveFrameConstants(sizeof(GroundShadowVertexConstants), groundShadowVertex)
+			|| !ReserveFrameConstants(sizeof(GroundShadowPixelConstants), groundShadowPixel)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 constant buffer layout 생성", "frame constant buffer 크기가 한도를 넘습니다"));
+		}
 		materialBase = frameOffset;
 		size_t materialOffset = 0;
-		const auto ReserveMaterialConstants = [&materialOffset](const size_t size) {
-			const size_t offset = materialOffset;
-			materialOffset += Dx12Buffer::AlignConstantBufferSize(size);
-			return offset;
+		const auto ReserveMaterialConstants = [&materialOffset](const size_t size, size_t& offset) {
+			offset = materialOffset;
+			size_t alignedSize = 0;
+			return Dx12Buffer::TryAlignConstantBufferSize(size, alignedSize)
+				&& BufferSize::TryAdd(materialOffset, alignedSize, materialOffset);
 		};
-		modelPixel = ReserveMaterialConstants(sizeof(ModelPixelConstants));
-		sceneSurfacePixel = ReserveMaterialConstants(sizeof(SceneSurfacePixelConstants));
-		edgeVertex = ReserveMaterialConstants(sizeof(EdgeVertexConstants));
-		edgePixel = ReserveMaterialConstants(sizeof(EdgePixelConstants));
+		if (!ReserveMaterialConstants(sizeof(ModelPixelConstants), modelPixel)
+			|| !ReserveMaterialConstants(sizeof(SceneSurfacePixelConstants), sceneSurfacePixel)
+			|| !ReserveMaterialConstants(sizeof(EdgeVertexConstants), edgeVertex)
+			|| !ReserveMaterialConstants(sizeof(EdgePixelConstants), edgePixel)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 constant buffer layout 생성", "material constant buffer 크기가 한도를 넘습니다"));
+		}
 		materialStride = materialOffset;
 		const size_t materialCount = model->materialData.materials.size();
-		if (materialCount > (std::numeric_limits<size_t>::max() - frameOffset) / materialStride)
-			return false;
-		totalByteSize = frameOffset + materialCount * materialStride;
-		for (Dx12Buffer& buffer : modelResources.constantBuffers) {
-			if (!buffer.InitializeUpload(device, totalByteSize))
-				return false;
+		size_t materialByteSize = 0;
+		if (!BufferSize::TryMultiply(materialCount, materialStride, materialByteSize)
+			|| !BufferSize::TryAdd(frameOffset, materialByteSize, totalByteSize)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 constant buffer 크기 계산", "material 수에 따른 constant buffer 크기가 한도를 넘습니다"));
 		}
-		return true;
+		for (Dx12Buffer& buffer : modelResources.constantBuffers) {
+			const auto result = buffer.InitializeUpload(device, totalByteSize);
+			if (!result)
+				return std::unexpected(result.error());
+		}
+		return {};
 	}
 
 	GraphicsResult<void> Dx12Instance::LoadMaterials() {
@@ -130,21 +150,29 @@ namespace Chrivent {
 		return {};
 	}
 
-	bool Dx12Instance::CreateTextureDescriptors() {
+	GraphicsResult<void> Dx12Instance::CreateTextureDescriptors() {
 		if (modelResources.materials.empty())
-			return true;
-		if (!device.GetDevice())
-			return false;
-		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3)
-			return false;
+			return {};
+		if (!device.GetDevice()) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"DX12 texture descriptor 생성", "DirectX 12 device를 사용할 수 없습니다"));
+		}
+		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
+				"DX12 texture descriptor 생성", "material 수가 descriptor 개수 범위를 벗어났습니다"));
+		}
 		const size_t descriptorCount = modelResources.materials.size() * 3;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-		heapDesc.NumDescriptors = descriptorCount;
+		heapDesc.NumDescriptors = static_cast<UINT>(descriptorCount);
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		if (FAILED(device.GetDevice()->CreateDescriptorHeap(
-			&heapDesc, IID_PPV_ARGS(&modelResources.textureDescriptorHeap))))
-			return false;
+		const HRESULT result = device.GetDevice()->CreateDescriptorHeap(
+			&heapDesc, IID_PPV_ARGS(&modelResources.textureDescriptorHeap));
+		if (FAILED(result)) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"DX12 texture descriptor heap 생성",
+				"material texture descriptor heap을 만들지 못했습니다", result, true));
+		}
 		const UINT textureDescriptorSize = device.GetDevice()->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle =
@@ -172,7 +200,7 @@ namespace Chrivent {
 			cpuHandle.ptr += textureDescriptorSize;
 			gpuHandle.ptr += textureDescriptorSize * 3;
 		}
-		return true;
+		return {};
 	}
 
 	Dx12Instance::Dx12Instance(const Dx12Device& sourceDevice,
@@ -208,10 +236,10 @@ namespace Chrivent {
 			textureCache.CancelUploadBatch();
 			return std::unexpected(geometryResult.error());
 		}
-		if (!CreateConstantBuffers()) {
+		const auto constantBufferResult = CreateConstantBuffers();
+		if (!constantBufferResult) {
 			textureCache.CancelUploadBatch();
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX12 모델 인스턴스 초기화", "constant buffer를 만들지 못했습니다"));
+			return std::unexpected(constantBufferResult.error());
 		}
 		const auto materialResult = LoadMaterials();
 		if (!materialResult) {
@@ -221,9 +249,9 @@ namespace Chrivent {
 		const auto uploadResult = textureCache.SubmitUploadBatch(device);
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
-		if (!CreateTextureDescriptors())
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
-				"DX12 모델 인스턴스 초기화", "texture descriptor를 만들지 못했습니다"));
+		const auto descriptorResult = CreateTextureDescriptors();
+		if (!descriptorResult)
+			return std::unexpected(descriptorResult.error());
 		return {};
 	}
 

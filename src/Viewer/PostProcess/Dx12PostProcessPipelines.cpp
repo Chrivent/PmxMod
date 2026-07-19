@@ -4,7 +4,6 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <limits>
-#include <string>
 
 namespace Chrivent {
 	GraphicsResult<void> Dx12PostProcessPipelines::CreateRootSignature(

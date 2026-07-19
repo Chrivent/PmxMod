@@ -2,7 +2,7 @@
 
 #include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
-#include "Viewer/Memory/VulkanMemory.h"
+#include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/Command/VulkanCommandBuffer.h"
 
 #include <algorithm>
@@ -21,77 +21,6 @@ namespace Chrivent {
 		swapChainFormat = sourceSwapChain.GetImageFormat();
 		return sceneTarget.Initialize(sourceDevice, swapChainImageCount, targetExtent, swapChainFormat,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, false);
-	}
-
-	GraphicsResult<void> VulkanPostProcess::CreateDepthImages(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain, const VkFormat depthFormat) {
-		depthImages.resize(swapChainImageCount);
-		depthImageMemories.resize(swapChainImageCount);
-		depthImageViews.resize(swapChainImageCount);
-		for (size_t index = 0; index < swapChainImageCount; index++) {
-			VkImageCreateInfo imageInfo{};
-			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent = {
-				sourceSwapChain.GetExtent().width,
-				sourceSwapChain.GetExtent().height,
-				1
-			};
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = depthFormat;
-			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			VkResult result = vkCreateImage(device, &imageInfo, nullptr, &depthImages[index]);
-			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth image 생성",
-					"Vulkan 후처리 depth image를 만들지 못했습니다", result, true));
-			}
-			VkMemoryRequirements requirements{};
-			vkGetImageMemoryRequirements(device, depthImages[index], &requirements);
-			uint32_t memoryType = 0;
-			if (!VulkanMemory::FindMemoryType(
-				sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-					GraphicsErrorCode::UnsupportedFeature, "후처리 depth memory type 선택",
-					"Vulkan 후처리 depth image에 사용할 memory type을 찾지 못했습니다"));
-			}
-			VkMemoryAllocateInfo allocateInfo{};
-			allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-			allocateInfo.allocationSize = requirements.size;
-			allocateInfo.memoryTypeIndex = memoryType;
-			result = vkAllocateMemory(device, &allocateInfo, nullptr, &depthImageMemories[index]);
-			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth memory 할당",
-					"Vulkan 후처리 depth image memory를 할당하지 못했습니다", result, true));
-			}
-			result = vkBindImageMemory(device, depthImages[index], depthImageMemories[index], 0);
-			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth memory 연결",
-					"Vulkan 후처리 depth image memory를 연결하지 못했습니다", result, true));
-			}
-			VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = depthImages[index];
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = depthFormat;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.layerCount = 1;
-			result = vkCreateImageView(device, &viewInfo, nullptr, &depthImageViews[index]);
-			if (result != VK_SUCCESS) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 depth image view 생성",
-					"Vulkan 후처리 depth image view를 만들지 못했습니다", result, true));
-			}
-		}
-		return {};
 	}
 
 	GraphicsResult<void> VulkanPostProcess::CreateVelocityImages(const VulkanDevice& sourceDevice) {
@@ -150,16 +79,24 @@ namespace Chrivent {
 	GraphicsResult<void> VulkanPostProcess::CreateParameterDataBuffers(const VulkanDevice& sourceDevice) {
 		parameterDataBuffers.clear();
 		const size_t passCount = GetPassRoutes().size();
-		const VkDeviceSize alignment = std::max<VkDeviceSize>(
+		const VkDeviceSize nativeAlignment = std::max<VkDeviceSize>(
 			1, sourceDevice.GetUniformBufferAlignment());
-		constexpr VkDeviceSize parameterSize = sizeof(PostProcessParameterData);
-		parameterDataStride = (parameterSize + alignment - 1) / alignment * alignment;
-		if (passCount == 0 || passCount > std::numeric_limits<VkDeviceSize>::max() / parameterDataStride) {
+		if (nativeAlignment > std::numeric_limits<size_t>::max()) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
+				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
+				"Vulkan uniform buffer 정렬이 프로그램 크기 범위를 벗어났습니다"));
+		}
+		size_t stride = 0;
+		size_t bufferSize = 0;
+		if (passCount == 0
+			|| !BufferSize::TryAlignUp(
+				sizeof(PostProcessParameterData), nativeAlignment, stride)
+			|| !BufferSize::TryMultiply(passCount, stride, bufferSize)) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
 				"Vulkan 후처리 패스 수가 parameter buffer 크기 한도를 넘습니다"));
 		}
-		const VkDeviceSize bufferSize = passCount * parameterDataStride;
+		parameterDataStride = stride;
 		for (size_t index = 0; index < swapChainImageCount; index++) {
 			auto buffer = std::make_unique<VulkanBuffer>();
 			const auto result = buffer->Initialize(sourceDevice, bufferSize,
@@ -177,7 +114,7 @@ namespace Chrivent {
 		if (input.kind == PostProcessInputKind::SceneColor)
 			return sceneTarget.TryGetImageView(imageIndex);
 		if (input.kind == PostProcessInputKind::SceneDepth)
-			return imageIndex < depthImageViews.size() ? depthImageViews[imageIndex] : VK_NULL_HANDLE;
+			return depthTarget.TryGetImageView(imageIndex);
 		if (input.kind == PostProcessInputKind::SceneVelocity)
 			return velocityTarget.TryGetImageView(imageIndex);
 		if (input.resourceIndex >= resources.size())
@@ -252,33 +189,12 @@ namespace Chrivent {
 		return true;
 	}
 
-	void VulkanPostProcess::DestroyImages(std::vector<VkImage>& images,
-		std::vector<VkDeviceMemory>& memories, std::vector<VkImageView>& imageViews) const {
-		for (const VkImageView view : imageViews) {
-			if (view != VK_NULL_HANDLE)
-				vkDestroyImageView(device, view, nullptr);
-		}
-		for (const VkImage image : images) {
-			if (image != VK_NULL_HANDLE)
-				vkDestroyImage(device, image, nullptr);
-		}
-		for (const VkDeviceMemory memory : memories) {
-			if (memory != VK_NULL_HANDLE)
-				vkFreeMemory(device, memory, nullptr);
-		}
-		imageViews.clear();
-		images.clear();
-		memories.clear();
-	}
-
 	void VulkanPostProcess::SwapResources(VulkanPostProcess& other) noexcept {
 		std::swap(device, other.device);
 		std::swap(targetExtent, other.targetExtent);
 		std::swap(swapChainFormat, other.swapChainFormat);
 		std::swap(sceneTarget, other.sceneTarget);
-		depthImages.swap(other.depthImages);
-		depthImageMemories.swap(other.depthImageMemories);
-		depthImageViews.swap(other.depthImageViews);
+		std::swap(depthTarget, other.depthTarget);
 		std::swap(velocityTarget, other.velocityTarget);
 		resources.swap(other.resources);
 		frameDataBuffers.swap(other.frameDataBuffers);
@@ -295,8 +211,12 @@ namespace Chrivent {
 		ResetTargets();
 		device = sourceDevice.GetDevice();
 		auto result = CreateSceneImages(sourceDevice, sourceSwapChain);
-		if (result && (RequiresDepth() || RequiresVelocity()))
-			result = CreateDepthImages(sourceDevice, sourceSwapChain, depthFormat);
+		if (result && (RequiresDepth() || RequiresVelocity())) {
+			result = depthTarget.Initialize(
+				sourceDevice, swapChainImageCount, sourceSwapChain.GetExtent(), depthFormat,
+				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				false, VK_IMAGE_ASPECT_DEPTH_BIT);
+		}
 		if (result && RequiresVelocity())
 			result = CreateVelocityImages(sourceDevice);
 		if (result)
@@ -349,7 +269,8 @@ namespace Chrivent {
 		BeginImageStateFrame();
 		constexpr bool depthHasStencil = false;
 		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
-			sceneTarget.TryGetImage(imageIndex), depthImages[imageIndex], depthImageViews[imageIndex],
+			sceneTarget.TryGetImage(imageIndex), depthTarget.TryGetImage(imageIndex),
+			depthTarget.TryGetImageView(imageIndex),
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() ? velocityTarget.TryGetImageView(imageIndex) : VK_NULL_HANDLE,
 			RequiresVelocity() && velocityTarget.IsInitialized(imageIndex), depthHasStencil, extent);
@@ -373,7 +294,8 @@ namespace Chrivent {
 				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
 		}
 		constexpr bool depthHasStencil = false;
-		if (!commandBuffers.EndPostProcessSceneInputPass(imageIndex, depthImages[imageIndex],
+		if (!commandBuffers.EndPostProcessSceneInputPass(
+			imageIndex, depthTarget.TryGetImage(imageIndex),
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil)) {
 			DiscardImageStateFrame();
 			return std::unexpected(MakeGraphicsError(GraphicsApi::Vulkan,
@@ -553,15 +475,11 @@ namespace Chrivent {
 	}
 
 	void VulkanPostProcess::ResetTargets() {
-		if (device != VK_NULL_HANDLE)
-			DestroyImages(depthImages, depthImageMemories, depthImageViews);
 		descriptors.Reset();
 		sceneTarget.Reset();
+		depthTarget.Reset();
 		velocityTarget.Reset();
 		resources.clear();
-		depthImages.clear();
-		depthImageMemories.clear();
-		depthImageViews.clear();
 		frameDataBuffers.clear();
 		parameterDataBuffers.clear();
 		swapChainImageCount = 0;

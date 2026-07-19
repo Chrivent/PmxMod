@@ -1,5 +1,7 @@
 ﻿#include "Viewer/Buffer/VulkanDynamicBufferRing.h"
 
+#include "Viewer/Buffer/BufferSize.h"
+
 #include <utility>
 
 namespace Chrivent {
@@ -33,7 +35,11 @@ namespace Chrivent {
 			outError = "Vulkan 동적 버퍼 링의 프레임 용량이 0입니다.";
 			return std::nullopt;
 		}
-		const size_t frameBaseOffset = currentFrameIndex * frameCapacity;
+		size_t frameBaseOffset = 0;
+		if (!BufferSize::TryMultiply(currentFrameIndex, frameCapacity, frameBaseOffset)) {
+			outError = "Vulkan 동적 버퍼 링의 프레임 시작 위치가 크기 한도를 넘습니다.";
+			return std::nullopt;
+		}
 		return AllocateSlice(size, alignment, frameCapacity, frameBaseOffset,
 			"현재 프레임에서 Vulkan 동적 버퍼 링의 남은 공간이 부족합니다.", outError);
 	}

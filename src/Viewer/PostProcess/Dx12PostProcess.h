@@ -6,6 +6,7 @@
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/PostProcess/Dx12PostProcessPipelines.h"
 #include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
+#include "Viewer/RenderTarget/Dx12PostProcessDepthTarget.h"
 #include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
 
 #include <d3d12.h>
@@ -34,8 +35,7 @@ namespace Chrivent {
 		std::vector<Resource> resources;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> inputDescriptorHeaps;
 		std::vector<InputDescriptorState> inputDescriptorStates;
-		Microsoft::WRL::ComPtr<ID3D12Resource> depth;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> depthDsvHeap;
+		Dx12PostProcessDepthTarget depthTarget;
 		Dx12PostProcessPipelines pipelines;
 		Dx12Buffer frameDataBuffers[FrameBuffering::dx12BufferCount];
 		Dx12Buffer parameterDataBuffers[FrameBuffering::dx12BufferCount];
@@ -43,8 +43,6 @@ namespace Chrivent {
 		int targetHeight = 0;
 		UINT inputDescriptorSize = 0;
 
-		// 후처리 장면 입력 패스에 사용할 단일 샘플 depth target을 생성한다.
-		GraphicsResult<void> CreateDepthTarget(const Dx12Device& sourceDevice, int width, int height);
 		// 패키지가 선언한 transient/history target을 생성한다.
 		GraphicsResult<void> CreateEffectResources(const Dx12Device& sourceDevice);
 		// frame별 모든 pass 입력을 보관하는 shader-visible descriptor heap을 생성한다.

@@ -1,65 +1,14 @@
 ﻿#include "Viewer/PostProcess/Dx12PostProcess.h"
 
+#include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
 #include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <limits>
-#include <utility>
 
 namespace Chrivent {
-	GraphicsResult<void> Dx12PostProcess::CreateDepthTarget(
-		const Dx12Device& sourceDevice, const int width, const int height) {
-		depth.Reset();
-		depthDsvHeap.Reset();
-		if (!sourceDevice.GetDevice() || width <= 0 || height <= 0) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::InvalidArgument, "후처리 depth target 생성",
-				"DirectX 12 device 또는 depth target 크기가 올바르지 않습니다"));
-		}
-		D3D12_HEAP_PROPERTIES heapProperties{};
-		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-		heapProperties.CreationNodeMask = 1;
-		heapProperties.VisibleNodeMask = 1;
-		D3D12_RESOURCE_DESC description{};
-		description.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		description.Width = width;
-		description.Height = height;
-		description.DepthOrArraySize = 1;
-		description.MipLevels = 1;
-		description.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		description.SampleDesc.Count = 1;
-		description.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-		D3D12_CLEAR_VALUE clearValue{};
-		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		clearValue.DepthStencil.Depth = 1.0f;
-		HRESULT result = sourceDevice.GetDevice()->CreateCommittedResource(
-			&heapProperties, D3D12_HEAP_FLAG_NONE, &description,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&depth));
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth target 생성",
-				"DirectX 12 후처리 depth target을 만들지 못했습니다", result, true));
-		}
-		D3D12_DESCRIPTOR_HEAP_DESC heapDescription{};
-		heapDescription.NumDescriptors = 1;
-		heapDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		result = sourceDevice.GetDevice()->CreateDescriptorHeap(
-			&heapDescription, IID_PPV_ARGS(&depthDsvHeap));
-		if (FAILED(result)) {
-			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ResourceCreationFailed, "후처리 depth descriptor heap 생성",
-				"DirectX 12 후처리 depth descriptor heap을 만들지 못했습니다", result, true));
-		}
-		D3D12_DEPTH_STENCIL_VIEW_DESC viewDescription{};
-		viewDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		viewDescription.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		sourceDevice.GetDevice()->CreateDepthStencilView(
-			depth.Get(), &viewDescription, depthDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		return {};
-	}
-
 	GraphicsResult<void> Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
 		ResetEffectResources();
 		const auto& plans = GetResourcePlans();
@@ -131,13 +80,18 @@ namespace Chrivent {
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
 			return {};
-		const size_t stride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
+		size_t stride = 0;
+		size_t bufferSize = 0;
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), stride)
+			|| !BufferSize::TryMultiply(stride, passCount, bufferSize)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
+				"DirectX 12 후처리 패스 수가 parameter buffer 크기 한도를 넘습니다"));
+		}
 		for (auto& buffer : parameterDataBuffers) {
-			if (!buffer.InitializeUpload(sourceDevice, stride * passCount)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 parameter buffer 생성",
-					"DirectX 12 후처리 parameter upload buffer를 만들지 못했습니다"));
-			}
+			const auto result = buffer.InitializeUpload(sourceDevice, bufferSize);
+			if (!result)
+				return std::unexpected(result.error());
 		}
 		return {};
 	}
@@ -150,7 +104,7 @@ namespace Chrivent {
 		}
 		if (input.kind == PostProcessInputKind::SceneDepth) {
 			format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-			return depth.Get();
+			return depthTarget.GetResource();
 		}
 		if (input.kind == PostProcessInputKind::SceneVelocity) {
 			format = sceneVelocity.GetFormat();
@@ -292,15 +246,14 @@ namespace Chrivent {
 		sceneColor.Reset();
 		sceneVelocity.Reset();
 		ResetEffectResources();
-		depth.Reset();
-		depthDsvHeap.Reset();
+		depthTarget.Reset();
 		for (auto& buffer : frameDataBuffers)
 			buffer.Reset();
 		auto result = sceneColor.Initialize(sourceDevice, width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
 		if (result && RequiresVelocity())
 			result = sceneVelocity.Initialize(sourceDevice, width, height, DXGI_FORMAT_R16G16_FLOAT);
 		if (result && (RequiresDepth() || RequiresVelocity()))
-			result = CreateDepthTarget(sourceDevice, width, height);
+			result = depthTarget.Initialize(sourceDevice, width, height);
 		if (result)
 			result = CreateEffectResources(sourceDevice);
 		if (result)
@@ -309,13 +262,16 @@ namespace Chrivent {
 			result = CreateParameterDataBuffers(sourceDevice);
 		if (!result)
 			return std::unexpected(result.error());
-		const size_t frameDataSize = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessFrameData));
+		size_t frameDataSize = 0;
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessFrameData), frameDataSize)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 frame buffer 크기 계산",
+				"DirectX 12 후처리 frame buffer 크기가 한도를 넘습니다"));
+		}
 		for (auto& buffer : frameDataBuffers) {
-			if (!buffer.InitializeUpload(sourceDevice, frameDataSize)) {
-				return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
-					GraphicsErrorCode::ResourceCreationFailed, "후처리 frame buffer 생성",
-					"DirectX 12 후처리 frame upload buffer를 만들지 못했습니다"));
-			}
+			const auto bufferResult = buffer.InitializeUpload(sourceDevice, frameDataSize);
+			if (!bufferResult)
+				return std::unexpected(bufferResult.error());
 		}
 		return {};
 	}
@@ -326,8 +282,7 @@ namespace Chrivent {
 		resources.swap(other.resources);
 		inputDescriptorHeaps.swap(other.inputDescriptorHeaps);
 		inputDescriptorStates.swap(other.inputDescriptorStates);
-		depth.Swap(other.depth);
-		depthDsvHeap.Swap(other.depthDsvHeap);
+		depthTarget.Swap(other.depthTarget);
 		pipelines.Swap(other.pipelines);
 		for (size_t index = 0; index < FrameBuffering::dx12BufferCount; index++) {
 			frameDataBuffers[index].Swap(other.frameDataBuffers[index]);
@@ -364,18 +319,19 @@ namespace Chrivent {
 
 	GraphicsResult<void> Dx12PostProcess::BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 		const Dx12CommandContext& commandContext, const int width, const int height) const {
-		if ((!RequiresDepth() && !RequiresVelocity()) || !depth || commandList == nullptr) {
+		if ((!RequiresDepth() && !RequiresVelocity())
+			|| depthTarget.GetResource() == nullptr || commandList == nullptr) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"DirectX 12 command list 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
 		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
-		Dx12Barrier::Transition(commandList, enhancedCommandList, depth.Get(),
+		Dx12Barrier::Transition(commandList, enhancedCommandList, depthTarget.GetResource(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		if (RequiresVelocity())
 			Dx12Barrier::Transition(commandList, enhancedCommandList, sceneVelocity.GetResource(),
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthDsvHeap->GetCPUDescriptorHandleForHeapStart();
+		const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = depthTarget.GetDsvHandle();
 		const D3D12_CPU_DESCRIPTOR_HANDLE velocityHandle = sceneVelocity.GetRtvHandle();
 		commandList->OMSetRenderTargets(RequiresVelocity() ? 1 : 0,
 			RequiresVelocity() ? &velocityHandle : nullptr, FALSE, &dsvHandle);
@@ -391,12 +347,13 @@ namespace Chrivent {
 
 	GraphicsResult<void> Dx12PostProcess::EndSceneInputPass(
 		ID3D12GraphicsCommandList* commandList, const Dx12CommandContext& commandContext) const {
-		if (!depth || commandList == nullptr) {
+		if (depthTarget.GetResource() == nullptr || commandList == nullptr) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
 				"DirectX 12 command list 또는 후처리 depth target을 사용할 수 없습니다"));
 		}
-		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), depth.Get(),
+		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
+			depthTarget.GetResource(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		if (RequiresVelocity())
 			Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
@@ -421,7 +378,12 @@ namespace Chrivent {
 		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
-		const size_t parameterStride = Dx12Buffer::AlignConstantBufferSize(sizeof(PostProcessParameterData));
+		size_t parameterStride = 0;
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), parameterStride)) {
+			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
+				GraphicsErrorCode::ContractViolation, "후처리 parameter stride 계산",
+				"DirectX 12 후처리 parameter stride가 크기 한도를 넘습니다"));
+		}
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
 			return std::unexpected(MakeGraphicsError(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "후처리 frame data 기록",
@@ -519,8 +481,7 @@ namespace Chrivent {
 	void Dx12PostProcess::ResetResources() {
 		pipelines.Reset();
 		ResetEffectResources();
-		depth.Reset();
-		depthDsvHeap.Reset();
+		depthTarget.Reset();
 		sceneVelocity.Reset();
 		sceneColor.Reset();
 		for (auto& buffer : frameDataBuffers)

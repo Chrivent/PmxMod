@@ -82,8 +82,7 @@ namespace Chrivent {
 	}
 
 	bool VulkanPostProcessPipelines::IsCompatible(const std::span<const VkFormat> formats) const {
-		return pipelines.size() == formats.size()
-			&& std::equal(targetFormats.begin(), targetFormats.end(), formats.begin(), formats.end());
+		return pipelines.size() == formats.size() && std::ranges::equal(targetFormats, formats);
 	}
 
 	GraphicsResult<void> VulkanPostProcessPipelines::Initialize(
