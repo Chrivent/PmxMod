@@ -447,8 +447,9 @@ namespace Chrivent {
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             const auto pmxModel = std::make_shared<Model>();
             const ModelLoader loader(*pmxModel);
-			if (!loader.Load(modelPath, resourceDirectories.GetDefaultToonTextureDirectory())) {
-                std::cerr << "PMX 파일을 불러오지 못했습니다.\n";
+			const auto loadResult = loader.Load(modelPath, resourceDirectories.GetDefaultToonTextureDirectory());
+			if (!loadResult) {
+                std::cerr << loadResult.error().message << '\n';
                 return false;
             }
             const ModelAnimator animator(*pmxModel);
@@ -554,7 +555,7 @@ namespace Chrivent {
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
         std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
         if (animation) {
-            for (const auto& [node, keys] : animation->nodeTracks) {
+            for (const auto& [node, keys] : animation->GetNodeTracks()) {
                 auto& timelineKeys = nodeKeys[node.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
@@ -578,13 +579,13 @@ namespace Chrivent {
                     });
                 }
             }
-            for (const auto& [ikSolver, keys] : animation->ikTracks) {
+            for (const auto& [ikSolver, keys] : animation->GetIkTracks()) {
                 auto& timelineKeys = ikKeys[ikSolver.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
-            for (const auto& [morph, keys] : animation->morphTracks) {
+            for (const auto& [morph, keys] : animation->GetMorphTracks()) {
                 auto& timelineKeys = morphKeys[morph.get()];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)

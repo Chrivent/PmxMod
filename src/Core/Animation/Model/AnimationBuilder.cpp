@@ -25,7 +25,7 @@ namespace Chrivent {
 		const AnimationBinder binder(model);
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
-			auto nodeName = Util::SjisToUtf8(motion.boneName);
+			auto nodeName = Util::SjisToUtf8(motion.boneName, sizeof(motion.boneName));
 			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 			auto& [node, keys] = findIt->second;
 			if (inserted)
@@ -44,7 +44,7 @@ namespace Chrivent {
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
-				auto ikName = Util::SjisToUtf8(name);
+				auto ikName = Util::SjisToUtf8(name, sizeof(name));
 				auto [findIt, inserted] = ikMap.try_emplace(ikName);
 				auto& [ikSolver, keys] = findIt->second;
 				if (inserted)
@@ -65,7 +65,7 @@ namespace Chrivent {
 		const AnimationBinder binder(model);
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
-			auto morphName = Util::SjisToUtf8(blendShapeName);
+			auto morphName = Util::SjisToUtf8(blendShapeName, sizeof(blendShapeName));
 			auto [findIt, inserted] = morphMap.try_emplace(morphName);
 			auto& [morph, keys] = findIt->second;
 			if (inserted)

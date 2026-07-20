@@ -1,5 +1,6 @@
 ﻿#include "Core/Parser/VmdParser.h"
 
+#include <cmath>
 #include <cstring>
 #include <fstream>
 
@@ -97,17 +98,71 @@ namespace Chrivent {
 		for (auto& [frame, show, ikStates] : data.iks) {
 			reader.Read(frame);
 			reader.Read(show);
+			if (show > 1) {
+				reader.Fail(ParseErrorCode::InvalidValue, "모델 표시 플래그가 올바르지 않습니다.");
+				return;
+			}
 			uint32_t ikInfoCount = 0;
-			if (show > 1 || !reader.ReadCount(ikInfoCount, 21))
+			if (!reader.ReadCount(ikInfoCount, 21))
 				return;
 			ikStates.resize(ikInfoCount);
-			for (auto& [name, enable]: ikStates) {
+			for (auto& [name, enable] : ikStates) {
 				reader.Read(name, sizeof(name));
 				reader.Read(enable);
 				if (enable > 1) {
 					reader.Fail(ParseErrorCode::InvalidValue, "IK 활성화 플래그가 올바르지 않습니다.");
 					return;
 				}
+			}
+		}
+	}
+
+	void VmdParser::ValidateData(BinaryReader& reader) const {
+		const auto IsFiniteVector = [](const auto& value) {
+			for (glm::length_t index = 0; index < value.length(); index++) {
+				if (!std::isfinite(value[index]))
+					return false;
+			}
+			return true;
+		};
+		const auto IsValidInterpolation = [](const auto& interpolation) {
+			for (const uint8_t value : interpolation) {
+				if (value > 127)
+					return false;
+			}
+			return true;
+		};
+		for (const auto& motion : data.motions) {
+			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
+			if (!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
+				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 숫자 또는 보간 값이 올바르지 않습니다.");
+				return;
+			}
+		}
+		for (const auto& morph : data.morphs) {
+			if (!std::isfinite(morph.weight)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "모프 키의 가중치가 올바르지 않습니다.");
+				return;
+			}
+		}
+		for (const auto& camera : data.cameras) {
+			if (!std::isfinite(camera.distance) || !IsFiniteVector(camera.interest) ||
+				!IsFiniteVector(camera.rotate) || !IsValidInterpolation(camera.interpolation)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "카메라 키의 숫자 또는 보간 값이 올바르지 않습니다.");
+				return;
+			}
+		}
+		for (const auto& light : data.lights) {
+			if (!IsFiniteVector(light.color) || !IsFiniteVector(light.position)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "조명 키의 숫자가 올바르지 않습니다.");
+				return;
+			}
+		}
+		for (const auto& shadow : data.shadows) {
+			if (!std::isfinite(shadow.distance)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "그림자 키의 거리가 올바르지 않습니다.");
+				return;
 			}
 		}
 	}
@@ -122,14 +177,9 @@ namespace Chrivent {
 		data.iks.clear();
 	}
 
-	std::expected<void, ParseError> VmdParser::ReadFile(const std::filesystem::path& filename) {
+	std::expected<void, ParseError> VmdParser::Read(std::istream& stream) {
 		Clear();
-		std::ifstream is(filename, std::ios::binary);
-		if (!is)
-			return std::unexpected(ParseError{
-				ParseErrorCode::FileOpen, "file", "VMD 파일을 열 수 없습니다: " + filename.string(), 0
-			});
-		BinaryReader reader(is);
+		BinaryReader reader(stream);
 		const auto ReadSection = [&](const char* section, auto read) {
 			reader.SetSection(section);
 			read();
@@ -153,6 +203,22 @@ namespace Chrivent {
 			Clear();
 			return result;
 		}
-		return reader.Result();
+		reader.SetSection("values");
+		ValidateData(reader);
+		const auto result = reader.Result();
+		if (!result)
+			Clear();
+		return result;
+	}
+
+	std::expected<void, ParseError> VmdParser::ReadFile(const std::filesystem::path& filename) {
+		std::ifstream stream(filename, std::ios::binary);
+		if (!stream) {
+			Clear();
+			return std::unexpected(ParseError{
+				ParseErrorCode::FileOpen, "file", "VMD 파일을 열 수 없습니다: " + filename.string(), 0
+			});
+		}
+		return Read(stream);
 	}
 }

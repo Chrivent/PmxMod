@@ -9,32 +9,24 @@
 
 namespace Chrivent {
 	void ModelSkinning::SetupParallelUpdate() const {
-		if (!model.geometryData.parallelUpdateCount)
-			model.geometryData.parallelUpdateCount = std::max(1u, std::thread::hardware_concurrency());
-		model.geometryData.parallelUpdateCount = std::min<size_t>(model.geometryData.parallelUpdateCount, 16);
-		model.geometryData.updateRanges.resize(model.geometryData.parallelUpdateCount);
 		const size_t totalVertexCount = model.geometryData.positions.size();
-		constexpr size_t lowerVertexCount = 1000;
-		if (totalVertexCount < model.geometryData.updateRanges.size() * lowerVertexCount) {
-			const size_t numRanges = (totalVertexCount + lowerVertexCount - 1) / lowerVertexCount;
-			for (size_t i = 0; i < model.geometryData.updateRanges.size(); i++) {
-				auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[i];
-				if (i < numRanges) {
-					vertexOffset = i * lowerVertexCount;
-					vertexCount  = std::min(lowerVertexCount, totalVertexCount - vertexOffset);
-				} else {
-					vertexOffset = 0;
-					vertexCount = 0;
-				}
-			}
+		if (totalVertexCount == 0) {
+			model.geometryData.updateRanges.clear();
 			return;
 		}
-		const size_t numVertexCount = totalVertexCount / model.geometryData.updateRanges.size();
+		constexpr size_t minimumVertexCount = 1000;
+		const size_t hardwareWorkerCount = std::max(1u, std::thread::hardware_concurrency());
+		const size_t workerCount = std::min<size_t>(hardwareWorkerCount, 16);
+		const size_t requiredRangeCount = (totalVertexCount + minimumVertexCount - 1) / minimumVertexCount;
+		const size_t rangeCount = std::min(workerCount, requiredRangeCount);
+		model.geometryData.updateRanges.resize(rangeCount);
+		const size_t verticesPerRange = totalVertexCount / rangeCount;
+		const size_t remainder = totalVertexCount % rangeCount;
 		size_t offset = 0;
-		for (size_t i = 0; i < model.geometryData.updateRanges.size(); i++) {
+		for (size_t i = 0; i < rangeCount; i++) {
 			auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[i];
 			vertexOffset = offset;
-			vertexCount  = numVertexCount + (i == 0 ? totalVertexCount % model.geometryData.updateRanges.size() : 0);
+			vertexCount = verticesPerRange + (i < remainder ? 1 : 0);
 			offset += vertexCount;
 		}
 	}
@@ -124,8 +116,15 @@ namespace Chrivent {
 		if (preservePreviousPositions &&
 			model.geometryData.updatePositions.size() == model.geometryData.positions.size())
 			model.geometryData.previousPositions = model.geometryData.updatePositions;
-		if (model.geometryData.updateRanges.empty() ||
-			model.geometryData.parallelUpdateCount != model.geometryData.updateRanges.size())
-			SetupParallelUpdate();
+		if (model.geometryData.positions.empty()) {
+			model.geometryData.updateRanges.clear();
+			return;
+		}
+		if (!model.geometryData.updateRanges.empty()) {
+			const auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges.back();
+			if (vertexOffset + vertexCount == model.geometryData.positions.size())
+				return;
+		}
+		SetupParallelUpdate();
 	}
 }

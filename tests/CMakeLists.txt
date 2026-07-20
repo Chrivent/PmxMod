@@ -46,3 +46,19 @@ add_custom_command(TARGET PmxModViewerApiTests POST_BUILD
 )
 
 gtest_discover_tests(PmxModViewerApiTests)
+
+add_executable(PmxModCoreTests
+        Core/BinaryReaderTest.cpp
+        Core/ParserTest.cpp
+        Core/AnimationModelTest.cpp
+)
+
+target_compile_features(PmxModCoreTests PRIVATE cxx_std_23)
+
+target_link_libraries(PmxModCoreTests PRIVATE
+        PmxMod::ProjectWarnings
+        PmxMod::Core
+        GTest::gtest_main
+)
+
+gtest_discover_tests(PmxModCoreTests)

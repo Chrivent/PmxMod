@@ -56,6 +56,10 @@ namespace Chrivent {
 
 	// 모델의 본, 모프와 IK 트랙을 시간에 따라 평가한다.
 	class Animation {
+		std::vector<NodeAnimationTrack> nodeTracks;
+		std::vector<IkAnimationTrack> ikTracks;
+		std::vector<MorphAnimationTrack> morphTracks;
+
 		// 지정 시간의 노드 애니메이션을 평가한다.
 		void EvaluateNodes(float t, float animWeight) const;
 		// 지정 시간의 IK 애니메이션을 평가한다.
@@ -64,12 +68,12 @@ namespace Chrivent {
 		void EvaluateMorphs(float t, float animWeight) const;
 		
 	public:
-		std::vector<NodeAnimationTrack> nodeTracks;
-		std::vector<IkAnimationTrack> ikTracks;
-		std::vector<MorphAnimationTrack> morphTracks;
-
 		Animation(std::vector<NodeAnimationTrack> nodes, std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
 			: nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
+
+		const std::vector<NodeAnimationTrack>& GetNodeTracks() const { return nodeTracks; }
+		const std::vector<IkAnimationTrack>& GetIkTracks() const { return ikTracks; }
+		const std::vector<MorphAnimationTrack>& GetMorphTracks() const { return morphTracks; }
 
 		// 포함된 모든 트랙을 순회해 가장 마지막 키 프레임을 계산한다.
 		uint32_t CalculateLastFrame() const;

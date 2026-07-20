@@ -5,6 +5,7 @@
 #include <istream>
 #include <optional>
 #include <string>
+#include <type_traits>
 
 namespace Chrivent {
 	enum class ParseErrorCode {
@@ -60,7 +61,7 @@ namespace Chrivent {
 		static std::string FormatParseError(const ParseError& error);
 
 		// 지정한 타입 크기만큼 바이너리 스트림에서 읽는다.
-		template <typename T>
+		template <typename T> requires std::is_trivially_copyable_v<T>
 		bool Read(T& destination) {
 			return Read(&destination, sizeof(T));
 		}

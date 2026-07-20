@@ -12,9 +12,40 @@ namespace Chrivent {
 		return collides;
 	}
 
+	Physics::Physics() {
+		Create();
+	}
+
 	Physics::~Physics() {
 		if (world && groundRigidBody)
 			world->removeRigidBody(groundRigidBody.get());
+	}
+
+	void Physics::AddRigidBody(btRigidBody& rigidBody, const uint16_t group, const uint16_t groupMask) const {
+		world->addRigidBody(&rigidBody, 1u << group, groupMask);
+	}
+
+	void Physics::RemoveRigidBody(btRigidBody& rigidBody) const {
+		world->removeRigidBody(&rigidBody);
+	}
+
+	void Physics::AddConstraint(btTypedConstraint& constraint) const {
+		world->addConstraint(&constraint);
+	}
+
+	void Physics::RemoveConstraint(btTypedConstraint& constraint) const {
+		world->removeConstraint(&constraint);
+	}
+
+	void Physics::Step(const float elapsed) const {
+		world->stepSimulation(elapsed, maxSubStepCount, 1.0f / simulationFps);
+	}
+
+	void Physics::CleanCollisionPairs(btRigidBody& rigidBody) const {
+		if (const auto cache = world->getPairCache()) {
+			const auto worldDispatcher = world->getDispatcher();
+			cache->cleanProxyFromPairs(rigidBody.getBroadphaseHandle(), worldDispatcher);
+		}
 	}
 
 	void Physics::Create() {

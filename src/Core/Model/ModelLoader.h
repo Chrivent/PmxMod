@@ -3,15 +3,35 @@
 #include "Core/Model/Model.h"
 #include "Core/Parser/PmxParser.h"
 
+#include <expected>
+#include <string>
+
 namespace Chrivent {
+	enum class ModelLoadErrorCode {
+		Parse,
+		UnsupportedFeature
+	};
+
+	// 모델 구성 실패의 종류와 사용자에게 전달할 메시지를 보관한다.
+	struct ModelLoadError {
+		ModelLoadErrorCode code = ModelLoadErrorCode::Parse;
+		std::string message;
+	};
+
 	// 파싱된 PMX 데이터를 런타임 모델 객체로 구성한다.
 	class ModelLoader {
 		Model& model;
 
+		// 현재 런타임이 지원하지 않는 PMX 기능이 포함되어 있는지 검증한다.
+		static std::expected<void, ModelLoadError> ValidateSupportedFeatures(const PmxParser::PmxData& pmxData);
+		// PMX 강체 정보를 파서와 독립적인 런타임 강체 정의로 변환한다.
+		static RigidBodyDefinition CreateRigidBodyDefinition(const PmxParser::PmxRigidbody& rigidBody);
+		// PMX 조인트 정보를 파서와 독립적인 런타임 조인트 정의로 변환한다.
+		static JointDefinition CreateJointDefinition(const PmxParser::PmxJoint& joint);
 		// PMX 정점 정보를 모델의 기본 정점 버퍼로 변환한다.
 		void LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const;
 		// PMX 면 인덱스를 렌더링용 인덱스 버퍼로 변환한다.
-		bool LoadFaces(const PmxParser::PmxData& pmxData) const;
+		void LoadFaces(const PmxParser::PmxData& pmxData) const;
 		// PMX 재질과 텍스처 참조를 모델 재질 목록으로 변환한다.
 		void LoadMaterials(
 			const PmxParser::PmxData& pmxData,
@@ -30,7 +50,7 @@ namespace Chrivent {
 		explicit ModelLoader(Model& model) : model(model) {}
 
 		// PMX 모델과 내장 공용 툰 텍스처를 파일에서 로드한다.
-		bool Load(const std::filesystem::path& filepath,
+		std::expected<void, ModelLoadError> Load(const std::filesystem::path& filepath,
 			const std::filesystem::path& defaultToonTextureDir) const;
 	};
 }

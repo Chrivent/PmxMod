@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Core/Model/ModelTypes.h"
 #include "Core/Model/Bone/Node.h"
 #include "Core/Model/Bone/IkSolver.h"
 #include "Core/Model/Physics/Physics.h"
@@ -97,13 +98,12 @@ namespace Chrivent {
 		std::vector<char>							indices;
 		size_t										indexCount = 0;
 		size_t										indexElementSize = 0;
-		glm::vec3									bboxMin;
-		glm::vec3									bboxMax;
+		glm::vec3									bboxMin = glm::vec3(0);
+		glm::vec3									bboxMax = glm::vec3(0);
 		std::vector<glm::vec3>						updatePositions;
 		std::vector<glm::vec3>						updateNormals;
 		std::vector<glm::vec2>						updateUVs;
 		std::vector<glm::vec3>						previousPositions;
-		uint32_t									parallelUpdateCount = 0;
 		std::vector<UpdateRange>					updateRanges;
 	};
 
@@ -142,6 +142,9 @@ namespace Chrivent {
 		std::unique_ptr<Physics>					physics;
 		std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
 		std::vector<std::unique_ptr<Joint>>			joints;
+
+		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
+		void Reset();
 	};
 
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
@@ -158,5 +161,7 @@ namespace Chrivent {
 
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
 		void Reset();
+		// 두 모델의 전체 소유 상태를 교환한다.
+		void Swap(Model& other);
 	};
 }

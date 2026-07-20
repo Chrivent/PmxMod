@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include <string>
 #include <filesystem>
+#include <string>
 #include <utility>
 #include <glm/glm.hpp>
 
@@ -21,8 +21,8 @@ namespace Chrivent {
         static std::string WStringToUtf8(const std::wstring& w);
         // UTF-8 문자열을 Windows wide 문자열로 변환한다.
         static std::wstring Utf8ToWString(const std::string& utf8);
-        // Shift-JIS C 문자열을 UTF-8 문자열로 변환한다.
-        static std::string SjisToUtf8(const char* sjis);
+        // 고정 길이 Shift-JIS 바이트열을 UTF-8 문자열로 변환한다.
+        static std::string SjisToUtf8(const char* sjis, std::size_t size);
         // UTF-8 문자열을 파일 시스템 경로로 변환한다.
         static std::filesystem::path PathFromUtf8(const std::string& utf8);
     };

@@ -1,26 +1,29 @@
 ﻿#include "Core/Model/Model.h"
 
 namespace Chrivent {
+	void ModelPhysicsData::Reset() {
+		if (physics) {
+			for (const auto& joint : joints) {
+				if (joint && joint->GetConstraint())
+					physics->RemoveConstraint(*joint->GetConstraint());
+			}
+			for (const auto& rigidBody : rigidBodies) {
+				if (rigidBody && rigidBody->GetRigidBody())
+					physics->RemoveRigidBody(*rigidBody->GetRigidBody());
+			}
+		}
+		joints.clear();
+		rigidBodies.clear();
+		physics.reset();
+	}
+
 	Model::~Model() {
 		Reset();
 	}
 
 	void Model::Reset() {
 		geometryData.updateRanges.clear();
-		geometryData.parallelUpdateCount = 0;
-		if (physicsData.physics && physicsData.physics->world) {
-			for (const auto& joint : physicsData.joints) {
-				if (joint && joint->GetConstraint())
-					physicsData.physics->world->removeConstraint(joint->GetConstraint());
-			}
-			for (const auto& rb : physicsData.rigidBodies) {
-				if (rb && rb->rigidBody)
-					physicsData.physics->world->removeRigidBody(rb->rigidBody.get());
-			}
-		}
-		physicsData.joints.clear();
-		physicsData.rigidBodies.clear();
-		physicsData.physics.reset();
+		physicsData.Reset();
 		infoData.modelName.clear();
 		infoData.englishModelName.clear();
 		infoData.comment.clear();
@@ -53,5 +56,17 @@ namespace Chrivent {
 		geometryData.updatePositions.clear();
 		geometryData.updateNormals.clear();
 		geometryData.updateUVs.clear();
+		geometryData.previousPositions.clear();
+		geometryData.bboxMin = glm::vec3(0);
+		geometryData.bboxMax = glm::vec3(0);
+	}
+
+	void Model::Swap(Model& other) {
+		std::swap(infoData, other.infoData);
+		std::swap(geometryData, other.geometryData);
+		std::swap(materialData, other.materialData);
+		std::swap(skeletonData, other.skeletonData);
+		std::swap(morphData, other.morphData);
+		std::swap(physicsData, other.physicsData);
 	}
 }

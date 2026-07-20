@@ -3,32 +3,31 @@
 #include "Core/Model/Physics/RigidBody.h"
 
 namespace Chrivent {
-	void Joint::Create(const PmxParser::PmxJoint& pmxJoint, const RigidBody& rigidBodyA, const RigidBody& rigidBodyB) {
-		constraint = nullptr;
+	Joint::Joint(const JointDefinition& definition, const RigidBody& rigidBodyA, const RigidBody& rigidBodyB) {
 		btMatrix3x3 rotMat;
-		rotMat.setEulerZYX(pmxJoint.rotate.x, pmxJoint.rotate.y, pmxJoint.rotate.z);
+		rotMat.setEulerZYX(definition.rotate.x, definition.rotate.y, definition.rotate.z);
 		btTransform transform;
 		transform.setIdentity();
-		transform.setOrigin(btVector3(pmxJoint.translate.x, pmxJoint.translate.y, pmxJoint.translate.z));
+		transform.setOrigin(btVector3(definition.translate.x, definition.translate.y, definition.translate.z));
 		transform.setBasis(rotMat);
-		btTransform invA = rigidBodyA.rigidBody->getWorldTransform().inverse();
-		btTransform invB = rigidBodyB.rigidBody->getWorldTransform().inverse();
+		btTransform invA = rigidBodyA.GetRigidBody()->getWorldTransform().inverse();
+		btTransform invB = rigidBodyB.GetRigidBody()->getWorldTransform().inverse();
 		invA = invA * transform;
 		invB = invB * transform;
 		auto jointConstraint = std::make_unique<btGeneric6DofSpringConstraint>(
-			*rigidBodyA.rigidBody, *rigidBodyB.rigidBody,
+			*rigidBodyA.GetRigidBody(), *rigidBodyB.GetRigidBody(),
 			invA, invB, true);
-		jointConstraint->setLinearLowerLimit(btVector3(pmxJoint.translateLowerLimit.x, pmxJoint.translateLowerLimit.y, pmxJoint.translateLowerLimit.z));
-		jointConstraint->setLinearUpperLimit(btVector3(pmxJoint.translateUpperLimit.x, pmxJoint.translateUpperLimit.y, pmxJoint.translateUpperLimit.z));
-		jointConstraint->setAngularLowerLimit(btVector3(pmxJoint.rotateLowerLimit.x, pmxJoint.rotateLowerLimit.y, pmxJoint.rotateLowerLimit.z));
-		jointConstraint->setAngularUpperLimit(btVector3(pmxJoint.rotateUpperLimit.x, pmxJoint.rotateUpperLimit.y, pmxJoint.rotateUpperLimit.z));
+		jointConstraint->setLinearLowerLimit(btVector3(definition.translateLowerLimit.x, definition.translateLowerLimit.y, definition.translateLowerLimit.z));
+		jointConstraint->setLinearUpperLimit(btVector3(definition.translateUpperLimit.x, definition.translateUpperLimit.y, definition.translateUpperLimit.z));
+		jointConstraint->setAngularLowerLimit(btVector3(definition.rotateLowerLimit.x, definition.rotateLowerLimit.y, definition.rotateLowerLimit.z));
+		jointConstraint->setAngularUpperLimit(btVector3(definition.rotateUpperLimit.x, definition.rotateUpperLimit.y, definition.rotateUpperLimit.z));
 		const float stiffness[6] = {
-			pmxJoint.springTranslateFactor.x,
-			pmxJoint.springTranslateFactor.y,
-			pmxJoint.springTranslateFactor.z,
-			pmxJoint.springRotateFactor.x,
-			pmxJoint.springRotateFactor.y,
-			pmxJoint.springRotateFactor.z,
+			definition.springTranslateFactor.x,
+			definition.springTranslateFactor.y,
+			definition.springTranslateFactor.z,
+			definition.springRotateFactor.x,
+			definition.springRotateFactor.y,
+			definition.springRotateFactor.z,
 		};
 		for (int i = 0; i < 6; i++) {
 			if (stiffness[i] != 0.0f) {

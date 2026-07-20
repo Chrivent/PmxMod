@@ -3,7 +3,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Util.h"
 
-#include <cstring>
+#include <cmath>
 #include <fstream>
 
 namespace Chrivent {
@@ -229,6 +229,10 @@ namespace Chrivent {
 			else if (toonMode == ToonMode::Common) {
 				uint8_t toonIndex;
 				reader.Read(toonIndex);
+				if (toonIndex > 9) {
+					reader.Fail(ParseErrorCode::InvalidValue, "공용 툰 텍스처 번호가 올바르지 않습니다.");
+					return;
+				}
 				toonTextureIndex = toonIndex;
 			}
 			ReadString(reader, &memo);
@@ -284,6 +288,10 @@ namespace Chrivent {
 					limitMax] : ikLinks) {
 					reader.ReadIndex(ikBoneIndex, data.header.boneIndexSize);
 					reader.Read(enableLimit);
+					if (enableLimit > 1) {
+						reader.Fail(ParseErrorCode::InvalidValue, "IK 회전 제한 플래그가 올바르지 않습니다.");
+						return;
+					}
 					if (enableLimit != 0) {
 						reader.Read(limitMin);
 						reader.Read(limitMax);
@@ -379,6 +387,10 @@ namespace Chrivent {
 					rotateTorque] : impulseMorph) {
 					reader.ReadIndex(rigidbodyIndex, data.header.rigidbodyIndexSize);
 					reader.Read(localFlag);
+					if (localFlag > 1) {
+						reader.Fail(ParseErrorCode::InvalidValue, "임펄스 모프의 로컬 플래그가 올바르지 않습니다.");
+						return;
+					}
 					reader.Read(translateVelocity);
 					reader.Read(rotateTorque);
 				}
@@ -547,6 +559,10 @@ namespace Chrivent {
 				reader.ReadIndex(rigidBodyIndex, data.header.rigidbodyIndexSize);
 				reader.ReadIndex(vertexIndex, data.header.vertexIndexSize);
 				reader.Read(nearMode);
+				if (nearMode > 1) {
+					reader.Fail(ParseErrorCode::InvalidValue, "소프트바디 앵커의 인접 모드가 올바르지 않습니다.");
+					return;
+				}
 			}
 			int32_t pvCount = 0;
 			if (!reader.ReadCount(pvCount, data.header.vertexIndexSize))
@@ -561,6 +577,13 @@ namespace Chrivent {
 		const auto IsIndexValid = [&](const int32_t index, const std::size_t count, const bool allowMissing = true) {
 			return (allowMissing && index == -1) || (index >= 0 && static_cast<std::size_t>(index) < count);
 		};
+		const auto IsFiniteVector = [](const auto& value) {
+			for (glm::length_t index = 0; index < value.length(); index++) {
+				if (!std::isfinite(value[index]))
+					return false;
+			}
+			return true;
+		};
 		for (const auto& [vertices] : data.faces) {
 			for (const uint32_t vertexIndex : vertices) {
 				if (vertexIndex >= data.vertices.size()) {
@@ -569,18 +592,64 @@ namespace Chrivent {
 				}
 			}
 		}
-		for (const auto& vertex : data.vertices) {
-			const uint8_t boneCount = vertex.weightType == WeightType::BoneDeform1 ? 1
-				: vertex.weightType == WeightType::BoneDeform2 || vertex.weightType == WeightType::SphericalDeform ? 2 : 4;
+		for (const auto& [position, normal, uv, addUv
+			, weightType, boneIndices, boneWeights
+			, sphericalDeformC, sphericalDeformR0, sphericalDeformR1, edgeMag] : data.vertices) {
+			bool validNumbers = IsFiniteVector(position) && IsFiniteVector(normal) &&
+				IsFiniteVector(uv) && std::isfinite(edgeMag);
+			for (uint8_t uvIndex = 0; uvIndex < data.header.addUvNum; uvIndex++)
+				validNumbers = validNumbers && IsFiniteVector(addUv[uvIndex]);
+			if (weightType == WeightType::SphericalDeform) {
+				validNumbers = validNumbers && IsFiniteVector(sphericalDeformC) &&
+					IsFiniteVector(sphericalDeformR0) && IsFiniteVector(sphericalDeformR1);
+			}
+			if (!validNumbers) {
+				reader.Fail(ParseErrorCode::InvalidValue, "버텍스의 숫자가 올바르지 않습니다.");
+				return;
+			}
+			const uint8_t boneCount = weightType == WeightType::BoneDeform1 ? 1
+				: weightType == WeightType::BoneDeform2 || weightType == WeightType::SphericalDeform ? 2 : 4;
+			float weights[4] = {
+				boneWeights[0],
+				boneWeights[1],
+				boneWeights[2],
+				boneWeights[3]
+			};
+			if (weightType == WeightType::BoneDeform1)
+				weights[0] = 1.0f;
+			else if (weightType == WeightType::BoneDeform2 || weightType == WeightType::SphericalDeform)
+				weights[1] = 1.0f - weights[0];
+			float totalWeight = 0.0f;
 			for (uint8_t index = 0; index < boneCount; index++) {
-				if (!IsIndexValid(vertex.boneIndices[index], data.bones.size())) {
+				const float weight = weights[index];
+				if (!std::isfinite(weight) || weight < 0.0f || weight > 1.0f) {
+					reader.Fail(ParseErrorCode::InvalidValue, "버텍스의 본 가중치가 올바르지 않습니다.");
+					return;
+				}
+				if (boneIndices[index] == -1) {
+					if (weight > 1.0e-6f) {
+						reader.Fail(ParseErrorCode::InvalidIndex, "가중치가 있는 버텍스가 본을 참조하지 않습니다.");
+						return;
+					}
+				} else if (!IsIndexValid(boneIndices[index], data.bones.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "버텍스가 존재하지 않는 본을 참조합니다.");
 					return;
 				}
+				totalWeight += weight;
+			}
+			if (!std::isfinite(totalWeight) || std::abs(totalWeight - 1.0f) > 1.0e-3f) {
+				reader.Fail(ParseErrorCode::InvalidValue, "버텍스의 본 가중치 합계가 1이 아닙니다.");
+				return;
 			}
 		}
 		std::size_t materialIndexCount = 0;
 		for (const auto& material : data.materials) {
+			if (!IsFiniteVector(material.diffuse) || !IsFiniteVector(material.specular) ||
+				!std::isfinite(material.specularPower) || !IsFiniteVector(material.ambient) ||
+				!IsFiniteVector(material.edgeColor) || !std::isfinite(material.edgeSize)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "재질의 숫자가 올바르지 않습니다.");
+				return;
+			}
 			if (material.numFaceVertices < 0 || material.numFaceVertices % 3 != 0) {
 				reader.Fail(ParseErrorCode::InvalidCount, "재질의 면 인덱스 개수가 올바르지 않습니다.");
 				return;
@@ -599,6 +668,13 @@ namespace Chrivent {
 			return;
 		}
 		for (const auto& bone : data.bones) {
+			if (!IsFiniteVector(bone.position) || !IsFiniteVector(bone.positionOffset) ||
+				!std::isfinite(bone.appendWeight) || !IsFiniteVector(bone.fixedAxis) ||
+				!IsFiniteVector(bone.localXAxis) || !IsFiniteVector(bone.localZAxis) ||
+				bone.ikIterationCount < 0 || !std::isfinite(bone.ikLimit)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "본 또는 IK의 숫자가 올바르지 않습니다.");
+				return;
+			}
 			if (!IsIndexValid(bone.parentBoneIndex, data.bones.size()) ||
 				(Util::HasFlag(bone.boneFlag, BoneFlags::TargetShowMode) &&
 				 !IsIndexValid(bone.linkBoneIndex, data.bones.size())) ||
@@ -610,11 +686,33 @@ namespace Chrivent {
 				reader.Fail(ParseErrorCode::InvalidIndex, "본 계층 또는 IK 참조가 올바르지 않습니다.");
 				return;
 			}
-			for (const auto& link : bone.ikLinks) {
-				if (!IsIndexValid(link.ikBoneIndex, data.bones.size(), false)) {
+			for (const auto& [ikBoneIndex, enableLimit, limitMin, limitMax] : bone.ikLinks) {
+				if (!IsIndexValid(ikBoneIndex, data.bones.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "IK 링크가 존재하지 않는 본을 참조합니다.");
 					return;
 				}
+				if (enableLimit != 0 &&
+					(!IsFiniteVector(limitMin) || !IsFiniteVector(limitMax))) {
+					reader.Fail(ParseErrorCode::InvalidValue, "IK 링크의 회전 제한값이 올바르지 않습니다.");
+					return;
+				}
+			}
+		}
+		std::vector<uint8_t> boneVisitStates(data.bones.size());
+		for (std::size_t boneIndex = 0; boneIndex < data.bones.size(); boneIndex++) {
+			int32_t currentIndex = static_cast<int32_t>(boneIndex);
+			while (currentIndex != -1 && boneVisitStates[currentIndex] == 0) {
+				boneVisitStates[currentIndex] = 1;
+				currentIndex = data.bones[currentIndex].parentBoneIndex;
+			}
+			if (currentIndex != -1 && boneVisitStates[currentIndex] == 1) {
+				reader.Fail(ParseErrorCode::InvalidIndex, "본 부모 계층에 순환 참조가 있습니다.");
+				return;
+			}
+			currentIndex = static_cast<int32_t>(boneIndex);
+			while (currentIndex != -1 && boneVisitStates[currentIndex] == 1) {
+				boneVisitStates[currentIndex] = 2;
+				currentIndex = data.bones[currentIndex].parentBoneIndex;
 			}
 		}
 		for (const auto& morph : data.morphs) {
@@ -623,16 +721,30 @@ namespace Chrivent {
 					reader.Fail(ParseErrorCode::InvalidIndex, "위치 모프가 존재하지 않는 버텍스를 참조합니다.");
 					return;
 				}
+				if (!IsFiniteVector(position)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "위치 모프의 이동값이 올바르지 않습니다.");
+					return;
+				}
 			}
 			for (const auto& [vertexIndex, uv] : morph.uvMorph) {
 				if (!IsIndexValid(vertexIndex, data.vertices.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "UV 모프가 존재하지 않는 버텍스를 참조합니다.");
 					return;
 				}
+				if (!IsFiniteVector(uv)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "UV 모프의 오프셋이 올바르지 않습니다.");
+					return;
+				}
 			}
-			for (const auto& value : morph.boneMorph) {
-				if (!IsIndexValid(value.boneIndex, data.bones.size(), false)) {
+			for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
+				if (!IsIndexValid(boneIndex, data.bones.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "본 모프가 존재하지 않는 본을 참조합니다.");
+					return;
+				}
+				const float quaternionLength = glm::dot(quaternion, quaternion);
+				if (!IsFiniteVector(position) || !IsFiniteVector(quaternion) ||
+					quaternionLength <= 1.0e-8f) {
+					reader.Fail(ParseErrorCode::InvalidValue, "본 모프의 이동 또는 회전값이 올바르지 않습니다.");
 					return;
 				}
 			}
@@ -641,10 +753,22 @@ namespace Chrivent {
 					reader.Fail(ParseErrorCode::InvalidIndex, "재질 모프가 존재하지 않는 재질을 참조합니다.");
 					return;
 				}
+				if (!IsFiniteVector(value.diffuse) || !IsFiniteVector(value.specular) ||
+					!std::isfinite(value.specularPower) || !IsFiniteVector(value.ambient) ||
+					!IsFiniteVector(value.edgeColor) || !std::isfinite(value.edgeSize) ||
+					!IsFiniteVector(value.textureFactor) || !IsFiniteVector(value.sphereTextureFactor) ||
+					!IsFiniteVector(value.toonTextureFactor)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "재질 모프의 숫자가 올바르지 않습니다.");
+					return;
+				}
 			}
 			for (const auto& [morphIndex, weight] : morph.groupMorph) {
 				if (!IsIndexValid(morphIndex, data.morphs.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "그룹 모프가 존재하지 않는 모프를 참조합니다.");
+					return;
+				}
+				if (!std::isfinite(weight)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "그룹 모프의 가중치가 올바르지 않습니다.");
 					return;
 				}
 			}
@@ -653,10 +777,18 @@ namespace Chrivent {
 					reader.Fail(ParseErrorCode::InvalidIndex, "플립 모프가 존재하지 않는 모프를 참조합니다.");
 					return;
 				}
+				if (!std::isfinite(weight)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "플립 모프의 가중치가 올바르지 않습니다.");
+					return;
+				}
 			}
 			for (const auto& value : morph.impulseMorph) {
 				if (!IsIndexValid(value.rigidbodyIndex, data.rigidBodies.size(), false)) {
 					reader.Fail(ParseErrorCode::InvalidIndex, "임펄스 모프가 존재하지 않는 강체를 참조합니다.");
+					return;
+				}
+				if (!IsFiniteVector(value.translateVelocity) || !IsFiniteVector(value.rotateTorque)) {
+					reader.Fail(ParseErrorCode::InvalidValue, "임펄스 모프의 속도 또는 토크가 올바르지 않습니다.");
 					return;
 				}
 			}
@@ -673,12 +805,30 @@ namespace Chrivent {
 			}
 		}
 		for (const auto& rigidBody : data.rigidBodies) {
+			if (!IsFiniteVector(rigidBody.shapeSize) || !IsFiniteVector(rigidBody.translate) ||
+				!IsFiniteVector(rigidBody.rotate) || !std::isfinite(rigidBody.mass) ||
+				!std::isfinite(rigidBody.translateDimmer) || !std::isfinite(rigidBody.rotateDimmer) ||
+				!std::isfinite(rigidBody.repulsion) || !std::isfinite(rigidBody.friction)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "강체의 숫자가 올바르지 않습니다.");
+				return;
+			}
 			if (!IsIndexValid(rigidBody.boneIndex, data.bones.size())) {
 				reader.Fail(ParseErrorCode::InvalidIndex, "강체가 존재하지 않는 본을 참조합니다.");
 				return;
 			}
+			if (rigidBody.group > 15) {
+				reader.Fail(ParseErrorCode::InvalidValue, "강체 충돌 그룹은 0부터 15 사이여야 합니다.");
+				return;
+			}
 		}
 		for (const auto& joint : data.joints) {
+			if (!IsFiniteVector(joint.translate) || !IsFiniteVector(joint.rotate) ||
+				!IsFiniteVector(joint.translateLowerLimit) || !IsFiniteVector(joint.translateUpperLimit) ||
+				!IsFiniteVector(joint.rotateLowerLimit) || !IsFiniteVector(joint.rotateUpperLimit) ||
+				!IsFiniteVector(joint.springTranslateFactor) || !IsFiniteVector(joint.springRotateFactor)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "조인트의 숫자가 올바르지 않습니다.");
+				return;
+			}
 			if (!IsIndexValid(joint.rigidbodyAIndex, data.rigidBodies.size()) ||
 				!IsIndexValid(joint.rigidbodyBIndex, data.rigidBodies.size())) {
 				reader.Fail(ParseErrorCode::InvalidIndex, "조인트가 존재하지 않는 강체를 참조합니다.");
@@ -686,6 +836,24 @@ namespace Chrivent {
 			}
 		}
 		for (const auto& softBody : data.softBodies) {
+			const float coefficients[] = {
+				softBody.totalMass, softBody.collisionMargin,
+				softBody.vcf, softBody.dp, softBody.dg, softBody.lf, softBody.pr, softBody.vc,
+				softBody.df, softBody.mt, softBody.chr, softBody.khr, softBody.shr, softBody.ahr,
+				softBody.sRhrCl, softBody.sKhrCl, softBody.sShrCl,
+				softBody.srSplitCl, softBody.skSplitCl, softBody.ssSplitCl,
+				softBody.lst, softBody.ast, softBody.vst
+			};
+			bool validCoefficients = true;
+			for (const float coefficient : coefficients)
+				validCoefficients = validCoefficients && std::isfinite(coefficient);
+			if (!validCoefficients || softBody.bodyLinkLength < 0 || softBody.numClusters < 0 ||
+				softBody.vIt < 0 || softBody.pIt < 0 || softBody.dIt < 0 || softBody.cIt < 0 ||
+				softBody.aeroModel < static_cast<int32_t>(AeroModel::KAeroModelVTwoSided) ||
+				softBody.aeroModel > static_cast<int32_t>(AeroModel::KAeroModelFOneSided)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "소프트바디의 숫자 또는 형식 값이 올바르지 않습니다.");
+				return;
+			}
 			if (!IsIndexValid(softBody.materialIndex, data.materials.size(), false)) {
 				reader.Fail(ParseErrorCode::InvalidIndex, "소프트바디가 존재하지 않는 재질을 참조합니다.");
 				return;
@@ -721,14 +889,9 @@ namespace Chrivent {
 		data.softBodies.clear();
 	}
 
-	std::expected<void, ParseError> PmxParser::ReadFile(const std::filesystem::path& filename) {
+	std::expected<void, ParseError> PmxParser::Read(std::istream& stream) {
 		Clear();
-		std::ifstream is(filename, std::ios::binary);
-		if (!is)
-			return std::unexpected(ParseError{
-				ParseErrorCode::FileOpen, "file", "PMX 파일을 열 수 없습니다: " + filename.string(), 0
-			});
-		BinaryReader reader(is);
+		BinaryReader reader(stream);
 		const auto ReadSection = [&](const char* section, auto read) {
 			reader.SetSection(section);
 			read();
@@ -761,5 +924,16 @@ namespace Chrivent {
 		if (!result)
 			Clear();
 		return result;
+	}
+
+	std::expected<void, ParseError> PmxParser::ReadFile(const std::filesystem::path& filename) {
+		std::ifstream stream(filename, std::ios::binary);
+		if (!stream) {
+			Clear();
+			return std::unexpected(ParseError{
+				ParseErrorCode::FileOpen, "file", "PMX 파일을 열 수 없습니다: " + filename.string(), 0
+			});
+		}
+		return Read(stream);
 	}
 }

@@ -6,13 +6,85 @@
 #include "Util.h"
 
 #include <algorithm>
-#include <functional>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <sstream>
 
 namespace Chrivent {
+	std::expected<void, ModelLoadError> ModelLoader::ValidateSupportedFeatures(const PmxParser::PmxData& pmxData) {
+		if (!pmxData.softBodies.empty()) {
+			return std::unexpected(ModelLoadError{
+				ModelLoadErrorCode::UnsupportedFeature,
+				"현재 런타임은 PMX 소프트바디를 지원하지 않습니다."
+			});
+		}
+		for (const auto& morph : pmxData.morphs) {
+			switch (morph.morphType) {
+				case MorphType::Group:
+				case MorphType::Position:
+				case MorphType::Bone:
+				case MorphType::Uv:
+				case MorphType::Material:
+					break;
+				default:
+					return std::unexpected(ModelLoadError{
+						ModelLoadErrorCode::UnsupportedFeature,
+						"현재 런타임이 지원하지 않는 모프가 포함되어 있습니다: " + morph.name
+					});
+			}
+		}
+		for (const auto& joint : pmxData.joints) {
+			if (joint.type != JointType::SpringDof6) {
+				return std::unexpected(ModelLoadError{
+					ModelLoadErrorCode::UnsupportedFeature,
+					"현재 런타임은 6DoF 스프링 조인트만 지원합니다: " + joint.name
+				});
+			}
+		}
+		return {};
+	}
+
+	RigidBodyDefinition ModelLoader::CreateRigidBodyDefinition(const PmxParser::PmxRigidbody& rigidBody) {
+		RigidBodyDefinition definition{
+			.shapeSize = rigidBody.shapeSize,
+			.translate = rigidBody.translate,
+			.rotate = rigidBody.rotate,
+			.mass = rigidBody.mass,
+			.translateDamping = rigidBody.translateDimmer,
+			.rotateDamping = rigidBody.rotateDimmer,
+			.restitution = rigidBody.repulsion,
+			.friction = rigidBody.friction,
+			.group = rigidBody.group,
+			.groupMask = rigidBody.collisionGroup
+		};
+		switch (rigidBody.shape) {
+			case Shape::Sphere: definition.shape = RigidBodyShape::Sphere; break;
+			case Shape::Box: definition.shape = RigidBodyShape::Box; break;
+			case Shape::Capsule: definition.shape = RigidBodyShape::Capsule; break;
+		}
+		switch (rigidBody.op) {
+			case Operation::Static: definition.operation = RigidBodyOperation::Static; break;
+			case Operation::Dynamic: definition.operation = RigidBodyOperation::Dynamic; break;
+			case Operation::DynamicAndBoneMerge:
+				definition.operation = RigidBodyOperation::DynamicAndBoneMerge;
+				break;
+		}
+		return definition;
+	}
+
+	JointDefinition ModelLoader::CreateJointDefinition(const PmxParser::PmxJoint& joint) {
+		return {
+			.translate = joint.translate,
+			.rotate = joint.rotate,
+			.translateLowerLimit = joint.translateLowerLimit,
+			.translateUpperLimit = joint.translateUpperLimit,
+			.rotateLowerLimit = joint.rotateLowerLimit,
+			.rotateUpperLimit = joint.rotateUpperLimit,
+			.springTranslateFactor = joint.springTranslateFactor,
+			.springRotateFactor = joint.springRotateFactor
+		};
+	}
+
 	void ModelLoader::LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
 		size_t vertexCount = pmxData.vertices.size();
 		model.geometryData.positions.reserve(vertexCount);
@@ -27,15 +99,19 @@ namespace Chrivent {
 			model.geometryData.normals.push_back(v.normal * invZ);
 			model.geometryData.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 			Vertex vtxBoneInfo{};
-			if (WeightType::SphericalDeform != v.weightType) {
-				vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
-				vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
-				vtxBoneInfo.boneIndices[2] = v.boneIndices[2];
-				vtxBoneInfo.boneIndices[3] = v.boneIndices[3];
-				vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
-				vtxBoneInfo.boneWeights[1] = v.boneWeights[1];
-				vtxBoneInfo.boneWeights[2] = v.boneWeights[2];
-				vtxBoneInfo.boneWeights[3] = v.boneWeights[3];
+			const uint8_t influenceCount = v.weightType == WeightType::BoneDeform1 ? 1
+				: v.weightType == WeightType::BoneDeform2 || v.weightType == WeightType::SphericalDeform ? 2 : 4;
+			int32_t fallbackBoneIndex = 0;
+			for (uint8_t index = 0; index < influenceCount; index++) {
+				if (v.boneIndices[index] >= 0) {
+					fallbackBoneIndex = v.boneIndices[index];
+					break;
+				}
+			}
+			for (uint8_t index = 0; index < 4; index++) {
+				vtxBoneInfo.boneIndices[index] = v.boneIndices[index] >= 0
+					? v.boneIndices[index] : fallbackBoneIndex;
+				vtxBoneInfo.boneWeights[index] = v.boneWeights[index];
 			}
 			vtxBoneInfo.weightType = v.weightType;
 			switch (v.weightType) {
@@ -53,8 +129,6 @@ namespace Chrivent {
 					r1 = center + r1 - rw;
 					auto cr0 = (center + r0) * 0.5f;
 					auto cr1 = (center + r1) * 0.5f;
-					vtxBoneInfo.boneIndices[0] = v.boneIndices[0];
-					vtxBoneInfo.boneIndices[1] = v.boneIndices[1];
 					vtxBoneInfo.boneWeights[0] = v.boneWeights[0];
 					vtxBoneInfo.sphericalDeformC = center;
 					vtxBoneInfo.sphericalDeformR0 = cr0;
@@ -76,25 +150,29 @@ namespace Chrivent {
 		model.geometryData.previousPositions = model.geometryData.positions;
 	}
 
-	bool ModelLoader::LoadFaces(const PmxParser::PmxData& pmxData) const {
+	void ModelLoader::LoadFaces(const PmxParser::PmxData& pmxData) const {
 		model.geometryData.indexElementSize = pmxData.header.vertexIndexSize;
 		model.geometryData.indices.resize(pmxData.faces.size() * 3 * model.geometryData.indexElementSize);
 		model.geometryData.indexCount = pmxData.faces.size() * 3;
-		auto FillIndices = [&](auto* out) {
-			int idx = 0;
+		auto FillIndices = [&]<typename Index>() {
+			std::vector<Index> indices(model.geometryData.indexCount);
+			size_t index = 0;
 			for (const auto& [tri] : pmxData.faces) {
-				out[idx++] = tri[2];
-				out[idx++] = tri[1];
-				out[idx++] = tri[0];
+				indices[index++] = static_cast<Index>(tri[2]);
+				indices[index++] = static_cast<Index>(tri[1]);
+				indices[index++] = static_cast<Index>(tri[0]);
+			}
+			if (!indices.empty()) {
+				std::memcpy(model.geometryData.indices.data(), indices.data(),
+					indices.size() * sizeof(Index));
 			}
 		};
 		switch (model.geometryData.indexElementSize) {
-			case 1: FillIndices(reinterpret_cast<uint8_t*>(model.geometryData.indices.data())); break;
-			case 2: FillIndices(reinterpret_cast<uint16_t*>(model.geometryData.indices.data())); break;
-			case 4: FillIndices(reinterpret_cast<uint32_t*>(model.geometryData.indices.data())); break;
-			default: return false;
+			case 1: FillIndices.operator()<uint8_t>(); break;
+			case 2: FillIndices.operator()<uint16_t>(); break;
+			case 4: FillIndices.operator()<uint32_t>(); break;
+			default: break;
 		}
-		return true;
 	}
 
 	void ModelLoader::LoadMaterials(
@@ -157,7 +235,7 @@ namespace Chrivent {
 		model.skeletonData.nodes.reserve(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
 			auto node = std::make_shared<Node>();
-			node->index = model.skeletonData.nodes.size();
+			node->index = static_cast<uint32_t>(model.skeletonData.nodes.size());
 			node->name = bone.name;
 			model.skeletonData.nodes.emplace_back(std::move(node));
 		}
@@ -288,28 +366,38 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::FixInfiniteGroupMorphs() const {
-		std::vector<int32_t> groupMorphStack;
-		std::function<void(int32_t)> fixInfiniteGroupMorph = [&](const int32_t idx) {
-			if (idx < 0)
-				return;
-			const auto* morph = model.morphData.morphs[idx].get();
-			if (morph->morphType != MorphType::Group)
-				return;
-			groupMorphStack.push_back(idx);
-			for (auto& [morphIndex, weight] : model.morphData.groupMorphs[morph->dataIndex]) {
-				if (morphIndex < 0)
-					continue;
-				if (std::ranges::find(groupMorphStack, morphIndex) != groupMorphStack.end()) {
-					morphIndex = -1;
+		std::vector<uint8_t> visitStates(model.morphData.morphs.size());
+		std::vector<std::pair<int32_t, size_t>> traversalStack;
+		for (size_t rootIndex = 0; rootIndex < model.morphData.morphs.size(); rootIndex++) {
+			const auto* rootMorph = model.morphData.morphs[rootIndex].get();
+			if (rootMorph->morphType != MorphType::Group || visitStates[rootIndex] != 0)
+				continue;
+			visitStates[rootIndex] = 1;
+			traversalStack.emplace_back(static_cast<int32_t>(rootIndex), 0);
+			while (!traversalStack.empty()) {
+				auto& [morphIndex, nextChildIndex] = traversalStack.back();
+				const auto* morph = model.morphData.morphs[morphIndex].get();
+				auto& children = model.morphData.groupMorphs[morph->dataIndex];
+				if (nextChildIndex >= children.size()) {
+					visitStates[morphIndex] = 2;
+					traversalStack.pop_back();
 					continue;
 				}
-				fixInfiniteGroupMorph(morphIndex);
+				auto& childIndex = children[nextChildIndex++].morphIndex;
+				if (childIndex < 0)
+					continue;
+				const auto* childMorph = model.morphData.morphs[childIndex].get();
+				if (childMorph->morphType != MorphType::Group)
+					continue;
+				if (visitStates[childIndex] == 1) {
+					childIndex = -1;
+					continue;
+				}
+				if (visitStates[childIndex] == 0) {
+					visitStates[childIndex] = 1;
+					traversalStack.emplace_back(childIndex, 0);
+				}
 			}
-			groupMorphStack.pop_back();
-		};
-		for (int32_t i = 0; i < model.morphData.morphs.size(); i++) {
-			groupMorphStack.clear();
-			fixInfiniteGroupMorph(i);
 		}
 	}
 
@@ -317,58 +405,60 @@ namespace Chrivent {
 		if (pmxData.rigidBodies.empty())
 			return;
 		model.physicsData.physics = std::make_unique<Physics>();
-		model.physicsData.physics->Create();
 		for (const auto& pmxRigidBody : pmxData.rigidBodies) {
-			auto rb = std::make_unique<RigidBody>();
 			std::shared_ptr<Node> node;
 			if (pmxRigidBody.boneIndex != -1)
 				node = model.skeletonData.nodes[pmxRigidBody.boneIndex];
-			rb->Create(pmxRigidBody, &model, node);
-			model.physicsData.physics->world->addRigidBody(
-				rb->rigidBody.get(), 1 << rb->group, rb->groupMask);
+			auto rb = std::make_unique<RigidBody>(CreateRigidBodyDefinition(pmxRigidBody), node);
+			model.physicsData.physics->AddRigidBody(
+				*rb->GetRigidBody(), rb->GetGroup(), rb->GetGroupMask());
 			model.physicsData.rigidBodies.emplace_back(std::move(rb));
 		}
 		for (const auto& joint : pmxData.joints) {
 			if (joint.rigidbodyAIndex != -1 &&
 				joint.rigidbodyBIndex != -1 &&
 				joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
-				auto j = std::make_unique<Joint>();
-				j->Create(joint,
+				auto j = std::make_unique<Joint>(CreateJointDefinition(joint),
 					*model.physicsData.rigidBodies[joint.rigidbodyAIndex],
 					*model.physicsData.rigidBodies[joint.rigidbodyBIndex]);
-				model.physicsData.physics->world->addConstraint(j->GetConstraint());
+				model.physicsData.physics->AddConstraint(*j->GetConstraint());
 				model.physicsData.joints.emplace_back(std::move(j));
 			}
 		}
 	}
 
-	bool ModelLoader::Load(const std::filesystem::path& filepath,
+	std::expected<void, ModelLoadError> ModelLoader::Load(const std::filesystem::path& filepath,
 		const std::filesystem::path& defaultToonTextureDir) const {
-		model.Reset();
 		PmxParser pmx;
 		const auto parseResult = pmx.ReadFile(filepath);
 		if (!parseResult) {
-			std::cerr << "PMX 파일을 읽지 못했습니다: "
-				<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
-			return false;
+			return std::unexpected(ModelLoadError{
+				ModelLoadErrorCode::Parse,
+				"PMX 파일을 읽지 못했습니다: " + BinaryReader::FormatParseError(parseResult.error())
+			});
 		}
 		const auto& pmxData = pmx.GetData();
-		model.infoData.modelName = pmxData.info.modelName;
-		model.infoData.englishModelName = pmxData.info.englishModelName;
-		model.infoData.comment = pmxData.info.comment;
-		model.infoData.englishComment = pmxData.info.englishComment;
+		const auto supportResult = ValidateSupportedFeatures(pmxData);
+		if (!supportResult)
+			return std::unexpected(supportResult.error());
+		Model loadedModel;
+		const ModelLoader loadedModelLoader(loadedModel);
+		loadedModel.infoData.modelName = pmxData.info.modelName;
+		loadedModel.infoData.englishModelName = pmxData.info.englishModelName;
+		loadedModel.infoData.comment = pmxData.info.comment;
+		loadedModel.infoData.englishComment = pmxData.info.englishComment;
 		const std::filesystem::path modelDir = filepath.parent_path();
 		constexpr glm::vec3 invZ(1, 1, -1);
-		LoadVertices(pmxData, invZ);
-		if (!LoadFaces(pmxData))
-			return false;
-		LoadMaterials(pmxData, modelDir, defaultToonTextureDir);
-		LoadNodes(pmxData, invZ);
-		LoadMorphs(pmxData, invZ);
-		FixInfiniteGroupMorphs();
-		LoadPhysics(pmxData);
-		const ModelPose pose(model);
+		loadedModelLoader.LoadVertices(pmxData, invZ);
+		loadedModelLoader.LoadFaces(pmxData);
+		loadedModelLoader.LoadMaterials(pmxData, modelDir, defaultToonTextureDir);
+		loadedModelLoader.LoadNodes(pmxData, invZ);
+		loadedModelLoader.LoadMorphs(pmxData, invZ);
+		loadedModelLoader.FixInfiniteGroupMorphs();
+		loadedModelLoader.LoadPhysics(pmxData);
+		const ModelPose pose(loadedModel);
 		pose.ResetPhysics();
-		return true;
+		model.Swap(loadedModel);
+		return {};
 	}
 }

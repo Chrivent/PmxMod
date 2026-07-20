@@ -45,7 +45,7 @@ namespace Chrivent {
 		std::weak_ptr<Node>	node;
 
 		// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스별 후처리를 수행한다.
-		virtual void PostProcessBtGlobal(glm::mat4& btGlobal) const {}
+		virtual void PostProcessBtGlobal(glm::mat4&) const {}
 
 	public:
 		DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
@@ -79,6 +79,6 @@ namespace Chrivent {
 
 		// 연결된 본 변환을 Bullet 월드 변환으로 변환한다.
 		void getWorldTransform(btTransform& worldTransform) const override;
-		void setWorldTransform(const btTransform& worldTransform) override {}
+		void setWorldTransform(const btTransform&) override {}
 	};
 }

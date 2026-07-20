@@ -20,6 +20,7 @@ target_sources(PmxModCore PRIVATE
         Animation/Camera/CameraAnimation.h Animation/Camera/CameraAnimation.cpp
         Animation/Camera/CameraAnimationBuilder.h Animation/Camera/CameraAnimationBuilder.cpp
 
+        Model/ModelTypes.h
         Model/Model.h Model/Model.cpp
         Model/ModelAnimator.h Model/ModelAnimator.cpp
         Model/ModelLoader.h Model/ModelLoader.cpp

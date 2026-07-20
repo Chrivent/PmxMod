@@ -13,11 +13,11 @@ namespace Chrivent {
 		float start = 0.0f;
 		float stop = 1.0f;
 		float t = 0.5f;
-		while (true) {
+		for (int iteration = 0; iteration < 32; iteration++) {
 			const float x = EvaluateBezier(t, x1, x2);
 			const float diff = time - x;
 			if (std::abs(diff) < 1.0e-5f)
-				break;
+				return t;
 			if (diff < 0.0f)
 				stop = t;
 			else

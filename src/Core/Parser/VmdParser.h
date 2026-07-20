@@ -106,12 +106,16 @@ namespace Chrivent {
 		void ReadShadow(BinaryReader& reader);
 		// IK 표시/활성화 키프레임 목록을 읽는다.
 		void ReadIk(BinaryReader& reader);
+		// 읽은 VMD 키프레임의 숫자와 보간 데이터를 검증한다.
+		void ValidateData(BinaryReader& reader) const;
 		// 이전에 읽은 VMD 데이터를 초기화한다.
 		void Clear();
 
 	public:
 		const VmdData& GetData() const { return data; }
 		
+		// VMD 스트림 전체를 읽어 내부 데이터 구조에 저장한다.
+		std::expected<void, ParseError> Read(std::istream& stream);
 		// VMD 파일 전체를 읽어 모션/카메라/모프 데이터를 저장한다.
 		std::expected<void, ParseError> ReadFile(const std::filesystem::path& filename);
 	};
