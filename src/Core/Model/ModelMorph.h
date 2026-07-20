@@ -5,6 +5,8 @@
 namespace Chrivent {
 	// 현재 모프 가중치를 모델의 형상, 재질과 본에 누적한다.
 	class ModelMorph {
+		using PendingMorph = std::pair<const Morph*, float>;
+
 		Model& model;
 
 		// 재질 모프의 곱셈 계수를 가중치만큼 누적한다.
@@ -12,7 +14,7 @@ namespace Chrivent {
 		// 재질 모프의 덧셈 계수를 가중치만큼 누적한다.
 		static void AccumulateMaterialAdd(MaterialMorph& out, const MaterialMorph& val, float weight);
 		// 단일 모프를 지정한 가중치로 평가한다.
-		void EvalMorph(const Morph* morph, float morphWeight) const;
+		void EvalMorph(const Morph* morph, float morphWeight, std::vector<PendingMorph>& pendingMorphs) const;
 		// 위치 모프 데이터를 버텍스 위치에 적용한다.
 		void MorphPosition(const std::vector<PositionMorph>& morphData, float weight) const;
 		// UV 모프 데이터를 버텍스 UV에 적용한다.

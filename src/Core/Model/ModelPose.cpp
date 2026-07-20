@@ -1,6 +1,4 @@
 ﻿#include "Core/Model/ModelPose.h"
-#include "Core/Model/Physics/Physics.h"
-
 #include <ranges>
 
 namespace Chrivent {
@@ -29,41 +27,11 @@ namespace Chrivent {
 	}
 
 	void ModelPose::ResetPhysics() const {
-		if (!model.physicsData->physics || model.physicsData->rigidBodies.empty())
-			return;
-		for (const auto& rb : model.physicsData->rigidBodies) {
-			rb->ApplyActivation(false);
-			rb->ResetTransform();
-		}
-		model.physicsData->physics->Step(1.0f / 60.0f);
-		for (const auto& rb : model.physicsData->rigidBodies) {
-			rb->ReflectGlobalTransform();
-			rb->CalcLocalTransform();
-		}
-		for (const auto& node : model.skeletonData.nodes) {
-			if (node->parent.expired())
-				node->UpdateGlobalTransform();
-		}
-		for (const auto& rb : model.physicsData->rigidBodies) {
-			model.physicsData->physics->CleanCollisionPairs(*rb->GetRigidBody());
-			rb->Reset();
-		}
+		model.ResetPhysics();
 	}
 
 	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {
-		if (!model.physicsData->physics || model.physicsData->rigidBodies.empty())
-			return;
-		for (const auto& rb : model.physicsData->rigidBodies)
-			rb->ApplyActivation(true);
-		model.physicsData->physics->Step(elapsed);
-		for (const auto& rb : model.physicsData->rigidBodies) {
-			rb->ReflectGlobalTransform();
-			rb->CalcLocalTransform();
-		}
-		for (const auto& node : model.skeletonData.nodes) {
-			if (node->parent.expired())
-				node->UpdateGlobalTransform();
-		}
+		model.UpdatePhysics(elapsed);
 	}
 
 	void ModelPose::UpdateTransforms() const {

@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Core/Model/ModelTypes.h"
 #include "Core/Parser/BinaryReader.h"
 
 #include <cstdint>
@@ -11,130 +10,204 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
-	enum class EncodeType : uint8_t {
-		Utf16,
-		Utf8
-	};
-
-	enum class DrawModeFlags : uint8_t {
-		BothFace = 0x01,
-		GroundShadow = 0x02,
-		CastSelfShadow = 0x04,
-		ReceiveSelfShadow = 0x08,
-		DrawEdge = 0x10,
-		VertexColor = 0x20,
-		DrawPoint = 0x40,
-		DrawLine = 0x80
-	};
-
-	enum class ToonMode : uint8_t {
-		Separate,
-		Common
-	};
-
-	enum class BoneFlags : uint16_t {
-		TargetShowMode = 0x0001,
-		AllowRotate = 0x0002,
-		AllowTranslate = 0x0004,
-		Visible = 0x0008,
-		AllowControl = 0x0010,
-		Ik = 0x0020,
-		AppendLocal = 0x0080,
-		AppendRotate = 0x0100,
-		AppendTranslate = 0x0200,
-		FixedAxis = 0x0400,
-		LocalAxis = 0x800,
-		DeformAfterPhysics = 0x1000,
-		DeformOuterParent = 0x2000
-	};
-
-	enum class ControlPanel : uint8_t {
-		SystemReserved,
-		Brow,
-		Eye,
-		Mouth,
-		Other
-	};
-
-	enum class TargetType : uint8_t {
-		BoneIndex,
-		MorphIndex
-	};
-
-	enum class FrameType : uint8_t {
-		DefaultFrame,
-		SpecialFrame
-	};
-
-	enum class SoftBodyType : uint8_t {
-		TriMesh,
-		Rope,
-	};
-
-	enum class SoftBodyMask : uint8_t {
-		BLink = 0x01,
-		Cluster = 0x02,
-		HybridLink = 0x04,
-	};
-
-	enum class AeroModel : int32_t {
-		KAeroModelVTwoSided,
-		KAeroModelVOneSided,
-		KAeroModelFTwoSided,
-		KAeroModelFOneSided,
-	};
-	
-	enum class Operation : uint8_t {
-		Static,
-		Dynamic,
-		DynamicAndBoneMerge
-	};
-
-	enum class Shape : uint8_t {
-		Sphere,
-		Box,
-		Capsule,
-	};
-
-	enum class JointType : uint8_t {
-		SpringDof6,
-		Dof6,
-		P2P,
-		ConeTwist,
-		Slider,
-		Hinge,
-	};
-
-	// 다른 모프를 지정한 가중치로 활성화하는 플립 모프 항목을 보관한다.
-	struct FlipMorph {
-		int32_t	morphIndex;
-		float	weight;
-	};
-
-	// 강체에 적용할 이동 속도와 회전 토크를 보관한다.
-	struct ImpulseMorph {
-		int32_t		rigidbodyIndex;
-		uint8_t		localFlag;
-		glm::vec3	translateVelocity;
-		glm::vec3	rotateTorque;
-	};
-
-	// 표시 프레임이 참조하는 본 또는 모프 대상을 보관한다.
-	struct Target {
-		TargetType	type;
-		int32_t		index;
-	};
-
-	// 소프트바디 버텍스와 강체 사이의 앵커 연결을 보관한다.
-	struct AnchorRigidbody {
-		int32_t		rigidBodyIndex;
-		int32_t		vertexIndex;
-		uint8_t		nearMode;
-	};
-	
 	// PMX 바이너리를 형상, 재질, 본, 모프와 물리 데이터로 해석한다.
 	class PmxParser {
 	public:
+		enum class EncodeType : uint8_t {
+			Utf16,
+			Utf8
+		};
+
+		enum class DrawModeFlags : uint8_t {
+			BothFace = 0x01,
+			GroundShadow = 0x02,
+			CastSelfShadow = 0x04,
+			ReceiveSelfShadow = 0x08,
+			DrawEdge = 0x10,
+			VertexColor = 0x20,
+			DrawPoint = 0x40,
+			DrawLine = 0x80
+		};
+
+		enum class ToonMode : uint8_t {
+			Separate,
+			Common
+		};
+
+		enum class BoneFlags : uint16_t {
+			TargetShowMode = 0x0001,
+			AllowRotate = 0x0002,
+			AllowTranslate = 0x0004,
+			Visible = 0x0008,
+			AllowControl = 0x0010,
+			Ik = 0x0020,
+			AppendLocal = 0x0080,
+			AppendRotate = 0x0100,
+			AppendTranslate = 0x0200,
+			FixedAxis = 0x0400,
+			LocalAxis = 0x800,
+			DeformAfterPhysics = 0x1000,
+			DeformOuterParent = 0x2000
+		};
+
+		enum class ControlPanel : uint8_t {
+			SystemReserved,
+			Brow,
+			Eye,
+			Mouth,
+			Other
+		};
+
+		enum class TargetType : uint8_t {
+			BoneIndex,
+			MorphIndex
+		};
+
+		enum class FrameType : uint8_t {
+			DefaultFrame,
+			SpecialFrame
+		};
+
+		enum class SoftBodyType : uint8_t {
+			TriMesh,
+			Rope
+		};
+
+		enum class SoftBodyMask : uint8_t {
+			BLink = 0x01,
+			Cluster = 0x02,
+			HybridLink = 0x04
+		};
+
+		enum class AeroModel : int32_t {
+			KAeroModelVTwoSided,
+			KAeroModelVOneSided,
+			KAeroModelFTwoSided,
+			KAeroModelFOneSided
+		};
+
+		enum class Operation : uint8_t {
+			Static,
+			Dynamic,
+			DynamicAndBoneMerge
+		};
+
+		enum class Shape : uint8_t {
+			Sphere,
+			Box,
+			Capsule
+		};
+
+		enum class JointType : uint8_t {
+			SpringDof6,
+			Dof6,
+			P2P,
+			ConeTwist,
+			Slider,
+			Hinge
+		};
+
+		enum class WeightType : uint8_t {
+			BoneDeform1,
+			BoneDeform2,
+			BoneDeform4,
+			SphericalDeform,
+			QuaternionDeform
+		};
+
+		enum class SphereMode : uint8_t {
+			None,
+			Mul,
+			Add,
+			SubTexture
+		};
+
+		enum class MorphType : uint8_t {
+			Group,
+			Position,
+			Bone,
+			Uv,
+			AddUv1,
+			AddUv2,
+			AddUv3,
+			AddUv4,
+			Material,
+			Flip,
+			Impulse
+		};
+
+		enum class OpType : uint8_t {
+			Mul,
+			Add
+		};
+
+		// 버텍스 하나의 원시 위치 모프 오프셋을 보관한다.
+		struct PositionMorph {
+			int32_t vertexIndex;
+			glm::vec3 position;
+		};
+
+		// 버텍스 하나의 원시 UV 모프 오프셋을 보관한다.
+		struct UvMorph {
+			int32_t vertexIndex;
+			glm::vec4 uv;
+		};
+
+		// 본 하나의 원시 이동 및 회전 모프 값을 보관한다.
+		struct BoneMorph {
+			int32_t boneIndex;
+			glm::vec3 position;
+			glm::quat quaternion;
+		};
+
+		// 재질 하나에 적용할 원시 색상 및 텍스처 계수 모프를 보관한다.
+		struct MaterialMorph {
+			int32_t materialIndex;
+			OpType opType;
+			glm::vec4 diffuse;
+			glm::vec3 specular;
+			float specularPower;
+			glm::vec3 ambient;
+			glm::vec4 edgeColor;
+			float edgeSize;
+			glm::vec4 textureFactor;
+			glm::vec4 sphereTextureFactor;
+			glm::vec4 toonTextureFactor;
+		};
+
+		// 그룹이 참조하는 원시 하위 모프와 가중치를 보관한다.
+		struct GroupMorph {
+			int32_t morphIndex;
+			float weight;
+		};
+
+		// 다른 모프를 지정한 가중치로 활성화하는 플립 모프 항목을 보관한다.
+		struct FlipMorph {
+			int32_t	morphIndex;
+			float	weight;
+		};
+
+		// 강체에 적용할 이동 속도와 회전 토크를 보관한다.
+		struct ImpulseMorph {
+			int32_t		rigidbodyIndex;
+			uint8_t		localFlag;
+			glm::vec3	translateVelocity;
+			glm::vec3	rotateTorque;
+		};
+
+		// 표시 프레임이 참조하는 본 또는 모프 대상을 보관한다.
+		struct Target {
+			TargetType	type;
+			int32_t		index;
+		};
+
+		// 소프트바디 버텍스와 강체 사이의 앵커 연결을 보관한다.
+		struct AnchorRigidbody {
+			int32_t		rigidBodyIndex;
+			int32_t		vertexIndex;
+			uint8_t		nearMode;
+		};
+
 		// PMX 버전, 인코딩과 각 인덱스의 바이트 크기를 보관한다.
 		struct PmxHeader {
 			char		magic[4];

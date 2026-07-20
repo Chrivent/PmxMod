@@ -41,7 +41,7 @@ namespace Chrivent {
 			Append(bytes, glm::vec3(0));
 			Append(bytes, glm::vec3(0, 1, 0));
 			Append(bytes, glm::vec2(0));
-			Append(bytes, WeightType::BoneDeform1);
+			Append(bytes, PmxParser::WeightType::BoneDeform1);
 			constexpr uint8_t missingBoneIndex = 0xFF;
 			Append(bytes, missingBoneIndex);
 			Append(bytes, 1.0f);
@@ -79,14 +79,14 @@ namespace Chrivent {
 			Append(bytes, glm::vec3(0));
 			Append(bytes, 1.0f);
 			Append(bytes, glm::vec3(0));
-			Append(bytes, DrawModeFlags{});
+			Append(bytes, PmxParser::DrawModeFlags{});
 			Append(bytes, glm::vec4(0));
 			Append(bytes, 0.0f);
 			constexpr uint8_t missingTextureIndex = 0xFF;
 			Append(bytes, missingTextureIndex);
 			Append(bytes, missingTextureIndex);
-			Append(bytes, SphereMode::None);
-			Append(bytes, ToonMode::Common);
+			Append(bytes, PmxParser::SphereMode::None);
+			Append(bytes, PmxParser::ToonMode::Common);
 			constexpr uint8_t invalidToonIndex = 10;
 			Append(bytes, invalidToonIndex);
 			Append(bytes, emptyStringLength);
@@ -110,7 +110,7 @@ namespace Chrivent {
 			Append(bytes, glm::vec3(0));
 			Append(bytes, glm::vec3(0));
 			Append(bytes, glm::vec2(0));
-			Append(bytes, WeightType::BoneDeform1);
+			Append(bytes, PmxParser::WeightType::BoneDeform1);
 			constexpr uint8_t boneIndex = 0;
 			Append(bytes, boneIndex);
 			Append(bytes, 1.0f);
@@ -125,7 +125,7 @@ namespace Chrivent {
 			constexpr uint8_t missingBoneIndex = 0xFF;
 			Append(bytes, missingBoneIndex);
 			Append(bytes, emptyCount);
-			Append(bytes, BoneFlags{});
+			Append(bytes, PmxParser::BoneFlags{});
 			Append(bytes, glm::vec3(0));
 			for (int section = 0; section < 4; section++)
 				Append(bytes, emptyCount);

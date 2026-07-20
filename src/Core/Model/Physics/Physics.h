@@ -9,20 +9,21 @@
 #include <btBulletDynamicsCommon.h>
 
 namespace Chrivent {
-	// 같은 충돌 그룹 내부의 필터 규칙을 Bullet broadphase에 적용한다.
-	class OverlapFilterCallback final : public btOverlapFilterCallback {
-		std::vector<btBroadphaseProxy*> nonFilterProxy;
+	class Node;
 
-	public:
-		// broadphase 충돌 필터를 적용하지 않을 프록시를 등록한다.
-		void AddNonFilterProxy(btBroadphaseProxy* proxy) { nonFilterProxy.push_back(proxy); }
-
-		// 두 broadphase 프록시가 충돌 후보가 될 수 있는지 필터링한다.
-		bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
-	};
-	
 	// Bullet 물리 월드와 등록된 강체 및 조인트를 관리한다.
 	class Physics {
+		// 바닥 프록시는 충돌 그룹과 무관하게 통과시키는 Bullet broadphase 필터다.
+		class OverlapFilterCallback final : public btOverlapFilterCallback {
+			btBroadphaseProxy* unfilteredProxy = nullptr;
+
+		public:
+			void SetUnfilteredProxy(btBroadphaseProxy* proxy) { unfilteredProxy = proxy; }
+
+			// 두 broadphase 프록시가 충돌 후보가 될 수 있는지 필터링한다.
+			bool needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const override;
+		};
+
 		static constexpr float simulationFps = 120.0f;
 		static constexpr int maxSubStepCount = 10;
 
@@ -34,15 +35,13 @@ namespace Chrivent {
 		std::unique_ptr<btCollisionShape>						groundShape;
 		std::unique_ptr<btMotionState>							groundMotionState;
 		std::unique_ptr<btRigidBody>							groundRigidBody;
-		std::unique_ptr<btOverlapFilterCallback>				filterCallback;
+		std::unique_ptr<OverlapFilterCallback>					filterCallback;
 
 		// Bullet 월드와 기본 물리 리소스를 생성한다.
 		void Create();
 
 	public:
-		// Bullet 물리 월드와 기본 바닥 강체를 생성한다.
 		Physics();
-		// 기본 바닥 강체를 해제한 뒤 물리 월드를 파괴한다.
 		~Physics();
 
 		// 강체를 충돌 그룹 설정과 함께 물리 월드에 등록한다.
@@ -61,13 +60,25 @@ namespace Chrivent {
 
 	// 모델의 Bullet 물리 월드, 강체와 조인트를 함께 소유하고 등록 수명을 관리한다.
 	class ModelPhysicsData {
-	public:
 		std::unique_ptr<Physics> physics;
 		std::vector<std::unique_ptr<RigidBody>> rigidBodies;
 		std::vector<std::unique_ptr<Joint>> joints;
 
+		// 강체 변환을 본에 반영하고 루트 노드의 글로벌 변환을 갱신한다.
+		void ReflectTransforms(const std::vector<std::shared_ptr<Node>>& nodes) const;
+
+	public:
 		~ModelPhysicsData();
 
+		bool IsInitialized() const { return physics != nullptr; }
+
+		// 런타임 정의와 모델 노드로 물리 월드, 강체와 조인트를 구성한다.
+		void Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+			const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::shared_ptr<Node>>& nodes);
+		// 현재 모델 포즈 기준으로 강체 상태와 충돌 쌍을 초기화한다.
+		void ResetSimulation(const std::vector<std::shared_ptr<Node>>& nodes) const;
+		// 지정한 경과 시간만큼 물리를 진행하고 강체 변환을 본에 반영한다.
+		void UpdateSimulation(float elapsed, const std::vector<std::shared_ptr<Node>>& nodes) const;
 		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
 		void Reset();
 	};

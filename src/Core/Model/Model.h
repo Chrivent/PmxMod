@@ -136,13 +136,14 @@ namespace Chrivent {
 
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
 	class Model {
+		std::unique_ptr<ModelPhysicsData> physicsData;
+
 	public:
 		ModelInfoData		infoData;
 		ModelGeometryData	geometryData;
 		ModelMaterialData	materialData;
 		ModelSkeletonData	skeletonData;
 		ModelMorphData		morphData;
-		std::unique_ptr<ModelPhysicsData> physicsData;
 		
 		Model();
 		~Model();
@@ -153,5 +154,12 @@ namespace Chrivent {
 		void Reset();
 		// 두 모델의 전체 소유 상태를 교환한다.
 		void Swap(Model& other);
+		// 런타임 정의 목록으로 모델 물리 월드, 강체와 조인트를 구성한다.
+		void InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
+			const std::vector<JointDefinition>& joints) const;
+		// 강체와 조인트를 현재 모델 포즈 기준으로 초기화한다.
+		void ResetPhysics() const;
+		// 물리 시뮬레이션을 진행하고 강체 변환을 노드에 반영한다.
+		void UpdatePhysics(float elapsed) const;
 	};
 }

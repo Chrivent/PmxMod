@@ -7,9 +7,6 @@
 #include <string>
 
 namespace Chrivent {
-	struct JointDefinition;
-	struct RigidBodyDefinition;
-
 	enum class ModelLoadErrorCode {
 		Parse,
 		UnsupportedFeature
@@ -31,6 +28,14 @@ namespace Chrivent {
 		static RigidBodyDefinition CreateRigidBodyDefinition(const PmxParser::PmxRigidbody& rigidBody);
 		// PMX 조인트 정보를 파서와 독립적인 런타임 조인트 정의로 변환한다.
 		static JointDefinition CreateJointDefinition(const PmxParser::PmxJoint& joint);
+		// PMX 스키닝 형식을 런타임 스키닝 형식으로 변환한다.
+		static WeightType ConvertWeightType(PmxParser::WeightType weightType);
+		// PMX 스피어 텍스처 모드를 런타임 모드로 변환한다.
+		static SphereMode ConvertSphereMode(PmxParser::SphereMode sphereMode);
+		// PMX 모프 형식을 런타임 모프 형식으로 변환한다.
+		static MorphType ConvertMorphType(PmxParser::MorphType morphType);
+		// PMX 재질 모프 연산을 런타임 연산으로 변환한다.
+		static OpType ConvertOpType(PmxParser::OpType opType);
 		// PMX 정점 정보를 모델의 기본 정점 버퍼로 변환한다.
 		void LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const;
 		// PMX 면 인덱스를 렌더링용 인덱스 버퍼로 변환한다.

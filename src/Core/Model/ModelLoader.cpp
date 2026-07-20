@@ -1,7 +1,6 @@
 ﻿#include "Core/Model/ModelLoader.h"
 
 #include "Core/Model/ModelPose.h"
-#include "Core/Model/Physics/Physics.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/PmxParser.h"
 #include "Util.h"
@@ -22,11 +21,11 @@ namespace Chrivent {
 		}
 		for (const auto& morph : pmxData.morphs) {
 			switch (morph.morphType) {
-				case MorphType::Group:
-				case MorphType::Position:
-				case MorphType::Bone:
-				case MorphType::Uv:
-				case MorphType::Material:
+				case PmxParser::MorphType::Group:
+				case PmxParser::MorphType::Position:
+				case PmxParser::MorphType::Bone:
+				case PmxParser::MorphType::Uv:
+				case PmxParser::MorphType::Material:
 					break;
 				default:
 					return std::unexpected(ModelLoadError{
@@ -36,7 +35,7 @@ namespace Chrivent {
 			}
 		}
 		for (const auto& joint : pmxData.joints) {
-			if (joint.type != JointType::SpringDof6) {
+			if (joint.type != PmxParser::JointType::SpringDof6) {
 				return std::unexpected(ModelLoadError{
 					ModelLoadErrorCode::UnsupportedFeature,
 					"현재 런타임은 6DoF 스프링 조인트만 지원합니다: " + joint.name
@@ -48,6 +47,7 @@ namespace Chrivent {
 
 	RigidBodyDefinition ModelLoader::CreateRigidBodyDefinition(const PmxParser::PmxRigidbody& rigidBody) {
 		RigidBodyDefinition definition{
+			.nodeIndex = rigidBody.boneIndex,
 			.shapeSize = rigidBody.shapeSize,
 			.translate = rigidBody.translate,
 			.rotate = rigidBody.rotate,
@@ -60,14 +60,14 @@ namespace Chrivent {
 			.groupMask = rigidBody.collisionGroup
 		};
 		switch (rigidBody.shape) {
-			case Shape::Sphere: definition.shape = RigidBodyShape::Sphere; break;
-			case Shape::Box: definition.shape = RigidBodyShape::Box; break;
-			case Shape::Capsule: definition.shape = RigidBodyShape::Capsule; break;
+			case PmxParser::Shape::Sphere: definition.shape = RigidBodyShape::Sphere; break;
+			case PmxParser::Shape::Box: definition.shape = RigidBodyShape::Box; break;
+			case PmxParser::Shape::Capsule: definition.shape = RigidBodyShape::Capsule; break;
 		}
 		switch (rigidBody.op) {
-			case Operation::Static: definition.operation = RigidBodyOperation::Static; break;
-			case Operation::Dynamic: definition.operation = RigidBodyOperation::Dynamic; break;
-			case Operation::DynamicAndBoneMerge:
+			case PmxParser::Operation::Static: definition.operation = RigidBodyOperation::Static; break;
+			case PmxParser::Operation::Dynamic: definition.operation = RigidBodyOperation::Dynamic; break;
+			case PmxParser::Operation::DynamicAndBoneMerge:
 				definition.operation = RigidBodyOperation::DynamicAndBoneMerge;
 				break;
 		}
@@ -76,6 +76,8 @@ namespace Chrivent {
 
 	JointDefinition ModelLoader::CreateJointDefinition(const PmxParser::PmxJoint& joint) {
 		return {
+			.rigidBodyAIndex = joint.rigidbodyAIndex,
+			.rigidBodyBIndex = joint.rigidbodyBIndex,
 			.translate = joint.translate,
 			.rotate = joint.rotate,
 			.translateLowerLimit = joint.translateLowerLimit,
@@ -85,6 +87,48 @@ namespace Chrivent {
 			.springTranslateFactor = joint.springTranslateFactor,
 			.springRotateFactor = joint.springRotateFactor
 		};
+	}
+
+	WeightType ModelLoader::ConvertWeightType(const PmxParser::WeightType weightType) {
+		switch (weightType) {
+			case PmxParser::WeightType::BoneDeform1: return WeightType::BoneDeform1;
+			case PmxParser::WeightType::BoneDeform2: return WeightType::BoneDeform2;
+			case PmxParser::WeightType::BoneDeform4: return WeightType::BoneDeform4;
+			case PmxParser::WeightType::SphericalDeform: return WeightType::SphericalDeform;
+			case PmxParser::WeightType::QuaternionDeform: return WeightType::QuaternionDeform;
+		}
+		return WeightType::BoneDeform1;
+	}
+
+	SphereMode ModelLoader::ConvertSphereMode(const PmxParser::SphereMode sphereMode) {
+		switch (sphereMode) {
+			case PmxParser::SphereMode::None: return SphereMode::None;
+			case PmxParser::SphereMode::Mul: return SphereMode::Mul;
+			case PmxParser::SphereMode::Add: return SphereMode::Add;
+			case PmxParser::SphereMode::SubTexture: return SphereMode::SubTexture;
+		}
+		return SphereMode::None;
+	}
+
+	MorphType ModelLoader::ConvertMorphType(const PmxParser::MorphType morphType) {
+		switch (morphType) {
+			case PmxParser::MorphType::Group: return MorphType::Group;
+			case PmxParser::MorphType::Position: return MorphType::Position;
+			case PmxParser::MorphType::Bone: return MorphType::Bone;
+			case PmxParser::MorphType::Uv: return MorphType::Uv;
+			case PmxParser::MorphType::AddUv1: return MorphType::AddUv1;
+			case PmxParser::MorphType::AddUv2: return MorphType::AddUv2;
+			case PmxParser::MorphType::AddUv3: return MorphType::AddUv3;
+			case PmxParser::MorphType::AddUv4: return MorphType::AddUv4;
+			case PmxParser::MorphType::Material: return MorphType::Material;
+			case PmxParser::MorphType::Flip: return MorphType::Flip;
+			case PmxParser::MorphType::Impulse: return MorphType::Impulse;
+		}
+		return MorphType::Group;
+	}
+
+	OpType ModelLoader::ConvertOpType(const PmxParser::OpType opType) {
+		return opType == PmxParser::OpType::Mul ? OpType::Mul : OpType::Add;
 	}
 
 	void ModelLoader::LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
@@ -109,8 +153,9 @@ namespace Chrivent {
 				? normal / std::sqrt(normalLengthSquared) : glm::vec3(0));
 			model.geometryData.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 			Vertex vtxBoneInfo{};
-			const uint8_t influenceCount = v.weightType == WeightType::BoneDeform1 ? 1
-				: v.weightType == WeightType::BoneDeform2 || v.weightType == WeightType::SphericalDeform ? 2 : 4;
+			const uint8_t influenceCount = v.weightType == PmxParser::WeightType::BoneDeform1 ? 1
+				: v.weightType == PmxParser::WeightType::BoneDeform2 ||
+				v.weightType == PmxParser::WeightType::SphericalDeform ? 2 : 4;
 			int32_t fallbackBoneIndex = 0;
 			for (uint8_t index = 0; index < influenceCount; index++) {
 				if (v.boneIndices[index] >= 0) {
@@ -123,12 +168,12 @@ namespace Chrivent {
 					? v.boneIndices[index] : fallbackBoneIndex;
 				vtxBoneInfo.boneWeights[index] = v.boneWeights[index];
 			}
-			vtxBoneInfo.weightType = v.weightType;
+			vtxBoneInfo.weightType = ConvertWeightType(v.weightType);
 			switch (v.weightType) {
-				case WeightType::BoneDeform2:
+				case PmxParser::WeightType::BoneDeform2:
 					vtxBoneInfo.boneWeights[1] = 1.0f - vtxBoneInfo.boneWeights[0];
 					break;
-				case WeightType::SphericalDeform: {
+				case PmxParser::WeightType::SphericalDeform: {
 					auto w0 = v.boneWeights[0];
 					auto w1 = 1.0f - w0;
 					auto center = v.sphericalDeformC * invZ;
@@ -205,28 +250,28 @@ namespace Chrivent {
 			m.specular = mat.specular;
 			m.ambient = mat.ambient;
 			m.spTextureMode = SphereMode::None;
-			m.bothFace = Util::HasFlag(mat.drawMode, DrawModeFlags::BothFace);
-			m.edgeFlag = Util::HasFlag(mat.drawMode, DrawModeFlags::DrawEdge) ? 1 : 0;
-			m.groundShadow = Util::HasFlag(mat.drawMode, DrawModeFlags::GroundShadow);
-			m.shadowCaster = Util::HasFlag(mat.drawMode, DrawModeFlags::CastSelfShadow);
-			m.shadowReceiver = Util::HasFlag(mat.drawMode, DrawModeFlags::ReceiveSelfShadow);
+			m.bothFace = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::BothFace);
+			m.edgeFlag = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::DrawEdge) ? 1 : 0;
+			m.groundShadow = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::GroundShadow);
+			m.shadowCaster = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::CastSelfShadow);
+			m.shadowReceiver = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::ReceiveSelfShadow);
 			m.edgeSize = mat.edgeSize;
 			m.edgeColor = mat.edgeColor;
 			if (mat.textureIndex != -1)
 				m.texture = texturePaths[mat.textureIndex];
-			if (mat.toonMode == ToonMode::Common) {
+			if (mat.toonMode == PmxParser::ToonMode::Common) {
 				if (mat.toonTextureIndex != -1) {
 					std::stringstream ss;
 					ss << "toon" << std::setfill('0') << std::setw(2) << (mat.toonTextureIndex + 1) << ".bmp";
 					m.toonTexture = defaultToonTextureDir / ss.str();
 				}
-			} else if (mat.toonMode == ToonMode::Separate) {
+			} else if (mat.toonMode == PmxParser::ToonMode::Separate) {
 				if (mat.toonTextureIndex != -1)
 					m.toonTexture = texturePaths[mat.toonTextureIndex];
 			}
 			if (mat.sphereTextureIndex != -1) {
 				m.spTexture = texturePaths[mat.sphereTextureIndex];
-				m.spTextureMode = mat.sphereMode;
+				m.spTextureMode = ConvertSphereMode(mat.sphereMode);
 			}
 			model.materialData.materials.emplace_back(std::move(m));
 			SubMesh subMesh{};
@@ -263,14 +308,14 @@ namespace Chrivent {
 			node->global = glm::translate(glm::mat4(1), bone.position * invZ);
 			node->inverseInit = glm::inverse(node->global);
 			node->deformDepth = bone.deformDepth;
-			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, BoneFlags::DeformAfterPhysics);
+			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::DeformAfterPhysics);
 			node->isDeformAfterPhysics = deformAfterPhysics;
-			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendRotate);
-			bool appendTranslateEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendTranslate);
+			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendRotate);
+			bool appendTranslateEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendTranslate);
 			node->isAppendRotate = appendRotateEnabled;
 			node->isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
-				bool appendLocalEnabled = Util::HasFlag(bone.boneFlag, BoneFlags::AppendLocal);
+				bool appendLocalEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendLocal);
 				auto appendNodePtr = model.skeletonData.nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
 				node->isAppendLocal = appendLocalEnabled;
@@ -292,7 +337,7 @@ namespace Chrivent {
 		});
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
-			if (Util::HasFlag(bone.boneFlag, BoneFlags::Ik)) {
+			if (Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
 				solver->ikNode = model.skeletonData.nodes[i];
 				model.skeletonData.nodes[i]->ikSolver = solver;
@@ -321,9 +366,9 @@ namespace Chrivent {
 			for (const auto& [type, index] : displayFrame.targets) {
 				if (index < 0)
 					continue;
-				if (type == TargetType::BoneIndex && index < pmxData.bones.size())
+				if (type == PmxParser::TargetType::BoneIndex && index < pmxData.bones.size())
 					frame.boneIndices.emplace_back(index);
-				else if (type == TargetType::MorphIndex && index < pmxData.morphs.size())
+				else if (type == PmxParser::TargetType::MorphIndex && index < pmxData.morphs.size())
 					frame.morphIndices.emplace_back(index);
 			}
 			model.skeletonData.displayFrames.emplace_back(std::move(frame));
@@ -334,9 +379,9 @@ namespace Chrivent {
 		for (const auto& morph : pmxData.morphs) {
 			auto m = std::make_unique<Morph>();
 			m->name = morph.name;
-			m->morphType = morph.morphType;
+			m->morphType = ConvertMorphType(morph.morphType);
 			switch (morph.morphType) {
-				case MorphType::Position: {
+				case PmxParser::MorphType::Position: {
 					m->dataIndex = model.morphData.positionMorphs.size();
 					std::vector<PositionMorph> morphData;
 					morphData.reserve(morph.positionMorph.size());
@@ -345,15 +390,34 @@ namespace Chrivent {
 					model.morphData.positionMorphs.emplace_back(std::move(morphData));
 					break;
 				}
-				case MorphType::Uv:
+				case PmxParser::MorphType::Uv: {
 					m->dataIndex = model.morphData.uvMorphs.size();
-					model.morphData.uvMorphs.emplace_back(morph.uvMorph);
+					std::vector<UvMorph> morphData;
+					morphData.reserve(morph.uvMorph.size());
+					for (const auto& [vertexIndex, uv] : morph.uvMorph)
+						morphData.push_back({vertexIndex, uv});
+					model.morphData.uvMorphs.emplace_back(std::move(morphData));
 					break;
-				case MorphType::Material:
+				}
+				case PmxParser::MorphType::Material: {
 					m->dataIndex = model.morphData.materialMorphs.size();
-					model.morphData.materialMorphs.emplace_back(morph.materialMorph);
+					std::vector<MaterialMorph> morphData;
+					morphData.reserve(morph.materialMorph.size());
+					for (const auto& [materialIndex, opType, diffuse
+						, specular, specularPower, ambient
+						, edgeColor, edgeSize, textureFactor
+						, sphereTextureFactor, toonTextureFactor] : morph.materialMorph) {
+						morphData.push_back({
+							materialIndex, ConvertOpType(opType), diffuse,
+							specular, specularPower, ambient,
+							edgeColor, edgeSize, textureFactor,
+							sphereTextureFactor, toonTextureFactor
+						});
+					}
+					model.morphData.materialMorphs.emplace_back(std::move(morphData));
 					break;
-				case MorphType::Bone: {
+				}
+				case PmxParser::MorphType::Bone: {
 					m->dataIndex = model.morphData.boneMorphs.size();
 					std::vector<BoneMorph> boneMorphData;
 					boneMorphData.reserve(morph.boneMorph.size());
@@ -366,10 +430,15 @@ namespace Chrivent {
 					model.morphData.boneMorphs.emplace_back(std::move(boneMorphData));
 					break;
 				}
-				case MorphType::Group:
+				case PmxParser::MorphType::Group: {
 					m->dataIndex = model.morphData.groupMorphs.size();
-					model.morphData.groupMorphs.emplace_back(morph.groupMorph);
+					std::vector<GroupMorph> morphData;
+					morphData.reserve(morph.groupMorph.size());
+					for (const auto& [morphIndex, weight] : morph.groupMorph)
+						morphData.push_back({morphIndex, weight});
+					model.morphData.groupMorphs.emplace_back(std::move(morphData));
 					break;
+				}
 				default:
 					break;
 			}
@@ -414,29 +483,15 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
-		if (pmxData.rigidBodies.empty())
-			return;
-		model.physicsData->physics = std::make_unique<Physics>();
-		for (const auto& pmxRigidBody : pmxData.rigidBodies) {
-			std::shared_ptr<Node> node;
-			if (pmxRigidBody.boneIndex != -1)
-				node = model.skeletonData.nodes[pmxRigidBody.boneIndex];
-			auto rb = std::make_unique<RigidBody>(CreateRigidBodyDefinition(pmxRigidBody), node);
-			model.physicsData->physics->AddRigidBody(
-				*rb->GetRigidBody(), rb->GetGroup(), rb->GetGroupMask());
-			model.physicsData->rigidBodies.emplace_back(std::move(rb));
-		}
-		for (const auto& joint : pmxData.joints) {
-			if (joint.rigidbodyAIndex != -1 &&
-				joint.rigidbodyBIndex != -1 &&
-				joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
-				auto j = std::make_unique<Joint>(CreateJointDefinition(joint),
-					*model.physicsData->rigidBodies[joint.rigidbodyAIndex],
-					*model.physicsData->rigidBodies[joint.rigidbodyBIndex]);
-				model.physicsData->physics->AddConstraint(*j->GetConstraint());
-				model.physicsData->joints.emplace_back(std::move(j));
-			}
-		}
+		std::vector<RigidBodyDefinition> rigidBodies;
+		rigidBodies.reserve(pmxData.rigidBodies.size());
+		for (const auto& rigidBody : pmxData.rigidBodies)
+			rigidBodies.emplace_back(CreateRigidBodyDefinition(rigidBody));
+		std::vector<JointDefinition> joints;
+		joints.reserve(pmxData.joints.size());
+		for (const auto& joint : pmxData.joints)
+			joints.emplace_back(CreateJointDefinition(joint));
+		model.InitializePhysics(rigidBodies, joints);
 	}
 
 	std::expected<void, ModelLoadError> ModelLoader::Load(const std::filesystem::path& filepath,

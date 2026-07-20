@@ -1,10 +1,13 @@
 ﻿#include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
+#include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelLoader.h"
+#include "Core/Model/ModelMorph.h"
 #include "Core/Model/ModelSkinning.h"
 
 #include <gtest/gtest.h>
+#include <cstring>
 #include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -135,11 +138,110 @@ namespace Chrivent {
 		EXPECT_NEAR(glm::length(rotation), 1.0f, 1.0e-6f);
 	}
 
+	TEST_F(AnimationModelContractTest, AnimationKeepsItsTargetModelAlive) {
+		std::weak_ptr<Model> modelReference;
+		std::weak_ptr<Node> nodeReference;
+		std::unique_ptr<Animation> animation;
+		{
+			auto model = std::make_shared<Model>();
+			auto node = std::make_shared<Node>();
+			node->name = "A";
+			model->skeletonData.nodes.emplace_back(node);
+			modelReference = model;
+			nodeReference = node;
+			VmdParser::VmdData data{};
+			auto& motion = data.motions.emplace_back();
+			std::memcpy(motion.boneName, "A", 1);
+			motion.quaternion = glm::quat(1, 0, 0, 0);
+			AnimationBuilder builder(model);
+			builder.Build(data);
+			animation = builder.TakeAnimation();
+		}
+		ASSERT_FALSE(modelReference.expired());
+		ASSERT_FALSE(nodeReference.expired());
+		animation->Evaluate(0, 1);
+		animation.reset();
+		EXPECT_TRUE(modelReference.expired());
+		EXPECT_TRUE(nodeReference.expired());
+	}
+
+	TEST_F(AnimationModelContractTest, ReusesAnimationBuilderWithoutKeepingTakenTracks) {
+		auto model = std::make_shared<Model>();
+		auto node = std::make_shared<Node>();
+		node->name = "A";
+		model->skeletonData.nodes.emplace_back(node);
+		AnimationBuilder builder(model);
+		VmdParser::VmdData firstData{};
+		auto& firstMotion = firstData.motions.emplace_back();
+		std::memcpy(firstMotion.boneName, "A", 1);
+		firstMotion.frame = 3;
+		firstMotion.quaternion = glm::quat(1, 0, 0, 0);
+		builder.Build(firstData);
+		const auto firstAnimation = builder.TakeAnimation();
+		VmdParser::VmdData secondData{};
+		auto& secondMotion = secondData.motions.emplace_back();
+		std::memcpy(secondMotion.boneName, "A", 1);
+		secondMotion.frame = 7;
+		secondMotion.quaternion = glm::quat(1, 0, 0, 0);
+		builder.Build(secondData);
+		const auto secondAnimation = builder.TakeAnimation();
+		ASSERT_EQ(firstAnimation->GetNodeTracks().size(), 1);
+		ASSERT_EQ(secondAnimation->GetNodeTracks().size(), 1);
+		ASSERT_EQ(firstAnimation->GetNodeTracks().front().keys.size(), 1);
+		ASSERT_EQ(secondAnimation->GetNodeTracks().front().keys.size(), 1);
+		EXPECT_EQ(firstAnimation->GetNodeTracks().front().keys.front().frame, 3);
+		EXPECT_EQ(secondAnimation->GetNodeTracks().front().keys.front().frame, 7);
+	}
+
+	TEST_F(AnimationModelContractTest, SkipsPhysicsSynchronizationWithoutAWorld) {
+		auto model = std::make_shared<Model>();
+		auto node = std::make_shared<Node>();
+		node->animTranslate = glm::vec3(8);
+		node->baseAnimTranslate = glm::vec3(5);
+		model->skeletonData.nodes.emplace_back(node);
+		const Animation animation(model, {}, {}, {});
+		const ModelAnimator animator(*model);
+		animator.SyncPhysics(animation, 0);
+		EXPECT_EQ(node->baseAnimTranslate, glm::vec3(5));
+	}
+
+	TEST_F(AnimationModelContractTest, EvaluatesNestedGroupMorphsWithCombinedWeights) {
+		Model model;
+		model.morphData.morphPositions.resize(1);
+		model.morphData.positionMorphs.push_back({{0, glm::vec3(2, 0, 0)}});
+		model.morphData.groupMorphs.push_back({{0, 0.5f}});
+		auto positionMorph = std::make_unique<Morph>();
+		positionMorph->morphType = MorphType::Position;
+		positionMorph->dataIndex = 0;
+		model.morphData.morphs.emplace_back(std::move(positionMorph));
+		auto groupMorph = std::make_unique<Morph>();
+		groupMorph->morphType = MorphType::Group;
+		groupMorph->dataIndex = 0;
+		groupMorph->weight = 0.5f;
+		model.morphData.morphs.emplace_back(std::move(groupMorph));
+		const ModelMorph morph(model);
+		morph.Update();
+		EXPECT_EQ(model.morphData.morphPositions.front(), glm::vec3(0.5f, 0, 0));
+	}
+
+	TEST_F(AnimationModelContractTest, OwnsPhysicsThroughTheModelBoundary) {
+		Model model;
+		RigidBodyDefinition rigidBody{};
+		rigidBody.shapeSize = glm::vec3(1);
+		rigidBody.groupMask = 0xffff;
+		model.InitializePhysics({rigidBody}, {});
+		ASSERT_TRUE(model.HasPhysics());
+		model.ResetPhysics();
+		model.UpdatePhysics(1.0f / 60.0f);
+		model.Reset();
+		EXPECT_FALSE(model.HasPhysics());
+	}
+
 	TEST_F(AnimationModelContractTest, KeepsZeroNormalsFiniteDuringSkinning) {
 		Model model;
-		model.geometryData.positions.emplace_back(0);
-		model.geometryData.normals.emplace_back(0);
-		model.geometryData.uvs.emplace_back(0);
+		model.geometryData.positions.emplace_back(0.0f);
+		model.geometryData.normals.emplace_back(0.0f);
+		model.geometryData.uvs.emplace_back(0.0f);
 		auto& vertex = model.geometryData.vertexBoneInfos.emplace_back();
 		vertex.weightType = WeightType::BoneDeform1;
 		vertex.boneIndices[0] = 0;
@@ -149,7 +251,7 @@ namespace Chrivent {
 		model.geometryData.updateUVs.resize(1);
 		model.morphData.morphPositions.resize(1);
 		model.morphData.morphUVs.resize(1);
-		model.skeletonData.transforms.emplace_back(1);
+		model.skeletonData.transforms.emplace_back(1.0f);
 		const ModelSkinning skinning(model);
 		skinning.PrepareUpdate(false);
 		skinning.UpdateRange(0);

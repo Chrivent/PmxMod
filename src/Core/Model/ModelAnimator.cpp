@@ -61,6 +61,8 @@ namespace Chrivent {
 	}
 
 	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {
+		if (!model.HasPhysics())
+			return;
 		SaveBaseAnimation();
 		for (int i = 0; i < 30; i++) {
 			BeginAnimation();

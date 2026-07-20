@@ -556,7 +556,7 @@ namespace Chrivent {
         std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
         if (animation) {
             for (const auto& [node, keys] : animation->GetNodeTracks()) {
-                auto& timelineKeys = nodeKeys[node.get()];
+                auto& timelineKeys = nodeKeys[node];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
                     glm::quat rotation = glm::normalize(rotate);
@@ -580,13 +580,13 @@ namespace Chrivent {
                 }
             }
             for (const auto& [ikSolver, keys] : animation->GetIkTracks()) {
-                auto& timelineKeys = ikKeys[ikSolver.get()];
+                auto& timelineKeys = ikKeys[ikSolver];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
             for (const auto& [morph, keys] : animation->GetMorphTracks()) {
-                auto& timelineKeys = morphKeys[morph.get()];
+                auto& timelineKeys = morphKeys[morph];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});

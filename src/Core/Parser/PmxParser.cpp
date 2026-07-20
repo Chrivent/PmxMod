@@ -81,8 +81,8 @@ namespace Chrivent {
 
 	void PmxParser::ReadVertex(BinaryReader& reader) {
 		int32_t vertexCount = 0;
-		const std::size_t minimumVertexBytes = sizeof(glm::vec3) * 2 + sizeof(glm::vec2) +
-			sizeof(glm::vec4) * data.header.addUvNum + sizeof(WeightType) +
+		const std::size_t minimumVertexBytes = sizeof(float) * (8 + 4 * data.header.addUvNum) +
+			sizeof(WeightType) +
 			data.header.boneIndexSize + sizeof(float);
 		if (!reader.ReadCount(vertexCount, minimumVertexBytes, 5'000'000))
 			return;
@@ -205,8 +205,7 @@ namespace Chrivent {
 
 	void PmxParser::ReadMaterial(BinaryReader& reader) {
 		int32_t matCount = 0;
-		const std::size_t minimumMaterialBytes = sizeof(int32_t) * 4 +
-			sizeof(glm::vec4) * 2 + sizeof(glm::vec3) * 2 + sizeof(float) * 2 +
+		const std::size_t minimumMaterialBytes = sizeof(int32_t) * 4 + sizeof(float) * 16 +
 			sizeof(DrawModeFlags) + data.header.textureIndexSize * 2 +
 			sizeof(SphereMode) + sizeof(ToonMode) + sizeof(uint8_t);
 		if (!reader.ReadCount(matCount, minimumMaterialBytes, 100'000))
@@ -253,7 +252,7 @@ namespace Chrivent {
 
 	void PmxParser::ReadBone(BinaryReader& reader) {
 		int32_t boneCount = 0;
-		const std::size_t minimumBoneBytes = sizeof(int32_t) * 3 + sizeof(glm::vec3) +
+		const std::size_t minimumBoneBytes = sizeof(int32_t) * 3 + sizeof(float) * 3 +
 			data.header.boneIndexSize * 2 + sizeof(BoneFlags);
 		if (!reader.ReadCount(boneCount, minimumBoneBytes, 500'000))
 			return;
@@ -339,28 +338,27 @@ namespace Chrivent {
 			std::size_t minimumDataBytes = 1;
 			switch (morphType) {
 				case MorphType::Position:
-					minimumDataBytes = data.header.vertexIndexSize + sizeof(glm::vec3);
+					minimumDataBytes = data.header.vertexIndexSize + sizeof(float) * 3;
 					break;
 				case MorphType::Uv:
 				case MorphType::AddUv1:
 				case MorphType::AddUv2:
 				case MorphType::AddUv3:
 				case MorphType::AddUv4:
-					minimumDataBytes = data.header.vertexIndexSize + sizeof(glm::vec4);
+					minimumDataBytes = data.header.vertexIndexSize + sizeof(float) * 4;
 					break;
 				case MorphType::Bone:
-					minimumDataBytes = data.header.boneIndexSize + sizeof(glm::vec3) + sizeof(glm::quat);
+					minimumDataBytes = data.header.boneIndexSize + sizeof(float) * 7;
 					break;
 				case MorphType::Material:
-					minimumDataBytes = data.header.materialIndexSize + sizeof(OpType) +
-						sizeof(glm::vec4) * 5 + sizeof(glm::vec3) * 2 + sizeof(float) * 2;
+					minimumDataBytes = data.header.materialIndexSize + sizeof(OpType) + sizeof(float) * 28;
 					break;
 				case MorphType::Group:
 				case MorphType::Flip:
 					minimumDataBytes = data.header.morphIndexSize + sizeof(float);
 					break;
 				case MorphType::Impulse:
-					minimumDataBytes = data.header.rigidbodyIndexSize + sizeof(uint8_t) + sizeof(glm::vec3) * 2;
+					minimumDataBytes = data.header.rigidbodyIndexSize + sizeof(uint8_t) + sizeof(float) * 6;
 					break;
 			}
 			if (!reader.ReadCount(dataCount, minimumDataBytes, 5'000'000))
@@ -483,7 +481,7 @@ namespace Chrivent {
 		int32_t rbCount = 0;
 		const std::size_t minimumRigidBodyBytes = sizeof(int32_t) * 2 +
 			data.header.boneIndexSize + sizeof(uint8_t) + sizeof(uint16_t) +
-			sizeof(Shape) + sizeof(glm::vec3) * 3 + sizeof(float) * 5 + sizeof(Operation);
+			sizeof(Shape) + sizeof(float) * 14 + sizeof(Operation);
 		if (!reader.ReadCount(rbCount, minimumRigidBodyBytes, 100'000))
 			return;
 		data.rigidBodies.resize(rbCount);
@@ -516,7 +514,7 @@ namespace Chrivent {
 	void PmxParser::ReadJoint(BinaryReader& reader) {
 		int32_t jointCount = 0;
 		const std::size_t minimumJointBytes = sizeof(int32_t) * 2 + sizeof(JointType) +
-			data.header.rigidbodyIndexSize * 2 + sizeof(glm::vec3) * 8;
+			data.header.rigidbodyIndexSize * 2 + sizeof(float) * 24;
 		if (!reader.ReadCount(jointCount, minimumJointBytes, 100'000))
 			return;
 		data.joints.resize(jointCount);

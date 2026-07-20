@@ -4,6 +4,8 @@
 #include "Core/Animation/Model/AnimationTrackMap.h"
 #include "Util.h"
 
+#include <utility>
+
 namespace Chrivent {
 	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {
 		NodeAnimationKey key{};
@@ -22,7 +24,7 @@ namespace Chrivent {
 	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.motions.empty())
 			return;
-		const AnimationBinder binder(model);
+		const AnimationBinder binder(model.get());
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
 			auto nodeName = Util::SjisToUtf8(motion.boneName, sizeof(motion.boneName));
@@ -40,7 +42,7 @@ namespace Chrivent {
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.iks.empty())
 			return;
-		const AnimationBinder binder(model);
+		const AnimationBinder binder(model.get());
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
@@ -62,7 +64,7 @@ namespace Chrivent {
 	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.morphs.empty())
 			return;
-		const AnimationBinder binder(model);
+		const AnimationBinder binder(model.get());
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
 			auto morphName = Util::SjisToUtf8(blendShapeName, sizeof(blendShapeName));
@@ -86,7 +88,7 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Animation> AnimationBuilder::TakeAnimation() {
-		return std::make_unique<Animation>(
-			std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks));
+		return std::make_unique<Animation>(model,
+			std::exchange(nodeTracks, {}), std::exchange(ikTracks, {}), std::exchange(morphTracks, {}));
 	}
 }

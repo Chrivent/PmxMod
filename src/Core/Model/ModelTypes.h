@@ -38,6 +38,49 @@ namespace Chrivent {
 		Add
 	};
 
+	enum class RigidBodyOperation : uint8_t {
+		Static,
+		Dynamic,
+		DynamicAndBoneMerge
+	};
+
+	enum class RigidBodyShape : uint8_t {
+		Sphere,
+		Box,
+		Capsule
+	};
+
+	// 모델 강체 생성에 필요한 연결 본, 형상, 물성과 충돌 설정을 보관한다.
+	struct RigidBodyDefinition {
+		int32_t nodeIndex = -1;
+		RigidBodyShape shape = RigidBodyShape::Sphere;
+		glm::vec3 shapeSize = glm::vec3(0);
+		glm::vec3 translate = glm::vec3(0);
+		glm::vec3 rotate = glm::vec3(0);
+		float mass = 0;
+		float translateDamping = 0;
+		float rotateDamping = 0;
+		float restitution = 0;
+		float friction = 0;
+		RigidBodyOperation operation = RigidBodyOperation::Static;
+		uint16_t group = 0;
+		uint16_t groupMask = 0;
+	};
+
+	// 모델 조인트 생성에 필요한 연결 강체, 제한과 스프링 계수를 보관한다.
+	struct JointDefinition {
+		int32_t rigidBodyAIndex = -1;
+		int32_t rigidBodyBIndex = -1;
+		glm::vec3 translate = glm::vec3(0);
+		glm::vec3 rotate = glm::vec3(0);
+		glm::vec3 translateLowerLimit = glm::vec3(0);
+		glm::vec3 translateUpperLimit = glm::vec3(0);
+		glm::vec3 rotateLowerLimit = glm::vec3(0);
+		glm::vec3 rotateUpperLimit = glm::vec3(0);
+		glm::vec3 springTranslateFactor = glm::vec3(0);
+		glm::vec3 springRotateFactor = glm::vec3(0);
+	};
+
 	// 버텍스 하나의 위치 모프 오프셋을 보관한다.
 	struct PositionMorph {
 		int32_t vertexIndex;

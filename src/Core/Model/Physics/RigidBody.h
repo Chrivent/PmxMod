@@ -1,40 +1,12 @@
 ﻿#pragma once
 
+#include "Core/Model/ModelTypes.h"
 #include "Core/Model/Physics/MotionState.h"
-#include <cstdint>
 #include <memory>
 #include <glm/glm.hpp>
 
 namespace Chrivent {
 	class Node;
-
-	enum class RigidBodyOperation : uint8_t {
-		Static,
-		Dynamic,
-		DynamicAndBoneMerge
-	};
-
-	enum class RigidBodyShape : uint8_t {
-		Sphere,
-		Box,
-		Capsule
-	};
-
-	// 런타임 강체 생성에 필요한 형상, 물성 및 충돌 설정을 보관한다.
-	struct RigidBodyDefinition {
-		RigidBodyShape shape = RigidBodyShape::Sphere;
-		glm::vec3 shapeSize = glm::vec3(0);
-		glm::vec3 translate = glm::vec3(0);
-		glm::vec3 rotate = glm::vec3(0);
-		float mass = 0;
-		float translateDamping = 0;
-		float rotateDamping = 0;
-		float restitution = 0;
-		float friction = 0;
-		RigidBodyOperation operation = RigidBodyOperation::Static;
-		uint16_t group = 0;
-		uint16_t groupMask = 0;
-	};
 
 	// 런타임 강체 설정을 Bullet 충돌체와 운동 상태로 구성한다.
 	class RigidBody {

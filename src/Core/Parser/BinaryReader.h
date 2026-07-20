@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <glm/glm.hpp>
 
 namespace Chrivent {
 	enum class ParseErrorCode {
@@ -49,6 +50,14 @@ namespace Chrivent {
 		bool Fail(ParseErrorCode code, const std::string& message);
 		// 지정한 바이트 수만큼 읽고 부족하면 오류를 기록한다.
 		bool Read(void* destination, std::size_t bytes);
+		// 파일의 두 실수를 패딩 없는 2차원 벡터로 읽는다.
+		bool Read(glm::vec2& destination);
+		// 파일의 세 실수를 패딩 없는 3차원 벡터로 읽는다.
+		bool Read(glm::vec3& destination);
+		// 파일의 네 실수를 패딩 없는 4차원 벡터로 읽는다.
+		bool Read(glm::vec4& destination);
+		// 파일의 x, y, z, w 실수를 패딩 없는 쿼터니언으로 읽는다.
+		bool Read(glm::quat& destination);
 		// PMX 인덱스 크기 규칙에 따라 가변 크기 인덱스를 읽는다.
 		bool ReadIndex(int32_t& index, uint8_t indexSize);
 		// 부호 있는 개수를 읽고 범위와 최소 필요 바이트를 검증한다.

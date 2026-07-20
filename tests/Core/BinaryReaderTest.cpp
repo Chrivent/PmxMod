@@ -40,4 +40,21 @@ namespace Chrivent {
 		EXPECT_EQ(index, -1);
 		EXPECT_TRUE(reader.Result());
 	}
+
+	TEST(BinaryReaderContract, ReadsGlmValuesByFileComponents) {
+		const float components[] = {1, 2, 3, 4, 5, 6, 7};
+		const std::string bytes(reinterpret_cast<const char*>(components), sizeof(components));
+		std::istringstream stream(bytes);
+		BinaryReader reader(stream);
+		glm::vec3 vector{};
+		glm::quat quaternion{};
+		ASSERT_TRUE(reader.Read(vector));
+		ASSERT_TRUE(reader.Read(quaternion));
+		EXPECT_EQ(vector, glm::vec3(1, 2, 3));
+		EXPECT_EQ(quaternion.x, 4);
+		EXPECT_EQ(quaternion.y, 5);
+		EXPECT_EQ(quaternion.z, 6);
+		EXPECT_EQ(quaternion.w, 7);
+		EXPECT_TRUE(reader.Result());
+	}
 }

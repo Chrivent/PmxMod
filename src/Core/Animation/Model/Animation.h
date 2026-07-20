@@ -10,6 +10,7 @@
 
 namespace Chrivent {
 	struct Morph;
+	class Model;
 	class Node;
 	class IkSolver;
 
@@ -38,24 +39,26 @@ namespace Chrivent {
 
 	// 본 하나에 적용할 변환 키 목록을 보관한다.
 	struct NodeAnimationTrack {
-		std::shared_ptr<Node> node;
+		Node* node = nullptr;
 		std::vector<NodeAnimationKey> keys;
 	};
 
 	// IK 대상 하나에 적용할 활성 키 목록을 보관한다.
 	struct IkAnimationTrack {
-		std::shared_ptr<IkSolver> ikSolver;
+		IkSolver* ikSolver = nullptr;
 		std::vector<IkAnimationKey> keys;
 	};
 
 	// 모프 하나에 적용할 가중치 키 목록을 보관한다.
 	struct MorphAnimationTrack {
-		std::shared_ptr<Morph> morph;
+		Morph* morph = nullptr;
 		std::vector<MorphAnimationKey> keys;
 	};
 
 	// 모델의 본, 모프와 IK 트랙을 시간에 따라 평가한다.
 	class Animation {
+		// 트랙의 비소유 대상 포인터가 유효하도록 대상 모델의 수명을 유지한다.
+		std::shared_ptr<Model> targetModel;
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;
 		std::vector<MorphAnimationTrack> morphTracks;
@@ -68,8 +71,10 @@ namespace Chrivent {
 		void EvaluateMorphs(float t, float animWeight) const;
 		
 	public:
-		Animation(std::vector<NodeAnimationTrack> nodes, std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
-			: nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
+		Animation(std::shared_ptr<Model> targetModel, std::vector<NodeAnimationTrack> nodes,
+			std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
+			: targetModel(std::move(targetModel)), nodeTracks(std::move(nodes)),
+			ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
 
 		const std::vector<NodeAnimationTrack>& GetNodeTracks() const { return nodeTracks; }
 		const std::vector<IkAnimationTrack>& GetIkTracks() const { return ikTracks; }

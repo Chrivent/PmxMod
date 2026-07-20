@@ -1,6 +1,7 @@
 ﻿#include "Core/Parser/BinaryReader.h"
 
 #include <sstream>
+#include <glm/detail/type_quat.hpp>
 
 namespace Chrivent {
 	BinaryReader::BinaryReader(std::istream& source) : stream(source), end(source.tellg()) {
@@ -50,6 +51,22 @@ namespace Chrivent {
 		if (!stream)
 			return Fail(ParseErrorCode::UnexpectedEnd, "바이너리 데이터를 읽지 못했습니다.");
 		return true;
+	}
+
+	bool BinaryReader::Read(glm::vec2& destination) {
+		return Read(destination.x) && Read(destination.y);
+	}
+
+	bool BinaryReader::Read(glm::vec3& destination) {
+		return Read(destination.x) && Read(destination.y) && Read(destination.z);
+	}
+
+	bool BinaryReader::Read(glm::vec4& destination) {
+		return Read(destination.x) && Read(destination.y) && Read(destination.z) && Read(destination.w);
+	}
+
+	bool BinaryReader::Read(glm::quat& destination) {
+		return Read(destination.x) && Read(destination.y) && Read(destination.z) && Read(destination.w);
 	}
 
 	bool BinaryReader::ReadIndex(int32_t& index, const uint8_t indexSize) {

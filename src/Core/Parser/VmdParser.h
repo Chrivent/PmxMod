@@ -9,15 +9,15 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
-	enum class ShadowType : uint8_t {
-		Off,
-		Mode1,
-		Mode2
-	};
-
 	// VMD 바이너리를 본, 모프, 카메라, 조명과 IK 키로 해석한다.
 	class VmdParser {
 	public:
+		enum class ShadowType : uint8_t {
+			Off,
+			Mode1,
+			Mode2
+		};
+
 		// VMD 서명과 대상 모델 이름을 보관한다.
 		struct VmdHeader {
 			char header[30];

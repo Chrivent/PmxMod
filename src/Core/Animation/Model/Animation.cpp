@@ -22,6 +22,8 @@ namespace Chrivent {
 	}
 
 	void Animation::Evaluate(const float t, const float animWeight) const {
+		if (!targetModel)
+			return;
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);
 		EvaluateMorphs(t, animWeight);
