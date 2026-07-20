@@ -4,7 +4,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 
@@ -17,8 +16,8 @@ namespace Chrivent {
 	// 한 프레임의 본 변환과 보간 곡선을 보관한다.
 	struct NodeAnimationKey {
 		uint32_t	frame = 0;
-		glm::vec3	translate;
-		glm::quat	rotate;
+		glm::vec3	translate = glm::vec3(0);
+		glm::quat	rotate = glm::quat(1, 0, 0, 0);
 		Bezier		txBezier;
 		Bezier		tyBezier;
 		Bezier		tzBezier;
@@ -28,13 +27,13 @@ namespace Chrivent {
 	// 한 프레임의 모프 가중치를 보관한다.
 	struct MorphAnimationKey {
 		uint32_t	frame = 0;
-		float	morphWeight;
+		float	morphWeight = 0;
 	};
 
 	// 한 프레임의 IK 표시와 활성 상태를 보관한다.
 	struct IkAnimationKey {
 		uint32_t	frame = 0;
-		bool	ikEnable;
+		bool	ikEnable = true;
 	};
 
 	// 본 하나에 적용할 변환 키 목록을 보관한다.
@@ -57,8 +56,8 @@ namespace Chrivent {
 
 	// 모델의 본, 모프와 IK 트랙을 시간에 따라 평가한다.
 	class Animation {
-		// 트랙의 비소유 대상 포인터가 유효하도록 대상 모델의 수명을 유지한다.
 		std::shared_ptr<Model> targetModel;
+		uint64_t targetModelRevision = 0;
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;
 		std::vector<MorphAnimationTrack> morphTracks;
@@ -71,10 +70,8 @@ namespace Chrivent {
 		void EvaluateMorphs(float t, float animWeight) const;
 		
 	public:
-		Animation(std::shared_ptr<Model> targetModel, std::vector<NodeAnimationTrack> nodes,
-			std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
-			: targetModel(std::move(targetModel)), nodeTracks(std::move(nodes)),
-			ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
+		Animation(std::shared_ptr<Model> model, std::vector<NodeAnimationTrack> nodes,
+			std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs);
 
 		const std::vector<NodeAnimationTrack>& GetNodeTracks() const { return nodeTracks; }
 		const std::vector<IkAnimationTrack>& GetIkTracks() const { return ikTracks; }

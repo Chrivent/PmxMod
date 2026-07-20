@@ -12,6 +12,7 @@
 
 namespace Chrivent {
 	class Animation;
+	class ModelMorph;
 	class ModelPhysicsData;
 
 	// 한 재질이 그릴 인덱스 범위와 재질 번호를 보관한다.
@@ -23,12 +24,12 @@ namespace Chrivent {
 
 	// PMX 버텍스의 본 인덱스, 가중치와 SDEF 보조 데이터를 보관한다.
 	struct Vertex {
-		WeightType	weightType;
-		int32_t		boneIndices[4];
-		float		boneWeights[4];
-		glm::vec3	sphericalDeformC;
-		glm::vec3	sphericalDeformR0;
-		glm::vec3	sphericalDeformR1;
+		WeightType	weightType = WeightType::BoneDeform1;
+		int32_t		boneIndices[4]{};
+		float		boneWeights[4]{1};
+		glm::vec3	sphericalDeformC = glm::vec3(0);
+		glm::vec3	sphericalDeformR0 = glm::vec3(0);
+		glm::vec3	sphericalDeformR1 = glm::vec3(0);
 	};
 
 	// 모프의 이름, 형식과 형식별 데이터 인덱스를 보관한다.
@@ -36,7 +37,7 @@ namespace Chrivent {
 		std::string	name;
 		float		weight = 0;
 		float		saveAnimWeight = 0;
-		MorphType	morphType;
+		MorphType	morphType = MorphType::Group;
 		size_t		dataIndex = 0;
 	};
 
@@ -67,8 +68,8 @@ namespace Chrivent {
 
 	// 병렬 버텍스 갱신 작업이 처리할 연속 범위를 보관한다.
 	struct UpdateRange {
-		size_t vertexOffset;
-		size_t vertexCount;
+		size_t vertexOffset = 0;
+		size_t vertexCount = 0;
 	};
 	
 	// 모델 패널에 표시할 본과 모프 그룹을 보관한다.
@@ -136,7 +137,10 @@ namespace Chrivent {
 
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
 	class Model {
+		std::unique_ptr<ModelMorph> morphEvaluator;
 		std::unique_ptr<ModelPhysicsData> physicsData;
+		// 내부 데이터 교체 뒤 기존 애니메이션 바인딩을 무효화하는 세대 번호다.
+		uint64_t structureRevision = 0;
 
 	public:
 		ModelInfoData		infoData;
@@ -148,12 +152,16 @@ namespace Chrivent {
 		Model();
 		~Model();
 
+		uint64_t GetStructureRevision() const { return structureRevision; }
+
 		// 모델에 활성화된 물리 월드가 있는지 확인한다.
 		bool HasPhysics() const;
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
 		void Reset();
 		// 두 모델의 전체 소유 상태를 교환한다.
 		void Swap(Model& other);
+		// 현재 모프 가중치를 모델 형상, 재질과 본 상태에 반영한다.
+		void ApplyMorphs();
 		// 런타임 정의 목록으로 모델 물리 월드, 강체와 조인트를 구성한다.
 		void InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
 			const std::vector<JointDefinition>& joints) const;

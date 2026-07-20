@@ -1,6 +1,7 @@
 ﻿#include "Core/Animation/Camera/CameraAnimationBuilder.h"
 
-#include <algorithm>
+#include "Core/Animation/AnimationKeySequence.h"
+
 #include <ranges>
 
 namespace Chrivent {
@@ -24,7 +25,7 @@ namespace Chrivent {
 		auto keys = vmdData.cameras
 			| std::views::transform(CreateCameraKey)
 			| std::ranges::to<std::vector>();
-		std::ranges::sort(keys, {}, &CameraAnimationKey::frame);
+		AnimationKeySequence::SortAndKeepLastKeyPerFrame(keys);
 		return keys;
 	}
 }

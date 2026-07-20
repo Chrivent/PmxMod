@@ -11,12 +11,12 @@ namespace Chrivent {
 	// IK 체인 본과 각도 제한 상태를 보관한다.
 	struct IkChain {
 		std::weak_ptr<Node>	node;
-		bool				enableAxisLimit;
-		glm::vec3			limitMax;
-		glm::vec3			limitMin;
-		glm::vec3			prevAngle;
-		glm::quat			saveIkRot;
-		float				planeModeAngle;
+		bool				enableAxisLimit = false;
+		glm::vec3			limitMax = glm::vec3(0);
+		glm::vec3			limitMin = glm::vec3(0);
+		glm::vec3			prevAngle = glm::vec3(0);
+		glm::quat			saveIkRot = glm::quat(1, 0, 0, 0);
+		float				planeModeAngle = 0;
 	};
 
 	// 반복 역기구학으로 목표 본을 향하도록 IK 체인을 계산한다.

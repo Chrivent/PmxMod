@@ -1,12 +1,12 @@
 ﻿#include "Core/Animation/Camera/CameraAnimation.h"
 
-#include "Core/Animation/AnimationKeySearch.h"
+#include "Core/Animation/AnimationKeySequence.h"
 
 namespace Chrivent {
 	const Camera& CameraAnimation::Evaluate(const float t) {
 		if (keys.empty())
 			return camera;
-		const auto it = AnimationKeySearch::FindUpperKey(keys, t);
+		const auto it = AnimationKeySequence::FindUpperKey(keys, t);
 		const auto& cur = it != keys.end() ? *it : keys.back();
 		camera.interest = cur.interest;
 		camera.rotate = cur.rotate;

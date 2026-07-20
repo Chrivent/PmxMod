@@ -26,14 +26,6 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelPose::ResetPhysics() const {
-		model.ResetPhysics();
-	}
-
-	void ModelPose::UpdatePhysicsAnimation(const float elapsed) const {
-		model.UpdatePhysics(elapsed);
-	}
-
 	void ModelPose::UpdateTransforms() const {
 		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
 			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->global * model.skeletonData.nodes[i]->inverseInit;

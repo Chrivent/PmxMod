@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Core/Animation/AnimationKeySequence.h"
 #include "Core/Animation/Model/Animation.h"
 
 #include <algorithm>
@@ -26,13 +27,13 @@ namespace Chrivent {
 		static std::map<std::string, MorphAnimationTrack> TakeMorphTrackMap(std::vector<MorphAnimationTrack>& tracks);
 
 		// 이름 기반 트랙 맵에서 연결된 트랙만 시간순으로 정렬해 목록으로 옮긴다.
-		template <typename TrackMap, typename TrackList, typename TimeMember>
-		static void FlushTrackMap(TrackMap& trackMap, TrackList& tracks, TimeMember timeMember) {
+		template <typename TrackMap, typename TrackList>
+		static void FlushTrackMap(TrackMap& trackMap, TrackList& tracks) {
 			tracks.clear();
 			for (auto& track : trackMap | std::views::values) {
 				if (!IsTrackBound(track))
 					continue;
-				std::ranges::sort(track.keys, {}, timeMember);
+				AnimationKeySequence::SortAndKeepLastKeyPerFrame(track.keys);
 				tracks.emplace_back(std::move(track));
 			}
 		}

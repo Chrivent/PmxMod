@@ -11,10 +11,10 @@ namespace Chrivent {
     // 한 프레임의 카메라 값과 보간 곡선을 보관한다.
     struct CameraAnimationKey {
         uint32_t	frame = 0;
-        glm::vec3	interest;
-        glm::vec3	rotate;
-        float		distance;
-        float		fov;
+        glm::vec3	interest = glm::vec3(0, 10, 0);
+        glm::vec3	rotate = glm::vec3(0);
+        float		distance = 50;
+        float		fov = glm::radians(30.0f);
         Bezier		ixBezier;
         Bezier		iyBezier;
         Bezier		izBezier;
@@ -32,8 +32,8 @@ namespace Chrivent {
         explicit CameraAnimation(std::vector<CameraAnimationKey> animationKeys) : keys(std::move(animationKeys)) {}
 
         const std::vector<CameraAnimationKey>& GetKeys() const { return keys; }
-
         uint32_t GetLastFrame() const { return keys.empty() ? 0 : keys.back().frame; }
+        
         // 지정한 시간의 카메라 키를 보간해 현재 카메라를 반환한다.
         const Camera& Evaluate(float t);
     };

@@ -8,7 +8,7 @@ target_sources(PmxModCore PRIVATE
         Parser/VmdParser.h Parser/VmdParser.cpp
         Parser/BinaryReader.h Parser/BinaryReader.cpp
 
-        Animation/AnimationKeySearch.h
+        Animation/AnimationKeySequence.h
         Animation/Bezier.h Animation/Bezier.cpp
 
         Animation/Model/Animation.h Animation/Model/Animation.cpp

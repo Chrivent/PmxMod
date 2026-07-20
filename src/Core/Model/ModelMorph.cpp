@@ -27,7 +27,7 @@ namespace Chrivent {
 		out.toonTextureFactor += val.toonTextureFactor * weight;
 	}
 
-	void ModelMorph::EvalMorph(const Morph* morph, const float morphWeight, std::vector<PendingMorph>& pendingMorphs) const {
+	void ModelMorph::EvalMorph(const Morph* morph, const float morphWeight) {
 		pendingMorphs.emplace_back(morph, morphWeight);
 		while (!pendingMorphs.empty()) {
 			const auto [currentMorph, currentWeight] = pendingMorphs.back();
@@ -132,13 +132,14 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelMorph::Update() const {
+	void ModelMorph::Update() {
 		BeginMorphMaterial();
-		std::vector<PendingMorph> pendingMorphs;
-		pendingMorphs.reserve(model.morphData.morphs.size());
+		pendingMorphs.clear();
+		if (pendingMorphs.capacity() < model.morphData.morphs.size())
+			pendingMorphs.reserve(model.morphData.morphs.size());
 		for (const auto& morph : model.morphData.morphs) {
 			if (std::abs(morph->weight) > std::numeric_limits<float>::epsilon())
-				EvalMorph(morph.get(), morph->weight, pendingMorphs);
+				EvalMorph(morph.get(), morph->weight);
 		}
 		EndMorphMaterial();
 	}

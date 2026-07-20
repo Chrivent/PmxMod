@@ -1,9 +1,15 @@
 ﻿#include "Core/Animation/Model/Animation.h"
 
-#include "Core/Animation/AnimationKeySearch.h"
+#include "Core/Animation/AnimationKeySequence.h"
 #include "Core/Model/Model.h"
 
 namespace Chrivent {
+	Animation::Animation(std::shared_ptr<Model> model, std::vector<NodeAnimationTrack> nodes,
+		std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
+		: targetModel(std::move(model)),
+		targetModelRevision(targetModel ? targetModel->GetStructureRevision() : 0),
+		nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
+
 	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;
 		for (const auto& [node, keys] : nodeTracks) {
@@ -22,7 +28,7 @@ namespace Chrivent {
 	}
 
 	void Animation::Evaluate(const float t, const float animWeight) const {
-		if (!targetModel)
+		if (!targetModel || targetModel->GetStructureRevision() != targetModelRevision)
 			return;
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);
@@ -38,7 +44,7 @@ namespace Chrivent {
 				node->animRotate = glm::quat(1, 0, 0, 0);
 				continue;
 			}
-			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
+			const auto it = AnimationKeySequence::FindUpperKey(keys, t);
 			const auto& cur = it != keys.end() ? *it : keys.back();
 			glm::vec3 vt = cur.translate;
 			glm::quat q  = cur.rotate;
@@ -69,7 +75,7 @@ namespace Chrivent {
 				ikSolver->enable = true;
 				continue;
 			}
-			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
+			const auto it = AnimationKeySequence::FindUpperKey(keys, t);
 			const bool enable = it != keys.begin() ? std::prev(it)->ikEnable : keys.begin()->ikEnable;
 			ikSolver->enable = animWeight < 1.0f ? ikSolver->baseAnimEnable : enable;
 		}
@@ -81,7 +87,7 @@ namespace Chrivent {
 				continue;
 			if (keys.empty())
 				continue;
-			const auto it = AnimationKeySearch::FindUpperKey(keys, t);
+			const auto it = AnimationKeySequence::FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
 				auto [frame0, weight0] = *std::prev(it);

@@ -83,41 +83,41 @@ namespace Chrivent {
 
 	// 버텍스 하나의 위치 모프 오프셋을 보관한다.
 	struct PositionMorph {
-		int32_t vertexIndex;
-		glm::vec3 position;
+		int32_t vertexIndex = -1;
+		glm::vec3 position = glm::vec3(0);
 	};
 
 	// 버텍스 하나의 UV 모프 오프셋을 보관한다.
 	struct UvMorph {
-		int32_t vertexIndex;
-		glm::vec4 uv;
+		int32_t vertexIndex = -1;
+		glm::vec4 uv = glm::vec4(0);
 	};
 
 	// 본 하나의 이동 및 회전 모프 값을 보관한다.
 	struct BoneMorph {
-		int32_t boneIndex;
-		glm::vec3 position;
-		glm::quat quaternion;
+		int32_t boneIndex = -1;
+		glm::vec3 position = glm::vec3(0);
+		glm::quat quaternion = glm::quat(1, 0, 0, 0);
 	};
 
 	// 재질 하나에 적용할 색상 및 텍스처 계수 모프를 보관한다.
 	struct MaterialMorph {
-		int32_t materialIndex;
-		OpType opType;
-		glm::vec4 diffuse;
-		glm::vec3 specular;
-		float specularPower;
-		glm::vec3 ambient;
-		glm::vec4 edgeColor;
-		float edgeSize;
-		glm::vec4 textureFactor;
-		glm::vec4 sphereTextureFactor;
-		glm::vec4 toonTextureFactor;
+		int32_t materialIndex = -1;
+		OpType opType = OpType::Mul;
+		glm::vec4 diffuse = glm::vec4(1);
+		glm::vec3 specular = glm::vec3(1);
+		float specularPower = 1;
+		glm::vec3 ambient = glm::vec3(1);
+		glm::vec4 edgeColor = glm::vec4(1);
+		float edgeSize = 1;
+		glm::vec4 textureFactor = glm::vec4(1);
+		glm::vec4 sphereTextureFactor = glm::vec4(1);
+		glm::vec4 toonTextureFactor = glm::vec4(1);
 	};
 
 	// 그룹이 참조하는 하위 모프와 가중치를 보관한다.
 	struct GroupMorph {
-		int32_t morphIndex;
-		float weight;
+		int32_t morphIndex = -1;
+		float weight = 0;
 	};
 }

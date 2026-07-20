@@ -7,6 +7,7 @@
 #include <string>
 #include <type_traits>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
 	enum class ParseErrorCode {

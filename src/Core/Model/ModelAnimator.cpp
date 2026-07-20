@@ -1,6 +1,5 @@
 ﻿#include "Core/Model/ModelAnimator.h"
 
-#include "Core/Model/ModelMorph.h"
 #include "Core/Model/ModelPose.h"
 #include "Core/Animation/Model/Animation.h"
 
@@ -56,8 +55,7 @@ namespace Chrivent {
 	}
 
 	void ModelAnimator::UpdateMorphAnimation() const {
-		const ModelMorph morph(model);
-		morph.Update();
+		model.ApplyMorphs();
 	}
 
 	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {

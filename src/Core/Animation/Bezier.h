@@ -5,8 +5,8 @@
 namespace Chrivent {
 	// 베지어 보간 곡선의 두 제어점을 보관한다.
 	struct BezierControlPoints {
-		glm::vec2 p1;
-		glm::vec2 p2;
+		glm::vec2 p1 = glm::vec2(0);
+		glm::vec2 p2 = glm::vec2(1);
 	};
 
 	// MMD 베지어 제어점으로 정규화된 보간값을 계산한다.

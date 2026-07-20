@@ -1,9 +1,12 @@
 ﻿#include "Core/Model/Model.h"
 
+#include "Core/Model/ModelMorph.h"
 #include "Core/Model/Physics/Physics.h"
 
 namespace Chrivent {
-	Model::Model() : physicsData(std::make_unique<ModelPhysicsData>()) {}
+	Model::Model()
+		: morphEvaluator(std::make_unique<ModelMorph>(*this)),
+		  physicsData(std::make_unique<ModelPhysicsData>()) {}
 	Model::~Model() = default;
 
 	bool Model::HasPhysics() const {
@@ -22,6 +25,12 @@ namespace Chrivent {
 		std::swap(skeletonData, other.skeletonData);
 		std::swap(morphData, other.morphData);
 		std::swap(physicsData, other.physicsData);
+		structureRevision++;
+		other.structureRevision++;
+	}
+
+	void Model::ApplyMorphs() {
+		morphEvaluator->Update();
 	}
 
 	void Model::InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,

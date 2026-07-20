@@ -36,7 +36,7 @@ namespace Chrivent {
 				continue;
 			keys.emplace_back(CreateNodeAnimationKey(motion));
 		}
-		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks, &NodeAnimationKey::frame);
+		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks);
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
@@ -58,7 +58,7 @@ namespace Chrivent {
 				ikEnable = enable != 0;
 			}
 		}
-		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks, &IkAnimationKey::frame);
+		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks);
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) {
@@ -78,7 +78,7 @@ namespace Chrivent {
 			keyFrame = frame;
 			morphWeight = weight;
 		}
-		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks, &MorphAnimationKey::frame);
+		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks);
 	}
 
 	void AnimationBuilder::Build(const VmdParser::VmdData& vmdData) {

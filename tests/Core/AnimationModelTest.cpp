@@ -1,9 +1,9 @@
 ﻿#include "Core/Animation/Camera/CameraAnimation.h"
+#include "Core/Animation/Camera/CameraAnimationBuilder.h"
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelLoader.h"
-#include "Core/Model/ModelMorph.h"
 #include "Core/Model/ModelSkinning.h"
 
 #include <gtest/gtest.h>
@@ -165,6 +165,59 @@ namespace Chrivent {
 		EXPECT_TRUE(nodeReference.expired());
 	}
 
+	TEST_F(AnimationModelContractTest, InvalidatesAnimationBindingsWhenModelStructureChanges) {
+		const auto model = std::make_shared<Model>();
+		auto node = std::make_shared<Node>();
+		node->name = "A";
+		model->skeletonData.nodes.emplace_back(node);
+		VmdParser::VmdData data{};
+		auto& motion = data.motions.emplace_back();
+		std::memcpy(motion.boneName, "A", 1);
+		motion.translate = glm::vec3(3, 0, 0);
+		motion.quaternion = glm::quat(1, 0, 0, 0);
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		model->Reset();
+		node->animTranslate = glm::vec3(7);
+		animation->Evaluate(0);
+		EXPECT_EQ(node->animTranslate, glm::vec3(7));
+	}
+
+	TEST_F(AnimationModelContractTest, KeepsTheLastModelKeyAtADuplicateFrame) {
+		const auto model = std::make_shared<Model>();
+		auto node = std::make_shared<Node>();
+		node->name = "A";
+		model->skeletonData.nodes.emplace_back(node);
+		VmdParser::VmdData data{};
+		for (const float x : {1.0f, 2.0f}) {
+			auto& motion = data.motions.emplace_back();
+			std::memcpy(motion.boneName, "A", 1);
+			motion.frame = 5;
+			motion.translate = glm::vec3(x, 0, 0);
+			motion.quaternion = glm::quat(1, 0, 0, 0);
+		}
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
+		ASSERT_EQ(animation->GetNodeTracks().front().keys.size(), 1);
+		EXPECT_EQ(animation->GetNodeTracks().front().keys.front().translate.x, 2.0f);
+	}
+
+	TEST_F(AnimationModelContractTest, KeepsTheLastCameraKeyAtADuplicateFrame) {
+		VmdParser::VmdData data{};
+		for (const float x : {1.0f, 2.0f}) {
+			auto& camera = data.cameras.emplace_back();
+			camera.frame = 5;
+			camera.interest = glm::vec3(x, 0, 0);
+			camera.viewAngle = 30;
+		}
+		const auto keys = CameraAnimationBuilder::Build(data);
+		ASSERT_EQ(keys.size(), 1);
+		EXPECT_EQ(keys.front().interest.x, 2.0f);
+	}
+
 	TEST_F(AnimationModelContractTest, ReusesAnimationBuilderWithoutKeepingTakenTracks) {
 		auto model = std::make_shared<Model>();
 		auto node = std::make_shared<Node>();
@@ -219,8 +272,7 @@ namespace Chrivent {
 		groupMorph->dataIndex = 0;
 		groupMorph->weight = 0.5f;
 		model.morphData.morphs.emplace_back(std::move(groupMorph));
-		const ModelMorph morph(model);
-		morph.Update();
+		model.ApplyMorphs();
 		EXPECT_EQ(model.morphData.morphPositions.front(), glm::vec3(0.5f, 0, 0));
 	}
 
@@ -281,5 +333,19 @@ namespace Chrivent {
 			solver.Solve();
 			EXPECT_TRUE(IsFinite(chainNode->ikRotate));
 		}
+	}
+
+	TEST_F(AnimationModelContractTest, UpdatesDeepChildTransformsWithoutTraversalStorage) {
+		const auto root = std::make_shared<Node>();
+		const auto child = std::make_shared<Node>();
+		const auto grandchild = std::make_shared<Node>();
+		root->AddChild(child);
+		child->AddChild(grandchild);
+		root->global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
+		child->local = glm::translate(glm::mat4(1), glm::vec3(0, 2, 0));
+		grandchild->local = glm::translate(glm::mat4(1), glm::vec3(0, 0, 3));
+		root->UpdateChildTransform();
+		EXPECT_EQ(glm::vec3(child->global[3]), glm::vec3(1, 2, 0));
+		EXPECT_EQ(glm::vec3(grandchild->global[3]), glm::vec3(1, 2, 3));
 	}
 }
