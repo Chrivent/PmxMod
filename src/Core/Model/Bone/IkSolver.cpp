@@ -6,24 +6,6 @@
 #include <limits>
 
 namespace Chrivent {
-	bool IkSolver::NormalizeDirection(const glm::vec3& value, glm::vec3& direction) {
-		const float lengthSquared = glm::dot(value, value);
-		if (!std::isfinite(lengthSquared) || lengthSquared <= std::numeric_limits<float>::epsilon())
-			return false;
-		direction = value / std::sqrt(lengthSquared);
-		return true;
-	}
-
-	bool IkSolver::ResolveRotationAxis(const glm::vec3& from, const glm::vec3& to, glm::vec3& axis) {
-		const glm::vec3 cross = glm::cross(from, to);
-		if (NormalizeDirection(cross, axis))
-			return true;
-		if (glm::dot(from, to) > 0.0f)
-			return false;
-		const glm::vec3 fallback = std::abs(from.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
-		return NormalizeDirection(glm::cross(from, fallback), axis);
-	}
-
 	void IkSolver::SolveCore(uint32_t iteration) {
 		auto ikNodePtr = ikNode.lock();
 		auto ikTargetPtr = ikTarget.lock();
@@ -224,6 +206,24 @@ namespace Chrivent {
 			}
 		}
 		return r;
+	}
+	
+	bool IkSolver::NormalizeDirection(const glm::vec3& value, glm::vec3& direction) {
+		const float lengthSquared = glm::dot(value, value);
+		if (!std::isfinite(lengthSquared) || lengthSquared <= std::numeric_limits<float>::epsilon())
+			return false;
+		direction = value / std::sqrt(lengthSquared);
+		return true;
+	}
+
+	bool IkSolver::ResolveRotationAxis(const glm::vec3& from, const glm::vec3& to, glm::vec3& axis) {
+		const glm::vec3 cross = glm::cross(from, to);
+		if (NormalizeDirection(cross, axis))
+			return true;
+		if (glm::dot(from, to) > 0.0f)
+			return false;
+		const glm::vec3 fallback = std::abs(from.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+		return NormalizeDirection(glm::cross(from, fallback), axis);
 	}
 
 	void IkSolver::Solve() {
