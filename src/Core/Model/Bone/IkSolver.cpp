@@ -6,6 +6,24 @@
 #include <limits>
 
 namespace Chrivent {
+	bool IkSolver::NormalizeDirection(const glm::vec3& value, glm::vec3& direction) {
+		const float lengthSquared = glm::dot(value, value);
+		if (!std::isfinite(lengthSquared) || lengthSquared <= std::numeric_limits<float>::epsilon())
+			return false;
+		direction = value / std::sqrt(lengthSquared);
+		return true;
+	}
+
+	bool IkSolver::ResolveRotationAxis(const glm::vec3& from, const glm::vec3& to, glm::vec3& axis) {
+		const glm::vec3 cross = glm::cross(from, to);
+		if (NormalizeDirection(cross, axis))
+			return true;
+		if (glm::dot(from, to) > 0.0f)
+			return false;
+		const glm::vec3 fallback = std::abs(from.x) < 0.9f ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+		return NormalizeDirection(glm::cross(from, fallback), axis);
+	}
+
 	void IkSolver::SolveCore(uint32_t iteration) {
 		auto ikNodePtr = ikNode.lock();
 		auto ikTargetPtr = ikTarget.lock();
@@ -41,16 +59,21 @@ namespace Chrivent {
 			auto invChain = glm::inverse(chainNodePtr->global);
 			auto chainIkPos = glm::vec3(invChain * glm::vec4(ikPos, 1));
 			auto chainTargetPos = glm::vec3(invChain * glm::vec4(targetPos, 1));
-			auto chainIkVec = glm::normalize(chainIkPos);
-			auto chainTargetVec = glm::normalize(chainTargetPos);
+			glm::vec3 chainIkVec;
+			glm::vec3 chainTargetVec;
+			if (!NormalizeDirection(chainIkPos, chainIkVec) ||
+				!NormalizeDirection(chainTargetPos, chainTargetVec))
+				continue;
 			auto dot = glm::dot(chainTargetVec, chainIkVec);
 			dot = glm::clamp(dot, -1.0f, 1.0f);
 			float angle = std::acos(dot);
 			if (angle < std::numeric_limits<float>::epsilon())
 				continue;
 			angle = glm::clamp(angle, -limitAngle, limitAngle);
-			auto cross = glm::normalize(glm::cross(chainTargetVec, chainIkVec));
-			auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, cross);
+			glm::vec3 rotationAxis;
+			if (!ResolveRotationAxis(chainTargetVec, chainIkVec, rotationAxis))
+				continue;
+			auto rot = glm::rotate(glm::quat(1, 0, 0, 0), angle, rotationAxis);
 			auto animRot = chainNodePtr->animRotate * chainNodePtr->rotate;
 			auto chainRot = chainNodePtr->ikRotate * animRot * rot;
 			if (chain.enableAxisLimit) {
@@ -91,8 +114,11 @@ namespace Chrivent {
 		auto invChain = glm::inverse(chainNodePtr->global);
 		auto chainIkPos = glm::vec3(invChain * glm::vec4(ikPos, 1));
 		auto chainTargetPos = glm::vec3(invChain * glm::vec4(targetPos, 1));
-		auto chainIkVec = glm::normalize(chainIkPos);
-		auto chainTargetVec = glm::normalize(chainTargetPos);
+		glm::vec3 chainIkVec;
+		glm::vec3 chainTargetVec;
+		if (!NormalizeDirection(chainIkPos, chainIkVec) ||
+			!NormalizeDirection(chainTargetPos, chainTargetVec))
+			return;
 		auto dot = glm::dot(chainTargetVec, chainIkVec);
 		dot = glm::clamp(dot, -1.0f, 1.0f);
 		float angle = std::acos(dot);

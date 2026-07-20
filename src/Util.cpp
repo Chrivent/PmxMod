@@ -18,14 +18,14 @@ namespace Chrivent {
             return utf8;
         const int sourceLength = static_cast<int>(w.size());
         const int need = WideCharToMultiByte(
-            CP_UTF8, 0,
+            CP_UTF8, WC_ERR_INVALID_CHARS,
             w.data(), sourceLength,
             nullptr, 0, nullptr, nullptr);
         if (need <= 0)
             return utf8;
         utf8.resize(need);
         const int written = WideCharToMultiByte(
-            CP_UTF8, 0,
+            CP_UTF8, WC_ERR_INVALID_CHARS,
             w.data(), sourceLength,
             utf8.data(), need, nullptr, nullptr);
         if (written != need)

@@ -21,6 +21,11 @@ namespace Chrivent {
 
 	// 반복 역기구학으로 목표 본을 향하도록 IK 체인을 계산한다.
 	class IkSolver {
+		// 길이가 충분한 벡터만 단위 방향으로 변환한다.
+		static bool NormalizeDirection(const glm::vec3& value, glm::vec3& direction);
+		// 두 방향의 외적이 퇴화한 경우에도 사용할 수 있는 회전축을 계산한다.
+		static bool ResolveRotationAxis(const glm::vec3& from, const glm::vec3& to, glm::vec3& axis);
+
 		// 단일 반복 단계에서 일반 IK 체인을 계산한다.
 		void SolveCore(uint32_t iteration);
 		// 축 제한이 평면 모드인 체인 요소를 계산한다.

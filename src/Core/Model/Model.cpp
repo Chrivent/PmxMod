@@ -1,29 +1,18 @@
 ﻿#include "Core/Model/Model.h"
 
-namespace Chrivent {
-	void ModelPhysicsData::Reset() {
-		if (physics) {
-			for (const auto& joint : joints) {
-				if (joint && joint->GetConstraint())
-					physics->RemoveConstraint(*joint->GetConstraint());
-			}
-			for (const auto& rigidBody : rigidBodies) {
-				if (rigidBody && rigidBody->GetRigidBody())
-					physics->RemoveRigidBody(*rigidBody->GetRigidBody());
-			}
-		}
-		joints.clear();
-		rigidBodies.clear();
-		physics.reset();
-	}
+#include "Core/Model/Physics/Physics.h"
 
-	Model::~Model() {
-		Reset();
+namespace Chrivent {
+	Model::Model() : physicsData(std::make_unique<ModelPhysicsData>()) {}
+	Model::~Model() = default;
+
+	bool Model::HasPhysics() const {
+		return physicsData && physicsData->physics;
 	}
 
 	void Model::Reset() {
 		geometryData.updateRanges.clear();
-		physicsData.Reset();
+		physicsData->Reset();
 		infoData.modelName.clear();
 		infoData.englishModelName.clear();
 		infoData.comment.clear();

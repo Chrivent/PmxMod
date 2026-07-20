@@ -3,10 +3,6 @@
 #include "Core/Model/ModelTypes.h"
 #include "Core/Model/Bone/Node.h"
 #include "Core/Model/Bone/IkSolver.h"
-#include "Core/Model/Physics/Physics.h"
-#include "Core/Model/Physics/RigidBody.h"
-#include "Core/Model/Physics/Joint.h"
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -16,6 +12,7 @@
 
 namespace Chrivent {
 	class Animation;
+	class ModelPhysicsData;
 
 	// 한 재질이 그릴 인덱스 범위와 재질 번호를 보관한다.
 	struct SubMesh {
@@ -137,16 +134,6 @@ namespace Chrivent {
 		std::vector<glm::vec4>						morphUVs;
 	};
 
-	// 모델에 연결된 강체와 조인트를 관리한다.
-	struct ModelPhysicsData {
-		std::unique_ptr<Physics>					physics;
-		std::vector<std::unique_ptr<RigidBody>>		rigidBodies;
-		std::vector<std::unique_ptr<Joint>>			joints;
-
-		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
-		void Reset();
-	};
-
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
 	class Model {
 	public:
@@ -155,10 +142,13 @@ namespace Chrivent {
 		ModelMaterialData	materialData;
 		ModelSkeletonData	skeletonData;
 		ModelMorphData		morphData;
-		ModelPhysicsData	physicsData;
+		std::unique_ptr<ModelPhysicsData> physicsData;
 		
+		Model();
 		~Model();
 
+		// 모델에 활성화된 물리 월드가 있는지 확인한다.
+		bool HasPhysics() const;
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
 		void Reset();
 		// 두 모델의 전체 소유 상태를 교환한다.

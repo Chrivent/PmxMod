@@ -380,7 +380,7 @@ namespace Chrivent {
 		void ReadJoint(BinaryReader& reader);
 		// 소프트바디 정보를 읽는다.
 		void ReadSoftBody(BinaryReader& reader);
-		// 읽은 PMX 데이터의 인덱스와 상호 참조를 검증한다.
+		// 파싱을 마친 PMX 데이터의 숫자, 인덱스와 상호 참조 계약을 검증한다.
 		void ValidateData(BinaryReader& reader) const;
 		// 이전에 읽은 PMX 데이터를 초기화한다.
 		void Clear();

@@ -125,9 +125,9 @@ namespace Chrivent {
 			}
 			return true;
 		};
-		const auto IsValidInterpolation = [](const auto& interpolation) {
-			for (const uint8_t value : interpolation) {
-				if (value > 127)
+		const auto IsValidInterpolation = [](const auto& interpolation, const std::size_t valueCount) {
+			for (std::size_t index = 0; index < valueCount; index++) {
+				if (interpolation[index] > 127)
 					return false;
 			}
 			return true;
@@ -135,7 +135,7 @@ namespace Chrivent {
 		for (const auto& motion : data.motions) {
 			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
 			if (!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
-				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation)) {
+				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation, 16)) {
 				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 숫자 또는 보간 값이 올바르지 않습니다.");
 				return;
 			}
@@ -148,7 +148,8 @@ namespace Chrivent {
 		}
 		for (const auto& camera : data.cameras) {
 			if (!std::isfinite(camera.distance) || !IsFiniteVector(camera.interest) ||
-				!IsFiniteVector(camera.rotate) || !IsValidInterpolation(camera.interpolation)) {
+				!IsFiniteVector(camera.rotate) || !IsValidInterpolation(camera.interpolation, 24) ||
+				camera.viewAngle == 0 || camera.viewAngle >= 180) {
 				reader.Fail(ParseErrorCode::InvalidValue, "카메라 키의 숫자 또는 보간 값이 올바르지 않습니다.");
 				return;
 			}

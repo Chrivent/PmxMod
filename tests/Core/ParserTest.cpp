@@ -96,6 +96,42 @@ namespace Chrivent {
 			return bytes;
 		}
 
+		static std::string BuildPmxWithZeroLengthNormal() {
+			std::string bytes;
+			AppendBytes(bytes, "PMX ", 4);
+			Append(bytes, 2.0f);
+			constexpr uint8_t headerData[] = {8, 1, 0, 1, 1, 1, 1, 1, 1};
+			AppendBytes(bytes, reinterpret_cast<const char*>(headerData), sizeof(headerData));
+			constexpr int32_t emptyCount = 0;
+			for (int stringIndex = 0; stringIndex < 4; stringIndex++)
+				Append(bytes, emptyCount);
+			constexpr int32_t vertexCount = 1;
+			Append(bytes, vertexCount);
+			Append(bytes, glm::vec3(0));
+			Append(bytes, glm::vec3(0));
+			Append(bytes, glm::vec2(0));
+			Append(bytes, WeightType::BoneDeform1);
+			constexpr uint8_t boneIndex = 0;
+			Append(bytes, boneIndex);
+			Append(bytes, 1.0f);
+			Append(bytes, emptyCount);
+			Append(bytes, emptyCount);
+			Append(bytes, emptyCount);
+			constexpr int32_t boneCount = 1;
+			Append(bytes, boneCount);
+			Append(bytes, emptyCount);
+			Append(bytes, emptyCount);
+			Append(bytes, glm::vec3(0));
+			constexpr uint8_t missingBoneIndex = 0xFF;
+			Append(bytes, missingBoneIndex);
+			Append(bytes, emptyCount);
+			Append(bytes, BoneFlags{});
+			Append(bytes, glm::vec3(0));
+			for (int section = 0; section < 4; section++)
+				Append(bytes, emptyCount);
+			return bytes;
+		}
+
 		static std::string BuildVmdWithInvalidShowFlag() {
 			std::string bytes = BuildMinimalVmd();
 			constexpr uint32_t emptyCount = 0;
@@ -123,6 +159,44 @@ namespace Chrivent {
 			Append(bytes, invalidWeight);
 			return bytes;
 		}
+
+		static std::string BuildVmdWithInvalidCameraFov() {
+			std::string bytes = BuildMinimalVmd();
+			constexpr uint32_t emptyCount = 0;
+			Append(bytes, emptyCount);
+			constexpr uint32_t cameraCount = 1;
+			Append(bytes, cameraCount);
+			constexpr uint32_t frame = 0;
+			Append(bytes, frame);
+			Append(bytes, 0.0f);
+			Append(bytes, glm::vec3(0));
+			Append(bytes, glm::vec3(0));
+			constexpr uint8_t interpolation[24]{};
+			AppendBytes(bytes, reinterpret_cast<const char*>(interpolation), sizeof(interpolation));
+			constexpr uint32_t invalidViewAngle = 180;
+			Append(bytes, invalidViewAngle);
+			constexpr uint8_t perspective = 0;
+			Append(bytes, perspective);
+			return bytes;
+		}
+
+		static std::string BuildVmdWithNonCanonicalInterpolationPadding() {
+			std::string bytes(50, '\0');
+			constexpr char signature[] = "Vocaloid Motion Data 0002";
+			std::memcpy(bytes.data(), signature, sizeof(signature) - 1);
+			constexpr uint32_t motionCount = 1;
+			Append(bytes, motionCount);
+			constexpr char boneName[15]{};
+			AppendBytes(bytes, boneName, sizeof(boneName));
+			constexpr uint32_t frame = 0;
+			Append(bytes, frame);
+			Append(bytes, glm::vec3(0));
+			Append(bytes, glm::quat(1, 0, 0, 0));
+			uint8_t interpolation[64]{};
+			interpolation[31] = 255;
+			AppendBytes(bytes, reinterpret_cast<const char*>(interpolation), sizeof(interpolation));
+			return bytes;
+		}
 	};
 
 	TEST_F(ParserContractTest, RejectsMissingBoneWithNonZeroWeight) {
@@ -141,6 +215,15 @@ namespace Chrivent {
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
 		EXPECT_TRUE(parser.GetData().materials.empty());
+	}
+
+	TEST_F(ParserContractTest, AcceptsFiniteZeroLengthVertexNormals) {
+		std::istringstream stream(BuildPmxWithZeroLengthNormal());
+		PmxParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_TRUE(result);
+		ASSERT_EQ(parser.GetData().vertices.size(), 1);
+		EXPECT_EQ(parser.GetData().vertices.front().normal, glm::vec3(0));
 	}
 
 	TEST_F(ParserContractTest, ReadsMinimalVmdWithoutOptionalSections) {
@@ -168,6 +251,24 @@ namespace Chrivent {
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
 		EXPECT_TRUE(parser.GetData().morphs.empty());
+	}
+
+	TEST_F(ParserContractTest, RejectsInvalidCameraFov) {
+		std::istringstream stream(BuildVmdWithInvalidCameraFov());
+		VmdParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
+		EXPECT_TRUE(parser.GetData().cameras.empty());
+	}
+
+	TEST_F(ParserContractTest, AcceptsUnusedBoneInterpolationPaddingAbove127) {
+		std::istringstream stream(BuildVmdWithNonCanonicalInterpolationPadding());
+		VmdParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_TRUE(result);
+		ASSERT_EQ(parser.GetData().motions.size(), 1);
+		EXPECT_EQ(parser.GetData().motions.front().interpolation[31], 255);
 	}
 
 	TEST_F(ParserContractTest, ConvertsFixedLengthShiftJisWithoutNullTerminator) {

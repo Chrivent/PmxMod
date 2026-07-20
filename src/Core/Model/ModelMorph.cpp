@@ -28,22 +28,31 @@ namespace Chrivent {
 	}
 
 	void ModelMorph::EvalMorph(const Morph* morph, const float morphWeight) const {
-		if (std::abs(morphWeight) <= std::numeric_limits<float>::epsilon())
-			return;
-		const MorphType type = morph->morphType;
-		if (type == MorphType::Position)
-			MorphPosition(model.morphData.positionMorphs[morph->dataIndex], morphWeight);
-		else if (type == MorphType::Uv)
-			MorphUv(model.morphData.uvMorphs[morph->dataIndex], morphWeight);
-		else if (type == MorphType::Material)
-			MorphMaterial(model.morphData.materialMorphs[morph->dataIndex], morphWeight);
-		else if (type == MorphType::Bone)
-			MorphBone(model.morphData.boneMorphs[morph->dataIndex], morphWeight);
-		else if (type == MorphType::Group) {
-			for (const auto& [morphIndex, weight] : model.morphData.groupMorphs[morph->dataIndex]) {
-				if (morphIndex == -1)
-					continue;
-				EvalMorph(model.morphData.morphs[morphIndex].get(), weight * morphWeight);
+		std::vector<std::pair<const Morph*, float>> pendingMorphs;
+		pendingMorphs.emplace_back(morph, morphWeight);
+		while (!pendingMorphs.empty()) {
+			const auto [currentMorph, currentWeight] = pendingMorphs.back();
+			pendingMorphs.pop_back();
+			if (std::abs(currentWeight) <= std::numeric_limits<float>::epsilon())
+				continue;
+			const MorphType type = currentMorph->morphType;
+			if (type == MorphType::Position)
+				MorphPosition(model.morphData.positionMorphs[currentMorph->dataIndex], currentWeight);
+			else if (type == MorphType::Uv)
+				MorphUv(model.morphData.uvMorphs[currentMorph->dataIndex], currentWeight);
+			else if (type == MorphType::Material)
+				MorphMaterial(model.morphData.materialMorphs[currentMorph->dataIndex], currentWeight);
+			else if (type == MorphType::Bone)
+				MorphBone(model.morphData.boneMorphs[currentMorph->dataIndex], currentWeight);
+			else if (type == MorphType::Group) {
+				const auto& children = model.morphData.groupMorphs[currentMorph->dataIndex];
+				for (std::size_t index = children.size(); index > 0; index--) {
+					const auto& [morphIndex, weight] = children[index - 1];
+					if (morphIndex != -1) {
+						pendingMorphs.emplace_back(
+							model.morphData.morphs[morphIndex].get(), weight * currentWeight);
+					}
+				}
 			}
 		}
 	}

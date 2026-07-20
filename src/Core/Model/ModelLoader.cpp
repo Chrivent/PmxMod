@@ -1,11 +1,13 @@
 ﻿#include "Core/Model/ModelLoader.h"
 
 #include "Core/Model/ModelPose.h"
+#include "Core/Model/Physics/Physics.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/PmxParser.h"
 #include "Util.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <sstream>
@@ -91,12 +93,20 @@ namespace Chrivent {
 		model.geometryData.normals.reserve(vertexCount);
 		model.geometryData.uvs.reserve(vertexCount);
 		model.geometryData.vertexBoneInfos.reserve(vertexCount);
-		model.geometryData.bboxMax = glm::vec3(-std::numeric_limits<float>::max());
-		model.geometryData.bboxMin = glm::vec3(std::numeric_limits<float>::max());
+		if (vertexCount == 0) {
+			model.geometryData.bboxMin = glm::vec3(0);
+			model.geometryData.bboxMax = glm::vec3(0);
+		} else {
+			model.geometryData.bboxMax = glm::vec3(-std::numeric_limits<float>::max());
+			model.geometryData.bboxMin = glm::vec3(std::numeric_limits<float>::max());
+		}
 		for (const auto& v : pmxData.vertices) {
 			glm::vec3 pos = v.position * invZ;
 			model.geometryData.positions.push_back(pos);
-			model.geometryData.normals.push_back(v.normal * invZ);
+			const glm::vec3 normal = v.normal * invZ;
+			const float normalLengthSquared = glm::dot(normal, normal);
+			model.geometryData.normals.push_back(normalLengthSquared > std::numeric_limits<float>::epsilon()
+				? normal / std::sqrt(normalLengthSquared) : glm::vec3(0));
 			model.geometryData.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
 			Vertex vtxBoneInfo{};
 			const uint8_t influenceCount = v.weightType == WeightType::BoneDeform1 ? 1
@@ -348,8 +358,10 @@ namespace Chrivent {
 					std::vector<BoneMorph> boneMorphData;
 					boneMorphData.reserve(morph.boneMorph.size());
 					for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
-						auto rot = Util::InvZ(glm::mat3_cast(quaternion));
-						boneMorphData.push_back({ boneIndex, position * invZ, glm::quat_cast(rot) });
+						const auto rot = Util::InvZ(glm::mat3_cast(glm::normalize(quaternion)));
+						boneMorphData.push_back({
+							boneIndex, position * invZ, glm::normalize(glm::quat_cast(rot))
+						});
 					}
 					model.morphData.boneMorphs.emplace_back(std::move(boneMorphData));
 					break;
@@ -404,25 +416,25 @@ namespace Chrivent {
 	void ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
 		if (pmxData.rigidBodies.empty())
 			return;
-		model.physicsData.physics = std::make_unique<Physics>();
+		model.physicsData->physics = std::make_unique<Physics>();
 		for (const auto& pmxRigidBody : pmxData.rigidBodies) {
 			std::shared_ptr<Node> node;
 			if (pmxRigidBody.boneIndex != -1)
 				node = model.skeletonData.nodes[pmxRigidBody.boneIndex];
 			auto rb = std::make_unique<RigidBody>(CreateRigidBodyDefinition(pmxRigidBody), node);
-			model.physicsData.physics->AddRigidBody(
+			model.physicsData->physics->AddRigidBody(
 				*rb->GetRigidBody(), rb->GetGroup(), rb->GetGroupMask());
-			model.physicsData.rigidBodies.emplace_back(std::move(rb));
+			model.physicsData->rigidBodies.emplace_back(std::move(rb));
 		}
 		for (const auto& joint : pmxData.joints) {
 			if (joint.rigidbodyAIndex != -1 &&
 				joint.rigidbodyBIndex != -1 &&
 				joint.rigidbodyAIndex != joint.rigidbodyBIndex) {
 				auto j = std::make_unique<Joint>(CreateJointDefinition(joint),
-					*model.physicsData.rigidBodies[joint.rigidbodyAIndex],
-					*model.physicsData.rigidBodies[joint.rigidbodyBIndex]);
-				model.physicsData.physics->AddConstraint(*j->GetConstraint());
-				model.physicsData.joints.emplace_back(std::move(j));
+					*model.physicsData->rigidBodies[joint.rigidbodyAIndex],
+					*model.physicsData->rigidBodies[joint.rigidbodyBIndex]);
+				model.physicsData->physics->AddConstraint(*j->GetConstraint());
+				model.physicsData->joints.emplace_back(std::move(j));
 			}
 		}
 	}

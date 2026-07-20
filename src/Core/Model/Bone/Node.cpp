@@ -1,5 +1,7 @@
 ﻿#include "Core/Model/Bone/Node.h"
 
+#include <vector>
+
 namespace Chrivent {
 	void Node::AddChild(const std::shared_ptr<Node>& childNode) {
 		childNode->parent = shared_from_this();
@@ -49,10 +51,24 @@ namespace Chrivent {
 	}
 
 	void Node::UpdateChildTransform() const {
+		std::vector<std::shared_ptr<Node>> pendingNodes;
 		auto childNode = child.lock();
 		while (childNode) {
-			childNode->UpdateGlobalTransform();
+			pendingNodes.emplace_back(childNode);
 			childNode = childNode->next.lock();
+		}
+		while (!pendingNodes.empty()) {
+			const auto node = std::move(pendingNodes.back());
+			pendingNodes.pop_back();
+			if (const auto parentNode = node->parent.lock())
+				node->global = parentNode->global * node->local;
+			else
+				node->global = node->local;
+			auto descendant = node->child.lock();
+			while (descendant) {
+				pendingNodes.emplace_back(descendant);
+				descendant = descendant->next.lock();
+			}
 		}
 	}
 

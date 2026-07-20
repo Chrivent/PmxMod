@@ -1186,7 +1186,7 @@ namespace Chrivent {
         };
         std::cout << std::fixed << std::setprecision(3);
         const auto physicsModelCount = std::ranges::count_if(instances, [](const auto& instance) {
-            return instance->GetModel().physicsData.physics != nullptr;
+            return instance->GetModel().HasPhysics();
         });
         std::cout << "benchmark_renderer=" << ResolveRendererName(currentRendererType) << '\n';
         std::cout << "benchmark_models=" << instances.size() << '\n';

@@ -1,6 +1,8 @@
 ﻿#include "Core/Model/ModelSkinning.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <thread>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -106,7 +108,11 @@ namespace Chrivent {
 			}
 			if (weightType != WeightType::SphericalDeform) {
 				updatePos = glm::vec3(m * glm::vec4(position + morphPos, 1.0f));
-				updateNormal = glm::normalize(glm::mat3(m) * normal);
+				const glm::vec3 transformedNormal = glm::mat3(m) * normal;
+				const float normalLengthSquared = glm::dot(transformedNormal, transformedNormal);
+				updateNormal = std::isfinite(normalLengthSquared) &&
+					normalLengthSquared > std::numeric_limits<float>::epsilon()
+					? transformedNormal / std::sqrt(normalLengthSquared) : glm::vec3(0);
 			}
 			updateUv = uv + glm::vec2(morphUv.x, morphUv.y);
 		}

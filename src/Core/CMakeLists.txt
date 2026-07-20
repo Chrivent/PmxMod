@@ -46,9 +46,9 @@ target_include_directories(PmxModCore PUBLIC
 
 target_link_libraries(PmxModCore PUBLIC
         glm::glm
+        PRIVATE
         BulletDynamics
         BulletCollision
         LinearMath
-        PRIVATE
         PmxMod::ProjectWarnings
 )

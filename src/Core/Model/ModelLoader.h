@@ -7,6 +7,9 @@
 #include <string>
 
 namespace Chrivent {
+	struct JointDefinition;
+	struct RigidBodyDefinition;
+
 	enum class ModelLoadErrorCode {
 		Parse,
 		UnsupportedFeature

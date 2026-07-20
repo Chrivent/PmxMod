@@ -3,6 +3,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Util.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 
@@ -21,8 +22,14 @@ namespace Chrivent {
 				return;
 			}
 			std::wstring utf16String(bufferSize / sizeof(char16_t), L'\0');
-			if (reader.Read(utf16String.data(), bufferSize))
-				*val = Util::WStringToUtf8(utf16String);
+			if (reader.Read(utf16String.data(), bufferSize)) {
+				auto converted = Util::WStringToUtf8(utf16String);
+				if (converted.empty()) {
+					reader.Fail(ParseErrorCode::InvalidValue, "UTF-16 문자열을 UTF-8로 변환하지 못했습니다.");
+					return;
+				}
+				*val = std::move(converted);
+			}
 		} else {
 			val->resize(bufferSize);
 			reader.Read(val->data(), bufferSize);
@@ -139,7 +146,7 @@ namespace Chrivent {
 
 	void PmxParser::ReadFace(BinaryReader& reader) {
 		int32_t indexCount = 0;
-		if (!reader.ReadCount(indexCount, data.header.vertexIndexSize))
+		if (!reader.ReadCount(indexCount, data.header.vertexIndexSize, 15'000'000))
 			return;
 		if (indexCount % 3 != 0) {
 			reader.Fail(ParseErrorCode::InvalidCount, "면 인덱스 개수는 3의 배수여야 합니다.");
@@ -185,7 +192,7 @@ namespace Chrivent {
 
 	void PmxParser::ReadTexture(BinaryReader& reader) {
 		int32_t texCount = 0;
-		if (!reader.ReadCount(texCount, sizeof(int32_t)))
+		if (!reader.ReadCount(texCount, sizeof(int32_t), 100'000))
 			return;
 		data.textures.resize(texCount);
 		std::string utf8;
@@ -198,7 +205,11 @@ namespace Chrivent {
 
 	void PmxParser::ReadMaterial(BinaryReader& reader) {
 		int32_t matCount = 0;
-		if (!reader.ReadCount(matCount, 1))
+		const std::size_t minimumMaterialBytes = sizeof(int32_t) * 4 +
+			sizeof(glm::vec4) * 2 + sizeof(glm::vec3) * 2 + sizeof(float) * 2 +
+			sizeof(DrawModeFlags) + data.header.textureIndexSize * 2 +
+			sizeof(SphereMode) + sizeof(ToonMode) + sizeof(uint8_t);
+		if (!reader.ReadCount(matCount, minimumMaterialBytes, 100'000))
 			return;
 		data.materials.resize(matCount);
 		for (auto& [name, englishName, diffuse, specular,
@@ -242,7 +253,9 @@ namespace Chrivent {
 
 	void PmxParser::ReadBone(BinaryReader& reader) {
 		int32_t boneCount = 0;
-		if (!reader.ReadCount(boneCount, 1))
+		const std::size_t minimumBoneBytes = sizeof(int32_t) * 3 + sizeof(glm::vec3) +
+			data.header.boneIndexSize * 2 + sizeof(BoneFlags);
+		if (!reader.ReadCount(boneCount, minimumBoneBytes, 500'000))
 			return;
 		data.bones.resize(boneCount);
 		for (auto& [name, englishName, position, parentBoneIndex,
@@ -279,7 +292,8 @@ namespace Chrivent {
 				reader.Read(ikIterationCount);
 				reader.Read(ikLimit);
 				int32_t linkCount = 0;
-				if (!reader.ReadCount(linkCount, data.header.boneIndexSize + sizeof(uint8_t)))
+				if (!reader.ReadCount(linkCount,
+					data.header.boneIndexSize + sizeof(uint8_t), 1'000'000))
 					return;
 				ikLinks.resize(linkCount);
 				for (auto& [ikBoneIndex,
@@ -303,7 +317,9 @@ namespace Chrivent {
 
 	void PmxParser::ReadMorph(BinaryReader& reader) {
 		int32_t morphCount = 0;
-		if (!reader.ReadCount(morphCount, 1))
+		constexpr std::size_t minimumMorphBytes = sizeof(int32_t) * 3 +
+			sizeof(ControlPanel) + sizeof(MorphType);
+		if (!reader.ReadCount(morphCount, minimumMorphBytes, 100'000))
 			return;
 		data.morphs.resize(morphCount);
 		for (auto& [name, englishName, controlPanel, morphType,
@@ -320,7 +336,34 @@ namespace Chrivent {
 				return;
 			}
 			int32_t dataCount = 0;
-			if (!reader.ReadCount(dataCount, 1))
+			std::size_t minimumDataBytes = 1;
+			switch (morphType) {
+				case MorphType::Position:
+					minimumDataBytes = data.header.vertexIndexSize + sizeof(glm::vec3);
+					break;
+				case MorphType::Uv:
+				case MorphType::AddUv1:
+				case MorphType::AddUv2:
+				case MorphType::AddUv3:
+				case MorphType::AddUv4:
+					minimumDataBytes = data.header.vertexIndexSize + sizeof(glm::vec4);
+					break;
+				case MorphType::Bone:
+					minimumDataBytes = data.header.boneIndexSize + sizeof(glm::vec3) + sizeof(glm::quat);
+					break;
+				case MorphType::Material:
+					minimumDataBytes = data.header.materialIndexSize + sizeof(OpType) +
+						sizeof(glm::vec4) * 5 + sizeof(glm::vec3) * 2 + sizeof(float) * 2;
+					break;
+				case MorphType::Group:
+				case MorphType::Flip:
+					minimumDataBytes = data.header.morphIndexSize + sizeof(float);
+					break;
+				case MorphType::Impulse:
+					minimumDataBytes = data.header.rigidbodyIndexSize + sizeof(uint8_t) + sizeof(glm::vec3) * 2;
+					break;
+			}
+			if (!reader.ReadCount(dataCount, minimumDataBytes, 5'000'000))
 				return;
 			if (morphType == MorphType::Position) {
 				positionMorph.resize(dataCount);
@@ -403,7 +446,8 @@ namespace Chrivent {
 
 	void PmxParser::ReadDisplayFrame(BinaryReader& reader) {
 		int32_t displayFrameCount = 0;
-		if (!reader.ReadCount(displayFrameCount, 1))
+		constexpr std::size_t minimumDisplayFrameBytes = sizeof(int32_t) * 3 + sizeof(FrameType);
+		if (!reader.ReadCount(displayFrameCount, minimumDisplayFrameBytes, 100'000))
 			return;
 		data.displayFrames.resize(displayFrameCount);
 		for (auto& [name, englishName,
@@ -416,7 +460,9 @@ namespace Chrivent {
 				return;
 			}
 			int32_t targetCount = 0;
-			if (!reader.ReadCount(targetCount, 1))
+			const std::size_t minimumTargetBytes = sizeof(TargetType) +
+				(std::min)(data.header.boneIndexSize, data.header.morphIndexSize);
+			if (!reader.ReadCount(targetCount, minimumTargetBytes, 1'000'000))
 				return;
 			targets.resize(targetCount);
 			for (auto& [type, index] : targets) {
@@ -435,7 +481,10 @@ namespace Chrivent {
 
 	void PmxParser::ReadRigidbody(BinaryReader& reader) {
 		int32_t rbCount = 0;
-		if (!reader.ReadCount(rbCount, 1))
+		const std::size_t minimumRigidBodyBytes = sizeof(int32_t) * 2 +
+			data.header.boneIndexSize + sizeof(uint8_t) + sizeof(uint16_t) +
+			sizeof(Shape) + sizeof(glm::vec3) * 3 + sizeof(float) * 5 + sizeof(Operation);
+		if (!reader.ReadCount(rbCount, minimumRigidBodyBytes, 100'000))
 			return;
 		data.rigidBodies.resize(rbCount);
 		for (auto& [name, englishName, boneIndex, group, collisionGroup,
@@ -466,7 +515,9 @@ namespace Chrivent {
 
 	void PmxParser::ReadJoint(BinaryReader& reader) {
 		int32_t jointCount = 0;
-		if (!reader.ReadCount(jointCount, 1))
+		const std::size_t minimumJointBytes = sizeof(int32_t) * 2 + sizeof(JointType) +
+			data.header.rigidbodyIndexSize * 2 + sizeof(glm::vec3) * 8;
+		if (!reader.ReadCount(jointCount, minimumJointBytes, 100'000))
 			return;
 		data.joints.resize(jointCount);
 		for (auto& [name, englishName, type, rigidbodyAIndex, rigidbodyBIndex,
@@ -495,7 +546,7 @@ namespace Chrivent {
 
 	void PmxParser::ReadSoftBody(BinaryReader& reader) {
 		int32_t sbCount = 0;
-		if (!reader.ReadCount(sbCount, 1))
+		if (!reader.ReadCount(sbCount, 128, 10'000))
 			return;
 		data.softBodies.resize(sbCount);
 		for (auto& [name, englishName, type, materialIndex,
@@ -550,7 +601,8 @@ namespace Chrivent {
 				return;
 			}
 			int32_t arCount = 0;
-			if (!reader.ReadCount(arCount, data.header.rigidbodyIndexSize + data.header.vertexIndexSize + 1))
+			if (!reader.ReadCount(arCount,
+				data.header.rigidbodyIndexSize + data.header.vertexIndexSize + 1, 1'000'000))
 				return;
 			anchorRigidBodies.resize(arCount);
 			for (auto& [rigidBodyIndex,
@@ -565,7 +617,7 @@ namespace Chrivent {
 				}
 			}
 			int32_t pvCount = 0;
-			if (!reader.ReadCount(pvCount, data.header.vertexIndexSize))
+			if (!reader.ReadCount(pvCount, data.header.vertexIndexSize, 5'000'000))
 				return;
 			pinVertexIndices.resize(pvCount);
 			for (auto& pv : pinVertexIndices)

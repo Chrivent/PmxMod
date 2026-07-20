@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include "Core/Model/Physics/Joint.h"
+#include "Core/Model/Physics/RigidBody.h"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -54,5 +57,18 @@ namespace Chrivent {
 		void Step(float elapsed) const;
 		// 강체에 남아 있는 broadphase 충돌 쌍을 제거한다.
 		void CleanCollisionPairs(btRigidBody& rigidBody) const;
+	};
+
+	// 모델의 Bullet 물리 월드, 강체와 조인트를 함께 소유하고 등록 수명을 관리한다.
+	class ModelPhysicsData {
+	public:
+		std::unique_ptr<Physics> physics;
+		std::vector<std::unique_ptr<RigidBody>> rigidBodies;
+		std::vector<std::unique_ptr<Joint>> joints;
+
+		~ModelPhysicsData();
+
+		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
+		void Reset();
 	};
 }

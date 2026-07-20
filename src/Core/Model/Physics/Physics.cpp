@@ -22,6 +22,8 @@ namespace Chrivent {
 	}
 
 	void Physics::AddRigidBody(btRigidBody& rigidBody, const uint16_t group, const uint16_t groupMask) const {
+		if (group >= 16)
+			return;
 		world->addRigidBody(&rigidBody, 1u << group, groupMask);
 	}
 
@@ -42,7 +44,7 @@ namespace Chrivent {
 	}
 
 	void Physics::CleanCollisionPairs(btRigidBody& rigidBody) const {
-		if (const auto cache = world->getPairCache()) {
+		if (const auto cache = world->getPairCache(); cache && rigidBody.getBroadphaseHandle()) {
 			const auto worldDispatcher = world->getDispatcher();
 			cache->cleanProxyFromPairs(rigidBody.getBroadphaseHandle(), worldDispatcher);
 		}
@@ -66,5 +68,25 @@ namespace Chrivent {
 		filter->AddNonFilterProxy(groundRigidBody->getBroadphaseProxy());
 		world->getPairCache()->setOverlapFilterCallback(filter.get());
 		filterCallback = std::move(filter);
+	}
+
+	ModelPhysicsData::~ModelPhysicsData() {
+		Reset();
+	}
+
+	void ModelPhysicsData::Reset() {
+		if (physics) {
+			for (const auto& joint : joints) {
+				if (joint && joint->GetConstraint())
+					physics->RemoveConstraint(*joint->GetConstraint());
+			}
+			for (const auto& rigidBody : rigidBodies) {
+				if (rigidBody && rigidBody->GetRigidBody())
+					physics->RemoveRigidBody(*rigidBody->GetRigidBody());
+			}
+		}
+		joints.clear();
+		rigidBodies.clear();
+		physics.reset();
 	}
 }
