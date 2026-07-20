@@ -1,6 +1,7 @@
 ﻿#include "Core/Parser/BinaryReader.h"
 
 #include <gtest/gtest.h>
+#include <glm/gtc/quaternion.hpp>
 #include <sstream>
 
 namespace Chrivent {
