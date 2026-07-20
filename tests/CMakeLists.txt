@@ -49,6 +49,7 @@ gtest_discover_tests(PmxModViewerApiTests)
 
 add_executable(PmxModCoreTests
         Core/BinaryReaderTest.cpp
+        Core/TextEncodingTest.cpp
         Core/ParserTest.cpp
         Core/AnimationModelTest.cpp
 )

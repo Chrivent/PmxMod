@@ -49,7 +49,7 @@ namespace Chrivent {
 					const auto& [morphIndex, weight] = children[index - 1];
 					if (morphIndex != -1) {
 						pendingMorphs.emplace_back(
-							model.morphData.morphs[morphIndex].get(), weight * currentWeight);
+							model.morphData.GetMorphs()[morphIndex].get(), weight * currentWeight);
 					}
 				}
 			}
@@ -125,7 +125,7 @@ namespace Chrivent {
 
 	void ModelMorph::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
 		for (const auto& [boneIndex, position, quaternion] : morphData) {
-			auto* node = model.skeletonData.nodes[boneIndex].get();
+			auto* node = model.skeletonData.GetNodes()[boneIndex].get();
 			node->translate += position * weight;
 			const glm::quat q = glm::slerp(glm::quat(1,0,0,0), quaternion, weight);
 			node->rotate = glm::normalize(q * node->rotate);
@@ -135,9 +135,10 @@ namespace Chrivent {
 	void ModelMorph::Update() {
 		BeginMorphMaterial();
 		pendingMorphs.clear();
-		if (pendingMorphs.capacity() < model.morphData.morphs.size())
-			pendingMorphs.reserve(model.morphData.morphs.size());
-		for (const auto& morph : model.morphData.morphs) {
+		const auto& morphs = model.morphData.GetMorphs();
+		if (pendingMorphs.capacity() < morphs.size())
+			pendingMorphs.reserve(morphs.size());
+		for (const auto& morph : morphs) {
 			if (std::abs(morph->weight) > std::numeric_limits<float>::epsilon())
 				EvalMorph(morph.get(), morph->weight);
 		}

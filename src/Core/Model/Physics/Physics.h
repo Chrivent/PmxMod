@@ -4,6 +4,7 @@
 #include "Core/Model/Physics/RigidBody.h"
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <vector>
 #include <btBulletDynamicsCommon.h>
@@ -64,6 +65,10 @@ namespace Chrivent {
 		std::vector<std::unique_ptr<RigidBody>> rigidBodies;
 		std::vector<std::unique_ptr<Joint>> joints;
 
+		// 강체와 조인트 정의가 Bullet 생성 조건과 모델 참조 범위를 만족하는지 검증한다.
+		static std::expected<void, PhysicsError> ValidateDefinitions(
+			const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+			const std::vector<JointDefinition>& jointDefinitions, std::size_t nodeCount);
 		// 강체 변환을 본에 반영하고 루트 노드의 글로벌 변환을 갱신한다.
 		void ReflectTransforms(const std::vector<std::shared_ptr<Node>>& nodes) const;
 
@@ -73,7 +78,7 @@ namespace Chrivent {
 		bool IsInitialized() const { return physics != nullptr; }
 
 		// 런타임 정의와 모델 노드로 물리 월드, 강체와 조인트를 구성한다.
-		void Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+		std::expected<void, PhysicsError> Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
 			const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::shared_ptr<Node>>& nodes);
 		// 현재 모델 포즈 기준으로 강체 상태와 충돌 쌍을 초기화한다.
 		void ResetSimulation(const std::vector<std::shared_ptr<Node>>& nodes) const;

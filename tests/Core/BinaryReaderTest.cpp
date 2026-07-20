@@ -57,4 +57,15 @@ namespace Chrivent {
 		EXPECT_EQ(quaternion.w, 7);
 		EXPECT_TRUE(reader.Result());
 	}
+
+	TEST(BinaryReaderContract, OwnsTheSectionNameUsedByLaterErrors) {
+		std::istringstream stream;
+		BinaryReader reader(stream);
+		reader.SetSection(std::string("temporary section"));
+		uint32_t value = 0;
+		EXPECT_FALSE(reader.Read(value));
+		const auto result = reader.Result();
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().section, "temporary section");
+	}
 }

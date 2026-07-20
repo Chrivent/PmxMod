@@ -29,20 +29,20 @@ namespace Chrivent {
 		other.structureRevision++;
 	}
 
-	void Model::ApplyMorphs() {
+	void Model::AccumulateMorphs() const {
 		morphEvaluator->Update();
 	}
 
-	void Model::InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
+	std::expected<void, PhysicsError> Model::InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
 		const std::vector<JointDefinition>& joints) const {
-		physicsData->Initialize(rigidBodies, joints, skeletonData.nodes);
+		return physicsData->Initialize(rigidBodies, joints, skeletonData.GetNodes());
 	}
 
 	void Model::ResetPhysics() const {
-		physicsData->ResetSimulation(skeletonData.nodes);
+		physicsData->ResetSimulation(skeletonData.GetNodes());
 	}
 
 	void Model::UpdatePhysics(const float elapsed) const {
-		physicsData->UpdateSimulation(elapsed, skeletonData.nodes);
+		physicsData->UpdateSimulation(elapsed, skeletonData.GetNodes());
 	}
 }

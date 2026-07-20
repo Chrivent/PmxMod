@@ -1,7 +1,7 @@
 ﻿#include "Core/Model/Physics/RigidBody.h"
 
 #include "Core/Model/Bone/Node.h"
-#include "Util.h"
+#include "Core/Model/ModelCoordinateConverter.h"
 
 namespace Chrivent {
 	RigidBody::RigidBody(const RigidBodyDefinition& definition, const std::shared_ptr<Node>& nodePtr) {
@@ -28,7 +28,7 @@ namespace Chrivent {
 		const auto rz = glm::rotate(glm::mat4(1), definition.rotate.z, glm::vec3(0, 0, 1));
 		const glm::mat4 rotMat = ry * rx * rz;
 		const glm::mat4 translateMat = glm::translate(glm::mat4(1), definition.translate);
-		const glm::mat4 rbMat = Util::InvZ(translateMat * rotMat);
+		const glm::mat4 rbMat = ModelCoordinateConverter::ConvertZAxis(translateMat * rotMat);
 		offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
 		kinematicMotionState = nodePtr
 			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
@@ -106,6 +106,6 @@ namespace Chrivent {
 		const btTransform transform = rigidBody->getCenterOfMassTransform();
 		glm::mat4 mat;
 		transform.getOpenGLMatrix(&mat[0][0]);
-		return Util::InvZ(mat);
+		return ModelCoordinateConverter::ConvertZAxis(mat);
 	}
 }

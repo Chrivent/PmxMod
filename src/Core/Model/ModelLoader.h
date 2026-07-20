@@ -9,7 +9,8 @@
 namespace Chrivent {
 	enum class ModelLoadErrorCode {
 		Parse,
-		UnsupportedFeature
+		UnsupportedFeature,
+		Physics
 	};
 
 	// 모델 구성 실패의 종류와 사용자에게 전달할 메시지를 보관한다.
@@ -52,7 +53,7 @@ namespace Chrivent {
 		// 순환 참조가 있는 그룹 모프를 끊어 무한 재귀를 막는다.
 		void FixInfiniteGroupMorphs() const;
 		// PMX 강체와 조인트를 물리 월드에 등록한다.
-		void LoadPhysics(const PmxParser::PmxData& pmxData) const;
+		std::expected<void, ModelLoadError> LoadPhysics(const PmxParser::PmxData& pmxData) const;
 
 	public:
 		explicit ModelLoader(Model& model) : model(model) {}

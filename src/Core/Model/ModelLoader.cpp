@@ -1,9 +1,9 @@
 ﻿#include "Core/Model/ModelLoader.h"
 
+#include "Core/Model/ModelCoordinateConverter.h"
 #include "Core/Model/ModelPose.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/PmxParser.h"
-#include "Util.h"
 
 #include <algorithm>
 #include <cmath>
@@ -250,11 +250,11 @@ namespace Chrivent {
 			m.specular = mat.specular;
 			m.ambient = mat.ambient;
 			m.spTextureMode = SphereMode::None;
-			m.bothFace = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::BothFace);
-			m.edgeFlag = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::DrawEdge) ? 1 : 0;
-			m.groundShadow = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::GroundShadow);
-			m.shadowCaster = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::CastSelfShadow);
-			m.shadowReceiver = Util::HasFlag(mat.drawMode, PmxParser::DrawModeFlags::ReceiveSelfShadow);
+			m.bothFace = PmxParser::ContainsFlag(mat.drawMode, PmxParser::DrawModeFlags::BothFace);
+			m.edgeFlag = PmxParser::ContainsFlag(mat.drawMode, PmxParser::DrawModeFlags::DrawEdge) ? 1 : 0;
+			m.groundShadow = PmxParser::ContainsFlag(mat.drawMode, PmxParser::DrawModeFlags::GroundShadow);
+			m.shadowCaster = PmxParser::ContainsFlag(mat.drawMode, PmxParser::DrawModeFlags::CastSelfShadow);
+			m.shadowReceiver = PmxParser::ContainsFlag(mat.drawMode, PmxParser::DrawModeFlags::ReceiveSelfShadow);
 			m.edgeSize = mat.edgeSize;
 			m.edgeColor = mat.edgeColor;
 			if (mat.textureIndex != -1)
@@ -287,20 +287,21 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadNodes(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
-		model.skeletonData.nodes.reserve(pmxData.bones.size());
+		model.skeletonData.ReserveNodes(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
 			auto node = std::make_shared<Node>();
-			node->index = static_cast<uint32_t>(model.skeletonData.nodes.size());
+			node->index = static_cast<uint32_t>(model.skeletonData.GetNodes().size());
 			node->name = bone.name;
-			model.skeletonData.nodes.emplace_back(std::move(node));
+			model.skeletonData.AddNode(std::move(node));
 		}
+		const auto& nodes = model.skeletonData.GetNodes();
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
-			auto* node = model.skeletonData.nodes[i].get();
+			auto* node = nodes[i].get();
 			glm::vec3 localPos = bone.position;
 			if (bone.parentBoneIndex != -1) {
-				auto parentNode = model.skeletonData.nodes[bone.parentBoneIndex];
-				parentNode->AddChild(model.skeletonData.nodes[i]);
+				auto parentNode = nodes[bone.parentBoneIndex];
+				parentNode->AddChild(nodes[i]);
 				localPos -= pmxData.bones[bone.parentBoneIndex].position;
 			}
 			localPos.z *= -1;
@@ -308,15 +309,15 @@ namespace Chrivent {
 			node->global = glm::translate(glm::mat4(1), bone.position * invZ);
 			node->inverseInit = glm::inverse(node->global);
 			node->deformDepth = bone.deformDepth;
-			bool deformAfterPhysics = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::DeformAfterPhysics);
+			bool deformAfterPhysics = PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::DeformAfterPhysics);
 			node->isDeformAfterPhysics = deformAfterPhysics;
-			bool appendRotateEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendRotate);
-			bool appendTranslateEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendTranslate);
+			bool appendRotateEnabled = PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::AppendRotate);
+			bool appendTranslateEnabled = PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::AppendTranslate);
 			node->isAppendRotate = appendRotateEnabled;
 			node->isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
-				bool appendLocalEnabled = Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::AppendLocal);
-				auto appendNodePtr = model.skeletonData.nodes[bone.appendBoneIndex];
+				bool appendLocalEnabled = PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::AppendLocal);
+				auto appendNodePtr = nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
 				node->isAppendLocal = appendLocalEnabled;
 				node->appendNode = appendNodePtr;
@@ -326,10 +327,10 @@ namespace Chrivent {
 			node->initRotate = node->rotate;
 			node->initScale = node->scale;
 		}
-		model.skeletonData.transforms.resize(model.skeletonData.nodes.size());
+		model.skeletonData.transforms.resize(nodes.size());
 		model.skeletonData.sortedNodes.clear();
-		model.skeletonData.sortedNodes.reserve(model.skeletonData.nodes.size());
-		for (auto& node : model.skeletonData.nodes)
+		model.skeletonData.sortedNodes.reserve(nodes.size());
+		for (const auto& node : nodes)
 			model.skeletonData.sortedNodes.emplace_back(*node);
 		std::ranges::stable_sort(model.skeletonData.sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
@@ -337,14 +338,14 @@ namespace Chrivent {
 		});
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
-			if (Util::HasFlag(bone.boneFlag, PmxParser::BoneFlags::Ik)) {
+			if (PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::Ik)) {
 				auto solver = std::make_shared<IkSolver>();
-				solver->ikNode = model.skeletonData.nodes[i];
-				model.skeletonData.nodes[i]->ikSolver = solver;
-				solver->ikTarget = model.skeletonData.nodes[bone.ikTargetBoneIndex];
+				solver->ikNode = nodes[i];
+				nodes[i]->ikSolver = solver;
+				solver->ikTarget = nodes[bone.ikTargetBoneIndex];
 				for (const auto& [ikBoneIndex, enableLimit,
 					limitMin, limitMax] : bone.ikLinks) {
-					auto linkNode = model.skeletonData.nodes[ikBoneIndex];
+					auto linkNode = nodes[ikBoneIndex];
 					IkChain chain{};
 					chain.node = linkNode;
 					chain.enableAxisLimit = enableLimit;
@@ -356,7 +357,7 @@ namespace Chrivent {
 				}
 				solver->iterateCount = bone.ikIterationCount;
 				solver->limitAngle = bone.ikLimit;
-				model.skeletonData.ikSolvers.emplace_back(std::move(solver));
+				model.skeletonData.AddIkSolver(std::move(solver));
 			}
 		}
 		model.skeletonData.displayFrames.reserve(pmxData.displayFrames.size());
@@ -422,7 +423,8 @@ namespace Chrivent {
 					std::vector<BoneMorph> boneMorphData;
 					boneMorphData.reserve(morph.boneMorph.size());
 					for (const auto& [boneIndex, position, quaternion] : morph.boneMorph) {
-						const auto rot = Util::InvZ(glm::mat3_cast(glm::normalize(quaternion)));
+						const auto rot = ModelCoordinateConverter::ConvertZAxis(
+							glm::mat3_cast(glm::normalize(quaternion)));
 						boneMorphData.push_back({
 							boneIndex, position * invZ, glm::normalize(glm::quat_cast(rot))
 						});
@@ -442,22 +444,23 @@ namespace Chrivent {
 				default:
 					break;
 			}
-			model.morphData.morphs.emplace_back(std::move(m));
+			model.morphData.AddMorph(std::move(m));
 		}
 	}
 
 	void ModelLoader::FixInfiniteGroupMorphs() const {
-		std::vector<uint8_t> visitStates(model.morphData.morphs.size());
+		const auto& morphs = model.morphData.GetMorphs();
+		std::vector<uint8_t> visitStates(morphs.size());
 		std::vector<std::pair<int32_t, size_t>> traversalStack;
-		for (size_t rootIndex = 0; rootIndex < model.morphData.morphs.size(); rootIndex++) {
-			const auto* rootMorph = model.morphData.morphs[rootIndex].get();
+		for (size_t rootIndex = 0; rootIndex < morphs.size(); rootIndex++) {
+			const auto* rootMorph = morphs[rootIndex].get();
 			if (rootMorph->morphType != MorphType::Group || visitStates[rootIndex] != 0)
 				continue;
 			visitStates[rootIndex] = 1;
 			traversalStack.emplace_back(static_cast<int32_t>(rootIndex), 0);
 			while (!traversalStack.empty()) {
 				auto& [morphIndex, nextChildIndex] = traversalStack.back();
-				const auto* morph = model.morphData.morphs[morphIndex].get();
+				const auto* morph = morphs[morphIndex].get();
 				auto& children = model.morphData.groupMorphs[morph->dataIndex];
 				if (nextChildIndex >= children.size()) {
 					visitStates[morphIndex] = 2;
@@ -467,7 +470,7 @@ namespace Chrivent {
 				auto& childIndex = children[nextChildIndex++].morphIndex;
 				if (childIndex < 0)
 					continue;
-				const auto* childMorph = model.morphData.morphs[childIndex].get();
+				const auto* childMorph = morphs[childIndex].get();
 				if (childMorph->morphType != MorphType::Group)
 					continue;
 				if (visitStates[childIndex] == 1) {
@@ -482,7 +485,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)
@@ -491,7 +494,16 @@ namespace Chrivent {
 		joints.reserve(pmxData.joints.size());
 		for (const auto& joint : pmxData.joints)
 			joints.emplace_back(CreateJointDefinition(joint));
-		model.InitializePhysics(rigidBodies, joints);
+		const auto physicsResult = model.InitializePhysics(rigidBodies, joints);
+		if (!physicsResult) {
+			const auto& [code, definitionIndex, message] = physicsResult.error();
+			const std::string item = code == PhysicsErrorCode::InvalidRigidBody ? "강체 " : "조인트 ";
+			return std::unexpected(ModelLoadError{
+				ModelLoadErrorCode::Physics,
+				item + std::to_string(definitionIndex) + ": " + message
+			});
+		}
+		return {};
 	}
 
 	std::expected<void, ModelLoadError> ModelLoader::Load(const std::filesystem::path& filepath,
@@ -522,7 +534,9 @@ namespace Chrivent {
 		loadedModelLoader.LoadNodes(pmxData, invZ);
 		loadedModelLoader.LoadMorphs(pmxData, invZ);
 		loadedModelLoader.FixInfiniteGroupMorphs();
-		loadedModelLoader.LoadPhysics(pmxData);
+		const auto physicsResult = loadedModelLoader.LoadPhysics(pmxData);
+		if (!physicsResult)
+			return std::unexpected(physicsResult.error());
 		const ModelPose pose(loadedModel);
 		pose.ResetPhysics();
 		model.Swap(loadedModel);

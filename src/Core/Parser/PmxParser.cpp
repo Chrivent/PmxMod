@@ -1,7 +1,7 @@
 ﻿#include "Core/Parser/PmxParser.h"
 
 #include "Core/Parser/BinaryReader.h"
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 
 #include <algorithm>
 #include <cmath>
@@ -23,7 +23,7 @@ namespace Chrivent {
 			}
 			std::wstring utf16String(bufferSize / sizeof(char16_t), L'\0');
 			if (reader.Read(utf16String.data(), bufferSize)) {
-				auto converted = Util::WStringToUtf8(utf16String);
+				auto converted = TextEncoding::WideToUtf8(utf16String);
 				if (converted.empty()) {
 					reader.Fail(ParseErrorCode::InvalidValue, "UTF-16 문자열을 UTF-8로 변환하지 못했습니다.");
 					return;
@@ -269,24 +269,24 @@ namespace Chrivent {
 			reader.ReadIndex(parentBoneIndex, data.header.boneIndexSize);
 			reader.Read(deformDepth);
 			reader.Read(boneFlag);
-			if (!Util::HasFlag(boneFlag, BoneFlags::TargetShowMode))
+			if (!ContainsFlag(boneFlag, BoneFlags::TargetShowMode))
 				reader.Read(positionOffset);
 			else
 				reader.ReadIndex(linkBoneIndex, data.header.boneIndexSize);
-			if (Util::HasFlag(boneFlag, BoneFlags::AppendRotate) ||
-				Util::HasFlag(boneFlag, BoneFlags::AppendTranslate)) {
+			if (ContainsFlag(boneFlag, BoneFlags::AppendRotate) ||
+				ContainsFlag(boneFlag, BoneFlags::AppendTranslate)) {
 				reader.ReadIndex(appendBoneIndex, data.header.boneIndexSize);
 				reader.Read(appendWeight);
 			}
-			if (Util::HasFlag(boneFlag, BoneFlags::FixedAxis))
+			if (ContainsFlag(boneFlag, BoneFlags::FixedAxis))
 				reader.Read(fixedAxis);
-			if (Util::HasFlag(boneFlag, BoneFlags::LocalAxis)) {
+			if (ContainsFlag(boneFlag, BoneFlags::LocalAxis)) {
 				reader.Read(localXAxis);
 				reader.Read(localZAxis);
 			}
-			if (Util::HasFlag(boneFlag, BoneFlags::DeformOuterParent))
+			if (ContainsFlag(boneFlag, BoneFlags::DeformOuterParent))
 				reader.Read(keyValue);
-			if (Util::HasFlag(boneFlag, BoneFlags::Ik)) {
+			if (ContainsFlag(boneFlag, BoneFlags::Ik)) {
 				reader.ReadIndex(ikTargetBoneIndex, data.header.boneIndexSize);
 				reader.Read(ikIterationCount);
 				reader.Read(ikLimit);
@@ -726,12 +726,12 @@ namespace Chrivent {
 				return;
 			}
 			if (!IsIndexValid(bone.parentBoneIndex, data.bones.size()) ||
-				(Util::HasFlag(bone.boneFlag, BoneFlags::TargetShowMode) &&
+				(ContainsFlag(bone.boneFlag, BoneFlags::TargetShowMode) &&
 				 !IsIndexValid(bone.linkBoneIndex, data.bones.size())) ||
-				((Util::HasFlag(bone.boneFlag, BoneFlags::AppendRotate) ||
-				  Util::HasFlag(bone.boneFlag, BoneFlags::AppendTranslate)) &&
+				((ContainsFlag(bone.boneFlag, BoneFlags::AppendRotate) ||
+				  ContainsFlag(bone.boneFlag, BoneFlags::AppendTranslate)) &&
 				 !IsIndexValid(bone.appendBoneIndex, data.bones.size())) ||
-				(Util::HasFlag(bone.boneFlag, BoneFlags::Ik) &&
+				(ContainsFlag(bone.boneFlag, BoneFlags::Ik) &&
 				 !IsIndexValid(bone.ikTargetBoneIndex, data.bones.size(), false))) {
 				reader.Fail(ParseErrorCode::InvalidIndex, "본 계층 또는 IK 참조가 올바르지 않습니다.");
 				return;

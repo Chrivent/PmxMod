@@ -6,8 +6,8 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
 	enum class ParseErrorCode {
@@ -31,8 +31,8 @@ namespace Chrivent {
 	// 바이너리 스트림을 범위 검사하며 읽고 첫 번째 오류를 기록한다.
 	class BinaryReader {
 		std::istream& stream;
-		std::streampos end;
-		const char* section = "file";
+		std::streampos end = 0;
+		std::string section = "file";
 		std::optional<ParseError> error;
 
 		// 현재 스트림 위치를 파일 시작 기준 바이트 오프셋으로 반환한다.
@@ -42,7 +42,7 @@ namespace Chrivent {
 		explicit BinaryReader(std::istream& source);
 
 		// 이후 오류에 기록할 파서 구간 이름을 지정한다.
-		void SetSection(const char* value) { section = value; }
+		void SetSection(std::string value) { section = std::move(value); }
 		// 아직 읽지 않은 바이트가 남아 있는지 확인한다.
 		bool HasMore() const;
 		// 현재 위치부터 파일 끝까지 남은 바이트 수를 반환한다.

@@ -6,14 +6,10 @@
 namespace Chrivent {
 	void ModelAnimator::InitializeAnimation() const {
 		ClearBaseAnimation();
-		for (const auto& node : model.skeletonData.nodes) {
-			node->animTranslate = glm::vec3(0);
-			node->animRotate = glm::quat(1, 0, 0, 0);
-		}
 		BeginAnimation();
-		for (const auto& morph : model.morphData.morphs)
+		for (const auto& morph : model.morphData.GetMorphs())
 			morph->weight = 0;
-		for (const auto& ikSolver : model.skeletonData.ikSolvers)
+		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->enable = true;
 		const ModelPose pose(model);
 		pose.UpdateNodeAnimation(false);
@@ -22,31 +18,31 @@ namespace Chrivent {
 	}
 
 	void ModelAnimator::SaveBaseAnimation() const {
-		for (const auto& node : model.skeletonData.nodes) {
+		for (const auto& node : model.skeletonData.GetNodes()) {
 			node->baseAnimTranslate = node->animTranslate;
 			node->baseAnimRotate = node->animRotate;
 		}
-		for (const auto& morph : model.morphData.morphs)
+		for (const auto& morph : model.morphData.GetMorphs())
 			morph->saveAnimWeight = morph->weight;
-		for (const auto& ikSolver : model.skeletonData.ikSolvers)
+		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->baseAnimEnable = ikSolver->enable;
 	}
 
 	void ModelAnimator::ClearBaseAnimation() const {
-		for (const auto& node : model.skeletonData.nodes) {
+		for (const auto& node : model.skeletonData.GetNodes()) {
 			node->baseAnimTranslate = glm::vec3(0);
 			node->baseAnimRotate = glm::quat(1, 0, 0, 0);
 		}
-		for (const auto& morph : model.morphData.morphs)
+		for (const auto& morph : model.morphData.GetMorphs())
 			morph->saveAnimWeight = 0;
-		for (const auto& ikSolver : model.skeletonData.ikSolvers)
+		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->baseAnimEnable = true;
 	}
 
 	void ModelAnimator::BeginAnimation() const {
-		for (const auto& node : model.skeletonData.nodes)
+		for (const auto& node : model.skeletonData.GetNodes())
 			node->BeginUpdateTransform();
-		for (const auto& node : model.skeletonData.nodes) {
+		for (const auto& node : model.skeletonData.GetNodes()) {
 			node->animTranslate = glm::vec3(0);
 			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
@@ -55,7 +51,7 @@ namespace Chrivent {
 	}
 
 	void ModelAnimator::UpdateMorphAnimation() const {
-		model.ApplyMorphs();
+		model.AccumulateMorphs();
 	}
 
 	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {

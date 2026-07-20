@@ -20,8 +20,6 @@ namespace Chrivent {
 	}
 
 	void Physics::AddRigidBody(btRigidBody& rigidBody, const uint16_t group, const uint16_t groupMask) const {
-		if (group >= 16)
-			return;
 		world->addRigidBody(&rigidBody, 1u << group, groupMask);
 	}
 
@@ -71,6 +69,75 @@ namespace Chrivent {
 		Reset();
 	}
 
+	std::expected<void, PhysicsError> ModelPhysicsData::ValidateDefinitions(
+		const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+		const std::vector<JointDefinition>& jointDefinitions, const std::size_t nodeCount) {
+		const auto IsFinite = [](const glm::vec3& value) {
+			return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+		};
+		for (std::size_t index = 0; index < rigidBodyDefinitions.size(); index++) {
+			const auto& definition = rigidBodyDefinitions[index];
+			const auto Fail = [index](const std::string& message) {
+				return std::unexpected(PhysicsError{PhysicsErrorCode::InvalidRigidBody, index, message});
+			};
+			if (definition.nodeIndex < -1 ||
+				(definition.nodeIndex >= 0 && static_cast<std::size_t>(definition.nodeIndex) >= nodeCount))
+				return Fail("강체가 존재하지 않는 모델 노드를 참조합니다.");
+			if (definition.group >= 16)
+				return Fail("강체 충돌 그룹은 0부터 15 사이여야 합니다.");
+			switch (definition.shape) {
+				case RigidBodyShape::Sphere:
+					if (!(definition.shapeSize.x > 0.0f))
+						return Fail("구 강체의 반지름은 0보다 커야 합니다.");
+					break;
+				case RigidBodyShape::Box:
+					if (!(definition.shapeSize.x > 0.0f && definition.shapeSize.y > 0.0f &&
+						definition.shapeSize.z > 0.0f))
+						return Fail("상자 강체의 각 반길이는 0보다 커야 합니다.");
+					break;
+				case RigidBodyShape::Capsule:
+					if (!(definition.shapeSize.x > 0.0f && definition.shapeSize.y >= 0.0f))
+						return Fail("캡슐 강체의 반지름은 0보다 크고 높이는 음수가 아니어야 합니다.");
+					break;
+				default:
+					return Fail("지원하지 않는 강체 형상입니다.");
+			}
+			if (!IsFinite(definition.shapeSize) || !IsFinite(definition.translate) || !IsFinite(definition.rotate))
+				return Fail("강체 형상 또는 변환에 유한하지 않은 값이 있습니다.");
+			if (!std::isfinite(definition.mass) || !std::isfinite(definition.translateDamping) ||
+				!std::isfinite(definition.rotateDamping) || !std::isfinite(definition.restitution) ||
+				!std::isfinite(definition.friction) || definition.mass < 0.0f ||
+				definition.translateDamping < 0.0f || definition.rotateDamping < 0.0f ||
+				definition.restitution < 0.0f || definition.friction < 0.0f)
+				return Fail("강체 물성은 유한한 음이 아닌 값이어야 합니다.");
+			switch (definition.operation) {
+				case RigidBodyOperation::Static:
+				case RigidBodyOperation::Dynamic:
+				case RigidBodyOperation::DynamicAndBoneMerge:
+					break;
+				default:
+					return Fail("지원하지 않는 강체 동작 방식입니다.");
+			}
+		}
+		for (std::size_t index = 0; index < jointDefinitions.size(); index++) {
+			const auto& definition = jointDefinitions[index];
+			const auto Fail = [index](const std::string& message) {
+				return std::unexpected(PhysicsError{PhysicsErrorCode::InvalidJoint, index, message});
+			};
+			if (definition.rigidBodyAIndex < 0 || definition.rigidBodyBIndex < 0 ||
+				definition.rigidBodyAIndex == definition.rigidBodyBIndex ||
+				static_cast<std::size_t>(definition.rigidBodyAIndex) >= rigidBodyDefinitions.size() ||
+				static_cast<std::size_t>(definition.rigidBodyBIndex) >= rigidBodyDefinitions.size())
+				return Fail("조인트가 유효한 서로 다른 두 강체를 참조해야 합니다.");
+			if (!IsFinite(definition.translate) || !IsFinite(definition.rotate) ||
+				!IsFinite(definition.translateLowerLimit) || !IsFinite(definition.translateUpperLimit) ||
+				!IsFinite(definition.rotateLowerLimit) || !IsFinite(definition.rotateUpperLimit) ||
+				!IsFinite(definition.springTranslateFactor) || !IsFinite(definition.springRotateFactor))
+				return Fail("조인트 변환, 제한 또는 스프링 값에 유한하지 않은 값이 있습니다.");
+		}
+		return {};
+	}
+
 	void ModelPhysicsData::ReflectTransforms(const std::vector<std::shared_ptr<Node>>& nodes) const {
 		for (const auto& rigidBody : rigidBodies) {
 			rigidBody->ReflectGlobalTransform();
@@ -82,11 +149,15 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelPhysicsData::Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+	std::expected<void, PhysicsError> ModelPhysicsData::Initialize(
+		const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
 		const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::shared_ptr<Node>>& nodes) {
+		const auto validationResult = ValidateDefinitions(rigidBodyDefinitions, jointDefinitions, nodes.size());
+		if (!validationResult)
+			return std::unexpected(validationResult.error());
 		Reset();
 		if (rigidBodyDefinitions.empty())
-			return;
+			return {};
 		physics = std::make_unique<Physics>();
 		rigidBodies.reserve(rigidBodyDefinitions.size());
 		for (const auto& definition : rigidBodyDefinitions) {
@@ -101,17 +172,12 @@ namespace Chrivent {
 		}
 		joints.reserve(jointDefinitions.size());
 		for (const auto& definition : jointDefinitions) {
-			if (definition.rigidBodyAIndex < 0 || definition.rigidBodyBIndex < 0 ||
-				definition.rigidBodyAIndex == definition.rigidBodyBIndex ||
-				static_cast<std::size_t>(definition.rigidBodyAIndex) >= rigidBodies.size() ||
-				static_cast<std::size_t>(definition.rigidBodyBIndex) >= rigidBodies.size()) {
-				continue;
-			}
 			auto joint = std::make_unique<Joint>(
 				definition, *rigidBodies[definition.rigidBodyAIndex], *rigidBodies[definition.rigidBodyBIndex]);
 			physics->AddConstraint(*joint->GetConstraint());
 			joints.emplace_back(std::move(joint));
 		}
+		return {};
 	}
 
 	void ModelPhysicsData::ResetSimulation(const std::vector<std::shared_ptr<Node>>& nodes) const {

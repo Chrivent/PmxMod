@@ -7,7 +7,6 @@
 #include "Core/Model/ModelSkinning.h"
 
 #include <gtest/gtest.h>
-#include <cstring>
 #include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -124,7 +123,7 @@ namespace Chrivent {
 		auto model = std::make_shared<Model>();
 		auto node = std::make_shared<Node>();
 		node->name = "A";
-		model->skeletonData.nodes.emplace_back(node);
+		model->skeletonData.AddNode(node);
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);
@@ -146,7 +145,7 @@ namespace Chrivent {
 			auto model = std::make_shared<Model>();
 			auto node = std::make_shared<Node>();
 			node->name = "A";
-			model->skeletonData.nodes.emplace_back(node);
+			model->skeletonData.AddNode(node);
 			modelReference = model;
 			nodeReference = node;
 			VmdParser::VmdData data{};
@@ -167,9 +166,9 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, InvalidatesAnimationBindingsWhenModelStructureChanges) {
 		const auto model = std::make_shared<Model>();
-		auto node = std::make_shared<Node>();
+		const auto node = std::make_shared<Node>();
 		node->name = "A";
-		model->skeletonData.nodes.emplace_back(node);
+		model->skeletonData.AddNode(node);
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);
@@ -186,9 +185,9 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, KeepsTheLastModelKeyAtADuplicateFrame) {
 		const auto model = std::make_shared<Model>();
-		auto node = std::make_shared<Node>();
+		const auto node = std::make_shared<Node>();
 		node->name = "A";
-		model->skeletonData.nodes.emplace_back(node);
+		model->skeletonData.AddNode(node);
 		VmdParser::VmdData data{};
 		for (const float x : {1.0f, 2.0f}) {
 			auto& motion = data.motions.emplace_back();
@@ -222,7 +221,7 @@ namespace Chrivent {
 		auto model = std::make_shared<Model>();
 		auto node = std::make_shared<Node>();
 		node->name = "A";
-		model->skeletonData.nodes.emplace_back(node);
+		model->skeletonData.AddNode(node);
 		AnimationBuilder builder(model);
 		VmdParser::VmdData firstData{};
 		auto& firstMotion = firstData.motions.emplace_back();
@@ -247,11 +246,11 @@ namespace Chrivent {
 	}
 
 	TEST_F(AnimationModelContractTest, SkipsPhysicsSynchronizationWithoutAWorld) {
-		auto model = std::make_shared<Model>();
-		auto node = std::make_shared<Node>();
+		const auto model = std::make_shared<Model>();
+		const auto node = std::make_shared<Node>();
 		node->animTranslate = glm::vec3(8);
 		node->baseAnimTranslate = glm::vec3(5);
-		model->skeletonData.nodes.emplace_back(node);
+		model->skeletonData.AddNode(node);
 		const Animation animation(model, {}, {}, {});
 		const ModelAnimator animator(*model);
 		animator.SyncPhysics(animation, 0);
@@ -266,13 +265,13 @@ namespace Chrivent {
 		auto positionMorph = std::make_unique<Morph>();
 		positionMorph->morphType = MorphType::Position;
 		positionMorph->dataIndex = 0;
-		model.morphData.morphs.emplace_back(std::move(positionMorph));
+		model.morphData.AddMorph(std::move(positionMorph));
 		auto groupMorph = std::make_unique<Morph>();
 		groupMorph->morphType = MorphType::Group;
 		groupMorph->dataIndex = 0;
 		groupMorph->weight = 0.5f;
-		model.morphData.morphs.emplace_back(std::move(groupMorph));
-		model.ApplyMorphs();
+		model.morphData.AddMorph(std::move(groupMorph));
+		model.AccumulateMorphs();
 		EXPECT_EQ(model.morphData.morphPositions.front(), glm::vec3(0.5f, 0, 0));
 	}
 
@@ -281,11 +280,38 @@ namespace Chrivent {
 		RigidBodyDefinition rigidBody{};
 		rigidBody.shapeSize = glm::vec3(1);
 		rigidBody.groupMask = 0xffff;
-		model.InitializePhysics({rigidBody}, {});
+		ASSERT_TRUE(model.InitializePhysics({rigidBody}, {}));
 		ASSERT_TRUE(model.HasPhysics());
 		model.ResetPhysics();
 		model.UpdatePhysics(1.0f / 60.0f);
 		model.Reset();
+		EXPECT_FALSE(model.HasPhysics());
+	}
+
+	TEST_F(AnimationModelContractTest, RejectsInvalidPhysicsWithoutDiscardingTheCurrentWorld) {
+		Model model;
+		RigidBodyDefinition validRigidBody{};
+		validRigidBody.shapeSize = glm::vec3(1);
+		ASSERT_TRUE(model.InitializePhysics({validRigidBody}, {}));
+		RigidBodyDefinition invalidRigidBody = validRigidBody;
+		invalidRigidBody.group = 16;
+		const auto result = model.InitializePhysics({invalidRigidBody}, {});
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, PhysicsErrorCode::InvalidRigidBody);
+		EXPECT_EQ(result.error().definitionIndex, 0);
+		EXPECT_TRUE(model.HasPhysics());
+	}
+
+	TEST_F(AnimationModelContractTest, RejectsInvalidJointReferences) {
+		Model model;
+		RigidBodyDefinition rigidBody{};
+		rigidBody.shapeSize = glm::vec3(1);
+		JointDefinition joint{};
+		joint.rigidBodyAIndex = 0;
+		joint.rigidBodyBIndex = 0;
+		const auto result = model.InitializePhysics({rigidBody}, {joint});
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, PhysicsErrorCode::InvalidJoint);
 		EXPECT_FALSE(model.HasPhysics());
 	}
 

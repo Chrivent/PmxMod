@@ -27,7 +27,8 @@ namespace Chrivent {
 	}
 
 	void ModelPose::UpdateTransforms() const {
-		for (size_t i = 0; i < model.skeletonData.nodes.size(); i++)
-			model.skeletonData.transforms[i] = model.skeletonData.nodes[i]->global * model.skeletonData.nodes[i]->inverseInit;
+		const auto& nodes = model.skeletonData.GetNodes();
+		for (size_t i = 0; i < nodes.size(); i++)
+			model.skeletonData.transforms[i] = nodes[i]->global * nodes[i]->inverseInit;
 	}
 }

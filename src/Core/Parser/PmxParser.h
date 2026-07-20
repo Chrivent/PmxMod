@@ -6,6 +6,7 @@
 #include <expected>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 
@@ -140,6 +141,12 @@ namespace Chrivent {
 			Mul,
 			Add
 		};
+
+		// enum 플래그에 지정한 비트가 포함되어 있는지 확인한다.
+		template <typename Enum>
+		static constexpr bool ContainsFlag(const Enum flags, const Enum flag) {
+			return (std::to_underlying(flags) & std::to_underlying(flag)) != 0;
+		}
 
 		// 버텍스 하나의 원시 위치 모프 오프셋을 보관한다.
 		struct PositionMorph {

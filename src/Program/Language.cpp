@@ -1,8 +1,9 @@
 ﻿#include "Program/Language.h"
 
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 
 #include <fstream>
+#include <limits>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <windows.h>
@@ -11,10 +12,17 @@ namespace Chrivent {
 	std::filesystem::path Language::ResolveLanguageDirectory() {
 		std::vector<wchar_t> path(MAX_PATH);
 		while (true) {
-			const DWORD length = GetModuleFileNameW(nullptr, path.data(), path.size());
-			if (length < path.size() - 1)
+			if (path.size() > std::numeric_limits<DWORD>::max())
+				return {};
+			const DWORD capacity = static_cast<DWORD>(path.size());
+			const DWORD length = GetModuleFileNameW(nullptr, path.data(), capacity);
+			if (length == 0)
+				return {};
+			if (length < capacity)
 				return std::filesystem::path(std::wstring(path.data(), length)).parent_path()
 					/ "resource" / "language";
+			if (path.size() > std::numeric_limits<DWORD>::max() / 2)
+				return {};
 			path.resize(path.size() * 2);
 		}
 	}
@@ -43,7 +51,7 @@ namespace Chrivent {
 		texts.reserve(json.size());
 		for (const auto& [key, value] : json.items()) {
 			if (value.is_string())
-				texts.emplace(key, Util::Utf8ToWString(value.get<std::string>()));
+				texts.emplace(key, TextEncoding::Utf8ToWide(value.get<std::string>()));
 		}
 		return texts;
 	}
@@ -79,6 +87,6 @@ namespace Chrivent {
 			return current->second;
 		if (const auto fallback = fallbackTexts.find(ownedKey); fallback != fallbackTexts.end())
 			return fallback->second;
-		return Util::Utf8ToWString(ownedKey);
+		return TextEncoding::Utf8ToWide(ownedKey);
 	}
 }

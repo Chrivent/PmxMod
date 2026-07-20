@@ -15,7 +15,7 @@
 #include "Viewer/Viewer/VulkanViewer.h"
 #include "Viewer/Viewer/Dx11Viewer.h"
 #include "Viewer/Viewer/Dx12Viewer.h"
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 #include "Program/Language.h"
 
 #include <CommCtrl.h>
@@ -383,7 +383,8 @@ namespace Chrivent {
         for (const auto& [packageIndex, effectIndex] : shaderEffectEntries) {
             const auto& package = shaderPackages[packageIndex];
             const auto& effect = package.effects[effectIndex];
-            shaderNames.emplace_back(Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name));
+            shaderNames.emplace_back(
+                TextEncoding::Utf8ToWide(package.name) + L" / " + TextEncoding::Utf8ToWide(effect.name));
         }
         panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
 		const SceneRenderState& scene = viewer->GetSceneRenderState();
@@ -642,13 +643,13 @@ namespace Chrivent {
         }
         for (const auto& [name, boneIndices, morphIndices] : model.skeletonData.displayFrames) {
             MotionTimelineGroup group{
-                .name = Util::Utf8ToWString(name)
+                .name = TextEncoding::Utf8ToWide(name)
             };
             group.rows.reserve(boneIndices.size() + morphIndices.size());
             for (const uint32_t boneIndex : boneIndices) {
-                if (boneIndex >= model.skeletonData.nodes.size())
+                if (boneIndex >= model.skeletonData.GetNodes().size())
                     continue;
-                const auto& node = model.skeletonData.nodes[boneIndex];
+                const auto& node = model.skeletonData.GetNodes()[boneIndex];
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
@@ -658,7 +659,7 @@ namespace Chrivent {
                 }
                 NormalizeKeys(keys);
                 group.rows.push_back({
-                    .name = Util::Utf8ToWString(node->name),
+                    .name = TextEncoding::Utf8ToWide(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -670,15 +671,15 @@ namespace Chrivent {
                 });
             }
             for (const uint32_t morphIndex : morphIndices) {
-                if (morphIndex >= model.morphData.morphs.size())
+                if (morphIndex >= model.morphData.GetMorphs().size())
                     continue;
-                const auto& morph = model.morphData.morphs[morphIndex];
+                const auto& morph = model.morphData.GetMorphs()[morphIndex];
                 if (!morph)
                     continue;
                 auto keys = morphKeys[morph.get()];
                 NormalizeKeys(keys);
                 group.rows.push_back({
-                    .name = Util::Utf8ToWString(morph->name),
+                    .name = TextEncoding::Utf8ToWide(morph->name),
                     .keys = std::move(keys)
                 });
             }
@@ -689,7 +690,7 @@ namespace Chrivent {
         }
         if (groups.size() == (cameraKeys.empty() ? 0 : 1)) {
             MotionTimelineGroup boneGroup{.name = Language::Text("motion.bones")};
-            for (const auto& node : model.skeletonData.nodes) {
+            for (const auto& node : model.skeletonData.GetNodes()) {
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
@@ -699,7 +700,7 @@ namespace Chrivent {
                 }
                 NormalizeKeys(keys);
                 boneGroup.rows.push_back({
-                    .name = Util::Utf8ToWString(node->name),
+                    .name = TextEncoding::Utf8ToWide(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -714,13 +715,13 @@ namespace Chrivent {
             if (!boneGroup.rows.empty())
                 groups.emplace_back(std::move(boneGroup));
             MotionTimelineGroup morphGroup{.name = Language::Text("motion.morphs")};
-            for (const auto& morph : model.morphData.morphs) {
+            for (const auto& morph : model.morphData.GetMorphs()) {
                 if (!morph)
                     continue;
                 auto keys = morphKeys[morph.get()];
                 NormalizeKeys(keys);
                 morphGroup.rows.push_back({
-                    .name = Util::Utf8ToWString(morph->name),
+                    .name = TextEncoding::Utf8ToWide(morph->name),
                     .keys = std::move(keys)
                 });
             }
@@ -728,7 +729,7 @@ namespace Chrivent {
             if (!morphGroup.rows.empty())
                 groups.emplace_back(std::move(morphGroup));
         }
-        std::wstring modelName = Util::Utf8ToWString(model.infoData.modelName);
+        std::wstring modelName = TextEncoding::Utf8ToWide(model.infoData.modelName);
         if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
             modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
         panelManager.ApplyMotionTimeline(std::move(modelName), std::move(groups));
@@ -799,7 +800,8 @@ namespace Chrivent {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
             const auto& package = shaderPackages[packageIndex];
             const auto& effect = package.effects[effectIndex];
-            const std::wstring name = Util::Utf8ToWString(package.name) + L" / " + Util::Utf8ToWString(effect.name);
+            const std::wstring name =
+                TextEncoding::Utf8ToWide(package.name) + L" / " + TextEncoding::Utf8ToWide(effect.name);
             panelManager.ApplyMotionTimeline(name, {});
             return;
         }

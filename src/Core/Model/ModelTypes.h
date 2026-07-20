@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <cstdint>
+#include <string>
 #include <glm/gtc/quaternion.hpp>
 
 namespace Chrivent {
@@ -48,6 +49,18 @@ namespace Chrivent {
 		Sphere,
 		Box,
 		Capsule
+	};
+
+	enum class PhysicsErrorCode {
+		InvalidRigidBody,
+		InvalidJoint
+	};
+
+	// 물리 정의 검증 실패의 종류, 항목 위치와 원인을 보관한다.
+	struct PhysicsError {
+		PhysicsErrorCode code = PhysicsErrorCode::InvalidRigidBody;
+		std::size_t definitionIndex = 0;
+		std::string message;
 	};
 
 	// 모델 강체 생성에 필요한 연결 본, 형상, 물성과 충돌 설정을 보관한다.

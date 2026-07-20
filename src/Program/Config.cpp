@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 
 namespace Chrivent {
 	bool SceneConfig::Load(const std::filesystem::path& filepath) {
@@ -28,13 +28,13 @@ namespace Chrivent {
 		size_t tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "camera")
 			return false;
-		loaded.cameraAnim = Util::PathFromUtf8(line.substr(tab + 1));
+		loaded.cameraAnim = TextEncoding::Utf8ToPath(line.substr(tab + 1));
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "music")
 			return false;
-		loaded.musicPath = Util::PathFromUtf8(line.substr(tab + 1));
+		loaded.musicPath = TextEncoding::Utf8ToPath(line.substr(tab + 1));
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
@@ -54,7 +54,7 @@ namespace Chrivent {
 				return false;
 			model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
 			const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
-			model.modelPath = Util::PathFromUtf8(line.substr(tab3 + 1));
+			model.modelPath = TextEncoding::Utf8ToPath(line.substr(tab3 + 1));
 			model.animPaths.reserve(animCount);
 			for (size_t j = 0; j < animCount; j++) {
 				if (!ReadLine())
@@ -62,7 +62,7 @@ namespace Chrivent {
 				tab = line.find('\t');
 				if (tab == std::string::npos || line.substr(0, tab) != "anim")
 					return false;
-				model.animPaths.emplace_back(Util::PathFromUtf8(line.substr(tab + 1)));
+				model.animPaths.emplace_back(TextEncoding::Utf8ToPath(line.substr(tab + 1)));
 			}
 			loaded.modelConfigs.emplace_back(std::move(model));
 		}

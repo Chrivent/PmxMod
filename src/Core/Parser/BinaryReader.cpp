@@ -4,7 +4,7 @@
 #include <glm/detail/type_quat.hpp>
 
 namespace Chrivent {
-	BinaryReader::BinaryReader(std::istream& source) : stream(source), end(source.tellg()) {
+	BinaryReader::BinaryReader(std::istream& source) : stream(source) {
 		stream.seekg(0, std::ios::end);
 		end = stream.tellg();
 		stream.seekg(0, std::ios::beg);

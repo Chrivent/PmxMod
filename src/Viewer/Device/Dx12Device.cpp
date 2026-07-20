@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Device/Dx12Device.h"
 
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 
 #include <iterator>
 
@@ -97,7 +97,7 @@ namespace Chrivent {
 		capabilities.apiVersion = std::string("Feature Level ") +
 			ResolveFeatureLevelName(featureLevels.MaxSupportedFeatureLevel);
 		capabilities.shaderVersion = std::string("Shader Model ") + ResolveShaderModelName(maximumShaderModel);
-		capabilities.gpuName = Util::WStringToUtf8(description.Description);
+		capabilities.gpuName = TextEncoding::WideToUtf8(description.Description);
 		capabilities.gpuType = description.DedicatedVideoMemory > 0 ? "discrete" : "integrated";
 		capabilities.maxSampleCount = ResolveMaximumMsaaSampleCount(device.Get());
 		capabilities.activeSampleCount = msaaSampleCount;

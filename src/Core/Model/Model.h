@@ -4,10 +4,12 @@
 #include "Core/Model/Bone/Node.h"
 #include "Core/Model/Bone/IkSolver.h"
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Chrivent {
@@ -115,17 +117,31 @@ namespace Chrivent {
 	};
 
 	// 본 계층, IK와 스키닝 변환 행렬을 관리한다.
-	struct ModelSkeletonData {
+	class ModelSkeletonData {
 		std::vector<std::shared_ptr<Node>>			nodes;
 		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
+
+	public:
 		std::vector<glm::mat4>						transforms;
 		std::vector<std::reference_wrapper<Node>>	sortedNodes;
 		std::vector<ModelDisplayFrame>				displayFrames;
+
+		const std::vector<std::shared_ptr<Node>>& GetNodes() const { return nodes; }
+		const std::vector<std::shared_ptr<IkSolver>>& GetIkSolvers() const { return ikSolvers; }
+
+		// 예상 개수만큼 노드 소유 목록의 메모리를 미리 확보한다.
+		void ReserveNodes(const size_t count) { nodes.reserve(count); }
+		// 모델이 소유할 노드를 목록 끝에 추가한다.
+		void AddNode(std::shared_ptr<Node> node) { nodes.emplace_back(std::move(node)); }
+		// 모델이 소유할 IK 솔버를 목록 끝에 추가한다.
+		void AddIkSolver(std::shared_ptr<IkSolver> ikSolver) { ikSolvers.emplace_back(std::move(ikSolver)); }
 	};
 
 	// 형식별 모프 정의와 현재 누적 변형값을 관리한다.
-	struct ModelMorphData {
+	class ModelMorphData {
 		std::vector<std::unique_ptr<Morph>>			morphs;
+
+	public:
 		std::vector<std::vector<PositionMorph>>		positionMorphs;
 		std::vector<std::vector<UvMorph>>			uvMorphs;
 		std::vector<std::vector<MaterialMorph>>		materialMorphs;
@@ -133,6 +149,11 @@ namespace Chrivent {
 		std::vector<std::vector<GroupMorph>>		groupMorphs;
 		std::vector<glm::vec3>						morphPositions;
 		std::vector<glm::vec4>						morphUVs;
+
+		const std::vector<std::unique_ptr<Morph>>& GetMorphs() const { return morphs; }
+
+		// 모델이 소유할 모프를 목록 끝에 추가한다.
+		void AddMorph(std::unique_ptr<Morph> morph) { morphs.emplace_back(std::move(morph)); }
 	};
 
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
@@ -160,10 +181,10 @@ namespace Chrivent {
 		void Reset();
 		// 두 모델의 전체 소유 상태를 교환한다.
 		void Swap(Model& other);
-		// 현재 모프 가중치를 모델 형상, 재질과 본 상태에 반영한다.
-		void ApplyMorphs();
+		// 현재 모프 가중치를 준비된 프레임의 형상, 재질과 본 상태에 누적한다.
+		void AccumulateMorphs() const;
 		// 런타임 정의 목록으로 모델 물리 월드, 강체와 조인트를 구성한다.
-		void InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
+		std::expected<void, PhysicsError> InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
 			const std::vector<JointDefinition>& joints) const;
 		// 강체와 조인트를 현재 모델 포즈 기준으로 초기화한다.
 		void ResetPhysics() const;

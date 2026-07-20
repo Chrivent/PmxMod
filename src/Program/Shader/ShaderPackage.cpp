@@ -1,6 +1,6 @@
 ﻿#include "Program/Shader/ShaderPackage.h"
 
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 
 #include <algorithm>
@@ -99,7 +99,7 @@ namespace Chrivent {
 
 	bool ShaderPackageParser::ResolvePackagePath(const std::filesystem::path& packageRoot,
 		const std::string& relativePath, std::filesystem::path& resolvedPath, std::string& error) {
-		const std::filesystem::path requestedPath = Util::PathFromUtf8(relativePath);
+		const std::filesystem::path requestedPath = TextEncoding::Utf8ToPath(relativePath);
 		if (requestedPath.empty() || requestedPath.is_absolute()) {
 			error = "패키지 경로는 상대 경로여야 합니다: " + relativePath;
 			return false;

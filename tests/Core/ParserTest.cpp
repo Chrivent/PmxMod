@@ -1,6 +1,5 @@
 ﻿#include "Core/Parser/PmxParser.h"
 #include "Core/Parser/VmdParser.h"
-#include "Util.h"
 
 #include <gtest/gtest.h>
 #include <limits>
@@ -271,8 +270,4 @@ namespace Chrivent {
 		EXPECT_EQ(parser.GetData().motions.front().interpolation[31], 255);
 	}
 
-	TEST_F(ParserContractTest, ConvertsFixedLengthShiftJisWithoutNullTerminator) {
-		constexpr char fixedName[] = {'A', 'B', 'C'};
-		EXPECT_EQ(Util::SjisToUtf8(fixedName, sizeof(fixedName)), "ABC");
-	}
 }

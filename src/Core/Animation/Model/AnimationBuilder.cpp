@@ -2,7 +2,8 @@
 
 #include "Core/Animation/Model/AnimationBinder.h"
 #include "Core/Animation/Model/AnimationTrackMap.h"
-#include "Util.h"
+#include "Core/Model/ModelCoordinateConverter.h"
+#include "Core/Text/TextEncoding.h"
 
 #include <utility>
 
@@ -12,7 +13,7 @@ namespace Chrivent {
 		key.frame = motion.frame;
 		key.translate = motion.translate * glm::vec3(1, 1, -1);
 		const glm::quat q = glm::normalize(motion.quaternion);
-		const auto rot = Util::InvZ(glm::mat3_cast(q));
+		const auto rot = ModelCoordinateConverter::ConvertZAxis(glm::mat3_cast(q));
 		key.rotate = glm::normalize(glm::quat_cast(rot));
 		key.txBezier.Assign(motion.interpolation[0], motion.interpolation[8], motion.interpolation[4], motion.interpolation[12]);
 		key.tyBezier.Assign(motion.interpolation[1], motion.interpolation[9], motion.interpolation[5], motion.interpolation[13]);
@@ -27,7 +28,7 @@ namespace Chrivent {
 		const AnimationBinder binder(model.get());
 		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
-			auto nodeName = Util::SjisToUtf8(motion.boneName, sizeof(motion.boneName));
+			auto nodeName = TextEncoding::ShiftJisToUtf8(motion.boneName, sizeof(motion.boneName));
 			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
 			auto& [node, keys] = findIt->second;
 			if (inserted)
@@ -46,7 +47,7 @@ namespace Chrivent {
 		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
-				auto ikName = Util::SjisToUtf8(name, sizeof(name));
+				auto ikName = TextEncoding::ShiftJisToUtf8(name, sizeof(name));
 				auto [findIt, inserted] = ikMap.try_emplace(ikName);
 				auto& [ikSolver, keys] = findIt->second;
 				if (inserted)
@@ -67,7 +68,7 @@ namespace Chrivent {
 		const AnimationBinder binder(model.get());
 		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
-			auto morphName = Util::SjisToUtf8(blendShapeName, sizeof(blendShapeName));
+			auto morphName = TextEncoding::ShiftJisToUtf8(blendShapeName, sizeof(blendShapeName));
 			auto [findIt, inserted] = morphMap.try_emplace(morphName);
 			auto& [morph, keys] = findIt->second;
 			if (inserted)

@@ -2,7 +2,7 @@
 add_library(PmxMod::Core ALIAS PmxModCore)
 
 target_sources(PmxModCore PRIVATE
-        ../Util.h ../Util.cpp
+        Text/TextEncoding.h Text/TextEncoding.cpp
 
         Parser/PmxParser.h Parser/PmxParser.cpp
         Parser/VmdParser.h Parser/VmdParser.cpp
@@ -21,6 +21,7 @@ target_sources(PmxModCore PRIVATE
         Animation/Camera/CameraAnimationBuilder.h Animation/Camera/CameraAnimationBuilder.cpp
 
         Model/ModelTypes.h
+        Model/ModelCoordinateConverter.h
         Model/Model.h Model/Model.cpp
         Model/ModelAnimator.h Model/ModelAnimator.cpp
         Model/ModelLoader.h Model/ModelLoader.cpp

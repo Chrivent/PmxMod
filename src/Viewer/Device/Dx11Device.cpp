@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Device/Dx11Device.h"
 
-#include "Util.h"
+#include "Core/Text/TextEncoding.h"
 
 #include <algorithm>
 #include <dxgi1_6.h>
@@ -71,7 +71,7 @@ namespace Chrivent {
 			capabilities.apiVersion = selectedFeatureLevel == D3D_FEATURE_LEVEL_11_1
 				? "Feature Level 11.1" : "Feature Level 11.0";
 			capabilities.shaderVersion = "Shader Model 5.0";
-			capabilities.gpuName = Util::WStringToUtf8(description.Description);
+			capabilities.gpuName = TextEncoding::WideToUtf8(description.Description);
 			capabilities.gpuType = description.DedicatedVideoMemory > 0 ? "discrete" : "integrated";
 			capabilities.uniformBufferAlignment = 16;
 			capabilities.maxTextureBindings = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
