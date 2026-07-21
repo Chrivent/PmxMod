@@ -84,6 +84,8 @@ namespace Chrivent {
 			mul.specular      = model.materialData.initMaterials[i].specular;
 			mul.specularPower = model.materialData.initMaterials[i].specularPower;
 			mul.ambient       = model.materialData.initMaterials[i].ambient;
+			mul.edgeColor     = model.materialData.initMaterials[i].edgeColor;
+			mul.edgeSize      = model.materialData.initMaterials[i].edgeSize;
 			model.materialData.addMaterialFactors[i] = initAdd;
 		}
 	}
@@ -99,6 +101,8 @@ namespace Chrivent {
 			mat.specular       = matFactor.specular;
 			mat.specularPower  = matFactor.specularPower;
 			mat.ambient        = matFactor.ambient;
+			mat.edgeColor      = matFactor.edgeColor;
+			mat.edgeSize       = matFactor.edgeSize;
 			mat.textureMulFactor   = mul.textureFactor;
 			mat.textureAddFactor   = add.textureFactor;
 			mat.sphereTextureMulFactor = mul.sphereTextureFactor;

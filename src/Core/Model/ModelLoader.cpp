@@ -488,7 +488,7 @@ namespace Chrivent {
 		}
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(Model& model, const PmxParser::PmxData& pmxData) {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(const Model& model, const PmxParser::PmxData& pmxData) {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)

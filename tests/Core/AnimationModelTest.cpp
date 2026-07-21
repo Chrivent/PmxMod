@@ -401,6 +401,31 @@ namespace Chrivent {
 		EXPECT_EQ(model.morphData.morphPositions.front(), glm::vec3(0.5f, 0, 0));
 	}
 
+	TEST_F(AnimationModelContractTest, AppliesMaterialMorphEdgeProperties) {
+		Model model;
+		Material material;
+		material.edgeColor = glm::vec4(0.8f, 0.6f, 0.4f, 1.0f);
+		material.edgeSize = 2.0f;
+		model.materialData.materials.emplace_back(material);
+		model.materialData.initMaterials.emplace_back(material);
+		model.materialData.mulMaterialFactors.resize(1);
+		model.materialData.addMaterialFactors.resize(1);
+		MaterialMorph edgeMorph;
+		edgeMorph.materialIndex = 0;
+		edgeMorph.opType = OpType::Mul;
+		edgeMorph.edgeColor = glm::vec4(0.5f);
+		edgeMorph.edgeSize = 3.0f;
+		model.morphData.materialMorphs.push_back({edgeMorph});
+		auto morph = std::make_unique<Morph>();
+		morph->morphType = MorphType::Material;
+		morph->dataIndex = 0;
+		morph->weight = 1.0f;
+		model.morphData.AddMorph(std::move(morph));
+		model.AccumulateMorphs();
+		EXPECT_EQ(model.materialData.materials.front().edgeColor, material.edgeColor * 0.5f);
+		EXPECT_FLOAT_EQ(model.materialData.materials.front().edgeSize, material.edgeSize * 3.0f);
+	}
+
 	TEST_F(AnimationModelContractTest, OwnsPhysicsThroughTheModelBoundary) {
 		Model model;
 		RigidBodyDefinition rigidBody{};
