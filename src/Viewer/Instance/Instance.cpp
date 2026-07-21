@@ -78,18 +78,21 @@ namespace Chrivent {
 	}
 
 	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {
-		const ModelUpdater updater(*model);
-		updater.Prepare(animation.get(), state.animationFrame, state.elapsed,
-			state.velocityRequired, state.physicsEnabled, timing);
+		ModelUpdater::Prepare(*model, {
+			.animation = animation.get(),
+			.frame = state.animationFrame,
+			.physicsElapsed = state.elapsed,
+			.preservePreviousPositions = state.velocityRequired,
+			.updatePhysics = state.physicsEnabled,
+			.timing = timing
+		});
 	}
 
 	std::size_t Instance::CalculateSkinningTaskCount() const {
-		const ModelUpdater updater(*model);
-		return updater.CalculateSkinningTaskCount();
+		return ModelUpdater::CalculateSkinningTaskCount(*model);
 	}
 
 	void Instance::UpdateSkinning(const std::size_t taskIndex) const {
-		const ModelUpdater updater(*model);
-		updater.UpdateSkinning(taskIndex);
+		ModelUpdater::UpdateSkinning(*model, taskIndex);
 	}
 }

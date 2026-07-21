@@ -52,6 +52,7 @@ add_executable(PmxModCoreTests
         Core/TextEncodingTest.cpp
         Core/ParserTest.cpp
         Core/AnimationModelTest.cpp
+        Core/ModelRuntimeTest.cpp
 )
 
 target_compile_features(PmxModCoreTests PRIVATE cxx_std_23)

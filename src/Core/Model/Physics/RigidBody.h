@@ -23,7 +23,7 @@ namespace Chrivent {
 	public:
 		RigidBody(const RigidBodyDefinition& definition, const std::shared_ptr<Node>& nodePtr);
 
-		btRigidBody* GetRigidBody() const { return rigidBody.get(); }
+		btRigidBody& GetRigidBody() const { return *rigidBody; }
 		uint16_t GetGroup() const { return group; }
 		uint16_t GetGroupMask() const { return groupMask; }
 

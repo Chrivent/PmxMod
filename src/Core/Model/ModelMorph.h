@@ -17,17 +17,17 @@ namespace Chrivent {
 		// 단일 모프를 지정한 가중치로 평가한다.
 		void EvalMorph(const Morph* morph, float morphWeight);
 		// 위치 모프 데이터를 버텍스 위치에 적용한다.
-		void MorphPosition(const std::vector<PositionMorph>& morphData, float weight) const;
+		static void MorphPosition(Model& model, const std::vector<PositionMorph>& morphData, float weight);
 		// UV 모프 데이터를 버텍스 UV에 적용한다.
-		void MorphUv(const std::vector<UvMorph>& morphData, float weight) const;
+		static void MorphUv(Model& model, const std::vector<UvMorph>& morphData, float weight);
 		// 재질 모프 누적을 시작하기 위해 재질 계수를 초기화한다.
-		void BeginMorphMaterial() const;
+		static void BeginMorphMaterial(Model& model);
 		// 누적된 재질 모프 결과를 최종 재질에 반영한다.
-		void EndMorphMaterial() const;
+		static void EndMorphMaterial(Model& model);
 		// 재질 모프 데이터를 현재 재질 계수에 누적한다.
-		void MorphMaterial(const std::vector<MaterialMorph>& morphData, float weight) const;
+		static void MorphMaterial(Model& model, const std::vector<MaterialMorph>& morphData, float weight);
 		// 본 모프 데이터를 노드 애니메이션 변환에 적용한다.
-		void MorphBone(const std::vector<BoneMorph>& morphData, float weight) const;
+		static void MorphBone(const Model& model, const std::vector<BoneMorph>& morphData, float weight);
 
 	public:
 		explicit ModelMorph(Model& model) : model(model) {}

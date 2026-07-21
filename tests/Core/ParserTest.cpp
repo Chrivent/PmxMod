@@ -196,6 +196,24 @@ namespace Chrivent {
 			AppendBytes(bytes, reinterpret_cast<const char*>(interpolation), sizeof(interpolation));
 			return bytes;
 		}
+
+		static std::string BuildVmdWithInvalidShiftJisName() {
+			std::string bytes(50, '\0');
+			constexpr char signature[] = "Vocaloid Motion Data 0002";
+			std::memcpy(bytes.data(), signature, sizeof(signature) - 1);
+			constexpr uint32_t motionCount = 1;
+			Append(bytes, motionCount);
+			char boneName[15]{};
+			boneName[0] = static_cast<char>(0x81);
+			AppendBytes(bytes, boneName, sizeof(boneName));
+			constexpr uint32_t frame = 0;
+			Append(bytes, frame);
+			Append(bytes, glm::vec3(0));
+			Append(bytes, glm::quat(1, 0, 0, 0));
+			constexpr uint8_t interpolation[64]{};
+			AppendBytes(bytes, reinterpret_cast<const char*>(interpolation), sizeof(interpolation));
+			return bytes;
+		}
 	};
 
 	TEST_F(ParserContractTest, RejectsMissingBoneWithNonZeroWeight) {
@@ -268,6 +286,15 @@ namespace Chrivent {
 		ASSERT_TRUE(result);
 		ASSERT_EQ(parser.GetData().motions.size(), 1);
 		EXPECT_EQ(parser.GetData().motions.front().interpolation[31], 255);
+	}
+
+	TEST_F(ParserContractTest, RejectsInvalidShiftJisMotionNames) {
+		std::istringstream stream(BuildVmdWithInvalidShiftJisName());
+		VmdParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
+		EXPECT_TRUE(parser.GetData().motions.empty());
 	}
 
 }

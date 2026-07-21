@@ -1,15 +1,16 @@
 ﻿#include "Core/Model/ModelLoader.h"
 
+#include "Core/Model/Model.h"
 #include "Core/Model/ModelCoordinateConverter.h"
 #include "Core/Model/ModelPose.h"
 #include "Core/Parser/BinaryReader.h"
-#include "Core/Parser/PmxParser.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 namespace Chrivent {
 	std::expected<void, ModelLoadError> ModelLoader::ValidateSupportedFeatures(const PmxParser::PmxData& pmxData) {
@@ -97,7 +98,7 @@ namespace Chrivent {
 			case PmxParser::WeightType::SphericalDeform: return WeightType::SphericalDeform;
 			case PmxParser::WeightType::QuaternionDeform: return WeightType::QuaternionDeform;
 		}
-		return WeightType::BoneDeform1;
+		std::unreachable();
 	}
 
 	SphereMode ModelLoader::ConvertSphereMode(const PmxParser::SphereMode sphereMode) {
@@ -107,7 +108,7 @@ namespace Chrivent {
 			case PmxParser::SphereMode::Add: return SphereMode::Add;
 			case PmxParser::SphereMode::SubTexture: return SphereMode::SubTexture;
 		}
-		return SphereMode::None;
+		std::unreachable();
 	}
 
 	MorphType ModelLoader::ConvertMorphType(const PmxParser::MorphType morphType) {
@@ -124,14 +125,18 @@ namespace Chrivent {
 			case PmxParser::MorphType::Flip: return MorphType::Flip;
 			case PmxParser::MorphType::Impulse: return MorphType::Impulse;
 		}
-		return MorphType::Group;
+		std::unreachable();
 	}
 
 	OpType ModelLoader::ConvertOpType(const PmxParser::OpType opType) {
-		return opType == PmxParser::OpType::Mul ? OpType::Mul : OpType::Add;
+		switch (opType) {
+			case PmxParser::OpType::Mul: return OpType::Mul;
+			case PmxParser::OpType::Add: return OpType::Add;
+		}
+		std::unreachable();
 	}
 
-	void ModelLoader::LoadVertices(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
+	void ModelLoader::LoadVertices(Model& model, const PmxParser::PmxData& pmxData, const glm::vec3& invZ) {
 		size_t vertexCount = pmxData.vertices.size();
 		model.geometryData.positions.reserve(vertexCount);
 		model.geometryData.normals.reserve(vertexCount);
@@ -205,7 +210,7 @@ namespace Chrivent {
 		model.geometryData.previousPositions = model.geometryData.positions;
 	}
 
-	void ModelLoader::LoadFaces(const PmxParser::PmxData& pmxData) const {
+	void ModelLoader::LoadFaces(Model& model, const PmxParser::PmxData& pmxData) {
 		model.geometryData.indexElementSize = pmxData.header.vertexIndexSize;
 		model.geometryData.indices.resize(pmxData.faces.size() * 3 * model.geometryData.indexElementSize);
 		model.geometryData.indexCount = pmxData.faces.size() * 3;
@@ -230,10 +235,9 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::LoadMaterials(
-		const PmxParser::PmxData& pmxData,
+	void ModelLoader::LoadMaterials(Model& model, const PmxParser::PmxData& pmxData,
 		const std::filesystem::path& modelDir,
-		const std::filesystem::path& defaultToonTextureDir) const {
+		const std::filesystem::path& defaultToonTextureDir) {
 		std::vector<std::filesystem::path> texturePaths;
 		texturePaths.reserve(pmxData.textures.size());
 		for (const auto& [textureName] : pmxData.textures) {
@@ -286,7 +290,7 @@ namespace Chrivent {
 		model.materialData.addMaterialFactors.resize(model.materialData.materials.size());
 	}
 
-	void ModelLoader::LoadNodes(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
+	void ModelLoader::LoadNodes(Model& model, const PmxParser::PmxData& pmxData, const glm::vec3& invZ) {
 		model.skeletonData.ReserveNodes(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
 			auto node = std::make_shared<Node>();
@@ -376,7 +380,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::LoadMorphs(const PmxParser::PmxData& pmxData, const glm::vec3& invZ) const {
+	void ModelLoader::LoadMorphs(Model& model, const PmxParser::PmxData& pmxData, const glm::vec3& invZ) {
 		for (const auto& morph : pmxData.morphs) {
 			auto m = std::make_unique<Morph>();
 			m->name = morph.name;
@@ -448,7 +452,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelLoader::FixInfiniteGroupMorphs() const {
+	void ModelLoader::FixInfiniteGroupMorphs(Model& model) {
 		const auto& morphs = model.morphData.GetMorphs();
 		std::vector<uint8_t> visitStates(morphs.size());
 		std::vector<std::pair<int32_t, size_t>> traversalStack;
@@ -485,7 +489,8 @@ namespace Chrivent {
 		}
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(const PmxParser::PmxData& pmxData) const {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(
+		const Model& model, const PmxParser::PmxData& pmxData) {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)
@@ -506,40 +511,46 @@ namespace Chrivent {
 		return {};
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::Load(const std::filesystem::path& filepath,
-		const std::filesystem::path& defaultToonTextureDir) const {
-		PmxParser pmx;
-		const auto parseResult = pmx.ReadFile(filepath);
+	std::expected<void, ModelLoadError> ModelLoader::Build(Model& model, const PmxParser::PmxData& pmxData,
+		const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir) {
+		const auto supportResult = ValidateSupportedFeatures(pmxData);
+		if (!supportResult)
+			return std::unexpected(supportResult.error());
+		model.infoData.modelName = pmxData.info.modelName;
+		model.infoData.englishModelName = pmxData.info.englishModelName;
+		model.infoData.comment = pmxData.info.comment;
+		model.infoData.englishComment = pmxData.info.englishComment;
+		constexpr glm::vec3 invZ(1, 1, -1);
+		LoadVertices(model, pmxData, invZ);
+		LoadFaces(model, pmxData);
+		LoadMaterials(model, pmxData, modelDir, defaultToonTextureDir);
+		LoadNodes(model, pmxData, invZ);
+		LoadMorphs(model, pmxData, invZ);
+		FixInfiniteGroupMorphs(model);
+		const auto physicsResult = LoadPhysics(model, pmxData);
+		if (!physicsResult)
+			return std::unexpected(physicsResult.error());
+		ModelPose::ResetPhysics(model);
+		return {};
+	}
+
+	std::expected<void, ModelLoadError> ModelLoader::Load(Model& model, const std::filesystem::path& filepath,
+		const std::filesystem::path& defaultToonTextureDir) {
+		PmxParser parser;
+		const auto parseResult = parser.ReadFile(filepath);
 		if (!parseResult) {
 			return std::unexpected(ModelLoadError{
 				ModelLoadErrorCode::Parse,
 				"PMX 파일을 읽지 못했습니다: " + BinaryReader::FormatParseError(parseResult.error())
 			});
 		}
-		const auto& pmxData = pmx.GetData();
-		const auto supportResult = ValidateSupportedFeatures(pmxData);
-		if (!supportResult)
-			return std::unexpected(supportResult.error());
 		Model loadedModel;
-		const ModelLoader loadedModelLoader(loadedModel);
-		loadedModel.infoData.modelName = pmxData.info.modelName;
-		loadedModel.infoData.englishModelName = pmxData.info.englishModelName;
-		loadedModel.infoData.comment = pmxData.info.comment;
-		loadedModel.infoData.englishComment = pmxData.info.englishComment;
-		const std::filesystem::path modelDir = filepath.parent_path();
-		constexpr glm::vec3 invZ(1, 1, -1);
-		loadedModelLoader.LoadVertices(pmxData, invZ);
-		loadedModelLoader.LoadFaces(pmxData);
-		loadedModelLoader.LoadMaterials(pmxData, modelDir, defaultToonTextureDir);
-		loadedModelLoader.LoadNodes(pmxData, invZ);
-		loadedModelLoader.LoadMorphs(pmxData, invZ);
-		loadedModelLoader.FixInfiniteGroupMorphs();
-		const auto physicsResult = loadedModelLoader.LoadPhysics(pmxData);
-		if (!physicsResult)
-			return std::unexpected(physicsResult.error());
-		const ModelPose pose(loadedModel);
-		pose.ResetPhysics();
+		const auto buildResult = Build(
+			loadedModel, parser.GetData(), filepath.parent_path(), defaultToonTextureDir);
+		if (!buildResult)
+			return std::unexpected(buildResult.error());
 		model.Swap(loadedModel);
 		return {};
 	}
+
 }

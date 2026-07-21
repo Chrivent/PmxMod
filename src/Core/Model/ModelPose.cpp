@@ -2,7 +2,7 @@
 #include <ranges>
 
 namespace Chrivent {
-	void ModelPose::UpdateNodeAnimation(const bool afterPhysicsAnim) const {
+	void ModelPose::UpdateNodeAnimation(Model& model, const bool afterPhysicsAnim) {
 		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
 			return node.get().isDeformAfterPhysics == afterPhysicsAnim;
 		};
@@ -26,7 +26,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelPose::UpdateTransforms() const {
+	void ModelPose::UpdateTransforms(Model& model) {
 		const auto& nodes = model.skeletonData.GetNodes();
 		for (size_t i = 0; i < nodes.size(); i++)
 			model.skeletonData.transforms[i] = nodes[i]->global * nodes[i]->inverseInit;

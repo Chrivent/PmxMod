@@ -81,22 +81,20 @@ namespace Chrivent {
 	TEST_F(AnimationModelContractTest, CreatesOnlyUsefulSkinningRanges) {
 		Model model;
 		model.geometryData.positions.resize(10);
-		const ModelSkinning skinning(model);
-		skinning.PrepareUpdate(false);
-		ASSERT_EQ(skinning.GetUpdateRangeCount(), 1);
+		ModelSkinning::PrepareUpdate(model, false);
+		ASSERT_EQ(ModelSkinning::GetUpdateRangeCount(model), 1);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexOffset, 0);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexCount, 10);
 		model.geometryData.positions.clear();
-		skinning.PrepareUpdate(false);
-		EXPECT_EQ(skinning.GetUpdateRangeCount(), 0);
+		ModelSkinning::PrepareUpdate(model, false);
+		EXPECT_EQ(ModelSkinning::GetUpdateRangeCount(model), 0);
 	}
 
 	TEST_F(AnimationModelContractTest, FailedLoadPreservesTheExistingModel) {
 		Model model;
 		model.infoData.modelName = "기존 모델";
-		const ModelLoader loader(model);
-		const auto result = loader.Load(
-			"pmxmod_core_test_file_that_does_not_exist.pmx", {});
+		const auto result = ModelLoader::Load(
+			model, "pmxmod_core_test_file_that_does_not_exist.pmx", {});
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ModelLoadErrorCode::Parse);
 		EXPECT_EQ(model.infoData.modelName, "기존 모델");
@@ -110,8 +108,7 @@ namespace Chrivent {
 			file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 		}
 		Model model;
-		const ModelLoader loader(model);
-		const auto result = loader.Load(path, {});
+		const auto result = ModelLoader::Load(model, path, {});
 		std::error_code error;
 		std::filesystem::remove(path, error);
 		ASSERT_TRUE(result);
@@ -252,8 +249,7 @@ namespace Chrivent {
 		node->baseAnimTranslate = glm::vec3(5);
 		model->skeletonData.AddNode(node);
 		const Animation animation(model, {}, {}, {});
-		const ModelAnimator animator(*model);
-		animator.SyncPhysics(animation, 0);
+		ModelAnimator::SyncPhysics(*model, animation, 0);
 		EXPECT_EQ(node->baseAnimTranslate, glm::vec3(5));
 	}
 
@@ -330,9 +326,8 @@ namespace Chrivent {
 		model.morphData.morphPositions.resize(1);
 		model.morphData.morphUVs.resize(1);
 		model.skeletonData.transforms.emplace_back(1.0f);
-		const ModelSkinning skinning(model);
-		skinning.PrepareUpdate(false);
-		skinning.UpdateRange(0);
+		ModelSkinning::PrepareUpdate(model, false);
+		ModelSkinning::UpdateRange(model, 0);
 		const glm::vec3 normal = model.geometryData.updateNormals.front();
 		EXPECT_TRUE(std::isfinite(normal.x));
 		EXPECT_TRUE(std::isfinite(normal.y));

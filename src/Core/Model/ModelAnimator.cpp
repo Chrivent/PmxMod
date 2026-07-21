@@ -4,20 +4,19 @@
 #include "Core/Animation/Model/Animation.h"
 
 namespace Chrivent {
-	void ModelAnimator::InitializeAnimation() const {
-		ClearBaseAnimation();
-		BeginAnimation();
+	void ModelAnimator::InitializeAnimation(Model& model) {
+		ClearBaseAnimation(model);
+		BeginAnimation(model);
 		for (const auto& morph : model.morphData.GetMorphs())
 			morph->weight = 0;
 		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->enable = true;
-		const ModelPose pose(model);
-		pose.UpdateNodeAnimation(false);
-		pose.UpdateNodeAnimation(true);
-		pose.ResetPhysics();
+		ModelPose::UpdateNodeAnimation(model, false);
+		ModelPose::UpdateNodeAnimation(model, true);
+		ModelPose::ResetPhysics(model);
 	}
 
-	void ModelAnimator::SaveBaseAnimation() const {
+	void ModelAnimator::SaveBaseAnimation(const Model& model) {
 		for (const auto& node : model.skeletonData.GetNodes()) {
 			node->baseAnimTranslate = node->animTranslate;
 			node->baseAnimRotate = node->animRotate;
@@ -28,7 +27,7 @@ namespace Chrivent {
 			ikSolver->baseAnimEnable = ikSolver->enable;
 	}
 
-	void ModelAnimator::ClearBaseAnimation() const {
+	void ModelAnimator::ClearBaseAnimation(const Model& model) {
 		for (const auto& node : model.skeletonData.GetNodes()) {
 			node->baseAnimTranslate = glm::vec3(0);
 			node->baseAnimRotate = glm::quat(1, 0, 0, 0);
@@ -39,10 +38,9 @@ namespace Chrivent {
 			ikSolver->baseAnimEnable = true;
 	}
 
-	void ModelAnimator::BeginAnimation() const {
-		for (const auto& node : model.skeletonData.GetNodes())
-			node->BeginUpdateTransform();
+	void ModelAnimator::BeginAnimation(Model& model) {
 		for (const auto& node : model.skeletonData.GetNodes()) {
+			node->BeginUpdateTransform();
 			node->animTranslate = glm::vec3(0);
 			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
@@ -50,22 +48,21 @@ namespace Chrivent {
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
 	}
 
-	void ModelAnimator::UpdateMorphAnimation() const {
+	void ModelAnimator::UpdateMorphAnimation(const Model& model) {
 		model.AccumulateMorphs();
 	}
 
-	void ModelAnimator::SyncPhysics(const Animation& anim, const float frame) const {
+	void ModelAnimator::SyncPhysics(Model& model, const Animation& animation, const float frame) {
 		if (!model.HasPhysics())
 			return;
-		SaveBaseAnimation();
+		SaveBaseAnimation(model);
 		for (int i = 0; i < 30; i++) {
-			BeginAnimation();
-			anim.Evaluate(frame, (1 + i) / 30.0f);
-			UpdateMorphAnimation();
-			const ModelPose pose(model);
-			pose.UpdateNodeAnimation(false);
-			pose.UpdatePhysicsAnimation(1.0f / 30.0f);
-			pose.UpdateNodeAnimation(true);
+			BeginAnimation(model);
+			animation.Evaluate(frame, (1 + i) / 30.0f);
+			UpdateMorphAnimation(model);
+			ModelPose::UpdateNodeAnimation(model, false);
+			ModelPose::UpdatePhysicsAnimation(model, 1.0f / 30.0f);
+			ModelPose::UpdateNodeAnimation(model, true);
 		}
 	}
 }

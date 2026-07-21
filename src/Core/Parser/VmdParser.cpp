@@ -1,5 +1,7 @@
 ﻿#include "Core/Parser/VmdParser.h"
 
+#include "Core/Text/TextEncoding.h"
+
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -132,17 +134,22 @@ namespace Chrivent {
 			}
 			return true;
 		};
+		const auto IsValidShiftJis = [](const char* value, const std::size_t size) {
+			return !value || size == 0 || value[0] == '\0' || !TextEncoding::ShiftJisToUtf8(value, size).empty();
+		};
 		for (const auto& motion : data.motions) {
 			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
-			if (!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
+			if (!IsValidShiftJis(motion.boneName, sizeof(motion.boneName)) ||
+				!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
 				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation, 16)) {
-				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 숫자 또는 보간 값이 올바르지 않습니다.");
+				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 이름, 숫자 또는 보간 값이 올바르지 않습니다.");
 				return;
 			}
 		}
 		for (const auto& morph : data.morphs) {
-			if (!std::isfinite(morph.weight)) {
-				reader.Fail(ParseErrorCode::InvalidValue, "모프 키의 가중치가 올바르지 않습니다.");
+			if (!IsValidShiftJis(morph.blendShapeName, sizeof(morph.blendShapeName)) ||
+				!std::isfinite(morph.weight)) {
+				reader.Fail(ParseErrorCode::InvalidValue, "모프 키의 이름 또는 가중치가 올바르지 않습니다.");
 				return;
 			}
 		}
@@ -164,6 +171,14 @@ namespace Chrivent {
 			if (!std::isfinite(shadow.distance)) {
 				reader.Fail(ParseErrorCode::InvalidValue, "그림자 키의 거리가 올바르지 않습니다.");
 				return;
+			}
+		}
+		for (const auto& ik : data.iks) {
+			for (const auto& [name, enable] : ik.ikStates) {
+				if (!IsValidShiftJis(name, sizeof(name))) {
+					reader.Fail(ParseErrorCode::InvalidValue, "IK 키의 이름이 올바르지 않습니다.");
+					return;
+				}
 			}
 		}
 	}

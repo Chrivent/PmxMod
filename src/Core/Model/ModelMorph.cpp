@@ -36,13 +36,13 @@ namespace Chrivent {
 				continue;
 			const MorphType type = currentMorph->morphType;
 			if (type == MorphType::Position)
-				MorphPosition(model.morphData.positionMorphs[currentMorph->dataIndex], currentWeight);
+				MorphPosition(model, model.morphData.positionMorphs[currentMorph->dataIndex], currentWeight);
 			else if (type == MorphType::Uv)
-				MorphUv(model.morphData.uvMorphs[currentMorph->dataIndex], currentWeight);
+				MorphUv(model, model.morphData.uvMorphs[currentMorph->dataIndex], currentWeight);
 			else if (type == MorphType::Material)
-				MorphMaterial(model.morphData.materialMorphs[currentMorph->dataIndex], currentWeight);
+				MorphMaterial(model, model.morphData.materialMorphs[currentMorph->dataIndex], currentWeight);
 			else if (type == MorphType::Bone)
-				MorphBone(model.morphData.boneMorphs[currentMorph->dataIndex], currentWeight);
+				MorphBone(model, model.morphData.boneMorphs[currentMorph->dataIndex], currentWeight);
 			else if (type == MorphType::Group) {
 				const auto& children = model.morphData.groupMorphs[currentMorph->dataIndex];
 				for (std::size_t index = children.size(); index > 0; index--) {
@@ -56,17 +56,17 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelMorph::MorphPosition(const std::vector<PositionMorph>& morphData, const float weight) const {
+	void ModelMorph::MorphPosition(Model& model, const std::vector<PositionMorph>& morphData, const float weight) {
 		for (const auto& [vertexIndex, position] : morphData)
 			model.morphData.morphPositions[vertexIndex] += position * weight;
 	}
 
-	void ModelMorph::MorphUv(const std::vector<UvMorph>& morphData, const float weight) const {
+	void ModelMorph::MorphUv(Model& model, const std::vector<UvMorph>& morphData, const float weight) {
 		for (const auto& [vertexIndex, uv] : morphData)
 			model.morphData.morphUVs[vertexIndex] += uv * weight;
 	}
 
-	void ModelMorph::BeginMorphMaterial() const {
+	void ModelMorph::BeginMorphMaterial(Model& model) {
 		constexpr MaterialMorph initMul{
 			0, OpType::Mul, glm::vec4(1), glm::vec3(1), 1.0f, glm::vec3(1),
 			glm::vec4(1), 1.0f, glm::vec4(1), glm::vec4(1), glm::vec4(1)
@@ -86,7 +86,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelMorph::EndMorphMaterial() const {
+	void ModelMorph::EndMorphMaterial(Model& model) {
 		for (size_t i = 0; i < model.materialData.materials.size(); i++) {
 			auto& mat = model.materialData.materials[i];
 			const auto& mul = model.materialData.mulMaterialFactors[i];
@@ -106,7 +106,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelMorph::MorphMaterial(const std::vector<MaterialMorph>& morphData, const float weight) const {
+	void ModelMorph::MorphMaterial(Model& model, const std::vector<MaterialMorph>& morphData, const float weight) {
 		for (const auto& matMorph : morphData) {
 			auto Apply = [&](const size_t mi) {
 				switch (matMorph.opType) {
@@ -123,7 +123,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelMorph::MorphBone(const std::vector<BoneMorph>& morphData, const float weight) const {
+	void ModelMorph::MorphBone(const Model& model, const std::vector<BoneMorph>& morphData, const float weight) {
 		for (const auto& [boneIndex, position, quaternion] : morphData) {
 			auto* node = model.skeletonData.GetNodes()[boneIndex].get();
 			node->translate += position * weight;
@@ -133,7 +133,9 @@ namespace Chrivent {
 	}
 
 	void ModelMorph::Update() {
-		BeginMorphMaterial();
+		const bool hasMaterialMorphs = !model.morphData.materialMorphs.empty();
+		if (hasMaterialMorphs)
+			BeginMorphMaterial(model);
 		pendingMorphs.clear();
 		const auto& morphs = model.morphData.GetMorphs();
 		if (pendingMorphs.capacity() < morphs.size())
@@ -142,6 +144,7 @@ namespace Chrivent {
 			if (std::abs(morph->weight) > std::numeric_limits<float>::epsilon())
 				EvalMorph(morph.get(), morph->weight);
 		}
-		EndMorphMaterial();
+		if (hasMaterialMorphs)
+			EndMorphMaterial(model);
 	}
 }

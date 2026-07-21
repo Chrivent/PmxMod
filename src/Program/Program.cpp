@@ -447,14 +447,13 @@ namespace Chrivent {
         loadedInstances.reserve(sceneConfig.modelConfigs.size());
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             const auto pmxModel = std::make_shared<Model>();
-            const ModelLoader loader(*pmxModel);
-			const auto loadResult = loader.Load(modelPath, resourceDirectories.GetDefaultToonTextureDirectory());
+			const auto loadResult = ModelLoader::Load(
+				*pmxModel, modelPath, resourceDirectories.GetDefaultToonTextureDirectory());
 			if (!loadResult) {
                 std::cerr << loadResult.error().message << '\n';
                 return false;
             }
-            const ModelAnimator animator(*pmxModel);
-            animator.InitializeAnimation();
+            ModelAnimator::InitializeAnimation(*pmxModel);
             AnimationBuilder animationBuilder(pmxModel);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
@@ -467,7 +466,7 @@ namespace Chrivent {
                 animationBuilder.Build(vmd.GetData());
             }
             auto vmdAnim = animationBuilder.TakeAnimation();
-            animator.SyncPhysics(*vmdAnim, 0.0f);
+            ModelAnimator::SyncPhysics(*pmxModel, *vmdAnim, 0.0f);
             auto instanceResult = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
             if (!instanceResult) {
 				PrintGraphicsError(instanceResult.error());
@@ -502,15 +501,14 @@ namespace Chrivent {
         for (const auto& instance : instances) {
             if (!instance || !instance->GetAnimation())
                 continue;
-            const ModelAnimator animator(instance->GetModel());
-            const ModelPose pose(instance->GetModel());
-            animator.BeginAnimation();
+            Model& model = instance->GetModel();
+            ModelAnimator::BeginAnimation(model);
             instance->GetAnimation()->Evaluate(frame);
-            animator.UpdateMorphAnimation();
-            pose.UpdateNodeAnimation(false);
-            pose.UpdateNodeAnimation(true);
-            pose.ResetPhysics();
-            animator.SyncPhysics(*instance->GetAnimation(), frame);
+            ModelAnimator::UpdateMorphAnimation(model);
+            ModelPose::UpdateNodeAnimation(model, false);
+            ModelPose::UpdateNodeAnimation(model, true);
+            ModelPose::ResetPhysics(model);
+            ModelAnimator::SyncPhysics(model, *instance->GetAnimation(), frame);
         }
         viewer->ResetPostProcessHistory();
     }

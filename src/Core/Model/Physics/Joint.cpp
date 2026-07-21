@@ -10,12 +10,12 @@ namespace Chrivent {
 		transform.setIdentity();
 		transform.setOrigin(btVector3(definition.translate.x, definition.translate.y, definition.translate.z));
 		transform.setBasis(rotMat);
-		btTransform invA = rigidBodyA.GetRigidBody()->getWorldTransform().inverse();
-		btTransform invB = rigidBodyB.GetRigidBody()->getWorldTransform().inverse();
+		btTransform invA = rigidBodyA.GetRigidBody().getWorldTransform().inverse();
+		btTransform invB = rigidBodyB.GetRigidBody().getWorldTransform().inverse();
 		invA = invA * transform;
 		invB = invB * transform;
 		auto jointConstraint = std::make_unique<btGeneric6DofSpringConstraint>(
-			*rigidBodyA.GetRigidBody(), *rigidBodyB.GetRigidBody(),
+			rigidBodyA.GetRigidBody(), rigidBodyB.GetRigidBody(),
 			invA, invB, true);
 		jointConstraint->setLinearLowerLimit(btVector3(definition.translateLowerLimit.x, definition.translateLowerLimit.y, definition.translateLowerLimit.z));
 		jointConstraint->setLinearUpperLimit(btVector3(definition.translateUpperLimit.x, definition.translateUpperLimit.y, definition.translateUpperLimit.z));

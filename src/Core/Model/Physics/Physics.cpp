@@ -161,20 +161,16 @@ namespace Chrivent {
 		physics = std::make_unique<Physics>();
 		rigidBodies.reserve(rigidBodyDefinitions.size());
 		for (const auto& definition : rigidBodyDefinitions) {
-			std::shared_ptr<Node> node;
-			if (definition.nodeIndex >= 0 &&
-				static_cast<std::size_t>(definition.nodeIndex) < nodes.size()) {
-				node = nodes[definition.nodeIndex];
-			}
+			std::shared_ptr<Node> node = definition.nodeIndex >= 0 ? nodes[definition.nodeIndex] : nullptr;
 			auto rigidBody = std::make_unique<RigidBody>(definition, node);
-			physics->AddRigidBody(*rigidBody->GetRigidBody(), rigidBody->GetGroup(), rigidBody->GetGroupMask());
+			physics->AddRigidBody(rigidBody->GetRigidBody(), rigidBody->GetGroup(), rigidBody->GetGroupMask());
 			rigidBodies.emplace_back(std::move(rigidBody));
 		}
 		joints.reserve(jointDefinitions.size());
 		for (const auto& definition : jointDefinitions) {
 			auto joint = std::make_unique<Joint>(
 				definition, *rigidBodies[definition.rigidBodyAIndex], *rigidBodies[definition.rigidBodyBIndex]);
-			physics->AddConstraint(*joint->GetConstraint());
+			physics->AddConstraint(joint->GetConstraint());
 			joints.emplace_back(std::move(joint));
 		}
 		return {};
@@ -190,7 +186,7 @@ namespace Chrivent {
 		physics->Step(1.0f / 60.0f);
 		ReflectTransforms(nodes);
 		for (const auto& rigidBody : rigidBodies) {
-			physics->CleanCollisionPairs(*rigidBody->GetRigidBody());
+			physics->CleanCollisionPairs(rigidBody->GetRigidBody());
 			rigidBody->Reset();
 		}
 	}
@@ -207,9 +203,9 @@ namespace Chrivent {
 	void ModelPhysicsData::Reset() {
 		if (physics) {
 			for (const auto& joint : joints)
-				physics->RemoveConstraint(*joint->GetConstraint());
+				physics->RemoveConstraint(joint->GetConstraint());
 			for (const auto& rigidBody : rigidBodies)
-				physics->RemoveRigidBody(*rigidBody->GetRigidBody());
+				physics->RemoveRigidBody(rigidBody->GetRigidBody());
 		}
 		joints.clear();
 		rigidBodies.clear();

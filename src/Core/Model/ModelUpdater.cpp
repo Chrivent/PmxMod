@@ -8,10 +8,7 @@
 #include <chrono>
 
 namespace Chrivent {
-	void ModelUpdater::Prepare(const Animation* animation, const float frame, const float physicsElapsed,
-		const bool preservePreviousPositions, const bool updatePhysics, ModelUpdateTiming* timing) const {
-		const ModelAnimator animator(model);
-		const ModelPose pose(model);
+	void ModelUpdater::Prepare(Model& model, const ModelUpdateOptions& options) {
 		const auto RunStage = [](double* elapsedMilliseconds, const auto& task) {
 			if (!elapsedMilliseconds) {
 				task();
@@ -22,28 +19,29 @@ namespace Chrivent {
 			*elapsedMilliseconds =
 				std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 		};
-		RunStage(timing ? &timing->initializeMilliseconds : nullptr, [&] { animator.BeginAnimation(); });
+		ModelUpdateTiming* timing = options.timing;
+		RunStage(timing ? &timing->initializeMilliseconds : nullptr,
+			[&] { ModelAnimator::BeginAnimation(model); });
 		RunStage(timing ? &timing->animationEvaluateMilliseconds : nullptr,
-			[&] { if (animation) animation->Evaluate(frame); });
-		RunStage(timing ? &timing->morphMilliseconds : nullptr, [&] { animator.UpdateMorphAnimation(); });
+			[&] { if (options.animation) options.animation->Evaluate(options.frame); });
+		RunStage(timing ? &timing->morphMilliseconds : nullptr,
+			[&] { ModelAnimator::UpdateMorphAnimation(model); });
 		RunStage(timing ? &timing->beforePhysicsPoseMilliseconds : nullptr,
-			[&] { pose.UpdateNodeAnimation(false); });
+			[&] { ModelPose::UpdateNodeAnimation(model, false); });
 		RunStage(timing ? &timing->physicsMilliseconds : nullptr,
-			[&] { if (updatePhysics) pose.UpdatePhysicsAnimation(physicsElapsed); });
+			[&] { if (options.updatePhysics) ModelPose::UpdatePhysicsAnimation(model, options.physicsElapsed); });
 		RunStage(timing ? &timing->afterPhysicsPoseMilliseconds : nullptr,
-			[&] { pose.UpdateNodeAnimation(true); });
-		RunStage(timing ? &timing->transformMilliseconds : nullptr, [&] { pose.UpdateTransforms(); });
-		const ModelSkinning skinning(model);
-		skinning.PrepareUpdate(preservePreviousPositions);
+			[&] { ModelPose::UpdateNodeAnimation(model, true); });
+		RunStage(timing ? &timing->transformMilliseconds : nullptr,
+			[&] { ModelPose::UpdateTransforms(model); });
+		ModelSkinning::PrepareUpdate(model, options.preservePreviousPositions);
 	}
 
-	std::size_t ModelUpdater::CalculateSkinningTaskCount() const {
-		const ModelSkinning skinning(model);
-		return skinning.GetUpdateRangeCount();
+	std::size_t ModelUpdater::CalculateSkinningTaskCount(const Model& model) {
+		return ModelSkinning::GetUpdateRangeCount(model);
 	}
 
-	void ModelUpdater::UpdateSkinning(const std::size_t taskIndex) const {
-		const ModelSkinning skinning(model);
-		skinning.UpdateRange(taskIndex);
+	void ModelUpdater::UpdateSkinning(Model& model, const std::size_t taskIndex) {
+		ModelSkinning::UpdateRange(model, taskIndex);
 	}
 }

@@ -10,7 +10,7 @@
 #include <glm/gtx/dual_quaternion.hpp>
 
 namespace Chrivent {
-	void ModelSkinning::SetupParallelUpdate() const {
+	void ModelSkinning::SetupParallelUpdate(Model& model) {
 		const size_t totalVertexCount = model.geometryData.positions.size();
 		if (totalVertexCount == 0) {
 			model.geometryData.updateRanges.clear();
@@ -33,7 +33,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelSkinning::UpdateRange(const std::size_t rangeIndex) const {
+	void ModelSkinning::UpdateRange(Model& model, const std::size_t rangeIndex) {
 		const auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[rangeIndex];
 		for (size_t index = vertexOffset; index < vertexOffset + vertexCount; index++) {
 			const auto& position = model.geometryData.positions[index];
@@ -119,7 +119,7 @@ namespace Chrivent {
 		}
 	}
 
-	void ModelSkinning::PrepareUpdate(const bool preservePreviousPositions) const {
+	void ModelSkinning::PrepareUpdate(Model& model, const bool preservePreviousPositions) {
 		if (preservePreviousPositions &&
 			model.geometryData.updatePositions.size() == model.geometryData.positions.size())
 			model.geometryData.previousPositions = model.geometryData.updatePositions;
@@ -132,6 +132,6 @@ namespace Chrivent {
 			if (vertexOffset + vertexCount == model.geometryData.positions.size())
 				return;
 		}
-		SetupParallelUpdate();
+		SetupParallelUpdate(model);
 	}
 }

@@ -15,6 +15,6 @@ namespace Chrivent {
 	public:
 		Joint(const JointDefinition& definition, const RigidBody& rigidBodyA, const RigidBody& rigidBodyB);
 
-		btTypedConstraint* GetConstraint() const { return constraint.get(); }
+		btTypedConstraint& GetConstraint() const { return *constraint; }
 	};
 }

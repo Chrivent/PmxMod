@@ -88,8 +88,7 @@ namespace Chrivent {
 	void RigidBody::ReflectGlobalTransform() const {
 		if (activeMotionState)
 			activeMotionState->ReflectGlobalTransform();
-		if (kinematicMotionState)
-			kinematicMotionState->ReflectGlobalTransform();
+		kinematicMotionState->ReflectGlobalTransform();
 	}
 
 	void RigidBody::CalcLocalTransform() const {
