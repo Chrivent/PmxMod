@@ -1,19 +1,20 @@
 ﻿#pragma once
 
 #include "Viewer/Buffer/Dx12Buffer.h"
-#include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/Error/GraphicsError.h"
 #include "Viewer/PostProcess/PostProcess.h"
 #include "Viewer/PostProcess/Dx12PostProcessPipelines.h"
 #include "Viewer/RenderTarget/Dx12MsaaColorBuffer.h"
 #include "Viewer/RenderTarget/Dx12PostProcessDepthTarget.h"
 #include "Viewer/RenderTarget/Dx12PostProcessTarget.h"
+#include "Viewer/Synchronization/FrameBuffering.h"
 
 #include <d3d12.h>
 #include <vector>
 #include <wrl/client.h>
 
 namespace Chrivent {
+	class Dx12CommandContext;
 	class Dx12SwapChain;
 	struct PostProcessFrameData;
 	

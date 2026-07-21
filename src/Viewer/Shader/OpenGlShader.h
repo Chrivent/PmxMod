@@ -5,6 +5,9 @@
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
 #include <glad/glad.h>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace Chrivent {
 	// HLSL을 SPIR-V와 GLSL로 변환해 OpenGL 프로그램을 생성한다.

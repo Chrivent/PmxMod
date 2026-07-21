@@ -1,5 +1,6 @@
 ﻿add_executable(PmxModViewerTests
         Viewer/DynamicBufferRingTest.cpp
+        Viewer/GraphicsErrorTest.cpp
         Viewer/PostProcessTest.cpp
         Viewer/ViewerTest.cpp
 )

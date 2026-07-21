@@ -7,7 +7,6 @@
 #include <wrl/client.h>
 
 namespace Chrivent {
-	class Dx11Drawer;
 	class Dx11DrawContext;
 	class Dx11Device;
 	class Dx11TextureCache;

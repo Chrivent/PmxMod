@@ -6,7 +6,6 @@
 #include <glad/glad.h>
 
 namespace Chrivent {
-	class OpenGlDrawer;
 	class OpenGlDrawContext;
 	class OpenGlTextureCache;
 

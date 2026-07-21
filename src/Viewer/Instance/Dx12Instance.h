@@ -4,7 +4,6 @@
 #include "Viewer/Instance/Instance.h"
 
 namespace Chrivent {
-	class Dx12Drawer;
 	class Dx12DrawContext;
 	class Dx12Device;
 	class Dx12UploadContext;

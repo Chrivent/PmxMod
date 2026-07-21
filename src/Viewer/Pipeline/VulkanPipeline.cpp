@@ -117,61 +117,79 @@ namespace Chrivent {
 		const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
 		const ShaderProgramDefinition& velocityProgram) {
 		using Builder = VulkanPipelineBuilder;
-		Builder::Configuration configuration{
+		const Builder::Configuration modelConfiguration{
 			.pipelineLayout = pipelineLayout,
 			.colorFormat = sourceColorFormat,
 			.depthFormat = sourceDepthFormat,
 			.sampleCount = sourceDevice.GetMsaaSampleCount()
 		};
-		auto result = Builder::Create(
-			sourceDevice, passes.model, configuration, modelFrontFacePipeline);
-		if (!result)
-			return result;
-		configuration.cullMode = VK_CULL_MODE_NONE;
-		result = Builder::Create(
-			sourceDevice, passes.model, configuration, modelBothFacePipeline);
-		if (!result)
-			return result;
-		configuration.colorFormat = VK_FORMAT_UNDEFINED;
-		configuration.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
-		configuration.vertexLayout = Builder::VertexLayout::PositionUv;
-		result = Builder::Create(
-			sourceDevice, depthProgram, configuration, sceneDepthFrontFacePipeline);
-		if (!result)
-			return result;
-		configuration.cullMode = VK_CULL_MODE_NONE;
-		result = Builder::Create(
-			sourceDevice, depthProgram, configuration, sceneDepthBothFacePipeline);
-		if (!result)
-			return result;
-		configuration.colorFormat = VK_FORMAT_R16G16_SFLOAT;
-		configuration.cullMode = VK_CULL_MODE_BACK_BIT;
-		configuration.vertexLayout = Builder::VertexLayout::Velocity;
-		result = Builder::Create(
-			sourceDevice, velocityProgram, configuration, sceneVelocityFrontFacePipeline);
-		if (!result)
-			return result;
-		configuration.cullMode = VK_CULL_MODE_NONE;
-		result = Builder::Create(
-			sourceDevice, velocityProgram, configuration, sceneVelocityBothFacePipeline);
-		if (!result)
-			return result;
-		configuration.colorFormat = sourceColorFormat;
-		configuration.sampleCount = sourceDevice.GetMsaaSampleCount();
-		configuration.cullMode = VK_CULL_MODE_FRONT_BIT;
-		configuration.vertexLayout = Builder::VertexLayout::Model;
-		result = Builder::Create(sourceDevice, passes.edge, configuration, edgePipeline);
-		if (!result)
-			return result;
-		configuration.cullMode = VK_CULL_MODE_NONE;
-		configuration.vertexLayout = Builder::VertexLayout::PositionOnly;
-		configuration.depthBiasEnabled = true;
-		configuration.stencilTestEnabled = true;
-		configuration.depthWriteDisabled = true;
-		configuration.preserveDestinationAlpha = true;
-		return Builder::Create(
-			sourceDevice, passes.groundShadow, configuration, groundShadowPipeline);
+		const auto modelFrontFaceResult = Builder::Create(
+			sourceDevice, passes.model, modelConfiguration, modelFrontFacePipeline);
+		if (!modelFrontFaceResult)
+			return modelFrontFaceResult;
+		Builder::Configuration modelBothFaceConfiguration = modelConfiguration;
+		modelBothFaceConfiguration.cullMode = VK_CULL_MODE_NONE;
+		const auto modelBothFaceResult = Builder::Create(
+			sourceDevice, passes.model, modelBothFaceConfiguration, modelBothFacePipeline);
+		if (!modelBothFaceResult)
+			return modelBothFaceResult;
+		const Builder::Configuration depthConfiguration{
+			.pipelineLayout = pipelineLayout,
+			.depthFormat = sourceDepthFormat,
+			.vertexLayout = Builder::VertexLayout::PositionUv
+		};
+		const auto depthFrontFaceResult = Builder::Create(
+			sourceDevice, depthProgram, depthConfiguration, sceneDepthFrontFacePipeline);
+		if (!depthFrontFaceResult)
+			return depthFrontFaceResult;
+		Builder::Configuration depthBothFaceConfiguration = depthConfiguration;
+		depthBothFaceConfiguration.cullMode = VK_CULL_MODE_NONE;
+		const auto depthBothFaceResult = Builder::Create(
+			sourceDevice, depthProgram, depthBothFaceConfiguration, sceneDepthBothFacePipeline);
+		if (!depthBothFaceResult)
+			return depthBothFaceResult;
+		const Builder::Configuration velocityConfiguration{
+			.pipelineLayout = pipelineLayout,
+			.colorFormat = VK_FORMAT_R16G16_SFLOAT,
+			.depthFormat = sourceDepthFormat,
+			.vertexLayout = Builder::VertexLayout::Velocity
+		};
+		const auto velocityFrontFaceResult = Builder::Create(
+			sourceDevice, velocityProgram, velocityConfiguration, sceneVelocityFrontFacePipeline);
+		if (!velocityFrontFaceResult)
+			return velocityFrontFaceResult;
+		Builder::Configuration velocityBothFaceConfiguration = velocityConfiguration;
+		velocityBothFaceConfiguration.cullMode = VK_CULL_MODE_NONE;
+		const auto velocityBothFaceResult = Builder::Create(
+			sourceDevice, velocityProgram, velocityBothFaceConfiguration, sceneVelocityBothFacePipeline);
+		if (!velocityBothFaceResult)
+			return velocityBothFaceResult;
+
+		const Builder::Configuration edgeConfiguration{
+			.pipelineLayout = pipelineLayout,
+			.colorFormat = sourceColorFormat,
+			.depthFormat = sourceDepthFormat,
+			.sampleCount = sourceDevice.GetMsaaSampleCount(),
+			.cullMode = VK_CULL_MODE_FRONT_BIT
+		};
+		const auto edgeResult = Builder::Create(
+			sourceDevice, passes.edge, edgeConfiguration, edgePipeline);
+		if (!edgeResult)
+			return edgeResult;
+		const Builder::Configuration groundShadowConfiguration{
+			.pipelineLayout = pipelineLayout,
+			.colorFormat = sourceColorFormat,
+			.depthFormat = sourceDepthFormat,
+			.sampleCount = sourceDevice.GetMsaaSampleCount(),
+			.cullMode = VK_CULL_MODE_NONE,
+			.vertexLayout = Builder::VertexLayout::PositionOnly,
+			.depthBiasEnabled = true,
+			.stencilTestEnabled = true,
+			.depthWriteDisabled = true,
+			.preserveDestinationAlpha = true
+		};
+		return Builder::Create(sourceDevice, passes.groundShadow,
+			groundShadowConfiguration, groundShadowPipeline);
 	}
 
 	VulkanPipeline::~VulkanPipeline() {

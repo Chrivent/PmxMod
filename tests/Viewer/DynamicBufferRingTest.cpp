@@ -1,8 +1,20 @@
-﻿#include "Viewer/Buffer/DynamicBufferRing.h"
+﻿#include "Viewer/Buffer/BufferSize.h"
+#include "Viewer/Buffer/DynamicBufferRing.h"
 
 #include <gtest/gtest.h>
+#include <limits>
 
 namespace Chrivent {
+	TEST(BufferSizeContract, DetectsOverflowAndAlignsNonPowerOfTwoValues) {
+		size_t result = 0;
+		EXPECT_FALSE(BufferSize::TryAdd(std::numeric_limits<size_t>::max(), 1, result));
+		EXPECT_FALSE(BufferSize::TryMultiply(std::numeric_limits<size_t>::max(), 2, result));
+		EXPECT_TRUE(BufferSize::TryAlignUp(10, 6, result));
+		EXPECT_EQ(result, 12);
+		EXPECT_FALSE(BufferSize::TryAlignUp(
+			std::numeric_limits<size_t>::max() - 1, 4, result));
+	}
+
 	// API 리소스 없이 공통 동적 버퍼 할당 계약을 노출한다.
 	class DynamicBufferRingTestAdapter final : public DynamicBufferRing {
 	public:

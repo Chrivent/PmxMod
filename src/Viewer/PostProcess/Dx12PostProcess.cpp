@@ -1,6 +1,7 @@
 ﻿#include "Viewer/PostProcess/Dx12PostProcess.h"
 
 #include "Viewer/Buffer/BufferSize.h"
+#include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/Synchronization/Dx12Barrier.h"
 #include "Viewer/SwapChain/Dx12SwapChain.h"
 #include "Viewer/PostProcess/PostProcessFrameData.h"

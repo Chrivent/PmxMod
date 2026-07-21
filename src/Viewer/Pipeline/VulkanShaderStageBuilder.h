@@ -6,6 +6,7 @@
 #include "Viewer/Shader/ShaderProgramDefinition.h"
 
 #include <span>
+#include <string>
 
 namespace Chrivent {
 	// HLSL pass를 Vulkan shader module과 graphics pipeline stage 정보로 구성한다.
