@@ -29,6 +29,8 @@ namespace Chrivent {
 	// 애니메이션, 물리, 포즈와 스키닝 갱신 순서를 조정한다.
 	class ModelUpdater {
 	public:
+		// 지정한 프레임의 포즈를 복원하고 물리 상태를 해당 시점에 맞춰 초기화한다.
+		static void ResetPhysicsAtFrame(Model& model, const Animation& animation, float frame);
 		// 지정한 애니메이션 시간으로 모델 상태를 평가하고 스키닝 작업 범위를 준비한다.
 		static void Prepare(Model& model, const ModelUpdateOptions& options);
 		// 현재 모델의 정점 갱신 범위를 기준으로 스키닝 작업 수를 계산한다.

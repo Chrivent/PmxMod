@@ -52,8 +52,7 @@ namespace Chrivent {
 		// 순환 참조가 있는 그룹 모프를 끊어 무한 재귀를 막는다.
 		static void FixInfiniteGroupMorphs(Model& model);
 		// PMX 강체와 조인트를 물리 월드에 등록한다.
-		static std::expected<void, ModelLoadError> LoadPhysics(
-			const Model& model, const PmxParser::PmxData& pmxData);
+		static std::expected<void, ModelLoadError> LoadPhysics(Model& model, const PmxParser::PmxData& pmxData);
 		// 검증된 PMX 데이터를 지정 모델의 런타임 표현으로 조립한다.
 		static std::expected<void, ModelLoadError> Build(Model& model, const PmxParser::PmxData& pmxData,
 			const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir);

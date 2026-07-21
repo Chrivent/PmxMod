@@ -6,7 +6,7 @@
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelAnimator.h"
-#include "Core/Model/ModelPose.h"
+#include "Core/Model/ModelUpdater.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Instance/Instance.h"
@@ -502,13 +502,7 @@ namespace Chrivent {
             if (!instance || !instance->GetAnimation())
                 continue;
             Model& model = instance->GetModel();
-            ModelAnimator::BeginAnimation(model);
-            instance->GetAnimation()->Evaluate(frame);
-            ModelAnimator::UpdateMorphAnimation(model);
-            ModelPose::UpdateNodeAnimation(model, false);
-            ModelPose::UpdateNodeAnimation(model, true);
-            ModelPose::ResetPhysics(model);
-            ModelAnimator::SyncPhysics(model, *instance->GetAnimation(), frame);
+            ModelUpdater::ResetPhysicsAtFrame(model, *instance->GetAnimation(), frame);
         }
         viewer->ResetPostProcessHistory();
     }

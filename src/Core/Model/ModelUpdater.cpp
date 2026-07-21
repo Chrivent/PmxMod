@@ -8,6 +8,16 @@
 #include <chrono>
 
 namespace Chrivent {
+	void ModelUpdater::ResetPhysicsAtFrame(Model& model, const Animation& animation, const float frame) {
+		ModelAnimator::BeginAnimation(model);
+		animation.Evaluate(frame);
+		ModelAnimator::UpdateMorphAnimation(model);
+		ModelPose::UpdateNodeAnimation(model, false);
+		ModelPose::UpdateNodeAnimation(model, true);
+		model.ResetPhysics();
+		ModelAnimator::SyncPhysics(model, animation, frame);
+	}
+
 	void ModelUpdater::Prepare(Model& model, const ModelUpdateOptions& options) {
 		const auto RunStage = [](double* elapsedMilliseconds, const auto& task) {
 			if (!elapsedMilliseconds) {
@@ -29,7 +39,7 @@ namespace Chrivent {
 		RunStage(timing ? &timing->beforePhysicsPoseMilliseconds : nullptr,
 			[&] { ModelPose::UpdateNodeAnimation(model, false); });
 		RunStage(timing ? &timing->physicsMilliseconds : nullptr,
-			[&] { if (options.updatePhysics) ModelPose::UpdatePhysicsAnimation(model, options.physicsElapsed); });
+			[&] { if (options.updatePhysics) model.UpdatePhysics(options.physicsElapsed); });
 		RunStage(timing ? &timing->afterPhysicsPoseMilliseconds : nullptr,
 			[&] { ModelPose::UpdateNodeAnimation(model, true); });
 		RunStage(timing ? &timing->transformMilliseconds : nullptr,

@@ -5,9 +5,11 @@
 #include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelSkinning.h"
+#include "Core/Model/ModelUpdater.h"
 
 #include <gtest/gtest.h>
 #include <fstream>
+#include <utility>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Chrivent {
@@ -199,6 +201,49 @@ namespace Chrivent {
 		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
 		ASSERT_EQ(animation->GetNodeTracks().front().keys.size(), 1);
 		EXPECT_EQ(animation->GetNodeTracks().front().keys.front().translate.x, 2.0f);
+	}
+
+	TEST_F(AnimationModelContractTest, MergesModelKeysAcrossBuildCalls) {
+		const auto model = std::make_shared<Model>();
+		const auto node = std::make_shared<Node>();
+		node->name = "A";
+		model->skeletonData.AddNode(node);
+		AnimationBuilder builder(model);
+		for (const auto& [frame, x] : {std::pair{5u, 1.0f}, std::pair{8u, 2.0f}}) {
+			VmdParser::VmdData data{};
+			auto& motion = data.motions.emplace_back();
+			std::memcpy(motion.boneName, "A", 1);
+			motion.frame = frame;
+			motion.translate = glm::vec3(x, 0, 0);
+			motion.quaternion = glm::quat(1, 0, 0, 0);
+			builder.Build(data);
+		}
+		const auto animation = builder.TakeAnimation();
+		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
+		const auto& keys = animation->GetNodeTracks().front().keys;
+		ASSERT_EQ(keys.size(), 2);
+		EXPECT_EQ(keys[0].frame, 5);
+		EXPECT_EQ(keys[1].frame, 8);
+	}
+
+	TEST_F(AnimationModelContractTest, ResetsModelStateThroughTheUpdaterContract) {
+		const auto model = std::make_shared<Model>();
+		const auto node = std::make_shared<Node>();
+		node->name = "A";
+		model->skeletonData.AddNode(node);
+		model->skeletonData.sortedNodes.emplace_back(*node);
+		VmdParser::VmdData data{};
+		auto& motion = data.motions.emplace_back();
+		std::memcpy(motion.boneName, "A", 1);
+		motion.frame = 12;
+		motion.translate = glm::vec3(3, 0, 0);
+		motion.quaternion = glm::quat(1, 0, 0, 0);
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		ModelUpdater::ResetPhysicsAtFrame(*model, *animation, 12.0f);
+		EXPECT_EQ(node->animTranslate, glm::vec3(3, 0, 0));
+		EXPECT_EQ(glm::vec3(node->global[3]), glm::vec3(3, 0, 0));
 	}
 
 	TEST_F(AnimationModelContractTest, KeepsTheLastCameraKeyAtADuplicateFrame) {

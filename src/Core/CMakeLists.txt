@@ -12,9 +12,7 @@ target_sources(PmxModCore PRIVATE
         Animation/Bezier.h Animation/Bezier.cpp
 
         Animation/Model/Animation.h Animation/Model/Animation.cpp
-        Animation/Model/AnimationBinder.h Animation/Model/AnimationBinder.cpp
         Animation/Model/AnimationBuilder.h Animation/Model/AnimationBuilder.cpp
-        Animation/Model/AnimationTrackMap.h Animation/Model/AnimationTrackMap.cpp
 
         Animation/Camera/Camera.h Animation/Camera/Camera.cpp
         Animation/Camera/CameraAnimation.h Animation/Camera/CameraAnimation.cpp

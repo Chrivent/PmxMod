@@ -2,7 +2,6 @@
 
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelCoordinateConverter.h"
-#include "Core/Model/ModelPose.h"
 #include "Core/Parser/BinaryReader.h"
 
 #include <algorithm>
@@ -489,8 +488,7 @@ namespace Chrivent {
 		}
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(
-		const Model& model, const PmxParser::PmxData& pmxData) {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(Model& model, const PmxParser::PmxData& pmxData) {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)
@@ -530,7 +528,7 @@ namespace Chrivent {
 		const auto physicsResult = LoadPhysics(model, pmxData);
 		if (!physicsResult)
 			return std::unexpected(physicsResult.error());
-		ModelPose::ResetPhysics(model);
+		model.ResetPhysics();
 		return {};
 	}
 

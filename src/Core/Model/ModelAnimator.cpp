@@ -13,7 +13,7 @@ namespace Chrivent {
 			ikSolver->enable = true;
 		ModelPose::UpdateNodeAnimation(model, false);
 		ModelPose::UpdateNodeAnimation(model, true);
-		ModelPose::ResetPhysics(model);
+		model.ResetPhysics();
 	}
 
 	void ModelAnimator::SaveBaseAnimation(const Model& model) {
@@ -55,13 +55,15 @@ namespace Chrivent {
 	void ModelAnimator::SyncPhysics(Model& model, const Animation& animation, const float frame) {
 		if (!model.HasPhysics())
 			return;
+		constexpr int warmUpStepCount = 30;
+		constexpr float warmUpElapsed = 1.0f / warmUpStepCount;
 		SaveBaseAnimation(model);
-		for (int i = 0; i < 30; i++) {
+		for (int i = 0; i < warmUpStepCount; i++) {
 			BeginAnimation(model);
-			animation.Evaluate(frame, (1 + i) / 30.0f);
+			animation.Evaluate(frame, static_cast<float>(1 + i) / warmUpStepCount);
 			UpdateMorphAnimation(model);
 			ModelPose::UpdateNodeAnimation(model, false);
-			ModelPose::UpdatePhysicsAnimation(model, 1.0f / 30.0f);
+			model.UpdatePhysics(warmUpElapsed);
 			ModelPose::UpdateNodeAnimation(model, true);
 		}
 	}

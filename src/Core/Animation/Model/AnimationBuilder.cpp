@@ -1,13 +1,60 @@
 ﻿#include "Core/Animation/Model/AnimationBuilder.h"
 
-#include "Core/Animation/Model/AnimationBinder.h"
-#include "Core/Animation/Model/AnimationTrackMap.h"
+#include "Core/Animation/AnimationKeySequence.h"
+#include "Core/Model/Model.h"
 #include "Core/Model/ModelCoordinateConverter.h"
 #include "Core/Text/TextEncoding.h"
 
-#include <utility>
+#include <ranges>
 
 namespace Chrivent {
+	Node* AnimationBuilder::FindNodeByName(const std::string& name) const {
+		if (!model)
+			return nullptr;
+		const auto& nodes = model->skeletonData.GetNodes();
+		const auto it = std::ranges::find_if(nodes, [&name](const std::shared_ptr<Node>& node) {
+			return node && node->name == name;
+		});
+		return it != nodes.end() ? it->get() : nullptr;
+	}
+
+	IkSolver* AnimationBuilder::FindIkSolverByName(const std::string& name) const {
+		if (!model)
+			return nullptr;
+		const auto& ikSolvers = model->skeletonData.GetIkSolvers();
+		const auto it = std::ranges::find_if(ikSolvers, [&name](const std::shared_ptr<IkSolver>& solver) {
+			if (!solver)
+				return false;
+			const auto ikNode = solver->ikNode.lock();
+			return ikNode && ikNode->name == name;
+		});
+		return it != ikSolvers.end() ? it->get() : nullptr;
+	}
+
+	Morph* AnimationBuilder::FindMorphByName(const std::string& name) const {
+		if (!model)
+			return nullptr;
+		const auto& morphs = model->morphData.GetMorphs();
+		const auto it = std::ranges::find_if(morphs, [&name](const auto& morph) {
+			return morph && morph->name == name;
+		});
+		return it != morphs.end() ? it->get() : nullptr;
+	}
+
+	template <typename TrackMap>
+	std::vector<typename TrackMap::mapped_type> AnimationBuilder::TakeTracks(TrackMap& trackMap) {
+		std::vector<typename TrackMap::mapped_type> tracks;
+		tracks.reserve(trackMap.size());
+		for (auto& track : trackMap | std::views::values) {
+			if (!IsTrackBound(track))
+				continue;
+			AnimationKeySequence::SortAndKeepLastKeyPerFrame(track.keys);
+			tracks.emplace_back(std::move(track));
+		}
+		trackMap.clear();
+		return tracks;
+	}
+
 	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {
 		NodeAnimationKey key{};
 		key.frame = motion.frame;
@@ -25,33 +72,28 @@ namespace Chrivent {
 	void AnimationBuilder::AddNodeAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.motions.empty())
 			return;
-		const AnimationBinder binder(model.get());
-		auto nodeMap = AnimationTrackMap::TakeNodeTrackMap(nodeTracks);
 		for (const auto& motion : vmdData.motions) {
 			auto nodeName = TextEncoding::ShiftJisToUtf8(motion.boneName, sizeof(motion.boneName));
-			auto [findIt, inserted] = nodeMap.try_emplace(nodeName);
+			auto [findIt, inserted] = nodeTrackMap.try_emplace(nodeName);
 			auto& [node, keys] = findIt->second;
 			if (inserted)
-				binder.BindNodeTrack(findIt->second, nodeName);
+				node = FindNodeByName(nodeName);
 			if (!node)
 				continue;
 			keys.emplace_back(CreateNodeAnimationKey(motion));
 		}
-		AnimationTrackMap::FlushTrackMap(nodeMap, nodeTracks);
 	}
 
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.iks.empty())
 			return;
-		const AnimationBinder binder(model.get());
-		auto ikMap = AnimationTrackMap::TakeIkTrackMap(ikTracks);
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
 				auto ikName = TextEncoding::ShiftJisToUtf8(name, sizeof(name));
-				auto [findIt, inserted] = ikMap.try_emplace(ikName);
+				auto [findIt, inserted] = ikTrackMap.try_emplace(ikName);
 				auto& [ikSolver, keys] = findIt->second;
 				if (inserted)
-					binder.BindIkTrack(findIt->second, ikName);
+					ikSolver = FindIkSolverByName(ikName);
 				if (!ikSolver)
 					continue;
 				auto& [frame, ikEnable] = keys.emplace_back();
@@ -59,27 +101,23 @@ namespace Chrivent {
 				ikEnable = enable != 0;
 			}
 		}
-		AnimationTrackMap::FlushTrackMap(ikMap, ikTracks);
 	}
 
 	void AnimationBuilder::AddMorphAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.morphs.empty())
 			return;
-		const AnimationBinder binder(model.get());
-		auto morphMap = AnimationTrackMap::TakeMorphTrackMap(morphTracks);
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
 			auto morphName = TextEncoding::ShiftJisToUtf8(blendShapeName, sizeof(blendShapeName));
-			auto [findIt, inserted] = morphMap.try_emplace(morphName);
+			auto [findIt, inserted] = morphTrackMap.try_emplace(morphName);
 			auto& [morph, keys] = findIt->second;
 			if (inserted)
-				binder.BindMorphTrack(findIt->second, morphName);
+				morph = FindMorphByName(morphName);
 			if (!morph)
 				continue;
 			auto& [keyFrame, morphWeight] = keys.emplace_back();
 			keyFrame = frame;
 			morphWeight = weight;
 		}
-		AnimationTrackMap::FlushTrackMap(morphMap, morphTracks);
 	}
 
 	void AnimationBuilder::Build(const VmdParser::VmdData& vmdData) {
@@ -89,7 +127,10 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Animation> AnimationBuilder::TakeAnimation() {
-		return std::make_unique<Animation>(model,
-			std::exchange(nodeTracks, {}), std::exchange(ikTracks, {}), std::exchange(morphTracks, {}));
+		auto nodeTracks = TakeTracks(nodeTrackMap);
+		auto ikTracks = TakeTracks(ikTrackMap);
+		auto morphTracks = TakeTracks(morphTrackMap);
+		return std::make_unique<Animation>(
+			model, std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks));
 	}
 }
