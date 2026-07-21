@@ -215,7 +215,7 @@ namespace Chrivent {
 		constexpr float farPlane = 10000.0f;
 		float verticalFov = glm::radians(30.0f);
 		if (useMotionCamera && cameraAnim) {
-			const auto& cam = cameraAnim->Evaluate(playback.animationTime * 30.0f);
+			const auto cam = cameraAnim->Evaluate(playback.animationTime * 30.0f);
 			scene.viewMatrix = cam.CalcViewMatrix();
 			verticalFov = cam.fov;
 		} else {

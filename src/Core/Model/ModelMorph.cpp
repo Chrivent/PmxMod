@@ -1,5 +1,7 @@
 ﻿#include "Core/Model/ModelMorph.h"
 
+#include "Core/Model/Model.h"
+
 #include <limits>
 
 namespace Chrivent {

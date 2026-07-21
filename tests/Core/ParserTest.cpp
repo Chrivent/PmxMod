@@ -48,6 +48,24 @@ namespace Chrivent {
 			return bytes;
 		}
 
+		static std::string BuildPmxWithInvalidUtf8String() {
+			std::string bytes;
+			AppendBytes(bytes, "PMX ", 4);
+			Append(bytes, 2.0f);
+			constexpr uint8_t headerData[] = {8, 1, 0, 1, 1, 1, 1, 1, 1};
+			AppendBytes(bytes, reinterpret_cast<const char*>(headerData), sizeof(headerData));
+			constexpr int32_t invalidStringLength = 1;
+			Append(bytes, invalidStringLength);
+			constexpr char invalidUtf8 = static_cast<char>(0xFF);
+			Append(bytes, invalidUtf8);
+			constexpr int32_t emptyCount = 0;
+			for (int stringIndex = 0; stringIndex < 3; stringIndex++)
+				Append(bytes, emptyCount);
+			for (int sectionIndex = 0; sectionIndex < 9; sectionIndex++)
+				Append(bytes, emptyCount);
+			return bytes;
+		}
+
 		static std::string BuildMinimalVmd() {
 			std::string bytes(50, '\0');
 			constexpr char signature[] = "Vocaloid Motion Data 0002";
@@ -223,6 +241,15 @@ namespace Chrivent {
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidIndex);
 		EXPECT_TRUE(parser.GetData().vertices.empty());
+	}
+
+	TEST_F(ParserContractTest, RejectsInvalidPmxUtf8Strings) {
+		std::istringstream stream(BuildPmxWithInvalidUtf8String());
+		PmxParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
+		EXPECT_TRUE(parser.GetData().info.modelName.empty());
 	}
 
 	TEST_F(ParserContractTest, RejectsInvalidCommonToonIndex) {

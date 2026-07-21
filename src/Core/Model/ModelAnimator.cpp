@@ -1,7 +1,10 @@
 ﻿#include "Core/Model/ModelAnimator.h"
 
-#include "Core/Model/ModelPose.h"
 #include "Core/Animation/Model/Animation.h"
+#include "Core/Model/Model.h"
+#include "Core/Model/ModelPose.h"
+
+#include <algorithm>
 
 namespace Chrivent {
 	void ModelAnimator::InitializeAnimation(Model& model) {
@@ -48,10 +51,6 @@ namespace Chrivent {
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
 	}
 
-	void ModelAnimator::UpdateMorphAnimation(const Model& model) {
-		model.AccumulateMorphs();
-	}
-
 	void ModelAnimator::SyncPhysics(Model& model, const Animation& animation, const float frame) {
 		if (!model.HasPhysics())
 			return;
@@ -61,7 +60,7 @@ namespace Chrivent {
 		for (int i = 0; i < warmUpStepCount; i++) {
 			BeginAnimation(model);
 			animation.Evaluate(frame, static_cast<float>(1 + i) / warmUpStepCount);
-			UpdateMorphAnimation(model);
+			model.AccumulateMorphs();
 			ModelPose::UpdateNodeAnimation(model, false);
 			model.UpdatePhysics(warmUpElapsed);
 			ModelPose::UpdateNodeAnimation(model, true);

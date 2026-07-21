@@ -26,7 +26,6 @@ namespace Chrivent {
     // 카메라 키 목록을 평가해 지정한 시간의 카메라 상태를 만든다.
     class CameraAnimation {
         std::vector<CameraAnimationKey> keys;
-        Camera camera;
 
     public:
         explicit CameraAnimation(std::vector<CameraAnimationKey> animationKeys) : keys(std::move(animationKeys)) {}
@@ -35,6 +34,6 @@ namespace Chrivent {
         uint32_t GetLastFrame() const { return keys.empty() ? 0 : keys.back().frame; }
         
         // 지정한 시간의 카메라 키를 보간해 현재 카메라를 반환한다.
-        const Camera& Evaluate(float t);
+        Camera Evaluate(float t) const;
     };
 }

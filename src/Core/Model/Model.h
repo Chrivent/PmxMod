@@ -13,7 +13,6 @@
 #include <vector>
 
 namespace Chrivent {
-	class Animation;
 	class ModelMorph;
 	class ModelPhysicsData;
 

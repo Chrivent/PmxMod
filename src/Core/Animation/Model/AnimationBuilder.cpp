@@ -41,17 +41,18 @@ namespace Chrivent {
 		return it != morphs.end() ? it->get() : nullptr;
 	}
 
-	template <typename TrackMap>
-	std::vector<typename TrackMap::mapped_type> AnimationBuilder::TakeTracks(TrackMap& trackMap) {
-		std::vector<typename TrackMap::mapped_type> tracks;
-		tracks.reserve(trackMap.size());
-		for (auto& track : trackMap | std::views::values) {
-			if (!IsTrackBound(track))
+	template <typename Track, typename KeyMap, typename Resolver>
+	std::vector<Track> AnimationBuilder::TakeTracks(KeyMap& keysByName, const Resolver& resolveTarget) {
+		std::vector<Track> tracks;
+		tracks.reserve(keysByName.size());
+		for (auto& [name, keys] : keysByName) {
+			auto* target = resolveTarget(name);
+			if (!target)
 				continue;
-			AnimationKeySequence::SortAndKeepLastKeyPerFrame(track.keys);
-			tracks.emplace_back(std::move(track));
+			AnimationKeySequence::SortAndKeepLastKeyPerFrame(keys);
+			tracks.emplace_back(Track{target, std::move(keys)});
 		}
-		trackMap.clear();
+		keysByName.clear();
 		return tracks;
 	}
 
@@ -74,13 +75,7 @@ namespace Chrivent {
 			return;
 		for (const auto& motion : vmdData.motions) {
 			auto nodeName = TextEncoding::ShiftJisToUtf8(motion.boneName, sizeof(motion.boneName));
-			auto [findIt, inserted] = nodeTrackMap.try_emplace(nodeName);
-			auto& [node, keys] = findIt->second;
-			if (inserted)
-				node = FindNodeByName(nodeName);
-			if (!node)
-				continue;
-			keys.emplace_back(CreateNodeAnimationKey(motion));
+			nodeKeysByName[nodeName].emplace_back(CreateNodeAnimationKey(motion));
 		}
 	}
 
@@ -90,12 +85,7 @@ namespace Chrivent {
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
 				auto ikName = TextEncoding::ShiftJisToUtf8(name, sizeof(name));
-				auto [findIt, inserted] = ikTrackMap.try_emplace(ikName);
-				auto& [ikSolver, keys] = findIt->second;
-				if (inserted)
-					ikSolver = FindIkSolverByName(ikName);
-				if (!ikSolver)
-					continue;
+				auto& keys = ikKeysByName[ikName];
 				auto& [frame, ikEnable] = keys.emplace_back();
 				frame = ik.frame;
 				ikEnable = enable != 0;
@@ -108,12 +98,7 @@ namespace Chrivent {
 			return;
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
 			auto morphName = TextEncoding::ShiftJisToUtf8(blendShapeName, sizeof(blendShapeName));
-			auto [findIt, inserted] = morphTrackMap.try_emplace(morphName);
-			auto& [morph, keys] = findIt->second;
-			if (inserted)
-				morph = FindMorphByName(morphName);
-			if (!morph)
-				continue;
+			auto& keys = morphKeysByName[morphName];
 			auto& [keyFrame, morphWeight] = keys.emplace_back();
 			keyFrame = frame;
 			morphWeight = weight;
@@ -127,9 +112,12 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Animation> AnimationBuilder::TakeAnimation() {
-		auto nodeTracks = TakeTracks(nodeTrackMap);
-		auto ikTracks = TakeTracks(ikTrackMap);
-		auto morphTracks = TakeTracks(morphTrackMap);
+		const auto ResolveNode = [this](const std::string& name) { return FindNodeByName(name); };
+		const auto ResolveIkSolver = [this](const std::string& name) { return FindIkSolverByName(name); };
+		const auto ResolveMorph = [this](const std::string& name) { return FindMorphByName(name); };
+		auto nodeTracks = TakeTracks<NodeAnimationTrack>(nodeKeysByName, ResolveNode);
+		auto ikTracks = TakeTracks<IkAnimationTrack>(ikKeysByName, ResolveIkSolver);
+		auto morphTracks = TakeTracks<MorphAnimationTrack>(morphKeysByName, ResolveMorph);
 		return std::make_unique<Animation>(
 			model, std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks));
 	}

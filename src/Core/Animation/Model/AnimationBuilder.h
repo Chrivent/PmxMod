@@ -4,16 +4,18 @@
 #include "Core/Parser/VmdParser.h"
 
 #include <map>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace Chrivent {
 	class Model;
 
 	// VMD 모션 데이터를 모델용 애니메이션 트랙으로 변환한다.
 	class AnimationBuilder {
-		std::map<std::string, NodeAnimationTrack> nodeTrackMap;
-		std::map<std::string, IkAnimationTrack> ikTrackMap;
-		std::map<std::string, MorphAnimationTrack> morphTrackMap;
+		std::map<std::string, std::vector<NodeAnimationKey>> nodeKeysByName;
+		std::map<std::string, std::vector<IkAnimationKey>> ikKeysByName;
+		std::map<std::string, std::vector<MorphAnimationKey>> morphKeysByName;
 		std::shared_ptr<Model> model;
 
 		// 이름과 일치하는 모델 노드를 찾는다.
@@ -22,15 +24,9 @@ namespace Chrivent {
 		IkSolver* FindIkSolverByName(const std::string& name) const;
 		// 이름과 일치하는 모델 모프를 찾는다.
 		Morph* FindMorphByName(const std::string& name) const;
-		// 노드 애니메이션 트랙이 모델 노드에 연결되어 있는지 확인한다.
-		static bool IsTrackBound(const NodeAnimationTrack& track) { return track.node != nullptr; }
-		// IK 애니메이션 트랙이 IK 솔버에 연결되어 있는지 확인한다.
-		static bool IsTrackBound(const IkAnimationTrack& track) { return track.ikSolver != nullptr; }
-		// 모프 애니메이션 트랙이 모델 모프에 연결되어 있는지 확인한다.
-		static bool IsTrackBound(const MorphAnimationTrack& track) { return track.morph != nullptr; }
-		// 이름 기반 트랙 맵에서 연결된 트랙만 정렬해 목록으로 옮긴다.
-		template <typename TrackMap>
-		static std::vector<typename TrackMap::mapped_type> TakeTracks(TrackMap& trackMap);
+		// 이름별 키를 현재 모델 대상에 연결하고 정렬된 트랙 목록으로 옮긴다.
+		template <typename Track, typename KeyMap, typename Resolver>
+		static std::vector<Track> TakeTracks(KeyMap& keysByName, const Resolver& resolveTarget);
 		// VMD 본 모션 키를 런타임 노드 애니메이션 키로 변환한다.
 		static NodeAnimationKey CreateNodeAnimationKey(const VmdParser::VmdMotion& motion);
 		// VMD 본 모션 키를 노드 애니메이션 트랙에 병합한다.

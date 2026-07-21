@@ -1,15 +1,17 @@
 ﻿#pragma once
 
-#include "Core/Model/Model.h"
+#include <cstddef>
 
 namespace Chrivent {
+	class Model;
+
 	// 본 변환과 모프를 적용해 렌더링용 버텍스를 계산한다.
 	class ModelSkinning {
 		// 병렬 정점 갱신에 사용할 작업 범위를 구성한다.
 		static void SetupParallelUpdate(Model& model);
 
 	public:
-		static std::size_t GetUpdateRangeCount(const Model& model) { return model.geometryData.updateRanges.size(); }
+		static std::size_t GetUpdateRangeCount(const Model& model);
 
 		// 정점 수와 CPU 코어 수에 맞춰 스키닝 작업 범위와 선택적인 이전 위치를 준비한다.
 		static void PrepareUpdate(Model& model, bool preservePreviousPositions);

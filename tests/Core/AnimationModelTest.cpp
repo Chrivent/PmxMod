@@ -182,6 +182,29 @@ namespace Chrivent {
 		EXPECT_EQ(node->animTranslate, glm::vec3(7));
 	}
 
+	TEST_F(AnimationModelContractTest, BindsTracksToTheCurrentModelWhenTaken) {
+		const auto model = std::make_shared<Model>();
+		const auto originalNode = std::make_shared<Node>();
+		originalNode->name = "A";
+		model->skeletonData.AddNode(originalNode);
+		VmdParser::VmdData data{};
+		auto& motion = data.motions.emplace_back();
+		std::memcpy(motion.boneName, "A", 1);
+		motion.translate = glm::vec3(4, 0, 0);
+		motion.quaternion = glm::quat(1, 0, 0, 0);
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		model->Reset();
+		const auto replacementNode = std::make_shared<Node>();
+		replacementNode->name = "A";
+		model->skeletonData.AddNode(replacementNode);
+		const auto animation = builder.TakeAnimation();
+		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
+		EXPECT_EQ(animation->GetNodeTracks().front().node, replacementNode.get());
+		animation->Evaluate(0);
+		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(4, 0, 0));
+	}
+
 	TEST_F(AnimationModelContractTest, KeepsTheLastModelKeyAtADuplicateFrame) {
 		const auto model = std::make_shared<Model>();
 		const auto node = std::make_shared<Node>();

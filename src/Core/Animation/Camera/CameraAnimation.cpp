@@ -3,7 +3,8 @@
 #include "Core/Animation/AnimationKeySequence.h"
 
 namespace Chrivent {
-	const Camera& CameraAnimation::Evaluate(const float t) {
+	Camera CameraAnimation::Evaluate(const float t) const {
+		Camera camera;
 		if (keys.empty())
 			return camera;
 		const auto it = AnimationKeySequence::FindUpperKey(keys, t);

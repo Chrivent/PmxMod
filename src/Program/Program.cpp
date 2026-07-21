@@ -4,6 +4,7 @@
 #include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Animation/Model/Animation.h"
 #include "Core/Animation/Model/AnimationBuilder.h"
+#include "Core/Model/Model.h"
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelUpdater.h"

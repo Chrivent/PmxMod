@@ -4,10 +4,6 @@
 #include "Core/Model/ModelCoordinateConverter.h"
 
 namespace Chrivent {
-	MotionState::~MotionState() = default;
-
-	DefaultMotionState::~DefaultMotionState() = default;
-
 	DefaultMotionState::DefaultMotionState(const glm::mat4& initialMatrix) {
 		glm::mat4 trans = ModelCoordinateConverter::ConvertZAxis(initialMatrix);
 		transform.setFromOpenGLMatrix(&trans[0][0]);

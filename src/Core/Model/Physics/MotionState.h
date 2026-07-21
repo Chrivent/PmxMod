@@ -10,8 +10,6 @@ namespace Chrivent {
 	// 모델 본과 Bullet 강체 사이의 변환 동기화 규약을 정의한다.
 	class MotionState : public btMotionState {
 	public:
-		~MotionState() override;
-
 		// 물리 변환을 초기 상태로 되돌린다.
 		virtual void Reset() {}
 		// 물리 변환을 연결된 본 변환에 반영한다.
@@ -24,8 +22,6 @@ namespace Chrivent {
 		btTransform	transform;
 
 	public:
-		~DefaultMotionState() override;
-
 		explicit DefaultMotionState(const glm::mat4& initialMatrix);
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }

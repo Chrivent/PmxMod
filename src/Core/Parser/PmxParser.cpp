@@ -8,12 +8,12 @@
 #include <fstream>
 
 namespace Chrivent {
-	void PmxParser::ReadString(BinaryReader& reader, std::string* val) const {
+	void PmxParser::ReadString(BinaryReader& reader, std::string& value) const {
 		int32_t bufferSize = 0;
 		if (!reader.ReadCount(bufferSize, 0, 64 * 1024 * 1024))
 			return;
 		if (bufferSize == 0) {
-			val->clear();
+			value.clear();
 			return;
 		}
 		if (data.header.encodeType == EncodeType::Utf16) {
@@ -28,11 +28,14 @@ namespace Chrivent {
 					reader.Fail(ParseErrorCode::InvalidValue, "UTF-16 문자열을 UTF-8로 변환하지 못했습니다.");
 					return;
 				}
-				*val = std::move(converted);
+				value = std::move(converted);
 			}
 		} else {
-			val->resize(bufferSize);
-			reader.Read(val->data(), bufferSize);
+			value.resize(bufferSize);
+			if (!reader.Read(value.data(), bufferSize))
+				return;
+			if (TextEncoding::Utf8ToWide(value).empty())
+				reader.Fail(ParseErrorCode::InvalidValue, "UTF-8 문자열이 올바르지 않습니다.");
 		}
 	}
 
@@ -73,10 +76,10 @@ namespace Chrivent {
 	}
 
 	void PmxParser::ReadInfo(BinaryReader& reader) {
-		ReadString(reader, &data.info.modelName);
-		ReadString(reader, &data.info.englishModelName);
-		ReadString(reader, &data.info.comment);
-		ReadString(reader, &data.info.englishComment);
+		ReadString(reader, data.info.modelName);
+		ReadString(reader, data.info.englishModelName);
+		ReadString(reader, data.info.comment);
+		ReadString(reader, data.info.englishComment);
 	}
 
 	void PmxParser::ReadVertex(BinaryReader& reader) {
@@ -197,9 +200,10 @@ namespace Chrivent {
 		data.textures.resize(texCount);
 		std::string utf8;
 		for (auto& [textureName] : data.textures) {
-			ReadString(reader, &utf8);
-			const auto* p = reinterpret_cast<const char8_t*>(utf8.data());
-			textureName = std::filesystem::path(std::u8string(p, p + utf8.size()));
+			ReadString(reader, utf8);
+			if (!reader.Result())
+				return;
+			textureName = TextEncoding::Utf8ToPath(utf8);
 		}
 	}
 
@@ -217,8 +221,8 @@ namespace Chrivent {
 			textureIndex, sphereTextureIndex,
 			sphereMode, toonMode, toonTextureIndex,
 			memo, numFaceVertices] : data.materials) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(diffuse);
 			reader.Read(specular);
 			reader.Read(specularPower);
@@ -245,7 +249,7 @@ namespace Chrivent {
 				}
 				toonTextureIndex = toonIndex;
 			}
-			ReadString(reader, &memo);
+			ReadString(reader, memo);
 			reader.Read(numFaceVertices);
 		}
 	}
@@ -263,8 +267,8 @@ namespace Chrivent {
 			fixedAxis, localXAxis, localZAxis, keyValue,
 			ikTargetBoneIndex, ikIterationCount,
 			ikLimit, ikLinks] : data.bones) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(position);
 			reader.ReadIndex(parentBoneIndex, data.header.boneIndexSize);
 			reader.Read(deformDepth);
@@ -325,8 +329,8 @@ namespace Chrivent {
 			positionMorph, uvMorph, boneMorph,
 			materialMorph, groupMorph,
 			flipMorph, impulseMorph] : data.morphs) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(controlPanel);
 			reader.Read(morphType);
 			if (static_cast<uint8_t>(controlPanel) > static_cast<uint8_t>(ControlPanel::Other) ||
@@ -450,8 +454,8 @@ namespace Chrivent {
 		data.displayFrames.resize(displayFrameCount);
 		for (auto& [name, englishName,
 			flag, targets] : data.displayFrames) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(flag);
 			if (flag != FrameType::DefaultFrame && flag != FrameType::SpecialFrame) {
 				reader.Fail(ParseErrorCode::InvalidValue, "표시 프레임 형식이 올바르지 않습니다.");
@@ -489,8 +493,8 @@ namespace Chrivent {
 			shape, shapeSize, translate, rotate, mass,
 			translateDimmer, rotateDimmer,
 			repulsion, friction, op] : data.rigidBodies) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.ReadIndex(boneIndex, data.header.boneIndexSize);
 			reader.Read(group);
 			reader.Read(collisionGroup);
@@ -522,8 +526,8 @@ namespace Chrivent {
 			translate, rotate, translateLowerLimit, translateUpperLimit,
 			rotateLowerLimit, rotateUpperLimit,
 			springTranslateFactor, springRotateFactor] : data.joints) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(type);
 			reader.ReadIndex(rigidbodyAIndex, data.header.rigidbodyIndexSize);
 			reader.ReadIndex(rigidbodyBIndex, data.header.rigidbodyIndexSize);
@@ -557,8 +561,8 @@ namespace Chrivent {
 			vIt, pIt, dIt, cIt,
 			lst, ast, vst,
 			anchorRigidBodies, pinVertexIndices] : data.softBodies) {
-			ReadString(reader, &name);
-			ReadString(reader, &englishName);
+			ReadString(reader, name);
+			ReadString(reader, englishName);
 			reader.Read(type);
 			reader.ReadIndex(materialIndex, data.header.materialIndexSize);
 			reader.Read(group);

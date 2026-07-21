@@ -1,8 +1,14 @@
 ﻿#pragma once
 
-#include "Core/Model/Model.h"
+#include "Core/Model/ModelTypes.h"
+
+#include <utility>
+#include <vector>
 
 namespace Chrivent {
+	class Model;
+	struct Morph;
+
 	// 현재 모프 가중치를 모델의 형상, 재질과 본에 누적한다.
 	class ModelMorph {
 		using PendingMorph = std::pair<const Morph*, float>;

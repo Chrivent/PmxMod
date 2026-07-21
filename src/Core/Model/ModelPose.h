@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "Core/Model/Model.h"
-
 namespace Chrivent {
+	class Model;
+
 	// 본 계층의 전역 변환과 스키닝 행렬을 갱신한다.
 	class ModelPose {
 	public:

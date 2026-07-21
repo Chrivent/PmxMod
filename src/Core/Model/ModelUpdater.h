@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include "Core/Model/Model.h"
+#include <cstddef>
 
 namespace Chrivent {
 	class Animation;
+	class Model;
 
 	// 모델 갱신 단계별 CPU 소요 시간을 보관한다.
 	struct ModelUpdateTiming {

@@ -435,7 +435,7 @@ namespace Chrivent {
 		PmxData data{};
 
 		// 현재 PMX 인코딩 설정에 맞춰 문자열을 읽는다.
-		void ReadString(BinaryReader& reader, std::string* val) const;
+		void ReadString(BinaryReader& reader, std::string& value) const;
 		// PMX 헤더와 인덱스 크기 정보를 읽는다.
 		void ReadHeader(BinaryReader& reader);
 		// 모델 이름과 설명 정보를 읽는다.

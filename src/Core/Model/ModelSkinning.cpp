@@ -1,5 +1,7 @@
 ﻿#include "Core/Model/ModelSkinning.h"
 
+#include "Core/Model/Model.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -10,6 +12,10 @@
 #include <glm/gtx/dual_quaternion.hpp>
 
 namespace Chrivent {
+	std::size_t ModelSkinning::GetUpdateRangeCount(const Model& model) {
+		return model.geometryData.updateRanges.size();
+	}
+
 	void ModelSkinning::SetupParallelUpdate(Model& model) {
 		const size_t totalVertexCount = model.geometryData.positions.size();
 		if (totalVertexCount == 0) {

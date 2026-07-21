@@ -1,6 +1,7 @@
 ﻿#include "Core/Model/ModelUpdater.h"
 
 #include "Core/Animation/Model/Animation.h"
+#include "Core/Model/Model.h"
 #include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelPose.h"
 #include "Core/Model/ModelSkinning.h"
@@ -11,7 +12,7 @@ namespace Chrivent {
 	void ModelUpdater::ResetPhysicsAtFrame(Model& model, const Animation& animation, const float frame) {
 		ModelAnimator::BeginAnimation(model);
 		animation.Evaluate(frame);
-		ModelAnimator::UpdateMorphAnimation(model);
+		model.AccumulateMorphs();
 		ModelPose::UpdateNodeAnimation(model, false);
 		ModelPose::UpdateNodeAnimation(model, true);
 		model.ResetPhysics();
@@ -35,7 +36,7 @@ namespace Chrivent {
 		RunStage(timing ? &timing->animationEvaluateMilliseconds : nullptr,
 			[&] { if (options.animation) options.animation->Evaluate(options.frame); });
 		RunStage(timing ? &timing->morphMilliseconds : nullptr,
-			[&] { ModelAnimator::UpdateMorphAnimation(model); });
+			[&] { model.AccumulateMorphs(); });
 		RunStage(timing ? &timing->beforePhysicsPoseMilliseconds : nullptr,
 			[&] { ModelPose::UpdateNodeAnimation(model, false); });
 		RunStage(timing ? &timing->physicsMilliseconds : nullptr,
