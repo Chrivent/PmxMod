@@ -164,7 +164,6 @@ namespace Chrivent {
 			sourceDevice, velocityProgram, velocityBothFaceConfiguration, sceneVelocityBothFacePipeline);
 		if (!velocityBothFaceResult)
 			return velocityBothFaceResult;
-
 		const Builder::Configuration edgeConfiguration{
 			.pipelineLayout = pipelineLayout,
 			.colorFormat = sourceColorFormat,
