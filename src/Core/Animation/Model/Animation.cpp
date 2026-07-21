@@ -22,18 +22,15 @@ namespace Chrivent {
 
 	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;
-		for (const auto& [node, keys] : nodeTracks) {
-			if (!keys.empty())
-				lastFrame = std::max(lastFrame, keys.back().frame);
-		}
-		for (const auto& [ikSolver, keys] : ikTracks) {
-			if (!keys.empty())
-				lastFrame = std::max(lastFrame, keys.back().frame);
-		}
-		for (const auto& [morph, keys] : morphTracks) {
-			if (!keys.empty())
-				lastFrame = std::max(lastFrame, keys.back().frame);
-		}
+		const auto IncludeTracks = [&lastFrame](const auto& tracks) {
+			for (const auto& track : tracks) {
+				if (!track.keys.empty())
+					lastFrame = std::max(lastFrame, track.keys.back().frame);
+			}
+		};
+		IncludeTracks(nodeTracks);
+		IncludeTracks(ikTracks);
+		IncludeTracks(morphTracks);
 		return lastFrame;
 	}
 

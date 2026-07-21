@@ -29,7 +29,7 @@ namespace Chrivent {
 		const glm::mat4 rotMat = ry * rx * rz;
 		const glm::mat4 translateMat = glm::translate(glm::mat4(1), definition.translate);
 		const glm::mat4 rbMat = ModelCoordinateConverter::ConvertZAxis(translateMat * rotMat);
-		offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
+		const glm::mat4 offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
 		kinematicMotionState = nodePtr
 			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
 			: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
@@ -56,8 +56,6 @@ namespace Chrivent {
 		if (definition.operation == RigidBodyOperation::Static)
 			rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 		operation = definition.operation;
-		group = definition.group;
-		groupMask = definition.groupMask;
 		node = nodePtr;
 	}
 
@@ -99,12 +97,5 @@ namespace Chrivent {
 			} else
 				nodePtr->local = nodePtr->global;
 		}
-	}
-
-	glm::mat4 RigidBody::CalcTransform() const {
-		const btTransform transform = rigidBody->getCenterOfMassTransform();
-		glm::mat4 mat;
-		transform.getOpenGLMatrix(&mat[0][0]);
-		return ModelCoordinateConverter::ConvertZAxis(mat);
 	}
 }

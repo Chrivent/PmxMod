@@ -165,7 +165,7 @@ namespace Chrivent {
 		for (const auto& definition : rigidBodyDefinitions) {
 			std::shared_ptr<Node> node = definition.nodeIndex >= 0 ? nodes[definition.nodeIndex] : nullptr;
 			auto rigidBody = std::make_unique<RigidBody>(definition, node);
-			physics->AddRigidBody(rigidBody->ResolveRigidBody(), rigidBody->GetGroup(), rigidBody->GetGroupMask());
+			physics->AddRigidBody(rigidBody->ResolveRigidBody(), definition.group, definition.groupMask);
 			rigidBodies.emplace_back(std::move(rigidBody));
 		}
 		joints.reserve(jointDefinitions.size());

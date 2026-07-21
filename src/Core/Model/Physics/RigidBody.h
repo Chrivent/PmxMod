@@ -2,8 +2,8 @@
 
 #include "Core/Model/ModelTypes.h"
 #include "Core/Model/Physics/MotionState.h"
+
 #include <memory>
-#include <glm/glm.hpp>
 
 namespace Chrivent {
 	class Node;
@@ -16,16 +16,11 @@ namespace Chrivent {
 		std::unique_ptr<btRigidBody>		rigidBody;
 		RigidBodyOperation					operation = RigidBodyOperation::Static;
 		std::weak_ptr<Node>					node;
-		glm::mat4							offsetMat = glm::mat4(1);
-		uint16_t							group = 0;
-		uint16_t							groupMask = 0;
 
 	public:
 		RigidBody(const RigidBodyDefinition& definition, const std::shared_ptr<Node>& nodePtr);
 
 		btRigidBody& ResolveRigidBody() const { return *rigidBody; }
-		uint16_t GetGroup() const { return group; }
-		uint16_t GetGroupMask() const { return groupMask; }
 
 		// 활성 상태에 따라 동적 모션 상태와 키네마틱 모션 상태를 전환한다.
 		void ApplyActivation(bool activation) const;
@@ -37,7 +32,5 @@ namespace Chrivent {
 		void ReflectGlobalTransform() const;
 		// PMX 오프셋 기준의 로컬 변환을 계산한다.
 		void CalcLocalTransform() const;
-		// Bullet 중심 질량 변환을 GLM 글로벌 행렬로 변환해 반환한다.
-		glm::mat4 CalcTransform() const;
 	};
 }

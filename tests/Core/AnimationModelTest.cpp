@@ -101,6 +101,28 @@ namespace Chrivent {
 		EXPECT_EQ(node->animTranslate, glm::vec3(2, 0, 0));
 	}
 
+	TEST_F(AnimationModelContractTest, CalculatesLastFrameAcrossEveryTrackType) {
+		const auto model = std::make_shared<Model>();
+		const auto node = std::make_shared<Node>();
+		const auto ikSolver = std::make_shared<IkSolver>();
+		auto morph = std::make_unique<Morph>();
+		auto* morphTarget = morph.get();
+		model->skeletonData.AddNode(node);
+		model->skeletonData.AddIkSolver(ikSolver);
+		model->morphData.AddMorph(std::move(morph));
+		NodeAnimationKey nodeKey{};
+		nodeKey.frame = 3;
+		IkAnimationKey ikKey{};
+		ikKey.frame = 7;
+		MorphAnimationKey morphKey{};
+		morphKey.frame = 5;
+		const Animation animation(model,
+			{{node.get(), {nodeKey}}},
+			{{ikSolver.get(), {ikKey}}},
+			{{morphTarget, {morphKey}}});
+		EXPECT_EQ(animation.CalculateLastFrame(), 7);
+	}
+
 	TEST_F(AnimationModelContractTest, EvaluatesLinearBezierEndpointsAndMidpoint) {
 		Bezier bezier;
 		bezier.Assign(0, 127, 0, 127);
