@@ -34,6 +34,10 @@ namespace Chrivent {
 	}
 
 	float Bezier::Evaluate(const float time) const {
+		if (time <= 0.0f)
+			return 0.0f;
+		if (time >= 1.0f)
+			return 1.0f;
 		const float bezierParameter = FindBezierX(time, controlPoints.p1.x, controlPoints.p2.x);
 		return EvaluateBezier(bezierParameter, controlPoints.p1.y, controlPoints.p2.y);
 	}

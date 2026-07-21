@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 #include <fstream>
+#include <limits>
 #include <utility>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -69,6 +70,45 @@ namespace Chrivent {
 		EXPECT_FLOAT_EQ(atCut.distance, 10.0f);
 	}
 
+	TEST_F(AnimationModelContractTest, CameraAnimationNormalizesDirectlyProvidedKeys) {
+		std::vector<CameraAnimationKey> keys;
+		keys.emplace_back(CreateCameraKey(5, 1.0f));
+		keys.emplace_back(CreateCameraKey(1, 0.0f));
+		keys.emplace_back(CreateCameraKey(5, 2.0f));
+		const CameraAnimation animation(std::move(keys));
+		ASSERT_EQ(animation.GetKeys().size(), 2);
+		EXPECT_EQ(animation.GetKeys()[0].frame, 1);
+		EXPECT_EQ(animation.GetKeys()[1].frame, 5);
+		EXPECT_FLOAT_EQ(animation.Evaluate(5.0f).interest.x, 2.0f);
+	}
+
+	TEST_F(AnimationModelContractTest, ModelAnimationNormalizesDirectlyProvidedKeys) {
+		const auto model = std::make_shared<Model>();
+		const auto node = std::make_shared<Node>();
+		model->skeletonData.AddNode(node);
+		std::vector<NodeAnimationKey> keys(3);
+		keys[0].frame = 5;
+		keys[0].translate = glm::vec3(1, 0, 0);
+		keys[1].frame = 1;
+		keys[1].translate = glm::vec3(0);
+		keys[2].frame = 5;
+		keys[2].translate = glm::vec3(2, 0, 0);
+		std::vector<NodeAnimationTrack> tracks;
+		tracks.push_back({node.get(), std::move(keys)});
+		const Animation animation(model, std::move(tracks), {}, {});
+		ASSERT_EQ(animation.GetNodeTracks().front().keys.size(), 2);
+		animation.Evaluate(5.0f);
+		EXPECT_EQ(node->animTranslate, glm::vec3(2, 0, 0));
+	}
+
+	TEST_F(AnimationModelContractTest, EvaluatesLinearBezierEndpointsAndMidpoint) {
+		Bezier bezier;
+		bezier.Assign(0, 127, 0, 127);
+		EXPECT_FLOAT_EQ(bezier.Evaluate(0.0f), 0.0f);
+		EXPECT_NEAR(bezier.Evaluate(0.5f), 0.5f, 1.0e-4f);
+		EXPECT_FLOAT_EQ(bezier.Evaluate(1.0f), 1.0f);
+	}
+
 	TEST_F(AnimationModelContractTest, ResetClearsTemporalGeometryState) {
 		Model model;
 		model.geometryData.previousPositions.emplace_back(1.0f, 2.0f, 3.0f);
@@ -84,12 +124,12 @@ namespace Chrivent {
 		Model model;
 		model.geometryData.positions.resize(10);
 		ModelSkinning::PrepareUpdate(model, false);
-		ASSERT_EQ(ModelSkinning::GetUpdateRangeCount(model), 1);
+		ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexOffset, 0);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexCount, 10);
 		model.geometryData.positions.clear();
 		ModelSkinning::PrepareUpdate(model, false);
-		EXPECT_EQ(ModelSkinning::GetUpdateRangeCount(model), 0);
+		EXPECT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 0);
 	}
 
 	TEST_F(AnimationModelContractTest, FailedLoadPreservesTheExistingModel) {
@@ -277,9 +317,9 @@ namespace Chrivent {
 			camera.interest = glm::vec3(x, 0, 0);
 			camera.viewAngle = 30;
 		}
-		const auto keys = CameraAnimationBuilder::Build(data);
-		ASSERT_EQ(keys.size(), 1);
-		EXPECT_EQ(keys.front().interest.x, 2.0f);
+		const auto animation = CameraAnimationBuilder::Build(data);
+		ASSERT_EQ(animation->GetKeys().size(), 1);
+		EXPECT_EQ(animation->GetKeys().front().interest.x, 2.0f);
 	}
 
 	TEST_F(AnimationModelContractTest, ReusesAnimationBuilderWithoutKeepingTakenTracks) {
@@ -350,6 +390,16 @@ namespace Chrivent {
 		model.UpdatePhysics(1.0f / 60.0f);
 		model.Reset();
 		EXPECT_FALSE(model.HasPhysics());
+	}
+
+	TEST_F(AnimationModelContractTest, IgnoresInvalidPhysicsElapsedTime) {
+		const Model model;
+		RigidBodyDefinition rigidBody{};
+		rigidBody.shapeSize = glm::vec3(1);
+		ASSERT_TRUE(model.InitializePhysics({rigidBody}, {}));
+		model.UpdatePhysics(-1.0f);
+		model.UpdatePhysics(std::numeric_limits<float>::quiet_NaN());
+		EXPECT_TRUE(model.HasPhysics());
 	}
 
 	TEST_F(AnimationModelContractTest, RejectsInvalidPhysicsWithoutDiscardingTheCurrentWorld) {

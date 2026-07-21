@@ -91,10 +91,7 @@ namespace Chrivent {
 			return;
 		}
 		if (!camVmd.GetData().cameras.empty()) {
-			auto cameraKeys = CameraAnimationBuilder::Build(camVmd.GetData());
-			if (cameraKeys.empty())
-				std::cerr << "VMDCameraAnimation을 만들지 못했습니다.\n";
-			cameraAnim = std::make_unique<CameraAnimation>(std::move(cameraKeys));
+			cameraAnim = CameraAnimationBuilder::Build(camVmd.GetData());
 		}
 	}
 

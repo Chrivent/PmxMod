@@ -3,12 +3,22 @@
 #include "Core/Animation/AnimationKeySequence.h"
 #include "Core/Model/Model.h"
 
+#include <utility>
+
 namespace Chrivent {
 	Animation::Animation(std::shared_ptr<Model> model, std::vector<NodeAnimationTrack> nodes,
 		std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
 		: targetModel(std::move(model)),
 		targetModelRevision(targetModel ? targetModel->GetStructureRevision() : 0),
-		nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {}
+		nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {
+		const auto NormalizeTracks = []<typename Tracks>(Tracks& tracks) {
+			for (auto& track : tracks)
+				AnimationKeySequence::SortAndKeepLastKeyPerFrame(track.keys);
+		};
+		NormalizeTracks(nodeTracks);
+		NormalizeTracks(ikTracks);
+		NormalizeTracks(morphTracks);
+	}
 
 	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;

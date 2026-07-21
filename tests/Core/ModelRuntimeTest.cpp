@@ -23,7 +23,7 @@ namespace Chrivent {
 
 		static void RunSkinning(Model& model) {
 			ModelSkinning::PrepareUpdate(model, false);
-			ASSERT_EQ(ModelSkinning::GetUpdateRangeCount(model), 1);
+			ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 			ModelSkinning::UpdateRange(model, 0);
 		}
 	};

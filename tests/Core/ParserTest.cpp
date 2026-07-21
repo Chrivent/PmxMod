@@ -66,6 +66,17 @@ namespace Chrivent {
 			return bytes;
 		}
 
+		static std::string BuildPmxWithTruncatedString() {
+			std::string bytes;
+			AppendBytes(bytes, "PMX ", 4);
+			Append(bytes, 2.0f);
+			constexpr uint8_t headerData[] = {8, 1, 0, 1, 1, 1, 1, 1, 1};
+			AppendBytes(bytes, reinterpret_cast<const char*>(headerData), sizeof(headerData));
+			constexpr int32_t unavailableStringLength = 1024;
+			Append(bytes, unavailableStringLength);
+			return bytes;
+		}
+
 		static std::string BuildMinimalVmd() {
 			std::string bytes(50, '\0');
 			constexpr char signature[] = "Vocaloid Motion Data 0002";
@@ -249,6 +260,15 @@ namespace Chrivent {
 		const auto result = parser.Read(stream);
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
+		EXPECT_TRUE(parser.GetData().info.modelName.empty());
+	}
+
+	TEST_F(ParserContractTest, RejectsTruncatedPmxStringsBeforeAllocation) {
+		std::istringstream stream(BuildPmxWithTruncatedString());
+		PmxParser parser;
+		const auto result = parser.Read(stream);
+		ASSERT_FALSE(result);
+		EXPECT_EQ(result.error().code, ParseErrorCode::InvalidCount);
 		EXPECT_TRUE(parser.GetData().info.modelName.empty());
 	}
 

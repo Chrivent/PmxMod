@@ -2,7 +2,14 @@
 
 #include "Core/Animation/AnimationKeySequence.h"
 
+#include <utility>
+
 namespace Chrivent {
+	CameraAnimation::CameraAnimation(std::vector<CameraAnimationKey> animationKeys)
+		: keys(std::move(animationKeys)) {
+		AnimationKeySequence::SortAndKeepLastKeyPerFrame(keys);
+	}
+
 	Camera CameraAnimation::Evaluate(const float t) const {
 		Camera camera;
 		if (keys.empty())

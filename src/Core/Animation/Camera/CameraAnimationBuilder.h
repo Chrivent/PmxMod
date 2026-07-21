@@ -3,6 +3,8 @@
 #include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Parser/VmdParser.h"
 
+#include <memory>
+
 namespace Chrivent {
 	// VMD 카메라 키를 런타임 카메라 애니메이션으로 변환한다.
 	class CameraAnimationBuilder {
@@ -10,7 +12,7 @@ namespace Chrivent {
 		static CameraAnimationKey CreateCameraKey(const VmdParser::VmdCamera& camera);
 
 	public:
-		// VMD 카메라 데이터를 런타임 카메라 애니메이션 키 목록으로 변환한다.
-		static std::vector<CameraAnimationKey> Build(const VmdParser::VmdData& vmdData);
+		// VMD 카메라 데이터를 정렬된 런타임 카메라 애니메이션으로 변환한다.
+		static std::unique_ptr<CameraAnimation> Build(const VmdParser::VmdData& vmdData);
 	};
 }

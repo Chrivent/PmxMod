@@ -11,8 +11,6 @@ namespace Chrivent {
 		static void SetupParallelUpdate(Model& model);
 
 	public:
-		static std::size_t GetUpdateRangeCount(const Model& model);
-
 		// 정점 수와 CPU 코어 수에 맞춰 스키닝 작업 범위와 선택적인 이전 위치를 준비한다.
 		static void PrepareUpdate(Model& model, bool preservePreviousPositions);
 		// 지정된 작업 범위의 스키닝 결과를 갱신한다.

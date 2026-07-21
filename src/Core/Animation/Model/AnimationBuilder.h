@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Chrivent {
@@ -16,14 +17,11 @@ namespace Chrivent {
 		std::map<std::string, std::vector<NodeAnimationKey>> nodeKeysByName;
 		std::map<std::string, std::vector<IkAnimationKey>> ikKeysByName;
 		std::map<std::string, std::vector<MorphAnimationKey>> morphKeysByName;
+		std::map<std::string, std::string> decodedNames;
 		std::shared_ptr<Model> model;
 
-		// 이름과 일치하는 모델 노드를 찾는다.
-		Node* FindNodeByName(const std::string& name) const;
-		// 이름과 일치하는 IK 솔버를 찾는다.
-		IkSolver* FindIkSolverByName(const std::string& name) const;
-		// 이름과 일치하는 모델 모프를 찾는다.
-		Morph* FindMorphByName(const std::string& name) const;
+		// 고정 길이 Shift-JIS 이름을 한 번만 UTF-8로 변환해 보관한다.
+		const std::string& ResolveName(const char* encodedName, std::size_t size);
 		// 이름별 키를 현재 모델 대상에 연결하고 정렬된 트랙 목록으로 옮긴다.
 		template <typename Track, typename KeyMap, typename Resolver>
 		static std::vector<Track> TakeTracks(KeyMap& keysByName, const Resolver& resolveTarget);

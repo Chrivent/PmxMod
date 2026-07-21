@@ -49,7 +49,7 @@ namespace Chrivent {
 	}
 
 	std::size_t ModelUpdater::CalculateSkinningTaskCount(const Model& model) {
-		return ModelSkinning::GetUpdateRangeCount(model);
+		return model.geometryData.updateRanges.size();
 	}
 
 	void ModelUpdater::UpdateSkinning(Model& model, const std::size_t taskIndex) {

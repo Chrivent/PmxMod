@@ -10,7 +10,7 @@
 namespace Chrivent {
 	void PmxParser::ReadString(BinaryReader& reader, std::string& value) const {
 		int32_t bufferSize = 0;
-		if (!reader.ReadCount(bufferSize, 0, 64 * 1024 * 1024))
+		if (!reader.ReadCount(bufferSize, 1, 64 * 1024 * 1024))
 			return;
 		if (bufferSize == 0) {
 			value.clear();

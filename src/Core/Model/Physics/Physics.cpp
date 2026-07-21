@@ -36,6 +36,8 @@ namespace Chrivent {
 	}
 
 	void Physics::Step(const float elapsed) const {
+		if (!std::isfinite(elapsed) || elapsed <= 0.0f)
+			return;
 		world->stepSimulation(elapsed, maxSubStepCount, 1.0f / simulationFps);
 	}
 

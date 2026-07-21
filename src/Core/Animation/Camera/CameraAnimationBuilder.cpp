@@ -1,8 +1,7 @@
 ﻿#include "Core/Animation/Camera/CameraAnimationBuilder.h"
 
-#include "Core/Animation/AnimationKeySequence.h"
-
 #include <ranges>
+#include <utility>
 
 namespace Chrivent {
 	CameraAnimationKey CameraAnimationBuilder::CreateCameraKey(const VmdParser::VmdCamera& camera) {
@@ -21,11 +20,10 @@ namespace Chrivent {
 		return key;
 	}
 
-	std::vector<CameraAnimationKey> CameraAnimationBuilder::Build(const VmdParser::VmdData& vmdData) {
+	std::unique_ptr<CameraAnimation> CameraAnimationBuilder::Build(const VmdParser::VmdData& vmdData) {
 		auto keys = vmdData.cameras
 			| std::views::transform(CreateCameraKey)
 			| std::ranges::to<std::vector>();
-		AnimationKeySequence::SortAndKeepLastKeyPerFrame(keys);
-		return keys;
+		return std::make_unique<CameraAnimation>(std::move(keys));
 	}
 }

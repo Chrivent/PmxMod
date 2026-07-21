@@ -6,37 +6,27 @@
 namespace Chrivent {
 	BinaryReader::BinaryReader(std::istream& source) : stream(source) {
 		stream.seekg(0, std::ios::end);
-		end = stream.tellg();
+		const auto endPosition = stream.tellg();
 		stream.seekg(0, std::ios::beg);
-		if (end == std::streampos(-1))
+		if (endPosition == std::streampos(-1) || !stream)
 			Fail(ParseErrorCode::UnexpectedEnd, "파일 크기를 확인할 수 없습니다.");
-	}
-
-	std::streamoff BinaryReader::ResolveOffset() const {
-		const auto position = stream.tellg();
-		return position == std::streampos(-1) ? 0 : position - std::streampos(0);
+		else
+			length = endPosition - std::streampos(0);
 	}
 
 	bool BinaryReader::HasMore() const {
-		if (error)
-			return false;
-		const auto position = stream.tellg();
-		return position != std::streampos(-1) && position < end;
+		return !error && offset < length;
 	}
 
 	std::size_t BinaryReader::RemainingBytes() const {
-		if (error)
+		if (error || offset >= length)
 			return 0;
-		const auto position = stream.tellg();
-		if (position == std::streampos(-1) || position >= end)
-			return 0;
-		const auto remaining = end - position;
-		return static_cast<std::size_t>(remaining);
+		return static_cast<std::size_t>(length - offset);
 	}
 
 	bool BinaryReader::Fail(const ParseErrorCode code, const std::string& message) {
 		if (!error)
-			error = ParseError{ code, section, message, ResolveOffset() };
+			error = ParseError{ code, section, message, offset };
 		return false;
 	}
 
@@ -50,6 +40,7 @@ namespace Chrivent {
 		stream.read(static_cast<char*>(destination), static_cast<std::streamsize>(bytes));
 		if (!stream)
 			return Fail(ParseErrorCode::UnexpectedEnd, "바이너리 데이터를 읽지 못했습니다.");
+		offset += static_cast<std::streamoff>(bytes);
 		return true;
 	}
 

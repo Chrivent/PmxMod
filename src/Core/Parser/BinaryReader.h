@@ -31,12 +31,10 @@ namespace Chrivent {
 	// 바이너리 스트림을 범위 검사하며 읽고 첫 번째 오류를 기록한다.
 	class BinaryReader {
 		std::istream& stream;
-		std::streampos end = 0;
+		std::streamoff length = 0;
+		std::streamoff offset = 0;
 		std::string section = "file";
 		std::optional<ParseError> error;
-
-		// 현재 스트림 위치를 파일 시작 기준 바이트 오프셋으로 반환한다.
-		std::streamoff ResolveOffset() const;
 
 	public:
 		explicit BinaryReader(std::istream& source);

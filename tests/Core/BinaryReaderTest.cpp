@@ -59,6 +59,19 @@ namespace Chrivent {
 		EXPECT_TRUE(reader.Result());
 	}
 
+	TEST(BinaryReaderContract, TracksRemainingBytesWithoutStreamPositionQueries) {
+		std::istringstream stream(std::string("\x01\x02\x03", 3));
+		BinaryReader reader(stream);
+		EXPECT_EQ(reader.RemainingBytes(), 3);
+		uint8_t first = 0;
+		uint16_t remaining = 0;
+		ASSERT_TRUE(reader.Read(first));
+		EXPECT_EQ(reader.RemainingBytes(), 2);
+		ASSERT_TRUE(reader.Read(remaining));
+		EXPECT_EQ(reader.RemainingBytes(), 0);
+		EXPECT_FALSE(reader.HasMore());
+	}
+
 	TEST(BinaryReaderContract, OwnsTheSectionNameUsedByLaterErrors) {
 		std::istringstream stream;
 		BinaryReader reader(stream);
