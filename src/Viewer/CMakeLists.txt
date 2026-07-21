@@ -61,7 +61,6 @@ target_sources(PmxModViewer PRIVATE
 
         Command/Dx12CommandContext.h Command/Dx12CommandContext.cpp
         Command/Dx12UploadContext.h Command/Dx12UploadContext.cpp
-        Command/VulkanCommandBuffer.h Command/VulkanCommandBuffer.cpp
         Command/VulkanCommandContext.h Command/VulkanCommandContext.cpp
         Command/VulkanUploadContext.h Command/VulkanUploadContext.cpp
 
@@ -97,14 +96,12 @@ target_sources(PmxModViewer PRIVATE
         Instance/Dx12Instance.h Instance/Dx12Instance.cpp
         Instance/VulkanInstance.h Instance/VulkanInstance.cpp
 
-        Memory/VulkanMemory.h Memory/VulkanMemory.cpp
-
         Pipeline/Dx11Pipeline.h Pipeline/Dx11Pipeline.cpp
 		Pipeline/OpenGlPipeline.h Pipeline/OpenGlPipeline.cpp
         Pipeline/Dx12Pipeline.h Pipeline/Dx12Pipeline.cpp
         Pipeline/Dx12PipelineBuilder.h Pipeline/Dx12PipelineBuilder.cpp
         Pipeline/VulkanPipeline.h Pipeline/VulkanPipeline.cpp
-        Pipeline/VulkanGraphicsPipelineBuilder.h Pipeline/VulkanGraphicsPipelineBuilder.cpp
+        Pipeline/VulkanPipelineBuilder.h Pipeline/VulkanPipelineBuilder.cpp
 		Pipeline/VulkanShaderStageBuilder.h Pipeline/VulkanShaderStageBuilder.cpp
 
         PostProcess/OpenGlPostProcess.h PostProcess/OpenGlPostProcess.cpp
@@ -132,7 +129,6 @@ target_sources(PmxModViewer PRIVATE
         $<TARGET_OBJECTS:PmxModDxcHlslCompiler>
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
-        Shader/VulkanShaderModule.h Shader/VulkanShaderModule.cpp
 
         SwapChain/Dx11SwapChain.h SwapChain/Dx11SwapChain.cpp
         SwapChain/Dx12SwapChain.h SwapChain/Dx12SwapChain.cpp

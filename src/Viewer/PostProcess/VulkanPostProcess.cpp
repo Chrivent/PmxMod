@@ -3,7 +3,7 @@
 #include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Buffer/BufferSize.h"
-#include "Viewer/Command/VulkanCommandBuffer.h"
+#include "Viewer/Command/VulkanCommandContext.h"
 
 #include <algorithm>
 #include <limits>
@@ -255,7 +255,7 @@ namespace Chrivent {
 		return {};
 	}
 	
-	GraphicsError::Result<void> VulkanPostProcess::BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+	GraphicsError::Result<void> VulkanPostProcess::BeginSceneInputPass(const VulkanCommandContext& commandContext,
 		const uint32_t imageIndex, const VkExtent2D extent) {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
@@ -264,7 +264,7 @@ namespace Chrivent {
 		}
 		BeginImageStateFrame();
 		constexpr bool depthHasStencil = false;
-		const bool began = commandBuffers.BeginPostProcessSceneInputPass(imageIndex,
+		const bool began = commandContext.BeginPostProcessSceneInputPass(imageIndex,
 			sceneTarget.TryGetImage(imageIndex), depthTarget.TryGetImage(imageIndex),
 			depthTarget.TryGetImageView(imageIndex),
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE,
@@ -282,7 +282,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanPostProcess::EndSceneInputPass(
-		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex) {
+		const VulkanCommandContext& commandContext, const uint32_t imageIndex) {
 		if ((!RequiresDepth() && !RequiresVelocity()) || imageIndex >= swapChainImageCount) {
 			DiscardImageStateFrame();
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
@@ -290,7 +290,7 @@ namespace Chrivent {
 				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
 		}
 		constexpr bool depthHasStencil = false;
-		if (!commandBuffers.EndPostProcessSceneInputPass(
+		if (!commandContext.EndPostProcessSceneInputPass(
 			imageIndex, depthTarget.TryGetImage(imageIndex),
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil)) {
 			DiscardImageStateFrame();
@@ -302,7 +302,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanPostProcess::Draw(
-		const VulkanCommandBuffer& commandBuffers, const uint32_t imageIndex,
+		const VulkanCommandContext& commandContext, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView,
 		const PostProcessFrameData& frameData) {
 		const auto& routes = GetPassRoutes();
@@ -315,7 +315,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"Vulkan 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
-		const VkCommandBuffer commandBuffer = commandBuffers.TryGetCommandBuffer(imageIndex);
+		const VkCommandBuffer commandBuffer = commandContext.TryGetCommandBuffer(imageIndex);
 		if (commandBuffer == VK_NULL_HANDLE) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
@@ -354,13 +354,13 @@ namespace Chrivent {
 			if (!NeedsHistoryInitialization(index))
 				continue;
 			for (const VkImage image : resource.GetImages()) {
-				VulkanCommandBuffer::TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
+				VulkanCommandContext::TransitionImage(commandBuffer, image, VK_IMAGE_LAYOUT_UNDEFINED,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, VK_ACCESS_2_NONE,
 					VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
 					VK_IMAGE_ASPECT_COLOR_BIT);
 				vkCmdClearColorImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					&clearColor, 1, &colorRange);
-				VulkanCommandBuffer::TransitionImage(commandBuffer, image,
+				VulkanCommandContext::TransitionImage(commandBuffer, image,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 					VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
 					VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
@@ -405,7 +405,7 @@ namespace Chrivent {
 					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",
 					"Vulkan 후처리 pass의 출력 image를 찾지 못했습니다"));
 			}
-			VulkanCommandBuffer::TransitionImage(commandBuffer, outputImage,
+			VulkanCommandContext::TransitionImage(commandBuffer, outputImage,
 				outputInitialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				outputInitialized ? VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_2_NONE,
@@ -438,7 +438,7 @@ namespace Chrivent {
 					"Vulkan 후처리 texture 또는 parameter descriptor set을 사용할 수 없습니다"));
 			}
 			vkCmdBeginRendering(commandBuffer, &renderingInfo);
-			VulkanCommandBuffer::ApplyViewportAndScissor(commandBuffer, outputExtent);
+			VulkanCommandContext::ApplyViewportAndScissor(commandBuffer, outputExtent);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.TryGetPipeline(passIndex));
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				pipelineLayout, 1, 1, &parameterSet, 0, nullptr);
@@ -447,7 +447,7 @@ namespace Chrivent {
 			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 			vkCmdEndRendering(commandBuffer);
 			if (route.outputKind == PostProcessOutputKind::Resource) {
-				VulkanCommandBuffer::TransitionImage(commandBuffer, outputImage,
+				VulkanCommandContext::TransitionImage(commandBuffer, outputImage,
 					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 					VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 					VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,

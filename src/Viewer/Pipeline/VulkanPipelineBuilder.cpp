@@ -1,4 +1,4 @@
-﻿#include "Viewer/Pipeline/VulkanGraphicsPipelineBuilder.h"
+﻿#include "Viewer/Pipeline/VulkanPipelineBuilder.h"
 
 #include "Viewer/Geometry/ViewerGeometry.h"
 #include "Viewer/Pipeline/VulkanShaderStageBuilder.h"
@@ -7,20 +7,21 @@
 #include <iterator>
 
 namespace Chrivent {
-	GraphicsError::Result<void> VulkanGraphicsPipelineBuilder::Create(const VulkanDevice& sourceDevice,
+	GraphicsError::Result<void> VulkanPipelineBuilder::Create(const VulkanDevice& sourceDevice,
 		const ShaderProgramDefinition& program, const Configuration& configuration,
 		VkPipeline& pipeline) {
 		pipeline = VK_NULL_HANDLE;
 		if (sourceDevice.GetDevice() == VK_NULL_HANDLE
 			|| configuration.pipelineLayout == VK_NULL_HANDLE
-			|| configuration.depthFormat == VK_FORMAT_UNDEFINED) {
+			|| (configuration.colorFormat == VK_FORMAT_UNDEFINED
+				&& configuration.depthFormat == VK_FORMAT_UNDEFINED)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "graphics pipeline 생성",
 				"Vulkan graphics pipeline 생성 설정이 올바르지 않습니다"));
 		}
 		VulkanShaderStageBuilder shaderStages;
 		const auto shaderResult = shaderStages.Build(
-			sourceDevice, program, SpirvBindingProfile::Scene);
+			sourceDevice, program, configuration.bindingProfile, configuration.invertVertexY);
 		if (!shaderResult)
 			return std::unexpected(shaderResult.error());
 		constexpr VkVertexInputBindingDescription bindingDescription{
@@ -35,7 +36,7 @@ namespace Chrivent {
 			.format = VK_FORMAT_R32G32B32_SFLOAT,
 			.offset = offsetof(ViewerVertex, position)
 		};
-		uint32_t attributeCount = 1;
+		uint32_t attributeCount = configuration.vertexLayout == VertexLayout::None ? 0u : 1u;
 		if (configuration.vertexLayout == VertexLayout::PositionUv) {
 			attributeDescriptions[1] = {
 				.location = 1,
@@ -65,10 +66,11 @@ namespace Chrivent {
 		}
 		const VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = 1,
-			.pVertexBindingDescriptions = &bindingDescription,
+			.vertexBindingDescriptionCount = configuration.vertexLayout == VertexLayout::None ? 0u : 1u,
+			.pVertexBindingDescriptions = configuration.vertexLayout == VertexLayout::None
+				? nullptr : &bindingDescription,
 			.vertexAttributeDescriptionCount = attributeCount,
-			.pVertexAttributeDescriptions = attributeDescriptions
+			.pVertexAttributeDescriptions = attributeCount == 0 ? nullptr : attributeDescriptions
 		};
 		constexpr VkPipelineInputAssemblyStateCreateInfo inputAssembly{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -123,9 +125,10 @@ namespace Chrivent {
 			depthStencil.back = stencilState;
 		}
 		const bool hasColorAttachment = configuration.colorFormat != VK_FORMAT_UNDEFINED;
+		const bool hasDepthAttachment = configuration.depthFormat != VK_FORMAT_UNDEFINED;
 		const bool velocityInput = configuration.vertexLayout == VertexLayout::Velocity;
 		VkPipelineColorBlendAttachmentState blendAttachment{
-			.blendEnable = velocityInput ? VK_FALSE : VK_TRUE,
+			.blendEnable = configuration.blendEnabled && !velocityInput ? VK_TRUE : VK_FALSE,
 			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 			.colorBlendOp = VK_BLEND_OP_ADD,
@@ -149,7 +152,7 @@ namespace Chrivent {
 			.colorAttachmentCount = hasColorAttachment ? 1u : 0u,
 			.pColorAttachmentFormats = hasColorAttachment ? &configuration.colorFormat : nullptr,
 			.depthAttachmentFormat = configuration.depthFormat,
-			.stencilAttachmentFormat = hasColorAttachment && depthHasStencil
+			.stencilAttachmentFormat = hasDepthAttachment && depthHasStencil
 				? configuration.depthFormat : VK_FORMAT_UNDEFINED
 		};
 		VkGraphicsPipelineCreateInfo createInfo{
@@ -162,7 +165,7 @@ namespace Chrivent {
 			.pViewportState = &viewportState,
 			.pRasterizationState = &rasterizer,
 			.pMultisampleState = &multisampling,
-			.pDepthStencilState = &depthStencil,
+			.pDepthStencilState = hasDepthAttachment ? &depthStencil : nullptr,
 			.pColorBlendState = hasColorAttachment ? &colorBlending : nullptr,
 			.pDynamicState = &dynamicState,
 			.layout = configuration.pipelineLayout

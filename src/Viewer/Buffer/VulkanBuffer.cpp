@@ -1,7 +1,5 @@
 ﻿#include "Viewer/Buffer/VulkanBuffer.h"
 
-#include "Viewer/Memory/VulkanMemory.h"
-
 namespace Chrivent {
 	VulkanBuffer::~VulkanBuffer() {
 		Reset();
@@ -34,7 +32,7 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, properties, memoryType)) {
+		if (!sourceDevice.TryFindMemoryType(memoryRequirements.memoryTypeBits, properties, memoryType)) {
 			Reset();
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "buffer memory type 선택",

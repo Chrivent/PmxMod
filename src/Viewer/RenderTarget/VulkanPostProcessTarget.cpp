@@ -1,7 +1,5 @@
 ﻿#include "Viewer/RenderTarget/VulkanPostProcessTarget.h"
 
-#include "Viewer/Memory/VulkanMemory.h"
-
 namespace Chrivent {
 	VulkanPostProcessTarget::~VulkanPostProcessTarget() {
 		Reset();
@@ -44,8 +42,8 @@ namespace Chrivent {
 		VkMemoryRequirements requirements{};
 		vkGetImageMemoryRequirements(device, images[index], &requirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(
-			sourceDevice, requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+		if (!sourceDevice.TryFindMemoryType(
+			requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "후처리 image memory type 선택",
 				"Vulkan 후처리 image에 사용할 memory type을 찾지 못했습니다"));

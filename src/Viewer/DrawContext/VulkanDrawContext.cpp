@@ -36,19 +36,18 @@ namespace Chrivent {
 		if (firstIndex > std::numeric_limits<uint32_t>::max()
 			|| indexCount > std::numeric_limits<uint32_t>::max())
 			return false;
-		auto& commandBuffer = commandContext.GetCommandBuffer();
 		if (bindStateCache.vertexBuffer != vertexBuffer.buffer) {
-			if (!commandBuffer.BindVertexBuffer(currentImageIndex, vertexBuffer.buffer))
+			if (!commandContext.BindVertexBuffer(currentImageIndex, vertexBuffer.buffer))
 				return false;
 			bindStateCache.vertexBuffer = vertexBuffer.buffer;
 		}
 		if (bindStateCache.indexBuffer != indexBuffer.buffer || bindStateCache.indexType != indexType) {
-			if (!commandBuffer.BindIndexBuffer(currentImageIndex, indexBuffer.buffer, indexType))
+			if (!commandContext.BindIndexBuffer(currentImageIndex, indexBuffer.buffer, indexType))
 				return false;
 			bindStateCache.indexBuffer = indexBuffer.buffer;
 			bindStateCache.indexType = indexType;
 		}
-		return commandBuffer.DrawIndexed(currentImageIndex,
+		return commandContext.DrawIndexed(currentImageIndex,
 			static_cast<uint32_t>(firstIndex), static_cast<uint32_t>(indexCount));
 	}
 
@@ -58,7 +57,7 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = pipeline.ResolveModelPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+		if (!commandContext.BindPipeline(currentImageIndex, targetPipeline))
 			return false;
 		bindStateCache.pipeline = targetPipeline;
 		return true;
@@ -70,7 +69,7 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = pipeline.ResolveSceneDepthPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+		if (!commandContext.BindPipeline(currentImageIndex, targetPipeline))
 			return false;
 		bindStateCache.pipeline = targetPipeline;
 		return true;
@@ -82,7 +81,7 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = pipeline.ResolveSceneVelocityPipeline(bothFace);
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+		if (!commandContext.BindPipeline(currentImageIndex, targetPipeline))
 			return false;
 		bindStateCache.pipeline = targetPipeline;
 		return true;
@@ -94,7 +93,7 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = pipeline.GetEdgePipeline();
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+		if (!commandContext.BindPipeline(currentImageIndex, targetPipeline))
 			return false;
 		bindStateCache.pipeline = targetPipeline;
 		return true;
@@ -106,7 +105,7 @@ namespace Chrivent {
 		const VkPipeline targetPipeline = pipeline.GetGroundShadowPipeline();
 		if (bindStateCache.pipeline == targetPipeline)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindPipeline(currentImageIndex, targetPipeline))
+		if (!commandContext.BindPipeline(currentImageIndex, targetPipeline))
 			return false;
 		bindStateCache.pipeline = targetPipeline;
 		return true;
@@ -120,7 +119,7 @@ namespace Chrivent {
 			bindStateCache.vertexDynamicOffset == dynamicOffset)
 			return true;
 		const VkDescriptorSet vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
-		if (!commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex,
+		if (!commandContext.BindDescriptorSets(currentImageIndex,
 			pipeline.GetPipelineLayout(), 0, { &vertexDescriptorSet, 1 }, { &dynamicOffset, 1 }))
 			return false;
 		bindStateCache.vertexDescriptorSet = vertexDescriptorSet;
@@ -135,7 +134,7 @@ namespace Chrivent {
 		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
 			bindStateCache.pixelDynamicOffset == dynamicOffset)
 			return true;
-		if (!commandContext.GetCommandBuffer().BindDescriptorSets(currentImageIndex,
+		if (!commandContext.BindDescriptorSets(currentImageIndex,
 			pipeline.GetPipelineLayout(), 1, { &descriptorSet, 1 }, { &dynamicOffset, 1 }))
 			return false;
 		bindStateCache.pixelDescriptorSet = descriptorSet;
@@ -147,7 +146,7 @@ namespace Chrivent {
 		if (!frameReady || descriptorSet == VK_NULL_HANDLE ||
 			bindStateCache.textureDescriptorSet == descriptorSet)
 			return frameReady && descriptorSet != VK_NULL_HANDLE;
-		if (!commandContext.GetCommandBuffer().BindDescriptorSets(
+		if (!commandContext.BindDescriptorSets(
 			currentImageIndex, pipeline.GetPipelineLayout(), 2, { &descriptorSet, 1 }))
 			return false;
 		bindStateCache.textureDescriptorSet = descriptorSet;

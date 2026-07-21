@@ -1,8 +1,6 @@
 ﻿#include "Viewer/Texture/VulkanTextureCache.h"
 
 #include "Viewer/Buffer/VulkanBuffer.h"
-#include "Viewer/Memory/VulkanMemory.h"
-
 #include <limits>
 #include <memory>
 #include <ranges>
@@ -205,7 +203,8 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
+		if (!sourceDevice.TryFindMemoryType(
+			memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "texture image memory type 선택",
 				"Vulkan texture image memory type을 찾지 못했습니다"));

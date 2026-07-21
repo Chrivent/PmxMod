@@ -3,20 +3,22 @@
 #include "Viewer/Device/VulkanDevice.h"
 #include "Viewer/Error/GraphicsError.h"
 #include "Viewer/Shader/ShaderProgramDefinition.h"
+#include "Viewer/Shader/SpirvBindingLayout.h"
 
 namespace Chrivent {
-	// Vulkan 장면 그래픽 파이프라인의 네이티브 상태 조립과 생성을 담당한다.
-	class VulkanGraphicsPipelineBuilder {
+	// 장면과 후처리에서 공유하는 Vulkan 그래픽 파이프라인 상태를 조립한다.
+	class VulkanPipelineBuilder {
 	public:
-		// 장면 패스가 ViewerVertex에서 사용할 attribute 조합을 구분한다.
+		// 패스가 사용할 vertex 입력 attribute 조합을 구분한다.
 		enum class VertexLayout {
+			None,
 			PositionOnly,
 			PositionUv,
 			Model,
 			Velocity
 		};
 
-		// 장면 패스 하나의 고정 기능 상태와 attachment 형식을 보관한다.
+		// 그래픽 패스 하나의 셰이더 binding과 고정 기능 상태를 보관한다.
 		struct Configuration {
 			VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 			VkFormat colorFormat = VK_FORMAT_UNDEFINED;
@@ -25,6 +27,9 @@ namespace Chrivent {
 			VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
 			VkCompareOp depthCompareOp = VK_COMPARE_OP_LESS;
 			VertexLayout vertexLayout = VertexLayout::Model;
+			SpirvBindingProfile bindingProfile = SpirvBindingProfile::Scene;
+			bool invertVertexY = false;
+			bool blendEnabled = true;
 			bool depthBiasEnabled = false;
 			bool stencilTestEnabled = false;
 			bool depthWriteDisabled = false;

@@ -1,6 +1,6 @@
 ﻿#include "Viewer/Pipeline/VulkanPipeline.h"
 
-#include "Viewer/Pipeline/VulkanGraphicsPipelineBuilder.h"
+#include "Viewer/Pipeline/VulkanPipelineBuilder.h"
 #include "Viewer/Shader/SceneShaderInputLayout.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
 
@@ -116,7 +116,7 @@ namespace Chrivent {
 		const VkFormat sourceColorFormat, const VkFormat sourceDepthFormat,
 		const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
 		const ShaderProgramDefinition& velocityProgram) {
-		using Builder = VulkanGraphicsPipelineBuilder;
+		using Builder = VulkanPipelineBuilder;
 		Builder::Configuration configuration{
 			.pipelineLayout = pipelineLayout,
 			.colorFormat = sourceColorFormat,

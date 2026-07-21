@@ -1,7 +1,5 @@
 ﻿#include "Viewer/RenderTarget/VulkanMsaaDepthBuffer.h"
 
-#include "Viewer/Memory/VulkanMemory.h"
-
 namespace Chrivent {
 	VkFormat VulkanMsaaDepthBuffer::FindDepthFormat(const VulkanDevice& sourceDevice) {
 		constexpr VkFormat candidates[] = {
@@ -52,7 +50,7 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits,
+		if (!sourceDevice.TryFindMemoryType(memoryRequirements.memoryTypeBits,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "MSAA depth memory type 선택",

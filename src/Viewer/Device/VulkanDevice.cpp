@@ -318,6 +318,20 @@ namespace Chrivent {
 		Shutdown();
 	}
 
+	bool VulkanDevice::TryFindMemoryType(const uint32_t typeFilter,
+		const VkMemoryPropertyFlags requiredProperties, uint32_t& memoryType) const {
+		VkPhysicalDeviceMemoryProperties memoryProperties{};
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+		for (uint32_t index = 0; index < memoryProperties.memoryTypeCount; index++) {
+			if ((typeFilter & 1u << index) != 0
+				&& (memoryProperties.memoryTypes[index].propertyFlags & requiredProperties) == requiredProperties) {
+				memoryType = index;
+				return true;
+			}
+		}
+		return false;
+	}
+
 	GraphicsError::Result<void> VulkanDevice::Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities) {
 		Shutdown();
 		capabilities = {};

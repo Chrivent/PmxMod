@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace Chrivent {
-	class VulkanCommandBuffer;
+	class VulkanCommandContext;
 	struct PostProcessFrameData;
 
 	// 공통 실행 계획을 Vulkan image와 그래픽 파이프라인으로 기록한다.
@@ -80,13 +80,13 @@ namespace Chrivent {
 			const VulkanSwapChain& sourceSwapChain,
 			VkFormat depthFormat, PreparedEffects preparedEffects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
-		GraphicsError::Result<void> BeginSceneInputPass(const VulkanCommandBuffer& commandBuffers,
+		GraphicsError::Result<void> BeginSceneInputPass(const VulkanCommandContext& commandContext,
 			uint32_t imageIndex, VkExtent2D extent);
 		// Vulkan 후처리 장면 입력 geometry pass를 종료한다.
 		GraphicsError::Result<void> EndSceneInputPass(
-			const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex);
+			const VulkanCommandContext& commandContext, uint32_t imageIndex);
 		// 선언된 pass들을 실행해 swapchain 출력까지 기록한다.
-		GraphicsError::Result<void> Draw(const VulkanCommandBuffer& commandBuffers, uint32_t imageIndex,
+		GraphicsError::Result<void> Draw(const VulkanCommandContext& commandContext, uint32_t imageIndex,
 			VkImage swapChainImage, VkImageView swapChainImageView, const PostProcessFrameData& frameData);
 		// 제출된 프레임의 Vulkan 이미지 상태 변경을 확정한다.
 		void CommitImageStateFrame();

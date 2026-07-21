@@ -95,8 +95,7 @@ namespace Chrivent {
 		const auto imageWaitResult = syncObject.WaitForImage(currentImageIndex);
 		if (!imageWaitResult)
 			return std::unexpected(imageWaitResult.error());
-		auto& commandBuffer = commandContext.GetCommandBuffer();
-		const auto resetResult = commandBuffer.ResetRecord(currentImageIndex);
+		const auto resetResult = commandContext.ResetRecord(currentImageIndex);
 		if (!resetResult)
 			return std::unexpected(resetResult.error());
 		const VkImage resolveImage = postProcess.HasEffects()
@@ -105,7 +104,7 @@ namespace Chrivent {
 		const VkImageView resolveImageView = postProcess.HasEffects()
 			? postProcess.TryGetSceneImageView(currentImageIndex)
 			: swapChain.GetImageView(currentImageIndex);
-		const auto recordResult = commandBuffer.BeginRecord(currentImageIndex,
+		const auto recordResult = commandContext.BeginRecord(currentImageIndex,
 			msaaColorBuffer.GetImage(), msaaColorBuffer.GetImageView(), resolveImage, resolveImageView,
 			msaaDepthBuffer.GetImage(), msaaDepthBuffer.GetImageView(),
 			VulkanMsaaDepthBuffer::HasStencilComponent(msaaDepthBuffer.GetFormat()),
@@ -124,30 +123,29 @@ namespace Chrivent {
 		const bool sceneInputPassReady = postProcessSceneInputPassReady;
 		drawContext.EndFrame();
 		postProcessSceneInputPassReady = false;
-		const auto& commandBuffer = commandContext.GetCommandBuffer();
 		if (postProcess.HasEffects()) {
 			const VkImage sceneImage = postProcess.TryGetSceneImage(currentImageIndex);
-			if (!sceneInputPassReady && !commandBuffer.EndSceneColorPass(currentImageIndex, sceneImage)) {
+			if (!sceneInputPassReady && !commandContext.EndSceneColorPass(currentImageIndex, sceneImage)) {
 				postProcess.DiscardImageStateFrame();
 				return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 					"장면 색상 패스 종료", "Vulkan 장면 색상을 후처리 입력 상태로 전환하지 못했습니다"));
 			}
-			const auto drawResult = postProcess.Draw(commandBuffer, currentImageIndex,
+			const auto drawResult = postProcess.Draw(commandContext, currentImageIndex,
 				swapChain.GetImage(currentImageIndex), swapChain.GetImageView(currentImageIndex),
 				GetPostProcessFrameData());
 			if (!drawResult)
 				return std::unexpected(drawResult.error());
-		} else if (!commandBuffer.EndRendering(currentImageIndex)) {
+		} else if (!commandContext.EndRendering(currentImageIndex)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"장면 패스 종료", "Vulkan 장면 렌더링을 끝내지 못했습니다"));
 		}
-		const auto endRecordResult = commandBuffer.EndRecord(
+		const auto endRecordResult = commandContext.EndRecord(
 			currentImageIndex, swapChain.GetImage(currentImageIndex));
 		if (!endRecordResult) {
 			postProcess.DiscardImageStateFrame();
 			return std::unexpected(endRecordResult.error());
 		}
-		const VkCommandBuffer nativeCommandBuffer = commandBuffer.TryGetCommandBuffer(currentImageIndex);
+		const VkCommandBuffer nativeCommandBuffer = commandContext.TryGetCommandBuffer(currentImageIndex);
 		const auto submitResult = syncObject.Submit(
 			device.GetGraphicsQueue(), nativeCommandBuffer, currentImageIndex);
 		if (!submitResult) {
@@ -176,7 +174,7 @@ namespace Chrivent {
 				"후처리 장면 입력 패스 시작", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const auto beginResult = postProcess.BeginSceneInputPass(
-			commandContext.GetCommandBuffer(), currentImageIndex, swapChain.GetExtent());
+			commandContext, currentImageIndex, swapChain.GetExtent());
 		if (!beginResult)
 			return std::unexpected(beginResult.error());
 		drawContext.ResetDescriptorBindings();
@@ -189,7 +187,7 @@ namespace Chrivent {
 				"후처리 장면 입력 패스 종료", "Vulkan draw context가 준비되지 않았습니다"));
 		const uint32_t currentImageIndex = drawContext.GetCurrentImageIndex();
 		const auto endResult = postProcess.EndSceneInputPass(
-			commandContext.GetCommandBuffer(), currentImageIndex);
+			commandContext, currentImageIndex);
 		if (!endResult)
 			return std::unexpected(endResult.error());
 		postProcessSceneInputPassReady = true;

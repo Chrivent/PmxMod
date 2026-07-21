@@ -82,6 +82,9 @@ namespace Chrivent {
 		uint32_t GetPresentQueueFamily() const { return queueFamilies.presentFamily; }
 		VkDeviceSize GetUniformBufferAlignment() const { return properties.limits.minUniformBufferOffsetAlignment; }
 
+		// 물리 디바이스 메모리 중 요청한 속성을 만족하는 memory type index를 찾는다.
+		bool TryFindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags requiredProperties,
+			uint32_t& memoryType) const;
 		// Vulkan 디바이스 생성에 필요한 기본 리소스를 초기화한다.
 		GraphicsError::Result<void> Initialize(GLFWwindow* window, GraphicsCapabilities& capabilities);
 		// Vulkan device에 제출된 모든 작업이 끝날 때까지 기다린다.

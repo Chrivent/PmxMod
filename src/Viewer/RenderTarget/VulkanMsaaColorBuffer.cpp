@@ -1,7 +1,5 @@
 ﻿#include "Viewer/RenderTarget/VulkanMsaaColorBuffer.h"
 
-#include "Viewer/Memory/VulkanMemory.h"
-
 namespace Chrivent {
 	GraphicsError::Result<void> VulkanMsaaColorBuffer::CreateImage(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain) {
@@ -28,7 +26,7 @@ namespace Chrivent {
 		VkMemoryRequirements memoryRequirements{};
 		vkGetImageMemoryRequirements(sourceDevice.GetDevice(), image, &memoryRequirements);
 		uint32_t memoryType = 0;
-		if (!VulkanMemory::FindMemoryType(sourceDevice, memoryRequirements.memoryTypeBits,
+		if (!sourceDevice.TryFindMemoryType(memoryRequirements.memoryTypeBits,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryType)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::UnsupportedFeature, "MSAA color memory type 선택",
