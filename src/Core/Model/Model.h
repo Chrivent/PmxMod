@@ -159,7 +159,6 @@ namespace Chrivent {
 	class Model {
 		std::unique_ptr<ModelMorph> morphEvaluator;
 		std::unique_ptr<ModelPhysicsData> physicsData;
-		// 내부 데이터 교체 뒤 기존 애니메이션 바인딩을 무효화하는 세대 번호다.
 		uint64_t structureRevision = 0;
 
 	public:
