@@ -80,7 +80,7 @@ namespace Chrivent {
 
 		// API별 리소스로 검증된 후처리 실행 체인을 생성한다.
 		virtual GraphicsError::Result<void> LoadPostProcessEffectsCore(
-			PostProcess::PreparedEffects preparedEffects) = 0;
+			PreparedPostProcessEffects preparedEffects) = 0;
 		// API별 후처리 장면 입력 패스 기록을 시작한다.
 		virtual GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() = 0;
 		// API별 후처리 장면 입력 패스 기록을 종료한다.

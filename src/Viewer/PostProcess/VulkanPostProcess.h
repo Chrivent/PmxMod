@@ -50,13 +50,13 @@ namespace Chrivent {
 		// 선택된 HLSL 실행 계획으로 fullscreen graphics pipeline들을 생성한다.
 		GraphicsError::Result<void> CreatePipelines(const VulkanDevice& sourceDevice);
 		// 리소스 계획의 Vulkan 색상 형식을 반환한다.
-		static VkFormat ResolveResourceFormat(const PostProcessResourcePlan& resource);
+		static VkFormat ResolveResourceFormat(const ResourcePlan& resource);
 		// 리소스 계획의 실제 Vulkan 출력 크기를 반환한다.
-		VkExtent2D ResolveResourceExtent(const PostProcessResourcePlan& resource) const;
+		VkExtent2D ResolveResourceExtent(const ResourcePlan& resource) const;
 		// pass 입력 경로에 대응하는 Vulkan image view를 반환한다.
-		VkImageView ResolveInputImageView(const PostProcessPassInputRoute& input, uint32_t imageIndex) const;
+		VkImageView ResolveInputImageView(const PassInputRoute& input, uint32_t imageIndex) const;
 		// pass 출력 경로에 대응하는 Vulkan image와 view를 반환한다.
-		bool ResolveOutputImage(const PostProcessPassRoute& route, uint32_t imageIndex,
+		bool ResolveOutputImage(const PassRoute& route, uint32_t imageIndex,
 			VkImage swapChainImage, VkImageView swapChainImageView, VkImage& image,
 			VkImageView& imageView, VkExtent2D& extent, bool& initialized);
 		// 검증을 마친 다른 Vulkan 후처리 객체와 GPU 리소스를 교환한다.
@@ -78,7 +78,7 @@ namespace Chrivent {
 		// 효과 선택 변경에 맞춰 Vulkan 후처리 리소스와 pipeline을 원자적으로 교체한다.
 		GraphicsError::Result<void> Configure(const VulkanDevice& sourceDevice,
 			const VulkanSwapChain& sourceSwapChain,
-			VkFormat depthFormat, PreparedEffects preparedEffects);
+			VkFormat depthFormat, PreparedPostProcessEffects preparedEffects);
 		// Vulkan 후처리 장면 depth와 velocity 입력 geometry pass를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(const VulkanCommandContext& commandContext,
 			uint32_t imageIndex, VkExtent2D extent);

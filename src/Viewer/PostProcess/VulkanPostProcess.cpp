@@ -28,14 +28,14 @@ namespace Chrivent {
 			VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, true);
 	}
 
-	VkFormat VulkanPostProcess::ResolveResourceFormat(const PostProcessResourcePlan& resource) {
+	VkFormat VulkanPostProcess::ResolveResourceFormat(const ResourcePlan& resource) {
 		if (resource.format == EffectTextureFormat::Rgba8Unorm)
 			return VK_FORMAT_R8G8B8A8_UNORM;
 		return resource.format == EffectTextureFormat::Rgba16Float
 			? VK_FORMAT_R16G16B16A16_SFLOAT : VK_FORMAT_R32G32B32A32_SFLOAT;
 	}
 
-	VkExtent2D VulkanPostProcess::ResolveResourceExtent(const PostProcessResourcePlan& resource) const {
+	VkExtent2D VulkanPostProcess::ResolveResourceExtent(const ResourcePlan& resource) const {
 		return {
 			static_cast<uint32_t>(PostProcess::ResolveResourceExtent(
 				static_cast<int>(targetExtent.width), resource, true)),
@@ -48,7 +48,7 @@ namespace Chrivent {
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
-			const PostProcessResourcePlan& plan = plans[resourceIndex];
+			const ResourcePlan& plan = plans[resourceIndex];
 			const size_t imageCount = plan.lifetime == EffectResourceLifetime::History ? 2 : swapChainImageCount;
 			const VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 				| (plan.lifetime == EffectResourceLifetime::History ? VK_IMAGE_USAGE_TRANSFER_DST_BIT : 0);
@@ -90,7 +90,7 @@ namespace Chrivent {
 		size_t bufferSize = 0;
 		if (passCount == 0
 			|| !BufferSize::TryAlignUp(
-				sizeof(PostProcessParameterData), nativeAlignment, stride)
+				sizeof(ParameterData), nativeAlignment, stride)
 			|| !BufferSize::TryMultiply(passCount, stride, bufferSize)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
@@ -110,12 +110,12 @@ namespace Chrivent {
 	}
 
 	VkImageView VulkanPostProcess::ResolveInputImageView(
-		const PostProcessPassInputRoute& input, const uint32_t imageIndex) const {
-		if (input.kind == PostProcessInputKind::SceneColor)
+		const PassInputRoute& input, const uint32_t imageIndex) const {
+		if (input.kind == InputKind::SceneColor)
 			return sceneTarget.TryGetImageView(imageIndex);
-		if (input.kind == PostProcessInputKind::SceneDepth)
+		if (input.kind == InputKind::SceneDepth)
 			return depthTarget.TryGetImageView(imageIndex);
-		if (input.kind == PostProcessInputKind::SceneVelocity)
+		if (input.kind == InputKind::SceneVelocity)
 			return velocityTarget.TryGetImageView(imageIndex);
 		if (input.resourceIndex >= resources.size())
 			return VK_NULL_HANDLE;
@@ -150,8 +150,8 @@ namespace Chrivent {
 		targetFormats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
 			VkFormat format = swapChainFormat;
-			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
-				const PostProcessResourcePlan& resource = GetResourcePlans()[routes[index].outputResourceIndex];
+			if (routes[index].outputKind == OutputKind::Resource) {
+				const ResourcePlan& resource = GetResourcePlans()[routes[index].outputResourceIndex];
 				format = ResolveResourceFormat(resource);
 			}
 			targetFormats.push_back(format);
@@ -162,10 +162,10 @@ namespace Chrivent {
 			sourceDevice, descriptors.GetPipelineLayout(), passes, targetFormats);
 	}
 
-	bool VulkanPostProcess::ResolveOutputImage(const PostProcessPassRoute& route, const uint32_t imageIndex,
+	bool VulkanPostProcess::ResolveOutputImage(const PassRoute& route, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView, VkImage& image,
 		VkImageView& imageView, VkExtent2D& extent, bool& initialized) {
-		if (route.outputKind == PostProcessOutputKind::Present) {
+		if (route.outputKind == OutputKind::Present) {
 			image = swapChainImage;
 			imageView = swapChainImageView;
 			extent = targetExtent;
@@ -175,7 +175,7 @@ namespace Chrivent {
 		if (route.outputResourceIndex >= resources.size())
 			return false;
 		VulkanPostProcessTarget& resource = resources[route.outputResourceIndex];
-		const PostProcessResourcePlan& plan = GetResourcePlans()[route.outputResourceIndex];
+		const ResourcePlan& plan = GetResourcePlans()[route.outputResourceIndex];
 		const size_t index = ResolveResourceWriteIndex(route.outputResourceIndex, imageIndex);
 		if (index >= resource.GetImageCount())
 			return false;
@@ -228,7 +228,7 @@ namespace Chrivent {
 		if (result) {
 			result = descriptors.Initialize(device, swapChainImageCount, GetPassRoutes().size(),
 				frameDataBuffers, parameterDataBuffers, sizeof(PostProcessFrameData),
-				sizeof(PostProcessParameterData), parameterDataStride);
+				sizeof(ParameterData), parameterDataStride);
 		}
 		if (result)
 			result = CreatePipelines(sourceDevice);
@@ -241,7 +241,7 @@ namespace Chrivent {
 
 	GraphicsError::Result<void> VulkanPostProcess::Configure(const VulkanDevice& sourceDevice,
 		const VulkanSwapChain& sourceSwapChain,
-		const VkFormat depthFormat, PreparedEffects preparedEffects) {
+		const VkFormat depthFormat, PreparedPostProcessEffects preparedEffects) {
 		VulkanPostProcess candidate;
 		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
@@ -376,8 +376,8 @@ namespace Chrivent {
 					GraphicsErrorCode::ContractViolation, "후처리 pipeline binding",
 					"Vulkan 후처리 pass에 대응하는 pipeline이 없습니다"));
 			}
-			const PostProcessPassRoute& route = routes[passIndex];
-			const PostProcessParameterData& parameterData = GetParameterData(route);
+			const PassRoute& route = routes[passIndex];
+			const ParameterData& parameterData = GetParameterData(route);
 			if (!parameterDataBuffers[imageIndex]->Write(
 				&parameterData, sizeof(parameterData), passIndex * parameterDataStride)) {
 				DiscardHistoryFrame();
@@ -446,7 +446,7 @@ namespace Chrivent {
 				pipelineLayout, 2, 1, &descriptorSet, 0, nullptr);
 			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 			vkCmdEndRendering(commandBuffer);
-			if (route.outputKind == PostProcessOutputKind::Resource) {
+			if (route.outputKind == OutputKind::Resource) {
 				VulkanCommandContext::TransitionImage(commandBuffer, outputImage,
 					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 					VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,

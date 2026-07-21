@@ -14,19 +14,11 @@ namespace Chrivent {
 		return formatted;
 	}
 
-	PostProcess::PreparedEffects::PreparedEffects(ExecutionPlan sourceExecutionPlan)
+	PreparedPostProcessEffects::PreparedPostProcessEffects(PostProcessExecutionPlan sourceExecutionPlan)
 		: executionPlan(std::move(sourceExecutionPlan)) {}
 
-	void PostProcess::PreparedEffects::ApplyTo(PostProcess& postProcess) && {
-		postProcess.shaderPrograms = std::move(executionPlan.shaderPrograms);
-		postProcess.passRoutes = std::move(executionPlan.passRoutes);
-		postProcess.effectParameters = std::move(executionPlan.effectParameters);
-		postProcess.resourcePlans = std::move(executionPlan.resourcePlans);
-		postProcess.resourceHistoryStates.assign(postProcess.resourcePlans.size(), {});
-		postProcess.pendingResourceHistoryStates.clear();
-		postProcess.depthRequired = executionPlan.depthRequired;
-		postProcess.velocityRequired = executionPlan.velocityRequired;
-		postProcess.historyFramePending = false;
+	PostProcessExecutionPlan PreparedPostProcessEffects::TakeExecutionPlan() && {
+		return std::move(executionPlan);
 	}
 
 	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
@@ -52,7 +44,7 @@ namespace Chrivent {
 	}
 
 	int PostProcess::ResolveResourceExtent(
-		const int fullExtent, const PostProcessResourcePlan& resource, const bool width) {
+		const int fullExtent, const ResourcePlan& resource, const bool width) {
 		if (resource.resolution == EffectPassResolution::Fixed)
 			return static_cast<int>(width ? resource.width : resource.height);
 		if (resource.resolution == EffectPassResolution::Quarter)
@@ -64,11 +56,11 @@ namespace Chrivent {
 	}
 
 	void PostProcess::ResolveOutputExtent(
-		const PostProcessPassRoute& route, int& width, int& height) const {
-		if (route.outputKind == PostProcessOutputKind::Present
+		const PassRoute& route, int& width, int& height) const {
+		if (route.outputKind == OutputKind::Present
 			|| route.outputResourceIndex >= resourcePlans.size())
 			return;
-		const PostProcessResourcePlan& plan = resourcePlans[route.outputResourceIndex];
+		const ResourcePlan& plan = resourcePlans[route.outputResourceIndex];
 		width = ResolveResourceExtent(width, plan, true);
 		height = ResolveResourceExtent(height, plan, false);
 	}
@@ -107,9 +99,9 @@ namespace Chrivent {
 		historyStates[resourceIndex].initialized = true;
 	}
 
-	void PostProcess::AdvanceHistory(const PostProcessPassRoute& route) {
+	void PostProcess::AdvanceHistory(const PassRoute& route) {
 		auto& historyStates = ResolveHistoryStates();
-		if (route.outputKind != PostProcessOutputKind::Resource
+		if (route.outputKind != OutputKind::Resource
 			|| route.outputResourceIndex >= resourcePlans.size()
 			|| route.outputResourceIndex >= historyStates.size()
 			|| resourcePlans[route.outputResourceIndex].lifetime != EffectResourceLifetime::History)
@@ -149,13 +141,13 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	std::expected<PostProcess::ExecutionPlan, PostProcessPlanError> PostProcess::BuildExecutionPlan(
+	std::expected<PostProcessExecutionPlan, PostProcessPlanError> PostProcess::BuildExecutionPlan(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
-		std::vector<PostProcessPassRoute> plannedRoutes;
-		std::vector<PostProcessParameterData> plannedParameters;
-		std::vector<PostProcessResourcePlan> plannedResources;
-		PostProcessPassInputRoute effectInput{ .kind = PostProcessInputKind::SceneColor };
+		std::vector<PassRoute> plannedRoutes;
+		std::vector<ParameterData> plannedParameters;
+		std::vector<ResourcePlan> plannedResources;
+		PassInputRoute effectInput{ .kind = InputKind::SceneColor };
 		bool requiresDepth = false;
 		bool requiresVelocity = false;
 		for (size_t effectIndex = 0; effectIndex < effects.size(); effectIndex++) {
@@ -165,7 +157,7 @@ namespace Chrivent {
 					effectIndex, "효과의 런타임 정의 또는 패스가 비어 있습니다"));
 			}
 			const auto& [parameters, resources, passes] = *effect;
-			PostProcessParameterData parameterData;
+			ParameterData parameterData;
 			bool usedParameterSlots[PostProcessInputLayout::maxParameterCount]{};
 			for (const auto& [slot, value] : parameters) {
 				if (slot >= PostProcessInputLayout::maxParameterCount
@@ -205,7 +197,7 @@ namespace Chrivent {
 					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
 						effectIndex, "고정 리소스 크기가 렌더러 범위를 벗어났습니다"));
 				}
-				plannedResources.emplace_back(PostProcessResourcePlan{
+				plannedResources.emplace_back(ResourcePlan{
 					.lifetime = lifetime,
 					.format = format,
 					.resolution = resolution,
@@ -218,7 +210,7 @@ namespace Chrivent {
 			size_t effectOutputIndex = 0;
 			if (!lastEffect) {
 				effectOutputIndex = plannedResources.size();
-				plannedResources.emplace_back(PostProcessResourcePlan{
+				plannedResources.emplace_back(ResourcePlan{
 					.lifetime = EffectResourceLifetime::Transient,
 					.format = EffectTextureFormat::Rgba8Unorm,
 					.resolution = EffectPassResolution::Full
@@ -230,7 +222,7 @@ namespace Chrivent {
 					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidProgram,
 						effectIndex, "셰이더 경로 또는 진입점이 없습니다", passIndex));
 				}
-				PostProcessPassRoute route;
+				PassRoute route;
 				route.effectIndex = effectIndex;
 				bool usedSlots[PostProcessInputLayout::maxTextureCount]{};
 				for (const auto& [slot, kind, resourceIndex] : inputs) {
@@ -243,18 +235,18 @@ namespace Chrivent {
 							effectIndex, "중복된 texture 슬롯이 있습니다", passIndex));
 					}
 					usedSlots[slot] = true;
-					PostProcessPassInputRoute inputRoute{ .slot = slot };
+					PassInputRoute inputRoute{ .slot = slot };
 					if (kind == EffectPassInputKind::EffectInput) {
 						inputRoute = effectInput;
 						inputRoute.slot = slot;
 					}
 					else if (kind == EffectPassInputKind::SceneColor)
-						inputRoute.kind = PostProcessInputKind::SceneColor;
+						inputRoute.kind = InputKind::SceneColor;
 					else if (kind == EffectPassInputKind::SceneDepth) {
-						inputRoute.kind = PostProcessInputKind::SceneDepth;
+						inputRoute.kind = InputKind::SceneDepth;
 						requiresDepth = true;
 					} else if (kind == EffectPassInputKind::SceneVelocity) {
-						inputRoute.kind = PostProcessInputKind::SceneVelocity;
+						inputRoute.kind = InputKind::SceneVelocity;
 						requiresVelocity = true;
 					} else {
 						if (kind != EffectPassInputKind::Resource
@@ -267,7 +259,7 @@ namespace Chrivent {
 							return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidInput,
 								effectIndex, "초기화되지 않은 transient 리소스를 읽습니다", passIndex));
 						}
-						inputRoute.kind = PostProcessInputKind::Resource;
+						inputRoute.kind = InputKind::Resource;
 						inputRoute.resourceIndex = resourceBaseIndex + resourceIndex;
 					}
 					route.inputs.emplace_back(inputRoute);
@@ -277,7 +269,7 @@ namespace Chrivent {
 						return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidOutput,
 							effectIndex, "최종 출력은 마지막 패스에서만 사용할 수 있습니다", passIndex));
 					}
-					route.outputKind = lastEffect ? PostProcessOutputKind::Present : PostProcessOutputKind::Resource;
+					route.outputKind = lastEffect ? OutputKind::Present : OutputKind::Resource;
 					route.outputResourceIndex = effectOutputIndex;
 				} else {
 					if (output.kind != EffectPassOutputKind::Resource
@@ -296,7 +288,7 @@ namespace Chrivent {
 						}
 						initializedTransientResources[output.resourceIndex] = 1;
 					}
-					route.outputKind = PostProcessOutputKind::Resource;
+					route.outputKind = OutputKind::Resource;
 					route.outputResourceIndex = resourceBaseIndex + output.resourceIndex;
 				}
 				plannedPrograms.emplace_back(program);
@@ -307,11 +299,11 @@ namespace Chrivent {
 					effectIndex, "마지막 패스가 effect output에 쓰지 않습니다", passes.size() - 1));
 			}
 			if (!lastEffect) {
-				effectInput.kind = PostProcessInputKind::Resource;
+				effectInput.kind = InputKind::Resource;
 				effectInput.resourceIndex = effectOutputIndex;
 			}
 		}
-		return ExecutionPlan{
+		return PostProcessExecutionPlan{
 			.shaderPrograms = std::move(plannedPrograms),
 			.passRoutes = std::move(plannedRoutes),
 			.effectParameters = std::move(plannedParameters),
@@ -321,16 +313,26 @@ namespace Chrivent {
 		};
 	}
 
-	std::expected<PostProcess::PreparedEffects, PostProcessPlanError> PostProcess::PrepareEffects(
+	std::expected<PreparedPostProcessEffects, PostProcessPlanError> PostProcess::PrepareEffects(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		auto planResult = BuildExecutionPlan(effects);
 		if (!planResult)
 			return std::unexpected(planResult.error());
-		return PreparedEffects(std::move(*planResult));
+		return PreparedPostProcessEffects(std::move(*planResult));
 	}
 
-	void PostProcess::AdoptPreparedEffects(PreparedEffects preparedEffects) {
-		std::move(preparedEffects).ApplyTo(*this);
+	void PostProcess::AdoptPreparedEffects(PreparedPostProcessEffects preparedEffects) {
+		auto [programs, routes, parameters,
+			resources, depth, velocity] = std::move(preparedEffects).TakeExecutionPlan();
+		shaderPrograms = std::move(programs);
+		passRoutes = std::move(routes);
+		effectParameters = std::move(parameters);
+		resourcePlans = std::move(resources);
+		resourceHistoryStates.assign(resourcePlans.size(), {});
+		pendingResourceHistoryStates.clear();
+		depthRequired = depth;
+		velocityRequired = velocity;
+		historyFramePending = false;
 	}
 
 	bool PostProcess::ValidateParameterUpdates(const std::span<const EffectParameterUpdate> updates) const {

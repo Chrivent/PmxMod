@@ -15,7 +15,7 @@ namespace Chrivent {
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
-			const PostProcessResourcePlan& plan = plans[resourceIndex];
+			const ResourcePlan& plan = plans[resourceIndex];
 			const size_t targetCount = plan.lifetime == EffectResourceLifetime::History ? 2 : 1;
 			const DXGI_FORMAT format = plan.format == EffectTextureFormat::Rgba8Unorm
 				? DXGI_FORMAT_R8G8B8A8_UNORM
@@ -83,7 +83,7 @@ namespace Chrivent {
 			return {};
 		size_t stride = 0;
 		size_t bufferSize = 0;
-		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), stride)
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(ParameterData), stride)
 			|| !BufferSize::TryMultiply(stride, passCount, bufferSize)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
@@ -98,16 +98,16 @@ namespace Chrivent {
 	}
 
 	ID3D12Resource* Dx12PostProcess::ResolveInputResource(
-		const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const {
-		if (input.kind == PostProcessInputKind::SceneColor) {
+		const PassInputRoute& input, DXGI_FORMAT& format) const {
+		if (input.kind == InputKind::SceneColor) {
 			format = sceneColor.GetFormat();
 			return sceneColor.GetResource();
 		}
-		if (input.kind == PostProcessInputKind::SceneDepth) {
+		if (input.kind == InputKind::SceneDepth) {
 			format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 			return depthTarget.GetResource();
 		}
-		if (input.kind == PostProcessInputKind::SceneVelocity) {
+		if (input.kind == InputKind::SceneVelocity) {
 			format = sceneVelocity.GetFormat();
 			return sceneVelocity.GetResource();
 		}
@@ -132,7 +132,7 @@ namespace Chrivent {
 		ID3D12Device* device = sourceDevice.GetDevice();
 		D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += passIndex * PostProcessInputLayout::maxTextureCount * inputDescriptorSize;
-		const PostProcessPassInputRoute* slots[PostProcessInputLayout::maxTextureCount]{};
+		const PassInputRoute* slots[PostProcessInputLayout::maxTextureCount]{};
 		for (const auto& input : GetPassRoutes()[passIndex].inputs)
 			slots[input.slot] = &input;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
@@ -200,7 +200,7 @@ namespace Chrivent {
 		formats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
 			DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			if (routes[index].outputKind == PostProcessOutputKind::Resource) {
+			if (routes[index].outputKind == OutputKind::Resource) {
 				const Dx12PostProcessTarget* target = ResolveOutputTarget(routes[index]);
 				if (target == nullptr) {
 					return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
@@ -219,8 +219,8 @@ namespace Chrivent {
 		return index < inputDescriptorHeaps.size() ? inputDescriptorHeaps[index].Get() : nullptr;
 	}
 
-	Dx12PostProcessTarget* Dx12PostProcess::ResolveOutputTarget(const PostProcessPassRoute& route) {
-		if (route.outputKind != PostProcessOutputKind::Resource || route.outputResourceIndex >= resources.size())
+	Dx12PostProcessTarget* Dx12PostProcess::ResolveOutputTarget(const PassRoute& route) {
+		if (route.outputKind != OutputKind::Resource || route.outputResourceIndex >= resources.size())
 			return nullptr;
 		auto& [targets] = resources[route.outputResourceIndex];
 		return &targets[ResolveResourceWriteIndex(route.outputResourceIndex)];
@@ -295,7 +295,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
-		const int width, const int height, PreparedEffects preparedEffects) {
+		const int width, const int height, PreparedPostProcessEffects preparedEffects) {
 		Dx12PostProcess candidate;
 		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
@@ -373,7 +373,7 @@ namespace Chrivent {
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
 		size_t parameterStride = 0;
-		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(PostProcessParameterData), parameterStride)) {
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(ParameterData), parameterStride)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter stride 계산",
 				"DirectX 12 후처리 parameter stride가 크기 한도를 넘습니다"));
@@ -413,7 +413,7 @@ namespace Chrivent {
 		commandList->SetDescriptorHeaps(1, &heap);
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
-			const PostProcessPassRoute& route = routes[passIndex];
+			const PassRoute& route = routes[passIndex];
 			const size_t parameterOffset = passIndex * parameterStride;
 			if (!parameterDataBuffer.Write(GetParameterData(route), parameterOffset)) {
 				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
@@ -421,7 +421,7 @@ namespace Chrivent {
 					"DirectX 12 후처리 pass parameter를 기록하지 못했습니다"));
 			}
 			const Dx12PostProcessTarget* outputTarget = ResolveOutputTarget(route);
-			if (route.outputKind == PostProcessOutputKind::Resource && outputTarget == nullptr) {
+			if (route.outputKind == OutputKind::Resource && outputTarget == nullptr) {
 				DiscardHistoryFrame();
 				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::ContractViolation, "후처리 출력 target 조회",

@@ -108,7 +108,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx11Viewer::LoadPostProcessEffectsCore(
-		PostProcess::PreparedEffects preparedEffects) {
+		PreparedPostProcessEffects preparedEffects) {
 		return postProcess.Configure(
 			device.GetDevice(), screenWidth, screenHeight, std::move(preparedEffects));
 	}

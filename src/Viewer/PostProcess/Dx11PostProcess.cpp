@@ -39,7 +39,7 @@ namespace Chrivent {
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
-			const PostProcessResourcePlan& plan = plans[resourceIndex];
+			const ResourcePlan& plan = plans[resourceIndex];
 			auto& [textures
 				, renderTargetViews
 				, shaderResourceViews] = resources[resourceIndex];
@@ -94,12 +94,12 @@ namespace Chrivent {
 	}
 
 	ID3D11ShaderResourceView* Dx11PostProcess::ResolveInputView(
-		const PostProcessPassInputRoute& input) const {
-		if (input.kind == PostProcessInputKind::SceneColor)
+		const PassInputRoute& input) const {
+		if (input.kind == InputKind::SceneColor)
 			return sceneColorView.Get();
-		if (input.kind == PostProcessInputKind::SceneDepth)
+		if (input.kind == InputKind::SceneDepth)
 			return depthView.Get();
-		if (input.kind == PostProcessInputKind::SceneVelocity)
+		if (input.kind == InputKind::SceneVelocity)
 			return velocityView.Get();
 		if (input.resourceIndex >= resources.size())
 			return nullptr;
@@ -108,8 +108,8 @@ namespace Chrivent {
 	}
 
 	ID3D11RenderTargetView* Dx11PostProcess::ResolveOutputView(
-		const PostProcessPassRoute& route, ID3D11RenderTargetView* backBufferView) const {
-		if (route.outputKind == PostProcessOutputKind::Present)
+		const PassRoute& route, ID3D11RenderTargetView* backBufferView) const {
+		if (route.outputKind == OutputKind::Present)
 			return backBufferView;
 		if (route.outputResourceIndex >= resources.size())
 			return nullptr;
@@ -147,7 +147,7 @@ namespace Chrivent {
 				GraphicsErrorCode::ResourceCreationFailed, "후처리 frame buffer 생성",
 				"DirectX 11 후처리 frame constant buffer를 만들지 못했습니다", result, true));
 		}
-		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(PostProcessParameterData));
+		frameDataDesc.ByteWidth = static_cast<UINT>(sizeof(ParameterData));
 		result = device->CreateBuffer(&frameDataDesc, nullptr, &parameterDataBuffer);
 		if (FAILED(result)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
@@ -277,7 +277,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx11PostProcess::Configure(ID3D11Device* device,
-		const int width, const int height, PreparedEffects preparedEffects) {
+		const int width, const int height, PreparedPostProcessEffects preparedEffects) {
 		Dx11PostProcess candidate;
 		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
@@ -372,9 +372,9 @@ namespace Chrivent {
 		const auto& routes = GetPassRoutes();
 		size_t parameterEffectIndex = routes.size();
 		for (size_t index = 0; index < routes.size(); index++) {
-			const PostProcessPassRoute& route = routes[index];
+			const PassRoute& route = routes[index];
 			if (parameterEffectIndex != route.effectIndex) {
-				const PostProcessParameterData& parameterData = GetParameterData(route);
+				const ParameterData& parameterData = GetParameterData(route);
 				const auto parameterWriteResult = WriteConstantBuffer(context,
 					parameterDataBuffer.Get(), &parameterData, sizeof(parameterData),
 					"후처리 parameter 상수 기록");

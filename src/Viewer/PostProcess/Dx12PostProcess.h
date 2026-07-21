@@ -61,9 +61,9 @@ namespace Chrivent {
 		// frame에 대응하는 shader-visible descriptor heap을 반환한다.
 		ID3D12DescriptorHeap* ResolveInputDescriptorHeap(size_t frameIndex) const;
 		// 입력 경로에 대응하는 DX12 resource와 SRV 형식을 반환한다.
-		ID3D12Resource* ResolveInputResource(const PostProcessPassInputRoute& input, DXGI_FORMAT& format) const;
+		ID3D12Resource* ResolveInputResource(const PassInputRoute& input, DXGI_FORMAT& format) const;
 		// 출력 경로에 대응하는 DX12 target을 반환한다.
-		Dx12PostProcessTarget* ResolveOutputTarget(const PostProcessPassRoute& route);
+		Dx12PostProcessTarget* ResolveOutputTarget(const PassRoute& route);
 		// 선언 기반 effect target과 descriptor를 해제한다.
 		void ResetEffectResources();
 		// 검증을 마친 다른 DX12 후처리 객체와 GPU 리소스를 교환한다.
@@ -74,7 +74,7 @@ namespace Chrivent {
 		GraphicsError::Result<void> InitializeTargets(const Dx12Device& sourceDevice, int width, int height);
 		// 효과 선택 변경에 맞춰 DX12 타깃과 pipeline의 전체 생명주기를 갱신한다.
 		GraphicsError::Result<void> Configure(const Dx12Device& sourceDevice, int width, int height,
-			PreparedEffects preparedEffects);
+			PreparedPostProcessEffects preparedEffects);
 		// DX12 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(ID3D12GraphicsCommandList* commandList,
 			const Dx12CommandContext& commandContext, int width, int height) const;

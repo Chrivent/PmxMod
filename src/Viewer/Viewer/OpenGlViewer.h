@@ -21,7 +21,7 @@ namespace Chrivent {
 	protected:
 		// 체크된 후처리 HLSL들을 OpenGL ping-pong 체인으로 준비한다.
 		GraphicsError::Result<void> LoadPostProcessEffectsCore(
-			PostProcess::PreparedEffects preparedEffects) override;
+			PreparedPostProcessEffects preparedEffects) override;
 		// OpenGL 후처리 장면 입력 패스 기록을 시작한다.
 		GraphicsError::Result<void> BeginPostProcessSceneInputPassCore() override;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.

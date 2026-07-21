@@ -45,10 +45,10 @@ namespace Chrivent {
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories(ID3D11DeviceContext* context);
 		// pass 입력 경로에 대응하는 DX11 SRV를 반환한다.
-		ID3D11ShaderResourceView* ResolveInputView(const PostProcessPassInputRoute& input) const;
+		ID3D11ShaderResourceView* ResolveInputView(const PassInputRoute& input) const;
 		// pass 출력 경로에 대응하는 DX11 RTV를 반환한다.
 		ID3D11RenderTargetView* ResolveOutputView(
-			const PostProcessPassRoute& route, ID3D11RenderTargetView* backBufferView) const;
+			const PassRoute& route, ID3D11RenderTargetView* backBufferView) const;
 		// 패키지가 선언한 DX11 effect texture를 해제한다.
 		void ResetEffectResources();
 		// DX11 후처리 프로그램만 해제한다.
@@ -65,7 +65,7 @@ namespace Chrivent {
 		GraphicsError::Result<void> InitializeTargets(ID3D11Device* device, int width, int height);
 		// 효과 선택 변경에 맞춰 DX11 타깃과 shader chain의 전체 생명주기를 갱신한다.
 		GraphicsError::Result<void> Configure(ID3D11Device* device, int width, int height,
-			PreparedEffects preparedEffects);
+			PreparedPostProcessEffects preparedEffects);
 		// DX11 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(ID3D11DeviceContext* context,
 			ID3D11DepthStencilState* depthStencilState, int width, int height) const;

@@ -39,9 +39,9 @@ namespace Chrivent {
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.
 		void InitializeHistories();
 		// pass 입력 경로에 대응하는 OpenGL texture를 반환한다.
-		GLuint ResolveInputTexture(const PostProcessPassInputRoute& input) const;
+		GLuint ResolveInputTexture(const PassInputRoute& input) const;
 		// pass 출력 경로에 대응하는 OpenGL framebuffer를 반환한다.
-		GLuint ResolveOutputFramebuffer(const PostProcessPassRoute& route) const;
+		GLuint ResolveOutputFramebuffer(const PassRoute& route) const;
 		// 패키지가 선언한 OpenGL effect texture를 해제한다.
 		void ResetEffectResources();
 		// 후처리용 화면 framebuffer 리소스를 해제한다.
@@ -62,7 +62,7 @@ namespace Chrivent {
 		GraphicsError::Result<void> InitializeTargets(int width, int height, int sampleCount);
 		// 효과 선택 변경에 맞춰 OpenGL 타깃과 프로그램의 전체 생명주기를 갱신한다.
 		GraphicsError::Result<void> Configure(int width, int height, int sampleCount,
-			PreparedEffects preparedEffects);
+			PreparedPostProcessEffects preparedEffects);
 		// OpenGL 후처리 장면 depth와 velocity 입력 패스를 시작한다.
 		GraphicsError::Result<void> BeginSceneInputPass(int width, int height) const;
 		// OpenGL 후처리 장면 입력 패스를 종료한다.

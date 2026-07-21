@@ -25,7 +25,7 @@ namespace Chrivent {
 		}
 
 		// 이미 검증한 테스트 실행 계획을 현재 상태로 적용한다.
-		void ConfigurePreparedEffects(PreparedEffects preparedEffects) {
+		void ConfigurePreparedEffects(PreparedPostProcessEffects preparedEffects) {
 			AdoptPreparedEffects(std::move(preparedEffects));
 		}
 
@@ -61,7 +61,7 @@ namespace Chrivent {
 	protected:
 		// 테스트 효과 구성은 API 리소스를 만들지 않는다.
 		GraphicsError::Result<void> LoadPostProcessEffectsCore(
-			PostProcess::PreparedEffects preparedEffects) override {
+			PreparedPostProcessEffects preparedEffects) override {
 			loadEffectCallCount++;
 			if (failLoad) {
 				return std::unexpected(GraphicsError::Create(GraphicsApi::Unknown,

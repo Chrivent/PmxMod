@@ -19,7 +19,7 @@ namespace Chrivent {
 		const auto& plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
-			const PostProcessResourcePlan& plan = plans[resourceIndex];
+			const ResourcePlan& plan = plans[resourceIndex];
 			auto& [framebuffers, textures] = resources[resourceIndex];
 			const GLsizei textureCount = plan.lifetime == EffectResourceLifetime::History ? 2 : 1;
 			const int width = ResolveResourceExtent(targetWidth, plan, true);
@@ -74,12 +74,12 @@ namespace Chrivent {
 		}
 	}
 
-	GLuint OpenGlPostProcess::ResolveInputTexture(const PostProcessPassInputRoute& input) const {
-		if (input.kind == PostProcessInputKind::SceneColor)
+	GLuint OpenGlPostProcess::ResolveInputTexture(const PassInputRoute& input) const {
+		if (input.kind == InputKind::SceneColor)
 			return sceneColorTexture;
-		if (input.kind == PostProcessInputKind::SceneDepth)
+		if (input.kind == InputKind::SceneDepth)
 			return postProcessDepthTexture;
-		if (input.kind == PostProcessInputKind::SceneVelocity)
+		if (input.kind == InputKind::SceneVelocity)
 			return postProcessVelocityTexture;
 		if (input.resourceIndex >= resources.size())
 			return 0;
@@ -87,8 +87,8 @@ namespace Chrivent {
 		return textures[ResolveResourceReadIndex(input.resourceIndex)];
 	}
 
-	GLuint OpenGlPostProcess::ResolveOutputFramebuffer(const PostProcessPassRoute& route) const {
-		if (route.outputKind == PostProcessOutputKind::Present)
+	GLuint OpenGlPostProcess::ResolveOutputFramebuffer(const PassRoute& route) const {
+		if (route.outputKind == OutputKind::Present)
 			return 0;
 		if (route.outputResourceIndex >= resources.size())
 			return 0;
@@ -170,7 +170,7 @@ namespace Chrivent {
 		}
 		OpenGlErrorState::Clear();
 		glNamedBufferData(frameDataBuffer, sizeof(PostProcessFrameData), nullptr, GL_DYNAMIC_DRAW);
-		glNamedBufferData(parameterDataBuffer, sizeof(PostProcessParameterData), nullptr, GL_DYNAMIC_DRAW);
+		glNamedBufferData(parameterDataBuffer, sizeof(ParameterData), nullptr, GL_DYNAMIC_DRAW);
 		postProcessSampleCount = std::max<GLsizei>(1, sampleCount);
 		glCreateFramebuffers(1, &sceneFramebuffer);
 		glCreateRenderbuffers(1, &sceneColorMsaa);
@@ -287,7 +287,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> OpenGlPostProcess::Configure(const int width, const int height,
-		const int sampleCount, PreparedEffects preparedEffects) {
+		const int sampleCount, PreparedPostProcessEffects preparedEffects) {
 		OpenGlPostProcess candidate;
 		candidate.AdoptPreparedEffects(std::move(preparedEffects));
 		if (candidate.HasEffects()) {
@@ -358,8 +358,8 @@ namespace Chrivent {
 			PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
 		size_t parameterEffectIndex = routes.size();
 		for (size_t index = 0; index < routes.size(); index++) {
-			const PostProcessPassRoute& route = routes[index];
-			if (route.outputKind == PostProcessOutputKind::Resource
+			const PassRoute& route = routes[index];
+			if (route.outputKind == OutputKind::Resource
 				&& route.outputResourceIndex >= resources.size()) {
 				DiscardHistoryFrame();
 				return std::unexpected(GraphicsError::Create(GraphicsApi::OpenGl,
@@ -367,7 +367,7 @@ namespace Chrivent {
 					"OpenGL 후처리 pass의 출력 framebuffer를 찾지 못했습니다"));
 			}
 			if (parameterEffectIndex != route.effectIndex) {
-				const PostProcessParameterData& parameterData = GetParameterData(route);
+				const ParameterData& parameterData = GetParameterData(route);
 				glNamedBufferSubData(parameterDataBuffer, 0, sizeof(parameterData), &parameterData);
 				parameterEffectIndex = route.effectIndex;
 			}

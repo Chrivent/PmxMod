@@ -87,7 +87,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> OpenGlViewer::LoadPostProcessEffectsCore(
-		PostProcess::PreparedEffects preparedEffects) {
+		PreparedPostProcessEffects preparedEffects) {
 		return postProcess.Configure(screenWidth, screenHeight,
 			capabilities.activeSampleCount, std::move(preparedEffects));
 	}

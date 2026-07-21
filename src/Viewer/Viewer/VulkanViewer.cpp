@@ -199,7 +199,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanViewer::LoadPostProcessEffectsCore(
-		PostProcess::PreparedEffects preparedEffects) {
+		PreparedPostProcessEffects preparedEffects) {
 		if (device.GetDevice() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "Vulkan device를 사용할 수 없습니다"));

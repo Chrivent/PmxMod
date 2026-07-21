@@ -24,7 +24,7 @@ namespace Chrivent {
 			return NeedsHistoryInitialization(resourceIndex);
 		}
 		bool IsResourceInput(const size_t routeIndex, const size_t inputIndex) const {
-			return GetPassRoutes()[routeIndex].inputs[inputIndex].kind == PostProcessInputKind::Resource;
+			return GetPassRoutes()[routeIndex].inputs[inputIndex].kind == InputKind::Resource;
 		}
 		size_t GetInputResourceIndex(const size_t routeIndex, const size_t inputIndex) const {
 			return GetPassRoutes()[routeIndex].inputs[inputIndex].resourceIndex;
