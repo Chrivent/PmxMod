@@ -40,6 +40,7 @@ namespace Chrivent {
 		Dx12PostProcessPipelines pipelines;
 		Dx12Buffer frameDataBuffers[FrameBuffering::dx12BufferCount];
 		Dx12Buffer parameterDataBuffers[FrameBuffering::dx12BufferCount];
+		size_t parameterDataStride = 0;
 		int targetWidth = 0;
 		int targetHeight = 0;
 		UINT inputDescriptorSize = 0;

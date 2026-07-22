@@ -36,7 +36,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidArgument, "후처리 effect target 생성",
 				"DirectX 11 device를 사용할 수 없습니다"));
 		}
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const ResourcePlan& plan = plans[resourceIndex];
@@ -81,7 +81,7 @@ namespace Chrivent {
 	void Dx11PostProcess::InitializeHistories(ID3D11DeviceContext* context) {
 		if (context == nullptr)
 			return;
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
 			const Resource& resource = resources[index];
@@ -369,7 +369,7 @@ namespace Chrivent {
 		context->PSSetConstantBuffers(PostProcessInputLayout::parameterDataRegister,
 			1, parameterDataBuffer.GetAddressOf());
 		InitializeHistories(context);
-		const auto& routes = GetPassRoutes();
+		const auto routes = GetPassRoutes();
 		size_t parameterEffectIndex = routes.size();
 		for (size_t index = 0; index < routes.size(); index++) {
 			const PassRoute& route = routes[index];

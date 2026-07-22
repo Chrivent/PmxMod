@@ -21,13 +21,13 @@ namespace Chrivent {
 	}
 
 	ID3D12GraphicsCommandList* Dx12DrawContext::TryGetCommandList() const {
-		return frameReady ? commandContext.GetCommandList().Get() : nullptr;
+		return frameReady ? commandContext.TryGetCommandList() : nullptr;
 	}
 
 	void Dx12DrawContext::BindModelRootSignature() {
 		if (!frameReady || rootSignatureBinding == RootSignatureBinding::Model)
 			return;
-		pipeline.BindModelRootSignature(commandContext.GetCommandList().Get());
+		pipeline.BindModelRootSignature(commandContext.TryGetCommandList());
 		rootSignatureBinding = RootSignatureBinding::Model;
 		pipelineBinding = PipelineBinding::None;
 	}
@@ -38,7 +38,7 @@ namespace Chrivent {
 			? PipelineBinding::ModelBothFace : PipelineBinding::ModelFrontFace;
 		if (!frameReady || pipelineBinding == targetBinding)
 			return;
-		pipeline.BindModelPipelineState(commandContext.GetCommandList().Get(), bothFace);
+		pipeline.BindModelPipelineState(commandContext.TryGetCommandList(), bothFace);
 		pipelineBinding = targetBinding;
 	}
 
@@ -48,7 +48,7 @@ namespace Chrivent {
 			? PipelineBinding::SceneDepthBothFace : PipelineBinding::SceneDepthFrontFace;
 		if (!frameReady || pipelineBinding == targetBinding)
 			return;
-		pipeline.BindSceneDepthPipelineState(commandContext.GetCommandList().Get(), bothFace);
+		pipeline.BindSceneDepthPipelineState(commandContext.TryGetCommandList(), bothFace);
 		pipelineBinding = targetBinding;
 	}
 
@@ -58,14 +58,14 @@ namespace Chrivent {
 			? PipelineBinding::VelocityBothFace : PipelineBinding::VelocityFrontFace;
 		if (!frameReady || pipelineBinding == targetBinding)
 			return;
-		pipeline.BindSceneVelocityPipelineState(commandContext.GetCommandList().Get(), bothFace);
+		pipeline.BindSceneVelocityPipelineState(commandContext.TryGetCommandList(), bothFace);
 		pipelineBinding = targetBinding;
 	}
 
 	void Dx12DrawContext::BindEdgePipeline() {
 		if (!frameReady || pipelineBinding == PipelineBinding::Edge)
 			return;
-		pipeline.BindEdge(commandContext.GetCommandList().Get());
+		pipeline.BindEdge(commandContext.TryGetCommandList());
 		rootSignatureBinding = RootSignatureBinding::Edge;
 		pipelineBinding = PipelineBinding::Edge;
 	}
@@ -73,7 +73,7 @@ namespace Chrivent {
 	void Dx12DrawContext::BindGroundShadowPipeline() {
 		if (!frameReady || pipelineBinding == PipelineBinding::GroundShadow)
 			return;
-		pipeline.BindGroundShadow(commandContext.GetCommandList().Get());
+		pipeline.BindGroundShadow(commandContext.TryGetCommandList());
 		rootSignatureBinding = RootSignatureBinding::GroundShadow;
 		pipelineBinding = PipelineBinding::GroundShadow;
 	}

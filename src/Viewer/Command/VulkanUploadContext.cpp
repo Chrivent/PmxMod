@@ -171,13 +171,13 @@ namespace Chrivent {
 	GraphicsError::Result<void> VulkanUploadContext::RecordIndexBufferUpload(
 		const VkBuffer destination, std::unique_ptr<VulkanBuffer> source, const VkDeviceSize size) {
 		if (!batchRecording || commandBuffer == VK_NULL_HANDLE || destination == VK_NULL_HANDLE
-			|| !source || source->buffer == VK_NULL_HANDLE || size == 0) {
+			|| !source || source->GetBuffer() == VK_NULL_HANDLE || size == 0) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidState, "index buffer 업로드 기록",
 				"Vulkan 업로드 batch 또는 index buffer가 올바르지 않습니다"));
 		}
 		const VkBufferCopy copyRegion{ .size = size };
-		vkCmdCopyBuffer(commandBuffer, source->buffer, destination, 1, &copyRegion);
+		vkCmdCopyBuffer(commandBuffer, source->GetBuffer(), destination, 1, &copyRegion);
 		const VkBufferMemoryBarrier2 barrier{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,

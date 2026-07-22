@@ -31,20 +31,20 @@ namespace Chrivent {
 
 	bool VulkanDrawContext::DrawIndexed(const VulkanBuffer& vertexBuffer, const VulkanBuffer& indexBuffer,
 		const VkIndexType indexType, const size_t firstIndex, const size_t indexCount) {
-		if (!frameReady || vertexBuffer.buffer == VK_NULL_HANDLE || indexBuffer.buffer == VK_NULL_HANDLE)
+		if (!frameReady || vertexBuffer.GetBuffer() == VK_NULL_HANDLE || indexBuffer.GetBuffer() == VK_NULL_HANDLE)
 			return false;
 		if (firstIndex > std::numeric_limits<uint32_t>::max()
 			|| indexCount > std::numeric_limits<uint32_t>::max())
 			return false;
-		if (bindStateCache.vertexBuffer != vertexBuffer.buffer) {
-			if (!commandContext.BindVertexBuffer(currentImageIndex, vertexBuffer.buffer))
+		if (bindStateCache.vertexBuffer != vertexBuffer.GetBuffer()) {
+			if (!commandContext.BindVertexBuffer(currentImageIndex, vertexBuffer.GetBuffer()))
 				return false;
-			bindStateCache.vertexBuffer = vertexBuffer.buffer;
+			bindStateCache.vertexBuffer = vertexBuffer.GetBuffer();
 		}
-		if (bindStateCache.indexBuffer != indexBuffer.buffer || bindStateCache.indexType != indexType) {
-			if (!commandContext.BindIndexBuffer(currentImageIndex, indexBuffer.buffer, indexType))
+		if (bindStateCache.indexBuffer != indexBuffer.GetBuffer() || bindStateCache.indexType != indexType) {
+			if (!commandContext.BindIndexBuffer(currentImageIndex, indexBuffer.GetBuffer(), indexType))
 				return false;
-			bindStateCache.indexBuffer = indexBuffer.buffer;
+			bindStateCache.indexBuffer = indexBuffer.GetBuffer();
 			bindStateCache.indexType = indexType;
 		}
 		return commandContext.DrawIndexed(currentImageIndex,

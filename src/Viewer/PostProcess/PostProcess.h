@@ -33,8 +33,9 @@ namespace Chrivent {
 		std::string Format() const;
 	};
 
-	// API 독립적인 후처리 패스 경로와 실행에 필요한 데이터를 함께 보관한다.
-	struct PostProcessExecutionPlan {
+	// 검증된 후처리 실행 계획을 API 후보 객체까지 이동시킨다.
+	class PreparedPostProcessEffects {
+	public:
 		enum class InputKind {
 			SceneColor,
 			SceneDepth,
@@ -76,39 +77,51 @@ namespace Chrivent {
 			size_t effectIndex = 0;
 		};
 
-		std::vector<ShaderProgramDefinition> shaderPrograms;
-		std::vector<PassRoute> passRoutes;
-		std::vector<ParameterData> effectParameters;
-		std::vector<Resource> resourcePlans;
-		bool depthRequired = false;
-		bool velocityRequired = false;
-	};
+		// API 독립적인 후처리 패스 경로와 실행에 필요한 데이터를 함께 보관한다.
+		struct ExecutionPlan {
+			std::vector<ShaderProgramDefinition> shaderPrograms;
+			std::vector<PassRoute> passRoutes;
+			std::vector<ParameterData> effectParameters;
+			std::vector<Resource> resourcePlans;
+			bool depthRequired = false;
+			bool velocityRequired = false;
+		};
 
-	// 검증된 후처리 실행 계획을 API 후보 객체까지 이동시킨다.
-	class PreparedPostProcessEffects {
-		PostProcessExecutionPlan executionPlan;
+	private:
+		ExecutionPlan executionPlan;
+
+		explicit PreparedPostProcessEffects(ExecutionPlan sourceExecutionPlan);
+
+		// 실행 계획 검증 위치와 원인을 구조화된 오류로 조립한다.
+		static PostProcessPlanError CreatePlanError(PostProcessPlanErrorCode code,
+			size_t effectIndex, std::string message,
+			size_t passIndex = PostProcessPlanError::noPassIndex);
+		// 효과 선언을 검증하고 API 독립 실행 계획을 생성한다.
+		static std::expected<ExecutionPlan, PostProcessPlanError> BuildExecutionPlan(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 
 	public:
-		explicit PreparedPostProcessEffects(PostProcessExecutionPlan sourceExecutionPlan);
-
 		PreparedPostProcessEffects(const PreparedPostProcessEffects&) = delete;
 		PreparedPostProcessEffects& operator=(const PreparedPostProcessEffects&) = delete;
 		PreparedPostProcessEffects(PreparedPostProcessEffects&&) = default;
 		PreparedPostProcessEffects& operator=(PreparedPostProcessEffects&&) = default;
 
+		// GPU 대기나 API 리소스 생성 전에 효과 선언을 검증하고 실행 계획을 한 번 생성한다.
+		static std::expected<PreparedPostProcessEffects, PostProcessPlanError> Prepare(
+			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 보관한 실행 계획의 소유권을 호출자에게 반환한다.
-		PostProcessExecutionPlan TakeExecutionPlan() &&;
+		ExecutionPlan TakeExecutionPlan() &&;
 	};
 
 	// 패키지 효과를 API 독립적인 후처리 실행 계획으로 변환하고 상태를 관리한다.
 	class PostProcess {
 	protected:
-		using InputKind = PostProcessExecutionPlan::InputKind;
-		using OutputKind = PostProcessExecutionPlan::OutputKind;
-		using ResourcePlan = PostProcessExecutionPlan::Resource;
-		using PassInputRoute = PostProcessExecutionPlan::PassInputRoute;
-		using ParameterData = PostProcessExecutionPlan::ParameterData;
-		using PassRoute = PostProcessExecutionPlan::PassRoute;
+		using InputKind = PreparedPostProcessEffects::InputKind;
+		using OutputKind = PreparedPostProcessEffects::OutputKind;
+		using ResourcePlan = PreparedPostProcessEffects::Resource;
+		using PassInputRoute = PreparedPostProcessEffects::PassInputRoute;
+		using ParameterData = PreparedPostProcessEffects::ParameterData;
+		using PassRoute = PreparedPostProcessEffects::PassRoute;
 
 	private:
 		// history 리소스의 현재 읽기 인덱스와 초기화 여부를 기록한다.
@@ -133,20 +146,12 @@ namespace Chrivent {
 		const std::vector<ResourceHistoryState>& ResolveHistoryStates() const;
 		// 현재 패스 기록에서 수정할 committed 또는 pending history 상태를 반환한다.
 		std::vector<ResourceHistoryState>& ResolveHistoryStates();
-		// 실행 계획 검증 위치와 원인을 구조화된 오류로 조립한다.
-		static PostProcessPlanError CreatePlanError(PostProcessPlanErrorCode code,
-			size_t effectIndex, std::string message,
-			size_t passIndex = PostProcessPlanError::noPassIndex);
-		// 효과 선언을 검증하고 API 독립 실행 계획을 생성한다.
-		static std::expected<PostProcessExecutionPlan, PostProcessPlanError> BuildExecutionPlan(
-			const std::vector<const EffectRuntimeDefinition*>& effects);
-
 	protected:
 		PostProcess() = default;
 		
-		const std::vector<ShaderProgramDefinition>& GetShaderPrograms() const { return shaderPrograms; }
-		const std::vector<PassRoute>& GetPassRoutes() const { return passRoutes; }
-		const std::vector<ResourcePlan>& GetResourcePlans() const { return resourcePlans; }
+		std::span<const ShaderProgramDefinition> GetShaderPrograms() const { return shaderPrograms; }
+		std::span<const PassRoute> GetPassRoutes() const { return passRoutes; }
+		std::span<const ResourcePlan> GetResourcePlans() const { return resourcePlans; }
 		const ParameterData& GetParameterData(const PassRoute& route) const {
 			return effectParameters[route.effectIndex];
 		}
@@ -184,9 +189,6 @@ namespace Chrivent {
 		bool RequiresDepth() const { return depthRequired; }
 		bool RequiresVelocity() const { return velocityRequired; }
 
-		// GPU 대기나 API 리소스 생성 전에 효과 선언을 검증하고 실행 계획을 한 번 생성한다.
-		static std::expected<PreparedPostProcessEffects, PostProcessPlanError> PrepareEffects(
-			const std::vector<const EffectRuntimeDefinition*>& effects);
 		// 활성 효과에 적용할 파라미터 갱신의 색인, 슬롯과 값 범위를 검증한다.
 		bool ValidateParameterUpdates(std::span<const EffectParameterUpdate> updates) const;
 		// 실행 계획을 다시 만들지 않고 활성 효과의 스칼라 파라미터 값을 갱신한다.

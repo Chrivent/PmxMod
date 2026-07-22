@@ -20,9 +20,18 @@ namespace Chrivent {
 		uint64_t nextFenceValue = 1;
 		UINT frameIndex = 0;
 
+		// 생성한 DX12 명령 리소스를 해제한다.
+		void Reset();
+
 	public:
-		const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& GetCommandList() const { return commandList; }
-		const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7>& GetEnhancedCommandList() const { return enhancedCommandList; }
+		Dx12CommandContext() = default;
+		~Dx12CommandContext() { Reset(); }
+
+		Dx12CommandContext(const Dx12CommandContext&) = delete;
+		Dx12CommandContext& operator=(const Dx12CommandContext&) = delete;
+
+		ID3D12GraphicsCommandList* TryGetCommandList() const { return commandList.Get(); }
+		ID3D12GraphicsCommandList7* TryGetEnhancedCommandList() const { return enhancedCommandList.Get(); }
 
 		// 현재 출력 크기에 맞는 viewport와 scissor rect를 명령 목록에 적용한다.
 		static void ApplyViewportAndScissor(ID3D12GraphicsCommandList* commandList, int width, int height);
@@ -34,7 +43,5 @@ namespace Chrivent {
 		GraphicsError::Result<void> Execute(const Dx12Device& sourceDevice);
 		// CPU와 GPU를 동기화해 기록된 명령이 모두 끝날 때까지 대기한다.
 		GraphicsError::Result<void> WaitForGpu(const Dx12Device& sourceDevice);
-		// 생성한 DX12 명령 리소스를 해제한다.
-		void Reset();
 	};
 }

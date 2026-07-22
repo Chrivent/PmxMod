@@ -14,11 +14,21 @@ namespace Chrivent {
 		return formatted;
 	}
 
-	PreparedPostProcessEffects::PreparedPostProcessEffects(PostProcessExecutionPlan sourceExecutionPlan)
+	PreparedPostProcessEffects::PreparedPostProcessEffects(ExecutionPlan sourceExecutionPlan)
 		: executionPlan(std::move(sourceExecutionPlan)) {}
 
-	PostProcessExecutionPlan PreparedPostProcessEffects::TakeExecutionPlan() && {
+	PreparedPostProcessEffects::ExecutionPlan PreparedPostProcessEffects::TakeExecutionPlan() && {
 		return std::move(executionPlan);
+	}
+
+	PostProcessPlanError PreparedPostProcessEffects::CreatePlanError(const PostProcessPlanErrorCode code,
+		const size_t effectIndex, std::string message, const size_t passIndex) {
+		return {
+			.code = code,
+			.effectIndex = effectIndex,
+			.passIndex = passIndex,
+			.message = std::move(message)
+		};
 	}
 
 	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
@@ -31,16 +41,6 @@ namespace Chrivent {
 
 	std::vector<PostProcess::ResourceHistoryState>& PostProcess::ResolveHistoryStates() {
 		return historyFramePending ? pendingResourceHistoryStates : resourceHistoryStates;
-	}
-
-	PostProcessPlanError PostProcess::CreatePlanError(const PostProcessPlanErrorCode code,
-		const size_t effectIndex, std::string message, const size_t passIndex) {
-		return {
-			.code = code,
-			.effectIndex = effectIndex,
-			.passIndex = passIndex,
-			.message = std::move(message)
-		};
 	}
 
 	int PostProcess::ResolveResourceExtent(
@@ -141,12 +141,13 @@ namespace Chrivent {
 		std::swap(historyFramePending, other.historyFramePending);
 	}
 
-	std::expected<PostProcessExecutionPlan, PostProcessPlanError> PostProcess::BuildExecutionPlan(
+	std::expected<PreparedPostProcessEffects::ExecutionPlan, PostProcessPlanError>
+	PreparedPostProcessEffects::BuildExecutionPlan(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
 		std::vector<PassRoute> plannedRoutes;
 		std::vector<ParameterData> plannedParameters;
-		std::vector<ResourcePlan> plannedResources;
+		std::vector<Resource> plannedResources;
 		PassInputRoute effectInput{ .kind = InputKind::SceneColor };
 		bool requiresDepth = false;
 		bool requiresVelocity = false;
@@ -197,7 +198,7 @@ namespace Chrivent {
 					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
 						effectIndex, "고정 리소스 크기가 렌더러 범위를 벗어났습니다"));
 				}
-				plannedResources.emplace_back(ResourcePlan{
+				plannedResources.emplace_back(Resource{
 					.lifetime = lifetime,
 					.format = format,
 					.resolution = resolution,
@@ -210,7 +211,7 @@ namespace Chrivent {
 			size_t effectOutputIndex = 0;
 			if (!lastEffect) {
 				effectOutputIndex = plannedResources.size();
-				plannedResources.emplace_back(ResourcePlan{
+				plannedResources.emplace_back(Resource{
 					.lifetime = EffectResourceLifetime::Transient,
 					.format = EffectTextureFormat::Rgba8Unorm,
 					.resolution = EffectPassResolution::Full
@@ -303,7 +304,7 @@ namespace Chrivent {
 				effectInput.resourceIndex = effectOutputIndex;
 			}
 		}
-		return PostProcessExecutionPlan{
+		return ExecutionPlan{
 			.shaderPrograms = std::move(plannedPrograms),
 			.passRoutes = std::move(plannedRoutes),
 			.effectParameters = std::move(plannedParameters),
@@ -313,7 +314,7 @@ namespace Chrivent {
 		};
 	}
 
-	std::expected<PreparedPostProcessEffects, PostProcessPlanError> PostProcess::PrepareEffects(
+	std::expected<PreparedPostProcessEffects, PostProcessPlanError> PreparedPostProcessEffects::Prepare(
 		const std::vector<const EffectRuntimeDefinition*>& effects) {
 		auto planResult = BuildExecutionPlan(effects);
 		if (!planResult)

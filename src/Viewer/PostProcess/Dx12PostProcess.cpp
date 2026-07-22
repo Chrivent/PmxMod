@@ -12,7 +12,7 @@
 namespace Chrivent {
 	GraphicsError::Result<void> Dx12PostProcess::CreateEffectResources(const Dx12Device& sourceDevice) {
 		ResetEffectResources();
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const ResourcePlan& plan = plans[resourceIndex];
@@ -73,6 +73,7 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12PostProcess::CreateParameterDataBuffers(const Dx12Device& sourceDevice) {
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
+		parameterDataStride = 0;
 		if (!sourceDevice.GetDevice()) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "후처리 parameter buffer 생성",
@@ -81,10 +82,9 @@ namespace Chrivent {
 		const size_t passCount = GetPassRoutes().size();
 		if (passCount == 0)
 			return {};
-		size_t stride = 0;
 		size_t bufferSize = 0;
-		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(ParameterData), stride)
-			|| !BufferSize::TryMultiply(stride, passCount, bufferSize)) {
+		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(ParameterData), parameterDataStride)
+			|| !BufferSize::TryMultiply(parameterDataStride, passCount, bufferSize)) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::ContractViolation, "후처리 parameter buffer 크기 계산",
 				"DirectX 12 후처리 패스 수가 parameter buffer 크기 한도를 넘습니다"));
@@ -175,9 +175,9 @@ namespace Chrivent {
 		const Dx12CommandContext& commandContext) {
 		if (commandList == nullptr)
 			return;
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.TryGetEnhancedCommandList();
 		constexpr float clearColor[4]{};
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
 			auto& targets = resources[index].targets;
 			if (!NeedsHistoryInitialization(index))
@@ -194,8 +194,8 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx12PostProcess::CreatePipelines(const Dx12Device& sourceDevice) {
-		const auto& passes = GetShaderPrograms();
-		const auto& routes = GetPassRoutes();
+		const auto passes = GetShaderPrograms();
+		const auto routes = GetPassRoutes();
 		std::vector<DXGI_FORMAT> formats;
 		formats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
@@ -230,6 +230,7 @@ namespace Chrivent {
 		inputDescriptorHeaps.clear();
 		inputDescriptorStates.clear();
 		inputDescriptorSize = 0;
+		parameterDataStride = 0;
 		resources.clear();
 		for (auto& buffer : parameterDataBuffers)
 			buffer.Reset();
@@ -292,6 +293,7 @@ namespace Chrivent {
 		std::swap(targetWidth, other.targetWidth);
 		std::swap(targetHeight, other.targetHeight);
 		std::swap(inputDescriptorSize, other.inputDescriptorSize);
+		std::swap(parameterDataStride, other.parameterDataStride);
 	}
 
 	GraphicsError::Result<void> Dx12PostProcess::Configure(const Dx12Device& sourceDevice,
@@ -319,7 +321,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"DirectX 12 command list 또는 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.TryGetEnhancedCommandList();
 		Dx12Barrier::Transition(commandList, enhancedCommandList, depthTarget.GetResource(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		if (RequiresVelocity())
@@ -346,11 +348,11 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
 				"DirectX 12 command list 또는 후처리 depth target을 사용할 수 없습니다"));
 		}
-		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
+		Dx12Barrier::Transition(commandList, commandContext.TryGetEnhancedCommandList(),
 			depthTarget.GetResource(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		if (RequiresVelocity())
-			Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(),
+			Dx12Barrier::Transition(commandList, commandContext.TryGetEnhancedCommandList(),
 				sceneVelocity.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		return {};
@@ -372,18 +374,17 @@ namespace Chrivent {
 		const size_t frameIndex = swapChain.GetFrameIndex() % FrameBuffering::dx12BufferCount;
 		const Dx12Buffer& frameDataBuffer = frameDataBuffers[frameIndex];
 		const Dx12Buffer& parameterDataBuffer = parameterDataBuffers[frameIndex];
-		size_t parameterStride = 0;
-		if (!Dx12Buffer::TryAlignConstantBufferSize(sizeof(ParameterData), parameterStride)) {
+		if (parameterDataStride == 0) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
-				GraphicsErrorCode::ContractViolation, "후처리 parameter stride 계산",
-				"DirectX 12 후처리 parameter stride가 크기 한도를 넘습니다"));
+				GraphicsErrorCode::InvalidState, "후처리 parameter stride 조회",
+				"DirectX 12 후처리 parameter stride가 준비되지 않았습니다"));
 		}
 		if (!frameDataBuffer.Write(frameData) || !parameterDataBuffer.IsInitialized()) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::CommandRecordingFailed, "후처리 frame data 기록",
 				"DirectX 12 후처리 frame 또는 parameter buffer를 기록하지 못했습니다"));
 		}
-		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.GetEnhancedCommandList().Get();
+		ID3D12GraphicsCommandList7* enhancedCommandList = commandContext.TryGetEnhancedCommandList();
 		const D3D12_RESOURCE_STATES sourceState = sourceDevice.GetMsaaSampleCount() > 1
 			? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
 		const D3D12_RESOURCE_STATES destinationState = sourceDevice.GetMsaaSampleCount() > 1
@@ -403,7 +404,7 @@ namespace Chrivent {
 			destinationState, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		BeginHistoryFrame();
 		InitializeHistories(commandList, commandContext);
-		const auto& routes = GetPassRoutes();
+		const auto routes = GetPassRoutes();
 		ID3D12DescriptorHeap* heap = ResolveInputDescriptorHeap(frameIndex);
 		if (heap == nullptr) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
@@ -414,7 +415,7 @@ namespace Chrivent {
 		const D3D12_GPU_VIRTUAL_ADDRESS frameDataAddress = frameDataBuffer.GetGpuAddress();
 		for (size_t passIndex = 0; passIndex < routes.size(); passIndex++) {
 			const PassRoute& route = routes[passIndex];
-			const size_t parameterOffset = passIndex * parameterStride;
+			const size_t parameterOffset = passIndex * parameterDataStride;
 			if (!parameterDataBuffer.Write(GetParameterData(route), parameterOffset)) {
 				return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 					GraphicsErrorCode::CommandRecordingFailed, "후처리 parameter 기록",

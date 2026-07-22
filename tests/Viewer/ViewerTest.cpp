@@ -17,7 +17,7 @@ namespace Chrivent {
 		// depth 입력이 필요한 최소 실행 계획을 구성한다.
 		std::expected<void, PostProcessPlanError> ConfigureDepthEffect(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
-			auto preparedEffectsResult = PrepareEffects(effects);
+			auto preparedEffectsResult = PreparedPostProcessEffects::Prepare(effects);
 			if (!preparedEffectsResult)
 				return std::unexpected(preparedEffectsResult.error());
 			AdoptPreparedEffects(std::move(*preparedEffectsResult));

@@ -83,7 +83,7 @@ Viewer 계약 테스트는 GoogleTest를 사용하며 일반 프로그램 빌드
 
 ```powershell
 cmake -S . -B cmake-build-test -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DPMXMOD_BUILD_TESTS=ON
-cmake --build cmake-build-test --target PmxModViewerTests
+cmake --build cmake-build-test
 ctest --test-dir cmake-build-test --output-on-failure
 ```
 

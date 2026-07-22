@@ -181,13 +181,13 @@ namespace Chrivent {
 				"Vulkan 후처리 버퍼와 descriptor set 수가 일치하지 않습니다"));
 		}
 		for (size_t index = 0; index < frameDataBuffers.size(); index++) {
-			if (!frameDataBuffers[index] || frameDataBuffers[index]->buffer == VK_NULL_HANDLE) {
+			if (!frameDataBuffers[index] || frameDataBuffers[index]->GetBuffer() == VK_NULL_HANDLE) {
 				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::InvalidState, "frame buffer descriptor 연결",
 					"Vulkan 후처리 frame buffer를 사용할 수 없습니다"));
 			}
 			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = frameDataBuffers[index]->buffer,
+				.buffer = frameDataBuffers[index]->GetBuffer(),
 				.range = frameDataSize
 			};
 			const VkWriteDescriptorSet write{
@@ -204,13 +204,13 @@ namespace Chrivent {
 			const size_t imageIndex = index / passCount;
 			const size_t passIndex = index % passCount;
 			if (!parameterDataBuffers[imageIndex]
-				|| parameterDataBuffers[imageIndex]->buffer == VK_NULL_HANDLE) {
+				|| parameterDataBuffers[imageIndex]->GetBuffer() == VK_NULL_HANDLE) {
 				return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 					GraphicsErrorCode::InvalidState, "parameter buffer descriptor 연결",
 					"Vulkan 후처리 parameter buffer를 사용할 수 없습니다"));
 			}
 			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = parameterDataBuffers[imageIndex]->buffer,
+				.buffer = parameterDataBuffers[imageIndex]->GetBuffer(),
 				.offset = passIndex * parameterDataStride,
 				.range = parameterDataSize
 			};

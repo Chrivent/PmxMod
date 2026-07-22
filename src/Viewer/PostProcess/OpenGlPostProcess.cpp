@@ -16,7 +16,7 @@ namespace Chrivent {
 	GraphicsError::Result<void> OpenGlPostProcess::CreateEffectResources() {
 		ResetEffectResources();
 		OpenGlErrorState::Clear();
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const ResourcePlan& plan = plans[resourceIndex];
@@ -62,7 +62,7 @@ namespace Chrivent {
 	}
 
 	void OpenGlPostProcess::InitializeHistories() {
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		constexpr float clearColor[4]{};
 		for (size_t index = 0; index < resources.size() && index < plans.size(); index++) {
 			Resource& resource = resources[index];
@@ -97,7 +97,7 @@ namespace Chrivent {
 	}
 
 	void OpenGlPostProcess::ResetEffectResources() {
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size(); index++) {
 			const GLsizei count = index < plans.size() && plans[index].lifetime == EffectResourceLifetime::History ? 2 : 1;
 			glDeleteTextures(count, resources[index].textures);
@@ -353,7 +353,7 @@ namespace Chrivent {
 		glDisable(GL_CULL_FACE);
 		glBindVertexArray(postProcessVao);
 		InitializeHistories();
-		const auto& routes = GetPassRoutes();
+		const auto routes = GetPassRoutes();
 		glBindBufferBase(GL_UNIFORM_BUFFER,
 			PostProcessInputLayout::parameterDataRegister, parameterDataBuffer);
 		size_t parameterEffectIndex = routes.size();

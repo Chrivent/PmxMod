@@ -83,7 +83,7 @@ Viewer 契约测试使用 GoogleTest，普通应用程序构建默认不启用�
 
 ```powershell
 cmake -S . -B cmake-build-test -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DPMXMOD_BUILD_TESTS=ON
-cmake --build cmake-build-test --target PmxModViewerTests
+cmake --build cmake-build-test
 ctest --test-dir cmake-build-test --output-on-failure
 ```
 

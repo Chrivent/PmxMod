@@ -10,7 +10,7 @@
 
 namespace Chrivent {
 	void Dx12Viewer::PrepareBackBufferForRendering(ID3D12GraphicsCommandList* commandList, ID3D12Resource* backBuffer) const {
-		Dx12Barrier::Transition(commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer,
+		Dx12Barrier::Transition(commandList, commandContext.TryGetEnhancedCommandList(), backBuffer,
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
@@ -79,7 +79,7 @@ namespace Chrivent {
 		const auto beginResult = commandContext.BeginFrame(device, frameIndex);
 		if (!beginResult)
 			return std::unexpected(beginResult.error());
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.TryGetCommandList();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
@@ -98,7 +98,7 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
 		drawContext.EndFrame();
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.TryGetCommandList();
 		ID3D12Resource* backBuffer = swapChain.GetCurrentBackBuffer();
 		const ID3D12Resource* msaaColor = msaaColorBuffer.GetResource();
 		if (!commandList || !backBuffer || !msaaColor)
@@ -110,7 +110,7 @@ namespace Chrivent {
 			if (!drawResult)
 				return std::unexpected(drawResult.error());
 		} else if (!msaaColorBuffer.ResolveToBackBuffer(
-			commandList, commandContext.GetEnhancedCommandList().Get(), backBuffer)) {
+			commandList, commandContext.TryGetEnhancedCommandList(), backBuffer)) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
 				"프레임 기록", "DirectX 12 출력 패스를 기록하지 못했습니다"));
 		}
@@ -127,7 +127,7 @@ namespace Chrivent {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "DirectX 12 draw context가 준비되지 않았습니다"));
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.TryGetCommandList();
 		return postProcess.BeginSceneInputPass(commandList, commandContext, screenWidth, screenHeight);
 	}
 
@@ -135,7 +135,7 @@ namespace Chrivent {
 		if (!drawContext.IsFrameReady())
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 종료", "DirectX 12 draw context가 준비되지 않았습니다"));
-		ID3D12GraphicsCommandList* commandList = commandContext.GetCommandList().Get();
+		ID3D12GraphicsCommandList* commandList = commandContext.TryGetCommandList();
 		return postProcess.EndSceneInputPass(commandList, commandContext);
 	}
 

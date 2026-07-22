@@ -148,7 +148,7 @@ namespace Chrivent {
 		if (!initialized || rendererLost || frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "렌더러를 사용할 수 없거나 프레임 기록 중입니다"));
-		auto preparedEffectsResult = PostProcess::PrepareEffects(effects);
+		auto preparedEffectsResult = PreparedPostProcessEffects::Prepare(effects);
 		if (!preparedEffectsResult) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ContractViolation,
 				"후처리 실행 계획 검증", preparedEffectsResult.error().Format()));

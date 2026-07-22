@@ -62,7 +62,7 @@ namespace Chrivent {
 		if (!bufferResult)
 			return std::unexpected(bufferResult.error());
 		return uploadContext.RecordIndexBufferUpload(
-			modelResources.indexBuffer.buffer, std::move(indexUploadBuffer), indexBufferSize);
+			modelResources.indexBuffer.GetBuffer(), std::move(indexUploadBuffer), indexBufferSize);
 	}
 
 	GraphicsError::Result<void> VulkanInstance::SetupConstantRings() {
@@ -247,7 +247,7 @@ namespace Chrivent {
 		const size_t frameIndex = drawContext.GetFrameIndex();
 		const auto& vertexBuffer = modelResources.vertexBuffers[
 			frameIndex % FrameBuffering::vulkanFramesInFlight];
-		if (vertexBuffer.buffer == VK_NULL_HANDLE)
+		if (vertexBuffer.GetBuffer() == VK_NULL_HANDLE)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"Vulkan 모델 정점 업로드", "현재 프레임의 vertex buffer가 초기화되지 않았습니다"));
 		const size_t vertexCount = model->geometryData.positions.size();

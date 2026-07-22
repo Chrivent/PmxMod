@@ -50,6 +50,10 @@ namespace Chrivent {
 	template <typename TextureType>
 	class TextureCache : protected TextureImageLoader {
 	protected:
+		TextureCache() = default;
+		TextureCache(const TextureCache&) = delete;
+		TextureCache& operator=(const TextureCache&) = delete;
+
 		std::map<TextureKey, TextureType> textures;
 
 		// 캐시에 저장된 렌더러별 텍스처를 찾는다.

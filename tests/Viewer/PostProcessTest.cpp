@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace Chrivent {
@@ -36,7 +37,7 @@ namespace Chrivent {
 		// 테스트 효과 정의를 API 독립 실행 계획으로 변환한다.
 		std::expected<void, PostProcessPlanError> Configure(
 			const std::vector<const EffectRuntimeDefinition*>& effects) {
-			auto preparedEffectsResult = PrepareEffects(effects);
+			auto preparedEffectsResult = PreparedPostProcessEffects::Prepare(effects);
 			if (!preparedEffectsResult)
 				return std::unexpected(preparedEffectsResult.error());
 			AdoptPreparedEffects(std::move(*preparedEffectsResult));
@@ -93,6 +94,11 @@ namespace Chrivent {
 			{ { .slot = 0, .kind = EffectPassInputKind::EffectInput } },
 			{ .kind = EffectPassOutputKind::EffectOutput }));
 		return effect;
+	}
+
+	TEST(PostProcessContract, PreparedEffectsRequireValidationFactory) {
+		EXPECT_FALSE((std::is_constructible_v<PreparedPostProcessEffects,
+			PreparedPostProcessEffects::ExecutionPlan>));
 	}
 
 	TEST(PostProcessContract, BuildsSinglePassInputsAndParameters) {

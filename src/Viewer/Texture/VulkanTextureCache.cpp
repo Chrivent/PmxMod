@@ -96,7 +96,7 @@ namespace Chrivent {
 			}
 		}
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		CopyBufferToImage(commandBuffer, stagingBuffer->buffer, texture.image, texture.width, texture.height);
+		CopyBufferToImage(commandBuffer, stagingBuffer->GetBuffer(), texture.image, texture.width, texture.height);
 		TransitionImageLayout(commandBuffer, texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		const auto retainResult = uploadContext.RetainStagingBuffer(std::move(stagingBuffer));
 		if (!retainResult) {

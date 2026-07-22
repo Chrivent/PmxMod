@@ -2,6 +2,7 @@
 
 #include "Viewer/Device/VulkanDevice.h"
 
+#include <span>
 #include <vector>
 
 namespace Chrivent {
@@ -31,7 +32,7 @@ namespace Chrivent {
 		VulkanPostProcessTarget& operator=(VulkanPostProcessTarget&& other) noexcept;
 
 		size_t GetImageCount() const { return images.size(); }
-		const std::vector<VkImage>& GetImages() const { return images; }
+		std::span<const VkImage> GetImages() const { return images; }
 		VkImage TryGetImage(const size_t index) const {
 			return index < images.size() ? images[index] : VK_NULL_HANDLE;
 		}

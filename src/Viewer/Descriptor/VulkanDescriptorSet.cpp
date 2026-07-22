@@ -87,7 +87,7 @@ namespace Chrivent {
 
 	void VulkanDescriptorSet::UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, const VkDeviceSize vertexConstantRange) const {
 		const VkDescriptorBufferInfo vertexBufferInfo{
-			.buffer = vertexConstantBuffer.buffer,
+			.buffer = vertexConstantBuffer.GetBuffer(),
 			.offset = 0,
 			.range = vertexConstantRange
 		};
@@ -109,7 +109,7 @@ namespace Chrivent {
 	void VulkanDescriptorSet::UpdatePixelDescriptorSet(const VulkanBuffer& pixelConstantBuffer,
 		const VkDeviceSize pixelConstantRange) const {
 		const VkDescriptorBufferInfo pixelBufferInfo{
-			.buffer = pixelConstantBuffer.buffer,
+			.buffer = pixelConstantBuffer.GetBuffer(),
 			.offset = 0,
 			.range = pixelConstantRange
 		};

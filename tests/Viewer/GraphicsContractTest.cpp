@@ -1,11 +1,17 @@
 ﻿#include "Viewer/Geometry/ViewerGeometry.h"
+#include "Viewer/Command/Dx12CommandContext.h"
 #include "Viewer/PostProcess/PostProcessFrameData.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Shader/SceneShaderInputLayout.h"
 #include "Viewer/Shader/ShaderConstants.h"
 #include "Viewer/Shader/SpirvBindingLayout.h"
+#include "Viewer/Texture/Dx11TextureCache.h"
+#include "Viewer/Texture/Dx12TextureCache.h"
+#include "Viewer/Texture/OpenGlTextureCache.h"
+#include "Viewer/Texture/VulkanTextureCache.h"
 
 #include <gtest/gtest.h>
+#include <type_traits>
 
 namespace Chrivent {
 	TEST(GraphicsContract, CpuShaderDataMatchesHlslPacking) {
@@ -44,5 +50,18 @@ namespace Chrivent {
 		EXPECT_EQ(SpirvBindingLayout::ResolveSamplerBinding(0), 4);
 		EXPECT_EQ(SpirvBindingLayout::ResolveSamplerBinding(2), 6);
 		EXPECT_EQ(PostProcessInputLayout::samplerCount, 1);
+	}
+
+	TEST(GraphicsContract, ResourceOwnersCannotBeCopied) {
+		EXPECT_FALSE((std::is_copy_constructible_v<Dx12CommandContext>));
+		EXPECT_FALSE((std::is_copy_assignable_v<Dx12CommandContext>));
+		EXPECT_FALSE((std::is_copy_constructible_v<OpenGlTextureCache>));
+		EXPECT_FALSE((std::is_copy_assignable_v<OpenGlTextureCache>));
+		EXPECT_FALSE((std::is_copy_constructible_v<Dx11TextureCache>));
+		EXPECT_FALSE((std::is_copy_assignable_v<Dx11TextureCache>));
+		EXPECT_FALSE((std::is_copy_constructible_v<Dx12TextureCache>));
+		EXPECT_FALSE((std::is_copy_assignable_v<Dx12TextureCache>));
+		EXPECT_FALSE((std::is_copy_constructible_v<VulkanTextureCache>));
+		EXPECT_FALSE((std::is_copy_assignable_v<VulkanTextureCache>));
 	}
 }

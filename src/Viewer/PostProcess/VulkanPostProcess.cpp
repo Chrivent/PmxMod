@@ -45,7 +45,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanPostProcess::CreateEffectResources(const VulkanDevice& sourceDevice) {
-		const auto& plans = GetResourcePlans();
+		const auto plans = GetResourcePlans();
 		resources.resize(plans.size());
 		for (size_t resourceIndex = 0; resourceIndex < plans.size(); resourceIndex++) {
 			const ResourcePlan& plan = plans[resourceIndex];
@@ -126,7 +126,7 @@ namespace Chrivent {
 
 	bool VulkanPostProcess::UpdateTextureDescriptorSet(
 		const uint32_t imageIndex, const size_t passIndex) {
-		const auto& routes = GetPassRoutes();
+		const auto routes = GetPassRoutes();
 		if (passIndex >= routes.size())
 			return false;
 		VkImageView imageViews[PostProcessInputLayout::maxTextureCount]{};
@@ -144,8 +144,8 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanPostProcess::CreatePipelines(const VulkanDevice& sourceDevice) {
-		const auto& passes = GetShaderPrograms();
-		const auto& routes = GetPassRoutes();
+		const auto passes = GetShaderPrograms();
+		const auto routes = GetPassRoutes();
 		std::vector<VkFormat> targetFormats;
 		targetFormats.reserve(passes.size());
 		for (size_t index = 0; index < passes.size(); index++) {
@@ -305,7 +305,7 @@ namespace Chrivent {
 		const VulkanCommandContext& commandContext, const uint32_t imageIndex,
 		const VkImage swapChainImage, const VkImageView swapChainImageView,
 		const PostProcessFrameData& frameData) {
-		const auto& routes = GetPassRoutes();
+		const auto routes = GetPassRoutes();
 		if (imageIndex >= swapChainImageCount || imageIndex >= sceneTarget.GetImageCount()
 			|| imageIndex >= frameDataBuffers.size()
 			|| parameterDataBuffers.size() != swapChainImageCount
@@ -348,7 +348,7 @@ namespace Chrivent {
 			.layerCount = 1
 		};
 		constexpr VkClearColorValue clearColor{};
-		const auto& resourcePlans = GetResourcePlans();
+		const auto resourcePlans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < resourcePlans.size(); index++) {
 			const VulkanPostProcessTarget& resource = resources[index];
 			if (!NeedsHistoryInitialization(index))
