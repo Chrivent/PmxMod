@@ -6,7 +6,6 @@
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelLoader.h"
-#include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelUpdater.h"
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
@@ -454,7 +453,7 @@ namespace Chrivent {
                 std::cerr << loadResult.error().message << '\n';
                 return false;
             }
-            ModelAnimator::InitializeAnimation(*pmxModel);
+			ModelUpdater::InitializeAnimation(*pmxModel);
             AnimationBuilder animationBuilder(pmxModel);
             for (const auto& vmdPath : animPaths) {
                 VmdParser vmd;
@@ -467,7 +466,7 @@ namespace Chrivent {
                 animationBuilder.Build(vmd.GetData());
             }
             auto vmdAnim = animationBuilder.TakeAnimation();
-            ModelAnimator::SyncPhysics(*pmxModel, *vmdAnim, 0.0f);
+			ModelUpdater::SyncPhysics(*pmxModel, *vmdAnim, 0.0f);
             auto instanceResult = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
             if (!instanceResult) {
 				PrintGraphicsError(instanceResult.error());
@@ -646,8 +645,8 @@ namespace Chrivent {
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
-                if (const auto ikSolver = node->ikSolver.lock()) {
-                    const auto& solverKeys = ikKeys[ikSolver.get()];
+				if (node->ikSolver) {
+					const auto& solverKeys = ikKeys[node->ikSolver];
                     keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
                 NormalizeKeys(keys);
@@ -687,8 +686,8 @@ namespace Chrivent {
                 if (!node)
                     continue;
                 auto keys = nodeKeys[node.get()];
-                if (const auto ikSolver = node->ikSolver.lock()) {
-                    const auto& solverKeys = ikKeys[ikSolver.get()];
+				if (node->ikSolver) {
+					const auto& solverKeys = ikKeys[node->ikSolver];
                     keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
                 }
                 NormalizeKeys(keys);

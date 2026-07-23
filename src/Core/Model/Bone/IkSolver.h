@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <cstdint>
-#include <memory>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
 
@@ -10,7 +9,7 @@ namespace Chrivent {
 
 	// IK 체인 본과 각도 제한 상태를 보관한다.
 	struct IkChain {
-		std::weak_ptr<Node>	node;
+		Node*				node = nullptr;
 		bool				enableAxisLimit = false;
 		glm::vec3			limitMax = glm::vec3(0);
 		glm::vec3			limitMin = glm::vec3(0);
@@ -38,8 +37,8 @@ namespace Chrivent {
 
 	public:
 		std::vector<IkChain>	chains;
-		std::weak_ptr<Node>		ikNode;
-		std::weak_ptr<Node>		ikTarget;
+		Node*					ikNode = nullptr;
+		Node*					ikTarget = nullptr;
 		uint32_t				iterateCount = 1;
 		float					limitAngle = glm::two_pi<float>();
 		bool					enable = true;

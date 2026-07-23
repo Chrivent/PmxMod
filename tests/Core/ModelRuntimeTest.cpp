@@ -66,7 +66,7 @@ namespace Chrivent {
 		vertex.sphericalDeformR0 = glm::vec3(1, 0, 0);
 		vertex.sphericalDeformR1 = glm::vec3(1, 0, 0);
 		for (int index = 0; index < 2; index++) {
-			auto node = std::make_shared<Node>();
+			auto node = std::make_unique<Node>();
 			node->global = glm::mat4(1);
 			model.skeletonData.AddNode(std::move(node));
 			model.skeletonData.transforms.emplace_back(
@@ -99,9 +99,10 @@ namespace Chrivent {
 		vertex.boneIndices[0] = 0;
 		vertex.boneWeights[0] = 1.0f;
 		model.geometryData.updatePositions.front() = glm::vec3(7, 0, 0);
-		const auto node = std::make_shared<Node>();
-		model.skeletonData.AddNode(node);
-		model.skeletonData.sortedNodes.emplace_back(*node);
+		auto node = std::make_unique<Node>();
+		Node* nodeReference = node.get();
+		model.skeletonData.AddNode(std::move(node));
+		model.skeletonData.sortedNodes.emplace_back(*nodeReference);
 		model.skeletonData.transforms.emplace_back(1.0f);
 		ModelUpdater::Prepare(model, {
 			.preservePreviousPositions = true,

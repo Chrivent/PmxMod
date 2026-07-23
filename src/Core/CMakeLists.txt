@@ -21,10 +21,8 @@ target_sources(PmxModCore PRIVATE
         Model/ModelTypes.h
         Model/ModelCoordinateConverter.h
         Model/Model.h Model/Model.cpp
-        Model/ModelAnimator.h Model/ModelAnimator.cpp
         Model/ModelLoader.h Model/ModelLoader.cpp
         Model/ModelMorph.h Model/ModelMorph.cpp
-        Model/ModelPose.h Model/ModelPose.cpp
         Model/ModelSkinning.h Model/ModelSkinning.cpp
         Model/ModelUpdater.h Model/ModelUpdater.cpp
 

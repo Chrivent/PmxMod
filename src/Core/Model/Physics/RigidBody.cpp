@@ -4,7 +4,7 @@
 #include "Core/Model/ModelCoordinateConverter.h"
 
 namespace Chrivent {
-	RigidBody::RigidBody(const RigidBodyDefinition& definition, const std::shared_ptr<Node>& nodePtr) {
+	RigidBody::RigidBody(const RigidBodyDefinition& definition, Node* sourceNode) {
 		switch (definition.shape) {
 			case RigidBodyShape::Sphere:
 				shape = std::make_unique<btSphereShape>(definition.shapeSize.x);
@@ -29,16 +29,16 @@ namespace Chrivent {
 		const glm::mat4 rotMat = ry * rx * rz;
 		const glm::mat4 translateMat = glm::translate(glm::mat4(1), definition.translate);
 		const glm::mat4 rbMat = ModelCoordinateConverter::ConvertZAxis(translateMat * rotMat);
-		const glm::mat4 offsetMat = nodePtr ? glm::inverse(nodePtr->global) * rbMat : rbMat;
-		kinematicMotionState = nodePtr
-			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(nodePtr, offsetMat))
+		const glm::mat4 offsetMat = sourceNode ? glm::inverse(sourceNode->global) * rbMat : rbMat;
+		kinematicMotionState = sourceNode
+			? std::unique_ptr<MotionState>(std::make_unique<KinematicMotionState>(sourceNode, offsetMat))
 			: std::unique_ptr<MotionState>(std::make_unique<DefaultMotionState>(offsetMat));
 		if (definition.operation != RigidBodyOperation::Static) {
-			if (nodePtr) {
+			if (sourceNode) {
 				if (definition.operation == RigidBodyOperation::Dynamic)
-					activeMotionState = std::make_unique<DynamicMotionState>(nodePtr, offsetMat);
+					activeMotionState = std::make_unique<DynamicMotionState>(sourceNode, offsetMat);
 				else
-					activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(nodePtr, offsetMat);
+					activeMotionState = std::make_unique<DynamicAndBoneMergeMotionState>(sourceNode, offsetMat);
 			} else
 				activeMotionState = std::make_unique<DefaultMotionState>(offsetMat);
 		}
@@ -56,7 +56,7 @@ namespace Chrivent {
 		if (definition.operation == RigidBodyOperation::Static)
 			rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 		operation = definition.operation;
-		node = nodePtr;
+		node = sourceNode;
 	}
 
 	void RigidBody::ApplyActivation(const bool activation) const {
@@ -77,7 +77,7 @@ namespace Chrivent {
 			activeMotionState->Reset();
 	}
 
-	void RigidBody::Reset() const {
+	void RigidBody::ClearMotion() const {
 		rigidBody->setAngularVelocity(btVector3(0, 0, 0));
 		rigidBody->setLinearVelocity(btVector3(0, 0, 0));
 		rigidBody->clearForces();
@@ -89,13 +89,13 @@ namespace Chrivent {
 		kinematicMotionState->ReflectGlobalTransform();
 	}
 
-	void RigidBody::CalcLocalTransform() const {
-		if (const auto nodePtr = node.lock()) {
-			if (const auto parent = nodePtr->parent.lock()) {
-				const auto local = glm::inverse(parent->global) * nodePtr->global;
-				nodePtr->local = local;
+	void RigidBody::CalculateLocalTransform() const {
+		if (node) {
+			if (node->parent) {
+				const auto local = glm::inverse(node->parent->global) * node->global;
+				node->local = local;
 			} else
-				nodePtr->local = nodePtr->global;
+				node->local = node->global;
 		}
 	}
 }

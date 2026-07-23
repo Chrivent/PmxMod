@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Chrivent {
-	glm::mat4 Camera::CalcViewMatrix() const {
+	glm::mat4 Camera::CalculateViewMatrix() const {
 		glm::mat4 view(1.0f);
 		view = glm::translate(view, glm::vec3(0, 0, -distance));
 		glm::mat4 rot(1.0f);

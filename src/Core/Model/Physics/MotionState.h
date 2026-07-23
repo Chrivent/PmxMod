@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <memory>
 #include <glm/glm.hpp>
 #include <btBulletDynamicsCommon.h>
 
@@ -38,13 +37,13 @@ namespace Chrivent {
 		btTransform	transform;
 
 	protected:
-		std::weak_ptr<Node>	node;
+		Node*	node = nullptr;
 
 		// Bullet 글로벌 변환을 본에 반영하기 전에 파생 클래스별 후처리를 수행한다.
 		virtual void PostProcessBtGlobal(glm::mat4&) const {}
 
 	public:
-		DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
+		DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix);
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 		void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
@@ -67,11 +66,11 @@ namespace Chrivent {
 
 	// 모델 본의 변환으로 키네마틱 강체를 구동한다.
 	class KinematicMotionState final : public MotionState {
-		std::weak_ptr<Node>	node;
+		Node*				node = nullptr;
 		glm::mat4			offset;
 
 	public:
-		KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix);
+		KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix);
 
 		// 연결된 본 변환을 Bullet 월드 변환으로 변환한다.
 		void getWorldTransform(btTransform& worldTransform) const override;

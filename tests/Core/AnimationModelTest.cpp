@@ -2,7 +2,6 @@
 #include "Core/Animation/Camera/CameraAnimationBuilder.h"
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
-#include "Core/Model/ModelAnimator.h"
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelSkinning.h"
 #include "Core/Model/ModelUpdater.h"
@@ -17,6 +16,23 @@ namespace Chrivent {
 	// 카메라 키 생성과 모델 상태 검증을 공유한다.
 	class AnimationModelContractTest : public testing::Test {
 	protected:
+		// 테스트 모델에 노드를 추가하고 모델 수명 동안 사용할 관찰 포인터를 반환한다.
+		static Node* AddNode(Model& model, std::string name = {}) {
+			auto node = std::make_unique<Node>();
+			node->name = std::move(name);
+			Node* result = node.get();
+			model.skeletonData.AddNode(std::move(node));
+			return result;
+		}
+
+		// 테스트 모델에 IK 솔버를 추가하고 모델 수명 동안 사용할 관찰 포인터를 반환한다.
+		static IkSolver* AddIkSolver(Model& model) {
+			auto ikSolver = std::make_unique<IkSolver>();
+			IkSolver* result = ikSolver.get();
+			model.skeletonData.AddIkSolver(std::move(ikSolver));
+			return result;
+		}
+
 		static CameraAnimationKey CreateCameraKey(const uint32_t frame, const float x) {
 			CameraAnimationKey key{};
 			key.frame = frame;
@@ -84,8 +100,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, ModelAnimationNormalizesDirectlyProvidedKeys) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		model->skeletonData.AddNode(node);
+		Node* node = AddNode(*model);
 		std::vector<NodeAnimationKey> keys(3);
 		keys[0].frame = 5;
 		keys[0].translate = glm::vec3(1, 0, 0);
@@ -94,7 +109,7 @@ namespace Chrivent {
 		keys[2].frame = 5;
 		keys[2].translate = glm::vec3(2, 0, 0);
 		std::vector<NodeAnimationTrack> tracks;
-		tracks.push_back({node.get(), std::move(keys)});
+		tracks.push_back({node, std::move(keys)});
 		const Animation animation(model, std::move(tracks), {}, {});
 		ASSERT_EQ(animation.GetNodeTracks().front().keys.size(), 2);
 		animation.Evaluate(5.0f);
@@ -103,12 +118,10 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, CalculatesLastFrameAcrossEveryTrackType) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		const auto ikSolver = std::make_shared<IkSolver>();
+		Node* node = AddNode(*model);
+		IkSolver* ikSolver = AddIkSolver(*model);
 		auto morph = std::make_unique<Morph>();
 		auto* morphTarget = morph.get();
-		model->skeletonData.AddNode(node);
-		model->skeletonData.AddIkSolver(ikSolver);
 		model->morphData.AddMorph(std::move(morph));
 		NodeAnimationKey nodeKey{};
 		nodeKey.frame = 3;
@@ -117,8 +130,8 @@ namespace Chrivent {
 		MorphAnimationKey morphKey{};
 		morphKey.frame = 5;
 		const Animation animation(model,
-			{{node.get(), {nodeKey}}},
-			{{ikSolver.get(), {ikKey}}},
+			{{node, {nodeKey}}},
+			{{ikSolver, {ikKey}}},
 			{{morphTarget, {morphKey}}});
 		EXPECT_EQ(animation.CalculateLastFrame(), 7);
 	}
@@ -182,9 +195,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, NormalizesVmdBoneRotationsAtTheRuntimeBoundary) {
 		auto model = std::make_shared<Model>();
-		auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		AddNode(*model, "A");
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);
@@ -200,15 +211,12 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, AnimationKeepsItsTargetModelAlive) {
 		std::weak_ptr<Model> modelReference;
-		std::weak_ptr<Node> nodeReference;
+		const Node* nodeReference;
 		std::unique_ptr<Animation> animation;
 		{
-			auto model = std::make_shared<Model>();
-			auto node = std::make_shared<Node>();
-			node->name = "A";
-			model->skeletonData.AddNode(node);
+			const auto model = std::make_shared<Model>();
+			nodeReference = AddNode(*model, "A");
 			modelReference = model;
-			nodeReference = node;
 			VmdParser::VmdData data{};
 			auto& motion = data.motions.emplace_back();
 			std::memcpy(motion.boneName, "A", 1);
@@ -218,18 +226,15 @@ namespace Chrivent {
 			animation = builder.TakeAnimation();
 		}
 		ASSERT_FALSE(modelReference.expired());
-		ASSERT_FALSE(nodeReference.expired());
 		animation->Evaluate(0, 1);
+		EXPECT_EQ(nodeReference->animTranslate, glm::vec3(0));
 		animation.reset();
 		EXPECT_TRUE(modelReference.expired());
-		EXPECT_TRUE(nodeReference.expired());
 	}
 
 	TEST_F(AnimationModelContractTest, InvalidatesAnimationBindingsWhenModelStructureChanges) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		AddNode(*model, "A");
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);
@@ -239,16 +244,15 @@ namespace Chrivent {
 		builder.Build(data);
 		const auto animation = builder.TakeAnimation();
 		model->Reset();
-		node->animTranslate = glm::vec3(7);
+		Node* replacementNode = AddNode(*model, "A");
+		replacementNode->animTranslate = glm::vec3(7);
 		animation->Evaluate(0);
-		EXPECT_EQ(node->animTranslate, glm::vec3(7));
+		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(7));
 	}
 
 	TEST_F(AnimationModelContractTest, BindsTracksToTheCurrentModelWhenTaken) {
 		const auto model = std::make_shared<Model>();
-		const auto originalNode = std::make_shared<Node>();
-		originalNode->name = "A";
-		model->skeletonData.AddNode(originalNode);
+		AddNode(*model, "A");
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);
@@ -257,21 +261,17 @@ namespace Chrivent {
 		AnimationBuilder builder(model);
 		builder.Build(data);
 		model->Reset();
-		const auto replacementNode = std::make_shared<Node>();
-		replacementNode->name = "A";
-		model->skeletonData.AddNode(replacementNode);
+		Node* replacementNode = AddNode(*model, "A");
 		const auto animation = builder.TakeAnimation();
 		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
-		EXPECT_EQ(animation->GetNodeTracks().front().node, replacementNode.get());
+		EXPECT_EQ(animation->GetNodeTracks().front().node, replacementNode);
 		animation->Evaluate(0);
 		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(4, 0, 0));
 	}
 
 	TEST_F(AnimationModelContractTest, KeepsTheLastModelKeyAtADuplicateFrame) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		AddNode(*model, "A");
 		VmdParser::VmdData data{};
 		for (const float x : {1.0f, 2.0f}) {
 			auto& motion = data.motions.emplace_back();
@@ -290,9 +290,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, MergesModelKeysAcrossBuildCalls) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		AddNode(*model, "A");
 		AnimationBuilder builder(model);
 		for (const auto& [frame, x] : {std::pair{5u, 1.0f}, std::pair{8u, 2.0f}}) {
 			VmdParser::VmdData data{};
@@ -313,9 +311,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, ResetsModelStateThroughTheUpdaterContract) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		Node* node = AddNode(*model, "A");
 		model->skeletonData.sortedNodes.emplace_back(*node);
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
@@ -346,9 +342,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, ReusesAnimationBuilderWithoutKeepingTakenTracks) {
 		auto model = std::make_shared<Model>();
-		auto node = std::make_shared<Node>();
-		node->name = "A";
-		model->skeletonData.AddNode(node);
+		AddNode(*model, "A");
 		AnimationBuilder builder(model);
 		VmdParser::VmdData firstData{};
 		auto& firstMotion = firstData.motions.emplace_back();
@@ -374,12 +368,11 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, SkipsPhysicsSynchronizationWithoutAWorld) {
 		const auto model = std::make_shared<Model>();
-		const auto node = std::make_shared<Node>();
+		Node* node = AddNode(*model);
 		node->animTranslate = glm::vec3(8);
 		node->baseAnimTranslate = glm::vec3(5);
-		model->skeletonData.AddNode(node);
 		const Animation animation(model, {}, {}, {});
-		ModelAnimator::SyncPhysics(*model, animation, 0);
+		ModelUpdater::SyncPhysics(*model, animation, 0);
 		EXPECT_EQ(node->baseAnimTranslate, glm::vec3(5));
 	}
 
@@ -440,7 +433,7 @@ namespace Chrivent {
 	}
 
 	TEST_F(AnimationModelContractTest, IgnoresInvalidPhysicsElapsedTime) {
-		const Model model;
+		Model model;
 		RigidBodyDefinition rigidBody{};
 		rigidBody.shapeSize = glm::vec3(1);
 		ASSERT_TRUE(model.InitializePhysics({rigidBody}, {}));
@@ -502,36 +495,36 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, KeepsDegenerateIkDirectionsFinite) {
 		for (const bool oppositeDirections : {false, true}) {
-			const auto ikNode = std::make_shared<Node>();
-			const auto targetNode = std::make_shared<Node>();
-			const auto chainNode = std::make_shared<Node>();
+			Node ikNode;
+			Node targetNode;
+			Node chainNode;
 			if (oppositeDirections) {
-				ikNode->global = glm::translate(glm::mat4(1), glm::vec3(-1, 0, 0));
-				targetNode->global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
+				ikNode.global = glm::translate(glm::mat4(1), glm::vec3(-1, 0, 0));
+				targetNode.global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
 			}
 			IkSolver solver;
-			solver.ikNode = ikNode;
-			solver.ikTarget = targetNode;
+			solver.ikNode = &ikNode;
+			solver.ikTarget = &targetNode;
 			solver.limitAngle = glm::pi<float>();
 			auto& chain = solver.chains.emplace_back();
-			chain.node = chainNode;
+			chain.node = &chainNode;
 			chain.saveIkRot = glm::quat(1, 0, 0, 0);
 			solver.Solve();
-			EXPECT_TRUE(IsFinite(chainNode->ikRotate));
+			EXPECT_TRUE(IsFinite(chainNode.ikRotate));
 		}
 	}
 
 	TEST_F(AnimationModelContractTest, UpdatesDeepChildTransformsWithoutTraversalStorage) {
-		const auto root = std::make_shared<Node>();
-		const auto child = std::make_shared<Node>();
-		const auto grandchild = std::make_shared<Node>();
-		root->AddChild(child);
-		child->AddChild(grandchild);
-		root->global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
-		child->local = glm::translate(glm::mat4(1), glm::vec3(0, 2, 0));
-		grandchild->local = glm::translate(glm::mat4(1), glm::vec3(0, 0, 3));
-		root->UpdateChildTransform();
-		EXPECT_EQ(glm::vec3(child->global[3]), glm::vec3(1, 2, 0));
-		EXPECT_EQ(glm::vec3(grandchild->global[3]), glm::vec3(1, 2, 3));
+		Node root;
+		Node child;
+		Node grandchild;
+		root.AddChild(child);
+		child.AddChild(grandchild);
+		root.global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
+		child.local = glm::translate(glm::mat4(1), glm::vec3(0, 2, 0));
+		grandchild.local = glm::translate(glm::mat4(1), glm::vec3(0, 0, 3));
+		root.UpdateChildTransform();
+		EXPECT_EQ(glm::vec3(child.global[3]), glm::vec3(1, 2, 0));
+		EXPECT_EQ(glm::vec3(grandchild.global[3]), glm::vec3(1, 2, 3));
 	}
 }

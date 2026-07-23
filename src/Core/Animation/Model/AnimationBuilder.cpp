@@ -102,8 +102,7 @@ namespace Chrivent {
 			ikSolversByName.reserve(ikSolvers.size());
 			for (const auto& ikSolver : ikSolvers) {
 				if (ikSolver) {
-					const auto ikNode = ikSolver->ikNode.lock();
-					if (ikNode)
+					if (const auto ikNode = ikSolver->ikNode)
 						ikSolversByName.try_emplace(ikNode->name, ikSolver.get());
 				}
 			}

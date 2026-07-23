@@ -29,7 +29,22 @@ namespace Chrivent {
 
 	// 애니메이션, 물리, 포즈와 스키닝 갱신 순서를 조정한다.
 	class ModelUpdater {
+		// 현재 애니메이션 상태를 기준 애니메이션으로 저장한다.
+		static void SaveBaseAnimation(const Model& model);
+		// 저장된 기준 애니메이션 상태를 지운다.
+		static void ClearBaseAnimation(const Model& model);
+		// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
+		static void BeginAnimation(Model& model);
+		// 물리 전후 단계에 맞는 노드 변환과 IK를 갱신한다.
+		static void UpdateNodeAnimation(Model& model, bool afterPhysicsAnimation);
+		// 현재 노드 글로벌 행렬을 스키닝용 최종 본 행렬로 변환한다.
+		static void UpdateTransforms(Model& model);
+
 	public:
+		// 애니메이션 평가에 필요한 기본 상태를 초기화한다.
+		static void InitializeAnimation(Model& model);
+		// 물리 상태를 지정한 애니메이션 시간에 맞춰 동기화한다.
+		static void SyncPhysics(Model& model, const Animation& animation, float frame);
 		// 지정한 프레임의 포즈를 복원하고 물리 상태를 해당 시점에 맞춰 초기화한다.
 		static void ResetPhysicsAtFrame(Model& model, const Animation& animation, float frame);
 		// 지정한 애니메이션 시간으로 모델 상태를 평가하고 스키닝 작업 범위를 준비한다.

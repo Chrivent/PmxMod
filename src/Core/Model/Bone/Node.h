@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <glm/gtc/quaternion.hpp>
 
@@ -10,10 +9,10 @@ namespace Chrivent {
 	class IkSolver;
 
 	// 모델 본의 계층, 변환, 부가 변형과 IK 상태를 관리한다.
-	class Node : public std::enable_shared_from_this<Node> {
-		std::weak_ptr<Node>		child;
-		std::weak_ptr<Node>		next;
-		std::weak_ptr<Node>		prev;
+	class Node {
+		Node*					child = nullptr;
+		Node*					next = nullptr;
+		Node*					prev = nullptr;
 		glm::vec3				appendTranslate = glm::vec3(0);
 		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 
@@ -21,7 +20,7 @@ namespace Chrivent {
 		uint32_t				index = 0;
 		std::string				name;
 		bool					enableIk = false;
-		std::weak_ptr<Node>		parent;
+		Node*					parent = nullptr;
 		glm::vec3				translate = glm::vec3(0);
 		glm::quat				rotate = glm::quat(1, 0, 0, 0);
 		glm::vec3				scale = glm::vec3(1);
@@ -38,15 +37,15 @@ namespace Chrivent {
 		glm::vec3				initScale = glm::vec3(1);
 		int32_t					deformDepth = -1;
 		bool					isDeformAfterPhysics = false;
-		std::weak_ptr<Node>		appendNode;
+		Node*					appendNode = nullptr;
 		bool					isAppendRotate = false;
 		bool					isAppendTranslate = false;
 		bool					isAppendLocal = false;
 		float					appendWeight = 0;
-		std::weak_ptr<IkSolver>	ikSolver;
+		IkSolver*				ikSolver = nullptr;
 		
 		// 이 노드에 자식 노드를 연결하고 형제 링크를 갱신한다.
-		void AddChild(const std::shared_ptr<Node>& childNode);
+		void AddChild(Node& childNode);
 		// 로컬/글로벌 변환 계산 전에 프레임 상태를 초기화한다.
 		void BeginUpdateTransform();
 		// 기본, 애니메이션, IK, 부가 변환을 합쳐 로컬 행렬을 갱신한다.

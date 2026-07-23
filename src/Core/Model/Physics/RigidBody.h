@@ -15,10 +15,10 @@ namespace Chrivent {
 		std::unique_ptr<MotionState>		kinematicMotionState;
 		std::unique_ptr<btRigidBody>		rigidBody;
 		RigidBodyOperation					operation = RigidBodyOperation::Static;
-		std::weak_ptr<Node>					node;
+		Node*								node = nullptr;
 
 	public:
-		RigidBody(const RigidBodyDefinition& definition, const std::shared_ptr<Node>& nodePtr);
+		RigidBody(const RigidBodyDefinition& definition, Node* sourceNode);
 
 		btRigidBody& ResolveRigidBody() const { return *rigidBody; }
 
@@ -27,10 +27,10 @@ namespace Chrivent {
 		// 강체 변환을 초기 위치로 재설정한다.
 		void ResetTransform() const;
 		// 강체의 속도와 누적된 외력을 초기화한다.
-		void Reset() const;
+		void ClearMotion() const;
 		// 물리 계산 결과를 연결된 본 변환에 반영한다.
 		void ReflectGlobalTransform() const;
 		// PMX 오프셋 기준의 로컬 변환을 계산한다.
-		void CalcLocalTransform() const;
+		void CalculateLocalTransform() const;
 	};
 }

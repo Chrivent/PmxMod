@@ -292,7 +292,7 @@ namespace Chrivent {
 	void ModelLoader::LoadNodes(Model& model, const PmxParser::PmxData& pmxData, const glm::vec3& invZ) {
 		model.skeletonData.ReserveNodes(pmxData.bones.size());
 		for (const auto& bone : pmxData.bones) {
-			auto node = std::make_shared<Node>();
+			auto node = std::make_unique<Node>();
 			node->index = static_cast<uint32_t>(model.skeletonData.GetNodes().size());
 			node->name = bone.name;
 			model.skeletonData.AddNode(std::move(node));
@@ -303,8 +303,8 @@ namespace Chrivent {
 			auto* node = nodes[i].get();
 			glm::vec3 localPos = bone.position;
 			if (bone.parentBoneIndex != -1) {
-				auto parentNode = nodes[bone.parentBoneIndex];
-				parentNode->AddChild(nodes[i]);
+				Node* parentNode = nodes[bone.parentBoneIndex].get();
+				parentNode->AddChild(*nodes[i]);
 				localPos -= pmxData.bones[bone.parentBoneIndex].position;
 			}
 			localPos.z *= -1;
@@ -320,10 +320,9 @@ namespace Chrivent {
 			node->isAppendTranslate = appendTranslateEnabled;
 			if ((appendRotateEnabled || appendTranslateEnabled) && bone.appendBoneIndex != -1) {
 				bool appendLocalEnabled = PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::AppendLocal);
-				auto appendNodePtr = nodes[bone.appendBoneIndex];
 				float appendWeightValue = bone.appendWeight;
 				node->isAppendLocal = appendLocalEnabled;
-				node->appendNode = appendNodePtr;
+				node->appendNode = nodes[bone.appendBoneIndex].get();
 				node->appendWeight = appendWeightValue;
 			}
 			node->initTranslate = node->translate;
@@ -342,13 +341,13 @@ namespace Chrivent {
 		for (size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
 			if (PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::Ik)) {
-				auto solver = std::make_shared<IkSolver>();
-				solver->ikNode = nodes[i];
-				nodes[i]->ikSolver = solver;
-				solver->ikTarget = nodes[bone.ikTargetBoneIndex];
+				auto solver = std::make_unique<IkSolver>();
+				solver->ikNode = nodes[i].get();
+				nodes[i]->ikSolver = solver.get();
+				solver->ikTarget = nodes[bone.ikTargetBoneIndex].get();
 				for (const auto& [ikBoneIndex, enableLimit,
 					limitMin, limitMax] : bone.ikLinks) {
-					auto linkNode = nodes[ikBoneIndex];
+					Node* linkNode = nodes[ikBoneIndex].get();
 					IkChain chain{};
 					chain.node = linkNode;
 					chain.enableAxisLimit = enableLimit;
@@ -488,7 +487,7 @@ namespace Chrivent {
 		}
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(const Model& model, const PmxParser::PmxData& pmxData) {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(Model& model, const PmxParser::PmxData& pmxData) {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)

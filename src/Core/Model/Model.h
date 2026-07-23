@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core/Model/ModelTypes.h"
+#include "Core/Model/ModelMorph.h"
 #include "Core/Model/Bone/Node.h"
 #include "Core/Model/Bone/IkSolver.h"
 #include <cstdint>
@@ -13,8 +14,9 @@
 #include <vector>
 
 namespace Chrivent {
-	class ModelMorph;
-	class ModelPhysicsData;
+	class Physics;
+	class RigidBody;
+	class Joint;
 
 	// 한 재질이 그릴 인덱스 범위와 재질 번호를 보관한다.
 	struct SubMesh {
@@ -117,23 +119,23 @@ namespace Chrivent {
 
 	// 본 계층, IK와 스키닝 변환 행렬을 관리한다.
 	class ModelSkeletonData {
-		std::vector<std::shared_ptr<Node>>			nodes;
-		std::vector<std::shared_ptr<IkSolver>>		ikSolvers;
+		std::vector<std::unique_ptr<Node>>			nodes;
+		std::vector<std::unique_ptr<IkSolver>>		ikSolvers;
 
 	public:
 		std::vector<glm::mat4>						transforms;
 		std::vector<std::reference_wrapper<Node>>	sortedNodes;
 		std::vector<ModelDisplayFrame>				displayFrames;
 
-		const std::vector<std::shared_ptr<Node>>& GetNodes() const { return nodes; }
-		const std::vector<std::shared_ptr<IkSolver>>& GetIkSolvers() const { return ikSolvers; }
+		const std::vector<std::unique_ptr<Node>>& GetNodes() const { return nodes; }
+		const std::vector<std::unique_ptr<IkSolver>>& GetIkSolvers() const { return ikSolvers; }
 
 		// 예상 개수만큼 노드 소유 목록의 메모리를 미리 확보한다.
 		void ReserveNodes(const size_t count) { nodes.reserve(count); }
 		// 모델이 소유할 노드를 목록 끝에 추가한다.
-		void AddNode(std::shared_ptr<Node> node) { nodes.emplace_back(std::move(node)); }
+		void AddNode(std::unique_ptr<Node> node) { nodes.emplace_back(std::move(node)); }
 		// 모델이 소유할 IK 솔버를 목록 끝에 추가한다.
-		void AddIkSolver(std::shared_ptr<IkSolver> ikSolver) { ikSolvers.emplace_back(std::move(ikSolver)); }
+		void AddIkSolver(std::unique_ptr<IkSolver> ikSolver) { ikSolvers.emplace_back(std::move(ikSolver)); }
 	};
 
 	// 형식별 모프 정의와 현재 누적 변형값을 관리한다.
@@ -155,10 +157,42 @@ namespace Chrivent {
 		void AddMorph(std::unique_ptr<Morph> morph) { morphs.emplace_back(std::move(morph)); }
 	};
 
+	// 모델의 Bullet 물리 월드, 강체와 조인트를 함께 소유하고 등록 수명을 관리한다.
+	class ModelPhysicsData {
+		std::unique_ptr<Physics> physics;
+		std::vector<std::unique_ptr<RigidBody>> rigidBodies;
+		std::vector<std::unique_ptr<Joint>> joints;
+
+		// 강체와 조인트 정의가 Bullet 생성 조건과 모델 참조 범위를 만족하는지 검증한다.
+		static std::expected<void, PhysicsError> ValidateDefinitions(
+			const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+			const std::vector<JointDefinition>& jointDefinitions, std::size_t nodeCount);
+		// 강체 변환을 본에 반영하고 루트 노드의 글로벌 변환을 갱신한다.
+		void ReflectTransforms(const std::vector<std::unique_ptr<Node>>& nodes) const;
+
+	public:
+		ModelPhysicsData();
+		~ModelPhysicsData();
+
+		bool IsInitialized() const { return physics != nullptr; }
+
+		// 두 모델 물리 상태의 전체 소유 리소스를 교환한다.
+		void Swap(ModelPhysicsData& other);
+		// 런타임 정의와 모델 노드로 물리 월드, 강체와 조인트를 구성한다.
+		std::expected<void, PhysicsError> Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+			const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes);
+		// 현재 모델 포즈 기준으로 강체 상태와 충돌 쌍을 초기화한다.
+		void ResetSimulation(const std::vector<std::unique_ptr<Node>>& nodes) const;
+		// 지정한 경과 시간만큼 물리를 진행하고 강체 변환을 본에 반영한다.
+		void UpdateSimulation(float elapsed, const std::vector<std::unique_ptr<Node>>& nodes) const;
+		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
+		void Reset();
+	};
+
 	// PMX 모델의 정보, 형상, 재질, 골격, 모프와 물리를 소유한다.
 	class Model {
-		std::unique_ptr<ModelMorph> morphEvaluator;
-		std::unique_ptr<ModelPhysicsData> physicsData;
+		ModelMorph morphEvaluator;
+		ModelPhysicsData physicsData;
 		uint64_t structureRevision = 0;
 
 	public:
@@ -180,13 +214,13 @@ namespace Chrivent {
 		// 두 모델의 전체 소유 상태를 교환한다.
 		void Swap(Model& other);
 		// 현재 모프 가중치를 준비된 프레임의 형상, 재질과 본 상태에 누적한다.
-		void AccumulateMorphs() const;
+		void AccumulateMorphs();
 		// 런타임 정의 목록으로 모델 물리 월드, 강체와 조인트를 구성한다.
 		std::expected<void, PhysicsError> InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
-			const std::vector<JointDefinition>& joints) const;
+			const std::vector<JointDefinition>& joints);
 		// 강체와 조인트를 현재 모델 포즈 기준으로 초기화한다.
-		void ResetPhysics() const;
+		void ResetPhysics();
 		// 물리 시뮬레이션을 진행하고 강체 변환을 노드에 반영한다.
-		void UpdatePhysics(float elapsed) const;
+		void UpdatePhysics(float elapsed);
 	};
 }

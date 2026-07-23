@@ -11,6 +11,6 @@ namespace Chrivent {
 		float fov = glm::radians(30.0f);
 
 		// 현재 카메라 파라미터로 뷰 행렬을 계산한다.
-		glm::mat4 CalcViewMatrix() const;
+		glm::mat4 CalculateViewMatrix() const;
 	};
 }

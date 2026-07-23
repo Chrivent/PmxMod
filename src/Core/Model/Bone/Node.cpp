@@ -1,18 +1,17 @@
 ﻿#include "Core/Model/Bone/Node.h"
 
 namespace Chrivent {
-	void Node::AddChild(const std::shared_ptr<Node>& childNode) {
-		childNode->parent = shared_from_this();
-		if (child.expired()) {
-			child = childNode;
-			childNode->next.reset();
-			childNode->prev = childNode;
+	void Node::AddChild(Node& childNode) {
+		childNode.parent = this;
+		childNode.next = nullptr;
+		if (!child) {
+			child = &childNode;
+			childNode.prev = &childNode;
 		} else {
-			const auto head = child.lock();
-			const auto last = head->prev.lock();
-			last->next = childNode;
-			childNode->prev = last;
-			head->prev = childNode;
+			Node* last = child->prev;
+			last->next = &childNode;
+			childNode.prev = last;
+			child->prev = &childNode;
 		}
 	}
 
@@ -41,32 +40,32 @@ namespace Chrivent {
 	}
 
 	void Node::UpdateGlobalTransform() {
-		if (const auto parentNode = parent.lock())
-			global = parentNode->global * local;
+		if (parent)
+			global = parent->global * local;
 		else
 			global = local;
 		UpdateChildTransform();
 	}
 
 	void Node::UpdateChildTransform() const {
-		auto node = child.lock();
+		Node* node = child;
 		while (node) {
-			if (const auto parentNode = node->parent.lock())
-				node->global = parentNode->global * node->local;
+			if (node->parent)
+				node->global = node->parent->global * node->local;
 			else
 				node->global = node->local;
-			if (const auto firstChild = node->child.lock()) {
-				node = firstChild;
+			if (node->child) {
+				node = node->child;
 				continue;
 			}
 			while (node) {
-				if (const auto sibling = node->next.lock()) {
-					node = sibling;
+				if (node->next) {
+					node = node->next;
 					break;
 				}
-				const auto parentNode = node->parent.lock();
-				if (!parentNode || parentNode.get() == this) {
-					node.reset();
+				Node* parentNode = node->parent;
+				if (!parentNode || parentNode == this) {
+					node = nullptr;
 					break;
 				}
 				node = parentNode;
@@ -75,20 +74,19 @@ namespace Chrivent {
 	}
 
 	void Node::UpdateAppendTransform() {
-		const auto appendNodePtr = appendNode.lock();
-		if (!appendNodePtr)
+		if (!appendNode)
 			return;
 		if (isAppendRotate) {
-			glm::quat appendRot = !isAppendLocal && !appendNodePtr->appendNode.expired()
-				? appendNodePtr->appendRotate : appendNodePtr->animRotate * appendNodePtr->rotate;
-			if (appendNodePtr->enableIk)
-				appendRot = appendNodePtr->ikRotate * appendRot;
+			glm::quat appendRot = !isAppendLocal && appendNode->appendNode
+				? appendNode->appendRotate : appendNode->animRotate * appendNode->rotate;
+			if (appendNode->enableIk)
+				appendRot = appendNode->ikRotate * appendRot;
 			appendRotate = glm::slerp(glm::quat(1, 0, 0, 0), appendRot, appendWeight);
 		}
 		if (isAppendTranslate) {
-			const glm::vec3 appendTrans = !isAppendLocal && !appendNodePtr->appendNode.expired()
-				? appendNodePtr->appendTranslate : appendNodePtr->animTranslate +
-					appendNodePtr->translate - appendNodePtr->initTranslate;
+			const glm::vec3 appendTrans = !isAppendLocal && appendNode->appendNode
+				? appendNode->appendTranslate : appendNode->animTranslate +
+					appendNode->translate - appendNode->initTranslate;
 			appendTranslate = appendTrans * appendWeight;
 		}
 		UpdateLocalTransform();

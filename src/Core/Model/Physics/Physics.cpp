@@ -1,9 +1,11 @@
 ﻿#include "Core/Model/Physics/Physics.h"
 
-#include "Core/Model/Bone/Node.h"
+#include "Core/Model/Model.h"
+#include "RigidBody.h"
+#include "Joint.h"
 
 namespace Chrivent {
-	bool Physics::OverlapFilterCallback::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
+	bool PhysicsOverlapFilter::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
 		if (proxy0 == unfilteredProxy || proxy1 == unfilteredProxy)
 			return true;
 		bool collides = (proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask) != 0;
@@ -35,7 +37,7 @@ namespace Chrivent {
 		world->removeConstraint(&constraint);
 	}
 
-	void Physics::Step(const float elapsed) const {
+	void Physics::StepSimulation(const float elapsed) const {
 		if (!std::isfinite(elapsed) || elapsed <= 0.0f)
 			return;
 		world->stepSimulation(elapsed, maxSubStepCount, 1.0f / simulationFps);
@@ -62,13 +64,21 @@ namespace Chrivent {
 		btRigidBody::btRigidBodyConstructionInfo groundInfo(0, groundMotionState.get(), groundShape.get(), btVector3(0, 0, 0));
 		groundRigidBody = std::make_unique<btRigidBody>(groundInfo);
 		world->addRigidBody(groundRigidBody.get());
-		filterCallback = std::make_unique<OverlapFilterCallback>();
+		filterCallback = std::make_unique<PhysicsOverlapFilter>();
 		filterCallback->SetUnfilteredProxy(groundRigidBody->getBroadphaseProxy());
 		world->getPairCache()->setOverlapFilterCallback(filterCallback.get());
 	}
 
+	ModelPhysicsData::ModelPhysicsData() = default;
+
 	ModelPhysicsData::~ModelPhysicsData() {
 		Reset();
+	}
+
+	void ModelPhysicsData::Swap(ModelPhysicsData& other) {
+		physics.swap(other.physics);
+		rigidBodies.swap(other.rigidBodies);
+		joints.swap(other.joints);
 	}
 
 	std::expected<void, PhysicsError> ModelPhysicsData::ValidateDefinitions(
@@ -140,20 +150,20 @@ namespace Chrivent {
 		return {};
 	}
 
-	void ModelPhysicsData::ReflectTransforms(const std::vector<std::shared_ptr<Node>>& nodes) const {
+	void ModelPhysicsData::ReflectTransforms(const std::vector<std::unique_ptr<Node>>& nodes) const {
 		for (const auto& rigidBody : rigidBodies) {
 			rigidBody->ReflectGlobalTransform();
-			rigidBody->CalcLocalTransform();
+			rigidBody->CalculateLocalTransform();
 		}
 		for (const auto& node : nodes) {
-			if (node->parent.expired())
+			if (!node->parent)
 				node->UpdateGlobalTransform();
 		}
 	}
 
 	std::expected<void, PhysicsError> ModelPhysicsData::Initialize(
 		const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
-		const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::shared_ptr<Node>>& nodes) {
+		const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes) {
 		const auto validationResult = ValidateDefinitions(rigidBodyDefinitions, jointDefinitions, nodes.size());
 		if (!validationResult)
 			return std::unexpected(validationResult.error());
@@ -163,7 +173,7 @@ namespace Chrivent {
 		physics = std::make_unique<Physics>();
 		rigidBodies.reserve(rigidBodyDefinitions.size());
 		for (const auto& definition : rigidBodyDefinitions) {
-			std::shared_ptr<Node> node = definition.nodeIndex >= 0 ? nodes[definition.nodeIndex] : nullptr;
+			Node* node = definition.nodeIndex >= 0 ? nodes[definition.nodeIndex].get() : nullptr;
 			auto rigidBody = std::make_unique<RigidBody>(definition, node);
 			physics->AddRigidBody(rigidBody->ResolveRigidBody(), definition.group, definition.groupMask);
 			rigidBodies.emplace_back(std::move(rigidBody));
@@ -178,27 +188,27 @@ namespace Chrivent {
 		return {};
 	}
 
-	void ModelPhysicsData::ResetSimulation(const std::vector<std::shared_ptr<Node>>& nodes) const {
+	void ModelPhysicsData::ResetSimulation(const std::vector<std::unique_ptr<Node>>& nodes) const {
 		if (!IsInitialized())
 			return;
 		for (const auto& rigidBody : rigidBodies) {
 			rigidBody->ApplyActivation(false);
 			rigidBody->ResetTransform();
 		}
-		physics->Step(1.0f / 60.0f);
+		physics->StepSimulation(1.0f / 60.0f);
 		ReflectTransforms(nodes);
 		for (const auto& rigidBody : rigidBodies) {
 			physics->CleanCollisionPairs(rigidBody->ResolveRigidBody());
-			rigidBody->Reset();
+			rigidBody->ClearMotion();
 		}
 	}
 
-	void ModelPhysicsData::UpdateSimulation(const float elapsed, const std::vector<std::shared_ptr<Node>>& nodes) const {
+	void ModelPhysicsData::UpdateSimulation(const float elapsed, const std::vector<std::unique_ptr<Node>>& nodes) const {
 		if (!IsInitialized())
 			return;
 		for (const auto& rigidBody : rigidBodies)
 			rigidBody->ApplyActivation(true);
-		physics->Step(elapsed);
+		physics->StepSimulation(elapsed);
 		ReflectTransforms(nodes);
 	}
 

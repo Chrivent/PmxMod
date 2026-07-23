@@ -10,45 +10,42 @@ namespace Chrivent {
 		initialTransform = transform;
 	}
 
-	DynamicMotionState::DynamicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
-		: offset(offsetMatrix), node(nodePtr) {
+	DynamicMotionState::DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix)
+		: offset(offsetMatrix), node(sourceNode) {
 		invOffset = glm::inverse(offsetMatrix);
 		DynamicMotionState::Reset();
 	}
 
 	void DynamicMotionState::Reset() {
-		const auto nodePtr = node.lock();
-		if (!nodePtr)
+		if (!node)
 			return;
-		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(nodePtr->global * offset);
+		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(node->global * offset);
 		transform.setFromOpenGLMatrix(&global[0][0]);
 	}
 
 	void DynamicMotionState::ReflectGlobalTransform() {
-		const auto nodePtr = node.lock();
-		if (!nodePtr)
+		if (!node)
 			return;
 		glm::mat4 worldTransformMat;
 		transform.getOpenGLMatrix(&worldTransformMat[0][0]);
 		glm::mat4 btGlobal = ModelCoordinateConverter::ConvertZAxis(worldTransformMat) * invOffset;
 		PostProcessBtGlobal(btGlobal);
-		nodePtr->global = btGlobal;
-		nodePtr->UpdateChildTransform();
+		node->global = btGlobal;
+		node->UpdateChildTransform();
 	}
 
 	void DynamicAndBoneMergeMotionState::PostProcessBtGlobal(glm::mat4& btGlobal) const {
-		if (const auto nodePtr = node.lock())
-			btGlobal[3] = nodePtr->global[3];
+		if (node)
+			btGlobal[3] = node->global[3];
 	}
 
-	KinematicMotionState::KinematicMotionState(const std::shared_ptr<Node>& nodePtr, const glm::mat4& offsetMatrix)
-		: node(nodePtr), offset(offsetMatrix) {}
+	KinematicMotionState::KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix)
+		: node(sourceNode), offset(offsetMatrix) {}
 
 	void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
-		const auto nodePtr = node.lock();
-		if (!nodePtr)
+		if (!node)
 			return;
-		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(nodePtr->global * offset);
+		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(node->global * offset);
 		worldTransform.setFromOpenGLMatrix(&global[0][0]);
 	}
 }
