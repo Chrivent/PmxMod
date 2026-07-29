@@ -20,9 +20,9 @@ namespace Chrivent {
 
 	// 한 재질이 그릴 인덱스 범위와 재질 번호를 보관한다.
 	struct SubMesh {
-		size_t	beginIndex = 0;
-		size_t	indexCount = 0;
-		size_t	materialId = 0;
+		std::size_t	beginIndex = 0;
+		std::size_t	indexCount = 0;
+		std::size_t	materialId = 0;
 	};
 
 	// PMX 버텍스의 본 인덱스, 가중치와 SDEF 보조 데이터를 보관한다.
@@ -41,7 +41,7 @@ namespace Chrivent {
 		float		weight = 0;
 		float		saveAnimWeight = 0;
 		MorphType	morphType = MorphType::Group;
-		size_t		dataIndex = 0;
+		std::size_t	dataIndex = 0;
 	};
 
 	// 모델 재질의 색상, 텍스처와 렌더링 플래그를 보관한다.
@@ -71,8 +71,8 @@ namespace Chrivent {
 
 	// 병렬 버텍스 갱신 작업이 처리할 연속 범위를 보관한다.
 	struct UpdateRange {
-		size_t vertexOffset = 0;
-		size_t vertexCount = 0;
+		std::size_t vertexOffset = 0;
+		std::size_t vertexCount = 0;
 	};
 	
 	// 모델 패널에 표시할 본과 모프 그룹을 보관한다.
@@ -97,8 +97,8 @@ namespace Chrivent {
 		std::vector<glm::vec2>						uvs;
 		std::vector<Vertex>							vertexBoneInfos;
 		std::vector<char>							indices;
-		size_t										indexCount = 0;
-		size_t										indexElementSize = 0;
+		std::size_t									indexCount = 0;
+		std::size_t									indexElementSize = 0;
 		glm::vec3									bboxMin = glm::vec3(0);
 		glm::vec3									bboxMax = glm::vec3(0);
 		std::vector<glm::vec3>						updatePositions;
@@ -119,10 +119,18 @@ namespace Chrivent {
 
 	// 본 계층, IK와 스키닝 변환 행렬을 관리한다.
 	class ModelSkeletonData {
+		uint64_t&										structureRevision;
 		std::vector<std::unique_ptr<Node>>			nodes;
 		std::vector<std::unique_ptr<IkSolver>>		ikSolvers;
 
 	public:
+		explicit ModelSkeletonData(uint64_t& revision) : structureRevision(revision) {}
+		
+		ModelSkeletonData(const ModelSkeletonData&) = delete;
+		ModelSkeletonData(ModelSkeletonData&&) = delete;
+		ModelSkeletonData& operator=(const ModelSkeletonData&) = delete;
+		ModelSkeletonData& operator=(ModelSkeletonData&&) = delete;
+
 		std::vector<glm::mat4>						transforms;
 		std::vector<std::reference_wrapper<Node>>	sortedNodes;
 		std::vector<ModelDisplayFrame>				displayFrames;
@@ -131,18 +139,30 @@ namespace Chrivent {
 		const std::vector<std::unique_ptr<IkSolver>>& GetIkSolvers() const { return ikSolvers; }
 
 		// 예상 개수만큼 노드 소유 목록의 메모리를 미리 확보한다.
-		void ReserveNodes(const size_t count) { nodes.reserve(count); }
+		void ReserveNodes(const std::size_t count) { nodes.reserve(count); }
 		// 모델이 소유할 노드를 목록 끝에 추가한다.
-		void AddNode(std::unique_ptr<Node> node) { nodes.emplace_back(std::move(node)); }
+		void AddNode(std::unique_ptr<Node> node) { nodes.emplace_back(std::move(node)); ++structureRevision; }
 		// 모델이 소유할 IK 솔버를 목록 끝에 추가한다.
-		void AddIkSolver(std::unique_ptr<IkSolver> ikSolver) { ikSolvers.emplace_back(std::move(ikSolver)); }
+		void AddIkSolver(std::unique_ptr<IkSolver> ikSolver) {
+			ikSolvers.emplace_back(std::move(ikSolver)); ++structureRevision;
+		}
+		// 두 골격 데이터의 소유 목록과 런타임 상태를 교환하고 구조 변경을 기록한다.
+		void Swap(ModelSkeletonData& other);
 	};
 
 	// 형식별 모프 정의와 현재 누적 변형값을 관리한다.
 	class ModelMorphData {
+		uint64_t&										structureRevision;
 		std::vector<std::unique_ptr<Morph>>			morphs;
 
 	public:
+		explicit ModelMorphData(uint64_t& revision) : structureRevision(revision) {}
+		
+		ModelMorphData(const ModelMorphData&) = delete;
+		ModelMorphData(ModelMorphData&&) = delete;
+		ModelMorphData& operator=(const ModelMorphData&) = delete;
+		ModelMorphData& operator=(ModelMorphData&&) = delete;
+
 		std::vector<std::vector<PositionMorph>>		positionMorphs;
 		std::vector<std::vector<UvMorph>>			uvMorphs;
 		std::vector<std::vector<MaterialMorph>>		materialMorphs;
@@ -154,7 +174,9 @@ namespace Chrivent {
 		const std::vector<std::unique_ptr<Morph>>& GetMorphs() const { return morphs; }
 
 		// 모델이 소유할 모프를 목록 끝에 추가한다.
-		void AddMorph(std::unique_ptr<Morph> morph) { morphs.emplace_back(std::move(morph)); }
+		void AddMorph(std::unique_ptr<Morph> morph) { morphs.emplace_back(std::move(morph)); ++structureRevision; }
+		// 두 모프 데이터의 소유 목록과 누적 상태를 교환하고 구조 변경을 기록한다.
+		void Swap(ModelMorphData& other);
 	};
 
 	// 모델의 Bullet 물리 월드, 강체와 조인트를 함께 소유하고 등록 수명을 관리한다.
@@ -219,8 +241,8 @@ namespace Chrivent {
 		std::expected<void, PhysicsError> InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
 			const std::vector<JointDefinition>& joints);
 		// 강체와 조인트를 현재 모델 포즈 기준으로 초기화한다.
-		void ResetPhysics();
+		void ResetPhysics() const;
 		// 물리 시뮬레이션을 진행하고 강체 변환을 노드에 반영한다.
-		void UpdatePhysics(float elapsed);
+		void UpdatePhysics(float elapsed) const;
 	};
 }

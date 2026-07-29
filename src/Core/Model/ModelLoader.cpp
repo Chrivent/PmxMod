@@ -136,7 +136,7 @@ namespace Chrivent {
 	}
 
 	void ModelLoader::LoadVertices(Model& model, const PmxParser::PmxData& pmxData, const glm::vec3& invZ) {
-		size_t vertexCount = pmxData.vertices.size();
+		std::size_t vertexCount = pmxData.vertices.size();
 		model.geometryData.positions.reserve(vertexCount);
 		model.geometryData.normals.reserve(vertexCount);
 		model.geometryData.uvs.reserve(vertexCount);
@@ -215,7 +215,7 @@ namespace Chrivent {
 		model.geometryData.indexCount = pmxData.faces.size() * 3;
 		auto FillIndices = [&]<typename Index>() {
 			std::vector<Index> indices(model.geometryData.indexCount);
-			size_t index = 0;
+			std::size_t index = 0;
 			for (const auto& [tri] : pmxData.faces) {
 				indices[index++] = static_cast<Index>(tri[2]);
 				indices[index++] = static_cast<Index>(tri[1]);
@@ -245,7 +245,7 @@ namespace Chrivent {
 		}
 		model.materialData.materials.reserve(pmxData.materials.size());
 		model.materialData.subMeshes.reserve(pmxData.materials.size());
-		size_t beginIndex = 0;
+		std::size_t beginIndex = 0;
 		for (const auto& mat : pmxData.materials) {
 			Material m;
 			m.diffuse = mat.diffuse;
@@ -298,7 +298,7 @@ namespace Chrivent {
 			model.skeletonData.AddNode(std::move(node));
 		}
 		const auto& nodes = model.skeletonData.GetNodes();
-		for (size_t i = 0; i < pmxData.bones.size(); i++) {
+		for (std::size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
 			auto* node = nodes[i].get();
 			glm::vec3 localPos = bone.position;
@@ -338,7 +338,7 @@ namespace Chrivent {
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
 			return x.get().deformDepth < y.get().deformDepth;
 		});
-		for (size_t i = 0; i < pmxData.bones.size(); i++) {
+		for (std::size_t i = 0; i < pmxData.bones.size(); i++) {
 			const auto& bone = pmxData.bones[i];
 			if (PmxParser::ContainsFlag(bone.boneFlag, PmxParser::BoneFlags::Ik)) {
 				auto solver = std::make_unique<IkSolver>();
@@ -453,8 +453,8 @@ namespace Chrivent {
 	void ModelLoader::FixInfiniteGroupMorphs(Model& model) {
 		const auto& morphs = model.morphData.GetMorphs();
 		std::vector<uint8_t> visitStates(morphs.size());
-		std::vector<std::pair<int32_t, size_t>> traversalStack;
-		for (size_t rootIndex = 0; rootIndex < morphs.size(); rootIndex++) {
+		std::vector<std::pair<int32_t, std::size_t>> traversalStack;
+		for (std::size_t rootIndex = 0; rootIndex < morphs.size(); rootIndex++) {
 			const auto* rootMorph = morphs[rootIndex].get();
 			if (rootMorph->morphType != MorphType::Group || visitStates[rootIndex] != 0)
 				continue;

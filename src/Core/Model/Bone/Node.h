@@ -11,8 +11,8 @@ namespace Chrivent {
 	// 모델 본의 계층, 변환, 부가 변형과 IK 상태를 관리한다.
 	class Node {
 		Node*					child = nullptr;
+		Node*					lastChild = nullptr;
 		Node*					next = nullptr;
-		Node*					prev = nullptr;
 		glm::vec3				appendTranslate = glm::vec3(0);
 		glm::quat				appendRotate = glm::quat(1, 0, 0, 0);
 

@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <ranges>
 
 namespace Chrivent {
 	void ModelUpdater::SaveBaseAnimation(const Model& model) {
@@ -41,19 +40,20 @@ namespace Chrivent {
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
 	}
 
-	void ModelUpdater::UpdateNodeAnimation(Model& model, const bool afterPhysicsAnimation) {
-		const auto Pred = [&](const std::reference_wrapper<Node>& node) {
-			return node.get().isDeformAfterPhysics == afterPhysicsAnimation;
+	void ModelUpdater::UpdateNodePose(const Model& model, const bool afterPhysics) {
+		const auto ForEachStageNode = [&](const auto& updateNode) {
+			for (const auto& entry : model.skeletonData.sortedNodes) {
+				Node& node = entry.get();
+				if (node.isDeformAfterPhysics == afterPhysics)
+					updateNode(node);
+			}
 		};
-		for (auto& nodeReference : model.skeletonData.sortedNodes | std::views::filter(Pred))
-			nodeReference.get().UpdateLocalTransform();
-		for (auto& nodeReference : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
-			auto& node = nodeReference.get();
+		ForEachStageNode([](Node& node) { node.UpdateLocalTransform(); });
+		ForEachStageNode([](Node& node) {
 			if (!node.parent)
 				node.UpdateGlobalTransform();
-		}
-		for (auto& nodeReference : model.skeletonData.sortedNodes | std::views::filter(Pred)) {
-			auto& node = nodeReference.get();
+		});
+		ForEachStageNode([](Node& node) {
 			if (node.appendNode) {
 				node.UpdateAppendTransform();
 				node.UpdateGlobalTransform();
@@ -62,12 +62,12 @@ namespace Chrivent {
 				node.ikSolver->Solve();
 				node.UpdateGlobalTransform();
 			}
-		}
+		});
 	}
 
 	void ModelUpdater::UpdateTransforms(Model& model) {
 		const auto& nodes = model.skeletonData.GetNodes();
-		for (size_t index = 0; index < nodes.size(); index++)
+		for (std::size_t index = 0; index < nodes.size(); index++)
 			model.skeletonData.transforms[index] = nodes[index]->global * nodes[index]->inverseInit;
 	}
 
@@ -78,8 +78,8 @@ namespace Chrivent {
 			morph->weight = 0;
 		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->enable = true;
-		UpdateNodeAnimation(model, false);
-		UpdateNodeAnimation(model, true);
+		UpdateNodePose(model, false);
+		UpdateNodePose(model, true);
 		model.ResetPhysics();
 	}
 
@@ -93,9 +93,9 @@ namespace Chrivent {
 			BeginAnimation(model);
 			animation.Evaluate(frame, static_cast<float>(1 + index) / warmUpStepCount);
 			model.AccumulateMorphs();
-			UpdateNodeAnimation(model, false);
+			UpdateNodePose(model, false);
 			model.UpdatePhysics(warmUpElapsed);
-			UpdateNodeAnimation(model, true);
+			UpdateNodePose(model, true);
 		}
 	}
 
@@ -103,8 +103,8 @@ namespace Chrivent {
 		BeginAnimation(model);
 		animation.Evaluate(frame);
 		model.AccumulateMorphs();
-		UpdateNodeAnimation(model, false);
-		UpdateNodeAnimation(model, true);
+		UpdateNodePose(model, false);
+		UpdateNodePose(model, true);
 		model.ResetPhysics();
 		SyncPhysics(model, animation, frame);
 	}
@@ -128,11 +128,11 @@ namespace Chrivent {
 		RunStage(timing ? &timing->morphMilliseconds : nullptr,
 			[&] { model.AccumulateMorphs(); });
 		RunStage(timing ? &timing->beforePhysicsPoseMilliseconds : nullptr,
-			[&] { UpdateNodeAnimation(model, false); });
+			[&] { UpdateNodePose(model, false); });
 		RunStage(timing ? &timing->physicsMilliseconds : nullptr,
 			[&] { if (options.updatePhysics) model.UpdatePhysics(options.physicsElapsed); });
 		RunStage(timing ? &timing->afterPhysicsPoseMilliseconds : nullptr,
-			[&] { UpdateNodeAnimation(model, true); });
+			[&] { UpdateNodePose(model, true); });
 		RunStage(timing ? &timing->transformMilliseconds : nullptr,
 			[&] { UpdateTransforms(model); });
 		ModelSkinning::PrepareUpdate(model, options.preservePreviousPositions);

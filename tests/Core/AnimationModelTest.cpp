@@ -250,6 +250,38 @@ namespace Chrivent {
 		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(7));
 	}
 
+	TEST_F(AnimationModelContractTest, InvalidatesAnimationBindingsWhenOwnedStructureIsExchanged) {
+		const auto model = std::make_shared<Model>();
+		Node* originalNode = AddNode(*model);
+		auto originalMorph = std::make_unique<Morph>();
+		Morph* originalMorphReference = originalMorph.get();
+		model->morphData.AddMorph(std::move(originalMorph));
+		NodeAnimationKey nodeKey{};
+		nodeKey.translate = glm::vec3(3, 0, 0);
+		MorphAnimationKey morphKey{};
+		morphKey.morphWeight = 1.0f;
+		const Animation animation(model,
+			{{.node = originalNode, .keys = {nodeKey} }},
+			{},
+			{{.morph = originalMorphReference, .keys = {morphKey} }});
+		Model replacement;
+		Node* replacementNode = AddNode(replacement);
+		auto replacementMorph = std::make_unique<Morph>();
+		Morph* replacementMorphReference = replacementMorph.get();
+		replacement.morphData.AddMorph(std::move(replacementMorph));
+		originalNode->animTranslate = glm::vec3(7, 0, 0);
+		originalMorphReference->weight = 0.25f;
+		replacementNode->animTranslate = glm::vec3(9, 0, 0);
+		replacementMorphReference->weight = 0.5f;
+		model->skeletonData.Swap(replacement.skeletonData);
+		model->morphData.Swap(replacement.morphData);
+		animation.Evaluate(0);
+		EXPECT_EQ(originalNode->animTranslate, glm::vec3(7, 0, 0));
+		EXPECT_FLOAT_EQ(originalMorphReference->weight, 0.25f);
+		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(9, 0, 0));
+		EXPECT_FLOAT_EQ(replacementMorphReference->weight, 0.5f);
+	}
+
 	TEST_F(AnimationModelContractTest, BindsTracksToTheCurrentModelWhenTaken) {
 		const auto model = std::make_shared<Model>();
 		AddNode(*model, "A");
@@ -526,5 +558,19 @@ namespace Chrivent {
 		root.UpdateChildTransform();
 		EXPECT_EQ(glm::vec3(child.global[3]), glm::vec3(1, 2, 0));
 		EXPECT_EQ(glm::vec3(grandchild.global[3]), glm::vec3(1, 2, 3));
+	}
+
+	TEST_F(AnimationModelContractTest, UpdatesEverySiblingTransform) {
+		Node root;
+		Node firstChild;
+		Node secondChild;
+		root.AddChild(firstChild);
+		root.AddChild(secondChild);
+		root.global = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
+		firstChild.local = glm::translate(glm::mat4(1), glm::vec3(0, 2, 0));
+		secondChild.local = glm::translate(glm::mat4(1), glm::vec3(0, 0, 3));
+		root.UpdateChildTransform();
+		EXPECT_EQ(glm::vec3(firstChild.global[3]), glm::vec3(1, 2, 0));
+		EXPECT_EQ(glm::vec3(secondChild.global[3]), glm::vec3(1, 0, 3));
 	}
 }

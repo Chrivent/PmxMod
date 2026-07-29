@@ -13,21 +13,21 @@
 
 namespace Chrivent {
 	void ModelSkinning::SetupParallelUpdate(Model& model) {
-		const size_t totalVertexCount = model.geometryData.positions.size();
+		const std::size_t totalVertexCount = model.geometryData.positions.size();
 		if (totalVertexCount == 0) {
 			model.geometryData.updateRanges.clear();
 			return;
 		}
-		constexpr size_t minimumVertexCount = 1000;
-		const size_t hardwareWorkerCount = std::max(1u, std::thread::hardware_concurrency());
-		const size_t workerCount = std::min<size_t>(hardwareWorkerCount, 16);
-		const size_t requiredRangeCount = (totalVertexCount + minimumVertexCount - 1) / minimumVertexCount;
-		const size_t rangeCount = std::min(workerCount, requiredRangeCount);
+		constexpr std::size_t minimumVertexCount = 1000;
+		const std::size_t hardwareWorkerCount = std::max(1u, std::thread::hardware_concurrency());
+		const std::size_t workerCount = std::min<std::size_t>(hardwareWorkerCount, 16);
+		const std::size_t requiredRangeCount = (totalVertexCount + minimumVertexCount - 1) / minimumVertexCount;
+		const std::size_t rangeCount = std::min(workerCount, requiredRangeCount);
 		model.geometryData.updateRanges.resize(rangeCount);
-		const size_t verticesPerRange = totalVertexCount / rangeCount;
-		const size_t remainder = totalVertexCount % rangeCount;
-		size_t offset = 0;
-		for (size_t i = 0; i < rangeCount; i++) {
+		const std::size_t verticesPerRange = totalVertexCount / rangeCount;
+		const std::size_t remainder = totalVertexCount % rangeCount;
+		std::size_t offset = 0;
+		for (std::size_t i = 0; i < rangeCount; i++) {
 			auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[i];
 			vertexOffset = offset;
 			vertexCount = verticesPerRange + (i < remainder ? 1 : 0);
@@ -37,7 +37,7 @@ namespace Chrivent {
 
 	void ModelSkinning::UpdateRange(Model& model, const std::size_t rangeIndex) {
 		const auto& [vertexOffset, vertexCount] = model.geometryData.updateRanges[rangeIndex];
-		for (size_t index = vertexOffset; index < vertexOffset + vertexCount; index++) {
+		for (std::size_t index = vertexOffset; index < vertexOffset + vertexCount; index++) {
 			const auto& position = model.geometryData.positions[index];
 			const auto& normal = model.geometryData.normals[index];
 			const auto& uv = model.geometryData.uvs[index];

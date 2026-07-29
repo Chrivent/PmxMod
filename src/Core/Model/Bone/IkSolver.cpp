@@ -10,8 +10,8 @@ namespace Chrivent {
 		if (!ikNode || !ikTarget)
 			return;
 		auto ikPos = glm::vec3(ikNode->global[3]);
-		for (size_t chainIdx = 0; chainIdx < chains.size(); chainIdx++) {
-			auto& chain = chains[chainIdx];
+		for (std::size_t chainIndex = 0; chainIndex < chains.size(); chainIndex++) {
+			auto& chain = chains[chainIndex];
 			Node* chainNode = chain.node;
 			if (!chainNode || chainNode == ikTarget)
 				continue;
@@ -19,19 +19,19 @@ namespace Chrivent {
 				if ((chain.limitMin.x != 0 || chain.limitMax.x != 0) &&
 					(chain.limitMin.y == 0 || chain.limitMax.y == 0) &&
 					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
-					SolvePlane(iteration, chainIdx, 0);
+					SolvePlane(iteration, chainIndex, 0);
 					continue;
 				}
 				if ((chain.limitMin.y != 0 || chain.limitMax.y != 0) &&
 					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
 					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
-					SolvePlane(iteration, chainIdx, 1);
+					SolvePlane(iteration, chainIndex, 1);
 					continue;
 				}
 				if ((chain.limitMin.z != 0 || chain.limitMax.z != 0) &&
 					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
 					(chain.limitMin.y == 0 || chain.limitMax.y == 0)) {
-					SolvePlane(iteration, chainIdx, 2);
+					SolvePlane(iteration, chainIndex, 2);
 					continue;
 				}
 			}
@@ -76,14 +76,14 @@ namespace Chrivent {
 		}
 	}
 
-	void IkSolver::SolvePlane(uint32_t iteration, size_t chainIdx, int rotateAxisIndex) {
+	void IkSolver::SolvePlane(const uint32_t iteration, const std::size_t chainIndex, const int rotateAxisIndex) {
 		constexpr glm::vec3 axis[3] = {
 			{ 1, 0, 0 },
 			{ 0, 1, 0 },
 			{ 0, 0, 1 }
 		};
 		const glm::vec3& rotateAxis = axis[rotateAxisIndex];
-		auto& chain = chains[chainIdx];
+		auto& chain = chains[chainIndex];
 		Node* chainNode = chain.node;
 		if (!ikNode || !ikTarget || !chainNode)
 			return;

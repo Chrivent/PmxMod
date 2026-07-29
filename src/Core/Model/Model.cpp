@@ -1,7 +1,30 @@
 ﻿#include "Core/Model/Model.h"
 
 namespace Chrivent {
-	Model::Model() = default;
+	void ModelSkeletonData::Swap(ModelSkeletonData& other) {
+		nodes.swap(other.nodes);
+		ikSolvers.swap(other.ikSolvers);
+		transforms.swap(other.transforms);
+		sortedNodes.swap(other.sortedNodes);
+		displayFrames.swap(other.displayFrames);
+		++structureRevision;
+		++other.structureRevision;
+	}
+
+	void ModelMorphData::Swap(ModelMorphData& other) {
+		morphs.swap(other.morphs);
+		positionMorphs.swap(other.positionMorphs);
+		uvMorphs.swap(other.uvMorphs);
+		materialMorphs.swap(other.materialMorphs);
+		boneMorphs.swap(other.boneMorphs);
+		groupMorphs.swap(other.groupMorphs);
+		morphPositions.swap(other.morphPositions);
+		morphUVs.swap(other.morphUVs);
+		++structureRevision;
+		++other.structureRevision;
+	}
+
+	Model::Model() : skeletonData(structureRevision), morphData(structureRevision) {}
 	Model::~Model() = default;
 
 	bool Model::HasPhysics() const {
@@ -17,11 +40,9 @@ namespace Chrivent {
 		std::swap(infoData, other.infoData);
 		std::swap(geometryData, other.geometryData);
 		std::swap(materialData, other.materialData);
-		std::swap(skeletonData, other.skeletonData);
-		std::swap(morphData, other.morphData);
+		skeletonData.Swap(other.skeletonData);
+		morphData.Swap(other.morphData);
 		physicsData.Swap(other.physicsData);
-		structureRevision++;
-		other.structureRevision++;
 	}
 
 	void Model::AccumulateMorphs() {
@@ -33,11 +54,11 @@ namespace Chrivent {
 		return physicsData.Initialize(rigidBodies, joints, skeletonData.GetNodes());
 	}
 
-	void Model::ResetPhysics() {
+	void Model::ResetPhysics() const {
 		physicsData.ResetSimulation(skeletonData.GetNodes());
 	}
 
-	void Model::UpdatePhysics(const float elapsed) {
+	void Model::UpdatePhysics(const float elapsed) const {
 		physicsData.UpdateSimulation(elapsed, skeletonData.GetNodes());
 	}
 }

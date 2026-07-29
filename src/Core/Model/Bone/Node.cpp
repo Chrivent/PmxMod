@@ -4,15 +4,11 @@ namespace Chrivent {
 	void Node::AddChild(Node& childNode) {
 		childNode.parent = this;
 		childNode.next = nullptr;
-		if (!child) {
+		if (!child)
 			child = &childNode;
-			childNode.prev = &childNode;
-		} else {
-			Node* last = child->prev;
-			last->next = &childNode;
-			childNode.prev = last;
-			child->prev = &childNode;
-		}
+		else
+			lastChild->next = &childNode;
+		lastChild = &childNode;
 	}
 
 	void Node::BeginUpdateTransform() {

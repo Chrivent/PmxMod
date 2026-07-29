@@ -77,7 +77,7 @@ namespace Chrivent {
 			0, OpType::Add, glm::vec4(0), glm::vec3(0), 0.0f, glm::vec3(0),
 			glm::vec4(0), 0.0f, glm::vec4(0), glm::vec4(0), glm::vec4(0)
 		};
-		for (size_t i = 0; i < model.materialData.materials.size(); i++) {
+		for (std::size_t i = 0; i < model.materialData.materials.size(); i++) {
 			auto& mul = model.materialData.mulMaterialFactors[i];
 			mul = initMul;
 			mul.diffuse       = model.materialData.initMaterials[i].diffuse;
@@ -91,7 +91,7 @@ namespace Chrivent {
 	}
 
 	void ModelMorph::EndMorphMaterial(Model& model) {
-		for (size_t i = 0; i < model.materialData.materials.size(); i++) {
+		for (std::size_t i = 0; i < model.materialData.materials.size(); i++) {
 			auto& mat = model.materialData.materials[i];
 			const auto& mul = model.materialData.mulMaterialFactors[i];
 			const auto& add = model.materialData.addMaterialFactors[i];
@@ -114,7 +114,7 @@ namespace Chrivent {
 
 	void ModelMorph::MorphMaterial(Model& model, const std::vector<MaterialMorph>& morphData, const float weight) {
 		for (const auto& matMorph : morphData) {
-			auto Apply = [&](const size_t mi) {
+			auto Apply = [&](const std::size_t mi) {
 				switch (matMorph.opType) {
 					case OpType::Mul: AccumulateMaterialMul(model.materialData.mulMaterialFactors[mi], matMorph, weight); break;
 					case OpType::Add: AccumulateMaterialAdd(model.materialData.addMaterialFactors[mi], matMorph, weight); break;
@@ -123,7 +123,7 @@ namespace Chrivent {
 			if (matMorph.materialIndex != -1)
 				Apply(matMorph.materialIndex);
 			else {
-				for (size_t i = 0; i < model.materialData.materials.size(); i++)
+				for (std::size_t i = 0; i < model.materialData.materials.size(); i++)
 					Apply(i);
 			}
 		}

@@ -36,7 +36,7 @@ namespace Chrivent {
 		// 프레임 애니메이션 평가를 시작하기 전 상태를 준비한다.
 		static void BeginAnimation(Model& model);
 		// 물리 전후 단계에 맞는 노드 변환과 IK를 갱신한다.
-		static void UpdateNodeAnimation(Model& model, bool afterPhysicsAnimation);
+		static void UpdateNodePose(const Model& model, bool afterPhysics);
 		// 현재 노드 글로벌 행렬을 스키닝용 최종 본 행렬로 변환한다.
 		static void UpdateTransforms(Model& model);
 

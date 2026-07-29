@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 #include <glm/gtc/quaternion.hpp>
@@ -23,7 +24,7 @@ namespace Chrivent {
 		// 단일 반복 단계에서 일반 IK 체인을 계산한다.
 		void SolveCore(uint32_t iteration);
 		// 축 제한이 평면 모드인 체인 요소를 계산한다.
-		void SolvePlane(uint32_t iteration, size_t chainIdx, int rotateAxisIndex);
+		void SolvePlane(uint32_t iteration, std::size_t chainIndex, int rotateAxisIndex);
 		// 각도를 [0, 2pi) 범위로 정규화한다.
 		static float NormalizeAngle(float angle);
 		// 두 각도의 최단 차이를 [-pi, pi] 범위로 계산한다.
