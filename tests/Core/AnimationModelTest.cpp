@@ -116,6 +116,28 @@ namespace Chrivent {
 		EXPECT_EQ(node->animTranslate, glm::vec3(2, 0, 0));
 	}
 
+	TEST_F(AnimationModelContractTest, EmptyTracksResetTheirTargets) {
+		const auto model = std::make_shared<Model>();
+		Node* node = AddNode(*model);
+		IkSolver* ikSolver = AddIkSolver(*model);
+		auto morph = std::make_unique<Morph>();
+		Morph* const morphTarget = morph.get();
+		model->morphData.AddMorph(std::move(morph));
+		node->animTranslate = glm::vec3(3);
+		node->animRotate = glm::quat(0, 1, 0, 0);
+		ikSolver->enable = false;
+		morphTarget->weight = 0.75f;
+		const Animation animation(model,
+			{{.node = node}},
+			{{.ikSolver = ikSolver}},
+			{{.morph = morphTarget}});
+		animation.Evaluate(0);
+		EXPECT_EQ(node->animTranslate, glm::vec3(0));
+		EXPECT_EQ(node->animRotate, glm::quat(1, 0, 0, 0));
+		EXPECT_TRUE(ikSolver->enable);
+		EXPECT_FLOAT_EQ(morphTarget->weight, 0);
+	}
+
 	TEST_F(AnimationModelContractTest, CalculatesLastFrameAcrossEveryTrackType) {
 		const auto model = std::make_shared<Model>();
 		Node* node = AddNode(*model);
@@ -344,7 +366,6 @@ namespace Chrivent {
 	TEST_F(AnimationModelContractTest, ResetsModelStateThroughTheUpdaterContract) {
 		const auto model = std::make_shared<Model>();
 		Node* node = AddNode(*model, "A");
-		model->skeletonData.sortedNodes.emplace_back(*node);
 		VmdParser::VmdData data{};
 		auto& motion = data.motions.emplace_back();
 		std::memcpy(motion.boneName, "A", 1);

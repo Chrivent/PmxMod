@@ -69,8 +69,8 @@ namespace Chrivent {
 			auto node = std::make_unique<Node>();
 			node->global = glm::mat4(1);
 			model.skeletonData.AddNode(std::move(node));
-			model.skeletonData.transforms.emplace_back(
-				glm::translate(glm::mat4(1), glm::vec3(static_cast<float>(index * 2), 0, 0)));
+			model.skeletonData.transforms.back() =
+				glm::translate(glm::mat4(1), glm::vec3(static_cast<float>(index * 2), 0, 0));
 		}
 		RunSkinning(model);
 		EXPECT_NEAR(model.geometryData.updatePositions.front().x, 2.0f, 1.0e-5f);
@@ -99,16 +99,43 @@ namespace Chrivent {
 		vertex.boneIndices[0] = 0;
 		vertex.boneWeights[0] = 1.0f;
 		model.geometryData.updatePositions.front() = glm::vec3(7, 0, 0);
-		auto node = std::make_unique<Node>();
-		Node* nodeReference = node.get();
-		model.skeletonData.AddNode(std::move(node));
-		model.skeletonData.sortedNodes.emplace_back(*nodeReference);
-		model.skeletonData.transforms.emplace_back(1.0f);
+		model.skeletonData.AddNode(std::make_unique<Node>());
 		ModelUpdater::Prepare(model, {
 			.preservePreviousPositions = true,
 			.updatePhysics = false
 		});
 		ASSERT_EQ(model.geometryData.previousPositions.size(), 1);
 		EXPECT_EQ(model.geometryData.previousPositions.front(), glm::vec3(7, 0, 0));
+	}
+
+	TEST_F(ModelRuntimeContractTest, AddingNodeMaintainsThePoseLayout) {
+		Model model;
+		auto node = std::make_unique<Node>();
+		Node* const nodeReference = node.get();
+		model.skeletonData.AddNode(std::move(node));
+		ASSERT_EQ(model.skeletonData.GetNodes().size(), 1);
+		ASSERT_EQ(model.skeletonData.transforms.size(), 1);
+		ASSERT_EQ(model.skeletonData.sortedNodes.size(), 1);
+		EXPECT_EQ(model.skeletonData.GetNodes().front().get(), nodeReference);
+		EXPECT_EQ(&model.skeletonData.sortedNodes.front().get(), nodeReference);
+		EXPECT_EQ(model.skeletonData.transforms.front(), glm::mat4(1));
+	}
+
+	TEST_F(ModelRuntimeContractTest, UpdatesBeforeAndAfterPhysicsPoseStages) {
+		Model model;
+		auto beforePhysicsNode = std::make_unique<Node>();
+		Node* const beforePhysicsNodeReference = beforePhysicsNode.get();
+		beforePhysicsNode->initTranslate = glm::vec3(1, 0, 0);
+		model.skeletonData.AddNode(std::move(beforePhysicsNode));
+		auto afterPhysicsNode = std::make_unique<Node>();
+		Node* const afterPhysicsNodeReference = afterPhysicsNode.get();
+		afterPhysicsNode->initTranslate = glm::vec3(0, 2, 0);
+		afterPhysicsNode->isDeformAfterPhysics = true;
+		model.skeletonData.AddNode(std::move(afterPhysicsNode));
+		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		EXPECT_EQ(glm::vec3(beforePhysicsNodeReference->global[3]), glm::vec3(1, 0, 0));
+		EXPECT_EQ(glm::vec3(afterPhysicsNodeReference->global[3]), glm::vec3(0, 2, 0));
+		EXPECT_EQ(glm::vec3(model.skeletonData.transforms[0][3]), glm::vec3(1, 0, 0));
+		EXPECT_EQ(glm::vec3(model.skeletonData.transforms[1][3]), glm::vec3(0, 2, 0));
 	}
 }

@@ -213,7 +213,7 @@ namespace Chrivent {
 		model.geometryData.indexElementSize = pmxData.header.vertexIndexSize;
 		model.geometryData.indices.resize(pmxData.faces.size() * 3 * model.geometryData.indexElementSize);
 		model.geometryData.indexCount = pmxData.faces.size() * 3;
-		auto FillIndices = [&]<typename Index>() {
+		const auto FillIndices = [&]<typename Index>() {
 			std::vector<Index> indices(model.geometryData.indexCount);
 			std::size_t index = 0;
 			for (const auto& [tri] : pmxData.faces) {
@@ -329,11 +329,6 @@ namespace Chrivent {
 			node->initRotate = node->rotate;
 			node->initScale = node->scale;
 		}
-		model.skeletonData.transforms.resize(nodes.size());
-		model.skeletonData.sortedNodes.clear();
-		model.skeletonData.sortedNodes.reserve(nodes.size());
-		for (const auto& node : nodes)
-			model.skeletonData.sortedNodes.emplace_back(*node);
 		std::ranges::stable_sort(model.skeletonData.sortedNodes,
 		[](const std::reference_wrapper<Node>& x, const std::reference_wrapper<Node>& y) {
 			return x.get().deformDepth < y.get().deformDepth;

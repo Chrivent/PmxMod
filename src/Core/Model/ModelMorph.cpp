@@ -114,7 +114,7 @@ namespace Chrivent {
 
 	void ModelMorph::MorphMaterial(Model& model, const std::vector<MaterialMorph>& morphData, const float weight) {
 		for (const auto& matMorph : morphData) {
-			auto Apply = [&](const std::size_t mi) {
+			const auto Apply = [&](const std::size_t mi) {
 				switch (matMorph.opType) {
 					case OpType::Mul: AccumulateMaterialMul(model.materialData.mulMaterialFactors[mi], matMorph, weight); break;
 					case OpType::Add: AccumulateMaterialAdd(model.materialData.addMaterialFactors[mi], matMorph, weight); break;

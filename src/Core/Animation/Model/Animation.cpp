@@ -92,13 +92,15 @@ namespace Chrivent {
 		for (const auto& [morph, keys] : morphTracks) {
 			if (!morph)
 				continue;
-			if (keys.empty())
+			if (keys.empty()) {
+				morph->weight = 0;
 				continue;
+			}
 			const auto it = AnimationKeySequence::FindUpperKey(keys, t);
 			float weight = it != keys.end() ? it->morphWeight : keys.back().morphWeight;
 			if (it != keys.begin() && it != keys.end()) {
-				auto [frame0, weight0] = *std::prev(it);
-				auto [frame1, weight1] = *it;
+				const auto [frame0, weight0] = *std::prev(it);
+				const auto [frame1, weight1] = *it;
 				const float frame = (t - static_cast<float>(frame0)) /
 					(static_cast<float>(frame1) - static_cast<float>(frame0));
 				weight = (weight1 - weight0) * frame + weight0;

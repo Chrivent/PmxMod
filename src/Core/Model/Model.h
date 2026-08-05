@@ -138,10 +138,19 @@ namespace Chrivent {
 		const std::vector<std::unique_ptr<Node>>& GetNodes() const { return nodes; }
 		const std::vector<std::unique_ptr<IkSolver>>& GetIkSolvers() const { return ikSolvers; }
 
-		// 예상 개수만큼 노드 소유 목록의 메모리를 미리 확보한다.
-		void ReserveNodes(const std::size_t count) { nodes.reserve(count); }
-		// 모델이 소유할 노드를 목록 끝에 추가한다.
-		void AddNode(std::unique_ptr<Node> node) { nodes.emplace_back(std::move(node)); ++structureRevision; }
+		// 예상 개수만큼 노드 소유 및 런타임 목록의 메모리를 미리 확보한다.
+		void ReserveNodes(const std::size_t count) {
+			nodes.reserve(count);
+			transforms.reserve(count);
+			sortedNodes.reserve(count);
+		}
+		// 모델이 소유할 노드와 대응하는 런타임 상태를 목록 끝에 추가한다.
+		void AddNode(std::unique_ptr<Node> node) {
+			nodes.emplace_back(std::move(node));
+			transforms.emplace_back(1.0f);
+			sortedNodes.emplace_back(*nodes.back());
+			++structureRevision;
+		}
 		// 모델이 소유할 IK 솔버를 목록 끝에 추가한다.
 		void AddIkSolver(std::unique_ptr<IkSolver> ikSolver) {
 			ikSolvers.emplace_back(std::move(ikSolver)); ++structureRevision;
